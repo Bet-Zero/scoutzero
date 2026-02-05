@@ -2,7 +2,14 @@
 import React, { useState, useMemo } from 'react';
 import PlayerRowMini from './PlayerRowMini';
 import { expandPositionGroup } from '@/shared/utils/roles';
-import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
+import {
+  getDefaultAddPlayerFilters,
+  normalizeFreeAgentType,
+  normalizeTeamCode,
+  getPlayerFreeAgentType,
+  playerHasOptionType,
+  isPlayerTwoWay,
+} from '@/shared/utils/filtering';
 import DrawerHeader from './addPlayer/DrawerHeader';
 import PlayerSearchBar from './addPlayer/PlayerSearchBar';
 import FilterTabs from './addPlayer/FilterTabs';
@@ -25,16 +32,26 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
       minSalary,
       maxSalary,
       freeAgentYear,
-      freeAgentType,
+      freeAgentStatus,
+      contractFeature,
     } = filters;
 
     const positionOptions = position ? expandPositionGroup(position) : null;
+    const normalizedTeam = normalizeTeamCode(team);
+    const normalizedFreeAgentStatus = normalizeFreeAgentType(freeAgentStatus);
 
     return allPlayers
       .filter((p) => {
         if (searchTerm && !p.name.includes(searchTerm)) return false;
-        const playerTeamId = (p.team || '').toLowerCase().replace(/\s+/g, '');
-        if (team && playerTeamId !== team) return false;
+        const playerTeamCode =
+          p.teamCode ||
+          normalizeTeamCode(
+            p.team ||
+              p.original?.bio?.display?.teamId ||
+              p.original?.bio?.display?.team ||
+              ''
+          );
+        if (normalizedTeam && playerTeamCode !== normalizedTeam) return false;
         if (positionOptions && !positionOptions.includes(p.position))
           return false;
         if (
@@ -93,22 +110,20 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
           return false;
         }
 
-        if (freeAgentType) {
-          if (p.freeAgentType === freeAgentType) return true;
-          if (p.extension?.free_agent_type?.toLowerCase() === freeAgentType)
-            return true;
-          if (freeAgentType === 'to' || freeAgentType === 'po') {
-            return p.options.some(
-              (opt) => opt.type?.toLowerCase() === freeAgentType
-            );
+        // FA Status filter (UFA/RFA only)
+        if (normalizedFreeAgentStatus) {
+          const playerFaType = getPlayerFreeAgentType(p.original);
+          if (playerFaType !== normalizedFreeAgentStatus) return false;
+        }
+
+        // Contract Features filter (TO/PO/ETO/Two-Way)
+        if (contractFeature) {
+          if (contractFeature === 'two_way') {
+            if (!isPlayerTwoWay(p)) return false;
+          } else {
+            // TO, PO, or ETO
+            if (!playerHasOptionType(p, contractFeature)) return false;
           }
-          if (freeAgentType === '2w') {
-            return (
-              p.contractType?.includes('two-way') ||
-              p.original.status?.toLowerCase() === 'two-way'
-            );
-          }
-          return false;
         }
 
         return true;

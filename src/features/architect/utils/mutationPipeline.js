@@ -1739,12 +1739,30 @@ function computeExtensionResult({
     };
   }
 
+  // Determine which years the extension covers so we can void overlapping originals
+  const extensionYearSet = new Set(
+    (extension.salariesByYear || []).map(
+      (y) => y.year || (y.season ? parseInt(y.season.split('-')[0]) + 1 : null)
+    )
+  );
+
+  // Mark existing salary rows that overlap with extension years as voidedByExtension
+  const existingRows = (
+    updatedTeam.players[playerIndex].futureContract?.salariesByYear || []
+  ).map((row) => {
+    const rowYear =
+      row.year ||
+      (row.season ? parseInt(row.season.split('-')[0]) + 1 : null);
+    return extensionYearSet.has(rowYear)
+      ? { ...row, voidedByExtension: true }
+      : row;
+  });
+
   // Build and normalize futureContract with canonical field names
   const rawFutureContract = {
     ...(updatedTeam.players[playerIndex].futureContract || {}),
     salariesByYear: [
-      ...(updatedTeam.players[playerIndex].futureContract?.salariesByYear ||
-        []),
+      ...existingRows,
       ...(extension.salariesByYear || []).map((y) => ({
         ...normalizeSalaryRow(y),
         isExtensionSeason: true,

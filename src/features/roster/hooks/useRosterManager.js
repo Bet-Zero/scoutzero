@@ -3,8 +3,14 @@ import {
   isTwoWayContract,
   normalizePlayer,
   buildInitialRoster,
+  normalizeRosterShape,
+  createEmptyRoster,
 } from '@/features/roster/utils';
 import { POSITION_MAP } from '@/shared/utils/roles';
+import {
+  normalizeFreeAgentType,
+  normalizeTeamCode,
+} from '@/shared/utils/filtering';
 import {
   createRosterProject,
   fetchAllRosterProjects,
@@ -13,14 +19,10 @@ import {
 } from '@/firebase/rosterHelpers';
 import { TeamMap } from '@/constants/teamList';
 
-export const emptyRoster = {
-  starters: [null, null, null, null, null],
-  rotation: [null, null, null, null],
-  bench: [null, null, null, null, null, null],
-};
+export const emptyRoster = createEmptyRoster();
 
 export const useRosterManager = (allPlayers = [], isLoading = false) => {
-  const [roster, setRoster] = useState(emptyRoster);
+  const [roster, setRoster] = useState(() => createEmptyRoster());
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [loadMethod, setLoadMethod] = useState('current');
   const [savedRosters, setSavedRosters] = useState([]);
@@ -39,6 +41,13 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
           id: player.id,
           name: (player.bio?.displayName || player.name || '').toLowerCase(),
           team: (player.bio?.display?.team || '').toLowerCase(),
+          teamCode: normalizeTeamCode(
+            player.bio?.display?.teamId ||
+              player.bio?.display?.team ||
+              player.team ||
+              player.bio?.team ||
+              ''
+          ),
           position:
             player.formattedPosition ||
             POSITION_MAP[player.bio?.position] ||
@@ -63,11 +72,11 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
             player.bio?.display?.freeAgentYear?.toString() ||
             contractData?.freeAgency?.freeAgentYear?.toString() ||
             null,
-          freeAgentType: (
+          freeAgentType: normalizeFreeAgentType(
             player.bio?.display?.freeAgentType ||
-            contractData?.freeAgency?.freeAgentType ||
-            ''
-          ).toLowerCase(),
+              contractData?.freeAgency?.freeAgentType ||
+              ''
+          ),
           contractType: (contractData?.contractType || '').toLowerCase(),
           extension: (player.contracts
             ? Object.values(player.contracts)
@@ -112,11 +121,15 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
       if (isLoading || allPlayers.length === 0) return;
 
       if (loadMethod === 'blank') {
-        setRoster(emptyRoster);
+        setRoster(createEmptyRoster());
+        setRosterId(null);
+        setRosterName('');
         return;
       }
 
       if (loadMethod === 'current') {
+        setRosterId(null);
+        setRosterName('');
         if (!selectedTeam) return;
         // Match by team name (full name like "Los Angeles Lakers") or team slug
         const rawTeamPlayers = allPlayers.filter((p) => {
@@ -139,7 +152,7 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
               parseFloat(a.MIN ?? a.latestSeasonStats?.MIN ?? 0)
           );
 
-        setRoster(buildInitialRoster(teamPlayers));
+        setRoster(normalizeRosterShape(buildInitialRoster(teamPlayers)));
         return;
       }
 
@@ -148,11 +161,13 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
         setSelectedTeam(TeamMap[loaded.team] || null);
         setRosterId(loaded.id);
         setRosterName(loaded.name);
-        setRoster({
-          starters: idsToPlayers(loaded.starters || []),
-          rotation: idsToPlayers(loaded.rotation || []),
-          bench: idsToPlayers(loaded.bench || []),
-        });
+        setRoster(
+          normalizeRosterShape({
+            starters: idsToPlayers(loaded.starters || []),
+            rotation: idsToPlayers(loaded.rotation || []),
+            bench: idsToPlayers(loaded.bench || []),
+          })
+        );
       }
     };
 
@@ -161,9 +176,12 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
 
   const addPlayerToSlot = useCallback(
     (player, section, index) => {
-      const updated = [...roster[section]];
+      const normalizedRoster = normalizeRosterShape(roster);
+      const updated = [...normalizedRoster[section]];
       updated[index] = normalizePlayer(player);
-      setRoster({ ...roster, [section]: updated });
+      setRoster(
+        normalizeRosterShape({ ...normalizedRoster, [section]: updated })
+      );
     },
     [roster]
   );
@@ -171,12 +189,15 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
   const addPlayerToNextSlot = useCallback(
     (player) => {
       const normalized = normalizePlayer(player);
+      const normalizedRoster = normalizeRosterShape(roster);
       for (const section of ['starters', 'rotation', 'bench']) {
-        const index = roster[section].findIndex((p) => p === null);
+        const index = normalizedRoster[section].findIndex((p) => p === null);
         if (index !== -1) {
-          const updated = [...roster[section]];
+          const updated = [...normalizedRoster[section]];
           updated[index] = normalized;
-          setRoster({ ...roster, [section]: updated });
+          setRoster(
+            normalizeRosterShape({ ...normalizedRoster, [section]: updated })
+          );
           return;
         }
       }
@@ -186,39 +207,65 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
 
   const removePlayer = useCallback(
     (section, index) => {
-      const updated = [...roster[section]];
+      const normalizedRoster = normalizeRosterShape(roster);
+      const updated = [...normalizedRoster[section]];
       updated[index] = null;
-      setRoster({ ...roster, [section]: updated });
+      setRoster(
+        normalizeRosterShape({ ...normalizedRoster, [section]: updated })
+      );
     },
     [roster]
   );
 
   const saveNewRoster = useCallback(async () => {
-    if (!rosterName.trim()) return;
+    const trimmedName = rosterName.trim();
+    if (!trimmedName) return;
+    const normalizedRoster = normalizeRosterShape(roster);
     const created = await createRosterProject(
-      rosterName,
-      roster.starters.map((p) => (p ? p.id : null)),
-      roster.rotation.map((p) => (p ? p.id : null)),
-      roster.bench.map((p) => (p ? p.id : null)),
+      trimmedName,
+      normalizedRoster.starters.map((p) => (p ? p.id : null)),
+      normalizedRoster.rotation.map((p) => (p ? p.id : null)),
+      normalizedRoster.bench.map((p) => (p ? p.id : null)),
       selectedTeam?.id || ''
     );
     setRosterId(created.id);
+    setLoadMethod(created.id);
     setSavedRosters((prev) => [...prev, created]);
-    setRosterName('');
-  }, [rosterName, roster, selectedTeam]);
+    setRosterName(created.name);
+  }, [rosterName, roster, selectedTeam, setLoadMethod]);
 
   const updateRoster = useCallback(async () => {
     if (!rosterId) return;
+    const normalizedRoster = normalizeRosterShape(roster);
+    const trimmedName = rosterName?.trim();
     await updateRosterProject(
       rosterId,
-      roster.starters.map((p) => (p ? p.id : null)),
-      roster.rotation.map((p) => (p ? p.id : null)),
-      roster.bench.map((p) => (p ? p.id : null))
+      {
+        starters: normalizedRoster.starters.map((p) => (p ? p.id : null)),
+        rotation: normalizedRoster.rotation.map((p) => (p ? p.id : null)),
+        bench: normalizedRoster.bench.map((p) => (p ? p.id : null)),
+        name: trimmedName || undefined,
+        team: selectedTeam?.id || '',
+      }
     );
-  }, [rosterId, roster]);
+    setSavedRosters((prev) =>
+      prev.map((item) =>
+        item.id === rosterId
+          ? {
+              ...item,
+              name: trimmedName || item.name,
+              team: selectedTeam?.id || '',
+              starters: normalizedRoster.starters.map((p) => (p ? p.id : null)),
+              rotation: normalizedRoster.rotation.map((p) => (p ? p.id : null)),
+              bench: normalizedRoster.bench.map((p) => (p ? p.id : null)),
+            }
+          : item
+      )
+    );
+  }, [rosterId, roster, rosterName, selectedTeam]);
 
   const clearRoster = useCallback(() => {
-    setRoster(emptyRoster);
+    setRoster(createEmptyRoster());
     setLoadMethod('blank');
     setRosterId(null);
     setRosterName('');
@@ -231,14 +278,30 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
         setSelectedTeam(TeamMap[loaded.team] || null);
         setRosterId(loaded.id);
         setRosterName(loaded.name);
-        setRoster({
-          starters: idsToPlayers(loaded.starters || []),
-          rotation: idsToPlayers(loaded.rotation || []),
-          bench: idsToPlayers(loaded.bench || []),
-        });
+        setRoster(
+          normalizeRosterShape({
+            starters: idsToPlayers(loaded.starters || []),
+            rotation: idsToPlayers(loaded.rotation || []),
+            bench: idsToPlayers(loaded.bench || []),
+          })
+        );
       }
     },
     [idsToPlayers]
+  );
+
+  const rosterHasPlayer = useCallback(
+    (playerId) => {
+      if (!playerId) return false;
+      const normalizedRoster = normalizeRosterShape(roster);
+      const allPlayersInRoster = [
+        ...normalizedRoster.starters,
+        ...normalizedRoster.rotation,
+        ...normalizedRoster.bench,
+      ].filter(Boolean);
+      return allPlayersInRoster.some((p) => p.id === playerId);
+    },
+    [roster]
   );
 
   return {
@@ -260,5 +323,6 @@ export const useRosterManager = (allPlayers = [], isLoading = false) => {
     loadRoster,
     rosterId,
     setRosterId,
+    rosterHasPlayer,
   };
 };

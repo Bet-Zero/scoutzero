@@ -66,6 +66,7 @@ const PlayerContractMini = ({
       optionType,
       freeAgentTag,
       isExtensionYear: contract?.isExtension && salaryData,
+      voidedByExtension: !!salaryData?.voidedByExtension,
     };
   });
 
@@ -86,13 +87,15 @@ const PlayerContractMini = ({
       <div className="text-[11px] font-semibold mb-1">Contract</div>
       <div className="space-y-1">
         {displaySeasons.map((season, i) => (
-          <div key={i} className="flex justify-between text-[11px]">
+          <div key={i} className={`flex justify-between text-[11px] ${season.voidedByExtension ? 'opacity-30 line-through' : ''}`}>
             <span className="text-white/50 w-[40px] tracking-tight">
               &apos;{season.year.toString().slice(-2)}-
               {(season.year + 1).toString().slice(-2)}
             </span>
             <span className="flex items-center gap-1">
-              {season.freeAgentTag ? (
+              {season.voidedByExtension ? (
+                <span className="text-white/40 text-[9px] italic">Voided</span>
+              ) : season.freeAgentTag ? (
                 <span
                   className={`px-1 py-[0.5px] rounded text-[9px] leading-3 ${getTagColor(season.freeAgentTag)}`}
                 >

@@ -39,7 +39,7 @@ export function computeTradeDraftKey({ yearKey, teams = [] }) {
 
       // Phase 14.2: Use entitlement IDs instead of pick IDs
       const entitlementIds = (t.entitlementsOut || [])
-        .map((e) => e.id || e.entitlementId || 'unknown')
+        .map((e) => e.draftKey || e.id || e.entitlementId || 'unknown')
         .sort()
         .join(',');
 

@@ -1,14 +1,12 @@
 // TierListsHome.jsx
+// E2: Routes all CRUD through listHelpers (single source of truth)
 import React, { useEffect, useState, useMemo } from 'react';
-import {
-  collection,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  doc,
-} from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
-import { db } from '@/firebaseConfig';
+import {
+  fetchAllTierLists,
+  renameTierList,
+  deleteTierList,
+} from '@/firebase/listHelpers';
 import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
@@ -43,9 +41,9 @@ const TierListsHome = () => {
     return map;
   }, [lists]);
 
+  // E2: Uses fetchAllTierLists helper (includes mode inference)
   const fetchLists = async () => {
-    const snapshot = await getDocs(collection(db, 'tierLists'));
-    const results = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const results = await fetchAllTierLists();
     setLists(results);
     setIsLoading(false);
   };
@@ -54,18 +52,18 @@ const TierListsHome = () => {
     fetchLists();
   }, []);
 
+  // E2: Uses renameTierList helper (now writes updatedAt via serverTimestamp)
   const handleRename = async () => {
     if (!renameValue.trim()) return;
-    await updateDoc(doc(db, 'tierLists', renamingId), {
-      name: renameValue.trim(),
-    });
+    await renameTierList(renamingId, renameValue.trim());
     setRenamingId(null);
     setRenameValue('');
     fetchLists();
   };
 
+  // E2: Uses deleteTierList helper (single source of truth)
   const handleDelete = async () => {
-    await deleteDoc(doc(db, 'tierLists', deletingId));
+    await deleteTierList(deletingId);
     setDeletingId(null);
     fetchLists();
   };

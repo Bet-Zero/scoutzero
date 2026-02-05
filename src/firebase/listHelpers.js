@@ -23,6 +23,7 @@ export const fetchAllLists = async () => {
 };
 
 // ✅ Create list (with duplicate check)
+// E1: Writes canonical schema — playerIds, playerOrder, playerNotes, description, timestamps
 export const createList = async (name) => {
   const q = query(listsRef, where('name', '==', name));
   const existing = await getDocs(q);
@@ -30,16 +31,21 @@ export const createList = async (name) => {
 
   const newList = {
     name,
-    players: [],
+    playerIds: [],
+    playerOrder: [],
+    playerNotes: {},
+    description: '',
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
   await addDoc(listsRef, newList);
 };
 
 // ✅ Rename list
+// E1: Now includes updatedAt for timestamp consistency (helper currently unused by UI, retained for potential reuse)
 export const renameList = async (id, newName) => {
   const docRef = doc(db, 'lists', id);
-  await updateDoc(docRef, { name: newName });
+  await updateDoc(docRef, { name: newName, updatedAt: serverTimestamp() });
 };
 
 // ✅ Delete list
@@ -49,12 +55,42 @@ export const deleteList = async (id) => {
 };
 
 // ===== Tier Lists =====
-export const fetchAllTierLists = async () => {
-  const snapshot = await getDocs(tierListsRef);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+/**
+ * Infers tier list mode from tier structure (for legacy docs missing mode).
+ * If tierOrder (or tiers keys) contain Row1, Row2, etc. patterns, treat as pyramid.
+ * @param {Object} data - Tier list document data
+ * @returns {'standard' | 'pyramid'}
+ */
+export const inferTierListMode = (data) => {
+  if (!data) return 'standard';
+  if (data.mode) return data.mode;
+
+  const tierKeys = data.tierOrder || Object.keys(data.tiers || {});
+  const hasPyramidRows = tierKeys.some((key) => /^Row\d+$/i.test(key));
+  return hasPyramidRows ? 'pyramid' : 'standard';
 };
 
-export const createTierList = async (name) => {
+export const fetchAllTierLists = async () => {
+  const snapshot = await getDocs(tierListsRef);
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      // E2: Provide mode with safe default/inference for back-compat
+      mode: inferTierListMode(data),
+    };
+  });
+};
+
+/**
+ * Creates a new tier list document.
+ * @param {string} name - The tier list name
+ * @param {'standard' | 'pyramid'} [mode='standard'] - The tier list mode
+ * @returns {Promise<string>} The new document ID
+ */
+export const createTierList = async (name, mode = 'standard') => {
   const q = query(tierListsRef, where('name', '==', name));
   const existing = await getDocs(q);
   if (!existing.empty)
@@ -64,25 +100,36 @@ export const createTierList = async (name) => {
     name,
     tiers: {},
     tierOrder: [],
+    mode, // E2: Persist mode on creation
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
   const docRef = await addDoc(tierListsRef, newList);
   return docRef.id;
 };
 
+// E2: renameTierList now writes updatedAt for timestamp consistency
 export const renameTierList = async (id, newName) => {
   const docRef = doc(db, 'tierLists', id);
-  await updateDoc(docRef, { name: newName });
+  await updateDoc(docRef, { name: newName, updatedAt: serverTimestamp() });
 };
 
 export const deleteTierList = async (id) => {
   const docRef = doc(db, 'tierLists', id);
   await deleteDoc(docRef);
 };
+
 export const fetchTierList = async (id) => {
   const docRef = doc(db, 'tierLists', id);
   const snap = await getDoc(docRef);
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  return {
+    id: snap.id,
+    ...data,
+    // E2: Provide mode with safe default/inference for back-compat
+    mode: inferTierListMode(data),
+  };
 };
 
 export const saveTierList = async (id, { tiers, tierOrder }) => {

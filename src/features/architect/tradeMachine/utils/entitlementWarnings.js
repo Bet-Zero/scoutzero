@@ -15,7 +15,6 @@
  * Compute non-blocking warnings for entitlements being traded.
  *
  * Warning A: Encumbered pick_ownership traded without linked swap_right
- * Warning B: First-round entitlement traded (Stepien not enforced)
  *
  * @param {Array} entitlementsOut - Array of entitlement objects being traded by one team
  * @returns {Array<string>} - Array of warning message strings (deduped)
@@ -32,7 +31,6 @@ export function computeEntitlementWarnings(entitlementsOut) {
 
   // Track if we've already emitted each warning type (one per team, not spammy)
   let hasEncumberedWarning = false;
-  let hasStepienWarning = false;
 
   for (const entitlement of entitlementsOut) {
     // Warning A: Encumbered pick_ownership without linked swap_right
@@ -69,19 +67,6 @@ export function computeEntitlementWarnings(entitlementsOut) {
       }
     }
 
-    // Warning B: First-round entitlement traded (Stepien not enforced)
-    if (
-      !hasStepienWarning &&
-      entitlement.round === 1 &&
-      ['pick_ownership', 'conveyance_right', 'swap_right'].includes(
-        entitlement.kind
-      )
-    ) {
-      warnings.push(
-        '⚠️ First-round entitlement traded. Stepien Rule not yet enforced for entitlements.'
-      );
-      hasStepienWarning = true;
-    }
   }
 
   return warnings;

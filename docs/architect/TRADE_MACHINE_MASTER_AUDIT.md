@@ -1,0 +1,220 @@
+# TRADE MACHINE MASTER AUDIT
+
+**Created:** 2026-02-05
+**SSOT for:** Trade Machine gap tracking, phased execution plan, and CBA-correctness status
+
+---
+
+## Reality Audit (2026-02-05)
+
+Six feature areas were audited. Each finding below is read-confirmed against source code — no assumptions, no agent-only inferences.
+
+### A — Stepien Rule / Entitlements
+
+**Finding:** Enforcement IS live. Warning text is stale.
+
+`validateStepien.js` reads `team.entitlementsOut` (line 145), converts to pick-like objects via `buildStepienOutgoingPicksFromEntitlements()`, and includes them in the consecutive-year check (lines 197-216). The payload is populated by `useTradeMachine.js:851` and preserved through the spread at `tradeValidator.js:469`.
+
+The warning "Stepien Rule not yet enforced for entitlements" in `entitlementWarnings.js:81` was written before Phase 12.2/13 completed the entitlements integration. It is a non-blocking advisory and is simply wrong.
+
+**Action:** Remove Warning B. Phase 1.
+
+---
+
+### B — Entitlement Authoring Surface
+
+**Finding:** Schema and persistence are complete. UI is JSON-editor only.
+
+`EntitlementEditorModal.tsx` provides raw JSON editing behind feature flag `VITE_FEATURE_ENTITLEMENT_AUTHORING`. The schema (`architect.ts`) already defines `protectionMeta`, `swapControllerPickId`, `swapTargetDefinition`, `receivesComparator`, `receivesRank`, `poolUnderlyingPickIds`. `entitlementWriter.ts` has `writeWorldEntitlement()` and `validateEntitlementDocument()`.
+
+No form-based authoring surface exists for protection ladders, swap definitions, or conveyance conditions.
+
+**Action:** Add form tabs (Protection / Swap / Conveyance) inside `EntitlementEditorModal.tsx`. Phase 4.
+
+---
+
+### C — Sign-and-Trade
+
+**Finding:** Backend is production-ready. UI has 3 wiring breaks.
+
+`computeSignAndTradeResult` (`mutationPipeline.js:3151-3292`) is a fully-implemented 3-step atomic operation: sign → validate → trade. `validateSignAndTrade.js` enforces 8 rules. All 15 unit tests pass.
+
+The handler `handleSignAndTrade` (`useArchitectActions.ts:708-736`) correctly constructs the payload and calls `persistMutation('signAndTrade', ...)`. But it is not exported in the `UseArchitectActionsReturn` interface (lines 244-300), so no caller can invoke it.
+
+`GMDashboard.jsx` renders `EditContractModal` without an `onSignAndTrade` prop. Click produces no effect.
+
+`FreeAgentPool.jsx:handleSignAndTrade` (line 89) calls the generic `onSign` and discards `destinationTeamId`. Player gets signed; trade never fires.
+
+**Action:** (1) Export handler. (2) Wire prop in GMDashboard. (3) Fix FreeAgentPool callback. Phase 1.
+
+---
+
+### D — Trade Exceptions Display / TPE Math
+
+**Finding:** Display broken on reload. Math is correct. "Cannot combine" is enforced.
+
+`ExceptionTracker.jsx:126` reads `teamCapSheet.tradeExceptions`. Phase 64 normalization (`normalizeTeamTpe.js`) deletes this field before Firestore write and moves TPEs to `team.exceptions.tpe[]`. The helper `getTeamTpeList()` (same file, line 217) reads the canonical location with legacy fallback — it exists and is used correctly by `TradeExceptionDashboard.jsx:18` and `useTradeMachine.js:971`. ExceptionTracker does not use it.
+
+In-session behavior: `computeTradeResult` writes to the legacy path (line 1347); normalization is deferred to `persistWorldMutation` (line 2430). Immediately after a trade, the legacy field is populated in memory, so TPEs appear. After reload they are gone. This explains intermittency.
+
+TPE math: `createTPE` (`tradeUtilities.js:28-40`) computes `MAX(0, outgoing − incoming)`. Correct.
+
+**Action:** Import `getTeamTpeList` in `ExceptionTracker.jsx`, replace destructure. Phase 1.
+
+---
+
+### E — Extensions in Contract View
+
+**Finding:** Cap math is correct. Voiding indicator is schema-ready but never written.
+
+`getContractYearSlice()` (`contractUtils.js:76-100`) merges both `contract.salariesByYear` and `futureContract.salariesByYear`, flagging extension rows with `isExtensionSeason: true`. CapSheet uses this for salary totals — numbers are right.
+
+The extension mutation (`mutationPipeline.js:1742-1785`) adds years to `player.futureContract` but does not mark overlapping years on `player.contract` with `voidedByExtension: true`. The field exists on `BasePlayerContractYearZ` in `architect.ts`.
+
+Result: contract tables show both the original year and the extension year for overlapping seasons with no visual distinction.
+
+**Action:** Set `voidedByExtension` in mutation; dim voided rows in render. Phase 2.
+
+---
+
+### F — Salary Matching / Apron-Dependent Receive Limits
+
+**Finding:** All 4 apron branches are complete and correct. One over-aggressive TPE block exists.
+
+`validateSalaryMatching.js` branches correctly on under-cap / first-apron / second-apron / over-cap-below-first. `salaryMatchingRules.js` Band tiers are present and wired. `capUtils.js:getTeamApronStatus()` uses correct `>=` / `>` semantics per CBA Art VII Sec 2(f).
+
+`getIncomingCeiling()` (`tradeHelpers.js:119-173`) correctly adds TPE value to the ceiling, filtering only prior-year TPEs for 2nd-apron teams. `basicRules.js:validateSecondApronRules` also correctly blocks only prior-year TPEs.
+
+The single bug: `validateTradeExceptions.js:61-64` has an else branch that fires when no prior-year TPE is found but a second-apron team has any TPE at all. It pushes `SECOND_APRON_TPE_BLOCKED`, rejecting current-year TPEs that CBA permits. This creates a UI/validator conflict: the ceiling display shows room, the validator rejects.
+
+**Action:** Delete the else branch. Add 2 tests (current-year allowed, prior-year blocked). Phase 3.
+
+---
+
+## Execution Log
+
+### TM-1 — Gap C + Gap D Fixpack (2026-02-05) — COMPLETE
+
+| Gap | Status | Return Package |
+|-----|--------|----------------|
+| C (Sign-and-Trade wiring) | Fixed — handler exported, prop wired in GMDashboard + FreeAgencySection + FreeAgentPool | `return_packages/PHASE_TM_1_FIXPACK_P0.md` |
+| D (TPE vanish on reload) | Fixed — ExceptionTracker now uses `getTeamTpeList()` | `return_packages/PHASE_TM_1_FIXPACK_P0.md` |
+
+Tests: 19/19 target tests pass. 2603/2669 full suite (66 failures are pre-existing, none in TM-1 files).
+
+Known follow-up: `handleSignAndTrade` payload may send `contract: null` on first real UI-triggered S&T due to `ensureContractStructure` expecting `salariesByYear` while EditContractModal passes `salaries`. Needs pipeline trace — out of TM-1 scope.
+
+---
+
+## Phased Execution Plan
+
+### Phase 1 — Surgical Wiring (Gap A + C + D)
+
+All changes are 1–3 lines per file. No new abstractions. No logic changes — only wiring and one import swap.
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `entitlementWarnings.js:72-84` | Delete Warning B if-block. Remove `hasStepienWarning` if dead. |
+| 2 | `useArchitectActions.ts:244-300` | Add `handleSignAndTrade` to interface + return object. |
+| 3 | `GMDashboard.jsx:~427` | Add `onSignAndTrade={actions.handleSignAndTrade}` prop. |
+| 4 | `FreeAgentPool.jsx:81-91` | Rewrite to call `onSignAndTrade(player, contract, destinationTeamId)`. |
+| 5 | `ExceptionTracker.jsx:126` | Import `getTeamTpeList`; replace destructure with its return value. |
+
+**Tests:** `signAndTrade.test.js`, TPE lifecycle tests, entitlementWarning tests (if any).
+
+---
+
+### Phase 2 — Extension Voiding (Gap E)
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `mutationPipeline.js:~1757` | After building `rawFutureContract`, iterate `player.contract.salariesByYear`. Set `voidedByExtension: true` on any entry whose season overlaps an extension year. |
+| 2 | Contract table render (TBD) | Dim or hide rows where `voidedByExtension === true`. |
+
+**Tests:** Extension mutation tests. Visual regression on contract table.
+
+---
+
+### Phase 3 — Second Apron TPE Correction (Gap F) — SHIPPED 2026-02-05
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `validateTradeExceptions.js:61-64` | Else branch deleted. `SECOND_APRON_TPE_BLOCKED` import removed. Only `if (hasPriorYearTPE)` remains. |
+| 2 | `tests/trade/secondApron_tpeBan.test.js` | Second test rewritten: asserts `tradeExceptions` rule passes and no TPE violation fires for current-year TPE on 2nd-apron team. |
+
+**Result:** 3/3 tests pass. `getIncomingCeiling` and validator now agree.
+
+---
+
+### Phase 3.1 — Extensions Display (Gap E) — SHIPPED 2026-02-05
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `mutationPipeline.js` (`computeExtensionResult`) | Overlapping original years marked `voidedByExtension: true` before extension rows are concatenated. |
+| 2 | `PlayerContractMini.jsx` | Voided rows rendered with `opacity-30 line-through` and "Voided" label. |
+| 3 | `tests/architect/extension_voidedByExtension.test.js` | 3 unit tests: overlap detected, no-overlap clean, season-string format. |
+| 4 | `tests/architect/PlayerContractMini.voidedByExtension.test.jsx` | 4 render tests: label present/absent, CSS classes, salary hidden for voided. |
+
+**Result:** 7/7 tests pass.
+
+---
+
+### Phase 3.2 — Stale Stepien Warning Removal (Gap A) — SHIPPED 2026-02-05
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `entitlementWarnings.js` | Warning B block, `hasStepienWarning` flag, and JSDoc line removed. |
+
+**Result:** No test references the removed message. Stepien enforcement (`validateStepien.js`) untouched.
+
+---
+
+### TM-4 — Entitlement Authoring (2026-02-05) — COMPLETE
+
+| Area | Status | Notes |
+|---|---|---|
+| Form-based editor | ✅ | Tabbed editor (Basics, Protection, Swap, Conveyance, Advanced JSON) replaces JSON-only UI |
+| Trade Machine entry | ✅ | Edit icon on entitlement rows opens modal |
+| Persistence | ✅ | Writes to world overrides via `writeWorldEntitlement()` |
+| Display refresh | ✅ | Updated protection/swap/conveyance details appear in Trade Machine rows |
+| Validation | ✅ | Schema + ladder validation blocks invalid saves |
+
+Return package: `return_packages/PHASE_TM_4_ENTITLEMENT_AUTHORING_EXECUTION.md`
+
+---
+
+### TM-5 — Entitlement Terms Simulation + Trade Machine Integration (2026-02-05) — COMPLETE
+
+| Area | Status | Notes |
+|---|---|---|
+| Terms normalization | ✅ | `entitlementTerms.ts` normalizes ladders/swaps/conveyance and produces `draftKey` |
+| Trade payload/receipt | ✅ | Outgoing/incoming entitlements carry `terms`, `termsShort`, `draftKey` |
+| UI display | ✅ | Trade rows, summary, and export show concise `termsShort` |
+| Stepien integration | ✅ | Conservative ladder handling, swapType parsing, conveyance warnings |
+
+Return package: `return_packages/PHASE_TM-5_ENTITLEMENT_SIMULATION_INTEGRATION.md`
+
+---
+
+### Phase 4 — Entitlement Authoring Surface (Gap B) — SHIPPED 2026-02-05
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `src/features/architect/admin/EntitlementEditorModal.tsx` + tab components | Replaced JSON-only modal with tabbed form + Advanced JSON. |
+| 2 | `src/features/architect/utils/entitlements/entitlementWriter.ts` | Added validation for kind-specific fields + protection ladder tiers. |
+| 3 | `src/features/architect/tradeMachine/EntitlementPickRow.jsx` | Added edit icon entry point. |
+| 4 | `src/features/architect/hooks/useTradeMachine.js` | Added `applyEntitlementOverrideUpdate()` to refresh local state. |
+| 5 | `src/features/architect/utils/entitlements/entitlementPickRowProjection.js` | Display ladder + swap/conveyance details. |
+| 6 | `src/features/architect/utils/entitlements/dare/protectionLadderFactory.ts` | Prefer `protectionLadder` override when present. |
+
+**Tests:** `entitlementEditorModal.test.tsx`, `entitlementPickRowDisplay.test.jsx`
+
+---
+
+## Key Invariants (do not regress)
+
+1. **Stepien IS enforced on entitlements.** `validateStepien.js` processes `entitlementsOut`. Do not remove or gate this path.
+2. **TPE canonical location is `team.exceptions.tpe[]`.** Do not write to `team.tradeExceptions` in any new code. Use `getTeamTpeList()` for reads.
+3. **Second apron semantics: salary `>` secondApron (strict).** First apron: salary `>=` firstApron. Per CBA Art VII Sec 2(f).
+4. **S&T is atomic.** Signing failure must short-circuit before trade computation. Do not decouple.
+5. **Extension years use `futureContract`.** `getContractYearSlice()` is the SSOT for merging. Do not bypass it.

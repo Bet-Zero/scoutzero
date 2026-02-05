@@ -1,4 +1,5 @@
 // ListsHome.jsx
+// E1: Added serverTimestamp for consistent updatedAt on rename
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   collection,
@@ -6,6 +7,7 @@ import {
   deleteDoc,
   updateDoc,
   doc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
@@ -56,8 +58,10 @@ const ListsHome = () => {
 
   const handleRename = async () => {
     if (!renameValue.trim()) return;
+    // E1: Include updatedAt for timestamp consistency
     await updateDoc(doc(db, 'lists', renamingListId), {
       name: renameValue.trim(),
+      updatedAt: serverTimestamp(),
     });
     setRenamingListId(null);
     setRenameValue('');

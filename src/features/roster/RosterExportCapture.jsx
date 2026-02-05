@@ -6,6 +6,7 @@ import RosterSection from './RosterSection';
 
 const RosterExportCapture = React.forwardRef(function RosterExportCapture({ roster, team }, ref) {
   const { primary, secondary } = getTeamColors(team?.id);
+  const teamName = team?.nickname || 'Roster';
 
   return (
     <div
@@ -33,7 +34,7 @@ const RosterExportCapture = React.forwardRef(function RosterExportCapture({ rost
               textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
             }}
           >
-            {team.nickname}
+            {teamName}
           </h2>
         </div>
 

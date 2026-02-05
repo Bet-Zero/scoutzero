@@ -3,6 +3,16 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import '@testing-library/jest-dom/vitest';
 import EditContractModal from '@/shared/components/EditContractModal.jsx';
 
+// Stub TeamSelectDropdown so the S&T destination picker is testable
+vi.mock('@/shared/components/TeamSelectDropdown', () => ({
+  default: ({ selectedTeamId, onChange }) => (
+    <select data-testid="team-select" value={selectedTeamId || ''} onChange={(e) => onChange(e.target.value)}>
+      <option value="">Select Team</option>
+      <option value="BOS">Boston Celtics</option>
+    </select>
+  ),
+}));
+
 // Mock environment variable to enable override functionality for tests
 // In production, this would be false to prevent illegal state creation
 beforeEach(() => {
@@ -446,5 +456,70 @@ describe('EditContractModal — Override validation enforcement', () => {
 
     // Advanced Override section should NOT be visible
     expect(screen.queryByText(/Advanced: Override Validation/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () => {
+  afterEach(() => cleanup());
+
+  it('calls onSignAndTrade with (player, contract, destinationTeamId) on confirm', async () => {
+    const mockOnSignAndTrade = vi.fn();
+    const faPlayer = {
+      name: 'Trade Target',
+      player_id: 'tt_1',
+      freeAgentYear: 2025,
+    };
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={faPlayer}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        onSignAndTrade={mockOnSignAndTrade}
+        actionContext="freeAgent"
+      />
+    );
+
+    // Select Sign & Trade radio
+    const satOption = screen.getByLabelText(/sign & trade/i);
+    fireEvent.click(satOption);
+
+    // Pick destination team via mocked dropdown
+    const teamSelect = screen.getByTestId('team-select');
+    fireEvent.change(teamSelect, { target: { value: 'BOS' } });
+
+    // If validation blocks, unlock via override
+    await waitFor(() => {
+      const advancedToggle = screen.queryByText(/Advanced: Override Validation/i);
+      if (advancedToggle) {
+        fireEvent.click(advancedToggle);
+        const input = screen.getByPlaceholderText('OVERRIDE');
+        fireEvent.change(input, { target: { value: 'OVERRIDE' } });
+      }
+    });
+
+    // Click whichever confirm variant is active
+    await waitFor(() => {
+      const btn =
+        screen.queryByRole('button', { name: /confirm action/i }) ||
+        screen.queryByRole('button', { name: /force override/i });
+      expect(btn).toBeTruthy();
+      expect(btn).toBeEnabled();
+    });
+
+    const confirmBtn =
+      screen.queryByRole('button', { name: /confirm action/i }) ||
+      screen.queryByRole('button', { name: /force override/i });
+    fireEvent.click(confirmBtn);
+
+    // Verify the real S&T handler was called with all three args
+    expect(mockOnSignAndTrade).toHaveBeenCalledTimes(1);
+    expect(mockOnSignAndTrade).toHaveBeenCalledWith(
+      faPlayer,
+      expect.objectContaining({ signAndTrade: true }),
+      'BOS'
+    );
   });
 });

@@ -52,6 +52,32 @@ export function buildProtectionLadder(
   pickRule: PickRuleDoc | null | undefined,
   entitlement: EffectiveEntitlement | null | undefined
 ): ProtectionLadder | null {
+  // World override: use entitlement.protectionLadder when present
+  const overrideLadder = entitlement?.protectionLadder;
+  if (Array.isArray(overrideLadder) && overrideLadder.length > 0) {
+    const sanitized: ProtectionLadder = overrideLadder
+      .map((tier) => {
+        if (!tier || typeof tier !== 'object') return null;
+        const entry = tier as Record<string, unknown>;
+        const year = entry.year as number;
+        const condition = entry.condition as string;
+        const ifTriggered = entry.ifTriggered as 'roll' | 'convert' | 'cancel';
+        if (typeof year !== 'number' || typeof condition !== 'string') return null;
+        if (!['roll', 'convert', 'cancel'].includes(ifTriggered)) return null;
+        return {
+          year,
+          condition,
+          ifTriggered,
+          rollToYear: entry.rollToYear as number | undefined,
+          convertToRound: entry.convertToRound as number | undefined,
+          source: entry.source as string | undefined,
+        };
+      })
+      .filter(Boolean) as ProtectionLadder;
+
+    return sanitized.length > 0 ? sanitized : null;
+  }
+
   // Guard: No pick rule or no protections
   if (!pickRule?.protections?.length) {
     return null;

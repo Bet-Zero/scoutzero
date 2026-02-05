@@ -8,10 +8,7 @@ import {
   createTPE,
 } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
-import {
-  SECOND_APRON_TPE_BLOCKED,
-  SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+import { SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 import { isSecondApronTeam as checkSecondApron } from '../utils/capUtils.js';
 
 export function validateTradeExceptions(team) {
@@ -58,9 +55,6 @@ export function validateTradeExceptions(team) {
 
     if (hasPriorYearTPE) {
       violations.push(SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED);
-    } else {
-      // Current year TPEs also blocked for second apron teams
-      violations.push(SECOND_APRON_TPE_BLOCKED);
     }
   }
 

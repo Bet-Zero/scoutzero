@@ -66,6 +66,19 @@ export interface MinimalEntitlementDoc {
   kind?: 'pick_ownership' | 'swap_right' | 'conveyance_right';
   underlyingPickId?: string;
   description?: string;
+  underlyingStatus?: 'pooled' | 'encumbered' | 'clean';
+  swapControllerPickId?: string;
+  swapTargetDefinition?: string;
+  poolUnderlyingPickIds?: string[];
+  receivesRank?: number[];
+  receivesComparator?: 'more_favorable' | 'less_favorable' | 'middle';
+  protectionLadder?: Array<{
+    year?: number;
+    condition?: string;
+    ifTriggered?: 'roll' | 'convert' | 'cancel';
+    rollToYear?: number;
+    convertToRound?: number;
+  }>;
   [key: string]: unknown;
 }
 
@@ -101,55 +114,140 @@ export function isEntitlementAuthoringEnabled(): boolean {
  */
 export function validateEntitlementDocument(
   document: Record<string, unknown>
-): { valid: boolean; error?: string } {
+): { valid: boolean; error?: string; errors?: string[] } {
+  const errors: string[] = [];
   if (!document || typeof document !== 'object') {
-    return { valid: false, error: 'Document must be an object' };
+    return { valid: false, error: 'Document must be an object', errors: ['Document must be an object'] };
   }
 
   // Required fields
   const requiredFields = ['holderTeam', 'seasonYear', 'round', 'kind'];
   for (const field of requiredFields) {
     if (document[field] === undefined || document[field] === null) {
-      return { valid: false, error: `Missing required field: ${field}` };
+      errors.push(`Missing required field: ${field}`);
     }
   }
 
   // Validate kind
   const validKinds = ['pick_ownership', 'swap_right', 'conveyance_right'];
   if (!validKinds.includes(document.kind as string)) {
-    return {
-      valid: false,
-      error: `Invalid kind "${document.kind}". Must be one of: ${validKinds.join(', ')}`,
-    };
+    errors.push(
+      `Invalid kind "${document.kind}". Must be one of: ${validKinds.join(', ')}`
+    );
   }
 
   // Validate round
   if (document.round !== 1 && document.round !== 2) {
-    return {
-      valid: false,
-      error: `Invalid round "${document.round}". Must be 1 or 2`,
-    };
+    errors.push(`Invalid round "${document.round}". Must be 1 or 2`);
   }
 
   // Validate seasonYear
   const year = document.seasonYear as number;
   if (typeof year !== 'number' || year < 2020 || year > 2040) {
-    return {
-      valid: false,
-      error: `Invalid seasonYear "${year}". Must be between 2020 and 2040`,
-    };
+    errors.push(`Invalid seasonYear "${year}". Must be between 2020 and 2040`);
   }
 
   // Validate holderTeam
   const team = document.holderTeam as string;
   if (typeof team !== 'string' || team.length !== 3) {
-    return {
-      valid: false,
-      error: `Invalid holderTeam "${team}". Must be 3-letter team code`,
-    };
+    errors.push(
+      `Invalid holderTeam "${team}". Must be 3-letter team code`
+    );
   }
 
-  return { valid: true };
+  // Kind-specific requirements
+  const kind = document.kind as string;
+  if (kind === 'pick_ownership') {
+    if (!document.underlyingPickId) {
+      errors.push('pick_ownership requires underlyingPickId');
+    }
+  }
+
+  if (kind === 'swap_right') {
+    if (!document.swapControllerPickId) {
+      errors.push('swap_right requires swapControllerPickId');
+    }
+    if (!document.swapTargetDefinition) {
+      errors.push('swap_right requires swapTargetDefinition');
+    }
+  }
+
+  if (kind === 'conveyance_right') {
+    const pool = document.poolUnderlyingPickIds as string[] | undefined;
+    if (!Array.isArray(pool) || pool.length === 0) {
+      errors.push('conveyance_right requires poolUnderlyingPickIds[]');
+    }
+    const ranks = document.receivesRank as number[] | undefined;
+    if (!Array.isArray(ranks) || ranks.length === 0) {
+      errors.push('conveyance_right requires receivesRank[]');
+    }
+    const comparator = document.receivesComparator as string | undefined;
+    const validComparators = ['more_favorable', 'less_favorable', 'middle'];
+    if (!validComparators.includes(comparator || '')) {
+      errors.push(
+        `conveyance_right requires receivesComparator (${validComparators.join(', ')})`
+      );
+    }
+  }
+
+  // Optional: underlyingStatus validation
+  if (document.underlyingStatus) {
+    const validStatuses = ['pooled', 'encumbered', 'clean'];
+    if (!validStatuses.includes(document.underlyingStatus as string)) {
+      errors.push(
+        `Invalid underlyingStatus "${document.underlyingStatus}". Must be one of: ${validStatuses.join(', ')}`
+      );
+    }
+  }
+
+  // Optional: protectionLadder validation
+  if (document.protectionLadder !== undefined) {
+    if (!Array.isArray(document.protectionLadder)) {
+      errors.push('protectionLadder must be an array of tiers');
+    } else {
+      document.protectionLadder.forEach((tier, index) => {
+        if (!tier || typeof tier !== 'object') {
+          errors.push(`protectionLadder[${index}] must be an object`);
+          return;
+        }
+        const tierYear = (tier as Record<string, unknown>).year;
+        if (typeof tierYear !== 'number' || !Number.isFinite(tierYear)) {
+          errors.push(`protectionLadder[${index}].year must be a number`);
+        }
+        const condition = (tier as Record<string, unknown>).condition;
+        if (typeof condition !== 'string' || condition.trim().length === 0) {
+          errors.push(`protectionLadder[${index}].condition is required`);
+        }
+        const ifTriggered = (tier as Record<string, unknown>).ifTriggered;
+        const validActions = ['roll', 'convert', 'cancel'];
+        if (!validActions.includes(ifTriggered as string)) {
+          errors.push(
+            `protectionLadder[${index}].ifTriggered must be one of: ${validActions.join(', ')}`
+          );
+        } else if (ifTriggered === 'roll') {
+          const rollToYear = (tier as Record<string, unknown>).rollToYear;
+          if (typeof rollToYear !== 'number' || !Number.isFinite(rollToYear)) {
+            errors.push(
+              `protectionLadder[${index}].rollToYear is required for roll`
+            );
+          }
+        } else if (ifTriggered === 'convert') {
+          const convertToRound = (tier as Record<string, unknown>).convertToRound;
+          if (convertToRound !== 1 && convertToRound !== 2) {
+            errors.push(
+              `protectionLadder[${index}].convertToRound must be 1 or 2 for convert`
+            );
+          }
+        }
+      });
+    }
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, error: errors[0], errors };
+  }
+
+  return { valid: true, errors: [] };
 }
 
 // =============================================================================

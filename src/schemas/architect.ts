@@ -10,6 +10,15 @@ const EntitlementKindZ = z.enum([
 
 const EntitlementUnderlyingStatusZ = z.enum(['pooled', 'encumbered', 'clean']);
 
+const EntitlementProtectionLadderTierZ = z.object({
+  year: z.number().int(),
+  condition: z.string(),
+  ifTriggered: z.enum(['roll', 'convert', 'cancel']),
+  rollToYear: z.number().int().optional(),
+  convertToRound: z.number().int().optional(),
+  source: z.string().optional(),
+});
+
 export const EntitlementAssetZ = z
   .object({
     id: z.string(),
@@ -34,6 +43,8 @@ export const EntitlementAssetZ = z
     sourceUrl: z.string().optional(),
     underlyingStatus: EntitlementUnderlyingStatusZ.optional(),
     coveredByEntitlementIds: z.array(z.string()).optional(),
+    // world override: structured protection ladder (authoring UI)
+    protectionLadder: z.array(EntitlementProtectionLadderTierZ).optional(),
   })
   .passthrough();
 

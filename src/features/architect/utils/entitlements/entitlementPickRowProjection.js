@@ -50,9 +50,16 @@
  * @property {string} protectionText - Human-readable protection details (never blank)
  * @property {PickRowProtectionMeta|null} protectionMeta - Structured protection data if available
  * @property {string} [conditionsText] - Conditions/conveyance text if applicable
+ * @property {string|null} [ladderSummary] - Protection ladder summary (optional)
+ * @property {string|null} [termsShort] - Concise entitlement terms summary (optional)
  * @property {string} [note] - Additional notes
  * @property {object} [_debug] - Debug info (when VITE_DEBUG_ENTITLEMENT_PICKROWS=true)
  */
+
+import {
+  formatEntitlementTermsShort,
+  normalizeEntitlementTerms,
+} from '@/features/architect/utils/entitlements/entitlementTerms';
 
 /**
  * Regex patterns to extract protection details from description text.
@@ -237,6 +244,49 @@ const deriveProtectionDetails = (entitlement) => {
 };
 
 /**
+ * Derive protection details from a protection ladder override.
+ * @param {object} entitlement - EffectiveEntitlement object
+ * @returns {{ protectionText: string, protectionMeta: PickRowProtectionMeta|null, ladderSummary: string|null }|null}
+ */
+const deriveProtectionDetailsFromLadder = (entitlement) => {
+  const ladder = entitlement?.protectionLadder;
+  if (!Array.isArray(ladder) || ladder.length === 0) return null;
+
+  const normalized = ladder
+    .filter((tier) => tier && typeof tier === 'object')
+    .map((tier) => ({
+      year: tier.year,
+      condition: tier.condition,
+      ifTriggered: tier.ifTriggered,
+    }))
+    .filter((tier) => typeof tier.year === 'number' && tier.condition);
+
+  if (normalized.length === 0) return null;
+
+  const sorted = [...normalized].sort((a, b) => a.year - b.year);
+  const targetYear = entitlement?.seasonYear;
+  const currentTier =
+    sorted.find((tier) => tier.year === targetYear) || sorted[0];
+
+  const protectionText = currentTier?.condition || 'Protected';
+  const ladderSummaryParts = sorted
+    .slice(0, 3)
+    .map((tier) => `${tier.year} ${tier.condition}`);
+  const ladderSummary =
+    ladderSummaryParts.length > 0
+      ? `Ladder: ${ladderSummaryParts.join(' \u2192 ')}${
+          sorted.length > 3 ? ' \u2026' : ''
+        }`
+      : null;
+
+  return {
+    protectionText,
+    protectionMeta: null,
+    ladderSummary,
+  };
+};
+
+/**
  * Derive conditions/conveyance text from entitlement.
  * @param {object} entitlement - EffectiveEntitlement object
  * @returns {string|null}
@@ -256,11 +306,11 @@ const deriveConditionsText = (entitlement) => {
 
   // For swap rights, explain the swap
   if (entitlement.kind === 'swap_right') {
-    if (entitlement.swapTarget) {
-      return `Can swap for ${entitlement.swapTarget}`;
+    if (entitlement.swapTargetDefinition) {
+      return entitlement.swapTargetDefinition;
     }
     if (entitlement.poolUnderlyingPickIds?.length) {
-      return `Swap from pool of ${entitlement.poolUnderlyingPickIds.length} picks`;
+      return `Swap pool (${entitlement.poolUnderlyingPickIds.length} picks)`;
     }
     return null;
   }
@@ -270,7 +320,26 @@ const deriveConditionsText = (entitlement) => {
     entitlement.kind === 'conveyance_right' &&
     entitlement.poolUnderlyingPickIds?.length
   ) {
-    return `From pool of ${entitlement.poolUnderlyingPickIds.length} picks`;
+    const poolCount = entitlement.poolUnderlyingPickIds.length;
+    const comparator = entitlement.receivesComparator;
+    const ranks = Array.isArray(entitlement.receivesRank)
+      ? entitlement.receivesRank
+      : [];
+    const comparatorLabel =
+      comparator === 'less_favorable'
+        ? 'Less favorable'
+        : comparator === 'more_favorable'
+          ? 'More favorable'
+          : comparator === 'middle'
+            ? 'Middle'
+            : null;
+    if (comparatorLabel && ranks.length > 0) {
+      return `${comparatorLabel} #${ranks.join(', ')} of ${poolCount}`;
+    }
+    if (comparatorLabel) {
+      return `${comparatorLabel} of ${poolCount}`;
+    }
+    return `Pool of ${poolCount} picks`;
   }
 
   return null;
@@ -451,14 +520,26 @@ export const projectEntitlementToPickRow = (entitlement, options = {}) => {
   const via = extractViaTeam(entitlement, teamCode);
   const assetType = deriveAssetType(entitlement);
 
-  // Use rule-aware derivation when pickRulesById is provided
-  const { protectionText, protectionMeta } = pickRulesById
-    ? deriveProtectionDetailsWithRules(entitlement, pickRule)
-    : deriveProtectionDetails(entitlement);
+  const termsShort =
+    typeof entitlement?.termsShort === 'string'
+      ? entitlement.termsShort
+      : formatEntitlementTermsShort(normalizeEntitlementTerms(entitlement));
 
-  const conditionsText = pickRulesById
+  // Prefer protection ladder override when present
+  const ladderDetails = deriveProtectionDetailsFromLadder(entitlement);
+  const { protectionText, protectionMeta } = ladderDetails
+    ? ladderDetails
+    : pickRulesById
+      ? deriveProtectionDetailsWithRules(entitlement, pickRule)
+      : deriveProtectionDetails(entitlement);
+
+  const baseConditionsText = pickRulesById
     ? deriveConditionsTextWithRules(entitlement, pickRule)
     : deriveConditionsText(entitlement);
+  const ladderSummary = ladderDetails?.ladderSummary || null;
+  const conditionsText = [baseConditionsText, ladderSummary]
+    .filter(Boolean)
+    .join(' \u00b7 ') || null;
 
   // Build debug info if enabled
   const debugEnabled =
@@ -491,6 +572,8 @@ export const projectEntitlementToPickRow = (entitlement, options = {}) => {
     protectionText,
     protectionMeta,
     conditionsText,
+    ladderSummary,
+    termsShort: termsShort || null,
     note: null,
     _debug: debug,
   };
@@ -538,6 +621,10 @@ export const getPickRowSecondaryText = (pickRow) => {
   if (!pickRow) return null;
 
   const parts = [];
+
+  if (pickRow.termsShort) {
+    parts.push(pickRow.termsShort);
+  }
 
   if (pickRow.protectionText && pickRow.protectionText !== 'Unprotected') {
     parts.push(pickRow.protectionText);

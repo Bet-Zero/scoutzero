@@ -32,6 +32,7 @@ import { getKindSortPriority } from '@/features/architect/utils/entitlements/for
  * @param {Array} [props.otherTeams] - Phase 17: Array of other teams for destination dropdown
  * @param {Array} [props.entitlementsOut] - Phase 17: Current outgoing entitlements with toTeamId
  * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed
+ * @param {Function} [props.onEditEntitlement] - TM-4: Callback when entitlement edit is requested
  */
 export const EntitlementPicksList = ({
   entitlements = [],
@@ -48,6 +49,7 @@ export const EntitlementPicksList = ({
   otherTeams = [],
   entitlementsOut = [],
   onSetDestination,
+  onEditEntitlement,
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -160,6 +162,7 @@ export const EntitlementPicksList = ({
                   otherTeams={otherTeams}
                   currentToTeamId={toTeamIdByEntitlement[entitlementId]}
                   onSetDestination={onSetDestination}
+                  onEdit={onEditEntitlement}
                 />
               );
             })}

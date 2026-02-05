@@ -15,7 +15,11 @@ import { toast } from 'react-hot-toast';
 
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
-const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
+const TierMakerBoard = ({
+  players = [],
+  initialTierListId = '',
+  onTierListChange,
+}) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { data: listsData } = useFirebaseQuery('lists');
   const { data: tierListsData } = useFirebaseQuery('tierLists');
@@ -163,10 +167,17 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
   };
 
   const removePlayer = (playerId, fromTier) => {
-    setTiers((prev) => ({
-      ...prev,
-      [fromTier]: prev[fromTier].filter((p) => p.player_id !== playerId),
-    }));
+    if (fromTier === 'Pool') return;
+    setTiers((prev) => {
+      const player = prev[fromTier].find((p) => p.player_id === playerId);
+      if (!player) return prev;
+      const poolIds = new Set(prev.Pool.map((p) => p.player_id));
+      return {
+        ...prev,
+        [fromTier]: prev[fromTier].filter((p) => p.player_id !== playerId),
+        Pool: poolIds.has(playerId) ? prev.Pool : [...prev.Pool, player],
+      };
+    });
   };
 
   const addTier = () => {
@@ -202,7 +213,11 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
 
   const handleAddTeamRoster = () => {
     if (!selectedTeam) return;
-    const teamCode = (selectedTeam.code || selectedTeam.teamId || '').toUpperCase();
+    const teamCode = (
+      selectedTeam.code ||
+      selectedTeam.teamId ||
+      ''
+    ).toUpperCase();
     const teamPlayers = allPlayers.filter(
       (p) => (p.bio?.display?.teamId || '').toUpperCase() === teamCode
     );
@@ -237,6 +252,8 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
           setTiers(newTiers);
           setTierOrder(data.tierOrder || Object.keys(newTiers));
           setSelectedTierList(id);
+          // Update URL with the loaded tier list
+          onTierListChange?.(id);
           toast.success('Tier list loaded!');
         }
       } catch (err) {
@@ -244,7 +261,7 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
         toast.error('Failed to load tier list');
       }
     },
-    [playersMap]
+    [playersMap, onTierListChange]
   );
 
   const handleSaveTierList = async (idOverride) => {
@@ -276,6 +293,8 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
     if (!newId) return;
     setSelectedTierList(newId);
     setShowCreateModal(false);
+    // Update URL with the new tier list ID
+    onTierListChange?.(newId);
     await handleSaveTierList(newId);
   };
 
@@ -326,7 +345,7 @@ const TierMakerBoard = ({ players = [], initialTierListId = '' }) => {
           drawerOpen ? 'ml-[300px]' : 'ml-0'
         }`}
       >
-        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto pt-6 pb-12x">
+        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto pt-6 pb-12">
           {!screenshotMode && (
             <div className="flex justify-between items-center mb-1">
               <button

@@ -1,14 +1,16 @@
 // AddToListModal.jsx
+// E1: Uses addDoc for auto-id creation, serverTimestamp for consistency, duplicate-name auto-select
 import React, { useEffect, useState } from 'react';
 import { db } from '@/firebaseConfig';
 import {
   collection,
   getDocs,
-  doc,
-  setDoc,
+  addDoc,
   updateDoc,
   arrayUnion,
+  serverTimestamp,
 } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { Toaster } from 'react-hot-toast';
 import { getPlayerId } from '@/shared/utils/getPlayerId';
@@ -37,25 +39,52 @@ const AddToListModal = ({ player, onClose }) => {
       const playerId = getPlayerId(player);
 
       if (!selectedList && trimmedNewName) {
-        listId = trimmedNewName.toLowerCase().replace(/\s+/g, '_');
-        await setDoc(doc(db, 'lists', listId), {
-          name: trimmedNewName,
-          playerIds: [playerId],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-        toast.success(`List "${trimmedNewName}" created and player added!`, {
-          style: {
-            background: '#111111',
-            color: '#ffffff',
-            border: '1px solid #333',
-          },
-        });
+        // E1: Check for existing list with same name (case-insensitive) — auto-select if found
+        const existingMatch = lists.find(
+          (l) => l.name.toLowerCase() === trimmedNewName.toLowerCase()
+        );
+
+        if (existingMatch) {
+          // Duplicate name detected — treat as "add to existing list"
+          const listRef = doc(db, 'lists', existingMatch.id);
+          await updateDoc(listRef, {
+            playerIds: arrayUnion(playerId),
+            updatedAt: serverTimestamp(),
+          });
+          toast.success(
+            `Player added to existing list "${existingMatch.name}"!`,
+            {
+              style: {
+                background: '#111111',
+                color: '#ffffff',
+                border: '1px solid #333',
+              },
+            }
+          );
+        } else {
+          // E1: Use addDoc for auto-id creation with canonical schema
+          await addDoc(collection(db, 'lists'), {
+            name: trimmedNewName,
+            playerIds: [playerId],
+            playerOrder: [playerId],
+            playerNotes: {},
+            description: '',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          toast.success(`List "${trimmedNewName}" created and player added!`, {
+            style: {
+              background: '#111111',
+              color: '#ffffff',
+              border: '1px solid #333',
+            },
+          });
+        }
       } else if (selectedList) {
         const listRef = doc(db, 'lists', selectedList);
         await updateDoc(listRef, {
           playerIds: arrayUnion(playerId),
-          updatedAt: new Date(),
+          updatedAt: serverTimestamp(),
         });
         toast.success('Player added to list!', {
           style: {

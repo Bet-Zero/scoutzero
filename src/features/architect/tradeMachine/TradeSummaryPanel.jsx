@@ -245,21 +245,36 @@ function TradeSummaryPanel({
                       <div className="space-y-1">
                         {incomingEntitlements.map((ent, idx2) => {
                           const badge = getEntitlementKindBadge(ent.kind);
+                          const pickRow = projectEntitlementToPickRow(ent, {
+                            teamCode: teamMeta?.id,
+                            pickRulesById,
+                          });
+                          const secondaryText = getPickRowSecondaryText(pickRow);
                           return (
                             <div
                               key={ent.id || ent.entitlementId || idx2}
-                              className="flex items-center justify-between bg-white/5 px-2 py-1 rounded"
+                              className="flex flex-col bg-white/5 px-2 py-1 rounded"
                             >
-                              <div className="flex items-center gap-2 truncate">
-                                <span className="text-white/90">
-                                  {ent.seasonYear} R{ent.round}
-                                </span>
-                                <span
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
-                                >
-                                  {badge.label}
-                                </span>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className="text-white/90">
+                                    {ent.seasonYear} R{ent.round}
+                                  </span>
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                                  >
+                                    {badge.label}
+                                  </span>
+                                </div>
                               </div>
+                              {secondaryText && (
+                                <div
+                                  className="text-white/40 text-[10px] mt-0.5 truncate"
+                                  title={secondaryText}
+                                >
+                                  {secondaryText}
+                                </div>
+                              )}
                             </div>
                           );
                         })}

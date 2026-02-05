@@ -29,7 +29,7 @@ const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter tier list name"
-          className="w-full p-2 bg-neutral-800 text-black border border-black rounded mb-2 placeholder:text-neutral-700"
+          className="w-full p-2 bg-neutral-800 text-white border border-white/10 rounded mb-2 placeholder:text-neutral-400"
         />
 
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}

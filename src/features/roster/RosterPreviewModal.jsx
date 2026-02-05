@@ -9,6 +9,7 @@ import RosterSection from './RosterSection';
 const RosterPreviewModal = ({ open, onClose, roster, team }) => {
   const exportRef = useRef(null); // ✅ used for PNG export
   const { primary, secondary } = getTeamColors(team?.id);
+  const teamName = team?.nickname || 'Roster';
 
   const downloadImage = useImageDownload(exportRef);
   
@@ -82,7 +83,7 @@ const RosterPreviewModal = ({ open, onClose, roster, team }) => {
                   textShadow: `0 0 8px ${primary}, 0 0 16px ${secondary}`,
                 }}
               >
-                {team.nickname}
+            {teamName}
               </h2>
             </div>
 

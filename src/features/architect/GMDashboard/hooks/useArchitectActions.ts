@@ -244,6 +244,11 @@ export interface UseArchitectActionsParams {
 export interface UseArchitectActionsReturn {
   // Contract/Player actions
   handleSign: (playerObj: ArchitectPlayer, contract: SigningDetails) => void;
+  handleSignAndTrade: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails,
+    destinationTeamCode: string
+  ) => void;
   handleEditContract: (player: ArchitectPlayer) => void;
   handleCapSheetAction: (
     player: ArchitectPlayer,
@@ -1493,6 +1498,7 @@ export function useArchitectActions({
   return {
     // Contract/Player actions
     handleSign,
+    handleSignAndTrade,
     handleEditContract,
     handleCapSheetAction,
     handleSaveContract,

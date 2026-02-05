@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import TieramidPlayerTile from '@/features/tierMaker/TieramidPlayerTile';
 import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
@@ -14,18 +14,22 @@ import { toast } from 'react-hot-toast';
 const INITIAL_ROWS = 5;
 const MAX_ROWS = 10;
 
-function getInitialRows(players = []) {
+function getInitialRows() {
   const rows = {};
   for (let i = 1; i <= INITIAL_ROWS; i++) {
     rows[`Row${i}`] = [];
   }
-  rows['Pool'] = [...players.filter(Boolean)];
+  rows['Pool'] = [];
   return rows;
 }
 
 const getSpotsInRow = (rowIndex) => rowIndex + 1;
 
-const TieramidBoard = ({ onScreenshotChange }) => {
+const TieramidBoard = ({
+  onScreenshotChange,
+  initialTierListId = '',
+  onTierListChange,
+}) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { data: listsData } = useFirebaseQuery('lists');
   const { data: tierListsData } = useFirebaseQuery('tierLists');
@@ -82,6 +86,14 @@ const TieramidBoard = ({ onScreenshotChange }) => {
     [allPlayers]
   );
 
+  const processedPlayersMap = useMemo(() => {
+    const map = {};
+    processedPlayers.forEach((p) => {
+      map[p.id] = p;
+    });
+    return map;
+  }, [processedPlayers]);
+
   const lists = useMemo(
     () =>
       (listsData || []).map((l) => ({
@@ -104,7 +116,7 @@ const TieramidBoard = ({ onScreenshotChange }) => {
     [tierListsData]
   );
 
-  const [rows, setRows] = useState(getInitialRows(processedPlayers));
+  const [rows, setRows] = useState(getInitialRows);
   const [rowOrder, setRowOrder] = useState(
     Array.from({ length: INITIAL_ROWS }, (_, i) => `Row${i + 1}`).concat('Pool')
   );
@@ -115,14 +127,7 @@ const TieramidBoard = ({ onScreenshotChange }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [screenshotMode, setScreenshotMode] = useState(false);
-
-  if (loading || !Array.isArray(allPlayers) || !allPlayers.length) {
-    return (
-      <div className="flex justify-center items-center py-10 text-white">
-        Loading players...
-      </div>
-    );
-  }
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   // Persistence
   const handleSaveTierList = async (idOverride) => {
@@ -150,27 +155,76 @@ const TieramidBoard = ({ onScreenshotChange }) => {
     }
   };
 
-  const handleLoadTierList = async (id) => {
-    if (!id) return;
-    try {
-      const data = await fetchTierList(id);
-      if (data?.tiers) {
-        const newRows = {};
-        Object.entries(data.tiers).forEach(([row, ids]) => {
-          newRows[row] = ids
-            .map((pid) => processedPlayers.find((p) => p.id === pid))
-            .filter(Boolean);
+  const normalizeRowsForCapacity = useCallback((currentRows, currentOrder) => {
+    const normalized = {
+      ...currentRows,
+      Pool: [...(currentRows.Pool || [])],
+    };
+    const poolIds = new Set(
+      (normalized.Pool || []).map((p) => p.player_id || p.id)
+    );
+    let overflowCount = 0;
+    currentOrder.forEach((rowKey, rowIdx) => {
+      if (rowKey === 'Pool') return;
+      const spots = getSpotsInRow(rowIdx);
+      const rowPlayers = (normalized[rowKey] || []).filter(Boolean);
+      if (rowPlayers.length > spots) {
+        const overflow = rowPlayers.slice(spots);
+        normalized[rowKey] = rowPlayers.slice(0, spots);
+        overflow.forEach((player) => {
+          const pid = player.player_id || player.id;
+          if (!poolIds.has(pid)) {
+            poolIds.add(pid);
+            normalized.Pool.push(player);
+          }
         });
-        setRows(newRows);
-        setRowOrder(data.tierOrder || Object.keys(newRows));
-        setSelectedTierList(id);
-        toast.success('Pyramid loaded!');
+        overflowCount += overflow.length;
+      } else {
+        normalized[rowKey] = rowPlayers;
       }
-    } catch (loadError) {
-      console.error('Failed to load tier list:', loadError);
-      toast.error('Failed to load');
-    }
-  };
+    });
+    return { rows: normalized, overflowCount };
+  }, []);
+
+  const handleLoadTierList = useCallback(
+    async (id) => {
+      if (!id) return;
+      try {
+        const data = await fetchTierList(id);
+        if (data?.tiers) {
+          const newRows = {};
+          Object.entries(data.tiers).forEach(([row, ids]) => {
+            newRows[row] = ids
+              .map((pid) => processedPlayersMap[pid])
+              .filter(Boolean)
+              .map((player) => ({ ...player, player_id: player.id }));
+          });
+          if (!newRows.Pool) newRows.Pool = [];
+          const incomingOrder = data.tierOrder || Object.keys(newRows);
+          const nextOrder = incomingOrder.includes('Pool')
+            ? incomingOrder
+            : [...incomingOrder, 'Pool'];
+          nextOrder.forEach((rowKey) => {
+            if (!newRows[rowKey]) newRows[rowKey] = [];
+          });
+          const normalized = normalizeRowsForCapacity(newRows, nextOrder);
+          setRows(normalized.rows);
+          setRowOrder(nextOrder);
+          setSelectedTierList(id);
+          // Update URL with the loaded tier list
+          onTierListChange?.(id);
+          if (normalized.overflowCount > 0) {
+            toast('Overflow players moved to Pool to avoid hidden slots.');
+          }
+          toast.success('Pyramid loaded!');
+        }
+      } catch (loadError) {
+        console.error('Failed to load tier list:', loadError);
+        toast.error('Failed to load');
+      }
+    },
+    [processedPlayersMap, normalizeRowsForCapacity, onTierListChange]
+  );
 
   // Add to pool helpers
   const addPlayerToPool = (player) => {
@@ -184,22 +238,30 @@ const TieramidBoard = ({ onScreenshotChange }) => {
 
   const addPlayersToPool = (playersArray) => {
     setRows((prev) => {
-      const existingIds = new Set((prev.Pool || []).map((p) => p.player_id));
+      const existingIds = new Set(
+        (prev.Pool || []).map((p) => p.player_id || p.id)
+      );
       const additions = playersArray
         .filter(Boolean)
-        .filter((p) => !existingIds.has(p.id))
-        .map((p) => ({ ...p, player_id: p.id }));
+        .filter((p) => !existingIds.has(p.id || p.player_id))
+        .map((p) => ({ ...p, player_id: p.id || p.player_id }));
       return { ...prev, Pool: [...prev.Pool, ...additions].filter(Boolean) };
     });
   };
 
   const handleAddTeamRoster = () => {
     if (!selectedTeam) return;
-    const teamPlayers = allPlayers
-      .filter(Boolean)
-      .filter(
-        (p) => (p.bio?.display?.team || '').toLowerCase() === selectedTeam.id
+    const selectedTeamId = (selectedTeam.teamId || '').toUpperCase();
+    const selectedTeamCode = (selectedTeam.code || '').toUpperCase();
+    const teamPlayers = allPlayers.filter((player) => {
+      if (!player) return false;
+      const playerTeamId = (player.bio?.display?.teamId || '').toUpperCase();
+      const playerTeamCode = (player.bio?.display?.team || '').toUpperCase();
+      return (
+        (selectedTeamId && playerTeamId === selectedTeamId) ||
+        (selectedTeamCode && playerTeamCode === selectedTeamCode)
       );
+    });
     addPlayersToPool(teamPlayers);
     setSelectedTeam(null);
   };
@@ -310,37 +372,102 @@ const TieramidBoard = ({ onScreenshotChange }) => {
     });
   };
 
-  const addFromPool = (player) => {
-    let placed = false;
-    rowOrder.slice(0, -1).forEach((rowKey, rowIdx) => {
-      if (!placed) {
-        const spots = getSpotsInRow(rowIdx);
-        if (rows[rowKey].length < spots) {
-          setRows((prev) => ({
-            ...prev,
-            Pool: prev.Pool.filter((p) => p.player_id !== player.player_id),
-            [rowKey]: [...prev[rowKey], player].filter(Boolean),
-          }));
-          placed = true;
-        }
-      }
+  const removePlayerToPool = (rowKey, playerId) => {
+    setRows((prev) => {
+      const rowPlayers = prev[rowKey] || [];
+      const player = rowPlayers.find((p) => p.player_id === playerId);
+      if (!player) return prev;
+      const poolIds = new Set(
+        (prev.Pool || []).map((p) => p.player_id || p.id)
+      );
+      return {
+        ...prev,
+        [rowKey]: rowPlayers.filter((p) => p.player_id !== playerId),
+        Pool: poolIds.has(playerId) ? prev.Pool : [...prev.Pool, player],
+      };
     });
+  };
+
+  const addFromPool = (player) => {
+    // Try to place in the lowest available row (bottom-most first, pyramid-style)
+    // First, check all rows from bottom to top for an open slot
+    const pyramidRows = rowOrder.slice(0, -1); // exclude Pool
+    let placed = false;
+
+    // Iterate from bottom row to top row
+    for (
+      let rowIdx = pyramidRows.length - 1;
+      rowIdx >= 0 && !placed;
+      rowIdx--
+    ) {
+      const rowKey = pyramidRows[rowIdx];
+      const spots = getSpotsInRow(rowIdx);
+      if (rows[rowKey].length < spots) {
+        setRows((prev) => ({
+          ...prev,
+          Pool: prev.Pool.filter((p) => p.player_id !== player.player_id),
+          [rowKey]: [...prev[rowKey], player].filter(Boolean),
+        }));
+        placed = true;
+      }
+    }
+
+    // If pyramid is full, evict the bottom/last player (last slot of last row)
     if (!placed) {
       setRows((prev) => {
-        const rowKey = rowOrder[0];
-        const spots = getSpotsInRow(0);
-        const rowPlayers = prev[rowKey];
-        const removed = rowPlayers[spots - 1];
+        const lastRowIdx = pyramidRows.length - 1;
+        const rowKey = pyramidRows[lastRowIdx];
+        const spots = getSpotsInRow(lastRowIdx);
+        const rowPlayers = prev[rowKey] || [];
+        // Evict the last player in the bottom row
+        const removed = rowPlayers[rowPlayers.length - 1];
+        const poolIds = new Set(
+          (prev.Pool || []).map((p) => p.player_id || p.id)
+        );
+        // Replace the last slot with the new player
+        const newRowPlayers = [
+          ...rowPlayers.slice(0, rowPlayers.length - 1),
+          player,
+        ].filter(Boolean);
         return {
           ...prev,
           Pool: prev.Pool.filter(
             (p) => p.player_id !== player.player_id
-          ).concat(removed),
-          [rowKey]: [...rowPlayers.slice(0, spots - 1), player].filter(Boolean),
+          ).concat(removed && !poolIds.has(removed.player_id) ? removed : []),
+          [rowKey]: newRowPlayers.slice(0, spots),
         };
       });
     }
   };
+
+  // NOTE: Removed auto-hydrate pool effect - Tieramid should start empty by design.
+  // Players are added via: drawer, add team, add list, or loading a saved tier list.
+
+  useEffect(() => {
+    if (
+      !initialLoaded &&
+      initialTierListId &&
+      tierListsData &&
+      processedPlayers.length
+    ) {
+      handleLoadTierList(initialTierListId);
+      setInitialLoaded(true);
+    }
+  }, [
+    initialLoaded,
+    initialTierListId,
+    tierListsData,
+    processedPlayers.length,
+    handleLoadTierList,
+  ]);
+
+  if (loading || !Array.isArray(allPlayers) || !allPlayers.length) {
+    return (
+      <div className="flex justify-center items-center py-10 text-white">
+        Loading players...
+      </div>
+    );
+  }
 
   // Style pyramid: margin each row so it is visually centered and layered
   const totalMax = getSpotsInRow(rowOrder.length - 2); // widest row
@@ -363,7 +490,7 @@ const TieramidBoard = ({ onScreenshotChange }) => {
       <div
         className={`flex-1 transition-[margin] duration-300 ease-in-out ${drawerOpen ? 'ml-[300px]' : 'ml-0'}`}
       >
-        <div className="flex flex-col gap-1.5 w-full max-w-[1000px] mx-auto pt-6 pb-12x">
+        <div className="flex flex-col gap-1.5 w-full max-w-[1000px] mx-auto pt-6 pb-12">
           {/* Pyramid center wrapper with backdrop and spotlight */}
           <div
             className="relative mx-auto mt-6 mb-6"
@@ -470,6 +597,18 @@ const TieramidBoard = ({ onScreenshotChange }) => {
                                       className="text-xs text-white bg-black/40 px-[4px] rounded"
                                     >
                                       →
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        removePlayerToPool(
+                                          row,
+                                          player.player_id
+                                        )
+                                      }
+                                      title="Remove to Pool"
+                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                    >
+                                      ↩
                                     </button>
                                   </div>
                                 </div>
@@ -609,6 +748,8 @@ const TieramidBoard = ({ onScreenshotChange }) => {
             onCreated={(newId) => {
               setShowCreateModal(false);
               setSelectedTierList(newId);
+              // Update URL with the new tier list ID
+              onTierListChange?.(newId);
               handleSaveTierList(newId);
             }}
           />

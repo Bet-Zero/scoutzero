@@ -256,6 +256,42 @@ describe('validateStepien - Entitlements Integration', () => {
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
     });
+
+    it('protection ladder does not bypass Stepien and emits warning', () => {
+      const result = validateStepien(
+        makeTeam({
+          entitlementsOut: [
+            {
+              id: 'e1',
+              kind: 'pick_ownership',
+              round: 1,
+              seasonYear: 2027,
+              underlyingStatus: 'clean',
+              protectionLadder: [
+                {
+                  year: 2027,
+                  condition: 'Top 3',
+                  ifTriggered: 'roll',
+                  rollToYear: 2028,
+                },
+              ],
+            },
+            {
+              id: 'e2',
+              kind: 'pick_ownership',
+              round: 1,
+              seasonYear: 2028,
+              underlyingStatus: 'clean',
+            },
+          ],
+        })
+      );
+      expect(result.passed).toBe(false);
+      expect(result.violations[0]).toContain('consecutive future 1sts');
+      expect(result.warnings).toContain(
+        'Protection ladder present; Stepien evaluated conservatively.'
+      );
+    });
   });
 
   describe('swap_right entitlements', () => {
@@ -301,6 +337,31 @@ describe('validateStepien - Entitlements Integration', () => {
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
     });
+
+    it('worst_of swap_right does not reserve year', () => {
+      const result = validateStepien(
+        makeTeam({
+          entitlementsOut: [
+            {
+              id: 'e1',
+              kind: 'swap_right',
+              round: 1,
+              seasonYear: 2027,
+              underlyingStatus: 'clean',
+              swapTargetDefinition: 'Less favorable of BOS/NYK',
+            },
+            {
+              id: 'e2',
+              kind: 'pick_ownership',
+              round: 1,
+              seasonYear: 2028,
+              underlyingStatus: 'clean',
+            },
+          ],
+        })
+      );
+      expect(result.passed).toBe(true);
+    });
   });
 
   describe('conveyance_right entitlements', () => {
@@ -345,6 +406,9 @@ describe('validateStepien - Entitlements Integration', () => {
       );
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
+      expect(result.warnings).toContain(
+        'Ambiguous conveyance; Stepien evaluated conservatively.'
+      );
     });
   });
 

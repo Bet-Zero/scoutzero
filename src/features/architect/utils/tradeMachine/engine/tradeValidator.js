@@ -24,6 +24,7 @@ import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
+import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 // Phase 17: Entitlement routing validation (uniqueness, routing, ownership)
 import { validateEntitlementRouting } from '../rules/validateEntitlementRouting.js';
 // Phase 4: Centralized cap settings provider for explicit sourcing
@@ -221,14 +222,20 @@ function generateTradeReceipt({
       team.outgoingEntitlements ||
       team.entitlementsOut ||
       []
-    ).map((ent) => ({
-      id: ent.entitlementId || ent.id,
-      seasonYear: ent.seasonYear,
-      round: ent.round,
-      kind: ent.kind,
-      description: ent.description,
-      toTeamId: ent.toTeamId || null, // Phase 11.3.1: Include routing target for debug clarity
-    }));
+    ).map((ent) => {
+      const decorated = decorateEntitlementForTrade(ent) || ent;
+      return {
+        id: decorated.entitlementId || decorated.id,
+        seasonYear: decorated.seasonYear,
+        round: decorated.round,
+        kind: decorated.kind,
+        description: decorated.description,
+        toTeamId: decorated.toTeamId || null, // Phase 11.3.1: Include routing target for debug clarity
+        draftKey: decorated.draftKey,
+        terms: decorated.terms,
+        termsShort: decorated.termsShort,
+      };
+    });
 
     // Phase 11.3: Build incoming entitlements list (from other teams' outgoing)
     // Phase 11.3.1: Respect toTeamId routing when present
@@ -243,8 +250,9 @@ function generateTradeReceipt({
           otherTeam.entitlementsOut ||
           []
         ).forEach((ent) => {
+          const decorated = decorateEntitlementForTrade(ent) || ent;
           // Phase 11.3.1: Check toTeamId routing
-          const routedTo = ent.toTeamId;
+          const routedTo = decorated.toTeamId;
 
           // Include entitlement if:
           // 1. No routing specified (broadcast mode - backward compatible)
@@ -254,13 +262,16 @@ function generateTradeReceipt({
 
           if (shouldInclude) {
             incomingEntitlements.push({
-              id: ent.entitlementId || ent.id,
-              seasonYear: ent.seasonYear,
-              round: ent.round,
-              kind: ent.kind,
-              description: ent.description,
+              id: decorated.entitlementId || decorated.id,
+              seasonYear: decorated.seasonYear,
+              round: decorated.round,
+              kind: decorated.kind,
+              description: decorated.description,
               fromTeam: otherTeam.team?.id || otherTeam.team?.teamId,
-              toTeamId: ent.toTeamId || null, // Phase 11.3.1: Include for debug clarity
+              toTeamId: decorated.toTeamId || null, // Phase 11.3.1: Include for debug clarity
+              draftKey: decorated.draftKey,
+              terms: decorated.terms,
+              termsShort: decorated.termsShort,
             });
           }
         });

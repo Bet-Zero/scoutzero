@@ -12,6 +12,7 @@ import {
 } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
+import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import {
   resolvePickRulesByIds,
   pickRulesMapToObject,
@@ -83,6 +84,25 @@ function resolveTeamCodeLike(teamObjOrId, teamDataMaybe = null) {
   }
   return null;
 }
+
+const isPlainObjectValue = (value) =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const deepMergeEntitlement = (base, override) => {
+  if (!isPlainObjectValue(base) || !isPlainObjectValue(override)) {
+    return { ...base, ...override };
+  }
+  const merged = { ...base };
+  Object.entries(override).forEach(([key, value]) => {
+    const baseValue = base[key];
+    if (isPlainObjectValue(baseValue) && isPlainObjectValue(value)) {
+      merged[key] = deepMergeEntitlement(baseValue, value);
+      return;
+    }
+    merged[key] = value;
+  });
+  return merged;
+};
 
 /* ============================
    PICK RULES RESOLUTION (Phase 12.3B)
@@ -606,12 +626,12 @@ export const useTradeMachine = (
         // Add to selection with required metadata
         newTeams[index].entitlementsOut = [
           ...(newTeams[index].entitlementsOut || []),
-          {
+          decorateEntitlementForTrade({
             ...entitlement,
             entitlementId,
             fromTeamId: newTeams[index].team?.id,
             toTeamId: autoToTeamId, // Phase 17: Auto-set for 2-team, null for 3+
-          },
+          }),
         ];
       }
 
@@ -913,13 +933,17 @@ export const useTradeMachine = (
         teamId: t.team.id,
         outgoingPlayers: t.sends,
         // Phase 14.2: Removed outgoingPicks - draft assets are entitlements-only
-        outgoingEntitlements: t.entitlementsOut || [],
+        outgoingEntitlements: (t.entitlementsOut || [])
+          .map((ent) => decorateEntitlementForTrade(ent))
+          .filter(Boolean),
         incomingPlayers:
           incomingAssets.find((a) => a.teamId === t.team.id)?.players || [],
         // Phase 14.2: Incoming entitlements derived from entitlementsOut routing
-        incomingEntitlements:
-          incomingAssets.find((a) => a.teamId === t.team.id)?.entitlements ||
-          [],
+        incomingEntitlements: (
+          incomingAssets.find((a) => a.teamId === t.team.id)?.entitlements || []
+        )
+          .map((ent) => decorateEntitlementForTrade(ent))
+          .filter(Boolean),
         usedTradeExceptions: t.sends
           .filter((p) => p.acquiredViaTPE)
           .map((p) => p.tpeId),
@@ -977,6 +1001,84 @@ export const useTradeMachine = (
     );
   }, []);
 
+  const applyEntitlementOverrideUpdate = useCallback(
+    (entitlementId, document) => {
+      if (!entitlementId || !document) return;
+
+      const normalizedDoc = { ...document, id: entitlementId };
+      const affectedIndexes = [];
+
+      const updatedTeams = teams.map((slot, index) => {
+        if (!slot.team) return slot;
+
+        let entitlementsChanged = false;
+        const updatedEntitlements = (slot.team.entitlements || []).map((ent) => {
+          const entId = ent.id || ent.entitlementId;
+          if (entId !== entitlementId) return ent;
+          entitlementsChanged = true;
+          const merged = deepMergeEntitlement(ent, normalizedDoc);
+          return { ...merged, id: entitlementId };
+        });
+
+        if (entitlementsChanged) {
+          affectedIndexes.push(index);
+        }
+
+        const updatedEntitlementsOut = (slot.entitlementsOut || []).map((ent) => {
+          const entId = ent.id || ent.entitlementId;
+          if (entId !== entitlementId) return ent;
+          const merged = deepMergeEntitlement(ent, normalizedDoc);
+          return decorateEntitlementForTrade({
+            ...merged,
+            id: entitlementId,
+            entitlementId: entitlementId,
+          });
+        });
+
+        return {
+          ...slot,
+          team: entitlementsChanged
+            ? { ...slot.team, entitlements: updatedEntitlements }
+            : slot.team,
+          entitlementsOut: updatedEntitlementsOut,
+        };
+      });
+
+      setTeams(updatedTeams);
+
+      if (!ENABLE_PICK_RULES || affectedIndexes.length === 0) return;
+
+      const refreshPickRules = async () => {
+        const updates = await Promise.all(
+          affectedIndexes.map(async (index) => {
+            const slot = updatedTeams[index];
+            if (!slot?.team?.entitlements) return null;
+            const pickRulesById =
+              await resolvePickRulesForEntitlements(slot.team.entitlements);
+            return { index, pickRulesById };
+          })
+        );
+
+        setTeams((prev) =>
+          prev.map((slot, index) => {
+            const update = updates.find((u) => u && u.index === index);
+            if (!update) return slot;
+            return {
+              ...slot,
+              team: {
+                ...slot.team,
+                pickRulesById: update.pickRulesById,
+              },
+            };
+          })
+        );
+      };
+
+      refreshPickRules();
+    },
+    [teams]
+  );
+
   return {
     teams,
     result,
@@ -1003,6 +1105,8 @@ export const useTradeMachine = (
     salaryOut,
     // Phase 17: Expose active team count for UI destination dropdown logic
     activeTeamCount,
+    // TM-4: Expose entitlement override updater for local state refresh
+    applyEntitlementOverrideUpdate,
     // P0-3: Expose validation in-flight state for UI loading indicators
     isValidating,
     // Stale validation fix: Expose current draft key state

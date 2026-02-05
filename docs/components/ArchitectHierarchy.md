@@ -44,7 +44,16 @@ TeamHistoryTab.jsx
 ValidationWarnings.jsx
 WaiveStretchTracker.jsx
 admin/
+  EntitlementEditorAdvancedTab.tsx
+  EntitlementEditorBasicsTab.tsx
+  EntitlementEditorConveyanceTab.tsx
+  EntitlementEditorFormTabs.tsx
   EntitlementEditorModal.tsx
+  EntitlementEditorProtectionTab.tsx
+  EntitlementEditorSwapTab.tsx
+  EntitlementEditorTeamInventorySection.tsx
+  entitlementEditorFormState.ts
+  useEntitlementEditorState.ts
 capSheet/
   CapSheet/
     CapSheet.jsx
@@ -188,6 +197,7 @@ utils/
       types.ts
     entitlementPickRowProjection.js
     entitlementResolver.ts
+    entitlementTerms.ts
     entitlementWriter.ts
     formatEntitlement.js
     pickRulesResolver.ts
@@ -332,5 +342,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-04T09:47:15.040Z*
+*Generated on: 2026-02-05T21:01:24.840Z*
 *Auto-updated by: npm run docs*

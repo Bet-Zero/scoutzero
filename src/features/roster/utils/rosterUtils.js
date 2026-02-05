@@ -10,6 +10,30 @@ function normalizeHeadshotId(playerId) {
     .toLowerCase();
 }
 
+const ROSTER_SIZES = {
+  starters: 5,
+  rotation: 4,
+  bench: 6,
+};
+
+const normalizeSection = (section, size) => {
+  const safeSection = Array.isArray(section) ? section.slice(0, size) : [];
+  while (safeSection.length < size) safeSection.push(null);
+  return safeSection;
+};
+
+export const createEmptyRoster = () => ({
+  starters: Array(ROSTER_SIZES.starters).fill(null),
+  rotation: Array(ROSTER_SIZES.rotation).fill(null),
+  bench: Array(ROSTER_SIZES.bench).fill(null),
+});
+
+export const normalizeRosterShape = (roster = {}) => ({
+  starters: normalizeSection(roster.starters, ROSTER_SIZES.starters),
+  rotation: normalizeSection(roster.rotation, ROSTER_SIZES.rotation),
+  bench: normalizeSection(roster.bench, ROSTER_SIZES.bench),
+});
+
 export function normalizePlayer(player) {
   if (!player) return null;
   const playerId = player.bio?.playerId || player.id;

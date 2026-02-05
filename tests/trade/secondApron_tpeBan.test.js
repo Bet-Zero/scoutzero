@@ -51,13 +51,17 @@ describe('second apron prior-year TPE usage', () => {
     );
   });
 
-  it('rejects current-year TPEs for second-apron teams', () => {
+  it('does not block current-year TPEs for second-apron teams', () => {
     const res = runTrade(
       [{ amount: 5_000_000, createdSeason: currentYear }],
       220_000_000 // Above 2025 second apron threshold of ~207.8M
     );
-    expect(res.teamResults[0].legal).toBe(false);
-    expect(res.teamResults[0].violations).toContain(
+    // The TPE exception validator must pass — no TPE-specific violation
+    const tpeResult = res.teamResults[0].rules?.tradeExceptions;
+    expect(tpeResult?.passed).toBe(true);
+    expect(tpeResult?.violations).toEqual([]);
+    // No "cannot use trade exceptions" message in the overall violations
+    expect(res.teamResults[0].violations).not.toContain(
       'Second apron team cannot use trade exceptions'
     );
   });

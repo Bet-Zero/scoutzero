@@ -87,6 +87,8 @@ const TradeTeamCard = ({
   onToggleEntitlement,
   // Phase 17: Multi-team destination routing
   onSetEntitlementDestination,
+  // TM-4: Entitlement edit callback
+  onEditEntitlement,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -740,6 +742,7 @@ const TradeTeamCard = ({
           otherTeams={otherTeams}
           entitlementsOut={entitlementsOut}
           onSetDestination={onSetEntitlementDestination}
+          onEditEntitlement={onEditEntitlement}
         />
       )}
 

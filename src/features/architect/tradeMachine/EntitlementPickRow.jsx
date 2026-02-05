@@ -24,7 +24,7 @@ import {
   getPickRowDisplayLabel,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
-import { AlertTriangle, Check, Info } from 'lucide-react';
+import { AlertTriangle, Check, Info, Pencil } from 'lucide-react';
 
 /**
  * EntitlementPickRow
@@ -41,6 +41,7 @@ import { AlertTriangle, Check, Info } from 'lucide-react';
  * @param {Array} [props.otherTeams] - Phase 17: Array of other teams for destination dropdown [{id, name, teamCode}]
  * @param {string} [props.currentToTeamId] - Phase 17: Currently selected destination team ID
  * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed (entitlementId, toTeamId)
+ * @param {Function} [props.onEdit] - TM-4: Callback when entitlement edit is requested
  */
 const EntitlementPickRow = ({
   entitlement,
@@ -53,6 +54,7 @@ const EntitlementPickRow = ({
   otherTeams = [],
   currentToTeamId = null,
   onSetDestination,
+  onEdit,
 }) => {
   if (!entitlement) return null;
 
@@ -110,6 +112,13 @@ const EntitlementPickRow = ({
     const entitlementId = entitlement.id || entitlement.entitlementId;
     if (onSetDestination) {
       onSetDestination(entitlementId, e.target.value || null);
+    }
+  };
+
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit(entitlement);
     }
   };
 
@@ -193,6 +202,17 @@ const EntitlementPickRow = ({
 
         {/* Right side: Kind badge */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="p-1 rounded hover:bg-white/10 text-white/60 hover:text-white"
+              aria-label="Edit entitlement"
+              title="Edit entitlement"
+            >
+              <Pencil size={12} />
+            </button>
+          )}
           <span
             className={`px-2 py-0.5 rounded text-[10px] font-medium ${kindTag.colorClass}`}
           >

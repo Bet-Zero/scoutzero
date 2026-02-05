@@ -4,6 +4,7 @@ import {
   buildStepienOutgoingPicksFromEntitlements,
   buildStepienBaselinePicksFromEntitlements,
 } from '../utils/stepienEntitlementUtils.js';
+import { normalizeEntitlementTerms } from '@/features/architect/utils/entitlements/entitlementTerms';
 
 /**
  * Phase 2 Helper: Determines if a pick reserves a year for Stepien purposes.
@@ -127,6 +128,8 @@ export function validateStepien(team, tradeCtx = {}) {
   // const cacheKey = `${team.teamId}-${tradeCtx.yearKey || ''}-${JSON.stringify(team.outgoingPicks || [])}`;
 
   const violations = [];
+  const warnings = [];
+  const warningSet = new Set();
   const { picksOut = [], outgoingPicks = [] } = team;
 
   // Extract current year from team context or tradeCtx
@@ -143,6 +146,31 @@ export function validateStepien(team, tradeCtx = {}) {
   // Phase 12.1: Build Stepien-relevant picks from entitlements being traded
   // Entitlements take precedence over legacy picksOut for modern trades
   const entitlementsOut = team.entitlementsOut || [];
+  // TM-5: Emit conservative warnings for authored terms
+  if (entitlementsOut.length > 0) {
+    entitlementsOut.forEach((ent) => {
+      const terms =
+        ent && typeof ent.terms === 'object'
+          ? ent.terms
+          : normalizeEntitlementTerms(ent);
+      if (terms?.hasProtectionLadder) {
+        const message =
+          'Protection ladder present; Stepien evaluated conservatively.';
+        if (!warningSet.has(message)) {
+          warningSet.add(message);
+          warnings.push(message);
+        }
+      }
+      if (terms?.hasConveyance || ent?.kind === 'conveyance_right') {
+        const message =
+          'Ambiguous conveyance; Stepien evaluated conservatively.';
+        if (!warningSet.has(message)) {
+          warningSet.add(message);
+          warnings.push(message);
+        }
+      }
+    });
+  }
   const entitlementDerivedPicks =
     buildStepienOutgoingPicksFromEntitlements(entitlementsOut);
 
@@ -176,12 +204,18 @@ export function validateStepien(team, tradeCtx = {}) {
     }));
 
   // Entitlements that reserve years (already filtered in buildStepienOutgoingPicksFromEntitlements)
-  const entitlementOutYears = entitlementDerivedPicks.map((p) => ({
-    year: p.year,
-    protection: p.protection,
-    _source: 'entitlement_out',
-    _entitlementId: p._entitlementId,
-  }));
+  const entitlementOutYears = entitlementDerivedPicks
+    .filter((pick) => reservesYearForStepien(pick))
+    .map((p) => ({
+      year: p.year,
+      protection: p.protection,
+      swapType: p.swapType,
+      _source: 'entitlement_out',
+      _entitlementId: p._entitlementId,
+      _termsRole: p._termsRole,
+      _termsProtection: p._termsProtection,
+      _hasProtectionLadder: p._hasProtectionLadder,
+    }));
 
   // All outgoing (delta)
   const outgoingYears = [...tradePickYears, ...entitlementOutYears];
@@ -266,9 +300,25 @@ export function validateStepien(team, tradeCtx = {}) {
       ? Math.max(...picks.map((p) => p.year || currentYear))
       : currentYear;
 
+  const controlByYear = {};
+  outgoingYears.forEach((entry) => {
+    if (!entry || !entry.year) return;
+    const yearKey = entry.year;
+    if (!controlByYear[yearKey]) {
+      controlByYear[yearKey] = [];
+    }
+    controlByYear[yearKey].push({
+      source: entry._source,
+      entitlementId: entry._entitlementId,
+      swapType: entry.swapType,
+      hasProtectionLadder: entry._hasProtectionLadder || false,
+    });
+  });
+
   const result = {
     passed: violations.length === 0,
     violations,
+    warnings,
     message:
       violations.length > 0
         ? 'Stepien Rule violation'
@@ -285,6 +335,7 @@ export function validateStepien(team, tradeCtx = {}) {
       tradePicksConsidered: tradePickYears.length,
       entitlementsConsidered: entitlementDerivedPicks.length,
       totalStepienRelevant: allStepienRelevant.length,
+      controlByYear,
     },
   };
 

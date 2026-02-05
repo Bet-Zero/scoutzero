@@ -310,6 +310,7 @@ const GMDashboard = () => {
             primaryTeamData={teamCapSheet}
             onEditContract={actions.handleEditContract}
             worldId={worldId}
+            userId={userId}
           />
         )}
 
@@ -320,6 +321,7 @@ const GMDashboard = () => {
             capProjections={capProjections}
             currentYear={currentYear}
             onSign={actions.handleSign}
+            onSignAndTrade={actions.handleSignAndTrade}
             playersMap={playersMap}
             // Phase 16: Offer Sheet Wiring
             outgoingOfferSheets={teamCapSheet?.offerSheets || []}
@@ -425,6 +427,7 @@ const GMDashboard = () => {
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
           onSign={actions.handleSign}
+          onSignAndTrade={actions.handleSignAndTrade}
           onStoreOfferSheet={actions.handleStoreOfferSheet}
           onSave={actions.handleSaveContract}
           onExtend={actions.handleExtendContract}

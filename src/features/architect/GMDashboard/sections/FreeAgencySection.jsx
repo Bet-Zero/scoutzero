@@ -19,6 +19,7 @@ const FreeAgencySection = ({
   capProjections,
   currentYear,
   onSign,
+  onSignAndTrade,
   playersMap,
   // New props for Phase 16
   outgoingOfferSheets,
@@ -51,6 +52,7 @@ const FreeAgencySection = ({
         capProjections={capProjections}
         currentYear={currentYear}
         onSign={onSign}
+        onSignAndTrade={onSignAndTrade}
         playersMap={playersMap}
       />
   </div>

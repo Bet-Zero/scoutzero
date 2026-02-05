@@ -1,5 +1,6 @@
 // src/components/filters/sections/ContractFilters.jsx
 import React from 'react';
+import { normalizeFreeAgentType } from '@/shared/utils/filtering';
 
 const ContractFilters = ({ filters, setFilters }) => (
   <div className="p-2 space-y-3">
@@ -24,21 +25,42 @@ const ContractFilters = ({ filters, setFilters }) => (
       </div>
 
       <div>
-        <label className="block mb-1 text-white/70 text-xs">FA Type</label>
+        <label className="block mb-1 text-white/70 text-xs">FA Status</label>
         <select
-          value={filters.freeAgentType}
+          value={filters.freeAgentStatus || ''}
           onChange={(e) =>
-            setFilters({ ...filters, freeAgentType: e.target.value })
+            setFilters({
+              ...filters,
+              freeAgentStatus: normalizeFreeAgentType(e.target.value),
+            })
           }
           className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
         >
-          <option value="">Any Type</option>
-          <option value="UFA">UFA</option>
-          <option value="RFA">RFA</option>
-          <option value="TO">Team Option</option>
-          <option value="PO">Player Option</option>
-          <option value="2W">Two-Way</option>
-          <option value="ETO">Early Termination Option</option>
+          <option value="">Any</option>
+          <option value="ufa">UFA (Unrestricted)</option>
+          <option value="rfa">RFA (Restricted)</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block mb-1 text-white/70 text-xs">
+          Contract Features
+        </label>
+        <select
+          value={filters.contractFeature || ''}
+          onChange={(e) =>
+            setFilters({
+              ...filters,
+              contractFeature: e.target.value,
+            })
+          }
+          className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
+        >
+          <option value="">Any</option>
+          <option value="to">Team Option</option>
+          <option value="po">Player Option</option>
+          <option value="eto">ETO</option>
+          <option value="two_way">Two-Way</option>
         </select>
       </div>
     </div>

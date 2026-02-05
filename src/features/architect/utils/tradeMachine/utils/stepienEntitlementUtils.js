@@ -9,6 +9,8 @@
  *   - docs/team-scrape/return_packages/PST_PHASE_12_STEPIEN_ENTITLEMENTS_PREFLIGHT_RETURN_PACKAGE.md
  */
 
+import { normalizeEntitlementTerms } from '@/features/architect/utils/entitlements/entitlementTerms';
+
 /**
  * Checks if an entitlement has pooled underlying status.
  * Pooled entitlements do NOT reserve years for Stepien purposes.
@@ -67,23 +69,30 @@ export function buildStepienOutgoingPicksFromEntitlements(entitlementsOut) {
       return true;
     })
     .map((ent) => {
+      const terms = normalizeEntitlementTerms(ent);
+      const protectionText =
+        terms.protectionLadder?.currentTier?.condition || null;
       // Convert to pick-like object compatible with reservesYearForStepien()
       // swap_right → isSwap=true, swapType='best_of' (reserves year)
       // conveyance_right → treat as outright pick (reserves year)
       // pick_ownership → outright pick (reserves year)
       const isSwap = ent.kind === 'swap_right';
+      const swapType = isSwap ? terms.swap?.swapType || 'best_of' : undefined;
 
       return {
         year: ent.seasonYear || ent.year,
         round: 1,
         protection: null, // Entitlements don't carry protection info at this level
         isSwap: isSwap,
-        swapType: isSwap ? 'best_of' : undefined,
+        swapType,
         // Metadata for debugging
         _source: 'entitlement',
         _entitlementId: ent.id,
         _entitlementKind: ent.kind,
         _underlyingStatus: ent.underlyingStatus,
+        _termsRole: terms.swap?.role,
+        _termsProtection: protectionText,
+        _hasProtectionLadder: terms.hasProtectionLadder,
       };
     });
 }
@@ -128,20 +137,27 @@ export function buildStepienBaselinePicksFromEntitlements(entitlements) {
       return true;
     })
     .map((ent) => {
+      const terms = normalizeEntitlementTerms(ent);
+      const protectionText =
+        terms.protectionLadder?.currentTier?.condition || null;
       // swap_right → isSwap=true, swapType='best_of' (reserves year)
       // conveyance_right → treat as outright pick (reserves year)
       // pick_ownership → outright pick (reserves year)
       const isSwap = ent.kind === 'swap_right';
+      const swapType = isSwap ? terms.swap?.swapType || 'best_of' : undefined;
 
       return {
         year: ent.seasonYear || ent.year,
         round: 1,
         isSwap: isSwap,
-        swapType: isSwap ? 'best_of' : undefined,
+        swapType,
         // Metadata for debugging - mark as baseline source
         _source: 'entitlement_baseline',
         _entitlementId: ent.id,
         _kind: ent.kind,
+        _termsRole: terms.swap?.role,
+        _termsProtection: protectionText,
+        _hasProtectionLadder: terms.hasProtectionLadder,
       };
     });
 }

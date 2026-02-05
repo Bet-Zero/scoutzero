@@ -9,6 +9,10 @@ import {
 } from '@/features/architect/utils/tradeHelpers';
 import { format } from 'date-fns';
 import { getEntitlementKindBadge } from '@/features/architect/tradeMachine/utils/entitlementWarnings';
+import {
+  formatEntitlementTermsShort,
+  normalizeEntitlementTerms,
+} from '@/features/architect/utils/entitlements/entitlementTerms';
 
 const TradeExportCapture = React.forwardRef(function TradeExportCapture(
   { teams = [], result, yearKey, label = 'Trade Summary', date = new Date() },
@@ -205,29 +209,42 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
                         {entitlements.length ? (
                           entitlements.map((e, i) => {
                             const badge = getEntitlementKindBadge(e.kind);
+                            const termsShort =
+                              typeof e.termsShort === 'string'
+                                ? e.termsShort
+                                : formatEntitlementTermsShort(
+                                    normalizeEntitlementTerms(e)
+                                  );
                             return (
                               <div
                                 key={e.id || e.entitlementId || i}
-                                className="flex items-center justify-between bg-neutral-800/50 border border-neutral-600/30 rounded-xl px-4 py-2 text-neutral-200 font-medium text-sm backdrop-blur-sm"
+                                className="flex flex-col bg-neutral-800/50 border border-neutral-600/30 rounded-xl px-4 py-2 text-neutral-200 font-medium text-sm backdrop-blur-sm"
                               >
-                                <div className="flex items-center gap-2">
-                                  <span>
-                                    {e.seasonYear} R{e.round}
-                                  </span>
-                                  <span
-                                    className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
-                                  >
-                                    {badge.label}
-                                  </span>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span>
+                                      {e.seasonYear} R{e.round}
+                                    </span>
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
+                                    >
+                                      {badge.label}
+                                    </span>
+                                  </div>
+                                  <TeamLogo
+                                    teamId={
+                                      e.originalTeam ||
+                                      e.originTeamId ||
+                                      e.fromTeamId
+                                    }
+                                    className="w-5 h-5 ml-2 shrink-0"
+                                  />
                                 </div>
-                                <TeamLogo
-                                  teamId={
-                                    e.originalTeam ||
-                                    e.originTeamId ||
-                                    e.fromTeamId
-                                  }
-                                  className="w-5 h-5 ml-2 shrink-0"
-                                />
+                                {termsShort ? (
+                                  <div className="text-[10px] text-neutral-400 mt-1 truncate">
+                                    {termsShort}
+                                  </div>
+                                ) : null}
                               </div>
                             );
                           })

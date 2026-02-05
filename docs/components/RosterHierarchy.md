@@ -24,6 +24,7 @@ RosterSection/
   StarterCard.jsx
   index.jsx
 RosterViewer.jsx
+RosterViewerActions.tsx
 SaveRosterModal.jsx
 hooks/
   useRosterManager.js
@@ -35,5 +36,5 @@ utils/
 ```
 
 ---
-*Generated on: 2025-12-26T08:03:41.975Z*
+*Generated on: 2026-02-05T11:43:10.950Z*
 *Auto-updated by: npm run docs*

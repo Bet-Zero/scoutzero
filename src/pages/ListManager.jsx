@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '@/firebaseConfig';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import { toast } from 'react-hot-toast';
 
@@ -130,11 +130,12 @@ const ListManager = () => {
       const currentPlayerIds = order.filter(
         (id) => !id.startsWith('divider::')
       );
+      // E1: Use serverTimestamp() for consistent timestamp handling
       await updateDoc(doc(db, 'lists', listId), {
         playerOrder: order,
         playerIds: currentPlayerIds,
         playerNotes: notes,
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(),
       });
       toast.success('List saved!');
     } catch (saveError) {

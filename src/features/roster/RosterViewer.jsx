@@ -1,17 +1,17 @@
 // src/components/roster/RosterViewer.jsx
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import AddPlayerDrawer from './AddPlayerDrawer';
 import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import RosterControls from './RosterControls';
 import RosterSection from './RosterSection';
-import SaveRosterModal from './SaveRosterModal';
-import RosterPreviewModal from './RosterPreviewModal';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { TeamMap } from '@/constants/teamList';
 import { useRosterManager } from '@/features/roster/hooks/useRosterManager';
+import { RosterViewerActions } from './RosterViewerActions';
 
 const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const { players: allPlayers, loading: isLoading } = useSimplePlayerData();
@@ -29,12 +29,13 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     rosterName,
     setRosterName,
     saveNewRoster,
+    updateRoster,
+    rosterId,
+    rosterHasPlayer,
   } = useRosterManager(allPlayers, isLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [slotTarget, setSlotTarget] = useState({ section: '', index: -1 });
-  const [saveModalOpen, setSaveModalOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [screenshotMode, setScreenshotMode] = useState(false);
 
   useEffect(() => {
@@ -45,7 +46,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
       setLoadMethod(match.id);
     }
   }, [initialRosterId, savedRosters, setSelectedTeam, setLoadMethod]);
-
   const handleRemovePlayer = (section, index, e) => {
     e?.stopPropagation();
     removePlayer(section, index);
@@ -56,10 +56,7 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     setDrawerOpen(true);
   };
 
-  const handleSaveFromModal = async () => {
-    await saveNewRoster();
-    setSaveModalOpen(false);
-  };
+  const isEditingExisting = Boolean(rosterId);
 
   const { primary, secondary } = getTeamColors(selectedTeam?.id);
 
@@ -75,6 +72,10 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             onClose={() => setDrawerOpen(false)}
             allPlayers={processedPlayers}
             onSelect={(player) => {
+              if (rosterHasPlayer(player.id)) {
+                toast.error('Player already in roster');
+                return;
+              }
               const isManualTarget =
                 slotTarget.section && slotTarget.index !== -1;
               if (isManualTarget) {
@@ -99,7 +100,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             isExport ? 'scale-[0.9]' : ''
           }`}
         >
-          {/* Team Branding Background */}
           {selectedTeam && (
             <img
               src={`/assets/logos/${getTeamLogoFilename(selectedTeam.id)}.png`}
@@ -109,7 +109,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             />
           )}
 
-          {/* Controls */}
           {!isExport && !screenshotMode && (
             <div className="z-10 -mt-2 mb-2 w-full">
               <div className="flex justify-center mb-0 z-10">
@@ -124,7 +123,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             </div>
           )}
 
-          {/* Team Name */}
           {selectedTeam && (
             <div className="w-full flex justify-center relative z-10 mb-2">
               <h2
@@ -143,7 +141,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
           <h3 className="text-xl text-neutral-500 font-semibold z-10 mb-8 opacity-90 tracking-wide">
             Team Roster
           </h3>
-
           <RosterSection
             players={roster.starters}
             section="starters"
@@ -151,7 +148,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             onAdd={handleOpenDrawer}
             isExport={isExport}
           />
-
           <RosterSection
             players={roster.rotation}
             section="rotation"
@@ -159,7 +155,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             onAdd={handleOpenDrawer}
             isExport={isExport}
           />
-
           <RosterSection
             players={roster.bench}
             section="bench"
@@ -167,8 +162,6 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
             onAdd={handleOpenDrawer}
             isExport={isExport}
           />
-
-          {/* Screenshot Toggle */}
           {!isExport && !drawerOpen && (
             <div className="fixed bottom-6 left-6 z-50">
               <button
@@ -187,35 +180,15 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
               </button>
             </div>
           )}
-
-          {/* Save Roster */}
           {!isExport && !screenshotMode && (
-            <div className="fixed bottom-6 right-6 z-50">
-              <button
-                onClick={() => setSaveModalOpen(true)}
-                className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"
-              >
-                Save Roster
-              </button>
-            </div>
-          )}
-
-          {/* Save Modal */}
-          {saveModalOpen && (
-            <SaveRosterModal
-              name={rosterName}
-              onNameChange={setRosterName}
-              onCancel={() => setSaveModalOpen(false)}
-              onSave={handleSaveFromModal}
-            />
-          )}
-
-          {previewOpen && (
-            <RosterPreviewModal
-              open={previewOpen}
-              onClose={() => setPreviewOpen(false)}
+            <RosterViewerActions
+              rosterName={rosterName}
+              setRosterName={setRosterName}
               roster={roster}
               team={selectedTeam}
+              isEditingExisting={isEditingExisting}
+              onSaveNew={saveNewRoster}
+              onOverwrite={updateRoster}
             />
           )}
         </div>

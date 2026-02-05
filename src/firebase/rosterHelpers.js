@@ -52,17 +52,18 @@ export const loadRosterProject = async (id) => {
 // ✅ Update a saved roster project including rotation
 export const updateRosterProject = async (
   id,
-  starters = [],
-  rotation = [],
-  bench = []
+  { starters = [], rotation = [], bench = [], name, team } = {}
 ) => {
   const docRef = doc(db, 'rosterProjects', id);
-  await updateDoc(docRef, {
+  const payload = {
     starters,
     rotation, // ✅ fix added here
     bench,
     updatedAt: serverTimestamp(),
-  });
+  };
+  if (name !== undefined) payload.name = name;
+  if (team !== undefined) payload.team = team;
+  await updateDoc(docRef, payload);
 };
 
 // Rename a roster project

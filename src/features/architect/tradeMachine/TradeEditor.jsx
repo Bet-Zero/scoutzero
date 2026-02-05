@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { RotateCcw } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import TradeTeamCard from './TradeTeamCard';
 import TradePreviewModal from './TradePreviewModal';
 import ValidationStateHeader from './ValidationStateHeader';
 import ValidationDetailsPanel from './ValidationDetailsPanel';
+import { EntitlementEditorModal } from '@/features/architect/admin/EntitlementEditorModal';
+import { isEntitlementAuthoringEnabled } from '@/features/architect/utils/entitlements/entitlementWriter';
 // import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
@@ -16,6 +19,7 @@ const TradeEditor = ({
   primaryTeamData = null,
   onEditContract,
   worldId = null, // World ID for world-aware team loading
+  userId = null,
 }) => {
   const {
     teams,
@@ -49,6 +53,8 @@ const TradeEditor = ({
     initError,
     // Phase 17: Active team count for multi-team destination logic
     activeTeamCount,
+    // TM-4: Apply entitlement overrides to local state
+    applyEntitlementOverrideUpdate,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -60,6 +66,9 @@ const TradeEditor = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   // P2: Track which team's calculator to show (0 = primary team by default)
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
+  const [entitlementEditorState, setEntitlementEditorState] = useState(null);
+
+  const canEditEntitlements = isEntitlementAuthoringEnabled();
 
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration
@@ -120,6 +129,32 @@ const TradeEditor = ({
     if (teamIndex !== -1) {
       applyTradeException(teamIndex, player, tpe);
     }
+  };
+
+  const handleEditEntitlement = (entitlement) => {
+    if (!canEditEntitlements) {
+      toast.error('Entitlement authoring is disabled.');
+      return;
+    }
+    if (!worldId) {
+      toast.error('Select an active world to edit entitlements.');
+      return;
+    }
+    if (!userId) {
+      toast.error('Sign in to edit entitlements.');
+      return;
+    }
+
+    const entitlementId = entitlement?.id || entitlement?.entitlementId;
+    if (!entitlementId) {
+      toast.error('Missing entitlement ID.');
+      return;
+    }
+
+    setEntitlementEditorState({
+      entitlementId,
+      initialDocument: entitlement,
+    });
   };
 
   return (
@@ -199,6 +234,9 @@ const TradeEditor = ({
               // Phase 17: Pass destination setter for multi-team entitlement routing
               onSetEntitlementDestination={(entitlementId, toTeamId) =>
                 setEntitlementDestination(idx, entitlementId, toTeamId)
+              }
+              onEditEntitlement={
+                canEditEntitlements ? handleEditEntitlement : null
               }
               incomingPlayers={incomingAssets[idx]?.players || []}
               // Phase 14.2: Incoming entitlements instead of incoming picks
@@ -281,6 +319,20 @@ const TradeEditor = ({
         result={result}
         yearKey={yearKey}
       />
+
+      {entitlementEditorState && (
+        <EntitlementEditorModal
+          worldId={worldId}
+          entitlementId={entitlementEditorState.entitlementId}
+          initialDocument={entitlementEditorState.initialDocument}
+          userId={userId}
+          onClose={() => setEntitlementEditorState(null)}
+          onSuccess={({ entitlementId, document }) => {
+            applyEntitlementOverrideUpdate(entitlementId, document);
+            setEntitlementEditorState(null);
+          }}
+        />
+      )}
     </div>
   );
 };

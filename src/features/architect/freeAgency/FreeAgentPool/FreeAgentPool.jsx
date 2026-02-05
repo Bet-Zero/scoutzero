@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { generateDefaultFreeAgentContract } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import FreeAgentCard from './FreeAgentCard';
 import FreeAgentRow from './FreeAgentRow';
@@ -11,6 +10,7 @@ const FreeAgentPool = ({
   // capProjections,
   currentYear,
   onSign,
+  onSignAndTrade,
   playersMap = {},
   playersById = {},
 }) => {
@@ -75,18 +75,6 @@ const FreeAgentPool = ({
     await onSign(playerObj, contract);
 
     // Also remove from selected players once signed
-    setSelectedPlayers((prev) => prev.filter((p) => p.name !== playerObj.name));
-  };
-
-  const handleSignAndTrade = async (playerObj) => {
-    // ... same as before
-    const contract = generateDefaultFreeAgentContract(
-      playerObj.askingSalary ?? playerObj.previousSalary ?? 0,
-      currentYear,
-      playerObj.yearsOfService || playerObj.yearsPro || 0
-    );
-    contract.signAndTrade = true;
-    await onSign(playerObj, contract);
     setSelectedPlayers((prev) => prev.filter((p) => p.name !== playerObj.name));
   };
 
@@ -204,7 +192,7 @@ const FreeAgentPool = ({
           isOpen={!!contractPlayer}
           onClose={() => setContractPlayer(null)}
           onSave={handleSaveFromModal}
-          onSignAndTrade={() => handleSignAndTrade(contractPlayer)}
+          onSignAndTrade={onSignAndTrade}
           actionsOverride={['resign', 'signAndTrade']}
           actionLabelsOverride={{ resign: 'Sign Free Agent' }}
         />

@@ -75,6 +75,7 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
   useArchitectActions: () => ({
     handleEditContract: vi.fn(),
     handleSign: vi.fn(),
+    handleSignAndTrade: vi.fn(),
     handleSaveContract: vi.fn(),
     handleExtendContract: vi.fn(),
     handleWaiveContract: vi.fn(),

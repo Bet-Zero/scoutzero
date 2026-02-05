@@ -1,6 +1,7 @@
 import React from 'react';
 import { BadgeAlert, ShieldAlert } from 'lucide-react';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
 const ExceptionCard = ({
   label,
@@ -123,9 +124,9 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     tpMle = {},
     bae = {},
     dpe = {},
-    tradeExceptions = [],
     hardCapped,
   } = teamCapSheet;
+  const tradeExceptions = getTeamTpeList(teamCapSheet);
 
   // Use centralized cap settings provider for consistent cap/apron values
   // currentYear is the END year (e.g., 2025 for "2024-25" season)
