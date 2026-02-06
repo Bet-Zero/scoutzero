@@ -1,56 +1,44 @@
 // AddToListModal.jsx
-// E1: Uses addDoc for auto-id creation, serverTimestamp for consistency, duplicate-name auto-select
+// E4: All writes routed through listHelpers with ownership (ownerUid) scoping
 import React, { useEffect, useState } from 'react';
-import { db } from '@/firebaseConfig';
-import {
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  arrayUnion,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { doc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { Toaster } from 'react-hot-toast';
 import { getPlayerId } from '@/shared/utils/getPlayerId';
+import { useAuth } from '@/shared/hooks/useAuth';
+import {
+  fetchAllLists,
+  createListWithPlayer,
+  addPlayerToList,
+} from '@/firebase/listHelpers';
 
 const AddToListModal = ({ player, onClose }) => {
   const [lists, setLists] = useState([]);
   const [selectedList, setSelectedList] = useState('');
   const [newListName, setNewListName] = useState('');
+  const { userId } = useAuth();
 
   useEffect(() => {
-    const fetchLists = async () => {
-      const snapshot = await getDocs(collection(db, 'lists'));
-      const result = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+    const loadLists = async () => {
+      const result = await fetchAllLists(userId);
       setLists(result);
     };
-    fetchLists();
-  }, []);
+    if (userId) loadLists();
+  }, [userId]);
 
   const handleAdd = async () => {
     try {
-      let listId = selectedList;
       const trimmedNewName = newListName.trim();
       const playerId = getPlayerId(player);
 
       if (!selectedList && trimmedNewName) {
-        // E1: Check for existing list with same name (case-insensitive) — auto-select if found
+        // E4: Check for existing list with same name (case-insensitive) — auto-select if found
         const existingMatch = lists.find(
           (l) => l.name.toLowerCase() === trimmedNewName.toLowerCase()
         );
 
         if (existingMatch) {
           // Duplicate name detected — treat as "add to existing list"
-          const listRef = doc(db, 'lists', existingMatch.id);
-          await updateDoc(listRef, {
-            playerIds: arrayUnion(playerId),
-            updatedAt: serverTimestamp(),
-          });
+          await addPlayerToList(existingMatch.id, playerId, userId);
           toast.success(
             `Player added to existing list "${existingMatch.name}"!`,
             {
@@ -62,16 +50,8 @@ const AddToListModal = ({ player, onClose }) => {
             }
           );
         } else {
-          // E1: Use addDoc for auto-id creation with canonical schema
-          await addDoc(collection(db, 'lists'), {
-            name: trimmedNewName,
-            playerIds: [playerId],
-            playerOrder: [playerId],
-            playerNotes: {},
-            description: '',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
+          // E4: Create list with player via helper (includes ownerUid)
+          await createListWithPlayer(trimmedNewName, playerId, userId);
           toast.success(`List "${trimmedNewName}" created and player added!`, {
             style: {
               background: '#111111',
@@ -81,11 +61,7 @@ const AddToListModal = ({ player, onClose }) => {
           });
         }
       } else if (selectedList) {
-        const listRef = doc(db, 'lists', selectedList);
-        await updateDoc(listRef, {
-          playerIds: arrayUnion(playerId),
-          updatedAt: serverTimestamp(),
-        });
+        await addPlayerToList(selectedList, playerId, userId);
         toast.success('Player added to list!', {
           style: {
             background: '#111111',
@@ -165,7 +141,8 @@ const AddToListModal = ({ player, onClose }) => {
           </button>
           <button
             onClick={handleAdd}
-            className="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={!userId}
+            className="text-sm px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Add
           </button>

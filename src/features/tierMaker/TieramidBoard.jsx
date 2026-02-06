@@ -3,6 +3,8 @@ import TieramidPlayerTile from '@/features/tierMaker/TieramidPlayerTile';
 import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { where } from 'firebase/firestore';
 import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import { TeamListFull } from '@/constants/teamList';
 import { POSITION_MAP } from '@/shared/utils/roles';
@@ -31,8 +33,17 @@ const TieramidBoard = ({
   onTierListChange,
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
-  const { data: listsData } = useFirebaseQuery('lists');
-  const { data: tierListsData } = useFirebaseQuery('tierLists');
+  const { userId } = useAuth();
+  // E4: Scope list/tierList queries to ownerUid
+  const ownerConstraints = useMemo(
+    () => (userId ? [where('ownerUid', '==', userId)] : []),
+    [userId]
+  );
+  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints);
+  const { data: tierListsData } = useFirebaseQuery(
+    'tierLists',
+    ownerConstraints
+  );
 
   const processedPlayers = useMemo(
     () =>
@@ -142,10 +153,14 @@ const TieramidBoard = ({
     });
     try {
       setIsSaving(true);
-      await saveTierList(listId, {
-        tiers: dataToSave,
-        tierOrder: rowOrder,
-      });
+      await saveTierList(
+        listId,
+        {
+          tiers: dataToSave,
+          tierOrder: rowOrder,
+        },
+        userId
+      );
       toast.success('Pyramid saved!');
     } catch (saveError) {
       console.error('Failed to save tier list:', saveError);
@@ -190,7 +205,7 @@ const TieramidBoard = ({
     async (id) => {
       if (!id) return;
       try {
-        const data = await fetchTierList(id);
+        const data = await fetchTierList(id, userId);
         if (data?.tiers) {
           const newRows = {};
           Object.entries(data.tiers).forEach(([row, ids]) => {
@@ -232,20 +247,19 @@ const TieramidBoard = ({
     const formatted = { ...player, player_id: player.id };
     setRows((prev) => ({
       ...prev,
-      Pool: [...prev.Pool, formatted].filter(Boolean),
+      Pool: [...(prev.Pool || []), formatted].filter(Boolean),
     }));
   };
 
   const addPlayersToPool = (playersArray) => {
     setRows((prev) => {
-      const existingIds = new Set(
-        (prev.Pool || []).map((p) => p.player_id || p.id)
-      );
+      const pool = prev.Pool || [];
+      const existingIds = new Set(pool.map((p) => p.player_id || p.id));
       const additions = playersArray
         .filter(Boolean)
         .filter((p) => !existingIds.has(p.id || p.player_id))
         .map((p) => ({ ...p, player_id: p.id || p.player_id }));
-      return { ...prev, Pool: [...prev.Pool, ...additions].filter(Boolean) };
+      return { ...prev, Pool: [...pool, ...additions].filter(Boolean) };
     });
   };
 
@@ -377,13 +391,12 @@ const TieramidBoard = ({
       const rowPlayers = prev[rowKey] || [];
       const player = rowPlayers.find((p) => p.player_id === playerId);
       if (!player) return prev;
-      const poolIds = new Set(
-        (prev.Pool || []).map((p) => p.player_id || p.id)
-      );
+      const pool = prev.Pool || [];
+      const poolIds = new Set(pool.map((p) => p.player_id || p.id));
       return {
         ...prev,
         [rowKey]: rowPlayers.filter((p) => p.player_id !== playerId),
-        Pool: poolIds.has(playerId) ? prev.Pool : [...prev.Pool, player],
+        Pool: poolIds.has(playerId) ? pool : [...pool, player],
       };
     });
   };
@@ -403,11 +416,14 @@ const TieramidBoard = ({
       const rowKey = pyramidRows[rowIdx];
       const spots = getSpotsInRow(rowIdx);
       if (rows[rowKey].length < spots) {
-        setRows((prev) => ({
-          ...prev,
-          Pool: prev.Pool.filter((p) => p.player_id !== player.player_id),
-          [rowKey]: [...prev[rowKey], player].filter(Boolean),
-        }));
+        setRows((prev) => {
+          const pool = prev.Pool || [];
+          return {
+            ...prev,
+            Pool: pool.filter((p) => p.player_id !== player.player_id),
+            [rowKey]: [...prev[rowKey], player].filter(Boolean),
+          };
+        });
         placed = true;
       }
     }
@@ -429,11 +445,12 @@ const TieramidBoard = ({
           ...rowPlayers.slice(0, rowPlayers.length - 1),
           player,
         ].filter(Boolean);
+        const pool = prev.Pool || [];
         return {
           ...prev,
-          Pool: prev.Pool.filter(
-            (p) => p.player_id !== player.player_id
-          ).concat(removed && !poolIds.has(removed.player_id) ? removed : []),
+          Pool: pool
+            .filter((p) => p.player_id !== player.player_id)
+            .concat(removed && !poolIds.has(removed.player_id) ? removed : []),
           [rowKey]: newRowPlayers.slice(0, spots),
         };
       });

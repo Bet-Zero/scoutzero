@@ -15,6 +15,7 @@ import React from 'react';
 import { isEntitlementAuthoringEnabled } from '../utils/entitlements/entitlementWriter';
 import { EntitlementEditorFormTabs } from './EntitlementEditorFormTabs';
 import { EntitlementEditorTeamInventorySection } from './EntitlementEditorTeamInventorySection';
+import { PickTermsPreview } from './PickTermsPreview';
 import { useEntitlementEditorState } from './useEntitlementEditorState';
 
 // =============================================================================
@@ -52,6 +53,8 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
     formState,
     setFormState,
     errors,
+    fieldErrors,
+    isValid,
     saving,
     lastPath,
     handleApplyJson,
@@ -68,7 +71,9 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-gray-800 p-6 rounded-lg max-w-md">
-          <h2 className="text-xl font-bold text-red-400 mb-4">Feature Disabled</h2>
+          <h2 className="text-xl font-bold text-red-400 mb-4">
+            Feature Disabled
+          </h2>
           <p className="text-gray-300 mb-4">
             Entitlement authoring is not enabled.
           </p>
@@ -92,7 +97,7 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 p-6 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-auto">
+      <div className="bg-gray-800 p-6 rounded-lg max-w-5xl w-full max-h-[90vh] overflow-auto">
         <h2 className="text-xl font-bold text-white mb-1">
           {entitlementId ? 'Edit' : 'Create'} World Entitlement
         </h2>
@@ -103,14 +108,26 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
           </code>
         </p>
 
-        <EntitlementEditorFormTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          formState={formState}
-          onChange={setFormState}
-          onApplyJson={handleApplyJson}
-          disabled={saving}
-        />
+        {/* Split layout: Form (left) + Preview (right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left: Form tabs (3/5 width on large screens) */}
+          <div className="lg:col-span-3">
+            <EntitlementEditorFormTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              formState={formState}
+              onChange={setFormState}
+              onApplyJson={handleApplyJson}
+              fieldErrors={fieldErrors}
+              disabled={saving}
+            />
+          </div>
+
+          {/* Right: Live Preview (2/5 width on large screens) */}
+          <div className="lg:col-span-2 lg:sticky lg:top-0 lg:self-start">
+            <PickTermsPreview formState={formState} />
+          </div>
+        </div>
 
         {errors.length > 0 && (
           <div
@@ -142,8 +159,9 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !isValid}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded disabled:opacity-50"
+            title={!isValid ? 'Fix validation errors before saving' : ''}
           >
             {saving ? 'Saving...' : 'Save Entitlement'}
           </button>

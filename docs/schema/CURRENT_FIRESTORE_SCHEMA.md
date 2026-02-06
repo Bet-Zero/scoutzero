@@ -116,6 +116,99 @@ const team = await getDoc(baseTeamRef(teamCode));
 
 ---
 
+## User-Created Collections
+
+### `/lists/{listId}` - Player Lists ✅ CANONICAL (E1+)
+
+**Status**: ✅ Schema normalized (E1), ownership scoped (E4)
+**Usage**: User-curated player lists, created/managed via `/lists` and `/lists/:listId`
+
+**Structure**:
+
+| Field         | Type        | Default              | Notes                                                                                             |
+| ------------- | ----------- | -------------------- | ------------------------------------------------------------------------------------------------- |
+| `name`        | `string`    | _(required)_         | List display name                                                                                 |
+| `playerIds`   | `string[]`  | `[]`                 | Ordered player IDs in the list                                                                    |
+| `playerOrder` | `string[]`  | `[]`                 | Display order; may include `divider::Label` entries for tier dividers                             |
+| `playerNotes` | `object`    | `{}`                 | Map of `playerId → note string` (stored but UI editing is commented out)                          |
+| `description` | `string`    | `''`                 | List description (display-only, no editor)                                                        |
+| `ownerUid`    | `string`    | _(required post-E4)_ | Firebase Auth UID of the list owner. May be absent on legacy docs (auto-claimed on first access). |
+| `createdAt`   | `Timestamp` | `serverTimestamp()`  | Set on creation                                                                                   |
+| `updatedAt`   | `Timestamp` | `serverTimestamp()`  | Updated on every mutation                                                                         |
+
+**ID Strategy**: Auto-generated (`addDoc`). No human-readable IDs.
+
+**Legacy Notes**:
+
+- Older documents may contain a `players` array field (from pre-E1 `createList`). This is ignored by the app. Migration is deferred.
+- `playerOrder` entries prefixed with `divider::` represent visual tier separators, not player IDs.
+
+**Service Layer**: `src/firebase/listHelpers.js` — `fetchAllLists`, `createList`, `createListWithPlayer`, `addPlayerToList`, `saveList`, `fetchList`, `renameList`, `deleteList`
+
+```javascript
+// Read all lists (scoped to ownerUid)
+const lists = await fetchAllLists(userId); // returns array with { id, ...data }
+
+// Create a new list with ownership
+const id = await createList('My List', userId);
+```
+
+### `/tierLists/{tierListId}` - Tier Lists ✅ CANONICAL (E2+)
+
+**Status**: ✅ Schema normalized (E2), ownership scoped (E4)
+**Usage**: Tier-based player rankings, created/managed via `/tier-lists` and `/tier-maker/:tierListId?`
+
+**Structure**:
+
+| Field       | Type                      | Default              | Notes                                                                                                  |
+| ----------- | ------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------ |
+| `name`      | `string`                  | _(required)_         | Tier list display name                                                                                 |
+| `tiers`     | `object`                  | `{}`                 | Map of `tierName → string[]` (player IDs per tier/row)                                                 |
+| `tierOrder` | `string[]`                | `[]`                 | Ordered tier/row keys controlling display order                                                        |
+| `mode`      | `'standard' \| 'pyramid'` | `'standard'`         | E2+: explicit mode. Legacy docs inferred via `inferTierListMode()`                                     |
+| `ownerUid`  | `string`                  | _(required post-E4)_ | Firebase Auth UID of the tier list owner. May be absent on legacy docs (auto-claimed on first access). |
+| `createdAt` | `Timestamp`               | `serverTimestamp()`  | Set on creation                                                                                        |
+| `updatedAt` | `Timestamp`               | `serverTimestamp()`  | Updated on rename, save, and other mutations                                                           |
+
+**ID Strategy**: Auto-generated (`addDoc`). No human-readable IDs.
+
+**Mode Inference** (for legacy docs missing `mode`):
+
+- If `tierOrder` contains entries like `Row1`, `Row2`, etc. → inferred as `'pyramid'`
+- Otherwise → inferred as `'standard'`
+- Inference handled by `inferTierListMode()` in `listHelpers.js`
+
+**Tieramid (Pyramid Mode) Notes**:
+
+- Row capacity limits (1/2/3/4/5 per row) are UI-only; not persisted to Firestore.
+- Pyramids use row names (`Row1`–`Row5`) as tier keys instead of letter grades (`S`, `A`, `B`).
+
+**Service Layer**: `src/firebase/listHelpers.js` — `fetchAllTierLists`, `fetchTierList`, `createTierList`, `saveTierList`, `renameTierList`, `deleteTierList`, `inferTierListMode`
+
+```javascript
+// Create a tier list with explicit mode + ownership
+const id = await createTierList('My Tiers', 'standard', userId);
+
+// Fetch with mode inference + ownership check
+const tierList = await fetchTierList(tierListId, userId);
+console.log(tierList.mode); // 'standard' or 'pyramid'
+console.log(tierList.ownershipValid); // true if owned by userId
+```
+
+**Ownership/Auth**: ✅ IMPLEMENTED (E4) — `ownerUid` stored on all new documents. All reads are scoped by `ownerUid == userId`. Writes are guarded by app-level ownership checks. Legacy docs without `ownerUid` are auto-claimed on first access by a signed-in user. Firestore security rules are scaffolded but remain dev-open until launch.
+
+#### Legacy Ownership Claiming (E4)
+
+Documents created before E4 may lack an `ownerUid` field. When such a document is accessed by a signed-in user:
+
+1. The app detects `ownerUid` is missing.
+2. It automatically writes `ownerUid: <current userId>` to the document.
+3. From that point forward, the document is owned by that user.
+
+This is a "first-come, first-claimed" strategy. It requires no migration script and is safe for single-user contexts.
+
+---
+
 ## Migration Context
 
 - **Completed**: `players` → `players_v2` (see `docs/migrations/players-v1-to-v2/`)

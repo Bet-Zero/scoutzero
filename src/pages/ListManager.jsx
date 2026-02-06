@@ -1,12 +1,12 @@
 // ListManager.jsx
-// Full-page route for building and editing player lists (flat, ranked, or tiered)
+// E4: Routes reads/writes through listHelpers with ownership scoping
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db } from '@/firebaseConfig';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { toast } from 'react-hot-toast';
+import { fetchList, fetchAllLists, saveList } from '@/firebase/listHelpers';
 
 import RankedListTier from '@/features/lists/ListTierHeader';
 import RankedListControls from '@/features/lists/ListControls';
@@ -18,11 +18,11 @@ import ListRowStyleToggle from '@/features/lists/ListRowStyleToggle';
 import ListColumnToggle from '@/features/lists/ListColumnToggle';
 import ListPreviewModal from '@/features/lists/ListPreviewModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
-import { fetchAllLists } from '@/firebase/listHelpers';
 
 const ListManager = () => {
   const { listId } = useParams();
   const [listData, setListData] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);
   const [playersMap, setPlayersMap] = useState({});
   const [order, setOrder] = useState([]);
   const [notes, setNotes] = useState({});
@@ -37,6 +37,7 @@ const ListManager = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [allLists, setAllLists] = useState([]);
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const listsMap = useMemo(() => {
     const map = {};
     allLists.forEach((l) => {
@@ -47,38 +48,39 @@ const ListManager = () => {
 
   const { players, loading: playersLoading } = useSimplePlayerData();
 
+  // E4: Load sidebar list scoped to ownerUid
   useEffect(() => {
     const loadLists = async () => {
-      const results = await fetchAllLists();
+      const results = await fetchAllLists(userId);
       setAllLists(results);
     };
-    loadLists();
-  }, []);
+    if (userId) loadLists();
+  }, [userId]);
 
+  // E4: Fetch single list with ownership check + auto-claim
   useEffect(() => {
-    const fetchList = async () => {
+    const loadList = async () => {
       try {
-        const listRef = doc(db, 'lists', listId);
-        const listSnap = await getDoc(listRef);
-        if (!listSnap.exists()) throw new Error('List not found');
+        const result = await fetchList(listId, userId);
+        if (!result) throw new Error('List not found');
 
-        const data = listSnap.data();
-        const orderIds = data.playerOrder || [];
-        const allIds = data.playerIds || [];
+        setIsOwner(result.ownershipValid);
+        const orderIds = result.playerOrder || [];
+        const allIds = result.playerIds || [];
         const merged = [...orderIds];
         allIds.forEach((id) => {
           if (!merged.includes(id)) merged.push(id);
         });
-        setListData(data);
+        setListData(result);
         setOrder(merged);
-        setNotes(data.playerNotes || {});
+        setNotes(result.playerNotes || {});
       } catch (err) {
         console.error('Failed to load list:', err);
       }
     };
 
-    fetchList();
-  }, [listId]);
+    loadList();
+  }, [listId, userId]);
 
   useEffect(() => {
     const map = {};
@@ -124,19 +126,22 @@ const ListManager = () => {
     }
   };
 
+  // E4: Save via helper with ownership guard
   const handleSave = async () => {
     try {
       setIsSaving(true);
       const currentPlayerIds = order.filter(
         (id) => !id.startsWith('divider::')
       );
-      // E1: Use serverTimestamp() for consistent timestamp handling
-      await updateDoc(doc(db, 'lists', listId), {
-        playerOrder: order,
-        playerIds: currentPlayerIds,
-        playerNotes: notes,
-        updatedAt: serverTimestamp(),
-      });
+      await saveList(
+        listId,
+        {
+          playerOrder: order,
+          playerIds: currentPlayerIds,
+          playerNotes: notes,
+        },
+        userId
+      );
       toast.success('List saved!');
     } catch (saveError) {
       console.error('Failed to save list:', saveError);
@@ -351,11 +356,11 @@ const ListManager = () => {
           </div>
 
           <RankedListControls
-            showReorder={showReorder}
+            showReorder={showReorder && isOwner}
             onToggleReorder={() => setShowReorder(!showReorder)}
             onAddDivider={insertDividerAtBottom}
             onSave={handleSave}
-            isSaving={isSaving}
+            isSaving={isSaving || !isOwner}
             isRanked={isRanked}
           />
 

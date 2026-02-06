@@ -163,6 +163,34 @@ The tier maker now uses URL-based state persistence:
 - Tieramid enforces row capacity on load and during normalization; any overflow players are moved to Pool to guarantee no hidden players.
 - This means Tiermaker tiers that exceed Tieramid row capacity will still load, but excess players are placed in Pool.
 
+## Known Issues / Fixes
+
+### Pool Crash Fix (2026-02-05)
+
+**Issue:** Creating or loading tier lists caused `TypeError: prev.Pool is undefined` when attempting to add players.
+
+**Root Cause:** Loaded tier lists from Firestore did not guarantee `Pool` existed in the tiers map, and operations assumed it was always present.
+
+**Fix Applied:**
+
+1. Created `normalizeTiers()` helper function that enforces invariant:
+   - `tiers` must always include `Pool: []`
+   - `tierOrder` must always include `"Pool"` as last element
+2. Applied normalizer in:
+   - Initial state creation (`getInitialTiers`)
+   - Data load from Firestore (`handleLoadTierList`)
+   - Board reset (`resetBoard`)
+3. Made all Pool operations defensive:
+   - `addPlayerToPool`, `addPlayersToPool`, `removePlayer`, `deleteTier`
+   - All operations now use `prev.Pool || []` pattern
+4. Applied similar defensive fixes to TieramidBoard
+
+**Validation:** Build passes. Manual testing recommended.
+
+**Return Package:** `return_packages/tiermaker/2026-02-05_execution-1c-pool-crash-fix.md`
+
+---
+
 ## Manual Test Script
 
 1. Navigate to `/tier-lists` and create a new tier list.

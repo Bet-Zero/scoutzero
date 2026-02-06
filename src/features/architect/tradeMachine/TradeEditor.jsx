@@ -6,7 +6,7 @@ import TradeTeamCard from './TradeTeamCard';
 import TradePreviewModal from './TradePreviewModal';
 import ValidationStateHeader from './ValidationStateHeader';
 import ValidationDetailsPanel from './ValidationDetailsPanel';
-import { EntitlementEditorModal } from '@/features/architect/admin/EntitlementEditorModal';
+import { PickRightWizardModal } from '@/features/architect/admin/PickRightWizardModal';
 import { isEntitlementAuthoringEnabled } from '@/features/architect/utils/entitlements/entitlementWriter';
 // import TradeDebugPanel from './TradeDebugPanel';
 
@@ -157,6 +157,36 @@ const TradeEditor = ({
     });
   };
 
+  const handleCreateEntitlement = (teamCode) => {
+    if (!canEditEntitlements) {
+      toast.error('Entitlement authoring is disabled.');
+      return;
+    }
+    if (!worldId) {
+      toast.error('Select an active world to create entitlements.');
+      return;
+    }
+    if (!userId) {
+      toast.error('Sign in to create entitlements.');
+      return;
+    }
+    if (!teamCode) {
+      toast.error('Team code required to create entitlement.');
+      return;
+    }
+
+    // Open modal in create mode with defaults
+    setEntitlementEditorState({
+      entitlementId: null, // null = create mode
+      initialDocument: {
+        holderTeam: teamCode,
+        seasonYear: currentYear || 2026,
+        round: 1,
+        kind: 'pick_ownership',
+      },
+    });
+  };
+
   return (
     <div className="text-white space-y-6">
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
@@ -237,6 +267,9 @@ const TradeEditor = ({
               }
               onEditEntitlement={
                 canEditEntitlements ? handleEditEntitlement : null
+              }
+              onCreateEntitlement={
+                canEditEntitlements ? handleCreateEntitlement : null
               }
               incomingPlayers={incomingAssets[idx]?.players || []}
               // Phase 14.2: Incoming entitlements instead of incoming picks
@@ -321,7 +354,7 @@ const TradeEditor = ({
       />
 
       {entitlementEditorState && (
-        <EntitlementEditorModal
+        <PickRightWizardModal
           worldId={worldId}
           entitlementId={entitlementEditorState.entitlementId}
           initialDocument={entitlementEditorState.initialDocument}

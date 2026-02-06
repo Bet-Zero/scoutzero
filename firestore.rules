@@ -2,7 +2,68 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // TEMPORARY: All operations allowed for emulator testing
+
+    // ═══════════════════════════════════════════════════════════════════
+    // LAUNCH-SECURE RULES — E4 Ownership Scoping
+    // Uncomment these blocks AND remove the dev-open wildcard below
+    // when deploying with authentication enforced.
+    //
+    // Prerequisites before enabling:
+    //   1. Anonymous auth (or real auth) enabled in Firebase console
+    //   2. All existing list/tierList docs have ownerUid set
+    //      (app auto-claims on first access, but verify coverage)
+    //   3. Deploy with: firebase deploy --only firestore:rules
+    // ═══════════════════════════════════════════════════════════════════
+    //
+    // match /lists/{listId} {
+    //   // Read: only your own lists
+    //   allow read: if request.auth != null
+    //     && resource.data.ownerUid == request.auth.uid;
+    //
+    //   // Create: must be authenticated and ownerUid must match your uid
+    //   allow create: if request.auth != null
+    //     && request.resource.data.ownerUid == request.auth.uid;
+    //
+    //   // Update: owner can update, OR auto-claim if ownerUid is missing
+    //   allow update: if request.auth != null
+    //     && (
+    //       resource.data.ownerUid == request.auth.uid
+    //       || (
+    //         !('ownerUid' in resource.data)
+    //         && request.resource.data.ownerUid == request.auth.uid
+    //       )
+    //     );
+    //
+    //   // Delete: only owner
+    //   allow delete: if request.auth != null
+    //     && resource.data.ownerUid == request.auth.uid;
+    // }
+    //
+    // match /tierLists/{tierListId} {
+    //   // Read: only your own tier lists
+    //   allow read: if request.auth != null
+    //     && resource.data.ownerUid == request.auth.uid;
+    //
+    //   // Create: must be authenticated and ownerUid must match your uid
+    //   allow create: if request.auth != null
+    //     && request.resource.data.ownerUid == request.auth.uid;
+    //
+    //   // Update: owner can update, OR auto-claim if ownerUid is missing
+    //   allow update: if request.auth != null
+    //     && (
+    //       resource.data.ownerUid == request.auth.uid
+    //       || (
+    //         !('ownerUid' in resource.data)
+    //         && request.resource.data.ownerUid == request.auth.uid
+    //       )
+    //     );
+    //
+    //   // Delete: only owner
+    //   allow delete: if request.auth != null
+    //     && resource.data.ownerUid == request.auth.uid;
+    // }
+
+    // DEV-OPEN: All operations allowed (remove when enabling launch-secure rules above)
     match /{document=**} {
       allow read, write: if true;
     }

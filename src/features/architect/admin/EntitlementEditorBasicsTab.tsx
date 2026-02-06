@@ -8,19 +8,22 @@
  */
 
 import React from 'react';
-import type { EntitlementFormState, EntitlementKind } from './entitlementEditorFormState';
+import type {
+  EntitlementFormState,
+  EntitlementKind,
+} from './entitlementEditorFormState';
+import type { FieldErrors } from './useEntitlementEditorState';
 
 interface EntitlementEditorBasicsTabProps {
   formState: EntitlementFormState;
   onChange: (next: EntitlementFormState) => void;
+  fieldErrors?: FieldErrors;
   disabled?: boolean;
 }
 
-export const EntitlementEditorBasicsTab: React.FC<EntitlementEditorBasicsTabProps> = ({
-  formState,
-  onChange,
-  disabled = false,
-}) => {
+export const EntitlementEditorBasicsTab: React.FC<
+  EntitlementEditorBasicsTabProps
+> = ({ formState, onChange, fieldErrors = {}, disabled = false }) => {
   const updateField = (key: keyof EntitlementFormState, value: string) => {
     onChange({
       ...formState,
@@ -56,11 +59,20 @@ export const EntitlementEditorBasicsTab: React.FC<EntitlementEditorBasicsTabProp
           <input
             id="entitlement-holderTeam"
             value={formState.holderTeam}
-            onChange={(e) => updateField('holderTeam', e.target.value.toUpperCase())}
+            onChange={(e) =>
+              updateField('holderTeam', e.target.value.toUpperCase())
+            }
             maxLength={3}
             disabled={disabled}
-            className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+              fieldErrors.holderTeam ? 'border-red-500' : 'border-white/10'
+            }`}
           />
+          {fieldErrors.holderTeam && (
+            <p className="text-[10px] text-red-400 mt-0.5">
+              {fieldErrors.holderTeam}
+            </p>
+          )}
         </div>
         <div>
           <label
@@ -75,8 +87,15 @@ export const EntitlementEditorBasicsTab: React.FC<EntitlementEditorBasicsTabProp
             value={formState.seasonYear}
             onChange={(e) => updateField('seasonYear', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+              fieldErrors.seasonYear ? 'border-red-500' : 'border-white/10'
+            }`}
           />
+          {fieldErrors.seasonYear && (
+            <p className="text-[10px] text-red-400 mt-0.5">
+              {fieldErrors.seasonYear}
+            </p>
+          )}
         </div>
         <div>
           <label
@@ -106,14 +125,23 @@ export const EntitlementEditorBasicsTab: React.FC<EntitlementEditorBasicsTabProp
           <select
             id="entitlement-kind"
             value={formState.kind}
-            onChange={(e) => updateField('kind', e.target.value as EntitlementKind)}
+            onChange={(e) =>
+              updateField('kind', e.target.value as EntitlementKind)
+            }
             disabled={disabled}
-            className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+              fieldErrors.kind ? 'border-red-500' : 'border-white/10'
+            }`}
           >
             <option value="pick_ownership">Pick Ownership</option>
             <option value="swap_right">Swap Right</option>
             <option value="conveyance_right">Conveyance Right</option>
           </select>
+          {fieldErrors.kind && (
+            <p className="text-[10px] text-red-400 mt-0.5">
+              {fieldErrors.kind}
+            </p>
+          )}
         </div>
       </div>
 
@@ -146,8 +174,17 @@ export const EntitlementEditorBasicsTab: React.FC<EntitlementEditorBasicsTabProp
             value={formState.underlyingPickId}
             onChange={(e) => updateField('underlyingPickId', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+              fieldErrors.underlyingPickId
+                ? 'border-red-500'
+                : 'border-white/10'
+            }`}
           />
+          {fieldErrors.underlyingPickId && (
+            <p className="text-[10px] text-red-400 mt-0.5">
+              {fieldErrors.underlyingPickId}
+            </p>
+          )}
         </div>
         <div>
           <label

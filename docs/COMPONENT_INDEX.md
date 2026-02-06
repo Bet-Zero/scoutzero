@@ -240,8 +240,6 @@ Quick reference for all components in the ScoutZero project.
 - ExportOptionsModal.jsx
 - ListColumnToggle.jsx
 - ListControls.jsx
-- ListExportToggle.jsx
-- ListExportTypeToggle.jsx
 - ListPreviewModal/ListExportWrapper/ListExportPlayerRowSingle.jsx
 - ListPreviewModal/ListExportWrapper/ListExportPlayerRowTwoColumn.jsx
 - ListPreviewModal/ListExportWrapper/ListExportRowCompactSingle.jsx
@@ -360,4 +358,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-03T13:01:23.448Z*
+*Generated on: 2026-02-06T05:47:16.947Z*

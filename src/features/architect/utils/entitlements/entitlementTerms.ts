@@ -261,7 +261,10 @@ export const formatEntitlementTermsShort = (terms: EntitlementTerms): string => 
   }
 
   if (terms.swap?.role === 'swap_right') {
-    return terms.seasonYear ? `Swap (${terms.seasonYear})` : 'Swap';
+    const swapLabel = terms.swap?.swapType === 'worst_of' ? 'worst' : 'best';
+    return terms.seasonYear
+      ? `Swap ${swapLabel} (${terms.seasonYear})`
+      : `Swap ${swapLabel}`;
   }
 
   if (terms.swap?.role === 'base_pick') {

@@ -7,7 +7,7 @@
  *  - 2026-02-05: Created for TM-4 entitlement authoring.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { db } from '@/firebaseConfig';
 import {
@@ -21,7 +21,109 @@ import {
   createEntitlementFormState,
   parseEntitlementDocument,
 } from './entitlementEditorFormState';
+import type { EntitlementFormState } from './entitlementEditorFormState';
 import type { EntitlementEditorTabKey } from './EntitlementEditorFormTabs';
+
+// =============================================================================
+// FORM-LEVEL VALIDATION
+// =============================================================================
+
+export type FieldErrors = Record<string, string>;
+
+/**
+ * Validate form state and return a map of field-level errors.
+ * Used for inline error display and blocking the save button.
+ */
+const validateFormState = (formState: EntitlementFormState): FieldErrors => {
+  const errors: FieldErrors = {};
+
+  // Basics validations
+  if (!formState.holderTeam || formState.holderTeam.trim().length !== 3) {
+    errors.holderTeam = 'Must be a 3-letter team code';
+  }
+
+  const year = Number(formState.seasonYear);
+  if (
+    !formState.seasonYear ||
+    !Number.isFinite(year) ||
+    year < 2020 ||
+    year > 2040
+  ) {
+    errors.seasonYear = 'Must be between 2020 and 2040';
+  }
+
+  if (
+    !formState.round ||
+    (formState.round !== '1' && formState.round !== '2')
+  ) {
+    errors.round = 'Must be 1 or 2';
+  }
+
+  if (!formState.kind) {
+    errors.kind = 'Kind is required';
+  }
+
+  // Kind-specific validations
+  if (formState.kind === 'pick_ownership') {
+    if (!formState.underlyingPickId?.trim()) {
+      errors.underlyingPickId = 'Required for pick ownership';
+    }
+  }
+
+  if (formState.kind === 'swap_right') {
+    if (!formState.swapControllerPickId?.trim()) {
+      errors.swapControllerPickId = 'Required for swap right';
+    }
+    if (!formState.swapTargetDefinition?.trim()) {
+      errors.swapTargetDefinition = 'Required for swap right';
+    }
+  }
+
+  if (formState.kind === 'conveyance_right') {
+    const poolIds = formState.poolUnderlyingPickIdsText
+      .split(/[\n,]/)
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (poolIds.length < 2) {
+      errors.poolUnderlyingPickIds = 'Pool must have at least 2 picks';
+    }
+    if (!formState.receivesComparator) {
+      errors.receivesComparator = 'Selection method required';
+    }
+    const ranks = formState.receivesRankText
+      .split(/[\n,]/)
+      .map((r) => r.trim())
+      .filter(Boolean);
+    if (ranks.length === 0) {
+      errors.receivesRank = 'At least one rank required';
+    }
+  }
+
+  // Protection ladder validation (check for year ordering issues)
+  if (formState.protectionLadder.length > 0) {
+    let prevYear = -Infinity;
+    for (let i = 0; i < formState.protectionLadder.length; i++) {
+      const tier = formState.protectionLadder[i];
+      if (!tier.year || tier.year.trim() === '') {
+        errors[`protectionLadder.${i}.year`] = 'Year required';
+      } else {
+        const y = Number(tier.year);
+        if (y <= prevYear) {
+          errors[`protectionLadder.${i}.year`] = 'Years must be ascending';
+        }
+        prevYear = y;
+      }
+      if (tier.ifTriggered === 'roll' && !tier.rollToYear?.trim()) {
+        errors[`protectionLadder.${i}.rollToYear`] = 'Roll year required';
+      }
+      if (tier.ifTriggered === 'convert' && !tier.convertToRound?.trim()) {
+        errors[`protectionLadder.${i}.convertToRound`] = 'Round required';
+      }
+    }
+  }
+
+  return errors;
+};
 
 interface UseEntitlementEditorStateArgs {
   worldId: string;
@@ -49,6 +151,13 @@ export const useEntitlementEditorState = ({
   const [saving, setSaving] = useState(false);
   const [lastPath, setLastPath] = useState<string | null>(null);
 
+  // Compute field-level errors reactively
+  const fieldErrors = useMemo(() => validateFormState(formState), [formState]);
+  const isValid = useMemo(
+    () => Object.keys(fieldErrors).length === 0,
+    [fieldErrors]
+  );
+
   useEffect(() => {
     setFormState(createEntitlementFormState(initialDocument, entitlementId));
     setErrors([]);
@@ -62,7 +171,10 @@ export const useEntitlementEditorState = ({
       toast.error(parsed.error);
       return { success: false, error: parsed.error };
     }
-    const nextState = createEntitlementFormState(parsed.document, entitlementId);
+    const nextState = createEntitlementFormState(
+      parsed.document,
+      entitlementId
+    );
     setFormState(nextState);
     setErrors([]);
     toast.success('JSON applied to form');
@@ -77,7 +189,9 @@ export const useEntitlementEditorState = ({
       const document = buildEntitlementDocument(formState);
       const validation = validateEntitlementDocument(document);
       if (!validation.valid) {
-        const nextErrors = validation.errors || [validation.error || 'Validation failed'];
+        const nextErrors = validation.errors || [
+          validation.error || 'Validation failed',
+        ];
         setErrors(nextErrors);
         toast.error(nextErrors[0] || 'Validation failed');
         setSaving(false);
@@ -134,6 +248,8 @@ export const useEntitlementEditorState = ({
     formState,
     setFormState,
     errors,
+    fieldErrors,
+    isValid,
     saving,
     lastPath,
     handleApplyJson,

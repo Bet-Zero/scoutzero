@@ -55,4 +55,52 @@ describe('EntitlementPicksList display', () => {
     expect(screen.getByText(/Option to swap with MIL/i)).toBeInTheDocument();
     expect(screen.getByText(/Less favorable #1 of 2/i)).toBeInTheDocument();
   });
+
+  it('TM-6: shows pooled indicator when underlyingStatus is pooled', () => {
+    const entitlements = [
+      {
+        id: 'ent:LAL:2028:1:conv:pool',
+        holderTeam: 'LAL',
+        seasonYear: 2028,
+        round: 1,
+        kind: 'conveyance_right',
+        underlyingStatus: 'pooled',
+        poolUnderlyingPickIds: ['ATL_2028_1st', 'SAS_2028_1st'],
+        receivesRank: [1],
+        receivesComparator: 'less_favorable',
+      },
+    ];
+
+    render(
+      <EntitlementPicksList
+        entitlements={entitlements}
+        teamId="LAL"
+        showPooled={true}
+      />
+    );
+
+    // Pooled indicator should show the Layers icon with title
+    expect(
+      screen.getByTitle(/pooled entitlement/i)
+    ).toBeInTheDocument();
+  });
+
+  it('TM-6: shows encumbered indicator when underlyingStatus is encumbered', () => {
+    const entitlements = [
+      {
+        id: 'ent:LAL:2027:1:own:encumbered',
+        holderTeam: 'LAL',
+        seasonYear: 2027,
+        round: 1,
+        kind: 'pick_ownership',
+        underlyingStatus: 'encumbered',
+        underlyingPickId: 'LAL_2027_1st',
+      },
+    ];
+
+    render(<EntitlementPicksList entitlements={entitlements} teamId="LAL" />);
+
+    // Encumbered indicator should show with title
+    expect(screen.getByTitle(/encumbered/i)).toBeInTheDocument();
+  });
 });

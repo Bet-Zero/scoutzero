@@ -1,18 +1,21 @@
 // src/components/lists/CreateListModal.jsx
+// E4: Passes userId to createList for ownership
 import React, { useState } from 'react';
 import { createList } from '@/firebase/listHelpers';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
 const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const { userId } = useAuth();
 
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
 
     try {
-      await createList(trimmed);
+      await createList(trimmed, userId);
       setName('');
       setError('');
       onListCreated?.(); // optional callback to trigger refresh
@@ -33,9 +36,15 @@ const CreateListModal = ({ isOpen, onClose, onListCreated }) => {
           className="w-full p-2 border border-gray-300 rounded mb-2"
         />
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+        {!userId && (
+          <p className="text-yellow-400/80 text-xs mb-2">
+            Session unavailable — list creation disabled.
+          </p>
+        )}
         <button
-          className="bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded w-full"
+          className="bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={handleCreate}
+          disabled={!userId}
         >
           Create List
         </button>

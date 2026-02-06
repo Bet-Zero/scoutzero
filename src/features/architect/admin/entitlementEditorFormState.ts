@@ -10,6 +10,7 @@
 export type EntitlementKind = 'pick_ownership' | 'swap_right' | 'conveyance_right';
 export type EntitlementUnderlyingStatus = 'pooled' | 'encumbered' | 'clean';
 export type ReceivesComparator = 'more_favorable' | 'less_favorable' | 'middle';
+export type SwapType = 'best_of' | 'worst_of';
 
 export type ProtectionLadderTierForm = {
   year: string;
@@ -30,6 +31,7 @@ export type EntitlementFormState = {
   underlyingStatus: EntitlementUnderlyingStatus | '';
   swapControllerPickId: string;
   swapTargetDefinition: string;
+  swapType: SwapType | '';
   poolUnderlyingPickIdsText: string;
   receivesRankText: string;
   receivesComparator: ReceivesComparator | '';
@@ -47,6 +49,7 @@ const defaultFormState: EntitlementFormState = {
   underlyingStatus: 'clean',
   swapControllerPickId: '',
   swapTargetDefinition: '',
+  swapType: '',
   poolUnderlyingPickIdsText: '',
   receivesRankText: '',
   receivesComparator: '',
@@ -108,6 +111,7 @@ export const createEntitlementFormState = (
       (initialDocument.swapControllerPickId as string) || '',
     swapTargetDefinition:
       (initialDocument.swapTargetDefinition as string) || '',
+    swapType: (initialDocument.swapType as SwapType) || '',
     poolUnderlyingPickIdsText: stringifyList(
       initialDocument.poolUnderlyingPickIds as string[]
     ),
@@ -148,6 +152,7 @@ export const buildEntitlementDocument = (
     document.swapControllerPickId = formState.swapControllerPickId.trim();
   if (formState.swapTargetDefinition)
     document.swapTargetDefinition = formState.swapTargetDefinition.trim();
+  if (formState.swapType) document.swapType = formState.swapType;
 
   const poolUnderlyingPickIds = parseListInput(formState.poolUnderlyingPickIdsText);
   if (poolUnderlyingPickIds.length > 0) {

@@ -123,4 +123,120 @@ describe('EntitlementEditorModal', () => {
 
     expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
   });
+
+  describe('TM-6: Edit flow with initial document', () => {
+    it('populates form with initialDocument fields', () => {
+      const initialDocument = {
+        id: 'ent:LAL:2028:1:own:existing',
+        holderTeam: 'LAL',
+        seasonYear: 2028,
+        round: 1,
+        kind: 'pick_ownership',
+        underlyingPickId: 'LAL_2028_1st',
+        underlyingStatus: 'clean',
+        protectionLadder: [
+          { year: 2028, condition: 'Top 5', ifTriggered: 'roll', rollToYear: 2029 },
+        ],
+      };
+
+      render(
+        <EntitlementEditorModal
+          {...defaultProps}
+          initialDocument={initialDocument}
+        />
+      );
+
+      // Verify form populates with initial document values
+      expect(screen.getByLabelText(/underlying pick id/i)).toHaveValue('LAL_2028_1st');
+    });
+
+    it('onSuccess receives entitlementId and updated document', async () => {
+      const onSuccess = vi.fn();
+      const initialDocument = {
+        id: 'ent:LAL:2027:1:own:update',
+        holderTeam: 'LAL',
+        seasonYear: 2027,
+        round: 1,
+        kind: 'pick_ownership',
+        underlyingPickId: 'LAL_2027_1st',
+      };
+
+      render(
+        <EntitlementEditorModal
+          {...defaultProps}
+          initialDocument={initialDocument}
+          entitlementId={initialDocument.id}
+          onSuccess={onSuccess}
+        />
+      );
+
+      // Add a protection tier
+      const [protectionTab] = screen.getAllByRole('button', { name: /Protection Ladder/i });
+      fireEvent.click(protectionTab);
+      fireEvent.click(screen.getByRole('button', { name: /Add Tier/i }));
+
+      fireEvent.change(screen.getByLabelText(/^Year$/i), {
+        target: { value: '2027' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Condition$/i), {
+        target: { value: 'Top 10' },
+      });
+      fireEvent.change(screen.getByLabelText(/^If Triggered$/i), {
+        target: { value: 'roll' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Roll To Year$/i), {
+        target: { value: '2028' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Save Entitlement/i }));
+
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalled();
+      });
+
+      // Verify onSuccess receives the entitlementId and updated document
+      // Note: onSuccess is called with a single object { entitlementId, document }
+      const callArg = onSuccess.mock.calls[0][0];
+      expect(callArg.entitlementId).toBe('ent:LAL:2027:1:own:update');
+      expect(callArg.document.protectionLadder).toHaveLength(1);
+      expect(callArg.document.protectionLadder[0].condition).toBe('Top 10');
+    });
+
+    it('persists swap fields correctly', async () => {
+      const initialDocument = {
+        id: 'ent:BOS:2029:1:swap:test',
+        holderTeam: 'BOS',
+        seasonYear: 2029,
+        round: 1,
+        kind: 'swap_right',
+        swapControllerPickId: 'BOS_2029_1st',
+        swapTargetDefinition: '',
+      };
+
+      render(
+        <EntitlementEditorModal
+          {...defaultProps}
+          initialDocument={initialDocument}
+          entitlementId={initialDocument.id}
+        />
+      );
+
+      // Go to swap tab and fill in target definition
+      const [swapTab] = screen.getAllByRole('button', { name: /Swap/i });
+      fireEvent.click(swapTab);
+
+      fireEvent.change(screen.getByLabelText(/Swap Target Definition/i), {
+        target: { value: 'Option to swap with PHI 2029 1st' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Save Entitlement/i }));
+
+      await waitFor(() => {
+        expect(mockWriteWorldEntitlement).toHaveBeenCalled();
+      });
+
+      const call = mockWriteWorldEntitlement.mock.calls[0][1];
+      expect(call.document.swapTargetDefinition).toBe('Option to swap with PHI 2029 1st');
+    });
+  });
 });

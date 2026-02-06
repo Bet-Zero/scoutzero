@@ -1,16 +1,9 @@
 // ListsHome.jsx
-// E1: Added serverTimestamp for consistent updatedAt on rename
+// E4: Routes all CRUD through listHelpers with ownership scoping
 import React, { useEffect, useState, useMemo } from 'react';
-import {
-  collection,
-  getDocs,
-  deleteDoc,
-  updateDoc,
-  doc,
-  serverTimestamp,
-} from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
-import { db } from '@/firebaseConfig';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { fetchAllLists, renameList, deleteList } from '@/firebase/listHelpers';
 import CreateListModal from '@/features/lists/CreateListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
@@ -23,6 +16,7 @@ const ListsHome = () => {
   const [renameValue, setRenameValue] = useState('');
   const [deletingListId, setDeletingListId] = useState(null);
   const navigate = useNavigate();
+  const { userId, loading: authLoading } = useAuth();
 
   const { players } = useSimplePlayerData();
 
@@ -42,34 +36,42 @@ const ListsHome = () => {
     return map;
   }, [lists]);
 
+  // E4: Fetch lists scoped to ownerUid
   const fetchLists = async () => {
-    const snapshot = await getDocs(collection(db, 'lists'));
-    const results = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    if (!userId) {
+      setLists([]);
+      setIsLoading(false);
+      return;
+    }
+    const results = await fetchAllLists(userId);
     setLists(results);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchLists();
-  }, []);
+    if (!authLoading) fetchLists();
+  }, [userId, authLoading]);
 
+  // E4: Rename via helper with ownership guard
   const handleRename = async () => {
     if (!renameValue.trim()) return;
-    // E1: Include updatedAt for timestamp consistency
-    await updateDoc(doc(db, 'lists', renamingListId), {
-      name: renameValue.trim(),
-      updatedAt: serverTimestamp(),
-    });
+    try {
+      await renameList(renamingListId, renameValue.trim(), userId);
+    } catch (err) {
+      console.error('Rename failed:', err);
+    }
     setRenamingListId(null);
     setRenameValue('');
     fetchLists();
   };
 
+  // E4: Delete via helper with ownership guard
   const handleDelete = async () => {
-    await deleteDoc(doc(db, 'lists', deletingListId));
+    try {
+      await deleteList(deletingListId, userId);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
     setDeletingListId(null);
     fetchLists();
   };
@@ -94,8 +96,12 @@ const ListsHome = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || authLoading ? (
           <div className="text-white/60">Loading lists...</div>
+        ) : !userId ? (
+          <div className="text-white/40">
+            Unable to initialize session. Lists are unavailable.
+          </div>
         ) : lists.length === 0 ? (
           <div className="text-white/40">
             You haven&apos;t created any lists yet.

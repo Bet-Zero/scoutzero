@@ -24,7 +24,7 @@ import {
   getPickRowDisplayLabel,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
-import { AlertTriangle, Check, Info, Pencil } from 'lucide-react';
+import { AlertTriangle, Check, Info, Pencil, Layers } from 'lucide-react';
 
 /**
  * EntitlementPickRow
@@ -70,6 +70,7 @@ const EntitlementPickRow = ({
   const label = formatEntitlementLabel(entitlement);
   const kindTag = getEntitlementKindTag(entitlement.kind);
   const isEncumbered = entitlement.underlyingStatus === 'encumbered';
+  const isPooled = entitlement.underlyingStatus === 'pooled';
 
   // Phase 17: Determine if destination dropdown should be shown
   const isMultiTeamTrade = otherTeams.length > 1;
@@ -174,6 +175,16 @@ const EntitlementPickRow = ({
                   title="This pick is encumbered"
                 >
                   <AlertTriangle size={12} />
+                </span>
+              )}
+
+              {/* TM-6: Pooled entitlement indicator */}
+              {isPooled && (
+                <span
+                  className="flex items-center gap-0.5 text-purple-400 flex-shrink-0"
+                  title="Pooled entitlement (multi-team)"
+                >
+                  <Layers size={12} />
                 </span>
               )}
 

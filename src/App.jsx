@@ -12,7 +12,6 @@ import GmDashboardView from '@/pages/GmDashboardView';
 import PlayerRankerPage from '@/pages/PlayerRankerPage';
 import SiteLayout from '@/core/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
-import ListPresentationView from '@/pages/ListPresentationView';
 
 const App = () => {
   return (
@@ -29,7 +28,6 @@ const App = () => {
         <Route path="/rosters" element={<RostersHome />} />
         <Route path="/lists" element={<ListsHome />} />
         <Route path="/lists/:listId" element={<ListManager />} />
-        <Route path="/list-presentation" element={<ListPresentationView />} />
         <Route path="/tier-lists" element={<TierListsHome />} />
         <Route path="/tier-maker/:tierListId?" element={<TierMakerView />} />
         <Route path="/player-ranker" element={<PlayerRankerPage />} />

@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { where } from 'firebase/firestore';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import { TeamListFull } from '@/constants/teamList';
 import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
@@ -11,12 +13,19 @@ import TierPlayerTile from '@/features/lists/TierPlayerTile';
 
 const RankingBuilder = () => {
   const { players: allPlayers, loading } = useSimplePlayerData();
-  const { data: listsData } = useFirebaseQuery('lists');
+  const { userId } = useAuth();
+  // E4: Scope list queries to ownerUid
+  const ownerConstraints = useMemo(
+    () => (userId ? [where('ownerUid', '==', userId)] : []),
+    [userId]
+  );
+  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints);
 
   const processedPlayers = useMemo(
     () =>
       allPlayers.map((player) => {
-        const contractData = player.primaryContract ||
+        const contractData =
+          player.primaryContract ||
           (player.contracts ? Object.values(player.contracts)[0] : null);
 
         return {
@@ -54,8 +63,10 @@ const RankingBuilder = () => {
             ''
           ).toLowerCase(),
           contractType: (contractData?.contractType || '').toLowerCase(),
-          extension: (player.contracts ? Object.values(player.contracts) : [])
-            .find((c) => c.isExtension),
+          extension: (player.contracts
+            ? Object.values(player.contracts)
+            : []
+          ).find((c) => c.isExtension),
           options: contractData?.options || [],
           original: player,
         };
@@ -112,7 +123,11 @@ const RankingBuilder = () => {
 
   const handleAddTeam = () => {
     if (!selectedTeam) return;
-    const teamCode = (selectedTeam.code || selectedTeam.teamId || '').toUpperCase();
+    const teamCode = (
+      selectedTeam.code ||
+      selectedTeam.teamId ||
+      ''
+    ).toUpperCase();
     const teamPlayers = allPlayers.filter(
       (p) => (p.bio?.display?.teamId || '').toUpperCase() === teamCode
     );

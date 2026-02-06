@@ -89,6 +89,8 @@ const TradeTeamCard = ({
   onSetEntitlementDestination,
   // TM-4: Entitlement edit callback
   onEditEntitlement,
+  // TM-7: Entitlement create callback
+  onCreateEntitlement,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -743,6 +745,7 @@ const TradeTeamCard = ({
           entitlementsOut={entitlementsOut}
           onSetDestination={onSetEntitlementDestination}
           onEditEntitlement={onEditEntitlement}
+          onCreateEntitlement={onCreateEntitlement ? () => onCreateEntitlement(team.id) : null}
         />
       )}
 

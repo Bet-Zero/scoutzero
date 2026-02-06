@@ -9,6 +9,7 @@
 
 import React from 'react';
 import type { EntitlementFormState } from './entitlementEditorFormState';
+import type { FieldErrors } from './useEntitlementEditorState';
 import { EntitlementEditorBasicsTab } from './EntitlementEditorBasicsTab';
 import { EntitlementEditorProtectionTab } from './EntitlementEditorProtectionTab';
 import { EntitlementEditorSwapTab } from './EntitlementEditorSwapTab';
@@ -28,6 +29,7 @@ interface EntitlementEditorFormTabsProps {
   formState: EntitlementFormState;
   onChange: (next: EntitlementFormState) => void;
   onApplyJson: (jsonInput: string) => { success: boolean; error?: string };
+  fieldErrors?: FieldErrors;
   disabled?: boolean;
 }
 
@@ -47,31 +49,66 @@ export const EntitlementEditorFormTabs: React.FC<
   formState,
   onChange,
   onApplyJson,
+  fieldErrors = {},
   disabled = false,
 }) => {
+  // Count errors per tab for badge display
+  const tabErrorCounts: Record<string, number> = {};
+  const basicsFields = [
+    'holderTeam',
+    'seasonYear',
+    'round',
+    'kind',
+    'underlyingPickId',
+  ];
+  const swapFields = ['swapControllerPickId', 'swapTargetDefinition'];
+  const conveyanceFields = [
+    'poolUnderlyingPickIds',
+    'receivesComparator',
+    'receivesRank',
+  ];
+
+  tabErrorCounts.basics = basicsFields.filter((f) => fieldErrors[f]).length;
+  tabErrorCounts.swap = swapFields.filter((f) => fieldErrors[f]).length;
+  tabErrorCounts.conveyance = conveyanceFields.filter(
+    (f) => fieldErrors[f]
+  ).length;
+  tabErrorCounts.protection = Object.keys(fieldErrors).filter((k) =>
+    k.startsWith('protectionLadder.')
+  ).length;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3 text-xs border-b border-white/10 pb-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onTabChange(tab.key)}
-            className={`pb-1 border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? 'text-white border-blue-500'
-                : 'text-white/50 border-transparent hover:text-white'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {tabs.map((tab) => {
+          const errorCount = tabErrorCounts[tab.key] || 0;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => onTabChange(tab.key)}
+              className={`pb-1 border-b-2 transition-colors flex items-center gap-1 ${
+                activeTab === tab.key
+                  ? 'text-white border-blue-500'
+                  : 'text-white/50 border-transparent hover:text-white'
+              }`}
+            >
+              {tab.label}
+              {errorCount > 0 && (
+                <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] rounded-full bg-red-500/80 text-white">
+                  {errorCount}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {activeTab === 'basics' && (
         <EntitlementEditorBasicsTab
           formState={formState}
           onChange={onChange}
+          fieldErrors={fieldErrors}
           disabled={disabled}
         />
       )}
@@ -86,6 +123,7 @@ export const EntitlementEditorFormTabs: React.FC<
         <EntitlementEditorSwapTab
           formState={formState}
           onChange={onChange}
+          fieldErrors={fieldErrors}
           disabled={disabled}
         />
       )}
@@ -93,6 +131,7 @@ export const EntitlementEditorFormTabs: React.FC<
         <EntitlementEditorConveyanceTab
           formState={formState}
           onChange={onChange}
+          fieldErrors={fieldErrors}
           disabled={disabled}
         />
       )}

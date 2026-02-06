@@ -47,13 +47,27 @@ admin/
   EntitlementEditorAdvancedTab.tsx
   EntitlementEditorBasicsTab.tsx
   EntitlementEditorConveyanceTab.tsx
+  EntitlementEditorCreateButton.tsx
   EntitlementEditorFormTabs.tsx
   EntitlementEditorModal.tsx
   EntitlementEditorProtectionTab.tsx
   EntitlementEditorSwapTab.tsx
   EntitlementEditorTeamInventorySection.tsx
+  PickRightWizardModal.tsx
+  PickRightWizardSteps/
+    WizardStepDetails.tsx
+    WizardStepIntent.tsx
+    WizardStepReview.tsx
+  PickSelector.tsx
+  PickTermsPreview.tsx
+  PlainEnglishPreview.tsx
+  ProtectionLadderTemplates.ts
   entitlementEditorFormState.ts
+  pickEditorCopy.ts
+  pickRightWizardDraft.ts
+  pickRightWizardModel.ts
   useEntitlementEditorState.ts
+  wizardToEntitlement.ts
 capSheet/
   CapSheet/
     CapSheet.jsx
@@ -342,5 +356,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-05T21:01:24.840Z*
+*Generated on: 2026-02-06T05:47:16.921Z*
 *Auto-updated by: npm run docs*

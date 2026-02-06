@@ -89,13 +89,13 @@ Return package: `return_packages/lists/PREFLIGHT_E1_player_lists_id_schema.md`
 
 ## Gaps & Risks
 
-- [MAJOR] No ownership/auth scoping for `lists` or `tierLists`; any user can rename/delete any list if rules allow write. — DEFERRED (hardening)
+- [PLANNED E4] No ownership/auth scoping for `lists` or `tierLists`; any user can rename/delete any list if rules allow write. — Preflight complete, execution pending.
 - [MAJOR] ~~Inconsistent list ID strategy: `createList` uses auto-id, but `AddToListModal` uses slugified name and `setDoc` (overwrite risk for same-name lists).~~ — ✅ **RESOLVED (E1)**: All creation paths now use auto-id `addDoc`.
 - [MAJOR] ~~Schema mismatch: `createList` writes `players: []` but the rest of the app expects `playerIds`~~ — ✅ **RESOLVED (E1)**: All creation paths now write canonical schema (`playerIds`, `playerOrder`, `playerNotes`, `description`, timestamps). Legacy docs may exist; fallback logic preserved.
 - [MINOR] ~~`updatedAt` is inconsistently set (serverTimestamp vs client `new Date()`), and rename/delete do not update timestamps.~~ — ✅ **RESOLVED (E1)**: All mutation paths now use `serverTimestamp()`.
 - [MINOR] `playerNotes` UI is commented out; notes can be stored but not edited.
-- [MINOR] `ListExportToggle` and `ListExportTypeToggle` components appear unused.
-- [MINOR] `/list-presentation` is a sample-only route with hardcoded data.
+- [MINOR] ~~`ListExportToggle` and `ListExportTypeToggle` components appear unused.~~ — ✅ **RESOLVED (E3)**: Deleted (confirmed zero imports).
+- [MINOR] ~~`/list-presentation` is a sample-only route with hardcoded data.~~ — ✅ **RESOLVED (E3)**: Route, import, and page file removed (Option B).
 
 ## E1 Execution Summary (2026-02-05)
 
@@ -212,7 +212,7 @@ Return package: `return_packages/lists/PREFLIGHT_E2_tier_lists_mode_schema.md`
 - ✅ **RESOLVED (E2)** ~~No `mode` field to distinguish standard vs pyramid tier lists.~~ — `mode` persisted on new docs; inferred for legacy docs.
 - ✅ **RESOLVED (E2)** ~~`renameTierList` does not update `updatedAt` timestamp.~~ — Now writes `serverTimestamp()`.
 - ✅ **RESOLVED (E2)** ~~`TierListsHome.jsx` has duplicate inline write paths.~~ — All CRUD routed through `listHelpers.js`.
-- [DEFERRED] No ownership/auth scoping for `tierLists`.
+- [DEFERRED → PLANNED E4] No ownership/auth scoping for `tierLists`. Preflight complete.
 
 ## E2 Execution Summary (Tier Lists Mode + Schema)
 
@@ -258,3 +258,155 @@ Normalize Tier Lists for stable present-day usage by adding explicit `mode` fiel
 - **Legacy doc migration** — not required; inference handles back-compat
 - **CreateTierListModal mode picker** — optional UI enhancement
 - **Tier list unit tests** — no coverage exists
+
+---
+
+## E3 Docs + Cleanup Summary (2026-02-05)
+
+**Date**: 2026-02-05
+**Status**: ✅ COMPLETE
+**Return Package**: `return_packages/lists/EXECUTION_E3_docs_cleanup.md`
+
+### Objective
+
+Close out Lists feature work by aligning repo documentation with E1/E2 reality, removing dead code, and declaring ship-ready status.
+
+### What Changed
+
+1. **Schema Documentation** (`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`):
+   - Added canonical `lists` collection schema (E1+) with field list, types, defaults, legacy notes, and service layer references.
+   - Added canonical `tierLists` collection schema (E2+) with `mode` field, inference behavior, Tieramid notes, and service layer references.
+   - Added ownership/auth deferred note.
+
+2. **`/list-presentation` Legacy Route — REMOVED (Option B)**:
+   - `ListPresentationView` was only referenced in `src/App.jsx` (import + route) and its own file.
+   - No nav link existed; route was orphaned and only reachable via direct URL.
+   - Deleted: `src/pages/ListPresentationView.jsx`
+   - Removed: import and `<Route>` from `src/App.jsx`
+
+3. **Unused Components — DELETED**:
+   - `src/features/lists/ListExportToggle.jsx` — zero imports confirmed; deleted.
+   - `src/features/lists/ListExportTypeToggle.jsx` — zero imports confirmed; deleted.
+
+4. **Master Doc Updated**: Gap statuses updated, E3 section added, ship-ready stamp applied.
+
+### Gaps & Risks — Final Status
+
+| Gap                                                | Status                                                                       |
+| -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Auth/ownership scoping                             | ✅ RESOLVED (E4) — app-level scoping implemented, anonymous auth in all envs |
+| Inline Firestore writes in ListsHome/ListManager   | ✅ RESOLVED (E4) — routed through listHelpers                                |
+| Firestore rules enforcement                        | 📋 DEFERRED UNTIL LAUNCH — commented scaffold in `firestore.rules`           |
+| Inconsistent list ID strategy                      | ✅ RESOLVED (E1)                                                             |
+| Schema mismatch (`players` vs `playerIds`)         | ✅ RESOLVED (E1)                                                             |
+| Inconsistent `updatedAt` timestamps                | ✅ RESOLVED (E1)                                                             |
+| No `mode` field for tier lists                     | ✅ RESOLVED (E2)                                                             |
+| `renameTierList` missing `updatedAt`               | ✅ RESOLVED (E2)                                                             |
+| `TierListsHome` duplicate inline writes            | ✅ RESOLVED (E2)                                                             |
+| `ListExportToggle` / `ListExportTypeToggle` unused | ✅ RESOLVED (E3) — deleted                                                   |
+| `/list-presentation` legacy route                  | ✅ RESOLVED (E3) — removed                                                   |
+| Schema documentation missing                       | ✅ RESOLVED (E3) — added to `CURRENT_FIRESTORE_SCHEMA.md`                    |
+| `playerNotes` UI commented out                     | MINOR — stored but not editable                                              |
+
+---
+
+## E4 Preflight Findings (Ownership/Auth Scoping)
+
+**Date**: 2026-02-05  
+**Return package**: `return_packages/lists/PREFLIGHT_E4_ownership_auth_scoping.md`
+
+### Discovery Summary
+
+1. **Firebase Auth is present** (`src/firebaseConfig.js` + `src/shared/hooks/useAuth.js`). Anonymous sign-in is available but restricted to DEV mode only. In production, `userId` is `null` for all sessions.
+
+2. **No ownership fields** exist on `lists` or `tierLists` documents. All documents are effectively global.
+
+3. **Firestore rules are wide open** (`allow read, write: if true`). No per-collection rules exist.
+
+4. **Existing scoping pattern**: The Architect feature uses `createdBy` field on `architect_worlds` with `where('createdBy', '==', userId)` queries and app-level ownership checks. This is the only user-scoped collection in the repo.
+
+5. **Zero auth integration in Lists/TierLists**: None of the 10+ list-related files import or reference `useAuth`. No route guards exist.
+
+6. **Write paths**: 6 unique write sites for `lists` (3 helpers, 3 inline), 4 for `tierLists` (all helpers). Create paths need `ownerUid` injection. Update/delete paths need ownership verification.
+
+7. **Read paths**: 5 unique read sites for `lists`, 4 for `tierLists`. All use unscoped `getDocs` or the generic `useFirebaseQuery` hook (which has no `where` support).
+
+8. **`useFirebaseQuery` impact**: Generic hook used by TierMakerBoard, TieramidBoard, and RankingBuilder for lists data. Does not support query constraints — must be extended or replaced with scoped fetches.
+
+9. **Recommended no-auth strategy**: Enable anonymous auth in production (remove DEV guard in `useAuth.js`). Gives every session a stable uid without building sign-in UI.
+
+### E4 Execution Scope
+
+- Add `ownerUid` to all create paths (2 for lists, 1 for tier lists)
+- App-level ownership checks on update/delete paths
+- Scope read queries with `where('ownerUid', '==', userId)` where userId is available
+- Prepare commented-out Firestore rules (dev-open, launch-secure strategy)
+- Resolve `useFirebaseQuery` scoping (extend hook or replace with dedicated fetches)
+- Enable anonymous auth for production
+- Handle legacy docs without `ownerUid`
+
+---
+
+## E4 Execution Summary (Ownership/Auth Scoping)
+
+**Date**: 2026-02-05  
+**Status**: ✅ COMPLETE  
+**Return package**: `return_packages/lists/EXECUTION_E4_ownership_auth_scoping.md`
+
+### What Changed
+
+1. **Anonymous auth enabled in all environments** — removed `import.meta.env.DEV` guard in `useAuth.js`. Every session now gets a stable `userId` via `signInAnonymously`. Added `hasAttemptedSignIn` ref to prevent infinite retry loops.
+
+2. **`ownerUid` field on all creates** — `listHelpers.js` fully rewritten. `createList`, `createTierList`, `createListWithPlayer` all write `ownerUid: userId` via `serverTimestamp` pattern.
+
+3. **Scoped reads** — `fetchAllLists(userId)` and `fetchAllTierLists(userId)` now use `where('ownerUid', '==', userId)`. `useFirebaseQuery` extended with optional `queryConstraints` array. TierMakerBoard, TieramidBoard, and RankingBuilder pass `[where('ownerUid', '==', userId)]`.
+
+4. **Ownership guards on updates/deletes** — internal `readAndGuard → assertOwnership` pattern in listHelpers. All rename/delete/save operations verify `ownerUid === userId` before writing.
+
+5. **Legacy auto-claim** — `claimOwnershipIfMissing(docRef, data, userId)` sets `ownerUid` on first access to pre-E4 documents (first-come, first-claimed).
+
+6. **Inline Firestore writes eliminated** — `AddToListModal`, `ListsHome`, and `ListManager` now route all operations through `listHelpers.js` instead of direct Firestore calls.
+
+7. **No-auth guard** — `ListsHome` and `TierListsHome` show "Unable to initialize session" message when `!userId && !authLoading`.
+
+8. **Firestore rules scaffold** — commented `LAUNCH-SECURE` block added to `firestore.rules` for both `/lists/{listId}` and `/tierLists/{tierListId}`. Includes auto-claim migration case in update rule.
+
+### Files Changed (12 source + 1 rules + 2 docs)
+
+| File                                                    | Change                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------ |
+| `src/shared/hooks/useAuth.js`                           | Removed DEV guard, added `hasAttemptedSignIn` ref      |
+| `src/shared/hooks/useFirebaseQuery.js`                  | Added `queryConstraints` parameter                     |
+| `src/firebase/listHelpers.js`                           | Full rewrite — ownership, scoping, guards, new helpers |
+| `src/features/lists/CreateListModal.jsx`                | Added `useAuth`, passes `userId`                       |
+| `src/features/tierMaker/CreateTierListModal.jsx`        | Added `useAuth`, passes `userId`                       |
+| `src/features/lists/AddToListButton/AddToListModal.jsx` | Replaced all inline Firestore with helpers             |
+| `src/pages/ListsHome.jsx`                               | Replaced inline writes, added auth + no-auth guard     |
+| `src/pages/ListManager.jsx`                             | Replaced inline reads/writes, added `isOwner` state    |
+| `src/pages/TierListsHome.jsx`                           | Added auth, scoped fetches, ownership guards           |
+| `src/features/tierMaker/TierMakerBoard.jsx`             | Added `useAuth`, scoped queries                        |
+| `src/features/tierMaker/TieramidBoard.jsx`              | Added `useAuth`, scoped queries                        |
+| `src/features/ranker/RankingBuilder.jsx`                | Added `useAuth`, scoped query                          |
+| `firestore.rules`                                       | Added commented launch-secure rules block              |
+| `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`               | Added `ownerUid` field, updated examples               |
+
+### Build Validation
+
+- `npx vite build`: ✅ PASS — 3025 modules, 0 errors, built in 59.86s
+
+---
+
+## SHIP-READY ✅ (E4 Complete)
+
+**Lists (Player Lists + Tier Lists) are ship-ready with per-session ownership scoping via anonymous auth.**
+
+### Remaining Deferrals
+
+- **Firestore rules enforcement**: Commented scaffold in `firestore.rules` — uncomment + deploy when ready for production lockdown.
+- **Real auth UI**: Anonymous uids are ephemeral per device/session. Lists lost on browser data clear until a proper sign-in flow (email, Google, etc.) + account linking is added.
+- **Sharing / permissions**: No multi-user access model. Lists are private to the session uid.
+- **Full migration script**: Legacy docs without `ownerUid` are auto-claimed on first access. No bulk backfill script exists.
+- **Legacy doc migration**: Pre-E1 `lists` docs with only `players: []` may render empty. Rarely encountered; fallback logic handles gracefully.
+- **CreateTierListModal mode picker**: Optional UI enhancement to let users choose standard vs pyramid at creation time.
+- **Tier list unit tests**: No test coverage exists for tier list CRUD or mode inference.
+- **`playerNotes` UI**: Notes field is stored but the editing UI is commented out.

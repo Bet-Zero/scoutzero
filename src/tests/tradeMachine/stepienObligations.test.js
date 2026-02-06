@@ -296,4 +296,111 @@ describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
       expect(result.passed).toBe(true);
     });
   });
+
+  describe('TM-6: Improved warning messages for authored terms', () => {
+    it('emits specific message for multi-tier protection ladder', () => {
+      const result = validateStepien(
+        makeTeam({
+          entitlementsOut: [
+            {
+              id: 'ent:LAL:2026:1:own:ladder',
+              kind: 'pick_ownership',
+              round: 1,
+              seasonYear: 2026,
+              protectionLadder: [
+                { year: 2026, condition: 'Top 3', ifTriggered: 'roll', rollToYear: 2027 },
+                { year: 2027, condition: 'Top 5', ifTriggered: 'cancel' },
+              ],
+            },
+          ],
+        })
+      );
+      // Should include tier count and starting year
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain('2 tiers');
+      expect(result.warnings[0]).toContain('2026');
+    });
+
+    it('emits specific message for single-tier protection ladder', () => {
+      const result = validateStepien(
+        makeTeam({
+          entitlementsOut: [
+            {
+              id: 'ent:LAL:2027:1:own:single',
+              kind: 'pick_ownership',
+              round: 1,
+              seasonYear: 2027,
+              protectionLadder: [
+                { year: 2027, condition: 'Top 10', ifTriggered: 'roll', rollToYear: 2028 },
+              ],
+            },
+          ],
+        })
+      );
+      // Single tier = "Protected pick" message
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain('Protected pick');
+      expect(result.warnings[0]).toContain('2027');
+    });
+
+    it('emits specific message for conveyance with pool', () => {
+      const result = validateStepien(
+        makeTeam({
+          entitlementsOut: [
+            {
+              id: 'ent:LAL:2028:1:conv:pool',
+              kind: 'conveyance_right',
+              round: 1,
+              seasonYear: 2028,
+              poolUnderlyingPickIds: ['ATL_2028_1st', 'SAS_2028_1st', 'ORL_2028_1st'],
+              receivesRank: [1],
+              receivesComparator: 'less_favorable',
+            },
+          ],
+        })
+      );
+      // Should mention pool size
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain('3-pick pool');
+    });
+
+    it('emits generic conveyance message when no pool', () => {
+      const result = validateStepien(
+        makeTeam({
+          entitlementsOut: [
+            {
+              id: 'ent:LAL:2029:1:conv:nopool',
+              kind: 'conveyance_right',
+              round: 1,
+              seasonYear: 2029,
+              receivesRank: [1],
+              receivesComparator: 'more_favorable',
+            },
+          ],
+        })
+      );
+      // No pool = generic conveyance message
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings[0]).toContain('Conveyance right');
+      expect(result.warnings[0]).toContain('conveyance outcome known');
+    });
+
+    it('does not emit warnings for simple pick_ownership without ladder', () => {
+      const result = validateStepien(
+        makeTeam({
+          entitlementsOut: [
+            {
+              id: 'ent:LAL:2026:1:own:simple',
+              kind: 'pick_ownership',
+              round: 1,
+              seasonYear: 2026,
+              underlyingPickId: 'LAL_2026_1st',
+            },
+          ],
+        })
+      );
+      // No ladder, no conveyance = no warnings
+      expect(result.warnings.length).toBe(0);
+    });
+  });
 });

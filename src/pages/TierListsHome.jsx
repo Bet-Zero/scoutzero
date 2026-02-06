@@ -1,7 +1,8 @@
 // TierListsHome.jsx
-// E2: Routes all CRUD through listHelpers (single source of truth)
+// E4: Routes all CRUD through listHelpers with ownership scoping
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/shared/hooks/useAuth';
 import {
   fetchAllTierLists,
   renameTierList,
@@ -19,6 +20,7 @@ const TierListsHome = () => {
   const [renameValue, setRenameValue] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const navigate = useNavigate();
+  const { userId, loading: authLoading } = useAuth();
   const { players } = useSimplePlayerData();
 
   const playersMap = useMemo(() => {
@@ -41,29 +43,42 @@ const TierListsHome = () => {
     return map;
   }, [lists]);
 
-  // E2: Uses fetchAllTierLists helper (includes mode inference)
+  // E4: Fetch tier lists scoped to ownerUid
   const fetchLists = async () => {
-    const results = await fetchAllTierLists();
+    if (!userId) {
+      setLists([]);
+      setIsLoading(false);
+      return;
+    }
+    const results = await fetchAllTierLists(userId);
     setLists(results);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchLists();
-  }, []);
+    if (!authLoading) fetchLists();
+  }, [userId, authLoading]);
 
-  // E2: Uses renameTierList helper (now writes updatedAt via serverTimestamp)
+  // E4: Rename via helper with ownership guard
   const handleRename = async () => {
     if (!renameValue.trim()) return;
-    await renameTierList(renamingId, renameValue.trim());
+    try {
+      await renameTierList(renamingId, renameValue.trim(), userId);
+    } catch (err) {
+      console.error('Rename failed:', err);
+    }
     setRenamingId(null);
     setRenameValue('');
     fetchLists();
   };
 
-  // E2: Uses deleteTierList helper (single source of truth)
+  // E4: Delete via helper with ownership guard
   const handleDelete = async () => {
-    await deleteTierList(deletingId);
+    try {
+      await deleteTierList(deletingId, userId);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
     setDeletingId(null);
     fetchLists();
   };
@@ -89,8 +104,12 @@ const TierListsHome = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || authLoading ? (
           <div className="text-white/60">Loading lists...</div>
+        ) : !userId ? (
+          <div className="text-white/40">
+            Unable to initialize session. Tier lists are unavailable.
+          </div>
         ) : lists.length === 0 ? (
           <div className="text-white/40">
             You haven&apos;t created any tier lists yet.

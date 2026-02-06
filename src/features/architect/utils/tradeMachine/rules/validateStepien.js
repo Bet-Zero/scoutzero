@@ -146,7 +146,7 @@ export function validateStepien(team, tradeCtx = {}) {
   // Phase 12.1: Build Stepien-relevant picks from entitlements being traded
   // Entitlements take precedence over legacy picksOut for modern trades
   const entitlementsOut = team.entitlementsOut || [];
-  // TM-5: Emit conservative warnings for authored terms
+  // TM-5/TM-6: Emit conservative warnings for authored terms with specific details
   if (entitlementsOut.length > 0) {
     entitlementsOut.forEach((ent) => {
       const terms =
@@ -154,16 +154,27 @@ export function validateStepien(team, tradeCtx = {}) {
           ? ent.terms
           : normalizeEntitlementTerms(ent);
       if (terms?.hasProtectionLadder) {
+        const tierCount = terms.protectionLadder?.tiers?.length || 0;
+        const firstYear =
+          terms.protectionLadder?.tiers?.[0]?.year || terms.seasonYear || '?';
         const message =
-          'Protection ladder present; Stepien evaluated conservatively.';
+          tierCount > 1
+            ? `Protection ladder (${tierCount} tiers starting ${firstYear}): Stepien reserves year until all tiers resolve.`
+            : `Protected pick (${firstYear}): Stepien reserves year until protection outcome known.`;
         if (!warningSet.has(message)) {
           warningSet.add(message);
           warnings.push(message);
         }
       }
       if (terms?.hasConveyance || ent?.kind === 'conveyance_right') {
+        const poolSize =
+          terms?.conveyance?.poolUnderlyingPickIds?.length ||
+          ent?.poolUnderlyingPickIds?.length ||
+          0;
         const message =
-          'Ambiguous conveyance; Stepien evaluated conservatively.';
+          poolSize > 0
+            ? `Conveyance from ${poolSize}-pick pool: Stepien reserves all possible years until pool resolves.`
+            : `Conveyance right: Stepien reserves year until conveyance outcome known.`;
         if (!warningSet.has(message)) {
           warningSet.add(message);
           warnings.push(message);

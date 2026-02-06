@@ -9,18 +9,18 @@
 
 import React from 'react';
 import type { EntitlementFormState } from './entitlementEditorFormState';
+import type { FieldErrors } from './useEntitlementEditorState';
 
 interface EntitlementEditorSwapTabProps {
   formState: EntitlementFormState;
   onChange: (next: EntitlementFormState) => void;
+  fieldErrors?: FieldErrors;
   disabled?: boolean;
 }
 
-export const EntitlementEditorSwapTab: React.FC<EntitlementEditorSwapTabProps> = ({
-  formState,
-  onChange,
-  disabled = false,
-}) => {
+export const EntitlementEditorSwapTab: React.FC<
+  EntitlementEditorSwapTabProps
+> = ({ formState, onChange, fieldErrors = {}, disabled = false }) => {
   const updateField = (key: keyof EntitlementFormState, value: string) => {
     onChange({
       ...formState,
@@ -37,6 +37,29 @@ export const EntitlementEditorSwapTab: React.FC<EntitlementEditorSwapTabProps> =
 
       <div>
         <label
+          htmlFor="entitlement-swapType"
+          className="block text-xs text-white/60 mb-1"
+        >
+          Swap Type
+        </label>
+        <select
+          id="entitlement-swapType"
+          value={formState.swapType}
+          onChange={(e) => updateField('swapType', e.target.value)}
+          disabled={disabled}
+          className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+        >
+          <option value="">Select swap type...</option>
+          <option value="best_of">Best of (more favorable)</option>
+          <option value="worst_of">Worst of (less favorable)</option>
+        </select>
+        <p className="text-[10px] text-white/40 mt-1">
+          Determines which pick is selected when the swap is resolved.
+        </p>
+      </div>
+
+      <div>
+        <label
           htmlFor="entitlement-swapControllerPickId"
           className="block text-xs text-white/60 mb-1"
         >
@@ -47,8 +70,17 @@ export const EntitlementEditorSwapTab: React.FC<EntitlementEditorSwapTabProps> =
           value={formState.swapControllerPickId}
           onChange={(e) => updateField('swapControllerPickId', e.target.value)}
           disabled={disabled}
-          className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+          className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+            fieldErrors.swapControllerPickId
+              ? 'border-red-500'
+              : 'border-white/10'
+          }`}
         />
+        {fieldErrors.swapControllerPickId && (
+          <p className="text-[10px] text-red-400 mt-0.5">
+            {fieldErrors.swapControllerPickId}
+          </p>
+        )}
       </div>
 
       <div>
@@ -64,8 +96,17 @@ export const EntitlementEditorSwapTab: React.FC<EntitlementEditorSwapTabProps> =
           onChange={(e) => updateField('swapTargetDefinition', e.target.value)}
           disabled={disabled}
           rows={3}
-          className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+          className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+            fieldErrors.swapTargetDefinition
+              ? 'border-red-500'
+              : 'border-white/10'
+          }`}
         />
+        {fieldErrors.swapTargetDefinition && (
+          <p className="text-[10px] text-red-400 mt-0.5">
+            {fieldErrors.swapTargetDefinition}
+          </p>
+        )}
       </div>
 
       <div>
@@ -78,7 +119,9 @@ export const EntitlementEditorSwapTab: React.FC<EntitlementEditorSwapTabProps> =
         <textarea
           id="entitlement-swapPool"
           value={formState.poolUnderlyingPickIdsText}
-          onChange={(e) => updateField('poolUnderlyingPickIdsText', e.target.value)}
+          onChange={(e) =>
+            updateField('poolUnderlyingPickIdsText', e.target.value)
+          }
           disabled={disabled}
           rows={3}
           placeholder="ATL_2026_1st\nSAS_2026_1st"

@@ -4,6 +4,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import TierRow from '@/features/tierMaker/TierRow';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { where } from 'firebase/firestore';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import { TeamListFull } from '@/constants/teamList';
 import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
@@ -15,14 +17,54 @@ import { toast } from 'react-hot-toast';
 
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
+/**
+ * Ensures tiers state always includes Pool and tierOrder always includes Pool last.
+ * This prevents crashes when Pool is missing from loaded data.
+ * @param {Object} tiers - The tiers object
+ * @param {Array} tierOrder - The tier order array
+ * @returns {Object} - Normalized { tiers, tierOrder }
+ */
+const normalizeTiers = (tiers, tierOrder) => {
+  const normalizedTiers = { ...tiers };
+  const normalizedOrder = [...tierOrder];
+
+  // Ensure Pool exists in tiers
+  if (!normalizedTiers.Pool) {
+    normalizedTiers.Pool = [];
+  }
+
+  // Ensure Pool is in tierOrder
+  if (!normalizedOrder.includes('Pool')) {
+    normalizedOrder.push('Pool');
+  } else {
+    // Ensure Pool is last
+    const poolIndex = normalizedOrder.indexOf('Pool');
+    if (poolIndex !== normalizedOrder.length - 1) {
+      normalizedOrder.splice(poolIndex, 1);
+      normalizedOrder.push('Pool');
+    }
+  }
+
+  return { tiers: normalizedTiers, tierOrder: normalizedOrder };
+};
+
 const TierMakerBoard = ({
   players = [],
   initialTierListId = '',
   onTierListChange,
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
-  const { data: listsData } = useFirebaseQuery('lists');
-  const { data: tierListsData } = useFirebaseQuery('tierLists');
+  const { userId } = useAuth();
+  // E4: Scope list/tierList queries to ownerUid
+  const ownerConstraints = useMemo(
+    () => (userId ? [where('ownerUid', '==', userId)] : []),
+    [userId]
+  );
+  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints);
+  const { data: tierListsData } = useFirebaseQuery(
+    'tierLists',
+    ownerConstraints
+  );
 
   const processedPlayers = useMemo(
     () =>
@@ -114,11 +156,15 @@ const TierMakerBoard = ({
     [tierListsData]
   );
 
-  const getInitialTiers = () =>
-    [...DEFAULT_TIERS, 'Pool'].reduce((acc, tier) => {
+  const getInitialTiers = () => {
+    const tiers = [...DEFAULT_TIERS, 'Pool'].reduce((acc, tier) => {
       acc[tier] = tier === 'Pool' ? [...players] : [];
       return acc;
     }, {});
+    const tierOrder = [...DEFAULT_TIERS, 'Pool'];
+    const normalized = normalizeTiers(tiers, tierOrder);
+    return normalized.tiers;
+  };
 
   const [tiers, setTiers] = useState(getInitialTiers);
   const [tierOrder, setTierOrder] = useState([...DEFAULT_TIERS, 'Pool']);
@@ -135,17 +181,18 @@ const TierMakerBoard = ({
     const formatted = { ...player, player_id: player.id };
     setTiers((prev) => ({
       ...prev,
-      Pool: [...prev.Pool, formatted],
+      Pool: [...(prev.Pool || []), formatted],
     }));
   };
 
   const addPlayersToPool = (playersArray) => {
     setTiers((prev) => {
-      const existingIds = new Set(prev.Pool.map((p) => p.player_id));
+      const pool = prev.Pool || [];
+      const existingIds = new Set(pool.map((p) => p.player_id));
       const additions = playersArray
         .filter((p) => !existingIds.has(p.id))
         .map((p) => ({ ...p, player_id: p.id }));
-      return { ...prev, Pool: [...prev.Pool, ...additions] };
+      return { ...prev, Pool: [...pool, ...additions] };
     });
   };
 
@@ -171,11 +218,12 @@ const TierMakerBoard = ({
     setTiers((prev) => {
       const player = prev[fromTier].find((p) => p.player_id === playerId);
       if (!player) return prev;
-      const poolIds = new Set(prev.Pool.map((p) => p.player_id));
+      const pool = prev.Pool || [];
+      const poolIds = new Set(pool.map((p) => p.player_id));
       return {
         ...prev,
         [fromTier]: prev[fromTier].filter((p) => p.player_id !== playerId),
-        Pool: poolIds.has(playerId) ? prev.Pool : [...prev.Pool, player],
+        Pool: poolIds.has(playerId) ? pool : [...pool, player],
       };
     });
   };
@@ -191,7 +239,8 @@ const TierMakerBoard = ({
     if (tier === 'Pool') return;
     setTiers((prev) => {
       const { [tier]: removed, ...rest } = prev;
-      return { ...rest, Pool: [...prev.Pool, ...(removed || [])] };
+      const pool = prev.Pool || [];
+      return { ...rest, Pool: [...pool, ...(removed || [])] };
     });
     setTierOrder((prev) => prev.filter((t) => t !== tier));
   };
@@ -207,8 +256,11 @@ const TierMakerBoard = ({
   };
 
   const resetBoard = () => {
-    setTiers(getInitialTiers());
-    setTierOrder([...DEFAULT_TIERS, 'Pool']);
+    const initialTiers = getInitialTiers();
+    const initialTierOrder = [...DEFAULT_TIERS, 'Pool'];
+    const normalized = normalizeTiers(initialTiers, initialTierOrder);
+    setTiers(normalized.tiers);
+    setTierOrder(normalized.tierOrder);
   };
 
   const handleAddTeamRoster = () => {
@@ -240,7 +292,7 @@ const TierMakerBoard = ({
     async (id) => {
       if (!id) return;
       try {
-        const data = await fetchTierList(id);
+        const data = await fetchTierList(id, userId);
         if (data?.tiers) {
           const newTiers = {};
           Object.entries(data.tiers).forEach(([tier, ids]) => {
@@ -249,8 +301,10 @@ const TierMakerBoard = ({
               .filter(Boolean)
               .map((p) => ({ ...p, player_id: p.id }));
           });
-          setTiers(newTiers);
-          setTierOrder(data.tierOrder || Object.keys(newTiers));
+          const newTierOrder = data.tierOrder || Object.keys(newTiers);
+          const normalized = normalizeTiers(newTiers, newTierOrder);
+          setTiers(normalized.tiers);
+          setTierOrder(normalized.tierOrder);
           setSelectedTierList(id);
           // Update URL with the loaded tier list
           onTierListChange?.(id);
@@ -261,7 +315,7 @@ const TierMakerBoard = ({
         toast.error('Failed to load tier list');
       }
     },
-    [playersMap, onTierListChange]
+    [playersMap, onTierListChange, userId]
   );
 
   const handleSaveTierList = async (idOverride) => {
@@ -276,10 +330,14 @@ const TierMakerBoard = ({
     });
     try {
       setIsSaving(true);
-      await saveTierList(listId, {
-        tiers: dataToSave,
-        tierOrder,
-      });
+      await saveTierList(
+        listId,
+        {
+          tiers: dataToSave,
+          tierOrder,
+        },
+        userId
+      );
       toast.success('Tier list saved!');
     } catch (err) {
       console.error('Failed to save tier list', err);

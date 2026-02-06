@@ -15,6 +15,7 @@
 import React, { useMemo } from 'react';
 import EntitlementPickRow from './EntitlementPickRow';
 import { getKindSortPriority } from '@/features/architect/utils/entitlements/formatEntitlement';
+import { EntitlementEditorCreateButton } from '@/features/architect/admin/EntitlementEditorCreateButton';
 
 /**
  * EntitlementPicksList
@@ -33,6 +34,7 @@ import { getKindSortPriority } from '@/features/architect/utils/entitlements/for
  * @param {Array} [props.entitlementsOut] - Phase 17: Current outgoing entitlements with toTeamId
  * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed
  * @param {Function} [props.onEditEntitlement] - TM-4: Callback when entitlement edit is requested
+ * @param {Function} [props.onCreateEntitlement] - TM-7: Callback when entitlement create is requested
  */
 export const EntitlementPicksList = ({
   entitlements = [],
@@ -50,6 +52,8 @@ export const EntitlementPicksList = ({
   entitlementsOut = [],
   onSetDestination,
   onEditEntitlement,
+  // TM-7: Create entitlement callback
+  onCreateEntitlement,
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -112,9 +116,14 @@ export const EntitlementPicksList = ({
   if (sortedEntitlements.length === 0) {
     return (
       <div>
-        <h4 className="text-sm text-white/70 mb-1">
-          Draft Assets (Entitlements)
-        </h4>
+        <div className="flex items-center justify-between mb-1">
+          <h4 className="text-sm text-white/70">
+            Draft Assets (Entitlements)
+          </h4>
+          {onCreateEntitlement && (
+            <EntitlementEditorCreateButton onClick={onCreateEntitlement} size="sm" />
+          )}
+        </div>
         <div className="text-xs text-white/40 px-1">
           No entitlements loaded.
           {emptyStateHint && (
@@ -129,9 +138,14 @@ export const EntitlementPicksList = ({
 
   return (
     <div>
-      <h4 className="text-sm text-white/70 mb-1">
-        Draft Assets (Entitlements)
-      </h4>
+      <div className="flex items-center justify-between mb-1">
+        <h4 className="text-sm text-white/70">
+          Draft Assets (Entitlements)
+        </h4>
+        {onCreateEntitlement && (
+          <EntitlementEditorCreateButton onClick={onCreateEntitlement} size="sm" />
+        )}
+      </div>
       <div className="space-y-3 max-h-[375px] overflow-y-auto pr-1">
         {Array.from(groupedByYear.entries()).map(([year, yearEntitlements]) => (
           <div key={year} className="space-y-1">

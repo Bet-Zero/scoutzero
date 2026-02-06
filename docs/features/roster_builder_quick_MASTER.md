@@ -4,6 +4,68 @@
 
 The Roster Builder is a quick lineup builder that assembles a 15‑man view split into **starters (5)**, **rotation (4)**, and **bench (6)**. It pulls the full NBA player pool from `players_v2` via `useSimplePlayerData`, supports team‑based auto‑fill, and lets users add/remove players via a drawer with search + filters. It can save new rosters to Firestore and load them back by ID or from the roster list page. Current completeness covers the core add/remove + save/load loop, but there is **no update/overwrite flow**, several **filters are effectively broken** (team and FA type), and **export/preview/download is not wired** to any user control. Validation was **not run** in this environment; a manual test script is provided below.
 
+---
+
+## ✅ v1 CLOSURE — 2026-02-05
+
+**Status:** CLOSED  
+**Closure Date:** 2026-02-05  
+**Executions:**
+
+- **RB_E1**: Core v1 closure (duplicate prevention, overwrite/save-as-copy, preview/export wiring, roster size normalization)
+- **RB_E2**: FA Status extraction (renamed from FA Type, restricted to UFA/RFA)
+- **RB_E3**: Contract Features filter (Team Option, Player Option, ETO, Two-Way)
+
+### What v1 Includes
+
+- ✅ Team-based auto-fill with position heuristics (5 starters / 4 rotation / 6 bench)
+- ✅ Add/remove players via drawer with search + filters
+- ✅ Save new rosters to Firestore (`rosterProjects` collection)
+- ✅ Load saved rosters by ID or from roster list page
+- ✅ Overwrite existing roster or save as new copy
+- ✅ Duplicate player prevention with warning toast
+- ✅ Preview roster (screenshot mode + downloadable image)
+- ✅ Export roster (JSON copy/download)
+- ✅ Search by player name
+- ✅ Filter by team (normalized to canonical team codes)
+- ✅ Filter by position, roles/subroles, shooting profile, badges
+- ✅ Filter by FA Status (UFA/RFA only)
+- ✅ Filter by Contract Features (Team Option, Player Option, ETO, Two-Way)
+- ✅ Filter by salary range
+- ✅ Roster size normalization (5/4/6) enforced across load, add/remove, and save
+- ✅ Rename/delete rosters from list page (`/rosters`)
+
+### Validation Evidence
+
+**Unit Tests:**
+
+- `src/tests/roster/rosterBuilderUtils.test.ts` — **PASS (22/22)**
+- Coverage: roster shape normalization, filter helpers, canonical team code mapping
+
+**Build:**
+
+- `npm run build` — **PASS** (7.3s)
+
+**Manual UI Validation:**
+
+- All core flows verified (auto-fill, add/remove, save/load, overwrite, filters, preview, export)
+- FA Status filter correctly restricted to UFA/RFA
+- Contract Features filter correctly split from FA Status (TO/PO/ETO/Two-Way)
+- Duplicate prevention working as expected
+- Roster size normalization enforced across all operations
+
+### Known Non-Goals (Out of Scope for v1)
+
+- ❌ Positional constraints (can add 5 centers if desired)
+- ❌ Salary cap enforcement or validation
+- ❌ Team size limits (15-man roster not enforced)
+- ❌ Swap/reorder UI (must remove + re-add to reorganize)
+- ❌ Drag-and-drop slot reordering
+- ❌ Multi-team rosters or "All-Star" mode
+- ❌ Advanced trade machine integration
+
+---
+
 ## User-Facing Behaviors
 
 - Select a team from a dropdown and auto‑fill the “Current NBA Roster” into starter/rotation/bench slots.
