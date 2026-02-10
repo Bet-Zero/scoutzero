@@ -33,6 +33,10 @@ import {
   SELECTION_METHOD_OPTIONS,
 } from '@/features/architect/admin/pickEditorCopy';
 import {
+  WIZARD_PRESETS,
+  applyProtectionTemplate,
+} from '@/features/architect/admin/ProtectionLadderTemplates';
+import {
   saveDraft,
   loadDraft,
   clearDraft,
@@ -579,5 +583,104 @@ describe('Draft handling (v2 envelope)', () => {
   it('loadDraft returns null for empty object', () => {
     localStorage.setItem(`pickrightdraft:${worldId}:${draftId}`, '{}');
     expect(loadDraft(worldId, draftId)).toBeNull();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. TM-10: Wizard presets — common protection patterns
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('TM-10: WIZARD_PRESETS', () => {
+  it('contains exactly 5 presets with the correct IDs', () => {
+    expect(WIZARD_PRESETS).toHaveLength(5);
+    const ids = WIZARD_PRESETS.map((p) => p.id);
+    expect(ids).toEqual([
+      'unprotected',
+      'top4_unprotected',
+      'top10_unprotected',
+      'lottery_unprotected',
+      'lottery_top10_unprotected',
+    ]);
+  });
+
+  it('unprotected preset produces empty ladder', () => {
+    const preset = WIZARD_PRESETS.find((p) => p.id === 'unprotected')!;
+    const tiers = applyProtectionTemplate(preset, 2027);
+    expect(tiers).toHaveLength(0);
+  });
+
+  it('top4_unprotected produces 2-tier ladder', () => {
+    const preset = WIZARD_PRESETS.find((p) => p.id === 'top4_unprotected')!;
+    const tiers = applyProtectionTemplate(preset, 2027);
+    expect(tiers).toHaveLength(2);
+    expect(tiers[0]).toEqual({
+      year: '2027',
+      condition: 'Top 4',
+      ifTriggered: 'roll',
+      rollToYear: '2028',
+      convertToRound: '',
+    });
+    expect(tiers[1]).toEqual({
+      year: '2028',
+      condition: 'Unprotected',
+      ifTriggered: 'cancel',
+      rollToYear: '',
+      convertToRound: '',
+    });
+  });
+
+  it('top10_unprotected produces 2-tier ladder', () => {
+    const preset = WIZARD_PRESETS.find((p) => p.id === 'top10_unprotected')!;
+    const tiers = applyProtectionTemplate(preset, 2027);
+    expect(tiers).toHaveLength(2);
+    expect(tiers[0].condition).toBe('Top 10');
+    expect(tiers[0].ifTriggered).toBe('roll');
+    expect(tiers[0].rollToYear).toBe('2028');
+    expect(tiers[1].ifTriggered).toBe('cancel');
+  });
+
+  it('lottery_unprotected produces 2-tier ladder with Lottery condition', () => {
+    const preset = WIZARD_PRESETS.find((p) => p.id === 'lottery_unprotected')!;
+    const tiers = applyProtectionTemplate(preset, 2027);
+    expect(tiers).toHaveLength(2);
+    expect(tiers[0].condition).toBe('Lottery');
+    expect(tiers[0].ifTriggered).toBe('roll');
+    expect(tiers[0].rollToYear).toBe('2028');
+    expect(tiers[1].ifTriggered).toBe('cancel');
+  });
+
+  it('lottery_top10_unprotected produces 3-tier ladder', () => {
+    const preset = WIZARD_PRESETS.find((p) => p.id === 'lottery_top10_unprotected')!;
+    const tiers = applyProtectionTemplate(preset, 2027);
+    expect(tiers).toHaveLength(3);
+    expect(tiers[0].condition).toBe('Lottery');
+    expect(tiers[0].rollToYear).toBe('2028');
+    expect(tiers[1].condition).toBe('Top 10');
+    expect(tiers[1].rollToYear).toBe('2029');
+    expect(tiers[2].ifTriggered).toBe('cancel');
+  });
+
+  it('selecting unprotected clears protectionLadder in formState', () => {
+    const model = createDefaultWizardModel({
+      intent: 'protect_pick',
+      pick: { team: 'BOS', year: 2027, round: 1 },
+      protection: { templateId: 'unprotected', customLadder: [] },
+    });
+    const fs = wizardToFormState(model);
+    expect(fs.protectionLadder).toHaveLength(0);
+    expect(fs.underlyingStatus).toBe('clean');
+  });
+
+  it('each preset passes the validation pipeline', () => {
+    for (const preset of WIZARD_PRESETS) {
+      const tiers = applyProtectionTemplate(preset, 2027);
+      const model = createDefaultWizardModel({
+        intent: 'protect_pick',
+        pick: { team: 'BOS', year: 2027, round: 1 },
+        protection: { templateId: preset.id, customLadder: tiers },
+      });
+      const result = validateWizardModel(model);
+      expect(result.valid).toBe(true);
+    }
   });
 });

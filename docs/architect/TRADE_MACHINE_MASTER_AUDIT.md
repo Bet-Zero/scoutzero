@@ -284,6 +284,82 @@ Return package: `return_packages/PHASE_TM_6_ENTITLEMENT_AUTHORING_MVP.md`
 
 ---
 
+### TM-9B — Draft v2 Test Fix (2026-02-10) — COMPLETE
+
+**Goal:** Fix 2 failing unit tests in `pickRightWizardDraft.test.ts` by updating assertions/fixtures to match the current v2 draft envelope format used by `saveDraft()` / `loadDraft()`.
+
+**What Changed:**
+
+| #   | File                                               | Change                                                                                                                                                                      |
+| --- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `src/tests/architect/pickRightWizardDraft.test.ts` | Added `mockWizardModel` fixture. Updated all `saveDraft()` calls to include `wizardModel` (4-param signature). Updated assertions for v2 envelope. Added v1 migration test. |
+
+**Root Cause:** Tests were written for v1 flat formState format but production code had already been upgraded to v2 envelope format (`{ version: 2, wizardModel, formState }`) during TM-9 Wizard Translation Layer implementation. Tests called `saveDraft()` with only 3 parameters (missing `wizardModel`) and expected `loadDraft()` to return raw `formState` instead of v2 envelope shape.
+
+**V2 Envelope Format:**
+
+```typescript
+type DraftEnvelope = {
+  version: 2;
+  wizardModel: WizardModel; // Wizard UI state
+  formState: EntitlementFormState; // Schema-layer form state
+};
+```
+
+**localStorage key format:** `pickrightdraft:{worldId}:{entitlementId}`
+
+**Test Results:**
+
+- `pickRightWizardDraft.test.ts`: ✅ **11/11 tests pass** (was 8/10 before fix — 2 failures resolved)
+- `wizardTranslation.test.ts` + `pickRightWizard.test.tsx`: ✅ **60/60 tests pass** (no regressions)
+- Production build: ✅ succeeds (30.79s)
+
+**No Production Code Changes:** ✅ Zero changes to draft persistence logic. Runtime behavior unchanged. All wizard UI functionality preserved.
+
+Return package: `return_packages/trade_machine/TM_9B_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### TM-10: Wizard Common Presets (2026-02-10)
+
+**Problem:** The wizard showed 6 protection templates that included niche patterns (Top 3, Top 5 → Top 3, converts-to-2nd). Users needed the most common NBA protections front and center, with Advanced Editor as the escape hatch for custom ladders.
+
+**Solution:** Introduced `WIZARD_PRESETS` — a curated 5-item preset list for the wizard, separate from the full `PROTECTION_TEMPLATES` used by Advanced Editor.
+
+**Wizard presets (exactly 5):**
+
+| Preset | Schema Mapping |
+|--------|---------------|
+| Unprotected | Empty ladder — pick conveys regardless |
+| Top 4 protected → Unprotected next year | 2-tier: Y0 "Top 4" roll, Y1 "Unprotected" cancel |
+| Top 10 protected → Unprotected next year | 2-tier: Y0 "Top 10" roll, Y1 "Unprotected" cancel |
+| Lottery protected (Top 14) → Unprotected next year | 2-tier: Y0 "Lottery" roll, Y1 "Unprotected" cancel |
+| Lottery → Top 10 → Unprotected | 3-tier: Y0 "Lottery" roll, Y1 "Top 10" roll, Y2 "Unprotected" cancel |
+
+**Swap labels:** "Swap most favorable" (best_of) / "Swap least favorable" (worst_of).
+
+**Microcopy:** "These are the most common NBA protections. For custom protections or special rules, open Advanced Editor."
+
+**Files changed:**
+
+- `ProtectionLadderTemplates.ts` — added `WIZARD_PRESETS` export
+- `WizardStepDetails.tsx` — imports `WIZARD_PRESETS`; updated swap labels
+- `pickEditorCopy.ts` — added `swapBestOf`/`swapWorstOf` labels + updated help text
+- `wizardTranslation.test.ts` — 8 new tests for preset list, ladder output, validation pipeline
+
+**Test Results:**
+
+- `wizardTranslation.test.ts`: ✅ **45/45 tests pass** (8 new TM-10 tests)
+- `pickRightWizardDraft.test.ts`: ✅ **11/11 tests pass**
+- `pickSelector.test.tsx`: ✅ **10/10 tests pass**
+- Production build: ✅ succeeds
+
+**No schema changes.** Advanced Editor unchanged. `PROTECTION_TEMPLATES` preserved as-is.
+
+Return package: `return_packages/trade_machine/TM-10_WIZARD_COMMON_PRESETS_RETURN_PACKAGE.md`
+
+---
+
 ## Key Invariants (do not regress)
 
 1. **Stepien IS enforced on entitlements.** `validateStepien.js` processes `entitlementsOut`. Do not remove or gate this path.

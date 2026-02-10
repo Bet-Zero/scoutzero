@@ -22,10 +22,46 @@ function getInitialRows() {
     rows[`Row${i}`] = [];
   }
   rows['Pool'] = [];
-  return rows;
+  const rowOrder = Array.from(
+    { length: INITIAL_ROWS },
+    (_, i) => `Row${i + 1}`
+  ).concat('Pool');
+  // Always normalize initial state to ensure Pool exists and is last
+  return normalizeRows(rows, rowOrder);
 }
 
 const getSpotsInRow = (rowIndex) => rowIndex + 1;
+
+/**
+ * Ensures rows state always includes Pool and rowOrder always includes Pool last.
+ * This prevents crashes when Pool is missing from loaded data.
+ * @param {Object} rows - The rows object
+ * @param {Array} rowOrder - The row order array
+ * @returns {Object} - Normalized { rows, rowOrder }
+ */
+const normalizeRows = (rows, rowOrder) => {
+  const normalizedRows = { ...rows };
+  const normalizedOrder = [...rowOrder];
+
+  // Ensure Pool exists in rows
+  if (!normalizedRows.Pool) {
+    normalizedRows.Pool = [];
+  }
+
+  // Ensure Pool is in rowOrder
+  if (!normalizedOrder.includes('Pool')) {
+    normalizedOrder.push('Pool');
+  } else {
+    // Ensure Pool is last
+    const poolIndex = normalizedOrder.indexOf('Pool');
+    if (poolIndex !== normalizedOrder.length - 1) {
+      normalizedOrder.splice(poolIndex, 1);
+      normalizedOrder.push('Pool');
+    }
+  }
+
+  return { rows: normalizedRows, rowOrder: normalizedOrder };
+};
 
 const TieramidBoard = ({
   onScreenshotChange,
@@ -127,10 +163,9 @@ const TieramidBoard = ({
     [tierListsData]
   );
 
-  const [rows, setRows] = useState(getInitialRows);
-  const [rowOrder, setRowOrder] = useState(
-    Array.from({ length: INITIAL_ROWS }, (_, i) => `Row${i + 1}`).concat('Pool')
-  );
+  const initialState = useMemo(() => getInitialRows(), []);
+  const [rows, setRows] = useState(initialState.rows);
+  const [rowOrder, setRowOrder] = useState(initialState.rowOrder);
   const [selectedTierList, setSelectedTierList] = useState('');
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedList, setSelectedList] = useState('');
@@ -214,21 +249,28 @@ const TieramidBoard = ({
               .filter(Boolean)
               .map((player) => ({ ...player, player_id: player.id }));
           });
-          if (!newRows.Pool) newRows.Pool = [];
+
+          // First normalize to ensure Pool exists and is last
           const incomingOrder = data.tierOrder || Object.keys(newRows);
-          const nextOrder = incomingOrder.includes('Pool')
-            ? incomingOrder
-            : [...incomingOrder, 'Pool'];
-          nextOrder.forEach((rowKey) => {
-            if (!newRows[rowKey]) newRows[rowKey] = [];
+          const normalized = normalizeRows(newRows, incomingOrder);
+
+          // Ensure all rows in order have arrays
+          normalized.rowOrder.forEach((rowKey) => {
+            if (!normalized.rows[rowKey]) normalized.rows[rowKey] = [];
           });
-          const normalized = normalizeRowsForCapacity(newRows, nextOrder);
-          setRows(normalized.rows);
-          setRowOrder(nextOrder);
+
+          // Then apply capacity normalization
+          const capacityNormalized = normalizeRowsForCapacity(
+            normalized.rows,
+            normalized.rowOrder
+          );
+
+          setRows(capacityNormalized.rows);
+          setRowOrder(normalized.rowOrder);
           setSelectedTierList(id);
           // Update URL with the loaded tier list
           onTierListChange?.(id);
-          if (normalized.overflowCount > 0) {
+          if (capacityNormalized.overflowCount > 0) {
             toast('Overflow players moved to Pool to avoid hidden slots.');
           }
           toast.success('Pyramid loaded!');
@@ -238,7 +280,7 @@ const TieramidBoard = ({
         toast.error('Failed to load');
       }
     },
-    [processedPlayersMap, normalizeRowsForCapacity, onTierListChange]
+    [processedPlayersMap, normalizeRowsForCapacity, onTierListChange, userId]
   );
 
   // Add to pool helpers
@@ -307,7 +349,8 @@ const TieramidBoard = ({
     const lastRow = currentRows[currentRows.length - 1];
     setRows((prev) => {
       const { [lastRow]: toRemove, ...rest } = prev;
-      return { ...rest, Pool: [...prev.Pool, ...(toRemove || [])] };
+      const pool = prev.Pool || [];
+      return { ...rest, Pool: [...pool, ...(toRemove || [])] };
     });
     setRowOrder((prev) => prev.filter((r) => r !== lastRow));
   };
@@ -317,7 +360,12 @@ const TieramidBoard = ({
     if (!name || name === oldName) return;
     setRows((prev) => {
       const { [oldName]: items, ...rest } = prev;
-      return { ...rest, [name]: items };
+      // Ensure Pool is preserved even if somehow missing
+      const newRows = { ...rest, [name]: items };
+      if (!newRows.Pool) {
+        newRows.Pool = [];
+      }
+      return newRows;
     });
     setRowOrder((prev) => prev.map((r) => (r === oldName ? name : r)));
   };

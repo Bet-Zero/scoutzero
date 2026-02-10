@@ -162,12 +162,13 @@ const TierMakerBoard = ({
       return acc;
     }, {});
     const tierOrder = [...DEFAULT_TIERS, 'Pool'];
-    const normalized = normalizeTiers(tiers, tierOrder);
-    return normalized.tiers;
+    // Always normalize initial state to ensure Pool exists and is last
+    return normalizeTiers(tiers, tierOrder);
   };
 
-  const [tiers, setTiers] = useState(getInitialTiers);
-  const [tierOrder, setTierOrder] = useState([...DEFAULT_TIERS, 'Pool']);
+  const initialState = useMemo(() => getInitialTiers(), [players]);
+  const [tiers, setTiers] = useState(initialState.tiers);
+  const [tierOrder, setTierOrder] = useState(initialState.tierOrder);
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -250,15 +251,18 @@ const TierMakerBoard = ({
     if (!name || name === tier) return;
     setTiers((prev) => {
       const { [tier]: items, ...rest } = prev;
-      return { ...rest, [name]: items };
+      // Ensure Pool is preserved even if somehow missing
+      const newTiers = { ...rest, [name]: items };
+      if (!newTiers.Pool) {
+        newTiers.Pool = [];
+      }
+      return newTiers;
     });
     setTierOrder((prev) => prev.map((t) => (t === tier ? name : t)));
   };
 
   const resetBoard = () => {
-    const initialTiers = getInitialTiers();
-    const initialTierOrder = [...DEFAULT_TIERS, 'Pool'];
-    const normalized = normalizeTiers(initialTiers, initialTierOrder);
+    const normalized = getInitialTiers();
     setTiers(normalized.tiers);
     setTierOrder(normalized.tierOrder);
   };

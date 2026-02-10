@@ -94,13 +94,15 @@ export const WIZARD_LABELS = {
   pickOwnershipTitle: 'Pick Ownership',
   protectionPattern: 'Protection Pattern',
   protectionPatternHelp:
-    'Choose a common protection pattern to auto-fill the ladder.',
+    'These are the most common NBA protections. For custom protections or special rules, open Advanced Editor.',
   protectionLadder: 'Protection Ladder',
   clearLadder: 'Clear ladder',
 
   // Swap
   swapRightTitle: 'Swap Right',
   swapType: 'Swap Type',
+  swapBestOf: 'Swap most favorable',
+  swapWorstOf: 'Swap least favorable',
   controllerPick: 'Controller Pick',
   controllerPickHelp:
     'The pick that controls the swap — the team with the right to choose.',

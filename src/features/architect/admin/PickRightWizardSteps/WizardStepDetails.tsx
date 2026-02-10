@@ -27,7 +27,7 @@ import {
 import type { FieldErrors } from '../useEntitlementEditorState';
 import { PickSelector } from '../PickSelector';
 import {
-  PROTECTION_TEMPLATES,
+  WIZARD_PRESETS,
   applyProtectionTemplate,
 } from '../ProtectionLadderTemplates';
 import type { ProtectionTemplate } from '../ProtectionLadderTemplates';
@@ -94,7 +94,7 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
   // Protection template handler
   const handleTemplateSelect = useCallback(
     (templateId: string) => {
-      const template = PROTECTION_TEMPLATES.find(
+      const template = WIZARD_PRESETS.find(
         (t: ProtectionTemplate) => t.id === templateId
       );
       if (!template) return;
@@ -296,7 +296,7 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
               {WIZARD_LABELS.protectionPatternHelp}
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {PROTECTION_TEMPLATES.map((tmpl: ProtectionTemplate) => (
+              {WIZARD_PRESETS.map((tmpl: ProtectionTemplate) => (
                 <button
                   key={tmpl.id}
                   type="button"
@@ -402,7 +402,7 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
                   }`}
                   data-testid={`swap-type-${type}`}
                 >
-                  {type === 'best_of' ? 'Best of' : 'Worst of'}
+                  {type === 'best_of' ? WIZARD_LABELS.swapBestOf : WIZARD_LABELS.swapWorstOf}
                 </button>
               ))}
             </div>

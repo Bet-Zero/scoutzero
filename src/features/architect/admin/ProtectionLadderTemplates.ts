@@ -83,6 +83,57 @@ export const PROTECTION_TEMPLATES: ProtectionTemplate[] = [
  * @param baseYear - The season year to base the ladder on
  * @returns Array of ProtectionLadderTierForm objects
  */
+/**
+ * WIZARD_PRESETS — the simplified preset list shown in the wizard (TM-10).
+ * These are the 5 most common NBA protection patterns. The full
+ * PROTECTION_TEMPLATES list above is still used by the Advanced Editor.
+ */
+export const WIZARD_PRESETS: ProtectionTemplate[] = [
+  {
+    id: 'unprotected',
+    label: 'Unprotected',
+    description: 'No protection — pick conveys regardless of position',
+    tiers: [],
+  },
+  {
+    id: 'top4_unprotected',
+    label: 'Top 4 protected → Unprotected next year',
+    description: '2-year ladder: Top 4 protected first year, unprotected second year',
+    tiers: [
+      { yearOffset: 0, condition: 'Top 4', ifTriggered: 'roll', rollToYearOffset: 1 },
+      { yearOffset: 1, condition: 'Unprotected', ifTriggered: 'cancel' },
+    ],
+  },
+  {
+    id: 'top10_unprotected',
+    label: 'Top 10 protected → Unprotected next year',
+    description: '2-year ladder: Top 10 protected first year, unprotected second year',
+    tiers: [
+      { yearOffset: 0, condition: 'Top 10', ifTriggered: 'roll', rollToYearOffset: 1 },
+      { yearOffset: 1, condition: 'Unprotected', ifTriggered: 'cancel' },
+    ],
+  },
+  {
+    id: 'lottery_unprotected',
+    label: 'Lottery protected (Top 14) → Unprotected next year',
+    description: '2-year ladder: Lottery protected first year, unprotected second year',
+    tiers: [
+      { yearOffset: 0, condition: 'Lottery', ifTriggered: 'roll', rollToYearOffset: 1 },
+      { yearOffset: 1, condition: 'Unprotected', ifTriggered: 'cancel' },
+    ],
+  },
+  {
+    id: 'lottery_top10_unprotected',
+    label: 'Lottery → Top 10 → Unprotected',
+    description: '3-year ladder: Lottery protected, rolls to Top 10, then unprotected',
+    tiers: [
+      { yearOffset: 0, condition: 'Lottery', ifTriggered: 'roll', rollToYearOffset: 1 },
+      { yearOffset: 1, condition: 'Top 10', ifTriggered: 'roll', rollToYearOffset: 2 },
+      { yearOffset: 2, condition: 'Unprotected', ifTriggered: 'cancel' },
+    ],
+  },
+];
+
 export const applyProtectionTemplate = (
   template: ProtectionTemplate,
   baseYear: number

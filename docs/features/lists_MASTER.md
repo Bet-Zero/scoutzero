@@ -396,13 +396,50 @@ Close out Lists feature work by aligning repo documentation with E1/E2 reality, 
 
 ---
 
+## E5 Launch Checklist (Firestore Rules Flip)
+
+**Date**: 2026-02-09  
+**Status**: ✅ COMPLETE (docs-only)  
+**Return package**: `return_packages/lists/EXECUTION_E5_rules_flip_checklist.md`
+
+### Objective
+
+Create a "when you're ready to ship" playbook for safely enabling Firestore rules enforcement in production.
+
+### What Was Delivered
+
+**Created**: `docs/launch/FIRESTORE_RULES_FLIP_CHECKLIST.md`
+
+Comprehensive launch checklist covering:
+
+- What changes when rules are enforced (ownership scoping, auth requirements)
+- Preconditions to verify before flip (anonymous auth enabled, `ownerUid` on new docs, no global list dependencies)
+- Exact rules edit steps (uncomment launch-secure blocks, disable dev-open wildcard)
+- Deploy commands with project selection guidance
+- 5 smoke tests (create/persist/rename/delete/cross-user isolation)
+- Rollback plan (3 options: wildcard, backup, git revert)
+- 5 common failure modes with diagnosis steps and fixes
+
+**Rules enforcement is the final launch hardening step for Lists.** Do not flip rules until E4 app changes have been deployed and stable in production for 24-48 hours.
+
+---
+
 ## SHIP-READY ✅ (E4 Complete)
 
 **Lists (Player Lists + Tier Lists) are ship-ready with per-session ownership scoping via anonymous auth.**
 
+### Launch-Ready Status
+
+- ✅ **App-level ownership**: `ownerUid` scoped reads/writes (E4)
+- ✅ **Anonymous auth**: Enabled in all environments (E4)
+- ✅ **Rules scaffold**: Commented launch-secure blocks in `firestore.rules` (E4)
+- ✅ **Launch checklist**: Flip playbook ready at `docs/launch/FIRESTORE_RULES_FLIP_CHECKLIST.md` (E5)
+
+**To harden for production**: Follow the E5 checklist to deploy Firestore rules enforcement when ready.
+
 ### Remaining Deferrals
 
-- **Firestore rules enforcement**: Commented scaffold in `firestore.rules` — uncomment + deploy when ready for production lockdown.
+- **Firestore rules enforcement**: Commented scaffold in `firestore.rules` — uncomment + deploy when ready for production lockdown. **See E5 checklist above for step-by-step instructions.**
 - **Real auth UI**: Anonymous uids are ephemeral per device/session. Lists lost on browser data clear until a proper sign-in flow (email, Google, etc.) + account linking is added.
 - **Sharing / permissions**: No multi-user access model. Lists are private to the session uid.
 - **Full migration script**: Legacy docs without `ownerUid` are auto-claimed on first access. No bulk backfill script exists.
