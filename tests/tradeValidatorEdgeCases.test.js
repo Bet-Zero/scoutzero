@@ -54,12 +54,11 @@ describe('tradeValidator edge cases', () => {
   });
 
   it('fails when a team trades consecutive unprotected firsts in a 3-team deal', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const teamC = makeTeam('C', 100_000_000);
+    const teamA = { ...makeTeam('A', 100_000_000), id: 'A', entitlementIds: ['ent-2027-1', 'ent-2028-1'] };
+    const teamB = { ...makeTeam('B', 100_000_000), id: 'B' };
+    const teamC = { ...makeTeam('C', 100_000_000), id: 'C' };
 
-    // Phase 15: Use entitlementsOut for Stepien validation
-    // The validator now uses entitlements for Stepien checks
+    // Phase 17: toTeamId required in 3+ team trades for entitlement routing
     const result = validateTrade({
       teams: [
         {
@@ -71,12 +70,14 @@ describe('tradeValidator edge cases', () => {
               seasonYear: 2027,
               round: 1,
               kind: 'pick_ownership',
+              toTeamId: 'B',
             },
             {
               id: 'ent-2028-1',
               seasonYear: 2028,
               round: 1,
               kind: 'pick_ownership',
+              toTeamId: 'B',
             },
           ],
         },
