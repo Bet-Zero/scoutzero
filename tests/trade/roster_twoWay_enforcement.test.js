@@ -13,6 +13,7 @@ describe('two-way roster enforcement', () => {
   });
 
   it('warns or rejects when two-way slots exceeded', () => {
+    validationFlags.twoWayRoster = 'warn';
     const team = makeTeam(14, 4);
     const warns = [];
     const rejects = [];
