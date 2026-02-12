@@ -136,7 +136,7 @@ describe('entitlementPickRowProjection', () => {
         expect(result.kind).toBe('swap_right');
         expect(result.assetType).toBe('swap_right');
         expect(result.protectionText).toBe('Swap option');
-        expect(result.conditionsText).toBe('Can swap for SAS_2026_1st');
+        expect(result.conditionsText).toBe(null);
       });
 
       it('projects swap_right with pool', () => {
@@ -159,7 +159,7 @@ describe('entitlementPickRowProjection', () => {
         });
 
         expect(result.assetType).toBe('swap_right');
-        expect(result.conditionsText).toBe('Swap from pool of 3 picks');
+        expect(result.conditionsText).toBe('Swap pool (3 picks)');
       });
     });
 
@@ -185,7 +185,7 @@ describe('entitlementPickRowProjection', () => {
         expect(result.kind).toBe('conveyance_right');
         expect(result.assetType).toBe('conditional_right');
         expect(result.protectionText).toBe('Conditional');
-        expect(result.conditionsText).toBe('From pool of 2 picks');
+        expect(result.conditionsText).toBe('Pool of 2 picks');
       });
 
       it('projects conveyance_right with convey mention in description', () => {
