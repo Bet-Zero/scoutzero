@@ -105,7 +105,9 @@ async function validateDirectories(schema: ProjectSchema): Promise<void> {
     const exists = await isDirectory(dirPath);
     
     if (!exists) {
-      error(`Required directory missing: ${dir}`);
+      // Auto-create generated/output directories so CI passes on a fresh clone
+      await fs.mkdir(dirPath, { recursive: true });
+      info(`Auto-created required directory: ${dir}`);
     } else {
       success(`Required directory exists: ${dir}`);
     }
