@@ -308,6 +308,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST = Object.freeze([
   // Renounce events
   'renouncedPlayer',
   'capHoldRemoved',
+  'teamCode', // Team renouncing the player's rights
 
   // Season advance events
   'fromSeason',
