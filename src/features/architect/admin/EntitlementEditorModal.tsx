@@ -120,6 +120,7 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
               onApplyJson={handleApplyJson}
               fieldErrors={fieldErrors}
               disabled={saving}
+              isEditMode={!!entitlementId}
             />
           </div>
 

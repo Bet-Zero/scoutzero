@@ -35,6 +35,9 @@ import { EntitlementEditorCreateButton } from '@/features/architect/admin/Entitl
  * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed
  * @param {Function} [props.onEditEntitlement] - TM-4: Callback when entitlement edit is requested
  * @param {Function} [props.onCreateEntitlement] - TM-7: Callback when entitlement create is requested
+ * @param {boolean} [props.isVacuumMode=false] - Whether trade machine is in vacuum mode
+ * @param {Function} [props.onRevertEntitlementEdit] - Revert one vacuum edit patch
+ * @param {Function} [props.onDeleteSessionEntitlement] - Delete one session-only entitlement
  */
 export const EntitlementPicksList = ({
   entitlements = [],
@@ -54,6 +57,9 @@ export const EntitlementPicksList = ({
   onEditEntitlement,
   // TM-7: Create entitlement callback
   onCreateEntitlement,
+  isVacuumMode = false,
+  onRevertEntitlementEdit,
+  onDeleteSessionEntitlement,
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -117,11 +123,12 @@ export const EntitlementPicksList = ({
     return (
       <div>
         <div className="flex items-center justify-between mb-1">
-          <h4 className="text-sm text-white/70">
-            Draft Assets (Entitlements)
-          </h4>
+          <h4 className="text-sm text-white/70">Draft Assets (Entitlements)</h4>
           {onCreateEntitlement && (
-            <EntitlementEditorCreateButton onClick={onCreateEntitlement} size="sm" />
+            <EntitlementEditorCreateButton
+              onClick={onCreateEntitlement}
+              size="sm"
+            />
           )}
         </div>
         <div className="text-xs text-white/40 px-1">
@@ -139,11 +146,12 @@ export const EntitlementPicksList = ({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h4 className="text-sm text-white/70">
-          Draft Assets (Entitlements)
-        </h4>
+        <h4 className="text-sm text-white/70">Draft Assets (Entitlements)</h4>
         {onCreateEntitlement && (
-          <EntitlementEditorCreateButton onClick={onCreateEntitlement} size="sm" />
+          <EntitlementEditorCreateButton
+            onClick={onCreateEntitlement}
+            size="sm"
+          />
         )}
       </div>
       <div className="space-y-3 max-h-[375px] overflow-y-auto pr-1">
@@ -177,6 +185,9 @@ export const EntitlementPicksList = ({
                   currentToTeamId={toTeamIdByEntitlement[entitlementId]}
                   onSetDestination={onSetDestination}
                   onEdit={onEditEntitlement}
+                  isVacuumMode={isVacuumMode}
+                  onRevertEdit={onRevertEntitlementEdit}
+                  onDeleteSessionPickRight={onDeleteSessionEntitlement}
                 />
               );
             })}

@@ -52,6 +52,10 @@ import {
 import {
   applyVacuumEdit,
   applyVacuumCreate,
+  removeEdit,
+  removeCreate,
+  hasEdit,
+  hasCreate,
   makeVacuumEntitlementId,
 } from '../utils/entitlements/vacuumEntitlementOverlayStore';
 import { WizardStepDetails } from './PickRightWizardSteps/WizardStepDetails';
@@ -87,7 +91,10 @@ interface PickRightWizardModalProps {
     entitlementId: string;
     document: Record<string, unknown>;
   }) => void;
+  onVacuumSessionMutation?: () => void;
   onOpenAdvanced?: (formState: EntitlementFormState) => void;
+  /** TM-VACUUM-E3: Opens a new create-mode wizard prefilled with current values */
+  onDuplicateAsNew?: (document: Record<string, unknown>) => void;
 }
 
 const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
@@ -98,11 +105,19 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
   vacuumMode = false,
   onClose,
   onSuccess,
+  onVacuumSessionMutation,
   onOpenAdvanced,
+  onDuplicateAsNew,
 }) => {
+  const isEditMode = entitlementId !== null && entitlementId !== undefined;
+  const isVacuumSession = vacuumMode || !worldId;
+
   // ── State ──
-  const [step, setStep] = useState<WizardStep>('intent');
+  const [step, setStep] = useState<WizardStep>(
+    isEditMode ? 'details' : 'intent'
+  );
   const [saving, setSaving] = useState(false);
+  const [sessionMutating, setSessionMutating] = useState(false);
 
   // WizardModel = wizard-mode source of truth (TM-9)
   const [wizardModel, setWizardModel] = useState<WizardModel>(() => {
@@ -237,6 +252,27 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     }
   }, [worldId, entitlementId, draftChecked]);
 
+  const teamCodeForOverlay = String(
+    formState.holderTeam ||
+      (typeof initialDocument?.holderTeam === 'string'
+        ? initialDocument.holderTeam
+        : '')
+  ).trim();
+
+  const canRevertThisEdit = useMemo(() => {
+    if (!isVacuumSession || !isEditMode || !entitlementId) return false;
+    if (!teamCodeForOverlay) return false;
+    if (entitlementId.startsWith('vacuum:')) return false;
+    return hasEdit(teamCodeForOverlay, entitlementId);
+  }, [isVacuumSession, isEditMode, entitlementId, teamCodeForOverlay]);
+
+  const canDeleteSessionPickRight = useMemo(() => {
+    if (!isVacuumSession || !isEditMode || !entitlementId) return false;
+    if (!teamCodeForOverlay) return false;
+    if (!entitlementId.startsWith('vacuum:')) return false;
+    return hasCreate(teamCodeForOverlay, entitlementId);
+  }, [isVacuumSession, isEditMode, entitlementId, teamCodeForOverlay]);
+
   // ── Intent selection ──
   const handleSelectIntent = useCallback((intent: WizardIntent) => {
     setWizardModel((prev) => ({
@@ -321,8 +357,11 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
 
         const draftWorldKey = worldId || 'vacuum';
         clearDraft(draftWorldKey, entitlementId || 'new');
-        toast.success('Entitlement saved (session)');
-        onSuccess({ entitlementId: finalId, document: { ...document, id: finalId } });
+        toast.success('Saved (this session only)');
+        onSuccess({
+          entitlementId: finalId,
+          document: { ...document, id: finalId },
+        });
         return;
       }
 
@@ -359,11 +398,64 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     }
   }, [formState, onOpenAdvanced]);
 
+  const handleRevertThisEdit = useCallback(() => {
+    if (!entitlementId || !teamCodeForOverlay) return;
+    setSessionMutating(true);
+    try {
+      removeEdit(teamCodeForOverlay, entitlementId);
+      clearDraft(worldId || 'vacuum', entitlementId);
+      onVacuumSessionMutation?.();
+      toast.success('Session edit reverted');
+      onClose();
+    } finally {
+      setSessionMutating(false);
+    }
+  }, [
+    entitlementId,
+    teamCodeForOverlay,
+    worldId,
+    onVacuumSessionMutation,
+    onClose,
+  ]);
+
+  const handleDeleteSessionPickRight = useCallback(() => {
+    if (!entitlementId || !teamCodeForOverlay) return;
+    setSessionMutating(true);
+    try {
+      removeCreate(teamCodeForOverlay, entitlementId);
+      clearDraft(worldId || 'vacuum', entitlementId);
+      onVacuumSessionMutation?.();
+      toast.success('Session pick right deleted');
+      onClose();
+    } finally {
+      setSessionMutating(false);
+    }
+  }, [
+    entitlementId,
+    teamCodeForOverlay,
+    worldId,
+    onVacuumSessionMutation,
+    onClose,
+  ]);
+
+  // TM-VACUUM-E3: Duplicate as new — opens create-mode wizard prefilled with current values
+  const handleDuplicateAsNew = useCallback(() => {
+    const document = buildEntitlementDocument(formState);
+    // Strip the existing ID so a new one will be generated
+    const { id: _stripId, ...docWithoutId } = document;
+    if (onDuplicateAsNew) {
+      onDuplicateAsNew(docWithoutId);
+    }
+  }, [formState, onDuplicateAsNew]);
+
   // ── Navigation ──
   const handleBack = useCallback(() => {
     if (step === 'review') setStep('details');
-    else if (step === 'details') setStep('intent');
-  }, [step]);
+    else if (step === 'details') {
+      if (isEditMode) onClose();
+      else setStep('intent');
+    }
+  }, [step, isEditMode, onClose]);
 
   const handleNext = useCallback(() => {
     if (step === 'details') setStep('review');
@@ -387,24 +479,30 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
             </h2>
             {/* Step indicator */}
             <div className="flex items-center gap-1.5 text-xs text-white/40">
-              <span
-                className={step === 'intent' ? 'text-blue-400 font-medium' : ''}
-              >
-                1. Type
-              </span>
-              <span>→</span>
+              {!isEditMode && (
+                <>
+                  <span
+                    className={
+                      step === 'intent' ? 'text-blue-400 font-medium' : ''
+                    }
+                  >
+                    1. Type
+                  </span>
+                  <span>→</span>
+                </>
+              )}
               <span
                 className={
                   step === 'details' ? 'text-blue-400 font-medium' : ''
                 }
               >
-                2. Details
+                {isEditMode ? '1. Details' : '2. Details'}
               </span>
               <span>→</span>
               <span
                 className={step === 'review' ? 'text-blue-400 font-medium' : ''}
               >
-                3. Review
+                {isEditMode ? '2. Review' : '3. Review'}
               </span>
             </div>
           </div>
@@ -417,20 +515,20 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           </button>
         </div>
 
-        {/* TM-VACUUM-E1: Vacuum mode session banner */}
+        {/* TM-VACUUM-E1 / TM-UI-COPY-E1: Base-mode session banner */}
         {(vacuumMode || !worldId) && (
           <div
             className="mx-6 mt-3 px-3 py-1.5 rounded bg-amber-900/30 border border-amber-500/30 text-amber-300 text-xs font-medium"
             data-testid="vacuum-mode-banner"
           >
-            Session mode — changes saved to this browser only
+            Not saved to a world — changes are stored in this browser only.
           </div>
         )}
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {/* ── Step 1: Intent ── */}
-          {step === 'intent' && (
+          {!isEditMode && step === 'intent' && (
             <div className="space-y-4" data-testid="wizard-step-intent">
               <div className="text-sm text-white/60 mb-4">
                 What would you like to do?
@@ -463,7 +561,9 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
               wizardModel={wizardModel}
               onChange={handleWizardModelChange}
               fieldErrors={fieldErrors}
-              disabled={saving}
+              disabled={saving || sessionMutating}
+              isEditMode={isEditMode}
+              lockIdentityFields={isEditMode}
             />
           )}
 
@@ -474,7 +574,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
               formState={formState}
               fieldErrors={fieldErrors}
               isValid={isValid}
-              saving={saving}
+              saving={saving || sessionMutating}
               onSaveDraft={handleSaveDraft}
               onApply={handleApply}
               onOpenAdvanced={handleOpenAdvanced}
@@ -492,6 +592,46 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           >
             {step === 'intent' ? 'Cancel' : '← Back'}
           </button>
+
+          {isVacuumSession && isEditMode && (
+            <div className="flex items-center gap-2">
+              {canRevertThisEdit && (
+                <button
+                  type="button"
+                  onClick={handleRevertThisEdit}
+                  disabled={saving || sessionMutating}
+                  className="px-3 py-1.5 rounded border border-amber-500/40 text-amber-300 text-xs hover:bg-amber-900/20 disabled:opacity-50"
+                  data-testid="wizard-revert-edit"
+                >
+                  Revert this edit
+                </button>
+              )}
+              {canDeleteSessionPickRight && (
+                <button
+                  type="button"
+                  onClick={handleDeleteSessionPickRight}
+                  disabled={saving || sessionMutating}
+                  className="px-3 py-1.5 rounded border border-red-500/40 text-red-300 text-xs hover:bg-red-900/20 disabled:opacity-50"
+                  data-testid="wizard-delete-session-pick-right"
+                >
+                  Delete this session pick right
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* TM-VACUUM-E3: Duplicate as new — safe way to change identity */}
+          {isEditMode && onDuplicateAsNew && (
+            <button
+              type="button"
+              onClick={handleDuplicateAsNew}
+              disabled={saving || sessionMutating}
+              className="px-3 py-1.5 rounded border border-blue-500/40 text-blue-300 text-xs hover:bg-blue-900/20 disabled:opacity-50"
+              data-testid="wizard-duplicate-as-new"
+            >
+              Duplicate as new
+            </button>
+          )}
 
           {step === 'details' && (
             <button

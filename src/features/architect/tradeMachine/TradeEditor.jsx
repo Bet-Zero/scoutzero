@@ -11,6 +11,8 @@ import { isEntitlementAuthoringEnabled } from '@/features/architect/utils/entitl
 import {
   clearVacuumOverlay,
   hasVacuumOverlay,
+  removeEdit,
+  removeCreate,
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 // import TradeDebugPanel from './TradeDebugPanel';
 
@@ -201,7 +203,48 @@ const TradeEditor = ({
   const handleClearVacuumOverlay = () => {
     clearVacuumOverlay();
     refreshEntitlements();
-    toast.success('Session pick edits cleared');
+    toast.success('Session pick changes cleared');
+  };
+
+  const resolveEntitlementTeamCode = (entitlement) =>
+    entitlement?.holderTeam || entitlement?.holder_team || null;
+
+  const handleRevertEntitlementEdit = (entitlement) => {
+    if (!isVacuumMode) return;
+    const entitlementId = entitlement?.id || entitlement?.entitlementId;
+    const teamCode = resolveEntitlementTeamCode(entitlement);
+    if (
+      !teamCode ||
+      !entitlementId ||
+      String(entitlementId).startsWith('vacuum:')
+    ) {
+      return;
+    }
+
+    removeEdit(teamCode, entitlementId);
+    refreshEntitlements();
+    // TM-VACUUM-E3: Auto-validate after per-item revert
+    handleValidate();
+    toast.success('Session edit reverted');
+  };
+
+  const handleDeleteSessionEntitlement = (entitlement) => {
+    if (!isVacuumMode) return;
+    const entitlementId = entitlement?.id || entitlement?.entitlementId;
+    const teamCode = resolveEntitlementTeamCode(entitlement);
+    if (
+      !teamCode ||
+      !entitlementId ||
+      !String(entitlementId).startsWith('vacuum:')
+    ) {
+      return;
+    }
+
+    removeCreate(teamCode, entitlementId);
+    refreshEntitlements();
+    // TM-VACUUM-E3: Auto-validate after per-item delete
+    handleValidate();
+    toast.success('Session pick right deleted');
   };
 
   return (
@@ -214,9 +257,9 @@ const TradeEditor = ({
             <button
               onClick={handleClearVacuumOverlay}
               className="bg-amber-700/60 hover:bg-amber-600/60 text-amber-200 text-xs font-medium px-3 py-1.5 rounded"
-              title="Clear all session pick-right edits"
+              title="Clear all session pick changes"
             >
-              Clear session pick edits
+              Clear session pick changes
             </button>
           )}
           <button
@@ -298,6 +341,9 @@ const TradeEditor = ({
               onCreateEntitlement={
                 canEditEntitlements ? handleCreateEntitlement : null
               }
+              isVacuumMode={isVacuumMode}
+              onRevertEntitlementEdit={handleRevertEntitlementEdit}
+              onDeleteSessionEntitlement={handleDeleteSessionEntitlement}
               incomingPlayers={incomingAssets[idx]?.players || []}
               // Phase 14.2: Incoming entitlements instead of incoming picks
               incomingEntitlements={incomingAssets[idx]?.entitlements || []}
@@ -391,6 +437,17 @@ const TradeEditor = ({
           onSuccess={({ entitlementId, document }) => {
             applyEntitlementOverrideUpdate(entitlementId, document);
             setEntitlementEditorState(null);
+          }}
+          onVacuumSessionMutation={() => {
+            refreshEntitlements();
+            setEntitlementEditorState(null);
+          }}
+          onDuplicateAsNew={(document) => {
+            // TM-VACUUM-E3: Close current editor and open create-mode with prefilled values
+            setEntitlementEditorState({
+              entitlementId: null,
+              initialDocument: document,
+            });
           }}
         />
       )}

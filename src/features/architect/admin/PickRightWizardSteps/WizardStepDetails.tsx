@@ -53,6 +53,8 @@ interface WizardStepDetailsProps {
   onChange: (next: WizardModel) => void;
   fieldErrors: FieldErrors;
   disabled?: boolean;
+  isEditMode?: boolean;
+  lockIdentityFields?: boolean;
 }
 
 export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
@@ -60,6 +62,8 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
   onChange,
   fieldErrors,
   disabled = false,
+  isEditMode = false,
+  lockIdentityFields = false,
 }) => {
   const intent = wizardModel.intent;
   const baseYear = wizardModel.pick.year || 2026;
@@ -258,11 +262,18 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
         defaultTeam={wizardModel.pick.team}
         defaultYear={wizardModel.pick.year}
         label={WIZARD_LABELS.pickIdentity}
-        disabled={disabled}
+        disabled={disabled || lockIdentityFields}
         error={
           fieldErrors.holderTeam || fieldErrors.seasonYear || fieldErrors.round
         }
       />
+
+      {isEditMode && (
+        <div className="text-[11px] text-white/55 -mt-3">
+          <div>Owner (changes when traded)</div>
+          <div>To change the pick itself or type, create a new pick right.</div>
+        </div>
+      )}
 
       {/* ── Description (all intents) ── */}
       <div>
@@ -394,7 +405,7 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
                   key={type}
                   type="button"
                   onClick={() => handleSwapTypeChange(type)}
-                  disabled={disabled}
+                  disabled={disabled || lockIdentityFields}
                   className={`px-4 py-2 rounded border text-xs transition-colors ${
                     wizardModel.swap.swapType === type
                       ? 'border-blue-500 bg-blue-900/20 text-blue-300'
@@ -402,7 +413,9 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
                   }`}
                   data-testid={`swap-type-${type}`}
                 >
-                  {type === 'best_of' ? WIZARD_LABELS.swapBestOf : WIZARD_LABELS.swapWorstOf}
+                  {type === 'best_of'
+                    ? WIZARD_LABELS.swapBestOf
+                    : WIZARD_LABELS.swapWorstOf}
                 </button>
               ))}
             </div>
@@ -419,7 +432,7 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
               defaultTeam={wizardModel.pick.team}
               defaultYear={wizardModel.pick.year}
               label={WIZARD_LABELS.controllerPick}
-              disabled={disabled}
+              disabled={disabled || lockIdentityFields}
               error={fieldErrors.swapControllerPickId}
             />
           </div>
@@ -472,13 +485,13 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
                       onChange={(pickId) => handleUpdatePoolPick(idx, pickId)}
                       defaultTeam={wizardModel.pick.team}
                       defaultYear={wizardModel.pick.year}
-                      disabled={disabled}
+                      disabled={disabled || lockIdentityFields}
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemovePoolPick(idx)}
-                    disabled={disabled}
+                    disabled={disabled || lockIdentityFields}
                     className="px-2 py-1.5 text-red-400 hover:text-red-300 text-xs"
                     data-testid={`remove-pool-pick-${idx}`}
                   >
@@ -490,7 +503,7 @@ export const WizardStepDetails: React.FC<WizardStepDetailsProps> = ({
             <button
               type="button"
               onClick={handleAddPoolPick}
-              disabled={disabled}
+              disabled={disabled || lockIdentityFields}
               className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
               data-testid="add-pool-pick"
             >

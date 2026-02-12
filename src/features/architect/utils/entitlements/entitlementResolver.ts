@@ -96,7 +96,10 @@ const fetchEntitlementsByIds = async (
     );
     const snapshot = await getDocs(entitlementsQuery);
     snapshot.docs.forEach((docSnap) => {
-      results.push({ id: docSnap.id, ...(docSnap.data() as EntitlementRecord) });
+      results.push({
+        id: docSnap.id,
+        ...(docSnap.data() as EntitlementRecord),
+      });
     });
   }
 
@@ -186,11 +189,15 @@ export const resolveEntitlementsForTeamWithDb = async (
     entitlementIds
   );
   const overrideDocs = worldId
-    ? await fetchEntitlementsByIds(db, [
-        ARCHITECT_WORLDS_COLLECTION,
-        worldId,
-        ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
-      ], entitlementIds)
+    ? await fetchEntitlementsByIds(
+        db,
+        [
+          ARCHITECT_WORLDS_COLLECTION,
+          worldId,
+          ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+        ],
+        entitlementIds
+      )
     : [];
 
   const baseMap = toEntitlementMap(baseDocs);
@@ -203,7 +210,9 @@ export const resolveEntitlementsForTeamWithDb = async (
       if (base && override) return deepMerge(base, override);
       return base || override || null;
     })
-    .filter((entitlement): entitlement is EffectiveEntitlement => Boolean(entitlement));
+    .filter((entitlement): entitlement is EffectiveEntitlement =>
+      Boolean(entitlement)
+    );
 
   // ── Vacuum mode overlay merge (single merge seam) ──
   // When worldId is null, apply session overlay edits/creates from localStorage.
@@ -216,14 +225,21 @@ export const resolveEntitlementsForTeamWithDb = async (
         for (const [editId, patch] of Object.entries(teamOverlay.edits)) {
           const idx = resolved.findIndex((ent) => ent.id === editId);
           if (idx !== -1) {
-            resolved[idx] = deepMerge(resolved[idx], patch);
+            resolved[idx] = {
+              ...deepMerge(resolved[idx], patch),
+              __vacuumEdited: true,
+            };
           }
         }
       }
       // Append creates: vacuum-prefixed entitlements added to end of list
       if (teamOverlay.creates) {
         for (const [vacuumId, fullDoc] of Object.entries(teamOverlay.creates)) {
-          resolved.push({ ...fullDoc, id: vacuumId });
+          resolved.push({
+            ...fullDoc,
+            id: vacuumId,
+            __vacuumSessionOnly: true,
+          });
         }
       }
     }

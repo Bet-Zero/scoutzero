@@ -16,6 +16,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   applyVacuumEdit,
   applyVacuumCreate,
+  removeEdit,
+  removeCreate,
   clearVacuumOverlay,
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 
@@ -203,6 +205,7 @@ describe('entitlementResolver — vacuum overlay merge', () => {
       expect(edited!.protectionLadder).toEqual([
         { year: 2027, condition: 'Top 5' },
       ]);
+      expect(edited!.__vacuumEdited).toBe(true);
 
       // Unedited entitlement should be unchanged
       const unedited = result.find((e) => e.id === 'ent:BOS:2027:2:own:base2');
@@ -233,6 +236,47 @@ describe('entitlementResolver — vacuum overlay merge', () => {
       expect(created).toBeTruthy();
       expect(created!.description).toBe('BOS 2028 1st (vacuum created)');
       expect(created!.holderTeam).toBe('BOS');
+      expect(created!.__vacuumSessionOnly).toBe(true);
+    });
+
+    it('removeEdit reverts a single edited entitlement back to base', async () => {
+      setupBaseEntitlements();
+
+      applyVacuumEdit('BOS', 'ent:BOS:2027:1:own:base1', {
+        description: 'Edited in session',
+      });
+      removeEdit('BOS', 'ent:BOS:2027:1:own:base1');
+
+      const { resolveEntitlementsForTeam } = await import(
+        '@/features/architect/utils/entitlements/entitlementResolver'
+      );
+
+      const result = await resolveEntitlementsForTeam(null, 'BOS');
+      const restored = result.find((e) => e.id === 'ent:BOS:2027:1:own:base1');
+      expect(restored).toBeTruthy();
+      expect(restored!.description).toBe('BOS 2027 1st');
+      expect(restored!.__vacuumEdited).toBeUndefined();
+    });
+
+    it('removeCreate removes a single session-only entitlement from resolved list', async () => {
+      setupBaseEntitlements();
+
+      const vacuumId = 'vacuum:BOS:2028:1:own:newpick1';
+      applyVacuumCreate('BOS', vacuumId, {
+        holderTeam: 'BOS',
+        seasonYear: 2028,
+        round: 1,
+        kind: 'pick_ownership',
+      });
+      removeCreate('BOS', vacuumId);
+
+      const { resolveEntitlementsForTeam } = await import(
+        '@/features/architect/utils/entitlements/entitlementResolver'
+      );
+
+      const result = await resolveEntitlementsForTeam(null, 'BOS');
+      expect(result.length).toBe(2);
+      expect(result.find((e) => e.id === vacuumId)).toBeUndefined();
     });
 
     it('combines edits and creates correctly', async () => {

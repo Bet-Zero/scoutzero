@@ -31,6 +31,8 @@ interface EntitlementEditorFormTabsProps {
   onApplyJson: (jsonInput: string) => { success: boolean; error?: string };
   fieldErrors?: FieldErrors;
   disabled?: boolean;
+  /** When true, identity fields are locked in Advanced tab */
+  isEditMode?: boolean;
 }
 
 const tabs: Array<{ key: EntitlementEditorTabKey; label: string }> = [
@@ -51,6 +53,7 @@ export const EntitlementEditorFormTabs: React.FC<
   onApplyJson,
   fieldErrors = {},
   disabled = false,
+  isEditMode = false,
 }) => {
   // Count errors per tab for badge display
   const tabErrorCounts: Record<string, number> = {};
@@ -140,6 +143,7 @@ export const EntitlementEditorFormTabs: React.FC<
           formState={formState}
           onApplyJson={onApplyJson}
           disabled={disabled}
+          isEditMode={isEditMode}
         />
       )}
     </div>

@@ -73,16 +73,20 @@ const normalizeNumberArray = (value: unknown): number[] => {
     .filter((entry) => Number.isFinite(entry));
 };
 
-const parseSwapType = (entitlementDoc: Record<string, unknown>): EntitlementSwapType => {
+const parseSwapType = (
+  entitlementDoc: Record<string, unknown>
+): EntitlementSwapType => {
   const explicit = entitlementDoc.swapType as string | undefined;
   if (explicit === 'worst_of') return 'worst_of';
   if (explicit === 'best_of') return 'best_of';
 
   const def = toStringValue(entitlementDoc.swapTargetDefinition).toLowerCase();
-  if (def.includes('worst') || def.includes('less favorable')) return 'worst_of';
+  if (def.includes('worst') || def.includes('less favorable'))
+    return 'worst_of';
 
   const desc = toStringValue(entitlementDoc.description).toLowerCase();
-  if (desc.includes('worst') || desc.includes('less favorable')) return 'worst_of';
+  if (desc.includes('worst') || desc.includes('less favorable'))
+    return 'worst_of';
 
   return 'best_of';
 };
@@ -168,26 +172,31 @@ export const normalizeEntitlementTerms = (
   else if (coveredBy) swapRole = 'base_pick';
   else if (hasSwapFields) swapRole = 'swap_right';
 
-  const swapType = swapRole === 'swap_right' ? parseSwapType(entitlementDoc) : undefined;
-  const swapControllerPickId = toStringValue(entitlementDoc.swapControllerPickId) || undefined;
-  const swapTargetDefinition = toStringValue(entitlementDoc.swapTargetDefinition) || undefined;
-  const poolUnderlyingPickIds = normalizeStringArray(entitlementDoc.poolUnderlyingPickIds);
+  const swapType =
+    swapRole === 'swap_right' ? parseSwapType(entitlementDoc) : undefined;
+  const swapControllerPickId =
+    toStringValue(entitlementDoc.swapControllerPickId) || undefined;
+  const swapTargetDefinition =
+    toStringValue(entitlementDoc.swapTargetDefinition) || undefined;
+  const poolUnderlyingPickIds = normalizeStringArray(
+    entitlementDoc.poolUnderlyingPickIds
+  );
 
   const hasConveyanceFields =
     kind === 'conveyance_right' ||
     normalizeNumberArray(entitlementDoc.receivesRank).length > 0 ||
     Boolean(toStringValue(entitlementDoc.receivesComparator));
 
-  const hasConveyance = hasConveyanceFields ||
+  const hasConveyance =
+    hasConveyanceFields ||
     (poolUnderlyingPickIds.length > 0 && kind === 'conveyance_right');
 
-  const conveyanceReceivesRank = normalizeNumberArray(entitlementDoc.receivesRank);
-  const conveyanceReceivesComparator =
-    toStringValue(entitlementDoc.receivesComparator) as
-      | 'more_favorable'
-      | 'less_favorable'
-      | 'middle'
-      | '';
+  const conveyanceReceivesRank = normalizeNumberArray(
+    entitlementDoc.receivesRank
+  );
+  const conveyanceReceivesComparator = toStringValue(
+    entitlementDoc.receivesComparator
+  ) as 'more_favorable' | 'less_favorable' | 'middle' | '';
 
   const hasSwap = Boolean(swapRole || hasSwapFields);
 
@@ -232,7 +241,9 @@ export const normalizeEntitlementTerms = (
   return terms;
 };
 
-export const formatEntitlementTermsShort = (terms: EntitlementTerms): string => {
+export const formatEntitlementTermsShort = (
+  terms: EntitlementTerms
+): string => {
   if (!terms || terms.empty) return '';
 
   if (terms.protectionLadder?.currentTier) {
@@ -301,12 +312,15 @@ export const getEntitlementDraftKey = (
 export const decorateEntitlementForTrade = (
   entitlementDoc: Record<string, unknown> | null | undefined
 ): Record<string, unknown> | null | undefined => {
-  if (!entitlementDoc || typeof entitlementDoc !== 'object') return entitlementDoc;
+  if (!entitlementDoc || typeof entitlementDoc !== 'object')
+    return entitlementDoc;
   const terms = normalizeEntitlementTerms(entitlementDoc);
   const termsShort = formatEntitlementTermsShort(terms);
   const draftKey = getEntitlementDraftKey(entitlementDoc, terms);
+  // TM-VACUUM-E3: Strip vacuum resolver metadata before payload/receipt
+  const { __vacuumEdited, __vacuumSessionOnly, ...cleanDoc } = entitlementDoc;
   return {
-    ...entitlementDoc,
+    ...cleanDoc,
     terms,
     termsShort,
     draftKey,

@@ -215,6 +215,7 @@ utils/
     entitlementWriter.ts
     formatEntitlement.js
     pickRulesResolver.ts
+    sanitizeVacuumMetadata.ts
     seasonManagerProjection.js
     vacuumEntitlementOverlayStore.ts
   exceptionHistory/
@@ -357,5 +358,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-12T11:35:36.472Z*
+*Generated on: 2026-02-12T15:45:25.186Z*
 *Auto-updated by: npm run docs*

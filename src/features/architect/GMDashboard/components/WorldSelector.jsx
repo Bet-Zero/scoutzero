@@ -80,7 +80,9 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
     setError('');
 
     try {
-      const userWorlds = await listUserWorlds(userId, { includeArchived: false });
+      const userWorlds = await listUserWorlds(userId, {
+        includeArchived: false,
+      });
       setWorlds(userWorlds);
     } catch (err) {
       console.error('Failed to load worlds:', err);
@@ -374,7 +376,14 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [worldId, worlds, deleteConfirmText, loadWorlds, setWorldId, onWorldChange]);
+  }, [
+    worldId,
+    worlds,
+    deleteConfirmText,
+    loadWorlds,
+    setWorldId,
+    onWorldChange,
+  ]);
 
   const openDeleteModal = useCallback(() => {
     setDeleteConfirmText('');
@@ -399,7 +408,11 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
 
   const openBranchModal = useCallback(() => {
     const currentWorld = worlds.find((w) => w.worldId === worldId);
-    setNewWorldName(currentWorld?.worldName ? `${currentWorld.worldName} (Branch)` : 'New Branch');
+    setNewWorldName(
+      currentWorld?.worldName
+        ? `${currentWorld.worldName} (Branch)`
+        : 'New Branch'
+    );
     setNewWorldDescription('');
     setShowBranchModal(true);
     setShowActionsMenu(false);
@@ -435,23 +448,32 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
 
   return (
     <div className="flex items-center gap-2 relative">
-      {/* World Dropdown */}
-      <div className="flex items-center gap-1">
-        <label htmlFor="world-selector" className="text-xs text-white/70">World</label>
-        <select
-          id="world-selector"
-          value={worldId || ''}
-          onChange={handleWorldSelect}
-          className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10 min-w-[140px]"
-          disabled={isSubmitting}
-        >
-          <option value="">No World Selected</option>
-          {worlds.map((world) => (
-            <option key={world.worldId} value={world.worldId}>
-              {world.worldName || world.worldId}
-            </option>
-          ))}
-        </select>
+      {/* World Dropdown — TM-UI-COPY-E1 */}
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-1">
+          <label htmlFor="world-selector" className="text-xs text-white/70">
+            Architect (optional)
+          </label>
+          <select
+            id="world-selector"
+            value={worldId || ''}
+            onChange={handleWorldSelect}
+            className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10 min-w-[140px]"
+            disabled={isSubmitting}
+          >
+            <option value="">No World Selected</option>
+            {worlds.map((world) => (
+              <option key={world.worldId} value={world.worldId}>
+                {world.worldName || world.worldId}
+              </option>
+            ))}
+          </select>
+        </div>
+        {!worldId && (
+          <span className="text-[10px] text-white/40 pl-0.5">
+            Select a world to save changes. No world = quick sandbox.
+          </span>
+        )}
       </div>
 
       {/* Action Buttons */}
@@ -527,9 +549,7 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
       </div>
 
       {/* Error Display */}
-      {error && (
-        <span className="text-xs text-red-400 ml-2">{error}</span>
-      )}
+      {error && <span className="text-xs text-red-400 ml-2">{error}</span>}
 
       {/* Create World Modal */}
       {showCreateModal && (
@@ -542,7 +562,10 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         >
           <div className="space-y-3">
             <div>
-              <label htmlFor="create-world-name" className="block text-xs text-white/70 mb-1">
+              <label
+                htmlFor="create-world-name"
+                className="block text-xs text-white/70 mb-1"
+              >
                 World Name
               </label>
               <input
@@ -555,7 +578,10 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
               />
             </div>
             <div>
-              <label htmlFor="create-world-description" className="block text-xs text-white/70 mb-1">
+              <label
+                htmlFor="create-world-description"
+                className="block text-xs text-white/70 mb-1"
+              >
                 Description (optional)
               </label>
               <textarea
@@ -583,10 +609,15 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
           <div className="space-y-3">
             <p className="text-xs text-white/70">
               Create a new branch from{' '}
-              <span className="font-medium">{currentWorld?.worldName || worldId}</span>
+              <span className="font-medium">
+                {currentWorld?.worldName || worldId}
+              </span>
             </p>
             <div>
-              <label htmlFor="branch-world-name" className="block text-xs text-white/70 mb-1">
+              <label
+                htmlFor="branch-world-name"
+                className="block text-xs text-white/70 mb-1"
+              >
                 Branch Name
               </label>
               <input
@@ -599,7 +630,10 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
               />
             </div>
             <div>
-              <label htmlFor="branch-world-description" className="block text-xs text-white/70 mb-1">
+              <label
+                htmlFor="branch-world-description"
+                className="block text-xs text-white/70 mb-1"
+              >
                 Description (optional)
               </label>
               <textarea
@@ -626,7 +660,10 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
         >
           <div className="space-y-3">
             <div>
-              <label htmlFor="rename-world-name" className="block text-xs text-white/70 mb-1">
+              <label
+                htmlFor="rename-world-name"
+                className="block text-xs text-white/70 mb-1"
+              >
                 World Name
               </label>
               <input
@@ -639,7 +676,10 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
               />
             </div>
             <div>
-              <label htmlFor="rename-world-description" className="block text-xs text-white/70 mb-1">
+              <label
+                htmlFor="rename-world-description"
+                className="block text-xs text-white/70 mb-1"
+              >
                 Description (optional)
               </label>
               <textarea
@@ -658,7 +698,9 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
       {/* Delete World Modal */}
       {showDeleteModal && (
         <DeleteWorldModal
-          worldName={worlds.find((w) => w.worldId === worldId)?.worldName || worldId}
+          worldName={
+            worlds.find((w) => w.worldId === worldId)?.worldName || worldId
+          }
           confirmText={deleteConfirmText}
           setConfirmText={setDeleteConfirmText}
           onClose={() => {
@@ -701,10 +743,7 @@ function WorldModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl p-4 w-80 max-w-[90vw]">

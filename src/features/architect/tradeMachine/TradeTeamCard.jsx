@@ -91,6 +91,10 @@ const TradeTeamCard = ({
   onEditEntitlement,
   // TM-7: Entitlement create callback
   onCreateEntitlement,
+  // TM-VACUUM-E2: Vacuum mode + per-item session controls
+  isVacuumMode = false,
+  onRevertEntitlementEdit,
+  onDeleteSessionEntitlement,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -745,7 +749,12 @@ const TradeTeamCard = ({
           entitlementsOut={entitlementsOut}
           onSetDestination={onSetEntitlementDestination}
           onEditEntitlement={onEditEntitlement}
-          onCreateEntitlement={onCreateEntitlement ? () => onCreateEntitlement(team.id) : null}
+          onCreateEntitlement={
+            onCreateEntitlement ? () => onCreateEntitlement(team.id) : null
+          }
+          isVacuumMode={isVacuumMode}
+          onRevertEntitlementEdit={onRevertEntitlementEdit}
+          onDeleteSessionEntitlement={onDeleteSessionEntitlement}
         />
       )}
 

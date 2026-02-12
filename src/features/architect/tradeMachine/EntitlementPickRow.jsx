@@ -42,6 +42,9 @@ import { AlertTriangle, Check, Info, Pencil, Layers } from 'lucide-react';
  * @param {string} [props.currentToTeamId] - Phase 17: Currently selected destination team ID
  * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed (entitlementId, toTeamId)
  * @param {Function} [props.onEdit] - TM-4: Callback when entitlement edit is requested
+ * @param {boolean} [props.isVacuumMode=false] - Whether trade machine is in vacuum mode
+ * @param {Function} [props.onRevertEdit] - Callback to revert one edited base entitlement
+ * @param {Function} [props.onDeleteSessionPickRight] - Callback to delete one vacuum entitlement
  */
 const EntitlementPickRow = ({
   entitlement,
@@ -55,6 +58,9 @@ const EntitlementPickRow = ({
   currentToTeamId = null,
   onSetDestination,
   onEdit,
+  isVacuumMode = false,
+  onRevertEdit,
+  onDeleteSessionPickRight,
 }) => {
   if (!entitlement) return null;
 
@@ -71,6 +77,12 @@ const EntitlementPickRow = ({
   const kindTag = getEntitlementKindTag(entitlement.kind);
   const isEncumbered = entitlement.underlyingStatus === 'encumbered';
   const isPooled = entitlement.underlyingStatus === 'pooled';
+  const isSessionOnly =
+    entitlement?.__vacuumSessionOnly === true ||
+    String(entitlement?.id || entitlement?.entitlementId || '').startsWith(
+      'vacuum:'
+    );
+  const isEditedSession = entitlement?.__vacuumEdited === true;
 
   // Phase 17: Determine if destination dropdown should be shown
   const isMultiTeamTrade = otherTeams.length > 1;
@@ -120,6 +132,20 @@ const EntitlementPickRow = ({
     e.stopPropagation();
     if (onEdit) {
       onEdit(entitlement);
+    }
+  };
+
+  const handleRevertEdit = (e) => {
+    e.stopPropagation();
+    if (onRevertEdit) {
+      onRevertEdit(entitlement);
+    }
+  };
+
+  const handleDeleteSessionPickRight = (e) => {
+    e.stopPropagation();
+    if (onDeleteSessionPickRight) {
+      onDeleteSessionPickRight(entitlement);
     }
   };
 
@@ -213,6 +239,16 @@ const EntitlementPickRow = ({
 
         {/* Right side: Kind badge */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {isVacuumMode && isSessionOnly && (
+            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-900/30 text-purple-300 border border-purple-500/30">
+              Session-only
+            </span>
+          )}
+          {isVacuumMode && isEditedSession && !isSessionOnly && (
+            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-900/30 text-amber-300 border border-amber-500/30">
+              Edited (this session)
+            </span>
+          )}
           {onEdit && (
             <button
               type="button"
@@ -231,6 +267,32 @@ const EntitlementPickRow = ({
           </span>
         </div>
       </div>
+
+      {isVacuumMode && (isEditedSession || isSessionOnly) && (
+        <div
+          className="mt-2 pt-2 border-t border-white/10 flex items-center gap-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isEditedSession && !isSessionOnly && onRevertEdit && (
+            <button
+              type="button"
+              className="text-[10px] text-amber-300 hover:text-amber-200 underline"
+              onClick={handleRevertEdit}
+            >
+              Revert this edit
+            </button>
+          )}
+          {isSessionOnly && onDeleteSessionPickRight && (
+            <button
+              type="button"
+              className="text-[10px] text-red-300 hover:text-red-200 underline"
+              onClick={handleDeleteSessionPickRight}
+            >
+              Delete this session pick right
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Phase 17: Destination dropdown for multi-team trades */}
       {showDestinationDropdown && (

@@ -22,6 +22,7 @@ import {
   deleteDoc,
   updateDoc,
   serverTimestamp,
+  deleteField,
   arrayUnion,
   arrayRemove,
   type Firestore,
@@ -117,7 +118,11 @@ export function validateEntitlementDocument(
 ): { valid: boolean; error?: string; errors?: string[] } {
   const errors: string[] = [];
   if (!document || typeof document !== 'object') {
-    return { valid: false, error: 'Document must be an object', errors: ['Document must be an object'] };
+    return {
+      valid: false,
+      error: 'Document must be an object',
+      errors: ['Document must be an object'],
+    };
   }
 
   // Required fields
@@ -150,9 +155,7 @@ export function validateEntitlementDocument(
   // Validate holderTeam
   const team = document.holderTeam as string;
   if (typeof team !== 'string' || team.length !== 3) {
-    errors.push(
-      `Invalid holderTeam "${team}". Must be 3-letter team code`
-    );
+    errors.push(`Invalid holderTeam "${team}". Must be 3-letter team code`);
   }
 
   // Kind-specific requirements
@@ -232,7 +235,8 @@ export function validateEntitlementDocument(
             );
           }
         } else if (ifTriggered === 'convert') {
-          const convertToRound = (tier as Record<string, unknown>).convertToRound;
+          const convertToRound = (tier as Record<string, unknown>)
+            .convertToRound;
           if (convertToRound !== 1 && convertToRound !== 2) {
             errors.push(
               `protectionLadder[${index}].convertToRound must be 1 or 2 for convert`
@@ -315,6 +319,9 @@ export async function writeWorldEntitlement(
         _lastModifiedAt: serverTimestamp(),
         _lastModifiedBy: userId,
         _authoredManually: true,
+        // TM-VACUUM-E3: Ensure vacuum metadata never leaks to Firestore
+        __vacuumEdited: deleteField(),
+        __vacuumSessionOnly: deleteField(),
       },
       { merge: true }
     );
@@ -512,7 +519,8 @@ export function generateEntitlementId(
   round: number,
   kind: 'pick_ownership' | 'swap_right' | 'conveyance_right'
 ): string {
-  const kindShort = kind === 'pick_ownership' ? 'own' : kind === 'swap_right' ? 'swap' : 'conv';
+  const kindShort =
+    kind === 'pick_ownership' ? 'own' : kind === 'swap_right' ? 'swap' : 'conv';
   const shortUuid = Math.random().toString(36).substring(2, 10);
   return `ent:${holderTeam}:${seasonYear}:${round}:${kindShort}:${shortUuid}`;
 }
@@ -524,6 +532,9 @@ export function generateEntitlementId(
 /**
  * Get the full Firestore path for a world entitlement.
  */
-export function getEntitlementPath(worldId: string, entitlementId: string): string {
+export function getEntitlementPath(
+  worldId: string,
+  entitlementId: string
+): string {
   return `${ARCHITECT_WORLDS_COLLECTION}/${worldId}/${ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION}/${entitlementId}`;
 }

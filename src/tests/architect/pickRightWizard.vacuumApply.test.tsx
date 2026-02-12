@@ -29,6 +29,10 @@ import { PickRightWizardModal } from '@/features/architect/admin/PickRightWizard
 const mockWriteWorldEntitlement = vi.fn();
 const mockApplyVacuumEdit = vi.fn();
 const mockApplyVacuumCreate = vi.fn();
+const mockRemoveEdit = vi.fn();
+const mockRemoveCreate = vi.fn();
+const mockHasEdit = vi.fn(() => false);
+const mockHasCreate = vi.fn(() => false);
 const mockMakeVacuumEntitlementId = vi.fn(
   () => 'vacuum:BOS:2027:1:own:testid12'
 );
@@ -59,6 +63,10 @@ vi.mock(
   () => ({
     applyVacuumEdit: (...args: unknown[]) => mockApplyVacuumEdit(...args),
     applyVacuumCreate: (...args: unknown[]) => mockApplyVacuumCreate(...args),
+    removeEdit: (...args: unknown[]) => mockRemoveEdit(...args),
+    removeCreate: (...args: unknown[]) => mockRemoveCreate(...args),
+    hasEdit: (...args: unknown[]) => mockHasEdit(...args),
+    hasCreate: (...args: unknown[]) => mockHasCreate(...args),
     makeVacuumEntitlementId: (...args: unknown[]) =>
       mockMakeVacuumEntitlementId(...args),
   })
@@ -146,13 +154,13 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   // ── Banner ──
 
   describe('vacuum mode banner', () => {
-    it('shows session mode banner when vacuumMode is true', () => {
+    it('shows session banner when vacuumMode is true', () => {
       render(<PickRightWizardModal {...vacuumCreateProps} />);
       expect(screen.getByTestId('vacuum-mode-banner')).toBeInTheDocument();
-      expect(screen.getByText(/session mode/i)).toBeInTheDocument();
+      expect(screen.getByText(/not saved to a world/i)).toBeInTheDocument();
     });
 
-    it('shows session mode banner when worldId is null (even without vacuumMode prop)', () => {
+    it('shows session banner when worldId is null (even without vacuumMode prop)', () => {
       render(
         <PickRightWizardModal
           {...vacuumCreateProps}
@@ -224,7 +232,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('vacuum edit apply', () => {
     it('calls applyVacuumEdit for existing base entitlements', async () => {
       render(<PickRightWizardModal {...vacuumEditProps} />);
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
@@ -246,7 +253,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
       render(
         <PickRightWizardModal {...vacuumEditProps} onSuccess={onSuccess} />
       );
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
@@ -264,7 +270,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('vacuum re-edit apply', () => {
     it('calls applyVacuumCreate (not Edit) for vacuum-prefixed IDs', async () => {
       render(<PickRightWizardModal {...vacuumReEditProps} />);
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
@@ -287,7 +292,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('world mode unchanged', () => {
     it('calls writeWorldEntitlement in world mode', async () => {
       render(<PickRightWizardModal {...worldModeProps} />);
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
@@ -306,7 +310,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('draft handling in vacuum mode', () => {
     it('saves draft with "vacuum" as worldId key segment', () => {
       render(<PickRightWizardModal {...vacuumEditProps} />);
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-save-draft'));
 

@@ -158,6 +158,68 @@ export function applyVacuumCreate(
 }
 
 /**
+ * Remove an existing entitlement edit patch from a team's overlay.
+ */
+export function removeEdit(teamCode: string, entitlementId: string): void {
+  const envelope = loadVacuumOverlay();
+  const teamOverlay = envelope.overlays[teamCode];
+  if (!teamOverlay?.edits?.[entitlementId]) return;
+
+  delete teamOverlay.edits[entitlementId];
+
+  const hasEdits = Object.keys(teamOverlay.edits).length > 0;
+  const hasCreates = Object.keys(teamOverlay.creates || {}).length > 0;
+  if (!hasEdits && !hasCreates) {
+    delete envelope.overlays[teamCode];
+  }
+
+  saveVacuumOverlay(envelope);
+}
+
+/**
+ * Remove a vacuum-created entitlement from a team's overlay.
+ */
+export function removeCreate(
+  teamCode: string,
+  vacuumEntitlementId: string
+): void {
+  const envelope = loadVacuumOverlay();
+  const teamOverlay = envelope.overlays[teamCode];
+  if (!teamOverlay?.creates?.[vacuumEntitlementId]) return;
+
+  delete teamOverlay.creates[vacuumEntitlementId];
+
+  const hasEdits = Object.keys(teamOverlay.edits || {}).length > 0;
+  const hasCreates = Object.keys(teamOverlay.creates).length > 0;
+  if (!hasEdits && !hasCreates) {
+    delete envelope.overlays[teamCode];
+  }
+
+  saveVacuumOverlay(envelope);
+}
+
+/**
+ * Returns true when a team has an edit patch for the given entitlement ID.
+ */
+export function hasEdit(teamCode: string, entitlementId: string): boolean {
+  const overlay = getTeamOverlay(teamCode);
+  if (!overlay) return false;
+  return Boolean(overlay.edits?.[entitlementId]);
+}
+
+/**
+ * Returns true when a team has a vacuum create entry for the given ID.
+ */
+export function hasCreate(
+  teamCode: string,
+  vacuumEntitlementId: string
+): boolean {
+  const overlay = getTeamOverlay(teamCode);
+  if (!overlay) return false;
+  return Boolean(overlay.creates?.[vacuumEntitlementId]);
+}
+
+/**
  * Clear all vacuum overlay data from localStorage.
  */
 export function clearVacuumOverlay(): void {

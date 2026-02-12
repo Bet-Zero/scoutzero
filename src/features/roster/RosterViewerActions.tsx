@@ -13,6 +13,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { Download, FileJson } from 'lucide-react';
 import SaveRosterModal from './SaveRosterModal';
 import RosterPreviewModal from './RosterPreviewModal';
 import RosterExportModal from './RosterExportModal';
@@ -112,15 +113,17 @@ export const RosterViewerActions = ({
       <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
         <button
           onClick={() => setPreviewOpen(true)}
-          className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"
+          className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 flex items-center gap-2"
         >
-          Preview
+          <Download size={16} />
+          Download Image
         </button>
         <button
           onClick={() => setExportOpen(true)}
-          className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"
+          className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 flex items-center gap-2"
         >
-          Export
+          <FileJson size={16} />
+          Export JSON
         </button>
         <button
           onClick={() => setSaveModalOpen(true)}

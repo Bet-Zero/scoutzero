@@ -13,6 +13,7 @@ import {
   formatEntitlementTermsShort,
   normalizeEntitlementTerms,
 } from '@/features/architect/utils/entitlements/entitlementTerms';
+import { sanitizeEntitlement } from '@/features/architect/utils/entitlements/sanitizeVacuumMetadata';
 
 const TradeExportCapture = React.forwardRef(function TradeExportCapture(
   { teams = [], result, yearKey, label = 'Trade Summary', date = new Date() },
@@ -45,10 +46,12 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
             e.toTeamId === tm.team?.id ||
             e.toTeamId === tm.team?.teamId
           ) {
-            entitlements.push({
-              ...e,
-              fromTeamId: e.fromTeamId || t.team.id,
-            });
+            entitlements.push(
+              sanitizeEntitlement({
+                ...e,
+                fromTeamId: e.fromTeamId || t.team.id,
+              })
+            );
           }
         });
       }

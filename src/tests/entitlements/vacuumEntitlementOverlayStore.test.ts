@@ -16,6 +16,8 @@ import {
   saveVacuumOverlay,
   applyVacuumEdit,
   applyVacuumCreate,
+  removeEdit,
+  removeCreate,
   clearVacuumOverlay,
   hasVacuumOverlay,
   getTeamOverlay,
@@ -166,6 +168,46 @@ describe('vacuumEntitlementOverlayStore', () => {
 
       const envelope = loadVacuumOverlay();
       expect(envelope.overlays.BOS.creates[vacuumId].round).toBe(2);
+    });
+  });
+
+  // ── removeEdit / removeCreate ──
+
+  describe('removeEdit and removeCreate', () => {
+    it('removeEdit deletes one patch and keeps other entries', () => {
+      applyVacuumEdit('BOS', 'ent:BOS:2027:1:own:abc12345', { round: 1 });
+      applyVacuumCreate('BOS', 'vacuum:BOS:2028:1:own:12345678', {
+        holderTeam: 'BOS',
+      });
+
+      removeEdit('BOS', 'ent:BOS:2027:1:own:abc12345');
+
+      const overlay = getTeamOverlay('BOS');
+      expect(overlay).toBeTruthy();
+      expect(overlay!.edits['ent:BOS:2027:1:own:abc12345']).toBeUndefined();
+      expect(overlay!.creates['vacuum:BOS:2028:1:own:12345678']).toBeTruthy();
+    });
+
+    it('removeCreate deletes one session entitlement and keeps other entries', () => {
+      applyVacuumEdit('BOS', 'ent:BOS:2027:1:own:abc12345', { round: 1 });
+      applyVacuumCreate('BOS', 'vacuum:BOS:2028:1:own:12345678', {
+        holderTeam: 'BOS',
+      });
+
+      removeCreate('BOS', 'vacuum:BOS:2028:1:own:12345678');
+
+      const overlay = getTeamOverlay('BOS');
+      expect(overlay).toBeTruthy();
+      expect(
+        overlay!.creates['vacuum:BOS:2028:1:own:12345678']
+      ).toBeUndefined();
+      expect(overlay!.edits['ent:BOS:2027:1:own:abc12345']).toBeTruthy();
+    });
+
+    it('removing the final team entry prunes the team overlay', () => {
+      applyVacuumEdit('BOS', 'ent:BOS:2027:1:own:abc12345', { round: 1 });
+      removeEdit('BOS', 'ent:BOS:2027:1:own:abc12345');
+      expect(getTeamOverlay('BOS')).toBeNull();
     });
   });
 

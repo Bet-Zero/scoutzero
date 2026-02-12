@@ -120,9 +120,8 @@ describe('PickRightWizardModal', () => {
 
   it('opens directly at details step in edit mode', () => {
     render(<PickRightWizardModal {...defaultEditProps} />);
-    // Edit mode starts at intent, but with initialDocument populating the model
-    // The user sees the intent already highlighted
-    expect(screen.getByTestId('wizard-step-intent')).toBeInTheDocument();
+    expect(screen.getByTestId('wizard-step-details')).toBeInTheDocument();
+    expect(screen.queryByTestId('wizard-step-intent')).not.toBeInTheDocument();
   });
 
   it('shows "Edit Pick Right" title in edit mode', () => {
@@ -151,8 +150,6 @@ describe('PickRightWizardModal', () => {
 
   it('shows validity indicator in review step', () => {
     render(<PickRightWizardModal {...defaultEditProps} />);
-    // Go to details then review
-    fireEvent.click(screen.getByTestId('intent-protect_pick'));
     fireEvent.click(screen.getByTestId('wizard-next'));
     const indicators = screen.getAllByTestId('validity-indicator');
     expect(indicators.length).toBeGreaterThanOrEqual(1);
@@ -179,7 +176,6 @@ describe('PickRightWizardModal', () => {
 
   it('calls writer on Apply click when valid', async () => {
     render(<PickRightWizardModal {...defaultEditProps} />);
-    fireEvent.click(screen.getByTestId('intent-protect_pick'));
     fireEvent.click(screen.getByTestId('wizard-next'));
     fireEvent.click(screen.getByTestId('wizard-apply'));
     await waitFor(() => {
@@ -191,7 +187,6 @@ describe('PickRightWizardModal', () => {
 
   it('saves draft to localStorage on Save Draft click', () => {
     render(<PickRightWizardModal {...defaultEditProps} />);
-    fireEvent.click(screen.getByTestId('intent-protect_pick'));
     fireEvent.click(screen.getByTestId('wizard-next'));
     fireEvent.click(screen.getByTestId('wizard-save-draft'));
     const key = `pickrightdraft:world-123:ent:BOS:2027:1:own:abcd1234`;
@@ -214,7 +209,6 @@ describe('PickRightWizardModal', () => {
         onOpenAdvanced={onOpenAdvanced}
       />
     );
-    fireEvent.click(screen.getByTestId('intent-protect_pick'));
     fireEvent.click(screen.getByTestId('wizard-next'));
     fireEvent.click(screen.getByTestId('wizard-open-advanced'));
     expect(onOpenAdvanced).toHaveBeenCalledTimes(1);
@@ -258,8 +252,8 @@ describe('PickRightWizardModal', () => {
   it('shows swap type buttons in swap mode', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('intent-create_swap'));
-    expect(screen.getByTestId('swap-type-best_of')).toBeInTheDocument();
-    expect(screen.getByTestId('swap-type-worst_of')).toBeInTheDocument();
+    expect(screen.getByText('Swap most favorable')).toBeInTheDocument();
+    expect(screen.getByText('Swap least favorable')).toBeInTheDocument();
   });
 
   // ── Conveyance flow ──
@@ -296,6 +290,23 @@ describe('PickRightWizardModal', () => {
     expect(text).not.toContain('swapTargetDefinition');
     expect(text).not.toContain('poolUnderlyingPickIds');
     expect(text).not.toContain('receivesComparator');
+  });
+
+  it('locks identity pick fields in edit mode', () => {
+    render(<PickRightWizardModal {...defaultEditProps} />);
+    expect(screen.getByTestId('pick-selector-team')).toBeDisabled();
+    expect(screen.getByTestId('pick-selector-year')).toBeDisabled();
+    expect(screen.getByTestId('pick-selector-round')).toBeDisabled();
+  });
+
+  it('shows edit-mode helper copy about owner and creating new right', () => {
+    render(<PickRightWizardModal {...defaultEditProps} />);
+    expect(screen.getByText('Owner (changes when traded)')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'To change the pick itself or type, create a new pick right.'
+      )
+    ).toBeInTheDocument();
   });
 
   // ── Step indicator ──

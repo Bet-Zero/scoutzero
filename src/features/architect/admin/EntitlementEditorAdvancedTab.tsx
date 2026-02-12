@@ -11,15 +11,27 @@ import React, { useState } from 'react';
 import type { EntitlementFormState } from './entitlementEditorFormState';
 import { serializeEntitlementDocument } from './entitlementEditorFormState';
 
+/** Identity fields that must not change in edit mode */
+const IDENTITY_FIELDS = [
+  'holderTeam',
+  'kind',
+  'seasonYear',
+  'round',
+  'underlyingPickId',
+  'swapControllerPickId',
+] as const;
+
 interface EntitlementEditorAdvancedTabProps {
   formState: EntitlementFormState;
   onApplyJson: (jsonInput: string) => { success: boolean; error?: string };
   disabled?: boolean;
+  /** When true (edit mode), identity field changes in submitted JSON are rejected. */
+  isEditMode?: boolean;
 }
 
 export const EntitlementEditorAdvancedTab: React.FC<
   EntitlementEditorAdvancedTabProps
-> = ({ formState, onApplyJson, disabled = false }) => {
+> = ({ formState, onApplyJson, disabled = false, isEditMode = false }) => {
   const [jsonInput, setJsonInput] = useState(() =>
     serializeEntitlementDocument(formState)
   );
@@ -31,6 +43,40 @@ export const EntitlementEditorAdvancedTab: React.FC<
   };
 
   const handleApply = () => {
+    // In edit mode, strip identity field changes before applying
+    if (isEditMode) {
+      try {
+        const parsed = JSON.parse(jsonInput);
+        const currentDoc = JSON.parse(serializeEntitlementDocument(formState));
+        let wasLocked = false;
+        for (const field of IDENTITY_FIELDS) {
+          if (
+            field in parsed &&
+            JSON.stringify(parsed[field]) !== JSON.stringify(currentDoc[field])
+          ) {
+            parsed[field] = currentDoc[field]; // restore original value
+            wasLocked = true;
+          }
+        }
+        if (wasLocked) {
+          setError(
+            'Identity fields (holderTeam, kind, seasonYear, round, underlyingPickId, swapControllerPickId) cannot be changed in edit mode. To change identity, use Duplicate as new.'
+          );
+        }
+        const result = onApplyJson(JSON.stringify(parsed, null, 2));
+        if (!result.success) {
+          setError(result.error || 'Failed to apply JSON');
+          return;
+        }
+        if (!wasLocked) setError(null);
+      } catch (parseErr) {
+        const result = onApplyJson(jsonInput);
+        if (!result.success) {
+          setError(result.error || 'Failed to apply JSON');
+        }
+      }
+      return;
+    }
     const result = onApplyJson(jsonInput);
     if (!result.success) {
       setError(result.error || 'Failed to apply JSON');
@@ -75,6 +121,13 @@ export const EntitlementEditorAdvancedTab: React.FC<
         disabled={disabled}
         spellCheck={false}
       />
+
+      {isEditMode && (
+        <div className="text-amber-300 text-xs bg-amber-900/20 border border-amber-500/30 rounded px-2 py-1">
+          Identity fields are locked in edit mode. To change identity, use
+          Duplicate as new.
+        </div>
+      )}
 
       {error && (
         <div className="text-red-400 text-xs bg-red-900/20 border border-red-900/40 rounded px-2 py-1">

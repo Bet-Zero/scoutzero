@@ -1,4 +1,5 @@
 import { toPng } from 'html-to-image';
+import { toast } from 'react-hot-toast';
 import { antonBase64CSS } from '@/fonts/antonBase64';
 
 const useImageDownload = (ref) => {
@@ -46,8 +47,10 @@ const useImageDownload = (ref) => {
       link.click();
 
       if (styleEl) styleEl.remove();
+      toast.success('Image downloaded');
     } catch (err) {
       console.error('Failed to download image', err);
+      toast.error('Failed to download image');
     }
   };
 
