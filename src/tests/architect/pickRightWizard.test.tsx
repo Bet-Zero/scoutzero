@@ -135,9 +135,9 @@ describe('PickRightWizardModal', () => {
   it('applies protection template and shows ladder tiers', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('intent-protect_pick'));
-    // Click Top 3 -> Unprotected template
-    fireEvent.click(screen.getByTestId('template-top3_unprotected'));
-    expect(screen.getByText('Top 3')).toBeInTheDocument();
+    // Click Top 4 -> Unprotected template
+    fireEvent.click(screen.getByTestId('template-top4_unprotected'));
+    expect(screen.getByText('Top 4')).toBeInTheDocument();
   });
 
   // ── Review step ──
@@ -258,8 +258,8 @@ describe('PickRightWizardModal', () => {
   it('shows swap type buttons in swap mode', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('intent-create_swap'));
-    expect(screen.getByText('Best of')).toBeInTheDocument();
-    expect(screen.getByText('Worst of')).toBeInTheDocument();
+    expect(screen.getByTestId('swap-type-best_of')).toBeInTheDocument();
+    expect(screen.getByTestId('swap-type-worst_of')).toBeInTheDocument();
   });
 
   // ── Conveyance flow ──
