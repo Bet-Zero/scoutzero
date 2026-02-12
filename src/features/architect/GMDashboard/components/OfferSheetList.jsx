@@ -10,7 +10,9 @@ const OfferSheetList = ({
   isIncoming = false,
   onMatch,
   onDecline,
-  onFinalize
+  onFinalize,
+  actionsDisabled = false,
+  actionsDisabledReason = 'Requires an active world to commit.',
 }) => {
   if (!offerSheets || offerSheets.length === 0) {
     return null;
@@ -28,6 +30,9 @@ const OfferSheetList = ({
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-6">
       <h3 className="text-lg font-bold mb-4">{title}</h3>
+      {actionsDisabled && (
+        <p className="text-xs text-amber-700 mb-3">{actionsDisabledReason}</p>
+      )}
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b">
@@ -65,14 +70,22 @@ const OfferSheetList = ({
                 {isIncoming && os.status === 'PENDING_MATCH' && (
                     <>
                         <button 
-                            onClick={() => onMatch(os.offeringTeamCode, os.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs"
+                            onClick={() => onMatch?.(os.offeringTeamCode, os.id)}
+                            disabled={actionsDisabled}
+                            title={actionsDisabled ? actionsDisabledReason : undefined}
+                            className={`bg-blue-600 text-white px-3 py-1 rounded text-xs ${
+                              actionsDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+                            }`}
                         >
                             Match
                         </button>
                         <button 
-                            onClick={() => onDecline(os.offeringTeamCode, os.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs"
+                            onClick={() => onDecline?.(os.offeringTeamCode, os.id)}
+                            disabled={actionsDisabled}
+                            title={actionsDisabled ? actionsDisabledReason : undefined}
+                            className={`bg-red-600 text-white px-3 py-1 rounded text-xs ${
+                              actionsDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-700'
+                            }`}
                         >
                             Decline
                         </button>
@@ -80,16 +93,24 @@ const OfferSheetList = ({
                 )}
                 {isIncoming && os.status === 'MATCHED' && (
                      <button 
-                        onClick={() => onFinalize(os)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs"
+                        onClick={() => onFinalize?.(os)}
+                        disabled={actionsDisabled}
+                        title={actionsDisabled ? actionsDisabledReason : undefined}
+                        className={`bg-green-600 text-white px-3 py-1 rounded text-xs ${
+                          actionsDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
+                        }`}
                     >
                         Finalize Match
                     </button>
                 )}
                 {!isIncoming && os.status === 'DECLINED' && (
                     <button 
-                        onClick={() => onFinalize(os)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs"
+                        onClick={() => onFinalize?.(os)}
+                        disabled={actionsDisabled}
+                        title={actionsDisabled ? actionsDisabledReason : undefined}
+                        className={`bg-green-600 text-white px-3 py-1 rounded text-xs ${
+                          actionsDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'
+                        }`}
                     >
                         Finalize Signing
                     </button>

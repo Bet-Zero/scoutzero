@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
@@ -8,6 +8,10 @@ import ValidationStateHeader from './ValidationStateHeader';
 import ValidationDetailsPanel from './ValidationDetailsPanel';
 import { PickRightWizardModal } from '@/features/architect/admin/PickRightWizardModal';
 import { isEntitlementAuthoringEnabled } from '@/features/architect/utils/entitlements/entitlementWriter';
+import {
+  clearVacuumOverlay,
+  hasVacuumOverlay,
+} from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 // import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
@@ -55,6 +59,8 @@ const TradeEditor = ({
     activeTeamCount,
     // TM-4: Apply entitlement overrides to local state
     applyEntitlementOverrideUpdate,
+    // TM-VACUUM-E1: Re-resolve entitlements for all active slots
+    refreshEntitlements,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -69,6 +75,16 @@ const TradeEditor = ({
   const [entitlementEditorState, setEntitlementEditorState] = useState(null);
 
   const canEditEntitlements = isEntitlementAuthoringEnabled();
+  const isVacuumMode = !worldId;
+
+  // TM-VACUUM-E1: When switching from vacuum → world mode, clear overlay once
+  const prevWorldIdRef = useRef(worldId);
+  useEffect(() => {
+    if (prevWorldIdRef.current === null && worldId !== null) {
+      clearVacuumOverlay();
+    }
+    prevWorldIdRef.current = worldId;
+  }, [worldId]);
 
   // Stale validation fix: hasCurrentValidation now comes from hook
   // It properly checks if validation result matches current draft configuration
@@ -136,11 +152,8 @@ const TradeEditor = ({
       toast.error('Entitlement authoring is disabled.');
       return;
     }
-    if (!worldId) {
-      toast.error('Select an active world to edit entitlements.');
-      return;
-    }
-    if (!userId) {
+    // TM-VACUUM-E1: In world mode, require userId. In vacuum mode, allow without auth.
+    if (worldId && !userId) {
       toast.error('Sign in to edit entitlements.');
       return;
     }
@@ -162,11 +175,8 @@ const TradeEditor = ({
       toast.error('Entitlement authoring is disabled.');
       return;
     }
-    if (!worldId) {
-      toast.error('Select an active world to create entitlements.');
-      return;
-    }
-    if (!userId) {
+    // TM-VACUUM-E1: In world mode, require userId. In vacuum mode, allow without auth.
+    if (worldId && !userId) {
       toast.error('Sign in to create entitlements.');
       return;
     }
@@ -187,11 +197,28 @@ const TradeEditor = ({
     });
   };
 
+  // TM-VACUUM-E1: Clear session overlay and re-resolve entitlements
+  const handleClearVacuumOverlay = () => {
+    clearVacuumOverlay();
+    refreshEntitlements();
+    toast.success('Session pick edits cleared');
+  };
+
   return (
     <div className="text-white space-y-6">
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <h2 className="text-2xl font-bold tracking-tight">Trade Machine</h2>
         <div className="flex items-center gap-2">
+          {/* TM-VACUUM-E1: Clear session edits button (vacuum mode only) */}
+          {isVacuumMode && hasVacuumOverlay() && (
+            <button
+              onClick={handleClearVacuumOverlay}
+              className="bg-amber-700/60 hover:bg-amber-600/60 text-amber-200 text-xs font-medium px-3 py-1.5 rounded"
+              title="Clear all session pick-right edits"
+            >
+              Clear session pick edits
+            </button>
+          )}
           <button
             onClick={() => {
               handleValidate();
@@ -359,6 +386,7 @@ const TradeEditor = ({
           entitlementId={entitlementEditorState.entitlementId}
           initialDocument={entitlementEditorState.initialDocument}
           userId={userId}
+          vacuumMode={isVacuumMode}
           onClose={() => setEntitlementEditorState(null)}
           onSuccess={({ entitlementId, document }) => {
             applyEntitlementOverrideUpdate(entitlementId, document);

@@ -265,10 +265,20 @@ export const createTierList = async (name, mode = 'standard', userId) => {
   if (!existing.empty)
     throw new Error('A tier list with this name already exists.');
 
+  // Seed with default structure so newly-created lists are never empty
+  const defaultTierOrder =
+    mode === 'pyramid'
+      ? [...Array.from({ length: 5 }, (_, i) => `Row${i + 1}`), 'Pool']
+      : ['S', 'A', 'B', 'C', 'D', 'Pool'];
+  const defaultTiers = defaultTierOrder.reduce((acc, key) => {
+    acc[key] = [];
+    return acc;
+  }, {});
+
   const newList = {
     name,
-    tiers: {},
-    tierOrder: [],
+    tiers: defaultTiers,
+    tierOrder: defaultTierOrder,
     mode, // E2: Persist mode on creation
     ownerUid: userId,
     createdAt: serverTimestamp(),

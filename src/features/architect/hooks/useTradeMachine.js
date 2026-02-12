@@ -1012,13 +1012,24 @@ export const useTradeMachine = (
         if (!slot.team) return slot;
 
         let entitlementsChanged = false;
-        const updatedEntitlements = (slot.team.entitlements || []).map((ent) => {
+        let updatedEntitlements = (slot.team.entitlements || []).map((ent) => {
           const entId = ent.id || ent.entitlementId;
           if (entId !== entitlementId) return ent;
           entitlementsChanged = true;
           const merged = deepMergeEntitlement(ent, normalizedDoc);
           return { ...merged, id: entitlementId };
         });
+
+        // TM-VACUUM-E1: If no existing entitlement matched (new vacuum create),
+        // append the document to the entitlements list so it appears immediately.
+        if (!entitlementsChanged) {
+          const holderTeam = normalizedDoc.holderTeam || normalizedDoc.holder_team;
+          const teamCode = slot.team.teamCode || slot.team.id;
+          if (holderTeam && holderTeam === teamCode) {
+            updatedEntitlements = [...updatedEntitlements, normalizedDoc];
+            entitlementsChanged = true;
+          }
+        }
 
         if (entitlementsChanged) {
           affectedIndexes.push(index);
@@ -1079,6 +1090,33 @@ export const useTradeMachine = (
     [teams]
   );
 
+  // TM-VACUUM-E1: Re-resolve entitlements for all active team slots.
+  // Used after clearing vacuum overlay to revert to base state.
+  const refreshEntitlements = useCallback(async () => {
+    const updatedTeams = await Promise.all(
+      teams.map(async (slot) => {
+        if (!slot.team) return slot;
+        try {
+          const teamCode = resolveTeamCodeLike(slot.team, slot.team);
+          if (!teamCode) return slot;
+          const entitlements = await resolveEntitlementsForTeam(worldId, teamCode);
+          let pickRulesById = slot.team.pickRulesById || {};
+          if (ENABLE_PICK_RULES) {
+            pickRulesById = await resolvePickRulesForEntitlements(entitlements);
+          }
+          return {
+            ...slot,
+            team: { ...slot.team, entitlements, pickRulesById },
+          };
+        } catch (err) {
+          console.warn('[refreshEntitlements] failed for team:', err);
+          return slot;
+        }
+      })
+    );
+    setTeams(updatedTeams);
+  }, [teams, worldId]);
+
   return {
     teams,
     result,
@@ -1107,6 +1145,8 @@ export const useTradeMachine = (
     activeTeamCount,
     // TM-4: Expose entitlement override updater for local state refresh
     applyEntitlementOverrideUpdate,
+    // TM-VACUUM-E1: Re-resolve entitlements for all active team slots
+    refreshEntitlements,
     // P0-3: Expose validation in-flight state for UI loading indicators
     isValidating,
     // Stale validation fix: Expose current draft key state

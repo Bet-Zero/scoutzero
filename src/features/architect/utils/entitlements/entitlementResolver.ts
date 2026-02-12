@@ -27,6 +27,7 @@ import {
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
   ARCHITECT_WORLDS_COLLECTION,
 } from '@/constants/collections';
+import { getTeamOverlay } from './vacuumEntitlementOverlayStore';
 
 type EntitlementRecord = Record<string, unknown>;
 
@@ -195,7 +196,7 @@ export const resolveEntitlementsForTeamWithDb = async (
   const baseMap = toEntitlementMap(baseDocs);
   const overrideMap = toEntitlementMap(overrideDocs);
 
-  return entitlementIds
+  const resolved = entitlementIds
     .map((id) => {
       const base = baseMap.get(id) || null;
       const override = overrideMap.get(id) || null;
@@ -203,6 +204,32 @@ export const resolveEntitlementsForTeamWithDb = async (
       return base || override || null;
     })
     .filter((entitlement): entitlement is EffectiveEntitlement => Boolean(entitlement));
+
+  // ── Vacuum mode overlay merge (single merge seam) ──
+  // When worldId is null, apply session overlay edits/creates from localStorage.
+  // When worldId is truthy, this block is skipped — world mode is unchanged.
+  if (!worldId) {
+    const teamOverlay = getTeamOverlay(teamCode);
+    if (teamOverlay) {
+      // Apply edits: deep-merge patches onto matching base entitlements
+      if (teamOverlay.edits) {
+        for (const [editId, patch] of Object.entries(teamOverlay.edits)) {
+          const idx = resolved.findIndex((ent) => ent.id === editId);
+          if (idx !== -1) {
+            resolved[idx] = deepMerge(resolved[idx], patch);
+          }
+        }
+      }
+      // Append creates: vacuum-prefixed entitlements added to end of list
+      if (teamOverlay.creates) {
+        for (const [vacuumId, fullDoc] of Object.entries(teamOverlay.creates)) {
+          resolved.push({ ...fullDoc, id: vacuumId });
+        }
+      }
+    }
+  }
+
+  return resolved;
 };
 
 export const resolveEntitlement = async (

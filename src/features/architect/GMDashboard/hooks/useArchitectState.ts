@@ -13,9 +13,9 @@
  *  - Gap Analysis: docs/ARCHITECT_GAP_ANALYSIS.md
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { loadFreeAgents } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { getLeague } from '@/features/architect/utils/teamLoader';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -196,6 +196,7 @@ interface UseArchitectStateReturn {
   finishSave: (errorMsg?: string) => void;
   setErrorSafe: (msg: string) => void;
   clearError: () => void;
+  refreshWorldRosterIndex: () => Promise<Set<string>>;
 }
 
 // ==== Season helpers ====
@@ -280,6 +281,9 @@ export function useArchitectState({
   // === World state (for Architect worlds system) ===
   const [worldId, setWorldId] = useState<string | null>(null);
   const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
+  const [worldRosterIndex, setWorldRosterIndex] = useState<Set<string> | null>(
+    null
+  );
 
   // === Selection state ===
   const [currentYear, setCurrentYear] = useState<number>(() => {
@@ -356,6 +360,44 @@ export function useArchitectState({
     [currentYear]
   );
 
+  const refreshWorldRosterIndex = useCallback(async (): Promise<Set<string>> => {
+    if (!worldId) {
+      setWorldRosterIndex(null);
+      return new Set<string>();
+    }
+
+    setWorldRosterIndex(null);
+
+    try {
+      const league = await getLeague(worldId);
+      const nextIndex = new Set<string>();
+
+      league.forEach((team: any) => {
+        (team?.roster || []).forEach((rawId: unknown) => {
+          if (typeof rawId === 'string' && rawId.trim()) {
+            nextIndex.add(rawId.trim());
+          }
+        });
+
+        (team?.players || []).forEach((player: any) => {
+          const playerId =
+            player?.id || player?.player_id || player?.bio?.playerId || null;
+          if (typeof playerId === 'string' && playerId.trim()) {
+            nextIndex.add(playerId.trim());
+          }
+        });
+      });
+
+      setWorldRosterIndex(nextIndex);
+      return nextIndex;
+    } catch (error) {
+      console.warn('Failed to load world roster index:', error);
+      const empty = new Set<string>();
+      setWorldRosterIndex(empty);
+      return empty;
+    }
+  }, [worldId]);
+
   // === Effect 1: Persist currentYear to localStorage + URL query param ===
   useEffect(() => {
     localStorage.setItem(LOCAL_SEASON_KEY, String(currentYear));
@@ -380,8 +422,7 @@ export function useArchitectState({
         // World-aware data loading via teamLoader fallback chain
         // When worldId is null, falls back to base team (same as before)
         const base = await loadWorldTeamData(worldId, teamId);
-
-        await loadFreeAgents();
+        await refreshWorldRosterIndex();
         if (base) {
           setBaselineCapSheet(base as CapSheet);
           // Always use baseline (or world-aware) data as team cap sheet
@@ -413,19 +454,26 @@ export function useArchitectState({
     if (!authLoading) {
       fetchData();
     }
-  }, [teamId, authLoading, worldId]);
+  }, [teamId, authLoading, worldId, refreshWorldRosterIndex]);
 
 
 
   // === Effect 7: Derive free agents dynamically from the player pool ===
   useEffect(() => {
     if (!players || players.length === 0) return;
+    if (worldId && worldRosterIndex === null) return;
 
     const upcomingFreeAgents = players
       .filter((p) => {
         // 0. Filter out invalid players (only if no ID is present)
         if ((!p.name || p.name === 'Unknown') && !p.id && !p.player_id)
           return false;
+
+        const playerId = p.id || p.player_id || p.bio?.playerId || null;
+        if (worldId) {
+          if (!playerId) return false;
+          return !worldRosterIndex?.has(playerId);
+        }
 
         // 1. Check if player has NO contract or empty salaries
         if (
@@ -530,7 +578,7 @@ export function useArchitectState({
       });
 
     setFreeAgents(upcomingFreeAgents);
-  }, [players, currentYear]);
+  }, [players, currentYear, worldId, worldRosterIndex]);
 
 
 
@@ -609,6 +657,7 @@ export function useArchitectState({
     capTableYears,
     players,
     worldId,
+    worldAsOfDate,
 
     // Setters (all needed by GMDashboard)
     setBaselineCapSheet,
@@ -631,5 +680,6 @@ export function useArchitectState({
     finishSave,
     setErrorSafe,
     clearError,
+    refreshWorldRosterIndex,
   };
 }

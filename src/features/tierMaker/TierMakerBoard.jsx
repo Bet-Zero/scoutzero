@@ -26,24 +26,33 @@ const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
  */
 const normalizeTiers = (tiers, tierOrder) => {
   const normalizedTiers = { ...tiers };
-  const normalizedOrder = [...tierOrder];
+  let normalizedOrder = Array.isArray(tierOrder) ? [...tierOrder] : [];
+
+  // If no non-Pool tiers exist, inject DEFAULT_TIERS
+  const nonPoolOrder = normalizedOrder.filter((t) => t !== 'Pool');
+  if (nonPoolOrder.length === 0) {
+    DEFAULT_TIERS.forEach((tier) => {
+      if (!normalizedOrder.includes(tier)) {
+        normalizedOrder.push(tier);
+      }
+    });
+  }
+
+  // Ensure every tier in the order has an array in tiers
+  normalizedOrder.forEach((tier) => {
+    if (!normalizedTiers[tier]) {
+      normalizedTiers[tier] = [];
+    }
+  });
 
   // Ensure Pool exists in tiers
   if (!normalizedTiers.Pool) {
     normalizedTiers.Pool = [];
   }
 
-  // Ensure Pool is in tierOrder
-  if (!normalizedOrder.includes('Pool')) {
-    normalizedOrder.push('Pool');
-  } else {
-    // Ensure Pool is last
-    const poolIndex = normalizedOrder.indexOf('Pool');
-    if (poolIndex !== normalizedOrder.length - 1) {
-      normalizedOrder.splice(poolIndex, 1);
-      normalizedOrder.push('Pool');
-    }
-  }
+  // Ensure Pool is in tierOrder and is last
+  normalizedOrder = normalizedOrder.filter((t) => t !== 'Pool');
+  normalizedOrder.push('Pool');
 
   return { tiers: normalizedTiers, tierOrder: normalizedOrder };
 };
@@ -297,15 +306,20 @@ const TierMakerBoard = ({
       if (!id) return;
       try {
         const data = await fetchTierList(id, userId);
-        if (data?.tiers) {
+        if (data) {
           const newTiers = {};
-          Object.entries(data.tiers).forEach(([tier, ids]) => {
-            newTiers[tier] = ids
-              .map((pid) => playersMap[pid])
-              .filter(Boolean)
-              .map((p) => ({ ...p, player_id: p.id }));
-          });
-          const newTierOrder = data.tierOrder || Object.keys(newTiers);
+          if (data.tiers && typeof data.tiers === 'object') {
+            Object.entries(data.tiers).forEach(([tier, ids]) => {
+              newTiers[tier] = (Array.isArray(ids) ? ids : [])
+                .map((pid) => playersMap[pid])
+                .filter(Boolean)
+                .map((p) => ({ ...p, player_id: p.id }));
+            });
+          }
+          const newTierOrder =
+            Array.isArray(data.tierOrder) && data.tierOrder.length > 0
+              ? data.tierOrder
+              : Object.keys(newTiers);
           const normalized = normalizeTiers(newTiers, newTierOrder);
           setTiers(normalized.tiers);
           setTierOrder(normalized.tierOrder);
@@ -355,9 +369,11 @@ const TierMakerBoard = ({
     if (!newId) return;
     setSelectedTierList(newId);
     setShowCreateModal(false);
-    // Update URL with the new tier list ID
-    onTierListChange?.(newId);
+    // Mark as loaded to prevent useEffect from re-fetching the empty doc
+    setInitialLoaded(true);
+    // Save current board state BEFORE navigating URL
     await handleSaveTierList(newId);
+    onTierListChange?.(newId);
   };
 
   useEffect(() => {
@@ -425,18 +441,20 @@ const TierMakerBoard = ({
             </div>
           )}
 
-          {tierOrder.map((tier) => (
-            <TierRow
-              key={tier}
-              tier={tier}
-              players={tiers[tier]}
-              screenshotMode={screenshotMode}
-              movePlayer={movePlayer}
-              removePlayer={removePlayer}
-              renameTier={renameTier}
-              deleteTier={deleteTier}
-            />
-          ))}
+          {(tierOrder.length > 1 ? tierOrder : [...DEFAULT_TIERS, 'Pool']).map(
+            (tier) => (
+              <TierRow
+                key={tier}
+                tier={tier}
+                players={tiers[tier] || []}
+                screenshotMode={screenshotMode}
+                movePlayer={movePlayer}
+                removePlayer={removePlayer}
+                renameTier={renameTier}
+                deleteTier={deleteTier}
+              />
+            )
+          )}
 
           {!screenshotMode && (
             <div className="flex items-center gap-2 flex-wrap mt-4 justify-center">

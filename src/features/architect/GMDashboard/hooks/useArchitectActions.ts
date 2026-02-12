@@ -17,13 +17,20 @@ import { loadArchitectBasePlayer } from '@/features/architect/utils/loadArchitec
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import capProjections from '@/features/architect/utils/capProjections';
-import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
-import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import {
+  applyWorldMutation,
+  computeWorldMutation,
+} from '@/features/architect/utils/mutationPipeline';
+import {
+  loadWorldTeamData,
+  resolveTeamCode,
+} from '@/features/architect/utils/worldTeamData';
 import {
   computeExpectedCapHoldAmount,
   deriveFreeAgencyYearFromOptionSeason,
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
+import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
 import toast from 'react-hot-toast';
 
 // ==== Type Definitions ====
@@ -201,6 +208,17 @@ interface FreeAgent extends ArchitectPlayer {
   freeAgentType: 'UFA' | 'RFA' | 'PO' | 'TO';
 }
 
+interface OfferSheet {
+  id?: string;
+  status?: string;
+  offeringTeamCode?: string;
+  homeTeamCode?: string;
+  dedupKey?: string;
+  playerId?: string;
+  seasonKey?: string;
+  [key: string]: unknown;
+}
+
 import type { ActionContext, EditModalContext } from './useArchitectModals';
 
 /** Map of players by various keys for fast lookup */
@@ -220,6 +238,7 @@ interface ArchitectStateForActions {
   finishSave: (errorMsg?: string) => void;
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
   setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
+  refreshWorldRosterIndex: () => Promise<Set<string>>;
 }
 
 /** Modal helpers from useArchitectModals (subset needed by actions) */
@@ -289,10 +308,7 @@ export interface UseArchitectActionsReturn {
     offeringTeamCode: string,
     offerSheetId: string
   ) => void;
-  handleFinalizeOfferSheet: (
-    playerObj: ArchitectPlayer,
-    offerSheet: any
-  ) => void;
+  handleFinalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
 
   // Trade actions
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
@@ -377,8 +393,11 @@ export function useArchitectActions({
     setSelectedRulesYear,
     setSelectedPlayer,
     setFreeAgents,
+    startSave,
+    finishSave,
     setOffseasonRun,
     setOffseasonSummary,
+    refreshWorldRosterIndex,
   } = state;
 
   // Destructure modals for easier access
@@ -429,6 +448,111 @@ export function useArchitectActions({
       }
     },
     [worldId, userId, seasonId]
+  );
+
+  const reportMutationError = useCallback(
+    (message: string, details?: Record<string, unknown>): void => {
+      console.error('[Architect][FreeAgency]', message, {
+        teamCode,
+        worldId,
+        ...details,
+      });
+      toast.error(message);
+    },
+    [teamCode, worldId]
+  );
+
+  const syncTeamFromMutationResult = useCallback(
+    async (mutationType: string, result: any): Promise<void> => {
+      const changedTeams = Array.isArray(result?.changedTeams)
+        ? result.changedTeams
+        : [];
+      const currentTeamUpdate = changedTeams.find(
+        (update: any) => update?.teamCode === teamCode && update?.team
+      );
+
+      if (currentTeamUpdate?.team) {
+        setTeamCapSheet(currentTeamUpdate.team as CapSheet);
+      } else if (worldId) {
+        const refreshedTeam = await loadWorldTeamData(worldId, teamCode);
+        if (refreshedTeam) {
+          setTeamCapSheet(refreshedTeam as CapSheet);
+        }
+      }
+
+      try {
+        await refreshWorldRosterIndex();
+      } catch (error) {
+        console.warn(
+          `[Architect][FreeAgency] Failed to refresh roster index after ${mutationType}:`,
+          error
+        );
+      }
+    },
+    [refreshWorldRosterIndex, setTeamCapSheet, teamCode, worldId]
+  );
+
+  const runAuthoritativeFAMutation = useCallback(
+    async (
+      mutationType: string,
+      payload: Record<string, unknown>,
+      options: {
+        worldRequiredMessage?: string;
+      } = {}
+    ): Promise<any> => {
+      if (!worldId) {
+        const message =
+          options.worldRequiredMessage ||
+          'This action requires an active world to commit.';
+        reportMutationError(message, { mutationType, payload });
+        return { success: false, error: message };
+      }
+
+      if (!userId) {
+        const message = 'Cannot save changes: missing user identity.';
+        reportMutationError(message, { mutationType, payload });
+        return { success: false, error: message };
+      }
+
+      startSave();
+      try {
+        const result = await applyWorldMutation({
+          userId,
+          worldId,
+          seasonId,
+          mutationType,
+          payload,
+        });
+
+        if (!result.success) {
+          const message =
+            result.error || `Failed to run ${mutationType} mutation.`;
+          reportMutationError(message, { mutationType, payload, result });
+          finishSave(message);
+          return result;
+        }
+
+        await syncTeamFromMutationResult(mutationType, result);
+        toast.success('Saved changes');
+        finishSave();
+        return result;
+      } catch (error: any) {
+        const message =
+          error?.message || `Failed to run ${mutationType} mutation.`;
+        reportMutationError(message, { mutationType, payload, error });
+        finishSave(message);
+        return { success: false, error: message };
+      }
+    },
+    [
+      finishSave,
+      reportMutationError,
+      seasonId,
+      startSave,
+      syncTeamFromMutationResult,
+      userId,
+      worldId,
+    ]
   );
 
   // === Trade Actions ===
@@ -605,109 +729,166 @@ export function useArchitectActions({
 
   const handleSign = useCallback(
     (playerObj: ArchitectPlayer, contract: SigningDetails): void => {
-      // Contract should already have salariesByYear array format
-      const architectContract = ensureContractStructure(
-        contract as LocalContract,
-        {
-          contractType: contract.contractType || 'Signed FA',
-          isExtension: !!contract.isExtension,
-          isRookieScale: !!contract.isRookieScale,
-          signingTeam: teamCode,
+      void (async () => {
+        const idToSign = playerObj.id || playerObj.player_id;
+        if (!idToSign) {
+          reportMutationError('Cannot sign player: missing player ID.', {
+            playerObj,
+          });
+          return;
         }
-      );
 
-      const newContract: ActiveContract = {
-        name: playerObj.name,
-        player_id: playerObj.id || playerObj.player_id,
-        years: architectContract?.salariesByYear?.length || 1,
-        options: contract.options || {},
-        type: contract.signAndTrade ? 'Sign & Trade' : 'Signed FA',
-        signAndTrade: contract.signAndTrade || false,
-        guaranteed: contract.guaranteed,
-        isMinimum: contract.isMinimum,
-        yearsOfService: contract.yearsOfService,
-        contract: architectContract || undefined,
-      };
+        const architectContract = ensureContractStructure(
+          contract as LocalContract,
+          {
+            contractType: contract.contractType || 'Signed FA',
+            isExtension: !!contract.isExtension,
+            isRookieScale: !!contract.isRookieScale,
+            signingTeam: teamCode,
+          }
+        );
 
-      setTeamCapSheet((prev) => {
-        const active = prev?.activeContracts || [];
-        const players = prev?.players || [];
+        if (!architectContract) {
+          reportMutationError(
+            'Cannot sign player: contract payload is missing salaries.',
+            {
+              playerId: idToSign,
+              contract,
+            }
+          );
+          return;
+        }
 
-        const base =
+        const signingPayload = {
+          teamCode,
+          playerId: idToSign,
+          contract: architectContract,
+          signedUsing: contract.signedUsing || null,
+        };
+
+        if (worldId) {
+          const result = await runAuthoritativeFAMutation(
+            'signFreeAgent',
+            signingPayload,
+            {
+              worldRequiredMessage:
+                'Signing requires an active world to commit.',
+            }
+          );
+
+          if (result?.success) {
+            setFreeAgents((prev) =>
+              prev.filter(
+                (p) =>
+                  p.name !== playerObj.name &&
+                  p.id !== playerObj.id &&
+                  p.player_id !== playerObj.player_id
+              )
+            );
+          }
+          return;
+        }
+
+        if (!teamCapSheet) {
+          reportMutationError(
+            'Cannot sign player in vacuum mode: team state is not loaded.',
+            {
+              playerId: idToSign,
+            }
+          );
+          return;
+        }
+
+        const canonicalPlayer =
           playersMap[playerObj.name || ''] ||
           playersMap[playerObj.player_id || ''] ||
           playersMap[playerObj.id || ''] ||
-          {};
+          playerObj;
 
-        const position =
-          base.position ||
-          base.formattedPosition ||
-          getPlayerPositionLabel(
-            base.bio?.position || playerObj.position || ''
+        const validation = validateSigning({
+          team: teamCapSheet,
+          player: canonicalPlayer,
+          contract: architectContract,
+          signedUsing: contract.signedUsing || null,
+          year: currentYear,
+        });
+
+        if (!validation.valid) {
+          const firstViolation = validation.violations?.[0];
+          reportMutationError(
+            firstViolation?.message ||
+              'Signing failed cap validation in vacuum mode.',
+            {
+              playerId: idToSign,
+              violations: validation.violations,
+            }
           );
+          return;
+        }
 
-        const newPlayer: ArchitectPlayer = {
-          ...(base || {}),
-          name: base.name || playerObj.name,
-          player_id: playerObj.id || playerObj.player_id || base.player_id,
-          displayName:
-            base.bio?.displayName ||
-            playerObj.bio?.displayName ||
-            playerObj.name,
-          position,
-          contract:
-            ensureContractStructure(contract as LocalContract, {
-              contractType: contract.contractType || 'Signed FA',
-              isExtension: !!contract.isExtension,
-              isRookieScale: !!contract.isRookieScale,
-              signingTeam: teamCode,
-            }) || base.contract,
-        };
+        const computeResult = computeWorldMutation({
+          mutationType: 'signFreeAgent',
+          payload: signingPayload,
+          currentState: {
+            team: teamCapSheet,
+            player: canonicalPlayer,
+            teamCode,
+          },
+          seasonId,
+          timestamp: Date.now(),
+          worldId: null,
+        });
 
-        // Record override audit log if override was used
-        const overrideAuditLog = contract.overrideUsed
-          ? recordOverrideAudit(
-              prev,
-              contract.signAndTrade ? 'signAndTrade' : 'signNew',
-              contract.overrideReasons || [],
-              playerObj.id || playerObj.player_id,
-              playerObj.name || playerObj.displayName
-            )
-          : prev?.overrideAuditLog;
+        if (!computeResult.success) {
+          reportMutationError(
+            computeResult.error ||
+              'Unable to apply signing in vacuum mode with canonical compute.',
+            {
+              playerId: idToSign,
+              computeResult,
+            }
+          );
+          return;
+        }
 
-        return {
-          ...prev,
-          activeContracts: [...active, newContract],
-          players: [...players, newPlayer],
-          ...(overrideAuditLog ? { overrideAuditLog } : {}),
-        };
-      });
+        const updatedTeam = computeResult.teamUpdates?.find(
+          (update: any) => update?.teamCode === teamCode && update?.team
+        )?.team;
 
-      setFreeAgents((prev) =>
-        prev.filter(
-          (p) =>
-            p.name !== playerObj.name &&
-            p.id !== playerObj.id &&
-            p.player_id !== playerObj.player_id
-        )
-      );
+        if (!updatedTeam) {
+          reportMutationError(
+            'Signing compute succeeded but no updated team snapshot was returned.',
+            {
+              playerId: idToSign,
+              computeResult,
+            }
+          );
+          return;
+        }
 
-      // Persist to world if in world mode
-      const idToSign = playerObj.id || playerObj.player_id;
-      if (!idToSign) {
-        console.error('Sign missing playerId', { player: playerObj });
-        toast.error('Cannot save: Player ID missing');
-        throw new Error('Sign missing playerId');
-      }
-
-      persistMutation('signFreeAgent', {
-        teamCode,
-        playerId: playerObj.id || playerObj.player_id,
-        contract: architectContract,
-        signedUsing: contract.signedUsing || null,
-      });
+        setTeamCapSheet(updatedTeam as CapSheet);
+        setFreeAgents((prev) =>
+          prev.filter(
+            (p) =>
+              p.name !== playerObj.name &&
+              p.id !== playerObj.id &&
+              p.player_id !== playerObj.player_id
+          )
+        );
+      })();
     },
-    [teamCode, playersMap, setTeamCapSheet, setFreeAgents, persistMutation]
+    [
+      currentYear,
+      playersMap,
+      reportMutationError,
+      runAuthoritativeFAMutation,
+      seasonId,
+      setFreeAgents,
+      setTeamCapSheet,
+      teamCapSheet,
+      teamCode,
+      worldId,
+    ]
   );
 
   const handleSignAndTrade = useCallback(
@@ -716,128 +897,299 @@ export function useArchitectActions({
       contract: SigningDetails,
       destinationTeamCode: string
     ): void => {
-      // 1. Ensure Local Contract Structure (same as handleSign)
-      const architectContract = ensureContractStructure(
-        contract as LocalContract,
-        {
-          contractType: 'Sign & Trade', // distinct type
-          isExtension: false, // S&T is a new contract
-          isRookieScale: !!contract.isRookieScale,
-          signingTeam: teamCode,
+      void (async () => {
+        if (!worldId) {
+          reportMutationError(
+            'Sign-and-trade requires an active world to commit.',
+            {
+              playerObj,
+              destinationTeamCode,
+            }
+          );
+          return;
         }
-      );
 
-      // 2. Persist Compound Mutation
-      persistMutation('signAndTrade', {
-        teamCode, // Source Team
-        destinationTeamCode, // Target Team
-        playerId: playerObj.id || playerObj.player_id,
-        contract: architectContract,
-        signedUsing: contract.signedUsing || null,
-        signAndTrade: true,
-      });
+        if (!destinationTeamCode) {
+          reportMutationError(
+            'Cannot complete sign-and-trade: destination team is required.',
+            {
+              playerObj,
+            }
+          );
+          return;
+        }
+
+        const playerId = playerObj.id || playerObj.player_id;
+        if (!playerId) {
+          reportMutationError(
+            'Cannot complete sign-and-trade: missing player ID.',
+            { playerObj }
+          );
+          return;
+        }
+
+        const architectContract = ensureContractStructure(
+          contract as LocalContract,
+          {
+            contractType: 'Sign & Trade',
+            isExtension: false,
+            isRookieScale: !!contract.isRookieScale,
+            signingTeam: teamCode,
+          }
+        );
+
+        if (!architectContract) {
+          reportMutationError(
+            'Cannot complete sign-and-trade: contract payload is invalid.',
+            {
+              playerId,
+              contract,
+            }
+          );
+          return;
+        }
+
+        await runAuthoritativeFAMutation(
+          'signAndTrade',
+          {
+            teamCode,
+            destinationTeamCode,
+            playerId,
+            contract: architectContract,
+            signedUsing: contract.signedUsing || null,
+            signAndTrade: true,
+          },
+          {
+            worldRequiredMessage:
+              'Sign-and-trade requires an active world to commit.',
+          }
+        );
+      })();
     },
-    [teamCode, persistMutation]
+    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
   );
 
   // === RFA Offer Sheet Actions ===
 
   const handleStoreOfferSheet = useCallback(
     (playerObj: ArchitectPlayer, contract: SigningDetails): void => {
-      // Ensure store-only flags
-      const offerContract = ensureContractStructure(contract as LocalContract, {
-        ...contract,
-        contractType: 'Offer Sheet',
-        signingTeam: teamCode,
-        rfaOfferSheet: true,
-        rfaOfferSheetOnly: true,
-        rfaOfferSheetStatus: 'PENDING_MATCH',
-      });
+      void (async () => {
+        if (!worldId) {
+          reportMutationError(
+            'Offer sheet actions require an active world to commit.',
+            {
+              playerObj,
+            }
+          );
+          return;
+        }
 
-      // Update local state (optimistic) -> append to team.offerSheets
-      // For MVP, we might skip full optimistic UI update for offer sheets and rely on refresh,
-      // but let's at least persist it.
+        const playerId = playerObj.id || playerObj.player_id;
+        if (!playerId) {
+          reportMutationError('Cannot store offer sheet: missing player ID.', {
+            playerObj,
+          });
+          return;
+        }
 
-      const payload = {
-        teamCode,
-        playerId: playerObj.id || playerObj.player_id,
-        worldId, // Phase 18.2: Required for audit-grade dedupKey generation
-        contract: offerContract,
-        signedUsing: contract.signedUsing || null,
-      };
+        const offerContract = ensureContractStructure(contract as LocalContract, {
+          ...contract,
+          contractType: 'Offer Sheet',
+          signingTeam: teamCode,
+          rfaOfferSheet: true,
+          rfaOfferSheetOnly: true,
+          rfaOfferSheetStatus: 'PENDING_MATCH',
+        });
 
-      persistMutation('storeOfferSheet', payload);
+        if (!offerContract) {
+          reportMutationError(
+            'Cannot store offer sheet: contract payload is invalid.',
+            {
+              playerId,
+              contract,
+            }
+          );
+          return;
+        }
+
+        await runAuthoritativeFAMutation(
+          'storeOfferSheet',
+          {
+            teamCode,
+            playerId,
+            worldId,
+            contract: offerContract,
+            signedUsing: contract.signedUsing || null,
+          },
+          {
+            worldRequiredMessage:
+              'Offer sheet actions require an active world to commit.',
+          }
+        );
+      })();
     },
-    [teamCode, persistMutation]
+    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
   );
 
   const handleMatchOfferSheet = useCallback(
     (offeringTeamCode: string, offerSheetId: string): void => {
-      if (!offeringTeamCode || !offerSheetId) return;
+      void (async () => {
+        if (!worldId) {
+          reportMutationError(
+            'Offer sheet actions require an active world to commit.',
+            { offeringTeamCode, offerSheetId }
+          );
+          return;
+        }
 
-      persistMutation('matchOfferSheet', {
-        teamCode, // Home team (actor)
-        offeringTeamCode,
-        offerSheetId,
-      });
+        if (!offeringTeamCode || !offerSheetId) {
+          reportMutationError(
+            'Cannot match offer sheet: missing offering team or offer sheet ID.',
+            {
+              offeringTeamCode,
+              offerSheetId,
+            }
+          );
+          return;
+        }
+
+        await runAuthoritativeFAMutation(
+          'matchOfferSheet',
+          {
+            teamCode,
+            offeringTeamCode,
+            offerSheetId,
+          },
+          {
+            worldRequiredMessage:
+              'Offer sheet actions require an active world to commit.',
+          }
+        );
+      })();
     },
-    [teamCode, persistMutation]
+    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
   );
 
   const handleDeclineOfferSheet = useCallback(
     (offeringTeamCode: string, offerSheetId: string): void => {
-      if (!offeringTeamCode || !offerSheetId) return;
+      void (async () => {
+        if (!worldId) {
+          reportMutationError(
+            'Offer sheet actions require an active world to commit.',
+            { offeringTeamCode, offerSheetId }
+          );
+          return;
+        }
 
-      persistMutation('declineOfferSheet', {
-        teamCode, // Home team (actor)
-        offeringTeamCode,
-        offerSheetId,
-      });
+        if (!offeringTeamCode || !offerSheetId) {
+          reportMutationError(
+            'Cannot decline offer sheet: missing offering team or offer sheet ID.',
+            {
+              offeringTeamCode,
+              offerSheetId,
+            }
+          );
+          return;
+        }
+
+        await runAuthoritativeFAMutation(
+          'declineOfferSheet',
+          {
+            teamCode,
+            offeringTeamCode,
+            offerSheetId,
+          },
+          {
+            worldRequiredMessage:
+              'Offer sheet actions require an active world to commit.',
+          }
+        );
+      })();
     },
-    [teamCode, persistMutation]
+    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
   );
 
   const handleFinalizeOfferSheet = useCallback(
-    (playerObj: ArchitectPlayer, offerSheet: any): void => {
-      if (!offerSheet || !playerObj) return;
+    (offerSheet: OfferSheet | null | undefined): void => {
+      void (async () => {
+        if (!worldId) {
+          reportMutationError(
+            'Offer sheet actions require an active world to commit.',
+            {
+              offerSheet,
+            }
+          );
+          return;
+        }
 
-      // Phase 17: Home Team Finalizing MATCHED Offer
-      if (
-        offerSheet.status === 'MATCHED' &&
-        offerSheet.homeTeamCode === teamCode
-      ) {
-        persistMutation('finalizeMatchedOfferSheet', {
-          teamCode, // Home team (actor)
-          offeringTeamCode: offerSheet.offeringTeamCode,
-          offerSheetId: offerSheet.id,
-        });
-        return;
-      }
+        if (!offerSheet) {
+          reportMutationError(
+            'Cannot finalize offer sheet: offer sheet data is missing.'
+          );
+          return;
+        }
 
-      // Phase 18.2: Offering Team Finalizing DECLINED Offer
-      // Use dedicated mutation for proper cleanup + signing
-      if (
-        offerSheet.status === 'DECLINED' &&
-        offerSheet.offeringTeamCode === teamCode
-      ) {
-        persistMutation('finalizeDeclinedOfferSheet', {
-          teamCode, // Offering team (actor)
-          offeringTeamCode: teamCode,
-          homeTeamCode: offerSheet.homeTeamCode,
-          offerSheetId: offerSheet.id,
-          dedupKey: offerSheet.dedupKey, // Phase 18.2: Include for dual cleanup
-          playerId: offerSheet.playerId,
-          seasonKey: offerSheet.seasonKey,
-        });
-        return;
-      }
+        if (!offerSheet.id) {
+          reportMutationError(
+            'Cannot finalize offer sheet: missing offer sheet ID.',
+            {
+              offerSheet,
+            }
+          );
+          return;
+        }
 
-      console.warn('Cannot finalize offer sheet: status/team mismatch', {
-        status: offerSheet.status,
-        teamCode,
-      });
+        if (
+          offerSheet.status === 'MATCHED' &&
+          offerSheet.homeTeamCode === teamCode
+        ) {
+          await runAuthoritativeFAMutation(
+            'finalizeMatchedOfferSheet',
+            {
+              teamCode,
+              offeringTeamCode: offerSheet.offeringTeamCode,
+              offerSheetId: offerSheet.id,
+            },
+            {
+              worldRequiredMessage:
+                'Offer sheet actions require an active world to commit.',
+            }
+          );
+          return;
+        }
+
+        if (
+          offerSheet.status === 'DECLINED' &&
+          offerSheet.offeringTeamCode === teamCode
+        ) {
+          await runAuthoritativeFAMutation(
+            'finalizeDeclinedOfferSheet',
+            {
+              teamCode,
+              offeringTeamCode: teamCode,
+              homeTeamCode: offerSheet.homeTeamCode,
+              offerSheetId: offerSheet.id,
+              dedupKey: offerSheet.dedupKey,
+              playerId: offerSheet.playerId,
+              seasonKey: offerSheet.seasonKey,
+            },
+            {
+              worldRequiredMessage:
+                'Offer sheet actions require an active world to commit.',
+            }
+          );
+          return;
+        }
+
+        reportMutationError(
+          `Cannot finalize offer sheet: status/team mismatch (status=${offerSheet.status || 'unknown'}).`,
+          {
+            offerSheet,
+          }
+        );
+      })();
     },
-    [teamCode, persistMutation]
+    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
   );
 
   // === Dead Money Actions (Phase 24) ===

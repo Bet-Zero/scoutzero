@@ -27,8 +27,19 @@ const FreeAgencySection = ({
   onMatch,
   onDecline,
   onFinalize,
+  worldId,
 }) => (
   <div>
+      {/*
+        Offer-sheet actions are persist-only world mutations.
+        In vacuum mode these controls are explicitly gated to avoid silent no-ops.
+      */}
+      {!worldId && (
+        <p className="text-xs text-amber-400 mb-2">
+          Offer sheets and sign-and-trade require an active world to commit.
+        </p>
+      )}
+
       {/* Incoming Offers (Home Team View) */}
       <OfferSheetList 
           title="Incoming Offer Sheets (Action Required)"
@@ -36,6 +47,9 @@ const FreeAgencySection = ({
           isIncoming={true}
           onMatch={onMatch}
           onDecline={onDecline}
+          onFinalize={onFinalize}
+          actionsDisabled={!worldId}
+          actionsDisabledReason="Requires an active world to commit."
       />
 
       {/* Outgoing Offers (Offering Team View) */}
@@ -44,6 +58,8 @@ const FreeAgencySection = ({
           offerSheets={outgoingOfferSheets}
           isIncoming={false}
           onFinalize={onFinalize}
+          actionsDisabled={!worldId}
+          actionsDisabledReason="Requires an active world to commit."
       />
 
       <FreeAgentPool
@@ -54,6 +70,7 @@ const FreeAgencySection = ({
         onSign={onSign}
         onSignAndTrade={onSignAndTrade}
         playersMap={playersMap}
+        worldId={worldId}
       />
   </div>
 );

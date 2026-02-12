@@ -149,3 +149,71 @@ Reference anchors:
 - Should offer-sheet finalize remain list-driven, modal-driven, or both (single canonical UX path)?
 - Is the legacy `freeAgents` collection path intentionally retained for fallback tooling, or should it be fully retired from dashboard runtime paths?
 - What is the expected product behavior for QO/withdraw-QO flows in this phase (explicitly unsupported vs required)?
+
+---
+
+## FA_E1 Execution (2026-02-12)
+
+### Definition of Done + Current Status
+
+- Free Agency tab uses SSOT/pipeline-consistent mutation behavior with explicit world/vacuum policy.
+- Offer-sheet finalize wiring bug is fixed and regression-tested.
+- Vacuum mode has no silent no-op for world-required FA commit actions.
+- Signing flow no longer relies on partial optimistic cap patches.
+- FA pool is world-aware on reload and post-mutation refresh.
+- Legacy `loadFreeAgents()` runtime read has been removed from live FA pool flow.
+
+Status: **CLOSED ✅**
+
+### Final SSOT Wiring (Implemented)
+
+- `signFreeAgent` now uses canonical mutation outcomes:
+  - World mode: `applyWorldMutation` + canonical `changedTeams` sync (with reload fallback via `loadWorldTeamData`).
+  - Vacuum mode: `validateSigning` + `computeWorldMutation('signFreeAgent')` then apply computed snapshot locally.
+- FA world mutations now use one authoritative runner in `useArchitectActions`:
+  - `signFreeAgent`
+  - `signAndTrade`
+  - `storeOfferSheet`
+  - `matchOfferSheet`
+  - `declineOfferSheet`
+  - `finalizeMatchedOfferSheet` / `finalizeDeclinedOfferSheet`
+- Post-success sync refreshes both current team cap sheet and world roster index to keep FA pool + cap sheet coherent.
+
+### World-Aware FA Pool (Implemented)
+
+- Added world roster index loading in `useArchitectState` from `getLeague(worldId)`.
+- World mode FA derivation now excludes players rostered in world team snapshots and includes players unrostered in world context.
+- Refresh triggers:
+  - initial world/team load
+  - world switch
+  - successful FA world mutations via action runner callback.
+
+### Vacuum-Mode Policy (Implemented)
+
+- Allowed in vacuum mode:
+  - `signFreeAgent` (local canonical compute path)
+- World-required (explicitly gated in handler + UI):
+  - `signAndTrade`
+  - `storeOfferSheet`
+  - `matchOfferSheet`
+  - `declineOfferSheet`
+  - `finalizeMatchedOfferSheet`
+  - `finalizeDeclinedOfferSheet`
+- UI now disables/gates offer-sheet actions with reason text and removes Sign & Trade option in vacuum mode.
+
+### FA_E1 Validation Evidence
+
+- Added tests:
+  - `src/tests/architect/OfferSheetList.freeAgency.test.jsx`
+  - `src/tests/architect/useArchitectActions.freeAgency.test.tsx`
+  - `src/tests/architect/useArchitectState.worldFreeAgency.test.tsx`
+- Targeted FA_E1 tests pass:
+  - `npm run test -- --run src/tests/architect/OfferSheetList.freeAgency.test.jsx src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/useArchitectState.worldFreeAgency.test.tsx`
+  - Result: `3 passed`, `7 passed`
+- Required gates executed:
+  - `npm run test -- --run` -> fails in pre-existing broader baseline suites (`22 failed files / 76 failed tests`; FA_E1 tests pass in this run)
+  - `npm run build` -> pass
+  - `npm run validate:project` -> fails due pre-existing missing required directories:
+    - `player-scrape/contracts/output`
+    - `player-scrape/contracts/working`
+    - `team-scrape/shared/firestore_staging/output/merged`

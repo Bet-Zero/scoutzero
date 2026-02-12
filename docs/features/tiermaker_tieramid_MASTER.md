@@ -189,6 +189,29 @@ The tier maker now uses URL-based state persistence:
 
 **Return Package:** `return_packages/tiermaker/2026-02-05_execution-1c-pool-crash-fix.md`
 
+### Order Invariants + Fallback Rendering (2026-02-05)
+
+**Issue:** Tiermaker and Tieramid rendered only the Pool row — no tier rows (S/A/B/C/D) and no pyramid rows (Row1–Row5) were visible.
+
+**Root Cause:** Three interacting bugs:
+
+1. `normalizeTiers` / `normalizeRows` only ensured Pool existed — they did not inject default tiers/rows when loaded data had zero non-Pool entries.
+2. `createTierList` saved `{ tiers: {}, tierOrder: [] }` — empty but truthy values that bypassed fallback logic.
+3. `handleLoadTierList` used `data.tierOrder || fallback` — `[]` is truthy, so the fallback never fired.
+4. (Compounding) Create flow called `onTierListChange` (URL navigate) before save completed, triggering autoload of the empty doc.
+
+**Fix Applied:**
+
+1. Enhanced `normalizeTiers` / `normalizeRows` to inject DEFAULT_TIERS (`S/A/B/C/D`) or default rows (`Row1–Row5`) when no non-Pool entries exist.
+2. Fixed `createTierList` to seed documents with proper default structure based on mode.
+3. Fixed `handleLoadTierList` to use `.length` check instead of `||` for tierOrder.
+4. Fixed create-then-navigate race: save completes before URL navigation; `initialLoaded` set immediately.
+5. Added rendering fallbacks: if `tierOrder` / `rowOrder` is unexpectedly empty at render time, falls back to defaults.
+
+**Validation:** Build passes. No console errors.
+
+**Return Package:** `return_packages/tiermaker/2026-02-05_execution-1d-restore-rows-and-order.md`
+
 ---
 
 ## Manual Test Script

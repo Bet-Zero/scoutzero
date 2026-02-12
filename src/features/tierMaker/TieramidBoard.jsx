@@ -41,24 +41,34 @@ const getSpotsInRow = (rowIndex) => rowIndex + 1;
  */
 const normalizeRows = (rows, rowOrder) => {
   const normalizedRows = { ...rows };
-  const normalizedOrder = [...rowOrder];
+  let normalizedOrder = Array.isArray(rowOrder) ? [...rowOrder] : [];
+
+  // If no non-Pool rows exist, inject default rows (Row1..Row5)
+  const nonPoolOrder = normalizedOrder.filter((r) => r !== 'Pool');
+  if (nonPoolOrder.length === 0) {
+    for (let i = 1; i <= INITIAL_ROWS; i++) {
+      const rowKey = `Row${i}`;
+      if (!normalizedOrder.includes(rowKey)) {
+        normalizedOrder.push(rowKey);
+      }
+    }
+  }
+
+  // Ensure every row in the order has an array in rows
+  normalizedOrder.forEach((row) => {
+    if (!normalizedRows[row]) {
+      normalizedRows[row] = [];
+    }
+  });
 
   // Ensure Pool exists in rows
   if (!normalizedRows.Pool) {
     normalizedRows.Pool = [];
   }
 
-  // Ensure Pool is in rowOrder
-  if (!normalizedOrder.includes('Pool')) {
-    normalizedOrder.push('Pool');
-  } else {
-    // Ensure Pool is last
-    const poolIndex = normalizedOrder.indexOf('Pool');
-    if (poolIndex !== normalizedOrder.length - 1) {
-      normalizedOrder.splice(poolIndex, 1);
-      normalizedOrder.push('Pool');
-    }
-  }
+  // Ensure Pool is in rowOrder and is last
+  normalizedOrder = normalizedOrder.filter((r) => r !== 'Pool');
+  normalizedOrder.push('Pool');
 
   return { rows: normalizedRows, rowOrder: normalizedOrder };
 };
@@ -241,17 +251,22 @@ const TieramidBoard = ({
       if (!id) return;
       try {
         const data = await fetchTierList(id, userId);
-        if (data?.tiers) {
+        if (data) {
           const newRows = {};
-          Object.entries(data.tiers).forEach(([row, ids]) => {
-            newRows[row] = ids
-              .map((pid) => processedPlayersMap[pid])
-              .filter(Boolean)
-              .map((player) => ({ ...player, player_id: player.id }));
-          });
+          if (data.tiers && typeof data.tiers === 'object') {
+            Object.entries(data.tiers).forEach(([row, ids]) => {
+              newRows[row] = (Array.isArray(ids) ? ids : [])
+                .map((pid) => processedPlayersMap[pid])
+                .filter(Boolean)
+                .map((player) => ({ ...player, player_id: player.id }));
+            });
+          }
 
           // First normalize to ensure Pool exists and is last
-          const incomingOrder = data.tierOrder || Object.keys(newRows);
+          const incomingOrder =
+            Array.isArray(data.tierOrder) && data.tierOrder.length > 0
+              ? data.tierOrder
+              : Object.keys(newRows);
           const normalized = normalizeRows(newRows, incomingOrder);
 
           // Ensure all rows in order have arrays
@@ -584,7 +599,16 @@ const TieramidBoard = ({
                   className="mx-auto"
                   style={{ width: `${PYRAMID_MAX_PX}px` }}
                 >
-                  {rowOrder
+                  {(rowOrder.filter((r) => r !== 'Pool').length > 0
+                    ? rowOrder
+                    : [
+                        ...Array.from(
+                          { length: INITIAL_ROWS },
+                          (_, i) => `Row${i + 1}`
+                        ),
+                        'Pool',
+                      ]
+                  )
                     .filter((r) => r !== 'Pool')
                     .map((row, i) => {
                       const spots = getSpotsInRow(i);
@@ -810,12 +834,14 @@ const TieramidBoard = ({
           <CreateTierListModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
-            onCreated={(newId) => {
+            onCreated={async (newId) => {
               setShowCreateModal(false);
               setSelectedTierList(newId);
-              // Update URL with the new tier list ID
+              // Mark as loaded to prevent useEffect from re-fetching the empty doc
+              setInitialLoaded(true);
+              // Save current board state BEFORE navigating URL
+              await handleSaveTierList(newId);
               onTierListChange?.(newId);
-              handleSaveTierList(newId);
             }}
           />
         </div>

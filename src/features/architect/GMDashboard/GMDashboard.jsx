@@ -329,6 +329,7 @@ const GMDashboard = () => {
             onMatch={actions.handleMatchOfferSheet}
             onDecline={actions.handleDeclineOfferSheet}
             onFinalize={actions.handleFinalizeOfferSheet}
+            worldId={worldId}
           />
         )}
 
@@ -428,7 +429,7 @@ const GMDashboard = () => {
           currentYear={currentYear}
           onSign={actions.handleSign}
           onSignAndTrade={actions.handleSignAndTrade}
-          onStoreOfferSheet={actions.handleStoreOfferSheet}
+          onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : null}
           onSave={actions.handleSaveContract}
           onExtend={actions.handleExtendContract}
           onWaive={actions.handleWaiveContract}

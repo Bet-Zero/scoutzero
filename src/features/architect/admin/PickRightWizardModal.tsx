@@ -49,6 +49,11 @@ import {
   clearDraft,
   hasDraft,
 } from './pickRightWizardDraft';
+import {
+  applyVacuumEdit,
+  applyVacuumCreate,
+  makeVacuumEntitlementId,
+} from '../utils/entitlements/vacuumEntitlementOverlayStore';
 import { WizardStepDetails } from './PickRightWizardSteps/WizardStepDetails';
 import { WizardStepReview } from './PickRightWizardSteps/WizardStepReview';
 
@@ -72,10 +77,11 @@ const KIND_TO_INTENT: Record<EntitlementKind, WizardIntent> = {
 // ─── component ───────────────────────────────────────────────────────────────
 
 interface PickRightWizardModalProps {
-  worldId: string;
+  worldId: string | null;
   entitlementId?: string;
   initialDocument?: Record<string, unknown>;
-  userId: string;
+  userId: string | null;
+  vacuumMode?: boolean;
   onClose: () => void;
   onSuccess: (payload: {
     entitlementId: string;
@@ -89,6 +95,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
   entitlementId,
   initialDocument,
   userId,
+  vacuumMode = false,
   onClose,
   onSuccess,
   onOpenAdvanced,
@@ -195,10 +202,11 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
   useEffect(() => {
     if (draftChecked) return;
     setDraftChecked(true);
+    const draftWorldKey = worldId || 'vacuum';
     const draftId = entitlementId || 'new';
-    if (!hasDraft(worldId, draftId)) return;
+    if (!hasDraft(draftWorldKey, draftId)) return;
 
-    const draft = loadDraft(worldId, draftId);
+    const draft = loadDraft(draftWorldKey, draftId);
     if (!draft) return;
 
     // v2 format: { wizardModel, formState }
@@ -245,12 +253,13 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
 
   // ── Draft save ──
   const handleSaveDraft = useCallback(() => {
+    const draftWorldKey = worldId || 'vacuum';
     const draftId = entitlementId || 'new';
-    saveDraft(worldId, draftId, wizardModel, formState);
+    saveDraft(draftWorldKey, draftId, wizardModel, formState);
     toast.success('Draft saved');
   }, [worldId, entitlementId, wizardModel, formState]);
 
-  // ── Apply (save to Firestore) ──
+  // ── Apply (save to Firestore or vacuum overlay) ──
   const handleApply = useCallback(async () => {
     setSaving(true);
     try {
@@ -275,17 +284,54 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           document.kind as EntitlementKind
         );
 
-      if (!id) {
+      if (!id && !vacuumMode) {
         toast.error('Entitlement ID could not be determined.');
         setSaving(false);
         return;
       }
 
+      // ── Vacuum mode: persist to localStorage overlay (NO Firestore writes) ──
+      if (vacuumMode || !worldId) {
+        const teamCode = document.holderTeam as string;
+        if (!teamCode) {
+          toast.error('Holder team is required.');
+          setSaving(false);
+          return;
+        }
+
+        let finalId: string;
+        if (entitlementId && !entitlementId.startsWith('vacuum:')) {
+          // Editing an existing base entitlement — store as an edit overlay
+          applyVacuumEdit(teamCode, entitlementId, document);
+          finalId = entitlementId;
+        } else if (entitlementId && entitlementId.startsWith('vacuum:')) {
+          // Re-editing an existing vacuum create — overwrite the create entry
+          applyVacuumCreate(teamCode, entitlementId, document);
+          finalId = entitlementId;
+        } else {
+          // Creating new — generate a vacuum-prefixed ID
+          finalId = makeVacuumEntitlementId({
+            teamCode,
+            seasonYear: document.seasonYear as number,
+            round: document.round as number,
+            kind: (document.kind as string) || 'pick_ownership',
+          });
+          applyVacuumCreate(teamCode, finalId, document);
+        }
+
+        const draftWorldKey = worldId || 'vacuum';
+        clearDraft(draftWorldKey, entitlementId || 'new');
+        toast.success('Entitlement saved (session)');
+        onSuccess({ entitlementId: finalId, document: { ...document, id: finalId } });
+        return;
+      }
+
+      // ── World mode: persist to Firestore (existing path) ──
       const result = await writeWorldEntitlement(db, {
         worldId,
         entitlementId: id,
         document,
-        userId,
+        userId: userId || '',
       });
 
       if (!result.success) {
@@ -295,7 +341,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
       }
 
       // Clear draft on successful save
-      clearDraft(worldId, entitlementId || 'new');
+      clearDraft(worldId || 'vacuum', entitlementId || 'new');
       toast.success('Entitlement saved');
       onSuccess({ entitlementId: id, document: { ...document, id } });
     } catch (err) {
@@ -304,7 +350,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [formState, entitlementId, worldId, userId, onSuccess]);
+  }, [formState, entitlementId, worldId, userId, vacuumMode, onSuccess]);
 
   // ── Open Advanced Editor ──
   const handleOpenAdvanced = useCallback(() => {
@@ -370,6 +416,16 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
             ×
           </button>
         </div>
+
+        {/* TM-VACUUM-E1: Vacuum mode session banner */}
+        {(vacuumMode || !worldId) && (
+          <div
+            className="mx-6 mt-3 px-3 py-1.5 rounded bg-amber-900/30 border border-amber-500/30 text-amber-300 text-xs font-medium"
+            data-testid="vacuum-mode-banner"
+          >
+            Session mode — changes saved to this browser only
+          </div>
+        )}
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
