@@ -173,6 +173,9 @@ const ALL_TEAM_CODES = [
   'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
 ];
 
+// CBA minimum is 13 standard players; pad to 15 to absorb contract expirations during transitions
+const MIN_ROSTER_PAD_TARGET = 15;
+
 /**
  * Seed base teams and players into mock Firestore
  * @param {string[]|'all'} teams - Array of team codes or 'all' for all 30 teams
@@ -190,7 +193,7 @@ export function seedBaseData(teams = ['LAL', 'GSW', 'BOS'], players = null) {
       // Pad fixture teams to meet CBA minimum offseason roster (13 standard players)
       const existingRoster = baseTeam.roster || [];
       const existingPlayers = baseTeam.players || [];
-      const needed = Math.max(0, 15 - existingRoster.length);
+      const needed = Math.max(0, MIN_ROSTER_PAD_TARGET - existingRoster.length);
       if (needed > 0) {
         const fillerRoster = Array.from({ length: needed }, (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`);
         const fillerPlayers = fillerRoster.map((pid) => ({
@@ -220,8 +223,8 @@ export function seedBaseData(teams = ['LAL', 'GSW', 'BOS'], players = null) {
       }
     } else {
       // Create minimal team data for teams not in fixtures.
-      // Include 13 filler players to meet CBA minimum offseason roster.
-      const fillerRoster = Array.from({ length: 15 }, (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`);
+      // Include filler players to meet CBA minimum offseason roster.
+      const fillerRoster = Array.from({ length: MIN_ROSTER_PAD_TARGET }, (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`);
       const fillerPlayers = fillerRoster.map((pid) => ({
         playerId: pid,
         displayName: `Filler ${pid}`,
@@ -247,7 +250,7 @@ export function seedBaseData(teams = ['LAL', 'GSW', 'BOS'], players = null) {
         totals: {
           totalSalary: 26_000_000,
           capHit: 26_000_000,
-          rosterCount: 15,
+          rosterCount: MIN_ROSTER_PAD_TARGET,
         },
         source: { type: 'base', provider: 'test' },
       });
@@ -284,7 +287,7 @@ export function seedTeamSnapshot(worldId, teamCode, teamData, { padRoster = true
   // unless padRoster is explicitly false
   const existingRoster = teamData.roster || [];
   const existingPlayers = teamData.players || [];
-  const needed = padRoster ? Math.max(0, 15 - existingRoster.length) : 0;
+  const needed = padRoster ? Math.max(0, MIN_ROSTER_PAD_TARGET - existingRoster.length) : 0;
   if (needed > 0) {
     const fillerRoster = Array.from({ length: needed }, (_, i) => `${teamCode.toLowerCase()}_snap_filler_${i + 1}`);
     const fillerPlayers = fillerRoster.map((pid) => ({

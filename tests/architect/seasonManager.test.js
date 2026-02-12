@@ -254,6 +254,7 @@ describe('Season Manager', () => {
       const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
       // Phase 77 replaces totals with computeTeamCapTotals output which uses incompleteChargesTotal
       expect(updatedTeam.totals.incompleteChargesTotal).toBeGreaterThan(0);
+      expect(updatedTeam.totals._meta.incompleteRosterCharge.standardRosterCount).toBe(2);
     });
 
     it('updates cap holds', async () => {
