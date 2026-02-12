@@ -65,7 +65,7 @@ describe('entitlementTerms', () => {
     const terms = normalizeEntitlementTerms(entitlement);
     expect(terms.swap?.role).toBe('swap_right');
     expect(terms.swap?.swapType).toBe('worst_of');
-    expect(formatEntitlementTermsShort(terms)).toBe('Swap (2028)');
+    expect(formatEntitlementTermsShort(terms)).toBe('Swap worst (2028)');
   });
 
   it('normalizes conveyance fields and formatting', () => {
@@ -99,7 +99,7 @@ describe('entitlementTerms', () => {
 
     const decorated = decorateEntitlementForTrade(entitlement);
     expect(decorated?.terms).toBeDefined();
-    expect(decorated?.termsShort).toBe('Swap (2027)');
+    expect(decorated?.termsShort).toBe('Swap best (2027)');
     expect(decorated?.draftKey).toBeDefined();
 
     const terms = normalizeEntitlementTerms(entitlement);

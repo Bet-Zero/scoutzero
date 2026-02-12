@@ -42,7 +42,7 @@ describe('TPE creation and usage', () => {
 
     const tpe = res.teamResults[0].createdTPE;
     expect(tpe.amount).toBe(8_000_000);
-    const expiry = new Date(tpe.expiryISO);
+    const expiry = new Date(tpe.expiresOn);
     const expected = new Date(tradeDate);
     expected.setUTCFullYear(expected.getUTCFullYear() + 1);
     expect(expiry.getUTCFullYear()).toBe(expected.getUTCFullYear());

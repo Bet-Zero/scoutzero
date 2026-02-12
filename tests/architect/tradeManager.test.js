@@ -202,7 +202,8 @@ describe('Trade Manager', () => {
 
       const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
       expect(lalTeam.team.totals).toBeDefined();
-      expect(typeof lalTeam.team.totals.totalSalary).toBe('number');
+      // Phase 77: totals now uses computeTeamCapTotals SSOT field names
+      expect(typeof lalTeam.team.totals.playersTotal).toBe('number');
     });
 
     it('throws error for invalid trade', async () => {
@@ -373,8 +374,8 @@ describe('Trade Manager', () => {
 
       const result = await signFreeAgent(worldId, 'LAL', signingData);
 
-      expect(result.team.totals.isHardCapped).toBe(true);
-      expect(result.team.totals.hardCapLevel).toBe('firstApron');
+      expect(result.team.hardCapped).toBe(true);
+      expect(result.team.hardCapFirstApron.active).toBe(true);
     });
 
     it('removes cap hold after signing', async () => {

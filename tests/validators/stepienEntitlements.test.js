@@ -288,8 +288,9 @@ describe('validateStepien - Entitlements Integration', () => {
       );
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
+      // Updated: Stepien now emits specific ladder-tier warning
       expect(result.warnings).toContain(
-        'Protection ladder present; Stepien evaluated conservatively.'
+        'Protected pick (2027): Stepien reserves year until protection outcome known.'
       );
     });
   });
@@ -406,8 +407,9 @@ describe('validateStepien - Entitlements Integration', () => {
       );
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toContain('consecutive future 1sts');
+      // Updated: Stepien now emits specific conveyance warning
       expect(result.warnings).toContain(
-        'Ambiguous conveyance; Stepien evaluated conservatively.'
+        'Conveyance right: Stepien reserves year until conveyance outcome known.'
       );
     });
   });

@@ -27,8 +27,8 @@ describe('computeTradeDraftKey', () => {
   ];
 
   const mockTeamsWithPicks = [
-    { team: { id: 'BOS' }, sends: [], picksOut: [{ year: 2025, round: 1, originalTeam: 'BOS' }] },
-    { team: { id: 'LAL' }, sends: [], picksOut: [] },
+    { team: { id: 'BOS' }, sends: [], picksOut: [], entitlementsOut: [{ draftKey: '2025-1-BOS', year: 2025, round: 1, originalTeam: 'BOS' }] },
+    { team: { id: 'LAL' }, sends: [], picksOut: [], entitlementsOut: [] },
   ];
 
   describe('Basic key computation', () => {
@@ -94,8 +94,8 @@ describe('computeTradeDraftKey', () => {
       const keyPicks2 = computeTradeDraftKey({
         yearKey: 2025,
         teams: [
-          { team: { id: 'BOS' }, sends: [], picksOut: [{ year: 2026, round: 1, originalTeam: 'BOS' }] }, // 2026 instead of 2025
-          { team: { id: 'LAL' }, sends: [], picksOut: [] },
+          { team: { id: 'BOS' }, sends: [], picksOut: [], entitlementsOut: [{ draftKey: '2026-1-BOS', year: 2026, round: 1, originalTeam: 'BOS' }] }, // 2026 instead of 2025
+          { team: { id: 'LAL' }, sends: [], picksOut: [], entitlementsOut: [] },
         ],
       });
       expect(keyPicks1).not.toBe(keyPicks2);

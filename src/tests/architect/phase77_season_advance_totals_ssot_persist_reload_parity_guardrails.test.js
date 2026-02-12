@@ -547,7 +547,7 @@ describe('Phase 77: Edge Cases', () => {
 // ==============================================================================
 
 describe('Phase 77: Ordering Invariants', () => {
-  it('TEST 14: Source confirms totals recompute runs AFTER TPE expiry processing', () => {
+  it('TEST 14: Source confirms totals recompute runs AFTER OSTE (which handles TPE expiry)', () => {
     const seasonManagerPath = path.resolve(
       __dirname,
       '../../features/architect/utils/seasonManager.js'
@@ -563,21 +563,21 @@ describe('Phase 77: Ordering Invariants', () => {
     // Get the content of just this function (roughly - up to next function definition)
     const functionContent = content.slice(functionStart);
 
-    // Find positions within that function
-    const tpeExpiryPos = functionContent.indexOf('processTradeExceptions(');
+    // TPE expiry is now delegated to OSTE (resolveOffseasonTransition)
+    const ostePos = functionContent.indexOf('resolveOffseasonTransition(');
     const phase77TotalsPos = functionContent.indexOf(
       'PHASE 77: Recalculate cap totals'
     );
 
     // Both should exist in this function
-    expect(tpeExpiryPos).toBeGreaterThan(-1);
+    expect(ostePos).toBeGreaterThan(-1);
     expect(phase77TotalsPos).toBeGreaterThan(-1);
 
-    // TPE expiry should come before totals recompute
-    expect(tpeExpiryPos).toBeLessThan(phase77TotalsPos);
+    // OSTE (which processes TPE expiry) should come before totals recompute
+    expect(ostePos).toBeLessThan(phase77TotalsPos);
   });
 
-  it('TEST 15: Source confirms totals recompute runs AFTER non-TPE reset', () => {
+  it('TEST 15: Source confirms totals recompute runs AFTER OSTE (which handles non-TPE reset)', () => {
     const seasonManagerPath = path.resolve(
       __dirname,
       '../../features/architect/utils/seasonManager.js'
@@ -593,20 +593,20 @@ describe('Phase 77: Ordering Invariants', () => {
     // Get the content of just this function
     const functionContent = content.slice(functionStart);
 
-    // Find positions within that function
-    const phase76ResetPos = functionContent.indexOf(
-      'resetTeamNonTpeExceptionsForNewSeason('
+    // Non-TPE reset is now delegated to OSTE (resolveOffseasonTransition)
+    const ostePos = functionContent.indexOf(
+      'resolveOffseasonTransition('
     );
     const phase77TotalsPos = functionContent.indexOf(
       'PHASE 77: Recalculate cap totals'
     );
 
     // Both should exist in this function
-    expect(phase76ResetPos).toBeGreaterThan(-1);
+    expect(ostePos).toBeGreaterThan(-1);
     expect(phase77TotalsPos).toBeGreaterThan(-1);
 
-    // Non-TPE reset should come before totals recompute
-    expect(phase76ResetPos).toBeLessThan(phase77TotalsPos);
+    // OSTE (which handles exception resets) should come before totals recompute
+    expect(ostePos).toBeLessThan(phase77TotalsPos);
   });
 
   it('TEST 16: Source confirms totals recompute comment references Phase 77', () => {

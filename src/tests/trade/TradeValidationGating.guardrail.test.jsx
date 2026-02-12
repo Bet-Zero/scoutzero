@@ -221,7 +221,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
       );
 
       // Expand the panel
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      fireEvent.click(screen.getByText('Validation Results'));
 
       // Should show the not-validated callout
       const callout = screen.getByTestId('not-validated-callout');
@@ -242,7 +242,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
       );
 
       // Expand the panel
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      fireEvent.click(screen.getByText('Validation Results'));
 
       // Should NOT have Official tags visible
       expect(screen.queryByText('Official (Validator)')).toBeNull();
@@ -264,14 +264,14 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
       );
 
       // Expand the panel
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      fireEvent.click(screen.getByText('Validation Results'));
 
       // Should show section headers
       expect(screen.getByText('Validation Summary')).toBeTruthy();
       expect(screen.getByText('Rule Compliance Overview')).toBeTruthy();
     });
 
-    it('B-GR-04: button text is "Show Validation Details" (renamed from "Show Validation Results")', () => {
+    it('B-GR-04: button text is "Validation Results" (collapsible section header)', () => {
       render(
         <ValidationDetailsPanel
           hasValidatorResult={false}
@@ -281,8 +281,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      expect(screen.getByText('Show Validation Details')).toBeTruthy();
-      expect(screen.queryByText('Show Validation Results')).toBeNull();
+      expect(screen.getByText('Validation Results')).toBeTruthy();
     });
   });
 
@@ -302,7 +301,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      fireEvent.click(screen.getByText('Validation Results'));
 
       // Find Validation Summary section and check for Official tag
       const summarySection = screen.getByTestId('section-validation-summary');
@@ -324,7 +323,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      fireEvent.click(screen.getByText('Validation Results'));
 
       const ruleSection = screen.getByTestId('section-rule-compliance');
       expect(ruleSection.textContent).toContain('Official (Validator)');
@@ -345,7 +344,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      fireEvent.click(screen.getByText('Validation Results'));
 
       const exceptionSection = screen.getByTestId('section-exception-analysis');
       expect(exceptionSection.textContent).toContain('Official (Validator)');
@@ -366,7 +365,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      // Salary Calculator is in the Development Tools panel
+      fireEvent.click(screen.getByText('Development Tools'));
 
       const calculatorSection = screen.getByTestId('section-salary-calculator');
       expect(calculatorSection.textContent).toContain('Exploratory');
@@ -387,7 +387,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      // Trade Receipt is in the Development Tools panel
+      fireEvent.click(screen.getByText('Development Tools'));
 
       const receiptSection = screen.getByTestId('section-trade-receipt');
       expect(receiptSection.textContent).toContain('Debug');
@@ -410,13 +411,15 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         />
       );
 
-      fireEvent.click(screen.getByText('Show Validation Details'));
+      // Expand both panels to see all sections
+      fireEvent.click(screen.getByText('Validation Results'));
+      fireEvent.click(screen.getByText('Development Tools'));
 
       // Get all section test IDs in order
       const sections = container.querySelectorAll('[data-testid^="section-"]');
       const testIds = Array.from(sections).map(s => s.getAttribute('data-testid'));
 
-      // Verify order: summary, rule-compliance, exception-analysis, salary-calculator, trade-receipt
+      // Verify order: summary, rule-compliance, exception-analysis (Panel 1), then salary-calculator, trade-receipt (Panel 2)
       expect(testIds[0]).toBe('section-validation-summary');
       expect(testIds[1]).toBe('section-rule-compliance');
       expect(testIds[2]).toBe('section-exception-analysis');

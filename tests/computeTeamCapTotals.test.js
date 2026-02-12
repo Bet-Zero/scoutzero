@@ -22,6 +22,27 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () 
       seasonKey: `${year - 1}-${String(year).slice(-2)}`,
     },
   })),
+  yearToSeasonKey: vi.fn((year) => `${year - 1}-${String(year).slice(-2)}`),
+}));
+
+vi.mock('@/features/architect/utils/capRulesProfile', () => ({
+  getCapRulesForYear: vi.fn((yearKey) => ({
+    seasonKey: `${yearKey - 1}-${String(yearKey).slice(-2)}`,
+    cap: {
+      salaryCap: 141_000_000,
+      luxuryTax: 172_000_000,
+      firstApron: 179_000_000,
+      secondApron: 190_000_000,
+    },
+    roster: { minStandard: 14, maxStandard: 15, maxTwoWay: 2, graceMin: 13 },
+    salaries: { rookieMin: 1_119_563 },
+    _meta: {
+      source: 'mock',
+      resolved: true,
+      sourcesSummary: 'projected',
+      sources: {},
+    },
+  })),
 }));
 
 vi.mock('@/features/architect/utils/capHolds', () => ({
@@ -79,7 +100,9 @@ describe('computeTeamCapTotals', () => {
       expect(result.playersTotal).toBe(0);
       expect(result.deadMoneyTotal).toBe(0);
       expect(result.capHoldsTotal).toBe(0);
-      expect(result.totalCapAllocations).toBe(0);
+      // CBA requires 14-player minimum; empty roster incurs incomplete charges
+      expect(result.incompleteChargesTotal).toBe(14 * 1_119_563);
+      expect(result.totalCapAllocations).toBe(result.incompleteChargesTotal);
     });
 
     it('handles undefined team data gracefully', () => {
@@ -88,7 +111,9 @@ describe('computeTeamCapTotals', () => {
       expect(result.playersTotal).toBe(0);
       expect(result.deadMoneyTotal).toBe(0);
       expect(result.capHoldsTotal).toBe(0);
-      expect(result.totalCapAllocations).toBe(0);
+      // CBA requires 14-player minimum; empty roster incurs incomplete charges
+      expect(result.incompleteChargesTotal).toBe(14 * 1_119_563);
+      expect(result.totalCapAllocations).toBe(result.incompleteChargesTotal);
     });
   });
 
@@ -313,10 +338,14 @@ describe('computeTeamCapTotals', () => {
       expect(result.playersTotal).toBe(20_000_000);
       expect(result.capHoldsTotal).toBe(5_000_000);
       expect(result.deadMoneyTotal).toBe(2_000_000);
-      expect(result.totalCapAllocations).toBe(27_000_000);
+      // 1 standard player → 13 missing slots × rookieMin = 14,554,319
+      const expectedIncomplete = 13 * 1_119_563;
+      expect(result.totalCapAllocations).toBe(
+        20_000_000 + 5_000_000 + 2_000_000 + expectedIncomplete
+      );
     });
 
-    it('includes incomplete charges (currently 0)', () => {
+    it('includes incomplete roster charges for undersized rosters', () => {
       const teamCapSheet = {
         players: [],
         capHolds: [],
@@ -324,7 +353,8 @@ describe('computeTeamCapTotals', () => {
 
       const result = computeTeamCapTotals(teamCapSheet, 2025);
 
-      expect(result.incompleteChargesTotal).toBe(0);
+      // CBA requires 14-player minimum; empty roster incurs 14 × rookieMin
+      expect(result.incompleteChargesTotal).toBe(14 * 1_119_563);
     });
   });
 
@@ -346,11 +376,14 @@ describe('computeTeamCapTotals', () => {
 
       const result = computeTeamCapTotals(teamCapSheet, 2025);
 
+      // 1 standard player → 13 missing slots × rookieMin
+      const incompleteCharges = 13 * 1_119_563;
+      const total = 150_000_000 + incompleteCharges;
+
       // salaryCap = 141M, firstApron = 179M, secondApron = 190M
-      // total = 150M
-      expect(result.deltas.vsCap).toBe(150_000_000 - 141_000_000); // +9M over cap
-      expect(result.deltas.vsFirstApron).toBe(150_000_000 - 179_000_000); // -29M under first apron
-      expect(result.deltas.vsSecondApron).toBe(150_000_000 - 190_000_000); // -40M under second apron
+      expect(result.deltas.vsCap).toBe(total - 141_000_000);
+      expect(result.deltas.vsFirstApron).toBe(total - 179_000_000);
+      expect(result.deltas.vsSecondApron).toBe(total - 190_000_000);
     });
 
     it('negative deltas indicate room under threshold', () => {
@@ -399,7 +432,7 @@ describe('computeTeamCapTotals', () => {
       const result = computeTeamCapTotals(teamCapSheet, 2025);
 
       expect(result._meta.source).toBe('computeTeamCapTotals');
-      expect(result._meta.capSettingsSource).toBe('mock');
+      expect(result._meta.capSettingsSource).toBe('via_facade');
     });
   });
 
@@ -446,8 +479,12 @@ describe('computeTeamCapTotals', () => {
       expect(result.capHoldsTotal).toBe(10_000_000);
       expect(result.deadMoneyTotal).toBe(5_000_000);
 
-      // Total must be sum of all three
-      expect(result.totalCapAllocations).toBe(115_000_000);
+      // Total must be sum of all components including incomplete roster charges
+      // 1 standard player → 13 missing slots × rookieMin
+      const expectedIncomplete = 13 * 1_119_563;
+      expect(result.totalCapAllocations).toBe(
+        100_000_000 + 10_000_000 + 5_000_000 + expectedIncomplete
+      );
 
       // Previous mismatch scenarios:
       // Old Cap Sheet: 100M + 10M = 110M (missing dead money)

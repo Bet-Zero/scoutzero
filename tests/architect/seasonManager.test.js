@@ -247,13 +247,14 @@ describe('Season Manager', () => {
           createMockPlayer({ playerId: 'player2' }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithSmallRoster);
+      seedTeamSnapshot(worldId, 'LAL', teamWithSmallRoster, { padRoster: false });
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
       const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/LAL`);
-      expect(updatedTeam.totals.emptyRosterCharges).toBeGreaterThan(0);
-      expect(updatedTeam.totals.rosterCount).toBe(2);
+      // Phase 77 replaces totals with computeTeamCapTotals output which uses incompleteChargesTotal
+      expect(updatedTeam.totals.incompleteChargesTotal).toBeGreaterThan(0);
+      expect(updatedTeam.totals._meta.incompleteRosterCharge.standardRosterCount).toBe(2);
     });
 
     it('updates cap holds', async () => {
@@ -645,8 +646,11 @@ describe('Season Manager', () => {
       const result = await advanceSeasonInWorld(worldId);
 
       expect(result.success).toBe(true);
-      expect(result.summary.expiredContracts).toHaveLength(1);
-      expect(result.summary.expiredContracts[0].playerName).toBe('Expiring Player');
+      // Other base teams may also have expiring contracts, so just check our player is included
+      const expiringEntry = result.summary.expiredContracts.find(
+        (c) => c.playerName === 'Expiring Player'
+      );
+      expect(expiringEntry).toBeDefined();
     });
 
     // Stepien recalculation tests

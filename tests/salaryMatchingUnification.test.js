@@ -151,14 +151,16 @@ describe('UI and Validator Consistency (Phase 2 Verification)', () => {
       expect(result.allowableIncoming).toBe(10_000_000);
     });
 
-    it('exact at second apron threshold uses SECOND_APRON', () => {
+    it('exact at second apron threshold uses FIRST_APRON', () => {
+      // Per CBA Art VII Sec 2(f): "Second Apron Team" requires salary > secondApron (strict),
+      // so exactly at the threshold is still a first apron team.
       const result = getSalaryMatchingResult({
         teamTotalSalary: 188_931_000, // exactly at second apron
         outgoingSalary: 10_000_000,
         capSettings: defaultCapSettings,
       });
 
-      expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.SECOND_APRON);
+      expect(result.ruleKey).toBe(SALARY_MATCHING_RULE_KEYS.FIRST_APRON);
       expect(result.allowableIncoming).toBe(10_000_000);
     });
   });

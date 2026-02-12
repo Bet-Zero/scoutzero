@@ -245,10 +245,12 @@ export async function signFreeAgent(worldId, teamCode, signingData) {
       // Note: Must check for 'non-taxpayer' explicitly, not just !includes('taxpayer')
       // because 'non-taxpayer' includes 'taxpayer' as a substring
       if (updatedTeam.exceptions.mle.type === 'non-taxpayer') {
-        updatedTeam.totals = updatedTeam.totals || {};
-        updatedTeam.totals.isHardCapped = true;
-        updatedTeam.totals.hardCapLevel = 'firstApron';
-        updatedTeam.totals.hardCapDetail = 'Triggered by Non-Taxpayer MLE';
+        updatedTeam.hardCapped = true;
+        updatedTeam.hardCapFirstApron = {
+          active: true,
+          reason: 'Triggered by Non-Taxpayer MLE',
+          season: updatedTeam.season,
+        };
       }
     } else if (exceptionType === 'bae' && updatedTeam.exceptions?.bae) {
       updatedTeam.exceptions.bae.usedAmount =

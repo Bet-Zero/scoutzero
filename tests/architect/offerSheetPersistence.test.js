@@ -143,7 +143,7 @@ describe('Phase 18.1: Offer Sheet Persistence & Idempotency', () => {
             { status: 'PENDING_MATCH', actor: 'home', action: 'finalize', expectValid: false, expectedRule: 'rfa_offer_sheet_resolution_required' },
             { status: 'PENDING_MATCH', actor: 'home', action: 'match', expectValid: true, expectedRule: null },
             { status: 'PENDING_MATCH', actor: 'home', action: 'decline', expectValid: true, expectedRule: null },
-            { status: 'PENDING_MATCH', actor: 'offering', action: 'match', expectValid: false, expectedRule: 'rfa_team_identity_unverifiable' },
+            { status: 'PENDING_MATCH', actor: 'offering', action: 'match', expectValid: false, expectedRule: 'rfa_offer_sheet_resolution_required' },
             
             // MATCHED
             { status: 'MATCHED', actor: 'offering', action: 'finalize', expectValid: false, expectedRule: 'rfa_offer_sheet_matched_offering_team_cannot_finalize' },

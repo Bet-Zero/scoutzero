@@ -42,6 +42,10 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('@/features/architect/utils/teamLoader', () => ({
   getTeam: vi.fn(),
   getPlayer: vi.fn(),
+  getLeague: vi.fn(() => Promise.resolve([])),
+  mergePlayerOverride: vi.fn((base, override) =>
+    override ? { ...base, ...override } : base
+  ),
 }));
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldStats: vi.fn(),

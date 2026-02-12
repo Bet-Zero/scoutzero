@@ -120,8 +120,9 @@ describe('Architect Integration Tests', () => {
       const lalTeam = tradeResult.teams.find((t) => t.teamCode === 'LAL');
 
       expect(lalTeam.team.totals).toBeDefined();
-      expect(typeof lalTeam.team.totals.totalSalary).toBe('number');
-      expect(typeof lalTeam.team.totals.capHit).toBe('number');
+      // Phase 77: totals now comes from computeTeamCapTotals SSOT
+      expect(typeof lalTeam.team.totals.playersTotal).toBe('number');
+      expect(typeof lalTeam.team.totals.totalCapAllocations).toBe('number');
     });
 
     it('verifies executeTrade is read-only (does not modify world metadata)', async () => {

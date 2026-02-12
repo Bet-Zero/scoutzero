@@ -115,11 +115,9 @@ describe('EntitlementEditorModal', () => {
       target: { value: 'roll' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Save Entitlement/i }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('entitlement-errors')).toBeInTheDocument();
-    });
+    // Save button should be disabled when form has validation errors
+    const saveButton = screen.getByRole('button', { name: /Save Entitlement/i });
+    expect(saveButton).toBeDisabled();
 
     expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
   });

@@ -135,7 +135,7 @@ describe('TPE Validation with New Schema', () => {
   it('should validate TPE fit using new schema salary', () => {
     const tpe = {
       amount: 6000000,
-      expirationDate: '2025-12-31',
+      expirationDate: '2027-12-31',
       isUsed: false,
     };
 
@@ -146,7 +146,7 @@ describe('TPE Validation with New Schema', () => {
   it('should reject player that exceeds TPE amount', () => {
     const tpe = {
       amount: 3000000,
-      expirationDate: '2025-12-31',
+      expirationDate: '2027-12-31',
       isUsed: false,
     };
 
@@ -157,7 +157,7 @@ describe('TPE Validation with New Schema', () => {
   it('should work with season string format', () => {
     const tpe = {
       amount: 6000000,
-      expirationDate: '2025-12-31',
+      expirationDate: '2027-12-31',
       isUsed: false,
     };
 
@@ -184,13 +184,13 @@ describe('TPE Validation with New Schema', () => {
 
     const tpeFits = {
       amount: 5000000,
-      expirationDate: '2025-12-31',
+      expirationDate: '2027-12-31',
       isUsed: false,
     };
 
     const tpeDoesntFit = {
       amount: 4000000,
-      expirationDate: '2025-12-31',
+      expirationDate: '2027-12-31',
       isUsed: false,
     };
 

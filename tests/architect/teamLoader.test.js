@@ -56,7 +56,7 @@ describe('Team Loader', () => {
           createMockPlayer({ playerId: 'anthony_davis', displayName: 'Anthony Davis' }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', modifiedTeam);
+      seedTeamSnapshot(worldId, 'LAL', modifiedTeam, { padRoster: false });
 
       const team = await getTeam(worldId, 'LAL');
 
@@ -79,7 +79,7 @@ describe('Team Loader', () => {
           createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
         ],
       });
-      seedTeamSnapshot(parentWorldId, 'LAL', parentTeam);
+      seedTeamSnapshot(parentWorldId, 'LAL', parentTeam, { padRoster: false });
 
       // Create child world without snapshot
       const childWorldId = 'world_child';
@@ -121,7 +121,7 @@ describe('Team Loader', () => {
           createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
         ],
       });
-      seedTeamSnapshot(grandparentWorldId, 'LAL', grandparentTeam);
+      seedTeamSnapshot(grandparentWorldId, 'LAL', grandparentTeam, { padRoster: false });
 
       // Create parent world
       const parentWorldId = 'world_parent';
@@ -185,7 +185,7 @@ describe('Team Loader', () => {
           createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', modifiedTeam);
+      seedTeamSnapshot(worldId, 'LAL', modifiedTeam, { padRoster: false });
 
       const teams = await getLeague(worldId);
 
@@ -210,7 +210,7 @@ describe('Team Loader', () => {
           createMockPlayer({ playerId: 'lebron_james', displayName: 'LeBron James' }),
         ],
       });
-      seedTeamSnapshot(parentWorldId, 'LAL', parentTeam);
+      seedTeamSnapshot(parentWorldId, 'LAL', parentTeam, { padRoster: false });
 
       // Create child without snapshot
       const childWorldId = 'world_child';

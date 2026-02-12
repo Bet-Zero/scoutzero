@@ -150,7 +150,11 @@ describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
     test('TPE_ABSORPTION skip has allowableIncoming=null (not 0)', () => {
       const team = {
         hardCapped: false,
-        appliedTPEs: [{ amount: 15_000_000 }],
+        appliedTPEs: [{ id: 'tpe1', amount: 15_000_000 }],
+        // CBA FIX: Must have incoming players with tpeId assignments
+        incomingPlayers: [
+          { name: 'Player A', salary: 10_000_000, tpeId: 'tpe1' },
+        ],
         salaryIn: 10_000_000,
         salaryOut: 0,
         teamTotalSalary: 100_000_000,

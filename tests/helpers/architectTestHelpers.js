@@ -173,6 +173,9 @@ const ALL_TEAM_CODES = [
   'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
 ];
 
+// CBA minimum is 13 standard players; pad to 15 to absorb contract expirations during transitions
+const MIN_ROSTER_PAD_TARGET = 15;
+
 /**
  * Seed base teams and players into mock Firestore
  * @param {string[]|'all'} teams - Array of team codes or 'all' for all 30 teams
@@ -184,22 +187,70 @@ export function seedBaseData(teams = ['LAL', 'GSW', 'BOS'], players = null) {
   // Seed base teams
   for (const teamCode of teamCodesToSeed) {
     const baseTeam = BASE_TEAMS[teamCode];
+    const teamPath = `architect_baseTeams/${teamCode}`;
+
     if (baseTeam) {
-      const teamPath = `architect_baseTeams/${teamCode}`;
-      seedMockData(teamPath, baseTeam);
+      // Pad fixture teams to meet CBA minimum offseason roster (13 standard players)
+      const existingRoster = baseTeam.roster || [];
+      const existingPlayers = baseTeam.players || [];
+      const needed = Math.max(0, MIN_ROSTER_PAD_TARGET - existingRoster.length);
+      if (needed > 0) {
+        const fillerRoster = Array.from({ length: needed }, (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`);
+        const fillerPlayers = fillerRoster.map((pid) => ({
+          playerId: pid,
+          displayName: `Filler ${pid}`,
+          teamCode,
+          bio: { position: 'SG', age: 25, experience: 3 },
+          contract: {
+            contractType: 'Standard',
+            startSeason: '2025-26',
+            endSeason: '2027-28',
+            salariesByYear: [
+              { season: '2025-26', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+              { season: '2026-27', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+              { season: '2027-28', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+            ],
+          },
+        }));
+        const paddedTeam = {
+          ...baseTeam,
+          roster: [...existingRoster, ...fillerRoster],
+          players: [...existingPlayers, ...fillerPlayers],
+        };
+        seedMockData(teamPath, paddedTeam);
+      } else {
+        seedMockData(teamPath, baseTeam);
+      }
     } else {
-      // Create minimal team data for teams not in fixtures
-      const teamPath = `architect_baseTeams/${teamCode}`;
+      // Create minimal team data for teams not in fixtures.
+      // Include filler players to meet CBA minimum offseason roster.
+      const fillerRoster = Array.from({ length: MIN_ROSTER_PAD_TARGET }, (_, i) => `${teamCode.toLowerCase()}_filler_${i + 1}`);
+      const fillerPlayers = fillerRoster.map((pid) => ({
+        playerId: pid,
+        displayName: `Filler ${pid}`,
+        teamCode,
+        bio: { position: 'SG', age: 25, experience: 3 },
+        contract: {
+          contractType: 'Standard',
+          startSeason: '2025-26',
+          endSeason: '2027-28',
+          salariesByYear: [
+            { season: '2025-26', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+            { season: '2026-27', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+            { season: '2027-28', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+          ],
+        },
+      }));
       seedMockData(teamPath, {
         teamCode,
         teamName: `${teamCode} Team`,
         season: '2025-26',
-        roster: [],
-        players: [],
+        roster: fillerRoster,
+        players: fillerPlayers,
         totals: {
-          totalSalary: 100_000_000,
-          capHit: 100_000_000,
-          rosterCount: 0,
+          totalSalary: 26_000_000,
+          capHit: 26_000_000,
+          rosterCount: MIN_ROSTER_PAD_TARGET,
         },
         source: { type: 'base', provider: 'test' },
       });
@@ -230,9 +281,39 @@ export function seedWorldMetadata(worldId, metadata) {
  * Seed team snapshot into mock Firestore
  * Path: architect_worlds/{worldId}/teams/{teamCode}
  */
-export function seedTeamSnapshot(worldId, teamCode, teamData) {
+export function seedTeamSnapshot(worldId, teamCode, teamData, { padRoster = true } = {}) {
   const snapshotPath = `architect_worlds/${worldId}/teams/${teamCode}`;
-  seedMockData(snapshotPath, teamData);
+  // Pad team snapshot to meet CBA minimum offseason roster (15 standard players)
+  // unless padRoster is explicitly false
+  const existingRoster = teamData.roster || [];
+  const existingPlayers = teamData.players || [];
+  const needed = padRoster ? Math.max(0, MIN_ROSTER_PAD_TARGET - existingRoster.length) : 0;
+  if (needed > 0) {
+    const fillerRoster = Array.from({ length: needed }, (_, i) => `${teamCode.toLowerCase()}_snap_filler_${i + 1}`);
+    const fillerPlayers = fillerRoster.map((pid) => ({
+      playerId: pid,
+      displayName: `Filler ${pid}`,
+      teamCode,
+      bio: { position: 'SG', age: 25, experience: 3 },
+      contract: {
+        contractType: 'Standard',
+        startSeason: '2025-26',
+        endSeason: '2027-28',
+        salariesByYear: [
+          { season: '2025-26', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+          { season: '2026-27', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+          { season: '2027-28', salary: 2_000_000, capHit: 2_000_000, guaranteed: true },
+        ],
+      },
+    }));
+    seedMockData(snapshotPath, {
+      ...teamData,
+      roster: [...existingRoster, ...fillerRoster],
+      players: [...existingPlayers, ...fillerPlayers],
+    });
+  } else {
+    seedMockData(snapshotPath, teamData);
+  }
 }
 
 /**

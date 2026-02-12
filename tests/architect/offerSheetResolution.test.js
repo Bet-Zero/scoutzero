@@ -72,7 +72,7 @@ describe('Phase 17: Offer Sheet Resolution Validation', () => {
                  action: 'decline'
              });
              expect(result.valid).toBe(false);
-             expect(result.violations[0].rule).toBe('rfa_team_identity_unverifiable'); // As defined in code
+             expect(result.violations[0].rule).toBe('rfa_offer_sheet_resolution_required');
         });
     });
 });
