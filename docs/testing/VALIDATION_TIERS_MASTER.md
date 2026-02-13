@@ -265,16 +265,20 @@ npm run build
 
 **What it does**:
 
-- Runs full test suite with verbose output
-- Parses per-file timing information
-- Generates performance report
+- Runs full test suite using Vitest's JSON reporter (`--reporter=json`)
+- Parses machine-readable JSON output for reliable per-file timing
+- Computes per-file duration from `startTime` / `endTime` fields
+- Generates a console summary and a JSON artifact
 
 **Output**:
 
-- **Console**: Top 30 slowest test files with durations and percentages
-- **File**: `test-performance-results.json` (detailed machine-readable data)
+- **Console**: Top 20 slowest test files with durations and percentages
+- **File**: `test-performance-results.json` (saved in the project root, git-ignored)
+  - `summary` — totalFiles, totalTests, totalDurationMs, avgDurationMs, medianDurationMs
+  - `top20` — the 20 slowest files with `{ file, testCount, durationMs }`
+  - `allFiles` — every test file with its timing data
 
-**Duration**: 5-15 minutes (full suite)
+**Duration**: 1-5 minutes (full suite)
 
 **When to run**:
 
@@ -290,8 +294,6 @@ npm run build
 - **<1s per file**: Good unit test performance
 - **<200ms per file**: Excellent — pure unit tests
 
-**Performance report**: See `return_packages/testing/TEST_PERF_REPORT.md` for analysis and optimization recommendations.
-
 ### Optimization Guidance
 
 **High-ROI improvements**:
@@ -300,8 +302,6 @@ npm run build
 2. Consolidate duplicate test suites
 3. Cache test fixtures (reduce redundant data setup)
 4. Add more smoke tests (expand fast tier coverage)
-
-See performance report for detailed recommendations.
 
 ---
 
