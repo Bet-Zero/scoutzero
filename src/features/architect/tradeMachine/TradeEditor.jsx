@@ -13,6 +13,7 @@ import {
   hasVacuumOverlay,
   removeEdit,
   removeCreate,
+  applyVacuumTransfer,
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 
 const TradeEditor = ({
@@ -380,7 +381,25 @@ const TradeEditor = ({
 
             const tradeData = exportCurrentTrade();
             if (onApplyTrade && tradeData) {
+              // TM-PICKS-E1: In vacuum/sandbox mode, persist entitlement transfers to localStorage
+              // so they survive page refresh. World mode persists via mutation pipeline.
+              if (isVacuumMode) {
+                for (const teamEntry of tradeData) {
+                  const outgoing = teamEntry.outgoingEntitlements || [];
+                  for (const ent of outgoing) {
+                    const entId = ent.entitlementId || ent.id;
+                    const fromTeam = ent.fromTeamId || teamEntry.teamId;
+                    const toTeam = ent.toTeamId;
+                    if (entId && fromTeam && toTeam) {
+                      applyVacuumTransfer(entId, fromTeam, toTeam);
+                    }
+                  }
+                }
+              }
+
               onApplyTrade(tradeData);
+              // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
+              refreshEntitlements();
             }
           }}
           disabled={!forceTrade && result && !result.legal}

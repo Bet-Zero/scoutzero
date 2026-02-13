@@ -1,0 +1,4 @@
+command	start_utc	end_utc	duration_s	exit_code	log
+npm run validate:project	2026-02-13T13:52:21Z	2026-02-13T13:52:23Z	2	1	return_packages/architect/_logs/p0_validate_project_20260213_135221.log
+npm run validate:project (TSX_DISABLE_IPC=1)	2026-02-13T13:52:39Z	2026-02-13T13:52:40Z	1	1	return_packages/architect/_logs/p0_validate_project_20260213_135239_tsx_disable_ipc.log
+node --import tsx scripts/validate-project-schema.ts	2026-02-13T13:52:51Z	2026-02-13T13:52:52Z	1	0	return_packages/architect/_logs/p0_validate_project_20260213_135251_node_import_tsx.log

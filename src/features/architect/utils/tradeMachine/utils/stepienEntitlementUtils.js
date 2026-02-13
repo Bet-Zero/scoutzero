@@ -161,3 +161,58 @@ export function buildStepienBaselinePicksFromEntitlements(entitlements) {
       };
     });
 }
+
+/**
+ * TM-PICKS-E1: Compute a team's effective entitlements after a trade.
+ *
+ * Takes the team's current entitlements, removes those being traded out,
+ * and adds those being traded in (from other teams in the trade).
+ *
+ * @param {Object} params
+ * @param {Array} params.currentEntitlements - Team's pre-trade entitlement inventory
+ * @param {Array} params.entitlementsOut - Entitlements this team is sending out
+ * @param {Array} params.allTeamsEntitlementsOut - All teams' outgoing entitlements (for computing incoming)
+ * @param {string} params.teamId - This team's ID (for routing incoming entitlements)
+ * @returns {Array} - Post-trade entitlement array
+ */
+export function computePostTradeEntitlements({
+  currentEntitlements = [],
+  entitlementsOut = [],
+  allTeamsEntitlementsOut = [],
+  teamId,
+}) {
+  // IDs being sent out by this team
+  const outIds = new Set(
+    entitlementsOut.map((e) => e.entitlementId || e.id).filter(Boolean)
+  );
+
+  // Start with current minus outgoing
+  const postTrade = currentEntitlements.filter((ent) => {
+    const id = ent.entitlementId || ent.id;
+    return !outIds.has(id);
+  });
+
+  // Add incoming: entitlements from other teams routed to this team
+  for (const otherTeamEntitlements of allTeamsEntitlementsOut) {
+    for (const ent of otherTeamEntitlements) {
+      const fromTeamId = ent.fromTeamId;
+      const toTeamId = ent.toTeamId;
+
+      // Skip entitlements from this team (they're outgoing, not incoming)
+      if (fromTeamId === teamId) continue;
+
+      // Include if routed to this team (or broadcast in 2-team trade with no toTeamId)
+      if (
+        toTeamId === teamId ||
+        (!toTeamId && allTeamsEntitlementsOut.length === 1)
+      ) {
+        postTrade.push({
+          ...ent,
+          holderTeam: teamId, // Reflect new ownership
+        });
+      }
+    }
+  }
+
+  return postTrade;
+}

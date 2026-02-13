@@ -102,6 +102,13 @@ interface TradeDataItem {
   teamId: string;
   incoming?: ArchitectPlayer[];
   outgoing?: ArchitectPlayer[];
+  /** TM-PICKS-E1: Entitlements this team is trading away */
+  outgoingEntitlements?: Record<string, unknown>[];
+  /** TM-PICKS-E1: Entitlements this team is receiving */
+  incomingEntitlements?: Record<string, unknown>[];
+  /** Alias used by exportCurrentTrade */
+  outgoingPlayers?: ArchitectPlayer[];
+  incomingPlayers?: ArchitectPlayer[];
 }
 
 /** Contract details for signing/saving (avoids schema naming pattern) */
@@ -570,8 +577,10 @@ export function useArchitectActions({
       const targetTrade = tradeData.find((t) => t.teamId === teamId);
       if (!targetTrade) return;
 
-      const incoming = targetTrade.incoming || [];
-      const outgoing = targetTrade.outgoing || [];
+      const incoming =
+        targetTrade.incoming || targetTrade.incomingPlayers || [];
+      const outgoing =
+        targetTrade.outgoing || targetTrade.outgoingPlayers || [];
 
       const normalize = (str: string = ''): string =>
         str.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -685,6 +694,44 @@ export function useArchitectActions({
       updated.activeContracts?.push(...newContracts);
       updated.players?.push(...newPlayers);
 
+      // TM-PICKS-E1: Update entitlementIds for traded entitlements
+      const outgoingEntitlements = targetTrade.outgoingEntitlements || [];
+      const incomingEntitlements = targetTrade.incomingEntitlements || [];
+      const outgoingEntitlementIds = outgoingEntitlements
+        .map(
+          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
+        )
+        .filter(Boolean);
+      const incomingEntitlementIds = incomingEntitlements
+        .map(
+          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
+        )
+        .filter(Boolean);
+
+      if (
+        outgoingEntitlementIds.length > 0 ||
+        incomingEntitlementIds.length > 0
+      ) {
+        const currentEntitlementIds: string[] =
+          ((updated as Record<string, unknown>).entitlementIds as string[]) ||
+          [];
+        (updated as Record<string, unknown>).entitlementIds = [
+          ...currentEntitlementIds.filter(
+            (id: string) => !outgoingEntitlementIds.includes(id)
+          ),
+          ...incomingEntitlementIds,
+        ];
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(
+            '🔄 Entitlement transfer — out:',
+            outgoingEntitlementIds,
+            'in:',
+            incomingEntitlementIds
+          );
+        }
+      }
+
       if (process.env.NODE_ENV !== 'production') {
         console.log(
           '✅ Applied trade — activeContracts now:',
@@ -699,12 +746,17 @@ export function useArchitectActions({
       // Note: Each team's teamId needs to be resolved to canonical teamCode
       const teams = tradeData.map((t) => ({
         teamCode: resolveTeamCode(t.teamId) || t.teamId,
-        sends: (t.outgoing || []).map((p) => ({
+        sends: (
+          (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
+        ).map((p) => ({
           ...p,
           // Explicitly map ID for pipeline consumption
           playerId: p.id || p.player_id,
         })),
-        picksOut: [], // Pick handling can be added when UI supports it
+        picksOut: [],
+        // TM-PICKS-E1: Include outgoing entitlements in persistence payload
+        outgoingEntitlements: t.outgoingEntitlements || [],
+        entitlementsOut: t.outgoingEntitlements || [],
       }));
 
       // Validation guard
@@ -992,14 +1044,17 @@ export function useArchitectActions({
           return;
         }
 
-        const offerContract = ensureContractStructure(contract as LocalContract, {
-          ...contract,
-          contractType: 'Offer Sheet',
-          signingTeam: teamCode,
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true,
-          rfaOfferSheetStatus: 'PENDING_MATCH',
-        });
+        const offerContract = ensureContractStructure(
+          contract as LocalContract,
+          {
+            ...contract,
+            contractType: 'Offer Sheet',
+            signingTeam: teamCode,
+            rfaOfferSheet: true,
+            rfaOfferSheetOnly: true,
+            rfaOfferSheetStatus: 'PENDING_MATCH',
+          }
+        );
 
         if (!offerContract) {
           reportMutationError(

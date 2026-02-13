@@ -336,6 +336,71 @@ npm run build
 
 ---
 
+## P3: Node vs Browser Test Split (2026-02-13)
+
+**Phase 3 deliverables**:
+
+### What Changed
+
+The test suite is now split into two environments to avoid loading jsdom/React for pure-logic tests:
+
+| Command             | Environment | What it runs                                                                                       | Config file             |
+| ------------------- | ----------- | -------------------------------------------------------------------------------------------------- | ----------------------- |
+| `npm run test:node` | Node        | All `.test.js` and `.test.ts` files (~197 files, ~2698 tests)                                      | `vitest.node.config.js` |
+| `npm run test:ui`   | jsdom       | All `.test.jsx` / `.test.tsx` files + 6 localStorage-dependent `.ts` files (~32 files, ~306 tests) | `vitest.ui.config.js`   |
+| `npm run test:full` | Both        | Runs `test:node` then `test:ui` sequentially                                                       | Both configs            |
+
+### How Tests Are Classified
+
+- **File extension** determines environment:
+  - `.test.js` / `.test.ts` → Node (pure logic)
+  - `.test.jsx` / `.test.tsx` → jsdom (component/UI)
+- **Exception**: 6 `.ts` files that use `localStorage` are explicitly routed to the UI suite:
+  - `src/tests/architect/wizardTranslation.test.ts`
+  - `src/tests/architect/pickRightWizardDraft.test.ts`
+  - `src/tests/architect/utils/freeAgencyFilterPersistence.test.ts`
+  - `src/tests/entitlements/vacuumEntitlementOverlayStore.test.ts`
+  - `src/tests/entitlements/entitlementResolver.vacuumOverlay.test.ts`
+  - `tests/entitlements/vacuumTradeTransfer.test.ts`
+- No tests were moved or renamed — classification is purely config-based
+
+### Tier Integration
+
+- **Tier 1 (Fast)**: `npm run test:fast` — unchanged (smoke tests)
+- **Tier 2 (Feature)**: Feature commands unchanged (`test:architect`, `test:trade`, etc.)
+- **Tier 3 (Full)**: `npm run test:full` now runs node suite first, then UI suite
+- **New**: `npm run test:node` can be used as a fast comprehensive check during development
+
+### When to Use `test:node`
+
+- Working on validators, utils, trade logic, cap calculations, contract parsing
+- Quick pre-commit check (covers ~90% of tests without jsdom overhead)
+- CI fast-path before running UI tests
+
+### Performance Results
+
+| Metric                 | Before                   | After                                      |
+| ---------------------- | ------------------------ | ------------------------------------------ |
+| `test:full` total time | 629.91s                  | 340.87s (208.76s + 132.11s)                |
+| `test:node` time       | N/A                      | 208.76s                                    |
+| `test:ui` time         | N/A                      | 132.11s                                    |
+| Environment setup time | 1168.65s (jsdom for all) | 0.49s (node) + 173.13s (jsdom for UI only) |
+| Total test files       | 226                      | 229 (197 node + 32 UI)                     |
+| Total tests            | 2975                     | 3004 (2698 node + 306 UI)                  |
+| **Speedup**            | —                        | **~46% faster**                            |
+
+> Note: File/test count is slightly higher because the split configs pick up 6 localStorage `.ts` files
+> that the baseline config collected but ran with partial failures (silently).
+
+### Files Created/Modified
+
+- `vitest.node.config.js` — Node-only Vitest config (new)
+- `vitest.ui.config.js` — jsdom-only Vitest config (new)
+- `package.json` — Added `test:node`, `test:ui`, updated `test:full`
+- `docs/testing/VALIDATION_TIERS_MASTER.md` — This section
+
+---
+
 ## Maintenance
 
 ### Adding New Feature Tests

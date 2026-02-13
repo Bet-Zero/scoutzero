@@ -50,7 +50,10 @@ import {
   worldMetadataRef,
 } from '@/features/architect/utils/architectFirestorePaths';
 import { collection, doc } from 'firebase/firestore';
-import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
+import {
+  ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+} from '@/constants/collections';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
 // Cap legality validators for non-trade mutations (Phase 5 Production Hardening)
 import {
@@ -563,16 +566,18 @@ export async function applyWorldMutation({
 
     // PHASE 3.6: ENTITLEMENT INVARIANTS - Validate no cross-team duplicate entitlements
     // Phase B5: Prevents entitlements from appearing on multiple teams after trade
-    const entitlementInvariantResult = await validateMutationEntitlementInvariants(
-      worldId,
-      mutationType,
-      computeResult
-    );
+    const entitlementInvariantResult =
+      await validateMutationEntitlementInvariants(
+        worldId,
+        mutationType,
+        computeResult
+      );
 
     if (!entitlementInvariantResult.valid) {
       return {
         success: false,
-        error: entitlementInvariantResult.error || 'Entitlement invariant violation',
+        error:
+          entitlementInvariantResult.error || 'Entitlement invariant violation',
         violations: entitlementInvariantResult.duplicates
           ? [
               {
@@ -1409,11 +1414,29 @@ function computeTradeResult({
     return acc;
   }, {});
 
+  // TM-PICKS-E1: Build entitlementUpdates for holderTeam patches
+  // When an entitlement is traded, we need to update its holderTeam field
+  // in the world overlay so downstream readers see the correct owner.
+  const entitlementUpdates = [];
+  if (Object.keys(entitlementsTraded).length > 0) {
+    for (const [teamKey, transfers] of Object.entries(entitlementsTraded)) {
+      // For each entitlement this team received, patch holderTeam to this team
+      for (const entitlementId of transfers.in || []) {
+        entitlementUpdates.push({
+          entitlementId,
+          holderTeam: teamKey,
+        });
+      }
+    }
+  }
+
   // Phase 56: Return pure compute result - validation context is passed through, not created here
   return {
     success: true,
     teamUpdates,
     playerUpdates,
+    // TM-PICKS-E1: Include entitlement doc patches for persistence
+    entitlementUpdates,
     metadata: {
       type: 'trade',
       teamsInvolved: teamUpdates.map((u) => u.teamCode),
@@ -1751,8 +1774,7 @@ function computeExtensionResult({
     updatedTeam.players[playerIndex].futureContract?.salariesByYear || []
   ).map((row) => {
     const rowYear =
-      row.year ||
-      (row.season ? parseInt(row.season.split('-')[0]) + 1 : null);
+      row.year || (row.season ? parseInt(row.season.split('-')[0]) + 1 : null);
     return extensionYearSet.has(rowYear)
       ? { ...row, voidedByExtension: true }
       : row;
@@ -2482,6 +2504,24 @@ async function persistWorldMutation({
         const sanitizedPlayer = removeUndefinedDeep(afterSanitize);
         const playerRef = worldPlayerRef(worldId, teamCode, playerId);
         batch.set(playerRef, sanitizedPlayer);
+      }
+    }
+
+    // 2.5 TM-PICKS-E1: Write entitlement overrides (holderTeam patches)
+    if (computeResult.entitlementUpdates?.length > 0) {
+      for (const {
+        entitlementId,
+        holderTeam,
+      } of computeResult.entitlementUpdates) {
+        const entitlementRef = doc(
+          db,
+          ARCHITECT_WORLDS_COLLECTION,
+          worldId,
+          ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+          entitlementId
+        );
+        // Merge holderTeam onto existing override doc (or create if none exists)
+        batch.set(entitlementRef, { holderTeam }, { merge: true });
       }
     }
 

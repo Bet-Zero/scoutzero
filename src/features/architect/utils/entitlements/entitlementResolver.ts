@@ -27,7 +27,10 @@ import {
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
   ARCHITECT_WORLDS_COLLECTION,
 } from '@/constants/collections';
-import { getTeamOverlay } from './vacuumEntitlementOverlayStore';
+import {
+  getTeamOverlay,
+  getTransfersForTeam,
+} from './vacuumEntitlementOverlayStore';
 
 type EntitlementRecord = Record<string, unknown>;
 
@@ -218,6 +221,39 @@ export const resolveEntitlementsForTeamWithDb = async (
   // When worldId is null, apply session overlay edits/creates from localStorage.
   // When worldId is truthy, this block is skipped — world mode is unchanged.
   if (!worldId) {
+    // TM-PICKS-E1: Apply transfers first (trade-executed entitlement moves)
+    const { transfersIn, transfersOut } = getTransfersForTeam(teamCode);
+
+    // Remove transferred-out entitlements
+    if (transfersOut.length > 0) {
+      const outSet = new Set(transfersOut);
+      for (let i = resolved.length - 1; i >= 0; i--) {
+        if (outSet.has(resolved[i].id as string)) {
+          resolved.splice(i, 1);
+        }
+      }
+    }
+
+    // Add transferred-in entitlements (fetch from base collection)
+    if (transfersIn.length > 0) {
+      const alreadyResolved = new Set(resolved.map((e) => e.id as string));
+      const toFetch = transfersIn.filter((id) => !alreadyResolved.has(id));
+
+      if (toFetch.length > 0) {
+        const incomingDocs = await fetchEntitlementsByIds(
+          db,
+          [ARCHITECT_BASE_ENTITLEMENTS_PATH],
+          toFetch
+        );
+        for (const doc of incomingDocs) {
+          resolved.push({
+            ...doc,
+            holderTeam: teamCode, // Patch holderTeam to reflect new owner
+          });
+        }
+      }
+    }
+
     const teamOverlay = getTeamOverlay(teamCode);
     if (teamOverlay) {
       // Apply edits: deep-merge patches onto matching base entitlements

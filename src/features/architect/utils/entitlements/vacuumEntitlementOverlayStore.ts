@@ -21,6 +21,13 @@
 
 type EntitlementRecord = Record<string, unknown>;
 
+/** A single entitlement transfer record: moved from one team to another */
+export interface TransferRecord {
+  entitlementId: string;
+  fromTeam: string;
+  toTeam: string;
+}
+
 /** Per-team overlay: edits to existing entitlements + newly created ones */
 export interface TeamOverlay {
   /** Patches keyed by existing entitlement ID — deep-merged onto base at resolve time */
@@ -33,6 +40,8 @@ export interface TeamOverlay {
 export interface OverlayEnvelope {
   version: 1;
   overlays: Record<string, TeamOverlay>;
+  /** TM-PICKS-E1: Entitlement transfers from trades (keyed by entitlementId) */
+  transfers: Record<string, TransferRecord>;
   _updatedAt: string;
 }
 
@@ -52,6 +61,7 @@ function emptyEnvelope(): OverlayEnvelope {
   return {
     version: 1,
     overlays: {},
+    transfers: {},
     _updatedAt: new Date().toISOString(),
   };
 }
@@ -87,6 +97,10 @@ export function loadVacuumOverlay(): OverlayEnvelope {
       parsed.version === 1 &&
       typeof parsed.overlays === 'object'
     ) {
+      // TM-PICKS-E1: Ensure transfers field exists (backward compat with pre-transfer envelopes)
+      if (!parsed.transfers || typeof parsed.transfers !== 'object') {
+        parsed.transfers = {};
+      }
       return parsed as OverlayEnvelope;
     }
     return emptyEnvelope();
@@ -239,10 +253,12 @@ export function hasVacuumOverlay(): boolean {
     if (!raw) return false;
     const parsed = JSON.parse(raw);
     if (!parsed || parsed.version !== 1 || !parsed.overlays) return false;
-    return Object.values(parsed.overlays as Record<string, TeamOverlay>).some(
-      (team) =>
-        Object.keys(team.edits || {}).length > 0 ||
-        Object.keys(team.creates || {}).length > 0
+    return (
+      Object.values(parsed.overlays as Record<string, TeamOverlay>).some(
+        (team) =>
+          Object.keys(team.edits || {}).length > 0 ||
+          Object.keys(team.creates || {}).length > 0
+      ) || Object.keys(parsed.transfers || {}).length > 0
     );
   } catch {
     return false;
@@ -266,4 +282,72 @@ export function makeVacuumEntitlementId(params: {
   const kindShort = KIND_SHORT[kind] || kind;
   const shortUuid = Math.random().toString(36).substring(2, 10);
   return `vacuum:${teamCode}:${seasonYear}:${round}:${kindShort}:${shortUuid}`;
+}
+
+// ─── TM-PICKS-E1: Transfer operations for sandbox trade execution ────────────
+
+/**
+ * Record an entitlement transfer (trade execution in sandbox mode).
+ * When an entitlement moves from one team to another via trade,
+ * this records the move so the resolver can exclude it from the old team
+ * and include it on the new team.
+ */
+export function applyVacuumTransfer(
+  entitlementId: string,
+  fromTeam: string,
+  toTeam: string
+): void {
+  const envelope = loadVacuumOverlay();
+  envelope.transfers[entitlementId] = { entitlementId, fromTeam, toTeam };
+  saveVacuumOverlay(envelope);
+}
+
+/**
+ * Remove a previously recorded transfer (undo a sandbox trade for this entitlement).
+ */
+export function removeTransfer(entitlementId: string): void {
+  const envelope = loadVacuumOverlay();
+  if (!envelope.transfers[entitlementId]) return;
+  delete envelope.transfers[entitlementId];
+  saveVacuumOverlay(envelope);
+}
+
+/**
+ * Get all transfers affecting a specific team.
+ * Returns { transfersIn: entitlementIds gained, transfersOut: entitlementIds lost }.
+ */
+export function getTransfersForTeam(teamCode: string): {
+  transfersIn: string[];
+  transfersOut: string[];
+} {
+  const envelope = loadVacuumOverlay();
+  const transfersIn: string[] = [];
+  const transfersOut: string[] = [];
+
+  for (const transfer of Object.values(envelope.transfers)) {
+    if (transfer.toTeam === teamCode) {
+      transfersIn.push(transfer.entitlementId);
+    }
+    if (transfer.fromTeam === teamCode) {
+      transfersOut.push(transfer.entitlementId);
+    }
+  }
+
+  return { transfersIn, transfersOut };
+}
+
+/**
+ * Check whether a specific entitlement has a transfer record.
+ */
+export function hasTransfer(entitlementId: string): boolean {
+  const envelope = loadVacuumOverlay();
+  return Boolean(envelope.transfers[entitlementId]);
+}
+
+/**
+ * Get the full transfer record for a specific entitlement, or null.
+ */
+export function getTransfer(entitlementId: string): TransferRecord | null {
+  const envelope = loadVacuumOverlay();
+  return envelope.transfers[entitlementId] || null;
 }
