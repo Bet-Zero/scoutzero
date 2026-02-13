@@ -282,7 +282,6 @@ Quick reference for all components in the ScoutZero project.
 - RankingResults.jsx
 - RankingSession.jsx
 - RankingSetup.jsx
-- tournamentRanker.js
 - utils/rankingEngine.js
 
 ## Roster
@@ -351,4 +350,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-13T06:13:45.720Z*
+*Generated on: 2026-02-13T10:20:41.572Z*
