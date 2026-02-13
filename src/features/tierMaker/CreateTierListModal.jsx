@@ -42,7 +42,7 @@ const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
           </p>
         )}
         <button
-          className="bg-neutral-600 hover:bg-neutral-700 text-white px-04 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed"
+          className="bg-neutral-600 hover:bg-neutral-700 text-white px-4 py-2 rounded w-full disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={handleCreate}
           disabled={!userId}
         >

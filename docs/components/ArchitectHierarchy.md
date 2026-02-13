@@ -97,11 +97,15 @@ data/
   rookieScale.ts
 freeAgency/
   FreeAgentPool/
+    FreeAgencyFilterBar.tsx
     FreeAgentCard.jsx
     FreeAgentPool.jsx
+    FreeAgentPoolHeader.tsx
     FreeAgentRow.jsx
+    SelectedFreeAgentCards.tsx
     index.ts
   index.ts
+  useFreeAgencyFilterPersistence.ts
 history/
   TeamHistoryTab/
     TeamHistoryTab.jsx
@@ -351,5 +355,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-13T06:13:45.676Z*
+*Generated on: 2026-02-13T10:11:59.095Z*
 *Auto-updated by: npm run docs*

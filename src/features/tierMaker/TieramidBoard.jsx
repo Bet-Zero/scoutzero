@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import TieramidPlayerTile from '@/features/tierMaker/TieramidPlayerTile';
 import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
@@ -77,6 +83,10 @@ const TieramidBoard = ({
   onScreenshotChange,
   initialTierListId = '',
   onTierListChange,
+  isDraftMode = false,
+  draftData = null,
+  onDraftChange = null,
+  draftRestored = true,
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
@@ -184,6 +194,76 @@ const TieramidBoard = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
+
+  // ── Draft mode: initialization from draftData ──────────────────────────
+  const draftInitRef = useRef(false);
+  const draftReportRef = useRef(false); // skip initial echo
+
+  useEffect(() => {
+    if (!isDraftMode || !draftRestored || draftInitRef.current) return;
+    if (!draftData || !draftData.rows) {
+      draftInitRef.current = true;
+      return;
+    }
+    // Wait for players to be available for rehydration
+    if (!processedPlayers.length) return;
+
+    const rehydrated = {};
+    Object.entries(draftData.rows).forEach(([row, ids]) => {
+      rehydrated[row] = (Array.isArray(ids) ? ids : [])
+        .map((pid) => processedPlayersMap[pid])
+        .filter(Boolean)
+        .map((p) => ({ ...p, player_id: p.id }));
+    });
+    const order =
+      Array.isArray(draftData.rowOrder) && draftData.rowOrder.length > 0
+        ? draftData.rowOrder
+        : Object.keys(rehydrated);
+    const normalized = normalizeRows(rehydrated, order);
+
+    // Ensure all rows in order have arrays
+    normalized.rowOrder.forEach((rowKey) => {
+      if (!normalized.rows[rowKey]) normalized.rows[rowKey] = [];
+    });
+
+    // Apply capacity normalization
+    const capacityNormalized = normalizeRowsForCapacity(
+      normalized.rows,
+      normalized.rowOrder
+    );
+
+    setRows(capacityNormalized.rows);
+    setRowOrder(normalized.rowOrder);
+    draftInitRef.current = true;
+    draftReportRef.current = true; // skip the echo from this set
+  }, [
+    isDraftMode,
+    draftRestored,
+    draftData,
+    processedPlayers.length,
+    processedPlayersMap,
+    normalizeRowsForCapacity,
+  ]);
+
+  // ── Draft mode: report changes back to parent (debounced) ──────────────
+  useEffect(() => {
+    if (!isDraftMode || !onDraftChange) return;
+    // Skip the initial echo after draft initialization
+    if (draftReportRef.current) {
+      draftReportRef.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const serialized = {};
+      rowOrder.forEach((row) => {
+        serialized[row] = (rows[row] || []).map((p) => p.player_id);
+      });
+      onDraftChange({ rows: serialized, rowOrder });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [isDraftMode, onDraftChange, rows, rowOrder]);
 
   // Persistence
   const handleSaveTierList = async (idOverride) => {
@@ -302,21 +382,40 @@ const TieramidBoard = ({
   const addPlayerToPool = (player) => {
     if (!player) return;
     const formatted = { ...player, player_id: player.id };
-    setRows((prev) => ({
-      ...prev,
-      Pool: [...(prev.Pool || []), formatted].filter(Boolean),
-    }));
+    setRows((prev) => {
+      // Check ALL rows for duplicate
+      const allIds = new Set();
+      Object.values(prev).forEach((arr) =>
+        (arr || [])
+          .filter(Boolean)
+          .forEach((p) => allIds.add(p.player_id || p.id))
+      );
+      if (allIds.has(player.id)) return prev;
+      return {
+        ...prev,
+        Pool: [...(prev.Pool || []), formatted].filter(Boolean),
+      };
+    });
   };
 
   const addPlayersToPool = (playersArray) => {
     setRows((prev) => {
-      const pool = prev.Pool || [];
-      const existingIds = new Set(pool.map((p) => p.player_id || p.id));
+      // Collect IDs from ALL rows
+      const allIds = new Set();
+      Object.values(prev).forEach((arr) =>
+        (arr || [])
+          .filter(Boolean)
+          .forEach((p) => allIds.add(p.player_id || p.id))
+      );
       const additions = playersArray
         .filter(Boolean)
-        .filter((p) => !existingIds.has(p.id || p.player_id))
+        .filter((p) => !allIds.has(p.id || p.player_id))
         .map((p) => ({ ...p, player_id: p.id || p.player_id }));
-      return { ...prev, Pool: [...pool, ...additions].filter(Boolean) };
+      if (additions.length === 0) return prev;
+      return {
+        ...prev,
+        Pool: [...(prev.Pool || []), ...additions].filter(Boolean),
+      };
     });
   };
 
@@ -384,6 +483,46 @@ const TieramidBoard = ({
     });
     setRowOrder((prev) => prev.map((r) => (r === oldName ? name : r)));
   };
+
+  const moveRowUp = useCallback(
+    (rowKey) => {
+      setRowOrder((prevOrder) => {
+        const withoutPool = prevOrder.filter((r) => r !== 'Pool');
+        const idx = withoutPool.indexOf(rowKey);
+        if (idx <= 0) return prevOrder;
+        const next = [...withoutPool];
+        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+        const newOrder = [...next, 'Pool'];
+        // Re-normalize capacity after reorder
+        setRows((prevRows) => {
+          const result = normalizeRowsForCapacity(prevRows, newOrder);
+          return result.rows;
+        });
+        return newOrder;
+      });
+    },
+    [normalizeRowsForCapacity]
+  );
+
+  const moveRowDown = useCallback(
+    (rowKey) => {
+      setRowOrder((prevOrder) => {
+        const withoutPool = prevOrder.filter((r) => r !== 'Pool');
+        const idx = withoutPool.indexOf(rowKey);
+        if (idx < 0 || idx >= withoutPool.length - 1) return prevOrder;
+        const next = [...withoutPool];
+        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+        const newOrder = [...next, 'Pool'];
+        // Re-normalize capacity after reorder
+        setRows((prevRows) => {
+          const result = normalizeRowsForCapacity(prevRows, newOrder);
+          return result.rows;
+        });
+        return newOrder;
+      });
+    },
+    [normalizeRowsForCapacity]
+  );
 
   const movePlayer = (rowIdx, spotIdx, dir) => {
     setRows((prev) => {
@@ -523,7 +662,9 @@ const TieramidBoard = ({
   // NOTE: Removed auto-hydrate pool effect - Tieramid should start empty by design.
   // Players are added via: drawer, add team, add list, or loading a saved tier list.
 
+  // Firestore auto-load: only in saved mode (not draft mode)
   useEffect(() => {
+    if (isDraftMode) return; // Draft mode loads from props, not Firestore
     if (
       !initialLoaded &&
       initialTierListId &&
@@ -534,6 +675,7 @@ const TieramidBoard = ({
       setInitialLoaded(true);
     }
   }, [
+    isDraftMode,
     initialLoaded,
     initialTierListId,
     tierListsData,
@@ -620,7 +762,7 @@ const TieramidBoard = ({
                         >
                           {/* Absolute left label so it doesn't affect centering */}
                           <div
-                            className="absolute flex items-center gap-1"
+                            className="absolute flex flex-col items-center gap-0.5"
                             style={{
                               left: `-${LABEL_GUTTER - 6}px`,
                               width: `${LABEL_GUTTER - 10}px`,
@@ -628,18 +770,45 @@ const TieramidBoard = ({
                               transform: 'translateY(-50%)',
                             }}
                           >
+                            <div className="flex items-center gap-1">
+                              {!screenshotMode && (
+                                <button
+                                  onClick={() => renameRow(row)}
+                                  className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 flex-shrink-0"
+                                  title="Rename Row"
+                                >
+                                  ✎
+                                </button>
+                              )}
+                              <span className="text-white text-sm font-semibold whitespace-nowrap">
+                                {row}
+                              </span>
+                            </div>
                             {!screenshotMode && (
-                              <button
-                                onClick={() => renameRow(row)}
-                                className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 flex-shrink-0"
-                                title="Rename Row"
-                              >
-                                ✎
-                              </button>
+                              <div className="flex gap-0.5">
+                                <button
+                                  onClick={() => moveRowUp(row)}
+                                  disabled={i === 0}
+                                  className="text-[10px] text-white bg-black/40 px-[3px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
+                                  title="Move row up"
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  onClick={() => moveRowDown(row)}
+                                  disabled={
+                                    i >=
+                                    rowOrder.filter((r) => r !== 'Pool')
+                                      .length -
+                                      1
+                                  }
+                                  className="text-[10px] text-white bg-black/40 px-[3px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
+                                  title="Move row down"
+                                >
+                                  ▼
+                                </button>
+                              </div>
                             )}
-                            <span className="text-white text-sm font-semibold whitespace-nowrap">
-                              {row}
-                            </span>
                           </div>
 
                           <div className="flex gap-2 justify-center">
@@ -658,48 +827,52 @@ const TieramidBoard = ({
                               return (
                                 <div key={j} className="relative">
                                   <TieramidPlayerTile player={player} />
-                                  <div className="absolute top-1 right-1 flex flex-col gap-1 bg-transparent z-10">
-                                    <button
-                                      onClick={() => movePlayer(i, j, 'up')}
-                                      title="Move Up"
-                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                    >
-                                      ↑
-                                    </button>
-                                    <button
-                                      onClick={() => movePlayer(i, j, 'down')}
-                                      title="Move Down"
-                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                    >
-                                      ↓
-                                    </button>
-                                    <button
-                                      onClick={() => movePlayer(i, j, 'left')}
-                                      title="Move Left"
-                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                    >
-                                      ←
-                                    </button>
-                                    <button
-                                      onClick={() => movePlayer(i, j, 'right')}
-                                      title="Move Right"
-                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                    >
-                                      →
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        removePlayerToPool(
-                                          row,
-                                          player.player_id
-                                        )
-                                      }
-                                      title="Remove to Pool"
-                                      className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                    >
-                                      ↩
-                                    </button>
-                                  </div>
+                                  {!screenshotMode && (
+                                    <div className="absolute top-1 right-1 flex flex-col gap-1 bg-transparent z-10">
+                                      <button
+                                        onClick={() => movePlayer(i, j, 'up')}
+                                        title="Move Up"
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                      >
+                                        ↑
+                                      </button>
+                                      <button
+                                        onClick={() => movePlayer(i, j, 'down')}
+                                        title="Move Down"
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                      >
+                                        ↓
+                                      </button>
+                                      <button
+                                        onClick={() => movePlayer(i, j, 'left')}
+                                        title="Move Left"
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                      >
+                                        ←
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          movePlayer(i, j, 'right')
+                                        }
+                                        title="Move Right"
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                      >
+                                        →
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          removePlayerToPool(
+                                            row,
+                                            player.player_id
+                                          )
+                                        }
+                                        title="Remove to Pool"
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                      >
+                                        ↩
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -870,6 +1043,11 @@ const TieramidBoard = ({
           >
             Exit Screenshot View
           </button>
+        </div>
+      )}
+      {screenshotMode && (
+        <div className="fixed top-4 right-4 z-50 opacity-0 hover:opacity-90 transition-opacity bg-black/60 text-white/80 px-3 py-1.5 rounded text-xs">
+          Use your device screenshot to capture this view
         </div>
       )}
     </div>

@@ -217,3 +217,153 @@ Status: **CLOSED ✅**
     - `player-scrape/contracts/output`
     - `player-scrape/contracts/working`
     - `team-scrape/shared/firestore_staging/output/merged`
+
+---
+
+## Filters + Search (Execution) (2026-02-13)
+
+### Scope
+
+- Add local UI controls for Free Agency list usability now:
+  - search
+  - position filter
+  - age bucket filter
+  - salary bucket filter
+  - sort dropdown
+  - clear/reset action
+- Reuse existing project filtering/search/sort patterns where feasible.
+- Keep scope local to FA tab rendering only (no world pool correctness expansion, no cap-legality filters).
+
+### Found Files
+
+- Free Agency tab chain:
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/sections/FreeAgencySection.jsx`
+  - `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx`
+- `freeAgents` source and derivation:
+  - `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
+- Existing filter/search/sort references reused:
+  - `src/shared/utils/filtering/playerFilterUtils.js`
+  - `src/shared/utils/filtering/basicFilterUtils.js`
+  - `src/features/table/PlayerTable/PlayerTableHeader/TopControlsBar.jsx`
+  - `src/features/roster/AddPlayerDrawer/index.jsx`
+
+### Decisions and Behavior
+
+- Shared helper added at:
+  - `src/shared/utils/filtering/freeAgencyFilterUtils.ts`
+- Filter bar UI added at:
+  - `src/features/architect/freeAgency/FreeAgentPool/FreeAgencyFilterBar.tsx`
+- Free Agency list wiring updated in:
+  - `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx`
+
+Exact behavior:
+
+- Search:
+  - Case-insensitive.
+  - Diacritic-insensitive (accent normalized).
+  - Tokenized matching across name, team text, and position text.
+- Position:
+  - Buckets: Guard, Wing, Big.
+- Age (Balanced buckets):
+  - `<=24`, `25-29`, `30+`.
+  - Missing ages are safely excluded only when age filter is active.
+- Salary (Balanced buckets, using previous salary):
+  - `<$5M`, `$5M-$10M`, `$10M-$20M`, `$20M+`.
+  - Missing salaries are safely excluded only when salary filter is active.
+- Sort:
+  - Name A-Z
+  - Salary high->low
+  - Age low->high
+- Clear:
+  - Restores default state (`Salary high->low`, empty query, all buckets).
+- Empty results:
+  - Displays `No matches` without crashing.
+
+### Deliberate Simplifications
+
+- No cap-legality filter in this phase.
+- No changes to world overlay/pool correctness logic in this phase.
+- No Firestore read/write behavior changes for this work.
+
+### Validation Evidence
+
+- Targeted Free Agency tests:
+  - `npm run test -- --run src/tests/architect/utils/freeAgencyFilterUtils.test.ts src/tests/architect/OfferSheetList.freeAgency.test.jsx src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/useArchitectState.worldFreeAgency.test.tsx`
+  - Result: `4 passed files`, `14 passed tests`.
+- Full test gate:
+  - `npm run test -- --run`
+  - Result: `222 passed files`, `2946 passed`, `1 skipped`, `3 todo`.
+- Build:
+  - `npm run build`
+  - Result: pass (bundle-size warnings only).
+- Lint:
+  - `npm run lint`
+  - Result: fails with pre-existing baseline issues (`2976 problems`) outside this change scope.
+- Dev server smoke (terminal-level):
+  - `npm run dev -- --host 127.0.0.1 --port 5173`
+  - `curl -I http://127.0.0.1:5173`
+  - Result: server started and returned `HTTP/1.1 200 OK`.
+
+---
+
+## UX Enhancements: Results Count + Persisted Filters (2026-02-13)
+
+### Scope
+
+Two narrow UX upgrades to the Free Agency tab filter bar:
+
+1. **Results count indicator** — shows `X results` or `X of Y results` live in the filter bar as the user types/toggles.
+2. **Persisted filter state** — search, position, age, salary, and sort selections survive tab switches and page refreshes via localStorage.
+
+No world-overlay corrections, no cap-legality filter, no Firestore changes.
+
+### Files Changed / Added
+
+| File                                                                      | Change                                                                                                                                    |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/architect/freeAgency/useFreeAgencyFilterPersistence.ts`     | **New** — persistence hook + pure parse/load/save/clear helpers                                                                           |
+| `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx`       | Replaced inline `useState` filter state with `useFreeAgencyFilterPersistence()` hook; passes `filteredCount` / `totalCount` to filter bar |
+| `src/features/architect/freeAgency/FreeAgentPool/FreeAgencyFilterBar.tsx` | Added `filteredCount` / `totalCount` props; renders results indicator right-aligned in the bar                                            |
+| `src/tests/architect/utils/freeAgencyFilterPersistence.test.ts`           | **New** — 15 unit tests for parsing, round-trip, error handling                                                                           |
+
+### Results Count Behavior
+
+- Unfiltered: `X results` (filteredCount === totalCount).
+- Filtered / searched: `X of Y results`.
+- Updates immediately — reuses existing `useMemo`-d filtered array (no re-filter).
+
+### Persistence Behavior
+
+| Detail                | Value                                                        |
+| --------------------- | ------------------------------------------------------------ |
+| Storage key           | `architect-free-agency-filters-v1`                           |
+| Persisted fields      | `query`, `position`, `ageBucket`, `salaryBucket`, `sortBy`   |
+| Invalid JSON          | Caught, key removed, defaults applied — no crash             |
+| Unknown field values  | Normalized to defaults per field                             |
+| Clear action          | Resets UI **and** calls `localStorage.removeItem` on the key |
+| Non-writeable storage | Silent catch — UI still works, just won't persist            |
+
+### Persisted State Shape
+
+```json
+{
+  "query": "",
+  "position": "",
+  "ageBucket": "",
+  "salaryBucket": "",
+  "sortBy": "salary_desc"
+}
+```
+
+### Validation Evidence
+
+- Targeted tests:
+  - `npm run test -- --run src/tests/architect/utils/freeAgencyFilterPersistence.test.ts src/tests/architect/utils/freeAgencyFilterUtils.test.ts`
+  - Result: `2 passed files`, `22 passed tests`.
+- Full test gate:
+  - `npm run test -- --run`
+  - Result: all passing (no regressions introduced).
+- Build:
+  - `npm run build`
+  - Result: pass (bundle-size warnings only).

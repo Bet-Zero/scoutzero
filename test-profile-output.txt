@@ -1,0 +1,11 @@
+
+> scoutzero@1.0.0 test:profile
+> node scripts/analyze-test-performance.mjs
+
+Running test suite with performance tracking...
+
+This will take several minutes. Please wait...
+
+
+ RUN  v1.6.1 /Users/brenthibbitts/Desktop/ScoutZero
+

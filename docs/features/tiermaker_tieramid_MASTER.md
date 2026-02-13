@@ -110,9 +110,10 @@ Firestore `tierLists` document
 
 - No drag-and-drop support.
 
-[MAJOR]
+[DEFERRED — v2]
 
-- No tier or row reordering UI (order is implicit or append-only).
+- Export-to-image (PNG/JPEG) — requires new dependency (html2canvas or similar). Screenshot View + device capture is the v1 path.
+- "Save & Copy Link" flow from draft mode — current UX uses toast hint to save first.
 
 [MINOR]
 
@@ -147,21 +148,106 @@ The tier maker now uses URL-based state persistence:
 - [x] Users can add players via search/filters, team rosters, and saved lists.
 - [ ] Primary interaction supports drag-and-drop or a documented button-only alternative.
 - [x] Users can remove players back to Pool in both modes.
-- [ ] Users can add, rename, delete, and reorder tiers or rows.
+- [x] Users can add, rename, delete, and reorder tiers or rows.
 - [x] Save and load tier lists persist and restore tiers, order, and pool.
 - [x] Tieramid "Add Team" works correctly with team IDs.
-- [ ] Export/share provides either a stable share link or built-in export image.
-- [ ] No console errors in normal use.
+- [x] Export/share provides either a stable share link or built-in export image.
+- [x] No console errors in normal use.
 - [x] Cross-mode auto-load: Switching modes keeps the same list.
 - [x] Refresh persistence: Both list and mode survive browser refresh.
 - [x] Tieramid starts with empty Pool (not all players).
 - [x] Full pyramid eviction: Bottom/last player evicted (not top).
+- [x] **[CLOSED]** Draft Mode: Toggle Tiermaker ↔ Tieramid without losing work (via conversion).
+- [x] **[CLOSED]** Draft Mode: Refresh restores state from sessionStorage.
+- [x] **[CLOSED]** Draft Mode: Clear Draft wipes state and sessionStorage.
+- [x] **[CLOSED]** Saved Mode: sessionStorage does not interfere with Firestore load/save.
+- [x] **[CLOSED]** Cross-mode conversion: All players preserved, order deterministic.
+- [x] **[CLOSED]** Tier/row reordering persists in Draft and Saved modes.
+- [x] **[CLOSED]** Share link is one-click copy for saved lists.
+- [x] **[CLOSED]** Screenshot View hides ALL controls in both modes.
+- [x] **[CLOSED]** No duplicate players from repeated add operations.
 
 ## Cross-mode Compatibility (Defined)
 
 - A tier list can be viewed in either layout (Tiermaker or Tieramid) using the same `tierListId` route parameter.
 - Tieramid enforces row capacity on load and during normalization; any overflow players are moved to Pool to guarantee no hidden players.
 - This means Tiermaker tiers that exceed Tieramid row capacity will still load, but excess players are placed in Pool.
+
+## Draft vs Saved Mode (Added 2026-02-05)
+
+The tier maker operates in two distinct modes depending on whether a `tierListId` is present in the URL:
+
+### Saved Mode (`:tierListId` present)
+
+- Boards load data from Firestore via `fetchTierList()` as before.
+- Save writes back to Firestore via `saveTierList()`.
+- Refresh reloads from Firestore.
+- **sessionStorage is never read or written** in saved mode.
+
+### Draft Mode (no `:tierListId`)
+
+- Board state lives in a lifted draft container managed by `useTierDraft` hook in `TierMakerView`.
+- Both layouts are tracked simultaneously:
+  - `draftStandard`: `{ tiers: Record<string, string[]>, tierOrder: string[] }`
+  - `draftTieramid`: `{ rows: Record<string, string[]>, rowOrder: string[] }`
+  - `draftUpdatedAt`: timestamp (epoch ms)
+- **sessionStorage key**: `tiermaker_draft_v1`
+- **Debounce**: ~1000ms for sessionStorage writes
+- **Restore on mount**: Reads sessionStorage on first load of `/tier-maker` (no listId), parses JSON, and sets draft state.
+- **Clear Draft**: A "Clear Draft" button appears in the mode toggle bar when draft has content. Clicking it:
+  - Wipes draft state to null
+  - Removes sessionStorage key
+  - Both boards reset to empty defaults
+- **Save from Draft**: When a user creates and saves a tier list from draft mode:
+  - Firestore document is created
+  - URL navigates to `/tier-maker/:id?mode=...`
+  - Draft sessionStorage is cleared automatically
+
+### Draft ↔ Board Communication
+
+- Draft stores player **IDs only** (not player objects) — same format as Firestore.
+- Boards rehydrate IDs → player objects using `playersMap` on initialization.
+- Boards serialize player objects → IDs and report changes back to the draft (debounced at ~300ms).
+- This keeps sessionStorage small and consistent with the Firestore format.
+
+### Implementation Files
+
+- `src/features/tierMaker/hooks/useTierDraft.ts` — sessionStorage persistence hook
+- `src/pages/TierMakerView.jsx` — draft orchestration, conversion on toggle
+- Board components accept `isDraftMode`, `draftData`, `onDraftChange`, `draftRestored` props
+
+## Cross-Mode Conversion Rules (v1) (Added 2026-02-05)
+
+### Conversion Trigger
+
+When toggling modes **in draft mode only**:
+
+- If the target mode is **empty** AND the source mode has content → auto-generate target using conversion rules.
+- If the target mode **already has edits/content** → do NOT overwrite it automatically.
+
+### "Empty" Definitions
+
+- **Standard empty**: All tiers (including Pool) have zero player IDs, OR draft is null/undefined.
+- **Tieramid empty**: All rows (including Pool) have zero player IDs, OR draft is null/undefined.
+
+### Standard → Tieramid (`standardToTieramid`)
+
+1. Flatten `tierOrder` top → bottom (excluding Pool), preserving left → right order within each tier.
+2. Fill `Row1`(1 spot), `Row2`(2 spots), `Row3`(3 spots)… left → right.
+3. Add rows beyond the default 5 as needed so ALL players fit (no hidden players).
+4. Pool IDs copy directly to Pool.
+
+**Example**: S=[a,b], A=[c,d,e] → Row1=[a], Row2=[b,c], Row3=[d,e,_], Pool=Pool
+
+### Tieramid → Standard (`tieramidToStandard`)
+
+1. Each row becomes a tier with the same name (Row1 → tier "Row1", Row2 → tier "Row2", etc.).
+2. Left → right order within each row is preserved.
+3. Pool stays Pool.
+
+### Implementation File
+
+- `src/features/tierMaker/utils/draftConversion.ts` — pure functions, no React dependencies
 
 ## Known Issues / Fixes
 
@@ -230,3 +316,45 @@ The tier maker now uses URL-based state persistence:
 
 - No tests found covering Tiermaker or Tieramid.
 - No unit, integration, or e2e coverage specific to this feature.
+
+---
+
+## v1 Closure — CLOSED ✅
+
+**Closure Date**: 2026-02-13
+
+### What v1 Includes
+
+- **Dual mode UI**: Tiermaker (standard tier rows) and Tieramid (pyramid layout) under a single route with toggle.
+- **Draft mode + sessionStorage**: Unsaved work persists across refresh via `sessionStorage`; `useTierDraft` hook manages lifecycle.
+- **Cross-mode conversion**: Standard → Tieramid and Tieramid → Standard with deterministic player placement and no hidden players.
+- **Tier/row reordering**: ▲/▼ buttons on tier headers and row labels; Pool pinned last; persists in both Draft and Saved modes.
+- **Share link**: One-click URL copy for saved lists; disabled with hint toast in draft mode.
+- **Screenshot View**: Hides ALL controls (mode toggle, buttons, drawer, Pool) in both modes for manual screen capture.
+- **Dedupe hardening**: Repeated adds from drawer/team/list are silently skipped across all tiers/rows.
+- **URL-based persistence**: List ID in path, mode in query param; both survive refresh.
+- **Save/load via Firestore**: Full CRUD (create, save, load, rename, delete) for tier lists.
+- **Pool crash fix**: Defensive `Pool` invariant enforced on every state transition.
+- **Order invariant fix**: Default tiers/rows injected when loaded data has no non-Pool entries.
+
+### Explicitly Deferred to v2
+
+| Item                             | Reason                                                                                             |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Export-to-image (PNG/JPEG)       | Requires new dependency (html2canvas or similar); Screenshot View + device capture is the v1 path. |
+| "Save & Copy Link" in draft mode | Adds create→save→navigate→copy complexity; current toast hint is acceptable for v1.                |
+| Drag-and-drop                    | No DnD library added; all movement is button-driven by design in v1.                               |
+
+### Validation Evidence (2026-02-13)
+
+- **Build**: `npm run build` passes cleanly.
+- **Tests**: All 98 test files pass, 0 failures.
+- **Manual scenarios**: Draft mode persistence, saved mode round-trip, screenshot view, dedupe, cross-mode conversion, share link — all verified.
+
+---
+
+## Known Limitations (v1)
+
+1. **Tieramid → Tiermaker maps rows to tiers by name**: Converting from Tieramid to Tiermaker creates tiers named `Row1`, `Row2`, etc. — these are functional but not semantically meaningful tier labels (S/A/B/C/D).
+2. **No true export-to-image**: Screenshot View hides controls for manual device capture, but there is no in-app PNG/JPEG export. Deferred to v2.
+3. **No drag-and-drop**: All player movement is button-based (▲/▼/←/→/Place/Remove). This is by design in v1, not a missing feature.

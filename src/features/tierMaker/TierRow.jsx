@@ -10,31 +10,57 @@ const TierRow = ({
   removePlayer,
   renameTier,
   deleteTier,
+  canMoveUp = false,
+  canMoveDown = false,
+  onMoveTierUp,
+  onMoveTierDown,
 }) => (
   <div
     className={`flex items-center gap-2 border border-white/10 rounded-md min-h-[38px] ${
       tier === 'Pool' ? 'bg-neutral-950 mt-0' : 'bg-neutral-800'
     } p-0`}
   >
-    <div className="w-[70px] text-sm text-white font-bold flex items-center justify-between px-1">
+    <div className="w-[70px] text-sm text-white font-bold flex flex-col items-center justify-center px-1 py-0.5 gap-0.5">
+      <div className="flex items-center justify-between w-full">
+        {!screenshotMode && tier !== 'Pool' && (
+          <button
+            onClick={() => renameTier(tier)}
+            className="text-xs text-white bg-black/40 px-[4px] rounded hover:bg-white/10"
+          >
+            ✎
+          </button>
+        )}
+        <span className="flex-1 text-center">
+          {tier === 'Pool' ? 'Pool' : tier}
+        </span>
+        {!screenshotMode && tier !== 'Pool' && (
+          <button
+            onClick={() => deleteTier(tier)}
+            className="text-xs text-red-300 bg-black/40 px-[4px] rounded hover:bg-red-600"
+          >
+            🗑
+          </button>
+        )}
+      </div>
       {!screenshotMode && tier !== 'Pool' && (
-        <button
-          onClick={() => renameTier(tier)}
-          className="text-xs text-white bg-black/40 px-[4px] rounded hover:bg-white/10"
-        >
-          ✎
-        </button>
-      )}
-      <span className="flex-1 text-center">
-        {tier === 'Pool' ? 'Pool' : tier}
-      </span>
-      {!screenshotMode && tier !== 'Pool' && (
-        <button
-          onClick={() => deleteTier(tier)}
-          className="text-xs text-red-300 bg-black/40 px-[4px] rounded hover:bg-red-600"
-        >
-          🗑
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => onMoveTierUp?.(tier)}
+            disabled={!canMoveUp}
+            className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
+            title="Move tier up"
+          >
+            ▲
+          </button>
+          <button
+            onClick={() => onMoveTierDown?.(tier)}
+            disabled={!canMoveDown}
+            className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
+            title="Move tier down"
+          >
+            ▼
+          </button>
+        </div>
       )}
     </div>
     <div className="flex flex-wrap gap-[2px] flex-1">

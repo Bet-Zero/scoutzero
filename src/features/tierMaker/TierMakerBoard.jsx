@@ -14,6 +14,7 @@ import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
 import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
 import { toast } from 'react-hot-toast';
+import { useRef } from 'react';
 
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
@@ -61,6 +62,11 @@ const TierMakerBoard = ({
   players = [],
   initialTierListId = '',
   onTierListChange,
+  onScreenshotChange,
+  isDraftMode = false,
+  draftData = null,
+  onDraftChange = null,
+  draftRestored = true,
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
@@ -187,22 +193,85 @@ const TierMakerBoard = ({
   const [isSaving, setIsSaving] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
 
+  // ── Draft mode: initialization from draftData ──────────────────────────
+  const draftInitRef = useRef(false);
+  const draftReportRef = useRef(false); // skip initial echo
+
+  useEffect(() => {
+    if (!isDraftMode || !draftRestored || draftInitRef.current) return;
+    if (!draftData || !draftData.tiers) {
+      draftInitRef.current = true;
+      return;
+    }
+    // Wait for players to be available for rehydration
+    if (!allPlayers.length) return;
+
+    const rehydrated = {};
+    Object.entries(draftData.tiers).forEach(([tier, ids]) => {
+      rehydrated[tier] = (Array.isArray(ids) ? ids : [])
+        .map((pid) => playersMap[pid])
+        .filter(Boolean)
+        .map((p) => ({ ...p, player_id: p.id }));
+    });
+    const order =
+      Array.isArray(draftData.tierOrder) && draftData.tierOrder.length > 0
+        ? draftData.tierOrder
+        : Object.keys(rehydrated);
+    const normalized = normalizeTiers(rehydrated, order);
+    setTiers(normalized.tiers);
+    setTierOrder(normalized.tierOrder);
+    draftInitRef.current = true;
+    draftReportRef.current = true; // skip the echo from this set
+  }, [isDraftMode, draftRestored, draftData, allPlayers.length, playersMap]);
+
+  // ── Draft mode: report changes back to parent (debounced) ──────────────
+  useEffect(() => {
+    if (!isDraftMode || !onDraftChange) return;
+    // Skip the initial echo after draft initialization
+    if (draftReportRef.current) {
+      draftReportRef.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const serialized = {};
+      Object.keys(tiers).forEach((t) => {
+        serialized[t] = (tiers[t] || []).map((p) => p.player_id);
+      });
+      onDraftChange({ tiers: serialized, tierOrder });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [isDraftMode, onDraftChange, tiers, tierOrder]);
+
   const addPlayerToPool = (player) => {
     const formatted = { ...player, player_id: player.id };
-    setTiers((prev) => ({
-      ...prev,
-      Pool: [...(prev.Pool || []), formatted],
-    }));
+    setTiers((prev) => {
+      // Check ALL tiers for duplicate
+      const allIds = new Set();
+      Object.values(prev).forEach((arr) =>
+        (arr || []).forEach((p) => allIds.add(p.player_id))
+      );
+      if (allIds.has(player.id)) return prev;
+      return {
+        ...prev,
+        Pool: [...(prev.Pool || []), formatted],
+      };
+    });
   };
 
   const addPlayersToPool = (playersArray) => {
     setTiers((prev) => {
-      const pool = prev.Pool || [];
-      const existingIds = new Set(pool.map((p) => p.player_id));
+      // Collect IDs from ALL tiers
+      const allIds = new Set();
+      Object.values(prev).forEach((arr) =>
+        (arr || []).forEach((p) => allIds.add(p.player_id))
+      );
       const additions = playersArray
-        .filter((p) => !existingIds.has(p.id))
+        .filter((p) => !allIds.has(p.id))
         .map((p) => ({ ...p, player_id: p.id }));
-      return { ...prev, Pool: [...pool, ...additions] };
+      if (additions.length === 0) return prev;
+      return { ...prev, Pool: [...(prev.Pool || []), ...additions] };
     });
   };
 
@@ -268,6 +337,28 @@ const TierMakerBoard = ({
       return newTiers;
     });
     setTierOrder((prev) => prev.map((t) => (t === tier ? name : t)));
+  };
+
+  const moveTierUp = (tier) => {
+    setTierOrder((prev) => {
+      const withoutPool = prev.filter((t) => t !== 'Pool');
+      const idx = withoutPool.indexOf(tier);
+      if (idx <= 0) return prev;
+      const next = [...withoutPool];
+      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+      return [...next, 'Pool'];
+    });
+  };
+
+  const moveTierDown = (tier) => {
+    setTierOrder((prev) => {
+      const withoutPool = prev.filter((t) => t !== 'Pool');
+      const idx = withoutPool.indexOf(tier);
+      if (idx < 0 || idx >= withoutPool.length - 1) return prev;
+      const next = [...withoutPool];
+      [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+      return [...next, 'Pool'];
+    });
   };
 
   const resetBoard = () => {
@@ -376,7 +467,9 @@ const TierMakerBoard = ({
     onTierListChange?.(newId);
   };
 
+  // Firestore auto-load: only in saved mode (not draft mode)
   useEffect(() => {
+    if (isDraftMode) return; // Draft mode loads from props, not Firestore
     if (
       !initialLoaded &&
       initialTierListId &&
@@ -387,6 +480,7 @@ const TierMakerBoard = ({
       setInitialLoaded(true);
     }
   }, [
+    isDraftMode,
     initialLoaded,
     initialTierListId,
     tierListsData,
@@ -442,18 +536,30 @@ const TierMakerBoard = ({
           )}
 
           {(tierOrder.length > 1 ? tierOrder : [...DEFAULT_TIERS, 'Pool']).map(
-            (tier) => (
-              <TierRow
-                key={tier}
-                tier={tier}
-                players={tiers[tier] || []}
-                screenshotMode={screenshotMode}
-                movePlayer={movePlayer}
-                removePlayer={removePlayer}
-                renameTier={renameTier}
-                deleteTier={deleteTier}
-              />
-            )
+            (tier) => {
+              const displayOrder =
+                tierOrder.length > 1 ? tierOrder : [...DEFAULT_TIERS, 'Pool'];
+              const nonPoolOrder = displayOrder.filter((t) => t !== 'Pool');
+              const tierIdx = nonPoolOrder.indexOf(tier);
+              return (
+                <TierRow
+                  key={tier}
+                  tier={tier}
+                  players={tiers[tier] || []}
+                  screenshotMode={screenshotMode}
+                  movePlayer={movePlayer}
+                  removePlayer={removePlayer}
+                  renameTier={renameTier}
+                  deleteTier={deleteTier}
+                  canMoveUp={tier !== 'Pool' && tierIdx > 0}
+                  canMoveDown={
+                    tier !== 'Pool' && tierIdx < nonPoolOrder.length - 1
+                  }
+                  onMoveTierUp={moveTierUp}
+                  onMoveTierDown={moveTierDown}
+                />
+              );
+            }
           )}
 
           {!screenshotMode && (
@@ -531,7 +637,11 @@ const TierMakerBoard = ({
       {!drawerOpen && (
         <div className="fixed bottom-6 left-6 z-50">
           <button
-            onClick={() => setScreenshotMode(!screenshotMode)}
+            onClick={() => {
+              const next = !screenshotMode;
+              setScreenshotMode(next);
+              onScreenshotChange?.(next);
+            }}
             className={`px-4 py-2 rounded transition-all duration-300 ${
               screenshotMode
                 ? 'opacity-0 hover:opacity-80 bg-red-700 text-white'
@@ -540,6 +650,12 @@ const TierMakerBoard = ({
           >
             {screenshotMode ? 'Exit Screenshot View' : 'Screenshot View'}
           </button>
+        </div>
+      )}
+
+      {screenshotMode && (
+        <div className="fixed top-4 right-4 z-50 opacity-0 hover:opacity-90 transition-opacity bg-black/60 text-white/80 px-3 py-1.5 rounded text-xs">
+          Use your device screenshot to capture this view
         </div>
       )}
 

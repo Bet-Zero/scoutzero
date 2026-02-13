@@ -1,13 +1,46 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
-import FreeAgentCard from './FreeAgentCard';
 import FreeAgentRow from './FreeAgentRow';
+import { FreeAgentPoolHeader } from './FreeAgentPoolHeader';
+import { SelectedFreeAgentCards } from './SelectedFreeAgentCards';
+import { FreeAgencyFilterBar } from './FreeAgencyFilterBar';
 import EditContractModal from '@/shared/components/EditContractModal';
+import { applyFreeAgencyFilters } from '@/shared/utils/filtering/freeAgencyFilterUtils';
+import { useFreeAgencyFilterPersistence } from '@/features/architect/freeAgency/useFreeAgencyFilterPersistence';
+const normalizeLookupKey = (name) => {
+  if (!name) return '';
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+};
+
+const resolvePlayerData = (freeAgent, playersMap, playersById) => {
+  const playerId = freeAgent.id || freeAgent.player_id;
+
+  let playerData = (playerId && playersById?.[playerId]) ||
+    playersMap?.[freeAgent.name] ||
+    playersMap?.[normalizeLookupKey(freeAgent.name)] || {
+      name: freeAgent.name,
+    };
+
+  if (freeAgent.name && freeAgent.name !== 'Player Not Found') {
+    playerData = {
+      ...playerData,
+      name: freeAgent.name,
+      bio: {
+        ...playerData.bio,
+        displayName: freeAgent.name,
+      },
+    };
+  }
+
+  return playerData;
+};
 
 const FreeAgentPool = ({
   freeAgents,
-  // teamCapSheet,
-  // capProjections,
   currentYear,
   onSign,
   onSignAndTrade,
@@ -19,6 +52,8 @@ const FreeAgentPool = ({
   const [, setSignResults] = useState({});
   const [openMenu, setOpenMenu] = useState(null);
   const [contractPlayer, setContractPlayer] = useState(null);
+  const { filterState, updateFilterState, clearFilters } =
+    useFreeAgencyFilterPersistence();
 
   const handleSelect = (player) => {
     setSelectedPlayers((prev) => {
@@ -36,10 +71,8 @@ const FreeAgentPool = ({
   };
 
   const handleSaveFromModal = async (playerObj, values) => {
-    // Build salariesByYear array with exact values from form (new schema format)
     const salariesByYear = [];
     for (let i = 0; i < values.years; i++) {
-      // ... (lines 80-95 same as before)
       const endYear = currentYear + i;
       const season = toSeasonCode(endYear);
       const salary = values.salaries[i] || 0;
@@ -61,7 +94,6 @@ const FreeAgentPool = ({
       0
     );
 
-    // Create contract with new salariesByYear array format
     const contract = {
       salariesByYear,
       totalValue,
@@ -75,120 +107,75 @@ const FreeAgentPool = ({
 
     await onSign(playerObj, contract);
 
-    // Also remove from selected players once signed
     setSelectedPlayers((prev) => prev.filter((p) => p.name !== playerObj.name));
   };
 
-  const sortedAgents = [...freeAgents].sort(
-    (a, b) => (b.previousSalary || 0) - (a.previousSalary || 0)
+  const allAgents = freeAgents || [];
+
+  const filteredAgents = useMemo(
+    () => applyFreeAgencyFilters(allAgents, filterState),
+    [allAgents, filterState]
   );
 
-  const normalizeLookupKey = (name) => {
-    if (!name) return '';
-    return name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toLowerCase();
-  };
+  const selectedNames = useMemo(
+    () => new Set(selectedPlayers.map((player) => player.name)),
+    [selectedPlayers]
+  );
 
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
+      <FreeAgencyFilterBar
+        filters={filterState}
+        onChange={updateFilterState}
+        onClear={clearFilters}
+        filteredCount={filteredAgents.length}
+        totalCount={allAgents.length}
+      />
 
-      {/* Column Headers */}
-      <div className="px-6 mb-1">
-        <div className="flex items-center text-white/60 text-[11px] font-semibold h-5 mr-2">
-          <div className="w-[45px] text-center">POS</div>
-          <div className="w-[50px] text-center ml-1">TEAM</div>
-          <div className="w-[50px]" />
-          <div className="flex items-center ml-3 flex-1 justify-between mr-2">
-            <span>PLAYER</span>
-            <span className="pr-1">RIGHTS</span>
-          </div>
-          <div className="flex items-center justify-end w-[290px] mr-3 whitespace-nowrap">
-            <span className="w-[44px] text-center">FA</span>
-            <div className="ml-6 flex items-center gap-[8px]">
-              <span className="w-[32px] text-right">HT</span>
-              <span className="text-white/30">|</span>
-              <span className="w-[56px] text-left">WT</span>
-            </div>
-            <span className="ml-10 w-[78px] text-right">PREV SAL</span>
-          </div>
-          <div className="w-[20px]" />
-        </div>
-      </div>
+      <FreeAgentPoolHeader />
 
-      {selectedPlayers.length > 0 && (
-        <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 flex flex-wrap gap-4">
-          {selectedPlayers.map((sp) => (
-            <FreeAgentCard
-              key={sp.name}
-              player={sp}
-              onSign={() => setContractPlayer(sp)}
-              onRemove={handleRemove}
-            />
-          ))}
-        </div>
-      )}
+      <SelectedFreeAgentCards
+        selectedPlayers={selectedPlayers}
+        onSign={setContractPlayer}
+        onRemove={handleRemove}
+      />
 
       <ul className="space-y-[3px] mb-4 px-6">
-        {sortedAgents.map((p) => {
-          // Try to find full player data
-          let playerData = null;
+        {filteredAgents.length === 0 ? (
+          <li className="text-center text-sm text-white/60 py-4">No matches</li>
+        ) : (
+          filteredAgents.map((freeAgent) => {
+            const playerData = resolvePlayerData(
+              freeAgent,
+              playersMap,
+              playersById
+            );
 
-          // 1. Try ID lookup
-          // Assuming playersById is passed as a prop or available in scope
-          if (playersById && (p.id || p.player_id)) {
-            playerData = playersById[p.id || p.player_id];
-          }
-
-          // 2. Fallback to name lookup
-          if (!playerData) {
-            playerData = playersMap[normalizeLookupKey(p.name)];
-          }
-
-          // 3. Fallback to basic object
-          if (!playerData) {
-            playerData = { name: p.name };
-          }
-
-          // Ensure we use the "fixed" name from p if the looked-up player has "Player Not Found"
-          // or just always prefer p.name since we fixed it in GMDashboard
-          if (p.name && p.name !== 'Player Not Found' && p.name !== 'Unknown') {
-            // Create a shallow copy to avoid mutating the original ref
-            playerData = {
-              ...playerData,
-              name: p.name,
-              bio: {
-                ...playerData.bio,
-                displayName: p.name,
-              },
-            };
-          }
-
-          return (
-            <li key={p.id || p.player_id || p.name}>
-              <FreeAgentRow
-                player={playerData}
-                askInfo={p}
-                onSelect={() => handleSelect(p)}
-                isSelected={selectedPlayers.some((sp) => sp.name === p.name)}
-                openMenu={openMenu}
-                setOpenMenu={setOpenMenu}
-                onSign={() => {
-                  setContractPlayer(p);
-                }}
-              />
-            </li>
-          );
-        })}
+            return (
+              <li key={freeAgent.id || freeAgent.player_id || freeAgent.name}>
+                <FreeAgentRow
+                  player={playerData}
+                  askInfo={freeAgent}
+                  onSelect={() => handleSelect(freeAgent)}
+                  isSelected={selectedNames.has(freeAgent.name)}
+                  openMenu={openMenu}
+                  setOpenMenu={setOpenMenu}
+                  onSign={() => setContractPlayer(freeAgent)}
+                />
+              </li>
+            );
+          })
+        )}
       </ul>
 
       {contractPlayer && (
         <EditContractModal
           player={
-            playersMap[contractPlayer.name] || { name: contractPlayer.name }
+            playersMap[contractPlayer.name] ||
+            playersMap[normalizeLookupKey(contractPlayer.name)] || {
+              name: contractPlayer.name,
+            }
           }
           isOpen={!!contractPlayer}
           onClose={() => setContractPlayer(null)}
