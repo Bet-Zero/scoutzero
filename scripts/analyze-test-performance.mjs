@@ -1,115 +1,121 @@
 #!/usr/bin/env node
 /**
  * Test Performance Analyzer
- * Runs vitest and extracts per-file timing information from summary output
+ * Runs vitest with JSON reporter and extracts per-file timing data reliably.
+ *
+ * Uses `vitest run --reporter=json` to produce machine-readable output,
+ * then parses per-file startTime/endTime to compute durations.
  */
 
 import { spawn } from 'child_process';
 import { writeFileSync } from 'fs';
+import { resolve, relative } from 'path';
 
-console.log('Running test suite with performance tracking...\n');
+const OUTPUT_FILE = 'test-performance-results.json';
+const TOP_N = 20;
+
+console.log('Running test suite with JSON reporter for performance tracking...\n');
 console.log('This will take several minutes. Please wait...\n');
 
-const testFiles = [];
-let fullOutput = '';
+const projectRoot = process.cwd();
+let jsonBuffer = '';
 
-// Run vitest with default reporter which includes timing
-const vitest = spawn('npx', ['vitest', 'run', '--reporter=verbose'], {
+// Run vitest with JSON reporter — stdout is machine-readable JSON,
+// stderr carries progress/diagnostics which we echo for the user.
+const vitest = spawn('npx', ['vitest', 'run', '--reporter=json'], {
   stdio: ['inherit', 'pipe', 'pipe'],
   shell: true,
 });
 
 vitest.stdout.on('data', (data) => {
-  const chunk = data.toString();
-  fullOutput += chunk;
-  process.stdout.write(chunk);
+  jsonBuffer += data.toString();
 });
 
 vitest.stderr.on('data', (data) => {
-  const chunk = data.toString();
-  fullOutput += chunk;
-  process.stderr.write(chunk);
+  process.stderr.write(data);
 });
 
-vitest.on('close', (code) => {
-  console.log('\n\nAnalyzing test performance...\n');
+vitest.on('close', (exitCode) => {
+  console.log('\nAnalyzing test performance from JSON output...\n');
 
-  const lines = fullOutput.split('\n');
-
-  // Parse individual test file completions
-  // Match: " ✓ path/to/file.test.js (N) DURATIONms" or " ✓ path/to/file.test.js (N)"
-  const filePattern =
-    /^\s*✓\s+(.+\.(?:test|spec)\.[jt]sx?)\s+\((\d+)\)(?:\s+(\d+)ms)?/;
-
-  for (const line of lines) {
-    const match = line.match(filePattern);
-    if (match) {
-      const [, filePath, testCount, duration] = match;
-      testFiles.push({
-        file: filePath,
-        testCount: parseInt(testCount),
-        duration: duration ? parseInt(duration) : 0,
-      });
-    }
-  }
-
-  if (testFiles.length === 0) {
-    console.error('❌ Could not parse test timing data');
-    console.error('Full output length:', fullOutput.length);
+  let data;
+  try {
+    data = JSON.parse(jsonBuffer);
+  } catch (err) {
+    console.error('❌ Could not parse Vitest JSON output');
+    console.error(`   Parse error: ${err.message}`);
+    console.error(`   Raw output length: ${jsonBuffer.length} chars`);
     process.exit(1);
   }
 
+  const testResults = data.testResults || [];
+  if (testResults.length === 0) {
+    console.error('❌ No test results found in JSON output');
+    process.exit(1);
+  }
+
+  // Build per-file timing entries
+  const testFiles = testResults.map((tr) => {
+    const durationMs = (tr.endTime || 0) - (tr.startTime || 0);
+    const testCount = (tr.assertionResults || []).length;
+    const filePath = relative(projectRoot, tr.name) || tr.name;
+    return {
+      file: filePath,
+      testCount,
+      durationMs: Math.max(0, durationMs),
+    };
+  });
+
   // Sort by duration descending
-  testFiles.sort((a, b) => b.duration - a.duration);
+  testFiles.sort((a, b) => b.durationMs - a.durationMs);
 
-  // Generate statistics
+  // Statistics
+  const totalFiles = testFiles.length;
   const totalTests = testFiles.reduce((sum, f) => sum + f.testCount, 0);
-  const totalDuration = testFiles.reduce((sum, f) => sum + f.duration, 0);
-  const avgDuration =
-    testFiles.length > 0 ? totalDuration / testFiles.length : 0;
-  const median = testFiles[Math.floor(testFiles.length / 2)]?.duration || 0;
+  const totalDurationMs = testFiles.reduce((sum, f) => sum + f.durationMs, 0);
+  const avgDurationMs = totalFiles > 0 ? totalDurationMs / totalFiles : 0;
+  const medianDurationMs =
+    testFiles[Math.floor(totalFiles / 2)]?.durationMs || 0;
 
-  // Output results
+  // Console summary
   console.log('=== TEST PERFORMANCE ANALYSIS ===\n');
-  console.log(`Total test files: ${testFiles.length}`);
+  console.log(`Total test files: ${totalFiles}`);
   console.log(`Total tests: ${totalTests}`);
-  console.log(`Total duration: ${(totalDuration / 1000).toFixed(2)}s`);
-  console.log(`Average per file: ${avgDuration.toFixed(0)}ms`);
-  console.log(`Median per file: ${median}ms`);
+  console.log(`Total duration: ${(totalDurationMs / 1000).toFixed(2)}s`);
+  console.log(`Average per file: ${avgDurationMs.toFixed(0)}ms`);
+  console.log(`Median per file: ${medianDurationMs}ms`);
 
-  console.log('\n=== TOP 30 SLOWEST TEST FILES ===\n');
-  const topFiles = testFiles.filter((f) => f.duration > 0).slice(0, 30);
+  // Top N slowest
+  const topFiles = testFiles.filter((f) => f.durationMs > 0).slice(0, TOP_N);
 
+  console.log(`\n=== TOP ${TOP_N} SLOWEST TEST FILES ===\n`);
   topFiles.forEach((file, idx) => {
     const percent =
-      totalDuration > 0
-        ? ((file.duration / totalDuration) * 100).toFixed(1)
+      totalDurationMs > 0
+        ? ((file.durationMs / totalDurationMs) * 100).toFixed(1)
         : '0.0';
-    const durationSec = (file.duration / 1000).toFixed(2);
+    const durationSec = (file.durationMs / 1000).toFixed(2);
     console.log(
       `${(idx + 1).toString().padStart(2)}. ${durationSec.padStart(6)}s (${percent.padStart(5)}%) - ${file.file} (${file.testCount} tests)`
     );
   });
 
-  // Save detailed results
+  // Build and write report
   const report = {
     summary: {
-      totalFiles: testFiles.length,
+      totalFiles,
       totalTests,
-      totalDurationMs: totalDuration,
-      totalDurationSec: (totalDuration / 1000).toFixed(2),
-      avgDurationMs: Math.round(avgDuration),
-      medianDurationMs: median,
+      totalDurationMs,
+      totalDurationSec: (totalDurationMs / 1000).toFixed(2),
+      avgDurationMs: Math.round(avgDurationMs),
+      medianDurationMs,
     },
-    topSlowFiles: topFiles,
+    top20: topFiles,
     allFiles: testFiles,
   };
 
-  writeFileSync(
-    'test-performance-results.json',
-    JSON.stringify(report, null, 2)
-  );
-  console.log('\n✓ Detailed results saved to: test-performance-results.json\n');
+  writeFileSync(resolve(projectRoot, OUTPUT_FILE), JSON.stringify(report, null, 2));
+  console.log(`\n✓ Detailed results saved to: ${OUTPUT_FILE}\n`);
 
-  process.exit(code);
+  process.exit(exitCode);
 });

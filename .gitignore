@@ -81,6 +81,7 @@ firestore-complete_*.json
 mapping_phase1_*.json
 
 # Generated/temporary data files
+test-performance-results.json
 dry_*.log
 *_backup.json*
 wendell_carter_jr_*.json
