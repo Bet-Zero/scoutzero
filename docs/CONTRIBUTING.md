@@ -275,10 +275,12 @@ npm run emulators:exec -- "npm run test:emulator"
 
 ### Writing Tests
 
-- **Unit tests**: Place in `/tests/unit/` for pure functions
-- **Component tests**: Place in `/src/tests/components/` for React components
-- **Integration tests**: Place in `/src/tests/integration/` for feature integration
-- **Emulator tests**: Place in `/tests/emulator/` for Firebase interactions
+Tests live in two directories with distinct purposes:
+
+- **`/tests/`** — Pure business logic, CBA rules, validators, contract parsing
+- **`/src/tests/`** — Feature integration, React components, phase-numbered guardrails, emulator E2E
+
+**Rule of thumb:** If it tests an isolated function with no React or feature wiring, it goes in `/tests/`. Everything else goes in `/src/tests/`.
 
 **Test requirements before PR:**
 
@@ -286,7 +288,7 @@ npm run emulators:exec -- "npm run test:emulator"
 - New features require tests
 - Bug fixes should include regression tests
 
-See [TESTING.md](TESTING.md) for detailed testing documentation *(coming soon)*.
+See [TESTING.md](TESTING.md) for detailed placement rules and decision tree.
 
 ---
 
@@ -318,10 +320,26 @@ See [TESTING.md](TESTING.md) for detailed testing documentation *(coming soon)*.
 
 ### File Naming
 
+**Code files:**
+
 - **Components**: `PascalCase.jsx` or `PascalCase.tsx`
 - **Utilities**: `camelCase.js` or `camelCase.ts`
 - **Tests**: `*.test.js` or `*.test.ts`
 - **Schemas**: `camelCaseSchema.js`
+
+**Markdown / documentation files:**
+
+- **Major reference docs**: `SCREAMING_SNAKE_CASE.md` (e.g., `DEVELOPER_GUIDE.md`, `PROJECT_SCHEMA.md`)
+- **Runbooks & operational docs**: `kebab-case.md` (e.g., `data-scrape.md`, `cutover-cleanup.md`)
+- **Return packages**: `SCREAMING_SNAKE_CASE` with optional date suffix (e.g., `PHASE_2AA_EXECUTION.md`, `DRAFT_PICKS_FIX__EXECUTION__2026-01-10.md`)
+- **Cursor prompts**: `PascalCase.md` to mirror command names (e.g., `ApplyCriticalPrompt.md`)
+- **Component hierarchy docs**: `PascalCase.md` to mirror component names (e.g., `ArchitectHierarchy.md`)
+- **Never use `camelCase`** for markdown files (e.g., ~~`capSettingsProvider.md`~~)
+
+**Directory naming:**
+
+- Use `snake_case` for directories containing deliverables (e.g., `return_packages/`)
+- Use `kebab-case` for all other directories (e.g., `cursor-prompts/`, `team-scrape/`)
 
 ### Data Conventions
 

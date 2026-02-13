@@ -14,7 +14,6 @@ import {
   removeEdit,
   removeCreate,
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
-// import TradeDebugPanel from './TradeDebugPanel';
 
 const TradeEditor = ({
   primaryTeam,

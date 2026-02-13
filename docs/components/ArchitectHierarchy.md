@@ -5,14 +5,10 @@ ARCHITECT_FEATURE_README.md
 CapSheet.jsx
 CapSheetFull.jsx
 CapSummaryTiles.jsx
-ContractEditor.jsx
-ContractEditorModal.jsx
 DraftPickTracker.jsx
 ExceptionHistoryTracker.jsx
 ExceptionTracker.jsx
-FreeAgentCard.jsx
 FreeAgentPool.jsx
-FreeAgentRow.jsx
 GMDashboard/
   GMDashboard.jsx
   components/
@@ -38,7 +34,6 @@ GMDashboard/
     TradeSection.jsx
 LeagueView.jsx
 OffseasonTab.jsx
-OptionManager.jsx
 RosterVisual.jsx
 TeamHistoryTab.jsx
 ValidationWarnings.jsx
@@ -150,7 +145,6 @@ tradeMachine/
   FaExceptionTracker.jsx
   OutgoingPlayersList.jsx
   SelectTeamCard.jsx
-  TradeDebugPanel.jsx
   TradeEditor.jsx
   TradeExceptionDashboard.jsx
   TradeExceptionManager.jsx
@@ -223,7 +217,6 @@ utils/
   exceptions/
     exceptionLifecycle.js
     index.js
-  extensionRules.js
   faExceptionUtils.js
   firebaseTeamPlanHelpers.js
   freeAgentLogic.js
@@ -358,5 +351,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-12T15:45:25.186Z*
+*Generated on: 2026-02-13T06:13:45.676Z*
 *Auto-updated by: npm run docs*

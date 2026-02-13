@@ -185,22 +185,52 @@ npm test -- --clearCache
 
 ### Where to Put Tests
 
-Follow this decision tree:
+Tests live in **two directories** with distinct purposes. Use this decision tree:
 
-1. **Pure business logic** (no React, no Firebase) → `/tests/unit/`
-   - Example: Contract parsing, salary calculations, date utilities
+#### `/tests/` — Pure Business Logic & CBA Rules (97 tests)
 
-2. **Trade machine validation** → `/tests/trade/`
-   - Example: CBA compliance, salary matching, apron restrictions
+Put your test here if it tests **isolated logic** that doesn't need React or integrated features:
 
-3. **React components** → `/src/tests/components/`
-   - Example: UI components, hooks, state management
+- **Pure functions**: Contract parsing, salary calculations, date utilities → `/tests/`
+- **CBA trade rules**: Salary matching, apron restrictions, Stepien → `/tests/trade/`
+- **Isolated validators**: Hard cap, roster limits, salary matching engine → `/tests/validators/`
+- **Architect core logic**: World/team/season management, contract normalization → `/tests/architect/`
+- **Entitlement logic**: Pick row projection, entitlement terms → `/tests/entitlements/`
 
-4. **Feature integration** → `/src/tests/{feature}/`
-   - Example: `/src/tests/trade/`, `/src/tests/roster/`, `/src/tests/scouting/`
+**Shared infrastructure also lives here:**
 
-5. **Firebase E2E** → `*.emulator.test.ts` (anywhere, but prefer `/src/tests/`)
-   - Example: Firestore queries, mutations, data persistence
+- `tests/setupFirebaseMocks.js` — Global Firebase mock (used by ALL standard tests)
+- `tests/setupDebug.js` — Debug logging utilities
+- `tests/__mocks__/firebase.js` — Mock Firestore implementation
+- `tests/helpers/architectTestHelpers.js` — Shared test utilities
+
+#### `/src/tests/` — Integration, Components & Guardrails (125 tests)
+
+Put your test here if it tests **feature integration**, **React components**, or **architectural invariants**:
+
+- **Phase-numbered guardrails**: Architecture constraint checks → `/src/tests/architect/phaseXX_*.test.js`
+- **React components & hooks**: UI rendering, state management → `/src/tests/architect/`
+- **Trade machine UI logic**: Pick display, swap resolution, golden trades → `/src/tests/trade/` or `/src/tests/tradeMachine/`
+- **DARE system**: Draft pick resolution, protections, swaps → `/src/tests/architect/dare/`
+- **Feature integration**: Roster building, scouting filters → `/src/tests/{feature}/`
+- **Emulator E2E**: Real Firestore interactions → `*.emulator.test.ts`
+
+#### Quick Decision Tree
+
+```text
+Is it a pure function with no React or feature wiring?
+  YES → /tests/
+  NO  →
+    Is it a phase-numbered guardrail test?
+      YES → /src/tests/architect/
+      NO  →
+        Does it test a React component or hook?
+          YES → /src/tests/{feature}/
+          NO  →
+            Does it test multiple modules working together?
+              YES → /src/tests/{feature}/
+              NO  → /tests/
+```
 
 ### Test File Naming
 

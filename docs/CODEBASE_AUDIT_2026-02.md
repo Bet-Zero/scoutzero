@@ -617,32 +617,81 @@ These are low-effort, high-impact improvements to tackle first:
 | **Testing** | Unclear strategy | Documented approach | Test coverage |
 | **AI Agent Compatibility** | Struggles to find context | Clear navigation | Better assistance |
 
+### Phase 4: Deep Cleanup (completed Feb 13, 2026)
+
+Moved beyond structural/organizational into code health:
+
+11. ✅ **Move root-level docs into `/docs` subdirectories** - DEVELOPER_GUIDE, PROJECT_SCHEMA, TRADE_MACHINE_AUDIT, etc.
+12. ✅ **Update all cross-references** - ~30 edits across 15+ files for moved docs
+13. ✅ **Document naming conventions** - Added to CONTRIBUTING.md (markdown files, directories)
+14. ✅ **Document test directory boundary** - Updated TESTING.md with decision tree
+15. ✅ **Fix package.json metadata** - Added description, repository, engines, bugs, homepage
+16. ✅ **Remove orphaned files** - Deleted Python files, moved scripts to `scripts/`
+17. ✅ **Remove unused dependencies** - `framer-motion`, `html2canvas`, `react-virtualized-auto-sizer` (~200KB+ savings)
+18. ✅ **Delete dead code files** - 8 files: 5 orphaned re-export stubs + 3 dead utility/debug files
+
 ---
 
-## 💡 Future Considerations (Beyond Quick Wins)
+## 🔜 Next Steps (Tier 4 Remaining — Ready to Resume)
+
+These items were identified and scoped but not yet started:
+
+### Console.log Cleanup (Low Priority — Polish)
+
+- **267 statements** across 72 files (126 log, 79 warn, 62 error)
+- Only `console.log` debug leftovers should be removed (~100-130)
+- `console.warn` and `console.error` are mostly intentional — keep them
+- Heaviest files: `draftPickUtils.js` (13), `useTradeMachine.js` (17), `useArchitectActions.ts` (17), `validateStepien.ts` (10)
+
+### Duplicate Utility Consolidation (Medium Priority)
+
+- **Season formatting**: 4-5 files doing the same job
+  - `seasonFormat.js` (35 importers), `seasonUtils.js` (17), `seasonHelpers.ts` (11), `tradeMachine/utils/seasonUtils.js` (3), `seasonNormalizer.js`
+  - Should consolidate to a single module
+- **Salary matching values**: 3 files (`matchingValues.js`, `computeMatchingValues.js`, `salaryUtils.js`)
+- **Debug/monitoring**: 5+ files in `tradeMachine/engine/` (`tradeDebug.js`, `validatorDebug.ts`, `validationDebugMonitor.js`, `performanceMonitor.js`, `validationPerformanceMonitor.js`)
+
+### Low-Usage Dependency Evaluation (Low Priority)
+
+- `lodash.debounce` (1 file — could be a custom hook)
+- `@headlessui/react` (1 file)
+- `date-fns` (2 files)
+
+### Re-export Stub Cleanup (Medium Priority — Future)
+
+13 re-export stubs in `src/features/architect/` are still actively imported (1 importer each). These work fine but add indirection. To clean up:
+- Update the 1 importer in each case to point directly at the subfolder
+- Then delete the stub file
+- Files: CapSheet, CapSheetFull, CapSummaryTiles, ExceptionTracker, ExceptionHistoryTracker, OffseasonTab, WaiveStretchTracker, DraftPickTracker, TeamHistoryTab, ValidationWarnings, RosterVisual, LeagueView, FreeAgentPool
+
+### Items Decided Against
+
+- **Test directory consolidation** — The `/tests/` vs `/src/tests/` split is intentional (pure logic vs. integration). Documented the boundary instead.
+- **ESLint error reduction** (~1,888 errors) — Pre-existing, long-term migration effort. AGENTS.md says "do not fix all."
+- **TypeScript migration** (~78% JS) — Ongoing feature-by-feature effort, not batch cleanup.
+
+---
+
+## 💡 Future Considerations (Beyond Cleanup)
 
 These are more involved improvements to consider later:
 
 1. **Migrate to npm workspaces** - True monorepo structure
-2. **Consolidate test directories** - Single `/tests` directory
-3. **Move configs to `/config` folder** - Cleaner root (if desired)
-4. **Extract script definitions** - Separate JSON files by category
-5. **Add architecture diagrams** - Visual documentation
-6. **Set up automated documentation** - TypeDoc, Storybook, etc.
-7. **Review and archive old audit documents** - Keep history organized
-8. **Dependency audit** - Check for outdated or unused packages
-9. **Performance budget documentation** - Build size, bundle analysis
-10. **Security documentation** - Authentication, authorization patterns
+2. **Move configs to `/config` folder** - Cleaner root (if desired)
+3. **Add architecture diagrams** - Visual documentation
+4. **Set up automated documentation** - TypeDoc, Storybook, etc.
+5. **Performance budget documentation** - Build size, bundle analysis
+6. **Security documentation** - Authentication, authorization patterns
 
 ---
 
 ## 📝 Notes
 
-- This audit focuses on **structure and organization**, not code implementation
-- All recommendations are **non-breaking** or easy to reverse
+- Phases 1-3 focused on **structure and organization**
+- Phase 4 transitioned into **code health** (dependencies, dead code)
+- All changes are **non-breaking** and verified with tests (2,939 tests passing)
 - Priority is on **developer experience** and **maintainability**
 - Changes support **AI agent compatibility** by improving navigation
-- Focus on **quick wins** first, then iterate
 
 ---
 
@@ -655,5 +704,5 @@ These are more involved improvements to consider later:
 
 ---
 
-**Last Updated**: February 12, 2026
+**Last Updated**: February 13, 2026
 **Next Review**: Q3 2026 or after major structural changes

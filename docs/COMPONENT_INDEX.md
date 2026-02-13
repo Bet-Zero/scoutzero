@@ -7,14 +7,10 @@ Quick reference for all components in the ScoutZero project.
 - CapSheet.jsx
 - CapSheetFull.jsx
 - CapSummaryTiles.jsx
-- ContractEditor.jsx
-- ContractEditorModal.jsx
 - DraftPickTracker.jsx
 - ExceptionHistoryTracker.jsx
 - ExceptionTracker.jsx
-- FreeAgentCard.jsx
 - FreeAgentPool.jsx
-- FreeAgentRow.jsx
 - GMDashboard/GMDashboard.jsx
 - GMDashboard/components/DeleteWorldModal.jsx
 - GMDashboard/components/DraftPositionsInput.jsx
@@ -33,7 +29,6 @@ Quick reference for all components in the ScoutZero project.
 - GMDashboard/sections/TradeSection.jsx
 - LeagueView.jsx
 - OffseasonTab.jsx
-- OptionManager.jsx
 - RosterVisual.jsx
 - TeamHistoryTab.jsx
 - ValidationWarnings.jsx
@@ -70,7 +65,6 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/FaExceptionTracker.jsx
 - tradeMachine/OutgoingPlayersList.jsx
 - tradeMachine/SelectTeamCard.jsx
-- tradeMachine/TradeDebugPanel.jsx
 - tradeMachine/TradeEditor.jsx
 - tradeMachine/TradeExceptionDashboard.jsx
 - tradeMachine/TradeExceptionManager.jsx
@@ -110,7 +104,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/exceptionHistory/historyHelpers.js
 - utils/exceptions/exceptionLifecycle.js
 - utils/exceptions/index.js
-- utils/extensionRules.js
 - utils/faExceptionUtils.js
 - utils/firebaseTeamPlanHelpers.js
 - utils/freeAgentLogic.js
@@ -358,4 +351,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-12T15:45:25.217Z*
+*Generated on: 2026-02-13T06:13:45.720Z*
