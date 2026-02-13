@@ -11,6 +11,48 @@ HoopZero is a public-facing NBA scouting platform focused on clear data presenta
 - **Firebase** (Firestore) as the data store
 - Small helper scripts in **Python** to upload data using Firebase Admin
 
+## 🏗️ Monorepo Structure
+
+This project is organized as a **monorepo** containing multiple subsystems that work together:
+
+### 1. Frontend Application (`/src`)
+
+- **Purpose**: React web application for player scouting and GM dashboard
+- **Entry point**: `npm run dev`
+- **Tech stack**: React, Vite, Tailwind, Zustand, Firebase
+- **Deployment**: Firebase Hosting
+
+### 2. Data Pipelines (`/player-scrape`, `/team-scrape`)
+
+- **Purpose**: Scrape and normalize NBA data from external sources
+- **Entry points**: See npm scripts (e.g., `npm run team:salaryswish`, `npm run contracts:run`)
+- **Tech stack**: TypeScript, Node.js
+- **Output**: Firestore database
+
+### 3. Cloud Functions (`/functions`)
+
+- **Purpose**: Backend API and scheduled tasks
+- **Entry point**: `cd functions && npm run dev`
+- **Tech stack**: Node.js, Express, Firebase Functions
+- **Deployment**: `firebase deploy --only functions`
+
+### 4. Scripts & Utilities (`/scripts`)
+
+- **Purpose**: One-off development and validation scripts
+- **Tech stack**: TypeScript, Node.js
+
+### Data Flow
+
+```text
+External Sources → Data Pipelines → Firestore (SSOT) → Frontend
+                                         ↕
+                                   Cloud Functions
+```
+
+**Key principle**: Firestore serves as the Single Source of Truth (SSOT). Data pipelines write to Firestore, and the frontend reads from it. Cloud Functions provide backend logic and scheduled data updates.
+
+📄 For contribution guidelines and detailed development setup, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+
 ## Setup
 
 1. Install dependencies:

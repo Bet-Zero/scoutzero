@@ -53,6 +53,12 @@ validatePlayersJson.js
 debug-*.js
 backup_players.js
 
+# Debug scripts folder (development-only debugging utilities)
+.debugScripts/
+
+# Firebase export directories (local emulator exports)
+firebase-export-*/
+
 # Docs
 GeminiPatchPrompt.md
 repomix-output-TradeMachine.xml
