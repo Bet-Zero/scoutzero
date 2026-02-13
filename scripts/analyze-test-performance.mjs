@@ -41,8 +41,9 @@ vitest.on('close', (exitCode) => {
   let data;
   try {
     data = JSON.parse(jsonBuffer);
-  } catch {
+  } catch (err) {
     console.error('❌ Could not parse Vitest JSON output');
+    console.error(`   Parse error: ${err.message}`);
     console.error(`   Raw output length: ${jsonBuffer.length} chars`);
     process.exit(1);
   }
