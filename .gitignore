@@ -46,7 +46,7 @@ src/__pycache__/
 # Scripts and tools (if not needed in repo)
 
 # Local utility JS files (exclude if unused or dev-only)
-toggleView.cjs
+scripts/toggleView.cjs
 updateStats.js
 uploadPlayersToFirebase.js
 validatePlayersJson.js

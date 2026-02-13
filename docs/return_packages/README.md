@@ -237,7 +237,7 @@ ls -1 docs/return_packages/PHASE_*
 ## Related Documentation
 
 - [Codebase Audit](../CODEBASE_AUDIT_2026-02.md) - Project structure analysis
-- [Developer Guide](../../DEVELOPER_GUIDE.md) - Development patterns
+- [Developer Guide](../guides/DEVELOPER_GUIDE.md) - Development patterns
 - [Documentation Index](../INDEX.md) - Full docs navigation
 
 ---

@@ -129,7 +129,7 @@ archive/                # Historical files and migration work
 - `src/firebaseConfig.js` - Firebase initialization and Firestore connection
 - `src/hooks/usePlayerData.js` - Main player data fetching hook
 - `src/utils/filtering/playerFilterUtils.js` - Player filtering logic
-- `DEVELOPER_GUIDE.md` - Detailed architectural documentation
+- `docs/guides/DEVELOPER_GUIDE.md` - Detailed architectural documentation
 - `docs/architecture/` - Technical architecture documents
 - `docs/guides/` - User-facing guides and documentation
 
@@ -221,7 +221,7 @@ The trade validation system has been reorganized into a layered architecture:
 
 When the instructions are incomplete or incorrect:
 
-1. Check `DEVELOPER_GUIDE.md` for detailed architectural information
+1. Check `docs/guides/DEVELOPER_GUIDE.md` for detailed architectural information
 2. Examine existing test files to understand expected behavior
 3. Review Firebase queries in `src/hooks/useFirebaseQuery.js`
 4. Look at component patterns in `src/features/table/` for examples

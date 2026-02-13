@@ -8,15 +8,15 @@
 
 **New to the project?** Start with these documents based on your role:
 
-- **👤 Users**: [Simple User Guide](../SIMPLE_USER_GUIDE.md)
-- **👨‍💻 Developers**: [Developer Guide](../DEVELOPER_GUIDE.md)
+- **👤 Users**: [Simple User Guide](guides/SIMPLE_USER_GUIDE.md)
+- **👨‍💻 Developers**: [Developer Guide](guides/DEVELOPER_GUIDE.md)
 - **🤖 AI Agents**: [Agents Documentation](../AGENTS.md)
 - **🏗️ Contributors**: [Contributing Guide](CONTRIBUTING.md) *(coming soon)*
 
 **Want the big picture?**
 
 - [README](../README.md) - Project overview
-- [Project Schema](../PROJECT_SCHEMA.md) - Complete data model and architecture
+- [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data model and architecture
 
 ---
 
@@ -26,9 +26,9 @@
 
 Core system architecture and data models:
 
-- [Project Schema](../PROJECT_SCHEMA.md) - Complete data structures and relationships
+- [Project Schema](architecture/PROJECT_SCHEMA.md) - Complete data structures and relationships
 - [Architect Gap Analysis](ARCHITECT_GAP_ANALYSIS.md) - System analysis and improvements
-- [Architect Schema Migration Review](../ARCHITECT_SCHEMA_MIGRATION_REVIEW.md)
+- [Architect Schema Migration Review](architecture/ARCHITECT_SCHEMA_MIGRATION_REVIEW.md)
 - [Contract Normalization Rules](CONTRACT_NORMALIZATION_RULES.md)
 - [New Schema Validator Review](new-schema-validator-review.md)
 
@@ -42,7 +42,7 @@ Core system architecture and data models:
 
 Information for developers working on the codebase:
 
-- [Developer Guide](../DEVELOPER_GUIDE.md) - Setup, architecture, patterns
+- [Developer Guide](guides/DEVELOPER_GUIDE.md) - Setup, architecture, patterns
 - [Codebase Audit (Feb 2026)](CODEBASE_AUDIT_2026-02.md) - Structural improvements
 - [Architect Phase 5 Hardening](ARCHITECT_PHASE5_HARDENING.md)
 - [Stats Scraper Fix](STATS_SCRAPER_FIX.md)
@@ -77,8 +77,8 @@ Feature-specific documentation:
 
 Trade machine implementation and audits:
 
-- [Trade Machine Audit](../TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
-- [Trade Machine Fix Plan](../TRADE_MACHINE_FIX_PLAN.md) - Implementation plan
+- [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md) - Comprehensive system audit (Jan 2026)
+- [Trade Machine Fix Plan](audits/TRADE_MACHINE_FIX_PLAN.md) - Implementation plan
 - `/docs/tradeMachine/` - Additional trade machine docs
 - `/docs/tradeMachine/return-packages/` - Trade machine deliverables
 
@@ -193,13 +193,13 @@ Scouting and player evaluation features:
 ### For Bug Fixes
 
 1. Check relevant runbooks in `/docs/runbooks/`
-2. Review [Trade Machine Audit](../TRADE_MACHINE_AUDIT.md) for known issues
+2. Review [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md) for known issues
 3. Check return packages for similar fixes
 
 ### For New Features
 
-1. Review [Project Schema](../PROJECT_SCHEMA.md) for data model
-2. Check [Developer Guide](../DEVELOPER_GUIDE.md) for patterns
+1. Review [Project Schema](architecture/PROJECT_SCHEMA.md) for data model
+2. Check [Developer Guide](guides/DEVELOPER_GUIDE.md) for patterns
 3. Review feature docs in `/docs/features/`
 
 ### For Data Issues
@@ -219,7 +219,7 @@ Scouting and player evaluation features:
 ## 🆘 Need Help?
 
 - **Can't find what you're looking for?** Use your IDE's search (Cmd/Ctrl+Shift+F) to search all markdown files
-- **Unclear documentation?** Check [Developer Guide](../DEVELOPER_GUIDE.md) or [Project Schema](../PROJECT_SCHEMA.md)
+- **Unclear documentation?** Check [Developer Guide](guides/DEVELOPER_GUIDE.md) or [Project Schema](architecture/PROJECT_SCHEMA.md)
 - **Need to understand the codebase?** Start with [Codebase Audit](CODEBASE_AUDIT_2026-02.md)
 
 ---

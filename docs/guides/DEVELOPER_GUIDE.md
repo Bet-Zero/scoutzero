@@ -176,7 +176,7 @@ The `docs/` folder is organized into specialized subdirectories:
 
 The repository structure and conventions are documented and validated via the **Project Schema** system:
 
-- **Schema Documentation**: [PROJECT_SCHEMA.md](PROJECT_SCHEMA.md) - Authoritative documentation of repo layout, naming conventions, script interfaces, and data contracts
+- **Schema Documentation**: [PROJECT_SCHEMA.md](../architecture/PROJECT_SCHEMA.md) - Authoritative documentation of repo layout, naming conventions, script interfaces, and data contracts
 - **Machine Schema**: `project.schema.json` - Machine-readable contract for automated validation
 - **Validation Tool**: Run `npm run validate:project` to check:
   - Required directories exist

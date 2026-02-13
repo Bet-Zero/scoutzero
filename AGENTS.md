@@ -147,7 +147,7 @@ Agent-universal workflow commands. The prompt files in `docs/cursor-prompts/` co
 
 | Doc | What it covers |
 | --- | --- |
-| `DEVELOPER_GUIDE.md` | Detailed file structure, components, hooks, utilities |
+| `docs/guides/DEVELOPER_GUIDE.md` | Detailed file structure, components, hooks, utilities |
 | `copilot-instructions.md` | Environment setup, testing workflows, validation scenarios |
 | `docs/workspace-rules/COMMUNICATION_RULES.md` | Ask-vs-decide examples |
 | `docs/workspace-rules/CREATING_PERMANENT_DOCS.md` | Feature READMEs, index structure, file headers |

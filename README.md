@@ -110,7 +110,6 @@ src/
   styles/           Additional style sheets
   firebaseConfig.js Firebase client initialization
   firebaseHelpers.js Helper functions for Firestore writes
-  firebase_helpers.py Python Firebase Admin helper
   index.css         Global styles
   main.jsx          App entry point
 ```
@@ -149,11 +148,11 @@ This project uses multiple Firestore collections to separate global player data 
 
 ## Developer Guide
 
-See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
+See [DEVELOPER_GUIDE.md](docs/guides/DEVELOPER_GUIDE.md) for deeper notes on data structure, component architecture and coding conventions.
 
 ## Project Schema
 
-This repository follows a documented structure defined in [PROJECT_SCHEMA.md](PROJECT_SCHEMA.md), which provides:
+This repository follows a documented structure defined in [PROJECT_SCHEMA.md](docs/architecture/PROJECT_SCHEMA.md), which provides:
 
 - **Repo Layout** - Authoritative map of directories and their purposes
 - **Naming Conventions** - Player IDs (snake_case), team codes (3-letter), file naming patterns

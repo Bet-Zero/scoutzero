@@ -227,7 +227,7 @@ Player contract data is scraped and validated before being uploaded to Firestore
 2. Validate against Zod schema (`player-scrape/shared/schema/player_scrape_schema.ts`)
 3. Transform and upload to `/players_v2/{playerId}/contracts/{contractId}` (manual/script-driven)
 
-See [PROJECT_SCHEMA.md](../../PROJECT_SCHEMA.md) for complete artifact flow documentation and validation rules.
+See [PROJECT_SCHEMA.md](../architecture/PROJECT_SCHEMA.md) for complete artifact flow documentation and validation rules.
 
 ---
 

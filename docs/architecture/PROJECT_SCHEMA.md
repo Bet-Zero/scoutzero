@@ -929,7 +929,7 @@ Contributors must update or add schema validation tests when:
 When making structural changes, also update:
 
 - `README.md` - If changing setup or key features
-- `DEVELOPER_GUIDE.md` - If changing component architecture or key utilities
+- `docs/guides/DEVELOPER_GUIDE.md` - If changing component architecture or key utilities
 - `AGENTS.md` - If changing agent task rules or file structure patterns
 - `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` - If changing Firestore collections
 

@@ -158,6 +158,7 @@ Multiple orphaned debug scripts in project root:
 - `/docs/operations/` - Deployment, maintenance, troubleshooting
 - `/docs/audits/` - Historical audits and reviews
 - `/docs/compliance/` - CBA rules and regulations
+
 1. Move appropriate root-level docs into these folders
 2. Keep only `README.md`, `CONTRIBUTING.md`, and `LICENSE` at root
 3. Add clear navigation in main README
@@ -647,10 +648,10 @@ These are more involved improvements to consider later:
 
 ## 🔗 Related Documents
 
-- [Developer Guide](../DEVELOPER_GUIDE.md)
-- [Project Schema](../PROJECT_SCHEMA.md)
+- [Developer Guide](guides/DEVELOPER_GUIDE.md)
+- [Project Schema](architecture/PROJECT_SCHEMA.md)
 - [Agents Documentation](../AGENTS.md)
-- [Trade Machine Audit](../TRADE_MACHINE_AUDIT.md)
+- [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md)
 
 ---
 

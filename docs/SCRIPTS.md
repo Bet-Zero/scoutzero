@@ -609,8 +609,8 @@ npm run emu:reseed:baseTeams
 
 - [Testing Documentation](TESTING.md) - Detailed testing guide
 - [Contributing Guide](CONTRIBUTING.md) - Development workflow
-- [Developer Guide](../DEVELOPER_GUIDE.md) - Architecture and patterns
-- [Project Schema](../PROJECT_SCHEMA.md) - Data structures and conventions
+- [Developer Guide](guides/DEVELOPER_GUIDE.md) - Architecture and patterns
+- [Project Schema](architecture/PROJECT_SCHEMA.md) - Data structures and conventions
 
 ---
 

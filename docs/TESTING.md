@@ -452,7 +452,7 @@ If alias doesn't work, check `vitest.config.js` resolve configuration.
 - [Vitest Documentation](https://vitest.dev/)
 - [Testing Library (for React)](https://testing-library.com/)
 - [Firebase Emulator Suite](https://firebase.google.com/docs/emulator-suite)
-- [Project Developer Guide](../DEVELOPER_GUIDE.md)
+- [Project Developer Guide](guides/DEVELOPER_GUIDE.md)
 
 ---
 

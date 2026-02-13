@@ -247,7 +247,7 @@ The `formatSwapInfo()` function (lines 320-335) correctly shows:
 
 ### Optional Consistency Fix (1 additional file)
 
-3. **[TradeExportCapture.jsx](file:///Users/brenthibbitts/Desktop/ScoutZero/src/features/architect/tradeMachine/TradeExportCapture.jsx)** — Add `originalTeam` to logo fallback (line 212)
+1. **[TradeExportCapture.jsx](file:///Users/brenthibbitts/Desktop/ScoutZero/src/features/architect/tradeMachine/TradeExportCapture.jsx)** — Add `originalTeam` to logo fallback (line 212)
 
 ---
 

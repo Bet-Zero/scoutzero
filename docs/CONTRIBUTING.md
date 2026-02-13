@@ -329,7 +329,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation *(coming soon)*.
 - **Team codes**: 3-letter uppercase (e.g., `LAL`, `BOS`)
 - **Years**: 4-digit (e.g., `2025`)
 
-See [PROJECT_SCHEMA.md](../PROJECT_SCHEMA.md) for comprehensive naming conventions.
+See [PROJECT_SCHEMA.md](architecture/PROJECT_SCHEMA.md) for comprehensive naming conventions.
 
 ---
 
@@ -406,7 +406,7 @@ Update documentation when you:
 ### Documentation Locations
 
 - **User guides**: `/docs/guides/`
-- **Architecture docs**: `/docs/architecture/` or `PROJECT_SCHEMA.md`
+- **Architecture docs**: `/docs/architecture/` or `docs/architecture/PROJECT_SCHEMA.md`
 - **Runbooks**: `/docs/runbooks/`
 - **API documentation**: Auto-generated with `npm run docs`
 - **Component docs**: Inline JSDoc comments
@@ -426,8 +426,8 @@ Update documentation when you:
 ### Resources
 
 - [Documentation Index](INDEX.md) - Full documentation navigation
-- [Developer Guide](../DEVELOPER_GUIDE.md) - Deep dive into architecture
-- [Project Schema](../PROJECT_SCHEMA.md) - Data structures and conventions
+- [Developer Guide](guides/DEVELOPER_GUIDE.md) - Deep dive into architecture
+- [Project Schema](architecture/PROJECT_SCHEMA.md) - Data structures and conventions
 - [Codebase Audit](CODEBASE_AUDIT_2026-02.md) - Recent structural analysis
 
 ### Common Issues
@@ -475,7 +475,7 @@ npm test -- path/to/test.test.js
 When working on Trade Machine or salary cap features:
 
 - Follow NBA Collective Bargaining Agreement rules (see `/docs/compliance/`)
-- Reference [Trade Machine Audit](../TRADE_MACHINE_AUDIT.md) for validation patterns
+- Reference [Trade Machine Audit](audits/TRADE_MACHINE_AUDIT.md) for validation patterns
 - Test edge cases (apron restrictions, Stepien Rule, sign-and-trade, etc.)
 
 ### Mutation Pipeline
@@ -487,7 +487,7 @@ UI hook → persistMutation(type, payload) → getStateForMutation →
 computeXxxResult → validateMutation → persistWorldMutation
 ```
 
-See [Developer Guide](../DEVELOPER_GUIDE.md) for detailed mutation flow.
+See [Developer Guide](guides/DEVELOPER_GUIDE.md) for detailed mutation flow.
 
 ### Data Sources
 
