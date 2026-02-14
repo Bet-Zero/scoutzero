@@ -30,9 +30,9 @@
 - `return_packages/architect/ARCH_P1_EXECUTION_RETURN_PACKAGE.md`
 - `return_packages/architect/ARCH_P1_DIFF_NOTES.md`
 - Logs:
-  - `return_packages/architect/_logs/ARCH_P1_build.log`
-  - `return_packages/architect/_logs/ARCH_P1_test.log`
-  - `return_packages/architect/_logs/ARCH_P1_typecheck.log`
+  - `return_packages/architect/_logs/ARCH_P1_build.txt`
+  - `return_packages/architect/_logs/ARCH_P1_test.txt`
+  - `return_packages/architect/_logs/ARCH_P1_typecheck.txt`
 
 ## Revised Readiness Snapshot (Post-P1)
 

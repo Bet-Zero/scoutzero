@@ -86,12 +86,12 @@ P1 must-ship fixes (G-01 through G-06) were implemented with targeted, minimal c
 
 ## Validation Commands and Outcomes
 - `npm run build` → **PASS**
-  - Log: `return_packages/architect/_logs/ARCH_P1_build.log`
+  - Log: `return_packages/architect/_logs/ARCH_P1_build.txt`
 - `npm run test -- --run` → **PASS**
-  - Log: `return_packages/architect/_logs/ARCH_P1_test.log`
+  - Log: `return_packages/architect/_logs/ARCH_P1_test.txt`
 - `npm run typecheck` → **FAIL (pre-existing non-target typed errors remain)**
   - Targeted blocker resolved: `entitlementResolver.ts:97` no longer appears.
-  - Log: `return_packages/architect/_logs/ARCH_P1_typecheck.log`
+  - Log: `return_packages/architect/_logs/ARCH_P1_typecheck.txt`
 
 ## Manual UI Evidence
 - Screenshot captured (app load in sandbox):

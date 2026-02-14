@@ -1,0 +1,67 @@
+
+> scoutzero@1.0.0 typecheck
+> tsc --noEmit
+
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(111,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(176,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(219,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(266,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(302,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(405,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(551,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts(558,7): error TS2345: Argument of type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }[]' is not assignable to parameter of type 'ProtectionLadder'.
+  Type '{ year: number; condition: string; ifTriggered: "roll" | "convert" | "cancel" | "convey"; rollToYear: number; convertToRound: number; }' is not assignable to type 'ProtectionLadderTier'.
+    Types of property 'ifTriggered' are incompatible.
+      Type '"roll" | "convert" | "cancel" | "convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+        Type '"convey"' is not assignable to type '"roll" | "convert" | "cancel"'.
+src/tests/architect/dare/phaseD4_true_e2e_emulator_gate.emulator.test.ts(1075,54): error TS2339: Property 'roster' does not exist on type 'unknown'.
+src/tests/architect/dare/phaseD4_true_e2e_emulator_gate.emulator.test.ts(1077,23): error TS2339: Property 'roster' does not exist on type 'unknown'.
+src/tests/architect/dare/phaseD4_true_e2e_emulator_gate.emulator.test.ts(1079,43): error TS2339: Property 'roster' does not exist on type 'unknown'.
+src/tests/architect/dare/phaseD4_true_e2e_emulator_gate.emulator.test.ts(1088,60): error TS2339: Property 'contract' does not exist on type 'unknown'.
+src/tests/architect/pickRightWizard.vacuumApply.test.tsx(68,50): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/tests/architect/pickRightWizard.vacuumApply.test.tsx(69,54): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/tests/architect/pickRightWizard.vacuumApply.test.tsx(71,35): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(36,9): error TS2739: Type '{ id: string; holderTeam: string; seasonYear: string; round: string; kind: string; description: string; underlyingPickId: string; swapControllerPickId: string; swapTargetDefinition: string; poolUnderlyingPickIdsText: string; receivesComparator: string; receivesRankText: string; protectionLadder: any[]; }' is missing the following properties from type 'EntitlementFormState': underlyingStatus, swapType
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(53,9): error TS2739: Type '{ id: string; holderTeam: string; seasonYear: string; round: string; kind: string; description: string; underlyingPickId: string; swapControllerPickId: string; swapTargetDefinition: string; poolUnderlyingPickIdsText: string; receivesComparator: string; receivesRankText: string; protectionLadder: any[]; }' is missing the following properties from type 'EntitlementFormState': underlyingStatus, swapType
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(67,9): error TS2739: Type '{ id: string; holderTeam: string; seasonYear: string; round: string; kind: string; description: string; underlyingPickId: string; swapControllerPickId: string; swapTargetDefinition: string; poolUnderlyingPickIdsText: string; receivesComparator: string; receivesRankText: string; protectionLadder: any[]; }' is missing the following properties from type 'EntitlementFormState': underlyingStatus, swapType
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(85,62): error TS2493: Tuple type '[]' of length '0' has no element at index '0'.
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(93,9): error TS2739: Type '{ id: string; holderTeam: string; seasonYear: string; round: string; kind: string; description: string; underlyingPickId: string; swapControllerPickId: string; swapTargetDefinition: string; poolUnderlyingPickIdsText: string; receivesComparator: string; receivesRankText: string; protectionLadder: any[]; }' is missing the following properties from type 'EntitlementFormState': underlyingStatus, swapType
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(109,62): error TS2493: Tuple type '[]' of length '0' has no element at index '0'.
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(117,9): error TS2739: Type '{ id: string; holderTeam: string; seasonYear: string; round: string; kind: string; description: string; underlyingPickId: string; swapControllerPickId: string; swapTargetDefinition: string; poolUnderlyingPickIdsText: string; receivesComparator: string; receivesRankText: string; protectionLadder: any[]; }' is missing the following properties from type 'EntitlementFormState': underlyingStatus, swapType
+src/tests/architect/vacuumE3.advancedEditorLock.test.tsx(133,62): error TS2493: Tuple type '[]' of length '0' has no element at index '0'.
+src/tests/entitlements/vacuumEntitlementOverlayStore.test.ts(86,25): error TS2345: Argument of type '{ version: 1; overlays: { LAL: { edits: {}; creates: {}; }; }; _updatedAt: string; }' is not assignable to parameter of type 'OverlayEnvelope'.
+  Property 'transfers' is missing in type '{ version: 1; overlays: { LAL: { edits: {}; creates: {}; }; }; _updatedAt: string; }' but required in type 'OverlayEnvelope'.
+src/tests/entitlements/vacuumEntitlementOverlayStore.test.ts(238,25): error TS2345: Argument of type '{ version: 1; overlays: { BOS: { edits: {}; creates: {}; }; }; _updatedAt: string; }' is not assignable to parameter of type 'OverlayEnvelope'.
+  Property 'transfers' is missing in type '{ version: 1; overlays: { BOS: { edits: {}; creates: {}; }; }; _updatedAt: string; }' but required in type 'OverlayEnvelope'.
+src/tests/entitlements/vacuumEntitlementOverlayStore.test.ts(273,25): error TS2345: Argument of type '{ version: 1; overlays: { BOS: { edits: {}; creates: {}; }; }; _updatedAt: string; }' is not assignable to parameter of type 'OverlayEnvelope'.
+  Property 'transfers' is missing in type '{ version: 1; overlays: { BOS: { edits: {}; creates: {}; }; }; _updatedAt: string; }' but required in type 'OverlayEnvelope'.
+team-scrape/shared/firestore_staging/scripts/stage_team.ts(995,9): error TS2322: Type '{ teamCode: string; teamName: string; season: string; abbreviation: string; roster: string[]; deadCap: undefined[]; capHolds: { playerId: string; playerName: string; amount: number; type: string; season: string; expiresOn: any; isSigned: boolean; }[]; ... 5 more ...; version: string; }' is not assignable to type '{ teamCode: string; teamName: string; season: string; roster: string[]; deadCap: { playerId: string; playerName: string; originalSalary: number; amountByYear: { season: string; amount: number; isStretched?: boolean; }[]; waiveDate?: string; notes?: string; }[]; ... 15 more ...; mergedAt?: string; } & { ...; }'.
+  Type '{ teamCode: string; teamName: string; season: string; abbreviation: string; roster: string[]; deadCap: undefined[]; capHolds: { playerId: string; playerName: string; amount: number; type: string; season: string; expiresOn: any; isSigned: boolean; }[]; ... 5 more ...; version: string; }' is missing the following properties from type '{ teamCode: string; teamName: string; season: string; roster: string[]; deadCap: { playerId: string; playerName: string; originalSalary: number; amountByYear: { season: string; amount: number; isStretched?: boolean; }[]; waiveDate?: string; notes?: string; }[]; ... 15 more ...; mergedAt?: string; }': draftPicksInventory, draftPicksObligations, draftPicksContested, entitlementIds
