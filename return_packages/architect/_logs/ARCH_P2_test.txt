@@ -1,0 +1,1533 @@
+
+> scoutzero@1.0.0 test
+> vitest --run
+
+
+[7m[1m[36m RUN [39m[22m[27m [36mv1.6.1[39m [90m/home/runner/work/scoutzero/scoutzero[39m
+
+ [32m✓[39m src/tests/architect/capLegalityValidation.test.js [2m ([22m[2m38 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+[90mstdout[2m | src/tests/architect/phase50_executeTrade_integration_persistence.test.js[2m > [22m[2mPhase 50: ExecuteTrade Integration Persistence Tests[2m > [22m[2mTest 1: TPE Created & Logged[2m > [22m[2mover-cap team sending more salary than receiving creates TPE and logs TPE_CREATED entry[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 175000000,
+  salaryOut: 18000000,
+  salaryIn: 10000000,
+  postTradeSalary: 167000000,
+  formula: '175000000 - 18000000 + 10000000 = 167000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase50_executeTrade_integration_persistence.test.js[2m > [22m[2mPhase 50: ExecuteTrade Integration Persistence Tests[2m > [22m[2mTest 2: TPE Consumed & Logged[2m > [22m[2mabsorbing player using TPE updates remainingAmount and logs TPE_CONSUMED entry[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 175000000,
+  salaryOut: 0,
+  salaryIn: 12000000,
+  postTradeSalary: 187000000,
+  formula: '175000000 - 0 + 12000000 = 187000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase50_executeTrade_integration_persistence.test.js[2m > [22m[2mPhase 50: ExecuteTrade Integration Persistence Tests[2m > [22m[2mTest 2: TPE Consumed & Logged[2m > [22m[2mfully consuming TPE sets isUsed=true and fullyConsumed=true[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 175000000,
+  salaryOut: 0,
+  salaryIn: 10000000,
+  postTradeSalary: 185000000,
+  formula: '175000000 - 0 + 10000000 = 185000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase50_executeTrade_integration_persistence.test.js[2m > [22m[2mPhase 50: ExecuteTrade Integration Persistence Tests[2m > [22m[2mTest 3: Idempotency on Retry[2m > [22m[2mrunning same executeTrade twice does not create duplicate TPE or history entries[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 180000000,
+  salaryOut: 20000000,
+  salaryIn: 12000000,
+  postTradeSalary: 172000000,
+  formula: '180000000 - 20000000 + 12000000 = 172000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 180000000,
+  salaryOut: 20000000,
+  salaryIn: 12000000,
+  postTradeSalary: 172000000,
+  formula: '180000000 - 20000000 + 12000000 = 172000000'
+}
+[mutationPipeline] Phase 47C: Duplicate TPE detected, skipping creation {
+  tpeId: 'tpe_TMA_1769688000000_f9a0bq',
+  byId: false,
+  bySignature: true
+}
+
+[90mstdout[2m | src/tests/architect/phase50_executeTrade_integration_persistence.test.js[2m > [22m[2mPhase 50: ExecuteTrade Integration Persistence Tests[2m > [22m[2mTest 3: Idempotency on Retry[2m > [22m[2mTPE consumption idempotency: same consumption twice does not double-decrement[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 175000000,
+  salaryOut: 0,
+  salaryIn: 8000000,
+  postTradeSalary: 183000000,
+  formula: '175000000 - 0 + 8000000 = 183000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 175000000,
+  salaryOut: 0,
+  salaryIn: 8000000,
+  postTradeSalary: 183000000,
+  formula: '175000000 - 0 + 8000000 = 183000000'
+}
+
+ [32m✓[39m src/tests/architect/phase50_executeTrade_integration_persistence.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 70[2mms[22m[39m
+ [32m✓[39m tests/architect/capLegalityValidation.test.js [2m ([22m[2m204 tests[22m[2m)[22m[90m 256[2mms[22m[39m
+ [32m✓[39m src/tests/architect/wizardTranslation.test.ts [2m ([22m[2m45 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m tests/architect/offerSheetPersistence.test.js [2m ([22m[2m26 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m tests/architect/seasonManager.test.js [2m ([22m[2m26 tests[22m[2m)[22m[33m 682[2mms[22m[39m
+ [32m✓[39m src/tests/architect/signAndTrade.test.js [2m ([22m[2m20 tests[22m[2m)[22m[90m 59[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase53_seasonAdvance_tpe_expiry_history_integration.test.js [2m ([22m[2m17 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase51_seasonAdvance_tpe_expiry_integration.test.js [2m ([22m[2m18 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase62_persistence_contract_fixtures_deep_rules_guardrail.test.js [2m ([22m[2m33 tests[22m[2m)[22m[90m 27[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phaseC_entitlement_invariants_integration.test.ts [2m ([22m[2m15 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.js [2m ([22m[2m21 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m tests/architect/ruleContextTiming.test.js [2m ([22m[2m25 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m tests/architect/playerRulesProfile.test.js [2m ([22m[2m38 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phase17_2_swap_guardrail.test.ts [2m ([22m[2m24 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m tests/architect/integration.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 191[2mms[22m[39m
+ [32m✓[39m tests/contractParser.test.js [2m ([22m[2m10 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.js [2m ([22m[2m18 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/swapResolution.test.js [2m ([22m[2m34 tests[22m [2m|[22m [33m4 skipped[39m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.js [2m ([22m[2m34 tests[22m[2m)[22m[90m 42[2mms[22m[39m
+ [32m✓[39m src/tests/trade/tradeSnapshotWiring.test.js [2m ([22m[2m25 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m tests/contractNormalizationRulesValidation.test.js [2m ([22m[2m24 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phaseD_e2e_trade_then_advance_smoke.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m tests/architect/worldManager.test.js [2m ([22m[2m40 tests[22m[2m)[22m[90m 38[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase76_exception_lifecycle_season_advance_reset_reload_parity_guardrails.test.js [2m ([22m[2m22 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase74_room_exception_mvp_guardrails.test.js [2m ([22m[2m17 tests[22m[2m)[22m[90m 27[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phase17_3_ladders_and_conversion_guardrail.test.ts [2m ([22m[2m12 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/tests/scouting/player_filters_wiring_contract.test.js [2m ([22m[2m35 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m tests/entitlements/entitlementPickRowProjection.test.js [2m ([22m[2m33 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m tests/signAndTradeAggregation.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 53[2mms[22m[39m
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mBaseline: Valid S&T trades[2m > [22m[2mallows valid S&T where receiving team gets only the S&T player[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 15000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 20000000 + 15000000 = 95000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mOutgoing Aggregation (existing Rule 1.5)[2m > [22m[2mblocks origin team sending S&T player + another player[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 20000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 20000000 + 20000000 = 100000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mIncoming Aggregation (NEW Rule 1.6)[2m > [22m[2mblocks receiving team getting S&T + another player from same origin team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 15000000,
+  salaryIn: 20000000,
+  postTradeSalary: 105000000,
+  formula: '100000000 - 15000000 + 20000000 = 105000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mIncoming Aggregation (NEW Rule 1.6)[2m > [22m[2mblocks receiving team getting S&T + another player in same inbound[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 20000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 20000000 + 20000000 = 100000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2m3-Team Trade Incoming Aggregation[2m > [22m[2mblocks receiving team getting S&T + player from a different team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 15000000,
+  salaryIn: 30000000,
+  postTradeSalary: 115000000,
+  formula: '100000000 - 15000000 + 30000000 = 115000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mPicks Allowed with S&T[2m > [22m[2mallows S&T with draft picks alongside (picks are not players)[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 15000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 20000000 + 15000000 = 95000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mControl: Non-S&T trades unaffected[2m > [22m[2mallows non-S&T multi-player trade (control case)[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 20000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 20000000 + 20000000 = 100000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mComplex 3-Team S&T Aggregation[2m > [22m[2mblocks receiving team in 3-team trade that gets S&T + any other player[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 25000000,
+  postTradeSalary: 105000000,
+  formula: '100000000 - 20000000 + 25000000 = 105000000'
+}
+
+[90mstdout[2m | tests/signAndTradeAggregation.test.js[2m > [22m[2mSign-and-Trade Aggregation Rules[2m > [22m[2mThird Party Unaffected in 3-Team S&T[2m > [22m[2mallows third party team to receive multiple non-S&T players[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 30000000,
+  postTradeSalary: 120000000,
+  formula: '100000000 - 10000000 + 30000000 = 120000000'
+}
+
+ [32m✓[39m tests/architect/e2e-workflows.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 91[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase47c_tpe_persistence_hardening_guardrails.test.js [2m ([22m[2m16 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.js [2m ([22m[2m20 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m tests/computeTeamCapTotals.test.js [2m ([22m[2m24 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/phase5DraftPositions.test.js [2m ([22m[2m32 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m tests/validators/stepienEntitlements.test.js [2m ([22m[2m30 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/conveyancePreflight.test.js [2m ([22m[2m38 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.js [2m ([22m[2m24 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m tests/architect/EditContractModal.rules.test.jsx [2m ([22m[2m12 tests[22m[2m)[22m[33m 678[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phase17_1_protections_guardrail.test.ts [2m ([22m[2m20 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m tests/architect/renounceRights.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.js [2m ([22m[2m17 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m tests/architect/tradeManager.test.js [2m ([22m[2m21 tests[22m[2m)[22m[90m 49[2mms[22m[39m
+ [32m✓[39m src/tests/trade/tradeMultiSurfaceOfficialValues.test.js [2m ([22m[2m28 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase66_no_legacy_tradeExceptions_persisted_guardrails.test.js [2m ([22m[2m17 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx [2m ([22m[2m19 tests[22m[2m)[22m[90m 222[2mms[22m[39m
+ [32m✓[39m tests/architect/salaryEngine.test.js [2m ([22m[2m19 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phase17_5_ranked_conveyance_and_conflict_guardrail.test.ts [2m ([22m[2m17 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase55_trade_validation_separation_guardrails.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 42[2mms[22m[39m
+[90mstdout[2m | src/tests/architect/phase55_trade_validation_separation_guardrails.test.js[2m > [22m[2mPhase 55: Trade Validation Separation Guardrails[2m > [22m[2mTest 1: computeTradeResult Validation Context Attachment[2m > [22m[2mexecuteTrade result includes _validatedTradeContext with correct structure[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 10000000 + 10000000 = 150000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase55_trade_validation_separation_guardrails.test.js[2m > [22m[2mPhase 55: Trade Validation Separation Guardrails[2m > [22m[2mTest 1: computeTradeResult Validation Context Attachment[2m > [22m[2mexecuteTrade failed result still includes validation context[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 190000000,
+  salaryOut: 30000000,
+  salaryIn: 0,
+  postTradeSalary: 160000000,
+  formula: '190000000 - 30000000 + 0 = 160000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase55_trade_validation_separation_guardrails.test.js[2m > [22m[2mPhase 55: Trade Validation Separation Guardrails[2m > [22m[2mTest 2: Validation Context Contains TPE Data[2m > [22m[2mteamResults includes createdTPE when TPE should be created[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 175000000,
+  salaryOut: 15000000,
+  salaryIn: 8000000,
+  postTradeSalary: 168000000,
+  formula: '175000000 - 15000000 + 8000000 = 168000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase55_trade_validation_separation_guardrails.test.js[2m > [22m[2mPhase 55: Trade Validation Separation Guardrails[2m > [22m[2mTest 3: De-duplication Flag[2m > [22m[2m_isValidatedTradeContext flag is set to true[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 10000000 + 10000000 = 150000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase55_trade_validation_separation_guardrails.test.js[2m > [22m[2mPhase 55: Trade Validation Separation Guardrails[2m > [22m[2mTest 4: validateTradeForContext Export (Legacy)[2m > [22m[2mvalidateTradeForContext returns valid context structure[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team TMA',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 10000000 + 10000000 = 150000000'
+}
+
+ [32m✓[39m src/tests/architect/phase16_seasonmanager_entitlements_ssot_view_guardrail.test.js [2m ([22m[2m19 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phase17_4_1_resolver_swap_graph_guardrail.test.ts [2m ([22m[2m14 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase13_entitlementIds_transfer_guardrail.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/tests/trade/TradeValidationGating.guardrail.test.jsx [2m ([22m[2m27 tests[22m[2m)[22m[90m 219[2mms[22m[39m
+ [32m✓[39m tests/architect/contractNormalization.test.js [2m ([22m[2m52 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phase17_4_pool_and_chained_swaps_guardrail.test.ts [2m ([22m[2m11 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js [2m ([22m[2m26 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m tests/architect/teamLoader.test.js [2m ([22m[2m21 tests[22m[2m)[22m[90m 69[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/stepienObligations.test.js [2m ([22m[2m21 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js [2m ([22m[2m18 tests[22m[2m)[22m[90m 91[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/dareResolver.test.js [2m ([22m[2m16 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/tests/architect/exceptionManagement.test.js [2m ([22m[2m18 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/trade/P0_hardCapSkip_worldless.guardrail.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 27[2mms[22m[39m
+[90mstdout[2m | src/tests/trade/P0_hardCapSkip_worldless.guardrail.test.js[2m > [22m[2mP0 HARD_CAP_SKIP Worldless Regression Tests[2m > [22m[2mWorldless teams without triggers[2m > [22m[2mteam with only totals.hardCapLevel !== "none" but hardCapped not boolean true[22m[39m
+[getHardCapStatus] Worldless mode: ignoring non-boolean hardCapped: { value: 'FirstApron', type: 'string' }
+
+[90mstdout[2m | src/tests/trade/P0_hardCapSkip_worldless.guardrail.test.js[2m > [22m[2mP0 HARD_CAP_SKIP Worldless Regression Tests[2m > [22m[2mTrade receipt matching semantics[2m > [22m[2mtrade receipt salaryMatchingEvaluation runs for hard-capped teams[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 0 + 0 = 100000000'
+}
+
+[90mstdout[2m | src/tests/trade/P0_hardCapSkip_worldless.guardrail.test.js[2m > [22m[2mP0 HARD_CAP_SKIP Worldless Regression Tests[2m > [22m[2mTrade receipt matching semantics[2m > [22m[2mtrade receipt uses global cap settings for skipped teams[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 0 + 0 = 100000000'
+}
+
+[90mstdout[2m | src/tests/trade/P0_hardCapSkip_worldless.guardrail.test.js[2m > [22m[2mP0 HARD_CAP_SKIP Worldless Regression Tests[2m > [22m[2mgetHardCapStatus function[2m > [22m[2mignores string values in worldless mode[22m[39m
+[getHardCapStatus] Worldless mode: ignoring non-boolean hardCapped: { value: 'FirstApron', type: 'string' }
+[getHardCapStatus] Worldless mode: ignoring unexpected hardCapTriggered: { value: 'true', type: 'string' }
+
+ [32m✓[39m tests/architect/overrideBypass.test.js [2m ([22m[2m24 tests[22m[2m)[22m[90m 47[2mms[22m[39m
+ [32m✓[39m tests/tradeValidator.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 120[2mms[22m[39m
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2menforces salary matching when a team is over the cap[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 160000000,
+  salaryOut: 10000000,
+  salaryIn: 20000000,
+  postTradeSalary: 170000000,
+  formula: '160000000 - 10000000 + 20000000 = 170000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mflags trades that would violate a hard cap[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 180000000,
+  salaryOut: 0,
+  salaryIn: 10000000,
+  postTradeSalary: 190000000,
+  formula: '180000000 - 0 + 10000000 = 190000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2menforces sign-and-trade restrictions[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 15000000,
+  salaryIn: 15000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 15000000 + 15000000 = 100000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mallows valid sign-and-trade deals[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 15000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 20000000 + 15000000 = 95000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mblocks sign-and-trade hard cap violations[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 15000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 20000000 + 15000000 = 95000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mrequires sign-and-trade contracts to be 3-4 years[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mdetects Stepien Rule violations[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 0 + 0 = 100000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mallows protected picks to bypass Stepien Rule[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 0 + 0 = 100000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2menforces second apron restrictions[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 210000000,
+  salaryOut: 15000000,
+  salaryIn: 15000000,
+  postTradeSalary: 210000000,
+  formula: '210000000 - 15000000 + 15000000 = 210000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mprevents second apron teams from taking back more salary[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 210000000,
+  salaryOut: 10000000,
+  salaryIn: 12000000,
+  postTradeSalary: 212000000,
+  formula: '210000000 - 10000000 + 12000000 = 212000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mblocks cash considerations for second apron teams[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 210000000,
+  salaryOut: 1000000,
+  salaryIn: 1000000,
+  postTradeSalary: 210000000,
+  formula: '210000000 - 1000000 + 1000000 = 210000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mrestricts trading picks more than 7 years out[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 0 + 0 = 100000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mhandles 3-team trades correctly[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+[90mstdout[2m | tests/tradeValidator.test.js[2m > [22m[2mtradeValidator[2m > [22m[2mprovides summary and financial deltas[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 5000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 10000000 + 5000000 = 95000000'
+}
+
+ [32m✓[39m tests/validators/stepienEntitlementBaseline.test.js [2m ([22m[2m19 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/entitlements/vacuumEntitlementOverlayStore.test.ts [2m ([22m[2m29 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase69_seeded_verify_only_nonempty_proof_guardrails.test.js [2m ([22m[2m28 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase42_apron_derivation_consolidation.test.js [2m ([22m[2m19 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/entitlements/entitlementResolver.vacuumOverlay.test.ts [2m ([22m[2m8 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase86_league_invariants.test.js [2m ([22m[2m17 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase47_tpe_persistence_guardrails.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 38[2mms[22m[39m
+[90mstdout[2m | src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.js[2m > [22m[2mPhase 56: Pure computeTradeResult Guardrails[2m > [22m[2mTest 2: validatePostTradeSnapshotForContext Calls Validate Once[2m > [22m[2mshould call validateTrade exactly once[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team A',
+  preTradeTeamSalary: 0,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 0,
+  formula: '0 - 0 + 0 = 0'
+}
+
+[90mstdout[2m | src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.js[2m > [22m[2mPhase 56: Pure computeTradeResult Guardrails[2m > [22m[2mTest 2: validatePostTradeSnapshotForContext Calls Validate Once[2m > [22m[2mshould return validated context with correct structure[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team A',
+  preTradeTeamSalary: 0,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 0,
+  formula: '0 - 0 + 0 = 0'
+}
+
+[90mstdout[2m | src/tests/architect/phase56_pure_computeTradeResult_guardrails.test.js[2m > [22m[2mPhase 56: Pure computeTradeResult Guardrails[2m > [22m[2mTest 3: Legacy Compatibility - validateTradeForContext[2m > [22m[2mshould still work as a convenience wrapper[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team A',
+  preTradeTeamSalary: 0,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 0,
+  formula: '0 - 0 + 0 = 0'
+}
+
+[90mstdout[2m | src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js[2m > [22m[2mPhase D3: TRUE E2E Gate - Real Entrypoint Verification[2m > [22m[2mB) computeWorldMutation Pure Layer Verification[2m > [22m[2mTEST 5: computeWorldMutation accepts executeTrade and returns structured result[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'BOS Test Team',
+  preTradeTeamSalary: 15000000,
+  salaryOut: 15000000,
+  salaryIn: 15000000,
+  postTradeSalary: 15000000,
+  formula: '15000000 - 15000000 + 15000000 = 15000000'
+}
+
+ [32m✓[39m src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/tests/architect/pickRightWizard.test.tsx [2m ([22m[2m25 tests[22m[2m)[22m[33m 597[2mms[22m[39m
+ [32m✓[39m tests/contractNormalizationValidation.test.js [2m ([22m[2m16 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase70_ci_proof_and_prod_write_safety_guardrails.test.js [2m ([22m[2m27 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.js [2m ([22m[2m13 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase17_entitlement_routing_guardrail.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/tests/architect/pickRightWizard.vacuumApply.test.tsx [2m ([22m[2m11 tests[22m[2m)[22m[33m 340[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/conveyanceResolutionAdapter.test.js [2m ([22m[2m10 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase59_legacy_import_guardrail.test.js [2m ([22m[2m13 tests[22m[2m)[22m[90m 48[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phaseD3_true_e2e_gate_guardrails.test.js [2m ([22m[2m16 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase68_verify_only_empty_scan_must_fail_guardrails.test.js [2m ([22m[2m27 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/pickIdUtils.test.js [2m ([22m[2m34 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/seasonSwapResolution.test.js [2m ([22m[2m13 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/draftPicksPreflight.test.js [2m ([22m[2m23 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/tests/trade/hardCapSkip_strict_boolean.guardrail.test.js [2m ([22m[2m10 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+[90mstdout[2m | src/tests/trade/hardCapSkip_strict_boolean.guardrail.test.js[2m > [22m[2mHARD_CAP_SKIP Strict Boolean Checks[2m > [22m[2mString values must NOT trigger skip[2m > [22m[2mhardCapped="false" (string) must NOT skip[22m[39m
+[getHardCapStatus] Worldless mode: ignoring non-boolean hardCapped: { value: 'false', type: 'string' }
+
+[90mstdout[2m | src/tests/trade/hardCapSkip_strict_boolean.guardrail.test.js[2m > [22m[2mHARD_CAP_SKIP Strict Boolean Checks[2m > [22m[2mString values must NOT trigger skip[2m > [22m[2mhardCapTriggered="false" (string) must NOT skip[22m[39m
+[getHardCapStatus] Worldless mode: ignoring unexpected hardCapTriggered: { value: 'false', type: 'string' }
+
+[90mstdout[2m | src/tests/architect/phase15_trade_payload_entitlements_only_guardrail.test.js[2m > [22m[2mPhase 15: Trade Payload Entitlements-Only Guardrails[2m > [22m[2mPayload structure validation[2m > [22m[2mvalidates trade successfully with entitlements-only payload[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'TeamA',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 5000000 + 5000000 = 100000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase15_trade_payload_entitlements_only_guardrail.test.js[2m > [22m[2mPhase 15: Trade Payload Entitlements-Only Guardrails[2m > [22m[2mLegacy pick field injection (must be ignored)[2m > [22m[2mlegacy picksOut field is ignored and does not affect validation[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'TeamA',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 5000000 + 5000000 = 100000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'TeamA',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 5000000 + 5000000 = 100000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase15_trade_payload_entitlements_only_guardrail.test.js[2m > [22m[2mPhase 15: Trade Payload Entitlements-Only Guardrails[2m > [22m[2mLegacy pick field injection (must be ignored)[2m > [22m[2mlegacy outgoingPicks field is ignored and does not affect validation[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'TeamA',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 5000000 + 5000000 = 100000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'TeamA',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 5000000 + 5000000 = 100000000'
+}
+
+[90mstdout[2m | src/tests/architect/phase15_trade_payload_entitlements_only_guardrail.test.js[2m > [22m[2mPhase 15: Trade Payload Entitlements-Only Guardrails[2m > [22m[2mLegacy pick field injection (must be ignored)[2m > [22m[2mlegacy incomingPicks field is ignored and does not affect validation[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'TeamA',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 5000000 + 5000000 = 100000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'TeamA',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 5000000 + 5000000 = 100000000'
+}
+
+ [32m✓[39m src/tests/architect/phase15_trade_payload_entitlements_only_guardrail.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 46[2mms[22m[39m
+ [32m✓[39m src/tests/trade/staleValidationFix.test.js [2m ([22m[2m20 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/tests/trade/goldenTrades.test.js [2m ([22m[2m11 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+[90mstdout[2m | src/tests/trade/goldenTrades.test.js[2m > [22m[2mGolden Trade Regression Tests[2m > [22m[2mSecond Apron Restrictions[2m > [22m[2mGOLDEN-07: Second apron team cannot receive more than sent[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 210000000,
+  salaryOut: 10000000,
+  salaryIn: 12000000,
+  postTradeSalary: 212000000,
+  formula: '210000000 - 10000000 + 12000000 = 212000000'
+}
+
+[90mstdout[2m | src/tests/trade/goldenTrades.test.js[2m > [22m[2mGolden Trade Regression Tests[2m > [22m[2mSecond Apron Restrictions[2m > [22m[2mGOLDEN-08: Second apron team cannot aggregate salaries[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 210000000,
+  salaryOut: 15000000,
+  salaryIn: 15000000,
+  postTradeSalary: 210000000,
+  formula: '210000000 - 15000000 + 15000000 = 210000000'
+}
+
+[90mstdout[2m | src/tests/trade/goldenTrades.test.js[2m > [22m[2mGolden Trade Regression Tests[2m > [22m[2mTrade Receipt Consistency[2m > [22m[2mGOLDEN-11: Trade receipt captures calculation details[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 10000000,
+  salaryIn: 8000000,
+  postTradeSalary: 148000000,
+  formula: '150000000 - 10000000 + 8000000 = 148000000'
+}
+
+ [32m✓[39m tests/trade/secondApronBoundary.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 45[2mms[22m[39m
+[90mstdout[2m | tests/trade/secondApronBoundary.test.js[2m > [22m[2msecond apron boundary cases[2m > [22m[2mdoes not classify projectedSalary equal to secondApron as second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 180000000,
+  salaryOut: 0,
+  salaryIn: 10000000,
+  postTradeSalary: 190000000,
+  formula: '180000000 - 0 + 10000000 = 190000000'
+}
+
+[90mstdout[2m | tests/trade/secondApronBoundary.test.js[2m > [22m[2msecond apron boundary cases[2m > [22m[2mclassifies projectedSalary exceeding secondApron by $1 as second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 180000000,
+  salaryOut: 0,
+  salaryIn: 10000001,
+  postTradeSalary: 190000001,
+  formula: '180000000 - 0 + 10000001 = 190000001'
+}
+
+[90mstdout[2m | tests/trade/secondApronBoundary.test.js[2m > [22m[2msecond apron boundary cases[2m > [22m[2mdoes not classify pre-trade salary equal to secondApron as second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 190000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 190000000,
+  formula: '190000000 - 10000000 + 10000000 = 190000000'
+}
+
+[90mstdout[2m | tests/trade/secondApronBoundary.test.js[2m > [22m[2msecond apron boundary cases[2m > [22m[2mclassifies pre-trade salary above secondApron as second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 190000001,
+  salaryOut: 10000000,
+  salaryIn: 12000000,
+  postTradeSalary: 192000001,
+  formula: '190000001 - 10000000 + 12000000 = 192000001'
+}
+
+[90mstdout[2m | tests/trade/secondApronBoundary.test.js[2m > [22m[2msecond apron boundary cases[2m > [22m[2mregression: Phase 33 scenario no longer emits spurious second apron violation[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 180000000,
+  salaryOut: 0,
+  salaryIn: 10000000,
+  postTradeSalary: 190000000,
+  formula: '180000000 - 0 + 10000000 = 190000000'
+}
+
+ [32m✓[39m tests/capSettingsProvider.test.js [2m ([22m[2m17 tests[22m[2m)[22m[90m 29[2mms[22m[39m
+[90mstdout[2m | tests/capSettingsProvider.test.js[2m > [22m[2mPhase 4: Trade Receipt Integration[2m > [22m[2mincludes cap settings in trade receipt[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 160000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 160000000,
+  formula: '160000000 - 10000000 + 10000000 = 160000000'
+}
+
+[90mstdout[2m | tests/capSettingsProvider.test.js[2m > [22m[2mPhase 4: Trade Receipt Integration[2m > [22m[2mshows cap settings warnings in trade receipt when using fallback[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 160000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 160000000,
+  formula: '160000000 - 0 + 0 = 160000000'
+}
+
+[90mstdout[2m | tests/capSettingsProvider.test.js[2m > [22m[2mPhase 4: Trade Receipt Integration[2m > [22m[2mincludes cap settings version in trade receipt[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+ [32m✓[39m src/tests/architect/dare/protectionLadderFactory.test.js [2m ([22m[2m27 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m tests/architect/seasonHelpers.test.js [2m ([22m[2m34 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/tests/architect/entitlementInvariants.test.js [2m ([22m[2m12 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase40_secondApron_drift_guardrails.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+[90mstdout[2m | src/tests/architect/phase40_secondApron_drift_guardrails.test.js[2m > [22m[2mPhase 40: Second Apron Strict Drift Guardrails[2m > [22m[2mdraftPickUtils.js: isFrozenPick[2m > [22m[2mshould IGNORE legacy parameter teamIsAtOrAboveSecondApron[22m[39m
+=== isFrozenPick called ===
+pick: { round: 1, year: 2032, teamId: 't1' }
+teamId: t1
+teamIsSecondApron: undefined
+currentSeason: 2025
+Team not at second apron, returning false
+
+[90mstdout[2m | src/tests/architect/phase40_secondApron_drift_guardrails.test.js[2m > [22m[2mPhase 40: Second Apron Strict Drift Guardrails[2m > [22m[2mdraftPickUtils.js: isFrozenPick[2m > [22m[2mshould support new parameter teamIsSecondApron[22m[39m
+=== isFrozenPick called ===
+pick: { round: 1, year: 2032, teamId: 't1' }
+teamId: t1
+teamIsSecondApron: true
+currentSeason: 2025
+Analysis:
+  yearsOut: 7
+  isFrozen (>=7): true
+  isFirstRound: true
+  isOwnPick: true
+  RESULT: true
+=== end isFrozenPick ===
+=== isFrozenPick called ===
+pick: { round: 1, year: 2032, teamId: 't1' }
+teamId: t1
+teamIsSecondApron: false
+currentSeason: 2025
+Team not at second apron, returning false
+
+ [32m✓[39m src/tests/architect/capLegality/exceptionBlocking.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase67_migration_execution_guardrails.test.js [2m ([22m[2m18 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/tests/roster/rosterBuilderUtils.test.ts [2m ([22m[2m22 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/tests/architect/capTotals/leagueViewSsot.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase86_oste_offseason_transition_engine.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phaseD4_true_e2e_gate_guardrails.test.js [2m ([22m[2m21 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/tests/architect/GMDashboard.smoke.test.tsx [2m ([22m[2m5 tests[22m[2m)[22m[33m 334[2mms[22m[39m
+ [32m✓[39m src/tests/architect/entitlementEditorModal.test.tsx [2m ([22m[2m5 tests[22m[2m)[22m[33m 598[2mms[22m[39m
+ [32m✓[39m src/tests/architect/dare/phaseD2_true_e2e_trade_to_advance_gate.test.js [2m ([22m[2m17 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase43_apron_drift_prevention_guardrails.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 80[2mms[22m[39m
+ [32m✓[39m tests/salaryMatchingRules.test.js [2m ([22m[2m16 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m tests/contractLukaDoncicSpec.test.js [2m ([22m[2m19 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.js [2m ([22m[2m18 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/tests/architect/rosterChargeDisplay.test.jsx [2m ([22m[2m7 tests[22m[2m)[22m[90m 133[2mms[22m[39m
+ [32m✓[39m tests/validationPerformance.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 65[2mms[22m[39m
+[90mstdout[2m | tests/validationPerformance.test.js[2m > [22m[2mValidation Performance Tests[2m > [22m[2mmeasures cache effectiveness for repeated validations[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+
+[90mstdout[2m | tests/validationPerformance.test.js[2m > [22m[2mValidation Performance Tests[2m > [22m[2mvalidates cache invalidation triggers[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+Invalidated 0 salaryMatch cache entries for team TEAMA
+Invalidated 0 hardCap cache entries for team TEAMA
+
+[90mstdout[2m | tests/validationPerformance.test.js[2m > [22m[2mValidation Performance Tests[2m > [22m[2mmeasures validation time distribution[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+
+[90mstdout[2m | tests/validationPerformance.test.js[2m > [22m[2mValidation Performance Tests[2m > [22m[2mhandles concurrent validations efficiently[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 17360115.83752624,
+  salaryIn: 7723682.815846349,
+  postTradeSalary: 90363566.97832012,
+  formula: '100000000 - 17360115.83752624 + 7723682.815846349 = 90363566.97832012'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 23994668.184274018,
+  salaryIn: 1991742.4429506992,
+  postTradeSalary: 77997074.25867668,
+  formula: '100000000 - 23994668.184274018 + 1991742.4429506992 = 77997074.25867668'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 4883927.429217322,
+  salaryIn: 19663124.283273876,
+  postTradeSalary: 114779196.85405655,
+  formula: '100000000 - 4883927.429217322 + 19663124.283273876 = 114779196.85405655'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 8063758.380202118,
+  salaryIn: 14683239.747080244,
+  postTradeSalary: 106619481.36687812,
+  formula: '100000000 - 8063758.380202118 + 14683239.747080244 = 106619481.36687812'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 16091761.746218842,
+  salaryIn: 15151482.485400723,
+  postTradeSalary: 99059720.73918188,
+  formula: '100000000 - 16091761.746218842 + 15151482.485400723 = 99059720.73918188'
+}
+
+[90mstdout[2m | tests/validationPerformance.test.js[2m > [22m[2mValidation Performance Tests[2m > [22m[2mtracks cache hit rate over time[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+
+[90mstdout[2m | tests/validationPerformance.test.js[2m > [22m[2mValidation Performance Tests[2m > [22m[2mmonitors validation performance trends[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+
+[90mstdout[2m | tests/validationPerformance.test.js[2m > [22m[2mValidation Performance Tests[2m > [22m[2midentifies slow validations and generates recommendations[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Team 0',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 35000000,
+  salaryIn: 30000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 35000000 + 30000000 = 95000000'
+}
+
+ [32m✓[39m src/tests/architect/worldTime.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/tests/trade/hardCap_salaryMatching.guardrail.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/trade/worldless_season_mapping.guardrail.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m tests/newSchemaValidation.test.js [2m ([22m[2m15 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m tests/validators/stepien.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/tests/architect/vacuumE3.autoValidation.test.ts [2m ([22m[2m6 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/useArchitectActions.freeAgency.test.tsx [2m ([22m[2m3 tests[22m[2m)[22m[90m 87[2mms[22m[39m
+ [32m✓[39m src/features/architect/utils/validatePhase21.test.js [2m ([22m[2m10 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m tests/tradeValidatorEdgeCases.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 37[2mms[22m[39m
+[90mstdout[2m | tests/tradeValidatorEdgeCases.test.js[2m > [22m[2mtradeValidator edge cases[2m > [22m[2mallows 3-team trade mixing players, picks and cash when below aprons[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 8000000,
+  salaryIn: 12000000,
+  postTradeSalary: 104000000,
+  formula: '100000000 - 8000000 + 12000000 = 104000000'
+}
+
+[90mstdout[2m | tests/tradeValidatorEdgeCases.test.js[2m > [22m[2mtradeValidator edge cases[2m > [22m[2mfails when a team trades consecutive unprotected firsts in a 3-team deal[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 0 + 0 = 100000000'
+}
+
+[90mstdout[2m | tests/tradeValidatorEdgeCases.test.js[2m > [22m[2mtradeValidator edge cases[2m > [22m[2mblocks second apron teams receiving more salary than sent[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 210000000,
+  salaryOut: 10000000,
+  salaryIn: 14000000,
+  postTradeSalary: 214000000,
+  formula: '210000000 - 10000000 + 14000000 = 214000000'
+}
+
+[90mstdout[2m | tests/tradeValidatorEdgeCases.test.js[2m > [22m[2mtradeValidator edge cases[2m > [22m[2mdisallows cash from teams over the second apron[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 210000000,
+  salaryOut: 2000000,
+  salaryIn: 2000000,
+  postTradeSalary: 210000000,
+  formula: '210000000 - 2000000 + 2000000 = 210000000'
+}
+
+[90mstdout[2m | tests/tradeValidatorEdgeCases.test.js[2m > [22m[2mtradeValidator edge cases[2m > [22m[2mpermits cash when all teams are below the second apron[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 2000000,
+  salaryIn: 2000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 2000000 + 2000000 = 100000000'
+}
+
+ [32m✓[39m src/tests/architect/phase72_ssot_cap_totals_unification_guardrails.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m tests/entitlements/worldTradeTransfer.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m tests/entitlements/entitlementTrading.test.js [2m ([22m[2m11 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m tests/salaryMatchingUnification.test.js [2m ([22m[2m12 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/trade/tpe_perPlayer.guardrail.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase80_emulator_e2e_cap_sheet_proof_guardrails.test.js [2m ([22m[2m14 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m tests/playerSchemaValidation.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m tests/entitlements/vacuumTradeTransfer.test.ts [2m ([22m[2m17 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/tests/architect/vacuumE3.duplicateAsNew.test.tsx [2m ([22m[2m5 tests[22m[2m)[22m[90m 73[2mms[22m[39m
+ [32m✓[39m tests/trade/validation_caching.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+[90mstdout[2m | tests/trade/validation_caching.test.js[2m > [22m[2mValidation Caching[2m > [22m[2mSalary Matching Cache[2m > [22m[2mcaches and retrieves salary matching results[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 0 + 0 = 150000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 0 + 0 = 150000000'
+}
+
+[90mstdout[2m | tests/trade/validation_caching.test.js[2m > [22m[2mValidation Caching[2m > [22m[2mSalary Matching Cache[2m > [22m[2minvalidates cache when salary values change[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 0 + 0 = 150000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 200000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 200000000,
+  formula: '200000000 - 0 + 0 = 200000000'
+}
+
+[90mstdout[2m | tests/trade/validation_caching.test.js[2m > [22m[2mValidation Caching[2m > [22m[2mHard Cap Cache[2m > [22m[2mcaches and retrieves hard cap results[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 170000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 170000000,
+  formula: '170000000 - 0 + 0 = 170000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 170000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 170000000,
+  formula: '170000000 - 0 + 0 = 170000000'
+}
+
+[90mstdout[2m | tests/trade/validation_caching.test.js[2m > [22m[2mValidation Caching[2m > [22m[2mHard Cap Cache[2m > [22m[2minvalidates cache when projected salary changes[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 170000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 170000000,
+  formula: '170000000 - 0 + 0 = 170000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 175000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 175000000,
+  formula: '175000000 - 0 + 0 = 175000000'
+}
+
+[90mstdout[2m | tests/trade/validation_caching.test.js[2m > [22m[2mValidation Caching[2m > [22m[2mTrade Validation Cache[2m > [22m[2mcaches complete trade validation results[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 0 + 0 = 150000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 0 + 0 = 150000000'
+}
+
+[90mstdout[2m | tests/trade/validation_caching.test.js[2m > [22m[2mValidation Caching[2m > [22m[2mTrade Validation Cache[2m > [22m[2mhandles different trade parameters correctly[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 0 + 0 = 150000000'
+}
+[Definition Gate] Team salary breakdown {
+  team: 'Test Team',
+  preTradeTeamSalary: 200000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 200000000,
+  formula: '200000000 - 0 + 0 = 200000000'
+}
+
+ [32m✓[39m src/tests/architect/dare/swapResolutionAdapter.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/architect/capTotals/incompleteRosterCharge.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/entitlementEditorProtection.test.tsx [2m ([22m[2m8 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/tests/architect/utils/freeAgencyFilterPersistence.test.ts [2m ([22m[2m15 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m tests/capUtils.test.js [2m ([22m[2m12 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m tests/trade/signAndTrade_completeness.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 45[2mms[22m[39m
+[90mstdout[2m | tests/trade/signAndTrade_completeness.test.js[2m > [22m[2msign-and-trade completeness[2m > [22m[2mrejects invalid contract years[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 5000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 10000000 + 5000000 = 95000000'
+}
+
+[90mstdout[2m | tests/trade/signAndTrade_completeness.test.js[2m > [22m[2msign-and-trade completeness[2m > [22m[2mrejects non-guaranteed first year[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 5000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 10000000 + 5000000 = 95000000'
+}
+
+[90mstdout[2m | tests/trade/signAndTrade_completeness.test.js[2m > [22m[2msign-and-trade completeness[2m > [22m[2mrejects sign-and-trade from non-origin team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 5000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 10000000 + 5000000 = 95000000'
+}
+
+[90mstdout[2m | tests/trade/signAndTrade_completeness.test.js[2m > [22m[2msign-and-trade completeness[2m > [22m[2mrejects sign-and-trade outside offseason[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 5000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 10000000 + 5000000 = 95000000'
+}
+
+[90mstdout[2m | tests/trade/signAndTrade_completeness.test.js[2m > [22m[2msign-and-trade completeness[2m > [22m[2mrejects teams using taxpayer MLE from receiving S&T players[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 5000000,
+  postTradeSalary: 95000000,
+  formula: '100000000 - 10000000 + 5000000 = 95000000'
+}
+
+[90mstdout[2m | tests/trade/signAndTrade_completeness.test.js[2m > [22m[2msign-and-trade completeness[2m > [22m[2menforces hard cap after sign-and-trade[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 20000000,
+  salaryIn: 1000000,
+  postTradeSalary: 81000000,
+  formula: '100000000 - 20000000 + 1000000 = 81000000'
+}
+
+ [32m✓[39m tests/architect/capHolds.test.ts [2m ([22m[2m11 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/utils/seasonManager.tpe.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m tests/trade/faExceptions_as_trade_buckets.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/tests/trade/secondApron_SSOT_guardrail.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/pickRightWizardDraft.test.ts [2m ([22m[2m11 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase16_3_trade_machine_init_guardrail.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m tests/architect/schemaAdapter.test.js [2m ([22m[2m9 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m tests/trade/tpe_creation_expiry_usage.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 37[2mms[22m[39m
+[90mstdout[2m | tests/trade/tpe_creation_expiry_usage.test.js[2m > [22m[2mTPE creation and usage[2m > [22m[2mcreates a TPE when sending out more salary than received[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 18000000,
+  salaryIn: 10000000,
+  postTradeSalary: 142000000,
+  formula: '150000000 - 18000000 + 10000000 = 142000000'
+}
+
+[90mstdout[2m | tests/trade/tpe_creation_expiry_usage.test.js[2m > [22m[2mTPE creation and usage[2m > [22m[2mrejects usage of an expired TPE[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 0,
+  salaryIn: 4000000,
+  postTradeSalary: 154000000,
+  formula: '150000000 - 0 + 4000000 = 154000000'
+}
+
+[90mstdout[2m | tests/trade/tpe_creation_expiry_usage.test.js[2m > [22m[2mTPE creation and usage[2m > [22m[2mrejects combining a TPE with outgoing salary[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 150000000,
+  salaryOut: 5000000,
+  salaryIn: 5000000,
+  postTradeSalary: 150000000,
+  formula: '150000000 - 5000000 + 5000000 = 150000000'
+}
+
+[90mstdout[2m | tests/trade/tpe_creation_expiry_usage.test.js[2m > [22m[2mTPE creation and usage[2m > [22m[2mrejects TPE usage for second-apron teams[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 220000000,
+  salaryOut: 0,
+  salaryIn: 4000000,
+  postTradeSalary: 224000000,
+  formula: '220000000 - 0 + 4000000 = 224000000'
+}
+
+ [32m✓[39m tests/architect/extension_voidedByExtension.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/tests/architect/vacuumE3.advancedEditorLock.test.tsx [2m ([22m[2m5 tests[22m[2m)[22m[90m 84[2mms[22m[39m
+ [32m✓[39m tests/architect/playerNameCorrections.test.ts [2m ([22m[2m22 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/tests/stripUndefinedDeep.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/pickTermsPreview.test.tsx [2m ([22m[2m6 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/draftPicksSmokeCheck.test.js [2m ([22m[2m10 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/tests/architect/capTotals/deadMoney.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/architect/deadCapManagement.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m tests/trade/input_validation.test.js [2m ([22m[2m8 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m tests/seasonUtilsNormalization.test.js [2m ([22m[2m11 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m tests/dateConversion.test.js [2m ([22m[2m16 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/tests/architect/noVacuumWording.test.ts [2m ([22m[2m7 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m tests/architect/worldsOnlyRegression.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 38[2mms[22m[39m
+ [32m✓[39m tests/trade/consent_and_reacq.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 47[2mms[22m[39m
+[90mstdout[2m | tests/trade/consent_and_reacq.test.js[2m > [22m[2mconsent and re-acquisition rules[2m > [22m[2mblocks full NTC without consent[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+[90mstdout[2m | tests/trade/consent_and_reacq.test.js[2m > [22m[2mconsent and re-acquisition rules[2m > [22m[2mallows full NTC with consent[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+[90mstdout[2m | tests/trade/consent_and_reacq.test.js[2m > [22m[2mconsent and re-acquisition rules[2m > [22m[2mallows limited NTC to approved team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+[90mstdout[2m | tests/trade/consent_and_reacq.test.js[2m > [22m[2mconsent and re-acquisition rules[2m > [22m[2mblocks limited NTC to non-approved team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+[90mstdout[2m | tests/trade/consent_and_reacq.test.js[2m > [22m[2mconsent and re-acquisition rules[2m > [22m[2mblocks one-year Bird veto without consent[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+[90mstdout[2m | tests/trade/consent_and_reacq.test.js[2m > [22m[2mconsent and re-acquisition rules[2m > [22m[2mblocks re-acquisition within one year[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 10000000,
+  salaryIn: 10000000,
+  postTradeSalary: 100000000,
+  formula: '100000000 - 10000000 + 10000000 = 100000000'
+}
+
+ [32m✓[39m src/tests/architect/phase49_tpe_exception_history_logging_guardrails.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/pickSelector.test.tsx [2m ([22m[2m10 tests[22m[2m)[22m[90m 199[2mms[22m[39m
+ [32m✓[39m tests/entitlements/entitlementTerms.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m tests/salaryMargin.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+[90mstdout[2m | tests/salaryMargin.test.js[2m > [22m[2mSalary Margin Utilities[2m > [22m[2mgetAllowableIncomingMargin[2m > [22m[2mreturns zero for teams above second apron[22m[39m
+[getAllowableIncomingMargin] {
+  team: undefined,
+  teamTotalSalary: 190000000,
+  secondApron: 188938000,
+  isAboveSecondApron: true,
+  marginAboutToReturn: 0
+}
+
+[90mstdout[2m | tests/salaryMargin.test.js[2m > [22m[2mSalary Margin Utilities[2m > [22m[2mgetAllowableIncomingMargin[2m > [22m[2mreturns cap space for under-cap teams[22m[39m
+[getAllowableIncomingMargin] {
+  team: undefined,
+  teamTotalSalary: 130000000,
+  secondApron: 188938000,
+  isAtOrAboveSecondApron: false,
+  marginAboutToReturn: 10588000
+}
+
+[90mstdout[2m | tests/salaryMargin.test.js[2m > [22m[2mSalary Margin Utilities[2m > [22m[2mgetAllowableIncomingMargin[2m > [22m[2mapplies appropriate trading bands for over-cap teams[22m[39m
+[getAllowableIncomingMargin] {
+  team: undefined,
+  teamTotalSalary: 150000000,
+  secondApron: 188938000,
+  isAtOrAboveSecondApron: false,
+  marginAboutToReturn: 7500000
+}
+
+[90mstdout[2m | tests/salaryMargin.test.js[2m > [22m[2mSalary Margin Utilities[2m > [22m[2mgetIncomingCeilingForTeam[2m > [22m[2mapplies trading bands for over-cap teams under first apron[22m[39m
+[getAllowableIncomingMargin] {
+  team: undefined,
+  teamTotalSalary: 150000000,
+  secondApron: 188938000,
+  isAtOrAboveSecondApron: false,
+  marginAboutToReturn: 7500000
+}
+
+ [32m✓[39m src/tests/architect/vacuumE3.sanitization.test.ts [2m ([22m[2m11 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m tests/validators/validationCache.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/entitlements/tradeReceiptEntitlements.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/tests/architect/useArchitectState.worldFreeAgency.test.tsx [2m ([22m[2m1 test[22m[2m)[22m[90m 144[2mms[22m[39m
+ [32m✓[39m src/tests/architect/utils/freeAgencyFilterUtils.test.ts [2m ([22m[2m7 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m tests/validators/salaryMatching.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/entitlements/entitlementTermsShort.test.ts [2m ([22m[2m7 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/tradeExceptions.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 15[2mms[22m[39m
+ [32m✓[39m src/tests/architect/entitlementEditorCreate.test.tsx [2m ([22m[2m7 tests[22m[2m)[22m[90m 146[2mms[22m[39m
+ [32m✓[39m tests/trade/jan15_offseason_timing.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/architect/offerSheetResolution.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+[90mstdout[2m | tests/contractDebugging.test.js[2m > [22m[2mContract Salary Debugging[2m > [22m[2mreproduces LeBron $0 issue[22m[39m
+LeBron salary (getSalaryForYear): 48745000
+LeBron salary (getContractSalaryForYear): 0
+
+[90mstdout[2m | tests/contractDebugging.test.js[2m > [22m[2mContract Salary Debugging[2m > [22m[2mreproduces Luka $14.3M issue[22m[39m
+Luka salary (getSalaryForYear): 46507580
+Luka salary (getContractSalaryForYear): 46507580
+
+[90mstdout[2m | tests/contractDebugging.test.js[2m > [22m[2mContract Salary Debugging[2m > [22m[2mdemonstrates wrong year lookup[22m[39m
+Luka salary with previous year (2025): 43031940
+Luka salary with current year (2026): 46507580
+
+ [32m✓[39m tests/contractDebugging.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/trade/secondApron_handcuffs.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/seasonNormalizer.test.js [2m ([22m[2m13 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m tests/rankingEngine.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m tests/validators/roster.test.js [2m ([22m[2m7 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/tests/architect/entitlementPickRowDisplay.test.jsx [2m ([22m[2m3 tests[22m[2m)[22m[90m 52[2mms[22m[39m
+ [32m✓[39m tests/architect/PlayerContractMini.voidedByExtension.test.jsx [2m ([22m[2m4 tests[22m[2m)[22m[90m 66[2mms[22m[39m
+ [32m✓[39m src/tests/videoExamples.undefined.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m tests/trade/tradeKicker_zeroGuarantee.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/contractSalaryUtils.test.js [2m ([22m[2m10 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/tests/architect/entitlementEditorSwapType.test.tsx [2m ([22m[2m6 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/trade/timingGates_softEnforcement.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m tests/tradeHelpers.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m tests/contractOptionUsed.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m src/tests/architect/vacuumE3.decorateEntitlement.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/tests/architect/utils/capRulesProfile.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+[90mstdout[2m | tests/contractFixValidation.test.js[2m > [22m[2mContract Data Fix Validation[2m > [22m[2mshould fix Luka wrong amount issue with correct year lookup[22m[39m
+✅ Current season (2026): 45000000
+✅ Previous season (2025): 40000000
+
+ [32m✓[39m tests/contractFixValidation.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/architect/CapSheetFull.rules.test.jsx [2m ([22m[2m2 tests[22m[2m)[22m[90m 86[2mms[22m[39m
+ [32m✓[39m tests/trade/secondApron_tpeBan.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+[90mstdout[2m | tests/trade/secondApron_tpeBan.test.js[2m > [22m[2msecond apron prior-year TPE usage[2m > [22m[2mrejects prior-year TPEs for second-apron teams[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 220000000,
+  salaryOut: 0,
+  salaryIn: 5000000,
+  postTradeSalary: 225000000,
+  formula: '220000000 - 0 + 5000000 = 225000000'
+}
+
+[90mstdout[2m | tests/trade/secondApron_tpeBan.test.js[2m > [22m[2msecond apron prior-year TPE usage[2m > [22m[2mdoes not block current-year TPEs for second-apron teams[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 220000000,
+  salaryOut: 0,
+  salaryIn: 5000000,
+  postTradeSalary: 225000000,
+  formula: '220000000 - 0 + 5000000 = 225000000'
+}
+
+[90mstdout[2m | tests/trade/secondApron_tpeBan.test.js[2m > [22m[2msecond apron prior-year TPE usage[2m > [22m[2mallows prior-year TPEs for teams below the apron[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 5000000,
+  postTradeSalary: 105000000,
+  formula: '100000000 - 0 + 5000000 = 105000000'
+}
+
+ [32m✓[39m tests/trade/frozenPick_consequences.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+[90mstdout[2m | tests/trade/frozenPick_consequences.test.js[2m > [22m[2mfrozen pick consequences[2m > [22m[2mrejects 2032 first for second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 220000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 220000000,
+  formula: '220000000 - 0 + 0 = 220000000'
+}
+
+[90mstdout[2m | tests/trade/frozenPick_consequences.test.js[2m > [22m[2mfrozen pick consequences[2m > [22m[2mrejects protected 2032 first for second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 220000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 220000000,
+  formula: '220000000 - 0 + 0 = 220000000'
+}
+
+[90mstdout[2m | tests/trade/frozenPick_consequences.test.js[2m > [22m[2mfrozen pick consequences[2m > [22m[2mallows 2031 first for second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 220000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 220000000,
+  formula: '220000000 - 0 + 0 = 220000000'
+}
+Team A salary: undefined
+Team A violations: []
+Team A legal: true
+Cap settings: undefined
+
+[90mstdout[2m | tests/trade/frozenPick_consequences.test.js[2m > [22m[2mfrozen pick consequences[2m > [22m[2mallows 2033 first for second apron team[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 220000000,
+  salaryOut: 0,
+  salaryIn: 0,
+  postTradeSalary: 220000000,
+  formula: '220000000 - 0 + 0 = 220000000'
+}
+
+[90mstdout[2m | tests/trade/orderOfOps_conversionsBeforeMatching.test.js[2m > [22m[2morder of operations: conversions before matching[2m > [22m[2mBYC conversion runs before matching[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 9000000,
+  salaryIn: 0,
+  postTradeSalary: 91000000,
+  formula: '100000000 - 9000000 + 0 = 91000000'
+}
+
+[90mstdout[2m | tests/trade/orderOfOps_conversionsBeforeMatching.test.js[2m > [22m[2morder of operations: conversions before matching[2m > [22m[2mpoison pill average runs before matching[22m[39m
+[Definition Gate] Team salary breakdown {
+  team: 'A',
+  preTradeTeamSalary: 100000000,
+  salaryOut: 0,
+  salaryIn: 8500000,
+  postTradeSalary: 108500000,
+  formula: '100000000 - 0 + 8500000 = 108500000'
+}
+
+ [32m✓[39m tests/trade/orderOfOps_conversionsBeforeMatching.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+[90mstdout[2m | tests/seasonIntegrationFinal.test.js[2m > [22m[2mSeason Year Integration - End to End[2m > [22m[2mdemonstrates the complete fix works with consistent year handling[22m[39m
+GMDashboard currentYear: 2026
+Contract lookup year: 2026
+Season display key: 2025-26
+Old incorrect start year: 2025
+✅ Fix: All contract lookups now use consistent END YEAR format (2026)
+❌ Problem: Using start year (2025) would look up previous season data
+
+[90mstdout[2m | tests/seasonIntegrationFinal.test.js[2m > [22m[2mSeason Year Integration - End to End[2m > [22m[2mvalidates season boundaries work correctly[22m[39m
+Season boundary validation passed
+
+ [32m✓[39m tests/seasonIntegrationFinal.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m src/tests/architect/OfferSheetList.freeAgency.test.jsx [2m ([22m[2m3 tests[22m[2m)[22m[90m 180[2mms[22m[39m
+[90mstdout[2m | tests/yearLogicIntegration.test.js[2m > [22m[2mYear Logic Integration Test[2m > [22m[2mshows the issue - different functions return different year formats[22m[39m
+Season start year (getCurrentSeasonYear): 2025
+Season end year (getDefaultSeasonEndYear): 2026
+Salary lookup with end year (2026): 12000000
+Salary lookup with start year (2025): 10000000
+
+ [32m✓[39m tests/yearLogicIntegration.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/trade/tradeKicker_proration.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m tests/validators/hardCap.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+[90mstdout[2m | tests/validators/hardCap.test.js[2m > [22m[2mvalidateHardCap[2m > [22m[2mfirst apron hard cap[2m > [22m[2mallows trades under first apron hard cap[22m[39m
+🔍 Hard Cap – Unknown Team
+✅ PASS
+
+[90mstdout[2m | tests/validators/hardCap.test.js[2m > [22m[2mvalidateHardCap[2m > [22m[2mfirst apron hard cap[2m > [22m[2mblocks trades exceeding first apron hard cap[22m[39m
+🔍 Hard Cap – Unknown Team
+❌ FAIL
+  Violations: Hard cap exceeded (1st Apron)
+
+[90mstdout[2m | tests/validators/hardCap.test.js[2m > [22m[2mvalidateHardCap[2m > [22m[2msecond apron hard cap[2m > [22m[2mallows trades under second apron hard cap[22m[39m
+🔍 Hard Cap – Unknown Team
+✅ PASS
+
+[90mstdout[2m | tests/validators/hardCap.test.js[2m > [22m[2mvalidateHardCap[2m > [22m[2msecond apron hard cap[2m > [22m[2mblocks trades exceeding second apron hard cap[22m[39m
+🔍 Hard Cap – Unknown Team
+❌ FAIL
+  Violations: Hard cap exceeded (2nd Apron)
+
+[90mstdout[2m | tests/validators/hardCap.test.js[2m > [22m[2mvalidateHardCap[2m > [22m[2mno hard cap[2m > [22m[2mallows trades when no hard cap is triggered[22m[39m
+🔍 Hard Cap – Unknown Team
+✅ PASS
+
+ [32m✓[39m src/tests/architect/apronSemantics.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/tests/architect/phase39_drift_guardrails.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m src/tests/architect/entitlementPickRow.vacuumBadges.test.jsx [2m ([22m[2m2 tests[22m[2m)[22m[90m 43[2mms[22m[39m
+ [32m✓[39m tests/architect/ExceptionTracker.tpe.test.jsx [2m ([22m[2m3 tests[22m[2m)[22m[90m 76[2mms[22m[39m
+ [32m✓[39m tests/tradeSalaryMatching.test.js [2m ([22m[2m6 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/trade/poisonPill_average.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m tests/trade/consent_and_birdVeto.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m tests/trade/salaryMatching.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m tests/smoke/trade-basics.smoke.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/trade/rosterWindow_softEnforcement.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m tests/trade/reacquisition_bar.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m src/tests/tradeMachine/displayFix.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m tests/hasStepienViolation.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/trade/matchingBands_2023.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/smoke/imports.smoke.test.js [2m ([22m[2m5 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m tests/trade/roster_twoWay_enforcement.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32m✓[39m tests/trade/hardCap_trigger_faException.test.js [2m ([22m[2m1 test[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m tests/trade/byc_outgoing_max.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/smoke/utilities.smoke.test.js [2m ([22m[2m4 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/trade/firstApron_100pct.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 3[2mms[22m[39m
+ [32m✓[39m tests/trade/cashLedger_season_tracking.test.js [2m ([22m[2m1 test[22m[2m)[22m[90m 3[2mms[22m[39m
+ [32m✓[39m tests/AnchorComparison.test.jsx [2m ([22m[2m1 test[22m[2m)[22m[90m 45[2mms[22m[39m
+ [32m✓[39m tests/RankingSetup.test.jsx [2m ([22m[2m1 test[22m[2m)[22m[90m 83[2mms[22m[39m
+ [32m✓[39m tests/contractYears.test.js [2m ([22m[2m3 tests[22m[2m)[22m[90m 4[2mms[22m[39m
+ [32m✓[39m tests/buildAnchorComparisons.test.js [2m ([22m[2m1 test[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32m✓[39m tests/schemas/contracts.fixture.test.ts [2m ([22m[2m1 test[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m tests/PlayerHeadshot.test.jsx [2m ([22m[2m1 test[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m tests/formatHeight.test.js [2m ([22m[2m2 tests[22m[2m)[22m[90m 2[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m230 passed[39m[22m[90m (230)[39m
+[2m      Tests [22m [1m[32m3015 passed[39m[22m[2m | [22m[33m1 skipped[39m[2m | [22m[90m3 todo[39m[90m (3019)[39m
+[2m   Start at [22m 02:17:59
+[2m   Duration [22m 74.54s[2m (transform 3.91s, setup 11.06s, collect 17.77s, tests 9.34s, environment 111.78s, prepare 26.47s)[22m
+
+Exit: 0

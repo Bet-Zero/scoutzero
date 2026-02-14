@@ -3,11 +3,12 @@
 ## Current Readiness Snapshot
 
 - Snapshot date: `2026-02-14` (UTC)
-- Status: **NOT READY (P1 executed, residual gates)**
+- Status: **READY (vacuum-mode)**
 - Readiness summary:
   - P1 must-ship implementation changes (G-01..G-06) have been applied and validated with build/test runs.
+  - P2 typecheck stabilization complete — `npm run typecheck` exits 0.
   - Trade apply now requires current validation and world-mode apply now awaits authoritative mutation before UI updates.
-  - Residual readiness risk is from remaining repo-level typecheck failures and environment-blocked world-mode manual verification.
+  - Remaining risk: environment-blocked world-mode manual verification (requires valid Firebase credentials).
 
 ## P0 Preflight
 
@@ -17,7 +18,7 @@
 
 ## Current Known Blockers (Severity-Ordered)
 
-1. `SEV-2` Repository typecheck still fails due pre-existing typed tests/scripts outside the targeted P1 runtime fixes (`return_packages/architect/_logs/ARCH_P1_typecheck.txt`).
+1. ~~`SEV-2` Repository typecheck still fails due pre-existing typed tests/scripts outside the targeted P1 runtime fixes~~ → **RESOLVED** in P2. `npm run typecheck` exits 0.
 2. `SEV-2` World-mode manual persistence acceptance (reload checks) is environment-blocked in this sandbox without valid Firebase credentials.
 
 ## Next Execution-Ready Workstream Pointers
@@ -37,7 +38,7 @@
 ## Revised Readiness Snapshot (Post-P1)
 
 - Snapshot date: `2026-02-14` (UTC)
-- Status: **NOT READY (vacuum-mode pending residual gates)**
+- Status: **READY (vacuum-mode)**
 - P1 must-ship implementation status:
   - `G-01` done (fresh validation gate enforced for apply)
   - `G-02` done (world-mode trade apply authoritative and awaited)
@@ -48,4 +49,14 @@
 - Validation snapshot:
   - `npm run build`: **PASS**
   - `npm run test -- --run`: **PASS**
-  - `npm run typecheck`: **FAIL** (residual non-target typed errors remain)
+  - `npm run typecheck`: **PASS** (P2 resolved all 27 residual type errors)
+
+## P2 Typecheck Stabilization
+
+- `return_packages/architect/ARCH_P2_TYPECHECK_RETURN_PACKAGE.md`
+- Logs:
+  - `return_packages/architect/_logs/ARCH_P2_typecheck_before.txt`
+  - `return_packages/architect/_logs/ARCH_P2_typecheck_after.txt`
+  - `return_packages/architect/_logs/ARCH_P2_build.txt`
+  - `return_packages/architect/_logs/ARCH_P2_test.txt`
+- Summary: Fixed 27 type errors across 6 files (5 test files, 1 scrape script) with minimal, behavior-preserving changes. No `@ts-ignore` or `@ts-nocheck` directives used.
