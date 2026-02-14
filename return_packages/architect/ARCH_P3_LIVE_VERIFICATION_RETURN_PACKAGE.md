@@ -95,7 +95,7 @@ While live verification is blocked, the P1 changes are covered by unit tests tha
 To complete P3 Checks 1–5, provide ONE of:
 
 1. **Firebase Emulator** (preferred for isolation):
-   - Install Firebase CLI: `npm install -g firebase-tools`
+   - Install Firebase CLI: `npx firebase-tools` (or `npm install -g firebase-tools`)
    - Run: `firebase emulators:start --only firestore,auth`
    - Seed at least one team + world + players into emulator Firestore
    - The app's `firebaseConfig.js` auto-connects to emulators in dev mode (port 8082)

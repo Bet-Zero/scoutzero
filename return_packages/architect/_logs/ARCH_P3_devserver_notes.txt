@@ -20,7 +20,7 @@ Starting the dev server (`npm run dev`) would launch Vite successfully (port 517
 
 ## Checks 1–5 Status
 
-All six interactive verification checks (CHECK 1 through CHECK 5, plus optional CHECK 6) require a working Firebase backend (production credentials or running emulator with seeded data). None can be completed in this environment.
+All five required interactive verification checks (CHECK 1 through CHECK 5) plus the optional CHECK 6 require a working Firebase backend (production credentials or running emulator with seeded data). None can be completed in this environment.
 
 ## Unblocking Steps (Smallest Possible)
 
