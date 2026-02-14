@@ -206,6 +206,8 @@ const TradeEditor = ({
     toast.success('Session pick changes cleared');
   };
 
+  const canApplyTrade = hasCurrentValidation && result?.legal === true;
+
   const resolveEntitlementTeamCode = (entitlement) =>
     entitlement?.holderTeam || entitlement?.holder_team || null;
 
@@ -370,15 +372,17 @@ const TradeEditor = ({
       <div className="flex flex-wrap gap-3 items-center">
         <button
           onClick={() => {
-            // Block trade application if validation fails and not forced
-            if (!forceTrade && result && !result.legal) {
+            if (!hasCurrentValidation) {
+              toast.error('Re-validate trade before applying.');
+              return;
+            }
+            if (result?.legal !== true) {
               alert(
                 'Cannot apply trade: ' +
-                  (result.reason || 'Trade validation failed')
+                  (result?.reason || 'Trade validation failed')
               );
               return;
             }
-
             const tradeData = exportCurrentTrade();
             if (onApplyTrade && tradeData) {
               // TM-PICKS-E1: In vacuum/sandbox mode, persist entitlement transfers to localStorage
@@ -402,9 +406,9 @@ const TradeEditor = ({
               refreshEntitlements();
             }
           }}
-          disabled={!forceTrade && result && !result.legal}
+          disabled={!canApplyTrade}
           className={`text-sm font-medium px-3 py-1.5 rounded transition-colors ${
-            !forceTrade && result && !result.legal
+            !canApplyTrade
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-green-600 hover:bg-green-700 text-white'
           }`}

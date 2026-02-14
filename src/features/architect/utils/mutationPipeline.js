@@ -2273,8 +2273,7 @@ function validateMutation({
     }
 
     case 'storeOfferSheet': {
-      // Reuse validateSigning with store-only context
-      // The payload.contract MUST have rfaOfferSheetOnly=true (validation checked in capLegality)
+      // Offer sheets reuse signing validation with store-only contract flags.
       const result = validateSigning({
         team: currentState.team,
         player: currentState.player,
@@ -2326,28 +2325,6 @@ function validateMutation({
         violations: result.violations,
         warnings: [...result.warnings, ...pipelineWarnings],
       };
-    }
-
-    case 'storeOfferSheet': {
-      const result = validateSigning({
-        team: currentState.team,
-        player: currentState.player,
-        contract: payload.contract,
-        signedUsing: payload.signedUsing,
-        year: currentYear,
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations,
-        warnings: result.warnings,
-      };
-    }
-
-    case 'matchOfferSheet':
-    case 'declineOfferSheet': {
-      // Handled above (split cases)
-      return { valid: true };
     }
 
     case 'renounceRights': {

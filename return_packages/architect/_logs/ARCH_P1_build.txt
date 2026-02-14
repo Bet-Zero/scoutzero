@@ -1,0 +1,15 @@
+
+> scoutzero@1.0.0 build
+> vite build
+
+[36mvite v4.5.14 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 3028 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                        [39m[1m[2m    0.60 kB[22m[1m[22m[2m │ gzip:   0.37 kB[22m
+[2mdist/[22m[2massets/[22m[35mindex-ed2d2d8f.css         [39m[1m[2m   79.87 kB[22m[1m[22m[2m │ gzip:  13.88 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex.esm-02ada3c7.js      [39m[1m[2m    3.62 kB[22m[1m[22m[2m │ gzip:   1.56 kB[22m
+[2mdist/[22m[2massets/[22m[36mseasonManager-f7eafbf0.js  [39m[1m[2m   40.12 kB[22m[1m[22m[2m │ gzip:  12.19 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-4afcaa94.js          [39m[1m[33m2,153.38 kB[39m[22m[2m │ gzip: 624.46 kB[22m
+[32m✓ built in 21.15s[39m

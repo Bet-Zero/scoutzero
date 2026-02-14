@@ -568,179 +568,6 @@ export function useArchitectActions({
     async (tradeData: TradeDataItem[]): Promise<void> => {
       if (!tradeData || !Array.isArray(tradeData)) return;
 
-      const updated: CapSheet = {
-        ...teamCapSheet,
-        activeContracts: teamCapSheet?.activeContracts || [],
-        players: teamCapSheet?.players || [],
-      };
-
-      const targetTrade = tradeData.find((t) => t.teamId === teamId);
-      if (!targetTrade) return;
-
-      const incoming =
-        targetTrade.incoming || targetTrade.incomingPlayers || [];
-      const outgoing =
-        targetTrade.outgoing || targetTrade.outgoingPlayers || [];
-
-      const normalize = (str: string = ''): string =>
-        str.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const isSamePlayer = (
-        a: ActiveContract | ArchitectPlayer,
-        b: ArchitectPlayer
-      ): boolean => {
-        const aId = a.player_id || a.id;
-        const bId = b.id || b.player_id;
-        if (aId && bId) return aId === bId;
-        return normalize(a.name || '') === normalize(b.name || '');
-      };
-
-      // Remove outgoing players from main roster
-      updated.players = (updated.players || []).filter((player) => {
-        const traded = outgoing.some((out) => isSamePlayer(player, out));
-        if (traded && process.env.NODE_ENV !== 'production') {
-          console.log(`🗑️ Removing ${player.name} from roster (traded away)`);
-        }
-        return !traded;
-      });
-
-      // Filter out players you just traded away from active contracts
-      updated.activeContracts = (updated.activeContracts || []).filter(
-        (contract) => {
-          const traded = outgoing.some((out) => isSamePlayer(contract, out));
-          if (traded && process.env.NODE_ENV !== 'production') {
-            console.log(`🗑️ Removing ${contract.name} (traded away)`);
-          }
-          return !traded;
-        }
-      );
-
-      // Add the incoming traded players
-      const newContracts: ActiveContract[] = incoming.map((p) => {
-        // Use contract directly if it has salariesByYear array, otherwise use player's contract
-        const architectContract = ensureContractStructure(p.contract || null, {
-          contractType: p.contractType || 'Trade',
-          isExtension: !!p.isExtension,
-          isRookieScale: !!p.isRookieScale,
-          signingTeam: teamCode,
-        });
-
-        return {
-          name: p.name,
-          player_id: p.id || p.player_id,
-          years: architectContract?.salariesByYear?.length || 1,
-          options: p.options || {},
-          type: 'Trade',
-          signAndTrade: !!p.signAndTrade,
-          guaranteed: p.guaranteed ?? true,
-          isMinimum: p.isMinimum ?? false,
-          yearsOfService: p.yearsOfService ?? 0,
-          contract: architectContract || undefined,
-        };
-      });
-
-      const newPlayers: ArchitectPlayer[] = await Promise.all(
-        incoming.map(async (p) => {
-          const base =
-            playersMap[p.name || ''] || playersMap[p.player_id || ''] || null;
-          let playerData = base;
-          if (!playerData && (p.id || p.player_id)) {
-            // Load from architect_basePlayers collection
-            try {
-              const loaded = await loadArchitectBasePlayer(
-                p.id || p.player_id || '',
-                p.name
-              );
-              if (loaded) {
-                playerData = loaded;
-              }
-            } catch (err) {
-              console.warn(
-                `Failed to load player ${p.id || p.player_id}:`,
-                err
-              );
-              // Continue with trade data only
-            }
-          }
-
-          // Use contract from trade data or player data, ensuring it has proper structure
-          const architectContract = ensureContractStructure(
-            p.contract || playerData?.contract || null,
-            {
-              contractType: p.contractType || 'Trade',
-              isExtension: !!p.isExtension,
-              isRookieScale: !!p.isRookieScale,
-              signingTeam: teamCode,
-            }
-          );
-
-          const position =
-            playerData?.position ||
-            playerData?.formattedPosition ||
-            getPlayerPositionLabel(
-              playerData?.bio?.position || p.position || ''
-            );
-          return {
-            ...(playerData || {}),
-            name: playerData?.name || p.name,
-            player_id: p.id || p.player_id || playerData?.player_id,
-            displayName:
-              playerData?.bio?.displayName || p.bio?.displayName || p.name,
-            position,
-            contract: architectContract || playerData?.contract,
-          };
-        })
-      );
-
-      updated.activeContracts?.push(...newContracts);
-      updated.players?.push(...newPlayers);
-
-      // TM-PICKS-E1: Update entitlementIds for traded entitlements
-      const outgoingEntitlements = targetTrade.outgoingEntitlements || [];
-      const incomingEntitlements = targetTrade.incomingEntitlements || [];
-      const outgoingEntitlementIds = outgoingEntitlements
-        .map(
-          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
-        )
-        .filter(Boolean);
-      const incomingEntitlementIds = incomingEntitlements
-        .map(
-          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
-        )
-        .filter(Boolean);
-
-      if (
-        outgoingEntitlementIds.length > 0 ||
-        incomingEntitlementIds.length > 0
-      ) {
-        const currentEntitlementIds: string[] =
-          ((updated as Record<string, unknown>).entitlementIds as string[]) ||
-          [];
-        (updated as Record<string, unknown>).entitlementIds = [
-          ...currentEntitlementIds.filter(
-            (id: string) => !outgoingEntitlementIds.includes(id)
-          ),
-          ...incomingEntitlementIds,
-        ];
-
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(
-            '🔄 Entitlement transfer — out:',
-            outgoingEntitlementIds,
-            'in:',
-            incomingEntitlementIds
-          );
-        }
-      }
-
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(
-          '✅ Applied trade — activeContracts now:',
-          updated.activeContracts
-        );
-      }
-
-      setTeamCapSheet(updated);
-
       // Persist to world if in world mode
       // Transform tradeData to mutation pipeline format
       // Note: Each team's teamId needs to be resolved to canonical teamCode
@@ -772,9 +599,154 @@ export function useArchitectActions({
         }
       }
 
-      persistMutation('executeTrade', { teams });
+      if (worldId) {
+        await runAuthoritativeFAMutation('executeTrade', { teams });
+        return;
+      }
+
+      const updated: CapSheet = {
+        ...teamCapSheet,
+        activeContracts: teamCapSheet?.activeContracts || [],
+        players: teamCapSheet?.players || [],
+      };
+
+      const targetTrade = tradeData.find((t) => t.teamId === teamId);
+      if (!targetTrade) return;
+
+      const incoming =
+        targetTrade.incoming || targetTrade.incomingPlayers || [];
+      const outgoing =
+        targetTrade.outgoing || targetTrade.outgoingPlayers || [];
+
+      const normalize = (str: string = ''): string =>
+        str.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isSamePlayer = (
+        a: ActiveContract | ArchitectPlayer,
+        b: ArchitectPlayer
+      ): boolean => {
+        const aId = a.player_id || a.id;
+        const bId = b.id || b.player_id;
+        if (aId && bId) return aId === bId;
+        return normalize(a.name || '') === normalize(b.name || '');
+      };
+
+      updated.players = (updated.players || []).filter(
+        (player) => !outgoing.some((out) => isSamePlayer(player, out))
+      );
+
+      updated.activeContracts = (updated.activeContracts || []).filter(
+        (contract) => !outgoing.some((out) => isSamePlayer(contract, out))
+      );
+
+      const newContracts: ActiveContract[] = incoming.map((p) => {
+        const architectContract = ensureContractStructure(p.contract || null, {
+          contractType: p.contractType || 'Trade',
+          isExtension: !!p.isExtension,
+          isRookieScale: !!p.isRookieScale,
+          signingTeam: teamCode,
+        });
+
+        return {
+          name: p.name,
+          player_id: p.id || p.player_id,
+          years: architectContract?.salariesByYear?.length || 1,
+          options: p.options || {},
+          type: 'Trade',
+          signAndTrade: !!p.signAndTrade,
+          guaranteed: p.guaranteed ?? true,
+          isMinimum: p.isMinimum ?? false,
+          yearsOfService: p.yearsOfService ?? 0,
+          contract: architectContract || undefined,
+        };
+      });
+
+      const newPlayers: ArchitectPlayer[] = await Promise.all(
+        incoming.map(async (p) => {
+          const base =
+            playersMap[p.name || ''] || playersMap[p.player_id || ''] || null;
+          let playerData = base;
+          if (!playerData && (p.id || p.player_id)) {
+            try {
+              const loaded = await loadArchitectBasePlayer(
+                p.id || p.player_id || '',
+                p.name
+              );
+              if (loaded) playerData = loaded;
+            } catch (err) {
+              console.warn(`Failed to load player ${p.id || p.player_id}:`, err);
+            }
+          }
+
+          const architectContract = ensureContractStructure(
+            p.contract || playerData?.contract || null,
+            {
+              contractType: p.contractType || 'Trade',
+              isExtension: !!p.isExtension,
+              isRookieScale: !!p.isRookieScale,
+              signingTeam: teamCode,
+            }
+          );
+
+          const position =
+            playerData?.position ||
+            playerData?.formattedPosition ||
+            getPlayerPositionLabel(
+              playerData?.bio?.position || p.position || ''
+            );
+          return {
+            ...(playerData || {}),
+            name: playerData?.name || p.name,
+            player_id: p.id || p.player_id || playerData?.player_id,
+            displayName:
+              playerData?.bio?.displayName || p.bio?.displayName || p.name,
+            position,
+            contract: architectContract || playerData?.contract,
+          };
+        })
+      );
+
+      updated.activeContracts?.push(...newContracts);
+      updated.players?.push(...newPlayers);
+
+      const outgoingEntitlements = targetTrade.outgoingEntitlements || [];
+      const incomingEntitlements = targetTrade.incomingEntitlements || [];
+      const outgoingEntitlementIds = outgoingEntitlements
+        .map(
+          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
+        )
+        .filter(Boolean);
+      const incomingEntitlementIds = incomingEntitlements
+        .map(
+          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
+        )
+        .filter(Boolean);
+
+      if (
+        outgoingEntitlementIds.length > 0 ||
+        incomingEntitlementIds.length > 0
+      ) {
+        const currentEntitlementIds: string[] =
+          ((updated as Record<string, unknown>).entitlementIds as string[]) ||
+          [];
+        (updated as Record<string, unknown>).entitlementIds = [
+          ...currentEntitlementIds.filter(
+            (id: string) => !outgoingEntitlementIds.includes(id)
+          ),
+          ...incomingEntitlementIds,
+        ];
+      }
+
+      setTeamCapSheet(updated);
     },
-    [teamCapSheet, teamCode, playersMap, setTeamCapSheet, persistMutation]
+    [
+      teamCapSheet,
+      teamCode,
+      teamId,
+      playersMap,
+      runAuthoritativeFAMutation,
+      setTeamCapSheet,
+      worldId,
+    ]
   );
 
   // === Contract/Player Actions ===

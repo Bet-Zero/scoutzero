@@ -121,6 +121,9 @@ const EditContractModal = ({
   isOpen,
   onClose,
   onSave,
+  onSaveContract,
+  onSignFreeAgent,
+  onResign,
   onWaive,
   onOptionDecision,
   onExtend,
@@ -662,7 +665,7 @@ const EditContractModal = ({
         onOptionDecision?.(player, false, overrideMetadata);
         break;
       case 'signNew':
-        onSave?.(player, {
+        (onSignFreeAgent || onSaveContract || onSave)?.(player, {
           ...extension,
           years: extension.years,
           salaries: (extension.salaries || []).slice(
@@ -677,7 +680,7 @@ const EditContractModal = ({
         });
         break;
       case 'resign':
-        onSave?.(player, {
+        (onResign || onSaveContract || onSave)?.(player, {
           ...extension,
           years: extension.years,
           salaries: (extension.salaries || []).slice(
