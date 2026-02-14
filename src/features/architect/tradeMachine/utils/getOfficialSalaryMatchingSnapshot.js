@@ -24,6 +24,11 @@
  * - FORMULA: teamResult.rules.salaryMatching.details.formulaUsed
  * - SKIP: teamResult.rules.salaryMatching.skipReason
  *
+ * TM_FIX_A2_E1: Additional fields for hard-cap ceiling:
+ * - HARD_CAP_CEILING: teamResult.rules.salaryMatching.hardCapIncomingCeiling
+ * - EFFECTIVE_ALLOWABLE: teamResult.rules.salaryMatching.effectiveAllowableIncoming
+ * - HARD_CAP_DETAILS: teamResult.rules.salaryMatching.details.hardCapCeiling
+ *
  * @see docs/tradeMachine/MASTER_TRADE_MACHINE_ALIGNMENT.md
  */
 
@@ -35,13 +40,18 @@
  * @returns {Object} Official salary matching snapshot with the following shape:
  *   {
  *     hasValidator: boolean,       // true if teamResult exists and has data
- *     allowableIncoming: number | null,  // LIMIT - max incoming allowed
+ *     allowableIncoming: number | null,  // LIMIT - max incoming allowed (salary matching rule)
  *     salaryIn: number | null,           // IN - incoming matching total
  *     salaryOut: number | null,          // OUT - outgoing matching total
  *     passed: boolean | null,            // salary matching pass/fail
  *     ruleApplied: string | null,        // rule label (e.g., "OVER_CAP_BAND_2")
  *     formulaUsed: string | null,        // formula text (e.g., "125% + $250K")
- *     skipReason: string | null          // skip reason if N/A (e.g., "HARD_CAP_SKIP")
+ *     skipReason: string | null,         // skip reason if N/A (e.g., "HARD_CAP_SKIP")
+ *     // TM_FIX_A2_E1: Hard cap ceiling fields
+ *     hardCapIncomingCeiling: number | null,     // ceiling based on hard cap room
+ *     effectiveAllowableIncoming: number | null, // min(allowable, hardCapCeiling)
+ *     hardCapCeilingDetails: Object | null,      // {apron, apronLabel, limiter}
+ *     isHardCapped: boolean                      // whether team is hard-capped
  *   }
  */
 export function getOfficialSalaryMatchingSnapshot(teamResult) {
@@ -56,6 +66,11 @@ export function getOfficialSalaryMatchingSnapshot(teamResult) {
       ruleApplied: null,
       formulaUsed: null,
       skipReason: null,
+      // TM_FIX_A2_E1: Hard cap ceiling fields
+      hardCapIncomingCeiling: null,
+      effectiveAllowableIncoming: null,
+      hardCapCeilingDetails: null,
+      isHardCapped: false,
     };
   }
 
@@ -86,6 +101,20 @@ export function getOfficialSalaryMatchingSnapshot(teamResult) {
 
     // SKIP: teamResult.rules.salaryMatching.skipReason
     skipReason: salaryMatching?.skipReason ?? null,
+
+    // TM_FIX_A2_E1: Hard cap ceiling fields
+    // Hard cap incoming ceiling: outgoing + max(0, apron - teamTotalSalary)
+    hardCapIncomingCeiling: salaryMatching?.hardCapIncomingCeiling ?? null,
+
+    // Effective allowable incoming: min(allowableIncoming, hardCapIncomingCeiling)
+    effectiveAllowableIncoming:
+      salaryMatching?.effectiveAllowableIncoming ?? null,
+
+    // Hard cap ceiling details: {apron, apronLabel, limiter}
+    hardCapCeilingDetails: salaryMatching?.details?.hardCapCeiling ?? null,
+
+    // Whether team is hard-capped (for UI display logic)
+    isHardCapped: !!salaryMatching?.details?.hardCapStatus?.isHardCapped,
   };
 }
 
@@ -108,8 +137,12 @@ export function computeRemainingRoom(snapshot) {
   const { allowableIncoming, salaryIn } = snapshot;
 
   // If either value is null/undefined, remaining room cannot be computed
-  if (allowableIncoming === null || allowableIncoming === undefined ||
-      salaryIn === null || salaryIn === undefined) {
+  if (
+    allowableIncoming === null ||
+    allowableIncoming === undefined ||
+    salaryIn === null ||
+    salaryIn === undefined
+  ) {
     return null;
   }
 
@@ -146,7 +179,12 @@ export function getOfficialSnapshotByTeamId(teamId, validationResult) {
  * @returns {Object} Official salary matching snapshot
  */
 export function getOfficialSnapshotByIndex(teamIndex, validationResult) {
-  if (!validationResult || teamIndex === null || teamIndex === undefined || teamIndex < 0) {
+  if (
+    !validationResult ||
+    teamIndex === null ||
+    teamIndex === undefined ||
+    teamIndex < 0
+  ) {
     return getOfficialSalaryMatchingSnapshot(null);
   }
 

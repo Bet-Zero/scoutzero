@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-02-05: Created for TM-4 entitlement authoring.
+ *  - 2026-02-14: TM-ENTITLEMENTS-ADV-E1 - Added residualOfEntitlementId field
  */
 
 import React from 'react';
@@ -131,6 +132,32 @@ export const EntitlementEditorSwapTab: React.FC<
           One pick ID per line or comma-separated.
         </p>
       </div>
-    </div>
-  );
-};
+
+      {/* TM-ENTITLEMENTS-ADV-E1: Residual entitlement field */}
+      <div className="pt-3 border-t border-white/10 mt-3">
+        <div className="text-xs text-white/60 uppercase tracking-wide mb-3">
+          Linkage (Advanced)
+        </div>
+        <div>
+          <label
+            htmlFor="entitlement-residualOfEntitlementId"
+            className="block text-xs text-white/60 mb-1"
+          >
+            Residual Of Entitlement ID
+          </label>
+          <input
+            id="entitlement-residualOfEntitlementId"
+            value={formState.residualOfEntitlementId}
+            onChange={(e) =>
+              updateField('residualOfEntitlementId', e.target.value)
+            }
+            disabled={disabled}
+            placeholder="ent:HOU:2026:1:conv:best_of_dal_phx_bkn"
+            className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10 text-xs font-mono"
+          />
+          <p className="text-[10px] text-white/40 mt-1">
+            For "residual" swaps: the conveyance_right entitlement this swap
+            targets the remainder of.
+          </p>
+        </div>
+      </div>

@@ -465,12 +465,15 @@ describe('Swap edit mode read-only (TM-WIZARD-SIMPLIFY-E2)', () => {
     expect(screen.getByTestId('swap-other-pick-readonly')).toBeInTheDocument();
   });
 
-  it('swap edit mode shows "Other team\'s pick" as read-only text', () => {
+  it('swap edit mode shows "Other team\'s pick" as read-only team only (TM-WIZARD-SIMPLIFY-E2)', () => {
     render(<PickRightWizardModal {...swapEditProps} />);
     const readonlyPick = screen.getByTestId('swap-other-pick-readonly');
+    // Should show team only, not full pick info (per ticket: "team only")
     expect(readonlyPick.textContent).toContain('LAL');
-    expect(readonlyPick.textContent).toContain('2028');
-    expect(readonlyPick.textContent).toContain('1st');
+    expect(readonlyPick.textContent).toContain("Other team's pick");
+    // Should NOT show year/round (that's redundant with identity at top)
+    expect(readonlyPick.textContent).not.toContain('2028');
+    expect(readonlyPick.textContent).not.toContain('1st');
   });
 
   it('swap create mode renders PickSelector for other team pick', () => {

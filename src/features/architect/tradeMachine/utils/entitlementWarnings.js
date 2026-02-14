@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-01-22: Created for Phase 11.2 - Entitlement UX + Warnings
+ *  - 2026-02-14: TM-ENTITLEMENTS-ADV-E1 - Added W1 (linked package), W2 (swap conflict)
  *
  * LINKS:
  *  - Plan: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 11.2)
@@ -15,11 +16,17 @@
  * Compute non-blocking warnings for entitlements being traded.
  *
  * Warning A: Encumbered pick_ownership traded without linked swap_right
+ * Warning W1: Linked entitlements not all included in trade (linkedEntitlementIds)
+ * Warning W2: Swap uses a controller pick that is also moving outbound
  *
  * @param {Array} entitlementsOut - Array of entitlement objects being traded by one team
+ * @param {Array} [allTeamsEntitlementsOut] - Optional: all entitlements moving out across all teams (for W1)
  * @returns {Array<string>} - Array of warning message strings (deduped)
  */
-export function computeEntitlementWarnings(entitlementsOut) {
+export function computeEntitlementWarnings(
+  entitlementsOut,
+  allTeamsEntitlementsOut = null
+) {
   if (!Array.isArray(entitlementsOut) || entitlementsOut.length === 0) {
     return [];
   }
@@ -29,8 +36,15 @@ export function computeEntitlementWarnings(entitlementsOut) {
     entitlementsOut.map((e) => e.id || e.entitlementId)
   );
 
+  // For W1, use all teams' entitlements if provided, otherwise just this team's
+  const allOutgoingIds = allTeamsEntitlementsOut
+    ? new Set(allTeamsEntitlementsOut.map((e) => e.id || e.entitlementId))
+    : outgoingIds;
+
   // Track if we've already emitted each warning type (one per team, not spammy)
   let hasEncumberedWarning = false;
+  let hasLinkedPackageWarning = false;
+  let hasSwapControllerConflictWarning = false;
 
   for (const entitlement of entitlementsOut) {
     // Warning A: Encumbered pick_ownership without linked swap_right
@@ -67,6 +81,49 @@ export function computeEntitlementWarnings(entitlementsOut) {
       }
     }
 
+    // Warning W1: Linked entitlements not all included in trade
+    // This checks linkedEntitlementIds - if an entitlement has linked IDs, ensure they're all moving
+    if (
+      !hasLinkedPackageWarning &&
+      Array.isArray(entitlement.linkedEntitlementIds) &&
+      entitlement.linkedEntitlementIds.length > 0
+    ) {
+      const linkedIds = entitlement.linkedEntitlementIds;
+      const missingLinkedIds = linkedIds.filter(
+        (id) => !allOutgoingIds.has(id)
+      );
+
+      if (missingLinkedIds.length > 0) {
+        warnings.push(
+          '⚠️ This pick right is linked to other pick rights not included in the trade.'
+        );
+        hasLinkedPackageWarning = true;
+      }
+    }
+
+    // Warning W2: Swap controller conflict
+    // If a swap_right uses a swapControllerPickId tied to a pick_ownership that is also outgoing
+    if (
+      !hasSwapControllerConflictWarning &&
+      entitlement.kind === 'swap_right' &&
+      entitlement.swapControllerPickId
+    ) {
+      const controllerPickId = entitlement.swapControllerPickId;
+
+      // Check if any outgoing pick_ownership references this controller pick
+      const controllerEntitlement = entitlementsOut.find(
+        (oe) =>
+          oe.kind === 'pick_ownership' &&
+          oe.underlyingPickId === controllerPickId
+      );
+
+      if (controllerEntitlement) {
+        warnings.push(
+          '⚠️ This swap uses a controller pick that is also being moved in this trade.'
+        );
+        hasSwapControllerConflictWarning = true;
+      }
+    }
   }
 
   return warnings;

@@ -80,6 +80,9 @@ export interface MinimalEntitlementDoc {
     rollToYear?: number;
     convertToRound?: number;
   }>;
+  // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support
+  linkedEntitlementIds?: string[];
+  residualOfEntitlementId?: string;
   [key: string]: unknown;
 }
 
@@ -244,6 +247,45 @@ export function validateEntitlementDocument(
           }
         }
       });
+    }
+  }
+
+  // TM-ENTITLEMENTS-ADV-E1: linkedEntitlementIds validation
+  if (document.linkedEntitlementIds !== undefined) {
+    if (!Array.isArray(document.linkedEntitlementIds)) {
+      errors.push('linkedEntitlementIds must be an array of strings');
+    } else {
+      const docId = document.id as string | undefined;
+      const linkedIds = document.linkedEntitlementIds as string[];
+      // Check all entries are strings
+      const invalidEntries = linkedIds.filter(
+        (id) => typeof id !== 'string' || id.trim().length === 0
+      );
+      if (invalidEntries.length > 0) {
+        errors.push('linkedEntitlementIds must contain only non-empty strings');
+      }
+      // Check for self-reference
+      if (docId && linkedIds.includes(docId)) {
+        errors.push('linkedEntitlementIds must not include self.id');
+      }
+      // Check for duplicates
+      const uniqueIds = new Set(linkedIds);
+      if (uniqueIds.size !== linkedIds.length) {
+        errors.push('linkedEntitlementIds must not contain duplicates');
+      }
+    }
+  }
+
+  // TM-ENTITLEMENTS-ADV-E1: residualOfEntitlementId validation
+  if (document.residualOfEntitlementId !== undefined) {
+    const residualId = document.residualOfEntitlementId;
+    if (typeof residualId !== 'string' || residualId.trim().length === 0) {
+      errors.push('residualOfEntitlementId must be a non-empty string');
+    } else {
+      const docId = document.id as string | undefined;
+      if (docId && residualId === docId) {
+        errors.push('residualOfEntitlementId must not equal self.id');
+      }
     }
   }
 

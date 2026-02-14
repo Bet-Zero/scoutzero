@@ -45,6 +45,11 @@ export const EntitlementAssetZ = z
     coveredByEntitlementIds: z.array(z.string()).optional(),
     // world override: structured protection ladder (authoring UI)
     protectionLadder: z.array(EntitlementProtectionLadderTierZ).optional(),
+    // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support
+    // linkedEntitlementIds: Related entitlements that form a package (e.g., Houston-style)
+    linkedEntitlementIds: z.array(z.string()).optional(),
+    // residualOfEntitlementId: This entitlement represents the residual of another (e.g., swap for "remaining worst")
+    residualOfEntitlementId: z.string().optional(),
   })
   .passthrough();
 

@@ -102,6 +102,11 @@ describe('Official Salary Matching Snapshot - Canonical Selector', () => {
         ruleApplied: null,
         formulaUsed: null,
         skipReason: null,
+        // TM_FIX_A2_E1: Hard cap ceiling fields
+        hardCapIncomingCeiling: null,
+        effectiveAllowableIncoming: null,
+        hardCapCeilingDetails: null,
+        isHardCapped: false,
       });
     });
 

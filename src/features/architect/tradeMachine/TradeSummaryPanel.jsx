@@ -145,9 +145,23 @@ function TradeSummaryPanel({
 
                     // Incoming salary from official selector
                     const salaryIn = officialSnapshot.salaryIn ?? 0;
-                    // Allowable incoming from official selector (null means N/A)
-                    const allowedIncoming = officialSnapshot.allowableIncoming;
+
+                    // TM_FIX_A2_E1: Use effectiveAllowableIncoming when available
+                    // This is min(salaryMatchCeiling, hardCapIncomingCeiling) for hard-capped teams
+                    const effectiveAllowed =
+                      officialSnapshot.effectiveAllowableIncoming;
+                    const salaryMatchCeiling =
+                      officialSnapshot.allowableIncoming;
+                    const hardCapCeiling =
+                      officialSnapshot.hardCapIncomingCeiling;
+                    const hardCapDetails =
+                      officialSnapshot.hardCapCeilingDetails;
+                    const isHardCapped = officialSnapshot.isHardCapped;
                     const skipReason = officialSnapshot.skipReason;
+
+                    // Use effective allowable or fall back to salary match ceiling
+                    const allowedIncoming =
+                      effectiveAllowed ?? salaryMatchCeiling;
 
                     // Tri-state display: only show allowed as number when present (not null)
                     const showAllowed = allowedIncoming != null;
@@ -160,29 +174,65 @@ function TradeSummaryPanel({
                       ? Math.max(0, salaryIn - allowedIncoming)
                       : null;
 
+                    // Determine if hard cap is the limiter
+                    const hardCapIsLimiter =
+                      isHardCapped && hardCapDetails?.limiter === 'hardCap';
+
                     return (
-                      <p className="text-xs text-white/70">
+                      <div className="text-xs text-white/70 space-y-1">
                         {/* Phase 2.3: These are MATCHING values for trade legality */}
                         {/* P0-3: Show loading state during validation in-flight */}
-                        Matching In / Allowed:{' '}
-                        {isValidating ? (
-                          <span className="text-blue-400 animate-pulse">
-                            Updating…
-                          </span>
-                        ) : (
-                          <>
-                            {formatCurrency(salaryIn)} / {formattedAllowed}
-                            {skipReason && (
-                              <span className="text-white/40 ml-1">
-                                ({skipReason})
+                        <p>
+                          Matching In / Allowed:{' '}
+                          {isValidating ? (
+                            <span className="text-blue-400 animate-pulse">
+                              Updating…
+                            </span>
+                          ) : (
+                            <>
+                              {formatCurrency(salaryIn)} / {formattedAllowed}
+                              {skipReason && (
+                                <span className="text-white/40 ml-1">
+                                  ({skipReason})
+                                </span>
+                              )}
+                              {overBy != null && overBy > 0 && (
+                                <> — Over by {formatCurrency(overBy)}</>
+                              )}
+                            </>
+                          )}
+                        </p>
+
+                        {/* TM_FIX_A2_E1: Show ceiling breakdown when hard-capped */}
+                        {isHardCapped && !isValidating && showAllowed && (
+                          <div className="pl-2 border-l border-white/20 text-[10px] text-white/50 space-y-0.5">
+                            <div className="flex justify-between">
+                              <span>Salary Match Ceiling:</span>
+                              <span>
+                                {salaryMatchCeiling != null
+                                  ? formatCurrency(salaryMatchCeiling)
+                                  : '—'}
                               </span>
-                            )}
-                            {overBy != null && overBy > 0 && (
-                              <> — Over by {formatCurrency(overBy)}</>
-                            )}
-                          </>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>
+                                Hard Cap Ceiling (
+                                {hardCapDetails?.apronLabel || 'Apron'}):
+                              </span>
+                              <span
+                                className={
+                                  hardCapIsLimiter ? 'text-yellow-400' : ''
+                                }
+                              >
+                                {hardCapCeiling != null
+                                  ? formatCurrency(hardCapCeiling)
+                                  : '—'}
+                                {hardCapIsLimiter && ' ←'}
+                              </span>
+                            </div>
+                          </div>
                         )}
-                      </p>
+                      </div>
                     );
                   })()}
 
@@ -249,7 +299,8 @@ function TradeSummaryPanel({
                             teamCode: teamMeta?.id,
                             pickRulesById,
                           });
-                          const secondaryText = getPickRowSecondaryText(pickRow);
+                          const secondaryText =
+                            getPickRowSecondaryText(pickRow);
                           return (
                             <div
                               key={ent.id || ent.entitlementId || idx2}

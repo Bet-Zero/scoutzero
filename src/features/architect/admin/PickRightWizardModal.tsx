@@ -73,8 +73,6 @@ interface PickRightWizardModalProps {
   }) => void;
   onVacuumSessionMutation?: () => void;
   onOpenAdvanced?: (formState: EntitlementFormState) => void;
-  /** TM-VACUUM-E3: Opens a new create-mode wizard prefilled with current values */
-  onDuplicateAsNew?: (document: Record<string, unknown>) => void;
 }
 
 const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
@@ -87,18 +85,9 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
   onSuccess,
   onVacuumSessionMutation,
   onOpenAdvanced,
-  onDuplicateAsNew,
 }) => {
   const isEditMode = entitlementId !== null && entitlementId !== undefined;
   const isVacuumSession = vacuumMode || !worldId;
-
-  // TM-WIZARD-SIMPLIFY-E2: Track original entitlement kind (doesn't change when wizard intent changes)
-  const originalEntitlementKind = useMemo(() => {
-    if (initialDocument && typeof initialDocument.kind === 'string') {
-      return initialDocument.kind as EntitlementKind;
-    }
-    return '';
-  }, [initialDocument]);
 
   // ── State ──
   const [saving, setSaving] = useState(false);
@@ -409,42 +398,6 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     onClose,
   ]);
 
-  // TM-VACUUM-E3: Duplicate as new — opens create-mode wizard prefilled with current values
-  const handleDuplicateAsNew = useCallback(() => {
-    const document = buildEntitlementDocument(formState);
-    // Strip the existing ID so a new one will be generated
-    const { id: _stripId, ...docWithoutId } = document;
-    if (onDuplicateAsNew) {
-      onDuplicateAsNew(docWithoutId);
-    }
-  }, [formState, onDuplicateAsNew]);
-
-  // TM-WIZARD-SIMPLIFY-E2: Convert non-swap entitlement to swap_right
-  // Creates a new swap_right entitlement using the current pick as the anchor
-  const handleConvertToSwap = useCallback(() => {
-    if (!onDuplicateAsNew) return;
-
-    // Build a swap_right document from the current state
-    // Controller pick = the current underlying pick (the pick being traded)
-    const controllerPickId =
-      formState.underlyingPickId ||
-      `${formState.holderTeam}_${formState.seasonYear}_${formState.round}`;
-
-    const swapDocument: Record<string, unknown> = {
-      holderTeam: formState.holderTeam,
-      seasonYear: Number(formState.seasonYear) || 2026,
-      round: Number(formState.round) || 1,
-      kind: 'swap_right',
-      underlyingPickId: formState.underlyingPickId,
-      swapControllerPickId: controllerPickId,
-      swapTargetDefinition: `${formState.holderTeam} own ${Number(formState.round) === 1 ? '1st' : '2nd'} round pick`,
-      swapType: 'best_of',
-      description: formState.description || '',
-    };
-
-    onDuplicateAsNew(swapDocument);
-  }, [formState, onDuplicateAsNew]);
-
   // ═════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═════════════════════════════════════════════════════════════════════════
@@ -458,7 +411,9 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
           <h2 className="text-lg font-semibold text-white">
-            {entitlementId ? 'Edit Pick Right' : 'New Pick Right'}
+            {entitlementId
+              ? `${wizardModel.pick.team || '???'} ${wizardModel.pick.year || '????'} ${wizardModel.pick.round === 1 ? '1st' : wizardModel.pick.round === 2 ? '2nd' : `R${wizardModel.pick.round}`}`
+              : 'New Pick Right'}
           </h2>
           <button
             onClick={onClose}
@@ -469,16 +424,6 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           </button>
         </div>
 
-        {/* TM-VACUUM-E1 / TM-UI-COPY-E1: Base-mode session banner */}
-        {(vacuumMode || !worldId) && (
-          <div
-            className="mx-6 mt-3 px-3 py-1.5 rounded bg-amber-900/30 border border-amber-500/30 text-amber-300 text-xs font-medium"
-            data-testid="vacuum-mode-banner"
-          >
-            Not saved to a world — changes are stored in this browser only.
-          </div>
-        )}
-
         {/* Body: Quick Builder (single screen) */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <QuickBuilder
@@ -488,18 +433,14 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
             isValid={isValid}
             saving={saving || sessionMutating}
             onChange={handleWizardModelChange}
-            onApply={handleApply}
-            onSaveDraft={handleSaveDraft}
             onOpenAdvanced={handleOpenAdvanced}
             disabled={saving || sessionMutating}
             isEditMode={isEditMode}
             lockIdentityFields={isEditMode}
-            currentEntitlementKind={originalEntitlementKind}
-            onConvertToSwap={onDuplicateAsNew ? handleConvertToSwap : undefined}
           />
         </div>
 
-        {/* Footer — cancel, session actions, duplicate */}
+        {/* Footer — cancel, session actions, apply */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-white/10">
           <button
             type="button"
@@ -538,18 +479,20 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
               </>
             )}
 
-            {/* TM-VACUUM-E3: Duplicate as new */}
-            {isEditMode && onDuplicateAsNew && (
-              <button
-                type="button"
-                onClick={handleDuplicateAsNew}
-                disabled={saving || sessionMutating}
-                className="px-3 py-1.5 rounded border border-blue-500/40 text-blue-300 text-xs hover:bg-blue-900/20 disabled:opacity-50"
-                data-testid="wizard-duplicate-as-new"
-              >
-                Duplicate as new
-              </button>
-            )}
+            {/* Apply button */}
+            <button
+              type="button"
+              onClick={handleApply}
+              disabled={!isValid || saving || sessionMutating}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                isValid && !saving && !sessionMutating
+                  ? 'bg-blue-600 text-white hover:bg-blue-500'
+                  : 'bg-white/10 text-white/30 cursor-not-allowed'
+              }`}
+              data-testid="wizard-apply-footer"
+            >
+              {saving ? 'Applying...' : 'Apply'}
+            </button>
           </div>
         </div>
       </div>

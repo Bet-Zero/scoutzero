@@ -12,7 +12,7 @@
  *   - Over cap (Bands 1/2/3) → Tiered formulas
  *   - At/above First apron → 100% matching
  *   - At/above Second apron → 100% matching
- * 
+ *
  * Hard cap only adds a CEILING constraint (enforced by validateHardCap).
  */
 
@@ -26,11 +26,10 @@ const defaultCapSettings = {
 };
 
 describe('Hard-capped teams still follow salary matching', () => {
-  
   // =========================================================================
   // CORE FIX: Hard-capped teams must NOT skip salary matching
   // =========================================================================
-  
+
   describe('Hard cap does NOT skip salary matching', () => {
     test('hard-capped team gets APPLICABLE salary matching (not HARD_CAP_SKIP)', () => {
       const team = {
@@ -47,7 +46,7 @@ describe('Hard-capped teams still follow salary matching', () => {
       expect(result.skipReason).not.toBe('HARD_CAP_SKIP');
       expect(result.applicable).toBe(true);
       expect(result.passed).not.toBeNull();
-      
+
       // Should use band matching based on salary position
       expect(result.allowableIncoming).toBeDefined();
       expect(result.allowableIncoming).toBeGreaterThan(0);
@@ -88,7 +87,7 @@ describe('Hard-capped teams still follow salary matching', () => {
   // =========================================================================
   // CRITICAL: Hard cap status doesn't determine matching band
   // =========================================================================
-  
+
   describe('Matching band determined by salary position (not hard cap status)', () => {
     test('hard-capped team below first apron uses Band matching', () => {
       const team = {
@@ -145,7 +144,7 @@ describe('Hard-capped teams still follow salary matching', () => {
   // =========================================================================
   // Result includes hard cap status for informational purposes
   // =========================================================================
-  
+
   describe('Hard cap status passed through in result details', () => {
     test('hard-capped team includes hardCapStatus in details', () => {
       const team = {
@@ -174,6 +173,129 @@ describe('Hard-capped teams still follow salary matching', () => {
       const result = validateSalaryMatching(team, {});
 
       expect(result.details.hardCapStatus).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // TM_FIX_A2_E1: Hard Cap Incoming Ceiling
+  // When hard-capped, effective allowable = min(salaryMatchCeiling, hardCapCeiling)
+  // =========================================================================
+
+  describe('TM_FIX_A2_E1 - Hard Cap Incoming Ceiling', () => {
+    test('hard-capped team gets hardCapIncomingCeiling computed', () => {
+      const team = {
+        hardCapped: true,
+        teamTotalSalary: 175_000_000, // 3M below first apron
+        salaryIn: 15_000_000,
+        salaryOut: 10_000_000, // Band 2: allows 17.5M
+        context: { capSettings: defaultCapSettings },
+      };
+
+      const result = validateSalaryMatching(team, {});
+
+      // Hard cap ceiling = outgoing + max(0, apron - totalSalary)
+      // = 10M + max(0, 178M - 175M) = 10M + 3M = 13M
+      expect(result.hardCapIncomingCeiling).toBe(13_000_000);
+    });
+
+    test('effectiveAllowableIncoming is min of salary match ceiling and hard cap ceiling', () => {
+      const team = {
+        hardCapped: true,
+        teamTotalSalary: 175_000_000, // 3M below first apron (hard cap at 178M)
+        salaryIn: 12_000_000, // Under both ceilings
+        salaryOut: 10_000_000, // Band 2: allows 17.5M
+        context: { capSettings: defaultCapSettings },
+      };
+
+      const result = validateSalaryMatching(team, {});
+
+      // Salary match ceiling = 17.5M (Band 2)
+      expect(result.allowableIncoming).toBe(17_500_000);
+
+      // Hard cap ceiling = 10M + 3M = 13M
+      expect(result.hardCapIncomingCeiling).toBe(13_000_000);
+
+      // Effective = min(17.5M, 13M) = 13M
+      expect(result.effectiveAllowableIncoming).toBe(13_000_000);
+    });
+
+    test('when salary match ceiling is lower, it is the limiter', () => {
+      const team = {
+        hardCapped: true,
+        teamTotalSalary: 150_000_000, // 28M below first apron
+        salaryIn: 5_000_000,
+        salaryOut: 3_000_000, // Band 1: allows 6.25M
+        context: { capSettings: defaultCapSettings },
+      };
+
+      const result = validateSalaryMatching(team, {});
+
+      // Salary match ceiling = 3M * 200% + 250k = 6.25M
+      expect(result.allowableIncoming).toBe(6_250_000);
+
+      // Hard cap ceiling = 3M + 28M = 31M
+      expect(result.hardCapIncomingCeiling).toBe(31_000_000);
+
+      // Effective = min(6.25M, 31M) = 6.25M
+      expect(result.effectiveAllowableIncoming).toBe(6_250_000);
+
+      // Limiter should be salaryMatching
+      expect(result.details.hardCapCeiling.limiter).toBe('salaryMatching');
+    });
+
+    test('when hard cap ceiling is lower, it is the limiter', () => {
+      const team = {
+        hardCapped: true,
+        teamTotalSalary: 177_000_000, // 1M below first apron
+        salaryIn: 11_000_000,
+        salaryOut: 10_000_000, // Band 2: allows 17.5M
+        context: { capSettings: defaultCapSettings },
+      };
+
+      const result = validateSalaryMatching(team, {});
+
+      // Salary match ceiling = 17.5M
+      expect(result.allowableIncoming).toBe(17_500_000);
+
+      // Hard cap ceiling = 10M + 1M = 11M
+      expect(result.hardCapIncomingCeiling).toBe(11_000_000);
+
+      // Effective = min(17.5M, 11M) = 11M
+      expect(result.effectiveAllowableIncoming).toBe(11_000_000);
+
+      // Limiter should be hardCap
+      expect(result.details.hardCapCeiling.limiter).toBe('hardCap');
+    });
+
+    test('non-hard-capped team has null hardCapIncomingCeiling', () => {
+      const team = {
+        hardCapped: false,
+        teamTotalSalary: 150_000_000,
+        salaryIn: 15_000_000,
+        salaryOut: 10_000_000,
+        context: { capSettings: defaultCapSettings },
+      };
+
+      const result = validateSalaryMatching(team, {});
+
+      expect(result.hardCapIncomingCeiling).toBeNull();
+      expect(result.effectiveAllowableIncoming).toBe(result.allowableIncoming);
+    });
+
+    test('hardCapCeiling details include apron label', () => {
+      const team = {
+        hardCapped: true,
+        teamTotalSalary: 175_000_000,
+        salaryIn: 10_000_000,
+        salaryOut: 10_000_000,
+        context: { capSettings: defaultCapSettings },
+      };
+
+      const result = validateSalaryMatching(team, {});
+
+      expect(result.details.hardCapCeiling).toBeDefined();
+      expect(result.details.hardCapCeiling.apronLabel).toBe('1st Apron');
+      expect(result.details.hardCapCeiling.apron).toBe(178_000_000);
     });
   });
 });

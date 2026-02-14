@@ -400,6 +400,48 @@ export function validateSalaryMatching(team, context = {}) {
   }
   // Under-cap teams already handled above
 
+  // ============================================================================
+  // HARD CAP INCOMING CEILING (TM_FIX_A2_E1)
+  // When hard-capped, the effective allowable incoming is the MINIMUM of:
+  //   1. salaryMatchCeiling (the CBA rule-based allowable incoming)
+  //   2. hardCapIncomingCeiling = outgoing + max(0, apron - teamTotalSalary)
+  // This prevents allowable incoming from exceeding hard-cap room.
+  // ============================================================================
+  let hardCapIncomingCeiling = null;
+  let effectiveAllowableIncoming = allowableIncoming;
+  let hardCapCeilingApron = null;
+  let hardCapCeilingApronLabel = null;
+
+  if (hardCapStatus.isHardCapped) {
+    // Determine which apron is the hard cap ceiling
+    const hardCapType = hardCapStatus.hardCapType;
+    if (hardCapType === 'SecondApron' && secondApron > 0) {
+      hardCapCeilingApron = secondApron;
+      hardCapCeilingApronLabel = '2nd Apron';
+    } else if (actualFirstApron > 0) {
+      hardCapCeilingApron = actualFirstApron;
+      hardCapCeilingApronLabel = '1st Apron';
+    }
+
+    if (hardCapCeilingApron !== null) {
+      // Formula: incoming ≤ outgoing + max(0, apron - teamTotalSalary)
+      // This ensures post-trade salary doesn't exceed the hard cap
+      const hardCapRoom = Math.max(0, hardCapCeilingApron - totalSalary);
+      hardCapIncomingCeiling = salaryOut + hardCapRoom;
+
+      // The effective allowable incoming is the minimum of both ceilings
+      if (allowableIncoming !== null && allowableIncoming !== undefined) {
+        effectiveAllowableIncoming = Math.min(
+          allowableIncoming,
+          hardCapIncomingCeiling
+        );
+      } else {
+        // If no salary matching ceiling (e.g., under cap), hard cap ceiling is the limiter
+        effectiveAllowableIncoming = hardCapIncomingCeiling;
+      }
+    }
+  }
+
   const result = {
     passed: violations.length === 0,
     applicable: true,
@@ -408,6 +450,9 @@ export function validateSalaryMatching(team, context = {}) {
     salaryIn,
     salaryOut,
     allowableIncoming,
+    // TM_FIX_A2_E1: New fields for hard cap ceiling
+    hardCapIncomingCeiling,
+    effectiveAllowableIncoming,
     difference: salaryIn - salaryOut,
     message: violations.length ? violations[0] : 'Salary matching validated',
     warningsOnly: shouldWarnOnly('salaryMatching') && violations.length > 0,
@@ -428,6 +473,19 @@ export function validateSalaryMatching(team, context = {}) {
       margin: allowableIncoming - effectiveSalaryIn,
       // Include hard cap status for informational purposes (ceiling enforced by validateHardCap)
       hardCapStatus: hardCapStatus.isHardCapped ? hardCapStatus : null,
+      // TM_FIX_A2_E1: Hard cap ceiling details
+      hardCapCeiling:
+        hardCapIncomingCeiling !== null
+          ? {
+              ceiling: hardCapIncomingCeiling,
+              apron: hardCapCeilingApron,
+              apronLabel: hardCapCeilingApronLabel,
+              limiter:
+                hardCapIncomingCeiling < allowableIncoming
+                  ? 'hardCap'
+                  : 'salaryMatching',
+            }
+          : null,
     },
   };
 

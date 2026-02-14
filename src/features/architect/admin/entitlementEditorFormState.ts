@@ -7,7 +7,10 @@
  *  - 2026-02-05: Created for TM-4 entitlement authoring form state.
  */
 
-export type EntitlementKind = 'pick_ownership' | 'swap_right' | 'conveyance_right';
+export type EntitlementKind =
+  | 'pick_ownership'
+  | 'swap_right'
+  | 'conveyance_right';
 export type EntitlementUnderlyingStatus = 'pooled' | 'encumbered' | 'clean';
 export type ReceivesComparator = 'more_favorable' | 'less_favorable' | 'middle';
 export type SwapType = 'best_of' | 'worst_of';
@@ -36,6 +39,10 @@ export type EntitlementFormState = {
   receivesRankText: string;
   receivesComparator: ReceivesComparator | '';
   protectionLadder: ProtectionLadderTierForm[];
+  // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support
+  linkedEntitlementIdsText: string;
+  residualOfEntitlementId: string;
+  coveredByEntitlementIdsText: string;
 };
 
 const defaultFormState: EntitlementFormState = {
@@ -54,6 +61,10 @@ const defaultFormState: EntitlementFormState = {
   receivesRankText: '',
   receivesComparator: '',
   protectionLadder: [],
+  // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support
+  linkedEntitlementIdsText: '',
+  residualOfEntitlementId: '',
+  coveredByEntitlementIdsText: '',
 };
 
 const parseListInput = (value: string): string[] =>
@@ -124,11 +135,21 @@ export const createEntitlementFormState = (
       ? initialDocument.protectionLadder.map((tier) => ({
           year: toNumberString(tier.year),
           condition: (tier.condition as string) || '',
-          ifTriggered: (tier.ifTriggered as 'roll' | 'convert' | 'cancel') || 'roll',
+          ifTriggered:
+            (tier.ifTriggered as 'roll' | 'convert' | 'cancel') || 'roll',
           rollToYear: toNumberString(tier.rollToYear),
           convertToRound: toNumberString(tier.convertToRound),
         }))
       : [],
+    // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support
+    linkedEntitlementIdsText: stringifyList(
+      initialDocument.linkedEntitlementIds as string[]
+    ),
+    residualOfEntitlementId:
+      (initialDocument.residualOfEntitlementId as string) || '',
+    coveredByEntitlementIdsText: stringifyList(
+      initialDocument.coveredByEntitlementIds as string[]
+    ),
   };
 };
 
@@ -143,7 +164,8 @@ export const buildEntitlementDocument = (
   };
 
   if (formState.id) document.id = formState.id;
-  if (formState.description) document.description = formState.description.trim();
+  if (formState.description)
+    document.description = formState.description.trim();
   if (formState.underlyingPickId)
     document.underlyingPickId = formState.underlyingPickId.trim();
   if (formState.underlyingStatus)
@@ -154,7 +176,9 @@ export const buildEntitlementDocument = (
     document.swapTargetDefinition = formState.swapTargetDefinition.trim();
   if (formState.swapType) document.swapType = formState.swapType;
 
-  const poolUnderlyingPickIds = parseListInput(formState.poolUnderlyingPickIdsText);
+  const poolUnderlyingPickIds = parseListInput(
+    formState.poolUnderlyingPickIdsText
+  );
   if (poolUnderlyingPickIds.length > 0) {
     document.poolUnderlyingPickIds = poolUnderlyingPickIds;
   }
@@ -181,6 +205,25 @@ export const buildEntitlementDocument = (
         convertToRound,
       };
     });
+  }
+
+  // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support
+  const linkedEntitlementIds = parseListInput(
+    formState.linkedEntitlementIdsText
+  );
+  if (linkedEntitlementIds.length > 0) {
+    document.linkedEntitlementIds = linkedEntitlementIds;
+  }
+
+  if (formState.residualOfEntitlementId.trim()) {
+    document.residualOfEntitlementId = formState.residualOfEntitlementId.trim();
+  }
+
+  const coveredByEntitlementIds = parseListInput(
+    formState.coveredByEntitlementIdsText
+  );
+  if (coveredByEntitlementIds.length > 0) {
+    document.coveredByEntitlementIds = coveredByEntitlementIds;
   }
 
   return document;

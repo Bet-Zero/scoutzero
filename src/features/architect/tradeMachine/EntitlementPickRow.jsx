@@ -8,6 +8,7 @@
  *  - 2026-01-22: Phase 11.1 - Added selection toggle for entitlement trading
  *  - 2026-01-30: Phase 12.3C - Added PickRow projection with protection/condition visibility
  *  - 2026-02-03: Phase 17 - Added destination dropdown for 3+ team trades
+ *  - 2026-02-14: TM-ENTITLEMENTS-ADV-E1 - Added linked/residual indicators
  *
  * LINKS:
  *  - Plan: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 11.0, 11.1, 12.3C)
@@ -24,7 +25,15 @@ import {
   getPickRowDisplayLabel,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
-import { AlertTriangle, Check, Info, Pencil, Layers } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  Info,
+  Pencil,
+  Layers,
+  Link2,
+  GitBranch,
+} from 'lucide-react';
 
 /**
  * EntitlementPickRow
@@ -83,6 +92,13 @@ const EntitlementPickRow = ({
       'vacuum:'
     );
   const isEditedSession = entitlement?.__vacuumEdited === true;
+
+  // TM-ENTITLEMENTS-ADV-E1: Linked/residual indicators
+  const linkedEntitlementIds = entitlement.linkedEntitlementIds;
+  const hasLinkedEntitlements =
+    Array.isArray(linkedEntitlementIds) && linkedEntitlementIds.length > 0;
+  const linkedCount = hasLinkedEntitlements ? linkedEntitlementIds.length : 0;
+  const isResidual = !!entitlement.residualOfEntitlementId;
 
   // Phase 17: Determine if destination dropdown should be shown
   const isMultiTeamTrade = otherTeams.length > 1;
@@ -211,6 +227,27 @@ const EntitlementPickRow = ({
                   title="Pooled entitlement (multi-team)"
                 >
                   <Layers size={12} />
+                </span>
+              )}
+
+              {/* TM-ENTITLEMENTS-ADV-E1: Linked entitlement indicator */}
+              {hasLinkedEntitlements && (
+                <span
+                  className="flex items-center gap-0.5 text-cyan-400 flex-shrink-0"
+                  title={`Linked to ${linkedCount} other entitlement${linkedCount > 1 ? 's' : ''}`}
+                >
+                  <Link2 size={12} />
+                  <span className="text-[9px]">{linkedCount}</span>
+                </span>
+              )}
+
+              {/* TM-ENTITLEMENTS-ADV-E1: Residual entitlement indicator */}
+              {isResidual && (
+                <span
+                  className="flex items-center gap-0.5 text-teal-400 flex-shrink-0"
+                  title="Residual (depends on another entitlement's outcome)"
+                >
+                  <GitBranch size={12} />
                 </span>
               )}
 
