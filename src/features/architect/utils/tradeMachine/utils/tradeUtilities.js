@@ -5,15 +5,18 @@
  */
 
 // TPE utilities (from tpeUtils.js)
-export const SECOND_APRON_TPE_BLOCK = 'Second apron team cannot use trade exceptions';
+export const SECOND_APRON_TPE_BLOCK =
+  'Second apron team cannot use trade exceptions';
 
 export function isPriorYearTPE(tpe, season) {
-  const created = tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
+  const created =
+    tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
   return created < season;
 }
 
 export function isCurrentSeasonTPE(tpe, season) {
-  const created = tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
+  const created =
+    tpe?.season ?? tpe?.createdSeason ?? tpe?.createdAtSeason ?? season;
   return created === season;
 }
 
@@ -32,10 +35,15 @@ export function createTPE({ teamCtx, outgoing, incoming, tradeDate }) {
   const baseDate = tradeDate ? new Date(tradeDate) : new Date();
   const expiry = new Date(baseDate);
   expiry.setUTCFullYear(expiry.getUTCFullYear() + 1);
+  const rounded = Math.round(amt);
   return {
-    amount: Math.round(amt),
+    amount: rounded,
+    totalAmount: rounded, // Canonical schema field
+    remainingAmount: rounded, // Full capacity at creation
+    remaining: rounded, // UI alias
     createdSeason: baseDate.getUTCFullYear(),
     expiresOn: expiry.toISOString(), // Canonical schema field (Phase 1)
+    expirationDate: expiry.toISOString(), // UI alias
   };
 }
 
@@ -73,22 +81,22 @@ export const formatSalary = (amount) => `$${(amount || 0).toLocaleString()}`;
 
 /**
  * Phase 4: Determines if a protection value is "meaningful" for Stepien purposes.
- * 
+ *
  * Supports:
  * - Legacy string protection: "Top 3", "Lottery", etc.
  * - Pick object with protectionMeta (Option A)
- * 
+ *
  * Phase 4 Updates:
  * - Normalizes legacy "Swap (+/-)" values to unprotected (defensive)
  * - Supports protectionMeta.type for structured protection
- * 
+ *
  * @param {string|Object|null|undefined} protectionOrPick - Protection string or pick object
  * @returns {boolean} - True if protection is meaningful
  */
 export const isMeaningfulProtection = (protectionOrPick) => {
   // Handle null/undefined
   if (!protectionOrPick) return false;
-  
+
   // If it's a pick object with protectionMeta, use structured logic
   if (typeof protectionOrPick === 'object' && protectionOrPick.protectionMeta) {
     const { type, maxPosition } = protectionOrPick.protectionMeta;
@@ -105,21 +113,21 @@ export const isMeaningfulProtection = (protectionOrPick) => {
     }
     return false;
   }
-  
+
   // Legacy: string protection
   // First normalize to handle legacy "Swap (+/-)" values
   let protection = protectionOrPick;
   if (typeof protectionOrPick === 'object' && protectionOrPick.protection) {
     protection = protectionOrPick.protection;
   }
-  
+
   if (typeof protection !== 'string') return false;
-  
+
   // Defensive: treat "Swap (+/-)" as unprotected
   if (protection === 'Swap (+)' || protection === 'Swap (-)') {
     return false;
   }
-  
+
   // Original regex logic for string protection
   return (
     /top\s*[1-9]\d*/i.test(protection) ||
@@ -152,11 +160,11 @@ export const getPickOptions = () => [
  */
 export function normalizeProtectionValue(protection) {
   if (!protection) return null;
-  
+
   // Defensive normalization: treat legacy "Swap (+/-)" as unprotected
   if (protection === 'Swap (+)' || protection === 'Swap (-)') {
     return null;
   }
-  
+
   return protection;
 }

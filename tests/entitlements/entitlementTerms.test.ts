@@ -41,7 +41,12 @@ describe('entitlementTerms', () => {
       seasonYear: 2026,
       round: 1,
       protectionLadder: [
-        { year: 2026, condition: 'Top 3', ifTriggered: 'roll', rollToYear: 2027 },
+        {
+          year: 2026,
+          condition: 'Top 3',
+          ifTriggered: 'roll',
+          rollToYear: 2027,
+        },
         { year: 2027, condition: 'Top 5', ifTriggered: 'cancel' },
       ],
     };
@@ -84,7 +89,7 @@ describe('entitlementTerms', () => {
     expect(terms.conveyance?.poolUnderlyingPickIds?.length).toBe(2);
     expect(terms.conveyance?.receivesRank).toEqual([1]);
     expect(terms.conveyance?.receivesComparator).toBe('less_favorable');
-    expect(formatEntitlementTermsShort(terms)).toBe('Conveys (ranked)');
+    expect(formatEntitlementTermsShort(terms)).toBe('Pool (ordered)');
   });
 
   it('decorates entitlement with terms, termsShort, and draftKey', () => {

@@ -184,9 +184,8 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('vacuum create apply', () => {
     it('does NOT call writeWorldEntitlement in vacuum mode', async () => {
       render(<PickRightWizardModal {...vacuumCreateProps} />);
-      // Complete the wizard flow
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
-      fireEvent.click(screen.getByTestId('wizard-next'));
+      // Quick Builder: select action and apply directly
+      fireEvent.click(screen.getByTestId('action-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
@@ -196,8 +195,7 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
 
     it('calls applyVacuumCreate for new entitlements', async () => {
       render(<PickRightWizardModal {...vacuumCreateProps} />);
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
-      fireEvent.click(screen.getByTestId('wizard-next'));
+      fireEvent.click(screen.getByTestId('action-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
@@ -214,8 +212,7 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
       render(
         <PickRightWizardModal {...vacuumCreateProps} onSuccess={onSuccess} />
       );
-      fireEvent.click(screen.getByTestId('intent-protect_pick'));
-      fireEvent.click(screen.getByTestId('wizard-next'));
+      fireEvent.click(screen.getByTestId('action-protect_pick'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
@@ -232,7 +229,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('vacuum edit apply', () => {
     it('calls applyVacuumEdit for existing base entitlements', async () => {
       render(<PickRightWizardModal {...vacuumEditProps} />);
-      fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
@@ -253,7 +249,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
       render(
         <PickRightWizardModal {...vacuumEditProps} onSuccess={onSuccess} />
       );
-      fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
@@ -270,7 +265,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('vacuum re-edit apply', () => {
     it('calls applyVacuumCreate (not Edit) for vacuum-prefixed IDs', async () => {
       render(<PickRightWizardModal {...vacuumReEditProps} />);
-      fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
@@ -292,7 +286,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('world mode unchanged', () => {
     it('calls writeWorldEntitlement in world mode', async () => {
       render(<PickRightWizardModal {...worldModeProps} />);
-      fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
@@ -310,7 +303,6 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   describe('draft handling in vacuum mode', () => {
     it('saves draft with "vacuum" as worldId key segment', () => {
       render(<PickRightWizardModal {...vacuumEditProps} />);
-      fireEvent.click(screen.getByTestId('wizard-next'));
       fireEvent.click(screen.getByTestId('wizard-save-draft'));
 
       const key = `pickrightdraft:vacuum:ent:BOS:2027:1:own:abcd1234`;

@@ -50,6 +50,7 @@ admin/
   EntitlementEditorTeamInventorySection.tsx
   PickRightWizardModal.tsx
   PickRightWizardSteps/
+    QuickBuilder.tsx
     WizardStepDetails.tsx
     WizardStepIntent.tsx
     WizardStepReview.tsx
@@ -355,5 +356,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-13T10:11:59.095Z*
+*Generated on: 2026-02-14T05:03:57.601Z*
 *Auto-updated by: npm run docs*

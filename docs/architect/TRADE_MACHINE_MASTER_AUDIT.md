@@ -328,13 +328,13 @@ Return package: `return_packages/trade_machine/TM_9B_EXECUTION_RETURN_PACKAGE.md
 
 **Wizard presets (exactly 5):**
 
-| Preset | Schema Mapping |
-|--------|---------------|
-| Unprotected | Empty ladder — pick conveys regardless |
-| Top 4 protected → Unprotected next year | 2-tier: Y0 "Top 4" roll, Y1 "Unprotected" cancel |
-| Top 10 protected → Unprotected next year | 2-tier: Y0 "Top 10" roll, Y1 "Unprotected" cancel |
-| Lottery protected (Top 14) → Unprotected next year | 2-tier: Y0 "Lottery" roll, Y1 "Unprotected" cancel |
-| Lottery → Top 10 → Unprotected | 3-tier: Y0 "Lottery" roll, Y1 "Top 10" roll, Y2 "Unprotected" cancel |
+| Preset                                             | Schema Mapping                                                       |
+| -------------------------------------------------- | -------------------------------------------------------------------- |
+| Unprotected                                        | Empty ladder — pick conveys regardless                               |
+| Top 4 protected → Unprotected next year            | 2-tier: Y0 "Top 4" roll, Y1 "Unprotected" cancel                     |
+| Top 10 protected → Unprotected next year           | 2-tier: Y0 "Top 10" roll, Y1 "Unprotected" cancel                    |
+| Lottery protected (Top 14) → Unprotected next year | 2-tier: Y0 "Lottery" roll, Y1 "Unprotected" cancel                   |
+| Lottery → Top 10 → Unprotected                     | 3-tier: Y0 "Lottery" roll, Y1 "Top 10" roll, Y2 "Unprotected" cancel |
 
 **Swap labels:** "Swap most favorable" (best_of) / "Swap least favorable" (worst_of).
 
@@ -357,6 +357,83 @@ Return package: `return_packages/trade_machine/TM_9B_EXECUTION_RETURN_PACKAGE.md
 **No schema changes.** Advanced Editor unchanged. `PROTECTION_TEMPLATES` preserved as-is.
 
 Return package: `return_packages/trade_machine/TM-10_WIZARD_COMMON_PRESETS_RETURN_PACKAGE.md`
+
+---
+
+### TM-WIZARD-SIMPLIFY-E1: Quick Builder UX Overhaul (2026-02-14)
+
+**Problem:** The 3-step wizard (Intent → Details → Review) required too many clicks, exposed CBA jargon (conveyance, comparator, rank, encumbered), and didn't fit on a laptop screen without scrolling.
+
+**Solution:** Replaced the 3-step wizard with a single-screen Quick Builder. User sees the pick identity, clicks an action card, configures via simplified controls, and applies — all on one screen.
+
+**Key changes:**
+
+- **Single screen**: Removed step navigation (Next/Back). One page with pick selector, action cards, action-specific controls, inline preview, always-visible Apply bar.
+- **Protect**: Curated 5-preset grid (Unprotected, Top 4, Top 10, Lottery, Lottery→Top 10→Unprotected). "Custom → Advanced" link for non-standard ladders.
+- **Swap**: "Most favorable" / "Least favorable" buttons instead of `swapType` dropdown. "Your pick" / "Their pick" labels. Auto-fill target description.
+- **Pool**: Chip bar (Best / Top 2 / Worst / Bottom 2 / Middle) replacing comparator + rank dropdowns.
+- **Jargon ban**: 15 schema terms banned from Quick Builder UI. Enforced by automated jargon-scan test.
+- **Display text**: "Conveyance right" → "Pool right", "Conveys (ranked)" → "Pool (ordered)", "Part of conveyance pool" → "Part of pick pool".
+
+**Files changed:**
+
+- `QuickBuilder.tsx` (NEW, 594 lines) — single-screen Quick Builder component
+- `PickRightWizardModal.tsx` — renders QuickBuilder instead of 3-step wizard
+- `pickEditorCopy.ts` — pool chips, jargon words, intent descriptions, label updates
+- `PlainEnglishPreview.tsx` — "Pool right" instead of "Conveyance right"
+- `entitlementTerms.ts` — "Pool (ordered)" instead of "Conveys (ranked)"
+- `quickBuilder.test.tsx` (NEW, 20 tests) — chip mapping, preset pipeline, swap auto-fill, jargon ban
+- `pickRightWizard.test.tsx` — rewritten for Quick Builder single-screen
+- `pickRightWizard.vacuumApply.test.tsx` — removed step navigation from apply flows
+- `entitlementTerms.test.ts` — updated expected termsShort string
+
+**Test Results:**
+
+- `quickBuilder.test.tsx`: ✅ **20/20 tests pass** (all new)
+- `pickRightWizard.test.tsx`: ✅ **22/22 tests pass** (rewritten)
+- `pickRightWizard.vacuumApply.test.tsx`: ✅ **11/11 tests pass**
+- `pickRightWizardDraft.test.ts`: ✅ **11/11 tests pass** (no regressions)
+- `entitlementTerms.test.ts`: ✅ **5/5 tests pass**
+- Production build: ✅ succeeds (34s)
+
+**No schema changes.** WizardModel structure unchanged. Downstream pipeline (wizardToFormState → buildEntitlementDocument → validation → save) unchanged. Advanced Editor and all entitlement utilities untouched.
+
+Return package: `return_packages/trade_machine/TM-WIZARD-SIMPLIFY-E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### TM-WIZARD-UX-E2: Edit Mode Identity Summary (2026-02-14)
+
+**Problem:** In edit mode (pencil-click on an existing entitlement), the Quick Builder still showed the full PickSelector (Team/Year/Round dropdowns), which was confusing because the pick identity is already known. Users felt uncertain about whether they were editing the right pick.
+
+**Solution:** In edit mode, replaced the PickSelector with a locked, read-only identity summary showing team, year, round, owner, and canonical pick ID. Create mode ("New Pick Right") still shows PickSelector for pick selection.
+
+**Key changes:**
+
+- **Edit mode**: PickSelector removed entirely. Shows a locked identity summary panel with:
+  - Primary line: "{TEAM} {YEAR} {ROUND}" (e.g., "BOS 2029 1st Round")
+  - Owner line: "Owner: {TEAM} (changes when traded)"
+  - Pick ID line: canonical ID (e.g., "BOS_2029_1")
+  - Lock icon (🔒) and helper text about creating a new pick right to change identity
+- **Create mode**: Unchanged — PickSelector remains visible for choosing team/year/round.
+- **No logic changes**: Identity locks, formState sync, validation pipeline, save/draft/vacuum paths all unchanged.
+
+**Files changed:**
+
+- `QuickBuilder.tsx` — conditional render: `isEditMode ? <identity summary> : <PickSelector>`
+- `pickRightWizard.test.tsx` — 3 new tests: edit-mode PickSelector absent, identity summary present, create-mode PickSelector present
+- `quickBuilder.test.tsx` — 6 new tests: edit-mode identity summary (team/year/round, owner, pick ID), create-mode PickSelector
+
+**Test Results:**
+
+- `quickBuilder.test.tsx`: ✅ **26/26 tests pass** (20 original + 6 new)
+- `pickRightWizard.test.tsx`: ✅ **23/23 tests pass** (20 original + 3 new, 2 replaced)
+- `pickRightWizard.vacuumApply.test.tsx`: ✅ **11/11 tests pass** (no regressions)
+- Production build: ✅ succeeds (44s)
+
+**No schema changes.** No persistence/validation behavior changes. WizardModel structure unchanged.
+
+Return package: `return_packages/trade_machine/TM_WIZARD_UX_E2_EXECUTION_RETURN_PACKAGE.md`
 
 ---
 

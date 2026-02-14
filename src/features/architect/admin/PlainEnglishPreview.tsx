@@ -112,7 +112,7 @@ function buildPlainEnglish(formState: EntitlementFormState): string {
             : '(no method selected)';
     const poolDisplay =
       poolIds.length > 0 ? poolIds.join(', ') : '(no picks in pool)';
-    return `Conveyance right for ${team} ${year} ${round}: receives ${comparator} from pool [${poolDisplay}].`;
+    return `Pool right for ${team} ${year} ${round}: receives ${comparator} from pool [${poolDisplay}].`;
   }
 
   return 'Select a pick right type to see a preview.';

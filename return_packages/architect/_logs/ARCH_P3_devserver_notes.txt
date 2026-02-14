@@ -1,0 +1,37 @@
+P3 Dev Server + Emulator Runtime Notes
+========================================
+Date: 2026-02-13
+
+ENVIRONMENT
+-----------
+- Firebase Emulators started via `npm run emu`
+  - Hub: http://localhost:4400 ✓
+  - Firestore: http://localhost:8082 ✓
+  - Auth: http://localhost:9099 ✓
+  - Functions: http://localhost:5001
+  - UI: http://localhost:4000
+- Auto-seeded collections: architect_baseTeams (30), architect_basePlayers, architect_baseEntitlements, architect_basePickRules, players_v2
+- Vite dev server: http://localhost:5173 ✓
+
+DEV SERVER STARTUP
+------------------
+- `npm run dev` started in 1340ms
+- No fatal errors in terminal output
+- Warning: "emulators: It seems that you are running multiple instances of the emulator suite" (non-blocking, previous instance was present)
+- Warning: "functions: package.json indicates an outdated version of firebase-functions" (non-blocking)
+- Warning: "functions: Your requested 'node' version '18' doesn't match your global version '22'" (non-blocking)
+
+ROUTE HEALTH CHECKS
+--------------------
+- GET http://localhost:5173/        → 200 OK (HTML returned)
+- GET http://localhost:5173/gm      → 200 OK (HTML returned)
+- GET http://localhost:5173/gm/BOS  → 200 OK (HTML returned)
+
+No crash traces or Firebase connection errors observed in server terminal output.
+
+E2E EMULATOR TEST
+-----------------
+- phaseD4 TRUE E2E test: 17/17 PASSED (30.31s)
+- Auth port fix required: firebaseEmulatorConfig.ts had authPort=9100 but firebase.json specifies 9099
+  Fix: Changed authPort from 9100 to 9099 in scripts/ci/firebaseEmulatorConfig.ts
+- After fix: full E2E trade + persistence + reload + DARE resolution verified against live Firestore emulator

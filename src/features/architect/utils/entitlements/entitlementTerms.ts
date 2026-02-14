@@ -283,7 +283,7 @@ export const formatEntitlementTermsShort = (
   }
 
   if (terms.hasConveyance) {
-    return 'Conveys (ranked)';
+    return 'Pool (ordered)';
   }
 
   return '';

@@ -79,6 +79,11 @@ const TradeExceptionDashboard = ({ result, teams }) => {
                   <span className="font-mono">
                     {formatCurrency(tpe.amount || 0)}
                   </span>
+                  {(tpe.name || tpe.createdFrom) && (
+                    <span className="text-white/60 ml-1">
+                      ({tpe.name || tpe.createdFrom})
+                    </span>
+                  )}
                   <span className="text-white/50 ml-2">
                     expires {formatDate(getTpeExpiryISO(tpe))}
                   </span>

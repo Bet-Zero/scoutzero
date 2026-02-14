@@ -270,7 +270,16 @@ describe('Phase 65: getTeamTpeList() Canonical Accessor', () => {
     };
 
     const result = getTeamTpeList(team);
-    expect(result).toEqual([{ id: 'canonical', amount: 2000000 }]);
+    // Phase 68: getTeamTpeList now normalizes field aliases
+    expect(result).toEqual([
+      {
+        id: 'canonical',
+        amount: 2000000,
+        totalAmount: 2000000,
+        remaining: 2000000,
+        remainingAmount: 2000000,
+      },
+    ]);
   });
 
   it('should fall back to legacy tradeExceptions when canonical is empty', async () => {
@@ -286,7 +295,16 @@ describe('Phase 65: getTeamTpeList() Canonical Accessor', () => {
     };
 
     const result = getTeamTpeList(team);
-    expect(result).toEqual([{ id: 'legacy', amount: 1000000 }]);
+    // Phase 68: getTeamTpeList now normalizes field aliases
+    expect(result).toEqual([
+      {
+        id: 'legacy',
+        amount: 1000000,
+        totalAmount: 1000000,
+        remaining: 1000000,
+        remainingAmount: 1000000,
+      },
+    ]);
   });
 
   it('should fall back to legacy when exceptions.tpe is undefined', async () => {
@@ -299,7 +317,16 @@ describe('Phase 65: getTeamTpeList() Canonical Accessor', () => {
     };
 
     const result = getTeamTpeList(team);
-    expect(result).toEqual([{ id: 'legacy', amount: 1000000 }]);
+    // Phase 68: getTeamTpeList now normalizes field aliases
+    expect(result).toEqual([
+      {
+        id: 'legacy',
+        amount: 1000000,
+        totalAmount: 1000000,
+        remaining: 1000000,
+        remainingAmount: 1000000,
+      },
+    ]);
   });
 });
 

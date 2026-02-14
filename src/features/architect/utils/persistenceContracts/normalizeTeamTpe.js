@@ -203,6 +203,67 @@ export function normalizeTeamTpeSchema(team) {
 }
 
 /**
+ * Normalize a single TPE object to include UI-expected aliases.
+ *
+ * Firestore stores: totalAmount, remainingAmount, expiresOn
+ * UI components read: amount, remaining, expirationDate
+ *
+ * This function ensures both sets of field names are present,
+ * so downstream consumers work regardless of data source.
+ *
+ * @param {Object} tpe - Raw TPE object from any source
+ * @returns {Object} TPE with both canonical and aliased fields
+ */
+function normalizeTpeFields(tpe) {
+  if (!tpe || typeof tpe !== 'object') return tpe;
+
+  const normalized = { ...tpe };
+
+  // amount ↔ totalAmount (prefer whichever exists)
+  if (normalized.totalAmount != null && normalized.amount == null) {
+    normalized.amount = normalized.totalAmount;
+  } else if (normalized.amount != null && normalized.totalAmount == null) {
+    normalized.totalAmount = normalized.amount;
+  }
+
+  // remaining ↔ remainingAmount (prefer whichever exists, fall back to amount)
+  if (normalized.remainingAmount != null && normalized.remaining == null) {
+    normalized.remaining = normalized.remainingAmount;
+  } else if (
+    normalized.remaining != null &&
+    normalized.remainingAmount == null
+  ) {
+    normalized.remainingAmount = normalized.remaining;
+  } else if (
+    normalized.remaining == null &&
+    normalized.remainingAmount == null
+  ) {
+    // If neither is set, default to amount (full capacity)
+    normalized.remaining = normalized.amount ?? normalized.totalAmount ?? 0;
+    normalized.remainingAmount = normalized.remaining;
+  }
+
+  // expirationDate ↔ expiresOn (prefer whichever exists)
+  if (normalized.expiresOn != null && normalized.expirationDate == null) {
+    normalized.expirationDate = normalized.expiresOn;
+  } else if (
+    normalized.expirationDate != null &&
+    normalized.expiresOn == null
+  ) {
+    normalized.expiresOn = normalized.expirationDate;
+  }
+
+  // name ↔ createdFrom (UI reads tpe.name, Firestore stores createdFrom)
+  if (normalized.createdFrom != null && normalized.name == null) {
+    normalized.name = normalized.createdFrom;
+  } else if (normalized.name != null && normalized.createdFrom == null) {
+    normalized.createdFrom = normalized.name;
+  }
+
+  return normalized;
+}
+
+/**
  * Read helper for getting team TPE list.
  * Prefers canonical location, falls back to legacy for old worlds.
  *
@@ -210,28 +271,34 @@ export function normalizeTeamTpeSchema(team) {
  * from teams that may still have data in the legacy location.
  *
  * Phase 66: Records telemetry when fallback to legacy location is used.
+ * Phase 68: Normalizes TPE field names so UI consumers always find
+ *           amount, remaining, expirationDate regardless of data source.
  *
  * @param {Object} team - Team object
- * @returns {Array} Array of TPE objects (may be empty)
+ * @returns {Array} Array of TPE objects with normalized fields (may be empty)
  */
 export function getTeamTpeList(team) {
   if (!team || typeof team !== 'object') {
     return [];
   }
 
+  let rawList;
+
   // Prefer canonical location
   if (Array.isArray(team.exceptions?.tpe) && team.exceptions.tpe.length > 0) {
-    return team.exceptions.tpe;
+    rawList = team.exceptions.tpe;
   }
-
   // Fallback to legacy location for old worlds
-  if (Array.isArray(team.tradeExceptions)) {
+  else if (Array.isArray(team.tradeExceptions)) {
     // Phase 66: Record telemetry for legacy fallback
     recordLegacyTpeFallback(team);
-    return team.tradeExceptions;
+    rawList = team.tradeExceptions;
+  } else {
+    return [];
   }
 
-  return [];
+  // Phase 68: Normalize field names for all consumers
+  return rawList.map(normalizeTpeFields);
 }
 
 // Export identity key function for testing

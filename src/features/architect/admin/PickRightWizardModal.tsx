@@ -1,21 +1,18 @@
 /**
  * FILE: src/features/architect/admin/PickRightWizardModal.tsx
- * PURPOSE: Pick Right Wizard modal — 3-step wizard for creating/editing pick rights.
- * OWNERSHIP: Feature: architect/admin (TM-8 Pick Editor UX / TM-9 Translation Layer)
+ * PURPOSE: Pick Right Wizard modal — Quick Builder single-screen UX
+ *          (TM-WIZARD-SIMPLIFY-E1).
+ * OWNERSHIP: Feature: architect/admin (TM-8 / TM-9 / TM-WIZARD-SIMPLIFY-E1)
  *
  * HISTORY:
  *  - 2026-02-05: Created for TM-8 Pick Editor UX Overhaul.
  *  - 2026-02-05: TM-9 — Added WizardModel state management alongside formState.
- *                WizardModel is the single source of truth in wizard mode.
- *                useEffect syncs WizardModel → formState via wizardToFormState().
- *                Draft handling supports v2 envelope format.
+ *  - 2026-02-13: TM-WIZARD-SIMPLIFY-E1 — Replaced 3-step wizard with Quick Builder.
+ *                Single screen: pick + action cards + controls + preview + apply.
+ *                Preserves all save/draft/vacuum logic intact.
  *
- * The wizard flows: Intent → Details → Review → Apply.
- * On "Apply", the WizardModel is translated into EntitlementFormState and saved
- * via the existing validation/save pipeline (validateEntitlementDocument → writeWorldEntitlement).
- *
- * The "Open in Advanced Editor" button passes the translated formState to EntitlementEditorModal,
- * preserving all data for power-user editing.
+ * Quick Builder mode is the default. "Open Advanced Editor" passes the translated
+ * formState to EntitlementEditorModal, preserving all data for power-user editing.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -32,7 +29,6 @@ import type { FieldErrors } from './useEntitlementEditorState';
 import { db } from '@/firebaseConfig';
 import {
   generateEntitlementId,
-  getEntitlementPath,
   validateEntitlementDocument,
   writeWorldEntitlement,
 } from '../utils/entitlements/entitlementWriter';
@@ -42,7 +38,6 @@ import {
   formStateToWizardModel,
 } from './pickRightWizardModel';
 import { wizardToFormState } from './wizardToEntitlement';
-import { WIZARD_INTENT_LABELS } from './pickEditorCopy';
 import {
   saveDraft,
   loadDraft,
@@ -58,25 +53,7 @@ import {
   hasCreate,
   makeVacuumEntitlementId,
 } from '../utils/entitlements/vacuumEntitlementOverlayStore';
-import { WizardStepDetails } from './PickRightWizardSteps/WizardStepDetails';
-import { WizardStepReview } from './PickRightWizardSteps/WizardStepReview';
-
-// ─── types ───────────────────────────────────────────────────────────────────
-
-type WizardStep = 'intent' | 'details' | 'review';
-
-/** Maps wizard intent → EntitlementKind for the intent step */
-const INTENT_TO_KIND: Record<WizardIntent, EntitlementKind> = {
-  protect_pick: 'pick_ownership',
-  create_swap: 'swap_right',
-  create_conveyance: 'conveyance_right',
-};
-
-const KIND_TO_INTENT: Record<EntitlementKind, WizardIntent> = {
-  pick_ownership: 'protect_pick',
-  swap_right: 'create_swap',
-  conveyance_right: 'create_conveyance',
-};
+import { QuickBuilder } from './PickRightWizardSteps/QuickBuilder';
 
 // ─── component ───────────────────────────────────────────────────────────────
 
@@ -113,9 +90,6 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
   const isVacuumSession = vacuumMode || !worldId;
 
   // ── State ──
-  const [step, setStep] = useState<WizardStep>(
-    isEditMode ? 'details' : 'intent'
-  );
   const [saving, setSaving] = useState(false);
   const [sessionMutating, setSessionMutating] = useState(false);
 
@@ -233,10 +207,6 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
       setWizardModel(v2.wizardModel);
       setFormState(v2.formState);
       toast.success('Draft restored');
-      // Jump to details if intent is set
-      if (v2.wizardModel.intent) {
-        setStep('details');
-      }
     } else {
       // v1 format: raw EntitlementFormState
       const fs = draft as EntitlementFormState;
@@ -245,7 +215,6 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
       if (model) {
         setWizardModel(model);
         toast.success('Draft restored (migrated from v1)');
-        if (model.intent) setStep('details');
       } else {
         toast.success('Draft restored — open Advanced Editor for full access');
       }
@@ -273,16 +242,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     return hasCreate(teamCodeForOverlay, entitlementId);
   }, [isVacuumSession, isEditMode, entitlementId, teamCodeForOverlay]);
 
-  // ── Intent selection ──
-  const handleSelectIntent = useCallback((intent: WizardIntent) => {
-    setWizardModel((prev) => ({
-      ...prev,
-      intent,
-    }));
-    setStep('details');
-  }, []);
-
-  // ── WizardModel change handler (passed to WizardStepDetails) ──
+  // ── WizardModel change handler (passed to QuickBuilder) ──
   const handleWizardModelChange = useCallback((next: WizardModel) => {
     setWizardModel(next);
   }, []);
@@ -448,19 +408,6 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     }
   }, [formState, onDuplicateAsNew]);
 
-  // ── Navigation ──
-  const handleBack = useCallback(() => {
-    if (step === 'review') setStep('details');
-    else if (step === 'details') {
-      if (isEditMode) onClose();
-      else setStep('intent');
-    }
-  }, [step, isEditMode, onClose]);
-
-  const handleNext = useCallback(() => {
-    if (step === 'details') setStep('review');
-  }, [step]);
-
   // ═════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═════════════════════════════════════════════════════════════════════════
@@ -472,40 +419,10 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     >
       <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-white">
-              {entitlementId ? 'Edit Pick Right' : 'New Pick Right'}
-            </h2>
-            {/* Step indicator */}
-            <div className="flex items-center gap-1.5 text-xs text-white/40">
-              {!isEditMode && (
-                <>
-                  <span
-                    className={
-                      step === 'intent' ? 'text-blue-400 font-medium' : ''
-                    }
-                  >
-                    1. Type
-                  </span>
-                  <span>→</span>
-                </>
-              )}
-              <span
-                className={
-                  step === 'details' ? 'text-blue-400 font-medium' : ''
-                }
-              >
-                {isEditMode ? '1. Details' : '2. Details'}
-              </span>
-              <span>→</span>
-              <span
-                className={step === 'review' ? 'text-blue-400 font-medium' : ''}
-              >
-                {isEditMode ? '2. Review' : '3. Review'}
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
+          <h2 className="text-lg font-semibold text-white">
+            {entitlementId ? 'Edit Pick Right' : 'New Pick Right'}
+          </h2>
           <button
             onClick={onClose}
             className="text-white/40 hover:text-white text-xl leading-none"
@@ -525,124 +442,76 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           </div>
         )}
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {/* ── Step 1: Intent ── */}
-          {!isEditMode && step === 'intent' && (
-            <div className="space-y-4" data-testid="wizard-step-intent">
-              <div className="text-sm text-white/60 mb-4">
-                What would you like to do?
-              </div>
-              {(
-                ['protect_pick', 'create_swap', 'create_conveyance'] as const
-              ).map((intent) => (
-                <button
-                  key={intent}
-                  type="button"
-                  onClick={() => handleSelectIntent(intent)}
-                  className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                    wizardModel.intent === intent
-                      ? 'border-blue-500 bg-blue-900/20 text-blue-300'
-                      : 'border-white/10 bg-[#141414] text-white/80 hover:border-white/20 hover:bg-[#1a1a1a]'
-                  }`}
-                  data-testid={`intent-${intent}`}
-                >
-                  <div className="font-medium text-sm">
-                    {WIZARD_INTENT_LABELS[intent]}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* ── Step 2: Details ── */}
-          {step === 'details' && (
-            <WizardStepDetails
-              wizardModel={wizardModel}
-              onChange={handleWizardModelChange}
-              fieldErrors={fieldErrors}
-              disabled={saving || sessionMutating}
-              isEditMode={isEditMode}
-              lockIdentityFields={isEditMode}
-            />
-          )}
-
-          {/* ── Step 3: Review ── */}
-          {step === 'review' && (
-            <WizardStepReview
-              wizardModel={wizardModel}
-              formState={formState}
-              fieldErrors={fieldErrors}
-              isValid={isValid}
-              saving={saving || sessionMutating}
-              onSaveDraft={handleSaveDraft}
-              onApply={handleApply}
-              onOpenAdvanced={handleOpenAdvanced}
-            />
-          )}
+        {/* Body: Quick Builder (single screen) */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <QuickBuilder
+            wizardModel={wizardModel}
+            formState={formState}
+            fieldErrors={fieldErrors}
+            isValid={isValid}
+            saving={saving || sessionMutating}
+            onChange={handleWizardModelChange}
+            onApply={handleApply}
+            onSaveDraft={handleSaveDraft}
+            onOpenAdvanced={handleOpenAdvanced}
+            disabled={saving || sessionMutating}
+            isEditMode={isEditMode}
+            lockIdentityFields={isEditMode}
+          />
         </div>
 
-        {/* Footer navigation */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+        {/* Footer — cancel, session actions, duplicate */}
+        <div className="flex items-center justify-between px-6 py-3 border-t border-white/10">
           <button
             type="button"
-            onClick={step === 'intent' ? onClose : handleBack}
+            onClick={onClose}
             className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
             data-testid="wizard-back"
           >
-            {step === 'intent' ? 'Cancel' : '← Back'}
+            Cancel
           </button>
 
-          {isVacuumSession && isEditMode && (
-            <div className="flex items-center gap-2">
-              {canRevertThisEdit && (
-                <button
-                  type="button"
-                  onClick={handleRevertThisEdit}
-                  disabled={saving || sessionMutating}
-                  className="px-3 py-1.5 rounded border border-amber-500/40 text-amber-300 text-xs hover:bg-amber-900/20 disabled:opacity-50"
-                  data-testid="wizard-revert-edit"
-                >
-                  Revert this edit
-                </button>
-              )}
-              {canDeleteSessionPickRight && (
-                <button
-                  type="button"
-                  onClick={handleDeleteSessionPickRight}
-                  disabled={saving || sessionMutating}
-                  className="px-3 py-1.5 rounded border border-red-500/40 text-red-300 text-xs hover:bg-red-900/20 disabled:opacity-50"
-                  data-testid="wizard-delete-session-pick-right"
-                >
-                  Delete this session pick right
-                </button>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {isVacuumSession && isEditMode && (
+              <>
+                {canRevertThisEdit && (
+                  <button
+                    type="button"
+                    onClick={handleRevertThisEdit}
+                    disabled={saving || sessionMutating}
+                    className="px-3 py-1.5 rounded border border-amber-500/40 text-amber-300 text-xs hover:bg-amber-900/20 disabled:opacity-50"
+                    data-testid="wizard-revert-edit"
+                  >
+                    Revert this edit
+                  </button>
+                )}
+                {canDeleteSessionPickRight && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteSessionPickRight}
+                    disabled={saving || sessionMutating}
+                    className="px-3 py-1.5 rounded border border-red-500/40 text-red-300 text-xs hover:bg-red-900/20 disabled:opacity-50"
+                    data-testid="wizard-delete-session-pick-right"
+                  >
+                    Delete this session pick right
+                  </button>
+                )}
+              </>
+            )}
 
-          {/* TM-VACUUM-E3: Duplicate as new — safe way to change identity */}
-          {isEditMode && onDuplicateAsNew && (
-            <button
-              type="button"
-              onClick={handleDuplicateAsNew}
-              disabled={saving || sessionMutating}
-              className="px-3 py-1.5 rounded border border-blue-500/40 text-blue-300 text-xs hover:bg-blue-900/20 disabled:opacity-50"
-              data-testid="wizard-duplicate-as-new"
-            >
-              Duplicate as new
-            </button>
-          )}
-
-          {step === 'details' && (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="px-5 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors"
-              data-testid="wizard-next"
-            >
-              Review →
-            </button>
-          )}
+            {/* TM-VACUUM-E3: Duplicate as new */}
+            {isEditMode && onDuplicateAsNew && (
+              <button
+                type="button"
+                onClick={handleDuplicateAsNew}
+                disabled={saving || sessionMutating}
+                className="px-3 py-1.5 rounded border border-blue-500/40 text-blue-300 text-xs hover:bg-blue-900/20 disabled:opacity-50"
+                data-testid="wizard-duplicate-as-new"
+              >
+                Duplicate as new
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

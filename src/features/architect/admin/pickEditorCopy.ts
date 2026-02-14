@@ -69,7 +69,7 @@ export function deriveTradabilityStatus(model: WizardModel): TradabilityBadge {
     return {
       icon: '⚠️',
       label: 'Tradable with restriction',
-      reason: 'Part of conveyance pool',
+      reason: 'Part of pick pool',
       variant: 'amber',
     };
   }
@@ -92,32 +92,33 @@ export const WIZARD_LABELS = {
 
   // Pick ownership
   pickOwnershipTitle: 'Pick Ownership',
-  protectionPattern: 'Protection Pattern',
+  protectionPattern: 'Protection',
   protectionPatternHelp:
-    'These are the most common NBA protections. For custom protections or special rules, open Advanced Editor.',
+    'Choose a common protection. For custom rules, use the Advanced Editor.',
   protectionLadder: 'Protection Ladder',
-  clearLadder: 'Clear ladder',
+  clearLadder: 'Clear',
 
   // Swap
-  swapRightTitle: 'Swap Right',
-  swapType: 'Swap Type',
+  swapRightTitle: 'Swap',
+  swapType: 'Swap Direction',
   swapBestOf: 'Swap most favorable',
   swapWorstOf: 'Swap least favorable',
-  controllerPick: 'Controller Pick',
+  controllerPick: 'Your Pick',
   controllerPickHelp:
-    'The pick that controls the swap — the team with the right to choose.',
-  targetDescription: 'Target Description',
-  targetDescriptionHelp: 'Describe which pick(s) the swap targets.',
+    'The pick your team controls — the one you can choose to swap.',
+  targetDescription: 'Details',
+  targetDescriptionHelp:
+    'Describe what the swap is against (auto-filled from pick).',
   targetDescriptionPlaceholder: 'e.g. BOS own 1st round pick',
+  yourPick: 'Your pick',
+  theirPick: 'Their pick',
 
-  // Conveyance
-  conveyanceRightTitle: 'Conveyance Right',
-  poolOfPicks: 'Pool of Picks',
-  poolOfPicksHelp: 'Add picks to the conveyance pool (minimum 2 required).',
-  selectionMethod: 'Selection Method',
-  selectionRank: 'Selection Rank',
-  selectionRankHelp:
-    'Which rank(s) to receive (e.g. 1 for best, or 1, 2 for top 2).',
+  // Pool (renamed from Conveyance)
+  poolTitle: 'Pool',
+  poolOfPicks: 'Picks in Pool',
+  poolOfPicksHelp:
+    'A pool lets you receive the most/least favorable pick from a set.',
+  poolReceives: 'Receives',
   addPick: '+ Add Pick',
 
   // Description
@@ -125,10 +126,10 @@ export const WIZARD_LABELS = {
   descriptionPlaceholder:
     'e.g. 2027 BOS 1st, Lottery-protected via trade with PHI',
 
-  // Review
+  // Review / Apply
   reviewTitle: 'Review & Apply',
-  fieldSummary: 'Field Summary',
-  openAdvanced: 'Open in Advanced Editor',
+  fieldSummary: 'Summary',
+  openAdvanced: 'Open Advanced Editor',
   saveDraft: 'Save Draft',
   apply: 'Apply',
   applying: 'Applying...',
@@ -139,6 +140,13 @@ export const WIZARD_LABELS = {
   round: 'Round',
   kind: 'Type',
   entitlementId: 'Entitlement ID',
+
+  // Quick Builder — removed jargon labels
+  selectionMethod: 'Selection Method',
+  selectionRank: 'Selection Rank',
+  selectionRankHelp:
+    'Which rank(s) to receive (e.g. 1 for best, or 1, 2 for top 2).',
+  conveyanceRightTitle: 'Conveyance Right',
 } as const;
 
 /** Status labels for the review summary — replaces "Clean/Encumbered/Pooled" */
@@ -157,18 +165,70 @@ export const WIZARD_COMPARATOR_LABELS: Record<string, string> = {
 
 /** Kind labels — user-facing names */
 export const WIZARD_KIND_LABELS: Record<string, string> = {
-  pick_ownership: 'Pick Ownership',
-  swap_right: 'Swap Right',
-  conveyance_right: 'Conveyance Right',
+  pick_ownership: 'Protection',
+  swap_right: 'Swap',
+  conveyance_right: 'Pool',
 };
 
 /** Intent labels — what the user sees in the wizard */
 export const WIZARD_INTENT_LABELS: Record<WizardIntent | '', string> = {
   protect_pick: 'Protect a Pick',
-  create_swap: 'Create a Swap Right',
-  create_conveyance: 'Create a Conveyance Right',
+  create_swap: 'Create a Swap',
+  create_conveyance: 'Create a Pool',
   '': 'Select Type',
 };
+
+/** Intent descriptions — shown on action cards in Quick Builder */
+export const WIZARD_INTENT_DESCRIPTIONS: Record<WizardIntent, string> = {
+  protect_pick: 'Add standard protections to a pick before trading it.',
+  create_swap: 'Swap the most or least favorable pick between two teams.',
+  create_conveyance: 'Receive the best/worst pick from a set of picks.',
+};
+
+// ─── pool chip presets (Quick Builder T4) ────────────────────────────────────
+
+export type PoolChipPreset = {
+  id: string;
+  label: string;
+  comparator: 'more_favorable' | 'less_favorable' | 'middle';
+  ranks: number[];
+};
+
+/** Quick Builder pool chips — translate to comparator + ranks internally */
+export const POOL_CHIP_PRESETS: PoolChipPreset[] = [
+  { id: 'best', label: 'Best', comparator: 'more_favorable', ranks: [1] },
+  { id: 'top2', label: 'Top 2', comparator: 'more_favorable', ranks: [1, 2] },
+  { id: 'worst', label: 'Worst', comparator: 'less_favorable', ranks: [1] },
+  {
+    id: 'bottom2',
+    label: 'Bottom 2',
+    comparator: 'less_favorable',
+    ranks: [1, 2],
+  },
+  { id: 'middle', label: 'Middle', comparator: 'middle', ranks: [1] },
+];
+
+/**
+ * Reverse-detect a pool chip from comparator + ranks.
+ * Returns the chip id or null if no match.
+ */
+export function detectPoolChip(
+  comparator: string,
+  ranks: number[]
+): string | null {
+  const sorted = [...ranks].sort((a, b) => a - b);
+  for (const chip of POOL_CHIP_PRESETS) {
+    const chipSorted = [...chip.ranks].sort((a, b) => a - b);
+    if (
+      chip.comparator === comparator &&
+      chipSorted.length === sorted.length &&
+      chipSorted.every((v, i) => v === sorted[i])
+    ) {
+      return chip.id;
+    }
+  }
+  return null;
+}
 
 // ─── tradability badge variant styles ────────────────────────────────────────
 
@@ -177,6 +237,29 @@ export const TRADABILITY_STYLES: Record<TradabilityVariant, string> = {
   amber: 'bg-amber-900/20 border border-amber-700/40 text-amber-300',
   red: 'bg-red-900/20 border border-red-700/40 text-red-300',
 };
+
+// ─── banned jargon words (Quick Builder T5) ─────────────────────────────────
+
+/**
+ * Words that must NOT appear in the Quick Builder UI.
+ * Used by tests to verify jargon-free rendering.
+ */
+export const BANNED_JARGON_WORDS: string[] = [
+  'underlying',
+  'status',
+  'encumbered',
+  'clean',
+  'conveyance',
+  'comparator',
+  'rank',
+  'receivesRank',
+  'receivesComparator',
+  'underlyingPickId',
+  'underlyingStatus',
+  'swapControllerPickId',
+  'swapTargetDefinition',
+  'poolUnderlyingPickIds',
+];
 
 // ─── jargon glossary (for Advanced Editor tooltips) ──────────────────────────
 

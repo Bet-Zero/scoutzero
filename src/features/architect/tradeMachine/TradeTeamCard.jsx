@@ -650,24 +650,14 @@ const TradeTeamCard = ({
                       (!tpe.expirationDate ||
                         new Date(tpe.expirationDate) > new Date())
                   )
-                  .map((tpe, idx) => {
-                    // Format amount as $11.1M style
-                    const formattedAmount = formatMillions(tpe.amount, 1);
-                    return (
-                      <span
-                        key={idx}
-                        className="bg-[#2a2a2a] text-white/80 px-2 py-0.5 rounded-full border border-white/10"
-                      >
-                        {formattedAmount}
-                        {tpe.expirationDate && (
-                          <span className="ml-1 text-white/40">
-                            exp.{' '}
-                            {new Date(tpe.expirationDate).toLocaleDateString()}
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
+                  .map((tpe, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-[#2a2a2a] text-white/80 px-2 py-0.5 rounded-full border border-white/10"
+                    >
+                      {formatMillions(tpe.amount, 1)}
+                    </span>
+                  ))}
                 {teamTradeExceptions.filter(
                   (tpe) =>
                     !tpe.isUsed &&
@@ -709,7 +699,16 @@ const TradeTeamCard = ({
           style={activeTab === 'exceptions' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('exceptions')}
         >
-          Exceptions ({teamTradeExceptions.length})
+          Exceptions (
+          {
+            teamTradeExceptions.filter(
+              (tpe) =>
+                !tpe.isUsed &&
+                (!tpe.expirationDate ||
+                  new Date(tpe.expirationDate) > new Date())
+            ).length
+          }
+          )
         </button>
       </div>
 
@@ -779,84 +778,103 @@ const TradeTeamCard = ({
         >
           <h4 className="text-white/70 text-sm mb-2">Incoming</h4>
           <div className="text-white/90">
-            {incomingPlayers.map((p) => (
-              <div
-                key={p.player_id || p.id}
-                className="mb-1 flex items-center gap-2"
-              >
-                <span>• {p.name}</span>
-                {validationFlags.faExceptionTrade !== 'off' && (
-                  <>
-                    <select
-                      className="bg-[#333] text-xs rounded px-1"
-                      value={p.absorptionMode || 'MATCH'}
-                      onChange={(e) =>
-                        onSetPlayerTrade &&
-                        onSetPlayerTrade(p, 'setAbsorptionMode', e.target.value)
-                      }
-                    >
-                      <option value="MATCH">Matching</option>
-                      <option value="TPE">TPE</option>
-                      <option value="FA_EXCEPTION">FA Exception</option>
-                    </select>
-                    {/* TPE selector - show when TPE mode selected */}
-                    {p.absorptionMode === 'TPE' && (
+            {incomingPlayers.map((p) => {
+              // Auto-detect absorption mode: if no explicit mode set and player fits a TPE, default to TPE
+              const isTpeEligible = tpeEligiblePlayers.some(
+                (ep) => (ep.player_id || ep.id) === (p.player_id || p.id)
+              );
+              const effectiveMode =
+                p.absorptionMode || (isTpeEligible ? 'TPE' : 'MATCH');
+
+              return (
+                <div
+                  key={p.player_id || p.id}
+                  className="mb-1 flex items-center gap-2"
+                >
+                  <span>• {p.name}</span>
+                  {validationFlags.faExceptionTrade !== 'off' && (
+                    <>
                       <select
                         className="bg-[#333] text-xs rounded px-1"
-                        value={p.tpeId || ''}
+                        value={effectiveMode}
                         onChange={(e) =>
                           onSetPlayerTrade &&
-                          onSetPlayerTrade(p, 'setTpeId', e.target.value)
+                          onSetPlayerTrade(
+                            p,
+                            'setAbsorptionMode',
+                            e.target.value
+                          )
                         }
                       >
-                        <option value="">Select TPE...</option>
-                        {(teamTradeExceptions || [])
-                          .filter(
-                            (tpe) =>
-                              !tpe.isUsed &&
-                              (!tpe.expirationDate ||
-                                new Date(tpe.expirationDate) > new Date())
-                          )
-                          .map((tpe) => {
-                            const amount = formatMillions(tpe.amount, 1);
-                            const playerSalary = getSalaryForYear([p], yearKey);
-                            const fits = tpe.amount >= playerSalary;
-                            return (
-                              <option
-                                key={tpe.id}
-                                value={tpe.id}
-                                disabled={!fits}
-                              >
-                                {amount} {!fits ? '(too small)' : ''}
+                        <option value="MATCH">Matching</option>
+                        <option value="TPE">TPE</option>
+                        <option value="FA_EXCEPTION">FA Exception</option>
+                      </select>
+                      {/* TPE selector - show when TPE mode selected */}
+                      {effectiveMode === 'TPE' && (
+                        <select
+                          className="bg-[#333] text-xs rounded px-1"
+                          value={p.tpeId || ''}
+                          onChange={(e) =>
+                            onSetPlayerTrade &&
+                            onSetPlayerTrade(p, 'setTpeId', e.target.value)
+                          }
+                        >
+                          <option value="">Select TPE...</option>
+                          {(teamTradeExceptions || [])
+                            .filter(
+                              (tpe) =>
+                                !tpe.isUsed &&
+                                (!tpe.expirationDate ||
+                                  new Date(tpe.expirationDate) > new Date())
+                            )
+                            .map((tpe) => {
+                              const amount = formatMillions(tpe.amount, 1);
+                              const tpeName = tpe.name || tpe.createdFrom;
+                              const playerSalary = getSalaryForYear(
+                                [p],
+                                yearKey
+                              );
+                              const fits = tpe.amount >= playerSalary;
+                              return (
+                                <option
+                                  key={tpe.id}
+                                  value={tpe.id}
+                                  disabled={!fits}
+                                >
+                                  {amount}
+                                  {tpeName ? ` (${tpeName})` : ''}{' '}
+                                  {!fits ? '(too small)' : ''}
+                                </option>
+                              );
+                            })}
+                        </select>
+                      )}
+                      {effectiveMode === 'FA_EXCEPTION' && (
+                        <select
+                          className="bg-[#333] text-xs rounded px-1"
+                          value={p.bucketType || ''}
+                          onChange={(e) =>
+                            onSetPlayerTrade &&
+                            onSetPlayerTrade(p, 'setFaBucket', e.target.value)
+                          }
+                        >
+                          {faBuckets
+                            .filter((b) =>
+                              isFaExceptionEligibleType(b.type, validationFlags)
+                            )
+                            .map((b) => (
+                              <option key={b.type} value={b.type}>
+                                {b.type} (${b.remaining})
                               </option>
-                            );
-                          })}
-                      </select>
-                    )}
-                    {p.absorptionMode === 'FA_EXCEPTION' && (
-                      <select
-                        className="bg-[#333] text-xs rounded px-1"
-                        value={p.bucketType || ''}
-                        onChange={(e) =>
-                          onSetPlayerTrade &&
-                          onSetPlayerTrade(p, 'setFaBucket', e.target.value)
-                        }
-                      >
-                        {faBuckets
-                          .filter((b) =>
-                            isFaExceptionEligibleType(b.type, validationFlags)
-                          )
-                          .map((b) => (
-                            <option key={b.type} value={b.type}>
-                              {b.type} (${b.remaining})
-                            </option>
-                          ))}
-                      </select>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
+                            ))}
+                        </select>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
             {/* Phase 14.2: Show incoming entitlements instead of picks */}
             {incomingEntitlements.map((e) => (
               <div key={e.id || e.entitlementId}>
