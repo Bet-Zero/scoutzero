@@ -27,6 +27,8 @@ import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 // Phase 17: Entitlement routing validation (uniqueness, routing, ownership)
 import { validateEntitlementRouting } from '../rules/validateEntitlementRouting.js';
+// Phase A5-E1: Player routing validation (uniqueness, routing, destinations)
+import { validatePlayerRouting } from '../rules/validatePlayerRouting.js';
 // Phase 4: Centralized cap settings provider for explicit sourcing
 import {
   getCapSettings,
@@ -523,6 +525,26 @@ export function validateTrade({
       teamResults: [],
       summaryByTeamIndex: [],
       reason: entitlementRoutingResult.errors[0] || 'Entitlement routing error',
+      performance: { validationTime: performance.now() - startTime },
+    };
+  }
+
+  // Phase A5-E1: Validate player routing (uniqueness, no duplicates, destinations)
+  // This is a cross-team validation that must happen before per-team validation
+  const playerRoutingResult = validatePlayerRouting({
+    teams: validTeams,
+  });
+
+  // If player routing validation fails, return early with blocking error
+  if (!playerRoutingResult.valid) {
+    return {
+      legal: false,
+      error: 'PLAYER_ROUTING_ERROR',
+      violations: playerRoutingResult.errors,
+      warnings: playerRoutingResult.warnings,
+      teamResults: [],
+      summaryByTeamIndex: [],
+      reason: playerRoutingResult.errors[0] || 'Player routing error',
       performance: { validationTime: performance.now() - startTime },
     };
   }

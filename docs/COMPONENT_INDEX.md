@@ -177,6 +177,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/validateEligibility.js
 - utils/tradeMachine/rules/validateEntitlementRouting.js
 - utils/tradeMachine/rules/validateFaExceptionUsage.js
+- utils/tradeMachine/rules/validatePlayerRouting.js
 - utils/tradeMachine/rules/validateRoster.js
 - utils/tradeMachine/rules/validateSalaryMatching.js
 - utils/tradeMachine/rules/validateSignAndTrade.js
@@ -351,4 +352,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-14T05:03:57.665Z*
+*Generated on: 2026-02-14T14:01:31.528Z*

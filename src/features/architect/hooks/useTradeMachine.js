@@ -260,22 +260,33 @@ export const useTradeMachine = (
   // Memoized calculations
   // Phase 14.2: incomingAssets no longer references picksOut - draft assets are entitlements-only
   // Phase 17: Updated to require toTeamId for 3+ team trades (no broadcast fallback)
+  // Phase A5-E1: Updated to require tradeTo for players in 3+ team trades (parity with entitlements)
   const incomingAssets = useMemo(() => {
+    const isMultiTeamTrade = activeTeamCount > 2;
     return teams.map((tm, idx) => {
       const players = [];
       // Phase 14.2: Incoming entitlements derived from entitlementsOut
       const entitlements = [];
       teams.forEach((t, j) => {
         if (j !== idx && t.team) {
+          // Phase A5-E1: For 3+ team trades, require explicit tradeTo for players
+          // For 2-team trades, allow broadcast fallback (backward compatibility)
           t.sends.forEach((p) => {
-            if (!p.tradeTo || p.tradeTo === tm.team?.id) {
-              players.push({ ...p, fromTeamId: t.team.id });
+            if (isMultiTeamTrade) {
+              // 3+ teams: only include if explicitly routed to this team
+              if (p.tradeTo === tm.team?.id) {
+                players.push({ ...p, fromTeamId: t.team.id });
+              }
+            } else {
+              // 2 teams: allow broadcast fallback for backward compatibility
+              if (!p.tradeTo || p.tradeTo === tm.team?.id) {
+                players.push({ ...p, fromTeamId: t.team.id });
+              }
             }
           });
           // Phase 17: For 3+ team trades, require explicit toTeamId
           // For 2-team trades, allow broadcast fallback (backward compatibility)
           (t.entitlementsOut || []).forEach((e) => {
-            const isMultiTeamTrade = activeTeamCount > 2;
             if (isMultiTeamTrade) {
               // 3+ teams: only include if explicitly routed to this team
               if (e.toTeamId === tm.team?.id) {
@@ -809,8 +820,48 @@ export const useTradeMachine = (
     ]);
   }, [teams.length]);
 
+  // Phase A5-E1: Updated removeTeam to clean up orphaned routes
+  // When removing a team, clear tradeTo/toTeamId for any assets that were routed to that team
   const removeTeam = useCallback((index) => {
-    setTeams((prev) => prev.filter((_, i) => i !== index));
+    setTeams((prev) => {
+      // Get the id of the team being removed (to clean up orphan routes)
+      const removedTeamId = prev[index]?.team?.id || null;
+
+      // Filter out the removed team
+      const filteredTeams = prev.filter((_, i) => i !== index);
+
+      // If no removedTeamId, just return filtered teams (team slot had no selection)
+      if (!removedTeamId) return filteredTeams;
+
+      // Clean up orphan routes: clear tradeTo/toTeamId pointing to the removed team
+      return filteredTeams.map((teamSlot) => {
+        // Clean sends: clear tradeTo if it points to removed team
+        const cleanedSends = (teamSlot.sends || []).map((player) => {
+          if (player.tradeTo === removedTeamId) {
+            // Clear the orphan route - player will need re-routing
+            return { ...player, tradeTo: undefined };
+          }
+          return player;
+        });
+
+        // Clean entitlementsOut: clear toTeamId if it points to removed team
+        const cleanedEntitlements = (teamSlot.entitlementsOut || []).map(
+          (entitlement) => {
+            if (entitlement.toTeamId === removedTeamId) {
+              // Clear the orphan route - entitlement will need re-routing
+              return { ...entitlement, toTeamId: undefined };
+            }
+            return entitlement;
+          }
+        );
+
+        return {
+          ...teamSlot,
+          sends: cleanedSends,
+          entitlementsOut: cleanedEntitlements,
+        };
+      });
+    });
   }, []);
 
   // Core validation function - extracted for reuse
@@ -1023,7 +1074,8 @@ export const useTradeMachine = (
         // TM-VACUUM-E1: If no existing entitlement matched (new vacuum create),
         // append the document to the entitlements list so it appears immediately.
         if (!entitlementsChanged) {
-          const holderTeam = normalizedDoc.holderTeam || normalizedDoc.holder_team;
+          const holderTeam =
+            normalizedDoc.holderTeam || normalizedDoc.holder_team;
           const teamCode = slot.team.teamCode || slot.team.id;
           if (holderTeam && holderTeam === teamCode) {
             updatedEntitlements = [...updatedEntitlements, normalizedDoc];
@@ -1035,16 +1087,18 @@ export const useTradeMachine = (
           affectedIndexes.push(index);
         }
 
-        const updatedEntitlementsOut = (slot.entitlementsOut || []).map((ent) => {
-          const entId = ent.id || ent.entitlementId;
-          if (entId !== entitlementId) return ent;
-          const merged = deepMergeEntitlement(ent, normalizedDoc);
-          return decorateEntitlementForTrade({
-            ...merged,
-            id: entitlementId,
-            entitlementId: entitlementId,
-          });
-        });
+        const updatedEntitlementsOut = (slot.entitlementsOut || []).map(
+          (ent) => {
+            const entId = ent.id || ent.entitlementId;
+            if (entId !== entitlementId) return ent;
+            const merged = deepMergeEntitlement(ent, normalizedDoc);
+            return decorateEntitlementForTrade({
+              ...merged,
+              id: entitlementId,
+              entitlementId: entitlementId,
+            });
+          }
+        );
 
         return {
           ...slot,
@@ -1064,8 +1118,9 @@ export const useTradeMachine = (
           affectedIndexes.map(async (index) => {
             const slot = updatedTeams[index];
             if (!slot?.team?.entitlements) return null;
-            const pickRulesById =
-              await resolvePickRulesForEntitlements(slot.team.entitlements);
+            const pickRulesById = await resolvePickRulesForEntitlements(
+              slot.team.entitlements
+            );
             return { index, pickRulesById };
           })
         );
@@ -1099,7 +1154,10 @@ export const useTradeMachine = (
         try {
           const teamCode = resolveTeamCodeLike(slot.team, slot.team);
           if (!teamCode) return slot;
-          const entitlements = await resolveEntitlementsForTeam(worldId, teamCode);
+          const entitlements = await resolveEntitlementsForTeam(
+            worldId,
+            teamCode
+          );
           let pickRulesById = slot.team.pickRulesById || {};
           if (ENABLE_PICK_RULES) {
             pickRulesById = await resolvePickRulesForEntitlements(entitlements);

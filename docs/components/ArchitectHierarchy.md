@@ -320,6 +320,7 @@ utils/
       validateEntitlementRouting.js
       validateFaExceptionUsage.js
       validateHardCap.ts
+      validatePlayerRouting.js
       validateRoster.js
       validateRoster.ts
       validateSalaryMatching.js
@@ -356,5 +357,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-14T05:03:57.601Z*
+*Generated on: 2026-02-14T14:01:31.478Z*
 *Auto-updated by: npm run docs*
