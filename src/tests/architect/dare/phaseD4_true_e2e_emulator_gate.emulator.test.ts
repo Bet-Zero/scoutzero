@@ -1070,22 +1070,23 @@ describe('Phase D4: TRUE E2E Emulator Gate', () => {
         const atlBaseSnap = await getDoc(baseTeamRef('ATL'));
         console.log(`[D4.C DEBUG] ATL base exists: ${atlBaseSnap.exists()}`);
         if (atlBaseSnap.exists()) {
-          const atlBase = atlBaseSnap.data();
+          const atlBase = atlBaseSnap.data() as Record<string, unknown> | undefined;
+          const atlRoster = (atlBase?.roster ?? []) as string[];
           console.log(
-            `[D4.C DEBUG] ATL base roster: ${atlBase.roster?.length || 0}`
+            `[D4.C DEBUG] ATL base roster: ${atlRoster.length || 0}`
           );
-          if (atlBase.roster?.length > 0) {
+          if (atlRoster.length > 0) {
             // Check first player
-            const firstPlayerId = atlBase.roster[0];
+            const firstPlayerId = atlRoster[0];
             console.log(`[D4.C DEBUG] First player ID: ${firstPlayerId}`);
             const playerSnap = await getDoc(basePlayerRef(firstPlayerId));
             console.log(
               `[D4.C DEBUG] First player exists: ${playerSnap.exists()}`
             );
             if (playerSnap.exists()) {
-              const pdata = playerSnap.data();
+              const pdata = playerSnap.data() as Record<string, Record<string, unknown>> | undefined;
               console.log(
-                `[D4.C DEBUG] Player contractType: ${pdata.contract?.contractType}`
+                `[D4.C DEBUG] Player contractType: ${pdata?.contract?.contractType}`
               );
             }
           }

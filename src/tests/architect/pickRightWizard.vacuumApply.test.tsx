@@ -31,10 +31,10 @@ const mockApplyVacuumEdit = vi.fn();
 const mockApplyVacuumCreate = vi.fn();
 const mockRemoveEdit = vi.fn();
 const mockRemoveCreate = vi.fn();
-const mockHasEdit = vi.fn(() => false);
-const mockHasCreate = vi.fn(() => false);
+const mockHasEdit = vi.fn((..._args: any[]) => false);
+const mockHasCreate = vi.fn((..._args: any[]) => false);
 const mockMakeVacuumEntitlementId = vi.fn(
-  () => 'vacuum:BOS:2027:1:own:testid12'
+  (..._args: any[]) => 'vacuum:BOS:2027:1:own:testid12'
 );
 
 vi.mock('@/firebaseConfig', () => ({
@@ -61,13 +61,13 @@ vi.mock(
 vi.mock(
   '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore',
   () => ({
-    applyVacuumEdit: (...args: unknown[]) => mockApplyVacuumEdit(...args),
-    applyVacuumCreate: (...args: unknown[]) => mockApplyVacuumCreate(...args),
-    removeEdit: (...args: unknown[]) => mockRemoveEdit(...args),
-    removeCreate: (...args: unknown[]) => mockRemoveCreate(...args),
-    hasEdit: (...args: unknown[]) => mockHasEdit(...args),
-    hasCreate: (...args: unknown[]) => mockHasCreate(...args),
-    makeVacuumEntitlementId: (...args: unknown[]) =>
+    applyVacuumEdit: (...args: any[]) => mockApplyVacuumEdit(...args),
+    applyVacuumCreate: (...args: any[]) => mockApplyVacuumCreate(...args),
+    removeEdit: (...args: any[]) => mockRemoveEdit(...args),
+    removeCreate: (...args: any[]) => mockRemoveCreate(...args),
+    hasEdit: (...args: any[]) => mockHasEdit(...args),
+    hasCreate: (...args: any[]) => mockHasCreate(...args),
+    makeVacuumEntitlementId: (...args: any[]) =>
       mockMakeVacuumEntitlementId(...args),
   })
 );

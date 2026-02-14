@@ -33,7 +33,7 @@ import {
 } from '@/features/architect/utils/entitlements/dare/entitlementMutator';
 
 // Import types
-import type { EntitlementResolution } from '@/features/architect/utils/entitlements/dare/types';
+import type { EntitlementResolution, ProtectionLadder } from '@/features/architect/utils/entitlements/dare/types';
 import type { EffectiveEntitlement } from '@/features/architect/utils/entitlements/entitlementResolver';
 
 const { updatePickIdYear, updatePickIdRound } = _testExports;
@@ -69,11 +69,11 @@ function makeLadder(
     rollToYear?: number;
     convertToRound?: number;
   }>
-) {
+): ProtectionLadder {
   return tiers.map((t) => ({
     year: t.year,
     condition: t.condition,
-    ifTriggered: t.ifTriggered,
+    ifTriggered: t.ifTriggered as 'roll' | 'convert' | 'cancel',
     rollToYear: t.rollToYear,
     convertToRound: t.convertToRound,
   }));

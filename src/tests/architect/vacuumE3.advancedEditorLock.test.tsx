@@ -10,10 +10,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EntitlementEditorAdvancedTab } from '@/features/architect/admin/EntitlementEditorAdvancedTab';
+import type { EntitlementFormState } from '@/features/architect/admin/entitlementEditorFormState';
 
 afterEach(cleanup);
 
-const baseFormState = {
+const baseFormState: EntitlementFormState = {
   id: 'ent:BOS:2027:1:own:abc',
   holderTeam: 'BOS',
   seasonYear: '2027',
@@ -21,8 +22,10 @@ const baseFormState = {
   kind: 'pick_ownership',
   description: 'Test pick',
   underlyingPickId: 'pick:BOS:2027:1',
+  underlyingStatus: 'clean',
   swapControllerPickId: '',
   swapTargetDefinition: '',
+  swapType: '',
   poolUnderlyingPickIdsText: '',
   receivesComparator: '',
   receivesRankText: '',
@@ -61,7 +64,7 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
   });
 
   it('blocks identity field changes via Apply JSON in edit mode', () => {
-    const onApplyJson = vi.fn(() => ({ success: true }));
+    const onApplyJson = vi.fn((_json: string) => ({ success: true }));
     const { container } = render(
       <EntitlementEditorAdvancedTab
         formState={baseFormState}
@@ -87,7 +90,7 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
   });
 
   it('allows non-identity field changes in edit mode', () => {
-    const onApplyJson = vi.fn(() => ({ success: true }));
+    const onApplyJson = vi.fn((_json: string) => ({ success: true }));
     const { container } = render(
       <EntitlementEditorAdvancedTab
         formState={baseFormState}
@@ -111,7 +114,7 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
   });
 
   it('allows all field changes in create mode', () => {
-    const onApplyJson = vi.fn(() => ({ success: true }));
+    const onApplyJson = vi.fn((_json: string) => ({ success: true }));
     const { container } = render(
       <EntitlementEditorAdvancedTab
         formState={baseFormState}
