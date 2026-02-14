@@ -992,18 +992,13 @@ function buildBaseTeamDoc({
     finalDraftPicks = draftPicksInventory;
   }
 
-  const baseDoc: BaseTeamDoc & {
-    draftPicksInventory?: NormalizedDraftPick[];
-    draftPicksObligations?: NormalizedDraftPick[];
-    draftPicksContested?: NormalizedDraftPick[];
-    draftAssets?: { picks: DraftAsset[] };
-  } = {
+  const baseDoc: Record<string, unknown> = {
     teamCode: rawTeam.teamCode,
     teamName: rawTeam.teamName,
     season: seasonOverride ?? rawTeam.season,
     abbreviation: rawTeam.teamCode,
     roster: rosterIds,
-    deadCap: [],
+    deadCap: [] as BaseTeamDoc['deadCap'],
     capHolds,
     exceptions: buildExceptions(rawTeam.exceptions),
     draftPicks: finalDraftPicks,
@@ -1038,7 +1033,12 @@ function buildBaseTeamDoc({
     baseDoc.draftAssets = { picks: draftAssets.picks };
   }
 
-  return baseDoc;
+  return baseDoc as BaseTeamDoc & {
+    draftPicksInventory?: NormalizedDraftPick[];
+    draftPicksObligations?: NormalizedDraftPick[];
+    draftPicksContested?: NormalizedDraftPick[];
+    draftAssets?: { picks: DraftAsset[] };
+  };
 }
 
 async function stageTeam({ team, season, validate, outDir, ledgerDir, draftAssetsDir }: CliArgs) {

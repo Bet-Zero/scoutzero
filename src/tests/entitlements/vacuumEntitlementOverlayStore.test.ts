@@ -81,6 +81,7 @@ describe('vacuumEntitlementOverlayStore', () => {
       const envelope = {
         version: 1 as const,
         overlays: { LAL: { edits: {}, creates: {} } },
+        transfers: {},
         _updatedAt: '',
       };
       saveVacuumOverlay(envelope);
@@ -238,6 +239,7 @@ describe('vacuumEntitlementOverlayStore', () => {
       saveVacuumOverlay({
         version: 1,
         overlays: { BOS: { edits: {}, creates: {} } },
+        transfers: {},
         _updatedAt: '',
       });
       expect(hasVacuumOverlay()).toBe(false);
@@ -273,6 +275,7 @@ describe('vacuumEntitlementOverlayStore', () => {
       saveVacuumOverlay({
         version: 1,
         overlays: { BOS: { edits: {}, creates: {} } },
+        transfers: {},
         _updatedAt: '',
       });
       expect(getTeamOverlay('BOS')).toBeNull();
