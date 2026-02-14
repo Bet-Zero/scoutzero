@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/pickRightWizard.test.tsx
- * PURPOSE: Tests for PickRightWizardModal Quick Builder (TM-WIZARD-SIMPLIFY-E1).
+ * PURPOSE: Tests for PickRightWizardModal Quick Builder.
  * OWNERSHIP: Test suite
  *
  * HISTORY:
@@ -8,6 +8,9 @@
  *  - 2026-02-05: TM-9 — Updated for WizardModel-based modal.
  *  - 2026-02-13: TM-WIZARD-SIMPLIFY-E1 — Rewritten for Quick Builder single-screen UX.
  *  - 2026-02-13: TM-WIZARD-UX-E2 — Edit mode: PickSelector absent, identity summary present.
+ *  - 2026-02-14: TM-WIZARD-SIMPLIFY-E2 — Updated for compact no-scroll UI with 4 presets,
+ *                read-only swap section in edit mode, "Other team's pick" label,
+ *                Edit mode shows Protect+Swap action buttons, Convert to Swap functionality.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -110,7 +113,7 @@ describe('PickRightWizardModal — Quick Builder', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-protect_pick'));
     expect(screen.getByTestId('quick-protect-section')).toBeInTheDocument();
-    expect(screen.getByTestId('quick-builder-preview')).toBeInTheDocument();
+    // TM-WIZARD-SIMPLIFY-E2: Preview section removed for compact UI
     expect(screen.getByTestId('quick-builder-apply-bar')).toBeInTheDocument();
   });
 
@@ -121,11 +124,12 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(screen.getByTestId('quick-builder-apply-bar')).toBeInTheDocument();
   });
 
-  it('shows controls inline when Pool is selected', () => {
+  it('shows pool redirect message when Pool is selected (TM-WIZARD-SIMPLIFY-E2)', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-create_conveyance'));
+    // Pool/conveyance is now advanced-only, shows redirect message
     expect(screen.getByTestId('quick-pool-section')).toBeInTheDocument();
-    expect(screen.getByTestId('pool-chips')).toBeInTheDocument();
+    expect(screen.queryByTestId('pool-chips')).not.toBeInTheDocument();
     expect(screen.getByTestId('quick-builder-apply-bar')).toBeInTheDocument();
   });
 
@@ -142,21 +146,31 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(screen.getByText('Edit Pick Right')).toBeInTheDocument();
   });
 
-  it('hides action cards in edit mode (type is locked)', () => {
+  // TM-WIZARD-SIMPLIFY-E2: Edit mode now shows action buttons (Protect + Swap)
+  it('shows Protect and Swap action buttons in edit mode (TM-WIZARD-SIMPLIFY-E2)', () => {
+    render(<PickRightWizardModal {...defaultEditProps} />);
+    expect(screen.getByTestId('quick-builder-actions')).toBeInTheDocument();
+    expect(screen.getByTestId('action-protect_pick')).toBeInTheDocument();
+    expect(screen.getByTestId('action-create_swap')).toBeInTheDocument();
+  });
+
+  it('does not show Pool action button in edit mode (TM-WIZARD-SIMPLIFY-E2)', () => {
     render(<PickRightWizardModal {...defaultEditProps} />);
     expect(
-      screen.queryByTestId('quick-builder-actions')
+      screen.queryByTestId('action-create_conveyance')
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('quick-builder-active-type')).toBeInTheDocument();
   });
 
   // ── Protection template flow ──
 
-  it('applies protection template and shows ladder tiers', () => {
+  it('applies protection template and selects it (TM-WIZARD-SIMPLIFY-E2)', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-protect_pick'));
     fireEvent.click(screen.getByTestId('template-top4_unprotected'));
-    expect(screen.getByText('Top 4')).toBeInTheDocument();
+    // TM-WIZARD-SIMPLIFY-E2: Ladder preview removed for compact UI
+    // Verify template is selected by button state
+    const templateBtn = screen.getByTestId('template-top4_unprotected');
+    expect(templateBtn).toHaveClass('bg-blue-600');
   });
 
   // ── Swap flow ──
@@ -164,26 +178,25 @@ describe('PickRightWizardModal — Quick Builder', () => {
   it('shows swap type buttons in swap mode', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-create_swap'));
-    expect(screen.getByText('Swap most favorable')).toBeInTheDocument();
-    expect(screen.getByText('Swap least favorable')).toBeInTheDocument();
+    expect(screen.getByText('Most favorable')).toBeInTheDocument();
+    expect(screen.getByText('Least favorable')).toBeInTheDocument();
   });
 
-  // ── Pool flow ──
+  // ── Pool flow (TM-WIZARD-SIMPLIFY-E2: Pool is Advanced Editor only) ──
 
-  it('shows pool management and chips in pool mode', () => {
+  it('shows pool redirect to Advanced Editor', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-create_conveyance'));
-    expect(screen.getByText('Picks in Pool')).toBeInTheDocument();
-    expect(screen.getByText('+ Add Pick')).toBeInTheDocument();
+    // Pool is now advanced-only, shows redirect message in quick-pool-section
+    expect(screen.getByTestId('quick-pool-section')).toBeInTheDocument();
+    expect(screen.getByText('Open Advanced Editor')).toBeInTheDocument();
   });
 
-  it('adds picks to pool', () => {
+  it.skip('adds picks to pool (TM-WIZARD-SIMPLIFY-E2: pool is Advanced Editor only)', () => {
+    // This test is skipped because pool management is now Advanced Editor only
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-create_conveyance'));
-    fireEvent.click(screen.getByText('+ Add Pick'));
-    fireEvent.click(screen.getByText('+ Add Pick'));
-    const removeButtons = screen.getAllByText('✕');
-    expect(removeButtons.length).toBe(2);
+    // Pool UI is no longer on quick screen
   });
 
   // ── Apply flow ──
@@ -238,12 +251,12 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // ── Tradability badge ──
+  // ── Tradability badge (TM-WIZARD-SIMPLIFY-E2: removed from quick screen) ──
 
-  it('shows tradability badge when an action is selected', () => {
+  it.skip('shows tradability badge when an action is selected (removed in TM-WIZARD-SIMPLIFY-E2)', () => {
+    // Tradability badge removed from quick screen for compact UI
     render(<PickRightWizardModal {...defaultEditProps} />);
-    expect(screen.getByTestId('tradability-badge')).toBeInTheDocument();
-    expect(screen.getByText('Tradable')).toBeInTheDocument();
+    expect(screen.queryByTestId('tradability-badge')).not.toBeInTheDocument();
   });
 
   // ── Validity ──
@@ -296,23 +309,11 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(screen.getByTestId('edit-identity-primary').textContent).toContain(
       '1st'
     );
-    // Owner line
-    expect(screen.getByTestId('edit-identity-owner').textContent).toContain(
-      'Owner:'
-    );
-    expect(screen.getByTestId('edit-identity-owner').textContent).toContain(
-      'BOS'
-    );
     // Pick ID
     expect(screen.getByTestId('edit-identity-pick-id').textContent).toContain(
       'BOS_2027_1'
     );
-    // Helper copy
-    expect(
-      screen.getByText(
-        'To change the pick itself or type, create a new pick right.'
-      )
-    ).toBeInTheDocument();
+    // TM-WIZARD-SIMPLIFY-E2: Removed verbose elements for compact UI
   });
 
   it('shows PickSelector in create mode (TM-WIZARD-UX-E2)', () => {
@@ -321,5 +322,123 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(
       screen.queryByTestId('edit-identity-summary')
     ).not.toBeInTheDocument();
+  });
+
+  // ── TM-WIZARD-SIMPLIFY-E2: Convert to Swap functionality ──
+
+  it('shows Convert to Swap button when editing pick_ownership and selecting Swap', () => {
+    const onDuplicateAsNew = vi.fn();
+    render(
+      <PickRightWizardModal
+        {...defaultEditProps}
+        onDuplicateAsNew={onDuplicateAsNew}
+      />
+    );
+    // Click Swap action
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    // Should see Convert to Swap section (not normal swap controls)
+    expect(screen.getByTestId('swap-convert-section')).toBeInTheDocument();
+    expect(screen.getByTestId('convert-to-swap-btn')).toBeInTheDocument();
+    // Should NOT see normal swap direction buttons
+    expect(screen.queryByTestId('swap-type-best_of')).not.toBeInTheDocument();
+  });
+
+  it('calls onDuplicateAsNew with swap_right document when Convert to Swap clicked', () => {
+    const onDuplicateAsNew = vi.fn();
+    render(
+      <PickRightWizardModal
+        {...defaultEditProps}
+        onDuplicateAsNew={onDuplicateAsNew}
+      />
+    );
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    fireEvent.click(screen.getByTestId('convert-to-swap-btn'));
+
+    expect(onDuplicateAsNew).toHaveBeenCalledTimes(1);
+    const calledWith = onDuplicateAsNew.mock.calls[0][0];
+    expect(calledWith.kind).toBe('swap_right');
+    expect(calledWith.holderTeam).toBe('BOS');
+    expect(calledWith.seasonYear).toBe(2027);
+    expect(calledWith.round).toBe(1);
+    expect(calledWith.swapControllerPickId).toBe('BOS_2027_1');
+    expect(calledWith.swapType).toBe('best_of');
+  });
+
+  it('does not show Convert to Swap when editing a swap_right entitlement', () => {
+    const swapEditProps = {
+      ...defaultCreateProps,
+      entitlementId: 'ent:BOS:2028:1:swap:xyz123',
+      initialDocument: {
+        id: 'ent:BOS:2028:1:swap:xyz123',
+        holderTeam: 'BOS',
+        seasonYear: 2028,
+        round: 1,
+        kind: 'swap_right',
+        underlyingPickId: 'BOS_2028_1',
+        swapControllerPickId: 'LAL_2028_1',
+        swapTargetDefinition: 'LAL own 1st round pick',
+        swapType: 'best_of',
+        description: 'Swap with Lakers',
+      },
+      onDuplicateAsNew: vi.fn(),
+    };
+    render(<PickRightWizardModal {...swapEditProps} />);
+    // Should already be on swap intent, should see normal swap controls
+    expect(screen.queryByTestId('convert-to-swap-btn')).not.toBeInTheDocument();
+    expect(screen.getByTestId('swap-type-best_of')).toBeInTheDocument();
+  });
+
+  it('original entitlement document is not mutated when Convert to Swap is clicked', () => {
+    const onDuplicateAsNew = vi.fn();
+    const originalDoc = {
+      id: 'ent:BOS:2027:1:own:abcd1234',
+      holderTeam: 'BOS',
+      seasonYear: 2027,
+      round: 1,
+      kind: 'pick_ownership',
+      underlyingPickId: 'BOS_2027_1',
+      underlyingStatus: 'clean',
+      description: 'Boston 2027 1st',
+    };
+    render(
+      <PickRightWizardModal
+        {...defaultCreateProps}
+        entitlementId="ent:BOS:2027:1:own:abcd1234"
+        initialDocument={originalDoc}
+        onDuplicateAsNew={onDuplicateAsNew}
+      />
+    );
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    fireEvent.click(screen.getByTestId('convert-to-swap-btn'));
+
+    // Original document should be unchanged
+    expect(originalDoc.kind).toBe('pick_ownership');
+    // New document should be swap_right
+    expect(onDuplicateAsNew.mock.calls[0][0].kind).toBe('swap_right');
+  });
+
+  // ── TM-WIZARD-SIMPLIFY-E2: No arrow in quick UI ──
+
+  it('does not show arrow (->) in quick UI (TM-WIZARD-SIMPLIFY-E2)', () => {
+    render(<PickRightWizardModal {...defaultEditProps} />);
+    const container = screen.getByTestId('quick-builder');
+    const text = container.textContent || '';
+    expect(text).not.toContain('→');
+  });
+
+  it('does not show arrow in protect mode quick UI', () => {
+    render(<PickRightWizardModal {...defaultCreateProps} />);
+    fireEvent.click(screen.getByTestId('action-protect_pick'));
+    const container = screen.getByTestId('quick-builder');
+    const text = container.textContent || '';
+    expect(text).not.toContain('→');
+  });
+
+  it('does not show arrow in swap mode quick UI', () => {
+    render(<PickRightWizardModal {...defaultCreateProps} />);
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    const container = screen.getByTestId('quick-builder');
+    const text = container.textContent || '';
+    expect(text).not.toContain('→');
   });
 });

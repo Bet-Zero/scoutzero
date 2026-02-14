@@ -1,8 +1,8 @@
 /**
  * FILE: src/features/architect/admin/PickRightWizardModal.tsx
  * PURPOSE: Pick Right Wizard modal — Quick Builder single-screen UX
- *          (TM-WIZARD-SIMPLIFY-E1).
- * OWNERSHIP: Feature: architect/admin (TM-8 / TM-9 / TM-WIZARD-SIMPLIFY-E1)
+ *          (TM-WIZARD-SIMPLIFY-E1, TM-WIZARD-SIMPLIFY-E2).
+ * OWNERSHIP: Feature: architect/admin (TM-8 / TM-9 / TM-WIZARD-SIMPLIFY-E1 / TM-WIZARD-SIMPLIFY-E2)
  *
  * HISTORY:
  *  - 2026-02-05: Created for TM-8 Pick Editor UX Overhaul.
@@ -10,6 +10,9 @@
  *  - 2026-02-13: TM-WIZARD-SIMPLIFY-E1 — Replaced 3-step wizard with Quick Builder.
  *                Single screen: pick + action cards + controls + preview + apply.
  *                Preserves all save/draft/vacuum logic intact.
+ *  - 2026-02-14: TM-WIZARD-SIMPLIFY-E2 — Added "Convert to Swap" functionality.
+ *                Edit mode now shows Protect + Swap action buttons.
+ *                Non-swap entitlements can be converted to swap_right via duplicate-as-new flow.
  *
  * Quick Builder mode is the default. "Open Advanced Editor" passes the translated
  * formState to EntitlementEditorModal, preserving all data for power-user editing.
@@ -88,6 +91,14 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
 }) => {
   const isEditMode = entitlementId !== null && entitlementId !== undefined;
   const isVacuumSession = vacuumMode || !worldId;
+
+  // TM-WIZARD-SIMPLIFY-E2: Track original entitlement kind (doesn't change when wizard intent changes)
+  const originalEntitlementKind = useMemo(() => {
+    if (initialDocument && typeof initialDocument.kind === 'string') {
+      return initialDocument.kind as EntitlementKind;
+    }
+    return '';
+  }, [initialDocument]);
 
   // ── State ──
   const [saving, setSaving] = useState(false);
@@ -408,6 +419,32 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     }
   }, [formState, onDuplicateAsNew]);
 
+  // TM-WIZARD-SIMPLIFY-E2: Convert non-swap entitlement to swap_right
+  // Creates a new swap_right entitlement using the current pick as the anchor
+  const handleConvertToSwap = useCallback(() => {
+    if (!onDuplicateAsNew) return;
+
+    // Build a swap_right document from the current state
+    // Controller pick = the current underlying pick (the pick being traded)
+    const controllerPickId =
+      formState.underlyingPickId ||
+      `${formState.holderTeam}_${formState.seasonYear}_${formState.round}`;
+
+    const swapDocument: Record<string, unknown> = {
+      holderTeam: formState.holderTeam,
+      seasonYear: Number(formState.seasonYear) || 2026,
+      round: Number(formState.round) || 1,
+      kind: 'swap_right',
+      underlyingPickId: formState.underlyingPickId,
+      swapControllerPickId: controllerPickId,
+      swapTargetDefinition: `${formState.holderTeam} own ${Number(formState.round) === 1 ? '1st' : '2nd'} round pick`,
+      swapType: 'best_of',
+      description: formState.description || '',
+    };
+
+    onDuplicateAsNew(swapDocument);
+  }, [formState, onDuplicateAsNew]);
+
   // ═════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═════════════════════════════════════════════════════════════════════════
@@ -457,6 +494,8 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
             disabled={saving || sessionMutating}
             isEditMode={isEditMode}
             lockIdentityFields={isEditMode}
+            currentEntitlementKind={originalEntitlementKind}
+            onConvertToSwap={onDuplicateAsNew ? handleConvertToSwap : undefined}
           />
         </div>
 

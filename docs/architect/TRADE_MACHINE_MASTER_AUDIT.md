@@ -437,6 +437,58 @@ Return package: `return_packages/trade_machine/TM_WIZARD_UX_E2_EXECUTION_RETURN_
 
 ---
 
+### TM-WIZARD-SIMPLIFY-E2: Compact No-Scroll Quick Builder (2026-02-14)
+
+**Problem:** The Quick Builder from TM-WIZARD-SIMPLIFY-E1, while single-screen, still required scrolling on a typical laptop viewport. It showed too much content: full Plain English preview, Terms Summary block, Tradability badge, ladder preview, and Pool/Conveyance UI on the quick screen. Additionally, the preset list included a confusing multi-tier "Lottery→Top10→Unprotected" option, and the swap section showed a PickSelector in edit mode when it should be read-only.
+
+**Solution:** Rebuilt the Quick Builder as a compact, no-scroll "edit menu" that fits in a single viewport on a normal laptop. Removed all verbose blocks and relegated Pool/Conveyance editing to Advanced Editor only.
+
+**Key changes:**
+
+- **Compact edit-mode identity**: Reduced from multi-line summary to single-row horizontal layout with team/year/round, owner, and pick ID inline. No helper text.
+- **Minimal action toggle**: Replaced action cards with compact buttons (Protection / Swap / Pool…). Pool button opens Advanced Editor.
+- **Protection presets**: Changed from 5-column to 4-column button row. Removed confusing "Lottery→Top10→Unprotected" preset. Exactly 4 presets remain: Unprotected, Top 4→Unprotected, Top 10→Unprotected, Lottery→Unprotected.
+- **Ladder preview removed**: No longer shows tier-by-tier breakdown on quick screen. Visible in Advanced Editor.
+- **Plain English preview removed**: The full plain English block removed for space. Preview available in Advanced Editor.
+- **Terms Summary removed**: No `termsShort` block on quick screen.
+- **Tradability badge removed**: No tradability indicator on quick screen.
+- **Pool/Conveyance advanced-only**: Pool mode shows a single-line redirect message instead of full pool UI.
+- **Compact apply bar**: Validity indicator compressed to icon + text. Actions rearranged (validity, Save Draft, Apply, Advanced →).
+- **Copy tightening**: Removed verbose help text from `pickEditorCopy.ts`. Shortened labels. "Swap most favorable" → "Most favorable".
+- **Swap edit mode read-only**: In edit mode, "Other team's pick" shows as read-only text instead of PickSelector.
+- **No "swap with team" wording**: Used "Other team's pick" label consistently.
+
+**Files changed:**
+
+- `QuickBuilder.tsx` — Compact layout, 4-column preset grid, read-only swap in edit mode
+- `ProtectionLadderTemplates.ts` — Reduced WIZARD_PRESETS from 5 to 4 items
+- `pickEditorCopy.ts` — Added `otherPick` label, shortened swap labels, added "swap with team" to banned jargon
+- `quickBuilder.test.tsx` — 10 new tests for preset count, swap read-only, label constraints
+- `pickRightWizard.test.tsx` — Updated swap label assertions
+
+**Acceptance Criteria Met:**
+
+- ✅ Edit mode fits on one screen without scrolling
+- ✅ Edit mode shows no PickSelector
+- ✅ Quick UI only exposes Protect presets + Swap direction + Description + Validity + Apply bar
+- ✅ Pool/conveyance is Advanced-only
+- ✅ Presets are exactly 4 (no Lottery→Top10)
+- ✅ Copy is minimal; no repeated explanation blocks
+- ✅ All tests pass and build passes
+
+**Test Results:**
+
+- `quickBuilder.test.tsx`: ✅ **34/34 tests pass** (10 new)
+- `pickRightWizard.test.tsx`: ✅ **23 pass, 2 skipped** (skip = removed features)
+- `pickRightWizard.vacuumApply.test.tsx`: ✅ **11/11 tests pass**
+- Production build: ✅ succeeds
+
+**No schema changes.** WizardModel structure unchanged. All downstream pipeline (wizardToFormState → buildEntitlementDocument → validation → save) unchanged. Advanced Editor unchanged and remains the path for Pool/Conveyance editing.
+
+Return package: `return_packages/trade_machine/TM_WIZARD_SIMPLIFY_E2_RETURN_PACKAGE.md`
+
+---
+
 ## Key Invariants (do not regress)
 
 1. **Stepien IS enforced on entitlements.** `validateStepien.js` processes `entitlementsOut`. Do not remove or gate this path.

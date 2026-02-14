@@ -1,14 +1,19 @@
 /**
  * FILE: src/tests/architect/quickBuilder.test.tsx
- * PURPOSE: Tests for Quick Builder behavior (TM-WIZARD-SIMPLIFY-E1, TM-WIZARD-UX-E2).
+ * PURPOSE: Tests for Quick Builder behavior (TM-WIZARD-SIMPLIFY-E1, TM-WIZARD-UX-E2, TM-WIZARD-SIMPLIFY-E2).
  *          Covers pool chip → comparator+ranks translation, swap auto-fill,
  *          protect presets → formState pipeline, jargon-ban assertion,
- *          and edit-mode identity summary vs create-mode PickSelector.
+ *          edit-mode identity summary vs create-mode PickSelector,
+ *          TM-WIZARD-SIMPLIFY-E2 constraints (4 presets, read-only swap),
+ *          Convert to Swap functionality, and no-arrow UI constraint.
  * OWNERSHIP: Test suite
  *
  * HISTORY:
  *  - 2026-02-13: Created for TM-WIZARD-SIMPLIFY-E1.
  *  - 2026-02-13: TM-WIZARD-UX-E2 — Added edit-mode identity summary tests.
+ *  - 2026-02-14: TM-WIZARD-SIMPLIFY-E2 — Updated for 4 presets (no Lottery→Top10),
+ *                read-only swap section in edit mode, "Other team's pick" label,
+ *                Edit mode action buttons, Convert to Swap, no-arrow constraint.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -137,27 +142,28 @@ describe('Quick Protect Presets → formState pipeline (T2)', () => {
     expect(formState.protectionLadder[1].year).toBe('2028');
   });
 
-  it('Lottery → Top 10 → Unprotected preset produces 3 tiers', () => {
+  it('Lottery → Unprotected preset produces 2 tiers (TM-WIZARD-SIMPLIFY-E2)', () => {
     const template = WIZARD_PRESETS.find(
-      (t) => t.id === 'lottery_top10_unprotected'
+      (t) => t.id === 'lottery_unprotected'
     )!;
     const tiers = applyProtectionTemplate(template, 2026);
     const model = createDefaultWizardModel({
       intent: 'protect_pick',
       pick: { team: 'LAL', year: 2026, round: 1 },
       protection: {
-        templateId: 'lottery_top10_unprotected',
+        templateId: 'lottery_unprotected',
         customLadder: tiers,
       },
     });
     const formState = wizardToFormState(model);
     expect(formState.underlyingStatus).toBe('encumbered');
-    expect(formState.protectionLadder.length).toBe(3);
+    expect(formState.protectionLadder.length).toBe(2);
     expect(formState.protectionLadder[0].condition).toBe('Lottery');
-    expect(formState.protectionLadder[1].condition).toBe('Top 10');
+    expect(formState.protectionLadder[1].condition).toBe('Unprotected');
   });
 
-  it('all 5 wizard presets produce valid formState', () => {
+  it('all 4 wizard presets produce valid formState (TM-WIZARD-SIMPLIFY-E2)', () => {
+    expect(WIZARD_PRESETS.length).toBe(4); // Exactly 4 presets per ticket
     for (const preset of WIZARD_PRESETS) {
       const tiers = applyProtectionTemplate(preset, 2027);
       const model = createDefaultWizardModel({
@@ -378,13 +384,6 @@ describe('Edit mode identity summary (TM-WIZARD-UX-E2)', () => {
     expect(primary.textContent).toContain('1st');
   });
 
-  it('edit mode shows Owner line', () => {
-    render(<PickRightWizardModal {...editProps} />);
-    const owner = screen.getByTestId('edit-identity-owner');
-    expect(owner.textContent).toContain('Owner:');
-    expect(owner.textContent).toContain('BOS');
-  });
-
   it('edit mode shows Pick ID', () => {
     render(<PickRightWizardModal {...editProps} />);
     const pickId = screen.getByTestId('edit-identity-pick-id');
@@ -403,5 +402,282 @@ describe('Edit mode identity summary (TM-WIZARD-UX-E2)', () => {
     render(<PickRightWizardModal {...editProps} />);
     expect(screen.getByTestId('quick-builder-controls')).toBeInTheDocument();
     expect(screen.getByTestId('quick-builder-apply-bar')).toBeInTheDocument();
+  });
+});
+
+// ─── TM-WIZARD-SIMPLIFY-E2: Preset Count Enforcement ─────────────────────────
+
+describe('Wizard presets count (TM-WIZARD-SIMPLIFY-E2)', () => {
+  it('WIZARD_PRESETS has exactly 4 presets', () => {
+    expect(WIZARD_PRESETS.length).toBe(4);
+  });
+
+  it('preset list contains exactly: Unprotected, Top 4, Top 10, Lottery', () => {
+    const ids = WIZARD_PRESETS.map((p) => p.id);
+    expect(ids).toEqual([
+      'unprotected',
+      'top4_unprotected',
+      'top10_unprotected',
+      'lottery_unprotected',
+    ]);
+  });
+
+  it('Lottery→Top10→Unprotected is NOT in WIZARD_PRESETS', () => {
+    const ids = WIZARD_PRESETS.map((p) => p.id);
+    expect(ids).not.toContain('lottery_top10_unprotected');
+  });
+});
+
+// ─── TM-WIZARD-SIMPLIFY-E2: Swap Edit Mode Read-Only Tests ──────────────────
+
+const swapEditProps = {
+  ...defaultProps,
+  entitlementId: 'ent:BOS:2028:1:swap:xyz123',
+  initialDocument: {
+    id: 'ent:BOS:2028:1:swap:xyz123',
+    holderTeam: 'BOS',
+    seasonYear: 2028,
+    round: 1,
+    kind: 'swap_right',
+    underlyingPickId: 'BOS_2028_1',
+    swapControllerPickId: 'LAL_2028_1',
+    swapTargetDefinition: 'LAL own 1st round pick',
+    swapType: 'best_of',
+    description: 'Swap with Lakers',
+  },
+};
+
+describe('Swap edit mode read-only (TM-WIZARD-SIMPLIFY-E2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+  });
+
+  it('swap edit mode does NOT render PickSelector for other team pick', () => {
+    render(<PickRightWizardModal {...swapEditProps} />);
+    // Should show controls
+    expect(screen.getByTestId('quick-builder-controls')).toBeInTheDocument();
+    // Should show read-only indicator for other team's pick
+    expect(screen.getByTestId('swap-other-pick-readonly')).toBeInTheDocument();
+  });
+
+  it('swap edit mode shows "Other team\'s pick" as read-only text', () => {
+    render(<PickRightWizardModal {...swapEditProps} />);
+    const readonlyPick = screen.getByTestId('swap-other-pick-readonly');
+    expect(readonlyPick.textContent).toContain('LAL');
+    expect(readonlyPick.textContent).toContain('2028');
+    expect(readonlyPick.textContent).toContain('1st');
+  });
+
+  it('swap create mode renders PickSelector for other team pick', () => {
+    render(<PickRightWizardModal {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+
+    // Should show PickSelector (not read-only)
+    expect(
+      screen.queryByTestId('swap-other-pick-readonly')
+    ).not.toBeInTheDocument();
+    // Should have the swap controls
+    expect(screen.getByTestId('quick-swap-section')).toBeInTheDocument();
+  });
+});
+
+// ─── TM-WIZARD-SIMPLIFY-E2: Label Enforcement ───────────────────────────────
+
+describe('Label constraints (TM-WIZARD-SIMPLIFY-E2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+  });
+
+  it('Quick UI does not contain "swap with team" wording', () => {
+    render(<PickRightWizardModal {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    const container = screen.getByTestId('quick-builder');
+    const text = container.textContent || '';
+    expect(text.toLowerCase()).not.toContain('swap with team');
+  });
+
+  it('swap section label says "Other team\'s pick" not "Their pick"', () => {
+    render(<PickRightWizardModal {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    const container = screen.getByTestId('quick-swap-section');
+    const text = container.textContent || '';
+    expect(text).toContain("Other team's pick");
+  });
+});
+
+// ─── TM-WIZARD-SIMPLIFY-E2: Convert to Swap Functionality ─────────────────────
+
+const pickOwnershipEditProps = {
+  ...defaultProps,
+  entitlementId: 'ent:BOS:2029:1:own:xyz789',
+  initialDocument: {
+    id: 'ent:BOS:2029:1:own:xyz789',
+    holderTeam: 'BOS',
+    seasonYear: 2029,
+    round: 1,
+    kind: 'pick_ownership',
+    underlyingPickId: 'BOS_2029_1',
+    underlyingStatus: 'clean',
+    description: 'Boston 2029 1st',
+  },
+};
+
+const swapRightEditProps = {
+  ...defaultProps,
+  entitlementId: 'ent:BOS:2028:1:swap:abc123',
+  initialDocument: {
+    id: 'ent:BOS:2028:1:swap:abc123',
+    holderTeam: 'BOS',
+    seasonYear: 2028,
+    round: 1,
+    kind: 'swap_right',
+    underlyingPickId: 'BOS_2028_1',
+    swapControllerPickId: 'LAL_2028_1',
+    swapTargetDefinition: 'LAL own 1st round pick',
+    swapType: 'best_of',
+    description: 'Swap with Lakers',
+  },
+};
+
+describe('Convert to Swap functionality (TM-WIZARD-SIMPLIFY-E2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+  });
+
+  it('edit mode shows Protect and Swap action buttons', () => {
+    render(<PickRightWizardModal {...pickOwnershipEditProps} />);
+    expect(screen.getByTestId('quick-builder-actions')).toBeInTheDocument();
+    expect(screen.getByTestId('action-protect_pick')).toBeInTheDocument();
+    expect(screen.getByTestId('action-create_swap')).toBeInTheDocument();
+  });
+
+  it('edit mode does NOT show Pool action button', () => {
+    render(<PickRightWizardModal {...pickOwnershipEditProps} />);
+    expect(
+      screen.queryByTestId('action-create_conveyance')
+    ).not.toBeInTheDocument();
+  });
+
+  it('clicking Swap when editing pick_ownership shows Convert to Swap button', () => {
+    const onDuplicateAsNew = vi.fn();
+    render(
+      <PickRightWizardModal
+        {...pickOwnershipEditProps}
+        onDuplicateAsNew={onDuplicateAsNew}
+      />
+    );
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    expect(screen.getByTestId('swap-convert-section')).toBeInTheDocument();
+    expect(screen.getByTestId('convert-to-swap-btn')).toBeInTheDocument();
+  });
+
+  it('Convert to Swap button triggers onDuplicateAsNew with swap_right kind', () => {
+    const onDuplicateAsNew = vi.fn();
+    render(
+      <PickRightWizardModal
+        {...pickOwnershipEditProps}
+        onDuplicateAsNew={onDuplicateAsNew}
+      />
+    );
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    fireEvent.click(screen.getByTestId('convert-to-swap-btn'));
+
+    expect(onDuplicateAsNew).toHaveBeenCalledTimes(1);
+    const doc = onDuplicateAsNew.mock.calls[0][0];
+    expect(doc.kind).toBe('swap_right');
+    expect(doc.holderTeam).toBe('BOS');
+    expect(doc.seasonYear).toBe(2029);
+    expect(doc.round).toBe(1);
+  });
+
+  it('swap_right document has controller pick set to current underlying pick', () => {
+    const onDuplicateAsNew = vi.fn();
+    render(
+      <PickRightWizardModal
+        {...pickOwnershipEditProps}
+        onDuplicateAsNew={onDuplicateAsNew}
+      />
+    );
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    fireEvent.click(screen.getByTestId('convert-to-swap-btn'));
+
+    const doc = onDuplicateAsNew.mock.calls[0][0];
+    expect(doc.swapControllerPickId).toBe('BOS_2029_1');
+    expect(doc.swapType).toBe('best_of');
+  });
+
+  it('editing a swap_right does NOT show Convert to Swap (shows normal swap controls)', () => {
+    render(<PickRightWizardModal {...swapRightEditProps} />);
+    // Already on swap intent, should see normal controls
+    expect(
+      screen.queryByTestId('swap-convert-section')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('convert-to-swap-btn')).not.toBeInTheDocument();
+    expect(screen.getByTestId('swap-type-best_of')).toBeInTheDocument();
+  });
+
+  it('does not show Convert to Swap section without onDuplicateAsNew callback', () => {
+    render(<PickRightWizardModal {...pickOwnershipEditProps} />);
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    // Without onDuplicateAsNew, convert section should not appear
+    expect(
+      screen.queryByTestId('swap-convert-section')
+    ).not.toBeInTheDocument();
+  });
+});
+
+// ─── TM-WIZARD-SIMPLIFY-E2: No Arrow (->) in Quick UI ────────────────────────
+
+describe('No arrow in Quick UI (TM-WIZARD-SIMPLIFY-E2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+  });
+
+  it('create mode protect screen has no arrow', () => {
+    render(<PickRightWizardModal {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('action-protect_pick'));
+    const container = screen.getByTestId('quick-builder');
+    expect(container.textContent).not.toContain('→');
+  });
+
+  it('create mode swap screen has no arrow', () => {
+    render(<PickRightWizardModal {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('action-create_swap'));
+    const container = screen.getByTestId('quick-builder');
+    expect(container.textContent).not.toContain('→');
+  });
+
+  it('edit mode has no arrow in quick builder', () => {
+    render(<PickRightWizardModal {...pickOwnershipEditProps} />);
+    const container = screen.getByTestId('quick-builder');
+    expect(container.textContent).not.toContain('→');
+  });
+
+  it('Advanced button text is "Advanced" without arrow', () => {
+    render(<PickRightWizardModal {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('action-protect_pick'));
+    const advancedBtn = screen.getByTestId('wizard-open-advanced');
+    expect(advancedBtn.textContent).toBe('Advanced');
+    expect(advancedBtn.textContent).not.toContain('→');
   });
 });

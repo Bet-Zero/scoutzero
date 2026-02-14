@@ -88,48 +88,44 @@ export function deriveTradabilityStatus(model: WizardModel): TradabilityBadge {
 export const WIZARD_LABELS = {
   // Pick identity
   pickIdentity: 'Pick',
-  pickHelp: 'Select the team, year, and round for this pick.',
+  pickHelp: '', // Removed verbose help text (TM-WIZARD-SIMPLIFY-E2)
 
   // Pick ownership
-  pickOwnershipTitle: 'Pick Ownership',
+  pickOwnershipTitle: 'Protection',
   protectionPattern: 'Protection',
-  protectionPatternHelp:
-    'Choose a common protection. For custom rules, use the Advanced Editor.',
+  protectionPatternHelp: '', // Removed verbose help text (TM-WIZARD-SIMPLIFY-E2)
   protectionLadder: 'Protection Ladder',
   clearLadder: 'Clear',
 
   // Swap
   swapRightTitle: 'Swap',
   swapType: 'Swap Direction',
-  swapBestOf: 'Swap most favorable',
-  swapWorstOf: 'Swap least favorable',
+  swapBestOf: 'Most favorable',
+  swapWorstOf: 'Least favorable',
   controllerPick: 'Your Pick',
-  controllerPickHelp:
-    'The pick your team controls — the one you can choose to swap.',
+  controllerPickHelp: '', // Removed verbose help text (TM-WIZARD-SIMPLIFY-E2)
   targetDescription: 'Details',
-  targetDescriptionHelp:
-    'Describe what the swap is against (auto-filled from pick).',
+  targetDescriptionHelp: '', // Removed verbose help text (TM-WIZARD-SIMPLIFY-E2)
   targetDescriptionPlaceholder: 'e.g. BOS own 1st round pick',
   yourPick: 'Your pick',
-  theirPick: 'Their pick',
+  theirPick: 'Their pick', // Deprecated - use otherPick
+  otherPick: "Other team's pick", // TM-WIZARD-SIMPLIFY-E2: Replaces "Their pick" and "swap with team"
 
-  // Pool (renamed from Conveyance)
+  // Pool (renamed from Conveyance) — Advanced Editor only
   poolTitle: 'Pool',
   poolOfPicks: 'Picks in Pool',
-  poolOfPicksHelp:
-    'A pool lets you receive the most/least favorable pick from a set.',
+  poolOfPicksHelp: '', // Removed verbose help text (TM-WIZARD-SIMPLIFY-E2)
   poolReceives: 'Receives',
   addPick: '+ Add Pick',
 
   // Description
   description: 'Description (optional)',
-  descriptionPlaceholder:
-    'e.g. 2027 BOS 1st, Lottery-protected via trade with PHI',
+  descriptionPlaceholder: 'e.g. 2027 BOS 1st, Lottery-protected via trade',
 
   // Review / Apply
   reviewTitle: 'Review & Apply',
   fieldSummary: 'Summary',
-  openAdvanced: 'Open Advanced Editor',
+  openAdvanced: 'Advanced',
   saveDraft: 'Save Draft',
   apply: 'Apply',
   applying: 'Applying...',
@@ -141,12 +137,11 @@ export const WIZARD_LABELS = {
   kind: 'Type',
   entitlementId: 'Entitlement ID',
 
-  // Quick Builder — removed jargon labels
+  // Quick Builder
   selectionMethod: 'Selection Method',
   selectionRank: 'Selection Rank',
-  selectionRankHelp:
-    'Which rank(s) to receive (e.g. 1 for best, or 1, 2 for top 2).',
-  conveyanceRightTitle: 'Conveyance Right',
+  selectionRankHelp: '', // Removed verbose help text (TM-WIZARD-SIMPLIFY-E2)
+  conveyanceRightTitle: 'Pool',
 } as const;
 
 /** Status labels for the review summary — replaces "Clean/Encumbered/Pooled" */
@@ -259,6 +254,7 @@ export const BANNED_JARGON_WORDS: string[] = [
   'swapControllerPickId',
   'swapTargetDefinition',
   'poolUnderlyingPickIds',
+  'swap with team', // TM-WIZARD-SIMPLIFY-E2: Never use this wording
 ];
 
 // ─── jargon glossary (for Advanced Editor tooltips) ──────────────────────────

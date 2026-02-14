@@ -33,19 +33,36 @@ export const PROTECTION_TEMPLATES: ProtectionTemplate[] = [
   {
     id: 'lottery_top10_unprotected',
     label: 'Lottery -> Top 10 -> Unprotected',
-    description: '3-year ladder: Lottery protected, rolls to Top 10, then unprotected',
+    description:
+      '3-year ladder: Lottery protected, rolls to Top 10, then unprotected',
     tiers: [
-      { yearOffset: 0, condition: 'Lottery', ifTriggered: 'roll', rollToYearOffset: 1 },
-      { yearOffset: 1, condition: 'Top 10', ifTriggered: 'roll', rollToYearOffset: 2 },
+      {
+        yearOffset: 0,
+        condition: 'Lottery',
+        ifTriggered: 'roll',
+        rollToYearOffset: 1,
+      },
+      {
+        yearOffset: 1,
+        condition: 'Top 10',
+        ifTriggered: 'roll',
+        rollToYearOffset: 2,
+      },
       { yearOffset: 2, condition: '', ifTriggered: 'cancel' },
     ],
   },
   {
     id: 'top3_unprotected',
     label: 'Top 3 -> Unprotected',
-    description: '2-year ladder: Top 3 protected first year, unprotected second year',
+    description:
+      '2-year ladder: Top 3 protected first year, unprotected second year',
     tiers: [
-      { yearOffset: 0, condition: 'Top 3', ifTriggered: 'roll', rollToYearOffset: 1 },
+      {
+        yearOffset: 0,
+        condition: 'Top 3',
+        ifTriggered: 'roll',
+        rollToYearOffset: 1,
+      },
       { yearOffset: 1, condition: '', ifTriggered: 'cancel' },
     ],
   },
@@ -54,7 +71,12 @@ export const PROTECTION_TEMPLATES: ProtectionTemplate[] = [
     label: 'Top 10 -> Converts to 2nd',
     description: 'If top 10, converts to 2nd round pick instead',
     tiers: [
-      { yearOffset: 0, condition: 'Top 10', ifTriggered: 'convert', convertToRound: 2 },
+      {
+        yearOffset: 0,
+        condition: 'Top 10',
+        ifTriggered: 'convert',
+        convertToRound: 2,
+      },
     ],
   },
   {
@@ -62,8 +84,18 @@ export const PROTECTION_TEMPLATES: ProtectionTemplate[] = [
     label: 'Top 5 -> Top 3 -> Unprotected',
     description: '3-year ladder: Top 5 first, Top 3 second, unprotected third',
     tiers: [
-      { yearOffset: 0, condition: 'Top 5', ifTriggered: 'roll', rollToYearOffset: 1 },
-      { yearOffset: 1, condition: 'Top 3', ifTriggered: 'roll', rollToYearOffset: 2 },
+      {
+        yearOffset: 0,
+        condition: 'Top 5',
+        ifTriggered: 'roll',
+        rollToYearOffset: 1,
+      },
+      {
+        yearOffset: 1,
+        condition: 'Top 3',
+        ifTriggered: 'roll',
+        rollToYearOffset: 2,
+      },
       { yearOffset: 2, condition: '', ifTriggered: 'cancel' },
     ],
   },
@@ -72,7 +104,12 @@ export const PROTECTION_TEMPLATES: ProtectionTemplate[] = [
     label: 'Lottery -> Converts to 2nd',
     description: 'If lottery pick, converts to 2nd round instead',
     tiers: [
-      { yearOffset: 0, condition: 'Lottery', ifTriggered: 'convert', convertToRound: 2 },
+      {
+        yearOffset: 0,
+        condition: 'Lottery',
+        ifTriggered: 'convert',
+        convertToRound: 2,
+      },
     ],
   },
 ];
@@ -84,9 +121,13 @@ export const PROTECTION_TEMPLATES: ProtectionTemplate[] = [
  * @returns Array of ProtectionLadderTierForm objects
  */
 /**
- * WIZARD_PRESETS — the simplified preset list shown in the wizard (TM-10).
- * These are the 5 most common NBA protection patterns. The full
+ * WIZARD_PRESETS — the curated preset list shown in the Quick Editor (TM-WIZARD-SIMPLIFY-E2).
+ * These are the 4 most common NBA protection patterns. The full
  * PROTECTION_TEMPLATES list above is still used by the Advanced Editor.
+ *
+ * TM-WIZARD-SIMPLIFY-E2: Removed Lottery→Top10→Unprotected (confusing multi-tier pattern).
+ * Exactly 4 presets: Unprotected, Top 4, Top 10, Lottery.
+ * Labels simplified to avoid "->" arrows per UX requirements.
  */
 export const WIZARD_PRESETS: ProtectionTemplate[] = [
   {
@@ -97,39 +138,44 @@ export const WIZARD_PRESETS: ProtectionTemplate[] = [
   },
   {
     id: 'top4_unprotected',
-    label: 'Top 4 protected → Unprotected next year',
-    description: '2-year ladder: Top 4 protected first year, unprotected second year',
+    label: 'Top 4',
+    description: 'Top 4 protected first year, unprotected second year',
     tiers: [
-      { yearOffset: 0, condition: 'Top 4', ifTriggered: 'roll', rollToYearOffset: 1 },
+      {
+        yearOffset: 0,
+        condition: 'Top 4',
+        ifTriggered: 'roll',
+        rollToYearOffset: 1,
+      },
       { yearOffset: 1, condition: 'Unprotected', ifTriggered: 'cancel' },
     ],
   },
   {
     id: 'top10_unprotected',
-    label: 'Top 10 protected → Unprotected next year',
-    description: '2-year ladder: Top 10 protected first year, unprotected second year',
+    label: 'Top 10',
+    description: 'Top 10 protected first year, unprotected second year',
     tiers: [
-      { yearOffset: 0, condition: 'Top 10', ifTriggered: 'roll', rollToYearOffset: 1 },
+      {
+        yearOffset: 0,
+        condition: 'Top 10',
+        ifTriggered: 'roll',
+        rollToYearOffset: 1,
+      },
       { yearOffset: 1, condition: 'Unprotected', ifTriggered: 'cancel' },
     ],
   },
   {
     id: 'lottery_unprotected',
-    label: 'Lottery protected (Top 14) → Unprotected next year',
-    description: '2-year ladder: Lottery protected first year, unprotected second year',
+    label: 'Lottery',
+    description: 'Lottery protected first year, unprotected second year',
     tiers: [
-      { yearOffset: 0, condition: 'Lottery', ifTriggered: 'roll', rollToYearOffset: 1 },
+      {
+        yearOffset: 0,
+        condition: 'Lottery',
+        ifTriggered: 'roll',
+        rollToYearOffset: 1,
+      },
       { yearOffset: 1, condition: 'Unprotected', ifTriggered: 'cancel' },
-    ],
-  },
-  {
-    id: 'lottery_top10_unprotected',
-    label: 'Lottery → Top 10 → Unprotected',
-    description: '3-year ladder: Lottery protected, rolls to Top 10, then unprotected',
-    tiers: [
-      { yearOffset: 0, condition: 'Lottery', ifTriggered: 'roll', rollToYearOffset: 1 },
-      { yearOffset: 1, condition: 'Top 10', ifTriggered: 'roll', rollToYearOffset: 2 },
-      { yearOffset: 2, condition: 'Unprotected', ifTriggered: 'cancel' },
     ],
   },
 ];
@@ -142,11 +188,11 @@ export const applyProtectionTemplate = (
     year: String(baseYear + tier.yearOffset),
     condition: tier.condition,
     ifTriggered: tier.ifTriggered,
-    rollToYear: tier.rollToYearOffset !== undefined
-      ? String(baseYear + tier.rollToYearOffset)
-      : '',
-    convertToRound: tier.convertToRound !== undefined
-      ? String(tier.convertToRound)
-      : '',
+    rollToYear:
+      tier.rollToYearOffset !== undefined
+        ? String(baseYear + tier.rollToYearOffset)
+        : '',
+    convertToRound:
+      tier.convertToRound !== undefined ? String(tier.convertToRound) : '',
   }));
 };
