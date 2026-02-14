@@ -1,0 +1,22 @@
+P3 Live Verification — Test Log
+Date: 2026-02-14 UTC
+Command: npm run test -- --run
+Exit code: 0
+
+Summary:
+ Test Files  230 passed (230)
+      Tests  3015 passed | 1 skipped | 3 todo (3019)
+   Start at  02:31:31
+   Duration  73.81s (transform 4.07s, setup 10.96s, collect 17.88s, tests 9.11s, environment 110.67s, prepare 25.83s)
+
+Stderr notes (all expected/pre-existing):
+- [validateTrade] Cap settings warnings for projected future-year cap values (expected in tests using 2025-26 data)
+- [seasonManager] DARE error in phaseD tests (expected error-path test)
+- [pickIdUtils] Pick ID generated with missing fields (expected fallback test)
+- [TPE] Invalid expiry date found (expected edge-case test)
+- [Architect][FreeAgency] Sign-and-trade requires active world (expected vacuum-mode guard)
+- [ExceptionLifecycle] Invalid toYearKey (expected edge-case test)
+
+All stderr entries correspond to intentional test scenarios exercising error/edge-case code paths.
+
+Result: PASS

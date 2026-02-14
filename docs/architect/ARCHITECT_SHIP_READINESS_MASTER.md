@@ -3,12 +3,14 @@
 ## Current Readiness Snapshot
 
 - Snapshot date: `2026-02-14` (UTC)
-- Status: **READY (vacuum-mode)**
+- Status: **NOT READY** — pending live Firebase verification of Checks 1–5
 - Readiness summary:
   - P1 must-ship implementation changes (G-01..G-06) have been applied and validated with build/test runs.
   - P2 typecheck stabilization complete — `npm run typecheck` exits 0.
-  - Trade apply now requires current validation and world-mode apply now awaits authoritative mutation before UI updates.
-  - Remaining risk: environment-blocked world-mode manual verification (requires valid Firebase credentials).
+  - P3 baseline gates (CHECK 0) pass: typecheck, build (3028 modules), and all 3015 tests clean.
+  - P3 interactive checks (CHECK 1–5) are **BLOCKED**: no Firebase credentials or emulator available in CI sandbox.
+  - Code confidence is HIGH (all P1 changes are unit-tested), but live UI verification remains outstanding.
+  - Failing checks: CHECK 1 (trade freshness), CHECK 2 (world persistence), CHECK 3 (player overlay), CHECK 4 (modal persistence), CHECK 5 (offer sheet paths) — all blocked by environment, not code.
 
 ## P0 Preflight
 
@@ -19,12 +21,12 @@
 ## Current Known Blockers (Severity-Ordered)
 
 1. ~~`SEV-2` Repository typecheck still fails due pre-existing typed tests/scripts outside the targeted P1 runtime fixes~~ → **RESOLVED** in P2. `npm run typecheck` exits 0.
-2. `SEV-2` World-mode manual persistence acceptance (reload checks) is environment-blocked in this sandbox without valid Firebase credentials.
+2. `SEV-2` World-mode manual persistence acceptance (reload checks) is environment-blocked in this sandbox without valid Firebase credentials. **Confirmed in P3**: CHECK 1–5 all blocked by missing Firebase env.
 
 ## Next Execution-Ready Workstream Pointers
 
-1. Finish repo/typecheck hygiene or narrow the release gate scope so Architect ship-readiness can be marked clean.
-2. Run live world-mode manual acceptance in an environment with valid Firebase credentials to confirm persistence/reload behavior end-to-end.
+1. ~~Finish repo/typecheck hygiene or narrow the release gate scope so Architect ship-readiness can be marked clean.~~ → **DONE** in P2.
+2. Run live world-mode manual acceptance in an environment with valid Firebase credentials to confirm persistence/reload behavior end-to-end. → **Still required.** Provide `.env` or start Firebase emulator to unblock P3 Checks 1–5.
 
 ## P1 Execution
 
@@ -60,3 +62,19 @@
   - `return_packages/architect/_logs/ARCH_P2_build.txt`
   - `return_packages/architect/_logs/ARCH_P2_test.txt`
 - Summary: Fixed 27 type errors across 6 files (5 test files, 1 scrape script) with minimal, behavior-preserving changes. No `@ts-ignore` or `@ts-nocheck` directives used.
+
+## P3 Live Verification
+
+- `return_packages/architect/ARCH_P3_LIVE_VERIFICATION_RETURN_PACKAGE.md`
+- Logs:
+  - `return_packages/architect/_logs/ARCH_P3_typecheck.txt`
+  - `return_packages/architect/_logs/ARCH_P3_build.txt`
+  - `return_packages/architect/_logs/ARCH_P3_test.txt`
+  - `return_packages/architect/_logs/ARCH_P3_devserver_notes.txt`
+- Artifacts: `return_packages/architect/_artifacts/` (empty — no interactive screenshots possible without Firebase)
+- Summary:
+  - CHECK 0 (baseline gates): **PASS** — typecheck, build, tests all clean
+  - CHECK 1–5 (interactive UI): **BLOCKED** — no Firebase credentials or emulator in CI sandbox
+  - No code fixes were required or applied
+  - Blocker: environment-only (SEV-2). Provide `.env` or start Firebase emulator to unblock
+  - Estimated unblock effort: ~15 minutes

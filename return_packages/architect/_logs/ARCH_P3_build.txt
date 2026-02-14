@@ -1,0 +1,27 @@
+P3 Live Verification — Build Log
+Date: 2026-02-14 UTC
+Command: npm run build
+Exit code: 0
+
+Output:
+> scoutzero@1.0.0 build
+> vite build
+
+vite v4.5.14 building for production...
+transforming...
+✓ 3028 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                            0.60 kB │ gzip:   0.37 kB
+dist/assets/index-ed2d2d8f.css            79.87 kB │ gzip:  13.88 kB
+dist/assets/index.esm-02ada3c7.js          3.62 kB │ gzip:   1.56 kB
+dist/assets/seasonManager-f7eafbf0.js     40.12 kB │ gzip:  12.19 kB
+dist/assets/index-4afcaa94.js          2,153.38 kB │ gzip: 624.46 kB
+✓ built in 9.42s
+
+Warnings (pre-existing, non-blocking):
+- [plugin:vite:resolve] Module "fs" externalized for browser compat (tradeDebug.js)
+- firebaseConfig.js is both dynamically and statically imported (non-breaking)
+- Chunk >500kB warning (pre-existing)
+
+Result: PASS

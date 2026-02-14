@@ -1,0 +1,31 @@
+P3 Live Verification — Dev Server / Runtime Notes
+Date: 2026-02-14 UTC
+
+## Environment Assessment
+
+Firebase environment is NOT available in this CI sandbox:
+- No `.env` file present (no VITE_FIREBASE_* variables)
+- No `.env.local` file present
+- No FIRESTORE_EMULATOR_HOST environment variable set
+- No Firebase emulator running or reachable
+- `src/firebaseConfig.js` reads all config from `import.meta.env.VITE_FIREBASE_*` — all values would be `undefined`
+
+## Consequence
+
+Starting the dev server (`npm run dev`) would launch Vite successfully (port 5173), but:
+- Firebase `initializeApp` would receive `undefined` for all config values
+- Any Firestore read/write would fail with `auth/invalid-api-key` or equivalent
+- Architect routes (`/gm/:teamId`) would not load player/team data
+- World persistence, trade apply, FA actions — all require working Firestore
+
+## Checks 1–5 Status
+
+All six interactive verification checks (CHECK 1 through CHECK 5, plus optional CHECK 6) require a working Firebase backend (production credentials or running emulator with seeded data). None can be completed in this environment.
+
+## Unblocking Steps (Smallest Possible)
+
+To unblock P3 Checks 1–5, provide ONE of:
+1. **Firebase emulator**: Run `firebase emulators:start` with Firestore on port 8082, seed at least one team + world + players
+2. **Production .env**: Place a valid `.env` file with `VITE_FIREBASE_*` variables in the project root (ensure the Firebase project has `/architect_worlds` + `/teams` collections)
+
+Either option allows the dev server to serve live data to the Architect UI for interactive verification.
