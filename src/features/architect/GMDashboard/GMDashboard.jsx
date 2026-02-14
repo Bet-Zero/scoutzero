@@ -427,10 +427,11 @@ const GMDashboard = () => {
           capProjections={capProjections}
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
-          onSign={actions.handleSign}
+          onSignFreeAgent={actions.handleSign}
+          onResign={actions.handleSign}
           onSignAndTrade={actions.handleSignAndTrade}
           onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : null}
-          onSave={actions.handleSaveContract}
+          onSaveContract={actions.handleSaveContract}
           onExtend={actions.handleExtendContract}
           onWaive={actions.handleWaiveContract}
           onOptionDecision={actions.handleOptionDecision}

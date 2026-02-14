@@ -93,8 +93,9 @@ const fetchEntitlementsByIds = async (
   const chunks = chunkIds(entitlementIds);
 
   for (const chunk of chunks) {
+    const collectionPath = pathSegments as [string, ...string[]];
     const entitlementsQuery = query(
-      collection(db, ...pathSegments),
+      collection(db, ...collectionPath),
       where(documentId(), 'in', chunk)
     );
     const snapshot = await getDocs(entitlementsQuery);

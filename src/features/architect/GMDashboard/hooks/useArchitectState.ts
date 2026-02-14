@@ -98,6 +98,20 @@ interface ArchitectPlayer {
   [key: string]: unknown;
 }
 
+const mergeWorldPlayerOverride = (
+  basePlayer: ArchitectPlayer | null,
+  overridePlayer: ArchitectPlayer
+): ArchitectPlayer => ({
+  ...(basePlayer || {}),
+  ...overridePlayer,
+  contract: overridePlayer.contract
+    ? { ...(basePlayer?.contract || {}), ...overridePlayer.contract }
+    : basePlayer?.contract,
+  bio: overridePlayer.bio
+    ? { ...(basePlayer?.bio || {}), ...overridePlayer.bio }
+    : basePlayer?.bio,
+});
+
 /** Free agent with additional derived fields */
 interface FreeAgent extends ArchitectPlayer {
   previousSalary: number;
@@ -284,6 +298,9 @@ export function useArchitectState({
   const [worldRosterIndex, setWorldRosterIndex] = useState<Set<string> | null>(
     null
   );
+  const [worldPlayerOverrides, setWorldPlayerOverrides] = useState<
+    Record<string, ArchitectPlayer>
+  >({});
 
   // === Selection state ===
   const [currentYear, setCurrentYear] = useState<number>(() => {
@@ -341,9 +358,27 @@ export function useArchitectState({
   };
 
   // === Memoized derivations ===
+  const worldAwarePlayers = useMemo<ArchitectPlayer[]>(() => {
+    if (!worldId) return players;
+
+    const merged = new Map<string, ArchitectPlayer>();
+    players.forEach((player) => {
+      const playerId = player.id || player.player_id || player.bio?.playerId;
+      if (!playerId) return;
+      merged.set(playerId, player);
+    });
+
+    Object.entries(worldPlayerOverrides).forEach(([playerId, override]) => {
+      const basePlayer = merged.get(playerId) || null;
+      merged.set(playerId, mergeWorldPlayerOverride(basePlayer, override));
+    });
+
+    return Array.from(merged.values());
+  }, [players, worldId, worldPlayerOverrides]);
+
   const playersMap = useMemo<PlayersMap>(() => {
     const map: PlayersMap = {};
-    players.forEach((p) => {
+    worldAwarePlayers.forEach((p) => {
       if (p.name) {
         map[p.name] = p;
         map[normalizeLookupKey(p.name)] = p;
@@ -353,7 +388,7 @@ export function useArchitectState({
       if (p.bio?.playerId) map[p.bio.playerId] = p;
     });
     return map;
-  }, [players]);
+  }, [worldAwarePlayers]);
 
   const capTableYears = useMemo<number[]>(
     () => Array.from({ length: 7 }, (_, i) => currentYear + i),
@@ -363,6 +398,7 @@ export function useArchitectState({
   const refreshWorldRosterIndex = useCallback(async (): Promise<Set<string>> => {
     if (!worldId) {
       setWorldRosterIndex(null);
+      setWorldPlayerOverrides({});
       return new Set<string>();
     }
 
@@ -371,6 +407,7 @@ export function useArchitectState({
     try {
       const league = await getLeague(worldId);
       const nextIndex = new Set<string>();
+      const nextOverrides: Record<string, ArchitectPlayer> = {};
 
       league.forEach((team: any) => {
         (team?.roster || []).forEach((rawId: unknown) => {
@@ -383,17 +420,25 @@ export function useArchitectState({
           const playerId =
             player?.id || player?.player_id || player?.bio?.playerId || null;
           if (typeof playerId === 'string' && playerId.trim()) {
-            nextIndex.add(playerId.trim());
+            const normalizedPlayerId = playerId.trim();
+            nextIndex.add(normalizedPlayerId);
+            nextOverrides[normalizedPlayerId] = {
+              ...player,
+              id: normalizedPlayerId,
+              player_id: normalizedPlayerId,
+            };
           }
         });
       });
 
       setWorldRosterIndex(nextIndex);
+      setWorldPlayerOverrides(nextOverrides);
       return nextIndex;
     } catch (error) {
       console.warn('Failed to load world roster index:', error);
       const empty = new Set<string>();
       setWorldRosterIndex(empty);
+      setWorldPlayerOverrides({});
       return empty;
     }
   }, [worldId]);
@@ -460,10 +505,10 @@ export function useArchitectState({
 
   // === Effect 7: Derive free agents dynamically from the player pool ===
   useEffect(() => {
-    if (!players || players.length === 0) return;
+    if (!worldAwarePlayers || worldAwarePlayers.length === 0) return;
     if (worldId && worldRosterIndex === null) return;
 
-    const upcomingFreeAgents = players
+    const upcomingFreeAgents = worldAwarePlayers
       .filter((p) => {
         // 0. Filter out invalid players (only if no ID is present)
         if ((!p.name || p.name === 'Unknown') && !p.id && !p.player_id)
@@ -578,7 +623,7 @@ export function useArchitectState({
       });
 
     setFreeAgents(upcomingFreeAgents);
-  }, [players, currentYear, worldId, worldRosterIndex]);
+  }, [worldAwarePlayers, currentYear, worldId, worldRosterIndex]);
 
 
 
@@ -655,7 +700,7 @@ export function useArchitectState({
     offseasonSummary,
     playersMap,
     capTableYears,
-    players,
+    players: worldAwarePlayers,
     worldId,
     worldAsOfDate,
 

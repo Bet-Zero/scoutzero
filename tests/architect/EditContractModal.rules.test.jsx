@@ -523,3 +523,36 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
     );
   });
 });
+
+describe('EditContractModal — explicit sign/resign callbacks', () => {
+  afterEach(() => cleanup());
+
+  it('routes resign confirm to onResign instead of generic save handler', async () => {
+    const mockOnResign = vi.fn();
+    const mockOnSave = vi.fn();
+    const faPlayer = {
+      name: 'Resign Candidate',
+      player_id: 're_1',
+      freeAgentYear: 2025,
+    };
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={faPlayer}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2025}
+        actionContext="freeAgent"
+        onResign={mockOnResign}
+        onSave={mockOnSave}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText(/re-sign player/i));
+    fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
+
+    expect(mockOnResign).toHaveBeenCalledTimes(1);
+    expect(mockOnSave).not.toHaveBeenCalled();
+  });
+});
