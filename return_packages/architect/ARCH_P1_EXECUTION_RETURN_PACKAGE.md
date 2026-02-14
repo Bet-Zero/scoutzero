@@ -95,7 +95,7 @@ P1 must-ship fixes (G-01 through G-06) were implemented with targeted, minimal c
 
 ## Manual UI Evidence
 - Screenshot captured (app load in sandbox):
-  - `/tmp/playwright-logs/page-2026-02-14T00-41-04-517Z.png`
+  - `return_packages/architect/_logs/ARCH_P1_ui_screenshot.png`
 
 ## Remaining Blockers
 - `SEV-2` Typecheck is still red due pre-existing typed test/script failures outside this P1 runtime fix set.

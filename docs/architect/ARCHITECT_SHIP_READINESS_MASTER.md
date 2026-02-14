@@ -17,7 +17,7 @@
 
 ## Current Known Blockers (Severity-Ordered)
 
-1. `SEV-2` Repository typecheck still fails due pre-existing typed tests/scripts outside the targeted P1 runtime fixes (`return_packages/architect/_logs/ARCH_P1_typecheck.log`).
+1. `SEV-2` Repository typecheck still fails due pre-existing typed tests/scripts outside the targeted P1 runtime fixes (`return_packages/architect/_logs/ARCH_P1_typecheck.txt`).
 2. `SEV-2` World-mode manual persistence acceptance (reload checks) is environment-blocked in this sandbox without valid Firebase credentials.
 
 ## Next Execution-Ready Workstream Pointers

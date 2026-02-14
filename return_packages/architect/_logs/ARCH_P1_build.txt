@@ -12,4 +12,4 @@ computing gzip size...
 [2mdist/[22m[2massets/[22m[36mindex.esm-02ada3c7.js      [39m[1m[2m    3.62 kB[22m[1m[22m[2m │ gzip:   1.56 kB[22m
 [2mdist/[22m[2massets/[22m[36mseasonManager-f7eafbf0.js  [39m[1m[2m   40.12 kB[22m[1m[22m[2m │ gzip:  12.19 kB[22m
 [2mdist/[22m[2massets/[22m[36mindex-4afcaa94.js          [39m[1m[33m2,153.38 kB[39m[22m[2m │ gzip: 624.46 kB[22m
-[32m✓ built in 9.66s[39m
+[32m✓ built in 21.15s[39m
