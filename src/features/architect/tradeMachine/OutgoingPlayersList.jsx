@@ -55,7 +55,7 @@ export const OutgoingPlayersList = ({
 
   return (
     <div>
-      <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1">
+      <div className="space-y-1 max-h-[375px] overflow-y-auto pr-1 pb-28">
         {sortedAvailable.map((p) => (
           <TradePlayerRow
             key={p.id || p.name}

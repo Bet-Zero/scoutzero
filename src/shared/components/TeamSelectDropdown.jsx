@@ -20,7 +20,7 @@ const TeamSelectDropdown = ({ selectedTeamId, onChange }) => {
 
   return (
     <Listbox value={selectedTeamId} onChange={onChange}>
-      <div className="relative w-[260px]">
+      <div className="relative w-full max-w-[260px]">
         {/* Button */}
         <Listbox.Button className="group w-full flex items-center justify-between px-3 py-2 bg-[#111] rounded border border-transparent hover:border-white/20 transition text-left">
           {selectedTeam && (
@@ -31,7 +31,7 @@ const TeamSelectDropdown = ({ selectedTeamId, onChange }) => {
                   className="w-6 h-6 shrink-0"
                 />
                 <span
-                  className="text-[16px] font-semibold whitespace-nowrap"
+                  className="text-[16px] font-semibold truncate"
                   style={{ color: selectedColor }}
                 >
                   {selectedTeam.teamName}

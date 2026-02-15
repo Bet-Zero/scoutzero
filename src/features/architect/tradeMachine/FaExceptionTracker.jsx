@@ -87,7 +87,7 @@ const FaExceptionTracker = ({ result, teams }) => {
             <div className="p-2 bg-red-900/20 border border-red-500/30 rounded text-xs">
               <span className="text-red-400 font-medium">⚠️ Hard Capped</span>
               <div className="text-white/80 mt-1">
-                Team is hard-capped at First Apron ({formatCurrency(175000000)}) due to FA exception usage
+                Team is hard-capped at First Apron ({formatCurrency(result?.capSettings?.firstApron || 178132000)}) due to FA exception usage
               </div>
             </div>
           )}

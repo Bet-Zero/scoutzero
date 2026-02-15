@@ -61,6 +61,7 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
 
   const playerRefs = useRef([]);
   const [maxHeight, setMaxHeight] = useState(0);
+  const activeCount = teams.filter((t) => t.team).length;
 
   useEffect(() => {
     const heights = playerRefs.current.map((ref) => ref?.offsetHeight || 0);
@@ -104,7 +105,7 @@ const TradeExportCapture = React.forwardRef(function TradeExportCapture(
           const { primary } = getTeamColors(tm.team.id) || {};
 
           return (
-            <div key={tm.team.id} className="w-[420px] shrink-0">
+            <div key={tm.team.id} className="shrink-0" style={{ width: Math.min(420, Math.floor((1152 - (activeCount - 1) * 24) / Math.min(activeCount, 3))) }}>
               <div className="h-full flex flex-col bg-gradient-to-br from-neutral-800 via-neutral-850 to-neutral-900 border border-neutral-600/30 rounded-3xl shadow-2xl relative overflow-hidden">
                 {/* 🟥 Top Border Accent */}
                 <div

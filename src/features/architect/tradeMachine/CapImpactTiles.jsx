@@ -177,8 +177,18 @@ const CapImpactTiles = ({
               : '—'}
           </div>
           {isSecondApronHardCapped && (
-            <div className="absolute bottom-1 left-1 bg-white/10 border border-white/20 rounded p-0.5 shadow-md backdrop-blur-md">
-              <Lock size={10} className="text-white/90" />
+            <div className="absolute bottom-1 left-1 group">
+              <div className="bg-white/10 border border-white/20 rounded p-0.5 shadow-md backdrop-blur-md">
+                <Lock size={10} className="text-white/90" />
+              </div>
+              <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 p-2 bg-[#151515] border border-white/10 shadow-xl rounded-md z-50 pointer-events-none text-center">
+                <div className="text-[10px] font-bold text-white mb-0.5">
+                  Hard Capped at 2nd Apron
+                </div>
+                <div className="text-[9px] text-white/50 leading-tight">
+                  Team salary exceeds 2nd apron threshold
+                </div>
+              </div>
             </div>
           )}
         </div>

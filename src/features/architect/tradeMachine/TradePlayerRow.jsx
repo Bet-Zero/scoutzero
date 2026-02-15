@@ -144,7 +144,7 @@ const TradePlayerRow = ({
       </div>
 
       {/* Main Info - with guaranteed team logo */}
-      <div className="flex flex-col justify-center ml-3">
+      <div className="flex flex-col justify-center ml-3 flex-1 min-w-0 max-w-[180px]">
         <div className="h-[32px] flex items-center mb-2">
           <PlayerNameMini
             name={player.bio?.displayName || player.name}

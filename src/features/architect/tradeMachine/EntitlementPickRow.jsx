@@ -355,7 +355,7 @@ const EntitlementPickRow = ({
               <option value="">Select destination...</option>
               {otherTeams.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name || t.teamCode || t.id}
+                  {t.teamName || t.name || t.teamCode || t.id}
                 </option>
               ))}
             </select>

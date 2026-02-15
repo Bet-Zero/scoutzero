@@ -88,10 +88,10 @@ function TradeSummaryPanel({
           const isIllegal = teamResult ? !teamResult.legal : false;
 
           const teamMeta =
-            teams.find((te) => te.teamName === t.teamName) ||
-            teams.find((te) => te.id === t.teamId) ||
+            teams.find((te) => te.team?.teamName === t.teamName) ||
+            teams.find((te) => te.team?.id === t.teamId) ||
             null;
-          const colors = teamMeta ? getTeamColors(teamMeta.id) : null;
+          const colors = teamMeta?.team ? getTeamColors(teamMeta.team.id) : null;
           const primary = colors?.primary;
 
           // Derive incoming assets (players) if present on result
@@ -107,7 +107,7 @@ function TradeSummaryPanel({
           const entitlementsOut = teamSlot?.entitlementsOut || [];
 
           // Phase 15: Derive incoming entitlements from OTHER teams' outgoing
-          const thisTeamId = t.teamId || teamMeta?.id;
+          const thisTeamId = t.teamId || teamMeta?.team?.id;
           const incomingEntitlements = teams
             .filter((ts) => ts.team?.id !== thisTeamId)
             .flatMap((ts) => ts.entitlementsOut || [])
@@ -132,8 +132,8 @@ function TradeSummaryPanel({
               <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {teamMeta && (
-                      <TeamLogo teamId={teamMeta.id} className="w-6 h-6" />
+                    {teamMeta?.team && (
+                      <TeamLogo teamId={teamMeta.team.id} className="w-6 h-6" />
                     )}
                     <h4 className="font-semibold">{t.teamName}</h4>
                   </div>
@@ -305,7 +305,7 @@ function TradeSummaryPanel({
                         {incomingEntitlements.map((ent, idx2) => {
                           const badge = getEntitlementKindBadge(ent.kind);
                           const pickRow = projectEntitlementToPickRow(ent, {
-                            teamCode: teamMeta?.id,
+                            teamCode: teamMeta?.team?.id,
                             pickRulesById,
                           });
                           const secondaryText =
@@ -357,7 +357,7 @@ function TradeSummaryPanel({
                         // Phase 12.3C: Project entitlement for protection/condition visibility
                         // Phase 12.3B: Pass pickRulesById for structured rule-aware derivation
                         const pickRow = projectEntitlementToPickRow(ent, {
-                          teamCode: teamMeta?.id,
+                          teamCode: teamMeta?.team?.id,
                           pickRulesById,
                         });
                         const secondaryText = getPickRowSecondaryText(pickRow);

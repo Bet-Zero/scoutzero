@@ -332,7 +332,7 @@ const TradeTeamCard = ({
     >
       {/* Team Header */}
       <div className="relative flex items-center justify-between border-b border-white/10 pb-2">
-        <div className="w-48">
+        <div className="flex-1 min-w-0 max-w-[260px]">
           <TeamSelectDropdown
             selectedTeamId={team.id}
             onChange={(newId) => {
@@ -757,23 +757,27 @@ const TradeTeamCard = ({
         />
       )}
 
-      {activeTab === 'exceptions' && teamTradeExceptions.length > 0 && (
-        <TradeExceptionManager
-          exceptions={teamTradeExceptions}
-          teamId={team.id}
-          eligiblePlayers={tpeEligiblePlayers}
-          onApplyException={(tpe) => {
-            if (tpeEligiblePlayers.length > 0) {
-              onApplyTradeException(tpeEligiblePlayers[0], tpe);
-            }
-          }}
-        />
+      {activeTab === 'exceptions' && (
+        teamTradeExceptions.length > 0 ? (
+          <TradeExceptionManager
+            exceptions={teamTradeExceptions}
+            teamId={team.id}
+            eligiblePlayers={tpeEligiblePlayers}
+            onApplyException={(tpe) => {
+              if (tpeEligiblePlayers.length > 0) {
+                onApplyTradeException(tpeEligiblePlayers[0], tpe);
+              }
+            }}
+          />
+        ) : (
+          <div className="text-xs text-white/40 px-1">No trade exceptions available for this team.</div>
+        )
       )}
 
       {/* Phase 14.2: Show if incoming players or entitlements */}
       {(incomingPlayers.length > 0 || incomingEntitlements.length > 0) && (
         <div
-          className="bg-[#222] border rounded p-3 text-sm"
+          className="bg-[#222] border rounded p-3 text-sm max-h-[300px] overflow-y-auto"
           style={{ borderColor: primary }}
         >
           <h4 className="text-white/70 text-sm mb-2">Incoming</h4>

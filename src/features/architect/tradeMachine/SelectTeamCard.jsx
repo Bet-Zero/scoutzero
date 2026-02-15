@@ -2,7 +2,7 @@ import React from 'react';
 import { TeamListFull } from '@/constants/teamList';
 
 export const SelectTeamCard = ({ onSelectTeam, onRemove }) => (
-  <div className="flex-1 border border-white/20 rounded-lg p-4 bg-[#1a1a1a] relative">
+  <div className="flex-1 border border-white/20 rounded-lg p-4 bg-[#111] relative shadow-inner">
     {onRemove && (
       <button
         onClick={onRemove}
