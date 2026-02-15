@@ -428,6 +428,181 @@ Forbidden collections (MUST NOT see writes):
 
 ---
 
+## G) Eligibility Rules
+
+### Scenario G1: Two-Way Player Trade Block
+
+**Objective:** Verify two-way contract players cannot be included in trades.
+
+| Step | Action                                                |
+| ---- | ----------------------------------------------------- |
+| 1    | Select any two teams                                  |
+| 2    | From Team A, attempt to add a two-way contract player |
+| 3    | Click Validate                                        |
+
+**Expected Results:**
+
+- [ ] Trade shows "❌ Trade is NOT CBA Legal"
+- [ ] Error message specifically mentions two-way contracts
+- [ ] Message indicates: "Two-way players must be waived, not traded"
+- [ ] Validation clearly identifies which player caused the block
+
+**Common Failure Signals:**
+
+- Trade passes as legal with two-way player
+- No specific error message for two-way violation
+- Two-way player treated as standard contract
+
+**CBA Reference:** Two-way contract rules prohibit trading two-way players between teams. Teams must waive the player if they wish to move them.
+
+**Automated Test:** `npm run test src/tests/architect/batchB_cbaRules.test.js -- --run`
+
+---
+
+## H) Data Quality Warnings
+
+### Scenario DW1: BYC Player Missing Previous Salary
+
+**Objective:** Verify WARNING severity data warnings display for BYC players missing previous salary.
+
+| Step | Action                                                                            |
+| ---- | --------------------------------------------------------------------------------- |
+| 1    | Select two teams                                                                  |
+| 2    | Add a BYC player to the trade (player with `isBYC: true` but no `previousSalary`) |
+| 3    | Click "Validate Trade"                                                            |
+| 4    | Scroll to Data Warnings section (below top status, above rule explanations)       |
+
+**Expected Results:**
+
+- [ ] WARNING section appears with yellow background
+- [ ] Message shows player name and "missing previousSalary"
+- [ ] Message mentions "outgoing matching value may be inaccurate"
+- [ ] Trade can still be validated (non-blocking warning)
+- [ ] Section positioned below "✅/❌ Trade Legal" banner
+
+**Common Failure Signals:**
+
+- Warning section doesn't appear
+- Wrong severity (should be WARNING, not ERROR)
+- Missing player name in message
+- Trade blocked (should be non-blocking)
+
+---
+
+### Scenario DW2: Player Missing Salary Data
+
+**Objective:** Verify WARNING severity data warnings display for players with no salary data.
+
+| Step | Action                                                                          |
+| ---- | ------------------------------------------------------------------------------- |
+| 1    | Select two teams                                                                |
+| 2    | Add a player with no salary data (no `contract.salariesByYear` and no fallback) |
+| 3    | Click "Validate Trade"                                                          |
+| 4    | Check Data Warnings section                                                     |
+
+**Expected Results:**
+
+- [ ] WARNING section appears with yellow background
+- [ ] Message shows player name and "has no salary data for year [YEAR]"
+- [ ] Specific year is mentioned in message
+- [ ] Trade validation proceeds (non-blocking)
+
+**Common Failure Signals:**
+
+- Warning section doesn't appear
+- Wrong severity level
+- Message doesn't specify which year
+- Generic error message instead of player-specific
+
+---
+
+### Scenario DW3: Salary Fallback (INFO)
+
+**Objective:** Verify INFO severity warnings are collapsed by default and expandable.
+
+| Step | Action                                                                                 |
+| ---- | -------------------------------------------------------------------------------------- |
+| 1    | Select two teams                                                                       |
+| 2    | Add a player using fallback salary field (has `player.salary` but not canonical field) |
+| 3    | Click "Validate Trade"                                                                 |
+| 4    | Look for collapsed INFO section with blue background                                   |
+| 5    | Click on INFO section to expand                                                        |
+
+**Expected Results:**
+
+- [ ] INFO section appears collapsed with blue background
+- [ ] Section shows "ℹ️ Data Info (1)" with chevron-down icon
+- [ ] Click expands to show player name and "using fallback salary source"
+- [ ] No visual alarm (informational only, not yellow/red)
+- [ ] Trade validates normally
+
+**Common Failure Signals:**
+
+- INFO section shown expanded by default
+- Wrong color (should be blue, not yellow/red)
+- Missing fallback source in message
+- Cannot expand/collapse section
+
+---
+
+### Scenario DW4: No Data Issues (Clean Trade)
+
+**Objective:** Verify no warnings section appears when all data is complete and canonical.
+
+| Step | Action                                                     |
+| ---- | ---------------------------------------------------------- |
+| 1    | Select two teams                                           |
+| 2    | Add players with complete, canonical salary data           |
+| 3    | Verify all players have `contract.salariesByYear[].capHit` |
+| 4    | Click "Validate Trade"                                     |
+
+**Expected Results:**
+
+- [ ] No data warnings section appears at all
+- [ ] Clean validation result display
+- [ ] Only CBA rule results shown (if any violations exist)
+- [ ] No empty warning boxes or placeholder text
+
+**Common Failure Signals:**
+
+- Empty warning section still visible
+- Placeholder text displayed ("No warnings")
+- UI spacing issues where warnings section would be
+- Section header visible but empty
+
+---
+
+### Scenario DW5: Multiple Warning Types
+
+**Objective:** Verify multiple warning types display correctly with proper severity separation.
+
+| Step | Action                                               |
+| ---- | ---------------------------------------------------- |
+| 1    | Select two teams                                     |
+| 2    | Add 1 BYC player (missing previous salary) → WARNING |
+| 3    | Add 1 player with fallback salary → INFO             |
+| 4    | Add 1 player missing salary data → WARNING           |
+| 5    | Click "Validate Trade"                               |
+| 6    | Review Data Warnings section structure               |
+
+**Expected Results:**
+
+- [ ] WARNING section shows 2 items (BYC + missing salary) — always visible, yellow
+- [ ] INFO section shows 1 item (fallback) — collapsed by default, blue
+- [ ] Each warning message is clear with player name
+- [ ] Summary line shows statistics (e.g., "3 players checked • 1 BYC players (1 missing previous salary) • 1 using fallback salary fields • 1 missing salary data")
+- [ ] Can expand INFO section independently
+
+**Common Failure Signals:**
+
+- Warnings mixed together (severity not separated)
+- Summary counts incorrect or missing
+- Messages unclear or missing player names
+- Cannot distinguish WARNING from INFO visually
+- INFO section expanded by default (should be collapsed)
+
+---
+
 ## Results Summary Table
 
 | #   | Scenario                     | Category        | Pass? | Notes |
@@ -446,6 +621,12 @@ Forbidden collections (MUST NOT see writes):
 | D3  | Duplicate Player             | Multi-Team      | [ ]   |       |
 | E1  | Team Removal Cleanup         | Team Removal    | [ ]   |       |
 | F1  | Apply Trade Immutability     | World Apply     | [ ]   |       |
+| G1  | Two-Way Player Trade Block   | Eligibility     | [ ]   |       |
+| DW1 | BYC Missing Previous Salary  | Data Warnings   | [ ]   |       |
+| DW2 | Missing Salary Data          | Data Warnings   | [ ]   |       |
+| DW3 | Salary Fallback (INFO)       | Data Warnings   | [ ]   |       |
+| DW4 | No Data Issues               | Data Warnings   | [ ]   |       |
+| DW5 | Multiple Warning Types       | Data Warnings   | [ ]   |       |
 
 ---
 
@@ -453,7 +634,7 @@ Forbidden collections (MUST NOT see writes):
 
 | Criteria                     | Requirement       |
 | ---------------------------- | ----------------- |
-| All scenarios pass           | 14/14 (100%)      |
+| All scenarios pass           | 20/20 (100%)      |
 | Zero HIGH severity failures  | Required          |
 | Document any MEDIUM failures | In workbook notes |
 
@@ -461,6 +642,8 @@ Forbidden collections (MUST NOT see writes):
 
 ## Revision History
 
-| Version | Date       | Author | Changes          |
-| ------- | ---------- | ------ | ---------------- |
-| V1      | 2026-02-14 | Agent  | Initial creation |
+| Version | Date       | Author | Changes                                                  |
+| ------- | ---------- | ------ | -------------------------------------------------------- |
+| V1      | 2026-02-14 | Agent  | Initial creation                                         |
+| V1.1    | 2026-02-15 | Agent  | Added G1: Two-Way Player Trade Block (Batch B)           |
+| V1.2    | 2026-02-15 | Agent  | Added DW1-DW5: Data Quality Warnings (TM_DATAWARN_UI_E1) |

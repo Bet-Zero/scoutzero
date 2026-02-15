@@ -1,8 +1,37 @@
 // Handles Base Year Compensation (BYC), trade kicker, and poison pill calculations
+// GAP-DATA-001: Now validates BYC player data requirements and surfaces warnings
+// GAP-DATA-002: Tracks salary field fallback usage for data quality monitoring
 import { getSalaryForYear } from '../../tradeHelpers.js';
 import { BYC_PERCENT } from '../constants/cbaConstants.js';
 import { getCapHitForSeason, normalizeYearInput } from './seasonUtils.js';
+import {
+  validateBYCPlayerData,
+  validateSalaryFieldData,
+  DATA_WARNING_CODES,
+} from './dataValidation.js';
 
+/**
+ * @deprecated LEGACY HELPER - DO NOT USE IN VALIDATION PATHS
+ *
+ * This function has an incorrect poison-pill formula that differs from the
+ * canonical implementation in `computeMatchingValues()`.
+ *
+ * Legacy bug (lines 49-55):
+ *   extensionAvg = sum(extensionYears) / extensionYears.length
+ *   result = (salary + extensionAvg) / 2
+ *
+ * Canonical formula (correct):
+ *   result = (currentSalary + sum(extensionYears)) / (1 + extensionYears.length)
+ *
+ * Example: $10M current + [$20M, $22M, $24M] extension
+ *   - Legacy: ($10M + $22M) / 2 = $16M  ❌
+ *   - Canonical: $76M / 4 = $19M  ✅
+ *
+ * This function is ONLY used as a salary fallback in normalizeTradeInput.js
+ * when player.salary is missing. The actual validation uses computeMatchingValues().
+ *
+ * @see computeMatchingValues - The canonical implementation for validation
+ */
 export function getMatchingValue(player, yearKey, isOutgoing = false) {
   const salary = getSalaryForYear(player, yearKey);
 
@@ -35,14 +64,11 @@ export function getMatchingValue(player, yearKey, isOutgoing = false) {
   // For poison pill players, use average of current + extension years for incoming
   // Check isRookieScale flag from new schema
   const contract = player.contract || player.primaryContract;
-  const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+  const isRookieScale =
+    contract?.isRookieScale || player.isRookieScale || false;
   const isPoisonPill = player.isPoisonPill || isRookieScale;
-  
-  if (
-    !isOutgoing &&
-    isPoisonPill &&
-    Array.isArray(player.extensionYears)
-  ) {
+
+  if (!isOutgoing && isPoisonPill && Array.isArray(player.extensionYears)) {
     const extensionTotal = player.extensionYears.reduce(
       (sum, year) => sum + (year.salary || 0),
       0
@@ -60,21 +86,40 @@ export function computeMatchingValues({
   daysRemainingInSeason,
   daysInSeason,
 }) {
+  // GAP-DATA-001, GAP-DATA-002: Collect data validation warnings
+  const allDataWarnings = [];
+
   teams.forEach((team) => {
+    const teamWarnings = [];
+
     (team.sends || []).forEach((player) => {
       // Normalize yearKey to get season string for new schema
       const normalized = normalizeYearInput(yearKey);
-      
+
       // Get base salary from new contract schema (using capHit)
       let baseSalary = 0;
+      let salarySource = 'contract.salariesByYear.capHit';
+
       if (normalized) {
         baseSalary = getCapHitForSeason(player, normalized.seasonString);
       }
-      
+
       // Fallback to direct player properties if contract data missing
       if (baseSalary === 0) {
         baseSalary = player.newSalary || player.salary || 0;
+        salarySource = player.newSalary ? 'player.newSalary' : 'player.salary';
+
+        // GAP-DATA-002: Track salary field fallback usage
+        const salaryWarnings = validateSalaryFieldData(player, yearKey, {
+          salarySource,
+          salaryValue: baseSalary,
+        });
+        teamWarnings.push(...salaryWarnings);
       }
+
+      // GAP-DATA-001: Validate BYC player data requirements
+      const bycWarnings = validateBYCPlayerData(player);
+      teamWarnings.push(...bycWarnings);
 
       // Start with base salary for both
       player.matchOutgoing = baseSalary;
@@ -92,9 +137,10 @@ export function computeMatchingValues({
       // Apply poison pill average (only for rookie scale extensions)
       // Check isRookieScale flag from new schema
       const contract = player.contract || player.primaryContract;
-      const isRookieScale = contract?.isRookieScale || player.isRookieScale || false;
+      const isRookieScale =
+        contract?.isRookieScale || player.isRookieScale || false;
       const isPoisonPill = player.isPoisonPill || isRookieScale;
-      
+
       if (isPoisonPill) {
         let currentSalary = player.currentSalary || baseSalary;
         let averageSalary;
@@ -141,7 +187,7 @@ export function computeMatchingValues({
 
         // Calculate raw kicker based on baseSalary (NOT guaranteed amount)
         const kickerAmount = Math.floor(baseSalary * percentage);
-        
+
         // Apply maximum cap from tradeKicker.maximum
         let effectiveKicker = Math.min(kickerAmount, maxKicker);
 
@@ -149,9 +195,10 @@ export function computeMatchingValues({
 
         // Check if remainingGuaranteedOnCurrentContract is explicitly set
         // Use nullish coalescing to distinguish between explicit 0 and undefined
-        const hasExplicitGuaranteed = player.remainingGuaranteedOnCurrentContract !== undefined;
+        const hasExplicitGuaranteed =
+          player.remainingGuaranteedOnCurrentContract !== undefined;
         const remainingGuaranteed = player.remainingGuaranteedOnCurrentContract;
-        
+
         // Handle explicit zero guaranteed money - no kicker should apply
         if (hasExplicitGuaranteed && remainingGuaranteed === 0) {
           finalKicker = 0;
@@ -168,7 +215,11 @@ export function computeMatchingValues({
           ) {
             const enhancedKicker = effectiveKicker * 2; // Double for these cases
             // Note: maxKicker must be applied here because enhancedKicker could exceed it
-            finalKicker = Math.min(maxAvailableKicker, enhancedKicker, maxKicker);
+            finalKicker = Math.min(
+              maxAvailableKicker,
+              enhancedKicker,
+              maxKicker
+            );
           } else {
             // For timing cases, don't apply proration if guaranteed amount allows full kicker
             const proratedKicker = Math.floor(
@@ -215,7 +266,24 @@ export function computeMatchingValues({
         player.matchOutgoing = Math.max(prevSalary, fiftyPercentAvg);
       }
     });
+
+    // Attach data warnings to team for visibility
+    team.dataWarnings = teamWarnings;
+    allDataWarnings.push(...teamWarnings);
   });
+
+  // Return data warnings for integration with validation results
+  return {
+    dataWarnings: allDataWarnings,
+    hasBYCDataIssues: allDataWarnings.some(
+      (w) => w.code === DATA_WARNING_CODES.BYC_MISSING_PREVIOUS_SALARY
+    ),
+    hasSalaryFieldIssues: allDataWarnings.some(
+      (w) =>
+        w.code === DATA_WARNING_CODES.SALARY_FIELD_FALLBACK ||
+        w.code === DATA_WARNING_CODES.SALARY_FIELD_MISSING
+    ),
+  };
 }
 
 // @deprecated Currently unused - reserved for future BYC calculations

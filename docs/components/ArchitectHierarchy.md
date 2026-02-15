@@ -145,6 +145,7 @@ shared/
   index.ts
 tradeMachine/
   CapImpactTiles.jsx
+  DataWarningsSection.jsx
   EntitlementPickRow.jsx
   EntitlementPicksList.jsx
   FaExceptionTracker.jsx
@@ -334,6 +335,7 @@ utils/
       capUtils.js
       computeMatchingValues.js
       conveyanceResolution.js
+      dataValidation.js
       hardCapStatus.js
       index.js
       matchingValues.js
@@ -357,5 +359,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-14T14:01:31.478Z*
+*Generated on: 2026-02-15T12:10:03.877Z*
 *Auto-updated by: npm run docs*

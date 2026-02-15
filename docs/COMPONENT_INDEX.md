@@ -60,6 +60,7 @@ Quick reference for all components in the ScoutZero project.
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
 - tradeMachine/CapImpactTiles.jsx
+- tradeMachine/DataWarningsSection.jsx
 - tradeMachine/EntitlementPickRow.jsx
 - tradeMachine/EntitlementPicksList.jsx
 - tradeMachine/FaExceptionTracker.jsx
@@ -187,6 +188,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/capUtils.js
 - utils/tradeMachine/utils/computeMatchingValues.js
 - utils/tradeMachine/utils/conveyanceResolution.js
+- utils/tradeMachine/utils/dataValidation.js
 - utils/tradeMachine/utils/hardCapStatus.js
 - utils/tradeMachine/utils/index.js
 - utils/tradeMachine/utils/matchingValues.js
@@ -352,4 +354,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-14T14:01:31.528Z*
+*Generated on: 2026-02-15T12:10:03.912Z*

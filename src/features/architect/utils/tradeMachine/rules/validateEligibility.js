@@ -1,9 +1,28 @@
 /**
  * Player eligibility validation functions
  * Handles re-acquisition restrictions after trades and waivers
+ * GAP-MISS-005: Added two-way contract trade block per CBA rules
  */
 
 import { validationFlags } from '@/config/validationFlags.js';
+
+/**
+ * Checks if a player has a two-way contract (cannot be traded per CBA)
+ * GAP-MISS-005: Two-way players must be waived, not traded
+ * @param {Object} player - Player object to check
+ * @returns {boolean} True if player is on a two-way contract
+ */
+function isTwoWayPlayer(player) {
+  if (!player) return false;
+
+  // Check various possible field names for two-way status
+  if (player.isTwoWay === true) return true;
+  if (player.contractType?.toLowerCase() === 'two-way') return true;
+  if (player.contract?.contractType?.toLowerCase() === 'two-way') return true;
+  if (player.contract?.isTwoWay === true) return true;
+
+  return false;
+}
 
 /**
  * Validates player eligibility based on re-acquisition restrictions
@@ -20,6 +39,17 @@ export function validateEligibility(team, tradeCtx = {}) {
   const violations = [];
   const { asOfDate = new Date().toISOString(), teams = [] } = tradeCtx;
   const tradeDate = new Date(asOfDate);
+
+  // GAP-MISS-005: Check outgoing players for two-way contracts
+  // CBA Rule: Two-way players cannot be traded, they must be waived first
+  const outgoingPlayers = team.sends || team.outgoingPlayers || [];
+  outgoingPlayers.forEach((player) => {
+    if (isTwoWayPlayer(player)) {
+      violations.push(
+        `Two-way contract: ${player.name || 'Player'} cannot be traded. Two-way players must be waived, not traded.`
+      );
+    }
+  });
 
   // Determine incoming players for this team
   let incomingPlayers = team.incomingPlayers || [];

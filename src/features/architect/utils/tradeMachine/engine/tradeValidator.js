@@ -502,12 +502,16 @@ export function validateTrade({
   // Compute matching values for all teams FIRST
   // This ensures matchIncoming/matchOutgoing are set correctly using the canonical
   // implementation (BYC, poison pill, trade kicker) before any salary calculations
-  computeMatchingValues({
+  // GAP-DATA-001/002: Now also captures data validation warnings
+  const matchingValuesResult = computeMatchingValues({
     teams: teamsWithAssets,
     yearKey: currentYear,
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
   });
+
+  // Extract data warnings from matching values computation (GAP-DATA-001, GAP-DATA-002)
+  const dataWarnings = matchingValuesResult?.dataWarnings || [];
 
   // Phase 17: Validate entitlement routing (uniqueness, destination, ownership)
   // This is a cross-team validation that must happen before per-team validation
@@ -813,6 +817,9 @@ export function validateTrade({
     performance: { validationTime },
     // Include trade receipt for debugging
     tradeReceipt,
+    // GAP-DATA-001/002: Include data validation warnings for UI display
+    dataWarnings,
+    hasDataIssues: dataWarnings.length > 0,
   };
 
   // Phase 15: Legacy pick arrays (picksOut, incomingPicks, outgoingPicks) are IGNORED.

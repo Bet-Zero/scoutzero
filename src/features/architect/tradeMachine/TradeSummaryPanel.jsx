@@ -23,6 +23,8 @@ import {
   projectEntitlementToPickRow,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
+// TM_DATAWARN_UI_E1: Data warnings display
+import DataWarningsSection from './DataWarningsSection';
 
 function TradeSummaryPanel({
   result,
@@ -55,6 +57,13 @@ function TradeSummaryPanel({
           </div>
         )}
       </div>
+
+      {/* TM_DATAWARN_UI_E1: Data Quality Warnings */}
+      <DataWarningsSection
+        warnings={result.dataWarnings}
+        summary={result.dataValidationSummary}
+        hasDataIssues={result.hasDataIssues}
+      />
 
       {/* Rule Explanations (surface-level) */}
       {showRuleExplanations && result?.failures?.length > 0 && (

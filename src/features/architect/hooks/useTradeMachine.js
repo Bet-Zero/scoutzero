@@ -19,6 +19,8 @@ import {
 } from '@/features/architect/utils/entitlements/pickRulesResolver';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+// TM_DATAWARN_UI_E1: Data validation utilities
+import { validateTradeData } from '@/features/architect/utils/tradeMachine/utils/dataValidation';
 
 /* ============================
    DEBUG FLAG & TEAM CODE RESOLUTION
@@ -932,6 +934,12 @@ export const useTradeMachine = (
       },
     });
 
+    // TM_DATAWARN_UI_E1: Validate data quality for all players in trade
+    const allPlayers = patchedTeams
+      .filter((t) => t.team)
+      .flatMap((t) => t.sends || []);
+    const dataValidation = validateTradeData(allPlayers, yearKey);
+
     // Environment flag to enable force trade bypass
     // In production (canOverride=false), forceTrade has no effect
     const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
@@ -939,6 +947,10 @@ export const useTradeMachine = (
     const result = {
       ...validation,
       legal: (canOverride && forceTrade) || validation.legal,
+      // TM_DATAWARN_UI_E1: Attach data warnings to result
+      hasDataIssues: dataValidation.hasIssues,
+      dataWarnings: dataValidation.warnings,
+      dataValidationSummary: dataValidation.summary,
     };
 
     setResult(result);
