@@ -144,7 +144,7 @@ const TradePlayerRow = ({
       </div>
 
       {/* Main Info - with guaranteed team logo */}
-      <div className="flex flex-col justify-center ml-3 flex-1 min-w-0 max-w-[180px]">
+      <div className="flex flex-col justify-center ml-3 min-w-0 max-w-[180px]">
         <div className="h-[32px] flex items-center mb-2">
           <PlayerNameMini
             name={player.bio?.displayName || player.name}
@@ -207,7 +207,7 @@ const TradePlayerRow = ({
         {openMenu === player.name && (
           <div
             ref={menuRef}
-            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
+            className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"
           >
             {/* Trade Destinations */}
             {otherTeams.map((t) => (
@@ -219,7 +219,7 @@ const TradePlayerRow = ({
                   onSetPlayerTrade(player, action, t.id);
                   setOpenMenu(null);
                 }}
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
               >
                 {included && player.tradeTo === t.id
                   ? `Cancel Trade`

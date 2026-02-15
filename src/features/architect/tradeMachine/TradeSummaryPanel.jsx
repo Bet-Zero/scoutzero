@@ -91,7 +91,9 @@ function TradeSummaryPanel({
             teams.find((te) => te.team?.teamName === t.teamName) ||
             teams.find((te) => te.team?.id === t.teamId) ||
             null;
-          const colors = teamMeta?.team ? getTeamColors(teamMeta.team.id) : null;
+          const colors = teamMeta?.team
+            ? getTeamColors(teamMeta.team.id)
+            : null;
           const primary = colors?.primary;
 
           // Derive incoming assets (players) if present on result
@@ -101,7 +103,7 @@ function TradeSummaryPanel({
           const teamSlot = teams.find(
             (ts) =>
               ts.team?.id === t.teamId ||
-              ts.team?.id === teamMeta?.id ||
+              ts.team?.id === teamMeta?.team?.id ||
               ts.team?.teamName === t.teamName
           );
           const entitlementsOut = teamSlot?.entitlementsOut || [];
@@ -119,7 +121,7 @@ function TradeSummaryPanel({
 
           return (
             <div
-              key={t.teamName || teamMeta?.id || i}
+              key={t.teamName || teamMeta?.team?.id || i}
               className={`border rounded bg-[#111] overflow-hidden ${
                 isIllegal ? 'border-red-500' : 'border-white/10'
               }`}

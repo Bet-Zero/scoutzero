@@ -8,12 +8,13 @@
 
 ## Summary
 
-**11 findings identified and fixed.** 3 were functional bugs (wiring/data display), 8 were visual/UX issues.
+**13 findings identified and fixed.** 5 were functional bugs (wiring/data display), 8 were visual/UX issues.
 
 | # | Severity | Finding | File | Fix |
 |---|----------|---------|------|-----|
 | 1 | **HIGH** | Entitlement destination dropdown shows `teamCode` or `id` instead of team name | `EntitlementPickRow.jsx:358` | Added `t.teamName` as first fallback |
 | 2 | **HIGH** | TradeSummaryPanel team lookup always returns null — no logos, colors, or accent bars in validation summary | `TradeSummaryPanel.jsx:91-94` | Changed lookup to `te.team?.teamName` and `te.team?.id` on slot objects; fixed all downstream `teamMeta.id` → `teamMeta?.team?.id` |
+| 2b | **HIGH** | TradeSummaryPanel `teamSlot` lookup and key prop still used stale `teamMeta?.id` (missed in initial fix) | `TradeSummaryPanel.jsx:104,122` | Changed `teamMeta?.id` → `teamMeta?.team?.id` in teamSlot find and key prop |
 | 3 | **MEDIUM** | FaExceptionTracker hardcodes first apron at $175M | `FaExceptionTracker.jsx:90` | Uses `result?.capSettings?.firstApron` with CBA fallback |
 | 4 | **MEDIUM** | TeamSelectDropdown (260px) overflows its 192px container in TradeTeamCard | `TradeTeamCard.jsx:335`, `TeamSelectDropdown.jsx:23` | Changed container to `flex-1 min-w-0 max-w-[260px]`; made dropdown `w-full max-w-[260px]`; added `truncate` on team name |
 | 5 | **MEDIUM** | Clicking Exceptions tab with no TPEs shows blank content | `TradeTeamCard.jsx:760` | Added empty state message: "No trade exceptions available for this team" |
@@ -22,7 +23,8 @@
 | 8 | **LOW** | Player menu popup clipped by scroll container on last rows | `OutgoingPlayersList.jsx:58` | Added `pb-28` to scroll container for menu clearance |
 | 9 | **MEDIUM** | Export 3-team layout overflows 1200px (3×420 + gaps = 1308px) | `TradeExportCapture.jsx:107` | Dynamic card width based on active team count, capped at 420px |
 | 10 | **LOW** | Incoming assets section has no max-height — can stretch card indefinitely | `TradeTeamCard.jsx:780` | Added `max-h-[300px] overflow-y-auto` |
-| 11 | **LOW** | Player name can overflow into trade icon on long names | `TradePlayerRow.jsx:147` | Added `flex-1 min-w-0 max-w-[180px]` to name container |
+| 11 | **LOW** | Player name can overflow into trade icon on long names | `TradePlayerRow.jsx:147` | Added `min-w-0 max-w-[180px]` to name container |
+| 12 | **MEDIUM** | Player options menu "Trade to [team name]" wraps to 2-3 lines on long team names | `TradePlayerRow.jsx:210,222` | Widened menu to `min-w-[10rem] max-w-[14rem]`, added `truncate` and `py-1.5` to menu items |
 
 ---
 
