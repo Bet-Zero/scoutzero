@@ -95,6 +95,8 @@ const TradeTeamCard = ({
   isVacuumMode = false,
   onRevertEntitlementEdit,
   onDeleteSessionEntitlement,
+  // Multi-team layout compact mode
+  compact = false,
 }) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -327,7 +329,7 @@ const TradeTeamCard = ({
 
   return (
     <div
-      className="flex-1 rounded-lg p-4 bg-[#111] relative space-y-4 shadow-inner border"
+      className={`flex-1 rounded-lg ${compact ? 'p-3 space-y-2' : 'p-4 space-y-4'} bg-[#111] relative shadow-inner border`}
       style={{ borderColor: primary || 'transparent' }}
     >
       {/* Team Header */}
@@ -359,6 +361,8 @@ const TradeTeamCard = ({
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
         snapshot={snapshot}
+        compact={compact}
+        isValidating={isValidating}
       />
 
       <div className="space-y-1">
@@ -366,7 +370,7 @@ const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowOutgoing((prev) => !prev)}
-            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex flex-col gap-0.5 text-white/80"
+            className={`w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 ${compact ? 'text-xs' : 'text-sm'} flex flex-col gap-0.5 text-white/80`}
           >
             <div className="flex justify-between items-center w-full">
               <span className="flex items-center gap-1">
@@ -475,7 +479,7 @@ const TradeTeamCard = ({
         <div>
           <button
             onClick={() => setShowIncoming((prev) => !prev)}
-            className="w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 text-sm flex flex-col gap-0.5 text-white/80"
+            className={`w-full text-left bg-[#1c1c1c] px-3 py-1.5 rounded border border-white/10 hover:border-neutral-500 ${compact ? 'text-xs' : 'text-sm'} flex flex-col gap-0.5 text-white/80`}
           >
             <div className="flex justify-between items-center w-full">
               <span className="flex items-center gap-1">
@@ -671,7 +675,7 @@ const TradeTeamCard = ({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 text-sm border-b border-white/10 pb-1">
+      <div className={`flex ${compact ? 'gap-2 text-xs' : 'gap-4 text-sm'} border-b border-white/10 pb-1`}>
         <button
           className={`pb-1 ${
             activeTab === 'players' ? 'text-white border-b-2' : 'text-white/60'
@@ -679,7 +683,7 @@ const TradeTeamCard = ({
           style={activeTab === 'players' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('players')}
         >
-          Players ({playersCount})
+          {compact ? `Plyr (${playersCount})` : `Players (${playersCount})`}
         </button>
         <button
           className={`pb-1 ${
@@ -688,7 +692,7 @@ const TradeTeamCard = ({
           style={activeTab === 'picks' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('picks')}
         >
-          Picks ({picksCount})
+          {compact ? `Pck (${picksCount})` : `Picks (${picksCount})`}
         </button>
         <button
           className={`pb-1 ${
@@ -699,16 +703,21 @@ const TradeTeamCard = ({
           style={activeTab === 'exceptions' ? { borderColor: primary } : {}}
           onClick={() => setActiveTab('exceptions')}
         >
-          Exceptions (
-          {
+          {compact ? `Exc (${
             teamTradeExceptions.filter(
               (tpe) =>
                 !tpe.isUsed &&
                 (!tpe.expirationDate ||
                   new Date(tpe.expirationDate) > new Date())
             ).length
-          }
-          )
+          })` : `Exceptions (${
+            teamTradeExceptions.filter(
+              (tpe) =>
+                !tpe.isUsed &&
+                (!tpe.expirationDate ||
+                  new Date(tpe.expirationDate) > new Date())
+            ).length
+          })`}
         </button>
       </div>
 
@@ -725,6 +734,7 @@ const TradeTeamCard = ({
           onUndoPlayerTrade={handleUndoPlayerTrade}
           tradeExceptions={teamTradeExceptions}
           onEditContract={onEditContract}
+          compact={compact}
         />
       )}
 
@@ -754,6 +764,7 @@ const TradeTeamCard = ({
           isVacuumMode={isVacuumMode}
           onRevertEntitlementEdit={onRevertEntitlementEdit}
           onDeleteSessionEntitlement={onDeleteSessionEntitlement}
+          compact={compact}
         />
       )}
 

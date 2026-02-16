@@ -14,6 +14,7 @@ export const OutgoingPlayersList = ({
   onUndoPlayerTrade,
   tradeExceptions = [],
   onEditContract,
+  compact = false,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const [tpePlayer, setTpePlayer] = useState(null);
@@ -74,6 +75,7 @@ export const OutgoingPlayersList = ({
             setContractPlayer={onEditContract}
             tradeExceptions={tradeExceptions}
             signAndTradeActive={signAndTradeActive}
+            compact={compact}
           />
         ))}
         {available.length === 0 && (

@@ -16,6 +16,8 @@ const CapImpactTiles = ({
   incomingPlayers = [],
   yearKey,
   snapshot = null, // Phase 1.6: Validator snapshot (golden source of truth)
+  compact = false,
+  isValidating = false,
 }) => {
   if (!team) return null;
 
@@ -106,7 +108,7 @@ const CapImpactTiles = ({
 
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2 text-[11px]">
+      <div className={`grid ${compact ? 'grid-cols-2' : 'grid-cols-4'} gap-2 text-[11px] transition-opacity ${isValidating ? 'opacity-60' : 'opacity-100'}`}>
         <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
           <div className="text-white/70">TOTAL CAP</div>
           <div className="text-white font-bold text-sm">
@@ -193,12 +195,17 @@ const CapImpactTiles = ({
           )}
         </div>
       </div>
-      {/* Phase 1.6: Pre-validation indicator */}
-      {!hasValidatorResult && (
+      {/* Phase 1.6: Validation state indicator */}
+      {isValidating ? (
+        <div className="text-[10px] text-blue-400 italic text-center mt-1 flex items-center justify-center gap-1">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+          Validating...
+        </div>
+      ) : !hasValidatorResult ? (
         <div className="text-[10px] text-white/40 italic text-center mt-1">
           Pending validation
         </div>
-      )}
+      ) : null}
       {/* Cap holds displayed separately (not in projected salary) */}
       {capHoldsTotal > 0 && (
         <div className="text-[10px] text-white/50 text-center mt-1">

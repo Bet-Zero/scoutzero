@@ -70,6 +70,7 @@ const EntitlementPickRow = ({
   isVacuumMode = false,
   onRevertEdit,
   onDeleteSessionPickRight,
+  compact = false,
 }) => {
   if (!entitlement) return null;
 
@@ -262,8 +263,8 @@ const EntitlementPickRow = ({
               )}
             </div>
 
-            {/* Line 2: Protection/conditions text (muted) */}
-            {secondaryText && (
+            {/* Line 2: Protection/conditions text (muted) — hidden in compact mode */}
+            {!compact && secondaryText && (
               <span
                 className="text-white/50 text-[10px] truncate"
                 title={secondaryText}
@@ -276,12 +277,12 @@ const EntitlementPickRow = ({
 
         {/* Right side: Kind badge */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {isVacuumMode && isSessionOnly && (
+          {!compact && isVacuumMode && isSessionOnly && (
             <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-900/30 text-purple-300 border border-purple-500/30">
               Session-only
             </span>
           )}
-          {isVacuumMode && isEditedSession && !isSessionOnly && (
+          {!compact && isVacuumMode && isEditedSession && !isSessionOnly && (
             <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-900/30 text-amber-300 border border-amber-500/30">
               Edited (this session)
             </span>

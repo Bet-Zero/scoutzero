@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
+import { useContainerDimensions } from '@/shared/hooks/useContainerDimensions';
 import TradeTeamCard from './TradeTeamCard';
 import TradePreviewModal from './TradePreviewModal';
 import ValidationStateHeader from './ValidationStateHeader';
@@ -206,6 +207,20 @@ const TradeEditor = ({
     toast.success('Session pick changes cleared');
   };
 
+  // Hybrid layout: measure container to compute layoutMode
+  const teamGridRef = useRef(null);
+  const { width: containerWidth } = useContainerDimensions(teamGridRef, { width: 1200, height: 600 });
+  const layoutMode = useMemo(() => {
+    const teamCount = teams.length;
+    if (teamCount <= 1) return 'normal';
+    const gapTotal = (teamCount - 1) * 24; // gap-6 = 24px
+    const perCard = (containerWidth - gapTotal) / teamCount;
+    if (perCard >= 500) return 'normal';
+    if (perCard >= 320) return 'compact';
+    return 'scroll';
+  }, [containerWidth, teams.length]);
+  const compact = layoutMode !== 'normal';
+
   const canApplyTrade = hasCurrentValidation && result?.legal === true;
 
   const resolveEntitlementTeamCode = (entitlement) =>
@@ -313,18 +328,28 @@ const TradeEditor = ({
         </div>
       )}
 
-      {/* Team Cards */}
+      {/* Team Cards — Hybrid layout: normal / compact / scroll */}
       <div
-        className="grid gap-6"
-        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}
+        ref={teamGridRef}
+        className={`${layoutMode === 'scroll' ? 'flex overflow-x-auto pb-4' : 'grid'} gap-6`}
+        style={
+          layoutMode === 'scroll'
+            ? { scrollSnapType: 'x mandatory' }
+            : { gridTemplateColumns: `repeat(${teams.length}, 1fr)` }
+        }
       >
         {teams.map((t, idx) => {
           const otherTeams = teams
             .filter((_, j) => j !== idx && teams[j].team)
             .map((tm) => tm.team);
           return (
-            <TradeTeamCard
+            <div
               key={idx}
+              className={layoutMode === 'scroll' ? 'flex-shrink-0' : ''}
+              style={layoutMode === 'scroll' ? { width: '340px', scrollSnapAlign: 'start' } : {}}
+            >
+            <TradeTeamCard
+              compact={compact}
               validationResult={hasCurrentValidation ? result : null}
               teamIndex={idx}
               team={t.team}
@@ -364,14 +389,22 @@ const TradeEditor = ({
               // P0-3: Pass validation in-flight state
               isValidating={isValidating}
             />
+            </div>
           );
         })}
       </div>
 
+      {/* Scroll fade indicators for scroll mode */}
+      {layoutMode === 'scroll' && (
+        <div className="flex justify-center gap-2 mt-2">
+          <span className="text-white/40 text-xs">← Scroll to see all teams →</span>
+        </div>
+      )}
+
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center">
         <button
-          onClick={() => {
+          onClick={async () => {
             if (!hasCurrentValidation) {
               toast.error('Re-validate trade before applying.');
               return;
@@ -401,9 +434,16 @@ const TradeEditor = ({
                 }
               }
 
-              onApplyTrade(tradeData);
-              // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
-              refreshEntitlements();
+              try {
+                await onApplyTrade(tradeData);
+                // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
+                refreshEntitlements();
+              } catch (error) {
+                console.error('[TradeEditor] Trade application failed:', error);
+                toast.error(
+                  `Failed to apply trade: ${error.message || 'Unknown error'}`
+                );
+              }
             }
           }}
           disabled={!canApplyTrade}

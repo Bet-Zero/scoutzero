@@ -87,13 +87,13 @@ const FaExceptionTracker = ({ result, teams }) => {
             <div className="p-2 bg-red-900/20 border border-red-500/30 rounded text-xs">
               <span className="text-red-400 font-medium">⚠️ Hard Capped</span>
               <div className="text-white/80 mt-1">
-                Team is hard-capped at First Apron ({formatCurrency(result?.capSettings?.firstApron || 178132000)}) due to FA exception usage
+                Team is hard-capped at First Apron ({formatCurrency(result?.capSettings?.firstApron)}) due to FA exception usage
               </div>
             </div>
           )}
 
           {/* Apron proximity warning */}
-          {team.projectedSalary > 165000000 && !team.apronStatus.includes('Apron') && (
+          {result?.capSettings?.firstApron && team.projectedSalary > result.capSettings.firstApron * 0.925 && !team.apronStatus.includes('Apron') && (
             <div className="p-2 bg-yellow-900/20 border border-yellow-500/30 rounded text-xs">
               <span className="text-yellow-400 font-medium">⚠️ Apron Warning</span>
               <div className="text-white/80 mt-1">

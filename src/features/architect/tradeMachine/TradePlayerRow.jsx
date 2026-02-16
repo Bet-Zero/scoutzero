@@ -21,6 +21,7 @@ const TradePlayerRow = ({
   setContractPlayer,
   tradeExceptions = [],
   signAndTradeActive = false,
+  compact = false,
 }) => {
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
@@ -101,7 +102,154 @@ const TradePlayerRow = ({
       (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
   );
 
-  // Visual rendering remains EXACTLY the same
+  // Compact variant: single-line, no headshot, no height/weight
+  if (compact) {
+    return (
+      <div
+        className={`w-full h-[40px] flex items-center border border-black rounded-sm pr-2 overflow-visible relative ${
+          included
+            ? 'bg-green-800/40'
+            : incoming
+              ? 'bg-neutral-700'
+              : 'bg-neutral-800'
+        }`}
+      >
+        {canUseTPE && incoming && !included && (
+          <span className="absolute top-0.5 right-0.5 bg-purple-600 text-white text-[9px] px-1 rounded leading-tight">
+            TPE
+          </span>
+        )}
+
+        {/* Compact: Position inline */}
+        <div
+          className={`h-full w-8 flex items-center justify-center text-white font-normal text-xs font-mono flex-shrink-0 ${
+            incoming ? 'bg-neutral-700' : 'bg-neutral-800'
+          }`}
+        >
+          {position}
+        </div>
+
+        {/* Player name — compact */}
+        <div className="flex items-center ml-2 min-w-0 flex-1">
+          <span className="text-white text-xs truncate">
+            {player.bio?.displayName || player.name}
+          </span>
+        </div>
+
+        {/* Trade Indicator — compact */}
+        {incoming &&
+          (player.signAndTrade ? (
+            <span className="ml-2 text-blue-300 font-semibold text-[10px] flex-shrink-0">S&amp;T</span>
+          ) : (
+            <ArrowsRightLeftIcon className="ml-2 w-4 h-4 text-blue-300 flex-shrink-0" />
+          ))}
+
+        {/* Salary — compact */}
+        <div className="ml-auto mr-2 flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+          <span className="text-white font-semibold text-xs">{formatSalary(salary)}</span>
+          <span className="text-white/60 text-[10px]">{yearsLeft}Y</span>
+        </div>
+
+        {/* Menu — compact */}
+        <div className="flex items-center relative">
+          <button
+            ref={buttonRef}
+            onClick={() =>
+              setOpenMenu(openMenu === player.name ? null : player.name)
+            }
+            className="text-xs text-blue-400 hover:underline"
+          >
+            •••
+          </button>
+
+          {openMenu === player.name && (
+            <div
+              ref={menuRef}
+              className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"
+            >
+              {otherTeams.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    const action =
+                      included && player.tradeTo === t.id ? 'keep' : 'trade';
+                    onSetPlayerTrade(player, action, t.id);
+                    setOpenMenu(null);
+                  }}
+                  className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
+                >
+                  {included && player.tradeTo === t.id
+                    ? `Cancel Trade`
+                    : `Trade to ${t.teamName}`}
+                </button>
+              ))}
+              {!included &&
+                !salaryForYear?.salary &&
+                (!signAndTradeActive || player.signAndTrade) && (
+                  <button
+                    onClick={() => {
+                      onSetPlayerTrade(player, 'signAndTrade', otherTeams[0]?.id);
+                      setOpenMenu(null);
+                    }}
+                    className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                  >
+                    Sign-and-Trade
+                  </button>
+                )}
+              {canUseTPE && (
+                <button
+                  onClick={() => {
+                    const validTPE = tradeExceptions.find(
+                      (tpe) => salary <= tpe.amount && !tpe.isUsed
+                    );
+                    if (validTPE) {
+                      onSetPlayerTrade(player, 'tradeException', null, validTPE);
+                    }
+                    setOpenMenu(null);
+                  }}
+                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                >
+                  Use Trade Exception
+                </button>
+              )}
+              {(included || incoming) && (
+                <button
+                  onClick={() => {
+                    onUndoPlayerTrade(player);
+                    setOpenMenu(null);
+                  }}
+                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                >
+                  Undo Trade
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setContractPlayer(player);
+                  setOpenMenu(null);
+                }}
+                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              >
+                Modify Contract
+              </button>
+              <button
+                onClick={() =>
+                  (window.location.href = `/profiles?player=${
+                    player.bio?.playerId || player.id || player.player_id
+                  }`)
+                }
+                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              >
+                View Profile
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal rendering
   return (
     <div
       className={`w-full h-[68px] flex items-center border border-black rounded-sm pr-2 overflow-visible relative ${

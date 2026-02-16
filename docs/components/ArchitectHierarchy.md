@@ -163,7 +163,6 @@ tradeMachine/
   TradeSalaryCalculator.jsx
   TradeSummaryPanel.jsx
   TradeTeamCard.jsx
-  TradeValidationPanel.jsx
   ValidationDetailsPanel.jsx
   ValidationStateHeader.jsx
   utils/
@@ -359,5 +358,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-15T12:10:03.877Z*
+*Generated on: 2026-02-16T14:14:43.006Z*
 *Auto-updated by: npm run docs*

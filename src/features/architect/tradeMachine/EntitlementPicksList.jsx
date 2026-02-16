@@ -60,6 +60,7 @@ export const EntitlementPicksList = ({
   isVacuumMode = false,
   onRevertEntitlementEdit,
   onDeleteSessionEntitlement,
+  compact = false,
 }) => {
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
@@ -188,6 +189,7 @@ export const EntitlementPicksList = ({
                   isVacuumMode={isVacuumMode}
                   onRevertEdit={onRevertEntitlementEdit}
                   onDeleteSessionPickRight={onDeleteSessionEntitlement}
+                  compact={compact}
                 />
               );
             })}
