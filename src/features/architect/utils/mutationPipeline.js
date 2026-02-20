@@ -590,6 +590,35 @@ export async function applyWorldMutation({
       };
     }
 
+    // PHASE 3.7: PER-TEAM ENTITLEMENT EXCLUSIVITY (TM-EXCL-E3)
+    // Phase 3.6 checks cross-team duplicate entitlement IDs.
+    // Phase 3.7 checks that no team ends up with overlapping entitlement claims
+    // (duplicate ownership, swap controllers, conveyance rights) after the trade.
+    const { validateTradeApplyExclusivity } = await import(
+      './leagueInvariants'
+    );
+    const exclusivityResult = await validateTradeApplyExclusivity(
+      worldId,
+      mutationType,
+      computeResult
+    );
+
+    if (!exclusivityResult.valid) {
+      return {
+        success: false,
+        error:
+          exclusivityResult.error ||
+          'Trade would create exclusivity-violating entitlement set',
+        violations: exclusivityResult.teamViolations
+          ? exclusivityResult.teamViolations.map((tv) => ({
+              rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
+              details: tv,
+            }))
+          : [],
+        warnings: [],
+      };
+    }
+
     // PHASE 4: PERSIST - Write to Firestore (ONLY place that writes)
     // DEV DEBUG: Check for UID mismatch which causes PERMISSION_DENIED
     if (import.meta.env.DEV) {

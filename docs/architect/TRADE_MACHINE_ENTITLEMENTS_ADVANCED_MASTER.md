@@ -1014,3 +1014,60 @@ Callers catch the throw and map it to a blocking Pick Exclusivity failure (integ
 | `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`            | Wires routing → compute → exclusivity   |
 | `src/tests/architect/tradeEntitlementRouting.test.ts`                           | Routing map unit tests                  |
 | `src/tests/architect/tradeEntitlementExclusivity.unavailable.test.ts`           | Strict failure integration tests        |
+
+### 10.8 Write-Path Exclusivity Gates (Vacuum Apply / World Apply / DARE)
+
+_Added: 2026-02-20 — TM-EXCL-E3 (Close Remaining Write-Path Holes)_
+
+#### Invariant
+
+**No entitlement ownership mutation may persist if exclusivity cannot be validated.** Any code path that changes which team can end up entitled to an outcome must be gated by the exclusivity validator, and must hard-fail if validation is unavailable.
+
+#### Problem Addressed
+
+Prior to TM-EXCL-E3, exclusivity was enforced at:
+
+- **Save-time** (authoring) — §10.5
+- **Trade-time validation** — §10.6, §10.7
+
+But several write paths could change entitlement ownership or create/patch entitlements **without passing through those gates**:
+
+1. **Vacuum transfer application** (`applyVacuumTransfer`) — records entitlement moves in localStorage sandbox
+2. **World trade execution** (`mutationPipeline` batch patches) — writes holderTeam changes to Firestore
+3. **DARE mutator** (`applyDAREResultsToBatch`) — creates rolled/converted entitlements via Firestore batch
+
+#### Solution: Shared Exclusivity Gate
+
+A new reusable gate helper — `runTeamExclusivityGate()` — wraps `validateEntitlementExclusivity()` with:
+
+- **Standardized error types**: `EXCLUSIVITY_VIOLATION` or `VALIDATION_UNAVAILABLE`
+- **Context-aware messages**: labels errors by write path (`VACUUM_TRANSFER`, `WORLD_TRADE_APPLY`, `DARE_MUTATION`)
+- **Integrity-first semantics**: if the validator throws, the gate returns `VALIDATION_UNAVAILABLE` (fail-closed)
+- **Pure & synchronous**: no Firestore, no side effects — callers provide the post-mutation entitlement set
+
+#### Enforcement Points
+
+| Write Path        | Enforcement Function              | Gate Location                                                                                                             |
+| ----------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Vacuum Transfer   | `applyGatedVacuumTransfer()`      | `vacuumEntitlementOverlayStore.ts` — validates post-transfer set before writing to localStorage                           |
+| World Trade Apply | `validateTradeApplyExclusivity()` | `leagueInvariants.ts` → Phase 3.7 in `mutationPipeline.js` — validates per-team exclusivity before Firestore batch commit |
+| DARE Mutation     | `applyGatedDAREResultsToBatch()`  | `entitlementMutator.ts` — validates post-DARE set before adding writes to Firestore batch                                 |
+
+#### Behavior on Failure
+
+- **Vacuum**: Transfer is not persisted to localStorage. Caller receives structured error result.
+- **World Trade Apply**: Mutation pipeline returns `{ success: false }` with `ENTITLEMENT_EXCLUSIVITY_VIOLATION` rule. No partial Firestore writes.
+- **DARE**: Batch writes are not added. Caller receives failure with per-team violations.
+
+#### Key Files
+
+| File                                                                         | Role                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `src/features/architect/utils/entitlements/runTeamExclusivityGate.ts`        | **NEW** — Shared pure gate helper                      |
+| `src/features/architect/utils/entitlements/vacuumEntitlementOverlayStore.ts` | **MODIFIED** — `applyGatedVacuumTransfer()` added      |
+| `src/features/architect/utils/mutationPipeline.js`                           | **MODIFIED** — Phase 3.7 exclusivity gate added        |
+| `src/features/architect/utils/leagueInvariants.ts`                           | **MODIFIED** — `validateTradeApplyExclusivity()` added |
+| `src/features/architect/utils/entitlements/dare/entitlementMutator.ts`       | **MODIFIED** — `applyGatedDAREResultsToBatch()` added  |
+| `src/tests/architect/vacuumTransferExclusivityGate.test.ts`                  | Vacuum gate tests                                      |
+| `src/tests/architect/worldTradeApplyExclusivityGate.test.ts`                 | World apply gate tests                                 |
+| `src/tests/architect/dareMutatorExclusivityGate.test.ts`                     | DARE gate tests                                        |

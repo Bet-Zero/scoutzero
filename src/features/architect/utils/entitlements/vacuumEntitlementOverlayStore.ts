@@ -20,6 +20,11 @@
 // ─── types ───────────────────────────────────────────────────────────────────
 
 import { getEntitlementIdentityKey } from './entitlementIdentity';
+import {
+  runTeamExclusivityGate,
+  type ExclusivityGateResult,
+} from './runTeamExclusivityGate';
+import type { EntitlementDocLike } from './entitlementExclusivityValidator';
 
 type EntitlementRecord = Record<string, unknown>;
 
@@ -338,6 +343,81 @@ export function applyVacuumTransfer(
   const envelope = loadVacuumOverlay();
   envelope.transfers[entitlementId] = { entitlementId, fromTeam, toTeam };
   saveVacuumOverlay(envelope);
+}
+
+// ─── TM-EXCL-E3: Gated vacuum transfer ──────────────────────────────────────
+
+/**
+ * Result of a gated vacuum transfer attempt.
+ */
+export type GatedVacuumTransferResult =
+  | { ok: true }
+  | { ok: false; errorType: string; message: string; violations?: unknown[] };
+
+/**
+ * Apply a vacuum transfer with exclusivity gating.
+ *
+ * Unlike `applyVacuumTransfer()` (which persists blindly), this function
+ * validates that the receiving team's post-transfer entitlement set does not
+ * violate exclusivity rules before persisting.
+ *
+ * The caller must provide the resolved post-transfer entitlement arrays for
+ * each affected team. This keeps the gate pure/synchronous — no Firestore.
+ *
+ * TM-EXCL-E3 invariant: "No entitlement ownership mutation may persist if
+ * exclusivity cannot be validated."
+ *
+ * @param entitlementId — The entitlement being transferred
+ * @param fromTeam — Team code sending the entitlement
+ * @param toTeam — Team code receiving the entitlement
+ * @param postTransferSets — Map of teamCode → post-transfer entitlement docs
+ *   for every affected team (at minimum: `toTeam`). If not provided for a team,
+ *   the gate fails safely (VALIDATION_UNAVAILABLE).
+ * @returns `{ ok: true }` if transfer persisted, error result otherwise.
+ */
+export function applyGatedVacuumTransfer(
+  entitlementId: string,
+  fromTeam: string,
+  toTeam: string,
+  postTransferSets: Record<string, EntitlementDocLike[]>
+): GatedVacuumTransferResult {
+  // Validate every affected team present in postTransferSets
+  const affectedTeams = [toTeam, fromTeam].filter(
+    (t) => t && postTransferSets[t]
+  );
+
+  // Must have at least the receiver's post-set
+  if (!postTransferSets[toTeam]) {
+    return {
+      ok: false,
+      errorType: 'VALIDATION_UNAVAILABLE',
+      message: `Vacuum Transfer: Cannot validate exclusivity for ${toTeam} — post-transfer entitlement set not provided.`,
+    };
+  }
+
+  for (const teamId of affectedTeams) {
+    const gateResult: ExclusivityGateResult = runTeamExclusivityGate({
+      teamId,
+      entitlements: postTransferSets[teamId],
+      context: 'VACUUM_TRANSFER',
+    });
+
+    if (!gateResult.ok) {
+      return {
+        ok: false,
+        errorType: gateResult.errorType,
+        message: gateResult.message,
+        violations: gateResult.violations,
+      };
+    }
+  }
+
+  // All teams pass — persist the transfer
+  const envelope = loadVacuumOverlay();
+  envelope.transfers[entitlementId] = { entitlementId, fromTeam, toTeam };
+  saveVacuumOverlay(envelope);
+
+  return { ok: true };
 }
 
 /**

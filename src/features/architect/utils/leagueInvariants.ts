@@ -13,6 +13,8 @@
  */
 
 import { getLeague } from './teamLoader';
+import { resolveEntitlementsForTeam } from './entitlements/entitlementResolver';
+import { runTeamExclusivityGate } from './entitlements/runTeamExclusivityGate';
 
 /**
  * Player location info for duplicate detection
@@ -506,9 +508,8 @@ export async function validateMutationEntitlementInvariants(
   const combinedTeams = allTeams.map((team: any) => {
     if (updatedTeamCodes.has(team.teamCode)) {
       return (
-        computeResult.teamUpdates.find(
-          (u: any) => u.teamCode === team.teamCode
-        )?.team || team
+        computeResult.teamUpdates.find((u: any) => u.teamCode === team.teamCode)
+          ?.team || team
       );
     }
     return team;
@@ -681,4 +682,171 @@ function parseSlotKeyFromEntitlement(entitlement: {
   }
 
   return null;
+}
+
+// =============================================================================
+// TM-EXCL-E3: Per-team exclusivity validation at world trade apply time
+// =============================================================================
+
+/**
+ * Result of per-team exclusivity validation at apply time.
+ */
+export interface TradeApplyExclusivityResult {
+  valid: boolean;
+  error?: string;
+  teamViolations?: Array<{
+    teamCode: string;
+    message: string;
+    violations?: unknown[];
+  }>;
+}
+
+/**
+ * Validate per-team entitlement exclusivity for a trade at apply time.
+ *
+ * Unlike Phase 3.6 (which checks cross-team duplicate entitlement IDs),
+ * this checks that no team ends up with overlapping entitlement *claims*
+ * (duplicate ownership, swap controllers, conveyance rights) after the trade.
+ *
+ * TM-EXCL-E3 invariant: "No entitlement ownership mutation may persist if
+ * exclusivity cannot be validated."
+ *
+ * @param worldId - World ID for resolving entitlements
+ * @param mutationType - Mutation type (only runs for executeTrade and signAndTrade)
+ * @param computeResult - Result from compute phase with teamUpdates + entitlementUpdates
+ * @returns Validation result
+ */
+export async function validateTradeApplyExclusivity(
+  worldId: string,
+  mutationType: string,
+  computeResult?: any
+): Promise<TradeApplyExclusivityResult> {
+  // Only validate for trades (the primary way entitlements change ownership)
+  if (
+    (mutationType !== 'executeTrade' && mutationType !== 'signAndTrade') ||
+    !computeResult?.entitlementUpdates?.length
+  ) {
+    return { valid: true };
+  }
+
+  // Identify teams affected by entitlement ownership changes
+  const affectedTeamCodes = new Set<string>();
+  for (const update of computeResult.entitlementUpdates) {
+    if (update.holderTeam) {
+      affectedTeamCodes.add(update.holderTeam);
+    }
+  }
+
+  // Also include teams that lost entitlements (from teamUpdates metadata)
+  if (computeResult.metadata?.entitlementsTraded) {
+    for (const [teamCode, transfers] of Object.entries(
+      computeResult.metadata.entitlementsTraded as Record<
+        string,
+        { out?: string[]; in?: string[] }
+      >
+    )) {
+      if (
+        (transfers.out && transfers.out.length > 0) ||
+        (transfers.in && transfers.in.length > 0)
+      ) {
+        affectedTeamCodes.add(teamCode);
+      }
+    }
+  }
+
+  if (affectedTeamCodes.size === 0) {
+    return { valid: true };
+  }
+
+  const teamViolations: Array<{
+    teamCode: string;
+    message: string;
+    violations?: unknown[];
+  }> = [];
+
+  // For each affected team, resolve full entitlement docs and run exclusivity gate
+  for (const teamCode of affectedTeamCodes) {
+    try {
+      // Resolve the team's full entitlement set (includes world overrides)
+      const resolved = await resolveEntitlementsForTeam(worldId, teamCode);
+
+      // Apply the pending holderTeam patches from this trade:
+      //  - Entitlements being transferred TO this team: should already appear
+      //    via the resolver. holderTeam patches haven't been written yet, but
+      //    the entitlement is still referenced (via entitlementIds on the team).
+      //  - Entitlements being transferred AWAY from this team: remove them.
+      const outgoing = new Set<string>();
+      if (computeResult.metadata?.entitlementsTraded?.[teamCode]?.out) {
+        for (const id of computeResult.metadata.entitlementsTraded[teamCode]
+          .out) {
+          outgoing.add(id);
+        }
+      }
+
+      // Build post-trade set: current minus outgoing, plus incoming that might not be resolved yet
+      const postTradeSet = resolved.filter(
+        (ent) => !outgoing.has(ent.id as string)
+      );
+
+      // Add incoming entitlements that this team receives but might not yet be resolved
+      // (The entitlementUpdates contain holderTeam patches for incoming entitlements)
+      const incomingIds = new Set<string>();
+      if (computeResult.metadata?.entitlementsTraded?.[teamCode]?.in) {
+        for (const id of computeResult.metadata.entitlementsTraded[teamCode]
+          .in) {
+          incomingIds.add(id);
+        }
+      }
+      const existingIds = new Set(postTradeSet.map((e) => e.id as string));
+      const missingIncoming = [...incomingIds].filter(
+        (id) => !existingIds.has(id)
+      );
+
+      // If there are incoming entitlements not yet in the resolved set,
+      // try to resolve them individually
+      if (missingIncoming.length > 0) {
+        const { resolveEntitlement } = await import(
+          './entitlements/entitlementResolver'
+        );
+        for (const entId of missingIncoming) {
+          const ent = await resolveEntitlement(worldId, entId);
+          if (ent) {
+            postTradeSet.push({ ...ent, holderTeam: teamCode });
+          }
+        }
+      }
+
+      const gateResult = runTeamExclusivityGate({
+        teamId: teamCode,
+        entitlements: postTradeSet,
+        context: 'WORLD_TRADE_APPLY',
+      });
+
+      if (!gateResult.ok) {
+        teamViolations.push({
+          teamCode,
+          message: gateResult.message,
+          violations: gateResult.violations,
+        });
+      }
+    } catch (err: unknown) {
+      // Integrity-first: if we cannot resolve or validate, fail the trade
+      const msg = err instanceof Error ? err.message : String(err);
+      teamViolations.push({
+        teamCode,
+        message: `World Trade Apply: Cannot validate exclusivity for ${teamCode} — ${msg}`,
+      });
+    }
+  }
+
+  if (teamViolations.length > 0) {
+    const firstViolation = teamViolations[0];
+    return {
+      valid: false,
+      error: firstViolation.message,
+      teamViolations,
+    };
+  }
+
+  return { valid: true };
 }

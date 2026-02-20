@@ -29,6 +29,11 @@ import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
 } from '@/constants/collections';
+import {
+  runTeamExclusivityGate,
+  type ExclusivityGateResult,
+} from '../runTeamExclusivityGate';
+import type { EntitlementDocLike } from '../entitlementExclusivityValidator';
 
 // =============================================================================
 // CONSTANTS
@@ -92,7 +97,10 @@ export function applyDAREResultsToBatch(
   // 2. Apply team entitlement ID updates
   for (const teamUpdate of dareOutput.teamEntitlementIdUpdates) {
     // Only update if there were actual changes
-    if (teamUpdate.addedIds.length === 0 && teamUpdate.removedIds.length === 0) {
+    if (
+      teamUpdate.addedIds.length === 0 &&
+      teamUpdate.removedIds.length === 0
+    ) {
       continue;
     }
 
@@ -143,7 +151,8 @@ export function buildRolledEntitlementDoc(
       original.underlyingPickId as string,
       newYear
     ),
-    description: `${original.description || ''} (rolled from ${original.seasonYear})`.trim(),
+    description:
+      `${original.description || ''} (rolled from ${original.seasonYear})`.trim(),
     underlyingStatus: original.underlyingStatus as string,
     // Rolled-specific fields
     rolledFromEntitlementId: original.id as string,
@@ -351,6 +360,167 @@ export function buildTeamUpdatesFromResolutions(
   }
 
   return updates;
+}
+
+// =============================================================================
+// TM-EXCL-E3: GATED DARE BATCH APPLICATION
+// =============================================================================
+
+/**
+ * Result of a gated DARE batch application.
+ */
+export type GatedDAREResult =
+  | { ok: true; writeCount: number }
+  | {
+      ok: false;
+      errorType: string;
+      message: string;
+      teamViolations?: Array<{
+        teamCode: string;
+        message: string;
+        violations?: unknown[];
+      }>;
+    };
+
+/**
+ * Apply DARE results to a Firestore batch with exclusivity gating.
+ *
+ * Validates that the post-DARE entitlement set for each affected team
+ * does not violate exclusivity rules before adding any writes to the batch.
+ *
+ * TM-EXCL-E3 invariant: "No entitlement ownership mutation may persist if
+ * exclusivity cannot be validated."
+ *
+ * @param db - Firestore instance
+ * @param batch - Firestore WriteBatch
+ * @param worldId - World ID for scoped writes
+ * @param dareOutput - DARE resolution output
+ * @param currentEntitlementsByTeam - Map of teamCode → current resolved entitlement docs
+ *   (pre-DARE state). Must include all affected teams.
+ * @returns `{ ok: true, writeCount }` if all gates pass, or failure result.
+ */
+export function applyGatedDAREResultsToBatch(
+  db: Firestore,
+  batch: WriteBatch,
+  worldId: string,
+  dareOutput: DAREOutput,
+  currentEntitlementsByTeam: Record<string, EntitlementDocLike[]>
+): GatedDAREResult {
+  const teamViolations: Array<{
+    teamCode: string;
+    message: string;
+    violations?: unknown[];
+  }> = [];
+
+  // Build a lookup of new/updated entitlement docs from DARE writes
+  const docWriteMap = new Map<string, Partial<EffectiveEntitlement>>();
+  const deletedIds = new Set<string>();
+  for (const write of dareOutput.entitlementDocWrites) {
+    if (write.action === 'upsert' && write.document) {
+      docWriteMap.set(write.entitlementId, {
+        ...write.document,
+        id: write.entitlementId,
+      });
+    } else if (write.action === 'delete') {
+      deletedIds.add(write.entitlementId);
+    }
+  }
+
+  // Validate each affected team
+  for (const teamUpdate of dareOutput.teamEntitlementIdUpdates) {
+    if (
+      teamUpdate.addedIds.length === 0 &&
+      teamUpdate.removedIds.length === 0
+    ) {
+      continue; // No changes for this team
+    }
+
+    const teamCode = teamUpdate.teamCode;
+    const currentSet = currentEntitlementsByTeam[teamCode];
+
+    if (!currentSet) {
+      teamViolations.push({
+        teamCode,
+        message: `DARE Mutation: Cannot validate exclusivity for ${teamCode} — pre-DARE entitlement set not provided.`,
+      });
+      continue;
+    }
+
+    try {
+      // Build post-DARE entitlement set:
+      // 1. Start with current (pre-DARE) docs
+      // 2. Remove entitlements that were removed or deleted
+      // 3. Apply updates to entitlements that were upserted
+      // 4. Add new entitlements that were created
+      const removedSet = new Set(teamUpdate.removedIds);
+      const postDARESet: EntitlementDocLike[] = [];
+
+      for (const ent of currentSet) {
+        const entId = (ent.id || '') as string;
+        if (removedSet.has(entId) || deletedIds.has(entId)) {
+          continue; // Removed by DARE
+        }
+        // Check if this entitlement was updated by DARE
+        const updatedDoc = docWriteMap.get(entId);
+        if (updatedDoc) {
+          // Merge update onto existing
+          postDARESet.push({ ...ent, ...updatedDoc } as EntitlementDocLike);
+        } else {
+          postDARESet.push(ent);
+        }
+      }
+
+      // Add newly created entitlements (added IDs not in current set)
+      const existingIds = new Set(
+        currentSet.map((e) => (e.id || '') as string)
+      );
+      for (const addedId of teamUpdate.addedIds) {
+        if (!existingIds.has(addedId)) {
+          const newDoc = docWriteMap.get(addedId);
+          if (newDoc) {
+            postDARESet.push(newDoc as EntitlementDocLike);
+          }
+          // If no doc found, the entitlement might be a reference-only addition.
+          // This is not an error — the exclusivity check just won't have the doc.
+        }
+      }
+
+      const gateResult: ExclusivityGateResult = runTeamExclusivityGate({
+        teamId: teamCode,
+        entitlements: postDARESet,
+        context: 'DARE_MUTATION',
+      });
+
+      if (!gateResult.ok) {
+        teamViolations.push({
+          teamCode,
+          message: gateResult.message,
+          violations: gateResult.violations,
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      teamViolations.push({
+        teamCode,
+        message: `DARE Mutation: Cannot validate exclusivity for ${teamCode} — ${msg}`,
+      });
+    }
+  }
+
+  // If any team fails, refuse to write
+  if (teamViolations.length > 0) {
+    return {
+      ok: false,
+      errorType: 'EXCLUSIVITY_VIOLATION',
+      message: teamViolations[0].message,
+      teamViolations,
+    };
+  }
+
+  // All teams pass — proceed with batch writes (same logic as applyDAREResultsToBatch)
+  const writeCount = applyDAREResultsToBatch(db, batch, worldId, dareOutput);
+
+  return { ok: true, writeCount };
 }
 
 // =============================================================================

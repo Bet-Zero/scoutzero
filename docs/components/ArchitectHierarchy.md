@@ -219,6 +219,7 @@ utils/
     formatEntitlement.js
     moveWorldEntitlement.ts
     pickRulesResolver.ts
+    runTeamExclusivityGate.ts
     sanitizeVacuumMetadata.ts
     seasonManagerProjection.js
     vacuumEntitlementOverlayStore.ts
@@ -364,5 +365,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-20T12:42:26.050Z*
+*Generated on: 2026-02-20T13:10:27.449Z*
 *Auto-updated by: npm run docs*
