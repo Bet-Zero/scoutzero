@@ -102,13 +102,28 @@ const extractOriginalTeam = (entitlement) => {
 
 /**
  * Extract via team from entitlement if different from holder.
+ * Uses entitlement.holderTeam as authoritative source, falls back to passed teamCode.
  * @param {object} entitlement - EffectiveEntitlement object
- * @param {string} holderTeam - Team code of the holder
+ * @param {string} teamCode - Team code from UI context (fallback)
  * @returns {string|null} - Via team code or null if same as holder
  */
-const extractViaTeam = (entitlement, holderTeam) => {
+const extractViaTeam = (entitlement, teamCode) => {
   const originalTeam = extractOriginalTeam(entitlement);
-  if (originalTeam !== holderTeam && originalTeam !== 'UNK') {
+
+  // Use holderTeam from entitlement if available (most reliable)
+  // Fall back to teamCode passed from UI
+  const holderTeam = entitlement.holderTeam || teamCode || '';
+
+  // Normalize both to uppercase for comparison
+  const normalizedHolder = holderTeam.toUpperCase().trim();
+  const normalizedOriginal = (originalTeam || '').toUpperCase().trim();
+
+  // Only show "via X" when original team differs from holder
+  if (
+    normalizedOriginal &&
+    normalizedOriginal !== normalizedHolder &&
+    normalizedOriginal !== 'UNK'
+  ) {
     return originalTeam;
   }
   return null;
@@ -537,9 +552,9 @@ export const projectEntitlementToPickRow = (entitlement, options = {}) => {
     ? deriveConditionsTextWithRules(entitlement, pickRule)
     : deriveConditionsText(entitlement);
   const ladderSummary = ladderDetails?.ladderSummary || null;
-  const conditionsText = [baseConditionsText, ladderSummary]
-    .filter(Boolean)
-    .join(' \u00b7 ') || null;
+  const conditionsText =
+    [baseConditionsText, ladderSummary].filter(Boolean).join(' \u00b7 ') ||
+    null;
 
   // Build debug info if enabled
   const debugEnabled =
@@ -581,38 +596,32 @@ export const projectEntitlementToPickRow = (entitlement, options = {}) => {
 
 /**
  * Generate a display label for a PickRow.
+ * NOTE: Year/round are NOT included here - they're rendered separately in the row prefix.
+ * Only returns "via {team}" when the original team differs from the holder.
+ * Kind badges (Own/Swap Option/Conditional) are rendered separately, so no suffixes here.
  *
  * @param {PickRow} pickRow - The projected PickRow
  * @returns {string}
  */
 export const getPickRowDisplayLabel = (pickRow) => {
   if (!pickRow || !pickRow.year) {
-    return 'Unknown Pick';
+    return 'Unknown';
   }
 
-  const parts = [];
-
-  // Year and round
-  parts.push(`${pickRow.year} ${formatRound(pickRow.round)}`);
-
-  // Via team
+  // Only show "via {team}" when pick originated from different team
   if (pickRow.via) {
-    parts.push(`via ${pickRow.via}`);
+    return `via ${pickRow.via}`;
   }
 
-  // Asset type suffix for non-outright
-  if (pickRow.assetType === 'swap_right') {
-    parts.push('(Swap)');
-  } else if (pickRow.assetType === 'conditional_right') {
-    parts.push('(Cond.)');
-  }
-
-  return parts.join(' ');
+  // For team's own pick, return original team code
+  // This helps identify the pick source when viewing another team's entitlements
+  return pickRow.originalTeam || '';
 };
 
 /**
  * Get secondary line text for PickRow display.
  * Returns protectionText and/or conditionsText combined.
+ * Filters out redundant swap terminology since badges already indicate swap rights.
  *
  * @param {PickRow} pickRow - The projected PickRow
  * @returns {string|null}
@@ -622,16 +631,33 @@ export const getPickRowSecondaryText = (pickRow) => {
 
   const parts = [];
 
+  // termsShort is a concise one-liner (e.g., "Top 4 protected", "Best of 2")
   if (pickRow.termsShort) {
     parts.push(pickRow.termsShort);
   }
 
-  if (pickRow.protectionText && pickRow.protectionText !== 'Unprotected') {
+  // Only show protection if meaningful (skip "Unprotected" and "Swap option" - badge covers swap)
+  if (
+    pickRow.protectionText &&
+    pickRow.protectionText !== 'Unprotected' &&
+    pickRow.protectionText !== 'Swap option'
+  ) {
     parts.push(pickRow.protectionText);
   }
 
+  // conditionsText for conveyance chains or ladder info, but filter out "Swap option" dupes
   if (pickRow.conditionsText) {
-    parts.push(pickRow.conditionsText);
+    // Clean up redundant swap/swap option phrases from conditions
+    const cleanedConditions = pickRow.conditionsText
+      .replace(/\bswap option\b/gi, '')
+      .replace(/\bswap\b/gi, '')
+      .replace(/\s+·\s+·/g, ' · ')
+      .replace(/^\s*·\s*/g, '')
+      .replace(/\s*·\s*$/g, '')
+      .trim();
+    if (cleanedConditions) {
+      parts.push(cleanedConditions);
+    }
   }
 
   return parts.length > 0 ? parts.join(' · ') : null;

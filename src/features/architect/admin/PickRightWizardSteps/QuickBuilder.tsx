@@ -83,7 +83,18 @@ export const QuickBuilder: React.FC<QuickBuilderProps> = ({
 
   const handleSelectIntent = useCallback(
     (newIntent: WizardIntent) => {
-      onChange({ ...wizardModel, intent: newIntent });
+      let updated = { ...wizardModel, intent: newIntent };
+      // Auto-populate swap targetDescription when switching to create_swap,
+      // so the "Required for swap right" validation error doesn't fire immediately.
+      if (newIntent === 'create_swap' && !updated.swap.targetDescription) {
+        const cp = wizardModel.swap.controllerPick;
+        const autoDesc = `${cp.team} own ${cp.round === 1 ? '1st' : '2nd'} round pick`;
+        updated = {
+          ...updated,
+          swap: { ...updated.swap, targetDescription: autoDesc },
+        };
+      }
+      onChange(updated);
     },
     [wizardModel, onChange]
   );
@@ -327,19 +338,19 @@ export const QuickBuilder: React.FC<QuickBuilderProps> = ({
         </div>
       )}
 
-      {/* Pool mode: show message to use Advanced Editor */}
+      {/* Pool mode: show message to use Advanced view */}
       {intent === 'create_conveyance' && (
         <div
           className="px-3 py-2 rounded bg-[#141414] border border-white/10 text-xs text-white/50"
           data-testid="quick-pool-section"
         >
-          Pool editing is available in the Advanced Editor.
+          Pool editing is available in the Advanced view.
           <button
             type="button"
             onClick={onOpenAdvanced}
             className="ml-2 text-blue-400 hover:text-blue-300 underline"
           >
-            Open Advanced Editor
+            Advanced
           </button>
         </div>
       )}

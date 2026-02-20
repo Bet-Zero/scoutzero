@@ -139,14 +139,18 @@ const TradePlayerRow = ({
         {/* Trade Indicator — compact */}
         {incoming &&
           (player.signAndTrade ? (
-            <span className="ml-2 text-blue-300 font-semibold text-[10px] flex-shrink-0">S&amp;T</span>
+            <span className="ml-2 text-blue-300 font-semibold text-[10px] flex-shrink-0">
+              S&amp;T
+            </span>
           ) : (
             <ArrowsRightLeftIcon className="ml-2 w-4 h-4 text-blue-300 flex-shrink-0" />
           ))}
 
         {/* Salary — compact */}
         <div className="ml-auto mr-2 flex items-center gap-2 whitespace-nowrap flex-shrink-0">
-          <span className="text-white font-semibold text-xs">{formatSalary(salary)}</span>
+          <span className="text-white font-semibold text-xs">
+            {formatSalary(salary)}
+          </span>
           <span className="text-white/60 text-[10px]">{yearsLeft}Y</span>
         </div>
 
@@ -167,28 +171,34 @@ const TradePlayerRow = ({
               ref={menuRef}
               className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"
             >
-              {otherTeams.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    const action =
-                      included && player.tradeTo === t.id ? 'keep' : 'trade';
-                    onSetPlayerTrade(player, action, t.id);
-                    setOpenMenu(null);
-                  }}
-                  className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
-                >
-                  {included && player.tradeTo === t.id
-                    ? `Cancel Trade`
-                    : `Trade to ${t.teamName}`}
-                </button>
-              ))}
-              {!included &&
+              {!incoming &&
+                otherTeams.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      const action =
+                        included && player.tradeTo === t.id ? 'keep' : 'trade';
+                      onSetPlayerTrade(player, action, t.id);
+                      setOpenMenu(null);
+                    }}
+                    className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
+                  >
+                    {included && player.tradeTo === t.id
+                      ? `Cancel Trade`
+                      : `Trade to ${t.teamName}`}
+                  </button>
+                ))}
+              {!incoming &&
+                !included &&
                 !salaryForYear?.salary &&
                 (!signAndTradeActive || player.signAndTrade) && (
                   <button
                     onClick={() => {
-                      onSetPlayerTrade(player, 'signAndTrade', otherTeams[0]?.id);
+                      onSetPlayerTrade(
+                        player,
+                        'signAndTrade',
+                        otherTeams[0]?.id
+                      );
                       setOpenMenu(null);
                     }}
                     className="block w-full text-left px-3 py-1 hover:bg-[#333]"
@@ -203,7 +213,12 @@ const TradePlayerRow = ({
                       (tpe) => salary <= tpe.amount && !tpe.isUsed
                     );
                     if (validTPE) {
-                      onSetPlayerTrade(player, 'tradeException', null, validTPE);
+                      onSetPlayerTrade(
+                        player,
+                        'tradeException',
+                        null,
+                        validTPE
+                      );
                     }
                     setOpenMenu(null);
                   }}
@@ -358,25 +373,27 @@ const TradePlayerRow = ({
             className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[10rem] max-w-[14rem]"
           >
             {/* Trade Destinations */}
-            {otherTeams.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  const action =
-                    included && player.tradeTo === t.id ? 'keep' : 'trade';
-                  onSetPlayerTrade(player, action, t.id);
-                  setOpenMenu(null);
-                }}
-                className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
-              >
-                {included && player.tradeTo === t.id
-                  ? `Cancel Trade`
-                  : `Trade to ${t.teamName}`}
-              </button>
-            ))}
+            {!incoming &&
+              otherTeams.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    const action =
+                      included && player.tradeTo === t.id ? 'keep' : 'trade';
+                    onSetPlayerTrade(player, action, t.id);
+                    setOpenMenu(null);
+                  }}
+                  className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
+                >
+                  {included && player.tradeTo === t.id
+                    ? `Cancel Trade`
+                    : `Trade to ${t.teamName}`}
+                </button>
+              ))}
 
             {/* Sign-and-Trade Option */}
-            {!included &&
+            {!incoming &&
+              !included &&
               !salaryForYear?.salary &&
               (!signAndTradeActive || player.signAndTrade) && (
                 <button

@@ -50,6 +50,12 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 const deepMerge = (base: EntitlementRecord, override: EntitlementRecord) => {
   const merged: EntitlementRecord = { ...base };
   Object.entries(override).forEach(([key, value]) => {
+    // BUG #3 fix: treat null as "delete this key" so clearing fields
+    // in vacuum overlay edits actually removes them from the merged result.
+    if (value === null) {
+      delete merged[key];
+      return;
+    }
     const baseValue = base[key];
     if (isPlainObject(baseValue) && isPlainObject(value)) {
       merged[key] = deepMerge(baseValue, value);

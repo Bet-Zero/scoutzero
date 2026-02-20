@@ -135,27 +135,59 @@ export function getTeamOverlay(teamCode: string): TeamOverlay | null {
 }
 
 /**
- * Apply an edit (patch) to an existing entitlement in the overlay.
- * The patch will be deep-merged onto the base entitlement at resolve time.
+ * Fields that may be cleared by the editor. When absent from the document,
+ * a null sentinel is stored so the resolver deepMerge treats it as "delete".
+ * (BUG #3 fix — TM-ENTITLEMENTS-ADV-E1)
+ */
+const VACUUM_CLEARABLE_FIELDS = [
+  'protectionLadder',
+  'poolUnderlyingPickIds',
+  'receivesRank',
+  'receivesComparator',
+  'linkedEntitlementIds',
+  'coveredByEntitlementIds',
+  'swapType',
+  'swapControllerPickId',
+  'swapTargetDefinition',
+  'residualOfEntitlementId',
+  'description',
+  'underlyingPickId',
+  'underlyingStatus',
+] as const;
+
+/**
+ * Apply an edit to an existing entitlement in the overlay.
+ * Stores a FULL document (not a patch) with null sentinels for cleared fields,
+ * so the resolver deepMerge correctly removes them from the base.
+ * (BUG #3 fix: replaced patch-merge with full-replace + null sentinels)
  */
 export function applyVacuumEdit(
   teamCode: string,
   entitlementId: string,
-  patch: EntitlementRecord
+  document: EntitlementRecord
 ): void {
   const envelope = loadVacuumOverlay();
   const teamOverlay = ensureTeamOverlay(envelope, teamCode);
-  // Merge with any existing patch for this entitlement
-  teamOverlay.edits[entitlementId] = {
-    ...(teamOverlay.edits[entitlementId] || {}),
-    ...patch,
-  };
+  // Full-replace: store the complete document with null sentinels
+  // for any clearable field NOT present in the document.
+  const withSentinels: EntitlementRecord = { ...document };
+  for (const field of VACUUM_CLEARABLE_FIELDS) {
+    if (!(field in withSentinels)) {
+      withSentinels[field] = null;
+    }
+  }
+  teamOverlay.edits[entitlementId] = withSentinels;
   saveVacuumOverlay(envelope);
 }
 
 /**
  * Add a newly created entitlement to the overlay.
- * The vacuumEntitlementId should be generated via makeVacuumEntitlementId().
+ * The vacuumEntitlementId should be generated via getVacuumDeterministicId()
+ * from entitlementIdentity.ts for deterministic deduplication.
+ *
+ * DEDUP BEHAVIOR (R3): Because creates are stored by ID key, calling this
+ * function twice with the same ID will overwrite the previous entry,
+ * not create a duplicate. This is the intended upsert behavior.
  */
 export function applyVacuumCreate(
   teamCode: string,
@@ -268,6 +300,10 @@ export function hasVacuumOverlay(): boolean {
 /**
  * Generate a vacuum-prefixed entitlement ID.
  * Format: vacuum:<teamCode>:<seasonYear>:<round>:<kindShort>:<8char>
+ *
+ * @deprecated Use `getVacuumDeterministicId` from `entitlementIdentity.ts` for
+ *             deterministic IDs that enable dedupe/upsert semantics.
+ *             This function uses random UUIDs and is retained for legacy test compatibility.
  *
  * Mirrors generateEntitlementId() from entitlementWriter.ts but uses
  * the "vacuum:" prefix to prevent collision with real Firestore IDs.

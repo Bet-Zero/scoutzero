@@ -161,3 +161,6 @@ export const EntitlementEditorSwapTab: React.FC<
           </p>
         </div>
       </div>
+    </div>
+  );
+};

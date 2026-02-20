@@ -30,6 +30,9 @@ const baseFormState: EntitlementFormState = {
   receivesComparator: '',
   receivesRankText: '',
   protectionLadder: [],
+  linkedEntitlementIdsText: '',
+  residualOfEntitlementId: '',
+  coveredByEntitlementIdsText: '',
 };
 
 describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {

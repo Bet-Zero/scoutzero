@@ -205,10 +205,13 @@ const EntitlementPickRow = ({
 
           {/* Phase 12.3C: Two-line layout with year/round and protection details */}
           <div className="flex flex-col min-w-0 flex-1">
-            {/* Line 1: Year Round — Label */}
+            {/* Line 1: Year Round [— via XXX if different team] */}
             <div className="flex items-center gap-1.5">
               <span className="text-white/90 truncate" title={label}>
-                {pickRow.year} R{pickRow.round} — {pickRowLabel}
+                {pickRow.year} R{pickRow.round}
+                {pickRowLabel && pickRowLabel.startsWith('via ') && (
+                  <> — {pickRowLabel}</>
+                )}
               </span>
 
               {/* Encumbered warning indicator */}

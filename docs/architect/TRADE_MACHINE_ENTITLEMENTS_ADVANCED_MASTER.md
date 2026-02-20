@@ -1,9 +1,9 @@
 # Trade Machine Entitlements Advanced Master Doc
 
 **Ticket:** TM-ENTITLEMENTS-ADV-P1  
-**Status:** E1 EXECUTION COMPLETE  
+**Status:** E1.2 EXECUTION COMPLETE  
 **Created:** 2026-02-14  
-**Last Updated:** 2026-02-14 (E1 execution completed)
+**Last Updated:** 2026-02-20 (Naming Unification — Entitlement Editor Simple/Advanced)
 
 ---
 
@@ -105,14 +105,14 @@ This document establishes the canonical "advanced entitlement system" contract f
 
 ### Patterns We Must Support
 
-| ID    | Pattern                                       | Example                                                    | Supported      | How/Where                                                                                                             |
-| ----- | --------------------------------------------- | ---------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **A** | Pick ownership (unprotected)                  | "BOS owns LAL 2026 1st"                                    | ✅ **Yes**     | `kind: 'pick_ownership'` + `underlyingPickId`                                                                         |
-| **B** | Pick ownership + single-year protection       | "BOS owns LAL 2026 1st, Top 3 protected"                   | ✅ **Yes**     | `protectionLadder: [{ year: 2026, condition: 'Top 3', ifTriggered: 'roll' }]`                                         |
-| **C** | Pick ownership + multi-year conveyance ladder | "Top 3 in 2026 → rolls to 2027 → Top 5 → 2028 unprotected" | ✅ **Yes**     | `protectionLadder[]` with multiple tiers, each specifying `year`, `condition`, `ifTriggered`                          |
-| **D** | Swap right between two picks                  | "PHX can swap its 2026 1st with BKN's 2026 1st (best of)"  | ✅ **Yes**     | `kind: 'swap_right'` + `swapControllerPickId` + `swapTargetDefinition` + `swapType`                                   |
-| **E** | Pool right among N picks                      | "HOU receives the worst of DAL/PHX/BKN 2026 1st"           | ✅ **Yes**     | `kind: 'conveyance_right'` + `poolUnderlyingPickIds[]` + `receivesComparator: 'less_favorable'` + `receivesRank: [1]` |
-| **F** | Chained constructs (multi-entitlement linked) | See §2.1 below                                             | ✅ **Yes**     | Multiple entitlements + `linkedEntitlementIds` + `residualOfEntitlementId` + warnings                                 |
+| ID    | Pattern                                       | Example                                                    | Supported  | How/Where                                                                                                             |
+| ----- | --------------------------------------------- | ---------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| **A** | Pick ownership (unprotected)                  | "BOS owns LAL 2026 1st"                                    | ✅ **Yes** | `kind: 'pick_ownership'` + `underlyingPickId`                                                                         |
+| **B** | Pick ownership + single-year protection       | "BOS owns LAL 2026 1st, Top 3 protected"                   | ✅ **Yes** | `protectionLadder: [{ year: 2026, condition: 'Top 3', ifTriggered: 'roll' }]`                                         |
+| **C** | Pick ownership + multi-year conveyance ladder | "Top 3 in 2026 → rolls to 2027 → Top 5 → 2028 unprotected" | ✅ **Yes** | `protectionLadder[]` with multiple tiers, each specifying `year`, `condition`, `ifTriggered`                          |
+| **D** | Swap right between two picks                  | "PHX can swap its 2026 1st with BKN's 2026 1st (best of)"  | ✅ **Yes** | `kind: 'swap_right'` + `swapControllerPickId` + `swapTargetDefinition` + `swapType`                                   |
+| **E** | Pool right among N picks                      | "HOU receives the worst of DAL/PHX/BKN 2026 1st"           | ✅ **Yes** | `kind: 'conveyance_right'` + `poolUnderlyingPickIds[]` + `receivesComparator: 'less_favorable'` + `receivesRank: [1]` |
+| **F** | Chained constructs (multi-entitlement linked) | See §2.1 below                                             | ✅ **Yes** | Multiple entitlements + `linkedEntitlementIds` + `residualOfEntitlementId` + warnings                                 |
 
 ### 2.1 Pattern F: Chained Constructs — Detailed Analysis
 
@@ -128,13 +128,13 @@ This requires:
 
 **Current Support Level:** ✅ **Fully Supported** (after E1)
 
-| Capability                   | Status | Notes                                                                               |
-| ---------------------------- | ------ | ----------------------------------------------------------------------------------- |
-| Create separate entitlements | ✅     | Can create one conveyance_right + one swap_right                                    |
-| Link them semantically       | ✅     | `linkedEntitlementIds` and `residualOfEntitlementId` fields declare the linkage     |
-| Validate linked constraints  | ✅     | W1 warning emitted if linked entitlements not all included in trade                 |
-| Trade as unit                | ✅     | Warning prompts user if linked entitlements missing; visual indicators in list      |
-| UI representation            | ✅     | Link2 icon + count shown in EntitlementPickRow; GitBranch icon for residual swaps   |
+| Capability                   | Status | Notes                                                                             |
+| ---------------------------- | ------ | --------------------------------------------------------------------------------- |
+| Create separate entitlements | ✅     | Can create one conveyance_right + one swap_right                                  |
+| Link them semantically       | ✅     | `linkedEntitlementIds` and `residualOfEntitlementId` fields declare the linkage   |
+| Validate linked constraints  | ✅     | W1 warning emitted if linked entitlements not all included in trade               |
+| Trade as unit                | ✅     | Warning prompts user if linked entitlements missing; visual indicators in list    |
+| UI representation            | ✅     | Link2 icon + count shown in EntitlementPickRow; GitBranch icon for residual swaps |
 
 **What's Implemented:**
 
@@ -150,38 +150,38 @@ This requires:
 
 ### 3.1 Tab Coverage Matrix
 
-| Tab                   | Fields Covered                                                                                                             | Editable Status                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Tab                   | Fields Covered                                                                                                                                      | Editable Status                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
 | **Basics**            | id (read-only), holderTeam, seasonYear, round, kind, description, underlyingPickId, underlyingStatus, linkedEntitlementIds, coveredByEntitlementIds | ✅ All editable (except id)         |
-| **Protection Ladder** | protectionLadder[].year/condition/ifTriggered/rollToYear/convertToRound                                                    | ✅ Full array editor with templates |
-| **Swap**              | swapType, swapControllerPickId, swapTargetDefinition, poolUnderlyingPickIds, residualOfEntitlementId                        | ✅ All editable                     |
-| **Conveyance**        | poolUnderlyingPickIds, receivesRank, receivesComparator                                                                    | ✅ All editable                     |
-| **Advanced**          | Full JSON document                                                                                                         | ✅ All fields via JSON              |
+| **Protection Ladder** | protectionLadder[].year/condition/ifTriggered/rollToYear/convertToRound                                                                             | ✅ Full array editor with templates |
+| **Swap**              | swapType, swapControllerPickId, swapTargetDefinition, poolUnderlyingPickIds, residualOfEntitlementId                                                | ✅ All editable                     |
+| **Conveyance**        | poolUnderlyingPickIds, receivesRank, receivesComparator                                                                                             | ✅ All editable                     |
+| **Advanced**          | Full JSON document                                                                                                                                  | ✅ All fields via JSON              |
 
 ### 3.2 Field Editability Checklist
 
-| Field                    | UI Tab                    | JSON                | Status                   |
-| ------------------------ | ------------------------- | ------------------- | ------------------------ |
-| id                       | Read-only                 | Locked in edit mode | ✅ Intentionally locked  |
-| holderTeam               | Basics                    | Locked in edit mode | ⚠️ Identity field locked |
-| seasonYear               | Basics                    | Locked in edit mode | ⚠️ Identity field locked |
-| round                    | Basics (dropdown)         | Locked in edit mode | ⚠️ Identity field locked |
-| kind                     | Basics (dropdown)         | Locked in edit mode | ⚠️ Identity field locked |
-| description              | Basics                    | ✅                  | ✅ Editable              |
-| underlyingPickId         | Basics                    | Locked in edit mode | ⚠️ Identity field locked |
-| underlyingStatus         | Basics (dropdown)         | ✅                  | ✅ Editable              |
-| protectionLadder         | Protection tab            | ✅                  | ✅ Editable              |
-| swapControllerPickId     | Swap tab                  | Locked in edit mode | ⚠️ Identity field locked |
-| swapTargetDefinition     | Swap tab                  | ✅                  | ✅ Editable              |
-| swapType                 | Swap tab (dropdown)       | ✅                  | ✅ Editable              |
-| poolUnderlyingPickIds    | Swap/Conveyance tabs      | ✅                  | ✅ Editable              |
-| receivesRank             | Conveyance tab            | ✅                  | ✅ Editable              |
-| receivesComparator       | Conveyance tab (dropdown) | ✅                  | ✅ Editable              |
-| linkedEntitlementIds     | Basics tab (textarea)     | ✅                  | ✅ Editable (E1)         |
-| residualOfEntitlementId  | Swap tab (input)          | ✅                  | ✅ Editable (E1)         |
-| coveredByEntitlementIds  | Basics tab (textarea)     | ✅                  | ✅ Editable (E1)         |
-| evidenceRowRefs          | ❌ No UI                  | ✅ via JSON         | ⚠️ JSON only             |
-| sourceUrl                | ❌ No UI                  | ✅ via JSON         | ⚠️ JSON only             |
+| Field                   | UI Tab                    | JSON                | Status                   |
+| ----------------------- | ------------------------- | ------------------- | ------------------------ |
+| id                      | Read-only                 | Locked in edit mode | ✅ Intentionally locked  |
+| holderTeam              | Basics                    | Locked in edit mode | ⚠️ Identity field locked |
+| seasonYear              | Basics                    | Locked in edit mode | ⚠️ Identity field locked |
+| round                   | Basics (dropdown)         | Locked in edit mode | ⚠️ Identity field locked |
+| kind                    | Basics (dropdown)         | Locked in edit mode | ⚠️ Identity field locked |
+| description             | Basics                    | ✅                  | ✅ Editable              |
+| underlyingPickId        | Basics                    | Locked in edit mode | ⚠️ Identity field locked |
+| underlyingStatus        | Basics (dropdown)         | ✅                  | ✅ Editable              |
+| protectionLadder        | Protection tab            | ✅                  | ✅ Editable              |
+| swapControllerPickId    | Swap tab                  | Locked in edit mode | ⚠️ Identity field locked |
+| swapTargetDefinition    | Swap tab                  | ✅                  | ✅ Editable              |
+| swapType                | Swap tab (dropdown)       | ✅                  | ✅ Editable              |
+| poolUnderlyingPickIds   | Swap/Conveyance tabs      | ✅                  | ✅ Editable              |
+| receivesRank            | Conveyance tab            | ✅                  | ✅ Editable              |
+| receivesComparator      | Conveyance tab (dropdown) | ✅                  | ✅ Editable              |
+| linkedEntitlementIds    | Basics tab (textarea)     | ✅                  | ✅ Editable (E1)         |
+| residualOfEntitlementId | Swap tab (input)          | ✅                  | ✅ Editable (E1)         |
+| coveredByEntitlementIds | Basics tab (textarea)     | ✅                  | ✅ Editable (E1)         |
+| evidenceRowRefs         | ❌ No UI                  | ✅ via JSON         | ⚠️ JSON only             |
+| sourceUrl               | ❌ No UI                  | ✅ via JSON         | ⚠️ JSON only             |
 
 ### 3.3 Identity Lock Behavior
 
@@ -330,34 +330,34 @@ for (const doc of incomingDocs) {
 
 ### Phase 1: Schema + Validation ✅ COMPLETE
 
-| ID     | Task                                             | File(s)                                                            | Status                          |
-| ------ | ------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------- |
-| E1-1.1 | Add `linkedEntitlementIds?: string[]` to schema  | `src/schemas/architect.ts`                                         | ✅ Implemented                  |
-| E1-1.2 | Add `residualOfEntitlementId?: string` to schema | `src/schemas/architect.ts`                                         | ✅ Implemented                  |
-| E1-1.3 | Add cross-entitlement conflict validation        | `src/features/architect/tradeMachine/utils/entitlementWarnings.js` | ✅ W2 warning implemented       |
-| E1-1.4 | Add linked-entitlement warning                   | `src/features/architect/tradeMachine/utils/entitlementWarnings.js` | ✅ W1 warning implemented       |
+| ID     | Task                                             | File(s)                                                            | Status                    |
+| ------ | ------------------------------------------------ | ------------------------------------------------------------------ | ------------------------- |
+| E1-1.1 | Add `linkedEntitlementIds?: string[]` to schema  | `src/schemas/architect.ts`                                         | ✅ Implemented            |
+| E1-1.2 | Add `residualOfEntitlementId?: string` to schema | `src/schemas/architect.ts`                                         | ✅ Implemented            |
+| E1-1.3 | Add cross-entitlement conflict validation        | `src/features/architect/tradeMachine/utils/entitlementWarnings.js` | ✅ W2 warning implemented |
+| E1-1.4 | Add linked-entitlement warning                   | `src/features/architect/tradeMachine/utils/entitlementWarnings.js` | ✅ W1 warning implemented |
 
 ### Phase 2: Editor UI ✅ COMPLETE
 
-| ID     | Task                                           | File(s)                          | Status                        |
-| ------ | ---------------------------------------------- | -------------------------------- | ----------------------------- |
-| E1-2.1 | Add `linkedEntitlementIds` UI to Basics tab    | `EntitlementEditorBasicsTab.tsx` | ✅ Textarea implemented       |
-| E1-2.2 | Add `residualOfEntitlementId` UI to Swap tab   | `EntitlementEditorSwapTab.tsx`   | ✅ Input implemented          |
-| E1-2.3 | Add `coveredByEntitlementIds` UI to Basics tab | `EntitlementEditorBasicsTab.tsx` | ✅ Textarea implemented       |
+| ID     | Task                                           | File(s)                          | Status                  |
+| ------ | ---------------------------------------------- | -------------------------------- | ----------------------- |
+| E1-2.1 | Add `linkedEntitlementIds` UI to Basics tab    | `EntitlementEditorBasicsTab.tsx` | ✅ Textarea implemented |
+| E1-2.2 | Add `residualOfEntitlementId` UI to Swap tab   | `EntitlementEditorSwapTab.tsx`   | ✅ Input implemented    |
+| E1-2.3 | Add `coveredByEntitlementIds` UI to Basics tab | `EntitlementEditorBasicsTab.tsx` | ✅ Textarea implemented |
 
 ### Phase 3: Trade Display ✅ COMPLETE
 
-| ID     | Task                              | File(s)                  | Status                                     |
-| ------ | --------------------------------- | ------------------------ | ------------------------------------------ |
-| E1-3.1 | Add linked indicator in list view | `EntitlementPickRow.jsx` | ✅ Link2 icon + count implemented          |
-| E1-3.2 | Add residual indicator            | `EntitlementPickRow.jsx` | ✅ GitBranch icon implemented              |
+| ID     | Task                              | File(s)                  | Status                            |
+| ------ | --------------------------------- | ------------------------ | --------------------------------- |
+| E1-3.1 | Add linked indicator in list view | `EntitlementPickRow.jsx` | ✅ Link2 icon + count implemented |
+| E1-3.2 | Add residual indicator            | `EntitlementPickRow.jsx` | ✅ GitBranch icon implemented     |
 
 ### Phase 4: Documentation ✅ COMPLETE
 
-| ID     | Task                           | File(s)       | Status                          |
-| ------ | ------------------------------ | ------------- | ------------------------------- |
-| E1-4.1 | Add chained construct examples | This document | ✅ See §7 and §8 below          |
-| E1-4.2 | Add authoring guidance         | This document | ✅ See §8 Authoring Guidance    |
+| ID     | Task                           | File(s)       | Status                       |
+| ------ | ------------------------------ | ------------- | ---------------------------- |
+| E1-4.1 | Add chained construct examples | This document | ✅ See §7 and §8 below       |
+| E1-4.2 | Add authoring guidance         | This document | ✅ See §8 Authoring Guidance |
 
 ---
 
@@ -414,13 +414,13 @@ Use `linkedEntitlementIds` when:
 
 ```javascript
 // Entitlement A
-linkedEntitlementIds: ["ent_B", "ent_C"]
+linkedEntitlementIds: ['ent_B', 'ent_C'];
 
 // Entitlement B
-linkedEntitlementIds: ["ent_A", "ent_C"]
+linkedEntitlementIds: ['ent_A', 'ent_C'];
 
 // Entitlement C
-linkedEntitlementIds: ["ent_A", "ent_B"]
+linkedEntitlementIds: ['ent_A', 'ent_B'];
 ```
 
 ### When to Use `residualOfEntitlementId`
@@ -434,10 +434,10 @@ Use `residualOfEntitlementId` only when:
 
 ### Difference Between the Two
 
-| Field                     | Relationship Type    | Use Case                                               |
-| ------------------------- | -------------------- | ------------------------------------------------------ |
-| `linkedEntitlementIds`    | Peer-to-peer (N:N)   | "These entitlements are part of the same package"      |
-| `residualOfEntitlementId` | Dependent (1:1)      | "This entitlement targets what's LEFT from that one"   |
+| Field                     | Relationship Type  | Use Case                                             |
+| ------------------------- | ------------------ | ---------------------------------------------------- |
+| `linkedEntitlementIds`    | Peer-to-peer (N:N) | "These entitlements are part of the same package"    |
+| `residualOfEntitlementId` | Dependent (1:1)    | "This entitlement targets what's LEFT from that one" |
 
 ### Common Patterns
 
@@ -499,3 +499,293 @@ Entitlement 2: swap_right (covers the protected pick)
 - **Required:** `poolUnderlyingPickIds[]` (min 2), `receivesRank[]`, `receivesComparator`
 - **Invariant:** `receivesRank` values must be within pool size bounds
 - **Warning:** Stepien conservative — reserves years for all pool picks until resolved
+
+---
+
+## Review Findings (2026-02-19 Preflight)
+
+**Return Package:** `return_packages/entitlements/PICKS_ENTITLEMENTS_EDIT_REVIEW_PREFLIGHT.md`
+
+### Summary
+
+A full preflight audit of the entitlement editor's "alter" actions (protections, swaps, linkages) was performed covering UI behavior, state mutations, persistence, rehydration, and downstream consumer stability.
+
+### Bugs Found
+
+| #   | Severity        | Title                                                                                                                                                                 | Status         |
+| --- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1   | **P0/Critical** | `wizardToFormState()` missing 3 required fields (`linkedEntitlementIdsText`, `residualOfEntitlementId`, `coveredByEntitlementIdsText`) → runtime crash on wizard save | **FIXED** (E1) |
+| 2   | **P1/High**     | `setDoc merge:true` field ghosts — clearing protections/swap/linkage on existing entitlements doesn't delete old data                                                 | **FIXED** (E1) |
+| 3   | **P1/High**     | Vacuum overlay deep-merge has same ghost problem for edit patches                                                                                                     | **FIXED** (E1) |
+| 4   | **P2/Low**      | `swapType` field missing from Zod `EntitlementAssetZ` schema                                                                                                          | **FIXED** (E1) |
+| 5   | **P3/Low**      | `source` field on protection tiers dropped during editor round-trip                                                                                                   | **FIXED** (E1) |
+
+### Verdicts
+
+| Category                         | Verdict                       |
+| -------------------------------- | ----------------------------- |
+| Protections UI (Advanced Editor) | PASS                          |
+| Protections UI (Wizard)          | **PASS** (BUG #1 fixed in E1) |
+| Protections persistence + reload | **PASS** (BUG #2 fixed in E1) |
+| Swap UI (Advanced Editor)        | PASS                          |
+| Swap UI (Wizard)                 | **PASS** (BUG #1 fixed in E1) |
+| Swap persistence + reload        | **PASS** (BUG #2 fixed in E1) |
+| Linkage UI                       | PASS                          |
+| Linkage persistence + reload     | **PASS** (BUG #2 fixed in E1) |
+| Downstream consumers stable      | PASS                          |
+
+---
+
+## E1 Execution: Wizard Save + Clear/Delete Semantics
+
+**Date:** 2026-02-20  
+**Return Package:** `return_packages/entitlements/PICKS_ENTITLEMENTS_EDIT_REVIEW_EXECUTION_E1.md`
+
+### New Invariants
+
+1. **Clearing fields truly deletes them in world mode.** `writeWorldEntitlement()` applies `deleteField()` for every clearable field absent from the document payload when using `merge: true`. Clearable fields:
+   - `protectionLadder`, `poolUnderlyingPickIds`, `receivesRank`, `receivesComparator`
+   - `linkedEntitlementIds`, `coveredByEntitlementIds`, `residualOfEntitlementId`
+   - `swapType`, `swapControllerPickId`, `swapTargetDefinition`
+   - `description`, `underlyingPickId`, `underlyingStatus`
+
+2. **Clearing fields truly deletes them in vacuum mode.** `applyVacuumEdit()` stores full documents with `null` sentinels for cleared fields. `deepMerge()` treats `null` as "delete this key from merged result."
+
+3. **Wizard saves produce complete form states.** `wizardToFormState()` returns all 22 fields of `EntitlementFormState`.
+
+4. **`swapType` is schema-validated.** Zod rejects invalid swap type values.
+
+5. **Protection tier `source` metadata survives editor round-trips.** Carried through `createEntitlementFormState()` and `buildEntitlementDocument()`.
+
+---
+
+## E1.2 Execution: Wizard → Advanced Editor Handoff
+
+**Date:** 2026-02-20  
+**Return Package:** `return_packages/entitlements/PICK_WIZARD_ADVANCED_HANDOFF_EXECUTION_E1_2.md`
+
+### Summary
+
+Implemented reliable handoff from Pick Right Wizard to `EntitlementEditorModal` ensuring the "Advanced" button opens with the **current** wizard form state, not a stale snapshot.
+
+### New Invariants
+
+1. **Advanced opens with current wizard formState converted via `buildEntitlementDocument`.** The wizard's `handleOpenAdvanced` callback passes the live `formState` (from React state), and `TradeEditor.jsx` converts it to a document using `buildEntitlementDocument(formState)` before passing to `EntitlementEditorModal`.
+
+2. **No stale snapshot usage.** The handler never uses `entitlementEditorState.initialDocument` (the document from when the wizard opened). It always uses the current formState.
+
+3. **Edit mode preserves entitlementId.** When editing an existing entitlement, the wizard context's `entitlementId` is passed through to `EntitlementEditorModal`, preventing accidental "fork-create" behavior.
+
+4. **Vacuum mode is blocked with toast.** Opening Advanced in vacuum mode shows: "Advanced editor requires saving to a world first" and does not open the modal.
+
+5. **Conversion failures show toast.** `buildEntitlementDocument(formState)` is wrapped in try/catch. On error: "Unable to open Advanced editor: {message}".
+
+### Files Changed
+
+| File                                                          | Change                                                               |
+| ------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `src/features/architect/tradeMachine/TradeEditor.jsx`         | Added try/catch wrapper around `buildEntitlementDocument(formState)` |
+| `src/tests/architect/pickRightWizard.test.tsx`                | Added test for current formState flow                                |
+| `src/tests/architect/advancedEditorHandoff.test.ts`           | Created 7 new tests covering handoff scenarios                       |
+| `src/features/architect/admin/EntitlementEditorSwapTab.tsx`   | Fixed truncated file (pre-existing bug)                              |
+| `src/features/architect/admin/EntitlementEditorBasicsTab.tsx` | Fixed truncated file (pre-existing bug)                              |
+
+### Test Coverage
+
+- **New tests:** 8 total (1 component test, 7 unit tests)
+- **Build:** Passes
+- **Pre-existing failures:** 11 tests in pickRightWizard/wizardTranslation (unrelated)
+
+---
+
+## Naming: Entitlement Editor (Simple/Advanced)
+
+**Date:** 2026-02-20  
+**Ticket:** TM-ENTITLEMENT-NAMING-UNIFY
+
+### Overview
+
+The entitlement editing UI is presented to users as **one editor** with two levels of complexity:
+
+1. **Entitlement Editor (Simple)** — The default view when creating or editing entitlements. Features a streamlined single-screen UI with preset protection templates and swap configuration. Formerly referred to as "Pick Right Wizard" or "Quick Builder" in internal documentation.
+
+2. **Entitlement Editor (Advanced)** — The expanded tabbed view with access to all fields including JSON editing. Accessed via the "Advanced" button in the Simple view.
+
+### UX Model
+
+| User Action                            | Opens                         |
+| -------------------------------------- | ----------------------------- |
+| Click "New Entitlement" button         | Entitlement Editor (Simple)   |
+| Click row to edit existing entitlement | Entitlement Editor (Simple)   |
+| Click "Advanced" in Simple view        | Entitlement Editor (Advanced) |
+
+### Key Principles
+
+1. **One editor, two levels.** Users should perceive a single tool that can expand for power-user needs.
+
+2. **Simple is the default.** Most users never need to access Advanced view for common operations (protections, swaps).
+
+3. **No "Wizard" language in UI.** The term "wizard" was removed from all user-facing strings to avoid confusion with multi-step flows. The modal title is always "Entitlement Editor".
+
+4. **Create vs Edit is a mode, not a separate tool.** The same editor opens for both operations, with appropriate field locking in edit mode.
+
+### UI Text Standards
+
+| Element                          | Text                                              |
+| -------------------------------- | ------------------------------------------------- |
+| Modal title                      | `Entitlement Editor`                              |
+| Create button                    | `New Entitlement`                                 |
+| Advanced toggle (in Simple view) | `Advanced`                                        |
+| Advanced modal title             | `Entitlement Editor (Advanced)`                   |
+| Pool redirect message            | "Pool editing is available in the Advanced view." |
+
+### Files Implementing This Model
+
+| File                                | Role                       |
+| ----------------------------------- | -------------------------- |
+| `PickRightWizardModal.tsx`          | Unified modal (both views) |
+| `QuickBuilder.tsx`                  | Simple view content        |
+| `EntitlementEditorFormTabs.tsx`     | Advanced view content      |
+| `EntitlementEditorCreateButton.tsx` | "New Entitlement" button   |
+
+---
+
+## 8. Unified Entitlement Editor: Simple/Advanced Views
+
+**Added:** 2026-02-20 (Entitlement Editor Unification)
+
+### Overview
+
+The Entitlement Editor is **ONE thing** with two views:
+
+- **Simple view** (default): QuickBuilder controls — templates, Protect/Swap toggles
+- **Advanced view** (expanded): full tabbed editor with Basics, Protection, Swap, Conveyance, and JSON tabs
+
+Both views share a single session state and a single save function. The Advanced button is an inline toggle pill in the modal header — not a separate modal.
+
+### Invariants (Non-Negotiable)
+
+#### R1 — One Editor, One Working State
+
+- There is a single "current entitlement being edited" state managed by `useEntitlementEditorSession`.
+- Switching Simple → Advanced and back does not lose changes.
+- The Advanced view opens showing the latest Simple view edits immediately.
+
+#### R2 — One Save Semantics (Context-Agnostic)
+
+- Clicking **Apply** in either view calls `saveEntitlementFromFormState()`.
+- The editor works in all contexts: vacuum mode (localStorage overlay) and world mode (Firestore).
+- `storageMode` is the only routing discriminator — not the UI view.
+
+#### R3 — Context Is Implementation Detail
+
+- No user-facing language implies different tools or modes.
+- No "Advanced requires world" behavior.
+- The `storageMode` ('vacuum' | 'world') is internal to the session hook.
+
+### Architecture
+
+```
+useEntitlementEditorSession (Hook)
+├── formState: EntitlementFormState    ← canonical shared state
+├── wizardModel: WizardModel           ← simple view helper
+├── openView: 'simple' | 'advanced'   ← view toggle
+├── storageMode: 'vacuum' | 'world'   ← internal routing
+└── handleApply()
+    └── saveEntitlementFromFormState()
+        ├── vacuum: applyVacuumEdit / applyVacuumCreate
+        └── world:  writeWorldEntitlement (Firestore)
+```
+
+### Key Files
+
+| File                                                           | Purpose                                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `src/features/architect/admin/useEntitlementEditorSession.ts`  | Shared session hook — owns formState, validation, view toggle, save |
+| `src/features/architect/admin/saveEntitlementFromFormState.ts` | Unified save function — routes vacuum vs world                      |
+| `src/features/architect/admin/PickRightWizardModal.tsx`        | Unified modal container — renders either Simple or Advanced view    |
+| `src/tests/architect/entitlementEditorUnification.test.ts`     | Tests for state continuity, save routing, round-trip                |
+
+---
+
+## 9. Deduplication & Deterministic Identity
+
+**Added:** 2026-02-20 (Entitlement Dedupe Prevention)
+
+### Overview
+
+The entitlement system uses **deterministic identity** to prevent duplicate creation. Same logical entitlement → same ID → upsert instead of duplicate.
+
+### Identity Key Definition
+
+Each entitlement has an **identity key** that uniquely identifies the logical entitlement based on its core fields. Identity keys are computed by `getEntitlementIdentityKey()` in [`entitlementIdentity.ts`](src/features/architect/utils/entitlements/entitlementIdentity.ts).
+
+#### Format by Kind
+
+| Kind               | Identity Key Format                                                             | Example                                            |
+| ------------------ | ------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `pick_ownership`   | `own\|{TEAM}\|{YEAR}\|{ROUND}\|{underlyingPickId}`                              | `own\|LAL\|2026\|1\|lal_2026_1st`                  |
+| `swap_right`       | `swap\|{TEAM}\|{YEAR}\|{ROUND}\|{swapControllerPickId}\|{swapTargetDefinition}` | `swap\|BOS\|2027\|1\|bos_2027_1st\|boston_own_1st` |
+| `conveyance_right` | `conv\|{TEAM}\|{YEAR}\|{ROUND}\|{sortedPoolIds}\|{comparator}\|{sortedRanks}`   | `conv\|MIA\|2028\|1\|a+b+c\|more_favorable\|1+2`   |
+
+#### Normalization Rules
+
+- **Team codes**: Uppercase, trimmed
+- **Numbers**: Parsed to integers
+- **String fields**: Lowercase, trimmed, spaces → underscores
+- **Arrays**: Sorted before joining (order-independent identity)
+
+### Which Kinds Are Covered
+
+| Kind               | Full Dedupe | Notes                                  |
+| ------------------ | ----------- | -------------------------------------- |
+| `pick_ownership`   | ✅ Yes      | underlyingPickId is identity anchor    |
+| `swap_right`       | ✅ Yes      | swapControllerPickId + target are both |
+| `conveyance_right` | ✅ Yes      | Pool + comparator + ranks are identity |
+
+### Upsert Behavior Guarantee
+
+**Create operations use deterministic IDs:**
+
+```typescript
+// World creates:
+const id = getEntitlementDeterministicId(document);
+// Format: ent:{TEAM}:{YEAR}:{ROUND}:{kindShort}:{hash8}
+
+// Vacuum creates:
+const id = getVacuumDeterministicId(document);
+// Format: vacuum:{TEAM}:{YEAR}:{ROUND}:{kindShort}:{hash8}
+```
+
+**Upsert semantics:**
+
+- Creating the "same" entitlement twice produces only one record (same ID)
+- World mode: `setDoc()` with deterministic ID overwrites existing
+- Vacuum mode: `creates[deterministicId] = document` overwrites existing
+
+### Double-Submit Protection
+
+`handleApply()` in `useEntitlementEditorSession.ts` guards against rapid clicks:
+
+```typescript
+if (saving) return; // Ignore if already saving
+setSaving(true);
+// ... save logic
+setSaving(false);
+```
+
+### Key Files
+
+| File                                                                         | Purpose                            |
+| ---------------------------------------------------------------------------- | ---------------------------------- |
+| `src/features/architect/utils/entitlements/entitlementIdentity.ts`           | Identity computation utilities     |
+| `src/features/architect/admin/saveEntitlementFromFormState.ts`               | Uses deterministic IDs for creates |
+| `src/features/architect/admin/useEntitlementEditorSession.ts`                | Double-submit guard                |
+| `src/features/architect/utils/entitlements/vacuumEntitlementOverlayStore.ts` | Keyed creates for natural dedupe   |
+| `src/tests/architect/entitlementDedupe.test.ts`                              | 18 tests for identity and dedupe   |
+
+### Limitations
+
+1. **Legacy duplicates**: Entitlements created before this fix may have random IDs — not automatically detected/merged
+2. **Free-text variance**: Different descriptions of same swap target produce different identity keys
+3. **Intentional duplicates**: No explicit "allow duplicate" path for rare edge cases

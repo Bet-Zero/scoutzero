@@ -104,14 +104,15 @@ describe('vacuumEntitlementOverlayStore', () => {
 
       const envelope = loadVacuumOverlay();
       expect(envelope.overlays.BOS).toBeTruthy();
-      expect(
-        envelope.overlays.BOS.edits['ent:BOS:2027:1:own:abc12345']
-      ).toEqual({
-        description: 'Protected top 3',
-      });
+      const edit = envelope.overlays.BOS.edits['ent:BOS:2027:1:own:abc12345'];
+      // BUG #3 fix: full document stored with null sentinels for clearable fields
+      expect(edit.description).toBe('Protected top 3');
+      // Clearable fields not in the original doc should have null sentinels
+      expect(edit.protectionLadder).toBeNull();
+      expect(edit.swapType).toBeNull();
     });
 
-    it('merges successive edits for the same entitlement', () => {
+    it('replaces (not merges) successive edits for the same entitlement', () => {
       applyVacuumEdit('BOS', 'ent:BOS:2027:1:own:abc12345', {
         description: 'Protected top 3',
       });
@@ -121,7 +122,9 @@ describe('vacuumEntitlementOverlayStore', () => {
 
       const envelope = loadVacuumOverlay();
       const edit = envelope.overlays.BOS.edits['ent:BOS:2027:1:own:abc12345'];
-      expect(edit.description).toBe('Protected top 3');
+      // BUG #3 fix: second call fully replaces the first (no merging patches)
+      // so description from the first edit is gone — replaced by null sentinel
+      expect(edit.description).toBeNull();
       expect(edit.round).toBe(2);
     });
 

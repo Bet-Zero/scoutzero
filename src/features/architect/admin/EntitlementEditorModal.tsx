@@ -99,7 +99,7 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-gray-800 p-6 rounded-lg max-w-5xl w-full max-h-[90vh] overflow-auto">
         <h2 className="text-xl font-bold text-white mb-1">
-          {entitlementId ? 'Edit' : 'Create'} World Entitlement
+          Entitlement Editor (Advanced)
         </h2>
         <p className="text-xs text-gray-400 mb-4">
           Writes to:{' '}

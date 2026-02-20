@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
@@ -78,7 +77,8 @@ const CapImpactTiles = ({
 
   // Derive cap/apron space from the appropriate total
   // Note: deltas are (total - threshold), so space = -delta
-  const capSpace = projectedSalary !== null ? salaryCap - projectedSalary : null;
+  const capSpace =
+    projectedSalary !== null ? salaryCap - projectedSalary : null;
   const firstApronSpace =
     projectedSalary !== null ? firstApron - projectedSalary : null;
   const secondApronSpace =
@@ -108,7 +108,9 @@ const CapImpactTiles = ({
 
   return (
     <div>
-      <div className={`grid ${compact ? 'grid-cols-2' : 'grid-cols-4'} gap-2 text-[11px] transition-opacity ${isValidating ? 'opacity-60' : 'opacity-100'}`}>
+      <div
+        className={`grid ${compact ? 'grid-cols-2' : 'grid-cols-4'} gap-2 text-[11px] transition-opacity ${isValidating ? 'opacity-60' : 'opacity-100'}`}
+      >
         <div className="bg-[#1c1c1c] rounded p-2 text-center border border-white/10">
           <div className="text-white/70">TOTAL CAP</div>
           <div className="text-white font-bold text-sm">
@@ -195,17 +197,13 @@ const CapImpactTiles = ({
           )}
         </div>
       </div>
-      {/* Phase 1.6: Validation state indicator */}
-      {isValidating ? (
+      {/* Validation in-progress indicator */}
+      {isValidating && (
         <div className="text-[10px] text-blue-400 italic text-center mt-1 flex items-center justify-center gap-1">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
           Validating...
         </div>
-      ) : !hasValidatorResult ? (
-        <div className="text-[10px] text-white/40 italic text-center mt-1">
-          Pending validation
-        </div>
-      ) : null}
+      )}
       {/* Cap holds displayed separately (not in projected salary) */}
       {capHoldsTotal > 0 && (
         <div className="text-[10px] text-white/50 text-center mt-1">

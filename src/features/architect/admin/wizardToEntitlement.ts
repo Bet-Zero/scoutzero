@@ -73,6 +73,10 @@ export function wizardToFormState(model: WizardModel): EntitlementFormState {
     receivesRankText: '',
     receivesComparator: '',
     protectionLadder: [],
+    // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support (BUG #1 fix)
+    linkedEntitlementIdsText: '',
+    residualOfEntitlementId: '',
+    coveredByEntitlementIdsText: '',
   };
 
   // Intent-specific field population

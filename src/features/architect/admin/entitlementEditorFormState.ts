@@ -21,6 +21,8 @@ export type ProtectionLadderTierForm = {
   ifTriggered: 'roll' | 'convert' | 'cancel';
   rollToYear: string;
   convertToRound: string;
+  // BUG #5 fix: preserve pipeline-generated source metadata through editor round-trips
+  source?: string;
 };
 
 export type EntitlementFormState = {
@@ -139,6 +141,8 @@ export const createEntitlementFormState = (
             (tier.ifTriggered as 'roll' | 'convert' | 'cancel') || 'roll',
           rollToYear: toNumberString(tier.rollToYear),
           convertToRound: toNumberString(tier.convertToRound),
+          // BUG #5 fix: preserve source metadata
+          ...(tier.source ? { source: tier.source as string } : {}),
         }))
       : [],
     // TM-ENTITLEMENTS-ADV-E1: Chained/linked entitlement support
@@ -203,6 +207,8 @@ export const buildEntitlementDocument = (
         ifTriggered: tier.ifTriggered,
         rollToYear,
         convertToRound,
+        // BUG #5 fix: preserve source metadata through editor saves
+        ...(tier.source ? { source: tier.source } : {}),
       };
     });
   }

@@ -20,9 +20,7 @@ export const EntitlementEditorCreateButton: React.FC<
   EntitlementEditorCreateButtonProps
 > = ({ onClick, disabled = false, size = 'sm' }) => {
   const sizeClasses =
-    size === 'sm'
-      ? 'px-2 py-1 text-xs gap-1'
-      : 'px-3 py-1.5 text-sm gap-1.5';
+    size === 'sm' ? 'px-2 py-1 text-xs gap-1' : 'px-3 py-1.5 text-sm gap-1.5';
 
   return (
     <button
@@ -30,10 +28,10 @@ export const EntitlementEditorCreateButton: React.FC<
       onClick={onClick}
       disabled={disabled}
       className={`flex items-center ${sizeClasses} rounded bg-green-600 hover:bg-green-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
-      title="Create new pick right"
+      title="Create new entitlement"
     >
       <Plus size={size === 'sm' ? 14 : 16} />
-      <span>New Pick Right</span>
+      <span>New Entitlement</span>
     </button>
   );
 };

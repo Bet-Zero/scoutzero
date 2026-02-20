@@ -38,6 +38,8 @@ export const EntitlementAssetZ = z
     // swap_right
     swapControllerPickId: z.string().optional(),
     swapTargetDefinition: z.string().optional(),
+    // BUG #4 fix: swapType was written/read/displayed but never validated
+    swapType: z.enum(['best_of', 'worst_of']).optional(),
     // metadata
     evidenceRowRefs: z.array(z.string()).optional(),
     sourceUrl: z.string().optional(),

@@ -301,6 +301,28 @@ export function validateEntitlementDocument(
 // =============================================================================
 
 /**
+ * Fields that are conditionally included in buildEntitlementDocument().
+ * When these fields are absent from the document, a merge:true write would
+ * leave stale data behind. We explicitly deleteField() for any of these
+ * not present in the payload. (BUG #2 fix — TM-ENTITLEMENTS-ADV-E1)
+ */
+const CLEARABLE_FIELDS = [
+  'protectionLadder',
+  'poolUnderlyingPickIds',
+  'receivesRank',
+  'receivesComparator',
+  'linkedEntitlementIds',
+  'coveredByEntitlementIds',
+  'swapType',
+  'swapControllerPickId',
+  'swapTargetDefinition',
+  'residualOfEntitlementId',
+  'description',
+  'underlyingPickId',
+  'underlyingStatus',
+] as const;
+
+/**
  * Write a world-scoped entitlement document.
  *
  * CONSTRAINTS:
@@ -357,6 +379,13 @@ export async function writeWorldEntitlement(
       ref,
       {
         ...document,
+        // BUG #2 fix: explicitly delete clearable fields absent from the payload
+        // so merge:true doesn't leave stale data behind.
+        ...Object.fromEntries(
+          CLEARABLE_FIELDS.filter((field) => !(field in document)).map(
+            (field) => [field, deleteField()]
+          )
+        ),
         id: entitlementId,
         _lastModifiedAt: serverTimestamp(),
         _lastModifiedBy: userId,

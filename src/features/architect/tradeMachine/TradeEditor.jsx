@@ -209,7 +209,10 @@ const TradeEditor = ({
 
   // Hybrid layout: measure container to compute layoutMode
   const teamGridRef = useRef(null);
-  const { width: containerWidth } = useContainerDimensions(teamGridRef, { width: 1200, height: 600 });
+  const { width: containerWidth } = useContainerDimensions(teamGridRef, {
+    width: 1200,
+    height: 600,
+  });
   const layoutMode = useMemo(() => {
     const teamCount = teams.length;
     if (teamCount <= 1) return 'normal';
@@ -346,49 +349,53 @@ const TradeEditor = ({
             <div
               key={idx}
               className={layoutMode === 'scroll' ? 'flex-shrink-0' : ''}
-              style={layoutMode === 'scroll' ? { width: '340px', scrollSnapAlign: 'start' } : {}}
+              style={
+                layoutMode === 'scroll'
+                  ? { width: '340px', scrollSnapAlign: 'start' }
+                  : {}
+              }
             >
-            <TradeTeamCard
-              compact={compact}
-              validationResult={hasCurrentValidation ? result : null}
-              teamIndex={idx}
-              team={t.team}
-              sends={t.sends}
-              // Phase 14.2: Removed picks prop - draft assets are entitlements-only
-              // Phase 11.1: Pass entitlement toggle and selection state
-              entitlementsOut={t.entitlementsOut || []}
-              onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
-              // Phase 17: Pass destination setter for multi-team entitlement routing
-              onSetEntitlementDestination={(entitlementId, toTeamId) =>
-                setEntitlementDestination(idx, entitlementId, toTeamId)
-              }
-              onEditEntitlement={
-                canEditEntitlements ? handleEditEntitlement : null
-              }
-              onCreateEntitlement={
-                canEditEntitlements ? handleCreateEntitlement : null
-              }
-              isVacuumMode={isVacuumMode}
-              onRevertEntitlementEdit={handleRevertEntitlementEdit}
-              onDeleteSessionEntitlement={handleDeleteSessionEntitlement}
-              incomingPlayers={incomingAssets[idx]?.players || []}
-              // Phase 14.2: Incoming entitlements instead of incoming picks
-              incomingEntitlements={incomingAssets[idx]?.entitlements || []}
-              yearKey={yearKey}
-              otherTeams={otherTeams}
-              playersMap={playersMap}
-              onSetPlayerTrade={(p, action, dest) =>
-                setPlayerTrade(idx, p, action, dest)
-              }
-              // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
-              onUndoPlayerTrade={undoPlayerTrade}
-              onSelectTeam={(teamId) => selectTeam(idx, teamId)}
-              onRemove={() => removeTeam(idx)}
-              onApplyTradeException={handleApplyTradeException}
-              onEditContract={onEditContract}
-              // P0-3: Pass validation in-flight state
-              isValidating={isValidating}
-            />
+              <TradeTeamCard
+                compact={compact}
+                validationResult={hasCurrentValidation ? result : null}
+                teamIndex={idx}
+                team={t.team}
+                sends={t.sends}
+                // Phase 14.2: Removed picks prop - draft assets are entitlements-only
+                // Phase 11.1: Pass entitlement toggle and selection state
+                entitlementsOut={t.entitlementsOut || []}
+                onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
+                // Phase 17: Pass destination setter for multi-team entitlement routing
+                onSetEntitlementDestination={(entitlementId, toTeamId) =>
+                  setEntitlementDestination(idx, entitlementId, toTeamId)
+                }
+                onEditEntitlement={
+                  canEditEntitlements ? handleEditEntitlement : null
+                }
+                onCreateEntitlement={
+                  canEditEntitlements ? handleCreateEntitlement : null
+                }
+                isVacuumMode={isVacuumMode}
+                onRevertEntitlementEdit={handleRevertEntitlementEdit}
+                onDeleteSessionEntitlement={handleDeleteSessionEntitlement}
+                incomingPlayers={incomingAssets[idx]?.players || []}
+                // Phase 14.2: Incoming entitlements instead of incoming picks
+                incomingEntitlements={incomingAssets[idx]?.entitlements || []}
+                yearKey={yearKey}
+                otherTeams={otherTeams}
+                playersMap={playersMap}
+                onSetPlayerTrade={(p, action, dest) =>
+                  setPlayerTrade(idx, p, action, dest)
+                }
+                // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
+                onUndoPlayerTrade={undoPlayerTrade}
+                onSelectTeam={(teamId) => selectTeam(idx, teamId)}
+                onRemove={() => removeTeam(idx)}
+                onApplyTradeException={handleApplyTradeException}
+                onEditContract={onEditContract}
+                // P0-3: Pass validation in-flight state
+                isValidating={isValidating}
+              />
             </div>
           );
         })}
@@ -397,7 +404,9 @@ const TradeEditor = ({
       {/* Scroll fade indicators for scroll mode */}
       {layoutMode === 'scroll' && (
         <div className="flex justify-center gap-2 mt-2">
-          <span className="text-white/40 text-xs">← Scroll to see all teams →</span>
+          <span className="text-white/40 text-xs">
+            ← Scroll to see all teams →
+          </span>
         </div>
       )}
 

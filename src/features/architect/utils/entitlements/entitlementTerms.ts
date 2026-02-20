@@ -279,7 +279,7 @@ export const formatEntitlementTermsShort = (
   }
 
   if (terms.swap?.role === 'base_pick') {
-    return 'Swap-backed';
+    return 'Swap (least fav.)';
   }
 
   if (terms.hasConveyance) {

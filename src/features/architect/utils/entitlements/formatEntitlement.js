@@ -52,39 +52,40 @@ const formatRound = (round) => {
 };
 
 /**
- * Format an entitlement into a human-readable label.
- * Uses entitlement.description if available, otherwise builds from properties.
+ * Format an entitlement into a human-readable label for tooltips/titles.
+ * This is a descriptive format that includes all key details for hover context.
  * @param {object} entitlement - The EffectiveEntitlement object
  * @returns {string}
  */
 export const formatEntitlementLabel = (entitlement) => {
   if (!entitlement) return 'Unknown Pick';
 
-  // Use description if available (preferred)
+  // Use description if available (preferred for rich context)
   if (entitlement.description) {
     return entitlement.description;
   }
 
-  // Build from properties
+  // Build from properties - concise format for tooltips
   const parts = [];
 
-  // Year
-  if (entitlement.seasonYear) {
-    parts.push(entitlement.seasonYear);
+  // Year and Round (once)
+  if (entitlement.seasonYear && entitlement.round) {
+    parts.push(`${entitlement.seasonYear} ${formatRound(entitlement.round)}`);
+  } else if (entitlement.seasonYear) {
+    parts.push(String(entitlement.seasonYear));
   }
 
-  // Round
-  if (entitlement.round) {
-    parts.push(formatRound(entitlement.round));
+  // Original team (via) - only if different from holder
+  const originalTeam = entitlement.originalTeamId || entitlement.originalTeam;
+  const holderTeam = entitlement.holderTeam;
+  if (originalTeam && holderTeam && originalTeam !== holderTeam) {
+    parts.push(`via ${originalTeam.toUpperCase()}`);
+  } else if (originalTeam && !holderTeam) {
+    // Show team if we don't know the holder context
+    parts.push(originalTeam.toUpperCase());
   }
 
-  // Original team (via)
-  if (entitlement.originalTeamId || entitlement.originalTeam) {
-    const via = entitlement.originalTeamId || entitlement.originalTeam;
-    parts.push(`via ${via.toUpperCase()}`);
-  }
-
-  // Kind suffix for non-ownership
+  // Kind indicator (simple)
   if (entitlement.kind === 'swap_right') {
     parts.push('(Swap)');
   } else if (entitlement.kind === 'conveyance_right') {

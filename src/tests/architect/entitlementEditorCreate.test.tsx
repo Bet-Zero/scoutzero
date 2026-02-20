@@ -18,24 +18,24 @@ describe('TM-7: EntitlementEditorCreateButton', () => {
     cleanup();
   });
 
-  it('renders a button with "New Pick Right" text', () => {
+  it('renders a button with "New Entitlement" text', () => {
     render(<EntitlementEditorCreateButton onClick={() => {}} />);
     expect(
-      screen.getByRole('button', { name: /New Pick Right/i })
+      screen.getByRole('button', { name: /New Entitlement/i })
     ).toBeInTheDocument();
   });
 
   it('calls onClick when clicked', () => {
     const handleClick = vi.fn();
     render(<EntitlementEditorCreateButton onClick={handleClick} />);
-    fireEvent.click(screen.getByRole('button', { name: /New Pick Right/i }));
+    fireEvent.click(screen.getByRole('button', { name: /New Entitlement/i }));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   it('is disabled when disabled prop is true', () => {
     render(<EntitlementEditorCreateButton onClick={() => {}} disabled />);
     expect(
-      screen.getByRole('button', { name: /New Pick Right/i })
+      screen.getByRole('button', { name: /New Entitlement/i })
     ).toBeDisabled();
   });
 
@@ -43,11 +43,11 @@ describe('TM-7: EntitlementEditorCreateButton', () => {
     const { rerender } = render(
       <EntitlementEditorCreateButton onClick={() => {}} size="sm" />
     );
-    let button = screen.getByRole('button', { name: /New Pick Right/i });
+    let button = screen.getByRole('button', { name: /New Entitlement/i });
     expect(button.className).toContain('text-xs');
 
     rerender(<EntitlementEditorCreateButton onClick={() => {}} size="md" />);
-    button = screen.getByRole('button', { name: /New Pick Right/i });
+    button = screen.getByRole('button', { name: /New Entitlement/i });
     expect(button.className).toContain('text-sm');
   });
 });

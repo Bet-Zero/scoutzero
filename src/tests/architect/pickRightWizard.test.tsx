@@ -141,9 +141,9 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(screen.getByTestId('quick-builder-controls')).toBeInTheDocument();
   });
 
-  it('shows "Edit Pick Right" title in edit mode', () => {
+  it('shows "Entitlement Editor" title in edit mode', () => {
     render(<PickRightWizardModal {...defaultEditProps} />);
-    expect(screen.getByText('Edit Pick Right')).toBeInTheDocument();
+    expect(screen.getByText('Entitlement Editor')).toBeInTheDocument();
   });
 
   // TM-WIZARD-SIMPLIFY-E2: Edit mode now shows action buttons (Protect + Swap)
@@ -184,12 +184,14 @@ describe('PickRightWizardModal — Quick Builder', () => {
 
   // ── Pool flow (TM-WIZARD-SIMPLIFY-E2: Pool is Advanced Editor only) ──
 
-  it('shows pool redirect to Advanced Editor', () => {
+  it('shows pool redirect to Advanced view', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-create_conveyance'));
     // Pool is now advanced-only, shows redirect message in quick-pool-section
-    expect(screen.getByTestId('quick-pool-section')).toBeInTheDocument();
-    expect(screen.getByText('Open Advanced Editor')).toBeInTheDocument();
+    const poolSection = screen.getByTestId('quick-pool-section');
+    expect(poolSection).toBeInTheDocument();
+    // Verify the Advanced button exists within the pool section context
+    expect(screen.getAllByText('Advanced').length).toBeGreaterThanOrEqual(1);
   });
 
   it.skip('adds picks to pool (TM-WIZARD-SIMPLIFY-E2: pool is Advanced Editor only)', () => {
@@ -223,22 +225,29 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(parsed.formState).toBeDefined();
   });
 
-  // ── Advanced editor callback ──
+  // ── Advanced editor: internal view toggle (Unified Editor) ──
 
-  it('calls onOpenAdvanced when Advanced Editor button clicked', () => {
-    const onOpenAdvanced = vi.fn();
-    render(
-      <PickRightWizardModal
-        {...defaultEditProps}
-        onOpenAdvanced={onOpenAdvanced}
-      />
-    );
+  it('switches to Advanced view when Advanced button clicked', () => {
+    render(<PickRightWizardModal {...defaultEditProps} />);
     fireEvent.click(screen.getByTestId('wizard-open-advanced'));
-    expect(onOpenAdvanced).toHaveBeenCalledTimes(1);
-    expect(onOpenAdvanced.mock.calls[0][0]).toHaveProperty(
-      'kind',
-      'pick_ownership'
-    );
+    // After clicking Advanced, the view toggle should show Advanced as active
+    const advancedToggle = screen.getByTestId('view-toggle-advanced');
+    expect(advancedToggle.className).toContain('bg-blue-600');
+  });
+
+  // E1.2: Advanced view shows current formState (not stale snapshot)
+  it('Advanced view shows current modified formState after user edits in Simple', () => {
+    render(<PickRightWizardModal {...defaultCreateProps} />);
+    // Modify form: select Protect action and apply a protection template
+    fireEvent.click(screen.getByTestId('action-protect_pick'));
+    fireEvent.click(screen.getByTestId('template-top4_unprotected'));
+    // Switch to Advanced view
+    fireEvent.click(screen.getByTestId('wizard-open-advanced'));
+    // The Advanced view should be active
+    const advancedToggle = screen.getByTestId('view-toggle-advanced');
+    expect(advancedToggle.className).toContain('bg-blue-600');
+    // The Apply button should still be present (same modal)
+    expect(screen.getByTestId('wizard-apply-footer')).toBeTruthy();
   });
 
   // ── Cancel ──

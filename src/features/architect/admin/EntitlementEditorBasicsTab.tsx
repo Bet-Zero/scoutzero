@@ -262,3 +262,6 @@ export const EntitlementEditorBasicsTab: React.FC<
           </p>
         </div>
       </div>
+    </div>
+  );
+};

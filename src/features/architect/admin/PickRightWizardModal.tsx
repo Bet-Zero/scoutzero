@@ -1,62 +1,32 @@
 /**
  * FILE: src/features/architect/admin/PickRightWizardModal.tsx
- * PURPOSE: Pick Right Wizard modal — Quick Builder single-screen UX
- *          (TM-WIZARD-SIMPLIFY-E1, TM-WIZARD-SIMPLIFY-E2).
- * OWNERSHIP: Feature: architect/admin (TM-8 / TM-9 / TM-WIZARD-SIMPLIFY-E1 / TM-WIZARD-SIMPLIFY-E2)
+ * PURPOSE: Unified Entitlement Editor modal with Simple (QuickBuilder) and
+ *          Advanced (tabbed editor) views sharing a SINGLE session state.
+ * OWNERSHIP: Feature: architect/admin (Entitlement Editor Unification)
  *
  * HISTORY:
  *  - 2026-02-05: Created for TM-8 Pick Editor UX Overhaul.
  *  - 2026-02-05: TM-9 — Added WizardModel state management alongside formState.
- *  - 2026-02-13: TM-WIZARD-SIMPLIFY-E1 — Replaced 3-step wizard with Quick Builder.
- *                Single screen: pick + action cards + controls + preview + apply.
- *                Preserves all save/draft/vacuum logic intact.
+ *  - 2026-02-13: TM-WIZARD-SIMPLIFY-E1 — Quick Builder single-screen UX overhaul.
  *  - 2026-02-14: TM-WIZARD-SIMPLIFY-E2 — Added "Convert to Swap" functionality.
- *                Edit mode now shows Protect + Swap action buttons.
- *                Non-swap entitlements can be converted to swap_right via duplicate-as-new flow.
+ *  - 2026-02-20: UNIFIED — Single modal, two views (Simple ↔ Advanced),
+ *                shared session state, unified save semantics.
+ *                Removed separate Advanced modal + vacuum-only guard.
  *
- * Quick Builder mode is the default. "Open Advanced Editor" passes the translated
- * formState to EntitlementEditorModal, preserving all data for power-user editing.
+ * INVARIANTS:
+ *  - R1: One Editor, One Working State — both views use the same formState.
+ *  - R2: One Save Semantics — Apply calls the unified save function.
+ *  - R3: Context is Implementation Detail — no user-facing vacuum/world distinction.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'react-hot-toast';
-import type {
-  EntitlementFormState,
-  EntitlementKind,
-} from './entitlementEditorFormState';
-import {
-  createEntitlementFormState,
-  buildEntitlementDocument,
-} from './entitlementEditorFormState';
-import type { FieldErrors } from './useEntitlementEditorState';
-import { db } from '@/firebaseConfig';
-import {
-  generateEntitlementId,
-  validateEntitlementDocument,
-  writeWorldEntitlement,
-} from '../utils/entitlements/entitlementWriter';
-import type { WizardModel, WizardIntent } from './pickRightWizardModel';
-import {
-  createDefaultWizardModel,
-  formStateToWizardModel,
-} from './pickRightWizardModel';
-import { wizardToFormState } from './wizardToEntitlement';
-import {
-  saveDraft,
-  loadDraft,
-  clearDraft,
-  hasDraft,
-} from './pickRightWizardDraft';
-import {
-  applyVacuumEdit,
-  applyVacuumCreate,
-  removeEdit,
-  removeCreate,
-  hasEdit,
-  hasCreate,
-  makeVacuumEntitlementId,
-} from '../utils/entitlements/vacuumEntitlementOverlayStore';
+import React, { useCallback } from 'react';
+import type { EntitlementFormState } from './entitlementEditorFormState';
+import { buildEntitlementDocument } from './entitlementEditorFormState';
+import { useEntitlementEditorSession } from './useEntitlementEditorSession';
 import { QuickBuilder } from './PickRightWizardSteps/QuickBuilder';
+import { EntitlementEditorFormTabs } from './EntitlementEditorFormTabs';
+import { PickTermsPreview } from './PickTermsPreview';
+import { EntitlementEditorTeamInventorySection } from './EntitlementEditorTeamInventorySection';
 
 // ─── component ───────────────────────────────────────────────────────────────
 
@@ -72,7 +42,9 @@ interface PickRightWizardModalProps {
     document: Record<string, unknown>;
   }) => void;
   onVacuumSessionMutation?: () => void;
+  /** @deprecated No longer needed — Advanced view is inline. Kept for API compat. */
   onOpenAdvanced?: (formState: EntitlementFormState) => void;
+  onDuplicateAsNew?: (document: Record<string, unknown>) => void;
 }
 
 const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
@@ -84,337 +56,121 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
   onClose,
   onSuccess,
   onVacuumSessionMutation,
-  onOpenAdvanced,
+  onDuplicateAsNew,
 }) => {
-  const isEditMode = entitlementId !== null && entitlementId !== undefined;
-  const isVacuumSession = vacuumMode || !worldId;
-
-  // ── State ──
-  const [saving, setSaving] = useState(false);
-  const [sessionMutating, setSessionMutating] = useState(false);
-
-  // WizardModel = wizard-mode source of truth (TM-9)
-  const [wizardModel, setWizardModel] = useState<WizardModel>(() => {
-    if (initialDocument) {
-      const fs = createEntitlementFormState(initialDocument, entitlementId);
-      const model = formStateToWizardModel(fs);
-      return model || createDefaultWizardModel();
-    }
-    return createDefaultWizardModel();
+  const session = useEntitlementEditorSession({
+    worldId,
+    entitlementId,
+    initialDocument,
+    userId,
+    vacuumMode,
+    onSuccess,
+    onClose,
+    onVacuumSessionMutation,
   });
 
-  // FormState = derived from WizardModel, used for validation & save pipeline
-  const [formState, setFormState] = useState<EntitlementFormState>(() =>
-    createEntitlementFormState(initialDocument, entitlementId)
-  );
+  const {
+    openView,
+    setOpenView,
+    formState,
+    setFormState,
+    wizardModel,
+    setWizardModel,
+    activeTab,
+    setActiveTab,
+    fieldErrors,
+    isValid,
+    saving,
+    sessionMutating,
+    isEditMode,
+    isVacuumSession,
+    handleApply,
+    handleApplyJson,
+    handleRevertThisEdit,
+    handleDeleteSessionPickRight,
+    canRevertThisEdit,
+    canDeleteSessionPickRight,
+  } = session;
 
-  // Draft restoration flag
-  const [draftChecked, setDraftChecked] = useState(false);
+  const isDisabled = saving || sessionMutating;
 
-  // ── Sync WizardModel → formState on every wizard change ──
-  useEffect(() => {
-    if (wizardModel.intent) {
-      const translated = wizardToFormState(wizardModel);
-      // Preserve the existing entitlement ID
-      translated.id = formState.id || entitlementId || '';
-      setFormState(translated);
-    }
-  }, [wizardModel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ── Duplicate as new handler (TM-VACUUM-E3) ──
+  const handleDuplicateAsNew = useCallback(() => {
+    if (!onDuplicateAsNew) return;
+    const doc = buildEntitlementDocument(formState);
+    // Remove the ID so the duplicate opens in create mode
+    const { id: _id, ...rest } = doc;
+    onDuplicateAsNew(rest);
+  }, [formState, onDuplicateAsNew]);
 
-  // ── Field-level validation ──
-  const fieldErrors: FieldErrors = useMemo(() => {
-    const errors: FieldErrors = {};
-
-    if (!formState.holderTeam || formState.holderTeam.trim().length !== 3) {
-      errors.holderTeam = 'Must be a 3-letter team code';
-    }
-    const year = Number(formState.seasonYear);
-    if (
-      !formState.seasonYear ||
-      !Number.isFinite(year) ||
-      year < 2020 ||
-      year > 2040
-    ) {
-      errors.seasonYear = 'Must be between 2020 and 2040';
-    }
-    if (
-      !formState.round ||
-      (formState.round !== '1' && formState.round !== '2')
-    ) {
-      errors.round = 'Must be 1 or 2';
-    }
-    if (!formState.kind) {
-      errors.kind = 'Kind is required';
-    }
-    if (formState.kind === 'pick_ownership') {
-      if (!formState.underlyingPickId?.trim()) {
-        errors.underlyingPickId = 'Required for pick ownership';
-      }
-    }
-    if (formState.kind === 'swap_right') {
-      if (!formState.swapControllerPickId?.trim()) {
-        errors.swapControllerPickId = 'Required for swap right';
-      }
-      if (!formState.swapTargetDefinition?.trim()) {
-        errors.swapTargetDefinition = 'Required for swap right';
-      }
-    }
-    if (formState.kind === 'conveyance_right') {
-      const poolIds = formState.poolUnderlyingPickIdsText
-        .split(/[\n,]/)
-        .map((id) => id.trim())
-        .filter(Boolean);
-      if (poolIds.length < 2) {
-        errors.poolUnderlyingPickIds = 'Pool must have at least 2 picks';
-      }
-      if (!formState.receivesComparator) {
-        errors.receivesComparator = 'Selection method required';
-      }
-      const ranks = formState.receivesRankText
-        .split(/[\n,]/)
-        .map((r) => r.trim())
-        .filter(Boolean);
-      if (ranks.length === 0) {
-        errors.receivesRank = 'At least one rank required';
-      }
-    }
-
-    return errors;
-  }, [formState]);
-
-  const isValid = useMemo(
-    () => Object.keys(fieldErrors).length === 0,
-    [fieldErrors]
-  );
-
-  // ── Draft check on mount ──
-  useEffect(() => {
-    if (draftChecked) return;
-    setDraftChecked(true);
-    const draftWorldKey = worldId || 'vacuum';
-    const draftId = entitlementId || 'new';
-    if (!hasDraft(draftWorldKey, draftId)) return;
-
-    const draft = loadDraft(draftWorldKey, draftId);
-    if (!draft) return;
-
-    // v2 format: { wizardModel, formState }
-    if ('wizardModel' in draft && 'formState' in draft) {
-      const v2 = draft as {
-        wizardModel: WizardModel;
-        formState: EntitlementFormState;
-      };
-      setWizardModel(v2.wizardModel);
-      setFormState(v2.formState);
-      toast.success('Draft restored');
-    } else {
-      // v1 format: raw EntitlementFormState
-      const fs = draft as EntitlementFormState;
-      setFormState(fs);
-      const model = formStateToWizardModel(fs);
-      if (model) {
-        setWizardModel(model);
-        toast.success('Draft restored (migrated from v1)');
-      } else {
-        toast.success('Draft restored — open Advanced Editor for full access');
-      }
-    }
-  }, [worldId, entitlementId, draftChecked]);
-
-  const teamCodeForOverlay = String(
-    formState.holderTeam ||
-      (typeof initialDocument?.holderTeam === 'string'
-        ? initialDocument.holderTeam
-        : '')
-  ).trim();
-
-  const canRevertThisEdit = useMemo(() => {
-    if (!isVacuumSession || !isEditMode || !entitlementId) return false;
-    if (!teamCodeForOverlay) return false;
-    if (entitlementId.startsWith('vacuum:')) return false;
-    return hasEdit(teamCodeForOverlay, entitlementId);
-  }, [isVacuumSession, isEditMode, entitlementId, teamCodeForOverlay]);
-
-  const canDeleteSessionPickRight = useMemo(() => {
-    if (!isVacuumSession || !isEditMode || !entitlementId) return false;
-    if (!teamCodeForOverlay) return false;
-    if (!entitlementId.startsWith('vacuum:')) return false;
-    return hasCreate(teamCodeForOverlay, entitlementId);
-  }, [isVacuumSession, isEditMode, entitlementId, teamCodeForOverlay]);
-
-  // ── WizardModel change handler (passed to QuickBuilder) ──
-  const handleWizardModelChange = useCallback((next: WizardModel) => {
-    setWizardModel(next);
-  }, []);
-
-  // ── Draft save ──
-  const handleSaveDraft = useCallback(() => {
-    const draftWorldKey = worldId || 'vacuum';
-    const draftId = entitlementId || 'new';
-    saveDraft(draftWorldKey, draftId, wizardModel, formState);
-    toast.success('Draft saved');
-  }, [worldId, entitlementId, wizardModel, formState]);
-
-  // ── Apply (save to Firestore or vacuum overlay) ──
-  const handleApply = useCallback(async () => {
-    setSaving(true);
-    try {
-      const document = buildEntitlementDocument(formState);
-      const validation = validateEntitlementDocument(document);
-      if (!validation.valid) {
-        const errors = validation.errors || [
-          validation.error || 'Validation failed',
-        ];
-        toast.error(errors[0] || 'Validation failed');
-        setSaving(false);
-        return;
-      }
-
-      const id =
-        entitlementId ||
-        (document.id as string) ||
-        generateEntitlementId(
-          document.holderTeam as string,
-          document.seasonYear as number,
-          document.round as number,
-          document.kind as EntitlementKind
-        );
-
-      if (!id && !vacuumMode) {
-        toast.error('Entitlement ID could not be determined.');
-        setSaving(false);
-        return;
-      }
-
-      // ── Vacuum mode: persist to localStorage overlay (NO Firestore writes) ──
-      if (vacuumMode || !worldId) {
-        const teamCode = document.holderTeam as string;
-        if (!teamCode) {
-          toast.error('Holder team is required.');
-          setSaving(false);
-          return;
-        }
-
-        let finalId: string;
-        if (entitlementId && !entitlementId.startsWith('vacuum:')) {
-          // Editing an existing base entitlement — store as an edit overlay
-          applyVacuumEdit(teamCode, entitlementId, document);
-          finalId = entitlementId;
-        } else if (entitlementId && entitlementId.startsWith('vacuum:')) {
-          // Re-editing an existing vacuum create — overwrite the create entry
-          applyVacuumCreate(teamCode, entitlementId, document);
-          finalId = entitlementId;
-        } else {
-          // Creating new — generate a vacuum-prefixed ID
-          finalId = makeVacuumEntitlementId({
-            teamCode,
-            seasonYear: document.seasonYear as number,
-            round: document.round as number,
-            kind: (document.kind as string) || 'pick_ownership',
-          });
-          applyVacuumCreate(teamCode, finalId, document);
-        }
-
-        const draftWorldKey = worldId || 'vacuum';
-        clearDraft(draftWorldKey, entitlementId || 'new');
-        toast.success('Saved (this session only)');
-        onSuccess({
-          entitlementId: finalId,
-          document: { ...document, id: finalId },
-        });
-        return;
-      }
-
-      // ── World mode: persist to Firestore (existing path) ──
-      const result = await writeWorldEntitlement(db, {
-        worldId,
-        entitlementId: id,
-        document,
-        userId: userId || '',
-      });
-
-      if (!result.success) {
-        toast.error(result.error || 'Write failed');
-        setSaving(false);
-        return;
-      }
-
-      // Clear draft on successful save
-      clearDraft(worldId || 'vacuum', entitlementId || 'new');
-      toast.success('Entitlement saved');
-      onSuccess({ entitlementId: id, document: { ...document, id } });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(message);
-    } finally {
-      setSaving(false);
-    }
-  }, [formState, entitlementId, worldId, userId, vacuumMode, onSuccess]);
-
-  // ── Open Advanced Editor ──
-  const handleOpenAdvanced = useCallback(() => {
-    if (onOpenAdvanced) {
-      onOpenAdvanced(formState);
-    }
-  }, [formState, onOpenAdvanced]);
-
-  const handleRevertThisEdit = useCallback(() => {
-    if (!entitlementId || !teamCodeForOverlay) return;
-    setSessionMutating(true);
-    try {
-      removeEdit(teamCodeForOverlay, entitlementId);
-      clearDraft(worldId || 'vacuum', entitlementId);
-      onVacuumSessionMutation?.();
-      toast.success('Session edit reverted');
-      onClose();
-    } finally {
-      setSessionMutating(false);
-    }
-  }, [
-    entitlementId,
-    teamCodeForOverlay,
-    worldId,
-    onVacuumSessionMutation,
-    onClose,
-  ]);
-
-  const handleDeleteSessionPickRight = useCallback(() => {
-    if (!entitlementId || !teamCodeForOverlay) return;
-    setSessionMutating(true);
-    try {
-      removeCreate(teamCodeForOverlay, entitlementId);
-      clearDraft(worldId || 'vacuum', entitlementId);
-      onVacuumSessionMutation?.();
-      toast.success('Session pick right deleted');
-      onClose();
-    } finally {
-      setSessionMutating(false);
-    }
-  }, [
-    entitlementId,
-    teamCodeForOverlay,
-    worldId,
-    onVacuumSessionMutation,
-    onClose,
-  ]);
+  // ── View toggle handler (Simple ↔ Advanced) — no state loss ──
+  const handleToggleView = () => {
+    setOpenView(openView === 'simple' ? 'advanced' : 'simple');
+  };
 
   // ═════════════════════════════════════════════════════════════════════════
   // RENDER
   // ═════════════════════════════════════════════════════════════════════════
+
+  const isAdvanced = openView === 'advanced';
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       data-testid="pick-right-wizard-modal"
     >
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        {/* Header */}
+      <div
+        className={`bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl w-full max-h-[90vh] flex flex-col ${
+          isAdvanced ? 'max-w-5xl' : 'max-w-2xl'
+        }`}
+      >
+        {/* Header — shared across views */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
-          <h2 className="text-lg font-semibold text-white">
-            {entitlementId
-              ? `${wizardModel.pick.team || '???'} ${wizardModel.pick.year || '????'} ${wizardModel.pick.round === 1 ? '1st' : wizardModel.pick.round === 2 ? '2nd' : `R${wizardModel.pick.round}`}`
-              : 'New Pick Right'}
-          </h2>
+          <div className="flex items-center gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-white">
+                Entitlement Editor
+              </h2>
+              {entitlementId && (
+                <p className="text-xs text-white/50">
+                  {wizardModel.pick.team || '???'}{' '}
+                  {wizardModel.pick.year || '????'}{' '}
+                  {wizardModel.pick.round === 1
+                    ? '1st'
+                    : wizardModel.pick.round === 2
+                      ? '2nd'
+                      : `R${wizardModel.pick.round}`}
+                </p>
+              )}
+            </div>
+            {/* View toggle pill */}
+            <div className="flex items-center rounded-lg bg-white/5 border border-white/10 text-[10px]">
+              <button
+                type="button"
+                onClick={() => setOpenView('simple')}
+                className={`px-2.5 py-1 rounded-l-lg transition-colors ${
+                  !isAdvanced
+                    ? 'bg-blue-600/30 text-blue-300'
+                    : 'text-white/40 hover:text-white/60'
+                }`}
+                data-testid="view-toggle-simple"
+              >
+                Simple
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenView('advanced')}
+                className={`px-2.5 py-1 rounded-r-lg transition-colors ${
+                  isAdvanced
+                    ? 'bg-blue-600/30 text-blue-300'
+                    : 'text-white/40 hover:text-white/60'
+                }`}
+                data-testid="view-toggle-advanced"
+              >
+                Advanced
+              </button>
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="text-white/40 hover:text-white text-xl leading-none"
@@ -424,21 +180,58 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           </button>
         </div>
 
-        {/* Body: Quick Builder (single screen) */}
+        {/* Body — view-dependent rendering */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <QuickBuilder
-            wizardModel={wizardModel}
-            formState={formState}
-            fieldErrors={fieldErrors}
-            isValid={isValid}
-            saving={saving || sessionMutating}
-            onChange={handleWizardModelChange}
-            onOpenAdvanced={handleOpenAdvanced}
-            disabled={saving || sessionMutating}
-            isEditMode={isEditMode}
-            lockIdentityFields={isEditMode}
-          />
+          {!isAdvanced ? (
+            /* ── Simple View: QuickBuilder ── */
+            <QuickBuilder
+              wizardModel={wizardModel}
+              formState={formState}
+              fieldErrors={fieldErrors}
+              isValid={isValid}
+              saving={isDisabled}
+              onChange={setWizardModel}
+              onOpenAdvanced={handleToggleView}
+              disabled={isDisabled}
+              isEditMode={isEditMode}
+              lockIdentityFields={isEditMode}
+            />
+          ) : (
+            /* ── Advanced View: Tabbed Editor + Preview ── */
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Left: Form tabs (3/5 width on large screens) */}
+              <div className="lg:col-span-3">
+                <EntitlementEditorFormTabs
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  formState={formState}
+                  onChange={setFormState}
+                  onApplyJson={handleApplyJson}
+                  fieldErrors={fieldErrors}
+                  disabled={isDisabled}
+                  isEditMode={isEditMode}
+                />
+              </div>
+
+              {/* Right: Live Preview (2/5 width on large screens) */}
+              <div className="lg:col-span-2 lg:sticky lg:top-0 lg:self-start">
+                <PickTermsPreview formState={formState} />
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Advanced: Team inventory section (world mode only) */}
+        {isAdvanced && worldId && userId && (
+          <div className="px-6">
+            <EntitlementEditorTeamInventorySection
+              worldId={worldId}
+              entitlementId={entitlementId}
+              formState={formState}
+              userId={userId}
+            />
+          </div>
+        )}
 
         {/* Footer — cancel, session actions, apply */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-white/10">
@@ -452,13 +245,26 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           </button>
 
           <div className="flex items-center gap-2">
+            {/* Duplicate as new (TM-VACUUM-E3) — edit mode only */}
+            {isEditMode && onDuplicateAsNew && (
+              <button
+                type="button"
+                onClick={handleDuplicateAsNew}
+                disabled={isDisabled}
+                className="px-3 py-1.5 rounded border border-white/20 text-white/50 text-xs hover:bg-white/5 disabled:opacity-50"
+                data-testid="wizard-duplicate-as-new"
+              >
+                Duplicate as new
+              </button>
+            )}
+
             {isVacuumSession && isEditMode && (
               <>
                 {canRevertThisEdit && (
                   <button
                     type="button"
                     onClick={handleRevertThisEdit}
-                    disabled={saving || sessionMutating}
+                    disabled={isDisabled}
                     className="px-3 py-1.5 rounded border border-amber-500/40 text-amber-300 text-xs hover:bg-amber-900/20 disabled:opacity-50"
                     data-testid="wizard-revert-edit"
                   >
@@ -469,7 +275,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
                   <button
                     type="button"
                     onClick={handleDeleteSessionPickRight}
-                    disabled={saving || sessionMutating}
+                    disabled={isDisabled}
                     className="px-3 py-1.5 rounded border border-red-500/40 text-red-300 text-xs hover:bg-red-900/20 disabled:opacity-50"
                     data-testid="wizard-delete-session-pick-right"
                   >
@@ -479,13 +285,13 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
               </>
             )}
 
-            {/* Apply button */}
+            {/* Apply button — SAME semantics in both views */}
             <button
               type="button"
               onClick={handleApply}
-              disabled={!isValid || saving || sessionMutating}
+              disabled={!isValid || isDisabled}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                isValid && !saving && !sessionMutating
+                isValid && !isDisabled
                   ? 'bg-blue-600 text-white hover:bg-blue-500'
                   : 'bg-white/10 text-white/30 cursor-not-allowed'
               }`}

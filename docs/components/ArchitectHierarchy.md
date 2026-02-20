@@ -62,6 +62,8 @@ admin/
   pickEditorCopy.ts
   pickRightWizardDraft.ts
   pickRightWizardModel.ts
+  saveEntitlementFromFormState.ts
+  useEntitlementEditorSession.ts
   useEntitlementEditorState.ts
   wizardToEntitlement.ts
 capSheet/
@@ -208,6 +210,7 @@ utils/
       swapGraph.ts
       swapResolutionAdapter.ts
       types.ts
+    entitlementIdentity.ts
     entitlementPickRowProjection.js
     entitlementResolver.ts
     entitlementTerms.ts
@@ -358,5 +361,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-16T14:14:43.006Z*
+*Generated on: 2026-02-20T08:32:38.560Z*
 *Auto-updated by: npm run docs*
