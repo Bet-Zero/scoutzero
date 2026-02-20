@@ -216,6 +216,7 @@ utils/
     entitlementTerms.ts
     entitlementWriter.ts
     formatEntitlement.js
+    moveWorldEntitlement.ts
     pickRulesResolver.ts
     sanitizeVacuumMetadata.ts
     seasonManagerProjection.js
@@ -361,5 +362,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-20T08:32:38.560Z*
+*Generated on: 2026-02-20T08:50:04.565Z*
 *Auto-updated by: npm run docs*

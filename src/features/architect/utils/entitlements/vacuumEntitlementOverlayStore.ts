@@ -19,6 +19,8 @@
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
+import { getEntitlementIdentityKey } from './entitlementIdentity';
+
 type EntitlementRecord = Record<string, unknown>;
 
 /** A single entitlement transfer record: moved from one team to another */
@@ -386,4 +388,161 @@ export function hasTransfer(entitlementId: string): boolean {
 export function getTransfer(entitlementId: string): TransferRecord | null {
   const envelope = loadVacuumOverlay();
   return envelope.transfers[entitlementId] || null;
+}
+
+// ─── Identity-Change Rekey + Collision Utilities (TM-ENTITLEMENT-DEDUPE) ─────
+
+/**
+ * Rekey a vacuum-created entitlement when its identity fields change.
+ *
+ * Moves `creates[fromVacId]` → `creates[toVacId]`, overwriting any existing
+ * entry at `toVacId` (collision = deterministic overwrite). Always deletes
+ * the old `fromVacId` key — no ghosts left behind.
+ *
+ * @param teamCode  The team code that owns this create entry
+ * @param fromVacId The current vacuum ID being replaced
+ * @param toVacId   The newly computed deterministic vacuum ID
+ * @param document  The updated full entitlement document to store
+ */
+export function rekeyVacuumCreate(
+  teamCode: string,
+  fromVacId: string,
+  toVacId: string,
+  document: EntitlementRecord
+): void {
+  const envelope = loadVacuumOverlay();
+  const teamOverlay = ensureTeamOverlay(envelope, teamCode);
+
+  // Write to new key (upsert — overwrites collision target)
+  teamOverlay.creates[toVacId] = {
+    ...document,
+    id: toVacId,
+  };
+
+  // Delete old key (skip if same, but normally they differ)
+  if (fromVacId !== toVacId) {
+    delete teamOverlay.creates[fromVacId];
+  }
+
+  // Clean up empty overlay
+  const hasEdits = Object.keys(teamOverlay.edits).length > 0;
+  const hasCreates = Object.keys(teamOverlay.creates).length > 0;
+  if (!hasEdits && !hasCreates) {
+    delete envelope.overlays[teamCode];
+  }
+
+  saveVacuumOverlay(envelope);
+}
+
+/**
+ * After editing a base entitlement (stored in `edits[baseId]`), ensure
+ * the edit's effective identity doesn't collide with any `creates[...]`.
+ *
+ * Policy: if a vacuum create has the same identity as this edit,
+ * the edit to the base entitlement wins (it's the canonical record).
+ * The colliding create is deleted.
+ *
+ * This import-free helper uses `getEntitlementIdentityKey` to compute
+ * identity from a document — imported at module level to avoid circular deps.
+ *
+ * @param teamCode  The team code
+ * @param editDocument  The document that was just saved as an edit
+ */
+export function resolveVacuumEditCollisions(
+  teamCode: string,
+  editDocument: EntitlementRecord
+): void {
+  const editIdentity = getEntitlementIdentityKey(editDocument);
+  const envelope = loadVacuumOverlay();
+  const teamOverlay = envelope.overlays[teamCode];
+  if (!teamOverlay) return;
+
+  let changed = false;
+  for (const [vacId, createDoc] of Object.entries(teamOverlay.creates)) {
+    const createIdentity = getEntitlementIdentityKey(createDoc);
+    if (createIdentity === editIdentity) {
+      // Collision: base-edit wins, remove the vacuum create
+      delete teamOverlay.creates[vacId];
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    // Clean up empty overlay
+    const hasEdits = Object.keys(teamOverlay.edits).length > 0;
+    const hasCreates = Object.keys(teamOverlay.creates).length > 0;
+    if (!hasEdits && !hasCreates) {
+      delete envelope.overlays[teamCode];
+    }
+    saveVacuumOverlay(envelope);
+  }
+}
+
+/**
+ * Find a vacuum create entry whose identity matches the given identity key.
+ * Returns the vacuum ID and document, or null if not found.
+ *
+ * @param teamCode  The team code to search
+ * @param identityKey  The identity key to match against
+ * @returns  The matching entry, or null
+ */
+export function findVacuumCreateByIdentityKey(
+  teamCode: string,
+  identityKey: string
+): { vacuumId: string; document: EntitlementRecord } | null {
+  const envelope = loadVacuumOverlay();
+  const teamOverlay = envelope.overlays[teamCode];
+  if (!teamOverlay) return null;
+
+  for (const [vacId, createDoc] of Object.entries(teamOverlay.creates)) {
+    if (getEntitlementIdentityKey(createDoc) === identityKey) {
+      return { vacuumId: vacId, document: createDoc };
+    }
+  }
+  return null;
+}
+
+/**
+ * Deduplicate all vacuum entries for a team by identity key.
+ * If multiple creates share the same identity, keep only the last one
+ * (by iteration order, which in practice is insertion order).
+ *
+ * This is a safety net — normal save paths should prevent duplicates.
+ *
+ * @param teamCode The team code to deduplicate
+ * @returns Number of duplicates removed
+ */
+export function dedupeVacuumByIdentity(teamCode: string): number {
+  const envelope = loadVacuumOverlay();
+  const teamOverlay = envelope.overlays[teamCode];
+  if (!teamOverlay) return 0;
+
+  // Track seen identity keys → the latest vacuum ID wins
+  const seen = new Map<string, string>(); // identityKey → vacId
+  const toDelete: string[] = [];
+
+  for (const [vacId, createDoc] of Object.entries(teamOverlay.creates)) {
+    const key = getEntitlementIdentityKey(createDoc);
+    const existing = seen.get(key);
+    if (existing) {
+      // Duplicate found: mark the older one for deletion
+      toDelete.push(existing);
+    }
+    seen.set(key, vacId);
+  }
+
+  for (const vacId of toDelete) {
+    delete teamOverlay.creates[vacId];
+  }
+
+  if (toDelete.length > 0) {
+    const hasEdits = Object.keys(teamOverlay.edits).length > 0;
+    const hasCreates = Object.keys(teamOverlay.creates).length > 0;
+    if (!hasEdits && !hasCreates) {
+      delete envelope.overlays[teamCode];
+    }
+    saveVacuumOverlay(envelope);
+  }
+
+  return toDelete.length;
 }

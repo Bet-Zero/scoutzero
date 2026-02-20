@@ -27,9 +27,14 @@ import {
   applyVacuumCreate,
 } from '../utils/entitlements/vacuumEntitlementOverlayStore';
 import {
+  rekeyVacuumCreate,
+  resolveVacuumEditCollisions,
+} from '../utils/entitlements/vacuumEntitlementOverlayStore';
+import {
   getEntitlementDeterministicId,
   getVacuumDeterministicId,
 } from '../utils/entitlements/entitlementIdentity';
+import { moveWorldEntitlement } from '../utils/entitlements/moveWorldEntitlement';
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -95,9 +100,19 @@ export async function saveEntitlementFromFormState(
 
   // 4. Route based on storage mode
   if (storageMode === 'vacuum') {
-    return saveVacuum({ entitlementId: id, document });
+    return saveVacuum({
+      entitlementId: id,
+      originalEntitlementId: entitlementId,
+      document,
+    });
   } else {
-    return saveWorld({ worldId, userId, entitlementId: id, document });
+    return saveWorld({
+      worldId,
+      userId,
+      entitlementId: id,
+      originalEntitlementId: entitlementId,
+      document,
+    });
   }
 }
 
@@ -105,9 +120,10 @@ export async function saveEntitlementFromFormState(
 
 function saveVacuum(args: {
   entitlementId: string | undefined;
+  originalEntitlementId: string | undefined;
   document: Record<string, unknown>;
 }): SaveEntitlementResult {
-  const { entitlementId, document } = args;
+  const { entitlementId, originalEntitlementId, document } = args;
   const teamCode = document.holderTeam as string;
 
   if (!teamCode) {
@@ -125,11 +141,28 @@ function saveVacuum(args: {
   if (entitlementId && !entitlementId.startsWith('vacuum:')) {
     // Editing an existing base entitlement — store as edit overlay
     applyVacuumEdit(teamCode, entitlementId, document);
+    // R3: After editing a base entitlement, check for collisions against vacuum creates.
+    // The edit's effective identity must not duplicate any existing create.
+    resolveVacuumEditCollisions(teamCode, document);
     finalId = entitlementId;
   } else if (entitlementId && entitlementId.startsWith('vacuum:')) {
-    // Re-editing an existing vacuum create — overwrite the create entry
-    applyVacuumCreate(teamCode, entitlementId, document);
-    finalId = entitlementId;
+    // Re-editing an existing vacuum create
+    // R3: Detect identity-change — compute new deterministic vacuum ID
+    const computedVacId = getVacuumDeterministicId(document);
+    if (originalEntitlementId && originalEntitlementId !== computedVacId) {
+      // Identity changed — rekey: move from old vacuum ID to new
+      rekeyVacuumCreate(
+        teamCode,
+        originalEntitlementId,
+        computedVacId,
+        document
+      );
+      finalId = computedVacId;
+    } else {
+      // Same identity — normal overwrite
+      applyVacuumCreate(teamCode, entitlementId, document);
+      finalId = entitlementId;
+    }
   } else {
     // Creating new — generate a deterministic vacuum-prefixed ID
     // R1: Same logical entitlement always gets the same ID, enabling dedupe.
@@ -152,8 +185,11 @@ async function saveWorld(args: {
   userId: string | null;
   entitlementId: string;
   document: Record<string, unknown>;
+  /** Original ID passed to saveEntitlementFromFormState (before deterministic fallback). */
+  originalEntitlementId: string | undefined;
 }): Promise<SaveEntitlementResult> {
-  const { worldId, userId, entitlementId, document } = args;
+  const { worldId, userId, entitlementId, document, originalEntitlementId } =
+    args;
 
   if (!worldId) {
     const errorMsg = 'World ID is required for world saves.';
@@ -177,6 +213,44 @@ async function saveWorld(args: {
     };
   }
 
+  // ── R1: Detect identity-change on edit ──
+  // If this is an edit (originalEntitlementId exists) and the computed
+  // deterministic ID differs from the original, this is an identity-change.
+  // We must "move" the record: write to new ID + delete old ID.
+  const computedId = getEntitlementDeterministicId(document);
+  const isEdit = !!originalEntitlementId;
+  const identityChanged = isEdit && originalEntitlementId !== computedId;
+
+  if (identityChanged) {
+    // Move: write to computedId, delete originalEntitlementId, update team inventory
+    const moveResult = await moveWorldEntitlement(db, {
+      worldId,
+      fromId: originalEntitlementId!,
+      toId: computedId,
+      document,
+      userId: userId || '',
+    });
+
+    if (!moveResult.success) {
+      const errorMsg = moveResult.error || 'Move failed';
+      toast.error(errorMsg);
+      return {
+        success: false,
+        entitlementId: originalEntitlementId!,
+        document,
+        error: errorMsg,
+      };
+    }
+
+    toast.success('Entitlement saved (identity updated)');
+    return {
+      success: true,
+      entitlementId: computedId,
+      document: { ...document, id: computedId },
+    };
+  }
+
+  // Normal write (no identity-change)
   const result = await writeWorldEntitlement(db, {
     worldId,
     entitlementId,

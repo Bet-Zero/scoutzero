@@ -789,3 +789,57 @@ setSaving(false);
 1. **Legacy duplicates**: Entitlements created before this fix may have random IDs — not automatically detected/merged
 2. **Free-text variance**: Different descriptions of same swap target produce different identity keys
 3. **Intentional duplicates**: No explicit "allow duplicate" path for rare edge cases
+4. **Cross-doc references**: If other entitlements reference a moved ID via `linkedEntitlementIds` or `coveredByEntitlementIds`, those references become stale. A future "reference updater" pass can address this.
+
+---
+
+### 9.5 Identity-Change on Edit: Move Semantics
+
+**Added:** 2026-02-20 (Entitlement Identity-Change Dedupe)
+
+#### Problem
+
+When a user edits **identity fields** (holderTeam, seasonYear, round, kind, or kind-specific inputs like `underlyingPickId`) on an existing entitlement, the deterministic ID computation produces a **different ID**. Without intervention, the old record remains — creating an orphaned duplicate.
+
+#### Rule
+
+> **Edits that change identity move to the deterministic ID and delete the old record.**
+
+One logical entitlement identity = one record, in both world (Firestore) and vacuum (overlay).
+
+#### World Mode — Move
+
+When `saveEntitlementFromFormState` detects `originalEntitlementId !== getEntitlementDeterministicId(document)` on an edit:
+
+1. `moveWorldEntitlement()` writes the document to the new deterministic ID (upsert via `merge: true`)
+2. Deletes the old document at `originalEntitlementId`
+3. Updates `team.entitlementIds[]` — removes old, adds new
+
+**Collision:** If the new ID already exists, `setDoc(merge: true)` cleanly overwrites it. The old ID is still deleted. At most one record per logical identity.
+
+#### Vacuum Mode — Rekey
+
+When editing a vacuum-created entitlement whose identity changed:
+
+1. `rekeyVacuumCreate(teamCode, fromVacId, toVacId, document)` writes to new key, deletes old key
+2. If `toVacId` already exists in `creates`, it is overwritten (latest wins)
+
+When editing a base entitlement whose effective identity would collide with a vacuum create:
+
+1. `resolveVacuumEditCollisions(teamCode, editDocument)` removes any vacuum create with the same identity key
+2. Base-edit wins (canonical record)
+
+#### UX
+
+- Normal save: `toast.success('Entitlement saved')`
+- Identity changed: `toast.success('Entitlement saved (identity updated)')`
+- No confirmation dialogs or modals added
+
+#### Key Files
+
+| File                                                                         | Purpose                                                                            |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `src/features/architect/utils/entitlements/moveWorldEntitlement.ts`          | World move helper (write + delete + inventory)                                     |
+| `src/features/architect/admin/saveEntitlementFromFormState.ts`               | Detect identity-change, route to move/rekey                                        |
+| `src/features/architect/utils/entitlements/vacuumEntitlementOverlayStore.ts` | `rekeyVacuumCreate()`, `resolveVacuumEditCollisions()`, `dedupeVacuumByIdentity()` |
+| `src/tests/architect/entitlementIdentityMove.test.ts`                        | 9 tests for move/rekey/collision                                                   |
