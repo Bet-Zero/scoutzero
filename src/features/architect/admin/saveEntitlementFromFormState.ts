@@ -37,6 +37,11 @@ import {
 } from '../utils/entitlements/entitlementIdentity';
 import { moveWorldEntitlement } from '../utils/entitlements/moveWorldEntitlement';
 import { findVacuumCreateByIdentityKey } from '../utils/entitlements/vacuumEntitlementOverlayStore';
+import {
+  validateEntitlementExclusivity,
+  type EntitlementViolation,
+} from '../utils/entitlements/entitlementExclusivityValidator';
+import { resolveEntitlementsForTeam } from '../utils/entitlements/entitlementResolver';
 
 // ─── debug flag ──────────────────────────────────────────────────────────────
 const __DEV_DEDUPE_LOG__ = import.meta.env.DEV;
@@ -58,6 +63,13 @@ export interface SaveEntitlementResult {
   entitlementId: string;
   document: Record<string, unknown>;
   error?: string;
+  /** Discriminator for structured error handling (e.g. exclusivity gate). */
+  errorType?:
+    | 'EXCLUSIVITY'
+    | 'EXCLUSIVITY_VALIDATION_UNAVAILABLE'
+    | 'VALIDATION';
+  /** Violation details when errorType is 'EXCLUSIVITY'. */
+  violations?: EntitlementViolation[];
 }
 
 // ─── save function ───────────────────────────────────────────────────────────
@@ -118,7 +130,54 @@ export async function saveEntitlementFromFormState(
     console.groupEnd();
   }
 
-  // 4. Route based on storage mode
+  // 4. Exclusivity gate — block overlapping claims before any write.
+  //    CBA Art. VII §12: No team may hold two ownership claims on the same pick.
+  //    See: docs/architect/TRADE_MACHINE_ENTITLEMENTS_ADVANCED_MASTER.md §10
+  const holderTeam = document.holderTeam as string;
+  if (holderTeam) {
+    try {
+      const currentEntitlements = await resolveEntitlementsForTeam(
+        storageMode === 'world' ? worldId : null,
+        holderTeam
+      );
+      const exclusivityCheck = validateEntitlementExclusivity({
+        entitlements: currentEntitlements,
+        candidate: { id: entitlementId, doc: document },
+      });
+      if (!exclusivityCheck.valid) {
+        const firstViolation = exclusivityCheck.violations[0];
+        const errorMsg =
+          firstViolation?.message || 'Entitlement exclusivity conflict';
+        toast.error(errorMsg);
+        return {
+          success: false,
+          entitlementId: entitlementId || '',
+          document,
+          error: errorMsg,
+          errorType: 'EXCLUSIVITY',
+          violations: exclusivityCheck.violations,
+        };
+      }
+    } catch (exclusivityError) {
+      // Integrity-first (TM-EXCL-E1.1): if resolver or validator fails, BLOCK the save.
+      // Rationale: cannot verify exclusivity = cannot proceed.
+      if (__DEV_DEDUPE_LOG__) {
+        console.warn(
+          '[exclusivity-gate] resolver/validator error, blocking save:',
+          exclusivityError
+        );
+      }
+      return {
+        success: false,
+        entitlementId: entitlementId || '',
+        document,
+        error: 'Exclusivity validation unavailable — save blocked.',
+        errorType: 'EXCLUSIVITY_VALIDATION_UNAVAILABLE' as const,
+      };
+    }
+  }
+
+  // 5. Route based on storage mode
   if (storageMode === 'vacuum') {
     return saveVacuum({
       entitlementId: id,

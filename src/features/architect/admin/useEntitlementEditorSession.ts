@@ -38,7 +38,10 @@ import {
   removeCreate,
 } from '../utils/entitlements/vacuumEntitlementOverlayStore';
 import { saveEntitlementFromFormState } from './saveEntitlementFromFormState';
-import type { StorageMode } from './saveEntitlementFromFormState';
+import type {
+  StorageMode,
+  SaveEntitlementResult,
+} from './saveEntitlementFromFormState';
 import type { EntitlementEditorTabKey } from './EntitlementEditorFormTabs';
 import { parseEntitlementDocument } from './entitlementEditorFormState';
 import { toast } from 'react-hot-toast';
@@ -350,6 +353,22 @@ export function useEntitlementEditorSession(
       });
 
       if (!result.success) {
+        // ── Exclusivity gate: surface structured conflict error ──
+        if (result.errorType === 'EXCLUSIVITY') {
+          toast.error(
+            'Cannot save: entitlement conflicts with an existing right.'
+          );
+          if (result.violations?.[0]?.message) {
+            toast.error(result.violations[0].message, { duration: 6000 });
+          }
+        } else if (result.errorType === 'EXCLUSIVITY_VALIDATION_UNAVAILABLE') {
+          // TM-EXCL-E1.1: integrity-first — save blocked because validation could not run
+          toast.error('Cannot save entitlement');
+          toast.error(
+            'Exclusivity validation unavailable. Try again or reload.',
+            { duration: 6000 }
+          );
+        }
         setSaving(false);
         return;
       }

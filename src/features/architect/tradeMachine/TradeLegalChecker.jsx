@@ -9,18 +9,24 @@ const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
 
   const RuleDisplay = ({ rule, label }) => {
     if (!rule) return null;
-    
+
     // Ensure rule is a proper rule object, not an array or other type
-    if (typeof rule !== 'object' || Array.isArray(rule) || rule.passed === undefined) {
+    if (
+      typeof rule !== 'object' ||
+      Array.isArray(rule) ||
+      rule.passed === undefined
+    ) {
       return null;
     }
-    
+
     return (
       <div>
         <div className={`${getRuleStatus(rule.passed)}`}>• {label}</div>
         {rule.details && (
           <span className="block text-xs text-white/50 pl-4">
-            {typeof rule.details === 'string' ? rule.details : rule.message || ''}
+            {typeof rule.details === 'string'
+              ? rule.details
+              : rule.message || ''}
           </span>
         )}
       </div>
@@ -43,7 +49,7 @@ const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
             />
             <RuleDisplay rule={team.rules?.hardCap} label="Hard Cap" />
             <RuleDisplay rule={team.rules?.stepienRule} label="Stepien Rule" />
-            
+
             {/* CBA Compliance */}
             <RuleDisplay
               rule={team.rules?.signAndTrade}
@@ -54,12 +60,9 @@ const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
               label="2nd Apron Rules"
             />
             <RuleDisplay rule={team.rules?.rosterCount} label="Roster Count" />
-            
+
             {/* Advanced Rules */}
-            <RuleDisplay
-              rule={team.rules?.consent}
-              label="Player Consent"
-            />
+            <RuleDisplay rule={team.rules?.consent} label="Player Consent" />
             <RuleDisplay
               rule={team.rules?.reacquisition}
               label="Reacquisition"
@@ -68,7 +71,7 @@ const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
               rule={team.rules?.aggregation}
               label="Salary Aggregation"
             />
-            
+
             {/* Trade Mechanics */}
             <RuleDisplay
               rule={team.rules?.tradeExceptions}
@@ -78,6 +81,12 @@ const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
             <RuleDisplay
               rule={team.rules?.timingEnforcement}
               label="Timing Restrictions"
+            />
+
+            {/* Entitlement Exclusivity (TM-EXCL-E1) */}
+            <RuleDisplay
+              rule={team.rules?.entitlementExclusivity}
+              label="Pick Exclusivity"
             />
           </div>
         </div>

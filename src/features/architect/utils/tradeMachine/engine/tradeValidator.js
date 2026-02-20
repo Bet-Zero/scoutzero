@@ -25,6 +25,11 @@ import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
+// TM-EXCL-E1: Entitlement exclusivity validation (blocking)
+import { validateEntitlementExclusivity } from '@/features/architect/utils/entitlements/entitlementExclusivityValidator';
+import { computePostTradeEntitlements } from '../utils/stepienEntitlementUtils.js';
+// TM-EXCL-E2: Explicit entitlement routing map builder (no silent skips)
+import { buildEntitlementRoutingMap } from '../utils/buildEntitlementRoutingMap.ts';
 // Phase 17: Entitlement routing validation (uniqueness, routing, ownership)
 import { validateEntitlementRouting } from '../rules/validateEntitlementRouting.js';
 // Phase A5-E1: Player routing validation (uniqueness, routing, destinations)
@@ -640,6 +645,113 @@ export function validateTrade({
       context
     );
 
+    // TM-EXCL-E1 + TM-EXCL-E2: Entitlement exclusivity — block trades that create overlapping claims
+    // TM-EXCL-E2: Build explicit routing map FIRST; if routing is incomplete, fail immediately.
+    const entitlementExclusivityResult = (() => {
+      try {
+        // TM-EXCL-E2: Build routing map for all participants
+        const routingResult = buildEntitlementRoutingMap(teamsWithAssets);
+
+        if (!routingResult.ok) {
+          // Routing incomplete — block trade with clear reason
+          return {
+            passed: false,
+            details: routingResult.reason,
+            violations: routingResult.errors,
+          };
+        }
+
+        // Build allTeamsEntOut with resolved routing from the map
+        const tradeParticipantIds = new Set(
+          teamsWithAssets
+            .map((t) => t.teamId || t.team?.teamId || t.team?.id)
+            .filter(Boolean)
+        );
+
+        const allTeamsEntOut = teamsWithAssets.map((t) => {
+          const tId = t.teamId || t.team?.teamId || t.team?.id;
+          return (t.entitlementsOut || []).map((e) => {
+            const entId = e.entitlementId || e.id;
+            const routingKey = `${tId}::${entId}`;
+            const resolvedToTeamId =
+              routingResult.map.get(routingKey) || e.toTeamId || null;
+
+            // TM-EXCL-E2: For 2-team trades, auto-resolve missing toTeamId
+            const finalToTeamId =
+              resolvedToTeamId ||
+              (teamsWithAssets.length === 2
+                ? teamsWithAssets.find((other) => {
+                    const otherId =
+                      other.teamId || other.team?.teamId || other.team?.id;
+                    return otherId !== tId;
+                  })?.teamId ||
+                  teamsWithAssets.find((other) => {
+                    const otherId =
+                      other.teamId || other.team?.teamId || other.team?.id;
+                    return otherId !== tId;
+                  })?.team?.teamId ||
+                  teamsWithAssets.find((other) => {
+                    const otherId =
+                      other.teamId || other.team?.teamId || other.team?.id;
+                    return otherId !== tId;
+                  })?.team?.id
+                : undefined);
+
+            return {
+              ...e,
+              fromTeamId: tId,
+              toTeamId: finalToTeamId,
+            };
+          });
+        });
+
+        // TM-EXCL-E2: Use strict computePostTradeEntitlements with tradeParticipantIds
+        const postTradeSet = computePostTradeEntitlements({
+          currentEntitlements: team.validationEntitlements || [],
+          entitlementsOut: team.entitlementsOut || [],
+          allTeamsEntitlementsOut: allTeamsEntOut,
+          teamId,
+          tradeParticipantIds,
+        });
+
+        const exclusivityResult = validateEntitlementExclusivity({
+          entitlements: postTradeSet,
+        });
+
+        if (exclusivityResult.valid) {
+          return { passed: true, details: 'No exclusivity conflicts' };
+        }
+
+        const messages = exclusivityResult.violations.map((v) => v.message);
+        return {
+          passed: false,
+          details: messages.join('; '),
+          violations: messages,
+        };
+      } catch (err) {
+        // Integrity-first (TM-EXCL-E1.1 + E2): if routing or post-trade computation fails, BLOCK the trade.
+        // Rationale: cannot verify exclusivity = cannot proceed.
+        if (import.meta.env.DEV) {
+          console.warn(
+            '[entitlement-exclusivity] trade validation error, blocking trade:',
+            err
+          );
+        }
+        return {
+          passed: false,
+          details:
+            err.message && err.message.startsWith('Pick Exclusivity:')
+              ? err.message
+              : 'Pick Exclusivity: Error computing post-trade entitlement set',
+          violations: [
+            err.message && err.message.startsWith('Pick Exclusivity:')
+              ? err.message
+              : 'Exclusivity validation unavailable — cannot verify trade legality',
+          ],
+        };
+      }
+    })();
+
     // Aggregate violations and warnings
     const allRules = {
       salaryMatching: salaryMatchingResult,
@@ -655,6 +767,7 @@ export function validateTrade({
       eligibilityEnforcement,
       timingEnforcement,
       secondApronEnforcement,
+      entitlementExclusivity: entitlementExclusivityResult,
     };
 
     const violations = [];

@@ -295,8 +295,10 @@ Quick reference for all components in the ScoutZero project.
 - AddPlayerDrawer/addPlayer/ContractFilters.jsx
 - AddPlayerDrawer/addPlayer/DrawerHeader.jsx
 - AddPlayerDrawer/addPlayer/FilterTabs.jsx
+- AddPlayerDrawer/addPlayer/PhysicalFilters.jsx
 - AddPlayerDrawer/addPlayer/PlayerSearchBar.jsx
 - AddPlayerDrawer/addPlayer/RolesFilters.jsx
+- AddPlayerDrawer/addPlayer/StatsFilters.jsx
 - AddPlayerDrawer/index.jsx
 - CreateRosterModal.jsx
 - RosterControls.jsx
@@ -354,4 +356,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-20T11:04:38.782Z*
+*Generated on: 2026-02-20T12:42:26.099Z*

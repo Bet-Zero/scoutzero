@@ -1,61 +1,141 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { InformationCircleIcon } from '@heroicons/react/20/solid';
+import { InformationCircleIcon, ChevronDownIcon } from '@heroicons/react/20/solid';
 
 const getPlayerName = (player) =>
   player.bio?.displayName || player.display_name || player.name || '—';
 
-const PlayerButton = ({ player, selected, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`px-2 sm:px-3 py-1 sm:py-2 rounded border text-xs sm:text-sm text-white transition-colors ${
-      selected
-        ? 'bg-blue-600 border-blue-400'
-        : 'bg-white/10 border-white/20 hover:bg-white/20'
-    }`}
-  >
-    {getPlayerName(player)}
-  </button>
-);
+// ─── Tooltip ──────────────────────────────────────────────────────────────────
 
 const HelperIcon = ({ text }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const tooltipRef = useRef(null);
-
-  const handleToggle = () => setIsVisible((v) => !v);
+  const [visible, setVisible] = useState(false);
+  const ref = useRef(null);
 
   useEffect(() => {
-    if (!isVisible) return;
-    const handleClickOutside = (event) => {
-      if (tooltipRef.current && !tooltipRef.current.contains(event.target)) {
-        setIsVisible(false);
-      }
+    if (!visible) return;
+    const hide = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setVisible(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('mousedown', hide);
+    document.addEventListener('touchstart', hide);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('mousedown', hide);
+      document.removeEventListener('touchstart', hide);
     };
-  }, [isVisible]);
+  }, [visible]);
 
   return (
-    <div className="relative ml-1 inline-block" ref={tooltipRef}>
+    <div className="relative inline-block ml-1.5" ref={ref}>
       <InformationCircleIcon
-        className="w-4 h-4 text-white/60 cursor-pointer transition-colors hover:text-white/80"
-        onClick={handleToggle}
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
+        className="w-3.5 h-3.5 text-white/30 hover:text-white/60 cursor-pointer transition-colors"
+        onClick={() => setVisible((v) => !v)}
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
       />
-      {isVisible && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 rounded bg-black/90 p-3 text-xs text-white z-20 shadow-lg border border-white/10">
-          <div className="text-center">{text}</div>
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-black/90" />
+      {visible && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-60 rounded-xl bg-[#1c1c1c] border border-white/15 p-3 text-xs text-white/70 z-30 shadow-2xl leading-relaxed">
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1c1c1c]" />
         </div>
       )}
     </div>
   );
 };
+
+// ─── Player Tile ──────────────────────────────────────────────────────────────
+
+const PlayerTile = ({ player, topSelected, bottomSelected, onToggleTop, onToggleBottom }) => {
+  const name = getPlayerName(player);
+
+  return (
+    <div
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-100 ${
+        topSelected
+          ? 'bg-emerald-950/50 border-emerald-500/35'
+          : bottomSelected
+          ? 'bg-red-950/50 border-red-500/35'
+          : 'bg-white/[0.04] border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.06]'
+      }`}
+    >
+      <span
+        className={`flex-1 text-sm font-medium truncate min-w-0 ${
+          topSelected ? 'text-emerald-200' : bottomSelected ? 'text-red-200' : 'text-white/75'
+        }`}
+      >
+        {name}
+      </span>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onToggleTop}
+          title="Mark as elite tier"
+          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all ${
+            topSelected
+              ? 'bg-emerald-500 text-white'
+              : 'bg-transparent text-white/25 hover:bg-emerald-500/20 hover:text-emerald-400'
+          }`}
+        >
+          TOP
+        </button>
+        <button
+          type="button"
+          onClick={onToggleBottom}
+          title="Mark as bottom tier"
+          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all ${
+            bottomSelected
+              ? 'bg-red-500 text-white'
+              : 'bg-transparent text-white/25 hover:bg-red-500/20 hover:text-red-400'
+          }`}
+        >
+          BOT
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Styled Select ────────────────────────────────────────────────────────────
+
+const StyledSelect = ({ value, onChange, options, placeholder }) => (
+  <div className="relative">
+    <select
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value || null)}
+      className="w-full appearance-none bg-white/[0.05] text-white text-sm px-3 py-2.5 pr-8 rounded-lg border border-white/[0.1] focus:outline-none focus:border-white/25 transition-all cursor-pointer"
+    >
+      <option value="" className="bg-[#1a1a1a] text-white/50">
+        {placeholder}
+      </option>
+      {options.map((p) => (
+        <option key={p.id} value={p.id} className="bg-[#1a1a1a] text-white">
+          {getPlayerName(p)}
+        </option>
+      ))}
+    </select>
+    <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+  </div>
+);
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
+
+const SectionCard = ({ children, className = '', ...rest }) => (
+  <div className={`p-5 rounded-xl bg-white/[0.03] border border-white/[0.07] ${className}`} {...rest}>
+    {children}
+  </div>
+);
+
+const SectionHeader = ({ label, hint, right }) => (
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center">
+      <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-white/40">
+        {label}
+      </span>
+      {hint && <HelperIcon text={hint} />}
+    </div>
+    {right && <div>{right}</div>}
+  </div>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export const RankingSetup = ({
   playerPool = [],
@@ -63,23 +143,26 @@ export const RankingSetup = ({
   existingSetupData = null,
 }) => {
   const [topTier, setTopTier] = useState(existingSetupData?.topTier || []);
-  const [bottomTier, setBottomTier] = useState(
-    existingSetupData?.bottomTier || []
-  );
+  const [bottomTier, setBottomTier] = useState(existingSetupData?.bottomTier || []);
   const [anchor, setAnchor] = useState(existingSetupData?.anchor || null);
-  const [firstPlace, setFirstPlace] = useState(
-    existingSetupData?.firstPlace || null
-  );
-  const [lastPlace, setLastPlace] = useState(
-    existingSetupData?.lastPlace || null
-  );
+  const [firstPlace, setFirstPlace] = useState(existingSetupData?.firstPlace || null);
+  const [lastPlace, setLastPlace] = useState(existingSetupData?.lastPlace || null);
+
   const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
-  const toggleMulti = (id, setter) => {
-    setter((prev) =>
-      prev.includes(id)
-        ? prev.filter((p) => p !== id)
-        : [...prev, id].slice(0, tierCountEstimate)
+  const handleToggleTop = (id) => {
+    // Moving from bottom → top: remove from bottom first
+    if (bottomTier.includes(id)) setBottomTier((prev) => prev.filter((p) => p !== id));
+    setTopTier((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id].slice(0, tierCountEstimate)
+    );
+  };
+
+  const handleToggleBottom = (id) => {
+    // Moving from top → bottom: remove from top first
+    if (topTier.includes(id)) setTopTier((prev) => prev.filter((p) => p !== id));
+    setBottomTier((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id].slice(0, tierCountEstimate)
     );
   };
 
@@ -87,153 +170,132 @@ export const RankingSetup = ({
     onComplete({ topTier, bottomTier, anchor, firstPlace, lastPlace });
   };
 
+  const topCount = topTier.length;
+  const bottomCount = bottomTier.length;
+
   return (
-    <div className="text-white p-4 max-w-[700px] mx-auto">
-      <h2 className="text-xl sm:text-2xl font-bold mb-6 text-center sm:text-left">
-        Pre-Ranking Setup
-      </h2>
+    <div className="text-white max-w-2xl mx-auto px-4 py-6 sm:py-10">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
+          Pre-Ranking Setup
+        </h2>
+        <p className="text-white/45 text-sm leading-relaxed">
+          Give the engine a few hints before you start. Every section is optional — the more
+          you fill in, the fewer head-to-head comparisons you'll need to make.
+        </p>
+      </div>
 
       {existingSetupData && (
-        <div className="mb-6 p-4 bg-blue-600/20 border border-blue-400/30 rounded-lg">
-          <p className="text-blue-200 text-sm">
-            ℹ️ Your previous setup has been loaded. You can modify it or proceed
-            to comparisons.
-          </p>
+        <div className="mb-6 px-4 py-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-200/80 text-sm">
+          Previous setup loaded. Adjust anything or proceed as-is.
         </div>
       )}
 
-      {/* Top Tier */}
-      <div
-        className="mb-8 p-6 bg-gradient-to-br from-green-900/20 to-green-800/10 border border-green-500/30 rounded-lg"
-        data-testid="top-tier"
-      >
-        <h3 className="font-semibold mb-3 flex items-center text-sm sm:text-base text-green-300">
-          <span className="mr-2">🏆</span>
-          Top Tier Selector (~{tierCountEstimate} players)
-          <HelperIcon
-            text={`Select players you know will finish in the top 25% (~${tierCountEstimate} players)`}
-          />
-        </h3>
-        <div className="flex flex-wrap gap-2">
+      {/* ── Tier Tagging ─────────────────────────────────────────────────── */}
+      <SectionCard className="mb-4" data-testid="tier-tagging">
+        <SectionHeader
+          label="Tier Tagging"
+          hint={`Tag players you're confident belong in the top or bottom 25% (~${tierCountEstimate}) of this pool. Tap ↑ for elite, ↓ for bottom. You can always change your mind.`}
+          right={
+            <div className="flex gap-2 text-xs">
+              <span
+                className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
+                  topCount > 0
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-white/[0.06] text-white/25'
+                }`}
+              >
+                ↑ {topCount}/{tierCountEstimate}
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full font-medium transition-colors ${
+                  bottomCount > 0
+                    ? 'bg-red-500/20 text-red-300'
+                    : 'bg-white/[0.06] text-white/25'
+                }`}
+              >
+                ↓ {bottomCount}/{tierCountEstimate}
+              </span>
+            </div>
+          }
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {playerPool.map((p) => (
-            <PlayerButton
-              key={`top-${p.id}`}
+            <PlayerTile
+              key={p.id}
               player={p}
-              selected={topTier.includes(p.id)}
-              onClick={() => toggleMulti(p.id, setTopTier)}
+              topSelected={topTier.includes(p.id)}
+              bottomSelected={bottomTier.includes(p.id)}
+              onToggleTop={() => handleToggleTop(p.id)}
+              onToggleBottom={() => handleToggleBottom(p.id)}
             />
           ))}
         </div>
-      </div>
+      </SectionCard>
 
-      {/* Divider */}
-      <div className="flex items-center my-8">
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        <div className="px-4 text-white/40 text-sm font-medium">vs</div>
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-      </div>
+      {/* ── Anchor Player ─────────────────────────────────────────────────── */}
+      <SectionCard className="mb-4" data-testid="anchor">
+        <SectionHeader
+          label="Anchor Player"
+          hint="Pick a player you'd expect to finish around the middle of the pool. The engine uses this to divide players into upper and lower sub-groups, reducing total comparisons."
+        />
+        <StyledSelect
+          value={anchor}
+          onChange={setAnchor}
+          options={playerPool}
+          placeholder="No anchor selected"
+        />
+      </SectionCard>
 
-      {/* Bottom Tier */}
-      <div
-        className="mb-8 p-6 bg-gradient-to-br from-red-900/20 to-red-800/10 border border-red-500/30 rounded-lg"
-        data-testid="bottom-tier"
-      >
-        <h3 className="font-semibold mb-3 flex items-center text-sm sm:text-base text-red-300">
-          <span className="mr-2">📉</span>
-          Bottom Tier Selector (~{tierCountEstimate} players)
-          <HelperIcon
-            text={`Select players you know will finish in the bottom 25% (~${tierCountEstimate} players)`}
-          />
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {playerPool.map((p) => (
-            <PlayerButton
-              key={`bottom-${p.id}`}
-              player={p}
-              selected={bottomTier.includes(p.id)}
-              onClick={() => toggleMulti(p.id, setBottomTier)}
+      {/* ── Position Lock-Ins ─────────────────────────────────────────────── */}
+      <SectionCard className="mb-8" data-testid="locks">
+        <SectionHeader
+          label="Position Lock-Ins"
+          hint="Already know who's #1 or who's last? Lock them in to skip all their comparisons automatically."
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.1em] uppercase text-white/30 mb-1.5">
+              #1 Overall
+            </p>
+            <StyledSelect
+              value={firstPlace}
+              onChange={setFirstPlace}
+              options={playerPool}
+              placeholder="None"
             />
-          ))}
-        </div>
-      </div>
-
-      {/* Anchor — dropdown (better for large pools) */}
-      <div
-        className="mb-8 p-6 bg-gradient-to-br from-blue-900/20 to-blue-800/10 border border-blue-500/30 rounded-lg"
-        data-testid="anchor"
-      >
-        <h3 className="font-semibold mb-3 flex items-center text-sm sm:text-base text-blue-300">
-          <span className="mr-2">⚓</span>
-          Anchor Selector
-          <HelperIcon text="Select a player you believe will finish around the middle of the pool" />
-        </h3>
-        <select
-          value={anchor || ''}
-          onChange={(e) => setAnchor(e.target.value || null)}
-          className="w-full bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded border border-white/10"
-        >
-          <option value="">No anchor player selected</option>
-          {playerPool.map((p) => (
-            <option key={`anchor-${p.id}`} value={p.id}>
-              {getPlayerName(p)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Lock-Ins */}
-      <div className="mb-8 p-6 bg-gradient-to-br from-purple-900/20 to-purple-800/10 border border-purple-500/30 rounded-lg">
-        <h3 className="font-semibold mb-4 text-sm sm:text-base text-purple-300">
-          <span className="mr-2">🔒</span>
-          Position Lock-Ins (Optional)
-        </h3>
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8" data-testid="locks">
-          <div className="flex-1">
-            <label className="block font-medium mb-2 text-sm text-white/80">
-              1st Place Lock-In
-            </label>
-            <select
-              value={firstPlace || ''}
-              onChange={(e) => setFirstPlace(e.target.value || null)}
-              className="w-full bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded border border-white/10"
-            >
-              <option value="">None</option>
-              {playerPool.map((p) => (
-                <option key={`first-${p.id}`} value={p.id}>
-                  {getPlayerName(p)}
-                </option>
-              ))}
-            </select>
           </div>
-          <div className="flex-1">
-            <label className="block font-medium mb-2 text-sm text-white/80">
-              Last Place Lock-In
-            </label>
-            <select
-              value={lastPlace || ''}
-              onChange={(e) => setLastPlace(e.target.value || null)}
-              className="w-full bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded border border-white/10"
-            >
-              <option value="">None</option>
-              {playerPool.map((p) => (
-                <option key={`last-${p.id}`} value={p.id}>
-                  {getPlayerName(p)}
-                </option>
-              ))}
-            </select>
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.1em] uppercase text-white/30 mb-1.5">
+              Last Place
+            </p>
+            <StyledSelect
+              value={lastPlace}
+              onChange={setLastPlace}
+              options={playerPool}
+              placeholder="None"
+            />
           </div>
         </div>
-      </div>
+      </SectionCard>
 
-      {/* Start */}
-      <div className="text-center">
+      {/* ── CTA ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center gap-3">
         <button
           onClick={handleReady}
-          className="px-8 py-3 rounded-lg bg-green-600 hover:bg-green-700 transition-colors text-white font-semibold text-lg shadow-lg"
+          className="w-full sm:w-auto px-10 py-3.5 rounded-xl bg-white text-black font-bold text-sm tracking-tight hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl"
         >
-          {existingSetupData ? 'Update & Continue' : 'Go'}
+          {existingSetupData ? 'Update & Continue →' : 'Start Ranking →'}
         </button>
+        <p className="text-white/25 text-xs text-center">
+          {existingSetupData
+            ? 'Changes apply immediately to your session.'
+            : 'All sections are optional — skip everything and dive straight in.'}
+        </p>
       </div>
+
     </div>
   );
 };

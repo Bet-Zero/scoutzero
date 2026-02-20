@@ -882,3 +882,135 @@ When editing a base entitlement whose effective identity would collide with a va
 | `src/features/architect/admin/saveEntitlementFromFormState.ts`               | Detect identity-change, route to move/rekey                                        |
 | `src/features/architect/utils/entitlements/vacuumEntitlementOverlayStore.ts` | `rekeyVacuumCreate()`, `resolveVacuumEditCollisions()`, `dedupeVacuumByIdentity()` |
 | `src/tests/architect/entitlementIdentityMove.test.ts`                        | 9 tests for move/rekey/collision                                                   |
+
+---
+
+## §10 Exclusivity Gates (Save + Trade)
+
+_Added: 2026-02-20 — TM-EXCL-E1 (Entitlement Exclusivity Foundation)_
+
+### 10.1 Purpose
+
+No overlapping entitlement claims may be authored or created by trade.
+Conflicts are blocked at **save-time** and **trade-time**, with DARE remaining a fallback safety net only.
+
+### 10.2 Enforced Rules
+
+| #   | Violation Type                 | Rule                                                                                               | Applies To |
+| --- | ------------------------------ | -------------------------------------------------------------------------------------------------- | ---------- |
+| 1   | `DUP_PICK_OWNERSHIP_UNDERLIER` | Two `pick_ownership` entitlements must NOT share the same `underlyingPickId`.                      | Same team  |
+| 2   | `DUP_SWAP_CONTROLLER`          | Two `swap_right` entitlements must NOT share the same `swapControllerPickId`.                      | Same team  |
+| 3   | `DUP_CONVEYANCE_POOL_RANK`     | Two `conveyance_right` entitlements must NOT have identical `pool + comparator + ranks`.           | Same team  |
+| 4   | `OVERLAP_CONVEYANCE_POOL_RANK` | Two `conveyance_right` entitlements conflict if `pools overlap ∧ ranks overlap ∧ same comparator`. | Same team  |
+
+**Self-edit exception:** Two entries sharing the same `id` never conflict (user editing a record without identity change).
+
+### 10.3 Where Rules Run
+
+#### Save Gate (Author-Time)
+
+- **Location:** `src/features/architect/admin/saveEntitlementFromFormState.ts`
+- **Trigger:** After document build + field validation, before vacuum/world routing.
+- **Comparison set:** Loaded via `resolveEntitlementsForTeam(worldId|null, holderTeam)` — handles both world and vacuum overlay correctly.
+- **Candidate:** The entitlement being saved, with its existing `id` for self-edit detection.
+- **On violation:** Returns `{ success: false, errorType: 'EXCLUSIVITY', violations }`. Toast shown.
+- **UI surfacing:** `useEntitlementEditorSession.handleApply()` shows `toast.error('Cannot save: entitlement conflicts with an existing right.')` + the first violation message. Modal stays open.
+
+#### Trade Gate (Trade-Time)
+
+- **Location:** `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`
+- **Trigger:** Per-team rule computation during `validateTrade()`.
+- **Comparison set:** `computePostTradeEntitlements()` (current − outgoing + incoming).
+- **On violation:** Adds to `allRules.entitlementExclusivity` with `passed: false`. Gates `result.legal`.
+- **UI display:** `TradeLegalChecker.jsx` → `<RuleDisplay label="Pick Exclusivity">`.
+
+### 10.4 Normalization
+
+- Pool IDs: sorted for order-insensitive comparison.
+- Ranks: parsed to integers, sorted, deduped.
+- Comparator: lowercased + trimmed.
+- Display-only fields (e.g., `description`) are ignored.
+
+### 10.5 Key Files
+
+| File                                                                           | Purpose                                           |
+| ------------------------------------------------------------------------------ | ------------------------------------------------- |
+| `src/features/architect/utils/entitlements/entitlementExclusivityValidator.ts` | Pure validator — 4 rules, no Firestore dependency |
+| `src/features/architect/admin/saveEntitlementFromFormState.ts`                 | Save gate integration                             |
+| `src/features/architect/admin/useEntitlementEditorSession.ts`                  | UI error surfacing (toast)                        |
+| `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`           | Trade gate integration                            |
+| `src/features/architect/tradeMachine/TradeLegalChecker.jsx`                    | Rule display slot                                 |
+| `src/tests/architect/entitlementExclusivityValidator.test.ts`                  | 26 pure validator tests                           |
+| `src/tests/architect/saveEntitlementExclusivity.test.ts`                       | 9 save gate tests (incl. unavailable)             |
+| `src/tests/architect/tradeEntitlementExclusivity.test.ts`                      | 6 trade gate tests                                |
+| `src/tests/architect/tradeEntitlementExclusivity.unavailable.test.ts`          | 4 trade gate error-handling tests                 |
+
+### 10.6 Integrity-First Semantics
+
+_Added: 2026-02-20 — TM-EXCL-E1.1 (Integrity-First Exclusivity Gating)_
+
+Exclusivity gates enforce a **"cannot verify = cannot proceed"** doctrine. If the system cannot assemble the comparison set or compute the post-trade entitlement set — due to resolver failure, validator crash, or missing dependency data — the operation is **blocked**, not silently allowed. This prevents data-integrity breaches caused by infrastructure failures that would bypass exclusivity checking entirely. The cost of a false-negative (allowing a duplicate claim) far exceeds the cost of a transient false-positive (temporarily blocking a valid save or trade until the user retries).
+
+#### Save-Time
+
+- If `resolveEntitlementsForTeam()` throws (Firestore unavailable, network error, etc.) → save returns `{ success: false, errorType: 'EXCLUSIVITY_VALIDATION_UNAVAILABLE' }`. No write occurs.
+- If `validateEntitlementExclusivity()` throws unexpectedly → same blocking behavior.
+- UI: Toast shows "Cannot save entitlement" + "Exclusivity validation unavailable. Try again or reload." Modal stays open; edits are preserved.
+
+#### Trade-Time
+
+- If `computePostTradeEntitlements()` throws → the `entitlementExclusivity` rule returns `{ passed: false }` with details explaining the compute failure.
+- If `validateEntitlementExclusivity()` throws → same blocking behavior.
+- UI: TradeLegalChecker displays "Pick Exclusivity" in red with the failure reason.
+
+### 10.7 Trade Routing Requirement — No Silent Skips
+
+_Added: 2026-02-20 — TM-EXCL-E2 (No Silent Skips: 3+ Team Routing + Compute Hard-Fail)_
+
+#### Invariant
+
+**Every entitlement included in a trade MUST have a resolvable destination team. If routing is incomplete or ambiguous, the trade is illegal.**
+
+#### Problem Addressed
+
+Prior to TM-EXCL-E2, 3+ team trades could result in outgoing entitlements with no `toTeamId`, causing `computePostTradeEntitlements()` to silently drop items from the post-trade set. This undermined exclusivity validation because the comparison set was incomplete — a missing entitlement cannot be checked for conflicts.
+
+#### Solution: Explicit Routing Map
+
+A new pure helper — `buildEntitlementRoutingMap(teams)` — constructs an explicit routing map before exclusivity validation runs:
+
+| `(fromTeamId, entitlementId)` | → `toTeamId` |
+| ----------------------------- | ------------ |
+| `(LAL, ent-1)`                | `BOS`        |
+| `(BOS, ent-2)`                | `CHI`        |
+| `(CHI, ent-3)`                | `LAL`        |
+
+**Routing rules:**
+
+- **2-team trades:** `toTeamId` is auto-resolved to the other team if not explicitly set.
+- **3+ team trades:** `toTeamId` MUST be explicitly set on every outgoing entitlement.
+- `toTeamId` must reference a team in the trade.
+- `toTeamId` must not equal `fromTeamId`.
+- The same entitlement cannot appear in multiple teams' outgoing lists.
+
+If routing fails, the Pick Exclusivity rule returns `{ passed: false }` with a clear message listing the routing errors. No heuristic fallback is permitted.
+
+#### Strict Compute
+
+`computePostTradeEntitlements()` now validates routing inline:
+
+- Missing `toTeamId` in a multi-team trade → throws.
+- `toTeamId` not in trade participants → throws.
+- Same entitlement routed to same team twice → throws.
+
+Callers catch the throw and map it to a blocking Pick Exclusivity failure (integrity-first semantics per §10.6).
+
+#### Key Files
+
+| File                                                                            | Role                                    |
+| ------------------------------------------------------------------------------- | --------------------------------------- |
+| `src/features/architect/utils/tradeMachine/utils/buildEntitlementRoutingMap.ts` | Pure routing map builder                |
+| `src/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils.js`    | Strict `computePostTradeEntitlements()` |
+| `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`            | Wires routing → compute → exclusivity   |
+| `src/tests/architect/tradeEntitlementRouting.test.ts`                           | Routing map unit tests                  |
+| `src/tests/architect/tradeEntitlementExclusivity.unavailable.test.ts`           | Strict failure integration tests        |

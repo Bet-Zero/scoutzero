@@ -7,25 +7,107 @@ description: >
 
 # AGENTS.md — HoopZero/ScoutZero
 
-## Commands
+Shared, repo-wide rules for any AI agent operating in this codebase.  
+**These instructions are binding.**
 
-Put these in early — they are the first thing any agent needs.
+---
 
-| Command | What it does | Timing |
-| --- | --- | --- |
-| `npm run dev` | Start dev server (`http://localhost:5173`) | instant |
-| `npm run build` | Production build | ~7s — do not cancel |
-| `npm run test -- --run` | Run all tests (Vitest) | ~14s — do not cancel |
-| `npm run lint` | ESLint | ~8s — ~1888 pre-existing errors, do **not** fix all |
-| `npm run validate:project` | Validate project structure against schema | — |
-| `npm run schema:generate` | Regenerate Zod schema docs from `src/schemas/` | — |
-| `npm run docs` | Generate component hierarchy docs | — |
+## Commands (Approved Menu)
+
+Use only these commands unless the user explicitly requests something else.
+
+| Command                    | What it does                                   | When to use                                              |
+| -------------------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| `npm run dev`              | Start dev server (`http://localhost:5173`)     | When doing UI work / manual verification                 |
+| `npm run build`            | Production build                               | After meaningful UI/route/component changes              |
+| `npm run typecheck`        | TypeScript typecheck (`tsc --noEmit`)          | After TS/TSX changes, hooks/util changes                 |
+| `npm run validate:project` | Validate project structure against schema      | After **structural** changes (new folders/files/exports) |
+| `npm run lint`             | ESLint                                         | Only if asked; repo has many pre-existing errors         |
+| `npm run lint:md`          | Markdown lint                                  | Only if editing docs heavily                             |
+| `npm run schema:generate`  | Regenerate Zod schema docs from `src/schemas/` | Only if schemas change                                   |
+| `npm run schema:check`     | Ensure generated schema docs are up to date    | When schemas are modified                                |
+| `npm run docs`             | Generate component hierarchy docs              | Only if asked / doc-sync workflows                       |
+
+### Testing (Use the right scope)
+
+**Default: targeted tests only.** Full suite is never the default.
+
+| Command                  | What it does                           | When to use                                    |
+| ------------------------ | -------------------------------------- | ---------------------------------------------- |
+| `npm run test:diff`      | Run tests impacted by current git diff | **Preferred default** when unsure what to run  |
+| `npm run test:fast`      | Fast smoke tests only (`tests/smoke`)  | Very small changes / quick sanity              |
+| `npm run test:trade`     | Trade-only tests (`tests/trade`)       | Trade Machine changes                          |
+| `npm run test:architect` | Architect + tradeMachine scoped tests  | Architect feature changes                      |
+| `npm run test:roster`    | Roster tests (`src/tests/roster`)      | Roster Builder changes                         |
+| `npm run test:scouting`  | Scouting tests (`src/tests/scouting`)  | Scouting/Profile changes                       |
+| `npm run test:node`      | Node-config test run                   | Logic-heavy / non-UI changes                   |
+| `npm run test:ui`        | UI-config test run                     | UI-heavy changes that need broader UI coverage |
+| `npm run test:profile`   | Analyze slow tests                     | Only when diagnosing test slowness             |
+
+**Full suite (guarded):**
+
+| Command             | What it does           | When to use                                     |
+| ------------------- | ---------------------- | ----------------------------------------------- |
+| `npm run test:full` | FULL suite (node + ui) | **Only when prompt contains: `RUN FULL SUITE`** |
+
+> **Do not treat any timing estimates as reliable.** Test runtime varies widely by machine and scope.
+
+---
+
+## Validation Policy (MANDATORY)
+
+### Default behavior
+
+**Default validation command:** `npm run test:diff`
+
+After changes, run **one** of the following by default:
+
+- `npm run test:diff` (preferred if uncertain), OR
+- the most relevant scoped suite (`npm run test:trade`, `npm run test:architect`, `npm run test:roster`, `npm run test:scouting`), OR
+- `npm run test:fast` for tiny/local changes.
+
+### Hard rule: Full suite requires explicit permission
+
+Do **not** run any of the following unless the user prompt contains the exact phrase:
+
+RUN FULL SUITE
+
+Blocked unless explicitly allowed:
+
+- `npm run test`
+- `npm test`
+- `vitest`
+- `vitest run`
+- `npm run test:full`
+
+Agents must use only the `npm run test:*` scripts listed in AGENTS.md. Do not run raw `vitest` commands directly and do not invent new test commands.
+
+If you believe full suite is necessary, **stop and ask first** with a 1–2 sentence justification.
+
+### Time budget
+
+If a test run exceeds **4 minutes**, stop it and switch to a cheaper option:
+
+- `npm run test:diff` or a scoped suite.
+
+### Return Package requirement
+
+Every Return Package must include:
+
+- Files changed
+- Validation commands actually run
+- Any commands intentionally skipped (and why)
 
 ---
 
 ## Project
 
-HoopZero is a public-facing NBA scouting platform built with React + Vite + Firebase. Player data is loaded from Firestore. This is a **read-only** application — agents must never write to Firestore or attempt to save data.
+HoopZero is a public-facing NBA scouting platform built with React + Vite + Firebase. Player data is loaded from Firestore.
+
+**Data access model:**
+
+- **Source data** (`players_v2`, architect base collections) is **read-only** — agents must never write to these.
+- **User-created content** (`lists`, `tierLists`, `rosterProjects`, `architect_worlds`) is **read-write** — the app creates, updates, and deletes documents in these collections as part of normal operation.
 
 ---
 
@@ -50,7 +132,7 @@ HoopZero is a public-facing NBA scouting platform built with React + Vite + Fire
 
 ### 🚫 Never
 
-- Write to or modify Firestore data.
+- Write to or modify Firestore **source data** (`players_v2`, `architect_base*` collections).
 - Create new git branches.
 - Amend or squash existing commits.
 - Declare duplicate `Player*` or `Contract*` interfaces outside `src/schemas/`.
@@ -71,20 +153,29 @@ Build plans with enough detail that execution matches expectations exactly. If a
 
 ## Conventions & Structure
 
-- **Stack**: React 18 + Vite + Tailwind CSS + Firebase / Firestore
+- **Stack**: React 18 + Vite + TypeScript + Tailwind CSS 3 + Zod + Firebase / Firestore
 - **Schemas**: Zod (code-first) in `src/schemas/`; generated docs in `docs/schema/`. No duplicate `Player*` or `Contract*` interfaces anywhere else.
 
 ```text
 src/
-├── components/     Shared UI + layout wrappers
-├── features/       Domain modules (architect, filters, lists, profile, roster, table, tierMaker)
+├── components/     Diagnostic tools (legacy shared UI moved to shared/)
+├── config/         Feature flags (validationFlags.js)
+├── constants/      Enums, team/role lists, Firestore collection constants (collections.ts)
+├── core/           Site-wide layout (SiteLayout.jsx)
+├── data/           Centralized Firestore path helpers (firestorePaths.js)
+├── features/       Domain modules (architect, filters, lists, profile, ranker, roster, table, tierMaker)
+├── firebase/       Firestore read/write helpers
+├── fonts/          Embedded font assets
+├── hooks/          Legacy hooks (most moved to shared/hooks/)
 ├── pages/          Route-level views
-├── hooks/          Custom React hooks
-├── utils/          Helpers grouped by domain
-├── constants/      Role lists, badge sets
-├── firebase/       Firestore helpers
-├── schemas/        Canonical Zod schemas
-└── styles/         Additional stylesheets
+├── schemas/        Canonical Zod schemas (players_v2, architect, common)
+├── shared/         Shared hooks, utils, and UI components
+│   ├── hooks/      useSimplePlayerData, usePlayerData, useFirebaseQuery, useAuth, etc.
+│   ├── utils/      Filtering, roster, cap utilities grouped by domain
+│   └── components/ Reusable UI widgets (TeamLogo, PlayerHeadshot, etc.)
+├── styles/         Additional stylesheets
+├── tests/          Co-located test files
+└── types/          TypeScript type declarations (player.d.ts)
 ```
 
 New features need folder-level READMEs and index-based exports — see `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`.
@@ -93,23 +184,44 @@ New features need folder-level READMEs and index-based exports — see `docs/wor
 
 ## Firestore
 
-| Collection | Purpose |
-| --- | --- |
-| `/players_v2` | Player bio, contracts, seasons, evaluations — hierarchical subcollections |
-| `/teams` | Team rosters and cap sheets (migrating to `/architect/`) |
+Collection names are defined as constants in `src/constants/collections.ts`. Always import from there — never hardcode collection strings. Path helpers live in `src/data/firestorePaths.js`.
 
-Access pattern for `/players_v2` is hierarchical — do not flatten:
+### Source Data (read-only — agents must not write)
+
+| Collection                   | Purpose                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `players_v2`                 | Player bio, contracts, seasons, evaluations — hierarchical subcollections |
+| `architect_basePlayers`      | Canonical player snapshots used as starting data for Architect worlds     |
+| `architect_baseTeams`        | Canonical team snapshots (rosters, cap sheets) for Architect worlds       |
+| `architect_baseEntitlements` | Cap entitlements (Bird rights, exceptions) per team — base layer          |
+| `architect_basePickRules`    | Structured draft pick protection and condition rules                      |
+
+### User / Architect Content (read-write)
+
+| Collection         | Purpose                                                                      |
+| ------------------ | ---------------------------------------------------------------------------- |
+| `architect_worlds` | User-created worlds with subcollections: `teams/{teamCode}`, `entitlements/` |
+| `lists`            | User-created ranked player lists                                             |
+| `tierLists`        | User-created tier lists                                                      |
+| `rosterProjects`   | User-created roster building projects                                        |
+| `freeAgents`       | Free agent pool data used by Architect team plan helpers                     |
+
+### Access Patterns
+
+Access pattern for `players_v2` is hierarchical — do not flatten:
 
 ```javascript
-const player = await getDoc(doc(db, 'players_v2', playerId));
+import { PLAYERS_COLLECTION } from '@/constants/collections';
+
+const player = await getDoc(doc(db, PLAYERS_COLLECTION, playerId));
 const displayName = player.data().bio.displayName;
 
 const contracts = await getDocs(
-  collection(doc(db, 'players_v2', playerId), 'contracts')
+  collection(doc(db, PLAYERS_COLLECTION, playerId), 'contracts')
 );
 ```
 
-Do not modify Firestore read logic without validating against `useSimplePlayerData.ts` (the primary list hook). `usePlayerData.ts` is a diagnostics wrapper over it — prefer the base hook unless diagnostics are required.
+Do not modify Firestore read logic without validating against `src/shared/hooks/useSimplePlayerData.ts` (the primary list hook). `src/shared/hooks/usePlayerData.ts` is a diagnostics wrapper over it — prefer the base hook unless diagnostics are required.
 
 Full schema: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`
 
@@ -119,15 +231,15 @@ Full schema: `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`
 
 Agent-universal workflow commands. The prompt files in `docs/cursor-prompts/` contain the full instructions — any agent can follow them regardless of tool.
 
-| Command | What it does | Prompt file |
-| --- | --- | --- |
-| `/explain` | Explain selected code without changing anything | `docs/cursor-prompts/ExplainPrompt.md` |
-| `/audit` | Deep technical audit → produces audit report | `docs/cursor-prompts/ApexAuditPrompt.md` |
-| `/audit-review` | Review an audit file → produces a Fix Plan | `docs/cursor-prompts/AuditReviewPrompt.md` |
-| `/apply-critical` | Apply only Critical SAFE\_AUTO fixes from a Fix Plan | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
-| `/fix-all` | Apply all appropriate fixes from a Fix Plan | `docs/cursor-prompts/FixAllPrompt.md` |
-| `/doc-sync` | Update docs and comments to match current code | `docs/cursor-prompts/DocSyncPrompt.md` |
-| `/cleanup` | Safe, behavior-preserving code cleanup | `docs/cursor-prompts/CleanupPrompt.md` |
+| Command           | What it does                                        | Prompt file                                  |
+| ----------------- | --------------------------------------------------- | -------------------------------------------- |
+| `/explain`        | Explain selected code without changing anything     | `docs/cursor-prompts/ExplainPrompt.md`       |
+| `/audit`          | Deep technical audit → produces audit report        | `docs/cursor-prompts/ApexAuditPrompt.md`     |
+| `/audit-review`   | Review an audit file → produces a Fix Plan          | `docs/cursor-prompts/AuditReviewPrompt.md`   |
+| `/apply-critical` | Apply only Critical SAFE_AUTO fixes from a Fix Plan | `docs/cursor-prompts/ApplyCriticalPrompt.md` |
+| `/fix-all`        | Apply all appropriate fixes from a Fix Plan         | `docs/cursor-prompts/FixAllPrompt.md`        |
+| `/doc-sync`       | Update docs and comments to match current code      | `docs/cursor-prompts/DocSyncPrompt.md`       |
+| `/cleanup`        | Safe, behavior-preserving code cleanup              | `docs/cursor-prompts/CleanupPrompt.md`       |
 
 **Typical workflow**: `/explain` → `/audit` → `/audit-review` → `/apply-critical` or `/fix-all` → `/doc-sync` → `/cleanup`
 
@@ -145,12 +257,12 @@ Agent-universal workflow commands. The prompt files in `docs/cursor-prompts/` co
 
 ## Reference Links
 
-| Doc | What it covers |
-| --- | --- |
-| `docs/guides/DEVELOPER_GUIDE.md` | Detailed file structure, components, hooks, utilities |
-| `copilot-instructions.md` | Environment setup, testing workflows, validation scenarios |
-| `docs/workspace-rules/COMMUNICATION_RULES.md` | Ask-vs-decide examples |
-| `docs/workspace-rules/CREATING_PERMANENT_DOCS.md` | Feature READMEs, index structure, file headers |
-| `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md` | When and how to update docs |
-| `docs/schema/CURRENT_FIRESTORE_SCHEMA.md` | Authoritative Firestore schema |
-| `docs/cursor-prompts/cursor-commands-overview.md` | Full slash command reference with workflows |
+| Doc                                                  | What it covers                                             |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| `docs/guides/DEVELOPER_GUIDE.md`                     | Detailed file structure, components, hooks, utilities      |
+| `copilot-instructions.md`                            | Environment setup, testing workflows, validation scenarios |
+| `docs/workspace-rules/COMMUNICATION_RULES.md`        | Ask-vs-decide examples                                     |
+| `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`    | Feature READMEs, index structure, file headers             |
+| `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md` | When and how to update docs                                |
+| `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`            | Authoritative Firestore schema                             |
+| `docs/cursor-prompts/cursor-commands-overview.md`    | Full slash command reference with workflows                |

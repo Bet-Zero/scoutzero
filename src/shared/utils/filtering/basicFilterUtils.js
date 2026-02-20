@@ -185,4 +185,21 @@ export const getDefaultAddPlayerFilters = () => ({
   freeAgentYear: '',
   freeAgentStatus: '', // Renamed from freeAgentType - now only UFA/RFA
   contractFeature: '', // New: TO/PO/ETO/Two-Way
+  // Physical
+  minHeight: undefined,
+  maxHeight: undefined,
+  minWeight: undefined,
+  maxWeight: undefined,
+  minAge: undefined,
+  maxAge: undefined,
+  // Stats — operator + min/max per stat (undefined = inactive)
+  PPG_op: '',  min_PPG: undefined,  max_PPG: undefined,
+  RPG_op: '',  min_RPG: undefined,  max_RPG: undefined,
+  APG_op: '',  min_APG: undefined,  max_APG: undefined,
+  FGP_op: '',  min_FGP: undefined,  max_FGP: undefined,
+  TPP_op: '',  min_TPP: undefined,  max_TPP: undefined,
+  FTP_op: '',  min_FTP: undefined,  max_FTP: undefined,
+  eFGP_op: '', min_eFGP: undefined, max_eFGP: undefined,
+  MIN_op: '',  min_MIN: undefined,  max_MIN: undefined,
+  G_op: '',    min_G: undefined,    max_G: undefined,
 });

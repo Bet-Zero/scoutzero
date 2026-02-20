@@ -14,7 +14,7 @@ import DrawerHeader from './addPlayer/DrawerHeader';
 import PlayerSearchBar from './addPlayer/PlayerSearchBar';
 import FilterTabs from './addPlayer/FilterTabs';
 
-const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
+const AddPlayerDrawer = ({ onClose, allPlayers, onSelect, onSelectAll }) => {
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState(getDefaultAddPlayerFilters());
@@ -34,6 +34,12 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
       freeAgentYear,
       freeAgentStatus,
       contractFeature,
+      minHeight,
+      maxHeight,
+      minWeight,
+      maxWeight,
+      minAge,
+      maxAge,
     } = filters;
 
     const positionOptions = position ? expandPositionGroup(position) : null;
@@ -126,6 +132,38 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
           }
         }
 
+        // Physical filters — read from raw bio fields
+        const heightVal = p.original?.bio?.height;
+        const weightVal = p.original?.bio?.weight;
+        const ageVal = p.original?.bio?.age;
+        if (minHeight !== undefined && (heightVal == null || heightVal < minHeight)) return false;
+        if (maxHeight !== undefined && (heightVal == null || heightVal > maxHeight)) return false;
+        if (minWeight !== undefined && (weightVal == null || weightVal < minWeight)) return false;
+        if (maxWeight !== undefined && (weightVal == null || weightVal > maxWeight)) return false;
+        if (minAge !== undefined && (ageVal == null || ageVal < minAge)) return false;
+        if (maxAge !== undefined && (ageVal == null || ageVal > maxAge)) return false;
+
+        // Stat filters — read from denormalized currentSeasonStats on the raw doc
+        const ss = p.original?.currentSeasonStats ?? {};
+        const passStatFilter = (field, minKey, maxKey) => {
+          const lo = filters[minKey];
+          const hi = filters[maxKey];
+          if (lo === undefined && hi === undefined) return true;
+          const val = parseFloat(ss[field] ?? 0) * (field.includes('%') ? 100 : 1);
+          if (lo !== undefined && val < lo) return false;
+          if (hi !== undefined && val > hi) return false;
+          return true;
+        };
+        if (!passStatFilter('PTS',  'min_PPG',  'max_PPG'))  return false;
+        if (!passStatFilter('REB',  'min_RPG',  'max_RPG'))  return false;
+        if (!passStatFilter('AST',  'min_APG',  'max_APG'))  return false;
+        if (!passStatFilter('FG%',  'min_FGP',  'max_FGP'))  return false;
+        if (!passStatFilter('3PT%', 'min_TPP',  'max_TPP'))  return false;
+        if (!passStatFilter('FT%',  'min_FTP',  'max_FTP'))  return false;
+        if (!passStatFilter('eFG%', 'min_eFGP', 'max_eFGP')) return false;
+        if (!passStatFilter('MIN',  'min_MIN',  'max_MIN'))  return false;
+        if (!passStatFilter('GP',   'min_G',    'max_G'))    return false;
+
         return true;
       })
       .map((p) => p.original);
@@ -141,34 +179,57 @@ const AddPlayerDrawer = ({ onClose, allPlayers, onSelect }) => {
         onToggleFilters={() => setShowFilters(!showFilters)}
       />
 
-      {/* Main content area with proper flex behavior */}
+      {/* Main content area */}
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        {/* Filters section - will expand naturally */}
-        {showFilters && (
-          <FilterTabs
-            filters={filters}
-            setFilters={setFilters}
-            onCloseFilters={() => setShowFilters(false)}
-          />
+
+        {/* Add All strip — always in document flow, never displaced */}
+        {onSelectAll && filteredPlayers.length > 0 && (
+          <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.07] flex-shrink-0">
+            <span className="text-xs text-white/35">
+              {filteredPlayers.length} player{filteredPlayers.length !== 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={() => onSelectAll(filteredPlayers)}
+              className="text-xs font-semibold text-white/55 hover:text-white px-2 py-1 rounded hover:bg-white/[0.08] transition-all"
+            >
+              Add All ({filteredPlayers.length})
+            </button>
+          </div>
         )}
 
-        {/* Players list - takes remaining space */}
-        <div className="flex-1 overflow-y-auto px-2 py-1">
-          {filteredPlayers.length > 0 ? (
-            filteredPlayers.map((player) => (
-              <PlayerRowMini
-                key={player.id}
-                player={player}
-                onClick={() => onSelect(player)}
+        {/* Player list + filter overlay share the same space */}
+        <div className="relative flex-1 min-h-0">
+
+          {/* Filter panel — floats above the player list, no layout shift */}
+          {showFilters && (
+            <div className="absolute top-0 left-0 right-0 z-10 bg-[#161616] border-b border-white/10 shadow-2xl">
+              <FilterTabs
+                filters={filters}
+                setFilters={setFilters}
+                onCloseFilters={() => setShowFilters(false)}
               />
-            ))
-          ) : (
-            <div className="text-white/40 text-sm text-center py-6">
-              {search || Object.values(filters).some(Boolean)
-                ? 'No matching players found.'
-                : 'No players available.'}
             </div>
           )}
+
+          {/* Players list — occupies full height, stays put when filter opens */}
+          <div className="h-full overflow-y-auto px-2 py-1">
+            {filteredPlayers.length > 0 ? (
+              filteredPlayers.map((player) => (
+                <PlayerRowMini
+                  key={player.id}
+                  player={player}
+                  onClick={() => onSelect(player)}
+                />
+              ))
+            ) : (
+              <div className="text-white/40 text-sm text-center py-6">
+                {search || Object.values(filters).some(Boolean)
+                  ? 'No matching players found.'
+                  : 'No players available.'}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
     </div>

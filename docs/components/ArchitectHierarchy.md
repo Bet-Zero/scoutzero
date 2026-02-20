@@ -210,6 +210,7 @@ utils/
       swapGraph.ts
       swapResolutionAdapter.ts
       types.ts
+    entitlementExclusivityValidator.ts
     entitlementIdentity.ts
     entitlementPickRowProjection.js
     entitlementResolver.ts
@@ -334,6 +335,7 @@ utils/
       validateStepien.ts
       validateTradeExceptions.js
     utils/
+      buildEntitlementRoutingMap.ts
       capSettingsProvider.js
       capUtils.js
       computeMatchingValues.js
@@ -362,5 +364,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-20T08:50:04.565Z*
+*Generated on: 2026-02-20T12:42:26.050Z*
 *Auto-updated by: npm run docs*

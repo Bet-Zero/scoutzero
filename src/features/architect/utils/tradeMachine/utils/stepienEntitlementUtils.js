@@ -168,18 +168,25 @@ export function buildStepienBaselinePicksFromEntitlements(entitlements) {
  * Takes the team's current entitlements, removes those being traded out,
  * and adds those being traded in (from other teams in the trade).
  *
+ * STRICT MODE (TM-EXCL-E2): If any outgoing entitlement is missing `toTeamId`,
+ * or has an invalid `toTeamId`, this function throws. The caller (tradeValidator)
+ * catches the throw and maps it to a blocking Pick Exclusivity failure.
+ *
  * @param {Object} params
  * @param {Array} params.currentEntitlements - Team's pre-trade entitlement inventory
  * @param {Array} params.entitlementsOut - Entitlements this team is sending out
  * @param {Array} params.allTeamsEntitlementsOut - All teams' outgoing entitlements (for computing incoming)
  * @param {string} params.teamId - This team's ID (for routing incoming entitlements)
+ * @param {Set} [params.tradeParticipantIds] - Set of all team IDs in the trade (for strict validation)
  * @returns {Array} - Post-trade entitlement array
+ * @throws {Error} If strict routing validation fails (missing toTeamId, invalid destination, duplicates)
  */
 export function computePostTradeEntitlements({
   currentEntitlements = [],
   entitlementsOut = [],
   allTeamsEntitlementsOut = [],
   teamId,
+  tradeParticipantIds = null,
 }) {
   // IDs being sent out by this team
   const outIds = new Set(
@@ -192,6 +199,9 @@ export function computePostTradeEntitlements({
     return !outIds.has(id);
   });
 
+  // TM-EXCL-E2: Track entitlements routed to this team to detect duplicates
+  const incomingEntitlementIds = new Set();
+
   // Add incoming: entitlements from other teams routed to this team
   for (const otherTeamEntitlements of allTeamsEntitlementsOut) {
     for (const ent of otherTeamEntitlements) {
@@ -201,11 +211,46 @@ export function computePostTradeEntitlements({
       // Skip entitlements from this team (they're outgoing, not incoming)
       if (fromTeamId === teamId) continue;
 
+      // TM-EXCL-E2: Strict mode — validate toTeamId
+      if (!toTeamId) {
+        // For backward compatibility with 2-team broadcasts: only allow if exactly 1 other team's entitlements
+        if (allTeamsEntitlementsOut.length === 1) {
+          // 2-team broadcast fallback — still OK
+        } else {
+          // 3+ team trade with missing toTeamId — this is a routing failure
+          const entId = ent.entitlementId || ent.id || 'unknown';
+          throw new Error(
+            `Pick Exclusivity: Entitlement "${entId}" from ${fromTeamId} has no destination team (toTeamId missing in multi-team trade)`
+          );
+        }
+      }
+
+      // TM-EXCL-E2: If tradeParticipantIds provided, validate destination is in the trade
+      if (
+        toTeamId &&
+        tradeParticipantIds &&
+        !tradeParticipantIds.has(toTeamId)
+      ) {
+        const entId = ent.entitlementId || ent.id || 'unknown';
+        throw new Error(
+          `Pick Exclusivity: Entitlement "${entId}" routed to "${toTeamId}" which is not a trade participant`
+        );
+      }
+
       // Include if routed to this team (or broadcast in 2-team trade with no toTeamId)
       if (
         toTeamId === teamId ||
         (!toTeamId && allTeamsEntitlementsOut.length === 1)
       ) {
+        // TM-EXCL-E2: Detect duplicate routing (same entitlement moved to same team twice)
+        const entId = ent.entitlementId || ent.id;
+        if (entId && incomingEntitlementIds.has(entId)) {
+          throw new Error(
+            `Pick Exclusivity: Entitlement "${entId}" routed to ${teamId} more than once (routing conflict)`
+          );
+        }
+        if (entId) incomingEntitlementIds.add(entId);
+
         postTrade.push({
           ...ent,
           holderTeam: teamId, // Reflect new ownership

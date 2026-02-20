@@ -8,8 +8,10 @@ AddPlayerDrawer/
     ContractFilters.jsx
     DrawerHeader.jsx
     FilterTabs.jsx
+    PhysicalFilters.jsx
     PlayerSearchBar.jsx
     RolesFilters.jsx
+    StatsFilters.jsx
   index.jsx
 CreateRosterModal.jsx
 RosterControls.jsx
@@ -36,5 +38,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-05T11:43:10.950Z*
+*Generated on: 2026-02-20T12:42:26.072Z*
 *Auto-updated by: npm run docs*
