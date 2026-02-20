@@ -7,6 +7,8 @@
  *  - 2026-02-05: Created for TM-4 entitlement authoring form state.
  */
 
+import { getEntitlementIdentityKey } from '../utils/entitlements/entitlementIdentity';
+
 export type EntitlementKind =
   | 'pick_ownership'
   | 'swap_right'
@@ -231,6 +233,10 @@ export const buildEntitlementDocument = (
   if (coveredByEntitlementIds.length > 0) {
     document.coveredByEntitlementIds = coveredByEntitlementIds;
   }
+
+  // R2: Persist identityKey so downstream consumers (resolver, list, dedupe)
+  // can match records without recomputing. Written to both world and vacuum docs.
+  document.identityKey = getEntitlementIdentityKey(document);
 
   return document;
 };

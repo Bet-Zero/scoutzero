@@ -9,19 +9,37 @@ const formatStat = (stat, isInteger = false, multiply = false) => {
   return parsed.toFixed(1);
 };
 
+/**
+ * Get the NBA stats season start year.
+ * Uses ~Oct 20 rollover (when the regular season typically begins)
+ * so the prior season is shown during the offseason (July–October).
+ */
+function getStatsSeasonYear() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed: 0=Jan, 9=Oct
+  const day = now.getDate();
+  // Before Oct 20 → prior season; Oct 20+ → new season
+  const isNewSeason = month > 9 || (month === 9 && day >= 20);
+  return isNewSeason ? year : year - 1;
+}
+
 const PlayerStatsTable = ({ player }) => {
   const stats = player.latestSeasonStats || {};
   const gamesPlayed = stats.GP ?? 'N/A';
-  
-  // Get current season from latestSeasonMeta or default to current year
-  const currentYear = new Date().getFullYear();
-  const seasonYear = currentYear - (new Date().getMonth() < 6 ? 1 : 0);
-  const seasonLabel = player.latestSeasonMeta?.statsSeasonTag || `${seasonYear - 1}-${seasonYear.toString().slice(-2)}`;
+
+  // Get current stats season (Oct 20 rollover so offseason shows prior year)
+  const seasonYear = getStatsSeasonYear();
+  const seasonLabel =
+    player.latestSeasonMeta?.statsSeasonTag ||
+    `${seasonYear}-${(seasonYear + 1).toString().slice(-2)}`;
 
   return (
     <div className="w-full max-w-[750px] bg-[#1f1f1f] rounded-2xl shadow-lg px-6 pt-[0.5rem] pb-[0.75rem] text-white text-sm font-medium">
       <div className="flex justify-between items-center mb-[0.5rem] font-bold">
-        <div className="w-[60px] font-bold whitespace-nowrap">{seasonLabel}</div>
+        <div className="w-[60px] font-bold whitespace-nowrap">
+          {seasonLabel}
+        </div>
         <div className="h-4 w-[1px] bg-neutral-700" />
         <div className="w-[50px] text-center">MIN</div>
         <div className="w-[50px] text-center">PTS</div>

@@ -89,6 +89,8 @@ const TradeTeamCard = ({
   onSetEntitlementDestination,
   // TM-4: Entitlement edit callback
   onEditEntitlement,
+  // View entitlement details callback
+  onViewEntitlementDetails,
   // TM-7: Entitlement create callback
   onCreateEntitlement,
   // TM-VACUUM-E2: Vacuum mode + per-item session controls
@@ -758,6 +760,7 @@ const TradeTeamCard = ({
           entitlementsOut={entitlementsOut}
           onSetDestination={onSetEntitlementDestination}
           onEditEntitlement={onEditEntitlement}
+          onViewDetails={onViewEntitlementDetails}
           onCreateEntitlement={
             onCreateEntitlement ? () => onCreateEntitlement(team.id) : null
           }

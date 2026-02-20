@@ -17,11 +17,20 @@ interface EntitlementEditorSwapTabProps {
   onChange: (next: EntitlementFormState) => void;
   fieldErrors?: FieldErrors;
   disabled?: boolean;
+  /** When true, identity-defining fields (swapControllerPickId, swapTargetDefinition) are locked. */
+  isEditMode?: boolean;
 }
 
 export const EntitlementEditorSwapTab: React.FC<
   EntitlementEditorSwapTabProps
-> = ({ formState, onChange, fieldErrors = {}, disabled = false }) => {
+> = ({
+  formState,
+  onChange,
+  fieldErrors = {},
+  disabled = false,
+  isEditMode = false,
+}) => {
+  const identityLocked = isEditMode;
   const updateField = (key: keyof EntitlementFormState, value: string) => {
     onChange({
       ...formState,
@@ -35,6 +44,16 @@ export const EntitlementEditorSwapTab: React.FC<
         Not yet simulated in trade validation. Saved swap definitions are
         displayed and used by resolution tooling only.
       </div>
+
+      {identityLocked && (
+        <div
+          className="text-xs text-amber-300/80 bg-amber-900/20 border border-amber-500/30 rounded px-3 py-2"
+          data-testid="identity-lock-notice"
+        >
+          Identity fields are locked. To change the pick/right, use{' '}
+          {'\u201CCreate new from this\u2026\u201D'}
+        </div>
+      )}
 
       <div>
         <label
@@ -70,8 +89,12 @@ export const EntitlementEditorSwapTab: React.FC<
           id="entitlement-swapControllerPickId"
           value={formState.swapControllerPickId}
           onChange={(e) => updateField('swapControllerPickId', e.target.value)}
-          disabled={disabled}
-          className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+          disabled={disabled || identityLocked}
+          className={`w-full px-2 py-1 rounded text-white border ${
+            identityLocked
+              ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+              : 'bg-[#141414]'
+          } ${
             fieldErrors.swapControllerPickId
               ? 'border-red-500'
               : 'border-white/10'
@@ -95,9 +118,13 @@ export const EntitlementEditorSwapTab: React.FC<
           id="entitlement-swapTargetDefinition"
           value={formState.swapTargetDefinition}
           onChange={(e) => updateField('swapTargetDefinition', e.target.value)}
-          disabled={disabled}
+          disabled={disabled || identityLocked}
           rows={3}
-          className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+          className={`w-full px-2 py-1 rounded text-white border ${
+            identityLocked
+              ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+              : 'bg-[#141414]'
+          } ${
             fieldErrors.swapTargetDefinition
               ? 'border-red-500'
               : 'border-white/10'

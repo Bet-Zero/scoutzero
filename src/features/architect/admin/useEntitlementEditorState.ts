@@ -11,11 +11,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { db } from '@/firebaseConfig';
 import {
-  generateEntitlementId,
   getEntitlementPath,
   validateEntitlementDocument,
   writeWorldEntitlement,
 } from '../utils/entitlements/entitlementWriter';
+import { getEntitlementDeterministicId } from '../utils/entitlements/entitlementIdentity';
 import {
   buildEntitlementDocument,
   createEntitlementFormState,
@@ -198,15 +198,12 @@ export const useEntitlementEditorState = ({
         return;
       }
 
+      // R1: Use deterministic ID (not random) for creates — same logical
+      // entitlement always gets the same ID, enabling upsert semantics.
       const id =
         entitlementId ||
         (document.id as string) ||
-        generateEntitlementId(
-          document.holderTeam as string,
-          document.seasonYear as number,
-          document.round as number,
-          document.kind as 'pick_ownership' | 'swap_right' | 'conveyance_right'
-        );
+        getEntitlementDeterministicId(document);
 
       if (!id) {
         setErrors(['Entitlement ID could not be determined.']);

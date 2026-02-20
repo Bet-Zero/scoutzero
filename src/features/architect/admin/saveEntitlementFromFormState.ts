@@ -33,8 +33,13 @@ import {
 import {
   getEntitlementDeterministicId,
   getVacuumDeterministicId,
+  getEntitlementIdentityKey,
 } from '../utils/entitlements/entitlementIdentity';
 import { moveWorldEntitlement } from '../utils/entitlements/moveWorldEntitlement';
+import { findVacuumCreateByIdentityKey } from '../utils/entitlements/vacuumEntitlementOverlayStore';
+
+// ─── debug flag ──────────────────────────────────────────────────────────────
+const __DEV_DEDUPE_LOG__ = import.meta.env.DEV;
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -93,10 +98,25 @@ export async function saveEntitlementFromFormState(
   // 3. Determine entitlement ID
   // R1: For creates (no existing ID), use deterministic ID based on identity fields.
   // This enables upsert semantics — same logical entitlement always gets same ID.
+  const isCreate = !entitlementId;
   const id =
     entitlementId ||
     (document.id as string) ||
     getEntitlementDeterministicId(document);
+
+  // R3: Compute identityKey for dedupe and debug logging
+  const identityKey = getEntitlementIdentityKey(document);
+
+  // Debug proof (dev-only): log identity and dedupe info at save time
+  if (__DEV_DEDUPE_LOG__) {
+    console.group('[entitlement-dedupe] save');
+    console.log('identityKey:', identityKey);
+    console.log('deterministic ID:', getEntitlementDeterministicId(document));
+    console.log('final ID (pre-dedupe):', id);
+    console.log('isCreate:', isCreate);
+    console.log('storageMode:', storageMode);
+    console.groupEnd();
+  }
 
   // 4. Route based on storage mode
   if (storageMode === 'vacuum') {
@@ -167,7 +187,31 @@ function saveVacuum(args: {
     // Creating new — generate a deterministic vacuum-prefixed ID
     // R1: Same logical entitlement always gets the same ID, enabling dedupe.
     finalId = getVacuumDeterministicId(document);
-    applyVacuumCreate(teamCode, finalId, document);
+
+    // R3: identityKey dedupe safety net — even if deterministic IDs differ
+    // (e.g. legacy random-ID entry), check for an existing create with the
+    // same identity and upsert into it instead of creating a duplicate.
+    const identityKey = getEntitlementIdentityKey(document);
+    const existing = findVacuumCreateByIdentityKey(teamCode, identityKey);
+    if (existing && existing.vacuumId !== finalId) {
+      if (__DEV_DEDUPE_LOG__) {
+        console.log(
+          '[entitlement-dedupe] vacuum create: identityKey match found →',
+          existing.vacuumId,
+          '→ upsert (rekey to',
+          finalId,
+          ')'
+        );
+      }
+      // Rekey: remove the old entry, write under the new deterministic ID
+      rekeyVacuumCreate(teamCode, existing.vacuumId, finalId, document);
+    } else {
+      applyVacuumCreate(teamCode, finalId, document);
+    }
+
+    if (__DEV_DEDUPE_LOG__) {
+      console.log('[entitlement-dedupe] vacuum create: wrote', finalId);
+    }
   }
 
   toast.success('Saved (this session only)');
@@ -220,6 +264,16 @@ async function saveWorld(args: {
   const computedId = getEntitlementDeterministicId(document);
   const isEdit = !!originalEntitlementId;
   const identityChanged = isEdit && originalEntitlementId !== computedId;
+
+  if (__DEV_DEDUPE_LOG__) {
+    console.group('[entitlement-dedupe] world save');
+    console.log('identityKey:', document.identityKey);
+    console.log('deterministic ID:', computedId);
+    console.log('entitlementId (passed):', entitlementId);
+    console.log('originalEntitlementId:', originalEntitlementId);
+    console.log('isEdit:', isEdit, '| identityChanged:', identityChanged);
+    console.groupEnd();
+  }
 
   if (identityChanged) {
     // Move: write to computedId, delete originalEntitlementId, update team inventory

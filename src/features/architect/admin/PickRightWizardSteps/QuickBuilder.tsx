@@ -165,20 +165,30 @@ export const QuickBuilder: React.FC<QuickBuilderProps> = ({
       {/* ── Pick Label (Edit: locked, Create: selector) ── */}
       <div data-testid="quick-builder-pick-section">
         {isEditMode ? (
-          <div
-            data-testid="edit-identity-summary"
-            className="flex items-center gap-2 px-3 py-2 rounded bg-[#141414] border border-white/10"
-          >
-            <span
-              className="text-sm font-medium text-white"
-              data-testid="edit-identity-primary"
+          <>
+            <div
+              data-testid="edit-identity-summary"
+              className="flex items-center gap-2 px-3 py-2 rounded bg-[#141414] border border-white/10"
             >
-              {wizardModel.pick.team || '???'} {wizardModel.pick.year || '????'}{' '}
-              {ROUND_LABELS[String(wizardModel.pick.round)] ||
-                `R${wizardModel.pick.round}`}
-            </span>
-            <span className="text-white/20 text-xs">🔒</span>
-          </div>
+              <span
+                className="text-sm font-medium text-white"
+                data-testid="edit-identity-primary"
+              >
+                {wizardModel.pick.team || '???'}{' '}
+                {wizardModel.pick.year || '????'}{' '}
+                {ROUND_LABELS[String(wizardModel.pick.round)] ||
+                  `R${wizardModel.pick.round}`}
+              </span>
+              <span className="text-white/20 text-xs">{'\uD83D\uDD12'}</span>
+            </div>
+            <p
+              className="text-[10px] text-white/40 mt-1"
+              data-testid="identity-lock-hint"
+            >
+              To change the pick/right, use {'\u201C'}Create new from this
+              {'\u2026\u201D'}
+            </p>
+          </>
         ) : (
           <PickSelector
             value={primaryPickId}

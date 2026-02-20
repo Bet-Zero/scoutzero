@@ -17,6 +17,8 @@ interface EntitlementEditorConveyanceTabProps {
   onChange: (next: EntitlementFormState) => void;
   fieldErrors?: FieldErrors;
   disabled?: boolean;
+  /** When true, identity-defining fields (pool picks, comparator, rank) are locked. */
+  isEditMode?: boolean;
 }
 
 // Parse pool text to array
@@ -31,7 +33,14 @@ const poolIdsToText = (ids: string[]): string => ids.join('\n');
 
 export const EntitlementEditorConveyanceTab: React.FC<
   EntitlementEditorConveyanceTabProps
-> = ({ formState, onChange, fieldErrors = {}, disabled = false }) => {
+> = ({
+  formState,
+  onChange,
+  fieldErrors = {},
+  disabled = false,
+  isEditMode = false,
+}) => {
+  const identityLocked = isEditMode;
   const updateField = (key: keyof EntitlementFormState, value: string) => {
     onChange({
       ...formState,
@@ -82,6 +91,16 @@ export const EntitlementEditorConveyanceTab: React.FC<
         displayed and used by resolution tooling only.
       </div>
 
+      {identityLocked && (
+        <div
+          className="text-xs text-amber-300/80 bg-amber-900/20 border border-amber-500/30 rounded px-3 py-2"
+          data-testid="identity-lock-notice"
+        >
+          Identity fields are locked. To change the pick/right, use{' '}
+          {'\u201CCreate new from this\u2026\u201D'}
+        </div>
+      )}
+
       {/* Pool of Picks */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -94,7 +113,7 @@ export const EntitlementEditorConveyanceTab: React.FC<
           <button
             type="button"
             onClick={addPoolId}
-            disabled={disabled}
+            disabled={disabled || identityLocked}
             className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50"
           >
             Add Pick
@@ -115,16 +134,18 @@ export const EntitlementEditorConveyanceTab: React.FC<
                 <input
                   value={pickId}
                   onChange={(e) => updatePoolId(index, e.target.value)}
-                  disabled={disabled}
+                  disabled={disabled || identityLocked}
                   placeholder="e.g., ATL_2026_1st"
-                  className={`flex-1 px-2 py-1 rounded bg-[#141414] text-white text-sm border ${
-                    !pickId ? 'border-amber-500/50' : 'border-white/10'
-                  }`}
+                  className={`flex-1 px-2 py-1 rounded text-white text-sm border ${
+                    identityLocked
+                      ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                      : 'bg-[#141414]'
+                  } ${!pickId ? 'border-amber-500/50' : 'border-white/10'}`}
                 />
                 <button
                   type="button"
                   onClick={() => removePoolId(index)}
-                  disabled={disabled}
+                  disabled={disabled || identityLocked}
                   className="px-2 py-1 text-xs text-red-300 hover:text-red-200"
                 >
                   Remove
@@ -153,9 +174,13 @@ export const EntitlementEditorConveyanceTab: React.FC<
             id="entitlement-receivesRank"
             value={formState.receivesRankText}
             onChange={(e) => updateField('receivesRankText', e.target.value)}
-            disabled={disabled}
+            disabled={disabled || identityLocked}
             placeholder="1"
-            className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+            className={`w-full px-2 py-1 rounded text-white border border-white/10 ${
+              identityLocked
+                ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                : 'bg-[#141414]'
+            }`}
           />
           <p className="text-[10px] text-white/40 mt-1">
             Which rank(s) to receive (e.g., 1 for best, or 1, 2 for top 2).
@@ -172,10 +197,12 @@ export const EntitlementEditorConveyanceTab: React.FC<
             id="entitlement-receivesComparator"
             value={formState.receivesComparator}
             onChange={(e) => updateField('receivesComparator', e.target.value)}
-            disabled={disabled}
-            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
-              missingComparator ? 'border-red-500' : 'border-white/10'
-            }`}
+            disabled={disabled || identityLocked}
+            className={`w-full px-2 py-1 rounded text-white border ${
+              identityLocked
+                ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                : 'bg-[#141414]'
+            } ${missingComparator ? 'border-red-500' : 'border-white/10'}`}
           >
             <option value="">Select...</option>
             <option value="more_favorable">Best (most favorable)</option>

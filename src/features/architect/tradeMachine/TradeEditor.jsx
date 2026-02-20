@@ -200,6 +200,30 @@ const TradeEditor = ({
     });
   };
 
+  /**
+   * Handle viewing entitlement details - shows a toast with parsed entitlement info
+   */
+  const handleViewEntitlementDetails = (entitlement) => {
+    if (!entitlement) return;
+
+    const year = entitlement.seasonYear || entitlement.year || '?';
+    const round = entitlement.round === 1 ? '1st' : '2nd';
+    const kind = entitlement.kind || 'unknown';
+    const holder = entitlement.holderTeam || '?';
+    const original = entitlement.originalTeamId || entitlement.originalTeam || holder;
+    const protection = entitlement.protectionDetails || entitlement.protection || null;
+    
+    const lines = [
+      `${year} Round ${round}`,
+      `Type: ${kind.replace(/_/g, ' ')}`,
+      `Holder: ${holder}`,
+      original !== holder ? `Original: ${original}` : null,
+      protection ? `Protection: ${protection}` : null,
+    ].filter(Boolean);
+
+    toast(lines.join('\n'), { duration: 5000 });
+  };
+
   // TM-VACUUM-E1: Clear session overlay and re-resolve entitlements
   const handleClearVacuumOverlay = () => {
     clearVacuumOverlay();
@@ -372,6 +396,7 @@ const TradeEditor = ({
                 onEditEntitlement={
                   canEditEntitlements ? handleEditEntitlement : null
                 }
+                onViewEntitlementDetails={handleViewEntitlementDetails}
                 onCreateEntitlement={
                   canEditEntitlements ? handleCreateEntitlement : null
                 }

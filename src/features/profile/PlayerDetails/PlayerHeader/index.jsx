@@ -4,6 +4,7 @@ import PlayerPosition from './ProfilePlayerPosition';
 import TeamLogo from '@/shared/components/TeamLogo';
 import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
 import { POSITION_MAP } from '@/shared/utils/roles';
+import { getCurrentSeasonYear } from '@/shared/utils/contracts/contractUtils';
 
 const PlayerHeader = ({ player, selectedPlayer }) => {
   const getAbbreviatedPosition = (position) => {
@@ -18,10 +19,11 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
     return `${feet}-${remainingInches}`;
   };
 
-  const thisYear = 2025;
-  
+  const thisYear = getCurrentSeasonYear();
+
   // Get contract data from contracts subcollection (v2 structure only)
-  const contractData = player.primaryContract ||
+  const contractData =
+    player.primaryContract ||
     (player.contracts ? Object.values(player.contracts)[0] : null);
   const totalYears = contractData?.contractLength;
   const currentYearSalaryObj = contractData?.salariesByYear?.find(
@@ -48,7 +50,9 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
     <div className="h-[220px] w-full max-w-[750px] flex items-center gap-4">
       <div className="flex w-[300px] justify-between">
         <div className="flex flex-col justify-center">
-          <PlayerName name={player.bio?.displayName || player.name || 'Unknown'} />
+          <PlayerName
+            name={player.bio?.displayName || player.name || 'Unknown'}
+          />
           <div className="flex items-center gap-4 mt-4">
             <TeamLogo teamAbbr={player.bio?.display?.team} />
             <div className="h-[2.5rem] w-[2px] bg-black" />
@@ -65,13 +69,15 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
       <div className="w-[230px] h-[190px] bg-[#1f1f1f] rounded-2xl shadow-lg text-white text-[13px] font-thin px-4 py-3 flex flex-col relative top-[0.11rem] justify-center">
         <div className="space-y-[2px]">
           <p>
-            <span className="font-bold">HT</span>: {formatHeight(player.bio?.height)}
+            <span className="font-bold">HT</span>:{' '}
+            {formatHeight(player.bio?.height)}
           </p>
           <p>
             <span className="font-bold">WT</span>: {player.bio?.weight || 'N/A'}
           </p>
           <p>
-            <span className="font-bold">AGE</span>: {(() => {
+            <span className="font-bold">AGE</span>:{' '}
+            {(() => {
               // Calculate age from DOB if age field is missing
               if (player.bio?.age) return player.bio.age;
               if (player.bio?.dob) {
@@ -81,7 +87,10 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
                     const today = new Date();
                     let age = today.getFullYear() - birthDate.getFullYear();
                     const monthDiff = today.getMonth() - birthDate.getMonth();
-                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    if (
+                      monthDiff < 0 ||
+                      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+                    ) {
                       age--;
                     }
                     return age >= 0 ? age : 'N/A';
@@ -100,14 +109,16 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
           {player.bio?.draft?.pick && (
             <p>
               <span className="font-bold">DRAFTED</span>:{' '}
-              {player.bio.draft.year} Rd {player.bio.draft.round} Pick {player.bio.draft.pick}
+              {player.bio.draft.year} Rd {player.bio.draft.round} Pick{' '}
+              {player.bio.draft.pick}
             </p>
           )}
         </div>
         <div className="h-6" />
         <div className="space-y-[2px]">
           <p>
-            <span className="font-bold">TEAM</span>: {player.bio?.display?.team || 'N/A'}
+            <span className="font-bold">TEAM</span>:{' '}
+            {player.bio?.display?.team || 'N/A'}
           </p>
           <p>
             <span className="font-bold">CONTRACT</span>: {contractSummary}

@@ -81,10 +81,94 @@ const _getNextPhasePair = (players, comparisons) => {
   return [];
 };
 
+// ========== 🔁 INCREMENTAL TRANSITIVE CLOSURE CACHE ==========
+
+// Create a reusable closure cache that can be incrementally updated
+export function createClosureCache() {
+  const closure = {}; // { [id]: Set of all transitively reachable ids }
+  const directEdges = {}; // { [id]: Set of direct wins }
+
+  const ensureNode = (id) => {
+    if (!closure[id]) closure[id] = new Set();
+    if (!directEdges[id]) directEdges[id] = new Set();
+  };
+
+  return {
+    // Add a comparison edge and incrementally update reachability
+    addEdge(winnerId, loserId) {
+      ensureNode(winnerId);
+      ensureNode(loserId);
+      if (directEdges[winnerId].has(loserId)) return; // already tracked
+      directEdges[winnerId].add(loserId);
+
+      // Winner now reaches loser + everything loser reaches
+      const newReachable = new Set([loserId, ...closure[loserId]]);
+      // Remove what winner already knew about
+      for (const id of closure[winnerId]) newReachable.delete(id);
+      if (newReachable.size === 0) return;
+
+      // Propagate: anyone who can reach winner also gains the new nodes
+      for (const id of newReachable) closure[winnerId].add(id);
+      for (const nodeId in closure) {
+        if (closure[nodeId].has(winnerId)) {
+          for (const id of newReachable) closure[nodeId].add(id);
+        }
+      }
+    },
+
+    // Bulk-load from a comparisons array (used on init / undo)
+    rebuild(comparisons) {
+      for (const key in closure) delete closure[key];
+      for (const key in directEdges) delete directEdges[key];
+      comparisons.forEach(({ winner, loser }) => {
+        ensureNode(winner);
+        ensureNode(loser);
+        directEdges[winner].add(loser);
+      });
+      // Build full closure from scratch
+      for (const a in directEdges) {
+        closure[a] = new Set();
+        const stack = [...directEdges[a]];
+        while (stack.length > 0) {
+          const next = stack.pop();
+          if (!closure[a].has(next)) {
+            closure[a].add(next);
+            directEdges[next]?.forEach((n) => stack.push(n));
+          }
+        }
+      }
+    },
+
+    // Get the closure for a specific group of players
+    getGroupClosure(groupPlayerIds) {
+      const idSet = new Set(groupPlayerIds);
+      const groupClosure = {};
+      for (const id of groupPlayerIds) {
+        groupClosure[id] = new Set();
+        if (closure[id]) {
+          for (const reachable of closure[id]) {
+            if (idSet.has(reachable)) groupClosure[id].add(reachable);
+          }
+        }
+      }
+      return groupClosure;
+    },
+
+    get closure() {
+      return closure;
+    },
+  };
+}
+
 // Suggest next strategic pair while respecting group isolation
 // ✅ SMART MATCHUP GENERATOR
-export function suggestNextPair(comparisons, players) {
+export function suggestNextPair(comparisons, players, { skippedPairs, closureCache } = {}) {
   if (players.length < 2) return [];
+
+  const skipSet = skippedPairs || new Set();
+
+  // Helper: make a canonical skip key for a pair (order-independent)
+  const skipKey = (a, b) => a < b ? `${a}<>${b}` : `${b}<>${a}`;
 
   // Helper to suggest a pair within a single group
   const suggestInGroup = (groupPlayers) => {
@@ -107,24 +191,30 @@ export function suggestNextPair(comparisons, players) {
       usageCount[loser]++;
     });
 
-    const graph = {};
-    groupPlayers.forEach((p) => (graph[p.id] = new Set()));
-    groupComps.forEach(({ winner, loser }) => {
-      graph[winner].add(loser);
-    });
-
-    const closure = {};
-    for (const a in graph) {
-      closure[a] = new Set();
-      const stack = [...graph[a]];
-      while (stack.length > 0) {
-        const next = stack.pop();
-        if (!closure[a].has(next)) {
-          closure[a].add(next);
-          graph[next]?.forEach((n) => stack.push(n));
-        }
-      }
-    }
+    // Use closure cache if available, otherwise compute inline
+    const groupIds = groupPlayers.map((p) => p.id);
+    const closure = closureCache
+      ? closureCache.getGroupClosure(groupIds)
+      : (() => {
+          const graph = {};
+          groupPlayers.forEach((p) => (graph[p.id] = new Set()));
+          groupComps.forEach(({ winner, loser }) => {
+            graph[winner].add(loser);
+          });
+          const c = {};
+          for (const a in graph) {
+            c[a] = new Set();
+            const stack = [...graph[a]];
+            while (stack.length > 0) {
+              const next = stack.pop();
+              if (!c[a].has(next)) {
+                c[a].add(next);
+                graph[next]?.forEach((n) => stack.push(n));
+              }
+            }
+          }
+          return c;
+        })();
 
     // Phase 1: New vs New inside the group
     const unused = groupPlayers.filter((p) => usageCount[p.id] === 0);
@@ -132,7 +222,9 @@ export function suggestNextPair(comparisons, players) {
       for (let i = 0; i < unused.length; i++) {
         for (let j = i + 1; j < unused.length; j++) {
           const key = `${unused[i].id}->${unused[j].id}`;
-          if (!seen.has(key)) return [unused[i], unused[j]];
+          if (!seen.has(key) && !skipSet.has(skipKey(unused[i].id, unused[j].id))) {
+            return [unused[i], unused[j]];
+          }
         }
       }
     }
@@ -147,7 +239,7 @@ export function suggestNextPair(comparisons, players) {
         const aBeatsB = closure[a.id]?.has(b.id);
         const bBeatsA = closure[b.id]?.has(a.id);
 
-        if (!seen.has(key) && !aBeatsB && !bBeatsA) {
+        if (!seen.has(key) && !aBeatsB && !bBeatsA && !skipSet.has(skipKey(a.id, b.id))) {
           const usageGap = Math.abs(usageCount[a.id] - usageCount[b.id]);
           const totalUsage = usageCount[a.id] + usageCount[b.id];
           unresolved.push({
@@ -226,20 +318,92 @@ export function suggestNextPair(comparisons, players) {
   return [];
 }
 
-// Estimate how many additional comparisons remain
+// Estimate how many additional comparisons remain (formula-based, O(n²) single pass)
 export function estimateRemainingComparisons(comparisons, players) {
-  const simulated = comparisons.map((c) => ({ ...c }));
-  let count = 0;
-  let next = suggestNextPair(simulated, players);
+  if (players.length < 2) return 0;
 
-  while (next.length > 0) {
-    // arbitrarily assume the first player wins to progress the simulation
-    simulated.push({ winner: next[0].id, loser: next[1].id });
-    count++;
-    next = suggestNextPair(simulated, players);
+  // Group players the same way suggestNextPair does
+  const groups = {};
+  players.forEach((p) => {
+    const g = p.group || 'default';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(p);
+  });
+
+  let unresolvedCount = 0;
+
+  for (const g of Object.keys(groups)) {
+    const groupPlayers = groups[g];
+    if (groupPlayers.length < 2) continue;
+
+    const idSet = new Set(groupPlayers.map((p) => p.id));
+    const groupComps = comparisons.filter(
+      (c) => idSet.has(c.winner) && idSet.has(c.loser)
+    );
+
+    // Build seen set (directly compared pairs)
+    const seen = new Set();
+    groupComps.forEach(({ winner, loser }) => {
+      seen.add(`${winner}->${loser}`);
+      seen.add(`${loser}->${winner}`);
+    });
+
+    // Build transitive closure for this group
+    const graph = {};
+    groupPlayers.forEach((p) => (graph[p.id] = new Set()));
+    groupComps.forEach(({ winner, loser }) => {
+      graph[winner].add(loser);
+    });
+    const closure = {};
+    for (const a in graph) {
+      closure[a] = new Set();
+      const stack = [...graph[a]];
+      while (stack.length > 0) {
+        const next = stack.pop();
+        if (!closure[a].has(next)) {
+          closure[a].add(next);
+          graph[next]?.forEach((n) => stack.push(n));
+        }
+      }
+    }
+
+    // Count unresolved pairs: not directly compared AND not transitively resolved
+    for (let i = 0; i < groupPlayers.length; i++) {
+      for (let j = i + 1; j < groupPlayers.length; j++) {
+        const a = groupPlayers[i];
+        const b = groupPlayers[j];
+        const key = `${a.id}->${b.id}`;
+        if (!seen.has(key) && !closure[a.id]?.has(b.id) && !closure[b.id]?.has(a.id)) {
+          unresolvedCount++;
+        }
+      }
+    }
   }
 
-  return count;
+  // Add pending boundary comparisons
+  const hasGroup = (name) => (groups[name]?.length || 0) > 0;
+  if (hasGroup('top') && hasGroup('upper')) {
+    const topIds = new Set(groups.top.map((p) => p.id));
+    const upperIds = new Set(groups.upper.map((p) => p.id));
+    const hasBoundaryComp = comparisons.some(
+      (c) =>
+        (topIds.has(c.winner) && upperIds.has(c.loser)) ||
+        (upperIds.has(c.winner) && topIds.has(c.loser))
+    );
+    if (!hasBoundaryComp) unresolvedCount++;
+  }
+  if (hasGroup('lower') && hasGroup('bottom')) {
+    const lowerIds = new Set(groups.lower.map((p) => p.id));
+    const bottomIds = new Set(groups.bottom.map((p) => p.id));
+    const hasBoundaryComp = comparisons.some(
+      (c) =>
+        (lowerIds.has(c.winner) && bottomIds.has(c.loser)) ||
+        (bottomIds.has(c.winner) && lowerIds.has(c.loser))
+    );
+    if (!hasBoundaryComp) unresolvedCount++;
+  }
+
+  return unresolvedCount;
 }
 
 // Build direct comparisons against an anchor player

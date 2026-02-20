@@ -63,12 +63,23 @@ function normalizeTeamCode(value: unknown): string {
 }
 
 /**
- * Normalize a string for identity: trim, lowercase, replace spaces with underscores.
+ * Normalize a string for identity: trim, lowercase, collapse whitespace,
+ * strip punctuation, and replace spaces with underscores.
  * Used for free text fields like swapTargetDefinition.
+ *
+ * R4: Aggressive normalization ensures visually-identical swap targets
+ * produce the same identity key even if they differ in whitespace,
+ * punctuation, or casing.
  */
 function normalizeIdentityString(value: unknown): string {
   if (typeof value !== 'string') return '';
-  return value.trim().toLowerCase().replace(/\s+/g, '_');
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '') // strip all punctuation
+    .replace(/\s+/g, '_') // collapse whitespace → underscore
+    .replace(/_+/g, '_') // collapse repeated underscores
+    .replace(/^_|_$/g, ''); // trim leading/trailing underscores
 }
 
 /**

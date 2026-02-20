@@ -113,6 +113,7 @@ export const EntitlementEditorFormTabs: React.FC<
           onChange={onChange}
           fieldErrors={fieldErrors}
           disabled={disabled}
+          isEditMode={isEditMode}
         />
       )}
       {activeTab === 'protection' && (
@@ -128,6 +129,7 @@ export const EntitlementEditorFormTabs: React.FC<
           onChange={onChange}
           fieldErrors={fieldErrors}
           disabled={disabled}
+          isEditMode={isEditMode}
         />
       )}
       {activeTab === 'conveyance' && (
@@ -136,6 +138,7 @@ export const EntitlementEditorFormTabs: React.FC<
           onChange={onChange}
           fieldErrors={fieldErrors}
           disabled={disabled}
+          isEditMode={isEditMode}
         />
       )}
       {activeTab === 'advanced' && (

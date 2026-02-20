@@ -270,7 +270,10 @@ const EntitlementPickRow = ({
           {/* Trading to indicator (when selected) */}
           {isSelected && tradingToTeam && (
             <span className="text-[10px] text-green-300 flex items-center gap-1">
-              → {tradingToTeam.teamName || tradingToTeam.teamCode || tradingToTeam.id}
+              →{' '}
+              {tradingToTeam.teamName ||
+                tradingToTeam.teamCode ||
+                tradingToTeam.id}
             </span>
           )}
 

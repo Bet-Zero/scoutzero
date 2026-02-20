@@ -20,11 +20,19 @@ interface EntitlementEditorBasicsTabProps {
   onChange: (next: EntitlementFormState) => void;
   fieldErrors?: FieldErrors;
   disabled?: boolean;
+  /** When true, identity-defining fields are locked (read-only). */
+  isEditMode?: boolean;
 }
 
 export const EntitlementEditorBasicsTab: React.FC<
   EntitlementEditorBasicsTabProps
-> = ({ formState, onChange, fieldErrors = {}, disabled = false }) => {
+> = ({
+  formState,
+  onChange,
+  fieldErrors = {},
+  disabled = false,
+  isEditMode = false,
+}) => {
   const updateField = (key: keyof EntitlementFormState, value: string) => {
     onChange({
       ...formState,
@@ -32,22 +40,23 @@ export const EntitlementEditorBasicsTab: React.FC<
     });
   };
 
+  /** Identity fields that are locked in edit mode */
+  const identityLocked = isEditMode;
+
   return (
     <div className="space-y-4">
-      <div>
-        <label
-          htmlFor="entitlement-id"
-          className="block text-xs text-white/60 mb-1"
+      {/* R3: Hide raw entitlement ID from normal users */}
+
+      {/* R1: Identity lock helper text */}
+      {identityLocked && (
+        <div
+          className="text-xs text-amber-300/80 bg-amber-900/20 border border-amber-500/30 rounded px-3 py-2"
+          data-testid="identity-lock-notice"
         >
-          Entitlement ID (read-only)
-        </label>
-        <input
-          id="entitlement-id"
-          value={formState.id}
-          disabled
-          className="w-full px-2 py-1 rounded bg-[#1f1f1f] text-white/50 border border-white/10"
-        />
-      </div>
+          Identity fields are locked. To change the pick/right, use{' '}
+          {'\u201CCreate new from this\u2026\u201D'}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -64,10 +73,12 @@ export const EntitlementEditorBasicsTab: React.FC<
               updateField('holderTeam', e.target.value.toUpperCase())
             }
             maxLength={3}
-            disabled={disabled}
-            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
-              fieldErrors.holderTeam ? 'border-red-500' : 'border-white/10'
-            }`}
+            disabled={disabled || identityLocked}
+            className={`w-full px-2 py-1 rounded text-white border ${
+              identityLocked
+                ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                : 'bg-[#141414]'
+            } ${fieldErrors.holderTeam ? 'border-red-500' : 'border-white/10'}`}
           />
           {fieldErrors.holderTeam && (
             <p className="text-[10px] text-red-400 mt-0.5">
@@ -87,10 +98,12 @@ export const EntitlementEditorBasicsTab: React.FC<
             type="number"
             value={formState.seasonYear}
             onChange={(e) => updateField('seasonYear', e.target.value)}
-            disabled={disabled}
-            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
-              fieldErrors.seasonYear ? 'border-red-500' : 'border-white/10'
-            }`}
+            disabled={disabled || identityLocked}
+            className={`w-full px-2 py-1 rounded text-white border ${
+              identityLocked
+                ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                : 'bg-[#141414]'
+            } ${fieldErrors.seasonYear ? 'border-red-500' : 'border-white/10'}`}
           />
           {fieldErrors.seasonYear && (
             <p className="text-[10px] text-red-400 mt-0.5">
@@ -109,8 +122,12 @@ export const EntitlementEditorBasicsTab: React.FC<
             id="entitlement-round"
             value={formState.round}
             onChange={(e) => updateField('round', e.target.value)}
-            disabled={disabled}
-            className="w-full px-2 py-1 rounded bg-[#141414] text-white border border-white/10"
+            disabled={disabled || identityLocked}
+            className={`w-full px-2 py-1 rounded text-white border border-white/10 ${
+              identityLocked
+                ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                : 'bg-[#141414]'
+            }`}
           >
             <option value="1">1</option>
             <option value="2">2</option>
@@ -129,10 +146,12 @@ export const EntitlementEditorBasicsTab: React.FC<
             onChange={(e) =>
               updateField('kind', e.target.value as EntitlementKind)
             }
-            disabled={disabled}
-            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
-              fieldErrors.kind ? 'border-red-500' : 'border-white/10'
-            }`}
+            disabled={disabled || identityLocked}
+            className={`w-full px-2 py-1 rounded text-white border ${
+              identityLocked
+                ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                : 'bg-[#141414]'
+            } ${fieldErrors.kind ? 'border-red-500' : 'border-white/10'}`}
           >
             <option value="pick_ownership">Pick Ownership</option>
             <option value="swap_right">Swap Right</option>
@@ -174,8 +193,12 @@ export const EntitlementEditorBasicsTab: React.FC<
             id="entitlement-underlyingPickId"
             value={formState.underlyingPickId}
             onChange={(e) => updateField('underlyingPickId', e.target.value)}
-            disabled={disabled}
-            className={`w-full px-2 py-1 rounded bg-[#141414] text-white border ${
+            disabled={disabled || identityLocked}
+            className={`w-full px-2 py-1 rounded text-white border ${
+              identityLocked
+                ? 'bg-[#1f1f1f] text-white/50 cursor-not-allowed'
+                : 'bg-[#141414]'
+            } ${
               fieldErrors.underlyingPickId
                 ? 'border-red-500'
                 : 'border-white/10'

@@ -12,7 +12,7 @@
  *  - Audit: docs/architect/DRAFT_ASSET_TRADING_CLOSURE_AUDIT.md (Phase 17)
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import EntitlementPickRow from './EntitlementPickRow';
 import { getKindSortPriority } from '@/features/architect/utils/entitlements/formatEntitlement';
 import { EntitlementEditorCreateButton } from '@/features/architect/admin/EntitlementEditorCreateButton';
@@ -34,6 +34,7 @@ import { EntitlementEditorCreateButton } from '@/features/architect/admin/Entitl
  * @param {Array} [props.entitlementsOut] - Phase 17: Current outgoing entitlements with toTeamId
  * @param {Function} [props.onSetDestination] - Phase 17: Callback when destination is changed
  * @param {Function} [props.onEditEntitlement] - TM-4: Callback when entitlement edit is requested
+ * @param {Function} [props.onViewDetails] - Callback when view details is requested
  * @param {Function} [props.onCreateEntitlement] - TM-7: Callback when entitlement create is requested
  * @param {boolean} [props.isVacuumMode=false] - Whether trade machine is in vacuum mode
  * @param {Function} [props.onRevertEntitlementEdit] - Revert one vacuum edit patch
@@ -55,6 +56,8 @@ export const EntitlementPicksList = ({
   entitlementsOut = [],
   onSetDestination,
   onEditEntitlement,
+  // View details callback
+  onViewDetails,
   // TM-7: Create entitlement callback
   onCreateEntitlement,
   isVacuumMode = false,
@@ -62,6 +65,9 @@ export const EntitlementPicksList = ({
   onDeleteSessionEntitlement,
   compact = false,
 }) => {
+  // Menu state for 3-dot dropdown coordination
+  const [openMenu, setOpenMenu] = useState(null);
+
   // Filter and sort entitlements
   const sortedEntitlements = useMemo(() => {
     if (!Array.isArray(entitlements) || entitlements.length === 0) {
@@ -73,11 +79,28 @@ export const EntitlementPicksList = ({
       ? entitlements
       : entitlements.filter((e) => e.underlyingStatus !== 'pooled');
 
+    // R5: Defensive dedupe by identityKey — prefer later entries (world > vacuum > base)
+    const deduped = [];
+    const seenKeys = new Map(); // identityKey → index in deduped
+    for (const ent of filtered) {
+      const key = ent.identityKey;
+      if (key) {
+        const existingIdx = seenKeys.get(key);
+        if (existingIdx !== undefined) {
+          // Replace existing with the later one (later = higher priority in resolver output)
+          deduped[existingIdx] = ent;
+          continue;
+        }
+        seenKeys.set(key, deduped.length);
+      }
+      deduped.push(ent);
+    }
+
     // Sort by:
     // 1) seasonYear (ascending)
     // 2) round (1 then 2)
     // 3) kind priority (pick_ownership, conveyance_right, swap_right)
-    return [...filtered].sort((a, b) => {
+    return [...deduped].sort((a, b) => {
       // Year ascending
       const yearA = a.seasonYear || 0;
       const yearB = b.seasonYear || 0;
@@ -186,6 +209,9 @@ export const EntitlementPicksList = ({
                   currentToTeamId={toTeamIdByEntitlement[entitlementId]}
                   onSetDestination={onSetDestination}
                   onEdit={onEditEntitlement}
+                  onViewDetails={onViewDetails}
+                  openMenu={openMenu}
+                  setOpenMenu={setOpenMenu}
                   isVacuumMode={isVacuumMode}
                   onRevertEdit={onRevertEntitlementEdit}
                   onDeleteSessionPickRight={onDeleteSessionEntitlement}

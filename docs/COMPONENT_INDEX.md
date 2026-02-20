@@ -276,6 +276,7 @@ Quick reference for all components in the ScoutZero project.
 
 ## Ranker
 
+- AdjustableRankings.jsx
 - AnchorComparison.jsx
 - ComparisonMatrix.jsx
 - ComparisonMatrixDrawer.jsx
@@ -353,4 +354,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-16T14:14:43.037Z*
+*Generated on: 2026-02-20T11:04:38.782Z*

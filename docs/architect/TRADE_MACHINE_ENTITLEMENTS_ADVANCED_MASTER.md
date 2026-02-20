@@ -99,6 +99,27 @@ This document establishes the canonical "advanced entitlement system" contract f
 | `termsShort`          | string           | Concise display string           | Attached by `decorateEntitlementForTrade()` |
 | `draftKey`            | string           | Stable key for deduplication     | Attached by `decorateEntitlementForTrade()` |
 
+#### Identity & Dedupe Fields
+
+| Field         | Type   | Persisted | Description                                                                                                                                                                                             |
+| ------------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `identityKey` | string | **Yes**   | Computed by `getEntitlementIdentityKey()` from `entitlementIdentity.ts`. Written to both world and vacuum documents at save time. Used for dedupe across all layers (save pipeline, resolver, UI list). |
+
+**Identity Key Format by Kind:**
+
+- `pick_ownership`: `own|{TEAM}|{YEAR}|{ROUND}|{underlyingPickId}`
+- `swap_right`: `swap|{TEAM}|{YEAR}|{ROUND}|{swapControllerPickId}|{swapTargetDefinition_normalized}`
+- `conveyance_right`: `conv|{TEAM}|{YEAR}|{ROUND}|{sortedPoolIds}|{comparator}|{sortedRanks}`
+
+**Normalization (R4):** Free-text fields (e.g., `swapTargetDefinition`) are aggressively normalized: trimmed, lowercased, punctuation stripped, whitespace collapsed. This ensures visually-identical entries always produce the same identity key.
+
+**Dedupe Layers (TM-ENTITLEMENT-DUPE-PREVENT-SWAP):**
+
+1. **L1 — Deterministic ID:** All save paths use `getEntitlementDeterministicId()` / `getVacuumDeterministicId()`. Same identity → same ID → `setDoc(merge)` overwrites.
+2. **L2 — identityKey dedupe at save:** Vacuum creates check `findVacuumCreateByIdentityKey()` before writing. If a match exists (even with a legacy random ID), the save rekeys to the deterministic ID (upsert, not duplicate).
+3. **L3 — Resolver dedupe:** `resolveEntitlementsForTeamWithDb()` deduplicates the merged list by `identityKey`, preferring `__vacuumEdited` > `__vacuumSessionOnly` > plain base.
+4. **L4 — UI list dedupe:** `EntitlementPicksList.jsx` filters `sortedEntitlements` by `identityKey` as a final defensive layer.
+
 ---
 
 ## 2. Pattern Support Matrix
@@ -187,24 +208,42 @@ This requires:
 
 **When editing an existing entitlement:**
 
-- Identity fields are locked in the tab UI
+- Identity fields are **disabled** in all tabs (Basics, Swap, Conveyance) with visual dimming
 - Identity fields are also locked in Advanced JSON tab (stripped if changed)
-- User sees warning: "Identity fields are locked in edit mode. To change identity, use Duplicate as new."
+- All locked tabs show amber notice: "Identity fields are locked. To change the pick/right, use 'Create new from this…'"
+- Simple view shows locked identity summary with 🔒 icon and helper text
+- The raw entitlement ID (`ent:…`) is **not displayed** in the editor UI
 
-**IDENTITY_FIELDS constant (from `EntitlementEditorAdvancedTab.tsx`):**
+**Identity-defining fields (locked in edit mode):**
 
-```typescript
-const IDENTITY_FIELDS = [
-  'holderTeam',
-  'kind',
-  'seasonYear',
-  'round',
-  'underlyingPickId',
-  'swapControllerPickId',
-] as const;
-```
+| Field                   | Applies to         |
+| ----------------------- | ------------------ |
+| `holderTeam`            | All kinds          |
+| `seasonYear`            | All kinds          |
+| `round`                 | All kinds          |
+| `kind`                  | All kinds          |
+| `underlyingPickId`      | `pick_ownership`   |
+| `swapControllerPickId`  | `swap_right`       |
+| `swapTargetDefinition`  | `swap_right`       |
+| `poolUnderlyingPickIds` | `conveyance_right` |
+| `receivesComparator`    | `conveyance_right` |
+| `receivesRank`          | `conveyance_right` |
 
-**Workaround Path:** "Duplicate as new" → creates new entitlement with modified identity → user manually removes old entitlement from team's `entitlementIds[]`
+**Detail fields (always editable):** description, protectionLadder, swapType, underlyingStatus, linkedEntitlementIds, coveredByEntitlementIds, residualOfEntitlementId.
+
+### 3.3.1 "Create new from this…" UX Rule
+
+- Available in edit mode only (button in modal footer)
+- Clones all form state into a new create session (no `entitlementId`)
+- Keeps all detail fields (protections, swap fields, linkage, description)
+- Enables identity fields for the new session so user can define a different pick/right
+- Does NOT delete or modify the original entitlement
+- On save, deterministic ID is computed from the new identity as normal for "create"
+- This is the **only sanctioned way** to change entitlement identity — the UI never mentions "rename" or "move"
+
+**Backend safety net:** Move-on-identity-change logic in `saveEntitlementFromFormState.ts` is preserved as a defensive mechanism but is practically unreachable through the UI.
+
+**Workaround Path:** "Create new from this…" → creates new entitlement with modified identity → user manually removes old entitlement from team's `entitlementIds[]`
 
 ### 3.4 Coverage Summary
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PlayerCompareCard from './PlayerCompareCard';
 import RankingResults from './RankingResults';
 import ComparisonMatrixDrawer from './ComparisonMatrixDrawer';
@@ -9,6 +9,7 @@ import {
   suggestNextPair,
   estimateRemainingComparisons,
   buildAnchorComparisons,
+  createClosureCache,
 } from '@/features/ranker/utils/rankingEngine';
 
 const RankingSession = ({ playerPool = [] }) => {
@@ -21,6 +22,10 @@ const RankingSession = ({ playerPool = [] }) => {
   const [isFinished, setIsFinished] = useState(false);
   const [setupData, setSetupData] = useState(null);
   const [anchorDone, setAnchorDone] = useState(false);
+  const [skippedPairs, setSkippedPairs] = useState(new Set());
+
+  // Incremental closure cache — survives re-renders, rebuilt on undo
+  const closureCacheRef = useRef(createClosureCache());
 
   const groupedPlayers = useMemo(() => {
     if (!setupData || (setupData.anchor && !anchorDone)) return players;
@@ -47,19 +52,9 @@ const RankingSession = ({ playerPool = [] }) => {
     [results, groupedPlayers]
   );
 
-  const [comparisonTotal, setComparisonTotal] = useState(0);
-
-  useEffect(() => {
-    if (
-      comparisonTotal === 0 &&
-      setupData &&
-      (!setupData.anchor || anchorDone)
-    ) {
-      setComparisonTotal(remaining);
-    }
-  }, [comparisonTotal, setupData, anchorDone, remaining]);
-
-  const comparisonsDone = comparisonTotal ? comparisonTotal - remaining : 0;
+  // Dynamic progress: always derived, handles undo correctly
+  const comparisonsDone = results.length;
+  const comparisonTotal = comparisonsDone + remaining;
   const progressPercent = comparisonTotal
     ? (comparisonsDone / comparisonTotal) * 100
     : 0;
@@ -70,30 +65,60 @@ const RankingSession = ({ playerPool = [] }) => {
     if (setupData.anchor && !anchorDone) return;
     if (groupedPlayers.length < 2) return;
 
-    const next = suggestNextPair(results, groupedPlayers);
-    if (next.length === 0) {
+    const next = suggestNextPair(results, groupedPlayers, {
+      closureCache: closureCacheRef.current,
+    });
+    if (next.length === 0 && !isFinished) {
       setIsFinished(true);
       setCurrentPair([]);
-    } else {
+    } else if (next.length > 0) {
       setCurrentPair(next);
     }
-  }, [results, groupedPlayers, setupData, anchorDone]);
+  }, [results, groupedPlayers, setupData, anchorDone, isFinished]);
 
-  const handleSelect = (winner, loser) => {
+  const handleSelect = useCallback((winner, loser) => {
+    // Incrementally update closure cache with the new edge
+    closureCacheRef.current.addEdge(winner.id, loser.id);
     setResults((prev) => [...prev, { winner: winner.id, loser: loser.id }]);
-  };
+    // Clear skipped pairs — new info may make previously skipped pairs relevant
+    setSkippedPairs(new Set());
+  }, []);
 
-  const handleSkip = () => {
-    const next = suggestNextPair(results, groupedPlayers);
-    setCurrentPair(next);
-  };
+  const handleSkip = useCallback(() => {
+    if (currentPair.length < 2) return;
+    const key =
+      currentPair[0].id < currentPair[1].id
+        ? `${currentPair[0].id}<>${currentPair[1].id}`
+        : `${currentPair[1].id}<>${currentPair[0].id}`;
+    const newSkipped = new Set(skippedPairs);
+    newSkipped.add(key);
 
-  const handleUndo = () => {
+    const next = suggestNextPair(results, groupedPlayers, {
+      skippedPairs: newSkipped,
+      closureCache: closureCacheRef.current,
+    });
+    if (next.length === 0) {
+      // All remaining pairs have been skipped — cycle back by clearing skips
+      setSkippedPairs(new Set());
+      const reset = suggestNextPair(results, groupedPlayers, {
+        closureCache: closureCacheRef.current,
+      });
+      if (reset.length > 0) setCurrentPair(reset);
+    } else {
+      setSkippedPairs(newSkipped);
+      setCurrentPair(next);
+    }
+  }, [currentPair, skippedPairs, results, groupedPlayers]);
+
+  const handleUndo = useCallback(() => {
     if (results.length === 0) return;
     const newResults = results.slice(0, -1);
+    // Rebuild closure cache from scratch after undo (one edge removed = full rebuild needed)
+    closureCacheRef.current.rebuild(newResults);
     setResults(newResults);
     setIsFinished(false);
-  };
+    setSkippedPairs(new Set());
+  }, [results]);
 
   if (isFinished) {
     const ranking = generateRankingFromComparisons(
@@ -104,8 +129,13 @@ const RankingSession = ({ playerPool = [] }) => {
     return (
       <>
         <RankingResults ranking={ranking} />
-        <div className="text-green-400 mt-4 text-center">
-          ✅ All comparisons complete!
+        <div className="text-white/30 mt-8 text-center text-sm italic px-4">
+          Ranking created on{' '}
+          {new Date().toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
         </div>
         <ComparisonMatrixDrawer
           players={groupedPlayers}
@@ -133,10 +163,22 @@ const RankingSession = ({ playerPool = [] }) => {
             initial.push({ winner: p.id, loser: data.lastPlace });
         });
       }
-      if (initial.length) setResults(initial);
+      if (initial.length) {
+        // Seed closure cache with lock-in comparisons
+        initial.forEach(({ winner, loser }) =>
+          closureCacheRef.current.addEdge(winner, loser)
+        );
+        setResults(initial);
+      }
     };
 
-    return <RankingSetup playerPool={players} onComplete={handleComplete} />;
+    return (
+      <RankingSetup
+        playerPool={players}
+        onComplete={handleComplete}
+        existingSetupData={null}
+      />
+    );
   }
 
   if (setupData?.anchor && !anchorDone) {
@@ -158,7 +200,13 @@ const RankingSession = ({ playerPool = [] }) => {
         untagged,
         betterIds
       );
-      if (newResults.length) setResults((prev) => [...prev, ...newResults]);
+      if (newResults.length) {
+        // Seed closure cache with anchor comparisons
+        newResults.forEach(({ winner, loser }) =>
+          closureCacheRef.current.addEdge(winner, loser)
+        );
+        setResults((prev) => [...prev, ...newResults]);
+      }
       setAnchorDone(true);
     };
     return (
@@ -187,7 +235,7 @@ const RankingSession = ({ playerPool = [] }) => {
         <div className="w-full max-w-xs mt-4">
           <div className="w-full bg-white/20 h-3 rounded-full">
             <div
-              className="bg-green-500 h-3 rounded-full"
+              className="bg-green-500 h-3 rounded-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>

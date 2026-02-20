@@ -1,6 +1,7 @@
 # Ranker Component Hierarchy
 
 ```text
+AdjustableRankings.jsx
 AnchorComparison.jsx
 ComparisonMatrix.jsx
 ComparisonMatrixDrawer.jsx
@@ -16,5 +17,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-14T05:03:57.623Z*
+*Generated on: 2026-02-20T11:04:38.749Z*
 *Auto-updated by: npm run docs*

@@ -66,6 +66,13 @@ vi.mock('@/features/architect/admin/pickEditorCopy', () => ({
     create_swap: 'Create a Swap Right',
     create_conveyance: 'Create a Conveyance Right',
   },
+  WIZARD_LABELS: {
+    pickIdentity: 'Pick',
+    pickHelp: '',
+    otherPick: "Other team's pick",
+    swapBestOf: 'Most favorable',
+    swapWorstOf: 'Least favorable',
+  },
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -108,7 +115,7 @@ describe('PickRightWizardModal — Duplicate as new', () => {
       '[data-testid="wizard-duplicate-as-new"]'
     );
     expect(btns.length).toBe(1);
-    expect(btns[0].textContent).toBe('Duplicate as new');
+    expect(btns[0].textContent).toBe('Create new from this…');
   });
 
   it('does NOT show Duplicate as new button in create mode', () => {

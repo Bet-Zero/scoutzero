@@ -31,6 +31,7 @@ import {
   getTeamOverlay,
   getTransfersForTeam,
 } from './vacuumEntitlementOverlayStore';
+import { getEntitlementIdentityKey } from './entitlementIdentity';
 
 type EntitlementRecord = Record<string, unknown>;
 
@@ -285,6 +286,47 @@ export const resolveEntitlementsForTeamWithDb = async (
           });
         }
       }
+    }
+  }
+
+  // ── R5: Deduplicate by identityKey ──
+  // If base/world/vacuum merging produces two entries with the same logical
+  // identity, keep only the preferred one:
+  //   - Prefer world/vacuum-edited over plain base
+  //   - Prefer later entries (vacuum creates appended last) when all else equal
+  const seenIdentity = new Map<string, number>(); // identityKey → index in resolved
+  for (let i = resolved.length - 1; i >= 0; i--) {
+    const ent = resolved[i];
+    const key = (ent.identityKey as string) || getEntitlementIdentityKey(ent);
+    const existingIdx = seenIdentity.get(key);
+    if (existingIdx !== undefined) {
+      // Duplicate found — decide which to keep.
+      // Prefer: __vacuumEdited > __vacuumSessionOnly > plain base
+      const existing = resolved[existingIdx];
+      const existingPriority =
+        (existing.__vacuumEdited ? 2 : 0) +
+        (existing.__vacuumSessionOnly ? 1 : 0);
+      const currentPriority =
+        (ent.__vacuumEdited ? 2 : 0) + (ent.__vacuumSessionOnly ? 1 : 0);
+
+      if (currentPriority >= existingPriority) {
+        // Current entry is higher/equal priority — remove the later one
+        resolved.splice(existingIdx, 1);
+        // Adjust indices in seenIdentity for anything shifted
+        for (const [k, idx] of seenIdentity) {
+          if (idx > existingIdx) seenIdentity.set(k, idx - 1);
+        }
+        seenIdentity.set(key, i > existingIdx ? i - 1 : i);
+      } else {
+        // Existing entry is higher priority — remove current
+        resolved.splice(i, 1);
+        // Adjust indices for anything shifted
+        for (const [k, idx] of seenIdentity) {
+          if (idx > i) seenIdentity.set(k, idx - 1);
+        }
+      }
+    } else {
+      seenIdentity.set(key, i);
     }
   }
 
