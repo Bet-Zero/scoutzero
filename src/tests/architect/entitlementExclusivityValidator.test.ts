@@ -63,6 +63,12 @@ describe('Rule 1: DUP_PICK_OWNERSHIP_UNDERLIER', () => {
     expect(result.violations[0].type).toBe('DUP_PICK_OWNERSHIP_UNDERLIER');
     expect(result.violations[0].underlyingPickIds).toContain('LAL_2026_1st');
     expect(result.violations[0].entitlementIds).toEqual(['ent-1', 'ent-2']);
+    // TM-EXCL-E4: claims present in violations
+    expect(result.violations[0].claimsA).toBeDefined();
+    expect(result.violations[0].claimsA!.length).toBeGreaterThan(0);
+    expect(result.violations[0].claimsB).toBeDefined();
+    expect(result.violations[0].conflictExplanation).toBeDefined();
+    expect(typeof result.violations[0].conflictExplanation).toBe('string');
   });
 
   it('allows different underlyingPickIds', () => {
@@ -106,6 +112,12 @@ describe('Rule 2: DUP_SWAP_CONTROLLER', () => {
     expect(result.violations).toHaveLength(1);
     expect(result.violations[0].type).toBe('DUP_SWAP_CONTROLLER');
     expect(result.violations[0].underlyingPickIds).toContain('BOS_2027_1st');
+    // TM-EXCL-E4: claims present
+    expect(result.violations[0].claimsA).toBeDefined();
+    expect(result.violations[0].claimsB).toBeDefined();
+    expect(result.violations[0].conflictExplanation).toContain(
+      'swap controller'
+    );
   });
 
   it('allows different swapControllerPickIds', () => {
@@ -157,6 +169,10 @@ describe('Rule 3: DUP_CONVEYANCE_POOL_RANK', () => {
     expect(result.valid).toBe(false);
     expect(result.violations).toHaveLength(1);
     expect(result.violations[0].type).toBe('DUP_CONVEYANCE_POOL_RANK');
+    // TM-EXCL-E4: claims present
+    expect(result.violations[0].claimsA).toBeDefined();
+    expect(result.violations[0].claimsB).toBeDefined();
+    expect(result.violations[0].conflictExplanation).toContain('conveyance');
   });
 
   it('detects duplicate conveyance with different order of pool IDs', () => {
@@ -274,6 +290,10 @@ describe('Rule 4: OVERLAP_CONVEYANCE_POOL_RANK', () => {
     expect(result.violations[0].type).toBe('OVERLAP_CONVEYANCE_POOL_RANK');
     expect(result.violations[0].details?.sharedPools).toContain('BOS_2026_1st');
     expect(result.violations[0].details?.sharedRanks).toContain(2);
+    // TM-EXCL-E4: claims present
+    expect(result.violations[0].claimsA).toBeDefined();
+    expect(result.violations[0].claimsB).toBeDefined();
+    expect(result.violations[0].conflictExplanation).toContain('conveyance');
   });
 
   it('allows non-overlapping pools even with same comparator and ranks', () => {
@@ -485,5 +505,24 @@ describe('Multiple violations', () => {
     const types = result.violations.map((v) => v.type);
     expect(types).toContain('DUP_PICK_OWNERSHIP_UNDERLIER');
     expect(types).toContain('DUP_SWAP_CONTROLLER');
+  });
+
+  it('all violations carry claims (TM-EXCL-E4)', () => {
+    const entitlements = [
+      makePickOwnership('ent-1', 'LAL_2026_1st'),
+      makePickOwnership('ent-2', 'LAL_2026_1st'),
+      makeSwapRight('ent-3', 'BOS_2027_1st'),
+      makeSwapRight('ent-4', 'BOS_2027_1st'),
+    ];
+
+    const result = validateEntitlementExclusivity({ entitlements });
+    for (const violation of result.violations) {
+      expect(violation.claimsA).toBeDefined();
+      expect(violation.claimsA!.length).toBeGreaterThan(0);
+      expect(violation.claimsB).toBeDefined();
+      expect(violation.claimsB!.length).toBeGreaterThan(0);
+      expect(typeof violation.conflictExplanation).toBe('string');
+      expect(violation.conflictExplanation!.length).toBeGreaterThan(0);
+    }
   });
 });

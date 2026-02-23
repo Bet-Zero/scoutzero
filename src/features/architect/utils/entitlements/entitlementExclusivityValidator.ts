@@ -7,6 +7,8 @@
  *
  * HISTORY:
  *  - 2026-02-20: Created for TM-EXCL-E1 (Entitlement Exclusivity Foundation).
+ *  - 2026-02-20: TM-EXCL-E5 — Added Rule #5 (OVERLAP_PROTECTION_RANGE) for
+ *    partition validation of structured protection conditions.
  *
  * INVARIANTS:
  *  - Pure function — no Firestore, no side effects, no imports beyond types.
@@ -18,9 +20,21 @@
  *  2. DUP_SWAP_CONTROLLER — Two swap_right with same swapControllerPickId.
  *  3. DUP_CONVEYANCE_POOL_RANK — Two conveyance_right with exact same pool+comparator+ranks.
  *  4. OVERLAP_CONVEYANCE_POOL_RANK — Two conveyance_right with overlapping pool+rank under same comparator.
+ *  5. OVERLAP_PROTECTION_RANGE — Two pick_ownership for the same underlier with overlapping protection ranges.
  *
  * REF: docs/architect/TRADE_MACHINE_ENTITLEMENTS_ADVANCED_MASTER.md §10
  */
+
+import {
+  computeEntitlementClaims,
+  explainConflict,
+  type EntitlementClaim,
+} from './computeEntitlementClaims';
+
+import {
+  checkProtectionPartitionPair,
+  getPartitionOverlapDetail,
+} from './protectionPartitionValidator';
 
 // ─── violation types ─────────────────────────────────────────────────────────
 
@@ -28,7 +42,8 @@ export type EntitlementViolationType =
   | 'DUP_PICK_OWNERSHIP_UNDERLIER'
   | 'DUP_SWAP_CONTROLLER'
   | 'DUP_CONVEYANCE_POOL_RANK'
-  | 'OVERLAP_CONVEYANCE_POOL_RANK';
+  | 'OVERLAP_CONVEYANCE_POOL_RANK'
+  | 'OVERLAP_PROTECTION_RANGE';
 
 export interface EntitlementViolation {
   type: EntitlementViolationType;
@@ -39,6 +54,12 @@ export interface EntitlementViolation {
   underlyingPickIds?: string[];
   /** Additional machine-readable context. */
   details?: Record<string, unknown>;
+  /** Claims from the first conflicting entitlement (TM-EXCL-E4). */
+  claimsA?: EntitlementClaim[];
+  /** Claims from the second conflicting entitlement (TM-EXCL-E4). */
+  claimsB?: EntitlementClaim[];
+  /** Short user-readable explanation of why these conflict (TM-EXCL-E4). */
+  conflictExplanation?: string;
 }
 
 export interface ExclusivityResult {
@@ -61,6 +82,16 @@ export interface EntitlementDocLike {
   poolUnderlyingPickIds?: string[];
   receivesComparator?: string;
   receivesRank?: (number | string)[];
+  /** TM-EXCL-E5: Protection ladder with optional structuredCondition for partition validation. */
+  protectionLadder?: Array<{
+    year: number;
+    condition?: string;
+    structuredCondition?: {
+      positionStart: number;
+      positionEnd: number;
+    };
+    [key: string]: unknown;
+  }>;
 }
 
 export interface ExclusivityCandidate {
@@ -169,6 +200,7 @@ export function validateEntitlementExclusivity(
       if (isSelfPair(a, b)) continue;
 
       // ── Rule 1: Duplicate pick_ownership by underlyingPickId ──
+      // ── Rule 5 (TM-EXCL-E5): Partition check for same underlier ──
       if (
         a.kind === 'pick_ownership' &&
         b.kind === 'pick_ownership' &&
@@ -176,11 +208,60 @@ export function validateEntitlementExclusivity(
         b.underlyingPickId &&
         a.underlyingPickId === b.underlyingPickId
       ) {
+        // Rule 5: Check if this pair forms a valid protection partition
+        const partitionCheck = checkProtectionPartitionPair(a, b);
+
+        if (partitionCheck === 'VALID_PARTITION') {
+          // Disjoint protection ranges — valid split, no violation.
+          // Skip Rule #1 for this pair.
+          continue;
+        }
+
+        if (partitionCheck === 'OVERLAP') {
+          // Overlapping protection ranges — emit OVERLAP_PROTECTION_RANGE
+          const detail = getPartitionOverlapDetail(a, b);
+          const claimsA = computeEntitlementClaims(a).claims;
+          const claimsB = computeEntitlementClaims(b).claims;
+          violations.push({
+            type: 'OVERLAP_PROTECTION_RANGE',
+            message: `Overlapping protection ranges for ${a.underlyingPickId}${detail ? ` in ${detail.year}: positions ${detail.overlappingPositions.join(', ')}` : ''}`,
+            entitlementIds: [displayId(a), displayId(b)],
+            underlyingPickIds: [a.underlyingPickId],
+            details: detail
+              ? {
+                  year: detail.year,
+                  overlappingPositions: detail.overlappingPositions,
+                  rangeA: detail.rangeA,
+                  rangeB: detail.rangeB,
+                }
+              : undefined,
+            claimsA,
+            claimsB,
+            conflictExplanation: explainConflict(
+              'OVERLAP_PROTECTION_RANGE',
+              claimsA,
+              claimsB
+            ),
+          });
+          continue;
+        }
+
+        // partitionCheck === 'UNAVAILABLE' → fall through to existing Rule #1
+        // (fail-closed: missing structuredCondition means we cannot verify partition)
+        const claimsA = computeEntitlementClaims(a).claims;
+        const claimsB = computeEntitlementClaims(b).claims;
         violations.push({
           type: 'DUP_PICK_OWNERSHIP_UNDERLIER',
           message: `Duplicate pick ownership for ${a.underlyingPickId}`,
           entitlementIds: [displayId(a), displayId(b)],
           underlyingPickIds: [a.underlyingPickId],
+          claimsA,
+          claimsB,
+          conflictExplanation: explainConflict(
+            'DUP_PICK_OWNERSHIP_UNDERLIER',
+            claimsA,
+            claimsB
+          ),
         });
       }
 
@@ -192,11 +273,20 @@ export function validateEntitlementExclusivity(
         b.swapControllerPickId &&
         a.swapControllerPickId === b.swapControllerPickId
       ) {
+        const claimsA = computeEntitlementClaims(a).claims;
+        const claimsB = computeEntitlementClaims(b).claims;
         violations.push({
           type: 'DUP_SWAP_CONTROLLER',
           message: `Duplicate swap controller for ${a.swapControllerPickId}`,
           entitlementIds: [displayId(a), displayId(b)],
           underlyingPickIds: [a.swapControllerPickId],
+          claimsA,
+          claimsB,
+          conflictExplanation: explainConflict(
+            'DUP_SWAP_CONTROLLER',
+            claimsA,
+            claimsB
+          ),
         });
       }
 
@@ -219,6 +309,8 @@ export function validateEntitlementExclusivity(
 
           // Rule 3: Exact duplicate (same pool set + same comparator + same rank set)
           if (poolExact && rankExact) {
+            const claimsA = computeEntitlementClaims(a).claims;
+            const claimsB = computeEntitlementClaims(b).claims;
             violations.push({
               type: 'DUP_CONVEYANCE_POOL_RANK',
               message: `Duplicate conveyance right: same pool, comparator (${aComp}), and ranks`,
@@ -229,6 +321,13 @@ export function validateEntitlementExclusivity(
                 comparator: aComp,
                 ranks: aRanks,
               },
+              claimsA,
+              claimsB,
+              conflictExplanation: explainConflict(
+                'DUP_CONVEYANCE_POOL_RANK',
+                claimsA,
+                claimsB
+              ),
             });
           }
           // Rule 4: Overlap (pool overlaps AND rank overlaps AND same comparator)
@@ -236,6 +335,8 @@ export function validateEntitlementExclusivity(
           else if (hasOverlap(aPool, bPool) && hasRankOverlap(aRanks, bRanks)) {
             const sharedPools = aPool.filter((p) => new Set(bPool).has(p));
             const sharedRanks = aRanks.filter((r) => new Set(bRanks).has(r));
+            const claimsA = computeEntitlementClaims(a).claims;
+            const claimsB = computeEntitlementClaims(b).claims;
             violations.push({
               type: 'OVERLAP_CONVEYANCE_POOL_RANK',
               message: `Overlapping conveyance rights: pool overlap (${sharedPools.join(', ')}), rank overlap (${sharedRanks.join(', ')}), comparator ${aComp}`,
@@ -246,6 +347,13 @@ export function validateEntitlementExclusivity(
                 sharedRanks,
                 comparator: aComp,
               },
+              claimsA,
+              claimsB,
+              conflictExplanation: explainConflict(
+                'OVERLAP_CONVEYANCE_POOL_RANK',
+                claimsA,
+                claimsB
+              ),
             });
           }
         }

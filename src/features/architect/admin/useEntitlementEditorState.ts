@@ -23,6 +23,12 @@ import {
 } from './entitlementEditorFormState';
 import type { EntitlementFormState } from './entitlementEditorFormState';
 import type { EntitlementEditorTabKey } from './EntitlementEditorFormTabs';
+import {
+  validateEntitlementExclusivity,
+  type EntitlementViolation,
+} from '../utils/entitlements/entitlementExclusivityValidator';
+import { resolveEntitlementsForTeam } from '../utils/entitlements/entitlementResolver';
+import { CONFLICT_TYPE_LABELS } from '../utils/entitlements/computeEntitlementClaims';
 
 // =============================================================================
 // FORM-LEVEL VALIDATION
@@ -148,6 +154,9 @@ export const useEntitlementEditorState = ({
     createEntitlementFormState(initialDocument, entitlementId)
   );
   const [errors, setErrors] = useState<string[]>([]);
+  const [exclusivityViolations, setExclusivityViolations] = useState<
+    EntitlementViolation[]
+  >([]);
   const [saving, setSaving] = useState(false);
   const [lastPath, setLastPath] = useState<string | null>(null);
 
@@ -183,6 +192,7 @@ export const useEntitlementEditorState = ({
 
   const handleSave = useCallback(async () => {
     setErrors([]);
+    setExclusivityViolations([]);
     setSaving(true);
 
     try {
@@ -210,6 +220,40 @@ export const useEntitlementEditorState = ({
         toast.error('Entitlement ID could not be determined.');
         setSaving(false);
         return;
+      }
+
+      // TM-EXCL-E4: Pre-save exclusivity check with claim-based explanations
+      const holderTeam = document.holderTeam as string;
+      if (holderTeam) {
+        try {
+          const currentEntitlements = await resolveEntitlementsForTeam(
+            worldId,
+            holderTeam
+          );
+          const exclusivityCheck = validateEntitlementExclusivity({
+            entitlements: currentEntitlements,
+            candidate: { id: entitlementId, doc: document },
+          });
+          if (!exclusivityCheck.valid) {
+            setExclusivityViolations(exclusivityCheck.violations);
+            const firstViolation = exclusivityCheck.violations[0];
+            const explanation =
+              firstViolation?.conflictExplanation ||
+              firstViolation?.message ||
+              'Entitlement exclusivity conflict';
+            setErrors([explanation]);
+            toast.error(explanation);
+            setSaving(false);
+            return;
+          }
+        } catch {
+          // Integrity-first: if resolver/validator fails, block the save
+          const msg = 'Exclusivity validation unavailable — save blocked.';
+          setErrors([msg]);
+          toast.error(msg);
+          setSaving(false);
+          return;
+        }
       }
 
       const result = await writeWorldEntitlement(db, {
@@ -245,6 +289,7 @@ export const useEntitlementEditorState = ({
     formState,
     setFormState,
     errors,
+    exclusivityViolations,
     fieldErrors,
     isValid,
     saving,

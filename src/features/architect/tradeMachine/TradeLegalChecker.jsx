@@ -83,11 +83,55 @@ const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
               label="Timing Restrictions"
             />
 
-            {/* Entitlement Exclusivity (TM-EXCL-E1) */}
-            <RuleDisplay
-              rule={team.rules?.entitlementExclusivity}
-              label="Pick Exclusivity"
-            />
+            {/* Entitlement Exclusivity (TM-EXCL-E1) — with claim explainability (TM-EXCL-E4) */}
+            <div>
+              <RuleDisplay
+                rule={team.rules?.entitlementExclusivity}
+                label="Pick Exclusivity"
+              />
+              {/* TM-EXCL-E4: Show claim-based conflict explanations */}
+              {team.rules?.entitlementExclusivity?.passed === false &&
+                Array.isArray(team.rules.entitlementExclusivity.violations) &&
+                team.rules.entitlementExclusivity.violations.length > 0 && (
+                  <div className="pl-4 mt-1 space-y-1">
+                    {team.rules.entitlementExclusivity.violations
+                      .slice(0, 3)
+                      .map((v, vIdx) => (
+                        <div
+                          key={vIdx}
+                          className="text-xs bg-red-900/20 border border-red-900/30 rounded px-2 py-1"
+                        >
+                          {v.conflictExplanation && (
+                            <div className="text-red-300 font-medium">
+                              {v.conflictExplanation}
+                            </div>
+                          )}
+                          {v.entitlementIds &&
+                            Array.isArray(v.entitlementIds) && (
+                              <div className="text-white/40 mt-0.5">
+                                Conflicts between:{' '}
+                                {v.entitlementIds.join(' ↔ ')}
+                              </div>
+                            )}
+                          {v.claimsA && v.claimsA.length > 0 && (
+                            <div className="text-white/40 mt-0.5">
+                              Claim: {v.claimsA[0]?.meta?.explanation}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    {team.rules.entitlementExclusivity.violations.length >
+                      3 && (
+                      <div className="text-xs text-white/30 pl-2">
+                        +
+                        {team.rules.entitlementExclusivity.violations.length -
+                          3}{' '}
+                        more conflict(s)
+                      </div>
+                    )}
+                  </div>
+                )}
+            </div>
           </div>
         </div>
       ))}

@@ -48,6 +48,7 @@ admin/
   EntitlementEditorProtectionTab.tsx
   EntitlementEditorSwapTab.tsx
   EntitlementEditorTeamInventorySection.tsx
+  EntitlementHealthPanel.tsx
   PickRightWizardModal.tsx
   PickRightWizardSteps/
     QuickBuilder.tsx
@@ -200,6 +201,7 @@ utils/
   contractUtils.js
   draftPickUtils.js
   entitlements/
+    computeEntitlementClaims.ts
     dare/
       conveyanceResolutionAdapter.ts
       dareResolver.ts
@@ -211,6 +213,7 @@ utils/
       swapResolutionAdapter.ts
       types.ts
     entitlementExclusivityValidator.ts
+    entitlementHealthReport.ts
     entitlementIdentity.ts
     entitlementPickRowProjection.js
     entitlementResolver.ts
@@ -219,6 +222,7 @@ utils/
     formatEntitlement.js
     moveWorldEntitlement.ts
     pickRulesResolver.ts
+    protectionPartitionValidator.ts
     runTeamExclusivityGate.ts
     sanitizeVacuumMetadata.ts
     seasonManagerProjection.js
@@ -365,5 +369,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-20T13:10:27.449Z*
+*Generated on: 2026-02-23T14:23:44.195Z*
 *Auto-updated by: npm run docs*

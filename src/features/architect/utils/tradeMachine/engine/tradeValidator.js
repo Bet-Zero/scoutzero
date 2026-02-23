@@ -726,7 +726,14 @@ export function validateTrade({
         return {
           passed: false,
           details: messages.join('; '),
-          violations: messages,
+          violations: exclusivityResult.violations.map((v) => ({
+            message: v.message,
+            type: v.type,
+            entitlementIds: v.entitlementIds,
+            claimsA: v.claimsA,
+            claimsB: v.claimsB,
+            conflictExplanation: v.conflictExplanation,
+          })),
         };
       } catch (err) {
         // Integrity-first (TM-EXCL-E1.1 + E2): if routing or post-trade computation fails, BLOCK the trade.

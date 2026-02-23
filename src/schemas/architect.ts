@@ -10,6 +10,11 @@ const EntitlementKindZ = z.enum([
 
 const EntitlementUnderlyingStatusZ = z.enum(['pooled', 'encumbered', 'clean']);
 
+const StructuredConditionZ = z.object({
+  positionStart: z.number().int().min(1).max(60),
+  positionEnd: z.number().int().min(1).max(60),
+});
+
 const EntitlementProtectionLadderTierZ = z.object({
   year: z.number().int(),
   condition: z.string(),
@@ -17,6 +22,8 @@ const EntitlementProtectionLadderTierZ = z.object({
   rollToYear: z.number().int().optional(),
   convertToRound: z.number().int().optional(),
   source: z.string().optional(),
+  /** TM-EXCL-E5: Machine-readable position range for partition validation. */
+  structuredCondition: StructuredConditionZ.optional(),
 });
 
 export const EntitlementAssetZ = z

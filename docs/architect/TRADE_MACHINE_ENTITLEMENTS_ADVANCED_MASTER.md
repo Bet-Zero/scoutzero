@@ -1071,3 +1071,227 @@ A new reusable gate helper — `runTeamExclusivityGate()` — wraps `validateEnt
 | `src/tests/architect/vacuumTransferExclusivityGate.test.ts`                  | Vacuum gate tests                                      |
 | `src/tests/architect/worldTradeApplyExclusivityGate.test.ts`                 | World apply gate tests                                 |
 | `src/tests/architect/dareMutatorExclusivityGate.test.ts`                     | DARE gate tests                                        |
+
+### 10.9 Claims Model + Explainability
+
+_Added: 2026-02-20 — TM-EXCL-E4 (Claims Model + Explainability)_
+
+#### Purpose
+
+Exclusivity rules (E1–E3) block overlapping claims, but prior to E4 the user could not see **what** an entitlement claims, **what** it conflicts with, or **why** a save/trade was blocked. The Claims Model converts each entitlement into a normalized set of **claim fingerprints** that can be displayed, compared, and explained to non-technical users.
+
+#### Claim Types
+
+| Claim Type                     | Applies To         | Meaning                                            |
+| ------------------------------ | ------------------ | -------------------------------------------------- |
+| `OWNERSHIP_UNDERLIER`          | `pick_ownership`   | "I own this pick."                                 |
+| `SWAP_CONTROLLER`              | `swap_right`       | "I control the swap decision for this pick."       |
+| `CONVEYANCE_POOL_RANK_EXACT`   | `conveyance_right` | "I claim exactly these ranks from this pool."      |
+| `CONVEYANCE_POOL_RANK_OVERLAP` | `conveyance_right` | "I claim some ranks from this pool (may overlap)." |
+
+#### Claim Fingerprint
+
+Each claim has a canonical **key** that uses the same normalization as the exclusivity validator:
+
+- `own:{underlyingPickId}` — e.g. `own:LAL_2026_1st`
+- `swap:{swapControllerPickId}` — e.g. `swap:BOS_2027_1st`
+- `conv:{sortedPoolIds}:{comparator}:{sortedRanks}` — e.g. `conv:BOS_2026_1st|LAL_2026_1st:more_favorable:1`
+- `conv-overlap:{sortedPoolIds}:{comparator}:{sortedRanks}` — overlap variant
+
+Claims are **deterministic**: the same entitlement always produces the same claims regardless of field ordering.
+
+#### Violation Enrichment
+
+When the exclusivity validator emits a violation, it now includes:
+
+| Field                 | Type                 | Description                                     |
+| --------------------- | -------------------- | ----------------------------------------------- |
+| `claimsA`             | `EntitlementClaim[]` | Claims from the first conflicting entitlement   |
+| `claimsB`             | `EntitlementClaim[]` | Claims from the second conflicting entitlement  |
+| `conflictExplanation` | `string`             | Short user-readable "why this conflicts" string |
+
+These fields are added to every `EntitlementViolation` emitted by `validateEntitlementExclusivity()`. Existing fields (`type`, `message`, `entitlementIds`, etc.) are unchanged — this is additive only.
+
+#### UI Surfacing
+
+##### Entitlement Editor
+
+When save is blocked by exclusivity:
+
+- Error toast shows `conflictExplanation` (human-readable) instead of raw violation message.
+- Below the error list, a new **"Exclusivity Conflicts"** section displays:
+  - Conflict type label (e.g. "Duplicate pick ownership")
+  - Reason (the `conflictExplanation`)
+  - Conflicting entitlement IDs
+  - Claim explanation from `claimsA[0].meta.explanation`
+
+##### TradeLegalChecker
+
+When Pick Exclusivity fails:
+
+- Each violation is shown in an expandable detail section below the rule line.
+- Displays: `conflictExplanation`, conflicting entitlement IDs, and claim explanation.
+- Maximum 3 violations shown; overflow indicated with "+N more conflict(s)".
+
+#### Invariants
+
+- Claims are **purely derived** from the entitlement doc — no Firestore, no side effects.
+- Claims use the **same normalization** as the exclusivity validator (pool sorting, rank parsing, comparator lowercasing).
+- No changes to exclusivity rules — only richer output/explanations.
+- All 4 violation types carry `claimsA`, `claimsB`, and `conflictExplanation`.
+
+#### Key Files
+
+| File                                                                           | Role                                                 |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| `src/features/architect/utils/entitlements/computeEntitlementClaims.ts`        | **NEW** — Pure claims model (fingerprints + explain) |
+| `src/features/architect/utils/entitlements/entitlementExclusivityValidator.ts` | **MODIFIED** — Violations now include claims         |
+| `src/features/architect/utils/tradeMachine/engine/tradeValidator.js`           | **MODIFIED** — Passes claim details to rule result   |
+| `src/features/architect/tradeMachine/TradeLegalChecker.jsx`                    | **MODIFIED** — Shows claim explanations on failure   |
+| `src/features/architect/admin/EntitlementEditorModal.tsx`                      | **MODIFIED** — Displays exclusivity conflict details |
+| `src/features/architect/admin/useEntitlementEditorState.ts`                    | **MODIFIED** — Pre-save exclusivity check + claims   |
+| `src/tests/architect/computeEntitlementClaims.test.ts`                         | **NEW** — 23 pure claims model tests                 |
+| `src/tests/architect/entitlementExclusivityValidator.test.ts`                  | **MODIFIED** — +1 test, claims assertions added      |
+
+### 10.10 Structured Protections + Partition Validation
+
+_Added: 2026-02-20 — TM-EXCL-E5 (Structured Protections + Partition Validation)_
+
+#### Purpose
+
+Draft picks are sometimes split into **partitioned entitlements** — e.g., one entitlement covers "positions 1–10" (the protected portion) and another covers "positions 11–30" (the unprotected portion), both referencing the same `underlyingPickId`. Without machine-readable position ranges, the existing Rule #1 (`DUP_PICK_OWNERSHIP_UNDERLIER`) would block these valid partitions.
+
+E5 adds:
+
+1. A `structuredCondition` field to protection ladder tiers, providing machine-readable position ranges.
+2. `expandProtectionCoverage(year, ladder)` — expands a tier into explicit `protectedPositions` and `unprotectedPositions` sets.
+3. `validateProtectionPartition(entitlements)` — validates that partitioned entitlements for the same pick have disjoint coverage.
+4. Rule #5 (`OVERLAP_PROTECTION_RANGE`) in the exclusivity validator — blocks overlapping position ranges.
+
+#### `structuredCondition` Schema
+
+Added to `EntitlementProtectionLadderTierZ` (Zod) and `ProtectionLadderTier` (DARE types):
+
+```typescript
+structuredCondition?: {
+  positionStart: number; // inclusive, 1-indexed
+  positionEnd: number;   // inclusive, 1-indexed
+}
+```
+
+Auto-populated by `buildProtectionLadder()` from the parsed condition string:
+
+| Condition    | `positionStart` | `positionEnd` |
+| ------------ | --------------- | ------------- |
+| `Top 3`      | 1               | 3             |
+| `Top 10`     | 1               | 10            |
+| `Lottery`    | 1               | 14            |
+| Custom range | Set by editor   | Set by editor |
+
+#### Enforced Rules (Updated)
+
+| #   | Violation Type                 | Trigger                                                                                          |
+| --- | ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| 1   | `DUP_PICK_OWNERSHIP_UNDERLIER` | Two `pick_ownership` with same `underlyingPickId`, **no valid partition**                        |
+| 2   | `DUP_SWAP_CONTROLLER`          | Two `swap_right` with same `swapControllerPickId`                                                |
+| 3   | `DUP_CONVEYANCE_POOL_RANK`     | Two `conveyance_right` — exact same pool + comparator + ranks                                    |
+| 4   | `OVERLAP_CONVEYANCE_POOL_RANK` | Two `conveyance_right` — overlapping pool + rank + comparator                                    |
+| 5   | `OVERLAP_PROTECTION_RANGE`     | Two `pick_ownership` with same `underlyingPickId` and **overlapping structuredCondition ranges** |
+
+#### Rule #5 Decision Logic
+
+When two `pick_ownership` entitlements share the same `underlyingPickId`:
+
+1. **Both have `protectionLadder` with `structuredCondition`?**
+   - **Disjoint ranges** → Valid partition. Rule #1 is suppressed. ✅
+   - **Overlapping ranges** → `OVERLAP_PROTECTION_RANGE` violation. ❌
+2. **One or both lack `structuredCondition`?**
+   - **Fail-closed**: Falls through to `DUP_PICK_OWNERSHIP_UNDERLIER`. ❌
+
+#### Examples
+
+✅ **Valid partition**:
+
+- Entitlement A: `underlyingPickId: LAL_2026_1st`, structuredCondition `{ positionStart: 1, positionEnd: 10 }`
+- Entitlement B: `underlyingPickId: LAL_2026_1st`, structuredCondition `{ positionStart: 11, positionEnd: 30 }`
+- Ranges are disjoint → no violation.
+
+❌ **Invalid overlap**:
+
+- Entitlement A: `underlyingPickId: LAL_2026_1st`, structuredCondition `{ positionStart: 1, positionEnd: 10 }`
+- Entitlement B: `underlyingPickId: LAL_2026_1st`, structuredCondition `{ positionStart: 8, positionEnd: 30 }`
+- Positions 8–10 overlap → `OVERLAP_PROTECTION_RANGE`.
+
+❌ **Missing structuredCondition (fail-closed)**:
+
+- Entitlement A: `underlyingPickId: LAL_2026_1st`, no structuredCondition
+- Entitlement B: `underlyingPickId: LAL_2026_1st`, structuredCondition `{ positionStart: 11, positionEnd: 30 }`
+- Cannot verify partition → `DUP_PICK_OWNERSHIP_UNDERLIER`.
+
+#### Invariants
+
+- `structuredCondition` is optional — its absence triggers fail-closed behavior, not crashes.
+- `expandProtectionCoverage` assumes 30 positions (NBA first round) by default.
+- Multi-year ladders are checked per-year: overlap in ANY shared year triggers violation.
+- Non-`pick_ownership` entitlements are not affected by partition validation.
+- Self-edit exception still applies: same `id` on both entries skips all comparison.
+
+#### Key Files
+
+| File                                                                           | Role                                                               |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `src/features/architect/utils/entitlements/protectionPartitionValidator.ts`    | **NEW** — Pure partition validator + coverage expansion            |
+| `src/features/architect/utils/entitlements/entitlementExclusivityValidator.ts` | **MODIFIED** — Rule #5 + `OVERLAP_PROTECTION_RANGE` type           |
+| `src/features/architect/utils/entitlements/computeEntitlementClaims.ts`        | **MODIFIED** — Added conflict label for new violation type         |
+| `src/features/architect/utils/entitlements/dare/types.ts`                      | **MODIFIED** — `structuredCondition` on `ProtectionLadderTier`     |
+| `src/features/architect/utils/entitlements/dare/protectionLadderFactory.ts`    | **MODIFIED** — Auto-populates `structuredCondition` from threshold |
+| `src/schemas/architect.ts`                                                     | **MODIFIED** — `StructuredConditionZ` + Zod schema update          |
+| `src/tests/architect/protectionPartitionValidator.test.ts`                     | **NEW** — 29 tests covering all acceptance criteria                |
+
+---
+
+### §10.11 Inventory Health Report (TM-EXCL-E6)
+
+**Purpose**: Admin-only diagnostic that scans all teams' entitlements and reports integrity issues. Designed as a "trust report" to run after big changes (trades, DARE resolutions, bulk imports).
+
+#### Checks Performed
+
+| #   | Issue Type                      | Scope      | Description                                                                                       |
+| --- | ------------------------------- | ---------- | ------------------------------------------------------------------------------------------------- |
+| 1   | `DUP_OWNERSHIP_UNDERLIER`       | Intra-team | Two `pick_ownership` entitlements on the same team claim the same `underlyingPickId`.             |
+| 2   | `DUP_SWAP_CONTROLLER`           | Intra-team | Two `swap_right` entitlements on the same team claim the same `swapControllerPickId`.             |
+| 3   | `CONVEYANCE_OVERLAP`            | Intra-team | Two `conveyance_right` entitlements on the same team share pool + comparator + overlapping ranks. |
+| 4   | `CROSS_TEAM_OWNERSHIP_CONFLICT` | Cross-team | Same `underlyingPickId` claimed by `pick_ownership` on two or more different teams.               |
+| 5   | `ORPHAN_PHYSICAL_SLOT`          | Cross-team | Reserved for future use — physical slot detection requires additional data.                       |
+
+#### API
+
+```typescript
+import { runEntitlementHealthReport } from '@/features/architect/utils/entitlements/entitlementHealthReport';
+
+const report = runEntitlementHealthReport({
+  entitlementsByTeam:
+    Map<string, entitlement[]> | Record<string, entitlement[]>,
+});
+// report.healthy: boolean
+// report.issues: HealthIssue[]
+// report.summary: Record<HealthIssueType, number>
+```
+
+#### UI Surface
+
+The `EntitlementHealthPanel` component is rendered inside the **Development Tools** section of the `ValidationDetailsPanel`. It provides:
+
+- A "Run Report" button that executes the diagnostic.
+- A status banner (✅ healthy / ❌ issues found).
+- Scrollable issue list with type badges, team codes, and entitlement IDs.
+- A "Copy" button that formats the full report to clipboard via `formatHealthReport()`.
+
+#### Key Files
+
+| File                                                                   | Role                                                     |
+| ---------------------------------------------------------------------- | -------------------------------------------------------- |
+| `src/features/architect/utils/entitlements/entitlementHealthReport.ts` | **NEW** — Pure diagnostic function + formatter           |
+| `src/features/architect/admin/EntitlementHealthPanel.tsx`              | **NEW** — React UI panel for running/viewing report      |
+| `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx`       | **MODIFIED** — Wires health panel into Dev Tools section |
+| `src/tests/architect/entitlementHealthReport.test.ts`                  | **NEW** — 22 tests covering all issue types + formatting |

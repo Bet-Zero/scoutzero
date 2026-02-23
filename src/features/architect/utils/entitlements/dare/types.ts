@@ -216,6 +216,15 @@ export interface DAREMeta {
 /**
  * Single tier in a protection ladder.
  */
+/**
+ * Machine-readable position range for partition validation (TM-EXCL-E5).
+ * positionStart and positionEnd are inclusive, 1-indexed draft positions.
+ */
+export interface StructuredCondition {
+  positionStart: number;
+  positionEnd: number;
+}
+
 export interface ProtectionLadderTier {
   /** Year this tier applies to */
   year: number;
@@ -229,6 +238,8 @@ export interface ProtectionLadderTier {
   convertToRound?: number;
   /** Source reference for audit */
   source?: string;
+  /** TM-EXCL-E5: Machine-readable position range for partition validation. */
+  structuredCondition?: StructuredCondition;
 }
 
 /**

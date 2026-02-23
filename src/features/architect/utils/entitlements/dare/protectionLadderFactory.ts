@@ -15,7 +15,11 @@
  *  - Condition: Human-readable protection (e.g., "Top 3", "Lottery")
  */
 
-import type { PickRuleDoc, PickRuleProtection, PickRuleCondition } from '../pickRulesResolver';
+import type {
+  PickRuleDoc,
+  PickRuleProtection,
+  PickRuleCondition,
+} from '../pickRulesResolver';
 import type { EffectiveEntitlement } from '../entitlementResolver';
 import type { ProtectionLadder, ProtectionLadderTier } from './types';
 
@@ -62,8 +66,21 @@ export function buildProtectionLadder(
         const year = entry.year as number;
         const condition = entry.condition as string;
         const ifTriggered = entry.ifTriggered as 'roll' | 'convert' | 'cancel';
-        if (typeof year !== 'number' || typeof condition !== 'string') return null;
+        if (typeof year !== 'number' || typeof condition !== 'string')
+          return null;
         if (!['roll', 'convert', 'cancel'].includes(ifTriggered)) return null;
+
+        // TM-EXCL-E5: Pass through explicit structuredCondition, or derive from condition string
+        let structuredCondition = entry.structuredCondition as
+          | { positionStart: number; positionEnd: number }
+          | undefined;
+        if (!structuredCondition) {
+          const threshold = parseProtectionThreshold(condition);
+          if (threshold !== null) {
+            structuredCondition = { positionStart: 1, positionEnd: threshold };
+          }
+        }
+
         return {
           year,
           condition,
@@ -71,6 +88,7 @@ export function buildProtectionLadder(
           rollToYear: entry.rollToYear as number | undefined,
           convertToRound: entry.convertToRound as number | undefined,
           source: entry.source as string | undefined,
+          structuredCondition,
         };
       })
       .filter(Boolean) as ProtectionLadder;
@@ -118,8 +136,17 @@ export function buildProtectionLadder(
     // Parse condition string from protection
     const condition = parseProtectionCondition(protection.protection);
 
+    // TM-EXCL-E5: Derive structuredCondition from parsed condition
+    const threshold = parseProtectionThreshold(condition);
+    const structuredCondition =
+      threshold !== null
+        ? { positionStart: 1, positionEnd: threshold }
+        : undefined;
+
     // Determine action when protection triggers
-    let ifTriggered: 'roll' | 'convert' | 'cancel' = isLastTier ? 'cancel' : 'roll';
+    let ifTriggered: 'roll' | 'convert' | 'cancel' = isLastTier
+      ? 'cancel'
+      : 'roll';
     let convertToRound: number | undefined;
 
     // Check for conversion conditions in pick rules
@@ -136,6 +163,7 @@ export function buildProtectionLadder(
       rollToYear: ifTriggered === 'roll' ? nextYear : undefined,
       convertToRound: ifTriggered === 'convert' ? convertToRound : undefined,
       source: `pickRule.protections[${i}]`,
+      structuredCondition,
     };
 
     ladder.push(tier);

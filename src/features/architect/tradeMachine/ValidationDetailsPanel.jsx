@@ -16,6 +16,7 @@ import TradeSalaryCalculator from './TradeSalaryCalculator';
 import { TradeReceiptPanel } from './TradeReceiptPanel';
 import { getOfficialSalaryMatchingSnapshot } from './utils/getOfficialSalaryMatchingSnapshot';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+import { EntitlementHealthPanel } from '@/features/architect/admin/EntitlementHealthPanel';
 
 /**
  * SectionHeader renders a labeled header with mode tag for each details section.
@@ -98,6 +99,17 @@ const ValidationDetailsPanel = ({
   );
 
   const hasMultipleTeams = teamOptions.length > 1;
+
+  // Build entitlementsByTeam map for health panel (TM-EXCL-E6)
+  const entitlementsByTeam = useMemo(() => {
+    const map = {};
+    for (const t of teams) {
+      if (t.team?.id && Array.isArray(t.team.entitlements)) {
+        map[t.team.id] = t.team.entitlements;
+      }
+    }
+    return map;
+  }, [teams]);
 
   // Get calculator team data
   const selectedTeam = teams[calculatorTeamIndex];
@@ -285,6 +297,18 @@ const ValidationDetailsPanel = ({
                     pickRulesById={pickRulesById}
                   />
                 </section>
+
+                {/* Section 6: Entitlement Health Report (TM-EXCL-E6) */}
+                {Object.keys(entitlementsByTeam).length > 0 && (
+                  <section data-testid="section-entitlement-health">
+                    <SectionHeader title="Exclusivity Health" mode="DEBUG">
+                      Scan all teams&apos; entitlements for integrity issues
+                    </SectionHeader>
+                    <EntitlementHealthPanel
+                      entitlementsByTeam={entitlementsByTeam}
+                    />
+                  </section>
+                )}
               </div>
             )}
           </div>

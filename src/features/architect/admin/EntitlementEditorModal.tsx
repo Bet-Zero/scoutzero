@@ -17,6 +17,7 @@ import { EntitlementEditorFormTabs } from './EntitlementEditorFormTabs';
 import { EntitlementEditorTeamInventorySection } from './EntitlementEditorTeamInventorySection';
 import { PickTermsPreview } from './PickTermsPreview';
 import { useEntitlementEditorState } from './useEntitlementEditorState';
+import { CONFLICT_TYPE_LABELS } from '../utils/entitlements/computeEntitlementClaims';
 
 // =============================================================================
 // TYPES
@@ -53,6 +54,7 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
     formState,
     setFormState,
     errors,
+    exclusivityViolations,
     fieldErrors,
     isValid,
     saving,
@@ -141,6 +143,45 @@ export const EntitlementEditorModal: React.FC<EntitlementEditorModalProps> = ({
                 <li key={error}>{error}</li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* TM-EXCL-E4: Claim-based exclusivity conflict explanations */}
+        {exclusivityViolations.length > 0 && (
+          <div
+            className="text-red-300 text-xs mt-3 p-3 bg-red-900/20 border border-red-900/40 rounded"
+            data-testid="exclusivity-violations"
+          >
+            <div className="font-semibold mb-2">
+              Exclusivity Conflicts ({exclusivityViolations.length})
+            </div>
+            <div className="space-y-2">
+              {exclusivityViolations.map((v, idx) => (
+                <div
+                  key={idx}
+                  className="bg-red-900/30 rounded px-2 py-1.5 space-y-0.5"
+                >
+                  <div className="text-red-200 font-medium">
+                    {CONFLICT_TYPE_LABELS[v.type] ?? v.type}
+                  </div>
+                  {v.conflictExplanation && (
+                    <div className="text-red-300">
+                      Reason: {v.conflictExplanation}
+                    </div>
+                  )}
+                  {v.entitlementIds && v.entitlementIds.length > 0 && (
+                    <div className="text-white/40">
+                      Conflicts with: {v.entitlementIds.join(' ↔ ')}
+                    </div>
+                  )}
+                  {v.claimsA && v.claimsA.length > 0 && (
+                    <div className="text-white/40">
+                      Claim: {v.claimsA[0]?.meta?.explanation}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
