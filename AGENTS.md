@@ -44,6 +44,14 @@ Use only these commands unless the user explicitly requests something else.
 | `npm run test:ui`        | UI-config test run                     | UI-heavy changes that need broader UI coverage |
 | `npm run test:profile`   | Analyze slow tests                     | Only when diagnosing test slowness             |
 
+**Reporter flag:** Always append `--reporter=dot` to test commands. This reduces output to one character per test (faster runs, fewer tokens consumed). Failures still print in full.
+
+```bash
+# Example
+npm run test:architect -- --reporter=dot
+npm run test:diff -- --reporter=dot
+```
+
 **Full suite (guarded):**
 
 | Command             | What it does           | When to use                                     |

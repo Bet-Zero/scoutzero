@@ -144,6 +144,21 @@ describe('validateStepien with entitlement baseline', () => {
       expect(result._debug.baselineYearsCount).toBe(2);
     });
 
+    it('fails when baseline reserves year N and trade adds outgoing N+1 (regression)', () => {
+      const team = makeTeam({
+        validationEntitlements: [makeEntitlement({ seasonYear: 2027 })],
+        entitlementsOut: [makeEntitlement({ seasonYear: 2028 })],
+      });
+
+      const result = validateStepien(team, { yearKey: 2025 });
+
+      expect(result.passed).toBe(false);
+      expect(result.violations).toContain(
+        'Violates Stepien Rule (consecutive future 1sts).'
+      );
+      expect(result._debug.baselineSource).toBe('entitlements_ssot');
+    });
+
     it('outgoing entitlement causes consecutive violation when combined with another', () => {
       // Team holds 2026, 2027, 2028 entitlements
       // Trading away 2026 and 2027 creates consecutive outgoing years
@@ -169,7 +184,7 @@ describe('validateStepien with entitlement baseline', () => {
       expect(result._debug.baselineSource).toBe('entitlements_ssot');
     });
 
-    it('non-consecutive outgoing entitlements pass', () => {
+    it('non-consecutive outgoing can still fail when baseline creates adjacent reservation', () => {
       // Team holds 2026, 2027, 2028 entitlements
       // Trading away 2026 and 2028 (non-consecutive) is OK
       const team = makeTeam({
@@ -186,7 +201,10 @@ describe('validateStepien with entitlement baseline', () => {
 
       const result = validateStepien(team, { yearKey: 2025 });
 
-      expect(result.passed).toBe(true);
+      expect(result.passed).toBe(false);
+      expect(result.violations).toContain(
+        'Violates Stepien Rule (consecutive future 1sts).'
+      );
       // Phase 13: baselineSource is always 'entitlements_ssot'
       expect(result._debug.baselineSource).toBe('entitlements_ssot');
     });

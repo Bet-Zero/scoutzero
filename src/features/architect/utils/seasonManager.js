@@ -101,7 +101,7 @@ import {
 // DARE: Draft Asset Resolution Engine for entitlement lifecycle persistence (B2/B3)
 import {
   resolveAllDraftAssets,
-  applyDAREResultsToBatch,
+  applyGatedDAREResultsToBatch,
   formatReceiptAsSummary,
 } from '@/features/architect/utils/entitlements/dare';
 
@@ -692,13 +692,36 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
         const dareResult = await resolveAllDraftAssets(db, dareInput);
 
         if (dareResult.success) {
-          // Apply DARE writes to the batch (entitlement docs + team inventory updates)
-          const dareWriteCount = applyDAREResultsToBatch(
+          // Build full pre-DARE entitlement state for league-wide gated validation.
+          // Fail closed: if any team cannot be resolved, block season advance.
+          const currentEntitlementsByTeam = {};
+          for (const teamEntry of teams) {
+            const teamCode = teamEntry.teamCode;
+            const resolved = await resolveEntitlementsForTeam(worldId, teamCode);
+            if (!Array.isArray(resolved)) {
+              throw new Error(
+                `DARE gated persistence unavailable — entitlement set for ${teamCode} is not an array.`
+              );
+            }
+            currentEntitlementsByTeam[teamCode] = resolved;
+          }
+
+          // Apply DARE writes to the batch through the gated mutator.
+          const gatedDareWriteResult = applyGatedDAREResultsToBatch(
             db,
             batch,
             worldId,
-            dareResult
+            dareResult,
+            currentEntitlementsByTeam
           );
+
+          if (!gatedDareWriteResult.ok) {
+            throw new Error(
+              `DARE gated persistence blocked season advance: ${gatedDareWriteResult.message}`
+            );
+          }
+
+          const dareWriteCount = gatedDareWriteResult.writeCount;
 
           // Merge DARE receipt into summary
           summary.dareReceipt = dareResult.resolutionReceipt;
@@ -718,9 +741,22 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
           summary.dareError = dareResult.error;
         }
       } catch (dareErr) {
-        // DARE error - log but don't block season advance
-        console.warn(`[seasonManager] DARE error:`, dareErr.message || dareErr);
-        summary.dareError = dareErr.message || 'Unknown DARE error';
+        const dareMessage = dareErr?.message || String(dareErr);
+        const invariantViolation =
+          dareErr?.code === 'ENTITLEMENT_INVARIANT_VIOLATION' ||
+          dareMessage.includes('ENTITLEMENT_INVARIANT_VIOLATION');
+        // Gate failures are ship blockers: fail season advance loudly.
+        if (dareMessage.includes('DARE gated persistence') || invariantViolation) {
+          throw new Error(
+            dareMessage.includes('DARE gated persistence')
+              ? dareMessage
+              : `DARE gated persistence blocked season advance: ${dareMessage}`
+          );
+        }
+
+        // Resolver/runtime DARE errors remain non-blocking.
+        console.warn(`[seasonManager] DARE error:`, dareMessage);
+        summary.dareError = dareMessage || 'Unknown DARE error';
       }
     }
 

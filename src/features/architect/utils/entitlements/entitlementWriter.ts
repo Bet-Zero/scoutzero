@@ -21,6 +21,7 @@ import {
   setDoc,
   deleteDoc,
   updateDoc,
+  runTransaction,
   serverTimestamp,
   deleteField,
   arrayUnion,
@@ -31,6 +32,7 @@ import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
 } from '@/constants/collections';
+import { resolveStoredOrComputedIdentityKey } from './entitlementIdentity';
 
 // =============================================================================
 // TYPES
@@ -46,6 +48,7 @@ export interface WriteEntitlementParams {
 export interface WriteEntitlementResult {
   success: boolean;
   error?: string;
+  errorType?: 'ENTITLEMENT_ID_COLLISION';
   path?: string;
 }
 
@@ -54,6 +57,90 @@ export interface AttachEntitlementParams {
   teamCode: string;
   entitlementId: string;
   userId: string;
+}
+
+export interface WriteEntitlementAndAttachParams extends WriteEntitlementParams {
+  teamCode?: string;
+}
+
+export interface EntitlementIdCollisionDetails {
+  worldId: string;
+  entitlementId: string;
+  existingIdentityKey: string;
+  incomingIdentityKey: string;
+}
+
+export class EntitlementIdCollisionError extends Error {
+  readonly code = 'ENTITLEMENT_ID_COLLISION';
+
+  readonly details: EntitlementIdCollisionDetails;
+
+  constructor(details: EntitlementIdCollisionDetails, contextLabel: string) {
+    super(
+      `${contextLabel}: ENTITLEMENT_ID_COLLISION for "${details.entitlementId}" in world "${details.worldId}" (existing identityKey "${details.existingIdentityKey}" vs incoming "${details.incomingIdentityKey}").`
+    );
+    this.name = 'EntitlementIdCollisionError';
+    this.details = details;
+  }
+}
+
+function resolveIdentityKeyForCollision(
+  document: Record<string, unknown>,
+  contextLabel: string,
+  fieldLabel: string
+): string {
+  const identityKey = resolveStoredOrComputedIdentityKey(document);
+  if (!identityKey) {
+    throw new Error(
+      `${contextLabel}: Cannot resolve ${fieldLabel} identityKey for deterministic collision check.`
+    );
+  }
+  return identityKey;
+}
+
+export function assertNoEntitlementIdCollision(params: {
+  worldId: string;
+  entitlementId: string;
+  incomingDocument: Record<string, unknown>;
+  existingDocument: Record<string, unknown> | null;
+  contextLabel: string;
+}): void {
+  const {
+    worldId,
+    entitlementId,
+    incomingDocument,
+    existingDocument,
+    contextLabel,
+  } = params;
+
+  if (!existingDocument) {
+    return;
+  }
+
+  const existingIdentityKey = resolveIdentityKeyForCollision(
+    existingDocument,
+    contextLabel,
+    'existing'
+  );
+  const incomingIdentityKey = resolveIdentityKeyForCollision(
+    incomingDocument,
+    contextLabel,
+    'incoming'
+  );
+
+  if (existingIdentityKey === incomingIdentityKey) {
+    return;
+  }
+
+  throw new EntitlementIdCollisionError(
+    {
+      worldId,
+      entitlementId,
+      existingIdentityKey,
+      incomingIdentityKey,
+    },
+    contextLabel
+  );
 }
 
 /**
@@ -322,6 +409,33 @@ const CLEARABLE_FIELDS = [
   'underlyingStatus',
 ] as const;
 
+export function buildWorldEntitlementWritePayload(params: {
+  entitlementId: string;
+  document: Record<string, unknown>;
+  userId: string;
+}): Record<string, unknown> {
+  const { entitlementId, document, userId } = params;
+
+  return {
+    ...document,
+    // BUG #2 fix: explicitly delete clearable fields absent from the payload
+    // so merge:true doesn't leave stale data behind.
+    ...Object.fromEntries(
+      CLEARABLE_FIELDS.filter((field) => !(field in document)).map((field) => [
+        field,
+        deleteField(),
+      ])
+    ),
+    id: entitlementId,
+    _lastModifiedAt: serverTimestamp(),
+    _lastModifiedBy: userId,
+    _authoredManually: true,
+    // TM-VACUUM-E3: Ensure vacuum metadata never leaks to Firestore
+    __vacuumEdited: deleteField(),
+    __vacuumSessionOnly: deleteField(),
+  };
+}
+
 /**
  * Write a world-scoped entitlement document.
  *
@@ -375,27 +489,13 @@ export async function writeWorldEntitlement(
       entitlementId
     );
 
-    await setDoc(
-      ref,
-      {
-        ...document,
-        // BUG #2 fix: explicitly delete clearable fields absent from the payload
-        // so merge:true doesn't leave stale data behind.
-        ...Object.fromEntries(
-          CLEARABLE_FIELDS.filter((field) => !(field in document)).map(
-            (field) => [field, deleteField()]
-          )
-        ),
-        id: entitlementId,
-        _lastModifiedAt: serverTimestamp(),
-        _lastModifiedBy: userId,
-        _authoredManually: true,
-        // TM-VACUUM-E3: Ensure vacuum metadata never leaks to Firestore
-        __vacuumEdited: deleteField(),
-        __vacuumSessionOnly: deleteField(),
-      },
-      { merge: true }
-    );
+    const payload = buildWorldEntitlementWritePayload({
+      entitlementId,
+      document,
+      userId,
+    });
+
+    await setDoc(ref, payload, { merge: true });
 
     return {
       success: true,
@@ -405,6 +505,113 @@ export async function writeWorldEntitlement(
     return {
       success: false,
       error: err instanceof Error ? err.message : 'Write failed',
+    };
+  }
+}
+
+/**
+ * Atomically write an entitlement document and attach its ID to holder team's inventory.
+ *
+ * Transaction guarantees no orphan docs: either both entitlement doc and team
+ * entitlementIds update commit, or neither does.
+ */
+export async function writeWorldEntitlementAndAttachToTeamAtomic(
+  db: Firestore,
+  params: WriteEntitlementAndAttachParams
+): Promise<WriteEntitlementResult> {
+  const { worldId, entitlementId, document, userId } = params;
+  const teamCode =
+    (params.teamCode as string) || (document.holderTeam as string) || '';
+
+  if (!isEntitlementAuthoringEnabled()) {
+    return {
+      success: false,
+      error:
+        'Entitlement authoring is not enabled. Set VITE_FEATURE_ENTITLEMENT_AUTHORING=true',
+    };
+  }
+
+  if (!worldId || !entitlementId || !document) {
+    return {
+      success: false,
+      error: 'worldId, entitlementId, and document are required',
+    };
+  }
+
+  if (!teamCode || teamCode.length !== 3) {
+    return {
+      success: false,
+      error: 'holderTeam/teamCode is required and must be a 3-letter code',
+    };
+  }
+
+  const validation = validateEntitlementDocument(document);
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: `Schema validation failed: ${validation.error}`,
+    };
+  }
+
+  try {
+    const entitlementRef = doc(
+      db,
+      ARCHITECT_WORLDS_COLLECTION,
+      worldId,
+      ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+      entitlementId
+    );
+    const teamRef = doc(
+      db,
+      ARCHITECT_WORLDS_COLLECTION,
+      worldId,
+      'teams',
+      teamCode.toUpperCase()
+    );
+    const payload = buildWorldEntitlementWritePayload({
+      entitlementId,
+      document,
+      userId,
+    });
+
+    await runTransaction(db, async (transaction) => {
+      const existingEntitlement = await transaction.get(entitlementRef);
+      if (existingEntitlement.exists()) {
+        assertNoEntitlementIdCollision({
+          worldId,
+          entitlementId,
+          incomingDocument: { ...document, id: entitlementId },
+          existingDocument: {
+            id: existingEntitlement.id,
+            ...(existingEntitlement.data() as Record<string, unknown>),
+          },
+          contextLabel: 'Entitlement Create',
+        });
+      }
+
+      transaction.set(entitlementRef, payload, { merge: true });
+      transaction.update(teamRef, {
+        entitlementIds: arrayUnion(entitlementId),
+        _lastModifiedAt: serverTimestamp(),
+        _lastModifiedBy: userId,
+      });
+    });
+
+    return {
+      success: true,
+      path: entitlementRef.path,
+    };
+  } catch (err) {
+    if (err instanceof EntitlementIdCollisionError) {
+      return {
+        success: false,
+        errorType: 'ENTITLEMENT_ID_COLLISION',
+        error: err.message,
+      };
+    }
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Atomic create+attach failed',
     };
   }
 }

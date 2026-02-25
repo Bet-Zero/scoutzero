@@ -9,17 +9,11 @@
 
 import React, { useState } from 'react';
 import type { EntitlementFormState } from './entitlementEditorFormState';
-import { serializeEntitlementDocument } from './entitlementEditorFormState';
-
-/** Identity fields that must not change in edit mode */
-const IDENTITY_FIELDS = [
-  'holderTeam',
-  'kind',
-  'seasonYear',
-  'round',
-  'underlyingPickId',
-  'swapControllerPickId',
-] as const;
+import {
+  buildEntitlementDocument,
+  serializeEntitlementDocument,
+} from './entitlementEditorFormState';
+import { getEntitlementIdentityKey } from '../utils/entitlements/entitlementIdentity';
 
 interface EntitlementEditorAdvancedTabProps {
   formState: EntitlementFormState;
@@ -36,53 +30,50 @@ export const EntitlementEditorAdvancedTab: React.FC<
     serializeEntitlementDocument(formState)
   );
   const [error, setError] = useState<string | null>(null);
+  const [identityNotice, setIdentityNotice] = useState<string | null>(null);
 
   const handleSyncFromForm = () => {
     setJsonInput(serializeEntitlementDocument(formState));
     setError(null);
+    setIdentityNotice(null);
   };
 
   const handleApply = () => {
-    // In edit mode, strip identity field changes before applying
-    if (isEditMode) {
-      try {
-        const parsed = JSON.parse(jsonInput);
-        const currentDoc = JSON.parse(serializeEntitlementDocument(formState));
-        let wasLocked = false;
-        for (const field of IDENTITY_FIELDS) {
-          if (
-            field in parsed &&
-            JSON.stringify(parsed[field]) !== JSON.stringify(currentDoc[field])
-          ) {
-            parsed[field] = currentDoc[field]; // restore original value
-            wasLocked = true;
-          }
-        }
-        if (wasLocked) {
-          setError(
-            'Identity fields (holderTeam, kind, seasonYear, round, underlyingPickId, swapControllerPickId) cannot be changed in edit mode. To change identity, use Duplicate as new.'
-          );
-        }
-        const result = onApplyJson(JSON.stringify(parsed, null, 2));
-        if (!result.success) {
-          setError(result.error || 'Failed to apply JSON');
-          return;
-        }
-        if (!wasLocked) setError(null);
-      } catch (parseErr) {
-        const result = onApplyJson(jsonInput);
-        if (!result.success) {
-          setError(result.error || 'Failed to apply JSON');
-        }
+    try {
+      const parsed = JSON.parse(jsonInput);
+      const result = onApplyJson(JSON.stringify(parsed, null, 2));
+      if (!result.success) {
+        setError(result.error || 'Failed to apply JSON');
+        return;
       }
-      return;
+
+      setError(null);
+
+      if (isEditMode && parsed && typeof parsed === 'object') {
+        const currentIdentityKey = getEntitlementIdentityKey(
+          buildEntitlementDocument(formState)
+        );
+        const nextIdentityKey = getEntitlementIdentityKey(
+          parsed as Record<string, unknown>
+        );
+
+        setIdentityNotice(
+          currentIdentityKey !== nextIdentityKey
+            ? 'This change requires creating a new entitlement. Saving will create a new entitlement and keep the original unchanged.'
+            : null
+        );
+      } else {
+        setIdentityNotice(null);
+      }
+    } catch {
+      const result = onApplyJson(jsonInput);
+      if (!result.success) {
+        setError(result.error || 'Failed to apply JSON');
+        return;
+      }
+      setError(null);
+      setIdentityNotice(null);
     }
-    const result = onApplyJson(jsonInput);
-    if (!result.success) {
-      setError(result.error || 'Failed to apply JSON');
-      return;
-    }
-    setError(null);
   };
 
   return (
@@ -126,6 +117,12 @@ export const EntitlementEditorAdvancedTab: React.FC<
         <div className="text-amber-300 text-xs bg-amber-900/20 border border-amber-500/30 rounded px-2 py-1">
           Identity fields are locked in edit mode. To change identity, use
           Duplicate as new.
+        </div>
+      )}
+
+      {identityNotice && (
+        <div className="text-amber-300 text-xs bg-amber-900/20 border border-amber-500/30 rounded px-2 py-1">
+          {identityNotice}
         </div>
       )}
 

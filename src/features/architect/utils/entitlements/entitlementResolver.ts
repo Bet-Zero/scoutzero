@@ -31,7 +31,10 @@ import {
   getTeamOverlay,
   getTransfersForTeam,
 } from './vacuumEntitlementOverlayStore';
-import { getEntitlementIdentityKey } from './entitlementIdentity';
+import {
+  getEntitlementIdentityKey,
+  resolveStoredOrComputedIdentityKey,
+} from './entitlementIdentity';
 
 type EntitlementRecord = Record<string, unknown>;
 
@@ -42,6 +45,38 @@ type ResolverDb = Firestore;
 type ResolverResult = EffectiveEntitlement | null;
 
 type EntitlementMap = Map<string, EntitlementRecord>;
+
+type ResolverLayerLabel = `world:${string}` | 'base';
+
+export type EntitlementInvariantViolationKind =
+  | 'DUPLICATE_ENTITLEMENT_ID'
+  | 'DUPLICATE_IDENTITY_KEY'
+  | 'CONFLICTING_LAYER_IDENTITY';
+
+export interface EntitlementInvariantViolationDetails {
+  code: 'ENTITLEMENT_INVARIANT_VIOLATION';
+  kind: EntitlementInvariantViolationKind;
+  teamCode: string;
+  worldId: string | null;
+  entitlementIds?: string[];
+  identityKey?: string;
+  conflictingIdentityKeys?: string[];
+  layerProvenance?: string[];
+}
+
+export class EntitlementInvariantError extends Error {
+  readonly code = 'ENTITLEMENT_INVARIANT_VIOLATION';
+
+  readonly details: EntitlementInvariantViolationDetails;
+
+  constructor(details: EntitlementInvariantViolationDetails) {
+    super(
+      `ENTITLEMENT_INVARIANT_VIOLATION (${details.kind}) for team ${details.teamCode} in world ${details.worldId ?? 'base'}`
+    );
+    this.name = 'EntitlementInvariantError';
+    this.details = details;
+  }
+}
 
 const DEFAULT_IN_QUERY_LIMIT = 30;
 
@@ -84,6 +119,152 @@ const chunkIds = (ids: string[], size = DEFAULT_IN_QUERY_LIMIT) => {
   return chunks;
 };
 
+function resolveIdentityKeyForInvariant(entitlement: EntitlementRecord): string {
+  return (
+    resolveStoredOrComputedIdentityKey(entitlement) ??
+    getEntitlementIdentityKey(entitlement)
+  );
+}
+
+function throwInvariant(details: Omit<EntitlementInvariantViolationDetails, 'code'>): never {
+  throw new EntitlementInvariantError({
+    code: 'ENTITLEMENT_INVARIANT_VIOLATION',
+    ...details,
+  });
+}
+
+function assertNoDuplicateIdsInList(params: {
+  entitlementIds: string[];
+  worldId: string | null;
+  teamCode: string;
+}): void {
+  const counts = new Map<string, number>();
+  for (const entitlementId of params.entitlementIds) {
+    if (!entitlementId) continue;
+    counts.set(entitlementId, (counts.get(entitlementId) || 0) + 1);
+  }
+  const duplicates = [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([id]) => id)
+    .sort();
+  if (duplicates.length === 0) {
+    return;
+  }
+  throwInvariant({
+    kind: 'DUPLICATE_ENTITLEMENT_ID',
+    teamCode: params.teamCode,
+    worldId: params.worldId,
+    entitlementIds: duplicates,
+  });
+}
+
+function assertNoDuplicateIdsInResolvedSet(params: {
+  entitlements: EffectiveEntitlement[];
+  worldId: string | null;
+  teamCode: string;
+}): void {
+  const ids = params.entitlements
+    .map((entitlement) => entitlement.id)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  assertNoDuplicateIdsInList({
+    entitlementIds: ids,
+    worldId: params.worldId,
+    teamCode: params.teamCode,
+  });
+}
+
+function assertNoDuplicateIdentityKeys(params: {
+  entitlements: EffectiveEntitlement[];
+  worldId: string | null;
+  teamCode: string;
+}): void {
+  const byIdentity = new Map<string, string[]>();
+  for (const entitlement of params.entitlements) {
+    const identityKey = resolveIdentityKeyForInvariant(entitlement);
+    const entitlementId = (entitlement.id as string) || '(no id)';
+    if (!byIdentity.has(identityKey)) {
+      byIdentity.set(identityKey, []);
+    }
+    byIdentity.get(identityKey)!.push(entitlementId);
+  }
+
+  for (const [identityKey, entitlementIds] of byIdentity.entries()) {
+    if (entitlementIds.length <= 1) continue;
+    throwInvariant({
+      kind: 'DUPLICATE_IDENTITY_KEY',
+      teamCode: params.teamCode,
+      worldId: params.worldId,
+      identityKey,
+      entitlementIds: [...new Set(entitlementIds)].sort(),
+    });
+  }
+}
+
+function assertNoLayerIdentityConflict(params: {
+  teamCode: string;
+  worldId: string | null;
+  entitlementId: string;
+  currentLayer: ResolverLayerLabel;
+  currentDocument: EntitlementRecord;
+  incomingLayer: ResolverLayerLabel;
+  incomingDocument: EntitlementRecord;
+}): void {
+  const currentIdentity = resolveStoredOrComputedIdentityKey(
+    params.currentDocument
+  );
+  const incomingIdentity = resolveStoredOrComputedIdentityKey(
+    params.incomingDocument
+  );
+  if (!currentIdentity || !incomingIdentity) {
+    return;
+  }
+  if (currentIdentity === incomingIdentity) {
+    return;
+  }
+  throwInvariant({
+    kind: 'CONFLICTING_LAYER_IDENTITY',
+    teamCode: params.teamCode,
+    worldId: params.worldId,
+    entitlementIds: [params.entitlementId],
+    conflictingIdentityKeys: [currentIdentity, incomingIdentity],
+    layerProvenance: [params.currentLayer, params.incomingLayer],
+  });
+}
+
+const resolveWorldFallbackChain = async (
+  db: ResolverDb,
+  worldId: string | null
+): Promise<string[]> => {
+  if (!worldId) return [];
+
+  const chain: string[] = [];
+  const seen = new Set<string>();
+  let currentWorldId: string | null = worldId;
+
+  while (currentWorldId && !seen.has(currentWorldId)) {
+    seen.add(currentWorldId);
+    chain.push(currentWorldId);
+
+    try {
+      const worldRef = doc(db, ARCHITECT_WORLDS_COLLECTION, currentWorldId);
+      const worldSnap = await getDoc(worldRef);
+      if (!worldSnap.exists()) break;
+
+      const worldData = worldSnap.data() as { parentWorldId?: string };
+      currentWorldId =
+        typeof worldData?.parentWorldId === 'string' &&
+        worldData.parentWorldId.trim().length > 0
+          ? worldData.parentWorldId
+          : null;
+    } catch {
+      // Match teamLoader resilience: if parent lookup fails, stop chaining.
+      break;
+    }
+  }
+
+  return chain;
+};
+
 const resolveDefaultDb = async (): Promise<ResolverDb> => {
   const module = await import('@/firebaseConfig');
   return module.db as ResolverDb;
@@ -123,19 +304,33 @@ const resolveTeamEntitlementIds = async (
   teamCode: string
 ): Promise<string[]> => {
   if (worldId) {
-    const worldTeamRef = doc(
-      db,
-      ARCHITECT_WORLDS_COLLECTION,
-      worldId,
-      'teams',
-      teamCode
-    );
-    const worldTeamSnap = await getDoc(worldTeamRef);
-    if (worldTeamSnap.exists()) {
-      const worldData = worldTeamSnap.data() as { entitlementIds?: string[] };
-      return Array.isArray(worldData.entitlementIds)
-        ? worldData.entitlementIds
-        : [];
+    const worldChain = await resolveWorldFallbackChain(db, worldId);
+    for (const scopedWorldId of worldChain) {
+      const worldTeamRef = doc(
+        db,
+        ARCHITECT_WORLDS_COLLECTION,
+        scopedWorldId,
+        'teams',
+        teamCode
+      );
+      const worldTeamSnap = await getDoc(worldTeamRef);
+      if (!worldTeamSnap.exists()) continue;
+
+      const worldData = worldTeamSnap.data() as { entitlementIds?: unknown };
+      // Align with world → parent → base semantics:
+      // if this snapshot explicitly carries entitlementIds, honor it.
+      // if entitlementIds is absent, continue fallback to parent.
+      if ('entitlementIds' in worldData) {
+        const entitlementIds = Array.isArray(worldData.entitlementIds)
+          ? (worldData.entitlementIds as string[])
+          : [];
+        assertNoDuplicateIdsInList({
+          entitlementIds,
+          worldId,
+          teamCode,
+        });
+        return entitlementIds;
+      }
     }
   }
 
@@ -144,7 +339,15 @@ const resolveTeamEntitlementIds = async (
   if (!baseTeamSnap.exists()) return [];
 
   const baseData = baseTeamSnap.data() as { entitlementIds?: string[] };
-  return Array.isArray(baseData.entitlementIds) ? baseData.entitlementIds : [];
+  const entitlementIds = Array.isArray(baseData.entitlementIds)
+    ? baseData.entitlementIds
+    : [];
+  assertNoDuplicateIdsInList({
+    entitlementIds,
+    worldId,
+    teamCode,
+  });
+  return entitlementIds;
 };
 
 export const resolveEntitlementWithDb = async (
@@ -161,29 +364,46 @@ export const resolveEntitlementWithDb = async (
       } as EntitlementRecord)
     : null;
 
-  let overrideData: EntitlementRecord | null = null;
-  if (worldId) {
+  let resolvedData: EntitlementRecord | null = baseData || null;
+  let resolvedLayer: ResolverLayerLabel | null = baseData ? 'base' : null;
+  const worldChain = await resolveWorldFallbackChain(db, worldId);
+
+  // Merge from oldest parent → ... → current world.
+  for (const scopedWorldId of [...worldChain].reverse()) {
     const overrideRef = doc(
       db,
       ARCHITECT_WORLDS_COLLECTION,
-      worldId,
+      scopedWorldId,
       ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
       entitlementId
     );
     const overrideSnap = await getDoc(overrideRef);
-    if (overrideSnap.exists()) {
-      overrideData = {
-        id: overrideSnap.id,
-        ...(overrideSnap.data() as EntitlementRecord),
-      };
+    if (!overrideSnap.exists()) continue;
+
+    const overrideData: EntitlementRecord = {
+      id: overrideSnap.id,
+      ...(overrideSnap.data() as EntitlementRecord),
+    };
+
+    if (resolvedData && resolvedLayer) {
+      assertNoLayerIdentityConflict({
+        teamCode: 'UNKNOWN',
+        worldId,
+        entitlementId,
+        currentLayer: resolvedLayer,
+        currentDocument: resolvedData,
+        incomingLayer: `world:${scopedWorldId}`,
+        incomingDocument: overrideData,
+      });
     }
+
+    resolvedData = resolvedData
+      ? deepMerge(resolvedData, overrideData)
+      : overrideData;
+    resolvedLayer = `world:${scopedWorldId}`;
   }
 
-  if (baseData && overrideData) {
-    return deepMerge(baseData, overrideData);
-  }
-
-  return baseData || overrideData || null;
+  return resolvedData;
 };
 
 export const resolveEntitlementsForTeamWithDb = async (
@@ -199,27 +419,55 @@ export const resolveEntitlementsForTeamWithDb = async (
     [ARCHITECT_BASE_ENTITLEMENTS_PATH],
     entitlementIds
   );
-  const overrideDocs = worldId
-    ? await fetchEntitlementsByIds(
-        db,
-        [
-          ARCHITECT_WORLDS_COLLECTION,
-          worldId,
-          ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
-        ],
-        entitlementIds
-      )
-    : [];
 
   const baseMap = toEntitlementMap(baseDocs);
-  const overrideMap = toEntitlementMap(overrideDocs);
+  const worldChain = await resolveWorldFallbackChain(db, worldId);
+  const overrideLayers: Array<{
+    layer: ResolverLayerLabel;
+    map: EntitlementMap;
+  }> = [];
+
+  // Merge order: oldest parent → ... → current world.
+  for (const scopedWorldId of [...worldChain].reverse()) {
+    const overrideDocs = await fetchEntitlementsByIds(
+      db,
+      [
+        ARCHITECT_WORLDS_COLLECTION,
+        scopedWorldId,
+        ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+      ],
+      entitlementIds
+    );
+    overrideLayers.push({
+      layer: `world:${scopedWorldId}`,
+      map: toEntitlementMap(overrideDocs),
+    });
+  }
 
   const resolved = entitlementIds
     .map((id) => {
-      const base = baseMap.get(id) || null;
-      const override = overrideMap.get(id) || null;
-      if (base && override) return deepMerge(base, override);
-      return base || override || null;
+      let merged = (baseMap.get(id) || null) as EntitlementRecord | null;
+      let mergedLayer: ResolverLayerLabel | null = merged ? 'base' : null;
+
+      for (const overrideLayer of overrideLayers) {
+        const override = overrideLayer.map.get(id) || null;
+        if (!override) continue;
+        if (merged && mergedLayer) {
+          assertNoLayerIdentityConflict({
+            teamCode,
+            worldId,
+            entitlementId: id,
+            currentLayer: mergedLayer,
+            currentDocument: merged,
+            incomingLayer: overrideLayer.layer,
+            incomingDocument: override,
+          });
+        }
+        merged = merged ? deepMerge(merged, override) : override;
+        mergedLayer = overrideLayer.layer;
+      }
+
+      return merged;
     })
     .filter((entitlement): entitlement is EffectiveEntitlement =>
       Boolean(entitlement)
@@ -289,46 +537,17 @@ export const resolveEntitlementsForTeamWithDb = async (
     }
   }
 
-  // ── R5: Deduplicate by identityKey ──
-  // If base/world/vacuum merging produces two entries with the same logical
-  // identity, keep only the preferred one:
-  //   - Prefer world/vacuum-edited over plain base
-  //   - Prefer later entries (vacuum creates appended last) when all else equal
-  const seenIdentity = new Map<string, number>(); // identityKey → index in resolved
-  for (let i = resolved.length - 1; i >= 0; i--) {
-    const ent = resolved[i];
-    const key = (ent.identityKey as string) || getEntitlementIdentityKey(ent);
-    const existingIdx = seenIdentity.get(key);
-    if (existingIdx !== undefined) {
-      // Duplicate found — decide which to keep.
-      // Prefer: __vacuumEdited > __vacuumSessionOnly > plain base
-      const existing = resolved[existingIdx];
-      const existingPriority =
-        (existing.__vacuumEdited ? 2 : 0) +
-        (existing.__vacuumSessionOnly ? 1 : 0);
-      const currentPriority =
-        (ent.__vacuumEdited ? 2 : 0) + (ent.__vacuumSessionOnly ? 1 : 0);
-
-      if (currentPriority >= existingPriority) {
-        // Current entry is higher/equal priority — remove the later one
-        resolved.splice(existingIdx, 1);
-        // Adjust indices in seenIdentity for anything shifted
-        for (const [k, idx] of seenIdentity) {
-          if (idx > existingIdx) seenIdentity.set(k, idx - 1);
-        }
-        seenIdentity.set(key, i > existingIdx ? i - 1 : i);
-      } else {
-        // Existing entry is higher priority — remove current
-        resolved.splice(i, 1);
-        // Adjust indices for anything shifted
-        for (const [k, idx] of seenIdentity) {
-          if (idx > i) seenIdentity.set(k, idx - 1);
-        }
-      }
-    } else {
-      seenIdentity.set(key, i);
-    }
-  }
+  // E3 hardening: resolver must fail loud on corruption, not silently dedupe.
+  assertNoDuplicateIdsInResolvedSet({
+    entitlements: resolved,
+    worldId,
+    teamCode,
+  });
+  assertNoDuplicateIdentityKeys({
+    entitlements: resolved,
+    worldId,
+    teamCode,
+  });
 
   return resolved;
 };

@@ -260,6 +260,56 @@ describe('Phase B: DARE World Persistence Integration', () => {
       );
       expect(entitlementWrites.length).toBe(0);
     });
+
+    it('fails season advance loudly when gated DARE persistence is blocked', async () => {
+      mocks.mockGetDraftPositionsMap.mockResolvedValue({ MIN: 1 });
+      mocks.mockGetLeague.mockResolvedValue([
+        { teamCode: 'MIN', entitlementIds: [], roster: [], players: [], totals: {} },
+        { teamCode: 'DET', entitlementIds: [], roster: [], players: [], totals: {} },
+      ]);
+      mocks.mockResolveEntitlementsForTeam.mockResolvedValue([]);
+
+      // Added entitlement ID has no corresponding upsert doc -> gated mutator must fail closed.
+      mocks.mockResolveAllDraftAssets.mockResolvedValue({
+        success: true,
+        entitlementDocWrites: [],
+        teamEntitlementIdUpdates: [
+          {
+            teamCode: 'MIN',
+            entitlementIds: ['ent-missing-doc'],
+            addedIds: ['ent-missing-doc'],
+            removedIds: [],
+          },
+        ],
+        resolutionReceipt: { totalResolutions: 1, entries: [] },
+      });
+
+      const result = await advanceSeasonInWorld(WORLD_ID);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/DARE gated persistence blocked season advance/i);
+    });
+
+    it('fails season advance loudly when resolver surfaces entitlement invariant violation', async () => {
+      mocks.mockGetDraftPositionsMap.mockResolvedValue({ MIN: 1 });
+      mocks.mockGetLeague.mockResolvedValue([
+        { teamCode: 'MIN', entitlementIds: [], roster: [], players: [], totals: {} },
+        { teamCode: 'DET', entitlementIds: [], roster: [], players: [], totals: {} },
+      ]);
+      mocks.mockResolveAllDraftAssets.mockResolvedValue({
+        success: true,
+        entitlementDocWrites: [],
+        teamEntitlementIdUpdates: [],
+        resolutionReceipt: { totalResolutions: 0, entries: [] },
+      });
+      mocks.mockResolveEntitlementsForTeam.mockRejectedValue({
+        code: 'ENTITLEMENT_INVARIANT_VIOLATION',
+        message: 'ENTITLEMENT_INVARIANT_VIOLATION (DUPLICATE_IDENTITY_KEY)',
+      });
+
+      const result = await advanceSeasonInWorld(WORLD_ID);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/DARE gated persistence blocked season advance/i);
+    });
   });
 
   describe('Task 3: Trade -> Season Advance Continuity', () => {

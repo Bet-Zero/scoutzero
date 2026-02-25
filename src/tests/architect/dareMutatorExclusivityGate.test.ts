@@ -122,11 +122,12 @@ describe('DARE Mutator Exclusivity Gate (TM-EXCL-E3)', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errorType).toBe('EXCLUSIVITY_VIOLATION');
-      expect(result.message).toContain('BOS');
-      expect(result.message).toContain('DUP_PICK_OWNERSHIP_UNDERLIER');
-      expect(result.teamViolations).toBeDefined();
-      expect(result.teamViolations!.length).toBe(1);
+      const failedResult = result as Exclude<typeof result, { ok: true }>;
+      expect(failedResult.errorType).toBe('EXCLUSIVITY_VIOLATION');
+      expect(failedResult.message).toContain('BOS');
+      expect(failedResult.message).toContain('DUP_PICK_OWNERSHIP_UNDERLIER');
+      expect(failedResult.teamViolations).toBeDefined();
+      expect(failedResult.teamViolations!.length).toBe(1);
     }
 
     // Verify no writes were added to batch
@@ -172,8 +173,9 @@ describe('DARE Mutator Exclusivity Gate (TM-EXCL-E3)', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.message).toContain('LAL');
-      expect(result.message).toContain('not provided');
+      const failedResult = result as Exclude<typeof result, { ok: true }>;
+      expect(failedResult.message).toContain('LAL');
+      expect(failedResult.message).toContain('not provided');
     }
 
     // No writes
@@ -325,11 +327,62 @@ describe('DARE Mutator Exclusivity Gate (TM-EXCL-E3)', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.message).toContain('LAL');
-      expect(result.teamViolations!.length).toBe(1);
+      const failedResult = result as Exclude<typeof result, { ok: true }>;
+      expect(failedResult.message).toContain('LAL');
+      expect(failedResult.teamViolations!.length).toBe(1);
     }
 
     // No writes at all
+    expect(batch.set).not.toHaveBeenCalled();
+  });
+
+  it('blocks when post-DARE state creates cross-team claim conflict', () => {
+    const db = mockDb();
+    const batch = mockBatch();
+
+    const currentEntitlementsByTeam: Record<string, EntitlementDocLike[]> = {
+      BOS: [makePickOwnership('ent-bos', 'BOS_2028_1st')],
+      LAL: [makePickOwnership('ent-lal', 'LAL_2028_1st')],
+    };
+
+    // DARE updates LAL to claim BOS_2028_1st, which BOS already claims.
+    const dareOutput = buildDAREOutput(
+      [
+        {
+          teamCode: 'LAL',
+          entitlementIds: ['ent-lal'],
+          addedIds: [],
+          removedIds: [],
+        },
+      ],
+      [
+        {
+          action: 'upsert',
+          entitlementId: 'ent-lal',
+          path: 'test',
+          document: {
+            kind: 'pick_ownership',
+            underlyingPickId: 'BOS_2028_1st',
+          },
+          reason: 'Conflict regression test',
+        },
+      ]
+    );
+
+    const result = applyGatedDAREResultsToBatch(
+      db,
+      batch,
+      'test-world',
+      dareOutput,
+      currentEntitlementsByTeam
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      const failedResult = result as Exclude<typeof result, { ok: true }>;
+      expect(failedResult.errorType).toBe('CLAIM_UNIQUENESS_VIOLATION');
+      expect(failedResult.message).toContain('Claim uniqueness violation');
+    }
     expect(batch.set).not.toHaveBeenCalled();
   });
 });

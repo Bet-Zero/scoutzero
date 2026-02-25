@@ -31,7 +31,10 @@ import { computePostTradeEntitlements } from '../utils/stepienEntitlementUtils.j
 // TM-EXCL-E2: Explicit entitlement routing map builder (no silent skips)
 import { buildEntitlementRoutingMap } from '../utils/buildEntitlementRoutingMap.ts';
 // Phase 17: Entitlement routing validation (uniqueness, routing, ownership)
-import { validateEntitlementRouting } from '../rules/validateEntitlementRouting.js';
+import {
+  validateEntitlementRouting,
+  validateEntitlementLinkageLegality,
+} from '../rules/validateEntitlementRouting.js';
 // Phase A5-E1: Player routing validation (uniqueness, routing, destinations)
 import { validatePlayerRouting } from '../rules/validatePlayerRouting.js';
 // Phase 4: Centralized cap settings provider for explicit sourcing
@@ -534,6 +537,25 @@ export function validateTrade({
       teamResults: [],
       summaryByTeamIndex: [],
       reason: entitlementRoutingResult.errors[0] || 'Entitlement routing error',
+      performance: { validationTime: performance.now() - startTime },
+    };
+  }
+
+  // E2: Linked/residual integrity and linked package completeness are blocking legality.
+  const entitlementLinkageResult = validateEntitlementLinkageLegality({
+    teams: validTeams,
+  });
+
+  if (!entitlementLinkageResult.valid) {
+    return {
+      legal: false,
+      error: 'ENTITLEMENT_LINKAGE_ERROR',
+      violations: entitlementLinkageResult.errors,
+      warnings: entitlementLinkageResult.warnings,
+      teamResults: [],
+      summaryByTeamIndex: [],
+      reason:
+        entitlementLinkageResult.errors[0] || 'Entitlement linkage validation error',
       performance: { validationTime: performance.now() - startTime },
     };
   }

@@ -12,40 +12,65 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getEntitlementDeterministicId,
   getVacuumDeterministicId,
-  getEntitlementIdentityKey,
 } from '@/features/architect/utils/entitlements/entitlementIdentity';
 
 // ─── Mock Firestore for world tests ─────────────────────────────────────────
 
-// We mock entitlementWriter at the module level so moveWorldEntitlement
-// calls the mocked versions of writeWorldEntitlement / deleteWorldEntitlement etc.
-const mockWriteWorldEntitlement = vi
-  .fn()
-  .mockResolvedValue({ success: true, path: 'mock/path' });
-const mockDeleteWorldEntitlement = vi
-  .fn()
-  .mockResolvedValue({ success: true, path: 'mock/path' });
-const mockAttachEntitlementToTeam = vi
-  .fn()
-  .mockResolvedValue({ success: true });
-const mockDetachEntitlementFromTeam = vi
-  .fn()
-  .mockResolvedValue({ success: true });
+const mockRunTransaction = vi.fn();
+const mockDoc = vi.fn((...segments: string[]) => segments.join('/'));
+const mockGetDoc = vi.fn();
+const mockArrayUnion = vi.fn((value: string) => ({ __op: 'arrayUnion', value }));
+const mockArrayRemove = vi.fn((value: string) => ({
+  __op: 'arrayRemove',
+  value,
+}));
+const mockServerTimestamp = vi.fn(() => ({ __op: 'serverTimestamp' }));
+
+vi.mock('firebase/firestore', () => ({
+  runTransaction: (...args: unknown[]) => mockRunTransaction(...args),
+  doc: (...args: unknown[]) => mockDoc(...(args as string[])),
+  getDoc: (...args: unknown[]) => mockGetDoc(...args),
+  arrayUnion: (...args: unknown[]) => mockArrayUnion(...(args as [string])),
+  arrayRemove: (...args: unknown[]) =>
+    mockArrayRemove(...(args as [string])),
+  serverTimestamp: () => mockServerTimestamp(),
+}));
+
 const mockIsEntitlementAuthoringEnabled = vi.fn().mockReturnValue(true);
+const mockBuildWorldEntitlementWritePayload = vi.fn();
+const mockAssertNoEntitlementIdCollision = vi.fn();
+const mockResolveEntitlementsForTeam = vi.fn().mockResolvedValue([]);
+const mockResolveEntitlement = vi.fn();
+const mockRunLeagueClaimUniquenessGate = vi
+  .fn()
+  .mockResolvedValue({ ok: true });
+
+class MockEntitlementIdCollisionError extends Error {
+  readonly code = 'ENTITLEMENT_ID_COLLISION';
+}
 
 vi.mock('@/features/architect/utils/entitlements/entitlementWriter', () => ({
-  writeWorldEntitlement: (...args: unknown[]) =>
-    mockWriteWorldEntitlement(...args),
-  deleteWorldEntitlement: (...args: unknown[]) =>
-    mockDeleteWorldEntitlement(...args),
-  attachEntitlementToTeam: (...args: unknown[]) =>
-    mockAttachEntitlementToTeam(...args),
-  detachEntitlementFromTeam: (...args: unknown[]) =>
-    mockDetachEntitlementFromTeam(...args),
   isEntitlementAuthoringEnabled: () => mockIsEntitlementAuthoringEnabled(),
-  validateEntitlementDocument: () => ({ valid: true, errors: [] }),
-  generateEntitlementId: () => 'ent:MOCK:2026:1:own:random00',
+  buildWorldEntitlementWritePayload: (...args: unknown[]) =>
+    mockBuildWorldEntitlementWritePayload(...args),
+  assertNoEntitlementIdCollision: (...args: unknown[]) =>
+    mockAssertNoEntitlementIdCollision(...args),
+  EntitlementIdCollisionError: MockEntitlementIdCollisionError,
 }));
+
+vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
+  resolveEntitlement: (...args: unknown[]) => mockResolveEntitlement(...args),
+  resolveEntitlementsForTeam: (...args: unknown[]) =>
+    mockResolveEntitlementsForTeam(...args),
+}));
+
+vi.mock(
+  '@/features/architect/utils/entitlements/leagueClaimUniquenessGate',
+  () => ({
+    runLeagueClaimUniquenessGate: (...args: unknown[]) =>
+      mockRunLeagueClaimUniquenessGate(...args),
+  })
+);
 
 // ─── Mock localStorage for vacuum tests ──────────────────────────────────────
 
@@ -87,23 +112,40 @@ function makePickOwnershipDoc(team: string, year: number, pickId: string) {
 describe('World: moveWorldEntitlement', () => {
   // Import after mocks are set up
   let moveWorldEntitlement: typeof import('@/features/architect/utils/entitlements/moveWorldEntitlement').moveWorldEntitlement;
+  let tx: {
+    set: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
-    mockWriteWorldEntitlement.mockClear();
-    mockDeleteWorldEntitlement.mockClear();
-    mockAttachEntitlementToTeam.mockClear();
-    mockDetachEntitlementFromTeam.mockClear();
-
-    mockWriteWorldEntitlement.mockResolvedValue({
-      success: true,
-      path: 'mock/path',
+    mockIsEntitlementAuthoringEnabled.mockReturnValue(true);
+    tx = {
+      set: vi.fn(),
+      delete: vi.fn(),
+      update: vi.fn(),
+    };
+    mockRunTransaction.mockImplementation(
+      async (
+        _db: unknown,
+        callback: (transaction: typeof tx) => unknown
+      ) => callback(tx)
+    );
+    mockBuildWorldEntitlementWritePayload.mockImplementation(
+      ({ entitlementId, document }) => ({
+        ...document,
+        id: entitlementId,
+      })
+    );
+    mockGetDoc.mockResolvedValue({
+      exists: () => false,
+      id: '',
+      data: () => ({}),
     });
-    mockDeleteWorldEntitlement.mockResolvedValue({
-      success: true,
-      path: 'mock/path',
-    });
-    mockAttachEntitlementToTeam.mockResolvedValue({ success: true });
-    mockDetachEntitlementFromTeam.mockResolvedValue({ success: true });
+    mockAssertNoEntitlementIdCollision.mockImplementation(() => {});
+    mockResolveEntitlement.mockResolvedValue({ holderTeam: 'LAL' });
+    mockResolveEntitlementsForTeam.mockResolvedValue([]);
+    mockRunLeagueClaimUniquenessGate.mockResolvedValue({ ok: true });
 
     const mod = await import(
       '@/features/architect/utils/entitlements/moveWorldEntitlement'
@@ -126,10 +168,17 @@ describe('World: moveWorldEntitlement', () => {
 
     expect(result.success).toBe(true);
     expect(result.toId).toBe(id);
-    // Normal write — should call writeWorldEntitlement once
-    expect(mockWriteWorldEntitlement).toHaveBeenCalledTimes(1);
-    // Should NOT call delete since fromId === toId
-    expect(mockDeleteWorldEntitlement).not.toHaveBeenCalled();
+    expect(mockRunTransaction).toHaveBeenCalledTimes(1);
+    expect(tx.set).toHaveBeenCalledTimes(1);
+    expect(tx.delete).not.toHaveBeenCalled();
+    // No inventory update needed when ID and holder team are unchanged.
+    expect(tx.update).not.toHaveBeenCalled();
+    expect(mockRunLeagueClaimUniquenessGate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: 'ENTITLEMENT_MOVE',
+        scopeMode: 'FULL_LEAGUE',
+      })
+    );
   });
 
   it('Test 2: Edit with identity-change writes to new ID AND deletes old ID', async () => {
@@ -152,54 +201,31 @@ describe('World: moveWorldEntitlement', () => {
 
     expect(result.success).toBe(true);
     expect(result.toId).toBe(newId);
-    // Should write to new ID
-    expect(mockWriteWorldEntitlement).toHaveBeenCalledWith(expect.anything(), {
-      worldId: 'world1',
-      entitlementId: newId,
-      document: newDoc,
-      userId: 'user1',
-    });
-    // Should delete old ID
-    expect(mockDeleteWorldEntitlement).toHaveBeenCalledWith(
-      expect.anything(),
-      'world1',
-      oldId
-    );
-    // Should update team inventory
-    expect(mockDetachEntitlementFromTeam).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(mockRunTransaction).toHaveBeenCalledTimes(1);
+    expect(tx.set).toHaveBeenCalledTimes(1);
+    expect(tx.delete).toHaveBeenCalledTimes(1);
+    // Same team move with new ID: remove old inventory ID then add new ID.
+    expect(tx.update).toHaveBeenCalledTimes(2);
+    expect(tx.update.mock.calls[0][1]).toEqual(
       expect.objectContaining({
-        worldId: 'world1',
-        teamCode: 'LAL',
-        entitlementId: oldId,
+        entitlementIds: { __op: 'arrayRemove', value: oldId },
       })
     );
-    expect(mockAttachEntitlementToTeam).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(tx.update.mock.calls[1][1]).toEqual(
       expect.objectContaining({
-        worldId: 'world1',
-        teamCode: 'LAL',
-        entitlementId: newId,
+        entitlementIds: { __op: 'arrayUnion', value: newId },
       })
     );
   });
 
-  it('Test 3: Edit with identity-change collision still deletes old ID (no preservation of both)', async () => {
-    // Simulate: oldId = X, newId = Y, and Y already exists.
-    // writeWorldEntitlement with merge:true handles the collision.
-    // We just verify the delete of X still occurs.
+  it('Test 3: Cross-team move updates source and destination inventories', async () => {
     const oldDoc = makePickOwnershipDoc('BOS', 2026, 'BOS_2026_1st');
-    const newDoc = makePickOwnershipDoc('BOS', 2027, 'BOS_2027_1st');
-
+    const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
     const oldId = getEntitlementDeterministicId(oldDoc);
     const newId = getEntitlementDeterministicId(newDoc);
     const fakeDb = {} as any;
 
-    // Write succeeds (merge:true upserts over existing collision target)
-    mockWriteWorldEntitlement.mockResolvedValue({
-      success: true,
-      path: 'mock/path',
-    });
+    mockResolveEntitlement.mockResolvedValue({ holderTeam: 'BOS' });
 
     const result = await moveWorldEntitlement(fakeDb, {
       worldId: 'world1',
@@ -210,16 +236,134 @@ describe('World: moveWorldEntitlement', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.toId).toBe(newId);
-    // Write happened to new ID
-    expect(mockWriteWorldEntitlement).toHaveBeenCalledTimes(1);
-    // Old ID was deleted
-    expect(mockDeleteWorldEntitlement).toHaveBeenCalledWith(
-      expect.anything(),
-      'world1',
-      oldId
+    expect(tx.set).toHaveBeenCalledTimes(1);
+    expect(tx.delete).toHaveBeenCalledTimes(1);
+    expect(tx.update).toHaveBeenCalledTimes(2);
+    expect(tx.update.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        entitlementIds: { __op: 'arrayRemove', value: oldId },
+      })
     );
-    // Only one write, one delete — never two records for the same identity
+    expect(tx.update.mock.calls[1][1]).toEqual(
+      expect.objectContaining({
+        entitlementIds: { __op: 'arrayUnion', value: newId },
+      })
+    );
+  });
+
+  it('Test 3b: claim uniqueness gate failure blocks move', async () => {
+    const oldDoc = makePickOwnershipDoc('BOS', 2026, 'BOS_2026_1st');
+    const oldId = getEntitlementDeterministicId(oldDoc);
+    const newId = getEntitlementDeterministicId({
+      ...oldDoc,
+      seasonYear: 2027,
+      underlyingPickId: 'BOS_2027_1st',
+    });
+    const fakeDb = {} as any;
+
+    mockResolveEntitlementsForTeam.mockResolvedValue([
+      { id: oldId, ...oldDoc },
+    ]);
+    mockRunLeagueClaimUniquenessGate.mockResolvedValue({
+      ok: false,
+      errorType: 'CLAIM_UNIQUENESS_VIOLATION',
+      message: 'Entitlement Move: Claim uniqueness violation',
+      conflicts: [],
+    });
+
+    const result = await moveWorldEntitlement(fakeDb, {
+      worldId: 'world1',
+      fromId: oldId,
+      toId: newId,
+      document: {
+        ...oldDoc,
+        seasonYear: 2027,
+        underlyingPickId: 'BOS_2027_1st',
+      },
+      userId: 'user1',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Claim uniqueness');
+    expect(mockRunTransaction).not.toHaveBeenCalled();
+  });
+
+  it('Test 3c: transaction failure is fail-loud', async () => {
+    const oldDoc = makePickOwnershipDoc('LAL', 2026, 'LAL_2026_1st');
+    const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
+    const oldId = getEntitlementDeterministicId(oldDoc);
+    const newId = getEntitlementDeterministicId(newDoc);
+    const fakeDb = {} as any;
+
+    mockRunTransaction.mockRejectedValueOnce(new Error('permission denied'));
+
+    const result = await moveWorldEntitlement(fakeDb, {
+      worldId: 'world1',
+      fromId: oldId,
+      toId: newId,
+      document: newDoc,
+      userId: 'user1',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('permission denied');
+  });
+
+  it('Test 3d: unresolved source holderTeam blocks move', async () => {
+    const oldDoc = makePickOwnershipDoc('LAL', 2026, 'LAL_2026_1st');
+    const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
+    const oldId = getEntitlementDeterministicId(oldDoc);
+    const newId = getEntitlementDeterministicId(newDoc);
+    const fakeDb = {} as any;
+
+    mockResolveEntitlement.mockResolvedValueOnce(null);
+
+    const result = await moveWorldEntitlement(fakeDb, {
+      worldId: 'world1',
+      fromId: oldId,
+      toId: newId,
+      document: newDoc,
+      userId: 'user1',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('unable to resolve source holderTeam');
+    expect(mockRunTransaction).not.toHaveBeenCalled();
+  });
+
+  it('Test 3e: deterministic ID collision blocks move before transaction', async () => {
+    const oldDoc = makePickOwnershipDoc('LAL', 2026, 'LAL_2026_1st');
+    const newDoc = makePickOwnershipDoc('LAL', 2027, 'LAL_2027_1st');
+    const oldId = getEntitlementDeterministicId(oldDoc);
+    const newId = getEntitlementDeterministicId(newDoc);
+    const fakeDb = {} as any;
+
+    mockGetDoc.mockResolvedValueOnce({
+      exists: () => true,
+      id: newId,
+      data: () => ({
+        id: newId,
+        identityKey: 'own|LAL|2027|1|different_pick',
+      }),
+    });
+    mockAssertNoEntitlementIdCollision.mockImplementationOnce(() => {
+      throw new MockEntitlementIdCollisionError(
+        'Entitlement Move: ENTITLEMENT_ID_COLLISION'
+      );
+    });
+
+    const result = await moveWorldEntitlement(fakeDb, {
+      worldId: 'world1',
+      fromId: oldId,
+      toId: newId,
+      document: newDoc,
+      userId: 'user1',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe('ENTITLEMENT_ID_COLLISION');
+    expect(result.error).toContain('ENTITLEMENT_ID_COLLISION');
+    expect(mockRunTransaction).not.toHaveBeenCalled();
   });
 });
 

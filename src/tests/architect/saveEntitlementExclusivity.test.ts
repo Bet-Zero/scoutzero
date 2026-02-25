@@ -23,8 +23,11 @@ vi.mock('@/firebaseConfig', () => ({
   db: {},
 }));
 
-// Mock the entitlement writer (writeWorldEntitlement, validateEntitlementDocument)
+// Mock the entitlement writer
 const mockWriteWorldEntitlement = vi.fn().mockResolvedValue({ success: true });
+const mockWriteWorldEntitlementAndAttachToTeamAtomic = vi
+  .fn()
+  .mockResolvedValue({ success: true });
 const mockValidateEntitlementDocument = vi
   .fn()
   .mockReturnValue({ valid: true });
@@ -33,6 +36,8 @@ vi.mock('@/features/architect/utils/entitlements/entitlementWriter', () => ({
     mockValidateEntitlementDocument(...args),
   writeWorldEntitlement: (...args: unknown[]) =>
     mockWriteWorldEntitlement(...args),
+  writeWorldEntitlementAndAttachToTeamAtomic: (...args: unknown[]) =>
+    mockWriteWorldEntitlementAndAttachToTeamAtomic(...args),
 }));
 
 // Mock vacuum overlay store
@@ -48,24 +53,25 @@ vi.mock(
 );
 
 // Mock entitlement identity
+const mockGetEntitlementDeterministicId = vi.fn();
 vi.mock('@/features/architect/utils/entitlements/entitlementIdentity', () => ({
-  getEntitlementDeterministicId: vi.fn().mockReturnValue('det-id-001'),
+  getEntitlementDeterministicId: (...args: unknown[]) =>
+    mockGetEntitlementDeterministicId(...args),
   getVacuumDeterministicId: vi.fn().mockReturnValue('vacuum:det-id-001'),
   getEntitlementIdentityKey: vi
     .fn()
     .mockReturnValue('own:LAL:2026:1:LAL_2026_1st'),
 }));
 
-// Mock moveWorldEntitlement
-vi.mock('@/features/architect/utils/entitlements/moveWorldEntitlement', () => ({
-  moveWorldEntitlement: vi.fn().mockResolvedValue({ success: true }),
-}));
-
 // Mock the resolver — this is the key dependency for exclusivity gate
 const mockResolveEntitlementsForTeam = vi.fn().mockResolvedValue([]);
+const mockResolveEntitlement = vi
+  .fn()
+  .mockResolvedValue({ id: 'existing-linked', holderTeam: 'LAL' });
 vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
   resolveEntitlementsForTeam: (...args: unknown[]) =>
     mockResolveEntitlementsForTeam(...args),
+  resolveEntitlement: (...args: unknown[]) => mockResolveEntitlement(...args),
 }));
 
 // Mock the exclusivity validator — we spy on this to control results
@@ -77,6 +83,17 @@ vi.mock(
   () => ({
     validateEntitlementExclusivity: (...args: unknown[]) =>
       mockValidateExclusivity(...args),
+  })
+);
+
+const mockRunLeagueClaimUniquenessGate = vi
+  .fn()
+  .mockResolvedValue({ ok: true });
+vi.mock(
+  '@/features/architect/utils/entitlements/leagueClaimUniquenessGate',
+  () => ({
+    runLeagueClaimUniquenessGate: (...args: unknown[]) =>
+      mockRunLeagueClaimUniquenessGate(...args),
   })
 );
 
@@ -123,8 +140,17 @@ describe('Save gate: exclusivity check', () => {
     vi.clearAllMocks();
     mockValidateEntitlementDocument.mockReturnValue({ valid: true });
     mockResolveEntitlementsForTeam.mockResolvedValue([]);
+    mockResolveEntitlement.mockResolvedValue({
+      id: 'existing-linked',
+      holderTeam: 'LAL',
+    });
     mockValidateExclusivity.mockReturnValue({ valid: true, violations: [] });
+    mockRunLeagueClaimUniquenessGate.mockResolvedValue({ ok: true });
     mockWriteWorldEntitlement.mockResolvedValue({ success: true });
+    mockWriteWorldEntitlementAndAttachToTeamAtomic.mockResolvedValue({
+      success: true,
+    });
+    mockGetEntitlementDeterministicId.mockReturnValue('det-id-001');
   });
 
   it('blocks save when swapControllerPickId already exists on team', async () => {
@@ -164,6 +190,9 @@ describe('Save gate: exclusivity check', () => {
     expect(toast.error).toHaveBeenCalled();
     // Firestore write should NOT have been called
     expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
   });
 
   it('blocks save when underlyingPickId already exists for pick_ownership', async () => {
@@ -206,9 +235,13 @@ describe('Save gate: exclusivity check', () => {
     expect(result.success).toBe(false);
     expect(result.errorType).toBe('EXCLUSIVITY');
     expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
   });
 
   it('allows editing existing entitlement without identity change (self-edit)', async () => {
+    mockGetEntitlementDeterministicId.mockReturnValue('ent-abc');
     mockResolveEntitlementsForTeam.mockResolvedValue([
       {
         id: 'ent-abc',
@@ -230,9 +263,14 @@ describe('Save gate: exclusivity check', () => {
 
     expect(result.success).toBe(true);
     expect(result.errorType).toBeUndefined();
+    expect(result.saveOperation).toBe('UPDATE_SAME_IDENTITY');
+    expect(mockWriteWorldEntitlement).toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
   });
 
-  it('blocks edit that changes identity into conflict (no move executed)', async () => {
+  it('blocks edit that changes identity into conflict before write', async () => {
     mockResolveEntitlementsForTeam.mockResolvedValue([
       {
         id: 'ent-abc',
@@ -260,10 +298,6 @@ describe('Save gate: exclusivity check', () => {
       ],
     });
 
-    const { moveWorldEntitlement } = await import(
-      '@/features/architect/utils/entitlements/moveWorldEntitlement'
-    );
-
     const result = await saveEntitlementFromFormState({
       storageMode: 'world',
       worldId: 'test-world',
@@ -274,9 +308,10 @@ describe('Save gate: exclusivity check', () => {
 
     expect(result.success).toBe(false);
     expect(result.errorType).toBe('EXCLUSIVITY');
-    // Move should NOT have been called
-    expect(moveWorldEntitlement).not.toHaveBeenCalled();
     expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
   });
 
   it('passes through to save when exclusivity check is valid', async () => {
@@ -292,7 +327,149 @@ describe('Save gate: exclusivity check', () => {
 
     expect(result.success).toBe(true);
     expect(result.errorType).toBeUndefined();
-    expect(mockWriteWorldEntitlement).toHaveBeenCalled();
+    expect(result.saveOperation).toBe('CREATE');
+    expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(mockWriteWorldEntitlementAndAttachToTeamAtomic).toHaveBeenCalled();
+    expect(mockRunLeagueClaimUniquenessGate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: 'ENTITLEMENT_SAVE',
+        scopeMode: 'FULL_LEAGUE',
+      })
+    );
+  });
+
+  it('identity-changing edit uses duplicate-as-new and keeps original id untouched', async () => {
+    mockGetEntitlementDeterministicId.mockReturnValue('ent:new:identity');
+
+    const result = await saveEntitlementFromFormState({
+      storageMode: 'world',
+      worldId: 'test-world',
+      userId: 'test-user',
+      entitlementId: 'ent:original:id',
+      formState: makeFormState({ swapControllerPickId: 'MIA_2027_1st' }),
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.saveOperation).toBe('DUPLICATE_AS_NEW');
+    expect(result.createdNewEntitlement).toBe(true);
+    expect(result.originalEntitlementId).toBe('ent:original:id');
+    expect(result.entitlementId).toBe('ent:new:identity');
+    expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(mockWriteWorldEntitlementAndAttachToTeamAtomic).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        worldId: 'test-world',
+        entitlementId: 'ent:new:identity',
+      })
+    );
+  });
+
+  it('atomic create+attach failure returns failure and no fallback write', async () => {
+    mockWriteWorldEntitlementAndAttachToTeamAtomic.mockResolvedValueOnce({
+      success: false,
+      error: 'transaction failed',
+    });
+
+    const result = await saveEntitlementFromFormState({
+      storageMode: 'world',
+      worldId: 'test-world',
+      userId: 'test-user',
+      entitlementId: undefined,
+      formState: makeFormState(),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('transaction failed');
+    expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(mockWriteWorldEntitlementAndAttachToTeamAtomic).toHaveBeenCalled();
+  });
+
+  it('returns COLLISION error type when deterministic ID collision is detected', async () => {
+    mockWriteWorldEntitlementAndAttachToTeamAtomic.mockResolvedValueOnce({
+      success: false,
+      errorType: 'ENTITLEMENT_ID_COLLISION',
+      error:
+        'Entitlement Create: ENTITLEMENT_ID_COLLISION for \"ent:det-id\" in world \"test-world\"',
+    });
+
+    const result = await saveEntitlementFromFormState({
+      storageMode: 'world',
+      worldId: 'test-world',
+      userId: 'test-user',
+      entitlementId: undefined,
+      formState: makeFormState(),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe('COLLISION');
+    expect(result.error).toContain('ENTITLEMENT_ID_COLLISION');
+    expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(mockWriteWorldEntitlementAndAttachToTeamAtomic).toHaveBeenCalled();
+  });
+
+  it('blocks save when linked/residual references are missing', async () => {
+    mockResolveEntitlement.mockResolvedValue(null);
+
+    const result = await saveEntitlementFromFormState({
+      storageMode: 'world',
+      worldId: 'test-world',
+      userId: 'test-user',
+      entitlementId: undefined,
+      formState: makeFormState({
+        linkedEntitlementIdsText: 'ent:missing:1',
+        residualOfEntitlementId: 'ent:missing:residual',
+      }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe('LINKAGE');
+    expect(result.missingLinkedEntitlementIds).toContain('ent:missing:1');
+    expect(result.missingResidualEntitlementId).toBe('ent:missing:residual');
+    expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
+  });
+
+  it('blocks save when league claim uniqueness gate fails', async () => {
+    mockRunLeagueClaimUniquenessGate.mockResolvedValue({
+      ok: false,
+      errorType: 'CLAIM_UNIQUENESS_VIOLATION',
+      message:
+        'Entitlement Save: Claim uniqueness violation — claim "own:LAL_2026_1st" is held by multiple teams.',
+      conflicts: [
+        {
+          claimKey: 'own:LAL_2026_1st',
+          claimType: 'pick_ownership',
+          teams: ['BOS', 'LAL'],
+          entitlements: [
+            { teamCode: 'BOS', entitlementId: 'ent-bos' },
+            { teamCode: 'LAL', entitlementId: 'det-id-001' },
+          ],
+        },
+      ],
+    });
+
+    const result = await saveEntitlementFromFormState({
+      storageMode: 'world',
+      worldId: 'test-world',
+      userId: 'test-user',
+      entitlementId: undefined,
+      formState: makeFormState({ kind: 'pick_ownership', underlyingPickId: 'LAL_2026_1st' }),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errorType).toBe('CLAIM_UNIQUENESS');
+    expect(mockRunLeagueClaimUniquenessGate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: 'ENTITLEMENT_SAVE',
+        scopeMode: 'FULL_LEAGUE',
+      })
+    );
+    expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
   });
 
   it('calls resolver with correct storageMode args (world)', async () => {
@@ -342,6 +519,9 @@ describe('Save gate: exclusivity check', () => {
     expect(result.error).toContain('unavailable');
     // Firestore write should NOT have been called
     expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
   });
 
   it('validator throw blocks save with EXCLUSIVITY_VALIDATION_UNAVAILABLE', async () => {
@@ -371,5 +551,8 @@ describe('Save gate: exclusivity check', () => {
     expect(result.error).toContain('unavailable');
     // Firestore write should NOT have been called
     expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
+    expect(
+      mockWriteWorldEntitlementAndAttachToTeamAtomic
+    ).not.toHaveBeenCalled();
   });
 });

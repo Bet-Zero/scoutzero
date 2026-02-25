@@ -15,6 +15,11 @@
 import { getLeague } from './teamLoader';
 import { resolveEntitlementsForTeam } from './entitlements/entitlementResolver';
 import { runTeamExclusivityGate } from './entitlements/runTeamExclusivityGate';
+import {
+  runLeagueClaimUniquenessGate,
+  type LeagueClaimConflict,
+} from './entitlements/leagueClaimUniquenessGate';
+import type { EntitlementDocLike } from './entitlements/entitlementExclusivityValidator';
 
 /**
  * Player location info for duplicate detection
@@ -699,6 +704,7 @@ export interface TradeApplyExclusivityResult {
     message: string;
     violations?: unknown[];
   }>;
+  claimConflicts?: LeagueClaimConflict[];
 }
 
 /**
@@ -763,6 +769,7 @@ export async function validateTradeApplyExclusivity(
     message: string;
     violations?: unknown[];
   }> = [];
+  const postTradeSetsByTeam: Record<string, EntitlementDocLike[]> = {};
 
   // For each affected team, resolve full entitlement docs and run exclusivity gate
   for (const teamCode of affectedTeamCodes) {
@@ -823,11 +830,17 @@ export async function validateTradeApplyExclusivity(
       });
 
       if (!gateResult.ok) {
+        const failedGateResult = gateResult as Exclude<
+          typeof gateResult,
+          { ok: true }
+        >;
         teamViolations.push({
           teamCode,
-          message: gateResult.message,
-          violations: gateResult.violations,
+          message: failedGateResult.message,
+          violations: failedGateResult.violations,
         });
+      } else {
+        postTradeSetsByTeam[teamCode] = postTradeSet;
       }
     } catch (err: unknown) {
       // Integrity-first: if we cannot resolve or validate, fail the trade
@@ -845,6 +858,34 @@ export async function validateTradeApplyExclusivity(
       valid: false,
       error: firstViolation.message,
       teamViolations,
+    };
+  }
+
+  // League-wide claim uniqueness gate (R1):
+  // ensure no affected-team post state conflicts with any other team in the league.
+  const leagueClaimResult = await runLeagueClaimUniquenessGate({
+    worldId,
+    context: 'WORLD_TRADE_APPLY',
+    scopeMode: 'FULL_LEAGUE',
+    postMutationEntitlementsByTeam: postTradeSetsByTeam,
+  });
+
+  if (!leagueClaimResult.ok) {
+    const failedLeagueClaimResult = leagueClaimResult as Exclude<
+      typeof leagueClaimResult,
+      { ok: true }
+    >;
+    return {
+      valid: false,
+      error: failedLeagueClaimResult.message,
+      teamViolations: failedLeagueClaimResult.conflicts
+        ? failedLeagueClaimResult.conflicts.map((conflict) => ({
+            teamCode: conflict.teams.join(','),
+            message: `Claim key "${conflict.claimKey}" conflicts across teams: ${conflict.teams.join(', ')}`,
+            violations: conflict.entitlements,
+          }))
+        : undefined,
+      claimConflicts: failedLeagueClaimResult.conflicts,
     };
   }
 

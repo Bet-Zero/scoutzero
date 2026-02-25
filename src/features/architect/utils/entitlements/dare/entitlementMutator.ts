@@ -34,6 +34,10 @@ import {
   type ExclusivityGateResult,
 } from '../runTeamExclusivityGate';
 import type { EntitlementDocLike } from '../entitlementExclusivityValidator';
+import {
+  assertLeagueClaimGateScopeSafety,
+  evaluateLeagueClaimUniquenessForMap,
+} from '../leagueClaimUniquenessGate';
 
 // =============================================================================
 // CONSTANTS
@@ -411,6 +415,7 @@ export function applyGatedDAREResultsToBatch(
     message: string;
     violations?: unknown[];
   }> = [];
+  const postMutationSetsByTeam: Record<string, EntitlementDocLike[]> = {};
 
   // Build a lookup of new/updated entitlement docs from DARE writes
   const docWriteMap = new Map<string, Partial<EffectiveEntitlement>>();
@@ -428,13 +433,6 @@ export function applyGatedDAREResultsToBatch(
 
   // Validate each affected team
   for (const teamUpdate of dareOutput.teamEntitlementIdUpdates) {
-    if (
-      teamUpdate.addedIds.length === 0 &&
-      teamUpdate.removedIds.length === 0
-    ) {
-      continue; // No changes for this team
-    }
-
     const teamCode = teamUpdate.teamCode;
     const currentSet = currentEntitlementsByTeam[teamCode];
 
@@ -447,6 +445,18 @@ export function applyGatedDAREResultsToBatch(
     }
 
     try {
+      const hasIdMutation =
+        teamUpdate.addedIds.length > 0 || teamUpdate.removedIds.length > 0;
+      const hasDocMutation = currentSet.some((entitlement) => {
+        const id = (entitlement.id || '') as string;
+        if (!id) return false;
+        return docWriteMap.has(id) || deletedIds.has(id);
+      });
+
+      if (!hasIdMutation && !hasDocMutation) {
+        continue; // No effective changes for this team
+      }
+
       // Build post-DARE entitlement set:
       // 1. Start with current (pre-DARE) docs
       // 2. Remove entitlements that were removed or deleted
@@ -474,15 +484,26 @@ export function applyGatedDAREResultsToBatch(
       const existingIds = new Set(
         currentSet.map((e) => (e.id || '') as string)
       );
+      let missingAddedDoc: string | null = null;
       for (const addedId of teamUpdate.addedIds) {
         if (!existingIds.has(addedId)) {
           const newDoc = docWriteMap.get(addedId);
           if (newDoc) {
             postDARESet.push(newDoc as EntitlementDocLike);
+          } else {
+            // Fail closed: we cannot validate uniqueness without the added doc.
+            missingAddedDoc = addedId;
+            break;
           }
-          // If no doc found, the entitlement might be a reference-only addition.
-          // This is not an error — the exclusivity check just won't have the doc.
         }
+      }
+
+      if (missingAddedDoc) {
+        teamViolations.push({
+          teamCode,
+          message: `DARE Mutation: Cannot validate exclusivity for ${teamCode} — missing entitlement document for addedId "${missingAddedDoc}".`,
+        });
+        continue;
       }
 
       const gateResult: ExclusivityGateResult = runTeamExclusivityGate({
@@ -492,11 +513,17 @@ export function applyGatedDAREResultsToBatch(
       });
 
       if (!gateResult.ok) {
-        teamViolations.push({
-          teamCode,
-          message: gateResult.message,
-          violations: gateResult.violations,
-        });
+          const failedGateResult = gateResult as Exclude<
+            typeof gateResult,
+            { ok: true }
+          >;
+          teamViolations.push({
+            teamCode,
+            message: failedGateResult.message,
+            violations: failedGateResult.violations,
+          });
+      } else {
+        postMutationSetsByTeam[teamCode] = postDARESet;
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -514,6 +541,51 @@ export function applyGatedDAREResultsToBatch(
       errorType: 'EXCLUSIVITY_VIOLATION',
       message: teamViolations[0].message,
       teamViolations,
+    };
+  }
+
+  // Build league-wide post-mutation set:
+  // unchanged teams stay on current sets; changed teams use post-mutation sets.
+  const leaguePostMutationSets: Record<string, EntitlementDocLike[]> = {};
+  for (const [teamCode, entitlements] of Object.entries(currentEntitlementsByTeam)) {
+    if (!Array.isArray(entitlements)) {
+      return {
+        ok: false,
+        errorType: 'VALIDATION_UNAVAILABLE',
+        message: `DARE Mutation: Cannot validate league claim uniqueness for ${teamCode} — entitlement set is not an array.`,
+      };
+    }
+    leaguePostMutationSets[teamCode] = entitlements;
+  }
+  for (const [teamCode, postSet] of Object.entries(postMutationSetsByTeam)) {
+    leaguePostMutationSets[teamCode] = postSet;
+  }
+
+  // League-wide gate (R1): no shared claim key across different teams.
+  // Uses the same claim gate engine shared by save/trade/move flows.
+  assertLeagueClaimGateScopeSafety({
+    context: 'DARE_MUTATION',
+    scopeMode: 'FULL_LEAGUE',
+  });
+  const leagueGateResult = evaluateLeagueClaimUniquenessForMap({
+    context: 'DARE_MUTATION',
+    entitlementsByTeam: leaguePostMutationSets,
+  });
+
+  if (!leagueGateResult.ok) {
+    const failedLeagueGateResult = leagueGateResult as Exclude<
+      typeof leagueGateResult,
+      { ok: true }
+    >;
+    return {
+      ok: false,
+      errorType: failedLeagueGateResult.errorType,
+      message: failedLeagueGateResult.message,
+      teamViolations: failedLeagueGateResult.conflicts?.map((conflict) => ({
+        teamCode: conflict.teams.join(','),
+        message: `Claim key "${conflict.claimKey}" conflicts across teams: ${conflict.teams.join(', ')}`,
+        violations: conflict.entitlements,
+      })),
     };
   }
 

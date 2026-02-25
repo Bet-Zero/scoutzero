@@ -41,6 +41,42 @@ function normalizeTeamCode(teamIdLike) {
   return null;
 }
 
+function getEntitlementId(entitlement) {
+  return entitlement?.entitlementId || entitlement?.id || null;
+}
+
+function normalizeLinkedIds(linkedIds) {
+  if (!Array.isArray(linkedIds)) return [];
+
+  return [...new Set(
+    linkedIds
+      .filter((id) => typeof id === 'string')
+      .map((id) => id.trim())
+      .filter(Boolean)
+  )];
+}
+
+function getKnownEntitlementMap(teams) {
+  const knownById = new Map();
+
+  for (const slot of teams || []) {
+    for (const ent of slot.validationEntitlements || []) {
+      const entId = getEntitlementId(ent);
+      if (entId && !knownById.has(entId)) {
+        knownById.set(entId, ent);
+      }
+    }
+    for (const ent of slot.entitlementsOut || []) {
+      const entId = getEntitlementId(ent);
+      if (entId && !knownById.has(entId)) {
+        knownById.set(entId, ent);
+      }
+    }
+  }
+
+  return knownById;
+}
+
 /**
  * Validate entitlement routing for a trade.
  *
@@ -140,6 +176,82 @@ export function validateEntitlementRouting({ teams }) {
   return {
     valid: errors.length === 0,
     errors,
+    warnings,
+  };
+}
+
+/**
+ * Validate linked/residual integrity and linked package completeness for outgoing entitlements.
+ * Blocking rule (E2): linked package trades must include all linked IDs.
+ *
+ * @param {object} params
+ * @param {Array} params.teams
+ * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
+ */
+export function validateEntitlementLinkageLegality({ teams }) {
+  const errors = [];
+  const warnings = [];
+
+  if (!Array.isArray(teams) || teams.length === 0) {
+    return { valid: true, errors, warnings };
+  }
+
+  const knownEntitlements = getKnownEntitlementMap(teams);
+  const outgoingIds = new Set();
+
+  for (const slot of teams) {
+    for (const ent of slot.entitlementsOut || []) {
+      const entId = getEntitlementId(ent);
+      if (entId) outgoingIds.add(entId);
+    }
+  }
+
+  const errorSet = new Set();
+
+  for (const slot of teams) {
+    if (!slot.team) continue;
+
+    const fromTeamId = normalizeTeamCode(slot.team.id || slot.team.teamCode);
+    for (const entitlement of slot.entitlementsOut || []) {
+      const entitlementId = getEntitlementId(entitlement);
+      if (!entitlementId) continue;
+
+      const linkedIds = normalizeLinkedIds(entitlement.linkedEntitlementIds);
+      if (linkedIds.length > 0) {
+        const missingLinkedIds = linkedIds.filter(
+          (linkedId) => !knownEntitlements.has(linkedId)
+        );
+        if (missingLinkedIds.length > 0) {
+          errorSet.add(
+            `Entitlement "${entitlementId}" from ${fromTeamId} has missing linked references: ${missingLinkedIds.join(', ')}`
+          );
+        }
+
+        const missingFromTrade = linkedIds.filter(
+          (linkedId) => !outgoingIds.has(linkedId)
+        );
+        if (missingFromTrade.length > 0) {
+          errorSet.add(
+            `Entitlement "${entitlementId}" from ${fromTeamId} is linked to ${missingFromTrade.join(', ')} and must trade as a complete linked package`
+          );
+        }
+      }
+
+      const residualId =
+        typeof entitlement.residualOfEntitlementId === 'string'
+          ? entitlement.residualOfEntitlementId.trim()
+          : '';
+      if (residualId && !knownEntitlements.has(residualId)) {
+        errorSet.add(
+          `Entitlement "${entitlementId}" from ${fromTeamId} has missing residual reference: ${residualId}`
+        );
+      }
+    }
+  }
+
+  return {
+    valid: errorSet.size === 0,
+    errors: [...errorSet],
     warnings,
   };
 }

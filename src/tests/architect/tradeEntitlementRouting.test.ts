@@ -10,6 +10,10 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildEntitlementRoutingMap } from '@/features/architect/utils/tradeMachine/utils/buildEntitlementRoutingMap';
+import {
+  validateEntitlementLinkageLegality,
+} from '@/features/architect/utils/tradeMachine/rules/validateEntitlementRouting.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +32,45 @@ function makeTeamSlot(
       entitlementId: e.id,
       ...e,
     })),
+  };
+}
+
+function makeTradeTeamSlot(
+  teamCode: string,
+  options: {
+    entitlementsOut?: Array<Record<string, unknown>>;
+    validationEntitlements?: Array<Record<string, unknown>>;
+    entitlementIds?: string[];
+  } = {}
+) {
+  const entitlementsOut = options.entitlementsOut || [];
+  const entitlementIds =
+    options.entitlementIds ||
+    entitlementsOut
+      .map((entitlement) =>
+        (entitlement.entitlementId as string) || (entitlement.id as string)
+      )
+      .filter(Boolean);
+
+  return {
+    teamId: teamCode,
+    team: {
+      id: teamCode,
+      teamId: teamCode,
+      teamCode,
+      teamName: teamCode,
+      totalSalary: 100_000_000,
+      teamTotalSalary: 100_000_000,
+      entitlementIds,
+    },
+    sends: [],
+    receives: [],
+    entitlementsOut,
+    validationEntitlements: options.validationEntitlements || [],
+    teamTotalSalary: 100_000_000,
+    projectedSalary: 100_000_000,
+    salaryOut: 0,
+    salaryIn: 0,
   };
 }
 
@@ -131,11 +174,12 @@ describe('buildEntitlementRoutingMap: missing destination', () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    const failure = result as { reason: string; errors: string[] };
 
-    expect(result.reason).toContain('Entitlement routing incomplete');
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toContain('ent-1');
-    expect(result.errors[0]).toContain('no destination team');
+    expect(failure.reason).toContain('Entitlement routing incomplete');
+    expect(failure.errors).toHaveLength(1);
+    expect(failure.errors[0]).toContain('ent-1');
+    expect(failure.errors[0]).toContain('no destination team');
   });
 
   it('fails when multiple entitlements lack routing in 3-team trade', () => {
@@ -147,8 +191,9 @@ describe('buildEntitlementRoutingMap: missing destination', () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    const failure = result as { errors: string[] };
 
-    expect(result.errors.length).toBeGreaterThanOrEqual(2);
+    expect(failure.errors.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -166,9 +211,10 @@ describe('buildEntitlementRoutingMap: routing conflicts', () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    const failure = result as { errors: string[] };
 
-    expect(result.errors[0]).toContain('Routing conflict');
-    expect(result.errors[0]).toContain('ent-1');
+    expect(failure.errors[0]).toContain('Routing conflict');
+    expect(failure.errors[0]).toContain('ent-1');
   });
 });
 
@@ -186,8 +232,9 @@ describe('buildEntitlementRoutingMap: invalid destination', () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    const failure = result as { errors: string[] };
 
-    expect(result.errors[0]).toContain('not in trade');
+    expect(failure.errors[0]).toContain('not in trade');
   });
 
   it('fails when toTeamId equals fromTeamId', () => {
@@ -198,8 +245,9 @@ describe('buildEntitlementRoutingMap: invalid destination', () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    const failure = result as { errors: string[] };
 
-    expect(result.errors[0]).toContain('cannot be routed to the same team');
+    expect(failure.errors[0]).toContain('cannot be routed to the same team');
   });
 });
 
@@ -229,5 +277,144 @@ describe('buildEntitlementRoutingMap: edge cases', () => {
 
     // Only 2 active slots → auto-resolve works
     expect(result.ok).toBe(true);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// E2 linkage legality rules
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('validateEntitlementLinkageLegality: E2 blocking rules', () => {
+  it('rejects outgoing entitlement when linkedEntitlementIds contains missing ids', () => {
+    const result = validateEntitlementLinkageLegality({
+      teams: [
+        makeTradeTeamSlot('LAL', {
+          entitlementsOut: [
+            {
+              id: 'ent-LAL-A',
+              entitlementId: 'ent-LAL-A',
+              linkedEntitlementIds: ['ent-missing'],
+            },
+          ],
+        }),
+        makeTradeTeamSlot('BOS'),
+      ],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' | ')).toContain('missing linked references');
+  });
+
+  it('rejects outgoing entitlement when residualOfEntitlementId is missing', () => {
+    const result = validateEntitlementLinkageLegality({
+      teams: [
+        makeTradeTeamSlot('LAL', {
+          entitlementsOut: [
+            {
+              id: 'ent-LAL-A',
+              entitlementId: 'ent-LAL-A',
+              residualOfEntitlementId: 'ent-missing-residual',
+            },
+          ],
+        }),
+        makeTradeTeamSlot('BOS'),
+      ],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' | ')).toContain('missing residual reference');
+  });
+
+  it('rejects partial linked-package trades', () => {
+    const linkedPackage = [
+      {
+        id: 'ent-LAL-A',
+        entitlementId: 'ent-LAL-A',
+        linkedEntitlementIds: ['ent-LAL-B'],
+      },
+      {
+        id: 'ent-LAL-B',
+        entitlementId: 'ent-LAL-B',
+      },
+    ];
+
+    const result = validateEntitlementLinkageLegality({
+      teams: [
+        makeTradeTeamSlot('LAL', {
+          entitlementsOut: [linkedPackage[0]],
+          validationEntitlements: linkedPackage,
+          entitlementIds: ['ent-LAL-A', 'ent-LAL-B'],
+        }),
+        makeTradeTeamSlot('BOS'),
+      ],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' | ')).toContain('complete linked package');
+  });
+
+  it('passes when linked package is complete in same trade', () => {
+    const linkedPackage = [
+      {
+        id: 'ent-LAL-A',
+        entitlementId: 'ent-LAL-A',
+        linkedEntitlementIds: ['ent-LAL-B'],
+      },
+      {
+        id: 'ent-LAL-B',
+        entitlementId: 'ent-LAL-B',
+      },
+    ];
+
+    const result = validateEntitlementLinkageLegality({
+      teams: [
+        makeTradeTeamSlot('LAL', {
+          entitlementsOut: linkedPackage,
+          validationEntitlements: linkedPackage,
+          entitlementIds: ['ent-LAL-A', 'ent-LAL-B'],
+        }),
+        makeTradeTeamSlot('BOS'),
+      ],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('validateTrade returns ENTITLEMENT_LINKAGE_ERROR for illegal linked package movement', () => {
+    const result = validateTrade({
+      teams: [
+        makeTradeTeamSlot('LAL', {
+          entitlementsOut: [
+            {
+              id: 'ent-LAL-A',
+              entitlementId: 'ent-LAL-A',
+              linkedEntitlementIds: ['ent-LAL-B'],
+            },
+          ],
+          validationEntitlements: [
+            {
+              id: 'ent-LAL-A',
+              entitlementId: 'ent-LAL-A',
+              linkedEntitlementIds: ['ent-LAL-B'],
+            },
+            {
+              id: 'ent-LAL-B',
+              entitlementId: 'ent-LAL-B',
+            },
+          ],
+          entitlementIds: ['ent-LAL-A', 'ent-LAL-B'],
+        }),
+        makeTradeTeamSlot('BOS'),
+      ],
+      capProjections: {},
+      currentYear: 2026,
+    });
+
+    expect(result.legal).toBe(false);
+    expect(result.error).toBe('ENTITLEMENT_LINKAGE_ERROR');
+    expect((result.violations || []).join(' | ')).toContain(
+      'complete linked package'
+    );
   });
 });

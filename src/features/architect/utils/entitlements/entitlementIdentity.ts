@@ -31,6 +31,7 @@ export interface EntitlementDocumentLike {
   seasonYear?: number;
   round?: number;
   kind?: EntitlementKind | string;
+  identityKey?: string;
   // pick_ownership identity fields
   underlyingPickId?: string;
   // swap_right identity fields
@@ -120,6 +121,18 @@ function normalizeNumber(value: unknown): number {
   return 0;
 }
 
+function hasNormalizedIdentityValue(value: unknown): boolean {
+  return normalizeIdentityString(value).length > 0;
+}
+
+function hasNonEmptySortedStringArray(value: unknown): boolean {
+  return normalizeAndSortStringArray(value).length > 0;
+}
+
+function hasNonEmptySortedNumberArray(value: unknown): boolean {
+  return normalizeAndSortNumberArray(value).length > 0;
+}
+
 // ─── public API ──────────────────────────────────────────────────────────────
 
 /**
@@ -185,6 +198,59 @@ export function getEntitlementIdentityKey(
       return baseParts.join('|');
     }
   }
+}
+
+/**
+ * Returns true when the document contains enough identity fields to compute
+ * a reliable identity key without using persisted identityKey.
+ */
+export function canComputeEntitlementIdentityKey(
+  document: EntitlementDocumentLike
+): boolean {
+  const team = normalizeTeamCode(document.holderTeam);
+  const year = normalizeNumber(document.seasonYear);
+  const round = normalizeNumber(document.round);
+  const kind = (document.kind as string) || 'pick_ownership';
+
+  if (!team || !year || !round) {
+    return false;
+  }
+
+  switch (kind) {
+    case 'pick_ownership':
+      return hasNormalizedIdentityValue(document.underlyingPickId);
+    case 'swap_right':
+      return (
+        hasNormalizedIdentityValue(document.swapControllerPickId) &&
+        hasNormalizedIdentityValue(document.swapTargetDefinition)
+      );
+    case 'conveyance_right':
+      return (
+        hasNonEmptySortedStringArray(document.poolUnderlyingPickIds) &&
+        hasNormalizedIdentityValue(document.receivesComparator) &&
+        hasNonEmptySortedNumberArray(document.receivesRank)
+      );
+    default:
+      return false;
+  }
+}
+
+/**
+ * Resolve identity key from persisted value first, then computed fallback.
+ * Returns null when reliable identity computation is not possible.
+ */
+export function resolveStoredOrComputedIdentityKey(
+  document: EntitlementDocumentLike
+): string | null {
+  const persisted =
+    typeof document.identityKey === 'string' ? document.identityKey.trim() : '';
+  if (persisted) {
+    return persisted;
+  }
+  if (!canComputeEntitlementIdentityKey(document)) {
+    return null;
+  }
+  return getEntitlementIdentityKey(document);
 }
 
 /**

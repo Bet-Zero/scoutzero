@@ -21,6 +21,7 @@ import { buildEntitlementDocument } from './entitlementEditorFormState';
 import {
   validateEntitlementDocument,
   writeWorldEntitlement,
+  writeWorldEntitlementAndAttachToTeamAtomic,
 } from '../utils/entitlements/entitlementWriter';
 import {
   applyVacuumEdit,
@@ -35,13 +36,20 @@ import {
   getVacuumDeterministicId,
   getEntitlementIdentityKey,
 } from '../utils/entitlements/entitlementIdentity';
-import { moveWorldEntitlement } from '../utils/entitlements/moveWorldEntitlement';
 import { findVacuumCreateByIdentityKey } from '../utils/entitlements/vacuumEntitlementOverlayStore';
 import {
   validateEntitlementExclusivity,
+  type EntitlementDocLike,
   type EntitlementViolation,
 } from '../utils/entitlements/entitlementExclusivityValidator';
-import { resolveEntitlementsForTeam } from '../utils/entitlements/entitlementResolver';
+import {
+  resolveEntitlement,
+  resolveEntitlementsForTeam,
+} from '../utils/entitlements/entitlementResolver';
+import {
+  runLeagueClaimUniquenessGate,
+  type LeagueClaimConflict,
+} from '../utils/entitlements/leagueClaimUniquenessGate';
 
 // ─── debug flag ──────────────────────────────────────────────────────────────
 const __DEV_DEDUPE_LOG__ = import.meta.env.DEV;
@@ -63,16 +71,185 @@ export interface SaveEntitlementResult {
   entitlementId: string;
   document: Record<string, unknown>;
   error?: string;
+  saveOperation?:
+    | 'VACUUM_CREATE'
+    | 'VACUUM_EDIT'
+    | 'CREATE'
+    | 'UPDATE_SAME_IDENTITY'
+    | 'DUPLICATE_AS_NEW';
+  createdNewEntitlement?: boolean;
+  originalEntitlementId?: string;
   /** Discriminator for structured error handling (e.g. exclusivity gate). */
   errorType?:
     | 'EXCLUSIVITY'
     | 'EXCLUSIVITY_VALIDATION_UNAVAILABLE'
+    | 'CLAIM_UNIQUENESS'
+    | 'COLLISION'
+    | 'LINKAGE'
     | 'VALIDATION';
   /** Violation details when errorType is 'EXCLUSIVITY'. */
   violations?: EntitlementViolation[];
+  /** League-wide claim conflicts when errorType is 'CLAIM_UNIQUENESS'. */
+  claimConflicts?: LeagueClaimConflict[];
+  /** Missing linked entitlement IDs when errorType is 'LINKAGE'. */
+  missingLinkedEntitlementIds?: string[];
+  /** Missing residual entitlement ID when errorType is 'LINKAGE'. */
+  missingResidualEntitlementId?: string;
 }
 
+type WorldSaveOperation = 'CREATE' | 'UPDATE_SAME_IDENTITY' | 'DUPLICATE_AS_NEW';
+
 // ─── save function ───────────────────────────────────────────────────────────
+
+function buildPostSaveTeamEntitlements(params: {
+  currentEntitlements: EntitlementDocLike[];
+  existingEntitlementId?: string;
+  finalEntitlementId: string;
+  candidateDocument: Record<string, unknown>;
+  saveOperation: WorldSaveOperation;
+}): EntitlementDocLike[] {
+  const {
+    currentEntitlements,
+    existingEntitlementId,
+    finalEntitlementId,
+    candidateDocument,
+    saveOperation,
+  } = params;
+
+  const idsToRemove = new Set<string>();
+  if (saveOperation === 'UPDATE_SAME_IDENTITY') {
+    if (existingEntitlementId) idsToRemove.add(existingEntitlementId);
+    idsToRemove.add(finalEntitlementId);
+  } else {
+    // Create and duplicate-as-new preserve original entitlement identity.
+    // We only remove finalEntitlementId to avoid duplicate rows if it already exists.
+    idsToRemove.add(finalEntitlementId);
+  }
+
+  const postSave = currentEntitlements.filter((entitlement) => {
+    const currentId = (entitlement.id as string) || '';
+    return !idsToRemove.has(currentId);
+  });
+
+  postSave.push({
+    ...(candidateDocument as EntitlementDocLike),
+    id: finalEntitlementId,
+  });
+
+  return postSave;
+}
+
+function computeWorldSaveOperation(params: {
+  entitlementId: string | undefined;
+  document: Record<string, unknown>;
+}): {
+  operation: WorldSaveOperation;
+  computedDeterministicId: string;
+  finalEntitlementId: string;
+} {
+  const { entitlementId, document } = params;
+  const computedDeterministicId = getEntitlementDeterministicId(document);
+
+  if (!entitlementId) {
+    return {
+      operation: 'CREATE',
+      computedDeterministicId,
+      finalEntitlementId: computedDeterministicId,
+    };
+  }
+
+  if (entitlementId === computedDeterministicId) {
+    return {
+      operation: 'UPDATE_SAME_IDENTITY',
+      computedDeterministicId,
+      finalEntitlementId: entitlementId,
+    };
+  }
+
+  return {
+    operation: 'DUPLICATE_AS_NEW',
+    computedDeterministicId,
+    finalEntitlementId: computedDeterministicId,
+  };
+}
+
+async function validateLinkedResidualReferences(params: {
+  storageMode: StorageMode;
+  worldId: string | null;
+  document: Record<string, unknown>;
+}): Promise<
+  | { valid: true }
+  | {
+      valid: false;
+      error: string;
+      missingLinkedEntitlementIds?: string[];
+      missingResidualEntitlementId?: string;
+    }
+> {
+  const { storageMode, worldId, document } = params;
+  if (storageMode !== 'world' || !worldId) {
+    return { valid: true };
+  }
+
+  const linkedIds = Array.isArray(document.linkedEntitlementIds)
+    ? [
+        ...new Set(
+          (document.linkedEntitlementIds as unknown[])
+            .filter((id): id is string => typeof id === 'string')
+            .map((id) => id.trim())
+            .filter(Boolean)
+        ),
+      ]
+    : [];
+  const residualId =
+    typeof document.residualOfEntitlementId === 'string'
+      ? document.residualOfEntitlementId.trim()
+      : '';
+
+  if (linkedIds.length === 0 && !residualId) {
+    return { valid: true };
+  }
+
+  const linkedResults = await Promise.all(
+    linkedIds.map(async (linkedId) => ({
+      linkedId,
+      doc: await resolveEntitlement(worldId, linkedId),
+    }))
+  );
+  const missingLinkedEntitlementIds = linkedResults
+    .filter((result) => !result.doc)
+    .map((result) => result.linkedId);
+
+  let missingResidualEntitlementId: string | undefined;
+  if (residualId) {
+    const resolvedResidual = await resolveEntitlement(worldId, residualId);
+    if (!resolvedResidual) {
+      missingResidualEntitlementId = residualId;
+    }
+  }
+
+  if (
+    missingLinkedEntitlementIds.length === 0 &&
+    !missingResidualEntitlementId
+  ) {
+    return { valid: true };
+  }
+
+  const problems: string[] = [];
+  if (missingLinkedEntitlementIds.length > 0) {
+    problems.push(`missing linked entitlements: ${missingLinkedEntitlementIds.join(', ')}`);
+  }
+  if (missingResidualEntitlementId) {
+    problems.push(`missing residual target: ${missingResidualEntitlementId}`);
+  }
+
+  return {
+    valid: false,
+    error: `Linkage validation failed (${problems.join(' | ')})`,
+    missingLinkedEntitlementIds,
+    missingResidualEntitlementId,
+  };
+}
 
 /**
  * Unified save for entitlement editing.
@@ -115,6 +292,9 @@ export async function saveEntitlementFromFormState(
     entitlementId ||
     (document.id as string) ||
     getEntitlementDeterministicId(document);
+  const worldSaveMeta = computeWorldSaveOperation({ entitlementId, document });
+  const effectiveEntitlementIdForValidation =
+    storageMode === 'world' ? worldSaveMeta.finalEntitlementId : id;
 
   // R3: Compute identityKey for dedupe and debug logging
   const identityKey = getEntitlementIdentityKey(document);
@@ -125,9 +305,56 @@ export async function saveEntitlementFromFormState(
     console.log('identityKey:', identityKey);
     console.log('deterministic ID:', getEntitlementDeterministicId(document));
     console.log('final ID (pre-dedupe):', id);
+    if (storageMode === 'world') {
+      console.log('world save operation:', worldSaveMeta.operation);
+      console.log(
+        'world save final ID:',
+        worldSaveMeta.finalEntitlementId
+      );
+    }
     console.log('isCreate:', isCreate);
     console.log('storageMode:', storageMode);
     console.groupEnd();
+  }
+
+  // 3.5 Linked/residual reference gate (world mode only).
+  // Missing references are now blocking legality (M4).
+  let linkageValidation: Awaited<
+    ReturnType<typeof validateLinkedResidualReferences>
+  >;
+  try {
+    linkageValidation = await validateLinkedResidualReferences({
+      storageMode,
+      worldId,
+      document,
+    });
+  } catch (linkageError) {
+    const errorMsg =
+      linkageError instanceof Error
+        ? linkageError.message
+        : 'Linkage validation unavailable';
+    toast.error(`Linkage validation unavailable (${errorMsg})`);
+    return {
+      success: false,
+      entitlementId: entitlementId || '',
+      document,
+      error: `Linkage validation unavailable (${errorMsg})`,
+      errorType: 'LINKAGE',
+    };
+  }
+  if (linkageValidation.valid === false) {
+    toast.error(linkageValidation.error);
+    return {
+      success: false,
+      entitlementId: entitlementId || '',
+      document,
+      error: linkageValidation.error,
+      errorType: 'LINKAGE',
+      missingLinkedEntitlementIds:
+        linkageValidation.missingLinkedEntitlementIds,
+      missingResidualEntitlementId:
+        linkageValidation.missingResidualEntitlementId,
+    };
   }
 
   // 4. Exclusivity gate — block overlapping claims before any write.
@@ -140,9 +367,11 @@ export async function saveEntitlementFromFormState(
         storageMode === 'world' ? worldId : null,
         holderTeam
       );
+
+      const candidateIdForValidation = effectiveEntitlementIdForValidation;
       const exclusivityCheck = validateEntitlementExclusivity({
         entitlements: currentEntitlements,
-        candidate: { id: entitlementId, doc: document },
+        candidate: { id: candidateIdForValidation, doc: document },
       });
       if (!exclusivityCheck.valid) {
         const firstViolation = exclusivityCheck.violations[0];
@@ -157,6 +386,46 @@ export async function saveEntitlementFromFormState(
           errorType: 'EXCLUSIVITY',
           violations: exclusivityCheck.violations,
         };
+      }
+
+      // R1: League-wide claim uniqueness gate for world/admin writes.
+      // We validate post-save state for the edited team against all teams.
+      if (storageMode === 'world' && worldId) {
+        const postSaveTeamSet = buildPostSaveTeamEntitlements({
+          currentEntitlements,
+          existingEntitlementId: entitlementId,
+          finalEntitlementId: candidateIdForValidation,
+          candidateDocument: document,
+          saveOperation: worldSaveMeta.operation,
+        });
+
+        const leagueGateResult = await runLeagueClaimUniquenessGate({
+          worldId,
+          context: 'ENTITLEMENT_SAVE',
+          scopeMode: 'FULL_LEAGUE',
+          postMutationEntitlementsByTeam: {
+            [holderTeam]: postSaveTeamSet,
+          },
+        });
+
+        if (!leagueGateResult.ok) {
+          const failedGateResult = leagueGateResult as Exclude<
+            typeof leagueGateResult,
+            { ok: true }
+          >;
+          toast.error(failedGateResult.message);
+          return {
+            success: false,
+            entitlementId: entitlementId || '',
+            document,
+            error: failedGateResult.message,
+            errorType:
+              failedGateResult.errorType === 'CLAIM_UNIQUENESS_VIOLATION'
+                ? 'CLAIM_UNIQUENESS'
+                : 'EXCLUSIVITY_VALIDATION_UNAVAILABLE',
+            claimConflicts: failedGateResult.conflicts,
+          };
+        }
       }
     } catch (exclusivityError) {
       // Integrity-first (TM-EXCL-E1.1): if resolver or validator fails, BLOCK the save.
@@ -188,9 +457,11 @@ export async function saveEntitlementFromFormState(
     return saveWorld({
       worldId,
       userId,
-      entitlementId: id,
+      entitlementId:
+        storageMode === 'world' ? worldSaveMeta.finalEntitlementId : id,
       originalEntitlementId: entitlementId,
       document,
+      saveOperation: worldSaveMeta.operation,
     });
   }
 }
@@ -216,6 +487,7 @@ function saveVacuum(args: {
   }
 
   let finalId: string;
+  let saveOperation: SaveEntitlementResult['saveOperation'] = 'VACUUM_CREATE';
 
   if (entitlementId && !entitlementId.startsWith('vacuum:')) {
     // Editing an existing base entitlement — store as edit overlay
@@ -224,6 +496,7 @@ function saveVacuum(args: {
     // The edit's effective identity must not duplicate any existing create.
     resolveVacuumEditCollisions(teamCode, document);
     finalId = entitlementId;
+    saveOperation = 'VACUUM_EDIT';
   } else if (entitlementId && entitlementId.startsWith('vacuum:')) {
     // Re-editing an existing vacuum create
     // R3: Detect identity-change — compute new deterministic vacuum ID
@@ -242,6 +515,7 @@ function saveVacuum(args: {
       applyVacuumCreate(teamCode, entitlementId, document);
       finalId = entitlementId;
     }
+    saveOperation = 'VACUUM_EDIT';
   } else {
     // Creating new — generate a deterministic vacuum-prefixed ID
     // R1: Same logical entitlement always gets the same ID, enabling dedupe.
@@ -278,6 +552,7 @@ function saveVacuum(args: {
     success: true,
     entitlementId: finalId,
     document: { ...document, id: finalId },
+    saveOperation,
   };
 }
 
@@ -290,9 +565,16 @@ async function saveWorld(args: {
   document: Record<string, unknown>;
   /** Original ID passed to saveEntitlementFromFormState (before deterministic fallback). */
   originalEntitlementId: string | undefined;
+  saveOperation: WorldSaveOperation;
 }): Promise<SaveEntitlementResult> {
-  const { worldId, userId, entitlementId, document, originalEntitlementId } =
-    args;
+  const {
+    worldId,
+    userId,
+    entitlementId,
+    document,
+    originalEntitlementId,
+    saveOperation,
+  } = args;
 
   if (!worldId) {
     const errorMsg = 'World ID is required for world saves.';
@@ -316,54 +598,56 @@ async function saveWorld(args: {
     };
   }
 
-  // ── R1: Detect identity-change on edit ──
-  // If this is an edit (originalEntitlementId exists) and the computed
-  // deterministic ID differs from the original, this is an identity-change.
-  // We must "move" the record: write to new ID + delete old ID.
-  const computedId = getEntitlementDeterministicId(document);
-  const isEdit = !!originalEntitlementId;
-  const identityChanged = isEdit && originalEntitlementId !== computedId;
-
   if (__DEV_DEDUPE_LOG__) {
     console.group('[entitlement-dedupe] world save');
     console.log('identityKey:', document.identityKey);
-    console.log('deterministic ID:', computedId);
+    console.log('deterministic ID:', getEntitlementDeterministicId(document));
     console.log('entitlementId (passed):', entitlementId);
     console.log('originalEntitlementId:', originalEntitlementId);
-    console.log('isEdit:', isEdit, '| identityChanged:', identityChanged);
+    console.log('saveOperation:', saveOperation);
     console.groupEnd();
   }
 
-  if (identityChanged) {
-    // Move: write to computedId, delete originalEntitlementId, update team inventory
-    const moveResult = await moveWorldEntitlement(db, {
+  if (saveOperation === 'CREATE' || saveOperation === 'DUPLICATE_AS_NEW') {
+    const createResult = await writeWorldEntitlementAndAttachToTeamAtomic(db, {
       worldId,
-      fromId: originalEntitlementId!,
-      toId: computedId,
+      entitlementId,
       document,
       userId: userId || '',
     });
 
-    if (!moveResult.success) {
-      const errorMsg = moveResult.error || 'Move failed';
+    if (!createResult.success) {
+      const errorMsg = createResult.error || 'Atomic create+attach failed';
       toast.error(errorMsg);
       return {
         success: false,
-        entitlementId: originalEntitlementId!,
+        entitlementId: originalEntitlementId || entitlementId,
         document,
         error: errorMsg,
+        errorType:
+          createResult.errorType === 'ENTITLEMENT_ID_COLLISION'
+            ? 'COLLISION'
+            : undefined,
       };
     }
 
-    toast.success('Entitlement saved (identity updated)');
+    if (saveOperation === 'DUPLICATE_AS_NEW') {
+      toast.success('Saved as new entitlement');
+    } else {
+      toast.success('Entitlement saved');
+    }
+
     return {
       success: true,
-      entitlementId: computedId,
-      document: { ...document, id: computedId },
+      entitlementId,
+      document: { ...document, id: entitlementId },
+      saveOperation,
+      createdNewEntitlement: saveOperation === 'DUPLICATE_AS_NEW',
+      originalEntitlementId,
     };
   }
 
-  // Normal write (no identity-change)
+  // UPDATE_SAME_IDENTITY
   const result = await writeWorldEntitlement(db, {
     worldId,
     entitlementId,
@@ -379,6 +663,10 @@ async function saveWorld(args: {
       entitlementId,
       document,
       error: errorMsg,
+      errorType:
+        result.errorType === 'ENTITLEMENT_ID_COLLISION'
+          ? 'COLLISION'
+          : undefined,
     };
   }
 
@@ -387,5 +675,8 @@ async function saveWorld(args: {
     success: true,
     entitlementId,
     document: { ...document, id: entitlementId },
+    saveOperation,
+    createdNewEntitlement: false,
+    originalEntitlementId,
   };
 }

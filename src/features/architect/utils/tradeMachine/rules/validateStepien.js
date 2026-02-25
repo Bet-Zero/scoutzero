@@ -231,33 +231,57 @@ export function validateStepien(team, tradeCtx = {}) {
   // All outgoing (delta)
   const outgoingYears = [...tradePickYears, ...entitlementOutYears];
 
-  // Phase 13: Entitlement SSOT model
-  // - Baseline = years team controls (from entitlements)
-  // - We check if outgoing creates consecutive gaps
-  // - allStepienRelevant = outgoing years (what's leaving)
-  // The violation occurs when outgoing creates consecutive years owed
-  const allStepienRelevant = outgoingYears;
+  // Phase E1: Baseline + delta model for Stepien legality.
+  // - baselineYears: years already reserved in the pre-trade baseline model
+  // - outgoingYears: additional reservations introduced by this trade
+  // - allStepienRelevant: post-trade reservation model used for legality
+  const allStepienRelevant = [...baselineYears, ...outgoingYears];
 
-  // Check for consecutive unprotected first round picks (only if enough Stepien-relevant items)
+  // Check for consecutive unprotected first-round reservations.
+  // E1 behavior: evaluate post-trade (baseline + delta), but only fail when
+  // the consecutive-year pair includes at least one outgoing contribution.
+  // This avoids treating a pre-existing baseline shape as a new trade failure.
   if (allStepienRelevant.length >= 2) {
-    // Sort picks by year
-    const sortedPicks = allStepienRelevant.sort((a, b) => a.year - b.year);
+    const yearBuckets = new Map();
 
-    // Check for consecutive years
-    for (let i = 0; i < sortedPicks.length - 1; i++) {
-      const current = sortedPicks[i];
-      const next = sortedPicks[i + 1];
+    for (const entry of allStepienRelevant) {
+      if (!entry || !entry.year) continue;
 
-      // If picks are consecutive years and both are unprotected
-      // Add check for meaningful protection to bypass Stepien Rule
-      if (
-        next.year === current.year + 1 &&
-        !isMeaningfulProtection(current.protection) &&
-        !isMeaningfulProtection(next.protection)
-      ) {
-        violations.push('Violates Stepien Rule (consecutive future 1sts).');
-        break;
+      const yearKey = entry.year;
+      const bucket = yearBuckets.get(yearKey) || {
+        hasUnprotected: false,
+        hasOutgoingContributor: false,
+      };
+
+      if (!isMeaningfulProtection(entry.protection)) {
+        bucket.hasUnprotected = true;
       }
+      if (entry._source !== 'entitlement_baseline') {
+        bucket.hasOutgoingContributor = true;
+      }
+
+      yearBuckets.set(yearKey, bucket);
+    }
+
+    const sortedYears = [...yearBuckets.keys()].sort((a, b) => a - b);
+    for (let i = 0; i < sortedYears.length - 1; i++) {
+      const currentYearKey = sortedYears[i];
+      const nextYearKey = sortedYears[i + 1];
+      if (nextYearKey !== currentYearKey + 1) continue;
+
+      const currentBucket = yearBuckets.get(currentYearKey);
+      const nextBucket = yearBuckets.get(nextYearKey);
+      if (!currentBucket?.hasUnprotected || !nextBucket?.hasUnprotected) {
+        continue;
+      }
+
+      const touchesOutgoing =
+        currentBucket.hasOutgoingContributor ||
+        nextBucket.hasOutgoingContributor;
+      if (!touchesOutgoing) continue;
+
+      violations.push('Violates Stepien Rule (consecutive future 1sts).');
+      break;
     }
   }
 
@@ -312,7 +336,7 @@ export function validateStepien(team, tradeCtx = {}) {
       : currentYear;
 
   const controlByYear = {};
-  outgoingYears.forEach((entry) => {
+  allStepienRelevant.forEach((entry) => {
     if (!entry || !entry.year) return;
     const yearKey = entry.year;
     if (!controlByYear[yearKey]) {
@@ -343,6 +367,7 @@ export function validateStepien(team, tradeCtx = {}) {
       baselineSource: 'entitlements_ssot',
       baselineYearsCount: baselineYears.length,
       outgoingYearsCount: outgoingYears.length,
+      combinedReservationYearsCount: allStepienRelevant.length,
       tradePicksConsidered: tradePickYears.length,
       entitlementsConsidered: entitlementDerivedPicks.length,
       totalStepienRelevant: allStepienRelevant.length,

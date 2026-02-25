@@ -66,9 +66,9 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
     expect(warningDivs.length).toBe(0);
   });
 
-  it('blocks identity field changes via Apply JSON in edit mode', () => {
+  it('allows identity field JSON edits and surfaces duplicate-as-new notice in edit mode', () => {
     const onApplyJson = vi.fn((_json: string) => ({ success: true }));
-    const { container } = render(
+    const { container, getByText } = render(
       <EntitlementEditorAdvancedTab
         formState={baseFormState}
         onApplyJson={onApplyJson}
@@ -89,7 +89,10 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
 
     expect(onApplyJson).toHaveBeenCalled();
     const appliedJson = JSON.parse(onApplyJson.mock.calls[0][0]);
-    expect(appliedJson.holderTeam).toBe('BOS'); // original, not LAL
+    expect(appliedJson.holderTeam).toBe('LAL');
+    expect(
+      getByText(/This change requires creating a new entitlement/i)
+    ).toBeInTheDocument();
   });
 
   it('allows non-identity field changes in edit mode', () => {

@@ -68,6 +68,7 @@ export type {
 
 export {
   applyDAREResultsToBatch,
+  applyGatedDAREResultsToBatch,
   buildRolledEntitlementDoc,
   buildConvertedEntitlementDoc,
   buildResolvedEntitlementDoc,
