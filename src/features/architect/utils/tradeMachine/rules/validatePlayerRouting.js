@@ -41,6 +41,21 @@ function normalizeTeamCode(teamIdLike) {
   return null;
 }
 
+function resolveTeamId(slot, index) {
+  return (
+    normalizeTeamCode(slot?.team?.id) ||
+    normalizeTeamCode(slot?.team?.teamId) ||
+    normalizeTeamCode(slot?.team?.teamCode) ||
+    normalizeTeamCode(slot?.teamId) ||
+    normalizeTeamCode(slot?.teamCode) ||
+    `team-${index}`
+  );
+}
+
+function resolvePlayerDestination(player) {
+  return normalizeTeamCode(player?.tradeTo || player?.toTeamId || player?.destTeamId);
+}
+
 /**
  * Get a unique identifier for a player.
  * Uses playerId if available, or falls back to name + fromTeamId combination.
@@ -82,7 +97,14 @@ export function validatePlayerRouting({ teams }) {
   }
 
   // Count active teams (teams with a selected team object)
-  const activeTeams = teams.filter((t) => t.team);
+  const activeTeams = teams
+    .map((slot, index) => ({ slot, index }))
+    .filter(({ slot }) => slot.team)
+    .map(({ slot, index }) => ({
+      slot,
+      index,
+      teamId: resolveTeamId(slot, index),
+    }));
   const activeTeamCount = activeTeams.length;
 
   if (activeTeamCount < 2) {
@@ -91,18 +113,17 @@ export function validatePlayerRouting({ teams }) {
 
   // Build set of valid team IDs in this trade
   const tradeTeamIds = new Set();
-  for (const slot of activeTeams) {
-    const teamId = normalizeTeamCode(slot.team?.id || slot.team?.teamCode);
-    if (teamId) tradeTeamIds.add(teamId);
+  for (const activeTeam of activeTeams) {
+    tradeTeamIds.add(activeTeam.teamId);
   }
 
   // Track all sent players across all teams to detect duplicates
   const seenPlayerKeys = new Map(); // playerKey → fromTeamId
 
-  for (const slot of teams) {
+  for (const [index, slot] of teams.entries()) {
     if (!slot.team) continue;
 
-    const fromTeamId = normalizeTeamCode(slot.team.id || slot.team.teamCode);
+    const fromTeamId = resolveTeamId(slot, index);
     const sends = slot.sends || [];
 
     // Track players within this team to detect same-team duplicates
@@ -132,7 +153,7 @@ export function validatePlayerRouting({ teams }) {
       }
 
       // CHECK 3: Routing - in 3+ team trades, tradeTo is required
-      const tradeTo = normalizeTeamCode(player.tradeTo);
+      const tradeTo = resolvePlayerDestination(player);
       if (activeTeamCount > 2 && !tradeTo) {
         errors.push(
           `Player "${playerName}" from ${fromTeamId} has no destination (tradeTo required in ${activeTeamCount}-team trade)`

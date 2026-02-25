@@ -14,6 +14,8 @@ const makePlayer = (name, salary, signAndTrade = false, contractYears = 4) => ({
 });
 
 const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
+  id: name,
+  teamCode: name,
   teamName: name,
   totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
@@ -328,12 +330,15 @@ describe('tradeValidator', () => {
     const teamA = makeTeam('A', 100_000_000);
     const teamB = makeTeam('B', 100_000_000);
     const teamC = makeTeam('C', 100_000_000);
+    const aPlayer = { ...makePlayer('A1', 10_000_000), tradeTo: 'B' };
+    const bPlayer = { ...makePlayer('B1', 5_000_000), tradeTo: 'A' };
+    const cPlayer = { ...makePlayer('C1', 5_000_000), tradeTo: 'A' };
 
     const result = validateTrade({
       teams: [
-        { team: teamA, sends: [makePlayer('A1', 10_000_000)], picksOut: [] },
-        { team: teamB, sends: [makePlayer('B1', 5_000_000)], picksOut: [] },
-        { team: teamC, sends: [makePlayer('C1', 5_000_000)], picksOut: [] },
+        { team: teamA, sends: [aPlayer], picksOut: [] },
+        { team: teamB, sends: [bPlayer], picksOut: [] },
+        { team: teamC, sends: [cPlayer], picksOut: [] },
       ],
       capProjections,
       currentYear,

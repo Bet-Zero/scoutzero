@@ -13,6 +13,8 @@ const makePlayer = (name, salary, signAndTrade = false, contractYears = 4) => ({
 });
 
 const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
+  id: name,
+  teamCode: name,
   teamName: name,
   totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
@@ -26,9 +28,9 @@ describe('tradeValidator edge cases', () => {
     const teamA = makeTeam('A', 100_000_000);
     const teamB = makeTeam('B', 100_000_000);
     const teamC = makeTeam('C', 100_000_000);
-    const aPlayer = makePlayer('A1', 8_000_000);
-    const bPlayer = makePlayer('B1', 5_000_000);
-    const cPlayer = makePlayer('C1', 7_000_000);
+    const aPlayer = { ...makePlayer('A1', 8_000_000), tradeTo: 'B' };
+    const bPlayer = { ...makePlayer('B1', 5_000_000), tradeTo: 'A' };
+    const cPlayer = { ...makePlayer('C1', 7_000_000), tradeTo: 'A' };
     teamA.players.push(aPlayer);
     teamB.players.push(bPlayer);
     teamC.players.push(cPlayer);
@@ -130,9 +132,9 @@ describe('tradeValidator edge cases', () => {
     const teamA = makeTeam('A', 210_000_000);
     const teamB = makeTeam('B', 100_000_000);
     const teamC = makeTeam('C', 100_000_000);
-    const a = makePlayer('A1', 10_000_000);
-    const b = makePlayer('B1', 8_000_000);
-    const c = makePlayer('C1', 6_000_000);
+    const a = { ...makePlayer('A1', 10_000_000), tradeTo: 'B' };
+    const b = { ...makePlayer('B1', 8_000_000), tradeTo: 'A' };
+    const c = { ...makePlayer('C1', 6_000_000), tradeTo: 'A' };
     teamA.players.push(a);
     teamB.players.push(b);
     teamC.players.push(c);
@@ -148,9 +150,35 @@ describe('tradeValidator edge cases', () => {
     });
 
     expect(result.legal).toBe(false);
-    // Phase 15: Updated test expectation to match actual validator behavior
-    // (Legacy test-specific override removed)
+    expect(result.reason).not.toContain('no destination');
     expect(result.reason).toMatch(/apron|salary/i);
+  });
+
+  it('does not trigger second apron incoming salary violation when routed incoming equals outgoing in 3-team trade', () => {
+    const teamA = makeTeam('A', 210_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const teamC = makeTeam('C', 100_000_000);
+
+    const a = { ...makePlayer('A1', 10_000_000), tradeTo: 'B' };
+    const b = { ...makePlayer('B1', 4_000_000), tradeTo: 'C' };
+    const c = { ...makePlayer('C1', 10_000_000), tradeTo: 'A' };
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [a], entitlementsOut: [] },
+        { team: teamB, sends: [b], entitlementsOut: [] },
+        { team: teamC, sends: [c], entitlementsOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.legal).toBe(true);
+    const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
+    expect(teamAResult?.rules.salaryMatching.passed).toBe(true);
+    expect(teamAResult?.violations.join(' ')).not.toContain(
+      'Second apron team cannot receive more salary than sent'
+    );
   });
 
   it('disallows cash from teams over the second apron', () => {

@@ -84,6 +84,59 @@ import {
 // Trade Receipt Validator Version - bumped for Phase 1 UI wiring / Phase 4 cap settings
 export const TRADE_VALIDATOR_VERSION = '1.2.0';
 
+function normalizeTeamCodeLike(teamIdLike) {
+  if (!teamIdLike) return null;
+
+  if (typeof teamIdLike === 'string') {
+    const normalized = teamIdLike.trim();
+    if (!normalized) return null;
+    return normalized.length === 3 ? normalized.toUpperCase() : normalized;
+  }
+
+  if (typeof teamIdLike === 'object') {
+    return normalizeTeamCodeLike(
+      teamIdLike.teamCode ||
+        teamIdLike.id ||
+        teamIdLike.teamId ||
+        teamIdLike.code ||
+        teamIdLike.abbreviation
+    );
+  }
+
+  return null;
+}
+
+function resolveTeamIdentity(teamSlot, index) {
+  return (
+    normalizeTeamCodeLike(teamSlot?.team?.id) ||
+    normalizeTeamCodeLike(teamSlot?.team?.teamId) ||
+    normalizeTeamCodeLike(teamSlot?.team?.teamCode) ||
+    normalizeTeamCodeLike(teamSlot?.teamId) ||
+    normalizeTeamCodeLike(teamSlot?.teamCode) ||
+    `team-${index}`
+  );
+}
+
+function resolvePlayerDestinationTeamId(player) {
+  return normalizeTeamCodeLike(
+    player?.tradeTo ?? player?.toTeamId ?? player?.destTeamId
+  );
+}
+
+function shouldRoutePlayerToTeam({
+  player,
+  receivingTeamId,
+  activeTeamCount,
+}) {
+  const destinationTeamId = resolvePlayerDestinationTeamId(player);
+
+  if (activeTeamCount > 2) {
+    return destinationTeamId !== null && destinationTeamId === receivingTeamId;
+  }
+
+  return destinationTeamId === null || destinationTeamId === receivingTeamId;
+}
+
 // Create wrapped versions with performance monitoring and caching
 const baseValidators = {
   validateSalaryMatching,
@@ -132,7 +185,7 @@ function generateTradeReceipt({
     const salaryMatchingDetails = salaryMatchingResult.details || {};
 
     // Get the team's name and code
-    const teamCode = team.team?.id || team.team?.teamId || `team-${index}`;
+    const teamCode = resolveTeamIdentity(team, index);
     const teamName =
       team.team?.teamName ||
       team.team?.name ||
@@ -250,8 +303,8 @@ function generateTradeReceipt({
     // Phase 11.3: Build incoming entitlements list (from other teams' outgoing)
     // Phase 11.3.1: Respect toTeamId routing when present
     const incomingEntitlements = [];
-    const thisTeamKey = team.team?.id || team.team?.teamId || team.teamCode;
-    const thisTeamCode = team.teamCode || team.team?.teamCode;
+    const thisTeamKey = resolveTeamIdentity(team, index);
+    const thisTeamCode = normalizeTeamCodeLike(team.teamCode || team.team?.teamCode);
 
     teamsWithAssets.forEach((otherTeam, otherIndex) => {
       if (otherIndex !== index) {
@@ -262,7 +315,7 @@ function generateTradeReceipt({
         ).forEach((ent) => {
           const decorated = decorateEntitlementForTrade(ent) || ent;
           // Phase 11.3.1: Check toTeamId routing
-          const routedTo = decorated.toTeamId;
+          const routedTo = normalizeTeamCodeLike(decorated.toTeamId);
 
           // Include entitlement if:
           // 1. No routing specified (broadcast mode - backward compatible)
@@ -277,7 +330,7 @@ function generateTradeReceipt({
               round: decorated.round,
               kind: decorated.kind,
               description: decorated.description,
-              fromTeam: otherTeam.team?.id || otherTeam.team?.teamId,
+              fromTeam: resolveTeamIdentity(otherTeam, otherIndex),
               toTeamId: decorated.toTeamId || null, // Phase 11.3.1: Include for debug clarity
               draftKey: decorated.draftKey,
               terms: decorated.terms,
@@ -469,15 +522,41 @@ export function validateTrade({
     ...tradeCtx,
   };
 
+  const teamIdsByIndex = validTeams.map((teamSlot, index) =>
+    resolveTeamIdentity(teamSlot, index)
+  );
+  const activeTeamCount = validTeams.length;
+
   // Calculate incoming/outgoing assets for each team
   // First pass: populate team data structure without salary calculations
   const teamsWithAssets = validTeams.map((team, index) => {
-    const otherTeams = validTeams.filter((_, i) => i !== index);
+    const receivingTeamId = teamIdsByIndex[index];
 
     // Populate incoming players (what this team is receiving from other teams)
-    const incomingPlayers = otherTeams.reduce((players, otherTeam) => {
-      return players.concat(otherTeam.sends || []);
-    }, []);
+    // 2-team trades keep broadcast fallback for compatibility.
+    // 3+ team trades require explicit destination routing.
+    const incomingPlayers = [];
+    validTeams.forEach((otherTeam, otherIndex) => {
+      if (otherIndex === index) return;
+
+      const fromTeamId = teamIdsByIndex[otherIndex];
+      (otherTeam.sends || []).forEach((player) => {
+        if (
+          !shouldRoutePlayerToTeam({
+            player,
+            receivingTeamId,
+            activeTeamCount,
+          })
+        ) {
+          return;
+        }
+
+        incomingPlayers.push({
+          ...player,
+          fromTeamId: player.fromTeamId || fromTeamId,
+        });
+      });
+    });
 
     // Populate outgoing players (what this team is sending out)
     const outgoingPlayers = team.sends || [];
@@ -488,6 +567,7 @@ export function validateTrade({
 
     return {
       ...team,
+      teamId: teamIdsByIndex[index],
       salaryOut: 0, // Will be computed from matchOutgoing values
       salaryIn: 0, // Will be computed from matchIncoming values
       projectedSalary: currentSalary, // Will be updated after salary calculations
@@ -582,7 +662,7 @@ export function validateTrade({
 
   // Second pass: calculate salaryOut and salaryIn using the canonical matching values
   teamsWithAssets.forEach((team, index) => {
-    const otherTeams = teamsWithAssets.filter((_, i) => i !== index);
+    const receivingTeamId = teamIdsByIndex[index];
 
     // Calculate outgoing salary using canonical matchOutgoing values
     const salaryOut = (team.sends || []).reduce((sum, player) => {
@@ -595,19 +675,28 @@ export function validateTrade({
     }, 0);
 
     // Calculate incoming salary from other teams using canonical matchIncoming values
-    const salaryIn = otherTeams.reduce((sum, otherTeam) => {
-      return (
-        sum +
-        (otherTeam.sends || []).reduce((playerSum, player) => {
-          // Use matchIncoming (set by computeMatchingValues) or fallback to base salary
-          const matchingValue =
-            player.matchIncoming ??
-            getSalaryForYear(player, currentYear || 2025) ??
-            0;
-          return playerSum + matchingValue;
-        }, 0)
-      );
-    }, 0);
+    let salaryIn = 0;
+    teamsWithAssets.forEach((otherTeam, otherIndex) => {
+      if (otherIndex === index) return;
+
+      (otherTeam.sends || []).forEach((player) => {
+        if (
+          !shouldRoutePlayerToTeam({
+            player,
+            receivingTeamId,
+            activeTeamCount,
+          })
+        ) {
+          return;
+        }
+
+        const matchingValue =
+          player.matchIncoming ??
+          getSalaryForYear(player, currentYear || 2025) ??
+          0;
+        salaryIn += matchingValue;
+      });
+    });
 
     // Update team with computed salaries
     team.salaryOut = salaryOut;
@@ -618,7 +707,10 @@ export function validateTrade({
   // Run validation rules for each team
   const teamResults = teamsWithAssets.map((team, index) => {
     const teamId =
-      team.teamId || team.team?.teamId || team.team?.id || `team-${index}`;
+      team.teamId ||
+      team.team?.teamId ||
+      team.team?.id ||
+      resolveTeamIdentity(team, index);
     const teamName =
       team.team?.teamName ||
       team.team?.name ||
@@ -686,12 +778,14 @@ export function validateTrade({
         // Build allTeamsEntOut with resolved routing from the map
         const tradeParticipantIds = new Set(
           teamsWithAssets
-            .map((t) => t.teamId || t.team?.teamId || t.team?.id)
+            .map((t, participantIndex) =>
+              resolveTeamIdentity(t, participantIndex)
+            )
             .filter(Boolean)
         );
 
-        const allTeamsEntOut = teamsWithAssets.map((t) => {
-          const tId = t.teamId || t.team?.teamId || t.team?.id;
+        const allTeamsEntOut = teamsWithAssets.map((t, participantIndex) => {
+          const tId = resolveTeamIdentity(t, participantIndex);
           return (t.entitlementsOut || []).map((e) => {
             const entId = e.entitlementId || e.id;
             const routingKey = `${tId}::${entId}`;
@@ -699,25 +793,16 @@ export function validateTrade({
               routingResult.map.get(routingKey) || e.toTeamId || null;
 
             // TM-EXCL-E2: For 2-team trades, auto-resolve missing toTeamId
+            const autoResolvedToTeamId =
+              teamsWithAssets.length === 2
+                ? teamsWithAssets
+                    .map((otherTeam, otherIndex) =>
+                      resolveTeamIdentity(otherTeam, otherIndex)
+                    )
+                    .find((otherTeamId) => otherTeamId !== tId)
+                : undefined;
             const finalToTeamId =
-              resolvedToTeamId ||
-              (teamsWithAssets.length === 2
-                ? teamsWithAssets.find((other) => {
-                    const otherId =
-                      other.teamId || other.team?.teamId || other.team?.id;
-                    return otherId !== tId;
-                  })?.teamId ||
-                  teamsWithAssets.find((other) => {
-                    const otherId =
-                      other.teamId || other.team?.teamId || other.team?.id;
-                    return otherId !== tId;
-                  })?.team?.teamId ||
-                  teamsWithAssets.find((other) => {
-                    const otherId =
-                      other.teamId || other.team?.teamId || other.team?.id;
-                    return otherId !== tId;
-                  })?.team?.id
-                : undefined);
+              resolvedToTeamId || autoResolvedToTeamId;
 
             return {
               ...e,
@@ -878,49 +963,12 @@ export function validateTrade({
 
   // Calculate summary by team index
   const summaryByTeamIndex = teamsWithAssets.map((team, index) => {
-    const otherTeams = teamsWithAssets.filter((_, i) => i !== index);
-
     const playersOut = (team.sends || [])
       .map((p) => p.name || 'Unknown Player')
       .join(', ');
-
-    // For 2-team trades, simple incoming from other team
-    // For 3+ team trades, implement specific routing logic
-    let playersIn;
-    if (teamsWithAssets.length === 2) {
-      // 2-team trade: each team gets from the other
-      playersIn = otherTeams.flatMap((otherTeam) =>
-        (otherTeam.sends || []).map((p) => p.name || 'Unknown Player')
-      );
-    } else if (teamsWithAssets.length === 3) {
-      // 3-team trade: implement circular routing
-      // Team 0 gets from teams 1 and 2
-      // Team 1 gets from team 0 only
-      // Team 2 gets from team 1 only
-      if (index === 0) {
-        // First team gets from all others
-        playersIn = otherTeams.flatMap((otherTeam) =>
-          (otherTeam.sends || []).map((p) => p.name || 'Unknown Player')
-        );
-      } else if (index === 1) {
-        // Second team gets from first team only
-        const firstTeam = teamsWithAssets[0];
-        playersIn = (firstTeam.sends || []).map(
-          (p) => p.name || 'Unknown Player'
-        );
-      } else {
-        // Third team gets from second team only
-        const secondTeam = teamsWithAssets[1];
-        playersIn = (secondTeam.sends || []).map(
-          (p) => p.name || 'Unknown Player'
-        );
-      }
-    } else {
-      // 4+ team trades: fallback to everyone gets from everyone
-      playersIn = otherTeams.flatMap((otherTeam) =>
-        (otherTeam.sends || []).map((p) => p.name || 'Unknown Player')
-      );
-    }
+    const playersIn = (team.incomingPlayers || []).map(
+      (p) => p.name || 'Unknown Player'
+    );
 
     const capDelta = (team.salaryIn || 0) - (team.salaryOut || 0);
 
