@@ -173,3 +173,61 @@ Receiving an S&T player sets hard-cap fields on receiver snapshot:
 - `team.hardCapFirstApron.active = true`
 - `team.totals.isHardCapped = true`
 - `team.totals.hardCapLevel = 'firstApron'` (unless already second-apron constrained)
+
+## TPE (Trade Player Exception) Semantics
+
+### Canonical Storage
+
+- **SSOT location:** `team.exceptions.tpe[]` (Phase 64)
+- **Legacy fallback:** `team.tradeExceptions[]` (read-only backward compat; removed before Firestore write)
+- **SSOT accessor:** `getTeamTpeList(team)` in `src/features/architect/utils/persistenceContracts/normalizeTeamTpe.js`
+  - Prefers canonical `team.exceptions.tpe[]`; falls back to `team.tradeExceptions[]` with telemetry
+  - Normalizes field names (`totalAmount` ↔ `amount`, `remainingAmount` ↔ `remaining`, `expiresOn` ↔ `expirationDate`)
+
+### TPE Creation
+
+TPEs are created at trade apply-time when a team sends out more salary than it receives while over the salary cap:
+
+- Computed in `computeTradeResult` (`mutationPipeline.js`)
+- Idempotent: signature-based duplicate detection prevents double-creation
+- Fields: `id`, `amount`, `totalAmount`, `remainingAmount`, `usedAmount`, `createdSeason`, `expiresOn`, `createdFrom`, `isUsed`
+
+### TPE Absorption (Usage)
+
+To absorb a player via TPE, both `absorptionMode` and `tpeId` must be set on the incoming player:
+
+- **UI path:** TradeTeamCard absorption mode dropdown → "TPE" → TPE selector → `setTpeId` action
+- **State:** Sets `player.absorptionMode = 'TPE'` and `player.tpeId = <selected TPE id>` on the outgoing send entry
+
+### Fail-Closed Rules (Enforced)
+
+**Validator** (`validateTradeExceptions.js`):
+
+1. If `absorptionMode === 'TPE'` then `tpeId` must be a non-empty string → violation: "no tpeId specified"
+2. If `tpeId` is set, it must resolve to a TPE in the team's `appliedTPEs` or `tradeExceptions` → violation: "does not exist on this team"
+3. TPE must not be expired, already consumed, or too small for the player's salary
+4. Prior-year TPEs cannot be used by second-apron teams
+5. TPE cannot be combined with outgoing salary
+
+**Apply-time** (`mutationPipeline.js`):
+
+1. If `absorptionMode === 'TPE'` then both `tpeId` and `matchIncoming` must be present → hard error, mutation blocked
+2. On valid usage: `remainingAmount` decremented, `usedAmount` incremented, `isUsed` set when `remainingAmount === 0`
+3. If fail-closed errors exist, the entire trade mutation returns `{ success: false }` — no partial writes
+
+### Removed UI Paths
+
+The following dead paths were removed (E2E TPE fix, 2026-02-26):
+
+- `TradePlayerRow` "Use Trade Exception" menu button (emitted `'tradeException'` action with no handler)
+- `OutgoingPlayersList` TradeExceptionModal (never opened)
+- `TradeEditor` `handleApplyTradeException` (relied on `tpe.teamId` which didn't exist)
+- `useTradeMachine` `applyTradeException` callback (never called)
+- `shared/components/TradeExceptionModal.jsx` and `tradeMachine/TradeExceptionModal.jsx` (deleted)
+- `TradeExceptionManager` click-to-apply callback (made display-only)
+
+The authoritative TPE usage path is exclusively through TradeTeamCard's absorption mode dropdown + TPE selector.
+
+### DPE / Other Exceptions (Out of Scope)
+
+DPE (Disabled Player Exception) is editable via `ManageExceptionsModal` but has separate lifecycle from TPE. DPE parity with validator is deferred to a future change.

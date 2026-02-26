@@ -76,7 +76,6 @@ const TradeTeamCard = ({
   // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
   onSelectTeam,
   onRemove,
-  onApplyTradeException,
   onEditContract,
   // Phase 1: Accept validator result for accessor hook wiring
   validationResult = null,
@@ -754,7 +753,6 @@ const TradeTeamCard = ({
           onSetPlayerTrade={handleSetPlayerTrade}
           onRequestSignAndTrade={onRequestSignAndTrade}
           onUndoPlayerTrade={handleUndoPlayerTrade}
-          tradeExceptions={teamTradeExceptions}
           onEditContract={onEditContract}
           compact={compact}
         />
@@ -796,12 +794,6 @@ const TradeTeamCard = ({
           <TradeExceptionManager
             exceptions={teamTradeExceptions}
             teamId={team.id}
-            eligiblePlayers={tpeEligiblePlayers}
-            onApplyException={(tpe) => {
-              if (tpeEligiblePlayers.length > 0) {
-                onApplyTradeException(tpeEligiblePlayers[0], tpe);
-              }
-            }}
           />
         ) : (
           <div className="text-xs text-white/40 px-1">No trade exceptions available for this team.</div>

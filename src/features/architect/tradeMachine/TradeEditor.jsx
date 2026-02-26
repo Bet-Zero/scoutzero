@@ -49,7 +49,6 @@ const TradeEditor = ({
     undoPlayerTrade,
     resetTrade,
     yearKey,
-    applyTradeException,
     incomingAssets: hookIncomingAssets,
     // P0-3: Track validation in-flight state
     isValidating,
@@ -144,14 +143,6 @@ const TradeEditor = ({
     }
     return merged;
   }, [teams]);
-
-  // Handle TPE application
-  const handleApplyTradeException = (player, tpe) => {
-    const teamIndex = teams.findIndex((t) => t.team?.id === tpe.teamId);
-    if (teamIndex !== -1) {
-      applyTradeException(teamIndex, player, tpe);
-    }
-  };
 
   const handleEditEntitlement = (entitlement) => {
     if (!canEditEntitlements) {
@@ -486,7 +477,6 @@ const TradeEditor = ({
                 onUndoPlayerTrade={undoPlayerTrade}
                 onSelectTeam={(teamId) => selectTeam(idx, teamId)}
                 onRemove={() => removeTeam(idx)}
-                onApplyTradeException={handleApplyTradeException}
                 onEditContract={onEditContract}
                 worldId={worldId}
                 // P0-3: Pass validation in-flight state

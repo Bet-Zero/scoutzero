@@ -20,7 +20,6 @@ const TradePlayerRow = ({
   openMenu,
   setOpenMenu,
   setContractPlayer,
-  tradeExceptions = [],
   signAndTradeActive = false,
   sourceTeamId = null,
   sourceTeamCapHolds = [],
@@ -110,14 +109,6 @@ const TradePlayerRow = ({
     signAndTradeEligibility.eligible &&
     (!signAndTradeActive || player.signAndTrade);
 
-  // Enhanced TPE check
-  const canUseTPE = tradeExceptions.some(
-    (tpe) =>
-      !tpe.isUsed &&
-      salary <= tpe.amount &&
-      (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
-  );
-
   // Compact variant: single-line, no headshot, no height/weight
   if (compact) {
     return (
@@ -130,12 +121,6 @@ const TradePlayerRow = ({
               : 'bg-neutral-800'
         }`}
       >
-        {canUseTPE && incoming && !included && (
-          <span className="absolute top-0.5 right-0.5 bg-purple-600 text-white text-[9px] px-1 rounded leading-tight">
-            TPE
-          </span>
-        )}
-
         {/* Compact: Position inline */}
         <div
           className={`h-full w-8 flex items-center justify-center text-white font-normal text-xs font-mono flex-shrink-0 ${
@@ -216,27 +201,6 @@ const TradePlayerRow = ({
                     Sign-and-Trade
                   </button>
                 )}
-              {canUseTPE && (
-                <button
-                  onClick={() => {
-                    const validTPE = tradeExceptions.find(
-                      (tpe) => salary <= tpe.amount && !tpe.isUsed
-                    );
-                    if (validTPE) {
-                      onSetPlayerTrade(
-                        player,
-                        'tradeException',
-                        null,
-                        validTPE
-                      );
-                    }
-                    setOpenMenu(null);
-                  }}
-                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
-                >
-                  Use Trade Exception
-                </button>
-              )}
               {(included || incoming) && (
                 <button
                   onClick={() => {
@@ -285,13 +249,6 @@ const TradePlayerRow = ({
             : 'bg-neutral-800'
       }`}
     >
-      {/* TPE Badge - Only show if player is incoming and not included */}
-      {canUseTPE && incoming && !included && (
-        <span className="absolute top-1 right-1 bg-purple-600 text-white text-[10px] px-1 rounded leading-tight">
-          TPE
-        </span>
-      )}
-
       {/* Position Bar - unchanged */}
       <div
         className={`h-full w-10 flex flex-col items-center justify-center text-white font-normal text-base font-mono relative ${
@@ -414,24 +371,6 @@ const TradePlayerRow = ({
                   Sign-and-Trade
                 </button>
               )}
-
-            {/* Trade Exception Option */}
-            {canUseTPE && (
-              <button
-                onClick={() => {
-                  const validTPE = tradeExceptions.find(
-                    (tpe) => salary <= tpe.amount && !tpe.isUsed
-                  );
-                  if (validTPE) {
-                    onSetPlayerTrade(player, 'tradeException', null, validTPE);
-                  }
-                  setOpenMenu(null);
-                }}
-                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
-              >
-                Use Trade Exception
-              </button>
-            )}
 
             {/* Undo Trade Option */}
             {(included || incoming) && (

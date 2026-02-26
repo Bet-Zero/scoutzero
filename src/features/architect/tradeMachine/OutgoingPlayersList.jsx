@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import TradePlayerRow from './TradePlayerRow';
-import TradeExceptionModal from '@/shared/components/TradeExceptionModal';
 import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 
 export const OutgoingPlayersList = ({
@@ -16,12 +15,10 @@ export const OutgoingPlayersList = ({
   onSetPlayerTrade,
   onRequestSignAndTrade,
   onUndoPlayerTrade,
-  tradeExceptions = [],
   onEditContract,
   compact = false,
 }) => {
   const [openMenu, setOpenMenu] = useState(null);
-  const [tpePlayer, setTpePlayer] = useState(null);
 
   // Memoized available players list
   const available = useMemo(
@@ -77,7 +74,6 @@ export const OutgoingPlayersList = ({
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
             setContractPlayer={onEditContract}
-            tradeExceptions={tradeExceptions}
             signAndTradeActive={signAndTradeActive}
             sourceTeamId={sourceTeamId}
             sourceTeamCapHolds={sourceTeamCapHolds}
@@ -90,22 +86,6 @@ export const OutgoingPlayersList = ({
           <div className="text-xs text-white/40">No players available</div>
         )}
       </div>
-
-
-
-      {tpePlayer && (
-        <TradeExceptionModal
-          player={tpePlayer}
-          isOpen={!!tpePlayer}
-          onClose={() => setTpePlayer(null)}
-          tradeExceptions={tradeExceptions}
-          yearKey={yearKey}
-          onApply={(plr, tpe) => {
-            onSetPlayerTrade(plr, 'tradeException', null, tpe);
-            setTpePlayer(null);
-          }}
-        />
-      )}
     </div>
   );
 };

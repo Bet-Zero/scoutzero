@@ -10,6 +10,7 @@ import {
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 import { SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 import { isSecondApronTeam as checkSecondApron } from '../utils/capUtils.js';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe.js';
 
 export function validateTradeExceptions(team) {
   const violations = [];
@@ -38,7 +39,35 @@ export function validateTradeExceptions(team) {
 
   // Determine which TPE pattern we're using
   const usingAppliedTPEs = appliedTPEs.length > 0;
-  const tpesToProcess = usingAppliedTPEs ? appliedTPEs : tradeExceptions;
+  // Route legacy tradeExceptions through canonical accessor for field normalization
+  const normalizedLegacy =
+    !usingAppliedTPEs && team.team
+      ? getTeamTpeList(team.team)
+      : tradeExceptions;
+  const tpesToProcess = usingAppliedTPEs ? appliedTPEs : normalizedLegacy;
+
+  // FAIL-CLOSED: Reject absorptionMode='TPE' without explicit tpeId
+  incomingPlayers.forEach((player) => {
+    if (player.absorptionMode === 'TPE' && !player.tpeId) {
+      const playerName = player.name || player.displayName || 'Unknown';
+      violations.push(
+        `Player ${playerName} has absorptionMode='TPE' but no tpeId specified`
+      );
+    }
+  });
+
+  // FAIL-CLOSED: Reject tpeId that doesn't resolve to a TPE on this team
+  incomingPlayers.forEach((player) => {
+    if (player.tpeId) {
+      const matchingTpe = tpesToProcess.find((t) => t.id === player.tpeId);
+      if (!matchingTpe) {
+        const playerName = player.name || player.displayName || 'Unknown';
+        violations.push(
+          `Player ${playerName} references tpeId '${player.tpeId}' which does not exist on this team`
+        );
+      }
+    }
+  });
 
   // Check for second apron TPE restrictions (only for trade validator pattern)
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)

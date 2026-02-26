@@ -157,7 +157,6 @@ tradeMachine/
   TradeEditor.jsx
   TradeExceptionDashboard.jsx
   TradeExceptionManager.jsx
-  TradeExceptionModal.jsx
   TradeExportCapture.jsx
   TradeLegalChecker.jsx
   TradePlayerRow.jsx
@@ -372,5 +371,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-26T10:37:16.884Z*
+*Generated on: 2026-02-26T12:22:53.564Z*
 *Auto-updated by: npm run docs*

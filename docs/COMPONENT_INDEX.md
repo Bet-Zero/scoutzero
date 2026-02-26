@@ -69,7 +69,6 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/TradeEditor.jsx
 - tradeMachine/TradeExceptionDashboard.jsx
 - tradeMachine/TradeExceptionManager.jsx
-- tradeMachine/TradeExceptionModal.jsx
 - tradeMachine/TradeExportCapture.jsx
 - tradeMachine/TradeLegalChecker.jsx
 - tradeMachine/TradePlayerRow.jsx
@@ -356,4 +355,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-20T12:42:26.099Z*
+*Generated on: 2026-02-26T12:22:53.605Z*

@@ -1187,6 +1187,38 @@ function computeTradeResult({
       const incomingPlayers = validationTeams[idx].receives || [];
       const tpeUsageMap = new Map(); // tpeId -> consumed amount
       const tpeConsumptionWarnings = []; // Phase 47C: Track missing matchIncoming warnings
+      const tpeConsumptionErrors = []; // Fail-closed: hard errors that block mutation
+
+      // FAIL-CLOSED PRE-CHECK: Any player with absorptionMode='TPE' MUST have tpeId + matchIncoming
+      incomingPlayers.forEach((player) => {
+        if (player.absorptionMode === 'TPE') {
+          const playerLabel = player.name || player.player_id || 'unknown';
+          if (!player.tpeId) {
+            tpeConsumptionErrors.push({
+              playerId: player.player_id || player.name,
+              reason: `Player ${playerLabel} has absorptionMode='TPE' but no tpeId — apply-time blocked`,
+            });
+          }
+          if (player.tpeId && (player.matchIncoming === undefined || player.matchIncoming === null)) {
+            tpeConsumptionErrors.push({
+              playerId: player.player_id || player.name,
+              tpeId: player.tpeId,
+              reason: `Player ${playerLabel} has absorptionMode='TPE' with tpeId but missing matchIncoming — apply-time blocked`,
+            });
+          }
+        }
+      });
+
+      // If fail-closed errors exist, block this team's mutation
+      if (tpeConsumptionErrors.length > 0) {
+        teamResult._tpeConsumptionErrors = tpeConsumptionErrors;
+        teamResult._blocked = true;
+        console.error(
+          '[mutationPipeline] TPE fail-closed: blocking mutation due to invalid TPE state:',
+          tpeConsumptionErrors
+        );
+        // Skip all TPE processing — do not partially consume
+      } else {
 
       incomingPlayers.forEach((player) => {
         // Phase 47C: Only process TPE consumption if tpeId is set
@@ -1254,6 +1286,7 @@ function computeTradeResult({
           isUsed: newRemaining === 0,
         };
       });
+      } // end fail-closed else block
     }
 
     // 2. Apply TPE creation from validator (SSOT)
@@ -1461,6 +1494,17 @@ function computeTradeResult({
         });
       }
     }
+  }
+
+  // FAIL-CLOSED: If any team had TPE consumption errors, block the entire mutation
+  const blockedTeams = (validation.teamResults || []).filter((tr) => tr?._blocked);
+  if (blockedTeams.length > 0) {
+    const allErrors = blockedTeams.flatMap((tr) => tr._tpeConsumptionErrors || []);
+    return {
+      success: false,
+      error: `TPE fail-closed: ${allErrors.map((e) => e.reason).join('; ')}`,
+      _tpeConsumptionErrors: allErrors,
+    };
   }
 
   // Phase 56: Return pure compute result - validation context is passed through, not created here

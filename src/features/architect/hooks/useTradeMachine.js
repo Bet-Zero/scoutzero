@@ -1062,35 +1062,6 @@ export const useTradeMachine = (
     );
   }, []);
 
-  const applyTradeException = useCallback((teamIndex, player, tpe) => {
-    setTeams((prev) =>
-      prev.map((t, i) => {
-        if (i !== teamIndex) return t;
-
-        return {
-          ...t,
-          sends: [
-            ...t.sends,
-            {
-              ...player,
-              acquiredViaTPE: true,
-              tpeId: tpe.id,
-              tradeTo: t.team.id,
-            },
-          ],
-          team: {
-            ...t.team,
-            // Phase 65: Apply TPE usage to runtime tradeExceptions
-            // This is internal state mutation, not persistence
-            tradeExceptions: getTeamTpeList(t.team).map((te) =>
-              te.id === tpe.id ? { ...te, isUsed: true } : te
-            ),
-          },
-        };
-      })
-    );
-  }, []);
-
   const applyEntitlementOverrideUpdate = useCallback(
     (entitlementId, document) => {
       if (!entitlementId || !document) return;
@@ -1234,7 +1205,6 @@ export const useTradeMachine = (
     exportCurrentTrade,
     undoPlayerTrade,
     resetTrade,
-    applyTradeException,
     yearKey,
     incomingAssets,
     salaryOut,

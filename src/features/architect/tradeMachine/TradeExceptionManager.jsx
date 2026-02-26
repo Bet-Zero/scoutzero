@@ -16,7 +16,6 @@ function isTpeExpired(tpe) {
 const TradeExceptionManager = ({
   exceptions = [],
   teamId,
-  onApplyException,
 }) => {
   const formatDate = (dateString) => {
     if (!dateString) return 'No expiration';
@@ -47,8 +46,7 @@ const TradeExceptionManager = ({
           {activeExceptions.map((tpe) => (
             <div
               key={tpe.id}
-              className="flex justify-between items-center p-2 bg-[#222] rounded border border-white/5 hover:border-white/20 transition-colors cursor-pointer"
-              onClick={() => onApplyException(tpe)}
+              className="flex justify-between items-center p-2 bg-[#222] rounded border border-white/5"
             >
               <div>
                 <div className="font-medium text-sm">
