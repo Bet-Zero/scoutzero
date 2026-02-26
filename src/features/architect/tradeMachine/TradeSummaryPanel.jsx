@@ -12,7 +12,10 @@ import { AlertTriangle } from 'lucide-react';
 import { getTeamColors } from '@/shared/utils/formatting';
 import TeamLogo from '@/shared/components/TeamLogo';
 // CANONICAL SELECTOR: Single source of truth for salary matching values
-import { getOfficialSalaryMatchingSnapshot } from '@/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot';
+import {
+  getOfficialSalaryMatchingSnapshot,
+  getDisplayAllowableIncoming,
+} from '@/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot';
 // Phase 11.2: Entitlement warnings helper
 import {
   computeEntitlementWarnings,
@@ -170,9 +173,9 @@ function TradeSummaryPanel({
                     const isHardCapped = officialSnapshot.isHardCapped;
                     const skipReason = officialSnapshot.skipReason;
 
-                    // Use effective allowable or fall back to salary match ceiling
+                    // Use the same canonical display value as Team Card.
                     const allowedIncoming =
-                      effectiveAllowed ?? salaryMatchCeiling;
+                      getDisplayAllowableIncoming(officialSnapshot);
 
                     // Tri-state display: only show allowed as number when present (not null)
                     const showAllowed = allowedIncoming != null;

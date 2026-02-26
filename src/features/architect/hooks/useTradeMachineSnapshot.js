@@ -68,6 +68,11 @@ export function getTeamSnapshot(teamId, result) {
     // These are the "golden numbers" that affect trade legality
     // CANONICAL: All salary matching values from official selector
     allowableIncoming: officialSnapshot.allowableIncoming, // null means "not applicable"
+    effectiveAllowableIncoming: officialSnapshot.effectiveAllowableIncoming,
+    hardCapIncomingCeiling: officialSnapshot.hardCapIncomingCeiling,
+    // Canonical UI display value: hard-cap-aware when effective ceiling exists
+    displayAllowableIncoming: officialSnapshot.displayAllowableIncoming,
+    isHardCapped: officialSnapshot.isHardCapped,
 
     // Explicit applicability tracking (Phase: Allowable Incoming N/A Consistency)
     salaryMatchingApplicable:

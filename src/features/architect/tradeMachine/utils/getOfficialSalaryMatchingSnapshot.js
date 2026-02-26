@@ -50,6 +50,7 @@
  *     // TM_FIX_A2_E1: Hard cap ceiling fields
  *     hardCapIncomingCeiling: number | null,     // ceiling based on hard cap room
  *     effectiveAllowableIncoming: number | null, // min(allowable, hardCapCeiling)
+ *     displayAllowableIncoming: number | null,   // value UI should display (effective first)
  *     hardCapCeilingDetails: Object | null,      // {apron, apronLabel, limiter}
  *     isHardCapped: boolean                      // whether team is hard-capped
  *   }
@@ -69,6 +70,7 @@ export function getOfficialSalaryMatchingSnapshot(teamResult) {
       // TM_FIX_A2_E1: Hard cap ceiling fields
       hardCapIncomingCeiling: null,
       effectiveAllowableIncoming: null,
+      displayAllowableIncoming: null,
       hardCapCeilingDetails: null,
       isHardCapped: false,
     };
@@ -77,7 +79,7 @@ export function getOfficialSalaryMatchingSnapshot(teamResult) {
   // Extract salary matching rule evaluation from canonical path
   const salaryMatching = teamResult.rules?.salaryMatching;
 
-  return {
+  const snapshot = {
     hasValidator: true,
 
     // LIMIT: teamResult.rules.salaryMatching.allowableIncoming
@@ -110,12 +112,43 @@ export function getOfficialSalaryMatchingSnapshot(teamResult) {
     effectiveAllowableIncoming:
       salaryMatching?.effectiveAllowableIncoming ?? null,
 
+    // Display value for all UI surfaces:
+    // Use effectiveAllowableIncoming when available (hard-cap-aware), otherwise allowableIncoming.
+    displayAllowableIncoming: null,
+
     // Hard cap ceiling details: {apron, apronLabel, limiter}
     hardCapCeilingDetails: salaryMatching?.details?.hardCapCeiling ?? null,
 
     // Whether team is hard-capped (for UI display logic)
     isHardCapped: !!salaryMatching?.details?.hardCapStatus?.isHardCapped,
   };
+
+  snapshot.displayAllowableIncoming = getDisplayAllowableIncoming(snapshot);
+
+  return snapshot;
+}
+
+/**
+ * Returns the canonical "Allowable Incoming" value that UI should display.
+ * For hard-capped teams, this is effectiveAllowableIncoming.
+ * Otherwise it is allowableIncoming.
+ *
+ * @param {Object|null} snapshot - Result from getOfficialSalaryMatchingSnapshot()
+ * @returns {number | null}
+ */
+export function getDisplayAllowableIncoming(snapshot) {
+  if (!snapshot || !snapshot.hasValidator) {
+    return null;
+  }
+
+  const effective = snapshot.effectiveAllowableIncoming;
+  const allowable = snapshot.allowableIncoming;
+
+  if (effective === null || effective === undefined) {
+    return allowable ?? null;
+  }
+
+  return effective;
 }
 
 /**

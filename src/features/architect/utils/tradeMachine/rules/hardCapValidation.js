@@ -28,7 +28,11 @@ export function validateHardCap(team, context = {}) {
 
   // Extract data from multiple possible team formats
   const teamData = team.team || team;
-  const teamTotalSalary = teamData?.totalSalary || 0;
+  const teamTotalSalary =
+    team.teamTotalSalary ??
+    teamData?.teamTotalSalary ??
+    teamData?.totalSalary ??
+    0;
 
   // Calculate incoming and outgoing salary
   const incomingSalary = (team.receives || team.incomingPlayers || []).reduce(
@@ -96,8 +100,14 @@ export function validateHardCap(team, context = {}) {
   if (isHardCappedSecondApron) {
     hardCapType = 'SecondApron';
     if (projectedSalary > secondApron) {
+      const hardCapRoom = Math.max(0, secondApron - teamTotalSalary);
+      const hardCapIncomingCeiling = salaryOut + hardCapRoom;
+      const incomingOverage = Math.max(0, salaryIn - hardCapIncomingCeiling);
+
       violations.push(
-        `2nd Apron hard cap violation: Trade would exceed second apron hard-cap by ${formatCurrency(projectedSalary - secondApron)}`
+        incomingOverage > 0
+          ? `2nd Apron hard cap violation: Incoming salary exceeds hard-cap incoming ceiling by ${formatCurrency(incomingOverage)} (incoming ${formatCurrency(salaryIn)} vs ceiling ${formatCurrency(hardCapIncomingCeiling)}).`
+          : `2nd Apron hard cap violation: Trade would exceed second apron hard-cap by ${formatCurrency(projectedSalary - secondApron)}`
       );
     }
   }
@@ -124,8 +134,14 @@ export function validateHardCap(team, context = {}) {
   else if (isHardCappedFirstApron) {
     hardCapType = 'FirstApron';
     if (projectedSalary > actualFirstApron) {
+      const hardCapRoom = Math.max(0, actualFirstApron - teamTotalSalary);
+      const hardCapIncomingCeiling = salaryOut + hardCapRoom;
+      const incomingOverage = Math.max(0, salaryIn - hardCapIncomingCeiling);
+
       violations.push(
-        `1st Apron hard cap violation: Trade would exceed first apron hard-cap by ${formatCurrency(projectedSalary - actualFirstApron)}`
+        incomingOverage > 0
+          ? `1st Apron hard cap violation: Incoming salary exceeds hard-cap incoming ceiling by ${formatCurrency(incomingOverage)} (incoming ${formatCurrency(salaryIn)} vs ceiling ${formatCurrency(hardCapIncomingCeiling)}).`
+          : `1st Apron hard cap violation: Trade would exceed first apron hard-cap by ${formatCurrency(projectedSalary - actualFirstApron)}`
       );
     }
   }

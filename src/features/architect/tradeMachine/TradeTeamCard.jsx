@@ -249,7 +249,7 @@ const TradeTeamCard = ({
   // Phase 1: Use snapshot.allowableIncoming as source of truth (may be null when not applicable)
   // Fallback to local ONLY when no validator result (with Estimate indicator)
   const allowableIncomingNoTPE = hasValidatorResult
-    ? snapshot.allowableIncoming // May be null when salary matching not applicable
+    ? snapshot.displayAllowableIncoming // Hard-cap-aware value when available
     : (localSalaryMatchingResult?.allowableIncoming ?? 0);
 
   // Phase: Allowable Incoming N/A Consistency - use explicit applicability from snapshot
@@ -267,6 +267,12 @@ const TradeTeamCard = ({
   const salaryMatchingFormula = hasValidatorResult
     ? snapshot.salaryMatchingFormula
     : localSalaryMatchingResult?.formulaUsed || '';
+  const hardCapIsLimiter =
+    hasValidatorResult &&
+    snapshot.isHardCapped &&
+    snapshot.effectiveAllowableIncoming != null &&
+    snapshot.allowableIncoming != null &&
+    snapshot.effectiveAllowableIncoming < snapshot.allowableIncoming;
 
   // DEV-ONLY: Allowable incoming divergence check (Phase 1.8)
   // Only check when both values are numbers (skip when not applicable)
@@ -645,6 +651,14 @@ const TradeTeamCard = ({
                     ({salaryMatchingRuleLabel})
                   </span>
                 )}
+              {!isValidating && hardCapIsLimiter && (
+                <span
+                  className="ml-1 text-yellow-400 text-[10px]"
+                  title="Hard cap ceiling is the active allowable incoming limiter"
+                >
+                  (Hard Cap Limited)
+                </span>
+              )}
             </div>
             {teamTradeExceptions.length > 0 && (
               <div className="flex gap-2 items-center">

@@ -18,6 +18,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   getOfficialSalaryMatchingSnapshot,
+  getDisplayAllowableIncoming,
   computeRemainingRoom,
   getOfficialSnapshotByTeamId,
   getOfficialSnapshotByIndex,
@@ -105,6 +106,7 @@ describe('Official Salary Matching Snapshot - Canonical Selector', () => {
         // TM_FIX_A2_E1: Hard cap ceiling fields
         hardCapIncomingCeiling: null,
         effectiveAllowableIncoming: null,
+        displayAllowableIncoming: null,
         hardCapCeilingDetails: null,
         isHardCapped: false,
       });
@@ -210,6 +212,46 @@ describe('Official Salary Matching Snapshot - Canonical Selector', () => {
       const snapshot = getOfficialSalaryMatchingSnapshot(teamResult);
 
       expect(snapshot.skipReason).toBe('HARD_CAP_SKIP');
+    });
+  });
+
+  describe('TASK 2.5: Display allowable incoming parity helper', () => {
+    it('uses effectiveAllowableIncoming when present', () => {
+      const snapshot = getOfficialSalaryMatchingSnapshot(
+        createDistinctiveTeamResult({
+          rules: {
+            salaryMatching: {
+              passed: true,
+              allowableIncoming: 17_500_000,
+              effectiveAllowableIncoming: 11_000_000,
+              hardCapIncomingCeiling: 11_000_000,
+              details: {
+                hardCapStatus: { isHardCapped: true },
+              },
+            },
+          },
+        })
+      );
+
+      expect(getDisplayAllowableIncoming(snapshot)).toBe(11_000_000);
+      expect(snapshot.displayAllowableIncoming).toBe(11_000_000);
+    });
+
+    it('falls back to allowableIncoming when effectiveAllowableIncoming is null', () => {
+      const snapshot = getOfficialSalaryMatchingSnapshot(
+        createDistinctiveTeamResult({
+          rules: {
+            salaryMatching: {
+              passed: true,
+              allowableIncoming: 17_500_000,
+              effectiveAllowableIncoming: null,
+            },
+          },
+        })
+      );
+
+      expect(getDisplayAllowableIncoming(snapshot)).toBe(17_500_000);
+      expect(snapshot.displayAllowableIncoming).toBe(17_500_000);
     });
   });
 

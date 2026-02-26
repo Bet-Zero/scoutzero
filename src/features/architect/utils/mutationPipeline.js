@@ -1145,13 +1145,17 @@ function computeTradeResult({
     const hasDirectedRouting = payload.teams.some((t) =>
       (t.sends || []).some(
         (s) =>
-          s.receivingTeamIndex !== undefined || s.receivingTeamId !== undefined
+          s.receivingTeamIndex !== undefined ||
+          s.receivingTeamId !== undefined ||
+          s.tradeTo !== undefined ||
+          s.toTeamId !== undefined ||
+          s.destTeamId !== undefined
       )
     );
     if (!hasDirectedRouting) {
       console.warn(
-        'Multi-team trade detected without directed routing (receivingTeamIndex/receivingTeamId). ' +
-          'All sends will be distributed to all other teams. For directed trades, specify receivingTeamIndex on each send.'
+        'Multi-team trade detected without directed routing (receivingTeamIndex/receivingTeamId/tradeTo/toTeamId/destTeamId). ' +
+          'Unrouted players are not broadcast in apply-time snapshot building.'
       );
     }
   }

@@ -571,15 +571,42 @@ export function useArchitectActions({
       // Persist to world if in world mode
       // Transform tradeData to mutation pipeline format
       // Note: Each team's teamId needs to be resolved to canonical teamCode
-      const teams = tradeData.map((t) => ({
-        teamCode: resolveTeamCode(t.teamId) || t.teamId,
+      const resolvedTeamCodes = tradeData.map(
+        (t) => resolveTeamCode(t.teamId) || t.teamId
+      );
+      const teamIndexByCode = new Map<string, number>();
+      resolvedTeamCodes.forEach((code, index) => {
+        teamIndexByCode.set(code, index);
+      });
+
+      const teams = tradeData.map((t, teamIndex) => ({
+        teamCode: resolvedTeamCodes[teamIndex],
         sends: (
           (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
-        ).map((p) => ({
-          ...p,
-          // Explicitly map ID for pipeline consumption
-          playerId: p.id || p.player_id,
-        })),
+        ).map((p) => {
+          const rawDestination =
+            (p as Record<string, unknown>).receivingTeamId ||
+            (p as Record<string, unknown>).tradeTo ||
+            (p as Record<string, unknown>).toTeamId ||
+            (p as Record<string, unknown>).destTeamId;
+          const destinationTeamCode = rawDestination
+            ? resolveTeamCode(String(rawDestination)) || String(rawDestination)
+            : undefined;
+          const receivingTeamIndex =
+            destinationTeamCode != null
+              ? teamIndexByCode.get(destinationTeamCode)
+              : undefined;
+
+          return {
+            ...p,
+            // Explicitly map ID for pipeline consumption
+            playerId: p.id || p.player_id,
+            // Normalize routing fields so apply-time pipeline can consume either path.
+            tradeTo: destinationTeamCode,
+            receivingTeamId: destinationTeamCode,
+            receivingTeamIndex,
+          };
+        }),
         picksOut: [],
         // TM-PICKS-E1: Include outgoing entitlements in persistence payload
         outgoingEntitlements: t.outgoingEntitlements || [],

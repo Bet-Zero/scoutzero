@@ -123,6 +123,7 @@ export function buildPostTradeTeamsSnapshot({
   const payloadTeamCodes = payload.teams
     .map((t) => normalizeTeamCodeLike(t.team?.id || t.teamCode || t.teamId))
     .filter(Boolean);
+  const activeTeamCount = payloadTeamCodes.length;
 
   for (let i = 0; i < payload.teams.length; i++) {
     const teamTrade = payload.teams[i];
@@ -142,20 +143,41 @@ export function buildPostTradeTeamsSnapshot({
     payload.teams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
         (otherTeamTrade.sends || []).forEach((player) => {
-          const targetIndex = player.receivingTeamIndex;
-          const targetId = player.receivingTeamId;
+          const parsedTargetIndex = Number(player.receivingTeamIndex);
+          const normalizedTargetId = normalizeTeamCodeLike(
+            player.receivingTeamId ||
+              player.tradeTo ||
+              player.toTeamId ||
+              player.destTeamId
+          );
+          const hasIndexRoute = Number.isInteger(parsedTargetIndex);
 
-          if (targetIndex !== undefined) {
-            if (targetIndex === i) {
-              incomingPlayers.push(player);
+          let resolvedTarget = normalizedTargetId;
+          if (hasIndexRoute) {
+            const indexedTarget = payloadTeamCodes[parsedTargetIndex];
+            if (indexedTarget) {
+              resolvedTarget = indexedTarget;
             }
-          } else if (targetId !== undefined) {
-            if (targetId === teamCode || targetId === team?.id) {
-              incomingPlayers.push(player);
-            }
-          } else {
-            incomingPlayers.push(player);
           }
+
+          if (resolvedTarget) {
+            if (resolvedTarget === thisTeamCode) {
+              incomingPlayers.push(player);
+            }
+            return;
+          }
+
+          // 2-team trade: preserve broadcast fallback for backward compatibility.
+          if (activeTeamCount <= 2) {
+            incomingPlayers.push(player);
+            return;
+          }
+
+          // 3+ teams: no broadcast fallback for unrouted players.
+          // Validation should block this case, but keep apply-time behavior deterministic.
+          console.warn(
+            `[tradeContext] Player "${player.name || player.player_id || player.id}" has no destination in ${activeTeamCount}-team trade - skipping`
+          );
         });
       }
     });
@@ -214,11 +236,6 @@ export function buildPostTradeTeamsSnapshot({
     )
       .map((e) => e.entitlementId || e.id)
       .filter(Boolean);
-
-    // Phase 17: Count active teams for routing mode
-    const activeTeamCount = payload.teams.filter(
-      (t) => t.team || t.teamCode || t.teamId
-    ).length;
 
     const incomingEntitlementIds = [];
     payload.teams.forEach((otherTeamTrade, otherIndex) => {
