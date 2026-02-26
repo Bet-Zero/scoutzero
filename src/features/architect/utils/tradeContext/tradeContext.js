@@ -125,6 +125,49 @@ export function buildPostTradeTeamsSnapshot({
     .filter(Boolean);
   const activeTeamCount = payloadTeamCodes.length;
 
+  // Fail-closed invariant for 3+ team apply:
+  // every outgoing player must resolve to a valid destination participant.
+  if (activeTeamCount >= 3) {
+    payload.teams.forEach((teamTrade, senderIndex) => {
+      const senderTeamCode = payloadTeamCodes[senderIndex];
+      (teamTrade.sends || []).forEach((player, playerIndex) => {
+        const parsedTargetIndex = Number(player.receivingTeamIndex);
+        const hasIndexRoute = Number.isInteger(parsedTargetIndex);
+        const normalizedTargetId = normalizeTeamCodeLike(
+          player.receivingTeamId ||
+            player.tradeTo ||
+            player.toTeamId ||
+            player.destTeamId
+        );
+
+        let resolvedTarget = normalizedTargetId;
+        if (hasIndexRoute) {
+          resolvedTarget = payloadTeamCodes[parsedTargetIndex] || null;
+        }
+
+        const isValidTarget =
+          !!resolvedTarget &&
+          payloadTeamCodes.includes(resolvedTarget) &&
+          resolvedTarget !== senderTeamCode;
+
+        if (!isValidTarget) {
+          const playerLabel =
+            player.name ||
+            player.player_id ||
+            player.id ||
+            `send[${playerIndex}]`;
+          const destinationDetail = resolvedTarget
+            ? `invalid destination "${resolvedTarget}"`
+            : 'missing destination';
+
+          throw new Error(
+            `[TRADE_APPLY_ROUTING_ERROR] 3+ team apply requires explicit valid destination for outgoing player "${playerLabel}" from ${senderTeamCode || `team-${senderIndex}`}: ${destinationDetail}`
+          );
+        }
+      });
+    });
+  }
+
   for (let i = 0; i < payload.teams.length; i++) {
     const teamTrade = payload.teams[i];
     const { teamCode, team } = currentState.teams[i];
@@ -174,9 +217,9 @@ export function buildPostTradeTeamsSnapshot({
           }
 
           // 3+ teams: no broadcast fallback for unrouted players.
-          // Validation should block this case, but keep apply-time behavior deterministic.
-          console.warn(
-            `[tradeContext] Player "${player.name || player.player_id || player.id}" has no destination in ${activeTeamCount}-team trade - skipping`
+          // This should be unreachable due to pre-validation above.
+          throw new Error(
+            `[TRADE_APPLY_ROUTING_ERROR] 3+ team apply missing destination for player "${player.name || player.player_id || player.id}"`
           );
         });
       }

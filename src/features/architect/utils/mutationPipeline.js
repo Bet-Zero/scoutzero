@@ -1155,7 +1155,7 @@ function computeTradeResult({
     if (!hasDirectedRouting) {
       console.warn(
         'Multi-team trade detected without directed routing (receivingTeamIndex/receivingTeamId/tradeTo/toTeamId/destTeamId). ' +
-          'Unrouted players are not broadcast in apply-time snapshot building.'
+          'Apply-time snapshot building will fail closed with TRADE_APPLY_ROUTING_ERROR.'
       );
     }
   }

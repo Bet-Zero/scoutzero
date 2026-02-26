@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-02-25
+Last updated: 2026-02-26
 
 ## Trade Machine Overview
 
@@ -61,6 +61,12 @@ None.
 - In 2-team trades, missing player destination uses a **legacy backward-compatible fallback** behavior.
 - This fallback is **not** valid for 3+ team trades and must not be expanded to multi-team behavior.
 - New code and fixtures should still supply `toTeamId` for clarity even in 2-team cases.
+
+#### C.1) Apply-time fail-closed routing invariant (3+ teams)
+
+- Apply-time snapshot building now enforces the same 3+ destination requirement as validator routing.
+- If any outgoing player in a 3+ team trade has missing/invalid destination routing, apply fails loudly with `TRADE_APPLY_ROUTING_ERROR`.
+- No partial apply writes are committed when this invariant fails.
 
 #### D) Second apron incoming salary restriction (route-aware)
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { buildPostTradeTeamsSnapshot } from '@/features/architect/utils/mutationPipeline';
 
 const SEASON_ID = '2025-26';
@@ -48,16 +48,6 @@ function makeTeam(teamCode: string, players: TradePlayer[]) {
 }
 
 describe('Trade Apply Routing Guardrails', () => {
-  let warnSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    warnSpy.mockRestore();
-  });
-
   it('routes 3-team incoming players using tradeTo in apply snapshot', () => {
     const aOut = makePlayer('a_out', 10_000_000, { tradeTo: 'TMB' });
     const bOut = makePlayer('b_out', 11_000_000, { tradeTo: 'TMC' });
@@ -106,25 +96,51 @@ describe('Trade Apply Routing Guardrails', () => {
     expect(postC?.roster).not.toContain('a_out');
   });
 
-  it('does not broadcast unrouted players in 3-team apply snapshot', () => {
+  it('fails closed for 3-team apply when any outgoing player lacks destination', () => {
     const unrouted = makePlayer('a_out', 10_000_000);
     const teamA = makeTeam('TMA', [unrouted]);
     const teamB = makeTeam('TMB', [makePlayer('b_keep', 4_000_000)]);
     const teamC = makeTeam('TMC', [makePlayer('c_keep', 4_000_000)]);
 
+    expect(() =>
+      buildPostTradeTeamsSnapshot({
+        payload: {
+          teams: [
+            { teamCode: 'TMA', sends: [unrouted], entitlementsOut: [] },
+            { teamCode: 'TMB', sends: [], entitlementsOut: [] },
+            { teamCode: 'TMC', sends: [], entitlementsOut: [] },
+          ],
+        },
+        currentState: {
+          teams: [
+            { teamCode: 'TMA', team: teamA },
+            { teamCode: 'TMB', team: teamB },
+            { teamCode: 'TMC', team: teamC },
+          ],
+        },
+        seasonId: SEASON_ID,
+        timestamp: Date.now(),
+      })
+    ).toThrow(/TRADE_APPLY_ROUTING_ERROR/);
+  });
+
+  it('preserves 2-team fallback behavior when outgoing player has no destination', () => {
+    const aOut = makePlayer('a_out', 10_000_000);
+    const bOut = makePlayer('b_out', 9_000_000);
+    const teamA = makeTeam('TMA', [aOut, makePlayer('a_keep', 3_000_000)]);
+    const teamB = makeTeam('TMB', [bOut, makePlayer('b_keep', 3_000_000)]);
+
     const snapshot = buildPostTradeTeamsSnapshot({
       payload: {
         teams: [
-          { teamCode: 'TMA', sends: [unrouted], entitlementsOut: [] },
-          { teamCode: 'TMB', sends: [], entitlementsOut: [] },
-          { teamCode: 'TMC', sends: [], entitlementsOut: [] },
+          { teamCode: 'TMA', sends: [aOut], entitlementsOut: [] },
+          { teamCode: 'TMB', sends: [bOut], entitlementsOut: [] },
         ],
       },
       currentState: {
         teams: [
           { teamCode: 'TMA', team: teamA },
           { teamCode: 'TMB', team: teamB },
-          { teamCode: 'TMC', team: teamC },
         ],
       },
       seasonId: SEASON_ID,
@@ -133,11 +149,13 @@ describe('Trade Apply Routing Guardrails', () => {
 
     const postA = snapshot.teamUpdates.find((t) => t.teamCode === 'TMA')?.team;
     const postB = snapshot.teamUpdates.find((t) => t.teamCode === 'TMB')?.team;
-    const postC = snapshot.teamUpdates.find((t) => t.teamCode === 'TMC')?.team;
 
+    expect(postA?.roster).toContain('b_out');
+    expect(postA?.roster).toContain('a_keep');
     expect(postA?.roster).not.toContain('a_out');
-    expect(postB?.roster).not.toContain('a_out');
-    expect(postC?.roster).not.toContain('a_out');
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('has no destination'));
+
+    expect(postB?.roster).toContain('a_out');
+    expect(postB?.roster).toContain('b_keep');
+    expect(postB?.roster).not.toContain('b_out');
   });
 });
