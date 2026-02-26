@@ -340,6 +340,8 @@ utils/
       validateStepien.js
       validateStepien.ts
       validateTradeExceptions.js
+    signAndTrade/
+      signAndTradeEligibility.ts
     utils/
       buildEntitlementRoutingMap.ts
       capSettingsProvider.js
@@ -370,5 +372,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-25T08:12:17.652Z*
+*Generated on: 2026-02-26T10:37:16.884Z*
 *Auto-updated by: npm run docs*

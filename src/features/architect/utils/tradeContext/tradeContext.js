@@ -35,6 +35,12 @@
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { assertPostTradeSnapshot } from './assertions';
+import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
+import {
+  isSignAndTradeEligible,
+  resolveSignAndTradeContractPayload,
+  validateSignAndTradeContractPayload,
+} from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
 // Phase 72: SSOT for team cap totals computation
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
@@ -124,6 +130,87 @@ export function buildPostTradeTeamsSnapshot({
     .map((t) => normalizeTeamCodeLike(t.team?.id || t.teamCode || t.teamId))
     .filter(Boolean);
   const activeTeamCount = payloadTeamCodes.length;
+  const currentEndYear = toEndYear(seasonId);
+  const enforceSatPreflight =
+    payload?.tradeCtx?.source === 'tradeMachine' ||
+    payload?.tradeCtx?.enforceSignAndTradePreflight === true;
+
+  const currentTeamByCode = new Map(
+    (currentState.teams || []).map(({ teamCode, team }) => [
+      normalizeTeamCodeLike(teamCode),
+      team,
+    ])
+  );
+
+  // Fail-closed invariant for Trade Machine executeTrade sign-and-trade payloads.
+  // If signAndTrade is set, contract payload + eligibility + destination must be valid.
+  if (enforceSatPreflight) {
+    payload.teams.forEach((teamTrade, senderIndex) => {
+      const senderTeamCode = payloadTeamCodes[senderIndex];
+      const senderTeamState =
+        currentTeamByCode.get(senderTeamCode) || currentState.teams[senderIndex]?.team;
+      const senderCapHolds = senderTeamState?.capHolds || [];
+
+      (teamTrade.sends || []).forEach((player, playerIndex) => {
+        if (player.signAndTrade !== true) return;
+
+        const destinationTeamId = normalizeTeamCodeLike(
+          player.receivingTeamId ||
+            player.tradeTo ||
+            player.toTeamId ||
+            player.destTeamId
+        );
+        const playerLabel =
+          player.name || player.player_id || player.id || `send[${playerIndex}]`;
+
+        if (
+          !destinationTeamId ||
+          !payloadTeamCodes.includes(destinationTeamId) ||
+          destinationTeamId === senderTeamCode
+        ) {
+          throw new Error(
+            `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" from ${senderTeamCode} must have a valid destination team`
+          );
+        }
+
+        const eligibility = isSignAndTradeEligible({
+          player,
+          yearKey: currentEndYear,
+          sourceTeamId: senderTeamCode,
+          sourceTeamCapHolds: senderCapHolds,
+        });
+
+        if (!eligibility.eligible) {
+          throw new Error(
+            `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" is ineligible (${eligibility.reasonCode})`
+          );
+        }
+
+        if (!player.signAndTradeContract) {
+          throw new Error(
+            `[SIGN_AND_TRADE_APPLY_ERROR] Outgoing sign-and-trade player "${playerLabel}" is missing signAndTradeContract payload`
+          );
+        }
+
+        const contract = resolveSignAndTradeContractPayload(
+          player,
+          currentEndYear,
+          { allowPlayerContractFallback: false }
+        );
+        const contractValidation = validateSignAndTradeContractPayload(
+          contract,
+          currentEndYear,
+          { requireActiveYearRow: true }
+        );
+
+        if (!contractValidation.valid) {
+          throw new Error(
+            `[SIGN_AND_TRADE_APPLY_ERROR] Invalid sign-and-trade contract for "${playerLabel}": ${contractValidation.reasons.join('; ')}`
+          );
+        }
+      });
+    });
+  }
 
   // Fail-closed invariant for 3+ team apply:
   // every outgoing player must resolve to a valid destination participant.
@@ -180,6 +267,15 @@ export function buildPostTradeTeamsSnapshot({
     const outgoingPlayerIds = (teamTrade.sends || []).map(
       (p) => p.player_id || p.id || p.playerId
     );
+    const outgoingSignAndTradePlayers = (teamTrade.sends || []).filter(
+      (p) => p.signAndTrade === true
+    );
+    const outgoingSignAndTradeIds = outgoingSignAndTradePlayers
+      .map((p) => p.player_id || p.id || p.playerId)
+      .filter(Boolean);
+    const outgoingSignAndTradeNames = outgoingSignAndTradePlayers
+      .map((p) => p.name || p.displayName)
+      .filter(Boolean);
 
     // Collect incoming players from other teams (with directed routing support)
     const incomingPlayers = [];
@@ -205,7 +301,39 @@ export function buildPostTradeTeamsSnapshot({
 
           if (resolvedTarget) {
             if (resolvedTarget === thisTeamCode) {
-              incomingPlayers.push(player);
+              if (player.signAndTrade === true) {
+                const satContract = resolveSignAndTradeContractPayload(
+                  player,
+                  currentEndYear,
+                  { allowPlayerContractFallback: false }
+                );
+                const normalizedSatContract =
+                  normalizeContractForWorld({
+                    ...(satContract || {}),
+                    contractType: 'Sign & Trade',
+                    signAndTrade: true,
+                    signingDate: timestampISO,
+                    signingTeam:
+                      payloadTeamCodes[otherIndex] ||
+                      normalizeTeamCodeLike(
+                        currentState.teams[otherIndex]?.teamCode
+                      ),
+                  }) || null;
+
+                incomingPlayers.push({
+                  ...player,
+                  signAndTrade: true,
+                  contractType: 'Sign & Trade',
+                  contract: normalizedSatContract,
+                  signedDate: timestampISO,
+                  isNewlySignedFA: true,
+                  originTeamId:
+                    payloadTeamCodes[otherIndex] ||
+                    normalizeTeamCodeLike(currentState.teams[otherIndex]?.teamCode),
+                });
+              } else {
+                incomingPlayers.push(player);
+              }
             }
             return;
           }
@@ -247,6 +375,29 @@ export function buildPostTradeTeamsSnapshot({
         teamName: team.teamName,
       })),
     ];
+
+    // Sign-and-trade to this team triggers first-apron hard cap metadata.
+    const receivesSignAndTrade = incomingPlayers.some(
+      (p) => p.signAndTrade === true
+    );
+
+    // Signing a cap-hold player via S&T removes that hold from the source team.
+    if (
+      outgoingSignAndTradeIds.length > 0 &&
+      Array.isArray(updatedTeam.capHolds)
+    ) {
+      updatedTeam.capHolds = updatedTeam.capHolds.filter((hold) => {
+        const holdPlayerId = hold.playerId || hold.player_id || hold.id;
+        if (holdPlayerId && outgoingSignAndTradeIds.includes(holdPlayerId)) {
+          return false;
+        }
+        const holdName = hold.playerName || hold.name;
+        if (holdName && outgoingSignAndTradeNames.includes(holdName)) {
+          return false;
+        }
+        return true;
+      });
+    }
 
     // Update draft picks if any
     const outgoingPicks = teamTrade.picksOut || [];
@@ -350,6 +501,25 @@ export function buildPostTradeTeamsSnapshot({
 
     // Recalculate totals (Phase 72: Using SSOT)
     updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
+
+    if (receivesSignAndTrade) {
+      const existingLevel =
+        updatedTeam.totals?.hardCapLevel ||
+        (updatedTeam.hardCapped === 2 ? 'secondApron' : null);
+      const hardCapLevel =
+        existingLevel === 'secondApron' ? 'secondApron' : 'firstApron';
+
+      updatedTeam.hardCapped = hardCapLevel === 'secondApron' ? 2 : 1;
+      updatedTeam.hardCapLevel = hardCapLevel;
+      updatedTeam.hardCapReason = 'Triggered by receiving sign-and-trade player';
+      updatedTeam.hardCapTriggeredBy = 'signAndTrade';
+      updatedTeam.totals = {
+        ...(updatedTeam.totals || {}),
+        isHardCapped: true,
+        hardCapLevel,
+        hardCapDetail: 'Triggered by receiving sign-and-trade player',
+      };
+    }
 
     teamUpdates.push({ teamCode, team: updatedTeam });
   }

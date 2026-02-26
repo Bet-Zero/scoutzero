@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import { useContainerDimensions } from '@/shared/hooks/useContainerDimensions';
+import EditContractModal from '@/shared/components/EditContractModal';
 import TradeTeamCard from './TradeTeamCard';
 import TradePreviewModal from './TradePreviewModal';
 import ValidationStateHeader from './ValidationStateHeader';
@@ -16,6 +17,7 @@ import {
   removeCreate,
   applyVacuumTransfer,
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
+import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
 const TradeEditor = ({
   primaryTeam,
@@ -73,6 +75,7 @@ const TradeEditor = ({
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [tradeMachineSatModal, setTradeMachineSatModal] = useState(null);
   // P2: Track which team's calculator to show (0 = primary team by default)
   const [calculatorTeamIndex, setCalculatorTeamIndex] = useState(0);
   const [entitlementEditorState, setEntitlementEditorState] = useState(null);
@@ -291,6 +294,66 @@ const TradeEditor = ({
     toast.success('Session pick right deleted');
   };
 
+  const openTradeMachineSatModal = (teamIndex, player, defaultDestinationTeamId) => {
+    setTradeMachineSatModal({
+      teamIndex,
+      player,
+      defaultDestinationTeamId: defaultDestinationTeamId || null,
+    });
+  };
+
+  const closeTradeMachineSatModal = () => {
+    setTradeMachineSatModal(null);
+  };
+
+  const handleTradeMachineSignAndTrade = (
+    player,
+    contractPayload,
+    destinationTeamId
+  ) => {
+    if (!tradeMachineSatModal) return;
+
+    const sourceTeam =
+      teams[tradeMachineSatModal.teamIndex]?.team || null;
+    const sourceTeamId = sourceTeam?.id || sourceTeam?.teamCode || null;
+
+    if (!destinationTeamId) {
+      toast.error('Sign-and-trade requires a destination team.');
+      return;
+    }
+
+    if (sourceTeamId && destinationTeamId === sourceTeamId) {
+      toast.error('Destination team must be different from the source team.');
+      return;
+    }
+
+    const contractValidation = validateSignAndTradeContractPayload(
+      contractPayload,
+      yearKey,
+      { requireActiveYearRow: true }
+    );
+
+    if (!contractValidation.valid || !contractValidation.contract) {
+      toast.error(
+        contractValidation.reasons[0] ||
+          'Sign-and-trade contract details are incomplete.'
+      );
+      return;
+    }
+
+    setPlayerTrade(
+      tradeMachineSatModal.teamIndex,
+      player,
+      'signAndTrade',
+      destinationTeamId,
+      {
+        signAndTradeContract: contractValidation.contract,
+      }
+    );
+
+    closeTradeMachineSatModal();
+  };
+
   return (
     <div className="text-white space-y-6">
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
@@ -409,8 +472,15 @@ const TradeEditor = ({
                 yearKey={yearKey}
                 otherTeams={otherTeams}
                 playersMap={playersMap}
-                onSetPlayerTrade={(p, action, dest) =>
-                  setPlayerTrade(idx, p, action, dest)
+                onSetPlayerTrade={(p, action, dest, meta) =>
+                  setPlayerTrade(idx, p, action, dest, meta)
+                }
+                onRequestSignAndTrade={(player, defaultDestinationTeamId) =>
+                  openTradeMachineSatModal(
+                    idx,
+                    player,
+                    defaultDestinationTeamId
+                  )
                 }
                 // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
                 onUndoPlayerTrade={undoPlayerTrade}
@@ -418,6 +488,7 @@ const TradeEditor = ({
                 onRemove={() => removeTeam(idx)}
                 onApplyTradeException={handleApplyTradeException}
                 onEditContract={onEditContract}
+                worldId={worldId}
                 // P0-3: Pass validation in-flight state
                 isValidating={isValidating}
               />
@@ -545,6 +616,23 @@ const TradeEditor = ({
               initialDocument: document,
             });
           }}
+        />
+      )}
+
+      {tradeMachineSatModal && (
+        <EditContractModal
+          isOpen={!!tradeMachineSatModal}
+          onClose={closeTradeMachineSatModal}
+          player={tradeMachineSatModal.player}
+          initialAction="signAndTrade"
+          actionContext="freeAgent"
+          teamCapSheet={teams[tradeMachineSatModal.teamIndex]?.team || null}
+          currentYear={currentYear}
+          actionsOverride={['signAndTrade']}
+          actionLabelsOverride={{
+            signAndTrade: 'Sign & Trade (Trade Machine)',
+          }}
+          onSignAndTrade={handleTradeMachineSignAndTrade}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import TeamLogo from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
@@ -6,6 +6,7 @@ import { formatSalary } from '@/shared/utils/formatting';
 import { getYearsRemaining } from '@/shared/utils/contracts';
 import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
+import { isSignAndTradeEligible } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
 const TradePlayerRow = ({
   player,
@@ -21,6 +22,10 @@ const TradePlayerRow = ({
   setContractPlayer,
   tradeExceptions = [],
   signAndTradeActive = false,
+  sourceTeamId = null,
+  sourceTeamCapHolds = [],
+  worldId = null,
+  onRequestSignAndTrade = null,
   compact = false,
 }) => {
   const menuRef = useRef(null);
@@ -80,19 +85,30 @@ const TradePlayerRow = ({
         null;
       return faYear ? getYearsRemaining(faYear, year) : 0;
     })();
-  const salaryForYear = Array.isArray(primaryContract?.salariesByYear)
-    ? primaryContract.salariesByYear.find(
-        (s) =>
-          String(s.year) === String(year) ||
-          (typeof s.season === 'string' && s.season.includes(String(year)))
-      )
-    : null;
   const position =
     getPlayerPositionLabel(
       player.bio?.position ||
         player.position ||
         playersMap[player.name]?.bio?.position
     ) || '—';
+
+  const signAndTradeEligibility = useMemo(
+    () =>
+      isSignAndTradeEligible({
+        player,
+        yearKey,
+        sourceTeamId,
+        worldId,
+        sourceTeamCapHolds,
+      }),
+    [player, yearKey, sourceTeamId, worldId, sourceTeamCapHolds]
+  );
+
+  const canOfferSignAndTrade =
+    !incoming &&
+    !included &&
+    signAndTradeEligibility.eligible &&
+    (!signAndTradeActive || player.signAndTrade);
 
   // Enhanced TPE check
   const canUseTPE = tradeExceptions.some(
@@ -189,16 +205,10 @@ const TradePlayerRow = ({
                   </button>
                 ))}
               {!incoming &&
-                !included &&
-                !salaryForYear?.salary &&
-                (!signAndTradeActive || player.signAndTrade) && (
+                canOfferSignAndTrade && (
                   <button
                     onClick={() => {
-                      onSetPlayerTrade(
-                        player,
-                        'signAndTrade',
-                        otherTeams[0]?.id
-                      );
+                      onRequestSignAndTrade?.(player, otherTeams[0]?.id);
                       setOpenMenu(null);
                     }}
                     className="block w-full text-left px-3 py-1 hover:bg-[#333]"
@@ -393,12 +403,10 @@ const TradePlayerRow = ({
 
             {/* Sign-and-Trade Option */}
             {!incoming &&
-              !included &&
-              !salaryForYear?.salary &&
-              (!signAndTradeActive || player.signAndTrade) && (
+              canOfferSignAndTrade && (
                 <button
                   onClick={() => {
-                    onSetPlayerTrade(player, 'signAndTrade', otherTeams[0]?.id);
+                    onRequestSignAndTrade?.(player, otherTeams[0]?.id);
                     setOpenMenu(null);
                   }}
                   className="block w-full text-left px-3 py-1 hover:bg-[#333]"

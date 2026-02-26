@@ -86,3 +86,90 @@ None.
 - `npm run test:architect -- --reporter=dot`: PASS
 - `npm run build`: PASS
 - `npm run validate:project`: PASS
+
+## E1 — Sign-And-Trade (S&T) Fail-Closed Alignment
+
+### Canonical Eligibility Definition (SSOT)
+
+S&T eligibility is resolved through:
+
+- `src/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility.ts`
+
+Authoritative status outcomes:
+
+- `UNDER_CONTRACT`
+- `FREE_AGENT`
+- `CAP_HOLD`
+- `UNKNOWN`
+
+Eligibility rule:
+
+- S&T is legal only for `FREE_AGENT` or `CAP_HOLD`.
+- `UNDER_CONTRACT` and `UNKNOWN` fail closed.
+- Source-team alignment must be valid (team reference and/or active cap-hold evidence).
+
+### Required S&T Contract Payload Shape
+
+Any outgoing S&T asset must include canonical payload on the send entry:
+
+- `send.signAndTrade = true`
+- `send.signAndTradeContract.salariesByYear[]`
+- `send.signAndTradeContract.contractYears`
+- `send.signAndTradeContract.firstYearGuaranteed`
+- `send.tradeTo` (destination)
+
+Canonical row shape:
+
+- `{ season, salary, capHit, guaranteed }`
+
+### Trade Machine Capture Flow
+
+Trade Machine S&T is contract-capture first:
+
+- Clicking `Sign-and-Trade` opens contract modal.
+- User must provide destination + valid contract.
+- State is only written after modal confirm:
+  - `send.signAndTrade`
+  - `send.signAndTradeContract`
+  - `send.tradeTo`
+
+Cancellation writes nothing.
+
+### Validator / Apply Parity Guarantee
+
+Validator and apply-time use the same S&T helpers:
+
+- `isSignAndTradeEligible(...)`
+- `resolveSignAndTradeContractPayload(...)`
+- `validateSignAndTradeContractPayload(...)`
+
+Salary matching parity:
+
+- Matching values use S&T first-year salary from `signAndTradeContract.salariesByYear[]` when `signAndTrade` is active.
+
+### Apply-Time Atomic Semantics
+
+Execute-trade apply now enforces S&T preflight before writes:
+
+- missing/invalid destination -> block
+- ineligible player status -> block
+- missing/invalid S&T contract payload -> block
+
+On success, same atomic mutation path applies:
+
+- player move
+- S&T contract persistence on receiving player snapshot
+- source cap-hold removal for that player
+- receiver hard-cap trigger metadata
+
+No partial commit is allowed when S&T preflight fails.
+
+### Hard-Cap Consequence Representation
+
+Receiving an S&T player sets hard-cap fields on receiver snapshot:
+
+- `team.hardCapped = 1` (or preserves stronger pre-existing level)
+- `team.hardCapTriggered = 'SignAndTrade'`
+- `team.hardCapFirstApron.active = true`
+- `team.totals.isHardCapped = true`
+- `team.totals.hardCapLevel = 'firstApron'` (unless already second-apron constrained)

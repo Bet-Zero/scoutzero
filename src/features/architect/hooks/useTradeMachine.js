@@ -17,6 +17,7 @@ import {
   resolvePickRulesByIds,
   pickRulesMapToObject,
 } from '@/features/architect/utils/entitlements/pickRulesResolver';
+import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 // TM_DATAWARN_UI_E1: Data validation utilities
@@ -459,7 +460,7 @@ export const useTradeMachine = (
 
   // Core trade actions
   const setPlayerTrade = useCallback(
-    (index, player, action, destTeamId = null) => {
+    (index, player, action, destTeamId = null, actionMeta = null) => {
       setTeams((prev) => {
         const newTeams = [...prev];
         const team = newTeams[index];
@@ -473,29 +474,54 @@ export const useTradeMachine = (
             if (playerIndex === -1) {
               newTeams[index].sends = [
                 ...team.sends,
-                { ...player, tradeTo: destTeamId, signAndTrade: false },
+                {
+                  ...player,
+                  tradeTo: destTeamId,
+                  signAndTrade: false,
+                  signAndTradeContract: undefined,
+                },
               ];
             } else {
               newTeams[index].sends[playerIndex] = {
                 ...newTeams[index].sends[playerIndex],
                 tradeTo: destTeamId,
                 signAndTrade: false,
+                signAndTradeContract: undefined,
               };
             }
             break;
 
           case 'signAndTrade':
-            if (playerIndex === -1) {
-              newTeams[index].sends = [
-                ...team.sends,
-                { ...player, tradeTo: destTeamId, signAndTrade: true },
-              ];
-            } else {
-              newTeams[index].sends[playerIndex] = {
-                ...newTeams[index].sends[playerIndex],
+            {
+              const validation = validateSignAndTradeContractPayload(
+                actionMeta?.signAndTradeContract || null,
+                yearKey,
+                { requireActiveYearRow: true }
+              );
+
+              if (!destTeamId || !validation.valid || !validation.contract) {
+                return prev;
+              }
+
+              const signAndTradePatch = {
                 tradeTo: destTeamId,
                 signAndTrade: true,
+                signAndTradeContract: validation.contract,
+                contractYears: validation.contract.contractYears,
+                firstYearGuaranteed: validation.contract.firstYearGuaranteed,
               };
+
+              if (playerIndex === -1) {
+                newTeams[index].sends = [
+                  ...team.sends,
+                  { ...player, ...signAndTradePatch },
+                ];
+              } else {
+                newTeams[index].sends[playerIndex] = {
+                  ...newTeams[index].sends[playerIndex],
+                  ...signAndTradePatch,
+                };
+              }
             }
             break;
 
@@ -599,7 +625,7 @@ export const useTradeMachine = (
         return newTeams;
       });
     },
-    []
+    [yearKey]
   );
 
   // Phase 14.2: togglePick removed - draft assets are entitlements-only
@@ -931,6 +957,7 @@ export const useTradeMachine = (
       tradeCtx: {
         worldId,
         yearKey,
+        source: 'tradeMachine',
       },
     });
 

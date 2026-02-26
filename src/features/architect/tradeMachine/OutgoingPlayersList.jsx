@@ -8,9 +8,13 @@ export const OutgoingPlayersList = ({
   sends,
   incomingPlayers = [],
   yearKey,
+  worldId = null,
   otherTeams = [],
   playersMap = {},
+  sourceTeamId = null,
+  sourceTeamCapHolds = [],
   onSetPlayerTrade,
+  onRequestSignAndTrade,
   onUndoPlayerTrade,
   tradeExceptions = [],
   onEditContract,
@@ -75,6 +79,10 @@ export const OutgoingPlayersList = ({
             setContractPlayer={onEditContract}
             tradeExceptions={tradeExceptions}
             signAndTradeActive={signAndTradeActive}
+            sourceTeamId={sourceTeamId}
+            sourceTeamCapHolds={sourceTeamCapHolds}
+            worldId={worldId}
+            onRequestSignAndTrade={onRequestSignAndTrade}
             compact={compact}
           />
         ))}

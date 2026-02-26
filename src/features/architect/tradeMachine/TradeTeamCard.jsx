@@ -72,6 +72,7 @@ const TradeTeamCard = ({
   incomingEntitlements = [],
   onSetPlayerTrade,
   onUndoPlayerTrade,
+  onRequestSignAndTrade,
   // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
   onSelectTeam,
   onRemove,
@@ -97,6 +98,7 @@ const TradeTeamCard = ({
   isVacuumMode = false,
   onRevertEntitlementEdit,
   onDeleteSessionEntitlement,
+  worldId = null,
   // Multi-team layout compact mode
   compact = false,
 }) => {
@@ -744,9 +746,13 @@ const TradeTeamCard = ({
           sends={sends}
           incomingPlayers={filteredIncomingPlayers}
           yearKey={yearKey}
+          worldId={worldId}
           otherTeams={otherTeams}
           playersMap={playersMap}
+          sourceTeamId={team?.id || team?.teamCode || null}
+          sourceTeamCapHolds={team?.capHolds || []}
           onSetPlayerTrade={handleSetPlayerTrade}
+          onRequestSignAndTrade={onRequestSignAndTrade}
           onUndoPlayerTrade={handleUndoPlayerTrade}
           tradeExceptions={teamTradeExceptions}
           onEditContract={onEditContract}

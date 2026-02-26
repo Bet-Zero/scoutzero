@@ -3284,6 +3284,8 @@ function computeSignAndTradeResult({
         sends: [
           {
             ...signedPlayer, // Send the fully signed player object with new contract
+            signAndTrade: true,
+            signAndTradeContract: payload.contract,
             receivingTeamId: destinationTeamCode,
             receivingTeamIndex: 1,
           },

@@ -9,6 +9,7 @@ import {
   validateSalaryFieldData,
   DATA_WARNING_CODES,
 } from './dataValidation.js';
+import { getSignAndTradeSalaryForYear } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
 /**
  * @deprecated LEGACY HELPER - DO NOT USE IN VALIDATION PATHS
@@ -80,6 +81,37 @@ export function getMatchingValue(player, yearKey, isOutgoing = false) {
   return salary;
 }
 
+export function getEffectiveTradeSalaryForPlayer(player, yearKey) {
+  if (player?.signAndTrade === true) {
+    const signAndTradeSalary = getSignAndTradeSalaryForYear(player, yearKey, {
+      allowPlayerContractFallback: true,
+    });
+    if (signAndTradeSalary > 0) {
+      return {
+        salary: signAndTradeSalary,
+        source: 'signAndTradeContract.salariesByYear.capHit',
+      };
+    }
+  }
+
+  const normalized = normalizeYearInput(yearKey);
+  if (normalized) {
+    const contractSalary = getCapHitForSeason(player, normalized.seasonString);
+    if (contractSalary > 0) {
+      return {
+        salary: contractSalary,
+        source: 'contract.salariesByYear.capHit',
+      };
+    }
+  }
+
+  const fallbackSalary = player.newSalary || player.salary || 0;
+  return {
+    salary: fallbackSalary,
+    source: player.newSalary ? 'player.newSalary' : 'player.salary',
+  };
+}
+
 export function computeMatchingValues({
   teams = [],
   yearKey,
@@ -93,22 +125,13 @@ export function computeMatchingValues({
     const teamWarnings = [];
 
     (team.sends || []).forEach((player) => {
-      // Normalize yearKey to get season string for new schema
-      const normalized = normalizeYearInput(yearKey);
+      const { salary: baseSalary, source: salarySource } =
+        getEffectiveTradeSalaryForPlayer(player, yearKey);
 
-      // Get base salary from new contract schema (using capHit)
-      let baseSalary = 0;
-      let salarySource = 'contract.salariesByYear.capHit';
-
-      if (normalized) {
-        baseSalary = getCapHitForSeason(player, normalized.seasonString);
-      }
-
-      // Fallback to direct player properties if contract data missing
-      if (baseSalary === 0) {
-        baseSalary = player.newSalary || player.salary || 0;
-        salarySource = player.newSalary ? 'player.newSalary' : 'player.salary';
-
+      if (
+        salarySource === 'player.newSalary' ||
+        salarySource === 'player.salary'
+      ) {
         // GAP-DATA-002: Track salary field fallback usage
         const salaryWarnings = validateSalaryFieldData(player, yearKey, {
           salarySource,

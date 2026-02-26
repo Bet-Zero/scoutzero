@@ -612,6 +612,40 @@ const EditContractModal = ({
     toSalaryInputs,
   ]);
 
+  const buildCanonicalSigningPayload = useCallback(
+    (overrides = {}) => {
+      const years = extension.years || extension.salaries?.length || 0;
+      const salaries = (extension.salaries || []).slice(0, years);
+      const salariesByYear = salaries.map((value, index) => {
+        const amount = Math.round(Number(value) || 0);
+        return {
+          season: toSeasonCode(CURRENT_YEAR + index),
+          salary: amount,
+          capHit: amount,
+          guaranteed: true,
+          option: null,
+          optionType: null,
+          optionUsed: null,
+        };
+      });
+
+      return {
+        ...extension,
+        years,
+        contractYears: years,
+        salaries,
+        salariesByYear,
+        base: salaries[0] || 0,
+        firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
+        exceptionType: selectedException,
+        guardrails: signingGuardrails,
+        raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+        ...overrides,
+      };
+    },
+    [CURRENT_YEAR, extension, selectedException, signingGuardrails]
+  );
+
   const handleConfirm = () => {
     const timestamp = new Date().toISOString();
     // Record audit log if override was used
@@ -637,22 +671,15 @@ const EditContractModal = ({
     
     // Phase 16: MVP Offer Sheet toggle Logic
     if (isOfferSheet && (selectedAction === 'signNew' || selectedAction === 'resign')) {
-        onStoreOfferSheet?.(player, {
-          ...extension,
-          years: extension.years,
-          salaries: (extension.salaries || []).slice(
-            0,
-            extension.years || extension.salaries.length || 0
-          ),
-          base: extension.salaries[0] || 0,
-          exceptionType: selectedException,
-          contractType: 'Offer Sheet', // Force type
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true, // Key flag for store-only
-          guardrails: signingGuardrails,
-          raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
-          ...(overrideMetadata || {}),
-        });
+        onStoreOfferSheet?.(
+          player,
+          buildCanonicalSigningPayload({
+            contractType: 'Offer Sheet',
+            rfaOfferSheet: true,
+            rfaOfferSheetOnly: true,
+            ...(overrideMetadata || {}),
+          })
+        );
         onClose();
         return;
     }
@@ -665,52 +692,29 @@ const EditContractModal = ({
         onOptionDecision?.(player, false, overrideMetadata);
         break;
       case 'signNew':
-        (onSignFreeAgent || onSaveContract || onSave)?.(player, {
-          ...extension,
-          years: extension.years,
-          salaries: (extension.salaries || []).slice(
-            0,
-            extension.years || extension.salaries.length || 0
-          ),
-          base: extension.salaries[0] || 0,
-          exceptionType: selectedException,
-          guardrails: signingGuardrails,
-          raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
-          ...(overrideMetadata || {}),
-        });
+        (onSignFreeAgent || onSaveContract || onSave)?.(
+          player,
+          buildCanonicalSigningPayload({
+            ...(overrideMetadata || {}),
+          })
+        );
         break;
       case 'resign':
-        (onResign || onSaveContract || onSave)?.(player, {
-          ...extension,
-          years: extension.years,
-          salaries: (extension.salaries || []).slice(
-            0,
-            extension.years || extension.salaries.length || 0
-          ),
-          base: extension.salaries[0] || 0,
-          exceptionType: selectedException,
-          guardrails: signingGuardrails,
-          raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
-          ...(overrideMetadata || {}),
-        });
+        (onResign || onSaveContract || onSave)?.(
+          player,
+          buildCanonicalSigningPayload({
+            ...(overrideMetadata || {}),
+          })
+        );
         break;
       case 'signAndTrade':
         onSignAndTrade?.(
           player,
-          {
-            ...extension,
-            years: extension.years,
-            salaries: (extension.salaries || []).slice(
-              0,
-              extension.years || extension.salaries.length || 0
-            ),
-            base: extension.salaries[0] || 0,
-            exceptionType: selectedException,
-            guardrails: signingGuardrails,
-            raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+          buildCanonicalSigningPayload({
             signAndTrade: true,
+            contractType: 'Sign & Trade',
             ...(overrideMetadata || {}),
-          },
+          }),
           destinationTeamId
         );
         break;

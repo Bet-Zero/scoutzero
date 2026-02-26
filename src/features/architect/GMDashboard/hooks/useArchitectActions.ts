@@ -31,6 +31,7 @@ import {
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
+import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import toast from 'react-hot-toast';
 
 // ==== Type Definitions ====
@@ -49,6 +50,10 @@ interface SalaryByYear {
 /** Local contract structure for architect actions (avoids schema naming pattern) */
 interface LocalContract {
   salariesByYear?: SalaryByYear[];
+  salaries?: Array<number | Record<string, unknown>>;
+  years?: number;
+  startYear?: number;
+  year?: number;
   birdRights?: {
     status?: string;
     yearsOfService?: number;
@@ -338,11 +343,53 @@ const ensureContractStructure = (
 ): LocalContract | null => {
   if (!contract) return null;
 
+  const mutableOverrides = { ...overrides } as Record<string, unknown>;
+  const startYearOverride = Number(
+    mutableOverrides.startYear ??
+      (contract as Record<string, unknown>).startYear ??
+      (contract as Record<string, unknown>).year
+  );
+  delete mutableOverrides.startYear;
+
   // If contract already has salariesByYear array, use it directly
   if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
     return {
       ...contract,
-      ...overrides,
+      ...mutableOverrides,
+    };
+  }
+
+  // Legacy UI payload fallback: convert salaries[] to canonical salariesByYear[]
+  const legacySalaries = (contract as Record<string, unknown>).salaries;
+  if (Array.isArray(legacySalaries) && legacySalaries.length > 0) {
+    const yearsRaw =
+      Number((contract as Record<string, unknown>).years) || legacySalaries.length;
+    const years = Math.max(1, Math.min(yearsRaw, legacySalaries.length));
+    const startYear = Number.isFinite(startYearOverride)
+      ? startYearOverride
+      : new Date().getFullYear();
+
+    const salariesByYear = legacySalaries.slice(0, years).map((row, idx) => {
+      const salaryRaw =
+        typeof row === 'number'
+          ? row
+          : typeof row === 'string'
+            ? Number(row)
+            : Number((row as Record<string, unknown>)?.salary);
+      const salary = Number.isFinite(salaryRaw) ? Math.round(salaryRaw) : 0;
+      return {
+        season: toSeasonCode(startYear + idx),
+        salary,
+        capHit: salary,
+        guaranteed: true,
+        option: null,
+      };
+    });
+
+    return {
+      ...contract,
+      ...mutableOverrides,
+      salariesByYear,
     };
   }
 
@@ -597,6 +644,28 @@ export function useArchitectActions({
               ? teamIndexByCode.get(destinationTeamCode)
               : undefined;
 
+          const signAndTradeValidation = p.signAndTrade
+            ? validateSignAndTradeContractPayload(
+                ((p as Record<string, unknown>).signAndTradeContract ||
+                  p.contract ||
+                  null) as Record<string, unknown> | null,
+                currentYear,
+                { requireActiveYearRow: true }
+              )
+            : null;
+
+          if (p.signAndTrade && (!destinationTeamCode || destinationTeamCode === (resolveTeamCode(t.teamId) || t.teamId))) {
+            throw new Error(
+              `Sign-and-trade asset "${p.name || p.id || p.player_id}" must include a valid destination team`
+            );
+          }
+
+          if (p.signAndTrade && (!signAndTradeValidation?.valid || !signAndTradeValidation.contract)) {
+            throw new Error(
+              `Sign-and-trade asset "${p.name || p.id || p.player_id}" is missing valid contract details`
+            );
+          }
+
           return {
             ...p,
             // Explicitly map ID for pipeline consumption
@@ -605,6 +674,26 @@ export function useArchitectActions({
             tradeTo: destinationTeamCode,
             receivingTeamId: destinationTeamCode,
             receivingTeamIndex,
+            signAndTrade: !!p.signAndTrade,
+            signAndTradeContract:
+              signAndTradeValidation?.contract ||
+              ((p as Record<string, unknown>).signAndTradeContract as Record<
+                string,
+                unknown
+              >) ||
+              undefined,
+            contract:
+              signAndTradeValidation?.contract ||
+              p.contract ||
+              undefined,
+            contractYears:
+              signAndTradeValidation?.contract?.contractYears ||
+              (p as Record<string, unknown>).contractYears ||
+              undefined,
+            firstYearGuaranteed:
+              signAndTradeValidation?.contract?.firstYearGuaranteed ??
+              (p as Record<string, unknown>).firstYearGuaranteed ??
+              undefined,
           };
         }),
         picksOut: [],
@@ -627,7 +716,14 @@ export function useArchitectActions({
       }
 
       if (worldId) {
-        await runAuthoritativeFAMutation('executeTrade', { teams });
+        await runAuthoritativeFAMutation('executeTrade', {
+          teams,
+          tradeCtx: {
+            source: 'tradeMachine',
+            worldId,
+            yearKey: currentYear,
+          },
+        });
         return;
       }
 
@@ -671,6 +767,7 @@ export function useArchitectActions({
           isExtension: !!p.isExtension,
           isRookieScale: !!p.isRookieScale,
           signingTeam: teamCode,
+          startYear: currentYear,
         });
 
         return {
@@ -711,6 +808,7 @@ export function useArchitectActions({
               isExtension: !!p.isExtension,
               isRookieScale: !!p.isRookieScale,
               signingTeam: teamCode,
+              startYear: currentYear,
             }
           );
 
@@ -769,6 +867,7 @@ export function useArchitectActions({
       teamCapSheet,
       teamCode,
       teamId,
+      currentYear,
       playersMap,
       runAuthoritativeFAMutation,
       setTeamCapSheet,
@@ -796,6 +895,7 @@ export function useArchitectActions({
             isExtension: !!contract.isExtension,
             isRookieScale: !!contract.isRookieScale,
             signingTeam: teamCode,
+            startYear: currentYear,
           }
         );
 
@@ -986,6 +1086,7 @@ export function useArchitectActions({
             isExtension: false,
             isRookieScale: !!contract.isRookieScale,
             signingTeam: teamCode,
+            startYear: currentYear,
           }
         );
 
@@ -1052,6 +1153,7 @@ export function useArchitectActions({
             rfaOfferSheet: true,
             rfaOfferSheetOnly: true,
             rfaOfferSheetStatus: 'PENDING_MATCH',
+            startYear: currentYear,
           }
         );
 
