@@ -44,6 +44,9 @@ vi.mock(
     return {
       ...actual,
       writeWorldEntitlement: vi.fn().mockResolvedValue({ success: true }),
+      writeWorldEntitlementAndAttachToTeamAtomic: vi
+        .fn()
+        .mockResolvedValue({ success: true }),
       attachEntitlementToTeam: vi.fn(),
       detachEntitlementFromTeam: vi.fn(),
       isEntitlementAuthoringEnabled: () => true,

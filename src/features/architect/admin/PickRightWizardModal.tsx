@@ -22,6 +22,7 @@
 import React, { useCallback } from 'react';
 import type { EntitlementFormState } from './entitlementEditorFormState';
 import { buildEntitlementDocument } from './entitlementEditorFormState';
+import { wizardPickToId } from './pickRightWizardModel';
 import { useEntitlementEditorSession } from './useEntitlementEditorSession';
 import { QuickBuilder } from './PickRightWizardSteps/QuickBuilder';
 import { EntitlementEditorFormTabs } from './EntitlementEditorFormTabs';
@@ -85,6 +86,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
     isEditMode,
     isVacuumSession,
     handleApply,
+    handleSaveDraft,
     handleApplyJson,
     handleRevertThisEdit,
     handleDeleteSessionPickRight,
@@ -98,10 +100,20 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
   const handleDuplicateAsNew = useCallback(() => {
     if (!onDuplicateAsNew) return;
     const doc = buildEntitlementDocument(formState);
-    // Remove the ID so the duplicate opens in create mode
     const { id: _id, ...rest } = doc;
     onDuplicateAsNew(rest);
   }, [formState, onDuplicateAsNew]);
+
+  // ── Convert to Swap handler (TM-WIZARD-SIMPLIFY-E2) ──
+  const handleConvertToSwap = useCallback(() => {
+    if (!onDuplicateAsNew) return;
+    const doc = buildEntitlementDocument(formState);
+    const { id: _id, ...rest } = doc;
+    rest.kind = 'swap_right';
+    rest.swapControllerPickId = wizardPickToId(wizardModel.pick);
+    rest.swapType = 'best_of';
+    onDuplicateAsNew(rest);
+  }, [formState, wizardModel, onDuplicateAsNew]);
 
   // ── View toggle handler (Simple ↔ Advanced) — no state loss ──
   const handleToggleView = () => {
@@ -180,6 +192,16 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
           </button>
         </div>
 
+        {/* Vacuum mode banner */}
+        {isVacuumSession && (
+          <div
+            data-testid="vacuum-mode-banner"
+            className="mx-6 mt-3 px-3 py-2 rounded bg-amber-900/20 border border-amber-500/20 text-amber-200 text-xs"
+          >
+            Changes are not saved to a world — session-only editing.
+          </div>
+        )}
+
         {/* Body — view-dependent rendering */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {!isAdvanced ? (
@@ -195,6 +217,13 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
               disabled={isDisabled}
               isEditMode={isEditMode}
               lockIdentityFields={isEditMode}
+              onConvertToSwap={
+                isEditMode &&
+                (initialDocument?.kind as string) === 'pick_ownership' &&
+                onDuplicateAsNew
+                  ? handleConvertToSwap
+                  : undefined
+              }
             />
           ) : (
             /* ── Advanced View: Tabbed Editor + Preview ── */
@@ -285,6 +314,17 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
               </>
             )}
 
+            {/* Save Draft */}
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={isDisabled}
+              className="px-3 py-1.5 rounded border border-white/20 text-white/50 text-xs hover:bg-white/5 disabled:opacity-50"
+              data-testid="wizard-save-draft"
+            >
+              Save Draft
+            </button>
+
             {/* Apply button — SAME semantics in both views */}
             <button
               type="button"
@@ -295,7 +335,7 @@ const PickRightWizardModal: React.FC<PickRightWizardModalProps> = ({
                   ? 'bg-blue-600 text-white hover:bg-blue-500'
                   : 'bg-white/10 text-white/30 cursor-not-allowed'
               }`}
-              data-testid="wizard-apply-footer"
+              data-testid="wizard-apply"
             >
               {saving ? 'Applying...' : 'Apply'}
             </button>

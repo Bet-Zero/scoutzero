@@ -47,6 +47,7 @@ interface QuickBuilderProps {
   disabled?: boolean;
   isEditMode?: boolean;
   lockIdentityFields?: boolean;
+  onConvertToSwap?: () => void;
 }
 
 export const QuickBuilder: React.FC<QuickBuilderProps> = ({
@@ -60,6 +61,7 @@ export const QuickBuilder: React.FC<QuickBuilderProps> = ({
   disabled = false,
   isEditMode = false,
   lockIdentityFields = false,
+  onConvertToSwap,
 }) => {
   const intent = wizardModel.intent;
   const baseYear = wizardModel.pick.year || 2026;
@@ -179,6 +181,12 @@ export const QuickBuilder: React.FC<QuickBuilderProps> = ({
                 {ROUND_LABELS[String(wizardModel.pick.round)] ||
                   `R${wizardModel.pick.round}`}
               </span>
+              <span
+                className="text-[10px] text-white/30 font-mono ml-2"
+                data-testid="edit-identity-pick-id"
+              >
+                {primaryPickId}
+              </span>
               <span className="text-white/20 text-xs">{'\uD83D\uDD12'}</span>
             </div>
             <p
@@ -282,7 +290,24 @@ export const QuickBuilder: React.FC<QuickBuilderProps> = ({
           )}
 
           {/* ════ SWAP ════ */}
-          {intent === 'create_swap' && (
+          {intent === 'create_swap' && onConvertToSwap && (
+            <div data-testid="swap-convert-section" className="space-y-2">
+              <p className="text-xs text-white/50">
+                This entitlement is a pick ownership. Convert it to a swap
+                right to create a new entitlement.
+              </p>
+              <button
+                type="button"
+                onClick={onConvertToSwap}
+                disabled={disabled}
+                className="px-3 py-1.5 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 disabled:opacity-50"
+                data-testid="convert-to-swap-btn"
+              >
+                Convert to Swap
+              </button>
+            </div>
+          )}
+          {intent === 'create_swap' && !onConvertToSwap && (
             <div className="space-y-2" data-testid="quick-swap-section">
               {/* Swap direction - always show these options */}
               <div>

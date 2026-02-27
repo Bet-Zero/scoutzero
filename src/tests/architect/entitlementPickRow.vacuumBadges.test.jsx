@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import EntitlementPickRow from '@/features/architect/tradeMachine/EntitlementPickRow';
 
@@ -23,12 +23,16 @@ vi.mock(
   })
 );
 
+const vacuumSessionEntitlementId = 'vacuum:BOS:2028:1:own:abcd1234';
+const baseEntitlementId = 'ent:BOS:2027:1:own:base1';
+
 describe('EntitlementPickRow vacuum badges', () => {
   it('shows Session-only badge and delete action for vacuum entitlements', () => {
+    const setOpenMenu = vi.fn();
     render(
       <EntitlementPickRow
         entitlement={{
-          id: 'vacuum:BOS:2028:1:own:abcd1234',
+          id: vacuumSessionEntitlementId,
           holderTeam: 'BOS',
           seasonYear: 2028,
           round: 1,
@@ -38,6 +42,8 @@ describe('EntitlementPickRow vacuum badges', () => {
         teamId="BOS"
         isVacuumMode
         onDeleteSessionPickRight={vi.fn()}
+        openMenu={vacuumSessionEntitlementId}
+        setOpenMenu={setOpenMenu}
       />
     );
 
@@ -48,10 +54,11 @@ describe('EntitlementPickRow vacuum badges', () => {
   });
 
   it('shows Edited (this session) badge and revert action for edited base entitlements', () => {
+    const setOpenMenu = vi.fn();
     render(
       <EntitlementPickRow
         entitlement={{
-          id: 'ent:BOS:2027:1:own:base1',
+          id: baseEntitlementId,
           holderTeam: 'BOS',
           seasonYear: 2027,
           round: 1,
@@ -61,6 +68,8 @@ describe('EntitlementPickRow vacuum badges', () => {
         teamId="BOS"
         isVacuumMode
         onRevertEdit={vi.fn()}
+        openMenu={baseEntitlementId}
+        setOpenMenu={setOpenMenu}
       />
     );
 

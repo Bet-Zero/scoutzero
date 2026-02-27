@@ -36,6 +36,7 @@ const mockHasCreate = vi.fn((..._args: any[]) => false);
 const mockMakeVacuumEntitlementId = vi.fn(
   (..._args: any[]) => 'vacuum:BOS:2027:1:own:testid12'
 );
+const mockRekeyVacuumCreate = vi.fn();
 
 vi.mock('@/firebaseConfig', () => ({
   db: {},
@@ -50,6 +51,8 @@ vi.mock(
     return {
       ...actual,
       writeWorldEntitlement: (...args: unknown[]) =>
+        mockWriteWorldEntitlement(...args),
+      writeWorldEntitlementAndAttachToTeamAtomic: (...args: unknown[]) =>
         mockWriteWorldEntitlement(...args),
       attachEntitlementToTeam: vi.fn(),
       detachEntitlementFromTeam: vi.fn(),
@@ -69,6 +72,9 @@ vi.mock(
     hasCreate: (...args: any[]) => mockHasCreate(...args),
     makeVacuumEntitlementId: (...args: any[]) =>
       mockMakeVacuumEntitlementId(...args),
+    rekeyVacuumCreate: (...args: any[]) => mockRekeyVacuumCreate(...args),
+    resolveVacuumEditCollisions: vi.fn(),
+    findVacuumCreateByIdentityKey: vi.fn(() => null),
   })
 );
 
@@ -202,9 +208,8 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
         expect(mockApplyVacuumCreate).toHaveBeenCalledTimes(1);
       });
 
-      // First arg = teamCode (should be empty string since no holderTeam set in defaults)
-      // OR the form will have a default holderTeam
-      expect(mockMakeVacuumEntitlementId).toHaveBeenCalled();
+      // First arg should be teamCode (default wizard pick team is 'LAL')
+      expect(mockApplyVacuumCreate.mock.calls[0][0]).toBe('LAL');
     });
 
     it('calls onSuccess with vacuum ID after create', async () => {
@@ -263,19 +268,21 @@ describe('PickRightWizardModal — Vacuum Mode', () => {
   // ── Vacuum Re-edit (editing a vacuum-created entitlement) ──
 
   describe('vacuum re-edit apply', () => {
-    it('calls applyVacuumCreate (not Edit) for vacuum-prefixed IDs', async () => {
+    it('rekeys vacuum create for vacuum-prefixed IDs (deterministic ID system)', async () => {
       render(<PickRightWizardModal {...vacuumReEditProps} />);
       fireEvent.click(screen.getByTestId('wizard-apply'));
 
       await waitFor(() => {
         expect(mockWriteWorldEntitlement).not.toHaveBeenCalled();
-        // Should call applyVacuumCreate (overwrite the create entry), not applyVacuumEdit
-        expect(mockApplyVacuumCreate).toHaveBeenCalledTimes(1);
         expect(mockApplyVacuumEdit).not.toHaveBeenCalled();
+        // Deterministic ID system: identity change triggers rekey
+        expect(mockRekeyVacuumCreate).toHaveBeenCalledTimes(1);
       });
 
-      // Should preserve the original vacuum ID
-      expect(mockApplyVacuumCreate.mock.calls[0][1]).toBe(
+      // First arg should be the teamCode
+      expect(mockRekeyVacuumCreate.mock.calls[0][0]).toBe('BOS');
+      // Second arg should be the original vacuum ID
+      expect(mockRekeyVacuumCreate.mock.calls[0][1]).toBe(
         'vacuum:BOS:2028:1:own:previd12'
       );
     });

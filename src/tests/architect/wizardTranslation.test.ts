@@ -436,15 +436,15 @@ describe('UI copy — jargon-free labels', () => {
   });
 
   it('WIZARD_KIND_LABELS are user-friendly', () => {
-    expect(WIZARD_KIND_LABELS.pick_ownership).toBe('Pick Ownership');
-    expect(WIZARD_KIND_LABELS.swap_right).toBe('Swap Right');
-    expect(WIZARD_KIND_LABELS.conveyance_right).toBe('Conveyance Right');
+    expect(WIZARD_KIND_LABELS.pick_ownership).toBe('Protection');
+    expect(WIZARD_KIND_LABELS.swap_right).toBe('Swap');
+    expect(WIZARD_KIND_LABELS.conveyance_right).toBe('Pool');
   });
 
   it('WIZARD_INTENT_LABELS use action verbs', () => {
     expect(WIZARD_INTENT_LABELS.protect_pick).toContain('Protect');
     expect(WIZARD_INTENT_LABELS.create_swap).toContain('Swap');
-    expect(WIZARD_INTENT_LABELS.create_conveyance).toContain('Conveyance');
+    expect(WIZARD_INTENT_LABELS.create_conveyance).toContain('Pool');
   });
 
   it('SELECTION_METHOD_OPTIONS provides 3 user-friendly choices', () => {
@@ -591,15 +591,14 @@ describe('Draft handling (v2 envelope)', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('TM-10: WIZARD_PRESETS', () => {
-  it('contains exactly 5 presets with the correct IDs', () => {
-    expect(WIZARD_PRESETS).toHaveLength(5);
+  it('contains exactly 4 presets with the correct IDs', () => {
+    expect(WIZARD_PRESETS).toHaveLength(4);
     const ids = WIZARD_PRESETS.map((p) => p.id);
     expect(ids).toEqual([
       'unprotected',
       'top4_unprotected',
       'top10_unprotected',
       'lottery_unprotected',
-      'lottery_top10_unprotected',
     ]);
   });
 
@@ -647,17 +646,6 @@ describe('TM-10: WIZARD_PRESETS', () => {
     expect(tiers[0].ifTriggered).toBe('roll');
     expect(tiers[0].rollToYear).toBe('2028');
     expect(tiers[1].ifTriggered).toBe('cancel');
-  });
-
-  it('lottery_top10_unprotected produces 3-tier ladder', () => {
-    const preset = WIZARD_PRESETS.find((p) => p.id === 'lottery_top10_unprotected')!;
-    const tiers = applyProtectionTemplate(preset, 2027);
-    expect(tiers).toHaveLength(3);
-    expect(tiers[0].condition).toBe('Lottery');
-    expect(tiers[0].rollToYear).toBe('2028');
-    expect(tiers[1].condition).toBe('Top 10');
-    expect(tiers[1].rollToYear).toBe('2029');
-    expect(tiers[2].ifTriggered).toBe('cancel');
   });
 
   it('selecting unprotected clears protectionLadder in formState', () => {

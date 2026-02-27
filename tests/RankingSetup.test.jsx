@@ -11,9 +11,11 @@ describe('RankingSetup', () => {
   it('captures selections and submits', () => {
     const handle = vi.fn();
     render(<RankingSetup playerPool={samplePlayers} onComplete={handle} />);
-    const top = screen.getByTestId('top-tier');
-    fireEvent.click(within(top).getByText('Alpha'));
-    fireEvent.click(screen.getByText('Start'));
+    const tierSection = screen.getByTestId('tier-tagging');
+    // Click the TOP button for "Alpha" to mark as top-tier
+    const topButtons = within(tierSection).getAllByText('TOP');
+    fireEvent.click(topButtons[0]);
+    fireEvent.click(screen.getByText(/Start/));
     expect(handle).toHaveBeenCalledWith({
       topTier: ['1'],
       bottomTier: [],

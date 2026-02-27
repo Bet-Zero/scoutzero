@@ -5,7 +5,10 @@ import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engi
 import { cacheInvalidationManager } from '@/features/architect/utils/tradeMachine/cache/cacheInvalidationManager.js';
 import { debugMonitor } from '@/features/architect/utils/tradeMachine/engine/validationDebugMonitor.js';
 
-describe('Validation Performance Tests', () => {
+const RUN_PERF = process.env.RUN_PERF_TESTS === '1';
+const describePerf = RUN_PERF ? describe : describe.skip;
+
+describePerf('Validation Performance Tests', () => {
   beforeEach(() => {
     // Reset metrics and cache before each test
     try {

@@ -285,7 +285,7 @@ const EntitlementPickRow = ({
           )}
           {!compact && isVacuumMode && isEditedSession && !isSessionOnly && (
             <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-900/30 text-amber-300 border border-amber-500/30">
-              Edited
+              Edited (this session)
             </span>
           )}
 
@@ -373,7 +373,7 @@ const EntitlementPickRow = ({
                         }}
                         className="block w-full text-left px-3 py-1.5 hover:bg-[#333] text-amber-300"
                       >
-                        Revert Edit
+                        Revert this edit
                       </button>
                     )}
                     {isSessionOnly && onDeleteSessionPickRight && (
@@ -384,7 +384,7 @@ const EntitlementPickRow = ({
                         }}
                         className="block w-full text-left px-3 py-1.5 hover:bg-[#333] text-red-300"
                       >
-                        Delete Session Pick
+                        Delete this session pick right
                       </button>
                     )}
                   </>

@@ -596,32 +596,36 @@ export const projectEntitlementToPickRow = (entitlement, options = {}) => {
 
 /**
  * Generate a display label for a PickRow.
- * NOTE: Year/round are NOT included here - they're rendered separately in the row prefix.
- * Only returns "via {team}" when the original team differs from the holder.
- * Kind badges (Own/Swap Option/Conditional) are rendered separately, so no suffixes here.
+ * Format: "{year} {round}" with optional "via {team}" and kind suffix.
  *
  * @param {PickRow} pickRow - The projected PickRow
  * @returns {string}
  */
 export const getPickRowDisplayLabel = (pickRow) => {
   if (!pickRow || !pickRow.year) {
-    return 'Unknown';
+    return 'Unknown Pick';
   }
 
-  // Only show "via {team}" when pick originated from different team
+  const roundStr = formatRound(pickRow.round);
+  let label = `${pickRow.year} ${roundStr}`;
+
   if (pickRow.via) {
-    return `via ${pickRow.via}`;
+    label += ` via ${pickRow.via}`;
   }
 
-  // For team's own pick, return original team code
-  // This helps identify the pick source when viewing another team's entitlements
-  return pickRow.originalTeam || '';
+  if (pickRow.assetType === 'swap_right') {
+    label += ' (Swap)';
+  } else if (pickRow.assetType === 'conditional_right') {
+    label += ' (Cond.)';
+  }
+
+  return label;
 };
 
 /**
  * Get secondary line text for PickRow display.
- * Returns protectionText and/or conditionsText combined.
- * Filters out redundant swap terminology since badges already indicate swap rights.
+ * Returns protectionText and/or conditionsText combined with " · " separator.
+ * Returns null for unprotected picks with no conditions.
  *
  * @param {PickRow} pickRow - The projected PickRow
  * @returns {string|null}
@@ -631,33 +635,12 @@ export const getPickRowSecondaryText = (pickRow) => {
 
   const parts = [];
 
-  // termsShort is a concise one-liner (e.g., "Top 4 protected", "Best of 2")
-  if (pickRow.termsShort) {
-    parts.push(pickRow.termsShort);
-  }
-
-  // Only show protection if meaningful (skip "Unprotected" and "Swap option" - badge covers swap)
-  if (
-    pickRow.protectionText &&
-    pickRow.protectionText !== 'Unprotected' &&
-    pickRow.protectionText !== 'Swap option'
-  ) {
+  if (pickRow.protectionText && pickRow.protectionText !== 'Unprotected') {
     parts.push(pickRow.protectionText);
   }
 
-  // conditionsText for conveyance chains or ladder info, but filter out "Swap option" dupes
   if (pickRow.conditionsText) {
-    // Clean up redundant swap/swap option phrases from conditions
-    const cleanedConditions = pickRow.conditionsText
-      .replace(/\bswap option\b/gi, '')
-      .replace(/\bswap\b/gi, '')
-      .replace(/\s+·\s+·/g, ' · ')
-      .replace(/^\s*·\s*/g, '')
-      .replace(/\s*·\s*$/g, '')
-      .trim();
-    if (cleanedConditions) {
-      parts.push(cleanedConditions);
-    }
+    parts.push(pickRow.conditionsText);
   }
 
   return parts.length > 0 ? parts.join(' · ') : null;

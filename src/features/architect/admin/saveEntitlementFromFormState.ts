@@ -449,7 +449,7 @@ export async function saveEntitlementFromFormState(
   // 5. Route based on storage mode
   if (storageMode === 'vacuum') {
     return saveVacuum({
-      entitlementId: id,
+      entitlementId: isCreate ? undefined : id,
       originalEntitlementId: entitlementId,
       document,
     });

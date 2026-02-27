@@ -40,6 +40,8 @@ vi.mock(
       ...actual,
       writeWorldEntitlement: (...args: unknown[]) =>
         mockWriteWorldEntitlement(...args),
+      writeWorldEntitlementAndAttachToTeamAtomic: (...args: unknown[]) =>
+        mockWriteWorldEntitlement(...args),
       attachEntitlementToTeam: vi.fn(),
       detachEntitlementFromTeam: vi.fn(),
       isEntitlementAuthoringEnabled: () => true,
@@ -247,7 +249,7 @@ describe('PickRightWizardModal — Quick Builder', () => {
     const advancedToggle = screen.getByTestId('view-toggle-advanced');
     expect(advancedToggle.className).toContain('bg-blue-600');
     // The Apply button should still be present (same modal)
-    expect(screen.getByTestId('wizard-apply-footer')).toBeTruthy();
+    expect(screen.getByTestId('wizard-apply')).toBeTruthy();
   });
 
   // ── Cancel ──
