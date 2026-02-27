@@ -22,6 +22,7 @@ import { validateSignAndTradeContractPayload } from '@/features/architect/utils/
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 // TM_DATAWARN_UI_E1: Data validation utilities
 import { validateTradeData } from '@/features/architect/utils/tradeMachine/utils/dataValidation';
+import { extractUsedTpeIds } from '@/features/architect/utils/tradeMachine/utils/tradeExportUtils';
 
 /* ============================
    DEBUG FLAG & TEAM CODE RESOLUTION
@@ -1034,9 +1035,7 @@ export const useTradeMachine = (
         )
           .map((ent) => decorateEntitlementForTrade(ent))
           .filter(Boolean),
-        usedTradeExceptions: t.sends
-          .filter((p) => p.acquiredViaTPE)
-          .map((p) => p.tpeId),
+        usedTradeExceptions: extractUsedTpeIds(t.sends),
       }));
 
     return tradeData;

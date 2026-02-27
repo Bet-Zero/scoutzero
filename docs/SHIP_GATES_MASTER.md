@@ -172,11 +172,36 @@ Expected
 - [ ] Trade is illegal
 - [ ] Error identifies missing linked entitlement IDs (or clearly indicates incomplete linked package)
 
+#### Scenario 7 — Roster Window / Two-Way Overflow
+
+Steps
+
+1. Open Trade Machine with a team that has 15 standard-contract players
+2. Build a trade where that team receives 2 players and sends only 1
+3. Validate
+
+Expected
+
+- [ ] Trade is illegal (roster count exceeds maximum 15)
+- [ ] Roster Count rule shows red in CBA Rule Compliance Overview
+- [ ] Apply Trade button is disabled
+
+Steps (two-way)
+
+1. Open Trade Machine with a team that has 3 two-way players
+2. Build a trade where that team receives 1 additional two-way player
+3. Validate
+
+Expected
+
+- [ ] Trade is illegal (two-way slots exceeded)
+- [ ] Roster Count rule shows violation detail
+
 ### Crash-Only Navigation Smoke (recommended, not feature correctness)
 
 This is not a promise that these features are shipped complete. It is only a non-crash sanity check.
 
-#### Scenario 7 — Build + Load: Basic Navigation (no crashes)
+#### Scenario 8 — Build + Load: Basic Navigation (no crashes)
 
 Steps
 
@@ -250,6 +275,7 @@ Copy this checklist into a PR description or release note when shipping:
     - [ ] Parent-world fallback: child inherits entitlements from parent
     - [ ] League claim uniqueness: cross-team duplicate claim blocked
     - [ ] Linked package trade integrity: partial linked package blocked
+    - [ ] Roster window: trade exceeding max roster blocked, two-way overflow blocked
 
     ### Optional (if run)
 

@@ -25,7 +25,7 @@ const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
 
 describe('tradeValidator edge cases', () => {
   it('allows 3-team trade mixing players, picks and cash when below aprons', () => {
-    const teamA = makeTeam('A', 100_000_000);
+    const teamA = makeTeam('A', 100_000_000, 13);
     const teamB = makeTeam('B', 100_000_000);
     const teamC = makeTeam('C', 100_000_000);
     const aPlayer = { ...makePlayer('A1', 8_000_000), tradeTo: 'B' };

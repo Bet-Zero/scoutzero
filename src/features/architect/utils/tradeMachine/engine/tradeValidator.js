@@ -21,6 +21,7 @@ import { enforceTiming } from '../rules/timingValidation.js';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
 import { computeMatchingValues } from '../utils/salaryUtils.js';
 import { enforceRosterWindow } from '../rules/rosterValidation.js';
+import { validationFlags } from '@/config/validationFlags.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
@@ -135,6 +136,131 @@ function shouldRoutePlayerToTeam({
   }
 
   return destinationTeamId === null || destinationTeamId === receivingTeamId;
+}
+
+// ---------------------------------------------------------------------------
+// Roster structural legality
+// ---------------------------------------------------------------------------
+const MIN_ROSTER = 14;
+const MAX_ROSTER = 15;
+const MAX_TWO_WAY = 3;
+
+function extractPlayerId(p) {
+  if (!p) return null;
+  if (typeof p === 'string') return p;
+  return p.player_id || p.id || p.playerId || null;
+}
+
+/**
+ * Compute projected roster counts for a team in validateTrade's per-team loop.
+ *
+ * Handles two team-data shapes:
+ *   1. Pre-trade (UI flow) — players/twoWayPlayers not yet adjusted for the trade.
+ *      Projected = current - outgoing + incoming (simple arithmetic).
+ *   2. Post-trade (apply-time) — players already moved by buildPostTradeTeamsSnapshot.
+ *      Player-ID matching detects the overlap so outgoing/incoming don't double-count.
+ *
+ * When player IDs are unavailable (common in test fixtures), falls back to
+ * simple arithmetic which is correct for the pre-trade shape.
+ */
+function computeRosterValidation(team) {
+  const teamPlayers = team.team?.players || [];
+  const teamTwoWay = team.team?.twoWayPlayers || [];
+  const outgoing = team.outgoingPlayers || [];
+  const incoming = team.incomingPlayers || [];
+
+  // Build a set of current player IDs for overlap detection.
+  // If most roster players lack IDs we fall back to simple arithmetic.
+  const allRoster = teamPlayers.concat(teamTwoWay);
+  const currentIds = new Set(
+    allRoster.map(extractPlayerId).filter(Boolean)
+  );
+  const hasReliableIds = currentIds.size > 0 && currentIds.size >= allRoster.length * 0.5;
+
+  // Determine current standard / two-way counts.
+  let currentStandard, currentTwoWay;
+  if (teamTwoWay.length > 0) {
+    currentStandard = teamPlayers.length;
+    currentTwoWay = teamTwoWay.length;
+  } else {
+    currentStandard = teamPlayers.filter((p) => !p.isTwoWay).length;
+    currentTwoWay = teamPlayers.filter((p) => p.isTwoWay).length;
+  }
+
+  let projectedStandard, projectedTwoWay;
+
+  if (hasReliableIds) {
+    // ID-aware path: only count outgoing still in roster and incoming not yet in roster.
+    const outStd = outgoing.filter((p) => {
+      const pid = extractPlayerId(p);
+      return !p.isTwoWay && pid && currentIds.has(pid);
+    }).length;
+    const outTw = outgoing.filter((p) => {
+      const pid = extractPlayerId(p);
+      return p.isTwoWay && pid && currentIds.has(pid);
+    }).length;
+    const inStd = incoming.filter((p) => {
+      const pid = extractPlayerId(p);
+      return !p.isTwoWay && (!pid || !currentIds.has(pid));
+    }).length;
+    const inTw = incoming.filter((p) => {
+      const pid = extractPlayerId(p);
+      return p.isTwoWay && (!pid || !currentIds.has(pid));
+    }).length;
+
+    projectedStandard = currentStandard - outStd + inStd;
+    projectedTwoWay = currentTwoWay - outTw + inTw;
+  } else {
+    // Simple arithmetic path (pre-trade shape or test fixtures without IDs).
+    const outStd = outgoing.filter((p) => !p.isTwoWay).length;
+    const outTw = outgoing.filter((p) => p.isTwoWay).length;
+    const inStd = incoming.filter((p) => !p.isTwoWay).length;
+    const inTw = incoming.filter((p) => p.isTwoWay).length;
+
+    projectedStandard = currentStandard - outStd + inStd;
+    projectedTwoWay = currentTwoWay - outTw + inTw;
+  }
+
+  const violations = [];
+
+  if (projectedStandard < MIN_ROSTER) {
+    violations.push(
+      `Post-trade standard roster (${projectedStandard}) below minimum ${MIN_ROSTER}`
+    );
+  }
+  if (projectedStandard > MAX_ROSTER) {
+    violations.push(
+      `Post-trade standard roster (${projectedStandard}) exceeds maximum ${MAX_ROSTER}`
+    );
+  }
+  if (projectedTwoWay > MAX_TWO_WAY) {
+    violations.push(
+      `Two-way slots exceeded (${projectedTwoWay}/${MAX_TWO_WAY})`
+    );
+  }
+
+  // Respect enforcement flags — only block when the flag is 'error'
+  const hasStandardViolation = violations.some((v) => !v.includes('Two-way'));
+  const hasTwoWayViolation = violations.some((v) => v.includes('Two-way'));
+  const standardBlocks =
+    hasStandardViolation && validationFlags.rosterEnforcement === 'error';
+  const twoWayBlocks =
+    hasTwoWayViolation && validationFlags.twoWayRoster === 'error';
+
+  const passed = !standardBlocks && !twoWayBlocks;
+
+  return {
+    passed,
+    violations: passed ? [] : violations,
+    message: violations.length === 0
+      ? 'Roster size validated'
+      : violations.join('; '),
+    details: `Standard: ${projectedStandard} (${MIN_ROSTER}–${MAX_ROSTER}), Two-way: ${projectedTwoWay} (max ${MAX_TWO_WAY})`,
+    rosterCounts: {
+      standard: projectedStandard,
+      twoWay: projectedTwoWay,
+    },
+  };
 }
 
 // Create wrapped versions with performance monitoring and caching
@@ -759,6 +885,9 @@ export function validateTrade({
       context
     );
 
+    // Roster structural legality (min/max standard roster, two-way max)
+    const rosterCountResult = computeRosterValidation(team);
+
     // TM-EXCL-E1 + TM-EXCL-E2: Entitlement exclusivity — block trades that create overlapping claims
     // TM-EXCL-E2: Build explicit routing map FIRST; if routing is incomplete, fail immediately.
     const entitlementExclusivityResult = (() => {
@@ -882,6 +1011,7 @@ export function validateTrade({
       timingEnforcement,
       secondApronEnforcement,
       entitlementExclusivity: entitlementExclusivityResult,
+      rosterCount: rosterCountResult,
     };
 
     const violations = [];

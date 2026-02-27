@@ -360,6 +360,7 @@ utils/
       seasonUtils.js
       stepienEntitlementUtils.js
       swapResolution.js
+      tradeExportUtils.js
       tradeUtilities.js
       validateInput.js
     validators/
@@ -371,5 +372,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-26T12:22:53.564Z*
+*Generated on: 2026-02-27T03:34:13.305Z*
 *Auto-updated by: npm run docs*

@@ -87,6 +87,58 @@ None.
 - `npm run build`: PASS
 - `npm run validate:project`: PASS
 
+## Roster Structural Legality
+
+### Enforced Rules
+
+`validateTrade` enforces the following roster structural rules per team:
+
+- **Standard roster minimum (14):** post-trade standard (non-two-way) player count must be >= 14.
+- **Standard roster maximum (15):** post-trade standard player count must be <= 15.
+- **Two-way maximum (3):** post-trade two-way player count must be <= 3.
+
+Constants: `MIN_ROSTER=14`, `MAX_ROSTER=15`, `MAX_TWO_WAY=3`.
+
+### Enforcement Flags
+
+Enforcement respects `validationFlags` in `src/config/validationFlags.js`:
+
+- `rosterEnforcement: 'error'` — standard roster violations block the trade.
+- `twoWayRoster: 'error'` — two-way violations block the trade.
+
+When set to `'warn'`, violations are reported but do not block trade legality.
+
+### Rule Output Key
+
+The validator produces `team.rules.rosterCount` with shape:
+
+- `passed: boolean`
+- `violations: string[]`
+- `message: string`
+- `details: string` (human-readable projected counts)
+- `rosterCounts: { standard: number, twoWay: number }`
+
+`TradeLegalChecker` reads `team.rules.rosterCount` directly.
+
+### SSOT: Team Player Arrays
+
+The roster count helper handles two team data shapes:
+
+- **UI flow (pre-trade):** `team.team.players` = standard players, `team.team.twoWayPlayers` = two-way (separate arrays). The helper subtracts outgoing and adds incoming to compute projected counts.
+- **Apply flow (post-trade):** `team.team.players` = all players (already adjusted by `buildPostTradeTeamsSnapshot`). The helper uses player-ID matching to avoid double-counting — outgoing players already removed from roster are not re-subtracted, and incoming players already in roster are not re-added.
+
+### Apply-Time Enforcement
+
+Apply-time re-validation calls `validatePostTradeSnapshotForContext()` → `validateTrade()`. Since roster rules are wired into `validateTrade`, they are automatically enforced at apply time. An illegal roster state causes `legal: false`, which blocks `executeTrade` before `batch.commit()`.
+
+### Test Coverage
+
+- `tests/trade/rosterLegality_validateTrade.test.js` — max overflow, min underflow, two-way overflow through `validateTrade`
+- `tests/trade/roster_twoWay_enforcement.test.js` — `enforceRosterWindow` callback-based enforcement
+- `tests/trade/rosterWindow_softEnforcement.test.js` — soft enforcement / grace mode
+
+---
+
 ## E1 — Sign-And-Trade (S&T) Fail-Closed Alignment
 
 ### Canonical Eligibility Definition (SSOT)
@@ -231,3 +283,48 @@ The authoritative TPE usage path is exclusively through TradeTeamCard's absorpti
 ### DPE / Other Exceptions (Out of Scope)
 
 DPE (Disabled Player Exception) is editable via `ManageExceptionsModal` but has separate lifecycle from TPE. DPE parity with validator is deferred to a future change.
+
+---
+
+## 5-Pack Ship Closeout
+
+Date: 2026-02-26
+
+### Scorecard
+
+| # | Pillar | Status | SSOT Enforcement Point(s) | Evidence |
+|---|--------|--------|---------------------------|----------|
+| 1 | Salary matching | **PASS** | Validator: `validateSalaryMatching()` → `allRules.salaryMatching`. Apply: `validatePostTradeSnapshotForContext()` → same `validateTrade()` | `TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md` |
+| 2 | Sign-and-trade | **PASS** | Validator: `validateSignAndTrade()` → `allRules.signAndTrade`. Apply: `buildPostTradeTeamsSnapshot()` S&T preflight throws `SIGN_AND_TRADE_APPLY_ERROR`; re-validated via `validatePostTradeSnapshotForContext()` | `TRADE_E2E_SIGN_AND_TRADE_DEEP_REVIEW_P1_RETURN_PACKAGE.md`, `TRADE_E2E_SIGN_AND_TRADE_FIX_E1_EXECUTION_RETURN_PACKAGE.md` |
+| 3 | Validator ↔ apply ↔ persistence consistency | **PASS** | Apply calls same `validateTrade()` via `validatePostTradeSnapshotForContext()`. Additional apply-only gates: league invariants, entitlement invariants, exclusivity. Single `batch.commit()` atomicity. | `TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md` |
+| 4 | Multi-team routing semantics | **PASS** | Validator: `validatePlayerRouting()` + `validateEntitlementRouting()` enforce explicit 3+ destinations. Apply: `buildPostTradeTeamsSnapshot()` throws `TRADE_APPLY_ROUTING_ERROR` | `TRADE_TESTS_FIX_E1_EXECUTION_RETURN_PACKAGE.md`, Clarified Rules A–E above |
+| 5 | Roster + structural legality | **PASS** | Validator: `computeRosterValidation()` → `allRules.rosterCount` (min 14, max 15, two-way max 3). Apply: same rules via `validatePostTradeSnapshotForContext()` block before `batch.commit()` | `TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_FIX_E1_EXECUTION_RETURN_PACKAGE.md` |
+
+### Key Return Packages
+
+- `return_packages/trade_machine/TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_FIX_E1_EXECUTION_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_SIGN_AND_TRADE_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_SIGN_AND_TRADE_FIX_E1_EXECUTION_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_TPE_EXCEPTIONS_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_TPE_EXCEPTIONS_FIX_E1_EXECUTION_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_CAP_APRON_HARDENING_E1_EXECUTION_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_CAP_APRON_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TRADE_E2E_TRADE_MACHINE_5PACK_CLOSEOUT_P1_RETURN_PACKAGE.md`
+
+### Non-Blocking Minors (not required for ship)
+
+1. **`usedTradeExceptions` dead field** — **FIXED in B.** `exportCurrentTrade()` now uses `extractUsedTpeIds()` which filters on `absorptionMode === 'TPE'` + truthy `tpeId`. De-duplicated, null-safe. Helper in `tradeMachine/utils/tradeExportUtils.js`.
+2. **`twoWayPlayers` not maintained by `buildPostTradeTeamsSnapshot`** — **FIXED in B.** Snapshot builder now maintains `twoWayPlayers` if present pre-trade: removes outgoing two-way players, adds incoming (`isTwoWay === true`), deduplicates by player ID. Does not invent the field when absent.
+3. **Three duplicate roster validation modules** — `rosterValidation.js`, `validateRoster.ts`, `validateRoster.js` overlap. Canonical enforcement is inline in `tradeValidator.js`. Consolidation deferred.
+4. **`incomingPlayers`/`incomingEntitlements` redundant in export** — Included in `exportCurrentTrade()` but not used by world-mode apply (recomputed via routing). Only used by vacuum-mode local state.
+5. **Persistence-contract shape enforcement environment-gated** — `assertPersistableOrThrow` only enforces in test environments. Pipeline has upstream shape guarantees.
+6. **`FaExceptionTracker` mixes local and validator data** — Informational display, not an apply gate.
+
+### Validation Gates (at closeout)
+
+- `npm run test:trade -- --reporter=dot`: **PASS** (56 files, 516 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot`: **PASS** (136 files, 2206 passed, 1 skipped, 3 todo)
+- `npm run build`: **PASS** (3052 modules, built successfully)
+- `npm run validate:project`: **PASS** (all validations passed)

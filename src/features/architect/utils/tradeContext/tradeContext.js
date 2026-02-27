@@ -376,6 +376,27 @@ export function buildPostTradeTeamsSnapshot({
       })),
     ];
 
+    // Maintain twoWayPlayers array if present on the pre-trade team.
+    if (Array.isArray(team.twoWayPlayers)) {
+      const merged = [
+        ...team.twoWayPlayers.filter((p) => {
+          const pid = p.player_id || p.id;
+          return !outgoingPlayerIds.includes(pid);
+        }),
+        ...incomingPlayers
+          .filter((p) => p.isTwoWay === true)
+          .map((p) => ({ ...p, teamCode, teamName: team.teamName })),
+      ];
+      const seen = new Set();
+      updatedTeam.twoWayPlayers = merged.filter((p) => {
+        const pid = p.player_id || p.id;
+        if (!pid) return true;
+        if (seen.has(pid)) return false;
+        seen.add(pid);
+        return true;
+      });
+    }
+
     // Sign-and-trade to this team triggers first-apron hard cap metadata.
     const receivesSignAndTrade = incomingPlayers.some(
       (p) => p.signAndTrade === true

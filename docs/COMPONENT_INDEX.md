@@ -199,6 +199,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/seasonUtils.js
 - utils/tradeMachine/utils/stepienEntitlementUtils.js
 - utils/tradeMachine/utils/swapResolution.js
+- utils/tradeMachine/utils/tradeExportUtils.js
 - utils/tradeMachine/utils/tradeUtilities.js
 - utils/tradeMachine/utils/validateInput.js
 - utils/tradeMachine/validators/index.js
@@ -355,4 +356,4 @@ Quick reference for all components in the ScoutZero project.
 - TieramidPlayerTile.jsx
 
 ---
-*Generated on: 2026-02-26T12:22:53.605Z*
+*Generated on: 2026-02-27T03:34:13.655Z*
