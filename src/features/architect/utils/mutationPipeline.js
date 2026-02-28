@@ -52,6 +52,7 @@ import {
 import { collection, doc } from 'firebase/firestore';
 import {
   ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
 } from '@/constants/collections';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
@@ -61,6 +62,7 @@ import {
   validateWaive,
   validateExtension,
   validateOptionDecision,
+  validateOfferSheetResolution,
   validateRenounceRights,
   validateDeadCap,
   validateExceptions,
@@ -100,6 +102,10 @@ import {
   validateMutationLeagueInvariants,
   validateMutationEntitlementInvariants,
 } from '@/features/architect/utils/leagueInvariants';
+import {
+  POST_STATE_CAP_VALIDATOR_VERSION,
+  validatePostStateCapLegality,
+} from '@/features/architect/utils/capLegality/postStateCapValidator';
 
 // ==============================================================================
 // PHASE 58: TRADE CONTEXT MODULE RE-EXPORTS
@@ -434,6 +440,182 @@ export function resolveWorldAsOfDate({ payloadAsOfDate, worldAsOfDate }) {
   };
 }
 
+const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
+
+function generateOperationId(timestamp = Date.now()) {
+  const randomSuffix = Math.random().toString(36).slice(2, 10);
+  return `op_${timestamp}_${randomSuffix}`;
+}
+
+function safeCloneForAudit(value) {
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return value;
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+}
+
+function addTeamSnapshot(teamsByCode, teamCode, team) {
+  if (!teamCode || !team || teamsByCode[teamCode]) {
+    return;
+  }
+  teamsByCode[teamCode] = safeCloneForAudit(team);
+}
+
+function extractTeamsByCodeFromCurrentState(currentState = {}) {
+  const teamsByCode = {};
+
+  if (Array.isArray(currentState.teams)) {
+    for (const entry of currentState.teams) {
+      const teamCode = entry?.teamCode || entry?.team?.teamCode;
+      addTeamSnapshot(teamsByCode, teamCode, entry?.team);
+    }
+  }
+
+  addTeamSnapshot(
+    teamsByCode,
+    currentState.teamCode || currentState.team?.teamCode,
+    currentState.team
+  );
+  addTeamSnapshot(
+    teamsByCode,
+    currentState.homeTeam?.teamCode,
+    currentState.homeTeam
+  );
+  addTeamSnapshot(
+    teamsByCode,
+    currentState.offeringTeam?.teamCode,
+    currentState.offeringTeam
+  );
+  addTeamSnapshot(
+    teamsByCode,
+    currentState.destinationTeamCode || currentState.destinationTeam?.teamCode,
+    currentState.destinationTeam
+  );
+
+  return teamsByCode;
+}
+
+function extractTeamsByCodeFromComputeResult(computeResult = {}) {
+  const teamsByCode = {};
+  for (const update of computeResult.teamUpdates || []) {
+    addTeamSnapshot(teamsByCode, update?.teamCode, update?.team);
+  }
+  return teamsByCode;
+}
+
+function buildTotalsByTeam(teamsByCode, year) {
+  const totalsByTeam = {};
+  for (const [teamCode, team] of Object.entries(teamsByCode || {})) {
+    if (!team || typeof team !== 'object') {
+      continue;
+    }
+    totalsByTeam[teamCode] = computeTeamCapTotals(team, year);
+  }
+  return totalsByTeam;
+}
+
+function collectMutationPlayerIds(payload = {}, computeResult = {}) {
+  const playerIds = new Set();
+
+  if (payload.playerId) {
+    playerIds.add(String(payload.playerId));
+  }
+
+  for (const teamEntry of payload.teams || []) {
+    for (const player of teamEntry?.sends || []) {
+      const playerId = player?.player_id || player?.id || player?.playerId;
+      if (playerId) {
+        playerIds.add(String(playerId));
+      }
+    }
+  }
+
+  for (const update of computeResult.playerUpdates || []) {
+    if (update?.playerId) {
+      playerIds.add(String(update.playerId));
+    }
+  }
+
+  for (const playerId of computeResult.metadata?.playersTraded || []) {
+    if (playerId) {
+      playerIds.add(String(playerId));
+    }
+  }
+
+  return Array.from(playerIds);
+}
+
+function buildPostStateRulesContext(year) {
+  const capSettingsResult = getCapSettings({ year });
+  const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
+
+  return {
+    capSettings: capSettingsResult?.settings || null,
+    minimumTeamSalary: Number.isFinite(minimumTeamSalary)
+      ? minimumTeamSalary
+      : undefined,
+    capSettingsSource: capSettingsResult?.source || null,
+  };
+}
+
+function buildCapAuditDiffSummary({
+  beforeTeamsByCode = {},
+  afterTeamsByCode = {},
+}) {
+  const teamCodes = Array.from(
+    new Set([
+      ...Object.keys(beforeTeamsByCode),
+      ...Object.keys(afterTeamsByCode),
+    ])
+  );
+  const changedPlayerIds = new Set();
+  let deadCapChanged = 0;
+  let exceptionsChanged = 0;
+
+  for (const teamCode of teamCodes) {
+    const beforeTeam = beforeTeamsByCode[teamCode] || {};
+    const afterTeam = afterTeamsByCode[teamCode] || {};
+
+    const beforeRoster = new Set((beforeTeam.roster || []).map(String));
+    const afterRoster = new Set((afterTeam.roster || []).map(String));
+
+    for (const playerId of beforeRoster) {
+      if (!afterRoster.has(playerId)) {
+        changedPlayerIds.add(playerId);
+      }
+    }
+    for (const playerId of afterRoster) {
+      if (!beforeRoster.has(playerId)) {
+        changedPlayerIds.add(playerId);
+      }
+    }
+
+    if (
+      JSON.stringify(beforeTeam.deadCap || []) !==
+      JSON.stringify(afterTeam.deadCap || [])
+    ) {
+      deadCapChanged += 1;
+    }
+    if (
+      JSON.stringify(beforeTeam.exceptions || {}) !==
+      JSON.stringify(afterTeam.exceptions || {})
+    ) {
+      exceptionsChanged += 1;
+    }
+  }
+
+  return {
+    playersMoved: changedPlayerIds.size,
+    deadCapChanged,
+    exceptionsChanged,
+    teamsTouched: teamCodes.length,
+  };
+}
+
 // ==============================================================================
 // MAIN ENTRY POINT
 // ==============================================================================
@@ -475,6 +657,7 @@ export async function applyWorldMutation({
   // SECURITY: Strip override metadata if override is disabled
   // This prevents clients from bypassing validation by sending overrideMetadata
   const sanitizedPayload = sanitizePayloadForOverride(payload);
+  const operationId = generateOperationId(timestamp);
 
   try {
     // PHASE 1: READ - Load required current state
@@ -483,6 +666,7 @@ export async function applyWorldMutation({
       mutationType,
       sanitizedPayload
     );
+    const beforeTeamsByCode = extractTeamsByCodeFromCurrentState(currentState);
 
     // Phase 20: Load world metadata asOfDate for SSOT resolution
     let worldAsOfDate = null;
@@ -619,6 +803,63 @@ export async function applyWorldMutation({
       };
     }
 
+    // PHASE 3.8: POST-STATE CAP VALIDATOR (world mutation gold path)
+    const year = toEndYear(seasonId);
+    const afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
+    const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
+    const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
+
+    if (Object.keys(afterTotalsByTeam).length === 0) {
+      return {
+        success: false,
+        error:
+          'Post-state validator requires afterTotalsByTeam for at least one affected team',
+        violations: [
+          {
+            rule: 'POST_STATE_TOTALS_UNAVAILABLE',
+            message:
+              'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
+            severity: 'error',
+          },
+        ],
+        warnings: validationResult.warnings || [],
+      };
+    }
+
+    const rulesContext = buildPostStateRulesContext(year);
+    const postStateValidation = validatePostStateCapLegality({
+      operationId,
+      mutationType,
+      worldId,
+      year,
+      beforeTeamsByCode,
+      afterTeamsByCode,
+      beforeTotalsByTeam,
+      afterTotalsByTeam,
+      rulesContext,
+    });
+
+    const combinedWarnings = [
+      ...(validationResult.warnings || []),
+      ...(postStateValidation.warnings || []),
+    ];
+
+    if (!postStateValidation.valid) {
+      return {
+        success: false,
+        error: 'Post-state cap validation failed',
+        violations: postStateValidation.violations,
+        warnings: combinedWarnings,
+      };
+    }
+
+    const teamCodes = computeResult.teamUpdates.map((u) => u.teamCode);
+    const playerIds = collectMutationPlayerIds(sanitizedPayload, computeResult);
+    const diffSummary = buildCapAuditDiffSummary({
+      beforeTeamsByCode,
+      afterTeamsByCode,
+    });
+
     // PHASE 4: PERSIST - Write to Firestore (ONLY place that writes)
     // DEV DEBUG: Check for UID mismatch which causes PERMISSION_DENIED
     if (import.meta.env.DEV) {
@@ -648,6 +889,20 @@ export async function applyWorldMutation({
       computeResult,
       timestamp,
       payloadAsOfDate: sanitizedPayload.asOfDate, // Phase 20: Only persist if explicitly provided
+      auditContext: {
+        operationId,
+        validatorVersion: POST_STATE_CAP_VALIDATOR_VERSION,
+        schemaVersion: CAP_AUDIT_EVENT_SCHEMA_VERSION,
+        mutationCategory: getMutationActionType(mutationType),
+        teamCodes,
+        playerIds,
+        beforeTotalsByTeam,
+        afterTotalsByTeam,
+        valid: postStateValidation.valid,
+        violations: postStateValidation.violations,
+        warnings: postStateValidation.warnings,
+        diffSummary,
+      },
     });
 
     if (!persistResult.success) {
@@ -655,7 +910,6 @@ export async function applyWorldMutation({
     }
 
     // PHASE 5: POST-UPDATE - Update world stats and metadata
-    const teamCodes = computeResult.teamUpdates.map((u) => u.teamCode);
     await updateWorldStats(
       worldId,
       getMutationActionType(mutationType),
@@ -669,7 +923,7 @@ export async function applyWorldMutation({
       changedPlayers: computeResult.playerUpdates,
       worldPatch: persistResult.worldPatch,
       event: persistResult.event,
-      warnings: validationResult.warnings || [],
+      warnings: combinedWarnings,
     };
   } catch (error) {
     console.error(`applyWorldMutation failed for ${mutationType}:`, error);
@@ -2404,6 +2658,49 @@ function validateMutation({
       };
     }
 
+    case 'finalizeMatchedOfferSheet':
+    case 'finalizeDeclinedOfferSheet': {
+      const homeOfferSheet = currentState.homeTeam?.incomingOfferSheets?.find(
+        (os) =>
+          os.id === currentState.offerSheetId ||
+          (payload.dedupKey && os.dedupKey === payload.dedupKey)
+      );
+      const offeringOfferSheet = currentState.offeringTeam?.offerSheets?.find(
+        (os) =>
+          os.id === currentState.offerSheetId ||
+          (payload.dedupKey && os.dedupKey === payload.dedupKey)
+      );
+      const offerSheet = homeOfferSheet || offeringOfferSheet;
+
+      if (!offerSheet) {
+        return {
+          valid: false,
+          error: `Offer sheet ${currentState.offerSheetId} not found`,
+          violations: [
+            {
+              rule: 'offer_sheet_not_found',
+              message: `Offer sheet ${currentState.offerSheetId} not found for finalize action.`,
+              severity: 'error',
+            },
+          ],
+          warnings: pipelineWarnings,
+        };
+      }
+
+      const result = validateOfferSheetResolution({
+        offerSheet,
+        actingTeamCode: payload.teamCode,
+        action: 'finalize',
+        asOfDate, // Phase 21
+      });
+      return {
+        valid: result.valid,
+        error: result.violations[0]?.message || null,
+        violations: result.violations,
+        warnings: [...result.warnings, ...pipelineWarnings],
+      };
+    }
+
     case 'renounceRights': {
       const result = validateRenounceRights({
         team: currentState.team,
@@ -2505,6 +2802,7 @@ async function persistWorldMutation({
   computeResult,
   timestamp,
   payloadAsOfDate, // Phase 20: Only write asOfDate if explicitly provided in payload
+  auditContext = {},
 }) {
   const batch = writeBatch(db);
 
@@ -2587,7 +2885,7 @@ async function persistWorldMutation({
       db,
       ARCHITECT_WORLDS_COLLECTION,
       worldId,
-      'events'
+      ARCHITECT_WORLD_EVENTS_SUBCOLLECTION
     );
     const eventRef = doc(eventsCol, eventId);
 
@@ -2603,13 +2901,43 @@ async function persistWorldMutation({
     });
     const sanitizedMetadata = removeUndefinedDeep(sanitizedMetadataRaw);
 
+    const teamCodes =
+      auditContext.teamCodes || computeResult.teamUpdates.map((u) => u.teamCode);
+    const playerIds = auditContext.playerIds || [];
+    const occurredAt = new Date(timestamp).toISOString();
     const event = {
+      // Legacy fields retained for compatibility with existing event consumers.
       eventId,
       type: mutationType,
-      timestamp: new Date(timestamp).toISOString(),
+      timestamp: occurredAt,
       seasonId,
       metadata: sanitizedMetadata,
-      teamsAffected: computeResult.teamUpdates.map((u) => u.teamCode),
+      teamsAffected: teamCodes,
+
+      // Cap Audit Event V1 envelope.
+      schemaVersion:
+        auditContext.schemaVersion || CAP_AUDIT_EVENT_SCHEMA_VERSION,
+      validatorVersion:
+        auditContext.validatorVersion || POST_STATE_CAP_VALIDATOR_VERSION,
+      operationId: auditContext.operationId,
+      mutationType,
+      occurredAt,
+      worldId,
+      teamCodes,
+      playerIds,
+      beforeTotalsByTeam: auditContext.beforeTotalsByTeam || {},
+      afterTotalsByTeam: auditContext.afterTotalsByTeam || {},
+      valid: auditContext.valid === true,
+      violations: auditContext.violations || [],
+      warnings: auditContext.warnings || [],
+      diffSummary: auditContext.diffSummary || {},
+      mutationMetadata: {
+        mutationType,
+        category: auditContext.mutationCategory || 'unknown',
+        worldId,
+        teams: teamCodes,
+        players: playerIds,
+      },
     };
 
     // Phase 60: Sanitize entire event (defense-in-depth)

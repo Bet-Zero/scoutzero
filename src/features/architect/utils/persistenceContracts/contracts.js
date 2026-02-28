@@ -259,12 +259,30 @@ export const PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST = Object.freeze([
  * Top-level keys allowed on event log documents.
  */
 export const EVENT_TOP_LEVEL_ALLOWLIST = Object.freeze([
+  // Legacy envelope fields (backward compatibility)
   'eventId',
   'type', // Mutation type (e.g., 'executeTrade', 'signFreeAgent')
   'timestamp', // ISO timestamp
   'seasonId', // Season code
   'metadata', // Nested object with type-specific data
   'teamsAffected', // Array of team codes
+
+  // CapAuditEventV1 envelope fields
+  'schemaVersion',
+  'validatorVersion',
+  'operationId',
+  'mutationType',
+  'occurredAt',
+  'worldId',
+  'teamCodes',
+  'playerIds',
+  'beforeTotalsByTeam',
+  'afterTotalsByTeam',
+  'valid',
+  'violations',
+  'warnings',
+  'diffSummary',
+  'mutationMetadata',
 ]);
 
 /**
@@ -286,6 +304,13 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST = Object.freeze([
   'sourceTeam', // Origin team code
   'destinationTeam', // Receiving team code
   'contract', // Signed contract details object
+
+  // Offer sheet workflow events
+  'offeringTeamCode',
+  'homeTeamCode',
+  'offerSheetId',
+  'offeringTeam',
+  'homeTeam',
 
   // Signing events
   'playerId',

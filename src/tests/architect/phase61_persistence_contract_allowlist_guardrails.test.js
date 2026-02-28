@@ -562,6 +562,20 @@ describe('Phase 61: Persistence contract structure validation', () => {
 
   it('TEST 34: EVENT allowlist includes expected fields', () => {
     expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('eventId');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('schemaVersion');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('validatorVersion');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('operationId');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('mutationType');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('occurredAt');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('worldId');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('teamCodes');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('playerIds');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('beforeTotalsByTeam');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('afterTotalsByTeam');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('valid');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('violations');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('warnings');
+    expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('diffSummary');
     expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('type');
     expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('timestamp');
     expect(EVENT_TOP_LEVEL_ALLOWLIST).toContain('metadata');

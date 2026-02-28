@@ -149,7 +149,39 @@ function createPlayerFixture() {
  */
 function createEventFixture() {
   return {
+    schemaVersion: 'cap-audit-event-v1',
+    validatorVersion: '0.1.0',
+    operationId: 'op_1700000000000_abc123',
     eventId: 'executeTrade_1700000000000_abc123',
+    mutationType: 'executeTrade',
+    occurredAt: '2025-11-01T00:00:00.000Z',
+    worldId: 'world_test_001',
+    teamCodes: ['BOS', 'LAL'],
+    playerIds: ['player_002'],
+    beforeTotalsByTeam: {
+      BOS: { yearKey: 2026, totalCapAllocations: 175000000 },
+      LAL: { yearKey: 2026, totalCapAllocations: 176000000 },
+    },
+    afterTotalsByTeam: {
+      BOS: { yearKey: 2026, totalCapAllocations: 173000000 },
+      LAL: { yearKey: 2026, totalCapAllocations: 178000000 },
+    },
+    valid: true,
+    violations: [],
+    warnings: [],
+    diffSummary: {
+      playersMoved: 1,
+      deadCapChanged: 0,
+      exceptionsChanged: 0,
+      teamsTouched: 2,
+    },
+    mutationMetadata: {
+      mutationType: 'executeTrade',
+      category: 'trade',
+      worldId: 'world_test_001',
+      teams: ['BOS', 'LAL'],
+      players: ['player_002'],
+    },
     type: 'executeTrade',
     timestamp: '2025-11-01T00:00:00.000Z',
     seasonId: '2025-26',
@@ -502,12 +534,27 @@ describe('Phase 62: Keyset snapshot drift guardrails', () => {
   ];
 
   const EXPECTED_EVENT_TOP_LEVEL_KEYS = [
+    'afterTotalsByTeam',
+    'beforeTotalsByTeam',
+    'diffSummary',
     'eventId',
     'metadata',
+    'mutationMetadata',
+    'mutationType',
+    'occurredAt',
+    'operationId',
+    'playerIds',
+    'schemaVersion',
     'seasonId',
+    'teamCodes',
     'teamsAffected',
     'timestamp',
     'type',
+    'valid',
+    'validatorVersion',
+    'violations',
+    'warnings',
+    'worldId',
   ];
 
   it('TEST 13: TEAM fixture top-level keyset is stable', () => {

@@ -130,3 +130,32 @@ Execution sequencing and acceptance criteria live in:
 
 - `return_packages/architect/TM_CAP_AUDITABILITY_P0_PREFLIGHT_RETURN_PACKAGE.md`  
   Section: **Next Execution Tickets (Scoped)** (`E1`..`E4`)
+
+## E1 Execution Status (Implemented 2026-02-28)
+
+Scope implemented in authoritative world mutation pipeline only:
+
+- `applyWorldMutation` now generates and threads `operationId` through validation and persistence.
+- Added shared post-state validator module:
+  `src/features/architect/utils/capLegality/postStateCapValidator.ts`
+  - `POST_STATE_CAP_VALIDATOR_VERSION: "0.1.0"`
+  - `validatePostStateCapLegality(input) => { valid, violations, warnings }`
+- Added fail-closed post-state validation gate in authoritative flow:
+  `compute -> validateMutation -> league invariants -> postStateCapValidator -> persist`.
+- Upgraded world mutation event envelope to `CapAuditEventV1` fields at existing destination path (`architect_worlds/{worldId}/events/{eventId}`):
+  - `schemaVersion: "cap-audit-event-v1"`
+  - `validatorVersion`
+  - `operationId`
+  - `beforeTotalsByTeam` / `afterTotalsByTeam`
+  - validator verdict (`valid`, `violations`, `warnings`)
+  - `diffSummary`
+  - mutation metadata (`mutationType`, category, `worldId`, teams, players)
+- Updated persistence event allowlist contract to accept `CapAuditEventV1` fields.
+- Added `ARCHITECT_WORLD_EVENTS_SUBCOLLECTION` constant in `src/constants/collections.ts`.
+- Closed validator mapping gap for `finalizeMatchedOfferSheet` / `finalizeDeclinedOfferSheet` by explicitly routing both through `validateOfferSheetResolution(action: "finalize")`.
+
+Still out of scope / remaining for later tickets:
+
+- Season advance (`seasonManager`) event parity on same envelope.
+- Base-mode durable logging parity.
+- Optimistic/local handler parity and bypass elimination.

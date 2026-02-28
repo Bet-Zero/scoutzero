@@ -64,6 +64,11 @@ export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION =
   'entitlements';
 
 /**
+ * Architect world events subcollection name
+ */
+export const ARCHITECT_WORLD_EVENTS_SUBCOLLECTION = 'events';
+
+/**
  * Subcollection names (under players)
  */
 export const CONTRACTS_SUBCOLLECTION = 'contracts';

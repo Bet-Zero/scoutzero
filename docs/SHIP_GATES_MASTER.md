@@ -96,13 +96,17 @@ Primary docs:
 
 Draft ship gates to enforce in execution phases:
 
-1. **Validator Coverage Gate**  
+1. **World Mutation Post-State Validator Gate**  
+   Every persisted world mutation runs the shared post-state validator and fail-closes on violations.
+2. **World Mutation CapAuditEventV1 Gate**  
+   Every persisted world mutation emits one `CapAuditEventV1` envelope (same world event destination) with before/after totals and validator verdict.
+3. **Validator Coverage Gate**  
    Every cap-changing world path and base-mode parity path runs one post-state validator contract with versioned output.
-2. **Audit Coverage Gate**  
+4. **Audit Coverage Gate**  
    Every cap-changing world write emits one `CapAuditEventV1` envelope containing before/after totals and validator verdict.
-3. **Bypass Closure Gate**  
+5. **Bypass Closure Gate**  
    No world cap-changing path can bypass `compute -> validate -> persist -> log`.
-4. **Season Advance Audit Gate**  
+6. **Season Advance Audit Gate**  
    `advanceSeasonInWorld` emits durable world events with the same schema/version contract as mutation pipeline writes.
 
 Draft validation command set (to be finalized in execution tickets):
