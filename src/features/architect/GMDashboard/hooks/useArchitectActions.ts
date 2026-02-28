@@ -852,7 +852,11 @@ export function useArchitectActions({
       computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
       persistPayload?: Record<string, unknown>;
       invalidMessage: string;
-    }): { applied: boolean; operationId: string | null } => {
+    }): {
+      applied: boolean;
+      operationId: string | null;
+      persistPromise: Promise<boolean> | null;
+    } => {
       const {
         mutationType,
         playerIds = [],
@@ -878,7 +882,7 @@ export function useArchitectActions({
               worldId,
               lockScopeKey,
             });
-            return { applied: false, operationId: null };
+            return { applied: false, operationId: null, persistPromise: null };
           }
         }
 
@@ -889,7 +893,7 @@ export function useArchitectActions({
               mutationType,
             }
           );
-          return { applied: false, operationId: null };
+          return { applied: false, operationId: null, persistPromise: null };
         }
 
         const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
@@ -933,13 +937,17 @@ export function useArchitectActions({
               violations: previewEvent.validation.violations,
             }
           );
-          return { applied: false, operationId };
+          return { applied: false, operationId, persistPromise: null };
         }
 
         setTeamCapSheet(afterTeamSnapshot);
 
         if (!worldId) {
-          return { applied: true, operationId };
+          return {
+            applied: true,
+            operationId,
+            persistPromise: Promise.resolve(true),
+          };
         }
 
         const persistPromise = persistMutation(mutationType, persistPayload, {
@@ -995,6 +1003,9 @@ export function useArchitectActions({
             );
           },
         });
+        const persistCompletionPromise = persistPromise
+          .then((result) => !!result?.success)
+          .catch(() => false);
 
         persistScheduled = true;
         void persistPromise.finally(() => {
@@ -1003,7 +1014,11 @@ export function useArchitectActions({
           }
         });
 
-        return { applied: true, operationId };
+        return {
+          applied: true,
+          operationId,
+          persistPromise: persistCompletionPromise,
+        };
       } finally {
         if (optimisticLockAcquired && lockScopeKey && !persistScheduled) {
           releaseOptimisticLock(lockScopeKey);
@@ -1805,8 +1820,8 @@ export function useArchitectActions({
 
   // === Dead Money Actions (Phase 24) ===
   const handleSetDeadCap = useCallback(
-    (deadCap: any[]): void => {
-      applyCapAuditedTeamMutation({
+    (deadCap: any[]) => {
+      const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'setDeadCap',
         playerIds: [],
         invalidMessage: 'Dead cap update blocked by post-state cap validation.',
@@ -1819,14 +1834,18 @@ export function useArchitectActions({
           deadCap,
         },
       });
+      if (!mutationResult.applied) {
+        return Promise.resolve(false);
+      }
+      return mutationResult.persistPromise || Promise.resolve(true);
     },
     [applyCapAuditedTeamMutation, teamCode]
   );
 
   // === Exception Management Actions (Phase 27) ===
   const handleSetExceptions = useCallback(
-    (exceptions: Record<string, any>): void => {
-      applyCapAuditedTeamMutation({
+    (exceptions: Record<string, any>) => {
+      const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'setExceptions',
         playerIds: [],
         invalidMessage:
@@ -1840,6 +1859,10 @@ export function useArchitectActions({
           exceptions,
         },
       });
+      if (!mutationResult.applied) {
+        return Promise.resolve(false);
+      }
+      return mutationResult.persistPromise || Promise.resolve(true);
     },
     [applyCapAuditedTeamMutation, teamCode]
   );

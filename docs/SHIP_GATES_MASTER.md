@@ -186,6 +186,25 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 
 ---
 
+## Cap Sheet Page Workflow/Wiring Audit (P1 PREFLIGHT COMPLETE)
+
+- Status: **PREFLIGHT COMPLETE** (2026-02-28)
+- Return package: `return_packages/architect/TM_CAP_SHEET_P1_PREFLIGHT_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+
+## Cap Sheet Page Wiring Closure (E1 COMPLETE)
+
+- Status: **COMPLETE** (2026-02-28)
+- Return package: `return_packages/architect/TM_CAP_SHEET_E1_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+- Page-level ship gates satisfied:
+  - Exception save/read parity on Cap Sheet page (`team.exceptions` canonical, legacy fallback read)
+  - Unsupported DPE key removed from Cap Sheet exceptions mutation payload surface
+  - TPE expiry rendering honors canonical fallback fields (`expiresOn`, `expirationDate`, `expires`)
+  - Cap Sheet modals keep context on failed world save (no close-before-fail)
+
+---
+
 ## Manual Smoke Checklist
 
 Run these scenarios manually against a dev server (`npm run dev`) before shipping.  

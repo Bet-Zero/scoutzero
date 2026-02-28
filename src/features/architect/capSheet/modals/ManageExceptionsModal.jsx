@@ -19,14 +19,13 @@ import { canUseRoomException } from '@/features/architect/utils/capTotals/comput
  * Exception types supported for manual management.
  * TPE is explicitly NOT included in Phase 27 scope.
  */
-const EXCEPTION_TYPES = ['mle', 'tpmle', 'bae', 'room', 'dpe'];
+const EXCEPTION_TYPES = ['mle', 'tpmle', 'bae', 'room'];
 
 const EXCEPTION_LABELS = {
   mle: 'Mid-Level Exception (MLE)',
   tpmle: 'Taxpayer MLE',
   bae: 'Bi-Annual Exception (BAE)',
   room: 'Room Exception',
-  dpe: 'Disabled Player Exception (DPE)',
 };
 
 const DEFAULT_EXCEPTION = {
@@ -51,10 +50,6 @@ const getDefaultTotalAmount = (type, capSettings) => {
       return capSettings.bae || 0;
     case 'room':
       return capSettings.roomMLE || capSettings.room || 0;
-    case 'dpe':
-      // DPE = lesser of 50% of injured player's salary OR full NT-MLE
-      // Default to 0 - team must configure based on injured player
-      return 0;
     default:
       return 0;
   }
@@ -73,6 +68,8 @@ const ManageExceptionsModal = ({
 }) => {
   const [exceptions, setExceptions] = useState({});
   const [capSettings, setCapSettings] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Get the season key from currentYear
   const seasonKey = `${currentYear - 1}-${String(currentYear % 100).padStart(2, '0')}`;
@@ -98,6 +95,8 @@ const ManageExceptionsModal = ({
   // Initialize from cap sheet exceptions
   useEffect(() => {
     if (isOpen && teamCapSheet) {
+      setSaveError('');
+      setIsSaving(false);
       const existingExceptions = teamCapSheet.exceptions || {};
 
       // Build initial state for each exception type
@@ -149,7 +148,10 @@ const ManageExceptionsModal = ({
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveError('');
+
     // Build the canonical exceptions object
     // Only include enabled exceptions or those with non-zero values
     const canonicalExceptions = {};
@@ -171,8 +173,23 @@ const ManageExceptionsModal = ({
       }
     });
 
-    onSave(canonicalExceptions);
-    onClose();
+    try {
+      const saveResult = await onSave(canonicalExceptions);
+      if (saveResult === false) {
+        setSaveError(
+          'Failed to save exceptions. Please fix issues and try again.'
+        );
+        return;
+      }
+      onClose();
+    } catch (error) {
+      setSaveError(
+        error?.message ||
+          'Failed to save exceptions. Please fix issues and try again.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const formatCurrency = (value) => {
@@ -189,6 +206,7 @@ const ManageExceptionsModal = ({
           <button
             onClick={onClose}
             className="text-white/50 hover:text-white text-2xl"
+            disabled={isSaving}
           >
             &times;
           </button>
@@ -346,19 +364,31 @@ const ManageExceptionsModal = ({
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/10 bg-black/20 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 rounded text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
-          >
-            Save Changes
-          </button>
+        <div className="p-4 border-t border-white/10 bg-black/20">
+          {saveError && (
+            <div
+              role="alert"
+              className="mb-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+            >
+              {saveError}
+            </div>
+          )}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 rounded text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 rounded text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

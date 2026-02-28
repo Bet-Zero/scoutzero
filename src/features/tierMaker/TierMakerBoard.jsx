@@ -15,6 +15,7 @@ import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
 import { toast } from 'react-hot-toast';
 import { useRef } from 'react';
+import { isOwnerUid } from '@/config/ownerConfig';
 
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
@@ -70,6 +71,7 @@ const TierMakerBoard = ({
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
+  const isOwner = isOwnerUid(userId);
   // E4: Scope list/tierList queries to ownerUid
   const ownerConstraints = useMemo(
     () => (userId ? [where('ownerUid', '==', userId)] : []),
@@ -144,19 +146,12 @@ const TierMakerBoard = ({
 
   const lists = useMemo(
     () =>
-      (listsData || []).map((l) => {
-        const orderIds = l.playerOrder || [];
-        const allIds = l.playerIds || [];
-        const merged = [...orderIds];
-        allIds.forEach((id) => {
-          if (!merged.includes(id)) merged.push(id);
-        });
-        return {
-          id: l.id,
-          name: l.name,
-          playerIds: merged,
-        };
-      }),
+      (listsData || []).map((l) => ({
+        id: l.id,
+        name: l.name,
+        playerIds: l.playerIds || [],
+        playerOrder: l.playerOrder || [],
+      })),
     [listsData]
   );
 
@@ -385,7 +380,10 @@ const TierMakerBoard = ({
     if (!selectedList) return;
     const list = lists.find((l) => l.id === selectedList);
     if (!list) return;
-    const listPlayers = list.playerIds
+    // Use playerOrder if present, fallback to playerIds (matches TieramidBoard behavior)
+    const listPlayers = (
+      list.playerOrder.length ? list.playerOrder : list.playerIds
+    )
       .map((id) => playersMap[id])
       .filter(Boolean);
     addPlayersToPool(listPlayers);
@@ -659,7 +657,7 @@ const TierMakerBoard = ({
         </div>
       )}
 
-      {!screenshotMode && (
+      {!screenshotMode && isOwner && (
         <div className="fixed bottom-6 right-6 z-50">
           <button
             onClick={() => handleSaveTierList()}

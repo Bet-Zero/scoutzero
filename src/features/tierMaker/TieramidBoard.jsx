@@ -18,6 +18,7 @@ import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer/index.jsx';
 import { toast } from 'react-hot-toast';
+import { isOwnerUid } from '@/config/ownerConfig';
 
 const INITIAL_ROWS = 5;
 const MAX_ROWS = 10;
@@ -90,6 +91,7 @@ const TieramidBoard = ({
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
+  const isOwner = isOwnerUid(userId);
   // E4: Scope list/tierList queries to ownerUid
   const ownerConstraints = useMemo(
     () => (userId ? [where('ownerUid', '==', userId)] : []),
@@ -937,13 +939,15 @@ const TieramidBoard = ({
           {/* Controls under Pool */}
           {!screenshotMode && (
             <div className="flex items-center flex-wrap gap-2 mt-4 justify-center">
-              <button
-                onClick={() => handleSaveTierList()}
-                className="h-8 px-3 rounded text-sm bg-white/10 text-white hover:bg-white/20"
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
+              {isOwner && (
+                <button
+                  onClick={() => handleSaveTierList()}
+                  className="h-8 px-3 rounded text-sm bg-white/10 text-white hover:bg-white/20"
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
+                </button>
+              )}
               <select
                 value={selectedTierList}
                 onChange={(e) => handleLoadTierList(e.target.value)}

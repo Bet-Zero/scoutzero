@@ -3,6 +3,52 @@ import { BadgeAlert, ShieldAlert } from 'lucide-react';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
+const toNonNegativeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, parsed);
+};
+
+const normalizeExceptionForTracker = (
+  teamCapSheet,
+  canonicalKey,
+  legacyKey,
+  defaultTotalAmount
+) => {
+  const canonicalEntry = teamCapSheet?.exceptions?.[canonicalKey];
+  const hasCanonicalEntry =
+    !!canonicalEntry &&
+    typeof canonicalEntry === 'object' &&
+    !Array.isArray(canonicalEntry);
+
+  const legacyEntry = teamCapSheet?.[legacyKey];
+  const sourceEntry = hasCanonicalEntry ? canonicalEntry : legacyEntry || {};
+
+  const totalAmount = toNonNegativeNumber(
+    sourceEntry?.totalAmount ?? sourceEntry?.amount,
+    toNonNegativeNumber(defaultTotalAmount, 0)
+  );
+  const usedAmount = toNonNegativeNumber(
+    sourceEntry?.usedAmount ?? sourceEntry?.used,
+    0
+  );
+
+  const remainingFromEntry = sourceEntry?.remaining ?? sourceEntry?.remainingAmount;
+  const hasRemainingFromEntry =
+    remainingFromEntry !== undefined && remainingFromEntry !== null;
+  const computedRemaining = Math.max(0, totalAmount - usedAmount);
+  const remainingAmount = hasRemainingFromEntry
+    ? toNonNegativeNumber(remainingFromEntry, computedRemaining)
+    : computedRemaining;
+
+  return {
+    enabled: hasCanonicalEntry ? sourceEntry?.enabled !== false : true,
+    totalAmount,
+    usedAmount,
+    remainingAmount,
+  };
+};
+
 const ExceptionCard = ({
   label,
   amount,
@@ -94,6 +140,9 @@ const HardCapCard = ({ capData, hardCapped, reason }) => {
 };
 
 const CompactTradeExceptionRow = ({ tpe }) => {
+  const expiryDisplay =
+    tpe.expiresOn || tpe.expirationDate || tpe.expires || '—';
+
   return (
     <div className="grid grid-cols-[80px_1fr_auto] gap-3 items-center py-2 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.04] transition-all group relative overflow-hidden">
       {/* "Spice" - left accent */}
@@ -111,7 +160,7 @@ const CompactTradeExceptionRow = ({ tpe }) => {
 
       <div className="text-right whitespace-nowrap">
         <span className="text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">
-          {tpe.expires}
+          {expiryDisplay}
         </span>
       </div>
     </div>
@@ -119,40 +168,53 @@ const CompactTradeExceptionRow = ({ tpe }) => {
 };
 
 const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
-  const {
-    mle = {},
-    tpMle = {},
-    bae = {},
-    dpe = {},
-    hardCapped,
-  } = teamCapSheet;
+  const { hardCapped } = teamCapSheet;
   const tradeExceptions = getTeamTpeList(teamCapSheet);
 
   // Use centralized cap settings provider for consistent cap/apron values
   // currentYear is the END year (e.g., 2025 for "2024-25" season)
   const capData = getCapSettingsForYear(currentYear);
-  // No longer using daysUntil for display
-  const getRemaining = (exception, defaultAmount = 0) => {
-    const amount = exception?.amount ?? defaultAmount;
-    const used = exception?.used || 0;
-    return Math.max(0, amount - used);
-  };
+
+  const mleException = normalizeExceptionForTracker(
+    teamCapSheet,
+    'mle',
+    'mle',
+    capData.fullMLE
+  );
+  const tpMleException = normalizeExceptionForTracker(
+    teamCapSheet,
+    'tpmle',
+    'tpMle',
+    capData.taxpayerMLE
+  );
+  const baeException = normalizeExceptionForTracker(
+    teamCapSheet,
+    'bae',
+    'bae',
+    capData.bae
+  );
+  const roomException = normalizeExceptionForTracker(
+    teamCapSheet,
+    'room',
+    'room',
+    capData.roomMLE || capData.room || 0
+  );
 
   // --- Logic for Availability & Hard Cap ---
 
-  const mleUsedAmount = mle?.used || 0;
-  const baeUsedAmount = bae?.used || 0;
-  const tpMleUsedAmount = tpMle?.used || 0;
+  const mleUsedAmount = mleException.usedAmount;
+  const baeUsedAmount = baeException.usedAmount;
+  const tpMleUsedAmount = tpMleException.usedAmount;
 
-  let mleRemaining = getRemaining(mle, capData.fullMLE);
-  let tpRemaining = getRemaining(tpMle, capData.taxpayerMLE);
-  let baeRemaining = getRemaining(bae, capData.bae);
-  let dpeRemaining = getRemaining(dpe, 0);
+  let mleRemaining = mleException.enabled ? mleException.remainingAmount : 0;
+  let tpRemaining = tpMleException.enabled ? tpMleException.remainingAmount : 0;
+  let baeRemaining = baeException.enabled ? baeException.remainingAmount : 0;
+  let roomRemaining = roomException.enabled ? roomException.remainingAmount : 0;
 
-  let mleStatus = null;
-  let tpStatus = null;
-  let baeStatus = null;
-  let dpeStatus = null;
+  let mleStatus = mleException.enabled ? null : 'N/A';
+  let tpStatus = tpMleException.enabled ? null : 'N/A';
+  let baeStatus = baeException.enabled ? null : 'N/A';
+  let roomStatus = roomException.enabled ? null : 'N/A';
   let hardCapReason = null;
 
   // 1. Check for Hard Cap triggers (NTPMLE or BAE used)
@@ -195,15 +257,6 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
     baeStatus = 'N/A';
   }
 
-  // DPE follows similar hard cap rules as NT-MLE
-  if (usedTPMLE) {
-    dpeRemaining = 0;
-    dpeStatus = 'N/A';
-  } else if (hardCapped === 2) {
-    dpeRemaining = 0;
-    dpeStatus = 'N/A';
-  }
-
   return (
     <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-4">
       {/* Left Column: Exceptions & Hard Cap Info */}
@@ -239,11 +292,11 @@ const ExceptionTracker = ({ teamCapSheet, currentYear }) => {
             statusLabel={baeStatus}
           />
           <ExceptionCard
-            label="DPE"
-            amount={dpeRemaining}
-            subtext="Disabled Player"
-            color={dpeRemaining > 0 ? 'orange' : 'gray'}
-            statusLabel={dpeStatus}
+            label="ROOM"
+            amount={roomRemaining}
+            subtext="Under-Cap"
+            color={roomRemaining > 0 ? 'blue' : 'gray'}
+            statusLabel={roomStatus}
           />
         </div>
       </div>

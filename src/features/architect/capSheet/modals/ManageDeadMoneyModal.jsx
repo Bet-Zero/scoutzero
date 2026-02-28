@@ -12,10 +12,14 @@ const ManageDeadMoneyModal = ({
   currentYear,
 }) => {
   const [entries, setEntries] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Initialize from cap sheet
   useEffect(() => {
     if (isOpen && teamCapSheet?.deadCap) {
+      setSaveError('');
+      setIsSaving(false);
       // Flatten the canonical schema for UI editing
       // Canonical: { playerId?, amountByYear: { [year]: { amount } }, stretched, label? }
       // UI: { id, label, seasonKey, amount, stretched, originalEntry }
@@ -56,6 +60,8 @@ const ManageDeadMoneyModal = ({
       
       setEntries(flatEntries);
     } else if (isOpen) {
+      setSaveError('');
+      setIsSaving(false);
       setEntries([]);
     }
   }, [isOpen, teamCapSheet]);
@@ -84,7 +90,10 @@ const ManageDeadMoneyModal = ({
     setEntries(entries.filter(e => e.id !== id));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSaveError('');
+
     // Reconstruct canonical schema from flat UI entries
     // Since UI allows free-form editing, we treat each UI row as a distinct "contract" logic for simplicity in manual mode,
     // OR we could try to group them.
@@ -112,8 +121,23 @@ const ManageDeadMoneyModal = ({
        };
     });
     
-    onSave(canonicalDeadCap);
-    onClose();
+    try {
+      const saveResult = await onSave(canonicalDeadCap);
+      if (saveResult === false) {
+        setSaveError(
+          'Failed to save dead money changes. Please fix issues and try again.'
+        );
+        return;
+      }
+      onClose();
+    } catch (error) {
+      setSaveError(
+        error?.message ||
+          'Failed to save dead money changes. Please fix issues and try again.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -123,7 +147,13 @@ const ManageDeadMoneyModal = ({
       <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
         <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
           <h2 className="text-xl font-bold text-white">Manage Dead Money</h2>
-          <button onClick={onClose} className="text-white/50 hover:text-white">&times;</button>
+          <button
+            onClick={onClose}
+            className="text-white/50 hover:text-white"
+            disabled={isSaving}
+          >
+            &times;
+          </button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4">
@@ -212,19 +242,31 @@ const ManageDeadMoneyModal = ({
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/10 bg-black/20 flex justify-end gap-3">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 rounded text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={handleSave}
-            className="px-4 py-2 rounded text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
-          >
-            Save Changes
-          </button>
+        <div className="p-4 border-t border-white/10 bg-black/20">
+          {saveError && (
+            <div
+              role="alert"
+              className="mb-3 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+            >
+              {saveError}
+            </div>
+          )}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 rounded text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 rounded text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20 transition-all hover:scale-105"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
