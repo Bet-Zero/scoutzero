@@ -1,0 +1,132 @@
+# CAP_AUDITABILITY_MASTER
+
+Last updated: 2026-02-28
+
+## Purpose
+
+Single source of truth for Architect cap auditability architecture:
+
+1. One gate to trust for cap legality (`post-state validator`).
+2. One consistent audit event envelope for every cap-changing path.
+
+This document tracks target architecture, path coverage, and execution decisions.
+
+## Definitions
+
+### Gate-to-Trust
+
+Classification used for cap-changing paths:
+
+- `A` Authoritative: compute -> validate -> persist in one authoritative path.
+- `B` Bridged: partial centralization (for example optimistic local state + async authoritative persist, or path-specific validation only).
+- `C` Bypass: direct-write/local-only path without authoritative end-to-end gate.
+
+### Post-State Validator
+
+A reusable validator that accepts before/after state and returns deterministic legality verdicts for any cap-changing operation, independent of UI entry path.
+
+### Audit Event
+
+A structured, versioned event emitted for each cap-changing operation and containing:
+
+- identity/correlation
+- actor/time/scope
+- before/after totals snapshot
+- validator verdict
+- diff summary
+- persistence status metadata
+
+## Canonical Desired Pipeline
+
+All cap-changing operations (world + base-mode parity) should converge on:
+
+1. `Compute`
+2. `Validate` (shared post-state validator contract)
+3. `Persist` (or explicit local-only mode handling)
+4. `Log` (same audit schema and version fields)
+
+Canonical operation sequence:
+
+`compute -> postStateValidate -> persist -> emitCapAuditEvent`
+
+## Current-State Summary (P0 Preflight)
+
+- World mutations use `applyWorldMutation` and are closest to authoritative flow.
+- Season advance writes cap-changing state through `seasonManager` write batches, but does not emit world `events`.
+- Base-mode and several local/legacy paths remain bypass/bridged and not fully auditable.
+- No unified reusable post-state validator contract was found.
+
+Primary reference:
+
+- `return_packages/architect/TM_CAP_AUDITABILITY_P0_PREFLIGHT_RETURN_PACKAGE.md`
+
+## Write-Path Ledger
+
+Canonical complete ledger is maintained in:
+
+- `return_packages/architect/TM_CAP_AUDITABILITY_P0_PREFLIGHT_RETURN_PACKAGE.md`  
+  Section: **Write-Path Ledger (Complete)**
+
+High-level category view:
+
+| Category | Current Class | Notes |
+| --- | --- | --- |
+| World mutation pipeline actions (trade/sign/offer sheet/etc.) | Mostly `A` | Centralized path exists, but lacks holistic post-state validator and full audit envelope fields. |
+| Optimistic local + async persist handlers | `B` | Local-first mutation introduces drift/audit consistency risk. |
+| World season advance/offseason transition | `B` | Uses OSTE validation and bridge persistence contracts, but no unified world event emission. |
+| Base-mode local flows | `C` | Local-only state mutations with no durable audit trail. |
+| Legacy exported/dormant mutation surfaces | `C` | Bypass candidates; not fully routed through one trust gate. |
+
+## Proposed Contracts (Docs-Only)
+
+### `PostStateCapValidationInput`
+
+Required fields:
+
+- operation context (`operationId`, `mutationType`, `category`, `mode`)
+- temporal context (`asOfDate`, `seasonId`, `year`)
+- scope (`worldId`, `teamCodes`, related IDs)
+- state (`beforeTeamsByCode`, `afterTeamsByCode`)
+- rule context (`cap/tax/apron/floor`, profile inputs)
+
+### `PostStateCapValidationResult`
+
+Required fields:
+
+- `valid`
+- `violations[]`
+- `warnings[]`
+- normalized rule codes
+- `validatorVersion`
+- `schemaVersion`
+
+### `CapAuditEventV1`
+
+Required persisted fields:
+
+- `eventId`
+- `operationId`
+- `schemaVersion`
+- `validatorVersion`
+- action/source metadata
+- actor/time
+- world/team/player refs
+- before/after totals snapshots
+- validator verdict payload
+- diff summary
+- persistence metadata (`persisted`, `persistPath`)
+
+## Open Questions / Decisions Needed
+
+1. Should world-mode single-team local offseason tools be blocked, or routed to durable world writes?
+2. Should legacy `advanceSeason`/`processSeasonTransition` be deprecated or bridged to the authoritative season path?
+3. For base mode, should audit parity be in-memory only, localStorage-backed, or optional persistence?
+4. Should validator failures in optimistic world handlers trigger automatic rollback to authoritative state?
+5. Which source owns event path constants (`collections.ts` vs `architectFirestorePaths.ts`) for `events` and `eventRefs`?
+
+## Execution Linkage
+
+Execution sequencing and acceptance criteria live in:
+
+- `return_packages/architect/TM_CAP_AUDITABILITY_P0_PREFLIGHT_RETURN_PACKAGE.md`  
+  Section: **Next Execution Tickets (Scoped)** (`E1`..`E4`)

@@ -1,6 +1,6 @@
 # SHIP_GATES_MASTER
 
-Last updated: 2026-02-26
+Last updated: 2026-02-28
 
 ---
 
@@ -83,6 +83,45 @@ P1 gates are recommended when changes touch broader areas, but they do not block
 | Full suite        | `npm run test:full -- --reporter=dot` | Optional & expensive. Only when prompt includes `RUN FULL SUITE`. |
 
 Note: `npm run test:full` is explicitly optional. It should never be the default gate. See AGENTS.md for the full-suite guard policy.
+
+---
+
+## Cap Auditability Gates (Draft)
+
+Initiative: `TM_CAP_AUDITABILITY_P0_PREFLIGHT`  
+Primary docs:
+
+- `docs/architect/CAP_AUDITABILITY_MASTER.md`
+- `return_packages/architect/TM_CAP_AUDITABILITY_P0_PREFLIGHT_RETURN_PACKAGE.md`
+
+Draft ship gates to enforce in execution phases:
+
+1. **Validator Coverage Gate**  
+   Every cap-changing world path and base-mode parity path runs one post-state validator contract with versioned output.
+2. **Audit Coverage Gate**  
+   Every cap-changing world write emits one `CapAuditEventV1` envelope containing before/after totals and validator verdict.
+3. **Bypass Closure Gate**  
+   No world cap-changing path can bypass `compute -> validate -> persist -> log`.
+4. **Season Advance Audit Gate**  
+   `advanceSeasonInWorld` emits durable world events with the same schema/version contract as mutation pipeline writes.
+
+Draft validation command set (to be finalized in execution tickets):
+
+- `npm run test:architect -- --reporter=dot`
+- `npm run test:trade -- --reporter=dot`
+- `npm run test:diff -- --reporter=dot`
+- `npm run typecheck`
+- `npm run validate:project`
+
+Draft manual smoke minimum (cap auditability scope):
+
+- Trade apply
+- Free-agent signing
+- Waive/stretch/buyout
+- Option decision
+- Renounce rights
+- Dead cap/exceptions edit
+- Season advance
 
 ---
 
