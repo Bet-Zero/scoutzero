@@ -13,12 +13,12 @@ RankingSetup.jsx
 hooks/
   useRankerSession.js
 ranker.css
-tournamentRanker.js
 utils/
   rankerLocalDraft.js
   rankingEngine.js
+  saveAsListBridge.js
 ```
 
 ---
-*Generated on: 2026-02-28T11:47:47.582Z*
+*Generated on: 2026-02-28T12:14:10.607Z*
 *Auto-updated by: npm run docs*
