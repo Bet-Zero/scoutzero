@@ -12,6 +12,11 @@ const validationMocks = vi.hoisted(() => ({
   validateSigning: vi.fn(),
 }));
 
+const worldTeamDataMocks = vi.hoisted(() => ({
+  loadWorldTeamData: vi.fn(),
+  resolveTeamCode: vi.fn(),
+}));
+
 const toastMocks = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
@@ -24,6 +29,11 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: validationMocks.validateSigning,
+}));
+
+vi.mock('@/features/architect/utils/worldTeamData', () => ({
+  loadWorldTeamData: worldTeamDataMocks.loadWorldTeamData,
+  resolveTeamCode: worldTeamDataMocks.resolveTeamCode,
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -152,6 +162,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       violations: [],
       warnings: [],
     });
+    worldTeamDataMocks.resolveTeamCode.mockImplementation(
+      (teamId: string) => String(teamId || '').toUpperCase()
+    );
+    worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(baseTeamFixture);
   });
 
   it('applies canonical changedTeams snapshot immediately after world-mode sign', async () => {
@@ -243,5 +257,120 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+  });
+
+  it('fails closed in base-state apply when authoritative validation is illegal', async () => {
+    const initialTeamSnapshot = baseTeamFixture;
+    const otherTeam = {
+      ...baseTeamFixture,
+      teamCode: 'BOS',
+      id: 'BOS',
+      teamName: 'Boston Celtics',
+      roster: ['incoming_1'],
+      players: [
+        {
+          id: 'incoming_1',
+          player_id: 'incoming_1',
+          name: 'Incoming Player',
+          contract: {
+            salariesByYear: [
+              { season: '2025-26', salary: 8_000_000, capHit: 8_000_000 },
+            ],
+          },
+        },
+      ],
+    };
+
+    worldTeamDataMocks.loadWorldTeamData.mockImplementation(
+      async (_worldId: string | null, teamCode: string) =>
+        teamCode === 'BOS' ? otherTeam : initialTeamSnapshot
+    );
+
+    mutationMocks.computeWorldMutation.mockReturnValue({
+      success: true,
+      teamUpdates: [
+        {
+          teamCode: 'LAL',
+          team: { ...initialTeamSnapshot, marker: 'should_not_apply' },
+        },
+      ],
+      _validatedTradeContext: {
+        _isValidatedTradeContext: true,
+        legal: false,
+        error: 'Trade blocked by authoritative validation',
+      },
+    });
+
+    const { result } = renderActionsHarness({
+      worldId: null,
+      initialTeam: initialTeamSnapshot,
+    });
+    const beforeApplyTeam = result.current.teamCapSheet;
+
+    const tradeData = [
+      {
+        teamId: 'LAL',
+        outgoingPlayers: [
+          {
+            id: 'player_1',
+            player_id: 'player_1',
+            name: 'Test Player',
+          },
+        ],
+        incomingPlayers: [
+          {
+            id: 'incoming_1',
+            player_id: 'incoming_1',
+            name: 'Incoming Player',
+            contract: {
+              salariesByYear: [
+                { season: '2025-26', salary: 8_000_000, capHit: 8_000_000 },
+              ],
+            },
+          },
+        ],
+        outgoingEntitlements: [],
+        incomingEntitlements: [],
+      },
+      {
+        teamId: 'BOS',
+        outgoingPlayers: [
+          {
+            id: 'incoming_1',
+            player_id: 'incoming_1',
+            name: 'Incoming Player',
+          },
+        ],
+        incomingPlayers: [
+          {
+            id: 'player_1',
+            player_id: 'player_1',
+            name: 'Test Player',
+          },
+        ],
+        outgoingEntitlements: [],
+        incomingEntitlements: [],
+      },
+    ];
+
+    let caughtError: Error | null = null;
+    await act(async () => {
+      try {
+        await result.current.actions.applyTradeToCapSheet(tradeData as any);
+      } catch (error: any) {
+        caughtError = error;
+      }
+    });
+
+    expect(caughtError).toBeInstanceOf(Error);
+    expect(caughtError?.message).toContain('Trade blocked by authoritative validation');
+    expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationType: 'executeTrade',
+        worldId: null,
+      })
+    );
+    expect(result.current.teamCapSheet).toBe(beforeApplyTeam);
+    expect((result.current.teamCapSheet as any).marker).toBeUndefined();
   });
 });

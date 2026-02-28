@@ -292,13 +292,13 @@ Date: 2026-02-26
 
 ### Scorecard
 
-| # | Pillar | Status | SSOT Enforcement Point(s) | Evidence |
-|---|--------|--------|---------------------------|----------|
-| 1 | Salary matching | **PASS** | Validator: `validateSalaryMatching()` → `allRules.salaryMatching`. Apply: `validatePostTradeSnapshotForContext()` → same `validateTrade()` | `TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md` |
-| 2 | Sign-and-trade | **PASS** | Validator: `validateSignAndTrade()` → `allRules.signAndTrade`. Apply: `buildPostTradeTeamsSnapshot()` S&T preflight throws `SIGN_AND_TRADE_APPLY_ERROR`; re-validated via `validatePostTradeSnapshotForContext()` | `TRADE_E2E_SIGN_AND_TRADE_DEEP_REVIEW_P1_RETURN_PACKAGE.md`, `TRADE_E2E_SIGN_AND_TRADE_FIX_E1_EXECUTION_RETURN_PACKAGE.md` |
-| 3 | Validator ↔ apply ↔ persistence consistency | **PASS** | Apply calls same `validateTrade()` via `validatePostTradeSnapshotForContext()`. Additional apply-only gates: league invariants, entitlement invariants, exclusivity. Single `batch.commit()` atomicity. | `TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md` |
-| 4 | Multi-team routing semantics | **PASS** | Validator: `validatePlayerRouting()` + `validateEntitlementRouting()` enforce explicit 3+ destinations. Apply: `buildPostTradeTeamsSnapshot()` throws `TRADE_APPLY_ROUTING_ERROR` | `TRADE_TESTS_FIX_E1_EXECUTION_RETURN_PACKAGE.md`, Clarified Rules A–E above |
-| 5 | Roster + structural legality | **PASS** | Validator: `computeRosterValidation()` → `allRules.rosterCount` (min 14, max 15, two-way max 3). Apply: same rules via `validatePostTradeSnapshotForContext()` block before `batch.commit()` | `TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_FIX_E1_EXECUTION_RETURN_PACKAGE.md` |
+| #   | Pillar                                        | Status   | SSOT Enforcement Point(s)                                                                                                                                                                                         | Evidence                                                                                                                   |
+| --- | --------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Salary matching                               | **PASS** | Validator: `validateSalaryMatching()` → `allRules.salaryMatching`. Apply: `validatePostTradeSnapshotForContext()` → same `validateTrade()`                                                                        | `TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md`                                                       |
+| 2   | Sign-and-trade                                | **PASS** | Validator: `validateSignAndTrade()` → `allRules.signAndTrade`. Apply: `buildPostTradeTeamsSnapshot()` S&T preflight throws `SIGN_AND_TRADE_APPLY_ERROR`; re-validated via `validatePostTradeSnapshotForContext()` | `TRADE_E2E_SIGN_AND_TRADE_DEEP_REVIEW_P1_RETURN_PACKAGE.md`, `TRADE_E2E_SIGN_AND_TRADE_FIX_E1_EXECUTION_RETURN_PACKAGE.md` |
+| 3   | Validator ↔ apply ↔ persistence consistency | **PASS** | Apply calls same `validateTrade()` via `validatePostTradeSnapshotForContext()`. Additional apply-only gates: league invariants, entitlement invariants, exclusivity. Single `batch.commit()` atomicity.           | `TRADE_E2E_TRADE_APPLY_CONSISTENCY_DEEP_REVIEW_P1_RETURN_PACKAGE.md`                                                       |
+| 4   | Multi-team routing semantics                  | **PASS** | Validator: `validatePlayerRouting()` + `validateEntitlementRouting()` enforce explicit 3+ destinations. Apply: `buildPostTradeTeamsSnapshot()` throws `TRADE_APPLY_ROUTING_ERROR`                                 | `TRADE_TESTS_FIX_E1_EXECUTION_RETURN_PACKAGE.md`, Clarified Rules A–E above                                                |
+| 5   | Roster + structural legality                  | **PASS** | Validator: `computeRosterValidation()` → `allRules.rosterCount` (min 14, max 15, two-way max 3). Apply: same rules via `validatePostTradeSnapshotForContext()` block before `batch.commit()`                      | `TRADE_E2E_ROSTER_AND_STRUCTURAL_LEGALITY_FIX_E1_EXECUTION_RETURN_PACKAGE.md`                                              |
 
 ### Key Return Packages
 
@@ -352,3 +352,29 @@ Date: 2026-02-26
 - `npm run test:architect -- --reporter=dot`: **PASS** (136 files, 2206 passed, 1 skipped, 3 todo)
 - `npm run build`: **PASS** (3052 modules, built successfully)
 - `npm run validate:project`: **PASS** (all validations passed)
+
+## P1 Preflight Findings (2026-02-28)
+
+- Scope: Trade Machine base state (`worldId = null`) functional completeness preflight with code-trace evidence.
+- STOP #4 (Years Remaining Display): **Triggered**. Trade row years source uses `contract.yearsRemaining` or FA-year delta and is not future-contract-extension-aware in row rendering path.
+- STOP #5 (Execution Gate Mismatch / Direct-Write Bypass): **Triggered**. Base-state apply path updates local cap-sheet state directly and does not execute the authoritative `applyWorldMutation('executeTrade')` validation/persistence gate.
+- STOP #1, #2, #3, #6: **Not Triggered** on current traces (S&T menu gating and modal capture path present; allowable incoming display is hard-cap-aware via official snapshot; entitlement routing/wizard paths are wired).
+- Gate parity conclusion: world mode has a single authoritative apply-time trade gate (`READ -> COMPUTE -> VALIDATE -> PERSIST`), while base state relies on UI-time validation plus local apply mutation, creating mode-parity drift risk.
+
+## TM_E2E_FUNCTIONALITY_E1 (2026-02-28) — Execution Notes
+
+- Closed STOP #5 (base-state authoritative gate): base-state `applyTradeToCapSheet` no longer applies local direct roster/contract mutations. It now loads base snapshots, runs `computeWorldMutation({ mutationType: 'executeTrade' })`, requires a valid `_validatedTradeContext`, and fail-closes before `setTeamCapSheet` when validation is illegal or context is missing.
+- Closed STOP #4 (years remaining display): added canonical helpers in `src/features/architect/utils/contractUtils.js`:
+  - `getContractYearsForDisplay(...)` (base + `futureContract` extension year assembly, dedupe by year with extension precedence)
+  - `getYearsRemainingDisplay(...)` (remaining-year count from assembled contract horizon, safe fallbacks)
+- Trade UI now uses `getYearsRemainingDisplay(...)` in `TradePlayerRow`, and `EditContractModal` now derives `contractYears` from `getContractYearsForDisplay(...)` so display logic shares one contract-year assembly source.
+- Added tests:
+  - source-scan guardrail for base-state authoritative gate wiring
+  - behavioral hook test asserting base-state apply fail-closed/no state mutation when authoritative validation is illegal
+  - Trade row years-remaining UI test covering extension + non-extension cases
+- Remaining out of scope (unchanged): S&T modal wiring, hard-cap allowable incoming display, and pick wizard UX.
+- P2 CONFIRMED (2026-02-28): STOP #4 and #5 closed; base-state trade apply is gated + extension-aware years display is wired.
+
+### TM_E2E_FUNCTIONALITY_P2 (2026-02-28) — Prefight Confirmation
+
+Confirmed STOP #4 (years remaining display) and STOP #5 (base-state apply bypass) remain closed: base-state Apply routes through `computeWorldMutation('executeTrade')` with `_validatedTradeContext` + `legal` fail-closed gating, and both Trade row + EditContract share canonical extension-aware helpers in `contractUtils.js`. No Firestore writes exist in base-state apply branch.

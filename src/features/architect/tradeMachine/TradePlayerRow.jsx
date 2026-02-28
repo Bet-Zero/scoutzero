@@ -3,8 +3,8 @@ import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMin
 import TeamLogo from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatSalary } from '@/shared/utils/formatting';
-import { getYearsRemaining } from '@/shared/utils/contracts';
 import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
+import { getYearsRemainingDisplay } from '@/features/architect/utils/contractUtils';
 import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
 import { isSignAndTradeEligible } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
@@ -71,19 +71,11 @@ const TradePlayerRow = ({
       ? yearKey
       : parseInt(yearKey.match(/\d{4}/)?.[0]);
   const salary = getSalaryWithFallback(player, yearKey);
-  // Get years remaining from contract schema (most reliable)
-  const yearsLeft =
-    player.contract?.yearsRemaining ??
-    primaryContract?.yearsRemaining ??
-    (() => {
-      const faYear =
-        player.contract?.freeAgency?.year ??
-        primaryContract?.freeAgency?.year ??
-        player.bio?.display?.freeAgentYear ??
-        player.freeAgentYear ??
-        null;
-      return faYear ? getYearsRemaining(faYear, year) : 0;
-    })();
+  const yearsLeft = getYearsRemainingDisplay({
+    player,
+    currentYear: year,
+    primaryContract,
+  });
   const position =
     getPlayerPositionLabel(
       player.bio?.position ||

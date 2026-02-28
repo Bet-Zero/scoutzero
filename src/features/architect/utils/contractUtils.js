@@ -69,34 +69,109 @@ export function generateExtensionContract({
   });
 }
 
-// Helper: get salary entry for a given season, including future extensions
-export function getContractYearSlice(player, endYear) {
-  if (!player) return null;
-
-  const withFlag = (entries, isExtension) =>
-    (entries || []).map((entry) => ({
+function normalizeContractYears(entries, isExtension) {
+  return (entries || []).map((entry) => {
+    const parsedYear = toEndYear(entry?.season ?? entry?.year);
+    const salary = Number(entry?.salary ?? entry?.capHit ?? 0) || 0;
+    return {
       ...entry,
-      isExtensionSeason: isExtension,
-      source: isExtension ? 'extension' : 'contract',
-    }));
+      year: parsedYear,
+      season:
+        typeof entry?.season === 'string' && entry.season.length > 0
+          ? entry.season
+          : Number.isFinite(parsedYear)
+            ? toSeasonCode(parsedYear)
+            : null,
+      salary,
+      capHit: Number(entry?.capHit ?? salary) || salary,
+      option: entry?.option ?? entry?.optionType ?? null,
+      guaranteed: entry?.guaranteed,
+      isExtension,
+    };
+  });
+}
+
+export function getContractYearsForDisplay(player, options = {}) {
+  if (!player) return [];
+
+  const primaryContract = options.primaryContract || null;
+  const contractSources = [];
+  const seenContracts = new Set();
+
+  const addContractRows = (contractLike) => {
+    if (!contractLike || seenContracts.has(contractLike)) return;
+    seenContracts.add(contractLike);
+    contractSources.push(...normalizeContractYears(contractLike.salariesByYear, false));
+  };
+
+  addContractRows(player.contract);
+  addContractRows(primaryContract);
 
   const combined = [
-    ...withFlag(player.futureContract?.salariesByYear, true),
-    ...withFlag(player.contract?.salariesByYear, false),
+    ...contractSources,
+    ...normalizeContractYears(player.futureContract?.salariesByYear, true),
   ];
 
-  if (!combined.length) return null;
-
-  const seasonMap = new Map();
+  const yearMap = new Map();
   combined.forEach((entry) => {
-    const end = toEndYear(entry.season);
-    if (end == null) return;
-    if (!seasonMap.has(end)) {
-      seasonMap.set(end, entry);
+    if (!Number.isFinite(entry.year)) return;
+    const existing = yearMap.get(entry.year);
+    if (!existing || (entry.isExtension && !existing.isExtension)) {
+      yearMap.set(entry.year, entry);
     }
   });
 
-  return seasonMap.get(endYear) || null;
+  return Array.from(yearMap.values()).sort((a, b) => a.year - b.year);
+}
+
+export function getYearsRemainingDisplay({
+  player,
+  currentYear,
+  primaryContract = null,
+}) {
+  const normalizedCurrentYear = Number(currentYear);
+  if (!player || !Number.isFinite(normalizedCurrentYear)) return 0;
+
+  const contractYears = getContractYearsForDisplay(player, { primaryContract });
+  const yearsFromRows = contractYears.filter(
+    (yearEntry) => yearEntry.year >= normalizedCurrentYear
+  ).length;
+  if (yearsFromRows > 0) {
+    return yearsFromRows;
+  }
+
+  const legacyYearsRemaining = Number(
+    player?.contract?.yearsRemaining ?? primaryContract?.yearsRemaining
+  );
+  if (Number.isFinite(legacyYearsRemaining) && legacyYearsRemaining > 0) {
+    return legacyYearsRemaining;
+  }
+
+  const freeAgencyYear = Number(
+    player?.contract?.freeAgency?.year ??
+      primaryContract?.freeAgency?.year ??
+      player?.bio?.display?.freeAgentYear ??
+      player?.freeAgentYear
+  );
+  if (!Number.isFinite(freeAgencyYear)) return 0;
+  return Math.max(0, freeAgencyYear - normalizedCurrentYear);
+}
+
+// Helper: get salary entry for a given season, including future extensions
+export function getContractYearSlice(player, endYear) {
+  const targetYear = Number(endYear);
+  if (!player || !Number.isFinite(targetYear)) return null;
+
+  const contractYear = getContractYearsForDisplay(player).find(
+    (entry) => entry.year === targetYear
+  );
+  if (!contractYear) return null;
+
+  return {
+    ...contractYear,
+    isExtensionSeason: contractYear.isExtension,
+    source: contractYear.isExtension ? 'extension' : 'contract',
+  };
 }
 
 // 3. Create max contract based on years of service

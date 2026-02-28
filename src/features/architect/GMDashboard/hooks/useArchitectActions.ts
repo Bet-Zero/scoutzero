@@ -13,8 +13,6 @@
  *  - Plan: plans/cap-sheet-contract-rules-phase-7-2/plan.md
  */
 import { useCallback, useMemo } from 'react';
-import { loadArchitectBasePlayer } from '@/features/architect/utils/loadArchitectBasePlayer';
-import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import capProjections from '@/features/architect/utils/capProjections';
 import {
@@ -727,149 +725,103 @@ export function useArchitectActions({
         return;
       }
 
-      const updated: CapSheet = {
-        ...teamCapSheet,
-        activeContracts: teamCapSheet?.activeContracts || [],
-        players: teamCapSheet?.players || [],
-      };
+      try {
+        const loadedTeams = await Promise.all(
+          resolvedTeamCodes.map(async (resolvedTeamCode, index) => {
+            const baseTeamSnapshot = await loadWorldTeamData(
+              null,
+              resolvedTeamCode
+            );
+            if (!baseTeamSnapshot) {
+              throw new Error(
+                `Unable to load base-state snapshot for team ${resolvedTeamCode} (trade index ${index})`
+              );
+            }
+            return {
+              teamCode: resolvedTeamCode,
+              team: baseTeamSnapshot as CapSheet,
+            };
+          })
+        );
 
-      const targetTrade = tradeData.find((t) => t.teamId === teamId);
-      if (!targetTrade) return;
+        const tradePayload = {
+          teams,
+          tradeCtx: {
+            source: 'tradeMachine',
+            worldId: null,
+            yearKey: currentYear,
+          },
+        };
 
-      const incoming =
-        targetTrade.incoming || targetTrade.incomingPlayers || [];
-      const outgoing =
-        targetTrade.outgoing || targetTrade.outgoingPlayers || [];
-
-      const normalize = (str: string = ''): string =>
-        str.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const isSamePlayer = (
-        a: ActiveContract | ArchitectPlayer,
-        b: ArchitectPlayer
-      ): boolean => {
-        const aId = a.player_id || a.id;
-        const bId = b.id || b.player_id;
-        if (aId && bId) return aId === bId;
-        return normalize(a.name || '') === normalize(b.name || '');
-      };
-
-      updated.players = (updated.players || []).filter(
-        (player) => !outgoing.some((out) => isSamePlayer(player, out))
-      );
-
-      updated.activeContracts = (updated.activeContracts || []).filter(
-        (contract) => !outgoing.some((out) => isSamePlayer(contract, out))
-      );
-
-      const newContracts: ActiveContract[] = incoming.map((p) => {
-        const architectContract = ensureContractStructure(p.contract || null, {
-          contractType: p.contractType || 'Trade',
-          isExtension: !!p.isExtension,
-          isRookieScale: !!p.isRookieScale,
-          signingTeam: teamCode,
-          startYear: currentYear,
+        const computeResult = computeWorldMutation({
+          mutationType: 'executeTrade',
+          payload: tradePayload,
+          currentState: {
+            teams: loadedTeams,
+          },
+          seasonId,
+          timestamp: Date.now(),
+          worldId: null,
         });
 
-        return {
-          name: p.name,
-          player_id: p.id || p.player_id,
-          years: architectContract?.salariesByYear?.length || 1,
-          options: p.options || {},
-          type: 'Trade',
-          signAndTrade: !!p.signAndTrade,
-          guaranteed: p.guaranteed ?? true,
-          isMinimum: p.isMinimum ?? false,
-          yearsOfService: p.yearsOfService ?? 0,
-          contract: architectContract || undefined,
-        };
-      });
-
-      const newPlayers: ArchitectPlayer[] = await Promise.all(
-        incoming.map(async (p) => {
-          const base =
-            playersMap[p.name || ''] || playersMap[p.player_id || ''] || null;
-          let playerData = base;
-          if (!playerData && (p.id || p.player_id)) {
-            try {
-              const loaded = await loadArchitectBasePlayer(
-                p.id || p.player_id || '',
-                p.name
-              );
-              if (loaded) playerData = loaded;
-            } catch (err) {
-              console.warn(`Failed to load player ${p.id || p.player_id}:`, err);
-            }
-          }
-
-          const architectContract = ensureContractStructure(
-            p.contract || playerData?.contract || null,
-            {
-              contractType: p.contractType || 'Trade',
-              isExtension: !!p.isExtension,
-              isRookieScale: !!p.isRookieScale,
-              signingTeam: teamCode,
-              startYear: currentYear,
-            }
+        if (!computeResult?.success) {
+          throw new Error(
+            computeResult?.error ||
+              'Base-state trade apply failed authoritative compute.'
           );
+        }
 
-          const position =
-            playerData?.position ||
-            playerData?.formattedPosition ||
-            getPlayerPositionLabel(
-              playerData?.bio?.position || p.position || ''
-            );
-          return {
-            ...(playerData || {}),
-            name: playerData?.name || p.name,
-            player_id: p.id || p.player_id || playerData?.player_id,
-            displayName:
-              playerData?.bio?.displayName || p.bio?.displayName || p.name,
-            position,
-            contract: architectContract || playerData?.contract,
-          };
-        })
-      );
+        const validatedContext = (
+          computeResult as Record<string, unknown>
+        )._validatedTradeContext as
+          | {
+              _isValidatedTradeContext?: boolean;
+              legal?: boolean;
+              error?: string | null;
+              reason?: string;
+            }
+          | undefined;
 
-      updated.activeContracts?.push(...newContracts);
-      updated.players?.push(...newPlayers);
+        if (!validatedContext?._isValidatedTradeContext) {
+          throw new Error(
+            'Base-state trade apply failed: missing authoritative validated trade context.'
+          );
+        }
 
-      const outgoingEntitlements = targetTrade.outgoingEntitlements || [];
-      const incomingEntitlements = targetTrade.incomingEntitlements || [];
-      const outgoingEntitlementIds = outgoingEntitlements
-        .map(
-          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
-        )
-        .filter(Boolean);
-      const incomingEntitlementIds = incomingEntitlements
-        .map(
-          (e: Record<string, unknown>) => (e.entitlementId || e.id) as string
-        )
-        .filter(Boolean);
+        if (!validatedContext.legal) {
+          throw new Error(
+            validatedContext.error ||
+              validatedContext.reason ||
+              'Base-state trade apply blocked by authoritative validation.'
+          );
+        }
 
-      if (
-        outgoingEntitlementIds.length > 0 ||
-        incomingEntitlementIds.length > 0
-      ) {
-        const currentEntitlementIds: string[] =
-          ((updated as Record<string, unknown>).entitlementIds as string[]) ||
-          [];
-        (updated as Record<string, unknown>).entitlementIds = [
-          ...currentEntitlementIds.filter(
-            (id: string) => !outgoingEntitlementIds.includes(id)
-          ),
-          ...incomingEntitlementIds,
-        ];
+        const updatedTeam = computeResult.teamUpdates?.find(
+          (update: any) => update?.teamCode === teamCode && update?.team
+        )?.team;
+
+        if (!updatedTeam) {
+          throw new Error(
+            `Base-state trade apply failed: authoritative compute did not return team snapshot for ${teamCode}.`
+          );
+        }
+
+        setTeamCapSheet(updatedTeam as CapSheet);
+      } catch (error) {
+        console.error('[Architect][Trade][BaseStateApply] failed', {
+          teamCode,
+          seasonId,
+          currentYear,
+          error,
+        });
+        throw error;
       }
-
-      setTeamCapSheet(updated);
     },
     [
-      teamCapSheet,
       teamCode,
-      teamId,
       currentYear,
-      playersMap,
       runAuthoritativeFAMutation,
+      seasonId,
       setTeamCapSheet,
       worldId,
     ]

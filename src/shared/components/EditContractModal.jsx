@@ -20,8 +20,11 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
-import { generateExtensionContract } from '@/features/architect/utils/contractUtils';
-import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import {
+  generateExtensionContract,
+  getContractYearsForDisplay,
+} from '@/features/architect/utils/contractUtils';
+import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
   getExtensionProfile,
   buildMinimalRuleContext,
@@ -188,40 +191,8 @@ const EditContractModal = ({
     );
   }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
 
-  // Helper to get contract years from Architect schema (contract.salariesByYear[])
-  // Includes both base contract and extension years (from futureContract)
   const contractYears = useMemo(() => {
-    if (!player) return [];
-
-    const baseYears = (player.contract?.salariesByYear || []).map((y) => ({
-      year: toEndYear(y.season),
-      season: y.season,
-      salary: y.salary || y.capHit || 0,
-      option: y.option,
-      guaranteed: y.guaranteed,
-      isExtension: false,
-    }));
-
-    const extensionYears = (player.futureContract?.salariesByYear || []).map(
-      (y) => ({
-        year: toEndYear(y.season),
-        season: y.season,
-        salary: y.salary || y.capHit || 0,
-        option: y.option,
-        guaranteed: y.guaranteed,
-        isExtension: true,
-      })
-    );
-
-    // Combine and dedupe by year, preferring extension years (they're more recent)
-    const yearMap = new Map();
-    [...baseYears, ...extensionYears].forEach((y) => {
-      if (!yearMap.has(y.year) || y.isExtension) {
-        yearMap.set(y.year, y);
-      }
-    });
-
-    return Array.from(yearMap.values()).sort((a, b) => a.year - b.year);
+    return getContractYearsForDisplay(player);
   }, [player]);
 
   const isFreeAgent =
