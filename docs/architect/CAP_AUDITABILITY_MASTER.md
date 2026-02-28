@@ -408,3 +408,113 @@ All v1.0.0 rules have existing implementations — no new CBA logic required.
 - `src/tests/architect/signAndTrade.test.js` — added `validateContractRows`, `validateExceptions` to mock
 - `src/tests/architect/useArchitectActions.freeAgency.test.tsx` — added validator mocks
 - `tests/architect/renounceRights.test.js` — added validator mocks, fixed roster padding
+
+---
+
+## P6 Closeout Evidence + Closure Status
+
+**Status: CAP_AUDITABILITY CLOSED ✅**  
+**Date:** 2026-02-28  
+**Preflight:** `return_packages/architect/TM_CAP_AUDITABILITY_P6_PREFLIGHT_RETURN_PACKAGE.md`
+
+### Verification Summary
+
+All acceptance criteria verified:
+
+| Criterion                                       | Status |
+| ----------------------------------------------- | ------ |
+| Validator v1.0.0 deployed with 13 rules         | ✅     |
+| All rules match this Master Doc                 | ✅     |
+| All cap-changing paths invoke validator         | ✅     |
+| Base mode emits local CapAuditEventV1           | ✅     |
+| World mode emits preview + authoritative events | ✅     |
+| operationId correlation works                   | ✅     |
+| Season advance emits event in same batch        | ✅     |
+| Fail-close behavior confirmed                   | ✅     |
+| Optimistic lock serializes mutations            | ✅     |
+| All mandatory commands pass                     | ✅     |
+
+### Call-Site Map
+
+| File                         | Function               | Mode           |
+| ---------------------------- | ---------------------- | -------------- |
+| `mutationPipeline.js:834`    | `applyWorldMutation`   | World          |
+| `seasonManager.js:763`       | `advanceSeasonInWorld` | World          |
+| `useArchitectActions.ts:576` | `buildCapAuditEvent`   | Base + Preview |
+
+### Command Results (P6 Closeout)
+
+| Command                                     | Result                   |
+| ------------------------------------------- | ------------------------ |
+| `npm run test:node -- --run --reporter=dot` | ✅ 248 files, 3135 tests |
+| `npm run test:ui -- --run --reporter=dot`   | ✅ 35 files, 373 tests   |
+| `npm run build`                             | ✅ Success               |
+| `npm run validate:project`                  | ✅ All passed            |
+
+### Closure Declaration
+
+The CAP_AUDITABILITY initiative is **CLOSED** as of 2026-02-28 with:
+
+- One shared post-state validator (`validatePostStateCapLegality`)
+- One consistent audit envelope (`CapAuditEventV1`)
+- Full mode parity (base + world)
+- Season advance integration
+- Optimistic mutation safety
+- QA observability (debug panel)
+
+No discrepancies found. All evidence documented in P6 return package.
+
+---
+
+## Closure Permanence Gates (E6)
+
+**Date:** 2026-02-28
+**Return Package:** `return_packages/architect/TM_CAP_AUDITABILITY_E6_EXECUTION_RETURN_PACKAGE.md`
+
+### Gate Test File
+
+`src/tests/architect/capAuditability_closure.gate.test.ts`
+
+### Quick Run
+
+```bash
+npm run test:node -- --run src/tests/architect/capAuditability_closure.gate.test.ts --reporter=dot
+```
+
+### What It Protects
+
+| Gate   | What It Checks                 | Fails If                                                                                            |
+| ------ | ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Gate 1 | Validator version + rule codes | Version != 1.0.0 OR any of the 13 rule codes removed                                                |
+| Gate 2 | Call-site invocation           | `validatePostStateCapLegality` removed from mutationPipeline, seasonManager, or useArchitectActions |
+| Gate 3 | Event envelope fields          | Any required CapAuditEventV1 field removed from emitters or local log interface                     |
+| Gate 4 | Base-mode no Firestore writes  | Direct Firestore write calls appear in base-mode cap-changing handlers                              |
+| Gate 5 | CapAuditDebugPanel dev-only    | Debug panel becomes always-on without DEV/flag check                                                |
+
+### Protected Rule Codes (13 v1.0.0)
+
+- `TOTALS_NON_FINITE`
+- `TOTALS_YEAR_KEY_MISSING`
+- `TOTALS_YEAR_KEY_MISMATCH`
+- `TOTALS_MISSING`
+- `HARD_CAP_EXCEEDED`
+- `SALARY_FLOOR_NOT_MET`
+- `LUXURY_TAX_EXCEEDED`
+- `ROSTER_MAX_EXCEEDED`
+- `TWO_WAY_LIMIT_EXCEEDED`
+- `CONTRACT_ROWS_INVALID`
+- `DEAD_CAP_INVALID`
+- `EXCEPTIONS_INVALID`
+- `CAP_HOLD_INVALID`
+
+### Protected Call Sites
+
+| File                     | Function               | Gate   |
+| ------------------------ | ---------------------- | ------ |
+| `mutationPipeline.js`    | `applyWorldMutation`   | Gate 2 |
+| `seasonManager.js`       | `advanceSeasonInWorld` | Gate 2 |
+| `useArchitectActions.ts` | `buildCapAuditEvent`   | Gate 2 |
+
+### Protected Event Fields (14)
+
+`schemaVersion`, `validatorVersion`, `operationId`, `mutationType`, `occurredAt`, `worldId`, `beforeTotalsByTeam`, `afterTotalsByTeam`, `valid`, `violations`, `warnings`, `teamCodes`, `playerIds`, `diffSummary`

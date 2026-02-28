@@ -86,7 +86,10 @@ Note: `npm run test:full` is explicitly optional. It should never be the default
 
 ---
 
-## Cap Auditability Gates (Draft)
+## Cap Auditability Gates (VERIFIED ✅)
+
+**Status: CLOSED** — 2026-02-28  
+**Closeout:** `return_packages/architect/TM_CAP_AUDITABILITY_P6_PREFLIGHT_RETURN_PACKAGE.md`
 
 Initiative: `TM_CAP_AUDITABILITY_P0_PREFLIGHT`  
 Primary docs:
@@ -94,27 +97,27 @@ Primary docs:
 - `docs/architect/CAP_AUDITABILITY_MASTER.md`
 - `return_packages/architect/TM_CAP_AUDITABILITY_P0_PREFLIGHT_RETURN_PACKAGE.md`
 
-Draft ship gates to enforce in execution phases:
+Ship gates verified in P6 closeout:
 
-1. **World Mutation Post-State Validator Gate**  
+1. **World Mutation Post-State Validator Gate** ✅ VERIFIED  
    Every persisted world mutation runs the shared post-state validator and fail-closes on violations.
-2. **World Mutation CapAuditEventV1 Gate**  
+2. **World Mutation CapAuditEventV1 Gate** ✅ VERIFIED  
    Every persisted world mutation emits one `CapAuditEventV1` envelope (same world event destination) with before/after totals and validator verdict.
-3. **Validator Coverage Gate**  
+3. **Validator Coverage Gate** ✅ VERIFIED  
    Every cap-changing world path and base-mode parity path runs one post-state validator contract with versioned output.
-4. **Audit Coverage Gate**  
+4. **Audit Coverage Gate** ✅ VERIFIED  
    Every cap-changing world write emits one `CapAuditEventV1` envelope containing before/after totals and validator verdict.
-5. **Bypass Closure Gate**  
+5. **Bypass Closure Gate** ✅ VERIFIED  
    No world cap-changing path can bypass `compute -> validate -> persist -> log`.
-6. **Season Advance Audit Gate**  
+6. **Season Advance Audit Gate** ✅ VERIFIED  
    `advanceSeasonInWorld` emits durable world events with the same schema/version contract as mutation pipeline writes.
-7. **Base-Mode Local Audit Gate**  
+7. **Base-Mode Local Audit Gate** ✅ VERIFIED  
    Base-mode cap-changing actions emit `CapAuditEventV1`-shaped local events and run post-state validator fail-close checks before applying local state.
-8. **World Optimistic Drift-Prevention Gate**  
+8. **World Optimistic Drift-Prevention Gate** ✅ VERIFIED  
    Optimistic world handlers must pre-validate post-state, block invalid optimistic updates, and rollback/flag preview records on authoritative persistence failure.
-9. **Optimistic Serialization Gate**  
+9. **Optimistic Serialization Gate** ✅ VERIFIED  
    No concurrent optimistic cap mutations in world mode; lock/serialization behavior must be verified by tests.
-10. **Cap Audit Debug Visibility Gate**  
+10. **Cap Audit Debug Visibility Gate** ✅ VERIFIED  
     Dev-only Cap Audit Debug viewer is available for QA without impacting production UI.
 
 E2 status update (implemented on 2026-02-28):
@@ -132,7 +135,7 @@ E4 status update (implemented on 2026-02-28):
 - World optimistic cap mutations are serialized via fail-closed world-scoped lock (no concurrent optimistic mutation overlap).
 - Dev-only `Cap Audit Debug` panel is available in GM Dashboard for base/preview stream inspection and operation linkage checks.
 
-Draft validation command set (to be finalized in execution tickets):
+Validation command set (P6 verified):
 
 - `npm run test:architect -- --reporter=dot`
 - `npm run test:trade -- --reporter=dot`
@@ -140,7 +143,7 @@ Draft validation command set (to be finalized in execution tickets):
 - `npm run typecheck`
 - `npm run validate:project`
 
-Draft manual smoke minimum (cap auditability scope):
+Manual smoke checklist (cap auditability scope, P6 verified):
 
 - Trade apply
 - Free-agent signing
