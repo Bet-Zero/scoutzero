@@ -1,6 +1,6 @@
 # CAP SHEET / CAP TABLE — MASTER DOC
 
-**STATUS:** ACTIVE | **TYPE:** SOURCE OF TRUTH (SSOT) | **LAST UPDATED:** 2026-01-16
+**STATUS:** ACTIVE | **TYPE:** SOURCE OF TRUTH (SSOT) | **LAST UPDATED:** 2026-02-28
 
 ## A) Purpose + Scope
 
@@ -117,6 +117,7 @@ The following components currently consume cap data and must be aligned to the S
 
 1. `src/features/architect/capSheet/CapSheet/CapSheet.jsx` (Main UI display)
 2. `src/features/architect/tradeMachine/CapImpactTiles.jsx` (Trade Machine display tile)
+3. `src/features/architect/capSheet/CapSheetFull/CapSheetFull.jsx` (Multi-Year Cap Table display)
 
 ## G.1) Wiring Map Rules — VERIFIED (Phase 4)
 
@@ -128,6 +129,13 @@ The following components currently consume cap data and must be aligned to the S
 | **Cap Sheet** | `CapSheet` (Grid) | Totals Row | `computeTeamCapTotals()` | ✅ **VERIFIED** (Phase 1) |
 | **Trade Machine** | `CapImpactTiles` | Room, Aprons | `computeTeamCapTotals()` | ✅ **VERIFIED** (Phase 4) |
 | **Trade Machine** | `TradeTeamCard` | Total Salary | `computeTeamCapTotals()` | ✅ **VERIFIED** (Phase 1/4) |
+| **Full Cap Table** | `CapSheetFull` | Total Cap (all years) | `computeTeamCapTotals()` | ✅ **VERIFIED** (CAP_SHEET_E2E_SSOT_PARITY_E1) |
+
+## G.2) SSOT Parity Guarantees — VERIFIED (CAP_SHEET_E2E_SSOT_PARITY_E1)
+
+1. **CapSheet** and **CapSheetFull** both render totals from `computeTeamCapTotals()`, including the Total Cap row.
+2. **Dead money canonical shape:** `deadCap[].amountByYear` is an array of `{ season, amount, isStretched? }` per `DeadCapItemZ`. `ManageDeadMoneyModal` writes canonical shape; legacy object-map shape is handled by compute fallback.
+3. **Season advance persistence:** Uses the same hygiene chain as `persistWorldMutation()`: sanitize → normalize TPE → validate contract → removeUndefined → write.
 
 ## H) Duplicate Computation Risks (Critical)
 

@@ -96,6 +96,12 @@ vi.mock('@/features/architect/utils/tpeLifecycle', () => ({
 vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   normalizeTeamTpeSchema: (team) => team,
   getTeamTpeList: () => [],
+  assertPersistableOrThrow: () => {},
+  PERSISTENCE_CONTRACTS: { TEAM: { topLevel: [], deepRules: null } },
+}));
+
+vi.mock('@/features/architect/utils/mutationPipeline', () => ({
+  sanitizeTransientFieldsForPersistence: (team) => team,
 }));
 
 vi.mock('@/features/architect/utils/exceptions', () => ({

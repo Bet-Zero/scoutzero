@@ -27,16 +27,29 @@ const ManageDeadMoneyModal = ({
         const contractName = entry.playerName || entry.label || 'Unknown Entry';
         const isStretched = !!entry.stretched;
         
-        if (entry.amountByYear) {
+        if (Array.isArray(entry.amountByYear)) {
+          // Canonical shape: array of { season, amount, isStretched? }
+          entry.amountByYear.forEach((yearEntry) => {
+            flatEntries.push({
+              id: entryId++,
+              label: contractName,
+              seasonKey: yearEntry.season,
+              amount: yearEntry.amount || 0,
+              stretched: !!yearEntry.isStretched || isStretched,
+              originalEntry: entry,
+            });
+          });
+        } else if (entry.amountByYear && typeof entry.amountByYear === 'object') {
+          // Legacy object-map shape: { "2025-26": { amount } }
           Object.entries(entry.amountByYear).forEach(([yearKey, val]) => {
-             flatEntries.push({
-               id: entryId++,
-               label: contractName,
-               seasonKey: yearKey, // e.g., "2025-26"
-               amount: val.amount || 0,
-               stretched: isStretched,
-               originalEntry: entry, 
-             });
+            flatEntries.push({
+              id: entryId++,
+              label: contractName,
+              seasonKey: yearKey,
+              amount: (typeof val === 'object' ? val.amount : val) || 0,
+              stretched: isStretched,
+              originalEntry: entry,
+            });
           });
         }
       });
@@ -86,27 +99,18 @@ const ManageDeadMoneyModal = ({
     //   buyout: boolean;
     // }
     
+    // Canonical Schema per DeadCapItemZ (src/schemas/architect.ts):
+    // { playerId, playerName, amountByYear: [{ season, amount, isStretched? }], notes? }
     const canonicalDeadCap = entries.map(e => {
-       // If it's an existing entry, try to preserve IDs?
-       // Actually, manual mode overwrites. The mutation replaces the whole array.
-       // So we just need to generate valid objects.
-       
        return {
          playerId: e.originalEntry?.playerId || `manual_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
          playerName: e.label,
-         label: e.label, // useful persistence for manual entries
-         amountByYear: {
-           [e.seasonKey]: { amount: Number(e.amount) }
-         },
-         stretched: !!e.stretched,
-         buyout: false, // Default false for manual
-         reason: 'Manual Adjustment'
+         amountByYear: [
+           { season: e.seasonKey, amount: Number(e.amount), isStretched: !!e.stretched }
+         ],
+         notes: 'Manual Adjustment',
        };
     });
-    
-    // Grouping Optimization (Optional):
-    // If multiple rows share the same Label + Stretched status, we could group them. 
-    // But for Phase 24 manual MVP, 1-to-1 mapping is fine and robust.
     
     onSave(canonicalDeadCap);
     onClose();

@@ -11,8 +11,9 @@
  *  - Plan: plans/_archive/player-rules-architect/plan.md
  *  - Latest Chunk: plans/_archive/player-rules-architect/chunks/chunk_02.md
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import BirdRightsIcon from '@/shared/components/BirdRightsIcon';
 
 // Helper to identify two-way contracts (don't count against cap)
@@ -90,33 +91,17 @@ const CapSheetFull = ({
     (h) => !h.isSigned
   );
 
-  // Build totals per year (excluding two-way contracts from cap hit)
-  const yearTotals = {};
-  for (const year of allYears) {
-    yearTotals[year] = sortedPlayers.reduce((sum, player) => {
-      // Two-way contracts don't count against the cap
-      if (isTwoWayContract(player)) {
-        return sum;
-      }
-      const slice = getContractYearSlice(player, year);
-      const salary = slice?.salary ?? slice?.capHit ?? 0;
-
-      return sum + salary;
-    }, 0);
-
-    // Add external cap holds sum to the year total
-    const externalHoldsSum = (teamCapSheet.capHolds || [])
-      .filter((h) => {
-        if (h.isSigned) return false;
-        if (!h.season || !String(h.season).includes('-')) return false;
-        const seasonStart = parseInt(String(h.season).split('-')[0], 10);
-        if (!Number.isFinite(seasonStart)) return false;
-        return seasonStart + 1 === year;
-      })
-      .reduce((acc, h) => acc + (h.amount || 0), 0);
-
-    yearTotals[year] += externalHoldsSum;
-  }
+  // SSOT: Use computeTeamCapTotals for each year to include
+  // players + dead money + cap holds + incomplete roster charges.
+  // Replaces local reduce that missed dead money and incomplete charges.
+  const yearTotals = useMemo(() => {
+    const totals = {};
+    for (const year of allYears) {
+      const result = computeTeamCapTotals(teamCapSheet, year);
+      totals[year] = result.totalCapAllocations;
+    }
+    return totals;
+  }, [teamCapSheet, currentYear]);
 
   return (
     <div className="text-white font-sans w-full">

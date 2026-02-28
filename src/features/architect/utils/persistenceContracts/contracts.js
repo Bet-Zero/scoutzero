@@ -206,6 +206,10 @@ export const CAP_HOLD_ITEM_ALLOWLIST = Object.freeze([
   'isSigned',
   'expiresOn',
   'notes',
+  // CAP_SHEET_E2E_SSOT_PARITY_E1: Added fields produced by resolveOffseasonTransition
+  // and consumed by getActiveUnsignedCapHolds (capHolds.ts:55)
+  'active',  // Boolean flag for cap hold filtering
+  'reason',  // Informational field for cap hold origin
 ]);
 
 // ==============================================================================

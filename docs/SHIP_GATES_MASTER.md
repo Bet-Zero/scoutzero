@@ -228,6 +228,20 @@ Expected
 - [ ] Trade is illegal (two-way slots exceeded)
 - [ ] Roster Count rule shows violation detail
 
+#### Scenario 8A — Cap Sheet SSOT Parity (added CAP_SHEET_E2E_SSOT_PARITY_E1)
+
+Steps
+
+1. Open Cap Sheet for a team with dead money entries
+2. Switch to the multi-year Full Cap Table view (CapSheetFull)
+3. Compare the "Total Cap" row values against the single-year Cap Sheet totals
+
+Expected
+
+- [ ] Total Cap row includes dead money (not just player salaries + cap holds)
+- [ ] Total Cap matches the value shown in single-year CapSheet for the same year
+- [ ] If dead money is manually edited via Manage Dead Money modal, totals update correctly
+
 ### Crash-Only Navigation Smoke (recommended, not feature correctness)
 
 This is not a promise that these features are shipped complete. It is only a non-crash sanity check.

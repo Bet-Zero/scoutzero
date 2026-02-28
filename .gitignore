@@ -198,3 +198,7 @@ cursor_work/*
 
 # Agent folder
 .agent/
+return_packages/_local_logs/build.txt
+return_packages/_local_logs/test_node.txt
+return_packages/_local_logs/test_ui.txt
+return_packages/_local_logs/validate_project.txt

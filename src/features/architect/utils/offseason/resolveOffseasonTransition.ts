@@ -39,6 +39,7 @@ import { resetTeamNonTpeExceptionsForNewSeason } from '@/features/architect/util
 import {
   validateOptionDecision,
   validateExceptions,
+  validateContractRows,
 } from '@/features/architect/utils/capLegalityValidation';
 
 export type OffseasonTransitionContext = {
@@ -107,9 +108,7 @@ function filterRosterByPlayerIds(roster: any[], playerIds: Set<string>): any[] {
   });
 }
 
-function normalizeDecisionValue(
-  rawDecision: any
-): {
+function normalizeDecisionValue(rawDecision: any): {
   decision: 'exercise' | 'decline';
   optionType?: string;
   season?: string;
@@ -416,7 +415,14 @@ function clearHardCapState(team: any): boolean {
 function validateOffseasonState(
   team: any,
   toYear: number,
-  context: OffseasonTransitionContext | undefined
+  context: OffseasonTransitionContext | undefined,
+  preTransitionHardCapState?: {
+    hadHardCap: boolean;
+    hardCapTriggered: any;
+    hardCapLevel: any;
+    hardCapped: any;
+    totalsIsHardCapped: any;
+  }
 ): { violations: OffseasonViolation[]; warnings: OffseasonViolation[] } {
   const violations: OffseasonViolation[] = [];
   const warnings: OffseasonViolation[] = [];
@@ -453,22 +459,30 @@ function validateOffseasonState(
     });
   }
 
-  const hardCapTriggered =
-    team?.hardCapTriggered ||
-    team?.hardCapFirstApron?.active ||
-    team?.hardCapSecondApron?.active ||
-    team?.hardCapped === true ||
-    team?.hardCapped === 1 ||
-    team?.hardCapped === 2 ||
-    team?.totals?.isHardCapped;
+  // Phase E1.1: Use pre-transition hard cap state if available (fixes ordering
+  // bug where clearHardCapState ran before validation, making this check dead code).
+  const hardCapTriggered = preTransitionHardCapState
+    ? preTransitionHardCapState.hadHardCap
+    : team?.hardCapTriggered ||
+      team?.hardCapFirstApron?.active ||
+      team?.hardCapSecondApron?.active ||
+      team?.hardCapped === true ||
+      team?.hardCapped === 1 ||
+      team?.hardCapped === 2 ||
+      team?.totals?.isHardCapped;
 
   if (hardCapTriggered) {
-    const hardCapLevel =
-      team?.hardCapSecondApron?.active ||
-      team?.hardCapTriggered === 'SecondApron' ||
-      team?.hardCapped === 2
-        ? 'secondApron'
-        : 'firstApron';
+    // Phase E1.1: Derive level from pre-transition snapshot if available
+    const hcState = preTransitionHardCapState;
+    const hardCapLevel = (
+      hcState
+        ? hcState.hardCapLevel === 'secondApron' || hcState.hardCapped === 2
+        : team?.hardCapSecondApron?.active ||
+          team?.hardCapTriggered === 'SecondApron' ||
+          team?.hardCapped === 2
+    )
+      ? 'secondApron'
+      : 'firstApron';
     const ceiling =
       hardCapLevel === 'secondApron'
         ? rules.cap.secondApron
@@ -522,6 +536,33 @@ function validateOffseasonState(
         message: validation.reason || 'Invalid cap hold entry',
         severity: 'error',
       });
+    }
+  }
+
+  // Phase E1.1: Validate contract rows for all remaining players (shared
+  // validator from capLegalityValidation — same check the mutation pipeline
+  // runs on every signing/extension).
+  const players = Array.isArray(team?.players) ? team.players : [];
+  for (const player of players) {
+    if (!player?.contract) continue;
+    const rowResult = validateContractRows(player.contract);
+    if (rowResult.violations?.length) {
+      for (const v of rowResult.violations) {
+        violations.push({
+          rule: v.rule || 'contract_row_invalid',
+          message: `[${player.displayName || player.player_id || 'Unknown'}] ${v.message || 'Invalid contract row'}`,
+          severity: 'error',
+        });
+      }
+    }
+    if (rowResult.warnings?.length) {
+      for (const w of rowResult.warnings) {
+        warnings.push({
+          rule: w.rule || 'contract_row_warning',
+          message: `[${player.displayName || player.player_id || 'Unknown'}] ${w.message || 'Contract row warning'}`,
+          severity: 'warning',
+        });
+      }
     }
   }
 
@@ -958,6 +999,23 @@ export function resolveOffseasonTransition({
   // =========================================================================
   // 7) Hard cap lifecycle
   // =========================================================================
+  // Phase E1.1: Capture pre-clear hard cap state so validateOffseasonState
+  // can check it AFTER clearHardCapState removes the flags.
+  const preTransitionHardCapState = {
+    hadHardCap: !!(
+      nextTeam?.hardCapTriggered ||
+      nextTeam?.hardCapFirstApron?.active ||
+      nextTeam?.hardCapSecondApron?.active ||
+      nextTeam?.hardCapped === true ||
+      nextTeam?.hardCapped === 1 ||
+      nextTeam?.hardCapped === 2 ||
+      nextTeam?.totals?.isHardCapped
+    ),
+    hardCapTriggered: nextTeam?.hardCapTriggered,
+    hardCapLevel: nextTeam?.hardCapLevel,
+    hardCapped: nextTeam?.hardCapped,
+    totalsIsHardCapped: nextTeam?.totals?.isHardCapped,
+  };
   appliedChangesSummary.hardCapCleared = clearHardCapState(nextTeam);
 
   // =========================================================================
@@ -970,7 +1028,12 @@ export function resolveOffseasonTransition({
   // =========================================================================
   // 9) Legality validation
   // =========================================================================
-  const validation = validateOffseasonState(nextTeam, toYear, context);
+  const validation = validateOffseasonState(
+    nextTeam,
+    toYear,
+    context,
+    preTransitionHardCapState
+  );
   if (validation.violations.length > 0) {
     violations.push(...validation.violations);
   }

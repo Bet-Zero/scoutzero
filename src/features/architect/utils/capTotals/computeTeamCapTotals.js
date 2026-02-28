@@ -99,6 +99,26 @@ function computeDeadMoneyForYear(teamCapSheet, endYear) {
           hasCoverage = true;
           deadCapTotal += num(match.amount);
         }
+      } else if (item?.amountByYear && typeof item.amountByYear === 'object') {
+        // Phase E1.1: Legacy object-map shape normalization.
+        // Pre-fix ManageDeadMoneyModal wrote { "2026": { amount } } or { "2026": amount }
+        // or { "2025-26": amount }. Handle all variants without requiring re-save.
+        let mapVal = item.amountByYear[endYear] ?? item.amountByYear[y];
+        // Also check season-format keys (e.g. "2025-26")
+        if (mapVal === undefined) {
+          for (const key of Object.keys(item.amountByYear)) {
+            if (toEndYear(key) === endYear) {
+              mapVal = item.amountByYear[key];
+              break;
+            }
+          }
+        }
+        if (mapVal !== undefined) {
+          hasCoverage = true;
+          const amt =
+            typeof mapVal === 'object' ? num(mapVal.amount) : num(mapVal);
+          deadCapTotal += amt;
+        }
       }
     }
 

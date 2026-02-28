@@ -57,7 +57,36 @@ import { resolveOffseasonTransition } from '@/features/architect/utils/offseason
 import {
   normalizeTeamTpeSchema,
   getTeamTpeList,
+  assertPersistableOrThrow,
+  PERSISTENCE_CONTRACTS,
 } from '@/features/architect/utils/persistenceContracts';
+import {
+  sanitizeTransientFieldsForPersistence,
+} from '@/features/architect/utils/mutationPipeline';
+
+/**
+ * Strips hydration-only display fields that hydrateBaseTeam() adds for UI
+ * but that are NOT in TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST.
+ * These fields are derived/computed at load time and must not be persisted.
+ */
+const HYDRATION_ONLY_KEYS = Object.freeze([
+  'id',               // hydrateBaseTeam display identifier
+  'activeContracts',  // derived from players for display
+  'draftAssets',      // derived from entitlements
+  'mle',              // flattened from exceptions.mle (already inside exceptions)
+  'tpMle',            // flattened from exceptions.taxpayerMle
+  'bae',              // flattened from exceptions.bae
+  'baseline',         // reference to original base doc
+]);
+
+function stripHydrationOnlyFields(team) {
+  if (!team || typeof team !== 'object') return team;
+  const result = { ...team };
+  for (const key of HYDRATION_ONLY_KEYS) {
+    delete result[key];
+  }
+  return result;
+}
 
 /**
  * Recursively removes undefined values from objects/arrays (Firestore-safe)
@@ -662,7 +691,16 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       // Phase D4: Remove undefined values to prevent Firestore errors
       if (updatedTeam) {
         const snapshotRef = worldTeamRef(worldId, teamCode);
-        const normalizedTeam = normalizeTeamTpeSchema(updatedTeam);
+        // Bridge Gate: match persistWorldMutation hygiene order
+        // strip hydration → sanitize transients → normalize TPE → validate contract → removeUndefined → write
+        const afterHydrationStrip = stripHydrationOnlyFields(updatedTeam);
+        const afterSanitize = sanitizeTransientFieldsForPersistence(afterHydrationStrip);
+        const normalizedTeam = normalizeTeamTpeSchema(afterSanitize);
+        assertPersistableOrThrow({
+          obj: normalizedTeam,
+          contract: PERSISTENCE_CONTRACTS.TEAM,
+          label: 'TEAM',
+        });
         const safeTeam = removeUndefinedDeep(normalizedTeam);
         batch.set(snapshotRef, safeTeam);
         updatedTeams.push(teamCode);
