@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-02-26
+Last updated: 2026-02-28
 
 ## Trade Machine Overview
 
@@ -325,9 +325,17 @@ Date: 2026-02-26
 
 - RC1.2: full-suite green (node + UI, 267 files, 3395 tests); no trade logic changes. UI test layer (34 files, 370 tests) now passes. Fixes were wizard label/testid alignment, vacuum mode banner/save-draft restoration, Convert to Swap QuickBuilder feature, and vacuum save routing fix for creates. See `return_packages/ship_gates/SHIP_GATES_RC1_UI_SUITE_FIX_E1_EXECUTION_RETURN_PACKAGE.md`.
 
-### Future / Deferred
+### Rule 1.6 — S&T Incoming Aggregation (Implemented)
 
-- **S&T Aggregation Rule (1.6)** — tests exist in `tests/signAndTradeAggregation.test.js` as `test.todo()`; rule not implemented yet. When implemented, reactivate the 5 deferred tests (incoming aggregation, 3-team routing, third party unaffected) and provide proper 3-team fixtures with explicit `toTeamId` routing.
+- **Status:** Implemented and enforced under existing rule key `team.rules.signAndTrade` in `validateSignAndTrade()`.
+- **Behavior:** if a team receives a sign-and-trade player, that team cannot receive any additional players in the same transaction (including multi-team trades).
+- **Scope boundaries:** picks/cash are not counted as players for Rule 1.6; third-party teams not receiving the S&T player are unaffected by Rule 1.6.
+- **Validator SSOT:** `src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.js` (incoming aggregation check is part of Rule 1.6).
+- **Apply parity:** enforced again through `validatePostTradeSnapshotForContext()` -> `validateTrade()`.
+- **Test status:** `tests/signAndTradeAggregation.test.js` now runs as active coverage (no deferred `todo` cases).
+- **Return packages:**
+  - `return_packages/trade_machine/TM_SNT_RULE_1_6_INCOMING_AGGREGATION_P1_PREFLIGHT_RETURN_PACKAGE.md`
+  - `return_packages/trade_machine/TM_SNT_RULE_1_6_INCOMING_AGGREGATION_E1_EXECUTION_RETURN_PACKAGE.md`
 
 ### Non-Blocking Minors (not required for ship)
 

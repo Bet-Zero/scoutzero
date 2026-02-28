@@ -109,6 +109,37 @@ Expected
 - [ ] Summary shows only routed incoming assets per team (no broadcast incoming)
 - [ ] If you intentionally break salary/apron, legality reasons are specific (not generic)
 
+#### Scenario 1A — S&T Incoming Aggregation (2-team)
+
+Steps
+
+1. Open Trade Machine with 2 teams
+2. Create a sign-and-trade from Team A to Team B
+3. Also route one additional non-S&T player from Team A to Team B in the same transaction
+4. Validate
+
+Expected
+
+- [ ] Trade is illegal
+- [ ] Team B shows Sign-and-Trade rule violation: `Cannot aggregate other players with sign-and-trade player.`
+- [ ] Team A also fails outgoing S&T aggregation if it sends S&T + extra player
+
+#### Scenario 1B — S&T Incoming Aggregation (3-team routed)
+
+Steps
+
+1. Open Trade Machine with 3 teams
+2. Route one S&T player from Team A to Team B
+3. Route an additional non-S&T player from Team C to Team B
+4. Ensure all outgoing players have explicit destinations
+5. Validate
+
+Expected
+
+- [ ] Trade is illegal under Rule 1.6 for Team B
+- [ ] Violation appears under existing `team.rules.signAndTrade` row (no hidden rule)
+- [ ] If Team B receives only the S&T player, Rule 1.6 passes
+
 #### Scenario 2 — Entitlement Edit: Identity-Change → Duplicate-as-New
 
 Steps
@@ -312,7 +343,7 @@ Do not duplicate content from these docs — reference them:
 
 **P0 scoped suites (confirmatory):** `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed).
 
-The 16 full-suite failures are spread across 3 files, all pre-existing and all outside the scoped trade/architect suites: (1) speculative S&T aggregation tests for an unimplemented CBA rule in top-level `tests/signAndTradeAggregation.test.js`, (2) validation performance monitoring infra tests in `tests/validationPerformance.test.js`, and (3) entitlement pick-row display label expectation drift in `tests/entitlements/entitlementPickRowProjection.test.js`. None are regressions from the Trade Machine 5-pack closure. Trade Machine is ship-clean. Full details in `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
+At RC1 time, the 16 full-suite failures were spread across 3 files, all pre-existing and all outside the scoped trade/architect suites: (1) speculative S&T aggregation tests in top-level `tests/signAndTradeAggregation.test.js`, (2) validation performance monitoring infra tests in `tests/validationPerformance.test.js`, and (3) entitlement pick-row display label expectation drift in `tests/entitlements/entitlementPickRowProjection.test.js`. None were regressions from the Trade Machine 5-pack closure. Trade Machine remained ship-clean for scoped gates. Full details in `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
 
 ---
 
@@ -333,7 +364,7 @@ The 16 full-suite failures are spread across 3 files, all pre-existing and all o
   - `getPickRowDisplayLabel` now outputs a self-contained label including **year + round + via team + kind suffix** (e.g., `(Swap)`, `(Cond.)`).
   - `getPickRowSecondaryText` preserves `"Swap option"` and **does not mutilate condition strings**.
 - **Validation performance tests** made **opt-in** via `RUN_PERF_TESTS=1` (skipped by default to avoid false failures until perf/cache wiring exists).
-- **Speculative Sign-and-Trade incoming aggregation tests** (Rule 1.6 not implemented) converted to `test.todo()`; one control fixture corrected for roster overflow.
+- **Speculative Sign-and-Trade incoming aggregation tests** were converted to `test.todo()` in RC1.1 (at that time Rule 1.6 coverage was deferred); one control fixture was corrected for roster overflow.
 
 **Newly discovered: UI test layer failures (pre-existing).**
 
