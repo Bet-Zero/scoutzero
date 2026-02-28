@@ -304,11 +304,11 @@ Do not duplicate content from these docs — reference them:
 
 ## RC1 Gate Snapshot — 2026-02-26
 
-| Command | Result |
-|---------|--------|
-| `npm run test -- --run` | **FAIL** (16 tests failed / 3022 passed across 233 files) |
-| `npm run validate:project` | **PASS** |
-| `npm run build` | **PASS** (3053 modules) |
+| Command                    | Result                                                    |
+| -------------------------- | --------------------------------------------------------- |
+| `npm run test -- --run`    | **FAIL** (16 tests failed / 3022 passed across 233 files) |
+| `npm run validate:project` | **PASS**                                                  |
+| `npm run build`            | **PASS** (3053 modules)                                   |
 
 **P0 scoped suites (confirmatory):** `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed).
 
@@ -318,49 +318,60 @@ The 16 full-suite failures are spread across 3 files, all pre-existing and all o
 
 ## RC1.1 Gate Snapshot — 2026-02-26
 
-| Command | Result |
-|---------|--------|
-| `npm run test:node` | **PASS** (232 passed, 1 skipped, 233 files) |
-| `npm run test:trade` | **PASS** (58 files, 525 passed) |
-| `npm run test:architect` | **PASS** (136 files, 2206 passed) |
-| `npm run validate:project` | **PASS** |
-| `npm run build` | **PASS** (3053 modules) |
-| `npm run test -- --run` (full: node + UI) | **FAIL** — node layer green; UI layer has 6 pre-existing failures (see below) |
+| Command                                    | Result                                                           |
+| ------------------------------------------ | ---------------------------------------------------------------- |
+| `npm run test:node -- --reporter=dot`      | **PASS** (233 files: 232 passed, 1 skipped)                      |
+| `npm run test:trade -- --reporter=dot`     | **PASS** (58 files; 525 passed, 1 skipped, 3 todo)               |
+| `npm run test:architect -- --reporter=dot` | **PASS** (136 files; 2206 passed, 1 skipped, 3 todo)             |
+| `npm run validate:project`                 | **PASS**                                                         |
+| `npm run build`                            | **PASS** (3053 modules transformed)                              |
+| `npm run test -- --run` (full: node + UI)  | **FAIL** — node layer green; UI layer fails (6 files / 27 tests) |
 
-**What changed from RC1 → RC1.1:**
+**What changed from RC1 → RC1.1 (node-layer cleanup; no trade legality changes):**
 
-- **Entitlement pick-row label helpers** (`getPickRowDisplayLabel`, `getPickRowSecondaryText`) fixed to match display spec: year/round/via/kind suffix in labels; secondary text preserves "Swap option" and conditions without stripping.
-- **Validation performance tests** gated behind `RUN_PERF_TESTS=1` env flag (opt-in; skipped by default).
-- **S&T aggregation speculative tests** (Rule 1.6 not implemented) converted to `test.todo()`; control test fixture repaired (roster overflow).
+- **Entitlement pick-row projection helpers** aligned to the canonical display spec:
+  - `getPickRowDisplayLabel` now outputs a self-contained label including **year + round + via team + kind suffix** (e.g., `(Swap)`, `(Cond.)`).
+  - `getPickRowSecondaryText` preserves `"Swap option"` and **does not mutilate condition strings**.
+- **Validation performance tests** made **opt-in** via `RUN_PERF_TESTS=1` (skipped by default to avoid false failures until perf/cache wiring exists).
+- **Speculative Sign-and-Trade incoming aggregation tests** (Rule 1.6 not implemented) converted to `test.todo()`; one control fixture corrected for roster overflow.
 
-**Newly discovered: UI test layer failures (6 files, 27 tests).** The preflight's `npm run test -- --run` stopped at node failures, never reaching the UI config (`vitest.ui.config.js`). Fixing node tests revealed 6 pre-existing UI test files that fail. None are caused by RC1.1 changes. All are component-level rendering mismatches (wizard translation labels, vacuum badges, pick right wizard UI, ranking setup). These are outside trade/architect scope and do not block shipping per SHIP_GATES_MASTER triage rules (P1 failures not touching shipped scope).
+**Newly discovered: UI test layer failures (pre-existing).**
 
-**Perf tests are opt-in:** set `RUN_PERF_TESTS=1` to include validation performance tests.
+- `npm run test -- --run` executes **node tests first** (via `vitest.node.config.js`) and then **UI tests** (via `vitest.ui.config.js`) sequentially.
+- Prior to RC1.1, the run stopped early due to node-layer failures, so the UI suite did not execute. Once node was green, the UI suite surfaced **6 failing files / 27 failing tests**.
+- These failures were **component-level rendering / selector drift** (wizard labels/testids, vacuum badges/menu interaction, pick right wizard UI expectations, ranking setup UX) and were **not caused by the RC1.1 node fixes**.
 
-Full details in `return_packages/ship_gates/SHIP_GATES_RC1_FIX_FULL_SUITE_FAILS_E1_EXECUTION_RETURN_PACKAGE.md`.
+**Perf tests reminder:** set `RUN_PERF_TESTS=1` to include validation performance tests.
+
+Full details: `return_packages/ship_gates/SHIP_GATES_RC1_FIX_FULL_SUITE_FAILS_E1_EXECUTION_RETURN_PACKAGE.md`.
 
 ---
 
 ## RC1.2 Gate Snapshot — 2026-02-26
 
-| Command | Result |
-|---------|--------|
-| `npm run test -- --run` (full: node + UI) | **PASS** (267 files, 3395 tests passed) |
-| `npm run test:node -- --reporter=dot` | **PASS** (232 passed, 1 skipped) |
-| `npm run test:ui -- --run` | **PASS** (34 passed, 370 tests passed) |
-| `npm run validate:project` | **PASS** |
-| `npm run build` | **PASS** |
+| Command                                   | Result                                                   |
+| ----------------------------------------- | -------------------------------------------------------- |
+| `npm run test -- --run` (full: node + UI) | **PASS** (node + UI green; 267 files; 3395 tests passed) |
+| `npm run test:node -- --reporter=dot`     | **PASS** (233 files: 232 passed, 1 skipped)              |
+| `npm run test:ui -- --run`                | **PASS** (34 files; 370 tests passed, 2 skipped)         |
+| `npm run validate:project`                | **PASS**                                                 |
+| `npm run build`                           | **PASS**                                                 |
 
-**What changed from RC1.1 → RC1.2:**
+**What changed from RC1.1 → RC1.2 (UI suite made green; no trade logic changes):**
+The 6 UI test files (27 failing tests) surfaced in RC1.1 are now resolved. Root causes and approach:
 
-The 6 pre-existing UI test failures (27 tests across 6 files) discovered in RC1.1 have been resolved. Root causes were:
+- **Wizard translation label drift** (4 tests): tests updated to match the **current canonical UI copy** (e.g., `'Protection'`, `'Swap'`, `'Pool'`), and preset expectations updated after preset simplification.
+- **Pick Right Wizard + Vacuum Apply gaps** (6 + 10 tests): restored/standardized key UI contracts and filled designed-but-missing UX elements:
+  - Apply button testid standardized to `wizard-apply`
+  - **Save Draft** button restored
+  - **Vacuum mode** banner restored
+  - **Convert to Swap** implemented in QuickBuilder edit flow
+  - Missing vacuum-overlay mocks added in tests (e.g., `rekeyVacuumCreate`, `findVacuumCreateByIdentityKey`, `writeWorldEntitlementAndAttachToTeamAtomic`)
+  - Vacuum create routing bug fixed (vacuum creates now route through create, not edit)
+- **QuickBuilder edit identity + Convert-to-Swap** (4 tests): added `edit-identity-pick-id` and implemented Convert-to-Swap section per the simplified wizard design.
+- **EntitlementPickRow vacuum badges/menu** (2 tests): aligned badge/action copy and updated tests to **open the 3-dot menu** (canonical interaction pattern).
+- **RankingSetup** (1 test): test updated to match the **Tier Tagging UX** (new testid and interaction).
 
-- **Wizard translation label drift** (4 tests): WIZARD_KIND_LABELS and WIZARD_INTENT_LABELS were simplified for user-friendly copy (`'Protection'` vs `'Pick Ownership'`, `'Pool'` vs `'Conveyance Right'`). WIZARD_PRESETS reduced from 5 → 4 (removed `lottery_top10_unprotected`). Tests updated to match current canonical labels.
-- **Pick Right Wizard testid/feature gaps** (6+10 tests): `wizard-apply-footer` renamed to `wizard-apply`. Save Draft button restored in modal footer. Vacuum mode banner added. Convert to Swap section added to QuickBuilder for edit mode. Missing vacuum overlay mocks added (`rekeyVacuumCreate`, `findVacuumCreateByIdentityKey`, `writeWorldEntitlementAndAttachToTeamAtomic`).
-- **QuickBuilder testid/feature gaps** (4 tests): `edit-identity-pick-id` added. Convert to Swap section implemented for pick_ownership → swap_right conversion.
-- **EntitlementPickRow vacuum badges** (2 tests): Badge text updated (`'Edited'` → `'Edited (this session)'`), action text updated (`'Revert Edit'` → `'Revert this edit'`). Tests updated to pass `openMenu`/`setOpenMenu` props for menu visibility.
-- **RankingSetup** (1 test): Component was redesigned with Tier Tagging UX; test updated to use `tier-tagging` testid and TOP button interaction.
+**Result:** UI suite is now enforced and green; node + UI combined gate is green. No trade legality/CBA enforcement changes.
 
-**UI suite previously masked by node failures; now enforced.** Both node and UI layers are green. No trade logic changes.
-
-Full details in `return_packages/ship_gates/SHIP_GATES_RC1_UI_SUITE_FIX_E1_EXECUTION_RETURN_PACKAGE.md`.
+Full details: `return_packages/ship_gates/SHIP_GATES_RC1_UI_SUITE_FIX_E1_EXECUTION_RETURN_PACKAGE.md`.
