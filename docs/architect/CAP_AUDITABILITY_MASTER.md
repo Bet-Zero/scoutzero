@@ -69,13 +69,13 @@ Canonical complete ledger is maintained in:
 
 High-level category view:
 
-| Category | Current Class | Notes |
-| --- | --- | --- |
-| World mutation pipeline actions (trade/sign/offer sheet/etc.) | Mostly `A` | Centralized path exists, but lacks holistic post-state validator and full audit envelope fields. |
-| Optimistic local + async persist handlers | `B` | Local-first mutation introduces drift/audit consistency risk. |
-| World season advance/offseason transition | `B` | Uses OSTE validation and bridge persistence contracts, but no unified world event emission. |
-| Base-mode local flows | `C` | Local-only state mutations with no durable audit trail. |
-| Legacy exported/dormant mutation surfaces | `C` | Bypass candidates; not fully routed through one trust gate. |
+| Category                                                      | Current Class | Notes                                                                                            |
+| ------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| World mutation pipeline actions (trade/sign/offer sheet/etc.) | Mostly `A`    | Centralized path exists, but lacks holistic post-state validator and full audit envelope fields. |
+| Optimistic local + async persist handlers                     | `B`           | Local-first mutation introduces drift/audit consistency risk.                                    |
+| World season advance/offseason transition                     | `B`           | Uses OSTE validation and bridge persistence contracts, but no unified world event emission.      |
+| Base-mode local flows                                         | `C`           | Local-only state mutations with no durable audit trail.                                          |
+| Legacy exported/dormant mutation surfaces                     | `C`           | Bypass candidates; not fully routed through one trust gate.                                      |
 
 ## Proposed Contracts (Docs-Only)
 
@@ -232,3 +232,179 @@ Scope implemented for base-mode parity and world optimistic/local-first parity:
 - Firestore scope unchanged:
   - No new collections/paths.
   - No additional world-mode batch commit paths introduced.
+
+## E4 Execution Status (Implemented 2026-02-28)
+
+Scope implemented for optimistic-operation serialization and QA observability:
+
+- World optimistic cap mutations now use a fail-closed serialization lock in
+  `useArchitectActions`:
+  - Mode: `block` (no queueing)
+  - Scope key: `architect_world_cap_mutation_lock:${worldId}`
+  - Covered mutation handlers:
+    - `waivePlayer`
+    - `extendPlayer`
+    - `optionDecision`
+    - `renounceRights`
+    - `setDeadCap`
+    - `setExceptions`
+  - Behavior:
+    - If one optimistic world mutation is in-flight, the next optimistic mutation is blocked.
+    - Blocked operations do not apply local state and do not start authoritative persistence.
+    - Lock release is guaranteed on success/failure/error paths.
+
+- Rollback correctness is preserved:
+  - Each optimistic operation still captures its own pre-mutation snapshot.
+  - On authoritative failure, rollback uses that operation-local snapshot.
+
+- Added dev audit viewer in GM Dashboard:
+  - Component: `src/features/architect/GMDashboard/components/CapAuditDebugPanel.tsx`
+  - Streams displayed:
+    - `architect_base_capAuditEvents_v1` (base-mode local stream)
+    - `architect_world_preview_capAuditEvents_v1` (world preview stream)
+  - Surface includes:
+    - `operationId`
+    - `authoritativeEventLinked`
+    - `mutationType`
+    - `occurredAt`
+    - `teamCodes`
+    - `valid`
+    - `violations` / `warnings` counts
+  - Controls:
+    - Refresh
+    - Clear per stream
+    - Filter by `mutationType`
+    - Filter by `operationId` substring
+  - Enable conditions:
+    - `import.meta.env.DEV === true`, or
+    - `localStorage.__ARCHITECT_DEBUG__ = "1"`
+
+- Firestore scope unchanged:
+  - No new collections/paths.
+  - No base-mode Firestore writes introduced.
+
+## Post-State Validator Coverage Map (P5)
+
+Preflight date: 2026-02-28
+Full return package: `return_packages/architect/TM_CAP_AUDITABILITY_P5_PREFLIGHT_RETURN_PACKAGE.md`
+
+### Current State (v0.1.0)
+
+The post-state validator (`postStateCapValidator.ts`) enforces **3 rule groups** (5 distinct codes):
+
+| Rule Group       | Codes                                                                                        | Severity | Status      |
+| ---------------- | -------------------------------------------------------------------------------------------- | -------- | ----------- |
+| Totals sanity    | `TOTALS_MISSING`, `TOTALS_YEAR_KEY_MISSING`, `TOTALS_YEAR_KEY_MISMATCH`, `TOTALS_NON_FINITE` | error    | Implemented |
+| Hard cap ceiling | `HARD_CAP_EXCEEDED`                                                                          | error    | Implemented |
+| Salary floor     | `SALARY_FLOOR_NOT_MET`                                                                       | warning  | Implemented |
+
+### Rule Matrix Summary
+
+Discovery identified **27 cap-legality rules** across the codebase:
+
+| Category                 | Total Rules | Post-State Expressible | Currently in Validator | Gap    |
+| ------------------------ | ----------- | ---------------------- | ---------------------- | ------ |
+| Cap / Tax / Apron        | 8           | 4                      | 1 (hard cap)           | 3      |
+| Salary Floor             | 1           | 1                      | 1                      | 0      |
+| Totals Sanity            | 3           | 3                      | 3                      | 0      |
+| Roster                   | 3           | 3                      | 0                      | 3      |
+| Contracts                | 4           | 4                      | 0                      | 4      |
+| Dead Money               | 1           | 1                      | 0                      | 1      |
+| Exceptions               | 2           | 2                      | 0                      | 2      |
+| Cap Holds                | 1           | 1                      | 0                      | 1      |
+| League Invariants        | 3           | 3                      | 0                      | 3      |
+| Incomplete Roster Charge | 1           | 1                      | 0                      | 1      |
+| **Total**                | **27**      | **23**                 | **5**                  | **18** |
+
+4 of 27 rules are mutation-specific only (signing mechanism, trade salary matching, second apron trade restrictions, exception eligibility blocking) and should remain in per-mutation validators.
+
+### v1.0.0 Ship Set (Proposed for E5)
+
+Expand from 5 codes to **13 rules** by wiring existing implementations:
+
+| Rule ID            | Rule                         | Source                                                       | Severity |
+| ------------------ | ---------------------------- | ------------------------------------------------------------ | -------- |
+| PSV_TOTALS_001-003 | Totals sanity (3 checks)     | Already in v0.1.0                                            | error    |
+| PSV_CAP_001        | Hard cap ceiling             | Already in v0.1.0                                            | error    |
+| PSV_FLOOR_001      | Salary floor                 | Already in v0.1.0                                            | warning  |
+| PSV_ROSTER_001     | Max roster (15)              | `rosterValidation.js` / `capLegalityValidation.js`           | error    |
+| PSV_ROSTER_003     | Two-way limit (3)            | `rosterValidation.js` / `resolveOffseasonTransition.ts`      | error    |
+| PSV_CONTRACT_004   | Contract rows valid          | `capLegalityValidation.js:837` (`validateContractRows`)      | error    |
+| PSV_DEAD_001       | Dead cap schema valid        | `capLegalityValidation.js:888` (`validateDeadCap`)           | error    |
+| PSV_EXC_001-002    | Exception schema valid       | `capLegalityValidation.js:963` (`validateExceptions`)        | error    |
+| PSV_HOLD_001       | Cap hold amounts valid       | `resolveOffseasonTransition.ts:530` (`isCapHoldAmountValid`) | error    |
+| PSV_CAP_004        | Luxury tax threshold warning | `computeTeamCapTotals.js` (deltas)                           | warning  |
+
+All v1.0.0 rules have existing implementations — no new CBA logic required.
+
+### v1.1+ Backlog
+
+| Rule ID            | Rule                            | Reason Deferred                                                                |
+| ------------------ | ------------------------------- | ------------------------------------------------------------------------------ |
+| PSV_ROSTER_002     | Min roster (14)                 | Needs grace period awareness (offseason=13, regular=14)                        |
+| PSV_LEAGUE_001-003 | League invariants (3 rules)     | Require full-league snapshot (expensive); already in dedicated pipeline phases |
+| PSV_CHARGE_001     | Incomplete roster charge parity | Low severity; computation trusted                                              |
+| PSV_CAP_005-006    | Apron proximity warnings        | Polish-tier                                                                    |
+
+## Proposed E5 Execution Scope
+
+### E5 Acceptance Criteria
+
+1. `POST_STATE_CAP_VALIDATOR_VERSION` bumped to `'1.0.0'`
+2. All 13 v1.0.0 rules produce correct violations/warnings in behavior tests
+3. All rules run on world mutations, base-mode paths, and season advance
+4. No regression in `test:architect` or `test:trade` suites
+5. Return package with before/after rule counts and test evidence
+
+### E5 Non-Goals
+
+- No new CBA logic invention
+- No league invariant integration into post-state validator (stays in pipeline phases)
+- No mutation-specific rule migration (signing mechanisms, trade matching stay where they are)
+- No changes to audit event schema or storage paths
+
+---
+
+## E5 Execution Status (COMPLETED)
+
+**Date:** 2026-02-28  
+**Version:** `POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0'`
+
+### Rules Implemented
+
+| Rule ID          | Code                     | Status               |
+| ---------------- | ------------------------ | -------------------- |
+| PSV_CAP_001      | `NEGATIVE_CAP_TOTAL`     | ✅ Already present   |
+| PSV_CAP_002      | `FLOOR_VIOLATION`        | ✅ Already present   |
+| PSV_CAP_003      | `TOTALS_NON_FINITE`      | ✅ Already present   |
+| PSV_CAP_004      | `LUXURY_TAX_EXCEEDED`    | ✅ **NEW** (warning) |
+| PSV_HOLD_001     | `CAP_HOLD_INVALID`       | ✅ **NEW**           |
+| PSV_CONTRACT_004 | `CONTRACT_ROWS_INVALID`  | ✅ **NEW**           |
+| PSV_DEAD_001     | `DEAD_CAP_INVALID`       | ✅ **NEW**           |
+| PSV_EXC_001-002  | `EXCEPTIONS_INVALID`     | ✅ **NEW**           |
+| PSV_ROSTER_001   | `ROSTER_MAX_EXCEEDED`    | ✅ **NEW**           |
+| PSV_ROSTER_003   | `TWO_WAY_LIMIT_EXCEEDED` | ✅ **NEW**           |
+| PSV_DELTA_001    | `DELTA_DRIFT`            | ✅ Already present   |
+| PSV_DELTA_002    | `DELTA_SIGN_MISMATCH`    | ✅ Already present   |
+| PSV_OPS_001      | `OP_ID_MISSING`          | ✅ Already present   |
+
+### Implementation Details
+
+- **File Modified:** `src/features/architect/utils/capLegality/postStateCapValidator.ts`
+- **New Imports:** `validateContractRows`, `validateDeadCap`, `validateExceptions` from `capLegalityValidation.js`; `isCapHoldAmountValid` from `capHoldTransitionHelpers.js`
+- **Test File:** `src/tests/architect/postStateCapValidator.behavior.test.ts` (22 tests, all passing)
+
+### Validation Results
+
+- **test:node:** 248 files, 3135 tests passed
+- **test:ui:** 35 files, 373 tests passed
+- **test:architect:** 150 files, 2272 tests passed
+- **test:trade:** 58 files, 525 tests passed
+- **build:** Success (29.26s)
+- **validate:project:** All validations passed
+
+### Test Files Updated (Mock Fixes)
+
+- `src/tests/architect/signAndTrade.test.js` — added `validateContractRows`, `validateExceptions` to mock
+- `src/tests/architect/useArchitectActions.freeAgency.test.tsx` — added validator mocks
+- `tests/architect/renounceRights.test.js` — added validator mocks, fixed roster padding

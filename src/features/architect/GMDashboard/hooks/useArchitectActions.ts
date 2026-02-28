@@ -42,6 +42,10 @@ import {
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import {
+  acquireOptimisticLock,
+  releaseOptimisticLock,
+} from './optimisticMutationLock';
 import toast from 'react-hot-toast';
 
 // ==== Type Definitions ====
@@ -625,6 +629,10 @@ function getFirstViolationMessage(
   return typedMessage || fallbackMessage;
 }
 
+function getWorldOptimisticLockScopeKey(worldId: string): string {
+  return `architect_world_cap_mutation_lock:${worldId}`;
+}
+
 /**
  * Centralized action handlers hook for GMDashboard
  *
@@ -853,101 +861,110 @@ export function useArchitectActions({
         invalidMessage,
       } = params;
 
-      if (!teamCapSheet) {
-        reportMutationError(
-          `Cannot apply ${mutationType}: team state is not loaded.`,
-          {
-            mutationType,
+      const lockScopeKey = worldId
+        ? getWorldOptimisticLockScopeKey(worldId)
+        : null;
+      let optimisticLockAcquired = false;
+      let persistScheduled = false;
+
+      try {
+        if (lockScopeKey) {
+          optimisticLockAcquired = acquireOptimisticLock(lockScopeKey);
+          if (!optimisticLockAcquired) {
+            const blockedMessage =
+              'Another cap mutation is still saving. Please wait and try again.';
+            reportMutationError(blockedMessage, {
+              mutationType,
+              worldId,
+              lockScopeKey,
+            });
+            return { applied: false, operationId: null };
           }
-        );
-        return { applied: false, operationId: null };
-      }
+        }
 
-      const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
-      const afterTeamSnapshot = safeCloneForAudit(
-        computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
-      );
-      const operationId = generateLocalOperationId();
-      const occurredAt = new Date().toISOString();
-      const beforeTeamsByCode: TeamsByCode = {
-        [teamCode]: beforeTeamSnapshot,
-      };
-      const afterTeamsByCode: TeamsByCode = {
-        [teamCode]: afterTeamSnapshot,
-      };
-
-      const previewEvent = buildCapAuditEvaluation({
-        operationId,
-        occurredAt,
-        mutationType,
-        worldId,
-        year: currentYear,
-        teamCodes: [teamCode],
-        playerIds: playerIds.filter(Boolean).map(String),
-        beforeTeamsByCode,
-        afterTeamsByCode,
-        preview: !!worldId,
-        authoritativeEventLinked: worldId ? false : undefined,
-      });
-
-      const storageKey = worldId
-        ? WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY
-        : BASE_CAP_AUDIT_STORAGE_KEY;
-      appendLocalCapAuditEvent(previewEvent.event, { storageKey });
-
-      if (!previewEvent.validation.valid) {
-        reportMutationError(
-          getFirstViolationMessage(previewEvent.validation, invalidMessage),
-          {
-            mutationType,
-            operationId,
-            violations: previewEvent.validation.violations,
-          }
-        );
-        return { applied: false, operationId };
-      }
-
-      setTeamCapSheet(afterTeamSnapshot);
-
-      if (!worldId) {
-        return { applied: true, operationId };
-      }
-
-      void persistMutation(mutationType, persistPayload, {
-        operationId,
-        onSuccess: (result) => {
-          const authoritativeOperationId = String(
-            result?.event?.operationId || operationId
-          );
-          updateLocalCapAuditEvent(
-            operationId,
+        if (!teamCapSheet) {
+          reportMutationError(
+            `Cannot apply ${mutationType}: team state is not loaded.`,
             {
-              authoritativeEventLinked: true,
-              authoritativeOperationId,
-              persistFailed: false,
-            },
-            {
-              storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+              mutationType,
             }
           );
-        },
-        onFailure: (message) => {
-          setTeamCapSheet(beforeTeamSnapshot);
-          const didUpdatePreview = updateLocalCapAuditEvent(
-            operationId,
+          return { applied: false, operationId: null };
+        }
+
+        const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
+        const afterTeamSnapshot = safeCloneForAudit(
+          computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
+        );
+        const operationId = generateLocalOperationId();
+        const occurredAt = new Date().toISOString();
+        const beforeTeamsByCode: TeamsByCode = {
+          [teamCode]: beforeTeamSnapshot,
+        };
+        const afterTeamsByCode: TeamsByCode = {
+          [teamCode]: afterTeamSnapshot,
+        };
+
+        const previewEvent = buildCapAuditEvaluation({
+          operationId,
+          occurredAt,
+          mutationType,
+          worldId,
+          year: currentYear,
+          teamCodes: [teamCode],
+          playerIds: playerIds.filter(Boolean).map(String),
+          beforeTeamsByCode,
+          afterTeamsByCode,
+          preview: !!worldId,
+          authoritativeEventLinked: worldId ? false : undefined,
+        });
+
+        const storageKey = worldId
+          ? WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY
+          : BASE_CAP_AUDIT_STORAGE_KEY;
+        appendLocalCapAuditEvent(previewEvent.event, { storageKey });
+
+        if (!previewEvent.validation.valid) {
+          reportMutationError(
+            getFirstViolationMessage(previewEvent.validation, invalidMessage),
             {
-              persistFailed: true,
-              authoritativeEventLinked: false,
-            },
-            {
-              storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+              mutationType,
+              operationId,
+              violations: previewEvent.validation.violations,
             }
           );
+          return { applied: false, operationId };
+        }
 
-          if (!didUpdatePreview) {
-            appendLocalCapAuditEvent(
+        setTeamCapSheet(afterTeamSnapshot);
+
+        if (!worldId) {
+          return { applied: true, operationId };
+        }
+
+        const persistPromise = persistMutation(mutationType, persistPayload, {
+          operationId,
+          onSuccess: (result) => {
+            const authoritativeOperationId = String(
+              result?.event?.operationId || operationId
+            );
+            updateLocalCapAuditEvent(
+              operationId,
               {
-                ...previewEvent.event,
+                authoritativeEventLinked: true,
+                authoritativeOperationId,
+                persistFailed: false,
+              },
+              {
+                storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+              }
+            );
+          },
+          onFailure: (message) => {
+            setTeamCapSheet(beforeTeamSnapshot);
+            const didUpdatePreview = updateLocalCapAuditEvent(
+              operationId,
+              {
                 persistFailed: true,
                 authoritativeEventLinked: false,
               },
@@ -955,19 +972,43 @@ export function useArchitectActions({
                 storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
               }
             );
-          }
 
-          reportMutationError(
-            message || `Failed to persist ${mutationType} mutation.`,
-            {
-              mutationType,
-              operationId,
+            if (!didUpdatePreview) {
+              appendLocalCapAuditEvent(
+                {
+                  ...previewEvent.event,
+                  persistFailed: true,
+                  authoritativeEventLinked: false,
+                },
+                {
+                  storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+                }
+              );
             }
-          );
-        },
-      });
 
-      return { applied: true, operationId };
+            reportMutationError(
+              message || `Failed to persist ${mutationType} mutation.`,
+              {
+                mutationType,
+                operationId,
+              }
+            );
+          },
+        });
+
+        persistScheduled = true;
+        void persistPromise.finally(() => {
+          if (lockScopeKey) {
+            releaseOptimisticLock(lockScopeKey);
+          }
+        });
+
+        return { applied: true, operationId };
+      } finally {
+        if (optimisticLockAcquired && lockScopeKey && !persistScheduled) {
+          releaseOptimisticLock(lockScopeKey);
+        }
+      }
     },
     [
       currentYear,

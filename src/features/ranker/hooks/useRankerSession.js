@@ -1,354 +1,421 @@
 // src/features/ranker/hooks/useRankerSession.js
-// Hook for managing ranker session persistence with autosave.
-// Handles create/load/save/resume flows and closure cache reconstruction.
+// Hook for managing ranker session persistence with local-first architecture.
+// - All users: Local draft in sessionStorage (crash/refresh safe)
+// - Owner only: Explicit "Save to Firestore" action
+// Does NOT write to Firestore during ranking for any user.
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { isOwnerUid } from '@/config/ownerConfig';
 import {
   createRankerSession,
   updateRankerSession,
   getRankerSession,
-  queryIncompleteRankerSessions,
+  queryAllRankerSessions,
   deleteRankerSession,
-  serializeSkippedPairs,
   deserializeSkippedPairs,
-  serializeAdjustments,
 } from '@/firebase/rankerHelpers';
+import {
+  loadLocalDraft,
+  saveLocalDraftImmediate,
+  saveLocalDraftDebounced,
+  clearLocalDraft,
+  hasLocalDraft,
+  flushPendingDraftSave,
+  createInitialDraft,
+} from '@/features/ranker/utils/rankerLocalDraft';
 import { createClosureCache } from '@/features/ranker/utils/rankingEngine';
-
-// Autosave debounce delay (ms)
-const AUTOSAVE_DEBOUNCE_MS = 800;
 
 /**
  * Hook for managing ranker session persistence.
+ * Local-first: All users get sessionStorage persistence.
+ * Firestore save is owner-only and explicit (not automatic).
  * @returns {Object} Session management methods and state
  */
 export function useRankerSession() {
   const { userId, loading: authLoading } = useAuth();
+  const isOwner = isOwnerUid(userId);
 
-  // Session state
-  const [sessionId, setSessionId] = useState(null);
-  const [sessionDoc, setSessionDoc] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // Local draft state
+  const [localDraft, setLocalDraft] = useState(() => loadLocalDraft());
+  const [hasLocalSession, setHasLocalSession] = useState(() => hasLocalDraft());
+
+  // Firestore session state (for owner's saved sessions)
+  const [firestoreSessionId, setFirestoreSessionId] = useState(null);
+  const [firestoreSessions, setFirestoreSessions] = useState([]);
+  const [loadingFirestore, setLoadingFirestore] = useState(false);
+
+  // Save status
+  const [saveStatus, setSaveStatus] = useState(null); // 'saving' | 'saved' | 'error' | null
   const [error, setError] = useState(null);
 
-  // For querying incomplete sessions
-  const [incompleteSessions, setIncompleteSessions] = useState([]);
-  const [loadingIncomplete, setLoadingIncomplete] = useState(false);
-
-  // Autosave control refs
-  const isSavingRef = useRef(false);
-  const pendingSaveRef = useRef(null);
-  const saveTimeoutRef = useRef(null);
-  const changeTokenRef = useRef(0);
+  // Refs for debounce control
+  const localSaveTimeoutRef = useRef(null);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+      if (localSaveTimeoutRef.current) {
+        clearTimeout(localSaveTimeoutRef.current);
       }
     };
   }, []);
 
-  /**
-   * Query for incomplete sessions belonging to current user.
-   */
-  const fetchIncompleteSessions = useCallback(async () => {
-    if (!userId) {
-      setIncompleteSessions([]);
-      return [];
-    }
-
-    setLoadingIncomplete(true);
-    try {
-      const sessions = await queryIncompleteRankerSessions(userId, 5);
-      setIncompleteSessions(sessions);
-      return sessions;
-    } catch (err) {
-      console.error('[useRankerSession] fetchIncompleteSessions error:', err);
-      setIncompleteSessions([]);
-      return [];
-    } finally {
-      setLoadingIncomplete(false);
-    }
-  }, [userId]);
+  // ─── Local Draft Operations ───────────────────────────────────────────────────
 
   /**
-   * Create a new session and return session ID.
+   * Create a new local draft (overwrites any existing).
    * @param {Object} params
    * @param {string[]} params.playerPoolIds - Array of player IDs
    * @param {string} [params.name] - Optional session name
-   * @param {Object|null} [params.setupData] - Optional initial setup data
-   * @returns {Promise<string>} New session ID
    */
-  const createSession = useCallback(
-    async ({ playerPoolIds, name, setupData = null }) => {
-      if (!userId) {
-        throw new Error('Cannot create session without user.');
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const newId = await createRankerSession({
-          userId,
-          name,
-          playerPoolIds,
-          setupData,
-        });
-
-        // Load the created doc to get server timestamps
-        const doc = await getRankerSession(newId, userId);
-        setSessionId(newId);
-        setSessionDoc(doc);
-        return newId;
-      } catch (err) {
-        console.error('[useRankerSession] createSession error:', err);
-        setError(err.message);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [userId]
-  );
+  const createLocalDraft = useCallback(({ playerPoolIds, name }) => {
+    const draft = createInitialDraft({ playerPoolIds, name });
+    saveLocalDraftImmediate(draft);
+    setLocalDraft(draft);
+    setHasLocalSession(true);
+    setFirestoreSessionId(null); // New draft, no Firestore association
+  }, []);
 
   /**
-   * Load an existing session by ID.
-   * Returns hydrated state with closure cache for continuation.
-   * @param {string} id - Session document ID
-   * @returns {Promise<Object>} Hydrated session state
+   * Update local draft with debounce.
+   * Call on every user action (select, skip, undo, setup completion).
+   * @param {Object} patch - Fields to update
    */
-  const loadSession = useCallback(
-    async (id) => {
-      if (!userId) {
-        throw new Error('Cannot load session without user.');
+  const updateLocalDraft = useCallback((patch) => {
+    // Immediately update React state
+    setLocalDraft((prev) => {
+      const updated = { ...prev, ...patch };
+      // Debounced save to sessionStorage
+      saveLocalDraftDebounced(updated);
+      return updated;
+    });
+  }, []);
+
+  /**
+   * Update local draft immediately (no debounce).
+   * Use for critical saves like marking finished.
+   * @param {Object} patch - Fields to update
+   */
+  const updateLocalDraftNow = useCallback((patch) => {
+    setLocalDraft((prev) => {
+      const updated = { ...prev, ...patch };
+      saveLocalDraftImmediate(updated);
+      return updated;
+    });
+  }, []);
+
+  /**
+   * Load and hydrate local draft for resumption.
+   * Rebuilds closure cache from results.
+   * @returns {Object|null} Hydrated draft data or null
+   */
+  const loadAndHydrateLocalDraft = useCallback(() => {
+    const draft = loadLocalDraft();
+    if (!draft) return null;
+
+    // Rebuild closure cache from stored results
+    const closureCache = createClosureCache();
+    if (draft.results && draft.results.length > 0) {
+      closureCache.rebuild(draft.results);
+    }
+
+    setLocalDraft(draft);
+    setHasLocalSession(true);
+
+    // If there's an associated Firestore session ID, restore it
+    if (draft.firestoreSessionId) {
+      setFirestoreSessionId(draft.firestoreSessionId);
+    }
+
+    return {
+      ...draft,
+      closureCache,
+      // skippedPairs already converted to Set by loadLocalDraft
+    };
+  }, []);
+
+  /**
+   * Clear local draft.
+   */
+  const deleteLocalDraft = useCallback(() => {
+    flushPendingDraftSave();
+    clearLocalDraft();
+    setLocalDraft(null);
+    setHasLocalSession(false);
+    setFirestoreSessionId(null);
+  }, []);
+
+  // ─── Owner-Only Firestore Operations ──────────────────────────────────────────
+
+  /**
+   * Fetch saved Firestore sessions for the owner.
+   * Non-owners get empty array.
+   */
+  const fetchFirestoreSessions = useCallback(async () => {
+    if (!userId || !isOwner) {
+      setFirestoreSessions([]);
+      return [];
+    }
+
+    setLoadingFirestore(true);
+    try {
+      const sessions = await queryAllRankerSessions(userId, 20);
+      setFirestoreSessions(sessions);
+      return sessions;
+    } catch (err) {
+      console.error('[useRankerSession] fetchFirestoreSessions error:', err);
+      setFirestoreSessions([]);
+      return [];
+    } finally {
+      setLoadingFirestore(false);
+    }
+  }, [userId, isOwner]);
+
+  /**
+   * Save current local draft to Firestore (owner only).
+   * Creates new doc or updates existing if firestoreSessionId is set.
+   * @returns {Promise<string|null>} Firestore session ID or null on failure
+   */
+  const saveToFirestore = useCallback(async () => {
+    if (!userId) {
+      setError('Not authenticated');
+      return null;
+    }
+    if (!isOwner) {
+      setError('Not authorized to save to Firestore');
+      return null;
+    }
+    if (!localDraft) {
+      setError('No local draft to save');
+      return null;
+    }
+
+    // Flush any pending local saves first
+    flushPendingDraftSave();
+    saveLocalDraftImmediate(localDraft);
+
+    setSaveStatus('saving');
+    setError(null);
+
+    try {
+      // Prepare data for Firestore
+      const firestoreData = {
+        name: localDraft.name,
+        playerPoolIds: localDraft.playerPoolIds,
+        setupData: localDraft.setupData,
+        results: localDraft.results || [],
+        skippedPairs: Array.isArray(localDraft.skippedPairs)
+          ? localDraft.skippedPairs
+          : localDraft.skippedPairs instanceof Set
+            ? Array.from(localDraft.skippedPairs)
+            : [],
+        anchorDone: localDraft.anchorDone || false,
+        isFinished: localDraft.isFinished || false,
+        adjustments: localDraft.adjustments,
+      };
+
+      let savedId;
+
+      if (firestoreSessionId) {
+        // Update existing session
+        await updateRankerSession(firestoreSessionId, userId, firestoreData);
+        savedId = firestoreSessionId;
+      } else {
+        // Create new session
+        savedId = await createRankerSession({
+          userId,
+          ...firestoreData,
+        });
+        setFirestoreSessionId(savedId);
+
+        // Store the Firestore ID in local draft for association
+        const updatedDraft = { ...localDraft, firestoreSessionId: savedId };
+        saveLocalDraftImmediate(updatedDraft);
+        setLocalDraft(updatedDraft);
       }
 
-      setLoading(true);
+      setSaveStatus('saved');
+
+      // Reset status after a delay
+      setTimeout(() => setSaveStatus(null), 2000);
+
+      return savedId;
+    } catch (err) {
+      console.error('[useRankerSession] saveToFirestore error:', err);
+      setError(err.message);
+      setSaveStatus('error');
+      return null;
+    }
+  }, [userId, isOwner, localDraft, firestoreSessionId]);
+
+  /**
+   * Load a Firestore session into local draft (owner only).
+   * @param {string} sessionId - Firestore session document ID
+   * @returns {Promise<Object|null>} Hydrated session data or null
+   */
+  const loadFromFirestore = useCallback(
+    async (sessionId) => {
+      if (!userId) {
+        setError('Not authenticated');
+        return null;
+      }
+      if (!isOwner) {
+        setError('Not authorized to load from Firestore');
+        return null;
+      }
+
+      setLoadingFirestore(true);
       setError(null);
 
       try {
-        const doc = await getRankerSession(id, userId);
-        setSessionId(id);
-        setSessionDoc(doc);
+        const doc = await getRankerSession(sessionId, userId);
 
-        // Rebuild closure cache from stored results
+        // Rebuild closure cache
         const closureCache = createClosureCache();
         if (doc.results && doc.results.length > 0) {
           closureCache.rebuild(doc.results);
         }
 
-        // Convert skippedPairs array back to Set
-        const skippedPairs = deserializeSkippedPairs(doc.skippedPairs);
+        // Convert to local draft format
+        const draft = {
+          name: doc.name,
+          playerPoolIds: doc.playerPoolIds,
+          setupData: doc.setupData,
+          results: doc.results || [],
+          skippedPairs: deserializeSkippedPairs(doc.skippedPairs),
+          anchorDone: doc.anchorDone || false,
+          isFinished: doc.isFinished || false,
+          adjustments: doc.adjustments,
+          draftUpdatedAt: Date.now(),
+          firestoreSessionId: sessionId,
+        };
+
+        // Save to local storage and state
+        saveLocalDraftImmediate(draft);
+        setLocalDraft(draft);
+        setHasLocalSession(true);
+        setFirestoreSessionId(sessionId);
 
         return {
-          ...doc,
-          skippedPairs,
+          ...draft,
           closureCache,
         };
       } catch (err) {
-        console.error('[useRankerSession] loadSession error:', err);
+        console.error('[useRankerSession] loadFromFirestore error:', err);
         setError(err.message);
-        throw err;
+        return null;
       } finally {
-        setLoading(false);
+        setLoadingFirestore(false);
       }
     },
-    [userId]
+    [userId, isOwner]
   );
 
   /**
-   * Internal save function (called after debounce).
+   * Delete a Firestore session (owner only).
+   * @param {string} sessionId - Session document ID
    */
-  const performSave = useCallback(
-    async (patch, token) => {
-      if (!sessionId || !userId) return;
-      if (isSavingRef.current) {
-        // Queue for retry
-        pendingSaveRef.current = { patch, token };
-        return;
-      }
-
-      isSavingRef.current = true;
+  const deleteFirestoreSession = useCallback(
+    async (sessionId) => {
+      if (!userId || !isOwner) return;
 
       try {
-        await updateRankerSession(sessionId, userId, patch);
+        await deleteRankerSession(sessionId, userId);
 
-        // Update local doc cache
-        setSessionDoc((prev) => (prev ? { ...prev, ...patch } : prev));
-      } catch (err) {
-        console.error('[useRankerSession] performSave error:', err);
-        // Don't throw — autosave failures shouldn't crash the UI
-      } finally {
-        isSavingRef.current = false;
-
-        // Process any pending save that queued while we were saving
-        if (pendingSaveRef.current && pendingSaveRef.current.token >= token) {
-          const pending = pendingSaveRef.current;
-          pendingSaveRef.current = null;
-          performSave(pending.patch, pending.token);
+        // If deleting currently associated session, clear association
+        if (sessionId === firestoreSessionId) {
+          setFirestoreSessionId(null);
+          // Update local draft to remove association
+          if (localDraft) {
+            const updatedDraft = { ...localDraft, firestoreSessionId: null };
+            saveLocalDraftImmediate(updatedDraft);
+            setLocalDraft(updatedDraft);
+          }
         }
+
+        // Refresh sessions list
+        await fetchFirestoreSessions();
+      } catch (err) {
+        console.error('[useRankerSession] deleteFirestoreSession error:', err);
+        throw err;
       }
     },
-    [sessionId, userId]
+    [userId, isOwner, firestoreSessionId, localDraft, fetchFirestoreSessions]
   );
 
+  // ─── Convenience Actions ──────────────────────────────────────────────────────
+
   /**
-   * Debounced autosave function.
-   * Call this with state changes and it will batch + debounce writes.
-   * @param {Object} patch - Fields to update
+   * Mark local draft as finished.
    */
-  const autosave = useCallback(
-    (patch) => {
-      if (!sessionId || !userId) return;
-
-      // Increment change token
-      const token = ++changeTokenRef.current;
-
-      // Clear any pending timeout
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-
-      // Serialize skippedPairs if present
-      const serializedPatch = { ...patch };
-      if (patch.skippedPairs !== undefined) {
-        serializedPatch.skippedPairs = serializeSkippedPairs(
-          patch.skippedPairs
-        );
-      }
-
-      // Schedule debounced save
-      saveTimeoutRef.current = setTimeout(() => {
-        performSave(serializedPatch, token);
-      }, AUTOSAVE_DEBOUNCE_MS);
-    },
-    [sessionId, userId, performSave]
-  );
+  const markFinished = useCallback(() => {
+    updateLocalDraftNow({ isFinished: true });
+  }, [updateLocalDraftNow]);
 
   /**
-   * Force immediate save (no debounce).
-   * Use for critical saves like marking finished or saving adjustments.
-   * @param {Object} patch - Fields to update
-   */
-  const saveNow = useCallback(
-    async (patch) => {
-      if (!sessionId || !userId) return;
-
-      // Clear any pending debounced save
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = null;
-      }
-
-      // Serialize skippedPairs if present
-      const serializedPatch = { ...patch };
-      if (patch.skippedPairs !== undefined) {
-        serializedPatch.skippedPairs = serializeSkippedPairs(
-          patch.skippedPairs
-        );
-      }
-
-      const token = ++changeTokenRef.current;
-      await performSave(serializedPatch, token);
-    },
-    [sessionId, userId, performSave]
-  );
-
-  /**
-   * Save adjustments (canonical final ranking).
+   * Save adjustments to local draft.
    * @param {Array<{id: string}>} ranking - Adjusted ranking array
    */
   const saveAdjustments = useCallback(
-    async (ranking) => {
-      const adjustments = serializeAdjustments(ranking);
-      await saveNow({ adjustments });
+    (ranking) => {
+      const adjustments = ranking.map((p) => p.id);
+      updateLocalDraftNow({ adjustments });
     },
-    [saveNow]
+    [updateLocalDraftNow]
   );
 
   /**
-   * Mark session as finished.
-   */
-  const markFinished = useCallback(async () => {
-    await saveNow({ isFinished: true });
-  }, [saveNow]);
-
-  /**
-   * Delete a session.
-   * @param {string} [id] - Session ID (defaults to current session)
-   */
-  const deleteSession = useCallback(
-    async (id) => {
-      const targetId = id || sessionId;
-      if (!targetId || !userId) return;
-
-      try {
-        await deleteRankerSession(targetId, userId);
-
-        // If deleting current session, clear state
-        if (targetId === sessionId) {
-          setSessionId(null);
-          setSessionDoc(null);
-        }
-
-        // Refresh incomplete sessions list
-        await fetchIncompleteSessions();
-      } catch (err) {
-        console.error('[useRankerSession] deleteSession error:', err);
-        throw err;
-      }
-    },
-    [sessionId, userId, fetchIncompleteSessions]
-  );
-
-  /**
-   * Clear current session state (without deleting from Firestore).
+   * Clear all session state (local and Firestore references).
    */
   const clearSession = useCallback(() => {
-    setSessionId(null);
-    setSessionDoc(null);
+    flushPendingDraftSave();
+    clearLocalDraft();
+    setLocalDraft(null);
+    setHasLocalSession(false);
+    setFirestoreSessionId(null);
     setError(null);
-
-    // Clear any pending saves
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    }
-    pendingSaveRef.current = null;
+    setSaveStatus(null);
   }, []);
 
   return {
     // Auth state
     userId,
     authLoading,
+    isOwner,
 
-    // Session state
-    sessionId,
-    sessionDoc,
-    loading,
+    // Local draft state
+    localDraft,
+    hasLocalSession,
+
+    // Firestore state (owner only)
+    firestoreSessionId,
+    firestoreSessions,
+    loadingFirestore,
+
+    // Status
+    saveStatus,
     error,
 
-    // Incomplete sessions
-    incompleteSessions,
-    loadingIncomplete,
-    fetchIncompleteSessions,
-
-    // Actions
-    createSession,
-    loadSession,
-    autosave,
-    saveNow,
-    saveAdjustments,
+    // Local draft actions (all users)
+    createLocalDraft,
+    updateLocalDraft,
+    updateLocalDraftNow,
+    loadAndHydrateLocalDraft,
+    deleteLocalDraft,
     markFinished,
-    deleteSession,
+    saveAdjustments,
     clearSession,
 
-    // Utility: check if there's an active session
-    hasActiveSession: !!sessionId,
+    // Firestore actions (owner only)
+    saveToFirestore,
+    loadFromFirestore,
+    fetchFirestoreSessions,
+    deleteFirestoreSession,
+
+    // Legacy compatibility - autosave now updates local draft
+    autosave: updateLocalDraft,
+    saveNow: updateLocalDraftNow,
   };
 }
 

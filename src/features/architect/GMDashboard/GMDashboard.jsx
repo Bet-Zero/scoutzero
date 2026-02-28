@@ -27,6 +27,7 @@ import { OffseasonSection } from './sections/OffseasonSection';
 import { HistorySection } from './sections/HistorySection';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
+import { CapAuditDebugPanel } from '@/features/architect/GMDashboard/components/CapAuditDebugPanel';
 import { useArchitectState } from './hooks/useArchitectState';
 import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
@@ -355,6 +356,8 @@ const GMDashboard = () => {
           <HistorySection teamCapSheet={teamCapSheet} />
         )}
       </div>
+
+      <CapAuditDebugPanel worldId={worldId} />
 
       {showOffseasonModal && offseasonSummary && (
         <div className="modal-overlay">

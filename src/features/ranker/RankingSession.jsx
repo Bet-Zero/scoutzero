@@ -17,15 +17,19 @@ import {
   buildAnchorComparisons,
   createClosureCache,
 } from '@/features/ranker/utils/rankingEngine';
+import { Save, CheckCircle, AlertCircle } from 'lucide-react';
 
 const RankingSession = ({
   playerPool = [],
-  sessionId = null,
   resumedSessionData = null,
   autosave = null,
   saveNow = null,
   saveAdjustments = null,
   markFinished = null,
+  // P3: Owner-only Firestore save
+  isOwner = false,
+  saveToFirestore = null,
+  saveStatus = null,
 }) => {
   const players = useMemo(
     () => playerPool.map((p) => p.original || p),
@@ -248,6 +252,50 @@ const RankingSession = ({
           ranking={ranking}
           onRankingAdjusted={handleRankingAdjusted}
         />
+
+        {/* Owner-only: Save to Firestore button */}
+        {isOwner && saveToFirestore && (
+          <div className="flex justify-center mt-6 mb-4">
+            <button
+              onClick={saveToFirestore}
+              disabled={saveStatus === 'saving'}
+              className={`
+                px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2 transition-all
+                ${
+                  saveStatus === 'saved'
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : saveStatus === 'error'
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed
+              `}
+            >
+              {saveStatus === 'saving' ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  Saved to Firestore
+                </>
+              ) : saveStatus === 'error' ? (
+                <>
+                  <AlertCircle className="w-4 h-4" />
+                  Save Failed (Retry)
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save to Firestore
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         <div className="text-white/30 mt-8 text-center text-sm italic px-4">
           Ranking created on{' '}
           {new Date().toLocaleDateString(undefined, {

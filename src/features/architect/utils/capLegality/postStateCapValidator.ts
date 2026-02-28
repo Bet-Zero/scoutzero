@@ -4,7 +4,12 @@
  * OWNERSHIP: Feature: architect/core
  */
 
-export const POST_STATE_CAP_VALIDATOR_VERSION = '0.1.0';
+// @ts-expect-error — JS module without type declarations
+import { validateContractRows, validateDeadCap, validateExceptions } from '@/features/architect/utils/capLegalityValidation';
+// @ts-expect-error — JS module without type declarations
+import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
+
+export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -320,6 +325,130 @@ export function validatePostStateCapLegality(
         expected: minimumTeamSalary,
         actual: teamSalary,
       });
+    }
+
+    // --- v1.0.0 rules below ---
+
+    // PSV_CAP_004: Luxury tax threshold warning
+    const luxuryTax = toFiniteNumber(afterTotals.luxuryTax);
+    if (luxuryTax !== null && teamSalary !== null && teamSalary > luxuryTax) {
+      warnings.push({
+        code: 'LUXURY_TAX_EXCEEDED',
+        teamCode,
+        path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+        message: `Team ${teamCode} exceeds luxury tax threshold.`,
+        expected: luxuryTax,
+        actual: teamSalary,
+      });
+    }
+
+    // PSV_ROSTER_001 / PSV_ROSTER_003: Roster limits
+    const players = Array.isArray(team.players) ? (team.players as AnyRecord[]) : [];
+    let standardCount = 0;
+    let twoWayCount = 0;
+    for (const p of players) {
+      const contract = asRecord(p.contract);
+      const contractType = String(contract?.contractType || '').toLowerCase();
+      if (contractType === 'two-way') {
+        twoWayCount++;
+      } else {
+        standardCount++;
+      }
+    }
+
+    if (standardCount > 15) {
+      violations.push({
+        code: 'ROSTER_MAX_EXCEEDED',
+        teamCode,
+        path: `teams.${teamCode}.players`,
+        message: `Team ${teamCode} has ${standardCount} standard contracts (max 15).`,
+        expected: 15,
+        actual: standardCount,
+      });
+    }
+
+    if (twoWayCount > 3) {
+      violations.push({
+        code: 'TWO_WAY_LIMIT_EXCEEDED',
+        teamCode,
+        path: `teams.${teamCode}.players`,
+        message: `Team ${teamCode} has ${twoWayCount} two-way contracts (max 3).`,
+        expected: 3,
+        actual: twoWayCount,
+      });
+    }
+
+    // PSV_CONTRACT_004: Contract rows validity
+    for (const p of players) {
+      const contract = asRecord(p.contract);
+      if (contract && Array.isArray(contract.salariesByYear) && contract.salariesByYear.length > 0) {
+        const result = validateContractRows(contract);
+        if (result?.violations?.length > 0) {
+          const playerId = String(p.playerId || p.id || 'unknown');
+          for (const v of result.violations) {
+            violations.push({
+              code: 'CONTRACT_ROWS_INVALID',
+              teamCode,
+              path: `teams.${teamCode}.players.${playerId}.contract`,
+              message: v.message || `Contract row validation failed for player ${playerId}.`,
+            });
+          }
+        }
+      }
+    }
+
+    // PSV_DEAD_001: Dead cap schema validity
+    if (team.deadCap !== undefined) {
+      const deadCapResult = validateDeadCap(team.deadCap);
+      if (deadCapResult?.violations?.length > 0) {
+        for (const v of deadCapResult.violations) {
+          violations.push({
+            code: 'DEAD_CAP_INVALID',
+            teamCode,
+            path: `teams.${teamCode}.deadCap`,
+            message: v.message || `Dead cap schema validation failed for team ${teamCode}.`,
+          });
+        }
+      }
+    }
+
+    // PSV_EXC_001-002: Exception schema validity
+    const exceptionsObj = asRecord(team.exceptions);
+    if (exceptionsObj) {
+      const EXCEPTION_KEYS = ['mle', 'tpmle', 'bae', 'room'];
+      const exceptionSubset: Record<string, unknown> = {};
+      for (const key of EXCEPTION_KEYS) {
+        if (exceptionsObj[key]) {
+          exceptionSubset[key] = exceptionsObj[key];
+        }
+      }
+      if (Object.keys(exceptionSubset).length > 0) {
+        const excResult = validateExceptions(exceptionSubset);
+        if (excResult?.violations?.length > 0) {
+          for (const v of excResult.violations) {
+            violations.push({
+              code: 'EXCEPTIONS_INVALID',
+              teamCode,
+              path: `teams.${teamCode}.exceptions`,
+              message: v.message || `Exception schema validation failed for team ${teamCode}.`,
+            });
+          }
+        }
+      }
+    }
+
+    // PSV_HOLD_001: Cap hold amounts validity
+    const capHolds = Array.isArray(team.capHolds) ? (team.capHolds as AnyRecord[]) : [];
+    for (const hold of capHolds) {
+      const holdValidation = isCapHoldAmountValid(hold);
+      if (!holdValidation.valid) {
+        violations.push({
+          code: 'CAP_HOLD_INVALID',
+          teamCode,
+          path: `teams.${teamCode}.capHolds`,
+          message: holdValidation.reason || `Invalid cap hold for team ${teamCode}.`,
+        });
+      }
     }
   }
 

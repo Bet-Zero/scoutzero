@@ -12,6 +12,7 @@ FreeAgentPool.jsx
 GMDashboard/
   GMDashboard.jsx
   components/
+    CapAuditDebugPanel.tsx
     DeleteWorldModal.jsx
     DraftPositionsInput.jsx
     OfferSheetList.jsx
@@ -20,6 +21,7 @@ GMDashboard/
     WorldTimeControls.jsx
     index.js
   hooks/
+    optimisticMutationLock.ts
     useArchitectActions.ts
     useArchitectModals.ts
     useArchitectState.ts
@@ -375,5 +377,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-28T10:17:43.806Z*
+*Generated on: 2026-02-28T11:47:47.567Z*
 *Auto-updated by: npm run docs*

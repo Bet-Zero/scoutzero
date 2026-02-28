@@ -58,7 +58,9 @@ vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateExtension: vi.fn(),
   validateOptionDecision: vi.fn(),
   validateRenounceRights: vi.fn(),
-  validateDeadCap: vi.fn(),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateContractRows: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 

@@ -1,14 +1,55 @@
 # Ranker Session Schema v1
 
-The `rankerSessions` collection stores in-progress and completed player ranking sessions. Each document represents one ranking session owned by a single user.
+The ranker uses a **local-first persistence model**:
 
-## Collection Path
+- **Local Draft** (sessionStorage): All users get crash/refresh safety
+- **Firestore Saved Session**: Owner-only explicit save action
+
+---
+
+## Local Draft (sessionStorage) — All Users
+
+### Storage Key
+
+```
+ranker_draft_v1
+```
+
+### Local Draft Schema
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string\|null | ❌ | Session name (default: "Ranking YYYY-MM-DD") |
+| `playerPoolIds` | string[] | ✅ | Array of player IDs in the ranking pool |
+| `setupData` | object\|null | ❌ | Setup configuration (see below) |
+| `results` | array | ✅ | Array of comparison results (see below) |
+| `skippedPairs` | string[] | ✅ | Pairs temporarily skipped (array format) |
+| `anchorDone` | boolean | ✅ | Whether anchor comparison phase is complete |
+| `isFinished` | boolean | ✅ | Whether ranking is fully complete |
+| `adjustments` | string[]\|null | ❌ | Final adjusted ranking (player IDs in order) |
+| `draftUpdatedAt` | number | ✅ | Unix timestamp of last update |
+| `firestoreSessionId` | string\|null | ❌ | Associated Firestore doc ID (if saved) |
+
+### Local Draft Behavior
+
+- **Create**: When "Start Ranking" clicked, creates/overwrites local draft
+- **Update**: Every action (select, skip, undo, setup) triggers debounced save (800ms)
+- **Resume**: On page load, if local draft exists, shows banner with Resume/Start New/Clear options
+- **Derive**: `currentPair` and `closureCache` are NOT stored — rebuilt on load
+
+---
+
+## Firestore Saved Session — Owner Only
+
+The `rankerSessions` collection stores explicitly saved ranking sessions. Only users in the owner allowlist can save to Firestore.
+
+### Collection Path
 
 ```
 rankerSessions/{sessionId}
 ```
 
-## Document Schema (v1)
+### Document Schema (v1)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -24,6 +65,19 @@ rankerSessions/{sessionId}
 | `isFinished` | boolean | ✅ | Whether ranking is fully complete |
 | `skippedPairs` | string[] | ✅ | Pairs temporarily skipped (canonical format: `"id1<>id2"`) |
 | `adjustments` | string[]\|null | ❌ | Final adjusted ranking (player IDs in order) |
+
+### Owner Gating
+
+Firestore writes are gated by `isOwnerUid(userId)`:
+
+- **Non-owner**: No "Save to Firestore" button visible, no Firestore writes
+- **Owner**: Sees "Save to Firestore" button on results screen
+
+Configure owner UIDs in `.env`:
+
+```
+VITE_OWNER_UIDS=uid1,uid2,uid3
+```
 
 ### setupData Object
 
@@ -62,14 +116,27 @@ rankerSessions/{sessionId}
 
 ## Resume Behavior
 
-When loading a session:
+### Local Draft Resume (All Users)
 
-1. **Query**: Check for `isFinished == false` and `ownerUid == userId`
-2. **Hydrate Pool**: Map `playerPoolIds` back to player objects via `players_v2`
-3. **Rebuild Closure**: Call `closureCache.rebuild(results)` to reconstruct transitive reachability
-4. **Convert SkippedPairs**: Deserialize `skippedPairs` array to `Set<string>`
-5. **Derive First Pair**: Call `suggestNextPair()` with rebuilt closure and skippedPairs
-6. **Display Adjustments**: If `adjustments` exists, use as canonical final ranking
+When page loads with existing local draft:
+
+1. **Check**: `hasLocalDraft()` returns true if valid draft in sessionStorage
+2. **Show Banner**: Display Resume/Start New/Clear options
+3. **On Resume**:
+   - Load draft from sessionStorage via `loadLocalDraft()`
+   - Convert `skippedPairs` array to `Set<string>`
+   - Map `playerPoolIds` back to player objects via `players_v2`
+   - Rebuild closure: `closureCache.rebuild(results)`
+   - Derive first pair: `suggestNextPair()` with rebuilt closure and skippedPairs
+4. **Display Adjustments**: If `adjustments` exists, use as canonical final ranking
+
+### Firestore Resume (Owner Only)
+
+Owner can load previously saved Firestore sessions:
+
+1. **Query**: `queryAllRankerSessions(userId)` returns saved sessions
+2. **Load**: `loadFromFirestore(sessionId)` fetches and hydrates
+3. **Same hydration logic** as local draft resume
 
 ## Security Rules (Recommended)
 
@@ -86,10 +153,13 @@ match /rankerSessions/{sessionId} {
 
 - **v1 → future**: If schema changes, `schemaVersion` field allows migration logic
 - No auto-claim for legacy docs: Missing `ownerUid` = invalid session (refuse to load)
+- **P3 Migration**: Local-first architecture added; Firestore autosave removed
 
 ## Related Files
 
-- `src/firebase/rankerHelpers.js` — CRUD operations
-- `src/features/ranker/hooks/useRankerSession.js` — React hook for persistence
+- `src/config/ownerConfig.js` — Owner allowlist and `isOwnerUid()` helper
+- `src/features/ranker/utils/rankerLocalDraft.js` — Local draft persistence (sessionStorage)
+- `src/features/ranker/hooks/useRankerSession.js` — React hook for local-first persistence
+- `src/firebase/rankerHelpers.js` — Firestore CRUD operations (owner-gated)
 - `src/constants/collections.ts` — `RANKER_SESSIONS_COLLECTION` constant
 - `src/features/ranker/utils/rankingEngine.js` — Closure cache and pairing logic

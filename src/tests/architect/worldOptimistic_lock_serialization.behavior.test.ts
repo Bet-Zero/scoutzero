@@ -1,0 +1,253 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { useState } from 'react';
+import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import {
+  WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+  clearLocalCapAuditEvents,
+  readLocalCapAuditEvents,
+} from '@/features/architect/utils/capLegality/localCapAuditLog';
+import {
+  isOptimisticLockHeld,
+  resetOptimisticLocksForTests,
+} from '@/features/architect/GMDashboard/hooks/optimisticMutationLock';
+
+const mutationMocks = vi.hoisted(() => ({
+  applyWorldMutation: vi.fn(),
+  computeWorldMutation: vi.fn(),
+}));
+
+const capTotalsMocks = vi.hoisted(() => ({
+  computeTeamCapTotals: vi.fn(),
+}));
+
+const worldTeamDataMocks = vi.hoisted(() => ({
+  loadWorldTeamData: vi.fn(),
+  resolveTeamCode: vi.fn(),
+}));
+
+const toastMocks = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+}));
+
+vi.mock('@/features/architect/utils/mutationPipeline', () => ({
+  applyWorldMutation: mutationMocks.applyWorldMutation,
+  computeWorldMutation: mutationMocks.computeWorldMutation,
+}));
+
+vi.mock('@/features/architect/utils/capTotals', () => ({
+  computeTeamCapTotals: capTotalsMocks.computeTeamCapTotals,
+}));
+
+vi.mock('@/features/architect/utils/worldTeamData', () => ({
+  loadWorldTeamData: worldTeamDataMocks.loadWorldTeamData,
+  resolveTeamCode: worldTeamDataMocks.resolveTeamCode,
+}));
+
+vi.mock('react-hot-toast', () => ({
+  default: toastMocks,
+}));
+
+const LOCK_SCOPE_KEY = 'architect_world_cap_mutation_lock:world_1';
+
+const worldTeamFixture = {
+  teamCode: 'LAL',
+  teamName: 'Los Angeles Lakers',
+  players: [],
+  capHolds: [],
+  deadCap: [],
+  exceptions: {},
+  totals: {
+    isHardCapped: false,
+  },
+};
+
+function makeTotals(overrides: Record<string, unknown> = {}) {
+  return {
+    yearKey: 2026,
+    playersTotal: 12_000_000,
+    deadMoneyTotal: 0,
+    capHoldsTotal: 0,
+    incompleteChargesTotal: 13_000_000,
+    totalCapAllocations: 25_000_000,
+    salaryCap: 140_000_000,
+    luxuryTax: 170_000_000,
+    firstApron: 180_000_000,
+    secondApron: 190_000_000,
+    ...overrides,
+  };
+}
+
+function renderActionsHarness(worldId: string | null) {
+  const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
+  const startSave = vi.fn();
+  const finishSave = vi.fn();
+
+  const { result } = renderHook(() => {
+    const [teamCapSheet, setTeamCapSheet] = useState<any>(worldTeamFixture);
+    const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
+    const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+    const [freeAgents, setFreeAgents] = useState<any[]>([]);
+    const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
+    const [offseasonSummary, setOffseasonSummary] = useState<any>(null);
+
+    const actions = useArchitectActions({
+      teamId: 'LAL',
+      userId: 'user_1',
+      authLoading: false,
+      state: {
+        teamCapSheet,
+        currentYear: 2026,
+        setTeamCapSheet,
+        setSelectedRulesYear,
+        setSelectedPlayer,
+        setFreeAgents,
+        startSave,
+        finishSave,
+        setOffseasonRun,
+        setOffseasonSummary,
+        refreshWorldRosterIndex,
+      },
+      playersMap: {},
+      modals: {
+        openContractModal: vi.fn(),
+        closeContractModal: vi.fn(),
+      },
+      worldId,
+      seasonId: '2025-26',
+    });
+
+    return {
+      actions,
+      teamCapSheet,
+    };
+  });
+
+  return { result };
+}
+
+describe('world optimistic cap mutation serialization (block mode)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    worldTeamDataMocks.resolveTeamCode.mockImplementation(
+      (teamId: string) => String(teamId || '').toUpperCase()
+    );
+    capTotalsMocks.computeTeamCapTotals.mockImplementation(() => makeTotals());
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      event: { operationId: 'auth_default' },
+    });
+
+    clearLocalCapAuditEvents({
+      storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+    });
+    resetOptimisticLocksForTests();
+  });
+
+  afterEach(() => {
+    clearLocalCapAuditEvents({
+      storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+    });
+    resetOptimisticLocksForTests();
+  });
+
+  it('blocks a second optimistic mutation while the first authoritative persist is in-flight', async () => {
+    let resolveFirstPersist:
+      | ((value: { success: boolean; event: { operationId: string } }) => void)
+      | null = null;
+
+    mutationMocks.applyWorldMutation.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstPersist = resolve as (
+            value: { success: boolean; event: { operationId: string } }
+          ) => void;
+        })
+    );
+
+    const { result } = renderActionsHarness('world_1');
+
+    act(() => {
+      result.current.actions.handleSetDeadCap([
+        {
+          id: 'dead_1',
+          amountByYear: [{ season: '2025-26', amount: 3_000_000 }],
+        },
+      ]);
+    });
+
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(1);
+    expect(isOptimisticLockHeld(LOCK_SCOPE_KEY)).toBe(true);
+    expect((result.current.teamCapSheet.deadCap || []).length).toBe(1);
+
+    act(() => {
+      result.current.actions.handleSetExceptions({
+        mle: {
+          type: 'non-taxpayer',
+          remainingAmount: 9_000_000,
+        },
+      });
+    });
+
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(1);
+    expect(result.current.teamCapSheet.exceptions).toEqual({});
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      expect.stringContaining('Another cap mutation is still saving')
+    );
+
+    const previewEventsWhileLocked = readLocalCapAuditEvents({
+      storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+    });
+    expect(previewEventsWhileLocked).toHaveLength(1);
+    expect(previewEventsWhileLocked[0]?.mutationType).toBe('setDeadCap');
+
+    act(() => {
+      resolveFirstPersist?.({
+        success: true,
+        event: { operationId: 'auth_op_1' },
+      });
+    });
+
+    await waitFor(() => {
+      expect(isOptimisticLockHeld(LOCK_SCOPE_KEY)).toBe(false);
+    });
+
+    await waitFor(() => {
+      const previewEvents = readLocalCapAuditEvents({
+        storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+      });
+      expect(previewEvents[0]?.authoritativeEventLinked).toBe(true);
+    });
+
+    act(() => {
+      result.current.actions.handleSetExceptions({
+        mle: {
+          type: 'non-taxpayer',
+          remainingAmount: 8_000_000,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('keeps base-mode no-write behavior for optimistic handlers', () => {
+    const { result } = renderActionsHarness(null);
+
+    act(() => {
+      result.current.actions.handleSetDeadCap([
+        {
+          id: 'dead_base',
+          amountByYear: [{ season: '2025-26', amount: 1_500_000 }],
+        },
+      ]);
+    });
+
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+    expect(isOptimisticLockHeld(LOCK_SCOPE_KEY)).toBe(false);
+  });
+});

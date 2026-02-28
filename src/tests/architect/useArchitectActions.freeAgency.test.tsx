@@ -29,6 +29,10 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: validationMocks.validateSigning,
+  validateContractRows: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
+  isOverrideEnabled: vi.fn(() => false),
 }));
 
 vi.mock('@/features/architect/utils/worldTeamData', () => ({
@@ -162,8 +166,8 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       violations: [],
       warnings: [],
     });
-    worldTeamDataMocks.resolveTeamCode.mockImplementation(
-      (teamId: string) => String(teamId || '').toUpperCase()
+    worldTeamDataMocks.resolveTeamCode.mockImplementation((teamId: string) =>
+      String(teamId || '').toUpperCase()
     );
     worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(baseTeamFixture);
   });
@@ -205,7 +209,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     act(() => {
-      result.current.actions.handleSign(playerFixture as any, contractFixture as any);
+      result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
     });
 
     await waitFor(() => {
@@ -363,7 +370,9 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     expect(caughtError).toBeInstanceOf(Error);
-    expect(caughtError?.message).toContain('Trade blocked by authoritative validation');
+    expect(caughtError?.message).toContain(
+      'Trade blocked by authoritative validation'
+    );
     expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
       expect.objectContaining({
         mutationType: 'executeTrade',

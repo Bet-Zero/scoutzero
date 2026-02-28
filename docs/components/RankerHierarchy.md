@@ -15,9 +15,10 @@ hooks/
 ranker.css
 tournamentRanker.js
 utils/
+  rankerLocalDraft.js
   rankingEngine.js
 ```
 
 ---
-*Generated on: 2026-02-28T10:17:43.834Z*
+*Generated on: 2026-02-28T11:47:47.582Z*
 *Auto-updated by: npm run docs*

@@ -10,9 +10,46 @@
  * @file tests/architect/renounceRights.test.js
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { computeWorldMutation, applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
-import { createWorld, updateWorldStats } from '@/features/architect/utils/worldManager';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  computeWorldMutation,
+  applyWorldMutation,
+} from '@/features/architect/utils/mutationPipeline';
+
+// Mock validators to isolate persistence tests from validation logic
+vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
+  validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
+  validateOptionDecision: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
+  validateRenounceRights: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
+  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateContractRows: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
+  isOverrideEnabled: vi.fn(() => false),
+}));
+
+vi.mock('@/features/architect/utils/capHoldTransitionHelpers', () => ({
+  isCapHoldAmountValid: vi.fn(() => ({ valid: true })),
+  getValidatedCapHold: vi.fn((hold) => hold),
+  isCapHoldAllowed: vi.fn(() => ({ allowed: true })),
+}));
+import {
+  createWorld,
+  updateWorldStats,
+} from '@/features/architect/utils/worldManager';
 import {
   seedBaseData,
   seedTeamSnapshot,
@@ -436,7 +473,8 @@ describe('Renounce Rights Mutation', () => {
         source: { type: 'base', provider: 'spotrac' },
       };
 
-      seedTeamSnapshot(worldId, teamCode, teamSnapshot);
+      // Disable roster padding since this test focuses on cap hold/renounce persistence
+      seedTeamSnapshot(worldId, teamCode, teamSnapshot, { padRoster: false });
 
       // Apply the renounce mutation
       const result = await applyWorldMutation({
@@ -523,7 +561,10 @@ describe('Renounce Rights Mutation', () => {
         source: { type: 'base' },
       };
 
-      seedTeamSnapshot(worldId, teamCode, initialSnapshot);
+      // Disable roster padding since this test focuses on cap hold/renounce persistence
+      seedTeamSnapshot(worldId, teamCode, initialSnapshot, {
+        padRoster: false,
+      });
 
       // Apply renounce mutation
       await applyWorldMutation({
