@@ -30,6 +30,9 @@ const RankingSession = ({
   isOwner = false,
   saveToFirestore = null,
   saveStatus = null,
+  saveAsList = null,
+  listSaveStatus = null,
+  savedListMeta = null,
 }) => {
   const players = useMemo(
     () => playerPool.map((p) => p.original || p),
@@ -251,6 +254,10 @@ const RankingSession = ({
         <RankingResults
           ranking={ranking}
           onRankingAdjusted={handleRankingAdjusted}
+          isOwner={isOwner}
+          onSaveAsList={saveAsList}
+          saveAsListStatus={listSaveStatus}
+          savedListMeta={savedListMeta}
         />
 
         {/* Owner-only: Save to Firestore button */}

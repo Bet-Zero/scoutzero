@@ -15,6 +15,7 @@ import {
   deleteRankerSession,
   deserializeSkippedPairs,
 } from '@/firebase/rankerHelpers';
+import { createList, saveList } from '@/firebase/listHelpers';
 import {
   loadLocalDraft,
   saveLocalDraftImmediate,
@@ -25,6 +26,7 @@ import {
   createInitialDraft,
 } from '@/features/ranker/utils/rankerLocalDraft';
 import { createClosureCache } from '@/features/ranker/utils/rankingEngine';
+import { createRankerListFromRanking } from '@/features/ranker/utils/saveAsListBridge';
 
 /**
  * Hook for managing ranker session persistence.
@@ -47,6 +49,8 @@ export function useRankerSession() {
 
   // Save status
   const [saveStatus, setSaveStatus] = useState(null); // 'saving' | 'saved' | 'error' | null
+  const [listSaveStatus, setListSaveStatus] = useState(null); // 'saving' | 'saved' | 'error' | null
+  const [savedListMeta, setSavedListMeta] = useState(null);
   const [error, setError] = useState(null);
 
   // Refs for debounce control
@@ -376,7 +380,73 @@ export function useRankerSession() {
     setFirestoreSessionId(null);
     setError(null);
     setSaveStatus(null);
+    setListSaveStatus(null);
+    setSavedListMeta(null);
   }, []);
+
+  /**
+   * Save finished ranking as a player list (owner-only, explicit action).
+   * @param {Array<{id: string}|string>} currentRanking - Current results order from UI
+   * @returns {Promise<{listId: string, listName: string}|null>}
+   */
+  const saveAsList = useCallback(
+    async (currentRanking) => {
+      if (!isOwner || !userId || !localDraft) return null;
+
+      setListSaveStatus('saving');
+      setError(null);
+
+      try {
+        const saved = await createRankerListFromRanking({
+          isOwner,
+          userId,
+          sessionName: localDraft.name,
+          poolIds: localDraft.playerPoolIds,
+          adjustments: localDraft.adjustments,
+          currentRanking,
+          createListFn: createList,
+          saveListFn: saveList,
+        });
+
+        if (!saved) {
+          setListSaveStatus('error');
+          return null;
+        }
+
+        const draftPatch = {
+          savedListId: saved.listId,
+          savedListName: saved.listName,
+        };
+        const updatedDraft = { ...localDraft, ...draftPatch };
+        saveLocalDraftImmediate(updatedDraft);
+        setLocalDraft(updatedDraft);
+
+        if (firestoreSessionId) {
+          try {
+            await updateRankerSession(firestoreSessionId, userId, {
+              savedListId: saved.listId,
+            });
+          } catch (sessionLinkError) {
+            console.warn(
+              '[useRankerSession] List created, but failed to link session:',
+              sessionLinkError
+            );
+          }
+        }
+
+        setSavedListMeta(saved);
+        setListSaveStatus('saved');
+        setTimeout(() => setListSaveStatus(null), 2000);
+        return saved;
+      } catch (err) {
+        console.error('[useRankerSession] saveAsList error:', err);
+        setError(err.message);
+        setListSaveStatus('error');
+        return null;
+      }
+    },
+    [isOwner, userId, localDraft, firestoreSessionId]
+  );
 
   return {
     // Auth state
@@ -395,6 +465,8 @@ export function useRankerSession() {
 
     // Status
     saveStatus,
+    listSaveStatus,
+    savedListMeta,
     error,
 
     // Local draft actions (all users)
@@ -409,6 +481,7 @@ export function useRankerSession() {
 
     // Firestore actions (owner only)
     saveToFirestore,
+    saveAsList,
     loadFromFirestore,
     fetchFirestoreSessions,
     deleteFirestoreSession,

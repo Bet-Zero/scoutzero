@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LayoutGrid, ListOrdered, Download, Edit3 } from 'lucide-react';
+import {
+  LayoutGrid,
+  ListOrdered,
+  Download,
+  Edit3,
+  CheckCircle,
+  AlertCircle,
+} from 'lucide-react';
 import useImageDownload from '@/hooks/useImageDownload';
 import AdjustableRankings from './AdjustableRankings';
 
@@ -114,7 +121,14 @@ const ListRow = ({ player, rank }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const RankingResults = ({ ranking = [], onRankingAdjusted }) => {
+const RankingResults = ({
+  ranking = [],
+  onRankingAdjusted,
+  isOwner = false,
+  onSaveAsList = null,
+  saveAsListStatus = null,
+  savedListMeta = null,
+}) => {
   const [viewType, setViewType] = useState('list');
   const [isAdjustMode, setIsAdjustMode] = useState(false);
   const [currentRanking, setCurrentRanking] = useState(ranking);
@@ -167,6 +181,11 @@ const RankingResults = ({ ranking = [], onRankingAdjusted }) => {
     }
   };
 
+  const handleSaveAsList = () => {
+    if (!isOwner || !onSaveAsList) return;
+    onSaveAsList(currentRanking);
+  };
+
   // ── Adjust mode ──────────────────────────────────────────────────────────────
   if (isAdjustMode) {
     return (
@@ -200,6 +219,44 @@ const RankingResults = ({ ranking = [], onRankingAdjusted }) => {
         <span className="hidden sm:inline">Adjust Rankings</span>
         <span className="sm:hidden">Adjust</span>
       </button>
+      {isOwner && onSaveAsList && (
+        <button
+          onClick={handleSaveAsList}
+          disabled={saveAsListStatus === 'saving'}
+          className={`
+            px-3 py-2 text-sm rounded flex items-center transition-colors disabled:opacity-50
+            ${
+              saveAsListStatus === 'saved'
+                ? 'text-green-300 bg-green-500/20 border border-green-500/30'
+                : saveAsListStatus === 'error'
+                  ? 'text-red-300 bg-red-500/20 border border-red-500/30'
+                  : 'text-white bg-blue-600/80 hover:bg-blue-700'
+            }
+          `}
+        >
+          {saveAsListStatus === 'saving' ? (
+            <>
+              <div className="w-3.5 h-3.5 mr-1 border-2 border-blue-100/30 border-t-blue-100 rounded-full animate-spin" />
+              <span className="hidden sm:inline">Saving...</span>
+            </>
+          ) : saveAsListStatus === 'saved' ? (
+            <>
+              <CheckCircle size={16} className="mr-1" />
+              <span className="hidden sm:inline">Saved as List</span>
+            </>
+          ) : saveAsListStatus === 'error' ? (
+            <>
+              <AlertCircle size={16} className="mr-1" />
+              <span className="hidden sm:inline">Save Failed</span>
+            </>
+          ) : (
+            <>
+              <span className="hidden sm:inline">Save as List</span>
+              <span className="sm:hidden">Save</span>
+            </>
+          )}
+        </button>
+      )}
       <button
         onClick={() => setViewType(viewType === 'grid' ? 'list' : 'grid')}
         className="px-3 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors"
@@ -319,6 +376,12 @@ const RankingResults = ({ ranking = [], onRankingAdjusted }) => {
         </div>
 
         {viewType === 'grid' ? renderGrid() : renderList()}
+
+        {saveAsListStatus === 'saved' && savedListMeta?.listName && (
+          <p className="mt-3 text-sm text-green-300 text-center">
+            Saved as List: {savedListMeta.listName}
+          </p>
+        )}
 
         <div className="mt-6 sm:hidden">
           <ActionButtons />
