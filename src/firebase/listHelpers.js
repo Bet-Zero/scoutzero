@@ -175,12 +175,16 @@ export const deleteList = async (id, userId) => {
  */
 export const saveList = async (id, payload, userId) => {
   const { docRef } = await readAndGuard('lists', id, userId);
-  await updateDoc(docRef, {
+  const updatePayload = {
     playerOrder: payload.playerOrder,
     playerIds: payload.playerIds,
     playerNotes: payload.playerNotes,
     updatedAt: serverTimestamp(),
-  });
+  };
+  if (typeof payload.description === 'string') {
+    updatePayload.description = payload.description;
+  }
+  await updateDoc(docRef, updatePayload);
 };
 
 /**

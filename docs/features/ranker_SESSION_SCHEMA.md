@@ -65,6 +65,7 @@ rankerSessions/{sessionId}
 | `isFinished` | boolean | ✅ | Whether ranking is fully complete |
 | `skippedPairs` | string[] | ✅ | Pairs temporarily skipped (canonical format: `"id1<>id2"`) |
 | `adjustments` | string[]\|null | ❌ | Final adjusted ranking (player IDs in order) |
+| `savedListId` | string\|null | ❌ | Last `lists` doc created from this session via "Save as List" |
 
 ### Owner Gating
 
@@ -72,6 +73,23 @@ Firestore writes are gated by `isOwnerUid(userId)`:
 
 - **Non-owner**: No "Save to Firestore" button visible, no Firestore writes
 - **Owner**: Sees "Save to Firestore" button on results screen
+
+## Ranker → Lists (Owner-only)
+
+- **Button location**: Ranker results action row (`src/features/ranker/RankingResults.jsx`) near Adjust/View/Download/Copy actions.
+- **Visibility**: Only owners (`isOwnerUid(userId)`) receive the handler; non-owners do not see the button.
+- **Final order selection**:
+  1. If `adjustments` exists and is non-empty, that ID order is used.
+  2. Otherwise, the currently displayed/exported `currentRanking` order is used.
+- **`lists` write fields**:
+  - `name` (`Ranker — ${sessionName || 'Ranking'} — YYYY-MM-DD`)
+  - `playerOrder` (final ranked IDs)
+  - `playerIds` (full ranker pool IDs)
+  - `playerNotes` (`{}`)
+  - `description` (`Created from Ranker`)
+  - `ownerUid`, `createdAt`, `updatedAt` are preserved by existing list helper flow.
+- **Local draft linkage**: `ranker_draft_v1` stores `savedListId` + `savedListName` after successful save.
+- **Firestore session linkage**: if a `rankerSessions` doc is associated, `savedListId` is patched onto that session on the same explicit click.
 
 Configure owner UIDs in `.env`:
 

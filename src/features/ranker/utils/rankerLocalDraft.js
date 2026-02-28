@@ -29,6 +29,8 @@ const DEBOUNCE_MS = 800;
  * @property {string[]|null} adjustments - Final adjusted ranking (player IDs in order)
  * @property {number} draftUpdatedAt - Unix timestamp of last update
  * @property {string|null} firestoreSessionId - If saved to Firestore, store the doc ID
+ * @property {string|null} savedListId - If saved as list, store created list doc ID
+ * @property {string|null} savedListName - If saved as list, store created list name
  */
 
 /**
@@ -198,6 +200,8 @@ export const createInitialDraft = ({
     adjustments: null,
     draftUpdatedAt: Date.now(),
     firestoreSessionId: null,
+    savedListId: null,
+    savedListName: null,
   };
 };
 

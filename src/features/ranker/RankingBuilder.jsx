@@ -138,6 +138,8 @@ const RankingBuilder = () => {
     hasLocalSession,
     loadingFirestore,
     saveStatus,
+    listSaveStatus,
+    savedListMeta,
     createLocalDraft,
     updateLocalDraft,
     updateLocalDraftNow,
@@ -147,6 +149,7 @@ const RankingBuilder = () => {
     saveAdjustments,
     clearSession,
     saveToFirestore,
+    saveAsList,
   } = useRankerSession();
 
   const processedPlayers = useMemo(
@@ -338,6 +341,9 @@ const RankingBuilder = () => {
         isOwner={isOwner}
         saveToFirestore={saveToFirestore}
         saveStatus={saveStatus}
+        saveAsList={saveAsList}
+        listSaveStatus={listSaveStatus}
+        savedListMeta={savedListMeta}
       />
     );
   }
