@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateRankingFromComparisons,
   suggestNextPair,
+  createClosureCache,
 } from '@/features/ranker/utils/rankingEngine.js';
 
 const players = [
@@ -92,5 +93,87 @@ describe('ranking engine', () => {
     comps.push({ winner: boundary2[0].id, loser: boundary2[1].id });
 
     expect(suggestNextPair(comps, groupPlayers)).toEqual([]);
+  });
+});
+
+// ========== Safety Belts Tests ==========
+
+describe('closure cache safety belts', () => {
+  it('rejects cycles: addEdge returns false if edge would create cycle', () => {
+    const cache = createClosureCache();
+    // Add A > B and B > C
+    expect(cache.addEdge('A', 'B')).toBe(true);
+    expect(cache.addEdge('B', 'C')).toBe(true);
+    // Now C > A would create a cycle (C -> A -> B -> C)
+    expect(cache.addEdge('C', 'A')).toBe(false);
+  });
+
+  it('rejects non-string IDs', () => {
+    const cache = createClosureCache();
+    // Numbers should be rejected
+    expect(cache.addEdge(1, 2)).toBe(false);
+    // null/undefined should be rejected
+    expect(cache.addEdge(null, 'A')).toBe(false);
+    expect(cache.addEdge('A', undefined)).toBe(false);
+    // Objects should be rejected
+    expect(cache.addEdge({ id: 'A' }, 'B')).toBe(false);
+  });
+
+  it('rejects self-comparison', () => {
+    const cache = createClosureCache();
+    expect(cache.addEdge('A', 'A')).toBe(false);
+  });
+
+  it('rejects duplicate edges (returns false)', () => {
+    const cache = createClosureCache();
+    expect(cache.addEdge('A', 'B')).toBe(true);
+    expect(cache.addEdge('A', 'B')).toBe(false); // already exists
+  });
+
+  it('rebuild produces same closure as incremental edges', () => {
+    const comparisons = [
+      { winner: 'A', loser: 'B' },
+      { winner: 'B', loser: 'C' },
+      { winner: 'A', loser: 'D' },
+      { winner: 'D', loser: 'C' },
+    ];
+
+    // Build incrementally
+    const incremental = createClosureCache();
+    comparisons.forEach(({ winner, loser }) =>
+      incremental.addEdge(winner, loser)
+    );
+
+    // Build via rebuild
+    const rebuilt = createClosureCache();
+    rebuilt.rebuild(comparisons);
+
+    // Both should have same closure structure
+    expect([...incremental.closure['A']].sort()).toEqual(
+      [...rebuilt.closure['A']].sort()
+    );
+    expect([...incremental.closure['B']].sort()).toEqual(
+      [...rebuilt.closure['B']].sort()
+    );
+    expect([...incremental.closure['D']].sort()).toEqual(
+      [...rebuilt.closure['D']].sort()
+    );
+  });
+
+  it('closure correctly tracks transitive reachability', () => {
+    const cache = createClosureCache();
+    cache.addEdge('A', 'B');
+    cache.addEdge('B', 'C');
+    cache.addEdge('C', 'D');
+
+    // A should reach B, C, D
+    expect(cache.closure['A'].has('B')).toBe(true);
+    expect(cache.closure['A'].has('C')).toBe(true);
+    expect(cache.closure['A'].has('D')).toBe(true);
+
+    // B should reach C, D but not A
+    expect(cache.closure['B'].has('C')).toBe(true);
+    expect(cache.closure['B'].has('D')).toBe(true);
+    expect(cache.closure['B']?.has('A')).toBeFalsy();
   });
 });

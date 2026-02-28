@@ -71,9 +71,17 @@ vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
 
 // Mock Season Manager dependencies that are not under test
 vi.mock('@/features/architect/utils/capTotals', () => ({
-  computeTeamCapTotals: (team) => ({
-    ...team.totals,
-    yearKey: 2027,
+  computeTeamCapTotals: (_team, year) => ({
+    yearKey: year,
+    playersTotal: 0,
+    deadMoneyTotal: 0,
+    capHoldsTotal: 0,
+    incompleteChargesTotal: 0,
+    totalCapAllocations: 0,
+    salaryCap: 141000000,
+    luxuryTax: 170000000,
+    firstApron: 178000000,
+    secondApron: 188000000,
   }),
 }));
 

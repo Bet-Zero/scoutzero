@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import PlayerCompareCard from './PlayerCompareCard';
 import RankingResults from './RankingResults';
 import ComparisonMatrixDrawer from './ComparisonMatrixDrawer';
@@ -12,20 +18,62 @@ import {
   createClosureCache,
 } from '@/features/ranker/utils/rankingEngine';
 
-const RankingSession = ({ playerPool = [] }) => {
+const RankingSession = ({
+  playerPool = [],
+  sessionId = null,
+  resumedSessionData = null,
+  autosave = null,
+  saveNow = null,
+  saveAdjustments = null,
+  markFinished = null,
+}) => {
   const players = useMemo(
     () => playerPool.map((p) => p.original || p),
     [playerPool]
   );
-  const [currentPair, setCurrentPair] = useState([]);
-  const [results, setResults] = useState([]);
-  const [isFinished, setIsFinished] = useState(false);
-  const [setupData, setSetupData] = useState(null);
-  const [anchorDone, setAnchorDone] = useState(false);
-  const [skippedPairs, setSkippedPairs] = useState(new Set());
 
-  // Incremental closure cache — survives re-renders, rebuilt on undo
-  const closureCacheRef = useRef(createClosureCache());
+  // Core state — initialized from resumed session or fresh
+  const [currentPair, setCurrentPair] = useState([]);
+  const [results, setResults] = useState(
+    () => resumedSessionData?.results || []
+  );
+  const [isFinished, setIsFinished] = useState(
+    () => resumedSessionData?.isFinished || false
+  );
+  const [setupData, setSetupData] = useState(
+    () => resumedSessionData?.setupData || null
+  );
+  const [anchorDone, setAnchorDone] = useState(
+    () => resumedSessionData?.anchorDone || false
+  );
+  const [skippedPairs, setSkippedPairs] = useState(
+    () => resumedSessionData?.skippedPairs || new Set()
+  );
+  const [adjustments, setAdjustments] = useState(
+    () => resumedSessionData?.adjustments || null
+  );
+
+  // Incremental closure cache — survives re-renders, rebuilt on undo or resume
+  const closureCacheRef = useRef(() => {
+    const cache = createClosureCache();
+    // If resuming, rebuild closure from stored results
+    if (resumedSessionData?.results?.length > 0) {
+      cache.rebuild(resumedSessionData.results);
+    }
+    return cache;
+  });
+
+  // Initialize closure cache on first render (or when resumedSessionData changes)
+  useEffect(() => {
+    if (resumedSessionData?.closureCache) {
+      closureCacheRef.current = resumedSessionData.closureCache;
+    } else if (resumedSessionData?.results?.length > 0) {
+      closureCacheRef.current = createClosureCache();
+      closureCacheRef.current.rebuild(resumedSessionData.results);
+    } else {
+      closureCacheRef.current = createClosureCache();
+    }
+  }, [resumedSessionData]);
 
   const groupedPlayers = useMemo(() => {
     if (!setupData || (setupData.anchor && !anchorDone)) return players;
@@ -66,23 +114,48 @@ const RankingSession = ({ playerPool = [] }) => {
     if (groupedPlayers.length < 2) return;
 
     const next = suggestNextPair(results, groupedPlayers, {
+      skippedPairs,
       closureCache: closureCacheRef.current,
     });
     if (next.length === 0 && !isFinished) {
       setIsFinished(true);
       setCurrentPair([]);
+      // Autosave finished state
+      if (markFinished) markFinished();
     } else if (next.length > 0) {
       setCurrentPair(next);
     }
-  }, [results, groupedPlayers, setupData, anchorDone, isFinished]);
+  }, [
+    results,
+    groupedPlayers,
+    setupData,
+    anchorDone,
+    isFinished,
+    skippedPairs,
+    markFinished,
+  ]);
 
-  const handleSelect = useCallback((winner, loser) => {
-    // Incrementally update closure cache with the new edge
-    closureCacheRef.current.addEdge(winner.id, loser.id);
-    setResults((prev) => [...prev, { winner: winner.id, loser: loser.id }]);
-    // Clear skipped pairs — new info may make previously skipped pairs relevant
-    setSkippedPairs(new Set());
-  }, []);
+  const handleSelect = useCallback(
+    (winner, loser) => {
+      // Incrementally update closure cache with the new edge
+      const added = closureCacheRef.current.addEdge(winner.id, loser.id);
+      if (!added) {
+        console.warn(
+          '[RankingSession] Edge not added (cycle/duplicate/invalid)'
+        );
+        return;
+      }
+      const newResults = [...results, { winner: winner.id, loser: loser.id }];
+      setResults(newResults);
+      // Clear skipped pairs — new info may make previously skipped pairs relevant
+      setSkippedPairs(new Set());
+      // Autosave
+      if (autosave) {
+        autosave({ results: newResults, skippedPairs: new Set() });
+      }
+    },
+    [results, autosave]
+  );
 
   const handleSkip = useCallback(() => {
     if (currentPair.length < 2) return;
@@ -104,11 +177,15 @@ const RankingSession = ({ playerPool = [] }) => {
         closureCache: closureCacheRef.current,
       });
       if (reset.length > 0) setCurrentPair(reset);
+      // Autosave cleared skips
+      if (autosave) autosave({ skippedPairs: new Set() });
     } else {
       setSkippedPairs(newSkipped);
       setCurrentPair(next);
+      // Autosave new skipped pairs
+      if (autosave) autosave({ skippedPairs: newSkipped });
     }
-  }, [currentPair, skippedPairs, results, groupedPlayers]);
+  }, [currentPair, skippedPairs, results, groupedPlayers, autosave]);
 
   const handleUndo = useCallback(() => {
     if (results.length === 0) return;
@@ -118,17 +195,59 @@ const RankingSession = ({ playerPool = [] }) => {
     setResults(newResults);
     setIsFinished(false);
     setSkippedPairs(new Set());
-  }, [results]);
+    // Autosave
+    if (autosave) {
+      autosave({
+        results: newResults,
+        isFinished: false,
+        skippedPairs: new Set(),
+      });
+    }
+  }, [results, autosave]);
+
+  // Handler for saving adjustments from RankingResults
+  const handleRankingAdjusted = useCallback(
+    (adjustedRanking) => {
+      // Extract IDs for storage
+      const adjustedIds = adjustedRanking.map((p) => p.id);
+      setAdjustments(adjustedIds);
+      // Persist adjustments
+      if (saveAdjustments) {
+        saveAdjustments(adjustedRanking);
+      }
+    },
+    [saveAdjustments]
+  );
 
   if (isFinished) {
-    const ranking = generateRankingFromComparisons(
+    // Generate ranking from comparisons
+    let ranking = generateRankingFromComparisons(
       results,
       groupedPlayers,
       setupData
     );
+
+    // If adjustments exist (persisted), use them as canonical ranking
+    if (adjustments && Array.isArray(adjustments) && adjustments.length > 0) {
+      // Reconstruct player objects from adjustment IDs
+      const playerById = {};
+      groupedPlayers.forEach((p) => {
+        playerById[p.id] = p;
+      });
+      const adjustedRanking = adjustments
+        .map((id) => playerById[id])
+        .filter(Boolean);
+      if (adjustedRanking.length > 0) {
+        ranking = adjustedRanking;
+      }
+    }
+
     return (
       <>
-        <RankingResults ranking={ranking} />
+        <RankingResults
+          ranking={ranking}
+          onRankingAdjusted={handleRankingAdjusted}
+        />
         <div className="text-white/30 mt-8 text-center text-sm italic px-4">
           Ranking created on{' '}
           {new Date().toLocaleDateString(undefined, {
@@ -170,13 +289,22 @@ const RankingSession = ({ playerPool = [] }) => {
         );
         setResults(initial);
       }
+
+      // Autosave setup data and initial results
+      if (autosave) {
+        autosave({
+          setupData: data,
+          anchorDone: !data.anchor,
+          results: initial.length ? initial : [],
+        });
+      }
     };
 
     return (
       <RankingSetup
         playerPool={players}
         onComplete={handleComplete}
-        existingSetupData={null}
+        existingSetupData={resumedSessionData?.setupData || null}
       />
     );
   }
@@ -200,14 +328,21 @@ const RankingSession = ({ playerPool = [] }) => {
         untagged,
         betterIds
       );
+      let allResults = results;
       if (newResults.length) {
         // Seed closure cache with anchor comparisons
         newResults.forEach(({ winner, loser }) =>
           closureCacheRef.current.addEdge(winner, loser)
         );
-        setResults((prev) => [...prev, ...newResults]);
+        allResults = [...results, ...newResults];
+        setResults(allResults);
       }
       setAnchorDone(true);
+
+      // Autosave anchor completion
+      if (autosave) {
+        autosave({ results: allResults, anchorDone: true });
+      }
     };
     return (
       <AnchorComparison

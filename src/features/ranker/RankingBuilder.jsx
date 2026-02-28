@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import useFirebaseQuery from '@/shared/hooks/useFirebaseQuery';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -10,6 +10,8 @@ import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer';
 import RankingSession from './RankingSession';
 import TierPlayerTile from '@/features/lists/TierPlayerTile';
+import { useRankerSession } from './hooks/useRankerSession';
+import { Clock, Play, Trash2, X } from 'lucide-react';
 
 // ─── Pool Card ────────────────────────────────────────────────────────────────
 
@@ -25,6 +27,81 @@ const PoolCard = ({ player, onRemove }) => (
     </button>
   </div>
 );
+
+// ─── Resume Banner ────────────────────────────────────────────────────────────
+
+const ResumeBanner = ({ sessions, onResume, onDelete, onDismiss, loading }) => {
+  if (!sessions || sessions.length === 0) return null;
+
+  const mostRecent = sessions[0];
+  const resultsCount = mostRecent.results?.length || 0;
+  const playerCount = mostRecent.playerPoolIds?.length || 0;
+  const updatedAt =
+    mostRecent.updatedAt?.toDate?.() || new Date(mostRecent.updatedAt);
+
+  const formatDate = (date) => {
+    if (!date) return 'unknown';
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  return (
+    <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-white font-medium text-sm mb-0.5">
+              You have an incomplete session
+            </p>
+            <p className="text-white/50 text-xs">
+              "{mostRecent.name || 'Untitled'}" — {resultsCount} comparisons,{' '}
+              {playerCount} players
+            </p>
+            <p className="text-white/30 text-xs mt-0.5">
+              Last updated: {formatDate(updatedAt)}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onDismiss}
+          className="text-white/30 hover:text-white/60 transition-colors"
+          title="Dismiss"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="flex gap-2 mt-3 ml-13">
+        <button
+          onClick={() => onResume(mostRecent.id)}
+          disabled={loading}
+          className="px-4 py-2 text-sm rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <Play className="w-3.5 h-3.5" />
+          Resume
+        </button>
+        <button
+          onClick={() => {
+            if (window.confirm('Delete this session? This cannot be undone.')) {
+              onDelete(mostRecent.id);
+            }
+          }}
+          disabled={loading}
+          className="px-4 py-2 text-sm rounded-lg bg-white/10 hover:bg-red-500/30 text-white/70 hover:text-red-300 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -93,7 +170,9 @@ const RankingBuilder = () => {
 
   const playersMap = useMemo(() => {
     const map = {};
-    allPlayers.forEach((p) => { map[p.id] = p; });
+    allPlayers.forEach((p) => {
+      map[p.id] = p;
+    });
     return map;
   }, [allPlayers]);
 
@@ -103,7 +182,9 @@ const RankingBuilder = () => {
         const orderIds = l.playerOrder || [];
         const allIds = l.playerIds || [];
         const merged = [...orderIds];
-        allIds.forEach((id) => { if (!merged.includes(id)) merged.push(id); });
+        allIds.forEach((id) => {
+          if (!merged.includes(id)) merged.push(id);
+        });
         return { id: l.id, name: l.name, playerIds: merged };
       }),
     [listsData]
@@ -114,6 +195,86 @@ const RankingBuilder = () => {
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [selectedList, setSelectedList] = useState('');
   const [started, setStarted] = useState(false);
+
+  // Session persistence state
+  const [resumedSessionData, setResumedSessionData] = useState(null);
+  const [showResumeBanner, setShowResumeBanner] = useState(true);
+
+  const {
+    sessionId,
+    incompleteSessions,
+    loadingIncomplete,
+    fetchIncompleteSessions,
+    createSession,
+    loadSession,
+    autosave,
+    saveNow,
+    saveAdjustments,
+    markFinished,
+    deleteSession,
+    clearSession,
+    loading: sessionLoading,
+  } = useRankerSession();
+
+  // Check for incomplete sessions on mount
+  useEffect(() => {
+    if (userId && !loading) {
+      fetchIncompleteSessions();
+    }
+  }, [userId, loading, fetchIncompleteSessions]);
+
+  // Handle resuming a session
+  const handleResume = useCallback(
+    async (sessionIdToResume) => {
+      try {
+        const sessionData = await loadSession(sessionIdToResume);
+
+        // Reconstruct pool from playerPoolIds using playersMap
+        const resumedPool = sessionData.playerPoolIds
+          .map((id) => playersMap[id])
+          .filter(Boolean);
+
+        if (resumedPool.length < 2) {
+          console.error(
+            '[RankingBuilder] Cannot resume: not enough players found'
+          );
+          return;
+        }
+
+        setPool(resumedPool);
+        setResumedSessionData(sessionData);
+        setStarted(true);
+      } catch (err) {
+        console.error('[RankingBuilder] Resume failed:', err);
+      }
+    },
+    [loadSession, playersMap]
+  );
+
+  // Handle starting a new session (creates session in Firestore)
+  const handleStartNew = useCallback(async () => {
+    if (pool.length < 2) return;
+
+    try {
+      const playerPoolIds = pool.map((p) => p.id);
+      await createSession({ playerPoolIds });
+      setStarted(true);
+    } catch (err) {
+      console.error('[RankingBuilder] Create session failed:', err);
+    }
+  }, [pool, createSession]);
+
+  // Handle deleting an incomplete session
+  const handleDeleteSession = useCallback(
+    async (id) => {
+      try {
+        await deleteSession(id);
+      } catch (err) {
+        console.error('[RankingBuilder] Delete session failed:', err);
+      }
+    },
+    [deleteSession]
+  );
 
   const addPlayerToPool = (player) => {
     setPool((prev) => {
@@ -145,11 +306,14 @@ const RankingBuilder = () => {
     if (!selectedList) return;
     const list = lists.find((l) => l.id === selectedList);
     if (!list) return;
-    addPlayersToPool(list.playerIds.map((id) => playersMap[id]).filter(Boolean));
+    addPlayersToPool(
+      list.playerIds.map((id) => playersMap[id]).filter(Boolean)
+    );
     setSelectedList('');
   };
 
-  const removePlayer = (id) => setPool((prev) => prev.filter((p) => p.id !== id));
+  const removePlayer = (id) =>
+    setPool((prev) => prev.filter((p) => p.id !== id));
 
   if (loading) {
     return (
@@ -160,7 +324,17 @@ const RankingBuilder = () => {
   }
 
   if (started) {
-    return <RankingSession playerPool={pool} />;
+    return (
+      <RankingSession
+        playerPool={pool}
+        sessionId={sessionId}
+        resumedSessionData={resumedSessionData}
+        autosave={autosave}
+        saveNow={saveNow}
+        saveAdjustments={saveAdjustments}
+        markFinished={markFinished}
+      />
+    );
   }
 
   const canStart = pool.length >= 2;
@@ -184,11 +358,12 @@ const RankingBuilder = () => {
         }`}
       >
         <div className="px-6 py-8 text-white max-w-[900px] mx-auto">
-
           {/* ── Header ──────────────────────────────────────────────────────── */}
           <div className="flex items-start justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-1.5">Player Ranker</h1>
+              <h1 className="text-3xl font-bold tracking-tight mb-1.5">
+                Player Ranker
+              </h1>
               <p className="text-white/40 text-sm">
                 Build a pool, then rank players head-to-head.
               </p>
@@ -200,13 +375,23 @@ const RankingBuilder = () => {
             )}
           </div>
 
+          {/* ── Resume Banner ───────────────────────────────────────────────── */}
+          {showResumeBanner && incompleteSessions.length > 0 && (
+            <ResumeBanner
+              sessions={incompleteSessions}
+              onResume={handleResume}
+              onDelete={handleDeleteSession}
+              onDismiss={() => setShowResumeBanner(false)}
+              loading={sessionLoading || loadingIncomplete}
+            />
+          )}
+
           {/* ── Add to Pool ─────────────────────────────────────────────────── */}
           <div className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.07] mb-5">
             <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-white/35 block mb-4">
               Add to Pool
             </span>
             <div className="flex flex-col sm:flex-row gap-3">
-
               {/* By Team */}
               <div className="flex gap-2 flex-1 min-w-0">
                 <select
@@ -214,9 +399,15 @@ const RankingBuilder = () => {
                   onChange={(e) => setSelectedTeamId(e.target.value)}
                   className="flex-1 min-w-0 appearance-none bg-white/[0.05] text-white text-sm px-3 py-2 rounded-lg border border-white/[0.1] focus:outline-none focus:border-white/25 transition-all cursor-pointer"
                 >
-                  <option value="" className="bg-[#1a1a1a] text-white/50">Team…</option>
+                  <option value="" className="bg-[#1a1a1a] text-white/50">
+                    Team…
+                  </option>
                   {TeamListFull.map((team) => (
-                    <option key={team.id} value={team.id} className="bg-[#1a1a1a] text-white">
+                    <option
+                      key={team.id}
+                      value={team.id}
+                      className="bg-[#1a1a1a] text-white"
+                    >
                       {team.teamName}
                     </option>
                   ))}
@@ -237,9 +428,15 @@ const RankingBuilder = () => {
                   onChange={(e) => setSelectedList(e.target.value)}
                   className="flex-1 min-w-0 appearance-none bg-white/[0.05] text-white text-sm px-3 py-2 rounded-lg border border-white/[0.1] focus:outline-none focus:border-white/25 transition-all cursor-pointer"
                 >
-                  <option value="" className="bg-[#1a1a1a] text-white/50">List…</option>
+                  <option value="" className="bg-[#1a1a1a] text-white/50">
+                    List…
+                  </option>
                   {lists.map((l) => (
-                    <option key={l.id} value={l.id} className="bg-[#1a1a1a] text-white">
+                    <option
+                      key={l.id}
+                      value={l.id}
+                      className="bg-[#1a1a1a] text-white"
+                    >
                       {l.name}
                     </option>
                   ))}
@@ -252,7 +449,6 @@ const RankingBuilder = () => {
                   Import
                 </button>
               </div>
-
             </div>
           </div>
 
@@ -274,7 +470,9 @@ const RankingBuilder = () => {
 
             {pool.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-dashed border-white/[0.08]">
-                <p className="text-white/20 text-sm mb-1">No players in the pool</p>
+                <p className="text-white/20 text-sm mb-1">
+                  No players in the pool
+                </p>
                 <p className="text-white/12 text-xs">
                   Add a team, import a list, or use the drawer on the left
                 </p>
@@ -291,17 +489,18 @@ const RankingBuilder = () => {
           {/* ── CTA ─────────────────────────────────────────────────────────── */}
           <div className="flex flex-col items-center gap-2.5">
             <button
-              onClick={() => setStarted(true)}
-              disabled={!canStart}
+              onClick={handleStartNew}
+              disabled={!canStart || sessionLoading}
               className="px-10 py-3.5 rounded-xl bg-white text-black font-bold text-sm tracking-tight hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl disabled:opacity-25 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              Start Ranking →
+              {sessionLoading ? 'Creating…' : 'Start Ranking →'}
             </button>
             {!canStart && (
-              <p className="text-white/20 text-xs">Add at least 2 players to begin</p>
+              <p className="text-white/20 text-xs">
+                Add at least 2 players to begin
+              </p>
             )}
           </div>
-
         </div>
       </div>
     </div>

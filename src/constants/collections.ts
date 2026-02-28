@@ -14,8 +14,7 @@ const env =
  * Main players collection (v2 schema)
  * Can be overridden via environment variable for testing/migration
  */
-export const PLAYERS_COLLECTION =
-  env.VITE_PLAYERS_COLLECTION || 'players_v2';
+export const PLAYERS_COLLECTION = env.VITE_PLAYERS_COLLECTION || 'players_v2';
 
 /**
  * Architect base players path (collection or collection group)
@@ -60,8 +59,7 @@ export const ARCHITECT_WORLDS_COLLECTION =
 /**
  * Architect world entitlements subcollection name
  */
-export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION =
-  'entitlements';
+export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION = 'entitlements';
 
 /**
  * Architect world events subcollection name
@@ -74,3 +72,9 @@ export const ARCHITECT_WORLD_EVENTS_SUBCOLLECTION = 'events';
 export const CONTRACTS_SUBCOLLECTION = 'contracts';
 export const SEASONS_SUBCOLLECTION = 'seasons';
 export const EVALUATIONS_SUBCOLLECTION = 'evaluations';
+
+/**
+ * Ranker sessions collection (user-owned tool)
+ * Stores in-progress and completed ranking sessions per user.
+ */
+export const RANKER_SESSIONS_COLLECTION = 'rankerSessions';

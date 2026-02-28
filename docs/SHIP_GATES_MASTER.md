@@ -108,6 +108,20 @@ Draft ship gates to enforce in execution phases:
    No world cap-changing path can bypass `compute -> validate -> persist -> log`.
 6. **Season Advance Audit Gate**  
    `advanceSeasonInWorld` emits durable world events with the same schema/version contract as mutation pipeline writes.
+7. **Base-Mode Local Audit Gate**  
+   Base-mode cap-changing actions emit `CapAuditEventV1`-shaped local events and run post-state validator fail-close checks before applying local state.
+8. **World Optimistic Drift-Prevention Gate**  
+   Optimistic world handlers must pre-validate post-state, block invalid optimistic updates, and rollback/flag preview records on authoritative persistence failure.
+
+E2 status update (implemented on 2026-02-28):
+
+- World season advance emits `CapAuditEventV1` (operation-level) to world `events` in the same `writeBatch` commit.
+- World season advance runs `validatePostStateCapLegality(...)` and fail-closes on any violations.
+
+E3 status update (implemented on 2026-02-28):
+
+- Base-mode cap-changing actions now emit local `CapAuditEventV1`-shaped events via bounded local stream (`architect_base_capAuditEvents_v1`) and fail-close on validator violations.
+- World optimistic handlers (`waive/extend/option/renounce/deadCap/exceptions`) now emit preview audit events, pass correlated `operationId` into authoritative mutations, and rollback/mark failure on persist errors.
 
 Draft validation command set (to be finalized in execution tickets):
 

@@ -184,6 +184,7 @@ utils/
   capHoldTransitionHelpers.js
   capHolds.ts
   capLegality/
+    localCapAuditLog.ts
     postStateCapValidator.ts
   capLegalityValidation.js
   capProjections.js
@@ -374,5 +375,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-28T09:12:50.998Z*
+*Generated on: 2026-02-28T10:17:43.806Z*
 *Auto-updated by: npm run docs*

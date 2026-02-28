@@ -22,7 +22,7 @@
  */
 
 import { db } from '@/firebaseConfig';
-import { writeBatch, serverTimestamp, increment } from 'firebase/firestore';
+import { writeBatch, serverTimestamp, increment, doc } from 'firebase/firestore';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import {
   getWorldMetadata,
@@ -37,6 +37,7 @@ import {
   worldMetadataRef,
 } from '@/features/architect/utils/architectFirestorePaths';
 import { getMinimumSalaryScale } from '@/features/architect/utils/salaryEngine';
+import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
 import {
   computeExpectedCapHoldAmount,
   deriveFreeAgencyYearFromOptionSeason,
@@ -63,6 +64,46 @@ import {
 import {
   sanitizeTransientFieldsForPersistence,
 } from '@/features/architect/utils/mutationPipeline';
+import {
+  POST_STATE_CAP_VALIDATOR_VERSION,
+  validatePostStateCapLegality,
+} from '@/features/architect/utils/capLegality/postStateCapValidator';
+import {
+  ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+} from '@/constants/collections';
+
+const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
+const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance';
+
+function generateSeasonAdvanceOperationId(timestamp = Date.now()) {
+  const randomSuffix = Math.random().toString(36).slice(2, 10);
+  return `op_${timestamp}_${randomSuffix}`;
+}
+
+function safeCloneForAudit(value) {
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return value;
+  }
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+}
+
+function buildPostStateRulesContext(year) {
+  const capSettingsResult = getCapSettings({ year });
+  const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
+
+  return {
+    capSettings: capSettingsResult?.settings || null,
+    minimumTeamSalary: Number.isFinite(minimumTeamSalary)
+      ? minimumTeamSalary
+      : undefined,
+    capSettingsSource: capSettingsResult?.source || null,
+  };
+}
 
 /**
  * Strips hydration-only display fields that hydrateBaseTeam() adds for UI
@@ -574,6 +615,9 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
     return { success: false, error: 'worldId is required' };
   }
 
+  const operationTimestamp = Date.now();
+  const operationId = generateSeasonAdvanceOperationId(operationTimestamp);
+  const occurredAt = new Date(operationTimestamp).toISOString();
   const { optionDecisions = {} } = options;
 
   try {
@@ -630,6 +674,10 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
 
     const batch = writeBatch(db);
     const updatedTeams = [];
+    const beforeTeamsByCode = {};
+    const afterTeamsByCode = {};
+    const beforeTotalsByTeam = {};
+    const afterTotalsByTeam = {};
     const summary = {
       exercisedOptions: [],
       declinedOptions: [],
@@ -690,6 +738,11 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       // Phase 65: Normalize TPE schema before persistence
       // Phase D4: Remove undefined values to prevent Firestore errors
       if (updatedTeam) {
+        beforeTeamsByCode[teamCode] = safeCloneForAudit(team);
+        afterTeamsByCode[teamCode] = safeCloneForAudit(updatedTeam);
+        beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear);
+        afterTotalsByTeam[teamCode] = computeTeamCapTotals(updatedTeam, toYear);
+
         const snapshotRef = worldTeamRef(worldId, teamCode);
         // Bridge Gate: match persistWorldMutation hygiene order
         // strip hydration → sanitize transients → normalize TPE → validate contract → removeUndefined → write
@@ -705,6 +758,28 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
         batch.set(snapshotRef, safeTeam);
         updatedTeams.push(teamCode);
       }
+    }
+
+    const postStateValidation = validatePostStateCapLegality({
+      operationId,
+      mutationType: SEASON_ADVANCE_MUTATION_TYPE,
+      worldId,
+      year: toYear,
+      toYear,
+      beforeTeamsByCode,
+      afterTeamsByCode,
+      beforeTotalsByTeam,
+      afterTotalsByTeam,
+      rulesContext: buildPostStateRulesContext(toYear),
+    });
+
+    if (!postStateValidation.valid) {
+      return {
+        success: false,
+        error: 'Post-state cap validation failed for season advance',
+        violations: postStateValidation.violations,
+        warnings: postStateValidation.warnings || [],
+      };
     }
 
     // ==========================================================================
@@ -806,6 +881,66 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
       lastModifiedTeams: updatedTeams,
       actionCount: increment(1),
     });
+
+    const teamCodes = updatedTeams.slice();
+    const diffSummary = {
+      teamsAdvanced: teamCodes.length,
+      optionsDecisionsCount: Object.keys(optionDecisions || {}).length,
+      resolvedConveyances: summary.conveyanceResolutions.length,
+      resolvedSwaps: summary.swapResolutions.length,
+    };
+    const randomSuffix = Math.random().toString(36).slice(2, 8);
+    const eventId = `${SEASON_ADVANCE_MUTATION_TYPE}_${operationTimestamp}_${randomSuffix}`;
+    const eventRef = doc(
+      db,
+      ARCHITECT_WORLDS_COLLECTION,
+      worldId,
+      ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+      eventId
+    );
+    const eventPayload = {
+      eventId,
+      type: SEASON_ADVANCE_MUTATION_TYPE,
+      timestamp: occurredAt,
+      seasonId: toSeason,
+      metadata: {
+        type: SEASON_ADVANCE_MUTATION_TYPE,
+        timestamp: occurredAt,
+        fromSeason,
+        toSeason,
+        teamsInvolved: teamCodes,
+      },
+      teamsAffected: teamCodes,
+      schemaVersion: CAP_AUDIT_EVENT_SCHEMA_VERSION,
+      validatorVersion: POST_STATE_CAP_VALIDATOR_VERSION,
+      operationId,
+      mutationType: SEASON_ADVANCE_MUTATION_TYPE,
+      occurredAt,
+      worldId,
+      teamCodes,
+      playerIds: [],
+      beforeTotalsByTeam,
+      afterTotalsByTeam,
+      valid: postStateValidation.valid,
+      violations: postStateValidation.violations,
+      warnings: postStateValidation.warnings,
+      diffSummary,
+      mutationMetadata: {
+        mutationType: SEASON_ADVANCE_MUTATION_TYPE,
+        category: 'offseason',
+        worldId,
+        teams: teamCodes,
+        players: [],
+      },
+    };
+    const afterEventSanitize = sanitizeTransientFieldsForPersistence(eventPayload);
+    assertPersistableOrThrow({
+      obj: afterEventSanitize,
+      contract: PERSISTENCE_CONTRACTS.EVENT,
+      label: 'EVENT',
+    });
+    const safeEvent = removeUndefinedDeep(afterEventSanitize);
+    batch.set(eventRef, safeEvent);
 
     await batch.commit();
 

@@ -159,3 +159,76 @@ Still out of scope / remaining for later tickets:
 - Season advance (`seasonManager`) event parity on same envelope.
 - Base-mode durable logging parity.
 - Optimistic/local handler parity and bypass elimination.
+
+## E2 Execution Status (Implemented 2026-02-28)
+
+Scope implemented for world season advance only (`advanceSeasonInWorld`):
+
+- Season advance now generates an operation-scoped audit context:
+  - `operationId`
+  - `occurredAt` timestamp
+  - `mutationType: "seasonAdvance"`
+- Season advance now builds SSOT before/after totals snapshots per advanced team:
+  - `beforeTotalsByTeam[teamCode]` (pre-transition team snapshot)
+  - `afterTotalsByTeam[teamCode]` (post-transition team snapshot)
+- Added shared post-state validator contract parity in season advance:
+  - `validatePostStateCapLegality(...)` from `postStateCapValidator.ts`
+  - same validator version constant (`0.1.0`)
+  - fail-close behavior: any violation blocks commit and returns failure.
+- Season advance now emits one operation-level `CapAuditEventV1` into the existing world events destination in the same `writeBatch`:
+  - path: `architect_worlds/{worldId}/events/{eventId}`
+  - no new collection/path introduced
+  - event write is sanitized + persistence-contract asserted before `batch.set(...)`
+  - event is queued before the same `batch.commit()` as team + metadata writes.
+
+What is now guaranteed for world season advance:
+
+1. Every successful advance emits a versioned cap-audit envelope with before/after totals and validator verdict.
+2. Validator violations fail-close before any batch commit.
+3. Event writes do not use a separate commit path.
+
+Still out of scope / remaining:
+
+- Base-mode durable cap audit logging parity.
+- Optimistic/local handler parity and bypass elimination.
+- Team-level eventRefs fan-out and broader event graph indexing.
+
+## E3 Execution Status (Implemented 2026-02-28)
+
+Scope implemented for base-mode parity and world optimistic/local-first parity:
+
+- Added local cap-audit stream utility:
+  - `src/features/architect/utils/capLegality/localCapAuditLog.ts`
+  - Base key: `architect_base_capAuditEvents_v1`
+  - World preview key: `architect_world_preview_capAuditEvents_v1`
+  - Bounded retention: last `500` events per key
+  - Storage behavior: `localStorage` when available, in-memory fallback when `window`/storage is unavailable.
+
+- Base-mode (`worldId = null`) cap-changing actions now run `validatePostStateCapLegality(...)` and append `CapAuditEventV1`-shaped local events (fail-close on violations):
+  - `executeTrade`
+  - `signFreeAgent`
+  - `waivePlayer`
+  - `extendPlayer`
+  - `optionDecision`
+  - `renounceRights`
+  - `setDeadCap`
+  - `setExceptions`
+
+- World optimistic handlers now enforce preview-audit parity before local mutation:
+  - `waivePlayer`
+  - `extendPlayer`
+  - `optionDecision`
+  - `renounceRights`
+  - `setDeadCap`
+  - `setExceptions`
+  - Flow: preview event emit -> post-state validator gate -> optimistic apply -> authoritative persist.
+
+- Operation correlation and drift safety:
+  - `applyWorldMutation` now accepts optional caller-provided `operationId` (no new Firestore path).
+  - Optimistic handlers pass preview `operationId` through authoritative mutation pipeline.
+  - On persist success, preview event is marked `authoritativeEventLinked: true` and records authoritative operation ID.
+  - On persist failure, optimistic state is rolled back to captured pre-mutation snapshot and preview is marked `persistFailed: true`.
+
+- Firestore scope unchanged:
+  - No new collections/paths.
+  - No additional world-mode batch commit paths introduced.

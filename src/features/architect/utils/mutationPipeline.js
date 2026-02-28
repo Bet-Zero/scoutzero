@@ -636,6 +636,7 @@ export async function applyWorldMutation({
   mutationType,
   payload,
   timestamp = Date.now(),
+  operationId: operationIdOverride,
 }) {
   // Input validation
   if (!userId) {
@@ -657,7 +658,10 @@ export async function applyWorldMutation({
   // SECURITY: Strip override metadata if override is disabled
   // This prevents clients from bypassing validation by sending overrideMetadata
   const sanitizedPayload = sanitizePayloadForOverride(payload);
-  const operationId = generateOperationId(timestamp);
+  const operationId =
+    typeof operationIdOverride === 'string' && operationIdOverride.trim()
+      ? operationIdOverride
+      : generateOperationId(timestamp);
 
   try {
     // PHASE 1: READ - Load required current state

@@ -19,10 +19,22 @@ import {
   applyWorldMutation,
   computeWorldMutation,
 } from '@/features/architect/utils/mutationPipeline';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
   loadWorldTeamData,
   resolveTeamCode,
 } from '@/features/architect/utils/worldTeamData';
+import {
+  POST_STATE_CAP_VALIDATOR_VERSION,
+  validatePostStateCapLegality,
+} from '@/features/architect/utils/capLegality/postStateCapValidator';
+import {
+  BASE_CAP_AUDIT_STORAGE_KEY,
+  WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+  appendLocalCapAuditEvent,
+  updateLocalCapAuditEvent,
+  type CapAuditEventV1Like,
+} from '@/features/architect/utils/capLegality/localCapAuditLog';
 import {
   computeExpectedCapHoldAmount,
   deriveFreeAgencyYearFromOptionSeason,
@@ -417,6 +429,202 @@ const recordOverrideAudit = (
   return [...existingLog, newEntry];
 };
 
+const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
+const BASE_MODE_VALIDATOR_WORLD_ID = 'base-mode';
+
+type TeamsByCode = Record<string, CapSheet>;
+
+function generateLocalOperationId(timestamp = Date.now()): string {
+  const randomSuffix = Math.random().toString(36).slice(2, 10);
+  return `op_${timestamp}_${randomSuffix}`;
+}
+
+function safeCloneForAudit<T>(value: T): T {
+  try {
+    return JSON.parse(JSON.stringify(value)) as T;
+  } catch {
+    return value;
+  }
+}
+
+function getTeamPlayerIds(team: CapSheet): Set<string> {
+  const rosterIds = Array.isArray(team?.roster)
+    ? team.roster
+        .map((playerId) => String(playerId || ''))
+        .filter((playerId) => playerId.length > 0)
+    : [];
+
+  if (rosterIds.length > 0) {
+    return new Set(rosterIds);
+  }
+
+  const players = Array.isArray(team?.players) ? team.players : [];
+  return new Set(
+    players
+      .map((player) =>
+        String(player?.id || player?.player_id || player?.name || '')
+      )
+      .filter((playerId) => playerId.length > 0)
+  );
+}
+
+function buildAuditDiffSummary(params: {
+  beforeTeamsByCode: TeamsByCode;
+  afterTeamsByCode: TeamsByCode;
+}) {
+  const { beforeTeamsByCode, afterTeamsByCode } = params;
+  const teamCodes = Array.from(
+    new Set([
+      ...Object.keys(beforeTeamsByCode),
+      ...Object.keys(afterTeamsByCode),
+    ])
+  );
+
+  const changedPlayerIds = new Set<string>();
+  let deadCapChanged = 0;
+  let exceptionsChanged = 0;
+
+  for (const code of teamCodes) {
+    const beforeTeam = beforeTeamsByCode[code] || {};
+    const afterTeam = afterTeamsByCode[code] || {};
+    const beforePlayerIds = getTeamPlayerIds(beforeTeam);
+    const afterPlayerIds = getTeamPlayerIds(afterTeam);
+
+    for (const playerId of beforePlayerIds) {
+      if (!afterPlayerIds.has(playerId)) {
+        changedPlayerIds.add(playerId);
+      }
+    }
+
+    for (const playerId of afterPlayerIds) {
+      if (!beforePlayerIds.has(playerId)) {
+        changedPlayerIds.add(playerId);
+      }
+    }
+
+    if (
+      JSON.stringify(beforeTeam.deadCap || []) !==
+      JSON.stringify(afterTeam.deadCap || [])
+    ) {
+      deadCapChanged += 1;
+    }
+
+    if (
+      JSON.stringify(beforeTeam.exceptions || {}) !==
+      JSON.stringify(afterTeam.exceptions || {})
+    ) {
+      exceptionsChanged += 1;
+    }
+  }
+
+  return {
+    teamsTouched: teamCodes.length,
+    playersMoved: changedPlayerIds.size,
+    deadCapChanged,
+    exceptionsChanged,
+  };
+}
+
+function buildTotalsByTeam(teamsByCode: TeamsByCode, year: number) {
+  const totalsByTeam: Record<string, Record<string, unknown>> = {};
+  for (const [teamCode, team] of Object.entries(teamsByCode || {})) {
+    totalsByTeam[teamCode] = computeTeamCapTotals(team, year);
+  }
+  return totalsByTeam;
+}
+
+function buildCapAuditEvaluation(params: {
+  operationId: string;
+  occurredAt: string;
+  mutationType: string;
+  worldId: string | null;
+  year: number;
+  teamCodes: string[];
+  playerIds: string[];
+  beforeTeamsByCode: TeamsByCode;
+  afterTeamsByCode: TeamsByCode;
+  preview?: boolean;
+  authoritativeEventLinked?: boolean;
+  authoritativeOperationId?: string;
+  persistFailed?: boolean;
+}): {
+  event: CapAuditEventV1Like;
+  validation: ReturnType<typeof validatePostStateCapLegality>;
+} {
+  const {
+    operationId,
+    occurredAt,
+    mutationType,
+    worldId,
+    year,
+    teamCodes,
+    playerIds,
+    beforeTeamsByCode,
+    afterTeamsByCode,
+    preview,
+    authoritativeEventLinked,
+    authoritativeOperationId,
+    persistFailed,
+  } = params;
+
+  const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
+  const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
+  const validation = validatePostStateCapLegality({
+    operationId,
+    mutationType,
+    worldId: worldId || BASE_MODE_VALIDATOR_WORLD_ID,
+    year,
+    beforeTeamsByCode,
+    afterTeamsByCode,
+    beforeTotalsByTeam,
+    afterTotalsByTeam,
+  });
+
+  const event: CapAuditEventV1Like = {
+    schemaVersion: CAP_AUDIT_EVENT_SCHEMA_VERSION,
+    validatorVersion: POST_STATE_CAP_VALIDATOR_VERSION,
+    operationId,
+    mutationType,
+    occurredAt,
+    worldId,
+    teamCodes,
+    playerIds,
+    beforeTotalsByTeam,
+    afterTotalsByTeam,
+    valid: validation.valid,
+    violations: validation.violations as Record<string, unknown>[],
+    warnings: validation.warnings as Record<string, unknown>[],
+    diffSummary: buildAuditDiffSummary({
+      beforeTeamsByCode,
+      afterTeamsByCode,
+    }),
+    ...(typeof preview === 'boolean' ? { preview } : {}),
+    ...(typeof authoritativeEventLinked === 'boolean'
+      ? { authoritativeEventLinked }
+      : {}),
+    ...(authoritativeOperationId ? { authoritativeOperationId } : {}),
+    ...(typeof persistFailed === 'boolean' ? { persistFailed } : {}),
+  };
+
+  return {
+    event,
+    validation,
+  };
+}
+
+function getFirstViolationMessage(
+  validation: ReturnType<typeof validatePostStateCapLegality>,
+  fallbackMessage: string
+): string {
+  const firstViolation = validation.violations?.[0];
+  if (!firstViolation) {
+    return fallbackMessage;
+  }
+
+  const typedMessage = String(firstViolation.message || '').trim();
+  return typedMessage || fallbackMessage;
+}
+
 /**
  * Centralized action handlers hook for GMDashboard
  *
@@ -456,6 +664,12 @@ export function useArchitectActions({
   const { openContractModal, closeContractModal } = modals;
 
   // === Persistence Helper ===
+  type PersistMutationOptions = {
+    operationId?: string;
+    onSuccess?: (result: any) => void;
+    onFailure?: (message: string, result?: any) => void;
+  };
+
   /**
    * Persist mutation to Firestore if in world mode.
    * Skips persistence when worldId is null (base mode) or userId is missing.
@@ -463,14 +677,19 @@ export function useArchitectActions({
   const persistMutation = useCallback(
     async (
       mutationType: string,
-      payload: Record<string, unknown>
-    ): Promise<void> => {
+      payload: Record<string, unknown>,
+      options: PersistMutationOptions = {}
+    ): Promise<any> => {
       // Base mode: no persistence
-      if (!worldId) return;
+      if (!worldId) {
+        return { success: true, skipped: true };
+      }
       // Cannot persist without userId
       if (!userId) {
-        console.warn('[Architect] Cannot save: missing userId');
-        return;
+        const message = '[Architect] Cannot save: missing userId';
+        console.warn(message);
+        options.onFailure?.(message);
+        return { success: false, error: message };
       }
 
       try {
@@ -481,15 +700,23 @@ export function useArchitectActions({
           seasonId,
           mutationType,
           payload,
+          operationId: options.operationId,
         });
 
         if (result.success) {
           console.log(`✅ Saved ${mutationType}!`, result);
           toast.success('Saved changes');
+          options.onSuccess?.(result);
         } else {
           console.error(`❌ Save failed:`, result.error);
           toast.error(`Save failed: ${result.error}`);
+          options.onFailure?.(
+            String(result.error || `Save failed for ${mutationType}`),
+            result
+          );
         }
+
+        return result;
       } catch (err) {
         console.error('[Architect][PersistMutation] failed', {
           mutationType,
@@ -497,6 +724,9 @@ export function useArchitectActions({
           err,
         });
         toast.error('Failed to save changes');
+        const message = 'Failed to save changes';
+        options.onFailure?.(message);
+        return { success: false, error: message };
       }
     },
     [worldId, userId, seasonId]
@@ -603,6 +833,149 @@ export function useArchitectActions({
       startSave,
       syncTeamFromMutationResult,
       userId,
+      worldId,
+    ]
+  );
+
+  const applyCapAuditedTeamMutation = useCallback(
+    (params: {
+      mutationType: string;
+      playerIds?: string[];
+      computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+      persistPayload?: Record<string, unknown>;
+      invalidMessage: string;
+    }): { applied: boolean; operationId: string | null } => {
+      const {
+        mutationType,
+        playerIds = [],
+        computeNextTeam,
+        persistPayload = {},
+        invalidMessage,
+      } = params;
+
+      if (!teamCapSheet) {
+        reportMutationError(
+          `Cannot apply ${mutationType}: team state is not loaded.`,
+          {
+            mutationType,
+          }
+        );
+        return { applied: false, operationId: null };
+      }
+
+      const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
+      const afterTeamSnapshot = safeCloneForAudit(
+        computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
+      );
+      const operationId = generateLocalOperationId();
+      const occurredAt = new Date().toISOString();
+      const beforeTeamsByCode: TeamsByCode = {
+        [teamCode]: beforeTeamSnapshot,
+      };
+      const afterTeamsByCode: TeamsByCode = {
+        [teamCode]: afterTeamSnapshot,
+      };
+
+      const previewEvent = buildCapAuditEvaluation({
+        operationId,
+        occurredAt,
+        mutationType,
+        worldId,
+        year: currentYear,
+        teamCodes: [teamCode],
+        playerIds: playerIds.filter(Boolean).map(String),
+        beforeTeamsByCode,
+        afterTeamsByCode,
+        preview: !!worldId,
+        authoritativeEventLinked: worldId ? false : undefined,
+      });
+
+      const storageKey = worldId
+        ? WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY
+        : BASE_CAP_AUDIT_STORAGE_KEY;
+      appendLocalCapAuditEvent(previewEvent.event, { storageKey });
+
+      if (!previewEvent.validation.valid) {
+        reportMutationError(
+          getFirstViolationMessage(previewEvent.validation, invalidMessage),
+          {
+            mutationType,
+            operationId,
+            violations: previewEvent.validation.violations,
+          }
+        );
+        return { applied: false, operationId };
+      }
+
+      setTeamCapSheet(afterTeamSnapshot);
+
+      if (!worldId) {
+        return { applied: true, operationId };
+      }
+
+      void persistMutation(mutationType, persistPayload, {
+        operationId,
+        onSuccess: (result) => {
+          const authoritativeOperationId = String(
+            result?.event?.operationId || operationId
+          );
+          updateLocalCapAuditEvent(
+            operationId,
+            {
+              authoritativeEventLinked: true,
+              authoritativeOperationId,
+              persistFailed: false,
+            },
+            {
+              storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+            }
+          );
+        },
+        onFailure: (message) => {
+          setTeamCapSheet(beforeTeamSnapshot);
+          const didUpdatePreview = updateLocalCapAuditEvent(
+            operationId,
+            {
+              persistFailed: true,
+              authoritativeEventLinked: false,
+            },
+            {
+              storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+            }
+          );
+
+          if (!didUpdatePreview) {
+            appendLocalCapAuditEvent(
+              {
+                ...previewEvent.event,
+                persistFailed: true,
+                authoritativeEventLinked: false,
+              },
+              {
+                storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+              }
+            );
+          }
+
+          reportMutationError(
+            message || `Failed to persist ${mutationType} mutation.`,
+            {
+              mutationType,
+              operationId,
+            }
+          );
+        },
+      });
+
+      return { applied: true, operationId };
+    },
+    [
+      currentYear,
+      persistMutation,
+      reportMutationError,
+      setTeamCapSheet,
+      teamCapSheet,
+      teamCode,
       worldId,
     ]
   );
@@ -806,6 +1179,59 @@ export function useArchitectActions({
           );
         }
 
+        const beforeTeamsByCode: TeamsByCode = {};
+        for (const loadedTeam of loadedTeams) {
+          if (loadedTeam?.teamCode && loadedTeam?.team) {
+            beforeTeamsByCode[loadedTeam.teamCode] = safeCloneForAudit(
+              loadedTeam.team as CapSheet
+            );
+          }
+        }
+
+        const afterTeamsByCode: TeamsByCode = {};
+        for (const update of computeResult.teamUpdates || []) {
+          if (update?.teamCode && update?.team) {
+            afterTeamsByCode[update.teamCode] = safeCloneForAudit(
+              update.team as CapSheet
+            );
+          }
+        }
+
+        const tradePlayerIds = Array.from(
+          new Set(
+            teams.flatMap((team) =>
+              (team?.sends || [])
+                .map((player) => String(player?.playerId || ''))
+                .filter((playerId) => playerId.length > 0)
+            )
+          )
+        );
+        const operationId = generateLocalOperationId();
+        const occurredAt = new Date().toISOString();
+        const baseAudit = buildCapAuditEvaluation({
+          operationId,
+          occurredAt,
+          mutationType: 'executeTrade',
+          worldId: null,
+          year: currentYear,
+          teamCodes: resolvedTeamCodes,
+          playerIds: tradePlayerIds,
+          beforeTeamsByCode,
+          afterTeamsByCode,
+        });
+        appendLocalCapAuditEvent(baseAudit.event, {
+          storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
+        });
+
+        if (!baseAudit.validation.valid) {
+          throw new Error(
+            getFirstViolationMessage(
+              baseAudit.validation,
+              'Base-state trade apply blocked by post-state cap validation.'
+            )
+          );
+        }
+
         setTeamCapSheet(updatedTeam as CapSheet);
       } catch (error) {
         console.error('[Architect][Trade][BaseStateApply] failed', {
@@ -964,6 +1390,42 @@ export function useArchitectActions({
             {
               playerId: idToSign,
               computeResult,
+            }
+          );
+          return;
+        }
+
+        const operationId = generateLocalOperationId();
+        const occurredAt = new Date().toISOString();
+        const baseAudit = buildCapAuditEvaluation({
+          operationId,
+          occurredAt,
+          mutationType: 'signFreeAgent',
+          worldId: null,
+          year: currentYear,
+          teamCodes: [teamCode],
+          playerIds: [String(idToSign)],
+          beforeTeamsByCode: {
+            [teamCode]: safeCloneForAudit(teamCapSheet as CapSheet),
+          },
+          afterTeamsByCode: {
+            [teamCode]: safeCloneForAudit(updatedTeam as CapSheet),
+          },
+        });
+        appendLocalCapAuditEvent(baseAudit.event, {
+          storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
+        });
+
+        if (!baseAudit.validation.valid) {
+          reportMutationError(
+            getFirstViolationMessage(
+              baseAudit.validation,
+              'Signing blocked by post-state cap validation in vacuum mode.'
+            ),
+            {
+              playerId: idToSign,
+              operationId,
+              violations: baseAudit.validation.violations,
             }
           );
           return;
@@ -1303,41 +1765,42 @@ export function useArchitectActions({
   // === Dead Money Actions (Phase 24) ===
   const handleSetDeadCap = useCallback(
     (deadCap: any[]): void => {
-      // Optimistic update
-      setTeamCapSheet((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
+      applyCapAuditedTeamMutation({
+        mutationType: 'setDeadCap',
+        playerIds: [],
+        invalidMessage: 'Dead cap update blocked by post-state cap validation.',
+        computeNextTeam: (beforeTeam) => ({
+          ...beforeTeam,
           deadCap,
-        };
-      });
-
-      persistMutation('setDeadCap', {
-        teamCode,
-        deadCap,
+        }),
+        persistPayload: {
+          teamCode,
+          deadCap,
+        },
       });
     },
-    [teamCode, persistMutation, setTeamCapSheet]
+    [applyCapAuditedTeamMutation, teamCode]
   );
 
   // === Exception Management Actions (Phase 27) ===
   const handleSetExceptions = useCallback(
     (exceptions: Record<string, any>): void => {
-      // Optimistic update
-      setTeamCapSheet((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
+      applyCapAuditedTeamMutation({
+        mutationType: 'setExceptions',
+        playerIds: [],
+        invalidMessage:
+          'Exception update blocked by post-state cap validation.',
+        computeNextTeam: (beforeTeam) => ({
+          ...beforeTeam,
           exceptions,
-        };
-      });
-
-      persistMutation('setExceptions', {
-        teamCode,
-        exceptions,
+        }),
+        persistPayload: {
+          teamCode,
+          exceptions,
+        },
       });
     },
-    [teamCode, persistMutation, setTeamCapSheet]
+    [applyCapAuditedTeamMutation, teamCode]
   );
 
   const handleEditContract = useCallback(
@@ -1378,55 +1841,6 @@ export function useArchitectActions({
           (playerOrHold as CapHold).playerId ||
           (playerOrHold as ArchitectPlayer).name;
 
-        setTeamCapSheet((prev: CapSheet | null) => {
-          if (!prev) return prev;
-
-          // Remove from capHolds array
-          const updatedCapHolds = (prev.capHolds || []).filter(
-            (h) => h.playerId !== idToRenounce && h.playerName !== idToRenounce
-          );
-
-          // Update player object if it exists
-          const updatedPlayers = (prev.players || []).map((p) => {
-            if (
-              p.id === idToRenounce ||
-              p.player_id === idToRenounce ||
-              p.name === idToRenounce
-            ) {
-              const updated = { ...p, rightsRenounced: true };
-              if (updated.contract?.birdRights) {
-                updated.contract = {
-                  ...updated.contract,
-                  birdRights: {
-                    ...updated.contract.birdRights,
-                    status: 'None',
-                  },
-                };
-              }
-              return updated;
-            }
-            return p;
-          });
-
-          // Record override audit log if override was used
-          const overrideAuditLog = overrideMetadata?.overrideUsed
-            ? recordOverrideAudit(
-                prev,
-                'renounce',
-                overrideMetadata.overrideReasons || [],
-                idToRenounce,
-                playerName
-              )
-            : prev?.overrideAuditLog;
-
-          return {
-            ...prev,
-            players: updatedPlayers,
-            capHolds: updatedCapHolds,
-            ...(overrideAuditLog ? { overrideAuditLog } : {}),
-          };
-        });
-
         // Persist to world if in world mode
         if (!idToRenounce) {
           console.error('Renounce missing playerId');
@@ -1434,13 +1848,66 @@ export function useArchitectActions({
           throw new Error('Renounce missing playerId');
         }
 
-        persistMutation('renounceRights', {
-          teamCode,
-          playerId: idToRenounce,
+        applyCapAuditedTeamMutation({
+          mutationType: 'renounceRights',
+          playerIds: [String(idToRenounce)],
+          invalidMessage:
+            'Renounce rights blocked by post-state cap validation.',
+          computeNextTeam: (beforeTeam) => {
+            // Remove from capHolds array
+            const updatedCapHolds = (beforeTeam.capHolds || []).filter(
+              (h) =>
+                h.playerId !== idToRenounce && h.playerName !== idToRenounce
+            );
+
+            // Update player object if it exists
+            const updatedPlayers = (beforeTeam.players || []).map((p) => {
+              if (
+                p.id === idToRenounce ||
+                p.player_id === idToRenounce ||
+                p.name === idToRenounce
+              ) {
+                const updated = { ...p, rightsRenounced: true };
+                if (updated.contract?.birdRights) {
+                  updated.contract = {
+                    ...updated.contract,
+                    birdRights: {
+                      ...updated.contract.birdRights,
+                      status: 'None',
+                    },
+                  };
+                }
+                return updated;
+              }
+              return p;
+            });
+
+            // Record override audit log if override was used
+            const overrideAuditLog = overrideMetadata?.overrideUsed
+              ? recordOverrideAudit(
+                  beforeTeam,
+                  'renounce',
+                  overrideMetadata.overrideReasons || [],
+                  idToRenounce,
+                  playerName
+                )
+              : beforeTeam?.overrideAuditLog;
+
+            return {
+              ...beforeTeam,
+              players: updatedPlayers,
+              capHolds: updatedCapHolds,
+              ...(overrideAuditLog ? { overrideAuditLog } : {}),
+            };
+          },
+          persistPayload: {
+            teamCode,
+            playerId: idToRenounce,
+          },
         });
       }
     },
-    [setTeamCapSheet, teamCode, persistMutation]
+    [applyCapAuditedTeamMutation, teamCode]
   );
 
   // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce
@@ -1556,80 +2023,83 @@ export function useArchitectActions({
   const handleExtendContract = useCallback(
     (player: ArchitectPlayer, extensionContract: SigningDetails): void => {
       const playerId = player.id || player.player_id || player.name;
-
-      setTeamCapSheet((prev: CapSheet | null) => {
-        if (!prev) return prev;
-
-        const updatedPlayers = (prev.players || []).map((p) => {
-          if (
-            p.id === playerId ||
-            p.player_id === playerId ||
-            p.name === playerId
-          ) {
-            // Add extension years to futureContract
-            const futureContract = p.futureContract || {
-              salariesByYear: [],
-              extension: true,
-            };
-
-            const newYears = (extensionContract.salariesByYear || []).map(
-              (y) => ({
-                ...y,
-                isExtensionSeason: true,
-              })
-            );
-
-            return {
-              ...p,
-              futureContract: {
-                ...futureContract,
-                salariesByYear: [
-                  ...(futureContract.salariesByYear || []),
-                  ...newYears,
-                ],
-                extension: true,
-              },
-            };
-          }
-          return p;
-        });
-
-        // Record override audit log if override was used
-        const overrideAuditLog = extensionContract.overrideUsed
-          ? recordOverrideAudit(
-              prev,
-              'extend',
-              extensionContract.overrideReasons || [],
-              playerId,
-              player.name || player.displayName
-            )
-          : prev.overrideAuditLog;
-
-        return {
-          ...prev,
-          players: updatedPlayers,
-          ...(overrideAuditLog ? { overrideAuditLog } : {}),
-        };
-      });
-
-      closeContractModal();
-
-      // Persist to world if in world mode
       if (!playerId) {
         console.error('Extend player missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
         throw new Error('Extend player missing playerId');
       }
 
-      persistMutation('extendPlayer', {
-        teamCode,
-        playerId,
-        extension: {
-          salariesByYear: extensionContract.salariesByYear || [],
+      const mutationResult = applyCapAuditedTeamMutation({
+        mutationType: 'extendPlayer',
+        playerIds: [String(playerId)],
+        invalidMessage:
+          'Extension blocked by post-state cap validation.',
+        computeNextTeam: (beforeTeam) => {
+          const updatedPlayers = (beforeTeam.players || []).map((p) => {
+            if (
+              p.id === playerId ||
+              p.player_id === playerId ||
+              p.name === playerId
+            ) {
+              // Add extension years to futureContract
+              const futureContract = p.futureContract || {
+                salariesByYear: [],
+                extension: true,
+              };
+
+              const newYears = (extensionContract.salariesByYear || []).map(
+                (y) => ({
+                  ...y,
+                  isExtensionSeason: true,
+                })
+              );
+
+              return {
+                ...p,
+                futureContract: {
+                  ...futureContract,
+                  salariesByYear: [
+                    ...(futureContract.salariesByYear || []),
+                    ...newYears,
+                  ],
+                  extension: true,
+                },
+              };
+            }
+            return p;
+          });
+
+          // Record override audit log if override was used
+          const overrideAuditLog = extensionContract.overrideUsed
+            ? recordOverrideAudit(
+                beforeTeam,
+                'extend',
+                extensionContract.overrideReasons || [],
+                playerId,
+                player.name || player.displayName
+              )
+            : beforeTeam.overrideAuditLog;
+
+          return {
+            ...beforeTeam,
+            players: updatedPlayers,
+            ...(overrideAuditLog ? { overrideAuditLog } : {}),
+          };
+        },
+        persistPayload: {
+          teamCode,
+          playerId,
+          extension: {
+            salariesByYear: extensionContract.salariesByYear || [],
+          },
         },
       });
+
+      if (mutationResult.applied) {
+        closeContractModal();
+      }
     },
-    [setTeamCapSheet, closeContractModal, teamCode, persistMutation]
+    [applyCapAuditedTeamMutation, closeContractModal, teamCode]
   );
 
   // handleWaiveContract - directly updates teamCapSheet
@@ -1643,93 +2113,94 @@ export function useArchitectActions({
       if (!window.confirm(confirmMsg)) return;
 
       const playerId = player.id || player.player_id || player.name;
-
-      setTeamCapSheet((prev: CapSheet | null) => {
-        if (!prev) return prev;
-
-        // Calculate remaining guaranteed money
-        const remainingGuaranteed = (player.contract?.salariesByYear || [])
-          .filter((y) => {
-            const season = String(y.season);
-            const yearEnd = /^\d{4}-\d{2}$/.test(season)
-              ? 2000 + parseInt(season.split('-')[1], 10)
-              : parseInt(season, 10);
-            return yearEnd >= currentYear && y.guaranteed !== false;
-          })
-          .reduce((sum, y) => sum + (y.salary || 0), 0);
-
-        // For buyouts, dead cap = remaining guaranteed minus buyout amount
-        const deadCapAmount = buyout
-          ? Math.max(0, remainingGuaranteed - (buyoutAmount || 0))
-          : remainingGuaranteed;
-
-        const updatedPlayers = (prev.players || []).map((p) => {
-          if (
-            p.id === playerId ||
-            p.player_id === playerId ||
-            p.name === playerId
-          ) {
-            return {
-              ...p,
-              waived: true,
-              waivedDate: new Date().toISOString(),
-              deadCap: {
-                amount: deadCapAmount,
-                stretched: stretch,
-                buyout,
-              },
-              contract: {
-                ...(p.contract || {}),
-                salariesByYear: [],
-                waived: true,
-              },
-              futureContract: null,
-            };
-          }
-          return p;
-        });
-
-        // Record override audit log if override was used
-        const overrideAuditLog = overrideUsed
-          ? recordOverrideAudit(
-              prev,
-              stretch ? 'waiveStretch' : buyout ? 'buyout' : 'waive',
-              overrideReasons || [],
-              playerId,
-              player.name || player.displayName
-            )
-          : prev.overrideAuditLog;
-
-        return {
-          ...prev,
-          players: updatedPlayers,
-          ...(overrideAuditLog ? { overrideAuditLog } : {}),
-        };
-      });
-
-      closeContractModal();
-
-      // Persist to world if in world mode
       if (!playerId) {
         console.error('Waive missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
         throw new Error('Waive missing playerId');
       }
 
-      persistMutation('waivePlayer', {
-        teamCode,
-        playerId,
-        stretch: !!stretch,
-        stretchYears: stretch ? 3 : 0, // Default stretch years
-        isGracePeriod: false, // Default, UI doesn't currently expose this
+      const mutationResult = applyCapAuditedTeamMutation({
+        mutationType: 'waivePlayer',
+        playerIds: [String(playerId)],
+        invalidMessage: 'Waive action blocked by post-state cap validation.',
+        computeNextTeam: (beforeTeam) => {
+          // Calculate remaining guaranteed money
+          const remainingGuaranteed = (player.contract?.salariesByYear || [])
+            .filter((y) => {
+              const season = String(y.season);
+              const yearEnd = /^\d{4}-\d{2}$/.test(season)
+                ? 2000 + parseInt(season.split('-')[1], 10)
+                : parseInt(season, 10);
+              return yearEnd >= currentYear && y.guaranteed !== false;
+            })
+            .reduce((sum, y) => sum + (y.salary || 0), 0);
+
+          // For buyouts, dead cap = remaining guaranteed minus buyout amount
+          const deadCapAmount = buyout
+            ? Math.max(0, remainingGuaranteed - (buyoutAmount || 0))
+            : remainingGuaranteed;
+
+          const updatedPlayers = (beforeTeam.players || []).map((p) => {
+            if (
+              p.id === playerId ||
+              p.player_id === playerId ||
+              p.name === playerId
+            ) {
+              return {
+                ...p,
+                waived: true,
+                waivedDate: new Date().toISOString(),
+                deadCap: {
+                  amount: deadCapAmount,
+                  stretched: stretch,
+                  buyout,
+                },
+                contract: {
+                  ...(p.contract || {}),
+                  salariesByYear: [],
+                  waived: true,
+                },
+                futureContract: null,
+              };
+            }
+            return p;
+          });
+
+          // Record override audit log if override was used
+          const overrideAuditLog = overrideUsed
+            ? recordOverrideAudit(
+                beforeTeam,
+                stretch ? 'waiveStretch' : buyout ? 'buyout' : 'waive',
+                overrideReasons || [],
+                playerId,
+                player.name || player.displayName
+              )
+            : beforeTeam.overrideAuditLog;
+
+          return {
+            ...beforeTeam,
+            players: updatedPlayers,
+            ...(overrideAuditLog ? { overrideAuditLog } : {}),
+          };
+        },
+        persistPayload: {
+          teamCode,
+          playerId,
+          stretch: !!stretch,
+          stretchYears: stretch ? 3 : 0, // Default stretch years
+          isGracePeriod: false, // Default, UI doesn't currently expose this
+        },
       });
+
+      if (mutationResult.applied) {
+        closeContractModal();
+      }
     },
     [
       currentYear,
-      setTeamCapSheet,
+      applyCapAuditedTeamMutation,
       closeContractModal,
       teamCode,
-      persistMutation,
     ]
   );
 
@@ -1742,163 +2213,165 @@ export function useArchitectActions({
     ): void => {
       const playerId = player.id || player.player_id || player.name;
       const targetYear = currentYear + 1;
-
-      setTeamCapSheet((prev: CapSheet | null) => {
-        if (!prev) return prev;
-
-        let newCapHold: CapHold | null = null;
-
-        const updatedPlayers = (prev.players || []).map((p) => {
-          if (
-            p.id === playerId ||
-            p.player_id === playerId ||
-            p.name === playerId
-          ) {
-            const salaries = p.contract?.salariesByYear || [];
-
-            // Find the option year entry
-            const optionIndex = salaries.findIndex((y) => {
-              const season = String(y.season);
-              const yearEnd = /^\d{4}-\d{2}$/.test(season)
-                ? 2000 + parseInt(season.split('-')[1], 10)
-                : parseInt(season, 10);
-              return yearEnd === targetYear && y.option;
-            });
-
-            if (optionIndex === -1) {
-              console.warn(`No option found for year ${targetYear}`);
-              return p;
-            }
-
-            // Mark option as used (canonical boolean format)
-            const updatedSalaries = [...salaries];
-            updatedSalaries[optionIndex] = {
-              ...updatedSalaries[optionIndex],
-              optionUsed: accepted, // CANONICAL: boolean, not string
-            };
-
-            if (!accepted) {
-              const optionSeason = salaries[optionIndex]?.season || null;
-              const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
-                optionSeason,
-                targetYear
-              );
-              const freeAgencyYear =
-                typeof faYearInfo.year === 'number'
-                  ? faYearInfo.year
-                  : targetYear - 1;
-
-              // Declining: remove this year and all future years
-              const filteredSalaries = salaries.filter(
-                (_, idx) => idx < optionIndex
-              );
-
-              // Calculate cap hold for declined option
-              const priorRow = salaries[optionIndex - 1];
-              const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
-              const rightsType = getRightsTypeFromPlayer(p);
-              const capHoldResult = computeExpectedCapHoldAmount({
-                player: p,
-                lastSalary,
-                rules: null,
-                rightsType,
-              });
-              if (lastSalary > 0 && capHoldResult.amount) {
-                newCapHold = {
-                  playerId: p.id || p.player_id || p.name || '',
-                  playerName: p.displayName || p.name || '',
-                  amount: capHoldResult.amount,
-                  type: 'FA Cap Hold',
-                  season: toSeasonCode(targetYear),
-                  isSigned: false,
-                  reason: capHoldResult.usedFallback
-                    ? 'Declined Option (fallback multiplier)'
-                    : 'Declined Option',
-                  notes: capHoldResult.usedFallback
-                    ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
-                    : undefined,
-                  active: true,
-                };
-              }
-
-              return {
-                ...p,
-                contract: {
-                  ...(p.contract || {}),
-                  salariesByYear: filteredSalaries,
-                  freeAgency: {
-                    year: freeAgencyYear,
-                    type: 'UFA' as const,
-                  },
-                },
-                freeAgentYear: freeAgencyYear,
-              };
-            }
-
-            // Accepted: just update the option status
-            return {
-              ...p,
-              contract: {
-                ...(p.contract || {}),
-                salariesByYear: updatedSalaries,
-              },
-            };
-          }
-          return p;
-        });
-
-        // Update capHolds array
-        let updatedCapHolds = prev.capHolds || [];
-        if (newCapHold) {
-          // Remove any existing hold for this player and add the new one
-          const holdPlayerId = newCapHold.playerId;
-          updatedCapHolds = updatedCapHolds.filter(
-            (h) => h.playerId !== holdPlayerId
-          );
-          updatedCapHolds = [...updatedCapHolds, newCapHold];
-        }
-
-        // Record override audit log if override was used
-        const overrideAuditLog = overrideMetadata?.overrideUsed
-          ? recordOverrideAudit(
-              prev,
-              accepted ? 'accept' : 'decline',
-              overrideMetadata.overrideReasons || [],
-              playerId,
-              player.name || player.displayName
-            )
-          : prev.overrideAuditLog;
-
-        return {
-          ...prev,
-          players: updatedPlayers,
-          capHolds: updatedCapHolds,
-          ...(overrideAuditLog ? { overrideAuditLog } : {}),
-        };
-      });
-
-      closeContractModal();
-
-      // Persist to world if in world mode
       if (!playerId) {
         console.error('Option decision missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
         throw new Error('Option decision missing playerId');
       }
 
-      persistMutation('optionDecision', {
-        teamCode,
-        playerId,
-        accepted,
-        targetYear,
+      const mutationResult = applyCapAuditedTeamMutation({
+        mutationType: 'optionDecision',
+        playerIds: [String(playerId)],
+        invalidMessage:
+          'Option decision blocked by post-state cap validation.',
+        computeNextTeam: (beforeTeam) => {
+          let newCapHold: CapHold | null = null;
+
+          const updatedPlayers = (beforeTeam.players || []).map((p) => {
+            if (
+              p.id === playerId ||
+              p.player_id === playerId ||
+              p.name === playerId
+            ) {
+              const salaries = p.contract?.salariesByYear || [];
+
+              // Find the option year entry
+              const optionIndex = salaries.findIndex((y) => {
+                const season = String(y.season);
+                const yearEnd = /^\d{4}-\d{2}$/.test(season)
+                  ? 2000 + parseInt(season.split('-')[1], 10)
+                  : parseInt(season, 10);
+                return yearEnd === targetYear && y.option;
+              });
+
+              if (optionIndex === -1) {
+                console.warn(`No option found for year ${targetYear}`);
+                return p;
+              }
+
+              // Mark option as used (canonical boolean format)
+              const updatedSalaries = [...salaries];
+              updatedSalaries[optionIndex] = {
+                ...updatedSalaries[optionIndex],
+                optionUsed: accepted, // CANONICAL: boolean, not string
+              };
+
+              if (!accepted) {
+                const optionSeason = salaries[optionIndex]?.season || null;
+                const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
+                  optionSeason,
+                  targetYear
+                );
+                const freeAgencyYear =
+                  typeof faYearInfo.year === 'number'
+                    ? faYearInfo.year
+                    : targetYear - 1;
+
+                // Declining: remove this year and all future years
+                const filteredSalaries = salaries.filter(
+                  (_, idx) => idx < optionIndex
+                );
+
+                // Calculate cap hold for declined option
+                const priorRow = salaries[optionIndex - 1];
+                const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
+                const rightsType = getRightsTypeFromPlayer(p);
+                const capHoldResult = computeExpectedCapHoldAmount({
+                  player: p,
+                  lastSalary,
+                  rules: null,
+                  rightsType,
+                });
+                if (lastSalary > 0 && capHoldResult.amount) {
+                  newCapHold = {
+                    playerId: p.id || p.player_id || p.name || '',
+                    playerName: p.displayName || p.name || '',
+                    amount: capHoldResult.amount,
+                    type: 'FA Cap Hold',
+                    season: toSeasonCode(targetYear),
+                    isSigned: false,
+                    reason: capHoldResult.usedFallback
+                      ? 'Declined Option (fallback multiplier)'
+                      : 'Declined Option',
+                    notes: capHoldResult.usedFallback
+                      ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
+                      : undefined,
+                    active: true,
+                  };
+                }
+
+                return {
+                  ...p,
+                  contract: {
+                    ...(p.contract || {}),
+                    salariesByYear: filteredSalaries,
+                    freeAgency: {
+                      year: freeAgencyYear,
+                      type: 'UFA' as const,
+                    },
+                  },
+                  freeAgentYear: freeAgencyYear,
+                };
+              }
+
+              // Accepted: just update the option status
+              return {
+                ...p,
+                contract: {
+                  ...(p.contract || {}),
+                  salariesByYear: updatedSalaries,
+                },
+              };
+            }
+            return p;
+          });
+
+          // Update capHolds array
+          let updatedCapHolds = beforeTeam.capHolds || [];
+          if (newCapHold) {
+            // Remove any existing hold for this player and add the new one
+            const holdPlayerId = newCapHold.playerId;
+            updatedCapHolds = updatedCapHolds.filter(
+              (h) => h.playerId !== holdPlayerId
+            );
+            updatedCapHolds = [...updatedCapHolds, newCapHold];
+          }
+
+          // Record override audit log if override was used
+          const overrideAuditLog = overrideMetadata?.overrideUsed
+            ? recordOverrideAudit(
+                beforeTeam,
+                accepted ? 'accept' : 'decline',
+                overrideMetadata.overrideReasons || [],
+                playerId,
+                player.name || player.displayName
+              )
+            : beforeTeam.overrideAuditLog;
+
+          return {
+            ...beforeTeam,
+            players: updatedPlayers,
+            capHolds: updatedCapHolds,
+            ...(overrideAuditLog ? { overrideAuditLog } : {}),
+          };
+        },
+        persistPayload: {
+          teamCode,
+          playerId,
+          accepted,
+          targetYear,
+        },
       });
+
+      if (mutationResult.applied) {
+        closeContractModal();
+      }
     },
     [
       currentYear,
-      setTeamCapSheet,
+      applyCapAuditedTeamMutation,
       closeContractModal,
       teamCode,
-      persistMutation,
     ]
   );
 

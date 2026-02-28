@@ -95,17 +95,48 @@ export function createClosureCache() {
 
   return {
     // Add a comparison edge and incrementally update reachability
+    // Returns true if edge was added, false if rejected (cycle/duplicate/invalid)
     addEdge(winnerId, loserId) {
+      // Safety belt: ID validation
+      if (typeof winnerId !== 'string' || typeof loserId !== 'string') {
+        console.warn('[rankingEngine] addEdge rejected: IDs must be strings', {
+          winnerId,
+          loserId,
+        });
+        return false;
+      }
+
+      if (winnerId === loserId) {
+        console.warn('[rankingEngine] addEdge rejected: self-comparison', {
+          winnerId,
+        });
+        return false;
+      }
+
       ensureNode(winnerId);
       ensureNode(loserId);
-      if (directEdges[winnerId].has(loserId)) return; // already tracked
+
+      // Already tracked (duplicate edge)
+      if (directEdges[winnerId].has(loserId)) return false;
+
+      // Safety belt: Cycle guard
+      // If loser can already reach winner, adding winner > loser creates a cycle
+      if (closure[loserId].has(winnerId)) {
+        console.warn('[rankingEngine] addEdge rejected: would create cycle', {
+          winnerId,
+          loserId,
+          loserReaches: [...closure[loserId]],
+        });
+        return false;
+      }
+
       directEdges[winnerId].add(loserId);
 
       // Winner now reaches loser + everything loser reaches
       const newReachable = new Set([loserId, ...closure[loserId]]);
       // Remove what winner already knew about
       for (const id of closure[winnerId]) newReachable.delete(id);
-      if (newReachable.size === 0) return;
+      if (newReachable.size === 0) return true;
 
       // Propagate: anyone who can reach winner also gains the new nodes
       for (const id of newReachable) closure[winnerId].add(id);
@@ -114,6 +145,8 @@ export function createClosureCache() {
           for (const id of newReachable) closure[nodeId].add(id);
         }
       }
+
+      return true;
     },
 
     // Bulk-load from a comparisons array (used on init / undo)
@@ -162,13 +195,17 @@ export function createClosureCache() {
 
 // Suggest next strategic pair while respecting group isolation
 // ✅ SMART MATCHUP GENERATOR
-export function suggestNextPair(comparisons, players, { skippedPairs, closureCache } = {}) {
+export function suggestNextPair(
+  comparisons,
+  players,
+  { skippedPairs, closureCache } = {}
+) {
   if (players.length < 2) return [];
 
   const skipSet = skippedPairs || new Set();
 
   // Helper: make a canonical skip key for a pair (order-independent)
-  const skipKey = (a, b) => a < b ? `${a}<>${b}` : `${b}<>${a}`;
+  const skipKey = (a, b) => (a < b ? `${a}<>${b}` : `${b}<>${a}`);
 
   // Helper to suggest a pair within a single group
   const suggestInGroup = (groupPlayers) => {
@@ -222,7 +259,10 @@ export function suggestNextPair(comparisons, players, { skippedPairs, closureCac
       for (let i = 0; i < unused.length; i++) {
         for (let j = i + 1; j < unused.length; j++) {
           const key = `${unused[i].id}->${unused[j].id}`;
-          if (!seen.has(key) && !skipSet.has(skipKey(unused[i].id, unused[j].id))) {
+          if (
+            !seen.has(key) &&
+            !skipSet.has(skipKey(unused[i].id, unused[j].id))
+          ) {
             return [unused[i], unused[j]];
           }
         }
@@ -239,7 +279,12 @@ export function suggestNextPair(comparisons, players, { skippedPairs, closureCac
         const aBeatsB = closure[a.id]?.has(b.id);
         const bBeatsA = closure[b.id]?.has(a.id);
 
-        if (!seen.has(key) && !aBeatsB && !bBeatsA && !skipSet.has(skipKey(a.id, b.id))) {
+        if (
+          !seen.has(key) &&
+          !aBeatsB &&
+          !bBeatsA &&
+          !skipSet.has(skipKey(a.id, b.id))
+        ) {
           const usageGap = Math.abs(usageCount[a.id] - usageCount[b.id]);
           const totalUsage = usageCount[a.id] + usageCount[b.id];
           unresolved.push({
@@ -373,7 +418,11 @@ export function estimateRemainingComparisons(comparisons, players) {
         const a = groupPlayers[i];
         const b = groupPlayers[j];
         const key = `${a.id}->${b.id}`;
-        if (!seen.has(key) && !closure[a.id]?.has(b.id) && !closure[b.id]?.has(a.id)) {
+        if (
+          !seen.has(key) &&
+          !closure[a.id]?.has(b.id) &&
+          !closure[b.id]?.has(a.id)
+        ) {
           unresolvedCount++;
         }
       }
