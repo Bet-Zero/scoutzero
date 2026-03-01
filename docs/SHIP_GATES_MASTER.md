@@ -294,6 +294,25 @@ Manual smoke checklist (cap auditability scope, P6 verified):
   - **Gate 5**: `FreeAgencySection` does not reintroduce stale `capProjections` pass-through.
   - **Gate 6**: `ActiveTab` union retains runtime `'fa'`, `'cap'`, and `'capfull'` keys.
 
+## Offer Sheet Lifecycle Closure Gates (TM_OFFER_SHEETS_E1 COMPLETE)
+
+- Status: **COMPLETE** (2026-03-01)
+- Return package: `return_packages/architect/TM_OFFER_SHEETS_E1_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/FREE_AGENCY_MASTER.md`
+- Gate file: `src/tests/architect/offerSheets_closure.gate.test.ts`
+- Run command: `npm run test:node -- --run src/tests/architect/offerSheets_closure.gate.test.ts --reporter=dot`
+- Gates protect:
+  - **Gate 1**: All 5 offer sheet mutation types (`storeOfferSheet`, `matchOfferSheet`, `declineOfferSheet`, `finalizeMatchedOfferSheet`, `finalizeDeclinedOfferSheet`) exist and route through authoritative pipeline
+  - **Gate 2**: `loadStateForMutation` loads both `homeTeam` and `offeringTeam` for offer sheet resolution/finalize mutations
+  - **Gate 3**: Validation layer invokes `validateOfferSheetResolution` for match, decline, and finalize actions
+  - **Gate 4**: `computeStoreOfferSheetResult` mirrors offer sheet to both offering team `offerSheets` and home team `incomingOfferSheets`
+  - **Gate 5**: Match/Decline compute functions enforce `PENDING_MATCH` status and mirror updates to both teams
+  - **Gate 6**: Finalize matched compute removes offer sheet, applies contract, and calls `computeTeamCapTotals` for home team
+  - **Gate 7**: Finalize declined compute handles player movement and calls `computeTeamCapTotals` for BOTH teams
+  - **Gate 8**: `persistWorldMutation` iterates `teamUpdates` and writes all team changes to Firestore
+  - **Gate 9**: UI wiring routes to correct handlers and disables actions when `!worldId`
+  - **Gate 10**: `syncTeamFromMutationResult` reads `changedTeams` and updates current team state
+
 ---
 
 ## Manual Smoke Checklist

@@ -1,6 +1,6 @@
 # Architect Free Agency MASTER (TM_FREE_AGENCY_E1 Execution SSOT)
 
-Last Updated: 2026-03-01  
+Last Updated: 2026-03-01 (P1 Offer Sheet lifecycle call-graph added)  
 Status: E1 implementation complete with E2 closure permanence gates added for Free Agency offer-sheet initiation and authoritative FA sync wiring.
 
 ## IN SCOPE
@@ -38,20 +38,20 @@ Status: E1 implementation complete with E2 closure permanence gates added for Fr
 
 ## Workflow Inventory
 
-| Workflow | Entry control | Handler path | Validator path | Persistence path | Cap totals refresh |
-|---|---|---|---|---|---|
-| Search/filter/sort/clear | `FreeAgencyFilterBar` controls | `updateFilterState` / `clearFilters` | none | localStorage persistence only | none |
-| Select/unselect candidates | Click `FreeAgentRow` | `handleSelect` | none | none | none |
-| Remove selected candidate | Selected card remove | `handleRemove` | none | none | none |
-| Open signing modal | Row/menu/card sign controls | `setContractPlayer(...)` | none | none | none |
-| Sign Free Agent | Modal confirm (`signNew` action override) | `EditContractModal` -> `onSave(handleSaveFromModal)` -> `onSign(actions.handleSign)` -> `signFreeAgent` | Base: `validateSigning` + local `validatePostStateCapLegality`; World: pipeline `validateSigning` + world post-state validator | Base: local compute-only; World: `applyWorldMutation` pipeline persist | signing compute recalculates totals; `setTeamCapSheet` sync feeds cap SSOT |
-| Store Offer Sheet (world-only) | Modal confirm (`signNew` + `Offer Sheet` toggle) | `EditContractModal(onStoreOfferSheet)` -> `actions.handleStoreOfferSheet` -> `runAuthoritativeFAMutation('storeOfferSheet')` | `validateSigning` + world post-state validator | world-only authoritative mutation (`applyWorldMutation`) | changed-team sync updates `teamCapSheet.offerSheets`; outgoing list reflects new row |
-| Sign-and-trade | Modal confirm (`signAndTrade`) | `actions.handleSignAndTrade` -> `signAndTrade` | prevalidated signing+trade context + world post-state validator | world-only authoritative mutation; blocked in base mode | team sync after mutation; cap surfaces recompute |
-| Match offer sheet | Incoming list `Match` | `actions.handleMatchOfferSheet` -> `matchOfferSheet` | `validateOfferSheetResolution('match')` + world post-state validator | world-only authoritative mutation; blocked/disabled in base | status update only (no totals recompute) |
-| Decline offer sheet | Incoming list `Decline` | `actions.handleDeclineOfferSheet` -> `declineOfferSheet` | `validateOfferSheetResolution('decline')` + world post-state validator | world-only authoritative mutation; blocked/disabled in base | status update only (no totals recompute) |
-| Finalize matched | Incoming list `Finalize Match` | `actions.handleFinalizeOfferSheet` -> `finalizeMatchedOfferSheet` | `validateOfferSheetResolution('finalize')` + world post-state validator | world-only authoritative mutation | home-team totals recomputed during compute |
-| Finalize declined | Outgoing list `Finalize Signing` | `actions.handleFinalizeOfferSheet` -> `finalizeDeclinedOfferSheet` | `validateOfferSheetResolution('finalize')` + world post-state validator | world-only authoritative mutation | offering + home totals recomputed during compute |
-| View profile | Row menu `View Profile` | direct location change | none | none | none |
+| Workflow                       | Entry control                                    | Handler path                                                                                                                 | Validator path                                                                                                                 | Persistence path                                                       | Cap totals refresh                                                                   |
+| ------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Search/filter/sort/clear       | `FreeAgencyFilterBar` controls                   | `updateFilterState` / `clearFilters`                                                                                         | none                                                                                                                           | localStorage persistence only                                          | none                                                                                 |
+| Select/unselect candidates     | Click `FreeAgentRow`                             | `handleSelect`                                                                                                               | none                                                                                                                           | none                                                                   | none                                                                                 |
+| Remove selected candidate      | Selected card remove                             | `handleRemove`                                                                                                               | none                                                                                                                           | none                                                                   | none                                                                                 |
+| Open signing modal             | Row/menu/card sign controls                      | `setContractPlayer(...)`                                                                                                     | none                                                                                                                           | none                                                                   | none                                                                                 |
+| Sign Free Agent                | Modal confirm (`signNew` action override)        | `EditContractModal` -> `onSave(handleSaveFromModal)` -> `onSign(actions.handleSign)` -> `signFreeAgent`                      | Base: `validateSigning` + local `validatePostStateCapLegality`; World: pipeline `validateSigning` + world post-state validator | Base: local compute-only; World: `applyWorldMutation` pipeline persist | signing compute recalculates totals; `setTeamCapSheet` sync feeds cap SSOT           |
+| Store Offer Sheet (world-only) | Modal confirm (`signNew` + `Offer Sheet` toggle) | `EditContractModal(onStoreOfferSheet)` -> `actions.handleStoreOfferSheet` -> `runAuthoritativeFAMutation('storeOfferSheet')` | `validateSigning` + world post-state validator                                                                                 | world-only authoritative mutation (`applyWorldMutation`)               | changed-team sync updates `teamCapSheet.offerSheets`; outgoing list reflects new row |
+| Sign-and-trade                 | Modal confirm (`signAndTrade`)                   | `actions.handleSignAndTrade` -> `signAndTrade`                                                                               | prevalidated signing+trade context + world post-state validator                                                                | world-only authoritative mutation; blocked in base mode                | team sync after mutation; cap surfaces recompute                                     |
+| Match offer sheet              | Incoming list `Match`                            | `actions.handleMatchOfferSheet` -> `matchOfferSheet`                                                                         | `validateOfferSheetResolution('match')` + world post-state validator                                                           | world-only authoritative mutation; blocked/disabled in base            | status update only (no totals recompute)                                             |
+| Decline offer sheet            | Incoming list `Decline`                          | `actions.handleDeclineOfferSheet` -> `declineOfferSheet`                                                                     | `validateOfferSheetResolution('decline')` + world post-state validator                                                         | world-only authoritative mutation; blocked/disabled in base            | status update only (no totals recompute)                                             |
+| Finalize matched               | Incoming list `Finalize Match`                   | `actions.handleFinalizeOfferSheet` -> `finalizeMatchedOfferSheet`                                                            | `validateOfferSheetResolution('finalize')` + world post-state validator                                                        | world-only authoritative mutation                                      | home-team totals recomputed during compute                                           |
+| Finalize declined              | Outgoing list `Finalize Signing`                 | `actions.handleFinalizeOfferSheet` -> `finalizeDeclinedOfferSheet`                                                           | `validateOfferSheetResolution('finalize')` + world post-state validator                                                        | world-only authoritative mutation                                      | offering + home totals recomputed during compute                                     |
+| View profile                   | Row menu `View Profile`                          | direct location change                                                                                                       | none                                                                                                                           | none                                                                   | none                                                                                 |
 
 Workflow evidence:  
 `src/features/architect/freeAgency/FreeAgentPool/FreeAgencyFilterBar.tsx:44-123`  
@@ -144,6 +144,110 @@ Execution evidence:
 
 ```bash
 npm run test:node -- --run src/tests/architect/freeAgency_closure.gate.test.ts --reporter=dot
+```
+
+### Policy
+
+- Ticket scope is **tests + docs only**.
+- No runtime production behavior changes are permitted.
+
+## Offer Sheet Lifecycle — Call Graph + Invariants (P1)
+
+**Added:** 2026-03-01 (TM_OFFER_SHEETS_P1 preflight)
+
+### Status State Machine
+
+```
+PENDING_MATCH ──┬── Match (home team) ──► MATCHED ──► Finalize Match (home) ──► [removed]
+                │
+                └── Decline (home team) ──► DECLINED ──► Finalize Signing (offering) ──► [removed]
+```
+
+- **PENDING_MATCH**: Initial status after offer sheet stored. Only home team can transition via Match or Decline.
+- **MATCHED**: Home team matched the offer. Only home team can finalize (applies contract, keeps player).
+- **DECLINED**: Home team declined the offer. Only offering team can finalize (signs player, moves to offering roster).
+
+### Mutation Types
+
+| Mutation                     | Actor         | Status Requirement | Outcome                                          |
+| ---------------------------- | ------------- | ------------------ | ------------------------------------------------ |
+| `storeOfferSheet`            | Offering team | N/A (creates new)  | Creates offer sheet with `PENDING_MATCH`         |
+| `matchOfferSheet`            | Home team     | `PENDING_MATCH`    | Updates to `MATCHED`                             |
+| `declineOfferSheet`          | Home team     | `PENDING_MATCH`    | Updates to `DECLINED`                            |
+| `finalizeMatchedOfferSheet`  | Home team     | `MATCHED`          | Applies contract, removes offer sheet            |
+| `finalizeDeclinedOfferSheet` | Offering team | `DECLINED`         | Signs player to offering team, removes from home |
+
+### Two-Team Sync Expectations
+
+All offer sheet mutations update **both teams**:
+
+1. **storeOfferSheet**: Adds to offering team's `offerSheets[]` AND mirrors to home team's `incomingOfferSheets[]`
+2. **matchOfferSheet/declineOfferSheet**: Updates status on both teams' arrays
+3. **finalizeMatchedOfferSheet**: Removes from both arrays, applies contract on home team
+4. **finalizeDeclinedOfferSheet**: Removes from both arrays, moves player from home → offering
+
+**UI Sync**: Current team is immediately synced via `syncTeamFromMutationResult`. Other team is persisted to Firestore and will reflect on team switch or refresh.
+
+### Totals Recompute Expectations
+
+| Stage             | Home Team Totals | Offering Team Totals |
+| ----------------- | ---------------- | -------------------- |
+| Store             | ❌               | ❌                   |
+| Match/Decline     | ❌               | ❌                   |
+| Finalize Match    | ✅               | ❌                   |
+| Finalize Declined | ✅               | ✅                   |
+
+Totals are computed via `computeTeamCapTotals()` in the mutation compute phase. UI surfaces always derive from SSOT current team state.
+
+### Validation Invariants
+
+`validateOfferSheetResolution()` enforces:
+
+- Only home team can Match/Decline
+- Home team cannot finalize a DECLINED sheet
+- Offering team cannot finalize a MATCHED sheet
+- 48-hour match window warning (soft, not blocking)
+
+### Evidence Files
+
+- Compute functions: `src/features/architect/utils/mutationPipeline.js` (L3015-3600)
+- Validation: `src/features/architect/utils/capLegalityValidation.js` (L3819-3899)
+- Handlers: `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` (L1658-1893)
+- UI lists: `src/features/architect/GMDashboard/components/OfferSheetList.jsx`
+- Tests: `tests/architect/offerSheetResolution.test.js`, `tests/architect/offerSheetPersistence.test.js`
+
+## Offer Sheets — E1 Closure Permanence Gates (2026-03-01)
+
+### Purpose
+
+Add deterministic, source-scanning CI gates that fail fast if the Offer Sheet lifecycle regresses.
+Enforce mutation routing, two-team state loading, validation invocation, mirror updates, finalize totals recompute, persistence, UI wiring, and team sync.
+
+### Gate File
+
+- `src/tests/architect/offerSheets_closure.gate.test.ts`
+
+### Gate Categories
+
+| Gate                                                     | Tests | What It Protects                                                                                                              |
+| -------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Gate 1:** Mutation types present + routed              | 8     | All 5 offer sheet mutation types exist and route through `applyWorldMutation`, `loadStateForMutation`, `computeWorldMutation` |
+| **Gate 2:** Two-team state loading                       | 4     | `loadStateForMutation` loads both `homeTeam` and `offeringTeam` for match/decline/finalize                                    |
+| **Gate 3:** Validation uses validateOfferSheetResolution | 5     | Validation layer invokes `validateOfferSheetResolution` for match, decline, finalize actions                                  |
+| **Gate 4:** Store mirrors to both teams                  | 4     | `computeStoreOfferSheetResult` updates offering team `offerSheets` and mirrors to home team `incomingOfferSheets`             |
+| **Gate 5:** Match/Decline enforce status + mirror        | 5     | Both compute functions check `PENDING_MATCH`, set correct status, and mirror update to home team                              |
+| **Gate 6:** Finalize matched recomputes home totals      | 5     | Removes offer sheet, applies contract, calls `computeTeamCapTotals` for home team                                             |
+| **Gate 7:** Finalize declined recomputes BOTH totals     | 5     | Adds player to offering, removes from home, calls `computeTeamCapTotals` for both teams                                       |
+| **Gate 8:** Persistence writes teamUpdates               | 3     | `persistWorldMutation` iterates `teamUpdates` and writes to Firestore                                                         |
+| **Gate 9:** UI wiring + world gating                     | 5     | `OfferSheetList` calls handlers, `FreeAgencySection` passes `actionsDisabled={!worldId}`                                      |
+| **Gate 10:** Current team sync reads changedTeams        | 4     | `syncTeamFromMutationResult` reads `changedTeams`, finds current team, calls `setTeamCapSheet`                                |
+
+**Total: 48 tests**
+
+### Run Command
+
+```bash
+npm run test:node -- --run src/tests/architect/offerSheets_closure.gate.test.ts --reporter=dot
 ```
 
 ### Policy
