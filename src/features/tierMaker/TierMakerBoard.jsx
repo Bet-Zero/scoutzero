@@ -16,6 +16,10 @@ import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
 import { toast } from 'react-hot-toast';
 import { useRef } from 'react';
 import { isOwnerUid } from '@/config/ownerConfig';
+import {
+  saveTierAsList,
+  generateDefaultListName,
+} from '@/features/tierMaker/utils/saveAsListBridge';
 
 const DEFAULT_TIERS = ['S', 'A', 'B', 'C', 'D'];
 
@@ -186,6 +190,7 @@ const TierMakerBoard = ({
   const [selectedTierList, setSelectedTierList] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingAsList, setIsSavingAsList] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
 
   // ── Draft mode: initialization from draftData ──────────────────────────
@@ -465,6 +470,37 @@ const TierMakerBoard = ({
     onTierListChange?.(newId);
   };
 
+  // ── Save as List (owner-only) ────────────────────────────────────────────
+  const handleSaveAsList = async () => {
+    // Defense in depth: refuse if not owner
+    if (!isOwner) {
+      toast.error('Only owners can save as list');
+      return;
+    }
+
+    // Prompt for list name with default
+    const defaultName = generateDefaultListName('standard');
+    const name = prompt('Save as List — enter a name:', defaultName);
+    if (!name) return; // User cancelled
+
+    try {
+      setIsSavingAsList(true);
+      const { listId } = await saveTierAsList({
+        mode: 'standard',
+        name,
+        userId,
+        data: { tiers, tierOrder },
+      });
+      toast.success(`Saved as "${name}"`);
+      console.log('[TierMakerBoard] Saved as list:', listId);
+    } catch (err) {
+      console.error('Failed to save as list:', err);
+      toast.error(err.message || 'Failed to save as list');
+    } finally {
+      setIsSavingAsList(false);
+    }
+  };
+
   // Firestore auto-load: only in saved mode (not draft mode)
   useEffect(() => {
     if (isDraftMode) return; // Draft mode loads from props, not Firestore
@@ -658,7 +694,14 @@ const TierMakerBoard = ({
       )}
 
       {!screenshotMode && isOwner && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-6 right-6 z-50 flex gap-2">
+          <button
+            onClick={handleSaveAsList}
+            disabled={isSavingAsList}
+            className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 disabled:opacity-50"
+          >
+            {isSavingAsList ? 'Saving...' : 'Save as List'}
+          </button>
           <button
             onClick={() => handleSaveTierList()}
             className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"

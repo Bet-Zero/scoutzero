@@ -23,6 +23,26 @@ This master doc covers the **Cap Sheet page surface only** in Architect GM Dashb
 
 - P1 Preflight Audit: `return_packages/architect/TM_CAP_SHEET_P1_PREFLIGHT_RETURN_PACKAGE.md`
 - E1 Execution Closure: `return_packages/architect/TM_CAP_SHEET_E1_EXECUTION_RETURN_PACKAGE.md`
+- E2 Polish Closure: `return_packages/architect/TM_CAP_SHEET_E2_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+## E2 Execution Status (2026-02-28)
+
+### Resolved in E2
+
+1. **P1-A RESOLVED** — Player cap % denominator now uses `totals.salaryCap` (SSOT from `computeTeamCapTotals`) instead of deprecated `capProjections[yearKey]?.cap`.
+2. **P2-B RESOLVED** — World mutation failure toasts deduplicated: `persistMutation` skips toast when `onFailure` callback is provided, preventing double-toast from callback calling `reportMutationError`.
+
+### Ship-Critical Page Gates Satisfied by E2
+
+- Cap % display uses the same salary cap source as totals calculation (no denominator drift)
+- Cap Sheet save failures emit exactly one user-facing toast (modal inline error remains primary feedback)
+
+### Tests Added in E2
+
+- `src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx` — Guardrail tests verifying `totals.salaryCap` usage
+- `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` — Behavior tests verifying single toast emission on failure
 
 ---
 
@@ -46,25 +66,11 @@ This master doc covers the **Cap Sheet page surface only** in Architect GM Dashb
 
 ## Known Gaps (Snapshot)
 
-### P1
+**All P1/P2 gaps resolved in E1+E2.**
 
-1. **Player cap % denominator can drift from totals source**
+### Remaining Candidate Work (Lower Priority)
 
-- Cap % display currently uses `capProjections`; totals source uses rules-profile based cap settings path.
-
-### P2
-
-1. **Duplicate failure toasts remain possible on world save error**
-
-- Failure can surface from both persistence mutation path and centralized mutation error reporter.
-
----
-
-## Next Actions (Candidate Tickets, No Implementation Plan)
-
-1. `CAP-SHEET-SSOT-01`: Unify Cap % denominator source with totals source-of-truth.
-2. `CAP-SHEET-UX-02`: De-duplicate world mutation failure toasts.
-3. `CAP-SHEET-GUARDRAIL-01`: Add a focused guardrail for canonical `exceptions` + legacy fallback read behavior.
+1. `CAP-SHEET-GUARDRAIL-01`: Add a focused guardrail for canonical `exceptions` + legacy fallback read behavior.
 
 ---
 

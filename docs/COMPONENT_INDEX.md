@@ -357,6 +357,7 @@ Quick reference for all components in the ScoutZero project.
 - TierRow.jsx
 - TieramidBoard.jsx
 - TieramidPlayerTile.jsx
+- utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-02-28T12:41:17.788Z*
+*Generated on: 2026-03-01T03:37:21.525Z*

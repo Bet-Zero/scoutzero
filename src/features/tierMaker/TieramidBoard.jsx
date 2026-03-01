@@ -19,6 +19,10 @@ import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer/index.jsx';
 import { toast } from 'react-hot-toast';
 import { isOwnerUid } from '@/config/ownerConfig';
+import {
+  saveTierAsList,
+  generateDefaultListName,
+} from '@/features/tierMaker/utils/saveAsListBridge';
 
 const INITIAL_ROWS = 5;
 const MAX_ROWS = 10;
@@ -193,6 +197,7 @@ const TieramidBoard = ({
   const [selectedList, setSelectedList] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingAsList, setIsSavingAsList] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
@@ -294,6 +299,37 @@ const TieramidBoard = ({
       toast.error('Failed to save');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // ── Save as List (owner-only) ────────────────────────────────────────────
+  const handleSaveAsList = async () => {
+    // Defense in depth: refuse if not owner
+    if (!isOwner) {
+      toast.error('Only owners can save as list');
+      return;
+    }
+
+    // Prompt for list name with default
+    const defaultName = generateDefaultListName('pyramid');
+    const name = prompt('Save as List — enter a name:', defaultName);
+    if (!name) return; // User cancelled
+
+    try {
+      setIsSavingAsList(true);
+      const { listId } = await saveTierAsList({
+        mode: 'pyramid',
+        name,
+        userId,
+        data: { rows, rowOrder },
+      });
+      toast.success(`Saved as "${name}"`);
+      console.log('[TieramidBoard] Saved as list:', listId);
+    } catch (err) {
+      console.error('Failed to save as list:', err);
+      toast.error(err.message || 'Failed to save as list');
+    } finally {
+      setIsSavingAsList(false);
     }
   };
 
@@ -946,6 +982,15 @@ const TieramidBoard = ({
                   disabled={isSaving}
                 >
                   {isSaving ? 'Saving...' : 'Save'}
+                </button>
+              )}
+              {isOwner && (
+                <button
+                  onClick={handleSaveAsList}
+                  className="h-8 px-3 rounded text-sm bg-white/10 text-white hover:bg-white/20"
+                  disabled={isSavingAsList}
+                >
+                  {isSavingAsList ? 'Saving...' : 'Save as List'}
                 </button>
               )}
               <select

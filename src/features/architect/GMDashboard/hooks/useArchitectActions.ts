@@ -377,7 +377,8 @@ const ensureContractStructure = (
   const legacySalaries = (contract as Record<string, unknown>).salaries;
   if (Array.isArray(legacySalaries) && legacySalaries.length > 0) {
     const yearsRaw =
-      Number((contract as Record<string, unknown>).years) || legacySalaries.length;
+      Number((contract as Record<string, unknown>).years) ||
+      legacySalaries.length;
     const years = Math.max(1, Math.min(yearsRaw, legacySalaries.length));
     const startYear = Number.isFinite(startYearOverride)
       ? startYearOverride
@@ -717,7 +718,11 @@ export function useArchitectActions({
           options.onSuccess?.(result);
         } else {
           console.error(`❌ Save failed:`, result.error);
-          toast.error(`Save failed: ${result.error}`);
+          // E2 fix: Skip toast when onFailure callback handles error reporting
+          // This prevents duplicate toasts when caller uses reportMutationError
+          if (!options.onFailure) {
+            toast.error(`Save failed: ${result.error}`);
+          }
           options.onFailure?.(
             String(result.error || `Save failed for ${mutationType}`),
             result
@@ -731,7 +736,10 @@ export function useArchitectActions({
           payload,
           err,
         });
-        toast.error('Failed to save changes');
+        // E2 fix: Skip toast when onFailure callback handles error reporting
+        if (!options.onFailure) {
+          toast.error('Failed to save changes');
+        }
         const message = 'Failed to save changes';
         options.onFailure?.(message);
         return { success: false, error: message };
@@ -1081,13 +1089,20 @@ export function useArchitectActions({
               )
             : null;
 
-          if (p.signAndTrade && (!destinationTeamCode || destinationTeamCode === (resolveTeamCode(t.teamId) || t.teamId))) {
+          if (
+            p.signAndTrade &&
+            (!destinationTeamCode ||
+              destinationTeamCode === (resolveTeamCode(t.teamId) || t.teamId))
+          ) {
             throw new Error(
               `Sign-and-trade asset "${p.name || p.id || p.player_id}" must include a valid destination team`
             );
           }
 
-          if (p.signAndTrade && (!signAndTradeValidation?.valid || !signAndTradeValidation.contract)) {
+          if (
+            p.signAndTrade &&
+            (!signAndTradeValidation?.valid || !signAndTradeValidation.contract)
+          ) {
             throw new Error(
               `Sign-and-trade asset "${p.name || p.id || p.player_id}" is missing valid contract details`
             );
@@ -1110,9 +1125,7 @@ export function useArchitectActions({
               >) ||
               undefined,
             contract:
-              signAndTradeValidation?.contract ||
-              p.contract ||
-              undefined,
+              signAndTradeValidation?.contract || p.contract || undefined,
             contractYears:
               signAndTradeValidation?.contract?.contractYears ||
               (p as Record<string, unknown>).contractYears ||
@@ -1200,9 +1213,8 @@ export function useArchitectActions({
           );
         }
 
-        const validatedContext = (
-          computeResult as Record<string, unknown>
-        )._validatedTradeContext as
+        const validatedContext = (computeResult as Record<string, unknown>)
+          ._validatedTradeContext as
           | {
               _isValidatedTradeContext?: boolean;
               legal?: boolean;
@@ -2096,8 +2108,7 @@ export function useArchitectActions({
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'extendPlayer',
         playerIds: [String(playerId)],
-        invalidMessage:
-          'Extension blocked by post-state cap validation.',
+        invalidMessage: 'Extension blocked by post-state cap validation.',
         computeNextTeam: (beforeTeam) => {
           const updatedPlayers = (beforeTeam.players || []).map((p) => {
             if (
@@ -2260,12 +2271,7 @@ export function useArchitectActions({
         closeContractModal();
       }
     },
-    [
-      currentYear,
-      applyCapAuditedTeamMutation,
-      closeContractModal,
-      teamCode,
-    ]
+    [currentYear, applyCapAuditedTeamMutation, closeContractModal, teamCode]
   );
 
   // handleOptionDecision - directly updates teamCapSheet and manages cap holds
@@ -2286,8 +2292,7 @@ export function useArchitectActions({
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'optionDecision',
         playerIds: [String(playerId)],
-        invalidMessage:
-          'Option decision blocked by post-state cap validation.',
+        invalidMessage: 'Option decision blocked by post-state cap validation.',
         computeNextTeam: (beforeTeam) => {
           let newCapHold: CapHold | null = null;
 
@@ -2431,12 +2436,7 @@ export function useArchitectActions({
         closeContractModal();
       }
     },
-    [
-      currentYear,
-      applyCapAuditedTeamMutation,
-      closeContractModal,
-      teamCode,
-    ]
+    [currentYear, applyCapAuditedTeamMutation, closeContractModal, teamCode]
   );
 
   const handleRenounceRights = useCallback(

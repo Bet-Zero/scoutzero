@@ -20,7 +20,6 @@ import { getActiveUnsignedCapHoldsByEndYear } from '@/features/architect/utils/c
 import CapSummaryTiles from '@/features/architect/CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
-import capProjections from '@/features/architect/utils/capProjections';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 
 // Helper to identify two-way contracts (don't count against cap)
@@ -70,11 +69,6 @@ const CapSheet = ({
     Array.from({ length: count }, (_, i) => startYear + i);
 
   const allYears = generateYears(currentYear, 7);
-  const yearKey = `${selectedYear - 1}-${String(selectedYear % 100).padStart(
-    2,
-    '0'
-  )}`;
-  const salaryCap = capProjections[yearKey]?.cap || 1;
 
   const formatYearLabel = (year) =>
     `${year - 1}-${String(year % 100).padStart(2, '0')}`;
@@ -285,7 +279,8 @@ const CapSheet = ({
 
             const age = player.age ?? '-';
             const position = player.position ?? '-';
-            const capPct = getCapPercentage(capHit, salaryCap);
+            // Use totals.salaryCap (SSOT) for cap % to match totals display
+            const capPct = getCapPercentage(capHit, totals.salaryCap || 1);
             const capPctDisplay = capPct ? `${capPct}%` : '—';
 
             return (

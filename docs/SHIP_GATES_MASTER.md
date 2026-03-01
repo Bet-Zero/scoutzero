@@ -203,6 +203,18 @@ Manual smoke checklist (cap auditability scope, P6 verified):
   - TPE expiry rendering honors canonical fallback fields (`expiresOn`, `expirationDate`, `expires`)
   - Cap Sheet modals keep context on failed world save (no close-before-fail)
 
+## Cap Sheet Page Polish Closure (E2 COMPLETE)
+
+- Status: **COMPLETE** (2026-02-28)
+- Return package: `return_packages/architect/TM_CAP_SHEET_E2_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+- Page-level ship gates satisfied:
+  - Cap % denominator uses `totals.salaryCap` (SSOT), no drift from totals source
+  - World mutation failure toasts deduplicated (exactly one toast on Cap Sheet save failure)
+- Tests added:
+  - `src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx` — guardrail for SSOT usage
+  - `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` — behavior test for single toast
+
 ---
 
 ## Manual Smoke Checklist
