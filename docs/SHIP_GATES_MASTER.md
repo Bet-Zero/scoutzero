@@ -246,6 +246,54 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 - Targeted run command:
   - `npm run test:ui -- --run src/tests/architect/editContractModal_buyout_and_close.behavior.test.jsx src/tests/architect/useArchitectActions_editContract_resync.behavior.test.tsx --reporter=dot`
 
+## Edit Contract Closure Permanence Gates (TM_EDIT_CONTRACT_E2 COMPLETE)
+
+- Status: **COMPLETE** (2026-03-01)
+- Return package: `return_packages/architect/TM_EDIT_CONTRACT_E2_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/EDIT_CONTRACT_MASTER.md`
+- Gate file: `src/tests/architect/editContractModal_closure.gate.test.ts`
+- Run command: `npm run test:node -- --run src/tests/architect/editContractModal_closure.gate.test.ts --reporter=dot`
+- Gates protect (22 tests):
+  - **Gate 1**: Buyout amount UI conditionally rendered + `buyoutAmount` forwarded in payload
+  - **Gate 2**: `handleConfirm` is async, success-gated `onClose()`, `saveError` on failure
+  - **Gate 3**: Waive/renounce cancel confirm returns `{ success: false, message }`
+  - **Gate 4**: World success path calls `syncTeamFromMutationResult` for authoritative resync
+  - **Gate 5**: `computeWaiveResult` reads `payload.buyoutAmount`, clamps, and computes dead cap correctly
+  - **Gate 6**: FreeAgentPool and TradeEditor callbacks return `{ success, message }` contract
+
+## Free Agency Offer-Sheet Initiation Closure (TM_FREE_AGENCY_E1 COMPLETE)
+
+- Status: **COMPLETE** (2026-03-01)
+- Return package: `return_packages/architect/TM_FREE_AGENCY_E1_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/FREE_AGENCY_MASTER.md`
+- Scope: GM Dashboard Free Agency tab (`activeTab === 'fa'`) only
+- Page-level ship gates satisfied:
+  - World-mode Free Agency modal now exposes in-tab offer-sheet initiation (`signNew` + `Offer Sheet` toggle).
+  - Offer-sheet submission routes through authoritative world mutation (`storeOfferSheet`) with validation and persistence gates intact.
+  - Base mode cannot initiate offer sheets (no world write path exposed).
+  - Modal close remains success-gated for offer-sheet attempts (failure keeps modal open with inline error).
+  - Successful store-offer-sheet sync updates `teamCapSheet.offerSheets`, so outgoing list reflects the new row.
+- Targeted E1 tests:
+  - `src/tests/architect/freeAgentPool.offerSheetInitiation.behavior.test.jsx`
+  - `src/tests/architect/useArchitectActions.freeAgency.test.tsx`
+- Targeted run command:
+  - `npm run test:ui -- --run src/tests/architect/freeAgentPool.offerSheetInitiation.behavior.test.jsx src/tests/architect/useArchitectActions.freeAgency.test.tsx --reporter=dot`
+
+## Free Agency Closure Permanence Gates (TM_FREE_AGENCY_E2 COMPLETE)
+
+- Status: **COMPLETE** (2026-03-01)
+- Return package: `return_packages/architect/TM_FREE_AGENCY_E2_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/FREE_AGENCY_MASTER.md`
+- Gate file: `src/tests/architect/freeAgency_closure.gate.test.ts`
+- Run command: `npm run test:node -- --run src/tests/architect/freeAgency_closure.gate.test.ts --reporter=dot`
+- Gates protect:
+  - **Gate 1**: World-mode `FreeAgentPool` modal wiring keeps offer-sheet initiation reachable (`EditContractModal`, `onStoreOfferSheet`, world `actionsOverride`).
+  - **Gate 2**: Base mode keeps offer-sheet initiation unreachable (guarded null callback + restricted action override branch).
+  - **Gate 3**: `handleStoreOfferSheet` routes to authoritative `'storeOfferSheet'` mutation and preserves normalized callback contract.
+  - **Gate 4**: Authoritative success path syncs current team from `changedTeams` via `syncTeamFromMutationResult`.
+  - **Gate 5**: `FreeAgencySection` does not reintroduce stale `capProjections` pass-through.
+  - **Gate 6**: `ActiveTab` union retains runtime `'fa'`, `'cap'`, and `'capfull'` keys.
+
 ---
 
 ## Manual Smoke Checklist

@@ -16,10 +16,10 @@ import OfferSheetList from '@/features/architect/GMDashboard/components/OfferShe
 const FreeAgencySection = ({
   freeAgents,
   teamCapSheet,
-  capProjections,
   currentYear,
   onSign,
   onSignAndTrade,
+  onStoreOfferSheet,
   playersMap,
   // New props for Phase 16
   outgoingOfferSheets,
@@ -64,11 +64,10 @@ const FreeAgencySection = ({
 
       <FreeAgentPool
         freeAgents={freeAgents}
-        teamCapSheet={teamCapSheet}
-        capProjections={capProjections}
         currentYear={currentYear}
         onSign={onSign}
         onSignAndTrade={onSignAndTrade}
+        onStoreOfferSheet={onStoreOfferSheet}
         playersMap={playersMap}
         worldId={worldId}
       />

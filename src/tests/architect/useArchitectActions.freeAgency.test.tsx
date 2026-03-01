@@ -251,6 +251,91 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
+  it('stores an offer sheet in world mode and syncs the outgoing list from changedTeams', async () => {
+    const updatedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [
+        {
+          id: 'os_1',
+          playerId: 'player_1',
+          playerName: 'Test Player',
+          offeringTeamCode: 'LAL',
+          homeTeamCode: 'BOS',
+          status: 'PENDING_MATCH',
+          contractYears: 4,
+          totalValue: 12_000_000,
+        },
+      ],
+      incomingOfferSheets: [],
+    };
+
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: updatedTeam }],
+      changedPlayers: [],
+    });
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleStoreOfferSheet(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+
+    await waitFor(() => {
+      expect(result.current.teamCapSheet.offerSheets).toHaveLength(1);
+      expect(result.current.teamCapSheet.offerSheets[0].id).toBe('os_1');
+    });
+
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationType: 'storeOfferSheet',
+        worldId: 'world_1',
+        payload: expect.objectContaining({
+          teamCode: 'LAL',
+          playerId: 'player_1',
+          contract: expect.objectContaining({
+            contractType: 'Offer Sheet',
+            rfaOfferSheet: true,
+            rfaOfferSheetOnly: true,
+            rfaOfferSheetStatus: 'PENDING_MATCH',
+          }),
+        }),
+      })
+    );
+    expect(refreshWorldRosterIndex).toHaveBeenCalled();
+  });
+
+  it('blocks offer-sheet storage in base mode (no authoritative write)', async () => {
+    const { result } = renderActionsHarness({ worldId: null });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleStoreOfferSheet(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual(
+      expect.objectContaining({
+        success: false,
+      })
+    );
+    expect(actionResult.message).toContain('active world');
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      expect.stringContaining('active world')
+    );
+  });
+
   it('surfaces clear error when finalize is invoked without offer sheet args', async () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 

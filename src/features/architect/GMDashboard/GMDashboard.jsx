@@ -319,10 +319,10 @@ const GMDashboard = () => {
           <FreeAgencySection
             freeAgents={freeAgents}
             teamCapSheet={teamCapSheet}
-            capProjections={capProjections}
             currentYear={currentYear}
             onSign={actions.handleSign}
             onSignAndTrade={actions.handleSignAndTrade}
+            onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : null}
             playersMap={playersMap}
             // Phase 16: Offer Sheet Wiring
             outgoingOfferSheets={teamCapSheet?.offerSheets || []}

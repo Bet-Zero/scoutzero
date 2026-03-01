@@ -44,6 +44,7 @@ const FreeAgentPool = ({
   currentYear,
   onSign,
   onSignAndTrade,
+  onStoreOfferSheet = null,
   playersMap = {},
   playersById = {},
   worldId = null,
@@ -185,8 +186,9 @@ const FreeAgentPool = ({
           onClose={() => setContractPlayer(null)}
           onSave={handleSaveFromModal}
           onSignAndTrade={onSignAndTrade}
-          actionsOverride={worldId ? ['resign', 'signAndTrade'] : ['resign']}
-          actionLabelsOverride={{ resign: 'Sign Free Agent' }}
+          onStoreOfferSheet={worldId ? onStoreOfferSheet : null}
+          actionsOverride={worldId ? ['signNew', 'signAndTrade'] : ['signNew']}
+          actionLabelsOverride={{ signNew: 'Sign Free Agent' }}
         />
       )}
     </div>

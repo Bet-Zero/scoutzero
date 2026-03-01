@@ -3,9 +3,9 @@
 **Feature:** Architect Edit Contract modal  
 **Primary entry covered here:** Cap Sheet tab (`activeTab === 'cap'`) row-click flow  
 **Last updated:** 2026-03-01  
-**Source packages:**  
+**Source packages:**
 
-- `return_packages/architect/TM_EDIT_CONTRACT_P1_PREFLIGHT_RETURN_PACKAGE.md`  
+- `return_packages/architect/TM_EDIT_CONTRACT_P1_PREFLIGHT_RETURN_PACKAGE.md`
 - `return_packages/architect/TM_EDIT_CONTRACT_E1_EXECUTION_RETURN_PACKAGE.md`
 
 ---
@@ -158,3 +158,44 @@ No behavioral change was required for this ticket.
   - authoritative world persist attempted
   - authoritative `changedTeams` snapshot re-applied on success
   - optimistic rollback on failure
+
+---
+
+## 7. E2 Closure Permanence Gates (2026-03-01)
+
+Status: **COMPLETE**
+
+### 7.1 Purpose
+
+E2 adds source-scanning gate tests that permanently guard E1 closures from regression. These gates:
+
+- Scan source files for required code patterns
+- Run fast (no UI rendering, no Firestore)
+- Fail CI if E1 closures regress
+
+### 7.2 Gate Categories
+
+| Gate                                                   | What It Protects                                                                                                             |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Gate 1: Buyout Amount UI + Forwarding**              | Buyout amount input exists, conditionally rendered for buyout action, and `buyoutAmount` is forwarded (not hardcoded)        |
+| **Gate 2: Success-Gated Modal Close**                  | `handleConfirm` is async, normalizes result, only calls `onClose()` on success, and sets `saveError` on failure              |
+| **Gate 3: Cancel Confirm Returns `{ success:false }`** | Waive and renounce handlers return `{ success: false, message }` on canceled confirm                                         |
+| **Gate 4: World Success Authoritative Re-sync**        | `syncTeamFromMutationResult` exists and is called on mutation success                                                        |
+| **Gate 5: World Compute Honors Buyout Fields**         | `computeWaiveResult` reads `payload.buyoutAmount`, clamps with `boundedBuyoutAmount`, and computes `deadCapAmount` correctly |
+| **Gate 6: Callback Compatibility Contract**            | Modal save callbacks in FreeAgentPool and TradeEditor return `{ success, message }` contract                                 |
+
+### 7.3 Run Command
+
+```bash
+npm run test:node -- --run src/tests/architect/editContractModal_closure.gate.test.ts --reporter=dot
+```
+
+### 7.4 Gate Test File
+
+`src/tests/architect/editContractModal_closure.gate.test.ts`
+
+### 7.5 Policy
+
+- **Tests + docs only** — no runtime production code changes
+- **Source-scanning** — gates read source files and verify regex patterns
+- **Resilient to formatting** — regex patterns allow whitespace variation

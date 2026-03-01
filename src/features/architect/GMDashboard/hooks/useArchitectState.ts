@@ -156,9 +156,10 @@ interface UseArchitectStateParams {
 /** Active tab in the dashboard */
 type ActiveTab =
   | 'roster'
-  | 'capTable'
+  | 'cap'
+  | 'capfull'
   | 'trade'
-  | 'freeAgency'
+  | 'fa'
   | 'offseason'
   | 'history';
 
