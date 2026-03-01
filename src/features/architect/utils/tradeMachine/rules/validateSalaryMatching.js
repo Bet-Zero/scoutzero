@@ -61,13 +61,6 @@ export function validateSalaryMatching(team, context = {}) {
     };
   }
 
-  // Check hard cap status but DO NOT skip salary matching
-  // Hard cap ceiling is enforced by validateHardCap separately
-  // Salary matching rules are determined by team's SALARY POSITION, not hard cap status
-  const isWorldless = !context.worldId;
-  const hardCapStatus = getHardCapStatus(team, { isWorldless });
-  // Store for informational purposes - passed through in result
-
   // Check cache first
 
   // Extract salary data from both context and team object (team object takes precedence for tests)
@@ -133,6 +126,14 @@ export function validateSalaryMatching(team, context = {}) {
 
   // Use firstApron if apron is not set
   const actualFirstApron = firstApron || apron;
+  const isWorldless = !context.worldId;
+  const hardCapStatus = getHardCapStatus(team, {
+    isWorldless,
+    capSettings: {
+      firstApron: actualFirstApron,
+      secondApron,
+    },
+  });
 
   const violations = [];
   let allowableIncoming = 0; // Initialize allowable incoming calculation
@@ -413,15 +414,9 @@ export function validateSalaryMatching(team, context = {}) {
   let hardCapCeilingApronLabel = null;
 
   if (hardCapStatus.isHardCapped) {
-    // Determine which apron is the hard cap ceiling
-    const hardCapType = hardCapStatus.hardCapType;
-    if (hardCapType === 'SecondApron' && secondApron > 0) {
-      hardCapCeilingApron = secondApron;
-      hardCapCeilingApronLabel = '2nd Apron';
-    } else if (actualFirstApron > 0) {
-      hardCapCeilingApron = actualFirstApron;
-      hardCapCeilingApronLabel = '1st Apron';
-    }
+    // Determine which apron is the hard cap ceiling (resolved in getHardCapStatus)
+    hardCapCeilingApron = hardCapStatus.hardCapCeiling;
+    hardCapCeilingApronLabel = hardCapStatus.hardCapCeilingLabel;
 
     if (hardCapCeilingApron !== null) {
       // Formula: incoming ≤ outgoing + max(0, apron - teamTotalSalary)
@@ -441,6 +436,12 @@ export function validateSalaryMatching(team, context = {}) {
       }
     }
   }
+
+  const activeAllowableIncoming =
+    effectiveAllowableIncoming !== null &&
+    effectiveAllowableIncoming !== undefined
+      ? effectiveAllowableIncoming
+      : allowableIncoming;
 
   const result = {
     passed: violations.length === 0,
@@ -469,8 +470,12 @@ export function validateSalaryMatching(team, context = {}) {
       totalSalarySource,
       // TPE info: tpeAbsorbedSalary excluded from effectiveSalaryIn
       tpeAbsorbedSalary: tpeAbsorbedSalary > 0 ? tpeAbsorbedSalary : null,
-      effectiveSalaryIn: tpeAbsorbedSalary > 0 ? effectiveSalaryIn : null,
-      margin: allowableIncoming - effectiveSalaryIn,
+      effectiveSalaryIn,
+      margin:
+        activeAllowableIncoming !== null &&
+        activeAllowableIncoming !== undefined
+          ? activeAllowableIncoming - effectiveSalaryIn
+          : null,
       // Include hard cap status for informational purposes (ceiling enforced by validateHardCap)
       hardCapStatus: hardCapStatus.isHardCapped ? hardCapStatus : null,
       // TM_FIX_A2_E1: Hard cap ceiling details
@@ -481,6 +486,8 @@ export function validateSalaryMatching(team, context = {}) {
               apron: hardCapCeilingApron,
               apronLabel: hardCapCeilingApronLabel,
               limiter:
+                allowableIncoming === null ||
+                allowableIncoming === undefined ||
                 hardCapIncomingCeiling < allowableIncoming
                   ? 'hardCap'
                   : 'salaryMatching',

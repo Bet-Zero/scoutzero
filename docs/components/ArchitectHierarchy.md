@@ -171,6 +171,7 @@ tradeMachine/
   ValidationStateHeader.jsx
   utils/
     computeTradeDraftKey.js
+    devSntInjector.js
     entitlementWarnings.js
     getOfficialSalaryMatchingSnapshot.js
 types/
@@ -377,5 +378,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-02-28T11:47:47.567Z*
+*Generated on: 2026-03-01T19:10:00.606Z*
 *Auto-updated by: npm run docs*

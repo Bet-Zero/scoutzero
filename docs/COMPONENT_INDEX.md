@@ -80,6 +80,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/ValidationDetailsPanel.jsx
 - tradeMachine/ValidationStateHeader.jsx
 - tradeMachine/utils/computeTradeDraftKey.js
+- tradeMachine/utils/devSntInjector.js
 - tradeMachine/utils/entitlementWarnings.js
 - tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js
 - utils/architectCore.js
@@ -360,4 +361,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-01T03:37:21.525Z*
+*Generated on: 2026-03-01T19:10:00.658Z*

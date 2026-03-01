@@ -1,0 +1,67 @@
+{
+  "playerId": "jayson_tatum",
+  "displayName": "Jayson Tatum",
+  "teamCode": "BOS",
+  "teamName": "Boston Celtics",
+  "bio": {
+    "position": "F",
+    "height": "6-8",
+    "weight": "210",
+    "age": 28,
+    "experience": 9
+  },
+  "contract": {
+    "contractType": "SUPERMAX CONTRACT",
+    "isExtension": true,
+    "isRookieScale": false,
+    "startSeason": "2025-26",
+    "endSeason": "2029-30",
+    "contractLength": 5,
+    "yearsRemaining": 4,
+    "totalValue": 315000000,
+    "averageAnnualValue": 63000000,
+    "salariesByYear": [
+      {
+        "season": "2025-26",
+        "salary": 54000000,
+        "capHit": 54000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2026-27",
+        "salary": 58000000,
+        "capHit": 58000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2027-28",
+        "salary": 62000000,
+        "capHit": 62000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2028-29",
+        "salary": 66000000,
+        "capHit": 66000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2029-30",
+        "salary": 70000000,
+        "capHit": 70000000,
+        "guaranteed": true
+      }
+    ],
+    "noTradeClause": true,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": ["Bird Exception"]
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2030,
+      "capHold": 84000000
+    }
+  }
+}

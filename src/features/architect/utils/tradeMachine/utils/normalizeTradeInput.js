@@ -64,8 +64,14 @@ function normalizeTeam(team, { yearKey } = {}) {
     sends: (team.sends || []).map((p) => normalizePlayer(p, yearKey)),
     picksOut: team.picksOut || [],
     cashSent: toNum(team.cashSent),
-    // STRICT BOOLEAN: Only true if explicitly boolean true (not truthy strings)
-    hardCapped: team.hardCapped === true,
+    // Preserve legacy hard-cap markers (boolean, numeric 1/2, typed strings).
+    hardCapped:
+      team.hardCapped !== undefined ? team.hardCapped : raw.hardCapped ?? false,
+    hardCapLevel:
+      team.hardCapLevel ||
+      raw.hardCapLevel ||
+      raw.totals?.hardCapLevel ||
+      null,
     appliedTPEs: (team.appliedTPEs || []).map((tpe) => ({
       ...tpe,
       amount: toNum(tpe.amount),

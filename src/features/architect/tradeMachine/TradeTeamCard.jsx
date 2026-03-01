@@ -274,6 +274,16 @@ const TradeTeamCard = ({
     snapshot.effectiveAllowableIncoming != null &&
     snapshot.allowableIncoming != null &&
     snapshot.effectiveAllowableIncoming < snapshot.allowableIncoming;
+  const hardCapLimiterLabel = hasValidatorResult
+    ? snapshot.hardCapLimiterLabel ||
+      (snapshot.hardCapType === 'SECOND_APRON'
+        ? '2nd Apron'
+        : snapshot.hardCapType === 'FIRST_APRON'
+          ? '1st Apron'
+          : snapshot.hardCapType === 'UNKNOWN'
+            ? '1st Apron (fail-closed)'
+            : 'Hard Cap')
+    : null;
 
   // DEV-ONLY: Allowable incoming divergence check (Phase 1.8)
   // Only check when both values are numbers (skip when not applicable)
@@ -655,9 +665,9 @@ const TradeTeamCard = ({
               {!isValidating && hardCapIsLimiter && (
                 <span
                   className="ml-1 text-yellow-400 text-[10px]"
-                  title="Hard cap ceiling is the active allowable incoming limiter"
+                  title={`Hard cap ceiling is the active allowable incoming limiter (${hardCapLimiterLabel})`}
                 >
-                  (Hard Cap Limited)
+                  ({hardCapLimiterLabel} Limited)
                 </span>
               )}
             </div>
@@ -748,7 +758,7 @@ const TradeTeamCard = ({
           worldId={worldId}
           otherTeams={otherTeams}
           playersMap={playersMap}
-          sourceTeamId={team?.id || team?.teamCode || null}
+          sourceTeamId={team?.teamCode || team?.id || null}
           sourceTeamCapHolds={team?.capHolds || []}
           onSetPlayerTrade={handleSetPlayerTrade}
           onRequestSignAndTrade={onRequestSignAndTrade}

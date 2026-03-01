@@ -509,6 +509,7 @@ Date: 2026-03-01
 **Status: ✅ VERIFIED**
 
 **Evidence:**
+
 - `signAndTradeEligibility.ts` → `isSignAndTradeEligible()` returns `eligible: false` for `UNDER_CONTRACT` status with `reasonCode: 'UNDER_CONTRACT'`.
 - UI gating: `TradeTeamCard` → `onRequestSignAndTrade` calls `openTradeMachineSatModal()` which routes to `EditContractModal`. The modal handler `handleTradeMachineSignAndTrade()` calls `validateSignAndTradeContractPayload()` before writing state.
 - Validator gate: `validateSignAndTrade.js` independently re-checks eligibility at validation time via `isSignAndTradeEligible()`.
@@ -519,6 +520,7 @@ Date: 2026-03-01
 **Status: ✅ VERIFIED**
 
 **Evidence:**
+
 - `TradeEditor.jsx` → `onRequestSignAndTrade` opens `EditContractModal` with `initialAction="signAndTrade"`.
 - Modal requires user to fill contract fields (`salariesByYear[]`, `contractYears`, `firstYearGuaranteed`).
 - `handleTradeMachineSignAndTrade()` validates contract via `validateSignAndTradeContractPayload()` before calling `setPlayerTrade()`.
@@ -531,12 +533,15 @@ Date: 2026-03-01
 **Status: ✅ VERIFIED**
 
 **Evidence:**
+
 - `validateSalaryMatching.js:426-441` (TM_FIX_A2_E1):
+
   ```js
   const hardCapRoom = Math.max(0, hardCapCeilingApron - totalSalary);
   hardCapIncomingCeiling = salaryOut + hardCapRoom;
   effectiveAllowableIncoming = Math.min(allowableIncoming, hardCapIncomingCeiling);
   ```
+
 - The `effectiveAllowableIncoming` is the **minimum** of salary-match ceiling and hard-cap ceiling.
 - Hard cap ceiling uses remaining room (`apron - teamTotalSalary`), not the matching ceiling.
 - Test: `src/tests/tradeMachine/tradeAllowableIncomingParity.guardrail.test.ts`, `src/tests/trade/hardCap_salaryMatching.guardrail.test.js`.
@@ -546,6 +551,7 @@ Date: 2026-03-01
 **Status: ✅ VERIFIED**
 
 **Evidence:**
+
 - World mode: `useArchitectActions.ts` → `syncTeamFromMutationResult()` reads `changedTeams` from `applyWorldMutation()` return. Uses authoritative computed state directly (not optimistic).
 - Fallback: If `changedTeams` is missing for current team, reloads from Firestore via `loadWorldTeamData(worldId, teamCode)`.
 - Base mode: `applyTradeToCapSheet()` loads base snapshots, runs `computeWorldMutation()`, and sets UI from computed result (not from pre-trade state).

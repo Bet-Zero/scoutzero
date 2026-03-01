@@ -294,7 +294,7 @@ describe('Hard-capped teams still follow salary matching', () => {
       const result = validateSalaryMatching(team, {});
 
       expect(result.details.hardCapCeiling).toBeDefined();
-      expect(result.details.hardCapCeiling.apronLabel).toBe('1st Apron');
+      expect(result.details.hardCapCeiling.apronLabel).toContain('1st Apron');
       expect(result.details.hardCapCeiling.apron).toBe(178_000_000);
     });
   });

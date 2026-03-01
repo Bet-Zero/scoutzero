@@ -149,6 +149,12 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
       : null;
 
   const teamMeta = TeamCodeMap[teamCode] || null;
+  const hardCapLevel =
+    baseDoc.hardCapLevel || baseDoc.totals?.hardCapLevel || null;
+  const hardCapped =
+    hardCapLevel != null &&
+    String(hardCapLevel).toLowerCase() !== 'none' &&
+    String(hardCapLevel).toLowerCase() !== 'false';
 
   // Return team in new schema format - no conversion needed
   return {
@@ -178,9 +184,8 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
     tpMle: toSimpleException(exceptionData.taxpayerMle || exceptionData.tpMle),
     bae: toSimpleException(exceptionData.bae),
     tradeExceptions,
-    hardCapped: baseDoc.totals?.hardCapLevel
-      ? baseDoc.totals.hardCapLevel !== 'none'
-      : false,
+    hardCapLevel,
+    hardCapped,
     deadCap: baseDoc.deadCap || [],
     baseline: baseDoc,
     totals: baseDoc.totals || {},

@@ -1,0 +1,56 @@
+{
+  "playerId": "dalton_knecht",
+  "displayName": "Dalton Knecht",
+  "teamCode": "LAL",
+  "teamName": "Los Angeles Lakers",
+  "bio": {
+    "position": "G",
+    "height": "6-6",
+    "weight": "215",
+    "age": 24,
+    "experience": 2
+  },
+  "contract": {
+    "contractType": "ROOKIE SCALE CONTRACT",
+    "isExtension": false,
+    "isRookieScale": true,
+    "startSeason": "2024-25",
+    "endSeason": "2027-28",
+    "contractLength": 4,
+    "yearsRemaining": 2,
+    "totalValue": 18000000,
+    "averageAnnualValue": 4500000,
+    "salariesByYear": [
+      {
+        "season": "2025-26",
+        "salary": 4800000,
+        "capHit": 4800000,
+        "guaranteed": true
+      },
+      {
+        "season": "2026-27",
+        "salary": 5000000,
+        "capHit": 5000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2027-28",
+        "salary": 10000000,
+        "capHit": 10000000,
+        "guaranteed": false,
+        "option": "TO"
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": ["Bird Exception"]
+    },
+    "freeAgency": {
+      "type": "RFA",
+      "year": 2028,
+      "capHold": 19358577
+    }
+  }
+}

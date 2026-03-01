@@ -72,6 +72,8 @@ export function getTeamSnapshot(teamId, result) {
     hardCapIncomingCeiling: officialSnapshot.hardCapIncomingCeiling,
     // Canonical UI display value: hard-cap-aware when effective ceiling exists
     displayAllowableIncoming: officialSnapshot.displayAllowableIncoming,
+    hardCapType: officialSnapshot.hardCapType,
+    hardCapLimiterLabel: officialSnapshot.hardCapLimiterLabel,
     isHardCapped: officialSnapshot.isHardCapped,
 
     // Explicit applicability tracking (Phase: Allowable Incoming N/A Consistency)

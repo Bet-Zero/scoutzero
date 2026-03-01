@@ -52,6 +52,8 @@
  *     effectiveAllowableIncoming: number | null, // min(allowable, hardCapCeiling)
  *     displayAllowableIncoming: number | null,   // value UI should display (effective first)
  *     hardCapCeilingDetails: Object | null,      // {apron, apronLabel, limiter}
+ *     hardCapType: string | null,                // FIRST_APRON | SECOND_APRON | UNKNOWN
+ *     hardCapLimiterLabel: string | null,        // human-readable apron label
  *     isHardCapped: boolean                      // whether team is hard-capped
  *   }
  */
@@ -72,6 +74,8 @@ export function getOfficialSalaryMatchingSnapshot(teamResult) {
       effectiveAllowableIncoming: null,
       displayAllowableIncoming: null,
       hardCapCeilingDetails: null,
+      hardCapType: null,
+      hardCapLimiterLabel: null,
       isHardCapped: false,
     };
   }
@@ -118,6 +122,13 @@ export function getOfficialSalaryMatchingSnapshot(teamResult) {
 
     // Hard cap ceiling details: {apron, apronLabel, limiter}
     hardCapCeilingDetails: salaryMatching?.details?.hardCapCeiling ?? null,
+
+    // Canonical hard-cap typing from getHardCapStatus
+    hardCapType: salaryMatching?.details?.hardCapStatus?.hardCapType ?? null,
+
+    // Active limiter label for UI
+    hardCapLimiterLabel:
+      salaryMatching?.details?.hardCapCeiling?.apronLabel ?? null,
 
     // Whether team is hard-capped (for UI display logic)
     isHardCapped: !!salaryMatching?.details?.hardCapStatus?.isHardCapped,

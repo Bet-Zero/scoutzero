@@ -1,0 +1,18 @@
+{
+  "teamCode": "BOS",
+  "teamName": "BOSTON CELTICS",
+  "season": "2026-27",
+  "abbreviation": "BOS",
+  "roster": ["jayson_tatum", "jaylen_brown", "derrick_white"],
+  "deadCap": [],
+  "capHolds": [],
+  "entitlementIds": [],
+  "capSheet": {
+    "totalSalary": 180000000,
+    "capSpace": -40000000,
+    "taxLine": 188000000,
+    "firstApron": 178000000,
+    "secondApron": 189000000,
+    "hardCap": null
+  }
+}

@@ -23,6 +23,11 @@ import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts'
 // TM_DATAWARN_UI_E1: Data validation utilities
 import { validateTradeData } from '@/features/architect/utils/tradeMachine/utils/dataValidation';
 import { extractUsedTpeIds } from '@/features/architect/utils/tradeMachine/utils/tradeExportUtils';
+import {
+  injectSyntheticSntPlayersIntoTeams,
+  clearSyntheticSntPlayersFromTeams,
+  hasSyntheticSntPlayers,
+} from '@/features/architect/tradeMachine/utils/devSntInjector';
 
 /* ============================
    DEBUG FLAG & TEAM CODE RESOLUTION
@@ -326,6 +331,19 @@ export const useTradeMachine = (
       isValidationCurrent(currentDraftKey, lastValidatedDraftKeyRef.current)
     );
   }, [result, currentDraftKey]);
+
+  const hasInjectedDevSntPlayers = useMemo(
+    () => hasSyntheticSntPlayers(teams),
+    [teams]
+  );
+
+  const injectDevSntPlayers = useCallback(() => {
+    setTeams((prev) => injectSyntheticSntPlayersIntoTeams(prev, yearKey));
+  }, [yearKey]);
+
+  const clearInjectedDevSntPlayers = useCallback(() => {
+    setTeams((prev) => clearSyntheticSntPlayersFromTeams(prev));
+  }, []);
 
   // Initialize teams (slot 0 = primary team, slot 1 = empty)
   useEffect(() => {
@@ -939,19 +957,21 @@ export const useTradeMachine = (
           }
       )
     );
-    const validation = validateTrade({
-      teams: patchedTeams
-        .filter((t) => t.team)
-        .map((t) => ({
-          team: t.team,
-          sends: t.sends,
-          // Phase 14.2: Removed picksOut - draft assets are entitlements-only
-          hardCapped: t.team.hardCapped,
-          // Phase 12.1: Pass entitlements for Stepien validation
-          entitlementsOut: t.entitlementsOut || [],
-          // Phase 12.2: Pass team's loaded entitlements for baseline calculation
-          validationEntitlements: t.entitlements || [],
-        })),
+      const validation = validateTrade({
+        teams: patchedTeams
+          .filter((t) => t.team)
+          .map((t) => ({
+            team: t.team,
+            sends: t.sends,
+            // Phase 14.2: Removed picksOut - draft assets are entitlements-only
+            hardCapped: t.team.hardCapped,
+            hardCapLevel:
+              t.team.hardCapLevel || t.team.totals?.hardCapLevel || null,
+            // Phase 12.1: Pass entitlements for Stepien validation
+            entitlementsOut: t.entitlementsOut || [],
+            // Phase 12.2: Pass team's loaded entitlements for baseline calculation
+            validationEntitlements: t.entitlements || [],
+          })),
       capProjections,
       currentYear: yearKey,
       // Phase 12.2: Pass worldId and yearKey for validation context
@@ -1044,7 +1064,11 @@ export const useTradeMachine = (
   const resetTrade = useCallback(() => {
     setTeams((prev) =>
       // Phase 14.2: Removed picksOut - draft assets are entitlements-only
-      prev.map((t) => ({ ...t, sends: [], entitlementsOut: [] }))
+      clearSyntheticSntPlayersFromTeams(prev).map((slot) => ({
+        ...slot,
+        sends: [],
+        entitlementsOut: [],
+      }))
     );
     setResult(null);
     setForceTrade(false);
@@ -1219,6 +1243,9 @@ export const useTradeMachine = (
     currentDraftKey,
     hasCurrentValidation,
     validatedAt: validatedAtRef.current,
+    hasInjectedDevSntPlayers,
+    injectDevSntPlayers,
+    clearInjectedDevSntPlayers,
     // Expose ref getter for validatedAt (needed since ref doesn't trigger re-render)
     getValidatedAt: () => validatedAtRef.current,
     // Phase 16.3: Expose init error for UI error surfacing

@@ -80,6 +80,8 @@
     "emu:reseed:baseTeams": "npx tsx scripts/emu/reseedBaseTeams.ts",
     "emu:repair:teams": "npx tsx scripts/emu/repairTeams.ts",
     "emu:doctor": "npx tsx scripts/emu/doctor.ts",
+    "architect:review:seed": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 npx tsx scripts/emu/seedReviewData.ts",
+    "architect:review:up": "npx tsx scripts/emu/runReviewMode.ts",
     "verify:artifacts:players": "npx tsx scripts/emu/verifyArtifactsPlayersV2.ts",
     "verify:artifacts:baseTeams": "npx tsx scripts/emu/verifyArtifactsBaseTeams.ts",
     "stage:patch:baseTeams:entitlementIds": "npx tsx team-scrape/shared/firestore_staging/scripts/patch_baseTeams_entitlementIds.ts",

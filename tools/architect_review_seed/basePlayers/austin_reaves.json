@@ -1,0 +1,55 @@
+{
+  "playerId": "austin_reaves",
+  "displayName": "Austin Reaves",
+  "teamCode": "LAL",
+  "teamName": "Los Angeles Lakers",
+  "bio": {
+    "position": "G",
+    "height": "6-5",
+    "weight": "197",
+    "age": 27,
+    "experience": 4
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "startSeason": "2024-25",
+    "endSeason": "2027-28",
+    "contractLength": 4,
+    "yearsRemaining": 2,
+    "totalValue": 56000000,
+    "averageAnnualValue": 14000000,
+    "salariesByYear": [
+      {
+        "season": "2025-26",
+        "salary": 14000000,
+        "capHit": 14000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2026-27",
+        "salary": 15000000,
+        "capHit": 15000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2027-28",
+        "salary": 16000000,
+        "capHit": 16000000,
+        "guaranteed": true
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": ["Bird Exception"]
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2028,
+      "capHold": 28307693
+    }
+  }
+}

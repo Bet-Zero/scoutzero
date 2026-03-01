@@ -21,7 +21,10 @@ describe('Allowable Incoming UI Parity Guardrail', () => {
               effectiveAllowableIncoming: 11_000_000,
               hardCapIncomingCeiling: 11_000_000,
               details: {
-                hardCapStatus: { isHardCapped: true },
+                hardCapStatus: {
+                  isHardCapped: true,
+                  hardCapType: 'FIRST_APRON',
+                },
                 hardCapCeiling: { limiter: 'hardCap', apronLabel: '1st Apron' },
               },
             },
@@ -39,6 +42,8 @@ describe('Allowable Incoming UI Parity Guardrail', () => {
     expect(teamCardSnapshot?.displayAllowableIncoming).toBe(11_000_000);
     expect(summaryDisplayAllowable).toBe(11_000_000);
     expect(teamCardSnapshot?.displayAllowableIncoming).toBe(summaryDisplayAllowable);
+    expect(teamCardSnapshot?.hardCapType).toBe('FIRST_APRON');
+    expect(teamCardSnapshot?.hardCapLimiterLabel).toBe('1st Apron');
   });
 
   it('falls back to salary matching allowable when no hard-cap ceiling is active', () => {
@@ -73,5 +78,41 @@ describe('Allowable Incoming UI Parity Guardrail', () => {
     expect(teamCardSnapshot?.displayAllowableIncoming).toBe(17_500_000);
     expect(summaryDisplayAllowable).toBe(17_500_000);
     expect(teamCardSnapshot?.displayAllowableIncoming).toBe(summaryDisplayAllowable);
+  });
+
+  it('passes through unknown hard-cap type label for fail-closed UI badges', () => {
+    const validationResult = {
+      teamResults: [
+        {
+          teamId: 'NYK',
+          teamName: 'New York Knicks',
+          salaryOut: 10_000_000,
+          salaryIn: 10_500_000,
+          rules: {
+            salaryMatching: {
+              passed: true,
+              allowableIncoming: 17_500_000,
+              effectiveAllowableIncoming: 11_000_000,
+              hardCapIncomingCeiling: 11_000_000,
+              details: {
+                hardCapStatus: {
+                  isHardCapped: true,
+                  hardCapType: 'UNKNOWN',
+                },
+                hardCapCeiling: {
+                  limiter: 'hardCap',
+                  apronLabel: '1st Apron (fail-closed)',
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    const teamCardSnapshot = getTeamSnapshot('NYK', validationResult);
+    expect(teamCardSnapshot?.displayAllowableIncoming).toBe(11_000_000);
+    expect(teamCardSnapshot?.hardCapType).toBe('UNKNOWN');
+    expect(teamCardSnapshot?.hardCapLimiterLabel).toContain('fail-closed');
   });
 });

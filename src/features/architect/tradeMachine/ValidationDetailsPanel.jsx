@@ -78,6 +78,11 @@ const ValidationDetailsPanel = ({
   onCalculatorTeamChange = null,
   // Phase 12.3B: Pre-fetched pick rules for structured derivation
   pickRulesById = {},
+  // TM_FIXPACK_E1: DEV-only S&T injector controls
+  showSntInjector = false,
+  hasInjectedSntPlayers = false,
+  onInjectSntPlayers = null,
+  onClearInjectedSntPlayers = null,
 }) => {
   // Separate expand states for each panel
   const [productionExpanded, setProductionExpanded] = useState(false);
@@ -233,84 +238,128 @@ const ValidationDetailsPanel = ({
             id="dev-tools-content"
             className="p-4 border-t border-amber-500/20"
           >
-            {!hasValidatorResult ? (
-              <NotValidatedCallout />
-            ) : (
-              <div className="space-y-6">
-                {/* Section 4: Salary Calculator (Exploratory) */}
-                {selectedTeam?.team && (
-                  <section data-testid="section-salary-calculator">
-                    <SectionHeader title="Salary Calculator" mode="EXPLORATORY">
-                      Sandbox for testing salary matching scenarios (validator
-                      is authoritative)
-                    </SectionHeader>
-
-                    {/* Team selector for calculator - uses memoized teamOptions */}
-                    {hasMultipleTeams && (
-                      <div className="mb-3">
-                        <select
-                          value={calculatorTeamIndex}
-                          onChange={(e) =>
-                            onCalculatorTeamChange?.(Number(e.target.value))
-                          }
-                          className="bg-[#222] border border-white/20 rounded px-2 py-1 text-xs"
-                        >
-                          {teamOptions.map((item) => (
-                            <option key={item.idx} value={item.idx}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <TradeSalaryCalculator
-                      teamSalary={
-                        selectedTeam.team?.teamTotalSalary ||
-                        selectedTeam.team?.totalSalary ||
-                        0
-                      }
-                      outgoingSalary={salaryOut[calculatorTeamIndex] || 0}
-                      incomingPlayers={
-                        incomingAssets[calculatorTeamIndex]?.players || []
-                      }
-                      tpes={getTeamTpeList(selectedTeam.team)}
-                      capSettings={result?.capSettings || capProjections}
-                      yearKey={yearKey}
-                      validatorAllowableIncoming={
-                        officialSnapshot.allowableIncoming
-                      }
-                      validatorRule={officialSnapshot.ruleApplied}
-                      hasValidatorResult={officialSnapshot.hasValidator}
-                      validatorSkipReason={officialSnapshot.skipReason}
-                    />
-                  </section>
-                )}
-
-                {/* Section 5: Trade Receipt (Debug) */}
-                <section data-testid="section-trade-receipt">
-                  <SectionHeader title="Trade Receipt" mode="DEBUG">
-                    Developer diagnostic data — not required reading
+            <div className="space-y-6">
+              {/* TM_FIXPACK_E1: Section 5: DEV Sign-and-Trade runtime injector */}
+              {showSntInjector && (
+                <section data-testid="section-snt-injector">
+                  <SectionHeader
+                    title="S&T Runtime Injector"
+                    mode="DEBUG"
+                  >
+                    Inject one eligible and one ineligible synthetic player
+                    for Sign-and-Trade runtime verification.
                   </SectionHeader>
-                  <TradeReceiptPanel
-                    receipt={result?.tradeReceipt}
-                    pickRulesById={pickRulesById}
-                  />
+                  <div className="rounded border border-amber-500/30 bg-[#120e09] p-3 text-xs text-amber-100/80 space-y-3">
+                    <div>
+                      Enabled via local flag:{' '}
+                      <code className="font-mono text-amber-200">
+                        hz.dev.injectSntPlayers=true
+                      </code>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onInjectSntPlayers?.()}
+                        className="rounded bg-amber-700/70 hover:bg-amber-600/70 px-3 py-1.5 text-xs font-medium text-amber-100"
+                      >
+                        Inject S&T Test Players
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onClearInjectedSntPlayers?.()}
+                        disabled={!hasInjectedSntPlayers}
+                        className={`rounded px-3 py-1.5 text-xs font-medium ${
+                          hasInjectedSntPlayers
+                            ? 'bg-neutral-700 hover:bg-neutral-600 text-white'
+                            : 'bg-neutral-800 text-white/40 cursor-not-allowed'
+                        }`}
+                      >
+                        Clear Injected Players
+                      </button>
+                    </div>
+                  </div>
                 </section>
+              )}
 
-                {/* Section 6: Entitlement Health Report (TM-EXCL-E6) */}
-                {Object.keys(entitlementsByTeam).length > 0 && (
-                  <section data-testid="section-entitlement-health">
-                    <SectionHeader title="Exclusivity Health" mode="DEBUG">
-                      Scan all teams&apos; entitlements for integrity issues
+              {!hasValidatorResult ? (
+                <NotValidatedCallout />
+              ) : (
+                <>
+                  {/* Section 4: Salary Calculator (Exploratory) */}
+                  {selectedTeam?.team && (
+                    <section data-testid="section-salary-calculator">
+                      <SectionHeader title="Salary Calculator" mode="EXPLORATORY">
+                        Sandbox for testing salary matching scenarios (validator
+                        is authoritative)
+                      </SectionHeader>
+
+                      {/* Team selector for calculator - uses memoized teamOptions */}
+                      {hasMultipleTeams && (
+                        <div className="mb-3">
+                          <select
+                            value={calculatorTeamIndex}
+                            onChange={(e) =>
+                              onCalculatorTeamChange?.(Number(e.target.value))
+                            }
+                            className="bg-[#222] border border-white/20 rounded px-2 py-1 text-xs"
+                          >
+                            {teamOptions.map((item) => (
+                              <option key={item.idx} value={item.idx}>
+                                {item.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      <TradeSalaryCalculator
+                        teamSalary={
+                          selectedTeam.team?.teamTotalSalary ||
+                          selectedTeam.team?.totalSalary ||
+                          0
+                        }
+                        outgoingSalary={salaryOut[calculatorTeamIndex] || 0}
+                        incomingPlayers={
+                          incomingAssets[calculatorTeamIndex]?.players || []
+                        }
+                        tpes={getTeamTpeList(selectedTeam.team)}
+                        capSettings={result?.capSettings || capProjections}
+                        yearKey={yearKey}
+                        validatorAllowableIncoming={
+                          officialSnapshot.allowableIncoming
+                        }
+                        validatorRule={officialSnapshot.ruleApplied}
+                        hasValidatorResult={officialSnapshot.hasValidator}
+                        validatorSkipReason={officialSnapshot.skipReason}
+                      />
+                    </section>
+                  )}
+
+                  {/* Section 6: Trade Receipt (Debug) */}
+                  <section data-testid="section-trade-receipt">
+                    <SectionHeader title="Trade Receipt" mode="DEBUG">
+                      Developer diagnostic data — not required reading
                     </SectionHeader>
-                    <EntitlementHealthPanel
-                      entitlementsByTeam={entitlementsByTeam}
+                    <TradeReceiptPanel
+                      receipt={result?.tradeReceipt}
+                      pickRulesById={pickRulesById}
                     />
                   </section>
-                )}
-              </div>
-            )}
+
+                  {/* Section 7: Entitlement Health Report (TM-EXCL-E6) */}
+                  {Object.keys(entitlementsByTeam).length > 0 && (
+                    <section data-testid="section-entitlement-health">
+                      <SectionHeader title="Exclusivity Health" mode="DEBUG">
+                        Scan all teams&apos; entitlements for integrity issues
+                      </SectionHeader>
+                      <EntitlementHealthPanel
+                        entitlementsByTeam={entitlementsByTeam}
+                      />
+                    </section>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

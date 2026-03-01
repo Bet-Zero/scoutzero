@@ -1,0 +1,55 @@
+{
+  "playerId": "derrick_white",
+  "displayName": "Derrick White",
+  "teamCode": "BOS",
+  "teamName": "Boston Celtics",
+  "bio": {
+    "position": "G",
+    "height": "6-4",
+    "weight": "190",
+    "age": 31,
+    "experience": 8
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": true,
+    "isRookieScale": false,
+    "startSeason": "2024-25",
+    "endSeason": "2027-28",
+    "contractLength": 4,
+    "yearsRemaining": 2,
+    "totalValue": 73000000,
+    "averageAnnualValue": 18250000,
+    "salariesByYear": [
+      {
+        "season": "2025-26",
+        "salary": 18600000,
+        "capHit": 18600000,
+        "guaranteed": true
+      },
+      {
+        "season": "2026-27",
+        "salary": 19800000,
+        "capHit": 19800000,
+        "guaranteed": true
+      },
+      {
+        "season": "2027-28",
+        "salary": 21000000,
+        "capHit": 21000000,
+        "guaranteed": true
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": ["Bird Exception"]
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2028,
+      "capHold": 25200000
+    }
+  }
+}

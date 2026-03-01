@@ -1,0 +1,46 @@
+[
+  {
+    "id": "LAL_2027_R1",
+    "teamCode": "LAL",
+    "originalOwner": "LAL",
+    "currentOwner": "LAL",
+    "year": 2027,
+    "round": 1,
+    "type": "DRAFT_PICK",
+    "protections": [],
+    "status": "OWNED"
+  },
+  {
+    "id": "LAL_2027_R2",
+    "teamCode": "LAL",
+    "originalOwner": "LAL",
+    "currentOwner": "LAL",
+    "year": 2027,
+    "round": 2,
+    "type": "DRAFT_PICK",
+    "protections": [],
+    "status": "OWNED"
+  },
+  {
+    "id": "BOS_2027_R1",
+    "teamCode": "BOS",
+    "originalOwner": "BOS",
+    "currentOwner": "BOS",
+    "year": 2027,
+    "round": 1,
+    "type": "DRAFT_PICK",
+    "protections": [],
+    "status": "OWNED"
+  },
+  {
+    "id": "BOS_2027_R2",
+    "teamCode": "BOS",
+    "originalOwner": "BOS",
+    "currentOwner": "BOS",
+    "year": 2027,
+    "round": 2,
+    "type": "DRAFT_PICK",
+    "protections": [],
+    "status": "OWNED"
+  }
+]

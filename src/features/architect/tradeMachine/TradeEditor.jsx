@@ -18,6 +18,7 @@ import {
   applyVacuumTransfer,
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 
 const TradeEditor = ({
   primaryTeam,
@@ -57,6 +58,9 @@ const TradeEditor = ({
     // Stale validation fix: Use hasCurrentValidation instead of result check
     hasCurrentValidation,
     getValidatedAt,
+    hasInjectedDevSntPlayers,
+    injectDevSntPlayers,
+    clearInjectedDevSntPlayers,
     // Phase 16.3: Expose init error for UI error surfacing
     initError,
     // Phase 17: Active team count for multi-team destination logic
@@ -243,6 +247,10 @@ const TradeEditor = ({
   const compact = layoutMode !== 'normal';
 
   const canApplyTrade = hasCurrentValidation && result?.legal === true;
+  const isDevSntInjectorEnabled =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    window.localStorage?.getItem(DEV_SNT_INJECTOR_FLAG) === 'true';
 
   const resolveEntitlementTeamCode = (entitlement) =>
     entitlement?.holderTeam || entitlement?.holder_team || null;
@@ -584,6 +592,10 @@ const TradeEditor = ({
         yearKey={yearKey}
         onCalculatorTeamChange={setCalculatorTeamIndex}
         pickRulesById={mergedPickRulesById}
+        showSntInjector={isDevSntInjectorEnabled}
+        hasInjectedSntPlayers={hasInjectedDevSntPlayers}
+        onInjectSntPlayers={injectDevSntPlayers}
+        onClearInjectedSntPlayers={clearInjectedDevSntPlayers}
       />
 
       <TradePreviewModal

@@ -5,7 +5,10 @@
  */
 
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
-import { isSecondApronTeam } from '../utils/capUtils.js';
+import {
+  getHardCapStatus,
+  HARD_CAP_TYPES,
+} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
 
 /**
  * Core hard cap validation logic
@@ -82,67 +85,82 @@ export function validateHardCap(team, context = {}) {
   // Use firstApron if available, otherwise fall back to apron
   const actualFirstApron = firstApron || apron;
 
-  // Determine hard cap status
-  const isHardCappedFirstApron =
-    team.hardCapped === true || teamData?.hardCapFirstApron?.active;
-  const isHardCappedSecondApron =
-    teamData?.hardCapTriggered === 'SecondApron' ||
-    teamData?.hardCapSecondApron?.active;
-  // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
-  const isAboveSecondApron = isSecondApronTeam(
-    { totalSalary: teamTotalSalary },
-    capSettings
-  );
+  // Determine hard cap status from canonical hard-cap resolver
+  const hardCapStatus = getHardCapStatus(team, {
+    isWorldless: !context.worldId,
+    capSettings: {
+      firstApron: actualFirstApron,
+      secondApron,
+    },
+  });
+  let hardCapTypeCanonical = hardCapStatus.isHardCapped
+    ? hardCapStatus.hardCapType
+    : null;
 
-  let hardCapType = null;
+  if (!hardCapStatus.isHardCapped) {
+    return {
+      passed: true,
+      violations,
+      warnings, // Phase 4: Include cap settings warnings
+      hardCapType: null,
+      hardCapTypeCanonical: null,
+      hardCapStatus,
+      projectedSalary,
+      capLimits: {
+        firstApron: actualFirstApron,
+        secondApron,
+      },
+    };
+  }
 
-  // Check second apron hard cap (highest priority)
-  if (isHardCappedSecondApron) {
-    hardCapType = 'SecondApron';
-    if (projectedSalary > secondApron) {
-      const hardCapRoom = Math.max(0, secondApron - teamTotalSalary);
+  const isUnknownFailClosed =
+    hardCapTypeCanonical === HARD_CAP_TYPES.UNKNOWN;
+  const hardCapTypeForCeiling = isUnknownFailClosed
+    ? HARD_CAP_TYPES.FIRST_APRON
+    : hardCapTypeCanonical;
+  const hardCapType =
+    hardCapTypeForCeiling === HARD_CAP_TYPES.SECOND_APRON
+      ? 'SecondApron'
+      : hardCapTypeForCeiling === HARD_CAP_TYPES.FIRST_APRON
+        ? 'FirstApron'
+        : null;
+
+  let hardCapLimit = null;
+  let hardCapLabel = null;
+
+  if (hardCapTypeForCeiling === HARD_CAP_TYPES.SECOND_APRON) {
+    hardCapLimit = secondApron > 0 ? secondApron : actualFirstApron;
+    hardCapLabel = secondApron > 0 ? '2nd Apron' : '1st Apron (fallback)';
+  } else if (hardCapTypeForCeiling === HARD_CAP_TYPES.FIRST_APRON) {
+    hardCapLimit = actualFirstApron > 0 ? actualFirstApron : secondApron;
+    hardCapLabel = actualFirstApron > 0 ? '1st Apron' : '2nd Apron (fallback)';
+  }
+
+  if (hardCapLimit !== null) {
+    if (projectedSalary > hardCapLimit) {
+      const hardCapRoom = Math.max(0, hardCapLimit - teamTotalSalary);
       const hardCapIncomingCeiling = salaryOut + hardCapRoom;
       const incomingOverage = Math.max(0, salaryIn - hardCapIncomingCeiling);
 
-      violations.push(
+      const baseMessage =
         incomingOverage > 0
-          ? `2nd Apron hard cap violation: Incoming salary exceeds hard-cap incoming ceiling by ${formatCurrency(incomingOverage)} (incoming ${formatCurrency(salaryIn)} vs ceiling ${formatCurrency(hardCapIncomingCeiling)}).`
-          : `2nd Apron hard cap violation: Trade would exceed second apron hard-cap by ${formatCurrency(projectedSalary - secondApron)}`
-      );
-    }
-  }
-  // Teams above second apron are automatically hard-capped
-  else if (isAboveSecondApron) {
-    hardCapType = 'SecondApron';
-    if (projectedSalary > teamTotalSalary) {
-      // Check if this is due to sign-and-trade
-      const hasIncomingSignAndTrade = (
-        team.incomingPlayers ||
-        team.receives ||
-        []
-      ).some((p) => p.signAndTrade === true);
-      if (hasIncomingSignAndTrade) {
-        violations.push(
-          `Team would exceed hard-cap after receiving sign-and-trade player`
-        );
-      }
-      // NOTE: Salary mismatch message removed - validateSalaryMatching is the SSOT for this
-      // Hard cap validation focuses on ceiling violations, not salary matching
-    }
-  }
-  // Check first apron hard cap
-  else if (isHardCappedFirstApron) {
-    hardCapType = 'FirstApron';
-    if (projectedSalary > actualFirstApron) {
-      const hardCapRoom = Math.max(0, actualFirstApron - teamTotalSalary);
-      const hardCapIncomingCeiling = salaryOut + hardCapRoom;
-      const incomingOverage = Math.max(0, salaryIn - hardCapIncomingCeiling);
+          ? `${hardCapLabel} hard cap violation: Incoming salary exceeds hard-cap incoming ceiling by ${formatCurrency(incomingOverage)} (incoming ${formatCurrency(salaryIn)} vs ceiling ${formatCurrency(hardCapIncomingCeiling)}).`
+          : `${hardCapLabel} hard cap violation: Trade would exceed hard-cap by ${formatCurrency(projectedSalary - hardCapLimit)}`;
 
       violations.push(
-        incomingOverage > 0
-          ? `1st Apron hard cap violation: Incoming salary exceeds hard-cap incoming ceiling by ${formatCurrency(incomingOverage)} (incoming ${formatCurrency(salaryIn)} vs ceiling ${formatCurrency(hardCapIncomingCeiling)}).`
-          : `1st Apron hard cap violation: Trade would exceed first apron hard-cap by ${formatCurrency(projectedSalary - actualFirstApron)}`
+        isUnknownFailClosed
+          ? `${baseMessage} [fail-closed UNKNOWN hard cap type]`
+          : baseMessage
       );
+    }
+  }
+
+  // Additional sign-and-trade hard-cap warning when already above second apron.
+  if (hardCapTypeForCeiling === HARD_CAP_TYPES.SECOND_APRON) {
+    const hasIncomingSignAndTrade = (team.incomingPlayers || team.receives || [])
+      .some((p) => p.signAndTrade === true);
+    if (hasIncomingSignAndTrade) {
+      violations.push(`Team would exceed hard-cap after receiving sign-and-trade player`);
     }
   }
 
@@ -151,6 +169,8 @@ export function validateHardCap(team, context = {}) {
     violations,
     warnings, // Phase 4: Include cap settings warnings
     hardCapType,
+    hardCapTypeCanonical: hardCapTypeCanonical || null,
+    hardCapStatus,
     projectedSalary,
     capLimits: {
       firstApron: actualFirstApron,

@@ -1,0 +1,61 @@
+{
+  "playerId": "jaylen_brown",
+  "displayName": "Jaylen Brown",
+  "teamCode": "BOS",
+  "teamName": "Boston Celtics",
+  "bio": {
+    "position": "G/F",
+    "height": "6-6",
+    "weight": "223",
+    "age": 29,
+    "experience": 10
+  },
+  "contract": {
+    "contractType": "SUPERMAX CONTRACT",
+    "isExtension": true,
+    "isRookieScale": false,
+    "startSeason": "2024-25",
+    "endSeason": "2028-29",
+    "contractLength": 5,
+    "yearsRemaining": 3,
+    "totalValue": 303000000,
+    "averageAnnualValue": 60600000,
+    "salariesByYear": [
+      {
+        "season": "2025-26",
+        "salary": 52400000,
+        "capHit": 52400000,
+        "guaranteed": true
+      },
+      {
+        "season": "2026-27",
+        "salary": 56100000,
+        "capHit": 56100000,
+        "guaranteed": true
+      },
+      {
+        "season": "2027-28",
+        "salary": 60000000,
+        "capHit": 60000000,
+        "guaranteed": true
+      },
+      {
+        "season": "2028-29",
+        "salary": 64100000,
+        "capHit": 64100000,
+        "guaranteed": true
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": 15,
+    "birdRights": {
+      "status": "Bird",
+      "eligibleFor": ["Bird Exception"]
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2029,
+      "capHold": 76920000
+    }
+  }
+}

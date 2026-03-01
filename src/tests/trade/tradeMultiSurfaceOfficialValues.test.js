@@ -108,6 +108,8 @@ describe('Official Salary Matching Snapshot - Canonical Selector', () => {
         effectiveAllowableIncoming: null,
         displayAllowableIncoming: null,
         hardCapCeilingDetails: null,
+        hardCapType: null,
+        hardCapLimiterLabel: null,
         isHardCapped: false,
       });
     });
