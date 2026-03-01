@@ -46,6 +46,11 @@ import {
   acquireOptimisticLock,
   releaseOptimisticLock,
 } from './optimisticMutationLock';
+import {
+  clearCapSheetFixtures,
+  hasInjectedCapSheetFixtures as hasInjectedCapSheetFixturesInTeam,
+  injectCapSheetFixtures,
+} from '@/features/architect/capSheet/devCapSheetFixtures';
 import toast from 'react-hot-toast';
 
 // ==== Type Definitions ====
@@ -349,6 +354,11 @@ export interface UseArchitectActionsReturn {
 
   // Manual Exception Management (Phase 27)
   handleSetExceptions: (exceptions: Record<string, any>) => void;
+
+  // DEV-only Cap Sheet fixtures (CAP_SHEET_FIXPACK_E1)
+  handleInjectCapSheetFixtures: () => MutationActionResult;
+  handleClearCapSheetFixtures: () => MutationActionResult;
+  hasInjectedCapSheetFixtures: boolean;
 }
 
 // ==== Season helpers ====
@@ -1941,6 +1951,37 @@ export function useArchitectActions({
     [applyCapAuditedTeamMutation, teamCode]
   );
 
+  const hasInjectedCapSheetFixtures = useMemo(
+    () => hasInjectedCapSheetFixturesInTeam(teamCapSheet as CapSheet | null),
+    [teamCapSheet]
+  );
+
+  const handleInjectCapSheetFixtures = useCallback((): MutationActionResult => {
+    if (!teamCapSheet) {
+      return {
+        success: false,
+        message: 'Cannot inject fixtures: team state is not loaded.',
+      };
+    }
+
+    const nextTeam = injectCapSheetFixtures(teamCapSheet, currentYear);
+    setTeamCapSheet(nextTeam as CapSheet);
+    return { success: true };
+  }, [currentYear, setTeamCapSheet, teamCapSheet]);
+
+  const handleClearCapSheetFixtures = useCallback((): MutationActionResult => {
+    if (!teamCapSheet) {
+      return {
+        success: false,
+        message: 'Cannot clear fixtures: team state is not loaded.',
+      };
+    }
+
+    const nextTeam = clearCapSheetFixtures(teamCapSheet);
+    setTeamCapSheet(nextTeam as CapSheet);
+    return { success: true };
+  }, [setTeamCapSheet, teamCapSheet]);
+
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
       setSelectedPlayer(player);
@@ -2669,5 +2710,10 @@ export function useArchitectActions({
 
     // Phase 27: Exception Management
     handleSetExceptions,
+
+    // CAP_SHEET_FIXPACK_E1: DEV fixture controls
+    handleInjectCapSheetFixtures,
+    handleClearCapSheetFixtures,
+    hasInjectedCapSheetFixtures,
   };
 }

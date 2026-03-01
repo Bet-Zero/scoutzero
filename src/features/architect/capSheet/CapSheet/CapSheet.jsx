@@ -290,6 +290,7 @@ const CapSheet = ({
               >
                 <div className="font-medium text-xs text-white/90 truncate">
                   <button
+                    data-testid="cap-sheet-player-row-button"
                     onClick={() => onSelectPlayer && onSelectPlayer(player)}
                     className="hover:text-blue-400 transition-colors text-left truncate w-full"
                   >
@@ -386,12 +387,14 @@ const CapSheet = ({
           {/* Manage Actions Row */}
           <div className="border-b border-white/5 bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-4">
             <button
+              data-testid="cap-sheet-manage-exceptions-button"
               onClick={() => setShowExceptionsModal(true)}
               className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
             >
               <span className="opacity-50">📋</span> Manage Exceptions
             </button>
             <button
+              data-testid="cap-sheet-manage-dead-money-button"
               onClick={() => setShowDeadMoneyModal(true)}
               className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
             >

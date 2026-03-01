@@ -119,6 +119,16 @@ const ACTION_DESCRIPTIONS = {
   buyout: 'Negotiate a reduced amount to release player.',
 };
 
+const ACTION_TEST_IDS = {
+  resign: 'contract-action-resign',
+  signAndTrade: 'contract-action-sign-and-trade',
+  renounce: 'contract-action-renounce-rights',
+  extend: 'contract-action-extend',
+  waive: 'contract-action-waive',
+  waiveStretch: 'contract-action-waive-stretch',
+  buyout: 'contract-action-buyout',
+};
+
 const EditContractModal = ({
   player,
   isOpen,
@@ -833,7 +843,10 @@ const EditContractModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] bg-[#0f0f0f] border-2 border-white/20 rounded-xl shadow-2xl shadow-black/50 p-0 overflow-hidden flex flex-col lg:flex-row min-h-[500px] max-h-[85vh]">
+      <DialogContent
+        data-testid="edit-contract-modal"
+        className="max-w-6xl w-[95vw] bg-[#0f0f0f] border-2 border-white/20 rounded-xl shadow-2xl shadow-black/50 p-0 overflow-hidden flex flex-col lg:flex-row min-h-[500px] max-h-[85vh]"
+      >
         {/* === LEFT PANEL: Contract Summary === */}
         <div className="w-full lg:w-[35%] bg-[#161616] border-r border-white/10 p-8 flex flex-col">
           {/* Header Total */}
@@ -1019,6 +1032,7 @@ const EditContractModal = ({
                   <input
                     type="radio"
                     value={type}
+                    data-testid={ACTION_TEST_IDS[type] || undefined}
                     checked={selectedAction === type}
                     onChange={() => !isDisabled && setSelectedAction(type)}
                     disabled={isDisabled}
@@ -1459,6 +1473,7 @@ const EditContractModal = ({
               Cancel
             </button>
             <button
+              data-testid="edit-contract-confirm-action-button"
               onClick={handleConfirm}
               disabled={disableConfirm}
               className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${

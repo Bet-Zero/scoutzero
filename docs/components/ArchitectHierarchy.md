@@ -83,6 +83,7 @@ capSheet/
   ExceptionTracker/
     ExceptionTracker.jsx
     index.ts
+  devCapSheetFixtures.ts
   index.ts
   modals/
     ManageDeadMoneyModal.jsx
@@ -378,5 +379,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-01T19:10:00.606Z*
+*Generated on: 2026-03-01T21:38:47.912Z*
 *Auto-updated by: npm run docs*

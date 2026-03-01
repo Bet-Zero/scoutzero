@@ -145,6 +145,7 @@ const CapSheetFull = ({
                     {/* Player Name (Sticky) */}
                     <div className="sticky left-0 z-10 bg-[#0f0f0f] group-hover:bg-[#131313] px-4 py-2 flex items-center gap-2 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.4)] transition-colors h-[36px]">
                       <button
+                        data-testid="cap-sheet-full-player-row-button"
                         onClick={() => onSelectPlayer && onSelectPlayer(player)}
                         className="text-xs font-medium text-white/90 hover:text-blue-400 transition-colors text-left truncate flex-1"
                       >
@@ -401,6 +402,7 @@ const CapSheetFull = ({
                 {/* Renounce Button - Absolute Positioned on Hover */}
                 <div className="absolute inset-0 bg-[#1a1a1a] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <button
+                    data-testid="cap-sheet-full-absolve-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onActionClick?.(h, 'renounce');
@@ -452,6 +454,7 @@ const CapSheetFull = ({
           return (
             <div className="mt-8">
               <button
+                data-testid="cap-sheet-full-cap-holds-toggle"
                 onClick={() => setShowCapHolds(!showCapHolds)}
                 className="w-full flex items-center justify-between text-left group mb-3"
               >

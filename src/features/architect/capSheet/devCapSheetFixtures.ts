@@ -1,0 +1,222 @@
+import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+
+export const DEV_CAP_SHEET_FIXTURE_FLAG = 'hz.dev.capSheetFixtures';
+export const DEV_CAP_SHEET_FIXTURE_MARKER = '__hzDevCapSheetFixture';
+
+const DEV_CAP_SHEET_FIXTURE_ID_PREFIX = 'hz-dev-cap-fixture';
+
+type FixturePlayer = {
+  id?: string;
+  player_id?: string;
+  playerId?: string;
+  name?: string;
+  displayName?: string;
+  contract?: Record<string, unknown> | null;
+  futureContract?: Record<string, unknown> | null;
+  [key: string]: unknown;
+};
+
+type TeamCapSheetLike = {
+  teamCode?: string;
+  abbreviation?: string;
+  id?: string;
+  players?: FixturePlayer[];
+  roster?: Array<string | number>;
+  [key: string]: unknown;
+};
+
+function resolveTeamCode(teamCapSheet: TeamCapSheetLike): string {
+  const rawTeamCode =
+    teamCapSheet?.teamCode || teamCapSheet?.abbreviation || teamCapSheet?.id;
+  if (!rawTeamCode) return 'TEAM';
+  return String(rawTeamCode).toUpperCase();
+}
+
+function getFixtureIdsForTeam(teamCode: string): [string, string] {
+  const normalized = String(teamCode || 'TEAM').toUpperCase();
+  return [
+    `${DEV_CAP_SHEET_FIXTURE_ID_PREFIX}-future-${normalized}`,
+    `${DEV_CAP_SHEET_FIXTURE_ID_PREFIX}-control-${normalized}`,
+  ];
+}
+
+function isFixtureId(rawId: unknown): boolean {
+  return (
+    typeof rawId === 'string' &&
+    rawId.startsWith(DEV_CAP_SHEET_FIXTURE_ID_PREFIX)
+  );
+}
+
+function getPlayerId(player: FixturePlayer): string | null {
+  const rawId = player?.id || player?.player_id || player?.playerId || null;
+  if (!rawId) return null;
+  return String(rawId);
+}
+
+export function isDevCapSheetFixturePlayer(player: FixturePlayer): boolean {
+  return Boolean(player?.[DEV_CAP_SHEET_FIXTURE_MARKER] || isFixtureId(getPlayerId(player)));
+}
+
+export function buildCapSheetFixturePlayers(
+  teamCapSheet: TeamCapSheetLike,
+  currentYear: number
+): FixturePlayer[] {
+  const teamCode = resolveTeamCode(teamCapSheet);
+  const [futureFixtureId, controlFixtureId] = getFixtureIdsForTeam(teamCode);
+  const currentSeason = toSeasonCode(currentYear);
+  const nextSeason = toSeasonCode(currentYear + 1);
+  const secondFutureSeason = toSeasonCode(currentYear + 2);
+
+  const sharedFields = {
+    teamCode,
+    teamId: teamCode,
+    teamAbbr: teamCode,
+    [DEV_CAP_SHEET_FIXTURE_MARKER]: true,
+  };
+
+  return [
+    {
+      ...sharedFields,
+      id: futureFixtureId,
+      player_id: futureFixtureId,
+      playerId: futureFixtureId,
+      name: 'CAP DEV FutureContract Fixture',
+      displayName: 'CAP DEV FutureContract Fixture',
+      position: 'F',
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          {
+            season: currentSeason,
+            salary: 14_000_000,
+            capHit: 14_000_000,
+            guaranteed: true,
+          },
+        ],
+      },
+      futureContract: {
+        extension: true,
+        salariesByYear: [
+          {
+            season: nextSeason,
+            salary: 16_000_000,
+            capHit: 16_000_000,
+            guaranteed: true,
+            isExtensionSeason: true,
+          },
+          {
+            season: secondFutureSeason,
+            salary: 18_000_000,
+            capHit: 18_000_000,
+            guaranteed: true,
+            isExtensionSeason: true,
+          },
+        ],
+      },
+      bio: {
+        playerId: futureFixtureId,
+        displayName: 'CAP DEV FutureContract Fixture',
+        position: 'F',
+      },
+    },
+    {
+      ...sharedFields,
+      id: controlFixtureId,
+      player_id: controlFixtureId,
+      playerId: controlFixtureId,
+      name: 'CAP DEV Control Fixture',
+      displayName: 'CAP DEV Control Fixture',
+      position: 'G',
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          {
+            season: currentSeason,
+            salary: 7_500_000,
+            capHit: 7_500_000,
+            guaranteed: true,
+          },
+        ],
+      },
+      futureContract: null,
+      bio: {
+        playerId: controlFixtureId,
+        displayName: 'CAP DEV Control Fixture',
+        position: 'G',
+      },
+    },
+  ];
+}
+
+export function injectCapSheetFixtures(
+  teamCapSheet: TeamCapSheetLike,
+  currentYear: number
+): TeamCapSheetLike {
+  if (!teamCapSheet) return teamCapSheet;
+
+  const teamCode = resolveTeamCode(teamCapSheet);
+  const fixtureIds = new Set(getFixtureIdsForTeam(teamCode));
+  const existingPlayers = Array.isArray(teamCapSheet.players)
+    ? teamCapSheet.players
+    : [];
+  const existingRoster = Array.isArray(teamCapSheet.roster)
+    ? teamCapSheet.roster
+    : [];
+
+  const cleanedPlayers = existingPlayers.filter((player) => {
+    if (isDevCapSheetFixturePlayer(player)) return false;
+    const playerId = getPlayerId(player);
+    return !fixtureIds.has(String(playerId || ''));
+  });
+  const fixturePlayers = buildCapSheetFixturePlayers(teamCapSheet, currentYear);
+  const cleanedRoster = existingRoster.filter(
+    (rawId) => !fixtureIds.has(String(rawId))
+  );
+  const fixtureRoster = fixturePlayers
+    .map((player) => getPlayerId(player))
+    .filter((id): id is string => Boolean(id));
+
+  return {
+    ...teamCapSheet,
+    players: [...cleanedPlayers, ...fixturePlayers],
+    roster: [...cleanedRoster, ...fixtureRoster],
+  };
+}
+
+export function clearCapSheetFixtures(
+  teamCapSheet: TeamCapSheetLike
+): TeamCapSheetLike {
+  if (!teamCapSheet) return teamCapSheet;
+
+  const existingPlayers = Array.isArray(teamCapSheet.players)
+    ? teamCapSheet.players
+    : [];
+  const existingRoster = Array.isArray(teamCapSheet.roster)
+    ? teamCapSheet.roster
+    : [];
+
+  const filteredPlayers = existingPlayers.filter(
+    (player) => !isDevCapSheetFixturePlayer(player)
+  );
+  const filteredRoster = existingRoster.filter((rawId) => !isFixtureId(rawId));
+
+  return {
+    ...teamCapSheet,
+    players: filteredPlayers,
+    roster: filteredRoster,
+  };
+}
+
+export function hasInjectedCapSheetFixtures(
+  teamCapSheet: TeamCapSheetLike | null | undefined
+): boolean {
+  if (!teamCapSheet) return false;
+
+  const players = Array.isArray(teamCapSheet.players) ? teamCapSheet.players : [];
+  const roster = Array.isArray(teamCapSheet.roster) ? teamCapSheet.roster : [];
+
+  return (
+    players.some((player) => isDevCapSheetFixturePlayer(player)) ||
+    roster.some((rawId) => isFixtureId(rawId))
+  );
+}

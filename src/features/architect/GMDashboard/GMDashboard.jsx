@@ -210,6 +210,7 @@ const GMDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab('cap')}
+          data-testid="tab-cap-sheet"
           className={`px-4 py-2 rounded-md text-sm font-semibold ${
             activeTab === 'cap'
               ? 'bg-lakers/90 text-black'
@@ -220,6 +221,7 @@ const GMDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab('capfull')}
+          data-testid="tab-full-cap-table"
           className={`px-4 py-2 rounded-md text-sm font-semibold ${
             activeTab === 'capfull'
               ? 'bg-lakers/90 text-black'
@@ -287,6 +289,9 @@ const GMDashboard = () => {
             onSetDeadCap={actions.handleSetDeadCap}
             onSetExceptions={actions.handleSetExceptions}
             playersMap={playersMap}
+            onInjectCapSheetFixtures={actions.handleInjectCapSheetFixtures}
+            onClearCapSheetFixtures={actions.handleClearCapSheetFixtures}
+            hasInjectedCapSheetFixtures={actions.hasInjectedCapSheetFixtures}
           />
         )}
 

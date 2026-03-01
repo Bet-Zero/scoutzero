@@ -96,6 +96,52 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ---
 
+### CAP_SHEET_R1_LOCAL: Cap Sheet Section Review (2026-03-01)
+
+**Goal:** Complete discovery-only Cap Sheet audit (UI wiring, totals SSOT, cap rules thresholds, exceptions, mutations, world/base boundaries, and write safety).
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run dev` -> PASS (served locally on `http://localhost:5179/` / `http://localhost:5180/` during walkthrough harnesses)
+- `npm run test:architect -- --reporter=dot` -> PASS (158 files, 2412 tests: 2408 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files, 536 tests: 532 passed, 1 skipped, 3 todo)
+
+**Result summary:** 9 PASS / 2 FAIL / 1 BLOCKED
+
+**Return Package:** `return_packages/architect_reviews/CAP_SHEET_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+---
+
+### CAP_SHEET_FIXPACK_E1: Deterministic Cap Sheet Closure (2026-03-01)
+
+**Goal:** Close CAP_SHEET_R1_LOCAL remaining non-pass items (#4, #6, #12) with deterministic, emulator-independent proof.
+
+**Status:** ✅ COMPLETE
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (158 files, 2412 tests: 2408 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files, 536 tests: 532 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- Added DEV-only Cap Sheet fixture injector gated by:
+  - `import.meta.env.DEV`
+  - `localStorage['hz.dev.capSheetFixtures'] === 'true'`
+- Added deterministic transaction matrix coverage for cap-sheet mutation flows and base-vs-world persistence routing.
+- Added deterministic integration coverage for world boundary fallback chain and cap-sheet UI transaction flows.
+- CAP_SHEET_R2_LOCAL now reports overall **12/12 PASS**.
+
+**Return Package:** `return_packages/architect_fixes/CAP_SHEET_FIXPACK_E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
 ## Pending Reviews
 
 _(None currently scheduled)_
