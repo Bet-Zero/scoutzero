@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-02-28
+Last updated: 2026-03-01
 
 ## Trade Machine Overview
 
@@ -378,3 +378,217 @@ Date: 2026-02-26
 ### TM_E2E_FUNCTIONALITY_P2 (2026-02-28) — Prefight Confirmation
 
 Confirmed STOP #4 (years remaining display) and STOP #5 (base-state apply bypass) remain closed: base-state Apply routes through `computeWorldMutation('executeTrade')` with `_validatedTradeContext` + `legal` fail-closed gating, and both Trade row + EditContract share canonical extension-aware helpers in `contractUtils.js`. No Firestore writes exist in base-state apply branch.
+
+---
+
+## P2 Preflight — Correctness Matrix
+
+Date: 2026-03-01
+
+### A) User-Facing Action/Flow Matrix
+
+| # | Action | Entry Path | Required Inputs | Validation Gate | Mutation Type | Persistence Path | State Resync | Cap Refresh SSOT | Test Coverage |
+|---|--------|------------|-----------------|-----------------|---------------|------------------|--------------|------------------|---------------|
+| 1 | **Select Team** | `TradeTeamCard` → `onSelectTeam` → `useTradeMachine.selectTeam()` | `teamId` | None (load only) | None | `loadWorldTeamData(worldId, teamId)` | Sets `team`, `sends`, `entitlementsOut` on slot | `computeTeamCapTotals()` via `getCapTotalsForYear()` | `src/tests/architect/phase16_3_trade_machine_init_guardrail.test.js` |
+| 2 | **Add Team Slot** | `TradeEditor` "Add Team" button → `useTradeMachine.addTeam()` | None | Max 5 teams enforced | None | None | Appends empty slot to `teams[]` | None | Implicit in multi-team test fixtures |
+| 3 | **Remove Team Slot** | `TradeTeamCard` remove → `useTradeMachine.removeTeam()` | `teamIndex` | None | None | None | Removes slot; cleans orphaned `tradeTo`/`toTeamId` refs | None | Implicit in multi-team test fixtures |
+| 4 | **Route Player (trade)** | `TradePlayerRow` action menu → `onSetPlayerTrade(player, 'trade', destTeamId)` → `useTradeMachine.setPlayerTrade()` | `player`, `action='trade'`, `destTeamId` | None (pre-validate) | None (state only) | None | Adds to `sends[]` with `toTeamId` | None | `src/tests/trade/playerRouting.test.js` |
+| 5 | **Route Player (keep)** | `TradePlayerRow` → `onSetPlayerTrade(player, 'keep')` | `player`, `action='keep'` | None | None | None | Removes from `sends[]` | None | `src/tests/trade/playerRouting.test.js` |
+| 6 | **Set Absorption Mode** | `TradeTeamCard` dropdown → `onSetPlayerTrade(player, 'setAbsorptionMode', null, {absorptionMode})` | `player`, `absorptionMode` ('standard'\|'TPE'\|'FA_EXCEPTION') | None | None | None | Sets `absorptionMode` on send entry | None | `tests/trade/tpe_absorption_fail_closed.test.js`, `tests/trade/faExceptions_as_trade_buckets.test.js` |
+| 7 | **Set TPE ID** | TPE selector → `onSetPlayerTrade(player, 'setTpeId', null, {tpeId})` | `player`, `tpeId` | None (pre-validate) | None | None | Sets `tpeId` on send entry | None | `tests/trade/tpe_absorption_fail_closed.test.js`, `src/tests/trade/tpe_perPlayer.guardrail.test.js` |
+| 8 | **Sign-and-Trade** | `TradeTeamCard` → `onRequestSignAndTrade(player, destTeamId)` → opens `EditContractModal` → `handleTradeMachineSignAndTrade()` → `setPlayerTrade(idx, player, 'signAndTrade', dest, {signAndTradeContract})` | `player`, `destTeamId`, `contractPayload` (salariesByYear, contractYears, firstYearGuaranteed) | `validateSignAndTradeContractPayload()` pre-modal-close | None (state only) | None | Sets `signAndTrade: true`, `signAndTradeContract` on send entry | None | `src/tests/tradeMachine/signAndTrade.failClosed.guardrail.test.ts`, `tests/trade/signAndTrade_completeness.test.js`, `src/tests/architect/signAndTrade.test.js` |
+| 9 | **Toggle Entitlement** | `EntitlementPickRow` → `onToggleEntitlement(ent)` → `useTradeMachine.toggleEntitlement()` | `entitlement` object | None | None | None | Adds/removes from `entitlementsOut[]`; auto-sets `toTeamId` for 2-team | None | `src/tests/architect/tradeEntitlementExclusivity.test.ts`, `tests/entitlements/tradeReceiptEntitlements.test.js` |
+| 10 | **Set Entitlement Destination** | `EntitlementPickRow` dest selector → `onSetEntitlementDestination(entId, toTeamId)` | `entitlementId`, `toTeamId` | None | None | None | Updates `toTeamId` on entitlement entry | None | `src/tests/architect/tradeEntitlementRouting.test.ts` |
+| 11 | **Edit Entitlement** | `EntitlementPickRow` edit → `onEditEntitlement()` → opens `PickRightWizardModal` | Entitlement fields via wizard | Wizard validation | None | Session edit storage | Updates entitlement in session | None | `PickRightWizardModal` integration (UI tests) |
+| 12 | **Create Entitlement** | `TradeTeamCard` create → `onCreateEntitlement(teamCode)` → opens `PickRightWizardModal` in create mode | Team code + wizard fields | Wizard validation | None | Session create storage | Adds entitlement to session | None | `PickRightWizardModal` integration (UI tests) |
+| 13 | **Validate Trade** | `TradeEditor` "Validate Trade" button → `useTradeMachine.handleValidate()` | At least 2 teams with routes | Full `validateTrade()` engine (14+ rules) | None | None | Sets `result`, opens `TradePreviewModal` | Patches missing payroll via `computeTeamCapTotals()` safety net | `tests/tradeValidator.test.js`, `tests/trade/salaryMatching.test.js`, all `tests/trade/*.test.js` |
+| 14 | **Apply Trade** | `TradeEditor` "Apply Trade" button → `exportCurrentTrade()` → `onApplyTrade(tradeData)` → `useArchitectActions.applyTradeToCapSheet()` | Valid + legal validation result | `hasCurrentValidation && result.legal === true` gating; apply-time re-validation via `computeWorldMutation()` → `validatePostTradeSnapshotForContext()` → `validateTrade()` | `executeTrade` | World: `applyWorldMutation()` → `persistWorldMutation()` (Firestore batch). Base: `computeWorldMutation()` → `setTeamCapSheet()` | `syncTeamFromMutationResult()` reads `changedTeams` (authoritative); fallback: Firestore reload | `computeTeamCapTotals()` at snapshot build (tradeContext.js:524) + persistence audit | `src/tests/architect/tradeApply_baseState_authoritativeGate.guardrail.test.ts`, `src/tests/architect/tradeApply_failClosed_noWrite.guardrail.test.ts`, `src/tests/architect/phase50_executeTrade_integration_persistence.test.js` |
+| 15 | **Reset Trade** | `TradeEditor` Reset button → `useTradeMachine.resetTrade()` | None | None | None | None | Clears all `sends[]`, `entitlementsOut[]`, `result` | None | Implicit |
+| 16 | **Undo Player Trade** | `TradePlayerRow` → `onUndoPlayerTrade(player)` → `useTradeMachine.undoPlayerTrade()` | `player` | None | None | None | Removes player from all teams' `sends[]` | None | Implicit |
+| 17 | **Export Trade** | `TradeExportCapture` → `exportCurrentTrade()` | Valid trade state | None | None | None | Returns packaged trade data | None | `tests/trade/usedTradeExceptions.test.js` |
+
+### B) Major CBA Rule Coverage
+
+#### 1. Salary Matching Rules
+
+| Aspect | Implementation | File(s) | UI Surface | Test Coverage |
+|--------|---------------|---------|------------|---------------|
+| **Band 1** (outgoing ≤ $6.5M) | 200% + $250K | `utils/salaryMatchingRules.js` (`TIER_1_THRESHOLD`, `TIER_1_MULTIPLIER`, `TIER_1_BONUS`) | `TradeLegalChecker`, `ValidationDetailsPanel`, `TradeSalaryCalculator` | `tests/salaryMatchingRules.test.js`, `tests/trade/matchingBands_2023.test.js` |
+| **Band 2** ($6.5M–$19.6M) | 100% + $7.5M | `utils/salaryMatchingRules.js` (`TIER_2_THRESHOLD`, `TIER_2_BONUS`) | Same | Same |
+| **Band 3** (outgoing > $19.6M) | 125% + $250K | `utils/salaryMatchingRules.js` (`TIER_3_MULTIPLIER`, `TIER_3_BONUS`) | Same | Same |
+| **First Apron** (≥ apron) | 100% dollar-for-dollar | `utils/salaryMatchingRules.js` | Same | `tests/trade/firstApron_100pct.test.js` |
+| **Second Apron** (> secondApron, strict) | 100% dollar-for-dollar | `utils/salaryMatchingRules.js` | Same | `tests/trade/secondApronBoundary.test.js` |
+| **Under Cap** | outgoing + remaining cap space | `utils/salaryMatchingRules.js` | Same | `tests/trade/salaryMatching.test.js` |
+| **Incoming vs allowable check** | `salaryIn ≤ effectiveAllowableIncoming` | `rules/validateSalaryMatching.js` (line ~445-490) | `TradeLegalChecker` shows violations | `tests/validators/salaryMatching.test.js` |
+
+#### 2. Hard Cap Constraints
+
+| Aspect | Implementation | File(s) | UI Surface | Test Coverage |
+|--------|---------------|---------|------------|---------------|
+| **Hard cap incoming ceiling** | `hardCapIncomingCeiling = salaryOut + max(0, apron - teamTotalSalary)` | `rules/validateSalaryMatching.js:429-430`, `rules/hardCapValidation.js:103-104,137-138` | `ValidationDetailsPanel` shows hard cap ceiling and limiter | `src/tests/trade/hardCap_salaryMatching.guardrail.test.js` |
+| **Effective allowable = min(salaryMatchCeiling, hardCapCeiling)** | `effectiveAllowableIncoming = Math.min(allowableIncoming, hardCapIncomingCeiling)` | `rules/validateSalaryMatching.js:434-436` | Same | `src/tests/tradeMachine/tradeAllowableIncomingParity.guardrail.test.ts` |
+| **First Apron hard cap** | Triggered by S&T, BAE, NTMLE usage | `rules/hardCapValidation.js:86-87,133-144`, `rules/validateFaExceptionUsage.js:91-92` | `TradeLegalChecker` shows hard cap type | `tests/validators/hardCap.test.js`, `tests/trade/hardCap_trigger_faException.test.js` |
+| **Second Apron hard cap** | Auto-triggered when `teamTotalSalary > secondApron` | `rules/hardCapValidation.js:88-90,114-116` | Same | `tests/validators/hardCap.test.js`, `src/tests/tradeMachine/hardCap_reasonParity.guardrail.test.ts` |
+| **S&T receiver hard cap** | Receiver becomes first-apron hard-capped | `rules/validateSignAndTrade.js:194-219`, `tradeContext.js:526-542` | Hard cap metadata on team snapshot | `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts` |
+
+**Known burn #3 verification (apron hard cap):** ✅ PASS. `validateSalaryMatching.js:434` computes `effectiveAllowableIncoming = Math.min(allowableIncoming, hardCapIncomingCeiling)` where `hardCapIncomingCeiling = salaryOut + max(0, apron - teamTotalSalary)`. Allowable incoming cannot exceed hard-cap remaining room.
+
+#### 3. Aggregation Rules & Incoming/Outgoing Construction
+
+| Aspect | Implementation | File(s) | Test Coverage |
+|--------|---------------|---------|---------------|
+| **Second apron aggregation block** | Cannot aggregate 2+ outgoing into higher incoming | `rules/basicRules.js:90`, `rules/validateAggregation.js:68-70` | `tests/trade/secondApron_handcuffs.test.js` |
+| **S&T aggregation block (Rule 1.6)** | Receiver cannot receive additional players with S&T | `rules/validateSignAndTrade.js:93-107` | `tests/signAndTradeAggregation.test.js` |
+| **60-day aggregation timing** | Cannot aggregate recently acquired players | `rules/timingValidation.js:96-103` | `tests/trade/timingGates_softEnforcement.test.js` |
+| **TPE + outgoing aggregation** | Cannot combine TPE with outgoing salary | `rules/validateTradeExceptions.js:93-97` | `tests/trade/tpe_absorption_fail_closed.test.js` |
+| **Incoming/outgoing construction** | Route-aware via `computeMatchingValues()` (SSOT) | `engine/tradeValidator.js:720` → `utils/matchingValues.js` | `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js`, `src/tests/trade/goldenTrades.test.js` |
+
+#### 4. Trade Exceptions (TPE)
+
+| Aspect | Implementation | File(s) | Test Coverage |
+|--------|---------------|---------|---------------|
+| **TPE creation** | When `salaryOut > salaryIn` and over cap | `mutationPipeline.js` (`computeTradeResult`) | `tests/trade/tpe_creation_expiry_usage.test.js` |
+| **TPE consumption** | `absorptionMode='TPE'` + `tpeId` required | `rules/validateTradeExceptions.js` (fail-closed) | `tests/trade/tpe_absorption_fail_closed.test.js` |
+| **TPE capacity check** | `player salary ≤ TPE remainingAmount` | `rules/validateTradeExceptions.js` | Same |
+| **TPE expiry tracking** | `expiresOn` field checked; expired TPEs rejected | `rules/validateTradeExceptions.js` | `tests/trade/tpe_creation_expiry_usage.test.js` |
+| **Second apron prior-year TPE ban** | `isPriorYearTPE()` check blocks usage | `rules/validateTradeExceptions.js`, `rules/basicRules.js` | `tests/trade/secondApron_tpeBan.test.js` |
+| **TPE + salary aggregation prohibition** | Cannot combine TPE with outgoing salary | `rules/validateTradeExceptions.js:93-97` | `tests/trade/tpe_absorption_fail_closed.test.js` |
+
+#### 5. BYC (Base Year Compensation)
+
+| Aspect | Implementation | File(s) | Test Coverage |
+|--------|---------------|---------|---------------|
+| **BYC detection** | Current salary > 120% of previous season salary | `rules/miscRules.js` (`validateBYC`) | `tests/trade/byc_outgoing_max.test.js` |
+| **BYC outgoing value** | `max(previousSalary, 50% of newSalary)` | `rules/miscRules.js` | Same |
+| **BYC in matching values** | Integrated into `computeMatchingValues()` for outgoing | `engine/tradeValidator.js` → `utils/matchingValues.js` | `src/tests/trade/goldenTrades.test.js` |
+
+#### 6. Trade Kicker
+
+| Aspect | Implementation | File(s) | Test Coverage |
+|--------|---------------|---------|---------------|
+| **Trade kicker application** | Prorated kicker added to outgoing salary | `rules/miscRules.js` (`enforceTradeKicker`) | `tests/trade/tradeKicker_proration.test.js` |
+| **Trade kicker cap** | Capped at remaining guaranteed money | `rules/miscRules.js` | `tests/trade/tradeKicker_zeroGuarantee.test.js` |
+| **Poison pill averaging** | Average salary calculation for multi-year contracts | `utils/salaryUtils.js` | `tests/trade/poisonPill_average.test.js` |
+
+#### 7. Stepien Rule / Pick Eligibility
+
+| Aspect | Implementation | File(s) | Test Coverage |
+|--------|---------------|---------|---------------|
+| **Consecutive first-round pick restriction** | Cannot trade consecutive unprotected future firsts | `rules/draftRules.js` → `validateStepien.js` (SSOT) | `tests/validators/stepien.test.js`, `src/tests/tradeMachine/stepienObligations.test.js` |
+| **7-year future limit** | Cannot trade picks > 7 years out | `rules/draftRules.js` | Same |
+| **Entitlement-based Stepien** | Stepien computed from entitlement baseline | `tests/validators/stepienEntitlements.test.js`, `tests/validators/stepienEntitlementBaseline.test.js` | Same |
+
+#### 8. Roster Size Constraints
+
+| Aspect | Implementation | File(s) | Test Coverage |
+|--------|---------------|---------|---------------|
+| **Standard roster min (14)** | `MIN_ROSTER = 14` | `rules/validateRoster.ts` | `tests/trade/rosterLegality_validateTrade.test.js` |
+| **Standard roster max (15)** | `MAX_ROSTER = 15` | `rules/validateRoster.ts` | Same |
+| **Two-way max (3)** | `MAX_TWO_WAY = 3` | `rules/validateRoster.ts` | `tests/trade/roster_twoWay_enforcement.test.js` |
+| **Soft enforcement mode** | `validationFlags` can set to `'warn'` | `src/config/validationFlags.js` | `tests/trade/rosterWindow_softEnforcement.test.js` |
+| **Apply-time enforcement** | Re-validated via `validatePostTradeSnapshotForContext()` | `mutationPipeline.js` | `src/tests/architect/tradeApply_failClosed_noWrite.guardrail.test.ts` |
+
+#### 9. Sign-and-Trade Eligibility & Restrictions
+
+| Aspect | Implementation | File(s) | Test Coverage |
+|--------|---------------|---------|---------------|
+| **Eligibility: FREE_AGENT or CAP_HOLD only** | `isSignAndTradeEligible()` | `signAndTrade/signAndTradeEligibility.ts` | `src/tests/tradeMachine/signAndTrade.failClosed.guardrail.test.ts` |
+| **UNDER_CONTRACT → ineligible** | Fail-closed | Same | Same |
+| **Contract capture required** | Modal collects `salariesByYear[]`, `contractYears`, `firstYearGuaranteed` | `TradeEditor.jsx` → `EditContractModal` | `tests/trade/signAndTrade_completeness.test.js` |
+| **Contract length 3-4 years** | `validateSignAndTradeContractPayload()` | `signAndTrade/signAndTradeEligibility.ts` | Same |
+| **First year guaranteed** | Required field in contract payload | Same | Same |
+| **Receiver hard-cap consequence** | First-apron hard cap on receiving team | `rules/validateSignAndTrade.js:194-219` | `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts` |
+| **Rule 1.6 incoming aggregation** | Receiver cannot receive other players | `rules/validateSignAndTrade.js:93-107` | `tests/signAndTradeAggregation.test.js` |
+| **Source team mismatch** | Source team must match player's team | `signAndTrade/signAndTradeEligibility.ts` | `src/tests/tradeMachine/signAndTrade.failClosed.guardrail.test.ts` |
+| **Above-second-apron S&T block** | S&T violation for teams above 2nd apron | `rules/hardCapValidation.js` | `tests/validators/hardCap.test.js` |
+
+### C) Known Burn Regression Checks
+
+#### Burn #1: S&T not available for non-FA / non-eligible players
+
+**Status: ✅ VERIFIED**
+
+**Evidence:**
+- `signAndTradeEligibility.ts` → `isSignAndTradeEligible()` returns `eligible: false` for `UNDER_CONTRACT` status with `reasonCode: 'UNDER_CONTRACT'`.
+- UI gating: `TradeTeamCard` → `onRequestSignAndTrade` calls `openTradeMachineSatModal()` which routes to `EditContractModal`. The modal handler `handleTradeMachineSignAndTrade()` calls `validateSignAndTradeContractPayload()` before writing state.
+- Validator gate: `validateSignAndTrade.js` independently re-checks eligibility at validation time via `isSignAndTradeEligible()`.
+- Test: `src/tests/tradeMachine/signAndTrade.failClosed.guardrail.test.ts` explicitly tests that UNDER_CONTRACT players are ineligible.
+
+#### Burn #2: S&T flow collects contract details (not instant-send)
+
+**Status: ✅ VERIFIED**
+
+**Evidence:**
+- `TradeEditor.jsx` → `onRequestSignAndTrade` opens `EditContractModal` with `initialAction="signAndTrade"`.
+- Modal requires user to fill contract fields (`salariesByYear[]`, `contractYears`, `firstYearGuaranteed`).
+- `handleTradeMachineSignAndTrade()` validates contract via `validateSignAndTradeContractPayload()` before calling `setPlayerTrade()`.
+- State is only written after successful validation + modal confirm.
+- Cancel writes nothing.
+- Test: `tests/trade/signAndTrade_completeness.test.js` verifies contract payload is required.
+
+#### Burn #3: Allowable incoming respects hard-cap reality
+
+**Status: ✅ VERIFIED**
+
+**Evidence:**
+- `validateSalaryMatching.js:426-441` (TM_FIX_A2_E1):
+  ```js
+  const hardCapRoom = Math.max(0, hardCapCeilingApron - totalSalary);
+  hardCapIncomingCeiling = salaryOut + hardCapRoom;
+  effectiveAllowableIncoming = Math.min(allowableIncoming, hardCapIncomingCeiling);
+  ```
+- The `effectiveAllowableIncoming` is the **minimum** of salary-match ceiling and hard-cap ceiling.
+- Hard cap ceiling uses remaining room (`apron - teamTotalSalary`), not the matching ceiling.
+- Test: `src/tests/tradeMachine/tradeAllowableIncomingParity.guardrail.test.ts`, `src/tests/trade/hardCap_salaryMatching.guardrail.test.js`.
+
+#### Burn #4: Post-save state is deterministic (no drift)
+
+**Status: ✅ VERIFIED**
+
+**Evidence:**
+- World mode: `useArchitectActions.ts` → `syncTeamFromMutationResult()` reads `changedTeams` from `applyWorldMutation()` return. Uses authoritative computed state directly (not optimistic).
+- Fallback: If `changedTeams` is missing for current team, reloads from Firestore via `loadWorldTeamData(worldId, teamCode)`.
+- Base mode: `applyTradeToCapSheet()` loads base snapshots, runs `computeWorldMutation()`, and sets UI from computed result (not from pre-trade state).
+- Cap totals: Recalculated at snapshot build time via `computeTeamCapTotals()` in `tradeContext.js:524`.
+- Test: `src/tests/architect/tradeApply_baseState_authoritativeGate.guardrail.test.ts` verifies base-state apply uses authoritative gate.
+
+### STOP CONDITIONS EVALUATION
+
+| # | Condition | Status | Evidence |
+|---|-----------|--------|----------|
+| 1 | User-facing flow missing required inputs | **NOT TRIGGERED** | S&T requires contract modal; TPE requires `tpeId` selector; all routes require team selection |
+| 2 | Major rule missing enforcement OR UI contradicts reality | **NOT TRIGGERED** | All 9 major CBA rules have enforcement + UI surface (see matrix above) |
+| 3 | Allowable incoming exceeds hard-cap room | **NOT TRIGGERED** | `effectiveAllowableIncoming = Math.min(allowableIncoming, hardCapIncomingCeiling)` in `validateSalaryMatching.js:434` |
+| 4 | Mutation path bypasses validator gates | **NOT TRIGGERED** | Apply-time re-validates via `validatePostTradeSnapshotForContext()` → `validateTrade()`; base-state now uses `computeWorldMutation()` (STOP #5 from P1 closed) |
+| 5 | World success without authoritative resync | **NOT TRIGGERED** | `syncTeamFromMutationResult()` reads `changedTeams` (authoritative) with Firestore reload fallback |
+
+### Scenario Battery (10+ Scenarios)
+
+| # | Scenario | Teams | Key Rules Exercised | Expected Outcome | Test File |
+|---|----------|-------|---------------------|------------------|-----------|
+| 1 | Standard 2-team trade, both over cap, Band 3 | 2 | Salary matching (Band 3: 125% + $250K) | Legal if incoming ≤ allowable | `tests/trade/salaryMatching.test.js` |
+| 2 | Under-cap team acquires large contract | 2 | Under-cap matching (outgoing + cap space) | Legal if incoming ≤ outgoing + remaining room | `tests/trade/salaryMatching.test.js` |
+| 3 | First-apron team trade | 2 | First apron 100% matching + hard cap ceiling | Legal if dollar-for-dollar + under apron post-trade | `tests/trade/firstApron_100pct.test.js` |
+| 4 | Second-apron team trade with aggregation | 2 | Second apron 100% + aggregation block | Illegal: cannot aggregate | `tests/trade/secondApron_handcuffs.test.js` |
+| 5 | Sign-and-trade with contract capture | 2 | S&T eligibility + contract validation + hard cap trigger | Legal for FA/cap-hold; receiver hard-capped | `tests/trade/signAndTrade_completeness.test.js` |
+| 6 | TPE absorption | 2 | TPE consumption + capacity check + fail-closed | Legal if TPE exists, has capacity, and correct `tpeId` | `tests/trade/tpe_absorption_fail_closed.test.js` |
+| 7 | Stepien rule violation | 2 | Consecutive first-round pick restriction | Illegal: Stepien violation | `tests/validators/stepien.test.js` |
+| 8 | Roster overflow (>15 standard) | 2 | Roster max (15) | Illegal: roster exceeds maximum | `tests/trade/rosterLegality_validateTrade.test.js` |
+| 9 | 3-team trade with explicit routing | 3 | Multi-team routing + routed incoming salary | Legal if all destinations explicit + salary matches per team | `tests/tradeValidator.test.js` (3-team fixtures) |
+| 10 | BYC-adjusted outgoing value | 2 | BYC detection + adjusted outgoing | Outgoing uses BYC formula (max of prev salary, 50% new) | `tests/trade/byc_outgoing_max.test.js` |
+| 11 | Hard-cap team with S&T incoming | 2 | Hard cap ceiling limits allowable | `effectiveAllowableIncoming = min(salaryMatch, hardCapCeiling)` | `src/tests/trade/hardCap_salaryMatching.guardrail.test.js` |
+| 12 | Trade kicker proration | 2 | Trade kicker added to outgoing, capped at guaranteed | Kicker prorated + capped | `tests/trade/tradeKicker_proration.test.js` |
+| 13 | Second apron prior-year TPE ban | 2 | Second apron blocks prior-year TPE | Illegal: prior-year TPE blocked | `tests/trade/secondApron_tpeBan.test.js` |
+| 14 | S&T incoming aggregation (Rule 1.6) | 2+ | Receiver cannot aggregate players with S&T | Illegal: cannot receive additional players | `tests/signAndTradeAggregation.test.js` |
+
+### Ranked Gaps
+
+| Priority | Gap | Impact | Suggested Ticket |
+|----------|-----|--------|------------------|
+| 1 | **DPE (Disabled Player Exception) parity** | DPE editable via `ManageExceptionsModal` but not validated by trade validator | `TM_DPE_VALIDATOR_PARITY_E1` — Wire DPE validation into `validateTradeExceptions` |
+| 2 | **Three duplicate roster validation modules** | `rosterValidation.js`, `validateRoster.ts`, `validateRoster.js` overlap; canonical is inline in `tradeValidator.js` | `TM_ROSTER_CONSOLIDATION_E1` — Consolidate to single SSOT roster validator |
+| 3 | **Consent/NTC enforcement depth** | `validateConsent.js` and `miscRules.js` handle consent but no structured NTC roster data exists in Firestore | `TM_NTC_DATA_MODEL_E1` — Define NTC data model + enforcement |
+| 4 | **Reacquisition enforcement timing** | Reacquisition rules reference `departedAt` timestamp but TM does not track player departure dates in world state | `TM_REACQUISITION_TIMING_E1` — Add departure date tracking to world mutations |
+| 5 | **FA Exception hard-cap trigger UI feedback** | `validateFaExceptionUsage.js` sets `hardCapFirstApron` but UI may not surface the cause clearly | `TM_FA_EXCEPTION_HARDCAP_UI_E1` — Surface FA exception hard-cap trigger reason |
+| 6 | **Moratorium / timing gates soft-only** | Timing validation (`timingValidation.js`) defaults to soft enforcement per `validationFlags` | `TM_TIMING_ENFORCEMENT_E1` — Evaluate timing enforcement upgrade |
+| 7 | **Vacuum mode entitlement parity** | Vacuum mode uses `localStorage` for entitlements; no validator parity with world mode | `TM_VACUUM_ENTITLEMENT_PARITY_E1` — Align vacuum entitlement handling with world mode |
