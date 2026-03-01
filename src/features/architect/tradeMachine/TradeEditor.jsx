@@ -302,7 +302,9 @@ const TradeEditor = ({
     contractPayload,
     destinationTeamId
   ) => {
-    if (!tradeMachineSatModal) return;
+    if (!tradeMachineSatModal) {
+      return { success: false, message: 'Sign-and-trade modal is not active.' };
+    }
 
     const sourceTeam =
       teams[tradeMachineSatModal.teamIndex]?.team || null;
@@ -310,12 +312,15 @@ const TradeEditor = ({
 
     if (!destinationTeamId) {
       toast.error('Sign-and-trade requires a destination team.');
-      return;
+      return { success: false, message: 'Destination team is required.' };
     }
 
     if (sourceTeamId && destinationTeamId === sourceTeamId) {
       toast.error('Destination team must be different from the source team.');
-      return;
+      return {
+        success: false,
+        message: 'Destination team must be different from the source team.',
+      };
     }
 
     const contractValidation = validateSignAndTradeContractPayload(
@@ -329,7 +334,12 @@ const TradeEditor = ({
         contractValidation.reasons[0] ||
           'Sign-and-trade contract details are incomplete.'
       );
-      return;
+      return {
+        success: false,
+        message:
+          contractValidation.reasons[0] ||
+          'Sign-and-trade contract details are incomplete.',
+      };
     }
 
     setPlayerTrade(
@@ -343,6 +353,7 @@ const TradeEditor = ({
     );
 
     closeTradeMachineSatModal();
+    return { success: true };
   };
 
   return (

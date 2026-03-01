@@ -24,6 +24,7 @@ This master doc covers the **Cap Sheet page surface only** in Architect GM Dashb
 - P1 Preflight Audit: `return_packages/architect/TM_CAP_SHEET_P1_PREFLIGHT_RETURN_PACKAGE.md`
 - E1 Execution Closure: `return_packages/architect/TM_CAP_SHEET_E1_EXECUTION_RETURN_PACKAGE.md`
 - E2 Polish Closure: `return_packages/architect/TM_CAP_SHEET_E2_EXECUTION_RETURN_PACKAGE.md`
+- E3 Closure Permanence Gates: `return_packages/architect/TM_CAP_SHEET_E3_EXECUTION_RETURN_PACKAGE.md`
 
 ---
 
@@ -43,6 +44,39 @@ This master doc covers the **Cap Sheet page surface only** in Architect GM Dashb
 
 - `src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx` — Guardrail tests verifying `totals.salaryCap` usage
 - `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` — Behavior tests verifying single toast emission on failure
+
+---
+
+## E3 — Closure Permanence Gates (2026-02-28)
+
+### Purpose
+
+E3 adds **permanent regression gates** (fast source-scanning tests) that fail CI if any E1/E2 Cap Sheet page closures regress. These gates are deterministic and do not require UI rendering.
+
+### Gate File
+
+`src/tests/architect/capSheet_closure.gate.test.ts`
+
+### Gates Implemented
+
+| Gate   | What It Protects                                                                    | Pattern Scanned                                                                                             |
+| ------ | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Gate 1 | Cap % denominator uses SSOT `totals.salaryCap`, not deprecated `capProjections`     | `CapSheet.jsx`: `getCapPercentage(..., totals.salaryCap)` presence, `capProjections` import absence         |
+| Gate 2 | DPE not exposed in Cap Sheet Exceptions UI                                          | `ManageExceptionsModal.jsx`: `EXCEPTION_TYPES` excludes `dpe`; `ExceptionTracker.jsx`: no DPE card/label    |
+| Gate 3 | ExceptionTracker reads canonical `team.exceptions` first with legacy fallback       | `ExceptionTracker.jsx`: `canonicalEntry = teamCapSheet?.exceptions?.[canonicalKey]`, `legacyEntry` fallback |
+| Gate 4 | TPE expiry display uses canonical normalized fields (`expiresOn`, `expirationDate`) | `ExceptionTracker.jsx`: `tpe.expiresOn \|\| tpe.expirationDate \|\| tpe.expires` fallback chain             |
+| Gate 5 | Modal save does not close-before-confirm (awaits save, keeps open on failure)       | Both modals: `await onSave(...)`, conditional `onClose()`, `role="alert"` error surface                     |
+| Gate 6 | World failure toast dedupe (single toast when `onFailure` callback provided)        | `useArchitectActions.ts`: `if (!options.onFailure) toast.error(...)` guard                                  |
+
+### Run Command
+
+```bash
+npm run test:node -- --run src/tests/architect/capSheet_closure.gate.test.ts --reporter=dot
+```
+
+### Return Package
+
+`return_packages/architect/TM_CAP_SHEET_E3_EXECUTION_RETURN_PACKAGE.md`
 
 ---
 
@@ -66,11 +100,11 @@ This master doc covers the **Cap Sheet page surface only** in Architect GM Dashb
 
 ## Known Gaps (Snapshot)
 
-**All P1/P2 gaps resolved in E1+E2.**
+**All P1/P2 gaps resolved in E1+E2. E3 closure permanence gates added.**
 
 ### Remaining Candidate Work (Lower Priority)
 
-1. `CAP-SHEET-GUARDRAIL-01`: Add a focused guardrail for canonical `exceptions` + legacy fallback read behavior.
+None — all identified gaps have been addressed.
 
 ---
 

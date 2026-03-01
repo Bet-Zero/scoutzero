@@ -105,9 +105,13 @@ const FreeAgentPool = ({
       yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
     };
 
-    await onSign(playerObj, contract);
+    const result = await onSign(playerObj, contract);
+    if (result?.success === false) {
+      return result;
+    }
 
     setSelectedPlayers((prev) => prev.filter((p) => p.name !== playerObj.name));
+    return { success: true };
   };
 
   const allAgents = freeAgents || [];

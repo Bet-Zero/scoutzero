@@ -1,6 +1,6 @@
 # SHIP_GATES_MASTER
 
-Last updated: 2026-02-28
+Last updated: 2026-03-01
 
 ---
 
@@ -214,6 +214,37 @@ Manual smoke checklist (cap auditability scope, P6 verified):
 - Tests added:
   - `src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx` — guardrail for SSOT usage
   - `src/tests/architect/capSheet_toast_dedupe.behavior.test.ts` — behavior test for single toast
+
+## Cap Sheet Closure Permanence Gates (E3 COMPLETE)
+
+- Status: **COMPLETE** (2026-02-28)
+- Return package: `return_packages/architect/TM_CAP_SHEET_E3_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/CAP_SHEET_MASTER.md`
+- Gate file: `src/tests/architect/capSheet_closure.gate.test.ts`
+- Run command: `npm run test:node -- --run src/tests/architect/capSheet_closure.gate.test.ts --reporter=dot`
+- Gates protect (22 tests):
+  - **Gate 1**: Cap % denominator uses SSOT `totals.salaryCap`
+  - **Gate 2**: DPE not exposed in Cap Sheet Exceptions UI
+  - **Gate 3**: ExceptionTracker reads canonical `team.exceptions` first
+  - **Gate 4**: TPE expiry display uses canonical normalized fields
+  - **Gate 5**: Modal save does not close-before-confirm
+  - **Gate 6**: World failure toast dedupe logic
+
+## Edit Contract Modal Cap-Flow Closure (TM_EDIT_CONTRACT_E1 COMPLETE)
+
+- Status: **COMPLETE** (2026-03-01)
+- Return package: `return_packages/architect/TM_EDIT_CONTRACT_E1_EXECUTION_RETURN_PACKAGE.md`
+- Master doc: `docs/architect/EDIT_CONTRACT_MASTER.md`
+- Scope: Cap Sheet row-click → EditContractModal → save → cap totals refresh
+- Page-level ship gates satisfied:
+  - Buyout path now captures/forwards buyout amount and applies consistent dead-cap semantics across local/world paths.
+  - World-mode cap mutation success now resyncs in-memory team snapshot from authoritative `changedTeams`.
+  - EditContractModal closes only on explicit success and remains open on canceled confirm/save failure with inline error messaging.
+- Targeted E1 tests:
+  - `src/tests/architect/editContractModal_buyout_and_close.behavior.test.jsx`
+  - `src/tests/architect/useArchitectActions_editContract_resync.behavior.test.tsx`
+- Targeted run command:
+  - `npm run test:ui -- --run src/tests/architect/editContractModal_buyout_and_close.behavior.test.jsx src/tests/architect/useArchitectActions_editContract_resync.behavior.test.tsx --reporter=dot`
 
 ---
 

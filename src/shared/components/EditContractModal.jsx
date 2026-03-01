@@ -155,6 +155,9 @@ const EditContractModal = ({
   const [selectedException, setSelectedException] = useState('None');
   const [isOfferSheet, setIsOfferSheet] = useState(false); // Phase 16
   const [destinationTeamId, setDestinationTeamId] = useState(null); // Phase 23
+  const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // Override state management
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -194,6 +197,20 @@ const EditContractModal = ({
   const contractYears = useMemo(() => {
     return getContractYearsForDisplay(player);
   }, [player]);
+
+  const remainingGuaranteedForBuyout = useMemo(() => {
+    const salaries = player?.contract?.salariesByYear || [];
+    return salaries
+      .filter((y) => {
+        const season = String(y.season || '');
+        const yearEnd = /^\d{4}-\d{2}$/.test(season)
+          ? 2000 + parseInt(season.split('-')[1], 10)
+          : parseInt(season, 10);
+        return Number.isFinite(yearEnd) && yearEnd >= CURRENT_YEAR;
+      })
+      .filter((y) => y.guaranteed !== false)
+      .reduce((sum, y) => sum + (Number(y.salary) || 0), 0);
+  }, [CURRENT_YEAR, player]);
 
   const isFreeAgent =
     player?.freeAgentYear && player.freeAgentYear <= CURRENT_YEAR;
@@ -308,10 +325,25 @@ const EditContractModal = ({
   // Set VITE_ENABLE_CBA_OVERRIDE=true in .env for development/sandbox mode
   const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
 
+  const parsedBuyoutAmount = useMemo(() => {
+    const trimmed = String(buyoutAmountInput || '').trim();
+    if (!trimmed) return null;
+    const amount = Number(trimmed);
+    if (!Number.isFinite(amount) || amount < 0) return null;
+    return amount;
+  }, [buyoutAmountInput]);
+
+  const buyoutAmountIsValid =
+    selectedAction !== 'buyout' ||
+    (parsedBuyoutAmount != null &&
+      parsedBuyoutAmount <= remainingGuaranteedForBuyout);
+
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !destinationTeamId) ||
-    (!validationResult.isLegal && (!canOverride || !isOverrideConfirmed));
+    (!validationResult.isLegal && (!canOverride || !isOverrideConfirmed)) ||
+    !buyoutAmountIsValid ||
+    isSubmitting;
 
   // Show override/advanced section when action is illegal AND override is enabled
   // In production (canOverride=false), illegal actions are simply blocked
@@ -331,6 +363,11 @@ const EditContractModal = ({
     setShowAdvanced(false);
     setOverrideText('');
     setDestinationTeamId(null);
+    setSaveError('');
+    setIsSubmitting(false);
+    if (selectedAction !== 'buyout') {
+      setBuyoutAmountInput('');
+    }
   }, [selectedAction, isOpen]);
 
   // Contract Summary Calculations
@@ -617,7 +654,39 @@ const EditContractModal = ({
     [CURRENT_YEAR, extension, selectedException, signingGuardrails]
   );
 
-  const handleConfirm = () => {
+  const normalizeActionResult = (result) => {
+    if (result && typeof result === 'object' && 'success' in result) {
+      return {
+        success: result.success !== false,
+        message: result.message || '',
+      };
+    }
+    if (result === false) {
+      return {
+        success: false,
+        message: 'Action canceled. No changes were saved.',
+      };
+    }
+    return {
+      success: false,
+      message: 'Action did not complete. Please try again.',
+    };
+  };
+
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    setSaveError('');
+
+    if (selectedAction === 'buyout' && !buyoutAmountIsValid) {
+      setSaveError(
+        `Enter a buyout amount between 0 and ${formatCurrencyFull(
+          remainingGuaranteedForBuyout
+        )}.`
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
     const timestamp = new Date().toISOString();
     // Record audit log if override was used
     const overrideUsed = !validationResult.isLegal && isOverrideConfirmed;
@@ -639,10 +708,16 @@ const EditContractModal = ({
           overrideTimestamp: timestamp,
         }
       : null;
-    
-    // Phase 16: MVP Offer Sheet toggle Logic
-    if (isOfferSheet && (selectedAction === 'signNew' || selectedAction === 'resign')) {
-        onStoreOfferSheet?.(
+
+    try {
+      let actionResult;
+
+      // Phase 16: MVP Offer Sheet toggle Logic
+      if (
+        isOfferSheet &&
+        (selectedAction === 'signNew' || selectedAction === 'resign')
+      ) {
+        actionResult = await onStoreOfferSheet?.(
           player,
           buildCanonicalSigningPayload({
             contractType: 'Offer Sheet',
@@ -651,73 +726,107 @@ const EditContractModal = ({
             ...(overrideMetadata || {}),
           })
         );
+      } else {
+        switch (selectedAction) {
+          case 'accept':
+            actionResult = await onOptionDecision?.(player, true, overrideMetadata);
+            break;
+          case 'decline':
+            actionResult = await onOptionDecision?.(
+              player,
+              false,
+              overrideMetadata
+            );
+            break;
+          case 'signNew':
+            actionResult = await (onSignFreeAgent || onSaveContract || onSave)?.(
+              player,
+              buildCanonicalSigningPayload({
+                ...(overrideMetadata || {}),
+              })
+            );
+            break;
+          case 'resign':
+            actionResult = await (onResign || onSaveContract || onSave)?.(
+              player,
+              buildCanonicalSigningPayload({
+                ...(overrideMetadata || {}),
+              })
+            );
+            break;
+          case 'signAndTrade':
+            actionResult = await onSignAndTrade?.(
+              player,
+              buildCanonicalSigningPayload({
+                signAndTrade: true,
+                contractType: 'Sign & Trade',
+                ...(overrideMetadata || {}),
+              }),
+              destinationTeamId
+            );
+            break;
+          case 'renounce':
+            actionResult = await onRenounce?.(player, overrideMetadata);
+            break;
+          case 'extend': {
+            const startYear = optionYear ? optionYear + 1 : CURRENT_YEAR + 1;
+            const contract = generateExtensionContract({
+              firstYearSalary: extension.salaries[0] || 0,
+              years: extension.years,
+              raisePct: extMax?.baseRaisePct || 0.08,
+              startYear,
+            });
+            actionResult = await onExtend?.(player, {
+              ...contract,
+              ...(overrideMetadata || {}),
+            });
+            break;
+          }
+          case 'waive':
+            actionResult = await onWaive?.(player, {
+              stretch: false,
+              buyout: false,
+              ...(overrideMetadata || {}),
+            });
+            break;
+          case 'waiveStretch':
+            actionResult = await onWaive?.(player, {
+              stretch: true,
+              buyout: false,
+              ...(overrideMetadata || {}),
+            });
+            break;
+          case 'buyout':
+            actionResult = await onWaive?.(player, {
+              stretch: false,
+              buyout: true,
+              buyoutAmount: parsedBuyoutAmount ?? 0,
+              ...(overrideMetadata || {}),
+            });
+            break;
+          default:
+            actionResult = { success: false, message: 'Select an action first.' };
+            break;
+        }
+      }
+
+      const normalizedResult = normalizeActionResult(actionResult);
+      if (normalizedResult.success) {
         onClose();
         return;
-    }
+      }
 
-    switch (selectedAction) {
-      case 'accept':
-        onOptionDecision?.(player, true, overrideMetadata);
-        break;
-      case 'decline':
-        onOptionDecision?.(player, false, overrideMetadata);
-        break;
-      case 'signNew':
-        (onSignFreeAgent || onSaveContract || onSave)?.(
-          player,
-          buildCanonicalSigningPayload({
-            ...(overrideMetadata || {}),
-          })
-        );
-        break;
-      case 'resign':
-        (onResign || onSaveContract || onSave)?.(
-          player,
-          buildCanonicalSigningPayload({
-            ...(overrideMetadata || {}),
-          })
-        );
-        break;
-      case 'signAndTrade':
-        onSignAndTrade?.(
-          player,
-          buildCanonicalSigningPayload({
-            signAndTrade: true,
-            contractType: 'Sign & Trade',
-            ...(overrideMetadata || {}),
-          }),
-          destinationTeamId
-        );
-        break;
-      case 'renounce':
-        onRenounce?.(player, overrideMetadata);
-        break;
-      case 'extend':
-        {
-          const startYear = optionYear ? optionYear + 1 : CURRENT_YEAR + 1;
-          const contract = generateExtensionContract({
-            firstYearSalary: extension.salaries[0] || 0,
-            years: extension.years,
-            raisePct: extMax?.baseRaisePct || 0.08,
-            startYear,
-          });
-          onExtend?.(player, { ...contract, ...(overrideMetadata || {}) });
-        }
-        break;
-      case 'waive':
-        onWaive?.(player, { stretch: false, buyout: false, ...(overrideMetadata || {}) });
-        break;
-      case 'waiveStretch':
-        onWaive?.(player, { stretch: true, buyout: false, ...(overrideMetadata || {}) });
-        break;
-      case 'buyout':
-        onWaive?.(player, { stretch: false, buyout: true, ...(overrideMetadata || {}) });
-        break;
-      default:
-        break;
+      setSaveError(
+        normalizedResult.message ||
+          'Action was not completed. Review details and try again.'
+      );
+    } catch (error) {
+      setSaveError(
+        error?.message || 'Failed to save this action. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onClose();
   };
 
   if (!player) return null;
@@ -1211,6 +1320,58 @@ const EditContractModal = ({
             </div>
           )}
 
+          {/* Buyout Details */}
+          {selectedAction === 'buyout' && (
+            <div className="bg-white/5 rounded-lg border border-white/20 p-4 space-y-3">
+              <h4 className="font-semibold text-sm text-white flex items-center gap-2">
+                <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
+                Buyout Terms
+              </h4>
+              <div className="text-xs text-white/70">
+                Remaining guaranteed salary:{' '}
+                <span className="text-white font-semibold">
+                  {formatCurrencyFull(remainingGuaranteedForBuyout)}
+                </span>
+              </div>
+              <div>
+                <label
+                  htmlFor="buyout-amount-input"
+                  className="block text-xs font-medium text-white/80 mb-1"
+                >
+                  Buyout Amount
+                </label>
+                <input
+                  id="buyout-amount-input"
+                  type="number"
+                  min={0}
+                  max={remainingGuaranteedForBuyout || undefined}
+                  step="1000"
+                  value={buyoutAmountInput}
+                  onChange={(event) => setBuyoutAmountInput(event.target.value)}
+                  placeholder="0"
+                  className="w-full px-3 py-2 rounded bg-black/50 border border-white/20 text-sm text-white outline-none focus:border-orange-500"
+                />
+              </div>
+              <div className="text-[11px] text-white/60">
+                Resulting dead cap:{' '}
+                <span className="text-white">
+                  {formatCurrencyFull(
+                    Math.max(
+                      0,
+                      remainingGuaranteedForBuyout - (parsedBuyoutAmount || 0)
+                    )
+                  )}
+                </span>
+              </div>
+              {!buyoutAmountIsValid && (
+                <p className="text-[11px] text-red-300">
+                  Enter a value between 0 and{' '}
+                  {formatCurrencyFull(remainingGuaranteedForBuyout)}.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* === Validation Warnings === */}
           {selectedAction && (warnings.length > 0 || errors.length > 0) && (
             <ValidationWarnings
@@ -1279,10 +1440,20 @@ const EditContractModal = ({
             </div>
           )}
 
+          {saveError && (
+            <div
+              role="alert"
+              className="mt-4 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+            >
+              {saveError}
+            </div>
+          )}
+
           {/* Footer Buttons */}
           <div className="mt-auto pt-6 flex justify-end gap-3">
             <button
               onClick={onClose}
+              disabled={isSubmitting}
               className="px-4 py-2 text-sm font-medium rounded bg-white/5 hover:bg-white/10 text-white transition-colors"
             >
               Cancel
@@ -1298,11 +1469,13 @@ const EditContractModal = ({
                     : 'bg-gray-600 text-white/50'
               }`}
             >
-              {validationResult.isLegal
-                ? 'Confirm Action'
-                : isOverrideConfirmed
-                  ? '⚠️ Force Override'
-                  : 'Action Blocked'}
+              {isSubmitting
+                ? 'Saving...'
+                : validationResult.isLegal
+                  ? 'Confirm Action'
+                  : isOverrideConfirmed
+                    ? '⚠️ Force Override'
+                    : 'Action Blocked'}
             </button>
           </div>
         </div>

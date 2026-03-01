@@ -1966,7 +1966,7 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
  */
 function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
   const { team, player, teamCode } = currentState;
-  const { stretch = false, stretchYears = 3 } = payload;
+  const { stretch = false, stretchYears = 3, buyout = false } = payload;
 
   // Prioritize payload ID, then fall back to player object properties
   const playerId = payload.playerId || player.player_id || player.id;
@@ -1998,14 +1998,30 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
     (p) => (p.player_id || p.id) !== playerId
   );
 
-  // Calculate dead cap
+  // Calculate dead cap from guaranteed rows in current/future seasons.
   const contract = player.contract;
-  const remainingSalary = contract?.guaranteedValue || 0;
+  const contractRows = contract?.salariesByYear || [];
+  const remainingGuaranteedFromRows = contractRows
+    .filter((row) => {
+      const yearEnd = toEndYear(row.season);
+      return Number.isFinite(yearEnd) && yearEnd >= toEndYear(seasonId);
+    })
+    .filter((row) => row.guaranteed !== false)
+    .reduce((sum, row) => sum + (Number(row.salary) || 0), 0);
+  const guaranteedValueFallback = Number(contract?.guaranteedValue) || 0;
+  const remainingSalary = remainingGuaranteedFromRows || guaranteedValueFallback;
+  const rawBuyoutAmount = buyout ? Math.max(0, Number(payload.buyoutAmount) || 0) : 0;
+  const boundedBuyoutAmount = buyout
+    ? Math.min(remainingSalary, rawBuyoutAmount)
+    : 0;
+  const deadCapAmount = buyout
+    ? Math.max(0, remainingSalary - boundedBuyoutAmount)
+    : remainingSalary;
 
-  if (stretch && remainingSalary > 0) {
+  if (stretch && deadCapAmount > 0) {
     // Calculate stretched amounts with remainder distribution to avoid rounding loss
-    const baseStretchedAmount = Math.floor(remainingSalary / stretchYears);
-    const remainder = remainingSalary - baseStretchedAmount * stretchYears;
+    const baseStretchedAmount = Math.floor(deadCapAmount / stretchYears);
+    const remainder = deadCapAmount - baseStretchedAmount * stretchYears;
 
     updatedTeam.deadCap = updatedTeam.deadCap || [];
     updatedTeam.deadCap.push({
@@ -2025,9 +2041,11 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
         };
       }),
       waiveDate: new Date(timestamp).toISOString(),
-      notes: `Stretched over ${stretchYears} years`,
+      notes: buyout
+        ? `Buyout reduction: $${boundedBuyoutAmount.toLocaleString()} (stretched over ${stretchYears} years)`
+        : `Stretched over ${stretchYears} years`,
     });
-  } else if (remainingSalary > 0) {
+  } else if (deadCapAmount > 0) {
     updatedTeam.deadCap = updatedTeam.deadCap || [];
     updatedTeam.deadCap.push({
       playerId,
@@ -2036,11 +2054,14 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
       amountByYear: [
         {
           season: seasonId,
-          amount: remainingSalary,
+          amount: deadCapAmount,
           isStretched: false,
         },
       ],
       waiveDate: new Date(timestamp).toISOString(),
+      notes: buyout
+        ? `Buyout reduction: $${boundedBuyoutAmount.toLocaleString()}`
+        : undefined,
     });
   }
 
@@ -2064,7 +2085,7 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
       playerId,
       playerName: player.displayName || player.name,
       stretched: stretch,
-      deadCapAmount: remainingSalary,
+      deadCapAmount,
       timestamp,
     },
   };
