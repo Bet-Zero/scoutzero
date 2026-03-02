@@ -358,7 +358,17 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'history' && (
-          <HistorySection teamCapSheet={teamCapSheet} />
+          <HistorySection
+            teamCapSheet={teamCapSheet}
+            worldId={worldId}
+            onInjectTeamHistoryFixtures={
+              actions.handleInjectTeamHistoryFixtures
+            }
+            onClearTeamHistoryFixtures={actions.handleClearTeamHistoryFixtures}
+            hasInjectedTeamHistoryFixtures={
+              actions.hasInjectedTeamHistoryFixtures
+            }
+          />
         )}
       </div>
 

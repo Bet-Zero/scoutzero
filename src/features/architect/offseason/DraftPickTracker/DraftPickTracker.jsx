@@ -1,11 +1,9 @@
 import React from 'react';
 
 const DraftPickTracker = ({ pickLog = [], currentPicks = {} }) => {
-  const years = Array.from(
-    new Set(
-      Object.keys(currentPicks).map(Number)
-    )
-  ).sort((a, b) => a - b);
+  const years = Array.from(new Set(Object.keys(currentPicks).map(Number))).sort(
+    (a, b) => a - b
+  );
 
   return (
     <div className="text-white">
@@ -13,7 +11,10 @@ const DraftPickTracker = ({ pickLog = [], currentPicks = {} }) => {
       {pickLog.length === 0 ? (
         <p>No draft pick trades logged.</p>
       ) : (
-        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+        <table
+          data-testid="team-history-pick-log-table"
+          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+        >
           <thead>
             <tr>
               <th className="p-2 text-left">Date</th>
@@ -25,7 +26,11 @@ const DraftPickTracker = ({ pickLog = [], currentPicks = {} }) => {
           </thead>
           <tbody>
             {pickLog.map((entry, idx) => (
-              <tr key={`${entry.date}-${idx}`} className="odd:bg-[#171717]">
+              <tr
+                key={`${entry.date}-${idx}`}
+                data-testid={`team-history-pick-log-row-${idx}`}
+                className="odd:bg-[#171717]"
+              >
                 <td className="p-2">{entry.date || 'Unknown'}</td>
                 <td className="p-2">{entry.action || '—'}</td>
                 <td className="p-2">{entry.pick || '—'}</td>
@@ -41,7 +46,10 @@ const DraftPickTracker = ({ pickLog = [], currentPicks = {} }) => {
       {years.length === 0 ? (
         <p>No picks currently owned.</p>
       ) : (
-        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+        <table
+          data-testid="team-history-current-picks-table"
+          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+        >
           <thead>
             <tr>
               <th className="p-2 text-left">Year</th>
@@ -51,7 +59,11 @@ const DraftPickTracker = ({ pickLog = [], currentPicks = {} }) => {
           </thead>
           <tbody>
             {years.map((year) => (
-              <tr key={year} className="odd:bg-[#171717]">
+              <tr
+                key={year}
+                data-testid={`team-history-current-picks-row-${year}`}
+                className="odd:bg-[#171717]"
+              >
                 <td className="p-2">{year}</td>
                 <td className="p-2">{currentPicks[year]?.first || '—'}</td>
                 <td className="p-2">{currentPicks[year]?.second || '—'}</td>

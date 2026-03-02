@@ -700,6 +700,113 @@ function buildMutationFailureResult(error, overrides = {}) {
   };
 }
 
+function sanitizeStringList(input) {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input.map((value) => String(value || '').trim()).filter(Boolean);
+}
+
+function deriveEventTeamCodes({ auditContext = {}, computeResult = {} }) {
+  const candidates = [
+    auditContext.teamCodes,
+    (computeResult.teamUpdates || []).map((update) => update?.teamCode),
+    computeResult.metadata?.teamsAffected,
+    computeResult.metadata?.teamsInvolved,
+    computeResult.metadata?.teamCodes,
+  ];
+
+  for (const candidate of candidates) {
+    const teamCodes = sanitizeStringList(candidate);
+    if (teamCodes.length > 0) {
+      return Array.from(new Set(teamCodes));
+    }
+  }
+
+  return [];
+}
+
+function deriveEventPlayerIds({ auditContext = {}, computeResult = {} }) {
+  const candidates = [
+    auditContext.playerIds,
+    (computeResult.playerUpdates || []).map((update) => update?.playerId),
+    computeResult.metadata?.playerIds,
+    computeResult.metadata?.playersTraded,
+    computeResult.metadata?.playerId ? [computeResult.metadata.playerId] : [],
+  ];
+
+  for (const candidate of candidates) {
+    const playerIds = sanitizeStringList(candidate);
+    if (playerIds.length > 0) {
+      return Array.from(new Set(playerIds));
+    }
+  }
+
+  return [];
+}
+
+export function buildWorldMutationEventPayload({
+  mutationType,
+  eventId,
+  seasonId,
+  worldId,
+  timestamp,
+  computeResult,
+  auditContext = {},
+}) {
+  const teamCodes = deriveEventTeamCodes({ auditContext, computeResult });
+  if (teamCodes.length === 0) {
+    throw new Error(
+      `persistWorldMutation requires non-empty teamCodes for ${mutationType}`
+    );
+  }
+
+  const playerIds = deriveEventPlayerIds({ auditContext, computeResult });
+  const occurredAt = new Date(timestamp).toISOString();
+  if (!occurredAt || Number.isNaN(Date.parse(occurredAt))) {
+    throw new Error(
+      `persistWorldMutation produced invalid occurredAt for ${mutationType}`
+    );
+  }
+
+  return {
+    // Legacy fields retained for compatibility with existing event consumers.
+    eventId,
+    type: mutationType,
+    timestamp: occurredAt,
+    seasonId,
+    metadata: removeUndefinedDeep(
+      sanitizeTransientFieldsForPersistence(computeResult.metadata)
+    ),
+    teamsAffected: teamCodes,
+
+    // Cap Audit Event V1 envelope.
+    schemaVersion: auditContext.schemaVersion || CAP_AUDIT_EVENT_SCHEMA_VERSION,
+    validatorVersion:
+      auditContext.validatorVersion || POST_STATE_CAP_VALIDATOR_VERSION,
+    operationId: auditContext.operationId,
+    mutationType,
+    occurredAt,
+    worldId,
+    teamCodes,
+    playerIds,
+    beforeTotalsByTeam: auditContext.beforeTotalsByTeam || {},
+    afterTotalsByTeam: auditContext.afterTotalsByTeam || {},
+    valid: auditContext.valid === true,
+    violations: auditContext.violations || [],
+    warnings: auditContext.warnings || [],
+    diffSummary: auditContext.diffSummary || {},
+    mutationMetadata: {
+      mutationType,
+      category: auditContext.mutationCategory || 'unknown',
+      worldId,
+      teams: teamCodes,
+      players: playerIds,
+    },
+  };
+}
+
 // ==============================================================================
 // MAIN ENTRY POINT
 // ==============================================================================
@@ -797,10 +904,7 @@ export async function applyWorldMutation({
       computeWritesSummary.playersPatched > 0 ||
       computeWritesSummary.entitlementsPatched > 0;
 
-    if (
-      FREE_AGENCY_MUTATION_TYPES.has(mutationType) &&
-      !appliedToLocalState
-    ) {
+    if (FREE_AGENCY_MUTATION_TYPES.has(mutationType) && !appliedToLocalState) {
       return buildMutationFailureResult(
         `${mutationType} produced no state delta and was fail-closed before persistence.`,
         {
@@ -970,16 +1074,13 @@ export async function applyWorldMutation({
     ];
 
     if (!postStateValidation.valid) {
-      return buildMutationFailureResult(
-        'Post-state cap validation failed',
-        {
-          appliedToLocalState: false,
-          persistedToWorld: false,
-          writesSummary: computeWritesSummary,
-          violations: postStateValidation.violations,
-          warnings: combinedWarnings,
-        }
-      );
+      return buildMutationFailureResult('Post-state cap validation failed', {
+        appliedToLocalState: false,
+        persistedToWorld: false,
+        writesSummary: computeWritesSummary,
+        violations: postStateValidation.violations,
+        warnings: combinedWarnings,
+      });
     }
 
     const teamCodes = computeResult.teamUpdates.map((u) => u.teamCode);
@@ -1610,7 +1711,11 @@ function computeTradeResult({
               reason: `Player ${playerLabel} has absorptionMode='TPE' but no tpeId — apply-time blocked`,
             });
           }
-          if (player.tpeId && (player.matchIncoming === undefined || player.matchIncoming === null)) {
+          if (
+            player.tpeId &&
+            (player.matchIncoming === undefined ||
+              player.matchIncoming === null)
+          ) {
             tpeConsumptionErrors.push({
               playerId: player.player_id || player.name,
               tpeId: player.tpeId,
@@ -1630,73 +1735,73 @@ function computeTradeResult({
         );
         // Skip all TPE processing — do not partially consume
       } else {
+        incomingPlayers.forEach((player) => {
+          // Phase 47C: Only process TPE consumption if tpeId is set
+          if (!player.tpeId) return;
 
-      incomingPlayers.forEach((player) => {
-        // Phase 47C: Only process TPE consumption if tpeId is set
-        if (!player.tpeId) return;
+          // Phase 47C SSOT: Use matchIncoming ONLY - no salary fallback
+          // If matchIncoming is missing for a TPE player, log warning and skip consumption
+          if (
+            player.matchIncoming === undefined ||
+            player.matchIncoming === null
+          ) {
+            tpeConsumptionWarnings.push({
+              playerId: player.player_id || player.name,
+              tpeId: player.tpeId,
+              reason:
+                'matchIncoming missing for TPE consumption - consumption skipped',
+            });
+            return; // Skip this player - no consumption without validator-produced value
+          }
 
-        // Phase 47C SSOT: Use matchIncoming ONLY - no salary fallback
-        // If matchIncoming is missing for a TPE player, log warning and skip consumption
-        if (
-          player.matchIncoming === undefined ||
-          player.matchIncoming === null
-        ) {
-          tpeConsumptionWarnings.push({
-            playerId: player.player_id || player.name,
-            tpeId: player.tpeId,
-            reason:
-              'matchIncoming missing for TPE consumption - consumption skipped',
+          const consumed = Number(player.matchIncoming) || 0;
+          if (consumed <= 0) {
+            return;
+          }
+          const current = tpeUsageMap.get(player.tpeId) || 0;
+          tpeUsageMap.set(player.tpeId, current + consumed);
+
+          const absorptionList = tpeAbsorptionDetails.get(player.tpeId) || [];
+          absorptionList.push({
+            playerId: player.player_id || player.id || player.playerId || null,
+            name:
+              player.name || player.displayName || player.playerName || null,
+            amountAbsorbed: consumed,
           });
-          return; // Skip this player - no consumption without validator-produced value
-        }
-
-        const consumed = Number(player.matchIncoming) || 0;
-        if (consumed <= 0) {
-          return;
-        }
-        const current = tpeUsageMap.get(player.tpeId) || 0;
-        tpeUsageMap.set(player.tpeId, current + consumed);
-
-        const absorptionList = tpeAbsorptionDetails.get(player.tpeId) || [];
-        absorptionList.push({
-          playerId: player.player_id || player.id || player.playerId || null,
-          name: player.name || player.displayName || player.playerName || null,
-          amountAbsorbed: consumed,
+          tpeAbsorptionDetails.set(player.tpeId, absorptionList);
         });
-        tpeAbsorptionDetails.set(player.tpeId, absorptionList);
-      });
 
-      // Log warnings in dev mode for debugging
-      if (tpeConsumptionWarnings.length > 0) {
-        const isDev =
-          import.meta.env?.DEV || process.env.NODE_ENV === 'development';
-        if (isDev) {
-          console.warn(
-            '[mutationPipeline] Phase 47C TPE consumption warnings:',
-            tpeConsumptionWarnings
-          );
+        // Log warnings in dev mode for debugging
+        if (tpeConsumptionWarnings.length > 0) {
+          const isDev =
+            import.meta.env?.DEV || process.env.NODE_ENV === 'development';
+          if (isDev) {
+            console.warn(
+              '[mutationPipeline] Phase 47C TPE consumption warnings:',
+              tpeConsumptionWarnings
+            );
+          }
+          // Attach warnings to team result for visibility (non-blocking)
+          teamResult._tpeConsumptionWarnings = tpeConsumptionWarnings;
         }
-        // Attach warnings to team result for visibility (non-blocking)
-        teamResult._tpeConsumptionWarnings = tpeConsumptionWarnings;
-      }
 
-      // Apply consumption to TPEs
-      updatedTPEs = currentTPEs.map((tpe) => {
-        const consumed = tpeUsageMap.get(tpe.id) || 0;
-        if (consumed === 0) return tpe;
+        // Apply consumption to TPEs
+        updatedTPEs = currentTPEs.map((tpe) => {
+          const consumed = tpeUsageMap.get(tpe.id) || 0;
+          if (consumed === 0) return tpe;
 
-        const currentRemaining = getTpeRemaining(tpe);
-        const currentUsed = tpe.usedAmount ?? 0;
-        const newRemaining = Math.max(0, currentRemaining - consumed);
-        const newUsed = currentUsed + consumed;
+          const currentRemaining = getTpeRemaining(tpe);
+          const currentUsed = tpe.usedAmount ?? 0;
+          const newRemaining = Math.max(0, currentRemaining - consumed);
+          const newUsed = currentUsed + consumed;
 
-        return {
-          ...tpe,
-          remainingAmount: newRemaining,
-          usedAmount: newUsed,
-          isUsed: newRemaining === 0,
-        };
-      });
+          return {
+            ...tpe,
+            remainingAmount: newRemaining,
+            usedAmount: newUsed,
+            isUsed: newRemaining === 0,
+          };
+        });
       } // end fail-closed else block
     }
 
@@ -1908,9 +2013,13 @@ function computeTradeResult({
   }
 
   // FAIL-CLOSED: If any team had TPE consumption errors, block the entire mutation
-  const blockedTeams = (validation.teamResults || []).filter((tr) => tr?._blocked);
+  const blockedTeams = (validation.teamResults || []).filter(
+    (tr) => tr?._blocked
+  );
   if (blockedTeams.length > 0) {
-    const allErrors = blockedTeams.flatMap((tr) => tr._tpeConsumptionErrors || []);
+    const allErrors = blockedTeams.flatMap(
+      (tr) => tr._tpeConsumptionErrors || []
+    );
     return {
       success: false,
       error: `TPE fail-closed: ${allErrors.map((e) => e.reason).join('; ')}`,
@@ -2042,7 +2151,10 @@ function consumeSigningExceptionUsage({
     return null;
   }
 
-  const exceptionKey = resolveTeamExceptionKey(updatedTeam.exceptions, mechanism);
+  const exceptionKey = resolveTeamExceptionKey(
+    updatedTeam.exceptions,
+    mechanism
+  );
   if (!exceptionKey) {
     return null;
   }
@@ -2079,7 +2191,10 @@ function consumeSigningExceptionUsage({
     normalizedState.totalAmount = maxAmount;
   }
   normalizedState.usedAmount = usedAmount + contractValue;
-  normalizedState.remainingAmount = Math.max(0, remainingAmount - contractValue);
+  normalizedState.remainingAmount = Math.max(
+    0,
+    remainingAmount - contractValue
+  );
   normalizedState.lastUsedAt = new Date(timestamp).toISOString();
 
   updatedTeam.exceptions = {
@@ -2272,8 +2387,11 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
     .filter((row) => row.guaranteed !== false)
     .reduce((sum, row) => sum + (Number(row.salary) || 0), 0);
   const guaranteedValueFallback = Number(contract?.guaranteedValue) || 0;
-  const remainingSalary = remainingGuaranteedFromRows || guaranteedValueFallback;
-  const rawBuyoutAmount = buyout ? Math.max(0, Number(payload.buyoutAmount) || 0) : 0;
+  const remainingSalary =
+    remainingGuaranteedFromRows || guaranteedValueFallback;
+  const rawBuyoutAmount = buyout
+    ? Math.max(0, Number(payload.buyoutAmount) || 0)
+    : 0;
   const boundedBuyoutAmount = buyout
     ? Math.min(remainingSalary, rawBuyoutAmount)
     : 0;
@@ -3202,44 +3320,18 @@ async function persistWorldMutation({
     });
     const sanitizedMetadata = removeUndefinedDeep(sanitizedMetadataRaw);
 
-    const teamCodes =
-      auditContext.teamCodes || computeResult.teamUpdates.map((u) => u.teamCode);
-    const playerIds = auditContext.playerIds || [];
-    const occurredAt = new Date(timestamp).toISOString();
-    const event = {
-      // Legacy fields retained for compatibility with existing event consumers.
-      eventId,
-      type: mutationType,
-      timestamp: occurredAt,
-      seasonId,
-      metadata: sanitizedMetadata,
-      teamsAffected: teamCodes,
-
-      // Cap Audit Event V1 envelope.
-      schemaVersion:
-        auditContext.schemaVersion || CAP_AUDIT_EVENT_SCHEMA_VERSION,
-      validatorVersion:
-        auditContext.validatorVersion || POST_STATE_CAP_VALIDATOR_VERSION,
-      operationId: auditContext.operationId,
+    const event = buildWorldMutationEventPayload({
       mutationType,
-      occurredAt,
+      eventId,
+      seasonId,
       worldId,
-      teamCodes,
-      playerIds,
-      beforeTotalsByTeam: auditContext.beforeTotalsByTeam || {},
-      afterTotalsByTeam: auditContext.afterTotalsByTeam || {},
-      valid: auditContext.valid === true,
-      violations: auditContext.violations || [],
-      warnings: auditContext.warnings || [],
-      diffSummary: auditContext.diffSummary || {},
-      mutationMetadata: {
-        mutationType,
-        category: auditContext.mutationCategory || 'unknown',
-        worldId,
-        teams: teamCodes,
-        players: playerIds,
+      timestamp,
+      computeResult: {
+        ...computeResult,
+        metadata: sanitizedMetadata,
       },
-    };
+      auditContext,
+    });
 
     // Phase 60: Sanitize entire event (defense-in-depth)
     const afterEventSanitize = sanitizeTransientFieldsForPersistence(event);

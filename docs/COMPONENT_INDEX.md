@@ -45,6 +45,7 @@ Quick reference for all components in the ScoutZero project.
 - freeAgency/FreeAgentPool/FreeAgentCard.jsx
 - freeAgency/FreeAgentPool/FreeAgentPool.jsx
 - freeAgency/FreeAgentPool/FreeAgentRow.jsx
+- history/TeamHistoryTab/HistoryDetailModal.jsx
 - history/TeamHistoryTab/TeamHistoryTab.jsx
 - hooks/useArchitectPlayerData.js
 - hooks/useCapSheetState.js
@@ -361,4 +362,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-01T19:10:00.658Z*
+*Generated on: 2026-03-02T13:49:08.609Z*

@@ -1,13 +1,47 @@
 import React from 'react';
 
+const formatAmount = (entry) => {
+  if (typeof entry.amount === 'number') return entry.amount;
+  if (typeof entry.amountRemaining === 'number') return entry.amountRemaining;
+
+  const created = Number(entry.amountCreated || 0);
+  const consumed = Number(entry.amountConsumed || 0);
+  if (Number.isFinite(created) || Number.isFinite(consumed)) {
+    return Math.max(0, created - consumed);
+  }
+
+  return null;
+};
+
+const mapExceptionRow = (entry = {}) => {
+  const expires = entry.expires || entry.expiresAt || '—';
+  const source = entry.source || entry.sourcePlayerName || '—';
+  const date = entry.date || entry.timestamp || '—';
+  const action = entry.action || entry.type || '—';
+  const amount = formatAmount(entry);
+
+  return {
+    ...entry,
+    date,
+    action,
+    amount,
+    source,
+    expires,
+  };
+};
+
 const ExceptionHistoryTracker = ({
   exceptionHistory = [],
   mleHistory = [],
 }) => {
   const renderTPEHistory = () => {
     if (exceptionHistory.length === 0) return <p>No TPE activity logged.</p>;
+    const rows = exceptionHistory.map((entry) => mapExceptionRow(entry));
     return (
-      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+      <table
+        data-testid="team-history-tpe-table"
+        className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+      >
         <thead>
           <tr>
             <th className="p-2 text-left">Date</th>
@@ -18,8 +52,12 @@ const ExceptionHistoryTracker = ({
           </tr>
         </thead>
         <tbody>
-          {exceptionHistory.map((entry, idx) => (
-            <tr key={idx} className="odd:bg-[#171717]">
+          {rows.map((entry, idx) => (
+            <tr
+              key={entry.id || idx}
+              data-testid={`team-history-tpe-row-${idx}`}
+              className="odd:bg-[#171717]"
+            >
               <td className="p-2">{entry.date}</td>
               <td className="p-2">{entry.action}</td>
               <td className="p-2">${entry.amount?.toLocaleString() ?? '—'}</td>
@@ -35,7 +73,10 @@ const ExceptionHistoryTracker = ({
   const renderMLEHistory = () => {
     if (mleHistory.length === 0) return <p>No MLE activity logged.</p>;
     return (
-      <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+      <table
+        data-testid="team-history-mle-table"
+        className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+      >
         <thead>
           <tr>
             <th className="p-2 text-left">Year</th>
@@ -47,7 +88,11 @@ const ExceptionHistoryTracker = ({
         </thead>
         <tbody>
           {mleHistory.map((mle, idx) => (
-            <tr key={idx} className="odd:bg-[#171717]">
+            <tr
+              key={mle.id || idx}
+              data-testid={`team-history-mle-row-${idx}`}
+              className="odd:bg-[#171717]"
+            >
               <td className="p-2">{mle.year || '—'}</td>
               <td className="p-2">${mle.total?.toLocaleString() ?? '—'}</td>
               <td className="p-2">${mle.used?.toLocaleString() ?? '—'}</td>

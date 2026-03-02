@@ -12,8 +12,20 @@
  */
 import TeamHistoryTab from '@/features/architect/TeamHistoryTab';
 
-const HistorySection = ({ teamCapSheet }) => (
-  <TeamHistoryTab teamCapSheet={teamCapSheet} />
+const HistorySection = ({
+  teamCapSheet,
+  worldId,
+  onInjectTeamHistoryFixtures,
+  onClearTeamHistoryFixtures,
+  hasInjectedTeamHistoryFixtures,
+}) => (
+  <TeamHistoryTab
+    teamCapSheet={teamCapSheet}
+    worldId={worldId}
+    onInjectTeamHistoryFixtures={onInjectTeamHistoryFixtures}
+    onClearTeamHistoryFixtures={onClearTeamHistoryFixtures}
+    hasInjectedTeamHistoryFixtures={hasInjectedTeamHistoryFixtures}
+  />
 );
 
 export { HistorySection };

@@ -51,6 +51,11 @@ import {
   hasInjectedCapSheetFixtures as hasInjectedCapSheetFixturesInTeam,
   injectCapSheetFixtures,
 } from '@/features/architect/capSheet/devCapSheetFixtures';
+import {
+  clearTeamHistoryFixtures,
+  hasInjectedTeamHistoryFixtures as hasInjectedTeamHistoryFixturesInTeam,
+  injectTeamHistoryFixtures,
+} from '@/features/architect/history/devTeamHistoryFixtures';
 import toast from 'react-hot-toast';
 
 // ==== Type Definitions ====
@@ -376,6 +381,11 @@ export interface UseArchitectActionsReturn {
   handleInjectCapSheetFixtures: () => MutationActionResult;
   handleClearCapSheetFixtures: () => MutationActionResult;
   hasInjectedCapSheetFixtures: boolean;
+
+  // DEV-only Team History fixtures (TEAM_HISTORY_FIXPACK_E1)
+  handleInjectTeamHistoryFixtures: () => MutationActionResult;
+  handleClearTeamHistoryFixtures: () => MutationActionResult;
+  hasInjectedTeamHistoryFixtures: boolean;
 }
 
 // ==== Season helpers ====
@@ -775,7 +785,8 @@ export function useArchitectActions({
           (!hasPersistSummary || summaryBackedPersistCheck)
         : true;
 
-      const ok = Boolean(result?.success) && appliedToLocalState && persistedToWorld;
+      const ok =
+        Boolean(result?.success) && appliedToLocalState && persistedToWorld;
       const fallbackError = `${mutationType} did not complete required world writes.`;
       const message = String(result?.error || fallbackError);
 
@@ -958,7 +969,11 @@ export function useArchitectActions({
 
         if (!result.success) {
           const message = result.error as string;
-          reportMutationError(message, { mutationType, payload, result: rawResult });
+          reportMutationError(message, {
+            mutationType,
+            payload,
+            result: rawResult,
+          });
           finishSave(message);
           return result;
         }
@@ -1496,16 +1511,22 @@ export function useArchitectActions({
         reportMutationError('Cannot sign player: missing player ID.', {
           playerObj,
         });
-        return { success: false, message: 'Cannot sign player: missing player ID.' };
+        return {
+          success: false,
+          message: 'Cannot sign player: missing player ID.',
+        };
       }
 
-      const architectContract = ensureContractStructure(contract as LocalContract, {
-        contractType: contract.contractType || 'Signed FA',
-        isExtension: !!contract.isExtension,
-        isRookieScale: !!contract.isRookieScale,
-        signingTeam: teamCode,
-        startYear: currentYear,
-      });
+      const architectContract = ensureContractStructure(
+        contract as LocalContract,
+        {
+          contractType: contract.contractType || 'Signed FA',
+          isExtension: !!contract.isExtension,
+          isRookieScale: !!contract.isRookieScale,
+          signingTeam: teamCode,
+          startYear: currentYear,
+        }
+      );
 
       if (!architectContract) {
         reportMutationError(
@@ -1700,10 +1721,13 @@ export function useArchitectActions({
       destinationTeamCode: string
     ): Promise<MutationActionResult> => {
       if (!worldId) {
-        reportMutationError('Sign-and-trade requires an active world to commit.', {
-          playerObj,
-          destinationTeamCode,
-        });
+        reportMutationError(
+          'Sign-and-trade requires an active world to commit.',
+          {
+            playerObj,
+            destinationTeamCode,
+          }
+        );
         return {
           success: false,
           message: 'Sign-and-trade requires an active world to commit.',
@@ -1743,22 +1767,28 @@ export function useArchitectActions({
 
       const playerId = playerObj.id || playerObj.player_id;
       if (!playerId) {
-        reportMutationError('Cannot complete sign-and-trade: missing player ID.', {
-          playerObj,
-        });
+        reportMutationError(
+          'Cannot complete sign-and-trade: missing player ID.',
+          {
+            playerObj,
+          }
+        );
         return {
           success: false,
           message: 'Cannot complete sign-and-trade: missing player ID.',
         };
       }
 
-      const architectContract = ensureContractStructure(contract as LocalContract, {
-        contractType: 'Sign & Trade',
-        isExtension: false,
-        isRookieScale: !!contract.isRookieScale,
-        signingTeam: teamCode,
-        startYear: currentYear,
-      });
+      const architectContract = ensureContractStructure(
+        contract as LocalContract,
+        {
+          contractType: 'Sign & Trade',
+          isExtension: false,
+          isRookieScale: !!contract.isRookieScale,
+          signingTeam: teamCode,
+          startYear: currentYear,
+        }
+      );
 
       if (!architectContract) {
         reportMutationError(
@@ -1770,7 +1800,8 @@ export function useArchitectActions({
         );
         return {
           success: false,
-          message: 'Cannot complete sign-and-trade: contract payload is invalid.',
+          message:
+            'Cannot complete sign-and-trade: contract payload is invalid.',
         };
       }
 
@@ -1786,7 +1817,8 @@ export function useArchitectActions({
           signAndTrade: true,
         },
         {
-          worldRequiredMessage: 'Sign-and-trade requires an active world to commit.',
+          worldRequiredMessage:
+            'Sign-and-trade requires an active world to commit.',
         }
       );
 
@@ -1810,9 +1842,12 @@ export function useArchitectActions({
       contract: SigningDetails
     ): Promise<MutationActionResult> => {
       if (!worldId) {
-        reportMutationError('Offer sheet actions require an active world to commit.', {
-          playerObj,
-        });
+        reportMutationError(
+          'Offer sheet actions require an active world to commit.',
+          {
+            playerObj,
+          }
+        );
         return {
           success: false,
           message: 'Offer sheet actions require an active world to commit.',
@@ -1865,7 +1900,8 @@ export function useArchitectActions({
           signedUsing,
         },
         {
-          worldRequiredMessage: 'Offer sheet actions require an active world to commit.',
+          worldRequiredMessage:
+            'Offer sheet actions require an active world to commit.',
         }
       );
 
@@ -2122,6 +2158,41 @@ export function useArchitectActions({
     return { success: true };
   }, [setTeamCapSheet, teamCapSheet]);
 
+  const hasInjectedTeamHistoryFixtures = useMemo(
+    () => hasInjectedTeamHistoryFixturesInTeam(teamCapSheet as CapSheet | null),
+    [teamCapSheet]
+  );
+
+  const handleInjectTeamHistoryFixtures =
+    useCallback((): MutationActionResult => {
+      if (!teamCapSheet) {
+        return {
+          success: false,
+          message:
+            'Cannot inject Team History fixtures: team state is not loaded.',
+        };
+      }
+
+      const nextTeam = injectTeamHistoryFixtures(teamCapSheet as CapSheet);
+      setTeamCapSheet(nextTeam as CapSheet);
+      return { success: true };
+    }, [setTeamCapSheet, teamCapSheet]);
+
+  const handleClearTeamHistoryFixtures =
+    useCallback((): MutationActionResult => {
+      if (!teamCapSheet) {
+        return {
+          success: false,
+          message:
+            'Cannot clear Team History fixtures: team state is not loaded.',
+        };
+      }
+
+      const nextTeam = clearTeamHistoryFixtures(teamCapSheet as CapSheet);
+      setTeamCapSheet(nextTeam as CapSheet);
+      return { success: true };
+    }, [setTeamCapSheet, teamCapSheet]);
+
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
       setSelectedPlayer(player);
@@ -2228,7 +2299,9 @@ export function useArchitectActions({
         matchesHold(hold as CapHold)
       );
       const hasRenounceablePlayer = (teamCapSheet?.players || []).some(
-        (player) => matchesPlayer(player as ArchitectPlayer) && isPlayerRenounceable(player as ArchitectPlayer)
+        (player) =>
+          matchesPlayer(player as ArchitectPlayer) &&
+          isPlayerRenounceable(player as ArchitectPlayer)
       );
       if (!hasRemovableHold && !hasRenounceablePlayer) {
         const message =
@@ -2262,7 +2335,8 @@ export function useArchitectActions({
                 playerChanged = true;
               }
               const currentStatus = String(
-                (updated as Record<string, any>)?.contract?.birdRights?.status || ''
+                (updated as Record<string, any>)?.contract?.birdRights
+                  ?.status || ''
               ).toLowerCase();
               if (updated.contract?.birdRights && currentStatus !== 'none') {
                 updated.contract = {
@@ -2561,7 +2635,9 @@ export function useArchitectActions({
         computeNextTeam: (beforeTeam) => {
           const rosterPlayer = (beforeTeam.players || []).find(
             (p) =>
-              p.id === playerId || p.player_id === playerId || p.name === playerId
+              p.id === playerId ||
+              p.player_id === playerId ||
+              p.name === playerId
           );
           const contractRows =
             rosterPlayer?.contract?.salariesByYear ||
@@ -2633,7 +2709,9 @@ export function useArchitectActions({
 
           const updatedPlayers = (beforeTeam.players || []).filter(
             (p) =>
-              p.id !== playerId && p.player_id !== playerId && p.name !== playerId
+              p.id !== playerId &&
+              p.player_id !== playerId &&
+              p.name !== playerId
           );
 
           const updatedRoster = (
@@ -2675,7 +2753,12 @@ export function useArchitectActions({
         'Failed to save waive/buyout action. Please try again.'
       );
     },
-    [currentYear, applyCapAuditedTeamMutation, finalizeCapMutationResult, teamCode]
+    [
+      currentYear,
+      applyCapAuditedTeamMutation,
+      finalizeCapMutationResult,
+      teamCode,
+    ]
   );
 
   // handleOptionDecision - directly updates teamCapSheet and manages cap holds
@@ -2820,9 +2903,10 @@ export function useArchitectActions({
               );
           const updatedRoster = accepted
             ? beforeTeam.roster
-            : (Array.isArray(beforeTeam.roster) ? beforeTeam.roster : []).filter(
-                (id) => String(id) !== String(playerId)
-              );
+            : (Array.isArray(beforeTeam.roster)
+                ? beforeTeam.roster
+                : []
+              ).filter((id) => String(id) !== String(playerId));
 
           // Record override audit log if override was used
           const overrideAuditLog = overrideMetadata?.overrideUsed
@@ -2856,7 +2940,12 @@ export function useArchitectActions({
         'Failed to save option decision. Please try again.'
       );
     },
-    [currentYear, applyCapAuditedTeamMutation, finalizeCapMutationResult, teamCode]
+    [
+      currentYear,
+      applyCapAuditedTeamMutation,
+      finalizeCapMutationResult,
+      teamCode,
+    ]
   );
 
   const handleRenounceRights = useCallback(
@@ -2896,6 +2985,7 @@ export function useArchitectActions({
       exceptionHistory: [],
       mleHistory: [],
       pickLog: [],
+      historyTimeline: [],
       currentPicks: {},
       amount: capProjectionsTyped[seasonKey]?.fullMLE || 0,
     };
@@ -2944,5 +3034,10 @@ export function useArchitectActions({
     handleInjectCapSheetFixtures,
     handleClearCapSheetFixtures,
     hasInjectedCapSheetFixtures,
+
+    // TEAM_HISTORY_FIXPACK_E1: DEV fixture controls
+    handleInjectTeamHistoryFixtures,
+    handleClearTeamHistoryFixtures,
+    hasInjectedTeamHistoryFixtures,
   };
 }

@@ -115,9 +115,15 @@ freeAgency/
   useFreeAgencyFilterPersistence.ts
 history/
   TeamHistoryTab/
+    HistoryDetailModal.jsx
     TeamHistoryTab.jsx
     index.ts
+  devTeamHistoryFixtures.ts
+  hooks/
+    useWorldTeamEvents.ts
   index.ts
+  utils/
+    normalizeWorldEventsForTeamHistory.ts
 hooks/
   useArchitectPlayerData.js
   useCapSheetState.js
@@ -379,5 +385,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-01T21:38:47.912Z*
+*Generated on: 2026-03-02T13:49:08.544Z*
 *Auto-updated by: npm run docs*

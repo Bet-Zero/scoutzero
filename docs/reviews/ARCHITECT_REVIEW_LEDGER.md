@@ -197,6 +197,76 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ---
 
+### TEAM_HISTORY_FIXPACK_E1: Team History Deterministic Closure (2026-03-02)
+
+**Goal:** Implement deterministic Team History closure (DEV fixture injector + detail modal + world/base coverage + forbidden-write guardrails) without Playwright/manual proof requirements.
+
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (160 files; 2412 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Current result summary:** FIXPACK COMPLETE
+
+**Return Package:**
+
+- `return_packages/architect_fixes/TEAM_HISTORY_FIXPACK_E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### TEAM_HISTORY_R2_LOCAL: Team History Section Re-Review (2026-03-02)
+
+**Goal:** Re-review Team History after FIXPACK_E1 using deterministic local proofs.
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (160 files; 2412 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Current result summary:** 9 PASS / 0 FAIL / 0 BLOCKED
+
+**Return Packages:**
+
+- Baseline: `return_packages/architect_reviews/TEAM_HISTORY_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+- Execution closure: `return_packages/architect_fixes/TEAM_HISTORY_FIXPACK_E1_EXECUTION_RETURN_PACKAGE.md`
+- Review closure: `return_packages/architect_reviews/TEAM_HISTORY_R2_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+---
+
+### TEAM_HISTORY_E2: World Events SSOT Integration (2026-03-02)
+
+**Goal:** Drive Team History world mode from canonical world events SSOT (`architect_worlds/{worldId}/events`) with deterministic RTL/Vitest proof.
+
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (161 files; 2414 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- Team History in world mode now reads recent team-scoped world events and normalizes legacy + CapAuditEventV1 payloads into timeline rows.
+- Base mode preserves world-required behavior and does not invoke world-event querying.
+- Detail modal now renders raw event identifiers and cap delta payload blocks.
+- Mutation pipeline event payload contract is hardened with fail-closed team scope requirements and guardrail tests.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/TEAM_HISTORY_E2_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
 ## How to Run Review Mode
 
 ### Quick Start

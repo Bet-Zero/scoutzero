@@ -2,7 +2,7 @@ import React from 'react';
 
 const WaiveStretchTracker = ({ waivedContracts = [] }) => {
   const deadCapByYear = {};
-  
+
   waivedContracts.forEach((contract) => {
     const entries = contract.deadCap || {};
     Object.entries(entries).forEach(([year, amount]) => {
@@ -11,18 +11,21 @@ const WaiveStretchTracker = ({ waivedContracts = [] }) => {
     });
   });
 
-  const sortedYears = Object.keys(deadCapByYear)
-    .map(Number)
-    .sort();
+  const sortedYears = Object.keys(deadCapByYear).map(Number).sort();
 
   return (
     <div className="text-white">
-      <h3 className="text-lg font-semibold mb-2">Waived & Stretched Contracts</h3>
-      
+      <h3 className="text-lg font-semibold mb-2">
+        Waived & Stretched Contracts
+      </h3>
+
       {waivedContracts.length === 0 ? (
         <p>No waived contracts.</p>
       ) : (
-        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+        <table
+          data-testid="team-history-waived-table"
+          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+        >
           <thead>
             <tr>
               <th className="p-2 text-left">Player</th>
@@ -33,7 +36,11 @@ const WaiveStretchTracker = ({ waivedContracts = [] }) => {
           </thead>
           <tbody>
             {waivedContracts.map((wc, idx) => (
-              <tr key={idx} className="odd:bg-[#171717]">
+              <tr
+                key={idx}
+                data-testid={`team-history-waived-row-${idx}`}
+                className="odd:bg-[#171717]"
+              >
                 <td className="p-2">{wc.name}</td>
                 <td className="p-2">{wc.waivedOn}</td>
                 <td className="p-2">{wc.stretched ? 'Yes' : 'No'}</td>
@@ -49,13 +56,16 @@ const WaiveStretchTracker = ({ waivedContracts = [] }) => {
           </tbody>
         </table>
       )}
-      
+
       <h4 className="mt-5 font-semibold">Dead Cap by Year</h4>
-      
+
       {sortedYears.length === 0 ? (
         <p>No dead money on the books.</p>
       ) : (
-        <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
+        <table
+          data-testid="team-history-dead-cap-table"
+          className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded"
+        >
           <thead>
             <tr>
               <th className="p-2 text-left">Year</th>
@@ -64,7 +74,11 @@ const WaiveStretchTracker = ({ waivedContracts = [] }) => {
           </thead>
           <tbody>
             {sortedYears.map((year) => (
-              <tr key={year} className="odd:bg-[#171717]">
+              <tr
+                key={year}
+                data-testid={`team-history-dead-cap-row-${year}`}
+                className="odd:bg-[#171717]"
+              >
                 <td className="p-2">{year}</td>
                 <td className="p-2">${deadCapByYear[year].toLocaleString()}</td>
               </tr>
