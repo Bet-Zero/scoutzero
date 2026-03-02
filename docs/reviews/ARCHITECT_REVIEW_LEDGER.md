@@ -167,6 +167,36 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ---
 
+### TEAM_HISTORY_R1_LOCAL: Team History Section Review (2026-03-01)
+
+**Goal:** Complete discovery-only Team History audit (UI surface usability, world scoping, action coverage completeness, event SSOT consistency, and write safety).
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run emu` -> PASS (`All emulators ready`)
+- `npm run dev` -> PASS (`http://localhost:5173/`)
+- `npm run test:architect -- --reporter=dot` -> PASS (159 files; 2410 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Current result summary:** 4 PASS / 4 FAIL / 1 BLOCKED
+
+**Key findings:**
+
+- Team History tab routing/rendering is present and reachable; empty states are sane in base and fresh worlds.
+- World selector scoping behavior is visible (`base-mode` vs world IDs), but tested action attempts did not produce persisted history/event entries.
+- Trade apply, cap-waive/stretch persistence, and exception save paths surfaced runtime blockers in local review flows.
+- No direct Team History component test coverage exists in `src/tests`.
+
+**Return Package:**
+
+- `return_packages/architect_reviews/TEAM_HISTORY_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+---
+
 ## How to Run Review Mode
 
 ### Quick Start
