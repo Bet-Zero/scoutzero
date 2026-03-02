@@ -94,16 +94,26 @@ const FreeAgentPool = ({
       (sum, y) => sum + (y.salary || 0),
       0
     );
+    const selectedException = String(values.exceptionType || '').trim();
+    const signedUsing =
+      typeof values.signedUsing === 'string' && values.signedUsing.trim()
+        ? values.signedUsing.trim()
+        : selectedException && selectedException.toLowerCase() !== 'none'
+          ? selectedException
+          : null;
 
     const contract = {
+      ...values,
       salariesByYear,
       totalValue,
       yearsLeft: values.years,
-      options: {},
+      options: values.options || {},
       signAndTrade: false,
       guaranteed: true,
       isMinimum: values.salaries[0] <= 2200000,
       yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
+      signedUsing,
+      exceptionType: selectedException || values.exceptionType,
     };
 
     const result = await onSign(playerObj, contract);

@@ -19,6 +19,7 @@ import {
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
+import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
 const TradeEditor = ({
   primaryTeam,
@@ -317,19 +318,36 @@ const TradeEditor = ({
     const sourceTeam =
       teams[tradeMachineSatModal.teamIndex]?.team || null;
     const sourceTeamId = sourceTeam?.id || sourceTeam?.teamCode || null;
+    const sourceTeamCode = sourceTeamId
+      ? resolveTeamCode(sourceTeamId) || sourceTeamId
+      : null;
 
-    if (!destinationTeamId) {
+    const canonicalDestinationTeamCode = destinationTeamId
+      ? resolveTeamCode(destinationTeamId) || destinationTeamId
+      : null;
+    if (!canonicalDestinationTeamCode) {
       toast.error('Sign-and-trade requires a destination team.');
       return { success: false, message: 'Destination team is required.' };
     }
 
-    if (sourceTeamId && destinationTeamId === sourceTeamId) {
+    if (sourceTeamCode && canonicalDestinationTeamCode === sourceTeamCode) {
       toast.error('Destination team must be different from the source team.');
       return {
         success: false,
         message: 'Destination team must be different from the source team.',
       };
     }
+
+    const destinationTradeTeam = teams.find((tm) => {
+      const teamId = tm?.team?.id || tm?.team?.teamCode || tm?.team?.teamId || null;
+      const teamCode = teamId ? resolveTeamCode(teamId) || teamId : null;
+      return teamCode === canonicalDestinationTeamCode;
+    });
+    const destinationTradeTeamId =
+      destinationTradeTeam?.team?.id ||
+      destinationTradeTeam?.team?.teamCode ||
+      destinationTradeTeam?.team?.teamId ||
+      canonicalDestinationTeamCode;
 
     const contractValidation = validateSignAndTradeContractPayload(
       contractPayload,
@@ -354,9 +372,10 @@ const TradeEditor = ({
       tradeMachineSatModal.teamIndex,
       player,
       'signAndTrade',
-      destinationTeamId,
+      destinationTradeTeamId,
       {
         signAndTradeContract: contractValidation.contract,
+        destinationTeamCode: canonicalDestinationTeamCode,
       }
     );
 

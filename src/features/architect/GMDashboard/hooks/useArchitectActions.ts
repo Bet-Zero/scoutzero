@@ -237,6 +237,23 @@ interface MutationActionResult {
   message?: string;
 }
 
+type MutationWritesSummary = {
+  teamsPatched?: number;
+  playersPatched?: number;
+  entitlementsPatched?: number;
+  eventsWritten?: number;
+  worldMetadataPatched?: number;
+};
+
+type MutationTruthResult = {
+  success?: boolean;
+  skipped?: boolean;
+  error?: string;
+  appliedToLocalState?: boolean;
+  persistedToWorld?: boolean;
+  writesSummary?: MutationWritesSummary;
+};
+
 /** Free agent type extending ArchitectPlayer */
 interface FreeAgent extends ArchitectPlayer {
   previousSalary: number;
@@ -425,6 +442,32 @@ const ensureContractStructure = (
 
   // If no contract data, return null
   return null;
+};
+
+const deriveSigningMechanism = (
+  contract: SigningDetails | null | undefined
+): string | null => {
+  const signedUsingRaw =
+    contract?.signedUsing ??
+    contract?.exceptionType ??
+    (contract as Record<string, unknown> | null)?.signedUsing ??
+    (contract as Record<string, unknown> | null)?.exceptionType;
+  const normalized =
+    typeof signedUsingRaw === 'string' ? signedUsingRaw.trim() : '';
+  if (!normalized || normalized.toLowerCase() === 'none') {
+    return null;
+  }
+  return normalized;
+};
+
+const normalizeEntityIdentity = (value: unknown): string => {
+  if (value == null) {
+    return '';
+  }
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 };
 
 /**
@@ -694,6 +737,58 @@ export function useArchitectActions({
     onFailure?: (message: string, result?: any) => void;
   };
 
+  const evaluateMutationTruth = useCallback(
+    (
+      mutationType: string,
+      result: MutationTruthResult,
+      options: { requireWorldPersistence: boolean }
+    ): {
+      ok: boolean;
+      message: string;
+      appliedToLocalState: boolean;
+      persistedToWorld: boolean;
+    } => {
+      const writesSummary = result?.writesSummary || {};
+      const summaryBackedApplyCheck =
+        Number(writesSummary.teamsPatched || 0) > 0 ||
+        Number(writesSummary.playersPatched || 0) > 0 ||
+        Number(writesSummary.entitlementsPatched || 0) > 0;
+      const hasApplySummary =
+        writesSummary.teamsPatched !== undefined ||
+        writesSummary.playersPatched !== undefined ||
+        writesSummary.entitlementsPatched !== undefined;
+      const appliedToLocalState =
+        result?.appliedToLocalState !== false &&
+        (!hasApplySummary || summaryBackedApplyCheck);
+
+      const hasPersistSummary =
+        writesSummary.eventsWritten !== undefined ||
+        writesSummary.worldMetadataPatched !== undefined ||
+        writesSummary.teamsPatched !== undefined;
+      const summaryBackedPersistCheck =
+        Number(writesSummary.eventsWritten ?? 1) > 0 &&
+        Number(writesSummary.worldMetadataPatched ?? 1) > 0 &&
+        Number(writesSummary.teamsPatched ?? 1) > 0;
+      const persistedToWorld = options.requireWorldPersistence
+        ? result?.persistedToWorld !== false &&
+          result?.skipped !== true &&
+          (!hasPersistSummary || summaryBackedPersistCheck)
+        : true;
+
+      const ok = Boolean(result?.success) && appliedToLocalState && persistedToWorld;
+      const fallbackError = `${mutationType} did not complete required world writes.`;
+      const message = String(result?.error || fallbackError);
+
+      return {
+        ok,
+        message,
+        appliedToLocalState,
+        persistedToWorld,
+      };
+    },
+    []
+  );
+
   /**
    * Persist mutation to Firestore if in world mode.
    * Skips persistence when worldId is null (base mode) or userId is missing.
@@ -727,24 +822,35 @@ export function useArchitectActions({
           operationId: options.operationId,
         });
 
-        if (result.success) {
+        const truth = evaluateMutationTruth(mutationType, result, {
+          requireWorldPersistence: true,
+        });
+        const normalizedResult = {
+          ...result,
+          success: truth.ok,
+          error: truth.ok ? result?.error : truth.message,
+          appliedToLocalState: truth.appliedToLocalState,
+          persistedToWorld: truth.persistedToWorld,
+        };
+
+        if (truth.ok) {
           console.log(`✅ Saved ${mutationType}!`, result);
           toast.success('Saved changes');
-          options.onSuccess?.(result);
+          options.onSuccess?.(normalizedResult);
         } else {
-          console.error(`❌ Save failed:`, result.error);
+          console.error(`❌ Save failed:`, truth.message);
           // E2 fix: Skip toast when onFailure callback handles error reporting
           // This prevents duplicate toasts when caller uses reportMutationError
           if (!options.onFailure) {
-            toast.error(`Save failed: ${result.error}`);
+            toast.error(`Save failed: ${truth.message}`);
           }
           options.onFailure?.(
-            String(result.error || `Save failed for ${mutationType}`),
-            result
+            truth.message || `Save failed for ${mutationType}`,
+            normalizedResult
           );
         }
 
-        return result;
+        return normalizedResult;
       } catch (err) {
         console.error('[Architect][PersistMutation] failed', {
           mutationType,
@@ -760,7 +866,7 @@ export function useArchitectActions({
         return { success: false, error: message };
       }
     },
-    [worldId, userId, seasonId]
+    [evaluateMutationTruth, worldId, userId, seasonId]
   );
 
   const reportMutationError = useCallback(
@@ -829,7 +935,7 @@ export function useArchitectActions({
 
       startSave();
       try {
-        const result = await applyWorldMutation({
+        const rawResult = await applyWorldMutation({
           userId,
           worldId,
           seasonId,
@@ -837,10 +943,22 @@ export function useArchitectActions({
           payload,
         });
 
+        const truth = evaluateMutationTruth(mutationType, rawResult, {
+          requireWorldPersistence: true,
+        });
+        const result = {
+          ...rawResult,
+          success: truth.ok,
+          error: truth.ok
+            ? rawResult?.error
+            : truth.message || `Failed to run ${mutationType} mutation.`,
+          appliedToLocalState: truth.appliedToLocalState,
+          persistedToWorld: truth.persistedToWorld,
+        };
+
         if (!result.success) {
-          const message =
-            result.error || `Failed to run ${mutationType} mutation.`;
-          reportMutationError(message, { mutationType, payload, result });
+          const message = result.error as string;
+          reportMutationError(message, { mutationType, payload, result: rawResult });
           finishSave(message);
           return result;
         }
@@ -865,6 +983,7 @@ export function useArchitectActions({
       syncTeamFromMutationResult,
       userId,
       worldId,
+      evaluateMutationTruth,
     ]
   );
 
@@ -1402,11 +1521,12 @@ export function useArchitectActions({
         };
       }
 
+      const signedUsing = deriveSigningMechanism(contract);
       const signingPayload = {
         teamCode,
         playerId: idToSign,
         contract: architectContract,
-        signedUsing: contract.signedUsing || null,
+        signedUsing,
       };
 
       if (worldId) {
@@ -1460,7 +1580,7 @@ export function useArchitectActions({
         team: teamCapSheet,
         player: canonicalPlayer,
         contract: architectContract,
-        signedUsing: contract.signedUsing || null,
+        signedUsing,
         year: currentYear,
       });
 
@@ -1590,16 +1710,34 @@ export function useArchitectActions({
         };
       }
 
-      if (!destinationTeamCode) {
+      const canonicalDestinationTeamCode = destinationTeamCode
+        ? resolveTeamCode(destinationTeamCode) || destinationTeamCode
+        : '';
+      if (!canonicalDestinationTeamCode) {
         reportMutationError(
           'Cannot complete sign-and-trade: destination team is required.',
           {
             playerObj,
+            destinationTeamCode,
           }
         );
         return {
           success: false,
           message: 'Destination team is required for sign-and-trade.',
+        };
+      }
+
+      if (canonicalDestinationTeamCode === teamCode) {
+        const message =
+          'Destination team must be different from the current team for sign-and-trade.';
+        reportMutationError(message, {
+          playerObj,
+          destinationTeamCode,
+          canonicalDestinationTeamCode,
+        });
+        return {
+          success: false,
+          message,
         };
       }
 
@@ -1636,14 +1774,15 @@ export function useArchitectActions({
         };
       }
 
+      const signedUsing = deriveSigningMechanism(contract);
       const result = await runAuthoritativeFAMutation(
         'signAndTrade',
         {
           teamCode,
-          destinationTeamCode,
+          destinationTeamCode: canonicalDestinationTeamCode,
           playerId,
           contract: architectContract,
-          signedUsing: contract.signedUsing || null,
+          signedUsing,
           signAndTrade: true,
         },
         {
@@ -1715,6 +1854,7 @@ export function useArchitectActions({
         };
       }
 
+      const signedUsing = deriveSigningMechanism(contract);
       const result = await runAuthoritativeFAMutation(
         'storeOfferSheet',
         {
@@ -1722,7 +1862,7 @@ export function useArchitectActions({
           playerId,
           worldId,
           contract: offerContract,
-          signedUsing: contract.signedUsing || null,
+          signedUsing,
         },
         {
           worldRequiredMessage: 'Offer sheet actions require an active world to commit.',
@@ -2020,17 +2160,85 @@ export function useArchitectActions({
         };
       }
 
-      const idToRenounce =
-        (playerOrHold as ArchitectPlayer).id ||
-        (playerOrHold as ArchitectPlayer).player_id ||
-        (playerOrHold as CapHold).playerId ||
-        (playerOrHold as ArchitectPlayer).name;
+      const candidateIdSet = new Set<string>();
+      const candidateNameSet = new Set<string>();
+      const collectCandidate = (value: unknown): void => {
+        const trimmed = String(value || '').trim();
+        if (trimmed) {
+          candidateIdSet.add(trimmed);
+        }
+        const normalized = normalizeEntityIdentity(value);
+        if (normalized) {
+          candidateNameSet.add(normalized);
+        }
+      };
+
+      collectCandidate((playerOrHold as ArchitectPlayer).id);
+      collectCandidate((playerOrHold as ArchitectPlayer).player_id);
+      collectCandidate((playerOrHold as CapHold).playerId);
+      collectCandidate((playerOrHold as ArchitectPlayer).name);
+      collectCandidate((playerOrHold as ArchitectPlayer).displayName);
+      collectCandidate((playerOrHold as CapHold).playerName);
+
+      const idToRenounce = [
+        (playerOrHold as CapHold).playerId,
+        (playerOrHold as ArchitectPlayer).id,
+        (playerOrHold as ArchitectPlayer).player_id,
+        (playerOrHold as ArchitectPlayer).name,
+      ]
+        .map((value) => String(value || '').trim())
+        .find(Boolean);
 
       // Persist to world if in world mode
       if (!idToRenounce) {
         console.error('Renounce missing playerId');
         toast.error('Cannot save: Player ID missing');
         return { success: false, message: 'Cannot save: Player ID missing.' };
+      }
+
+      const matchesHold = (hold: CapHold): boolean => {
+        const holdId = String(hold?.playerId || '').trim();
+        return (
+          (holdId && candidateIdSet.has(holdId)) ||
+          candidateNameSet.has(normalizeEntityIdentity(hold?.playerName)) ||
+          candidateNameSet.has(normalizeEntityIdentity(holdId))
+        );
+      };
+      const isPlayerRenounceable = (player: ArchitectPlayer): boolean => {
+        const playerBirdStatus = String(
+          (player as Record<string, any>)?.contract?.birdRights?.status || ''
+        ).toLowerCase();
+        const rightsAlreadyCleared =
+          Boolean((player as Record<string, any>)?.rightsRenounced) &&
+          (!playerBirdStatus || playerBirdStatus === 'none');
+        return !rightsAlreadyCleared;
+      };
+      const matchesPlayer = (player: ArchitectPlayer): boolean => {
+        const playerId = String(player?.id || '').trim();
+        const playerAltId = String(player?.player_id || '').trim();
+        return (
+          (playerId && candidateIdSet.has(playerId)) ||
+          (playerAltId && candidateIdSet.has(playerAltId)) ||
+          candidateNameSet.has(normalizeEntityIdentity(player?.name)) ||
+          candidateNameSet.has(normalizeEntityIdentity(player?.displayName))
+        );
+      };
+
+      const hasRemovableHold = (teamCapSheet?.capHolds || []).some((hold) =>
+        matchesHold(hold as CapHold)
+      );
+      const hasRenounceablePlayer = (teamCapSheet?.players || []).some(
+        (player) => matchesPlayer(player as ArchitectPlayer) && isPlayerRenounceable(player as ArchitectPlayer)
+      );
+      if (!hasRemovableHold && !hasRenounceablePlayer) {
+        const message =
+          'No matching cap hold or renounceable rights were found for this player.';
+        reportMutationError(message, {
+          playerName,
+          idToRenounce,
+          candidateIds: Array.from(candidateIdSet),
+        });
+        return { success: false, message };
       }
 
       const mutationResult = applyCapAuditedTeamMutation({
@@ -2040,18 +2248,23 @@ export function useArchitectActions({
         computeNextTeam: (beforeTeam) => {
           // Remove from capHolds array
           const updatedCapHolds = (beforeTeam.capHolds || []).filter(
-            (h) => h.playerId !== idToRenounce && h.playerName !== idToRenounce
+            (h) => !matchesHold(h as CapHold)
           );
 
           // Update player object if it exists
+          let rightsUpdates = 0;
           const updatedPlayers = (beforeTeam.players || []).map((p) => {
-            if (
-              p.id === idToRenounce ||
-              p.player_id === idToRenounce ||
-              p.name === idToRenounce
-            ) {
-              const updated = { ...p, rightsRenounced: true };
-              if (updated.contract?.birdRights) {
+            if (matchesPlayer(p as ArchitectPlayer)) {
+              let playerChanged = false;
+              const updated = { ...p };
+              if (!(updated as Record<string, any>).rightsRenounced) {
+                (updated as Record<string, any>).rightsRenounced = true;
+                playerChanged = true;
+              }
+              const currentStatus = String(
+                (updated as Record<string, any>)?.contract?.birdRights?.status || ''
+              ).toLowerCase();
+              if (updated.contract?.birdRights && currentStatus !== 'none') {
                 updated.contract = {
                   ...updated.contract,
                   birdRights: {
@@ -2059,11 +2272,21 @@ export function useArchitectActions({
                     status: 'None',
                   },
                 };
+                playerChanged = true;
+              }
+              if (playerChanged) {
+                rightsUpdates += 1;
               }
               return updated;
             }
             return p;
           });
+
+          const removedHoldsCount =
+            (beforeTeam.capHolds || []).length - updatedCapHolds.length;
+          if (removedHoldsCount === 0 && rightsUpdates === 0) {
+            return beforeTeam;
+          }
 
           // Record override audit log if override was used
           const overrideAuditLog = overrideMetadata?.overrideUsed
@@ -2094,7 +2317,13 @@ export function useArchitectActions({
         'Failed to save renounce action. Please try again.'
       );
     },
-    [applyCapAuditedTeamMutation, finalizeCapMutationResult, teamCode]
+    [
+      applyCapAuditedTeamMutation,
+      finalizeCapMutationResult,
+      reportMutationError,
+      teamCapSheet,
+      teamCode,
+    ]
   );
 
   // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce

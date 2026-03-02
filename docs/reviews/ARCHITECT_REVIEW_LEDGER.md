@@ -144,7 +144,26 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ## Pending Reviews
 
-_(None currently scheduled)_
+### FA_R1_LOCAL: Free Agency Section Review (2026-03-01)
+
+**Goal:** Complete discovery-only Free Agency audit (UI wiring, contract/signing flows, rights/holds/exceptions linkage, world/base boundaries, and write safety).
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (159 files; 2410 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Current result summary:** 12 PASS / 0 FAIL / 0 BLOCKED
+
+**Return Packages:**
+
+- Review baseline: `return_packages/architect_reviews/FREE_AGENCY_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+- Execution closure: `return_packages/architect_fixes/FREE_AGENCY_FIXPACK_E1_EXECUTION_RETURN_PACKAGE.md`
+- Review closure: `return_packages/architect_reviews/FREE_AGENCY_R2_LOCAL_REVIEW_RETURN_PACKAGE.md`
 
 ---
 

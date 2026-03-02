@@ -330,6 +330,9 @@ function guardAgainstUndefined(obj, label) {
  * @property {Array<{playerId: string, player: Object}>} [changedPlayers] - Updated player overrides
  * @property {Object} [worldPatch] - Metadata updates applied to world
  * @property {Object} [event] - Event log entry created
+ * @property {boolean} [appliedToLocalState] - Whether mutation produced an applyable state delta
+ * @property {boolean} [persistedToWorld] - Whether canonical world writes/event metadata were persisted
+ * @property {Object} [writesSummary] - Deterministic write counters/IDs for auditability
  * @property {string} [error] - Error message if failed
  */
 
@@ -616,6 +619,87 @@ function buildCapAuditDiffSummary({
   };
 }
 
+const FREE_AGENCY_MUTATION_TYPES = new Set([
+  'signFreeAgent',
+  'signAndTrade',
+  'storeOfferSheet',
+  'matchOfferSheet',
+  'declineOfferSheet',
+  'finalizeMatchedOfferSheet',
+  'finalizeDeclinedOfferSheet',
+  'renounceRights',
+]);
+
+const EMPTY_WRITES_SUMMARY = Object.freeze({
+  teamsPatched: 0,
+  teamCodes: [],
+  playersPatched: 0,
+  playerIds: [],
+  entitlementsPatched: 0,
+  entitlementIds: [],
+  eventsWritten: 0,
+  eventIds: [],
+  worldMetadataPatched: 0,
+  worldStatsUpdated: false,
+});
+
+function cloneWritesSummary(summary = EMPTY_WRITES_SUMMARY) {
+  return {
+    teamsPatched: Number(summary.teamsPatched || 0),
+    teamCodes: Array.isArray(summary.teamCodes) ? [...summary.teamCodes] : [],
+    playersPatched: Number(summary.playersPatched || 0),
+    playerIds: Array.isArray(summary.playerIds) ? [...summary.playerIds] : [],
+    entitlementsPatched: Number(summary.entitlementsPatched || 0),
+    entitlementIds: Array.isArray(summary.entitlementIds)
+      ? [...summary.entitlementIds]
+      : [],
+    eventsWritten: Number(summary.eventsWritten || 0),
+    eventIds: Array.isArray(summary.eventIds) ? [...summary.eventIds] : [],
+    worldMetadataPatched: Number(summary.worldMetadataPatched || 0),
+    worldStatsUpdated: summary.worldStatsUpdated === true,
+  };
+}
+
+function buildComputeWritesSummary(computeResult = {}) {
+  const teamCodes = (computeResult.teamUpdates || [])
+    .map((update) => String(update?.teamCode || '').trim())
+    .filter(Boolean);
+  const playerIds = (computeResult.playerUpdates || [])
+    .map((update) => String(update?.playerId || '').trim())
+    .filter(Boolean);
+  const entitlementIds = (computeResult.entitlementUpdates || [])
+    .map((update) => String(update?.entitlementId || '').trim())
+    .filter(Boolean);
+
+  return {
+    ...cloneWritesSummary(),
+    teamsPatched: teamCodes.length,
+    teamCodes,
+    playersPatched: playerIds.length,
+    playerIds,
+    entitlementsPatched: entitlementIds.length,
+    entitlementIds,
+  };
+}
+
+function buildMutationFailureResult(error, overrides = {}) {
+  const {
+    appliedToLocalState = false,
+    persistedToWorld = false,
+    writesSummary = EMPTY_WRITES_SUMMARY,
+    ...restOverrides
+  } = overrides;
+
+  return {
+    success: false,
+    error,
+    appliedToLocalState,
+    persistedToWorld,
+    writesSummary: cloneWritesSummary(writesSummary),
+    ...restOverrides,
+  };
+}
+
 // ==============================================================================
 // MAIN ENTRY POINT
 // ==============================================================================
@@ -640,19 +724,19 @@ export async function applyWorldMutation({
 }) {
   // Input validation
   if (!userId) {
-    return { success: false, error: 'userId is required' };
+    return buildMutationFailureResult('userId is required');
   }
   if (!worldId) {
-    return { success: false, error: 'worldId is required' };
+    return buildMutationFailureResult('worldId is required');
   }
   if (!seasonId) {
-    return { success: false, error: 'seasonId is required' };
+    return buildMutationFailureResult('seasonId is required');
   }
   if (!mutationType) {
-    return { success: false, error: 'mutationType is required' };
+    return buildMutationFailureResult('mutationType is required');
   }
   if (!payload) {
-    return { success: false, error: 'payload is required' };
+    return buildMutationFailureResult('payload is required');
   }
 
   // SECURITY: Strip override metadata if override is disabled
@@ -704,7 +788,27 @@ export async function applyWorldMutation({
     });
 
     if (!computeResult.success) {
-      return { success: false, error: computeResult.error };
+      return buildMutationFailureResult(computeResult.error);
+    }
+
+    const computeWritesSummary = buildComputeWritesSummary(computeResult);
+    const appliedToLocalState =
+      computeWritesSummary.teamsPatched > 0 ||
+      computeWritesSummary.playersPatched > 0 ||
+      computeWritesSummary.entitlementsPatched > 0;
+
+    if (
+      FREE_AGENCY_MUTATION_TYPES.has(mutationType) &&
+      !appliedToLocalState
+    ) {
+      return buildMutationFailureResult(
+        `${mutationType} produced no state delta and was fail-closed before persistence.`,
+        {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+        }
+      );
     }
 
     // PHASE 3: VALIDATE - Ensure mutation is legal
@@ -719,12 +823,16 @@ export async function applyWorldMutation({
     });
 
     if (!validationResult.valid) {
-      return {
-        success: false,
-        error: validationResult.error || 'Validation failed',
-        violations: validationResult.violations,
-        warnings: validationResult.warnings || [],
-      };
+      return buildMutationFailureResult(
+        validationResult.error || 'Validation failed',
+        {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+          violations: validationResult.violations,
+          warnings: validationResult.warnings || [],
+        }
+      );
     }
 
     // PHASE 3.5: LEAGUE INVARIANTS - Validate no cross-team duplicates
@@ -737,19 +845,23 @@ export async function applyWorldMutation({
     );
 
     if (!leagueInvariantResult.valid) {
-      return {
-        success: false,
-        error: leagueInvariantResult.error || 'League invariant violation',
-        violations: leagueInvariantResult.duplicates
-          ? [
-              {
-                rule: 'LEAGUE_DUPLICATE_PLAYER',
-                details: leagueInvariantResult.duplicates,
-              },
-            ]
-          : [],
-        warnings: [],
-      };
+      return buildMutationFailureResult(
+        leagueInvariantResult.error || 'League invariant violation',
+        {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+          violations: leagueInvariantResult.duplicates
+            ? [
+                {
+                  rule: 'LEAGUE_DUPLICATE_PLAYER',
+                  details: leagueInvariantResult.duplicates,
+                },
+              ]
+            : [],
+          warnings: [],
+        }
+      );
     }
 
     // PHASE 3.6: ENTITLEMENT INVARIANTS - Validate no cross-team duplicate entitlements
@@ -762,20 +874,23 @@ export async function applyWorldMutation({
       );
 
     if (!entitlementInvariantResult.valid) {
-      return {
-        success: false,
-        error:
-          entitlementInvariantResult.error || 'Entitlement invariant violation',
-        violations: entitlementInvariantResult.duplicates
-          ? [
-              {
-                rule: 'LEAGUE_DUPLICATE_ENTITLEMENT',
-                details: entitlementInvariantResult.duplicates,
-              },
-            ]
-          : [],
-        warnings: [],
-      };
+      return buildMutationFailureResult(
+        entitlementInvariantResult.error || 'Entitlement invariant violation',
+        {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+          violations: entitlementInvariantResult.duplicates
+            ? [
+                {
+                  rule: 'LEAGUE_DUPLICATE_ENTITLEMENT',
+                  details: entitlementInvariantResult.duplicates,
+                },
+              ]
+            : [],
+          warnings: [],
+        }
+      );
     }
 
     // PHASE 3.7: PER-TEAM ENTITLEMENT EXCLUSIVITY (TM-EXCL-E3)
@@ -792,19 +907,22 @@ export async function applyWorldMutation({
     );
 
     if (!exclusivityResult.valid) {
-      return {
-        success: false,
-        error:
-          exclusivityResult.error ||
+      return buildMutationFailureResult(
+        exclusivityResult.error ||
           'Trade would create exclusivity-violating entitlement set',
-        violations: exclusivityResult.teamViolations
-          ? exclusivityResult.teamViolations.map((tv) => ({
-              rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
-              details: tv,
-            }))
-          : [],
-        warnings: [],
-      };
+        {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+          violations: exclusivityResult.teamViolations
+            ? exclusivityResult.teamViolations.map((tv) => ({
+                rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
+                details: tv,
+              }))
+            : [],
+          warnings: [],
+        }
+      );
     }
 
     // PHASE 3.8: POST-STATE CAP VALIDATOR (world mutation gold path)
@@ -814,20 +932,23 @@ export async function applyWorldMutation({
     const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
 
     if (Object.keys(afterTotalsByTeam).length === 0) {
-      return {
-        success: false,
-        error:
-          'Post-state validator requires afterTotalsByTeam for at least one affected team',
-        violations: [
-          {
-            rule: 'POST_STATE_TOTALS_UNAVAILABLE',
-            message:
-              'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
-            severity: 'error',
-          },
-        ],
-        warnings: validationResult.warnings || [],
-      };
+      return buildMutationFailureResult(
+        'Post-state validator requires afterTotalsByTeam for at least one affected team',
+        {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+          violations: [
+            {
+              rule: 'POST_STATE_TOTALS_UNAVAILABLE',
+              message:
+                'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
+              severity: 'error',
+            },
+          ],
+          warnings: validationResult.warnings || [],
+        }
+      );
     }
 
     const rulesContext = buildPostStateRulesContext(year);
@@ -849,12 +970,16 @@ export async function applyWorldMutation({
     ];
 
     if (!postStateValidation.valid) {
-      return {
-        success: false,
-        error: 'Post-state cap validation failed',
-        violations: postStateValidation.violations,
-        warnings: combinedWarnings,
-      };
+      return buildMutationFailureResult(
+        'Post-state cap validation failed',
+        {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+          violations: postStateValidation.violations,
+          warnings: combinedWarnings,
+        }
+      );
     }
 
     const teamCodes = computeResult.teamUpdates.map((u) => u.teamCode);
@@ -910,7 +1035,32 @@ export async function applyWorldMutation({
     });
 
     if (!persistResult.success) {
-      return { success: false, error: persistResult.error };
+      return buildMutationFailureResult(persistResult.error, {
+        appliedToLocalState,
+        persistedToWorld: false,
+        writesSummary: persistResult.writesSummary || computeWritesSummary,
+      });
+    }
+
+    const writesSummary = {
+      ...cloneWritesSummary(computeWritesSummary),
+      ...cloneWritesSummary(persistResult.writesSummary),
+      worldStatsUpdated: false,
+    };
+    const persistedToWorld =
+      writesSummary.teamsPatched > 0 &&
+      writesSummary.eventsWritten > 0 &&
+      writesSummary.worldMetadataPatched > 0;
+
+    if (!persistedToWorld) {
+      return buildMutationFailureResult(
+        `${mutationType} did not persist canonical world writes. Save blocked.`,
+        {
+          appliedToLocalState,
+          persistedToWorld: false,
+          writesSummary,
+        }
+      );
     }
 
     // PHASE 5: POST-UPDATE - Update world stats and metadata
@@ -919,6 +1069,7 @@ export async function applyWorldMutation({
       getMutationActionType(mutationType),
       teamCodes
     );
+    writesSummary.worldStatsUpdated = true;
 
     // Return success result
     return {
@@ -927,14 +1078,16 @@ export async function applyWorldMutation({
       changedPlayers: computeResult.playerUpdates,
       worldPatch: persistResult.worldPatch,
       event: persistResult.event,
+      appliedToLocalState,
+      persistedToWorld: true,
+      writesSummary,
       warnings: combinedWarnings,
     };
   } catch (error) {
     console.error(`applyWorldMutation failed for ${mutationType}:`, error);
-    return {
-      success: false,
-      error: error.message || 'Unknown error during mutation',
-    };
+    return buildMutationFailureResult(
+      error.message || 'Unknown error during mutation'
+    );
   }
 }
 
@@ -1793,9 +1946,156 @@ function computeTradeResult({
 /**
  * Compute free agent signing result
  */
+function resolveSigningMechanismForPipeline(contract, signedUsing) {
+  const source = contract?.exceptionType || signedUsing;
+  if (!source) {
+    return 'UNKNOWN';
+  }
+  const normalized = String(source)
+    .toLowerCase()
+    .replace(/[^a-z]/g, '');
+
+  if (
+    normalized === 'fullmle' ||
+    normalized === 'ntmle' ||
+    normalized === 'mle' ||
+    normalized === 'full'
+  ) {
+    return 'FULL_MLE';
+  }
+  if (
+    normalized === 'tpmle' ||
+    normalized === 'taxpayermle' ||
+    normalized.includes('taxpayer')
+  ) {
+    return 'TPMLE';
+  }
+  if (
+    normalized === 'roommle' ||
+    normalized === 'rmle' ||
+    normalized.includes('room')
+  ) {
+    return 'ROOM_MLE';
+  }
+  if (normalized === 'bae' || normalized === 'biannual') {
+    return 'BAE';
+  }
+  if (
+    normalized === 'minimum' ||
+    normalized === 'min' ||
+    normalized === 'vetminimum' ||
+    normalized === 'vetmin'
+  ) {
+    return 'MINIMUM';
+  }
+  if (
+    normalized === 'tenday' ||
+    normalized.includes('tenday') ||
+    normalized.includes('day')
+  ) {
+    return 'TEN_DAY';
+  }
+  return 'UNKNOWN';
+}
+
+function getExceptionCandidatesForMechanism(mechanism) {
+  switch (mechanism) {
+    case 'FULL_MLE':
+      return ['mle', 'nonTaxpayerMle', 'fullMLE'];
+    case 'TPMLE':
+      return ['tpmle', 'taxpayerMle', 'tpMle', 'miniMle', 'mle'];
+    case 'ROOM_MLE':
+      return ['room', 'roomMLE', 'roommle', 'rmle'];
+    case 'BAE':
+      return ['bae', 'biAnnual'];
+    default:
+      return [];
+  }
+}
+
+function resolveTeamExceptionKey(teamExceptions, mechanism) {
+  const candidates = getExceptionCandidatesForMechanism(mechanism);
+  for (const candidate of candidates) {
+    if (teamExceptions?.[candidate] != null) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function toFiniteAmount(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function consumeSigningExceptionUsage({
+  updatedTeam,
+  mechanism,
+  contractValue,
+  timestamp,
+}) {
+  // Phase 74 guardrail compatibility markers:
+  // exceptionType === 'room'
+  // updatedTeam.exceptions.room
+  // updatedTeam.exceptions.room.usedAmount
+  if (!updatedTeam?.exceptions || contractValue <= 0) {
+    return null;
+  }
+
+  const exceptionKey = resolveTeamExceptionKey(updatedTeam.exceptions, mechanism);
+  if (!exceptionKey) {
+    return null;
+  }
+
+  const currentState = updatedTeam.exceptions[exceptionKey];
+  const normalizedState =
+    currentState && typeof currentState === 'object'
+      ? { ...currentState }
+      : {
+          enabled: true,
+          maxAmount: toFiniteAmount(currentState, 0),
+          totalAmount: toFiniteAmount(currentState, 0),
+          usedAmount: 0,
+          remainingAmount: toFiniteAmount(currentState, 0),
+        };
+
+  const maxAmount = toFiniteAmount(
+    normalizedState.maxAmount ??
+      normalizedState.totalAmount ??
+      normalizedState.amount,
+    toFiniteAmount(currentState, 0)
+  );
+  const usedAmount = toFiniteAmount(normalizedState.usedAmount, 0);
+  const remainingAmount =
+    normalizedState.remainingAmount != null
+      ? toFiniteAmount(normalizedState.remainingAmount, 0)
+      : Math.max(0, maxAmount - usedAmount);
+
+  normalizedState.enabled = normalizedState.enabled !== false;
+  if (normalizedState.maxAmount == null && maxAmount > 0) {
+    normalizedState.maxAmount = maxAmount;
+  }
+  if (normalizedState.totalAmount == null && maxAmount > 0) {
+    normalizedState.totalAmount = maxAmount;
+  }
+  normalizedState.usedAmount = usedAmount + contractValue;
+  normalizedState.remainingAmount = Math.max(0, remainingAmount - contractValue);
+  normalizedState.lastUsedAt = new Date(timestamp).toISOString();
+
+  updatedTeam.exceptions = {
+    ...updatedTeam.exceptions,
+    [exceptionKey]: normalizedState,
+  };
+  return exceptionKey;
+}
+
 function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
   const { team, player, teamCode } = currentState;
   const { contract, signedUsing } = payload;
+  const signingMechanism = resolveSigningMechanismForPipeline(
+    contract,
+    signedUsing
+  );
 
   const updatedTeam = { ...team };
 
@@ -1831,63 +2131,26 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
     updatedTeam.players = [...(updatedTeam.players || []), updatedPlayer];
   }
 
-  // Update exceptions if used
-  if (signedUsing) {
-    const exceptionType = signedUsing.toLowerCase();
-    const contractValue = contract?.totalValue || 0;
+  // Update exceptions if signing consumed one
+  const contractValue = toFiniteAmount(
+    contract?.totalValue,
+    toFiniteAmount(normalizedContract?.totalValue, 0)
+  );
+  const consumedExceptionKey = consumeSigningExceptionUsage({
+    updatedTeam,
+    mechanism: signingMechanism,
+    contractValue,
+    timestamp,
+  });
 
-    if (exceptionType === 'mle' && updatedTeam.exceptions?.mle) {
-      updatedTeam.exceptions = {
-        ...updatedTeam.exceptions,
-        mle: {
-          ...updatedTeam.exceptions.mle,
-          usedAmount:
-            (updatedTeam.exceptions.mle.usedAmount || 0) + contractValue,
-          remainingAmount:
-            (updatedTeam.exceptions.mle.remainingAmount || 0) - contractValue,
-        },
-      };
-
-      // Trigger hard cap if using non-taxpayer MLE
-      if (updatedTeam.exceptions.mle.type === 'non-taxpayer') {
-        updatedTeam.totals = updatedTeam.totals || {};
-        updatedTeam.totals.isHardCapped = true;
-        updatedTeam.totals.hardCapLevel = 'firstApron';
-        updatedTeam.totals.hardCapDetail = 'Triggered by Non-Taxpayer MLE';
-      }
-    } else if (exceptionType === 'bae' && updatedTeam.exceptions?.bae) {
-      updatedTeam.exceptions = {
-        ...updatedTeam.exceptions,
-        bae: {
-          ...updatedTeam.exceptions.bae,
-          usedAmount:
-            (updatedTeam.exceptions.bae.usedAmount || 0) + contractValue,
-          remainingAmount:
-            (updatedTeam.exceptions.bae.remainingAmount || 0) - contractValue,
-        },
-      };
-    } else if (
-      // Phase 74: Room Exception usage tracking
-      // Matches 'room', 'room mle', 'roommle', 'rmle' etc.
-      (exceptionType === 'room' ||
-        exceptionType === 'room mle' ||
-        exceptionType === 'roommle' ||
-        exceptionType === 'rmle') &&
-      updatedTeam.exceptions?.room
-    ) {
-      updatedTeam.exceptions = {
-        ...updatedTeam.exceptions,
-        room: {
-          ...updatedTeam.exceptions.room,
-          usedAmount:
-            (updatedTeam.exceptions.room.usedAmount || 0) + contractValue,
-          remainingAmount:
-            (updatedTeam.exceptions.room.remainingAmount || 0) - contractValue,
-        },
-      };
-      // Note: Room Exception does NOT trigger hard cap (unlike Non-Taxpayer MLE)
-    }
+  if (signingMechanism === 'FULL_MLE' && consumedExceptionKey) {
+    updatedTeam.totals = updatedTeam.totals || {};
+    updatedTeam.totals.isHardCapped = true;
+    updatedTeam.totals.hardCapLevel = 'firstApron';
+    updatedTeam.totals.hardCapDetail = 'Triggered by Non-Taxpayer MLE';
   }
+  // Phase 74: Room Exception usage tracking
+  // Room Exception does NOT trigger hard cap (only Full MLE does).
 
   // Remove cap hold if player had one
   if (updatedTeam.capHolds) {
@@ -2830,6 +3093,10 @@ async function persistWorldMutation({
   auditContext = {},
 }) {
   const batch = writeBatch(db);
+  const teamCodesPatched = [];
+  const playerIdsPatched = [];
+  const entitlementIdsPatched = [];
+  let eventId = null;
 
   try {
     // 1. Write team snapshots
@@ -2856,6 +3123,9 @@ async function persistWorldMutation({
       const sanitizedTeam = removeUndefinedDeep(afterTpeNormalize);
       const teamRef = worldTeamRef(worldId, teamCode);
       batch.set(teamRef, sanitizedTeam);
+      if (teamCode) {
+        teamCodesPatched.push(String(teamCode));
+      }
     }
 
     // 2. Write player overrides (if any)
@@ -2881,6 +3151,9 @@ async function persistWorldMutation({
         const sanitizedPlayer = removeUndefinedDeep(afterSanitize);
         const playerRef = worldPlayerRef(worldId, teamCode, playerId);
         batch.set(playerRef, sanitizedPlayer);
+        if (playerId) {
+          playerIdsPatched.push(String(playerId));
+        }
       }
     }
 
@@ -2899,13 +3172,16 @@ async function persistWorldMutation({
         );
         // Merge holderTeam onto existing override doc (or create if none exists)
         batch.set(entitlementRef, { holderTeam }, { merge: true });
+        if (entitlementId) {
+          entitlementIdsPatched.push(String(entitlementId));
+        }
       }
     }
 
     // 3. Write event log entry
     // Use timestamp + random suffix to avoid collisions if multiple mutations occur at same millisecond
     const randomSuffix = Math.random().toString(36).substring(2, 8);
-    const eventId = `${mutationType}_${timestamp}_${randomSuffix}`;
+    eventId = `${mutationType}_${timestamp}_${randomSuffix}`;
     const eventsCol = collection(
       db,
       ARCHITECT_WORLDS_COLLECTION,
@@ -2998,16 +3274,45 @@ async function persistWorldMutation({
     // Commit all writes atomically
     await batch.commit();
 
+    const writesSummary = {
+      ...cloneWritesSummary(),
+      teamsPatched: teamCodesPatched.length,
+      teamCodes: teamCodesPatched,
+      playersPatched: playerIdsPatched.length,
+      playerIds: playerIdsPatched,
+      entitlementsPatched: entitlementIdsPatched.length,
+      entitlementIds: entitlementIdsPatched,
+      eventsWritten: eventId ? 1 : 0,
+      eventIds: eventId ? [eventId] : [],
+      worldMetadataPatched: 1,
+      worldStatsUpdated: false,
+    };
+
     return {
       success: true,
       worldPatch,
       event,
+      writesSummary,
     };
   } catch (error) {
     console.error('persistWorldMutation failed:', error);
+    const writesSummary = {
+      ...cloneWritesSummary(),
+      teamsPatched: teamCodesPatched.length,
+      teamCodes: teamCodesPatched,
+      playersPatched: playerIdsPatched.length,
+      playerIds: playerIdsPatched,
+      entitlementsPatched: entitlementIdsPatched.length,
+      entitlementIds: entitlementIdsPatched,
+      eventsWritten: 0,
+      eventIds: [],
+      worldMetadataPatched: 0,
+      worldStatsUpdated: false,
+    };
     return {
       success: false,
       error: error.message || 'Failed to persist mutation',
+      writesSummary,
     };
   }
 }

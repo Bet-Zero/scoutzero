@@ -34,6 +34,7 @@ import useCapValidation, {
 } from '@/features/architect/hooks/useCapValidation';
 import ValidationWarnings from '@/features/architect/ValidationWarnings';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
+import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
 /**
  * Build a structured validation result for contract actions.
@@ -347,10 +348,14 @@ const EditContractModal = ({
     selectedAction !== 'buyout' ||
     (parsedBuyoutAmount != null &&
       parsedBuyoutAmount <= remainingGuaranteedForBuyout);
+  const resolvedDestinationTeamCode =
+    selectedAction === 'signAndTrade' && destinationTeamId
+      ? resolveTeamCode(String(destinationTeamId)) || String(destinationTeamId)
+      : null;
 
   const disableConfirm =
     !selectedAction ||
-    (selectedAction === 'signAndTrade' && !destinationTeamId) ||
+    (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
     (!validationResult.isLegal && (!canOverride || !isOverrideConfirmed)) ||
     !buyoutAmountIsValid ||
     isSubmitting;
@@ -647,6 +652,11 @@ const EditContractModal = ({
         };
       });
 
+      const signedUsing =
+        selectedException && selectedException !== 'None'
+          ? selectedException
+          : null;
+
       return {
         ...extension,
         years,
@@ -656,6 +666,7 @@ const EditContractModal = ({
         base: salaries[0] || 0,
         firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
         exceptionType: selectedException,
+        signedUsing,
         guardrails: signingGuardrails,
         raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
         ...overrides,
@@ -666,9 +677,27 @@ const EditContractModal = ({
 
   const normalizeActionResult = (result) => {
     if (result && typeof result === 'object' && 'success' in result) {
+      const writesSummary = result.writesSummary || {};
+      const hasPersistSummary =
+        writesSummary.eventsWritten !== undefined ||
+        writesSummary.worldMetadataPatched !== undefined ||
+        writesSummary.teamsPatched !== undefined;
+      const hasPersistedWrites =
+        !hasPersistSummary ||
+        (Number(writesSummary.eventsWritten ?? 1) > 0 &&
+          Number(writesSummary.worldMetadataPatched ?? 1) > 0 &&
+          Number(writesSummary.teamsPatched ?? 1) > 0);
+      const success =
+        result.success === true &&
+        result.appliedToLocalState !== false &&
+        result.persistedToWorld !== false &&
+        hasPersistedWrites;
       return {
-        success: result.success !== false,
-        message: result.message || '',
+        success,
+        message:
+          result.message ||
+          result.error ||
+          (success ? '' : 'Action did not complete required save writes.'),
       };
     }
     if (result === false) {
@@ -765,6 +794,13 @@ const EditContractModal = ({
             );
             break;
           case 'signAndTrade':
+            if (!resolvedDestinationTeamCode) {
+              actionResult = {
+                success: false,
+                message: 'Destination team is required for sign-and-trade.',
+              };
+              break;
+            }
             actionResult = await onSignAndTrade?.(
               player,
               buildCanonicalSigningPayload({
@@ -772,7 +808,7 @@ const EditContractModal = ({
                 contractType: 'Sign & Trade',
                 ...(overrideMetadata || {}),
               }),
-              destinationTeamId
+              resolvedDestinationTeamCode
             );
             break;
           case 'renounce':
@@ -1228,6 +1264,7 @@ const EditContractModal = ({
                   <TeamSelectDropdown
                     selectedTeamId={destinationTeamId}
                     onChange={setDestinationTeamId}
+                    valueFormat="teamCode"
                   />
                   <p className="mt-2 text-[11px] text-white/60">
                     The player will be signed to your team, then immediately traded to this destination.

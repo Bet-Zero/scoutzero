@@ -202,14 +202,24 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       success: true,
       changedTeams: [{ teamCode: 'LAL', team: updatedTeam }],
       changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sign_1' },
     });
 
     const { result, refreshWorldRosterIndex } = renderActionsHarness({
       worldId: 'world_1',
     });
 
-    act(() => {
-      result.current.actions.handleSign(
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
         playerFixture as any,
         contractFixture as any
       );
@@ -227,9 +237,51 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       expect.objectContaining({
         mutationType: 'signFreeAgent',
         worldId: 'world_1',
+        payload: expect.objectContaining({
+          signedUsing: 'Full MLE',
+        }),
       })
     );
+    expect(actionResult).toEqual({ success: true });
+    expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
     expect(refreshWorldRosterIndex).toHaveBeenCalled();
+  });
+
+  it('fails closed (no success toast) when world mutation reports missing persistence truth', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+      appliedToLocalState: true,
+      persistedToWorld: false,
+      writesSummary: {
+        teamsPatched: 1,
+        eventsWritten: 0,
+        worldMetadataPatched: 0,
+      },
+      error: 'signFreeAgent did not complete required world writes.',
+    });
+
+    const { result } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual(
+      expect.objectContaining({
+        success: false,
+      })
+    );
+    expect(toastMocks.success).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      expect.stringContaining('required world writes')
+    );
   });
 
   it('blocks sign-and-trade in vacuum mode with explicit error (no silent no-op)', async () => {
@@ -249,6 +301,128 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+  });
+
+  it('normalizes sign-and-trade destination to canonical teamCode before dispatch', async () => {
+    worldTeamDataMocks.resolveTeamCode.mockImplementation((teamId: string) => {
+      if (teamId === 'celtics') return 'BOS';
+      return String(teamId || '').toUpperCase();
+    });
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sat_1' },
+    });
+
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSignAndTrade(
+        playerFixture as any,
+        contractFixture as any,
+        'celtics'
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationType: 'signAndTrade',
+        payload: expect.objectContaining({
+          destinationTeamCode: 'BOS',
+        }),
+      })
+    );
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          destinationTeamCode: 'celtics',
+        }),
+      })
+    );
+  });
+
+  it('renounce removes cap hold, updates totals, and requires persisted world writes', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const initialTeam = {
+      ...baseTeamFixture,
+      capHolds: [
+        {
+          playerId: 'player_1',
+          playerName: 'Test Player',
+          amount: 9_000_000,
+          season: '2025-26',
+          type: 'bird',
+          active: true,
+          isSigned: false,
+        },
+      ],
+      totals: {
+        capHit: 120_000_000,
+        capHolds: 9_000_000,
+      },
+    };
+    const persistedRenounceTeam = {
+      ...initialTeam,
+      capHolds: [],
+      totals: {
+        capHit: 111_000_000,
+        capHolds: 0,
+      },
+    };
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: persistedRenounceTeam }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_renounce_1' },
+    });
+
+    const { result } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam,
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleRenounceRights(
+        {
+          id: 'player_1',
+          player_id: 'player_1',
+          name: 'Test Player',
+          displayName: 'Test Player',
+        } as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(result.current.teamCapSheet.capHolds).toHaveLength(0);
+    expect(result.current.teamCapSheet.totals.capHolds).toBe(0);
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationType: 'renounceRights',
+        payload: expect.objectContaining({
+          teamCode: 'LAL',
+          playerId: 'player_1',
+        }),
+      })
+    );
+    confirmSpy.mockRestore();
   });
 
   it('stores an offer sheet in world mode and syncs the outgoing list from changedTeams', async () => {

@@ -7,16 +7,45 @@
  */
 // TeamSelectDropdown.jsx
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Listbox } from '@headlessui/react';
 import { ChevronUpDownIcon } from '@heroicons/react/20/solid';
 import TeamLogo from './TeamLogo';
 import { TeamListFull } from '@/constants/teamList';
 import { getTeamColors } from '@/shared/utils/formatting';
 
-const TeamSelectDropdown = ({ selectedTeamId, onChange }) => {
-  const selectedTeam = TeamListFull.find((t) => t.id === selectedTeamId);
-  const { primary: selectedColor } = getTeamColors(selectedTeamId) || {};
+const resolveTeamByAnyIdentifier = (identifier) => {
+  if (!identifier) return null;
+  const normalized = String(identifier).trim().toUpperCase();
+  return (
+    TeamListFull.find(
+      (team) =>
+        team.id === identifier ||
+        team.code === identifier ||
+        team.teamId === identifier
+    ) ||
+    TeamListFull.find(
+      (team) =>
+        team.code?.toUpperCase() === normalized ||
+        team.teamId?.toUpperCase() === normalized
+    ) ||
+    null
+  );
+};
+
+const TeamSelectDropdown = ({
+  selectedTeamId,
+  onChange,
+  valueFormat = 'id',
+}) => {
+  const selectedTeam = useMemo(
+    () => resolveTeamByAnyIdentifier(selectedTeamId),
+    [selectedTeamId]
+  );
+  const optionValueFor = (team) =>
+    valueFormat === 'teamCode' ? team.code || team.teamId || team.id : team.id;
+  const selectedColorInput = selectedTeam?.id || selectedTeamId;
+  const { primary: selectedColor } = getTeamColors(selectedColorInput) || {};
 
   return (
     <Listbox value={selectedTeamId} onChange={onChange}>
@@ -47,7 +76,7 @@ const TeamSelectDropdown = ({ selectedTeamId, onChange }) => {
           {TeamListFull.map((team) => (
             <Listbox.Option
               key={team.id}
-              value={team.id}
+              value={optionValueFor(team)}
               className={({ active, selected }) =>
                 `flex items-center gap-2 px-3 py-2 cursor-pointer ${
                   active ? 'bg-white/10' : ''
