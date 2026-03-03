@@ -267,6 +267,86 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ---
 
+### TEAM_HISTORY_E3: Event Emission Matrix Hardening (2026-03-03)
+
+**Goal:** Ensure Team History world mode remains populated by real world mutations via canonical event emission contracts and deterministic matrix coverage.
+
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (163 files; 2423 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- Hardened mutation pipeline result contract with explicit `eventWritten` and write-count aliases (`teamsWritten`, `playersWritten`, `entitlementsWritten`) while preserving existing `*Patched` fields.
+- Kept fail-closed world success contract requiring event persistence (`eventsWritten > 0`).
+- Added deterministic E3 matrix guardrail test for required mutation families and fail-closed missing-team-codes behavior.
+- Added deterministic Team History integration matrix test verifying world timeline rows + detail modal rendering from canonical world events.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/TEAM_HISTORY_E3_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### TEAM_HISTORY_E4: Transaction-Log Quality Timeline (2026-03-03)
+
+**Goal:** Upgrade Team History world-mode rendering to transaction-log quality summaries + structured details while preserving world-events SSOT and deterministic proof.
+
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (164 files; 2424 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- Added canonical Team History display normalizer output with required fields: `summary`, `detailSections`, and preserved `raw` payload.
+- Added mutation-family display rendering for trade, free agency, cap transactions, and cap sheet admin types, with alias normalization (`setException` -> `setExceptions`).
+- Updated timeline rows to show primary summary + secondary metadata and added stable selectors for E4 tests.
+- Upgraded detail modal to render summary, structured section blocks, and raw payload block.
+- Added deterministic matrix + fail-soft tests and extended forbidden-write regression coverage for newly touched Team History files.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/TEAM_HISTORY_E4_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### TEAM_HISTORY_E5: Event Payload Enrichment at Write-Time (FINAL CLOSE) (2026-03-03)
+
+**Goal:** Final-close Team History v1 by enriching canonical world event payloads at write-time so world-mode history renders transaction-log quality summaries and detail sections for the full required mutation matrix.
+
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS
+
+**Outcome summary:**
+
+- Enriched canonical world event payload builder to guarantee required envelope keys and normalized mutation alias (`setException` -> `setExceptions`).
+- Added family-aware enrichment blocks under `diffSummary` and `mutationMetadata` (players/picks movement, contract summaries, rights/exception usage, waive buyout/stretch flags, exceptions/dead-cap markers).
+- Added deterministic guardrail matrix coverage for required mutation families and fail-closed missing-team-codes behavior.
+- Added world-mode integration coverage proving Team History renders human summaries + structured detail sections from enriched events while preserving raw payload visibility.
+- Preserved forbidden-write constraints; no root `/teams` or `architect_base*` writes introduced.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/TEAM_HISTORY_E5_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
 ## How to Run Review Mode
 
 ### Quick Start

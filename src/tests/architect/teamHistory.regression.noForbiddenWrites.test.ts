@@ -6,6 +6,10 @@ const ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
 const HISTORY_TAB_PATH =
   'src/features/architect/history/TeamHistoryTab/TeamHistoryTab.jsx';
+const HISTORY_DETAIL_MODAL_PATH =
+  'src/features/architect/history/TeamHistoryTab/HistoryDetailModal.jsx';
+const HISTORY_NORMALIZER_PATH =
+  'src/features/architect/history/utils/normalizeWorldEventsForTeamHistory.ts';
 const FIXTURES_PATH =
   'src/features/architect/history/devTeamHistoryFixtures.ts';
 
@@ -52,15 +56,21 @@ describe('Team History forbidden writes regression guardrail', () => {
 
   it('keeps Team History UI + fixture module free from forbidden write paths', () => {
     const historySource = readSource(HISTORY_TAB_PATH);
+    const modalSource = readSource(HISTORY_DETAIL_MODAL_PATH);
+    const normalizerSource = readSource(HISTORY_NORMALIZER_PATH);
     const fixtureSource = readSource(FIXTURES_PATH);
 
     for (const pattern of forbiddenWritePatterns) {
       expect(historySource).not.toMatch(pattern);
+      expect(modalSource).not.toMatch(pattern);
+      expect(normalizerSource).not.toMatch(pattern);
       expect(fixtureSource).not.toMatch(pattern);
     }
 
     for (const pattern of forbiddenPathPatterns) {
       expect(historySource).not.toMatch(pattern);
+      expect(modalSource).not.toMatch(pattern);
+      expect(normalizerSource).not.toMatch(pattern);
       expect(fixtureSource).not.toMatch(pattern);
     }
   });

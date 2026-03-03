@@ -1,5 +1,10 @@
 type GenericRecord = Record<string, unknown>;
 
+type DisplaySection = {
+  title: string;
+  lines: string[];
+};
+
 export type TeamHistoryWorldEventRow = {
   id: string;
   category: string;
@@ -12,12 +17,19 @@ export type TeamHistoryWorldEventRow = {
   primaryDeltas: string;
   capDelta: number | null;
   summary: string;
+  detailSections: DisplaySection[];
   eventId: string | null;
   operationId: string | null;
   mutationType: string | null;
   beforeTotalsByTeam: GenericRecord;
   afterTotalsByTeam: GenericRecord;
   raw: GenericRecord;
+};
+
+export type TeamHistoryEventDisplayOptions = {
+  teamCode?: string | null;
+  teamNameLookup?: Record<string, string>;
+  playerNameLookup?: Record<string, string>;
 };
 
 function asObject(input: unknown): GenericRecord {
@@ -32,6 +44,27 @@ function toArrayOfStrings(input: unknown): string[] {
     return [];
   }
   return input.map((value) => String(value || '').trim()).filter(Boolean);
+}
+
+function pushSection(
+  sections: DisplaySection[],
+  title: string,
+  lines: (string | null | undefined)[]
+) {
+  const cleaned = lines
+    .map((line) => String(line || '').trim())
+    .filter(Boolean);
+  if (cleaned.length > 0) {
+    sections.push({ title, lines: cleaned });
+  }
+}
+
+function formatCurrency(value: unknown): string | null {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+  return `$${numericValue.toLocaleString()}`;
 }
 
 function toIsoString(input: unknown): string | null {
@@ -93,8 +126,6 @@ function formatMutationLabel(mutationType: string): string {
     signFreeAgent: 'Signed Free Agent',
     signAndTrade: 'Sign-and-Trade Executed',
     waivePlayer: 'Waive Player',
-    waiveAndStretch: 'Waive & Stretch',
-    buyoutPlayer: 'Buyout',
     extendPlayer: 'Extension Signed',
     renounceRights: 'Rights Renounced',
     optionDecision: 'Option Decision',
@@ -103,7 +134,9 @@ function formatMutationLabel(mutationType: string): string {
     declineOfferSheet: 'Offer Sheet Declined',
     finalizeMatchedOfferSheet: 'Offer Sheet Finalized (Matched)',
     finalizeDeclinedOfferSheet: 'Offer Sheet Finalized (Declined)',
-    setException: 'Exception Updated',
+    setExceptions: 'Exceptions Updated',
+    setException: 'Exceptions Updated',
+    setDeadCap: 'Dead Cap Updated',
     useException: 'Exception Used',
     createTradeException: 'TPE Created',
     useTradeException: 'TPE Used',
@@ -117,6 +150,49 @@ function formatMutationLabel(mutationType: string): string {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeMutationType(value: string): string {
+  if (value === 'setException') {
+    return 'setExceptions';
+  }
+  return value;
+}
+
+function formatTeamLabel(
+  teamCode: string,
+  teamNameLookup?: Record<string, string>
+): string {
+  if (!teamCode) {
+    return '';
+  }
+  const teamName = teamNameLookup?.[teamCode];
+  return teamName ? `${teamCode} (${teamName})` : teamCode;
+}
+
+function formatPlayerLabel(
+  playerToken: string,
+  playerNameLookup?: Record<string, string>
+): string {
+  if (!playerToken) {
+    return '';
+  }
+  const playerName = playerNameLookup?.[playerToken];
+  return playerName ? `${playerName} (${playerToken})` : playerToken;
+}
+
+function resolveSummary(
+  mutationType: string,
+  summaryCandidate: string | null,
+  fallbackAvailable: boolean
+) {
+  if (summaryCandidate) {
+    return summaryCandidate;
+  }
+  if (!fallbackAvailable) {
+    return `${formatMutationLabel(mutationType)} (details unavailable)`;
+  }
+  return formatMutationLabel(mutationType);
 }
 
 function buildSummary({
@@ -201,6 +277,291 @@ function readCapDelta(
   return afterValue - beforeValue;
 }
 
+export function toTeamHistoryEventDisplay(
+  eventInput: GenericRecord,
+  {
+    teamCode,
+    teamNameLookup,
+    playerNameLookup,
+  }: TeamHistoryEventDisplayOptions = {}
+): TeamHistoryWorldEventRow {
+  const raw = asObject(eventInput);
+  const metadata = asObject(raw.metadata);
+  const mutationMetadata = asObject(raw.mutationMetadata);
+  const diffSummary = asObject(raw.diffSummary);
+
+  const rawMutationType =
+    (typeof raw.mutationType === 'string' && raw.mutationType) ||
+    (typeof raw.type === 'string' && raw.type) ||
+    'unknown';
+  const mutationType = normalizeMutationType(String(rawMutationType));
+
+  const teamCodes = toArrayOfStrings(raw.teamCodes);
+  const teamsAffected = toArrayOfStrings(raw.teamsAffected);
+  const teamsInvolved = teamCodes.length > 0 ? teamCodes : teamsAffected;
+
+  const metadataPlayerIds = toArrayOfStrings(metadata.playerIds);
+  const metadataPlayersTraded = toArrayOfStrings(metadata.playersTraded);
+  const playerIds =
+    toArrayOfStrings(raw.playerIds).length > 0
+      ? toArrayOfStrings(raw.playerIds)
+      : metadataPlayerIds.length > 0
+        ? metadataPlayerIds
+        : metadataPlayersTraded;
+
+  const occurredAt = toIsoString(raw.occurredAt) || toIsoString(raw.timestamp);
+  const timestamp = toIsoString(raw.timestamp) || occurredAt;
+
+  const beforeTotalsByTeam = asObject(raw.beforeTotalsByTeam);
+  const afterTotalsByTeam = asObject(raw.afterTotalsByTeam);
+  const capDelta = readCapDelta(
+    beforeTotalsByTeam,
+    afterTotalsByTeam,
+    teamsInvolved,
+    teamCode ? String(teamCode).trim() : null
+  );
+
+  const eventId =
+    (typeof raw.eventId === 'string' && raw.eventId) ||
+    (typeof raw.id === 'string' && raw.id) ||
+    null;
+  const operationId =
+    (typeof raw.operationId === 'string' && raw.operationId) || null;
+
+  const detailSections: DisplaySection[] = [];
+
+  const primaryTeamsLine =
+    teamsInvolved.length > 0
+      ? teamsInvolved
+          .map((code) => formatTeamLabel(code, teamNameLookup))
+          .filter(Boolean)
+          .join(' ↔ ')
+      : null;
+
+  const metadataPlayerName =
+    (typeof mutationMetadata.playerName === 'string' &&
+      mutationMetadata.playerName) ||
+    (typeof metadata.playerName === 'string' && metadata.playerName) ||
+    null;
+  const metadataPlayerId =
+    (typeof mutationMetadata.playerId === 'string' &&
+      mutationMetadata.playerId) ||
+    (typeof metadata.playerId === 'string' && metadata.playerId) ||
+    null;
+
+  const firstPlayerToken =
+    playerIds[0] || metadataPlayerId || metadataPlayerName;
+  const firstPlayerLabel = firstPlayerToken
+    ? formatPlayerLabel(firstPlayerToken, playerNameLookup)
+    : null;
+
+  const contract =
+    asObject(mutationMetadata.contract).years ||
+    asObject(mutationMetadata.contract).firstYearSalary ||
+    asObject(metadata.contract).years ||
+    asObject(metadata.contract).firstYearSalary
+      ? asObject(mutationMetadata.contract).years ||
+        asObject(mutationMetadata.contract).firstYearSalary
+        ? asObject(mutationMetadata.contract)
+        : asObject(metadata.contract)
+      : {};
+
+  const capDeltaLine =
+    capDelta === null
+      ? null
+      : `Cap allocation delta: ${capDelta > 0 ? '+' : ''}$${capDelta.toLocaleString()}`;
+
+  let summaryCandidate: string | null =
+    (typeof mutationMetadata.summary === 'string' &&
+      mutationMetadata.summary.trim()) ||
+    (typeof metadata.summary === 'string' && metadata.summary.trim()) ||
+    null;
+
+  switch (mutationType) {
+    case 'executeTrade': {
+      summaryCandidate =
+        summaryCandidate ||
+        (primaryTeamsLine ? `Trade executed: ${primaryTeamsLine}` : null);
+
+      const playersMoved =
+        toArrayOfStrings(diffSummary.playersMoved).length > 0
+          ? toArrayOfStrings(diffSummary.playersMoved)
+          : playerIds;
+      const picksMoved =
+        toArrayOfStrings(diffSummary.picksMoved).length > 0
+          ? toArrayOfStrings(diffSummary.picksMoved)
+          : toArrayOfStrings(metadata.entitlementsTraded);
+
+      pushSection(
+        detailSections,
+        'Players',
+        playersMoved.map((player) =>
+          formatPlayerLabel(player, playerNameLookup)
+        )
+      );
+      pushSection(detailSections, 'Picks', picksMoved);
+      pushSection(detailSections, 'Teams', [primaryTeamsLine]);
+      pushSection(detailSections, 'Cap Delta', [capDeltaLine]);
+      break;
+    }
+    case 'signFreeAgent':
+    case 'signAndTrade':
+    case 'finalizeMatchedOfferSheet':
+    case 'finalizeDeclinedOfferSheet': {
+      const destinationTeam =
+        (typeof mutationMetadata.teamCode === 'string' &&
+          mutationMetadata.teamCode) ||
+        (typeof metadata.teamCode === 'string' && metadata.teamCode) ||
+        teamsInvolved[0] ||
+        null;
+      summaryCandidate =
+        summaryCandidate ||
+        (firstPlayerLabel && destinationTeam
+          ? `${formatMutationLabel(mutationType)}: ${firstPlayerLabel} → ${destinationTeam}`
+          : null);
+
+      const years = contract.years;
+      const firstYearSalary = formatCurrency(contract.firstYearSalary);
+
+      pushSection(detailSections, 'Players', [firstPlayerLabel]);
+      pushSection(detailSections, 'Contract', [
+        years ? `Years: ${years}` : null,
+        firstYearSalary ? `First year salary: ${firstYearSalary}` : null,
+      ]);
+      pushSection(detailSections, 'Exceptions', [
+        (typeof mutationMetadata.signedUsing === 'string' &&
+          mutationMetadata.signedUsing) ||
+        (typeof metadata.signedUsing === 'string' && metadata.signedUsing)
+          ? `Rights/exception used: ${mutationMetadata.signedUsing || metadata.signedUsing}`
+          : null,
+      ]);
+      pushSection(detailSections, 'Cap Delta', [capDeltaLine]);
+      break;
+    }
+    case 'waivePlayer':
+    case 'extendPlayer':
+    case 'optionDecision':
+    case 'renounceRights': {
+      summaryCandidate =
+        summaryCandidate ||
+        (firstPlayerLabel
+          ? `${formatMutationLabel(mutationType)}: ${firstPlayerLabel}`
+          : null);
+
+      const stretched =
+        mutationMetadata.stretched === true || metadata.stretched === true;
+      const deadCapAmount =
+        formatCurrency(mutationMetadata.deadCapAmount) ||
+        formatCurrency(metadata.deadCapAmount);
+      const optionType =
+        (typeof mutationMetadata.optionType === 'string' &&
+          mutationMetadata.optionType) ||
+        (typeof metadata.optionType === 'string' && metadata.optionType) ||
+        null;
+      const accepted = mutationMetadata.accepted ?? metadata.accepted;
+
+      pushSection(detailSections, 'Players', [firstPlayerLabel]);
+      pushSection(detailSections, 'Contract', [
+        mutationType === 'extendPlayer' && mutationMetadata.extensionYears
+          ? `Extension years: ${mutationMetadata.extensionYears}`
+          : null,
+        mutationType === 'optionDecision' && optionType
+          ? `Option type: ${optionType}`
+          : null,
+        mutationType === 'optionDecision' && typeof accepted === 'boolean'
+          ? `Decision: ${accepted ? 'Accepted' : 'Declined'}`
+          : null,
+      ]);
+      pushSection(detailSections, 'Exceptions', [
+        mutationType === 'waivePlayer' && stretched
+          ? 'Stretch provision applied'
+          : null,
+        mutationType === 'waivePlayer' && deadCapAmount
+          ? `Dead cap amount: ${deadCapAmount}`
+          : null,
+      ]);
+      pushSection(detailSections, 'Cap Delta', [capDeltaLine]);
+      break;
+    }
+    case 'setExceptions':
+    case 'setDeadCap': {
+      const exceptionChanges = toArrayOfStrings(diffSummary.exceptionChanges);
+      const deadCapChanges = toArrayOfStrings(diffSummary.deadCapChanges);
+      summaryCandidate =
+        summaryCandidate ||
+        (primaryTeamsLine
+          ? `${formatMutationLabel(mutationType)}: ${primaryTeamsLine}`
+          : null);
+
+      pushSection(
+        detailSections,
+        'Exceptions',
+        mutationType === 'setExceptions'
+          ? [
+              ...exceptionChanges,
+              exceptionChanges.length === 0 ? 'Exceptions updated' : null,
+            ]
+          : []
+      );
+      pushSection(
+        detailSections,
+        'Contract',
+        mutationType === 'setDeadCap'
+          ? [
+              ...deadCapChanges,
+              deadCapChanges.length === 0 ? 'Dead cap updated' : null,
+            ]
+          : []
+      );
+      pushSection(detailSections, 'Cap Delta', [capDeltaLine]);
+      break;
+    }
+    default: {
+      pushSection(
+        detailSections,
+        'Players',
+        playerIds
+          .slice(0, 5)
+          .map((player) => formatPlayerLabel(player, playerNameLookup))
+      );
+      pushSection(detailSections, 'Teams', [primaryTeamsLine]);
+      pushSection(detailSections, 'Cap Delta', [capDeltaLine]);
+      break;
+    }
+  }
+
+  const hasMeaningfulDetails = detailSections.length > 0;
+  const summary = resolveSummary(
+    mutationType,
+    summaryCandidate,
+    hasMeaningfulDetails
+  );
+  const type = formatMutationLabel(mutationType);
+
+  return {
+    id: eventId || operationId || `world-event-${Date.now()}`,
+    category:
+      (typeof raw.category === 'string' && raw.category) ||
+      inferCategory(mutationType),
+    type,
+    timestamp,
+    occurredAt,
+    teamCodes: teamsInvolved,
+    teamsInvolved,
+    playerIds,
+    primaryDeltas: type,
+    capDelta,
+    summary,
+    detailSections,
+    eventId,
+    operationId,
+    mutationType,
+    beforeTotalsByTeam,
+    afterTotalsByTeam,
+    raw,
+  };
+}
+
 export function normalizeWorldEventsForTeamHistory(
   rawEvents: GenericRecord[],
   activeTeamCode?: string | null
@@ -209,76 +570,10 @@ export function normalizeWorldEventsForTeamHistory(
     ? String(activeTeamCode).trim()
     : null;
 
-  const rows = (Array.isArray(rawEvents) ? rawEvents : []).map(
-    (rawInput, index) => {
-      const raw = asObject(rawInput);
-      const metadata = asObject(raw.metadata);
-      const mutationTypeRaw =
-        (typeof raw.mutationType === 'string' && raw.mutationType) ||
-        (typeof raw.type === 'string' && raw.type) ||
-        'unknown';
-      const mutationType = String(mutationTypeRaw);
-
-      const teamCodes = toArrayOfStrings(raw.teamCodes);
-      const teamsAffected = toArrayOfStrings(raw.teamsAffected);
-      const teamsInvolved = teamCodes.length > 0 ? teamCodes : teamsAffected;
-
-      const playerIds =
-        toArrayOfStrings(raw.playerIds).length > 0
-          ? toArrayOfStrings(raw.playerIds)
-          : toArrayOfStrings(metadata.playerIds).length > 0
-            ? toArrayOfStrings(metadata.playerIds)
-            : toArrayOfStrings(metadata.playersTraded);
-
-      const occurredAt =
-        toIsoString(raw.occurredAt) || toIsoString(raw.timestamp);
-      const timestamp = toIsoString(raw.timestamp) || occurredAt;
-
-      const beforeTotalsByTeam = asObject(raw.beforeTotalsByTeam);
-      const afterTotalsByTeam = asObject(raw.afterTotalsByTeam);
-      const capDelta = readCapDelta(
-        beforeTotalsByTeam,
-        afterTotalsByTeam,
-        teamsInvolved,
-        normalizedTeamCode
-      );
-
-      const eventId =
-        (typeof raw.eventId === 'string' && raw.eventId) ||
-        (typeof raw.id === 'string' && raw.id) ||
-        null;
-
-      const type = formatMutationLabel(mutationType);
-
-      return {
-        id: eventId || `world-event-${index}`,
-        category:
-          (typeof raw.category === 'string' && raw.category) ||
-          inferCategory(mutationType),
-        type,
-        timestamp,
-        occurredAt,
-        teamCodes: teamsInvolved,
-        teamsInvolved,
-        playerIds,
-        primaryDeltas: type,
-        capDelta,
-        summary: buildSummary({
-          mutationType,
-          teamCodes: teamsInvolved,
-          activeTeamCode: normalizedTeamCode,
-          playerIds,
-          metadata,
-        }),
-        eventId,
-        operationId:
-          (typeof raw.operationId === 'string' && raw.operationId) || null,
-        mutationType,
-        beforeTotalsByTeam,
-        afterTotalsByTeam,
-        raw,
-      };
-    }
+  const rows = (Array.isArray(rawEvents) ? rawEvents : []).map((rawInput) =>
+    toTeamHistoryEventDisplay(asObject(rawInput), {
+      teamCode: normalizedTeamCode,
+    })
   );
 
   return rows.sort((a, b) => {

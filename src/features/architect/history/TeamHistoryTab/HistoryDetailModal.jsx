@@ -45,6 +45,9 @@ const HistoryDetailModal = ({ entry, onClose }) => {
     entry.beforeTotalsByTeam || entry.raw?.beforeTotalsByTeam || null;
   const afterTotalsByTeam =
     entry.afterTotalsByTeam || entry.raw?.afterTotalsByTeam || null;
+  const detailSections = Array.isArray(entry.detailSections)
+    ? entry.detailSections
+    : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
@@ -55,7 +58,12 @@ const HistoryDetailModal = ({ entry, onClose }) => {
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold">History Item Detail</h3>
-            <p className="text-sm text-white/70">{entry.summary || '—'}</p>
+            <p
+              data-testid="team-history-detail-summary"
+              className="text-sm text-white/70"
+            >
+              {entry.summary || '—'}
+            </p>
           </div>
           <button
             type="button"
@@ -160,6 +168,30 @@ const HistoryDetailModal = ({ entry, onClose }) => {
             <div className="text-xs uppercase text-white/60">Event ID</div>
             <div className="font-medium break-all">{eventId}</div>
           </div>
+          {detailSections.length > 0 && (
+            <div
+              className="md:col-span-2 space-y-3"
+              data-testid="team-history-detail-sections"
+            >
+              {detailSections.map((section, index) => (
+                <div
+                  key={`${section.title}-${index}`}
+                  className="rounded border border-white/10 bg-black/20 p-2"
+                >
+                  <div className="text-xs uppercase text-white/60">
+                    {section.title}
+                  </div>
+                  <ul className="mt-1 space-y-1 text-sm text-white/90">
+                    {(Array.isArray(section.lines) ? section.lines : [])
+                      .filter(Boolean)
+                      .map((line, lineIdx) => (
+                        <li key={`${section.title}-${lineIdx}`}>• {line}</li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="md:col-span-2">
             <div className="text-xs uppercase text-white/60">
               Before Totals By Team
@@ -180,6 +212,17 @@ const HistoryDetailModal = ({ entry, onClose }) => {
               className="mt-1 max-h-40 overflow-auto rounded bg-black/30 p-2 text-xs text-white/80"
             >
               {stringifySafe(afterTotalsByTeam)}
+            </pre>
+          </div>
+          <div className="md:col-span-2">
+            <div className="text-xs uppercase text-white/60">
+              Raw Event Payload
+            </div>
+            <pre
+              data-testid="team-history-raw-payload"
+              className="mt-1 max-h-56 overflow-auto rounded bg-black/30 p-2 text-xs text-white/80"
+            >
+              {stringifySafe(entry.raw || entry)}
             </pre>
           </div>
         </div>

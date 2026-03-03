@@ -208,8 +208,8 @@ export const CAP_HOLD_ITEM_ALLOWLIST = Object.freeze([
   'notes',
   // CAP_SHEET_E2E_SSOT_PARITY_E1: Added fields produced by resolveOffseasonTransition
   // and consumed by getActiveUnsignedCapHolds (capHolds.ts:55)
-  'active',  // Boolean flag for cap hold filtering
-  'reason',  // Informational field for cap hold origin
+  'active', // Boolean flag for cap hold filtering
+  'reason', // Informational field for cap hold origin
 ]);
 
 // ==============================================================================
@@ -261,6 +261,7 @@ export const PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST = Object.freeze([
 export const EVENT_TOP_LEVEL_ALLOWLIST = Object.freeze([
   // Legacy envelope fields (backward compatibility)
   'eventId',
+  'id',
   'type', // Mutation type (e.g., 'executeTrade', 'signFreeAgent')
   'timestamp', // ISO timestamp
   'seasonId', // Season code
@@ -293,6 +294,9 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST = Object.freeze([
   // Common
   'type', // Mutation type echo
   'timestamp', // ISO timestamp
+  'summary',
+  'actionType',
+  'dedupKey',
 
   // Trade events
   'teamsInvolved', // Array of team codes
@@ -323,21 +327,33 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST = Object.freeze([
   // Waive/Release events
   'waivedPlayer',
   'stretchProvision',
+  'stretched',
+  'buyout',
+  'buyoutAmount',
+  'stretchYears',
   'deadCapAmount',
 
   // Option events
   'optionType',
   'optionDecision',
+  'accepted',
+  'targetYear',
   'effectiveSeason',
 
   // Extension events
   'extensionType',
+  'extensionYears',
   'extensionTerms',
 
   // Renounce events
   'renouncedPlayer',
   'capHoldRemoved',
   'teamCode', // Team renouncing the player's rights
+  'rightsUsed',
+
+  // Cap admin details
+  'exceptionChanges',
+  'deadCapChanges',
 
   // Season advance events
   'fromSeason',

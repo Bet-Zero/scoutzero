@@ -632,28 +632,46 @@ const FREE_AGENCY_MUTATION_TYPES = new Set([
 
 const EMPTY_WRITES_SUMMARY = Object.freeze({
   teamsPatched: 0,
+  teamsWritten: 0,
   teamCodes: [],
   playersPatched: 0,
+  playersWritten: 0,
   playerIds: [],
   entitlementsPatched: 0,
+  entitlementsWritten: 0,
   entitlementIds: [],
   eventsWritten: 0,
+  eventWritten: false,
   eventIds: [],
   worldMetadataPatched: 0,
   worldStatsUpdated: false,
 });
 
 function cloneWritesSummary(summary = EMPTY_WRITES_SUMMARY) {
+  const teamsPatched = Number(
+    summary.teamsPatched || summary.teamsWritten || 0
+  );
+  const playersPatched = Number(
+    summary.playersPatched || summary.playersWritten || 0
+  );
+  const entitlementsPatched = Number(
+    summary.entitlementsPatched || summary.entitlementsWritten || 0
+  );
+  const eventsWritten = Number(summary.eventsWritten || 0);
   return {
-    teamsPatched: Number(summary.teamsPatched || 0),
+    teamsPatched,
+    teamsWritten: teamsPatched,
     teamCodes: Array.isArray(summary.teamCodes) ? [...summary.teamCodes] : [],
-    playersPatched: Number(summary.playersPatched || 0),
+    playersPatched,
+    playersWritten: playersPatched,
     playerIds: Array.isArray(summary.playerIds) ? [...summary.playerIds] : [],
-    entitlementsPatched: Number(summary.entitlementsPatched || 0),
+    entitlementsPatched,
+    entitlementsWritten: entitlementsPatched,
     entitlementIds: Array.isArray(summary.entitlementIds)
       ? [...summary.entitlementIds]
       : [],
-    eventsWritten: Number(summary.eventsWritten || 0),
+    eventsWritten,
+    eventWritten: eventsWritten > 0,
     eventIds: Array.isArray(summary.eventIds) ? [...summary.eventIds] : [],
     worldMetadataPatched: Number(summary.worldMetadataPatched || 0),
     worldStatsUpdated: summary.worldStatsUpdated === true,
@@ -686,6 +704,7 @@ function buildMutationFailureResult(error, overrides = {}) {
   const {
     appliedToLocalState = false,
     persistedToWorld = false,
+    eventWritten = false,
     writesSummary = EMPTY_WRITES_SUMMARY,
     ...restOverrides
   } = overrides;
@@ -695,6 +714,7 @@ function buildMutationFailureResult(error, overrides = {}) {
     error,
     appliedToLocalState,
     persistedToWorld,
+    eventWritten,
     writesSummary: cloneWritesSummary(writesSummary),
     ...restOverrides,
   };
@@ -746,6 +766,268 @@ function deriveEventPlayerIds({ auditContext = {}, computeResult = {} }) {
   return [];
 }
 
+const TEAM_HISTORY_REQUIRED_MUTATION_TYPES = new Set([
+  'executeTrade',
+  'signFreeAgent',
+  'signAndTrade',
+  'finalizeMatchedOfferSheet',
+  'finalizeDeclinedOfferSheet',
+  'waivePlayer',
+  'extendPlayer',
+  'optionDecision',
+  'renounceRights',
+  'setExceptions',
+  'setDeadCap',
+]);
+
+function normalizeEventMutationType(mutationType) {
+  if (mutationType === 'setException') {
+    return 'setExceptions';
+  }
+  return mutationType;
+}
+
+function toSafeIsoTimestamp(timestamp) {
+  const numericTimestamp = Number(timestamp);
+  if (Number.isFinite(numericTimestamp)) {
+    return new Date(numericTimestamp).toISOString();
+  }
+
+  const parsed = Date.parse(String(timestamp ?? ''));
+  if (Number.isFinite(parsed)) {
+    return new Date(parsed).toISOString();
+  }
+  return new Date().toISOString();
+}
+
+function coerceObject(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return {};
+  }
+  return input;
+}
+
+function toArrayOfStrings(input) {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.map((value) => String(value || '').trim()).filter(Boolean);
+}
+
+function deriveContractSummary(metadata = {}) {
+  const contract = coerceObject(metadata.contract);
+  const extensionTerms = coerceObject(metadata.extensionTerms);
+  const salariesByYear = Array.isArray(contract.salariesByYear)
+    ? contract.salariesByYear
+    : Array.isArray(extensionTerms.salariesByYear)
+      ? extensionTerms.salariesByYear
+      : [];
+
+  const firstSalaryRow = salariesByYear[0] || {};
+  const yearsCandidate =
+    Number(contract.years) ||
+    Number(contract.contractYears) ||
+    Number(contract.contractLength) ||
+    Number(metadata.extensionYears) ||
+    Number(extensionTerms.contractYears) ||
+    Number(extensionTerms.years) ||
+    (salariesByYear.length > 0 ? salariesByYear.length : 0);
+  const firstYearSalaryCandidate =
+    Number(contract.firstYearSalary) ||
+    Number(contract.year1Salary) ||
+    Number(firstSalaryRow.salary) ||
+    Number(firstSalaryRow.capHit) ||
+    Number(extensionTerms.firstYearSalary) ||
+    0;
+  const totalValueCandidate =
+    Number(contract.totalValue) ||
+    Number(metadata.contractValue) ||
+    (salariesByYear.length > 0
+      ? salariesByYear.reduce(
+          (sum, row) => sum + (Number(row?.salary || row?.capHit) || 0),
+          0
+        )
+      : 0);
+
+  const startSeason = String(firstSalaryRow.season || '').trim();
+  const endSeason = String(
+    salariesByYear[salariesByYear.length - 1]?.season || ''
+  ).trim();
+
+  const summary = {
+    years:
+      Number.isFinite(yearsCandidate) && yearsCandidate > 0
+        ? yearsCandidate
+        : undefined,
+    firstYearSalary:
+      Number.isFinite(firstYearSalaryCandidate) && firstYearSalaryCandidate > 0
+        ? firstYearSalaryCandidate
+        : undefined,
+    totalValue:
+      Number.isFinite(totalValueCandidate) && totalValueCandidate > 0
+        ? totalValueCandidate
+        : undefined,
+    startYear: startSeason || undefined,
+    endYear: endSeason || undefined,
+    signedUsing:
+      typeof metadata.signedUsing === 'string' && metadata.signedUsing
+        ? metadata.signedUsing
+        : typeof contract.signedUsing === 'string' && contract.signedUsing
+          ? contract.signedUsing
+          : undefined,
+  };
+
+  return removeUndefinedDeep(summary);
+}
+
+function deriveTradePicksMoved(metadata = {}) {
+  const picksTraded = toArrayOfStrings(metadata.picksTraded);
+  if (picksTraded.length > 0) {
+    return picksTraded;
+  }
+
+  const entitlementsTraded = coerceObject(metadata.entitlementsTraded);
+  const lines = [];
+  for (const [teamCode, transfer] of Object.entries(entitlementsTraded)) {
+    const transferObj = coerceObject(transfer);
+    const out = toArrayOfStrings(transferObj.out);
+    const incoming = toArrayOfStrings(transferObj.in);
+    if (out.length > 0) {
+      lines.push(`${teamCode}: out ${out.join(', ')}`);
+    }
+    if (incoming.length > 0) {
+      lines.push(`${teamCode}: in ${incoming.join(', ')}`);
+    }
+  }
+
+  return lines;
+}
+
+function buildTeamHistoryDiffSummary({
+  mutationType,
+  auditContext = {},
+  metadata = {},
+  playerIds = [],
+}) {
+  const baseDiffSummary = coerceObject(auditContext.diffSummary);
+  const diffSummary = {
+    ...baseDiffSummary,
+  };
+
+  if ('executeTrade' === mutationType) {
+    if (!Array.isArray(diffSummary.playersMoved)) {
+      diffSummary.playersMoved =
+        toArrayOfStrings(metadata.playersTraded).length > 0
+          ? toArrayOfStrings(metadata.playersTraded)
+          : playerIds;
+    }
+
+    if (!Array.isArray(diffSummary.picksMoved)) {
+      const picksMoved = deriveTradePicksMoved(metadata);
+      if (picksMoved.length > 0) {
+        diffSummary.picksMoved = picksMoved;
+      }
+    }
+  }
+
+  if (mutationType === 'setExceptions') {
+    const existing = toArrayOfStrings(diffSummary.exceptionChanges);
+    if (existing.length === 0) {
+      const fromMetadata = toArrayOfStrings(metadata.exceptionChanges);
+      diffSummary.exceptionChanges =
+        fromMetadata.length > 0 ? fromMetadata : ['Exceptions updated'];
+    }
+  }
+
+  if (mutationType === 'setDeadCap') {
+    const existing = toArrayOfStrings(diffSummary.deadCapChanges);
+    if (existing.length === 0) {
+      const fromMetadata = toArrayOfStrings(metadata.deadCapChanges);
+      diffSummary.deadCapChanges =
+        fromMetadata.length > 0 ? fromMetadata : ['Dead cap updated'];
+    }
+  }
+
+  return removeUndefinedDeep(diffSummary);
+}
+
+function buildTeamHistoryMutationMetadata({
+  mutationType,
+  auditContext = {},
+  worldId,
+  teamCodes = [],
+  playerIds = [],
+  metadata = {},
+}) {
+  const contractSummary = deriveContractSummary(metadata);
+
+  const mutationMetadata = {
+    mutationType,
+    category: auditContext.mutationCategory || 'unknown',
+    worldId,
+    teams: teamCodes,
+    players: playerIds,
+    teamCode:
+      typeof metadata.teamCode === 'string' && metadata.teamCode
+        ? metadata.teamCode
+        : teamCodes[0],
+    playerId:
+      typeof metadata.playerId === 'string' && metadata.playerId
+        ? metadata.playerId
+        : playerIds[0],
+    playerName:
+      typeof metadata.playerName === 'string' && metadata.playerName
+        ? metadata.playerName
+        : typeof metadata.waivedPlayer === 'string' && metadata.waivedPlayer
+          ? metadata.waivedPlayer
+          : typeof metadata.renouncedPlayer === 'string' &&
+              metadata.renouncedPlayer
+            ? metadata.renouncedPlayer
+            : undefined,
+    signedUsing:
+      typeof metadata.signedUsing === 'string' && metadata.signedUsing
+        ? metadata.signedUsing
+        : contractSummary.signedUsing,
+    rightsUsed:
+      typeof metadata.rightsUsed === 'string' && metadata.rightsUsed
+        ? metadata.rightsUsed
+        : undefined,
+    stretched: metadata.stretched === true,
+    buyout: metadata.buyout === true,
+    deadCapAmount:
+      Number.isFinite(Number(metadata.deadCapAmount)) &&
+      Number(metadata.deadCapAmount) > 0
+        ? Number(metadata.deadCapAmount)
+        : undefined,
+    extensionYears:
+      Number.isFinite(Number(metadata.extensionYears)) &&
+      Number(metadata.extensionYears) > 0
+        ? Number(metadata.extensionYears)
+        : undefined,
+    optionType:
+      typeof metadata.optionType === 'string' && metadata.optionType
+        ? metadata.optionType
+        : undefined,
+    accepted:
+      typeof metadata.accepted === 'boolean' ? metadata.accepted : undefined,
+    contract: contractSummary,
+    contractSummary,
+    summary:
+      typeof metadata.summary === 'string' && metadata.summary.trim()
+        ? metadata.summary.trim()
+        : undefined,
+  };
+
+  if ('executeTrade' === mutationType) {
+    const tradePicksMoved = deriveTradePicksMoved(metadata);
+    if (tradePicksMoved.length > 0) {
+      mutationMetadata.picksMoved = tradePicksMoved;
+    }
+  }
+
+  return removeUndefinedDeep(mutationMetadata);
+}
+
 export function buildWorldMutationEventPayload({
   mutationType,
   eventId,
@@ -755,38 +1037,67 @@ export function buildWorldMutationEventPayload({
   computeResult,
   auditContext = {},
 }) {
+  const canonicalMutationType = normalizeEventMutationType(mutationType);
   const teamCodes = deriveEventTeamCodes({ auditContext, computeResult });
-  if (teamCodes.length === 0) {
+  if (
+    teamCodes.length === 0 &&
+    TEAM_HISTORY_REQUIRED_MUTATION_TYPES.has(canonicalMutationType)
+  ) {
     throw new Error(
-      `persistWorldMutation requires non-empty teamCodes for ${mutationType}`
+      `persistWorldMutation requires non-empty teamCodes for ${canonicalMutationType}`
     );
   }
 
   const playerIds = deriveEventPlayerIds({ auditContext, computeResult });
-  const occurredAt = new Date(timestamp).toISOString();
+  const occurredAt = toSafeIsoTimestamp(timestamp);
   if (!occurredAt || Number.isNaN(Date.parse(occurredAt))) {
     throw new Error(
-      `persistWorldMutation produced invalid occurredAt for ${mutationType}`
+      `persistWorldMutation produced invalid occurredAt for ${canonicalMutationType}`
     );
   }
 
+  const stableEventId =
+    typeof eventId === 'string' && eventId.trim()
+      ? eventId.trim()
+      : `${canonicalMutationType}_${Date.parse(occurredAt)}`;
+  const operationId =
+    typeof auditContext.operationId === 'string' && auditContext.operationId
+      ? auditContext.operationId
+      : stableEventId;
+  const metadata = removeUndefinedDeep(
+    sanitizeTransientFieldsForPersistence(computeResult.metadata)
+  );
+  const diffSummary = buildTeamHistoryDiffSummary({
+    mutationType: canonicalMutationType,
+    auditContext,
+    metadata,
+    playerIds,
+  });
+  const mutationMetadata = buildTeamHistoryMutationMetadata({
+    mutationType: canonicalMutationType,
+    auditContext,
+    worldId,
+    teamCodes,
+    playerIds,
+    metadata,
+  });
+
   return {
     // Legacy fields retained for compatibility with existing event consumers.
-    eventId,
-    type: mutationType,
+    eventId: stableEventId,
+    id: stableEventId,
+    type: canonicalMutationType,
     timestamp: occurredAt,
     seasonId,
-    metadata: removeUndefinedDeep(
-      sanitizeTransientFieldsForPersistence(computeResult.metadata)
-    ),
+    metadata,
     teamsAffected: teamCodes,
 
     // Cap Audit Event V1 envelope.
     schemaVersion: auditContext.schemaVersion || CAP_AUDIT_EVENT_SCHEMA_VERSION,
     validatorVersion:
       auditContext.validatorVersion || POST_STATE_CAP_VALIDATOR_VERSION,
-    operationId: auditContext.operationId,
-    mutationType,
+    operationId,
+    mutationType: canonicalMutationType,
     occurredAt,
     worldId,
     teamCodes,
@@ -796,14 +1107,8 @@ export function buildWorldMutationEventPayload({
     valid: auditContext.valid === true,
     violations: auditContext.violations || [],
     warnings: auditContext.warnings || [],
-    diffSummary: auditContext.diffSummary || {},
-    mutationMetadata: {
-      mutationType,
-      category: auditContext.mutationCategory || 'unknown',
-      worldId,
-      teams: teamCodes,
-      players: playerIds,
-    },
+    diffSummary,
+    mutationMetadata,
   };
 }
 
@@ -1139,6 +1444,7 @@ export async function applyWorldMutation({
       return buildMutationFailureResult(persistResult.error, {
         appliedToLocalState,
         persistedToWorld: false,
+        eventWritten: false,
         writesSummary: persistResult.writesSummary || computeWritesSummary,
       });
     }
@@ -1159,6 +1465,7 @@ export async function applyWorldMutation({
         {
           appliedToLocalState,
           persistedToWorld: false,
+          eventWritten: writesSummary.eventsWritten > 0,
           writesSummary,
         }
       );
@@ -1181,6 +1488,7 @@ export async function applyWorldMutation({
       event: persistResult.event,
       appliedToLocalState,
       persistedToWorld: true,
+      eventWritten: writesSummary.eventsWritten > 0,
       writesSummary,
       warnings: combinedWarnings,
     };
@@ -2333,6 +2641,7 @@ function computeSigningResult({ payload, currentState, seasonId, timestamp }) {
       playerId,
       playerName: player.displayName || player.name,
       contract: normalizedContract,
+      rightsUsed: consumedExceptionKey || undefined,
       timestamp,
       signedUsing,
     },
@@ -2466,6 +2775,9 @@ function computeWaiveResult({ payload, currentState, seasonId, timestamp }) {
       playerId,
       playerName: player.displayName || player.name,
       stretched: stretch,
+      buyout,
+      buyoutAmount: boundedBuyoutAmount,
+      stretchYears: stretch ? stretchYears : undefined,
       deadCapAmount,
       timestamp,
     },
@@ -2556,6 +2868,10 @@ function computeExtensionResult({
       playerId,
       playerName: player.displayName || player.name,
       extensionYears: extension.salariesByYear?.length || 0,
+      extensionTerms: {
+        years: extension.salariesByYear?.length || 0,
+        salariesByYear: extension.salariesByYear || [],
+      },
       timestamp,
     },
   };
@@ -2791,6 +3107,7 @@ function computeRenounceResult({ payload, currentState, seasonId, timestamp }) {
       teamCode,
       playerId,
       playerName: player.displayName || player.name,
+      rightsUsed: 'Renounced',
       timestamp,
     },
   };
@@ -2844,6 +3161,11 @@ function computeSetExceptionsResult({
     metadata: {
       actionType: 'setExceptions',
       teamCode,
+      exceptionChanges:
+        Array.isArray(payload.exceptionChanges) &&
+        payload.exceptionChanges.length
+          ? payload.exceptionChanges
+          : ['Exceptions updated'],
       timestamp,
     },
   };
@@ -3828,6 +4150,17 @@ function computeFinalizeMatchedOfferSheetResult({
       playerId,
       homeTeam: homeTeam.teamCode,
       offeringTeam: offeringTeam.teamCode,
+      teamCode: homeTeam.teamCode,
+      playerName: updatedPlayer.displayName || updatedPlayer.name,
+      signedUsing: 'Match',
+      contract: {
+        years: offerSheet.contractYears,
+        firstYearSalary:
+          Number(offerSheet.salariesByYear?.[0]?.salary) ||
+          Number(offerSheet.salariesByYear?.[0]?.capHit) ||
+          undefined,
+        salariesByYear: offerSheet.salariesByYear || [],
+      },
       timestamp,
     },
   };
@@ -3999,6 +4332,17 @@ function computeFinalizeDeclinedOfferSheetResult({
       playerId,
       offeringTeam: offeringTeam.teamCode,
       homeTeam: homeTeam.teamCode,
+      teamCode: offeringTeam.teamCode,
+      playerName: offerSheet.playerName,
+      signedUsing: 'Offer Sheet',
+      contract: {
+        years: offerSheet.contractYears,
+        firstYearSalary:
+          Number(offerSheet.salariesByYear?.[0]?.salary) ||
+          Number(offerSheet.salariesByYear?.[0]?.capHit) ||
+          undefined,
+        salariesByYear: offerSheet.salariesByYear || [],
+      },
       timestamp,
     },
   };
@@ -4221,6 +4565,11 @@ function computeSetDeadCapResult({
     playerUpdates: [],
     metadata: {
       actionType: 'setDeadCap',
+      teamCode,
+      deadCapChanges:
+        Array.isArray(payload.deadCapChanges) && payload.deadCapChanges.length
+          ? payload.deadCapChanges
+          : ['Dead cap updated'],
       timestamp,
     },
   };

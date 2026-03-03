@@ -134,7 +134,7 @@ const WorldEventsTimeline = ({ worldId, teamCode, onSelectEntry }) => {
             {timelineRows.map((entry, idx) => (
               <tr
                 key={entry.id || idx}
-                data-testid={`team-history-row-${idx}`}
+                data-testid={`team-history-event-row-${idx}`}
                 className="odd:bg-[#171717] cursor-pointer hover:bg-white/5"
                 onClick={() => onSelectEntry(entry)}
               >
@@ -143,7 +143,30 @@ const WorldEventsTimeline = ({ worldId, teamCode, onSelectEntry }) => {
                 </td>
                 <td className="p-2">{entry.category || '—'}</td>
                 <td className="p-2">{entry.type || '—'}</td>
-                <td className="p-2">{entry.summary || '—'}</td>
+                <td className="p-2">
+                  <div
+                    data-testid="team-history-event-summary"
+                    className="font-medium"
+                  >
+                    <span data-testid={`team-history-row-${idx}`}>
+                      {entry.summary || '—'}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-white/60">
+                    <span>{entry.occurredAt || entry.timestamp || '—'}</span>
+                    <span className="mx-1">•</span>
+                    <span>
+                      {entry.mutationType || entry.type || 'world-event'}
+                    </span>
+                    {Array.isArray(entry.teamCodes) &&
+                      entry.teamCodes.length > 0 && (
+                        <>
+                          <span className="mx-1">•</span>
+                          <span>{entry.teamCodes.join(' · ')}</span>
+                        </>
+                      )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -270,7 +293,7 @@ const TeamHistoryTab = ({
                 {sortedTimeline.map((entry, idx) => (
                   <tr
                     key={entry.id || idx}
-                    data-testid={`team-history-row-${idx}`}
+                    data-testid={`team-history-event-row-${idx}`}
                     className="odd:bg-[#171717] cursor-pointer hover:bg-white/5"
                     onClick={() => setSelectedEntry(entry)}
                   >
@@ -279,7 +302,34 @@ const TeamHistoryTab = ({
                     </td>
                     <td className="p-2">{entry.category || '—'}</td>
                     <td className="p-2">{entry.type || '—'}</td>
-                    <td className="p-2">{entry.summary || '—'}</td>
+                    <td className="p-2">
+                      <div
+                        data-testid="team-history-event-summary"
+                        className="font-medium"
+                      >
+                        <span data-testid={`team-history-row-${idx}`}>
+                          {entry.summary || '—'}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-white/60">
+                        <span>
+                          {entry.timestamp || entry.occurredAt || '—'}
+                        </span>
+                        {entry.type && (
+                          <>
+                            <span className="mx-1">•</span>
+                            <span>{entry.type}</span>
+                          </>
+                        )}
+                        {Array.isArray(entry.teamsInvolved) &&
+                          entry.teamsInvolved.length > 0 && (
+                            <>
+                              <span className="mx-1">•</span>
+                              <span>{entry.teamsInvolved.join(' · ')}</span>
+                            </>
+                          )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
