@@ -347,6 +347,63 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ---
 
+### OFFSEASON_R1_LOCAL: Offseason Section Review (2026-03-03)
+
+**Goal:** Complete discovery-only Offseason tab audit (UI wiring, season advance pathways, option decisions, persistence truth, cap/rules effects, Team History compatibility, forbidden writes, and test coverage).
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (165 files; 2437 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Current result summary:** 10 PASS / 2 FAIL / 0 BLOCKED
+
+**Key findings:**
+
+- Offseason tab has two distinct pathways: world-wide (SeasonAdvanceModal -> advanceSeasonInWorld, persists) and single-team (OffseasonTab -> runOffseason, local state only).
+- **STOP CONDITION**: Single-team OffseasonTab path claims success ("Offseason Complete!") but only updates React state — no Firestore persistence, no event emission. Changes lost on refresh.
+- World-wide path is production-ready: full Firestore batch persistence, event emission, post-state cap legality validation, OSTE computation, DARE entitlement lifecycle.
+- OSTE engine (1,060 lines) handles option decisions, expirations, cap holds, exception lifecycle, hard cap clearing, totals recompute — shared by both paths.
+- No forbidden writes to root `/teams` or `architect_base*` collections.
+
+**Return Package:**
+
+- `return_packages/architect_reviews/OFFSEASON_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+---
+
+### OFFSEASON_E1: Remove/DEV-gate Non-Persisting Single-Team Offseason Path (2026-03-03)
+
+**Goal:** Close STOP CONDITION #1 from OFFSEASON_R1_LOCAL — single-team OffseasonTab claimed success ("Offseason Complete!") but only updated React state with no Firestore persistence or event emission.
+
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (166 files; 2447 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- DEV-gated single-team OffseasonTab behind `import.meta.env.DEV` + `localStorage['hz.dev.offseasonPreview'] === 'true'` in OffseasonSection.jsx.
+- Relabeled OffseasonTab success language from "Offseason Complete!" to "Preview computed — not saved" with explicit direction to use World Season Advance.
+- Added "Preview only — does not persist" warning banner above DEV-gated preview.
+- Added deterministic source-level guardrail test ensuring gate presence and correct language.
+- Created OFFSEASON_MASTER.md documenting v1 shipping surface (world-wide path only).
+- Production Offseason tab now exposes only persisted workflows: World Season Advance + Draft Positions.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/OFFSEASON_E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
 ## How to Run Review Mode
 
 ### Quick Start

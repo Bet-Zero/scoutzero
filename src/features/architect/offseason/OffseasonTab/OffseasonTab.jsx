@@ -87,15 +87,15 @@ const OffseasonTab = ({
             onClick={handleAdvanceYear}
             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
           >
-            Advance to {currentYear + 1}
+            Preview Advance to {currentYear + 1}
           </button>
         </div>
       )}
 
       {offseasonRun && (
         <div className="mt-5">
-          <strong>✅ Offseason Complete!</strong>
-          <p>You are now in the {currentYear + 1} season.</p>
+          <strong>Preview computed — not saved</strong>
+          <p>Preview shows projected state for {currentYear + 1} season. Use World Season Advance to persist.</p>
         </div>
       )}
     </div>

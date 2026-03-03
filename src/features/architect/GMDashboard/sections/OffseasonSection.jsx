@@ -11,6 +11,7 @@
  *  - 2025-12-20: Phase 3B - Added SeasonAdvanceModal integration for world-scoped season advancement.
  *  - 2026-01-07: Phase 5 - Added DraftPositionsInput for entering draft positions.
  *  - 2026-01-07: Phase 5 PATCH - Added worldSeason label + aligned DraftPositionsInput to world season.
+ *  - 2026-03-03: OFFSEASON_E1 - DEV-gated single-team OffseasonTab (non-persisting preview).
  *
  * LINKS:
  *  - Plan: N/A (not created via plan)
@@ -18,10 +19,15 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import OffseasonTab from '@/features/architect/OffseasonTab';
 import { SeasonAdvanceModal, DraftPositionsInput } from '@/features/architect/GMDashboard/components';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+
+// OFFSEASON_E1: DEV-only flag for single-team offseason preview (non-persisting).
+// Import kept for DEV preview; rendering is gated by showDevPreview below.
+import OffseasonTab from '@/features/architect/OffseasonTab';
+
+export const DEV_OFFSEASON_PREVIEW_FLAG = 'hz.dev.offseasonPreview';
 
 const OffseasonSection = ({
   teamCapSheet,
@@ -40,6 +46,12 @@ const OffseasonSection = ({
   onReloadWorldData,
 }) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+
+  // OFFSEASON_E1: Single-team preview only visible in DEV with localStorage flag
+  const showDevPreview =
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    window.localStorage?.getItem(DEV_OFFSEASON_PREVIEW_FLAG) === 'true';
   
   // Phase 5 PATCH: Track world's actual current season (single source of truth)
   const [worldSeason, setWorldSeason] = useState(null);
@@ -161,32 +173,41 @@ const OffseasonSection = ({
         </div>
       )}
 
-      {/* Divider */}
-      {worldId && (
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10" />
+      {/* OFFSEASON_E1: Single-team offseason preview — DEV + localStorage gated.
+          This path does NOT persist to Firestore. Use World Season Advance for production. */}
+      {showDevPreview && (
+        <>
+          {worldId && (
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-[#0d0d0d] text-white/40">DEV: single-team offseason preview</span>
+              </div>
+            </div>
+          )}
+          <div
+            data-testid="offseason-preview-banner"
+            className="mb-4 rounded border border-yellow-500/40 bg-yellow-900/20 px-3 py-2 text-xs text-yellow-200"
+          >
+            Preview only — does not persist. Changes will be lost on refresh.
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-[#0d0d0d] text-white/40">or use single-team offseason tools</span>
-          </div>
-        </div>
+          <OffseasonTab
+            teamCapSheet={teamCapSheet}
+            setTeamCapSheet={setTeamCapSheet}
+            currentYear={currentYear}
+            setCurrentYear={setCurrentYear}
+            capProjections={capProjections}
+            setLastCapSheet={setLastCapSheet}
+            offseasonRun={offseasonRun}
+            setOffseasonRun={setOffseasonRun}
+            setOffseasonSummary={setOffseasonSummary}
+            setShowOffseasonModal={setShowOffseasonModal}
+            playersMap={playersMap}
+          />
+        </>
       )}
-
-      {/* OffseasonTab (single-team offseason tools) */}
-      <OffseasonTab
-        teamCapSheet={teamCapSheet}
-        setTeamCapSheet={setTeamCapSheet}
-        currentYear={currentYear}
-        setCurrentYear={setCurrentYear}
-        capProjections={capProjections}
-        setLastCapSheet={setLastCapSheet}
-        offseasonRun={offseasonRun}
-        setOffseasonRun={setOffseasonRun}
-        setOffseasonSummary={setOffseasonSummary}
-        setShowOffseasonModal={setShowOffseasonModal}
-        playersMap={playersMap}
-      />
 
       {/* Season Advance Modal */}
       <SeasonAdvanceModal
