@@ -28,7 +28,7 @@ Architect is only “complete and ready” if all are true:
 - **Persistence correctness:** writes are scoped, atomic where required, reload-safe, and schema-consistent.
 - **UX truthfulness:** UI states, labels, warnings, and summaries accurately represent system state.
 - **Regression resilience:** relevant guardrails exist and pass.
-- **Operational readiness:** smoke/gates pass; known risks are explicitly documented and accepted.
+- **Operational readiness:** smoke tests/gates pass; known risks are explicitly documented and accepted.
 
 ---
 
