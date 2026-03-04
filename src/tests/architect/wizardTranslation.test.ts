@@ -540,6 +540,9 @@ describe('Draft handling (v2 envelope)', () => {
       receivesRankText: '',
       receivesComparator: '',
       protectionLadder: [],
+      linkedEntitlementIdsText: '',
+      residualOfEntitlementId: '',
+      coveredByEntitlementIdsText: '',
     };
     localStorage.setItem(
       `pickrightdraft:${worldId}:${draftId}`,

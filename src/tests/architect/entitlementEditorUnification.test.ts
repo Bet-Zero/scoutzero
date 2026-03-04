@@ -67,8 +67,7 @@ describe('State Continuity: Simple → Advanced', () => {
       swap: {
         controllerPick: { team: 'BOS', year: 2027, round: 1 },
         targetDescription: 'Boston own 1st round pick',
-        conditionType: 'unconditional',
-        conditionValue: '',
+        swapType: 'best_of',
       },
     };
 

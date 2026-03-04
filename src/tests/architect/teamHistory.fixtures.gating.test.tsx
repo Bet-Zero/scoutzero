@@ -22,7 +22,7 @@ describe('Team History DEV fixture gating', () => {
   });
 
   it('hides injector panel when not in DEV mode', () => {
-    vi.stubEnv('DEV', 'false');
+    vi.stubEnv('DEV', false);
     localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
 
     render(<TeamHistoryTab teamCapSheet={emptyTeam} />);
@@ -33,7 +33,7 @@ describe('Team History DEV fixture gating', () => {
   });
 
   it('hides injector panel when DEV flag is missing from localStorage', () => {
-    vi.stubEnv('DEV', 'true');
+    vi.stubEnv('DEV', true);
     localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
 
     render(<TeamHistoryTab teamCapSheet={emptyTeam} />);
@@ -44,7 +44,7 @@ describe('Team History DEV fixture gating', () => {
   });
 
   it('shows injector panel only when DEV + explicit localStorage flag are enabled', () => {
-    vi.stubEnv('DEV', 'true');
+    vi.stubEnv('DEV', true);
     localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
 
     render(<TeamHistoryTab teamCapSheet={emptyTeam} />);

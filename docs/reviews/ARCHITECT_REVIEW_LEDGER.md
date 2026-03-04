@@ -699,3 +699,120 @@ VITE_ARCHITECT_REVIEW_MODE=true npm run dev
 **Return Package:**
 
 - `return_packages/architect_fixes/ARCHITECT_SECURITY_E2_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### ARCHITECT_SECURITY_E3: Admin Tooling Targeting Lock (2026-03-04)
+
+**Goal:** Lock admin security backfill tooling to emulator-first fail-closed behavior so missing emulator state cannot ever silently target production.
+
+**Status:** ✅ COMPLETE
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS
+- `npm run test:architect -- --reporter=dot` -> PASS
+
+**Outcome summary:**
+
+- Updated `scripts/admin/architectSecurityBackfill.ts` to resolve Firestore emulator target from `FIRESTORE_EMULATOR_HOST` first, then `firebase.json` firestore emulator host/port fallback.
+- Added fail-closed hard stop when emulator target cannot be determined.
+- Added emulator reachability preflight with explicit guidance: start emulator via `npm run emu`.
+- Added startup targeting banner (Target, Host, Mode, ProjectId) for every run.
+- Disabled prod mode for this script: passing `--prod` now fails immediately with explicit re-authorization guard text.
+- Updated `package.json` admin scripts to pin `FIRESTORE_EMULATOR_HOST=127.0.0.1:8082` using `cross-env`.
+- Added deterministic source guardrails in `src/tests/security/architectSecurity.backfillTargeting.guardrail.test.ts` covering script pinning, fail-closed checks, startup banner, and no 8080 regression.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/ARCHITECT_SECURITY_E3_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### ARCHITECT_EMULATOR_LOCK_E1: Client Emulator Lock + Mode Indicator (2026-03-04)
+
+**Goal:** Enforce emulator-first Firebase targeting in DEV for the client app, fail closed when emulators are unavailable, and surface deterministic UI mode indicators.
+
+**Status:** ✅ COMPLETE
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS
+- `npm run test:architect -- --reporter=dot` -> PASS
+
+**Outcome summary:**
+
+- Centralized target mode decision in `src/firebaseConfig.js` via `getFirebaseTargetMode()` with DEV defaulting to emulator.
+- Added emulator endpoint resolution from env vars first, with `firebase.json` fallback for Firestore/Auth/Functions/Storage.
+- Wired client emulator connectors in shared Firebase init for Firestore/Auth/Functions (+ Storage when configured).
+- Added deterministic UI target badge (`EMULATOR MODE` / `PROD MODE`) in Architect dashboard header.
+- Added fail-closed emulator warning banner in dashboard when emulator connection-style errors are detected.
+- Pinned `npm run dev` to `VITE_USE_FIREBASE_EMULATORS=true` with `cross-env`.
+- Added deterministic guardrail coverage in `src/tests/security/architectClientEmulatorLock.guardrail.test.ts`.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/ARCHITECT_EMULATOR_LOCK_E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### ARCHITECT_QUALITY_GATES_E1: Typecheck + Gate Hygiene Closure (2026-03-04)
+
+**Goal:** Close quality gates by reaching clean typecheck, eliminating skipped/todo tests in core Architect gate outputs, and verifying DEV-only fixture/tooling paths remain gated.
+
+**Status:** ✅ COMPLETE
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS
+- `npm run typecheck` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 537 passed, 0 skipped, 0 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (167 files; 2454 passed, 0 skipped, 0 todo)
+
+**Outcome summary:**
+
+- Repository typecheck is now clean with no remaining errors.
+- Core gate suites no longer include active `skip`/`todo` placeholders.
+- Deterministic replacements were added for previously skipped/todo scope in trade/architect suites.
+- DEV-only fixture behavior remains explicitly gated behind DEV + local flag checks.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/ARCHITECT_QUALITY_GATES_E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### ARCHITECT_RULES_INTEGRATION_E1: Emulator-backed Firestore Rules Integration (2026-03-04)
+
+**Goal:** Add deterministic emulator-executed Firestore rules integration coverage for world ownership, world subcollection inheritance, base write-deny boundaries, and strict lists/tierLists owner rules.
+
+**Status:** ✅ COMPLETE
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS
+- `npm run typecheck` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS
+- `npm run test:architect -- --reporter=dot` -> PASS
+- `npm run test:rules` -> PASS
+
+**Outcome summary:**
+
+- Added `src/tests/security/firestoreRules.integration.test.ts` with runtime emulator execution using `@firebase/rules-unit-testing` and `firestore.rules` loading.
+- Added deterministic matrix coverage for:
+  - `architect_worlds/{worldId}` owner-only enforcement (`createdBy` SSOT)
+  - owner inheritance across `teams`, `events`, `entitlements`, and `teams/*/players`
+  - explicit write deny on `architect_base*` and root `teams`
+  - strict owner-only behavior for `lists` and `tierLists` by `ownerUid` with invalid-create denial checks
+- Added isolated optional command `npm run test:rules` that does not change default core gates.
+- Added reachability preflight in `scripts/ci/run_rules_integration_tests.mjs` with fail-closed error when emulator is unavailable.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/ARCHITECT_RULES_INTEGRATION_E1_EXECUTION_RETURN_PACKAGE.md`

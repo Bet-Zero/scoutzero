@@ -402,7 +402,7 @@ export function applyGatedVacuumTransfer(
       context: 'VACUUM_TRANSFER',
     });
 
-    if (!gateResult.ok) {
+    if (gateResult.ok === false) {
       return {
         ok: false,
         errorType: gateResult.errorType,

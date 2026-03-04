@@ -34,7 +34,7 @@ describe('Identity Key Stability (R1)', () => {
 
     const doc2 = {
       holderTeam: 'lal', // lowercase
-      seasonYear: '2026', // string
+      seasonYear: 2026,
       round: 1,
       kind: 'pick_ownership' as const,
       underlyingPickId: 'LAL_2026_1st',

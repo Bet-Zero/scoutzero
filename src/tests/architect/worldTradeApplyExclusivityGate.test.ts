@@ -54,7 +54,7 @@ describe('World Trade Apply Exclusivity Gate (TM-EXCL-E3)', () => {
       });
 
       expect(result.ok).toBe(false);
-      if (!result.ok) {
+      if (result.ok === false) {
         expect(result.errorType).toBe('EXCLUSIVITY_VIOLATION');
         expect(result.message).toContain('World Trade Apply');
         expect(result.message).toContain('BOS');
@@ -77,7 +77,7 @@ describe('World Trade Apply Exclusivity Gate (TM-EXCL-E3)', () => {
       });
 
       expect(result.ok).toBe(false);
-      if (!result.ok) {
+      if (result.ok === false) {
         expect(result.errorType).toBe('EXCLUSIVITY_VIOLATION');
         expect(result.message).toContain('World Trade Apply');
         expect(result.message).toContain('CHI');
@@ -151,7 +151,7 @@ describe('World Trade Apply Exclusivity Gate (TM-EXCL-E3)', () => {
       });
 
       expect(result.ok).toBe(false);
-      if (!result.ok) {
+      if (result.ok === false) {
         expect(result.errorType).toBe('VALIDATION_UNAVAILABLE');
         expect(result.message).toContain('BOS');
         expect(result.message).toContain('not an array');

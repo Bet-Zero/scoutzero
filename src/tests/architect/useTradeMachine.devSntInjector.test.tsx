@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it, waitFor } from 'vitest';
-import { act, renderHook } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 
 const primaryTeamData = {
@@ -72,4 +72,3 @@ describe('useTradeMachine DEV S&T injector lifecycle', () => {
     ).toBe(false);
   });
 });
-

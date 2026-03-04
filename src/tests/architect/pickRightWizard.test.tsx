@@ -196,11 +196,12 @@ describe('PickRightWizardModal — Quick Builder', () => {
     expect(screen.getAllByText('Advanced').length).toBeGreaterThanOrEqual(1);
   });
 
-  it.skip('adds picks to pool (TM-WIZARD-SIMPLIFY-E2: pool is Advanced Editor only)', () => {
-    // This test is skipped because pool management is now Advanced Editor only
+  it('keeps pool edits in Advanced Editor only (TM-WIZARD-SIMPLIFY-E2)', () => {
     render(<PickRightWizardModal {...defaultCreateProps} />);
     fireEvent.click(screen.getByTestId('action-create_conveyance'));
-    // Pool UI is no longer on quick screen
+
+    expect(screen.getByTestId('quick-pool-section')).toBeInTheDocument();
+    expect(screen.queryByTestId('pool-add-pick')).not.toBeInTheDocument();
   });
 
   // ── Apply flow ──
@@ -264,8 +265,7 @@ describe('PickRightWizardModal — Quick Builder', () => {
 
   // ── Tradability badge (TM-WIZARD-SIMPLIFY-E2: removed from quick screen) ──
 
-  it.skip('shows tradability badge when an action is selected (removed in TM-WIZARD-SIMPLIFY-E2)', () => {
-    // Tradability badge removed from quick screen for compact UI
+  it('does not show tradability badge in quick screen (TM-WIZARD-SIMPLIFY-E2)', () => {
     render(<PickRightWizardModal {...defaultEditProps} />);
     expect(screen.queryByTestId('tradability-badge')).not.toBeInTheDocument();
   });

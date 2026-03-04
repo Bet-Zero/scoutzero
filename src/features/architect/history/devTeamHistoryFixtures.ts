@@ -1,9 +1,9 @@
 export const DEV_TEAM_HISTORY_FIXTURE_FLAG = 'hz.dev.teamHistoryFixtures';
 const DEV_TEAM_HISTORY_FIXTURE_MARKER = '__hzDevTeamHistoryFixture';
 
-type TeamHistoryEntry = Record<string, unknown>;
+export type TeamHistoryEntry = Record<string, unknown>;
 
-type TeamCapSheetLike = {
+export type TeamCapSheetLike = {
   teamCode?: string;
   abbreviation?: string;
   id?: string;

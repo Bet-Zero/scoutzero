@@ -162,6 +162,123 @@ npm run admin:security:apply -- --defaultWorldOwnerUid <uid> --defaultListOwnerU
 - Apply mode is fail-safe and will stop (non-zero) if world docs are missing `createdBy` and `--defaultWorldOwnerUid` is not provided.
 - Apply mode will also stop (non-zero) for ownerless `lists`/`tierLists` docs without inferable owner fields unless `--defaultListOwnerUid` is provided.
 
+### ARCHITECT_SECURITY_E3 — Admin tooling targeting lock
+
+Admin security backfill tooling is now emulator-first and fail-closed by default.
+
+- Default target is Firestore emulator.
+- Emulator host resolution order:
+  1. `FIRESTORE_EMULATOR_HOST`
+  2. `firebase.json` -> `emulators.firestore.host` + `emulators.firestore.port`
+- If emulator target cannot be resolved, the script exits non-zero.
+- If emulator is unreachable, the script exits non-zero and does not fallback to production.
+
+Run commands:
+
+```bash
+npm run admin:security:audit
+npm run admin:security:apply -- --defaultWorldOwnerUid <uid> --defaultListOwnerUid <uid>
+```
+
+If emulator is not running, expected error pattern:
+
+```text
+Firestore emulator not running on 127.0.0.1:8082. Start it with npm run emu.
+```
+
+Startup banner now prints targeting context each run:
+
+- `Target` (EMULATOR)
+- `Host` (`127.0.0.1:8082`)
+- `Mode` (`DRY RUN` / `APPLY`)
+- `ProjectId`
+
+Explicit safety contract: this tool cannot hit prod silently.
+
+Current E3 stance: prod mode is disabled for this script and exits fail-closed when `--prod` is passed.
+
+### ARCHITECT_EMULATOR_LOCK_E1 — Client emulator lock (DEV fail-closed)
+
+Client Firebase initialization is now emulator-first in DEV with explicit targeting indicators.
+
+Guarantees:
+
+- In `import.meta.env.DEV`, target mode resolves to `EMULATOR` by default.
+- `VITE_USE_FIREBASE_EMULATORS=true` also forces emulator mode.
+- There is no silent DEV fallback to production if emulator mode is selected.
+- Firestore/Auth/Functions emulator connectors are wired in the shared Firebase init path.
+- Emulator endpoint resolution uses env vars first, then `firebase.json` emulator host/port fallback.
+
+DEV-safe run flow:
+
+```bash
+npm run emu
+npm run dev
+```
+
+UI targeting indicators:
+
+- Architect dashboard shows a deterministic mode badge:
+  - `EMULATOR MODE` when target is emulator
+  - `PROD MODE` when target is production
+- If emulator mode is active and Firestore connection-style errors occur, UI shows:
+  - `Emulator mode: Firebase emulators not detected. Start them with: npm run emu`
+
+Explicit safety contract: when DEV target mode is emulator, this client path does not silently switch to production.
+
+### ARCHITECT_QUALITY_GATES_E1 — Typecheck + Gate Hygiene Closure
+
+Repository quality gates are now clean for the core Architect ship sequence.
+
+Guarantees:
+
+- `npm run typecheck` passes with zero errors.
+- Core gate suites (`test:trade`, `test:architect`) report no skipped or todo tests.
+- DEV-only fixture tooling remains explicitly gated behind DEV + local flags.
+
+Required quality sequence executed in order and passing:
+
+```bash
+npm run validate:project
+npm run build
+npm run typecheck
+npm run test:trade -- --reporter=dot
+npm run test:architect -- --reporter=dot
+```
+
+Latest gate evidence:
+
+- Trade suite: `58` files, `537` tests, all passed.
+- Architect suite: `167` files, `2454` tests, all passed.
+
+### ARCHITECT_RULES_INTEGRATION_E1 — Emulator-backed Firestore Rules Integration
+
+Optional ship gate to prove runtime Firestore rules behavior against the real emulator using `firestore.rules`.
+
+What this gate proves:
+
+- `architect_worlds/{worldId}` is strictly owner-only by `createdBy` (create/read/update expectations).
+- World subcollections (`teams`, `events`, `entitlements`, `teams/*/players`) inherit owner-only behavior.
+- Canonical/base write boundaries are enforced at runtime: client writes are denied to `architect_base*` and root `teams`.
+- `lists` and `tierLists` are strict `ownerUid` owner-only resources with no auto-claim behavior.
+
+Optional gate command:
+
+```bash
+npm run test:rules
+```
+
+Emulator targeting contract:
+
+- Command is emulator-first and pins `FIRESTORE_EMULATOR_HOST=127.0.0.1:8082`.
+- Preflight checks that emulator host:port is reachable before running tests.
+- If emulator is not reachable, command exits non-zero with explicit guidance to run `npm run emu`.
+
+Scope discipline:
+
+- This rules integration suite is intentionally isolated and does not run in default core gates.
+- Core ship gates remain unchanged unless explicitly promoted later.
+
 ---
 
 ## Key Architecture References
@@ -182,9 +299,13 @@ npm run admin:security:apply -- --defaultWorldOwnerUid <uid> --defaultListOwnerU
 
 ## Review History
 
-| Review                        | Date       | Result                    | Return Package                                                                             |
-| ----------------------------- | ---------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| ARCHITECT_SHIP_GATES_R1_LOCAL | 2026-03-04 | CONDITIONAL PASS          | `return_packages/architect_reviews/ARCHITECT_SHIP_GATES_R1_LOCAL_REVIEW_RETURN_PACKAGE.md` |
-| ARCHITECT_SECURITY_E1         | 2026-03-04 | FULL PASS (Gate F closed) | `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`        |
+| Review                         | Date       | Result                    | Return Package                                                                               |
+| ------------------------------ | ---------- | ------------------------- | -------------------------------------------------------------------------------------------- |
+| ARCHITECT_SHIP_GATES_R1_LOCAL  | 2026-03-04 | CONDITIONAL PASS          | `return_packages/architect_reviews/ARCHITECT_SHIP_GATES_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`   |
+| ARCHITECT_SECURITY_E1          | 2026-03-04 | FULL PASS (Gate F closed) | `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`          |
+| ARCHITECT_SECURITY_E3          | 2026-03-04 | COMPLETE (targeting lock) | `return_packages/architect_fixes/ARCHITECT_SECURITY_E3_EXECUTION_RETURN_PACKAGE.md`          |
+| ARCHITECT_EMULATOR_LOCK_E1     | 2026-03-04 | COMPLETE (client lock)    | `return_packages/architect_fixes/ARCHITECT_EMULATOR_LOCK_E1_EXECUTION_RETURN_PACKAGE.md`     |
+| ARCHITECT_QUALITY_GATES_E1     | 2026-03-04 | COMPLETE (quality clean)  | `return_packages/architect_fixes/ARCHITECT_QUALITY_GATES_E1_EXECUTION_RETURN_PACKAGE.md`     |
+| ARCHITECT_RULES_INTEGRATION_E1 | 2026-03-04 | COMPLETE (emulator rules) | `return_packages/architect_fixes/ARCHITECT_RULES_INTEGRATION_E1_EXECUTION_RETURN_PACKAGE.md` |
 
 Prior section reviews (14 completed): See `docs/reviews/ARCHITECT_REVIEW_LEDGER.md` for full history.

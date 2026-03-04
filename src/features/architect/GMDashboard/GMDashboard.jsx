@@ -33,6 +33,10 @@ import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { useAuth } from '@/shared/hooks/useAuth';
+import {
+  FIREBASE_TARGET_MODE,
+  isLikelyEmulatorConnectionError,
+} from '@/firebaseConfig';
 import capProjections from '@/features/architect/utils/capProjections';
 import {
   toSeasonCode,
@@ -93,6 +97,10 @@ const GMDashboard = () => {
     setWorldId,
     setWorldAsOfDate,
   } = state;
+
+  const isEmulatorMode = FIREBASE_TARGET_MODE === 'EMULATOR';
+  const showEmulatorUnavailableBanner =
+    isEmulatorMode && error && isLikelyEmulatorConnectionError(error);
 
   // Destructure modals for easier access
   const {
@@ -157,6 +165,17 @@ const GMDashboard = () => {
           HoopZero Architect – GM Dashboard
         </h1>
         <div className="flex items-center gap-4">
+          <span
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+              isEmulatorMode
+                ? 'bg-amber-400/15 text-amber-200 border-amber-300/30'
+                : 'bg-rose-500/15 text-rose-200 border-rose-300/30'
+            }`}
+            data-testid="firebase-target-mode-badge"
+          >
+            {isEmulatorMode ? 'EMULATOR MODE' : 'PROD MODE'}
+          </span>
+
           {/* World Selector - Primary scenario management */}
           {userId && (
             <WorldSelector
@@ -194,6 +213,15 @@ const GMDashboard = () => {
           </label>
         </div>
       </div>
+      {showEmulatorUnavailableBanner && (
+        <div
+          className="mb-3 rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-amber-100 text-sm"
+          data-testid="firebase-emulator-warning-banner"
+        >
+          Emulator mode: Firebase emulators not detected. Start them with: npm
+          run emu
+        </div>
+      )}
       {error && <p className="text-red-500 mb-2">{error}</p>}
       {isSaving && <p className="text-sm mb-2">Saving...</p>}
 

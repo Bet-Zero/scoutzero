@@ -4,9 +4,11 @@
  * OWNERSHIP: Feature: architect/core
  */
 
-// @ts-expect-error — JS module without type declarations
-import { validateContractRows, validateDeadCap, validateExceptions } from '@/features/architect/utils/capLegalityValidation';
-// @ts-expect-error — JS module without type declarations
+import {
+  validateContractRows,
+  validateDeadCap,
+  validateExceptions,
+} from '@/features/architect/utils/capLegalityValidation';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
 
 export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
@@ -114,7 +116,8 @@ function resolveHardCapCeiling({
   const hardCapLevelRaw =
     (typeof team.hardCapLevel === 'string' && team.hardCapLevel) ||
     (typeof totalsObj.hardCapLevel === 'string' && totalsObj.hardCapLevel) ||
-    (typeof totals.hardCapLevel === 'string' && (totals.hardCapLevel as string));
+    (typeof totals.hardCapLevel === 'string' &&
+      (totals.hardCapLevel as string));
   const hardCapLevel =
     hardCapLevelRaw === 'secondApron' ? 'secondApron' : 'firstApron';
 
@@ -343,7 +346,9 @@ export function validatePostStateCapLegality(
     }
 
     // PSV_ROSTER_001 / PSV_ROSTER_003: Roster limits
-    const players = Array.isArray(team.players) ? (team.players as AnyRecord[]) : [];
+    const players = Array.isArray(team.players)
+      ? (team.players as AnyRecord[])
+      : [];
     let standardCount = 0;
     let twoWayCount = 0;
     for (const p of players) {
@@ -381,7 +386,11 @@ export function validatePostStateCapLegality(
     // PSV_CONTRACT_004: Contract rows validity
     for (const p of players) {
       const contract = asRecord(p.contract);
-      if (contract && Array.isArray(contract.salariesByYear) && contract.salariesByYear.length > 0) {
+      if (
+        contract &&
+        Array.isArray(contract.salariesByYear) &&
+        contract.salariesByYear.length > 0
+      ) {
         const result = validateContractRows(contract);
         if (result?.violations?.length > 0) {
           const playerId = String(p.playerId || p.id || 'unknown');
@@ -390,7 +399,9 @@ export function validatePostStateCapLegality(
               code: 'CONTRACT_ROWS_INVALID',
               teamCode,
               path: `teams.${teamCode}.players.${playerId}.contract`,
-              message: v.message || `Contract row validation failed for player ${playerId}.`,
+              message:
+                v.message ||
+                `Contract row validation failed for player ${playerId}.`,
             });
           }
         }
@@ -406,7 +417,9 @@ export function validatePostStateCapLegality(
             code: 'DEAD_CAP_INVALID',
             teamCode,
             path: `teams.${teamCode}.deadCap`,
-            message: v.message || `Dead cap schema validation failed for team ${teamCode}.`,
+            message:
+              v.message ||
+              `Dead cap schema validation failed for team ${teamCode}.`,
           });
         }
       }
@@ -430,7 +443,9 @@ export function validatePostStateCapLegality(
               code: 'EXCEPTIONS_INVALID',
               teamCode,
               path: `teams.${teamCode}.exceptions`,
-              message: v.message || `Exception schema validation failed for team ${teamCode}.`,
+              message:
+                v.message ||
+                `Exception schema validation failed for team ${teamCode}.`,
             });
           }
         }
@@ -438,7 +453,9 @@ export function validatePostStateCapLegality(
     }
 
     // PSV_HOLD_001: Cap hold amounts validity
-    const capHolds = Array.isArray(team.capHolds) ? (team.capHolds as AnyRecord[]) : [];
+    const capHolds = Array.isArray(team.capHolds)
+      ? (team.capHolds as AnyRecord[])
+      : [];
     for (const hold of capHolds) {
       const holdValidation = isCapHoldAmountValid(hold);
       if (!holdValidation.valid) {
@@ -446,7 +463,8 @@ export function validatePostStateCapLegality(
           code: 'CAP_HOLD_INVALID',
           teamCode,
           path: `teams.${teamCode}.capHolds`,
-          message: holdValidation.reason || `Invalid cap hold for team ${teamCode}.`,
+          message:
+            holdValidation.reason || `Invalid cap hold for team ${teamCode}.`,
         });
       }
     }

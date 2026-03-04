@@ -182,7 +182,8 @@ function renderActionsHarness({
 
   const { result } = renderHook(() => {
     const [teamCapSheet, setTeamCapSheet] = useState<any>(team);
-    const [selectedRulesYear, setSelectedRulesYear] = useState<number>(CURRENT_YEAR);
+    const [selectedRulesYear, setSelectedRulesYear] =
+      useState<number>(CURRENT_YEAR);
     const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
     const [freeAgents, setFreeAgents] = useState<any[]>([]);
     const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
@@ -248,7 +249,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     mutationMocks.computeWorldMutation.mockImplementation(
       ({ mutationType, currentState, payload }: any) => {
         if (mutationType !== 'signFreeAgent') {
-          return { success: false, error: `Unsupported mutationType ${mutationType}` };
+          return {
+            success: false,
+            error: `Unsupported mutationType ${mutationType}`,
+          };
         }
         const team = currentState?.team || {};
         const playerId = String(payload?.playerId || 'p_resign');
@@ -284,7 +288,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
   it('base mode: extend contract mutates future state, changes totals, and skips world persistence', async () => {
     const { result } = renderActionsHarness({ worldId: null });
     const targetPlayer = getPlayer(result.current.teamCapSheet, 'p_extend');
-    const beforeFutureTotal = totalForYear(result.current.teamCapSheet, CURRENT_YEAR + 1);
+    const beforeFutureTotal = totalForYear(
+      result.current.teamCapSheet,
+      CURRENT_YEAR + 1
+    );
 
     await act(async () => {
       await result.current.actions.handleExtendContract(targetPlayer, {
@@ -293,8 +300,13 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     });
 
     const updatedPlayer = getPlayer(result.current.teamCapSheet, 'p_extend');
-    const afterFutureTotal = totalForYear(result.current.teamCapSheet, CURRENT_YEAR + 1);
-    expect(updatedPlayer.futureContract?.salariesByYear?.length).toBeGreaterThan(0);
+    const afterFutureTotal = totalForYear(
+      result.current.teamCapSheet,
+      CURRENT_YEAR + 1
+    );
+    expect(
+      updatedPlayer.futureContract?.salariesByYear?.length
+    ).toBeGreaterThan(0);
     expect(afterFutureTotal).toBeGreaterThan(beforeFutureTotal);
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
@@ -406,8 +418,9 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(result.current.teamCapSheet.deadCap).toHaveLength(1);
 
     const resignBefore = totalForYear(result.current.teamCapSheet);
-    const resignResult = await act(async () =>
-      result.current.actions.handleSign(
+    let resignResult;
+    await act(async () => {
+      resignResult = await result.current.actions.handleSign(
         {
           id: 'p_resign',
           player_id: 'p_resign',
@@ -420,16 +433,17 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
           salariesByYear: [salaryRow(CURRENT_YEAR, 6_000_000)],
           signedUsing: 'Bird',
         }
-      )
-    );
+      );
+    });
     expect(resignResult.success).toBe(true);
     const resignAfter = totalForYear(result.current.teamCapSheet);
     expect(resignAfter).toBeGreaterThan(resignBefore);
     expect(getPlayer(result.current.teamCapSheet, 'p_resign')).toBeTruthy();
 
     const signAndTradeBefore = totalForYear(result.current.teamCapSheet);
-    const signAndTradeResult = await act(async () =>
-      result.current.actions.handleSignAndTrade(
+    let signAndTradeResult;
+    await act(async () => {
+      signAndTradeResult = await result.current.actions.handleSignAndTrade(
         {
           id: 'p_resign',
           player_id: 'p_resign',
@@ -442,8 +456,8 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
           salariesByYear: [salaryRow(CURRENT_YEAR, 7_000_000)],
         },
         'BOS'
-      )
-    );
+      );
+    });
     expect(signAndTradeResult.success).toBe(false);
     expect(signAndTradeResult.message).toMatch(/active world/i);
     expect(totalForYear(result.current.teamCapSheet)).toBe(signAndTradeBefore);
@@ -484,7 +498,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         }
       );
     });
-    expectWorldMutationCall('extendPlayer', { teamCode: 'LAL', playerId: 'p_extend' });
+    expectWorldMutationCall('extendPlayer', {
+      teamCode: 'LAL',
+      playerId: 'p_extend',
+    });
 
     await act(async () => {
       await result.current.actions.handleWaiveContract(
@@ -492,7 +509,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         { stretch: false, buyout: false }
       );
     });
-    expectWorldMutationCall('waivePlayer', { teamCode: 'LAL', playerId: 'p_waive' });
+    expectWorldMutationCall('waivePlayer', {
+      teamCode: 'LAL',
+      playerId: 'p_waive',
+    });
 
     await act(async () => {
       await result.current.actions.handleWaiveContract(
@@ -500,7 +520,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         { stretch: true, buyout: false }
       );
     });
-    expectWorldMutationCall('waivePlayer', { teamCode: 'LAL', playerId: 'p_stretch' });
+    expectWorldMutationCall('waivePlayer', {
+      teamCode: 'LAL',
+      playerId: 'p_stretch',
+    });
 
     await act(async () => {
       await result.current.actions.handleWaiveContract(
@@ -519,7 +542,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         getPlayer(result.current.teamCapSheet, 'p_renounce')
       );
     });
-    expectWorldMutationCall('renounceRights', { teamCode: 'LAL', playerId: 'p_renounce' });
+    expectWorldMutationCall('renounceRights', {
+      teamCode: 'LAL',
+      playerId: 'p_renounce',
+    });
 
     act(() => {
       result.current.actions.handleCapSheetAction(
@@ -530,7 +556,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     await waitFor(() => {
       expect(mutationMocks.applyWorldMutation).toHaveBeenCalled();
     });
-    expectWorldMutationCall('renounceRights', { teamCode: 'LAL', playerId: 'hold_only' });
+    expectWorldMutationCall('renounceRights', {
+      teamCode: 'LAL',
+      playerId: 'hold_only',
+    });
   });
 
   it('world mode: rights actions (re-sign + sign-and-trade) mutate state/totals and call world persistence branch', async () => {
@@ -588,15 +617,20 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
           };
         }
 
-        return { success: true, changedTeams: [], event: { operationId: 'other-op' } };
+        return {
+          success: true,
+          changedTeams: [],
+          event: { operationId: 'other-op' },
+        };
       }
     );
 
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
     const resignBefore = totalForYear(result.current.teamCapSheet);
-    const resignResult = await act(async () =>
-      result.current.actions.handleSign(
+    let resignResult;
+    await act(async () => {
+      resignResult = await result.current.actions.handleSign(
         {
           id: 'p_resign',
           player_id: 'p_resign',
@@ -609,16 +643,20 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
           salariesByYear: [salaryRow(CURRENT_YEAR, 6_000_000)],
           signedUsing: 'Bird',
         }
-      )
-    );
+      );
+    });
     expect(resignResult.success).toBe(true);
-    expectWorldMutationCall('signFreeAgent', { teamCode: 'LAL', playerId: 'p_resign' });
+    expectWorldMutationCall('signFreeAgent', {
+      teamCode: 'LAL',
+      playerId: 'p_resign',
+    });
     const resignAfter = totalForYear(result.current.teamCapSheet);
     expect(resignAfter).toBeGreaterThan(resignBefore);
 
     const signAndTradeBefore = totalForYear(result.current.teamCapSheet);
-    const signAndTradeResult = await act(async () =>
-      result.current.actions.handleSignAndTrade(
+    let signAndTradeResult;
+    await act(async () => {
+      signAndTradeResult = await result.current.actions.handleSignAndTrade(
         {
           id: 'p_resign',
           player_id: 'p_resign',
@@ -631,8 +669,8 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
           salariesByYear: [salaryRow(CURRENT_YEAR, 7_000_000)],
         },
         'BOS'
-      )
-    );
+      );
+    });
     expect(signAndTradeResult.success).toBe(true);
     expectWorldMutationCall('signAndTrade', {
       teamCode: 'LAL',

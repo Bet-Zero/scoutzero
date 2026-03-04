@@ -37,6 +37,9 @@ const mockFormState = {
   receivesRankText: '',
   receivesComparator: '' as const,
   protectionLadder: [],
+  linkedEntitlementIdsText: '',
+  residualOfEntitlementId: '',
+  coveredByEntitlementIdsText: '',
 };
 
 describe('pickRightWizardDraft', () => {

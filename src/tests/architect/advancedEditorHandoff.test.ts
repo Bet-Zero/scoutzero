@@ -114,8 +114,7 @@ describe('Advanced Editor Handoff — buildEntitlementDocument', () => {
       swap: {
         controllerPick: { team: 'BOS', year: 2027, round: 1 },
         targetDescription: 'Boston own 1st round pick',
-        conditionType: 'unconditional',
-        conditionValue: '',
+        swapType: 'best_of',
       },
     };
 
@@ -139,17 +138,18 @@ describe('Advanced Editor Handoff — buildEntitlementDocument', () => {
       round: '' as '1' | '2', // Invalid: must be '1' or '2'
       kind: '' as 'pick_ownership', // Invalid: empty
       description: '',
-      tradability: 'tradable',
       underlyingPickId: '',
       underlyingStatus: 'clean',
       poolUnderlyingPickIdsText: '',
-      receivesComparator: 'receives_highest',
+      swapType: '',
+      receivesComparator: 'more_favorable',
       receivesRankText: '',
       protectionLadder: [],
       swapControllerPickId: '',
       swapTargetDefinition: '',
-      swapConditionType: 'unconditional',
-      swapConditionValue: '',
+      linkedEntitlementIdsText: '',
+      residualOfEntitlementId: '',
+      coveredByEntitlementIdsText: '',
     };
 
     // buildEntitlementDocument should not crash but may produce incomplete doc

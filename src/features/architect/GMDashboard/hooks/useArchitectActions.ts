@@ -55,6 +55,7 @@ import {
   clearTeamHistoryFixtures,
   hasInjectedTeamHistoryFixtures as hasInjectedTeamHistoryFixturesInTeam,
   injectTeamHistoryFixtures,
+  type TeamCapSheetLike,
 } from '@/features/architect/history/devTeamHistoryFixtures';
 import toast from 'react-hot-toast';
 
@@ -320,12 +321,15 @@ export interface UseArchitectActionsParams {
 /** Return type of the useArchitectActions hook */
 export interface UseArchitectActionsReturn {
   // Contract/Player actions
-  handleSign: (playerObj: ArchitectPlayer, contract: SigningDetails) => void;
+  handleSign: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => Promise<MutationActionResult>;
   handleSignAndTrade: (
     playerObj: ArchitectPlayer,
     contract: SigningDetails,
     destinationTeamCode: string
-  ) => void;
+  ) => Promise<MutationActionResult>;
   handleEditContract: (player: ArchitectPlayer) => void;
   handleCapSheetAction: (
     player: ArchitectPlayer,
@@ -335,12 +339,15 @@ export interface UseArchitectActionsReturn {
   handleSaveContract: (
     player: ArchitectPlayer,
     contractData: SigningDetails
-  ) => void;
+  ) => Promise<MutationActionResult>;
   handleExtendContract: (
     player: ArchitectPlayer,
     extensionContract: SigningDetails
-  ) => void;
-  handleWaiveContract: (player: ArchitectPlayer, options: WaiveOptions) => void;
+  ) => Promise<MutationActionResult>;
+  handleWaiveContract: (
+    player: ArchitectPlayer,
+    options: WaiveOptions
+  ) => Promise<MutationActionResult>;
   handleOptionDecision: (
     player: ArchitectPlayer,
     accepted: boolean,
@@ -349,7 +356,7 @@ export interface UseArchitectActionsReturn {
   handleRenounceRights: (
     player: ArchitectPlayer,
     overrideMetadata?: OverrideMetadata | null
-  ) => void;
+  ) => Promise<MutationActionResult>;
   handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
   handleResetCapSheet: () => void;
 
@@ -2159,7 +2166,10 @@ export function useArchitectActions({
   }, [setTeamCapSheet, teamCapSheet]);
 
   const hasInjectedTeamHistoryFixtures = useMemo(
-    () => hasInjectedTeamHistoryFixturesInTeam(teamCapSheet as CapSheet | null),
+    () =>
+      hasInjectedTeamHistoryFixturesInTeam(
+        (teamCapSheet as TeamCapSheetLike | null) ?? null
+      ),
     [teamCapSheet]
   );
 
@@ -2173,7 +2183,9 @@ export function useArchitectActions({
         };
       }
 
-      const nextTeam = injectTeamHistoryFixtures(teamCapSheet as CapSheet);
+      const nextTeam = injectTeamHistoryFixtures(
+        teamCapSheet as TeamCapSheetLike
+      );
       setTeamCapSheet(nextTeam as CapSheet);
       return { success: true };
     }, [setTeamCapSheet, teamCapSheet]);
@@ -2188,7 +2200,9 @@ export function useArchitectActions({
         };
       }
 
-      const nextTeam = clearTeamHistoryFixtures(teamCapSheet as CapSheet);
+      const nextTeam = clearTeamHistoryFixtures(
+        teamCapSheet as TeamCapSheetLike
+      );
       setTeamCapSheet(nextTeam as CapSheet);
       return { success: true };
     }, [setTeamCapSheet, teamCapSheet]);

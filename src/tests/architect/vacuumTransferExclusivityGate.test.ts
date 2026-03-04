@@ -56,7 +56,7 @@ describe('Vacuum Transfer Exclusivity Gate (TM-EXCL-E3)', () => {
     );
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
+    if (result.ok === false) {
       expect(result.errorType).toBe('EXCLUSIVITY_VIOLATION');
       expect(result.message).toContain('BOS');
       expect(result.message).toContain('DUP_PICK_OWNERSHIP_UNDERLIER');
@@ -80,7 +80,7 @@ describe('Vacuum Transfer Exclusivity Gate (TM-EXCL-E3)', () => {
     );
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
+    if (result.ok === false) {
       expect(result.errorType).toBe('EXCLUSIVITY_VIOLATION');
       expect(result.message).toContain('CHI');
       expect(result.message).toContain('DUP_SWAP_CONTROLLER');
@@ -99,7 +99,7 @@ describe('Vacuum Transfer Exclusivity Gate (TM-EXCL-E3)', () => {
     );
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
+    if (result.ok === false) {
       expect(result.errorType).toBe('VALIDATION_UNAVAILABLE');
       expect(result.message).toContain('BOS');
       expect(result.message).toContain('not provided');
@@ -112,7 +112,7 @@ describe('Vacuum Transfer Exclusivity Gate (TM-EXCL-E3)', () => {
     });
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
+    if (result.ok === false) {
       expect(result.errorType).toBe('VALIDATION_UNAVAILABLE');
       expect(result.message).toContain('BOS');
     }
@@ -174,7 +174,7 @@ describe('Vacuum Transfer Exclusivity Gate (TM-EXCL-E3)', () => {
 
     // Should fail because LAL's post-set has a violation
     expect(result.ok).toBe(false);
-    if (!result.ok) {
+    if (result.ok === false) {
       expect(result.errorType).toBe('EXCLUSIVITY_VIOLATION');
     }
   });

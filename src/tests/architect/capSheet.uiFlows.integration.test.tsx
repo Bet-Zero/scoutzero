@@ -91,8 +91,8 @@ function buildTeamFixture(): TeamLike {
 }
 
 function FixtureInjectorHarness() {
-  const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(
-    () => buildTeamFixture()
+  const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(() =>
+    buildTeamFixture()
   );
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown[]) => {
@@ -109,8 +109,8 @@ function FixtureInjectorHarness() {
   );
 
   const handleInjectCapSheetFixtures = React.useCallback(() => {
-    setTeamCapSheet((prev) =>
-      injectCapSheetFixtures(prev, CURRENT_YEAR) as TeamLike
+    setTeamCapSheet(
+      (prev) => injectCapSheetFixtures(prev, CURRENT_YEAR) as TeamLike
     );
     return { success: true };
   }, []);
@@ -145,8 +145,8 @@ function FixtureInjectorHarness() {
 }
 
 function ModalFlowsHarness() {
-  const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(
-    () => buildTeamFixture()
+  const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(() =>
+    buildTeamFixture()
   );
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown[]) => {
@@ -186,7 +186,7 @@ describe('Cap Sheet UI integration flows', () => {
   });
 
   it('injects/clears DEV fixtures and surfaces future contract rows with deterministic totals changes', async () => {
-    vi.stubEnv('DEV', 'true');
+    vi.stubEnv('DEV', true);
     localStorage.setItem(DEV_CAP_SHEET_FIXTURE_FLAG, 'true');
 
     render(<FixtureInjectorHarness />);
@@ -223,7 +223,9 @@ describe('Cap Sheet UI integration flows', () => {
         screen.queryByText('CAP DEV FutureContract Fixture')
       ).not.toBeInTheDocument();
     });
-    expect(screen.queryByText('CAP DEV Control Fixture')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('CAP DEV Control Fixture')
+    ).not.toBeInTheDocument();
   });
 
   it('submits dead-money and exceptions modal flows and reflects deterministic totals on screen', async () => {
@@ -234,7 +236,9 @@ describe('Cap Sheet UI integration flows', () => {
     fireEvent.click(screen.getByTestId('cap-sheet-manage-dead-money-button'));
 
     const deadMoneyModal = await screen.findByTestId('manage-dead-money-modal');
-    fireEvent.click(within(deadMoneyModal).getByRole('button', { name: /add entry/i }));
+    fireEvent.click(
+      within(deadMoneyModal).getByRole('button', { name: /add entry/i })
+    );
 
     const amountInput = within(deadMoneyModal).getByRole('spinbutton');
     fireEvent.change(amountInput, { target: { value: '2500000' } });
@@ -244,7 +248,9 @@ describe('Cap Sheet UI integration flows', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByTestId('manage-dead-money-modal')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('manage-dead-money-modal')
+      ).not.toBeInTheDocument();
     });
 
     const afterDeadMoneyTotal = readVisibleTotalCapHit();
@@ -253,8 +259,11 @@ describe('Cap Sheet UI integration flows', () => {
 
     fireEvent.click(screen.getByTestId('cap-sheet-manage-exceptions-button'));
 
-    const exceptionsModal = await screen.findByTestId('manage-exceptions-modal');
-    const mleEnabledToggle = within(exceptionsModal).getAllByRole('checkbox')[0];
+    const exceptionsModal = await screen.findByTestId(
+      'manage-exceptions-modal'
+    );
+    const mleEnabledToggle =
+      within(exceptionsModal).getAllByRole('checkbox')[0];
     fireEvent.click(mleEnabledToggle);
 
     fireEvent.click(
@@ -262,7 +271,9 @@ describe('Cap Sheet UI integration flows', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByTestId('manage-exceptions-modal')).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('manage-exceptions-modal')
+      ).not.toBeInTheDocument();
     });
 
     expect(readVisibleTotalCapHit()).toBe(afterDeadMoneyTotal);

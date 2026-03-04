@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
 
 import fs from 'node:fs';
+import net from 'node:net';
 import path from 'node:path';
-import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 const WORLD_COLLECTION = 'architect_worlds';
@@ -15,8 +16,15 @@ interface CliOptions {
   apply: boolean;
   dryRun: boolean;
   verbose: boolean;
+  prod: boolean;
   defaultWorldOwnerUid: string | null;
   defaultListOwnerUid: string | null;
+}
+
+interface EmulatorTarget {
+  host: string;
+  port: number;
+  hostPort: string;
 }
 
 interface WorldAuditIssue {
@@ -87,51 +95,134 @@ function parseCliOptions(argv: string[]): CliOptions {
   const apply = flags.has('--apply');
   const dryRun = flags.has('--dryRun') || !apply;
   const verbose = flags.has('--verbose');
+  const prod = flags.has('--prod');
 
   return {
     apply,
     dryRun,
     verbose,
+    prod,
     defaultWorldOwnerUid: readValue('--defaultWorldOwnerUid'),
     defaultListOwnerUid: readValue('--defaultListOwnerUid'),
   };
 }
 
-function loadServiceAccountFromFile(serviceAccountPath: string) {
-  if (!fs.existsSync(serviceAccountPath)) return null;
-  try {
-    const raw = fs.readFileSync(serviceAccountPath, 'utf8');
-    return JSON.parse(raw);
-  } catch (error) {
+function parseEmulatorHostPort(value: string, source: string): EmulatorTarget {
+  const normalized = value.trim().replace(/^https?:\/\//i, '');
+  const [host, portRaw] = normalized.split(':');
+  const port = Number(portRaw);
+
+  if (!host || !portRaw || !Number.isInteger(port) || port <= 0) {
     throw new Error(
-      `Failed to parse service account at ${serviceAccountPath}: ${String(error)}`
+      `Invalid Firestore emulator host from ${source}: "${value}". Expected host:port (example: 127.0.0.1:8082).`
     );
   }
+
+  return {
+    host,
+    port,
+    hostPort: `${host}:${port}`,
+  };
 }
 
-function initializeAdmin() {
-  if (getApps().length > 0) return;
-
-  const credentialEnvPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  const candidatePaths = [
-    credentialEnvPath,
-    path.resolve('serviceAccountKey.json'),
-    path.resolve('../serviceAccountKey.json'),
-  ].filter((p): p is string => Boolean(p));
-
-  for (const candidate of candidatePaths) {
-    const serviceAccount = loadServiceAccountFromFile(candidate);
-    if (!serviceAccount) continue;
-    initializeApp({ credential: cert(serviceAccount) });
-    console.log(
-      `✅ Firebase Admin initialized with credentials from ${candidate}`
+function resolveEmulatorTarget(): EmulatorTarget {
+  if (process.env.FIRESTORE_EMULATOR_HOST?.trim()) {
+    return parseEmulatorHostPort(
+      process.env.FIRESTORE_EMULATOR_HOST,
+      'FIRESTORE_EMULATOR_HOST'
     );
-    return;
   }
 
-  throw new Error(
-    'Unable to initialize Firebase Admin. Provide GOOGLE_APPLICATION_CREDENTIALS or serviceAccountKey.json in repo root.'
+  const firebaseJsonPath = path.resolve('firebase.json');
+  if (!fs.existsSync(firebaseJsonPath)) {
+    throw new Error(
+      'Missing FIRESTORE_EMULATOR_HOST and unable to locate firebase.json for emulator fallback. Set FIRESTORE_EMULATOR_HOST=127.0.0.1:8082.'
+    );
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(fs.readFileSync(firebaseJsonPath, 'utf8'));
+  } catch (error) {
+    throw new Error(
+      `Failed to parse firebase.json for emulator host fallback: ${String(error)}`
+    );
+  }
+
+  const host = parsed?.emulators?.firestore?.host;
+  const port = parsed?.emulators?.firestore?.port;
+  if (
+    typeof host !== 'string' ||
+    (!Number.isInteger(port) && typeof port !== 'string')
+  ) {
+    throw new Error(
+      'Missing FIRESTORE_EMULATOR_HOST and firebase.json does not define emulators.firestore.host/port. Refusing to continue.'
+    );
+  }
+
+  return parseEmulatorHostPort(
+    `${host}:${String(port)}`,
+    'firebase.json emulators.firestore'
   );
+}
+
+function resolveProjectId(): string {
+  const envProjectId =
+    process.env.GCLOUD_PROJECT ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.FIREBASE_PROJECT_ID;
+
+  if (envProjectId?.trim()) return envProjectId.trim();
+  return 'unknown';
+}
+
+async function assertEmulatorReachable(target: EmulatorTarget) {
+  await new Promise<void>((resolve, reject) => {
+    const socket = net.createConnection({
+      host: target.host,
+      port: target.port,
+    });
+
+    const fail = (error: Error) => {
+      socket.destroy();
+      reject(error);
+    };
+
+    socket.setTimeout(1500);
+    socket.once('connect', () => {
+      socket.end();
+      resolve();
+    });
+    socket.once('timeout', () => {
+      fail(new Error(`ETIMEDOUT while connecting to ${target.hostPort}`));
+    });
+    socket.once('error', fail);
+  }).catch((error) => {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Firestore emulator not running on ${target.hostPort}. Start it with npm run emu. (${reason})`
+    );
+  });
+}
+
+function initializeAdmin(projectId: string) {
+  if (getApps().length > 0) return;
+  initializeApp({ projectId });
+}
+
+function printStartupBanner(
+  options: CliOptions,
+  target: EmulatorTarget,
+  projectId: string
+) {
+  console.log('\n==============================================');
+  console.log('ARCHITECT SECURITY BACKFILL — TARGETING LOCK');
+  console.log('==============================================');
+  console.log('Target: EMULATOR (PROD disabled)');
+  console.log(`Host: ${target.hostPort}`);
+  console.log(`Mode: ${options.apply ? 'APPLY' : 'DRY RUN'}`);
+  console.log(`ProjectId: ${projectId}`);
+  console.log('==============================================\n');
 }
 
 function isLikelyUid(value: unknown): value is string {
@@ -448,7 +539,21 @@ async function runAudit(
 
 async function main() {
   const options = parseCliOptions(process.argv.slice(2));
-  initializeAdmin();
+  if (options.prod) {
+    throw new Error(
+      'Prod mode disabled. Remove this guard only when explicitly re-authorized.'
+    );
+  }
+
+  const target = resolveEmulatorTarget();
+  process.env.FIRESTORE_EMULATOR_HOST = target.hostPort;
+
+  const projectId = resolveProjectId();
+  printStartupBanner(options, target, projectId);
+
+  await assertEmulatorReachable(target);
+
+  initializeAdmin(projectId);
 
   const db = getFirestore();
   const report = await runAudit(db, options);

@@ -142,16 +142,12 @@ interface CapSheet {
   [key: string]: unknown;
 }
 
-
-
 /** Hook input parameters */
 interface UseArchitectStateParams {
   teamId: string;
   userId: string | null;
   authLoading: boolean;
 }
-
-
 
 /** Active tab in the dashboard */
 type ActiveTab =
@@ -351,8 +347,6 @@ export function useArchitectState({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
-
-
   // === Internal hook call ===
   const { players } = useArchitectPlayerData() as {
     players: ArchitectPlayer[];
@@ -396,7 +390,9 @@ export function useArchitectState({
     [currentYear]
   );
 
-  const refreshWorldRosterIndex = useCallback(async (): Promise<Set<string>> => {
+  const refreshWorldRosterIndex = useCallback(async (): Promise<
+    Set<string>
+  > => {
     if (!worldId) {
       setWorldRosterIndex(null);
       setWorldPlayerOverrides({});
@@ -490,7 +486,9 @@ export function useArchitectState({
         }
       } catch (err) {
         console.error(err);
-        setError('Error loading team data');
+        const message =
+          err instanceof Error ? err.message : String(err || 'Unknown error');
+        setError(`Error loading team data: ${message}`);
       } finally {
         setIsLoading(false);
       }
@@ -501,8 +499,6 @@ export function useArchitectState({
       fetchData();
     }
   }, [teamId, authLoading, worldId, refreshWorldRosterIndex]);
-
-
 
   // === Effect 7: Derive free agents dynamically from the player pool ===
   useEffect(() => {
@@ -625,8 +621,6 @@ export function useArchitectState({
 
     setFreeAgents(upcomingFreeAgents);
   }, [worldAwarePlayers, currentYear, worldId, worldRosterIndex]);
-
-
 
   // === Higher-level action functions ===
   // These encapsulate proper state transitions and should be used instead of raw setters

@@ -24,6 +24,18 @@ import {
 import { buildEntitlementDocument } from '@/features/architect/admin/entitlementEditorFormState';
 import type { EntitlementFormState } from '@/features/architect/admin/entitlementEditorFormState';
 
+type DedupeEntry = {
+  id: string;
+  holderTeam: string;
+  seasonYear: number;
+  round: number;
+  kind: string;
+  identityKey: string;
+  __vacuumEdited?: boolean;
+  __vacuumSessionOnly?: boolean;
+  description?: string;
+};
+
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
 function makeSwapFormState(
@@ -237,7 +249,7 @@ describe('TM-ENTITLEMENT-DUPE-PREVENT-SWAP', () => {
         swapTargetDefinition: 'LAL own 1st round pick',
       });
 
-      const baseEntry = {
+      const baseEntry: DedupeEntry = {
         id: 'ent:BOS:2027:1:swap:abc',
         holderTeam: 'BOS',
         seasonYear: 2027,
@@ -246,7 +258,7 @@ describe('TM-ENTITLEMENT-DUPE-PREVENT-SWAP', () => {
         identityKey,
       };
 
-      const vacuumEditedEntry = {
+      const vacuumEditedEntry: DedupeEntry = {
         id: 'ent:BOS:2027:1:swap:abc',
         holderTeam: 'BOS',
         seasonYear: 2027,
@@ -260,9 +272,9 @@ describe('TM-ENTITLEMENT-DUPE-PREVENT-SWAP', () => {
       // Simulating what the resolver dedupe does:
       // Given [baseEntry, vacuumEditedEntry] with same identityKey,
       // the dedupe should keep only one entry.
-      const resolved = [baseEntry, vacuumEditedEntry];
+      const resolved: DedupeEntry[] = [baseEntry, vacuumEditedEntry];
       const seenIdentity = new Map();
-      const deduped = [];
+      const deduped: DedupeEntry[] = [];
       for (let i = resolved.length - 1; i >= 0; i--) {
         const ent = resolved[i];
         const key = ent.identityKey;
