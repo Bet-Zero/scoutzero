@@ -538,3 +538,29 @@ VITE_ARCHITECT_REVIEW_MODE=true npm run dev
 **Return Package:**
 
 - `return_packages/architect_fixes/TM_CAP_INTEGRATION_E2_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### FA_CAP_HISTORY_INTEGRATION_R1_LOCAL: FA ↔ Cap Sheet ↔ Team History Integration Review (2026-03-03)
+
+**Goal:** Verify (docs-only, deterministic proof) that Free Agency world-mode actions persist through canonical mutation pipeline, update Cap Sheet state/totals, and emit Team History world events.
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE`
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (167 files; 2449 passed, 1 skipped, 3 todo)
+
+**Current result summary:** 12 PASS / 0 FAIL / 0 BLOCKED  
+**STOP conditions:** 5 PASS / 0 FAIL
+
+**Return Package:**
+
+- `return_packages/architect_reviews/FA_CAP_HISTORY_INTEGRATION_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+**Master Doc:**
+
+- `docs/architect/FA_CAP_HISTORY_INTEGRATION_MASTER.md`
