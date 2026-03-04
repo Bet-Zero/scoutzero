@@ -479,6 +479,40 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ---
 
+### ARCHITECT_CONNECTIVITY_R1_LOCAL: Cross-Tab Connectivity Integration Review (2026-03-03)
+
+**Goal:** Prove that Architect GM Dashboard behaves as a single coherent system in world mode — every commit action (trade, signing, cap action, season advance) persists via canonical pipeline, updates Cap Sheet, and logs to Team History with no hidden bypass paths.
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE (PASS)`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (167 files; 2449 passed, 1 skipped, 3 todo)
+
+**Result summary:** 14/14 PASS, 5/5 STOP conditions PASS
+
+**Key findings:**
+
+- All mutation types (trade, FA, cap sheet, rights, offer sheet, TPE) route through `applyWorldMutation` → `persistWorldMutation` with atomic Firestore batch and fail-closed success contract.
+- Season advance (`advanceSeasonInWorld`) bypasses `applyWorldMutation` but follows same atomic batch pattern with persistence contracts and event emission to the same `events` subcollection.
+- UI truth evaluator (`evaluateMutationTruth`) enforces three-part success contract: `success && appliedToLocalState && persistedToWorld`.
+- All 5 user journeys (Trade, FA, Cap Action, Offseason Advance, Draft Positions) have deterministic test proof.
+- OffseasonTab single-team path is DEV-gated and labeled preview-only (closed in OFFSEASON_E1).
+- No forbidden writes to root `/teams` or `architect_base*` collections.
+
+**Return Package:**
+
+- `return_packages/architect_reviews/ARCHITECT_CONNECTIVITY_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+**Master Doc:**
+
+- `docs/architect/ARCHITECT_CONNECTIVITY_MASTER.md`
+
+---
+
 ## How to Run Review Mode
 
 ### Quick Start
@@ -564,3 +598,75 @@ VITE_ARCHITECT_REVIEW_MODE=true npm run dev
 **Master Doc:**
 
 - `docs/architect/FA_CAP_HISTORY_INTEGRATION_MASTER.md`
+
+---
+
+### ARCHITECT_SHIP_GATES_R1_LOCAL: Ship Readiness Gates Review (2026-03-04)
+
+**Goal:** Determine whether Architect is "ship-safe" for world mode usage across all 5 tabs (Trade, Cap Sheet, Free Agency, Team History, Offseason) by evaluating 14 ship gates across 8 categories (world lifecycle, production surface hygiene, persistence truth UX, history auditability, data safety boundaries, security readiness, performance sanity, deterministic evidence).
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE (CONDITIONAL PASS)`
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (167 files; 2,449 passed, 1 skipped, 3 todo)
+
+**Result summary:** 13 PASS / 0 FAIL / 1 CONDITIONAL (Gate F: Firestore rules DEV-OPEN — acceptable with documented pre-ship checklist)
+
+**STOP conditions:** 5/5 PASS
+
+- No success without world persistence (3-part truth contract)
+- No writes to root `/teams` or `architect_base*`
+- No DEV-only tools in production surface
+- All committed actions emit world events
+- World lifecycle create/select/refresh functional
+
+**Key findings:**
+
+- All functional ship gates pass with deterministic evidence (2,449 architect tests, 14 prior review cycles).
+- Firestore rules are DEV-OPEN but acceptable per review spec: prerequisites documented in-file, ownership rules architecturally ready (commented out), pre-ship security checklist created in Master Doc.
+- Three active ship blockers documented: SB-001 (DEV-OPEN rules), SB-002 (architect_worlds rules not drafted), SB-003 (ownerUid migration unverified).
+
+**Return Package:**
+
+- `return_packages/architect_reviews/ARCHITECT_SHIP_GATES_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+**Master Doc:**
+
+- `docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
+
+---
+
+### ARCHITECT_SECURITY_E1: Firestore Security Gate Closure (2026-03-04)
+
+**Goal:** Close Ship Gate F by replacing DEV-open Firestore rules with fail-closed authenticated and owner-scoped access for Architect worlds, while explicitly denying client writes to canonical base collections.
+
+**Status:** ✅ COMPLETE
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (167 files; 2449 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- Removed global wildcard allow (`allow read, write: if true`) from `firestore.rules`.
+- Enforced owner-only world access via `createdBy` for:
+  - `architect_worlds/{worldId}`
+  - `architect_worlds/{worldId}/teams/*`
+  - `architect_worlds/{worldId}/teams/*/players/*`
+  - `architect_worlds/{worldId}/events/*`
+  - `architect_worlds/{worldId}/entitlements/*`
+  - additional world subcollections via owner-only recursive fallback.
+- Added explicit write deny for `architect_basePlayers`, `architect_baseTeams`, `architect_baseEntitlements`, `architect_basePickRules`, and root `teams`.
+- Kept `lists`/`tierLists` ownership rules active and owner-scoped.
+- Confirmed world ownership field SSOT remains `createdBy` in `createWorld`; no additional product write-path patches required.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`

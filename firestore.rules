@@ -2,70 +2,144 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // LAUNCH-SECURE RULES — E4 Ownership Scoping
-    // Uncomment these blocks AND remove the dev-open wildcard below
-    // when deploying with authentication enforced.
-    //
-    // Prerequisites before enabling:
-    //   1. Anonymous auth (or real auth) enabled in Firebase console
-    //   2. All existing list/tierList docs have ownerUid set
-    //      (app auto-claims on first access, but verify coverage)
-    //   3. Deploy with: firebase deploy --only firestore:rules
-    // ═══════════════════════════════════════════════════════════════════
-    //
-    // match /lists/{listId} {
-    //   // Read: only your own lists
-    //   allow read: if request.auth != null
-    //     && resource.data.ownerUid == request.auth.uid;
-    //
-    //   // Create: must be authenticated and ownerUid must match your uid
-    //   allow create: if request.auth != null
-    //     && request.resource.data.ownerUid == request.auth.uid;
-    //
-    //   // Update: owner can update, OR auto-claim if ownerUid is missing
-    //   allow update: if request.auth != null
-    //     && (
-    //       resource.data.ownerUid == request.auth.uid
-    //       || (
-    //         !('ownerUid' in resource.data)
-    //         && request.resource.data.ownerUid == request.auth.uid
-    //       )
-    //     );
-    //
-    //   // Delete: only owner
-    //   allow delete: if request.auth != null
-    //     && resource.data.ownerUid == request.auth.uid;
-    // }
-    //
-    // match /tierLists/{tierListId} {
-    //   // Read: only your own tier lists
-    //   allow read: if request.auth != null
-    //     && resource.data.ownerUid == request.auth.uid;
-    //
-    //   // Create: must be authenticated and ownerUid must match your uid
-    //   allow create: if request.auth != null
-    //     && request.resource.data.ownerUid == request.auth.uid;
-    //
-    //   // Update: owner can update, OR auto-claim if ownerUid is missing
-    //   allow update: if request.auth != null
-    //     && (
-    //       resource.data.ownerUid == request.auth.uid
-    //       || (
-    //         !('ownerUid' in resource.data)
-    //         && request.resource.data.ownerUid == request.auth.uid
-    //       )
-    //     );
-    //
-    //   // Delete: only owner
-    //   allow delete: if request.auth != null
-    //     && resource.data.ownerUid == request.auth.uid;
-    // }
+    function isWorldOwner(worldId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/architect_worlds/$(worldId))
+        && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
+    }
 
-    // DEV-OPEN: All operations allowed (remove when enabling launch-secure rules above)
+    // Lists: owner-scoped with legacy auto-claim support.
+    match /lists/{listId} {
+      allow read: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (
+          resource.data.ownerUid == request.auth.uid
+          || (
+            !('ownerUid' in resource.data)
+            && request.resource.data.ownerUid == request.auth.uid
+          )
+        );
+
+      allow delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Tier lists: owner-scoped with legacy auto-claim support.
+    match /tierLists/{tierListId} {
+      allow read: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (
+          resource.data.ownerUid == request.auth.uid
+          || (
+            !('ownerUid' in resource.data)
+            && request.resource.data.ownerUid == request.auth.uid
+          )
+        );
+
+      allow delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Ranker sessions: strict owner-scoped access.
+    match /rankerSessions/{sessionId} {
+      allow read: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Architect worlds: owner-only access based on world.createdBy.
+    match /architect_worlds/{worldId} {
+      allow read: if isWorldOwner(worldId);
+      allow create: if isAuthenticated()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.worldId == worldId;
+      allow update, delete: if isWorldOwner(worldId);
+
+      match /teams/{teamCode} {
+        allow read, write: if isWorldOwner(worldId);
+
+        match /players/{playerId} {
+          allow read, write: if isWorldOwner(worldId);
+        }
+      }
+
+      match /events/{eventId} {
+        allow read, write: if isWorldOwner(worldId);
+      }
+
+      match /entitlements/{entitlementId} {
+        allow read, write: if isWorldOwner(worldId);
+      }
+
+      // Any additional world subcollections are owner-only by default.
+      match /{document=**} {
+        allow read, write: if isWorldOwner(worldId);
+      }
+    }
+
+    // Canonical source/base collections: read-only.
+    match /players_v2/{playerId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /architect_basePlayers/{playerId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /architect_baseTeams/{teamCode} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /architect_baseEntitlements/{entitlementId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /architect_basePickRules/{ruleId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Root teams remains read-only.
+    match /teams/{teamCode} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Preserve existing non-architect utility collections without global-open writes.
+    match /rosterProjects/{projectId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /freeAgents/{agentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Explicit fail-closed fallback for all unmatched paths.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
