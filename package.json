@@ -6,6 +6,8 @@
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "validate:project": "tsx scripts/validate-project-schema.ts",
+    "admin:security:audit": "tsx scripts/admin/architectSecurityBackfill.ts",
+    "admin:security:apply": "tsx scripts/admin/architectSecurityBackfill.ts --apply",
     "scrape:one": "tsx player-scrape/contracts/scripts/run_contracts.ts",
     "regress": "tsx player-scrape/contracts/scripts/_dev/run_regress.ts",
     "regress:stats": "tsx player-scrape/stats/scripts/_dev/run_regress.ts",

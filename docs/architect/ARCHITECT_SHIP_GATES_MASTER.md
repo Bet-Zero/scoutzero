@@ -127,6 +127,41 @@ Run against Firestore emulator or staging rules environment after deploying upda
 - `worldManager.js` writes `createdBy: userId` at world creation
 - `persistWorldMutation` does NOT currently enforce userId matching at the application layer — enforcement depends on Firestore rules
 
+## Security Backfill (Required Once)
+
+This backfill exists to safely migrate legacy docs that predate strict owner-only security rules.
+
+- Why: ownerless legacy docs (`architect_worlds.createdBy`, `architect_worlds.worldId`, `lists.ownerUid`, `tierLists.ownerUid`) can become inaccessible under fail-closed owner rules.
+- Scope: audit and backfill only `architect_worlds`, `lists`, and `tierLists`.
+- Non-goal: no writes to root `teams` or any `architect_base*` collection.
+
+### Commands
+
+Run audit first (default dry-run, no writes):
+
+```bash
+npm run admin:security:audit
+```
+
+Apply only after audit review (explicit `--apply` command + explicit fallback UIDs when needed):
+
+```bash
+npm run admin:security:apply -- --defaultWorldOwnerUid <uid> --defaultListOwnerUid <uid>
+```
+
+### Environment / Admin Credentials
+
+- Uses Firebase Admin SDK credentials from one of:
+  1. `GOOGLE_APPLICATION_CREDENTIALS`, or
+  2. `serviceAccountKey.json` in repo root.
+- Recommended: verify service account project before apply runs.
+
+### Safety Warnings
+
+- Always run audit first.
+- Apply mode is fail-safe and will stop (non-zero) if world docs are missing `createdBy` and `--defaultWorldOwnerUid` is not provided.
+- Apply mode will also stop (non-zero) for ownerless `lists`/`tierLists` docs without inferable owner fields unless `--defaultListOwnerUid` is provided.
+
 ---
 
 ## Key Architecture References

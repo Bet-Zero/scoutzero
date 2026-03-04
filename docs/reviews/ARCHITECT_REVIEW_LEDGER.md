@@ -670,3 +670,32 @@ VITE_ARCHITECT_REVIEW_MODE=true npm run dev
 **Return Package:**
 
 - `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
+### ARCHITECT_SECURITY_E2: Security Gotchas Elimination (2026-03-04)
+
+**Goal:** Eliminate residual security gotchas after E1 by adding deterministic owner backfill tooling, removing lists/tierLists auto-claim exceptions, adding source-level rules guardrails, and preventing pre-auth Architect reads.
+
+**Status:** ✅ COMPLETE
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS
+- `npm run test:architect -- --reporter=dot` -> PASS
+
+**Outcome summary:**
+
+- Added admin script `scripts/admin/architectSecurityBackfill.ts` with default audit mode and explicit apply mode.
+- Added npm commands:
+  - `npm run admin:security:audit`
+  - `npm run admin:security:apply`
+- Removed legacy lists/tierLists auto-claim update exception from `firestore.rules`.
+- Added source-level rules guardrails in `src/tests/security/architectSecurity.rulesSource.guardrail.test.ts`.
+- Added minimal auth-ready gate at Architect entry boundary in `src/pages/GmDashboardView.jsx`.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/ARCHITECT_SECURITY_E2_EXECUTION_RETURN_PACKAGE.md`
