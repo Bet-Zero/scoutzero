@@ -258,12 +258,29 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 - Team History in world mode now reads recent team-scoped world events and normalizes legacy + CapAuditEventV1 payloads into timeline rows.
 - Base mode preserves world-required behavior and does not invoke world-event querying.
-- Detail modal now renders raw event identifiers and cap delta payload blocks.
-- Mutation pipeline event payload contract is hardened with fail-closed team scope requirements and guardrail tests.
+
+---
+
+### TM_CAP_INTEGRATION_R1_LOCAL: Trade Machine ↔ Cap Sheet Integration Review (2026-03-03)
+
+**Goal:** Verify end-to-end world-mode integration truth for Trade Machine apply -> world persistence/event emission -> Cap Sheet/Team History reflection, including forbidden-write constraints.
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (166 files; 2447 passed, 1 skipped, 3 todo)
+
+**Current result summary:** 11 PASS / 1 FAIL / 0 BLOCKED
+
+**Closure note:** Superseded by `TM_CAP_INTEGRATION_E1` execution closure (deterministic checklist #12 proof added).
 
 **Return Package:**
 
-- `return_packages/architect_fixes/TEAM_HISTORY_E2_EXECUTION_RETURN_PACKAGE.md`
+- `return_packages/architect_reviews/TM_CAP_INTEGRATION_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`
 
 ---
 
@@ -404,6 +421,64 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ---
 
+### OFFSEASON_R2_LOCAL: Offseason Section Post-E1 Verification Review (2026-03-03)
+
+**Goal:** Verify OFFSEASON_E1 completion and confirm Offseason shipping surface is persistence-safe, correctly gated, and free of forbidden writes.
+
+**Status progression:** `IN_REVIEW` -> `REVIEW_COMPLETE (PASS)`
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:architect -- --reporter=dot` -> PASS (166 files; 2447 passed, 1 skipped, 3 todo)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+
+**Result summary:** 12 PASS / 0 FAIL / 0 WAIVED
+
+**Key findings:**
+
+- STOP conditions: **5/5 PASS**.
+- Production Offseason surface is limited to persisted workflows: World Season Advance + Draft Positions.
+- Single-team Offseason path is DEV + localStorage gated and explicitly labeled preview-only/non-persisting.
+- World season advance persists under `architect_worlds/{worldId}` scope and emits `seasonAdvance` event payload with Team History-compatible team fields.
+- Draft positions persist to world metadata under `draftPositionsByYear.{year}` and remain world-gated.
+- No forbidden writes to root `/teams` or `architect_base*` in offseason flow.
+
+**Return Package:**
+
+- `return_packages/architect_reviews/OFFSEASON_R2_LOCAL_REVIEW_RETURN_PACKAGE.md`
+
+---
+
+### TM_CAP_INTEGRATION_E1: Deterministic Integration Proof Closure (2026-03-03)
+
+**Goal:** Close TM_CAP_INTEGRATION_R1_LOCAL checklist #12 by adding deterministic proof for Trade apply -> Cap impact -> Team History event contract and executeTrade write-path guardrails.
+
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Supersedes:** `TM_CAP_INTEGRATION_R1_LOCAL` FAIL on checklist #12.
+
+**Commands run + outcomes:**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (167 files; 2449 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- Added deterministic AC1 integration test proving world `executeTrade` success, cap-impact update, and Team History-compatible world event payload contract.
+- Added deterministic AC2 guardrail test capturing executeTrade write paths and asserting world-only persistence under `architect_worlds/{worldId}/...`.
+- Added fail-closed invalid-routing proof (`TRADE_APPLY_ROUTING_ERROR`) with no write-batch commit.
+- Fixed fixture persistence-contract mismatch (`team.id` disallowed) in new tests by aligning with allowed team persistence schema.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/TM_CAP_INTEGRATION_E1_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
 ## How to Run Review Mode
 
 ### Quick Start
@@ -437,3 +512,29 @@ VITE_ARCHITECT_REVIEW_MODE=true npm run dev
 - Production credentials are NEVER required in review mode
 - Seed data is minimal — sufficient for basic UI validation, not comprehensive testing
 - For full test coverage, use `npm run emu` with production-derived seed data
+
+---
+
+### TM_CAP_INTEGRATION_E2: UI-Level Integration Proof Closure (2026-03-03)
+
+**Goal:** Complete deterministic UI-level proof for TM_CAP_INTEGRATION checklist #12 by validating actual Cap Sheet and Team History surfaces after executeTrade.
+**Status progression:** `IMPLEMENTING` -> `EXECUTION_COMPLETE`
+
+**Commands run + outcomes (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS (non-blocking warnings)
+- `npm run test:trade -- --reporter=dot` -> PASS (58 files; 532 passed, 1 skipped, 3 todo)
+- `npm run test:architect -- --reporter=dot` -> PASS (167 files; 2449 passed, 1 skipped, 3 todo)
+
+**Outcome summary:**
+
+- Added deterministic RTL test for Trade Apply -> Cap Sheet UI roster + totals update.
+- Added deterministic RTL test for Trade Apply -> Team History timeline row + detail modal fields.
+- Reused real shipped UI components (`CapSheetSection`, `TeamHistoryTab`) with stable existing selectors.
+- No product selector additions required.
+- UI-level integration proof added; R1 #12 CLOSED.
+
+**Return Package:**
+
+- `return_packages/architect_fixes/TM_CAP_INTEGRATION_E2_EXECUTION_RETURN_PACKAGE.md`
