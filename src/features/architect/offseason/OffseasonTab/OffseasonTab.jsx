@@ -21,9 +21,9 @@ const OffseasonTab = ({
   setTeamCapSheet,
   currentYear,
   setCurrentYear,
-  capProjections,
+  capProjections = null,
   setLastCapSheet,
-  offseasonRun,
+  offseasonRun = false,
   setOffseasonRun,
   setOffseasonSummary,
   setShowOffseasonModal,
@@ -95,7 +95,10 @@ const OffseasonTab = ({
       {offseasonRun && (
         <div className="mt-5">
           <strong>Preview computed — not saved</strong>
-          <p>Preview shows projected state for {currentYear + 1} season. Use World Season Advance to persist.</p>
+          <p>
+            Preview shows projected state for {currentYear + 1} season. Use
+            World Season Advance to persist.
+          </p>
         </div>
       )}
     </div>
@@ -114,12 +117,6 @@ OffseasonTab.propTypes = {
   setOffseasonSummary: PropTypes.func.isRequired,
   setShowOffseasonModal: PropTypes.func.isRequired,
   playersMap: PropTypes.object,
-};
-
-OffseasonTab.defaultProps = {
-  offseasonRun: false,
-  capProjections: null,
-  playersMap: {},
 };
 
 export default OffseasonTab;

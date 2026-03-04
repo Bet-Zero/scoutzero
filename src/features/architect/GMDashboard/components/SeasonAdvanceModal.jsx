@@ -202,11 +202,11 @@ function findExpiringTPEs(teamCapSheet, toYear) {
 export function SeasonAdvanceModal({
   isOpen,
   onClose,
-  teamCapSheet,
+  teamCapSheet = null,
   currentYear,
-  worldId,
-  teamCode,
-  onAdvanceComplete,
+  worldId = null,
+  teamCode = null,
+  onAdvanceComplete = null,
 }) {
   // Wizard step state
   const [currentStep, setCurrentStep] = useState(WIZARD_STEPS.SUMMARY);
@@ -776,13 +776,6 @@ SeasonAdvanceModal.propTypes = {
   worldId: PropTypes.string,
   teamCode: PropTypes.string,
   onAdvanceComplete: PropTypes.func,
-};
-
-SeasonAdvanceModal.defaultProps = {
-  teamCapSheet: null,
-  worldId: null,
-  teamCode: null,
-  onAdvanceComplete: null,
 };
 
 export default SeasonAdvanceModal;

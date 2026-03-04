@@ -418,4 +418,47 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('offseason-preview-banner')).toBeInTheDocument();
   });
+
+  it('does not emit function-component defaultProps deprecation warnings', () => {
+    const warningNeedle =
+      'Support for defaultProps will be removed from function components';
+    const teamCapSheet = buildTeamFixture();
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
+
+      render(
+        <OffseasonSection
+          teamCapSheet={teamCapSheet}
+          setTeamCapSheet={vi.fn()}
+          currentYear={CURRENT_YEAR}
+          setCurrentYear={vi.fn()}
+          capProjections={{}}
+          setLastCapSheet={vi.fn()}
+          offseasonRun={false}
+          setOffseasonRun={vi.fn()}
+          setOffseasonSummary={vi.fn()}
+          setShowOffseasonModal={vi.fn()}
+          playersMap={{}}
+          worldId="world_smoke_lal"
+          teamCode="LAL"
+          onReloadWorldData={vi.fn()}
+        />
+      );
+
+      const combinedLogs = [...warnSpy.mock.calls, ...errorSpy.mock.calls].map(
+        (args) => args.map((value) => String(value)).join(' ')
+      );
+
+      expect(combinedLogs.some((line) => line.includes(warningNeedle))).toBe(
+        false
+      );
+    } finally {
+      warnSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
+  });
 });

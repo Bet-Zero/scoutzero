@@ -41,6 +41,33 @@ function checkPortReachable(host, port, timeoutMs = 2500) {
   });
 }
 
+async function wait(ms) {
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function waitForEmulatorReachable(host, port, options = {}) {
+  const attempts = Number.isInteger(options.attempts) ? options.attempts : 10;
+  const delayMs = Number.isInteger(options.delayMs) ? options.delayMs : 400;
+
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await checkPortReachable(host, port);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await wait(delayMs);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 async function main() {
   const emulator = parseEmulatorHost(process.env.FIRESTORE_EMULATOR_HOST);
 
@@ -52,7 +79,10 @@ async function main() {
   }
 
   try {
-    await checkPortReachable(emulator.host, emulator.port);
+    await waitForEmulatorReachable(emulator.host, emulator.port, {
+      attempts: 10,
+      delayMs: 400,
+    });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.error(

@@ -285,6 +285,7 @@ Emulator targeting contract:
 
 - Command is emulator-first and pins `FIRESTORE_EMULATOR_HOST=127.0.0.1:8082`.
 - Preflight checks that emulator host:port is reachable before running tests.
+- Warm-up resilience: deterministic retry loop (`10` attempts, `400ms` fixed delay) handles emulator-just-started timing.
 - If emulator is not reachable, command exits non-zero with explicit guidance to run `npm run emu`.
 
 Scope discipline:
@@ -302,6 +303,8 @@ What this gate proves (WORLD MODE render-level smoke):
 - Trade Machine, Cap Sheet, Free Agency, Team History, and Offseason surfaces render without crash.
 - Team History fixture timeline row opens detail modal on click.
 - Offseason season-advance surface renders with DEV preview gate enabled for smoke-only rendering.
+- Smoke path is warning-clean for React function-component `defaultProps` deprecation on key Offseason/Season Advance surfaces.
+- Guardrail test asserts this specific warning string cannot regress silently.
 
 Canonical command:
 
@@ -341,15 +344,16 @@ Runbook:
 
 ## Review History
 
-| Review                         | Date       | Result                                   | Return Package                                                                               |
-| ------------------------------ | ---------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
-| ARCHITECT_SHIP_GATES_R1_LOCAL  | 2026-03-04 | CONDITIONAL PASS                         | `return_packages/architect_reviews/ARCHITECT_SHIP_GATES_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`   |
-| ARCHITECT_SECURITY_E1          | 2026-03-04 | FULL PASS (Gate F closed)                | `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`          |
-| ARCHITECT_SECURITY_E3          | 2026-03-04 | COMPLETE (targeting lock)                | `return_packages/architect_fixes/ARCHITECT_SECURITY_E3_EXECUTION_RETURN_PACKAGE.md`          |
-| ARCHITECT_EMULATOR_LOCK_E1     | 2026-03-04 | COMPLETE (client lock)                   | `return_packages/architect_fixes/ARCHITECT_EMULATOR_LOCK_E1_EXECUTION_RETURN_PACKAGE.md`     |
-| ARCHITECT_QUALITY_GATES_E1     | 2026-03-04 | COMPLETE (quality clean)                 | `return_packages/architect_fixes/ARCHITECT_QUALITY_GATES_E1_EXECUTION_RETURN_PACKAGE.md`     |
-| ARCHITECT_RULES_INTEGRATION_E1 | 2026-03-04 | COMPLETE (emulator rules)                | `return_packages/architect_fixes/ARCHITECT_RULES_INTEGRATION_E1_EXECUTION_RETURN_PACKAGE.md` |
-| ARCHITECT_SHIP_GATES_E2        | 2026-03-04 | COMPLETE (single-command required gates) | `return_packages/architect_fixes/ARCHITECT_SHIP_GATES_E2_EXECUTION_RETURN_PACKAGE.md`        |
-| ARCHITECT_SMOKE_E1             | 2026-03-04 | COMPLETE (final emulator UI smoke gate)  | `return_packages/architect_fixes/ARCHITECT_SMOKE_E1_EXECUTION_RETURN_PACKAGE.md`             |
+| Review                         | Date       | Result                                    | Return Package                                                                               |
+| ------------------------------ | ---------- | ----------------------------------------- | -------------------------------------------------------------------------------------------- |
+| ARCHITECT_SHIP_GATES_R1_LOCAL  | 2026-03-04 | CONDITIONAL PASS                          | `return_packages/architect_reviews/ARCHITECT_SHIP_GATES_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`   |
+| ARCHITECT_SECURITY_E1          | 2026-03-04 | FULL PASS (Gate F closed)                 | `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`          |
+| ARCHITECT_SECURITY_E3          | 2026-03-04 | COMPLETE (targeting lock)                 | `return_packages/architect_fixes/ARCHITECT_SECURITY_E3_EXECUTION_RETURN_PACKAGE.md`          |
+| ARCHITECT_EMULATOR_LOCK_E1     | 2026-03-04 | COMPLETE (client lock)                    | `return_packages/architect_fixes/ARCHITECT_EMULATOR_LOCK_E1_EXECUTION_RETURN_PACKAGE.md`     |
+| ARCHITECT_QUALITY_GATES_E1     | 2026-03-04 | COMPLETE (quality clean)                  | `return_packages/architect_fixes/ARCHITECT_QUALITY_GATES_E1_EXECUTION_RETURN_PACKAGE.md`     |
+| ARCHITECT_RULES_INTEGRATION_E1 | 2026-03-04 | COMPLETE (emulator rules)                 | `return_packages/architect_fixes/ARCHITECT_RULES_INTEGRATION_E1_EXECUTION_RETURN_PACKAGE.md` |
+| ARCHITECT_SHIP_GATES_E2        | 2026-03-04 | COMPLETE (single-command required gates)  | `return_packages/architect_fixes/ARCHITECT_SHIP_GATES_E2_EXECUTION_RETURN_PACKAGE.md`        |
+| ARCHITECT_SMOKE_E1             | 2026-03-04 | COMPLETE (final emulator UI smoke gate)   | `return_packages/architect_fixes/ARCHITECT_SMOKE_E1_EXECUTION_RETURN_PACKAGE.md`             |
+| ARCHITECT_SMOKE_E2             | 2026-03-04 | COMPLETE (warning-clean + warm-up stable) | `return_packages/architect_fixes/ARCHITECT_SMOKE_E2_EXECUTION_RETURN_PACKAGE.md`             |
 
 Prior section reviews (14 completed): See `docs/reviews/ARCHITECT_REVIEW_LEDGER.md` for full history.

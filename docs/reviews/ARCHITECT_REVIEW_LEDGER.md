@@ -17,6 +17,48 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ## Completed Reviews
 
+### ARCHITECT_SMOKE_E2: Warning Cleanup + Rules Warm-up Stability (2026-03-04)
+
+**Goal:** Close remaining Architect smoke/rules polish issues by removing React function-component `defaultProps` deprecation warnings and hardening rules emulator warm-up behavior.
+
+**Status:** ✅ COMPLETE
+
+**What was done:**
+
+- Removed function-component `defaultProps` usage via parameter defaults in:
+  - `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`
+  - `src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+- Added deterministic emulator reachability retry in `scripts/ci/run_rules_integration_tests.mjs`:
+  - 10 attempts
+  - 400ms fixed delay
+  - fail-closed behavior preserved with same `npm run emu` guidance
+- Added smoke warning regression guardrail in:
+  - `src/tests/smoke/architect.uiSmoke.e1.test.tsx`
+  - Asserts no captured `console.warn`/`console.error` line contains `Support for defaultProps will be removed from function components`
+- Updated Architect masters:
+  - `docs/architect/ARCHITECT_SMOKE_MASTER.md`
+  - `docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
+
+**Command evidence (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS
+- `npm run typecheck` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS (`58` files, `537` tests)
+- `npm run test:architect -- --reporter=dot` -> PASS (`167` files, `2454` tests)
+- `npm run test:rules` -> PASS (`1` file, `16` tests)
+- `npm run test:smoke:architect` -> PASS (`1` file, `7` tests)
+- `npm run smoke:architect` -> PASS
+
+**Stability evidence (3x back-to-back):**
+
+- Run 1: `npm run smoke:architect` -> PASS
+- Run 2: `npm run smoke:architect` -> PASS
+- Run 3: `npm run smoke:architect` -> PASS
+
+**Return Package:** `return_packages/architect_fixes/ARCHITECT_SMOKE_E2_EXECUTION_RETURN_PACKAGE.md`
+
 ### ARCHITECT_SMOKE_E1: Emulator-first UI Smoke Gate (2026-03-04)
 
 **Goal:** Add final deterministic Architect render smoke gate (WORLD MODE surfaces) after canonical ship/rules gates.

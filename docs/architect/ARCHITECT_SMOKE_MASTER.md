@@ -55,6 +55,32 @@ This command runs a fail-fast chain:
 
 ---
 
+## ARCHITECT_SMOKE_E2 (Polish/Stability Closure)
+
+`ARCHITECT_SMOKE_E2` closes remaining smoke/rules stability gotchas without product behavior changes.
+
+Guarantees added:
+
+1. **Warning-clean smoke render path**
+   - Removed function-component `defaultProps` usage in:
+     - `DraftPositionsInput`
+     - `OffseasonTab`
+     - `SeasonAdvanceModal`
+   - Smoke now runs without React warning:
+     - `Support for defaultProps will be removed from function components`
+
+2. **Deterministic guardrail against warning regressions**
+   - Smoke suite now asserts that captured `console.warn`/`console.error` output does **not** include the defaultProps warning substring.
+   - Guardrail lives in the Architect smoke test so regressions fail CI immediately.
+
+3. **Rules warm-up retry resilience (still fail-closed)**
+   - `npm run test:rules` runner now retries emulator reachability deterministically before test launch.
+   - Policy: up to `10` attempts with fixed `400ms` delay between attempts.
+   - If still unreachable, command exits non-zero with the same guidance to start emulator via `npm run emu`.
+   - No prod fallback introduced.
+
+---
+
 ## Optional manual spot-check (human sanity only)
 
 1. Start emulators and app (`npm run emu`, `npm run dev`)

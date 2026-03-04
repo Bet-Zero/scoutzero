@@ -26,12 +26,36 @@ import {
 
 // Generate sample JSON template with all 30 NBA teams
 const SAMPLE_POSITIONS_TEMPLATE = {
-  ATL: 1, BOS: 2, BKN: 3, CHA: 4, CHI: 5,
-  CLE: 6, DAL: 7, DEN: 8, DET: 9, GSW: 10,
-  HOU: 11, IND: 12, LAC: 13, LAL: 14, MEM: 15,
-  MIA: 16, MIL: 17, MIN: 18, NOP: 19, NYK: 20,
-  OKC: 21, ORL: 22, PHI: 23, PHX: 24, POR: 25,
-  SAC: 26, SAS: 27, TOR: 28, UTA: 29, WAS: 30,
+  ATL: 1,
+  BOS: 2,
+  BKN: 3,
+  CHA: 4,
+  CHI: 5,
+  CLE: 6,
+  DAL: 7,
+  DEN: 8,
+  DET: 9,
+  GSW: 10,
+  HOU: 11,
+  IND: 12,
+  LAC: 13,
+  LAL: 14,
+  MEM: 15,
+  MIA: 16,
+  MIL: 17,
+  MIN: 18,
+  NOP: 19,
+  NYK: 20,
+  OKC: 21,
+  ORL: 22,
+  PHI: 23,
+  PHX: 24,
+  POR: 25,
+  SAC: 26,
+  SAS: 27,
+  TOR: 28,
+  UTA: 29,
+  WAS: 30,
 };
 
 // ==============================================================================
@@ -46,9 +70,15 @@ const SAMPLE_POSITIONS_TEMPLATE = {
  * @param {number} props.currentYear - Current season end year (for default year - should be worldDraftYear)
  * @param {string|null} [props.worldSeason] - World's actual current season (for display)
  */
-export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
+export function DraftPositionsInput({
+  worldId = null,
+  currentYear,
+  worldSeason = null,
+}) {
   // State - initialize selectedYear from currentYear (which should be worldDraftYear from parent)
-  const [selectedYear, setSelectedYear] = useState(currentYear || new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(
+    currentYear || new Date().getFullYear()
+  );
   const [jsonText, setJsonText] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
@@ -156,9 +186,14 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
 
     try {
       const positionsMap = JSON.parse(jsonText);
-      const result = await saveDraftPositions(worldId, selectedYear, positionsMap, {
-        method: 'manual',
-      });
+      const result = await saveDraftPositions(
+        worldId,
+        selectedYear,
+        positionsMap,
+        {
+          method: 'manual',
+        }
+      );
 
       if (result.success) {
         setLastSaved({
@@ -167,7 +202,9 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
         });
         setSaveMessage(`✅ Saved draft positions for ${selectedYear}!`);
       } else {
-        setSaveMessage(`Error: ${result.errors?.join(', ') || 'Unknown error'}`);
+        setSaveMessage(
+          `Error: ${result.errors?.join(', ') || 'Unknown error'}`
+        );
       }
     } catch (error) {
       console.error('Failed to save draft positions:', error);
@@ -190,7 +227,9 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
   if (!worldId) {
     return (
       <div className="p-4 bg-[#1a1a1a] rounded-lg border border-white/10">
-        <p className="text-sm text-white/50">Select a world to enter draft positions.</p>
+        <p className="text-sm text-white/50">
+          Select a world to enter draft positions.
+        </p>
       </div>
     );
   }
@@ -200,9 +239,12 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">Draft Positions Input</h3>
+          <h3 className="text-lg font-semibold text-white">
+            Draft Positions Input
+          </h3>
           <p className="text-sm text-white/60 mt-1">
-            Enter real draft positions to auto-resolve pick swaps and conveyance during season advance.
+            Enter real draft positions to auto-resolve pick swaps and conveyance
+            during season advance.
           </p>
           {/* Phase 5 PATCH: Show world season context */}
           {worldSeason && (
@@ -224,7 +266,9 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
           className="w-32 bg-[#0d0d0d] border border-white/20 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
         >
           {availableYears.map((year) => (
-            <option key={year} value={year}>{year}</option>
+            <option key={year} value={year}>
+              {year}
+            </option>
           ))}
         </select>
       </div>
@@ -232,7 +276,8 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
       {/* JSON Textarea */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-white/70 mb-1">
-          Positions JSON <span className="text-white/40">(TeamCode: Position 1-60)</span>
+          Positions JSON{' '}
+          <span className="text-white/40">(TeamCode: Position 1-60)</span>
         </label>
         <textarea
           value={jsonText}
@@ -246,7 +291,9 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded">
-          <p className="text-sm font-medium text-red-400 mb-1">Validation Errors:</p>
+          <p className="text-sm font-medium text-red-400 mb-1">
+            Validation Errors:
+          </p>
           <ul className="text-xs text-red-300 list-disc list-inside">
             {validationErrors.map((err, idx) => (
               <li key={idx}>{err}</li>
@@ -257,8 +304,12 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
 
       {/* Save Message */}
       {saveMessage && !validationErrors.length && (
-        <div className={`mb-4 p-3 rounded ${saveMessage.startsWith('✅') ? 'bg-green-500/10 border border-green-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}>
-          <p className={`text-sm ${saveMessage.startsWith('✅') ? 'text-green-400' : 'text-yellow-400'}`}>
+        <div
+          className={`mb-4 p-3 rounded ${saveMessage.startsWith('✅') ? 'bg-green-500/10 border border-green-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}
+        >
+          <p
+            className={`text-sm ${saveMessage.startsWith('✅') ? 'text-green-400' : 'text-yellow-400'}`}
+          >
             {saveMessage}
           </p>
         </div>
@@ -267,7 +318,8 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
       {/* Last Saved Info */}
       {lastSaved && (
         <div className="mb-4 text-xs text-white/40">
-          Last saved: {new Date(lastSaved.updatedAtIso).toLocaleString()} ({lastSaved.method})
+          Last saved: {new Date(lastSaved.updatedAtIso).toLocaleString()} (
+          {lastSaved.method})
         </div>
       )}
 
@@ -302,14 +354,17 @@ export function DraftPositionsInput({ worldId, currentYear, worldSeason }) {
       {/* Help Text */}
       <div className="mt-4 text-xs text-white/40 border-t border-white/10 pt-4">
         <p className="mb-2">
-          <strong>How it works:</strong> Enter draft positions as JSON mapping team codes (ATL, BOS, etc.) to pick positions (1-60).
+          <strong>How it works:</strong> Enter draft positions as JSON mapping
+          team codes (ATL, BOS, etc.) to pick positions (1-60).
         </p>
         <p className="mb-2">
-          <strong>When you advance the season:</strong> If draft positions exist for the current draft year, 
-          swaps and protected picks will auto-resolve based on these positions.
+          <strong>When you advance the season:</strong> If draft positions exist
+          for the current draft year, swaps and protected picks will
+          auto-resolve based on these positions.
         </p>
         <p>
-          <strong>NO-OP guarantee:</strong> If no positions are saved, season advance behaves as before (no changes to picks).
+          <strong>NO-OP guarantee:</strong> If no positions are saved, season
+          advance behaves as before (no changes to picks).
         </p>
       </div>
     </div>
@@ -320,11 +375,6 @@ DraftPositionsInput.propTypes = {
   worldId: PropTypes.string,
   currentYear: PropTypes.number.isRequired,
   worldSeason: PropTypes.string,
-};
-
-DraftPositionsInput.defaultProps = {
-  worldId: null,
-  worldSeason: null,
 };
 
 export default DraftPositionsInput;
