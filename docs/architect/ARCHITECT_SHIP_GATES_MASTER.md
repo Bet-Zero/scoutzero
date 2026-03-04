@@ -48,6 +48,18 @@
 
 ---
 
+## Single Command
+
+Run the canonical Architect ship gate command:
+
+```bash
+npm run gates:architect
+```
+
+This command executes all required gates in order and fails fast on first failure.
+
+---
+
 ## Ship Blocker List
 
 ### Active Blockers
@@ -228,12 +240,12 @@ Explicit safety contract: when DEV target mode is emulator, this client path doe
 
 ### ARCHITECT_QUALITY_GATES_E1 — Typecheck + Gate Hygiene Closure
 
-Repository quality gates are now clean for the core Architect ship sequence.
+Repository quality gates are now clean for the required Architect ship sequence.
 
 Guarantees:
 
 - `npm run typecheck` passes with zero errors.
-- Core gate suites (`test:trade`, `test:architect`) report no skipped or todo tests.
+- Core gate suites (`test:trade`, `test:architect`, `test:rules`) are required in the canonical ship chain.
 - DEV-only fixture tooling remains explicitly gated behind DEV + local flags.
 
 Required quality sequence executed in order and passing:
@@ -244,6 +256,7 @@ npm run build
 npm run typecheck
 npm run test:trade -- --reporter=dot
 npm run test:architect -- --reporter=dot
+npm run test:rules
 ```
 
 Latest gate evidence:
@@ -253,7 +266,7 @@ Latest gate evidence:
 
 ### ARCHITECT_RULES_INTEGRATION_E1 — Emulator-backed Firestore Rules Integration
 
-Optional ship gate to prove runtime Firestore rules behavior against the real emulator using `firestore.rules`.
+Required ship gate to prove runtime Firestore rules behavior against the real emulator using `firestore.rules`.
 
 What this gate proves:
 
@@ -262,7 +275,7 @@ What this gate proves:
 - Canonical/base write boundaries are enforced at runtime: client writes are denied to `architect_base*` and root `teams`.
 - `lists` and `tierLists` are strict `ownerUid` owner-only resources with no auto-claim behavior.
 
-Optional gate command:
+Required gate command:
 
 ```bash
 npm run test:rules
@@ -276,8 +289,37 @@ Emulator targeting contract:
 
 Scope discipline:
 
-- This rules integration suite is intentionally isolated and does not run in default core gates.
-- Core ship gates remain unchanged unless explicitly promoted later.
+- This rules integration suite is part of the canonical Architect ship gates command.
+- Canonical command: `npm run gates:architect`.
+
+### ARCHITECT_SMOKE_E1 — Emulator-first UI Smoke Gate
+
+Final Architect DONE gate after `ARCHITECT_SHIP_GATES_E2` + `ARCHITECT_RULES_INTEGRATION_E1`.
+
+What this gate proves (WORLD MODE render-level smoke):
+
+- GM Dashboard shell boots and shows target mode badge.
+- Trade Machine, Cap Sheet, Free Agency, Team History, and Offseason surfaces render without crash.
+- Team History fixture timeline row opens detail modal on click.
+- Offseason season-advance surface renders with DEV preview gate enabled for smoke-only rendering.
+
+Canonical command:
+
+```bash
+npm run smoke:architect
+```
+
+Execution contract:
+
+- Emulator-first and fail-closed: preflight requires Firestore emulator at `127.0.0.1:8082`.
+- If emulator is unavailable, command exits non-zero with: `Start emulators with: npm run emu`.
+- Fail-fast chain:
+  1. `npm run gates:architect`
+  2. `npm run test:smoke:architect`
+
+Runbook:
+
+- See `docs/architect/ARCHITECT_SMOKE_MASTER.md`.
 
 ---
 
@@ -299,13 +341,15 @@ Scope discipline:
 
 ## Review History
 
-| Review                         | Date       | Result                    | Return Package                                                                               |
-| ------------------------------ | ---------- | ------------------------- | -------------------------------------------------------------------------------------------- |
-| ARCHITECT_SHIP_GATES_R1_LOCAL  | 2026-03-04 | CONDITIONAL PASS          | `return_packages/architect_reviews/ARCHITECT_SHIP_GATES_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`   |
-| ARCHITECT_SECURITY_E1          | 2026-03-04 | FULL PASS (Gate F closed) | `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`          |
-| ARCHITECT_SECURITY_E3          | 2026-03-04 | COMPLETE (targeting lock) | `return_packages/architect_fixes/ARCHITECT_SECURITY_E3_EXECUTION_RETURN_PACKAGE.md`          |
-| ARCHITECT_EMULATOR_LOCK_E1     | 2026-03-04 | COMPLETE (client lock)    | `return_packages/architect_fixes/ARCHITECT_EMULATOR_LOCK_E1_EXECUTION_RETURN_PACKAGE.md`     |
-| ARCHITECT_QUALITY_GATES_E1     | 2026-03-04 | COMPLETE (quality clean)  | `return_packages/architect_fixes/ARCHITECT_QUALITY_GATES_E1_EXECUTION_RETURN_PACKAGE.md`     |
-| ARCHITECT_RULES_INTEGRATION_E1 | 2026-03-04 | COMPLETE (emulator rules) | `return_packages/architect_fixes/ARCHITECT_RULES_INTEGRATION_E1_EXECUTION_RETURN_PACKAGE.md` |
+| Review                         | Date       | Result                                   | Return Package                                                                               |
+| ------------------------------ | ---------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| ARCHITECT_SHIP_GATES_R1_LOCAL  | 2026-03-04 | CONDITIONAL PASS                         | `return_packages/architect_reviews/ARCHITECT_SHIP_GATES_R1_LOCAL_REVIEW_RETURN_PACKAGE.md`   |
+| ARCHITECT_SECURITY_E1          | 2026-03-04 | FULL PASS (Gate F closed)                | `return_packages/architect_fixes/ARCHITECT_SECURITY_E1_EXECUTION_RETURN_PACKAGE.md`          |
+| ARCHITECT_SECURITY_E3          | 2026-03-04 | COMPLETE (targeting lock)                | `return_packages/architect_fixes/ARCHITECT_SECURITY_E3_EXECUTION_RETURN_PACKAGE.md`          |
+| ARCHITECT_EMULATOR_LOCK_E1     | 2026-03-04 | COMPLETE (client lock)                   | `return_packages/architect_fixes/ARCHITECT_EMULATOR_LOCK_E1_EXECUTION_RETURN_PACKAGE.md`     |
+| ARCHITECT_QUALITY_GATES_E1     | 2026-03-04 | COMPLETE (quality clean)                 | `return_packages/architect_fixes/ARCHITECT_QUALITY_GATES_E1_EXECUTION_RETURN_PACKAGE.md`     |
+| ARCHITECT_RULES_INTEGRATION_E1 | 2026-03-04 | COMPLETE (emulator rules)                | `return_packages/architect_fixes/ARCHITECT_RULES_INTEGRATION_E1_EXECUTION_RETURN_PACKAGE.md` |
+| ARCHITECT_SHIP_GATES_E2        | 2026-03-04 | COMPLETE (single-command required gates) | `return_packages/architect_fixes/ARCHITECT_SHIP_GATES_E2_EXECUTION_RETURN_PACKAGE.md`        |
+| ARCHITECT_SMOKE_E1             | 2026-03-04 | COMPLETE (final emulator UI smoke gate)  | `return_packages/architect_fixes/ARCHITECT_SMOKE_E1_EXECUTION_RETURN_PACKAGE.md`             |
 
 Prior section reviews (14 completed): See `docs/reviews/ARCHITECT_REVIEW_LEDGER.md` for full history.

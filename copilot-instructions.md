@@ -1,58 +1,30 @@
+````instructions
 # HoopZero/ScoutZero Copilot Instructions
 
-Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
+Always reference these instructions first. If anything here conflicts with current repository files, trust the repository and update this document.
 
 ## Project Overview
 
-HoopZero is a React + Vite + Firebase NBA scouting platform that provides a public-facing view of player data. It displays player bios, stats, roles, contracts, and grades using a clean layout. All player data is loaded from Firebase Firestore using a hierarchical player structure.
+HoopZero/ScoutZero is a React + Vite + Firebase NBA scouting and GM toolkit. It includes public scouting views plus Architect/GM workflows (trade machine, roster/cap tooling) and uses Firestore collections with strict read/write boundaries.
 
-## Working Effectively
+## Environment and Setup
 
 ### System Requirements
 
-- **Node.js**: Version 18+ (as specified in `.github/workflows/audit.yml`)
-- **npm**: Comes with Node.js (npm ci or npm install both work)
-- **Operating System**: Cross-platform (Windows, macOS, Linux supported)
+- **Node.js**: `>=18.17` (from `package.json` engines)
+- **npm**: bundled with Node
+- **OS**: macOS, Linux, Windows
 
-### Bootstrap and Dependencies
+### Bootstrap
 
-- Install dependencies: `npm install` -- takes 41 seconds. NEVER CANCEL. Set timeout to 120+ seconds.
-- Check linting: `npm run lint` -- Shows 1888 errors (technical debt). Takes 8 seconds. Do not attempt to fix all unless specifically tasked.
+- Install dependencies: `npm install`
+- Start app: `npm run dev` (Vite dev server at `http://localhost:5173/`)
+- Production build: `npm run build`
+- Preview build: `npm run preview`
 
-### Testing
+### Environment Variables
 
-- Run all tests: `npm run test -- --run` -- takes 14 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
-- Run specific test file: `npm run test tests/capUtils.test.js -- --run` -- takes 1.5 seconds for individual files
-- **CURRENT STATE**: Tests may have failures - check current status when running
-- **WORKING TESTS**: `tests/capUtils.test.js` passes all 12 tests and can be used for validation
-- Test runner uses Vitest with jsdom environment
-- Test files are in `tests/` directory
-
-### Building (WORKING)
-
-- Build command: `npm run build` -- takes 7.3 seconds. NEVER CANCEL. Set timeout to 60+ seconds.
-- Creates production build in `dist/` directory
-- Build includes chunking warnings for large files (>500KB) which is normal
-
-### Development Server (WORKING)
-
-- Dev server command: `npm run dev` -- starts in 230ms
-- Available at `http://localhost:5173/` when running
-- Use Ctrl+C to stop the server
-
-### Other Commands
-
-- Generate basic docs: `npm run docs` -- takes <1 second. Creates component hierarchy docs in `docs/api/` folder
-- **WORKING COMMANDS**:
-  - `npm run zen` -- toggles VS Code view (toggleView.cjs is present)
-  - `npm run docs` -- generates component hierarchies
-- **ARCHIVED/MOVED COMMANDS** (files moved to archive):
-  - `npm run update-stats` -- updateStats.js moved to archive
-  - Many migration-related commands moved to archive
-
-### Environment Setup
-
-- Create `.env` file in project root with Firebase configuration:
+Create `.env` in project root:
 
 ```
 VITE_FIREBASE_API_KEY=<your key>
@@ -63,192 +35,123 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=<sender id>
 VITE_FIREBASE_APP_ID=<app id>
 ```
 
-- Firebase credentials are required for the app to function properly with real data
-- For Python upload helpers, place `serviceAccountKey.json` in `src/` directory
+Notes:
+- `npm run dev` uses `VITE_USE_FIREBASE_EMULATORS=true` via script config.
+- `serviceAccountKey.json` is used by admin/script tooling where required.
 
-## Validation Scenarios
+## Command Policy (Current)
 
-### Component Validation
+Use approved npm scripts from `package.json` and `AGENTS.md`.
 
-- **Build Testing**: Always run `npm run build` to verify changes don't break production build
-- **Unit Testing**: Run specific test files for components you modify: `npm run test tests/filename.test.js`
-- **Static Analysis**: Use ESLint to validate syntax: `npm run lint -- --ext .jsx src/path/to/file.jsx`
+### Core Commands
 
-### Manual UI Validation
+- `npm run dev`
+- `npm run build`
+- `npm run typecheck`
+- `npm run validate:project` (required after structural file/export changes)
+- `npm run docs`
+- `npm run lint` (only when requested; repo has substantial pre-existing lint debt)
+- `npm run lint:md` (for markdown-heavy edits)
 
-- **Complete Workflow**: Always test these user scenarios after making changes:
-  1. Start dev server: `npm run dev`
-  2. Navigate to `http://localhost:5173/`
-  3. Test navigation: Click "Player Profiles", "Players", "Tools" dropdown
-  4. Test Tools features: "Roster Builder", "Tier Maker", "GM Tools"
-  5. Test roster builder: Select team (e.g., "Boston Celtics"), verify interface updates
-  6. Test search and filter functionality when players load
+### Testing Commands
 
-### Test-Driven Validation
+Default to **targeted** test runs and append `--reporter=dot`:
 
-- Run specific test suites: `npm run test tests/capUtils.test.js` (all 12 tests pass)
-- Use test files to understand expected behavior
-- Write new tests for new functionality before implementing
+- `npm run test:diff -- --reporter=dot` (**default**)
+- `npm run test:fast -- --reporter=dot`
+- `npm run test:trade -- --reporter=dot`
+- `npm run test:architect -- --reporter=dot`
+- `npm run test:roster -- --reporter=dot`
+- `npm run test:scouting -- --reporter=dot`
+- `npm run test:node -- --reporter=dot`
+- `npm run test:ui -- --reporter=dot`
 
-## Project Structure and Navigation
+**Full suite rule:** only run `npm run test:full` (or equivalent full test commands) when the user explicitly includes: `RUN FULL SUITE`.
 
-### Key Directories
+## Validation Workflow
+
+After code changes, run the smallest valid check first:
+
+1. Relevant scoped tests (or `npm run test:diff -- --reporter=dot`)
+2. `npm run build` for meaningful UI/route/component changes
+3. `npm run typecheck` for TS/TSX or logic changes
+4. `npm run validate:project` for structural changes
+
+If a test run exceeds ~4 minutes, stop and switch to a cheaper scoped command.
+
+## Project Structure (Current)
+
+Key folders:
 
 ```
 src/
-├── components/          # Layout and shared UI components
-│   ├── layout/          # Site-wide layout (SiteLayout.jsx)
-│   └── shared/          # Reusable UI widgets
-├── features/            # Feature-specific components
-│   ├── filters/         # Player filtering UI
-│   ├── lists/           # Ranked list components
-│   ├── profile/         # Player profile editor
-│   ├── roster/          # Roster building tools
-│   ├── table/           # Player table view
-│   └── tierMaker/       # Tier list creation
-├── hooks/               # Custom React hooks
-├── utils/               # Helper functions and data transforms
-├── firebase/            # Firestore helper modules
-├── pages/               # Top-level route views
-└── constants/           # Data lists and enums
-
-docs/                    # Organized documentation
-├── architecture/        # Technical architecture and schemas
-├── guides/             # User and development guides
-├── api/                # Auto-generated component hierarchies
-├── compliance/         # Audit certificates and compliance
-└── legacy/             # Archived migration documentation
-
-archive/                # Historical files and migration work
-├── migrations/         # Migration scripts and data
-└── ...                # Other archived content
+├── components/     # Diagnostic tools; legacy shared UI moved to shared/
+├── config/         # Feature flags and runtime config
+├── constants/      # Enums + Firestore collection constants
+├── core/           # Site-wide layout
+├── data/           # Firestore path helpers
+├── features/       # Domain modules (architect, filters, lists, profile, roster, table, etc.)
+├── firebase/       # Firestore read/write helpers
+├── hooks/          # Legacy hooks
+├── pages/          # Route views
+├── schemas/        # Canonical Zod schemas
+├── shared/         # Shared hooks, utils, and reusable components
+├── tests/          # Co-located tests
+└── types/          # TS declarations
 ```
 
-### Important Files
+Important references:
 
-- `src/firebaseConfig.js` - Firebase initialization and Firestore connection
-- `src/hooks/usePlayerData.js` - Main player data fetching hook
-- `src/utils/filtering/playerFilterUtils.js` - Player filtering logic
-- `docs/guides/DEVELOPER_GUIDE.md` - Detailed architectural documentation
-- `docs/architecture/` - Technical architecture documents
-- `docs/guides/` - User-facing guides and documentation
+- `src/shared/hooks/useSimplePlayerData.ts` (primary player list hook)
+- `src/shared/hooks/usePlayerData.ts` (diagnostics wrapper)
+- `src/shared/utils/filtering/playerFilterUtils.js`
+- `src/constants/collections.ts`
+- `src/data/firestorePaths.js`
+- `docs/guides/DEVELOPER_GUIDE.md`
 
-### Frequently Modified Areas
+## Firestore Rules of Engagement
 
-- **Player filtering**: `src/features/filters/` and `src/utils/filtering/`
-- **Player profile**: `src/features/profile/` for player detail views
-- **Data fetching**: `src/hooks/` for Firebase queries and data normalization
-- **Trade validation**: `src/utils/architect/tradeMachine/` (complex validation system)
+### Source Data (read-only)
 
-### Trade Validation Architecture
+- `players_v2`
+- `architect_basePlayers`
+- `architect_baseTeams`
+- `architect_baseEntitlements`
+- `architect_basePickRules`
 
-The trade validation system has been reorganized into a layered architecture:
+### User Content (read-write in app flows)
 
-- `engine/` - Main orchestration layer with `validateTrade()` function and debugging
-- `rules/` - Pure validation functions (salary matching, hard cap, etc.)
-- `utils/` - Utility functions for computations and input normalization
-- `constants/` - Shared constants and configuration
-- `cache/` - Performance caching for expensive validations
-- `validators/` - **DEPRECATED** compatibility layer for old imports
+- `architect_worlds`
+- `lists`
+- `tierLists`
+- `rosterProjects`
+- `freeAgents`
 
-**Important**: Always import from the new structure (`engine/`, `rules/`, `utils/`) rather than the deprecated `validators/` compatibility layer.
+Always import collection names from `src/constants/collections.ts` and avoid hardcoded collection strings.
 
-## Data Architecture
+## Trade/CBA Guidance
 
-### Firestore Collections
+For GM/CBA logic work:
 
-- `/players_v2` - Master player records with hierarchical structure (seasons, contracts, evaluations)
-- `/teams` - Team rosters and `contract_clean` used for GM/cap tools
+- Use reference materials in `cba/guides/` for reasoning and article citations.
+- Do not edit guide files unless explicitly requested.
+- Prefer current trade validation layers under `src/features/architect/utils/tradeMachine/` (`engine/`, `rules/`, `utils/`, `constants/`, `cache/`) and avoid deprecated compatibility imports when possible.
 
-### Key Data Patterns
+## Working Norms
 
-- Import paths use `@/` alias pointing to `src/` (configured in `jsconfig.json`)
-- Components are organized by feature; shared UI lives under `src/components/shared`
-- Player data is normalized using `normalizePlayerData` from `src/utils/roster/`
-- Filtering uses `filterPlayers` and `sortPlayers` from `src/utils/filtering/playerFilterUtils.js`
+- Use `@/` alias for imports from `src/`.
+- Prefer `.ts/.tsx` for new files; existing `.js/.jsx` remains in legacy areas.
+- Use named exports by default; default exports for top-level page views only.
+- Keep changes scoped; do not create new branches unless asked.
+- Keep docs in sync for significant architecture changes.
 
-### Documentation Structure
+## Quick Help References
 
-- **`docs/architecture/`** - Technical schemas, data source maps, project context
-- **`docs/guides/`** - Collection naming, data population, diagnostic guides
-- **`docs/api/`** - Auto-generated component hierarchies and API docs
-- **`docs/compliance/`** - Audit certificates and compliance matrices
-- **`archive/migrations/`** - Historical migration work and deprecated scripts
+- `AGENTS.md`
+- `docs/workspace-rules/COMMUNICATION_RULES.md`
+- `docs/workspace-rules/CREATING_PERMANENT_DOCS.md`
+- `docs/workspace-rules/DOCUMENTATION_UPDATE_RULES.md`
+- `docs/schema/CURRENT_FIRESTORE_SCHEMA.md`
+- `docs/cursor-prompts/cursor-commands-overview.md`
 
-## Common Tasks
-
-### Adding New Features
-
-1. Create components in appropriate `src/features/` subdirectory
-2. Add shared utilities to `src/utils/` with feature grouping
-3. Update filtering defaults in `src/utils/filtering/playerFilterDefaults.js` if needed
-4. Add tests in `tests/` directory following existing patterns
-
-### Debugging Issues
-
-1. Check imports/exports consistency first
-2. Run specific test files to isolate issues
-3. Use ESLint to catch syntax issues: `npm run lint -- path/to/file.jsx`
-4. Review Firebase console logs if data-related issues
-
-### Code Quality
-
-- Run linting before committing: `npm run lint` (expect ~1888 existing errors)
-- Follow existing patterns in `src/features/table/` for component structure
-- Keep components under 200 lines; split into subcomponents when larger
-- Use named exports for components; default exports only for top-level views
-
-## Technology Stack
-
-- **Frontend**: React 18.2.0 with Vite 4.4.0
-- **Styling**: Tailwind CSS with utility classes
-- **Backend**: Firebase Firestore (no authentication required)
-- **Testing**: Vitest with jsdom environment
-- **Linting**: ESLint with React and accessibility plugins
-- **Build**: Vite with React plugin and path aliases
-
-## CRITICAL Reminders
-
-- **NEVER CANCEL** any npm install command - takes ~41 seconds, set 120+ second timeout
-- **NEVER CANCEL** any test runs - set 60+ second timeouts
-- **NEVER CANCEL** any builds - takes ~8 seconds, set 60+ second timeout
-- **ALWAYS** test complete user workflows after making changes
-- **NEVER** modify Firestore data - this is a read-only application
-- **ALWAYS** use `@/` import alias for src paths
-- **ALWAYS** run `npm run build` before committing to ensure production compatibility
-
-## Getting Help
-
-When the instructions are incomplete or incorrect:
-
-1. Check `docs/guides/DEVELOPER_GUIDE.md` for detailed architectural information
-2. Examine existing test files to understand expected behavior
-3. Review Firebase queries in `src/hooks/useFirebaseQuery.js`
-4. Look at component patterns in `src/features/table/` for examples
-5. Check documentation in `docs/` directory for specific feature hierarchies
-
----
-
-## CBA Expert Reference Mode
-
-When handling **GM/CBA logic** (contracts, trades, cap rules, free agency, extensions):
-
-- **Knowledge Pack**: Use `/cba/guides/**` rule cards, articles, and exhibits. These are **educational reference only**, not runtime code.
-- **Purpose**: Always consult these files to understand rules, cite articles/sections, and explain decisions.
-- **Outputs**:
-  - Cite Article/Section IDs from the guides in comments or rationale.
-  - Explain “why/why not” based on the reference material.
-  - Suggest missing coverage if you see gaps in the guides.
-
-**Conversation Style**:
-
-- Start with a plain-English mini-plan (≤3 bullets).
-- Proceed step-by-step — don’t dump everything at once.
-- If “it depends,” ask up to 2 clarifying questions.
-- Include advisory notes if you see pitfalls or better alternatives.
-
-**Scope Discipline**:
-
-- Only touch files relevant to the current GM/CBA task.
-- Do not alter the `/cba/guides/` reference material unless specifically asked.
-- If unsure which rule card applies, ask me directly.
+````

@@ -17,6 +17,64 @@ This ledger tracks reviews and validation work for the Architect feature (GM Das
 
 ## Completed Reviews
 
+### ARCHITECT_SMOKE_E1: Emulator-first UI Smoke Gate (2026-03-04)
+
+**Goal:** Add final deterministic Architect render smoke gate (WORLD MODE surfaces) after canonical ship/rules gates.
+
+**Status:** ✅ COMPLETE
+
+**What was done:**
+
+- Added smoke suite: `src/tests/smoke/architect.uiSmoke.e1.test.tsx`
+- Added dedicated config: `vitest.smoke.config.js`
+- Added canonical smoke runner: `scripts/ci/run_architect_smoke_e1.mjs`
+- Added scripts:
+  - `npm run test:smoke:architect`
+  - `npm run smoke:architect`
+- Updated master docs/runbook:
+  - `docs/architect/ARCHITECT_SHIP_GATES_MASTER.md`
+  - `docs/architect/ARCHITECT_SMOKE_MASTER.md`
+
+**Command evidence:**
+
+- `npm run test:smoke:architect` -> PASS
+- `npm run smoke:architect` -> PASS
+
+**Return Package:** `return_packages/architect_fixes/ARCHITECT_SMOKE_E1_EXECUTION_RETURN_PACKAGE.md`
+
+### ARCHITECT_SHIP_GATES_E2: Canonical Ship Gate Command (2026-03-04)
+
+**Goal:** Finalize Architect ship gating with one canonical required command and ordered fail-fast execution including rules integration.
+
+**Status:** ✅ COMPLETE
+
+**What was done:**
+
+- Added deterministic gate runner: `scripts/ci/run_architect_ship_gates.mjs`
+- Added canonical command: `npm run gates:architect`
+- Enforced required order in one chain:
+  1. `npm run validate:project`
+  2. `npm run build`
+  3. `npm run typecheck`
+  4. `npm run test:trade -- --reporter=dot`
+  5. `npm run test:architect -- --reporter=dot`
+  6. `npm run test:rules`
+- Updated master ship doc to mark `npm run test:rules` as required and document single-command usage.
+
+**Command evidence (required order):**
+
+- `npm run validate:project` -> PASS
+- `npm run build` -> PASS
+- `npm run typecheck` -> PASS
+- `npm run test:trade -- --reporter=dot` -> PASS
+- `npm run test:architect -- --reporter=dot` -> PASS
+- `npm run test:rules` -> PASS
+- `npm run gates:architect` -> PASS
+
+**Return Package:** `return_packages/architect_fixes/ARCHITECT_SHIP_GATES_E2_EXECUTION_RETURN_PACKAGE.md`
+
+---
+
 ### E1: Review Harness Setup (2026-03-01)
 
 **Goal:** Make Architect runnable in cloud/CI environments without production credentials.
