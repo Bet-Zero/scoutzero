@@ -33,6 +33,7 @@
 The Architect is HoopZero's flagship GM Toolkit feature — a comprehensive NBA front office simulator encompassing trade construction, salary cap management, free agency, offseason transitions, draft asset tracking, and multi-year scenario planning. With **320+ source files**, **200+ test files**, and **12+ distinct subsystems**, a complete ship-readiness audit requires a systematic, multi-phase approach designed for AI agent execution.
 
 This blueprint defines an **8-phase audit architecture** that:
+
 - Moves from broad discovery to deep subsystem analysis to cross-cutting integration verification
 - Accounts for AI agent context window limitations via scoped, parallelizable audit units
 - Produces deterministic, verifiable findings with clear evidence chains
@@ -119,6 +120,7 @@ Each phase must define and follow three controls before work begins:
 3. **Stop Conditions** — Conditions that force a handoff to the next phase to prevent scope creep.
 
 **Global stop conditions:**
+
 - If all phase audit questions are answered with cited evidence, stop and publish artifact.
 - If remaining work is exploratory-only and not tied to ship-blocking criteria, defer to backlog.
 - If a phase exceeds planned session range by >50%, escalate with explicit de-scope recommendation.
@@ -126,15 +128,18 @@ Each phase must define and follow three controls before work begins:
 ### Evidence Sufficiency Standard
 
 A finding is considered complete only when it has:
+
 - At least 2 evidence references (code line + test or doc cross-reference), and
 - A confidence score from **0.00-1.00** with rationale.
 
 Confidence guide:
+
 - **0.90-1.00:** Direct code+test proof
 - **0.70-0.89:** Strong code proof with partial test/doc confirmation
 - **0.00-0.69:** Needs follow-up verification before blocking ship decision
 
 Low-confidence handling:
+
 - Track findings with confidence `<0.70` in a dedicated **Verification Queue** section in each phase artifact.
 - Low-confidence findings cannot independently block ship; they must either be upgraded to `>=0.70` with additional evidence or explicitly deferred with owner + due date.
 
@@ -350,6 +355,7 @@ Conduct independent deep audits of each of the 12 core subsystems, evaluating co
 ### Pilot Wave (Before Full Parallel Rollout)
 
 Run a calibration wave on three subsystems from the Phase 1 list first (selected for high complexity, high user impact, and heavy cross-subsystem coupling):
+
 1. Trade Machine
 2. Offseason Engine
 3. Persistence Layer
@@ -359,6 +365,7 @@ Use pilot outputs to calibrate severity thresholds, confidence scoring consisten
 ### Reuse-First Protocol (Mandatory)
 
 Before new subsystem analysis starts, classify existing artifacts:
+
 - **VALID** — still accurate and can be adopted directly
 - **STALE** — mostly accurate but needs targeted refresh
 - **SUPERSEDED** — replaced by newer source-of-truth
@@ -368,6 +375,7 @@ Only re-audit areas marked STALE/SUPERSEDED, or VALID areas with detected implem
 ### No-Reaudit Sampling Rules
 
 To prevent redundant effort:
+
 - Do not fully re-audit closed gate suites unless implementation drift is detected.
 - For stable modules with prior closure evidence, run sampling checks (key files + key tests) first.
 - Expand to full re-audit only if sampling finds contradictions.
@@ -440,6 +448,7 @@ Each subsystem audit follows the same structure:
 **File Count:** ~50 source files, ~60 test files
 
 **Key Files:**
+
 - `TradeEditor.jsx` — Main trade construction UI
 - `useTradeMachine.js` — Core trade state hook
 - `tradeValidator.js` — CBA validation engine
@@ -448,6 +457,7 @@ Each subsystem audit follows the same structure:
 - `validateSignAndTrade.js` — Sign-and-trade rules
 
 **Audit Focus Areas:**
+
 1. Multi-team trade state management (up to 5 teams)
 2. Salary matching band calculations
 3. Apron/hard cap enforcement
@@ -459,6 +469,7 @@ Each subsystem audit follows the same structure:
 9. Trade apply persistence
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/audits/TM_AUDIT_WORKBOOK.md`
 - `docs/architect/audits/TM_SEC_A1_SALARY_MATCHING.md`
 - `docs/architect/audits/TM_SEC_A2_HARD_CAPS_APRONS.md`
@@ -479,6 +490,7 @@ Each subsystem audit follows the same structure:
 **File Count:** ~15 source files, ~20 test files
 
 **Key Files:**
+
 - `CapSheet.jsx` — Main cap sheet display component
 - `CapSheetFull.jsx` — Full-page cap sheet view
 - `CapSummaryTiles.jsx` — Cap metric tiles
@@ -486,6 +498,7 @@ Each subsystem audit follows the same structure:
 - `computeTeamCapTotals.js` — SSOT for cap calculations
 
 **Audit Focus Areas:**
+
 1. Cap totals calculation (SSOT in `computeTeamCapTotals`)
 2. Exception display (MLE, BAE, Room, TPEs)
 3. Dead money tracking
@@ -495,6 +508,7 @@ Each subsystem audit follows the same structure:
 7. Apron threshold displays
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/CAP_SHEET_MASTER.md`
 - `return_packages/architect/TM_CAP_SHEET_*.md` (E1, E2, E3, P1, P4)
 
@@ -509,6 +523,7 @@ Each subsystem audit follows the same structure:
 **File Count:** ~20 source files, ~40 test files
 
 **Key Files:**
+
 - `entitlementResolver.ts` — Entitlement lookup and resolution
 - `entitlementIdentity.ts` — Entitlement identity key generation
 - `entitlementWriter.ts` — Persistence layer for entitlements
@@ -517,6 +532,7 @@ Each subsystem audit follows the same structure:
 - `computeEntitlementClaims.ts` — Claim computation engine
 
 **Audit Focus Areas:**
+
 1. Entitlement identity generation (deterministic IDs)
 2. Team exclusivity enforcement
 3. League-wide claim uniqueness
@@ -527,6 +543,7 @@ Each subsystem audit follows the same structure:
 8. Conveyance condition evaluation
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/ENTITLEMENTS_MASTER.md`
 - `return_packages/entitlements/*.md`
 
@@ -541,12 +558,14 @@ Each subsystem audit follows the same structure:
 **File Count:** ~10 source files, ~15 test files
 
 **Key Files:**
+
 - `FreeAgentPool/*.jsx` — Free agent pool UI
 - `OfferSheetList.jsx` — Offer sheet management
 - `freeAgentLogic.js` — FA signing logic
 - `faExceptionUtils.js` — FA exception handling
 
 **Audit Focus Areas:**
+
 1. Signing workflows (standard, veteran minimum, exceptions)
 2. Offer sheet initiation and matching
 3. Sign-and-trade integration
@@ -555,6 +574,7 @@ Each subsystem audit follows the same structure:
 6. Cap hold creation on signing
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/free_agency_MASTER.md`
 - `return_packages/architect/TM_FREE_AGENCY_*.md`
 - `return_packages/architect/TM_OFFER_SHEETS_*.md`
@@ -570,12 +590,14 @@ Each subsystem audit follows the same structure:
 **File Count:** ~15 source files, ~10 test files
 
 **Key Files:**
+
 - `OffseasonTab.jsx` — Offseason preview UI (DEV-only)
 - `resolveOffseasonTransition.ts` — OSTE engine (core computation)
 - `runOffseason.js` — Single-team offseason runner
 - `seasonManager.js` — World-wide season advance
 
 **Audit Focus Areas:**
+
 1. Option decision processing (player/team options)
 2. Contract expiration and cap hold generation
 3. Exception lifecycle reset
@@ -586,6 +608,7 @@ Each subsystem audit follows the same structure:
 8. Season advance persistence
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/OFFSEASON_MASTER.md`
 - `docs/architect/OFFSEASON_WORKFLOW_COMPLETION_AUDIT.md`
 
@@ -600,11 +623,13 @@ Each subsystem audit follows the same structure:
 **File Count:** ~10 source files, ~25 test files
 
 **Key Files:**
+
 - `TeamHistoryTab/*.jsx` — History display UI
 - `devTeamHistoryFixtures.ts` — Fixture data
 - `hooks/*.ts` — History data hooks
 
 **Audit Focus Areas:**
+
 1. Event emission on mutations (trades, signings, etc.)
 2. Event payload enrichment
 3. Timeline reconstruction from events
@@ -612,6 +637,7 @@ Each subsystem audit follows the same structure:
 5. World event querying
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/TEAM_HISTORY_MASTER.md`
 
 **Output:** `SUBSYSTEM_AUDIT_TEAM_HISTORY.md`
@@ -625,10 +651,12 @@ Each subsystem audit follows the same structure:
 **File Count:** ~10 source files, ~10 test files
 
 **Key Files:**
+
 - `ContractEditor/*.tsx` — Contract editing form
 - `ContractEditorModal/*.tsx` — Modal wrapper
 
 **Audit Focus Areas:**
+
 1. Contract modification workflows
 2. Extension handling
 3. Buyout calculations
@@ -637,6 +665,7 @@ Each subsystem audit follows the same structure:
 6. Salary-by-year editing
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/EDIT_CONTRACT_MASTER.md`
 - `return_packages/architect/TM_EDIT_CONTRACT_*.md`
 
@@ -651,12 +680,14 @@ Each subsystem audit follows the same structure:
 **File Count:** ~20 source files, ~5 test files
 
 **Key Files:**
+
 - `GMDashboard.jsx` — Main dashboard orchestrator
 - `sections/*.jsx` — Tab section components
 - `components/*.jsx` — Shared dashboard components
 - `hooks/*.js` — Dashboard state hooks
 
 **Audit Focus Areas:**
+
 1. Tab navigation and routing
 2. World selector behavior
 3. Team selector behavior
@@ -675,6 +706,7 @@ Each subsystem audit follows the same structure:
 **File Count:** ~25 source files, ~15 test files
 
 **Key Files:**
+
 - `EntitlementEditorModal.tsx` — Main editor modal
 - `PickRightWizardModal.tsx` — Guided wizard flow
 - `PickSelector.tsx` — Pick selection UI
@@ -682,6 +714,7 @@ Each subsystem audit follows the same structure:
 - Various tab components
 
 **Audit Focus Areas:**
+
 1. Basic entitlement creation
 2. Protection ladder authoring
 3. Swap right configuration
@@ -690,6 +723,7 @@ Each subsystem audit follows the same structure:
 6. Save and validation flows
 
 **Existing Audit Work to Review:**
+
 - `docs/architect/TM7_PICK_EDITOR_UX_COMPLETION_REPORT.md`
 
 **Output:** `SUBSYSTEM_AUDIT_ENTITLEMENT_EDITOR.md`
@@ -703,12 +737,14 @@ Each subsystem audit follows the same structure:
 **File Count:** ~30 source files, ~40 test files
 
 **Key Files:**
+
 - `tradeValidator.js` — Orchestrator
 - `validate*.js` — Individual rule validators
 - `validatorFactory.js` — Validator construction
 - `postStateCapValidator.ts` — Post-mutation validation
 
 **Audit Focus Areas:**
+
 1. Validator orchestration and sequencing
 2. Each individual rule implementation
 3. Failure message generation
@@ -726,11 +762,13 @@ Each subsystem audit follows the same structure:
 **File Count:** ~10 source files, ~20 test files
 
 **Key Files:**
+
 - `persistenceContracts/contracts.js` — Persistence contracts
 - `mutationPipeline.js` — Mutation execution
 - `worldManager.js` — World state management
 
 **Audit Focus Areas:**
+
 1. Write path contracts
 2. Normalization before persist
 3. Optimistic update patterns
@@ -748,12 +786,14 @@ Each subsystem audit follows the same structure:
 **File Count:** ~40 source files, ~20 test files
 
 **Key Files:**
+
 - `salaryUtils.js`, `capUtils.js`, `contractUtils.js`
 - `cbaConstants.js` — CBA magic numbers
 - `seasonHelpers.ts`, `seasonUtils.js`
 - `computeTeamCapTotals.js` — Cap SSOT
 
 **Audit Focus Areas:**
+
 1. Salary calculation correctness
 2. CBA constant accuracy
 3. Season/year utilities
@@ -804,11 +844,13 @@ Verify that subsystems correctly integrate with each other — data contracts ar
 #### 2.1 Trade → Cap Sheet
 
 **Audit Questions:**
+
 - Does trade apply update cap totals correctly?
 - Does cap impact preview match post-trade cap sheet?
 - Do apron triggers from trade correctly update hard cap status?
 
 **Verification Method:**
+
 - Code review of data flow from `executeTrade` to `computeTeamCapTotals`
 - Test coverage analysis for trade-cap integration
 - Compare UI displays before/after trade apply
@@ -818,12 +860,14 @@ Verify that subsystems correctly integrate with each other — data contracts ar
 #### 2.2 Trade → Entitlements
 
 **Audit Questions:**
+
 - Do entitlement transfers preserve identity?
 - Is team exclusivity maintained post-trade?
 - Is league claim uniqueness enforced?
 - Does Stepien evaluation use correct baseline?
 
 **Verification Method:**
+
 - Code review of entitlement transfer in trade apply
 - Test coverage for entitlement routing validators
 - Review exclusivity gate tests
@@ -833,11 +877,13 @@ Verify that subsystems correctly integrate with each other — data contracts ar
 #### 2.3 Trade → History
 
 **Audit Questions:**
+
 - Does trade apply emit correct `CapAuditEventV1` payload?
 - Is event payload enriched with all trade details?
 - Can history reconstruct trade timeline?
 
 **Verification Method:**
+
 - Code review of event emission in trade apply
 - Test coverage for event payload structure
 - Review history display tests
@@ -847,11 +893,13 @@ Verify that subsystems correctly integrate with each other — data contracts ar
 #### 2.4 Free Agency → Cap Sheet
 
 **Audit Questions:**
+
 - Does signing update cap totals correctly?
 - Are exceptions used tracked properly?
 - Do cap holds generate correctly?
 
 **Verification Method:**
+
 - Code review of signing mutation
 - Test coverage for FA-cap integration
 
@@ -860,11 +908,13 @@ Verify that subsystems correctly integrate with each other — data contracts ar
 #### 2.5 Free Agency → Trade (Sign-and-Trade)
 
 **Audit Questions:**
+
 - Does S&T flow correctly sign then trade?
 - Is hard cap trigger applied correctly?
 - Does validation enforce S&T rules?
 
 **Verification Method:**
+
 - Code review of S&T mutation pipeline
 - Test coverage for S&T validator
 - Review existing S&T audit findings
@@ -874,12 +924,14 @@ Verify that subsystems correctly integrate with each other — data contracts ar
 #### 2.6 Offseason → All Subsystems
 
 **Audit Questions:**
+
 - Does season advance correctly update all subsystems?
 - Are cap holds, exceptions, dead money all processed?
 - Are entitlement DARE resolutions applied?
 - Is history emitted for all changes?
 
 **Verification Method:**
+
 - Code review of `advanceSeasonInWorld`
 - Test coverage for OSTE engine
 - Review post-state validation tests
@@ -913,6 +965,7 @@ Verify every user-facing surface is complete — all interactions work, all feed
 ### Audit Approach
 
 This phase combines:
+
 1. **Code Review** — AI agent reviews component code for completeness
 2. **Manual QA Test Plan** — Human executes test scenarios from `docs/architect/audits/trade-machine-audit-plan.md` and similar
 
@@ -989,11 +1042,13 @@ Verify Firestore read/write contracts are honored, schema compliance is enforced
 #### 4.1 Schema Compliance
 
 **Audit Questions:**
+
 - Do all Firestore writes conform to `src/schemas/architect.ts`?
 - Are there any untyped writes that could introduce schema violations?
 - Are schema validations run before persist?
 
 **Verification Method:**
+
 - Review all `writeBatch` and `setDoc` calls in architect code
 - Verify `validatePersistableShape` is called on write paths
 - Review schema-related test coverage
@@ -1003,11 +1058,13 @@ Verify Firestore read/write contracts are honored, schema compliance is enforced
 #### 4.2 Write Path Contracts
 
 **Audit Questions:**
+
 - Are all required fields populated on writes?
 - Are deprecated fields properly migrated?
 - Is normalization applied consistently?
 
 **Verification Method:**
+
 - Review `persistenceContracts/contracts.js`
 - Review `normalizeTeamTpe.js` and similar normalizers
 - Check guardrail tests for persistence contracts
@@ -1017,11 +1074,13 @@ Verify Firestore read/write contracts are honored, schema compliance is enforced
 #### 4.3 Reload Parity
 
 **Audit Questions:**
+
 - Does in-session state match reloaded state?
 - Are there any fields written that aren't read back?
 - Are there any computed values cached that should be re-derived?
 
 **Verification Method:**
+
 - Review reload parity tests (phase E2E tests)
 - Check for any optimistic state that doesn't persist
 - Verify cap totals recompute on load
@@ -1031,11 +1090,13 @@ Verify Firestore read/write contracts are honored, schema compliance is enforced
 #### 4.4 Transaction Atomicity
 
 **Audit Questions:**
+
 - Are multi-write operations atomic?
 - Can partial failure leave state inconsistent?
 - Are compensating actions implemented for failures?
 
 **Verification Method:**
+
 - Review `writeBatch` usage patterns
 - Check for try/catch with rollback logic
 - Review fail-closed guardrail tests
@@ -1077,6 +1138,7 @@ Verify every NBA CBA rule implemented in Architect matches the 2023 CBA specific
 - Second Apron: 100% + $0 (dollar-for-dollar)
 
 **Verification Method:**
+
 - Review `salaryMatchingRules.js` band constants
 - Compare to CBA Article VII Section 6(f)
 - Run test cases for boundary conditions
@@ -1089,6 +1151,7 @@ Verify every NBA CBA rule implemented in Architect matches the 2023 CBA specific
 - Second Apron triggers: First apron + cash in trades, prior-year TPE ban, aggregation ban
 
 **Verification Method:**
+
 - Review `hardCapUtils.js` trigger definitions
 - Review `validateSecondApronRules.js`
 - Compare to CBA Article VII Section 6
@@ -1101,6 +1164,7 @@ Verify every NBA CBA rule implemented in Architect matches the 2023 CBA specific
 - Must account for picks already traded in base state
 
 **Verification Method:**
+
 - Review `validateStepien.js` implementation
 - Verify baseline + outgoing delta evaluation
 - Test consecutive year detection
@@ -1115,6 +1179,7 @@ Verify every NBA CBA rule implemented in Architect matches the 2023 CBA specific
 - Player must be signing new contract (not under contract)
 
 **Verification Method:**
+
 - Review `validateSignAndTrade.js`
 - Verify hard cap application in trade apply
 - Test S&T constraint enforcement
@@ -1129,6 +1194,7 @@ Verify every NBA CBA rule implemented in Architect matches the 2023 CBA specific
 - Minimum 13 standard players for offseason transactions
 
 **Verification Method:**
+
 - Review `validateRoster.js` and `rosterValidation.js`
 - Verify grace period handling during offseason
 - Test boundary conditions
@@ -1142,6 +1208,7 @@ Verify every NBA CBA rule implemented in Architect matches the 2023 CBA specific
 - Bird rights veto
 
 **Verification Method:**
+
 - Review `enforceConsent.js` and `validateConsent.js`
 - Verify consent conditions are checked
 - Review consent-related tests
@@ -1156,6 +1223,7 @@ Verify every NBA CBA rule implemented in Architect matches the 2023 CBA specific
 - TPE creation and expiration
 
 **Verification Method:**
+
 - Review exception validators
 - Review TPE lifecycle management
 - Compare to CBA exception rules
@@ -1280,6 +1348,7 @@ Verify documentation matches implementation, identify stale docs, and ensure ope
 #### 7.1 Master Doc Accuracy
 
 For each master doc:
+
 - [ ] Does the doc describe current implementation (not aspirational)?
 - [ ] Are code references (file paths, line numbers) still valid?
 - [ ] Are feature flags and conditions correctly documented?
@@ -1290,6 +1359,7 @@ For each master doc:
 #### 7.2 Return Package Currency
 
 For each return package:
+
 - [ ] Is the work described still merged and active?
 - [ ] Are the findings still relevant or superseded?
 - [ ] Are the follow-up items tracked elsewhere?
@@ -1349,12 +1419,14 @@ Collect all findings from phase artifacts:
 #### 8.2 Blocking Issue Identification
 
 **BLOCKING (must fix before ship):**
+
 - Any HIGH severity finding
 - Any data integrity issue that could corrupt state
 - Any CBA rule implementation that is materially incorrect
 - Any integration failure that causes data loss
 
 **NON-BLOCKING (can ship with acknowledgment):**
+
 - MED severity findings with workarounds
 - LOW severity findings
 - Documentation gaps
