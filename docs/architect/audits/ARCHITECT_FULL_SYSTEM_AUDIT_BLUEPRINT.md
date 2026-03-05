@@ -6,6 +6,8 @@
 
 **Primary outcome:** A deterministic, evidence-backed verdict for every Architect surface: **Done / Not Done / Done with Conditions**.
 
+**Total estimated effort:** 30–50 agent sessions across all stages.
+
 ---
 
 ## 1) Audit Principles
@@ -19,9 +21,9 @@
 
 ---
 
-## 2) What “Complete and Ready” Means
+## 2) What "Complete and Ready" Means
 
-Architect is only “complete and ready” if all are true:
+Architect is only "complete and ready" if all are true:
 
 - **Functional completeness:** intended user journeys work end-to-end.
 - **Rules correctness:** CBA/business rules behave correctly across happy path + edge cases.
@@ -68,9 +70,11 @@ Architect is only “complete and ready” if all are true:
 
 Use multiple focused AI agents with strict artifacts between stages.
 
-## Stage A — Audit Design & Traceability Seed (Meta Audit)
+### Stage A — Audit Design & Traceability Seed (Meta Audit)
 
 **Goal:** Build the map before judging implementation.
+
+**Estimated effort:** 4–8 agent sessions
 
 **Agent jobs:**
 
@@ -84,11 +88,20 @@ Use multiple focused AI agents with strict artifacts between stages.
 - `A2_REQUIREMENT_MATRIX.md`
 - `A3_EVIDENCE_INDEX.md`
 
-**Exit gate:** 100% Architect domains mapped; no “unknown ownership” files.
+**Exit gate:** 100% Architect domains mapped; no "unknown ownership" files.
 
-## Stage B — Static Correctness Audit (Code + Contracts)
+### Stage B — Static Correctness Audit (Code + Contracts)
 
 **Goal:** Verify intended logic and boundaries at source level.
+
+**Estimated effort:** 2–4 agent sessions per domain (12–24 total for 6 core domains)
+
+**Risk prioritization heuristic:** Audit domains in this order based on risk factors:
+
+1. **Most recent changes** — files modified in the last 30 days (check `git log --since="30 days ago"`)
+2. **Highest cyclomatic complexity** — files with deeply nested conditionals/state machines
+3. **Known historical bugs** — areas with findings in `return_packages/**` audit logs
+4. **Cross-domain dependencies** — code that multiple other domains call
 
 **Agent jobs by domain:**
 
@@ -106,9 +119,11 @@ Use multiple focused AI agents with strict artifacts between stages.
 
 **Exit gate:** Every finding has direct code evidence; no untriaged critical ambiguity.
 
-## Stage C — Dynamic Behavior Audit (Test + Runtime Proof)
+### Stage C — Dynamic Behavior Audit (Test + Runtime Proof)
 
 **Goal:** Prove observed behavior matches claims.
+
+**Estimated effort:** 4–6 agent sessions
 
 **Validation tiers (run smallest-first):**
 
@@ -133,9 +148,18 @@ Use multiple focused AI agents with strict artifacts between stages.
 
 **Exit gate:** No critical requirement without proof.
 
-## Stage D — UX/UI Truthfulness & Workflow Audit
+### Stage D — UX/UI Truthfulness & Workflow Audit
 
 **Goal:** Ensure UX reflects backend truth and intended product behavior.
+
+**Estimated effort:** 3–5 agent sessions
+
+**Environment prerequisites:**
+
+- **Firebase Emulator** must be running on port 8082 (CI sandbox has no Firebase credentials)
+- Start with: `firebase emulators:start --only firestore`
+- Alternatively: local `.env` with valid `VITE_FIREBASE_*` credentials
+- Dev server: `npm run dev` (auto-connects to emulator when `VITE_USE_EMULATOR=true`)
 
 **Agent jobs:**
 
@@ -152,9 +176,11 @@ Use multiple focused AI agents with strict artifacts between stages.
 
 **Exit gate:** No high-severity UI truth mismatch.
 
-## Stage E — Data, Security, and Boundary Audit
+### Stage E — Data, Security, and Boundary Audit
 
 **Goal:** Certify safe data behavior.
+
+**Estimated effort:** 2–4 agent sessions
 
 **Agent jobs:**
 
@@ -176,9 +202,21 @@ Use multiple focused AI agents with strict artifacts between stages.
 
 **Exit gate:** Zero unresolved Critical security or boundary violations.
 
-## Stage F — Consistency Reconciliation Audit
+### Stage F — Consistency Reconciliation Audit
 
 **Goal:** Resolve contradictions across code, tests, docs, and UI.
+
+**Estimated effort:** 2–3 agent sessions
+
+**Canonical truth hierarchy (for resolving contradictions):**
+
+1. **Running code behavior** — what the code actually does at runtime
+2. **Passing tests** — asserted behavior with evidence
+3. **MASTER docs** — `docs/architect/*_MASTER.md` files
+4. **Return packages** — `docs/architect/return_packages/**` audit findings
+5. **Inline code comments** — lowest authority (may be stale)
+
+When two sources disagree, the higher-ranked source wins. Document the resolution and update the lower-ranked source.
 
 **Agent jobs:**
 
@@ -190,9 +228,11 @@ Use multiple focused AI agents with strict artifacts between stages.
 
 **Exit gate:** No unresolved High+ contradictions.
 
-## Stage G — Confidence Scoring & Ship Verdict
+### Stage G — Confidence Scoring & Ship Verdict
 
 **Goal:** Produce final confidence-grade decision.
+
+**Estimated effort:** 1–2 agent sessions
 
 **Scoring model (weighted):**
 
@@ -214,6 +254,22 @@ Use multiple focused AI agents with strict artifacts between stages.
 - `G1_FINAL_SCORECARD.md`
 - `G2_BLOCKER_BACKLOG.md`
 - `G3_EXEC_SUMMARY_FOR_NON_TECHNICAL_STAKEHOLDERS.md`
+
+**CI integration:** Stage G should also produce `G4_AUDIT_SUMMARY.json` with machine-readable fields:
+
+```json
+{
+  "verdict": "Ready|Conditionally Ready|Not Ready",
+  "score": 0-100,
+  "criticalCount": 0,
+  "highCount": 0,
+  "blockers": ["FINDING-ID-1", "FINDING-ID-2"],
+  "timestamp": "ISO-8601",
+  "auditVersion": "1.0"
+}
+```
+
+This enables CI pipelines to consume audit results for regression gating.
 
 ---
 
@@ -267,6 +323,39 @@ For every sub-audit agent:
 
 Then run a separate **reviewer agent** to challenge that output and detect weak evidence.
 
+### Reviewer Agent Protocol
+
+**Purpose:** Validate sub-audit quality and catch weak/missing evidence.
+
+**Reviewer prompt template:**
+
+```
+You are a skeptical code auditor reviewing another agent's findings.
+
+Input: [SUB-AUDIT DOCUMENT]
+
+For each finding, verify:
+1. Does the evidence actually exist at the cited path/lines?
+2. Does the evidence support the stated conclusion?
+3. Are the repro steps sufficient to validate the claim?
+4. Is the severity appropriate given the evidence?
+
+Output format:
+- CONFIRMED: [Finding ID] — evidence verified
+- WEAK: [Finding ID] — [specific gap in evidence]
+- REJECTED: [Finding ID] — [why evidence does not support conclusion]
+- MISSING: [Describe risk area not covered by findings]
+
+Do not accept vague evidence. Require file:line citations.
+```
+
+**Disagreement resolution:**
+
+1. If reviewer marks finding as WEAK, sub-auditor must strengthen evidence or downgrade severity.
+2. If reviewer marks finding as REJECTED, sub-auditor must either provide stronger evidence or remove finding.
+3. If reviewer identifies MISSING coverage, sub-auditor must either add finding or document explicit acceptance of risk.
+4. Unresolved disagreements escalate to human reviewer with both positions documented.
+
 ---
 
 ## 8) Recommended Execution Order (Most efficient)
@@ -286,7 +375,19 @@ This order minimizes rework and prevents deep UX checks on unstable logic.
 
 ---
 
-## 9) Definition of Done for This Blueprint
+## 9) Risk Areas Requiring Extra Scrutiny
+
+Based on system complexity and historical issues, prioritize deep audits of:
+
+1. **TPE lifecycle** — Complex state machine (creation, usage, expiry, history logging) across 83+ phases
+2. **Entitlement routing** — 3+ team trades with DARE resolver, swap graphs, protection ladders
+3. **Cap totals SSOT drift** — 20 surfaces deriving from `computeTeamCapTotals` must stay coherent
+4. **Persistence contract boundaries** — Allowlist guardrails in mutation phases 61-62
+5. **Hard cap salary matching** — `effectiveAllowableIncoming = min(allowableIncoming, hardCapIncomingCeiling)` logic
+
+---
+
+## 10) Definition of Done for This Blueprint
 
 This blueprint is successful when it enables a future team to run an exhaustive Architect audit that is:
 
