@@ -110,6 +110,43 @@ This blueprint defines an **8-phase audit architecture** that:
 | Can't access Firebase production data | Audit schema contracts and mock data coverage; defer live data audit to manual step |
 | Time cost per session | Parallelize independent subsystem audits; prioritize by ship-criticality |
 
+### Phase Execution Contracts (Entry, Exit, Stop Conditions)
+
+Each phase must define and follow three controls before work begins:
+
+1. **Entry Contract** — Required input artifacts from prior phases and exact scope boundaries.
+2. **Exit Contract** — Minimum required outputs and evidence before phase completion.
+3. **Stop Conditions** — Conditions that force a handoff to the next phase to prevent scope creep.
+
+**Global stop conditions:**
+- If all phase audit questions are answered with cited evidence, stop and publish artifact.
+- If remaining work is exploratory-only and not tied to ship-blocking criteria, defer to backlog.
+- If a phase exceeds planned session range by >50%, escalate with explicit de-scope recommendation.
+
+### Evidence Sufficiency Standard
+
+A finding is considered complete only when it has:
+- At least 2 evidence references (code line + test or doc cross-reference), and
+- A confidence score from **0.00-1.00** with rationale.
+
+Confidence guide:
+- **0.90-1.00:** Direct code+test proof
+- **0.70-0.89:** Strong code proof with partial test/doc confirmation
+- **0.00-0.69:** Needs follow-up verification before blocking ship decision
+
+Low-confidence handling:
+- Track findings with confidence `<0.70` in a dedicated **Verification Queue** section in each phase artifact.
+- Low-confidence findings cannot independently block ship; they must either be upgraded to `>=0.70` with additional evidence or explicitly deferred with owner + due date.
+
+Verification Queue template (append after Findings Summary in each phase artifact):
+
+```markdown
+### Verification Queue (Confidence < 0.70)
+| Finding ID | Current Confidence | Missing Evidence | Owner | Target Date | Status |
+|------------|--------------------|------------------|-------|-------------|--------|
+| ... | 0.62 | Missing: integration test and runtime repro | ... | YYYY-MM-DD | OPEN |
+```
+
 ### Audit Unit Sizing Guidelines
 
 For optimal AI agent execution:
@@ -272,7 +309,11 @@ Run and record baseline health checks:
 ```bash
 npm run typecheck  # Must pass
 npm run build      # Must pass
-npm run test:full  # Record pass/fail count, identify pre-existing failures
+npm run test:diff -- --reporter=dot  # Default baseline validation for changed files in the active audit branch
+# or run the most relevant scoped suite with --reporter=dot:
+# npm run test:architect -- --reporter=dot
+# npm run test:trade -- --reporter=dot
+# Full suite only with explicit "RUN FULL SUITE" authorization.
 ```
 
 **Output:** `DISCOVERY_BASELINE_GATES.md` with pass/fail status and any pre-existing failures noted
@@ -305,6 +346,31 @@ Conduct independent deep audits of each of the 12 core subsystems, evaluating co
 
 1-3 AI agent sessions per subsystem (12-36 sessions total)  
 **Recommendation:** Run subsystem audits in parallel across multiple agent instances
+
+### Pilot Wave (Before Full Parallel Rollout)
+
+Run a calibration wave on three subsystems from the Phase 1 list first (selected for high complexity, high user impact, and heavy cross-subsystem coupling):
+1. Trade Machine
+2. Offseason Engine
+3. Persistence Layer
+
+Use pilot outputs to calibrate severity thresholds, confidence scoring consistency, and artifact quality before scaling to all 12 subsystems.
+
+### Reuse-First Protocol (Mandatory)
+
+Before new subsystem analysis starts, classify existing artifacts:
+- **VALID** — still accurate and can be adopted directly
+- **STALE** — mostly accurate but needs targeted refresh
+- **SUPERSEDED** — replaced by newer source-of-truth
+
+Only re-audit areas marked STALE/SUPERSEDED, or VALID areas with detected implementation drift.
+
+### No-Reaudit Sampling Rules
+
+To prevent redundant effort:
+- Do not fully re-audit closed gate suites unless implementation drift is detected.
+- For stable modules with prior closure evidence, run sampling checks (key files + key tests) first.
+- Expand to full re-audit only if sampling finds contradictions.
 
 ### Subsystem Audit Template
 
@@ -356,9 +422,9 @@ Each subsystem audit follows the same structure:
 - [ ] Example usage is accurate
 
 ### 7. Findings Summary
-| Finding ID | Severity | Description | Status |
-|------------|----------|-------------|--------|
-| [SUBSYS]-001 | HIGH/MED/LOW | ... | OPEN/FIXED |
+| Finding ID | Severity | Confidence | Evidence Count | Description | Status |
+|------------|----------|------------|----------------|-------------|--------|
+| [SUBSYS]-001 | HIGH/MED/LOW | 0.95 | 3 | ... | OPEN/FIXED |
 
 ### 8. Ship-Readiness Determination
 - [ ] READY: No HIGH findings, all MED findings acknowledged
@@ -1125,11 +1191,13 @@ Identify untested code paths, missing edge cases, and test quality issues across
 #### 6.1 Coverage Metrics Collection
 
 ```bash
-# Generate coverage report (if configured)
-npm run test:full -- --coverage
-
-# Alternative: Manual coverage estimation via code review
-# For each source file, identify which functions/branches are tested
+# Preferred: run diff-based and scoped suites first (repo policy)
+npm run test:diff -- --reporter=dot
+# Then one or more scoped suites relevant to discovered gaps:
+# npm run test:architect -- --reporter=dot
+# npm run test:trade -- --reporter=dot
+# npm run test:roster -- --reporter=dot
+# Full-suite coverage run is optional and requires explicit "RUN FULL SUITE" authorization.
 ```
 
 ---
@@ -1268,12 +1336,12 @@ Aggregate all findings from Phases 0-7 and produce a definitive ship-readiness v
 Collect all findings from phase artifacts:
 
 ```markdown
-| Phase | Finding ID | Severity | Subsystem | Description | Status |
-|-------|------------|----------|-----------|-------------|--------|
-| 1 | TM-001 | HIGH | Trade Machine | ... | OPEN |
-| 1 | TM-002 | MED | Trade Machine | ... | OPEN |
-| 2 | INT-001 | HIGH | Integration | ... | OPEN |
-| ... | ... | ... | ... | ... | ... |
+| Phase | Finding ID | Severity | Confidence | Evidence Count | Subsystem | Description | Status |
+|-------|------------|----------|------------|----------------|-----------|-------------|--------|
+| 1 | TM-001 | HIGH | 0.95 | 3 | Trade Machine | ... | OPEN |
+| 1 | TM-002 | MED | 0.81 | 2 | Trade Machine | ... | OPEN |
+| 2 | INT-001 | HIGH | 0.92 | 4 | Integration | ... | OPEN |
+| ... | ... | ... | ... | ... | ... | ... | ... |
 ```
 
 ---
@@ -1302,9 +1370,16 @@ Collect all findings from phase artifacts:
 ### Verdict: [READY / NOT READY]
 
 ### Blocking Issues (must resolve)
-| ID | Description | Subsystem | Remediation |
-|----|-------------|-----------|-------------|
-| ... | ... | ... | ... |
+| ID | Description | Subsystem | Owner Module | Fix Class | Est. Effort | Verification Command | Remediation |
+|----|-------------|-----------|--------------|-----------|-------------|----------------------|-------------|
+| ... | ... | ... | ... | code or test or doc | S/M/L | `npm run test:architect -- --reporter=dot` | ... |
+
+Fix Class legend:
+- `code` — implementation or logic change required
+- `test` — missing or incorrect test coverage required
+- `doc` — documentation or runbook correction required
+
+If a remediation spans multiple classes, list all applicable classes in one cell using + as the delimiter (for example: code+test or code+test+doc), with one verification command that proves the full fix.
 
 ### Non-Blocking Issues (acknowledged, defer to post-ship)
 | ID | Description | Subsystem | Priority |
@@ -1330,6 +1405,7 @@ Collect all findings from phase artifacts:
 - [ ] All findings aggregated from all phases
 - [ ] Blocking vs. non-blocking classification complete
 - [ ] Ship-readiness verdict issued with evidence
+- [ ] Every blocking item has owner module, fix class, effort estimate, and verification command
 - [ ] Remediation plan for any blocking issues provided
 
 ### Phase 8 Artifacts
