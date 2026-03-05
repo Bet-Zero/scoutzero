@@ -288,7 +288,6 @@ Quick reference for all components in the ScoutZero project.
 - RankingSession.jsx
 - RankingSetup.jsx
 - hooks/useRankerSession.js
-- tournamentRanker.js
 - utils/rankerLocalDraft.js
 - utils/rankingEngine.js
 - utils/saveAsListBridge.js
@@ -362,4 +361,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-02T13:49:08.609Z*
+*Generated on: 2026-03-04T12:12:17.689Z*
