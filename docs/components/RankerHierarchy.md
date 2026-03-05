@@ -20,5 +20,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-04T12:12:17.678Z*
+*Generated on: 2026-03-04T12:12:02.898Z*
 *Auto-updated by: npm run docs*
