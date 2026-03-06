@@ -12,9 +12,11 @@ import GmDashboardView from '@/pages/GmDashboardView';
 import PlayerRankerPage from '@/pages/PlayerRankerPage';
 import SiteLayout from '@/core/layout/SiteLayout';
 import NotFound from '@/pages/NotFound';
+import ErrorBoundary from '@/shared/components/ErrorBoundary';
 
 const App = () => {
   return (
+    <ErrorBoundary>
     <Routes>
       <Route element={<SiteLayout />}>
         <Route path="/" element={<Navigate to="/players" replace />} />
@@ -36,6 +38,7 @@ const App = () => {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </ErrorBoundary>
   );
 };
 
