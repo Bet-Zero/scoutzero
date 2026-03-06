@@ -24,6 +24,7 @@ import {
   baseTeamsCol,
   basePlayerRef,
 } from '@/data/firestorePaths';
+import { FREE_AGENTS_COLLECTION } from '@/constants/collections';
 import {
   TeamListFull,
   TeamSlugToCode,
@@ -35,7 +36,9 @@ import {
 // In the new model, cap holds are managed in the `capHolds` array in state.
 // We no longer need to calculate them on every save from player attributes.
 // Logic for creating them happens on "Decline Option" or similar events.
-export const prepareCapSheet = (capSheet /* , capProjections , year = 2025 */) => {
+export const prepareCapSheet = (
+  capSheet /* , capProjections , year = 2025 */
+) => {
   // Just pass through, or maybe sort the capHolds if needed?
   return {
     ...capSheet,
@@ -170,7 +173,8 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
     draftPicks: baseDoc.draftPicks || [],
     // Draft pick ledger views (from pipeline - see PIPELINE_DRAFT_PICKS_LEDGER__EXECUTION__2026-01-08.md)
     // draftPicksInventory: Picks the team currently owns
-    draftPicksInventory: baseDoc.draftPicksInventory || baseDoc.draftPicks || [],
+    draftPicksInventory:
+      baseDoc.draftPicksInventory || baseDoc.draftPicks || [],
     // draftPicksObligations: Picks the team owes / has traded away (used for Stepien validation)
     draftPicksObligations: baseDoc.draftPicksObligations || [],
     // draftPicksContested: Swaps and conditional picks involving the team
@@ -245,7 +249,7 @@ export const saveFreeAgents = async (agents) => {
   try {
     const batch = writeBatch(db);
     agents.forEach((agent) => {
-      const agentRef = doc(db, 'freeAgents', agent.id || agent.name);
+      const agentRef = doc(db, FREE_AGENTS_COLLECTION, agent.id || agent.name);
       batch.set(agentRef, agent);
     });
     await batch.commit();
@@ -259,7 +263,7 @@ export const saveFreeAgents = async (agents) => {
 
 export const loadFreeAgents = async () => {
   try {
-    const snap = await getDocs(collection(db, 'freeAgents'));
+    const snap = await getDocs(collection(db, FREE_AGENTS_COLLECTION));
     const agents = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     return agents;
   } catch (error) {

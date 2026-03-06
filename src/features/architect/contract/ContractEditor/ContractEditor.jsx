@@ -8,8 +8,6 @@ import {
 } from '@/features/architect/utils/contractUtils';
 
 const ContractEditor = ({ player, capProjections, onSign }) => {
-  console.log('ContractEditor loaded for player:', player);
-
   const [type, setType] = useState('Custom');
   const [years, setYears] = useState(4);
   const [baseSalary, setBaseSalary] = useState(10000000);

@@ -1,0 +1,110 @@
+{
+  "audit_id": "ARCHITECT_AUDIT_V3_FULL_RUN_2026-03-05",
+  "date": "2026-03-05",
+  "blueprint": "docs/architect/audits/ARCHITECT_FULL_SYSTEM_AUDIT_BLUEPRINT.md",
+  "master_doc": "docs/architect/ARCHITECT_AUDIT_V3_MASTER.md",
+  "verdict": "Not Ready",
+  "weighted_score": 78.45,
+  "weights": {
+    "functional_flows": 20,
+    "rules_correctness": 25,
+    "persistence_data_integrity": 20,
+    "ux_truthfulness": 15,
+    "security_boundaries": 15,
+    "operational_readiness": 5
+  },
+  "category_scores": {
+    "functional_flows": 74,
+    "rules_correctness": 84,
+    "persistence_data_integrity": 82,
+    "ux_truthfulness": 65,
+    "security_boundaries": 90,
+    "operational_readiness": 60
+  },
+  "severity_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 1
+  },
+  "findings": [
+    {
+      "id": "FIND-B5-001",
+      "severity": "High",
+      "ship_blocking": true,
+      "confidence": 96,
+      "status": "OPEN"
+    },
+    {
+      "id": "FIND-B4-001",
+      "severity": "Medium",
+      "ship_blocking": false,
+      "confidence": 86,
+      "status": "OPEN"
+    },
+    {
+      "id": "FIND-B8-001",
+      "severity": "Low",
+      "ship_blocking": false,
+      "confidence": 93,
+      "status": "OPEN"
+    }
+  ],
+  "verification_queue": {
+    "total": 3,
+    "queued_ship_blocking": 1,
+    "items": [
+      {
+        "id": "VQ-B4-001",
+        "owner": "Agent",
+        "status": "QUEUED"
+      },
+      {
+        "id": "VQ-D-001",
+        "owner": "User",
+        "status": "QUEUED"
+      },
+      {
+        "id": "VQ-E2-001",
+        "owner": "Agent",
+        "status": "QUEUED"
+      }
+    ]
+  },
+  "ship_blockers": [
+    "FIND-B5-001",
+    "VQ-D-001"
+  ],
+  "commands": [
+    {
+      "command": "npm run typecheck",
+      "runtime_sec": 41,
+      "exit": 0,
+      "log": "return_packages/architect/audit/C_stageC_typecheck.log"
+    },
+    {
+      "command": "npm run build",
+      "runtime_sec": 58,
+      "exit": 0,
+      "log": "return_packages/architect/audit/C_stageC_build.log"
+    },
+    {
+      "command": "npm run test:diff -- --reporter=dot",
+      "runtime_sec": 29,
+      "exit": 0,
+      "log": "return_packages/architect/audit/C_stageC_test_diff.log"
+    },
+    {
+      "command": "npm run test:architect -- --reporter=dot",
+      "runtime_sec": 71,
+      "exit": 1,
+      "log": "return_packages/architect/audit/C_stageC_test_architect.log"
+    },
+    {
+      "command": "npm run test:trade -- --reporter=dot",
+      "runtime_sec": 23,
+      "exit": 0,
+      "log": "return_packages/architect/audit/C_stageC_test_trade.log"
+    }
+  ]
+}

@@ -67,6 +67,13 @@ export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION = 'entitlements';
 export const ARCHITECT_WORLD_EVENTS_SUBCOLLECTION = 'events';
 
 /**
+ * Free agents collection
+ * Used by Architect team plan helpers for free agent pool management
+ */
+export const FREE_AGENTS_COLLECTION =
+  env.VITE_FREE_AGENTS_COLLECTION || 'freeAgents';
+
+/**
  * Subcollection names (under players)
  */
 export const CONTRACTS_SUBCOLLECTION = 'contracts';
