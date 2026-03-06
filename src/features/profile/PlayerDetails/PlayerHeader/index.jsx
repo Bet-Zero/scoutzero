@@ -3,22 +3,17 @@ import PlayerName from './ProfilePlayerName';
 import PlayerPosition from './ProfilePlayerPosition';
 import TeamLogo from '@/shared/components/TeamLogo';
 import PlayerHeadshot from '@/shared/components/PlayerHeadshot';
-import { POSITION_MAP } from '@/shared/utils/roles';
 import { getCurrentSeasonYear } from '@/shared/utils/contracts/contractUtils';
+import { formatContractSummary } from '@/shared/utils/formatting/basicFormatting';
+
+const formatProfileHeight = (inches) => {
+  if (!inches || inches === 0) return 'N/A';
+  const feet = Math.floor(inches / 12);
+  const remainingInches = inches % 12;
+  return `${feet}-${remainingInches}`;
+};
 
 const PlayerHeader = ({ player, selectedPlayer }) => {
-  const getAbbreviatedPosition = (position) => {
-    if (!position) return 'N/A';
-    return POSITION_MAP[position] || position;
-  };
-
-  const formatHeight = (inches) => {
-    if (!inches || inches === 0) return 'N/A';
-    const feet = Math.floor(inches / 12);
-    const remainingInches = inches % 12;
-    return `${feet}-${remainingInches}`;
-  };
-
   const thisYear = getCurrentSeasonYear();
 
   // Get contract data from contracts subcollection (v2 structure only)
@@ -30,10 +25,7 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
     (s) => s.year === thisYear || s.season?.startsWith(String(thisYear))
   );
   const currentSalary = currentYearSalaryObj?.salary;
-  const contractSummary =
-    currentSalary && totalYears
-      ? `$${(currentSalary / 1_000_000).toFixed(1)}M / ${totalYears} yrs`
-      : '—';
+  const contractSummary = formatContractSummary(currentSalary, totalYears);
 
   // Get free agency info from bio.display or contract subcollection (v2 structure only)
   const freeAgency = contractData?.freeAgency || {};
@@ -57,7 +49,7 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
             <TeamLogo teamAbbr={player.bio?.display?.team} />
             <div className="h-[2.5rem] w-[2px] bg-black" />
             <PlayerPosition
-              position={getAbbreviatedPosition(player.bio?.position)}
+              position={player.bio?.position}
               className="text-5xl"
             />
           </div>
@@ -70,37 +62,14 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
         <div className="space-y-[2px]">
           <p>
             <span className="font-bold">HT</span>:{' '}
-            {formatHeight(player.bio?.height)}
+            {formatProfileHeight(player.bio?.height)}
           </p>
           <p>
             <span className="font-bold">WT</span>: {player.bio?.weight || 'N/A'}
           </p>
           <p>
             <span className="font-bold">AGE</span>:{' '}
-            {(() => {
-              // Calculate age from DOB if age field is missing
-              if (player.bio?.age) return player.bio.age;
-              if (player.bio?.dob) {
-                try {
-                  const birthDate = new Date(player.bio.dob);
-                  if (!isNaN(birthDate.getTime())) {
-                    const today = new Date();
-                    let age = today.getFullYear() - birthDate.getFullYear();
-                    const monthDiff = today.getMonth() - birthDate.getMonth();
-                    if (
-                      monthDiff < 0 ||
-                      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-                    ) {
-                      age--;
-                    }
-                    return age >= 0 ? age : 'N/A';
-                  }
-                } catch {
-                  // Ignore parse errors
-                }
-              }
-              return 'N/A';
-            })()}
+            {player.bio?.age || 'N/A'}
           </p>
           <p>
             <span className="font-bold">YEARS PRO</span>:{' '}

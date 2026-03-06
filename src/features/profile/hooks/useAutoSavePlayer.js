@@ -86,6 +86,7 @@ const useAutoSavePlayer = ({
   const isSavingRef = useRef(false);
   const pendingSaveRef = useRef(false);
   const performSaveRef = useRef(null);
+  const saveCompleteResolversRef = useRef([]);
 
   // Clear error when user makes new changes
   useEffect(() => {
@@ -266,6 +267,10 @@ const useAutoSavePlayer = ({
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);
+      // Resolve any saveNow() callers waiting for this save to finish
+      const resolvers = saveCompleteResolversRef.current;
+      saveCompleteResolversRef.current = [];
+      resolvers.forEach((resolve) => resolve());
     }
 
     const hasQueuedChanges =
@@ -326,16 +331,10 @@ const useAutoSavePlayer = ({
       debounceTimeoutRef.current = null;
     }
 
-    // Wait for in-flight save to complete
+    // Wait for in-flight save to complete using promise queue (no polling)
     if (isSavingRef.current) {
-      // Wait for current save to finish, then run again
       await new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-          if (!isSavingRef.current) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 50);
+        saveCompleteResolversRef.current.push(resolve);
       });
     }
 

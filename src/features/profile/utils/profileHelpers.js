@@ -130,6 +130,28 @@ export function removeVideoExampleForKey(videoExamples, key, index) {
   );
 }
 
+/**
+ * Update a blurb value by key, returning a new blurbs object.
+ * Centralizes the key-format parsing (trait_, role_, subrole_, etc.)
+ */
+export function setBlurbForKey(blurbs, key, value) {
+  const normalized = normalizeBlurbs(blurbs);
+  if (!key) return normalized;
+  if (key.startsWith('trait_'))
+    return { ...normalized, traits: { ...normalized.traits, [key.slice(6)]: value } };
+  if (key.startsWith('role_'))
+    return { ...normalized, roles: { ...normalized.roles, [key.slice(5)]: value } };
+  if (key.startsWith('subrole_'))
+    return { ...normalized, subroles: { ...normalized.subroles, [key.slice(8)]: value } };
+  if (key === 'shooting_profile')
+    return { ...normalized, shootingProfile: value };
+  if (key === 'two_way_meter')
+    return { ...normalized, twoWayMeter: value };
+  if (key === 'overall')
+    return { ...normalized, overall: value };
+  return normalized;
+}
+
 export function updateVideoExampleLabelForKey(videoExamples, key, index, label) {
   const current = getVideoExamplesForKey(videoExamples, key);
   const next = current.map((item, i) =>

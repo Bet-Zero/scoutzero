@@ -21,13 +21,14 @@ PlayerNavigation.jsx
 PlayerSearchBar.jsx
 SaveStatusIndicator.jsx
 TeamPlayerDropdowns.jsx
-TeamPlayerSelector.jsx
 hooks/
   useAutoSavePlayer.js
+  usePlayerNavigation.js
+  usePlayerProfileState.js
 utils/
   profileHelpers.js
 ```
 
 ---
-*Generated on: 2026-01-21T12:13:00.786Z*
+*Generated on: 2026-03-06T08:40:07.502Z*
 *Auto-updated by: npm run docs*

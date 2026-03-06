@@ -90,5 +90,11 @@ export function formatName(name = '') {
     .join(' ');
 }
 
+// Format contract summary as "$XX.XM / N yrs"
+export function formatContractSummary(currentSalary, totalYears) {
+  if (!currentSalary || !totalYears) return '—';
+  return `$${(currentSalary / 1_000_000).toFixed(1)}M / ${totalYears} yrs`;
+}
+
 // Player alias mapping (currently empty but kept for compatibility)
 export const playerAliasMap = {};

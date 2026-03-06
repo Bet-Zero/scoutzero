@@ -1,30 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 
 const PlayerSearchBar = ({ playersData, onSelect }) => {
   const [search, setSearch] = useState('');
-  const [results, setResults] = useState([]);
 
-  useEffect(() => {
-    if (!search) {
-      setResults([]);
-      return;
-    }
+  const results = useMemo(() => {
+    if (!search) return [];
     const lower = search.toLowerCase();
-    const matches = Object.keys(playersData)
+    return Object.keys(playersData)
       .filter((id) => {
         const name =
           playersData[id]?.bio?.displayName || playersData[id]?.name || '';
         return name.toLowerCase().includes(lower);
       })
       .slice(0, 8);
-    setResults(matches);
   }, [search, playersData]);
 
   const handleSelect = (id) => {
     if (!id) return;
     setSearch('');
-    setResults([]);
     onSelect(id, playersData[id]?.bio?.display?.team || '');
   };
 

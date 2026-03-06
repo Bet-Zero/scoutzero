@@ -15,6 +15,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NotebookText } from 'lucide-react';
 import { SubRoleMasterList } from '@/constants/SubRoleMasterList';
 import { isPositiveSubRole } from '@/shared/utils/roles';
+import useClickOutside from '@/shared/hooks/useClickOutside';
 
 const OFFENSIVE_GROUPS = [
   'Playmaking',
@@ -186,21 +187,7 @@ const SubRoleSelector = ({ subRoles = {}, setSubRoles, setOpenModal }) => {
     }
   }, [setSubRoles, tempSelection]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        handleClose();
-      }
-    };
-
-    if (isModalOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isModalOpen, handleClose]);
+  useClickOutside(modalRef, handleClose, isModalOpen);
 
   useEffect(() => {
     if (!isModalOpen) return;

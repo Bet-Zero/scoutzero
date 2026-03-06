@@ -272,8 +272,9 @@ Quick reference for all components in the ScoutZero project.
 - PlayerSearchBar.jsx
 - SaveStatusIndicator.jsx
 - TeamPlayerDropdowns.jsx
-- TeamPlayerSelector.jsx
 - hooks/useAutoSavePlayer.js
+- hooks/usePlayerNavigation.js
+- hooks/usePlayerProfileState.js
 - utils/profileHelpers.js
 
 ## Ranker
@@ -362,4 +363,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-05T10:53:05.742Z*
+*Generated on: 2026-03-06T08:40:07.566Z*

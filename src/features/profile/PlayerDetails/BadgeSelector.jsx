@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { BadgeList } from '@/constants/badgeList';
+import useClickOutside from '@/shared/hooks/useClickOutside';
 
 const BadgeSelector = ({ badges, setBadges }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -15,19 +16,11 @@ const BadgeSelector = ({ badges, setBadges }) => {
 
   const selectedBadges = BadgeList.filter((b) => badges.includes(b.key));
 
-  // 🔹 Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  useClickOutside(
+    dropdownRef,
+    useCallback(() => setIsDropdownOpen(false), []),
+    isDropdownOpen
+  );
 
   return (
     <div

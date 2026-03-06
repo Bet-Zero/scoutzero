@@ -2,305 +2,46 @@
  * FILE: src/pages/PlayerProfileView.jsx
  * PURPOSE: Scouting Player Profile route view with player selection, state, and autosave.
  * OWNERSHIP: Feature: profile/scouting
- *
- * HISTORY:
- *  - 2026-01-22: HOTFIX - Gate Firestore sync on openModal to prevent clearing after save
- *  - 2026-01-22: HOTFIX - Disable arrow key navigation while modal is open
- *  - 2026-01-22: Phase 4 - Autosave debounce support + cleanup touchpoints
- *  - 2026-01-22: Phase 3 - Added videoExamples state to autosave flow
- *  - 2026-01-21: Phase 2 - Added markDirty pattern, save status indicator, wrapped all setters
- *  - 2026-01-21: Updated by plan `plans/_archive/scouting-player-profile-phase-1-data-contract/plan.md`, chunk_n/a
- *
- * LINKS:
- *  - Plan: plans/_archive/scouting-player-profile-phase-4/plan.md
- *  - Latest Chunk: n/a (no chunks used)
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
-import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
+import React, { useState } from 'react';
+import usePlayerNavigation from '@/features/profile/hooks/usePlayerNavigation';
+import usePlayerProfileState from '@/features/profile/hooks/usePlayerProfileState';
 import useAutoSavePlayer from '@/features/profile/hooks/useAutoSavePlayer';
-import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
-import { normalizeBlurbs } from '@/shared/utils/blurbs';
-import {
-  createEmptyVideoExamples,
-  normalizeVideoExamples,
-} from '@/shared/utils/videoExamples';
 import SaveStatusIndicator from '@/features/profile/SaveStatusIndicator';
-
 import TeamPlayerDropdowns from '@/features/profile/TeamPlayerDropdowns';
 import PlayerNavigation from '@/features/profile/PlayerNavigation';
 import PlayerDetails from '@/features/profile/PlayerDetails';
 import BreakdownModal from '@/features/profile/BreakdownModal';
-import {
-  getPlayersForTeam,
-  setVideoExamplesForKey,
-} from '@/features/profile/utils/profileHelpers';
 import PlayerSearchBar from '@/features/profile/PlayerSearchBar';
 
-const defaultTraits = {
-  Shooting: 0,
-  Passing: 0,
-  Playmaking: 0,
-  Rebounding: 0,
-  Defense: 0,
-  IQ: 0,
-  Feel: 0,
-  Energy: 0,
-};
-
-const defaultRoles = {
-  offense1: '',
-  offense2: '',
-  defense1: '',
-  defense2: '',
-  // Removed twoWay from here - it should be separate
-};
-
-const defaultBlurbs = {
-  traits: {},
-  roles: {},
-  subroles: {},
-  shootingProfile: '',
-  twoWayMeter: '',
-  overall: '',
-};
-
 const PlayerProfileView = () => {
-  const [searchParams] = useSearchParams();
-  const { players: fetchedPlayers, loading: isLoading } = useSimplePlayerData();
-  const [playersData, setPlayersData] = useState({});
-  const [teams, setTeams] = useState([]);
-  const [filteredKeys, setFilteredKeys] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState('');
-  const [selectedPlayer, setSelectedPlayer] = useState('');
-  const [player, setPlayer] = useState(null);
-  const [traits, setTraits] = useState(defaultTraits);
-  const [roles, setRoles] = useState(defaultRoles);
-  const [twoWay, setTwoWay] = useState(50); // Separate twoWay state
-  const [shootingProfile, setShootingProfile] = useState('');
-  const [subRoles, setSubRoles] = useState({ offense: [], defense: [] });
-  const [badges, setBadges] = useState([]);
   const [openModal, setOpenModal] = useState(null);
-  const [editedBlurbs, setEditedBlurbs] = useState(defaultBlurbs);
-  const [videoExamples, setVideoExamples] = useState(
-    createEmptyVideoExamples()
-  );
-  const [overallGrade, setOverallGrade] = useState(null);
-  const [hasChanges, setHasChanges] = useState(false);
 
-  // Track whether we've processed the initial pid from URL
-  const initialPidProcessedRef = useRef(false);
-
-  // Track previous player to detect player changes
-  const prevPlayerIdRef = useRef(null);
-
-  // Use usePlayerDetail for the selected player to get full data with subcollections
-  const { player: detailedPlayer, loading: detailLoading } =
-    usePlayerDetail(selectedPlayer);
-
-  useEffect(() => {
-    const data = {};
-    const teamSet = new Set();
-    fetchedPlayers.forEach((p) => {
-      data[p.id] = p;
-      if (p.bio?.display?.team) teamSet.add(p.bio.display.team);
-    });
-    setPlayersData(data);
-    setTeams(Array.from(teamSet).sort());
-  }, [fetchedPlayers]);
-
-  // Handle initial pid query param from URL (e.g., /profiles/lebron-james?pid=lebron_james)
-  useEffect(() => {
-    // Only process once when players are loaded
-    if (
-      initialPidProcessedRef.current ||
-      isLoading ||
-      fetchedPlayers.length === 0
-    ) {
-      return;
-    }
-
-    const pidFromUrl = searchParams.get('pid');
-    if (!pidFromUrl) {
-      initialPidProcessedRef.current = true;
-      return;
-    }
-
-    // Find the player with this id
-    const matchedPlayer = fetchedPlayers.find(
-      (p) => p.id === pidFromUrl || p.bio?.playerId === pidFromUrl
-    );
-
-    if (matchedPlayer) {
-      const team = matchedPlayer.bio?.display?.team || '';
-      setSelectedTeam(team);
-      setSelectedPlayer(matchedPlayer.id);
-
-      // Also set up the filtered keys for the team
-      const filtered = fetchedPlayers
-        .filter((p) => p.bio?.display?.team === team)
-        .map((p) => p.id);
-      setFilteredKeys(filtered);
-    }
-
-    initialPidProcessedRef.current = true;
-  }, [searchParams, fetchedPlayers, isLoading]);
-
-  useEffect(() => {
-    if (!selectedPlayer || !detailedPlayer) {
-      setPlayer(null);
-      prevPlayerIdRef.current = null;
-      return;
-    }
-
-    // CRITICAL: Only sync from Firestore when:
-    // 1. Player changes (selectedPlayer !== prevPlayerIdRef.current)
-    // 2. OR we have no pending edits AND modal is closed
-    // This prevents Firestore updates (from our own saves) from overwriting mid-typing edits
-    // HOTFIX 2026-01-22: Also gate on openModal - if modal is open, user is editing, don't overwrite
-    const playerChanged = selectedPlayer !== prevPlayerIdRef.current;
-
-    if (!playerChanged && (hasChanges || openModal)) {
-      // Same player, user is actively editing OR modal is open - don't overwrite their local state
-      return;
-    }
-
-    const data = enrichPlayerData(detailedPlayer);
-    setPlayer(data);
-    setTraits(data.traits || { ...defaultTraits });
-    setRoles({ ...defaultRoles, ...(data.roles || {}) });
-    setTwoWay(Number.isFinite(data.twoWay) ? data.twoWay : 50);
-    setSubRoles(data.subRoles || { offense: [], defense: [] });
-    setBadges(data.badges || []);
-    setShootingProfile(data.shootingProfile ?? '');
-    setEditedBlurbs(normalizeBlurbs(data.blurbs || defaultBlurbs));
-    setVideoExamples(normalizeVideoExamples(data.videoExamples));
-    setOverallGrade(data.overallGrade || null);
-    setHasChanges(false);
-
-    // Update prev player ref
-    prevPlayerIdRef.current = selectedPlayer;
-  }, [selectedPlayer, detailedPlayer, hasChanges, openModal]);
-
-  // Centralized dirty-state helper - all setters should call this
-  const markDirty = useCallback(() => {
-    setHasChanges(true);
-  }, []);
-
-  // Wrapped setters that mark dirty state
-  const handleSetSubRoles = useCallback(
-    (value) => {
-      setSubRoles(typeof value === 'function' ? value : value);
-      markDirty();
-    },
-    [markDirty]
+  const nav = usePlayerNavigation(openModal);
+  const evalState = usePlayerProfileState(
+    nav.detailedPlayer,
+    nav.selectedPlayer,
+    openModal
   );
 
-  const handleSetBadges = useCallback(
-    (value) => {
-      setBadges(typeof value === 'function' ? value : value);
-      markDirty();
-    },
-    [markDirty]
-  );
-
-  const handleSetShootingProfile = useCallback(
-    (value) => {
-      setShootingProfile(value);
-      markDirty();
-    },
-    [markDirty]
-  );
-
-  const { isSaving, saveError, saveState, saveNow } = useAutoSavePlayer({
-    playerId: selectedPlayer,
-    player,
-    traits,
-    roles,
-    twoWay,
-    subRoles,
-    badges,
-    shootingProfile,
-    overallGrade,
-    blurbs: editedBlurbs,
-    videoExamples,
-    hasChanges,
-    setHasChanges,
+  const { saveError, saveState, saveNow } = useAutoSavePlayer({
+    playerId: nav.selectedPlayer,
+    player: evalState.player,
+    traits: evalState.traits,
+    roles: evalState.roles,
+    twoWay: evalState.twoWay,
+    subRoles: evalState.subRoles,
+    badges: evalState.badges,
+    shootingProfile: evalState.shootingProfile,
+    overallGrade: evalState.overallGrade,
+    blurbs: evalState.editedBlurbs,
+    videoExamples: evalState.videoExamples,
+    hasChanges: evalState.hasChanges,
+    setHasChanges: evalState.setHasChanges,
   });
 
-  const handlePrevPlayer = useCallback(() => {
-    if (!selectedTeam || !selectedPlayer) return;
-    const currentIndex = filteredKeys.indexOf(selectedPlayer);
-    if (currentIndex > 0) setSelectedPlayer(filteredKeys[currentIndex - 1]);
-  }, [selectedTeam, selectedPlayer, filteredKeys]);
-
-  const handleNextPlayer = useCallback(() => {
-    if (!selectedTeam || !selectedPlayer) return;
-    const currentIndex = filteredKeys.indexOf(selectedPlayer);
-    if (currentIndex < filteredKeys.length - 1)
-      setSelectedPlayer(filteredKeys[currentIndex + 1]);
-  }, [selectedTeam, selectedPlayer, filteredKeys]);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // HOTFIX: Disable arrow key navigation while modal is open
-      if (openModal) return;
-      if (e.key === 'ArrowLeft') handlePrevPlayer();
-      else if (e.key === 'ArrowRight') handleNextPlayer();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handlePrevPlayer, handleNextPlayer, openModal]);
-
-  const handleTraitChange = useCallback((e, trait) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = Math.round((clickX / rect.width) * 100);
-    setTraits((prev) => ({ ...prev, [trait]: percentage }));
-    setHasChanges(true);
-  }, []);
-
-  const handleRoleChange = useCallback((key, value) => {
-    setRoles((prev) => ({ ...prev, [key]: value }));
-    setHasChanges(true);
-  }, []);
-
-  const handleBlurbChange = useCallback((key, value) => {
-    setEditedBlurbs((prev) => {
-      const updated = { ...prev };
-      if (key.startsWith('trait_'))
-        updated.traits = { ...prev.traits, [key.slice(6)]: value };
-      else if (key.startsWith('role_'))
-        updated.roles = { ...prev.roles, [key.slice(5)]: value };
-      else if (key.startsWith('subrole_'))
-        updated.subroles = { ...prev.subroles, [key.slice(8)]: value };
-      else if (key === 'shooting_profile') updated.shootingProfile = value;
-      else if (key === 'two_way_meter') updated.twoWayMeter = value;
-      else if (key === 'overall') updated.overall = value;
-      return updated;
-    });
-    setHasChanges(true);
-  }, []);
-
-  const handleVideoExamplesChange = useCallback(
-    (key, list) => {
-      setVideoExamples((prev) => setVideoExamplesForKey(prev, key, list));
-      markDirty();
-    },
-    [markDirty]
-  );
-
-  const handleSearchSelect = (id, team) => {
-    if (!id) return;
-    setSelectedTeam(team);
-    setSelectedPlayer(id);
-    const filtered = getPlayersForTeam(playersData, team);
-    setFilteredKeys(filtered);
-  };
-
-  if (isLoading) {
+  if (nav.isLoading) {
     return (
       <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-white text-lg">Loading HoopZero...</div>
@@ -313,62 +54,56 @@ const PlayerProfileView = () => {
       <div className="min-h-screen bg-neutral-900 flex flex-col items-center gap-6 py-20 relative">
         <div className="absolute top-2 left-4 flex flex-col gap-1 mt-1">
           <PlayerSearchBar
-            playersData={playersData}
-            onSelect={handleSearchSelect}
+            playersData={nav.playersData}
+            onSelect={nav.handleSearchSelect}
           />
 
           <TeamPlayerDropdowns
-            teams={teams}
-            playersData={playersData}
-            selectedTeam={selectedTeam}
-            setSelectedTeam={setSelectedTeam}
-            selectedPlayer={selectedPlayer}
-            setSelectedPlayer={setSelectedPlayer}
-            filteredKeys={filteredKeys}
-            setFilteredKeys={setFilteredKeys}
+            teams={nav.teams}
+            playersData={nav.playersData}
+            selectedTeam={nav.selectedTeam}
+            setSelectedTeam={nav.setSelectedTeam}
+            selectedPlayer={nav.selectedPlayer}
+            setSelectedPlayer={nav.setSelectedPlayer}
+            filteredKeys={nav.filteredKeys}
+            setFilteredKeys={nav.setFilteredKeys}
           />
         </div>
 
-        {(!player || detailLoading) && selectedPlayer && (
+        {(!evalState.player || nav.detailLoading) && nav.selectedPlayer && (
           <div className="text-white/40 mt-10">Loading player data...</div>
         )}
 
-        {!selectedPlayer && (
+        {!nav.selectedPlayer && (
           <div className="text-white/40 mt-10">
             Select a player to view their profile.
           </div>
         )}
 
-        <PlayerNavigation onPrev={handlePrevPlayer} onNext={handleNextPlayer} />
+        <PlayerNavigation onPrev={nav.handlePrevPlayer} onNext={nav.handleNextPlayer} />
 
-        {player && !detailLoading && (
+        {evalState.player && !nav.detailLoading && (
           <>
             <SaveStatusIndicator saveState={saveState} saveError={saveError} />
             <PlayerDetails
-              player={player}
-              selectedPlayer={selectedPlayer}
-              traits={traits}
-              onTraitChange={handleTraitChange}
-              roles={roles}
-              onRoleChange={handleRoleChange}
-              twoWay={twoWay}
-              onTwoWayChange={(value) => {
-                setTwoWay(value);
-                markDirty();
-              }}
-              subRoles={subRoles}
-              setSubRoles={handleSetSubRoles}
-              shootingProfile={shootingProfile}
-              setShootingProfile={handleSetShootingProfile}
-              badges={badges}
-              setBadges={handleSetBadges}
-              editedBlurbs={editedBlurbs}
-              onBlurbChange={handleBlurbChange}
-              overallGrade={overallGrade}
-              setOverallGrade={(val) => {
-                setOverallGrade(val);
-                markDirty();
-              }}
+              player={evalState.player}
+              selectedPlayer={nav.selectedPlayer}
+              traits={evalState.traits}
+              onTraitChange={evalState.handleTraitChange}
+              roles={evalState.roles}
+              onRoleChange={evalState.handleRoleChange}
+              twoWay={evalState.twoWay}
+              onTwoWayChange={evalState.handleTwoWayChange}
+              subRoles={evalState.subRoles}
+              setSubRoles={evalState.handleSetSubRoles}
+              shootingProfile={evalState.shootingProfile}
+              setShootingProfile={evalState.handleSetShootingProfile}
+              badges={evalState.badges}
+              setBadges={evalState.handleSetBadges}
+              editedBlurbs={evalState.editedBlurbs}
+              onBlurbChange={evalState.handleBlurbChange}
+              overallGrade={evalState.overallGrade}
+              setOverallGrade={evalState.handleSetOverallGrade}
               setOpenModal={setOpenModal}
             />
           </>
@@ -377,10 +112,10 @@ const PlayerProfileView = () => {
         {openModal && (
           <BreakdownModal
             modalKey={openModal}
-            blurbs={editedBlurbs}
-            onChange={handleBlurbChange}
-            videoExamples={videoExamples}
-            onVideoExamplesChange={handleVideoExamplesChange}
+            blurbs={evalState.editedBlurbs}
+            onChange={evalState.handleBlurbChange}
+            videoExamples={evalState.videoExamples}
+            onVideoExamplesChange={evalState.handleVideoExamplesChange}
             onClose={() => setOpenModal(null)}
             onSaveNow={saveNow}
             saveState={saveState}
