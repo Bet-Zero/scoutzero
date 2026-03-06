@@ -60,6 +60,49 @@ The commands fall into four main categories:
 
 ## Code Quality & Fixes Commands
 
+### `/review` - Master Quality Review
+
+**What it does:**
+
+- Performs a broad, open-ended cleanup and quality audit of the scoped area
+- Inspects through 10 review lenses: correctness, UX, state/data flow, architecture, cleanup, edge cases, performance, tests, docs, and anything else
+- Produces a structured PREFLIGHT RETURN PACKAGE with evidence-backed findings
+- Includes stop conditions that flag critical issues prominently
+
+**Problem it addresses:**
+
+- Need a comprehensive quality pass without specifying individual issues
+- Want to surface everything wrong, risky, or worth improving in one pass
+- Need structured, prioritized findings with evidence and recommended actions
+
+**When to use:**
+
+- When you want a broad quality sweep of a feature, component, or folder
+- Before major refactoring or feature work
+- Periodically for codebase health checks
+- When you suspect accumulated issues but don't know specifics
+
+**What it doesn't do:**
+
+- Does NOT apply fixes (only identifies issues)
+- Does NOT make any code changes (PREFLIGHT mode)
+- Does NOT pad with generic best-practice fluff — findings must be evidence-backed
+
+**Execution order:**
+
+- Can be used independently at any time
+- Findings can feed into `/audit-review` → `/fix-all` workflow or manual fixes
+
+**Input:**
+
+- Specify the feature, component, folder, or system to review (e.g., `/review Trade Machine`)
+
+**Output:**
+
+- PREFLIGHT RETURN PACKAGE with: Executive Summary, Overall Verdict, Findings Inventory, Top Priorities, Quick Wins, Needs Verification, What Looks Good, Coverage Summary, Recommended Execution Plan, Final Judgment
+
+---
+
 ### `/audit` - Apex Audit
 
 **What it does:**
@@ -445,6 +488,7 @@ The commands fall into four main categories:
 
 **Independent (can use anytime):**
 
+- `/review` - Standalone broad quality audit
 - `/explain` - Standalone understanding
 - `/cleanup` - Standalone cleanup
 - `/group-by-feature` - Standalone refactoring (with chunk specification)
@@ -490,6 +534,7 @@ The commands fall into four main categories:
 
 | Command             | Category                 | Changes Code?      | Input Type             | Output                            |
 | ------------------- | ------------------------ | ------------------ | ---------------------- | --------------------------------- |
+| `/review`           | Quality                  | ❌ No              | Feature/component/folder | Preflight Return Package          |
 | `/explain`          | Understanding            | ❌ No              | Files/folders/codebase | Explanation                       |
 | `/audit`            | Quality                  | ❌ No              | Files/folders/codebase | Audit file                        |
 | `/audit-review`     | Quality                  | ❌ No              | Audit file             | Fix Plan                          |

@@ -248,6 +248,7 @@ Agent-universal workflow commands. The prompt files in `docs/cursor-prompts/` co
 | `/fix-all`        | Apply all appropriate fixes from a Fix Plan         | `docs/cursor-prompts/FixAllPrompt.md`        |
 | `/doc-sync`       | Update docs and comments to match current code      | `docs/cursor-prompts/DocSyncPrompt.md`       |
 | `/cleanup`        | Safe, behavior-preserving code cleanup              | `docs/cursor-prompts/CleanupPrompt.md`       |
+| `/review`         | Broad quality audit → produces preflight report     | `docs/cursor-prompts/ReviewPrompt.md`        |
 
 **Typical workflow**: `/explain` → `/audit` → `/audit-review` → `/apply-critical` or `/fix-all` → `/doc-sync` → `/cleanup`
 
