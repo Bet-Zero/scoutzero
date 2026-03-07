@@ -96,8 +96,7 @@ const OffseasonTab = ({
         <div className="mt-5">
           <strong>Preview computed — not saved</strong>
           <p>
-            Preview shows projected state for {currentYear + 1} season. Use
-            World Season Advance to persist.
+            Preview shows projected state for {currentYear + 1} season. Use World Season Advance to persist.
           </p>
         </div>
       )}
