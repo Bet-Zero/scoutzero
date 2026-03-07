@@ -1,6 +1,10 @@
 // src/features/architect/tradeMachine/FaExceptionTracker.jsx
 import React from 'react';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
+import {
+  getValidationIssueText,
+  normalizeValidationIssues,
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const FaExceptionTracker = ({ result, teams }) => {
   if (!result?.teamResults) return null;
@@ -8,27 +12,40 @@ const FaExceptionTracker = ({ result, teams }) => {
   // Extract FA Exception information
   const faExceptionData = result.teamResults.map((team, index) => {
     const teamData = teams[index];
-    const faExceptions = teamData?.team?.faExceptions || {};
-    
-    // Get available buckets
-    const buckets = [];
-    if (faExceptions.mle) buckets.push({ type: 'MLE', amount: faExceptions.mle, name: 'Mid-Level Exception' });
-    if (faExceptions.bae) buckets.push({ type: 'BAE', amount: faExceptions.bae, name: 'Bi-Annual Exception' });
-    if (faExceptions.minimum) buckets.push({ type: 'MIN', amount: faExceptions.minimum, name: 'Minimum Exception' });
+    const faExceptionRule = team.rules?.faExceptionUsage;
+    const faExceptionViolations = normalizeValidationIssues(
+      faExceptionRule?.violations
+    );
+    const faExceptionWarnings = normalizeValidationIssues(
+      faExceptionRule?.warnings
+    );
 
     // Check for FA exception usage in incoming players
-    const faUsage = (team.incomingPlayers || []).filter(p => p.absorptionMode === 'FA_EXCEPTION');
-    
+    const faUsage = (team.incomingPlayers || []).filter(
+      (player) => player.absorptionMode === 'FA_EXCEPTION'
+    );
+
     return {
       teamName: team.teamName,
-      buckets,
+      buckets:
+        team.faExceptionBuckets ||
+        teamData?.team?.faExceptionBuckets ||
+        [],
       faUsage,
+      faExceptionViolations,
+      faExceptionWarnings,
       teamTotalSalary: team.totalSalary || 0,
       projectedSalary: team.projectedSalary || 0,
       hardCapped: Boolean(team.hardCapped),
       apronStatus: team.apronStatus || '',
     };
-  }).filter(team => team.buckets.length > 0 || team.faUsage.length > 0);
+  }).filter(
+    (team) =>
+      team.buckets.length > 0 ||
+      team.faUsage.length > 0 ||
+      team.faExceptionViolations.length > 0 ||
+      team.faExceptionWarnings.length > 0
+  );
 
   if (faExceptionData.length === 0) return null;
 
@@ -61,8 +78,12 @@ const FaExceptionTracker = ({ result, teams }) => {
                 {team.buckets.map((bucket, bIndex) => (
                   <div key={bIndex} className="p-2 bg-[#1a1a1a] border border-white/10 rounded text-xs">
                     <div className="font-medium text-white/90">{bucket.type}</div>
-                    <div className="font-mono text-green-400">{formatCurrency(bucket.amount)}</div>
-                    <div className="text-white/50 text-xs">{bucket.name}</div>
+                    <div className="font-mono text-green-400">
+                      {formatCurrency(bucket.remaining ?? bucket.amount ?? 0)}
+                    </div>
+                    <div className="text-white/50 text-xs">
+                      {bucket.label || bucket.name || 'FA Exception'}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -76,7 +97,37 @@ const FaExceptionTracker = ({ result, teams }) => {
               {team.faUsage.map((player, pIndex) => (
                 <div key={pIndex} className="text-xs text-white/80 flex justify-between">
                   <span>{player.name}</span>
-                  <span className="font-mono">{formatCurrency(player.salary || 0)}</span>
+                  <span className="font-mono">
+                    {formatCurrency(
+                      player.matchIncoming ?? player.salary ?? 0
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {team.faExceptionViolations.length > 0 && (
+            <div className="mb-3 p-2 bg-red-900/20 border border-red-500/30 rounded">
+              <div className="text-xs text-red-300 font-medium mb-1">
+                FA Exception Blockers
+              </div>
+              {team.faExceptionViolations.map((violation, vIndex) => (
+                <div key={vIndex} className="text-xs text-white/80">
+                  {getValidationIssueText(violation)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {team.faExceptionWarnings.length > 0 && (
+            <div className="mb-3 p-2 bg-amber-900/20 border border-amber-500/30 rounded">
+              <div className="text-xs text-amber-300 font-medium mb-1">
+                FA Exception Warnings
+              </div>
+              {team.faExceptionWarnings.map((warning, wIndex) => (
+                <div key={wIndex} className="text-xs text-white/80">
+                  {getValidationIssueText(warning)}
                 </div>
               ))}
             </div>

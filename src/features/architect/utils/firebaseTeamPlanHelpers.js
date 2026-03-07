@@ -183,6 +183,8 @@ export const hydrateBaseTeam = async (teamCode, baseDoc) => {
     // Contains tradeable assets with assetType (outright_pick, conditional_right, swap_right)
     draftAssets: baseDoc.draftAssets || null,
     entitlementIds: baseDoc.entitlementIds || [],
+    offerSheets: baseDoc.offerSheets || [],
+    incomingOfferSheets: baseDoc.incomingOfferSheets || [],
     exceptions: exceptionData,
     mle: toSimpleException(exceptionData.mle),
     tpMle: toSimpleException(exceptionData.taxpayerMle || exceptionData.tpMle),

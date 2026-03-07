@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -22,6 +23,8 @@ const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
   ),
   picks,
 });
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 describe('tradeValidator edge cases', () => {
   it('allows 3-team trade mixing players, picks and cash when below aprons', () => {
@@ -92,7 +95,7 @@ describe('tradeValidator edge cases', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].violations[0]).toContain('Stepien');
+    expect(issueTexts(result.teamResults[0].violations)[0]).toContain('Stepien');
   });
 
   it('allows protected picks to avoid Stepien violations', () => {
@@ -176,7 +179,7 @@ describe('tradeValidator edge cases', () => {
     expect(result.legal).toBe(true);
     const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
     expect(teamAResult?.rules.salaryMatching.passed).toBe(true);
-    expect(teamAResult?.violations.join(' ')).not.toContain(
+    expect(issueTexts(teamAResult?.violations).join(' ')).not.toContain(
       'Second apron team cannot receive more salary than sent'
     );
   });

@@ -5,7 +5,7 @@
  * Part of Phase 1: Legality Correctness (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
  *
  * RULES (Non-Negotiable):
- * 1. Read from result.teamResults ONLY — receipt is debug/inspection only
+ * 1. Read validator contract fields directly — receipt is debug/inspection only
  * 2. Do NOT expose ambiguous flags (isFirstApron/isSecondApron) — defer to Phase 2/3
  * 3. Prefer explicit validator rule evaluations over derived status flags
  * 4. If fields are missing, return 0/empty defaults — do NOT compute locally
@@ -35,7 +35,7 @@ export function getTeamSnapshot(teamId, result) {
 
   if (!teamResult) return null;
 
-  // NOTE: Do NOT use result.receipt for Phase 1 values — receipt is debug only
+  // NOTE: Do NOT use result.tradeReceipt for official values — receipt is debug only
   // All values come from teamResult (validator output)
 
   // Get official salary matching values from canonical selector
@@ -139,25 +139,23 @@ export function getTeamSnapshotByIndex(teamIndex, result) {
 export function getTradeSnapshot(result) {
   if (!result) return null;
 
-  return {
+ return {
     // Overall trade legality
     isLegal: result.legal ?? false,
     primaryViolation: result.reason ?? null,
 
     // Year/season context
-    yearKey: result.yearKey ?? result.tradeReceipt?.yearKey,
-    seasonKey: result.seasonKey ?? result.tradeReceipt?.seasonKey,
+    yearKey: result.yearKey ?? null,
+    seasonKey: result.seasonKey ?? null,
 
     // Cap settings (global metadata — not a per-team legality value)
-    // NOTE: capSettings is global metadata; receipt fallback is temporarily allowed
-    // until validator exposes result.capSettings directly.
-    // Team legality-critical values remain teamResults-only.
-    capSettings:
-      result.capSettings ?? result.tradeReceipt?.capSettingsUsed ?? null,
+    capSettings: result.capSettings ?? null,
 
-    // All violations across all teams
+    // All violations from canonical validator result
     allViolations:
-      result.teamResults?.flatMap((tr) => tr.violations ?? []) ?? [],
+      result.violations ??
+      result.teamResults?.flatMap((tr) => tr.violations ?? []) ??
+      [],
 
     // Performance metadata
     validationTime: result.performance?.validationTime ?? 0,

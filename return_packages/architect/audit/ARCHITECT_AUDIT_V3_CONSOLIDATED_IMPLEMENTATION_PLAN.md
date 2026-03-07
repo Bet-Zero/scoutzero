@@ -71,14 +71,14 @@ Because of that delta, the implementation plan should shift from “fix the thre
 
 ## Consolidated Status Matrix
 
-| ID            | Historical status     | Claude comparison          | Current status on March 6                                                | Consolidated disposition                                           | Next action                                         |
-| ------------- | --------------------- | -------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------------------- |
-| `FIND-B5-001` | High, ship-blocking   | Confirmed                  | Resolved in current tree and architect suite now passes                  | Move to `Resolved since audit`                                     | Archive fresh proof and remove from active backlog  |
-| `FIND-B4-001` | Medium                | Confirmed                  | Appears resolved in current tree                                         | Move to `Candidate resolved` pending broader regression confidence | Keep as resolved unless future drift appears        |
-| `FIND-B8-001` | Low                   | Confirmed                  | Appears resolved in current tree                                         | Move to `Candidate resolved`                                       | No further action unless log reappears              |
-| `VQ-D-001`    | Queued, ship-blocking | Confirmed queue governance | Still open, but narrowed to entitlement/runtime authoring proof          | Remains active                                                     | Finish the remaining entitlement save-path evidence |
-| `VQ-E2-001`   | Queued                | Confirmed queue governance | Resolved by runtime rules proof on March 6                               | Move to `Resolved since audit`                                     | Keep proof artifact attached for verdict update     |
-| `VQ-B4-001`   | Queued                | Confirmed queue governance | Resolved by fail-closed implementation and focused hook proof on March 6 | Move to `Resolved since audit`                                     | Keep proof artifact attached for verdict update     |
+| ID            | Historical status     | Claude comparison          | Current status on March 6                                                | Consolidated disposition                                           | Next action                                        |
+| ------------- | --------------------- | -------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ | -------------------------------------------------- |
+| `FIND-B5-001` | High, ship-blocking   | Confirmed                  | Resolved in current tree and architect suite now passes                  | Move to `Resolved since audit`                                     | Archive fresh proof and remove from active backlog |
+| `FIND-B4-001` | Medium                | Confirmed                  | Appears resolved in current tree                                         | Move to `Candidate resolved` pending broader regression confidence | Keep as resolved unless future drift appears       |
+| `FIND-B8-001` | Low                   | Confirmed                  | Appears resolved in current tree                                         | Move to `Candidate resolved`                                       | No further action unless log reappears             |
+| `VQ-D-001`    | Queued, ship-blocking | Confirmed queue governance | Resolved since audit by persisted entitlement authoring proof            | Move to `Resolved since audit`                                     | Re-score readiness with updated runtime evidence   |
+| `VQ-E2-001`   | Queued                | Confirmed queue governance | Resolved by runtime rules proof on March 6                               | Move to `Resolved since audit`                                     | Keep proof artifact attached for verdict update    |
+| `VQ-B4-001`   | Queued                | Confirmed queue governance | Resolved by fail-closed implementation and focused hook proof on March 6 | Move to `Resolved since audit`                                     | Keep proof artifact attached for verdict update    |
 
 ## Detailed Breakdown
 
@@ -174,10 +174,15 @@ Because of that delta, the implementation plan should shift from “fix the thre
 - `D-MQ-002` now passes in review mode with automated world-date advancement proof.
 - `D-MQ-007` now passes in review mode with automated season-advance modal/world-gating proof.
 - `D-MQ-005` now passes in review mode as a persisted offer-sheet proof: Playwright submits a legal seeded offer sheet, renders the pending row, and verifies the saved ATL world document through emulator-backed admin read.
+- `D-MQ-005` proof now also verifies that the saved offer-sheet state survives dashboard route re-entry and rehydrates in the UI.
+- `D-MQ-009` now passes in review mode as a persisted entitlement authoring proof: Playwright uses the real Trade Machine wizard, saves a world-scoped swap entitlement, verifies the persisted world entitlement document plus `teams/LAL.entitlementIds` attachment, then proves a conflicting swap-controller save fails closed with explicit error and no additional write.
+- `D-MQ-009` proof now also verifies that the saved entitlement state survives dashboard route re-entry before the conflicting write is attempted.
+- During that proof run, a real product bug was found and fixed in `src/features/architect/utils/entitlements/entitlementWriter.ts`: atomic team attachment previously failed when the world team doc did not yet exist.
+- The proof expansion also uncovered and fixed real re-entry bugs in `src/features/architect/GMDashboard/components/WorldSelector.jsx`, `src/features/architect/GMDashboard/hooks/useArchitectState.ts`, and `src/features/architect/utils/firebaseTeamPlanHelpers.js`.
 
 #### Consolidated decision
 
-`VQ-D-001` remains active and is now the highest-value remaining readiness task, but its scope is narrower than before. The execution path is hybrid: keep the hardened Playwright suite for deterministic shell and world-backed proof, then finish the remaining entitlement save-path checks with emulator-backed walkthrough evidence.
+`VQ-D-001` is resolved since audit. The remaining plan work is no longer “finish the last blocker,” but “recompute readiness and decide whether broader regression coverage is warranted.”
 
 ### `VQ-E2-001` — Missing runtime Firestore rules proof
 
@@ -246,9 +251,7 @@ Because of that delta, the implementation plan should shift from “fix the thre
 - `FIND-B4-001`
 - `FIND-B8-001`
 
-### Bucket 3 — Still open, evidence-only
-
-- `VQ-D-001`
+### Bucket 3 — No remaining open evidence blockers from the March 5 audit set
 
 ### Bucket 4 — Still open, targeted investigation
 
@@ -274,8 +277,8 @@ Because of that delta, the implementation plan should shift from “fix the thre
 
 ### Phase 3 — Complete remaining user/manual proof work
 
-1. Execute `return_packages/architect/audit/D_MANUAL_QA_CHECKLIST.md` in emulator mode.
-2. Capture screenshots and notes for the audited UX flows referenced by `VQ-D-001`.
+1. No remaining manual proof work is required to close the March 5 audit blocker set.
+2. Use `return_packages/architect/audit/D_MANUAL_QA_CHECKLIST.md` only if you want broader non-blocking UX evidence beyond the already closed live blockers.
 
 ### Phase 4 — Re-score and reissue readiness status
 
@@ -319,7 +322,7 @@ This consolidated plan can be considered complete when:
 
 1. `FIND-B5-001`, `FIND-B4-001`, and `FIND-B8-001` are formally reclassified out of the active backlog.
 2. `VQ-E2-001` has fresh runtime rules proof.
-3. `VQ-D-001` has fresh emulator-backed screenshot and walkthrough proof.
+3. `VQ-D-001` has fresh emulator-backed runtime proof for both persisted offer-sheet and entitlement authoring flows.
 4. `VQ-B4-001` has either targeted proof or a superseding fix/test.
 5. The Stage G score is recomputed using the same weighting model and a new readiness statement is issued.
 

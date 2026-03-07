@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 
@@ -21,6 +22,8 @@ const makeTeam = (name, totalSalary, rosterSize = 14) => ({
   ),
   picks: [],
 });
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 function runTrade(appliedTPEs, teamSalary, otherTeamSalary = 100_000_000) {
   const teamA = makeTeam('A', teamSalary);
@@ -46,7 +49,7 @@ describe('second apron prior-year TPE usage', () => {
       220_000_000 // Above 2025 second apron threshold of ~207.8M
     );
     expect(res.teamResults[0].legal).toBe(false);
-    expect(res.teamResults[0].violations).toContain(
+    expect(issueTexts(res.teamResults[0].violations)).toContain(
       'Second apron: prior-year TPEs cannot be used.'
     );
   });
@@ -59,9 +62,9 @@ describe('second apron prior-year TPE usage', () => {
     // The TPE exception validator must pass — no TPE-specific violation
     const tpeResult = res.teamResults[0].rules?.tradeExceptions;
     expect(tpeResult?.passed).toBe(true);
-    expect(tpeResult?.violations).toEqual([]);
+    expect(issueTexts(tpeResult?.violations)).toEqual([]);
     // No "cannot use trade exceptions" message in the overall violations
-    expect(res.teamResults[0].violations).not.toContain(
+    expect(issueTexts(res.teamResults[0].violations)).not.toContain(
       'Second apron team cannot use trade exceptions'
     );
   });

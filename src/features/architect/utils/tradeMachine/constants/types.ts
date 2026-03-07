@@ -85,12 +85,22 @@ export interface NormalizedTradeInput {
   };
 }
 
+export interface ValidationIssue {
+  message: string;
+  severity: 'error' | 'warning';
+  rule: string;
+  code: string;
+  details?: unknown;
+  meta?: Record<string, unknown> | null;
+}
+
 // Common validation result interface
 export interface ValidationResult {
   passed: boolean;
-  violations: string[];
+  violations: ValidationIssue[];
+  warnings?: ValidationIssue[];
   message: string;
-  details?: string;
+  details?: unknown;
   warningsOnly?: boolean;
   [key: string]: unknown;
 }

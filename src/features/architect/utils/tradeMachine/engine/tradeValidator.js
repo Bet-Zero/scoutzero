@@ -1,5 +1,8 @@
 // tradeValidator.js - Fixed to match test expectations
-import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
+import {
+  getApronStatus,
+  getSalaryForYear,
+} from '@/features/architect/utils/tradeHelpers.js';
 import { wrapCommonValidators } from './validationUtils.js';
 import { createTPE } from '../utils/tradeUtilities.js';
 
@@ -16,7 +19,7 @@ import { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
 import { validateConsent } from '../rules/validateConsent.js';
 import { validateReacquisition } from '../rules/eligibilityRules.js';
 import { enforceConsent } from '../rules/enforceConsent.js';
-import { enforceEligibility } from '../rules/enforceEligibility.js';
+import { enforceEligibility } from '../rules/validateEligibility.js';
 import { enforceTiming } from '../rules/timingValidation.js';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
 import { computeMatchingValues } from '../utils/salaryUtils.js';
@@ -43,6 +46,13 @@ import {
   getCapSettings,
   CAP_SETTINGS_VERSION,
 } from '../utils/capSettingsProvider.js';
+import {
+  createValidationIssue,
+  getFirstValidationIssueText,
+  getValidationIssueText,
+  normalizeValidationIssues,
+  summarizeValidationIssues,
+} from '../utils/validationIssueText.js';
 
 /**
  * TRADE VALIDATOR
@@ -122,6 +132,198 @@ function resolvePlayerDestinationTeamId(player) {
   return normalizeTeamCodeLike(
     player?.tradeTo ?? player?.toTeamId ?? player?.destTeamId
   );
+}
+
+function normalizeTradeValidationDate(value) {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+
+  if (typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : trimmed;
+  }
+
+  return null;
+}
+
+function getDeterministicValidationDate(currentYear) {
+  return `${currentYear - 1}-07-15`;
+}
+
+function deriveSeasonStateFromDate(asOfDate) {
+  const normalizedDate = normalizeTradeValidationDate(asOfDate);
+  if (!normalizedDate) {
+    return {
+      offseason: true,
+      seasonState: 'unknown',
+    };
+  }
+
+  const parsed = new Date(normalizedDate);
+  if (Number.isNaN(parsed.getTime())) {
+    return {
+      offseason: true,
+      seasonState: 'unknown',
+    };
+  }
+
+  const month = parsed.getUTCMonth();
+  const day = parsed.getUTCDate();
+
+  if (month === 6 && day >= 1 && day <= 6) {
+    return {
+      offseason: false,
+      seasonState: 'moratorium',
+    };
+  }
+
+  if (
+    (month === 6 && day >= 7) ||
+    month === 7 ||
+    month === 8 ||
+    (month === 9 && day <= 15)
+  ) {
+    return {
+      offseason: true,
+      seasonState: 'offseason',
+    };
+  }
+
+  return {
+    offseason: false,
+    seasonState: 'inSeason',
+  };
+}
+
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj || {}, key);
+}
+
+function normalizeArrayInput(values) {
+  if (values == null) return [];
+  return Array.isArray(values) ? values.filter((value) => value != null) : [values];
+}
+
+function createRuleEnvelope(ruleKey, rawResult, label) {
+  if (Array.isArray(rawResult)) {
+    const violations = normalizeValidationIssues(rawResult, {
+      rule: ruleKey,
+      severity: 'error',
+    });
+    return {
+      key: ruleKey,
+      sourceType: 'enforcement',
+      passed: violations.length === 0,
+      violations,
+      warnings: [],
+      message: getFirstValidationIssueText(violations, `${label} validated`),
+      details: null,
+    };
+  }
+
+  if (!rawResult || typeof rawResult !== 'object') {
+    return {
+      key: ruleKey,
+      sourceType: 'validator',
+      passed: true,
+      violations: [],
+      warnings: [],
+      message: `${label} validated`,
+      details: null,
+    };
+  }
+
+  const violations = normalizeValidationIssues(rawResult.violations, {
+    rule: ruleKey,
+    severity: 'error',
+  });
+  const warnings = normalizeValidationIssues(rawResult.warnings, {
+    rule: ruleKey,
+    severity: 'warning',
+  });
+  const passed = hasOwn(rawResult, 'passed')
+    ? rawResult.passed
+    : violations.length === 0;
+  const details = hasOwn(rawResult, 'details') ? rawResult.details : null;
+  const message =
+    rawResult.message ||
+    getFirstValidationIssueText(violations) ||
+    getFirstValidationIssueText(warnings) ||
+    `${label} validated`;
+
+  return {
+    key: ruleKey,
+    sourceType: rawResult.sourceType || 'validator',
+    ...rawResult,
+    passed,
+    violations,
+    warnings,
+    message,
+    details,
+  };
+}
+
+function buildValidationResult({
+  legal,
+  reason,
+  error = null,
+  violations = [],
+  warnings = [],
+  teamResults = [],
+  summaryByTeamIndex = [],
+  validationTime,
+  tradeReceipt = null,
+  dataWarnings = [],
+  context = {},
+}) {
+  const normalizedViolations = normalizeValidationIssues(violations, {
+    severity: 'error',
+  });
+  const normalizedWarnings = normalizeValidationIssues(warnings, {
+    severity: 'warning',
+  });
+  const normalizedDataWarnings = normalizeArrayInput(dataWarnings);
+  const normalizedSeason =
+    context.normalizedYear?.seasonString || yearToSeason(context.currentYear);
+
+  return {
+    legal,
+    valid: legal,
+    error,
+    reason:
+      reason ||
+      (legal
+        ? 'Valid trade'
+        : getFirstValidationIssueText(normalizedViolations) ||
+          'Trade validation failed'),
+    violations: normalizedViolations,
+    warnings: normalizedWarnings,
+    teamResults,
+    summaryByTeamIndex,
+    performance: { validationTime },
+    tradeReceipt,
+    dataWarnings: normalizedDataWarnings,
+    hasDataIssues: normalizedDataWarnings.length > 0,
+    yearKey: context.currentYear ?? null,
+    seasonKey: normalizedSeason ?? null,
+    capSettings: context.capSettings || null,
+    capSettingsSource: context.capSettingsSource || null,
+    capSettingsWarnings: normalizeArrayInput(context.capSettingsWarnings),
+    asOfDate: context.asOfDate || null,
+    tradeDate: context.tradeDate || null,
+    offseason:
+      typeof context.offseason === 'boolean' ? context.offseason : null,
+  };
 }
 
 function shouldRoutePlayerToTeam({
@@ -269,6 +471,7 @@ const baseValidators = {
   validateHardCap,
   validateStepien,
   validateCash,
+  validateFaExceptionUsage,
   validateTradeExceptions,
   validateSignAndTrade,
   validateConsent,
@@ -580,38 +783,25 @@ export function validateTrade({
   tradeCtx = {},
 }) {
   const startTime = performance.now();
+  const rawTradeCtx = tradeCtx && typeof tradeCtx === 'object' ? tradeCtx : {};
+  const resolvedYearInput =
+    currentYear ?? rawTradeCtx.currentYear ?? rawTradeCtx.yearKey ?? 2025;
+  const normalizedYear = normalizeYearInput(resolvedYearInput);
+  const resolvedCurrentYear = normalizedYear?.endYear || 2025;
+  const canonicalAsOfDate =
+    normalizeTradeValidationDate(
+      rawTradeCtx.asOfDate || rawTradeCtx.tradeDate
+    ) || getDeterministicValidationDate(resolvedCurrentYear);
+  const canonicalTradeDate =
+    normalizeTradeValidationDate(rawTradeCtx.tradeDate) || canonicalAsOfDate;
+  const seasonState = deriveSeasonStateFromDate(canonicalAsOfDate);
+  const canonicalOffseason =
+    typeof rawTradeCtx.offseason === 'boolean'
+      ? rawTradeCtx.offseason
+      : seasonState.offseason;
 
-  // Input validation
-  if (!teams || !Array.isArray(teams) || teams.length < 2) {
-    return {
-      legal: false,
-      error: 'INVALID_INPUT',
-      violations: ['Trade must include at least 2 teams'],
-      teamResults: [],
-      summaryByTeamIndex: [],
-      reason: 'Invalid trade: Need at least 2 teams',
-      performance: { validationTime: performance.now() - startTime },
-    };
-  }
-
-  // Filter to only teams that actually have team data
-  const validTeams = teams.filter((team) => team && team.team);
-  if (validTeams.length < 2) {
-    return {
-      legal: false,
-      error: 'INVALID_INPUT',
-      violations: ['Trade must include at least 2 valid teams'],
-      teamResults: [],
-      summaryByTeamIndex: [],
-      reason: 'Invalid trade: Need at least 2 valid teams',
-      performance: { validationTime: performance.now() - startTime },
-    };
-  }
-
-  // Initialize context for validation
-  // Phase 4: Use centralized cap settings provider for explicit sourcing
   const capSettingsResult = getCapSettings({
-    year: currentYear,
+    year: resolvedCurrentYear,
     capProjections,
   });
   const capSettings = capSettingsResult.settings;
@@ -627,25 +817,97 @@ export function validateTrade({
     );
   }
 
-  // Normalize year input to provide both formats consistently to all validators
-  // This eliminates format conversion duplication across validator files
-  const normalizedYear = normalizeYearInput(currentYear);
+  const baseContext = {
+    capProjections: capProjections || {},
+    ...rawTradeCtx,
+    currentYear: resolvedCurrentYear,
+    yearKey: resolvedCurrentYear,
+    asOfDate: canonicalAsOfDate,
+    tradeDate: canonicalTradeDate,
+    offseason: canonicalOffseason,
+    seasonState: rawTradeCtx.seasonState || seasonState.seasonState,
+    capSettings,
+    capSettingsSource: capSettingsResult.source,
+    capSettingsWarnings: capSettingsResult.warnings,
+    normalizedYear: normalizedYear || {
+      endYear: resolvedCurrentYear,
+      seasonString: yearToSeason(resolvedCurrentYear),
+    },
+    teams: [],
+  };
+
+  const finishValidation = ({
+    legal,
+    reason,
+    error = null,
+    violations = [],
+    warnings = [],
+    teamResults = [],
+    summaryByTeamIndex = [],
+    tradeReceipt = null,
+    dataWarnings = [],
+    context = baseContext,
+  }) =>
+    buildValidationResult({
+      legal,
+      reason,
+      error,
+      violations,
+      warnings,
+      teamResults,
+      summaryByTeamIndex,
+      validationTime: performance.now() - startTime,
+      tradeReceipt,
+      dataWarnings,
+      context,
+    });
+
+  // Input validation
+  if (!teams || !Array.isArray(teams) || teams.length < 2) {
+    return finishValidation({
+      legal: false,
+      error: 'INVALID_INPUT',
+      violations: normalizeValidationIssues(
+        [
+          createValidationIssue(
+            'Trade must include at least 2 teams',
+            {
+              rule: 'inputValidation',
+              severity: 'error',
+            }
+          ),
+        ],
+        { rule: 'inputValidation', severity: 'error' }
+      ),
+      reason: 'Invalid trade: Need at least 2 teams',
+    });
+  }
+
+  // Filter to only teams that actually have team data
+  const validTeams = teams.filter((team) => team && team.team);
+  if (validTeams.length < 2) {
+    return finishValidation({
+      legal: false,
+      error: 'INVALID_INPUT',
+      violations: normalizeValidationIssues(
+        [
+          createValidationIssue(
+            'Trade must include at least 2 valid teams',
+            {
+              rule: 'inputValidation',
+              severity: 'error',
+            }
+          ),
+        ],
+        { rule: 'inputValidation', severity: 'error' }
+      ),
+      reason: 'Invalid trade: Need at least 2 valid teams',
+    });
+  }
 
   const context = {
-    capProjections: capProjections || {},
-    currentYear: currentYear || 2025,
-    offseason: true, // Default to offseason for sign-and-trade validation
-    capSettings,
-    capSettingsSource: capSettingsResult.source, // Track source for debugging
-    capSettingsWarnings: capSettingsResult.warnings, // Track any warnings
-    yearKey: currentYear,
-    // Provide both normalized formats for validators
-    normalizedYear: normalizedYear || {
-      endYear: currentYear || 2025,
-      seasonString: yearToSeason(currentYear || 2025),
-    },
+    ...baseContext,
     teams: validTeams, // Add teams to context for consent validation
-    ...tradeCtx,
   };
 
   const teamIdsByIndex = validTeams.map((teamSlot, index) =>
@@ -708,7 +970,7 @@ export function validateTrade({
         // This ensures all teams use the same cap settings
         capSettings: context.capSettings,
         capSettingsSource: context.capSettingsSource,
-        yearKey: currentYear,
+        yearKey: resolvedCurrentYear,
       },
     };
   });
@@ -719,7 +981,7 @@ export function validateTrade({
   // GAP-DATA-001/002: Now also captures data validation warnings
   const matchingValuesResult = computeMatchingValues({
     teams: teamsWithAssets,
-    yearKey: currentYear,
+    yearKey: resolvedCurrentYear,
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
   });
@@ -735,16 +997,21 @@ export function validateTrade({
 
   // If entitlement routing validation fails, return early with blocking error
   if (!entitlementRoutingResult.valid) {
-    return {
+    return finishValidation({
       legal: false,
       error: 'ENTITLEMENT_ROUTING_ERROR',
-      violations: entitlementRoutingResult.errors,
-      warnings: entitlementRoutingResult.warnings,
-      teamResults: [],
-      summaryByTeamIndex: [],
+      violations: normalizeValidationIssues(entitlementRoutingResult.errors, {
+        rule: 'entitlementRouting',
+        severity: 'error',
+      }),
+      warnings: normalizeValidationIssues(entitlementRoutingResult.warnings, {
+        rule: 'entitlementRouting',
+        severity: 'warning',
+      }),
       reason: entitlementRoutingResult.errors[0] || 'Entitlement routing error',
-      performance: { validationTime: performance.now() - startTime },
-    };
+      dataWarnings,
+      context,
+    });
   }
 
   // E2: Linked/residual integrity and linked package completeness are blocking legality.
@@ -753,17 +1020,23 @@ export function validateTrade({
   });
 
   if (!entitlementLinkageResult.valid) {
-    return {
+    return finishValidation({
       legal: false,
       error: 'ENTITLEMENT_LINKAGE_ERROR',
-      violations: entitlementLinkageResult.errors,
-      warnings: entitlementLinkageResult.warnings,
-      teamResults: [],
-      summaryByTeamIndex: [],
+      violations: normalizeValidationIssues(entitlementLinkageResult.errors, {
+        rule: 'entitlementLinkage',
+        severity: 'error',
+      }),
+      warnings: normalizeValidationIssues(entitlementLinkageResult.warnings, {
+        rule: 'entitlementLinkage',
+        severity: 'warning',
+      }),
       reason:
-        entitlementLinkageResult.errors[0] || 'Entitlement linkage validation error',
-      performance: { validationTime: performance.now() - startTime },
-    };
+        entitlementLinkageResult.errors[0] ||
+        'Entitlement linkage validation error',
+      dataWarnings,
+      context,
+    });
   }
 
   // Phase A5-E1: Validate player routing (uniqueness, no duplicates, destinations)
@@ -774,17 +1047,37 @@ export function validateTrade({
 
   // If player routing validation fails, return early with blocking error
   if (!playerRoutingResult.valid) {
-    return {
+    return finishValidation({
       legal: false,
       error: 'PLAYER_ROUTING_ERROR',
-      violations: playerRoutingResult.errors,
-      warnings: playerRoutingResult.warnings,
-      teamResults: [],
-      summaryByTeamIndex: [],
+      violations: normalizeValidationIssues(playerRoutingResult.errors, {
+        rule: 'playerRouting',
+        severity: 'error',
+      }),
+      warnings: normalizeValidationIssues(playerRoutingResult.warnings, {
+        rule: 'playerRouting',
+        severity: 'warning',
+      }),
       reason: playerRoutingResult.errors[0] || 'Player routing error',
-      performance: { validationTime: performance.now() - startTime },
-    };
+      dataWarnings,
+      context,
+    });
   }
+
+  const crossTradeWarnings = [
+    ...normalizeValidationIssues(entitlementRoutingResult.warnings, {
+      rule: 'entitlementRouting',
+      severity: 'warning',
+    }),
+    ...normalizeValidationIssues(entitlementLinkageResult.warnings, {
+      rule: 'entitlementLinkage',
+      severity: 'warning',
+    }),
+    ...normalizeValidationIssues(playerRoutingResult.warnings, {
+      rule: 'playerRouting',
+      severity: 'warning',
+    }),
+  ];
 
   // Second pass: calculate salaryOut and salaryIn using the canonical matching values
   teamsWithAssets.forEach((team, index) => {
@@ -795,7 +1088,7 @@ export function validateTrade({
       // Use matchOutgoing (set by computeMatchingValues) or fallback to base salary
       const matchingValue =
         player.matchOutgoing ??
-        getSalaryForYear(player, currentYear || 2025) ??
+        getSalaryForYear(player, resolvedCurrentYear) ??
         0;
       return sum + matchingValue;
     }, 0);
@@ -818,7 +1111,7 @@ export function validateTrade({
 
         const matchingValue =
           player.matchIncoming ??
-          getSalaryForYear(player, currentYear || 2025) ??
+          getSalaryForYear(player, resolvedCurrentYear) ??
           0;
         salaryIn += matchingValue;
       });
@@ -859,29 +1152,83 @@ export function validateTrade({
       });
     }
 
+    const teamForValidation = {
+      ...team,
+      notes: Array.isArray(team.notes) ? [...team.notes] : team.notes,
+      team:
+        team.team && typeof team.team === 'object'
+          ? {
+              ...team.team,
+              faExceptionBuckets: Array.isArray(team.team.faExceptionBuckets)
+                ? team.team.faExceptionBuckets.map((bucket) => ({ ...bucket }))
+                : team.team.faExceptionBuckets,
+              hardCapFirstApron: team.team.hardCapFirstApron
+                ? { ...team.team.hardCapFirstApron }
+                : team.team.hardCapFirstApron,
+            }
+          : team.team,
+    };
+
+    const faExceptionUsageViolations = validators.validateFaExceptionUsage(
+      teamForValidation,
+      context
+    );
+    const faExceptionUsageResult = Array.isArray(
+      faExceptionUsageViolations
+    )
+      ? {
+          passed: faExceptionUsageViolations.length === 0,
+          violations: faExceptionUsageViolations,
+          message:
+            faExceptionUsageViolations[0] ||
+            'FA exception trade absorption validated',
+        }
+      : faExceptionUsageViolations;
+    teamForValidation.faExceptionValidation = faExceptionUsageResult;
+
     // Run individual validation rules
     const salaryMatchingResult = validators.validateSalaryMatching(
-      team,
+      teamForValidation,
       context
     );
-    const hardCapResult = validators.validateHardCap(team, context);
-    const stepienResult = validators.validateStepien(team, context);
-    const cashResult = validators.validateCash(team, context);
+    const hardCapResult = validators.validateHardCap(teamForValidation, context);
+    const stepienResult = validators.validateStepien(teamForValidation, context);
+    const cashResult = validators.validateCash(teamForValidation, context);
     const tradeExceptionsResult = validators.validateTradeExceptions(
-      team,
+      teamForValidation,
       context
     );
-    const signAndTradeResult = validators.validateSignAndTrade(team, context);
-    const consentResult = validators.validateConsent(team, context);
-    const reacquisitionResult = validators.validateReacquisition(team, context);
-    const aggregationResult = validators.validateAggregation(team, context);
+    // Sign-and-trade owns all S&T-specific season/timing restrictions.
+    const signAndTradeResult = validators.validateSignAndTrade(
+      teamForValidation,
+      context
+    );
+    const consentResult = validators.validateConsent(teamForValidation, context);
+    const reacquisitionResult = validators.validateReacquisition(
+      teamForValidation,
+      context
+    );
+    const aggregationResult = validators.validateAggregation(
+      teamForValidation,
+      context
+    );
 
     // Enforcement rules
-    const consentEnforcement = validators.enforceConsent(team, context);
-    const eligibilityEnforcement = validators.enforceEligibility(team, context);
-    const timingEnforcement = validators.enforceTiming(team, context);
+    const consentEnforcement = validators.enforceConsent(
+      teamForValidation,
+      context
+    );
+    const eligibilityEnforcement = validators.enforceEligibility(
+      teamForValidation,
+      context
+    );
+    // Generic trade timing gates remain here; S&T-specific timing no longer lives in timingEnforcement.
+    const timingEnforcement = validators.enforceTiming(
+      teamForValidation,
+      context
+    );
     const secondApronEnforcement = validators.enforceSecondApronHandcuffs(
-      team,
+      teamForValidation,
       context
     );
 
@@ -962,14 +1309,7 @@ export function validateTrade({
         return {
           passed: false,
           details: messages.join('; '),
-          violations: exclusivityResult.violations.map((v) => ({
-            message: v.message,
-            type: v.type,
-            entitlementIds: v.entitlementIds,
-            claimsA: v.claimsA,
-            claimsB: v.claimsB,
-            conflictExplanation: v.conflictExplanation,
-          })),
+          violations: exclusivityResult.violations,
         };
       } catch (err) {
         // Integrity-first (TM-EXCL-E1.1 + E2): if routing or post-trade computation fails, BLOCK the trade.
@@ -995,44 +1335,83 @@ export function validateTrade({
       }
     })();
 
-    // Aggregate violations and warnings
     const allRules = {
-      salaryMatching: salaryMatchingResult,
-      hardCap: hardCapResult,
-      stepienRule: stepienResult,
-      cash: cashResult,
-      tradeExceptions: tradeExceptionsResult,
-      signAndTrade: signAndTradeResult,
-      consent: consentResult,
-      reacquisition: reacquisitionResult,
-      aggregation: aggregationResult,
-      consentEnforcement,
-      eligibilityEnforcement,
-      timingEnforcement,
-      secondApronEnforcement,
-      entitlementExclusivity: entitlementExclusivityResult,
-      rosterCount: rosterCountResult,
+      salaryMatching: createRuleEnvelope(
+        'salaryMatching',
+        salaryMatchingResult,
+        'Salary Matching'
+      ),
+      hardCap: createRuleEnvelope('hardCap', hardCapResult, 'Hard Cap'),
+      stepienRule: createRuleEnvelope(
+        'stepienRule',
+        stepienResult,
+        'Stepien Rule'
+      ),
+      cash: createRuleEnvelope('cash', cashResult, 'Cash Inclusion'),
+      faExceptionUsage: createRuleEnvelope(
+        'faExceptionUsage',
+        faExceptionUsageResult,
+        'FA Exception Usage'
+      ),
+      tradeExceptions: createRuleEnvelope(
+        'tradeExceptions',
+        tradeExceptionsResult,
+        'Trade Exceptions'
+      ),
+      signAndTrade: createRuleEnvelope(
+        'signAndTrade',
+        signAndTradeResult,
+        'Sign-and-Trade'
+      ),
+      consent: createRuleEnvelope('consent', consentResult, 'Player Consent'),
+      reacquisition: createRuleEnvelope(
+        'reacquisition',
+        reacquisitionResult,
+        'Reacquisition'
+      ),
+      aggregation: createRuleEnvelope(
+        'aggregation',
+        aggregationResult,
+        'Aggregation'
+      ),
+      consentEnforcement: createRuleEnvelope(
+        'consentEnforcement',
+        consentEnforcement,
+        'Consent Enforcement'
+      ),
+      eligibilityEnforcement: createRuleEnvelope(
+        'eligibilityEnforcement',
+        eligibilityEnforcement,
+        'Eligibility Enforcement'
+      ),
+      timingEnforcement: createRuleEnvelope(
+        'timingEnforcement',
+        timingEnforcement,
+        'Timing Restrictions'
+      ),
+      secondApronEnforcement: createRuleEnvelope(
+        'secondApronEnforcement',
+        secondApronEnforcement,
+        'Second Apron Restrictions'
+      ),
+      entitlementExclusivity: createRuleEnvelope(
+        'entitlementExclusivity',
+        entitlementExclusivityResult,
+        'Pick Exclusivity'
+      ),
+      rosterCount: createRuleEnvelope(
+        'rosterCount',
+        rosterCountResult,
+        'Roster Count'
+      ),
     };
 
-    const violations = [];
-    const warnings = [];
-
-    // Collect violations and warnings from all rules
-    // Handle both array returns (enforcement functions) and object returns (validators)
-    Object.values(allRules).forEach((rule) => {
-      if (rule) {
-        if (Array.isArray(rule)) {
-          // Enforcement functions return arrays directly
-          violations.push(...rule);
-        } else if (rule.violations) {
-          // Validators return objects with violations property
-          violations.push(...rule.violations);
-        }
-        if (rule.warnings) {
-          warnings.push(...rule.warnings);
-        }
-      }
-    });
+    const violations = Object.values(allRules).flatMap(
+      (rule) => rule?.violations || []
+    );
+    const warnings = Object.values(allRules).flatMap(
+      (rule) => rule?.warnings || []
+    );
 
     const isTeamLegal = violations.length === 0;
 
@@ -1049,8 +1428,14 @@ export function validateTrade({
       },
     };
 
+    const totalSalary =
+      team.team?.teamTotalSalary || team.team?.totalSalary || 0;
+    const projectedSalary = team.projectedSalary || 0;
+    const apronStatus = getApronStatus(projectedSalary, context.capSettings);
+
     return {
       teamId,
+      teamCode: teamId,
       teamName,
       legal: isTeamLegal,
       violations,
@@ -1058,23 +1443,33 @@ export function validateTrade({
       rules: allRules,
       salaryOut: team.salaryOut || 0,
       salaryIn: team.salaryIn || 0,
+      outgoingPlayers: team.outgoingPlayers || [],
+      incomingPlayers: team.incomingPlayers || [],
       calculations,
-      totalSalary: team.team?.teamTotalSalary || team.team?.totalSalary || 0,
-      projectedSalary: team.projectedSalary || 0,
+      totalSalary,
+      projectedSalary,
       capRoom: Math.max(
         0,
-        (context.capProjections?.salaryCap || 141000000) -
-          (team.projectedSalary || 0)
+        (context.capSettings?.salaryCap || 141000000) - projectedSalary
       ),
-      hardCapped:
-        team.team?.hardCapped || signAndTradeResult?.hardCapped || false,
+      hardCapped: Boolean(
+        teamForValidation.team?.hardCapped ||
+          teamForValidation.team?.hardCapFirstApron?.active ||
+          signAndTradeResult?.hardCapped ||
+          hardCapResult?.hardCapStatus?.isHardCapped
+      ),
+      apronStatus,
+      faExceptionBuckets: teamForValidation.team?.faExceptionBuckets || [],
+      notes: Array.isArray(teamForValidation.notes) ? teamForValidation.notes : [],
       createdTPE: (() => {
         // TPE is created when team sends out more salary than received and is over cap
         const salaryOut = team.salaryOut || 0;
         const salaryIn = team.salaryIn || 0;
         const teamTotalSalary = team.teamTotalSalary || 0;
         const salaryCap =
-          context.capProjections?.cap || context.capSettings?.cap || 141000000;
+          context.capProjections?.salaryCap ||
+          context.capSettings?.salaryCap ||
+          141000000;
         const isOverCap = teamTotalSalary > salaryCap;
 
         return createTPE({
@@ -1086,8 +1481,8 @@ export function validateTrade({
       })(),
       details: isTeamLegal
         ? 'Valid trade for this team'
-        : violations.join('; '),
-      warningDetails: warnings.join('; '),
+        : summarizeValidationIssues(violations, 'Trade validation failed'),
+      warningDetails: summarizeValidationIssues(warnings),
     };
   });
 
@@ -1106,16 +1501,27 @@ export function validateTrade({
       playersOut,
       playersIn,
       capDelta,
+      teamId: resolveTeamIdentity(team, index),
+      teamCode: resolveTeamIdentity(team, index),
+      legal: teamResults[index]?.legal ?? true,
+      violations: teamResults[index]?.violations || [],
+      warnings: teamResults[index]?.warnings || [],
       teamName: team.team?.teamName || team.team?.name || `Team ${index}`,
     };
   });
 
   // Determine overall trade legality
   const isOverallLegal = teamResults.every((result) => result.legal);
-  const firstViolation = teamResults.find((result) => !result.legal);
+  const topLevelViolations = teamResults.flatMap(
+    (result) => result.violations || []
+  );
+  const topLevelWarnings = [
+    ...crossTradeWarnings,
+    ...teamResults.flatMap((result) => result.warnings || []),
+  ];
   const reason = isOverallLegal
     ? 'Valid trade'
-    : firstViolation?.violations?.[0] || 'Trade validation failed';
+    : getFirstValidationIssueText(topLevelViolations, 'Trade validation failed');
 
   const validationTime = performance.now() - startTime;
 
@@ -1129,18 +1535,18 @@ export function validateTrade({
     validationTime,
   });
 
-  const result = {
+  const result = finishValidation({
     legal: isOverallLegal,
+    error: null,
+    violations: topLevelViolations,
+    warnings: topLevelWarnings,
     teamResults,
     summaryByTeamIndex,
     reason,
-    performance: { validationTime },
-    // Include trade receipt for debugging
     tradeReceipt,
-    // GAP-DATA-001/002: Include data validation warnings for UI display
     dataWarnings,
-    hasDataIssues: dataWarnings.length > 0,
-  };
+    context,
+  });
 
   // Phase 15: Legacy pick arrays (picksOut, incomingPicks, outgoingPicks) are IGNORED.
   // Draft-asset validation is entitlements-only. Legacy test cases removed.

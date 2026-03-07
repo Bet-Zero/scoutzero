@@ -1,6 +1,10 @@
 /**
  * Comprehensive timing validation and enforcement
  * Consolidated from: enforceTiming.js + timingGates.js + validateTiming.js
+ *
+ * OWNERSHIP:
+ * - Generic trade timing restrictions live here.
+ * - Sign-and-trade-specific season/timing gates live in validateSignAndTrade.js.
  */
 
 import { validationFlags } from '@/config/validationFlags.js';
@@ -10,6 +14,10 @@ import {
   violates30Day,
   violates2MonthAggregation,
 } from '@/features/architect/utils/timingUtils.js';
+import {
+  getJanuary15RestrictionDate,
+  resolveTradeTimingDate,
+} from '../utils/tradeTimingWindows.js';
 
 /**
  * Core timing validation logic
@@ -17,8 +25,7 @@ import {
  */
 export function validateTiming(team, ctx = {}) {
   const violations = [];
-  const { asOfDate = new Date().toISOString(), tradeDate } = ctx;
-  const tradeDateObj = new Date(tradeDate || asOfDate);
+  const tradeDateObj = resolveTradeTimingDate(ctx);
 
   // Check trade moratorium period (July 1-6)
   if (
@@ -66,17 +73,13 @@ export function validateTiming(team, ctx = {}) {
       }
     }
 
-    // Check Jan 15 restriction for recently extended players or sign-and-trade
-    if (player.isRecentlyExtended || player.signAndTrade) {
-      // Jan 15 restriction applies to the upcoming season's Jan 15 for offseason trades
-      // For offseason trades (July-December, months 6-11), use next year's Jan 15
-      // For in-season trades (January-June, months 0-5), use current year's Jan 15
-      const tradeMonth = tradeDateObj.getMonth();
-      const yearOffset = tradeMonth >= 6 ? 1 : 0; // Months 6-11 (July-December) -> next year
-      const jan15 = new Date(tradeDateObj.getFullYear() + yearOffset, 0, 15);
+    // Jan 15 restriction for recently extended players.
+    // Sign-and-trade-specific Jan 15 ownership lives in validateSignAndTrade().
+    if (player.isRecentlyExtended) {
+      const jan15 = getJanuary15RestrictionDate(tradeDateObj);
       if (tradeDateObj < jan15) {
         violations.push(
-          `${player.name || 'Player'} cannot be traded until January 15 (sign-and-trade/extension)`
+          `${player.name || 'Player'} cannot be traded until January 15 (recent extension)`
         );
       }
     }

@@ -8,6 +8,10 @@ import {
   resolveSignAndTradeContractPayload,
   validateSignAndTradeContractPayload,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import {
+  getJanuary15RestrictionDate,
+  resolveTradeTimingDate,
+} from '../utils/tradeTimingWindows.js';
 
 function resolveTeamId(team) {
   return (
@@ -42,6 +46,7 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
   const violations = [];
   let hasSignAndTrade = false;
   let hardCapped = false;
+  const tradeDateObj = resolveTradeTimingDate(tradeCtx);
 
   const incomingSignAndTradePlayers = (team.incomingPlayers || []).filter(
     (player) => player.signAndTrade === true
@@ -152,6 +157,13 @@ export function validateSignAndTrade(team, tradeCtx = {}) {
   };
 
   outgoingSignAndTradePlayers.forEach((player) => {
+    const jan15RestrictionDate = getJanuary15RestrictionDate(tradeDateObj);
+    if (tradeDateObj < jan15RestrictionDate) {
+      violations.push(
+        `${player.name || 'Player'} cannot be traded until January 15 (sign-and-trade)`
+      );
+    }
+
     // Rule 3: Must be free-agent/cap-hold eligible by canonical status resolver
     const eligibility = isSignAndTradeEligible({
       player,

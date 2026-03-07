@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -19,6 +20,8 @@ const makeTeam = (name, totalSalary, players, extra = {}) => ({
   players,
   ...extra,
 });
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 describe('roster legality via validateTrade', () => {
   it('blocks trade that pushes a team over max standard roster (15)', () => {
@@ -51,7 +54,7 @@ describe('roster legality via validateTrade', () => {
     expect(teamAResult.rules.rosterCount).toBeDefined();
     expect(teamAResult.rules.rosterCount.passed).toBe(false);
     expect(
-      teamAResult.rules.rosterCount.violations.some((v) =>
+      issueTexts(teamAResult.rules.rosterCount.violations).some((v) =>
         v.includes('exceeds maximum')
       )
     ).toBe(true);
@@ -88,7 +91,7 @@ describe('roster legality via validateTrade', () => {
     expect(teamAResult.rules.rosterCount).toBeDefined();
     expect(teamAResult.rules.rosterCount.passed).toBe(false);
     expect(
-      teamAResult.rules.rosterCount.violations.some((v) =>
+      issueTexts(teamAResult.rules.rosterCount.violations).some((v) =>
         v.includes('below minimum')
       )
     ).toBe(true);
@@ -132,7 +135,7 @@ describe('roster legality via validateTrade', () => {
     expect(teamAResult.rules.rosterCount).toBeDefined();
     expect(teamAResult.rules.rosterCount.passed).toBe(false);
     expect(
-      teamAResult.rules.rosterCount.violations.some((v) =>
+      issueTexts(teamAResult.rules.rosterCount.violations).some((v) =>
         v.includes('Two-way')
       )
     ).toBe(true);

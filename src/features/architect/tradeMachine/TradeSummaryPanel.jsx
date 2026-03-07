@@ -26,6 +26,10 @@ import {
   projectEntitlementToPickRow,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
+import {
+  getValidationIssueText,
+  normalizeValidationIssues,
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 // TM_DATAWARN_UI_E1: Data warnings display
 import DataWarningsSection from './DataWarningsSection';
 
@@ -41,11 +45,15 @@ function TradeSummaryPanel({
 }) {
   if (!result) return null;
 
+  const overrideState = result.override || {};
+  const hasOverrideRequest = Boolean(forceTrade || overrideState.requested);
+  const topLevelViolations = normalizeValidationIssues(result.violations);
+
   // Top status banner text
-  const topStatus = forceTrade
-    ? '⚠️ Trade Forced – Not CBA Legal'
-    : result.legal
-      ? '✅ Trade is CBA Legal'
+  const topStatus = result.legal
+    ? '✅ Trade is CBA Legal'
+    : hasOverrideRequest
+      ? '⚠️ Override Requested – Trade is Still Not CBA Legal'
       : '❌ Trade is NOT CBA Legal';
 
   return (
@@ -53,10 +61,15 @@ function TradeSummaryPanel({
       {/* Top Status Message */}
       <div>
         <strong className="text-base">{topStatus}</strong>
-        {!result.legal && !forceTrade && (
+        {!result.legal && !hasOverrideRequest && (
           <div className="text-xs text-white/60 mt-1">
-            Fix the issues below or toggle Force Trade to proceed (for sandbox
-            testing).
+            Fix the issues below before applying the trade.
+          </div>
+        )}
+        {!result.legal && hasOverrideRequest && (
+          <div className="text-xs text-amber-300/80 mt-1">
+            {overrideState.message ||
+              'Override state is tracked separately. It does not change authoritative legality.'}
           </div>
         )}
       </div>
@@ -69,13 +82,13 @@ function TradeSummaryPanel({
       />
 
       {/* Rule Explanations (surface-level) */}
-      {showRuleExplanations && result?.failures?.length > 0 && (
+      {showRuleExplanations && topLevelViolations.length > 0 && (
         <div className="bg-[#121212] border border-red-500/30 rounded p-3">
           <div className="font-semibold mb-2">Why it fails</div>
           <ul className="list-disc list-inside space-y-1">
-            {result.failures.map((f, idx) => (
+            {topLevelViolations.map((violation, idx) => (
               <li key={idx} className="text-red-300">
-                {f.message || f.reason || String(f)}
+                {getValidationIssueText(violation)}
               </li>
             ))}
           </ul>

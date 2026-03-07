@@ -48,8 +48,19 @@
 /**
  * @typedef {Object} TeamResult
  * @property {Object} [createdTPE] - Created TPE object if salary mismatch (for over-cap teams)
- * @property {Object} [rules] - Validation rules results including tradeExceptions
- * @property {Array} [violations] - Array of violation objects
+ * @property {Object} [rules] - Canonical per-rule envelopes for this team
+ * @property {ValidationIssue[]} [violations] - Team-level blocking violations
+ * @property {ValidationIssue[]} [warnings] - Team-level warnings
+ */
+
+/**
+ * @typedef {Object} ValidationIssue
+ * @property {string} message - Human-readable issue text
+ * @property {'error'|'warning'} severity - Canonical issue severity
+ * @property {string} rule - Canonical rule family that emitted the issue
+ * @property {string} code - Stable machine-readable issue code
+ * @property {*} [details] - Optional rule-specific details
+ * @property {Object|null} [meta] - Optional rule-specific structured metadata
  */
 
 /**
@@ -60,11 +71,18 @@
  *
  * @property {boolean} legal - Is the trade legal?
  * @property {boolean} valid - Alias for legal (for compatibility)
- * @property {string|null} reason - Reason if not legal
- * @property {string|null} error - Error message if not legal
- * @property {Array} violations - Validation violations (flattened from teamResults)
- * @property {Array} warnings - Validation warnings
- * @property {TeamResult[]} teamResults - Per-team validation results (createdTPE, rules.tradeExceptions)
+ * @property {string|null} reason - Canonical validation summary reason
+ * @property {string|null} error - Machine-readable error code or fallback message
+ * @property {ValidationIssue[]} violations - Canonical top-level validation violations
+ * @property {ValidationIssue[]} warnings - Canonical top-level validation warnings
+ * @property {TeamResult[]} teamResults - Per-team validation results with canonical rule envelopes
+ * @property {Array} summaryByTeamIndex - Canonical per-team summary rows
+ * @property {Object|null} capSettings - Cap thresholds used by validation
+ * @property {string|null} capSettingsSource - Source of cap thresholds
+ * @property {Array} capSettingsWarnings - Cap-setting resolution warnings
+ * @property {Array} dataWarnings - Data-quality warnings from matching calculations
+ * @property {boolean} hasDataIssues - Whether data warnings were emitted
+ * @property {Object|null} tradeReceipt - Debug receipt from validateTrade()
  * @property {ValidationTeam[]} validationTeams - The validated teams with matchIncoming populated
  * @property {Object} [_rawValidation] - Raw validation result (for debugging)
  * @property {boolean} _isValidatedTradeContext - Sentinel flag, MUST be true (Phase 56/58)

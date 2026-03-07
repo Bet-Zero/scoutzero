@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const makePlayer = (name, salary, year) => ({
   name,
@@ -21,6 +22,8 @@ const makeTeam = (id, name, totalSalary, year, rosterSize = 14) => ({
   picks: [],
 });
 
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+
 function runPickTrade(pick, currentYear) {
   const teamA = makeTeam(1, 'A', 220_000_000, currentYear); // Above 2025 second apron threshold
   const teamB = makeTeam(2, 'B', 100_000_000, currentYear);
@@ -39,7 +42,7 @@ describe('frozen pick consequences', () => {
     const pick = { year: 2032, round: 1, teamId: 1 };
     const res = runPickTrade(pick, 2025);
     expect(res.teamResults[0].legal).toBe(false);
-    expect(res.teamResults[0].violations).toContain(
+    expect(issueTexts(res.teamResults[0].violations)).toContain(
       'Second apron team cannot trade its own 7-year-out first-round pick.'
     );
   });
@@ -48,7 +51,7 @@ describe('frozen pick consequences', () => {
     const pick = { year: 2032, round: 1, teamId: 1, protection: 'top 10' };
     const res = runPickTrade(pick, 2025);
     expect(res.teamResults[0].legal).toBe(false);
-    expect(res.teamResults[0].violations).toContain(
+    expect(issueTexts(res.teamResults[0].violations)).toContain(
       'Second apron team cannot trade its own 7-year-out first-round pick.'
     );
   });

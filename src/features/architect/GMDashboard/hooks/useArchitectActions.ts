@@ -287,6 +287,7 @@ type PlayersMap = Record<string, ArchitectPlayer>;
 interface ArchitectStateForActions {
   teamCapSheet: CapSheet | null;
   currentYear: number;
+  worldAsOfDate?: string | null;
   setTeamCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
   setSelectedRulesYear: React.Dispatch<React.SetStateAction<number>>;
   setSelectedPlayer: React.Dispatch<
@@ -733,6 +734,7 @@ export function useArchitectActions({
   const {
     teamCapSheet,
     currentYear,
+    worldAsOfDate,
     setTeamCapSheet,
     setSelectedRulesYear,
     setSelectedPlayer,
@@ -1340,14 +1342,18 @@ export function useArchitectActions({
         }
       }
 
+      const authoritativeTradeCtx = {
+        source: 'tradeMachine',
+        worldId,
+        yearKey: currentYear,
+        ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+      };
+
       if (worldId) {
         await runAuthoritativeFAMutation('executeTrade', {
           teams,
-          tradeCtx: {
-            source: 'tradeMachine',
-            worldId,
-            yearKey: currentYear,
-          },
+          ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+          tradeCtx: authoritativeTradeCtx,
         });
         return;
       }
@@ -1373,10 +1379,10 @@ export function useArchitectActions({
 
         const tradePayload = {
           teams,
+          ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
           tradeCtx: {
-            source: 'tradeMachine',
+            ...authoritativeTradeCtx,
             worldId: null,
-            yearKey: currentYear,
           },
         };
 
@@ -1388,6 +1394,7 @@ export function useArchitectActions({
           },
           seasonId,
           timestamp: Date.now(),
+          asOfDate: worldAsOfDate || undefined,
           worldId: null,
         });
 
@@ -1502,6 +1509,7 @@ export function useArchitectActions({
       runAuthoritativeFAMutation,
       seasonId,
       setTeamCapSheet,
+      worldAsOfDate,
       worldId,
     ]
   );

@@ -30,6 +30,7 @@ const TradeEditor = ({
   primaryTeamData = null,
   onEditContract,
   worldId = null, // World ID for world-aware team loading
+  worldAsOfDate = null,
   userId = null,
 }) => {
   const {
@@ -75,7 +76,8 @@ const TradeEditor = ({
     capProjections,
     currentYear,
     primaryTeamData,
-    worldId
+    worldId,
+    worldAsOfDate
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -589,9 +591,15 @@ const TradeEditor = ({
           Apply Trade
         </button>
 
-        {!forceTrade && result && !result.legal && (
-          <span className="text-red-400 text-xs">
-            Trade blocked: {result.reason || 'Validation failed'}
+        {result && !result.legal && (
+          <span
+            className={`text-xs ${
+              result.override?.requested ? 'text-amber-300' : 'text-red-400'
+            }`}
+          >
+            {result.override?.requested
+              ? `Override requested, but authoritative validation still blocks this trade: ${result.reason || 'Validation failed'}`
+              : `Trade blocked: ${result.reason || 'Validation failed'}`}
           </span>
         )}
       </div>

@@ -4,7 +4,12 @@ import {
 } from '@/features/architect/utils/stepienUtils.js';
 import { isFrozenPick } from '@/features/architect/utils/draftPickUtils.js';
 import { validatorDebug } from '../engine/validatorDebug';
-import { TradeTeam, StepienResult, TeamContext } from '../constants/types';
+import {
+  StepienResult,
+  TeamContext,
+  TradeTeam,
+  ValidationIssue,
+} from '../constants/types';
 
 // Interface for normalized draft picks with number types
 interface NormalizedDraftPick {
@@ -13,6 +18,17 @@ interface NormalizedDraftPick {
   isSwap?: boolean;
   protection?: string;
   originalTeam?: string;
+}
+
+function createIssue(message: string, code: string): ValidationIssue {
+  return {
+    message,
+    severity: 'error',
+    rule: 'stepienRule',
+    code,
+    details: null,
+    meta: null,
+  };
 }
 
 /**
@@ -30,7 +46,7 @@ export function validateStepien(team: TradeTeam): StepienResult {
     team.postTradeStatus?.isAtOrAboveSecondApron
   );
 
-  const violations: string[] = [];
+  const violations: ValidationIssue[] = [];
   const outgoingPicks = team.outgoingPicks || [];
   const context = team.context as TeamContext;
   const yearKey = typeof context.yearKey === 'number' 
@@ -68,7 +84,12 @@ export function validateStepien(team: TradeTeam): StepienResult {
 
   // Check consecutive unprotected firsts
   if (!passesStepienRule(calendar)) {
-    violations.push('Violates Stepien Rule (consecutive future 1sts)');
+    violations.push(
+      createIssue(
+        'Violates Stepien Rule (consecutive future 1sts)',
+        'STEPIEN_RULE__CONSECUTIVE_FUTURE_FIRSTS'
+      )
+    );
   }
 
   // Check 7-year limit
@@ -77,7 +98,12 @@ export function validateStepien(team: TradeTeam): StepienResult {
     yearKey
   );
   if (farthestYear - yearKey > 7) {
-    violations.push('Cannot trade picks beyond 7 years out');
+    violations.push(
+      createIssue(
+        'Cannot trade picks beyond 7 years out',
+        'STEPIEN_RULE__PICK_BEYOND_SEVEN_YEARS_OUT'
+      )
+    );
   }
 
   // Check second apron frozen pick restriction
@@ -97,7 +123,10 @@ export function validateStepien(team: TradeTeam): StepienResult {
 
     if (hasOwnFrozenPick) {
       violations.push(
-        'Second apron team cannot trade its own 7-year-out first-round pick'
+        createIssue(
+          'Second apron team cannot trade its own 7-year-out first-round pick',
+          'STEPIEN_RULE__SECOND_APRON_FROZEN_PICK'
+        )
       );
     }
   }
@@ -108,7 +137,7 @@ export function validateStepien(team: TradeTeam): StepienResult {
     message: violations.length
       ? 'Stepien Rule violation'
       : 'Stepien Rule compliant',
-    details: violations.join('; '),
+    details: violations.map((issue) => issue.message).join('; '),
     calendar,
     farthestYear,
     currentYear: yearKey,

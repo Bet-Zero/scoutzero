@@ -3,9 +3,24 @@ import {
   formatCurrency,
 } from '@/features/architect/utils/tradeHelpers';
 import { validatorDebug } from '../engine/validatorDebug';
-import { TradeTeam, HardCapResult } from '../constants/types';
+import { HardCapResult, TradeTeam, ValidationIssue } from '../constants/types';
 
 type HardCapType = 'FirstApron' | 'SecondApron' | null;
+
+function createIssue(
+  message: string,
+  code: string,
+  details: string | null = null
+): ValidationIssue {
+  return {
+    message,
+    severity: 'error',
+    rule: 'hardCap',
+    code,
+    details,
+    meta: null,
+  };
+}
 
 /**
  * Validates hard cap restrictions:
@@ -38,7 +53,17 @@ export function validateHardCap(team: TradeTeam): HardCapResult {
 
   const result: HardCapResult = {
     passed: hardCapPass,
-    violations: hardCapPass ? [] : [hardCapMsg],
+    violations: hardCapPass
+      ? []
+      : [
+          createIssue(
+            hardCapMsg,
+            hardCapType === 'SecondApron'
+              ? 'HARD_CAP__SECOND_APRON_EXCEEDED'
+              : 'HARD_CAP__FIRST_APRON_EXCEEDED',
+            `Projected salary ${formatCurrency(projectedSalary)} would exceed ${hardCapType} hard cap.`
+          ),
+        ],
     message: hardCapPass ? 'Hard-cap compliant' : 'Hard-cap violation',
     details: hardCapPass
       ? ''

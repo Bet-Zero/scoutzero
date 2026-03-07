@@ -9,6 +9,7 @@ const TradeSection = ({
   primaryTeamData,
   onEditContract,
   worldId = null, // World ID for world-aware team loading
+  worldAsOfDate = null,
   userId = null,
 }) => (
   <TradeEditor
@@ -20,6 +21,7 @@ const TradeSection = ({
     primaryTeamData={primaryTeamData}
     onEditContract={onEditContract}
     worldId={worldId}
+    worldAsOfDate={worldAsOfDate}
     userId={userId}
   />
 );

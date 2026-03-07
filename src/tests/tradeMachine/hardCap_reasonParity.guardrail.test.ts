@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const CURRENT_YEAR = 2025;
 const SEASON = '2024-25';
@@ -24,6 +25,9 @@ function makeTeam(code: string, totalSalary: number, players: unknown[] = []) {
   };
 }
 
+const issueTexts = (issues: any[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
+
 describe('Hard Cap Reason Parity Guardrail', () => {
   it('uses hard-cap incoming ceiling language when hard cap is the active limiter', () => {
     const aOutgoing = makePlayer('A Out', 10_000_000);
@@ -46,7 +50,7 @@ describe('Hard Cap Reason Parity Guardrail', () => {
     expect(result.legal).toBe(false);
     expect(teamAResult?.rules?.salaryMatching?.passed).toBe(true);
     expect(teamAResult?.rules?.hardCap?.passed).toBe(false);
-    expect(teamAResult?.rules?.hardCap?.violations[0]).toContain(
+    expect(issueTexts(teamAResult?.rules?.hardCap?.violations)[0]).toContain(
       'hard-cap incoming ceiling'
     );
     expect(result.reason).toContain('hard-cap incoming ceiling');

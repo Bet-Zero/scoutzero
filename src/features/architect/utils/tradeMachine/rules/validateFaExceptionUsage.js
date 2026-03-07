@@ -1,10 +1,17 @@
-import { getApronStatus } from '../../tradeHelpers.js';
+import { getApronStatus, getSalaryForYear } from '../../tradeHelpers.js';
 import { getTeamFaExceptionBuckets } from '../../faExceptionUtils.js';
 
 export function validateFaExceptionUsage(team) {
   const violations = [];
   const { teamTotalSalary = 0, incomingPlayers = [], context = {} } = team;
   const { capSettings = {} } = context;
+  const resolveIncomingTradeSalary = (player) =>
+    Number(
+      player?.matchIncoming ??
+        player?.salary ??
+        getSalaryForYear(player, context.yearKey) ??
+        0
+    );
 
   // Get FA Exception buckets
   const buckets = getTeamFaExceptionBuckets(team.team || {});
@@ -48,7 +55,7 @@ export function validateFaExceptionUsage(team) {
         ) {
           // Auto-select the first available bucket
           const availableBucket = buckets.find(
-            (b) => (b.remaining || 0) >= (player.matchIncoming || 0)
+            (b) => (b.remaining || 0) >= resolveIncomingTradeSalary(player)
           );
           if (availableBucket) {
             player.absorptionMode = 'FA_EXCEPTION';
@@ -74,18 +81,19 @@ export function validateFaExceptionUsage(team) {
           }
 
           const bucket = buckets.find((b) => b.type === bucketType);
+          const incomingTradeSalary = resolveIncomingTradeSalary(player);
           if (!bucket) {
             violations.push('No available FA exception found');
             return;
           }
 
-          if (player.matchIncoming > (bucket.remaining || 0)) {
+          if (incomingTradeSalary > (bucket.remaining || 0)) {
             violations.push('Insufficient FA Exception balance');
             return;
           }
 
           // Update remaining amount if valid
-          bucket.remaining = (bucket.remaining || 0) - player.matchIncoming;
+          bucket.remaining = (bucket.remaining || 0) - incomingTradeSalary;
 
           // Mark team as hard-capped at first apron
           if (!team.team.hardCapFirstApron) {

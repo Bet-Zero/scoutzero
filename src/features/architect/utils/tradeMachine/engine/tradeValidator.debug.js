@@ -1,6 +1,7 @@
 // tradeValidator.debug.js - Complete File Replacement
 import { validateTrade } from './tradeValidator.js';
 import tradeDebug from './tradeDebug.js';
+import { getValidationIssueText } from '../utils/validationIssueText.js';
 
 const debug = tradeDebug;
 debug.logs = [];
@@ -191,7 +192,11 @@ function runTradeTest(testCase) {
   console.log(`\n=== ${testCase.description} ===`);
   console.log(`Legal? ${result.overallLegal ? 'PASS' : 'FAIL'}`);
   if (teamResult.violations.length) {
-    console.log(`Violation: ${teamResult.violations.join('; ')}`);
+    console.log(
+      `Violation: ${teamResult.violations
+        .map((issue) => getValidationIssueText(issue))
+        .join('; ')}`
+    );
   }
 }
 

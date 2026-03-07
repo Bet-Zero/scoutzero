@@ -1,103 +1,149 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import capProjections from '@/features/architect/utils/capProjections.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import { validateTiming } from '@/features/architect/utils/tradeMachine/rules/timingValidation.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
-describe('Jan 15 gate for offseason sign-and-trades', () => {
-  it('should reject offseason sign-and-trade before next season Jan 15', () => {
-    // Sign-and-trade happens in October 2024 (offseason)
-    // Player should not be tradeable until Jan 15, 2025 (next season)
-    const team = {
-      outgoingPlayers: [
-        {
-          name: 'Offseason S&T Player',
-          signAndTrade: true,
-        },
-      ],
-    };
+const CURRENT_YEAR = 2025;
+const SEASON = '2024-25';
 
-    // Try to trade on October 1, 2024 (offseason)
-    const result = validateTiming(team, { tradeDate: '2024-10-01' });
-    
-    // This should fail because the player can't be traded until Jan 15, 2025
-    expect(result.passed).toBe(false);
-    expect(result.violations.some(v => v.includes('January 15'))).toBe(true);
+const makePlayer = (name, salary, extra = {}) => ({
+  id: name.toLowerCase().replace(/\s+/g, '-'),
+  player_id: name.toLowerCase().replace(/\s+/g, '-'),
+  name,
+  signAndTrade: false,
+  contractYears: 4,
+  firstYearGuaranteed: true,
+  contract: {
+    salariesByYear: [{ season: SEASON, salary, capHit: salary, guaranteed: true }],
+  },
+  ...extra,
+});
+
+const makeTeam = (id, players, totalSalary = 100_000_000) => ({
+  id,
+  teamId: id,
+  teamCode: id,
+  teamName: id,
+  totalSalary,
+  teamTotalSalary: totalSalary,
+  players,
+  roster: players.map((player) => player.player_id || player.id),
+  picks: [],
+  capHolds: [],
+  draftPicks: [],
+  tradeExceptions: [],
+});
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+
+function buildSignAndTradeFixture() {
+  const satPlayer = makePlayer('SAT Player', 15_000_000, {
+    signAndTrade: true,
+    originTeamId: 'A',
   });
+  const counterPlayer = makePlayer('Counter Player', 15_000_000, {
+    originTeamId: 'B',
+  });
+  const teamA = makeTeam('A', [satPlayer]);
+  const teamB = makeTeam('B', [counterPlayer]);
 
-  it('should allow offseason sign-and-trade after next season Jan 15', () => {
-    // Player with sign-and-trade flag
-    // Trading in-season (January 2025), after Jan 15 cutoff
-    const team = {
-      outgoingPlayers: [
-        {
-          name: 'Offseason S&T Player',
-          signAndTrade: true,
-        },
-      ],
-    };
+  return {
+    satPlayer,
+    counterPlayer,
+    teams: [
+      { team: teamA, sends: [satPlayer], picksOut: [] },
+      { team: teamB, sends: [counterPlayer], picksOut: [] },
+    ],
+  };
+}
 
-    // Try to trade on January 20, 2025 (after Jan 15, 2025)
-    const result = validateTiming(team, { tradeDate: '2025-01-20' });
-    
-    // This should pass
+describe('Jan 15 S&T / timing ownership', () => {
+  it('no longer applies the S&T Jan 15 gate inside generic timing validation', () => {
+    const result = validateTiming(
+      {
+        outgoingPlayers: [{ name: 'S&T Player', signAndTrade: true }],
+      },
+      { tradeDate: '2025-01-10' }
+    );
+
     expect(result.passed).toBe(true);
     expect(result.violations).toHaveLength(0);
   });
 
-  it('should reject recently extended player before next season Jan 15 in offseason', () => {
-    // Extension happens in August 2024 (offseason)
-    // Player should not be tradeable until Jan 15, 2025 (next season)
-    const team = {
-      outgoingPlayers: [
-        {
-          name: 'Recently Extended Player',
-          isRecentlyExtended: true,
-        },
-      ],
-    };
+  it('routes pre-Jan 15 S&T blockers through signAndTrade, not timingEnforcement', () => {
+    const { teams } = buildSignAndTradeFixture();
 
-    // Try to trade on November 15, 2024 (offseason)
-    const result = validateTiming(team, { tradeDate: '2024-11-15' });
-    
-    // This should fail because the player can't be traded until Jan 15, 2025
-    expect(result.passed).toBe(false);
-    expect(result.violations.some(v => v.includes('January 15'))).toBe(true);
+    const result = validateTrade({
+      teams,
+      capProjections,
+      currentYear: CURRENT_YEAR,
+      tradeCtx: { offseason: true, asOfDate: '2024-10-01' },
+    });
+
+    const teamAResult = result.teamResults[0];
+
+    expect(teamAResult.rules.signAndTrade.passed).toBe(false);
+    expect(issueTexts(teamAResult.rules.signAndTrade.violations)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/January 15/i),
+      ])
+    );
+    expect(issueTexts(teamAResult.rules.timingEnforcement.violations)).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/January 15/i),
+      ])
+    );
   });
 
-  it('should allow in-season trades after same-year Jan 15', () => {
-    // For trades happening in the regular season (after Jan 15),
-    // the Jan 15 restriction should use the same year
-    const team = {
-      outgoingPlayers: [
-        {
-          name: 'In-Season S&T Player',
-          signAndTrade: true,
-        },
-      ],
-    };
+  it('clears the S&T Jan 15 blocker after Jan 15 when offseason is explicitly overridden for the fixture', () => {
+    const { teams } = buildSignAndTradeFixture();
 
-    // Try to trade on February 1, 2025 (after Jan 15, 2025)
-    const result = validateTiming(team, { tradeDate: '2025-02-01' });
-    
-    // This should pass
-    expect(result.passed).toBe(true);
-    expect(result.violations).toHaveLength(0);
+    const result = validateTrade({
+      teams,
+      capProjections,
+      currentYear: CURRENT_YEAR,
+      tradeCtx: { offseason: true, asOfDate: '2025-01-20' },
+    });
+
+    const teamAResult = result.teamResults[0];
+
+    expect(issueTexts(teamAResult.rules.signAndTrade.violations)).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/January 15/i),
+      ])
+    );
   });
 
-  it('should reject in-season trades before same-year Jan 15', () => {
-    // For trades happening before Jan 15 in the season
-    const team = {
-      outgoingPlayers: [
-        {
-          name: 'In-Season S&T Player',
-          signAndTrade: true,
-        },
-      ],
-    };
+  it('routes recent-extension Jan 15 blockers through timingEnforcement, not signAndTrade', () => {
+    const extendedPlayer = makePlayer('Extended Player', 12_000_000, {
+      isRecentlyExtended: true,
+      originTeamId: 'A',
+    });
+    const counterPlayer = makePlayer('Counter Player', 12_000_000, {
+      originTeamId: 'B',
+    });
+    const teamA = makeTeam('A', [extendedPlayer]);
+    const teamB = makeTeam('B', [counterPlayer]);
 
-    // Try to trade on January 10, 2025 (before Jan 15, 2025)
-    const result = validateTiming(team, { tradeDate: '2025-01-10' });
-    
-    // This should fail
-    expect(result.passed).toBe(false);
-    expect(result.violations.some(v => v.includes('January 15'))).toBe(true);
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [extendedPlayer], picksOut: [] },
+        { team: teamB, sends: [counterPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear: CURRENT_YEAR,
+      tradeCtx: { asOfDate: '2025-01-10' },
+    });
+
+    const teamAResult = result.teamResults[0];
+
+    expect(teamAResult.rules.timingEnforcement.passed).toBe(false);
+    expect(issueTexts(teamAResult.rules.timingEnforcement.violations)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/January 15 \(recent extension\)/i),
+      ])
+    );
+    expect(teamAResult.rules.signAndTrade.passed).toBe(true);
   });
 });

@@ -1,10 +1,10 @@
 {
   "source_audit_id": "ARCHITECT_AUDIT_V3_FULL_RUN_2026-03-05",
-  "snapshot_date": "2026-03-06",
+  "snapshot_date": "2026-03-07",
   "historical_verdict": "Not Ready",
   "historical_weighted_score": 78.45,
   "historical_ship_blockers": ["FIND-B5-001", "VQ-D-001"],
-  "live_ship_blockers": ["VQ-D-001"],
+  "live_ship_blockers": [],
   "statuses": [
     {
       "id": "FIND-B5-001",
@@ -30,9 +30,9 @@
     {
       "id": "VQ-D-001",
       "historical_status": "QUEUED",
-      "live_status": "OPEN",
-      "ship_blocking": true,
-      "basis": "runtime screenshot-backed UX proof still missing"
+      "live_status": "RESOLVED_SINCE_AUDIT",
+      "ship_blocking": false,
+      "basis": "review-mode Playwright now proves persisted offer-sheet and entitlement authoring flows, including route re-entry rehydration and fail-closed conflict handling"
     },
     {
       "id": "VQ-E2-001",
@@ -69,10 +69,41 @@
       "command": "npm run test:node -- --reporter=dot src/tests/architect/useArchitectState.worldFreeAgency.test.ts",
       "exit": 0,
       "summary": "Test Files 1 passed (1); Tests 2 passed (2)"
+    },
+    {
+      "command": "npm run test:e2e -- e2e/architect-qa.spec.ts --grep \"D-MQ-005:\" --reporter=line",
+      "exit": 0,
+      "summary": "1 passed against a manually started review-mode stack"
+    },
+    {
+      "command": "npm run test:node -- --reporter=dot src/tests/architect/entitlementWriter.collision.test.ts",
+      "exit": 0,
+      "summary": "Test Files 1 passed (1); Tests 2 passed (2)"
+    },
+    {
+      "command": "npm run test:e2e -- e2e/architect-qa.spec.ts --grep \"D-MQ-009:\" --reporter=line",
+      "exit": 0,
+      "summary": "1 passed (49.3s) against a manually started review-mode stack"
+    },
+    {
+      "command": "npm run test:e2e -- e2e/architect-qa.spec.ts --grep \"D-MQ-005:|D-MQ-009:\" --reporter=line",
+      "exit": 0,
+      "summary": "2 passed (1.5m) against a manually started review-mode stack"
+    },
+    {
+      "command": "npm run build",
+      "exit": 0,
+      "summary": "production build passed"
+    },
+    {
+      "command": "npm run typecheck",
+      "exit": 0,
+      "summary": "tsc --noEmit passed"
     }
   ],
   "next_actions": [
-    "Execute D_MANUAL_QA_CHECKLIST.md with emulator-backed screenshot capture for VQ-D-001"
+    "Stabilize Playwright-managed review-mode startup against stale emulator port conflicts",
+    "Optionally expand additional persisted workflow proof if a 90+ live score is the goal"
   ],
   "consolidated_plan": "return_packages/architect/audit/ARCHITECT_AUDIT_V3_CONSOLIDATED_IMPLEMENTATION_PLAN.md",
   "runtime_proof_artifacts": [

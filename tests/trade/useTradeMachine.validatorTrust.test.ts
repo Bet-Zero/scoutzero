@@ -1,0 +1,230 @@
+// @vitest-environment jsdom
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+
+const worldTeamDataMocks = vi.hoisted(() => ({
+  loadWorldTeamData: vi.fn(),
+}));
+
+vi.mock('@/features/architect/utils/worldTeamData', () => ({
+  loadWorldTeamData: worldTeamDataMocks.loadWorldTeamData,
+}));
+
+import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
+
+const CURRENT_YEAR = 2026;
+const SEASON = '2025-26';
+
+const makePlayer = (
+  id: string,
+  salary: number,
+  extra: Record<string, any> = {}
+) => ({
+  id,
+  player_id: id,
+  name: extra.name || id,
+  teamCode: extra.teamCode || null,
+  bio: {
+    displayName: extra.name || id,
+    playerId: id,
+    position: extra.position || 'G',
+  },
+  contract:
+    extra.contract || {
+      contractType: extra.contractType,
+      salariesByYear: [
+        {
+          season: SEASON,
+          salary,
+          capHit: salary,
+          guaranteed: extra.guaranteed ?? true,
+        },
+      ],
+    },
+  ...extra,
+});
+
+const makeRoster = (teamCode: string, count: number, salary = 1_000_000) =>
+  Array.from({ length: count }, (_, index) =>
+    makePlayer(`${teamCode}_player_${index}`, salary, { teamCode })
+  );
+
+const makeSatContract = (firstYearSalary: number) => ({
+  contractType: 'Sign & Trade',
+  contractYears: 3,
+  firstYearGuaranteed: true,
+  salariesByYear: [
+    {
+      season: SEASON,
+      salary: firstYearSalary,
+      capHit: firstYearSalary,
+      guaranteed: true,
+    },
+    {
+      season: '2026-27',
+      salary: Math.round(firstYearSalary * 1.05),
+      capHit: Math.round(firstYearSalary * 1.05),
+      guaranteed: true,
+    },
+    {
+      season: '2027-28',
+      salary: Math.round(firstYearSalary * 1.1),
+      capHit: Math.round(firstYearSalary * 1.1),
+      guaranteed: true,
+    },
+  ],
+});
+
+const issueTexts = (issues: any[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
+
+const signAndTradePlayer = makePlayer('sat_player', 0, {
+  name: 'Sign And Trade Player',
+  teamCode: 'LAL',
+  freeAgentYear: CURRENT_YEAR,
+  contract: {
+    salariesByYear: [
+      { season: SEASON, salary: 0, capHit: 0, guaranteed: false },
+    ],
+  },
+});
+
+const primaryTeamData = {
+  id: 'LAL',
+  teamCode: 'LAL',
+  teamName: 'Los Angeles Lakers',
+  abbreviation: 'LAL',
+  players: [signAndTradePlayer, ...makeRoster('LAL', 13)],
+  totalSalary: 13_000_000,
+  teamTotalSalary: 13_000_000,
+  capHolds: [
+    {
+      playerId: 'sat_player',
+      playerName: 'Sign And Trade Player',
+      season: SEASON,
+      active: true,
+      isSigned: false,
+    },
+  ],
+  deadCap: [],
+  entitlementIds: [],
+  totals: {},
+};
+
+const bosCounter = makePlayer('bos_counter', 12_000_000, {
+  name: 'Boston Counter',
+  teamCode: 'BOS',
+});
+
+const secondaryTeamData = {
+  id: 'BOS',
+  teamCode: 'BOS',
+  teamName: 'Boston Celtics',
+  abbreviation: 'BOS',
+  players: [bosCounter, ...makeRoster('BOS', 13)],
+  totalSalary: 25_000_000,
+  teamTotalSalary: 25_000_000,
+  capHolds: [],
+  deadCap: [],
+  entitlementIds: [],
+  totals: {},
+};
+
+describe('useTradeMachine validator trust contract', () => {
+  beforeEach(() => {
+    worldTeamDataMocks.loadWorldTeamData.mockReset();
+    worldTeamDataMocks.loadWorldTeamData.mockImplementation(
+      async (_worldId: string | null, teamId: string) => {
+        if (teamId === 'celtics' || teamId === 'BOS') {
+          return JSON.parse(JSON.stringify(secondaryTeamData));
+        }
+        return JSON.parse(JSON.stringify(primaryTeamData));
+      }
+    );
+  });
+
+  it('keeps override state separate from authoritative legality in preview validation', async () => {
+    const { result } = renderHook(() =>
+      useTradeMachine(
+        'lakers',
+        capProjections,
+        CURRENT_YEAR,
+        primaryTeamData,
+        null,
+        '2026-02-01'
+      )
+    );
+
+    await waitFor(
+      () => {
+        expect(result.current.initError).toBeNull();
+        expect(result.current.teams[0]?.team?.players?.length).toBe(14);
+      },
+      { timeout: 3000 }
+    );
+
+    await act(async () => {
+      await result.current.selectTeam(1, 'celtics');
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.teams[1]?.team?.id).toBe('BOS');
+        expect(result.current.teams[1]?.team?.players?.length).toBe(14);
+      },
+      { timeout: 3000 }
+    );
+
+    const outgoingSatPlayer = result.current.teams[0].team.players.find(
+      (player: Record<string, any>) => (player.player_id || player.id) === 'sat_player'
+    );
+    const incomingCounter = result.current.teams[1].team.players.find(
+      (player: Record<string, any>) => (player.player_id || player.id) === 'bos_counter'
+    );
+
+    expect(outgoingSatPlayer).toBeDefined();
+    expect(incomingCounter).toBeDefined();
+
+    act(() => {
+      result.current.setPlayerTrade(0, outgoingSatPlayer, 'signAndTrade', 'BOS', {
+        signAndTradeContract: makeSatContract(15_000_000),
+      });
+      result.current.setPlayerTrade(1, incomingCounter, 'trade', 'LAL');
+    });
+
+    act(() => {
+      result.current.setForceTrade(true);
+    });
+
+    await waitFor(() => {
+      expect(result.current.forceTrade).toBe(true);
+    });
+
+    act(() => {
+      result.current.handleValidate();
+    });
+
+    await waitFor(() => {
+      expect(result.current.result).not.toBeNull();
+      expect(result.current.result?.override?.requested).toBe(true);
+    });
+
+    expect(result.current.result?.legal).toBe(false);
+    expect(result.current.result?.authoritativeLegal).toBe(false);
+    expect(result.current.result?.override).toMatchObject({
+      requested: true,
+      appliedToLegality: false,
+    });
+    expect(
+      issueTexts(
+        result.current.result?.teamResults?.[0]?.rules?.signAndTrade?.violations
+      )
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/only be traded during the offseason/i),
+      ])
+    );
+  });
+});

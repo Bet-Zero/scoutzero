@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-01
+Last updated: 2026-03-07
 
 ## Trade Machine Overview
 
@@ -312,6 +312,45 @@ Date: 2026-02-26
 - `return_packages/trade_machine/TRADE_CAP_APRON_HARDENING_E1_EXECUTION_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TRADE_E2E_CAP_APRON_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TRADE_E2E_TRADE_MACHINE_5PACK_CLOSEOUT_P1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_TRUST_FIXES_E1_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_CONTRACT_CLEANUP_E2_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_HARDENING_E3_RETURN_PACKAGE.md`
+
+### Validator Trust Audit (2026-03-07)
+
+- Verdict: The Trade Machine validator is only partially trustworthy and should not be converted to TypeScript before correctness cleanup.
+- STOP condition: Triggered.
+- Top risks:
+  - world/offseason context does not reliably reach the authoritative validator path
+  - two-way and FA-exception trade rules are implemented in disconnected or non-authoritative modules
+  - preview/UI legality can diverge from authoritative apply legality
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_DEEP_REVIEW_P1_RETURN_PACKAGE.md`
+
+### Validator Trust Fixes E1 (2026-03-07)
+
+- Status: The major validator blockers from the 2026-03-07 trust audit were fixed in the authoritative preview/apply path.
+- Major risks closed:
+  - canonical `asOfDate` / season-state context now reaches both preview and apply validation
+  - two-way and FA-exception legality now run through authoritative `validateTrade()`
+  - override state no longer rewrites authoritative legality in preview/apply UI
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TRUST_FIXES_E1_RETURN_PACKAGE.md`
+
+### Validator Contract Cleanup E2 (2026-03-07)
+
+- Status: The authoritative validator contract and official validator consumers were aligned; no blocker-level contract drift remains in the reviewed preview/apply path.
+- Remaining TS blockers:
+  - individual issue payloads are still mixed strings/objects even though per-rule envelopes and top-level result fields are now standardized
+  - `validateSignAndTrade.js` and `timingValidation.js` still split related timing ownership
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_CONTRACT_CLEANUP_E2_RETURN_PACKAGE.md`
+
+### Validator Hardening E3 (2026-03-07)
+
+- Status: The last validator-core TS blockers from E2 were closed in the authoritative path. Issue payload items are now canonical structured objects, and S&T-specific timing ownership now lives under `validateSignAndTrade.js` with generic timing left in `timingValidation.js`.
+- TS migration note:
+  - targeted validator TS migration can now begin
+  - migrate the shared validator contract layer first: `ValidationIssue` / result types, `validationIssueText.js`, `tradeValidator.js`, and `tradeContext` contract surfaces before moving deeper into individual rule modules
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_HARDENING_E3_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

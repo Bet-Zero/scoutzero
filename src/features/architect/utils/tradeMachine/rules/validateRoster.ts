@@ -1,7 +1,18 @@
 import { passesRosterWindow } from '@/features/architect/utils/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
 import { validatorDebug } from '../engine/validatorDebug';
-import { TradeTeam, RosterResult } from '../constants/types';
+import { RosterResult, TradeTeam, ValidationIssue } from '../constants/types';
+
+function createIssue(message: string, code: string): ValidationIssue {
+  return {
+    message,
+    severity: 'error',
+    rule: 'rosterCount',
+    code,
+    details: null,
+    meta: null,
+  };
+}
 
 /**
  * Validates roster requirements including:
@@ -46,9 +57,13 @@ export function validateRoster(team: TradeTeam): RosterResult {
   const result: RosterResult = {
     passed: standardPass && twoWayPass,
     violations: [
-      ...(standardPass ? [] : [standardViolation]),
-      ...(twoWayPass ? [] : [twoWayViolation]),
-    ].filter((v): v is string => !!v), // Filter out undefined and type assert as string
+      ...(standardPass || !standardViolation
+        ? []
+        : [createIssue(standardViolation, 'ROSTER_COUNT__STANDARD_ROSTER_INVALID')]),
+      ...(twoWayPass || !twoWayViolation
+        ? []
+        : [createIssue(twoWayViolation, 'ROSTER_COUNT__TWO_WAY_ROSTER_INVALID')]),
+    ],
     message:
       standardPass && twoWayPass
         ? 'Roster requirements satisfied'

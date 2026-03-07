@@ -14,6 +14,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/index.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 // Use 2024-25 season where secondApron = 190,000,000
 const currentYear = 2025;
@@ -35,6 +36,8 @@ const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
   ),
   picks,
 });
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 /**
  * Per CBA Article VII, Section 2(f), Rule Card 6:
@@ -76,12 +79,12 @@ describe('second apron boundary cases', () => {
 
     // Check that secondApronEnforcement rule has no violations
     const secondApronViolations =
-      result.teamResults[0].rules?.secondApronEnforcement || [];
-    expect(secondApronViolations).toEqual([]);
+      result.teamResults[0].rules?.secondApronEnforcement?.violations || [];
+    expect(issueTexts(secondApronViolations)).toEqual([]);
 
     // Also verify aggregation rule didn't flag second apron
     const aggregationResult = result.teamResults[0].rules?.aggregation || {};
-    const aggregationViolations = aggregationResult.violations || [];
+    const aggregationViolations = issueTexts(aggregationResult.violations || []);
     const hasSecondApronAggregation = aggregationViolations.some((v) =>
       v.toLowerCase().includes('second apron')
     );
@@ -115,7 +118,7 @@ describe('second apron boundary cases', () => {
     // Should trigger second apron restrictions (100% matching required, but A sends nothing)
 
     // At least one rule should have a second apron related violation
-    const allViolations = result.teamResults[0].violations || [];
+    const allViolations = issueTexts(result.teamResults[0].violations || []);
     const hasSecondApronViolation = allViolations.some(
       (v) =>
         v.toLowerCase().includes('second apron') ||
@@ -153,11 +156,11 @@ describe('second apron boundary cases', () => {
     // Since 190M is NOT > 190M, should NOT trigger second apron restrictions
 
     const secondApronViolations =
-      result.teamResults[0].rules?.secondApronEnforcement || [];
-    expect(secondApronViolations).toEqual([]);
+      result.teamResults[0].rules?.secondApronEnforcement?.violations || [];
+    expect(issueTexts(secondApronViolations)).toEqual([]);
 
     const aggregationResult = result.teamResults[0].rules?.aggregation || {};
-    const aggregationViolations = aggregationResult.violations || [];
+    const aggregationViolations = issueTexts(aggregationResult.violations || []);
     const hasSecondApronAggregation = aggregationViolations.some((v) =>
       v.toLowerCase().includes('second apron')
     );
@@ -192,7 +195,7 @@ describe('second apron boundary cases', () => {
     // Team A at 190,000,001 > 190,000,000 → IS second apron team
     // Receiving 12M while sending 10M violates 100% matching
 
-    const allViolations = result.teamResults[0].violations || [];
+    const allViolations = issueTexts(result.teamResults[0].violations || []);
     const hasSecondApronViolation = allViolations.some(
       (v) =>
         v.toLowerCase().includes('second apron') ||
@@ -228,7 +231,7 @@ describe('second apron boundary cases', () => {
     // Team A projected = 180M + 10M = 190M (equals secondApron)
     // The aggregated violations array should NOT contain the spurious second apron message
 
-    const allViolations = result.teamResults[0].violations || [];
+    const allViolations = issueTexts(result.teamResults[0].violations || []);
 
     // Should NOT contain second apron specific violations
     const hasSecondApronViolation = allViolations.some(
@@ -240,7 +243,7 @@ describe('second apron boundary cases', () => {
 
     // Should still have hard cap violation (first apron), which is expected
     // Team A is hard capped at first apron ($179M) and is receiving $10M with no outgoing
-    expect(result.teamResults[0].rules.hardCap.violations).toEqual(
+    expect(issueTexts(result.teamResults[0].rules.hardCap.violations)).toEqual(
       expect.arrayContaining([
         expect.stringContaining('1st Apron hard cap violation'),
       ])

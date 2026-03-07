@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const useArchitectReviewMode =
   process.env.PLAYWRIGHT_ARCHITECT_REVIEW_MODE === 'true';
+const playwrightBaseUrl = 'http://127.0.0.1:5173';
 
 /**
  * Playwright E2E Test Configuration for ScoutZero
@@ -35,7 +36,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. */
   use: {
     /* Base URL - Vite dev server */
-    baseURL: 'http://localhost:5173',
+    baseURL: playwrightBaseUrl,
     /* Collect trace on failure */
     trace: 'on-first-retry',
     /* Screenshot on failure */
@@ -57,8 +58,14 @@ export default defineConfig({
     command: useArchitectReviewMode
       ? 'npm run architect:review:up'
       : 'npm run dev',
-    url: 'http://localhost:5173',
+    url: playwrightBaseUrl,
     reuseExistingServer: useArchitectReviewMode ? false : !process.env.CI,
+    gracefulShutdown: useArchitectReviewMode
+      ? {
+          signal: 'SIGTERM',
+          timeout: 10_000,
+        }
+      : undefined,
     timeout: useArchitectReviewMode ? 240_000 : 120_000,
   },
 });

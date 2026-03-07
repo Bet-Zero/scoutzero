@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const CURRENT_YEAR = 2026;
 const SEASON = `${CURRENT_YEAR - 1}-${String(CURRENT_YEAR).slice(-2)}`;
@@ -57,6 +58,9 @@ function makeSignAndTradeContract(firstYearSalary: number) {
   };
 }
 
+const issueTexts = (issues: any[] = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
+
 describe('Trade Machine S&T fail-closed guardrails', () => {
   it('rejects sign-and-trade when outgoing player is under contract', () => {
     const satPlayer = makePlayer('sat_under_contract', 11_000_000, {
@@ -79,7 +83,7 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].rules.signAndTrade.passed).toBe(false);
-    expect(result.teamResults[0].rules.signAndTrade.violations.join(' ')).toContain(
+    expect(issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')).toContain(
       'ineligible'
     );
   });
@@ -117,7 +121,7 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].rules.signAndTrade.passed).toBe(false);
-    expect(result.teamResults[0].rules.signAndTrade.violations.join(' ')).toContain(
+    expect(issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')).toContain(
       'missing signAndTradeContract'
     );
   });

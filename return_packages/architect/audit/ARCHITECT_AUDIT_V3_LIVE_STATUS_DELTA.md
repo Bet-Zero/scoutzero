@@ -23,20 +23,20 @@ It does not replace or rewrite the original audit artifacts. It records what cha
 
 ## Live Status Matrix
 
-| ID            | Historical status     | Live status          | Evidence basis                                                                                                                                           | Active backlog status         |
-| ------------- | --------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `FIND-B5-001` | Open, ship-blocking   | Resolved since audit | `npm run test:architect -- --reporter=dot` now passes                                                                                                    | Remove from live blockers     |
-| `FIND-B4-001` | Open                  | Candidate resolved   | Source now uses `FREE_AGENTS_COLLECTION`                                                                                                                 | Remove from live code backlog |
-| `FIND-B8-001` | Open                  | Candidate resolved   | Audited debug log no longer present                                                                                                                      | Remove from live code backlog |
-| `VQ-D-001`    | Queued, ship-blocking | Narrowed, still open | Playwright now covers world-backed UX plus persisted offer-sheet proof; the remaining live evidence gap is entitlement save-path/runtime authoring proof | Keep as live blocker          |
-| `VQ-E2-001`   | Queued                | Resolved since audit | `npm run test:rules` passed against emulator with 16/16 checks passing                                                                                   | Remove from live backlog      |
-| `VQ-B4-001`   | Queued                | Resolved since audit | Fail-closed behavior implemented and focused hook proof passes                                                                                           | Remove from live backlog      |
+| ID            | Historical status     | Live status          | Evidence basis                                                                                                                                                  | Active backlog status         |
+| ------------- | --------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `FIND-B5-001` | Open, ship-blocking   | Resolved since audit | `npm run test:architect -- --reporter=dot` now passes                                                                                                           | Remove from live blockers     |
+| `FIND-B4-001` | Open                  | Candidate resolved   | Source now uses `FREE_AGENTS_COLLECTION`                                                                                                                        | Remove from live code backlog |
+| `FIND-B8-001` | Open                  | Candidate resolved   | Audited debug log no longer present                                                                                                                             | Remove from live code backlog |
+| `VQ-D-001`    | Queued, ship-blocking | Resolved since audit | Review-mode Playwright now proves persisted offer-sheet and entitlement authoring flows, including route re-entry rehydration and fail-closed conflict handling | Remove from live blockers     |
+| `VQ-E2-001`   | Queued                | Resolved since audit | `npm run test:rules` passed against emulator with 16/16 checks passing                                                                                          | Remove from live backlog      |
+| `VQ-B4-001`   | Queued                | Resolved since audit | Fail-closed behavior implemented and focused hook proof passes                                                                                                  | Remove from live backlog      |
 
 ## Live Blockers
 
 ### Confirmed live ship blockers
 
-- `VQ-D-001`
+- None currently confirmed in the live delta.
 
 ### No longer confirmed as live ship blockers
 
@@ -46,15 +46,11 @@ It does not replace or rewrite the original audit artifacts. It records what cha
 
 ### Priority 1
 
-- `VQ-D-001` — Finish the remaining entitlement save-path/runtime authoring evidence that review-mode Playwright still does not prove.
+- Stabilize the Playwright-managed review-mode startup path so the strongest persisted-world proof is repeatable without manual stale-port cleanup.
 
 ### Priority 2
 
-- Re-score once `VQ-D-001` is resolved or explicitly reclassified.
-
-### Priority 3
-
-- Optional: run a broader architect regression pass if you want post-fix confidence beyond the focused proof.
+- Optional: expand a small number of additional persisted workflow proofs if the goal is to move the live score toward `90+` rather than just preserve the current `Conditionally Ready` state.
 
 ## Post-Audit Delta Evidence
 
@@ -67,6 +63,9 @@ It does not replace or rewrite the original audit artifacts. It records what cha
   - `npm run test:architect -- --reporter=dot` passed on `2026-03-06` with:
     - `Test Files 167 passed (167)`
     - `Tests 2454 passed (2454)`
+  - The broader Architect rerun passed again on `2026-03-07` after the persisted-state compatibility fixes with:
+    - `Test Files 168 passed (168)`
+    - `Tests 2456 passed (2456)`
 
 ### `FIND-B4-001`
 
@@ -89,6 +88,23 @@ It does not replace or rewrite the original audit artifacts. It records what cha
   - `src/tests/architect/useArchitectState.worldFreeAgency.test.ts` now proves the pool stays empty until a successful refresh.
   - Proof artifact: `return_packages/architect/audit/ARCHITECT_AUDIT_V3_VQ_B4_FAIL_CLOSED_PROOF.md`
 
+### `VQ-D-001`
+
+- Historical basis: `return_packages/architect/audit/D_UX_TRUTH_AUDIT.md`
+- Current delta:
+  - `e2e/architect-qa.spec.ts` now proves both `D-MQ-005` and `D-MQ-009` through real persisted world flows.
+  - `D-MQ-005` now submits a seeded offer sheet, verifies the saved ATL world document, then proves the pending offer-sheet state rehydrates correctly after dashboard route re-entry.
+  - `D-MQ-009` now creates a world-scoped swap entitlement, verifies the saved document under `architect_worlds/{worldId}/entitlements`, confirms `teams/LAL.entitlementIds` attachment, proves the state survives dashboard route re-entry, then proves a conflicting swap-controller save fails closed with explicit UX error and no additional write.
+  - Product fixes were required in `src/features/architect/GMDashboard/components/WorldSelector.jsx`, `src/features/architect/GMDashboard/hooks/useArchitectState.ts`, and `src/features/architect/utils/firebaseTeamPlanHelpers.js` so restored worlds no longer regress to base-mode state and world team hydration preserves offer-sheet data during re-entry.
+  - `src/features/architect/utils/entitlements/entitlementWriter.ts` now uses merge writes for team attachment targets so entitlement authoring no longer fails when the world team doc does not yet exist.
+  - Focused proof commands on `2026-03-07`:
+    - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-005:" --reporter=line` (against a running review-mode stack)
+    - `npm run test:node -- --reporter=dot src/tests/architect/entitlementWriter.collision.test.ts`
+    - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-009:" --reporter=line` (against a running review-mode stack)
+    - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-005:|D-MQ-009:" --reporter=line` (combined confirmation run; 2 passed)
+    - `npm run build`
+    - `npm run typecheck`
+
 ## Commands Run For This Live Delta
 
 1. `npm run test:architect -- --reporter=dot`
@@ -96,6 +112,13 @@ It does not replace or rewrite the original audit artifacts. It records what cha
 3. `npm run emu`
 4. `npm run test:rules`
 5. `npm run test:node -- --reporter=dot src/tests/architect/useArchitectState.worldFreeAgency.test.ts`
+6. `npm run test:node -- --reporter=dot src/tests/architect/entitlementWriter.collision.test.ts`
+7. `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-005:" --reporter=line`
+8. `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-009:" --reporter=line`
+9. `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-005:|D-MQ-009:" --reporter=line`
+10. `npm run build`
+11. `npm run typecheck`
+12. `npm run test:architect -- --reporter=dot`
 
 ## Consolidated Reference
 

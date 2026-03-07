@@ -22,7 +22,12 @@
  */
 
 import { db } from '@/firebaseConfig';
-import { writeBatch, serverTimestamp, increment, doc } from 'firebase/firestore';
+import {
+  writeBatch,
+  serverTimestamp,
+  increment,
+  doc,
+} from 'firebase/firestore';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import {
   getWorldMetadata,
@@ -61,9 +66,7 @@ import {
   assertPersistableOrThrow,
   PERSISTENCE_CONTRACTS,
 } from '@/features/architect/utils/persistenceContracts';
-import {
-  sanitizeTransientFieldsForPersistence,
-} from '@/features/architect/utils/mutationPipeline';
+import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/mutationPipeline';
 import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
@@ -111,13 +114,13 @@ function buildPostStateRulesContext(year) {
  * These fields are derived/computed at load time and must not be persisted.
  */
 const HYDRATION_ONLY_KEYS = Object.freeze([
-  'id',               // hydrateBaseTeam display identifier
-  'activeContracts',  // derived from players for display
-  'draftAssets',      // derived from entitlements
-  'mle',              // flattened from exceptions.mle (already inside exceptions)
-  'tpMle',            // flattened from exceptions.taxpayerMle
-  'bae',              // flattened from exceptions.bae
-  'baseline',         // reference to original base doc
+  'id', // hydrateBaseTeam display identifier
+  'activeContracts', // derived from players for display
+  'draftAssets', // derived from entitlements
+  'mle', // flattened from exceptions.mle (already inside exceptions)
+  'tpMle', // flattened from exceptions.taxpayerMle
+  'bae', // flattened from exceptions.bae
+  'baseline', // reference to original base doc
 ]);
 
 function stripHydrationOnlyFields(team) {
@@ -747,7 +750,8 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
         // Bridge Gate: match persistWorldMutation hygiene order
         // strip hydration → sanitize transients → normalize TPE → validate contract → removeUndefined → write
         const afterHydrationStrip = stripHydrationOnlyFields(updatedTeam);
-        const afterSanitize = sanitizeTransientFieldsForPersistence(afterHydrationStrip);
+        const afterSanitize =
+          sanitizeTransientFieldsForPersistence(afterHydrationStrip);
         const normalizedTeam = normalizeTeamTpeSchema(afterSanitize);
         assertPersistableOrThrow({
           obj: normalizedTeam,
@@ -810,7 +814,10 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
           const currentEntitlementsByTeam = {};
           for (const teamEntry of teams) {
             const teamCode = teamEntry.teamCode;
-            const resolved = await resolveEntitlementsForTeam(worldId, teamCode);
+            const resolved = await resolveEntitlementsForTeam(
+              worldId,
+              teamCode
+            );
             if (!Array.isArray(resolved)) {
               throw new Error(
                 `DARE gated persistence unavailable — entitlement set for ${teamCode} is not an array.`
@@ -859,7 +866,10 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
           dareErr?.code === 'ENTITLEMENT_INVARIANT_VIOLATION' ||
           dareMessage.includes('ENTITLEMENT_INVARIANT_VIOLATION');
         // Gate failures are ship blockers: fail season advance loudly.
-        if (dareMessage.includes('DARE gated persistence') || invariantViolation) {
+        if (
+          dareMessage.includes('DARE gated persistence') ||
+          invariantViolation
+        ) {
           throw new Error(
             dareMessage.includes('DARE gated persistence')
               ? dareMessage
@@ -933,7 +943,8 @@ export async function advanceSeasonInWorld(worldId, options = {}) {
         players: [],
       },
     };
-    const afterEventSanitize = sanitizeTransientFieldsForPersistence(eventPayload);
+    const afterEventSanitize =
+      sanitizeTransientFieldsForPersistence(eventPayload);
     assertPersistableOrThrow({
       obj: afterEventSanitize,
       contract: PERSISTENCE_CONTRACTS.EVENT,

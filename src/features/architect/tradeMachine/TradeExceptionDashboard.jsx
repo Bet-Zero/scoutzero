@@ -3,6 +3,10 @@ import React from 'react';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import { getTpeExpiryISO } from '@/features/architect/utils/tpeLifecycle';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+import {
+  getValidationIssueText,
+  normalizeValidationIssues,
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const TradeExceptionDashboard = ({ result, teams }) => {
   if (!result?.teamResults) return null;
@@ -12,6 +16,14 @@ const TradeExceptionDashboard = ({ result, teams }) => {
   const tpeData = result.teamResults
     .map((team, index) => {
       const teamData = teams[index];
+      const tradeExceptionRule = team.rules?.tradeExceptions;
+      const tradeExceptionViolations = normalizeValidationIssues(
+        tradeExceptionRule?.violations
+      );
+      const tradeExceptionWarnings = normalizeValidationIssues(
+        tradeExceptionRule?.warnings
+      );
+
       return {
         teamName: team.teamName,
         createdTPE: team.createdTPE,
@@ -20,9 +32,18 @@ const TradeExceptionDashboard = ({ result, teams }) => {
         outgoingPlayers: team.outgoingPlayers || [],
         salaryIn: team.salaryIn || 0,
         salaryOut: team.salaryOut || 0,
+        tradeExceptionViolations,
+        tradeExceptionWarnings,
       };
     })
-    .filter((team) => team.createdTPE || team.existingTPEs.length > 0);
+    .filter(
+      (team) =>
+        team.createdTPE ||
+        team.existingTPEs.length > 0 ||
+        team.incomingPlayers.some((player) => player.absorptionMode === 'TPE') ||
+        team.tradeExceptionViolations.length > 0 ||
+        team.tradeExceptionWarnings.length > 0
+    );
 
   if (tpeData.length === 0) return null;
 
@@ -106,6 +127,35 @@ const TradeExceptionDashboard = ({ result, teams }) => {
                     #{player.tpeIndex + 1}
                   </div>
                 ))}
+            </div>
+          )}
+
+          {team.tradeExceptionViolations.length > 0 && (
+            <div className="mb-3 p-2 bg-red-900/20 border border-red-500/30 rounded">
+              <div className="text-xs text-red-300 font-medium mb-1">
+                Trade Exception Blockers
+              </div>
+              {team.tradeExceptionViolations.map((violation, violationIndex) => (
+                <div
+                  key={violationIndex}
+                  className="text-xs text-white/80"
+                >
+                  {getValidationIssueText(violation)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {team.tradeExceptionWarnings.length > 0 && (
+            <div className="mb-3 p-2 bg-amber-900/20 border border-amber-500/30 rounded">
+              <div className="text-xs text-amber-300 font-medium mb-1">
+                Trade Exception Warnings
+              </div>
+              {team.tradeExceptionWarnings.map((warning, warningIndex) => (
+                <div key={warningIndex} className="text-xs text-white/80">
+                  {getValidationIssueText(warning)}
+                </div>
+              ))}
             </div>
           )}
         </div>

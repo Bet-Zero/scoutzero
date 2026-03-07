@@ -242,7 +242,8 @@ export const useTradeMachine = (
   capProjections,
   currentYear, // ← season **end-year**, e.g. 2025 for 2024-25
   primaryTeamData = null,
-  worldId = null // ← optional worldId for world-aware loading
+  worldId = null, // ← optional worldId for world-aware loading
+  worldAsOfDate = null
 ) => {
   // Main state
   const [teams, setTeams] = useState([]);
@@ -957,7 +958,7 @@ export const useTradeMachine = (
           }
       )
     );
-      const validation = validateTrade({
+    const validation = validateTrade({
         teams: patchedTeams
           .filter((t) => t.team)
           .map((t) => ({
@@ -979,6 +980,7 @@ export const useTradeMachine = (
         worldId,
         yearKey,
         source: 'tradeMachine',
+        ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
       },
     });
 
@@ -994,7 +996,18 @@ export const useTradeMachine = (
 
     const result = {
       ...validation,
-      legal: (canOverride && forceTrade) || validation.legal,
+      legal: validation.legal,
+      authoritativeLegal: validation.legal,
+      override: {
+        requested: Boolean(forceTrade),
+        enabled: canOverride,
+        appliedToLegality: false,
+        message: forceTrade
+          ? canOverride
+            ? 'Force-trade was requested, but authoritative legality remains unchanged.'
+            : 'Force-trade was requested, but override is disabled in this environment.'
+          : null,
+      },
       // TM_DATAWARN_UI_E1: Attach data warnings to result
       hasDataIssues: dataValidation.hasIssues,
       dataWarnings: dataValidation.warnings,
@@ -1020,7 +1033,7 @@ export const useTradeMachine = (
     );
 
     return result;
-  }, [teams, capProjections, yearKey, forceTrade]);
+  }, [teams, capProjections, yearKey, forceTrade, worldAsOfDate, worldId]);
 
   // REMOVED: Auto-validation effect was causing stale "Validated" state
   // Validation now ONLY happens when user clicks "Validate Trade" (explicit action)

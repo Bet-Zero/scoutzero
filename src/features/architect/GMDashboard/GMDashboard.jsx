@@ -344,6 +344,7 @@ const GMDashboard = () => {
             primaryTeamData={teamCapSheet}
             onEditContract={actions.handleEditContract}
             worldId={worldId}
+            worldAsOfDate={worldAsOfDate}
             userId={userId}
           />
         )}

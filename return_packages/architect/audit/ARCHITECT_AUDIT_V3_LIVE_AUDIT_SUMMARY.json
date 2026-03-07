@@ -1,0 +1,56 @@
+{
+  "artifact": "ARCHITECT_AUDIT_V3_LIVE_AUDIT_SUMMARY",
+  "scoring_model_source": "docs/architect/audits/ARCHITECT_FULL_SYSTEM_AUDIT_BLUEPRINT.md",
+  "historical_reference": {
+    "score": 78.45,
+    "verdict": "Not Ready"
+  },
+  "live_state": {
+    "score": 86.3,
+    "verdict": "Conditionally Ready",
+    "critical_findings": 0,
+    "active_live_ship_blockers": []
+  },
+  "category_scores": {
+    "functional_flows": {
+      "weight": 0.2,
+      "score": 84,
+      "weighted": 16.8
+    },
+    "rules_correctness": {
+      "weight": 0.25,
+      "score": 86,
+      "weighted": 21.5
+    },
+    "persistence_data_integrity": {
+      "weight": 0.2,
+      "score": 88,
+      "weighted": 17.6
+    },
+    "ux_truthfulness": {
+      "weight": 0.15,
+      "score": 84,
+      "weighted": 12.6
+    },
+    "security_boundaries": {
+      "weight": 0.15,
+      "score": 92,
+      "weighted": 13.8
+    },
+    "operational_readiness": {
+      "weight": 0.05,
+      "score": 80,
+      "weighted": 4.0
+    }
+  },
+  "score_delta": 7.85,
+  "status_changes_since_historical_audit": [
+    "FIND-B5-001 resolved since audit",
+    "VQ-E2-001 resolved since audit with runtime rules proof",
+    "VQ-B4-001 resolved since audit with fail-closed fix and focused test proof",
+    "VQ-D-001 resolved since audit with persisted runtime proof for offer-sheet and entitlement re-entry flows"
+  ],
+  "non_blocking_followups": [
+    "Stabilize Playwright-managed review-mode startup against stale emulator port conflicts"
+  ]
+}

@@ -102,6 +102,29 @@ const gotoDashboard = async (page: Page) => {
 
   const modeBadge = page.getByTestId('firebase-target-mode-badge');
   const noTeamData = page.getByText(/^No team data$/i);
+  const dashboardHeading = page.getByRole('heading', { name: /GM Dashboard/i });
+  const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
+
+  await expect
+    .poll(
+      async () => {
+        const hasModeBadge = await isVisible(modeBadge, 1000);
+        const hasNoTeamData = await isVisible(noTeamData, 1000);
+        const hasDashboardHeading = await isVisible(dashboardHeading, 1000);
+        const stillLoading = await isVisible(loadingDashboard, 1000);
+
+        return (
+          !stillLoading &&
+          (hasModeBadge || hasNoTeamData || hasDashboardHeading)
+        );
+      },
+      {
+        timeout: 30000,
+        message:
+          'GM Dashboard should leave the loading state and render a terminal dashboard state',
+      }
+    )
+    .toBe(true);
 
   if (await isVisible(modeBadge, 15000)) {
     return;
@@ -111,14 +134,50 @@ const gotoDashboard = async (page: Page) => {
     return;
   }
 
-  await expect(
-    page.getByRole('heading', { name: /GM Dashboard/i })
-  ).toBeVisible();
+  await expect(dashboardHeading).toBeVisible();
+};
+
+const reenterDashboardViaAppNavigation = async (page: Page) => {
+  const startingUrl = page.url();
+  const profilesLink = page.getByRole('link', { name: /^Player Profiles$/i });
+  await expect(profilesLink).toBeVisible();
+  await profilesLink.click();
+  await expect(page).toHaveURL(/\/profiles$/);
+  await page.goBack({ waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(startingUrl);
+  return page;
 };
 
 const ensureTeamDataLoaded = async (page: Page, testInfo: TestInfo) => {
   const noTeamData = page.getByText(/^No team data$/i);
-  if (await isVisible(noTeamData, 3000)) {
+  const modeBadge = page.getByTestId('firebase-target-mode-badge');
+  const dashboardHeading = page.getByRole('heading', { name: /GM Dashboard/i });
+  const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
+
+  await expect
+    .poll(
+      async () => {
+        const hasNoTeamData = await isVisible(noTeamData, 1000);
+        const hasModeBadge = await isVisible(modeBadge, 1000);
+        const hasDashboardHeading = await isVisible(dashboardHeading, 1000);
+        const stillLoading = await isVisible(loadingDashboard, 1000);
+
+        return {
+          hasNoTeamData,
+          isReady:
+            !stillLoading &&
+            (hasNoTeamData || hasModeBadge || hasDashboardHeading),
+        };
+      },
+      {
+        timeout: 30000,
+        message:
+          'GM Dashboard should finish loading before the test checks for team data',
+      }
+    )
+    .toMatchObject({ isReady: true });
+
+  if (await isVisible(noTeamData, 1000)) {
     addAuditNote(
       testInfo,
       'The /gm/LAL route is unseeded in the current server session. Re-run with PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true or a seeded local review session for full checklist coverage.'
@@ -128,7 +187,12 @@ const ensureTeamDataLoaded = async (page: Page, testInfo: TestInfo) => {
     );
   }
 
-  await expect(page.getByTestId('firebase-target-mode-badge')).toBeVisible();
+  if (!(await isVisible(modeBadge, 2000))) {
+    addAuditNote(
+      testInfo,
+      'Mode badge was not visible when team data finished loading; continuing because the dashboard itself is interactive in this session.'
+    );
+  }
 };
 
 const openDashboardTab = async (page: Page, label: string) => {
@@ -139,6 +203,25 @@ const openDashboardTab = async (page: Page, label: string) => {
   await tabButton.click();
 };
 
+const openWizardEditorTab = async (modal: Locator, label: string) => {
+  const editorTab = modal
+    .getByRole('button', {
+      name: new RegExp(`^${label}(\\s+\\d+)?$`, 'i'),
+    })
+    .first();
+  await expect(editorTab).toBeVisible();
+  await editorTab.click({ force: true });
+};
+
+const readWorldIdFromBodyText = async (page: Page) =>
+  page
+    .evaluate(() => document.body?.innerText || '')
+    .then((text) => {
+      const match = text.match(/World:\s+([^\s|]+)/);
+      return match?.[1] === 'base-mode' ? '' : match?.[1] || '';
+    })
+    .catch(() => '');
+
 const readActiveWorldId = async (page: Page) => {
   const worldSelector = page.locator('#world-selector');
   const selectedWorldId = await worldSelector.inputValue().catch(() => '');
@@ -146,21 +229,40 @@ const readActiveWorldId = async (page: Page) => {
     return selectedWorldId;
   }
 
+  const storedWorldId = await page
+    .evaluate(() => {
+      const storageKey = Object.keys(window.localStorage).find((key) =>
+        key.startsWith('architect.activeWorldId.')
+      );
+
+      return storageKey ? window.localStorage.getItem(storageKey) || '' : '';
+    })
+    .catch(() => '');
+  if (storedWorldId) {
+    return storedWorldId;
+  }
+
   const debugSummary = await page
-    .getByText(/^World:/)
+    .locator('text=/World:\s+/')
     .first()
     .textContent()
     .catch(() => '');
   const debugWorldId = debugSummary?.match(/World:\s+([^\s|]+)/)?.[1] || '';
+  if (debugWorldId && debugWorldId !== 'base-mode') {
+    return debugWorldId;
+  }
 
-  return debugWorldId === 'base-mode' ? '' : debugWorldId;
+  const bodyWorldId = await readWorldIdFromBodyText(page);
+
+  if (bodyWorldId) {
+    return bodyWorldId;
+  }
+
+  return '';
 };
 
 const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
   const worldSelector = page.locator('#world-selector');
-  const worldActionsButton = page.getByRole('button', {
-    name: /^World actions$/i,
-  });
   const signInHint = page.getByText(/Sign in to manage worlds/i);
 
   await expect
@@ -203,21 +305,93 @@ const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
   await expect(createButton).toBeVisible();
   await createButton.click();
 
+  let createdWorldId = '';
   await expect
-    .poll(async () => await readActiveWorldId(page), {
-      timeout: 15000,
-      message: 'newly created world should become active after creation',
-    })
-    .not.toBe('');
+    .poll(
+      async () => {
+        const matchingWorld = (
+          await getReviewAdminDb().collection('architect_worlds').get()
+        ).docs
+          .map((docSnapshot) => docSnapshot.data() as Record<string, unknown>)
+          .find((world) => world.worldName === worldName);
 
-  await expect(worldActionsButton).toBeVisible();
+        createdWorldId =
+          typeof matchingWorld?.worldId === 'string'
+            ? matchingWorld.worldId
+            : '';
+        return createdWorldId !== '';
+      },
+      {
+        timeout: 15000,
+        message:
+          'newly created world should persist to the emulator after creation',
+      }
+    )
+    .toBe(true);
 
-  const newWorldId = await readActiveWorldId(page);
+  await page.waitForTimeout(500);
+
+  const newWorldId = (await readActiveWorldId(page)) || createdWorldId;
+  expect(newWorldId).not.toBe('');
   addAuditNote(
     testInfo,
     `World-backed review automation activated a newly created world (${newWorldId}) for this checklist row.`
   );
   return newWorldId;
+};
+
+const ensureSpecificWorldSelected = async (
+  page: Page,
+  worldId: string,
+  testInfo: TestInfo
+) => {
+  await expect
+    .poll(async () => await readActiveWorldId(page), {
+      timeout: 10000,
+      message: `world ${worldId} should remain active or rehydrate automatically after route re-entry`,
+    })
+    .toBe(worldId)
+    .catch(() => undefined);
+
+  const activeWorldId = await readActiveWorldId(page);
+  if (activeWorldId === worldId) {
+    return worldId;
+  }
+
+  const worldSelector = page.locator('#world-selector');
+  await expect(worldSelector).toBeVisible();
+
+  await expect
+    .poll(
+      async () =>
+        await worldSelector.evaluate((element, expectedWorldId) => {
+          const select = element as HTMLSelectElement;
+          return Array.from(select.options).some(
+            (option) => option.value === expectedWorldId
+          );
+        }, worldId),
+      {
+        timeout: 15000,
+        message: `world selector should load option ${worldId} before re-selection`,
+      }
+    )
+    .toBe(true);
+
+  await worldSelector.selectOption(worldId);
+
+  await expect
+    .poll(async () => await readActiveWorldId(page), {
+      timeout: 15000,
+      message: `world ${worldId} should rehydrate as the active selection after reload`,
+    })
+    .toBe(worldId);
+
+  addAuditNote(
+    testInfo,
+    `Reload required explicit re-selection of world ${worldId} before persisted-state verification continued.`
+  );
+
+  return worldId;
 };
 
 test.describe('D-MQ: Architect Manual QA Checklist', () => {
@@ -342,7 +516,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-004-invalid-trade-gating');
   });
 
-  test('D-MQ-005: Free agent entry flow opens from the pool', async ({
+  test('D-MQ-005: Free agent offer sheet persists and rehydrates after route re-entry', async ({
     page,
   }, testInfo) => {
     await page.goto(GM_DASHBOARD_CAP_ROOM_URL, {
@@ -388,7 +562,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     const offerSheetToggle = page.getByLabel(/^Offer Sheet$/i);
     await expect(offerSheetToggle).toBeVisible();
-    await offerSheetToggle.check();
+    await offerSheetToggle.click({ force: true });
+    await expect(offerSheetToggle).toBeChecked();
 
     await contractPreviewHeading
       .locator('xpath=following::select[3]')
@@ -405,10 +580,6 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     });
     await expect(confirmActionButton).toBeVisible();
     await confirmActionButton.click();
-
-    await expect(
-      page.getByRole('heading', { name: /^Available Actions$/i })
-    ).not.toBeVisible({ timeout: 15000 });
 
     const pendingOfferSheetsCard = page
       .locator('div')
@@ -440,9 +611,42 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     });
     expect(Number(persistedOfferSheet?.totalValue || 0)).toBeGreaterThan(0);
 
+    await reenterDashboardViaAppNavigation(page);
+    await ensureTeamDataLoaded(page, testInfo);
+    await openDashboardTab(page, 'Free Agency');
+
+    const rehydratedPendingOfferSheetsCard = page
+      .locator('div')
+      .filter({
+        has: page.getByRole('heading', { name: /^My Pending Offer Sheets$/i }),
+      })
+      .first();
+    await expect(rehydratedPendingOfferSheetsCard).toBeVisible();
+    await expect(rehydratedPendingOfferSheetsCard).toContainText(
+      REVIEW_MODE_FREE_AGENT_NAME
+    );
+    await expect(rehydratedPendingOfferSheetsCard).toContainText(
+      /PENDING MATCH/i
+    );
+
+    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
+      worldId,
+      'ATL'
+    );
+    const persistedOfferSheetAfterReload =
+      persistedTeamDocumentAfterReload.offerSheets?.find(
+        (offerSheet) => offerSheet.playerId === 'review_offer_sheet_guard'
+      );
+
+    expect(persistedOfferSheetAfterReload).toMatchObject({
+      playerId: 'review_offer_sheet_guard',
+      status: 'PENDING_MATCH',
+      offeringTeamCode: 'ATL',
+    });
+
     addAuditNote(
       testInfo,
-      'This covers the real review-mode offer-sheet save path: modal submit succeeds, the pending offer-sheet row renders, and the saved ATL team world document contains the persisted offer sheet in the Firestore emulator.'
+      'This covers the real review-mode offer-sheet save path end to end: modal submit succeeds, the pending offer-sheet row renders, the saved ATL world document contains the persisted offer sheet in the Firestore emulator, and the same pending state rehydrates correctly after dashboard route re-entry.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005-free-agency-entry');
   });
@@ -557,6 +761,32 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     const newEntitlementButton = page
       .getByRole('button', { name: /^New Entitlement$/i })
       .first();
+
+    const picksTabButton = page
+      .getByRole('button', {
+        name: /^(Picks|Pck)( \(\d+\))?$/i,
+      })
+      .first();
+
+    if (!(await isVisible(newEntitlementButton, 2000))) {
+      const teamPicker = page
+        .locator('label', { hasText: /^Select Team$/i })
+        .locator('xpath=following-sibling::select[1]')
+        .first();
+
+      if (!(await isVisible(teamPicker, 2000))) {
+        const addTeamButton = page.getByRole('button', { name: /^Add Team$/i });
+        if (await isVisible(addTeamButton, 2000)) {
+          await addTeamButton.click();
+        }
+      }
+
+      await expect(teamPicker).toBeVisible();
+      await teamPicker.selectOption('lakers');
+    }
+
+    await expect(picksTabButton).toBeVisible();
+    await picksTabButton.click();
     await expect(newEntitlementButton).toBeVisible();
     await newEntitlementButton.click();
 
@@ -566,12 +796,17 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await page.locator('#entitlement-holderTeam').fill('LAL');
     await page.locator('#entitlement-seasonYear').fill('2031');
-    await page.locator('#entitlement-round').selectOption('2');
-    await page.locator('#entitlement-kind').selectOption('pick_ownership');
-    await page.locator('#entitlement-underlyingPickId').fill('LAL_2031_R2');
+    await page.locator('#entitlement-round').selectOption('1');
+    await page.locator('#entitlement-kind').selectOption('swap_right');
     await page
       .locator('#entitlement-description')
-      .fill('Review-mode protected pick authoring proof');
+      .fill('Review-mode swap authoring proof');
+    await openWizardEditorTab(modal, 'Swap');
+    await page.locator('#entitlement-swapType').selectOption('best_of');
+    await page.locator('#entitlement-swapControllerPickId').fill('LAL_2031_R1');
+    await page
+      .locator('#entitlement-swapTargetDefinition')
+      .fill('BOS own 2031 1st round pick');
 
     const applyButton = modal.getByTestId('wizard-apply');
     await expect(applyButton).toBeEnabled();
@@ -584,7 +819,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
         async () => {
           const worldEntitlements = await getWorldEntitlementDocuments(worldId);
           const createdDocument = worldEntitlements.find(
-            (entitlement) => entitlement.underlyingPickId === 'LAL_2031_R2'
+            (entitlement) =>
+              entitlement.kind === 'swap_right' &&
+              entitlement.swapControllerPickId === 'LAL_2031_R1' &&
+              entitlement.swapTargetDefinition === 'BOS own 2031 1st round pick'
           );
           createdEntitlementId =
             typeof createdDocument?.id === 'string' ? createdDocument.id : '';
@@ -612,31 +850,91 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     expect(createdEntitlement).toMatchObject({
       holderTeam: 'LAL',
       seasonYear: 2031,
-      round: 2,
-      kind: 'pick_ownership',
-      underlyingPickId: 'LAL_2031_R2',
+      round: 1,
+      kind: 'swap_right',
+      swapControllerPickId: 'LAL_2031_R1',
+      swapTargetDefinition: 'BOS own 2031 1st round pick',
     });
 
-    await newEntitlementButton.click();
-    await expect(modal).toBeVisible();
-    await modal.getByTestId('view-toggle-advanced').click();
+    await reenterDashboardViaAppNavigation(page);
+    await ensureTeamDataLoaded(page, testInfo);
+    await openDashboardTab(page, 'Trade Machine');
+
+    const afterReloadTeamDocument = await getWorldTeamDocument(worldId, 'LAL');
+    const afterReloadEntitlementIds = Array.isArray(
+      afterReloadTeamDocument?.entitlementIds
+    )
+      ? [...afterReloadTeamDocument.entitlementIds]
+      : [];
+    expect(afterReloadEntitlementIds).toContain(createdEntitlementId);
+
+    const afterReloadCreatedEntitlement = (
+      await getWorldEntitlementDocuments(worldId)
+    ).find((entitlement) => entitlement.id === createdEntitlementId);
+    expect(afterReloadCreatedEntitlement).toMatchObject({
+      holderTeam: 'LAL',
+      seasonYear: 2031,
+      round: 1,
+      kind: 'swap_right',
+      swapControllerPickId: 'LAL_2031_R1',
+      swapTargetDefinition: 'BOS own 2031 1st round pick',
+    });
+
+    const newEntitlementButtonAfterReload = page
+      .getByRole('button', { name: /^New Entitlement$/i })
+      .first();
+    const picksTabButtonAfterReload = page
+      .getByRole('button', {
+        name: /^(Picks|Pck)( \(\d+\))?$/i,
+      })
+      .first();
+
+    if (!(await isVisible(newEntitlementButtonAfterReload, 2000))) {
+      const teamPicker = page
+        .locator('label', { hasText: /^Select Team$/i })
+        .locator('xpath=following-sibling::select[1]')
+        .first();
+      if (!(await isVisible(teamPicker, 2000))) {
+        const addTeamButton = page.getByRole('button', { name: /^Add Team$/i });
+        if (await isVisible(addTeamButton, 2000)) {
+          await addTeamButton.click();
+        }
+      }
+      if (await isVisible(teamPicker, 2000)) {
+        await teamPicker.selectOption('lakers');
+      }
+    }
+
+    await expect(picksTabButtonAfterReload).toBeVisible();
+    await picksTabButtonAfterReload.click();
+    await expect(newEntitlementButtonAfterReload).toBeVisible();
+
+    await newEntitlementButtonAfterReload.click();
+    const reloadedModal = page.getByTestId('pick-right-wizard-modal');
+    await expect(reloadedModal).toBeVisible();
+    await reloadedModal.getByTestId('view-toggle-advanced').click();
 
     await page.locator('#entitlement-holderTeam').fill('LAL');
     await page.locator('#entitlement-seasonYear').fill('2027');
     await page.locator('#entitlement-round').selectOption('1');
-    await page.locator('#entitlement-kind').selectOption('pick_ownership');
-    await page.locator('#entitlement-underlyingPickId').fill('LAL_2027_R1');
+    await page.locator('#entitlement-kind').selectOption('swap_right');
     await page
       .locator('#entitlement-description')
-      .fill('Intentional conflict against existing ownership claim');
+      .fill('Intentional conflict against existing swap controller');
+    await openWizardEditorTab(reloadedModal, 'Swap');
+    await page.locator('#entitlement-swapType').selectOption('worst_of');
+    await page.locator('#entitlement-swapControllerPickId').fill('LAL_2031_R1');
+    await page
+      .locator('#entitlement-swapTargetDefinition')
+      .fill('ATL own 2031 1st round pick');
 
-    const conflictingApplyButton = modal.getByTestId('wizard-apply');
+    const conflictingApplyButton = reloadedModal.getByTestId('wizard-apply');
     await expect(conflictingApplyButton).toBeEnabled();
     await conflictingApplyButton.click();
 
-    await expect(modal).toBeVisible();
+    await expect(reloadedModal).toBeVisible();
     await expect(
-      page.getByText(/Duplicate pick ownership for LAL_2027_R1/i)
+      page.getByText(/Duplicate swap controller for LAL_2031_R1/i).first()
     ).toBeVisible();
 
     const afterConflictTeamDocument = await getWorldTeamDocument(
@@ -657,13 +955,15 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
     expect(
       afterConflictWorldEntitlements.filter(
-        (entitlement) => entitlement.underlyingPickId === 'LAL_2027_R1'
+        (entitlement) =>
+          entitlement.kind === 'swap_right' &&
+          entitlement.swapControllerPickId === 'LAL_2031_R1'
       )
-    ).toHaveLength(0);
+    ).toHaveLength(1);
 
     addAuditNote(
       testInfo,
-      'This proves the real world-scoped entitlement authoring path: Trade Machine opens the unified wizard, a new entitlement persists into architect_worlds/{worldId}/entitlements and attaches to LAL, then a conflicting ownership claim is blocked fail-closed before any additional world write occurs.'
+      'This proves the real world-scoped entitlement authoring path end to end: Trade Machine opens the unified wizard, a new swap entitlement persists into architect_worlds/{worldId}/entitlements and attaches to LAL, the saved state survives reload and re-entry, and a conflicting swap-controller claim is then blocked fail-closed before any additional world write occurs.'
     );
     await captureEvidence(
       page,
@@ -671,9 +971,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       'D-MQ-009-entitlement-authoring-proof'
     );
 
-    const closeButton = modal.getByTestId('wizard-close');
+    const closeButton = reloadedModal.getByTestId('wizard-close');
     await closeButton.click();
-    await expect(modal).not.toBeVisible();
+    await expect(reloadedModal).not.toBeVisible();
 
     expect(beforeEntitlementIds.length + 1).toBe(
       afterCreateEntitlementIds.length

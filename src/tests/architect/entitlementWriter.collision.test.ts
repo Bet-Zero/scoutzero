@@ -14,8 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('firebase/firestore', () => ({
   doc: (...args: unknown[]) => mocks.mockDoc(...(args as string[])),
-  runTransaction: (...args: unknown[]) =>
-    mocks.mockRunTransaction(...args),
+  runTransaction: (...args: unknown[]) => mocks.mockRunTransaction(...args),
   setDoc: vi.fn(),
   deleteDoc: vi.fn(),
   updateDoc: vi.fn(),
@@ -68,15 +67,12 @@ describe('writeWorldEntitlementAndAttachToTeamAtomic collision safety', () => {
         callback(tx)
     );
 
-    const result = await writeWorldEntitlementAndAttachToTeamAtomic(
-      {} as any,
-      {
-        worldId: 'world-1',
-        entitlementId: 'ent:LAL:2028:1:own:abcd1234',
-        document: makeDoc(),
-        userId: 'user-1',
-      }
-    );
+    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as any, {
+      worldId: 'world-1',
+      entitlementId: 'ent:LAL:2028:1:own:abcd1234',
+      document: makeDoc(),
+      userId: 'user-1',
+    });
 
     expect(result.success).toBe(false);
     expect(result.errorType).toBe('ENTITLEMENT_ID_COLLISION');
@@ -102,18 +98,15 @@ describe('writeWorldEntitlementAndAttachToTeamAtomic collision safety', () => {
         callback(tx)
     );
 
-    const result = await writeWorldEntitlementAndAttachToTeamAtomic(
-      {} as any,
-      {
-        worldId: 'world-1',
-        entitlementId: 'ent:LAL:2028:1:own:abcd1234',
-        document: makeDoc(),
-        userId: 'user-1',
-      }
-    );
+    const result = await writeWorldEntitlementAndAttachToTeamAtomic({} as any, {
+      worldId: 'world-1',
+      entitlementId: 'ent:LAL:2028:1:own:abcd1234',
+      document: makeDoc(),
+      userId: 'user-1',
+    });
 
     expect(result.success).toBe(true);
-    expect(tx.set).toHaveBeenCalledTimes(1);
-    expect(tx.update).toHaveBeenCalledTimes(1);
+    expect(tx.set).toHaveBeenCalledTimes(2);
+    expect(tx.update).not.toHaveBeenCalled();
   });
 });

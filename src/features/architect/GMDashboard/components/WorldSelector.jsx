@@ -30,6 +30,8 @@ import { DeleteWorldModal } from './DeleteWorldModal';
 /** localStorage key pattern for persisting active worldId */
 const getWorldStorageKey = (userId) => `architect.activeWorldId.${userId}`;
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // ==============================================================================
 // COMPONENT
 // ==============================================================================
@@ -79,18 +81,29 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
     setIsLoading(true);
     setError('');
 
-    try {
-      const userWorlds = await listUserWorlds(userId, {
-        includeArchived: false,
-      });
-      setWorlds(userWorlds);
-    } catch (err) {
-      console.error('Failed to load worlds:', err);
-      setError('Failed to load worlds');
-      setWorlds([]);
-    } finally {
-      setIsLoading(false);
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        const userWorlds = await listUserWorlds(userId, {
+          includeArchived: false,
+        });
+        setWorlds(userWorlds);
+        setIsLoading(false);
+        return;
+      } catch (err) {
+        lastError = err;
+
+        if (attempt < 4) {
+          await wait(1000 * (attempt + 1));
+        }
+      }
     }
+
+    console.error('Failed to load worlds:', lastError);
+    setError('Failed to load worlds');
+    setWorlds([]);
+    setIsLoading(false);
   }, [userId]);
 
   // Load worlds on mount and when userId changes
@@ -98,34 +111,40 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
     loadWorlds();
   }, [loadWorlds]);
 
-  // ===========================================================================
+  // ==========================================================================
   // RESTORE FROM LOCALSTORAGE
-  // ===========================================================================
+  // ==========================================================================
 
   useEffect(() => {
-    if (!userId || hasRestoredFromStorage.current || isLoading) return;
+    if (!userId || hasRestoredFromStorage.current || worldId) {
+      return;
+    }
 
     const storageKey = getWorldStorageKey(userId);
     const storedWorldId = localStorage.getItem(storageKey);
 
-    if (storedWorldId && worlds.length > 0) {
-      // Verify the stored world still exists
-      const worldExists = worlds.some((w) => w.worldId === storedWorldId);
-
-      if (worldExists && !worldId) {
-        setWorldId(storedWorldId);
-        hasRestoredFromStorage.current = true;
-      } else if (!worldExists) {
-        // Stored world no longer exists, clear it
-        localStorage.removeItem(storageKey);
-      }
+    if (storedWorldId) {
+      setWorldId(storedWorldId);
     }
 
-    // Mark as restored even if nothing was restored
     hasRestoredFromStorage.current = true;
     // Note: setWorldId is a stable React setState function, but included for completeness
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, worldId, worlds, isLoading]);
+  }, [userId, worldId]);
+
+  useEffect(() => {
+    if (!userId || !worldId || isLoading || error || worlds.length === 0) {
+      return;
+    }
+
+    const storageKey = getWorldStorageKey(userId);
+    const worldExists = worlds.some((world) => world.worldId === worldId);
+
+    if (!worldExists) {
+      localStorage.removeItem(storageKey);
+      setWorldId(null);
+    }
+  }, [userId, worldId, worlds, isLoading, error, setWorldId]);
 
   // ===========================================================================
   // PERSIST TO LOCALSTORAGE
@@ -133,6 +152,10 @@ export function WorldSelector({ userId, worldId, setWorldId, onWorldChange }) {
 
   useEffect(() => {
     if (!userId) return;
+
+    if (!hasRestoredFromStorage.current && !worldId) {
+      return;
+    }
 
     const storageKey = getWorldStorageKey(userId);
 

@@ -1748,6 +1748,7 @@ export function computeWorldMutation({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
   worldId,
 }) {
   switch (mutationType) {
@@ -1761,10 +1762,22 @@ export function computeWorldMutation({
         timestamp,
       });
 
+      const tradePayloadForValidation =
+        asOfDate && payload?.asOfDate !== asOfDate
+          ? {
+              ...payload,
+              asOfDate,
+              tradeCtx: {
+                ...(payload?.tradeCtx || {}),
+                asOfDate,
+              },
+            }
+          : payload;
+
       // Step 2: Validate the post-trade snapshot ONCE
       const validatedContext = validatePostTradeSnapshotForContext({
         snapshot: postTradeSnapshot,
-        payload,
+        payload: tradePayloadForValidation,
         seasonId,
       });
 

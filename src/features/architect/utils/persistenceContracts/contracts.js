@@ -74,6 +74,10 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST = Object.freeze([
   // Entitlements
   'entitlementIds', // Array of entitlement IDs
 
+  // Free agency world state
+  'offerSheets', // Outgoing offer sheets authored by this team
+  'incomingOfferSheets', // Mirrored incoming offer sheets for the home team
+
   // Computed totals (UI display - _meta is separate)
   'totals', // TeamTotalsZ object
 

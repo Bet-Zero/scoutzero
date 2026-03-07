@@ -9,7 +9,10 @@
  * Phase 4: Cap settings must be explicitly provided - no silent defaults
  */
 
-import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
+import {
+  formatCurrency,
+  getSalaryForYear,
+} from '@/features/architect/utils/tradeHelpers.js';
 import { shouldWarnOnly } from '@/config/validationFlags.js';
 import {
   getSalaryMatchingResult,
@@ -179,6 +182,13 @@ export function validateSalaryMatching(team, context = {}) {
   // TPE-absorbed salary is EXCLUDED from salary matching (effectiveSalaryIn).
   // ============================================================================
   const incomingPlayers = team.incomingPlayers || team.receives || [];
+  const resolveIncomingTradeSalary = (player) =>
+    Number(
+      player?.matchIncoming ??
+        player?.salary ??
+        getSalaryForYear(player, context.yearKey) ??
+        0
+    );
 
   // Check if any incoming player has absorptionMode='TPE' - if so, need TPE processing
   const hasTPEPlayers = incomingPlayers.some(
@@ -311,8 +321,63 @@ export function validateSalaryMatching(team, context = {}) {
     // Partial TPE coverage: continue to matching with reduced salaryIn
   }
 
-  // Calculate effective salary for matching (excludes TPE-absorbed players)
-  const effectiveSalaryIn = salaryIn - tpeAbsorbedSalary;
+  const faExceptionValidation = team.faExceptionValidation || null;
+  const faExceptionPlayers = incomingPlayers.filter(
+    (player) => player.absorptionMode === 'FA_EXCEPTION'
+  );
+  const faExceptionAbsorbedSalary =
+    faExceptionValidation?.passed === true
+      ? faExceptionPlayers.reduce(
+          (sum, player) => sum + resolveIncomingTradeSalary(player),
+          0
+        )
+      : 0;
+
+  if (
+    faExceptionValidation?.passed === true &&
+    faExceptionPlayers.length > 0 &&
+    salaryIn - tpeAbsorbedSalary - faExceptionAbsorbedSalary <= 0
+  ) {
+    const bucketTypes = Array.from(
+      new Set(
+        faExceptionPlayers
+          .flatMap((player) =>
+            Array.isArray(player.bucketType)
+              ? player.bucketType
+              : [player.bucketType]
+          )
+          .filter(Boolean)
+      )
+    );
+
+    return {
+      passed: true,
+      applicable: false,
+      skipReason: 'FA_EXCEPTION',
+      allowableIncoming: null,
+      violations: [],
+      salaryIn,
+      salaryOut,
+      tpeAbsorbedSalary: tpeAbsorbedSalary > 0 ? tpeAbsorbedSalary : null,
+      faExceptionAbsorbedSalary,
+      difference: salaryIn - salaryOut,
+      message: 'FA exception absorption validated',
+      details: {
+        ruleApplied: 'FA_EXCEPTION',
+        formulaUsed: 'Incoming salary absorbed by FA exception bucket(s)',
+        bucketTypes,
+        faExceptionAbsorbedSalary,
+        capSettingsSource: 'N/A (FA exception bypass)',
+        capSettings: { salaryCap, firstApron: actualFirstApron, secondApron },
+        totalSalary,
+        totalSalarySource,
+      },
+    };
+  }
+
+  // Calculate effective salary for matching (excludes TPE/FA-exception absorbed players)
+  const effectiveSalaryIn =
+    salaryIn - tpeAbsorbedSalary - faExceptionAbsorbedSalary;
 
   // Under-cap teams can absorb salary up to the cap
   if (totalSalary < salaryCap) {
@@ -470,6 +535,8 @@ export function validateSalaryMatching(team, context = {}) {
       totalSalarySource,
       // TPE info: tpeAbsorbedSalary excluded from effectiveSalaryIn
       tpeAbsorbedSalary: tpeAbsorbedSalary > 0 ? tpeAbsorbedSalary : null,
+      faExceptionAbsorbedSalary:
+        faExceptionAbsorbedSalary > 0 ? faExceptionAbsorbedSalary : null,
       effectiveSalaryIn,
       margin:
         activeAllowableIncoming !== null &&

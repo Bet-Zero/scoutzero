@@ -1,12 +1,13 @@
 import debug from './tradeDebug.js';
-import { ValidationResult } from '../constants/types';
+import { ValidationIssue, ValidationResult } from '../constants/types';
+import { getValidationIssueText } from '../utils/validationIssueText.js';
 
 interface ValidationLog {
   validator: string;
   team: string;
   result: string;
   details: string;
-  violations: string[];
+  violations: ValidationIssue[];
   timestamp: string;
 }
 
@@ -28,7 +29,9 @@ export const validatorDebug = {
     const teamName = team.teamName || 'Unknown Team';
     const status = result.passed ? '✅ PASS' : '❌ FAIL';
     const details = result.violations.length
-      ? `\n  Violations: ${result.violations.join('\n  ')}`
+      ? `\n  Violations: ${result.violations
+          .map((issue) => getValidationIssueText(issue))
+          .join('\n  ')}`
       : '';
 
     this.logs.push({

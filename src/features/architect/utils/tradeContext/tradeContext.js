@@ -41,6 +41,7 @@ import {
   resolveSignAndTradeContractPayload,
   validateSignAndTradeContractPayload,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 // Phase 72: SSOT for team cap totals computation
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
@@ -148,7 +149,8 @@ export function buildPostTradeTeamsSnapshot({
     payload.teams.forEach((teamTrade, senderIndex) => {
       const senderTeamCode = payloadTeamCodes[senderIndex];
       const senderTeamState =
-        currentTeamByCode.get(senderTeamCode) || currentState.teams[senderIndex]?.team;
+        currentTeamByCode.get(senderTeamCode) ||
+        currentState.teams[senderIndex]?.team;
       const senderCapHolds = senderTeamState?.capHolds || [];
 
       (teamTrade.sends || []).forEach((player, playerIndex) => {
@@ -161,7 +163,10 @@ export function buildPostTradeTeamsSnapshot({
             player.destTeamId
         );
         const playerLabel =
-          player.name || player.player_id || player.id || `send[${playerIndex}]`;
+          player.name ||
+          player.player_id ||
+          player.id ||
+          `send[${playerIndex}]`;
 
         if (
           !destinationTeamId ||
@@ -329,7 +334,9 @@ export function buildPostTradeTeamsSnapshot({
                   isNewlySignedFA: true,
                   originTeamId:
                     payloadTeamCodes[otherIndex] ||
-                    normalizeTeamCodeLike(currentState.teams[otherIndex]?.teamCode),
+                    normalizeTeamCodeLike(
+                      currentState.teams[otherIndex]?.teamCode
+                    ),
                 });
               } else {
                 incomingPlayers.push(player);
@@ -532,7 +539,8 @@ export function buildPostTradeTeamsSnapshot({
 
       updatedTeam.hardCapped = hardCapLevel === 'secondApron' ? 2 : 1;
       updatedTeam.hardCapLevel = hardCapLevel;
-      updatedTeam.hardCapReason = 'Triggered by receiving sign-and-trade player';
+      updatedTeam.hardCapReason =
+        'Triggered by receiving sign-and-trade player';
       updatedTeam.hardCapTriggeredBy = 'signAndTrade';
       updatedTeam.totals = {
         ...(updatedTeam.totals || {}),
@@ -603,11 +611,11 @@ export function buildPostTradeTeamsSnapshot({
  * @returns {import('./types').ValidatedTradeContext} Validated context with:
  *   - legal: boolean - Is the trade legal?
  *   - valid: boolean - Alias for legal
- *   - reason: string - Reason if not legal
- *   - error: string - Error message if not legal
- *   - violations: Array - Validation violations
- *   - warnings: Array - Validation warnings
- *   - teamResults: Array - Per-team validation results (createdTPE, rules.tradeExceptions)
+ *   - reason: string - Canonical validation summary reason
+ *   - error: string - Canonical error code/message
+ *   - violations: Array - Canonical top-level validation violations
+ *   - warnings: Array - Canonical top-level validation warnings
+ *   - teamResults: Array - Per-team validation results with canonical rule envelopes
  *   - validationTeams: Array - The validated teams with matchIncoming populated
  *   - _isValidatedTradeContext: true - Sentinel flag for context detection
  */
@@ -626,36 +634,139 @@ export function validatePostTradeSnapshotForContext({
       teams: snapshot.validationTeams,
       capProjections: payload.capProjections || {},
       currentYear,
-      tradeCtx: payload.tradeCtx || {},
+      tradeCtx: {
+        ...(payload.tradeCtx || {}),
+        ...(payload.asOfDate ? { asOfDate: payload.asOfDate } : {}),
+      },
     };
 
     // Run validation exactly once on the POST-TRADE snapshot
     const validation = validateTrade(validationInput);
 
+    const normalizedTeamResults = Array.isArray(validation?.teamResults)
+      ? validation.teamResults
+      : [];
+    const normalizedSummaryByTeamIndex = Array.isArray(
+      validation?.summaryByTeamIndex
+    )
+      ? validation.summaryByTeamIndex
+      : [];
+    const normalizedViolations = Array.isArray(validation?.violations)
+      ? validation.violations
+      : [];
+    const normalizedWarnings = Array.isArray(validation?.warnings)
+      ? validation.warnings
+      : [];
+    const normalizedTradeReceipt =
+      validation &&
+      Object.prototype.hasOwnProperty.call(validation, 'tradeReceipt')
+        ? validation.tradeReceipt
+        : null;
+    const normalizedDataWarnings = Array.isArray(validation?.dataWarnings)
+      ? validation.dataWarnings
+      : [];
+
     return {
+      ...validation,
       legal: validation.legal,
       valid: validation.legal,
       reason: validation.reason,
-      error: validation.legal
-        ? null
-        : validation.reason || 'Trade is not legal',
-      violations:
-        validation.teamResults?.flatMap((r) => r.violations || []) || [],
-      warnings: validation.warnings || [],
-      teamResults: validation.teamResults || [],
+      error:
+        validation.error ||
+        (validation.legal ? null : validation.reason || 'Trade is not legal'),
+      violations: normalizedViolations,
+      warnings: normalizedWarnings,
+      teamResults: normalizedTeamResults,
+      summaryByTeamIndex: normalizedSummaryByTeamIndex,
+      tradeReceipt: normalizedTradeReceipt,
+      dataWarnings: normalizedDataWarnings,
+      hasDataIssues:
+        typeof validation?.hasDataIssues === 'boolean'
+          ? validation.hasDataIssues
+          : normalizedDataWarnings.length > 0,
+      yearKey:
+        validation &&
+        Object.prototype.hasOwnProperty.call(validation, 'yearKey')
+          ? validation.yearKey
+          : currentYear,
+      seasonKey:
+        validation &&
+        Object.prototype.hasOwnProperty.call(validation, 'seasonKey')
+          ? validation.seasonKey
+          : seasonId,
+      capSettings:
+        validation &&
+        Object.prototype.hasOwnProperty.call(validation, 'capSettings')
+          ? validation.capSettings
+          : null,
+      capSettingsSource:
+        validation &&
+        Object.prototype.hasOwnProperty.call(validation, 'capSettingsSource')
+          ? validation.capSettingsSource
+          : null,
+      capSettingsWarnings: Array.isArray(validation?.capSettingsWarnings)
+        ? validation.capSettingsWarnings
+        : [],
+      asOfDate:
+        validation &&
+        Object.prototype.hasOwnProperty.call(validation, 'asOfDate')
+          ? validation.asOfDate
+          : payload.asOfDate || payload.tradeCtx?.asOfDate || null,
+      tradeDate:
+        validation &&
+        Object.prototype.hasOwnProperty.call(validation, 'tradeDate')
+          ? validation.tradeDate
+          : payload.tradeCtx?.tradeDate ||
+            payload.asOfDate ||
+            payload.tradeCtx?.asOfDate ||
+            null,
+      offseason:
+        validation &&
+        Object.prototype.hasOwnProperty.call(validation, 'offseason')
+          ? validation.offseason
+          : typeof payload.tradeCtx?.offseason === 'boolean'
+            ? payload.tradeCtx.offseason
+            : null,
       validationTeams: snapshot.validationTeams,
       _rawValidation: validation,
       _isValidatedTradeContext: true,
     };
   } catch (error) {
+    const message = error.message || 'Trade validation failed';
+
     return {
       legal: false,
       valid: false,
-      reason: error.message || 'Trade validation failed',
-      error: error.message || 'Trade validation failed',
-      violations: [],
+      reason: message,
+      error: message,
+      violations: [
+        createValidationIssue(message, {
+          rule: 'tradeContext',
+          severity: 'error',
+          code: 'TRADE_CONTEXT_VALIDATION_FAILURE',
+        }),
+      ],
       warnings: [],
       teamResults: [],
+      summaryByTeamIndex: [],
+      tradeReceipt: null,
+      dataWarnings: [],
+      hasDataIssues: false,
+      yearKey: currentYear,
+      seasonKey: seasonId,
+      capSettings: null,
+      capSettingsSource: null,
+      capSettingsWarnings: [],
+      asOfDate: payload.asOfDate || payload.tradeCtx?.asOfDate || null,
+      tradeDate:
+        payload.tradeCtx?.tradeDate ||
+        payload.asOfDate ||
+        payload.tradeCtx?.asOfDate ||
+        null,
+      offseason:
+        typeof payload.tradeCtx?.offseason === 'boolean'
+          ? payload.tradeCtx.offseason
+          : null,
       validationTeams: snapshot.validationTeams,
       _isValidatedTradeContext: true,
     };

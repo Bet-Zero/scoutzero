@@ -3,9 +3,11 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tr
 import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput.js';
 import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 describe('Trade Input Validation', () => {
   it('catches missing teams array', () => {
@@ -149,6 +151,8 @@ describe('Trade Input Normalization', () => {
 
     expect(result.legal).toBe(false);
     expect(result.error).toBe('INVALID_INPUT');
-    expect(result.violations).toContain('Trade must include at least 2 teams');
+    expect(issueTexts(result.violations)).toContain(
+      'Trade must include at least 2 teams'
+    );
   });
 });

@@ -59,7 +59,8 @@ export interface AttachEntitlementParams {
   userId: string;
 }
 
-export interface WriteEntitlementAndAttachParams extends WriteEntitlementParams {
+export interface WriteEntitlementAndAttachParams
+  extends WriteEntitlementParams {
   teamCode?: string;
 }
 
@@ -590,11 +591,15 @@ export async function writeWorldEntitlementAndAttachToTeamAtomic(
       }
 
       transaction.set(entitlementRef, payload, { merge: true });
-      transaction.update(teamRef, {
-        entitlementIds: arrayUnion(entitlementId),
-        _lastModifiedAt: serverTimestamp(),
-        _lastModifiedBy: userId,
-      });
+      transaction.set(
+        teamRef,
+        {
+          entitlementIds: arrayUnion(entitlementId),
+          _lastModifiedAt: serverTimestamp(),
+          _lastModifiedBy: userId,
+        },
+        { merge: true }
+      );
     });
 
     return {
@@ -703,11 +708,15 @@ export async function attachEntitlementToTeam(
       teamCode
     );
 
-    await updateDoc(teamRef, {
-      entitlementIds: arrayUnion(entitlementId),
-      _lastModifiedAt: serverTimestamp(),
-      _lastModifiedBy: userId,
-    });
+    await setDoc(
+      teamRef,
+      {
+        entitlementIds: arrayUnion(entitlementId),
+        _lastModifiedAt: serverTimestamp(),
+        _lastModifiedBy: userId,
+      },
+      { merge: true }
+    );
 
     return {
       success: true,

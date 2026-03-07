@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/index.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -24,6 +25,8 @@ const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
   picks,
 });
 
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+
 describe('tradeValidator', () => {
   it('enforces salary matching when a team is over the cap', () => {
     const teamA = makeTeam('A', 160_000_000);
@@ -44,7 +47,7 @@ describe('tradeValidator', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].violations[0]).toMatch(
+    expect(getValidationIssueText(result.teamResults[0].violations[0])).toMatch(
       /Incoming salary exceeds/
     );
     expect(result.teamResults[0].rules.salaryMatching.passed).toBe(false);
@@ -71,7 +74,7 @@ describe('tradeValidator', () => {
     expect(result.teamResults[0].legal).toBe(false);
     // Assert against rule-scoped violations (not violations[0]) to avoid order dependency
     expect(result.teamResults[0].rules.hardCap.passed).toBe(false);
-    expect(result.teamResults[0].rules.hardCap.violations).toEqual(
+    expect(issueTexts(result.teamResults[0].rules.hardCap.violations)).toEqual(
       expect.arrayContaining([
         expect.stringContaining('1st Apron hard cap violation'),
       ])
@@ -99,14 +102,16 @@ describe('tradeValidator', () => {
     expect(result.legal).toBe(false);
     // Team A violates outgoing aggregation (sends S&T + extra)
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].violations[0]).toContain(
-      'Sign-and-trade player must be traded alone.'
+    expect(issueTexts(result.teamResults[0].violations)).toEqual(
+      expect.arrayContaining(['Sign-and-trade player must be traded alone.'])
     );
     expect(result.teamResults[0].rules.signAndTrade.passed).toBe(false);
     // Team B also violates incoming aggregation (receives S&T + extra) - Phase 32
     expect(result.teamResults[1].legal).toBe(false);
-    expect(result.teamResults[1].violations).toContain(
-      'Cannot aggregate other players with sign-and-trade player.'
+    expect(issueTexts(result.teamResults[1].violations)).toEqual(
+      expect.arrayContaining([
+        'Cannot aggregate other players with sign-and-trade player.',
+      ])
     );
     expect(result.teamResults[1].rules.signAndTrade.passed).toBe(false);
   });
@@ -126,7 +131,7 @@ describe('tradeValidator', () => {
       ],
       capProjections,
       currentYear,
-      tradeCtx: { tradeDate: '2025-01-20' }, // After Jan 15 to satisfy S&T timing restriction
+      tradeCtx: { offseason: true, asOfDate: '2025-01-20' },
     });
 
     expect(result.legal).toBe(true);
@@ -150,7 +155,7 @@ describe('tradeValidator', () => {
       ],
       capProjections,
       currentYear,
-      tradeCtx: { tradeDate: '2025-01-20' }, // After Jan 15 to satisfy S&T timing restriction
+      tradeCtx: { offseason: true, asOfDate: '2025-01-20' },
     });
 
     // Trade should be blocked - either hard-cap or first apron salary matching violation
@@ -174,6 +179,7 @@ describe('tradeValidator', () => {
       ],
       capProjections,
       currentYear,
+      tradeCtx: { offseason: true, asOfDate: '2025-01-20' },
     });
 
     expect(result.legal).toBe(false);
@@ -205,8 +211,10 @@ describe('tradeValidator', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].legal).toBe(false);
-    expect(result.teamResults[0].violations[0]).toContain(
-      'Violates Stepien Rule (consecutive future 1sts).'
+    expect(issueTexts(result.teamResults[0].violations)).toEqual(
+      expect.arrayContaining([
+        'Violates Stepien Rule (consecutive future 1sts).',
+      ])
     );
     expect(result.teamResults[0].rules.stepienRule.passed).toBe(false);
     expect(result.teamResults[1].rules.stepienRule.passed).toBe(true);

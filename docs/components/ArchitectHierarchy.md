@@ -374,8 +374,10 @@ utils/
       stepienEntitlementUtils.js
       swapResolution.js
       tradeExportUtils.js
+      tradeTimingWindows.js
       tradeUtilities.js
       validateInput.js
+      validationIssueText.js
     validators/
       index.js
   tradeManager.js
@@ -385,5 +387,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-02T13:49:08.544Z*
+*Generated on: 2026-03-07T22:11:32.137Z*
 *Auto-updated by: npm run docs*

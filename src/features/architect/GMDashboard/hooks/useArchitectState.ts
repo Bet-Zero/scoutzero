@@ -346,6 +346,7 @@ export function useArchitectState({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const dataLoadRequestIdRef = useRef(0);
 
   // === Internal hook call ===
   const { players } = useArchitectPlayerData() as {
@@ -458,7 +459,12 @@ export function useArchitectState({
   // Uses world-aware loading via loadWorldTeamData (Phase 2B)
   // Fallback chain: world snapshot → parent world → base team
   useEffect(() => {
+    let isCancelled = false;
+
     const fetchData = async () => {
+      const requestId = dataLoadRequestIdRef.current + 1;
+      dataLoadRequestIdRef.current = requestId;
+
       setIsLoading(true);
       setError('');
       try {
@@ -466,6 +472,11 @@ export function useArchitectState({
         // When worldId is null, falls back to base team (same as before)
         const base = await loadWorldTeamData(worldId, teamId);
         await refreshWorldRosterIndex();
+
+        if (isCancelled || dataLoadRequestIdRef.current !== requestId) {
+          return;
+        }
+
         if (base) {
           setBaselineCapSheet(base as CapSheet);
           // Always use baseline (or world-aware) data as team cap sheet
@@ -478,6 +489,11 @@ export function useArchitectState({
         if (worldId) {
           try {
             const meta = await getWorldMetadata(worldId);
+
+            if (isCancelled || dataLoadRequestIdRef.current !== requestId) {
+              return;
+            }
+
             setWorldAsOfDate(meta?.asOfDate || null);
           } catch (e) {
             console.warn('Failed to load world metadata:', e);
@@ -486,12 +502,18 @@ export function useArchitectState({
           setWorldAsOfDate(null);
         }
       } catch (err) {
+        if (isCancelled || dataLoadRequestIdRef.current !== requestId) {
+          return;
+        }
+
         console.error(err);
         const message =
           err instanceof Error ? err.message : String(err || 'Unknown error');
         setError(`Error loading team data: ${message}`);
       } finally {
-        setIsLoading(false);
+        if (!isCancelled && dataLoadRequestIdRef.current === requestId) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -499,6 +521,10 @@ export function useArchitectState({
     if (!authLoading) {
       fetchData();
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [teamId, authLoading, worldId, refreshWorldRosterIndex]);
 
   // === Effect 7: Derive free agents dynamically from the player pool ===

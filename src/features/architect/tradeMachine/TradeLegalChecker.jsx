@@ -1,32 +1,42 @@
 // src/features/architect/tradeMachine/TradeLegalChecker.jsx
 import React from 'react';
+import {
+  getValidationIssueText,
+  normalizeValidationIssues,
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
   const getRuleStatus = (passed) => {
-    if (passed === undefined) return 'text-gray-500';
+    if (passed === undefined || passed === null) return 'text-gray-500';
     return passed ? 'text-green-400' : 'text-red-400';
   };
 
   const RuleDisplay = ({ rule, label }) => {
     if (!rule) return null;
 
-    // Ensure rule is a proper rule object, not an array or other type
-    if (
-      typeof rule !== 'object' ||
-      Array.isArray(rule) ||
-      rule.passed === undefined
-    ) {
+    if (typeof rule !== 'object' || Array.isArray(rule)) {
       return null;
     }
+
+    const violations = normalizeValidationIssues(rule.violations);
+    const warnings = normalizeValidationIssues(rule.warnings);
+    const summaryText =
+      (violations[0] && getValidationIssueText(violations[0])) ||
+      (warnings[0] && getValidationIssueText(warnings[0])) ||
+      rule.message ||
+      (rule.skipReason ? `Skipped: ${rule.skipReason}` : '');
 
     return (
       <div>
         <div className={`${getRuleStatus(rule.passed)}`}>• {label}</div>
-        {rule.details && (
+        {summaryText && (
           <span className="block text-xs text-white/50 pl-4">
-            {typeof rule.details === 'string'
-              ? rule.details
-              : rule.message || ''}
+            {summaryText}
+          </span>
+        )}
+        {warnings.length > 0 && (
+          <span className="block text-[10px] text-amber-300/80 pl-4">
+            {warnings.length} warning{warnings.length === 1 ? '' : 's'}
           </span>
         )}
       </div>
@@ -97,28 +107,35 @@ const TradeLegalChecker = ({ teamResults /* , capSettings */ }) => {
                     {team.rules.entitlementExclusivity.violations
                       .slice(0, 3)
                       .map((v, vIdx) => (
-                        <div
-                          key={vIdx}
-                          className="text-xs bg-red-900/20 border border-red-900/30 rounded px-2 py-1"
-                        >
-                          {v.conflictExplanation && (
-                            <div className="text-red-300 font-medium">
-                              {v.conflictExplanation}
+                        (() => {
+                          const issueMeta = v?.meta || {};
+
+                          return (
+                            <div
+                              key={vIdx}
+                              className="text-xs bg-red-900/20 border border-red-900/30 rounded px-2 py-1"
+                            >
+                              {issueMeta.conflictExplanation && (
+                                <div className="text-red-300 font-medium">
+                                  {issueMeta.conflictExplanation}
+                                </div>
+                              )}
+                              {issueMeta.entitlementIds &&
+                                Array.isArray(issueMeta.entitlementIds) && (
+                                  <div className="text-white/40 mt-0.5">
+                                    Conflicts between:{' '}
+                                    {issueMeta.entitlementIds.join(' ↔ ')}
+                                  </div>
+                                )}
+                              {issueMeta.claimsA &&
+                                issueMeta.claimsA.length > 0 && (
+                                  <div className="text-white/40 mt-0.5">
+                                    Claim: {issueMeta.claimsA[0]?.meta?.explanation}
+                                  </div>
+                                )}
                             </div>
-                          )}
-                          {v.entitlementIds &&
-                            Array.isArray(v.entitlementIds) && (
-                              <div className="text-white/40 mt-0.5">
-                                Conflicts between:{' '}
-                                {v.entitlementIds.join(' ↔ ')}
-                              </div>
-                            )}
-                          {v.claimsA && v.claimsA.length > 0 && (
-                            <div className="text-white/40 mt-0.5">
-                              Claim: {v.claimsA[0]?.meta?.explanation}
-                            </div>
-                          )}
-                        </div>
+                          );
+                        })()
                       ))}
                     {team.rules.entitlementExclusivity.violations.length >
                       3 && (

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/validateTradeExceptions.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -21,6 +22,8 @@ const makeTeam = (name, totalSalary, rosterSize = 14) => ({
   ),
   picks: [],
 });
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 describe('TPE absorption fail-closed guards', () => {
   it('rejects absorptionMode=TPE when tpeId is missing', () => {
@@ -52,7 +55,7 @@ describe('TPE absorption fail-closed guards', () => {
       tradeCtx: { tradeDate },
     });
 
-    expect(res.teamResults[0].violations).toEqual(
+    expect(issueTexts(res.teamResults[0].violations)).toEqual(
       expect.arrayContaining([
         expect.stringContaining("absorptionMode='TPE' but no tpeId"),
       ])
@@ -89,7 +92,7 @@ describe('TPE absorption fail-closed guards', () => {
       tradeCtx: { tradeDate },
     });
 
-    expect(res.teamResults[0].violations).toEqual(
+    expect(issueTexts(res.teamResults[0].violations)).toEqual(
       expect.arrayContaining([
         expect.stringContaining("does not exist on this team"),
       ])
@@ -126,7 +129,7 @@ describe('TPE absorption fail-closed guards', () => {
     });
 
     // Should not contain fail-closed violations
-    const tpeViolations = (res.teamResults[0].violations || []).filter(
+    const tpeViolations = issueTexts(res.teamResults[0].violations || []).filter(
       (v) => v.includes('tpeId') || v.includes('absorptionMode')
     );
     expect(tpeViolations).toHaveLength(0);

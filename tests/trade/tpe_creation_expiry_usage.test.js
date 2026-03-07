@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -20,6 +21,8 @@ const makeTeam = (name, totalSalary, rosterSize = 14) => ({
   ),
   picks: [],
 });
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 describe('TPE creation and usage', () => {
   it('creates a TPE when sending out more salary than received', () => {
@@ -77,7 +80,7 @@ describe('TPE creation and usage', () => {
     });
 
     expect(res.teamResults[0].legal).toBe(false);
-    expect(res.teamResults[0].violations).toContain(
+    expect(issueTexts(res.teamResults[0].violations)).toContain(
       'Trade exception t1 is expired'
     );
   });
@@ -113,7 +116,7 @@ describe('TPE creation and usage', () => {
     });
 
     expect(res.teamResults[0].legal).toBe(false);
-    expect(res.teamResults[0].violations).toContain(
+    expect(issueTexts(res.teamResults[0].violations)).toContain(
       'Cannot aggregate trade exception with outgoing salary'
     );
   });
@@ -148,7 +151,7 @@ describe('TPE creation and usage', () => {
 
     expect(res.teamResults[0].legal).toBe(false);
     // Since this is a prior-year TPE (2024), expect the specific prior-year violation message
-    expect(res.teamResults[0].violations).toContain(
+    expect(issueTexts(res.teamResults[0].violations)).toContain(
       'Second apron: prior-year TPEs cannot be used.'
     );
   });

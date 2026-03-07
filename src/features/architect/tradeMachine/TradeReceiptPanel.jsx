@@ -13,6 +13,7 @@ import {
   projectEntitlementToPickRow,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const ADJUSTMENT_THRESHOLD = 1;
 
@@ -506,7 +507,7 @@ const TradeReceiptPanel = ({
                     </div>
                     {team.violations.map((v, vIdx) => (
                       <div key={vIdx} className="text-xs text-red-300 pl-2">
-                        • {v}
+                        • {getValidationIssueText(v)}
                       </div>
                     ))}
                   </div>
@@ -518,7 +519,7 @@ const TradeReceiptPanel = ({
                     </div>
                     {team.warnings.map((w, wIdx) => (
                       <div key={wIdx} className="text-xs text-yellow-300 pl-2">
-                        • {w}
+                        • {getValidationIssueText(w)}
                       </div>
                     ))}
                   </div>

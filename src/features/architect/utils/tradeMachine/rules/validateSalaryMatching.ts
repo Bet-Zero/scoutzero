@@ -4,7 +4,26 @@ import {
   getIncomingCeilingViaFaException,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { validatorDebug } from '../engine/validatorDebug';
-import { TradeTeam, SalaryMatchingResult } from '../constants/types';
+import {
+  SalaryMatchingResult,
+  TradeTeam,
+  ValidationIssue,
+} from '../constants/types';
+
+function createIssue(
+  message: string,
+  code: string,
+  details: string | null = null
+): ValidationIssue {
+  return {
+    message,
+    severity: 'error',
+    rule: 'salaryMatching',
+    code,
+    details,
+    meta: null,
+  };
+}
 
 /**
  * Validates salary matching rules for a team in a trade.
@@ -13,7 +32,12 @@ export function validateSalaryMatching(team: TradeTeam): SalaryMatchingResult {
   if (!team || typeof team !== 'object') {
     const result: SalaryMatchingResult = {
       passed: false,
-      violations: ['Invalid team data provided'],
+      violations: [
+        createIssue(
+          'Invalid team data provided',
+          'SALARY_MATCHING__INVALID_TEAM_DATA'
+        ),
+      ],
       message: 'Validation failed - no team data',
       details: '',
       salaryIn: 0,
@@ -34,7 +58,11 @@ export function validateSalaryMatching(team: TradeTeam): SalaryMatchingResult {
       passed: !exceeds,
       violations: exceeds
         ? [
-            `FA Exception bucket insufficient (${formatCurrency(salaryIn)} > ${formatCurrency(ceiling)})`,
+            createIssue(
+              `FA Exception bucket insufficient (${formatCurrency(salaryIn)} > ${formatCurrency(ceiling)})`,
+              'SALARY_MATCHING__FA_EXCEPTION_BUCKET_INSUFFICIENT',
+              `Using ${bucketType} exception bucket`
+            ),
           ]
         : [],
       message: exceeds ? 'FA Exception violation' : 'FA Exception valid',
@@ -71,7 +99,11 @@ export function validateSalaryMatching(team: TradeTeam): SalaryMatchingResult {
     violations: passes
       ? []
       : [
-          `Incoming salary exceeds allowable amount by ${formatCurrency(Math.max(0, diff))}`,
+          createIssue(
+            `Incoming salary exceeds allowable amount by ${formatCurrency(Math.max(0, diff))}`,
+            'SALARY_MATCHING__INCOMING_SALARY_EXCEEDS_ALLOWABLE_AMOUNT',
+            `Outgoing: ${formatCurrency(salaryOut)} | Incoming: ${formatCurrency(salaryIn)} | Allowed: ${formatCurrency(typeof allowableResult === 'number' ? allowableResult : allowableResult.margin)}`
+          ),
         ],
     message: passes ? 'Valid salary match' : 'Salary mismatch',
     details: passes

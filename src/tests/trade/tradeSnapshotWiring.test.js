@@ -29,13 +29,27 @@ import {
   getTradeSnapshot,
 } from '@/features/architect/hooks/useTradeMachineSnapshot';
 import { formatSalary } from '@/shared/utils/formatting';
+import {
+  createValidationIssue,
+  getValidationIssueText,
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+
+const issue = (message, rule, severity = 'error') =>
+  createValidationIssue(message, { rule, severity });
 
 // Mock validator result structure (from tradeValidator.js output)
 const createMockValidatorResult = (overrides = {}) => ({
   legal: true,
   reason: null,
+  violations: [],
+  warnings: [],
   yearKey: 2025,
   seasonKey: '2024-25',
+  capSettings: {
+    salaryCap: 141_000_000,
+    firstApron: 178_132_000,
+    secondApron: 188_931_000,
+  },
   teamResults: [
     {
       teamId: 'BOS',
@@ -106,7 +120,7 @@ const createMockValidatorResult = (overrides = {}) => ({
     },
   ],
   // Receipt is for debug only - should NOT be used as source
-  receipt: {
+  tradeReceipt: {
     capSettingsUsed: {
       salaryCap: 141_000_000,
       firstApron: 178_132_000,
@@ -249,10 +263,11 @@ describe('Trade Snapshot Wiring Tests', () => {
       const result = createMockValidatorResult({
         legal: false,
         reason: 'Salary matching violation',
+        violations: [issue('Incoming exceeds allowable', 'salaryMatching')],
         teamResults: [
           {
             teamId: 'BOS',
-            violations: ['Incoming exceeds allowable'],
+            violations: [issue('Incoming exceeds allowable', 'salaryMatching')],
             rules: { salaryMatching: { passed: false } },
           },
         ],
@@ -260,27 +275,63 @@ describe('Trade Snapshot Wiring Tests', () => {
       const tradeSnapshot = getTradeSnapshot(result);
 
       expect(tradeSnapshot.isLegal).toBe(false);
-      expect(tradeSnapshot.allViolations).toContain(
+      expect(tradeSnapshot.allViolations.map(getValidationIssueText)).toContain(
         'Incoming exceeds allowable'
       );
+    });
+
+    it('WIRING-12: getTradeSnapshot prefers canonical top-level cap settings', () => {
+      const result = createMockValidatorResult({
+        capSettings: {
+          salaryCap: 150_000_000,
+          firstApron: 180_000_000,
+          secondApron: 190_000_000,
+        },
+        tradeReceipt: {
+          capSettingsUsed: {
+            salaryCap: 999_999_999,
+            firstApron: 999_999_999,
+            secondApron: 999_999_999,
+          },
+        },
+      });
+
+      const tradeSnapshot = getTradeSnapshot(result);
+
+      expect(tradeSnapshot.capSettings).toEqual(result.capSettings);
+    });
+
+    it('WIRING-13: getTradeSnapshot prefers canonical top-level violations', () => {
+      const result = createMockValidatorResult({
+        legal: false,
+        reason: 'Routing failure',
+        violations: [issue('Entitlement routing incomplete', 'entitlementRouting')],
+        teamResults: [],
+      });
+
+      const tradeSnapshot = getTradeSnapshot(result);
+
+      expect(tradeSnapshot.allViolations.map(getValidationIssueText)).toEqual([
+        'Entitlement routing incomplete',
+      ]);
     });
   });
 
   describe('Edge Cases', () => {
-    it('WIRING-12: returns null for missing teamId', () => {
+    it('WIRING-14: returns null for missing teamId', () => {
       const result = createMockValidatorResult();
       const snapshot = getTeamSnapshot('INVALID', result);
 
       expect(snapshot).toBeNull();
     });
 
-    it('WIRING-13: returns null for null result', () => {
+    it('WIRING-15: returns null for null result', () => {
       const snapshot = getTeamSnapshot('BOS', null);
 
       expect(snapshot).toBeNull();
     });
 
-    it('WIRING-14: handles teamCode lookup (alternative to teamId)', () => {
+    it('WIRING-16: handles teamCode lookup (alternative to teamId)', () => {
       const result = createMockValidatorResult({
         teamResults: [
           {
