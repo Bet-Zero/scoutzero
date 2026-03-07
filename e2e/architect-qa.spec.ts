@@ -547,7 +547,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await openDashboardTab(page, 'Trade Machine');
 
     const beforeTeamDocument = await getWorldTeamDocument(worldId, 'LAL');
-    const beforeEntitlementIds = Array.isArray(beforeTeamDocument?.entitlementIds)
+    const beforeEntitlementIds = Array.isArray(
+      beforeTeamDocument?.entitlementIds
+    )
       ? [...beforeTeamDocument.entitlementIds]
       : [];
     const beforeWorldEntitlements = await getWorldEntitlementDocuments(worldId);
@@ -566,9 +568,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await page.locator('#entitlement-seasonYear').fill('2031');
     await page.locator('#entitlement-round').selectOption('2');
     await page.locator('#entitlement-kind').selectOption('pick_ownership');
-    await page
-      .locator('#entitlement-underlyingPickId')
-      .fill('LAL_2031_R2');
+    await page.locator('#entitlement-underlyingPickId').fill('LAL_2031_R2');
     await page
       .locator('#entitlement-description')
       .fill('Review-mode protected pick authoring proof');
@@ -580,19 +580,22 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     let createdEntitlementId = '';
     await expect
-      .poll(async () => {
-        const worldEntitlements = await getWorldEntitlementDocuments(worldId);
-        const createdDocument = worldEntitlements.find(
-          (entitlement) => entitlement.underlyingPickId === 'LAL_2031_R2'
-        );
-        createdEntitlementId = typeof createdDocument?.id === 'string'
-          ? createdDocument.id
-          : '';
-        return createdEntitlementId;
-      }, {
-        timeout: 15000,
-        message: 'newly authored entitlement should persist to the world collection',
-      })
+      .poll(
+        async () => {
+          const worldEntitlements = await getWorldEntitlementDocuments(worldId);
+          const createdDocument = worldEntitlements.find(
+            (entitlement) => entitlement.underlyingPickId === 'LAL_2031_R2'
+          );
+          createdEntitlementId =
+            typeof createdDocument?.id === 'string' ? createdDocument.id : '';
+          return createdEntitlementId;
+        },
+        {
+          timeout: 15000,
+          message:
+            'newly authored entitlement should persist to the world collection',
+        }
+      )
       .not.toBe('');
 
     const afterCreateTeamDocument = await getWorldTeamDocument(worldId, 'LAL');
@@ -603,9 +606,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       : [];
     expect(afterCreateEntitlementIds).toContain(createdEntitlementId);
 
-    const createdEntitlement = (await getWorldEntitlementDocuments(worldId)).find(
-      (entitlement) => entitlement.id === createdEntitlementId
-    );
+    const createdEntitlement = (
+      await getWorldEntitlementDocuments(worldId)
+    ).find((entitlement) => entitlement.id === createdEntitlementId);
     expect(createdEntitlement).toMatchObject({
       holderTeam: 'LAL',
       seasonYear: 2031,
@@ -636,7 +639,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByText(/Duplicate pick ownership for LAL_2027_R1/i)
     ).toBeVisible();
 
-    const afterConflictTeamDocument = await getWorldTeamDocument(worldId, 'LAL');
+    const afterConflictTeamDocument = await getWorldTeamDocument(
+      worldId,
+      'LAL'
+    );
     const afterConflictEntitlementIds = Array.isArray(
       afterConflictTeamDocument?.entitlementIds
     )
@@ -644,7 +650,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       : [];
     expect(afterConflictEntitlementIds).toEqual(afterCreateEntitlementIds);
 
-    const afterConflictWorldEntitlements = await getWorldEntitlementDocuments(worldId);
+    const afterConflictWorldEntitlements =
+      await getWorldEntitlementDocuments(worldId);
     expect(afterConflictWorldEntitlements).toHaveLength(
       beforeWorldEntitlements.length + 1
     );
@@ -658,13 +665,19 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       testInfo,
       'This proves the real world-scoped entitlement authoring path: Trade Machine opens the unified wizard, a new entitlement persists into architect_worlds/{worldId}/entitlements and attaches to LAL, then a conflicting ownership claim is blocked fail-closed before any additional world write occurs.'
     );
-    await captureEvidence(page, testInfo, 'D-MQ-009-entitlement-authoring-proof');
+    await captureEvidence(
+      page,
+      testInfo,
+      'D-MQ-009-entitlement-authoring-proof'
+    );
 
     const closeButton = modal.getByTestId('wizard-close');
     await closeButton.click();
     await expect(modal).not.toBeVisible();
 
-    expect(beforeEntitlementIds.length + 1).toBe(afterCreateEntitlementIds.length);
+    expect(beforeEntitlementIds.length + 1).toBe(
+      afterCreateEntitlementIds.length
+    );
   });
 
   test('D-MQ-010: Base-write deny evidence remains paired with rules proof', async ({

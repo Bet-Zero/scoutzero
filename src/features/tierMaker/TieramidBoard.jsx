@@ -484,11 +484,12 @@ const TieramidBoard = ({
     if (!selectedList) return;
     const list = lists.find((l) => l.id === selectedList);
     if (!list) return;
-    const listPlayers = (
-      list.playerOrder.length ? list.playerOrder : list.playerIds
-    )
-      .map((id) => playersMap[id])
-      .filter(Boolean);
+    // Merge playerOrder + playerIds so no players are silently dropped
+    const merged = [...list.playerOrder];
+    list.playerIds.forEach((id) => {
+      if (!merged.includes(id)) merged.push(id);
+    });
+    const listPlayers = merged.map((id) => playersMap[id]).filter(Boolean);
     addPlayersToPool(listPlayers);
     setSelectedList('');
   };
