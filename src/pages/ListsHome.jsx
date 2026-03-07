@@ -1,6 +1,6 @@
 // ListsHome.jsx
 // E4: Routes all CRUD through listHelpers with ownership scoping
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { fetchAllLists, renameList, deleteList } from '@/firebase/listHelpers';
@@ -37,7 +37,7 @@ const ListsHome = () => {
   }, [lists]);
 
   // E4: Fetch lists scoped to ownerUid
-  const fetchLists = async () => {
+  const fetchLists = useCallback(async () => {
     if (!userId) {
       setLists([]);
       setIsLoading(false);
@@ -46,11 +46,11 @@ const ListsHome = () => {
     const results = await fetchAllLists(userId);
     setLists(results);
     setIsLoading(false);
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (!authLoading) fetchLists();
-  }, [userId, authLoading]);
+  }, [userId, authLoading, fetchLists]);
 
   // E4: Rename via helper with ownership guard
   const handleRename = async () => {

@@ -1,10 +1,12 @@
-// src/features/lists/ListExportPlayerRowTwoColumn.jsx
+// src/features/lists/ListExportWrapper/ListExportPlayerRow.jsx
+// Consolidated full-height export row. Replaces ListExportPlayerRowSingle and
+// ListExportPlayerRowTwoColumn — both were identical; column layout is handled by the parent.
 import React from 'react';
 import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMini';
 import TeamLogo from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
-const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
+const ListExportPlayerRow = ({ player, rank }) => {
   const rawPosition = player.bio?.position || player.formattedPosition || '';
   const position = getPlayerPositionLabel(rawPosition) || '—';
 
@@ -41,7 +43,8 @@ const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
         <div className="flex items-center mt-[11px] -mb-1 gap-2 text-white/50 text-[13px]">
           <TeamLogo teamAbbr={player.bio?.display?.team} className="w-5 h-5" />
           <div>
-            {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : '—'} <span className="text-white/30">|</span>{' '}
+            {player.bio?.height ? `${Math.floor(player.bio.height / 12)}-${player.bio.height % 12}` : '—'}{' '}
+            <span className="text-white/30">|</span>{' '}
             {player.bio?.weight || '—'} lbs
           </div>
         </div>
@@ -55,4 +58,4 @@ const ListExportPlayerRowTwoColumn = ({ player, rank }) => {
   );
 };
 
-export default ListExportPlayerRowTwoColumn;
+export default ListExportPlayerRow;

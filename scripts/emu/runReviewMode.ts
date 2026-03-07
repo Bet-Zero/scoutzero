@@ -158,6 +158,7 @@ const startVite = (): ChildProcess => {
     env: {
       ...process.env,
       VITE_ARCHITECT_REVIEW_MODE: 'true',
+      VITE_FEATURE_ENTITLEMENT_AUTHORING: 'true',
     },
   });
 };

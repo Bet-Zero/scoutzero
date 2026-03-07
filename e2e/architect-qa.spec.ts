@@ -52,6 +52,28 @@ const getReviewAdminDb = () => {
   return app.firestore();
 };
 
+const getWorldTeamDocument = async (worldId: string, teamCode: string) =>
+  (await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}/teams/${teamCode}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as
+    | {
+        entitlementIds?: string[];
+        offerSheets?: Array<Record<string, unknown>>;
+      }
+    | undefined;
+
+const getWorldEntitlementDocuments = async (worldId: string) =>
+  (await getReviewAdminDb()
+    .collection(`architect_worlds/${worldId}/entitlements`)
+    .get()
+    .then((snapshot) =>
+      snapshot.docs.map((docSnapshot) => ({
+        id: docSnapshot.id,
+        ...(docSnapshot.data() as Record<string, unknown>),
+      }))
+    )) as Array<Record<string, unknown> & { id: string }>;
+
 const addAuditNote = (testInfo: TestInfo, description: string) => {
   testInfo.annotations.push({ type: 'audit-note', description });
 };
@@ -403,14 +425,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       /Waiting for home team/i
     );
 
-    const persistedTeamDocument = (await getReviewAdminDb()
-      .doc(`architect_worlds/${worldId}/teams/ATL`)
-      .get()
-      .then((snapshot) => snapshot.data())) as
-      | {
-          offerSheets?: Array<Record<string, unknown>>;
-        }
-      | undefined;
+    const persistedTeamDocument = await getWorldTeamDocument(worldId, 'ATL');
     const persistedOfferSheet = persistedTeamDocument.offerSheets?.find(
       (offerSheet) => offerSheet.playerId === 'review_offer_sheet_guard'
     );
@@ -523,40 +538,133 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-008-team-history-detail');
   });
 
-  test('D-MQ-009: Entitlement exception editor opens from the cap sheet', async ({
+  test('D-MQ-009: Entitlement authoring saves world data and blocks conflicting claims', async ({
     page,
   }, testInfo) => {
     await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
 
-    await openDashboardTab(page, 'Cap Sheet');
+    await openDashboardTab(page, 'Trade Machine');
 
-    const injectFixturesButton = page.getByTestId(
-      'cap-sheet-inject-fixtures-button'
-    );
-    if (await isVisible(injectFixturesButton, 3000)) {
-      await injectFixturesButton.click();
-    }
+    const beforeTeamDocument = await getWorldTeamDocument(worldId, 'LAL');
+    const beforeEntitlementIds = Array.isArray(beforeTeamDocument?.entitlementIds)
+      ? [...beforeTeamDocument.entitlementIds]
+      : [];
+    const beforeWorldEntitlements = await getWorldEntitlementDocuments(worldId);
 
-    const manageExceptionsButton = page.getByTestId(
-      'cap-sheet-manage-exceptions-button'
-    );
-    await expect(manageExceptionsButton).toBeVisible();
-    await manageExceptionsButton.click();
+    const newEntitlementButton = page
+      .getByRole('button', { name: /^New Entitlement$/i })
+      .first();
+    await expect(newEntitlementButton).toBeVisible();
+    await newEntitlementButton.click();
 
-    const modal = page.getByTestId('manage-exceptions-modal');
+    const modal = page.getByTestId('pick-right-wizard-modal');
     await expect(modal).toBeVisible();
-    await expect(modal.getByText(/Exception Management/i)).toBeVisible();
+    await modal.getByTestId('view-toggle-advanced').click();
+
+    await page.locator('#entitlement-holderTeam').fill('LAL');
+    await page.locator('#entitlement-seasonYear').fill('2031');
+    await page.locator('#entitlement-round').selectOption('2');
+    await page.locator('#entitlement-kind').selectOption('pick_ownership');
+    await page
+      .locator('#entitlement-underlyingPickId')
+      .fill('LAL_2031_R2');
+    await page
+      .locator('#entitlement-description')
+      .fill('Review-mode protected pick authoring proof');
+
+    const applyButton = modal.getByTestId('wizard-apply');
+    await expect(applyButton).toBeEnabled();
+    await applyButton.click();
+    await expect(modal).not.toBeVisible({ timeout: 15000 });
+
+    let createdEntitlementId = '';
+    await expect
+      .poll(async () => {
+        const worldEntitlements = await getWorldEntitlementDocuments(worldId);
+        const createdDocument = worldEntitlements.find(
+          (entitlement) => entitlement.underlyingPickId === 'LAL_2031_R2'
+        );
+        createdEntitlementId = typeof createdDocument?.id === 'string'
+          ? createdDocument.id
+          : '';
+        return createdEntitlementId;
+      }, {
+        timeout: 15000,
+        message: 'newly authored entitlement should persist to the world collection',
+      })
+      .not.toBe('');
+
+    const afterCreateTeamDocument = await getWorldTeamDocument(worldId, 'LAL');
+    const afterCreateEntitlementIds = Array.isArray(
+      afterCreateTeamDocument?.entitlementIds
+    )
+      ? [...afterCreateTeamDocument.entitlementIds]
+      : [];
+    expect(afterCreateEntitlementIds).toContain(createdEntitlementId);
+
+    const createdEntitlement = (await getWorldEntitlementDocuments(worldId)).find(
+      (entitlement) => entitlement.id === createdEntitlementId
+    );
+    expect(createdEntitlement).toMatchObject({
+      holderTeam: 'LAL',
+      seasonYear: 2031,
+      round: 2,
+      kind: 'pick_ownership',
+      underlyingPickId: 'LAL_2031_R2',
+    });
+
+    await newEntitlementButton.click();
+    await expect(modal).toBeVisible();
+    await modal.getByTestId('view-toggle-advanced').click();
+
+    await page.locator('#entitlement-holderTeam').fill('LAL');
+    await page.locator('#entitlement-seasonYear').fill('2027');
+    await page.locator('#entitlement-round').selectOption('1');
+    await page.locator('#entitlement-kind').selectOption('pick_ownership');
+    await page.locator('#entitlement-underlyingPickId').fill('LAL_2027_R1');
+    await page
+      .locator('#entitlement-description')
+      .fill('Intentional conflict against existing ownership claim');
+
+    const conflictingApplyButton = modal.getByTestId('wizard-apply');
+    await expect(conflictingApplyButton).toBeEnabled();
+    await conflictingApplyButton.click();
+
+    await expect(modal).toBeVisible();
+    await expect(
+      page.getByText(/Duplicate pick ownership for LAL_2027_R1/i)
+    ).toBeVisible();
+
+    const afterConflictTeamDocument = await getWorldTeamDocument(worldId, 'LAL');
+    const afterConflictEntitlementIds = Array.isArray(
+      afterConflictTeamDocument?.entitlementIds
+    )
+      ? [...afterConflictTeamDocument.entitlementIds]
+      : [];
+    expect(afterConflictEntitlementIds).toEqual(afterCreateEntitlementIds);
+
+    const afterConflictWorldEntitlements = await getWorldEntitlementDocuments(worldId);
+    expect(afterConflictWorldEntitlements).toHaveLength(
+      beforeWorldEntitlements.length + 1
+    );
+    expect(
+      afterConflictWorldEntitlements.filter(
+        (entitlement) => entitlement.underlyingPickId === 'LAL_2027_R1'
+      )
+    ).toHaveLength(0);
 
     addAuditNote(
       testInfo,
-      'This proves the entitlement exception editor entry path. Atomic attach and duplicate-identity conflict handling still need a seeded save-path scenario for full closure.'
+      'This proves the real world-scoped entitlement authoring path: Trade Machine opens the unified wizard, a new entitlement persists into architect_worlds/{worldId}/entitlements and attaches to LAL, then a conflicting ownership claim is blocked fail-closed before any additional world write occurs.'
     );
-    await captureEvidence(page, testInfo, 'D-MQ-009-manage-exceptions-modal');
+    await captureEvidence(page, testInfo, 'D-MQ-009-entitlement-authoring-proof');
 
-    const closeButton = modal.locator('button', { hasText: '×' });
-    if (await isVisible(closeButton)) {
-      await closeButton.click();
-    }
+    const closeButton = modal.getByTestId('wizard-close');
+    await closeButton.click();
+    await expect(modal).not.toBeVisible();
+
+    expect(beforeEntitlementIds.length + 1).toBe(afterCreateEntitlementIds.length);
   });
 
   test('D-MQ-010: Base-write deny evidence remains paired with rules proof', async ({

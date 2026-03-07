@@ -1,9 +1,11 @@
-// src/features/lists/ListExportRowCompactTwoColumn.jsx
+// src/features/lists/ListExportWrapper/ListExportRowCompact.jsx
+// Consolidated compact-height export row. Replaces ListExportRowCompactSingle and
+// ListExportRowCompactTwoColumn — both were identical; column layout is handled by the parent.
 import React from 'react';
 import TeamLogo from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 
-const ListExportRowCompactTwoColumn = ({ player, rank }) => {
+const ListExportRowCompact = ({ player, rank }) => {
   const name = player.bio?.displayName || player.name || 'Unknown Player';
   const nameParts = name.split(' ');
   const firstName = nameParts[0]?.toUpperCase() || '';
@@ -16,7 +18,7 @@ const ListExportRowCompactTwoColumn = ({ player, rank }) => {
     if (!inches || inches === 0) return '—';
     return `${Math.floor(inches / 12)}-${inches % 12}`;
   };
-  
+
   const height = formatHeight(player.bio?.height);
   const weight = player.bio?.weight ? `${player.bio.weight} lbs` : '— lbs';
 
@@ -50,7 +52,7 @@ const ListExportRowCompactTwoColumn = ({ player, rank }) => {
         {/* Name */}
         <div
           className="text-white font-anton font-bold uppercase tracking-normal leading-none whitespace-nowrap overflow-visible"
-          style={{ fontSize: `17px`, maxWidth: '300px' }}
+          style={{ fontSize: '17px', maxWidth: '300px' }}
         >
           {firstName}{' '}
           <span className="text-white/70 font-light">{lastName}</span>
@@ -75,4 +77,4 @@ const ListExportRowCompactTwoColumn = ({ player, rank }) => {
   );
 };
 
-export default ListExportRowCompactTwoColumn;
+export default ListExportRowCompact;

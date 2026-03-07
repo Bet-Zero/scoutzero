@@ -1,9 +1,7 @@
 // src/features/lists/ListExportWrapper.jsx
 import React from 'react';
-import ListExportPlayerRowSingle from './ListExportPlayerRowSingle';
-import ListExportPlayerRowTwoColumn from './ListExportPlayerRowTwoColumn';
-import ListExportRowCompactSingle from './ListExportRowCompactSingle';
-import ListExportRowCompactTwoColumn from './ListExportRowCompactTwoColumn';
+import ListExportPlayerRow from './ListExportPlayerRow';
+import ListExportRowCompact from './ListExportRowCompact';
 import ListTierExport from './ListTierExport';
 
 const ListExportWrapper = ({
@@ -20,14 +18,7 @@ const ListExportWrapper = ({
 }) => {
   if (!isExport) return null;
 
-  let Row;
-  if (compact) {
-    Row = twoColumn
-      ? ListExportRowCompactTwoColumn
-      : ListExportRowCompactSingle;
-  } else {
-    Row = twoColumn ? ListExportPlayerRowTwoColumn : ListExportPlayerRowSingle;
-  }
+  const Row = compact ? ListExportRowCompact : ListExportPlayerRow;
 
   const renderColumn = (plist, startIdx) => (
     <div className="flex flex-col gap-[3px] w-1/2 items-center">

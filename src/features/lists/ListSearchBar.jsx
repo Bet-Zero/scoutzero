@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search } from 'lucide-react';
 
 const ListSearchBar = ({
@@ -12,6 +12,7 @@ const ListSearchBar = ({
   const [playerResults, setPlayerResults] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
+  const debounceRef = useRef(null);
 
   // Close suggestions when clicking outside the search area
   useEffect(() => {
@@ -26,42 +27,50 @@ const ListSearchBar = ({
     };
   }, []);
 
+  const runSearch = useCallback(
+    (query) => {
+      const lower = query.toLowerCase();
+
+      // Lists matching the input
+      const listMatches = Object.keys(listsData)
+        .filter((id) => listsData[id]?.name?.toLowerCase().includes(lower))
+        .slice(0, 8);
+      setListResults(listMatches);
+
+      // Players matching the input and the lists they are in
+      const matchedPlayers = Object.keys(playersData)
+        .filter((id) => {
+          const name =
+            playersData[id]?.bio?.displayName || playersData[id]?.name || '';
+          return name.toLowerCase().includes(lower);
+        })
+        .slice(0, 5)
+        .map((id) => {
+          const lists = Object.keys(listsData).filter((listId) =>
+            listsData[listId]?.playerIds?.includes(id)
+          );
+          return {
+            id,
+            name: playersData[id]?.bio?.displayName || playersData[id]?.name || id,
+            lists,
+          };
+        })
+        .filter((p) => p.lists.length > 0);
+      setPlayerResults(matchedPlayers);
+    },
+    [listsData, playersData]
+  );
+
   useEffect(() => {
+    clearTimeout(debounceRef.current);
     if (!search) {
       setListResults([]);
       setPlayerResults([]);
       return;
     }
-
-    const lower = search.toLowerCase();
-
-    // Lists matching the input
-    const listMatches = Object.keys(listsData)
-      .filter((id) => listsData[id]?.name?.toLowerCase().includes(lower))
-      .slice(0, 8);
-    setListResults(listMatches);
-
-    // Players matching the input and the lists they are in
-    const matchedPlayers = Object.keys(playersData)
-      .filter((id) => {
-        const name =
-          playersData[id]?.bio?.displayName || playersData[id]?.name || '';
-        return name.toLowerCase().includes(lower);
-      })
-      .slice(0, 5)
-      .map((id) => {
-        const lists = Object.keys(listsData).filter((listId) =>
-          listsData[listId]?.playerIds?.includes(id)
-        );
-        return {
-          id,
-          name: playersData[id]?.bio?.displayName || playersData[id]?.name || id,
-          lists,
-        };
-      })
-      .filter((p) => p.lists.length > 0);
-    setPlayerResults(matchedPlayers);
-  }, [search, listsData, playersData]);
+    debounceRef.current = setTimeout(() => runSearch(search), 250);
+    return () => clearTimeout(debounceRef.current);
+  }, [search, runSearch]);
 
   const handleSelect = (id) => {
     if (!id) return;
