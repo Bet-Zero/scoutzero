@@ -25,13 +25,19 @@ const BreakdownModal = ({
   modalKey,
   blurbs,
   videoExamples,
-  onChange,
-  onVideoExamplesChange,
   onClose,
+  onBuildSavePayload,
+  onCommitSavedDraft,
   onSaveNow,
   saveState,
   saveError,
 }) => {
+  const [draftBlurb, setDraftBlurb] = useState(() =>
+    getBlurbValue(blurbs, modalKey)
+  );
+  const [draftVideoExamples, setDraftVideoExamples] = useState(() =>
+    getVideoExamplesForKey(videoExamples, modalKey)
+  );
   // Track modal-local dirty state (reset when modal opens or save succeeds)
   const [modalDirty, setModalDirty] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -60,20 +66,20 @@ const BreakdownModal = ({
   // Wrapped change handlers that mark modal dirty
   const handleTextChange = useCallback(
     (e) => {
-      onChange(modalKey, e.target.value);
+      setDraftBlurb(e.target.value);
       setModalDirty(true);
       setLocalSaveState('idle');
     },
-    [onChange, modalKey]
+    []
   );
 
   const handleVideoChange = useCallback(
     (next) => {
-      onVideoExamplesChange?.(modalKey, next);
+      setDraftVideoExamples(next);
       setModalDirty(true);
       setLocalSaveState('idle');
     },
-    [onVideoExamplesChange, modalKey]
+    []
   );
 
   // Handle Save button click
@@ -81,12 +87,25 @@ const BreakdownModal = ({
     if (!onSaveNow) return;
     setLocalSaveState('saving');
     try {
-      await onSaveNow();
+      const payload = onBuildSavePayload?.(
+        modalKey,
+        draftBlurb,
+        draftVideoExamples
+      );
+      await onSaveNow(payload);
+      onCommitSavedDraft?.(payload);
       // State update handled by useEffect watching saveState
     } catch {
       setLocalSaveState('error');
     }
-  }, [onSaveNow]);
+  }, [
+    draftBlurb,
+    draftVideoExamples,
+    modalKey,
+    onBuildSavePayload,
+    onCommitSavedDraft,
+    onSaveNow,
+  ]);
 
   // Handle Close button click
   const handleCloseClick = useCallback(() => {
@@ -135,12 +154,12 @@ const BreakdownModal = ({
       <textarea
         className="w-full h-40 bg-neutral-900 text-white p-3 rounded-lg text-sm resize-none outline-none border border-neutral-700"
         placeholder="Write your breakdown here..."
-        value={getBlurbValue(blurbs, modalKey)}
+        value={draftBlurb}
         onChange={handleTextChange}
       />
       <VideoExamples
         contextKey={modalKey}
-        videos={getVideoExamplesForKey(videoExamples, modalKey)}
+        videos={draftVideoExamples}
         onChange={handleVideoChange}
       />
 

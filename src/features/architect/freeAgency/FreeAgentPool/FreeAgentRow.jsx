@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
+import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
 import { TeamCodeMap } from '@/constants/teamList';
 
 const FreeAgentRow = ({
@@ -210,7 +211,7 @@ const FreeAgentRow = ({
             </button>
             <button
               onClick={() => {
-                window.location.href = `/profiles?player=${player.id || player.player_id}`;
+                window.location.href = getPlayerProfileUrl(player);
               }}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >

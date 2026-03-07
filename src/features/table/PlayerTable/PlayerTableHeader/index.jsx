@@ -12,6 +12,7 @@ import {
  */
 const PlayerTableHeader = ({
   filteredCount,
+  searchValue,
   onSearchChange,
   densityMode,
   onDensityChange,
@@ -30,7 +31,7 @@ const PlayerTableHeader = ({
       <div className="flex items-center gap-4">
         <DensityToggle mode={densityMode} setMode={onDensityChange} />
         <div className="h-6 w-px bg-gray-700" />
-        <SearchBar onChange={onSearchChange} />
+        <SearchBar value={searchValue} onChange={onSearchChange} />
       </div>
     </div>
   );

@@ -3,8 +3,7 @@ import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
 export function getDefaultPlayerFilters() {
   return {
     nameSearch: '',
-    nameOrder: 'az',
-    sortBy: '',
+    sortBy: 'name',
     sortAsc: false,
     team: '',
     position: '',

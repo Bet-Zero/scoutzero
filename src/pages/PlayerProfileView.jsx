@@ -49,6 +49,17 @@ const PlayerProfileView = () => {
     );
   }
 
+  if (nav.listError) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center px-6">
+        <div className="text-center text-white">
+          <div className="text-lg font-semibold">Unable to load players</div>
+          <div className="mt-2 text-sm text-white/60">{nav.listError}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="min-h-screen bg-neutral-900 flex flex-col items-center gap-6 py-20 relative">
@@ -70,11 +81,25 @@ const PlayerProfileView = () => {
           />
         </div>
 
-        {(!evalState.player || nav.detailLoading) && nav.selectedPlayer && (
+        {nav.isEmpty && (
+          <div className="text-white/40 mt-10">No players available.</div>
+        )}
+
+        {!nav.isEmpty &&
+          !nav.detailError &&
+          (!evalState.player || nav.detailLoading) &&
+          nav.selectedPlayer && (
           <div className="text-white/40 mt-10">Loading player data...</div>
         )}
 
-        {!nav.selectedPlayer && (
+        {nav.detailError && nav.selectedPlayer && (
+          <div className="text-center text-red-300 mt-10 px-4">
+            <div className="font-semibold">Unable to load player profile</div>
+            <div className="text-sm text-red-200/80 mt-1">{nav.detailError}</div>
+          </div>
+        )}
+
+        {!nav.isEmpty && !nav.detailError && !nav.selectedPlayer && (
           <div className="text-white/40 mt-10">
             Select a player to view their profile.
           </div>
@@ -113,10 +138,10 @@ const PlayerProfileView = () => {
           <BreakdownModal
             modalKey={openModal}
             blurbs={evalState.editedBlurbs}
-            onChange={evalState.handleBlurbChange}
             videoExamples={evalState.videoExamples}
-            onVideoExamplesChange={evalState.handleVideoExamplesChange}
             onClose={() => setOpenModal(null)}
+            onBuildSavePayload={evalState.buildModalSavePayload}
+            onCommitSavedDraft={evalState.commitSavedModalDraft}
             onSaveNow={saveNow}
             saveState={saveState}
             saveError={saveError}

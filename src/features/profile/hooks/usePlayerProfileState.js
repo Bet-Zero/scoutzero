@@ -10,9 +10,12 @@ import { enrichPlayerData } from '@/features/roster/utils/enrichPlayerData';
 import { normalizeBlurbs } from '@/shared/utils/blurbs';
 import {
   createEmptyVideoExamples,
+  normalizeVideoExampleList,
   normalizeVideoExamples,
 } from '@/shared/utils/videoExamples';
 import {
+  getBlurbValue,
+  getVideoExamplesForKey,
   setVideoExamplesForKey,
   setBlurbForKey,
 } from '@/features/profile/utils/profileHelpers';
@@ -33,6 +36,10 @@ const DEFAULT_BLURBS = {
   twoWayMeter: '',
   overall: '',
 };
+
+const areVideoListsEqual = (currentList, nextList) =>
+  JSON.stringify(normalizeVideoExampleList(currentList)) ===
+  JSON.stringify(normalizeVideoExampleList(nextList));
 
 /**
  * Manages all player evaluation state with automatic dirty-tracking.
@@ -140,6 +147,25 @@ const usePlayerProfileState = (detailedPlayer, selectedPlayer, openModal) => {
     markDirty();
   }, [markDirty]);
 
+  const buildModalSavePayload = useCallback((key, value, list) => {
+    const nextBlurbs = setBlurbForKey(editedBlurbs, key, value);
+    const nextVideoExamples = setVideoExamplesForKey(videoExamples, key, list);
+
+    return {
+      blurbs: nextBlurbs,
+      videoExamples: nextVideoExamples,
+      hasChanges:
+        getBlurbValue(editedBlurbs, key) !== value ||
+        !areVideoListsEqual(getVideoExamplesForKey(videoExamples, key), list),
+    };
+  }, [editedBlurbs, videoExamples]);
+
+  const commitSavedModalDraft = useCallback((payload) => {
+    if (!payload) return;
+    setEditedBlurbs(payload.blurbs || DEFAULT_BLURBS);
+    setVideoExamples(payload.videoExamples || createEmptyVideoExamples());
+  }, []);
+
   return {
     // Data
     player,
@@ -165,6 +191,8 @@ const usePlayerProfileState = (detailedPlayer, selectedPlayer, openModal) => {
     handleSetOverallGrade,
     handleBlurbChange,
     handleVideoExamplesChange,
+    buildModalSavePayload,
+    commitSavedModalDraft,
   };
 };
 

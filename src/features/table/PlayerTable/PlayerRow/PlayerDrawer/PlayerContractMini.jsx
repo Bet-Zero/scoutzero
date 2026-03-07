@@ -1,4 +1,5 @@
 import React from 'react';
+import { getCurrentSeasonYear } from '@/shared/utils/contracts';
 
 const PlayerContractMini = ({
   contract = {},
@@ -8,8 +9,7 @@ const PlayerContractMini = ({
   free_agent_type,
   currentContractView, // Accept denormalized view
 }) => {
-  const today = new Date();
-  const CURRENT_YEAR = today.getFullYear() - (today.getMonth() < 6 ? 1 : 0);
+  const CURRENT_YEAR = getCurrentSeasonYear();
 
   // Prioritize currentContractView (denormalized), fallback to contract.salariesByYear array
   let allSalaries = {};

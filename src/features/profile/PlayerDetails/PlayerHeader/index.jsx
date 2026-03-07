@@ -20,12 +20,22 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
   const contractData =
     player.primaryContract ||
     (player.contracts ? Object.values(player.contracts)[0] : null);
-  const totalYears = contractData?.contractLength;
+  const totalYears =
+    contractData?.yearsRemaining ??
+    player.currentContractView?.yearsRemaining ??
+    contractData?.salariesByYear?.length ??
+    contractData?.contractLength;
   const currentYearSalaryObj = contractData?.salariesByYear?.find(
     (s) => s.year === thisYear || s.season?.startsWith(String(thisYear))
   );
-  const currentSalary = currentYearSalaryObj?.salary;
+  const currentSalary =
+    player.currentContractView?.currentSalary ??
+    contractData?.currentSalary ??
+    currentYearSalaryObj?.salary ??
+    null;
   const contractSummary = formatContractSummary(currentSalary, totalYears);
+  const ageDisplay =
+    Number.isFinite(player.age) && player.age > 0 ? player.age : 'N/A';
 
   // Get free agency info from bio.display or contract subcollection (v2 structure only)
   const freeAgency = contractData?.freeAgency || {};
@@ -69,7 +79,7 @@ const PlayerHeader = ({ player, selectedPlayer }) => {
           </p>
           <p>
             <span className="font-bold">AGE</span>:{' '}
-            {player.bio?.age || 'N/A'}
+            {ageDisplay}
           </p>
           <p>
             <span className="font-bold">YEARS PRO</span>:{' '}

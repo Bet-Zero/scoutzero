@@ -10,6 +10,7 @@
 - - 2026-01-21: Phase 2 save flow reliability (dirty state, resilient writes, save indicator)
 - - 2026-01-22: Phase 3 feature completeness (video examples + blurbs wiring)
 - - 2026-01-22: Phase 4 polish (debounced autosave + modal a11y)
+- - 2026-03-06: Findings fix pass (canonical routing, modal draft-save semantics, explicit load errors, direct scouting UI coverage)
 -
 - LINKS:
 - - Plan: plans/\_archive/scouting-player-profile-phase-4/plan.md
@@ -27,9 +28,20 @@
 
 ---
 
+## 0) Current Implementation Update (2026-03-06)
+
+- Profile routing now supports `/profiles` and `/profiles/:slug`, with route resolution precedence `pid` query -> legacy `player` query -> unique slug match.
+- In-page player changes now keep the browser URL synced to the canonical `/profiles/<slug>?pid=<docId>` form.
+- Blurb/video modal edits are now modal-local drafts until explicit Save; `Discard` closes without mutating parent state.
+- `PlayerProfileView` now separates player-list failure, empty-list, detail-load failure, and normal loading states instead of showing false indefinite loading during detail errors.
+- Header summary fields now prefer normalized values (`player.age`, derived contract salary/years) over incomplete raw nested fields.
+- Direct UI coverage for Player Profiles now lives in `src/tests/scouting/playerProfile.behavior.test.tsx`, and `npm run test:scouting` now runs both node and jsdom scouting suites.
+
+---
+
 ## 1) Overview
 
-The current Scouting Player Profile is a single-page workflow rendered at `/profiles` that lets users select a player (by team dropdowns or search) and view/edit scouting details: bio header, last-season stats, traits grid, offensive/defensive roles, subroles, shooting profile, two-way meter, badges, and an overall blurb + grade. Trait/role/subrole/shooting profile/two-way blurbs open in a modal. Changes are auto-saved via Firestore batch writes when `hasChanges` is true.
+The current Scouting Player Profile is a single-page workflow rendered at `/profiles` and `/profiles/:slug` that lets users select a player (by team dropdowns, search, direct `pid`, legacy `player` query links, or unique slug links) and view/edit scouting details: bio header, last-season stats, traits grid, offensive/defensive roles, subroles, shooting profile, two-way meter, badges, and an overall blurb + grade. Trait/role/subrole/shooting profile/two-way blurbs open in a modal. Non-modal edits are auto-saved via Firestore batch writes when `hasChanges` is true; modal blurbs/video examples now use explicit Save from modal-local draft state.
 
 Data dependencies are entirely from Firestore `players_v2` and its subcollections. List data comes from `useSimplePlayerData` (main docs only). The selected player loads via `usePlayerDetail`, which fetches the player doc plus `contracts`, `seasons`, and `evaluations` subcollections. `enrichPlayerData` normalizes and denormalizes fields (currentContractView/currentSeasonStats/currentEvaluationView fallbacks).
 

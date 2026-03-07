@@ -32,14 +32,15 @@ const useActiveFilterCount = (
     const defaultFilters = getDefaultFilters();
     let count = 0;
 
-    // Count salary year if different from default
-    if (filters.salaryYear && filters.salaryYear !== DEFAULT_SALARY_YEAR) {
-      count += 1;
-    }
-
     Object.entries(filters).forEach(([key, value]) => {
       // Skip excluded keys
       if (excludeFromCount.includes(key)) return;
+
+      // Special handling for salaryYear: compare against canonical default
+      if (key === 'salaryYear') {
+        if (value && value !== DEFAULT_SALARY_YEAR) count += 1;
+        return;
+      }
 
       const defaultValue = defaultFilters[key];
       const isActive = JSON.stringify(value) !== JSON.stringify(defaultValue);

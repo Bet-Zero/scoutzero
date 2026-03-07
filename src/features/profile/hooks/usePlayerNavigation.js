@@ -4,19 +4,56 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import usePlayerDetail from '@/shared/hooks/usePlayerDetail';
 import { getPlayersForTeam } from '@/features/profile/utils/profileHelpers';
+import {
+  getPlayerProfileUrl,
+  resolvePlayerProfileTarget,
+} from '@/shared/utils/routing/playerRouteUtils';
+
+const areArraysEqual = (a = [], b = []) =>
+  a.length === b.length && a.every((value, index) => value === b[index]);
+
+const isTextEntryTarget = (target) => {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  const tagName = target.tagName.toLowerCase();
+  return (
+    tagName === 'input' ||
+    tagName === 'textarea' ||
+    tagName === 'select' ||
+    target.isContentEditable
+  );
+};
 
 const usePlayerNavigation = (openModal) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { slug = '' } = useParams();
   const [searchParams] = useSearchParams();
-  const { players: fetchedPlayers, loading: isLoading } = useSimplePlayerData();
+  const {
+    players: fetchedPlayers,
+    loading: isLoading,
+    error: listError,
+  } = useSimplePlayerData();
   const [selectedTeam, setSelectedTeam] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [filteredKeys, setFilteredKeys] = useState([]);
+  const unresolvedRouteRef = useRef(false);
+  const previousSelectedPlayerRef = useRef('');
 
-  const initialPidProcessedRef = useRef(false);
+  const pidParam = searchParams.get('pid') || '';
+  const legacyPlayerParam = searchParams.get('player') || '';
+  const hasRouteTarget = Boolean(pidParam || legacyPlayerParam || slug);
 
   // Build lookup map and sorted team list from fetched players
   const { playersData, teams } = useMemo(() => {
@@ -30,37 +67,92 @@ const usePlayerNavigation = (openModal) => {
   }, [fetchedPlayers]);
 
   // Fetch full player data for the selected player
-  const { player: detailedPlayer, loading: detailLoading } =
-    usePlayerDetail(selectedPlayer);
+  const {
+    player: detailedPlayer,
+    loading: detailLoading,
+    error: detailError,
+  } = usePlayerDetail(selectedPlayer);
 
-  // Handle initial pid query param from URL
+  // Resolve player selection from canonical pid, legacy player, or unique slug.
   useEffect(() => {
-    if (initialPidProcessedRef.current || isLoading || fetchedPlayers.length === 0) {
+    if (isLoading) {
       return;
     }
 
-    const pidFromUrl = searchParams.get('pid');
-    if (!pidFromUrl) {
-      initialPidProcessedRef.current = true;
+    if (!hasRouteTarget) {
+      unresolvedRouteRef.current = false;
       return;
     }
 
-    const matchedPlayer = fetchedPlayers.find(
-      (p) => p.id === pidFromUrl || p.bio?.playerId === pidFromUrl
+    const result = resolvePlayerProfileTarget(fetchedPlayers, {
+      pid: pidParam,
+      legacyPlayer: legacyPlayerParam,
+      slug,
+    });
+
+    if (!result.player) {
+      unresolvedRouteRef.current = true;
+      setSelectedTeam((prev) => (prev ? '' : prev));
+      setSelectedPlayer((prev) => (prev ? '' : prev));
+      setFilteredKeys((prev) => (prev.length ? [] : prev));
+      return;
+    }
+
+    const matchedPlayer = result.player;
+    const nextTeam = matchedPlayer.bio?.display?.team || '';
+    const nextFilteredKeys = getPlayersForTeam(playersData, nextTeam);
+    unresolvedRouteRef.current = false;
+
+    setSelectedTeam((prev) => (prev === nextTeam ? prev : nextTeam));
+    setSelectedPlayer((prev) =>
+      prev === matchedPlayer.id ? prev : matchedPlayer.id
     );
+    setFilteredKeys((prev) =>
+      areArraysEqual(prev, nextFilteredKeys) ? prev : nextFilteredKeys
+    );
+  }, [
+    fetchedPlayers,
+    hasRouteTarget,
+    isLoading,
+    legacyPlayerParam,
+    pidParam,
+    playersData,
+    slug,
+  ]);
 
-    if (matchedPlayer) {
-      const team = matchedPlayer.bio?.display?.team || '';
-      setSelectedTeam(team);
-      setSelectedPlayer(matchedPlayer.id);
-      const filtered = fetchedPlayers
-        .filter((p) => p.bio?.display?.team === team)
-        .map((p) => p.id);
-      setFilteredKeys(filtered);
+  // Keep the browser URL aligned to the selected player after in-page navigation.
+  useEffect(() => {
+    const previousSelectedPlayer = previousSelectedPlayerRef.current;
+    previousSelectedPlayerRef.current = selectedPlayer;
+
+    if (!selectedPlayer) {
+      if (previousSelectedPlayer && !unresolvedRouteRef.current) {
+        const currentUrl = `${location.pathname}${location.search}`;
+        if (currentUrl !== '/profiles') {
+          navigate('/profiles', { replace: true });
+        }
+      }
+      return;
     }
 
-    initialPidProcessedRef.current = true;
-  }, [searchParams, fetchedPlayers, isLoading]);
+    const selectedPlayerData = playersData[selectedPlayer];
+    if (!selectedPlayerData) {
+      return;
+    }
+
+    const nextUrl = getPlayerProfileUrl(selectedPlayerData);
+    const currentUrl = `${location.pathname}${location.search}`;
+
+    if (nextUrl !== currentUrl) {
+      navigate(nextUrl, { replace: true });
+    }
+  }, [
+    location.pathname,
+    location.search,
+    navigate,
+    playersData,
+    selectedPlayer,
+  ]);
 
   // Prev/Next navigation
   const handlePrevPlayer = useCallback(() => {
@@ -79,7 +171,16 @@ const usePlayerNavigation = (openModal) => {
   // Keyboard arrow navigation (disabled when modal is open)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (openModal) return;
+      if (
+        openModal ||
+        e.altKey ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.shiftKey ||
+        isTextEntryTarget(e.target)
+      ) {
+        return;
+      }
       if (e.key === 'ArrowLeft') handlePrevPlayer();
       else if (e.key === 'ArrowRight') handleNextPlayer();
     };
@@ -98,6 +199,8 @@ const usePlayerNavigation = (openModal) => {
 
   return {
     isLoading,
+    isEmpty: !isLoading && !listError && fetchedPlayers.length === 0,
+    listError,
     playersData,
     teams,
     selectedTeam,
@@ -108,6 +211,7 @@ const usePlayerNavigation = (openModal) => {
     setFilteredKeys,
     detailedPlayer,
     detailLoading,
+    detailError,
     handlePrevPlayer,
     handleNextPlayer,
     handleSearchSelect,

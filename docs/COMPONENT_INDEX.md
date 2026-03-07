@@ -339,17 +339,12 @@ Quick reference for all components in the ScoutZero project.
 - PlayerTable/PlayerRow/RolePill.jsx
 - PlayerTable/PlayerRow/ShootingProfileMini.jsx
 - PlayerTable/PlayerRow/index.jsx
-- PlayerTable/PlayerTableHeader/ControlButtons.jsx
 - PlayerTable/PlayerTableHeader/DensityToggle.jsx
 - PlayerTable/PlayerTableHeader/SearchBar.jsx
 - PlayerTable/PlayerTableHeader/TopControlsBar.jsx
 - PlayerTable/PlayerTableHeader/index.jsx
-- PlayerTable/components/HeaderPopover.jsx
-- PlayerTable/components/OverlayPanel.jsx
 - PlayerTable/hooks/usePlayerTableDensity.js
 - PlayerTable/index.jsx
-- SubRolePill.jsx
-- TwoWayMini.jsx
 - hooks/useFilterDiagnostics.js
 - hooks/useFilteredPlayers.js
 
@@ -363,4 +358,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-06T08:40:07.566Z*
+*Generated on: 2026-03-07T00:15:29.290Z*

@@ -24,7 +24,7 @@ const traitSort = [
 ];
 
 // Dynamic current year for yearsRemaining calculation (computed once at module load)
-const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_YEAR = getCurrentSeasonYear();
 
 export function filterPlayers(players = [], filters) {
   if (!players) return [];
@@ -191,7 +191,7 @@ export function filterPlayers(players = [], filters) {
       if (
         filters.subRoles.offense?.length &&
         !filters.subRoles.offense.every((sub) =>
-          p.subRoles.offense.includes(sub)
+          (p.subRoles?.offense || []).includes(sub)
         )
       ) {
         return false;
@@ -199,7 +199,7 @@ export function filterPlayers(players = [], filters) {
       if (
         filters.subRoles.defense?.length &&
         !filters.subRoles.defense.every((sub) =>
-          p.subRoles.defense.includes(sub)
+          (p.subRoles?.defense || []).includes(sub)
         )
       ) {
         return false;
@@ -252,92 +252,6 @@ export function filterPlayers(players = [], filters) {
 
     return true;
   });
-}
-
-/**
- * Check if a player has a $0.0M contract indicating training camp invite or non-guaranteed deal
- * @deprecated Currently unused - reserved for future filtering logic
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _checkForZeroContract(player) {
-  // Check current year salary from contract subcollection
-  // Use dynamic year from contractUtils for SSOT compliance
-  const currentYear = getCurrentSeasonYear();
-
-  // Prioritize currentContractView (denormalized)
-  if (player.currentContractView) {
-    const salary =
-      player.currentContractView.currentSalary ||
-      player.currentContractView.salaryByYear?.[currentYear];
-    if (salary === 0 || salary === null || salary === undefined) {
-      return true;
-    }
-  }
-
-  // Get contract data from v2 structure
-  const contractData =
-    player.primaryContract ||
-    (player.contracts ? Object.values(player.contracts)[0] : null);
-
-  // Check salariesByYear array in v2 structure
-  if (contractData?.salariesByYear) {
-    const currentSalary = contractData.salariesByYear.find(
-      (s) => s.year === currentYear || s.season?.startsWith(String(currentYear))
-    );
-    if (
-      currentSalary &&
-      (currentSalary.salary === 0 ||
-        currentSalary.salary === '0' ||
-        currentSalary.salary === '$0.0M')
-    ) {
-      return true;
-    }
-  }
-
-  // Check salaryByYear mapping (enriched data)
-  if (player.salaryByYear?.[currentYear] === 0) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Determine if a player is likely new (not in last year's 531 established players)
- * by checking for lack of established data that veterans would have
- * @deprecated Currently unused - reserved for future filtering logic
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _isLikelyNewPlayer(player) {
-  // Players with existing grades/traits are likely established (from previous 531)
-  if (player.traits && Object.keys(player.traits).length > 0) {
-    return false;
-  }
-
-  // Players with roles assigned are likely established
-  // Note: enrichPlayerData spreads these from evaluations subcollection
-  if (player.offenseRole && player.offenseRole !== '—') {
-    return false;
-  }
-
-  // Players with substantial stats history are likely established
-  // Stats are enriched from seasons subcollection
-  if (player.GP && player.GP > 20) {
-    return false;
-  }
-
-  // Players with established minutes per game are likely not training camp invites
-  if (player.MIN && player.MIN > 15) {
-    return false;
-  }
-
-  // If player has overall grade, they're established
-  if (player.overallGrade) {
-    return false;
-  }
-
-  // If none of the above, likely a new/training camp player
-  return true;
 }
 
 export function sortPlayers(

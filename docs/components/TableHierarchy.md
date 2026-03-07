@@ -17,24 +17,18 @@ PlayerTable/
     ShootingProfileMini.jsx
     index.jsx
   PlayerTableHeader/
-    ControlButtons.jsx
     DensityToggle.jsx
     SearchBar.jsx
     TopControlsBar.jsx
     index.jsx
-  components/
-    HeaderPopover.jsx
-    OverlayPanel.jsx
   hooks/
     usePlayerTableDensity.js
   index.jsx
-SubRolePill.jsx
-TwoWayMini.jsx
 hooks/
   useFilterDiagnostics.js
   useFilteredPlayers.js
 ```
 
 ---
-*Generated on: 2026-02-02T14:20:24.284Z*
+*Generated on: 2026-03-07T00:15:29.261Z*
 *Auto-updated by: npm run docs*

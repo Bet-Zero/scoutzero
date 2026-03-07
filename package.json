@@ -32,7 +32,7 @@
     "smoke:architect": "node scripts/ci/run_architect_smoke_e1.mjs",
     "test:trade": "vitest run -c vitest.node.config.js tests/trade",
     "test:roster": "vitest run -c vitest.node.config.js src/tests/roster",
-    "test:scouting": "vitest run -c vitest.node.config.js src/tests/scouting",
+    "test:scouting": "node scripts/run-scouting-tests.mjs",
     "test:diff": "node scripts/run-tests-by-diff.mjs",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",

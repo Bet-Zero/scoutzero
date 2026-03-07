@@ -167,13 +167,20 @@ const DrawerOverlay = () => {
   );
 };
 
-const DrawerContext = React.createContext(null);
+const DrawerContext = React.createContext({
+  expandedPlayerId: null,
+  players: [],
+  itemSize: 100,
+  drawerHeight: 0,
+  setDrawerHeight: () => {},
+});
 
 const PlayerTable = () => {
   const [filters, setFilters] = useState(getDefaultPlayerFilters());
   const { players, loading } = useSimplePlayerData();
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false); // Phase 2O: Renamed for clarity
   const [showActiveFiltersDrawer, setShowActiveFiltersDrawer] = useState(false); // Phase 2O: New drawer state
+  const [searchText, setSearchText] = useState('');
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const [drawerHeight, setDrawerHeight] = useState(0); // Phase 2E: Measured drawer height
   const listContainerRef = useRef(null);
@@ -226,7 +233,7 @@ const PlayerTable = () => {
   // Debounce filters
   const debouncedSetFilters = useMemo(
     () => debounce(setFilters, 300),
-    [setFilters]
+    []
   );
 
   const debouncedSearchUpdate = useMemo(
@@ -239,6 +246,8 @@ const PlayerTable = () => {
 
   const handleClearAllFilters = () => {
     debouncedSetFilters.cancel();
+    debouncedSearchUpdate.cancel();
+    setSearchText('');
     setFilters(getDefaultPlayerFilters());
   };
 
@@ -248,7 +257,9 @@ const PlayerTable = () => {
   const diagnostics = useFilterDiagnostics(players, filteredPlayers, filters);
 
   const handleSearchChange = (e) => {
-    debouncedSearchUpdate(e.target.value);
+    const value = e.target.value;
+    setSearchText(value);
+    debouncedSearchUpdate(value);
   };
 
   const handleCloseFilters = () => {
@@ -262,7 +273,7 @@ const PlayerTable = () => {
   // Reset expansion when filters change (optional, but good for UX so drawer doesn't stick to wrong index)
   React.useEffect(() => {
     setExpandedPlayerId(null);
-  }, [filters, filteredPlayers.length]);
+  }, [filters]);
 
   const itemData = useMemo(
     () => ({
@@ -299,6 +310,7 @@ const PlayerTable = () => {
           {/* Title row with search and density */}
           <PlayerTableHeader
             filteredCount={filteredPlayers.length}
+            searchValue={searchText}
             onSearchChange={handleSearchChange}
             densityMode={densityMode}
             onDensityChange={setDensityMode}

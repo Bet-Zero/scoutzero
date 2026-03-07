@@ -136,14 +136,13 @@ const TopControlsBar = ({
           className={sortSelectClass}
           title="Sort By"
         >
-          <option value="">A-Z</option>
           <option value="name">Name</option>
           <option value="height">Height</option>
           <option value="weight">Weight</option>
           <option value="age">Age</option>
           <option value="salary">Salary</option>
           <option value="PTS">PTS</option>
-          <option value="REB">TRB</option>
+          <option value="REB">REB</option>
           <option value="AST">AST</option>
           <option value="overall">Overall</option>
         </select>

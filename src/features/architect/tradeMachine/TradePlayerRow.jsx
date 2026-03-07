@@ -3,6 +3,7 @@ import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMin
 import TeamLogo from '@/shared/components/TeamLogo';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatSalary } from '@/shared/utils/formatting';
+import { getPlayerProfileUrl } from '@/shared/utils/routing/playerRouteUtils';
 import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 import { getYearsRemainingDisplay } from '@/features/architect/utils/contractUtils';
 import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
@@ -214,11 +215,7 @@ const TradePlayerRow = ({
                 Modify Contract
               </button>
               <button
-                onClick={() =>
-                  (window.location.href = `/profiles?player=${
-                    player.bio?.playerId || player.id || player.player_id
-                  }`)
-                }
+                onClick={() => (window.location.href = getPlayerProfileUrl(player))}
                 className="block w-full text-left px-3 py-1 hover:bg-[#333]"
               >
                 View Profile
@@ -390,11 +387,7 @@ const TradePlayerRow = ({
 
             {/* View Profile Option */}
             <button
-              onClick={() =>
-                (window.location.href = `/profiles?player=${
-                  player.bio?.playerId || player.id || player.player_id
-                }`)
-              }
+              onClick={() => (window.location.href = getPlayerProfileUrl(player))}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >
               View Profile

@@ -147,8 +147,10 @@ const useAutoSavePlayer = ({
     }, delay);
   }, []);
 
-  const performSave = useCallback(async () => {
-    const snapshot = latestSnapshotRef.current;
+  const performSave = useCallback(async (snapshotOverride = null) => {
+    const snapshot = snapshotOverride
+      ? { ...latestSnapshotRef.current, ...snapshotOverride }
+      : latestSnapshotRef.current;
     if (!snapshot?.playerId || !snapshot?.player) return;
     if (isSavingRef.current) {
       pendingSaveRef.current = true;
@@ -324,7 +326,7 @@ const useAutoSavePlayer = ({
   ]);
 
   // saveNow: Immediate save, bypassing debounce. Returns promise that resolves when complete.
-  const saveNow = useCallback(async () => {
+  const saveNow = useCallback(async (snapshotOverride = null) => {
     // Clear any pending debounce
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -339,7 +341,7 @@ const useAutoSavePlayer = ({
     }
 
     // Run the save immediately
-    await performSave();
+    await performSave(snapshotOverride);
   }, [performSave]);
 
   return { isSaving, saveError, saveState, saveNow };

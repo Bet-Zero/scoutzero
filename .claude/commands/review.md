@@ -1,3 +1,8 @@
+---
+description: Broad quality audit of a feature, component, or folder. Returns a structured PREFLIGHT RETURN PACKAGE.
+argument-hint: <feature or scope to review>
+---
+
 # $ARGUMENTS — MASTER CLEANUP / QUALITY AUDIT PROMPT
 
 **Mode:** PREFLIGHT (discovery / audit only; no functional code changes unless explicitly authorized)
