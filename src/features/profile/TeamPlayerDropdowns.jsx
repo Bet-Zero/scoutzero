@@ -15,14 +15,9 @@ const TeamPlayerDropdowns = ({
   setFilteredKeys,
 }) => {
   useEffect(() => {
-    if (!selectedTeam) {
-      setFilteredKeys([]);
-      setSelectedPlayer('');
-      return;
-    }
     const filtered = getPlayersForTeam(playersData, selectedTeam);
     setFilteredKeys(filtered);
-    if (!filtered.includes(selectedPlayer)) {
+    if (selectedTeam && !filtered.includes(selectedPlayer)) {
       setSelectedPlayer(filtered[0] || '');
     }
   }, [
@@ -33,6 +28,14 @@ const TeamPlayerDropdowns = ({
     setSelectedPlayer,
   ]);
 
+  const handlePlayerChange = (id) => {
+    setSelectedPlayer(id);
+    if (id && !selectedTeam) {
+      const team = playersData[id]?.bio?.display?.team || '';
+      if (team) setSelectedTeam(team);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-1 mt-[2px]">
       <select
@@ -40,7 +43,7 @@ const TeamPlayerDropdowns = ({
         onChange={(e) => setSelectedTeam(e.target.value)}
         className={styles.select}
       >
-        <option value="">Select Team</option>
+        <option value="">All Teams</option>
         {teams.map((team, index) => (
           <option key={`team-${index}-${team}`} value={team}>
             {team}
@@ -50,9 +53,8 @@ const TeamPlayerDropdowns = ({
 
       <select
         value={selectedPlayer}
-        onChange={(e) => setSelectedPlayer(e.target.value)}
+        onChange={(e) => handlePlayerChange(e.target.value)}
         className={styles.select}
-        disabled={!selectedTeam}
       >
         <option value="">Select Player</option>
         {filteredKeys.map((key, index) => (

@@ -156,17 +156,17 @@ const usePlayerNavigation = (openModal) => {
 
   // Prev/Next navigation
   const handlePrevPlayer = useCallback(() => {
-    if (!selectedTeam || !selectedPlayer) return;
+    if (!selectedPlayer || filteredKeys.length === 0) return;
     const currentIndex = filteredKeys.indexOf(selectedPlayer);
     if (currentIndex > 0) setSelectedPlayer(filteredKeys[currentIndex - 1]);
-  }, [selectedTeam, selectedPlayer, filteredKeys]);
+  }, [selectedPlayer, filteredKeys]);
 
   const handleNextPlayer = useCallback(() => {
-    if (!selectedTeam || !selectedPlayer) return;
+    if (!selectedPlayer || filteredKeys.length === 0) return;
     const currentIndex = filteredKeys.indexOf(selectedPlayer);
     if (currentIndex < filteredKeys.length - 1)
       setSelectedPlayer(filteredKeys[currentIndex + 1]);
-  }, [selectedTeam, selectedPlayer, filteredKeys]);
+  }, [selectedPlayer, filteredKeys]);
 
   // Keyboard arrow navigation (disabled when modal is open)
   useEffect(() => {

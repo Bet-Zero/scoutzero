@@ -19,9 +19,8 @@ import {
 } from '@/shared/utils/videoExamples';
 
 export function getPlayersForTeam(playersData, team) {
-  if (!team) return [];
   return Object.keys(playersData)
-    .filter((key) => playersData[key]?.bio?.display?.team === team)
+    .filter((key) => !team || playersData[key]?.bio?.display?.team === team)
     .sort((a, b) => {
       const aName =
         playersData[a]?.bio?.displayName || playersData[a]?.name || '';
