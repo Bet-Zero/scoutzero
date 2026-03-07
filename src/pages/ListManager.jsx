@@ -2,7 +2,7 @@
 // E4: Routes reads/writes through listHelpers with ownership scoping
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { toast } from 'react-hot-toast';
@@ -22,6 +22,7 @@ import ListSearchBar from '@/features/lists/ListSearchBar';
 const ListManager = () => {
   const { listId } = useParams();
   const [listData, setListData] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [playersMap, setPlayersMap] = useState({});
   const [order, setOrder] = useState([]);
@@ -62,8 +63,12 @@ const ListManager = () => {
     const loadList = async () => {
       try {
         const result = await fetchList(listId, userId);
-        if (!result) throw new Error('List not found');
+        if (!result) {
+          setNotFound(true);
+          return;
+        }
 
+        setNotFound(false);
         setIsOwner(result.ownershipValid);
         const orderIds = result.playerOrder || [];
         const allIds = result.playerIds || [];
@@ -76,6 +81,7 @@ const ListManager = () => {
         setNotes(result.playerNotes || {});
       } catch (err) {
         console.error('Failed to load list:', err);
+        setNotFound(true);
       }
     };
 
@@ -190,6 +196,17 @@ const ListManager = () => {
   const flatPlayers = useMemo(() => {
     return order.filter((id) => !id.startsWith('divider::'));
   }, [order]);
+
+  if (notFound) {
+    return (
+      <div className="text-white text-center mt-12">
+        <p className="text-lg mb-4">List not found.</p>
+        <Link to="/lists" className="text-blue-400 hover:text-blue-300 text-sm">
+          Back to Lists
+        </Link>
+      </div>
+    );
+  }
 
   if (!listData || playersLoading) {
     return <div className="text-white text-center mt-12">Loading List...</div>;
@@ -339,20 +356,23 @@ const ListManager = () => {
                     orderLength={order.length}
                   />
                 ))
-              : flatPlayers.map((id, idx) => (
-                  <ListPlayerRow
-                    key={`flat-${id}`}
-                    index={idx}
-                    player={playersMap[id]}
-                    note={notes[id]}
-                    onNoteChange={handleNoteChange}
-                    onMoveUp={handleMoveUp}
-                    onMoveDown={handleMoveDown}
-                    onRemove={handleRemove}
-                    showReorder={showReorder}
-                    showRank={false}
-                  />
-                ))}
+              : flatPlayers.map((id, idx) => {
+                  const realIndex = order.indexOf(id);
+                  return (
+                    <ListPlayerRow
+                      key={`flat-${id}`}
+                      index={realIndex}
+                      player={playersMap[id]}
+                      note={notes[id]}
+                      onNoteChange={handleNoteChange}
+                      onMoveUp={handleMoveUp}
+                      onMoveDown={handleMoveDown}
+                      onRemove={handleRemove}
+                      showReorder={showReorder}
+                      showRank={false}
+                    />
+                  );
+                })}
           </div>
 
           <RankedListControls

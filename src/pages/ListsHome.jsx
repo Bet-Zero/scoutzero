@@ -154,10 +154,7 @@ const ListsHome = () => {
       {/* Create List Modal */}
       <CreateListModal
         isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          fetchLists();
-        }}
+        onClose={() => setShowCreateModal(false)}
         onListCreated={fetchLists}
       />
 

@@ -310,7 +310,6 @@ Quick reference for all components in the ScoutZero project.
 - RosterControls.jsx
 - RosterExportCapture.jsx
 - RosterExportModal.jsx
-- RosterExportWrapper.jsx
 - RosterPreviewModal.jsx
 - RosterSection/BenchCard.jsx
 - RosterSection/EmptySlot.jsx
@@ -323,6 +322,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/contractUtils.js
 - utils/enrichPlayerData.js
 - utils/index.js
+- utils/rosterBuilderHelpers.js
 - utils/rosterUtils.js
 
 ## Table
@@ -358,4 +358,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-07T00:15:29.290Z*
+*Generated on: 2026-03-07T08:09:43.700Z*

@@ -4,7 +4,7 @@
 
 - The feature exists as two UI modes under the same route: Tiermaker (standard tier list) and Tieramid (pyramid layout) in `src/pages/TierMakerView.jsx`.
 - There is no drag-and-drop library or implementation; all movement is button-driven.
-- Persistence uses Firestore `tierLists` with `tiers` as a map of tier/row name → player ID array and `tierOrder` as the display order.
+- Persistence uses Firestore `tierLists` with `tiers` as a map of tier/row name → player ID array, `tierOrder` as the display order, `mode` as the saved default reopen layout, and `ownerUid` for owner-only access.
 
 ## Current UX (What a User Can Do Right Now)
 
@@ -23,7 +23,7 @@ Tiermaker (standard mode)
 - Remove a player from a tier (returns to Pool).
 - Add a tier, rename a tier (prompt), delete a tier (moves tier players into Pool), reset board.
 - Save and load tier lists.
-- Toggle “Screenshot View” to hide controls.
+- Toggle “Screenshot View” to hide controls and the Pool row for manual capture.
 
 Tieramid (pyramid mode)
 
@@ -89,20 +89,23 @@ Firestore `tierLists` document
 - `name: string`
 - `tiers: Record<string, string[]>` (player IDs)
 - `tierOrder: string[]`
+- `mode: 'standard' | 'pyramid'`
+- `ownerUid: string`
 - `createdAt`, `updatedAt` timestamps
 
 ## Persistence (Where/How It Saves)
 
-- Create list: `createTierList()` in `src/firebase/listHelpers.js`.
-- Save list: `saveTierList()` updates `tiers` and `tierOrder`.
-- Load list: `fetchTierList()` then rehydrates IDs to player objects.
+- Create list: `createTierList()` in `src/firebase/listHelpers.js` seeds the default structure for the requested mode.
+- Save list: `saveTierList()` updates `tiers`, `tierOrder`, and `mode`.
+- Load list: `fetchTierList()` owner-enforces the read, auto-claims legacy ownerless docs, repairs legacy wrong-mode docs when needed, then rehydrates IDs to player objects.
 - Storage is Firestore only; no localStorage fallback.
 
 ## Export / Share
 
-- No built-in export image or share link.
-- “Screenshot View” hides controls for manual capture.
-- Lists are only shareable by direct URL (`/tier-maker/:tierListId`).
+- No built-in export image.
+- “Copy Reopen Link” copies the canonical saved-list reopen URL (`/tier-maker/:tierListId?mode=...`).
+- Reopen links are owner-only: a different anonymous session sees an unavailable state instead of the saved board.
+- “Screenshot View” hides controls for manual capture, and Tiermaker also hides Pool in that mode.
 
 ## Gaps & Risks
 
@@ -113,7 +116,7 @@ Firestore `tierLists` document
 [DEFERRED — v2]
 
 - Export-to-image (PNG/JPEG) — requires new dependency (html2canvas or similar). Screenshot View + device capture is the v1 path.
-- "Save & Copy Link" flow from draft mode — current UX uses toast hint to save first.
+- "Copy Reopen Link" from draft mode — current UX uses a toast hint to save first.
 
 [MINOR]
 
@@ -133,14 +136,16 @@ The tier maker now uses URL-based state persistence:
 
 ```
 /tier-maker                             → Empty Tiermaker (no list loaded)
-/tier-maker/:tierListId                 → Tiermaker with list auto-loaded
+/tier-maker/:tierListId                 → Saved route that resolves stored mode, then normalizes to `?mode=...`
 /tier-maker/:tierListId?mode=standard   → Explicit Tiermaker mode
 /tier-maker/:tierListId?mode=tieramid   → Tieramid mode with same list
 ```
 
 - Mode toggle updates query param without losing tier list ID
+- Saved routes without a valid `mode` param fetch the list once and replace the URL with the resolved saved mode
 - Refresh preserves both list and mode
 - Cross-mode navigation auto-loads the same list
+- Tier Lists Home opens saved lists using the resolved stored mode
 
 ## Acceptance Criteria Checklist (v1)
 
@@ -151,7 +156,7 @@ The tier maker now uses URL-based state persistence:
 - [x] Users can add, rename, delete, and reorder tiers or rows.
 - [x] Save and load tier lists persist and restore tiers, order, and pool.
 - [x] Tieramid "Add Team" works correctly with team IDs.
-- [x] Export/share provides either a stable share link or built-in export image.
+- [x] Saved lists provide a stable owner-only reopen link; export-to-image remains deferred.
 - [x] No console errors in normal use.
 - [x] Cross-mode auto-load: Switching modes keeps the same list.
 - [x] Refresh persistence: Both list and mode survive browser refresh.
@@ -163,8 +168,8 @@ The tier maker now uses URL-based state persistence:
 - [x] **[CLOSED]** Saved Mode: sessionStorage does not interfere with Firestore load/save.
 - [x] **[CLOSED]** Cross-mode conversion: All players preserved, order deterministic.
 - [x] **[CLOSED]** Tier/row reordering persists in Draft and Saved modes.
-- [x] **[CLOSED]** Share link is one-click copy for saved lists.
-- [x] **[CLOSED]** Screenshot View hides ALL controls in both modes.
+- [x] **[CLOSED]** Copy Reopen Link is one-click for saved lists and disabled with a hint toast in draft mode.
+- [x] **[CLOSED]** Screenshot View hides controls in both modes and hides Pool in standard mode.
 - [x] **[CLOSED]** No duplicate players from repeated add operations.
 
 ## Cross-mode Compatibility (Defined)
@@ -179,9 +184,10 @@ The tier maker operates in two distinct modes depending on whether a `tierListId
 
 ### Saved Mode (`:tierListId` present)
 
-- Boards load data from Firestore via `fetchTierList()` as before.
-- Save writes back to Firestore via `saveTierList()`.
+- Boards load data from Firestore via `fetchTierList()` with owner enforcement.
+- Save writes back to Firestore via `saveTierList()` and persists the current board mode as the default reopen layout.
 - Refresh reloads from Firestore.
+- Wrong-session reopen attempts render an unavailable state with a link back to `/tier-lists`.
 - **sessionStorage is never read or written** in saved mode.
 
 ### Draft Mode (no `:tierListId`)
@@ -303,19 +309,24 @@ When toggling modes **in draft mode only**:
 ## Manual Test Script
 
 1. Navigate to `/tier-lists` and create a new tier list.
-2. Open it in `/tier-maker/:tierListId`.
+2. Open it in `/tier-maker/:tierListId?mode=standard` or click it from `/tier-lists`.
 3. Add players via the drawer, “Add Team,” and “Add List.”
 4. Move players between tiers and remove a player.
 5. Save, reload, and load the saved list.
 6. Switch to Tieramid mode and place players into the pyramid.
-7. Move players up/down/left/right and attempt to remove to Pool.
-8. Save, reload, and load in Tieramid.
-9. Confirm no console errors and no hidden players in rows.
+7. Copy the reopen link and verify it reopens only for the same session.
+8. Move players up/down/left/right and attempt to remove to Pool.
+9. Save, reload, and load in Tieramid.
+10. Enter Screenshot View and verify Tiermaker hides Pool.
+11. Confirm no console errors and no hidden players in rows.
 
 ## Existing Tests + Coverage Notes
 
-- No tests found covering Tiermaker or Tieramid.
-- No unit, integration, or e2e coverage specific to this feature.
+- `tests/tierSaveAsList.test.js` covers Tiermaker/Tieramid → List export payloads.
+- `tests/tierMakerListOrder.test.js` covers tier/list ordering behavior used by imports.
+- `tests/tierListModePersistence.test.js` covers mode resolution, create/save persistence, auto-repair, and owner-only read errors.
+- `tests/tierMakerRoutes.ui.test.jsx` covers saved-route mode normalization, owner-only unavailable state, and `/tier-lists` reopening saved pyramid lists in Tieramid.
+- `tests/tierMakerBoards.ui.test.jsx` covers Tiermaker screenshot Pool hiding, standard-mode invalid-control removal, and Tieramid edge-button disabling.
 
 ---
 
@@ -329,8 +340,8 @@ When toggling modes **in draft mode only**:
 - **Draft mode + sessionStorage**: Unsaved work persists across refresh via `sessionStorage`; `useTierDraft` hook manages lifecycle.
 - **Cross-mode conversion**: Standard → Tieramid and Tieramid → Standard with deterministic player placement and no hidden players.
 - **Tier/row reordering**: ▲/▼ buttons on tier headers and row labels; Pool pinned last; persists in both Draft and Saved modes.
-- **Share link**: One-click URL copy for saved lists; disabled with hint toast in draft mode.
-- **Screenshot View**: Hides ALL controls (mode toggle, buttons, drawer, Pool) in both modes for manual screen capture.
+- **Copy Reopen Link**: One-click owner-only URL copy for saved lists; disabled with hint toast in draft mode.
+- **Screenshot View**: Hides controls in both modes; Tiermaker also hides Pool for manual screen capture.
 - **Dedupe hardening**: Repeated adds from drawer/team/list are silently skipped across all tiers/rows.
 - **URL-based persistence**: List ID in path, mode in query param; both survive refresh.
 - **Save/load via Firestore**: Full CRUD (create, save, load, rename, delete) for tier lists.
@@ -345,11 +356,13 @@ When toggling modes **in draft mode only**:
 | "Save & Copy Link" in draft mode | Adds create→save→navigate→copy complexity; current toast hint is acceptable for v1.                |
 | Drag-and-drop                    | No DnD library added; all movement is button-driven by design in v1.                               |
 
-### Validation Evidence (2026-02-13)
+### Validation Evidence
 
-- **Build**: `npm run build` passes cleanly.
-- **Tests**: All 98 test files pass, 0 failures.
-- **Manual scenarios**: Draft mode persistence, saved mode round-trip, screenshot view, dedupe, cross-mode conversion, share link — all verified.
+- **Build**: `npm run build`
+- **Targeted tests**:
+  - `npm run test:node -- --reporter=dot tests/tierSaveAsList.test.js tests/tierMakerListOrder.test.js tests/tierListModePersistence.test.js`
+  - `npm run test:ui -- --reporter=dot tests/tierMakerRoutes.ui.test.jsx tests/tierMakerBoards.ui.test.jsx`
+- **Manual scenarios to keep verifying**: Draft mode persistence, saved mode round-trip, screenshot view, dedupe, cross-mode conversion, owner-only reopen link.
 
 ---
 

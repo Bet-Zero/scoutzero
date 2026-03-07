@@ -14,6 +14,9 @@ const TierRow = ({
   canMoveDown = false,
   onMoveTierUp,
   onMoveTierDown,
+  canPlayerMoveUp = true,
+  canPlayerMoveDown = true,
+  canRemovePlayer = true,
 }) => (
   <div
     className={`flex items-center gap-2 border border-white/10 rounded-md min-h-[38px] ${
@@ -71,7 +74,7 @@ const TierRow = ({
             <TierPlayerTile player={player} />
             {!screenshotMode && (
               <div className="absolute top-1 right-1 flex flex-col gap-1">
-                {tier !== 'S' && (
+                {canPlayerMoveUp && (
                   <button
                     onClick={() => movePlayer(playerId, tier, 'up')}
                     className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
@@ -79,7 +82,7 @@ const TierRow = ({
                     ↑
                   </button>
                 )}
-                {tier !== 'Pool' && (
+                {canPlayerMoveDown && (
                   <button
                     onClick={() => movePlayer(playerId, tier, 'down')}
                     className="text-xs text-white bg-black/40 px-[6px] rounded hover:bg-white/10"
@@ -87,12 +90,14 @@ const TierRow = ({
                     ↓
                   </button>
                 )}
-                <button
-                  onClick={() => removePlayer(playerId, tier)}
-                  className="text-xs text-red-300 bg-black/40 px-[6px] rounded hover:bg-red-600"
-                >
-                  ✕
-                </button>
+                {canRemovePlayer && (
+                  <button
+                    onClick={() => removePlayer(playerId, tier)}
+                    className="text-xs text-red-300 bg-black/40 px-[6px] rounded hover:bg-red-600"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             )}
           </div>

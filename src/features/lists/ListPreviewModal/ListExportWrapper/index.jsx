@@ -174,6 +174,11 @@ const ListExportWrapper = ({
 
   const containerPadding = twoColumn ? 'p-12' : 'p-24';
 
+  const totalPlayerCount = isRanked && tiers.length > 0
+    ? tiers.reduce((sum, t) => sum + t.players.length, 0)
+    : players.length;
+  const isTruncated = twoColumn && exportType !== 'tier' && totalPlayerCount > 30;
+
   return (
     <div
       className={`w-full overflow-auto ${containerPadding} bg-gradient-to-br from-[#1e1e1e] to-[#111] rounded-lg border border-neutral-700 shadow-sm`}
@@ -187,6 +192,11 @@ const ListExportWrapper = ({
         </div>
       )}
       {exportType === 'tier' ? renderTiered() : renderFlatOrRanked()}
+      {isTruncated && (
+        <p className="text-white/30 text-xs text-center mt-4">
+          Showing first 30 of {totalPlayerCount} players
+        </p>
+      )}
     </div>
   );
 };

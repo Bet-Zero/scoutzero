@@ -1,17 +1,24 @@
 // RostersHome.jsx
 import React, { useEffect, useState, useMemo } from 'react';
-import {
-  collection,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  doc,
-} from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
-import { db } from '@/firebaseConfig';
 import CreateRosterModal from '@/features/roster/CreateRosterModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
+import {
+  deleteRosterProject,
+  fetchAllRosterProjects,
+  renameRosterProject,
+} from '@/firebase/rosterHelpers';
+
+const formatRosterUpdatedAt = (timestamp) => {
+  const date = timestamp?.toDate?.();
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '—';
+
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
 
 const RostersHome = () => {
   const [rosters, setRosters] = useState([]);
@@ -47,8 +54,7 @@ const RostersHome = () => {
   }, [rosters]);
 
   const fetchRosters = async () => {
-    const snapshot = await getDocs(collection(db, 'rosterProjects'));
-    const results = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const results = await fetchAllRosterProjects();
     setRosters(results);
     setIsLoading(false);
   };
@@ -59,18 +65,16 @@ const RostersHome = () => {
 
   const handleRename = async () => {
     if (!renameValue.trim()) return;
-    await updateDoc(doc(db, 'rosterProjects', renamingId), {
-      name: renameValue.trim(),
-    });
+    await renameRosterProject(renamingId, renameValue.trim());
     setRenamingId(null);
     setRenameValue('');
-    fetchRosters();
+    await fetchRosters();
   };
 
   const handleDelete = async () => {
-    await deleteDoc(doc(db, 'rosterProjects', deletingId));
+    await deleteRosterProject(deletingId);
     setDeletingId(null);
-    fetchRosters();
+    await fetchRosters();
   };
 
   return (
@@ -115,8 +119,7 @@ const RostersHome = () => {
                     <p className="text-sm text-white/50 mb-2">{r.team}</p>
                   )}
                   <div className="text-xs text-white/30">
-                    Last updated{' '}
-                    {r.updatedAt?.toDate?.().toLocaleDateString?.() || '—'}
+                    Last updated {formatRosterUpdatedAt(r.updatedAt)}
                   </div>
                 </Link>
 
@@ -145,10 +148,7 @@ const RostersHome = () => {
 
       <CreateRosterModal
         isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          fetchRosters();
-        }}
+        onClose={() => setShowCreateModal(false)}
         onCreated={fetchRosters}
       />
 

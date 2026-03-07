@@ -165,37 +165,42 @@ const id = await createList('My List', userId);
 | `name`      | `string`                  | _(required)_         | Tier list display name                                                                                 |
 | `tiers`     | `object`                  | `{}`                 | Map of `tierName → string[]` (player IDs per tier/row)                                                 |
 | `tierOrder` | `string[]`                | `[]`                 | Ordered tier/row keys controlling display order                                                        |
-| `mode`      | `'standard' \| 'pyramid'` | `'standard'`         | E2+: explicit mode. Legacy docs inferred via `inferTierListMode()`                                     |
+| `mode`      | `'standard' \| 'pyramid'` | `'standard'`         | Persisted on create and every save. Legacy row-shaped docs are resolved via `resolveTierListMode()` and repaired on owner read. |
 | `ownerUid`  | `string`                  | _(required post-E4)_ | Firebase Auth UID of the tier list owner. May be absent on legacy docs (auto-claimed on first access). |
 | `createdAt` | `Timestamp`               | `serverTimestamp()`  | Set on creation                                                                                        |
 | `updatedAt` | `Timestamp`               | `serverTimestamp()`  | Updated on rename, save, and other mutations                                                           |
 
 **ID Strategy**: Auto-generated (`addDoc`). No human-readable IDs.
 
-**Mode Inference** (for legacy docs missing `mode`):
+**Mode Resolution / Repair**:
 
-- If `tierOrder` contains entries like `Row1`, `Row2`, etc. → inferred as `'pyramid'`
-- Otherwise → inferred as `'standard'`
-- Inference handled by `inferTierListMode()` in `listHelpers.js`
+- If `mode === 'pyramid'` → stays `'pyramid'`
+- If every non-Pool key is row-shaped (`Row1`, `Row2`, etc.) → resolves to `'pyramid'`
+- Otherwise → resolves to `'standard'`
+- Resolution is handled by `resolveTierListMode()` in `listHelpers.js`
+- `fetchAllTierLists()` returns the resolved mode for `/tier-lists` navigation
+- `fetchTierList()` repairs mismatched stored `mode` values when the current owner reads the doc
 
 **Tieramid (Pyramid Mode) Notes**:
 
 - Row capacity limits (1/2/3/4/5 per row) are UI-only; not persisted to Firestore.
 - Pyramids use row names (`Row1`–`Row5`) as tier keys instead of letter grades (`S`, `A`, `B`).
 
-**Service Layer**: `src/firebase/listHelpers.js` — `fetchAllTierLists`, `fetchTierList`, `createTierList`, `saveTierList`, `renameTierList`, `deleteTierList`, `inferTierListMode`
+**Service Layer**: `src/firebase/listHelpers.js` — `resolveTierListMode`, `fetchAllTierLists`, `fetchTierList`, `createTierList`, `saveTierList`, `renameTierList`, `deleteTierList`
 
 ```javascript
 // Create a tier list with explicit mode + ownership
-const id = await createTierList('My Tiers', 'standard', userId);
+const id = await createTierList('My Tiers', 'pyramid', userId);
 
-// Fetch with mode inference + ownership check
+// Fetch with owner enforcement + mode repair when needed
 const tierList = await fetchTierList(tierListId, userId);
 console.log(tierList.mode); // 'standard' or 'pyramid'
-console.log(tierList.ownershipValid); // true if owned by userId
+await saveTierList(tierList.id, { tiers, tierOrder, mode: 'pyramid' }, userId);
 ```
 
-**Ownership/Auth**: ✅ IMPLEMENTED (E4) — `ownerUid` stored on all new documents. All reads are scoped by `ownerUid == userId`. Writes are guarded by app-level ownership checks. Legacy docs without `ownerUid` are auto-claimed on first access by a signed-in user. Firestore security rules are scaffolded but remain dev-open until launch.
+**Ownership/Auth**: ✅ IMPLEMENTED (E4) — `ownerUid` stored on all new documents. Collection reads in the app use `ownerUid == userId` scoped queries. Direct tier-list reads use `fetchTierList(id, userId)`, which owner-enforces access and throws coded `no-session`, `not-found`, or `permission-denied` errors. Legacy docs without `ownerUid` are auto-claimed on first access by a signed-in user. Firestore security rules are scaffolded but remain dev-open until launch.
+
+**Reopen Links**: Saved tier-list links are owner-only reopen links, not public share links. The canonical form is `/tier-maker/:tierListId?mode=standard|tieramid`.
 
 #### Legacy Ownership Claiming (E4)
 

@@ -11,6 +11,7 @@ const RosterExportModal = ({ open, onClose, roster, team }) => {
           ? {
               id: player.id,
               name: player.displayName || player.name || 'Unknown Player',
+              missing: Boolean(player.isMissing),
             }
           : null
       );

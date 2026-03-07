@@ -1,0 +1,53 @@
+{
+  "playerId": "review_offer_sheet_guard",
+  "player_id": "review_offer_sheet_guard",
+  "id": "review_offer_sheet_guard",
+  "displayName": "Review Offer Sheet Guard",
+  "teamId": "BOS",
+  "teamCode": null,
+  "teamName": "Free Agent",
+  "bio": {
+    "position": "G",
+    "height": "6-4",
+    "weight": "198",
+    "age": 25,
+    "experience": 3
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "signingTeam": "BOS",
+    "startSeason": "2024-25",
+    "endSeason": "2025-26",
+    "contractLength": 2,
+    "yearsRemaining": 0,
+    "totalValue": 9200000,
+    "averageAnnualValue": 4600000,
+    "salariesByYear": [
+      {
+        "season": "2024-25",
+        "salary": 4400000,
+        "capHit": 4400000,
+        "guaranteed": true
+      },
+      {
+        "season": "2025-26",
+        "salary": 4800000,
+        "capHit": 4800000,
+        "guaranteed": true
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Restricted",
+      "eligibleFor": ["Bird Exception"]
+    },
+    "freeAgency": {
+      "type": "RFA",
+      "year": 2026,
+      "capHold": 7200000
+    }
+  }
+}

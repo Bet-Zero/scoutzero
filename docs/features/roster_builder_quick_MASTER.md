@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Roster Builder is a quick lineup builder that assembles a 15‑man view split into **starters (5)**, **rotation (4)**, and **bench (6)**. It pulls the full NBA player pool from `players_v2` via `useSimplePlayerData`, supports team‑based auto‑fill, and lets users add/remove players via a drawer with search + filters. It can save new rosters to Firestore and load them back by ID or from the roster list page. Current completeness covers the core add/remove + save/load loop, but there is **no update/overwrite flow**, several **filters are effectively broken** (team and FA type), and **export/preview/download is not wired** to any user control. Validation was **not run** in this environment; a manual test script is provided below.
+The Roster Builder assembles a normalized 15-man roster split into **starters (5)**, **rotation (4)**, and **bench (6)**. It reads the player pool from `players_v2` through `useSimplePlayerData`, supports current-team auto-fill, blank rosters, and saved-roster deep links (`/roster/:rosterId`), and saves user-created roster documents to `rosterProjects`. The current builder supports overwrite/save-as-copy, preview/download, and JSON export. Recent hardening also makes add-player filters cumulative, disables the global add button when the roster is full, disables team switching while a saved roster is active, and preserves unresolved saved player IDs as visible placeholders instead of silently dropping them.
 
 ---
 
@@ -37,22 +37,13 @@ The Roster Builder is a quick lineup builder that assembles a 15‑man view spli
 
 ### Validation Evidence
 
-**Unit Tests:**
+**Automated coverage now includes:**
 
-- `src/tests/roster/rosterBuilderUtils.test.ts` — **PASS (22/22)**
-- Coverage: roster shape normalization, filter helpers, canonical team code mapping
+- `src/tests/roster/rosterBuilderUtils.test.ts` for roster normalization and utility behavior
+- `src/tests/roster/rosterBuilderHelpers.test.ts` for cumulative filter logic, team-code matching, salary lookup, and missing-player placeholder handling
+- `tests/roster/rosterBuilder.ui.test.jsx` for saved-roster deep links, disabled invalid controls, missing-player warnings, overwrite preservation, and rename metadata refresh
 
-**Build:**
-
-- `npm run build` — **PASS** (7.3s)
-
-**Manual UI Validation:**
-
-- All core flows verified (auto-fill, add/remove, save/load, overwrite, filters, preview, export)
-- FA Status filter correctly restricted to UFA/RFA
-- Contract Features filter correctly split from FA Status (TO/PO/ETO/Two-Way)
-- Duplicate prevention working as expected
-- Roster size normalization enforced across all operations
+**Build validation:** use `npm run build` after meaningful roster UI or route changes.
 
 ### Known Non-Goals (Out of Scope for v1)
 
@@ -72,10 +63,14 @@ The Roster Builder is a quick lineup builder that assembles a 15‑man view spli
 - Switch roster load mode between **Current NBA Roster**, **Blank Roster**, or a saved roster for the selected team.
 - Open the Add Player drawer via the global drawer button or by clicking an empty slot.
 - Add players to a specific slot (when opened from an empty slot) or to the next available slot (when opened from the drawer button).
+- The global drawer button is disabled when all 15 roster slots are full.
 - Remove players from any slot via the ✕ control on player cards.
-- Search and filter players by name, team, position, roles/subroles, shooting profile, badges, FA year/type, and salary range.
+- Search and filter players by name, team, position, roles/subroles, shooting profile, badges, FA year/status, contract features, salary range, bio ranges, and stat ranges. Active filters are cumulative.
 - Toggle “Screenshot Mode” (hides UI chrome, keeps roster view).
-- Save a new roster with a name (creates a new Firestore document).
+- Save a new roster with a name, overwrite an existing saved roster, or save as a new copy.
+- Deep-link directly to a saved roster with `/roster/:rosterId`.
+- Saved-roster mode keeps the saved team locked in the UI; the team selector is disabled until the user switches back to Current NBA Roster or Blank Roster.
+- If a saved roster references a player ID that no longer resolves from `players_v2`, the slot stays visible as a “Missing Player” placeholder and the original ID is preserved on overwrite/export.
 - Visit a Rosters home page to list, rename, delete, and open saved rosters.
 
 ## Route/Entry Points
@@ -131,10 +126,11 @@ The Roster Builder is a quick lineup builder that assembles a 15‑man view spli
 ## Persistence
 
 - **Collection**: `rosterProjects`.
+- **Constant**: `ROSTER_PROJECTS_COLLECTION` in `src/constants/collections.ts`.
 - **Create**: `createRosterProject` in `src/firebase/rosterHelpers.js` (called from `SaveRosterModal` and `CreateRosterModal`).
-- **Read**: `fetchAllRosterProjects` / `loadRosterProject` (used in `useRosterManager`); direct `getDocs` in `RostersHome`.
-- **Update**: `updateRosterProject` exists but is **not wired** in the UI.
-- **Rename/Delete**: `RostersHome` uses `updateDoc` and `deleteDoc` directly.
+- **Read**: `fetchAllRosterProjects` / `loadRosterProject` (used in `useRosterManager` and `RostersHome`).
+- **Update**: `updateRosterProject` is wired to the overwrite flow in `RosterViewerActions`.
+- **Rename/Delete**: `RostersHome` uses `renameRosterProject` / `deleteRosterProject`; rename updates `updatedAt`.
 
 ## Constraints & Rules
 
@@ -152,13 +148,9 @@ The Roster Builder is a quick lineup builder that assembles a 15‑man view spli
 
 ## Gaps & Risks
 
-- [CLOSED ✅] **Update/overwrite flow** now supported (overwrite existing or save as new copy) using `updateRosterProject`.
-- [CLOSED ✅] **Team filter** normalized to a canonical team code for both filter values and player data.
-- [CLOSED ✅] **FA Status filter** — RB_E3 COMPLETE (2026-02-05): Renamed from "FA Type" and restricted to true FA statuses (UFA/RFA only). Contract options moved to separate filter.
-- [CLOSED ✅] **Contract Features filter** — RB_E3 COMPLETE (2026-02-05): New dropdown for Team Option, Player Option, ETO, and Two-Way. Uses shared `playerHasOptionType` and `isPlayerTwoWay` helpers from `basicFilterUtils.js`.
-- [CLOSED ✅] **Export/preview/download wired** via visible Preview and Export buttons.
-- [CLOSED ✅] **Duplicate prevention** blocks adding the same player twice and shows a warning.
-- [CLOSED ✅] **Roster‑size validation** normalizes rosters to 5/4/6 after load, add/remove, and save.
+- The builder intentionally does not enforce salary cap, positional legality, or roster-balance rules.
+- Saved-roster rendering depends on `players_v2` remaining internally consistent. Missing player IDs are now preserved, but they still require manual replacement or removal by the user.
+- Salary display currently relies on the shared default salary year constant; review this on season rollover.
 
 ## What Changed in v1 Closure
 
@@ -176,13 +168,15 @@ The Roster Builder is a quick lineup builder that assembles a 15‑man view spli
 - [x] User can remove a player from any slot.
 - [x] Search by player name returns expected results.
 - [x] Team filter works in the add‑player drawer.
-- [x] FA type filter works in the add‑player drawer.
+- [x] FA status and contract feature filters work cumulatively in the add‑player drawer.
 - [x] Roster arrays stay at 5/4/6 after load, add/remove, and save.
 - [x] Duplicate players are blocked with a warning.
 - [x] User can save a new roster and it appears in `/rosters`.
 - [x] User can overwrite an existing roster or save as a new copy.
 - [x] Preview and Export buttons open their modals (preview image + JSON copy/download).
 - [x] User can open a saved roster via `/roster/:id` and see the same lineup.
+- [x] The global add button disables when the roster is full.
+- [x] Saved rosters with unresolved player IDs surface placeholder warnings instead of silently deleting those slots.
 
 ## Manual Test Script
 
@@ -195,13 +189,17 @@ The Roster Builder is a quick lineup builder that assembles a 15‑man view spli
 5. Try to add the same player again; confirm a warning appears and the roster does not duplicate.
 6. Remove a player via the ✕ control.
 7. Use search to find a player by name; verify list updates.
-8. Apply team and FA type filters; verify list updates.
+8. Apply stacked filters (for example FA year + contract feature); verify list updates cumulatively.
 9. Click “Preview”; confirm the modal opens and download works.
 10. Click “Export”; confirm JSON copy/download works.
 11. Click “Save Roster”, enter a name, save; confirm it appears in `/rosters`.
-12. Open the saved roster (`/roster/:id`); confirm lineup matches. Try **Overwrite** and **Save as new copy** from the Save modal.
+12. Fill all 15 slots and confirm the global add button disables with explanatory copy.
+13. Open the saved roster (`/roster/:id`); confirm lineup matches, the team selector is disabled, and **Overwrite** / **Save as new copy** work from the Save modal.
+14. Verify a saved roster with a missing player ID shows a placeholder warning and preserves the missing ID in overwrite/export output.
 
 ## Existing Tests + Coverage Notes
 
-- Added `src/tests/roster/rosterBuilderUtils.test.ts` for roster shape + filter normalization utilities.
-- Automated tests in the repo still focus on **Architect** and trade/cap validation; roster builder UI flows remain manual.
+- `src/tests/roster/rosterBuilderUtils.test.ts` covers roster shape and normalization helpers.
+- `src/tests/roster/rosterBuilderHelpers.test.ts` covers filter composition, salary lookup, team matching, and missing placeholders.
+- `tests/roster/rosterBuilder.ui.test.jsx` covers saved-roster route loads, disabled invalid controls, missing-player warnings, overwrite preservation, and rename metadata refresh.
+- Manual verification is still useful for clipboard/download browser behavior and real Firestore data edge cases.

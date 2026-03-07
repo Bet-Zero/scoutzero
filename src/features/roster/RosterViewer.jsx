@@ -9,7 +9,6 @@ import RosterControls from './RosterControls';
 import RosterSection from './RosterSection';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
-import { TeamMap } from '@/constants/teamList';
 import { useRosterManager } from '@/features/roster/hooks/useRosterManager';
 import { RosterViewerActions } from './RosterViewerActions';
 
@@ -32,6 +31,11 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
     updateRoster,
     rosterId,
     rosterHasPlayer,
+    isRosterFull,
+    hasMissingPlayers,
+    missingPlayerCount,
+    missingPlayerIds,
+    isSavedRosterSelection,
   } = useRosterManager(allPlayers, isLoading);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -39,13 +43,9 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
   const [screenshotMode, setScreenshotMode] = useState(false);
 
   useEffect(() => {
-    if (!initialRosterId || savedRosters.length === 0) return;
-    const match = savedRosters.find((r) => r.id === initialRosterId);
-    if (match) {
-      setSelectedTeam(TeamMap[match.team] || null);
-      setLoadMethod(match.id);
-    }
-  }, [initialRosterId, savedRosters, setSelectedTeam, setLoadMethod]);
+    if (!initialRosterId) return;
+    setLoadMethod(initialRosterId);
+  }, [initialRosterId, setLoadMethod]);
   const handleRemovePlayer = (section, index, e) => {
     e?.stopPropagation();
     removePlayer(section, index);
@@ -57,13 +57,21 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
   };
 
   const isEditingExisting = Boolean(rosterId);
+  const openDrawerLabel = isRosterFull
+    ? 'Roster is full. Remove a player to add another.'
+    : 'Open player drawer';
 
   const { primary, secondary } = getTeamColors(selectedTeam?.id);
 
   return (
     <div className="flex relative">
       {!drawerOpen && !isExport && !screenshotMode && (
-        <OpenDrawerButton onClick={() => setDrawerOpen(true)} />
+        <OpenDrawerButton
+          onClick={() => setDrawerOpen(true)}
+          disabled={isRosterFull}
+          title={openDrawerLabel}
+          ariaLabel={openDrawerLabel}
+        />
       )}
 
       {!isExport && !screenshotMode && (
@@ -83,7 +91,9 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
                 setSlotTarget({ section: '', index: -1 });
                 setDrawerOpen(false);
               } else {
-                addPlayerToNextSlot(player);
+                if (!addPlayerToNextSlot(player)) {
+                  toast.error(openDrawerLabel);
+                }
               }
             }}
           />
@@ -118,8 +128,28 @@ const RosterViewer = ({ isExport = false, initialRosterId }) => {
                   loadMethod={loadMethod}
                   onLoadMethodChange={setLoadMethod}
                   savedRosters={savedRosters}
+                  teamSelectionDisabled={isSavedRosterSelection}
                 />
               </div>
+            </div>
+          )}
+
+          {hasMissingPlayers && (
+            <div className="w-full max-w-3xl z-10 mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              {missingPlayerCount} saved player
+              {missingPlayerCount === 1 ? '' : 's'} could not be loaded and
+              {` `}
+              {missingPlayerCount === 1 ? 'is' : 'are'} being preserved as
+              {` `}
+              {missingPlayerCount === 1 ? 'a placeholder' : 'placeholders'}.
+              Remove or replace {missingPlayerCount === 1 ? 'it' : 'them'}
+              {` `}
+              manually if needed.
+              {missingPlayerIds.length > 0 && (
+                <div className="mt-1 text-xs text-amber-200/80">
+                  Missing IDs: {missingPlayerIds.join(', ')}
+                </div>
+              )}
             </div>
           )}
 

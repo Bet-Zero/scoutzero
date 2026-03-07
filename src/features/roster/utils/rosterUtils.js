@@ -2,7 +2,7 @@
  * Normalize playerId for headshot path lookup
  * Handles special characters (e.g., kristaps_porzingis -> kristaps_porziņģis)
  */
-function normalizeHeadshotId(playerId) {
+export function normalizeHeadshotId(playerId) {
   if (!playerId) return 'default';
   return playerId
     .normalize('NFD')
@@ -36,6 +36,9 @@ export const normalizeRosterShape = (roster = {}) => ({
 
 export function normalizePlayer(player) {
   if (!player) return null;
+  if (player.isMissing) {
+    return createMissingRosterPlayer(player.id);
+  }
   const playerId = player.bio?.playerId || player.id;
   const normalizedId = normalizeHeadshotId(playerId);
   return {
@@ -50,6 +53,28 @@ export function normalizePlayer(player) {
       position: player.bio?.position || player.formattedPosition || 'Unknown',
     },
   };
+}
+
+export function createMissingRosterPlayer(playerId) {
+  return {
+    id: playerId,
+    name: 'Missing Player',
+    displayName: 'Missing Player',
+    headshot: '/assets/headshots/default.png',
+    isMissing: true,
+    missingPlayerId: playerId,
+    bio: {
+      displayName: 'Missing Player',
+      position: '—',
+      playerId,
+    },
+  };
+}
+
+export function isRosterFull(roster = {}) {
+  const normalizedRoster = normalizeRosterShape(roster);
+  return [...normalizedRoster.starters, ...normalizedRoster.rotation, ...normalizedRoster.bench]
+    .filter(Boolean).length >= ROSTER_SIZES.starters + ROSTER_SIZES.rotation + ROSTER_SIZES.bench;
 }
 
 export function buildInitialRoster(teamPlayers) {

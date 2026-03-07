@@ -400,6 +400,7 @@ export function useArchitectState({
     }
 
     setWorldRosterIndex(null);
+    setFreeAgents([]);
 
     try {
       const league = await getLeague(worldId);
@@ -433,10 +434,10 @@ export function useArchitectState({
       return nextIndex;
     } catch (error) {
       console.warn('Failed to load world roster index:', error);
-      const empty = new Set<string>();
-      setWorldRosterIndex(empty);
+      setWorldRosterIndex(null);
       setWorldPlayerOverrides({});
-      return empty;
+      setFreeAgents([]);
+      return new Set<string>();
     }
   }, [worldId]);
 

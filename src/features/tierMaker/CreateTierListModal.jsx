@@ -5,7 +5,12 @@ import { createTierList } from '@/firebase/listHelpers';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 
-const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
+const CreateTierListModal = ({
+  isOpen,
+  onClose,
+  onCreated,
+  mode = 'standard',
+}) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const { userId } = useAuth();
@@ -14,7 +19,7 @@ const CreateTierListModal = ({ isOpen, onClose, onCreated }) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     try {
-      const id = await createTierList(trimmed, 'standard', userId);
+      const id = await createTierList(trimmed, mode, userId);
       setName('');
       setError('');
       onCreated?.(id);

@@ -12,6 +12,9 @@ import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import ListSearchBar from '@/features/lists/ListSearchBar';
 import useSimplePlayerData from '@/shared/hooks/useSimplePlayerData';
 
+const toTierListRoute = (list) =>
+  `/tier-maker/${list.id}?mode=${list.mode === 'pyramid' ? 'tieramid' : 'standard'}`;
+
 const TierListsHome = () => {
   const [lists, setLists] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,6 +46,12 @@ const TierListsHome = () => {
     return map;
   }, [lists]);
 
+  const handleSelectTierList = (id) => {
+    const selectedList = lists.find((list) => list.id === id);
+    if (!selectedList) return;
+    navigate(toTierListRoute(selectedList));
+  };
+
   // E4: Fetch tier lists scoped to ownerUid
   const fetchLists = async () => {
     if (!userId) {
@@ -50,9 +59,15 @@ const TierListsHome = () => {
       setIsLoading(false);
       return;
     }
-    const results = await fetchAllTierLists(userId);
-    setLists(results);
-    setIsLoading(false);
+    try {
+      const results = await fetchAllTierLists(userId);
+      setLists(results);
+    } catch (error) {
+      console.error('Failed to fetch tier lists:', error);
+      setLists([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -92,7 +107,7 @@ const TierListsHome = () => {
             <ListSearchBar
               listsData={listsMap}
               playersData={playersMap}
-              onSelect={(id) => navigate(`/tier-maker/${id}`)}
+              onSelect={handleSelectTierList}
               placeholder="Search tier lists..."
             />
             <button
@@ -121,7 +136,7 @@ const TierListsHome = () => {
                 key={list.id}
                 className="p-4 bg-[#1a1a1a] hover:bg-[#232323] border border-white/10 rounded transition relative"
               >
-                <Link to={`/tier-maker/${list.id}`} className="block group">
+                <Link to={toTierListRoute(list)} className="block group">
                   <h2 className="text-lg font-bold text-white mb-1 group-hover:underline">
                     {list.name}
                   </h2>

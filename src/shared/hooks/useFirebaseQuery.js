@@ -7,12 +7,14 @@ import { db } from '@/firebaseConfig';
  * E4: Accepts optional queryConstraints (e.g. where clauses) for scoped reads.
  * @param {string} collectionName - Firestore collection name
  * @param {import('firebase/firestore').QueryConstraint[]} [queryConstraints=[]] - Optional Firestore query constraints
+ * @param {{ enabled?: boolean }} [options]
  * @returns {{ data: Array, loading: boolean, error: Error|null }}
  */
-const useFirebaseQuery = (collectionName, queryConstraints = []) => {
+const useFirebaseQuery = (collectionName, queryConstraints = [], options = {}) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { enabled = true } = options;
   // Serialize constraints to detect changes without causing infinite re-renders
   const constraintsKey = useRef('');
   const newKey = JSON.stringify(
@@ -21,6 +23,13 @@ const useFirebaseQuery = (collectionName, queryConstraints = []) => {
 
   useEffect(() => {
     constraintsKey.current = newKey;
+    if (!enabled) {
+      setData([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -38,7 +47,7 @@ const useFirebaseQuery = (collectionName, queryConstraints = []) => {
       }
     };
     fetchData();
-  }, [collectionName, newKey]);
+  }, [collectionName, newKey, enabled]);
 
   return { data, loading, error };
 };

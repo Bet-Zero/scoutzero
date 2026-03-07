@@ -72,15 +72,16 @@ src/
 > - **PlayerTable** (`features/table/PlayerTable.jsx`) – central table with search, filters and sort options.
 > - **FilterPanel** and **ActiveFiltersDisplay** – manage filter selection and show active pills.
 > - **PlayerProfileView** (`pages/PlayerProfileView.jsx`) – edit-mode page for individual players with trait and role breakdown modals.
-> - **RosterViewer** (`features/roster/RosterViewer.jsx`) – interactive roster builder. Uses **AddPlayerDrawer** to search and place players.
-> - **AddPlayerDrawer** and **PlayerRowMini** – allow quick searching and selecting players for roster slots.
+> - **RosterViewer** (`features/roster/RosterViewer.jsx`) – interactive roster builder. Uses **AddPlayerDrawer** for search/filtering and **RosterViewerActions** for save, preview, and export flows.
+> - **AddPlayerDrawer** and **PlayerRowMini** – allow quick searching and selecting players for roster slots. Filters are cumulative across team, role, contract, bio, and stat criteria.
 >
 > Many mini components in `features/table` (e.g. `PlayerRow`, `PlayerDrawer`, `RolePill`, `PlayerStatsMini`) compose the table UI. Shared UI primitives such as `RangeSelector` and `BadgeFilterSelect` live under `components/shared/ui/`.
 >
 > ## Custom Hooks
 >
 > - **useFirebaseQuery** – generic Firestore fetch wrapper returning `{ data, loading, error }`. Defined in `src/hooks/useFirebaseQuery.js`.
-> - **usePlayerData** – builds on `useFirebaseQuery('players')` and normalizes documents using `normalizePlayerData` from `utils/roster`.
+> - **useSimplePlayerData** – primary player-list hook for the `players_v2` source collection. Prefer this for roster and scouting surfaces.
+> - **usePlayerData** – diagnostics wrapper around `useSimplePlayerData` when extra logging or debug context is needed.
 > - **useFilteredPlayers** – memoizes calls to `filterPlayers` and `sortPlayers` from `utils/filtering/playerFilterUtils.js`.
 >
 > ## Utilities and Constants
@@ -115,7 +116,7 @@ src/
 >
 > ## Roster Tools
 >
-> `RosterViewer` orchestrates the starter/rotation/bench sections using **RosterSection** and **PlayerCard**. When adding a player, **AddPlayerDrawer** filters the entire player list by team, position, roles or contract details. Slots can be auto-filled via `buildInitialRoster` when loading an existing team roster.
+> `RosterViewer` orchestrates the starter/rotation/bench sections using **RosterSection** and a fixed 5/4/6 roster shape. It supports current-team auto-fill, blank rosters, and saved-roster deep links (`/roster/:rosterId`). Saved rosters keep their saved team locked in the UI, and unresolved player IDs render as explicit placeholders instead of being silently dropped.
 >
 > ## Developer Conventions
 >
@@ -126,25 +127,29 @@ src/
 >
 > ## Contributing Notes
 >
-> - There is no automated test suite. Run `npm run lint` (ESLint) where possible.
+> - Automated validation exists. Default to `npm run test:diff -- --reporter=dot`; use `npm run test:roster -- --reporter=dot` for roster logic and targeted `npm run test:ui -- --reporter=dot ...` for UI-heavy changes.
+> - Run `npm run build` after meaningful UI or route changes and `npm run validate:project` after structural changes.
 > - Firebase credentials are loaded from environment variables (`src/firebaseConfig.js`).
-> - When adding new filters or traits, update defaults and display helpers accordingly.
+> - When adding new filters or roster behaviors, update shared defaults/helpers in `src/shared/utils/filtering/` and the roster feature doc.
 
 ## Data Model Overview
 
-Player documents in Firestore are flattened objects with fields for bio, contract, roles and stats. Important properties include `playerId`, `position`, `roles`, `subRoles`, `traits` and a `contract` object. Check `data/players.json` for the full schema.
+Player source data lives in the hierarchical `players_v2` collection, with canonical Zod schemas in `src/schemas/` and generated references under `docs/schema/`. Roster Builder reads denormalized player views through `useSimplePlayerData`, normalizes them into a fixed `{ starters, rotation, bench }` shape, and persists user-created snapshots to `rosterProjects`.
 
 ## Firestore Collections and Data Sources
 
-This project pulls player and contract data from two distinct Firestore collections:
+This project reads canonical player/team data from source collections and stores user-created artifacts separately:
 
-| Collection | Purpose                                                                  |
-| ---------- | ------------------------------------------------------------------------ |
-| `/players` | Stores universal player data: bio, traits, roles, stats, badges, blurbs  |
-| `/teams`   | Stores team-specific cap sheets and `contract_clean` (used in Architect) |
+| Collection | Purpose |
+| ---------- | ------- |
+| `players_v2` | Canonical read-only player source with bio, contracts, seasons, evaluations, roles, badges, and display fields |
+| `architect_baseTeams` and related architect base collections | Read-only Architect source data |
+| `rosterProjects` | User-created roster builder snapshots |
+| `lists`, `tierLists`, `architect_worlds` | Other user-created feature data |
 
-- Use `usePlayerData()` when querying global player records (ScoutZero, rankings, etc.)
-- Use `useTeamRoster()` or direct `/teams` queries for anything related to contract logic, team building, or cap validation.
+- Use `useSimplePlayerData()` for the shared player pool.
+- Use feature-specific Firebase helpers in `src/firebase/` for user-created content such as roster saves.
+- Import Firestore collection names from `src/constants/collections.ts`; do not hardcode collection strings.
 
 📄 Refer to [`docs/architecture/DATA_SOURCE_MAP.md`](./docs/architecture/DATA_SOURCE_MAP.md) for usage rules  
 📄 Refer to [`docs/schema/CURRENT_FIRESTORE_SCHEMA.md`](./docs/schema/CURRENT_FIRESTORE_SCHEMA.md) for canonical schema reference
@@ -170,7 +175,7 @@ The `docs/` folder is organized into specialized subdirectories:
 1. Install dependencies with `npm install`.
 2. Start the dev server via `npm run dev`.
 3. Add components within feature folders and split files over ~200 lines.
-4. Run `npm run lint` and `npm test` before committing.
+4. Run the most relevant scoped validation (`npm run test:diff -- --reporter=dot`, `npm run test:roster -- --reporter=dot`, or targeted `npm run test:ui -- --reporter=dot ...`) plus `npm run build` when UI changes are involved.
 
 ## Validation & CI
 

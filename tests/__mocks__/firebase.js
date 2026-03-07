@@ -9,6 +9,7 @@
 
 // In-memory data store
 const mockDataStore = new Map();
+let autoIdCounter = 0;
 
 // Track batch operations
 let currentBatch = null;
@@ -184,6 +185,31 @@ export async function setDoc(docRef, data, options = {}) {
   } else {
     setDataInStore(path, processedData);
   }
+}
+
+// Mock addDoc function
+export async function addDoc(collectionRef, data) {
+  const generatedId = `${collectionRef.id || 'doc'}_${autoIdCounter++}`;
+  const docRef = {
+    id: generatedId,
+    path: buildPath(collectionRef.path, generatedId),
+    parent: collectionRef,
+  };
+
+  const processedData = processServerTimestamps(data, {});
+
+  if (currentBatch) {
+    currentBatch.operations.push({
+      type: 'set',
+      path: docRef.path,
+      data: processedData,
+      options: {},
+    });
+  } else {
+    setDataInStore(docRef.path, processedData);
+  }
+
+  return docRef;
 }
 
 // Mock updateDoc function
@@ -591,6 +617,7 @@ function deepMerge(target, source) {
 export function resetMockDataStore() {
   mockDataStore.clear();
   currentBatch = null;
+  autoIdCounter = 0;
 }
 
 // Get all data (for debugging)

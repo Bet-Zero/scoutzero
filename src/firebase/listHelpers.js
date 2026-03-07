@@ -15,9 +15,21 @@ import {
   arrayUnion,
   serverTimestamp,
 } from 'firebase/firestore';
+import {
+  LISTS_COLLECTION,
+  TIER_LISTS_COLLECTION,
+} from '@/constants/collections';
 
-const listsRef = collection(db, 'lists');
-const tierListsRef = collection(db, 'tierLists');
+const listsRef = collection(db, LISTS_COLLECTION);
+const tierListsRef = collection(db, TIER_LISTS_COLLECTION);
+
+const TIER_LIST_ROW_KEY_PATTERN = /^Row\d+$/i;
+
+const createTierListError = (code, message) => {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+};
 
 // ===== Internal ownership utilities (not exported) =====
 
@@ -142,9 +154,10 @@ export const createListWithPlayer = async (name, playerId, userId) => {
  * @param {string} userId - Current user's uid
  */
 export const addPlayerToList = async (listId, playerId, userId) => {
-  const { docRef } = await readAndGuard('lists', listId, userId);
+  const { docRef } = await readAndGuard(LISTS_COLLECTION, listId, userId);
   await updateDoc(docRef, {
     playerIds: arrayUnion(playerId),
+    playerOrder: arrayUnion(playerId),
     updatedAt: serverTimestamp(),
   });
 };
@@ -154,7 +167,18 @@ export const addPlayerToList = async (listId, playerId, userId) => {
  * E4: Now wired into UI (previously unused).
  */
 export const renameList = async (id, newName, userId) => {
-  const { docRef } = await readAndGuard('lists', id, userId);
+  // Check for duplicate name (same pattern as createList)
+  const q = query(
+    listsRef,
+    where('name', '==', newName),
+    where('ownerUid', '==', userId)
+  );
+  const existing = await getDocs(q);
+  if (!existing.empty && existing.docs[0].id !== id) {
+    throw new Error('A list with this name already exists.');
+  }
+
+  const { docRef } = await readAndGuard(LISTS_COLLECTION, id, userId);
   await updateDoc(docRef, { name: newName, updatedAt: serverTimestamp() });
 };
 
@@ -163,7 +187,7 @@ export const renameList = async (id, newName, userId) => {
  * E4: Now wired into UI (previously unused).
  */
 export const deleteList = async (id, userId) => {
-  const { docRef } = await readAndGuard('lists', id, userId);
+  const { docRef } = await readAndGuard(LISTS_COLLECTION, id, userId);
   await deleteDoc(docRef);
 };
 
@@ -174,7 +198,7 @@ export const deleteList = async (id, userId) => {
  * @param {string} userId - Current user's uid
  */
 export const saveList = async (id, payload, userId) => {
-  const { docRef } = await readAndGuard('lists', id, userId);
+  const { docRef } = await readAndGuard(LISTS_COLLECTION, id, userId);
   const updatePayload = {
     playerOrder: payload.playerOrder,
     playerIds: payload.playerIds,
@@ -196,7 +220,7 @@ export const saveList = async (id, payload, userId) => {
  * @returns {Promise<Object|null>}
  */
 export const fetchList = async (id, userId) => {
-  const docRef = doc(db, 'lists', id);
+  const docRef = doc(db, LISTS_COLLECTION, id);
   const snap = await getDoc(docRef);
   if (!snap.exists()) return null;
   const data = snap.data();
@@ -220,19 +244,28 @@ export const fetchList = async (id, userId) => {
 // ===== Tier Lists =====
 
 /**
- * Infers tier list mode from tier structure (for legacy docs missing mode).
- * If tierOrder (or tiers keys) contain Row1, Row2, etc. patterns, treat as pyramid.
+ * Resolves effective tier list mode from persisted shape.
+ * Row-shaped lists are treated as pyramid even if the stored mode says standard.
  * @param {Object} data - Tier list document data
  * @returns {'standard' | 'pyramid'}
  */
-export const inferTierListMode = (data) => {
+export const resolveTierListMode = (data) => {
   if (!data) return 'standard';
-  if (data.mode) return data.mode;
 
-  const tierKeys = data.tierOrder || Object.keys(data.tiers || {});
-  const hasPyramidRows = tierKeys.some((key) => /^Row\d+$/i.test(key));
-  return hasPyramidRows ? 'pyramid' : 'standard';
+  if (data.mode === 'pyramid') return 'pyramid';
+
+  const tierKeys = Array.isArray(data.tierOrder)
+    ? data.tierOrder
+    : Object.keys(data.tiers || {});
+  const nonPoolKeys = tierKeys.filter((key) => key !== 'Pool');
+  const hasOnlyRowKeys =
+    nonPoolKeys.length > 0 &&
+    nonPoolKeys.every((key) => TIER_LIST_ROW_KEY_PATTERN.test(key));
+
+  return hasOnlyRowKeys ? 'pyramid' : 'standard';
 };
+
+export const inferTierListMode = resolveTierListMode;
 
 // E4: Fetch all tier lists scoped to ownerUid. Returns [] if no userId.
 export const fetchAllTierLists = async (userId) => {
@@ -245,7 +278,7 @@ export const fetchAllTierLists = async (userId) => {
       id: d.id,
       ...data,
       // E2: Provide mode with safe default/inference for back-compat
-      mode: inferTierListMode(data),
+      mode: resolveTierListMode(data),
     };
   });
 };
@@ -294,57 +327,73 @@ export const createTierList = async (name, mode = 'standard', userId) => {
 
 // E4: renameTierList with ownership guard
 export const renameTierList = async (id, newName, userId) => {
-  const { docRef } = await readAndGuard('tierLists', id, userId);
+  const { docRef } = await readAndGuard(TIER_LISTS_COLLECTION, id, userId);
   await updateDoc(docRef, { name: newName, updatedAt: serverTimestamp() });
 };
 
 // E4: deleteTierList with ownership guard
 export const deleteTierList = async (id, userId) => {
-  const { docRef } = await readAndGuard('tierLists', id, userId);
+  const { docRef } = await readAndGuard(TIER_LISTS_COLLECTION, id, userId);
   await deleteDoc(docRef);
 };
 
 /**
- * Fetches a single tier list by ID with ownership check + auto-claim.
+ * Fetches a single tier list by ID with owner enforcement + auto-claim.
  * @param {string} id - Tier list document ID
  * @param {string|null} userId - Current user's uid (null = no session)
  * @returns {Promise<Object|null>}
  */
 export const fetchTierList = async (id, userId) => {
-  const docRef = doc(db, 'tierLists', id);
+  if (!userId) {
+    throw createTierListError('no-session', 'No user session.');
+  }
+
+  const docRef = doc(db, TIER_LISTS_COLLECTION, id);
   const snap = await getDoc(docRef);
-  if (!snap.exists()) return null;
+  if (!snap.exists()) {
+    throw createTierListError('not-found', 'Tier list not found.');
+  }
   const data = snap.data();
 
   let ownerUid = data.ownerUid || null;
-  let ownershipValid = false;
-
-  if (!ownerUid && userId) {
+  if (!ownerUid) {
     // Auto-claim legacy doc
     await updateDoc(docRef, { ownerUid: userId, updatedAt: serverTimestamp() });
     ownerUid = userId;
   }
 
-  if (ownerUid && userId && ownerUid === userId) {
-    ownershipValid = true;
+  if (ownerUid !== userId) {
+    throw createTierListError(
+      'permission-denied',
+      'You do not own this tier list.'
+    );
+  }
+
+  const resolvedMode = resolveTierListMode(data);
+  if (data.mode !== resolvedMode) {
+    await updateDoc(docRef, {
+      mode: resolvedMode,
+      updatedAt: serverTimestamp(),
+    });
   }
 
   return {
     id: snap.id,
     ...data,
     ownerUid,
-    ownershipValid,
-    // E2: Provide mode with safe default/inference for back-compat
-    mode: inferTierListMode(data),
+    ownershipValid: true,
+    mode: resolvedMode,
   };
 };
 
 // E4: saveTierList with ownership guard
-export const saveTierList = async (id, { tiers, tierOrder }, userId) => {
-  const { docRef } = await readAndGuard('tierLists', id, userId);
+export const saveTierList = async (id, { tiers, tierOrder, mode }, userId) => {
+  const { docRef } = await readAndGuard(TIER_LISTS_COLLECTION, id, userId);
+  const resolvedMode = resolveTierListMode({ tiers, tierOrder, mode });
   await updateDoc(docRef, {
     tiers,
     tierOrder,
+    mode: resolvedMode,
     updatedAt: serverTimestamp(),
   });
 };

@@ -17,7 +17,6 @@ CreateRosterModal.jsx
 RosterControls.jsx
 RosterExportCapture.jsx
 RosterExportModal.jsx
-RosterExportWrapper.jsx
 RosterPreviewModal.jsx
 RosterSection/
   BenchCard.jsx
@@ -34,9 +33,10 @@ utils/
   contractUtils.js
   enrichPlayerData.js
   index.js
+  rosterBuilderHelpers.js
   rosterUtils.js
 ```
 
 ---
-*Generated on: 2026-02-20T12:42:26.072Z*
+*Generated on: 2026-03-07T08:09:43.653Z*
 *Auto-updated by: npm run docs*

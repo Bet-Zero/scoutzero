@@ -1,4 +1,4 @@
-// src/firebase/rosterHelpers.js
+import { ROSTER_PROJECTS_COLLECTION } from '@/constants/collections';
 import { db } from '../firebaseConfig';
 import {
   collection,
@@ -11,7 +11,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 
-const rosterProjectsRef = collection(db, 'rosterProjects');
+const rosterProjectsRef = collection(db, ROSTER_PROJECTS_COLLECTION);
 
 // Create a new roster project
 export const createRosterProject = async (
@@ -43,7 +43,7 @@ export const fetchAllRosterProjects = async () => {
 
 // Load one roster project by ID
 export const loadRosterProject = async (id) => {
-  const docRef = doc(db, 'rosterProjects', id);
+  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) return { id, ...docSnap.data() };
   return null;
@@ -54,7 +54,7 @@ export const updateRosterProject = async (
   id,
   { starters = [], rotation = [], bench = [], name, team } = {}
 ) => {
-  const docRef = doc(db, 'rosterProjects', id);
+  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
   const payload = {
     starters,
     rotation, // ✅ fix added here
@@ -68,12 +68,12 @@ export const updateRosterProject = async (
 
 // Rename a roster project
 export const renameRosterProject = async (id, newName) => {
-  const docRef = doc(db, 'rosterProjects', id);
-  await updateDoc(docRef, { name: newName });
+  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
+  await updateDoc(docRef, { name: newName, updatedAt: serverTimestamp() });
 };
 
 // (Optional) Delete a saved roster project
 export const deleteRosterProject = async (id) => {
-  const docRef = doc(db, 'rosterProjects', id);
+  const docRef = doc(db, ROSTER_PROJECTS_COLLECTION, id);
   await deleteDoc(docRef);
 };

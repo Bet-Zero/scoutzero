@@ -18,7 +18,6 @@ import DrawerShell from '@/shared/components/ui/drawers/DrawerShell';
 import OpenDrawerButton from '@/shared/components/ui/drawers/OpenDrawerButton';
 import AddPlayerDrawer from '@/features/roster/AddPlayerDrawer/index.jsx';
 import { toast } from 'react-hot-toast';
-import { isOwnerUid } from '@/config/ownerConfig';
 import {
   saveTierAsList,
   generateDefaultListName,
@@ -95,16 +94,19 @@ const TieramidBoard = ({
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
-  const isOwner = isOwnerUid(userId);
+  const canPersist = Boolean(userId);
   // E4: Scope list/tierList queries to ownerUid
   const ownerConstraints = useMemo(
     () => (userId ? [where('ownerUid', '==', userId)] : []),
     [userId]
   );
-  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints);
+  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints, {
+    enabled: canPersist,
+  });
   const { data: tierListsData } = useFirebaseQuery(
     'tierLists',
-    ownerConstraints
+    ownerConstraints,
+    { enabled: canPersist }
   );
 
   const processedPlayers = useMemo(
@@ -202,6 +204,37 @@ const TieramidBoard = ({
   const [screenshotMode, setScreenshotMode] = useState(false);
   const [initialLoaded, setInitialLoaded] = useState(false);
 
+  const normalizeRowsForCapacity = useCallback((currentRows, currentOrder) => {
+    const normalized = {
+      ...currentRows,
+      Pool: [...(currentRows.Pool || [])],
+    };
+    const poolIds = new Set(
+      (normalized.Pool || []).map((p) => p.player_id || p.id)
+    );
+    let overflowCount = 0;
+    currentOrder.forEach((rowKey, rowIdx) => {
+      if (rowKey === 'Pool') return;
+      const spots = getSpotsInRow(rowIdx);
+      const rowPlayers = (normalized[rowKey] || []).filter(Boolean);
+      if (rowPlayers.length > spots) {
+        const overflow = rowPlayers.slice(spots);
+        normalized[rowKey] = rowPlayers.slice(0, spots);
+        overflow.forEach((player) => {
+          const pid = player.player_id || player.id;
+          if (!poolIds.has(pid)) {
+            poolIds.add(pid);
+            normalized.Pool.push(player);
+          }
+        });
+        overflowCount += overflow.length;
+      } else {
+        normalized[rowKey] = rowPlayers;
+      }
+    });
+    return { rows: normalized, overflowCount };
+  }, []);
+
   // ── Draft mode: initialization from draftData ──────────────────────────
   const draftInitRef = useRef(false);
   const draftReportRef = useRef(false); // skip initial echo
@@ -274,6 +307,10 @@ const TieramidBoard = ({
 
   // Persistence
   const handleSaveTierList = async (idOverride) => {
+    if (!userId) {
+      toast.error('Save requires a session');
+      return;
+    }
     const listId = idOverride || selectedTierList;
     if (!listId) {
       setShowCreateModal(true);
@@ -290,6 +327,7 @@ const TieramidBoard = ({
         {
           tiers: dataToSave,
           tierOrder: rowOrder,
+          mode: 'pyramid',
         },
         userId
       );
@@ -304,9 +342,8 @@ const TieramidBoard = ({
 
   // ── Save as List (owner-only) ────────────────────────────────────────────
   const handleSaveAsList = async () => {
-    // Defense in depth: refuse if not owner
-    if (!isOwner) {
-      toast.error('Only owners can save as list');
+    if (!userId) {
+      toast.error('Save as list requires a session');
       return;
     }
 
@@ -332,37 +369,6 @@ const TieramidBoard = ({
       setIsSavingAsList(false);
     }
   };
-
-  const normalizeRowsForCapacity = useCallback((currentRows, currentOrder) => {
-    const normalized = {
-      ...currentRows,
-      Pool: [...(currentRows.Pool || [])],
-    };
-    const poolIds = new Set(
-      (normalized.Pool || []).map((p) => p.player_id || p.id)
-    );
-    let overflowCount = 0;
-    currentOrder.forEach((rowKey, rowIdx) => {
-      if (rowKey === 'Pool') return;
-      const spots = getSpotsInRow(rowIdx);
-      const rowPlayers = (normalized[rowKey] || []).filter(Boolean);
-      if (rowPlayers.length > spots) {
-        const overflow = rowPlayers.slice(spots);
-        normalized[rowKey] = rowPlayers.slice(0, spots);
-        overflow.forEach((player) => {
-          const pid = player.player_id || player.id;
-          if (!poolIds.has(pid)) {
-            poolIds.add(pid);
-            normalized.Pool.push(player);
-          }
-        });
-        overflowCount += overflow.length;
-      } else {
-        normalized[rowKey] = rowPlayers;
-      }
-    });
-    return { rows: normalized, overflowCount };
-  }, []);
 
   const handleLoadTierList = useCallback(
     async (id) => {
@@ -792,6 +798,8 @@ const TieramidBoard = ({
                     .filter((r) => r !== 'Pool')
                     .map((row, i) => {
                       const spots = getSpotsInRow(i);
+                      const nonPoolCount = rowOrder.filter((r) => r !== 'Pool').length;
+                      const occupiedCount = (rows[row] || []).filter(Boolean).length;
                       return (
                         <div
                           key={row}
@@ -870,21 +878,24 @@ const TieramidBoard = ({
                                       <button
                                         onClick={() => movePlayer(i, j, 'up')}
                                         title="Move Up"
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                        disabled={i === 0}
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
                                       >
                                         ↑
                                       </button>
                                       <button
                                         onClick={() => movePlayer(i, j, 'down')}
                                         title="Move Down"
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                        disabled={i >= nonPoolCount - 1}
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
                                       >
                                         ↓
                                       </button>
                                       <button
                                         onClick={() => movePlayer(i, j, 'left')}
                                         title="Move Left"
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                        disabled={j === 0}
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
                                       >
                                         ←
                                       </button>
@@ -893,7 +904,8 @@ const TieramidBoard = ({
                                           movePlayer(i, j, 'right')
                                         }
                                         title="Move Right"
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                        disabled={j >= occupiedCount - 1}
+                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
                                       >
                                         →
                                       </button>
@@ -975,24 +987,24 @@ const TieramidBoard = ({
           {/* Controls under Pool */}
           {!screenshotMode && (
             <div className="flex items-center flex-wrap gap-2 mt-4 justify-center">
-              {isOwner && (
-                <button
-                  onClick={() => handleSaveTierList()}
-                  className="h-8 px-3 rounded text-sm bg-white/10 text-white hover:bg-white/20"
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Saving...' : 'Save'}
-                </button>
-              )}
-              {isOwner && (
-                <button
-                  onClick={handleSaveAsList}
-                  className="h-8 px-3 rounded text-sm bg-white/10 text-white hover:bg-white/20"
-                  disabled={isSavingAsList}
-                >
-                  {isSavingAsList ? 'Saving...' : 'Save as List'}
-                </button>
-              )}
+              <button
+                onClick={() => handleSaveTierList()}
+                className="h-8 px-3 rounded text-sm bg-white/10 text-white hover:bg-white/20 disabled:opacity-50"
+                disabled={!canPersist || isSaving}
+                title={canPersist ? 'Save tier list' : 'Session required to save'}
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={handleSaveAsList}
+                className="h-8 px-3 rounded text-sm bg-white/10 text-white hover:bg-white/20 disabled:opacity-50"
+                disabled={!canPersist || isSavingAsList}
+                title={
+                  canPersist ? 'Save board as a list' : 'Session required to save'
+                }
+              >
+                {isSavingAsList ? 'Saving...' : 'Save as List'}
+              </button>
               <select
                 value={selectedTierList}
                 onChange={(e) => handleLoadTierList(e.target.value)}
@@ -1065,6 +1077,7 @@ const TieramidBoard = ({
               await handleSaveTierList(newId);
               onTierListChange?.(newId);
             }}
+            mode="pyramid"
           />
         </div>
       </div>

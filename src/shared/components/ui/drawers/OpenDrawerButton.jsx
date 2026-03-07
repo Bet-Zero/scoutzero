@@ -7,12 +7,23 @@
  */
 import React from 'react';
 
-const OpenDrawerButton = ({ onClick }) => (
+const OpenDrawerButton = ({
+  onClick,
+  disabled = false,
+  title = 'Open player drawer',
+  ariaLabel = 'Open player drawer',
+}) => (
   <button
     onClick={onClick}
-    className="fixed left-0 top-1/2 -translate-y-1/2 z-30 bg-neutral-800 hover:bg-neutral-600 text-white shadow-lg transition-all duration-200 hover:translate-x-1 group rounded-r-lg"
+    disabled={disabled}
+    aria-label={ariaLabel}
+    className={`fixed left-0 top-1/2 -translate-y-1/2 z-30 text-white shadow-lg transition-all duration-200 group rounded-r-lg ${
+      disabled
+        ? 'bg-neutral-800/60 cursor-not-allowed opacity-60'
+        : 'bg-neutral-800 hover:bg-neutral-600 hover:translate-x-1'
+    }`}
     style={{ transition: 'all 0.3s ease-in-out' }}
-    title="Open player drawer"
+    title={title}
   >
     <div className="flex flex-col items-center py-3 px-1.5 gap-2">
       <svg

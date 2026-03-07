@@ -2,7 +2,6 @@
 // E4: All writes routed through listHelpers with ownership (ownerUid) scoping
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Toaster } from 'react-hot-toast';
 import { getPlayerId } from '@/shared/utils/getPlayerId';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
@@ -25,10 +24,22 @@ const AddToListModal = ({ player, onClose }) => {
     if (userId) loadLists();
   }, [userId]);
 
+  const toastStyle = {
+    background: '#111111',
+    color: '#ffffff',
+    border: '1px solid #333',
+  };
+
   const handleAdd = async () => {
     try {
       const trimmedNewName = newListName.trim();
       const playerId = getPlayerId(player);
+
+      // Helper: check if player is already in a given list
+      const isAlreadyInList = (listId) => {
+        const target = lists.find((l) => l.id === listId);
+        return target?.playerIds?.includes(playerId);
+      };
 
       if (!selectedList && trimmedNewName) {
         // E4: Check for existing list with same name (case-insensitive) — auto-select if found
@@ -37,45 +48,33 @@ const AddToListModal = ({ player, onClose }) => {
         );
 
         if (existingMatch) {
+          if (isAlreadyInList(existingMatch.id)) {
+            toast('Player is already in this list.', { style: toastStyle });
+            return;
+          }
           // Duplicate name detected — treat as "add to existing list"
           await addPlayerToList(existingMatch.id, playerId, userId);
           toast.success(
             `Player added to existing list "${existingMatch.name}"!`,
-            {
-              style: {
-                background: '#111111',
-                color: '#ffffff',
-                border: '1px solid #333',
-              },
-            }
+            { style: toastStyle }
           );
         } else {
           // E4: Create list with player via helper (includes ownerUid)
           await createListWithPlayer(trimmedNewName, playerId, userId);
           toast.success(`List "${trimmedNewName}" created and player added!`, {
-            style: {
-              background: '#111111',
-              color: '#ffffff',
-              border: '1px solid #333',
-            },
+            style: toastStyle,
           });
         }
       } else if (selectedList) {
+        if (isAlreadyInList(selectedList)) {
+          toast('Player is already in this list.', { style: toastStyle });
+          return;
+        }
         await addPlayerToList(selectedList, playerId, userId);
-        toast.success('Player added to list!', {
-          style: {
-            background: '#111111',
-            color: '#ffffff',
-            border: '1px solid #333',
-          },
-        });
+        toast.success('Player added to list!', { style: toastStyle });
       } else {
         toast.error('Please select or create a list name', {
-          style: {
-            background: '#111111',
-            color: '#ffffff',
-            border: '1px solid #333',
-          },
+          style: toastStyle,
         });
         return;
       }
@@ -83,19 +82,12 @@ const AddToListModal = ({ player, onClose }) => {
       onClose();
     } catch (err) {
       console.error('Failed to save to list:', err);
-      toast.error('Failed to save list', {
-        style: {
-          background: '#111111',
-          color: '#ffffff',
-          border: '1px solid #333',
-        },
-      });
+      toast.error('Failed to save list', { style: toastStyle });
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <Toaster position="bottom-center" />
       <div className="bg-neutral-900 p-6 rounded-lg w-full max-w-md">
         <h2 className="text-white text-lg font-bold mb-4">Add to List</h2>
 

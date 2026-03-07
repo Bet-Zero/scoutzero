@@ -1,94 +1,264 @@
 /**
- * E2E Tests for Architect GM Dashboard
+ * E2E Tests for Architect GM Dashboard.
  *
- * Converts D_MANUAL_QA_CHECKLIST.md items into automated Playwright tests.
- * Run with: npx playwright test e2e/architect-qa.spec.ts
- * Debug with: npx playwright test e2e/architect-qa.spec.ts --debug
- *
- * Prerequisites:
- * - Firebase emulator running (npm run emulator)
- * - Valid test world created
- * - User authenticated (tests handle this via emulator auth)
+ * These tests convert the manual D-MQ checklist into a stronger automation
+ * baseline by using the dashboard's real selectors and existing DEV fixture
+ * toggles. They are intentionally honest about coverage gaps: a few items
+ * still require a seeded world or deeper transaction fixtures for full
+ * end-to-end closure.
  */
 
-import { test, expect } from '@playwright/test';
+import {
+  test,
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from '@playwright/test';
+import admin from 'firebase-admin';
 
-// Test constants
 const GM_DASHBOARD_URL = '/gm/LAL';
-const EMULATOR_MODE = true; // Set to true when using Firebase emulator
+const GM_DASHBOARD_CAP_ROOM_URL = '/gm/ATL';
+const REVIEW_MODE_FREE_AGENT_NAME = 'Review Offer Sheet Guard';
+const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
+const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
+const DEV_LOCAL_STORAGE_FLAGS = {
+  'hz.dev.capSheetFixtures': 'true',
+  'hz.dev.offseasonPreview': 'true',
+  'hz.dev.teamHistoryFixtures': 'true',
+};
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const isVisible = async (locator: Locator, timeout = 3000) =>
+  locator.isVisible({ timeout }).catch(() => false);
+
+const getReviewAdminDb = () => {
+  process.env.FIRESTORE_EMULATOR_HOST = REVIEW_FIRESTORE_EMULATOR_HOST;
+
+  const app =
+    admin.apps.find(
+      (existingApp) => existingApp.name === 'playwright-review'
+    ) ||
+    admin.initializeApp(
+      { projectId: REVIEW_FIRESTORE_PROJECT_ID },
+      'playwright-review'
+    );
+
+  return app.firestore();
+};
+
+const addAuditNote = (testInfo: TestInfo, description: string) => {
+  testInfo.annotations.push({ type: 'audit-note', description });
+};
+
+const captureEvidence = async (
+  page: Page,
+  testInfo: TestInfo,
+  label: string
+) => {
+  await page.screenshot({
+    path: testInfo.outputPath(`${slugify(label)}.png`),
+    fullPage: true,
+  });
+};
+
+const enableDevAuditFlags = async (page: Page) => {
+  await page.addInitScript((flags) => {
+    Object.entries(flags).forEach(([key, value]) => {
+      window.localStorage.setItem(key, value);
+    });
+  }, DEV_LOCAL_STORAGE_FLAGS);
+};
+
+const gotoDashboard = async (page: Page) => {
+  await page.goto(GM_DASHBOARD_URL, { waitUntil: 'domcontentloaded' });
+
+  const modeBadge = page.getByTestId('firebase-target-mode-badge');
+  const noTeamData = page.getByText(/^No team data$/i);
+
+  if (await isVisible(modeBadge, 15000)) {
+    return;
+  }
+
+  if (await isVisible(noTeamData, 5000)) {
+    return;
+  }
+
+  await expect(
+    page.getByRole('heading', { name: /GM Dashboard/i })
+  ).toBeVisible();
+};
+
+const ensureTeamDataLoaded = async (page: Page, testInfo: TestInfo) => {
+  const noTeamData = page.getByText(/^No team data$/i);
+  if (await isVisible(noTeamData, 3000)) {
+    addAuditNote(
+      testInfo,
+      'The /gm/LAL route is unseeded in the current server session. Re-run with PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true or a seeded local review session for full checklist coverage.'
+    );
+    test.skip(
+      'No team data loaded at /gm/LAL. Use Architect review mode or a seeded local session.'
+    );
+  }
+
+  await expect(page.getByTestId('firebase-target-mode-badge')).toBeVisible();
+};
+
+const openDashboardTab = async (page: Page, label: string) => {
+  const tabButton = page.getByRole('button', {
+    name: new RegExp(`^${label}$`, 'i'),
+  });
+  await expect(tabButton).toBeVisible();
+  await tabButton.click();
+};
+
+const readActiveWorldId = async (page: Page) => {
+  const worldSelector = page.locator('#world-selector');
+  const selectedWorldId = await worldSelector.inputValue().catch(() => '');
+  if (selectedWorldId) {
+    return selectedWorldId;
+  }
+
+  const debugSummary = await page
+    .getByText(/^World:/)
+    .first()
+    .textContent()
+    .catch(() => '');
+  const debugWorldId = debugSummary?.match(/World:\s+([^\s|]+)/)?.[1] || '';
+
+  return debugWorldId === 'base-mode' ? '' : debugWorldId;
+};
+
+const ensureWorldSelected = async (page: Page, testInfo: TestInfo) => {
+  const worldSelector = page.locator('#world-selector');
+  const worldActionsButton = page.getByRole('button', {
+    name: /^World actions$/i,
+  });
+  const signInHint = page.getByText(/Sign in to manage worlds/i);
+
+  await expect
+    .poll(
+      async () => ({
+        hasWorldSelector: await isVisible(worldSelector, 1000),
+        showingSignInHint: await isVisible(signInHint, 1000),
+      }),
+      {
+        timeout: 25000,
+        message:
+          'world controls should appear after anonymous auth finishes initializing',
+      }
+    )
+    .toMatchObject({ hasWorldSelector: true });
+
+  if (!(await isVisible(worldSelector, 1000))) {
+    addAuditNote(
+      testInfo,
+      'World selector did not render in time, so world-backed automation remains unavailable in this session.'
+    );
+    test.skip('World selector is unavailable in the current session.');
+  }
+
+  const selectedValue = await worldSelector.inputValue();
+  if (selectedValue) {
+    return selectedValue;
+  }
+
+  const createWorldButton = page.getByRole('button', { name: /^\+ New$/i });
+  await expect(createWorldButton).toBeVisible();
+  await createWorldButton.click();
+
+  const worldName = `Audit World ${Date.now()}`;
+  const nameInput = page.locator('#create-world-name');
+  await expect(nameInput).toBeVisible();
+  await nameInput.fill(worldName);
+
+  const createButton = page.getByRole('button', { name: /^Create$/i });
+  await expect(createButton).toBeVisible();
+  await createButton.click();
+
+  await expect
+    .poll(async () => await readActiveWorldId(page), {
+      timeout: 15000,
+      message: 'newly created world should become active after creation',
+    })
+    .not.toBe('');
+
+  await expect(worldActionsButton).toBeVisible();
+
+  const newWorldId = await readActiveWorldId(page);
+  addAuditNote(
+    testInfo,
+    `World-backed review automation activated a newly created world (${newWorldId}) for this checklist row.`
+  );
+  return newWorldId;
+};
 
 test.describe('D-MQ: Architect Manual QA Checklist', () => {
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeEach(async ({ page }) => {
-    // Navigate to GM Dashboard
-    await page.goto(GM_DASHBOARD_URL);
-    // Wait for initial load
-    await page.waitForLoadState('networkidle');
+    await enableDevAuditFlags(page);
+    await gotoDashboard(page);
   });
 
   test('D-MQ-001: Header mode badge and emulator warning display correctly', async ({
     page,
-  }) => {
-    /**
-     * Precondition: Authenticated user, open /gm/LAL, active world selected
-     * Action: Verify header mode badge and emulator warning behavior
-     * Expected UI: Badge shows correct mode; warning appears only when emulator unavailable
-     * Expected System: No unexpected writes; read-only visual indicators only
-     */
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
 
-    // Check for Firebase target mode badge
-    const modeBadge = page.locator(
-      '[data-testid="firebase-target-mode-badge"]'
-    );
+    const modeBadge = page.getByTestId('firebase-target-mode-badge');
     await expect(modeBadge).toBeVisible();
+    await expect(modeBadge).toContainText(/EMULATOR|PROD/i);
 
-    // Verify badge shows either "EMULATOR" or "PROD" mode
-    const badgeText = await modeBadge.textContent();
-    expect(badgeText).toMatch(/EMULATOR|PROD|DEV/i);
-
-    // Take screenshot for audit evidence
-    await page.screenshot({ path: 'e2e/screenshots/D-MQ-001-mode-badge.png' });
-
-    // If emulator warning banner exists, verify it shows appropriate message
-    const warningBanner = page.locator(
-      '[data-testid="firebase-emulator-warning-banner"]'
-    );
-    if (await warningBanner.isVisible()) {
-      await expect(warningBanner).toContainText(/emulator|warning/i);
+    const warningBanner = page.getByTestId('firebase-emulator-warning-banner');
+    if (await isVisible(warningBanner)) {
+      await expect(warningBanner).toContainText(/emulator/i);
+    } else {
+      addAuditNote(
+        testInfo,
+        'No emulator warning banner was rendered; emulator detection appears healthy.'
+      );
     }
+
+    const worldSelector = page.locator('#world-selector');
+    if (await isVisible(worldSelector, 5000)) {
+      await expect(worldSelector).toBeVisible();
+    } else {
+      addAuditNote(
+        testInfo,
+        'World selector not rendered in this session, likely because no authenticated user is present.'
+      );
+    }
+
+    await captureEvidence(page, testInfo, 'D-MQ-001-mode-badge');
   });
 
-  test('D-MQ-002: World date +1 Day updates correctly', async ({ page }) => {
-    /**
-     * Precondition: Active world with known asOfDate
-     * Action: Change world date in WorldTimeControls and click +1 Day
-     * Expected UI: Date input reflects new date immediately
-     * Expected System: architect_worlds/{worldId}.asOfDate updates; lastModifiedAt updates
-     */
+  test('D-MQ-002: World date +1 Day updates correctly', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureWorldSelected(page, testInfo);
 
-    // Look for world time controls
-    const dateInput = page.locator('[data-testid="world-date-input"]');
+    const dateInput = page.getByTestId('world-date-input');
+    await expect(dateInput).toBeVisible();
 
-    // Skip if date controls not visible (no world selected)
-    if (!(await dateInput.isVisible({ timeout: 5000 }).catch(() => false))) {
-      test.skip();
-      return;
-    }
-
-    // Get current date value
     const dateBefore = await dateInput.inputValue();
-
-    // Click +1 Day button
-    const advanceButton = page.locator('[data-testid="advance-day-button"]');
+    const advanceButton = page.getByTestId('advance-day-button');
     await expect(advanceButton).toBeVisible();
     await advanceButton.click();
 
-    // Wait for update
-    await page.waitForTimeout(1000);
+    await expect
+      .poll(async () => await dateInput.inputValue(), {
+        message: 'world date should advance after clicking +1 Day',
+      })
+      .not.toBe(dateBefore);
 
-    // Verify date changed
     const dateAfter = await dateInput.inputValue();
-
-    // Parse dates and verify it advanced by 1 day
     const before = new Date(dateBefore);
     const after = new Date(dateAfter);
     const diffDays = Math.round(
@@ -96,280 +266,344 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
 
     expect(diffDays).toBe(1);
-
-    // Screenshot
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-002-date-advance.png',
-    });
+    await captureEvidence(page, testInfo, 'D-MQ-002-date-advance');
   });
 
-  test('D-MQ-003: Trade Machine executes legal trade successfully', async ({
+  test('D-MQ-003: Trade Machine exposes validation and apply surfaces', async ({
     page,
-  }) => {
-    /**
-     * Precondition: Trade assets loaded for two teams
-     * Action: Execute legal trade in Trade Machine
-     * Expected UI: Success toast + updated cap tiles/history rows
-     * Expected System: Writes only under architect_worlds/{worldId}/teams/*, /events/*, metadata patch
-     */
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
 
-    // Navigate to Trade Machine tab if available
-    const tradeTab = page.getByRole('tab', { name: /trade/i });
-    if (await tradeTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tradeTab.click();
+    await openDashboardTab(page, 'Trade Machine');
+
+    await expect(
+      page.getByRole('heading', { name: /^Trade Machine$/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /^Validate Trade$/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeVisible();
+    await expect(page.getByTestId('validation-state-header')).toBeVisible();
+    await expect(page.getByTestId('not-validated-callout')).toBeVisible();
+
+    const addTeamButton = page.getByRole('button', {
+      name: /Add Team|Add 2nd Team|Add 3rd Team/i,
+    });
+    if (await isVisible(addTeamButton)) {
+      await expect(addTeamButton).toBeVisible();
+    } else {
+      addAuditNote(
+        testInfo,
+        'No add-team control was visible in this session; legal trade execution still needs a seeded transaction fixture for full closure.'
+      );
     }
 
-    // Look for trade machine or trade-related UI
-    const tradeMachine = page.locator(
-      '[data-testid="validation-details-panel"]'
-    );
-
-    // Screenshot current state
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-003-trade-machine.png',
-    });
-
-    // Note: Full trade execution requires specific test fixtures
-    // This test verifies the trade machine UI loads correctly
-    // A complete test would:
-    // 1. Add players to trade from team A
-    // 2. Add players to trade from team B
-    // 3. Click validate
-    // 4. Click execute trade
-    // 5. Verify success toast
-    // 6. Verify cap sheet updates
+    await captureEvidence(page, testInfo, 'D-MQ-003-trade-machine-readiness');
   });
 
-  test('D-MQ-004: Invalid trade is rejected without persisting', async ({
+  test('D-MQ-004: Invalid trade path is fail-closed before apply', async ({
     page,
-  }) => {
-    /**
-     * Precondition: Invalid multi-team routing payload scenario
-     * Action: Attempt invalid apply path (or use dev fixture)
-     * Expected UI: UI shows failure message; no false-success
-     * Expected System: No batch.commit write side effects for rejected mutation
-     */
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
 
-    // This test requires setting up an invalid trade scenario
-    // Verify the not-validated callout appears when trade is invalid
-    const notValidatedCallout = page.locator(
-      '[data-testid="not-validated-callout"]'
-    );
+    await openDashboardTab(page, 'Trade Machine');
 
-    // Screenshot for evidence
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-004-invalid-trade.png',
+    const applyTradeButton = page.getByRole('button', {
+      name: /^Apply Trade$/i,
     });
+
+    await expect(page.getByText(/Validation:/i)).toBeVisible();
+    await expect(page.getByText(/^Not validated$/i)).toBeVisible();
+    await expect(applyTradeButton).toBeDisabled();
+    await captureEvidence(page, testInfo, 'D-MQ-004-invalid-trade-gating');
   });
 
-  test('D-MQ-005: Free agent offer sheet flow works correctly', async ({
+  test('D-MQ-005: Free agent entry flow opens from the pool', async ({
     page,
-  }) => {
-    /**
-     * Precondition: Free agent available in world mode
-     * Action: Open FA modal, toggle Offer Sheet, submit invalid then valid payload
-     * Expected UI: First submit keeps modal open with error; second succeeds and closes
-     * Expected System: Offer sheet persisted under world scope; no base collection writes
-     */
+  }, testInfo) => {
+    await page.goto(GM_DASHBOARD_CAP_ROOM_URL, {
+      waitUntil: 'domcontentloaded',
+    });
+    await ensureTeamDataLoaded(page, testInfo);
+    const worldId = await ensureWorldSelected(page, testInfo);
 
-    // Look for Free Agents tab or section
-    const faTab = page.getByRole('tab', { name: /free agent/i });
-    if (await faTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await faTab.click();
-      await page.waitForTimeout(500);
-    }
+    await openDashboardTab(page, 'Free Agency');
 
-    // Screenshot current state
-    await page.screenshot({ path: 'e2e/screenshots/D-MQ-005-free-agency.png' });
+    await expect(
+      page.getByRole('heading', { name: /^Free Agent Pool$/i })
+    ).toBeVisible();
+
+    const reviewFreeAgentRow = page.locator('li').filter({
+      has: page.getByText(new RegExp(`^${REVIEW_MODE_FREE_AGENT_NAME}$`, 'i')),
+    });
+    await expect(reviewFreeAgentRow).toBeVisible({ timeout: 15000 });
+
+    const menuButton = reviewFreeAgentRow
+      .locator('button')
+      .filter({ hasText: '•••' })
+      .first();
+
+    await menuButton.scrollIntoViewIfNeeded();
+    await menuButton.click();
+    const signAction = page.getByRole('button', { name: /^Sign Free Agent$/i });
+    await expect(signAction).toBeVisible();
+    await signAction.click();
+
+    await expect(
+      page.getByRole('heading', { name: /^Available Actions$/i })
+    ).toBeVisible();
+    const contractPreviewHeading = page.getByRole('heading', {
+      name: /^New Contract Preview$/i,
+    });
+
+    const signFreeAgentRadio = page.getByRole('radio', {
+      name: /Sign Free Agent/i,
+    });
+    await expect(signFreeAgentRadio).toBeVisible();
+    await signFreeAgentRadio.check();
+
+    const offerSheetToggle = page.getByLabel(/^Offer Sheet$/i);
+    await expect(offerSheetToggle).toBeVisible();
+    await offerSheetToggle.check();
+
+    await contractPreviewHeading
+      .locator('xpath=following::select[3]')
+      .selectOption({ label: '1yr' });
+
+    const firstYearSalaryInput = contractPreviewHeading.locator(
+      'xpath=following::input[2]'
+    );
+    await firstYearSalaryInput.fill('2490000');
+    await firstYearSalaryInput.press('Tab');
+
+    const confirmActionButton = page.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeVisible();
+    await confirmActionButton.click();
+
+    await expect(
+      page.getByRole('heading', { name: /^Available Actions$/i })
+    ).not.toBeVisible({ timeout: 15000 });
+
+    const pendingOfferSheetsCard = page
+      .locator('div')
+      .filter({
+        has: page.getByRole('heading', { name: /^My Pending Offer Sheets$/i }),
+      })
+      .first();
+    await expect(pendingOfferSheetsCard).toBeVisible();
+    await expect(pendingOfferSheetsCard).toContainText(
+      REVIEW_MODE_FREE_AGENT_NAME
+    );
+    await expect(pendingOfferSheetsCard).toContainText(/PENDING MATCH/i);
+    await expect(pendingOfferSheetsCard).toContainText(
+      /Waiting for home team/i
+    );
+
+    const persistedTeamDocument = (await getReviewAdminDb()
+      .doc(`architect_worlds/${worldId}/teams/ATL`)
+      .get()
+      .then((snapshot) => snapshot.data())) as
+      | {
+          offerSheets?: Array<Record<string, unknown>>;
+        }
+      | undefined;
+    const persistedOfferSheet = persistedTeamDocument.offerSheets?.find(
+      (offerSheet) => offerSheet.playerId === 'review_offer_sheet_guard'
+    );
+
+    expect(persistedOfferSheet).toBeTruthy();
+    expect(persistedOfferSheet).toMatchObject({
+      playerId: 'review_offer_sheet_guard',
+      playerName: REVIEW_MODE_FREE_AGENT_NAME,
+      offeringTeamCode: 'ATL',
+      homeTeamCode: 'BOS',
+      status: 'PENDING_MATCH',
+    });
+    expect(Number(persistedOfferSheet?.totalValue || 0)).toBeGreaterThan(0);
+
+    addAuditNote(
+      testInfo,
+      'This covers the real review-mode offer-sheet save path: modal submit succeeds, the pending offer-sheet row renders, and the saved ATL team world document contains the persisted offer sheet in the Firestore emulator.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-005-free-agency-entry');
   });
 
   test('D-MQ-006: Offseason preview shows non-persisting banner', async ({
     page,
-  }) => {
-    /**
-     * Precondition: Offseason DEV preview flag enabled
-     * Action: Run Offseason preview flow
-     * Expected UI: Banner states preview-only and non-persisting
-     * Expected System: No world write until Season Advance action is used
-     */
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
 
-    // Navigate to Offseason tab if available
-    const offseasonTab = page.getByRole('tab', { name: /offseason/i });
-    if (await offseasonTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await offseasonTab.click();
-      await page.waitForTimeout(500);
+    await openDashboardTab(page, 'Offseason');
+
+    if (await isVisible(page.getByText(/World Season Advancement/i), 2000)) {
+      addAuditNote(
+        testInfo,
+        'World season advancement controls are visible because a world is selected in this session.'
+      );
+    } else {
+      addAuditNote(
+        testInfo,
+        'Offseason preview is available in base mode, but season advancement controls remain hidden until a world is selected.'
+      );
     }
 
-    // Look for preview banner
-    const previewBanner = page.locator(
-      '[data-testid="offseason-preview-banner"]'
-    );
+    const previewBanner = page.getByTestId('offseason-preview-banner');
+    await expect(previewBanner).toBeVisible();
+    await expect(previewBanner).toContainText(/Preview only/i);
+    await expect(previewBanner).toContainText(/does not persist/i);
 
-    // If preview was run, verify banner text
-    if (await previewBanner.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await expect(previewBanner).toContainText(/preview|not saved/i);
-    }
-
-    // Screenshot
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-006-offseason-preview.png',
-    });
+    await captureEvidence(page, testInfo, 'D-MQ-006-offseason-preview');
   });
 
-  test('D-MQ-007: Season Advance updates world correctly', async ({ page }) => {
-    /**
-     * Precondition: World season advance available
-     * Action: Run Season Advance modal
-     * Expected UI: UI season updates and summary modal appears
-     * Expected System: Team snapshots + world metadata updated in same world scope
-     */
-
-    // Navigate to relevant section
-    const offseasonTab = page.getByRole('tab', { name: /offseason/i });
-    if (await offseasonTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await offseasonTab.click();
-    }
-
-    // Look for Season Advance button/section
-    const seasonAdvanceBtn = page.getByRole('button', {
-      name: /season advance/i,
-    });
-
-    // Screenshot current state
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-007-season-advance.png',
-    });
-  });
-
-  test('D-MQ-008: Team History displays correctly in world mode', async ({
+  test('D-MQ-007: Season Advance modal opens with world-aware gating', async ({
     page,
-  }) => {
-    /**
-     * Precondition: Team history in world mode
-     * Action: Open Team History and inspect newest row details
-     * Expected UI: Timeline sorted newest-first, details modal includes operation/totals fields
-     * Expected System: Event data sourced from architect_worlds/{worldId}/events for selected team
-     */
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureWorldSelected(page, testInfo);
 
-    // Navigate to Team History tab if available
-    const historyTab = page.getByRole('tab', { name: /history/i });
-    if (await historyTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await historyTab.click();
-      await page.waitForTimeout(500);
+    await openDashboardTab(page, 'Offseason');
+
+    const advanceSeasonButton = page.getByRole('button', {
+      name: /^Advance Season$/i,
+    });
+    await expect(advanceSeasonButton).toBeVisible();
+    await advanceSeasonButton.click();
+
+    await expect(
+      page.getByRole('heading', { name: /^Advance Season$/i })
+    ).toBeVisible();
+
+    const noWorldWarning = page.getByText(/No world selected/i);
+    if (await isVisible(noWorldWarning)) {
+      addAuditNote(
+        testInfo,
+        'Season advance modal opened, but persistence remains blocked until a world is selected.'
+      );
+      await expect(noWorldWarning).toBeVisible();
+    } else {
+      await expect(page.getByRole('button', { name: /^Next$/i })).toBeVisible();
     }
 
-    // Check for history tables (TPE and MLE trackers use these test IDs)
-    const tpeTable = page.locator('[data-testid="team-history-tpe-table"]');
-    const mleTable = page.locator('[data-testid="team-history-mle-table"]');
+    await captureEvidence(page, testInfo, 'D-MQ-007-season-advance-modal');
 
-    // Screenshot
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-008-team-history.png',
-    });
-  });
-
-  test('D-MQ-009: Entitlement editing saves correctly', async ({ page }) => {
-    /**
-     * Precondition: Entitlement authoring feature flag enabled
-     * Action: Save entitlement edit and then duplicate identity conflict case
-     * Expected UI: Valid save succeeds; collision case returns explicit error
-     * Expected System: Writes in world entitlements only; atomic attach updates team entitlementIds
-     */
-
-    // Look for Manage Exceptions modal trigger
-    const manageExceptionsBtn = page.locator(
-      '[data-testid="cap-sheet-manage-exceptions-button"]'
-    );
-
-    if (
-      await manageExceptionsBtn.isVisible({ timeout: 3000 }).catch(() => false)
-    ) {
-      await manageExceptionsBtn.click();
-      await page.waitForTimeout(500);
-
-      // Check modal appears
-      const modal = page.locator('[data-testid="manage-exceptions-modal"]');
-      if (await modal.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await page.screenshot({
-          path: 'e2e/screenshots/D-MQ-009-entitlement-modal.png',
-        });
-
-        // Close modal
-        await page.keyboard.press('Escape');
-      }
+    const closeButton = page.locator('button', { hasText: '×' }).last();
+    if (await isVisible(closeButton)) {
+      await closeButton.click();
     }
-
-    // Screenshot final state
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-009-entitlements.png',
-    });
   });
 
-  test('D-MQ-010: Base collection writes are denied by Firestore rules', async ({
+  test('D-MQ-008: Team History displays deterministic fixture details', async ({
     page,
-  }) => {
-    /**
-     * Precondition: Base collection doc IDs known
-     * Action: Attempt base write through client path
-     * Expected UI: UI denies/handles error
-     * Expected System: Firestore rules deny writes to architect_base* and players_v2
-     *
-     * Note: This test is primarily verified through Firestore rules tests, not UI.
-     * The UI should never present a path to write to base collections.
-     */
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
 
-    // Verify there are no buttons/actions that would write to base collections
-    // Base collections are read-only by design
+    await openDashboardTab(page, 'Team History');
 
-    // Check that cap sheet player actions use world-scoped paths
-    const capSheetTab = page.locator('[data-testid="tab-cap-sheet"]');
-    if (await capSheetTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await capSheetTab.click();
-      await page.waitForTimeout(500);
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+
+    const injectFixturesButton = page.getByTestId(
+      'team-history-inject-fixtures-button'
+    );
+    if (await isVisible(injectFixturesButton, 5000)) {
+      await injectFixturesButton.click();
     }
 
-    // Screenshot evidence of UI state
-    await page.screenshot({
-      path: 'e2e/screenshots/D-MQ-010-base-write-protection.png',
-    });
+    const firstTimelineRow = page.getByTestId('team-history-event-row-0');
+    await expect(firstTimelineRow).toBeVisible();
+    await firstTimelineRow.click();
 
-    // The actual security assertion is in Firestore rules:
-    // allow write: if false; for all architect_base* and players_v2 collections
-    // This is tested in: src/tests/architect/firestoreRules.integration.test.ts
+    await expect(page.getByTestId('team-history-detail-modal')).toBeVisible();
+    await expect(page.getByTestId('team-history-detail-summary')).toBeVisible();
+    await expect(page.getByTestId('team-history-detail-deltas')).toBeVisible();
+
+    await captureEvidence(page, testInfo, 'D-MQ-008-team-history-detail');
+  });
+
+  test('D-MQ-009: Entitlement exception editor opens from the cap sheet', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+
+    await openDashboardTab(page, 'Cap Sheet');
+
+    const injectFixturesButton = page.getByTestId(
+      'cap-sheet-inject-fixtures-button'
+    );
+    if (await isVisible(injectFixturesButton, 3000)) {
+      await injectFixturesButton.click();
+    }
+
+    const manageExceptionsButton = page.getByTestId(
+      'cap-sheet-manage-exceptions-button'
+    );
+    await expect(manageExceptionsButton).toBeVisible();
+    await manageExceptionsButton.click();
+
+    const modal = page.getByTestId('manage-exceptions-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal.getByText(/Exception Management/i)).toBeVisible();
+
+    addAuditNote(
+      testInfo,
+      'This proves the entitlement exception editor entry path. Atomic attach and duplicate-identity conflict handling still need a seeded save-path scenario for full closure.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-009-manage-exceptions-modal');
+
+    const closeButton = modal.locator('button', { hasText: '×' });
+    if (await isVisible(closeButton)) {
+      await closeButton.click();
+    }
+  });
+
+  test('D-MQ-010: Base-write deny evidence remains paired with rules proof', async ({
+    page,
+  }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+
+    await expect(page.getByTestId('firebase-target-mode-badge')).toBeVisible();
+    await openDashboardTab(page, 'Cap Sheet');
+    await expect(page.getByTestId('tab-cap-sheet')).toBeVisible();
+
+    addAuditNote(
+      testInfo,
+      'UI coverage here is intentionally limited. Firestore base-write denial remains authoritatively proven by npm run test:rules and ARCHITECT_AUDIT_V3_VQ_E2_RULES_RUNTIME_PROOF.md.'
+    );
+    await captureEvidence(page, testInfo, 'D-MQ-010-base-write-handoff');
   });
 });
 
 test.describe('Smoke Tests', () => {
-  test('GM Dashboard loads successfully', async ({ page }) => {
-    await page.goto(GM_DASHBOARD_URL);
+  test.beforeEach(async ({ page }) => {
+    await enableDevAuditFlags(page);
+    await gotoDashboard(page);
+  });
+
+  test('GM Dashboard loads successfully', async ({ page }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
+
     await expect(page).toHaveTitle(/ScoutZero|HoopZero/i);
-
-    // Verify main dashboard elements load
-    await page.waitForLoadState('networkidle');
-    await page.screenshot({ path: 'e2e/screenshots/smoke-gm-dashboard.png' });
+    await captureEvidence(page, testInfo, 'smoke-gm-dashboard');
   });
 
-  test('Cap Sheet tab is accessible', async ({ page }) => {
-    await page.goto(GM_DASHBOARD_URL);
+  test('Cap Sheet tab is accessible', async ({ page }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
 
-    const capSheetTab = page.locator('[data-testid="tab-cap-sheet"]');
-    if (await capSheetTab.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await capSheetTab.click();
-      await page.waitForTimeout(500);
-    }
-
-    await page.screenshot({ path: 'e2e/screenshots/smoke-cap-sheet.png' });
+    await openDashboardTab(page, 'Cap Sheet');
+    await expect(page.getByTestId('tab-cap-sheet')).toBeVisible();
+    await expect(page.getByText(/Cap Sheet/i).first()).toBeVisible();
+    await captureEvidence(page, testInfo, 'smoke-cap-sheet');
   });
 
-  test('Full Cap Table tab is accessible', async ({ page }) => {
-    await page.goto(GM_DASHBOARD_URL);
+  test('Full Cap Table tab is accessible', async ({ page }, testInfo) => {
+    await ensureTeamDataLoaded(page, testInfo);
 
-    const fullCapTab = page.locator('[data-testid="tab-full-cap-table"]');
-    if (await fullCapTab.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await fullCapTab.click();
-      await page.waitForTimeout(500);
-    }
-
-    await page.screenshot({ path: 'e2e/screenshots/smoke-full-cap-table.png' });
+    await page.getByTestId('tab-full-cap-table').click();
+    await expect(page.getByTestId('tab-full-cap-table')).toBeVisible();
+    await expect(page.getByText(/Future Cap Sheet/i).first()).toBeVisible();
+    await captureEvidence(page, testInfo, 'smoke-full-cap-table');
   });
 });

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useArchitectState } from '@/features/architect/GMDashboard/hooks/useArchitectState';
@@ -130,6 +131,51 @@ describe('useArchitectState world-aware free agency pool', () => {
         (p) => p.id || p.player_id || p.name
       );
       expect(playerIds).not.toContain('player_b');
+    });
+  });
+
+  it('fails closed on world roster index load failure and recovers on successful refresh', async () => {
+    stateMocks.getLeague
+      .mockRejectedValueOnce(new Error('league unavailable'))
+      .mockResolvedValueOnce([
+        {
+          teamCode: 'LAL',
+          roster: ['player_a'],
+          players: [{ id: 'player_a' }],
+        },
+      ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setWorldId('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.freeAgents).toEqual([]);
+    });
+
+    await act(async () => {
+      await result.current.refreshWorldRosterIndex();
+    });
+
+    await waitFor(() => {
+      const playerIds = result.current.freeAgents.map(
+        (p) => p.id || p.player_id || p.name
+      );
+      expect(playerIds).not.toContain('player_a');
+      expect(playerIds).toContain('player_b');
+      expect(playerIds).toContain('player_c');
     });
   });
 });

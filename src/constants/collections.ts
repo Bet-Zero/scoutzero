@@ -81,7 +81,25 @@ export const SEASONS_SUBCOLLECTION = 'seasons';
 export const EVALUATIONS_SUBCOLLECTION = 'evaluations';
 
 /**
+ * Player lists collection (user-owned)
+ * Stores user-created ranked player lists.
+ */
+export const LISTS_COLLECTION = 'lists';
+
+/**
+ * Tier lists collection (user-owned)
+ * Stores user-created tier lists (standard and pyramid modes).
+ */
+export const TIER_LISTS_COLLECTION = 'tierLists';
+
+/**
  * Ranker sessions collection (user-owned tool)
  * Stores in-progress and completed ranking sessions per user.
  */
 export const RANKER_SESSIONS_COLLECTION = 'rankerSessions';
+
+/**
+ * Roster projects collection (user-owned tool)
+ * Stores saved 5/4/6 roster builder snapshots.
+ */
+export const ROSTER_PROJECTS_COLLECTION = 'rosterProjects';

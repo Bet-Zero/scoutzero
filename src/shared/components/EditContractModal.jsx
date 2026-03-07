@@ -78,8 +78,7 @@ const buildValidationResult = ({
     }
   });
 
-  const isLegal =
-    isValid && (selectedAction !== 'extend' || isExtendEligible);
+  const isLegal = isValid && (selectedAction !== 'extend' || isExtendEligible);
 
   return {
     isLegal,
@@ -362,7 +361,8 @@ const EditContractModal = ({
 
   // Show override/advanced section when action is illegal AND override is enabled
   // In production (canOverride=false), illegal actions are simply blocked
-  const showOverrideOption = canOverride && selectedAction && !validationResult.isLegal;
+  const showOverrideOption =
+    canOverride && selectedAction && !validationResult.isLegal;
 
   // Show validation errors when validation has run and there are warnings/errors
   useEffect(() => {
@@ -471,7 +471,7 @@ const EditContractModal = ({
       // Build a RuleContext for the extension evaluation
       const seasonId = toSeasonCode(CURRENT_YEAR);
       const ruleCtx = buildMinimalRuleContext(seasonId, 'VETERAN_EXTENSION');
-      
+
       // Override with actual player data
       const playerCtx = {
         ...ruleCtx,
@@ -479,26 +479,31 @@ const EditContractModal = ({
           ...ruleCtx.player,
           playerId: player.id || player.player_id || 'unknown',
           displayName: player.displayName || player.name || 'Unknown',
-          yearsOfServiceAtOperation: player.yearsOfService || player.bio?.experience || 0,
+          yearsOfServiceAtOperation:
+            player.yearsOfService || player.bio?.experience || 0,
           priorSeasonSalary: lastSalaryForPrefill || null,
           currentSeasonSalary: lastSalaryForPrefill || null,
-          isRookieScale: player.contract?.isRookieScale || player.contract?.contractType === 'Rookie Scale',
-          draftInfo: player.bio?.draftYear ? {
-            year: player.bio.draftYear,
-            round: player.bio.draftRound || 0,
-            pick: player.bio.draftPick || 0,
-          } : null,
+          isRookieScale:
+            player.contract?.isRookieScale ||
+            player.contract?.contractType === 'Rookie Scale',
+          draftInfo: player.bio?.draftYear
+            ? {
+                year: player.bio.draftYear,
+                round: player.bio.draftRound || 0,
+                pick: player.bio.draftPick || 0,
+              }
+            : null,
         },
       };
-      
+
       const extProfile = getExtensionProfile(playerCtx);
-      
+
       if (!extProfile?.eligibility?.isEligible) {
         setExtReason(extProfile?.eligibility?.reason || 'Not eligible');
         setExtMax(null);
         return;
       }
-      
+
       setExtReason('Eligible');
       const terms = extProfile.terms;
       setExtMax(
@@ -506,7 +511,8 @@ const EditContractModal = ({
           ? {
               maxYears: terms.maxYears || 4,
               maxFirstYearSalary: terms.maxFirstYearSalary || 0,
-              minFirstYearSalary: terms.minFirstYearSalary || terms.maxFirstYearSalary || 0,
+              minFirstYearSalary:
+                terms.minFirstYearSalary || terms.maxFirstYearSalary || 0,
               baseRaisePct: terms.raisePercentage || 0.08,
               type: terms.extensionType || 'Standard',
               basedOn: terms.basedOn || '',
@@ -639,6 +645,10 @@ const EditContractModal = ({
     (overrides = {}) => {
       const years = extension.years || extension.salaries?.length || 0;
       const salaries = (extension.salaries || []).slice(0, years);
+      const totalValue = salaries.reduce(
+        (sum, value) => sum + Math.round(Number(value) || 0),
+        0
+      );
       const salariesByYear = salaries.map((value, index) => {
         const amount = Math.round(Number(value) || 0);
         return {
@@ -664,6 +674,8 @@ const EditContractModal = ({
         salaries,
         salariesByYear,
         base: salaries[0] || 0,
+        totalValue,
+        averageAnnualValue: years > 0 ? Math.round(totalValue / years) : 0,
         firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
         exceptionType: selectedException,
         signedUsing,
@@ -768,7 +780,11 @@ const EditContractModal = ({
       } else {
         switch (selectedAction) {
           case 'accept':
-            actionResult = await onOptionDecision?.(player, true, overrideMetadata);
+            actionResult = await onOptionDecision?.(
+              player,
+              true,
+              overrideMetadata
+            );
             break;
           case 'decline':
             actionResult = await onOptionDecision?.(
@@ -778,7 +794,11 @@ const EditContractModal = ({
             );
             break;
           case 'signNew':
-            actionResult = await (onSignFreeAgent || onSaveContract || onSave)?.(
+            actionResult = await (
+              onSignFreeAgent ||
+              onSaveContract ||
+              onSave
+            )?.(
               player,
               buildCanonicalSigningPayload({
                 ...(overrideMetadata || {}),
@@ -851,7 +871,10 @@ const EditContractModal = ({
             });
             break;
           default:
-            actionResult = { success: false, message: 'Select an action first.' };
+            actionResult = {
+              success: false,
+              message: 'Select an action first.',
+            };
             break;
         }
       }
@@ -1145,19 +1168,22 @@ const EditContractModal = ({
                   )}
 
                   {/* Phase 16: Offer Sheet Toggle */}
-                  {['signNew'].includes(selectedAction) && onStoreOfferSheet && (
-                     <label className="flex items-center gap-1.5 cursor-pointer ml-2 bg-black px-2 py-1 rounded border border-white/20 select-none">
+                  {['signNew'].includes(selectedAction) &&
+                    onStoreOfferSheet && (
+                      <label className="flex items-center gap-1.5 cursor-pointer ml-2 bg-black px-2 py-1 rounded border border-white/20 select-none">
                         <input
-                           type="checkbox"
-                           checked={isOfferSheet}
-                           onChange={(e) => setIsOfferSheet(e.target.checked)}
-                           className="accent-cyan-500"
+                          type="checkbox"
+                          checked={isOfferSheet}
+                          onChange={(e) => setIsOfferSheet(e.target.checked)}
+                          className="accent-cyan-500"
                         />
-                        <span className={`text-xs font-bold ${isOfferSheet ? 'text-cyan-400' : 'text-white/50'}`}>
-                           Offer Sheet
+                        <span
+                          className={`text-xs font-bold ${isOfferSheet ? 'text-cyan-400' : 'text-white/50'}`}
+                        >
+                          Offer Sheet
                         </span>
-                     </label>
-                  )}
+                      </label>
+                    )}
 
                   <select
                     value={extension.years}
@@ -1267,7 +1293,8 @@ const EditContractModal = ({
                     valueFormat="teamCode"
                   />
                   <p className="mt-2 text-[11px] text-white/60">
-                    The player will be signed to your team, then immediately traded to this destination.
+                    The player will be signed to your team, then immediately
+                    traded to this destination.
                   </p>
                 </div>
               )}
@@ -1447,7 +1474,7 @@ const EditContractModal = ({
                   {showAdvanced ? '▲' : '▼'}
                 </span>
               </button>
-              
+
               {showAdvanced && (
                 <div className="p-4 bg-red-900/10 space-y-4">
                   <div className="text-xs text-red-300/80 space-y-2">
@@ -1464,13 +1491,17 @@ const EditContractModal = ({
                       will be logged and marked as an override.
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label
                       htmlFor="override-confirm"
                       className="block text-xs font-medium text-red-300"
                     >
-                      Type <span className="font-mono bg-red-500/20 px-1 rounded">OVERRIDE</span> to confirm:
+                      Type{' '}
+                      <span className="font-mono bg-red-500/20 px-1 rounded">
+                        OVERRIDE
+                      </span>{' '}
+                      to confirm:
                     </label>
                     <input
                       id="override-confirm"

@@ -23,6 +23,39 @@ const SEED_DIR = path.resolve('tools/architect_review_seed');
 const BASE_TEAMS_DIR = path.join(SEED_DIR, 'baseTeams');
 const BASE_PLAYERS_DIR = path.join(SEED_DIR, 'basePlayers');
 const ENTITLEMENTS_FILE = path.join(SEED_DIR, 'baseEntitlements.json');
+const REVIEW_SEASON = '2026-27';
+const ALL_TEAM_CODES = [
+  'ATL',
+  'BOS',
+  'BKN',
+  'CHA',
+  'CHI',
+  'CLE',
+  'DAL',
+  'DEN',
+  'DET',
+  'GSW',
+  'HOU',
+  'IND',
+  'LAC',
+  'LAL',
+  'MEM',
+  'MIA',
+  'MIL',
+  'MIN',
+  'NOP',
+  'NYK',
+  'OKC',
+  'ORL',
+  'PHI',
+  'PHX',
+  'POR',
+  'SAC',
+  'SAS',
+  'TOR',
+  'UTA',
+  'WAS',
+];
 
 /**
  * Demo project ID for review mode.
@@ -73,16 +106,35 @@ const listJsonFiles = (dir: string): string[] => {
     .sort();
 };
 
+const buildPlaceholderTeam = (teamCode: string) => ({
+  teamCode,
+  teamName: `${teamCode} Placeholder`,
+  season: REVIEW_SEASON,
+  abbreviation: teamCode,
+  roster: [],
+  deadCap: [],
+  capHolds: [],
+  entitlementIds: [],
+  capSheet: {
+    totalSalary: 0,
+    capSpace: 0,
+    taxLine: 188000000,
+    firstApron: 178000000,
+    secondApron: 189000000,
+    hardCap: null,
+  },
+  totals: {},
+  exceptions: {},
+  draftPicks: [],
+});
+
 const seedBaseTeams = async (db: FirebaseFirestore.Firestore) => {
   log('[seed-review] Seeding architect_baseTeams...');
   const files = listJsonFiles(BASE_TEAMS_DIR);
-  if (files.length === 0) {
-    log('[seed-review] ⚠️  No baseTeams fixtures found');
-    return 0;
-  }
 
   const batch = db.batch();
   let count = 0;
+  const seededCodes = new Set<string>();
 
   for (const file of files) {
     const teamCode = file.replace('.json', '');
@@ -90,11 +142,26 @@ const seedBaseTeams = async (db: FirebaseFirestore.Firestore) => {
       path.join(BASE_TEAMS_DIR, file)
     );
     batch.set(db.collection('architect_baseTeams').doc(teamCode), data);
+    seededCodes.add(teamCode);
     count++;
   }
 
+  const placeholderCodes = ALL_TEAM_CODES.filter(
+    (teamCode) => !seededCodes.has(teamCode)
+  );
+
+  placeholderCodes.forEach((teamCode) => {
+    batch.set(
+      db.collection('architect_baseTeams').doc(teamCode),
+      buildPlaceholderTeam(teamCode)
+    );
+    count++;
+  });
+
   await batch.commit();
-  log(`[seed-review] ✓ Seeded ${count} teams`);
+  log(
+    `[seed-review] ✓ Seeded ${count} teams (${placeholderCodes.length} placeholders)`
+  );
   return count;
 };
 

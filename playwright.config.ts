@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const useArchitectReviewMode =
+  process.env.PLAYWRIGHT_ARCHITECT_REVIEW_MODE === 'true';
+
 /**
  * Playwright E2E Test Configuration for ScoutZero
  *
@@ -51,9 +54,11 @@ export default defineConfig({
 
   /* Auto-start dev server before tests */
   webServer: {
-    command: 'npm run dev',
+    command: useArchitectReviewMode
+      ? 'npm run architect:review:up'
+      : 'npm run dev',
     url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    reuseExistingServer: useArchitectReviewMode ? false : !process.env.CI,
+    timeout: useArchitectReviewMode ? 240_000 : 120_000,
   },
 });

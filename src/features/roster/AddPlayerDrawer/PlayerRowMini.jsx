@@ -4,22 +4,22 @@ import PlayerNameMini from '@/features/table/PlayerTable/PlayerRow/PlayerNameMin
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { getPlayerPositionLabel } from '@/shared/utils/roles';
 import { formatSalary } from '@/shared/utils/formatting';
+import { findSalaryForYear, normalizeHeadshotId } from '@/features/roster/utils';
 
 const PlayerRowMini = ({ player, onClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const name = player.bio?.displayName || player.name || 'Unknown Player';
-  const headshot = player.headshot || `/assets/headshots/${player.id}.png`;
+  const headshot =
+    player.headshot ||
+    `/assets/headshots/${normalizeHeadshotId(player.bio?.playerId || player.id)}.png`;
 
   const rawPosition = player.bio?.position || player.formattedPosition || '—';
   const position = getPlayerPositionLabel(rawPosition);
 
   const height = player.bio?.height || '—';
   const weight = player.bio?.weight || '—';
-  const currentYearSalary = (() => {
-    const contractData = player.contracts ? Object.values(player.contracts)[0] : null;
-    return contractData?.salariesByYear?.find((s) => s.year === 2025 || s.season?.startsWith('2025'))?.salary;
-  })();
+  const currentYearSalary = findSalaryForYear(player);
   const formattedSalary = formatSalary(currentYearSalary);
   const rightSideValue =
     formattedSalary !== '—' ? formattedSalary : (player.freeAgentType || player.bio?.display?.freeAgentType || '—');

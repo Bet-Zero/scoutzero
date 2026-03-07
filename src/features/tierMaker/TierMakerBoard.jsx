@@ -15,7 +15,6 @@ import CreateTierListModal from '@/features/tierMaker/CreateTierListModal';
 import { fetchTierList, saveTierList } from '@/firebase/listHelpers';
 import { toast } from 'react-hot-toast';
 import { useRef } from 'react';
-import { isOwnerUid } from '@/config/ownerConfig';
 import {
   saveTierAsList,
   generateDefaultListName,
@@ -75,16 +74,19 @@ const TierMakerBoard = ({
 }) => {
   const { players: allPlayers, loading } = useSimplePlayerData();
   const { userId } = useAuth();
-  const isOwner = isOwnerUid(userId);
+  const canPersist = Boolean(userId);
   // E4: Scope list/tierList queries to ownerUid
   const ownerConstraints = useMemo(
     () => (userId ? [where('ownerUid', '==', userId)] : []),
     [userId]
   );
-  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints);
+  const { data: listsData } = useFirebaseQuery('lists', ownerConstraints, {
+    enabled: canPersist,
+  });
   const { data: tierListsData } = useFirebaseQuery(
     'tierLists',
-    ownerConstraints
+    ownerConstraints,
+    { enabled: canPersist }
   );
 
   const processedPlayers = useMemo(
@@ -431,6 +433,10 @@ const TierMakerBoard = ({
   );
 
   const handleSaveTierList = async (idOverride) => {
+    if (!userId) {
+      toast.error('Save requires a session');
+      return;
+    }
     const listId = idOverride || selectedTierList;
     if (!listId) {
       setShowCreateModal(true);
@@ -447,6 +453,7 @@ const TierMakerBoard = ({
         {
           tiers: dataToSave,
           tierOrder,
+          mode: 'standard',
         },
         userId
       );
@@ -472,9 +479,8 @@ const TierMakerBoard = ({
 
   // ── Save as List (owner-only) ────────────────────────────────────────────
   const handleSaveAsList = async () => {
-    // Defense in depth: refuse if not owner
-    if (!isOwner) {
-      toast.error('Only owners can save as list');
+    if (!userId) {
+      toast.error('Save as list requires a session');
       return;
     }
 
@@ -530,6 +536,13 @@ const TierMakerBoard = ({
     );
   }
 
+  const displayOrder =
+    tierOrder.length > 1 ? tierOrder : [...DEFAULT_TIERS, 'Pool'];
+  const visibleOrder = screenshotMode
+    ? displayOrder.filter((tier) => tier !== 'Pool')
+    : displayOrder;
+  const nonPoolOrder = displayOrder.filter((tier) => tier !== 'Pool');
+
   return (
     <div className="flex relative">
       {!drawerOpen && !screenshotMode && (
@@ -569,32 +582,31 @@ const TierMakerBoard = ({
             </div>
           )}
 
-          {(tierOrder.length > 1 ? tierOrder : [...DEFAULT_TIERS, 'Pool']).map(
-            (tier) => {
-              const displayOrder =
-                tierOrder.length > 1 ? tierOrder : [...DEFAULT_TIERS, 'Pool'];
-              const nonPoolOrder = displayOrder.filter((t) => t !== 'Pool');
-              const tierIdx = nonPoolOrder.indexOf(tier);
-              return (
-                <TierRow
-                  key={tier}
-                  tier={tier}
-                  players={tiers[tier] || []}
-                  screenshotMode={screenshotMode}
-                  movePlayer={movePlayer}
-                  removePlayer={removePlayer}
-                  renameTier={renameTier}
-                  deleteTier={deleteTier}
-                  canMoveUp={tier !== 'Pool' && tierIdx > 0}
-                  canMoveDown={
-                    tier !== 'Pool' && tierIdx < nonPoolOrder.length - 1
-                  }
-                  onMoveTierUp={moveTierUp}
-                  onMoveTierDown={moveTierDown}
-                />
-              );
-            }
-          )}
+          {visibleOrder.map((tier) => {
+            const tierIdx = displayOrder.indexOf(tier);
+            const nonPoolIdx = nonPoolOrder.indexOf(tier);
+            return (
+              <TierRow
+                key={tier}
+                tier={tier}
+                players={tiers[tier] || []}
+                screenshotMode={screenshotMode}
+                movePlayer={movePlayer}
+                removePlayer={removePlayer}
+                renameTier={renameTier}
+                deleteTier={deleteTier}
+                canMoveUp={tier !== 'Pool' && nonPoolIdx > 0}
+                canMoveDown={
+                  tier !== 'Pool' && nonPoolIdx < nonPoolOrder.length - 1
+                }
+                onMoveTierUp={moveTierUp}
+                onMoveTierDown={moveTierDown}
+                canPlayerMoveUp={tierIdx > 0}
+                canPlayerMoveDown={tierIdx < displayOrder.length - 1}
+                canRemovePlayer={tier !== 'Pool'}
+              />
+            );
+          })}
 
           {!screenshotMode && (
             <div className="flex items-center gap-2 flex-wrap mt-4 justify-center">
@@ -693,18 +705,21 @@ const TierMakerBoard = ({
         </div>
       )}
 
-      {!screenshotMode && isOwner && (
+      {!screenshotMode && (
         <div className="fixed bottom-6 right-6 z-50 flex gap-2">
           <button
             onClick={handleSaveAsList}
-            disabled={isSavingAsList}
+            disabled={!canPersist || isSavingAsList}
             className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 disabled:opacity-50"
+            title={canPersist ? 'Save board as a list' : 'Session required to save'}
           >
             {isSavingAsList ? 'Saving...' : 'Save as List'}
           </button>
           <button
             onClick={() => handleSaveTierList()}
-            className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"
+            disabled={!canPersist || isSaving}
+            className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 disabled:opacity-50"
+            title={canPersist ? 'Save tier list' : 'Session required to save'}
           >
             {isSaving ? 'Saving...' : 'Save'}
           </button>
@@ -715,6 +730,7 @@ const TierMakerBoard = ({
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreated={handleCreateAndSave}
+        mode="standard"
       />
     </div>
   );

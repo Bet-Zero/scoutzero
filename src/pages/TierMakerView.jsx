@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import {
+  useParams,
+  useSearchParams,
+  useNavigate,
+  Link,
+} from 'react-router-dom';
 import TierMakerBoard from '@/features/tierMaker/TierMakerBoard';
 import TieramidBoard from '@/features/tierMaker/TieramidBoard';
 import { useTierDraft } from '@/features/tierMaker/hooks/useTierDraft';
@@ -9,20 +14,37 @@ import {
   isStandardEmpty,
   isTieramidEmpty,
 } from '@/features/tierMaker/utils/draftConversion';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { fetchTierList } from '@/firebase/listHelpers';
 import { toast } from 'react-hot-toast';
+import { useRef } from 'react';
+
+const isValidViewMode = (value) =>
+  value === 'standard' || value === 'tieramid';
+
+const toViewMode = (tierListMode) =>
+  tierListMode === 'pyramid' ? 'tieramid' : 'standard';
 
 const TierMakerView = () => {
   const { tierListId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { userId, loading: authLoading } = useAuth();
 
   const isDraftMode = !tierListId;
+  const urlMode = searchParams.get('mode');
 
   // Read mode from query param on initial render, default to 'standard'
-  const initialMode = searchParams.get('mode') || 'standard';
+  const initialMode = isValidViewMode(urlMode) ? urlMode : 'standard';
   const [mode, setMode] = useState(initialMode);
   const [showModeToggle, setShowModeToggle] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [savedRouteState, setSavedRouteState] = useState({
+    status: isDraftMode ? 'ready' : 'loading',
+    errorCode: null,
+  });
+  const verifiedSavedRouteRef = useRef(null);
+  const resolvedSavedModeRef = useRef('standard');
 
   // Draft state management (inert when isDraftMode is false)
   const {
@@ -36,11 +58,79 @@ const TierMakerView = () => {
 
   // Sync mode state with query param on initial load and when URL changes
   useEffect(() => {
-    const urlMode = searchParams.get('mode');
-    if (urlMode && urlMode !== mode) {
+    if (isValidViewMode(urlMode) && urlMode !== mode) {
       setMode(urlMode);
     }
-  }, [searchParams, mode]);
+  }, [urlMode, mode]);
+
+  useEffect(() => {
+    if (isDraftMode) {
+      verifiedSavedRouteRef.current = null;
+      resolvedSavedModeRef.current = 'standard';
+      setSavedRouteState({ status: 'ready', errorCode: null });
+      return;
+    }
+
+    if (authLoading) {
+      setSavedRouteState({ status: 'loading', errorCode: null });
+      return;
+    }
+
+    const routeKey = `${tierListId}:${userId || 'no-session'}`;
+    const applyMode = (nextMode) => {
+      if (!isValidViewMode(urlMode) || urlMode !== nextMode) {
+        setSearchParams({ mode: nextMode }, { replace: true });
+      }
+      if (mode !== nextMode) {
+        setMode(nextMode);
+      }
+      setSavedRouteState({ status: 'ready', errorCode: null });
+    };
+
+    if (verifiedSavedRouteRef.current === routeKey) {
+      applyMode(
+        isValidViewMode(urlMode) ? urlMode : resolvedSavedModeRef.current
+      );
+      return;
+    }
+
+    let cancelled = false;
+    setSavedRouteState({ status: 'loading', errorCode: null });
+
+    const verifySavedRoute = async () => {
+      try {
+        const data = await fetchTierList(tierListId, userId);
+        if (cancelled) return;
+
+        verifiedSavedRouteRef.current = routeKey;
+        resolvedSavedModeRef.current = toViewMode(data.mode);
+        applyMode(
+          isValidViewMode(urlMode) ? urlMode : resolvedSavedModeRef.current
+        );
+      } catch (error) {
+        if (cancelled) return;
+        verifiedSavedRouteRef.current = null;
+        setSavedRouteState({
+          status: 'error',
+          errorCode: error?.code || 'unknown',
+        });
+      }
+    };
+
+    verifySavedRoute();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    authLoading,
+    isDraftMode,
+    mode,
+    setSearchParams,
+    tierListId,
+    urlMode,
+    userId,
+  ]);
 
   // Handle mode toggle — update query param and run conversion if needed
   const handleModeChange = useCallback(
@@ -92,10 +182,12 @@ const TierMakerView = () => {
   );
 
   // ── Share Link handler ──
-  const handleCopyShareLink = useCallback(() => {
+  const handleCopyReopenLink = useCallback(() => {
     if (!tierListId) {
       // Draft mode — disable with a toast hint
-      toast('Save your tier list first to get a share link.', { icon: 'ℹ️' });
+      toast('Save your tier list first to get a reopen link.', {
+        icon: 'ℹ️',
+      });
       return;
     }
     const url = `${window.location.origin}/tier-maker/${tierListId}?mode=${mode}`;
@@ -115,6 +207,40 @@ const TierMakerView = () => {
   const hasDraftContent =
     isDraftMode &&
     (!isStandardEmpty(draftStandard) || !isTieramidEmpty(draftTieramid));
+
+  if (!isDraftMode && (authLoading || savedRouteState.status === 'loading')) {
+    return (
+      <div className="bg-neutral-900 min-h-screen text-white flex items-center justify-center">
+        Loading tier list...
+      </div>
+    );
+  }
+
+  if (!isDraftMode && savedRouteState.status === 'error') {
+    const message =
+      savedRouteState.errorCode === 'not-found'
+        ? 'Tier list not found.'
+        : savedRouteState.errorCode === 'permission-denied'
+          ? "This tier list belongs to a different session and can’t be opened here."
+          : savedRouteState.errorCode === 'no-session'
+            ? 'Unable to initialize your session. This tier list can’t be opened right now.'
+            : 'Unable to open this tier list right now.';
+
+    return (
+      <div className="bg-neutral-900 min-h-screen text-white flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-xl border border-white/10 bg-white/5 p-6 text-center">
+          <h1 className="text-2xl font-semibold mb-3">Tier List Unavailable</h1>
+          <p className="text-white/70 mb-6">{message}</p>
+          <Link
+            to="/tier-lists"
+            className="inline-flex items-center justify-center rounded bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20"
+          >
+            Back to Tier Lists
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-neutral-900 min-h-screen text-white pt-4 pb-8">
@@ -156,10 +282,12 @@ const TierMakerView = () => {
                   ? 'bg-white/5 text-white/40 cursor-not-allowed'
                   : 'bg-white/5 text-white/80 hover:bg-white/10'
             }`}
-            onClick={handleCopyShareLink}
-            title={isDraftMode ? 'Save to get a share link' : 'Copy share link'}
+            onClick={handleCopyReopenLink}
+            title={
+              isDraftMode ? 'Save to get a reopen link' : 'Copy reopen link'
+            }
           >
-            {linkCopied ? '✓ Copied' : '🔗 Share'}
+            {linkCopied ? '✓ Copied' : 'Copy Reopen Link'}
           </button>
         </div>
       )}
