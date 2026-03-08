@@ -28,11 +28,31 @@ const DEV_LOCAL_STORAGE_FLAGS = {
   'hz.dev.teamHistoryFixtures': 'true',
 };
 
+const REVIEW_TRADE_LAL_OUTGOING_PLAYER = {
+  id: 'austin_reaves',
+  name: 'Austin Reaves',
+};
+
+const REVIEW_TRADE_BOS_OUTGOING_PLAYER = {
+  id: 'derrick_white',
+  name: 'Derrick White',
+};
+
+const REVIEW_MIN_ROSTER_SIZE = 14;
+
+const REVIEW_TRADE_TEAM_SELECT_VALUES: Record<string, string> = {
+  'Los Angeles Lakers': 'lakers',
+  'Boston Celtics': 'celtics',
+};
+
 const slugify = (value: string) =>
   value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const isVisible = async (locator: Locator, timeout = 3000) =>
   locator.isVisible({ timeout }).catch(() => false);
@@ -73,6 +93,636 @@ const getWorldEntitlementDocuments = async (worldId: string) =>
         ...(docSnapshot.data() as Record<string, unknown>),
       }))
     )) as Array<Record<string, unknown> & { id: string }>;
+
+const getWorldEventDocuments = async (worldId: string) =>
+  (await getReviewAdminDb()
+    .collection(`architect_worlds/${worldId}/events`)
+    .get()
+    .then((snapshot) =>
+      snapshot.docs
+        .map((docSnapshot) => ({
+          id: docSnapshot.id,
+          ...(docSnapshot.data() as Record<string, unknown>),
+        }))
+        .sort((left, right) => {
+          const leftTimestamp = Date.parse(
+            String(left.occurredAt || left.timestamp || 0)
+          );
+          const rightTimestamp = Date.parse(
+            String(right.occurredAt || right.timestamp || 0)
+          );
+          return rightTimestamp - leftTimestamp;
+        })
+    )) as Array<Record<string, unknown> & { id: string }>;
+
+const getBaseTeamDocument = async (teamCode: string) =>
+  (await getReviewAdminDb()
+    .doc(`architect_baseTeams/${teamCode}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as
+    | Record<string, unknown>
+    | undefined;
+
+const getBasePlayerDocument = async (playerId: string) =>
+  (await getReviewAdminDb()
+    .doc(`architect_basePlayers/${playerId}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as
+    | Record<string, unknown>
+    | undefined;
+
+const getTeamPlayerIds = (
+  teamDocument: Record<string, unknown> | undefined
+) => {
+  if (!teamDocument) {
+    return [] as string[];
+  }
+
+  const rawPlayers = Array.isArray(teamDocument.players)
+    ? teamDocument.players
+    : Array.isArray(teamDocument.roster)
+      ? teamDocument.roster
+      : [];
+
+  return rawPlayers
+    .map((player) => {
+      if (typeof player === 'string') {
+        return player;
+      }
+
+      if (!player || typeof player !== 'object') {
+        return '';
+      }
+
+      return String(
+        (player as Record<string, unknown>).playerId ||
+          (player as Record<string, unknown>).player_id ||
+          (player as Record<string, unknown>).id ||
+          ''
+      );
+    })
+    .filter(Boolean);
+};
+
+const normalizeOptionValue = (value: unknown) => {
+  if (value === 'TO') {
+    return 'Team Option';
+  }
+
+  if (value === 'PO') {
+    return 'Player Option';
+  }
+
+  return value ?? null;
+};
+
+const normalizeContractForReviewWorld = (
+  contract: Record<string, unknown> | null | undefined
+) => {
+  if (!contract) {
+    return contract ?? null;
+  }
+
+  const normalizedContract = {
+    ...contract,
+  };
+
+  if (Array.isArray(contract.salariesByYear)) {
+    normalizedContract.salariesByYear = contract.salariesByYear.map((row) => ({
+      ...row,
+      option: normalizeOptionValue(row?.option),
+      optionUsed:
+        typeof row?.optionUsed === 'boolean'
+          ? row.optionUsed
+          : (row?.optionUsed ?? null),
+      capHit: row?.capHit ?? row?.salary ?? 0,
+    }));
+  }
+
+  return normalizedContract;
+};
+
+const buildHydratedPlayerEntry = (
+  playerId: string,
+  playerData: Record<string, unknown> | undefined
+) => {
+  if (!playerData) {
+    return {
+      id: playerId,
+      player_id: playerId,
+      name: playerId,
+      displayName: playerId,
+      contract: null,
+      bio: {},
+      original: null,
+    };
+  }
+
+  return {
+    id: String(playerData.playerId || playerId),
+    player_id: String(playerData.playerId || playerId),
+    name: String(playerData.displayName || playerId),
+    displayName: String(playerData.displayName || playerId),
+    position: playerData.bio?.position || '',
+    age: playerData.bio?.age || null,
+    teamCode: playerData.teamCode || null,
+    teamName: playerData.teamName || null,
+    contract: normalizeContractForReviewWorld(
+      (playerData.contract as Record<string, unknown> | undefined) || null
+    ),
+    futureContract: normalizeContractForReviewWorld(
+      (playerData.futureContract as Record<string, unknown> | undefined) || null
+    ),
+    bio: {
+      ...(typeof playerData.bio === 'object' && playerData.bio
+        ? playerData.bio
+        : {}),
+      playerId: String(playerData.playerId || playerId),
+      displayName: String(playerData.displayName || playerId),
+    },
+    representation: playerData.representation || null,
+    original: playerData,
+  };
+};
+
+const buildActiveContracts = (players: Array<Record<string, unknown>>) =>
+  players
+    .filter((player) => Array.isArray(player.contract?.salariesByYear))
+    .map((player) => ({
+      name: player.name,
+      player_id: player.player_id,
+      contract: player.contract,
+      years: player.contract?.yearsRemaining || 0,
+      type: player.contract?.contractType || 'Contract',
+      signAndTrade: false,
+      guaranteed: true,
+      isMinimum: false,
+      yearsOfService:
+        player.bio?.experience ||
+        player.contract?.birdRights?.yearsOfService ||
+        null,
+    }));
+
+const buildHydratedWorldTeamSnapshot = async (
+  teamCode: string,
+  teamName: string
+) => {
+  const baseDoc = await getBaseTeamDocument(teamCode);
+  if (!baseDoc) {
+    throw new Error(`Base team ${teamCode} is unavailable in review mode.`);
+  }
+
+  const rosterIds = Array.isArray(baseDoc.roster)
+    ? baseDoc.roster.map((playerId) => String(playerId))
+    : [];
+  const players = await Promise.all(
+    rosterIds.map(async (playerId) =>
+      buildHydratedPlayerEntry(playerId, await getBasePlayerDocument(playerId))
+    )
+  );
+
+  const exceptionData =
+    typeof baseDoc.exceptions === 'object' && baseDoc.exceptions
+      ? baseDoc.exceptions
+      : {};
+  const tradeExceptions = Array.isArray(exceptionData.tpe)
+    ? exceptionData.tpe.map((tpe) => ({
+        id: tpe.id,
+        name: tpe.label || tpe.id,
+        amount: tpe.remainingAmount ?? tpe.totalAmount ?? 0,
+        used: tpe.usedAmount ?? 0,
+        createdFrom: tpe.createdFrom ?? null,
+        expires: tpe.expiresOn ?? tpe.expires ?? null,
+      }))
+    : [];
+
+  const toSimpleException = (
+    value: Record<string, unknown> | null | undefined
+  ) =>
+    value
+      ? {
+          amount: value.totalAmount ?? 0,
+          used: value.usedAmount ?? 0,
+          remaining: value.remainingAmount ?? value.totalAmount ?? 0,
+        }
+      : null;
+
+  const hardCapLevel =
+    baseDoc.hardCapLevel || baseDoc.totals?.hardCapLevel || null;
+  const hardCapped =
+    hardCapLevel != null &&
+    String(hardCapLevel).toLowerCase() !== 'none' &&
+    String(hardCapLevel).toLowerCase() !== 'false';
+
+  return {
+    id: teamCode,
+    teamCode,
+    teamName: baseDoc.teamName || teamName,
+    season: baseDoc.season,
+    abbreviation: baseDoc.abbreviation || teamCode,
+    players,
+    roster: players,
+    activeContracts: buildActiveContracts(players),
+    capHolds: Array.isArray(baseDoc.capHolds) ? baseDoc.capHolds : [],
+    draftPicks: Array.isArray(baseDoc.draftPicks) ? baseDoc.draftPicks : [],
+    draftPicksInventory:
+      baseDoc.draftPicksInventory || baseDoc.draftPicks || [],
+    draftPicksObligations: baseDoc.draftPicksObligations || [],
+    draftPicksContested: baseDoc.draftPicksContested || [],
+    draftAssets: baseDoc.draftAssets || null,
+    entitlementIds: Array.isArray(baseDoc.entitlementIds)
+      ? baseDoc.entitlementIds
+      : [],
+    offerSheets: Array.isArray(baseDoc.offerSheets) ? baseDoc.offerSheets : [],
+    incomingOfferSheets: Array.isArray(baseDoc.incomingOfferSheets)
+      ? baseDoc.incomingOfferSheets
+      : [],
+    exceptions: exceptionData,
+    mle: toSimpleException(exceptionData.mle),
+    tpMle: toSimpleException(exceptionData.taxpayerMle || exceptionData.tpMle),
+    bae: toSimpleException(exceptionData.bae),
+    tradeExceptions,
+    hardCapLevel,
+    hardCapped,
+    deadCap: Array.isArray(baseDoc.deadCap) ? baseDoc.deadCap : [],
+    baseline: baseDoc,
+    totals: baseDoc.totals || {},
+  };
+};
+
+const buildReviewDepthPlayers = (
+  teamCode: string,
+  teamName: string,
+  count: number,
+  startingIndex: number
+) =>
+  Array.from({ length: count }, (_, offset) => {
+    const ordinal = startingIndex + offset + 1;
+    const playerId = `review_${teamCode.toLowerCase()}_depth_${ordinal}`;
+    const displayName = `${teamName} Depth ${ordinal}`;
+
+    return {
+      id: playerId,
+      playerId,
+      player_id: playerId,
+      name: displayName,
+      displayName,
+      position: 'F',
+      age: 25,
+      teamCode,
+      teamId: teamCode,
+      teamName,
+      bio: {
+        playerId,
+        displayName,
+        position: 'F',
+        height: '6-7',
+        weight: '220',
+        age: 25,
+        experience: 1,
+      },
+      futureContract: null,
+      representation: null,
+      original: null,
+      contract: {
+        contractType: 'MINIMUM CONTRACT',
+        isExtension: false,
+        isRookieScale: false,
+        startSeason: '2025-26',
+        endSeason: '2026-27',
+        contractLength: 2,
+        yearsRemaining: 1,
+        totalValue: 0,
+        averageAnnualValue: 0,
+        salariesByYear: [
+          {
+            season: '2025-26',
+            salary: 0,
+            capHit: 0,
+            guaranteed: true,
+          },
+          {
+            season: '2026-27',
+            salary: 0,
+            capHit: 0,
+            guaranteed: true,
+          },
+        ],
+        noTradeClause: false,
+        tradeKicker: null,
+        birdRights: {
+          status: 'Non-Bird',
+          eligibleFor: ['Minimum Exception'],
+        },
+        freeAgency: {
+          type: 'UFA',
+          year: 2027,
+          capHold: 0,
+        },
+      },
+    };
+  });
+
+const topUpWorldTeamRosterMinimum = async (
+  worldId: string,
+  teamCode: string,
+  teamName: string
+) => {
+  const db = getReviewAdminDb();
+  const teamRef = db.doc(`architect_worlds/${worldId}/teams/${teamCode}`);
+  const baseSnapshot = await buildHydratedWorldTeamSnapshot(teamCode, teamName);
+  const existingPlayerIds = getTeamPlayerIds(baseSnapshot);
+
+  const missingPlayers = REVIEW_MIN_ROSTER_SIZE - existingPlayerIds.length;
+  const fillerPlayers =
+    missingPlayers > 0
+      ? buildReviewDepthPlayers(
+          teamCode,
+          teamName,
+          missingPlayers,
+          existingPlayerIds.length
+        )
+      : [];
+  const players = [...(baseSnapshot.players || []), ...fillerPlayers];
+
+  await teamRef.set(
+    {
+      ...baseSnapshot,
+      players,
+      roster: players,
+      activeContracts: buildActiveContracts(players),
+    },
+    { merge: false }
+  );
+};
+
+const addTradeTeam = async (page: Page, teamName: string) => {
+  const teamValue = REVIEW_TRADE_TEAM_SELECT_VALUES[teamName] || teamName;
+  const addTeamButton = page.getByRole('button', {
+    name: /Add Team|Add 2nd Team|Add 3rd Team/i,
+  });
+  await expect(addTeamButton).toBeVisible();
+  await addTeamButton.click();
+
+  const teamPicker = page
+    .locator('label', { hasText: /^Select Team$/i })
+    .locator('xpath=following-sibling::select[1]')
+    .last();
+  await expect(teamPicker).toBeVisible();
+  await teamPicker.selectOption(teamValue);
+};
+
+const routeTradePlayer = async (
+  page: Page,
+  sourceTeamName: string,
+  playerName: string,
+  destinationTeamName: string
+) => {
+  const teamCard = page
+    .locator('div')
+    .filter({
+      has: page.getByRole('button', {
+        name: new RegExp(escapeRegExp(sourceTeamName), 'i'),
+      }),
+    })
+    .filter({
+      has: page.getByRole('button', { name: /Players \(\d+\)/i }),
+    })
+    .first();
+
+  await expect(teamCard).toBeVisible();
+
+  const playerRow = teamCard.getByAltText(playerName).locator('xpath=../..');
+
+  await expect(playerRow).toBeVisible();
+  await playerRow.locator('button', { hasText: '•••' }).first().click();
+
+  const tradeButton = page.getByRole('button', {
+    name: new RegExp(`^Trade to ${escapeRegExp(destinationTeamName)}$`, 'i'),
+  });
+  await expect(tradeButton).toBeVisible();
+  await tradeButton.click();
+};
+
+const executePersistedReviewTradeProof = async (
+  page: Page,
+  testInfo: TestInfo
+) => {
+  const architectMutationErrors: Array<Record<string, unknown>> = [];
+  const consoleListener = async (message: {
+    type(): string;
+    text(): string;
+    args(): Array<{ jsonValue(): Promise<unknown> }>;
+  }) => {
+    if (message.type() !== 'error') {
+      return;
+    }
+
+    const text = message.text();
+    if (!text.includes('[Architect][FreeAgency]')) {
+      return;
+    }
+
+    const args = await Promise.all(
+      message
+        .args()
+        .map((arg) => arg.jsonValue().catch(() => '[unserializable]'))
+    );
+
+    architectMutationErrors.push({
+      text,
+      args,
+    });
+  };
+
+  page.on('console', consoleListener);
+  await ensureTeamDataLoaded(page, testInfo);
+  const worldId = await ensureWorldSelected(page, testInfo);
+
+  await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+  await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await ensureTeamDataLoaded(page, testInfo);
+  await ensureSpecificWorldSelected(page, worldId, testInfo);
+
+  const beforeTradeEvents = await getWorldEventDocuments(worldId);
+  const beforeTradeLalDocument = await getWorldTeamDocument(worldId, 'LAL');
+  const beforeTradeBosDocument = await getWorldTeamDocument(worldId, 'BOS');
+
+  await openDashboardTab(page, 'Trade Machine');
+  await expect(
+    page.getByRole('heading', { name: /^Trade Machine$/i })
+  ).toBeVisible();
+
+  await addTradeTeam(page, 'Los Angeles Lakers');
+  await addTradeTeam(page, 'Boston Celtics');
+  await routeTradePlayer(
+    page,
+    'Los Angeles Lakers',
+    REVIEW_TRADE_LAL_OUTGOING_PLAYER.name,
+    'Boston Celtics'
+  );
+  await routeTradePlayer(
+    page,
+    'Boston Celtics',
+    REVIEW_TRADE_BOS_OUTGOING_PLAYER.name,
+    'Los Angeles Lakers'
+  );
+
+  const validateTradeButton = page.getByRole('button', {
+    name: /^Validate Trade$/i,
+  });
+  await expect(validateTradeButton).toBeVisible();
+  await validateTradeButton.click();
+
+  await expect(page.getByTestId('validation-state-header')).toContainText(
+    /Validated/i
+  );
+
+  const applyTradeButton = page.getByRole('button', {
+    name: /^Apply Trade$/i,
+  });
+  await expect
+    .poll(async () => await applyTradeButton.isEnabled(), {
+      timeout: 15000,
+      message: 'trade should validate as legal before apply',
+    })
+    .toBe(true);
+
+  const previewCloseButton = page.locator('button[title="Close"]').first();
+  if (await isVisible(previewCloseButton, 2000)) {
+    await previewCloseButton.click();
+  }
+
+  await applyTradeButton.click();
+
+  try {
+    await expect
+      .poll(
+        async () => {
+          const [lalDocument, bosDocument, worldEvents] = await Promise.all([
+            getWorldTeamDocument(worldId, 'LAL'),
+            getWorldTeamDocument(worldId, 'BOS'),
+            getWorldEventDocuments(worldId),
+          ]);
+
+          const latestTradeEvent = worldEvents.find((event) => {
+            if (event.mutationType !== 'executeTrade') {
+              return false;
+            }
+
+            const playerIds = Array.isArray(event.playerIds)
+              ? event.playerIds.map((playerId) => String(playerId))
+              : [];
+            return (
+              playerIds.includes(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id) &&
+              playerIds.includes(REVIEW_TRADE_BOS_OUTGOING_PLAYER.id)
+            );
+          });
+
+          return {
+            lalHasIncoming: getTeamPlayerIds(lalDocument).includes(
+              REVIEW_TRADE_BOS_OUTGOING_PLAYER.id
+            ),
+            lalRemovedOutgoing: !getTeamPlayerIds(lalDocument).includes(
+              REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+            ),
+            bosHasIncoming: getTeamPlayerIds(bosDocument).includes(
+              REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+            ),
+            bosRemovedOutgoing: !getTeamPlayerIds(bosDocument).includes(
+              REVIEW_TRADE_BOS_OUTGOING_PLAYER.id
+            ),
+            latestTradeEventId: latestTradeEvent?.id || '',
+          };
+        },
+        {
+          timeout: 15000,
+          message:
+            'trade apply should persist roster swaps and an executeTrade world event',
+        }
+      )
+      .toMatchObject({
+        lalHasIncoming: true,
+        lalRemovedOutgoing: true,
+        bosHasIncoming: true,
+        bosRemovedOutgoing: true,
+      });
+  } catch (error) {
+    if (architectMutationErrors.length > 0) {
+      console.error(
+        '[E2E][ArchitectMutationErrors]',
+        JSON.stringify(architectMutationErrors, null, 2)
+      );
+      testInfo.annotations.push({
+        type: 'architect-mutation-errors',
+        description: JSON.stringify(architectMutationErrors, null, 2).slice(
+          0,
+          4000
+        ),
+      });
+    }
+    throw error;
+  } finally {
+    page.off('console', consoleListener);
+  }
+
+  const afterTradeLalDocument = await getWorldTeamDocument(worldId, 'LAL');
+  const afterTradeBosDocument = await getWorldTeamDocument(worldId, 'BOS');
+  const afterTradeEvents = await getWorldEventDocuments(worldId);
+  const tradeEvent = afterTradeEvents.find((event) => {
+    if (event.mutationType !== 'executeTrade') {
+      return false;
+    }
+
+    const playerIds = Array.isArray(event.playerIds)
+      ? event.playerIds.map((playerId) => String(playerId))
+      : [];
+
+    return (
+      playerIds.includes(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id) &&
+      playerIds.includes(REVIEW_TRADE_BOS_OUTGOING_PLAYER.id)
+    );
+  });
+
+  expect(getTeamPlayerIds(beforeTradeLalDocument)).toContain(
+    REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+  );
+  expect(getTeamPlayerIds(beforeTradeBosDocument)).toContain(
+    REVIEW_TRADE_BOS_OUTGOING_PLAYER.id
+  );
+  expect(getTeamPlayerIds(afterTradeLalDocument)).toContain(
+    REVIEW_TRADE_BOS_OUTGOING_PLAYER.id
+  );
+  expect(getTeamPlayerIds(afterTradeBosDocument)).toContain(
+    REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
+  );
+  expect(afterTradeEvents.length).toBeGreaterThan(beforeTradeEvents.length);
+  expect(tradeEvent).toBeTruthy();
+  expect(tradeEvent).toMatchObject({ mutationType: 'executeTrade' });
+
+  const tradeEventPlayerIds = Array.isArray(tradeEvent?.playerIds)
+    ? tradeEvent.playerIds.map((playerId) => String(playerId))
+    : [];
+  const tradeEventTeamCodes = Array.isArray(tradeEvent?.teamCodes)
+    ? tradeEvent.teamCodes.map((teamCode) => String(teamCode))
+    : [];
+
+  expect(tradeEventPlayerIds).toEqual(
+    expect.arrayContaining([
+      REVIEW_TRADE_LAL_OUTGOING_PLAYER.id,
+      REVIEW_TRADE_BOS_OUTGOING_PLAYER.id,
+    ])
+  );
+  expect(tradeEventTeamCodes).toEqual(expect.arrayContaining(['LAL', 'BOS']));
+
+  return {
+    worldId,
+    tradeEvent,
+    afterTradeLalDocument,
+    afterTradeBosDocument,
+  };
+};
 
 const addAuditNote = (testInfo: TestInfo, description: string) => {
   testInfo.annotations.push({ type: 'audit-note', description });
@@ -465,38 +1115,30 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-002-date-advance');
   });
 
-  test('D-MQ-003: Trade Machine exposes validation and apply surfaces', async ({
+  test('D-MQ-003: Trade Machine executes a legal persisted world trade and rehydrates on re-entry', async ({
     page,
   }, testInfo) => {
+    test.setTimeout(180000);
+    const { worldId } = await executePersistedReviewTradeProof(page, testInfo);
+
+    await reenterDashboardViaAppNavigation(page);
     await ensureTeamDataLoaded(page, testInfo);
-
-    await openDashboardTab(page, 'Trade Machine');
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+    await openDashboardTab(page, 'Roster');
 
     await expect(
-      page.getByRole('heading', { name: /^Trade Machine$/i })
+      page.getByAltText(REVIEW_TRADE_BOS_OUTGOING_PLAYER.name)
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: /^Validate Trade$/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: /^Apply Trade$/i })
-    ).toBeVisible();
-    await expect(page.getByTestId('validation-state-header')).toBeVisible();
-    await expect(page.getByTestId('not-validated-callout')).toBeVisible();
+      page.getByAltText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)
+    ).toHaveCount(0);
 
-    const addTeamButton = page.getByRole('button', {
-      name: /Add Team|Add 2nd Team|Add 3rd Team/i,
-    });
-    if (await isVisible(addTeamButton)) {
-      await expect(addTeamButton).toBeVisible();
-    } else {
-      addAuditNote(
-        testInfo,
-        'No add-team control was visible in this session; legal trade execution still needs a seeded transaction fixture for full closure.'
-      );
-    }
+    addAuditNote(
+      testInfo,
+      'This now covers the real world-backed trade path: a legal Lakers/Celtics trade validates, Apply Trade persists updated team snapshots plus an executeTrade event in architect_worlds/{worldId}, and the re-entered dashboard rehydrates the Lakers roster with Derrick White instead of Austin Reaves.'
+    );
 
-    await captureEvidence(page, testInfo, 'D-MQ-003-trade-machine-readiness');
+    await captureEvidence(page, testInfo, 'D-MQ-003-persisted-trade-proof');
   });
 
   test('D-MQ-004: Invalid trade path is fail-closed before apply', async ({
@@ -715,29 +1357,50 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     }
   });
 
-  test('D-MQ-008: Team History displays deterministic fixture details', async ({
+  test('D-MQ-008: Team History rehydrates persisted world event details after a real trade', async ({
     page,
   }, testInfo) => {
-    await ensureTeamDataLoaded(page, testInfo);
+    test.setTimeout(180000);
+    const { worldId, tradeEvent } = await executePersistedReviewTradeProof(
+      page,
+      testInfo
+    );
 
     await openDashboardTab(page, 'Team History');
 
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-
-    const injectFixturesButton = page.getByTestId(
-      'team-history-inject-fixtures-button'
+    await expect(page.getByTestId('team-history-world-banner')).toContainText(
+      worldId
     );
-    if (await isVisible(injectFixturesButton, 5000)) {
-      await injectFixturesButton.click();
-    }
 
     const firstTimelineRow = page.getByTestId('team-history-event-row-0');
     await expect(firstTimelineRow).toBeVisible();
+    await expect(firstTimelineRow).toContainText(/Trade Executed/i);
     await firstTimelineRow.click();
 
     await expect(page.getByTestId('team-history-detail-modal')).toBeVisible();
     await expect(page.getByTestId('team-history-detail-summary')).toBeVisible();
     await expect(page.getByTestId('team-history-detail-deltas')).toBeVisible();
+    await expect(
+      page.getByTestId('team-history-detail-mutation-type')
+    ).toHaveText(/executeTrade/i);
+    await expect(page.getByTestId('team-history-detail-teams')).toContainText(
+      /LAL/i
+    );
+    await expect(page.getByTestId('team-history-detail-teams')).toContainText(
+      /BOS/i
+    );
+    await expect(
+      page.getByTestId('team-history-detail-player-ids')
+    ).toContainText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id);
+    await expect(
+      page.getByTestId('team-history-detail-player-ids')
+    ).toContainText(REVIEW_TRADE_BOS_OUTGOING_PLAYER.id);
+
+    addAuditNote(
+      testInfo,
+      `Team History is now proven against a persisted executeTrade event (${String(tradeEvent?.id || 'unknown-event')}): the world-scoped timeline loads without fixture injection, the event row renders as Trade Executed, and the detail modal exposes the underlying executeTrade mutation, both team codes, and both traded player IDs.`
+    );
 
     await captureEvidence(page, testInfo, 'D-MQ-008-team-history-detail');
   });

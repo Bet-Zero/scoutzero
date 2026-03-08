@@ -4,7 +4,7 @@
 
 This scorecard is the live re-score companion to the historical March 5, 2026 Stage G artifacts.
 
-It does not replace the historical scorecard. It recalculates readiness using the same blueprint weights after the verified post-audit fixes and runtime proofs completed on March 6-7, 2026.
+It does not replace the historical scorecard. It recalculates readiness using the same blueprint weights after the verified post-audit fixes and runtime proofs completed on March 6-8, 2026.
 
 ## Scoring Model Source
 
@@ -13,33 +13,43 @@ Scored using blueprint weights from:
 
 ## Weighted Category Scores
 
-| Category                   | Weight | Score | Weighted Contribution | Live rationale                                                                                                                                                                                                                                             |
-| -------------------------- | -----: | ----: | --------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Functional flows           |    20% |    84 |                 16.80 | The historical offseason guardrail blocker is resolved, architect scoped tests pass, and the narrowed runtime workflow gaps now include persisted offer-sheet and entitlement authoring proof with route re-entry rehydration.                             |
-| Rules correctness          |    25% |    86 |                 21.50 | Trade/rules posture remains strong, and the formerly queued rules-runtime proof now exists with emulator-backed passing results.                                                                                                                           |
-| Persistence/data integrity |    20% |    88 |                 17.60 | World-scoped write paths now have stronger proof than the historical run, including persisted offer-sheet evidence, persisted entitlement authoring evidence, route re-entry rehydration checks, and a real atomic team-attach defect fixed at the source. |
-| UX truthfulness            |    15% |    84 |                 12.60 | The historical D-stage weakness materially improved: runtime evidence now exists for the previously missing world-backed UX flows, including route re-entry truth checks, and the offseason truth mismatch is resolved.                                    |
-| Security/boundaries        |    15% |    92 |                 13.80 | Static posture remained strong, and the queued runtime rules proof now confirms deny behavior and boundary enforcement in the emulator.                                                                                                                    |
-| Operational readiness      |     5% |    80 |                  4.00 | Core validations, focused runtime proofs, and the broader Architect regression rerun are now clean, so release-confidence evidence is materially stronger than the earlier live re-score. The remaining operational discount is the still-brittle Playwright review-mode webServer startup path around stale emulator ports. |
+| Category                   | Weight | Score | Weighted Contribution | Live rationale                                                                                                                                                                                                                                                                                                             |
+| -------------------------- | -----: | ----: | --------------------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Functional flows           |    20% |    90 |                 18.00 | The historical offseason guardrail blocker is resolved, architect scoped tests pass, and the live proof base now includes persisted offer-sheet, entitlement authoring, and a real world-backed legal trade apply flow with route re-entry roster truth.                                                                   |
+| Rules correctness          |    25% |    89 |                 22.25 | Trade/rules posture remains strong, emulator-backed rules proof is green, and the authoritative executeTrade path now survives real post-state validation and persistence in review mode rather than stopping at UI-only validation.                                                                                       |
+| Persistence/data integrity |    20% |    91 |                 18.20 | World-scoped write paths now have stronger proof than the historical run, including persisted offer-sheet evidence, persisted entitlement authoring evidence, persisted executeTrade team snapshot swaps, and a real executeTrade event observed in world scope.                                                           |
+| UX truthfulness            |    15% |    91 |                 13.65 | The historical D-stage weakness is now materially narrowed: runtime evidence exists for route re-entry truth checks, the real persisted trade rehydrates correctly in the roster view, and Team History now proves world-event truth from the actual executeTrade event.                                                   |
+| Security/boundaries        |    15% |    92 |                 13.80 | Static posture remained strong, and the queued runtime rules proof now confirms deny behavior and boundary enforcement in the emulator.                                                                                                                                                                                    |
+| Operational readiness      |     5% |    83 |                  4.15 | Core validations, focused runtime proofs, and the broader Architect regression rerun are now clean. Review-mode confidence is stronger again because the two additional persisted Playwright proofs pass individually and as a combined slice, though startup still deserves a small discount around stale emulator state. |
 
 ## Final Score
 
-- Total weighted score: `86.30 / 100`
+- Total weighted score: `90.05 / 100`
 
 ## Verdict Threshold Application
 
 - Critical findings present: `No`
-- Score band: `80-89`
-- Final verdict: `Conditionally Ready`
+- Score band: `>=90`
+- Final verdict: `Ready`
 
-## Why This Is Not `Ready`
+## Why This Is `Ready` And Not `100 / 100`
 
-The live blocker set is cleared, but the blueprint requires `>=90` for `Ready`.
+The live blocker set is cleared, there are no confirmed live Critical findings, and the blueprint `Ready` threshold of `>=90` is now met.
 
-The remaining score drag is operational rather than product-correctness driven:
+The remaining score drag is still operational rather than product-correctness driven:
 
 - review-mode startup is functionally usable, but its Playwright-managed `webServer` path is still brittle when stale emulator processes are present
-- broader workflow proof is still narrower than a true low-risk ship posture, so the score remains below the blueprint's `Ready` threshold even after the green broader Architect rerun
+- the strongest new proof rows are now green, but the release-confidence posture is still not identical to a fully hardened long-running CI-quality harness
+
+## Practical Interpretation
+
+This score is not a command to keep working indefinitely.
+
+The practical project interpretation is:
+
+1. The live system is no longer blocked by a known ship-stopper.
+2. The remaining score gap is mostly confidence/evidence gap, not a discovered product-breakage gap.
+3. The right next move is to stop score-specific work and return to normal product backlog work unless a new issue appears.
 
 ## Severity + Queue Snapshot
 
@@ -53,10 +63,10 @@ The remaining score drag is operational rather than product-correctness driven:
 ## Historical Comparison
 
 - Historical score: `78.45 / 100`
-- Live score: `86.30 / 100`
-- Score delta: `+7.85`
+- Live score: `90.05 / 100`
+- Score delta: `+11.60`
 - Historical verdict: `Not Ready`
-- Live verdict: `Conditionally Ready`
+- Live verdict: `Ready`
 
 ## Evidence Basis Used In This Re-Score
 
@@ -67,6 +77,9 @@ The remaining score drag is operational rather than product-correctness driven:
 - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-005:" --reporter=line`
 - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-009:" --reporter=line`
 - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-005:|D-MQ-009:" --reporter=line`
+- `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-003:" --reporter=line`
+- `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-008:" --reporter=line`
+- `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-003:|D-MQ-008:" --reporter=line`
 - `npm run build`
 - `npm run typecheck`
 - `npm run validate:project`

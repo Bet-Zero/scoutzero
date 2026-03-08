@@ -6,6 +6,21 @@ This plan describes the most realistic path from the current live score of `86.3
 
 It is not a repeat of the historical blocker-removal work. That work is already reflected in the live scorecard. This document focuses on the remaining actions that can raise the score further through a mix of product hardening, better runtime proof, and stronger operational confidence.
 
+It is not a mandate to keep working forever. The practical project goal is to finish one bounded post-audit closure cycle, re-score once, and then stop score-specific work unless a new product issue appears.
+
+## Practical Project Decision
+
+Use the score as a decision aid, not as an endless optimization target.
+
+For this project, the recommended stopping rule is:
+
+1. Keep the current live state as the baseline release candidate because there are no confirmed live ship blockers.
+2. Complete one bounded follow-up cycle aimed at raising confidence in the heaviest-weight categories.
+3. Re-score once after that cycle.
+4. Stop score-specific work after that re-score and return to normal product backlog work, even if the score is still below `100 / 100`.
+
+The reason is simple: the blueprint can always reward more proof, more hardening, and more regression coverage. That does not mean the project should stay trapped in audit-mode indefinitely.
+
 ## Current Starting Point
 
 - Current live score: `86.30 / 100`
@@ -26,6 +41,21 @@ The shortest path is not a large rewrite. It is a targeted hardening pass in thr
 3. Fix any medium-quality issues uncovered by that wider proof pass instead of treating them as acceptable drift.
 
 If those three areas are executed cleanly, a move from `86.30` into the low `90s` is realistic.
+
+## Required vs Optional
+
+### Required for this closure cycle
+
+1. Keep the review-mode harness stable enough that Playwright-managed proof can run without leaving stale listeners behind.
+2. Add a small number of additional persisted-world proofs in the highest-yield workflow areas.
+3. Fix only the real product issues those proofs expose.
+4. Re-score once with the updated evidence.
+
+### Optional after this closure cycle
+
+1. Any further score maximization after the next re-score.
+2. Chasing `100 / 100` as an audit target.
+3. Broader polish work that is not required for release confidence or product correctness.
 
 ## Scoring Strategy
 
@@ -61,6 +91,17 @@ Raise confidence in the automation itself so score improvements are supported by
 - review mode starts reliably without manual cleanup
 - targeted Architect Playwright rows can run from a cold start more than once in a row
 - startup failures from stale port collisions are eliminated or explicitly preflighted with actionable errors
+
+### Current status
+
+Completed on March 7, 2026.
+
+Evidence now includes:
+
+- hardened teardown and child-process cleanup in `scripts/emu/runReviewMode.ts`
+- explicit graceful shutdown in `playwright.config.ts` for review-mode `webServer`
+- successful managed proof run: `PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-002:" --reporter=line`
+- post-run port check confirmed review-mode listeners were cleaned up after the Playwright-managed run
 
 ### Expected score impact
 
@@ -101,10 +142,10 @@ Broaden the number of real user-facing flows that are proven against persisted w
 
 ### Candidate proof targets
 
-1. Additional entitlement authoring variants beyond the currently proven conflict case.
-2. At least one more free-agency or roster-management flow that writes world state and then rehydrates correctly.
-3. One broader offseason progression sequence that crosses multiple UI surfaces and confirms persisted state stays truthful.
-4. One trade-machine-adjacent save/load path that confirms world consistency after a multi-step action.
+1. One legal trade execution flow that proves world writes, cap/history updates, and post-action truth across multiple surfaces.
+2. One team-history or event-backed flow that proves persisted world events rehydrate truthfully in the UI.
+3. Optional only if needed after those two: one broader offseason progression sequence that crosses multiple UI surfaces and confirms persisted state stays truthful.
+4. Optional only if needed after those two: one additional entitlement or free-agency variant beyond the already-proven conflict/save cases.
 
 ### Likely implementation targets
 
@@ -117,6 +158,18 @@ Broaden the number of real user-facing flows that are proven against persisted w
 - each added proof covers a real user workflow, not just a shallow UI click path
 - each proof confirms persisted data and UI truth agree after reload or re-entry where relevant
 - no proof relies on hidden debug shortcuts that bypass the real product path
+
+### Scope cap for this audit cycle
+
+Do not add an unlimited number of proofs.
+
+The recommended cap is:
+
+1. Add 2 high-value new persisted proofs.
+2. Fix any real product issues those 2 proofs expose.
+3. Re-score.
+
+If those 2 proofs do not produce enough evidence to cross `90`, stop the score-focused cycle anyway and treat the remaining gap as backlog, not as a reason to stay in permanent audit mode.
 
 ### Expected score impact
 
@@ -166,15 +219,39 @@ The most realistic shape of a `90+` outcome is:
 - no new Critical findings appear
 - no new High findings remain open without explicit mitigation
 
+## Concrete Stop Condition
+
+This plan is complete when all of the following are true:
+
+1. Phase 1 remains green and repeatable.
+2. Exactly 2 additional high-value persisted proofs have been attempted.
+3. Any real defects uncovered by those proofs are either fixed or explicitly documented as backlog.
+4. The live score has been recomputed one more time.
+5. A final recommendation is issued: either `Ready`, `Conditionally Ready`, or `Stop score work and move on`.
+
+Do not continue score work past that point unless a new product regression appears or the user explicitly requests another audit cycle.
+
+## Closure Status
+
+Completed on March 8, 2026.
+
+The stop condition is now satisfied:
+
+1. Phase 1 remained green.
+2. Exactly 2 additional high-value persisted proofs were added and are green (`D-MQ-003`, `D-MQ-008`).
+3. The real issues those proofs exposed were fixed in the review-world proof path.
+4. The live score was recomputed.
+5. The final live recommendation is now `Ready` under the existing Stage G threshold.
+
 ## Recommended Execution Order
 
 If the goal is the fastest credible path upward, use this order:
 
-1. Stabilize review-mode startup.
-2. Run the broader Architect regression.
-3. Fix whatever real issues that run exposes.
-4. Add 2-4 more high-value persisted workflow proofs.
-5. Re-score.
+1. Treat review-mode startup stabilization as complete unless it regresses.
+2. Add 2 high-value persisted workflow proofs.
+3. Fix whatever real issues those proofs expose.
+4. Re-score once.
+5. Stop the audit cycle.
 
 ## What Not To Do
 
@@ -184,6 +261,7 @@ To avoid wasting time, do not do these first:
 2. Rewrite healthy Architect subsystems without evidence of a scoring gain.
 3. Inflate the score based on targeted proofs alone if broader regression still shows instability.
 4. Spend time polishing low-impact internals before stabilizing the test harness.
+5. Treat `100 / 100` as the definition of project completion.
 
 ## Practical Interpretation
 
@@ -197,3 +275,5 @@ It assumes the remaining path upward is mostly this:
 - then re-score with a stronger evidence base
 
 That is the shortest realistic path from `86.30` to `90+`.
+
+It is also the recommended end of the current audit cycle. After that, the project should return to normal engineering priorities instead of staying in score-maximization mode.

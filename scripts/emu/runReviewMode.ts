@@ -311,7 +311,9 @@ const terminateChildProcessSync = (
   if (isWindows) {
     try {
       execSync(`taskkill /pid ${child.pid} /T /F`, { stdio: 'ignore' });
-      log(`[review] Synchronously terminated ${label} process tree (pid ${child.pid})`);
+      log(
+        `[review] Synchronously terminated ${label} process tree (pid ${child.pid})`
+      );
     } catch {
       try {
         child.kill('SIGKILL');
@@ -324,7 +326,9 @@ const terminateChildProcessSync = (
 
   try {
     process.kill(-child.pid, 'SIGKILL');
-    log(`[review] Synchronously terminated ${label} process tree (pid ${child.pid})`);
+    log(
+      `[review] Synchronously terminated ${label} process tree (pid ${child.pid})`
+    );
   } catch {
     try {
       child.kill('SIGKILL');

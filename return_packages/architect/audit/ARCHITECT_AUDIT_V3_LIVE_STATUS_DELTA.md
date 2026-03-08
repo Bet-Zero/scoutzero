@@ -17,7 +17,7 @@ It does not replace or rewrite the original audit artifacts. It records what cha
 
 ## Live Status Snapshot
 
-- Snapshot date: `2026-03-07`
+- Snapshot date: `2026-03-08`
 - Historical artifacts preserved: `Yes`
 - Live blocker source: current-state validation + consolidated implementation review
 
@@ -50,7 +50,7 @@ It does not replace or rewrite the original audit artifacts. It records what cha
 
 ### Priority 2
 
-- Optional: expand a small number of additional persisted workflow proofs if the goal is to move the live score toward `90+` rather than just preserve the current `Conditionally Ready` state.
+- Stop score-specific work and return to normal product backlog unless a new product issue appears.
 
 ## Post-Audit Delta Evidence
 
@@ -93,8 +93,11 @@ It does not replace or rewrite the original audit artifacts. It records what cha
 - Historical basis: `return_packages/architect/audit/D_UX_TRUTH_AUDIT.md`
 - Current delta:
   - `e2e/architect-qa.spec.ts` now proves both `D-MQ-005` and `D-MQ-009` through real persisted world flows.
+  - `e2e/architect-qa.spec.ts` now also proves `D-MQ-003` through a real persisted Lakers/Celtics trade apply path that writes updated world team snapshots plus an `executeTrade` event and survives dashboard route re-entry.
+  - `e2e/architect-qa.spec.ts` now also proves `D-MQ-008` through Team History row/detail assertions sourced from that real persisted `executeTrade` world event instead of a DEV fixture row.
   - `D-MQ-005` now submits a seeded offer sheet, verifies the saved ATL world document, then proves the pending offer-sheet state rehydrates correctly after dashboard route re-entry.
   - `D-MQ-009` now creates a world-scoped swap entitlement, verifies the saved document under `architect_worlds/{worldId}/entitlements`, confirms `teams/LAL.entitlementIds` attachment, proves the state survives dashboard route re-entry, then proves a conflicting swap-controller save fails closed with explicit UX error and no additional write.
+  - The D-MQ-003 proof work surfaced a real review-world hydration contract issue: base player contract option codes like `TO` had to be normalized to canonical world-shape values before the authoritative post-state validator would accept the seeded world snapshot.
   - Product fixes were required in `src/features/architect/GMDashboard/components/WorldSelector.jsx`, `src/features/architect/GMDashboard/hooks/useArchitectState.ts`, and `src/features/architect/utils/firebaseTeamPlanHelpers.js` so restored worlds no longer regress to base-mode state and world team hydration preserves offer-sheet data during re-entry.
   - `src/features/architect/utils/entitlements/entitlementWriter.ts` now uses merge writes for team attachment targets so entitlement authoring no longer fails when the world team doc does not yet exist.
   - Focused proof commands on `2026-03-07`:
@@ -104,6 +107,10 @@ It does not replace or rewrite the original audit artifacts. It records what cha
     - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-005:|D-MQ-009:" --reporter=line` (combined confirmation run; 2 passed)
     - `npm run build`
     - `npm run typecheck`
+  - Additional focused proof commands on `2026-03-08`:
+    - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-003:" --reporter=line` (green after review-world contract normalization and stable roster re-entry assertions)
+    - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-008:" --reporter=line` (green with Team History backed by the real persisted trade event)
+    - `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-003:|D-MQ-008:" --reporter=line` (combined confirmation run; 2 passed)
 
 ## Commands Run For This Live Delta
 
@@ -119,6 +126,9 @@ It does not replace or rewrite the original audit artifacts. It records what cha
 10. `npm run build`
 11. `npm run typecheck`
 12. `npm run test:architect -- --reporter=dot`
+13. `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-003:" --reporter=line`
+14. `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-008:" --reporter=line`
+15. `npm run test:e2e -- e2e/architect-qa.spec.ts --grep "D-MQ-003:|D-MQ-008:" --reporter=line`
 
 ## Consolidated Reference
 
