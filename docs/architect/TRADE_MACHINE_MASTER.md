@@ -519,6 +519,17 @@ Date: 2026-02-26
   - based on the actual post-E17 holdouts, `utils/seasonUtils.js` is a likely next slice because it is now the main remaining direct JS dependency under the typed salary-utils / matching-values path, but it is not mandatory if another holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SALARY_UTILS_E17_RETURN_PACKAGE.md`
 
+### Validator TS Season Utils E18 (2026-03-08)
+
+- Status: The canonical season-utils helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative season-utils logic now lives in `utils/seasonUtils.ts`
+  - `utils/seasonUtils.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent season helper semantics remained unchanged, including current season/year normalization behavior, current cap-hit lookup behavior, `salaryUtils.getCapHitForSeason()` passthrough behavior, and downstream `salaryOut` / `salaryIn` effects in `validateTrade()`
+  - targeted parity now includes a dedicated season-utils helper regression file plus an explicit validator-path cap-hit assertion proving the live engine still uses unchanged season-utils-mediated cap-hit lookups for authoritative salary totals
+  - the next best TS slice should be selected from the actual post-E18 holdouts rather than hardcoded in advance; `rules/miscRules.js` is a likely candidate because it still owns live JS BYC logic adjacent to the season helper path, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SEASON_UTILS_E18_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

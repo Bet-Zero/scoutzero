@@ -390,6 +390,7 @@ utils/
       salaryUtils.js
       salaryUtils.ts
       seasonUtils.js
+      seasonUtils.ts
       stepienEntitlementUtils.js
       swapResolution.js
       tpeValidation.js
@@ -411,5 +412,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T18:48:42.808Z*
+*Generated on: 2026-03-08T19:31:09.780Z*
 *Auto-updated by: npm run docs*

@@ -53,7 +53,7 @@ describe('salaryUtils compatibility wrapper', () => {
     expect(wrapperResult).toEqual(canonicalResult);
   });
 
-  it('mirrors seasonUtils getCapHitForSeason', () => {
+  it('mirrors seasonUtils getCapHitForSeason for season-string and numeric inputs', () => {
     const player = {
       id: 'cap-hit-player',
       contract: {
@@ -63,12 +63,20 @@ describe('salaryUtils compatibility wrapper', () => {
             salary: 5_000_000,
             capHit: 5_500_000,
           },
+          {
+            season: '2025-26',
+            salary: 6_000_000,
+            capHit: 6_500_000,
+          },
         ],
       },
     };
 
     expect(getCapHitForSeasonWrapper(player, season)).toBe(
       getCapHitForSeasonCanonical(player, season)
+    );
+    expect(getCapHitForSeasonWrapper(player, currentYear)).toBe(
+      getCapHitForSeasonCanonical(player, currentYear)
     );
   });
 

@@ -103,6 +103,37 @@ describe('tradeValidator', () => {
     );
   });
 
+  it('uses season-utils cap-hit lookups for validator salary totals', () => {
+    const teamA = makeTeam('A', 160_000_000);
+    const teamB = makeTeam('B', 160_000_000);
+    const capHitPlayer = {
+      ...makePlayer('Acap', 5_000_000),
+      contract: {
+        salariesByYear: [{ season, salary: 5_000_000, capHit: 5_500_000 }],
+      },
+    };
+    const matchingPlayer = makePlayer('Bmatch', 5_500_000);
+    teamA.players.push(capHitPlayer);
+    teamB.players.push(matchingPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [capHitPlayer], picksOut: [] },
+        { team: teamB, sends: [matchingPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.legal).toBe(true);
+    expect(capHitPlayer.matchOutgoing).toBe(5_500_000);
+    expect(capHitPlayer.matchIncoming).toBe(5_500_000);
+    expect(result.teamResults[0].salaryOut).toBe(5_500_000);
+    expect(result.teamResults[0].salaryOut).not.toBe(5_000_000);
+    expect(result.teamResults[1].salaryIn).toBe(5_500_000);
+    expect(result.teamResults[0].rules.salaryMatching.passed).toBe(true);
+  });
+
   it('flags trades that would violate a hard cap', () => {
     // Team A is at first apron level (180M) and hard-capped
     // First apron is 179M for 2024-25, so 180M is above first apron but below second apron (190M)
