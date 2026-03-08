@@ -4,6 +4,8 @@
  * Note: Salary matching calculations moved to computeMatchingValues.js
  */
 
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe.js';
+
 // TPE utilities (from tpeUtils.js)
 export const SECOND_APRON_TPE_BLOCK =
   'Second apron team cannot use trade exceptions';
@@ -57,6 +59,127 @@ export function canUseTPE(teamCtx, tpe, { onDate }) {
   if (!tpe || isExpiredTPE(tpe, onDate)) return false;
   // Second-apron logic handled upstream; this helper only checks expiry.
   return true;
+}
+
+function toFiniteNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+export function normalizeTpeForValidation(tpe) {
+  if (!tpe || typeof tpe !== 'object') return null;
+
+  const amount = toFiniteNumber(tpe.amount ?? tpe.totalAmount);
+  const remaining = toFiniteNumber(
+    tpe.remaining ?? tpe.remainingAmount ?? amount,
+    amount
+  );
+  const expiresOn =
+    tpe.expiresOn ??
+    tpe.expirationDate ??
+    tpe.expiryISO ??
+    tpe.expiryDate ??
+    null;
+
+  return {
+    ...tpe,
+    amount,
+    totalAmount: toFiniteNumber(tpe.totalAmount ?? amount, amount),
+    remaining,
+    remainingAmount: toFiniteNumber(tpe.remainingAmount ?? remaining, remaining),
+    expiresOn,
+    expirationDate: tpe.expirationDate ?? expiresOn,
+    expiryISO: tpe.expiryISO ?? expiresOn,
+    expiryDate: tpe.expiryDate ?? expiresOn,
+    sourceRef: tpe?.sourceRef || tpe,
+  };
+}
+
+export function buildCanonicalTeamTpeUsage({
+  team,
+  incomingPlayers = [],
+  appliedTPEs = [],
+  tradeExceptions = [],
+}) {
+  const availableTpeMap = new Map();
+  const compatibilityTpes = [
+    ...(Array.isArray(tradeExceptions) ? tradeExceptions : []),
+    ...(Array.isArray(appliedTPEs) ? appliedTPEs : []),
+  ];
+  const teamHeldTpes = team?.team ? getTeamTpeList(team.team) : getTeamTpeList(team);
+
+  const addTpe = (rawTpe) => {
+    const normalizedTpe = normalizeTpeForValidation(rawTpe);
+    if (!normalizedTpe?.id) return;
+
+    const existing = availableTpeMap.get(normalizedTpe.id);
+    const mergedTpe = existing
+      ? normalizeTpeForValidation({ ...existing, ...normalizedTpe })
+      : normalizedTpe;
+    mergedTpe.sourceRef =
+      existing?.sourceRef || normalizedTpe.sourceRef || rawTpe;
+
+    availableTpeMap.set(
+      normalizedTpe.id,
+      mergedTpe
+    );
+  };
+
+  compatibilityTpes.forEach(addTpe);
+  teamHeldTpes.forEach(addTpe);
+
+  const tpeAttemptPlayers = (incomingPlayers || []).filter(
+    (player) => player?.absorptionMode === 'TPE' || player?.tpeId
+  );
+  const usageMap = new Map();
+  const unresolvedPlayers = [];
+
+  tpeAttemptPlayers.forEach((player) => {
+    const tpeId = player?.tpeId || null;
+    if (!tpeId) {
+      unresolvedPlayers.push({ player, tpeId: null, reason: 'missingTpeId' });
+      return;
+    }
+
+    const resolvedTpe = availableTpeMap.get(tpeId) || null;
+    if (!resolvedTpe) {
+      unresolvedPlayers.push({ player, tpeId, reason: 'missingOnTeam' });
+    }
+
+    const salary = toFiniteNumber(player?.matchIncoming ?? player?.salary);
+    const existingUsage = usageMap.get(tpeId) || {
+      tpeId,
+      tpe: resolvedTpe,
+      players: [],
+      totalUsage: 0,
+      source: 'playerAssignment',
+    };
+
+    existingUsage.players.push(player);
+    existingUsage.totalUsage += salary;
+    existingUsage.tpe = existingUsage.tpe || resolvedTpe;
+    usageMap.set(tpeId, existingUsage);
+  });
+
+  compatibilityTpes.forEach((rawTpe) => {
+    const normalizedTpe = normalizeTpeForValidation(rawTpe);
+    if (!normalizedTpe?.id || usageMap.has(normalizedTpe.id)) return;
+
+    usageMap.set(normalizedTpe.id, {
+      tpeId: normalizedTpe.id,
+      tpe: availableTpeMap.get(normalizedTpe.id) || normalizedTpe,
+      players: [],
+      totalUsage: 0,
+      source: 'compatibilityInput',
+    });
+  });
+
+  return {
+    availableTpes: Array.from(availableTpeMap.values()),
+    usedTpes: Array.from(usageMap.values()),
+    unresolvedPlayers,
+    usesTpe: tpeAttemptPlayers.length > 0 || usageMap.size > 0,
+  };
 }
 
 // Date and formatting utilities (from tradeUtils.js)

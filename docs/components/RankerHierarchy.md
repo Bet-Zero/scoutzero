@@ -13,6 +13,7 @@ RankingSetup.jsx
 hooks/
   useRankerSession.js
 ranker.css
+tournamentRanker.js
 utils/
   rankerLocalDraft.js
   rankingEngine.js
@@ -20,5 +21,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T01:26:41.924Z*
+*Generated on: 2026-03-08T03:52:27.900Z*
 *Auto-updated by: npm run docs*

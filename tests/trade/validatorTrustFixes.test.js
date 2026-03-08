@@ -312,4 +312,145 @@ describe('validator trust fixes', () => {
       ])
     );
   });
+
+  it('blocks prior-year team-held TPE usage through authoritative apply validation', () => {
+    const heldTpe = {
+      id: 'prior_year_tpe',
+      amount: 6_000_000,
+      totalAmount: 6_000_000,
+      remaining: 6_000_000,
+      remainingAmount: 6_000_000,
+      expiresOn: '2026-09-01T00:00:00.000Z',
+      expirationDate: '2026-09-01T00:00:00.000Z',
+      createdSeason: 2025,
+    };
+    const tpeAbsorbedPlayer = makePlayer('bos_tpe_target', 5_000_000, {
+      teamCode: 'BOS',
+      tradeTo: 'LAL',
+      absorptionMode: 'TPE',
+      tpeId: heldTpe.id,
+    });
+
+    const sourceTeam = makeTeam('LAL', makeRoster('LAL', 14), {
+      totalSalary: 220_000_000,
+      exceptions: { tpe: [heldTpe] },
+    });
+    const destinationTeam = makeTeam(
+      'BOS',
+      [tpeAbsorbedPlayer, ...makeRoster('BOS', 14)],
+      {
+        totalSalary: 130_000_000,
+      }
+    );
+
+    const payload = {
+      teams: [
+        { teamCode: 'LAL', sends: [], entitlementsOut: [] },
+        { teamCode: 'BOS', sends: [tpeAbsorbedPlayer], entitlementsOut: [] },
+      ],
+      tradeCtx: {
+        source: 'tradeMachine',
+        tradeDate: '2026-02-01T00:00:00.000Z',
+      },
+    };
+    const currentState = {
+      teams: [
+        { teamCode: 'LAL', team: sourceTeam },
+        { teamCode: 'BOS', team: destinationTeam },
+      ],
+    };
+
+    const result = computeWorldMutation({
+      mutationType: 'executeTrade',
+      payload,
+      currentState,
+      seasonId: SEASON_ID,
+      timestamp: FIXED_TIMESTAMP,
+      worldId: 'world_test',
+      asOfDate: '2026-02-01',
+    });
+
+    const lakersResult = result._validatedTradeContext?._rawValidation?.teamResults?.find(
+      (entry) => entry.teamId === 'LAL'
+    );
+
+    expect(result._validatedTradeContext?.legal).toBe(false);
+    expect(issueTexts(lakersResult?.rules?.tradeExceptions?.violations)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/prior-year TPEs cannot be used/i),
+      ])
+    );
+  });
+
+  it('blocks seasonal cash-limit overflow through authoritative apply validation', () => {
+    const outgoingLakers = makePlayer('lal_cash_out', 5_000_000, {
+      teamCode: 'LAL',
+      tradeTo: 'BOS',
+    });
+    const outgoingCeltics = makePlayer('bos_cash_out', 5_000_000, {
+      teamCode: 'BOS',
+      tradeTo: 'LAL',
+    });
+
+    const sourceTeam = makeTeam(
+      'LAL',
+      [outgoingLakers, ...makeRoster('LAL', 13)],
+      {
+        totalSalary: 160_000_000,
+        cashLedger: { totalOut: 5_600_000 },
+      }
+    );
+    const destinationTeam = makeTeam(
+      'BOS',
+      [outgoingCeltics, ...makeRoster('BOS', 13)],
+      {
+        totalSalary: 150_000_000,
+      }
+    );
+
+    const payload = {
+      teams: [
+        {
+          teamCode: 'LAL',
+          sends: [outgoingLakers],
+          entitlementsOut: [],
+          cashSent: 500_000,
+        },
+        {
+          teamCode: 'BOS',
+          sends: [outgoingCeltics],
+          entitlementsOut: [],
+        },
+      ],
+      tradeCtx: {
+        source: 'tradeMachine',
+        tradeDate: '2025-07-10T00:00:00.000Z',
+      },
+    };
+    const currentState = {
+      teams: [
+        { teamCode: 'LAL', team: sourceTeam },
+        { teamCode: 'BOS', team: destinationTeam },
+      ],
+    };
+
+    const result = computeWorldMutation({
+      mutationType: 'executeTrade',
+      payload,
+      currentState,
+      seasonId: SEASON_ID,
+      timestamp: FIXED_TIMESTAMP,
+      worldId: 'world_test',
+      asOfDate: '2025-07-10',
+    });
+
+    const lakersResult = result._validatedTradeContext?._rawValidation?.teamResults?.find(
+      (entry) => entry.teamId === 'LAL'
+    );
+
+    expect(result._validatedTradeContext?.legal).toBe(false);
+    expect(issueTexts(lakersResult?.rules?.cash?.violations)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/seasonal limit/i)])
+    );
+  });
 });

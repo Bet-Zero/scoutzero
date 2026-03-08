@@ -6,11 +6,11 @@ import {
   isPriorYearTPE,
   isExpiredTPE,
   createTPE,
+  buildCanonicalTeamTpeUsage,
 } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
 import { SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 import { isSecondApronTeam as checkSecondApron } from '../utils/capUtils.js';
-import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe.js';
 
 export function validateTradeExceptions(team) {
   const violations = [];
@@ -27,7 +27,9 @@ export function validateTradeExceptions(team) {
   } = team;
 
   const { capSettings = {}, yearKey } = context;
-  const { secondApron = 0 } = capSettings;
+  // The authoritative validator path normalizes tradeDate upstream.
+  // TPE expiry must read that canonical field, not ambient machine time.
+  const canonicalTradeDate = context.tradeDate || new Date().toISOString();
 
   // Extract numeric year from yearKey (e.g., '2025-2026' -> 2025)
   // Fallback to current year if yearKey is not provided
@@ -37,49 +39,42 @@ export function validateTradeExceptions(team) {
       : yearKey
     : new Date().getFullYear();
 
-  // Determine which TPE pattern we're using
-  const usingAppliedTPEs = appliedTPEs.length > 0;
-  // Route legacy tradeExceptions through canonical accessor for field normalization
-  const normalizedLegacy =
-    !usingAppliedTPEs && team.team
-      ? getTeamTpeList(team.team)
-      : tradeExceptions;
-  const tpesToProcess = usingAppliedTPEs ? appliedTPEs : normalizedLegacy;
+  const canonicalTpeUsage = buildCanonicalTeamTpeUsage({
+    team,
+    incomingPlayers,
+    appliedTPEs,
+    tradeExceptions,
+  });
+  const { usedTpes, unresolvedPlayers, usesTpe } = canonicalTpeUsage;
 
   // FAIL-CLOSED: Reject absorptionMode='TPE' without explicit tpeId
-  incomingPlayers.forEach((player) => {
-    if (player.absorptionMode === 'TPE' && !player.tpeId) {
-      const playerName = player.name || player.displayName || 'Unknown';
+  unresolvedPlayers.forEach(({ player, tpeId, reason }) => {
+    const playerName = player?.name || player?.displayName || 'Unknown';
+
+    if (reason === 'missingTpeId') {
       violations.push(
         `Player ${playerName} has absorptionMode='TPE' but no tpeId specified`
+      );
+      return;
+    }
+
+    if (reason === 'missingOnTeam') {
+      violations.push(
+        `Player ${playerName} references tpeId '${tpeId}' which does not exist on this team`
       );
     }
   });
 
-  // FAIL-CLOSED: Reject tpeId that doesn't resolve to a TPE on this team
-  incomingPlayers.forEach((player) => {
-    if (player.tpeId) {
-      const matchingTpe = tpesToProcess.find((t) => t.id === player.tpeId);
-      if (!matchingTpe) {
-        const playerName = player.name || player.displayName || 'Unknown';
-        violations.push(
-          `Player ${playerName} references tpeId '${player.tpeId}' which does not exist on this team`
-        );
-      }
-    }
-  });
-
-  // Check for second apron TPE restrictions (only for trade validator pattern)
+  // Check for second apron TPE restrictions based on canonical TPE usage
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   const isSecondApronTeam = checkSecondApron(
     { totalSalary: teamTotalSalary },
     capSettings
   );
 
-  if (isSecondApronTeam && tpesToProcess.length > 0 && usingAppliedTPEs) {
-    // Check if any TPE is from prior year
-    const hasPriorYearTPE = tpesToProcess.some((tpe) =>
-      isPriorYearTPE(tpe, numericYear)
+  if (isSecondApronTeam && usesTpe) {
+    const hasPriorYearTPE = usedTpes.some(({ tpe }) =>
+      tpe ? isPriorYearTPE(tpe, numericYear) : false
     );
 
     if (hasPriorYearTPE) {
@@ -90,39 +85,31 @@ export function validateTradeExceptions(team) {
   // For teams below second apron, TPE usage is allowed (including prior-year TPEs)
   // Only check for basic TPE validation like expiration and capacity
 
-  // Check for TPE + outgoing salary aggregation (only for trade validator pattern)
+  // Check for TPE + outgoing salary aggregation using canonical usage detection
   const hasOutgoingSalary =
-    (sends || []).length > 0 || (outgoingPlayers || []).length > 0;
-  if (tpesToProcess.length > 0 && hasOutgoingSalary && usingAppliedTPEs) {
+    Number(salaryOut || 0) > 0 ||
+    [...(outgoingPlayers || []), ...(sends || [])].some(
+      (player) => Number(player?.matchOutgoing ?? player?.salary ?? 0) > 0
+    );
+  if (usesTpe && hasOutgoingSalary) {
     violations.push('Cannot aggregate trade exception with outgoing salary');
   }
 
-  // Process each TPE
-  tpesToProcess.forEach((tpe) => {
+  // Process each TPE actually used in the canonical validator path
+  usedTpes.forEach(({ tpe, tpeId, totalUsage }) => {
     const tpeViolations = [];
+    if (!tpe) return;
 
     // Check if TPE has already been fully consumed
     if (tpe.isUsed || tpe.isBeingUsed) {
-      tpeViolations.push(`Trade exception ${tpe.id} already being processed`);
+      tpeViolations.push(`Trade exception ${tpe.id || tpeId} already being processed`);
       violations.push(...tpeViolations);
       return;
     }
 
-    // Check if TPE is expired using multiple possible date properties
-    // Check if TPE is expired using helper (Phase 2: Canonical expiresOn)
-    const currentDate = new Date();
-    if (isExpiredTPE(tpe, currentDate.toISOString())) {
-      tpeViolations.push(`Trade exception ${tpe.id} is expired`);
+    if (isExpiredTPE(tpe, canonicalTradeDate)) {
+      tpeViolations.push(`Trade exception ${tpe.id || tpeId} is expired`);
     }
-
-    // Find players using this TPE
-    const playersUsingTPE = incomingPlayers.filter((p) => p.tpeId === tpe.id);
-    let totalUsage = 0;
-
-    playersUsingTPE.forEach((player) => {
-      const playerSalary = player.salary || player.matchIncoming || 0;
-      totalUsage += playerSalary;
-    });
 
     // Check if total usage exceeds TPE capacity
     const tpeAmount = tpe.amount || 0;
@@ -134,8 +121,16 @@ export function validateTradeExceptions(team) {
 
     // If no violations, apply the TPE usage
     if (tpeViolations.length === 0) {
-      tpe.remaining = tpeAmount - totalUsage;
-      tpe.isUsed = tpe.remaining === 0;
+      const nextRemaining = tpeAmount - totalUsage;
+      tpe.remaining = nextRemaining;
+      tpe.remainingAmount = nextRemaining;
+      tpe.isUsed = nextRemaining === 0;
+
+      if (tpe.sourceRef && tpe.sourceRef !== tpe) {
+        tpe.sourceRef.remaining = nextRemaining;
+        tpe.sourceRef.remainingAmount = nextRemaining;
+        tpe.sourceRef.isUsed = nextRemaining === 0;
+      }
     }
 
     violations.push(...tpeViolations);
@@ -151,7 +146,7 @@ export function validateTradeExceptions(team) {
       teamCtx: { isOverCap: true },
       outgoing: salaryOut,
       incoming: salaryIn,
-      tradeDate: context.tradeDate || new Date().toISOString(),
+      tradeDate: canonicalTradeDate,
     });
   }
 

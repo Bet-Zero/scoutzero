@@ -4,6 +4,7 @@
  */
 
 import { isSecondApronTeam } from '../utils/capUtils.js';
+import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 
 /**
  * Reacquisition eligibility enforcement
@@ -98,18 +99,18 @@ export function validateCash(team, tradeCtx) {
   }
 
   const violations = [];
+  const cashSent = team.cashSent || 0;
 
   // Check if team is over second apron
   if (isSecondApronTeam(team.team, tradeCtx.capSettings)) {
-    if (team.cashOut > 0) {
-      violations.push('Teams over the Second Apron cannot send cash');
+    if (cashSent > 0) {
+      violations.push(SECOND_APRON_CASH_BLOCKED);
     }
   }
 
   // Check seasonal cash limit
   const seasonLimit = 5_800_000; // $5.8M for 2023-24
-  const totalCashOut =
-    (team.team.cashLedger?.totalOut || 0) + (team.cashOut || 0);
+  const totalCashOut = (team.team.cashLedger?.totalOut || 0) + cashSent;
 
   if (totalCashOut > seasonLimit) {
     violations.push(

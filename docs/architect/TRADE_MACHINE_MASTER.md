@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 
 ## Trade Machine Overview
 
@@ -316,6 +316,8 @@ Date: 2026-02-26
 - `return_packages/trade_machine/TM_VALIDATOR_TRUST_FIXES_E1_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_CONTRACT_CLEANUP_E2_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_HARDENING_E3_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_RULE_CORRECTNESS_AUDIT_P2_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_RULE_FIXES_E4_RETURN_PACKAGE.md`
 
 ### Validator Trust Audit (2026-03-07)
 
@@ -351,6 +353,21 @@ Date: 2026-02-26
   - targeted validator TS migration can now begin
   - migrate the shared validator contract layer first: `ValidationIssue` / result types, `validationIssueText.js`, `tradeValidator.js`, and `tradeContext` contract surfaces before moving deeper into individual rule modules
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_HARDENING_E3_RETURN_PACKAGE.md`
+
+### Validator Rule Correctness Audit P2 (2026-03-08)
+
+- Verdict: Not yet substantively trustworthy; blocker-level TPE and cash rule-processing gaps remain in the authoritative path.
+- STOP condition: Triggered.
+- TS migration note: Pause validator rule-module migration; continue only already-clean shared contract/helper surfaces if needed.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_RULE_CORRECTNESS_AUDIT_P2_RETURN_PACKAGE.md`
+
+### Validator Rule Fixes E4 (2026-03-08)
+
+- Status: The P2 substantive rule blockers were fixed in the authoritative preview/apply path. Canonical TPE expiry now reads validator `tradeDate`, live TPE restrictions now run from actual normalized TPE usage, and seasonal cash-limit enforcement now reads `cashSent`.
+- TS migration note:
+  - targeted validator rule-module migration may resume
+  - keep migration scoped and behavior-first; do not reopen live-path rule semantics without equivalent validator/apply regression coverage
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_RULE_FIXES_E4_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

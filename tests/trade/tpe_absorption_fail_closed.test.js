@@ -8,46 +8,55 @@ const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 const tradeDate = '2025-07-01T00:00:00.000Z';
 
-const makePlayer = (name, salary) => ({
+const makePlayer = (name, salary, extra = {}) => ({
   name,
+  salary,
   contract: { salariesByYear: [{ season, salary }] },
+  ...extra,
 });
 
 const makeTeam = (name, totalSalary, rosterSize = 14) => ({
   id: name,
   teamName: name,
   totalSalary,
+  teamTotalSalary: totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000)
   ),
   picks: [],
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const makeHeldTpe = (id, amount) => ({
+  id,
+  amount,
+  totalAmount: amount,
+  remaining: amount,
+  remainingAmount: amount,
+  expiresOn: '2026-07-01T00:00:00.000Z',
+  expirationDate: '2026-07-01T00:00:00.000Z',
+  createdSeason: 2025,
+});
+
+const issueTexts = (issues = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 describe('TPE absorption fail-closed guards', () => {
   it('rejects absorptionMode=TPE when tpeId is missing', () => {
     const teamA = makeTeam('A', 150_000_000);
     const teamB = makeTeam('B', 120_000_000);
-    const tpe = {
-      id: 'tpe1',
-      amount: 10_000_000,
-      expiryISO: '2026-07-01T00:00:00.000Z',
-      createdSeason: 2025,
-    };
-    teamA.tradeExceptions = [tpe];
+    teamA.exceptions = { tpe: [makeHeldTpe('tpe1', 10_000_000)] };
 
-    // Player has absorptionMode='TPE' but NO tpeId
     const incoming = {
-      ...makePlayer('In', 5_000_000),
-      absorptionMode: 'TPE',
-      fromTeamId: 'B',
+      ...makePlayer('In', 5_000_000, {
+        absorptionMode: 'TPE',
+        fromTeamId: 'B',
+      }),
     };
     teamB.players.push(incoming);
 
     const res = validateTrade({
       teams: [
-        { team: teamA, sends: [], picksOut: [], appliedTPEs: [tpe] },
+        { team: teamA, sends: [], picksOut: [] },
         { team: teamB, sends: [incoming], picksOut: [] },
       ],
       capProjections,
@@ -62,29 +71,22 @@ describe('TPE absorption fail-closed guards', () => {
     );
   });
 
-  it('rejects tpeId that does not resolve to an existing TPE', () => {
+  it('rejects an unknown tpeId through live validateTrade', () => {
     const teamA = makeTeam('A', 150_000_000);
     const teamB = makeTeam('B', 120_000_000);
-    const tpe = {
-      id: 'real-tpe',
-      amount: 10_000_000,
-      expiryISO: '2026-07-01T00:00:00.000Z',
-      createdSeason: 2025,
-    };
-    teamA.tradeExceptions = [tpe];
 
-    // Player references a tpeId that doesn't exist
     const incoming = {
-      ...makePlayer('In', 5_000_000),
-      absorptionMode: 'TPE',
-      tpeId: 'nonexistent-tpe',
-      fromTeamId: 'B',
+      ...makePlayer('In', 5_000_000, {
+        absorptionMode: 'TPE',
+        tpeId: 'ghost-tpe',
+        fromTeamId: 'B',
+      }),
     };
     teamB.players.push(incoming);
 
     const res = validateTrade({
       teams: [
-        { team: teamA, sends: [], picksOut: [], appliedTPEs: [tpe] },
+        { team: teamA, sends: [], picksOut: [] },
         { team: teamB, sends: [incoming], picksOut: [] },
       ],
       capProjections,
@@ -94,33 +96,28 @@ describe('TPE absorption fail-closed guards', () => {
 
     expect(issueTexts(res.teamResults[0].violations)).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("does not exist on this team"),
+        expect.stringContaining("tpeId 'ghost-tpe' which does not exist on this team"),
       ])
     );
   });
 
-  it('validates successfully when absorptionMode=TPE with valid tpeId', () => {
+  it('rejects an assigned tpeId that does not resolve against team-held TPEs', () => {
     const teamA = makeTeam('A', 150_000_000);
     const teamB = makeTeam('B', 120_000_000);
-    const tpe = {
-      id: 'valid-tpe',
-      amount: 10_000_000,
-      expiryISO: '2026-07-01T00:00:00.000Z',
-      createdSeason: 2025,
-    };
-    teamA.tradeExceptions = [tpe];
+    teamA.exceptions = { tpe: [makeHeldTpe('real-tpe', 10_000_000)] };
 
     const incoming = {
-      ...makePlayer('In', 5_000_000),
-      absorptionMode: 'TPE',
-      tpeId: 'valid-tpe',
-      fromTeamId: 'B',
+      ...makePlayer('In', 5_000_000, {
+        absorptionMode: 'TPE',
+        tpeId: 'stale-selected-tpe',
+        fromTeamId: 'B',
+      }),
     };
     teamB.players.push(incoming);
 
     const res = validateTrade({
       teams: [
-        { team: teamA, sends: [], picksOut: [], appliedTPEs: [tpe] },
+        { team: teamA, sends: [], picksOut: [] },
         { team: teamB, sends: [incoming], picksOut: [] },
       ],
       capProjections,
@@ -128,7 +125,39 @@ describe('TPE absorption fail-closed guards', () => {
       tradeCtx: { tradeDate },
     });
 
-    // Should not contain fail-closed violations
+    expect(issueTexts(res.teamResults[0].violations)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          "tpeId 'stale-selected-tpe' which does not exist on this team"
+        ),
+      ])
+    );
+  });
+
+  it('validates successfully when absorptionMode=TPE with a valid team-held tpeId', () => {
+    const teamA = makeTeam('A', 150_000_000);
+    const teamB = makeTeam('B', 120_000_000);
+    teamA.exceptions = { tpe: [makeHeldTpe('valid-tpe', 10_000_000)] };
+
+    const incoming = {
+      ...makePlayer('In', 5_000_000, {
+        absorptionMode: 'TPE',
+        tpeId: 'valid-tpe',
+        fromTeamId: 'B',
+      }),
+    };
+    teamB.players.push(incoming);
+
+    const res = validateTrade({
+      teams: [
+        { team: teamA, sends: [], picksOut: [] },
+        { team: teamB, sends: [incoming], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+      tradeCtx: { tradeDate },
+    });
+
     const tpeViolations = issueTexts(res.teamResults[0].violations || []).filter(
       (v) => v.includes('tpeId') || v.includes('absorptionMode')
     );
@@ -162,6 +191,11 @@ describe('TPE absorption fail-closed guards', () => {
     const result = validateTradeExceptions({
       teamTotalSalary: 150_000_000,
       context: { capSettings: { secondApron: 190_000_000 } },
+      team: {
+        exceptions: {
+          tpe: [makeHeldTpe('real-one', 10_000_000)],
+        },
+      },
       incomingPlayers: [
         {
           name: 'TestPlayer',
@@ -172,9 +206,7 @@ describe('TPE absorption fail-closed guards', () => {
       ],
       outgoingPlayers: [],
       sends: [],
-      appliedTPEs: [
-        { id: 'real-one', amount: 10_000_000, createdSeason: 2025 },
-      ],
+      appliedTPEs: [],
       tradeExceptions: [],
       salaryOut: 0,
       salaryIn: 0,
