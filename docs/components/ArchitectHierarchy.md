@@ -398,6 +398,7 @@ utils/
       tradeUtilityMisc.js
       validateInput.js
       validationIssueText.js
+      validationIssueText.ts
     validators/
       index.js
   tradeManager.js
@@ -407,5 +408,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T09:33:06.374Z*
+*Generated on: 2026-03-08T09:58:07.535Z*
 *Auto-updated by: npm run docs*

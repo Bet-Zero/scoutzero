@@ -477,6 +477,16 @@ Date: 2026-02-26
   - post-E13 next best slice should be selected from the actual remaining holdouts; `utils/validationIssueText.js` is the most likely next target because it still owns canonical issue normalization/text shaping consumed directly by the TS engine, but it is not precommitted as mandatory
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ENGINE_E13_RETURN_PACKAGE.md`
 
+### Validator TS Validation Issue Text E14 (2026-03-08)
+
+- Status: The canonical issue-text and issue-normalization helper surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative issue normalization and text helper logic now lives in `utils/validationIssueText.ts`
+  - `utils/validationIssueText.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator issue/result semantics remained unchanged, including canonical normalization of legacy/raw issue inputs, top-level `reason` derivation, first-issue text behavior, rule-envelope text shaping, and summary text helpers
+  - next best TS slice should be selected from the actual post-E14 holdouts; `engine/validationUtils.js` is a likely engine-adjacent candidate, but not mandatory if another remaining holdout is the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATION_ISSUE_TEXT_E14_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -366,20 +366,37 @@ function createRuleEnvelope(
     };
   }
 
-  const violations = normalizeValidationIssues(rawResult.violations, {
-    rule: ruleKey,
-    severity: 'error',
-  });
-  const warnings = normalizeValidationIssues(rawResult.warnings, {
-    rule: ruleKey,
-    severity: 'warning',
-  });
+  const violations = normalizeValidationIssues(
+    rawResult.violations as
+      | ValidationIssueLike
+      | Record<string, unknown>
+      | Array<ValidationIssueLike | Record<string, unknown>>
+      | null
+      | undefined,
+    {
+      rule: ruleKey,
+      severity: 'error',
+    }
+  );
+  const warnings = normalizeValidationIssues(
+    rawResult.warnings as
+      | ValidationIssueLike
+      | Record<string, unknown>
+      | Array<ValidationIssueLike | Record<string, unknown>>
+      | null
+      | undefined,
+    {
+      rule: ruleKey,
+      severity: 'warning',
+    }
+  );
   const passed = hasOwn(rawResult, 'passed')
     ? Boolean(rawResult.passed)
     : violations.length === 0;
   const details = hasOwn(rawResult, 'details') ? rawResult.details : null;
+  const rawMessage = typeof rawResult.message === 'string' ? rawResult.message : '';
   const message =
-    rawResult.message ||
+    rawMessage ||
     getFirstValidationIssueText(violations) ||
     getFirstValidationIssueText(warnings) ||
     `${label} validated`;

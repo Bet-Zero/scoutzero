@@ -291,6 +291,7 @@ describe('validateTrade contract cleanup', () => {
         expect.stringContaining('has no destination'),
       ])
     );
+    expect(result.reason).toBe(getValidationIssueText(result.violations[0]));
     expect(result.warnings.map((issue) => getValidationIssueText(issue))).toEqual(
       expect.arrayContaining([
         expect.stringContaining('has no id/entitlementId field'),
