@@ -320,6 +320,7 @@ Date: 2026-02-26
 - `return_packages/trade_machine/TM_VALIDATOR_RULE_FIXES_E4_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_TS_RULES_E5_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_TS_CONSENT_ELIGIBILITY_E6_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_TIMING_REVALIDATION_P3_RETURN_PACKAGE.md`
 
 ### Validator Trust Audit (2026-03-07)
 
@@ -387,6 +388,13 @@ Date: 2026-02-26
   - helper enforcers still return plain strings while validator surfaces now emit canonical `ValidationIssue` objects
   - next revisit the generic timing validation/enforcement cluster only after separate behavior re-validation
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CONSENT_ELIGIBILITY_E6_RETURN_PACKAGE.md`
+
+### Validator Timing Revalidation P3 (2026-03-08)
+
+- Verdict: Generic timing is not yet substantively trustworthy; STOP condition triggered.
+- TS migration note:
+  - pause generic timing TS migration until timing warning/error routing and 60-day aggregation semantics are fixed
+  - return package: `return_packages/trade_machine/TM_VALIDATOR_TIMING_REVALIDATION_P3_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 
