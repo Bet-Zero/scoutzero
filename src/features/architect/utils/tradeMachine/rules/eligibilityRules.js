@@ -3,8 +3,7 @@
  * Consolidated from: reacquisition.js, cashValidation.js
  */
 
-import { isSecondApronTeam } from '../utils/capUtils.js';
-import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+export { validateCash } from './validateCash.js';
 
 /**
  * Reacquisition eligibility enforcement
@@ -82,45 +81,5 @@ export function validateReacquisition(team, tradeCtx = {}) {
       ? 'Re-acquisition restriction violation' 
       : 'Re-acquisition rules validated',
     details: violations.join('; '),
-  };
-}
-
-/**
- * Cash validation rules
- * (From cashValidation.js)
- */
-export function validateCash(team, tradeCtx) {
-  if (!team || !tradeCtx) {
-    return {
-      passed: false,
-      violations: ['Invalid trade data'],
-      message: 'Missing trade context',
-    };
-  }
-
-  const violations = [];
-  const cashSent = team.cashSent || 0;
-
-  // Check if team is over second apron
-  if (isSecondApronTeam(team.team, tradeCtx.capSettings)) {
-    if (cashSent > 0) {
-      violations.push(SECOND_APRON_CASH_BLOCKED);
-    }
-  }
-
-  // Check seasonal cash limit
-  const seasonLimit = 5_800_000; // $5.8M for 2023-24
-  const totalCashOut = (team.team.cashLedger?.totalOut || 0) + cashSent;
-
-  if (totalCashOut > seasonLimit) {
-    violations.push(
-      `Cash sent this season (${totalCashOut.toLocaleString()}) would exceed the seasonal limit of ${seasonLimit.toLocaleString()}`
-    );
-  }
-
-  return {
-    passed: violations.length === 0,
-    violations,
-    message: violations.length ? violations[0] : 'Cash validated',
   };
 }

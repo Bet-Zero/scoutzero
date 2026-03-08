@@ -318,6 +318,7 @@ Date: 2026-02-26
 - `return_packages/trade_machine/TM_VALIDATOR_HARDENING_E3_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_RULE_CORRECTNESS_AUDIT_P2_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_RULE_FIXES_E4_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_TS_RULES_E5_RETURN_PACKAGE.md`
 
 ### Validator Trust Audit (2026-03-07)
 
@@ -368,6 +369,14 @@ Date: 2026-02-26
   - targeted validator rule-module migration may resume
   - keep migration scoped and behavior-first; do not reopen live-path rule semantics without equivalent validator/apply regression coverage
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_RULE_FIXES_E4_RETURN_PACKAGE.md`
+
+### Validator TS Rules E5 (2026-03-08)
+
+- Status: The authoritative post-E4 TPE helper/rule path is now in TS (`tpeValidation.ts` + `validateTradeExceptions.ts`), and the authoritative `validateCash` surface now runs from `validateCash.ts`.
+- TS migration note:
+  - compatibility JS hosts remain in place for `tradeUtilities.js`, `validateTradeExceptions.js`, and `eligibilityRules.js` so the live import chain and guardrail path assumptions stay stable
+  - next migrate the small consent/eligibility cluster only after the remaining JS holdouts in that area are re-validated
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_RULES_E5_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

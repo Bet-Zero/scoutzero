@@ -174,6 +174,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/timingValidation.js
 - utils/tradeMachine/rules/tradeExceptions.js
 - utils/tradeMachine/rules/validateAggregation.js
+- utils/tradeMachine/rules/validateCash.js
 - utils/tradeMachine/rules/validateConsent.js
 - utils/tradeMachine/rules/validateEligibility.js
 - utils/tradeMachine/rules/validateEntitlementRouting.js
@@ -201,9 +202,11 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/seasonUtils.js
 - utils/tradeMachine/utils/stepienEntitlementUtils.js
 - utils/tradeMachine/utils/swapResolution.js
+- utils/tradeMachine/utils/tpeValidation.js
 - utils/tradeMachine/utils/tradeExportUtils.js
 - utils/tradeMachine/utils/tradeTimingWindows.js
 - utils/tradeMachine/utils/tradeUtilities.js
+- utils/tradeMachine/utils/tradeUtilityMisc.js
 - utils/tradeMachine/utils/validateInput.js
 - utils/tradeMachine/utils/validationIssueText.js
 - utils/tradeMachine/validators/index.js
@@ -358,4 +361,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-08T03:52:27.929Z*
+*Generated on: 2026-03-08T04:32:39.403Z*

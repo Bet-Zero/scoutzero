@@ -43,7 +43,9 @@ describe('seasonal cash ledger tracking', () => {
 
     const res = validateCash(team, { season: 2025, capSettings: {} });
 
-    expect(res.violations[0]).toMatch(/Cash sent.*would exceed.*seasonal limit/);
+    expect(issueTexts(res.violations)[0]).toMatch(
+      /Cash sent.*would exceed.*seasonal limit/
+    );
   });
 
   it('rejects seasonal cash-limit overflow through live validateTrade using cashSent', () => {

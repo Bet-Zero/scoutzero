@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/validateTradeExceptions.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const futureDate = () => {
   const d = new Date();
@@ -26,6 +27,9 @@ const makeTeam = (tpe, playerSalary = 4_000_000) => ({
   currentRoster: Array(14).fill({}), // Minimum roster size
 });
 
+const issueTexts = (issues = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
+
 describe('Trade Exception Validation', () => {
   it('allows valid TPE usage and updates remaining balance', () => {
     const tpe = { id: '1', amount: 5_000_000, expiryDate: futureDate() };
@@ -33,7 +37,7 @@ describe('Trade Exception Validation', () => {
 
     const result = validateTradeExceptions(team);
 
-    expect(result.violations).toEqual([]);
+    expect(issueTexts(result.violations)).toEqual([]);
     expect(team.tradeExceptions[0].remaining).toBe(1_000_000);
     expect(team.tradeExceptions[0].isUsed).toBe(false);
   });
@@ -54,7 +58,7 @@ describe('Trade Exception Validation', () => {
 
     const result = validateTradeExceptions(team);
 
-    expect(result.violations[0]).toMatch(/expired/);
+    expect(issueTexts(result.violations)[0]).toMatch(/expired/);
     expect(team.tradeExceptions[0].isUsed).toBeUndefined();
   });
 
@@ -64,7 +68,7 @@ describe('Trade Exception Validation', () => {
 
     const result = validateTradeExceptions(team);
 
-    expect(result.violations[0]).toMatch(/too small/);
+    expect(issueTexts(result.violations)[0]).toMatch(/too small/);
     expect(team.tradeExceptions[0].isUsed).toBeUndefined();
   });
 
@@ -79,7 +83,7 @@ describe('Trade Exception Validation', () => {
 
     const result = validateTradeExceptions(team);
 
-    expect(result.violations[0]).toMatch(/already being processed/);
+    expect(issueTexts(result.violations)[0]).toMatch(/already being processed/);
   });
 
   it('handles missing expiration date', () => {
@@ -88,7 +92,7 @@ describe('Trade Exception Validation', () => {
 
     const result = validateTradeExceptions(team);
 
-    expect(result.violations).toEqual([]);
+    expect(issueTexts(result.violations)).toEqual([]);
     expect(team.tradeExceptions[0].remaining).toBe(1_000_000);
   });
 
@@ -107,7 +111,7 @@ describe('Trade Exception Validation', () => {
 
     const result = validateTradeExceptions(team);
 
-    expect(result.violations).toEqual([]);
+    expect(issueTexts(result.violations)).toEqual([]);
     expect(team.tradeExceptions[0].remaining).toBe(0);
     expect(team.tradeExceptions[1].remaining).toBe(0);
   });

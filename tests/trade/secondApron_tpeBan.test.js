@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/validateTradeExceptions.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
@@ -96,5 +97,56 @@ describe('second apron prior-year TPE usage', () => {
     );
 
     expect(res.teamResults[0].legal).toBe(true);
+  });
+
+  it('yields the same prior-year second-apron rule outcome for live-path and compatibility-input TPE usage', () => {
+    const livePathTpe = makeHeldTpe('equivalent-tpe', 5_000_000, currentYear - 1);
+    const compatibilityTpe = makeHeldTpe(
+      'equivalent-tpe',
+      5_000_000,
+      currentYear - 1
+    );
+    const ruleContext = {
+      teamTotalSalary: 220_000_000,
+      context: {
+        tradeDate,
+        yearKey: currentYear,
+        capSettings: { secondApron: 190_000_000, salaryCap: 141_000_000 },
+      },
+      outgoingPlayers: [],
+      sends: [],
+      salaryOut: 0,
+      salaryIn: 0,
+    };
+
+    const livePathResult = validateTradeExceptions({
+      ...ruleContext,
+      team: { exceptions: { tpe: [livePathTpe] } },
+      incomingPlayers: [
+        {
+          name: 'Bstar',
+          salary: 5_000_000,
+          absorptionMode: 'TPE',
+          tpeId: livePathTpe.id,
+        },
+      ],
+      appliedTPEs: [],
+      tradeExceptions: [],
+    });
+
+    const compatibilityInputResult = validateTradeExceptions({
+      ...ruleContext,
+      team: { exceptions: { tpe: [compatibilityTpe] } },
+      incomingPlayers: [],
+      appliedTPEs: [compatibilityTpe],
+      tradeExceptions: [],
+    });
+
+    expect(issueTexts(livePathResult.violations)).toEqual(
+      issueTexts(compatibilityInputResult.violations)
+    );
+    expect(issueTexts(livePathResult.violations)).toContain(
+      'Second apron: prior-year TPEs cannot be used.'
+    );
   });
 });

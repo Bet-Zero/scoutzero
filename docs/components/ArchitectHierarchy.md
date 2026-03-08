@@ -338,6 +338,8 @@ utils/
       timingValidation.js
       tradeExceptions.js
       validateAggregation.js
+      validateCash.js
+      validateCash.ts
       validateConsent.js
       validateEligibility.js
       validateEntitlementRouting.js
@@ -352,6 +354,7 @@ utils/
       validateStepien.js
       validateStepien.ts
       validateTradeExceptions.js
+      validateTradeExceptions.ts
     signAndTrade/
       signAndTradeEligibility.ts
     utils/
@@ -373,9 +376,12 @@ utils/
       seasonUtils.js
       stepienEntitlementUtils.js
       swapResolution.js
+      tpeValidation.js
+      tpeValidation.ts
       tradeExportUtils.js
       tradeTimingWindows.js
       tradeUtilities.js
+      tradeUtilityMisc.js
       validateInput.js
       validationIssueText.js
     validators/
@@ -387,5 +393,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-07T22:11:32.137Z*
+*Generated on: 2026-03-08T04:32:39.343Z*
 *Auto-updated by: npm run docs*

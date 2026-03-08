@@ -180,7 +180,7 @@ describe('TPE absorption fail-closed guards', () => {
     });
 
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual(
+    expect(issueTexts(result.violations)).toEqual(
       expect.arrayContaining([
         expect.stringContaining("absorptionMode='TPE' but no tpeId"),
       ])
@@ -213,7 +213,7 @@ describe('TPE absorption fail-closed guards', () => {
     });
 
     expect(result.passed).toBe(false);
-    expect(result.violations).toEqual(
+    expect(issueTexts(result.violations)).toEqual(
       expect.arrayContaining([
         expect.stringContaining("does not exist on this team"),
       ])

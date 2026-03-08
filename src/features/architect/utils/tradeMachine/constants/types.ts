@@ -36,14 +36,69 @@ export interface NormalizedPlayer {
   [key: string]: unknown; // Allow additional properties
 }
 
-// Normalized trade exception
-export interface NormalizedTPE {
+export interface TradeExceptionPlayer {
+  id?: string;
+  name?: string;
+  displayName?: string;
+  salary?: number;
+  matchIncoming?: number;
+  matchOutgoing?: number;
+  absorptionMode?: 'MATCH' | 'TPE' | 'FA_EXCEPTION' | string;
+  signAndTrade?: boolean;
+  tpeId?: string;
+  fromTeamId?: string;
+  toTeamId?: string;
+  [key: string]: unknown;
+}
+
+export interface TradeExceptionRecord {
+  id?: string;
+  amount?: number;
+  totalAmount?: number;
+  remaining?: number;
+  remainingAmount?: number;
+  expiresOn?: string | null;
+  expirationDate?: string | null;
+  expiryISO?: string | null;
+  expiryDate?: string | null;
+  createdSeason?: number;
+  season?: number;
+  createdAtSeason?: number;
+  isUsed?: boolean;
+  isBeingUsed?: boolean;
+  sourceRef?: TradeExceptionRecord | Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+export interface NormalizedTradeExceptionRecord extends TradeExceptionRecord {
   id: string;
   amount: number;
+  totalAmount: number;
   remaining: number;
-  expiryDate?: string;
-  createdSeason?: number;
-  [key: string]: unknown;
+  remainingAmount: number;
+}
+
+export type NormalizedTPE = NormalizedTradeExceptionRecord;
+
+export interface CanonicalTeamTpeUsageEntry {
+  tpeId: string;
+  tpe: NormalizedTradeExceptionRecord | null;
+  players: TradeExceptionPlayer[];
+  totalUsage: number;
+  source: 'playerAssignment' | 'compatibilityInput';
+}
+
+export interface UnresolvedTpeUsage {
+  player: TradeExceptionPlayer | null;
+  tpeId: string | null;
+  reason: 'missingTpeId' | 'missingOnTeam';
+}
+
+export interface CanonicalTeamTpeUsage {
+  availableTpes: NormalizedTradeExceptionRecord[];
+  usedTpes: CanonicalTeamTpeUsageEntry[];
+  unresolvedPlayers: UnresolvedTpeUsage[];
+  usesTpe: boolean;
 }
 
 // Normalized team data
@@ -59,7 +114,15 @@ export interface NormalizedTeam {
     players: NormalizedPlayer[];
     twoWayPlayers: NormalizedPlayer[];
     /** @deprecated Internal compute only - populated via getTeamTpeList() */
-    tradeExceptions: NormalizedTPE[];
+    tradeExceptions: TradeExceptionRecord[];
+    exceptions?: {
+      tpe?: TradeExceptionRecord[];
+      [key: string]: unknown;
+    };
+    cashLedger?: {
+      totalOut?: number;
+      [key: string]: unknown;
+    };
     [key: string]: unknown;
   };
   sends: NormalizedPlayer[];
@@ -69,8 +132,9 @@ export interface NormalizedTeam {
     [key: string]: unknown;
   }>;
   cashSent: number;
+  cashReceived?: number;
   hardCapped: boolean;
-  appliedTPEs: NormalizedTPE[];
+  appliedTPEs: TradeExceptionRecord[];
   [key: string]: unknown;
 }
 
@@ -106,14 +170,19 @@ export interface ValidationResult {
 }
 
 export interface TeamContext {
-  capSettings: {
+  capSettings?: {
     salaryCap?: number;
     firstApron?: number;
     secondApron?: number;
     taxLine?: number;
   };
-  yearKey: number;
+  yearKey?: number | string;
   tradeDate?: string;
+  asOfDate?: string;
+  season?: number | string;
+  teams?: TradeTeam[];
+  wasTradedAwayWithinOneYear?: (playerId: unknown, destTeamId: unknown) => boolean;
+  [key: string]: unknown;
 }
 
 export interface TradeTeam {
@@ -129,27 +198,44 @@ export interface TradeTeam {
   hardCapped?: boolean;
   hardCapTrigger?: string | null;
   absorptionMode?: string;
-  incomingPlayers?: Array<Record<string, unknown>>;
-  outgoingPlayers?: Array<Record<string, unknown>>;
+  incomingPlayers?: TradeExceptionPlayer[];
+  outgoingPlayers?: TradeExceptionPlayer[];
+  sends?: TradeExceptionPlayer[];
+  receives?: TradeExceptionPlayer[];
+  tradeExceptions?: TradeExceptionRecord[];
+  appliedTPEs?: TradeExceptionRecord[];
+  cashSent?: number;
+  cashReceived?: number;
   outgoingPicks?: Array<Record<string, unknown>>;
   postTradeStatus?: {
     isAtOrAboveSecondApron?: boolean;
   };
   team?: {
+    id?: string;
+    teamId?: string;
+    teamCode?: string;
+    teamName?: string;
+    name?: string;
+    nickname?: string;
+    teamTotalSalary?: number;
+    totalSalary?: number;
     hardCapTriggered?: boolean | 'FirstApron' | 'SecondApron';
     twoWayPlayers?: Array<Record<string, unknown>>;
     picks?: Array<Record<string, unknown>>;
-  };
-  context?: {
-    yearKey: number | string;
-    capSettings?: {
-      salaryCap?: number;
-      firstApron?: number;
-      secondApron?: number;
-      taxLine?: number;
+    tradeExceptions?: TradeExceptionRecord[];
+    exceptions?: {
+      tpe?: TradeExceptionRecord[];
+      [key: string]: unknown;
     };
+    cashLedger?: {
+      totalOut?: number;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
   };
+  context?: TeamContext;
   capSettings?: CapSettings;
+  [key: string]: unknown;
 }
 
 export interface RosterCounts {
@@ -191,3 +277,9 @@ export interface StepienResult extends ValidationResult {
   farthestYear: number;
   currentYear: number;
 }
+
+export interface TradeExceptionValidationResult extends ValidationResult {
+  createdTPE: TradeExceptionRecord | null;
+}
+
+export interface CashValidationResult extends ValidationResult {}
