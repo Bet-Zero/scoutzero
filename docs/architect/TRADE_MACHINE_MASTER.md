@@ -552,6 +552,17 @@ Date: 2026-02-26
   - based on the actual post-E20 holdouts, `rules/basicRules.js` is a likely next TS slice because it remains live JS second-apron rule logic consumed directly by the TS engine and by TS-backed `miscRules.ts`, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DATA_VALIDATION_E20_RETURN_PACKAGE.md`
 
+### Validator TS Basic Rules E21 (2026-03-08)
+
+- Status: The canonical `basicRules` rule/helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative second-apron handcuff logic now lives in `rules/basicRules.ts`
+  - `rules/basicRules.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent `basicRules` semantics remained unchanged, including current second-apron detection sources/fallbacks, prior-year TPE blocking, multi-player aggregation blocking, cash blocking, result shapes, alias exports, and the `cbaConstants` re-export surface
+  - targeted parity now includes direct `basicRules` helper coverage plus an authoritative `validateTrade()` assertion proving unchanged team-level and top-level blocker behavior when `enforceSecondApronHandcuffs` participates in validator legality
+  - the next best TS slice should be selected from the actual post-E21 holdouts rather than hardcoded in advance; `rules/validateAggregation.js` is a likely candidate because it remains live JS second-apron rule logic imported by the TS-backed engine, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_BASIC_RULES_E21_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
@@ -676,7 +687,7 @@ Date: 2026-03-01
 
 | Aspect | Implementation | File(s) | Test Coverage |
 |--------|---------------|---------|---------------|
-| **Second apron aggregation block** | Cannot aggregate 2+ outgoing into higher incoming | `rules/basicRules.js:90`, `rules/validateAggregation.js:68-70` | `tests/trade/secondApron_handcuffs.test.js` |
+| **Second apron aggregation block** | Cannot aggregate 2+ outgoing into higher incoming | `rules/basicRules.ts`, `rules/validateAggregation.js:68-70` | `tests/trade/secondApron_handcuffs.test.js` |
 | **S&T aggregation block (Rule 1.6)** | Receiver cannot receive additional players with S&T | `rules/validateSignAndTrade.ts` | `tests/signAndTradeAggregation.test.js` |
 | **60-day aggregation timing** | Retired from authoritative enforcement pending a reliable acquisition-date field in the live payload | `rules/timingValidation.ts` | `tests/trade/timingEnforcement_authoritative.test.js`, `tests/trade/timingGates_softEnforcement.test.js`, `src/tests/architect/tradeApply_timingWarnings.behavior.test.ts` |
 | **TPE + outgoing aggregation** | Cannot combine TPE with outgoing salary | `rules/validateTradeExceptions.js:93-97` | `tests/trade/tpe_absorption_fail_closed.test.js` |
@@ -690,7 +701,7 @@ Date: 2026-03-01
 | **TPE consumption** | `absorptionMode='TPE'` + `tpeId` required | `rules/validateTradeExceptions.js` (fail-closed) | `tests/trade/tpe_absorption_fail_closed.test.js` |
 | **TPE capacity check** | `player salary ≤ TPE remainingAmount` | `rules/validateTradeExceptions.js` | Same |
 | **TPE expiry tracking** | `expiresOn` field checked; expired TPEs rejected | `rules/validateTradeExceptions.js` | `tests/trade/tpe_creation_expiry_usage.test.js` |
-| **Second apron prior-year TPE ban** | `isPriorYearTPE()` check blocks usage | `rules/validateTradeExceptions.js`, `rules/basicRules.js` | `tests/trade/secondApron_tpeBan.test.js` |
+| **Second apron prior-year TPE ban** | `isPriorYearTPE()` check blocks usage | `rules/validateTradeExceptions.js`, `rules/basicRules.ts` | `tests/trade/secondApron_tpeBan.test.js` |
 | **TPE + salary aggregation prohibition** | Cannot combine TPE with outgoing salary | `rules/validateTradeExceptions.js:93-97` | `tests/trade/tpe_absorption_fail_closed.test.js` |
 
 #### 5. BYC (Base Year Compensation)

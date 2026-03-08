@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
@@ -203,6 +204,15 @@ describe('tradeValidator edge cases', () => {
 
     expect(result.legal).toBe(false);
     expect(result.reason).toContain('cash');
+    const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
+    expect(teamAResult?.legal).toBe(false);
+    expect(teamAResult?.rules.secondApronEnforcement.passed).toBe(false);
+    expect(issueTexts(teamAResult?.rules.secondApronEnforcement.violations)).toEqual([
+      SECOND_APRON_CASH_BLOCKED,
+    ]);
+    expect(issueTexts(teamAResult?.violations)).toContain(
+      SECOND_APRON_CASH_BLOCKED
+    );
   });
 
   it('permits cash when all teams are below the second apron', () => {

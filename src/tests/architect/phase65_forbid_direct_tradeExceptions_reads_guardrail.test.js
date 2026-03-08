@@ -171,6 +171,30 @@ function scanFileForForbiddenReads(filePath) {
   return violations;
 }
 
+function readAuthoritativeImplementationContent(filePath) {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const stripped = content
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+  const localTsTargets = Array.from(
+    stripped.matchAll(/from ['"](\.\/[^'"]+\.ts)['"]/g),
+    (match) => match[1]
+  );
+
+  if (!content.includes('getTeamTpeList') && localTsTargets.length === 1) {
+    const authoritativePath = path.resolve(
+      path.dirname(filePath),
+      localTsTargets[0]
+    );
+
+    if (fs.existsSync(authoritativePath)) {
+      return fs.readFileSync(authoritativePath, 'utf-8');
+    }
+  }
+
+  return content;
+}
+
 // ==============================================================================
 // TEST CATEGORY 1: Source-Scan for Forbidden Direct Reads
 // ==============================================================================
@@ -398,7 +422,7 @@ describe('Phase 65: Validation Rules Use Canonical Accessor', () => {
       const filePath = path.join(SRC_ROOT, file);
       if (!fs.existsSync(filePath)) return;
 
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = readAuthoritativeImplementationContent(filePath);
       expect(content).toContain('getTeamTpeList');
     });
   });

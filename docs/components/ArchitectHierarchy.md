@@ -328,6 +328,7 @@ utils/
     index.js
     rules/
       basicRules.js
+      basicRules.ts
       draftRules.js
       eligibilityRules.js
       enforceConsent.js
@@ -414,5 +415,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T20:33:42.092Z*
+*Generated on: 2026-03-08T21:05:56.986Z*
 *Auto-updated by: npm run docs*
