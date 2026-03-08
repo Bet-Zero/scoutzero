@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/validateHardCap';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 describe('validateHardCap', () => {
+  const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+
   const makeTeam = (params) => ({
     team: {
       totalSalary: 100_000_000,
@@ -36,7 +39,9 @@ describe('validateHardCap', () => {
         })
       );
       expect(result.passed).toBe(false);
-      expect(result.violations[0]).toContain('1st Apron');
+      expect(issueTexts(result.violations)).toEqual(
+        expect.arrayContaining([expect.stringContaining('1st Apron')])
+      );
     });
   });
 
@@ -59,7 +64,9 @@ describe('validateHardCap', () => {
         })
       );
       expect(result.passed).toBe(false);
-      expect(result.violations[0]).toContain('2nd Apron');
+      expect(issueTexts(result.violations)).toEqual(
+        expect.arrayContaining([expect.stringContaining('2nd Apron')])
+      );
     });
   });
 

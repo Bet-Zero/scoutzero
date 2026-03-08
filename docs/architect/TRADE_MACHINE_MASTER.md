@@ -432,6 +432,17 @@ Date: 2026-02-26
   - next migrate the adjacent authoritative hard-cap/apron surface in `hardCapValidation.js`
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SIGN_AND_TRADE_E9_RETURN_PACKAGE.md`
 
+### Validator TS Hard-Cap Apron E10 (2026-03-08)
+
+- Status: The authoritative hard-cap/apron rule surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative hard-cap/apron rule logic now lives in `rules/hardCapValidation.ts`
+  - active authoritative hard-cap status helper now lives in `utils/hardCapStatus.ts`
+  - `rules/hardCapValidation.js` and `utils/hardCapStatus.js` are now pure compatibility re-export shims with no remaining business logic
+  - the S&T-owned receiver hard-cap consequence remains unchanged in `rules/validateSignAndTrade.ts`
+  - next migrate the remaining live JS consumer surface in `rules/validateSalaryMatching.js`
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_HARDCAP_APRON_E10_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

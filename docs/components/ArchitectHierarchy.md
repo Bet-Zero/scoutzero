@@ -334,6 +334,7 @@ utils/
       enforcement.js
       enforcementValidation.js
       hardCapValidation.js
+      hardCapValidation.ts
       index.js
       miscRules.js
       rosterValidation.js
@@ -373,6 +374,7 @@ utils/
       conveyanceResolution.js
       dataValidation.js
       hardCapStatus.js
+      hardCapStatus.ts
       index.js
       matchingValues.js
       normalizeTradeInput.js
@@ -402,5 +404,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T07:20:15.669Z*
+*Generated on: 2026-03-08T07:59:35.530Z*
 *Auto-updated by: npm run docs*

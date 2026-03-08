@@ -74,6 +74,25 @@ describe('salary matching validation', () => {
     expect(result.passed).toBe(true);
   });
 
+  it('passes through hard-cap status source, reason, and ceiling metadata to salary matching', () => {
+    const result = validateSalaryMatching(
+      makeTeam(10_000_000, 10_000_000, {
+        teamTotalSalary: 175_000_000,
+        hardCapLevel: 'firstApron',
+        context: { capSettings },
+      })
+    );
+
+    expect(result.details.hardCapStatus).toMatchObject({
+      isHardCapped: true,
+      source: 'team.hardCapLevel',
+      reason: 'Hard cap triggered at First Apron',
+      hardCapCeiling: 178_000_000,
+      hardCapCeilingType: 'FIRST_APRON',
+      hardCapCeilingLabel: '1st Apron',
+    });
+  });
+
   it('uses second-apron hard-cap ceiling when type is SECOND_APRON', () => {
     const result = validateSalaryMatching(
       makeTeam(10_000_000, 10_000_000, {

@@ -12,6 +12,7 @@
 export interface CapSettings {
   salaryCap: number;
   firstApron: number;
+  apron?: number;
   secondApron: number;
   taxLine: number;
   fullMLE: number;
@@ -158,6 +159,27 @@ export interface ValidationIssue {
   meta?: Record<string, unknown> | null;
 }
 
+export type ValidationIssueLike = ValidationIssue | string;
+export type HardCapTypeCanonical = 'FIRST_APRON' | 'SECOND_APRON' | 'UNKNOWN';
+export type HardCapTypeLegacy = 'FirstApron' | 'SecondApron' | 'Unknown';
+
+export interface HardCapStatusResult {
+  isHardCapped: boolean;
+  reason: string | null;
+  source: string;
+  hardCapType: HardCapTypeCanonical | null;
+  hardCapTypeLegacy: HardCapTypeLegacy | null;
+  hardCapCeiling: number | null;
+  hardCapCeilingType: Exclude<HardCapTypeCanonical, 'UNKNOWN'> | null;
+  hardCapCeilingLabel: string | null;
+  failClosed: boolean;
+}
+
+export interface HardCapCapLimits {
+  firstApron: number;
+  secondApron: number;
+}
+
 // Common validation result interface
 export interface ValidationResult {
   passed: boolean;
@@ -173,6 +195,7 @@ export interface TeamContext {
   capSettings?: {
     salaryCap?: number;
     firstApron?: number;
+    apron?: number;
     secondApron?: number;
     taxLine?: number;
   };
@@ -264,6 +287,22 @@ export interface RosterResult extends ValidationResult {
     incomingTwoWay?: number;
     outgoingTwoWay?: number;
   };
+}
+
+export interface AuthoritativeHardCapResult {
+  passed: boolean;
+  violations: ValidationIssueLike[];
+  warnings?: ValidationIssueLike[];
+  message?: string;
+  details?: unknown;
+  warningsOnly?: boolean;
+  projectedSalary?: number;
+  hardCapType?: 'FirstApron' | 'SecondApron' | null;
+  hardCapTypeCanonical?: HardCapTypeCanonical | null;
+  hardCapStatus?: HardCapStatusResult | null;
+  capLimits?: HardCapCapLimits;
+  trigger?: string | null;
+  [key: string]: unknown;
 }
 
 export interface HardCapResult extends ValidationResult {
