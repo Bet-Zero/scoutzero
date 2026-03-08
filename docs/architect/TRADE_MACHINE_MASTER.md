@@ -443,6 +443,17 @@ Date: 2026-02-26
   - next migrate the remaining live JS consumer surface in `rules/validateSalaryMatching.js`
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_HARDCAP_APRON_E10_RETURN_PACKAGE.md`
 
+### Validator TS Salary Matching E11 (2026-03-08)
+
+- Status: The authoritative salary-matching rule and helper surfaces are now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative salary-matching rule logic now lives in `rules/validateSalaryMatching.ts`
+  - active authoritative salary-matching helper logic now lives in `utils/salaryMatchingRules.ts`
+  - `rules/validateSalaryMatching.js` and `utils/salaryMatchingRules.js` are now pure compatibility re-export shims with no remaining business logic
+  - hard-cap/apron metadata consumption remains unchanged through `utils/hardCapStatus.ts`
+  - next migrate the upstream matching-values computation boundary in `utils/matchingValues.js`
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SALARY_MATCHING_E11_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

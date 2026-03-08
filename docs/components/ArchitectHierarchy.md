@@ -382,6 +382,7 @@ utils/
       resolveValidationEntitlements.js
       salaryMargin.js
       salaryMatchingRules.js
+      salaryMatchingRules.ts
       salaryUtils.js
       seasonUtils.js
       stepienEntitlementUtils.js
@@ -404,5 +405,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T07:59:35.530Z*
+*Generated on: 2026-03-08T08:36:00.768Z*
 *Auto-updated by: npm run docs*

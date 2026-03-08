@@ -180,6 +180,60 @@ export interface HardCapCapLimits {
   secondApron: number;
 }
 
+export interface AuthoritativeSalaryMatchingCapSettings {
+  salaryCap: number;
+  firstApron: number;
+  secondApron: number;
+}
+
+export interface AuthoritativeSalaryMatchingHardCapCeilingDetails {
+  ceiling: number;
+  apron: number | null;
+  apronLabel: string | null;
+  limiter: 'hardCap' | 'salaryMatching';
+}
+
+export interface AuthoritativeSalaryMatchingDetails {
+  ruleApplied: string;
+  formulaUsed: string;
+  capSettings?: AuthoritativeSalaryMatchingCapSettings;
+  capSettingsSource: string;
+  capSettingsWarnings?: string[];
+  totalSalary?: number;
+  totalSalarySource?: string;
+  bucketRemaining?: number;
+  tpeAbsorbedSalary?: number | null;
+  salaryNeedingMatch?: number;
+  tpeCount?: number;
+  bucketTypes?: unknown[];
+  faExceptionAbsorbedSalary?: number | null;
+  effectiveSalaryIn?: number;
+  margin?: number | null;
+  hardCapStatus?: HardCapStatusResult | null;
+  hardCapCeiling?: AuthoritativeSalaryMatchingHardCapCeilingDetails | null;
+}
+
+export interface AuthoritativeSalaryMatchingResult {
+  passed: boolean;
+  applicable: boolean;
+  skipReason: string | null;
+  allowableIncoming: number | null;
+  violations: ValidationIssueLike[];
+  warnings?: ValidationIssueLike[];
+  salaryIn?: number;
+  salaryOut?: number;
+  hardCapIncomingCeiling?: number | null;
+  effectiveAllowableIncoming?: number | null;
+  tpeAbsorbedSalary?: number | null;
+  faExceptionAbsorbedSalary?: number | null;
+  difference?: number;
+  message?: string;
+  warningsOnly?: boolean;
+  usingTPE?: boolean;
+  details: AuthoritativeSalaryMatchingDetails;
+  [key: string]: unknown;
+}
+
 // Common validation result interface
 export interface ValidationResult {
   passed: boolean;
