@@ -625,6 +625,30 @@ npm run architect:review:up
 # Access at http://localhost:5173/
 ```
 
+### Running in GitHub Codespaces (Cloud)
+
+Review mode works in GitHub Codespaces without any extra setup:
+
+```bash
+npm install
+npm run architect:review:up
+```
+
+When the `CODESPACES=true` environment variable is present (set automatically by Codespaces),
+the Vite dev server binds to `0.0.0.0` instead of `127.0.0.1`. This makes port `5173` visible
+through Codespaces port forwarding so you can open the app in your browser via the forwarded URL.
+
+The Playwright tests always connect using the loopback address `127.0.0.1:5173` regardless of
+the binding. When Vite binds to `0.0.0.0`, it accepts connections on all interfaces including
+loopback, so Playwright's `http://127.0.0.1:5173` base URL continues to work unchanged in
+Codespaces.
+
+To force the `0.0.0.0` host in any other environment:
+
+```bash
+REVIEW_VITE_HOST=0.0.0.0 npm run architect:review:up
+```
+
 ### Manual Steps
 
 ```bash

@@ -39,6 +39,19 @@ const FIRESTORE_WS_PORT = 9150;
  */
 const REVIEW_PROJECT_ID = 'demo-architect-review';
 
+/**
+ * In GitHub Codespaces, bind Vite to 0.0.0.0 so the dev server is reachable
+ * through Codespaces port forwarding from the user's browser.
+ * In local development, use 127.0.0.1 (loopback only) for safety.
+ * Override with REVIEW_VITE_HOST env var if needed.
+ * ⚠️  Setting REVIEW_VITE_HOST=0.0.0.0 (or running in Codespaces) exposes the
+ * dev server on all network interfaces. Only use this in trusted/isolated
+ * environments such as GitHub Codespaces or a private cloud VM.
+ */
+const VITE_HOST =
+  process.env.REVIEW_VITE_HOST ??
+  (process.env.CODESPACES === 'true' ? '0.0.0.0' : '127.0.0.1');
+
 const PORTS = [
   { name: 'vite', port: VITE_PORT },
   { name: 'firestore', port: FIRESTORE_PORT },
@@ -364,7 +377,7 @@ const runSeed = (): Promise<void> =>
  * Start Vite dev server.
  */
 const startVite = (): ChildProcess => {
-  log('[review] Starting Vite dev server...');
+  log(`[review] Starting Vite dev server (host: ${VITE_HOST})...`);
   return spawn(
     'npm',
     [
@@ -372,7 +385,7 @@ const startVite = (): ChildProcess => {
       'dev',
       '--',
       '--host',
-      '127.0.0.1',
+      VITE_HOST,
       '--port',
       String(VITE_PORT),
       '--strictPort',
@@ -422,6 +435,9 @@ const main = async () => {
   log('');
   log('═══════════════════════════════════════════════════════════════════');
   log('  🔍 ARCHITECT REVIEW MODE');
+  if (process.env.CODESPACES === 'true') {
+    log('  ☁️  Cloud environment detected (GitHub Codespaces)');
+  }
   log('  Starting emulators + minimal seed + dev server');
   log('═══════════════════════════════════════════════════════════════════');
   log('');
@@ -479,14 +495,8 @@ const main = async () => {
     env: emulatorEnv,
   });
 
-  let emulatorReady = false;
-
   emulatorProcess.stdout?.on('data', (data: Buffer) => {
-    const text = data.toString();
-    process.stdout.write(text);
-    if (!emulatorReady && /Firestore Emulator logging to/i.test(text)) {
-      emulatorReady = true;
-    }
+    process.stdout.write(data);
   });
 
   emulatorProcess.stderr?.on('data', (data: Buffer) => {
@@ -535,18 +545,22 @@ const main = async () => {
 
   if (!viteReady) {
     log('');
-    log(`  ❌ Vite dev server failed to bind to 127.0.0.1:${VITE_PORT}.`);
+    log(`  ❌ Vite dev server failed to bind to ${VITE_HOST}:${VITE_PORT}.`);
     log(
       '  Review mode requires a fixed port so Playwright can attach reliably. Check for stale local dev servers or port conflicts.'
     );
     await shutdown(
-      `Vite dev server failed to bind to 127.0.0.1:${VITE_PORT}.`,
+      `Vite dev server failed to bind to ${VITE_HOST}:${VITE_PORT}.`,
       1
     );
     return;
   }
 
-  log(`[review] Review mode ready at http://127.0.0.1:${VITE_PORT}`);
+  if (process.env.CODESPACES === 'true') {
+    log(`[review] Review mode ready (Codespaces — open the forwarded port ${VITE_PORT} in your browser)`);
+  } else {
+    log(`[review] Review mode ready at http://127.0.0.1:${VITE_PORT}`);
+  }
 
   process.on('SIGINT', () => {
     void shutdown('Interrupted by user.', 0, 'SIGINT');
