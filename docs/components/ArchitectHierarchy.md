@@ -289,6 +289,7 @@ utils/
   teamLoader.js
   temp_mutation_code.js
   timingUtils.js
+  timingUtils.ts
   tpeLifecycle.js
   tradeContext/
     assertions.js
@@ -337,6 +338,7 @@ utils/
       miscRules.js
       rosterValidation.js
       timingValidation.js
+      timingValidation.ts
       tradeExceptions.js
       validateAggregation.js
       validateCash.js
@@ -385,6 +387,7 @@ utils/
       tpeValidation.ts
       tradeExportUtils.js
       tradeTimingWindows.js
+      tradeTimingWindows.ts
       tradeUtilities.js
       tradeUtilityMisc.js
       validateInput.js
@@ -398,5 +401,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T05:05:25.242Z*
+*Generated on: 2026-03-08T06:43:24.539Z*
 *Auto-updated by: npm run docs*

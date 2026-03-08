@@ -129,25 +129,43 @@ function makeTeam(teamCode: string, players: Array<Record<string, unknown>>) {
   };
 }
 
-function buildTradePayload() {
+function buildTradePayload({
+  asOfDate = '2024-07-03',
+  teamAPlayerExtra = {},
+  teamBPlayerExtra = {},
+}: {
+  asOfDate?: string;
+  teamAPlayerExtra?: Record<string, unknown>;
+  teamBPlayerExtra?: Record<string, unknown>;
+} = {}) {
   return {
     teams: [
       {
         teamCode: 'A',
-        sends: [makePlayer('a_out', 10_000_000, 'A', { tradeTo: 'B' })],
+        sends: [
+          makePlayer('a_out', 10_000_000, 'A', {
+            tradeTo: 'B',
+            ...teamAPlayerExtra,
+          }),
+        ],
         entitlementsOut: [],
       },
       {
         teamCode: 'B',
-        sends: [makePlayer('b_out', 10_000_000, 'B', { tradeTo: 'A' })],
+        sends: [
+          makePlayer('b_out', 10_000_000, 'B', {
+            tradeTo: 'A',
+            ...teamBPlayerExtra,
+          }),
+        ],
         entitlementsOut: [],
       },
     ],
-    asOfDate: '2024-07-03',
+    asOfDate,
     tradeCtx: {
       source: 'tradeMachine',
       worldId: WORLD_ID,
-      asOfDate: '2024-07-03',
+      asOfDate,
     },
   };
 }
@@ -238,5 +256,71 @@ describe('trade apply timing warnings', () => {
     );
     expect(firestoreMocks.writeBatch).toHaveBeenCalled();
     expect(firestoreMocks.commit).toHaveBeenCalled();
+  });
+
+  it('keeps the retired 60-day timing message out of authoritative apply-time output', async () => {
+    const payload = buildTradePayload({
+      asOfDate: '2024-02-15',
+      teamAPlayerExtra: { signedDate: '2024-01-20' },
+      teamBPlayerExtra: { signedDate: '2024-01-10' },
+    });
+    const currentState = {
+      teams: [
+        {
+          teamCode: 'A',
+          team: makeTeam('A', [
+            makePlayer('a_out', 10_000_000, 'A'),
+            ...makeRoster('A', 13),
+          ]),
+        },
+        {
+          teamCode: 'B',
+          team: makeTeam('B', [
+            makePlayer('b_out', 10_000_000, 'B'),
+            ...makeRoster('B', 13),
+          ]),
+        },
+      ],
+    };
+
+    const computeResult = computeWorldMutation({
+      mutationType: 'executeTrade',
+      payload,
+      currentState,
+      seasonId: SEASON_ID,
+      timestamp: FIXED_TIMESTAMP,
+      asOfDate: '2024-02-15',
+      worldId: WORLD_ID,
+    });
+
+    const validatedContext = computeResult._validatedTradeContext;
+    const teamAResult = validatedContext?.teamResults?.find(
+      (team: { teamId: string }) => team.teamId === 'A'
+    );
+    const applyTexts = [
+      ...issueTexts(validatedContext?.warnings),
+      ...issueTexts(validatedContext?.violations),
+      ...issueTexts(teamAResult?.warnings),
+      ...issueTexts(teamAResult?.violations),
+      ...issueTexts(teamAResult?.rules?.timingEnforcement?.warnings),
+      ...issueTexts(teamAResult?.rules?.timingEnforcement?.violations),
+    ].join(' | ');
+
+    expect(applyTexts).not.toMatch(/acquired within the last 60 days/i);
+    expect(applyTexts).not.toMatch(/recently acquired players for 2 months/i);
+
+    const result = await applyWorldMutation({
+      userId: 'user_timing_warns',
+      worldId: WORLD_ID,
+      seasonId: SEASON_ID,
+      mutationType: 'executeTrade',
+      payload,
+    });
+
+    const warningTexts = issueTexts(result.warnings).join(' | ');
+
+    expect(result.success).toBe(true);
+    expect(warningTexts).not.toMatch(/acquired within the last 60 days/i);
+    expect(warningTexts).not.toMatch(/recently acquired players for 2 months/i);
   });
 });

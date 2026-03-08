@@ -409,6 +409,18 @@ Date: 2026-02-26
   - the retired 60-day rule must stay disabled until a real acquisition-date contract exists
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TIMING_FIXES_E7_RETURN_PACKAGE.md`
 
+### Validator TS Timing E8 (2026-03-08)
+
+- Status: The active generic timing implementation is now TS-backed in the authoritative path.
+- TS migration note:
+  - active generic timing business logic now lives in `rules/timingValidation.ts`, `utils/tradeTimingWindows.ts`, and `utils/timingUtils.ts`
+  - `rules/timingValidation.js` and `utils/tradeTimingWindows.js` are now pure compatibility re-export shims
+  - `utils/timingUtils.js` now retains only the out-of-slice reacquisition export plus pure re-exports for the active generic timing helpers
+  - `enforceTiming()` remains the sole authoritative timing output surface consumed by `validateTrade()`; helper-only `validateTiming()` strings still do not leak into canonical rule envelopes or apply-path output
+  - the retired 60-day timing rule remains out of authoritative enforcement, including authoritative apply-path output
+  - next migrate the adjacent authoritative S&T timing surface in `validateSignAndTrade.js` and its immediate helper dependencies
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TIMING_E8_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
@@ -535,7 +547,7 @@ Date: 2026-03-01
 |--------|---------------|---------|---------------|
 | **Second apron aggregation block** | Cannot aggregate 2+ outgoing into higher incoming | `rules/basicRules.js:90`, `rules/validateAggregation.js:68-70` | `tests/trade/secondApron_handcuffs.test.js` |
 | **S&T aggregation block (Rule 1.6)** | Receiver cannot receive additional players with S&T | `rules/validateSignAndTrade.js:93-107` | `tests/signAndTradeAggregation.test.js` |
-| **60-day aggregation timing** | Retired from authoritative enforcement pending a reliable acquisition-date field in the live payload | `rules/timingValidation.js` | `tests/trade/timingEnforcement_authoritative.test.js`, `tests/trade/timingGates_softEnforcement.test.js` |
+| **60-day aggregation timing** | Retired from authoritative enforcement pending a reliable acquisition-date field in the live payload | `rules/timingValidation.ts` | `tests/trade/timingEnforcement_authoritative.test.js`, `tests/trade/timingGates_softEnforcement.test.js`, `src/tests/architect/tradeApply_timingWarnings.behavior.test.ts` |
 | **TPE + outgoing aggregation** | Cannot combine TPE with outgoing salary | `rules/validateTradeExceptions.js:93-97` | `tests/trade/tpe_absorption_fail_closed.test.js` |
 | **Incoming/outgoing construction** | Route-aware via `computeMatchingValues()` (SSOT) | `engine/tradeValidator.js:720` → `utils/matchingValues.js` | `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js`, `src/tests/trade/goldenTrades.test.js` |
 
@@ -692,5 +704,5 @@ Date: 2026-03-01
 | 3 | **Consent/NTC enforcement depth** | `validateConsent.js` and `miscRules.js` handle consent but no structured NTC roster data exists in Firestore | `TM_NTC_DATA_MODEL_E1` — Define NTC data model + enforcement |
 | 4 | **Reacquisition enforcement timing** | Reacquisition rules reference `departedAt` timestamp but TM does not track player departure dates in world state | `TM_REACQUISITION_TIMING_E1` — Add departure date tracking to world mutations |
 | 5 | **FA Exception hard-cap trigger UI feedback** | `validateFaExceptionUsage.js` sets `hardCapFirstApron` but UI may not surface the cause clearly | `TM_FA_EXCEPTION_HARDCAP_UI_E1` — Surface FA exception hard-cap trigger reason |
-| 6 | **Moratorium / timing gates soft-only** | Timing validation (`timingValidation.js`) defaults to soft enforcement per `validationFlags` | `TM_TIMING_ENFORCEMENT_E1` — Evaluate timing enforcement upgrade |
+| 6 | **Moratorium / timing gates soft-only** | Timing validation (`timingValidation.ts`) defaults to soft enforcement per `validationFlags` | `TM_TIMING_ENFORCEMENT_E1` — Evaluate timing enforcement upgrade |
 | 7 | **Vacuum mode entitlement parity** | Vacuum mode uses `localStorage` for entitlements; no validator parity with world mode | `TM_VACUUM_ENTITLEMENT_PARITY_E1` — Align vacuum entitlement handling with world mode |
