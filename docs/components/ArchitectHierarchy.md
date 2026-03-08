@@ -346,6 +346,7 @@ utils/
       timingValidation.ts
       tradeExceptions.js
       validateAggregation.js
+      validateAggregation.ts
       validateCash.js
       validateCash.ts
       validateConsent.js
@@ -415,5 +416,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T21:05:56.986Z*
+*Generated on: 2026-03-08T23:54:43.078Z*
 *Auto-updated by: npm run docs*

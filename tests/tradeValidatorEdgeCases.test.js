@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
-import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+import {
+  SECOND_APRON_AGGREGATION_UP_BLOCKED,
+  SECOND_APRON_CASH_BLOCKED,
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
@@ -182,6 +185,41 @@ describe('tradeValidator edge cases', () => {
     expect(teamAResult?.rules.salaryMatching.passed).toBe(true);
     expect(issueTexts(teamAResult?.violations).join(' ')).not.toContain(
       'Second apron team cannot receive more salary than sent'
+    );
+  });
+
+  it('surfaces unchanged aggregation blockers through the authoritative validator path', () => {
+    const teamA = makeTeam('A', 210_000_000);
+    const teamB = makeTeam('B', 100_000_000);
+    const a1 = makePlayer('A1', 10_000_000);
+    const a2 = makePlayer('A2', 5_000_000);
+    const b = makePlayer('B1', 15_000_000);
+    teamA.players.push(a1, a2);
+    teamB.players.push(b);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [a1, a2], entitlementsOut: [] },
+        { team: teamB, sends: [b], entitlementsOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
+
+    expect(result.legal).toBe(false);
+    expect(result.reason).toContain('aggregate');
+    expect(issueTexts(result.violations)).toContain(
+      SECOND_APRON_AGGREGATION_UP_BLOCKED
+    );
+    expect(teamAResult?.legal).toBe(false);
+    expect(teamAResult?.rules.aggregation.passed).toBe(false);
+    expect(issueTexts(teamAResult?.rules.aggregation.violations)).toEqual([
+      SECOND_APRON_AGGREGATION_UP_BLOCKED,
+    ]);
+    expect(issueTexts(teamAResult?.violations)).toContain(
+      SECOND_APRON_AGGREGATION_UP_BLOCKED
     );
   });
 
