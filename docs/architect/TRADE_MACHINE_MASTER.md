@@ -508,6 +508,17 @@ Date: 2026-02-26
   - the next best TS slice should be selected from the actual post-E16 holdouts rather than hardcoded in advance; `utils/salaryUtils.js` is a likely candidate because it remains a narrow JS compatibility wrapper adjacent to already-typed matching-values and salary-matching surfaces, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_SETTINGS_PROVIDER_E16_RETURN_PACKAGE.md`
 
+### Validator TS Salary Utils E17 (2026-03-08)
+
+- Status: The salary-utils compatibility surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative salary-utils wrapper logic now lives in `utils/salaryUtils.ts`
+  - `utils/salaryUtils.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent salary helper semantics remained unchanged, including `computeMatchingValues` passthrough, `getCapHitForSeason` passthrough, legacy `getIncomingCeilingForTeam` compatibility behavior, and downstream `salaryOut` / `salaryIn` effects in `validateTrade()`
+  - targeted parity now includes a dedicated helper-surface regression file plus a strengthened engine-facing BYC recompute assertion proving the authoritative validator path still receives unchanged salary-utils-mediated matching values
+  - based on the actual post-E17 holdouts, `utils/seasonUtils.js` is a likely next slice because it is now the main remaining direct JS dependency under the typed salary-utils / matching-values path, but it is not mandatory if another holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SALARY_UTILS_E17_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

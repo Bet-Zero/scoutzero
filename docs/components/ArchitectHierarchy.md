@@ -388,6 +388,7 @@ utils/
       salaryMatchingRules.js
       salaryMatchingRules.ts
       salaryUtils.js
+      salaryUtils.ts
       seasonUtils.js
       stepienEntitlementUtils.js
       swapResolution.js
@@ -410,5 +411,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T11:53:46.799Z*
+*Generated on: 2026-03-08T18:48:42.808Z*
 *Auto-updated by: npm run docs*

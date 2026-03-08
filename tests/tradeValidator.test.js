@@ -89,6 +89,8 @@ describe('tradeValidator', () => {
 
     expect(rawSalaryResult.allowableIncoming).toBeGreaterThan(18_000_000);
     expect(result.legal).toBe(false);
+    expect(bycPlayer.matchOutgoing).toBe(10_000_000);
+    expect(bycPlayer.matchIncoming).toBe(20_000_000);
     expect(result.teamResults[0].salaryOut).toBe(10_000_000);
     expect(result.teamResults[0].salaryOut).not.toBe(20_000_000);
     expect(result.teamResults[0].salaryIn).toBe(18_000_000);
