@@ -377,6 +377,7 @@ utils/
       computeMatchingValues.js
       conveyanceResolution.js
       dataValidation.js
+      dataValidation.ts
       hardCapStatus.js
       hardCapStatus.ts
       index.js
@@ -413,5 +414,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T20:13:59.008Z*
+*Generated on: 2026-03-08T20:33:42.092Z*
 *Auto-updated by: npm run docs*

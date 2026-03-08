@@ -217,6 +217,7 @@ describe('Validation Caching', () => {
       const metricsAfterSecond = validationCache.getMetrics();
 
       expect(result1.hasDataIssues).toBe(true);
+      expect(result1.dataWarnings).toHaveLength(1);
       expect(result1.dataWarnings).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -225,6 +226,8 @@ describe('Validation Caching', () => {
           }),
         ])
       );
+      expect(result2.hasDataIssues).toBe(true);
+      expect(result2.dataWarnings).toHaveLength(1);
       expect(result2.dataWarnings).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

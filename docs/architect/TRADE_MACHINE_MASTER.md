@@ -541,6 +541,17 @@ Date: 2026-02-26
   - the next best TS slice should be selected from the actual post-E19 holdouts rather than hardcoded in advance; `utils/dataValidation.js` is a likely candidate because it is still live JS business logic consumed by typed `matchingValues.ts`, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_MISC_RULES_E19_RETURN_PACKAGE.md`
 
+### Validator TS Data Validation E20 (2026-03-08)
+
+- Status: The canonical `dataValidation` helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative data-warning helper logic now lives in `utils/dataValidation.ts`
+  - `utils/dataValidation.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent data-warning semantics remained unchanged, including BYC missing-`previousSalary` warnings, salary-field fallback/missing warning behavior, warning text/payload shape, `validateTradeData()` summary behavior, and `formatDataWarning()` output
+  - targeted parity continues to include an authoritative `validateTrade()` assertion proving unchanged top-level `dataWarnings` and `hasDataIssues` behavior
+  - based on the actual post-E20 holdouts, `rules/basicRules.js` is a likely next TS slice because it remains live JS second-apron rule logic consumed directly by the TS engine and by TS-backed `miscRules.ts`, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DATA_VALIDATION_E20_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

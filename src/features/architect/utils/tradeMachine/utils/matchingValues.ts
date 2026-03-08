@@ -8,6 +8,7 @@ import {
   validateBYCPlayerData,
   validateSalaryFieldData,
   DATA_WARNING_CODES,
+  type DataWarning,
 } from './dataValidation.js';
 import { getSignAndTradeSalaryForYear } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
@@ -74,18 +75,9 @@ interface MatchingValuePlayer {
   [key: string]: unknown;
 }
 
-interface MatchingValueWarning {
-  code: string;
-  message?: string;
-  severity?: string;
-  details?: Record<string, unknown>;
-  timestamp?: number;
-  [key: string]: unknown;
-}
-
 interface MatchingValueTeam {
   sends?: MatchingValuePlayer[];
-  dataWarnings?: MatchingValueWarning[];
+  dataWarnings?: DataWarning[];
   [key: string]: unknown;
 }
 
@@ -102,7 +94,7 @@ interface ComputeMatchingValuesParams {
 }
 
 interface ComputeMatchingValuesResult {
-  dataWarnings: MatchingValueWarning[];
+  dataWarnings: DataWarning[];
   hasBYCDataIssues: boolean;
   hasSalaryFieldIssues: boolean;
 }
@@ -232,10 +224,10 @@ export function computeMatchingValues({
   daysInSeason,
 }: ComputeMatchingValuesParams): ComputeMatchingValuesResult {
   // GAP-DATA-001, GAP-DATA-002: Collect data validation warnings
-  const allDataWarnings: MatchingValueWarning[] = [];
+  const allDataWarnings: DataWarning[] = [];
 
   teams.forEach((team) => {
-    const teamWarnings: MatchingValueWarning[] = [];
+    const teamWarnings: DataWarning[] = [];
 
     (team.sends || []).forEach((player) => {
       const { salary: baseSalary, source: salarySource } =
@@ -249,12 +241,12 @@ export function computeMatchingValues({
         const salaryWarnings = validateSalaryFieldData(player, yearKey, {
           salarySource,
           salaryValue: baseSalary,
-        }) as MatchingValueWarning[];
+        });
         teamWarnings.push(...salaryWarnings);
       }
 
       // GAP-DATA-001: Validate BYC player data requirements
-      const bycWarnings = validateBYCPlayerData(player) as MatchingValueWarning[];
+      const bycWarnings = validateBYCPlayerData(player);
       teamWarnings.push(...bycWarnings);
 
       // Start with base salary for both
