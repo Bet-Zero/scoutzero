@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections.js';
+import { validationFlags } from '@/config/validationFlags.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import { validateTiming } from '@/features/architect/utils/tradeMachine/rules/timingValidation.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
@@ -59,6 +60,10 @@ function buildSignAndTradeFixture() {
 }
 
 describe('Jan 15 S&T / timing ownership', () => {
+  afterEach(() => {
+    validationFlags.timingEnforcement = 'warn';
+  });
+
   it('no longer applies the S&T Jan 15 gate inside generic timing validation', () => {
     const result = validateTiming(
       {
@@ -116,6 +121,8 @@ describe('Jan 15 S&T / timing ownership', () => {
   });
 
   it('routes recent-extension Jan 15 blockers through timingEnforcement, not signAndTrade', () => {
+    validationFlags.timingEnforcement = 'error';
+
     const extendedPlayer = makePlayer('Extended Player', 12_000_000, {
       isRecentlyExtended: true,
       originTeamId: 'A',

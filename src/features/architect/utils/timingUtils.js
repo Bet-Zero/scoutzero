@@ -11,9 +11,6 @@ export function daysSince(a, b) {
 export function violates30Day(p, d) {
   return p?.signedDate && daysSince(p.signedDate, d) < 30;
 }
-export function violates2MonthAggregation(p, d) {
-  return p?.signedDate && daysSince(p.signedDate, d) < 60;
-}
 export function violatesReacquisitionBar(player, acquiringTeamId, asOfDate) {
   if (!player) return false;
   const now = new Date(asOfDate || Date.now());

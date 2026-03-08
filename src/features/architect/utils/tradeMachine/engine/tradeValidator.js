@@ -1223,10 +1223,12 @@ export function validateTrade({
       context
     );
     // Generic trade timing gates remain here; S&T-specific timing no longer lives in timingEnforcement.
-    const timingEnforcement = validators.enforceTiming(
-      teamForValidation,
-      context
-    );
+    const timingEnforcement = validators.enforceTiming(teamForValidation, {
+      ...context,
+      // Timing policy is driven by a mutable runtime flag, so include it in the
+      // validator args to prevent cache reuse across warn/error modes.
+      timingEnforcementMode: validationFlags.timingEnforcement,
+    });
     const secondApronEnforcement = validators.enforceSecondApronHandcuffs(
       teamForValidation,
       context

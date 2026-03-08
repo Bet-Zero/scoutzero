@@ -12,16 +12,22 @@ import {
   isWithinMoratorium,
   daysSince,
   violates30Day,
-  violates2MonthAggregation,
 } from '@/features/architect/utils/timingUtils.js';
 import {
   getJanuary15RestrictionDate,
   resolveTradeTimingDate,
 } from '../utils/tradeTimingWindows.js';
+import {
+  normalizeValidationIssues,
+  summarizeValidationIssues,
+} from '../utils/validationIssueText.js';
 
 /**
  * Core timing validation logic
- * Validates moratorium, 30-day rules, Dec 15/Jan 15 eligibility, and aggregation rules
+ * Validates moratorium, 30-day rules, Dec 15/Jan 15 eligibility, and midseason signing rules.
+ *
+ * The legacy 60-day aggregation rule is intentionally retired from authoritative enforcement
+ * until the live payload carries a reliable acquisition-date field.
  */
 export function validateTiming(team, ctx = {}) {
   const violations = [];
@@ -96,18 +102,6 @@ export function validateTiming(team, ctx = {}) {
     }
   });
 
-  // Check 60-day aggregation restriction (2-month rule)
-  if (playersToCheck.length > 1) {
-    const hasRecentlyAcquired = playersToCheck.some((p) =>
-      violates2MonthAggregation(p, tradeDateObj)
-    );
-    if (hasRecentlyAcquired) {
-      violations.push(
-        'Cannot aggregate players acquired within the last 60 days'
-      );
-    }
-  }
-
   return {
     passed: violations.length === 0,
     violations,
@@ -127,25 +121,49 @@ export function enforceTiming(
   tradeCtx = {},
   { warn = () => {}, reject = () => {} } = {}
 ) {
-  const violations = [];
-  
-  // Skip if disabled
-  if (validationFlags.timingEnforcement === 'off') return violations;
+  const enforcementLevel = validationFlags.timingEnforcement;
 
-  // Get validation result
+  if (enforcementLevel === 'off') {
+    return {
+      passed: true,
+      violations: [],
+      warnings: [],
+      message: 'Timing enforcement disabled',
+      details: null,
+      sourceType: 'enforcement',
+    };
+  }
+
   const result = validateTiming(team, tradeCtx);
-  
-  // Handle enforcement based on validation flags
-  result.violations.forEach((violation) => {
-    violations.push(violation);
-    if (validationFlags.timingEnforcement === 'error') {
-      reject(violation);
-    } else if (validationFlags.timingEnforcement === 'warn') {
-      warn(violation);
+
+  const issues = normalizeValidationIssues(result.violations, {
+    rule: 'timingEnforcement',
+    severity: enforcementLevel === 'warn' ? 'warning' : 'error',
+  });
+
+  issues.forEach((issue) => {
+    if (enforcementLevel === 'error') {
+      reject(issue.message);
+    } else {
+      warn(issue.message);
     }
   });
 
-  return violations;
+  const violations = enforcementLevel === 'error' ? issues : [];
+  const warnings = enforcementLevel === 'warn' ? issues : [];
+  const surfacedIssues = violations.length > 0 ? violations : warnings;
+
+  return {
+    passed: violations.length === 0,
+    violations,
+    warnings,
+    message: result.message,
+    details:
+      surfacedIssues.length > 0
+        ? summarizeValidationIssues(surfacedIssues)
+        : result.details || null,
+    sourceType: 'enforcement',
+  };
 }
 
 /**
@@ -191,21 +209,8 @@ export function enforceTimingGates(team, tradeCtx, callbacks = {}) {
     }
   });
 
-  // 2-month aggregation rule
-  if (team.sends?.length > 1) {
-    const lastReceived = team.sends
-      .map((p) => p.lastReceivedDate)
-      .filter(Boolean)
-      .sort((a, b) => new Date(b) - new Date(a))[0];
-
-    if (lastReceived && isWithin2Months(lastReceived, now)) {
-      if (validationFlags.timingEnforcement === 'error') {
-        reject('Cannot aggregate recently acquired players for 2 months');
-      } else {
-        warn('Cannot aggregate recently acquired players for 2 months');
-      }
-    }
-  }
+  // The legacy 2-month aggregation helper is intentionally retired until
+  // authoritative payloads carry a reliable acquisition-date field.
 }
 
 // Helper functions
@@ -239,12 +244,6 @@ function isWithin30Days(dateStr, now) {
   if (!dateStr) return false;
   const date = new Date(dateStr);
   return now - date < 30 * 24 * 60 * 60 * 1000;
-}
-
-function isWithin2Months(dateStr, now) {
-  if (!dateStr) return false;
-  const date = new Date(dateStr);
-  return now - date < 60 * 24 * 60 * 60 * 1000;
 }
 
 // Legacy exports for backward compatibility

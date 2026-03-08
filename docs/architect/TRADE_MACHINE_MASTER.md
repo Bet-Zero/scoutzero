@@ -396,6 +396,19 @@ Date: 2026-02-26
   - pause generic timing TS migration until timing warning/error routing and 60-day aggregation semantics are fixed
   - return package: `return_packages/trade_machine/TM_VALIDATOR_TIMING_REVALIDATION_P3_RETURN_PACKAGE.md`
 
+### Validator Timing Fixes E7 (2026-03-08)
+
+- Status: The P3 blocker-level generic timing defects are fixed in the authoritative path.
+- What changed:
+  - warning-mode generic timing now remains canonical warning output in `validateTrade()` and no longer flips legality to false
+  - the same timing warning now propagates through team rule warnings, team warnings, top-level validator warnings, `_validatedTradeContext.warnings`, and `applyWorldMutation().warnings`
+  - the legacy 60-day aggregation timing rule is retired from authoritative enforcement because the live payload still does not carry a reliable acquisition-date field
+  - the December 15 generic rule was reviewed and left unchanged because this pass did not confirm an authoritative false-block path that required a boundary change
+- TS migration note:
+  - generic timing TS migration may now proceed for the remaining active timing rules
+  - the retired 60-day rule must stay disabled until a real acquisition-date contract exists
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TIMING_FIXES_E7_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
@@ -522,7 +535,7 @@ Date: 2026-03-01
 |--------|---------------|---------|---------------|
 | **Second apron aggregation block** | Cannot aggregate 2+ outgoing into higher incoming | `rules/basicRules.js:90`, `rules/validateAggregation.js:68-70` | `tests/trade/secondApron_handcuffs.test.js` |
 | **S&T aggregation block (Rule 1.6)** | Receiver cannot receive additional players with S&T | `rules/validateSignAndTrade.js:93-107` | `tests/signAndTradeAggregation.test.js` |
-| **60-day aggregation timing** | Cannot aggregate recently acquired players | `rules/timingValidation.js:96-103` | `tests/trade/timingGates_softEnforcement.test.js` |
+| **60-day aggregation timing** | Retired from authoritative enforcement pending a reliable acquisition-date field in the live payload | `rules/timingValidation.js` | `tests/trade/timingEnforcement_authoritative.test.js`, `tests/trade/timingGates_softEnforcement.test.js` |
 | **TPE + outgoing aggregation** | Cannot combine TPE with outgoing salary | `rules/validateTradeExceptions.js:93-97` | `tests/trade/tpe_absorption_fail_closed.test.js` |
 | **Incoming/outgoing construction** | Route-aware via `computeMatchingValues()` (SSOT) | `engine/tradeValidator.js:720` → `utils/matchingValues.js` | `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js`, `src/tests/trade/goldenTrades.test.js` |
 
