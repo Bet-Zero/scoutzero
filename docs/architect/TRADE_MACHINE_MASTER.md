@@ -487,6 +487,16 @@ Date: 2026-02-26
   - next best TS slice should be selected from the actual post-E14 holdouts; `engine/validationUtils.js` is a likely engine-adjacent candidate, but not mandatory if another remaining holdout is the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATION_ISSUE_TEXT_E14_RETURN_PACKAGE.md`
 
+### Validator TS Validation Utils E15 (2026-03-08)
+
+- Status: The engine-adjacent validation-utils helper surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative validation-utils helper logic now lives in `engine/validationUtils.ts`
+  - `engine/validationUtils.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator result/issue semantics remained unchanged, including wrapped-validator caching/monitoring behavior, `validatorDebug` compatibility behavior, and authoritative `validateTrade()` top-level `dataWarnings` / `hasDataIssues` shaping across repeated validations
+  - based on the actual post-E15 holdouts, `utils/capSettingsProvider.js` is the most likely next TS slice because it still directly shapes cap-settings resolution, warnings, and receipt metadata consumed by the TS engine; `utils/salaryUtils.js` remains a narrower compatibility wrapper candidate but is lower priority
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATION_UTILS_E15_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

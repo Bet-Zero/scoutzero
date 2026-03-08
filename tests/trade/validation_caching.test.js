@@ -3,6 +3,7 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tr
 import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
 
 describe('Validation Caching', () => {
+  const season = '2025-26';
   const makeTrade = (params = {}) => ({
       teams: [
         {
@@ -36,6 +37,43 @@ describe('Validation Caching', () => {
       currentYear: 2025,
       ...params,
     });
+  const makePlayer = (id, salary, extra = {}) => ({
+    id,
+    player_id: id,
+    name: id,
+    salary,
+    currentSalary: salary,
+    contract: {
+      salariesByYear: [
+        {
+          season,
+          salary,
+          capHit: salary,
+          guaranteed: true,
+        },
+      ],
+    },
+    ...extra,
+  });
+  const makeTradeWithBycWarning = () => {
+    const trade = makeTrade();
+    const bycPlayer = makePlayer('byc_player', 20_000_000, {
+      isBYC: true,
+      teamCode: 'test1',
+    });
+    const counterPlayer = makePlayer('counter_player', 20_000_000, {
+      teamCode: 'test2',
+    });
+
+    trade.teams[0].team.players = [bycPlayer];
+    trade.teams[1].team.players = [counterPlayer];
+    trade.teams[0].sends = [bycPlayer];
+    trade.teams[1].sends = [counterPlayer];
+
+    return trade;
+  };
+  const stripWarningTimestamps = (warnings = []) =>
+    warnings.map(({ timestamp, ...warning }) => warning);
 
   beforeEach(() => {
     validationCache.clear();
@@ -167,6 +205,40 @@ describe('Validation Caching', () => {
       // Both should complete successfully regardless of caching
       expect(typeof result1).toBe('object');
       expect(typeof result2).toBe('object');
+    });
+
+    it('preserves cache-observable helper behavior and data warning shaping across repeated authoritative validations', () => {
+      validationCache.clear();
+      const initialMetrics = validationCache.getMetrics();
+
+      const result1 = validateTrade(makeTradeWithBycWarning());
+      const metricsAfterFirst = validationCache.getMetrics();
+      const result2 = validateTrade(makeTradeWithBycWarning());
+      const metricsAfterSecond = validationCache.getMetrics();
+
+      expect(result1.hasDataIssues).toBe(true);
+      expect(result1.dataWarnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'BYC_MISSING_PREVIOUS_SALARY',
+            timestamp: expect.any(Number),
+          }),
+        ])
+      );
+      expect(result2.dataWarnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: 'BYC_MISSING_PREVIOUS_SALARY',
+            timestamp: expect.any(Number),
+          }),
+        ])
+      );
+      expect(stripWarningTimestamps(result2.dataWarnings)).toEqual(
+        stripWarningTimestamps(result1.dataWarnings)
+      );
+      expect(result2.hasDataIssues).toBe(result1.hasDataIssues);
+      expect(metricsAfterFirst.size).toBeGreaterThanOrEqual(initialMetrics.size);
+      expect(metricsAfterSecond.hits).toBeGreaterThan(metricsAfterFirst.hits);
     });
   });
 });

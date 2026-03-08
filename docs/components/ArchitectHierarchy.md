@@ -322,6 +322,7 @@ utils/
       validationDebugMonitor.js
       validationPerformanceMonitor.js
       validationUtils.js
+      validationUtils.ts
       validatorDebug.ts
       validatorFactory.js
     index.js
@@ -408,5 +409,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T09:58:07.535Z*
+*Generated on: 2026-03-08T10:22:26.777Z*
 *Auto-updated by: npm run docs*
