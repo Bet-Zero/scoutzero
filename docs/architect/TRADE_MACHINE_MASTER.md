@@ -530,6 +530,17 @@ Date: 2026-02-26
   - the next best TS slice should be selected from the actual post-E18 holdouts rather than hardcoded in advance; `rules/miscRules.js` is a likely candidate because it still owns live JS BYC logic adjacent to the season helper path, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SEASON_UTILS_E18_RETURN_PACKAGE.md`
 
+### Validator TS Misc Rules E19 (2026-03-08)
+
+- Status: The canonical `miscRules` rule/helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative misc-rule logic now lives in `rules/miscRules.ts`
+  - `rules/miscRules.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent misc-rule semantics remained unchanged, including BYC detection/mutation behavior, consent message text, trade-kicker math, and the legacy `validateAllNewRules()` mixed composition
+  - targeted parity now includes direct `miscRules` helper coverage plus an explicit validator-path BYC assertion proving `validateTrade()` still sees unchanged `validateBYC`-driven `previousSalary` / `matchOutgoing` effects in downstream salary calculations
+  - the next best TS slice should be selected from the actual post-E19 holdouts rather than hardcoded in advance; `utils/dataValidation.js` is a likely candidate because it is still live JS business logic consumed by typed `matchingValues.ts`, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_MISC_RULES_E19_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

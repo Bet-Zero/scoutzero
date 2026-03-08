@@ -6,6 +6,7 @@ import {
 } from '@/features/architect/utils/tradeMachine/index.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { validateBYC } from '@/features/architect/utils/tradeMachine/rules/miscRules.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -101,6 +102,54 @@ describe('tradeValidator', () => {
     expect(issueTexts(result.teamResults[0].violations)).toEqual(
       expect.arrayContaining([expect.stringMatching(/Incoming salary exceeds/i)])
     );
+  });
+
+  it('preserves validateBYC mutations through the live validator salary path', () => {
+    const teamA = makeTeam('A', 160_000_000);
+    const teamB = makeTeam('B', 160_000_000);
+    const bycPlayer = {
+      ...makePlayer('AautoByc', 30_000_000),
+      contract: {
+        salariesByYear: [
+          { season: '2023-24', salary: 10_000_000, capHit: 10_000_000 },
+          { season, salary: 30_000_000, capHit: 30_000_000 },
+        ],
+      },
+    };
+    const incomingPlayer = makePlayer('Bstar', 18_000_000);
+    const teamEntry = { team: teamA, sends: [bycPlayer], picksOut: [] };
+    teamA.players.push(bycPlayer);
+    teamB.players.push(incomingPlayer);
+
+    const bycResult = validateBYC(teamEntry, { yearKey: currentYear });
+
+    expect(bycResult).toEqual({
+      passed: true,
+      violations: [],
+      warningsOnly: false,
+    });
+    expect(bycPlayer.isBYC).toBe(true);
+    expect(bycPlayer.previousSalary).toBe(10_000_000);
+    expect(bycPlayer.matchOutgoing).toBe(15_000_000);
+
+    const result = validateTrade({
+      teams: [
+        teamEntry,
+        { team: teamB, sends: [incomingPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.legal).toBe(false);
+    expect(result.teamResults[0].salaryOut).toBe(15_000_000);
+    expect(result.teamResults[0].salaryOut).not.toBe(30_000_000);
+    expect(bycPlayer.previousSalary).toBe(10_000_000);
+    expect(bycPlayer.matchOutgoing).toBe(15_000_000);
+    expect(result.teamResults[0].rules.salaryMatching.allowableIncoming).toBe(
+      22_500_000
+    );
+    expect(result.teamResults[0].rules.salaryMatching.passed).toBe(true);
   });
 
   it('uses season-utils cap-hit lookups for validator salary totals', () => {

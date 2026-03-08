@@ -339,6 +339,7 @@ utils/
       hardCapValidation.ts
       index.js
       miscRules.js
+      miscRules.ts
       rosterValidation.js
       timingValidation.js
       timingValidation.ts
@@ -412,5 +413,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T19:31:09.780Z*
+*Generated on: 2026-03-08T20:13:59.008Z*
 *Auto-updated by: npm run docs*
