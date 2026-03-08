@@ -371,6 +371,7 @@ utils/
     utils/
       buildEntitlementRoutingMap.ts
       capSettingsProvider.js
+      capSettingsProvider.ts
       capUtils.js
       computeMatchingValues.js
       conveyanceResolution.js
@@ -409,5 +410,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T10:22:26.777Z*
+*Generated on: 2026-03-08T11:53:46.799Z*
 *Auto-updated by: npm run docs*

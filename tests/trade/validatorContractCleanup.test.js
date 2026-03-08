@@ -178,6 +178,16 @@ describe('validateTrade contract cleanup', () => {
     });
 
     expect(result.legal).toBe(true);
+    expect(result.capSettings).toMatchObject({
+      salaryCap: 154_647_000,
+      firstApron: 195_945_000,
+      secondApron: 207_824_000,
+      luxuryTax: 187_895_000,
+    });
+    expect(result.capSettingsSource).toBe('capProjections[2025-26]');
+    expect(result.capSettingsWarnings).toEqual([
+      'Cap values for 2025-26 are projected (Future Year)',
+    ]);
     expect(result.summaryByTeamIndex).toEqual([
       {
         playersOut: 'bos_out',

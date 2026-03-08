@@ -497,6 +497,17 @@ Date: 2026-02-26
   - based on the actual post-E15 holdouts, `utils/capSettingsProvider.js` is the most likely next TS slice because it still directly shapes cap-settings resolution, warnings, and receipt metadata consumed by the TS engine; `utils/salaryUtils.js` remains a narrower compatibility wrapper candidate but is lower priority
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATION_UTILS_E15_RETURN_PACKAGE.md`
 
+### Validator TS Cap Settings Provider E16 (2026-03-08)
+
+- Status: The canonical cap-settings-provider surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative cap-settings-provider logic now lives in `utils/capSettingsProvider.ts`
+  - `utils/capSettingsProvider.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator cap-settings and result-metadata semantics remained unchanged, including cap-settings resolution priority, warning text, source labels, top-level `capSettings` / `capSettingsSource` / `capSettingsWarnings`, and receipt `capSettingsUsed` metadata
+  - targeted engine-facing parity now includes an explicit regression lock for top-level `validateTrade()` cap-settings metadata
+  - the next best TS slice should be selected from the actual post-E16 holdouts rather than hardcoded in advance; `utils/salaryUtils.js` is a likely candidate because it remains a narrow JS compatibility wrapper adjacent to already-typed matching-values and salary-matching surfaces, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_SETTINGS_PROVIDER_E16_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
