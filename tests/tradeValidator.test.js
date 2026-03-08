@@ -1,6 +1,9 @@
 // tradeValidator.test.js
 import { describe, it, expect } from 'vitest';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/index.js';
+import {
+  getSalaryMatchingResult,
+  validateTrade,
+} from '@/features/architect/utils/tradeMachine/index.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
@@ -51,6 +54,51 @@ describe('tradeValidator', () => {
       /Incoming salary exceeds/
     );
     expect(result.teamResults[0].rules.salaryMatching.passed).toBe(false);
+  });
+
+  it('recomputes BYC matching values before salary-matching legality is evaluated', () => {
+    const teamA = makeTeam('A', 160_000_000);
+    const teamB = makeTeam('B', 160_000_000);
+    const bycPlayer = {
+      ...makePlayer('Abyc', 20_000_000),
+      isBYC: true,
+      previousSalary: 8_000_000,
+    };
+    const incomingPlayer = makePlayer('Bstar', 18_000_000);
+    teamA.players.push(bycPlayer);
+    teamB.players.push(incomingPlayer);
+
+    const result = validateTrade({
+      teams: [
+        { team: teamA, sends: [bycPlayer], picksOut: [] },
+        { team: teamB, sends: [incomingPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    const rawSalaryResult = getSalaryMatchingResult({
+      teamTotalSalary: teamA.totalSalary,
+      outgoingSalary: 20_000_000,
+      capSettings: {
+        salaryCap: capProjections[season].cap,
+        firstApron: capProjections[season].firstApron,
+        secondApron: capProjections[season].secondApron,
+      },
+    });
+
+    expect(rawSalaryResult.allowableIncoming).toBeGreaterThan(18_000_000);
+    expect(result.legal).toBe(false);
+    expect(result.teamResults[0].salaryOut).toBe(10_000_000);
+    expect(result.teamResults[0].salaryOut).not.toBe(20_000_000);
+    expect(result.teamResults[0].salaryIn).toBe(18_000_000);
+    expect(result.teamResults[0].rules.salaryMatching.allowableIncoming).toBe(
+      17_500_000
+    );
+    expect(result.teamResults[0].rules.salaryMatching.passed).toBe(false);
+    expect(issueTexts(result.teamResults[0].violations)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Incoming salary exceeds/i)])
+    );
   });
 
   it('flags trades that would violate a hard cap', () => {

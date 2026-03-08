@@ -266,8 +266,8 @@ export interface TradeTeam {
   teamId?: string;
   teamName?: string;
   bucketType?: string;
-  salaryOut: number;
-  salaryIn: number;
+  salaryOut?: number;
+  salaryIn?: number;
   teamTotalSalary?: number;
   projectedSalary?: number;
   projectedRosterCount?: number;
@@ -382,3 +382,211 @@ export interface ConsentValidationResult extends ValidationResult {}
 export interface EligibilityValidationResult extends ValidationResult {}
 
 export interface ReacquisitionValidationResult extends ValidationResult {}
+
+export interface TradeValidationNormalizedYear {
+  endYear: number;
+  seasonString: string;
+}
+
+export interface TradeValidatorCapSettings {
+  salaryCap?: number;
+  firstApron?: number;
+  secondApron?: number;
+  luxuryTax?: number;
+  [key: string]: unknown;
+}
+
+export interface TradeValidatorContext extends TeamContext {
+  capProjections?: Record<string, unknown>;
+  currentYear?: number;
+  yearKey?: number;
+  asOfDate?: string | null;
+  tradeDate?: string | null;
+  offseason?: boolean | null;
+  seasonState?: string | null;
+  capSettings?: TradeValidatorCapSettings | null;
+  capSettingsSource?: string | null;
+  capSettingsWarnings?: string[];
+  normalizedYear?: TradeValidationNormalizedYear | null;
+  teams?: TradeTeam[];
+  daysRemainingInSeason?: number;
+  daysInSeason?: number;
+}
+
+export interface ValidateTradeParams {
+  teams?: Array<TradeTeam | null | undefined> | null;
+  capProjections?: Record<string, unknown> | null;
+  currentYear?: number | string | null;
+  tradeCtx?: TradeValidatorContext | null;
+}
+
+export interface TradeRuleEnvelope extends ValidationResult {
+  key: string;
+  sourceType: 'validator' | 'enforcement' | string;
+  warnings: ValidationIssue[];
+  details: unknown;
+  [key: string]: unknown;
+}
+
+export interface TradeTeamSalaryMatchingCalculations {
+  allowedIncoming: number;
+  margin: number;
+  difference: number;
+}
+
+export interface TradeTeamCalculations {
+  salaryIn: number;
+  salaryOut: number;
+  salaryMatching: TradeTeamSalaryMatchingCalculations;
+}
+
+export interface TradeTeamResult {
+  teamId: string;
+  teamCode: string;
+  teamName: string;
+  legal: boolean;
+  violations: ValidationIssue[];
+  warnings: ValidationIssue[];
+  rules: Record<string, TradeRuleEnvelope>;
+  salaryOut: number;
+  salaryIn: number;
+  outgoingPlayers: TradeExceptionPlayer[];
+  incomingPlayers: TradeExceptionPlayer[];
+  calculations: TradeTeamCalculations;
+  totalSalary: number;
+  projectedSalary: number;
+  capRoom: number;
+  hardCapped: boolean;
+  apronStatus: unknown;
+  faExceptionBuckets: Array<Record<string, unknown>>;
+  notes: unknown;
+  createdTPE: TradeExceptionRecord | null;
+  details: string;
+  warningDetails: string;
+  [key: string]: unknown;
+}
+
+export interface TradeSummaryByTeamIndexRow {
+  playersOut: string;
+  playersIn: string[];
+  capDelta: number;
+  teamId: string;
+  teamCode: string;
+  legal: boolean;
+  violations: ValidationIssue[];
+  warnings: ValidationIssue[];
+  teamName: string;
+}
+
+export interface TradeReceiptPlayerFlags {
+  isBYC: boolean;
+  isPoisonPill: boolean;
+  hasTradeKicker: boolean;
+  tradeKickerPct: number;
+  isSignAndTrade: boolean;
+}
+
+export interface TradeReceiptPlayerRow {
+  id?: string;
+  name: string;
+  baseSalary: number;
+  matchingValue: number;
+  flags: TradeReceiptPlayerFlags;
+  bycDetails?: Record<string, unknown> | null;
+  poisonPillDetails?: Record<string, unknown> | null;
+  tradeKickerDetails?: Record<string, unknown> | null;
+}
+
+export interface TradeReceiptEntitlementRow {
+  id?: string;
+  seasonYear?: number | string;
+  round?: number | string;
+  kind?: string;
+  description?: string;
+  fromTeam?: string;
+  toTeamId?: string | null;
+  draftKey?: string;
+  terms?: unknown;
+  termsShort?: unknown;
+}
+
+export interface TradeReceiptSalaryMatchingEvaluation {
+  ruleApplied: string | null;
+  skipReason: string | null;
+  formulaUsed: string | null;
+  allowableIncoming: number | null;
+  actualIncoming: number | null;
+  passed: boolean | null;
+  margin: number | null;
+  capSettings: TradeValidatorCapSettings | null | undefined;
+  capSettingsSource: string;
+}
+
+export interface TradeReceiptTeamRow {
+  teamCode: string;
+  teamName: string;
+  preTradeTeamSalary: number;
+  preTradeTeamSalarySource: string;
+  outgoingPlayers: TradeReceiptPlayerRow[];
+  incomingPlayers: TradeReceiptPlayerRow[];
+  outgoingEntitlements: TradeReceiptEntitlementRow[];
+  incomingEntitlements: TradeReceiptEntitlementRow[];
+  totals: {
+    outgoingBaseTotal: number;
+    outgoingMatchingTotal: number;
+    incomingBaseTotal: number;
+    incomingMatchingTotal: number;
+  };
+  salaryMatchingEvaluation: TradeReceiptSalaryMatchingEvaluation;
+  violations: ValidationIssue[];
+  warnings: ValidationIssue[];
+}
+
+export interface TradeReceipt {
+  isLegal: boolean;
+  primaryViolation: string | null;
+  allViolations: ValidationIssue[];
+  timestamp: string;
+  validatorVersion: string;
+  salaryMatchingVersion: string;
+  capSettingsVersion: string;
+  yearKey: number | undefined;
+  seasonKey: string;
+  capSettingsUsed: {
+    salaryCap: number;
+    firstApron: number;
+    secondApron: number;
+    luxuryTax: number;
+  };
+  capSettingsSource: string;
+  capSettingsWarnings: string[];
+  teams: TradeReceiptTeamRow[];
+  performance: {
+    validationTimeMs: number;
+  };
+}
+
+export interface TradeValidationResult {
+  legal: boolean;
+  valid: boolean;
+  error: string | null;
+  reason: string;
+  violations: ValidationIssue[];
+  warnings: ValidationIssue[];
+  teamResults: TradeTeamResult[];
+  summaryByTeamIndex: TradeSummaryByTeamIndexRow[];
+  performance: {
+    validationTime: number;
+  };
+  tradeReceipt: TradeReceipt | null;
+  dataWarnings: unknown[];
+  hasDataIssues: boolean;
+  yearKey: number | null;
+  seasonKey: string | null;
+  capSettings: TradeValidatorCapSettings | null;
+  capSettingsSource: string | null;
+  capSettingsWarnings: unknown[];
+  asOfDate: string | null;
+  tradeDate: string | null;
+  offseason: boolean | null;
+}

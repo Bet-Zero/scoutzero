@@ -454,6 +454,29 @@ Date: 2026-02-26
   - next migrate the upstream matching-values computation boundary in `utils/matchingValues.js`
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SALARY_MATCHING_E11_RETURN_PACKAGE.md`
 
+### Validator TS Matching Values E12 (2026-03-08)
+
+- Status: The authoritative matching-values computation surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative matching-values logic now lives in `utils/matchingValues.ts`
+  - `utils/matchingValues.js` is now a pure compatibility re-export shim with no remaining business logic
+  - downstream salary-matching / hard-cap consumption remains unchanged: `engine/tradeValidator.js` still recomputes `matchIncoming` / `matchOutgoing` before team `salaryOut` / `salaryIn` and feeds the same upstream values into the typed salary-matching and hard-cap surfaces
+  - legacy normalize-input fallback behavior remains unchanged through `utils/normalizeTradeInput.js` consuming deprecated `getMatchingValue()`
+  - post-E12 next best slice: `engine/tradeValidator.js` is now the remaining authoritative live JS orchestration boundary adjacent to the typed matching-values / salary-matching / hard-cap surfaces
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_MATCHING_VALUES_E12_RETURN_PACKAGE.md`
+
+### Validator TS Engine E13 (2026-03-08)
+
+- Status: The authoritative validator engine is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative engine logic now lives in `engine/tradeValidator.ts`
+  - `engine/tradeValidator.js` is now a pure compatibility re-export shim with no remaining business logic
+  - the canonical validator contract/result shape remained unchanged, including fail-fast routing exits, matching-values recompute order, rule-envelope normalization, `summaryByTeamIndex`, `tradeReceipt`, and preview/apply `_validatedTradeContext` consumption
+  - `validateFaExceptionUsage` remains an engine export only for public-surface parity; FA-exception rule ownership remains in `rules/validateFaExceptionUsage.js`
+  - targeted engine output parity now includes an explicit regression lock for `summaryByTeamIndex` and `tradeReceipt`
+  - post-E13 next best slice should be selected from the actual remaining holdouts; `utils/validationIssueText.js` is the most likely next target because it still owns canonical issue normalization/text shaping consumed directly by the TS engine, but it is not precommitted as mandatory
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ENGINE_E13_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

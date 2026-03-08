@@ -318,6 +318,7 @@ utils/
       tradeDebug.js
       tradeValidator.debug.js
       tradeValidator.js
+      tradeValidator.ts
       validationDebugMonitor.js
       validationPerformanceMonitor.js
       validationUtils.js
@@ -377,6 +378,7 @@ utils/
       hardCapStatus.ts
       index.js
       matchingValues.js
+      matchingValues.ts
       normalizeTradeInput.js
       pickIdUtils.js
       resolveValidationEntitlements.js
@@ -405,5 +407,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T08:36:00.768Z*
+*Generated on: 2026-03-08T09:33:06.374Z*
 *Auto-updated by: npm run docs*

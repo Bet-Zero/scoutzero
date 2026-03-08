@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput.js';
 import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.js';
+import { getMatchingValue } from '@/features/architect/utils/tradeMachine/utils/matchingValues.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
@@ -140,6 +141,50 @@ describe('Trade Input Normalization', () => {
     expect(player.signAndTrade).toBe(true);
     expect(player.absorptionMode).toBe('MATCH');
     expect(player.firstYearGuaranteed).toBe(true);
+  });
+
+  it('preserves deprecated getMatchingValue fallback behavior for normalizeTradeInput', () => {
+    const legacyConsumerPlayer = {
+      name: 'Legacy Consumer Player',
+      currentSalary: 10_000_000,
+      isPoisonPill: true,
+      isRookieScale: true,
+      extensionYears: [
+        { salary: 20_000_000 },
+        { salary: 22_000_000 },
+        { salary: 24_000_000 },
+      ],
+      contract: {
+        salariesByYear: [{ season, salary: 10_000_000 }],
+      },
+    };
+    const expectedLegacySalary = getMatchingValue(
+      legacyConsumerPlayer,
+      currentYear,
+      false
+    );
+    const input = {
+      teams: [
+        {
+          team: {
+            teamName: 'Team A',
+            players: [],
+          },
+          sends: [legacyConsumerPlayer],
+        },
+        {
+          team: { teamName: 'Team B', players: [] },
+          sends: [],
+        },
+      ],
+      capProjections,
+      currentYear,
+    };
+
+    const { teams } = normalizeTradeInput(input);
+
+    expect(expectedLegacySalary).toBe(16_000_000);
+    expect(teams[0].sends[0].salary).toBe(expectedLegacySalary);
   });
 
   it('handles validation errors in main validator', () => {

@@ -167,6 +167,98 @@ describe('validateTrade contract cleanup', () => {
     expect(Array.isArray(celticsResult.outgoingPlayers)).toBe(true);
   });
 
+  it('preserves summaryByTeamIndex and tradeReceipt authoritative output semantics', () => {
+    const { teams } = buildSimpleTrade();
+
+    const result = validateTrade({
+      teams,
+      capProjections,
+      currentYear: CURRENT_YEAR,
+      tradeCtx: { asOfDate: '2025-07-10' },
+    });
+
+    expect(result.legal).toBe(true);
+    expect(result.summaryByTeamIndex).toEqual([
+      {
+        playersOut: 'bos_out',
+        playersIn: ['lal_out'],
+        capDelta: 0,
+        teamId: 'BOS',
+        teamCode: 'BOS',
+        legal: true,
+        violations: [],
+        warnings: [],
+        teamName: 'Team BOS',
+      },
+      {
+        playersOut: 'lal_out',
+        playersIn: ['bos_out'],
+        capDelta: 0,
+        teamId: 'LAL',
+        teamCode: 'LAL',
+        legal: true,
+        violations: [],
+        warnings: [],
+        teamName: 'Team LAL',
+      },
+    ]);
+
+    expect(result.tradeReceipt).toMatchObject({
+      isLegal: true,
+      primaryViolation: null,
+      yearKey: CURRENT_YEAR,
+      seasonKey: SEASON,
+      teams: [
+        {
+          teamCode: 'BOS',
+          teamName: 'Team BOS',
+          preTradeTeamSalary: 170_000_000,
+          preTradeTeamSalarySource: 'team.teamTotalSalary',
+          totals: {
+            outgoingBaseTotal: 10_000_000,
+            outgoingMatchingTotal: 10_000_000,
+            incomingBaseTotal: 10_000_000,
+            incomingMatchingTotal: 10_000_000,
+          },
+          salaryMatchingEvaluation: {
+            actualIncoming: 10_000_000,
+            skipReason: null,
+            passed: true,
+          },
+        },
+        {
+          teamCode: 'LAL',
+          teamName: 'Team LAL',
+          preTradeTeamSalary: 160_000_000,
+          preTradeTeamSalarySource: 'team.teamTotalSalary',
+          totals: {
+            outgoingBaseTotal: 10_000_000,
+            outgoingMatchingTotal: 10_000_000,
+            incomingBaseTotal: 10_000_000,
+            incomingMatchingTotal: 10_000_000,
+          },
+          salaryMatchingEvaluation: {
+            actualIncoming: 10_000_000,
+            skipReason: null,
+            passed: true,
+          },
+        },
+      ],
+    });
+    expect(result.tradeReceipt.teams[0].violations).toEqual(
+      result.teamResults[0].violations
+    );
+    expect(result.tradeReceipt.teams[0].warnings).toEqual(
+      result.teamResults[0].warnings
+    );
+    expect(result.tradeReceipt.teams[1].violations).toEqual(
+      result.teamResults[1].violations
+    );
+    expect(result.tradeReceipt.teams[1].warnings).toEqual(
+      result.teamResults[1].warnings
+    );
+  });
+
   it('uses one canonical top-level shape for fail-fast routing errors and preserves warnings', () => {
     const { teams } = buildRoutingFailureTrade();
 
