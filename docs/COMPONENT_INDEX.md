@@ -180,6 +180,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/validateEntitlementRouting.js
 - utils/tradeMachine/rules/validateFaExceptionUsage.js
 - utils/tradeMachine/rules/validatePlayerRouting.js
+- utils/tradeMachine/rules/validateReacquisition.js
 - utils/tradeMachine/rules/validateRoster.js
 - utils/tradeMachine/rules/validateSalaryMatching.js
 - utils/tradeMachine/rules/validateSignAndTrade.js
@@ -361,4 +362,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-08T04:32:39.403Z*
+*Generated on: 2026-03-08T05:05:25.287Z*

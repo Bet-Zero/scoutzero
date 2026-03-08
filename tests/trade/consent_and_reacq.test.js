@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateConsent } from '@/features/architect/utils/tradeMachine/rules/validateConsent.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
 
 const currentYear = 2025;
@@ -23,7 +25,34 @@ const makeTeam = (id, extraPlayers = []) => ({
   ),
 });
 
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+
 describe('consent and re-acquisition rules', () => {
+  it('validateConsent emits canonical issues for full NTC without consent', () => {
+    const ntc = makePlayer('NTC', { hasFullNTC: true });
+
+    const result = validateConsent(
+      { teamId: 'A', teamName: 'A', sends: [ntc] },
+      {
+        teams: [
+          { teamId: 'A', teamName: 'A' },
+          { teamId: 'B', teamName: 'B' },
+        ],
+      }
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.violations).toMatchObject([
+      {
+        rule: 'consent',
+        code: 'CONSENT__FULL_NTC_REQUIRED',
+      },
+    ]);
+    expect(issueTexts(result.violations)).toEqual([
+      'NTC has a full no-trade clause and must consent',
+    ]);
+  });
+
   it('blocks full NTC without consent', () => {
     const ntc = makePlayer('NTC', { hasFullNTC: true });
     const b1 = makePlayer('B1');
@@ -38,7 +67,14 @@ describe('consent and re-acquisition rules', () => {
       currentYear,
       tradeCtx: {},
     });
+
+    const teamAResult = result.teamResults.find((team) => team.teamId === 'A');
+
     expect(result.legal).toBe(false);
+    expect(teamAResult?.rules?.consent).toMatchObject({ passed: false });
+    expect(issueTexts(teamAResult?.rules?.consent?.violations)).toEqual(
+      expect.arrayContaining(['NTC has a full no-trade clause and must consent'])
+    );
   });
 
   it('allows full NTC with consent', () => {
@@ -55,7 +91,11 @@ describe('consent and re-acquisition rules', () => {
       currentYear,
       tradeCtx: {},
     });
+
+    const teamAResult = result.teamResults.find((team) => team.teamId === 'A');
+
     expect(result.legal).toBe(true);
+    expect(teamAResult?.rules?.consent).toMatchObject({ passed: true });
   });
 
   it('allows limited NTC to approved team', () => {
@@ -126,7 +166,15 @@ describe('consent and re-acquisition rules', () => {
           playerId === 'REACQ' && destTeamId === 'A',
       },
     });
+
+    const teamAResult = result.teamResults.find((team) => team.teamId === 'A');
+
     expect(result.legal).toBe(false);
+    expect(teamAResult?.rules?.reacquisition).toMatchObject({ passed: false });
+    expect(issueTexts(teamAResult?.rules?.reacquisition?.violations)).toEqual(
+      expect.arrayContaining([
+        'Cannot re-acquire REACQ within one year of trading them away',
+      ])
+    );
   });
 });
-

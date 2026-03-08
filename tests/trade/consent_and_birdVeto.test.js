@@ -11,17 +11,19 @@ describe('player consent enforcement', () => {
 
   it('rejects full NTC without consent', () => {
     const rejects = [];
-    enforceConsent(
+    const violations = enforceConsent(
       makeTeam({ name: 'Full NTC', hasFullNTC: true, tradeTo: 2 }),
       {},
       { reject: (m) => rejects.push(m) }
     );
+    expect(violations).toEqual(rejects);
+    expect(typeof violations[0]).toBe('string');
     expect(rejects).toContain('Player NTC — consent required');
   });
 
   it('rejects limited NTC without consent', () => {
     const rejects = [];
-    enforceConsent(
+    const violations = enforceConsent(
       makeTeam({
         name: 'Limited',
         limitedNTCTeamIds: [2],
@@ -30,12 +32,14 @@ describe('player consent enforcement', () => {
       {},
       { reject: (m) => rejects.push(m) }
     );
+    expect(violations).toEqual(rejects);
+    expect(typeof violations[0]).toBe('string');
     expect(rejects).toContain('Player NTC — consent required');
   });
 
   it('handles Bird rights veto', () => {
     const rejects = [];
-    enforceConsent(
+    const violations = enforceConsent(
       makeTeam({
         name: 'Bird',
         onOneYearBirdDeal: true,
@@ -45,6 +49,8 @@ describe('player consent enforcement', () => {
       {},
       { reject: (m) => rejects.push(m) }
     );
+    expect(violations).toEqual(rejects);
+    expect(typeof violations[0]).toBe('string');
     expect(rejects).toContain('1-yr Bird veto — consent required');
 
     const none = [];
@@ -60,5 +66,25 @@ describe('player consent enforcement', () => {
       { reject: (m) => none.push(m) }
     );
     expect(none.length).toBe(0);
+  });
+
+  it('warn mode preserves the plain-string helper contract', () => {
+    validationFlags.consent = 'warn';
+
+    const warns = [];
+    const rejects = [];
+    const violations = enforceConsent(
+      makeTeam({ name: 'Warn NTC', hasFullNTC: true, tradeTo: 2 }),
+      {},
+      {
+        warn: (m) => warns.push(m),
+        reject: (m) => rejects.push(m),
+      }
+    );
+
+    expect(rejects).toEqual([]);
+    expect(violations).toEqual(warns);
+    expect(typeof warns[0]).toBe('string');
+    expect(warns).toContain('Player NTC — consent required');
   });
 });

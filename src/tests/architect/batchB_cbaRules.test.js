@@ -13,6 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility.js';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -31,6 +32,8 @@ const makeTeam = (name, players = [], extras = {}) => ({
   players,
   ...extras,
 });
+
+const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 
 describe('GAP-MISS-003: Incomplete Roster Charges (VERIFIED ALREADY IMPLEMENTED)', () => {
   describe('computeTeamCapTotals includes empty slot charges', () => {
@@ -127,11 +130,16 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       expect(result.passed).toBe(false);
       expect(result.violations.length).toBeGreaterThan(0);
+      expect(result.violations[0]).toMatchObject({
+        rule: 'eligibility',
+        code: 'ELIGIBILITY__TWO_WAY_PLAYER_BLOCKED',
+      });
       expect(
-        result.violations.some(
+        texts.some(
           (v) => v.includes('Two-way') && v.includes('cannot be traded')
         )
       ).toBe(true);
@@ -148,10 +156,11 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       expect(result.passed).toBe(false);
       expect(
-        result.violations.some(
+        texts.some(
           (v) => v.includes('Two-way') && v.includes('cannot be traded')
         )
       ).toBe(true);
@@ -172,9 +181,10 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       expect(result.passed).toBe(false);
-      expect(result.violations.some((v) => v.includes('Two-way'))).toBe(true);
+      expect(texts.some((v) => v.includes('Two-way'))).toBe(true);
     });
 
     it('allows trade of standard contract player', () => {
@@ -188,11 +198,10 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       // Should pass (no two-way violation)
-      expect(
-        result.violations.filter((v) => v.includes('Two-way')).length
-      ).toBe(0);
+      expect(texts.filter((v) => v.includes('Two-way')).length).toBe(0);
     });
 
     it('allows trade when player has no two-way indicators', () => {
@@ -204,11 +213,10 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       // Should pass (no two-way violation)
-      expect(
-        result.violations.filter((v) => v.includes('Two-way')).length
-      ).toBe(0);
+      expect(texts.filter((v) => v.includes('Two-way')).length).toBe(0);
     });
 
     it('violation message mentions waiving as alternative', () => {
@@ -222,8 +230,9 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
-      expect(result.violations.some((v) => v.includes('waived'))).toBe(true);
+      expect(texts.some((v) => v.includes('waived'))).toBe(true);
     });
 
     it('handles outgoingPlayers field name (alternative to sends)', () => {
@@ -237,9 +246,10 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       expect(result.passed).toBe(false);
-      expect(result.violations.some((v) => v.includes('Two-way'))).toBe(true);
+      expect(texts.some((v) => v.includes('Two-way'))).toBe(true);
     });
 
     it('blocks multiple two-way players in same trade', () => {
@@ -252,11 +262,10 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       // Should have violations for both
-      const twoWayViolations = result.violations.filter((v) =>
-        v.includes('Two-way')
-      );
+      const twoWayViolations = texts.filter((v) => v.includes('Two-way'));
       expect(twoWayViolations.length).toBe(2);
     });
 
@@ -270,14 +279,13 @@ describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
       };
 
       const result = validateEligibility(team, {});
+      const texts = issueTexts(result.violations);
 
       // Should fail due to two-way player
       expect(result.passed).toBe(false);
 
       // Should have exactly one two-way violation
-      const twoWayViolations = result.violations.filter((v) =>
-        v.includes('Two-way')
-      );
+      const twoWayViolations = texts.filter((v) => v.includes('Two-way'));
       expect(twoWayViolations.length).toBe(1);
     });
   });

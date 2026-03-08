@@ -328,6 +328,7 @@ utils/
       draftRules.js
       eligibilityRules.js
       enforceConsent.js
+      enforceConsent.ts
       enforceEligibility.js
       enforcement.js
       enforcementValidation.js
@@ -341,11 +342,15 @@ utils/
       validateCash.js
       validateCash.ts
       validateConsent.js
+      validateConsent.ts
       validateEligibility.js
+      validateEligibility.ts
       validateEntitlementRouting.js
       validateFaExceptionUsage.js
       validateHardCap.ts
       validatePlayerRouting.js
+      validateReacquisition.js
+      validateReacquisition.ts
       validateRoster.js
       validateRoster.ts
       validateSalaryMatching.js
@@ -393,5 +398,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T04:32:39.343Z*
+*Generated on: 2026-03-08T05:05:25.242Z*
 *Auto-updated by: npm run docs*

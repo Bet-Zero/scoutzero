@@ -319,6 +319,7 @@ Date: 2026-02-26
 - `return_packages/trade_machine/TM_VALIDATOR_RULE_CORRECTNESS_AUDIT_P2_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_RULE_FIXES_E4_RETURN_PACKAGE.md`
 - `return_packages/trade_machine/TM_VALIDATOR_TS_RULES_E5_RETURN_PACKAGE.md`
+- `return_packages/trade_machine/TM_VALIDATOR_TS_CONSENT_ELIGIBILITY_E6_RETURN_PACKAGE.md`
 
 ### Validator Trust Audit (2026-03-07)
 
@@ -377,6 +378,15 @@ Date: 2026-02-26
   - compatibility JS hosts remain in place for `tradeUtilities.js`, `validateTradeExceptions.js`, and `eligibilityRules.js` so the live import chain and guardrail path assumptions stay stable
   - next migrate the small consent/eligibility cluster only after the remaining JS holdouts in that area are re-validated
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_RULES_E5_RETURN_PACKAGE.md`
+
+### Validator TS Consent Eligibility E6 (2026-03-08)
+
+- Status: The authoritative consent surface is now in TS (`validateConsent.ts` + `enforceConsent.ts`), the eligibility surface is now in TS (`validateEligibility.ts`), and reacquisition ownership for this cluster is now consolidated in `validateReacquisition.ts`.
+- TS migration note:
+  - all E6-touched JS files are now pure re-export compatibility shims only, including the narrowed `eligibilityRules.js` host
+  - helper enforcers still return plain strings while validator surfaces now emit canonical `ValidationIssue` objects
+  - next revisit the generic timing validation/enforcement cluster only after separate behavior re-validation
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CONSENT_ELIGIBILITY_E6_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

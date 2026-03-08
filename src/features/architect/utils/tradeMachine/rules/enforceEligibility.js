@@ -1,1 +1,1 @@
-export { enforceEligibility } from './validateEligibility.js';
+export { enforceEligibility } from './validateEligibility.ts';

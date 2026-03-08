@@ -283,3 +283,9 @@ export interface TradeExceptionValidationResult extends ValidationResult {
 }
 
 export interface CashValidationResult extends ValidationResult {}
+
+export interface ConsentValidationResult extends ValidationResult {}
+
+export interface EligibilityValidationResult extends ValidationResult {}
+
+export interface ReacquisitionValidationResult extends ValidationResult {}
