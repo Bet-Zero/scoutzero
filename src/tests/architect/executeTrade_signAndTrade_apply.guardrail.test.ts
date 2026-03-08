@@ -231,11 +231,19 @@ describe('executeTrade sign-and-trade apply semantics', () => {
 
     expect(result.success).toBe(true);
 
+    const validatedReceiver =
+      result._validatedTradeContext?._rawValidation?.teamResults?.find(
+        (entry: any) => entry.teamId === 'BOS'
+      );
     const sourceUpdate = result.teamUpdates.find((entry) => entry.teamCode === 'LAL');
     const destinationUpdate = result.teamUpdates.find((entry) => entry.teamCode === 'BOS');
 
     expect(sourceUpdate).toBeDefined();
     expect(destinationUpdate).toBeDefined();
+    expect(result._validatedTradeContext?._isValidatedTradeContext).toBe(true);
+    expect(validatedReceiver?.rules?.signAndTrade?.passed).toBe(true);
+    expect(validatedReceiver?.rules?.signAndTrade?.hardCapped).toBe(true);
+    expect(validatedReceiver?.hardCapped).toBe(true);
 
     const playerInDestination = destinationUpdate?.team.players?.find(
       (player: any) => (player.player_id || player.id) === 'sat_player'

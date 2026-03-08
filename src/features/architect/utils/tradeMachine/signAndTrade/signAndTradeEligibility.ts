@@ -36,23 +36,116 @@ export type SignAndTradeEligibilityResult = {
   details: ContractStatusResult;
 };
 
+export type SignAndTradeSalaryRow = {
+  season?: string | null;
+  year?: number | null;
+  salary?: number | string | null;
+  capHit?: number | string | null;
+  guaranteed?: boolean;
+  [key: string]: unknown;
+};
+
+export type SignAndTradeContractLike = {
+  signAndTrade?: boolean | { contract?: SignAndTradeContractLike | null };
+  contractType?: string | null;
+  salariesByYear?: SignAndTradeSalaryRow[] | null;
+  salaries?: unknown[] | null;
+  contractYears?: number | null;
+  years?: number | null;
+  firstYearGuaranteed?: boolean | null;
+  signingTeam?: string | null;
+  [key: string]: unknown;
+};
+
+export type SignAndTradeNormalizedContract = SignAndTradeContractLike & {
+  signAndTrade: true;
+  contractType: string;
+  salariesByYear: SignAndTradeSalaryRow[];
+  contractYears: number;
+  firstYearGuaranteed: boolean;
+};
+
+export type SignAndTradeCapHold = {
+  playerId?: string | number | null;
+  player_id?: string | number | null;
+  id?: string | number | null;
+  player?: {
+    id?: string | number | null;
+    [key: string]: unknown;
+  } | null;
+  playerName?: string | null;
+  name?: string | null;
+  active?: boolean;
+  isSigned?: boolean;
+  season?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type SignAndTradePlayerLike = {
+  id?: string | number | null;
+  playerId?: string | number | null;
+  player_id?: string | number | null;
+  name?: string | null;
+  displayName?: string | null;
+  bio?: {
+    playerId?: string | number | null;
+    displayName?: string | null;
+    display?: {
+      freeAgentYear?: number | string | null;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  } | null;
+  teamCode?: string | null;
+  teamId?: string | null;
+  teamAbbr?: string | null;
+  team?: string | null;
+  originTeamId?: string | null;
+  contract?: SignAndTradeContractLike | null;
+  primaryContract?: SignAndTradeContractLike | null;
+  freeAgentYear?: number | string | null;
+  rightsRenounced?: boolean;
+  signAndTrade?: boolean | { contract?: SignAndTradeContractLike | null };
+  signAndTradeContract?: SignAndTradeContractLike | null;
+  salariesByYear?: SignAndTradeSalaryRow[] | null;
+  salaries?: unknown[] | null;
+  contractYears?: number | null;
+  years?: number | null;
+  firstYearGuaranteed?: boolean | null;
+  [key: string]: unknown;
+};
+
+export type SignAndTradeContractCarrier = SignAndTradePlayerLike;
+
 type SignAndTradeContext = {
   sourceTeamId?: string | null;
   worldId?: string | null;
-  sourceTeamCapHolds?: Array<Record<string, any>> | null;
+  sourceTeamCapHolds?: SignAndTradeCapHold[] | null;
 };
 
 export type SignAndTradeContractValidationResult = {
   valid: boolean;
   reasonCode: string;
   reasons: string[];
-  contract: Record<string, any> | null;
+  contract: SignAndTradeNormalizedContract | null;
   activeYearSalary: number;
 };
 
 type ContractValidationOptions = {
   requireActiveYearRow?: boolean;
 };
+
+function getNestedSignAndTradeContract(
+  value: unknown
+): SignAndTradeContractLike | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return 'contract' in value
+    ? ((value.contract as SignAndTradeContractLike | null | undefined) ?? null)
+    : null;
+}
 
 function normalizeTeamCode(value: unknown): string | null {
   if (!value || typeof value !== 'string') return null;
@@ -363,11 +456,11 @@ export function isSignAndTradeEligible({
   sourceTeamCapHolds = [],
   allowLegacyInference = false,
 }: {
-  player: Record<string, any> | null | undefined;
+  player: SignAndTradePlayerLike | null | undefined;
   yearKey: number | string;
   sourceTeamId?: string | null;
   worldId?: string | null;
-  sourceTeamCapHolds?: Array<Record<string, any>> | null;
+  sourceTeamCapHolds?: SignAndTradeCapHold[] | null;
   allowLegacyInference?: boolean;
 }): SignAndTradeEligibilityResult {
   const details = getPlayerContractStatusForYear(player, yearKey, {
@@ -401,7 +494,7 @@ export function isSignAndTradeEligible({
     if (allowLegacyInference && player?.signAndTrade === true) {
       const hasLegacyContractIntent = Boolean(
         player?.signAndTradeContract ||
-          player?.signAndTrade?.contract ||
+          getNestedSignAndTradeContract(player?.signAndTrade) ||
           player?.contract ||
           player?.contractYears != null ||
           player?.years != null ||
@@ -484,9 +577,9 @@ function normalizeSalaryRowsFromLegacyArray(
 }
 
 export function normalizeSignAndTradeContractPayload(
-  contractLike: Record<string, any> | null | undefined,
+  contractLike: SignAndTradeContractLike | null | undefined,
   yearKey: number | string
-): Record<string, any> | null {
+): SignAndTradeNormalizedContract | null {
   if (!contractLike || typeof contractLike !== 'object') return null;
 
   const normalizedYear = normalizeYearInput(yearKey);
@@ -526,15 +619,15 @@ export function normalizeSignAndTradeContractPayload(
 }
 
 export function resolveSignAndTradeContractPayload(
-  sendOrPlayer: Record<string, any> | null | undefined,
+  sendOrPlayer: SignAndTradeContractCarrier | null | undefined,
   yearKey: number | string,
   options: { allowPlayerContractFallback?: boolean } = {}
-): Record<string, any> | null {
+): SignAndTradeNormalizedContract | null {
   if (!sendOrPlayer || typeof sendOrPlayer !== 'object') return null;
 
   const explicit =
     sendOrPlayer.signAndTradeContract ||
-    sendOrPlayer.signAndTrade?.contract ||
+    getNestedSignAndTradeContract(sendOrPlayer.signAndTrade) ||
     null;
   const normalizedExplicit = normalizeSignAndTradeContractPayload(explicit, yearKey);
   if (normalizedExplicit) return normalizedExplicit;
@@ -572,7 +665,7 @@ export function resolveSignAndTradeContractPayload(
 }
 
 export function validateSignAndTradeContractPayload(
-  contractLike: Record<string, any> | null | undefined,
+  contractLike: SignAndTradeContractLike | null | undefined,
   yearKey: number | string,
   options: ContractValidationOptions = {}
 ): SignAndTradeContractValidationResult {
@@ -631,7 +724,7 @@ export function validateSignAndTradeContractPayload(
 }
 
 export function getSignAndTradeSalaryForYear(
-  sendOrPlayer: Record<string, any> | null | undefined,
+  sendOrPlayer: SignAndTradeContractCarrier | null | undefined,
   yearKey: number | string,
   options: { allowPlayerContractFallback?: boolean } = {}
 ): number {

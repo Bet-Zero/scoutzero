@@ -358,6 +358,7 @@ utils/
       validateSalaryMatching.js
       validateSalaryMatching.ts
       validateSignAndTrade.js
+      validateSignAndTrade.ts
       validateStepien.js
       validateStepien.ts
       validateTradeExceptions.js
@@ -401,5 +402,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T06:43:24.539Z*
+*Generated on: 2026-03-08T07:20:15.669Z*
 *Auto-updated by: npm run docs*

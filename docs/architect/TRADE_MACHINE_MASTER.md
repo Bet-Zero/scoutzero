@@ -421,6 +421,17 @@ Date: 2026-02-26
   - next migrate the adjacent authoritative S&T timing surface in `validateSignAndTrade.js` and its immediate helper dependencies
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TIMING_E8_RETURN_PACKAGE.md`
 
+### Validator TS Sign-And-Trade E9 (2026-03-08)
+
+- Status: The authoritative sign-and-trade rule surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative S&T rule logic now lives in `rules/validateSignAndTrade.ts`
+  - `rules/validateSignAndTrade.js` is now a pure compatibility re-export shim with no remaining business logic
+  - the S&T vs generic timing ownership split remains unchanged: S&T offseason and January 15 gates stay in `validateSignAndTrade.ts`, generic timing remains in `timingValidation.ts`
+  - direct authoritative helper interop stayed narrow to the existing S&T helper exports in `signAndTrade/signAndTradeEligibility.ts`
+  - next migrate the adjacent authoritative hard-cap/apron surface in `hardCapValidation.js`
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SIGN_AND_TRADE_E9_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
@@ -438,7 +449,7 @@ Date: 2026-02-26
 - **Status:** Implemented and enforced under existing rule key `team.rules.signAndTrade` in `validateSignAndTrade()`.
 - **Behavior:** if a team receives a sign-and-trade player, that team cannot receive any additional players in the same transaction (including multi-team trades).
 - **Scope boundaries:** picks/cash are not counted as players for Rule 1.6; third-party teams not receiving the S&T player are unaffected by Rule 1.6.
-- **Validator SSOT:** `src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.js` (incoming aggregation check is part of Rule 1.6).
+- **Validator SSOT:** `src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.ts` (incoming aggregation check is part of Rule 1.6; `validateSignAndTrade.js` is now a pure shim).
 - **Apply parity:** enforced again through `validatePostTradeSnapshotForContext()` -> `validateTrade()`.
 - **Test status:** `tests/signAndTradeAggregation.test.js` now runs as active coverage (no deferred `todo` cases).
 - **Return packages:**
@@ -537,7 +548,7 @@ Date: 2026-03-01
 | **Effective allowable = min(salaryMatchCeiling, hardCapCeiling)** | `effectiveAllowableIncoming = Math.min(allowableIncoming, hardCapIncomingCeiling)` | `rules/validateSalaryMatching.js:434-436` | Same | `src/tests/tradeMachine/tradeAllowableIncomingParity.guardrail.test.ts` |
 | **First Apron hard cap** | Triggered by S&T, BAE, NTMLE usage | `rules/hardCapValidation.js:86-87,133-144`, `rules/validateFaExceptionUsage.js:91-92` | `TradeLegalChecker` shows hard cap type | `tests/validators/hardCap.test.js`, `tests/trade/hardCap_trigger_faException.test.js` |
 | **Second Apron hard cap** | Auto-triggered when `teamTotalSalary > secondApron` | `rules/hardCapValidation.js:88-90,114-116` | Same | `tests/validators/hardCap.test.js`, `src/tests/tradeMachine/hardCap_reasonParity.guardrail.test.ts` |
-| **S&T receiver hard cap** | Receiver becomes first-apron hard-capped | `rules/validateSignAndTrade.js:194-219`, `tradeContext.js:526-542` | Hard cap metadata on team snapshot | `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts` |
+| **S&T receiver hard cap** | Receiver becomes first-apron hard-capped | `rules/validateSignAndTrade.ts`, `tradeContext.js:526-542` | Hard cap metadata on team snapshot | `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts` |
 
 **Known burn #3 verification (apron hard cap):** ✅ PASS. `validateSalaryMatching.js:434` computes `effectiveAllowableIncoming = Math.min(allowableIncoming, hardCapIncomingCeiling)` where `hardCapIncomingCeiling = salaryOut + max(0, apron - teamTotalSalary)`. Allowable incoming cannot exceed hard-cap remaining room.
 
@@ -546,7 +557,7 @@ Date: 2026-03-01
 | Aspect | Implementation | File(s) | Test Coverage |
 |--------|---------------|---------|---------------|
 | **Second apron aggregation block** | Cannot aggregate 2+ outgoing into higher incoming | `rules/basicRules.js:90`, `rules/validateAggregation.js:68-70` | `tests/trade/secondApron_handcuffs.test.js` |
-| **S&T aggregation block (Rule 1.6)** | Receiver cannot receive additional players with S&T | `rules/validateSignAndTrade.js:93-107` | `tests/signAndTradeAggregation.test.js` |
+| **S&T aggregation block (Rule 1.6)** | Receiver cannot receive additional players with S&T | `rules/validateSignAndTrade.ts` | `tests/signAndTradeAggregation.test.js` |
 | **60-day aggregation timing** | Retired from authoritative enforcement pending a reliable acquisition-date field in the live payload | `rules/timingValidation.ts` | `tests/trade/timingEnforcement_authoritative.test.js`, `tests/trade/timingGates_softEnforcement.test.js`, `src/tests/architect/tradeApply_timingWarnings.behavior.test.ts` |
 | **TPE + outgoing aggregation** | Cannot combine TPE with outgoing salary | `rules/validateTradeExceptions.js:93-97` | `tests/trade/tpe_absorption_fail_closed.test.js` |
 | **Incoming/outgoing construction** | Route-aware via `computeMatchingValues()` (SSOT) | `engine/tradeValidator.js:720` → `utils/matchingValues.js` | `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js`, `src/tests/trade/goldenTrades.test.js` |
@@ -605,8 +616,8 @@ Date: 2026-03-01
 | **Contract capture required** | Modal collects `salariesByYear[]`, `contractYears`, `firstYearGuaranteed` | `TradeEditor.jsx` → `EditContractModal` | `tests/trade/signAndTrade_completeness.test.js` |
 | **Contract length 3-4 years** | `validateSignAndTradeContractPayload()` | `signAndTrade/signAndTradeEligibility.ts` | Same |
 | **First year guaranteed** | Required field in contract payload | Same | Same |
-| **Receiver hard-cap consequence** | First-apron hard cap on receiving team | `rules/validateSignAndTrade.js:194-219` | `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts` |
-| **Rule 1.6 incoming aggregation** | Receiver cannot receive other players | `rules/validateSignAndTrade.js:93-107` | `tests/signAndTradeAggregation.test.js` |
+| **Receiver hard-cap consequence** | First-apron hard cap on receiving team | `rules/validateSignAndTrade.ts` | `src/tests/architect/executeTrade_signAndTrade_apply.guardrail.test.ts` |
+| **Rule 1.6 incoming aggregation** | Receiver cannot receive other players | `rules/validateSignAndTrade.ts` | `tests/signAndTradeAggregation.test.js` |
 | **Source team mismatch** | Source team must match player's team | `signAndTrade/signAndTradeEligibility.ts` | `src/tests/tradeMachine/signAndTrade.failClosed.guardrail.test.ts` |
 | **Above-second-apron S&T block** | S&T violation for teams above 2nd apron | `rules/hardCapValidation.js` | `tests/validators/hardCap.test.js` |
 
@@ -620,7 +631,7 @@ Date: 2026-03-01
 
 - `signAndTradeEligibility.ts` → `isSignAndTradeEligible()` returns `eligible: false` for `UNDER_CONTRACT` status with `reasonCode: 'UNDER_CONTRACT'`.
 - UI gating: `TradeTeamCard` → `onRequestSignAndTrade` calls `openTradeMachineSatModal()` which routes to `EditContractModal`. The modal handler `handleTradeMachineSignAndTrade()` calls `validateSignAndTradeContractPayload()` before writing state.
-- Validator gate: `validateSignAndTrade.js` independently re-checks eligibility at validation time via `isSignAndTradeEligible()`.
+- Validator gate: `validateSignAndTrade.ts` independently re-checks eligibility at validation time via `isSignAndTradeEligible()`.
 - Test: `src/tests/tradeMachine/signAndTrade.failClosed.guardrail.test.ts` explicitly tests that UNDER_CONTRACT players are ineligible.
 
 #### Burn #2: S&T flow collects contract details (not instant-send)

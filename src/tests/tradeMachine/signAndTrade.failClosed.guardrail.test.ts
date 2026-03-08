@@ -61,6 +61,18 @@ function makeSignAndTradeContract(firstYearSalary: number) {
 const issueTexts = (issues: any[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
+function expectCanonicalSignAndTradeIssues(issues: any[]) {
+  expect(issues.length).toBeGreaterThan(0);
+  issues.forEach((issue) => {
+    expect(issue).toMatchObject({
+      message: expect.any(String),
+      severity: 'error',
+      rule: 'signAndTrade',
+      code: expect.stringMatching(/^SIGN_AND_TRADE__/),
+    });
+  });
+}
+
 describe('Trade Machine S&T fail-closed guardrails', () => {
   it('rejects sign-and-trade when outgoing player is under contract', () => {
     const satPlayer = makePlayer('sat_under_contract', 11_000_000, {
@@ -78,11 +90,18 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
       ],
       capProjections,
       currentYear: CURRENT_YEAR,
-      tradeCtx: { offseason: true, source: 'tradeMachine' },
+      tradeCtx: {
+        offseason: true,
+        source: 'tradeMachine',
+        asOfDate: '2026-01-20',
+      },
     });
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].rules.signAndTrade.passed).toBe(false);
+    expectCanonicalSignAndTradeIssues(
+      result.teamResults[0].rules.signAndTrade.violations
+    );
     expect(issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')).toContain(
       'ineligible'
     );
@@ -121,6 +140,9 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
 
     expect(result.legal).toBe(false);
     expect(result.teamResults[0].rules.signAndTrade.passed).toBe(false);
+    expectCanonicalSignAndTradeIssues(
+      result.teamResults[0].rules.signAndTrade.violations
+    );
     expect(issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')).toContain(
       'missing signAndTradeContract'
     );
@@ -204,5 +226,36 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
 
     expect(result.legal).toBe(false);
     expect(result.error).toBe('PLAYER_ROUTING_ERROR');
+  });
+
+  it('marks the receiving team hard-capped through the authoritative S&T rule output', () => {
+    const satPlayer = makePlayer('sat_hard_cap_lock', 0, {
+      signAndTrade: true,
+      tradeTo: 'BOS',
+      freeAgentYear: CURRENT_YEAR,
+      originTeamId: 'LAL',
+      signAndTradeContract: makeSignAndTradeContract(15_000_000),
+      contract: {
+        salariesByYear: [{ season: SEASON, salary: 0, capHit: 0 }],
+      },
+    });
+    const counterPlayer = makePlayer('counter', 15_000_000, { tradeTo: 'LAL' });
+
+    const result = validateTrade({
+      teams: [
+        { team: makeTeam('LAL'), sends: [satPlayer], picksOut: [] },
+        { team: makeTeam('BOS'), sends: [counterPlayer], picksOut: [] },
+      ],
+      capProjections,
+      currentYear: CURRENT_YEAR,
+      tradeCtx: { offseason: true, source: 'tradeMachine' },
+    });
+
+    const receiver = result.teamResults.find((entry: any) => entry.teamId === 'BOS');
+
+    expect(receiver?.rules.signAndTrade.passed).toBe(true);
+    expect(receiver?.rules.signAndTrade.hardCapped).toBe(true);
+    expect(receiver?.hardCapped).toBe(true);
+    expect(receiver?.rules.signAndTrade.violations).toEqual([]);
   });
 });
