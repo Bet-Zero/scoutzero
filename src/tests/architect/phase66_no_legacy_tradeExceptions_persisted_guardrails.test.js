@@ -25,6 +25,30 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
+function readAuthoritativeImplementationContent(filePath) {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const stripped = content
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+  const localTsTargets = Array.from(
+    stripped.matchAll(/from ['"](\.\/[^'"]+\.ts)['"]/g),
+    (match) => match[1]
+  );
+
+  if (!content.includes('getTeamTpeList') && localTsTargets.length === 1) {
+    const authoritativePath = path.resolve(
+      path.dirname(filePath),
+      localTsTargets[0]
+    );
+
+    if (fs.existsSync(authoritativePath)) {
+      return fs.readFileSync(authoritativePath, 'utf-8');
+    }
+  }
+
+  return content;
+}
+
 // ============================================================================
 // Test 1: Canonical Zod Schema Does NOT Include tradeExceptions
 // ============================================================================
@@ -315,7 +339,7 @@ describe('Phase 66 Guardrail: normalizeTradeInput Uses getTeamTpeList', () => {
       __dirname,
       '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.js'
     );
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = readAuthoritativeImplementationContent(filePath);
 
     expect(content).toContain(
       "import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe.js'"
@@ -327,7 +351,7 @@ describe('Phase 66 Guardrail: normalizeTradeInput Uses getTeamTpeList', () => {
       __dirname,
       '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.js'
     );
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = readAuthoritativeImplementationContent(filePath);
 
     // Should use getTeamTpeList(raw)
     expect(content).toContain('getTeamTpeList(raw)');

@@ -393,6 +393,7 @@ utils/
       matchingValues.js
       matchingValues.ts
       normalizeTradeInput.js
+      normalizeTradeInput.ts
       pickIdUtils.js
       resolveValidationEntitlements.js
       salaryMargin.js
@@ -415,6 +416,7 @@ utils/
       tradeUtilityMisc.js
       tradeUtilityMisc.ts
       validateInput.js
+      validateInput.ts
       validationIssueText.js
       validationIssueText.ts
     validators/
@@ -426,5 +428,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-09T04:34:38.644Z*
+*Generated on: 2026-03-09T07:45:54.615Z*
 *Auto-updated by: npm run docs*

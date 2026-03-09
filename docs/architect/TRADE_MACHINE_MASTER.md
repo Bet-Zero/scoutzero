@@ -709,6 +709,19 @@ Date: 2026-02-26
   - actual post-E34 remaining live JS business-logic count in this validator-adjacent slice: 2
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_ROSTER_E34_RETURN_PACKAGE.md`
 
+### Validator TS Input Helpers E35 (2026-03-09)
+
+- Status: The legacy `validateInput` and `normalizeTradeInput` helper surfaces are now TS-backed in the validator-adjacent path.
+- TS migration note:
+  - active authoritative input-helper logic now lives in `utils/validateInput.ts` and `utils/normalizeTradeInput.ts`
+  - `utils/validateInput.js` and `utils/normalizeTradeInput.js` are now pure compatibility re-export shims with no remaining business logic
+  - validator-adjacent input-helper semantics remained unchanged, including exact validation strings/order, the current cap-projection lookup order, legacy `getMatchingValue()` salary fallback behavior, canonical `getTeamTpeList(raw)` TPE reads, current normalization defaults, and current `tradeDate` defaulting
+  - targeted parity now includes direct shim-backed `.js` behavior assertions for both helper files plus shim-aware normalization guardrails
+  - based on the actual post-E35 inventory in the same validator-adjacent scope used in E34/E35, no live JS business-logic files remain in this slice
+  - with business-logic migration complete for this scope, the next best slice is optional non-business-logic cleanup of the remaining public entrypoint barrels `utils/index.js` + `validators/index.js` if reducing JS export surfaces is still desired
+  - actual post-E35 remaining live JS business-logic count in this validator-adjacent slice: 0
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_INPUT_HELPERS_E35_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
