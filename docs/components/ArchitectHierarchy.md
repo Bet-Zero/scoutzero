@@ -376,6 +376,7 @@ utils/
       capSettingsProvider.js
       capSettingsProvider.ts
       capUtils.js
+      capUtils.ts
       computeMatchingValues.js
       conveyanceResolution.js
       dataValidation.js
@@ -416,5 +417,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-08T23:54:43.078Z*
+*Generated on: 2026-03-09T00:18:43.562Z*
 *Auto-updated by: npm run docs*

@@ -78,9 +78,21 @@ describe('second apron boundary cases', () => {
     // Should NOT trigger second apron restrictions
 
     // Check that secondApronEnforcement rule has no violations
+    expect(result.teamResults[0].rules?.secondApronEnforcement?.passed).toBe(
+      true
+    );
     const secondApronViolations =
       result.teamResults[0].rules?.secondApronEnforcement?.violations || [];
     expect(issueTexts(secondApronViolations)).toEqual([]);
+    const salaryMatchingViolations = issueTexts(
+      result.teamResults[0].rules?.salaryMatching?.violations || []
+    );
+    const hasSecondApronSalaryMatchingViolation = salaryMatchingViolations.some(
+      (v) =>
+        v.toLowerCase().includes('second apron') ||
+        v.toLowerCase().includes('2nd apron')
+    );
+    expect(hasSecondApronSalaryMatchingViolation).toBe(false);
 
     // Also verify aggregation rule didn't flag second apron
     const aggregationResult = result.teamResults[0].rules?.aggregation || {};
@@ -116,6 +128,16 @@ describe('second apron boundary cases', () => {
 
     // Team A's projected salary = 180M + 10,000,001 = 190,000,001 > secondApron
     // Should trigger second apron restrictions (100% matching required, but A sends nothing)
+
+    const salaryMatchingViolations = issueTexts(
+      result.teamResults[0].rules?.salaryMatching?.violations || []
+    );
+    const hasSecondApronSalaryMatchingViolation = salaryMatchingViolations.some(
+      (v) =>
+        v.toLowerCase().includes('second apron') ||
+        v.toLowerCase().includes('2nd apron')
+    );
+    expect(hasSecondApronSalaryMatchingViolation).toBe(true);
 
     // At least one rule should have a second apron related violation
     const allViolations = issueTexts(result.teamResults[0].violations || []);
@@ -155,9 +177,21 @@ describe('second apron boundary cases', () => {
     // Team A pre-trade = 190M, projected = 190M (equal swap)
     // Since 190M is NOT > 190M, should NOT trigger second apron restrictions
 
+    expect(result.teamResults[0].rules?.secondApronEnforcement?.passed).toBe(
+      true
+    );
     const secondApronViolations =
       result.teamResults[0].rules?.secondApronEnforcement?.violations || [];
     expect(issueTexts(secondApronViolations)).toEqual([]);
+    const salaryMatchingViolations = issueTexts(
+      result.teamResults[0].rules?.salaryMatching?.violations || []
+    );
+    const hasSecondApronSalaryMatchingViolation = salaryMatchingViolations.some(
+      (v) =>
+        v.toLowerCase().includes('second apron') ||
+        v.toLowerCase().includes('2nd apron')
+    );
+    expect(hasSecondApronSalaryMatchingViolation).toBe(false);
 
     const aggregationResult = result.teamResults[0].rules?.aggregation || {};
     const aggregationViolations = issueTexts(aggregationResult.violations || []);
@@ -194,6 +228,16 @@ describe('second apron boundary cases', () => {
 
     // Team A at 190,000,001 > 190,000,000 → IS second apron team
     // Receiving 12M while sending 10M violates 100% matching
+
+    const salaryMatchingViolations = issueTexts(
+      result.teamResults[0].rules?.salaryMatching?.violations || []
+    );
+    const hasSecondApronSalaryMatchingViolation = salaryMatchingViolations.some(
+      (v) =>
+        v.toLowerCase().includes('second apron') ||
+        v.toLowerCase().includes('2nd apron')
+    );
+    expect(hasSecondApronSalaryMatchingViolation).toBe(true);
 
     const allViolations = issueTexts(result.teamResults[0].violations || []);
     const hasSecondApronViolation = allViolations.some(

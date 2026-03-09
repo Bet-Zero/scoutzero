@@ -574,6 +574,17 @@ Date: 2026-02-26
   - based on the actual post-E22 holdouts, `utils/capUtils.js` is a likely next TS slice because it remains live shared apron-helper logic consumed by several TS-backed validator surfaces, but it is not mandatory if another remaining live JS holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_AGGREGATION_E22_RETURN_PACKAGE.md`
 
+### Validator TS Cap Utils E23 (2026-03-09)
+
+- Status: The canonical `capUtils` helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative cap/apron helper logic now lives in `utils/capUtils.ts`
+  - `utils/capUtils.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent `capUtils` semantics remained unchanged, including first-apron `>=` classification, second-apron strict `>` classification, apron-status return values, cap-settings normalization fallbacks, wrapper-team extraction order, payroll resolution order, and the `toSeasonKey` re-export surface
+  - targeted parity now includes expanded direct `capUtils` helper coverage plus an authoritative `validateTrade()` boundary assertion proving unchanged `capUtils`-driven second-apron status behavior in team-level salary-matching blocking
+  - based on the actual post-E23 holdouts, `utils/salaryMargin.js` is a likely next TS slice because it remains live shared JS salary-ceiling logic built directly on the newly TS-backed `capUtils` helper surface, but it is not mandatory if another remaining live JS holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_UTILS_E23_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

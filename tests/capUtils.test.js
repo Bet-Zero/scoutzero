@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
+  isFirstApronTeam,
+  isSecondApronTeam,
+  getTeamApronStatus,
   toNum,
   toSeasonKey,
   normalizeCaps,
@@ -37,6 +40,100 @@ describe('Cap Utilities', () => {
       expect(toSeasonKey(2025)).toBe('2024-25');
       expect(toSeasonKey(2030)).toBe('2029-30');
       expect(toSeasonKey(2100)).toBe('2099-00');
+    });
+  });
+
+  describe('apron helpers', () => {
+    const capSettings = {
+      salaryCap: 140_588_000,
+      firstApron: 178_132_000,
+      secondApron: 188_938_000,
+    };
+
+    it('treats first apron as >= and second apron as strict >', () => {
+      expect(
+        isFirstApronTeam(
+          { totalSalary: capSettings.firstApron - 1 },
+          capSettings
+        )
+      ).toBe(false);
+      expect(
+        isFirstApronTeam({ totalSalary: capSettings.firstApron }, capSettings)
+      ).toBe(true);
+
+      expect(
+        isSecondApronTeam(
+          { totalSalary: capSettings.secondApron - 1 },
+          capSettings
+        )
+      ).toBe(false);
+      expect(
+        isSecondApronTeam(
+          { totalSalary: capSettings.secondApron },
+          capSettings
+        )
+      ).toBe(false);
+      expect(
+        isSecondApronTeam(
+          { totalSalary: capSettings.secondApron + 1 },
+          capSettings
+        )
+      ).toBe(true);
+    });
+
+    it('extracts wrapped team shapes for second apron checks', () => {
+      expect(
+        isSecondApronTeam(
+          { team: { teamTotalSalary: capSettings.secondApron + 1 } },
+          capSettings
+        )
+      ).toBe(true);
+      expect(
+        isSecondApronTeam(
+          { sourceTeam: { totalSalary: capSettings.secondApron + 1 } },
+          capSettings
+        )
+      ).toBe(true);
+      expect(
+        isSecondApronTeam(
+          { ctx: { totalSalary: capSettings.secondApron } },
+          capSettings
+        )
+      ).toBe(false);
+    });
+
+    it('returns the expected apron status branches', () => {
+      expect(getTeamApronStatus(null, capSettings)).toBe('UNDER_CAP');
+      expect(
+        getTeamApronStatus(
+          { totalSalary: capSettings.salaryCap - 1 },
+          capSettings
+        )
+      ).toBe('UNDER_CAP');
+      expect(
+        getTeamApronStatus(
+          { totalSalary: capSettings.salaryCap },
+          capSettings
+        )
+      ).toBe('OVER_CAP');
+      expect(
+        getTeamApronStatus(
+          { totalSalary: capSettings.firstApron },
+          capSettings
+        )
+      ).toBe('FIRST_APRON');
+      expect(
+        getTeamApronStatus(
+          { totalSalary: capSettings.secondApron },
+          capSettings
+        )
+      ).toBe('FIRST_APRON');
+      expect(
+        getTeamApronStatus(
+          { totalSalary: capSettings.secondApron + 1 },
+          capSettings
+        )
+      ).toBe('SECOND_APRON');
     });
   });
 
