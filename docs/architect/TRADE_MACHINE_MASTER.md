@@ -675,6 +675,17 @@ Date: 2026-02-26
   - based on the actual post-E31 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `rules/draftRules.js` is a likely candidate because it still contains live business logic and consumes the now-TS-backed protection helper path, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_UTILITY_MISC_E31_RETURN_PACKAGE.md`
 
+### Validator TS Draft Rules E32 (2026-03-09)
+
+- Status: The canonical `draftRules` surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative draft-rules logic now lives in `rules/draftRules.ts`
+  - `rules/draftRules.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent draft-rule semantics remained unchanged, including the `hasStepienViolation()` delegation to canonical Stepien validation, the raw `validateDraftPicks()` string-array contract, exact message text/order, current `new Date().getFullYear()` behavior, current protection gating, current 7-year-limit behavior, and the strict `round === 1` filter without new round normalization or coercion
+  - targeted parity now includes direct surface assertions for the `.js` shim-backed draft-rules exports plus a legacy preflight-composition assertion proving unchanged `validateDraftPicks()` output through the existing `validateAllNewRules()` path under a test-only harness that preserves the pre-existing mixed-spread contract
+  - based on the actual post-E32 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `rules/tradeExceptions.js` is a likely candidate because it still contains live business logic rather than shim-only compatibility, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DRAFT_RULES_E32_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
@@ -836,8 +847,8 @@ Date: 2026-03-01
 
 | Aspect | Implementation | File(s) | Test Coverage |
 |--------|---------------|---------|---------------|
-| **Consecutive first-round pick restriction** | Cannot trade consecutive unprotected future firsts | `rules/draftRules.js` → `validateStepien.js` (SSOT) | `tests/validators/stepien.test.js`, `src/tests/tradeMachine/stepienObligations.test.js` |
-| **7-year future limit** | Cannot trade picks > 7 years out | `rules/draftRules.js` | Same |
+| **Consecutive first-round pick restriction** | Cannot trade consecutive unprotected future firsts | `rules/draftRules.ts` → `validateStepien.ts` (SSOT) | `tests/validators/stepien.test.js`, `src/tests/tradeMachine/stepienObligations.test.js` |
+| **7-year future limit** | Cannot trade picks > 7 years out | `rules/draftRules.ts` | Same |
 | **Entitlement-based Stepien** | Stepien computed from entitlement baseline | `tests/validators/stepienEntitlements.test.js`, `tests/validators/stepienEntitlementBaseline.test.js` | Same |
 
 #### 8. Roster Size Constraints
