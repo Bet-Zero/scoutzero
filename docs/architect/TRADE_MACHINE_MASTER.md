@@ -640,6 +640,17 @@ Date: 2026-02-26
   - based on the actual post-E28 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `rules/validateStepien.js` is a likely candidate because it remains live Stepien rule logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_STEPIEN_ENTITLEMENT_UTILS_E28_RETURN_PACKAGE.md`
 
+### Validator TS Validate Stepien E29 (2026-03-09)
+
+- Status: The canonical `validateStepien` rule surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative Stepien rule logic now lives in `rules/validateStepien.ts`
+  - `rules/validateStepien.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent Stepien semantics remained unchanged, including string-array `violations`/`warnings`, exact message text/order, entitlements-SSOT baseline behavior, outgoing entitlement warning de-dupe, swap year reservation behavior, 7-year limit behavior, second-apron frozen-pick behavior, and `_debug` output structure
+  - targeted parity now includes authoritative `validateTrade()` assertions proving unchanged Stepien blocker propagation through both team-level `rules.stepienRule` semantics and the trade-level legality effect, alongside the direct Stepien rule suites that continue importing the `.js` compatibility path
+  - based on the actual post-E29 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `rules/rosterValidation.js` is a likely candidate because it remains live roster-enforcement logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_STEPIEN_E29_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

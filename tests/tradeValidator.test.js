@@ -340,6 +340,14 @@ describe('tradeValidator', () => {
     });
 
     expect(result.legal).toBe(false);
+    expect(result.reason).toBe(
+      'Violates Stepien Rule (consecutive future 1sts).'
+    );
+    expect(issueTexts(result.violations)).toEqual(
+      expect.arrayContaining([
+        'Violates Stepien Rule (consecutive future 1sts).',
+      ])
+    );
     expect(result.teamResults[0].legal).toBe(false);
     expect(issueTexts(result.teamResults[0].violations)).toEqual(
       expect.arrayContaining([

@@ -98,7 +98,9 @@ describe('tradeValidator edge cases', () => {
     });
 
     expect(result.legal).toBe(false);
+    expect(result.reason).toContain('Stepien');
     expect(result.teamResults[0].legal).toBe(false);
+    expect(result.teamResults[0].rules.stepienRule.passed).toBe(false);
     expect(issueTexts(result.teamResults[0].violations)[0]).toContain('Stepien');
   });
 
