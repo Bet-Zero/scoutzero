@@ -1,84 +1,174 @@
-import { passesRosterWindow } from '@/features/architect/utils/rosterUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { validatorDebug } from '../engine/validatorDebug';
-import { RosterResult, TradeTeam, ValidationIssue } from '../constants/types';
+import type { RosterResult, TradeTeam } from '../constants/types';
 
-function createIssue(message: string, code: string): ValidationIssue {
-  return {
-    message,
-    severity: 'error',
-    rule: 'rosterCount',
-    code,
-    details: null,
-    meta: null,
-  };
+interface RosterValidationPlayerLike {
+  isTwoWay?: boolean | null;
+  [key: string]: unknown;
+}
+
+interface RosterValidationPostTradeTeamLike {
+  players?: RosterValidationPlayerLike[] | null;
+  twoWayPlayers?: RosterValidationPlayerLike[] | null;
+}
+
+interface RosterValidationCallbacks {
+  warn?: (message: string) => void;
+  reject?: (message: string) => void;
+}
+
+interface RosterValidationContext {
+  graceMode?: boolean;
+  [key: string]: unknown;
+}
+
+interface RosterValidationTeamLike extends TradeTeam {
+  incomingPlayers?: RosterValidationPlayerLike[] | null;
+  outgoingPlayers?: RosterValidationPlayerLike[] | null;
+  postTradeTeam?: RosterValidationPostTradeTeamLike | null;
+}
+
+interface EnforceRosterWindowResult {
+  passed: boolean | undefined;
+  violations: string[];
+  warnings: string[];
+  message: string;
+  details: string;
 }
 
 /**
  * Validates roster requirements including:
  * - Standard roster spots (min 14, max 15)
  * - Two-way slots (max 3)
- * - Net roster changes from the trade
  */
-export function validateRoster(team: TradeTeam): RosterResult {
+export function validateRoster(team: RosterValidationTeamLike): RosterResult {
+  const violations: string[] = [];
+  const {
+    projectedRosterCount = 0,
+    incomingPlayers = [],
+    outgoingPlayers = [],
+  } = team;
+
   const currentTwoWay = team.team?.twoWayPlayers?.length || 0;
-  const outgoingTwoWay = (team.outgoingPlayers || []).filter(
-    (p) => p.isTwoWay
+  const outgoingTwoWay = (outgoingPlayers || []).filter(
+    (player) => player.isTwoWay
   ).length;
-  const incomingTwoWay = (team.incomingPlayers || []).filter(
-    (p) => p.isTwoWay
+  const incomingTwoWay = (incomingPlayers || []).filter(
+    (player) => player.isTwoWay
   ).length;
   const projectedTwoWay = currentTwoWay - outgoingTwoWay + incomingTwoWay;
 
-  // Check roster sizes using roster utils
-  const rosterCheck = passesRosterWindow(
-    {
-      players: Array(Math.max(0, team.projectedRosterCount || 0)),
-      twoWayPlayers: Array(Math.max(0, projectedTwoWay)),
-    },
-    { require14to15: true }
-  );
+  let standardViolation: string | null = null;
+  if (projectedRosterCount < 14) {
+    standardViolation = 'Standard roster must be 14–15';
+  } else if (projectedRosterCount > 15) {
+    standardViolation = 'Standard roster must be 14–15';
+  }
 
-  const rosterCnt = rosterCheck.standard;
-  const twoWayCnt = rosterCheck.twoWays;
-
-  const standardViolation = rosterCheck.reasons.find((r) =>
-    r.startsWith('Standard')
-  );
-  const twoWayViolation = rosterCheck.reasons.find((r) =>
-    r.startsWith('Two-way')
-  );
+  let twoWayViolation: string | null = null;
+  if (projectedTwoWay > 3) {
+    twoWayViolation = 'Two-way slots cannot exceed 3';
+  }
 
   const standardPass =
     !standardViolation || validationFlags.rosterEnforcement === 'warn';
   const twoWayPass =
     !twoWayViolation || validationFlags.twoWayRoster === 'warn';
 
+  if (standardViolation) violations.push(standardViolation);
+  if (twoWayViolation) violations.push(twoWayViolation);
+
   const result: RosterResult = {
     passed: standardPass && twoWayPass,
-    violations: [
-      ...(standardPass || !standardViolation
-        ? []
-        : [createIssue(standardViolation, 'ROSTER_COUNT__STANDARD_ROSTER_INVALID')]),
-      ...(twoWayPass || !twoWayViolation
-        ? []
-        : [createIssue(twoWayViolation, 'ROSTER_COUNT__TWO_WAY_ROSTER_INVALID')]),
-    ],
+    violations,
     message:
       standardPass && twoWayPass
         ? 'Roster requirements satisfied'
         : 'Roster violation',
-    details: `Standard spots: ${rosterCnt}, Two-way slots: ${twoWayCnt}`,
+    details: `Standard spots: ${projectedRosterCount}, Two-way slots: ${projectedTwoWay}`,
     rosterCounts: {
-      standard: rosterCnt,
-      twoWay: twoWayCnt,
-      projected: team.projectedRosterCount,
-      current: team.initialRosterCount,
-      incomingTwoWay,
-      outgoingTwoWay,
+      standard: projectedRosterCount,
+      twoWay: projectedTwoWay,
+      projected: projectedRosterCount,
+      current: team.initialRosterCount || 0,
     },
+    warningsOnly:
+      (standardViolation && validationFlags.rosterEnforcement === 'warn') ||
+      (twoWayViolation && validationFlags.twoWayRoster === 'warn'),
   };
 
-  validatorDebug.logValidation('Roster', team, result);
   return result;
+}
+
+export function enforceRosterWindow(
+  team: RosterValidationTeamLike,
+  context: RosterValidationContext = {},
+  { warn, reject }: RosterValidationCallbacks = {}
+): EnforceRosterWindowResult {
+  const violations: string[] = [];
+  const warnings: string[] = [];
+
+  let projectedRosterCount = team.projectedRosterCount || 0;
+
+  if (!projectedRosterCount && team.postTradeTeam?.players) {
+    projectedRosterCount = team.postTradeTeam.players.length;
+  }
+
+  let projectedTwoWayCount = 0;
+  if (team.postTradeTeam?.twoWayPlayers) {
+    projectedTwoWayCount = team.postTradeTeam.twoWayPlayers.length;
+  }
+
+  const enforcement = validationFlags.rosterEnforcement || 'error';
+  const twoWayEnforcement = validationFlags.twoWayRoster || 'error';
+  const isGraceMode = context.graceMode;
+
+  if (projectedRosterCount > 15) {
+    violations.push(
+      `Post-trade roster size (${projectedRosterCount}) exceeds maximum of 15 players`
+    );
+  }
+
+  if (projectedRosterCount < 14) {
+    violations.push(
+      `Post-trade roster size (${projectedRosterCount}) below minimum of 14 players`
+    );
+  }
+
+  if (projectedTwoWayCount > 3) {
+    const twoWayViolation = `Two-way slots exceeded (${projectedTwoWayCount}/3)`;
+    violations.push(twoWayViolation);
+  }
+
+  if (!isGraceMode) {
+    violations.forEach((violation) => {
+      const isTwoWayViolation = violation.includes('Two-way slots exceeded');
+      const currentEnforcement = isTwoWayViolation
+        ? twoWayEnforcement
+        : enforcement;
+
+      if (currentEnforcement === 'warn' && typeof warn === 'function') {
+        warn(violation);
+      } else if (
+        currentEnforcement === 'error' &&
+        typeof reject === 'function'
+      ) {
+        reject(violation);
+      }
+    });
+  }
+
+  if (typeof warn === 'function') {
+    warnings.forEach((warning) => warn(warning));
+  }
+
+  return {
+    passed: violations.length === 0 || isGraceMode,
+    violations,
+    warnings,
+    message:
+      violations.length > 0 && !isGraceMode
+        ? 'Roster size requirements not met'
+        : 'Roster size validated',
+    details: [...violations, ...warnings].join('; '),
+  };
 }

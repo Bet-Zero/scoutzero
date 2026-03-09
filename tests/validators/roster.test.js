@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { validateRoster } from '@/features/architect/utils/tradeMachine/rules/validateRoster.js';
+import {
+  enforceRosterWindow,
+  validateRoster,
+} from '@/features/architect/utils/tradeMachine/rules/validateRoster.js';
+import {
+  enforceRosterWindow as compatEnforceRosterWindow,
+  validateRoster as compatValidateRoster,
+} from '@/features/architect/utils/tradeMachine/validators/index.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
 describe('validateRoster', () => {
@@ -21,6 +28,11 @@ describe('validateRoster', () => {
     validationFlags.twoWayRoster = 'error';
   });
 
+  it('preserves helper identity through the validator compatibility path', () => {
+    expect(compatValidateRoster).toBe(validateRoster);
+    expect(compatEnforceRosterWindow).toBe(enforceRosterWindow);
+  });
+
   describe('standard roster spots', () => {
     it('allows valid 14-15 player rosters', () => {
       const result = validateRoster(
@@ -29,6 +41,7 @@ describe('validateRoster', () => {
         })
       );
       expect(result.passed).toBe(true);
+      expect(result.warningsOnly).toBeNull();
 
       const result15 = validateRoster(
         makeTeam({
@@ -36,6 +49,7 @@ describe('validateRoster', () => {
         })
       );
       expect(result15.passed).toBe(true);
+      expect(result15.warningsOnly).toBeNull();
     });
 
     it('fails when roster would be too small', () => {
@@ -46,6 +60,19 @@ describe('validateRoster', () => {
       );
       expect(result.passed).toBe(false);
       expect(result.violations[0]).toMatch(/Standard roster/);
+      expect(result).toEqual({
+        passed: false,
+        violations: ['Standard roster must be 14–15'],
+        message: 'Roster violation',
+        details: 'Standard spots: 13, Two-way slots: 0',
+        rosterCounts: {
+          standard: 13,
+          twoWay: 0,
+          projected: 13,
+          current: 14,
+        },
+        warningsOnly: null,
+      });
     });
 
     it('fails when roster would be too large', () => {
@@ -97,6 +124,8 @@ describe('validateRoster', () => {
         })
       );
       expect(result.passed).toBe(true);
+      expect(result.violations).toEqual(['Standard roster must be 14–15']);
+      expect(result.warningsOnly).toBe(true);
     });
 
     it('allows two-way violations in warn mode', () => {
@@ -111,6 +140,75 @@ describe('validateRoster', () => {
         })
       );
       expect(result.passed).toBe(true);
+      expect(result.violations).toEqual(['Two-way slots cannot exceed 3']);
+      expect(result.warningsOnly).toBe(true);
+    });
+  });
+
+  describe('enforceRosterWindow', () => {
+    it('preserves legacy enforcement behavior through the compatibility path', () => {
+      validationFlags.rosterEnforcement = 'error';
+      validationFlags.twoWayRoster = 'warn';
+
+      const warns = [];
+      const rejects = [];
+      const team = {
+        projectedRosterCount: 13,
+        postTradeTeam: {
+          players: Array(13).fill({}),
+          twoWayPlayers: Array(4).fill({}),
+        },
+      };
+
+      const result = compatEnforceRosterWindow(team, {}, {
+        warn: (message) => warns.push(message),
+        reject: (message) => rejects.push(message),
+      });
+
+      expect(result).toEqual({
+        passed: undefined,
+        violations: [
+          'Post-trade roster size (13) below minimum of 14 players',
+          'Two-way slots exceeded (4/3)',
+        ],
+        warnings: [],
+        message: 'Roster size requirements not met',
+        details:
+          'Post-trade roster size (13) below minimum of 14 players; Two-way slots exceeded (4/3)',
+      });
+      expect(warns).toEqual(['Two-way slots exceeded (4/3)']);
+      expect(rejects).toEqual([
+        'Post-trade roster size (13) below minimum of 14 players',
+      ]);
+    });
+
+    it('preserves grace-mode pass behavior', () => {
+      const warns = [];
+      const rejects = [];
+
+      const result = enforceRosterWindow(
+        {
+          postTradeTeam: {
+            players: Array(13).fill({}),
+            twoWayPlayers: [],
+          },
+        },
+        { graceMode: true },
+        {
+          warn: (message) => warns.push(message),
+          reject: (message) => rejects.push(message),
+        }
+      );
+
+      expect(result).toEqual({
+        passed: true,
+        violations: ['Post-trade roster size (13) below minimum of 14 players'],
+        warnings: [],
+        message: 'Roster size validated',
+        details: 'Post-trade roster size (13) below minimum of 14 players',
+      });
+      expect(warns).toEqual([]);
+      expect(rejects).toEqual([]);
     });
   });
 });

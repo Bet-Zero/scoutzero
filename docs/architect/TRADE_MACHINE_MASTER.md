@@ -697,6 +697,18 @@ Date: 2026-02-26
   - based on the actual post-E33 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `rules/validateRoster.js` is a likely candidate because it still contains live rule logic and public rule semantics, but it is not mandatory if another remaining live JS holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_EXCEPTIONS_E33_RETURN_PACKAGE.md`
 
+### Validator TS Validate Roster E34 (2026-03-09)
+
+- Status: The legacy `validateRoster` surface is now TS-backed in the validator-adjacent path.
+- TS migration note:
+  - active authoritative legacy roster helper logic now lives in `rules/validateRoster.ts`
+  - `rules/validateRoster.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent roster semantics remained unchanged, including legacy `string[]` violations, exact message/details text, the current `rosterCounts` payload, the current `warningsOnly` null/true quirk, and the current `enforceRosterWindow()` callback and grace-mode behavior
+  - targeted parity now includes direct `.js` helper assertions plus validator compatibility-barrel identity/behavior assertions for both `validateRoster` and `enforceRosterWindow`
+  - based on the actual post-E34 validator-adjacent graph, the next best TS slice is the paired input-helper surface `utils/validateInput.js` + `utils/normalizeTradeInput.js`
+  - actual post-E34 remaining live JS business-logic count in this validator-adjacent slice: 2
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_ROSTER_E34_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

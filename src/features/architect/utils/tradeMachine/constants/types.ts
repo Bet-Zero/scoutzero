@@ -320,8 +320,6 @@ export interface RosterCounts {
   twoWay: number;
   projected: number;
   current: number;
-  incomingTwoWay: number;
-  outgoingTwoWay: number;
 }
 
 export interface SalaryMatchingResult extends ValidationResult {
@@ -332,15 +330,15 @@ export interface SalaryMatchingResult extends ValidationResult {
   ceiling?: number;
 }
 
-export interface RosterResult extends ValidationResult {
-  rosterCounts?: {
-    standard: number;
-    twoWay: number;
-    projected?: number;
-    current?: number;
-    incomingTwoWay?: number;
-    outgoingTwoWay?: number;
-  };
+export interface RosterResult {
+  passed: boolean;
+  violations: string[];
+  warnings?: string[];
+  message: string;
+  details: string;
+  warningsOnly: boolean | null;
+  rosterCounts: RosterCounts;
+  [key: string]: unknown;
 }
 
 export interface AuthoritativeHardCapResult {
