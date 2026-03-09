@@ -651,6 +651,18 @@ Date: 2026-02-26
   - based on the actual post-E29 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `rules/rosterValidation.js` is a likely candidate because it remains live roster-enforcement logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_STEPIEN_E29_RETURN_PACKAGE.md`
 
+### Validator TS Roster Validation E30 (2026-03-09)
+
+- Status: The canonical `rosterValidation` surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative roster-enforcement logic now lives in `rules/rosterValidation.ts`
+  - `rules/rosterValidation.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent roster-validation semantics remained unchanged, including `validateRosterWindow`, `enforceRosterWindow`, `enforceRosterRules`, `enforceRosterWindowAdvanced`, legacy alias behavior, exact message text/order, current post-trade roster window behavior, current two-way counting behavior, and current return-shape/details behavior
+  - the current responsibility split was preserved exactly: `rosterValidation.ts` remains a separate live roster-enforcement surface, while authoritative `validateTrade()` `team.rules.rosterCount` behavior remains owned by `validateRoster.ts` / inline `computeRosterValidation()` logic
+  - targeted parity now includes direct `.js` shim assertions for the exported `rosterValidation` surface plus authoritative `validateTrade()` assertions proving unchanged top-level legality effect and unchanged `team.rules.rosterCount` roster-violation propagation
+  - based on the actual post-E30 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `utils/tradeUtilityMisc.js` is a likely candidate because it still contains live business logic re-exported by `tradeUtilities.js` and consumed by TS-backed validator surfaces, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ROSTER_VALIDATION_E30_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

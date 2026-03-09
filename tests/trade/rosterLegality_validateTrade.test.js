@@ -58,6 +58,9 @@ describe('roster legality via validateTrade', () => {
         v.includes('exceeds maximum')
       )
     ).toBe(true);
+    expect(
+      issueTexts(result.violations).some((v) => v.includes('exceeds maximum'))
+    ).toBe(true);
     expect(result.legal).toBe(false);
   });
 
@@ -94,6 +97,9 @@ describe('roster legality via validateTrade', () => {
       issueTexts(teamAResult.rules.rosterCount.violations).some((v) =>
         v.includes('below minimum')
       )
+    ).toBe(true);
+    expect(
+      issueTexts(result.violations).some((v) => v.includes('below minimum'))
     ).toBe(true);
     expect(result.legal).toBe(false);
   });
@@ -139,6 +145,9 @@ describe('roster legality via validateTrade', () => {
         v.includes('Two-way')
       )
     ).toBe(true);
+    expect(issueTexts(result.violations).some((v) => v.includes('Two-way'))).toBe(
+      true
+    );
     expect(result.legal).toBe(false);
   });
 });

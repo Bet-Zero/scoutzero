@@ -342,6 +342,7 @@ utils/
       miscRules.js
       miscRules.ts
       rosterValidation.js
+      rosterValidation.ts
       timingValidation.js
       timingValidation.ts
       tradeExceptions.js
@@ -422,5 +423,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-09T02:12:24.320Z*
+*Generated on: 2026-03-09T03:02:11.882Z*
 *Auto-updated by: npm run docs*
