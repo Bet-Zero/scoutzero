@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-08
+Last updated: 2026-03-09
 
 ## Trade Machine Overview
 
@@ -584,6 +584,17 @@ Date: 2026-02-26
   - targeted parity now includes expanded direct `capUtils` helper coverage plus an authoritative `validateTrade()` boundary assertion proving unchanged `capUtils`-driven second-apron status behavior in team-level salary-matching blocking
   - based on the actual post-E23 holdouts, `utils/salaryMargin.js` is a likely next TS slice because it remains live shared JS salary-ceiling logic built directly on the newly TS-backed `capUtils` helper surface, but it is not mandatory if another remaining live JS holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_UTILS_E23_RETURN_PACKAGE.md`
+
+### Validator TS Salary Margin E24 (2026-03-09)
+
+- Status: The canonical `salaryMargin` helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative salary-margin helper logic now lives in `utils/salaryMargin.ts`
+  - `utils/salaryMargin.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent `salaryMargin` semantics remained unchanged, including post-trade apron clamp order, under-cap cap-room handling, over-cap allowable-margin delegation, used-TPE and FA-exception add-on behavior, numeric fallbacks, incoming-ceiling branch order, and existing debug log payloads
+  - targeted parity now includes expanded direct `salaryMargin` helper coverage plus smoke assertions proving unchanged `.js` import compatibility through the direct helper path, the Trade Machine public index, and the validator compatibility index
+  - based on the actual post-E24 holdouts, `rules/validateFaExceptionUsage.js` is a likely next TS slice because it remains a narrow live JS rule imported directly by the TS-backed engine and publicly re-exported, but it is not mandatory if another remaining live JS holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SALARY_MARGIN_E24_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

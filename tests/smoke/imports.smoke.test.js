@@ -27,6 +27,27 @@ describe('Critical Imports Smoke Test', () => {
     expect(capUtils.toSeasonKey).toBeTypeOf('function');
   });
 
+  it('can import salaryMargin through the direct helper path', async () => {
+    const salaryMargin = await import(
+      '@/features/architect/utils/tradeMachine/utils/salaryMargin.js'
+    );
+    expect(salaryMargin.getAllowableIncomingMargin).toBeTypeOf('function');
+    expect(salaryMargin.getIncomingCeilingForTeam).toBeTypeOf('function');
+  });
+
+  it('can import salaryMargin through the tradeMachine public index', async () => {
+    const tradeMachine = await import('@/features/architect/utils/tradeMachine/index.js');
+    expect(tradeMachine.getAllowableIncomingMargin).toBeTypeOf('function');
+    expect(tradeMachine.getIncomingCeilingForTeam).toBeTypeOf('function');
+  });
+
+  it('can import salaryMargin through the validator compatibility index', async () => {
+    const validators = await import(
+      '@/features/architect/utils/tradeMachine/validators/index.js'
+    );
+    expect(validators.getIncomingCeilingForTeam).toBeTypeOf('function');
+  });
+
   it('can import shared utilities', async () => {
     const formatting = await import('@/shared/utils/formatting');
     expect(formatting.formatHeight).toBeTypeOf('function');

@@ -390,6 +390,7 @@ utils/
       pickIdUtils.js
       resolveValidationEntitlements.js
       salaryMargin.js
+      salaryMargin.ts
       salaryMatchingRules.js
       salaryMatchingRules.ts
       salaryUtils.js
@@ -417,5 +418,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-09T00:18:43.562Z*
+*Generated on: 2026-03-09T00:43:30.088Z*
 *Auto-updated by: npm run docs*
