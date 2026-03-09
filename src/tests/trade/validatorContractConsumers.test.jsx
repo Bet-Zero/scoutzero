@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import ValidationDetailsPanel from '@/features/architect/tradeMachine/ValidationDetailsPanel';
+import { validateTradeExceptions as validateLegacyTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/tradeExceptions.js';
 import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const issue = (message, rule, severity = 'error') =>
   createValidationIssue(message, { rule, severity });
+
+afterEach(() => {
+  cleanup();
+});
 
 const teams = [
   {
@@ -232,6 +237,92 @@ describe('validator contract consumers', () => {
     expect(screen.getByText('FA Exception Warnings')).toBeTruthy();
     expect(
       screen.getAllByText('FA exception usage would hard-cap the team').length
+    ).toBeGreaterThan(0);
+  });
+
+  it('renders legacy tradeExceptions string violations unchanged through the official consumer path', () => {
+    const legacyTradeExceptionsResult = validateLegacyTradeExceptions(
+      {
+        team: {
+          totalSalary: 150_000_000,
+          exceptions: {
+            tpe: [
+              {
+                id: 'legacy-small-tpe',
+                remaining: 3_000_000,
+                expirationDate: '2099-01-01T00:00:00.000Z',
+              },
+            ],
+          },
+        },
+        receives: [
+          {
+            name: 'Legacy Exception Wing',
+            absorptionMode: 'TPE',
+            tpeId: 'legacy-small-tpe',
+            matchIncoming: 5_000_000,
+          },
+        ],
+        sends: [],
+      },
+      {
+        capSettings: {
+          secondApron: 190_000_000,
+        },
+      }
+    );
+
+    const legacyIssues = legacyTradeExceptionsResult.violations.map((message) =>
+      issue(message, 'tradeExceptions')
+    );
+    const legacyConsumerResult = {
+      ...result,
+      teamResults: [
+        {
+          ...result.teamResults[0],
+          incomingPlayers: [
+            {
+              id: 'legacy-exception-wing',
+              player_id: 'legacy-exception-wing',
+              name: 'Legacy Exception Wing',
+              absorptionMode: 'TPE',
+              matchIncoming: 5_000_000,
+            },
+          ],
+          rules: {
+            ...result.teamResults[0].rules,
+            tradeExceptions: {
+              passed: legacyTradeExceptionsResult.passed,
+              violations: legacyIssues,
+              warnings: [],
+              message: legacyTradeExceptionsResult.message,
+              details: legacyTradeExceptionsResult.details || '',
+            },
+          },
+        },
+        result.teamResults[1],
+      ],
+    };
+
+    render(
+      <ValidationDetailsPanel
+        hasValidatorResult
+        isValidating={false}
+        result={legacyConsumerResult}
+        teams={teams}
+        capProjections={legacyConsumerResult.capSettings}
+        yearKey={2026}
+        salaryOut={[0, 0]}
+        incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
+        calculatorTeamIndex={0}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Validation Results'));
+
+    expect(screen.getByText('Trade Exception Blockers')).toBeTruthy();
+    expect(
+      screen.getAllByText('TPE is too small for incoming salary').length
     ).toBeGreaterThan(0);
   });
 });

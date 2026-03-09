@@ -686,6 +686,17 @@ Date: 2026-02-26
   - based on the actual post-E32 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `rules/tradeExceptions.js` is a likely candidate because it still contains live business logic rather than shim-only compatibility, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DRAFT_RULES_E32_RETURN_PACKAGE.md`
 
+### Validator TS Trade Exceptions E33 (2026-03-09)
+
+- Status: The legacy `tradeExceptions` surface is now TS-backed in the validator-adjacent path.
+- TS migration note:
+  - active authoritative legacy trade-exception helper logic now lives in `rules/tradeExceptions.ts`
+  - `rules/tradeExceptions.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent trade-exception semantics remained unchanged, including the legacy string-violation contract, wall-clock expiry checks via `new Date()`, `team.receives`-based TPE detection, current `getTeamTpeList(team.team)` lookup behavior, and in-place mutation of the resolved TPE object during successful usage
+  - targeted parity now includes direct `.js` shim-backed surface assertions plus an official consumer-path assertion proving legacy `tradeExceptions` string violations still render unchanged after adaptation into the validator-result issue shape
+  - based on the actual post-E33 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `rules/validateRoster.js` is a likely candidate because it still contains live rule logic and public rule semantics, but it is not mandatory if another remaining live JS holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_EXCEPTIONS_E33_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
