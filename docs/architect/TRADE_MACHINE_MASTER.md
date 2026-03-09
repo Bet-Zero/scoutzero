@@ -663,6 +663,18 @@ Date: 2026-02-26
   - based on the actual post-E30 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `utils/tradeUtilityMisc.js` is a likely candidate because it still contains live business logic re-exported by `tradeUtilities.js` and consumed by TS-backed validator surfaces, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ROSTER_VALIDATION_E30_RETURN_PACKAGE.md`
 
+### Validator TS Trade Utility Misc E31 (2026-03-09)
+
+- Status: The canonical `tradeUtilityMisc` helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative non-TPE trade utility helper logic now lives in `utils/tradeUtilityMisc.ts`
+  - `utils/tradeUtilityMisc.js` is now a pure compatibility re-export shim with no remaining business logic
+  - `utils/tradeUtilities.js` remains the JS compatibility barrel for the mixed TPE and non-TPE helper surface
+  - validator-adjacent helper semantics remained unchanged, including current date/formatting helpers, current protection detection and `protectionMeta` precedence, current pick-option ordering, and current protection normalization, coercion, fallback, and awkward edge behavior
+  - targeted parity now includes assertions proving the same helper identity and the same representative helper behavior through both `tradeUtilityMisc.js` and `tradeUtilities.js`, alongside the existing conveyance, Stepien, `hasStepienViolation`, and authoritative `validateTrade()` suites that continue consuming the barrel-backed helper path
+  - based on the actual post-E31 holdouts, the next TS slice should be selected from the remaining live JS validator-adjacent surfaces; `rules/draftRules.js` is a likely candidate because it still contains live business logic and consumes the now-TS-backed protection helper path, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_UTILITY_MISC_E31_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

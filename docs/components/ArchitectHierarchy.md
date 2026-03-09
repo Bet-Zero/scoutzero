@@ -411,6 +411,7 @@ utils/
       tradeTimingWindows.ts
       tradeUtilities.js
       tradeUtilityMisc.js
+      tradeUtilityMisc.ts
       validateInput.js
       validationIssueText.js
       validationIssueText.ts
@@ -423,5 +424,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-09T03:02:11.882Z*
+*Generated on: 2026-03-09T03:35:08.885Z*
 *Auto-updated by: npm run docs*
