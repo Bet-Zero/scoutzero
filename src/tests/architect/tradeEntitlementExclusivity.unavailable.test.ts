@@ -244,6 +244,23 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
     const lalResult = result.teamResults?.[0];
     expect(lalResult.rules?.entitlementExclusivity).toBeDefined();
     expect(lalResult.rules.entitlementExclusivity.passed).toBe(true);
+    expect(mockComputePostTradeEntitlements).toHaveBeenCalledTimes(2);
+
+    const firstCall = mockComputePostTradeEntitlements.mock.calls[0]?.[0] as {
+      teamId?: string;
+      currentEntitlements?: unknown[];
+      entitlementsOut?: unknown[];
+      allTeamsEntitlementsOut?: unknown[];
+      tradeParticipantIds?: Set<string>;
+    };
+    expect(firstCall.teamId).toBe('LAL');
+    expect(firstCall.currentEntitlements).toEqual([]);
+    expect(firstCall.entitlementsOut).toEqual([]);
+    expect(Array.isArray(firstCall.allTeamsEntitlementsOut)).toBe(true);
+    expect(Array.from(firstCall.tradeParticipantIds || [])).toEqual([
+      'LAL',
+      'BOS',
+    ]);
   });
 
   it('normal path still blocks when real conflicts exist', () => {

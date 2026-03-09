@@ -401,6 +401,7 @@ utils/
       seasonUtils.js
       seasonUtils.ts
       stepienEntitlementUtils.js
+      stepienEntitlementUtils.ts
       swapResolution.js
       tpeValidation.js
       tpeValidation.ts
@@ -421,5 +422,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-09T01:49:29.979Z*
+*Generated on: 2026-03-09T02:12:24.320Z*
 *Auto-updated by: npm run docs*

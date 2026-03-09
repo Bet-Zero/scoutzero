@@ -10,6 +10,11 @@ import {
   buildStepienOutgoingPicksFromEntitlements,
   buildStepienBaselinePicksFromEntitlements,
 } from '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils';
+import {
+  computePostTradeEntitlements as computePostTradeEntitlementsJs,
+  buildStepienOutgoingPicksFromEntitlements as buildStepienOutgoingPicksFromEntitlementsJs,
+  buildStepienBaselinePicksFromEntitlements as buildStepienBaselinePicksFromEntitlementsJs,
+} from '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils.js';
 
 // ── Test fixtures ──
 
@@ -26,6 +31,16 @@ const makeEntitlement = (overrides = {}) => ({
 });
 
 describe('computePostTradeEntitlements', () => {
+  it('keeps extensionless and .js imports aligned', () => {
+    expect(computePostTradeEntitlementsJs).toBe(computePostTradeEntitlements);
+    expect(buildStepienOutgoingPicksFromEntitlementsJs).toBe(
+      buildStepienOutgoingPicksFromEntitlements
+    );
+    expect(buildStepienBaselinePicksFromEntitlementsJs).toBe(
+      buildStepienBaselinePicksFromEntitlements
+    );
+  });
+
   it('removes outgoing entitlements from team inventory', () => {
     const ent1 = makeEntitlement({ id: 'ent_001', holderTeam: 'LAL' });
     const ent2 = makeEntitlement({ id: 'ent_002', holderTeam: 'LAL' });

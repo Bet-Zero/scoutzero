@@ -629,6 +629,17 @@ Date: 2026-02-26
   - based on the actual post-E27 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `utils/stepienEntitlementUtils.js` is a likely candidate because it remains live entitlement logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_ENTITLEMENT_ROUTING_E27_RETURN_PACKAGE.md`
 
+### Validator TS Stepien Entitlement Utils E28 (2026-03-09)
+
+- Status: The canonical `stepienEntitlementUtils` helper surface is now TS-backed in the live validator-adjacent path.
+- TS migration note:
+  - active authoritative Stepien entitlement helper logic now lives in `utils/stepienEntitlementUtils.ts`
+  - `utils/stepienEntitlementUtils.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent Stepien and post-trade entitlement semantics remained unchanged, including first-round filtering, relevant-kind filtering, pooled-entitlement exclusion, `seasonYear || year` resolution, swap defaulting, output ordering, strict routing error text, 2-team `toTeamId` fallback, duplicate incoming routing detection, and `holderTeam` reassignment on incoming entitlements
+  - targeted parity now includes direct `.js` shim import-stability assertions plus authoritative `validateTrade()` wiring assertions proving unchanged post-trade entitlement computation routing context through the shim-backed helper surface
+  - based on the actual post-E28 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `rules/validateStepien.js` is a likely candidate because it remains live Stepien rule logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_STEPIEN_ENTITLEMENT_UTILS_E28_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
