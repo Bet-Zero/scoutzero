@@ -596,6 +596,17 @@ Date: 2026-02-26
   - based on the actual post-E24 holdouts, `rules/validateFaExceptionUsage.js` is a likely next TS slice because it remains a narrow live JS rule imported directly by the TS-backed engine and publicly re-exported, but it is not mandatory if another remaining live JS holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SALARY_MARGIN_E24_RETURN_PACKAGE.md`
 
+### Validator TS FA Exception Usage E25 (2026-03-09)
+
+- Status: The canonical `validateFaExceptionUsage` rule surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative FA-exception rule logic now lives in `rules/validateFaExceptionUsage.ts`
+  - `rules/validateFaExceptionUsage.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent FA-exception semantics remained unchanged, including first-/second-apron blockers, projected first-apron blocker behavior, outgoing-salary aggregation blocking, auto-bucket selection, exact violation ordering, raw string-array return shape, bucket depletion, note insertion, and `team.team.hardCapFirstApron` mutation side effects
+  - targeted parity now includes the existing authoritative `validateTrade()` assertions for `rules.faExceptionUsage` blocker/pass behavior and FA-exception salary-matching interaction, plus smoke assertions proving unchanged `.js` import compatibility through the Trade Machine public index and validator compatibility index
+  - based on the actual post-E25 holdouts, `rules/validatePlayerRouting.js` is a likely next TS slice because it remains live JS rule logic imported directly by `tradeValidator.ts` and has no TS-backed counterpart yet, but it is not mandatory if another remaining live JS holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FA_EXCEPTION_USAGE_E25_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

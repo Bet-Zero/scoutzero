@@ -355,6 +355,7 @@ utils/
       validateEligibility.ts
       validateEntitlementRouting.js
       validateFaExceptionUsage.js
+      validateFaExceptionUsage.ts
       validateHardCap.ts
       validatePlayerRouting.js
       validateReacquisition.js
@@ -418,5 +419,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-09T00:43:30.088Z*
+*Generated on: 2026-03-09T01:01:59.958Z*
 *Auto-updated by: npm run docs*

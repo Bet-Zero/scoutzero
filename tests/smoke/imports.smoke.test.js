@@ -41,11 +41,23 @@ describe('Critical Imports Smoke Test', () => {
     expect(tradeMachine.getIncomingCeilingForTeam).toBeTypeOf('function');
   });
 
+  it('can import validateFaExceptionUsage through the tradeMachine public index', async () => {
+    const tradeMachine = await import('@/features/architect/utils/tradeMachine/index.js');
+    expect(tradeMachine.validateFaExceptionUsage).toBeTypeOf('function');
+  });
+
   it('can import salaryMargin through the validator compatibility index', async () => {
     const validators = await import(
       '@/features/architect/utils/tradeMachine/validators/index.js'
     );
     expect(validators.getIncomingCeilingForTeam).toBeTypeOf('function');
+  });
+
+  it('can import validateFaExceptionUsage through the validator compatibility index', async () => {
+    const validators = await import(
+      '@/features/architect/utils/tradeMachine/validators/index.js'
+    );
+    expect(validators.validateFaExceptionUsage).toBeTypeOf('function');
   });
 
   it('can import shared utilities', async () => {
