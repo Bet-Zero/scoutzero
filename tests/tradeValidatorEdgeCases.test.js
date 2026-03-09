@@ -135,6 +135,35 @@ describe('tradeValidator edge cases', () => {
     expect(result.legal).toBe(true);
   });
 
+  it('fails fast on player-routing errors before downstream team-rule evaluation', () => {
+    const unroutedPlayer = makePlayer('A1', 10_000_000);
+    const routedPlayerB = { ...makePlayer('B1', 9_000_000), tradeTo: 'A' };
+    const routedPlayerC = { ...makePlayer('C1', 8_000_000), tradeTo: 'A' };
+
+    const result = validateTrade({
+      teams: [
+        { team: makeTeam('A', 100_000_000), sends: [unroutedPlayer], entitlementsOut: [] },
+        { team: makeTeam('B', 100_000_000), sends: [routedPlayerB], entitlementsOut: [] },
+        { team: makeTeam('C', 100_000_000), sends: [routedPlayerC], entitlementsOut: [] },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    const expectedReason =
+      'Player "A1" from A has no destination (tradeTo required in 3-team trade)';
+
+    expect(result.legal).toBe(false);
+    expect(result.error).toBe('PLAYER_ROUTING_ERROR');
+    expect(result.reason).toBe(expectedReason);
+    expect(result.teamResults).toEqual([]);
+    expect(result.summaryByTeamIndex).toEqual([]);
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0].rule).toBe('playerRouting');
+    expect(result.violations[0].severity).toBe('error');
+    expect(issueTexts(result.violations)).toEqual([expectedReason]);
+  });
+
   it('blocks second apron teams receiving more salary than sent', () => {
     const teamA = makeTeam('A', 210_000_000);
     const teamB = makeTeam('B', 100_000_000);

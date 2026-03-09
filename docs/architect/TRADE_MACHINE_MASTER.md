@@ -607,6 +607,17 @@ Date: 2026-02-26
   - based on the actual post-E25 holdouts, `rules/validatePlayerRouting.js` is a likely next TS slice because it remains live JS rule logic imported directly by `tradeValidator.ts` and has no TS-backed counterpart yet, but it is not mandatory if another remaining live JS holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FA_EXCEPTION_USAGE_E25_RETURN_PACKAGE.md`
 
+### Validator TS Validate Player Routing E26 (2026-03-09)
+
+- Status: The canonical `validatePlayerRouting` rule surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative player-routing logic now lives in `rules/validatePlayerRouting.ts`
+  - `rules/validatePlayerRouting.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent player-routing semantics remained unchanged, including duplicate detection order, 3+ destination requirements, destination-resolution precedence, invalid-destination blocking, self-route blocking, exact message text/order, and the raw `{ valid, errors, warnings }` / `{ pass, errors, warnings }` contracts
+  - targeted parity now includes direct `.js` shim assertions for named/default/enforcement exports plus an authoritative `validateTrade()` fail-fast assertion proving `PLAYER_ROUTING_ERROR`, first-error `reason`, normalized `playerRouting` top-level violations, and no downstream team-rule result set before the early return
+  - based on the actual post-E26 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `rules/validateEntitlementRouting.js` is a likely candidate because it remains live cross-trade routing logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_PLAYER_ROUTING_E26_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -15,7 +15,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { validatePlayerRouting } from '@/features/architect/utils/tradeMachine/rules/validatePlayerRouting.js';
+import validatePlayerRoutingDefault, {
+  enforcePlayerRouting,
+  validatePlayerRouting,
+} from '@/features/architect/utils/tradeMachine/rules/validatePlayerRouting.js';
 
 // Helper to create a mock team slot
 const makeTeamSlot = (teamId, sends = [], entitlementsOut = []) => ({
@@ -35,6 +38,10 @@ const makePlayer = (name, tradeTo = undefined, id = undefined) => ({
 });
 
 describe('validatePlayerRouting', () => {
+  it('preserves the default export as the canonical validator function', () => {
+    expect(validatePlayerRoutingDefault).toBe(validatePlayerRouting);
+  });
+
   describe('3-team trades: tradeTo required', () => {
     it('should pass when all players have tradeTo in 3-team trade', () => {
       const teams = [
@@ -180,6 +187,25 @@ describe('validatePlayerRouting', () => {
       const result = validatePlayerRouting({ teams });
       // Only 2 active teams, so tradeTo not required
       expect(result.valid).toBe(true);
+    });
+  });
+});
+
+describe('enforcePlayerRouting', () => {
+  it('mirrors validatePlayerRouting with pass/errors/warnings', () => {
+    const teams = [
+      makeTeamSlot('LAL', [makePlayer('Player A')]),
+      makeTeamSlot('BOS', [makePlayer('Player B', 'MIA')]),
+      makeTeamSlot('MIA', [makePlayer('Player C', 'LAL')]),
+    ];
+
+    const validationResult = validatePlayerRouting({ teams });
+    const enforcementResult = enforcePlayerRouting({ teams });
+
+    expect(enforcementResult).toEqual({
+      pass: validationResult.valid,
+      errors: validationResult.errors,
+      warnings: validationResult.warnings,
     });
   });
 });
