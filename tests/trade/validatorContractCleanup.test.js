@@ -133,6 +133,47 @@ function buildRoutingFailureTrade() {
   };
 }
 
+function buildLinkageFailureTrade() {
+  const teamA = makeTeam('BOS', makeRoster('BOS', 14), {
+    totalSalary: 170_000_000,
+    entitlementIds: ['bos_pick_1', 'bos_pick_2'],
+  });
+  const teamB = makeTeam('LAL', makeRoster('LAL', 14), {
+    totalSalary: 160_000_000,
+  });
+
+  return {
+    teams: [
+      {
+        team: teamA,
+        teamCode: 'BOS',
+        sends: [],
+        entitlementsOut: [
+          {
+            entitlementId: 'bos_pick_1',
+            linkedEntitlementIds: ['bos_pick_2'],
+          },
+        ],
+        validationEntitlements: [
+          {
+            entitlementId: 'bos_pick_1',
+            linkedEntitlementIds: ['bos_pick_2'],
+          },
+          {
+            entitlementId: 'bos_pick_2',
+          },
+        ],
+      },
+      {
+        team: teamB,
+        teamCode: 'LAL',
+        sends: [],
+        entitlementsOut: [],
+      },
+    ],
+  };
+}
+
 describe('validateTrade contract cleanup', () => {
   it('returns canonical rule envelopes for every authoritative team rule', () => {
     const { teams } = buildSimpleTrade();
@@ -307,6 +348,46 @@ describe('validateTrade contract cleanup', () => {
         expect.stringContaining('has no id/entitlementId field'),
       ])
     );
+    expect(result.capSettings).toBeDefined();
+    expect(result.yearKey).toBe(CURRENT_YEAR);
+    expect(result.seasonKey).toBe(SEASON);
+    expect(result.asOfDate).toBe('2025-07-10');
+  });
+
+  it('uses one canonical top-level shape for fail-fast linkage errors before team-rule evaluation', () => {
+    const { teams } = buildLinkageFailureTrade();
+
+    const result = validateTrade({
+      teams,
+      capProjections,
+      currentYear: CURRENT_YEAR,
+      tradeCtx: { asOfDate: '2025-07-10' },
+    });
+
+    expect(result.legal).toBe(false);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('ENTITLEMENT_LINKAGE_ERROR');
+    expect(result.teamResults).toEqual([]);
+    expect(result.summaryByTeamIndex).toEqual([]);
+    result.violations.forEach((issue) =>
+      expectCanonicalIssue(issue, {
+        rule: 'entitlementLinkage',
+        severity: 'error',
+      })
+    );
+    result.warnings.forEach((issue) =>
+      expectCanonicalIssue(issue, {
+        rule: 'entitlementLinkage',
+        severity: 'warning',
+      })
+    );
+    expect(result.violations.map((issue) => getValidationIssueText(issue))).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('complete linked package'),
+      ])
+    );
+    expect(result.reason).toBe(getValidationIssueText(result.violations[0]));
+    expect(result.warnings).toEqual([]);
     expect(result.capSettings).toBeDefined();
     expect(result.yearKey).toBe(CURRENT_YEAR);
     expect(result.seasonKey).toBe(SEASON);

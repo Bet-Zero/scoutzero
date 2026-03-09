@@ -618,6 +618,17 @@ Date: 2026-02-26
   - based on the actual post-E26 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `rules/validateEntitlementRouting.js` is a likely candidate because it remains live cross-trade routing logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_PLAYER_ROUTING_E26_RETURN_PACKAGE.md`
 
+### Validator TS Validate Entitlement Routing E27 (2026-03-09)
+
+- Status: The canonical `validateEntitlementRouting` rule surface is now TS-backed in the live validator path.
+- TS migration note:
+  - active authoritative entitlement-routing logic now lives in `rules/validateEntitlementRouting.ts`
+  - `rules/validateEntitlementRouting.js` is now a pure compatibility re-export shim with no remaining business logic
+  - validator-adjacent entitlement-routing semantics remained unchanged, including duplicate entitlement detection, 3+ `toTeamId` requirements, destination validation, self-route blocking, ownership validation, linked-package completeness, residual-reference blocking, exact message text/order, warning emission, and the raw `{ valid, errors, warnings }` / `{ pass, errors, warnings }` contracts
+  - targeted parity now includes direct `.js` shim assertions for named/default/enforcement exports plus authoritative `validateTrade()` fail-fast assertions proving unchanged `ENTITLEMENT_ROUTING_ERROR` and `ENTITLEMENT_LINKAGE_ERROR`, first-error `reason`, normalized top-level `entitlementRouting` / `entitlementLinkage` violations, warning preservation, and no downstream team-rule result set before the early return
+  - based on the actual post-E27 holdouts, the next TS slice should be selected from the remaining live JS validator surfaces; `utils/stepienEntitlementUtils.js` is a likely candidate because it remains live entitlement logic imported directly by `tradeValidator.ts`, but it is not mandatory if another remaining holdout becomes the better next step
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_VALIDATE_ENTITLEMENT_ROUTING_E27_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

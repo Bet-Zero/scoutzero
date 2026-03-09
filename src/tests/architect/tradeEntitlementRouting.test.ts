@@ -10,7 +10,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildEntitlementRoutingMap } from '@/features/architect/utils/tradeMachine/utils/buildEntitlementRoutingMap';
-import {
+import validateEntitlementRoutingDefault, {
+  enforceEntitlementRouting,
+  validateEntitlementRouting,
   validateEntitlementLinkageLegality,
 } from '@/features/architect/utils/tradeMachine/rules/validateEntitlementRouting.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
@@ -280,6 +282,31 @@ describe('buildEntitlementRoutingMap: edge cases', () => {
   });
 });
 
+describe('validateEntitlementRouting export parity', () => {
+  it('preserves the default export as the canonical validator function', () => {
+    expect(validateEntitlementRoutingDefault).toBe(validateEntitlementRouting);
+  });
+
+  it('enforceEntitlementRouting mirrors validateEntitlementRouting', () => {
+    const teams = [
+      makeTradeTeamSlot('LAL', {
+        entitlementsOut: [{ id: 'ent-LAL-A', entitlementId: 'ent-LAL-A' }],
+      }),
+      makeTradeTeamSlot('BOS'),
+      makeTradeTeamSlot('CHI'),
+    ];
+
+    const validationResult = validateEntitlementRouting({ teams });
+    const enforcementResult = enforceEntitlementRouting({ teams });
+
+    expect(enforcementResult).toEqual({
+      pass: validationResult.valid,
+      errors: validationResult.errors,
+      warnings: validationResult.warnings,
+    });
+  });
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // E2 linkage legality rules
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -413,8 +440,19 @@ describe('validateEntitlementLinkageLegality: E2 blocking rules', () => {
 
     expect(result.legal).toBe(false);
     expect(result.error).toBe('ENTITLEMENT_LINKAGE_ERROR');
-    expect((result.violations || []).join(' | ')).toContain(
-      'complete linked package'
+    expect(result.teamResults).toEqual([]);
+    expect(result.summaryByTeamIndex).toEqual([]);
+    expect(
+      (result.violations || []).map((issue) =>
+        typeof issue === 'string' ? issue : issue.message
+      )
+    ).toEqual(
+      expect.arrayContaining([expect.stringContaining('complete linked package')])
     );
+    expect(
+      typeof result.reason === 'string'
+        ? result.reason
+        : result.violations?.[0]?.message
+    ).toContain('complete linked package');
   });
 });
