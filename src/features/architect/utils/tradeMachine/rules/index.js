@@ -23,8 +23,8 @@ export * from './draftRules.js'; // includes stepienRule.js and validateDraftPic
 // NOTE: validateSecondApronRules.js removed in Phase 35 - duplicate of basicRules.js
 export * from './basicRules.js';
 
-// Cash validation
-export * from './eligibilityRules.js'; // includes validateCash.js and reacquisition.js
+// Cash validation and reacquisition
+export * from './eligibilityRules.js'; // includes validateCash.js and validateReacquisition.js
 
 // Trade exceptions
 export * from './validateTradeExceptions.js';
@@ -58,9 +58,6 @@ export * from './validateAggregation.js';
 // NOTE: aggregationValidator.js removed in Phase 35 - orphaned duplicate with wrong semantics
 
 // Trade kicker enforcement - now in miscRules.js
-
-// Reacquisition rules
-export * from './reacquisition.js';
 
 // General enforcement
 export * from './enforcement.js';

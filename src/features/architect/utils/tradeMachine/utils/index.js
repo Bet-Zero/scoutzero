@@ -17,8 +17,7 @@ export * from './tradeUtilities.js';
 export * from './matchingValues.js';
 export * from './computeMatchingValues.js';
 
-// Pick utilities (combined with tradeUtilities.js)
-export * from './pickUtils.js';
+// Pick utilities now use direct helper entrypoints; no pickUtils.js compatibility barrel remains
 
 // TPE utilities (combined with tradeUtilities.js)
 export * from './tradeUtilities.js';

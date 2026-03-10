@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-09
+Last updated: 2026-03-10
 
 ## Trade Machine Overview
 
@@ -733,6 +733,18 @@ Date: 2026-02-26
   - the only notable cleanup caveats are stale export paths in `rules/index.js` (`./reacquisition.js`) and `utils/index.js` (`./pickUtils.js`); no current in-repo consumer path was found for either barrel
   - recommended next step: optional low-risk shim/barrel normalization pass rather than another real TS business-logic migration slice
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CLOSEOUT_AUDIT_E36_RETURN_PACKAGE.md`
+
+### Validator TS Shim/Barrel Normalization E37 (2026-03-10)
+
+- Status: The validator-adjacent migration scope is now practically closed out for this audited slice.
+- Cleanup note:
+  - removed the stale `rules/index.js` re-export of `./reacquisition.js` after re-verifying that file does not exist and no exact export-surface replacement was available
+  - removed the stale `utils/index.js` re-export of `./pickUtils.js` after re-verifying that file does not exist and no exact export-surface replacement was available
+  - preserved live reacquisition access through `rules/eligibilityRules.js`; no validator or helper semantics changed
+  - added targeted smoke coverage proving `rules/index.js` and `utils/index.js` now import successfully as barrels
+  - the same validator-adjacent scope remains complete for live JS business logic; remaining JS in this slice is intentional shim/barrel/constants surface only
+  - optional follow-up: none required for practical closeout beyond any future repo-wide desire to retire compatibility JS entrypoints
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHIM_BARREL_NORMALIZATION_E37_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

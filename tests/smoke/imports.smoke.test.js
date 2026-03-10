@@ -60,6 +60,22 @@ describe('Critical Imports Smoke Test', () => {
     expect(validators.validateFaExceptionUsage).toBeTypeOf('function');
   });
 
+  it('can import the rules barrel after stale export cleanup', async () => {
+    const rules = await import(
+      '@/features/architect/utils/tradeMachine/rules/index.js'
+    );
+    expect(rules.validateRoster).toBeTypeOf('function');
+    expect(rules.validateReacquisition).toBeTypeOf('function');
+  });
+
+  it('can import the utils barrel after stale export cleanup', async () => {
+    const utils = await import(
+      '@/features/architect/utils/tradeMachine/utils/index.js'
+    );
+    expect(utils.getIncomingCeilingForTeam).toBeTypeOf('function');
+    expect(utils.normalizeTradeInput).toBeTypeOf('function');
+  });
+
   it('can import shared utilities', async () => {
     const formatting = await import('@/shared/utils/formatting');
     expect(formatting.formatHeight).toBeTypeOf('function');
