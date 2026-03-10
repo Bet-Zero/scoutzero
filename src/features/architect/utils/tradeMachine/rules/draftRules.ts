@@ -5,7 +5,7 @@
  * Phase 1 SSOT-1: hasStepienViolation now delegates to canonical validateStepien
  */
 
-import { isMeaningfulProtection } from '../utils/tradeUtilities.js';
+import { isMeaningfulProtection } from '../utils/tradeUtilityMisc.js';
 import { validateStepien } from './validateStepien.js';
 
 type DraftRulesYearLike = number | string | null | undefined;

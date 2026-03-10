@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { processTradeExceptions } from '@/features/architect/utils/tpeLifecycle';
-import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities';
+import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation.js';
 
 describe('TPE Expiration Lifecycle', () => {
   // Test Context: Transitioning to 2026-27 season

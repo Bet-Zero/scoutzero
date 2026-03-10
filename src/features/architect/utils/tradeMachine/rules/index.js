@@ -9,7 +9,7 @@ export * from './validateSalaryMatching.js';
 // NOTE: salaryMatching.js removed in Phase 35 - orphaned duplicate with wrong semantics
 
 // Roster rules - consolidated
-export * from './validateRoster.js';
+export * from './validateRoster.ts';
 export * from './rosterValidation.js'; // consolidated: rosterRules + enforceRosterWindow + enforceRosterRules + validateRosterWindow
 
 // Hard cap rules - consolidated
@@ -24,7 +24,8 @@ export * from './draftRules.js'; // includes stepienRule.js and validateDraftPic
 export * from './basicRules.js';
 
 // Cash validation and reacquisition
-export * from './eligibilityRules.js'; // includes validateCash.js and validateReacquisition.js
+export { validateCash } from './validateCash.js';
+export { validateReacquisition } from './validateReacquisition.js';
 
 // Trade exceptions
 export * from './validateTradeExceptions.js';
@@ -37,7 +38,7 @@ export * from './validateFaExceptionUsage.js';
 export * from './miscRules.js'; // includes validateBYC.js
 
 // Eligibility rules
-export * from './eligibilityRules.js'; // includes enforceEligibility.js
+export { enforceEligibility } from './validateEligibility.js';
 
 // Consent rules
 export * from './validateConsent.js';

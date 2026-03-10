@@ -5,7 +5,7 @@
 
 import { validateTradeExceptions } from './validateTradeExceptions.js';
 import { validateDraftPicks } from './draftRules.js';
-import { validateCash } from './eligibilityRules.js';
+import { validateCash } from './validateCash.js';
 import { validateSignAndTrade } from './validateSignAndTrade.js';
 // Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
 import { validateSecondApronRules } from './basicRules.js';

@@ -87,7 +87,7 @@ describe('Legacy getMatchingValue() vs Canonical computeMatchingValues()', () =>
 
     it('legacy getMatchingValue() is only used as input fallback, not validation', () => {
       // This test documents that getMatchingValue() is only called from
-      // normalizeTradeInput.js line 22 as a fallback when player.salary is missing.
+      // normalizeTradeInput.ts as a fallback when player.salary is missing.
       //
       // The actual trade validation uses computeMatchingValues() which has
       // the correct canonical poison-pill formula.

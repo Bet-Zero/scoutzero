@@ -1,6 +1,6 @@
 /**
  * Trade utility helpers unrelated to TPE validation.
- * Kept behind a JS compatibility shim so `tradeUtilities.js` can remain stable.
+ * These are the direct non-TPE targets used by internal modules and public barrels.
  */
 
 interface TradeUtilityMiscProtectionMetaLike {

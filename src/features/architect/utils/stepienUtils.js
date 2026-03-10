@@ -7,7 +7,7 @@
  */
 
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
-import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
 
 /**
  * Phase 4: Gets protection text from pick (supports both string and protectionMeta)

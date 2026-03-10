@@ -1,4 +1,4 @@
-import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
 import { normalizeEntitlementTerms } from '@/features/architect/utils/entitlements/entitlementTerms';
 import { isSecondApronTeam } from '../utils/capUtils.js';
 import {

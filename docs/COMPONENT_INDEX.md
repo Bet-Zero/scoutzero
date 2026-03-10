@@ -162,7 +162,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/index.js
 - utils/tradeMachine/rules/basicRules.js
 - utils/tradeMachine/rules/draftRules.js
-- utils/tradeMachine/rules/eligibilityRules.js
 - utils/tradeMachine/rules/enforceConsent.js
 - utils/tradeMachine/rules/enforceEligibility.js
 - utils/tradeMachine/rules/enforcement.js
@@ -181,20 +180,17 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/validateFaExceptionUsage.js
 - utils/tradeMachine/rules/validatePlayerRouting.js
 - utils/tradeMachine/rules/validateReacquisition.js
-- utils/tradeMachine/rules/validateRoster.js
 - utils/tradeMachine/rules/validateSalaryMatching.js
 - utils/tradeMachine/rules/validateSignAndTrade.js
 - utils/tradeMachine/rules/validateStepien.js
 - utils/tradeMachine/rules/validateTradeExceptions.js
 - utils/tradeMachine/utils/capSettingsProvider.js
 - utils/tradeMachine/utils/capUtils.js
-- utils/tradeMachine/utils/computeMatchingValues.js
 - utils/tradeMachine/utils/conveyanceResolution.js
 - utils/tradeMachine/utils/dataValidation.js
 - utils/tradeMachine/utils/hardCapStatus.js
 - utils/tradeMachine/utils/index.js
 - utils/tradeMachine/utils/matchingValues.js
-- utils/tradeMachine/utils/normalizeTradeInput.js
 - utils/tradeMachine/utils/pickIdUtils.js
 - utils/tradeMachine/utils/resolveValidationEntitlements.js
 - utils/tradeMachine/utils/salaryMargin.js
@@ -206,9 +202,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/tpeValidation.js
 - utils/tradeMachine/utils/tradeExportUtils.js
 - utils/tradeMachine/utils/tradeTimingWindows.js
-- utils/tradeMachine/utils/tradeUtilities.js
 - utils/tradeMachine/utils/tradeUtilityMisc.js
-- utils/tradeMachine/utils/validateInput.js
 - utils/tradeMachine/utils/validationIssueText.js
 - utils/tradeMachine/validators/index.js
 - utils/tradeManager.js
@@ -362,4 +356,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-08T05:05:25.287Z*
+*Generated on: 2026-03-10T09:58:34.722Z*

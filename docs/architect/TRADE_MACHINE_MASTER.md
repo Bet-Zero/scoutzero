@@ -757,6 +757,16 @@ Date: 2026-02-26
   - recommended next step: leave the public entrypoints in JS and retire the 6 internal shims in one grouped import-path cleanup pass
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHIM_RETIREMENT_AUDIT_E38_RETURN_PACKAGE.md`
 
+### Validator TS Internal Shim Retirement E39 (2026-03-10)
+
+- Status: The grouped internal shim layer is now retired across the audited E38 validator-adjacent scope, while the four public JS entrypoints remain intentionally in place.
+- Execution note:
+  - retired `rules/validateRoster.js`, `rules/eligibilityRules.js`, `utils/validateInput.js`, `utils/normalizeTradeInput.js`, `utils/tradeUtilities.js`, and `utils/computeMatchingValues.js` after rewiring internal imports, kept barrel re-exports, and shim-only parity tests to their direct authoritative targets
+  - preserved public behavior through `index.js`, `validators/index.js`, `rules/index.js`, and `utils/index.js` by keeping those JS entrypoints stable and retargeting only their internal re-export lines
+  - verified that the Phase 65/66 guardrails did not require `normalizeTradeInput.js` to remain once they were updated to inspect `normalizeTradeInput.ts` directly
+  - the internal shim retirement goal is effectively complete for this audited scope; no immediate follow-up remains beyond any future repo-wide desire to retire the kept public JS entrypoints
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_INTERNAL_SHIM_RETIREMENT_E39_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

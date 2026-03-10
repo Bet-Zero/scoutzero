@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/computeMatchingValues';
+import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues.js';
 import {
   getSalaryForYear,
   playerFitsInTPE,

@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.js';
+import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts';
 import { normalizeTradeInput as compatNormalizeTradeInput } from '@/features/architect/utils/tradeMachine/validators/index.js';
+import { normalizeTradeInput as utilsNormalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/index.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
 
 const currentYear = 2025;
 
-describe('normalizeTradeInput JS shim', () => {
-  it('preserves helper identity through the validator compatibility path', () => {
+describe('normalizeTradeInput compatibility surface', () => {
+  it('preserves helper identity through the kept compatibility barrels', () => {
     expect(compatNormalizeTradeInput).toBe(normalizeTradeInput);
+    expect(utilsNormalizeTradeInput).toBe(normalizeTradeInput);
   });
 
-  it('preserves direct normalizeTradeInput.js behavior', () => {
+  it('preserves authoritative normalizeTradeInput behavior', () => {
     const result = normalizeTradeInput({
       teams: [
         {

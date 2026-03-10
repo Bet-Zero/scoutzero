@@ -4,8 +4,7 @@
   "phase4Finding": "These options should be REMOVED from protection dropdown - swap is a separate pick property",
   "blastRadiusAnalysis": {
     "whereSwapPlusMinusDefined": {
-      "file": "src/features/architect/utils/tradeMachine/utils/tradeUtilities.js",
-      "lines": [92, 93],
+      "file": "src/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.ts",
       "code": "{ label: 'Swap (+)', value: 'Swap (+)' }, { label: 'Swap (-)', value: 'Swap (-)' }"
     },
     "whereUsed": {
@@ -64,7 +63,7 @@
     }
   },
   "currentStateProof": {
-    "protectionOptionsSource": "getPickOptions() in tradeUtilities.js:84-94",
+    "protectionOptionsSource": "getPickOptions() in tradeUtilityMisc.ts",
     "swapOptionsIncluded": true,
     "reasonForInclusion": "UNKNOWN - likely legacy or misunderstanding. Swap should be isSwap checkbox, not protection dropdown."
   },

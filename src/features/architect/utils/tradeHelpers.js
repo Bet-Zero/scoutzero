@@ -14,7 +14,7 @@ import {
   SALARY_MATCHING_TIERS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
 export { wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils.js';
-import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation.js';
 import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils.js';
 import { areSamePickById } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
 
@@ -482,7 +482,7 @@ function getProtectionDisplayLabel(pick) {
 }
 
 // Re-export canonical isMeaningfulProtection from tradeUtilities (SSOT-2)
-export { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+export { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
 
 /*────────────────────────  Trade-Exception Helpers  ───────────────────────*/
 export const calculateTPERemaining = (tpe, used = 0) => tpe.amount - used;

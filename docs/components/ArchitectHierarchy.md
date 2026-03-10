@@ -331,7 +331,6 @@ utils/
       basicRules.ts
       draftRules.js
       draftRules.ts
-      eligibilityRules.js
       enforceConsent.js
       enforceConsent.ts
       enforceEligibility.js
@@ -365,7 +364,6 @@ utils/
       validatePlayerRouting.ts
       validateReacquisition.js
       validateReacquisition.ts
-      validateRoster.js
       validateRoster.ts
       validateSalaryMatching.js
       validateSalaryMatching.ts
@@ -383,7 +381,6 @@ utils/
       capSettingsProvider.ts
       capUtils.js
       capUtils.ts
-      computeMatchingValues.js
       conveyanceResolution.js
       dataValidation.js
       dataValidation.ts
@@ -392,7 +389,6 @@ utils/
       index.js
       matchingValues.js
       matchingValues.ts
-      normalizeTradeInput.js
       normalizeTradeInput.ts
       pickIdUtils.js
       resolveValidationEntitlements.js
@@ -412,10 +408,8 @@ utils/
       tradeExportUtils.js
       tradeTimingWindows.js
       tradeTimingWindows.ts
-      tradeUtilities.js
       tradeUtilityMisc.js
       tradeUtilityMisc.ts
-      validateInput.js
       validateInput.ts
       validationIssueText.js
       validationIssueText.ts
@@ -428,5 +422,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-09T07:45:54.615Z*
+*Generated on: 2026-03-10T09:58:34.699Z*
 *Auto-updated by: npm run docs*

@@ -78,7 +78,7 @@ import {
   deriveFreeAgencyYearFromOptionSeason,
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
-import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities';
+import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation.js';
 import {
   appendExceptionHistory,
   createTpeConsumptionHistoryEntry,

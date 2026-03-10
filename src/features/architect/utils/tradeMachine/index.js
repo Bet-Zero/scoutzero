@@ -19,9 +19,9 @@ export {
 } from './utils/salaryMatchingRules.js';
 
 // Core validators - from rules
-export { validateCash } from './rules/eligibilityRules.js';
+export { validateCash } from './rules/validateCash.js';
 export { validateStepien } from './rules/validateStepien.js';
-export { validateRoster } from './rules/validateRoster.js';
+export { validateRoster } from './rules/validateRoster.ts';
 export { validateHardCap } from './rules/hardCapValidation.js';
 export { validateSalaryMatching } from './rules/validateSalaryMatching.js';
 export { validateTradeExceptions } from './rules/validateTradeExceptions.js';
@@ -60,7 +60,7 @@ export {
   computeMatchingValues,
   getMatchingValue,
 } from './utils/matchingValues.js';
-export { isMeaningfulProtection } from './utils/tradeUtilities.js';
+export { isMeaningfulProtection } from './utils/tradeUtilityMisc.js';
 
 // Pick ID utilities (Phase 1 SSOT) - canonical pick identification
 export {
@@ -88,4 +88,4 @@ export {
 } from './utils/conveyanceResolution.js';
 
 // Protection normalization utilities (Phase 4)
-export { normalizeProtectionValue } from './utils/tradeUtilities.js';
+export { normalizeProtectionValue } from './utils/tradeUtilityMisc.js';

@@ -334,10 +334,10 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
 // Test 5: normalizeTradeInput Uses Canonical Accessor
 // ============================================================================
 describe('Phase 66 Guardrail: normalizeTradeInput Uses getTeamTpeList', () => {
-  it('normalizeTradeInput.js imports getTeamTpeList from canonical module', () => {
+  it('normalizeTradeInput.ts imports getTeamTpeList from canonical module', () => {
     const filePath = path.resolve(
       __dirname,
-      '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.js'
+      '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts'
     );
     const content = readAuthoritativeImplementationContent(filePath);
 
@@ -346,10 +346,10 @@ describe('Phase 66 Guardrail: normalizeTradeInput Uses getTeamTpeList', () => {
     );
   });
 
-  it('normalizeTradeInput.js uses getTeamTpeList for TPE reads (not raw.tradeExceptions)', () => {
+  it('normalizeTradeInput.ts uses getTeamTpeList for TPE reads (not raw.tradeExceptions)', () => {
     const filePath = path.resolve(
       __dirname,
-      '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.js'
+      '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts'
     );
     const content = readAuthoritativeImplementationContent(filePath);
 

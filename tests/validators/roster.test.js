@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   enforceRosterWindow,
   validateRoster,
-} from '@/features/architect/utils/tradeMachine/rules/validateRoster.js';
+} from '@/features/architect/utils/tradeMachine/rules/validateRoster.ts';
 import {
   enforceRosterWindow as compatEnforceRosterWindow,
   validateRoster as compatValidateRoster,
 } from '@/features/architect/utils/tradeMachine/validators/index.js';
 import { validationFlags } from '@/config/validationFlags.js';
 
-describe('validateRoster', () => {
+describe('validateRoster compatibility surface', () => {
   const makeTeam = (params) => ({
     teamName: 'Test Team',
     team: {

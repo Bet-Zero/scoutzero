@@ -51,6 +51,8 @@ describe('Critical Imports Smoke Test', () => {
       '@/features/architect/utils/tradeMachine/validators/index.js'
     );
     expect(validators.getIncomingCeilingForTeam).toBeTypeOf('function');
+    expect(validators.validateCash).toBeTypeOf('function');
+    expect(validators.computeMatchingValues).toBeTypeOf('function');
   });
 
   it('can import validateFaExceptionUsage through the validator compatibility index', async () => {
@@ -65,6 +67,7 @@ describe('Critical Imports Smoke Test', () => {
       '@/features/architect/utils/tradeMachine/rules/index.js'
     );
     expect(rules.validateRoster).toBeTypeOf('function');
+    expect(rules.validateCash).toBeTypeOf('function');
     expect(rules.validateReacquisition).toBeTypeOf('function');
   });
 
@@ -72,7 +75,9 @@ describe('Critical Imports Smoke Test', () => {
     const utils = await import(
       '@/features/architect/utils/tradeMachine/utils/index.js'
     );
+    expect(utils.createTPE).toBeTypeOf('function');
     expect(utils.getIncomingCeilingForTeam).toBeTypeOf('function');
+    expect(utils.isMeaningfulProtection).toBeTypeOf('function');
     expect(utils.normalizeTradeInput).toBeTypeOf('function');
   });
 

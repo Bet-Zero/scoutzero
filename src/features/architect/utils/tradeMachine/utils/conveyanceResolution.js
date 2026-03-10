@@ -13,7 +13,7 @@
  * @module conveyanceResolution
  */
 
-import { isMeaningfulProtection } from './tradeUtilities.js';
+import { isMeaningfulProtection } from './tradeUtilityMisc.js';
 
 /**
  * Phase 4: Parses a protection string into a numeric threshold.

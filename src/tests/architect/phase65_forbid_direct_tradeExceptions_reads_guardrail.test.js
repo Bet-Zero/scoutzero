@@ -18,7 +18,6 @@
  *
  * ALLOWLIST (files that may reference .tradeExceptions):
  * - normalizeTeamTpe.js: The canonical helper that handles both locations
- * - normalizeTradeInput.js: Input normalization from external data sources
  * - schemaAdapter.js: Building trade input structure (adapts external data)
  * - mutationPipeline.js: TPE persistence logic (reads legacy, writes canonical)
  * - tradeContext.js: Snapshot building (reads from both sources)
@@ -47,8 +46,6 @@ const SRC_ROOT = path.resolve(__dirname, '../../features/architect');
 const ALLOWLISTED_FILES = [
   // Core normalization helper (the canonical accessor lives here)
   'utils/persistenceContracts/normalizeTeamTpe.js',
-  // Input normalization from external data (raw payload processing)
-  'utils/tradeMachine/utils/normalizeTradeInput.js',
   // Schema adapter for building trade input structure
   'utils/schemaAdapter.js',
   // Mutation pipeline (TPE persistence, reads legacy during compute)

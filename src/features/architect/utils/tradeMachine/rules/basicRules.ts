@@ -4,7 +4,7 @@ import {
   SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
   SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
 } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
-import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation.js';
 import { isSecondApronTeam } from '../utils/capUtils.js';
 
 interface BasicRulesCapSettings {

@@ -10,7 +10,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isMeaningfulProtection, getPickOptions } from '@/features/architect/utils/tradeMachine/utils/tradeUtilities.js';
+import {
+  isMeaningfulProtection,
+  getPickOptions,
+} from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
 
 // Import fixtures
 import conveyanceRollsForward from '../fixtures/tradeMachinePicks/conveyance_rolls_forward.json';

@@ -16,13 +16,13 @@
 
 // Core validation functions - now in rules/
 export { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
-export { validateCash } from '../rules/eligibilityRules.js';
+export { validateCash } from '../rules/validateCash.js';
 export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 export { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
 export {
   validateRoster,
   enforceRosterWindow,
-} from '../rules/validateRoster.js';
+} from '../rules/validateRoster.ts';
 export { validateHardCap } from '../rules/hardCapValidation.js';
 export { validateStepien } from '../rules/validateStepien.js';
 // Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
@@ -41,9 +41,9 @@ export { enforceTiming } from '../rules/timingValidation.js';
 
 // Utility functions - now in utils/
 export { getIncomingCeilingForTeam } from '../utils/salaryMargin.js';
-export { computeMatchingValues } from '../utils/computeMatchingValues.js';
-export * from '../utils/validateInput.js';
-export * from '../utils/normalizeTradeInput.js';
+export { computeMatchingValues } from '../utils/matchingValues.js';
+export * from '../utils/validateInput.ts';
+export * from '../utils/normalizeTradeInput.ts';
 
 // Stepien utility - from parent architect utils
 export { hasStepienViolation } from '../../stepienUtils.js';

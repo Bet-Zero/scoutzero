@@ -4,7 +4,7 @@ import {
   getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { wrapCommonValidators } from './validationUtils.js';
-import { createTPE } from '../utils/tradeUtilities.js';
+import { createTPE } from '../utils/tpeValidation.js';
 
 // Import base validators from new structure
 import {
@@ -13,11 +13,11 @@ import {
 } from '../rules/validateSalaryMatching.js';
 import { validateHardCap } from '../rules/hardCapValidation.js';
 import { validateStepien } from '../rules/validateStepien.js';
-import { validateCash } from '../rules/eligibilityRules.js';
+import { validateCash } from '../rules/validateCash.js';
 import { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
 import { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
 import { validateConsent } from '../rules/validateConsent.js';
-import { validateReacquisition } from '../rules/eligibilityRules.js';
+import { validateReacquisition } from '../rules/validateReacquisition.js';
 import { enforceConsent } from '../rules/enforceConsent.js';
 import { enforceEligibility } from '../rules/validateEligibility.js';
 import { enforceTiming } from '../rules/timingValidation.js';

@@ -129,7 +129,7 @@ function getRookieScaleAndPoisonPillFlags(player: MatchingValuePlayer) {
  *   - Legacy: ($10M + $22M) / 2 = $16M  ❌
  *   - Canonical: $76M / 4 = $19M  ✅
  *
- * This function is ONLY used as a salary fallback in normalizeTradeInput.js
+ * This function is ONLY used as a salary fallback in normalizeTradeInput.ts
  * when player.salary is missing. The actual validation uses computeMatchingValues().
  *
  * @see computeMatchingValues - The canonical implementation for validation
