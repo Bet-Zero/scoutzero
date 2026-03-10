@@ -16,13 +16,13 @@
  * TESTS:
  * A) Source-scan / wiring guardrails:
  *    1. mutationPipeline.js imports computeTeamCapTotals from capTotals
- *    2. tradeContext.js imports computeTeamCapTotals from capTotals
+ *    2. tradeContext.ts imports computeTeamCapTotals from capTotals
  *    3-7. Each compute function calls computeTeamCapTotals:
  *         - computeSigningResult
  *         - computeWaiveResult
  *         - computeOptionResult
  *         - computeRenounceResult
- *         - buildPostTradeTeamsSnapshot (in tradeContext.js)
+ *         - buildPostTradeTeamsSnapshot (in tradeContext.ts)
  *
  * B) Behavioral guardrails:
  *    8-12. Each mutation produces totals matching SSOT
@@ -58,7 +58,7 @@ const MUTATION_PIPELINE_PATH = path.resolve(
 
 const TRADE_CONTEXT_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/tradeContext/tradeContext.js'
+  '../../features/architect/utils/tradeContext/tradeContext.ts'
 );
 
 // ==============================================================================
@@ -164,7 +164,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
       expect(hasImport).toBe(true);
     });
 
-    it('TEST 2: tradeContext.js imports computeTeamCapTotals from capTotals', () => {
+    it('TEST 2: tradeContext.ts imports computeTeamCapTotals from capTotals', () => {
       const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8');
 
       const hasImport = /import\s*\{[^}]*\bcomputeTeamCapTotals\b[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/capTotals['"]/.test(
@@ -255,7 +255,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
       expect(hasLegacy).toBe(false);
     });
 
-    it('TEST 10: tradeContext.js does NOT call calculateTeamTotals', () => {
+    it('TEST 10: tradeContext.ts does NOT call calculateTeamTotals', () => {
       const content = fs.readFileSync(TRADE_CONTEXT_PATH, 'utf8');
       const codeOnly = stripComments(content);
 

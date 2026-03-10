@@ -23,7 +23,8 @@
  *
  * ALLOWED EXCEPTIONS (ALLOWLIST):
  * - validatePostTradeSnapshotForContext: This IS the validation function, it calls validateTrade
- * - legacy/index.js: Contains deprecated validateTradeForContext wrapper
+ * - legacy/index.ts: Contains deprecated validateTradeForContext wrapper
+ * - legacy/index.js: Pure compatibility shim for the deprecated wrapper
  * - Import statements: These are not function calls
  * - Comments/docstrings: References to validateTrade in documentation
  *
@@ -152,7 +153,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 3: buildPostTradeTeamsSnapshot is pure (no validateTrade calls)', () => {
     it('should not contain validateTrade( calls in buildPostTradeTeamsSnapshot function (tradeContext module)', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/tradeContext.js'
+        'src/features/architect/utils/tradeContext/tradeContext.ts'
       );
 
       // Extract the buildPostTradeTeamsSnapshot function region
@@ -324,9 +325,9 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   // ===========================================================================
 
   describe('Test 8: tradeContext module exists and has expected structure', () => {
-    it('should have tradeContext.js with required exports (Phase 59: validateTradeForContext moved to legacy)', () => {
+    it('should have tradeContext.ts with required exports (Phase 59: validateTradeForContext moved to legacy)', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/tradeContext.js'
+        'src/features/architect/utils/tradeContext/tradeContext.ts'
       );
 
       // Should export buildPostTradeTeamsSnapshot
@@ -341,9 +342,19 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain('PHASE 59: LEGACY FUNCTION MOVED');
     });
 
-    it('should have legacy/index.js with deprecated validateTradeForContext', () => {
+    it('should keep tradeContext.js as a shim-only compatibility re-export', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/legacy/index.js'
+        'src/features/architect/utils/tradeContext/tradeContext.js'
+      );
+
+      expect(source).toContain("from './tradeContext.ts'");
+      expect(source).not.toContain('export function buildPostTradeTeamsSnapshot');
+      expect(source).not.toContain('validateTrade(');
+    });
+
+    it('should have legacy/index.ts with deprecated validateTradeForContext', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/legacy/index.ts'
       );
 
       // Should export legacy_validateTradeForContext
@@ -356,9 +367,22 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain('DO NOT IMPORT IN MUTATION MODULES');
     });
 
-    it('should have assertions.js with runtime assertions', () => {
+    it('should keep legacy/index.js as a shim-only compatibility re-export', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/assertions.js'
+        'src/features/architect/utils/tradeContext/legacy/index.js'
+      );
+
+      expect(source).toContain("from './index.ts'");
+      expect(source).not.toContain('const timestamp = Date.now()');
+      expect(source).not.toContain('buildPostTradeTeamsSnapshot({');
+      expect(source).not.toContain(
+        'validatePostTradeSnapshotForContext({ snapshot, payload, seasonId })'
+      );
+    });
+
+    it('should have assertions.ts with runtime assertions', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/assertions.ts'
       );
 
       // Should export assertPostTradeSnapshot
@@ -369,6 +393,16 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       // Should export assertTradeComputeInputs
       expect(source).toContain('export function assertTradeComputeInputs');
+    });
+
+    it('should keep assertions.js as a shim-only compatibility re-export', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/assertions.js'
+      );
+
+      expect(source).toContain("from './assertions.ts'");
+      expect(source).not.toContain('export function assertPostTradeSnapshot');
+      expect(source).not.toContain('validateTrade(');
     });
 
     it('should have index.js re-exporting all public API', () => {
@@ -391,7 +425,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 9: validateTrade ONLY allowed in validatePostTradeSnapshotForContext (ALLOWLIST)', () => {
     it('should only call validateTrade in validatePostTradeSnapshotForContext function', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/tradeContext.js'
+        'src/features/architect/utils/tradeContext/tradeContext.ts'
       );
 
       // Find all lines that call validateTrade (not imports/comments)
@@ -431,14 +465,14 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   });
 
   describe('Test 10: assertions module is pure (no validateTrade calls)', () => {
-    it('should not contain any validateTrade calls in assertions.js', () => {
+    it('should not contain any validateTrade calls in assertions.ts', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/assertions.js'
+        'src/features/architect/utils/tradeContext/assertions.ts'
       );
 
       const violations = findValidateTradeCallsInRegion(
         source,
-        'assertions.js'
+        'assertions.ts'
       );
 
       expect(violations).toEqual([]);

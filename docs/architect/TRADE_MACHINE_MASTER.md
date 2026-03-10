@@ -800,6 +800,29 @@ Date: 2026-02-26
   - the nearby validator instrumentation/cache cluster remains live but awkwardly split between active support code and stale residue, while the season-manager-adjacent helper family reads as broader cross-domain follow-up work
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E42_RETURN_PACKAGE.md`
 
+### Validator TS Trade Context Core E43 (2026-03-10)
+
+- Status: The core `tradeContext` sub-arc completed cleanly. `tradeContext` and `assertions` are now TS-backed with behavior preserved, while `legacy/index.js` remains the intentional follow-up scope.
+- Execution note:
+  - added authoritative TypeScript implementations for `src/features/architect/utils/tradeContext/tradeContext.ts`, `src/features/architect/utils/tradeContext/assertions.ts`, and local support types in `src/features/architect/utils/tradeContext/types.ts`
+  - reduced `tradeContext.js` and `assertions.js` to pure compatibility re-export shims so stable `.js` consumer paths remain intact without leaving business logic in JS
+  - kept the public barrel behavior stable and did not reopen `legacy/index.js`, `mutationPipeline.js`, E39, or E41 scope
+  - updated the tradeContext source-scan guardrails to inspect the authoritative `.ts` files while retaining shim coverage and stable runtime `.js` import proof
+  - validated the pass with `npm run typecheck`, a narrow pair of `npm run test:node -- --reporter=dot ...` proof sets covering snapshot construction, apply-time fail-closed behavior, sign-and-trade preflight/apply behavior, assertion contracts, stable `.js` imports, and `npm run validate:project`
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_CONTEXT_CORE_E43_RETURN_PACKAGE.md`
+
+### Validator TS Trade Context Legacy Follow-Up E44 (2026-03-10)
+
+- Status: The `tradeContext` mini-arc is now fully closed out. `tradeContext/legacy/index.ts` is the authoritative deprecated wrapper, and `legacy/index.js` remains only as a pure compatibility shim.
+- Execution note:
+  - added authoritative TypeScript wrapper logic in `src/features/architect/utils/tradeContext/legacy/index.ts` without changing the legacy wrapper behavior
+  - preserved the exact legacy wrapper sequence `Date.now()` -> `buildPostTradeTeamsSnapshot(...)` -> `validatePostTradeSnapshotForContext(...)`
+  - reduced `src/features/architect/utils/tradeContext/legacy/index.js` to a pure compatibility re-export shim so stable `.js` and namespace imports remain intact
+  - updated the Phase 57/59 guardrails to inspect the authoritative `.ts` file, enforce the exact wrapper call order, and prove direct `legacy/` plus `legacy/index.js` compatibility imports
+  - validated the pass with `npm run typecheck`, `npm run test:node -- --reporter=dot ...` on the focused legacy-wrapper proof set, and `npm run validate:project`
+- Follow-up status: no immediate follow-up remains for the `tradeContext` mini-arc beyond any future importer-state-driven choice to retire kept JS compatibility shims.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_CONTEXT_LEGACY_FOLLOWUP_E44_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

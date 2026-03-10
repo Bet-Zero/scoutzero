@@ -10,6 +10,7 @@
  * 2. mutationPipeline.js must NOT reference validateTradeForPipeline (removed)
  * 3. mutationPipeline.js must NOT reference legacy_validateTradeForContext
  * 4. No files in utils/ should import from tradeContext/legacy/ except tests
+ * 5. legacy/index.ts remains the thin authoritative wrapper; legacy/index.js remains shim-only
  *
  * ALLOWED EXCEPTIONS:
  * - Test files may import from legacy/ for backward compatibility testing
@@ -136,7 +137,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
   describe('Test 3: Legacy namespace has correct structure', () => {
     it('should have loud deprecation warnings', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/legacy/index.js'
+        'src/features/architect/utils/tradeContext/legacy/index.ts'
       );
 
       // Must have warning emojis and clear deprecation message
@@ -147,22 +148,51 @@ describe('Phase 59: Legacy Import Guardrails', () => {
 
     it('should explicitly forbid mutation module imports', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/legacy/index.js'
+        'src/features/architect/utils/tradeContext/legacy/index.ts'
       );
 
       expect(source).toContain('DO NOT IMPORT IN MUTATION MODULES');
       expect(source).toContain('mutationPipeline.js');
     });
 
-    it('should export legacy_validateTradeForContext and validateTradeForContext alias', () => {
+    it('should export legacy_validateTradeForContext and validateTradeForContext alias from legacy/index.ts', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/legacy/index.js'
+        'src/features/architect/utils/tradeContext/legacy/index.ts'
       );
 
       expect(source).toContain(
         'export function legacy_validateTradeForContext'
       );
       expect(source).toContain('export const validateTradeForContext');
+    });
+
+    it('should preserve the exact Date.now -> build snapshot -> validate call order in legacy/index.ts', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/legacy/index.ts'
+      );
+
+      const timestampIndex = source.indexOf('Date.now()');
+      const buildIndex = source.indexOf('buildPostTradeTeamsSnapshot({');
+      const validateIndex = source.indexOf(
+        'validatePostTradeSnapshotForContext({ snapshot, payload, seasonId })'
+      );
+
+      expect(timestampIndex).toBeGreaterThan(-1);
+      expect(buildIndex).toBeGreaterThan(timestampIndex);
+      expect(validateIndex).toBeGreaterThan(buildIndex);
+    });
+
+    it('should keep legacy/index.js as a shim-only compatibility re-export', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/legacy/index.js'
+      );
+
+      expect(source).toContain("from './index.ts'");
+      expect(source).not.toContain('const timestamp = Date.now()');
+      expect(source).not.toContain('buildPostTradeTeamsSnapshot({');
+      expect(source).not.toContain(
+        'validatePostTradeSnapshotForContext({ snapshot, payload, seasonId })'
+      );
     });
   });
 
@@ -188,6 +218,28 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       expect(source).toContain('LEGACY EXPORTS');
       // Check for deprecated marker (case insensitive)
       expect(source.toLowerCase()).toContain('deprecated');
+    });
+
+    it('should preserve direct legacy namespace import compatibility', async () => {
+      const legacyNamespace = await import(
+        '@/features/architect/utils/tradeContext/legacy'
+      );
+      const legacyShim = await import(
+        '@/features/architect/utils/tradeContext/legacy/index.js'
+      );
+
+      expect(legacyNamespace.legacy_validateTradeForContext).toBeTypeOf(
+        'function'
+      );
+      expect(legacyNamespace.validateTradeForContext).toBe(
+        legacyNamespace.legacy_validateTradeForContext
+      );
+      expect(legacyShim.legacy_validateTradeForContext).toBe(
+        legacyNamespace.legacy_validateTradeForContext
+      );
+      expect(legacyShim.validateTradeForContext).toBe(
+        legacyNamespace.validateTradeForContext
+      );
     });
   });
 
@@ -243,9 +295,9 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       expect(source).toContain('Phase 59');
     });
 
-    it('should have Phase 59 marker in tradeContext/tradeContext.js', () => {
+    it('should have Phase 59 marker in tradeContext/tradeContext.ts', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/tradeContext.js'
+        'src/features/architect/utils/tradeContext/tradeContext.ts'
       );
 
       expect(source).toContain('Phase 59');

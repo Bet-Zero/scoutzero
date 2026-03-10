@@ -20,7 +20,7 @@
  * - normalizeTeamTpe.js: The canonical helper that handles both locations
  * - schemaAdapter.js: Building trade input structure (adapts external data)
  * - mutationPipeline.js: TPE persistence logic (reads legacy, writes canonical)
- * - tradeContext.js: Snapshot building (reads from both sources)
+ * - tradeContext.ts: Snapshot building (reads from both sources)
  *
  * These tests source-scan production directories to detect forbidden patterns.
  */
@@ -52,6 +52,7 @@ const ALLOWLISTED_FILES = [
   'utils/mutationPipeline.js',
   // Trade context snapshot building (merges both sources during snapshot)
   'utils/tradeContext/tradeContext.js',
+  'utils/tradeContext/tradeContext.ts',
   // Persistence contract validation (references field in comments/tests)
   'utils/persistenceContracts/validatePersistableShape.js',
   // TPE lifecycle processing helper (operates on passed array, not team object)

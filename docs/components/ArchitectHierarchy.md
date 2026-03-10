@@ -293,11 +293,15 @@ utils/
   tpeLifecycle.js
   tradeContext/
     assertions.js
+    assertions.ts
     index.js
     legacy/
       index.js
+      index.ts
     tradeContext.js
+    tradeContext.ts
     types.js
+    types.ts
   tradeHelpers.js
   tradeMachine/
     MIGRATION_NOTES.md
@@ -425,5 +429,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-10T11:33:00.792Z*
+*Generated on: 2026-03-10T13:41:26.205Z*
 *Auto-updated by: npm run docs*

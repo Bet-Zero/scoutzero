@@ -6,9 +6,9 @@
  *
  * TESTS:
  * 1. Source scan: mutationPipeline.js must NOT define calculateTeamTotals
- * 2. Source scan: tradeContext.js must NOT define calculateTeamTotals
+ * 2. Source scan: tradeContext.ts must NOT define calculateTeamTotals
  * 3. Source scan: mutationPipeline.js must import computeTeamCapTotals
- * 4. Source scan: tradeContext.js must import computeTeamCapTotals
+ * 4. Source scan: tradeContext.ts must import computeTeamCapTotals
  * 5. Behavioral: SSOT returns incompleteChargesTotal for understaffed roster
  *
  * HISTORY:
@@ -26,7 +26,7 @@ const __dirname = path.dirname(__filename);
 describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect/utils');
   const mutationPipelinePath = path.join(srcRoot, 'mutationPipeline.js');
-  const tradeContextPath = path.join(srcRoot, 'tradeContext/tradeContext.js');
+  const tradeContextPath = path.join(srcRoot, 'tradeContext/tradeContext.ts');
 
   describe('Source scan: banned legacy function definitions', () => {
     it('mutationPipeline.js should NOT define calculateTeamTotals function', () => {
@@ -37,7 +37,7 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
       expect(hasFunctionDefinition).toBe(false);
     });
 
-    it('tradeContext.js should NOT define calculateTeamTotals function', () => {
+    it('tradeContext.ts should NOT define calculateTeamTotals function', () => {
       const content = fs.readFileSync(tradeContextPath, 'utf-8');
       const hasFunctionDefinition = /function\s+calculateTeamTotals\s*\(/.test(
         content
@@ -56,7 +56,7 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
       expect(hasImport).toBe(true);
     });
 
-    it('tradeContext.js should import computeTeamCapTotals from capTotals', () => {
+    it('tradeContext.ts should import computeTeamCapTotals from capTotals', () => {
       const content = fs.readFileSync(tradeContextPath, 'utf-8');
       const hasImport =
         /import\s+\{[^}]*computeTeamCapTotals[^}]*\}\s+from\s+['"]@\/features\/architect\/utils\/capTotals['"]/.test(
@@ -78,7 +78,7 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
       expect(hasLegacyCalls).toBe(false);
     });
 
-    it('tradeContext.js should call computeTeamCapTotals (not calculateTeamTotals)', () => {
+    it('tradeContext.ts should call computeTeamCapTotals (not calculateTeamTotals)', () => {
       const content = fs.readFileSync(tradeContextPath, 'utf-8');
       // Should have computeTeamCapTotals calls
       const hasSSOTCalls = /computeTeamCapTotals\(/.test(content);
