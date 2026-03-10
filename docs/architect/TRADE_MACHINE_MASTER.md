@@ -767,6 +767,17 @@ Date: 2026-02-26
   - the internal shim retirement goal is effectively complete for this audited scope; no immediate follow-up remains beyond any future repo-wide desire to retire the kept public JS entrypoints
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_INTERNAL_SHIM_RETIREMENT_E39_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E40 (2026-03-10)
+
+- Status: The E39 validator-adjacent scope remains closed. The strongest next migration candidate from the current repo state is the draft-pick resolution utility cluster after comparing it against the trade-context boundary module, the engine/cache instrumentation cluster, and broader Architect trade orchestration.
+- Audit note:
+  - kept the E39 JS public entrypoints/barrels/constants out of the next-scope live-business-logic count so the closed validator-adjacent slice stays closed
+  - recommended next scope: `src/features/architect/utils/tradeMachine/utils/pickIdUtils.js`, `src/features/architect/utils/tradeMachine/utils/swapResolution.js`, and `src/features/architect/utils/tradeMachine/utils/conveyanceResolution.js`
+  - estimated live JS business-logic count for the recommended scope: 3
+  - current execution-shape read: still likely one grouped arc, with `conveyanceResolution.js` as the main dependency-risk file because it sits between `seasonManager.js` usage and DARE parity
+  - the next-best nearby candidate (`tradeContext/`) was rejected as more tightly coupled to `mutationPipeline.js`, while the engine/cache JS residue read as instrumentation/stale cleanup rather than the next business-logic arc
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E40_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
