@@ -722,6 +722,18 @@ Date: 2026-02-26
   - actual post-E35 remaining live JS business-logic count in this validator-adjacent slice: 0
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_INPUT_HELPERS_E35_RETURN_PACKAGE.md`
 
+### Validator TS Closeout Audit E36 (2026-03-10)
+
+- Status: The validator-adjacent migration scope carried through E34/E35 is functionally complete for live JS business logic.
+- Closeout note:
+  - E35's "0 remaining live JS business-logic holdouts" claim is confirmed from the actual post-E35 repo state
+  - the same 12-file remaining-JS inventory still describes this slice: 6 shim-only compatibility files, 4 barrel/public entrypoints, and 2 constants/message surfaces
+  - nearby imported `tradeHelpers.js` and `persistenceContracts/normalizeTeamTpe.js` remain outside this migration scope and were not recounted as in-scope holdouts
+  - no previously migrated JS file in this scope was found to still contain live business logic
+  - the only notable cleanup caveats are stale export paths in `rules/index.js` (`./reacquisition.js`) and `utils/index.js` (`./pickUtils.js`); no current in-repo consumer path was found for either barrel
+  - recommended next step: optional low-risk shim/barrel normalization pass rather than another real TS business-logic migration slice
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CLOSEOUT_AUDIT_E36_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
