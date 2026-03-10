@@ -746,6 +746,17 @@ Date: 2026-02-26
   - optional follow-up: none required for practical closeout beyond any future repo-wide desire to retire compatibility JS entrypoints
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHIM_BARREL_NORMALIZATION_E37_RETURN_PACKAGE.md`
 
+### Validator TS Shim Retirement Audit E38 (2026-03-10)
+
+- Status: Meaningful shim retirement is practical in the same validator-adjacent scope carried through E36/E37, but the cleanup should stay focused on internal compatibility shims rather than public JS entrypoints.
+- Audit note:
+  - importer inspection confirmed that the same 12-file scope still splits into 6 internal shim-only compatibility files, 4 public entrypoints/barrels, and 2 constants/message surfaces
+  - the 6 internal shims now have verified direct replacement targets: `validateRoster.ts`, `validateInput.ts`, `normalizeTradeInput.ts`, `matchingValues.js`, `validateCash.js` / `validateReacquisition.js` / `validateEligibility.js`, and `tpeValidation.js` / `tradeUtilityMisc.js`
+  - `index.js`, `validators/index.js`, `rules/index.js`, and `utils/index.js` still behave like public/compatibility entrypoints and should remain in JS while their internal re-exports are cleaned up
+  - `constants/cbaConstants.js` and `constants/secondApronMessages.js` remain active shared surfaces and are not worth retiring in this pass
+  - recommended next step: leave the public entrypoints in JS and retire the 6 internal shims in one grouped import-path cleanup pass
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHIM_RETIREMENT_AUDIT_E38_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
