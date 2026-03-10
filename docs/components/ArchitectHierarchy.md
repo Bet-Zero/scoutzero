@@ -382,6 +382,7 @@ utils/
       capUtils.js
       capUtils.ts
       conveyanceResolution.js
+      conveyanceResolution.ts
       dataValidation.js
       dataValidation.ts
       hardCapStatus.js
@@ -391,6 +392,7 @@ utils/
       matchingValues.ts
       normalizeTradeInput.ts
       pickIdUtils.js
+      pickIdUtils.ts
       resolveValidationEntitlements.js
       salaryMargin.js
       salaryMargin.ts
@@ -403,6 +405,7 @@ utils/
       stepienEntitlementUtils.js
       stepienEntitlementUtils.ts
       swapResolution.js
+      swapResolution.ts
       tpeValidation.js
       tpeValidation.ts
       tradeExportUtils.js
@@ -422,5 +425,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-10T09:58:34.699Z*
+*Generated on: 2026-03-10T11:33:00.792Z*
 *Auto-updated by: npm run docs*

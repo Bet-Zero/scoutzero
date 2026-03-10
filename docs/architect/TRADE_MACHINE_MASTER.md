@@ -778,6 +778,16 @@ Date: 2026-02-26
   - the next-best nearby candidate (`tradeContext/`) was rejected as more tightly coupled to `mutationPipeline.js`, while the engine/cache JS residue read as instrumentation/stale cleanup rather than the next business-logic arc
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E40_RETURN_PACKAGE.md`
 
+### Validator TS Draft-Pick Resolution Arc E41 (2026-03-10)
+
+- Status: The grouped draft-pick resolution utility cluster completed cleanly as one arc. `pickIdUtils`, `swapResolution`, and `conveyanceResolution` are now TS-backed with behavior preserved.
+- Execution note:
+  - added authoritative TypeScript implementations for `utils/pickIdUtils`, `utils/swapResolution`, and `utils/conveyanceResolution`
+  - kept `pickIdUtils.js`, `swapResolution.js`, and `conveyanceResolution.js` only as pure compatibility re-export shims because live consumers still rely on the stable `.js` paths, and `pickIdUtils` also still has extensionless importer usage
+  - validated the arc with `npm run typecheck`, a narrow `npm run test:node -- --reporter=dot ...` proof set covering direct utility behavior plus season-manager-adjacent and DARE-adjacent coverage, and `npm run validate:project`
+  - no immediate follow-up remains for the 3-file E41 scope beyond any future importer-state-driven desire to retire the kept `.js` compatibility shims
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DRAFT_PICK_RESOLUTION_ARC_E41_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
