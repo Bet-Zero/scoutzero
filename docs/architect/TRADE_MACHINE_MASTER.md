@@ -788,6 +788,18 @@ Date: 2026-02-26
   - no immediate follow-up remains for the 3-file E41 scope beyond any future importer-state-driven desire to retire the kept `.js` compatibility shims
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DRAFT_PICK_RESOLUTION_ARC_E41_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E42 (2026-03-10)
+
+- Status: The E39 validator-adjacent scope remains closed and the E41 draft-pick resolution scope remains complete. The strongest next migration candidate from the current repo state is now the `tradeContext` boundary module.
+- Audit note:
+  - re-checked and excluded the E39-kept JS entrypoints/barrels/constants so the closed validator-adjacent slice stays closed
+  - re-checked and excluded `pickIdUtils.js`, `swapResolution.js`, and `conveyanceResolution.js` because the E41 arc already left them as shim-only compatibility surfaces over TS authoritative peers
+  - recommended next scope: `src/features/architect/utils/tradeContext/tradeContext.js`, `src/features/architect/utils/tradeContext/assertions.js`, and `src/features/architect/utils/tradeContext/legacy/index.js`
+  - confirmed live JS business-logic count for the recommended scope: 3
+  - current execution-shape read: split the next arc into a core `tradeContext.js` plus `assertions.js` pass and a separate `legacy/index.js` follow-up decision
+  - the nearby validator instrumentation/cache cluster remains live but awkwardly split between active support code and stale residue, while the season-manager-adjacent helper family reads as broader cross-domain follow-up work
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E42_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
