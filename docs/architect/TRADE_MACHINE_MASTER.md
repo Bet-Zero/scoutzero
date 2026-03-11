@@ -916,6 +916,17 @@ Date: 2026-02-26
   - current execution-shape read: likely one grouped helper arc; clean fallback split is the lifecycle pair first and `seasonManagerProjection.js` second if cross-folder typing/import friction appears
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E51_RETURN_PACKAGE.md`
 
+### Validator TS Season-Transition Helpers E52 (2026-03-11)
+
+- Status: `src/features/architect/utils/tpeLifecycle`, `src/features/architect/utils/exceptions/exceptionLifecycle`, and `src/features/architect/utils/entitlements/seasonManagerProjection` now have authoritative TS implementations. The kept `.js` files remain only as pure compatibility shims, while `exceptions/index.js` stayed unchanged as the stable public barrel surface.
+- Execution note:
+  - preserved exact July 1 season-boundary behavior, invalid-date fail-safe behavior, legacy expiry backfill behavior, legacy exception-key remapping, enabled-flag preservation, amount reset/recompute behavior, DPE rollover clearing behavior, and the exact Season Manager projection object shape
+  - preserved the exact projected placeholder fields, `resolutionMeta`, debug metadata, and `_projectedAt` behavior in the Season Manager projection output
+  - added focused compatibility proof for extensionless direct imports, explicit `.js` direct imports, and the `exceptions` barrel surface
+  - kept `src/features/architect/utils/exceptionHistory/historyHelpers.js` out of scope; execution did not prove it inseparable from the grouped helper arc
+- Follow-up status: no immediate follow-up is recommended; the remaining JS in this boundary is intentional compatibility or nearby support only.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SEASON_TRANSITION_HELPERS_E52_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

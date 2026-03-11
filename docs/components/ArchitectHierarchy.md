@@ -241,11 +241,13 @@ utils/
     runTeamExclusivityGate.ts
     sanitizeVacuumMetadata.ts
     seasonManagerProjection.js
+    seasonManagerProjection.ts
     vacuumEntitlementOverlayStore.ts
   exceptionHistory/
     historyHelpers.js
   exceptions/
     exceptionLifecycle.js
+    exceptionLifecycle.ts
     index.js
   faExceptionUtils.js
   faExceptionUtils.ts
@@ -299,6 +301,7 @@ utils/
   timingUtils.js
   timingUtils.ts
   tpeLifecycle.js
+  tpeLifecycle.ts
   tradeContext/
     assertions.js
     assertions.ts
@@ -438,5 +441,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-11T09:23:13.806Z*
+*Generated on: 2026-03-11T21:17:44.953Z*
 *Auto-updated by: npm run docs*

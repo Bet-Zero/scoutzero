@@ -142,7 +142,11 @@ describe('Phase 76: Source Scan Guardrails', () => {
     __dirname,
     '../../features/architect/utils/offseason/resolveOffseasonTransition.ts'
   );
-  const exceptionLifecyclePath = path.resolve(
+  const exceptionLifecycleAuthorityPath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/exceptions/exceptionLifecycle.ts'
+  );
+  const exceptionLifecycleShimPath = path.resolve(
     __dirname,
     '../../features/architect/utils/exceptions/exceptionLifecycle.js'
   );
@@ -165,8 +169,8 @@ describe('Phase 76: Source Scan Guardrails', () => {
     expect(content).toContain('toYear');
   });
 
-  it('TEST 3: exceptionLifecycle.js does NOT reference exceptions.tpe', () => {
-    const content = fs.readFileSync(exceptionLifecyclePath, 'utf8');
+  it('TEST 3: exceptionLifecycle.ts does NOT reference exceptions.tpe', () => {
+    const content = fs.readFileSync(exceptionLifecycleAuthorityPath, 'utf8');
 
     // Must NOT contain direct tpe access (TPE lifecycle is separate)
     expect(content).not.toMatch(/exceptions\.tpe\b/);
@@ -180,12 +184,20 @@ describe('Phase 76: Source Scan Guardrails', () => {
     expect(content).toContain('room');
   });
 
-  it('TEST 3b: exceptionLifecycle.js does NOT import or call canUseRoomException', () => {
-    const content = fs.readFileSync(exceptionLifecyclePath, 'utf8');
+  it('TEST 3b: exceptionLifecycle.ts does NOT import or call canUseRoomException', () => {
+    const content = fs.readFileSync(exceptionLifecycleAuthorityPath, 'utf8');
 
     // Room eligibility gating is Phase 75's responsibility, not this module
     expect(content).not.toContain('canUseRoomException');
     expect(content).not.toContain('computeTeamCapTotals');
+  });
+
+  it('TEST 3c: exceptionLifecycle.js remains a pure compatibility shim', () => {
+    const content = fs.readFileSync(exceptionLifecycleShimPath, 'utf8');
+
+    expect(content).toContain("export * from './exceptionLifecycle.ts';");
+    expect(content).not.toContain('Object.freeze([');
+    expect(content).not.toContain('getCapRulesForYear');
   });
 });
 
