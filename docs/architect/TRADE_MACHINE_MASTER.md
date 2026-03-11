@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-10
+Last updated: 2026-03-11
 
 ## Trade Machine Overview
 
@@ -822,6 +822,18 @@ Date: 2026-02-26
   - validated the pass with `npm run typecheck`, `npm run test:node -- --reporter=dot ...` on the focused legacy-wrapper proof set, and `npm run validate:project`
 - Follow-up status: no immediate follow-up remains for the `tradeContext` mini-arc beyond any future importer-state-driven choice to retire kept JS compatibility shims.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_CONTEXT_LEGACY_FOLLOWUP_E44_RETURN_PACKAGE.md`
+
+### Validator TS Next-Scope Expansion Audit E45 (2026-03-11)
+
+- Status: E39 remains closed, E41 remains complete, and the `tradeContext` mini-arc remains complete. After re-checking those boundaries against the current repo state, the strongest next migration candidate is the trade-facing helper foundation.
+- Audit note:
+  - re-checked and excluded the E39-kept JS entrypoints/barrels/constants so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as shim-only compatibility surfaces over TS authoritative peers
+  - re-checked and excluded `tradeContext.js`, `assertions.js`, and `legacy/index.js` because the E43/E44 `tradeContext` mini-arc remains complete
+  - recommended next scope: `src/features/architect/utils/tradeHelpers.js`, `src/features/architect/utils/hardCapUtils.js`, `src/features/architect/utils/faExceptionUtils.js`, and `src/features/architect/utils/capUtils.js`
+  - estimated live JS business-logic count for the recommended scope: `4`
+  - current execution-shape read: still likely one grouped arc; if importer-state friction appears later, the clean fallback split is the three supporting helper files first and `tradeHelpers.js` second
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E45_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 
