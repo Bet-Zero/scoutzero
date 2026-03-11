@@ -872,6 +872,22 @@ Date: 2026-02-26
 - Follow-up status: no immediate follow-up is required for this grouped mini-arc beyond any future importer-state-driven decision to retire compatibility shims if they ever become unnecessary.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAPTOTALS_SSOT_BOUNDARY_E48_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E49 (2026-03-11)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, and the E48 `capTotals` mini-arc remains complete. The expected leading candidate from current repo inspection was `src/features/architect/utils/persistenceContracts/`, and the full E49 comparison pass confirmed that it remains the strongest next migration scope.
+- Audit note:
+  - re-checked and excluded the E39-kept JS entrypoints, barrels, and constants so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as shim-only compatibility surfaces over TS-authoritative peers
+  - re-checked and excluded `tradeContext.js`, `assertions.js`, and `legacy/index.js` because the E43/E44 `tradeContext` mini-arc remains complete
+  - re-checked and excluded `tradeHelpers.js`, `hardCapUtils.js`, `faExceptionUtils.js`, and `capUtils.js` because the E46 helper-foundation arc remains complete
+  - re-checked and excluded `src/features/architect/utils/capTotals/computeTeamCapTotals.js` because the E48 `capTotals` mini-arc remains complete and the kept JS file is still a pure compatibility shim
+  - recommended next scope: `src/features/architect/utils/persistenceContracts/`
+  - recommended core live JS business-logic files: `normalizeTeamTpe.js`, `validatePersistableShape.js`, and `enforcement.js`
+  - `contracts.js` classification from file-content inspection: `rule-definition surface`
+  - estimated live JS business-logic count for the recommended scope: `3`
+  - current execution-shape read: likely one grouped folder arc; split only if typing or importer friction appears later around the rule-definition support surface
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E49_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
