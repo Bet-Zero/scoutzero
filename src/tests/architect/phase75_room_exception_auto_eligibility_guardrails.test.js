@@ -394,7 +394,7 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
     const srcRoot = path.resolve(__dirname, '../../features/architect');
     const contractsPath = path.join(
       srcRoot,
-      'utils/persistenceContracts/contracts.js'
+      'utils/persistenceContracts/contracts.ts'
     );
     const source = fs.readFileSync(contractsPath, 'utf-8');
 
@@ -409,7 +409,7 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
 
     // Find the allowlist array
     const allowlistMatch = noComments.match(
-      /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
+      /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST(?:\s*:\s*[^=]+)?\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
     );
     expect(allowlistMatch).toBeTruthy();
 
@@ -417,6 +417,18 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
     const allowlistContents = allowlistMatch[1];
     expect(allowlistContents).not.toMatch(/'tradeExceptions'/);
     expect(allowlistContents).not.toMatch(/"tradeExceptions"/);
+  });
+
+  it('contracts.js remains a pure compatibility shim', () => {
+    const srcRoot = path.resolve(__dirname, '../../features/architect');
+    const contractsPath = path.join(
+      srcRoot,
+      'utils/persistenceContracts/contracts.js'
+    );
+    const source = fs.readFileSync(contractsPath, 'utf-8');
+
+    expect(source).toContain("export * from './contracts.ts';");
+    expect(source).not.toContain('TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST');
   });
 });
 

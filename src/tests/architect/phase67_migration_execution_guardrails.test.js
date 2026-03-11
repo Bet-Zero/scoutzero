@@ -129,17 +129,27 @@ describe('Phase 67 Guardrail: Deterministic Report Filenames', () => {
 // Test 4: Telemetry Quiet-by-Default (Phase 67 Wind-Down)
 // ============================================================================
 describe('Phase 67 Guardrail: Telemetry Quiet-by-Default', () => {
-  const telemetryPath = path.resolve(
+  const telemetryAuthorityPath = path.resolve(
+    __dirname,
+    '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.ts'
+  );
+  const telemetryShimPath = path.resolve(
     __dirname,
     '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
   );
 
   it('telemetry is quiet by default (only logs when LOG_LEGACY_TPE_FALLBACK=true)', () => {
-    const content = fs.readFileSync(telemetryPath, 'utf-8');
+    const content = fs.readFileSync(telemetryAuthorityPath, 'utf-8');
     // Should NOT log by default - only when explicitly enabled
     expect(content).toContain("LOG_LEGACY_TPE_FALLBACK === 'true'");
     // Should have "quiet by default" or similar in docs
     expect(content.toLowerCase()).toContain('quiet');
+  });
+
+  it('normalizeTeamTpe.js remains a pure compatibility shim', () => {
+    const shimContent = fs.readFileSync(telemetryShimPath, 'utf-8');
+    expect(shimContent).toContain("export * from './normalizeTeamTpe.ts';");
+    expect(shimContent).not.toContain("LOG_LEGACY_TPE_FALLBACK === 'true'");
   });
 
   it('telemetry counter still increments silently', async () => {
@@ -196,10 +206,10 @@ describe('Phase 67 Guardrail: Telemetry Quiet-by-Default', () => {
 // Test 5: Phase 67 Header Updates
 // ============================================================================
 describe('Phase 67 Guardrail: Documentation Headers Updated', () => {
-  it('normalizeTeamTpe.js has Phase 67 history entry', () => {
+  it('normalizeTeamTpe.ts has Phase 67 history entry', () => {
     const telemetryPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.ts'
     );
     const content = fs.readFileSync(telemetryPath, 'utf-8');
     expect(content).toContain('Phase 67');

@@ -286,11 +286,11 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
       __dirname,
       '../../features/architect/utils/persistenceContracts/contracts.js'
     );
-    const content = fs.readFileSync(contractsPath, 'utf-8');
+    const content = readAuthoritativeImplementationContent(contractsPath);
 
     // Find the TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST definition
     const match = content.match(
-      /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
+      /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST(?:\s*:\s*[^=]+)?\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
     );
     expect(match).toBeTruthy();
 
@@ -316,17 +316,28 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
       __dirname,
       '../../features/architect/utils/persistenceContracts/contracts.js'
     );
-    const content = fs.readFileSync(contractsPath, 'utf-8');
+    const content = readAuthoritativeImplementationContent(contractsPath);
 
     // Find the allowlist
     const match = content.match(
-      /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
+      /TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST(?:\s*:\s*[^=]+)?\s*=\s*Object\.freeze\(\[([\s\S]*?)\]\)/
     );
     expect(match).toBeTruthy();
 
     const keyList = match[1];
     // 'exceptions' should be in the allowlist (canonical location for TPE)
     expect(keyList).toContain("'exceptions'");
+  });
+
+  it('contracts.js remains a pure compatibility shim', async () => {
+    const contractsPath = path.resolve(
+      __dirname,
+      '../../features/architect/utils/persistenceContracts/contracts.js'
+    );
+    const content = fs.readFileSync(contractsPath, 'utf-8');
+
+    expect(content).toContain("export * from './contracts.ts';");
+    expect(content).not.toContain('TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST');
   });
 });
 

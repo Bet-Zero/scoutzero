@@ -885,8 +885,20 @@ Date: 2026-02-26
   - recommended core live JS business-logic files: `normalizeTeamTpe.js`, `validatePersistableShape.js`, and `enforcement.js`
   - `contracts.js` classification from file-content inspection: `rule-definition surface`
   - estimated live JS business-logic count for the recommended scope: `3`
-  - current execution-shape read: likely one grouped folder arc; split only if typing or importer friction appears later around the rule-definition support surface
+- current execution-shape read: likely one grouped folder arc; split only if typing or importer friction appears later around the rule-definition support surface
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E49_RETURN_PACKAGE.md`
+
+### Validator TS Persistence Contracts E50 (2026-03-11)
+
+- Status: The `persistenceContracts` boundary is now TS-backed, and the grouped folder arc completed cleanly without changing runtime behavior.
+- TS migration note:
+  - authoritative implementations now live in `src/features/architect/utils/persistenceContracts/normalizeTeamTpe.ts`, `validatePersistableShape.ts`, `enforcement.ts`, and `contracts.ts`
+  - `normalizeTeamTpe.js`, `validatePersistableShape.js`, `enforcement.js`, and `contracts.js` now remain only as pure compatibility shims so barrel, extensionless, and explicit `.js` imports stay stable
+  - `index.js` remained unchanged as the nearby barrel/support surface
+  - behavior remained unchanged across canonical-vs-legacy merge order, alias backfilling, deterministic deduplication, quiet-by-default telemetry, deep-rule traversal, violation paths/messages, env gating, allowlists, deep-rule structures, and `PERSISTENCE_CONTRACTS` ordering
+  - targeted parity now includes updated persistence-contract source-scan guardrails and import smoke coverage proving barrel, extensionless direct, and explicit `.js` direct paths still resolve
+- Follow-up status: no immediate follow-up is recommended; the remaining JS in this boundary is narrow, intentional compatibility support only.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PERSISTENCE_CONTRACTS_E50_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

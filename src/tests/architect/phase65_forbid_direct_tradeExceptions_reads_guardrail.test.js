@@ -46,6 +46,7 @@ const SRC_ROOT = path.resolve(__dirname, '../../features/architect');
 const ALLOWLISTED_FILES = [
   // Core normalization helper (the canonical accessor lives here)
   'utils/persistenceContracts/normalizeTeamTpe.js',
+  'utils/persistenceContracts/normalizeTeamTpe.ts',
   // Schema adapter for building trade input structure
   'utils/schemaAdapter.js',
   // Mutation pipeline (TPE persistence, reads legacy during compute)
@@ -250,8 +251,8 @@ describe('Phase 65: Forbid Direct .tradeExceptions Reads in Production Code', ()
     });
 
     it('should have a reasonably small allowlist (prevent drift)', () => {
-      // Phase 65 allowlist should be 9 or fewer files
-      expect(ALLOWLISTED_FILES.length).toBeLessThanOrEqual(9);
+      // Phase E50 allowlist should remain tightly bounded
+      expect(ALLOWLISTED_FILES.length).toBeLessThanOrEqual(10);
     });
   });
 });
