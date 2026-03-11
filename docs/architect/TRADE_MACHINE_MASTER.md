@@ -846,6 +846,20 @@ Date: 2026-02-26
 - Follow-up status: no immediate follow-up is required for this grouped arc beyond any future importer-state-driven decision to retire kept JS shims.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_HELPER_FOUNDATION_E46_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E47 (2026-03-11)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, and the E46 trade-facing helper foundation remains complete. After re-checking those boundaries against the current repo state and applying the “smallest coherent live-business-logic boundary” rule, the strongest next migration candidate is the `capTotals` SSOT surface.
+- Audit note:
+  - re-checked and excluded the E39-kept JS entrypoints/barrels/constants so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as shim-only compatibility surfaces over TS authoritative peers
+  - re-checked and excluded `tradeContext.js`, `assertions.js`, and `legacy/index.js` because the E43/E44 `tradeContext` mini-arc remains complete
+  - re-checked and excluded `tradeHelpers.js`, `hardCapUtils.js`, `faExceptionUtils.js`, and `capUtils.js` because the E46 trade-facing helper foundation remains complete
+  - expected heavier candidates (`persistenceContracts`, `playerRulesProfile`, and the broader cap/offseason helper family) were all inspected, but the actual current repo state surfaced `src/features/architect/utils/capTotals/computeTeamCapTotals.js` as a smaller adjacent live-business-logic boundary with stronger direct runtime pressure and a cleaner cutoff
+  - recommended next scope: `src/features/architect/utils/capTotals/computeTeamCapTotals.js`
+  - estimated live JS business-logic count for the recommended scope: `1`
+  - current execution-shape read: one grouped mini-arc; `src/features/architect/utils/capTotals/index.js` remains a nearby barrel/support surface, not additional live business logic
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E47_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
