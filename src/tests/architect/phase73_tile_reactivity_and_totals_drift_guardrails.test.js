@@ -65,25 +65,39 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
   });
 
   describe('Source scan: warnOnTotalsDivergence', () => {
-    const computeCapTotalsPath = path.resolve(
+    const computeCapTotalsTsPath = path.resolve(
+      __dirname,
+      '../../features/architect/utils/capTotals/computeTeamCapTotals.ts'
+    );
+    const computeCapTotalsJsPath = path.resolve(
       __dirname,
       '../../features/architect/utils/capTotals/computeTeamCapTotals.js'
     );
 
-    it('computeTeamCapTotals.js contains DEV gate in warnOnTotalsDivergence', () => {
-      const content = fs.readFileSync(computeCapTotalsPath, 'utf-8');
+    it('computeTeamCapTotals.ts contains DEV gate in warnOnTotalsDivergence', () => {
+      const content = fs.readFileSync(computeCapTotalsTsPath, 'utf-8');
       expect(content).toContain('import.meta.env.DEV');
     });
 
-    it('computeTeamCapTotals.js contains rate-limit mechanism (warnedKeys)', () => {
-      const content = fs.readFileSync(computeCapTotalsPath, 'utf-8');
+    it('computeTeamCapTotals.ts contains rate-limit mechanism (warnedKeys)', () => {
+      const content = fs.readFileSync(computeCapTotalsTsPath, 'utf-8');
       expect(content).toContain('warnedKeys');
-      expect(content).toMatch(/warnedKeys\s*=\s*new\s+Set\(\)/);
+      expect(content).toMatch(/warnedKeys\s*=\s*new\s+Set(?:<[^>]+>)?\(\)/);
     });
 
-    it('computeTeamCapTotals.js exports resetWarnedKeys', () => {
-      const content = fs.readFileSync(computeCapTotalsPath, 'utf-8');
+    it('computeTeamCapTotals.ts exports resetWarnedKeys', () => {
+      const content = fs.readFileSync(computeCapTotalsTsPath, 'utf-8');
       expect(content).toContain('export function resetWarnedKeys');
+    });
+
+    it('computeTeamCapTotals.js remains a pure compatibility shim', () => {
+      const content = fs.readFileSync(computeCapTotalsJsPath, 'utf-8');
+      expect(content).toContain("export * from './computeTeamCapTotals.ts';");
+      expect(content).toContain(
+        "export { default } from './computeTeamCapTotals.ts';"
+      );
+      expect(content).not.toContain('import.meta.env.DEV');
+      expect(content).not.toContain('warnedKeys');
     });
   });
 

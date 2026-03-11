@@ -203,6 +203,7 @@ utils/
     index.ts
   capTotals/
     computeTeamCapTotals.js
+    computeTeamCapTotals.ts
     index.js
   capUtils.js
   capUtils.ts
@@ -433,5 +434,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-11T07:12:55.755Z*
+*Generated on: 2026-03-11T08:19:39.482Z*
 *Auto-updated by: npm run docs*

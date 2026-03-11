@@ -90,17 +90,28 @@ describe('Phase 83: Source Code Guardrails', () => {
     expect(content).toContain('export async function advanceSeasonInWorld');
   });
 
-  test('TEST 5: capTotals exports computeTeamCapTotals (SSOT)', async () => {
+  test('TEST 5: capTotals keeps JS shim + TS authority for computeTeamCapTotals (SSOT)', async () => {
     const fs = await import('fs');
     const path = await import('path');
-    const totalsPath = path.resolve(
+    const totalsJsPath = path.resolve(
       process.cwd(),
       'src/features/architect/utils/capTotals/computeTeamCapTotals.js'
     );
-    expect(fs.existsSync(totalsPath)).toBe(true);
-    
-    const content = fs.readFileSync(totalsPath, 'utf-8');
-    expect(content).toContain('export function computeTeamCapTotals');
+    const totalsTsPath = path.resolve(
+      process.cwd(),
+      'src/features/architect/utils/capTotals/computeTeamCapTotals.ts'
+    );
+    expect(fs.existsSync(totalsJsPath)).toBe(true);
+    expect(fs.existsSync(totalsTsPath)).toBe(true);
+
+    const jsContent = fs.readFileSync(totalsJsPath, 'utf-8');
+    const tsContent = fs.readFileSync(totalsTsPath, 'utf-8');
+
+    expect(jsContent).toContain("export * from './computeTeamCapTotals.ts';");
+    expect(jsContent).toContain(
+      "export { default } from './computeTeamCapTotals.ts';"
+    );
+    expect(tsContent).toContain('export function computeTeamCapTotals');
   });
 });
 

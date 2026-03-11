@@ -24,10 +24,10 @@ import { validateExceptionEligibility } from '@/features/architect/utils/capLega
 describe('Phase 75: Source Scan Guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
 
-  it('canUseRoomException exists in computeTeamCapTotals.js and references computeTeamCapTotals', () => {
+  it('canUseRoomException exists in computeTeamCapTotals.ts and references computeTeamCapTotals', () => {
     const filePath = path.join(
       srcRoot,
-      'utils/capTotals/computeTeamCapTotals.js'
+      'utils/capTotals/computeTeamCapTotals.ts'
     );
     const source = fs.readFileSync(filePath, 'utf-8');
 
@@ -36,6 +36,20 @@ describe('Phase 75: Source Scan Guardrails', () => {
 
     // Uses computeTeamCapTotals internally
     expect(source).toContain('computeTeamCapTotals(team, yearKey)');
+  });
+
+  it('computeTeamCapTotals.js remains a pure compatibility shim', () => {
+    const filePath = path.join(
+      srcRoot,
+      'utils/capTotals/computeTeamCapTotals.js'
+    );
+    const source = fs.readFileSync(filePath, 'utf-8');
+
+    expect(source).toContain("export * from './computeTeamCapTotals.ts';");
+    expect(source).toContain(
+      "export { default } from './computeTeamCapTotals.ts';"
+    );
+    expect(source).not.toContain('export function canUseRoomException');
   });
 
   it('canUseRoomException is exported from capTotals/index.js', () => {

@@ -35,6 +35,11 @@ const CAP_SHEET_FULL_PATH = path.resolve(
 
 const COMPUTE_TOTALS_PATH = path.resolve(
   __dirname,
+  '../../features/architect/utils/capTotals/computeTeamCapTotals.ts'
+);
+
+const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
+  __dirname,
   '../../features/architect/utils/capTotals/computeTeamCapTotals.js'
 );
 
@@ -183,5 +188,15 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     const usesRosterForCompute =
       /computePlayersTotal\(.*teamCapSheet\?\.roster/.test(source);
     expect(usesRosterForCompute).toBe(false);
+  });
+
+  it('TEST 8: computeTeamCapTotals.js remains a shim-only compatibility surface', () => {
+    const source = fs.readFileSync(COMPUTE_TOTALS_SHIM_PATH, 'utf-8');
+
+    expect(source).toContain("export * from './computeTeamCapTotals.ts';");
+    expect(source).toContain(
+      "export { default } from './computeTeamCapTotals.ts';"
+    );
+    expect(source).not.toContain('teamCapSheet?.players');
   });
 });

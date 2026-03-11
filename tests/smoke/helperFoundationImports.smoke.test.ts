@@ -32,4 +32,22 @@ describe('helper foundation import compatibility', () => {
     expect(extensionless.getApronStatus).toBeTypeOf('function');
     expect(withJs.getAllowableIncomingMargin).toBeTypeOf('function');
   });
+
+  it('resolves capTotals via barrel, extensionless, and explicit .js imports', async () => {
+    const barrel = await import('@/features/architect/utils/capTotals');
+    const extensionless = await import(
+      '@/features/architect/utils/capTotals/computeTeamCapTotals'
+    );
+    const withJs = await import(
+      '@/features/architect/utils/capTotals/computeTeamCapTotals.js'
+    );
+
+    expect(barrel.computeTeamCapTotals).toBeTypeOf('function');
+    expect(barrel.canUseRoomException).toBeTypeOf('function');
+    expect(extensionless.computeTeamCapTotals).toBeTypeOf('function');
+    expect(extensionless.default).toBeTypeOf('function');
+    expect(withJs.computeTeamCapTotals).toBeTypeOf('function');
+    expect(withJs.canUseRoomException).toBeTypeOf('function');
+    expect(withJs.default).toBeTypeOf('function');
+  });
 });

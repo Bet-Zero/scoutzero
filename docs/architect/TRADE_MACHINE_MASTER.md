@@ -860,6 +860,18 @@ Date: 2026-02-26
   - current execution-shape read: one grouped mini-arc; `src/features/architect/utils/capTotals/index.js` remains a nearby barrel/support surface, not additional live business logic
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E47_RETURN_PACKAGE.md`
 
+### Validator TS CapTotals SSOT Boundary E48 (2026-03-11)
+
+- Status: The `capTotals` SSOT boundary is now TS-backed, and the grouped mini-arc completed cleanly without changing live behavior.
+- TS migration note:
+  - authoritative totals logic now lives in `src/features/architect/utils/capTotals/computeTeamCapTotals.ts`
+  - `src/features/architect/utils/capTotals/computeTeamCapTotals.js` now remains only as a pure compatibility shim so barrel, extensionless, and explicit `.js` imports stay stable
+  - `src/features/architect/utils/capTotals/index.js` remained unchanged as the nearby barrel/support surface
+  - totals behavior remained unchanged, including `totalCapAllocations`, `deltas`, `_meta`, dead-money precedence, cap-hold handling, incomplete-roster-charge behavior, `canUseRoomException()`, and dev-warning text/keys
+  - targeted parity now includes updated capTotals source-scan guardrails and import smoke coverage proving barrel, extensionless direct, and explicit `.js` direct paths still resolve
+- Follow-up status: no immediate follow-up is required for this grouped mini-arc beyond any future importer-state-driven decision to retire compatibility shims if they ever become unnecessary.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAPTOTALS_SSOT_BOUNDARY_E48_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

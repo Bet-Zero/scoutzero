@@ -36,6 +36,11 @@ const SEASON_MANAGER_PATH = path.resolve(
 
 const COMPUTE_TOTALS_PATH = path.resolve(
   __dirname,
+  '../../features/architect/utils/capTotals/computeTeamCapTotals.ts'
+);
+
+const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
+  __dirname,
   '../../features/architect/utils/capTotals/computeTeamCapTotals.js'
 );
 
@@ -119,6 +124,18 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
     const usesRosterForCompute =
       /computePlayersTotal\(.*teamCapSheet\?\.roster/.test(computeSource);
     expect(usesRosterForCompute).toBe(false);
+  });
+
+  it('TEST 6b: computeTeamCapTotals.js remains a shim-only compatibility surface', () => {
+    const computeShimSource = fs.readFileSync(COMPUTE_TOTALS_SHIM_PATH, 'utf-8');
+
+    expect(computeShimSource).toContain(
+      "export * from './computeTeamCapTotals.ts';"
+    );
+    expect(computeShimSource).toContain(
+      "export { default } from './computeTeamCapTotals.ts';"
+    );
+    expect(computeShimSource).not.toContain('teamCapSheet?.players');
   });
 
   it('TEST 7: seasonManager strips hydration-only display fields before persistence', () => {
