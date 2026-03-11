@@ -24,11 +24,14 @@ import { glob } from 'glob';
 const ALLOWLIST = [
   // SSOT - canonical apron derivation logic lives here
   'src/features/architect/utils/tradeMachine/utils/capUtils.js',
+  'src/features/architect/utils/tradeMachine/utils/capUtils.ts',
   'src/features/architect/utils/tradeMachine/utils/salaryMargin.js',
   'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js',
+  'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.ts',
 
   // TradeMachine rule validators (internal to tradeMachine)
   'src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.js',
+  'src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.ts',
   'src/features/architect/utils/tradeMachine/rules/hardCapValidation.js',
   'src/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js',
   'src/features/architect/utils/tradeMachine/rules/validateTradeExceptions.js',
@@ -159,22 +162,28 @@ describe('Phase 43 Apron Drift Prevention Guardrails', () => {
     }
   });
 
-  test('canonical capUtils.js delegates to tradeMachine SSOT', () => {
+  test('canonical capUtils.js is a shim over the TS-authoritative facade', () => {
     const projectRoot = process.cwd();
     const capUtilsPath = path.join(
       projectRoot,
       'src/features/architect/utils/capUtils.js'
     );
+    const capUtilsTsPath = path.join(
+      projectRoot,
+      'src/features/architect/utils/capUtils.ts'
+    );
 
-    const content = fs.readFileSync(capUtilsPath, 'utf-8');
+    const shimContent = fs.readFileSync(capUtilsPath, 'utf-8');
+    const authoritativeContent = fs.readFileSync(capUtilsTsPath, 'utf-8');
 
-    // Verify it imports from tradeMachine SSOT
-    expect(content).toContain("from './tradeMachine/utils/capUtils.js'");
+    expect(shimContent).toContain("export * from './capUtils.ts'");
 
-    // Verify it re-exports canonical helpers
-    expect(content).toContain('export { getTeamApronStatus');
-    expect(content).toContain('isSecondApronTeam');
-    expect(content).toContain('isFirstApronTeam');
+    expect(authoritativeContent).toContain(
+      "from './tradeMachine/utils/capUtils.js'"
+    );
+    expect(authoritativeContent).toContain('export { getTeamApronStatus');
+    expect(authoritativeContent).toContain('isSecondApronTeam');
+    expect(authoritativeContent).toContain('isFirstApronTeam');
   });
 
   test('buildRuleContext.ts uses canonical import path', () => {
@@ -193,19 +202,27 @@ describe('Phase 43 Apron Drift Prevention Guardrails', () => {
     expect(content).toContain("from '@/features/architect/utils/capUtils'");
   });
 
-  test('tradeHelpers.js uses canonical import path', () => {
+  test('tradeHelpers.js is a shim and tradeHelpers.ts uses canonical import path', () => {
     const projectRoot = process.cwd();
     const tradeHelpersPath = path.join(
       projectRoot,
       'src/features/architect/utils/tradeHelpers.js'
     );
+    const tradeHelpersTsPath = path.join(
+      projectRoot,
+      'src/features/architect/utils/tradeHelpers.ts'
+    );
 
-    const content = fs.readFileSync(tradeHelpersPath, 'utf-8');
+    const shimContent = fs.readFileSync(tradeHelpersPath, 'utf-8');
+    const authoritativeContent = fs.readFileSync(tradeHelpersTsPath, 'utf-8');
 
-    // Should NOT import directly from tradeMachine for apron helpers
-    expect(content).not.toContain("from './tradeMachine/utils/capUtils");
+    expect(shimContent).toContain("export * from './tradeHelpers.ts'");
 
-    // Should import from canonical surface
-    expect(content).toContain("from '@/features/architect/utils/capUtils'");
+    expect(authoritativeContent).not.toContain(
+      "from './tradeMachine/utils/capUtils"
+    );
+    expect(authoritativeContent).toContain(
+      "from '@/features/architect/utils/capUtils'"
+    );
   });
 });

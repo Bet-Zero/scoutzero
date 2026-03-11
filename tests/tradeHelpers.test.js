@@ -5,6 +5,12 @@ import {
   getSalaryForYear,
   areSamePick,
   calculateAllowableIncoming,
+  getIncomingCeilingViaFaException,
+  calculateTPERemaining,
+  formatCurrency,
+  generateTradeId,
+  getPlayerAdjustmentTypes,
+  getAdjustmentTooltipLabel,
 } from '@/features/architect/utils/tradeHelpers';
 
 // 🔧  simple mock cap settings for 2025 season
@@ -78,6 +84,81 @@ describe('calculateAllowableIncoming', () => {
       settings
     );
     expect(allowable).toBe(5_000_000); // margin now equals TPE value
+  });
+
+  it('returns object shape for object-style calls', () => {
+    const allowable = calculateAllowableIncoming({
+      currentTeamSalary: 160_000_000,
+      salaryOut: 10_000_000,
+      secondApronStatus: false,
+      firstApronStatus: false,
+      yearKey: 2025,
+      tpeAmount: 3_000_000,
+    });
+
+    expect(allowable).toEqual({
+      ceiling: 20_500_000,
+      margin: 10_500_000,
+    });
+  });
+});
+
+describe('other helper surface behavior', () => {
+  it('adds FA exception remaining to salary out when computing FA-exception ceiling', () => {
+    const team = {
+      team: {
+        faExceptionBuckets: [{ type: 'NTMLE', remaining: 4_500_000 }],
+      },
+      salaryOut: 1_250_000,
+    };
+
+    expect(getIncomingCeilingViaFaException(team, 'NTMLE')).toBe(5_750_000);
+  });
+
+  it('calculates remaining TPE amount', () => {
+    expect(calculateTPERemaining({ amount: 6_000_000 }, 1_250_000)).toBe(
+      4_750_000
+    );
+  });
+
+  it('formats currency with current fallback behavior', () => {
+    expect(formatCurrency(25000000)).toBe('$25,000,000');
+    expect(formatCurrency('25000000')).toBe('-');
+  });
+
+  it('builds trade ids from team and sorted send ids', () => {
+    const tradeId = generateTradeId([
+      {
+        team: { id: 'LAL' },
+        sends: [{ id: 'p2' }, { id: 'p1' }],
+      },
+      {
+        team: { id: 'BOS' },
+        sends: [{ id: 'p3' }],
+      },
+    ]);
+
+    expect(tradeId).toBe('LAL:p1,p2|BOS:p3');
+  });
+
+  it('returns only explicitly flagged adjustment types', () => {
+    expect(
+      getPlayerAdjustmentTypes({
+        isBYC: true,
+        tradeKickerPct: 15,
+        isPoisonPill: true,
+      })
+    ).toEqual(['BYC', 'Trade Kicker', 'Poison Pill']);
+    expect(getPlayerAdjustmentTypes({ isRookieScale: true })).toEqual([]);
+  });
+
+  it('uses specific adjustment labels when available and preserves generic fallback text', () => {
+    expect(getAdjustmentTooltipLabel({ tradeKicker: true })).toBe(
+      'Trade Kicker'
+    );
+    expect(getAdjustmentTooltipLabel({})).toBe(
+      'Adjusted trade matching value (BYC/kicker/poison pill may apply)'
+    );
   });
 });
 

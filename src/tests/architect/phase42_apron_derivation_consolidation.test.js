@@ -23,6 +23,7 @@ import {
 // Architect capUtils (canonical Architect surface)
 import {
   getApronStatus as getLegacyApronStatus,
+  getAllowableIncomingMargin,
   getTeamApronStatus as getTeamApronStatusFromCapUtils,
   isSecondApronTeam as isSecondApronTeamFromCapUtils,
   isFirstApronTeam as isFirstApronTeamFromCapUtils,
@@ -175,6 +176,26 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
           'OVER_CAP'
         );
         expect(getLegacyApronStatus(UNDER_CAP, CAP_SETTINGS)).toBe('UNDER_CAP');
+      });
+    });
+
+    describe('Legacy getAllowableIncomingMargin (deprecated)', () => {
+      it('preserves current simplified margin behavior', () => {
+        expect(
+          getAllowableIncomingMargin(
+            { teamTotalSalary: ABOVE_SECOND_APRON },
+            CAP_SETTINGS
+          )
+        ).toBe(0);
+        expect(
+          getAllowableIncomingMargin({ teamTotalSalary: UNDER_CAP }, CAP_SETTINGS)
+        ).toBe(Infinity);
+        expect(
+          getAllowableIncomingMargin(
+            { teamTotalSalary: BELOW_FIRST_APRON },
+            CAP_SETTINGS
+          )
+        ).toBe(0);
       });
     });
   });

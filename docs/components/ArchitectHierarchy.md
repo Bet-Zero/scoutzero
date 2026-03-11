@@ -205,6 +205,7 @@ utils/
     computeTeamCapTotals.js
     index.js
   capUtils.js
+  capUtils.ts
   cashUtils.js
   cbaConstants.js
   consentUtils.js
@@ -246,9 +247,11 @@ utils/
     exceptionLifecycle.js
     index.js
   faExceptionUtils.js
+  faExceptionUtils.ts
   firebaseTeamPlanHelpers.js
   freeAgentLogic.js
   hardCapUtils.js
+  hardCapUtils.ts
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
   mutationPipeline.js
@@ -303,6 +306,7 @@ utils/
     types.js
     types.ts
   tradeHelpers.js
+  tradeHelpers.ts
   tradeMachine/
     MIGRATION_NOTES.md
     cache/
@@ -429,5 +433,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-10T13:41:26.205Z*
+*Generated on: 2026-03-11T07:12:55.755Z*
 *Auto-updated by: npm run docs*

@@ -835,6 +835,17 @@ Date: 2026-02-26
   - current execution-shape read: still likely one grouped arc; if importer-state friction appears later, the clean fallback split is the three supporting helper files first and `tradeHelpers.js` second
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E45_RETURN_PACKAGE.md`
 
+### Validator TS Trade Helper Foundation E46 (2026-03-11)
+
+- Status: The trade-facing helper foundation is now TS-backed in the root Architect helper surface, and the grouped four-file arc completed cleanly without changing live behavior.
+- TS migration note:
+  - authoritative helper logic now lives in `src/features/architect/utils/tradeHelpers.ts`, `src/features/architect/utils/hardCapUtils.ts`, `src/features/architect/utils/faExceptionUtils.ts`, and `src/features/architect/utils/capUtils.ts`
+  - `src/features/architect/utils/tradeHelpers.js`, `src/features/architect/utils/hardCapUtils.js`, `src/features/architect/utils/faExceptionUtils.js`, and `src/features/architect/utils/capUtils.js` now remain only as pure compatibility re-export shims so extensionless and `.js` imports stay stable
+  - helper behavior remained unchanged, including salary fallback order, TPE and FA-exception helper behavior, hard-cap trigger/status behavior, legacy cap/apron facade behavior, and exact current helper output text/formatting for currency, pick display, apron labels, tooltip text, and summary strings
+  - targeted parity now includes expanded direct root-helper coverage, new hard-cap and FA-exception helper tests, updated Phase 42/43 guardrails, and import smoke coverage proving both extensionless and `.js` helper paths still resolve
+- Follow-up status: no immediate follow-up is required for this grouped arc beyond any future importer-state-driven decision to retire kept JS shims.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_HELPER_FOUNDATION_E46_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
