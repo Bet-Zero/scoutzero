@@ -1142,6 +1142,18 @@ Date: 2026-02-26
 - current execution-shape read: the projection-core phase completed cleanly as a single-file TS-backed pass. The intended next follow-up phase remains `formatEntitlement.js` plus `entitlementWarnings.js`.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ENTITLEMENT_PROJECTION_CORE_E66_RETURN_PACKAGE.md`
 
+### Validator TS Entitlement Presentation Helpers E67 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, and the E66 entitlement projection core remains complete. The entitlement presentation helper boundary is now TS-backed through authoritative `src/features/architect/utils/entitlements/formatEntitlement.ts` and `src/features/architect/tradeMachine/utils/entitlementWarnings.ts`.
+- Execution note:
+  - preserved the exact named export surfaces for `formatEntitlement` and `entitlementWarnings` with no default exports added
+  - preserved current helper behavior exactly, including returned object keys, badge/tag color classes, label strings, formatting fallback/default behavior, warning text, warning evaluation/insertion order, and sort-priority behavior
+  - converted `src/features/architect/utils/entitlements/formatEntitlement.js` and `src/features/architect/tradeMachine/utils/entitlementWarnings.js` into pure compatibility shims so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused regression coverage for helper outputs plus shim/API compatibility
+  - no blocker required widening into UI consumers, orchestration files, or reopening the E66 projection-core boundary
+- current execution-shape read: the follow-up helper phase completed cleanly with no required small follow-up beyond optional future shim removal if importer state ever makes that safe. The broader entitlement presentation arc is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ENTITLEMENT_PRESENTATION_HELPERS_E67_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

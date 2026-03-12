@@ -180,6 +180,7 @@ tradeMachine/
     computeTradeDraftKey.js
     devSntInjector.js
     entitlementWarnings.js
+    entitlementWarnings.ts
     getOfficialSalaryMatchingSnapshot.js
 types/
   index.ts
@@ -240,6 +241,7 @@ utils/
     entitlementTerms.ts
     entitlementWriter.ts
     formatEntitlement.js
+    formatEntitlement.ts
     leagueClaimUniquenessGate.ts
     moveWorldEntitlement.ts
     pickRulesResolver.ts
@@ -456,5 +458,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-12T22:40:36.856Z*
+*Generated on: 2026-03-12T23:07:23.679Z*
 *Auto-updated by: npm run docs*
