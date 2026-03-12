@@ -20,12 +20,20 @@ import {
   computePlayerRulesProfile,
   computeExtensionEligibility,
   computeExtensionTerms,
+  computeExtensionFromRuleContext,
   computeBirdRights,
+  computeBirdRightsFromRuleContext,
   computeMinimumSalary,
+  computeMinimumSalaryFromRuleContext,
   computeRFAStatus,
   computeQualifyingOffer,
+  computeRFAFromRuleContext,
   computeMaxSalary,
+  computeMaxSalaryFromRuleContext,
   BIRD_RIGHTS_TYPES,
+  EXTENSION_TYPES,
+  MAX_SALARY_TIERS,
+  RFA_STATUS,
 } from '@/features/architect/utils/playerRulesProfile/index.js';
 
 /**
@@ -275,6 +283,95 @@ const TEAM_CONTEXT = {
   teamSalary: 180_000_000,
   isOverCap: true,
   apronStatus: 'ABOVE_FIRST_APRON',
+};
+
+const EARLY_BIRD_RULE_CONTEXT = {
+  timing: {
+    operationSeasonId: '2025-26',
+    referenceSeasonId: '2024-25',
+    capSeasonId: '2025-26',
+    operationDate: new Date('2025-07-10T00:00:00.000Z'),
+  },
+  cap: {
+    salaryCap: 154_647_000,
+    averagePlayerSalary: 11_100_000,
+  },
+  player: {
+    playerId: 'rule_ctx_early_bird',
+    yearsOfServiceAtOperation: 5,
+    priorSeasonSalary: 15_000_000,
+    currentSeasonSalary: 15_000_000,
+    birdTypeAtOperation: 'Early Bird',
+    isRookieScale: false,
+    draftInfo: null,
+    contractEndSeasonId: '2024-25',
+    originalContractLength: 4,
+    contractYearsRemaining: 1,
+    awards: [],
+    lastTradedDate: null,
+    signingDate: '2022-07-01',
+  },
+};
+
+const ROOKIE_RFA_RULE_CONTEXT = {
+  timing: {
+    operationSeasonId: '2025-26',
+    referenceSeasonId: '2024-25',
+    capSeasonId: '2025-26',
+    operationDate: new Date('2025-07-10T00:00:00.000Z'),
+  },
+  cap: {
+    salaryCap: 154_647_000,
+    averagePlayerSalary: 11_100_000,
+  },
+  player: {
+    playerId: 'rule_ctx_rookie_rfa',
+    yearsOfServiceAtOperation: 3,
+    priorSeasonSalary: 9_500_000,
+    currentSeasonSalary: 9_500_000,
+    birdTypeAtOperation: 'Full Bird',
+    isRookieScale: true,
+    draftInfo: {
+      year: 2021,
+      pick: 5,
+    },
+    contractEndSeasonId: '2024-25',
+    originalContractLength: 4,
+    contractYearsRemaining: 1,
+    awards: [],
+    lastTradedDate: null,
+    signingDate: '2022-07-01',
+  },
+};
+
+const VETERAN_EXTENSION_RULE_CONTEXT = {
+  timing: {
+    operationSeasonId: '2026-27',
+    referenceSeasonId: '2025-26',
+    capSeasonId: '2026-27',
+    operationDate: new Date('2026-07-10T00:00:00.000Z'),
+  },
+  cap: {
+    salaryCap: 160_000_000,
+    averagePlayerSalary: 12_000_000,
+  },
+  player: {
+    playerId: 'rule_ctx_veteran_extension',
+    yearsOfServiceAtOperation: 8,
+    priorSeasonSalary: 40_000_000,
+    currentSeasonSalary: 40_000_000,
+    birdTypeAtOperation: 'Full Bird',
+    isRookieScale: false,
+    draftInfo: {
+      year: 2018,
+    },
+    contractEndSeasonId: '2026-27',
+    originalContractLength: 4,
+    contractYearsRemaining: 1,
+    awards: [],
+    lastTradedDate: null,
+    signingDate: '2023-07-01',
+  },
 };
 
 /**
@@ -637,6 +734,102 @@ describe('computeQualifyingOffer', () => {
 
     // January 15 is after October 1 deadline
     expect(qo.canAcceptQO).toBe(false);
+  });
+});
+
+describe('RuleContext entry points', () => {
+  it('routes computeMinimumSalary(ruleContext) through the RuleContext path', () => {
+    expect(computeMinimumSalary(EARLY_BIRD_RULE_CONTEXT)).toEqual(
+      computeMinimumSalaryFromRuleContext(EARLY_BIRD_RULE_CONTEXT)
+    );
+  });
+
+  it('routes computeMaxSalary(ruleContext) through the RuleContext path', () => {
+    expect(computeMaxSalary(EARLY_BIRD_RULE_CONTEXT)).toEqual(
+      computeMaxSalaryFromRuleContext(EARLY_BIRD_RULE_CONTEXT)
+    );
+  });
+
+  it('computes Bird rights directly from RuleContext', () => {
+    const birdRights = computeBirdRightsFromRuleContext(EARLY_BIRD_RULE_CONTEXT);
+
+    expect(birdRights.type).toBe(BIRD_RIGHTS_TYPES.EARLY);
+    expect(birdRights.yearsWithTeam).toBe(2);
+    expect(birdRights.signingAbilities.canSignOverCap).toBe(true);
+    expect(birdRights.signingAbilities.canSignToMax).toBe(false);
+    expect(birdRights.signingAbilities.maxFirstYearSalary).toBe(26_250_000);
+  });
+
+  it('computes RFA status directly from RuleContext', () => {
+    const rfaStatus = computeRFAFromRuleContext(ROOKIE_RFA_RULE_CONTEXT);
+
+    expect(rfaStatus.status).toBe(RFA_STATUS.RFA);
+    expect(rfaStatus.isRFA).toBe(true);
+    expect(rfaStatus.qualifyingOfferEligible).toBe(true);
+    expect(rfaStatus.qualifyingOfferAmount).toBe(12_350_000);
+    expect(rfaStatus.reason).toBe(
+      'Completing rookie scale contract - eligible for qualifying offer'
+    );
+  });
+
+  it('computes extension eligibility and terms directly from RuleContext', () => {
+    const extensionProfile = computeExtensionFromRuleContext(
+      VETERAN_EXTENSION_RULE_CONTEXT
+    );
+
+    expect(extensionProfile.eligibility).toEqual({
+      isEligible: true,
+      reason: 'Eligible for veteran extension',
+      blockers: [],
+      extensionType: EXTENSION_TYPES.VETERAN,
+    });
+    expect(extensionProfile.terms).toEqual({
+      maxYears: 4,
+      maxFirstYearSalary: 48_000_000,
+      minFirstYearSalary: 40_000_000,
+      raisePercentage: 0.08,
+      extensionType: EXTENSION_TYPES.VETERAN,
+      basedOn:
+        '140% of salary or average salary (capped at max for years of service)',
+      notes: '',
+    });
+  });
+});
+
+describe('Export contracts', () => {
+  it('preserves behavior-bearing constants re-exported through the barrel', () => {
+    expect(BIRD_RIGHTS_TYPES.NON_BIRD).toBe('Non-Bird');
+    expect(EXTENSION_TYPES.DESIGNATED_VETERAN).toBe(
+      'Designated Veteran Extension'
+    );
+    expect(RFA_STATUS.UNKNOWN).toBe('Unknown');
+    expect(MAX_SALARY_TIERS.TIER_35).toEqual({
+      percent: 0.35,
+      label: '35%',
+      minYears: 10,
+      maxYears: Infinity,
+    });
+  });
+
+  it('preserves direct leaf-module aliases and award constants', async () => {
+    const { MINIMUM_SALARY_SCALE } = await import(
+      '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js'
+    );
+    const { SUPERMAX_QUALIFYING_AWARDS } = await import(
+      '@/features/architect/utils/playerRulesProfile/maxSalaryRules.js'
+    );
+    const { MINIMUM_SALARY_SCALES } = await import(
+      '@/features/architect/data/minimumSalaryScales'
+    );
+
+    expect(MINIMUM_SALARY_SCALE).toBe(MINIMUM_SALARY_SCALES);
+    expect(SUPERMAX_QUALIFYING_AWARDS).toEqual([
+      'MVP',
+      'DPOY',
+      'All-NBA First Team',
+      'All-NBA Second Team',
+      'All-NBA Third Team',
+    ]);
   });
 });
 

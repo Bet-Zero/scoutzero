@@ -974,8 +974,24 @@ Date: 2026-02-26
   - explicitly inspected the required zero-import residue files `validatorFactory.js`, `resolveValidationEntitlements.js`, and `validationCacheManager.js` before excluding that area as the next business-logic arc
   - recommended next scope: `src/features/architect/utils/playerRulesProfile/`
   - estimated live JS business-logic count for the recommended scope: `6`
-  - current execution-shape read: keep the arc unified at the audit level, but use phased execution rather than a blind one-shot conversion because `computeProfile.js` is the higher-coupling aggregation hub over the leaf rule modules
+- current execution-shape read: keep the arc unified at the audit level, but use phased execution rather than a blind one-shot conversion because `computeProfile.js` is the higher-coupling aggregation hub over the leaf rule modules
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E55_RETURN_PACKAGE.md`
+
+### Validator TS Player Rules Profile Leaf Rules E56 (2026-03-12)
+
+- Status: the five `playerRulesProfile` leaf-rule modules are now TS-backed through authoritative `.ts` implementations:
+  - `minimumSalaryRules.ts`
+  - `maxSalaryRules.ts`
+  - `birdRightsRules.ts`
+  - `rfaRules.ts`
+  - `extensionRules.ts`
+- Execution note:
+  - preserved legacy and RuleContext entry points across the migrated leaf modules with unchanged runtime outputs, warning behavior, fallback/default behavior, exported constants, aliases, and reason strings
+  - converted each kept leaf `.js` file into a pure compatibility shim so explicit `.js` deep imports and extensionless TS imports continue resolving without consumer changes
+  - added focused direct-surface RuleContext coverage for the five leaf modules plus smoke coverage for extensionless import compatibility, explicit `.js` compatibility, export identity parity, and shim-only JS contents
+  - kept `computeProfile.js` out of scope as the next intended follow-up phase and did not widen this pass into the aggregation hub, orchestration, or UI consumers
+- Follow-up status: the grouped leaf-rule phase completed cleanly. No further E56 pass is required. `computeProfile.js` remains the intended next follow-up phase unless future execution evidence proves otherwise.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PLAYER_RULES_PROFILE_LEAF_RULES_E56_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 
