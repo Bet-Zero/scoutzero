@@ -212,7 +212,9 @@ utils/
   consentUtils.js
   contractNormalization.js
   contractSalaryUtils.js
+  contractSalaryUtils.ts
   contractUtils.js
+  contractUtils.ts
   draftPickUtils.js
   entitlements/
     computeEntitlementClaims.ts
@@ -298,6 +300,7 @@ utils/
   salaryUtils.js
   schemaAdapter.js
   seasonFormat.js
+  seasonFormat.ts
   seasonHelpers.ts
   seasonManager.js
   seasonUtils.js
@@ -448,5 +451,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-12T10:06:24.641Z*
+*Generated on: 2026-03-12T11:15:29.437Z*
 *Auto-updated by: npm run docs*

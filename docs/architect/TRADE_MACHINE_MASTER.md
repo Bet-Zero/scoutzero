@@ -1024,6 +1024,20 @@ Date: 2026-02-26
 - current execution-shape read: handle the next arc as one grouped scope. No blocker was found that requires silently widening beyond `seasonFormat.js`, `contractUtils.js`, and `contractSalaryUtils.js`; `contractUtils.js` can stay bounded because its only notable external edge is a backwards-compatible re-export from the already-TS `capHolds.ts`.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E58_RETURN_PACKAGE.md`
 
+### Validator TS Contract Season Helpers E59 (2026-03-12)
+
+- Status: the contract/season helper boundary is now TS-backed through authoritative `.ts` implementations:
+  - `src/features/architect/utils/seasonFormat.ts`
+  - `src/features/architect/utils/contractUtils.ts`
+  - `src/features/architect/utils/contractSalaryUtils.ts`
+- Execution note:
+  - preserved the current season conversion semantics, mixed numeric-year and `YYYY-YY` handling, season-end-year behavior, contract generation/shaping behavior, contract-row merge/dedupe/sort behavior, extension-row precedence, salary lookup/fallback behavior, warning behavior, fallback/default behavior, and the `calculateCapHold` re-export
+  - converted `seasonFormat.js`, `contractUtils.js`, and `contractSalaryUtils.js` into pure compatibility shims so explicit `.js` imports and extensionless imports continue resolving without consumer rewrites
+  - added focused direct-surface coverage for season parsing/defaults, contract shaping, merge/dedupe behavior, years-remaining fallback behavior, stretch behavior, last-salary lookup, salary warning behavior, and import-compatibility smoke coverage for extensionless plus explicit `.js` helper imports
+  - kept `seasonUtils.js` and `capProjections.js` intentionally out of scope; neither blocked the grouped migration arc
+- Follow-up status: the grouped arc completed cleanly. No immediate E59 follow-up is required inside the migrated boundary; remaining adjacent JS holdouts are intentional out-of-scope wrapper or data surfaces.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CONTRACT_SEASON_HELPERS_E59_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

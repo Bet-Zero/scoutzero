@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { getContractSalaryForYear, getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 
 describe('contractSalaryUtils', () => {
@@ -35,6 +35,16 @@ describe('contractSalaryUtils', () => {
       expect(getContractSalaryForYear({}, 2026)).toBe(0);
     });
 
+    it('matches numeric season strings directly when present in contract rows', () => {
+      const playerWithNumericSeason = {
+        contract: {
+          salariesByYear: [{ season: 2026, salary: 13000000, capHit: 14000000 }],
+        },
+      };
+
+      expect(getContractSalaryForYear(playerWithNumericSeason, 2026)).toBe(14000000);
+    });
+
     it('handles invalid year formats', () => {
       expect(getContractSalaryForYear(mockPlayer, "invalid")).toBe(0);
       expect(getContractSalaryForYear(mockPlayer, null)).toBe(0);
@@ -42,6 +52,10 @@ describe('contractSalaryUtils', () => {
   });
 
   describe('getSalaryWithFallback', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     it('returns contract salary when available', () => {
       expect(getSalaryWithFallback(mockPlayer, 2026)).toBe(12000000);
     });
@@ -78,6 +92,63 @@ describe('contractSalaryUtils', () => {
         currentSalary: "10000000"
       };
       expect(getSalaryWithFallback(playerWithInvalidData, 2026)).toBe(10000000);
+    });
+
+    it('preserves the exact fallback order after contract lookup', () => {
+      expect(
+        getSalaryWithFallback(
+          {
+            newSalary: 9100000,
+            salary: 8200000,
+            currentSalary: 7300000,
+          },
+          2026
+        )
+      ).toBe(9100000);
+
+      expect(
+        getSalaryWithFallback(
+          {
+            newSalary: 'invalid',
+            salary: 8200000,
+            currentSalary: 7300000,
+          },
+          2026
+        )
+      ).toBe(8200000);
+    });
+
+    it('preserves the exact warning message and payload when salariesByYear is missing', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const playerWithoutExpectedShape = {
+        id: 'player-1',
+        contract: {},
+        salary: 4500000,
+      };
+
+      expect(getSalaryWithFallback(playerWithoutExpectedShape, 2026)).toBe(4500000);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(
+        'getSalaryWithFallback: Expected contract.salariesByYear, got unexpected shape',
+        {
+          playerId: 'player-1',
+          hasContract: true,
+          hasSalariesByYear: false,
+        }
+      );
+    });
+
+    it('does not warn when salariesByYear exists but the requested year misses and fallback data is used', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const playerWithYearMiss = {
+        contract: {
+          salariesByYear: [{ season: '2024-25', salary: 10000000, capHit: 10000000 }],
+        },
+        salary: 7000000,
+      };
+
+      expect(getSalaryWithFallback(playerWithYearMiss, 2026)).toBe(7000000);
+      expect(warnSpy).not.toHaveBeenCalled();
     });
   });
 });
