@@ -1118,6 +1118,18 @@ Date: 2026-02-26
 - current execution-shape read: the single-file world-aware loader mini-arc completed cleanly, and no immediate follow-up is recommended beyond optional future shim removal if importer state ever makes that safe.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_WORLD_AWARE_TEAM_LOADER_E64_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E65 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, and the E64 world-aware loader mini-arc remains complete.
+- Audit note:
+  - the expected leading candidate from current repo inspection was the loader-adjacent world data access boundary around `worldManager.js` and `firebaseTeamPlanHelpers.js`, but final comparison against the entitlement/display pair and the trade UI utility pocket did not keep it as the winner
+  - `worldManager.js` plus `firebaseTeamPlanHelpers.js` stayed a serious candidate because they are runtime-live and directly adjacent to E64, but the pair reads as broader and more coupled than the next best alternative
+  - the trade UI utility pocket (`getOfficialSalaryMatchingSnapshot.js` + `computeTradeDraftKey.js`) is smaller, but reads more like two separate micro-arcs than one clean grouped next slice
+  - recommended next scope: `src/features/architect/utils/entitlements/entitlementPickRowProjection.js`, `src/features/architect/utils/entitlements/formatEntitlement.js`, and `src/features/architect/tradeMachine/utils/entitlementWarnings.js`
+  - estimated live JS business-logic count for the recommended scope: `3`
+- current execution-shape read: the next arc is worth doing, but it is larger than E64 and should likely be split into a core `entitlementPickRowProjection.js` pass followed by a smaller `formatEntitlement.js` + `entitlementWarnings.js` follow-up.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E65_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
