@@ -1004,6 +1004,26 @@ Date: 2026-02-26
 - Follow-up status: the `computeProfile` phase completed cleanly. No immediate follow-up is recommended, and the broader `playerRulesProfile` arc is now effectively complete because the remaining JS in this folder is intentional compatibility/barrel/documentation surface only.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PLAYER_RULES_PROFILE_COMPUTE_PROFILE_E57_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E58 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, and the E56/E57 `playerRulesProfile` arc remains complete. The expected leading candidate from current repo inspection was the contract/season helper family centered on `src/features/architect/utils/seasonFormat.js`, `src/features/architect/utils/contractUtils.js`, and `src/features/architect/utils/contractSalaryUtils.js`, and final verification against the actual current repo state confirmed it as the strongest next migration scope.
+- Audit note:
+  - re-checked and excluded the E39-kept JS entrypoints, barrels, constants, and support residue so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as shim-only compatibility surfaces over TS-authoritative peers
+  - re-checked and excluded `tradeContext.js`, `assertions.js`, and `legacy/index.js` because the E43/E44 `tradeContext` mini-arc remains complete, while `tradeContext/index.js` remains only an intentional public barrel
+  - re-checked and excluded `tradeHelpers.js`, `hardCapUtils.js`, `faExceptionUtils.js`, and `capUtils.js` because the E46 helper-foundation arc remains complete
+  - re-checked and excluded `src/features/architect/utils/capTotals/computeTeamCapTotals.js` because the E48 `capTotals` mini-arc remains complete and the kept JS file is still a pure compatibility shim
+  - re-checked and excluded the E50 `persistenceContracts` JS files because they still read as shim-only compatibility surfaces over TS-authoritative peers, while `persistenceContracts/index.js` remains a barrel surface
+  - re-checked and excluded the E52 helper-cluster JS files because they still read as compatibility shims over their authoritative `.ts` peers, while `exceptions/index.js` remains a barrel surface
+  - re-checked and excluded `src/features/architect/utils/exceptionHistory/historyHelpers.js` because the E54 exception-history mini-arc remains complete and the kept JS file is now shim-only compatibility support
+  - re-checked and excluded the E56/E57 `playerRulesProfile` JS files because they still read as compatibility shims over authoritative `.ts` peers, while `playerRulesProfile/index.js` and `types.js` remain intentional barrel/JSDoc support
+  - compared the strongest remaining candidates: the contract/season helper family, the entitlement projection pair, the broader orchestration family centered on `capLegalityValidation.js`, `mutationPipeline.js`, `seasonManager.js`, and `worldManager.js`, and the remaining Trade Machine support residue
+  - explicitly inspected the required zero-import residue files `validatorFactory.js`, `resolveValidationEntitlements.js`, and `validationCacheManager.js` before excluding that area as the next business-logic arc
+  - recommended next scope: the contract/season helper family centered on `src/features/architect/utils/seasonFormat.js`, `src/features/architect/utils/contractUtils.js`, and `src/features/architect/utils/contractSalaryUtils.js`
+  - estimated live JS business-logic count for the recommended scope: `3`
+- current execution-shape read: handle the next arc as one grouped scope. No blocker was found that requires silently widening beyond `seasonFormat.js`, `contractUtils.js`, and `contractSalaryUtils.js`; `contractUtils.js` can stay bounded because its only notable external edge is a backwards-compatible re-export from the already-TS `capHolds.ts`.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E58_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
