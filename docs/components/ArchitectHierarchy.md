@@ -235,6 +235,7 @@ utils/
     entitlementHealthReport.ts
     entitlementIdentity.ts
     entitlementPickRowProjection.js
+    entitlementPickRowProjection.ts
     entitlementResolver.ts
     entitlementTerms.ts
     entitlementWriter.ts
@@ -455,5 +456,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-12T21:27:56.091Z*
+*Generated on: 2026-03-12T22:40:36.856Z*
 *Auto-updated by: npm run docs*

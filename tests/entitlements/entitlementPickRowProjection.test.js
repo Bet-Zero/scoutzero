@@ -275,6 +275,80 @@ describe('entitlementPickRowProjection', () => {
 
         expect(result.protectionText).toBe('Conditional');
       });
+
+      it('appends ladder summary into conditionsText with current-tier protection text', () => {
+        const entitlement = {
+          id: 'LAL_pick_ownership_2026_R1',
+          kind: 'pick_ownership',
+          seasonYear: 2026,
+          round: 1,
+          protectionLadder: [
+            { year: 2026, condition: 'Top 3', ifTriggered: 'roll' },
+            { year: 2027, condition: 'Top 5', ifTriggered: 'roll' },
+            { year: 2028, condition: 'Top 8', ifTriggered: 'roll' },
+            { year: 2029, condition: 'Unprotected', ifTriggered: 'convey' },
+          ],
+        };
+
+        const result = projectEntitlementToPickRow(entitlement, {
+          teamCode: 'LAL',
+        });
+
+        expect(result.protectionText).toBe('Top 3');
+        expect(result.ladderSummary).toBe(
+          'Ladder: 2026 Top 3 → 2027 Top 5 → 2028 Top 8 …'
+        );
+        expect(result.conditionsText).toBe(
+          'Ladder: 2026 Top 3 → 2027 Top 5 → 2028 Top 8 …'
+        );
+      });
+
+      it('preserves explicit termsShort over derived fallback output', () => {
+        const entitlement = {
+          id: 'NOP_pick_ownership_2026_R1',
+          kind: 'pick_ownership',
+          seasonYear: 2026,
+          round: 1,
+          termsShort: 'Manual override',
+          protectionLadder: [
+            {
+              year: 2026,
+              condition: 'Top 3',
+              ifTriggered: 'roll',
+              rollToYear: 2027,
+            },
+          ],
+        };
+
+        const result = projectEntitlementToPickRow(entitlement, {
+          teamCode: 'NOP',
+        });
+
+        expect(result.termsShort).toBe('Manual override');
+      });
+
+      it('falls back to derived termsShort when no explicit override is present', () => {
+        const entitlement = {
+          id: 'UTA_pick_ownership_2026_R1',
+          kind: 'pick_ownership',
+          seasonYear: 2026,
+          round: 1,
+          protectionLadder: [
+            {
+              year: 2026,
+              condition: 'Top 3',
+              ifTriggered: 'roll',
+              rollToYear: 2027,
+            },
+          ],
+        };
+
+        const result = projectEntitlementToPickRow(entitlement, {
+          teamCode: 'UTA',
+        });
+
+        expect(result.termsShort).toBe('Top 3 prot -> 2027 1st');
+      });
     });
 
     describe('edge cases', () => {

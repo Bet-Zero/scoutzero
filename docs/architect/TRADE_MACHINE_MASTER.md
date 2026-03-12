@@ -1130,6 +1130,18 @@ Date: 2026-02-26
 - current execution-shape read: the next arc is worth doing, but it is larger than E64 and should likely be split into a core `entitlementPickRowProjection.js` pass followed by a smaller `formatEntitlement.js` + `entitlementWarnings.js` follow-up.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E65_RETURN_PACKAGE.md`
 
+### Validator TS Entitlement Projection Core E66 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, and the E64 world-aware loader mini-arc remains complete. The entitlement projection core is now TS-backed through authoritative `src/features/architect/utils/entitlements/entitlementPickRowProjection.ts`.
+- Execution note:
+  - preserved the exact `projectEntitlementToPickRow()`, `getPickRowDisplayLabel()`, and `getPickRowSecondaryText()` named export surface with no default export added
+  - preserved current projection semantics, including fallback/default handling, ladder-summary assembly, `termsShort` override/fallback behavior, null placeholders, and current behavior-bearing strings
+  - converted `src/features/architect/utils/entitlements/entitlementPickRowProjection.js` into a pure compatibility shim so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused regression coverage for the shim/API contract plus projection branches around ladder summary and `termsShort`
+  - no blocker required widening into `formatEntitlement.js`, `entitlementWarnings.js`, UI consumers, or broader entitlement orchestration files
+- current execution-shape read: the projection-core phase completed cleanly as a single-file TS-backed pass. The intended next follow-up phase remains `formatEntitlement.js` plus `entitlementWarnings.js`.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ENTITLEMENT_PROJECTION_CORE_E66_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
