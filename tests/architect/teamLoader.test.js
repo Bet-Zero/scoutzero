@@ -66,6 +66,27 @@ describe('Team Loader', () => {
       expect(team.players.map(p => p.playerId)).toEqual(['lebron_james', 'anthony_davis']);
     });
 
+    it('hydrates snapshot roster from base players when players array is missing', async () => {
+      const worldId = 'world_hydrate';
+      const world = createMockWorld({ worldId });
+      seedWorldMetadata(worldId, world);
+
+      const snapshotWithoutPlayers = createMockTeam({
+        teamCode: 'LAL',
+        season: '2026-27',
+        roster: ['lebron_james'],
+      });
+      delete snapshotWithoutPlayers.players;
+      seedTeamSnapshot(worldId, 'LAL', snapshotWithoutPlayers, { padRoster: false });
+
+      const team = await getTeam(worldId, 'LAL');
+
+      expect(team.teamCode).toBe('LAL');
+      expect(team.season).toBe('2026-27');
+      expect(Array.isArray(team.players)).toBe(true);
+      expect(team.players.map((p) => p.player_id)).toEqual(['lebron_james']);
+    });
+
     it('falls back to parent world snapshot', async () => {
       // Create parent world with snapshot
       const parentWorldId = 'world_parent';
@@ -379,6 +400,46 @@ describe('Team Loader', () => {
       expect(merged.contract.salariesByYear.length).toBe(2);
       expect(merged.contract.salariesByYear[0].salary).toBe(20_000_000);
       expect(merged.contract.salariesByYear[1].salary).toBe(25_000_000);
+    });
+
+    it('replaces, appends, and sorts salariesByYear entries by season', () => {
+      const basePlayer = createMockPlayer({
+        playerId: 'test_player',
+      });
+
+      const override = {
+        contract: {
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 30_000_000,
+              capHit: 30_000_000,
+            },
+            {
+              season: '2024-25',
+              salary: 8_000_000,
+              capHit: 8_000_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      };
+
+      const merged = mergePlayerOverride(basePlayer, override);
+
+      expect(merged.contract.salariesByYear.map((salary) => salary.season)).toEqual([
+        '2024-25',
+        '2025-26',
+        '2026-27',
+      ]);
+      expect(
+        merged.contract.salariesByYear.find((salary) => salary.season === '2026-27')
+          .salary
+      ).toBe(30_000_000);
+      expect(
+        merged.contract.salariesByYear.find((salary) => salary.season === '2025-26')
+          .salary
+      ).toBe(10_000_000);
     });
 
     it('merges bio changes correctly', () => {

@@ -310,6 +310,7 @@ utils/
   stepienUtils.js
   subscribeArchitectPlayerData.ts
   teamLoader.js
+  teamLoader.ts
   temp_mutation_code.js
   timingUtils.js
   timingUtils.ts
@@ -454,5 +455,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-12T18:58:28.810Z*
+*Generated on: 2026-03-12T21:27:56.091Z*
 *Auto-updated by: npm run docs*

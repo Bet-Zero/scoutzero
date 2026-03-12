@@ -1106,6 +1106,18 @@ Date: 2026-02-26
 - current execution-shape read: the next arc currently reads as one grouped mini-arc centered on `teamLoader.js`; do not widen it unless future execution uncovers a concrete blocker that must be documented explicitly.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E63_RETURN_PACKAGE.md`
 
+### Validator TS World-Aware Team Loader E64 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, and the E61/E62 non-trade cap-legality arc remains complete. The world-aware loader boundary is now TS-backed through authoritative `src/features/architect/utils/teamLoader.ts`.
+- Execution note:
+  - preserved the exact world -> parent -> base fallback chain, `getLeague()` batch-loading behavior, `getTeam()`, `getPlayer()`, `mergePlayerOverride()`, and internal `mergeSalariesByYear()` behavior without redesigning loader semantics
+  - preserved the exact hardcoded 30-team list and its current ordering inside the TS authority, with no shared-constant refactor
+  - converted `src/features/architect/utils/teamLoader.js` into a pure compatibility shim so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused regression coverage for snapshot hydration fallback, salary override replace/append/sort behavior, and shim/API compatibility
+  - no blocker required widening into `firebaseTeamPlanHelpers.js`, `worldManager.js`, or other adjacent loader/orchestration helpers
+- current execution-shape read: the single-file world-aware loader mini-arc completed cleanly, and no immediate follow-up is recommended beyond optional future shim removal if importer state ever makes that safe.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_WORLD_AWARE_TEAM_LOADER_E64_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
