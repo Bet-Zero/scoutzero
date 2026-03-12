@@ -993,6 +993,17 @@ Date: 2026-02-26
 - Follow-up status: the grouped leaf-rule phase completed cleanly. No further E56 pass is required. `computeProfile.js` remains the intended next follow-up phase unless future execution evidence proves otherwise.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PLAYER_RULES_PROFILE_LEAF_RULES_E56_RETURN_PACKAGE.md`
 
+### Validator TS Player Rules Profile Compute Profile E57 (2026-03-12)
+
+- Status: `src/features/architect/utils/playerRulesProfile/computeProfile` is now TS-backed through an authoritative `computeProfile.ts` implementation. The kept `computeProfile.js` file is now a pure compatibility shim, while the `index.js` barrel and `types.js` JSDoc support file remain intentionally out of scope.
+- Execution note:
+  - preserved the current aggregation-hub behavior exactly, including league-context normalization, simulation-date-driven season defaults, contract-summary assembly, profile field ordering, nested helper-field presence, fallback/default behavior, and reason propagation
+  - preserved the current interaction with the five E56 leaf-rule modules by keeping the hub imports on the existing `.js` compatibility paths rather than rewiring consumers or widening into `salaryEngine` / `capLegalityValidation`
+  - added focused coverage for simulation-date normalization, empty-profile timing behavior, contract-summary fallback derivation, current-salary `capHit` fallback, nested helper-field defaults, root/nested field ordering, and deep-path import compatibility for extensionless plus explicit `.js` hub imports
+  - typing exposed one existing empty-profile mismatch: the hub's error-path `birdRights.signingAbilities` omits several fields present in the normal Bird-rights result. This was handled as local hub typing only, with no runtime shape changes and no E56 leaf reopening
+- Follow-up status: the `computeProfile` phase completed cleanly. No immediate follow-up is recommended, and the broader `playerRulesProfile` arc is now effectively complete because the remaining JS in this folder is intentional compatibility/barrel/documentation surface only.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PLAYER_RULES_PROFILE_COMPUTE_PROFILE_E57_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

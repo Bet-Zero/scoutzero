@@ -276,6 +276,7 @@ utils/
     birdRightsRules.js
     birdRightsRules.ts
     computeProfile.js
+    computeProfile.ts
     extensionRules.js
     extensionRules.ts
     index.js
@@ -447,5 +448,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-12T09:25:08.660Z*
+*Generated on: 2026-03-12T10:06:24.641Z*
 *Auto-updated by: npm run docs*

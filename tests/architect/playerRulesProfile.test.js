@@ -398,14 +398,33 @@ describe('computePlayerRulesProfile', () => {
     expect(profile.contractSummary).toBeDefined();
   });
 
-  it('returns empty profile with error for null player', () => {
+  it('returns empty profile with preserved evaluation timing for null player', () => {
+    const simulationDate = new Date('2026-07-10T00:00:00.000Z');
     const profile = computePlayerRulesProfile(
       null,
       TEAM_CONTEXT,
-      LEAGUE_CONTEXT
+      { simulationDate }
     );
 
-    expect(profile.error).toBeDefined();
+    expect(profile.error).toBe('No player data provided');
+    expect(profile.evaluatedAt).toBe(simulationDate.toISOString());
+    expect(profile.evaluatedForSeason).toBe('2026-27');
+    expect(Object.keys(profile)).toEqual([
+      'playerId',
+      'playerName',
+      'evaluatedAt',
+      'evaluatedForSeason',
+      'error',
+      'extensionEligibility',
+      'extensionTerms',
+      'birdRights',
+      'minimumSalary',
+      'minimumSalaryReason',
+      'maxSalary',
+      'restrictedFreeAgency',
+      'contractSummary',
+      'teamContext',
+    ]);
     expect(profile.extensionEligibility.isEligible).toBe(false);
   });
 
@@ -419,6 +438,117 @@ describe('computePlayerRulesProfile', () => {
     expect(profile.teamContext).toBeDefined();
     expect(profile.teamContext.teamCode).toBe('LAL');
     expect(profile.teamContext.isOverCap).toBe(true);
+  });
+
+  it('omits team context when teamCode is not provided', () => {
+    const profile = computePlayerRulesProfile(
+      VETERAN_STAR,
+      {
+        isOverCap: true,
+        apronStatus: 'ABOVE_FIRST_APRON',
+      },
+      LEAGUE_CONTEXT
+    );
+
+    expect(profile.teamContext).toBeNull();
+  });
+
+  it('derives evaluated season from simulationDate when season and year are omitted', () => {
+    const simulationDate = new Date('2026-07-10T00:00:00.000Z');
+    const profile = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      { simulationDate }
+    );
+
+    expect(profile.evaluatedAt).toBe(simulationDate.toISOString());
+    expect(profile.evaluatedForSeason).toBe('2026-27');
+  });
+
+  it('preserves profile field order and nested helper fields for eligible players', () => {
+    const profile = computePlayerRulesProfile(
+      VETERAN_STAR,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
+
+    expect(Object.keys(profile)).toEqual([
+      'playerId',
+      'playerName',
+      'evaluatedAt',
+      'evaluatedForSeason',
+      'extensionEligibility',
+      'extensionTerms',
+      'birdRights',
+      'minimumSalary',
+      'minimumSalaryReason',
+      'maxSalary',
+      'restrictedFreeAgency',
+      'contractSummary',
+      'teamContext',
+    ]);
+    expect(Object.keys(profile.extensionEligibility)).toEqual([
+      'isEligible',
+      'reason',
+      'blockers',
+      'extensionType',
+      'eligibleDate',
+    ]);
+    expect(Object.keys(profile.extensionTerms)).toEqual([
+      'maxYears',
+      'maxFirstYearSalary',
+      'minFirstYearSalary',
+      'raisePercentage',
+      'extensionType',
+      'basedOn',
+      'notes',
+    ]);
+    expect(Object.keys(profile.birdRights)).toEqual([
+      'type',
+      'yearsWithTeam',
+      'summary',
+      'signingAbilities',
+    ]);
+    expect(Object.keys(profile.maxSalary)).toEqual([
+      'maxSalary',
+      'maxSalaryBird',
+      'tier',
+      'supermaxEligible',
+      'reason',
+    ]);
+    expect(Object.keys(profile.restrictedFreeAgency)).toEqual([
+      'isRFA',
+      'qualifyingOfferEligible',
+      'qualifyingOfferAmount',
+      'canAcceptQO',
+      'qoDeadline',
+      'teamHasMatchingRights',
+      'reason',
+    ]);
+    expect(Object.keys(profile.contractSummary)).toEqual([
+      'yearsOfService',
+      'yearsRemaining',
+      'freeAgencyYear',
+      'freeAgencyType',
+      'currentSalary',
+      'hasContract',
+      'contractType',
+      'isRookieScale',
+    ]);
+    expect(Object.keys(profile.teamContext)).toEqual([
+      'teamCode',
+      'isOverCap',
+      'apronStatus',
+    ]);
+
+    expect(profile.minimumSalaryReason).toBe('Veteran minimum (10+ years)');
+    expect(profile.extensionEligibility.blockers).toEqual([]);
+    expect(profile.extensionEligibility.eligibleDate).toBeNull();
+    expect(profile.maxSalary.maxSalaryBird).toBeGreaterThan(0);
+    expect(profile.restrictedFreeAgency.qualifyingOfferAmount).toBeNull();
+    expect(profile.restrictedFreeAgency.canAcceptQO).toBe(false);
+    expect(profile.restrictedFreeAgency.qoDeadline).toBeNull();
+    expect(profile.restrictedFreeAgency.teamHasMatchingRights).toBe(false);
   });
 });
 
@@ -858,6 +988,57 @@ describe('Contract Summary in Profile', () => {
     );
 
     expect(profile.contractSummary.currentSalary).toBe(45_000_000);
+  });
+
+  it('derives years remaining and free agency year from endSeason when needed', () => {
+    const playerWithoutComputedContractFields = {
+      ...MID_CAREER,
+      contract: {
+        ...MID_CAREER.contract,
+        yearsRemaining: undefined,
+        endSeason: '2027-28',
+        freeAgency: {
+          type: 'Unrestricted',
+        },
+      },
+    };
+
+    const profile = computePlayerRulesProfile(
+      playerWithoutComputedContractFields,
+      TEAM_CONTEXT,
+      {
+        ...LEAGUE_CONTEXT,
+        currentSeason: '2025-26',
+        currentYear: 2026,
+      }
+    );
+
+    expect(profile.contractSummary.yearsRemaining).toBe(3);
+    expect(profile.contractSummary.freeAgencyYear).toBe(2028);
+  });
+
+  it('falls back to capHit for current salary when salary is missing', () => {
+    const capHitOnlyPlayer = {
+      ...VETERAN_STAR,
+      contract: {
+        ...VETERAN_STAR.contract,
+        salariesByYear: [
+          {
+            season: '2024-25',
+            capHit: 45_500_000,
+            guaranteed: true,
+          },
+        ],
+      },
+    };
+
+    const profile = computePlayerRulesProfile(
+      capHitOnlyPlayer,
+      TEAM_CONTEXT,
+      LEAGUE_CONTEXT
+    );
+
+    expect(profile.contractSummary.currentSalary).toBe(45_500_000);
   });
 
   it('shows no contract for free agent', () => {
