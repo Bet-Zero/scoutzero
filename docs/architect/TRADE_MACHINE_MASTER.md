@@ -927,6 +927,26 @@ Date: 2026-02-26
 - Follow-up status: no immediate follow-up is recommended; the remaining JS in this boundary is intentional compatibility or nearby support only.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SEASON_TRANSITION_HELPERS_E52_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E53 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, and the E52 season-transition helper arc remains complete. After re-checking those boundaries against the actual current repo state, the expected leading candidate from current repo inspection, `src/features/architect/utils/exceptionHistory/historyHelpers.js`, was confirmed as the best next migration scope.
+- Audit note:
+  - re-checked and excluded the E39-kept JS entrypoints, barrels, and constants so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as shim-only compatibility surfaces over TS-authoritative peers
+  - re-checked and excluded `tradeContext.js`, `assertions.js`, and `legacy/index.js` because the E43/E44 `tradeContext` mini-arc remains complete
+  - re-checked and excluded `tradeHelpers.js`, `hardCapUtils.js`, `faExceptionUtils.js`, and `capUtils.js` because the E46 helper-foundation arc remains complete
+  - re-checked and excluded `src/features/architect/utils/capTotals/computeTeamCapTotals.js` because the E48 `capTotals` mini-arc remains complete and the kept JS file is still a pure compatibility shim
+  - re-checked and excluded the E50 `persistenceContracts` JS files because they still read as shim-only compatibility surfaces over TS-authoritative peers
+  - re-checked and excluded the E52 helper-cluster JS files because they still read as compatibility shims over their authoritative `.ts` peers
+  - re-checked and excluded `src/features/architect/utils/runOffseason.js` because it still reads as a thin DEV-only wrapper over the TS offseason engine rather than the next core live-business-logic boundary
+  - compared the strongest remaining candidates: `exceptionHistory/historyHelpers.js`, the `playerRulesProfile/` rule engine, the entitlement UI projection pair, and the broader orchestration family centered on `capLegalityValidation.js`, `mutationPipeline.js`, `seasonManager.js`, and `worldManager.js`
+  - inspected and rejected the remaining Trade Machine cache/debug residue as an awkward mixed bag, including explicit zero-import checks of `validatorFactory.js`, `resolveValidationEntitlements.js`, and `validationCacheManager.js`
+  - recommended next scope: `src/features/architect/utils/exceptionHistory/historyHelpers.js`
+  - estimated live JS business-logic count for the recommended scope: `1`
+  - current execution-shape read: one grouped mini-arc
+  - hard rule: do not broaden the arc by pulling in adjacent exception-history consumers or wrappers unless execution evidence proves a direct dependency blocker
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E53_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
