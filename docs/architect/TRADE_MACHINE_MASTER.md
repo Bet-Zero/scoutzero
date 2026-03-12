@@ -1154,6 +1154,28 @@ Date: 2026-02-26
 - current execution-shape read: the follow-up helper phase completed cleanly with no required small follow-up beyond optional future shim removal if importer state ever makes that safe. The broader entitlement presentation arc is now effectively complete.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ENTITLEMENT_PRESENTATION_HELPERS_E67_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E68 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, and the E66/E67 entitlement presentation arc remains complete. After re-checking those boundaries against the actual current repo state, the strongest next migration candidate is the Trade Machine validation snapshot/accessor boundary.
+- Audit note:
+  - re-checked and excluded the E39-kept JS public entrypoints/barrels/constants so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as compatibility shims over TS-authoritative peers
+  - re-checked and excluded `tradeContext.js`, `assertions.js`, and `legacy/index.js` because the E43/E44 `tradeContext` mini-arc remains complete, while `tradeContext/index.js` remains a public barrel surface
+  - re-checked and excluded `tradeHelpers.js`, `hardCapUtils.js`, `faExceptionUtils.js`, and `capUtils.js` because the E46 helper-foundation arc remains complete
+  - re-checked and excluded `src/features/architect/utils/capTotals/computeTeamCapTotals.js` because the E48 `capTotals` mini-arc remains complete and the kept JS file is still shim-only compatibility support, while `capTotals/index.js` remains a barrel surface
+  - re-checked and excluded the E50 `persistenceContracts` JS files because they still read as shim-only compatibility surfaces over TS-authoritative peers, while `persistenceContracts/index.js` remains a public API barrel
+  - re-checked and excluded the E52 helper-cluster JS files because they still read as compatibility shims over authoritative `.ts` peers, while `exceptions/index.js` remains a barrel surface
+  - re-checked and excluded `src/features/architect/utils/exceptionHistory/historyHelpers.js` because the E54 exception-history mini-arc remains complete and the kept JS file is now shim-only compatibility support
+  - re-checked and excluded the E56/E57 `playerRulesProfile` JS files because they still read as compatibility shims over authoritative `.ts` peers, while `playerRulesProfile/index.js` remains a barrel surface
+  - re-checked and excluded the E59 helper JS files because they remain pure compatibility shims over authoritative TS peers, while `seasonUtils.js` remains a deprecated wrapper and `capProjections.js` remains a live data/constants surface rather than the next business-logic arc
+  - re-checked and excluded `contractNormalization.js`, `capHoldTransitionHelpers.js`, and `capLegalityValidation.js` because the E61/E62 non-trade cap-legality arc remains complete and all three now read as compatibility shims over authoritative TS peers
+  - re-checked and excluded `src/features/architect/utils/teamLoader.js` because the E64 world-aware loader mini-arc remains complete and the kept JS file is shim-only compatibility support
+  - re-checked and excluded the E66/E67 entitlement presentation files because they now read as compatibility shims over authoritative TS peers
+  - recommended next scope: `src/features/architect/hooks/useTradeMachineSnapshot.js` and `src/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js`
+  - estimated live JS business-logic count for the recommended scope: `2`
+- current execution-shape read: the next arc looks smaller than E66/E67, worth doing next, and likely clean as one grouped mini-arc. Do not silently widen it to `computeTradeDraftKey.js`, `useTradeMachine.js`, validator engine files, or export utilities unless future execution evidence proves the snapshot/accessor boundary cannot stand cleanly without them; if that happens, document the exact blocker instead of auto-expanding the scope.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E68_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
