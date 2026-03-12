@@ -9,10 +9,13 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  isPlausibleFreeAgencyYear,
   normalizeOptionUsed,
+  normalizePlayerTeamRef,
   normalizeSalaryRow,
   normalizeFreeAgency,
   normalizeSigningDate,
+  normalizeTeamRef,
   normalizeContractForWorld,
   normalizeFutureContract,
   isOptionAccepted,
@@ -21,6 +24,87 @@ import {
 } from '@/features/architect/utils/contractNormalization';
 
 describe('contractNormalization', () => {
+  // ===========================================================================
+  // isPlausibleFreeAgencyYear
+  // ===========================================================================
+  describe('isPlausibleFreeAgencyYear', () => {
+    it('accepts years within the default plausibility window', () => {
+      expect(isPlausibleFreeAgencyYear(2021)).toEqual({
+        plausible: true,
+        minYear: 2021,
+        maxYear: 2036,
+      });
+      expect(isPlausibleFreeAgencyYear(2036)).toEqual({
+        plausible: true,
+        minYear: 2021,
+        maxYear: 2036,
+      });
+    });
+
+    it('rejects years outside the plausibility window', () => {
+      expect(isPlausibleFreeAgencyYear(2020).plausible).toBe(false);
+      expect(isPlausibleFreeAgencyYear(2037).plausible).toBe(false);
+      expect(isPlausibleFreeAgencyYear('2026').plausible).toBe(false);
+    });
+
+    it('uses the provided context year', () => {
+      expect(isPlausibleFreeAgencyYear(2025, 2030)).toEqual({
+        plausible: true,
+        minYear: 2025,
+        maxYear: 2040,
+      });
+      expect(isPlausibleFreeAgencyYear(2041, 2030).plausible).toBe(false);
+    });
+  });
+
+  // ===========================================================================
+  // normalizeTeamRef / normalizePlayerTeamRef
+  // ===========================================================================
+  describe('normalizeTeamRef', () => {
+    it('normalizes canonical and prefixed team identifiers', () => {
+      expect(normalizeTeamRef('lal')).toBe('LAL');
+      expect(normalizeTeamRef('NBA:bos')).toBe('BOS');
+      expect(normalizeTeamRef({ teamCode: 'gsw' })).toBe('GSW');
+    });
+
+    it('falls back through alternate object fields', () => {
+      expect(normalizeTeamRef({ code: 'mia' })).toBe('MIA');
+      expect(normalizeTeamRef({ id: 'nba:nyk' })).toBe('NYK');
+    });
+
+    it('returns null when no string identifier is available', () => {
+      expect(normalizeTeamRef(null)).toBe(null);
+      expect(normalizeTeamRef({})).toBe(null);
+      expect(normalizeTeamRef({ teamCode: 123 })).toBe(null);
+    });
+  });
+
+  describe('normalizePlayerTeamRef', () => {
+    it('uses the documented priority order', () => {
+      expect(
+        normalizePlayerTeamRef({
+          teamId: 'nba:lal',
+          team_id: 'nba:bos',
+          teamCode: 'gsw',
+          contract: { signingTeam: 'mia' },
+        })
+      ).toBe('LAL');
+    });
+
+    it('falls back to contract.signingTeam when needed', () => {
+      expect(
+        normalizePlayerTeamRef({
+          contract: { signingTeam: 'phi' },
+        })
+      ).toBe('PHI');
+    });
+
+    it('returns null when no player team reference is extractable', () => {
+      expect(normalizePlayerTeamRef(null)).toBe(null);
+      expect(normalizePlayerTeamRef({})).toBe(null);
+    });
+  });
+
   // ===========================================================================
   // normalizeOptionUsed
   // ===========================================================================

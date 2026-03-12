@@ -1059,6 +1059,19 @@ Date: 2026-02-26
 - current execution-shape read: keep the arc unified at the audit level, but do not run it as a blind one-shot grouped conversion if `capLegalityValidation.js` remains the high-coupling hub. Current repo evidence says the next pass should execute helper modules first, then the validator hub.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E60_RETURN_PACKAGE.md`
 
+### Validator TS Cap Legality Helpers E61 (2026-03-12)
+
+- Status: the helper-first portion of the non-trade cap-legality boundary is now TS-backed through authoritative `.ts` implementations:
+  - `src/features/architect/utils/contractNormalization.ts`
+  - `src/features/architect/utils/capHoldTransitionHelpers.ts`
+- Execution note:
+  - preserved the current named-export surfaces, contract/free-agency normalization semantics, cap-hold transition reasoning, result shapes, warning/reason behavior, fallback/default behavior, and current dependency behavior
+  - converted `contractNormalization.js` and `capHoldTransitionHelpers.js` into pure compatibility shims so explicit `.js` imports and extensionless imports continue resolving without consumer rewrites
+  - added focused direct-surface coverage for team-ref normalization, free-agency year plausibility, cap-hold lookup/validation/decline reasoning, and smoke coverage for extensionless plus explicit `.js` helper imports
+  - kept `capLegalityValidation.js` intentionally out of scope as the next planned follow-up phase; no validator-hub edits were required to complete the helper-first migration
+- Follow-up status: the helper-first phase completed cleanly. The intended next follow-up phase remains `src/features/architect/utils/capLegalityValidation.js`; no helper-side blocker remains.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_LEGALITY_HELPERS_E61_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

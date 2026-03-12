@@ -192,6 +192,7 @@ utils/
   buildRuleContext.ts
   capHelpers.ts
   capHoldTransitionHelpers.js
+  capHoldTransitionHelpers.ts
   capHolds.ts
   capLegality/
     localCapAuditLog.ts
@@ -211,6 +212,7 @@ utils/
   cbaConstants.js
   consentUtils.js
   contractNormalization.js
+  contractNormalization.ts
   contractSalaryUtils.js
   contractSalaryUtils.ts
   contractUtils.js
@@ -451,5 +453,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-12T11:15:29.437Z*
+*Generated on: 2026-03-12T13:18:42.364Z*
 *Auto-updated by: npm run docs*
