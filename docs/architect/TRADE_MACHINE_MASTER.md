@@ -1083,6 +1083,29 @@ Date: 2026-02-26
 - Follow-up status: the validator-hub phase completed cleanly. No immediate follow-up remains inside the non-trade cap-legality boundary, and the broader non-trade cap-legality arc is now effectively complete.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_LEGALITY_VALIDATOR_HUB_E62_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E63 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, and the E61/E62 non-trade cap-legality arc remains complete. The expected leading candidate from current repo inspection was the world-aware loader boundary centered on `src/features/architect/utils/teamLoader.js`, and final verification against the actual current repo state confirmed it as the strongest next migration scope.
+- Audit note:
+  - re-checked and excluded the E39-kept JS entrypoints, barrels, constants, and support residue so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as compatibility re-export surfaces over TS-authoritative peers
+  - re-checked and excluded `tradeContext.js`, `assertions.js`, and `legacy/index.js` because the E43/E44 `tradeContext` mini-arc remains complete, while `tradeContext/index.js` remains only an intentional public barrel
+  - re-checked and excluded `tradeHelpers.js`, `hardCapUtils.js`, `faExceptionUtils.js`, and `capUtils.js` because the E46 helper-foundation arc remains complete
+  - re-checked and excluded `src/features/architect/utils/capTotals/computeTeamCapTotals.js` because the E48 `capTotals` mini-arc remains complete and the kept JS file is still a pure compatibility shim
+  - re-checked and excluded the E50 `persistenceContracts` JS files because they still read as shim-only compatibility surfaces over TS-authoritative peers, while `persistenceContracts/index.js` remains a barrel surface
+  - re-checked and excluded the E52 helper-cluster JS files because they still read as compatibility shims over authoritative `.ts` peers, while `exceptions/index.js` remains a barrel surface
+  - re-checked and excluded `src/features/architect/utils/exceptionHistory/historyHelpers.js` because the E54 exception-history mini-arc remains complete and the kept JS file is now shim-only compatibility support
+  - re-checked and excluded the E56/E57 `playerRulesProfile` JS files because they still read as compatibility shims over authoritative `.ts` peers, while `playerRulesProfile/index.js` and `types.js` remain intentional barrel/JSDoc support
+  - re-checked and excluded the E59 helper JS files because they remain pure compatibility shims over authoritative TS peers, while `seasonUtils.js` remains a deprecated wrapper and `capProjections.js` remains a data/constants surface
+  - re-checked and excluded `contractNormalization.js`, `capHoldTransitionHelpers.js`, and `capLegalityValidation.js` because the E61/E62 non-trade cap-legality arc remains complete and all three now read as pure compatibility shims over authoritative TS peers
+  - compared the strongest remaining candidates: `teamLoader.js`, the entitlement projection/display pair, and the broader orchestration/world-mutation family centered on `mutationPipeline.js`, `seasonManager.js`, `worldManager.js`, `tradeManager.js`, `firebaseTeamPlanHelpers.js`, and `schemaAdapter.js`
+  - explicitly inspected loader-adjacent and support-residue surfaces including `consentUtils.js`, `validatorFactory.js`, `resolveValidationEntitlements.js`, `validationCacheManager.js`, `cashUtils.js`, and `draftPickUtils.js` before excluding them from the next-scope live-business-logic count
+  - no blocker was found that requires widening the recommended scope to `firebaseTeamPlanHelpers.js`, `worldManager.js`, or other loader-adjacent helpers
+  - recommended next scope: `src/features/architect/utils/teamLoader.js`
+  - estimated live JS business-logic count for the recommended scope: `1`
+- current execution-shape read: the next arc currently reads as one grouped mini-arc centered on `teamLoader.js`; do not widen it unless future execution uncovers a concrete blocker that must be documented explicitly.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E63_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
