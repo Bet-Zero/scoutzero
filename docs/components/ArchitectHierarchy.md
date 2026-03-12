@@ -132,6 +132,7 @@ hooks/
   useTeamEntitlements.ts
   useTradeMachine.js
   useTradeMachineSnapshot.js
+  useTradeMachineSnapshot.ts
 offseason/
   DraftPickTracker/
     DraftPickTracker.jsx
@@ -182,6 +183,7 @@ tradeMachine/
     entitlementWarnings.js
     entitlementWarnings.ts
     getOfficialSalaryMatchingSnapshot.js
+    getOfficialSalaryMatchingSnapshot.ts
 types/
   index.ts
   ruleContext.ts
@@ -458,5 +460,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-12T23:07:23.679Z*
+*Generated on: 2026-03-13T00:00:00.627Z*
 *Auto-updated by: npm run docs*

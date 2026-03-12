@@ -1176,6 +1176,18 @@ Date: 2026-02-26
 - current execution-shape read: the next arc looks smaller than E66/E67, worth doing next, and likely clean as one grouped mini-arc. Do not silently widen it to `computeTradeDraftKey.js`, `useTradeMachine.js`, validator engine files, or export utilities unless future execution evidence proves the snapshot/accessor boundary cannot stand cleanly without them; if that happens, document the exact blocker instead of auto-expanding the scope.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E68_RETURN_PACKAGE.md`
 
+### Validator TS Trade Machine Snapshot Accessors E69 (2026-03-12)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, and the E66/E67 entitlement presentation arc remains complete. The Trade Machine validation snapshot/accessor boundary is now TS-backed through authoritative `src/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.ts` and `src/features/architect/hooks/useTradeMachineSnapshot.ts`.
+- Execution note:
+  - preserved the exact named export surfaces for both snapshot/accessor files with no default exports added
+  - preserved current behavior exactly, including selector field-path precedence, selector null/default behavior, accessor fallback/default behavior, direct dependency on the official selector, and the exact returned object keys and assembly order inside `useTradeMachineSnapshot`
+  - converted `src/features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js` and `src/features/architect/hooks/useTradeMachineSnapshot.js` into pure compatibility shims so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused compatibility coverage proving both `.js` files remain shim-only and that explicit `.js` imports expose the same named API as extensionless imports
+  - no blocker required widening into `computeTradeDraftKey.js`, `useTradeMachine.js`, validator engine files, export utilities, or UI consumers
+- current execution-shape read: the grouped snapshot/accessor mini-arc completed cleanly, no required small follow-up remains beyond optional future shim removal if importer state ever makes that safe, and the broader Trade Machine validation snapshot/accessor arc is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_SNAPSHOT_ACCESSORS_E69_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
