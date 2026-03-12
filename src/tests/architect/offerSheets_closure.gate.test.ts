@@ -32,9 +32,9 @@ const MUTATION_PIPELINE_PATH = path.resolve(
   '../../features/architect/utils/mutationPipeline.js'
 );
 
-const CAP_LEGALITY_VALIDATION_PATH = path.resolve(
+const CAP_LEGALITY_VALIDATION_AUTHORITY_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/capLegalityValidation.js'
+  '../../features/architect/utils/capLegalityValidation.ts'
 );
 
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
@@ -152,7 +152,9 @@ describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutation
 
 describe('Gate 3: Validation uses validateOfferSheetResolution (E1)', () => {
   const pipelineContent = readFileContent(MUTATION_PIPELINE_PATH);
-  const validationContent = readFileContent(CAP_LEGALITY_VALIDATION_PATH);
+  const validationContent = readFileContent(
+    CAP_LEGALITY_VALIDATION_AUTHORITY_PATH
+  );
 
   it('validateOfferSheetResolution function is defined', () => {
     const hasFunctionDef =

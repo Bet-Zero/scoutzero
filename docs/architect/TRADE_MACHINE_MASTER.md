@@ -1072,6 +1072,17 @@ Date: 2026-02-26
 - Follow-up status: the helper-first phase completed cleanly. The intended next follow-up phase remains `src/features/architect/utils/capLegalityValidation.js`; no helper-side blocker remains.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_LEGALITY_HELPERS_E61_RETURN_PACKAGE.md`
 
+### Validator TS Cap Legality Validator Hub E62 (2026-03-12)
+
+- Status: the validator-hub portion of the non-trade cap-legality boundary is now TS-backed through authoritative `src/features/architect/utils/capLegalityValidation.ts`.
+- Execution note:
+  - preserved the current named-export surface, rule arrays/constants, default-export object member order, validator outputs, issue/reason/warning text, fallback/default behavior, and helper interactions with `contractNormalization` plus `capHoldTransitionHelpers`
+  - converted `capLegalityValidation.js` into a pure compatibility shim so extensionless and explicit `.js` imports continue resolving without runtime consumer rewrites
+  - retargeted source-scan guardrails to inspect the TS authority and added focused smoke coverage for extensionless imports, explicit `.js` imports, default export parity, and shim-only content
+  - required only local permissive typing/casting inside the new TS authority; no helper-phase reopen and no validator semantic cleanup were needed
+- Follow-up status: the validator-hub phase completed cleanly. No immediate follow-up remains inside the non-trade cap-legality boundary, and the broader non-trade cap-legality arc is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_LEGALITY_VALIDATOR_HUB_E62_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

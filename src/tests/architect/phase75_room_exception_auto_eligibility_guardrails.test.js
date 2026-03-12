@@ -23,6 +23,14 @@ import { validateExceptionEligibility } from '@/features/architect/utils/capLega
 
 describe('Phase 75: Source Scan Guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
+  const capLegalityAuthorityPath = path.join(
+    srcRoot,
+    'utils/capLegalityValidation.ts'
+  );
+  const capLegalityShimPath = path.join(
+    srcRoot,
+    'utils/capLegalityValidation.js'
+  );
 
   it('canUseRoomException exists in computeTeamCapTotals.ts and references computeTeamCapTotals', () => {
     const filePath = path.join(
@@ -59,9 +67,8 @@ describe('Phase 75: Source Scan Guardrails', () => {
     expect(source).toContain('canUseRoomException');
   });
 
-  it('capLegalityValidation.js imports and uses canUseRoomException', () => {
-    const filePath = path.join(srcRoot, 'utils/capLegalityValidation.js');
-    const source = fs.readFileSync(filePath, 'utf-8');
+  it('capLegalityValidation.ts imports and uses canUseRoomException', () => {
+    const source = fs.readFileSync(capLegalityAuthorityPath, 'utf-8');
 
     // Import exists
     expect(source).toContain('canUseRoomException');
@@ -70,11 +77,21 @@ describe('Phase 75: Source Scan Guardrails', () => {
     expect(source).toMatch(/canUseRoomException\s*\(\s*team/);
   });
 
-  it('capLegalityValidation.js has ROOM_REQUIRES_UNDER_CAP rule code', () => {
-    const filePath = path.join(srcRoot, 'utils/capLegalityValidation.js');
-    const source = fs.readFileSync(filePath, 'utf-8');
+  it('capLegalityValidation.ts has ROOM_REQUIRES_UNDER_CAP rule code', () => {
+    const source = fs.readFileSync(capLegalityAuthorityPath, 'utf-8');
 
     expect(source).toContain("rule: 'ROOM_REQUIRES_UNDER_CAP'");
+  });
+
+  it('capLegalityValidation.js remains a pure compatibility shim', () => {
+    const source = fs.readFileSync(capLegalityShimPath, 'utf-8');
+
+    expect(source).toContain("export * from './capLegalityValidation.ts';");
+    expect(source).toContain(
+      "export { default } from './capLegalityValidation.ts';"
+    );
+    expect(source).not.toContain('canUseRoomException');
+    expect(source).not.toContain("rule: 'ROOM_REQUIRES_UNDER_CAP'");
   });
 
   it('ManageExceptionsModal.jsx imports canUseRoomException', () => {

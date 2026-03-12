@@ -99,17 +99,17 @@ function createContract(salary = 5_000_000, totalValue = null) {
 // ==============================================================================
 
 describe('Phase 74: Room Exception Source Scan Guardrails', () => {
-  const capLegalityPath = path.resolve(
+  const capLegalityAuthorityPath = path.resolve(
     __dirname,
-    '../../features/architect/utils/capLegalityValidation.js'
+    '../../features/architect/utils/capLegalityValidation.ts'
   );
   const mutationPipelinePath = path.resolve(
     __dirname,
     '../../features/architect/utils/mutationPipeline.js'
   );
 
-  it('TEST 1: capLegalityValidation.js contains room exception blocking logic', () => {
-    const content = fs.readFileSync(capLegalityPath, 'utf8');
+  it('TEST 1: capLegalityValidation.ts contains room exception blocking logic', () => {
+    const content = fs.readFileSync(capLegalityAuthorityPath, 'utf8');
 
     // Must contain room exception variants in blocked exceptions
     expect(content).toContain("'room'");
