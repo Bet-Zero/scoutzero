@@ -245,6 +245,7 @@ utils/
     vacuumEntitlementOverlayStore.ts
   exceptionHistory/
     historyHelpers.js
+    historyHelpers.ts
   exceptions/
     exceptionLifecycle.js
     exceptionLifecycle.ts
@@ -441,5 +442,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-11T21:17:44.953Z*
+*Generated on: 2026-03-12T08:24:22.488Z*
 *Auto-updated by: npm run docs*

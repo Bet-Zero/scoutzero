@@ -47,6 +47,46 @@ describe('Phase 49: TPE exception history logging guardrails', () => {
     expect(entry.mutationId).toBe('mutation_001');
   });
 
+  test('creation entry preserves exact field order and omits optional context fields by default', () => {
+    const entry = createTpeCreationHistoryEntry({
+      teamCode: 'BOS',
+      tpeId: 'tpe_created_default',
+      amountCreated: 4_500_000,
+      seasonYear: 2025,
+      timestampISO: '2026-01-29T00:00:00.000Z',
+    });
+
+    expect(Object.keys(entry)).toEqual([
+      'historyKey',
+      'type',
+      'teamCode',
+      'tpeId',
+      'amountCreated',
+      'createdFrom',
+      'createdSeason',
+      'expiresOn',
+      'seasonId',
+      'seasonYear',
+      'timestamp',
+    ]);
+    expect(entry).toEqual({
+      historyKey:
+        'executeTrade:global:BOS:tpe_created_default:created:2025||4500000|Trade',
+      type: 'TPE_CREATED',
+      teamCode: 'BOS',
+      tpeId: 'tpe_created_default',
+      amountCreated: 4_500_000,
+      createdFrom: 'Trade',
+      createdSeason: 2025,
+      expiresOn: null,
+      seasonId: undefined,
+      seasonYear: 2025,
+      timestamp: '2026-01-29T00:00:00.000Z',
+    });
+    expect(entry.worldId).toBeUndefined();
+    expect(entry.mutationId).toBeUndefined();
+  });
+
   test('creates TPE_CONSUMED entry for partial usage', () => {
     const entry = createTpeConsumptionHistoryEntry({
       ...baseContext,
@@ -68,6 +108,53 @@ describe('Phase 49: TPE exception history logging guardrails', () => {
     expect(entry.remainingAmountAfter).toBe(1_000_000);
     expect(entry.fullyConsumed).toBe(false);
     expect(entry.absorbedPlayers).toHaveLength(1);
+  });
+
+  test('consumption entry preserves exact field order and sanitized absorbed player shape', () => {
+    const entry = createTpeConsumptionHistoryEntry({
+      teamCode: 'BOS',
+      tpeId: 'tpe_consume_shape',
+      amountConsumed: 2_750_000,
+      remainingAmountAfter: 500_000,
+      absorbedPlayers: [
+        null,
+        {
+          id: 'player_legacy',
+          displayName: 'Legacy Player',
+          amountAbsorbed: '2750000',
+        },
+      ],
+      seasonYear: 2025,
+      timestampISO: '2026-01-29T00:00:00.000Z',
+    });
+
+    expect(Object.keys(entry)).toEqual([
+      'historyKey',
+      'type',
+      'teamCode',
+      'tpeId',
+      'amountConsumed',
+      'remainingAmountAfter',
+      'fullyConsumed',
+      'absorbedPlayers',
+      'seasonId',
+      'seasonYear',
+      'timestamp',
+    ]);
+    expect(entry.absorbedPlayers).toEqual([
+      {
+        playerId: 'player_legacy',
+        name: 'Legacy Player',
+        amountAbsorbed: 2_750_000,
+      },
+    ]);
+    expect(Object.keys(entry.absorbedPlayers[0])).toEqual([
+      'playerId',
+      'name',
+      'amountAbsorbed',
+    ]);
+    expect(entry.worldId).toBeUndefined();
+    expect(entry.mutationId).toBeUndefined();
   });
 
   test('flags fullyConsumed when remaining hits zero', () => {
@@ -92,6 +179,24 @@ describe('Phase 49: TPE exception history logging guardrails', () => {
     expect(entry.historyKey).toContain('consumed');
   });
 
+  test('returns null for invalid creation or consumption inputs', () => {
+    expect(
+      createTpeCreationHistoryEntry({
+        ...baseContext,
+        teamCode: null,
+        tpeId: 'tpe_invalid_create',
+      })
+    ).toBeNull();
+
+    expect(
+      createTpeConsumptionHistoryEntry({
+        ...baseContext,
+        tpeId: 'tpe_invalid_consume',
+        amountConsumed: 0,
+      })
+    ).toBeNull();
+  });
+
   test('appendExceptionHistory dedupes entries by historyKey', () => {
     const team = { exceptionHistory: [] };
     const entry = createTpeCreationHistoryEntry({
@@ -106,6 +211,40 @@ describe('Phase 49: TPE exception history logging guardrails', () => {
 
     expect(team.exceptionHistory).toHaveLength(1);
     expect(team.exceptionHistory[0].tpeId).toBe('tpe_dup_guard');
+  });
+
+  test('appendExceptionHistory mutates the same team object and initializes history in place', () => {
+    const team = {};
+    const result = appendExceptionHistory(team, []);
+
+    expect(result).toBe(team);
+    expect(team.exceptionHistory).toEqual([]);
+  });
+
+  test('appendExceptionHistory tolerates existing legacy entries without historyKey', () => {
+    const team = {
+      exceptionHistory: [
+        {
+          type: 'TPE_CREATED',
+          teamCode: 'BOS',
+          tpeId: 'legacy_entry',
+          timestamp: '2026-01-29T00:00:00.000Z',
+        },
+      ],
+    };
+    const entry = createTpeCreationHistoryEntry({
+      ...baseContext,
+      tpeId: 'tpe_after_legacy',
+      amountCreated: 1_500_000,
+      createdFrom: 'Legacy Followup',
+    });
+
+    const result = appendExceptionHistory(team, [entry]);
+
+    expect(result).toBe(team);
+    expect(team.exceptionHistory).toHaveLength(2);
+    expect(team.exceptionHistory[0].historyKey).toBeUndefined();
+    expect(team.exceptionHistory[1].historyKey).toBe(entry.historyKey);
   });
 
   test('appendExceptionHistory leaves history untouched when no new entries', () => {

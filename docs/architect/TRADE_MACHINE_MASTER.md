@@ -947,6 +947,17 @@ Date: 2026-02-26
   - hard rule: do not broaden the arc by pulling in adjacent exception-history consumers or wrappers unless execution evidence proves a direct dependency blocker
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E53_RETURN_PACKAGE.md`
 
+### Validator TS Exception History E54 (2026-03-12)
+
+- Status: `src/features/architect/utils/exceptionHistory/historyHelpers` is now TS-backed through an authoritative `historyHelpers.ts` implementation. The kept `historyHelpers.js` file is now a pure compatibility shim, and trade / season-advance / offseason callers continued importing the same stable path.
+- Execution note:
+  - preserved deterministic `historyKey` generation for creation, consumption, and expiry entries, with unchanged signature parts, defaults, and global-world handling
+  - preserved the exact exception-history entry shapes and field inclusion rules, including field order, optional `worldId` / `mutationId` / `createdFrom` behavior, `null` fallbacks, and timestamp behavior
+  - preserved `appendExceptionHistory()` as the same in-place mutation helper, including empty-input initialization, existing-entry fallback key handling, and `historyKey`-based dedupe behavior
+  - added focused guardrails for exact creation/consumption entry shape, null-return paths, in-place mutation semantics, legacy-entry tolerance, and direct-path / explicit `.js` import compatibility
+- Follow-up status: no immediate follow-up is recommended; the grouped mini-arc completed cleanly and the remaining JS in this boundary is intentional shim-only compatibility support.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_EXCEPTION_HISTORY_E54_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
