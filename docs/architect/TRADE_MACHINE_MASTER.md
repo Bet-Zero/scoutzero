@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-12
+Last updated: 2026-03-13
 
 ## Trade Machine Overview
 
@@ -1241,6 +1241,21 @@ Date: 2026-02-26
   - no blocker required widening into `firebaseTeamPlanHelpers.js`, `useArchitectPlayerData.js`, `teamLoader.ts`, downstream orchestration consumers, or UI consumers
 - current execution-shape read: the grouped single-file worldManager mini-arc completed cleanly, no immediate follow-up remains beyond any future importer-state-driven desire to retire the kept `.js` shim, and the broader world-lifecycle boundary is now effectively complete.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_WORLD_MANAGER_E73_RETURN_PACKAGE.md`
+
+### Validator TS Next-Scope Expansion Audit E74 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, and the E73 world-lifecycle arc remains complete. After re-checking the remaining nearby JS surface against current importer/runtime evidence, the strongest next migration candidate is the trade-execution helper boundary centered on `src/features/architect/utils/tradeManager.js` and `src/features/architect/utils/schemaAdapter.js`.
+- Audit note:
+  - re-checked and excluded prior closed-scope same-name `.js` files because they still read as TS-backed compatibility shims, wrappers, or barrels rather than reopened business logic
+  - re-checked and excluded `src/features/architect/utils/architectCore.js` because current repo evidence still shows it as a barrel-only export surface with guardrail-only usage rather than standalone business logic
+  - compared the recommended trade-execution boundary against the Trade Machine hook-support pocket (`useTradeMachine.js`, `computeTradeDraftKey.js`, `devSntInjector.js`, `tradeExportUtils.js`), the world/data-access pocket (`firebaseTeamPlanHelpers.js`, nearby `useArchitectPlayerData.js` review), the season/pipeline orchestration family, and the Trade Machine engine/cache/debug support cluster
+  - confirmed `tradeManager.js` remains live business logic exercised by unit/integration/E2E tests, while `schemaAdapter.js` remains live business logic used by both tests and runtime through `mutationPipeline.js`
+  - confirmed `useArchitectPlayerData.js` currently reads as a thin subscription wrapper over authoritative `subscribeArchitectPlayerData.ts`, so it was inspected but not counted as a leading business-logic reason to prefer the world/data-access pocket
+  - recommended next scope: `src/features/architect/utils/tradeManager.js` + `src/features/architect/utils/schemaAdapter.js`
+  - estimated live JS business-logic count for the recommended scope: `2`
+- current execution-shape read: the next arc looks smaller than the just-closed E73 world-lifecycle arc, worth doing next, and likely clean as one grouped mini-arc. The nearby `useTradeMachine.js` hook-support pocket remains more runtime-central, but it is materially larger and more stateful than the recommended trade-execution helper boundary.
+- hard rule: do not silently widen the recommended scope to include `seasonManager.js`, `mutationPipeline.js`, `runOffseason.js`, `architectCore.js`, or Trade Machine engine/cache/debug files unless execution evidence shows `tradeManager.js` + `schemaAdapter.js` cannot stand cleanly as their own migration boundary. If that happens, document the exact blocker instead of auto-expanding the scope.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E74_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 
