@@ -1383,6 +1383,23 @@ Date: 2026-02-26
 - current execution-shape read: the single-file `firebaseTeamPlanHelpers` phase succeeded cleanly without widening into adjacent consumers, `worldManager`, validator internals, cache/debug/monitoring files, UI consumers, or world/orchestration files. The broader world/data-access helper boundary is now effectively complete.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FIREBASE_TEAM_PLAN_HELPERS_E82_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E83 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, and the E82 world/data-access helper arc remains complete.
+- Audit note:
+  - execution-time repo evidence re-ran the two-lane comparison and confirmed the `Team History surface` as the strongest next coherent migration scope
+  - compared the leading low-risk Team History batch against the strongest surgical alternative `src/features/architect/utils/seasonManager.js`, with `src/features/architect/utils/mutationPipeline.js` and the central GMDashboard / Trade Machine UI hubs kept on the dangerous-hub list rather than folded into the recommendation
+  - the recommended Team History scope contains `5` core live JS/JSX business-logic files: `src/features/architect/history/TeamHistoryTab/TeamHistoryTab.jsx`, `src/features/architect/history/TeamHistoryTab/HistoryDetailModal.jsx`, `src/features/architect/capSheet/ExceptionHistoryTracker/ExceptionHistoryTracker.jsx`, `src/features/architect/offseason/DraftPickTracker/DraftPickTracker.jsx`, and `src/features/architect/offseason/WaiveStretchTracker/WaiveStretchTracker.jsx`
+  - thin wrapper compatibility files were explicitly excluded from that live count: `src/features/architect/TeamHistoryTab.jsx`, `src/features/architect/ExceptionHistoryTracker.jsx`, `src/features/architect/DraftPickTracker.jsx`, and `src/features/architect/WaiveStretchTracker.jsx`
+  - execution-time evidence did not require widening the recommendation into `HistorySection.jsx`, `GMDashboard.jsx`, `SeasonAdvanceModal.jsx`, `WorldSelector.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, `ValidationDetailsPanel.jsx`, `seasonManager.js`, or `mutationPipeline.js`
+  - recommended next scope: `Team History surface`
+  - recommended execution shape: `batched low-risk`, handled as `one grouped batched pass`
+  - current frontier read: batching is now the default for lower-risk remaining work, with surgical treatment reserved for a short dangerous-hub list led by `seasonManager.js`, `mutationPipeline.js`, `GMDashboard.jsx`, `SeasonAdvanceModal.jsx`, `WorldSelector.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, and `ValidationDetailsPanel.jsx`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E83_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
