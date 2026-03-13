@@ -70,7 +70,9 @@ describe('Trade Manager', () => {
       const result = await executeTrade(worldId, tradeData);
 
       expect(result.success).toBe(true);
+      expect(Object.keys(result)).toEqual(['success', 'validation', 'teams']);
       expect(result.teams.length).toBe(2);
+      expect(Object.keys(result.teams[0])).toEqual(['teamCode', 'team']);
       expect(result.validation.legal).toBe(true);
     });
 
@@ -323,6 +325,7 @@ describe('Trade Manager', () => {
       const result = await signFreeAgent(worldId, 'LAL', signingData);
 
       expect(result.success).toBe(true);
+      expect(Object.keys(result)).toEqual(['success', 'team']);
       expect(result.team.roster).toContain('test_player');
     });
 
@@ -434,6 +437,7 @@ describe('Trade Manager', () => {
       const result = await waivePlayer(worldId, 'LAL', 'lebron_james');
 
       expect(result.success).toBe(true);
+      expect(Object.keys(result)).toEqual(['success', 'team']);
       expect(result.team.roster).not.toContain('lebron_james');
     });
 
@@ -504,6 +508,7 @@ describe('Trade Manager', () => {
       );
 
       expect(result.success).toBe(true);
+      expect(Object.keys(result)).toEqual(['success', 'player', 'team']);
       expect(result.player.contract.contractType).toBe('Extension');
     });
 

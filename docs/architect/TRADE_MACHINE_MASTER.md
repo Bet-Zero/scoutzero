@@ -1257,6 +1257,19 @@ Date: 2026-02-26
 - hard rule: do not silently widen the recommended scope to include `seasonManager.js`, `mutationPipeline.js`, `runOffseason.js`, `architectCore.js`, or Trade Machine engine/cache/debug files unless execution evidence shows `tradeManager.js` + `schemaAdapter.js` cannot stand cleanly as their own migration boundary. If that happens, document the exact blocker instead of auto-expanding the scope.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E74_RETURN_PACKAGE.md`
 
+### Validator TS Trade Execution Helpers E75 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, and the E73 world-lifecycle arc remains complete. The trade-execution helper boundary recommended by E74 is now TS-backed through authoritative `src/features/architect/utils/schemaAdapter.ts` and `src/features/architect/utils/tradeManager.ts`.
+- Execution note:
+  - preserved the exact named-export surface and source export ordering for both helpers with no default export added
+  - preserved the exact `buildTradeTeamInput` / `buildTradeInput` contract surface, field mappings, defaults, fallbacks, shape normalization behavior, and validator-facing adapter behavior
+  - preserved trade/signing/waiver/extension snapshot behavior, error/default behavior, return shapes, and the explicit key ordering for the assembled `executeTrade`, `signFreeAgent`, `waivePlayer`, and `extendPlayer` result objects
+  - converted `schemaAdapter.js` and `tradeManager.js` into pure compatibility shims so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused compatibility guardrails and return-key-order assertions, and updated the narrow Phase 65 / Phase 78 source-scan guardrails to follow the authoritative TS files without widening scope
+  - no blocker required widening into `seasonManager.js`, `mutationPipeline.js`, `runOffseason.js`, `architectCore.js`, Trade Machine engine/cache/debug files, or UI consumers
+- current execution-shape read: the grouped trade-execution helper mini-arc completed cleanly, no immediate follow-up remains beyond any future importer-state-driven desire to retire the kept `.js` shims, and the broader trade-execution helper boundary is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_EXECUTION_HELPERS_E75_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

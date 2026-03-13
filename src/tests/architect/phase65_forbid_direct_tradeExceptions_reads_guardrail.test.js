@@ -18,7 +18,7 @@
  *
  * ALLOWLIST (files that may reference .tradeExceptions):
  * - normalizeTeamTpe.js: The canonical helper that handles both locations
- * - schemaAdapter.js: Building trade input structure (adapts external data)
+ * - schemaAdapter.ts: Building trade input structure (adapts external data)
  * - mutationPipeline.js: TPE persistence logic (reads legacy, writes canonical)
  * - tradeContext.ts: Snapshot building (reads from both sources)
  *
@@ -48,7 +48,7 @@ const ALLOWLISTED_FILES = [
   'utils/persistenceContracts/normalizeTeamTpe.js',
   'utils/persistenceContracts/normalizeTeamTpe.ts',
   // Schema adapter for building trade input structure
-  'utils/schemaAdapter.js',
+  'utils/schemaAdapter.ts',
   // Mutation pipeline (TPE persistence, reads legacy during compute)
   'utils/mutationPipeline.js',
   // Trade context snapshot building (merges both sources during snapshot)
@@ -57,7 +57,7 @@ const ALLOWLISTED_FILES = [
   // Persistence contract validation (references field in comments/tests)
   'utils/persistenceContracts/validatePersistableShape.js',
   // TPE lifecycle processing helper (operates on passed array, not team object)
-  'utils/tpeLifecycle.js',
+  'utils/tpeLifecycle.ts',
   // Exception history types/comments
   'utils/tradeContext/types.js',
   // buildRuleContext builds internal context objects (uses exceptions.tradeExceptions as internal key)

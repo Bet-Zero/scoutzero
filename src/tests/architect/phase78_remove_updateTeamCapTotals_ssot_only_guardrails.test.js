@@ -5,10 +5,11 @@
  * there is exactly one way to compute team totals: computeTeamCapTotals(team, yearKey)
  *
  * These are source-scan guardrails - they read source files and verify:
- * 1. tradeManager.js does NOT define updateTeamCapTotals
+ * 1. tradeManager.ts does NOT define updateTeamCapTotals
  * 2. Repo does NOT contain updateTeamCapTotals( function calls (excluding docs/return packages)
- * 3. tradeManager.js imports computeTeamCapTotals from capTotals
- * 4. tradeManager.js calls computeTeamCapTotals( at least once
+ * 3. tradeManager.ts imports computeTeamCapTotals from capTotals
+ * 4. tradeManager.ts calls computeTeamCapTotals( at least once
+ * 5. tradeManager.js remains a pure compatibility shim
  * 5. Phase 77 invariant preserved: seasonManager.js still uses SSOT (no legacy imports)
  *
  * @file src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js
@@ -19,9 +20,13 @@ import fs from 'fs';
 import path from 'path';
 
 // File paths
-const TRADE_MANAGER_PATH = path.resolve(
+const TRADE_MANAGER_SHIM_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/tradeManager.js'
+);
+const TRADE_MANAGER_AUTHORITY_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/tradeManager.ts'
 );
 const SEASON_MANAGER_PATH = path.resolve(
   __dirname,
@@ -34,8 +39,8 @@ const ARCHITECT_CORE_PATH = path.resolve(
 
 describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
   describe('Source Scan: Function Definition Removal', () => {
-    it('TEST 1: tradeManager.js does NOT define updateTeamCapTotals function', () => {
-      const content = fs.readFileSync(TRADE_MANAGER_PATH, 'utf-8');
+    it('TEST 1: tradeManager.ts does NOT define updateTeamCapTotals function', () => {
+      const content = fs.readFileSync(TRADE_MANAGER_AUTHORITY_PATH, 'utf-8');
 
       // Check for function definition patterns
       const hasFunctionDefinition =
@@ -49,7 +54,13 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       expect(hasConstArrowFunction).toBe(false);
     });
 
-    it('TEST 2: architectCore.js does NOT export updateTeamCapTotals', () => {
+    it('TEST 2: tradeManager.js remains a pure compatibility shim', () => {
+      const content = fs.readFileSync(TRADE_MANAGER_SHIM_PATH, 'utf-8').trim();
+
+      expect(content).toBe("export * from './tradeManager.ts';");
+    });
+
+    it('TEST 3: architectCore.js does NOT export updateTeamCapTotals', () => {
       const content = fs.readFileSync(ARCHITECT_CORE_PATH, 'utf-8');
 
       // Check for export of updateTeamCapTotals (not in comments)
@@ -69,8 +80,8 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
   });
 
   describe('Source Scan: SSOT Import Presence', () => {
-    it('TEST 3: tradeManager.js imports computeTeamCapTotals from capTotals', () => {
-      const content = fs.readFileSync(TRADE_MANAGER_PATH, 'utf-8');
+    it('TEST 4: tradeManager.ts imports computeTeamCapTotals from capTotals', () => {
+      const content = fs.readFileSync(TRADE_MANAGER_AUTHORITY_PATH, 'utf-8');
 
       // Must have import from capTotals barrel
       const hasImport =
@@ -83,8 +94,8 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
   });
 
   describe('Source Scan: SSOT Usage', () => {
-    it('TEST 4: tradeManager.js calls computeTeamCapTotals( at least once', () => {
-      const content = fs.readFileSync(TRADE_MANAGER_PATH, 'utf-8');
+    it('TEST 5: tradeManager.ts calls computeTeamCapTotals( at least once', () => {
+      const content = fs.readFileSync(TRADE_MANAGER_AUTHORITY_PATH, 'utf-8');
 
       // Remove comments to check actual code
       const contentWithoutComments = content.replace(
@@ -100,8 +111,8 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       expect(hasFunctionCall).toBe(true);
     });
 
-    it('TEST 5: tradeManager.js does NOT call updateTeamCapTotals( anywhere (except comments)', () => {
-      const content = fs.readFileSync(TRADE_MANAGER_PATH, 'utf-8');
+    it('TEST 6: tradeManager.ts does NOT call updateTeamCapTotals( anywhere (except comments)', () => {
+      const content = fs.readFileSync(TRADE_MANAGER_AUTHORITY_PATH, 'utf-8');
 
       // Remove comments to check actual code
       const contentWithoutComments = content.replace(
@@ -119,7 +130,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
   });
 
   describe('Phase 77 Invariant Preservation', () => {
-    it('TEST 6: seasonManager.js does NOT call updateTeamCapTotals (except in comments)', () => {
+    it('TEST 7: seasonManager.js does NOT call updateTeamCapTotals (except in comments)', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Remove comments
@@ -137,7 +148,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       );
     });
 
-    it('TEST 7: seasonManager.js imports computeTeamCapTotals from capTotals', () => {
+    it('TEST 8: seasonManager.js imports computeTeamCapTotals from capTotals', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Must have import from capTotals barrel
@@ -149,7 +160,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       expect(hasImport).toBe(true);
     });
 
-    it('TEST 8: seasonManager.js calls computeTeamCapTotals( at least once', () => {
+    it('TEST 9: seasonManager.js calls computeTeamCapTotals( at least once', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Remove comments to check actual code
@@ -168,10 +179,11 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
   });
 
   describe('SSOT Invariant: No Legacy Totals Helpers in Runtime Code', () => {
-    it('TEST 9: Verify SSOT-only totals across core modules', () => {
+    it('TEST 10: Verify SSOT-only totals across core modules', () => {
       // Check that key architect modules don't have legacy helpers
       const coreModules = [
-        TRADE_MANAGER_PATH,
+        TRADE_MANAGER_SHIM_PATH,
+        TRADE_MANAGER_AUTHORITY_PATH,
         SEASON_MANAGER_PATH,
         path.resolve(
           __dirname,

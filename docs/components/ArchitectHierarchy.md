@@ -309,6 +309,7 @@ utils/
     types.ts
   salaryUtils.js
   schemaAdapter.js
+  schemaAdapter.ts
   seasonFormat.js
   seasonFormat.ts
   seasonHelpers.ts
@@ -456,6 +457,7 @@ utils/
     validators/
       index.js
   tradeManager.js
+  tradeManager.ts
   validatePhase21.test.js
   worldManager.js
   worldManager.ts
@@ -463,5 +465,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-13T04:06:49.390Z*
+*Generated on: 2026-03-13T06:18:39.197Z*
 *Auto-updated by: npm run docs*
