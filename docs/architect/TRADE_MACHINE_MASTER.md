@@ -1270,6 +1270,20 @@ Date: 2026-02-26
 - current execution-shape read: the grouped trade-execution helper mini-arc completed cleanly, no immediate follow-up remains beyond any future importer-state-driven desire to retire the kept `.js` shims, and the broader trade-execution helper boundary is now effectively complete.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_EXECUTION_HELPERS_E75_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E76 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, and the E75 trade-execution helper arc remains complete. After re-checking the remaining nearby JS surface against current importer/runtime evidence and the fixed “smallest coherent live-business-logic boundary” rule, the strongest next migration candidate is the Trade Machine hook-support pocket centered on `src/features/architect/hooks/useTradeMachine.js`.
+- Audit note:
+  - re-checked and excluded prior closed-scope same-name `.js` files because they still read as TS-backed compatibility shims, wrappers, or barrels rather than reopened business logic
+  - compared the hook-support pocket against the smaller `firebaseTeamPlanHelpers.js` challenger, the season/pipeline orchestration family, the Trade Machine support/cache/debug cluster, and smaller isolated JS utility residue
+  - confirmed `firebaseTeamPlanHelpers.js` remains the main smaller challenger, but current repo evidence still shows it as a mixed base-team hydration + free-agent access surface rather than a cleaner next cutoff
+  - re-checked smaller isolated JS residues such as `consentUtils.js`, `stepienUtils.js`, `cashUtils.js`, `reacqUtils.js`, `rosterUtils.js`, and `draftPickUtils.js`; current repo evidence leaves them as scattered utility residue rather than the next coherent arc
+  - recommended next scope: `src/features/architect/hooks/useTradeMachine.js`, `src/features/architect/tradeMachine/utils/computeTradeDraftKey.js`, `src/features/architect/tradeMachine/utils/devSntInjector.js`, and `src/features/architect/utils/tradeMachine/utils/tradeExportUtils.js`
+  - estimated live JS business-logic count for the recommended scope: `4`
+- current execution-shape read: the next arc looks larger and more stateful than E75, still worth doing next, and likely best split into smaller sub-arcs rather than forced into one grouped pass.
+- hard rule: do not silently widen the recommended scope to include validator engine/rules files, E69 snapshot/accessor files, UI consumers, or world/orchestration files unless execution evidence shows the hook-support boundary cannot stand cleanly on its own. If that happens, document the exact blocker instead of auto-expanding the scope.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E76_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
