@@ -1336,6 +1336,23 @@ Date: 2026-02-26
 - hard rule: do not silently widen the recommended scope to include `validateConsent.ts`, `enforceConsent.ts`, `tradeValidator.ts`, legacy `enforcement.js`, or `enforcementValidation.js` unless execution evidence proves `consentUtils.js` cannot stand cleanly as its own migration boundary. If that happens, document the exact blocker instead of auto-expanding the scope.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E79_RETURN_PACKAGE.md`
 
+### Validator TS Consent Helper E80 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, and the E78 `useTradeMachine` hook arc remains complete. The `consentUtils` helper boundary is now TS-backed through `src/features/architect/utils/consentUtils.ts`.
+- Execution note:
+  - preserved the full named-export surface with no default export added
+  - preserved consent alias coverage across `consentGranted`, `consent`, `consents.full`, `consents.limited`, `consents.birdOneYear`, `hasConsented`, and `hasTradeConsent`
+  - preserved full-NTC, limited-NTC, Bird-veto, and derived one-year Bird consent semantics without widening into rule consumers
+  - preserved exact consent message text, exact `collectConsentViolations()` array ordering, current duplicate-collection behavior, safe no-op notifier fallback handling, and current `reject` side-effect behavior
+  - converted `src/features/architect/utils/consentUtils.js` into a pure compatibility shim for direct-path, explicit `.js`, and extensionless imports
+  - no small follow-up is currently required; the single-file phase completed cleanly
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/consentUtils.compatibility.guardrail.test.ts tests/trade/consent_and_birdVeto.test.js tests/trade/consent_and_reacq.test.js`: PASS
+- current execution-shape read: the single-file `consentUtils` phase succeeded cleanly, no blocker required widening into validator or legacy enforcement files, and the broader consent helper boundary is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CONSENT_HELPER_E80_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
