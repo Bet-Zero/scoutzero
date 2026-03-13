@@ -1203,6 +1203,18 @@ Date: 2026-02-26
 - hard rule: do not silently widen the recommended scope to include `useArchitectPlayerData.js`, UI-facing hooks, or component-level consumers unless execution evidence shows the contract/cap hook pair cannot stand cleanly without them; if that happens, document the exact blocker instead of auto-expanding the scope.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E70_RETURN_PACKAGE.md`
 
+### Validator TS Architect Contract/Cap Hooks E71 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, and the E69 Trade Machine validation snapshot/accessor arc remains complete. The Architect contract/cap hook boundary is now TS-backed through authoritative `src/features/architect/hooks/usePlayerRulesProfiles.ts` and `src/features/architect/hooks/useCapValidation.ts`.
+- Execution note:
+  - preserved the current named/default export surfaces exactly, including named-only `usePlayerRulesProfiles` exports and the named plus default `useCapValidation` surface
+  - preserved current behavior exactly across return-object key order, nested helper key order, `useMemo` dependency arrays and memoization boundaries, lazy/default branches, warning/error assembly, guardrail/signing-validation semantics, and direct dependency wiring into the already-TS-backed rules/cap helpers
+  - converted `src/features/architect/hooks/usePlayerRulesProfiles.js` and `src/features/architect/hooks/useCapValidation.js` into pure compatibility shims so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused hook behavior coverage plus compatibility guardrail coverage and updated the Phase 43 apron allowlist so the new `useCapValidation.ts` authority remains explicitly approved for its existing UI-only warning patterns
+  - no blocker required widening into `useArchitectPlayerData.js`, adjacent UI hooks, component consumers, or orchestration files
+- current execution-shape read: the grouped contract/cap hook mini-arc completed cleanly, no immediate follow-up remains beyond any future importer-state-driven desire to retire the kept `.js` compatibility shims, and the broader Architect contract/cap hook arc is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ARCHITECT_CONTRACT_CAP_HOOKS_E71_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

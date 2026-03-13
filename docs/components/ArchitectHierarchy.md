@@ -128,7 +128,9 @@ hooks/
   useArchitectPlayerData.js
   useCapSheetState.js
   useCapValidation.js
+  useCapValidation.ts
   usePlayerRulesProfiles.js
+  usePlayerRulesProfiles.ts
   useTeamEntitlements.ts
   useTradeMachine.js
   useTradeMachineSnapshot.js
@@ -460,5 +462,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-13T00:00:00.627Z*
+*Generated on: 2026-03-13T01:11:44.344Z*
 *Auto-updated by: npm run docs*
