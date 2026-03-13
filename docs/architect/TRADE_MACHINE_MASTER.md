@@ -1366,6 +1366,23 @@ Date: 2026-02-26
 - current execution-shape read: the next arc is best handled as one grouped mini-arc / single-file boundary. A broader batched low-risk pass remains possible later, but it is still not cleaner than the recommended data-access boundary.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E81_RETURN_PACKAGE.md`
 
+### Validator TS Firebase Team Plan Helpers E82 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, and the E80 consent helper arc remains complete. The `firebaseTeamPlanHelpers` helper boundary is now TS-backed through `src/features/architect/utils/firebaseTeamPlanHelpers.ts`.
+- Execution note:
+  - preserved the full six-export surface with no default export added
+  - preserved exact top-level hydrated team key insertion order, representative nested key ordering for hydrated players / `activeContracts` / flattened exception objects, and the current sequential `for...of` + `await` hydration behavior
+  - preserved base-team hydration shape, team-code resolution, base-team fallback behavior, `roster: players`, `baseline: baseDoc`, and weaker/dormant export behavior for `prepareCapSheet`, `getAllTeams`, `saveFreeAgents`, and `loadFreeAgents`
+  - converted `src/features/architect/utils/firebaseTeamPlanHelpers.js` into a pure compatibility shim for direct-path, explicit `.js`, and extensionless imports
+  - no small follow-up is currently required; the single-file phase completed cleanly
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/firebaseTeamPlanHelpers.compatibility.guardrail.test.ts src/tests/architect/teamLoader.compatibility.guardrail.test.ts src/tests/architect/worldContext_parentFallback_capLegality.guardrail.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/capSheet.worldBoundary.integration.test.tsx`: PASS, with the same pre-existing max-update-depth warning noise already present in the execution baseline
+- current execution-shape read: the single-file `firebaseTeamPlanHelpers` phase succeeded cleanly without widening into adjacent consumers, `worldManager`, validator internals, cache/debug/monitoring files, UI consumers, or world/orchestration files. The broader world/data-access helper boundary is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FIREBASE_TEAM_PLAN_HELPERS_E82_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -269,6 +269,7 @@ utils/
   faExceptionUtils.js
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.js
+  firebaseTeamPlanHelpers.ts
   freeAgentLogic.js
   hardCapUtils.js
   hardCapUtils.ts
@@ -470,5 +471,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-13T09:28:50.683Z*
+*Generated on: 2026-03-13T10:19:43.036Z*
 *Auto-updated by: npm run docs*
