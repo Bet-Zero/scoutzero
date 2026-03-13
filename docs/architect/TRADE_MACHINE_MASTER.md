@@ -1215,6 +1215,20 @@ Date: 2026-02-26
 - current execution-shape read: the grouped contract/cap hook mini-arc completed cleanly, no immediate follow-up remains beyond any future importer-state-driven desire to retire the kept `.js` compatibility shims, and the broader Architect contract/cap hook arc is now effectively complete.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ARCHITECT_CONTRACT_CAP_HOOKS_E71_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E72 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, and the E71 Architect contract/cap hook arc remains complete. After re-checking the remaining nearby JS surface against current importer/runtime evidence, the strongest next migration candidate is `src/features/architect/utils/worldManager.js`.
+- Audit note:
+  - re-checked and excluded the prior closed-scope same-name `.js` files because they still read as TS-backed compatibility shims, wrappers, or barrel surfaces rather than reopened business logic
+  - re-checked and excluded `src/features/architect/utils/firebaseTeamPlanHelpers.js` because it remains a separate data-loader/free-agent surface and not a required part of the recommended boundary
+  - re-checked and excluded `src/features/architect/hooks/useArchitectPlayerData.js` because it still reads as a thin subscription wrapper over TS-backed data access rather than the next business-logic authority
+  - re-checked and excluded `src/features/architect/utils/teamLoader.ts` and the orchestration consumers because they are downstream callers, not part of the recommended JS migration boundary
+  - recommended next scope: `src/features/architect/utils/worldManager.js`
+  - estimated live JS business-logic count for the recommended scope: `1`
+- current execution-shape read: the next arc looks larger and riskier than E71 because of Firestore writes, callable deletion flow wiring, nested metadata updates, and broad consumer coverage, but it still reads as worth doing next and likely clean as one grouped file-level arc.
+- hard rule: do not silently widen the recommended scope to include `firebaseTeamPlanHelpers.js`, `useArchitectPlayerData.js`, `teamLoader.ts`, or orchestration consumers unless execution evidence shows `worldManager.js` cannot stand cleanly as its own migration boundary; if that happens, document the exact blocker instead of auto-expanding the scope.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E72_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
