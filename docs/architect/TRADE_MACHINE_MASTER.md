@@ -1229,6 +1229,19 @@ Date: 2026-02-26
 - hard rule: do not silently widen the recommended scope to include `firebaseTeamPlanHelpers.js`, `useArchitectPlayerData.js`, `teamLoader.ts`, or orchestration consumers unless execution evidence shows `worldManager.js` cannot stand cleanly as its own migration boundary; if that happens, document the exact blocker instead of auto-expanding the scope.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E72_RETURN_PACKAGE.md`
 
+### Validator TS World Manager E73 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, and the E71 Architect contract/cap hook arc remains complete. The world-lifecycle boundary recommended by E72 is now TS-backed through authoritative `src/features/architect/utils/worldManager.ts`.
+- Execution note:
+  - preserved the exact named-export surface and source export ordering with no default export added
+  - preserved current Firestore read/write behavior, callable purge wiring, create/read/update/archive/delete/branch semantics, metadata/stat update behavior, draft-position read/write/clear behavior, thrown error text, fallback/default behavior, and timestamp handling exactly
+  - preserved the exact `updateDoc` payload structure for draft-position writes and clears, including the current dynamic dot-path keys and payload key ordering
+  - converted `src/features/architect/utils/worldManager.js` into a pure compatibility shim so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused worldManager behavior coverage plus compatibility guardrails proving the kept `.js` file is shim-only, explicit `.js` imports match extensionless imports, and the authoritative TS file kept the current export order
+  - no blocker required widening into `firebaseTeamPlanHelpers.js`, `useArchitectPlayerData.js`, `teamLoader.ts`, downstream orchestration consumers, or UI consumers
+- current execution-shape read: the grouped single-file worldManager mini-arc completed cleanly, no immediate follow-up remains beyond any future importer-state-driven desire to retire the kept `.js` shim, and the broader world-lifecycle boundary is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_WORLD_MANAGER_E73_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

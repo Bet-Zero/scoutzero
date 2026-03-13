@@ -7,7 +7,8 @@
  * @file tests/architect/worldManager.test.js
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as firestore from 'firebase/firestore';
 import {
   createWorld,
   getWorldMetadata,
@@ -16,6 +17,11 @@ import {
   deleteWorld,
   branchWorld,
   updateWorldStats,
+  getDraftPositions,
+  getDraftPositionsMap,
+  saveDraftPositions,
+  clearDraftPositions,
+  fixWorldOwnership,
   archiveWorld,
   purgeWorld,
 } from '@/features/architect/utils/worldManager';
@@ -24,7 +30,11 @@ import {
   getMockWorldMetadata,
   createMockWorld,
 } from '../helpers/architectTestHelpers.js';
-import { setMockCallable, clearMockCallables } from '../__mocks__/firebase.js';
+import {
+  setMockCallable,
+  clearMockCallables,
+  resetMockDataStore,
+} from '../__mocks__/firebase.js';
 
 describe('World Manager', () => {
   const userId = 'user_123';
@@ -32,6 +42,11 @@ describe('World Manager', () => {
 
   beforeEach(() => {
     // Reset is handled by setupFirebaseMocks
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe('createWorld', () => {
@@ -191,6 +206,59 @@ describe('World Manager', () => {
       for (let i = 0; i < worlds.length - 1; i++) {
         expect(worlds[i].worldName <= worlds[i + 1].worldName).toBe(true);
       }
+    });
+
+    it('falls back to in-memory filtering and sorting when the primary query fails', async () => {
+      resetMockDataStore();
+      seedWorldMetadata(
+        'world_alpha',
+        createMockWorld({
+          worldId: 'world_alpha',
+          userId,
+          worldName: 'Alpha World',
+        })
+      );
+      seedWorldMetadata(
+        'world_archived',
+        createMockWorld({
+          worldId: 'world_archived',
+          userId,
+          worldName: 'Middle World',
+          isArchived: true,
+        })
+      );
+      seedWorldMetadata(
+        'world_zulu',
+        createMockWorld({
+          worldId: 'world_zulu',
+          userId,
+          worldName: 'Zulu World',
+        })
+      );
+      seedWorldMetadata(
+        'world_other',
+        createMockWorld({
+          worldId: 'world_other',
+          userId: otherUserId,
+          worldName: 'Beta World',
+        })
+      );
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.spyOn(firestore, 'getDocs').mockRejectedValueOnce(
+        new Error('missing index')
+      );
+
+      const worlds = await listUserWorlds(userId, {
+        orderBy: 'worldName',
+        orderDirection: 'asc',
+      });
+
+      expect(warnSpy).toHaveBeenCalled();
+      expect(worlds.map((world) => world.worldId)).toEqual([
+        'world_alpha',
+        'world_zulu',
+      ]);
     });
 
     it('throws error when userId is missing', async () => {
@@ -431,8 +499,146 @@ describe('World Manager', () => {
       expect(updated.lastModifiedAt).toBeDefined();
     });
 
+    it('increments renounce counters', async () => {
+      const worldResult = await createWorld({
+        name: 'Test World',
+        userId,
+      });
+
+      await updateWorldStats(worldResult.worldId, 'renounce', ['LAL']);
+
+      const metadata = getMockWorldMetadata(worldResult.worldId);
+      expect(metadata.stats.totalRenounces).toBe(1);
+      expect(metadata.actionCount).toBe(1);
+      expect(metadata.modifiedTeams).toContain('LAL');
+      expect(metadata.stats.teamsInvolved).toBe(1);
+    });
+
+    it('leaves stat totals unchanged for unsupported action types', async () => {
+      const worldResult = await createWorld({
+        name: 'Test World',
+        userId,
+      });
+
+      await updateWorldStats(worldResult.worldId, 'mystery-action', ['LAL']);
+
+      const metadata = getMockWorldMetadata(worldResult.worldId);
+      expect(metadata.stats.totalTrades).toBe(0);
+      expect(metadata.stats.totalSignings).toBe(0);
+      expect(metadata.stats.totalWaives).toBe(0);
+      expect(metadata.stats.totalRenounces).toBe(0);
+      expect(metadata.actionCount).toBe(1);
+      expect(metadata.modifiedTeams).toContain('LAL');
+      expect(metadata.stats.teamsInvolved).toBe(1);
+    });
+
     it('throws error when worldId is missing', async () => {
       await expect(updateWorldStats(null, 'trade', [])).rejects.toThrow('worldId is required');
+    });
+  });
+
+  describe('draft positions helpers', () => {
+    it('returns draft positions for a seeded year', async () => {
+      const world = createMockWorld({
+        userId,
+        draftPositionsByYear: {
+          2026: {
+            positionsMap: { ATL: 1, BOS: 2 },
+            method: 'manual',
+            updatedAtIso: '2026-01-01T00:00:00.000Z',
+          },
+        },
+      });
+      seedWorldMetadata(world.worldId, world);
+
+      const draftPositions = await getDraftPositions(world.worldId, 2026);
+
+      expect(draftPositions).toEqual({
+        positionsMap: { ATL: 1, BOS: 2 },
+        method: 'manual',
+        updatedAtIso: '2026-01-01T00:00:00.000Z',
+      });
+    });
+
+    it('returns positionsMap convenience data for a seeded year', async () => {
+      const world = createMockWorld({
+        userId,
+        draftPositionsByYear: {
+          2027: {
+            positionsMap: { LAL: 12, PHI: 18 },
+            method: 'manual',
+            updatedAtIso: '2027-01-01T00:00:00.000Z',
+          },
+        },
+      });
+      seedWorldMetadata(world.worldId, world);
+
+      const draftPositionsMap = await getDraftPositionsMap(world.worldId, 2027);
+
+      expect(draftPositionsMap).toEqual({ LAL: 12, PHI: 18 });
+    });
+
+    it('returns null when draft positions are missing', async () => {
+      const world = createMockWorld({ userId });
+      seedWorldMetadata(world.worldId, world);
+
+      await expect(getDraftPositions(world.worldId, 2028)).resolves.toBeNull();
+      await expect(getDraftPositionsMap(world.worldId, 2028)).resolves.toBeNull();
+    });
+
+    it('preserves the exact updateDoc payload shape when saving draft positions', async () => {
+      const world = createMockWorld({ userId });
+      seedWorldMetadata(world.worldId, world);
+
+      const updateDocSpy = vi.spyOn(firestore, 'updateDoc');
+      const positionsMap = { ATL: 1, BOS: 2 };
+
+      const result = await saveDraftPositions(world.worldId, 2026, positionsMap, {
+        method: 'manual',
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(updateDocSpy).toHaveBeenCalledTimes(1);
+
+      const [metadataRef, payload] = updateDocSpy.mock.calls[0];
+      expect(metadataRef.path).toBe(`architect_worlds/${world.worldId}`);
+      expect(Object.keys(payload)).toEqual([
+        'draftPositionsByYear.2026',
+        'lastModifiedAt',
+      ]);
+      expect(payload['draftPositionsByYear.2026']).toEqual({
+        positionsMap,
+        method: 'manual',
+        updatedAtIso: expect.any(String),
+      });
+      expect(payload.lastModifiedAt).toEqual({
+        __type: 'serverTimestamp',
+        value: '2025-01-01T00:00:00.000Z',
+      });
+    });
+
+    it('preserves the exact updateDoc payload shape when clearing draft positions', async () => {
+      const world = createMockWorld({ userId });
+      seedWorldMetadata(world.worldId, world);
+
+      const updateDocSpy = vi.spyOn(firestore, 'updateDoc');
+
+      const result = await clearDraftPositions(world.worldId, 2026);
+
+      expect(result).toEqual({ success: true });
+      expect(updateDocSpy).toHaveBeenCalledTimes(1);
+
+      const [metadataRef, payload] = updateDocSpy.mock.calls[0];
+      expect(metadataRef.path).toBe(`architect_worlds/${world.worldId}`);
+      expect(Object.keys(payload)).toEqual([
+        'draftPositionsByYear.2026',
+        'lastModifiedAt',
+      ]);
+      expect(payload['draftPositionsByYear.2026']).toBeNull();
+      expect(payload.lastModifiedAt).toEqual({
+        __type: 'serverTimestamp',
+        value: '2025-01-01T00:00:00.000Z',
+      });
     });
   });
 
@@ -554,6 +760,87 @@ describe('World Manager', () => {
         'You do not have permission to delete this world'
       );
     });
+
+    it('throws user-friendly error for unauthenticated users', async () => {
+      setMockCallable('purgeArchitectWorld', () => {
+        const error = new Error('Unauthenticated');
+        error.code = 'functions/unauthenticated';
+        throw error;
+      });
+
+      await expect(purgeWorld('auth_world')).rejects.toThrow(
+        'You must be logged in to delete worlds'
+      );
+    });
+
+    it('throws user-friendly error when the world does not exist', async () => {
+      setMockCallable('purgeArchitectWorld', () => {
+        const error = new Error('World missing');
+        error.code = 'functions/not-found';
+        throw error;
+      });
+
+      await expect(purgeWorld('missing_world')).rejects.toThrow(
+        'World missing_world not found'
+      );
+    });
+
+    it('preserves failed-precondition message text', async () => {
+      setMockCallable('purgeArchitectWorld', () => {
+        const error = new Error('Cannot delete world with child branches');
+        error.code = 'functions/failed-precondition';
+        throw error;
+      });
+
+      await expect(purgeWorld('branch_world')).rejects.toThrow(
+        'Cannot delete world with child branches'
+      );
+    });
+
+    it('falls back to the generic delete failure message when no message is provided', async () => {
+      setMockCallable('purgeArchitectWorld', () => {
+        const error = new Error('placeholder');
+        error.message = '';
+        throw error;
+      });
+
+      await expect(purgeWorld('broken_world')).rejects.toThrow(
+        'Failed to delete world'
+      );
+    });
+  });
+
+  describe('fixWorldOwnership', () => {
+    it('updates createdBy in development mode', async () => {
+      vi.stubEnv('PROD', false);
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const world = createMockWorld({ userId });
+      seedWorldMetadata(world.worldId, world);
+
+      await fixWorldOwnership(world.worldId, 'new_owner');
+
+      const updated = getMockWorldMetadata(world.worldId);
+      expect(updated.createdBy).toBe('new_owner');
+      expect(logSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('throws when required inputs are missing', async () => {
+      vi.stubEnv('PROD', false);
+
+      await expect(fixWorldOwnership(null, 'new_owner')).rejects.toThrow(
+        'worldId and newUserId are required'
+      );
+      await expect(fixWorldOwnership('world_123', null)).rejects.toThrow(
+        'worldId and newUserId are required'
+      );
+    });
+
+    it('is unavailable in production mode', async () => {
+      vi.stubEnv('PROD', true);
+
+      await expect(fixWorldOwnership('world_123', 'new_owner')).rejects.toThrow(
+        'fixWorldOwnership is only available in development'
+      );
+    });
   });
 });
-

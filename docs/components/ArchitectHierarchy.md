@@ -458,9 +458,10 @@ utils/
   tradeManager.js
   validatePhase21.test.js
   worldManager.js
+  worldManager.ts
   worldTeamData.ts
 ```
 
 ---
-*Generated on: 2026-03-13T01:11:44.344Z*
+*Generated on: 2026-03-13T04:06:49.390Z*
 *Auto-updated by: npm run docs*
