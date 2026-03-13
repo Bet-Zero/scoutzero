@@ -3,7 +3,7 @@
  * PURPOSE: Guardrail tests for Phase 16.3 Trade Machine init crash fix.
  *
  * These tests ensure:
- * 1. useTradeMachine.js no longer contains ensurePickId() calls (regression guard)
+ * 1. useTradeMachine.ts no longer contains ensurePickId() calls (regression guard)
  * 2. The hook returns initError for error surfacing
  * 3. No ReferenceError is thrown during initialization
  *
@@ -25,14 +25,14 @@ function readSourceFile(relativePath) {
 }
 
 describe('Phase 16.3: Trade Machine Init Guardrails', () => {
+  const hookAuthorityPath = 'src/features/architect/hooks/useTradeMachine.ts';
+
   // ===========================================================================
-  // REGRESSION GUARD: ensurePickId must NOT be used in useTradeMachine.js
+  // REGRESSION GUARD: ensurePickId must NOT be used in useTradeMachine.ts
   // ===========================================================================
   describe('ensurePickId removal (regression guard)', () => {
-    it('useTradeMachine.js must NOT call ensurePickId()', () => {
-      const source = readSourceFile(
-        'src/features/architect/hooks/useTradeMachine.js'
-      );
+    it('useTradeMachine.ts must NOT call ensurePickId()', () => {
+      const source = readSourceFile(hookAuthorityPath);
 
       // Check for ensurePickId function calls (not just import comments)
       // Pattern: ensurePickId( with an opening paren indicates a function call
@@ -51,10 +51,8 @@ describe('Phase 16.3: Trade Machine Init Guardrails', () => {
       expect(hasFunctionCall && callLines.length > 0).toBe(false);
     });
 
-    it('useTradeMachine.js must NOT import ensurePickId', () => {
-      const source = readSourceFile(
-        'src/features/architect/hooks/useTradeMachine.js'
-      );
+    it('useTradeMachine.ts must NOT import ensurePickId', () => {
+      const source = readSourceFile(hookAuthorityPath);
 
       // Check for import statement containing ensurePickId (not comment about removal)
       const lines = source.split('\n');
@@ -68,10 +66,8 @@ describe('Phase 16.3: Trade Machine Init Guardrails', () => {
       expect(importLines.length).toBe(0);
     });
 
-    it('useTradeMachine.js must NOT have rawPicks.map or picksWithIds derivation', () => {
-      const source = readSourceFile(
-        'src/features/architect/hooks/useTradeMachine.js'
-      );
+    it('useTradeMachine.ts must NOT have rawPicks.map or picksWithIds derivation', () => {
+      const source = readSourceFile(hookAuthorityPath);
 
       // Check for legacy pick processing patterns
       const lines = source.split('\n');
@@ -90,20 +86,16 @@ describe('Phase 16.3: Trade Machine Init Guardrails', () => {
   // HOOK STRUCTURE: initError must be exposed
   // ===========================================================================
   describe('initError exposure', () => {
-    it('useTradeMachine.js must return initError', () => {
-      const source = readSourceFile(
-        'src/features/architect/hooks/useTradeMachine.js'
-      );
+    it('useTradeMachine.ts must return initError', () => {
+      const source = readSourceFile(hookAuthorityPath);
 
       // Check that initError is in the return statement
       expect(source).toContain('initError,');
       expect(source).toContain('const [initError, setInitError]');
     });
 
-    it('useTradeMachine.js must have try/catch in init()', () => {
-      const source = readSourceFile(
-        'src/features/architect/hooks/useTradeMachine.js'
-      );
+    it('useTradeMachine.ts must have try/catch in init()', () => {
+      const source = readSourceFile(hookAuthorityPath);
 
       // Check for try/catch pattern in init function
       expect(source).toContain(

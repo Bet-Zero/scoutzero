@@ -133,6 +133,7 @@ hooks/
   usePlayerRulesProfiles.ts
   useTeamEntitlements.ts
   useTradeMachine.js
+  useTradeMachine.ts
   useTradeMachineSnapshot.js
   useTradeMachineSnapshot.ts
 offseason/
@@ -468,5 +469,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-13T07:51:44.644Z*
+*Generated on: 2026-03-13T08:34:41.504Z*
 *Auto-updated by: npm run docs*

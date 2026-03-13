@@ -1303,6 +1303,25 @@ Date: 2026-02-26
 - current execution-shape read: the grouped helper-trio mini-arc completed cleanly at the helper boundary, no helper-local follow-up is recommended, the helper-trio sub-arc is now effectively complete, and `useTradeMachine.js` remains the intended next follow-up phase.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_HOOK_SUPPORT_HELPERS_E77_RETURN_PACKAGE.md`
 
+### Validator TS Use Trade Machine E78 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, and the E77 helper-trio sub-arc remains complete. The `useTradeMachine` hook boundary is now TS-backed through authoritative `src/features/architect/hooks/useTradeMachine.ts`.
+- Execution note:
+  - preserved the exact named-export surface with no default export added, and converted `useTradeMachine.js` into a pure compatibility shim so direct-path, explicit `.js`, and extensionless imports remain intact
+  - preserved the returned hook surface shape, returned object key insertion order, `useMemo` / `useCallback` / `useEffect` dependency arrays, initialization ordering, entitlement and pick-rule hydration flow, stale-validation key handling, DEV synthetic S&T injector wiring, export-payload assembly, and fallback/error behavior
+  - restored base-team lookup fallback for slug/code inputs such as `LAL` as a compatibility-preserving correction already relied on by repo tests and live route usage
+  - added one additional tiny compatibility guard proved necessary by the unchanged `useTradeMachine.devSntInjector.test.tsx` surface: the init effect now no-ops for redundant same-input reruns while keeping the dependency array itself unchanged
+  - updated the Phase 16.3 source-reading guardrail to inspect the TS authority, and added focused hook compatibility coverage for shim parity, return-key ordering, stale-validation invalidation, and export payload assembly
+  - no blocker required widening into E69 snapshot/accessor files, E77 helper-trio files, validator internals, cache/debug/monitoring files, UI consumers, or world/orchestration files
+- Validation note:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - `npm run test:node -- --reporter=dot tests/trade/useTradeMachine.validatorTrust.test.ts src/tests/architect/phase16_3_trade_machine_init_guardrail.test.js src/tests/architect/useTradeMachine.compatibility.guardrail.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/useTradeMachine.devSntInjector.test.tsx`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/tradePlayerRow.signAndTradeInjector.test.tsx`: intentionally skipped in E78 because the locked scope remained hook-only and E77 already showed it is a separate UI/eligibility issue outside this boundary
+- current execution-shape read: the single-hook phase completed cleanly, no additional hook-local follow-up is recommended, and the broader Trade Machine hook-support boundary is now effectively complete.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_USE_TRADE_MACHINE_E78_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
