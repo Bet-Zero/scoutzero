@@ -28,6 +28,16 @@ describe('extractUsedTpeIds', () => {
     expect(result).toEqual(['tpe_001', 'tpe_002']);
   });
 
+  it('preserves first-seen order through the current Set-based dedupe path', () => {
+    const sends = [
+      { name: 'Player A', absorptionMode: 'TPE', tpeId: 'tpe_002' },
+      { name: 'Player B', absorptionMode: 'TPE', tpeId: 'tpe_001' },
+      { name: 'Player C', absorptionMode: 'TPE', tpeId: 'tpe_002' },
+    ];
+
+    expect(extractUsedTpeIds(sends)).toEqual(['tpe_002', 'tpe_001']);
+  });
+
   it('excludes non-TPE absorption modes', () => {
     const sends = [
       { name: 'Player A', absorptionMode: 'MATCH', tpeId: 'tpe_001' },

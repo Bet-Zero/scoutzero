@@ -5,6 +5,8 @@ import {
   DEV_SNT_INJECTOR_MARKER,
   hasSyntheticSntPlayers,
   injectSyntheticSntPlayersIntoTeams,
+  isSyntheticSntPlayer,
+  stripSyntheticSntPlayers,
 } from '@/features/architect/tradeMachine/utils/devSntInjector';
 
 function makeTeamsFixture() {
@@ -52,6 +54,114 @@ describe('DEV S&T injector utilities', () => {
     expect(ineligible.freeAgentYear).toBeGreaterThan(2026);
   });
 
+  it('preserves the exact synthetic payload key order for both generated players', () => {
+    const [eligible, ineligible] = buildSyntheticSntPlayers(
+      { teamCode: 'LAL' },
+      2026
+    );
+
+    expect(Object.keys(eligible)).toEqual([
+      'teamCode',
+      'teamId',
+      'teamAbbr',
+      '__tmDevSyntheticSnt',
+      'id',
+      'player_id',
+      'playerId',
+      'name',
+      'displayName',
+      'salary',
+      'freeAgentYear',
+      'rightsRenounced',
+      'bio',
+      'contract',
+      'primaryContract',
+      '__tmDevSntProfile',
+    ]);
+    expect(Object.keys(ineligible)).toEqual([
+      'teamCode',
+      'teamId',
+      'teamAbbr',
+      '__tmDevSyntheticSnt',
+      'id',
+      'player_id',
+      'playerId',
+      'name',
+      'displayName',
+      'salary',
+      'freeAgentYear',
+      'rightsRenounced',
+      'bio',
+      'contract',
+      'primaryContract',
+      '__tmDevSntProfile',
+    ]);
+    expect(Object.keys(eligible.bio)).toEqual([
+      'displayName',
+      'playerId',
+      'position',
+      'team',
+    ]);
+    expect(Object.keys(ineligible.bio)).toEqual([
+      'displayName',
+      'playerId',
+      'position',
+      'team',
+    ]);
+    expect(Object.keys(ineligible.contract)).toEqual(['salariesByYear']);
+    expect(Object.keys(ineligible.primaryContract)).toEqual(['salariesByYear']);
+    expect(Object.keys(ineligible.contract.salariesByYear[0])).toEqual([
+      'season',
+      'salary',
+      'capHit',
+    ]);
+    expect(Object.keys(ineligible.primaryContract.salariesByYear[0])).toEqual([
+      'season',
+      'salary',
+      'capHit',
+    ]);
+  });
+
+  it('preserves current fallback behavior for team identity and year parsing', () => {
+    const [eligible, ineligible] = buildSyntheticSntPlayers(
+      { abbreviation: 'lal' },
+      '2025-26'
+    );
+
+    expect(eligible.id).toBe('tm-dev-snt-eligible-LAL');
+    expect(ineligible.id).toBe('tm-dev-snt-ineligible-LAL');
+    expect(eligible.teamCode).toBe('lal');
+    expect(ineligible.teamId).toBe('lal');
+    expect(eligible.freeAgentYear).toBe(2026);
+    expect(ineligible.freeAgentYear).toBe(2028);
+    expect(ineligible.contract.salariesByYear[0].season).toBe('2025-26');
+  });
+
+  it('detects synthetic players and strips them without mutating the input array', () => {
+    const [eligible] = buildSyntheticSntPlayers({ teamCode: 'LAL' }, 2026);
+    const players = [
+      { id: 'base_1', name: 'Base Player' },
+      eligible,
+    ];
+
+    const stripped = stripSyntheticSntPlayers(players);
+
+    expect(isSyntheticSntPlayer(eligible)).toBe(true);
+    expect(isSyntheticSntPlayer(players[0])).toBe(false);
+    expect(isSyntheticSntPlayer(null)).toBe(false);
+    expect(stripped).toEqual([{ id: 'base_1', name: 'Base Player' }]);
+    expect(stripped).not.toBe(players);
+    expect(players).toHaveLength(2);
+  });
+
+  it('returns the original teams reference when there is no injection target', () => {
+    const teams = [{ team: null }, { sends: [] }];
+
+    const injected = injectSyntheticSntPlayersIntoTeams(teams as any, 2026);
+
+    expect(injected).toBe(teams);
+  });
+
   it('injects synthetic players into local team state and clears them cleanly', () => {
     const initialTeams = makeTeamsFixture();
     const injectedTeams = injectSyntheticSntPlayersIntoTeams(initialTeams, 2026);
@@ -67,4 +177,3 @@ describe('DEV S&T injector utilities', () => {
     expect(cleared[0].team.players[0].name).toBe('Base Player');
   });
 });
-

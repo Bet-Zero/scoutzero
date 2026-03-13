@@ -1284,6 +1284,25 @@ Date: 2026-02-26
 - hard rule: do not silently widen the recommended scope to include validator engine/rules files, E69 snapshot/accessor files, UI consumers, or world/orchestration files unless execution evidence shows the hook-support boundary cannot stand cleanly on its own. If that happens, document the exact blocker instead of auto-expanding the scope.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E76_RETURN_PACKAGE.md`
 
+### Validator TS Trade Machine Hook-Support Helpers E77 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, and the E75 trade-execution helper arc remains complete. The E77 helper-trio boundary is now TS-backed through authoritative `src/features/architect/tradeMachine/utils/computeTradeDraftKey.ts`, `src/features/architect/tradeMachine/utils/devSntInjector.ts`, and `src/features/architect/utils/tradeMachine/utils/tradeExportUtils.ts`.
+- Execution note:
+  - preserved the exact named-export surfaces and source export ordering for all three helpers with no default export added
+  - preserved current deterministic draft-key generation, fallback/default behavior, direct-path compatibility, and the exact lexicographic sort behavior in `computeTradeDraftKey`
+  - preserved current DEV S&T helper semantics including synthetic player payload key insertion order, nested object key insertion order, fallback chains, helper ordering, and injection/cleanup mutation boundaries in `devSntInjector`
+  - preserved current `extractUsedTpeIds()` filtering and first-seen output ordering through the existing `Set`-based dedupe path with no sorting or normalization added
+  - converted `computeTradeDraftKey.js`, `devSntInjector.js`, and `tradeExportUtils.js` into pure compatibility shims so direct-path, explicit `.js`, and extensionless imports remain intact without consumer rewrites
+  - added focused compatibility guardrails plus exact-string and exact-key-order coverage for the migrated helper surfaces
+  - no blocker required widening into `useTradeMachine.js`, E69 snapshot/accessor files, validator internals, cache/debug/monitoring files, UI consumers, or world/orchestration files
+- validation note:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - `npm run test:node -- --reporter=dot tests/trade/usedTradeExceptions.test.js src/tests/trade/staleValidationFix.test.js src/tests/architect/devSntInjector.utils.test.ts src/tests/architect/tradeEditor.devSntInjectorGate.guardrail.test.ts src/tests/architect/tradeMachineHookSupportHelpers.compatibility.guardrail.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/tradePlayerRow.signAndTradeInjector.test.tsx src/tests/architect/useTradeMachine.devSntInjector.test.tsx`: FAIL in unchanged adjacent consumers `TradePlayerRow.jsx` and `useTradeMachine.js`; not addressed in E77
+- current execution-shape read: the grouped helper-trio mini-arc completed cleanly at the helper boundary, no helper-local follow-up is recommended, the helper-trio sub-arc is now effectively complete, and `useTradeMachine.js` remains the intended next follow-up phase.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_HOOK_SUPPORT_HELPERS_E77_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

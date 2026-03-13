@@ -163,6 +163,37 @@ describe('computeTradeDraftKey', () => {
       });
       expect(key).toContain('BOS');
     });
+
+    it('uses the current fallback identifiers exactly for missing team, player, and entitlement keys', () => {
+      const key = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: [
+          {
+            team: {},
+            sends: [{ player_id: 'player-2' }, { id: 'player-1' }, {}],
+            entitlementsOut: [
+              { entitlementId: 'ent-3' },
+              { id: 'ent-2' },
+              { draftKey: 'ent-1' },
+              {},
+            ],
+          },
+        ],
+      });
+
+      expect(key).toBe(
+        '2025|unknown:player-1,player-2,unknown:ent-1,ent-2,ent-3,unknown'
+      );
+    });
+
+    it('uses the current empty-slot formatting exactly when sends and entitlements are absent', () => {
+      const key = computeTradeDraftKey({
+        yearKey: '2025-26',
+        teams: [{ team: { id: 'BOS' } }],
+      });
+
+      expect(key).toBe('2025-26|BOS::');
+    });
   });
 });
 

@@ -181,7 +181,9 @@ tradeMachine/
   ValidationStateHeader.jsx
   utils/
     computeTradeDraftKey.js
+    computeTradeDraftKey.ts
     devSntInjector.js
+    devSntInjector.ts
     entitlementWarnings.js
     entitlementWarnings.ts
     getOfficialSalaryMatchingSnapshot.js
@@ -447,6 +449,7 @@ utils/
       tpeValidation.js
       tpeValidation.ts
       tradeExportUtils.js
+      tradeExportUtils.ts
       tradeTimingWindows.js
       tradeTimingWindows.ts
       tradeUtilityMisc.js
@@ -465,5 +468,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-13T06:18:39.197Z*
+*Generated on: 2026-03-13T07:51:44.644Z*
 *Auto-updated by: npm run docs*
