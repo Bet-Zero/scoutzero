@@ -1188,6 +1188,21 @@ Date: 2026-02-26
 - current execution-shape read: the grouped snapshot/accessor mini-arc completed cleanly, no required small follow-up remains beyond optional future shim removal if importer state ever makes that safe, and the broader Trade Machine validation snapshot/accessor arc is now effectively complete.
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_SNAPSHOT_ACCESSORS_E69_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E70 (2026-03-13)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, and the E69 Trade Machine validation snapshot/accessor arc remains complete. After re-checking the remaining nearby JS surface against current importer/runtime evidence, the strongest next migration candidate is the Architect contract/cap hook boundary centered on `src/features/architect/hooks/usePlayerRulesProfiles.js` and `src/features/architect/hooks/useCapValidation.js`.
+- Audit note:
+  - re-checked and excluded E39-kept public entrypoints/barrels/constants so the closed validator-adjacent slice stays closed
+  - re-checked and excluded the E41 draft-pick resolution files because they still read as TS-backed compatibility surfaces rather than reopened business logic
+  - re-checked and excluded the E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, and E69 same-name `.js` files because they still read as compatibility shims, deprecated wrappers, or barrel surfaces over authoritative TS peers
+  - re-checked and excluded `src/features/architect/hooks/useArchitectPlayerData.js` because it currently reads as a thin subscription wrapper over TS-backed data access rather than the next contract/cap business-logic arc
+  - re-checked and excluded `src/features/architect/utils/capProjections.js` because it remains a deprecated data/constants surface rather than a clean next business-logic boundary
+  - recommended next scope: `src/features/architect/hooks/usePlayerRulesProfiles.js` and `src/features/architect/hooks/useCapValidation.js`
+  - estimated live JS business-logic count for the recommended scope: `2`
+- current execution-shape read: the next arc looks larger than E69 but still materially smaller and cleaner than the Trade Machine hook-support family, the world/data-access family, and the larger orchestration family, so it is worth doing next and likely clean as one grouped mini-arc.
+- hard rule: do not silently widen the recommended scope to include `useArchitectPlayerData.js`, UI-facing hooks, or component-level consumers unless execution evidence shows the contract/cap hook pair cannot stand cleanly without them; if that happens, document the exact blocker instead of auto-expanding the scope.
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E70_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
