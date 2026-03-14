@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const SEASON_MANAGER_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/seasonManager.js'
+  '../../features/architect/utils/seasonManager.ts'
 );
 
 describe('Season Advance CapAuditEventV1 Guardrails', () => {

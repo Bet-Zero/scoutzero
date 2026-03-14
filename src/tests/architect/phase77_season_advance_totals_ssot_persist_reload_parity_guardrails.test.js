@@ -12,9 +12,9 @@
  *
  * TESTS:
  * A) Source-scan / wiring guardrails:
- *    1. seasonManager.js imports computeTeamCapTotals from capTotals
- *    2. seasonManager.js calls computeTeamCapTotals during season transition
- *    3. seasonManager.js does NOT reference updateTeamCapTotals (regex/substring scan)
+ *    1. seasonManager.ts imports computeTeamCapTotals from capTotals
+ *    2. seasonManager.ts calls computeTeamCapTotals during season transition
+ *    3. seasonManager.ts does NOT reference updateTeamCapTotals (regex/substring scan)
  *
  * B) Behavioral guardrails:
  *    4. Season advance recomputes totals for the new year (correct yearKey)
@@ -173,10 +173,10 @@ function simulateSeasonTransitionTotalsRecompute(team, toSeason) {
 describe('Phase 77: Source Scan Guardrails', () => {
   const seasonManagerPath = path.resolve(
     __dirname,
-    '../../features/architect/utils/seasonManager.js'
+    '../../features/architect/utils/seasonManager.ts'
   );
 
-  it('TEST 1: seasonManager.js imports computeTeamCapTotals from capTotals', () => {
+  it('TEST 1: seasonManager.ts imports computeTeamCapTotals from capTotals', () => {
     const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
     // Must import computeTeamCapTotals from capTotals barrel
@@ -185,7 +185,7 @@ describe('Phase 77: Source Scan Guardrails', () => {
     );
   });
 
-  it('TEST 2: seasonManager.js calls computeTeamCapTotals during season transition', () => {
+  it('TEST 2: seasonManager.ts calls computeTeamCapTotals during season transition', () => {
     const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
     // Must call computeTeamCapTotals with team and toYear
@@ -196,7 +196,7 @@ describe('Phase 77: Source Scan Guardrails', () => {
     expect(content).toMatch(/PHASE 77.*Recalculate cap totals/i);
   });
 
-  it('TEST 3: seasonManager.js does NOT call updateTeamCapTotals (except in comments)', () => {
+  it('TEST 3: seasonManager.ts does NOT call updateTeamCapTotals (except in comments)', () => {
     const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
     // Remove comments to check for actual code usage
@@ -211,7 +211,7 @@ describe('Phase 77: Source Scan Guardrails', () => {
     expect(contentWithoutComments).not.toContain("import('./tradeManager')");
   });
 
-  it('TEST 3b: seasonManager.js does NOT import from tradeManager for totals', () => {
+  it('TEST 3b: seasonManager.ts does NOT import from tradeManager for totals', () => {
     const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
     // Remove comments to check for actual code usage
@@ -550,7 +550,7 @@ describe('Phase 77: Ordering Invariants', () => {
   it('TEST 14: Source confirms totals recompute runs AFTER OSTE (which handles TPE expiry)', () => {
     const seasonManagerPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/seasonManager.js'
+      '../../features/architect/utils/seasonManager.ts'
     );
     const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
@@ -580,7 +580,7 @@ describe('Phase 77: Ordering Invariants', () => {
   it('TEST 15: Source confirms totals recompute runs AFTER OSTE (which handles non-TPE reset)', () => {
     const seasonManagerPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/seasonManager.js'
+      '../../features/architect/utils/seasonManager.ts'
     );
     const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
@@ -612,7 +612,7 @@ describe('Phase 77: Ordering Invariants', () => {
   it('TEST 16: Source confirms totals recompute comment references Phase 77', () => {
     const seasonManagerPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/seasonManager.js'
+      '../../features/architect/utils/seasonManager.ts'
     );
     const content = fs.readFileSync(seasonManagerPath, 'utf8');
 

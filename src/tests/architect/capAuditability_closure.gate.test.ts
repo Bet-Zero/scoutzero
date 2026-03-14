@@ -20,7 +20,7 @@ const VALIDATOR_PATH =
   'src/features/architect/utils/capLegality/postStateCapValidator.ts';
 const MUTATION_PIPELINE_PATH =
   'src/features/architect/utils/mutationPipeline.js';
-const SEASON_MANAGER_PATH = 'src/features/architect/utils/seasonManager.js';
+const SEASON_MANAGER_PATH = 'src/features/architect/utils/seasonManager.ts';
 const USE_ARCHITECT_ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
 const LOCAL_CAP_AUDIT_LOG_PATH =
@@ -126,17 +126,17 @@ describe('CAP_AUDITABILITY Closure Gate 2: Call-site invocation', () => {
     ).toMatch(/validatePostStateCapLegality\s*\(/);
   });
 
-  it('invokes validatePostStateCapLegality in seasonManager.js (advanceSeasonInWorld)', () => {
+  it('invokes validatePostStateCapLegality in seasonManager.ts (advanceSeasonInWorld)', () => {
     const source = readSource(SEASON_MANAGER_PATH);
 
     expect(
       source,
-      'seasonManager.js must import validatePostStateCapLegality'
+      'seasonManager.ts must import validatePostStateCapLegality'
     ).toContain('validatePostStateCapLegality');
 
     expect(
       source,
-      'seasonManager.js must call validatePostStateCapLegality(...)'
+      'seasonManager.ts must call validatePostStateCapLegality(...)'
     ).toMatch(/validatePostStateCapLegality\s*\(/);
   });
 
@@ -192,7 +192,7 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
     ).toHaveLength(0);
   });
 
-  it('seasonManager.js emits all required CapAuditEventV1 fields', () => {
+  it('seasonManager.ts emits all required CapAuditEventV1 fields', () => {
     const source = readSource(SEASON_MANAGER_PATH);
     const missingFields: string[] = [];
 
@@ -205,7 +205,7 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
 
     expect(
       missingFields,
-      `seasonManager.js missing CapAuditEventV1 fields: ${missingFields.join(', ')}`
+      `seasonManager.ts missing CapAuditEventV1 fields: ${missingFields.join(', ')}`
     ).toHaveLength(0);
   });
 

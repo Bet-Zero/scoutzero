@@ -1621,6 +1621,29 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E94_RETURN_PACKAGE.md`
 
+### Validator TS Season Manager E95 (2026-03-14)
+
+- Status:
+  - `src/features/architect/utils/seasonManager.ts` is now the authoritative TS-backed implementation for the `seasonManager` boundary
+  - `src/features/architect/utils/seasonManager.js` remains a shim-only compatibility surface by rule
+- Migration note:
+  - behavior remained unchanged across `advanceSeason`, `processSeasonTransition`, `advanceSeasonInWorld`, `resolveDraftPickSwapsForYear`, and `resolveDraftPickConveyanceForYear`
+  - preserved exact observable sequencing for Firestore batch writes, metadata writes, audit/event writes, post-state validation, persistence hygiene steps, DARE-gated writes, and thrown-error paths
+  - preserved exact draft-pick swap/conveyance ordering, no-op semantics, and fail-soft helper behavior
+  - retargeted source-scan guardrails to `seasonManager.ts` and added `src/tests/architect/seasonManager.compatibility.guardrail.test.ts` to prove `seasonManager.js` stays shim-only while explicit `.js` imports remain supported
+  - execution stayed inside the E95 boundary and did not reopen `mutationPipeline.js`, `runOffseason.js`, dashboard hubs, or Trade Machine hubs
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot tests/architect/seasonManager.test.js src/tests/tradeMachine/phase5DraftPositions.test.js src/tests/tradeMachine/seasonSwapResolution.test.js src/tests/architect/seasonAdvance_postStateValidator_failClose.behavior.test.ts src/tests/architect/dare/phaseB_dare_world_persistence_integration.test.js src/tests/architect/phase86_oste_offseason_transition_engine.test.ts`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/capAuditability_closure.gate.test.ts src/tests/architect/seasonAdvance_capAuditEventV1.guardrails.test.ts src/tests/architect/season_advance_bridge_gate_guardrails.test.js src/tests/architect/phase77_season_advance_totals_ssot_persist_reload_parity_guardrails.test.js src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js src/tests/architect/seasonManager.compatibility.guardrail.test.ts`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, browser externalization of `fs`, mixed static/dynamic imports, and large chunks outside the E95 boundary
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - the named surgical pass completed cleanly
+  - no mandatory follow-up remains inside the `seasonManager` authority boundary
+  - the broader `seasonManager` boundary is now effectively complete; any future removal of the kept `.js` shim is a separate cleanup decision
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SEASON_MANAGER_E95_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

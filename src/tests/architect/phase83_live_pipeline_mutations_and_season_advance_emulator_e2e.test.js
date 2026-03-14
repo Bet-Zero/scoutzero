@@ -77,12 +77,12 @@ describe('Phase 83: Source Code Guardrails', () => {
     expect(content).toContain('export async function applyWorldMutation');
   });
 
-  test('TEST 4: seasonManager.js exports advanceSeasonInWorld', async () => {
+  test('TEST 4: seasonManager.ts exports advanceSeasonInWorld', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const managerPath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/seasonManager.js'
+      'src/features/architect/utils/seasonManager.ts'
     );
     expect(fs.existsSync(managerPath)).toBe(true);
     
@@ -185,12 +185,12 @@ describe('Phase 83: Entrypoint Signature Verification', () => {
     expect(content).toContain('payload');
   });
 
-  test('TEST 10: advanceSeasonInWorld accepts worldId', async () => {
+  test('TEST 10: advanceSeasonInWorld authority accepts worldId', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const managerPath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/seasonManager.js'
+      'src/features/architect/utils/seasonManager.ts'
     );
     const content = fs.readFileSync(managerPath, 'utf-8');
     

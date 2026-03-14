@@ -10,7 +10,7 @@
  * 3. tradeManager.ts imports computeTeamCapTotals from capTotals
  * 4. tradeManager.ts calls computeTeamCapTotals( at least once
  * 5. tradeManager.js remains a pure compatibility shim
- * 5. Phase 77 invariant preserved: seasonManager.js still uses SSOT (no legacy imports)
+ * 5. Phase 77 invariant preserved: seasonManager.ts still uses SSOT (no legacy imports)
  *
  * @file src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js
  */
@@ -30,7 +30,7 @@ const TRADE_MANAGER_AUTHORITY_PATH = path.resolve(
 );
 const SEASON_MANAGER_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/seasonManager.js'
+  '../../features/architect/utils/seasonManager.ts'
 );
 const ARCHITECT_CORE_PATH = path.resolve(
   __dirname,
@@ -130,7 +130,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
   });
 
   describe('Phase 77 Invariant Preservation', () => {
-    it('TEST 7: seasonManager.js does NOT call updateTeamCapTotals (except in comments)', () => {
+    it('TEST 7: seasonManager.ts does NOT call updateTeamCapTotals (except in comments)', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Remove comments
@@ -148,7 +148,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       );
     });
 
-    it('TEST 8: seasonManager.js imports computeTeamCapTotals from capTotals', () => {
+    it('TEST 8: seasonManager.ts imports computeTeamCapTotals from capTotals', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Must have import from capTotals barrel
@@ -160,7 +160,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       expect(hasImport).toBe(true);
     });
 
-    it('TEST 9: seasonManager.js calls computeTeamCapTotals( at least once', () => {
+    it('TEST 9: seasonManager.ts calls computeTeamCapTotals( at least once', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Remove comments to check actual code

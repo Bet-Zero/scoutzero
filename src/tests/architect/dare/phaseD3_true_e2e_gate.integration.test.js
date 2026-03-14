@@ -150,10 +150,10 @@ describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
       expect(content).toContain('export async function applyWorldMutation');
     });
 
-    it('TEST 2: seasonManager.js exports advanceSeasonInWorld as async function', () => {
+    it('TEST 2: seasonManager.ts exports advanceSeasonInWorld as async function', () => {
       const seasonManagerPath = path.resolve(
         __dirname,
-        '../../../features/architect/utils/seasonManager.js'
+        '../../../features/architect/utils/seasonManager.ts'
       );
       const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
@@ -172,10 +172,10 @@ describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
       expect(content).toMatch(/case\s+['"]executeTrade['"]/);
     });
 
-    it('TEST 4: advanceSeasonInWorld calls DARE resolver', () => {
+    it('TEST 4: advanceSeasonInWorld authority calls DARE resolver', () => {
       const seasonManagerPath = path.resolve(
         __dirname,
-        '../../../features/architect/utils/seasonManager.js'
+        '../../../features/architect/utils/seasonManager.ts'
       );
       const content = fs.readFileSync(seasonManagerPath, 'utf8');
 

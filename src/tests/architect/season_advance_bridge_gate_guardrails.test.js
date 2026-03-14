@@ -12,13 +12,13 @@
  *
  * TESTS:
  * A) Source-scan guardrails:
- *    1. seasonManager.js contains sanitizeTransientFieldsForPersistence
- *    2. seasonManager.js contains assertPersistableOrThrow
+ *    1. seasonManager.ts contains sanitizeTransientFieldsForPersistence
+ *    2. seasonManager.ts contains assertPersistableOrThrow
  *    3. Correct ordering: stripHydration before sanitize before normalize before assertPersistable before removeUndefined
- *    4. seasonManager.js imports sanitizeTransientFieldsForPersistence from mutationPipeline
- *    5. seasonManager.js imports assertPersistableOrThrow from persistenceContracts
+ *    4. seasonManager.ts imports sanitizeTransientFieldsForPersistence from mutationPipeline
+ *    5. seasonManager.ts imports assertPersistableOrThrow from persistenceContracts
  *    6. computeTeamCapTotals uses team.players (not team.roster) for salary computation
- *    7. seasonManager.js strips hydration-only fields (HYDRATION_ONLY_KEYS)
+ *    7. seasonManager.ts strips hydration-only fields (HYDRATION_ONLY_KEYS)
  */
 
 import { describe, it, expect } from 'vitest';
@@ -31,7 +31,7 @@ const __dirname = path.dirname(__filename);
 
 const SEASON_MANAGER_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/seasonManager.js'
+  '../../features/architect/utils/seasonManager.ts'
 );
 
 const COMPUTE_TOTALS_PATH = path.resolve(
@@ -47,14 +47,14 @@ const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
 describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
   const seasonManagerSource = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
-  it('TEST 1: seasonManager.js calls sanitizeTransientFieldsForPersistence', () => {
+  it('TEST 1: seasonManager.ts calls sanitizeTransientFieldsForPersistence', () => {
     // Must contain at least one call (not just import)
     expect(seasonManagerSource).toMatch(
       /sanitizeTransientFieldsForPersistence\(/
     );
   });
 
-  it('TEST 2: seasonManager.js calls assertPersistableOrThrow', () => {
+  it('TEST 2: seasonManager.ts calls assertPersistableOrThrow', () => {
     expect(seasonManagerSource).toMatch(/assertPersistableOrThrow\(/);
   });
 
@@ -102,13 +102,13 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
     ).toBe(true);
   });
 
-  it('TEST 4: seasonManager imports sanitizeTransientFieldsForPersistence from mutationPipeline', () => {
+  it('TEST 4: seasonManager.ts imports sanitizeTransientFieldsForPersistence from mutationPipeline', () => {
     expect(seasonManagerSource).toMatch(
       /import\s*\{[^}]*sanitizeTransientFieldsForPersistence[^}]*\}\s*from\s*['"].*mutationPipeline['"]/
     );
   });
 
-  it('TEST 5: seasonManager imports assertPersistableOrThrow from persistenceContracts', () => {
+  it('TEST 5: seasonManager.ts imports assertPersistableOrThrow from persistenceContracts', () => {
     expect(seasonManagerSource).toMatch(
       /import\s*\{[^}]*assertPersistableOrThrow[^}]*\}\s*from\s*['"].*persistenceContracts['"]/
     );
@@ -138,7 +138,7 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
     expect(computeShimSource).not.toContain('teamCapSheet?.players');
   });
 
-  it('TEST 7: seasonManager strips hydration-only display fields before persistence', () => {
+  it('TEST 7: seasonManager.ts strips hydration-only display fields before persistence', () => {
     // HYDRATION_ONLY_KEYS must be defined and include known hydration fields
     expect(seasonManagerSource).toMatch(/HYDRATION_ONLY_KEYS/);
     expect(seasonManagerSource).toMatch(/stripHydrationOnlyFields/);

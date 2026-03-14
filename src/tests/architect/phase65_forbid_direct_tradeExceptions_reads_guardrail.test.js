@@ -360,7 +360,7 @@ describe('Phase 65: getTeamTpeList() Canonical Accessor', () => {
 describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
   it('should import normalizeTeamTpeSchema in seasonManager', async () => {
     // Read the file and check for the import
-    const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.js');
+    const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.ts');
     const content = fs.readFileSync(seasonManagerPath, 'utf-8');
 
     expect(content).toContain('normalizeTeamTpeSchema');
@@ -370,7 +370,7 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
   });
 
   it('should call normalizeTeamTpeSchema before batch.set in seasonManager', () => {
-    const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.js');
+    const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.ts');
     const content = fs.readFileSync(seasonManagerPath, 'utf-8');
 
     // Check for the pattern: normalizeTeamTpeSchema followed by batch.set

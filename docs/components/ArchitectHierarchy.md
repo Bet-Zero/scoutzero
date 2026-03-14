@@ -336,6 +336,7 @@ utils/
   seasonFormat.ts
   seasonHelpers.ts
   seasonManager.js
+  seasonManager.ts
   seasonUtils.js
   stepienUtils.js
   subscribeArchitectPlayerData.ts
@@ -488,5 +489,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T09:15:41.180Z*
+*Generated on: 2026-03-14T09:54:49.522Z*
 *Auto-updated by: npm run docs*
