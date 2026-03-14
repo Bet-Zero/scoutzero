@@ -36,7 +36,6 @@ Quick reference for all components in the ScoutZero project.
 - capSheet/CapSheet/CapSheet.jsx
 - capSheet/CapSheet/CapSummaryTiles.jsx
 - capSheet/CapSheetFull/CapSheetFull.jsx
-- capSheet/ExceptionHistoryTracker/ExceptionHistoryTracker.jsx
 - capSheet/ExceptionTracker/ExceptionTracker.jsx
 - capSheet/modals/ManageDeadMoneyModal.jsx
 - capSheet/modals/ManageExceptionsModal.jsx
@@ -45,18 +44,14 @@ Quick reference for all components in the ScoutZero project.
 - freeAgency/FreeAgentPool/FreeAgentCard.jsx
 - freeAgency/FreeAgentPool/FreeAgentPool.jsx
 - freeAgency/FreeAgentPool/FreeAgentRow.jsx
-- history/TeamHistoryTab/HistoryDetailModal.jsx
-- history/TeamHistoryTab/TeamHistoryTab.jsx
 - hooks/useArchitectPlayerData.js
 - hooks/useCapSheetState.js
 - hooks/useCapValidation.js
 - hooks/usePlayerRulesProfiles.js
 - hooks/useTradeMachine.js
 - hooks/useTradeMachineSnapshot.js
-- offseason/DraftPickTracker/DraftPickTracker.jsx
 - offseason/OffseasonTab/OffseasonTab.jsx
 - offseason/OffseasonTab/OptionManager.jsx
-- offseason/WaiveStretchTracker/WaiveStretchTracker.jsx
 - shared/LeagueView/LeagueView.jsx
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
@@ -356,4 +351,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-10T09:58:34.722Z*
+*Generated on: 2026-03-14T05:02:06.473Z*

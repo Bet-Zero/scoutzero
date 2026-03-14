@@ -1,6 +1,43 @@
 import React from 'react';
 
-const formatAmount = (entry) => {
+type ExceptionHistoryEntry = {
+  id?: string | number | null;
+  amount?: number | null;
+  amountRemaining?: number | null;
+  amountCreated?: number | null;
+  amountConsumed?: number | null;
+  expires?: string | null;
+  expiresAt?: string | null;
+  source?: string | null;
+  sourcePlayerName?: string | null;
+  date?: string | null;
+  timestamp?: string | null;
+  action?: string | null;
+  type?: string | null;
+};
+
+type MLEHistoryEntry = {
+  id?: string | number | null;
+  year?: string | number | null;
+  total?: number | null;
+  used?: number | null;
+  notes?: string | null;
+};
+
+type ExceptionHistoryRow = ExceptionHistoryEntry & {
+  date: string;
+  action: string;
+  amount: number | null;
+  source: string;
+  expires: string;
+};
+
+type ExceptionHistoryTrackerProps = {
+  exceptionHistory?: ExceptionHistoryEntry[];
+  mleHistory?: MLEHistoryEntry[];
+};
+
+const formatAmount = (entry: ExceptionHistoryEntry) => {
   if (typeof entry.amount === 'number') return entry.amount;
   if (typeof entry.amountRemaining === 'number') return entry.amountRemaining;
 
@@ -13,7 +50,7 @@ const formatAmount = (entry) => {
   return null;
 };
 
-const mapExceptionRow = (entry = {}) => {
+const mapExceptionRow = (entry: ExceptionHistoryEntry = {}): ExceptionHistoryRow => {
   const expires = entry.expires || entry.expiresAt || '—';
   const source = entry.source || entry.sourcePlayerName || '—';
   const date = entry.date || entry.timestamp || '—';
@@ -33,7 +70,7 @@ const mapExceptionRow = (entry = {}) => {
 const ExceptionHistoryTracker = ({
   exceptionHistory = [],
   mleHistory = [],
-}) => {
+}: ExceptionHistoryTrackerProps) => {
   const renderTPEHistory = () => {
     if (exceptionHistory.length === 0) return <p>No TPE activity logged.</p>;
     const rows = exceptionHistory.map((entry) => mapExceptionRow(entry));

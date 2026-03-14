@@ -4,11 +4,28 @@ import ExceptionHistoryTracker from '@/features/architect/ExceptionHistoryTracke
 import DraftPickTracker from '@/features/architect/DraftPickTracker';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
-import { normalizeWorldEventsForTeamHistory } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
+import {
+  normalizeWorldEventsForTeamHistory,
+  type TeamHistoryWorldEventRow,
+} from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 import HistoryDetailModal from './HistoryDetailModal';
+import type {
+  TeamHistoryCapSheetLike,
+  TeamHistoryDisplayEntry,
+  TeamHistoryLooseTimelineEntry,
+  TeamHistoryTabProps,
+} from './types';
 
-const normalizeTimelineFromSections = (teamCapSheet = {}) => {
-  const timeline = [];
+type WorldEventsTimelineProps = {
+  worldId: string;
+  teamCode: string | null;
+  onSelectEntry: (entry: TeamHistoryWorldEventRow) => void;
+};
+
+const normalizeTimelineFromSections = (
+  teamCapSheet: TeamHistoryCapSheetLike = {}
+): TeamHistoryLooseTimelineEntry[] => {
+  const timeline: TeamHistoryLooseTimelineEntry[] = [];
 
   const waivedContracts = Array.isArray(teamCapSheet.waivedContracts)
     ? teamCapSheet.waivedContracts
@@ -70,7 +87,9 @@ const normalizeTimelineFromSections = (teamCapSheet = {}) => {
   return timeline;
 };
 
-const sortTimelineNewestFirst = (entries = []) => {
+const sortTimelineNewestFirst = (
+  entries: TeamHistoryLooseTimelineEntry[] = []
+): TeamHistoryLooseTimelineEntry[] => {
   return [...entries].sort((a, b) => {
     const aTs = Date.parse(String(a?.timestamp || a?.occurredAt || 0));
     const bTs = Date.parse(String(b?.timestamp || b?.occurredAt || 0));
@@ -78,7 +97,11 @@ const sortTimelineNewestFirst = (entries = []) => {
   });
 };
 
-const WorldEventsTimeline = ({ worldId, teamCode, onSelectEntry }) => {
+const WorldEventsTimeline = ({
+  worldId,
+  teamCode,
+  onSelectEntry,
+}: WorldEventsTimelineProps) => {
   const { events, loading, error, hasMore, loadMore } = useWorldTeamEvents({
     worldId,
     teamCode,
@@ -193,8 +216,9 @@ const TeamHistoryTab = ({
   onInjectTeamHistoryFixtures = null,
   onClearTeamHistoryFixtures = null,
   hasInjectedTeamHistoryFixtures = false,
-}) => {
-  const [selectedEntry, setSelectedEntry] = useState(null);
+}: TeamHistoryTabProps) => {
+  const [selectedEntry, setSelectedEntry] =
+    useState<TeamHistoryDisplayEntry | null>(null);
 
   const showDevFixturePanel =
     import.meta.env.DEV &&
@@ -274,7 +298,7 @@ const TeamHistoryTab = ({
           <WorldEventsTimeline
             worldId={worldId}
             teamCode={teamCapSheet?.teamCode || null}
-            onSelectEntry={setSelectedEntry}
+            onSelectEntry={(entry) => setSelectedEntry(entry)}
           />
         ) : sortedTimeline.length === 0 ? (
           <p>No timeline entries yet.</p>

@@ -1,22 +1,33 @@
 import React from 'react';
+import type {
+  HistoryDetailModalProps,
+  TeamHistoryDetailSectionLike,
+} from './types';
 
-const formatNumberDelta = (value) => {
+const formatNumberDelta = (value: unknown) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return '—';
   const sign = value > 0 ? '+' : '';
   return `${sign}$${value.toLocaleString()}`;
 };
 
-const formatTeams = (teamsInvolved) => {
+const formatTeams = (teamsInvolved: string[] | null | undefined) => {
   if (!Array.isArray(teamsInvolved) || teamsInvolved.length === 0) return '—';
   return teamsInvolved.join(' · ');
 };
 
-const formatList = (items) => {
+const formatList = (items: unknown) => {
   if (!Array.isArray(items) || items.length === 0) return '—';
   return items.join(' · ');
 };
 
-const stringifySafe = (value) => {
+const getDisplayText = (value: unknown) => {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value;
+  }
+  return '—';
+};
+
+const stringifySafe = (value: unknown) => {
   if (!value || typeof value !== 'object') return '—';
   try {
     return JSON.stringify(value, null, 2);
@@ -25,28 +36,38 @@ const stringifySafe = (value) => {
   }
 };
 
-const HistoryDetailModal = ({ entry, onClose }) => {
+const HistoryDetailModal = ({ entry, onClose }: HistoryDetailModalProps) => {
   if (!entry) return null;
 
+  const rawEntry =
+    entry.raw && typeof entry.raw === 'object' ? entry.raw : undefined;
   const mutationId =
-    entry.mutationId || entry.eventId || entry.id || entry.operationId || '—';
-  const rawEventType = entry.mutationType || entry.raw?.mutationType || '—';
-  const rawType = entry.raw?.type || entry.type || '—';
-  const operationId = entry.operationId || entry.raw?.operationId || '—';
-  const eventId = entry.eventId || entry.raw?.eventId || entry.id || '—';
+    ('mutationId' in entry ? entry.mutationId : null) ||
+    entry.eventId ||
+    entry.id ||
+    entry.operationId ||
+    '—';
+  const rawEventType = getDisplayText(
+    entry.mutationType || rawEntry?.mutationType || '—'
+  );
+  const rawType = getDisplayText(rawEntry?.type || entry.type || '—');
+  const operationId = getDisplayText(
+    entry.operationId || rawEntry?.operationId || '—'
+  );
+  const eventId = getDisplayText(rawEntry?.eventId || entry.eventId || entry.id || '—');
   const teamCodes =
     entry.teamCodes ||
     entry.teamsInvolved ||
-    entry.raw?.teamCodes ||
-    entry.raw?.teamsAffected ||
+    rawEntry?.teamCodes ||
+    rawEntry?.teamsAffected ||
     [];
-  const playerIds = entry.playerIds || entry.raw?.playerIds || [];
+  const playerIds = entry.playerIds || rawEntry?.playerIds || [];
   const beforeTotalsByTeam =
-    entry.beforeTotalsByTeam || entry.raw?.beforeTotalsByTeam || null;
+    entry.beforeTotalsByTeam || rawEntry?.beforeTotalsByTeam || null;
   const afterTotalsByTeam =
-    entry.afterTotalsByTeam || entry.raw?.afterTotalsByTeam || null;
+    entry.afterTotalsByTeam || rawEntry?.afterTotalsByTeam || null;
   const detailSections = Array.isArray(entry.detailSections)
-    ? entry.detailSections
+    ? (entry.detailSections as TeamHistoryDetailSectionLike[])
     : [];
 
   return (

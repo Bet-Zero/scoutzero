@@ -1,7 +1,20 @@
 import React from 'react';
 
-const WaiveStretchTracker = ({ waivedContracts = [] }) => {
-  const deadCapByYear = {};
+type WaivedContractEntry = {
+  name?: string | null;
+  waivedOn?: string | null;
+  stretched?: boolean | null;
+  deadCap?: Record<string, number> | null;
+};
+
+type WaiveStretchTrackerProps = {
+  waivedContracts?: WaivedContractEntry[];
+};
+
+const WaiveStretchTracker = ({
+  waivedContracts = [],
+}: WaiveStretchTrackerProps) => {
+  const deadCapByYear: Record<string, number> = {};
 
   waivedContracts.forEach((contract) => {
     const entries = contract.deadCap || {};

@@ -1400,6 +1400,28 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E83_RETURN_PACKAGE.md`
 
+### Validator TS Team History Surface E84 (2026-03-14)
+
+- Status: the grouped Team History surface pass completed cleanly. E39, E41, E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, E69, E71, E73, E75, E77, E78, E80, and E82 remain closed and untouched.
+- Execution note:
+  - the 5 counted Team History core files are now TS-backed: `src/features/architect/history/TeamHistoryTab/TeamHistoryTab.tsx`, `src/features/architect/history/TeamHistoryTab/HistoryDetailModal.tsx`, `src/features/architect/capSheet/ExceptionHistoryTracker/ExceptionHistoryTracker.tsx`, `src/features/architect/offseason/DraftPickTracker/DraftPickTracker.tsx`, and `src/features/architect/offseason/WaiveStretchTracker/WaiveStretchTracker.tsx`
+  - the 4 top-level wrapper files remain intact as compatibility-only surfaces: `src/features/architect/TeamHistoryTab.jsx`, `src/features/architect/ExceptionHistoryTracker.jsx`, `src/features/architect/DraftPickTracker.jsx`, and `src/features/architect/WaiveStretchTracker.jsx`
+  - Team History remained read-only in E84; no mutation behavior, write-side helpers, orchestration coupling, dashboard widening, trade UI widening, E41 reopen, or E54 reopen was introduced
+  - visible Team History subsection order, modal/detail ordering, and tracker row/item ordering were preserved
+  - a small internal-only type layer was added under `src/features/architect/history/TeamHistoryTab/types.ts`; no public Team History exports changed
+  - focused E84 proof files were added for direct Team History surface coverage and wrapper-aware subsection rendering coverage
+  - generated component docs were refreshed so the authoritative Team History file paths now point at `.tsx`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/teamHistory.regression.noForbiddenWrites.test.ts src/tests/architect/teamHistory.worldEventsQueryFallback.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/teamHistory.surface.e84.integration.test.tsx src/tests/architect/teamHistory.subsections.e84.rendering.test.tsx src/tests/smoke/architect.uiSmoke.e1.test.tsx`: PASS
+  - `npm run docs`: PASS
+- Follow-up:
+  - no mandatory follow-up was left inside the Team History surface lane
+  - the broader Team History surface is now effectively complete
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TEAM_HISTORY_SURFACE_E84_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

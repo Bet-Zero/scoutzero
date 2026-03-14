@@ -78,7 +78,7 @@ capSheet/
     CapSheetFull.jsx
     index.ts
   ExceptionHistoryTracker/
-    ExceptionHistoryTracker.jsx
+    ExceptionHistoryTracker.tsx
     index.ts
   ExceptionTracker/
     ExceptionTracker.jsx
@@ -115,9 +115,10 @@ freeAgency/
   useFreeAgencyFilterPersistence.ts
 history/
   TeamHistoryTab/
-    HistoryDetailModal.jsx
-    TeamHistoryTab.jsx
+    HistoryDetailModal.tsx
+    TeamHistoryTab.tsx
     index.ts
+    types.ts
   devTeamHistoryFixtures.ts
   hooks/
     useWorldTeamEvents.ts
@@ -138,14 +139,14 @@ hooks/
   useTradeMachineSnapshot.ts
 offseason/
   DraftPickTracker/
-    DraftPickTracker.jsx
+    DraftPickTracker.tsx
     index.ts
   OffseasonTab/
     OffseasonTab.jsx
     OptionManager.jsx
     index.ts
   WaiveStretchTracker/
-    WaiveStretchTracker.jsx
+    WaiveStretchTracker.tsx
     index.ts
   index.ts
 shared/
@@ -471,5 +472,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-13T10:19:43.036Z*
+*Generated on: 2026-03-14T05:02:06.366Z*
 *Auto-updated by: npm run docs*

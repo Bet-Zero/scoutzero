@@ -1,6 +1,27 @@
 import React from 'react';
 
-const DraftPickTracker = ({ pickLog = [], currentPicks = {} }) => {
+type DraftPickLogEntry = {
+  date?: string | null;
+  action?: string | null;
+  pick?: string | null;
+  partner?: string | null;
+  notes?: string | null;
+};
+
+type DraftPickInventoryRow = {
+  first?: string | null;
+  second?: string | null;
+};
+
+type DraftPickTrackerProps = {
+  pickLog?: DraftPickLogEntry[];
+  currentPicks?: Record<string, DraftPickInventoryRow | undefined>;
+};
+
+const DraftPickTracker = ({
+  pickLog = [],
+  currentPicks = {},
+}: DraftPickTrackerProps) => {
   const years = Array.from(new Set(Object.keys(currentPicks).map(Number))).sort(
     (a, b) => a - b
   );

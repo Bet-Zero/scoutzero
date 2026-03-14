@@ -5,9 +5,15 @@ import { resolve } from 'node:path';
 const ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
 const HISTORY_TAB_PATH =
-  'src/features/architect/history/TeamHistoryTab/TeamHistoryTab.jsx';
+  'src/features/architect/history/TeamHistoryTab/TeamHistoryTab.tsx';
 const HISTORY_DETAIL_MODAL_PATH =
-  'src/features/architect/history/TeamHistoryTab/HistoryDetailModal.jsx';
+  'src/features/architect/history/TeamHistoryTab/HistoryDetailModal.tsx';
+const EXCEPTION_TRACKER_PATH =
+  'src/features/architect/capSheet/ExceptionHistoryTracker/ExceptionHistoryTracker.tsx';
+const DRAFT_PICK_TRACKER_PATH =
+  'src/features/architect/offseason/DraftPickTracker/DraftPickTracker.tsx';
+const WAIVE_STRETCH_TRACKER_PATH =
+  'src/features/architect/offseason/WaiveStretchTracker/WaiveStretchTracker.tsx';
 const HISTORY_NORMALIZER_PATH =
   'src/features/architect/history/utils/normalizeWorldEventsForTeamHistory.ts';
 const FIXTURES_PATH =
@@ -54,24 +60,34 @@ describe('Team History forbidden writes regression guardrail', () => {
     }
   });
 
-  it('keeps Team History UI + fixture module free from forbidden write paths', () => {
+  it('keeps Team History UI + subsection modules + fixture module free from forbidden write paths', () => {
     const historySource = readSource(HISTORY_TAB_PATH);
     const modalSource = readSource(HISTORY_DETAIL_MODAL_PATH);
+    const exceptionTrackerSource = readSource(EXCEPTION_TRACKER_PATH);
+    const draftPickTrackerSource = readSource(DRAFT_PICK_TRACKER_PATH);
+    const waiveStretchTrackerSource = readSource(WAIVE_STRETCH_TRACKER_PATH);
     const normalizerSource = readSource(HISTORY_NORMALIZER_PATH);
     const fixtureSource = readSource(FIXTURES_PATH);
+    const sources = [
+      historySource,
+      modalSource,
+      exceptionTrackerSource,
+      draftPickTrackerSource,
+      waiveStretchTrackerSource,
+      normalizerSource,
+      fixtureSource,
+    ];
 
     for (const pattern of forbiddenWritePatterns) {
-      expect(historySource).not.toMatch(pattern);
-      expect(modalSource).not.toMatch(pattern);
-      expect(normalizerSource).not.toMatch(pattern);
-      expect(fixtureSource).not.toMatch(pattern);
+      for (const source of sources) {
+        expect(source).not.toMatch(pattern);
+      }
     }
 
     for (const pattern of forbiddenPathPatterns) {
-      expect(historySource).not.toMatch(pattern);
-      expect(modalSource).not.toMatch(pattern);
-      expect(normalizerSource).not.toMatch(pattern);
-      expect(fixtureSource).not.toMatch(pattern);
+      for (const source of sources) {
+        expect(source).not.toMatch(pattern);
+      }
     }
   });
 });
