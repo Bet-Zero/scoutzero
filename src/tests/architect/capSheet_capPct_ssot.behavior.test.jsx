@@ -13,7 +13,7 @@ import path from 'path';
 describe('Cap Sheet Cap % Denominator SSOT Guardrail (E2)', () => {
   const capSheetPath = path.resolve(
     __dirname,
-    '../../features/architect/capSheet/CapSheet/CapSheet.jsx'
+    '../../features/architect/capSheet/CapSheet/CapSheet.tsx'
   );
 
   it('does not import capProjections (deprecated for cap % denominator)', () => {

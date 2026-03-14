@@ -1479,6 +1479,28 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E87_RETURN_PACKAGE.md`
 
+### Validator TS Cap Sheet Display-Core E88 (2026-03-14)
+
+- Status: the grouped Cap Sheet display-core pass completed cleanly. E39, E41, E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, E69, E71, E73, E75, E77, E78, E80, E82, E84, E86, and the E87 scope audit remain closed and untouched.
+- Execution note:
+  - the 4 counted Cap Sheet display-core files are now TS-backed: `src/features/architect/capSheet/CapSheet/CapSheet.tsx`, `src/features/architect/capSheet/CapSheet/CapSummaryTiles.tsx`, `src/features/architect/capSheet/CapSheetFull/CapSheetFull.tsx`, and `src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.tsx`
+  - visible render ordering remained unchanged across `CapSheet`, `CapSummaryTiles`, `CapSheetFull`, and `ExceptionTracker`; totals/cap-hold/rules-profile/TPE display and action wiring into the existing modal pair also remained unchanged
+  - the same-path `.jsx` files remain shim-only compatibility surfaces by rule: `src/features/architect/capSheet/CapSheet/CapSheet.jsx`, `src/features/architect/capSheet/CapSheet/CapSummaryTiles.jsx`, `src/features/architect/capSheet/CapSheetFull/CapSheetFull.jsx`, and `src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.jsx`
+  - the top-level wrappers and dashboard section shells remained pass-through only and were not broadened: `src/features/architect/CapSheet.jsx`, `src/features/architect/CapSummaryTiles.jsx`, `src/features/architect/CapSheetFull.jsx`, `src/features/architect/ExceptionTracker.jsx`, `src/features/architect/GMDashboard/sections/CapSheetSection.jsx`, and `src/features/architect/GMDashboard/sections/CapTableSection.jsx`
+  - focused test retargets moved source-scan guardrails to the new authoritative `.tsx` paths, and `src/tests/architect/capSheet.displayCore.e88.behavior.test.tsx` now covers CapSummaryTiles ordering/output and CapTableSection pass-through compatibility
+  - `src/tests/architect/capSheet.uiFlows.integration.test.tsx` received a minimal assertion correction so the fixture-flow proof matches the harness's intentional dual-surface rendering of `CapSheet` plus `CapSheetFull`; no user-facing behavior changed
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/capSheet_closure.gate.test.ts src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx src/tests/architect/capSheetFull_ssot_parity_guardrails.test.js`: PASS for the node-config-executed files; the `.jsx` cap-percent guardrail required the separate UI-config run below
+  - `npm run test:ui -- --reporter=dot src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/capSheet.uiFlows.integration.test.tsx src/tests/architect/tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx src/tests/architect/rosterChargeDisplay.test.jsx src/tests/architect/capSheet_exception_wiring.behavior.test.jsx tests/architect/CapSheetFull.rules.test.jsx tests/architect/ExceptionTracker.tpe.test.jsx src/tests/architect/capSheet.displayCore.e88.behavior.test.tsx`: PASS
+  - `npm run build`: PASS
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - no additional display-core pass is recommended; the Cap Sheet display-core sub-arc is now effectively complete
+  - the modal pair remains the intended follow-up sub-arc: `src/features/architect/capSheet/modals/ManageExceptionsModal.jsx` and `src/features/architect/capSheet/modals/ManageDeadMoneyModal.jsx`
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_SHEET_DISPLAY_CORE_E88_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

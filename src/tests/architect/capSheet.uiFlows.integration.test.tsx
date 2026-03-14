@@ -199,11 +199,13 @@ describe('Cap Sheet UI integration flows', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText('CAP DEV FutureContract Fixture')
-      ).toBeInTheDocument();
+        screen.getAllByText('CAP DEV FutureContract Fixture').length
+      ).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText('CAP DEV Control Fixture')).toBeInTheDocument();
+    expect(screen.getAllByText('CAP DEV Control Fixture').length).toBeGreaterThan(
+      0
+    );
     expect(screen.getAllByText('$16,000,000').length).toBeGreaterThan(0);
     expect(screen.getAllByText('$18,000,000').length).toBeGreaterThan(0);
 
@@ -220,12 +222,10 @@ describe('Cap Sheet UI integration flows', () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByText('CAP DEV FutureContract Fixture')
-      ).not.toBeInTheDocument();
+        screen.queryAllByText('CAP DEV FutureContract Fixture')
+      ).toHaveLength(0);
     });
-    expect(
-      screen.queryByText('CAP DEV Control Fixture')
-    ).not.toBeInTheDocument();
+    expect(screen.queryAllByText('CAP DEV Control Fixture')).toHaveLength(0);
   });
 
   it('submits dead-money and exceptions modal flows and reflects deterministic totals on screen', async () => {

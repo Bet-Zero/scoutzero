@@ -25,12 +25,12 @@ import path from 'path';
 
 const CAP_SHEET_PATH = path.resolve(
   __dirname,
-  '../../features/architect/capSheet/CapSheet/CapSheet.jsx'
+  '../../features/architect/capSheet/CapSheet/CapSheet.tsx'
 );
 
 const EXCEPTION_TRACKER_PATH = path.resolve(
   __dirname,
-  '../../features/architect/capSheet/ExceptionTracker/ExceptionTracker.jsx'
+  '../../features/architect/capSheet/ExceptionTracker/ExceptionTracker.tsx'
 );
 
 const MANAGE_EXCEPTIONS_MODAL_PATH = path.resolve(

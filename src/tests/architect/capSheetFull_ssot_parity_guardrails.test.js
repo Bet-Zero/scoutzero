@@ -8,8 +8,8 @@
  *
  * TESTS:
  * A) Source-scan guardrails:
- *    1. CapSheetFull.jsx imports computeTeamCapTotals
- *    2. CapSheetFull.jsx does NOT contain local reduce salary summation
+ *    1. CapSheetFull.tsx imports computeTeamCapTotals
+ *    2. CapSheetFull.tsx does NOT contain local reduce salary summation
  *
  * B) Behavioral guardrails:
  *    3. yearTotals match computeTeamCapTotals.totalCapAllocations for team with dead money
@@ -30,7 +30,7 @@ const __dirname = path.dirname(__filename);
 
 const CAP_SHEET_FULL_PATH = path.resolve(
   __dirname,
-  '../../features/architect/capSheet/CapSheetFull/CapSheetFull.jsx'
+  '../../features/architect/capSheet/CapSheetFull/CapSheetFull.tsx'
 );
 
 const COMPUTE_TOTALS_PATH = path.resolve(

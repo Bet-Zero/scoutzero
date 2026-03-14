@@ -72,16 +72,20 @@ admin/
 capSheet/
   CapSheet/
     CapSheet.jsx
+    CapSheet.tsx
     CapSummaryTiles.jsx
+    CapSummaryTiles.tsx
     index.ts
   CapSheetFull/
     CapSheetFull.jsx
+    CapSheetFull.tsx
     index.ts
   ExceptionHistoryTracker/
     ExceptionHistoryTracker.tsx
     index.ts
   ExceptionTracker/
     ExceptionTracker.jsx
+    ExceptionTracker.tsx
     index.ts
   devCapSheetFixtures.ts
   index.ts
@@ -476,5 +480,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T06:02:19.992Z*
+*Generated on: 2026-03-14T06:58:28.113Z*
 *Auto-updated by: npm run docs*
