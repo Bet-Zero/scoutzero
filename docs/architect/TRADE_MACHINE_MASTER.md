@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-13
+Last updated: 2026-03-14
 
 ## Trade Machine Overview
 
@@ -1421,6 +1421,23 @@ Date: 2026-02-26
   - no mandatory follow-up was left inside the Team History surface lane
   - the broader Team History surface is now effectively complete
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TEAM_HISTORY_SURFACE_E84_RETURN_PACKAGE.md`
+
+### Validator TS Next-Scope Expansion Audit E85 (2026-03-14)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 helper-foundation arc remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, and the E84 Team History surface arc remains complete.
+- Audit note:
+  - execution-time repo evidence re-ran the two-lane comparison instead of locking the next move in advance
+  - the strongest remaining low-risk batch is the `Free Agent Pool surface`, while the strongest remaining surgical alternative stays `src/features/architect/utils/seasonManager.js`
+  - the recommended next scope contains `3` core live JS/JSX business-logic files: `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx`, `src/features/architect/freeAgency/FreeAgentPool/FreeAgentRow.jsx`, and `src/features/architect/freeAgency/FreeAgentPool/FreeAgentCard.jsx`
+  - thin wrapper / typed-sibling / adjacent-feature files were explicitly excluded from that live count: `src/features/architect/FreeAgentPool.jsx`, `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPoolHeader.tsx`, `src/features/architect/freeAgency/FreeAgentPool/FreeAgencyFilterBar.tsx`, `src/features/architect/freeAgency/FreeAgentPool/SelectedFreeAgentCards.tsx`, `src/features/architect/GMDashboard/sections/FreeAgencySection.jsx`, and `src/features/architect/GMDashboard/components/OfferSheetList.jsx`
+  - execution-time evidence did not require widening the recommendation into `FreeAgencySection.jsx`, `OfferSheetList.jsx`, `GMDashboard.jsx`, `WorldSelector.jsx`, `SeasonAdvanceModal.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, `ValidationDetailsPanel.jsx`, `seasonManager.js`, or `mutationPipeline.js`
+  - recommended next scope: `Free Agent Pool surface`
+  - recommended execution shape: `batched low-risk`, handled as `one grouped batched pass`
+  - current frontier read: batching still wins by default for coherent low-risk families, with surgical treatment reserved for the short dangerous-hub list led by `seasonManager.js`, `mutationPipeline.js`, `GMDashboard.jsx`, `WorldSelector.jsx`, `SeasonAdvanceModal.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, and `ValidationDetailsPanel.jsx`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E85_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 
