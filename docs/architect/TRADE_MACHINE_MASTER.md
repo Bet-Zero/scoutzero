@@ -1721,6 +1721,33 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E98_RETURN_PACKAGE.md`
 
+### Validator TS Trade Machine Preview/Export Family E99 (2026-03-14)
+
+- Status:
+  - the 2-file Trade Machine preview/export family is now TS-backed through authoritative `.tsx` implementations:
+    - `src/features/architect/tradeMachine/TradePreviewModal.tsx`
+    - `src/features/architect/tradeMachine/TradeExportCapture.tsx`
+  - both same-path `.jsx` files remain in place as shim-only compatibility surfaces by rule:
+    - `src/features/architect/tradeMachine/TradePreviewModal.jsx`
+    - `src/features/architect/tradeMachine/TradeExportCapture.jsx`
+- Migration note:
+  - behavior remained unchanged across the preview/export pair, including exact preview/export text, labels, empty states, disclaimer text, legal footer semantics, export ordering, hidden capture behavior, modal open/close semantics, and download wiring
+  - `TradePreviewModal` remains the lifecycle owner for the family, preserving the exact two-surface open state: one offscreen capture render plus one visible preview render
+  - `TradeExportCapture` remains the ref target and export surface, preserving the current `forwardRef` contract, incoming asset derivation, year-key salary fallback, cap impact display, and export-only formatting
+  - execution stayed inside the E99 boundary and did not widen into `TradeEditor.jsx`, `TradeTeamCard.jsx`, the Trade Team Card leaf family, `mutationPipeline.js`, or dashboard hubs
+  - added a local permissive `tradePreviewExportTypes.ts` helper plus dedicated compatibility and UI guardrails for the kept `.jsx` shims and the preview/export render contract
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/tradeMachinePreviewExport.compatibility.guardrail.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/trade/TradePreviewExport.guardrail.test.tsx`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, browser externalization of `fs`, mixed static/dynamic imports, and large chunks outside the E99 boundary
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - the grouped batched pass completed cleanly
+  - no mandatory follow-up remains inside the preview/export family
+  - the broader preview/export boundary is now effectively complete; remaining Trade Machine JS/JSX work lives in excluded editing/orchestration hubs and the excluded Trade Team Card leaf family
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_PREVIEW_EXPORT_FAMILY_E99_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

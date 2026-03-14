@@ -191,10 +191,12 @@ tradeMachine/
   TradeExceptionDashboard.tsx
   TradeExceptionManager.jsx
   TradeExportCapture.jsx
+  TradeExportCapture.tsx
   TradeLegalChecker.jsx
   TradeLegalChecker.tsx
   TradePlayerRow.jsx
   TradePreviewModal.jsx
+  TradePreviewModal.tsx
   TradeReceiptPanel.jsx
   TradeReceiptPanel.tsx
   TradeSalaryCalculator.jsx
@@ -206,6 +208,7 @@ tradeMachine/
   ValidationDetailsPanel.tsx
   ValidationStateHeader.jsx
   ValidationStateHeader.tsx
+  tradePreviewExportTypes.ts
   utils/
     computeTradeDraftKey.js
     computeTradeDraftKey.ts
@@ -499,5 +502,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T10:43:34.379Z*
+*Generated on: 2026-03-14T11:32:49.772Z*
 *Auto-updated by: npm run docs*
