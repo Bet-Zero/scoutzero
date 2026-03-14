@@ -1701,6 +1701,26 @@ Date: 2026-02-26
   - the broader validation-presentation boundary is now effectively complete; remaining Trade Machine JS/JSX work lives in excluded editing/orchestration hubs and the excluded preview/export pocket
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_VALIDATION_PRESENTATION_E97_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E98 (2026-03-14)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, the E89 Cap Sheet modal-pair sub-arc remains complete, the E91 Free Agency offer-sheet surface arc remains complete, the E93 Offseason preview surface arc remains complete, the E95 seasonManager arc remains complete, and the E97 validator/result-presentation family arc remains complete.
+- Audit note:
+  - execution-time repo evidence re-ran the two-lane comparison instead of locking the next move in advance
+  - the strongest remaining surgical candidate is `src/features/architect/utils/mutationPipeline.js`, while the strongest remaining batched low-risk candidate from current repo state is the Trade Machine preview/export family:
+    - `src/features/architect/tradeMachine/TradePreviewModal.jsx`
+    - `src/features/architect/tradeMachine/TradeExportCapture.jsx`
+  - the recommended next migration scope is the Trade Machine preview/export family
+  - the recommended lane is `batched low-risk`
+  - the estimated live JS/JSX/TSX business-logic count for that scope is `2`
+  - the counted core files are the preview/export pair only; excluded editing/orchestration hubs remain `TradeEditor.jsx` and `TradeTeamCard.jsx`; excluded Trade Team Card leaf family remains `CapImpactTiles.jsx`, `SelectTeamCard.jsx`, `OutgoingPlayersList.jsx`, `TradePlayerRow.jsx`, `EntitlementPicksList.jsx`, `EntitlementPickRow.jsx`, and `TradeExceptionManager.jsx`
+  - the recommended next scope should stay `one grouped batched pass` because `TradePreviewModal.jsx` is a thin live wrapper over `TradeExportCapture.jsx`, both share the same `teams`/`result`/`yearKey` data flow and ref-based capture/download behavior, and execution-time evidence did not surface a clean split point
+  - execution-time evidence did not require widening the recommendation into `TradeEditor.jsx`, `TradeTeamCard.jsx`, the Trade Team Card leaf family, or `mutationPipeline.js`; if a later pass finds a blocker, it should document that blocker instead of auto-expanding scope
+  - current frontier read: batching still wins by default for coherent low-risk slices, with surgical treatment reserved for the short dangerous-hub list led by `mutationPipeline.js`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, `GMDashboard.jsx`, `WorldSelector.jsx`, and `SeasonAdvanceModal.jsx`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E98_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
