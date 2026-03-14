@@ -40,7 +40,7 @@ const MUTATION_PIPELINE_PATH = path.resolve(
 
 const FREE_AGENT_POOL_PATH = path.resolve(
   __dirname,
-  '../../features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx'
+  '../../features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx'
 );
 
 const TRADE_EDITOR_PATH = path.resolve(

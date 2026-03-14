@@ -106,11 +106,15 @@ freeAgency/
   FreeAgentPool/
     FreeAgencyFilterBar.tsx
     FreeAgentCard.jsx
+    FreeAgentCard.tsx
     FreeAgentPool.jsx
+    FreeAgentPool.tsx
     FreeAgentPoolHeader.tsx
     FreeAgentRow.jsx
+    FreeAgentRow.tsx
     SelectedFreeAgentCards.tsx
     index.ts
+    types.ts
   index.ts
   useFreeAgencyFilterPersistence.ts
 history/
@@ -472,5 +476,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T05:02:06.366Z*
+*Generated on: 2026-03-14T06:02:19.992Z*
 *Auto-updated by: npm run docs*

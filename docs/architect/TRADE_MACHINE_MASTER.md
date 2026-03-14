@@ -1439,6 +1439,28 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E85_RETURN_PACKAGE.md`
 
+### Validator TS Free Agent Pool Surface E86 (2026-03-14)
+
+- Status: the grouped Free Agent Pool surface pass completed cleanly. E39, E41, E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, E69, E71, E73, E75, E77, E78, E80, E82, E84, and the E85 scope audit remain closed and untouched.
+- Execution note:
+  - the 3 counted Free Agent Pool core files are now TS-backed: `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx`, `src/features/architect/freeAgency/FreeAgentPool/FreeAgentRow.tsx`, and `src/features/architect/freeAgency/FreeAgentPool/FreeAgentCard.tsx`
+  - visible render ordering, selected-card layout ordering, menu item ordering, callback wiring, contract payload assembly, and row/menu interaction behavior remained unchanged
+  - typed siblings stayed narrow and compatibility-focused: `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPoolHeader.tsx`, `src/features/architect/freeAgency/FreeAgentPool/FreeAgencyFilterBar.tsx`, and `src/features/architect/freeAgency/FreeAgentPool/SelectedFreeAgentCards.tsx`
+  - `src/features/architect/FreeAgentPool.jsx` remained the top-level compatibility wrapper, while the in-folder `.jsx` files now remain shim-only compatibility surfaces over the authoritative `.tsx` files
+  - execution-time direct-path `.jsx` importer scanning found no runtime consumers outside the intentional explicit shim proof imports kept in `src/tests/architect/freeAgentPool.surface.e86.behavior.test.tsx`
+  - generated component docs were refreshed; `docs/components/ArchitectHierarchy.md` now reflects the authoritative `.tsx` Free Agent Pool files
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/editContractModal_closure.gate.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/freeAgentPool.offerSheetInitiation.behavior.test.jsx src/tests/architect/freeAgentPool.surface.e86.behavior.test.tsx`: PASS
+  - `npm run build`: PASS
+  - `npm run docs`: PASS
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - no mandatory follow-up remains inside the Free Agent Pool surface lane
+  - the broader Free Agent Pool surface is now effectively complete
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -25,7 +25,7 @@ import path from 'path';
 
 const FREE_AGENT_POOL_PATH = path.resolve(
   __dirname,
-  '../../features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx'
+  '../../features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx'
 );
 
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
