@@ -1581,6 +1581,29 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E92_RETURN_PACKAGE.md`
 
+### Validator TS Offseason Preview Surface E93 (2026-03-14)
+
+- Status:
+  - the 2 counted Offseason preview surface files are now TS-backed:
+    - `src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx`
+    - `src/features/architect/offseason/OffseasonTab/OptionManager.tsx`
+  - the same-path `.jsx` files remain shim-only compatibility surfaces by rule
+- Migration note:
+  - behavior remained unchanged, including exact visible render ordering, empty-state placement, table header order, confirm-button placement, preview messaging text, local error text placement, option discovery from `teamCapSheet.players`, `toSeasonCode(currentYear + 1)`, `salary ?? capHit`, `option || null`, `player_id -> id -> playerId` lookup order, `decisionKey` fallback to `name`, default `'exercise'` decisions, `onDecisionsReady(decisions)` payload shape, `JSON.parse(JSON.stringify(teamCapSheet))` snapshot cloning, `runOffseason(teamCapSheet, currentYear, capProjections, optionDecisions || {})`, setter call order, `console.error`, and fallback thrown-error text
+  - added `src/features/architect/offseason/OffseasonTab/types.ts` as an internal local type layer for the authoritative preview path
+  - the top-level wrapper `src/features/architect/OffseasonTab.jsx` remained intact, and execution stayed inside the E93 boundary without reopening `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`, `src/features/architect/utils/runOffseason.js`, `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`, `src/features/architect/utils/seasonManager.js`, `src/features/architect/utils/mutationPipeline.js`, dashboard hubs, trade UI hubs, validator internals, or Trade Machine cache/debug/monitoring files
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/offseason.devGate.guardrail.test.ts src/tests/architect/phase86_oste_offseason_transition_engine.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/offseason.previewSurface.e93.behavior.test.tsx src/tests/smoke/architect.uiSmoke.e1.test.tsx`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, browser externalization of `fs`, mixed static/dynamic imports, and large chunks outside the E93 surface
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - the grouped batched pass completed cleanly
+  - no mandatory follow-up remains inside the Offseason preview surface lane
+  - the broader Offseason preview surface is now effectively complete
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_OFFSEASON_PREVIEW_SURFACE_E93_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

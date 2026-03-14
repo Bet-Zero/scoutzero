@@ -19,7 +19,17 @@ const offseasonSectionPath = path.resolve(
 
 const offseasonTabPath = path.resolve(
   process.cwd(),
+  'src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx'
+);
+
+const offseasonTabShimPath = path.resolve(
+  process.cwd(),
   'src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx'
+);
+
+const optionManagerShimPath = path.resolve(
+  process.cwd(),
+  'src/features/architect/offseason/OffseasonTab/OptionManager.jsx'
 );
 
 describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
@@ -78,6 +88,33 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('labels the advance button as preview', () => {
       expect(source).toContain('Preview Advance to');
+    });
+  });
+
+  describe('Offseason preview JSX compatibility shims', () => {
+    const offseasonTabShimSource = fs.readFileSync(offseasonTabShimPath, 'utf-8');
+    const optionManagerShimSource = fs.readFileSync(optionManagerShimPath, 'utf-8');
+
+    it('keeps OffseasonTab.jsx as a shim-only default re-export', () => {
+      expect(offseasonTabShimSource).toContain(
+        "export { default } from './OffseasonTab.tsx';"
+      );
+    });
+
+    it('keeps OffseasonTab.jsx free of preview business logic', () => {
+      expect(offseasonTabShimSource).not.toContain('runOffseason(');
+      expect(offseasonTabShimSource).not.toContain('useState(');
+    });
+
+    it('keeps OptionManager.jsx as a shim-only default re-export', () => {
+      expect(optionManagerShimSource).toContain(
+        "export { default } from './OptionManager.tsx';"
+      );
+    });
+
+    it('keeps OptionManager.jsx free of option-collection business logic', () => {
+      expect(optionManagerShimSource).not.toContain('useEffect(');
+      expect(optionManagerShimSource).not.toContain('toSeasonCode(');
     });
   });
 });

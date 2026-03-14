@@ -156,8 +156,11 @@ offseason/
     index.ts
   OffseasonTab/
     OffseasonTab.jsx
+    OffseasonTab.tsx
     OptionManager.jsx
+    OptionManager.tsx
     index.ts
+    types.ts
   WaiveStretchTracker/
     WaiveStretchTracker.tsx
     index.ts
@@ -485,5 +488,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T08:12:09.750Z*
+*Generated on: 2026-03-14T09:15:41.180Z*
 *Auto-updated by: npm run docs*
