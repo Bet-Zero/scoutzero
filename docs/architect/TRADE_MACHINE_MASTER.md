@@ -1521,6 +1521,24 @@ Date: 2026-02-26
   - the broader Cap Sheet family is now effectively complete because the remaining Cap Sheet JS/JSX files are intentional compatibility or pass-through wrappers rather than live modal/display authorities
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_SHEET_MODAL_PAIR_E89_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E90 (2026-03-14)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, and the E89 Cap Sheet modal-pair sub-arc remains complete.
+- Audit note:
+  - execution-time repo evidence re-ran the two-lane comparison instead of locking the next move in advance
+  - the strongest remaining low-risk family is the `Free Agency offer-sheet surface`, while the strongest remaining surgical alternative remains `src/features/architect/utils/seasonManager.js`
+  - the recommended next scope contains `2` core live JS/JSX business-logic files: `src/features/architect/GMDashboard/sections/FreeAgencySection.jsx` and `src/features/architect/GMDashboard/components/OfferSheetList.jsx`
+  - the `2`-file live count explicitly excludes `src/features/architect/FreeAgentPool.jsx`, the TS-backed `src/features/architect/freeAgency/FreeAgentPool/*` authorities and same-path JS shims, dashboard shells, and the dangerous hubs `src/features/architect/GMDashboard/GMDashboard.jsx`, `src/features/architect/GMDashboard/components/WorldSelector.jsx`, `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`, `src/features/architect/tradeMachine/TradeEditor.jsx`, `src/features/architect/tradeMachine/TradeTeamCard.jsx`, `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx`, `src/features/architect/utils/seasonManager.js`, and `src/features/architect/utils/mutationPipeline.js`
+  - execution-time evidence did not require widening the recommendation into the closed E86 Free Agent Pool scope or into dashboard/trade orchestration hubs; if a future execution pass finds a blocker, it should document that blocker instead of auto-expanding the boundary
+  - recommended next scope: `Free Agency offer-sheet surface`
+  - recommended execution lane: `batched low-risk`
+  - recommended execution shape: `one grouped batched pass`
+  - current frontier read: batching still wins by default for coherent low-risk families, with surgical treatment reserved for the short dangerous-hub list led by `seasonManager.js`, `mutationPipeline.js`, `GMDashboard.jsx`, `WorldSelector.jsx`, `SeasonAdvanceModal.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, and `ValidationDetailsPanel.jsx`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E90_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
