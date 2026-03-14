@@ -6,6 +6,7 @@ import {
   fireEvent,
   waitFor,
   cleanup,
+  within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker/ExceptionTracker';
@@ -37,6 +38,18 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
 vi.mock('@/features/architect/utils/persistenceContracts/normalizeTeamTpe', () => ({
   getTeamTpeList: vi.fn(() => hoistedMocks.tpeList),
 }));
+
+function normalizedTexts(elements) {
+  return elements.map((element) =>
+    element.textContent?.replace(/\s+/g, ' ').trim() || ''
+  );
+}
+
+function expectBefore(first, second) {
+  expect(
+    first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).not.toBe(0);
+}
 
 describe('Cap Sheet Exception Wiring (E1)', () => {
   beforeEach(() => {
@@ -141,6 +154,94 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(savedPayload).not.toHaveProperty('dpe');
   });
 
+  it('preserves ManageExceptionsModal visible row order, button order, and payload assembly behavior', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const onClose = vi.fn();
+
+    render(
+      <ManageExceptionsModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        currentYear={2026}
+        teamCapSheet={{
+          exceptions: {
+            mle: {
+              enabled: true,
+              totalAmount: '6000000',
+              usedAmount: '2000000',
+              seasonKey: '2025-26',
+              notes: '',
+            },
+            bae: {
+              enabled: false,
+              totalAmount: '4700000',
+              usedAmount: '1000000',
+              seasonKey: '2025-26',
+              notes: 'carry',
+            },
+            room: {
+              enabled: false,
+              totalAmount: '7900000',
+              usedAmount: 0,
+              seasonKey: '2025-26',
+            },
+          },
+        }}
+      />
+    );
+
+    const table = screen.getByRole('table');
+    expect(normalizedTexts(within(table).getAllByRole('columnheader'))).toEqual([
+      'Enabled',
+      'Exception Type',
+      'Total Amount',
+      'Used Amount',
+      'Remaining',
+      'Notes',
+    ]);
+
+    const bodyRows = within(table).getAllByRole('row').slice(1);
+    expect(bodyRows).toHaveLength(4);
+    expect(normalizedTexts(bodyRows)).toEqual([
+      expect.stringContaining('Mid-Level Exception (MLE)'),
+      expect.stringContaining('Taxpayer MLE'),
+      expect.stringContaining('Bi-Annual Exception (BAE)'),
+      expect.stringContaining('Room Exception'),
+    ]);
+
+    const summaryHeading = screen.getByText(/Reference: Default Exception Amounts/i);
+    expectBefore(table, summaryHeading);
+
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    expectBefore(cancelButton, saveButton);
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith({
+      mle: {
+        enabled: true,
+        totalAmount: 6000000,
+        usedAmount: 2000000,
+        seasonKey: '2025-26',
+      },
+      bae: {
+        enabled: false,
+        totalAmount: 4700000,
+        usedAmount: 1000000,
+        seasonKey: '2025-26',
+        notes: 'carry',
+      },
+    });
+    expect(Object.keys(onSave.mock.calls[0][0])).toEqual(['mle', 'bae']);
+  });
+
   it('uses TPE expiry fallback fields and prefers expiresOn when present', () => {
     hoistedMocks.tpeList = [
       {
@@ -197,6 +298,48 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('keeps exceptions modal open and shows thrown save errors above the footer buttons', async () => {
+    const onClose = vi.fn();
+    const onSave = vi.fn().mockRejectedValue(new Error('Exploded save'));
+
+    render(
+      <ManageExceptionsModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        currentYear={2026}
+        teamCapSheet={{ exceptions: {} }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Exploded save');
+    expectBefore(alert, screen.getByRole('button', { name: /cancel/i }));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('uses cancel to close ManageExceptionsModal without saving', () => {
+    const onClose = vi.fn();
+    const onSave = vi.fn();
+
+    render(
+      <ManageExceptionsModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        currentYear={2026}
+        teamCapSheet={{ exceptions: {} }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it('keeps dead money modal open with inline error when save fails', async () => {
     const onClose = vi.fn();
     const onSave = vi.fn().mockResolvedValue(false);
@@ -219,5 +362,182 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       );
     });
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('preserves ManageDeadMoneyModal visible order and row-to-payload mapping behavior', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const onClose = vi.fn();
+
+    render(
+      <ManageDeadMoneyModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        currentYear={2026}
+        teamCapSheet={{
+          deadCap: [
+            {
+              playerId: 'p_dead',
+              playerName: 'Stretched Buyout',
+              stretched: true,
+              amountByYear: [
+                { season: '2025-26', amount: 3000000 },
+                { season: '2026-27', amount: 3000000, isStretched: true },
+              ],
+            },
+          ],
+        }}
+      />
+    );
+
+    const table = screen.getByRole('table');
+    expect(normalizedTexts(within(table).getAllByRole('columnheader'))).toEqual([
+      'Description / Player',
+      'Season',
+      'Amount',
+      'Stretched',
+      '',
+    ]);
+
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3);
+    const addButton = screen.getByRole('button', { name: /add entry/i });
+    expectBefore(table, addButton);
+
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    expectBefore(cancelButton, saveButton);
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith([
+      {
+        playerId: 'p_dead',
+        playerName: 'Stretched Buyout',
+        amountByYear: [
+          {
+            season: '2025-26',
+            amount: 3000000,
+            isStretched: true,
+          },
+        ],
+        notes: 'Manual Adjustment',
+      },
+      {
+        playerId: 'p_dead',
+        playerName: 'Stretched Buyout',
+        amountByYear: [
+          {
+            season: '2026-27',
+            amount: 3000000,
+            isStretched: true,
+          },
+        ],
+        notes: 'Manual Adjustment',
+      },
+    ]);
+  });
+
+  it('preserves dead money fallback ID and label behavior for newly added rows', async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+
+    render(
+      <ManageDeadMoneyModal
+        isOpen
+        onClose={() => {}}
+        onSave={onSave}
+        currentYear={2026}
+        teamCapSheet={{ deadCap: [] }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /add entry/i }));
+
+    const textboxes = screen.getAllByRole('textbox');
+    fireEvent.change(textboxes[0], {
+      target: { value: 'Waived: John Doe' },
+    });
+    fireEvent.change(textboxes[1], {
+      target: { value: '2027-28' },
+    });
+
+    fireEvent.change(screen.getByRole('spinbutton'), {
+      target: { value: '2500000' },
+    });
+
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    const [payload] = onSave.mock.calls[0];
+    expect(payload).toHaveLength(1);
+    expect(payload[0]).toEqual({
+      playerId: expect.stringMatching(/^manual_/),
+      playerName: 'Waived: John Doe',
+      amountByYear: [
+        {
+          season: '2027-28',
+          amount: 2500000,
+          isStretched: true,
+        },
+      ],
+      notes: 'Manual Adjustment',
+    });
+    expect(Object.keys(payload[0])).toEqual([
+      'playerId',
+      'playerName',
+      'amountByYear',
+      'notes',
+    ]);
+  });
+
+  it('keeps dead money modal open and shows thrown save errors above the footer buttons', async () => {
+    const onClose = vi.fn();
+    const onSave = vi.fn().mockRejectedValue(new Error('Dead money exploded'));
+
+    render(
+      <ManageDeadMoneyModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        currentYear={2026}
+        teamCapSheet={{ deadCap: [] }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Dead money exploded');
+    expectBefore(alert, screen.getByRole('button', { name: /cancel/i }));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('uses cancel to close ManageDeadMoneyModal without saving', () => {
+    const onClose = vi.fn();
+    const onSave = vi.fn();
+
+    render(
+      <ManageDeadMoneyModal
+        isOpen
+        onClose={onClose}
+        onSave={onSave}
+        currentYear={2026}
+        teamCapSheet={{ deadCap: [] }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
   });
 });

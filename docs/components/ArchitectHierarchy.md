@@ -91,7 +91,9 @@ capSheet/
   index.ts
   modals/
     ManageDeadMoneyModal.jsx
+    ManageDeadMoneyModal.tsx
     ManageExceptionsModal.jsx
+    ManageExceptionsModal.tsx
 constants/
   playerNameCorrections.ts
 contract/
@@ -480,5 +482,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T06:58:28.113Z*
+*Generated on: 2026-03-14T07:27:47.229Z*
 *Auto-updated by: npm run docs*

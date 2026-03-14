@@ -94,20 +94,20 @@ describe('Phase 75: Source Scan Guardrails', () => {
     expect(source).not.toContain("rule: 'ROOM_REQUIRES_UNDER_CAP'");
   });
 
-  it('ManageExceptionsModal.jsx imports canUseRoomException', () => {
+  it('ManageExceptionsModal.tsx imports canUseRoomException', () => {
     const filePath = path.join(
       srcRoot,
-      'capSheet/modals/ManageExceptionsModal.jsx'
+      'capSheet/modals/ManageExceptionsModal.tsx'
     );
     const source = fs.readFileSync(filePath, 'utf-8');
 
     expect(source).toContain('canUseRoomException');
   });
 
-  it('ManageExceptionsModal.jsx computes roomExceptionEligibility using useMemo', () => {
+  it('ManageExceptionsModal.tsx computes roomExceptionEligibility using useMemo', () => {
     const filePath = path.join(
       srcRoot,
-      'capSheet/modals/ManageExceptionsModal.jsx'
+      'capSheet/modals/ManageExceptionsModal.tsx'
     );
     const source = fs.readFileSync(filePath, 'utf-8');
 
@@ -116,10 +116,10 @@ describe('Phase 75: Source Scan Guardrails', () => {
     expect(source).toContain('roomDisabledByEligibility');
   });
 
-  it('ManageExceptionsModal.jsx shows eligibility warning for room exception', () => {
+  it('ManageExceptionsModal.tsx shows eligibility warning for room exception', () => {
     const filePath = path.join(
       srcRoot,
-      'capSheet/modals/ManageExceptionsModal.jsx'
+      'capSheet/modals/ManageExceptionsModal.tsx'
     );
     const source = fs.readFileSync(filePath, 'utf-8');
 

@@ -28,7 +28,7 @@ const __dirname = path.dirname(__filename);
 
 const MODAL_PATH = path.resolve(
   __dirname,
-  '../../../features/architect/capSheet/modals/ManageDeadMoneyModal.jsx'
+  '../../../features/architect/capSheet/modals/ManageDeadMoneyModal.tsx'
 );
 
 const YEAR = 2026; // 2025-26 season

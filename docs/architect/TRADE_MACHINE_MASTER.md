@@ -1501,6 +1501,26 @@ Date: 2026-02-26
   - the modal pair remains the intended follow-up sub-arc: `src/features/architect/capSheet/modals/ManageExceptionsModal.jsx` and `src/features/architect/capSheet/modals/ManageDeadMoneyModal.jsx`
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_SHEET_DISPLAY_CORE_E88_RETURN_PACKAGE.md`
 
+### Validator TS Cap Sheet Modal Pair E89 (2026-03-14)
+
+- Status: the Cap Sheet modal-pair pass completed cleanly. E39, E41, E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, E69, E71, E73, E75, E77, E78, E80, E82, E84, E86, E87, and E88 remain closed and untouched.
+- Execution note:
+  - the 2 counted Cap Sheet modal authorities are now TS-backed: `src/features/architect/capSheet/modals/ManageExceptionsModal.tsx` and `src/features/architect/capSheet/modals/ManageDeadMoneyModal.tsx`
+  - visible field order, exception/dead-money row order, header/body/footer section order, button order, warning/error text placement, and save/cancel lifecycle timing remained unchanged across both modals
+  - payload assembly remained unchanged across both modal flows, including key presence/omission behavior, per-row dead-money output, numeric coercion, room-exception gating behavior, and the existing fallback dead-money ID/label behavior
+  - the same-path `.jsx` files remain shim-only compatibility surfaces by rule: `src/features/architect/capSheet/modals/ManageExceptionsModal.jsx` and `src/features/architect/capSheet/modals/ManageDeadMoneyModal.jsx`
+  - focused test retargets moved modal source-scan guardrails to the new authoritative `.tsx` paths, and `src/tests/architect/capSheet_exception_wiring.behavior.test.jsx` now directly covers modal order, payload shape, thrown-error handling, and cancel-without-save behavior
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/capSheet_closure.gate.test.ts src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.js src/tests/architect/phase75_room_exception_auto_eligibility_guardrails.test.js`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/capSheet_exception_wiring.behavior.test.jsx src/tests/architect/capSheet.uiFlows.integration.test.tsx src/tests/architect/capSheet.transactionMatrix.behavior.test.tsx`: PASS
+  - `npm run build`: PASS with pre-existing Vite warnings about stale Browserslist data, browser externalization of `fs`, mixed static/dynamic imports, and large chunks outside the E89 surface
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - no additional modal-pair pass is recommended; the paired sub-arc completed cleanly
+  - the broader Cap Sheet family is now effectively complete because the remaining Cap Sheet JS/JSX files are intentional compatibility or pass-through wrappers rather than live modal/display authorities
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_SHEET_MODAL_PAIR_E89_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

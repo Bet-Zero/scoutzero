@@ -35,12 +35,12 @@ const EXCEPTION_TRACKER_PATH = path.resolve(
 
 const MANAGE_EXCEPTIONS_MODAL_PATH = path.resolve(
   __dirname,
-  '../../features/architect/capSheet/modals/ManageExceptionsModal.jsx'
+  '../../features/architect/capSheet/modals/ManageExceptionsModal.tsx'
 );
 
 const MANAGE_DEAD_MONEY_MODAL_PATH = path.resolve(
   __dirname,
-  '../../features/architect/capSheet/modals/ManageDeadMoneyModal.jsx'
+  '../../features/architect/capSheet/modals/ManageDeadMoneyModal.tsx'
 );
 
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
