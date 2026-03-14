@@ -1,0 +1,161 @@
+/**
+ * FILE: src/features/architect/GMDashboard/components/OfferSheetList.tsx
+ * PURPOSE: Render a list of offer sheets with appropriate actions (Match/Decline/Finalize).
+ * OWNERSHIP: Feature: architect/GMDashboard
+ *
+ * HISTORY:
+ *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E91.
+ *
+ * LINKS:
+ *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENCY_OFFER_SHEET_SURFACE_E91_RETURN_PACKAGE.md
+ *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
+ */
+import React from 'react';
+
+import type { OfferSheetLike, OfferSheetListProps } from '../offerSheetTypes';
+
+const formatCurrency = (val: OfferSheetLike['totalValue']) => {
+  if (!val) return '$0';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(val as number);
+};
+
+const OfferSheetList = ({
+  offerSheets = [],
+  title = 'Offer Sheets',
+  isIncoming = false,
+  onMatch,
+  onDecline,
+  onFinalize,
+  actionsDisabled = false,
+  actionsDisabledReason = 'Requires an active world to commit.',
+}: OfferSheetListProps) => {
+  if (!offerSheets || offerSheets.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <h3 className="text-lg font-bold mb-4">{title}</h3>
+      {actionsDisabled && (
+        <p className="text-xs text-amber-700 mb-3">{actionsDisabledReason}</p>
+      )}
+      <table className="w-full text-left text-sm">
+        <thead>
+          <tr className="border-b">
+            <th className="py-2">Player</th>
+            <th className="py-2">
+              {isIncoming ? 'Offering Team' : 'Target Team'}
+            </th>
+            <th className="py-2">Terms</th>
+            <th className="py-2">Status</th>
+            <th className="py-2">Date</th>
+            <th className="py-2 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {offerSheets.map((os) => (
+            <tr key={os.id} className="border-b last:border-0 hover:bg-gray-50">
+              <td className="py-3 font-medium">{os.playerName}</td>
+              <td className="py-3">
+                {isIncoming ? os.offeringTeamCode : os.homeTeamCode}
+              </td>
+              <td className="py-3">
+                {os.contractYears}y / {formatCurrency(os.totalValue)}
+              </td>
+              <td className="py-3">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-bold
+                  ${os.status === 'MATCHED' ? 'bg-blue-100 text-blue-800' : ''}
+                  ${os.status === 'DECLINED' ? 'bg-red-100 text-red-800' : ''}
+                  ${os.status === 'PENDING_MATCH' ? 'bg-yellow-100 text-yellow-800' : ''}
+                `}
+                >
+                  {os.status.replace('_', ' ')}
+                </span>
+              </td>
+              <td className="py-3 text-gray-500">
+                {new Date(
+                  os.createdAt as string | number | Date
+                ).toLocaleDateString()}
+              </td>
+              <td className="py-3 text-right space-x-2">
+                {isIncoming && os.status === 'PENDING_MATCH' && (
+                  <>
+                    <button
+                      onClick={() => onMatch?.(os.offeringTeamCode, os.id)}
+                      disabled={actionsDisabled}
+                      title={actionsDisabled ? actionsDisabledReason : undefined}
+                      className={`bg-blue-600 text-white px-3 py-1 rounded text-xs ${
+                        actionsDisabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'hover:bg-blue-700'
+                      }`}
+                    >
+                      Match
+                    </button>
+                    <button
+                      onClick={() => onDecline?.(os.offeringTeamCode, os.id)}
+                      disabled={actionsDisabled}
+                      title={actionsDisabled ? actionsDisabledReason : undefined}
+                      className={`bg-red-600 text-white px-3 py-1 rounded text-xs ${
+                        actionsDisabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'hover:bg-red-700'
+                      }`}
+                    >
+                      Decline
+                    </button>
+                  </>
+                )}
+                {isIncoming && os.status === 'MATCHED' && (
+                  <button
+                    onClick={() => onFinalize?.(os)}
+                    disabled={actionsDisabled}
+                    title={actionsDisabled ? actionsDisabledReason : undefined}
+                    className={`bg-green-600 text-white px-3 py-1 rounded text-xs ${
+                      actionsDisabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-green-700'
+                    }`}
+                  >
+                    Finalize Match
+                  </button>
+                )}
+                {!isIncoming && os.status === 'DECLINED' && (
+                  <button
+                    onClick={() => onFinalize?.(os)}
+                    disabled={actionsDisabled}
+                    title={actionsDisabled ? actionsDisabledReason : undefined}
+                    className={`bg-green-600 text-white px-3 py-1 rounded text-xs ${
+                      actionsDisabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-green-700'
+                    }`}
+                  >
+                    Finalize Signing
+                  </button>
+                )}
+                {!isIncoming && os.status === 'MATCHED' && (
+                  <span className="text-xs text-blue-600 font-medium">
+                    Matched by Home Team
+                  </span>
+                )}
+                {!isIncoming && os.status === 'PENDING_MATCH' && (
+                  <span className="text-xs text-gray-400 italic">
+                    Waiting for home team...
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default OfferSheetList;

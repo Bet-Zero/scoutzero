@@ -35,7 +35,7 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
 
 const FREE_AGENCY_SECTION_PATH = path.resolve(
   __dirname,
-  '../../features/architect/GMDashboard/sections/FreeAgencySection.jsx'
+  '../../features/architect/GMDashboard/sections/FreeAgencySection.tsx'
 );
 
 const USE_ARCHITECT_STATE_PATH = path.resolve(

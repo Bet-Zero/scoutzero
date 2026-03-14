@@ -1539,6 +1539,29 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E90_RETURN_PACKAGE.md`
 
+### Validator TS Free Agency Offer-Sheet Surface E91 (2026-03-14)
+
+- Status:
+  - the 2 counted Free Agency offer-sheet surface files are now TS-backed:
+    - `src/features/architect/GMDashboard/sections/FreeAgencySection.tsx`
+    - `src/features/architect/GMDashboard/components/OfferSheetList.tsx`
+  - the same-path `.jsx` files remain shim-only compatibility surfaces by rule
+- Migration note:
+  - behavior remained unchanged, including exact visible render ordering, world-gated warning/disable behavior, incoming/outgoing offer-sheet list wiring, `onMatch(offeringTeamCode, id)` / `onDecline(offeringTeamCode, id)` / finalize branch routing, and exact `formatCurrency(...)`, `os.status.replace('_', ' ')`, and `new Date(os.createdAt).toLocaleDateString()` behavior
+  - added `src/features/architect/GMDashboard/offerSheetTypes.ts` as an internal local type layer for the authoritative offer-sheet path
+  - execution stayed inside the E91 boundary and did not reopen E86, dashboard hubs, trade UI hubs, or orchestration hubs
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/offerSheets_closure.gate.test.ts src/tests/architect/freeAgency_closure.gate.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/OfferSheetList.freeAgency.test.jsx src/tests/smoke/architect.uiSmoke.e1.test.tsx`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, browser externalization of `fs`, mixed static/dynamic imports, and large chunk sizing outside the E91 surface
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - the grouped batched pass completed cleanly
+  - no mandatory follow-up remains inside the offer-sheet surface lane
+  - the broader Free Agency offer-sheet surface is now effectively complete
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENCY_OFFER_SHEET_SURFACE_E91_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -16,6 +16,7 @@ GMDashboard/
     DeleteWorldModal.jsx
     DraftPositionsInput.jsx
     OfferSheetList.jsx
+    OfferSheetList.tsx
     SeasonAdvanceModal.jsx
     WorldSelector.jsx
     WorldTimeControls.jsx
@@ -26,10 +27,12 @@ GMDashboard/
     useArchitectModals.ts
     useArchitectState.ts
   index.jsx
+  offerSheetTypes.ts
   sections/
     CapSheetSection.jsx
     CapTableSection.jsx
     FreeAgencySection.jsx
+    FreeAgencySection.tsx
     HistorySection.jsx
     OffseasonSection.jsx
     RosterSection.jsx
@@ -482,5 +485,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T07:27:47.229Z*
+*Generated on: 2026-03-14T08:12:09.750Z*
 *Auto-updated by: npm run docs*

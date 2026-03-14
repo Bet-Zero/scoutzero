@@ -16,7 +16,8 @@
  *  7. Finalize declined recomputes BOTH totals
  *  8. Persistence writes teamUpdates
  *  9. UI wiring + world gating exists
- *  10. Current team sync reads changedTeams
+ *  10. JSX compatibility shims remain shim-only
+ *  11. Current team sync reads changedTeams
  *
  * @vitest-environment node
  */
@@ -44,10 +45,20 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
 
 const OFFER_SHEET_LIST_PATH = path.resolve(
   __dirname,
+  '../../features/architect/GMDashboard/components/OfferSheetList.tsx'
+);
+
+const OFFER_SHEET_LIST_SHIM_PATH = path.resolve(
+  __dirname,
   '../../features/architect/GMDashboard/components/OfferSheetList.jsx'
 );
 
 const FREE_AGENCY_SECTION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/sections/FreeAgencySection.tsx'
+);
+
+const FREE_AGENCY_SECTION_SHIM_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/sections/FreeAgencySection.jsx'
 );
@@ -435,9 +446,36 @@ describe('Gate 9: UI wiring + world gating exists (E1)', () => {
   });
 });
 
-// === GATE 10: Current Team Sync Reads changedTeams ===
+// === GATE 10: JSX Compatibility Shims Remain Shim-Only ===
 
-describe('Gate 10: Current team sync reads changedTeams (E1)', () => {
+describe('Gate 10: JSX compatibility shims remain shim-only (E1)', () => {
+  const offerSheetListShimContent = readFileContent(OFFER_SHEET_LIST_SHIM_PATH);
+  const freeAgencySectionShimContent = readFileContent(
+    FREE_AGENCY_SECTION_SHIM_PATH
+  );
+
+  it('OfferSheetList.jsx remains a pure compatibility shim', () => {
+    expect(offerSheetListShimContent).toContain(
+      "export { default } from './OfferSheetList.tsx';"
+    );
+    expect(offerSheetListShimContent).not.toContain('const OfferSheetList =');
+    expect(offerSheetListShimContent).not.toContain('<table');
+  });
+
+  it('FreeAgencySection.jsx remains a pure compatibility shim', () => {
+    expect(freeAgencySectionShimContent).toContain(
+      "export { FreeAgencySection } from './FreeAgencySection.tsx';"
+    );
+    expect(freeAgencySectionShimContent).not.toContain(
+      'const FreeAgencySection ='
+    );
+    expect(freeAgencySectionShimContent).not.toContain('<FreeAgentPool');
+  });
+});
+
+// === GATE 11: Current Team Sync Reads changedTeams ===
+
+describe('Gate 11: Current team sync reads changedTeams (E1)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
 
   it('syncTeamFromMutationResult helper is defined', () => {
