@@ -1604,6 +1604,23 @@ Date: 2026-02-26
   - the broader Offseason preview surface is now effectively complete
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_OFFSEASON_PREVIEW_SURFACE_E93_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E94 (2026-03-14)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, the E89 Cap Sheet modal-pair sub-arc remains complete, the E91 Free Agency offer-sheet surface arc remains complete, and the E93 Offseason preview surface arc remains complete.
+- Audit note:
+  - execution-time repo evidence re-ran the two-lane comparison instead of locking the next move in advance
+  - the strongest remaining surgical candidate is `src/features/architect/utils/seasonManager.js`, while the strongest remaining low-risk options now read as weaker support/legacy cleanup rather than a cleaner feature batch
+  - the recommended next migration scope is `src/features/architect/utils/seasonManager.js`
+  - the recommended lane is `high-risk surgical`
+  - the estimated live JS/JSX/TSX business-logic count for that named scope is `1`
+  - the recommended next named scope is `seasonManager.js`, while the likely execution shape is smaller file-internal slices rather than one-shot execution
+  - execution-time evidence did not require widening the recommendation into `mutationPipeline.js`, `GMDashboard.jsx`, `WorldSelector.jsx`, `SeasonAdvanceModal.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, or `ValidationDetailsPanel.jsx`; if a later pass finds a blocker, it should document that blocker instead of auto-expanding the boundary
+  - current frontier read: E93 exhausted the strongest clean low-risk batch candidate, so batching no longer wins by default for the immediate next move
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E94_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

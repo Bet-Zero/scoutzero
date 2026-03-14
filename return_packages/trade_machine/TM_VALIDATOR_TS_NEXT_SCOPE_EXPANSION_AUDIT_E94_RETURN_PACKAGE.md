@@ -1,0 +1,308 @@
+# TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E94 — EXECUTION RETURN PACKAGE
+
+## 1. Summary
+- Execution-time repo inspection re-ran the two-lane decision rule after the E93 Offseason preview surface closeout instead of locking the answer in advance.
+- The most likely next migration scope is `src/features/architect/utils/seasonManager.js`.
+- The recommended next move is a `high-risk surgical` scope, not a `batched low-risk` pass.
+- Estimated live JS/JSX/TSX business-logic count for the recommended scope: `1` file.
+- It still looks worth doing next, but only as a named one-file recommendation with a likely follow-up execution shape of smaller file-internal slices rather than a one-shot conversion.
+
+## 2. Closed Scope Confirmation
+- This audit treated E39, E41, E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, E69, E71, E73, E75, E77, E78, E80, E82, E84, E86, E88, E89, E91, and E93 as closed or complete.
+- The audit avoided silently reopening them by re-reading the prior audit chain and re-classifying adjacent holdouts before counting anything as live next-scope logic.
+- Same-path `.js/.jsx` files with `.ts/.tsx` authorities were treated as `TS-backed shim`, not fresh business logic. That includes the E93 holdouts:
+  - `src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx`
+  - `src/features/architect/offseason/OffseasonTab/OptionManager.jsx`
+- Closed-scope wrappers and public surfaces were re-checked and kept excluded:
+  - `src/features/architect/OffseasonTab.jsx`
+  - `src/features/architect/LeagueView.jsx`
+  - `src/features/architect/RosterVisual.jsx`
+  - `src/features/architect/ValidationWarnings.jsx`
+  - `src/features/architect/utils/capTotals/index.js`
+  - `src/features/architect/utils/persistenceContracts/index.js`
+  - `src/features/architect/utils/playerRulesProfile/index.js`
+  - `src/features/architect/utils/tradeContext/index.js`
+- No current repo evidence required reopening any prior closed arc.
+
+## 3. Candidate Next Scopes
+
+### Frontier Inventory Snapshot
+- `live business logic`
+  - `src/features/architect/utils/seasonManager.js`
+  - `src/features/architect/utils/mutationPipeline.js`
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+  - `src/features/architect/tradeMachine/TradeEditor.jsx`
+  - `src/features/architect/tradeMachine/TradeTeamCard.jsx`
+  - `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx`
+  - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+  - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+  - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+  - `src/features/architect/contract/ContractEditor/ContractEditor.jsx`
+  - `src/features/architect/contract/ContractEditorModal/ContractEditorModal.jsx`
+  - `src/features/architect/hooks/useArchitectPlayerData.js`
+- `TS-backed shim`
+  - `src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx`
+  - `src/features/architect/offseason/OffseasonTab/OptionManager.jsx`
+  - `src/features/architect/GMDashboard/sections/FreeAgencySection.jsx`
+  - `src/features/architect/GMDashboard/components/OfferSheetList.jsx`
+  - `src/features/architect/capSheet/CapSheet/CapSheet.jsx`
+  - `src/features/architect/capSheet/CapSheet/CapSummaryTiles.jsx`
+  - `src/features/architect/capSheet/CapSheetFull/CapSheetFull.jsx`
+  - `src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.jsx`
+  - `src/features/architect/capSheet/modals/ManageExceptionsModal.jsx`
+  - `src/features/architect/capSheet/modals/ManageDeadMoneyModal.jsx`
+- `barrel/public entrypoint`
+  - `src/features/architect/GMDashboard/components/index.js`
+  - `src/features/architect/GMDashboard/index.jsx`
+  - `src/features/architect/utils/tradeMachine/index.js`
+  - `src/features/architect/utils/tradeMachine/cache/index.js`
+  - `src/features/architect/utils/tradeMachine/engine/index.js`
+  - `src/features/architect/utils/tradeMachine/rules/index.js`
+  - `src/features/architect/utils/tradeMachine/utils/index.js`
+  - `src/features/architect/utils/tradeMachine/validators/index.js`
+- `constants/data/config`
+  - `src/features/architect/utils/capProjections.js`
+  - `src/features/architect/utils/cbaConstants.js`
+  - `src/features/architect/utils/tradeMachine/constants/cbaConstants.js`
+  - `src/features/architect/utils/tradeMachine/constants/secondApronMessages.js`
+  - `src/features/architect/utils/playerRulesProfile/types.js`
+- `thin wrapper/deprecated wrapper`
+  - `src/features/architect/OffseasonTab.jsx`
+  - `src/features/architect/LeagueView.jsx`
+  - `src/features/architect/RosterVisual.jsx`
+  - `src/features/architect/ValidationWarnings.jsx`
+  - `src/features/architect/CapSheet.jsx`
+  - `src/features/architect/CapSheetFull.jsx`
+  - `src/features/architect/CapSummaryTiles.jsx`
+  - `src/features/architect/FreeAgentPool.jsx`
+- `debug/support/monitoring`
+  - `src/features/architect/utils/tradeMachine/engine/tradeValidator.debug.js`
+  - `src/features/architect/utils/tradeMachine/engine/performanceMonitor.js`
+  - `src/features/architect/utils/tradeMachine/engine/validationDebugMonitor.js`
+  - `src/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor.js`
+  - `src/features/architect/utils/tradeMachine/cache/validationCache.js`
+  - `src/features/architect/utils/tradeMachine/cache/validationCacheService.js`
+- `dead/scratch/zero-import residue`
+  - `src/features/architect/hooks/useCapSheetState.js`
+  - `src/features/architect/utils/cashUtils.js`
+  - `src/features/architect/utils/freeAgentLogic.js`
+  - `src/features/architect/utils/temp_mutation_code.js`
+  - `src/features/architect/utils/tradeMachine/utils/resolveValidationEntitlements.js`
+  - `src/features/architect/utils/tradeMachine/rules/enforcementValidation.js`
+  - `src/features/architect/utils/validatePhase21.test.js`
+- `low-risk presentational component`
+  - `src/features/architect/GMDashboard/components/DeleteWorldModal.jsx`
+  - `src/features/architect/GMDashboard/components/WorldTimeControls.jsx`
+- `high-risk state/orchestration hub`
+  - `src/features/architect/utils/seasonManager.js`
+  - `src/features/architect/utils/mutationPipeline.js`
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+  - `src/features/architect/tradeMachine/TradeEditor.jsx`
+  - `src/features/architect/tradeMachine/TradeTeamCard.jsx`
+  - `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx`
+
+### Candidate 1 — `seasonManager.js`
+- Lane: `high-risk surgical`
+- Includes:
+  - `src/features/architect/utils/seasonManager.js`
+- Excludes:
+  - `src/features/architect/utils/mutationPipeline.js`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+  - `src/features/architect/tradeMachine/TradeEditor.jsx`
+  - `src/features/architect/tradeMachine/TradeTeamCard.jsx`
+  - `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx`
+- Estimated live JS/JSX/TSX business-logic file count: `1`
+- Why it is a serious candidate:
+  - It is the strongest remaining named boundary that is both central to runtime behavior and still narrow enough to stand on its own.
+  - Current file shape is `1719` lines with exported ownership over `advanceSeason`, `processSeasonTransition`, `advanceSeasonInWorld`, `resolveDraftPickSwapsForYear`, and `resolveDraftPickConveyanceForYear`.
+  - Import/test scans show broad real usage across Architect workflows and tests, including season advance, DARE persistence, trade-adjacent draft-pick resolution, and world transitions.
+  - It sits directly on the runtime seam that E93 intentionally did not reopen.
+- Why the cutoff makes sense:
+  - The file already exposes a named authority boundary without forcing immediate widening into dashboard shells or the larger mutation core.
+  - It is still dangerous enough that execution should likely be split into file-internal slices, but the named recommendation can remain a one-file surgical scope.
+
+### Candidate 2 — `mutationPipeline.js`
+- Lane: `high-risk surgical`
+- Includes:
+  - `src/features/architect/utils/mutationPipeline.js`
+- Excludes:
+  - `src/features/architect/utils/seasonManager.js`
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/tradeMachine/TradeEditor.jsx`
+- Estimated live JS/JSX/TSX business-logic file count: `1`
+- Why it is a serious candidate:
+  - It remains the largest remaining dangerous hub at `4590` lines with very broad test and feature reach.
+  - It owns compute/apply mutation paths, persistence sanitization, event payload writes, and trade execution behavior.
+- Why it is not the best next move:
+  - It is materially riskier and less surgically approachable than `seasonManager.js`.
+  - Current repo evidence still supports keeping it on the dangerous-hub shortlist rather than promoting it ahead of the cleaner surgical alternative.
+
+### Candidate 3 — shared display/support pocket
+- Lane: `batched low-risk`
+- Includes:
+  - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+  - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+  - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+- Excludes:
+  - `src/features/architect/LeagueView.jsx`
+  - `src/features/architect/RosterVisual.jsx`
+  - `src/features/architect/ValidationWarnings.jsx`
+- Estimated live JS/JSX/TSX business-logic file count: `3`
+- Why it is a serious candidate:
+  - These files are isolated, wrapper-backed, and technically lower risk than the dangerous-hub list.
+- Why it is not a good next move:
+  - The files do not form a single feature surface. `LeagueView` is its own route-level experience, `RosterVisual` is dashboard roster presentation, and `ValidationWarnings` is a contract-modal support widget.
+  - The batch reads as migration cleanup from older folder moves, not the next strongest coherent runtime slice.
+  - It is weaker than `seasonManager.js` on runtime leverage and boundary clarity.
+
+### Candidate 4 — legacy contract pocket
+- Lane: `batched low-risk`
+- Includes:
+  - `src/features/architect/contract/ContractEditor/ContractEditor.jsx`
+  - `src/features/architect/contract/ContractEditorModal/ContractEditorModal.jsx`
+- Excludes:
+  - `src/shared/components/EditContractModal.jsx`
+  - `src/features/architect/contract/index.ts`
+- Estimated live JS/JSX/TSX business-logic file count: `2`
+- Why it is a serious candidate:
+  - The pair is compact and self-contained.
+- Why it is not a good next move:
+  - Execution-time importer scans show the current main contract-action path runs through `src/shared/components/EditContractModal.jsx`, not this legacy pair.
+  - `ContractEditorModal.jsx` has no direct external runtime importer beyond its own barrel exposure, so the pocket reads as legacy surface residue rather than a higher-value live batch.
+
+### Candidate 5 — player-data support residue
+- Lane: `batched low-risk`
+- Includes:
+  - `src/features/architect/hooks/useArchitectPlayerData.js`
+- Excludes:
+  - `src/features/architect/hooks/useCapSheetState.js`
+  - `src/features/architect/utils/subscribeArchitectPlayerData.ts`
+- Estimated live JS/JSX/TSX business-logic file count: `1`
+- Why it is a serious candidate:
+  - The hook is still live in `useArchitectState.ts` and test mocks.
+- Why it is not a good next move:
+  - It is a thin JS hook over an already-typed `subscribeArchitectPlayerData.ts` utility.
+  - The migration value is mostly cleanup, not a materially cleaner next slice than the strongest surgical option.
+
+## 4. Recommended Next Scope
+- Recommended next named scope: `src/features/architect/utils/seasonManager.js`
+- Lane: `high-risk surgical`
+- Why it is the best next choice:
+  - Execution-time repo evidence re-ran the two-lane comparison and did not find a remaining low-risk batch that is cleaner than the strongest surgical alternative.
+  - The strongest remaining low-risk options are now weaker support/legacy cleanup pockets rather than a coherent feature-family batch.
+  - `seasonManager.js` is smaller and cleaner than `mutationPipeline.js`, while still carrying direct runtime importance across world season advancement, entitlement resolution, draft-pick processing, exception lifecycle work, and post-state validation.
+  - The boundary can still stand as its own recommended named scope without silently widening into `mutationPipeline.js`, dashboard hubs, or Trade Machine UI hubs.
+- Recommended handling:
+  - `recommended next named scope`: `seasonManager.js`
+  - `likely internal execution shape`: `split into sub-arcs`
+- Boundary rule:
+  - Do not silently widen this recommendation into `mutationPipeline.js`, `GMDashboard.jsx`, `WorldSelector.jsx`, `SeasonAdvanceModal.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, or `ValidationDetailsPanel.jsx` unless a later execution pass proves `seasonManager.js` cannot stand alone. If that happens, the exact blocker should be documented explicitly.
+
+## 5. Live JS/JSX/TSX Business-Logic Inventory For Recommended Scope
+- `src/features/architect/utils/seasonManager.js`
+  - Why it belongs in scope: live season/world advancement authority with exported ownership over season transition orchestration, option processing, cap-hold/TPE/exception lifecycle work, entitlement/DARE integration, post-state cap validation context, and draft-pick swap/conveyance resolution exports.
+  - Central or peripheral: `central`
+
+## 6. Validation / Inspection Run
+- `npm run typecheck`
+  - Proved the repo still typechecks cleanly after the audit/doc-only edits.
+  - Result: PASS.
+- `npm run validate:project`
+  - Proved the project structure remains valid after the audit/doc-only pass.
+  - Result: PASS.
+- `find src/features/architect -type f \\( -name '*.js' -o -name '*.jsx' \\) | sort`
+  - Proved the current remaining JS/JSX frontier after E93.
+- Paired/unpaired inventory scan via local `node` script
+  - Proved which `.js/.jsx` files are same-path TS-backed shims versus true remaining unpaired holdouts.
+- Remaining-holdout ref-count/line-count scan via local `node` script
+  - Proved relative size and reach of the live frontier:
+    - `seasonManager.js`: `1719` lines, broad importer/test reach
+    - `mutationPipeline.js`: `4590` lines, broader and riskier than `seasonManager.js`
+    - `GMDashboard.jsx`: `496` lines
+    - `WorldSelector.jsx`: `799` lines
+    - `SeasonAdvanceModal.jsx`: `782` lines
+    - `TradeEditor.jsx`: `683` lines
+    - `TradeTeamCard.jsx`: `933` lines
+    - `ValidationDetailsPanel.jsx`: `371` lines
+- Importer and source inspection using `rg -n` and `sed -n`
+  - Proved:
+    - E93 files `OffseasonTab.jsx` and `OptionManager.jsx` are now TS-backed shims only.
+    - `OffseasonSection.jsx` and `runOffseason.js` remain excluded adjacency, not reopened logic.
+    - `ContractEditorModal.jsx` has no direct external runtime importer beyond its barrel surface.
+    - The shared low-risk pocket is split across unrelated importer chains.
+    - `seasonManager.js` currently stands as a clean named boundary without requiring automatic widening.
+- Zero-import files explicitly inspected before exclusion:
+  - `src/features/architect/hooks/useCapSheetState.js`: inactive legacy hook, not next-scope live logic.
+  - `src/features/architect/utils/cashUtils.js`: inactive utility residue.
+  - `src/features/architect/utils/freeAgentLogic.js`: inactive legacy logic residue.
+  - `src/features/architect/utils/temp_mutation_code.js`: scratch residue.
+  - `src/features/architect/utils/tradeMachine/utils/resolveValidationEntitlements.js`: inactive support residue.
+  - `src/features/architect/utils/tradeMachine/rules/enforcementValidation.js`: inactive support residue.
+  - `src/features/architect/utils/validatePhase21.test.js`: misplaced test residue, not live business logic.
+- Commands intentionally skipped:
+  - `npm run test:diff` and broader scoped test suites were skipped because inspection resolved the scope-selection question without needing runtime behavior proof.
+  - `npm run build` was skipped because this was an audit/doc-only pass and the prompt only required `typecheck` and `validate:project`.
+
+## 7. Complexity / Risk Assessment
+- Likely size relative to recent completed work:
+  - larger than E93 Offseason preview
+  - larger than E91 offer-sheet surface
+  - larger than the E88/E89 Cap Sheet family work
+- Likely execution shape:
+  - not a larger batched low-risk pass
+  - not a clean one-grouped-file conversion
+  - more likely a `high-risk surgical` move that should be executed in smaller file-internal slices
+- Does the repo still support batched low-risk work by default?
+  - No as the default next move. E93 appears to have exhausted the strongest clean low-risk batch candidate.
+  - Lower-risk cleanup pockets still exist, but they are now weaker than the strongest surgical move and should not displace it.
+- Key risks and caveats:
+  - season/world persistence semantics
+  - coupling to `mutationPipeline.js` through sanitize/persist bridges
+  - world metadata and draft-position handling
+  - entitlement and DARE side effects
+  - TPE and non-TPE exception lifecycle handling
+  - post-state cap-legality validation and audit event payloads
+  - broad test blast radius across Architect integration flows
+
+## 8. Master Doc Update
+- Added `### Validator TS Next-Scope Expansion Audit E94 (2026-03-14)` to `docs/architect/TRADE_MACHINE_MASTER.md`.
+- The new E94 entry records that:
+  - E39 remains closed.
+  - E41 remains complete.
+  - the E43/E44 `tradeContext` mini-arc remains complete.
+  - the E46 trade-facing helper foundation remains complete.
+  - the E48 `capTotals` mini-arc remains complete.
+  - the E50 `persistenceContracts` arc remains complete.
+  - the E52 season-transition helper arc remains complete.
+  - the E54 exception-history mini-arc remains complete.
+  - the E56/E57 `playerRulesProfile` arc remains complete.
+  - the E59 contract/season helper arc remains complete.
+  - the E61/E62 non-trade cap-legality arc remains complete.
+  - the E64 world-aware loader mini-arc remains complete.
+  - the E66/E67 entitlement presentation arc remains complete.
+  - the E69 Trade Machine validation snapshot/accessor arc remains complete.
+  - the E71 Architect contract/cap hook arc remains complete.
+  - the E73 world-lifecycle arc remains complete.
+  - the E75 trade-execution helper arc remains complete.
+  - the E77 helper-trio sub-arc remains complete.
+  - the E78 `useTradeMachine` hook arc remains complete.
+  - the E80 consent helper arc remains complete.
+  - the E82 world/data-access helper arc remains complete.
+  - the E84 Team History surface arc remains complete.
+  - the E86 Free Agent Pool surface arc remains complete.
+  - the E88 Cap Sheet display-core sub-arc remains complete.
+  - the E89 Cap Sheet modal-pair sub-arc remains complete.
+  - the E91 Free Agency offer-sheet surface arc remains complete.
+  - the E93 Offseason preview surface arc remains complete.
+  - the recommended next migration scope is `src/features/architect/utils/seasonManager.js`.
+  - that next move is `high-risk surgical`.
+  - the estimated live JS/JSX/TSX business-logic count for that scope is `1`.
+  - the recommended next named scope is `seasonManager.js`, while the likely execution shape is smaller file-internal slices rather than one-shot execution.
+  - the remaining frontier no longer supports batched low-risk work as the default next move; the strongest remaining low-risk options are now weaker support/legacy cleanup compared with the leading surgical boundary.
