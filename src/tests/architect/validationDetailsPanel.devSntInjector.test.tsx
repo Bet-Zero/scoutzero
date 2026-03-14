@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ValidationDetailsPanel from '@/features/architect/tradeMachine/ValidationDetailsPanel';
 
 function openDevTools() {
   fireEvent.click(screen.getByRole('button', { name: /Development Tools/i }));
 }
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('ValidationDetailsPanel DEV S&T injector controls', () => {
   it('does not render injector controls when showSntInjector is false', () => {
@@ -40,4 +44,3 @@ describe('ValidationDetailsPanel DEV S&T injector controls', () => {
     expect(onClear).toHaveBeenCalledTimes(1);
   });
 });
-

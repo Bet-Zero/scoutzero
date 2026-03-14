@@ -176,7 +176,7 @@ function readAuthoritativeImplementationContent(filePath) {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/\/\/.*$/gm, '');
   const localTsTargets = Array.from(
-    stripped.matchAll(/from ['"](\.\/[^'"]+\.ts)['"]/g),
+    stripped.matchAll(/from ['"](\.\/[^'"]+\.(?:ts|tsx))['"]/g),
     (match) => match[1]
   );
 
@@ -399,7 +399,7 @@ describe('Phase 65: UI Components Use Canonical Accessor', () => {
         // Skip if file doesn't exist (could be .tsx variant)
         return;
       }
-      const content = fs.readFileSync(filePath, 'utf-8');
+      const content = readAuthoritativeImplementationContent(filePath);
       expect(content).toContain('getTeamTpeList');
     });
   });

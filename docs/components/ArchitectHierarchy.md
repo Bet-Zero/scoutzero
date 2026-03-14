@@ -179,24 +179,33 @@ shared/
 tradeMachine/
   CapImpactTiles.jsx
   DataWarningsSection.jsx
+  DataWarningsSection.tsx
   EntitlementPickRow.jsx
   EntitlementPicksList.jsx
   FaExceptionTracker.jsx
+  FaExceptionTracker.tsx
   OutgoingPlayersList.jsx
   SelectTeamCard.jsx
   TradeEditor.jsx
   TradeExceptionDashboard.jsx
+  TradeExceptionDashboard.tsx
   TradeExceptionManager.jsx
   TradeExportCapture.jsx
   TradeLegalChecker.jsx
+  TradeLegalChecker.tsx
   TradePlayerRow.jsx
   TradePreviewModal.jsx
   TradeReceiptPanel.jsx
+  TradeReceiptPanel.tsx
   TradeSalaryCalculator.jsx
+  TradeSalaryCalculator.tsx
   TradeSummaryPanel.jsx
+  TradeSummaryPanel.tsx
   TradeTeamCard.jsx
   ValidationDetailsPanel.jsx
+  ValidationDetailsPanel.tsx
   ValidationStateHeader.jsx
+  ValidationStateHeader.tsx
   utils/
     computeTradeDraftKey.js
     computeTradeDraftKey.ts
@@ -206,6 +215,7 @@ tradeMachine/
     entitlementWarnings.ts
     getOfficialSalaryMatchingSnapshot.js
     getOfficialSalaryMatchingSnapshot.ts
+  validationPresentationTypes.ts
 types/
   index.ts
   ruleContext.ts
@@ -489,5 +499,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T09:54:49.522Z*
+*Generated on: 2026-03-14T10:43:34.379Z*
 *Auto-updated by: npm run docs*

@@ -1670,6 +1670,37 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E96_RETURN_PACKAGE.md`
 
+### Validator TS Trade Machine Validation Presentation E97 (2026-03-14)
+
+- Status:
+  - the 9-file Trade Machine validator/result-presentation family is now TS-backed through authoritative `.tsx` implementations:
+    - `src/features/architect/tradeMachine/ValidationStateHeader.tsx`
+    - `src/features/architect/tradeMachine/ValidationDetailsPanel.tsx`
+    - `src/features/architect/tradeMachine/TradeSummaryPanel.tsx`
+    - `src/features/architect/tradeMachine/DataWarningsSection.tsx`
+    - `src/features/architect/tradeMachine/TradeLegalChecker.tsx`
+    - `src/features/architect/tradeMachine/TradeExceptionDashboard.tsx`
+    - `src/features/architect/tradeMachine/FaExceptionTracker.tsx`
+    - `src/features/architect/tradeMachine/TradeSalaryCalculator.tsx`
+    - `src/features/architect/tradeMachine/TradeReceiptPanel.tsx`
+  - the same-path `.jsx` files remain in place as shim-only compatibility surfaces by rule
+- Migration note:
+  - behavior remained unchanged across the full validator/result-presentation family, including exact render ordering, labels, warning/status text, section titles, badges, conditional rendering, dev gating, and validator-result consumption
+  - `ValidationDetailsPanel` remains the boundary root and central fan-out for this family; execution did not widen into `TradeEditor.jsx`, `TradeTeamCard.jsx`, preview/export surfaces, `mutationPipeline.js`, or dashboard hubs
+  - callback routing and data-flow contracts remained unchanged in `TradeSummaryPanel`, `TradeExceptionDashboard`, `FaExceptionTracker`, `TradeSalaryCalculator`, and `TradeReceiptPanel`
+  - added a local permissive `validationPresentationTypes.ts` helper, a dedicated compatibility guardrail for the kept `.jsx` shims, a Phase 65 source-scan retarget to follow `.tsx` authorities, and a small test-only cleanup fix in `validationDetailsPanel.devSntInjector.test.tsx` for a pre-existing isolation failure
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js src/tests/architect/tradeMachineValidationPresentation.compatibility.guardrail.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/trade/TradeValidationGating.guardrail.test.jsx src/tests/trade/validatorContractConsumers.test.jsx src/tests/trade/TradeSalaryCalculator.guardrail.test.jsx src/tests/architect/validationDetailsPanel.devSntInjector.test.tsx`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, browser externalization of `fs`, mixed static/dynamic imports, and large chunk sizes outside the E97 boundary
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - the grouped batched pass completed cleanly
+  - no mandatory follow-up remains inside the validator/result-presentation family
+  - the broader validation-presentation boundary is now effectively complete; remaining Trade Machine JS/JSX work lives in excluded editing/orchestration hubs and the excluded preview/export pocket
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_VALIDATION_PRESENTATION_E97_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
