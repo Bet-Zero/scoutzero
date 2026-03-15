@@ -1748,6 +1748,32 @@ Date: 2026-02-26
   - the broader preview/export boundary is now effectively complete; remaining Trade Machine JS/JSX work lives in excluded editing/orchestration hubs and the excluded Trade Team Card leaf family
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_MACHINE_PREVIEW_EXPORT_FAMILY_E99_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E100 (2026-03-14)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world-lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, the E89 Cap Sheet modal-pair sub-arc remains complete, the E91 Free Agency offer-sheet surface arc remains complete, the E93 Offseason preview surface arc remains complete, the E95 seasonManager arc remains complete, the E97 validator/result-presentation family arc remains complete, and the E99 preview/export family arc remains complete.
+- Audit note:
+  - execution-time repo evidence re-ran the two-lane comparison instead of locking the next move in advance
+  - the strongest remaining Lane A surgical candidate remains `src/features/architect/utils/mutationPipeline.js`
+  - the strongest remaining Lane B candidate from current repo state is the counted `7-file Trade Team Card leaf family`:
+    - `src/features/architect/tradeMachine/CapImpactTiles.jsx`
+    - `src/features/architect/tradeMachine/SelectTeamCard.jsx`
+    - `src/features/architect/tradeMachine/OutgoingPlayersList.jsx`
+    - `src/features/architect/tradeMachine/TradePlayerRow.jsx`
+    - `src/features/architect/tradeMachine/EntitlementPicksList.jsx`
+    - `src/features/architect/tradeMachine/EntitlementPickRow.jsx`
+    - `src/features/architect/tradeMachine/TradeExceptionManager.jsx`
+  - the counted seven-file family explicitly excludes the orchestration hubs `src/features/architect/tradeMachine/TradeTeamCard.jsx` and `src/features/architect/tradeMachine/TradeEditor.jsx`, and it also remains distinct from the already-closed E97 validator/result-presentation family and the already-closed E99 preview/export family
+  - execution-time inspection kept the seven-file family as the best next move: `CapImpactTiles.jsx`, `SelectTeamCard.jsx`, and `TradeExceptionManager.jsx` remain mostly display-only leaves; `OutgoingPlayersList.jsx` and `EntitlementPicksList.jsx` remain list-composition layers; `TradePlayerRow.jsx` and `EntitlementPickRow.jsx` remain the callback-heavy risk points, but not strong enough blockers to overturn the batch
+  - the recommended next migration scope is the `Trade Team Card leaf family`
+  - the recommended lane is `batched low-risk`
+  - the estimated live JS/JSX/TSX business-logic count for that scope is `7`
+  - the next move should stay `one grouped family scope`, not be pre-split, because `OutgoingPlayersList.jsx` directly composes `TradePlayerRow.jsx` and `EntitlementPicksList.jsx` directly composes `EntitlementPickRow.jsx`; splitting those pairs in advance would cut across the actual prop/callback chains from `TradeTeamCard.jsx` rather than create a cleaner boundary
+  - current frontier read: batching still wins by default for coherent low-risk slices, with surgical treatment reserved for the short dangerous-hub list led by `mutationPipeline.js`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, `GMDashboard.jsx`, `WorldSelector.jsx`, and `SeasonAdvanceModal.jsx`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E100_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
