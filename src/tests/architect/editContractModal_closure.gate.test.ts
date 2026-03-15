@@ -45,7 +45,7 @@ const FREE_AGENT_POOL_PATH = path.resolve(
 
 const TRADE_EDITOR_PATH = path.resolve(
   __dirname,
-  '../../features/architect/tradeMachine/TradeEditor.jsx'
+  '../../features/architect/tradeMachine/TradeEditor.tsx'
 );
 
 // === HELPER FUNCTIONS ===

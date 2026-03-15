@@ -110,22 +110,31 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
   describe('Source scan: TradeTeamCard drift detection', () => {
     const tradeTeamCardPath = path.resolve(
       __dirname,
+      '../../features/architect/tradeMachine/TradeTeamCard.tsx'
+    );
+    const tradeTeamCardShimPath = path.resolve(
+      __dirname,
       '../../features/architect/tradeMachine/TradeTeamCard.jsx'
     );
 
-    it('TradeTeamCard.jsx imports warnOnTotalsDivergence', () => {
+    it('TradeTeamCard.jsx remains a shim-only compatibility surface', () => {
+      const content = fs.readFileSync(tradeTeamCardShimPath, 'utf-8').trim();
+      expect(content).toBe("export { default } from './TradeTeamCard.tsx';");
+    });
+
+    it('TradeTeamCard.tsx imports warnOnTotalsDivergence', () => {
       const content = fs.readFileSync(tradeTeamCardPath, 'utf-8');
       expect(content).toContain('warnOnTotalsDivergence');
     });
 
-    it('TradeTeamCard.jsx calls warnOnTotalsDivergence for outgoingSalary', () => {
+    it('TradeTeamCard.tsx calls warnOnTotalsDivergence for outgoingSalary', () => {
       const content = fs.readFileSync(tradeTeamCardPath, 'utf-8');
       expect(content).toMatch(
         /warnOnTotalsDivergence\(\s*['"]TradeTeamCard['"]\s*,\s*['"]outgoingSalary['"]/
       );
     });
 
-    it('TradeTeamCard.jsx calls warnOnTotalsDivergence for incomingSalary', () => {
+    it('TradeTeamCard.tsx calls warnOnTotalsDivergence for incomingSalary', () => {
       const content = fs.readFileSync(tradeTeamCardPath, 'utf-8');
       expect(content).toMatch(
         /warnOnTotalsDivergence\(\s*['"]TradeTeamCard['"]\s*,\s*['"]incomingSalary['"]/

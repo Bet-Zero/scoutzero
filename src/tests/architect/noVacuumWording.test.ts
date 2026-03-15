@@ -15,10 +15,10 @@ import path from 'path';
  */
 const UI_SOURCE_FILES = [
   'src/features/architect/admin/PickRightWizardModal.tsx',
-  'src/features/architect/tradeMachine/TradeEditor.jsx',
+  'src/features/architect/tradeMachine/TradeEditor.tsx',
   'src/features/architect/tradeMachine/EntitlementPickRow.tsx',
   'src/features/architect/tradeMachine/EntitlementPicksList.tsx',
-  'src/features/architect/tradeMachine/TradeTeamCard.jsx',
+  'src/features/architect/tradeMachine/TradeTeamCard.tsx',
   'src/features/architect/admin/EntitlementEditorAdvancedTab.tsx',
   'src/features/architect/GMDashboard/components/WorldSelector.jsx',
 ];

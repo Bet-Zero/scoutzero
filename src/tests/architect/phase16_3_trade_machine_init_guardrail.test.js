@@ -109,18 +109,18 @@ describe('Phase 16.3: Trade Machine Init Guardrails', () => {
   // TRADEEEDITOR: initError must be destructured and displayed
   // ===========================================================================
   describe('TradeEditor initError display', () => {
-    it('TradeEditor.jsx must destructure initError from useTradeMachine', () => {
+    it('TradeEditor.tsx must destructure initError from useTradeMachine', () => {
       const source = readSourceFile(
-        'src/features/architect/tradeMachine/TradeEditor.jsx'
+        'src/features/architect/tradeMachine/TradeEditor.tsx'
       );
 
       expect(source).toContain('initError,');
       expect(source).toContain('initError && teams.length === 0');
     });
 
-    it('TradeEditor.jsx must display error message when initError is truthy', () => {
+    it('TradeEditor.tsx must display error message when initError is truthy', () => {
       const source = readSourceFile(
-        'src/features/architect/tradeMachine/TradeEditor.jsx'
+        'src/features/architect/tradeMachine/TradeEditor.tsx'
       );
 
       expect(source).toContain('Trade Machine failed to initialize');

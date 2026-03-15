@@ -195,6 +195,7 @@ tradeMachine/
   SelectTeamCard.jsx
   SelectTeamCard.tsx
   TradeEditor.jsx
+  TradeEditor.tsx
   TradeExceptionDashboard.jsx
   TradeExceptionDashboard.tsx
   TradeExceptionManager.jsx
@@ -214,6 +215,7 @@ tradeMachine/
   TradeSummaryPanel.jsx
   TradeSummaryPanel.tsx
   TradeTeamCard.jsx
+  TradeTeamCard.tsx
   ValidationDetailsPanel.jsx
   ValidationDetailsPanel.tsx
   ValidationStateHeader.jsx
@@ -512,5 +514,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-15T04:45:52.410Z*
+*Generated on: 2026-03-15T06:06:14.047Z*
 *Auto-updated by: npm run docs*

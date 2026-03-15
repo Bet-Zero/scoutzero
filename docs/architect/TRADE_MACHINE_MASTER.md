@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-14
+Last updated: 2026-03-15
 
 ## Trade Machine Overview
 
@@ -1878,6 +1878,34 @@ Date: 2026-02-26
   - `npm run typecheck`: PASS
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E104_RETURN_PACKAGE.md`
+
+### Validator TS TradeEditor + TradeTeamCard Boundary E105 (2026-03-15)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, the E89 Cap Sheet modal-pair sub-arc remains complete, the E91 Free Agency offer-sheet surface arc remains complete, the E93 Offseason preview surface arc remains complete, the E95 `seasonManager` arc remains complete, the E97 Trade Machine validator/result-presentation family arc remains complete, the E99 preview/export family arc remains complete, the E101 Trade Team Card leaf family arc remains complete, the E103 GM world-support family arc remains complete, the E104 next-scope audit remains complete, and the paired TradeEditor + TradeTeamCard orchestration boundary is now TS-backed.
+- Scope:
+  - the counted E105 paired orchestration boundary was migrated through new authorities:
+    - `src/features/architect/tradeMachine/TradeEditor.tsx`
+    - `src/features/architect/tradeMachine/TradeTeamCard.tsx`
+  - same-path `.jsx` files were retained as shim-only compatibility surfaces:
+    - `src/features/architect/tradeMachine/TradeEditor.jsx`
+    - `src/features/architect/tradeMachine/TradeTeamCard.jsx`
+  - execution stayed out of `src/features/architect/utils/mutationPipeline.js`, `src/features/architect/GMDashboard/GMDashboard.jsx`, `src/features/architect/GMDashboard/components/WorldSelector.jsx`, `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`, and the already-closed E97, E99, E101, and E103 boundaries
+- Outcome:
+  - behavior remained unchanged across the paired boundary, including exact default-export surfaces, callback names, callback argument order, local state ownership, modal control flow, preview/export wiring, validation/apply/reset wiring, entitlement editing flow, trade-team orchestration flow, section ordering, visible labels, button text, salary-matching display semantics, entitlement routing, TPE display semantics, contract-edit triggers, and sign-and-trade entry behavior
+  - `TradeEditor.tsx` is now the authoritative parent orchestration boundary and `TradeTeamCard.tsx` is now the authoritative team-card orchestration boundary
+  - the same-path `.jsx` files now remain shim-only, and no blocker forced expansion into any excluded dashboard or mutation hub
+  - the paired boundary completed cleanly and the broader paired orchestration boundary is now effectively complete
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/tradeEditorTeamCard.compatibility.guardrail.test.tsx src/tests/architect/tradeEditorTeamCard.boundary.e105.test.tsx`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/tradeEditor.devSntInjectorGate.guardrail.test.ts src/tests/architect/editContractModal_closure.gate.test.ts src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.js src/tests/architect/phase16_3_trade_machine_init_guardrail.test.js src/tests/architect/noVacuumWording.test.ts`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.js`, mixed static/dynamic imports, and large chunks outside E105
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - no blocker remains inside the paired boundary itself
+  - no mandatory E105 follow-up remains beyond the kept shim-only `.jsx` compatibility files
+  - nearby live JS/JSX work still exists only in the explicitly excluded hubs such as `mutationPipeline.js`, `GMDashboard.jsx`, `WorldSelector.jsx`, and `SeasonAdvanceModal.jsx`
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_EDITOR_TEAM_CARD_BOUNDARY_E105_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const tradeEditorPath = path.resolve(
   process.cwd(),
-  'src/features/architect/tradeMachine/TradeEditor.jsx'
+  'src/features/architect/tradeMachine/TradeEditor.tsx'
 );
 
 describe('TradeEditor DEV S&T injector gating guardrail', () => {
@@ -16,4 +16,3 @@ describe('TradeEditor DEV S&T injector gating guardrail', () => {
     expect(source).toContain('showSntInjector={isDevSntInjectorEnabled}');
   });
 });
-
