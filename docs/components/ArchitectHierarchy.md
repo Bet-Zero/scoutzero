@@ -14,12 +14,15 @@ GMDashboard/
   components/
     CapAuditDebugPanel.tsx
     DeleteWorldModal.jsx
+    DeleteWorldModal.tsx
     DraftPositionsInput.jsx
+    DraftPositionsInput.tsx
     OfferSheetList.jsx
     OfferSheetList.tsx
     SeasonAdvanceModal.jsx
     WorldSelector.jsx
     WorldTimeControls.jsx
+    WorldTimeControls.tsx
     index.js
   hooks/
     optimisticMutationLock.ts
@@ -509,5 +512,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-15T03:16:40.944Z*
+*Generated on: 2026-03-15T04:45:52.410Z*
 *Auto-updated by: npm run docs*

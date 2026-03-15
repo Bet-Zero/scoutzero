@@ -1830,6 +1830,36 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E102_RETURN_PACKAGE.md`
 
+### Validator TS GM World-Support Family E103 (2026-03-15)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, the E89 Cap Sheet modal-pair sub-arc remains complete, the E91 Free Agency offer-sheet surface arc remains complete, the E93 Offseason preview surface arc remains complete, the E95 seasonManager arc remains complete, the E97 validator/result-presentation family arc remains complete, the E99 preview/export family arc remains complete, the E101 Trade Team Card leaf family arc remains complete, and the E102 next-scope audit remains complete.
+- Scope:
+  - the counted E103 GM world-support family was migrated through new authorities:
+    - `src/features/architect/GMDashboard/components/DeleteWorldModal.tsx`
+    - `src/features/architect/GMDashboard/components/WorldTimeControls.tsx`
+    - `src/features/architect/GMDashboard/components/DraftPositionsInput.tsx`
+  - same-path `.jsx` files were retained as shim-only compatibility surfaces:
+    - `src/features/architect/GMDashboard/components/DeleteWorldModal.jsx`
+    - `src/features/architect/GMDashboard/components/WorldTimeControls.jsx`
+    - `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`
+  - execution stayed out of `src/features/architect/GMDashboard/GMDashboard.jsx`, `src/features/architect/GMDashboard/components/WorldSelector.jsx`, `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`, `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`, `src/features/architect/utils/mutationPipeline.js`, `src/features/architect/tradeMachine/TradeEditor.jsx`, `src/features/architect/tradeMachine/TradeTeamCard.jsx`, and the already-closed E97, E99, and E101 families
+- Outcome:
+  - behavior remained unchanged across the GM world-support family, including exact export shapes, modal copy, confirm/cancel/delete behavior, `data-testid` values, button text, helper text, world-date display semantics, date-persistence behavior, JSON parse/validation behavior, load/save flow, and worldManager callback contracts
+  - `DeleteWorldModal` remained a named-only export, `WorldTimeControls` remained a named-only export, and `DraftPositionsInput` retained both default and named exports plus the runtime `propTypes` surface
+  - no blocker forced expansion into `OffseasonSection.jsx`, `GMDashboard.jsx`, or any excluded world-management hub
+  - the counted family now keeps only shim-only `.jsx` compatibility files; no live business logic in the family remains JS/JSX
+- Validation:
+  - `npm run test:ui -- --reporter=dot src/tests/architect/gmWorldSupportFamily.compatibility.guardrail.test.tsx src/tests/architect/gmWorldSupportFamily.e103.behavior.test.tsx`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/tradeMachine/phase5DraftPositions.test.js`: PASS
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.js`, mixed static/dynamic imports, and large chunks outside E103
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - the grouped batch completed cleanly inside the counted three-file family
+  - no mandatory follow-up remains inside the GM world-support family itself
+  - the broader GM world-support boundary is now effectively complete; remaining nearby live JS/JSX work lives only in the excluded dashboard/world hubs, while the counted family now only retains shim-only `.jsx` compatibility files
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_GM_WORLD_SUPPORT_FAMILY_E103_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
