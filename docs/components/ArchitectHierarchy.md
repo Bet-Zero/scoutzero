@@ -36,13 +36,19 @@ GMDashboard/
   offerSheetTypes.ts
   sections/
     CapSheetSection.jsx
+    CapSheetSection.tsx
     CapTableSection.jsx
+    CapTableSection.tsx
     FreeAgencySection.jsx
     FreeAgencySection.tsx
     HistorySection.jsx
+    HistorySection.tsx
     OffseasonSection.jsx
+    OffseasonSection.tsx
     RosterSection.jsx
+    RosterSection.tsx
     TradeSection.jsx
+    TradeSection.tsx
 LeagueView.jsx
 OffseasonTab.jsx
 RosterVisual.jsx
@@ -108,9 +114,11 @@ constants/
 contract/
   ContractEditor/
     ContractEditor.jsx
+    ContractEditor.tsx
     index.ts
   ContractEditorModal/
     ContractEditorModal.jsx
+    ContractEditorModal.tsx
     index.ts
   index.ts
 data/
@@ -146,6 +154,7 @@ history/
     normalizeWorldEventsForTeamHistory.ts
 hooks/
   useArchitectPlayerData.js
+  useArchitectPlayerData.ts
   useCapValidation.js
   useCapValidation.ts
   usePlayerRulesProfiles.js
@@ -173,12 +182,15 @@ offseason/
 shared/
   LeagueView/
     LeagueView.jsx
+    LeagueView.tsx
     index.ts
   RosterVisual/
     RosterVisual.jsx
+    RosterVisual.tsx
     index.ts
   ValidationWarnings/
     ValidationWarnings.jsx
+    ValidationWarnings.tsx
     index.ts
   index.ts
 tradeMachine/
@@ -239,8 +251,10 @@ types/
 utils/
   ARCHITECT_LAYERING.md
   architectCore.js
+  architectCore.ts
   architectFirestorePaths.ts
   basicArchitectUtils.js
+  basicArchitectUtils.ts
   buildRuleContext.ts
   capHelpers.ts
   capHoldTransitionHelpers.js
@@ -252,6 +266,7 @@ utils/
   capLegalityValidation.js
   capLegalityValidation.ts
   capProjections.js
+  capProjections.ts
   capRulesProfile/
     capRulesProfile.ts
     index.ts
@@ -262,6 +277,7 @@ utils/
   capUtils.js
   capUtils.ts
   cbaConstants.js
+  cbaConstants.ts
   consentUtils.js
   consentUtils.ts
   contractNormalization.js
@@ -346,14 +362,18 @@ utils/
     rfaRules.js
     rfaRules.ts
     types.js
+    types.ts
   reacqUtils.js
+  reacqUtils.ts
   runOffseason.js
+  runOffseason.ts
   salaryEngine/
     README.md
     index.ts
     salaryEngine.ts
     types.ts
   salaryUtils.js
+  salaryUtils.ts
   schemaAdapter.js
   schemaAdapter.ts
   seasonFormat.js
@@ -362,7 +382,9 @@ utils/
   seasonManager.js
   seasonManager.ts
   seasonUtils.js
+  seasonUtils.ts
   stepienUtils.js
+  stepienUtils.ts
   subscribeArchitectPlayerData.ts
   teamLoader.js
   teamLoader.ts
@@ -387,22 +409,32 @@ utils/
     MIGRATION_NOTES.md
     cache/
       cacheInvalidationManager.js
+      cacheInvalidationManager.ts
       index.js
       validationCache.js
+      validationCache.ts
       validationCacheService.js
+      validationCacheService.ts
     constants/
       cbaConstants.js
+      cbaConstants.ts
       secondApronMessages.js
+      secondApronMessages.ts
       types.ts
     engine/
       engineUtils.js
+      engineUtils.ts
       index.js
       performanceMonitor.js
+      performanceMonitor.ts
       tradeDebug.js
+      tradeDebug.ts
       tradeValidator.js
       tradeValidator.ts
       validationDebugMonitor.js
+      validationDebugMonitor.ts
       validationPerformanceMonitor.js
+      validationPerformanceMonitor.ts
       validationUtils.js
       validationUtils.ts
       validatorDebug.ts
@@ -415,6 +447,7 @@ utils/
       enforceConsent.js
       enforceConsent.ts
       enforcement.js
+      enforcement.ts
       hardCapValidation.js
       hardCapValidation.ts
       index.js

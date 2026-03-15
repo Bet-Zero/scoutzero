@@ -2053,8 +2053,27 @@ Date: 2026-02-26
   - `npm run test:ui -- --reporter=dot src/tests/architect/sharedContractPocket.compatibility.guardrail.test.tsx src/tests/architect/sharedContractPocket.e111.behavior.test.tsx`: PASS
   - `npm run test:node -- --reporter=dot src/tests/architect/editContractModal_closure.gate.test.ts`: PASS
   - `npm run build`: PASS
-  - `npm run validate:project`: PASS
+- `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHARED_CONTRACT_POCKET_E111_RETURN_PACKAGE.md`
+
+### Validator TS Grouped 33-File Scope (2026-03-15)
+
+- Status:
+  - the grouped 33-file scope is now TS-backed across the named architect leaf utils/constants/hooks, Trade Machine cache/engine/rules leaves, and shared-display/contract/dashboard section surfaces
+  - same-path `.js/.jsx` files for the grouped scope are now shim-only compatibility surfaces
+  - behavior remained unchanged and no blocker forced widening outside the named 33-file boundary
+  - the grouped pass completed cleanly and this grouped boundary is effectively complete
+  - narrow follow-up remaining: none inside the named scope beyond the mandatory retained shims
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/grouped33FileScope.node.behavior.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js src/tests/tradeMachine/validationUtils.contract.test.ts tests/validationPerformance.test.js tests/validators/validationCache.test.js tests/trade/validation_caching.test.js tests/trade/basicRules.test.ts tests/trade/consent_and_reacq.test.js src/tests/architect/phase86_oste_offseason_transition_engine.test.ts tests/contractSeasonHelpers.test.ts tests/yearLogicIntegration.test.js tests/seasonIntegrationFinal.test.js`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/grouped33FileScope.compatibility.guardrail.test.tsx src/tests/architect/grouped33FileScope.ui.behavior.test.tsx src/tests/smoke/architect.uiSmoke.e1.test.tsx src/tests/architect/capSheet.displayCore.e88.behavior.test.tsx src/tests/architect/capSheet.uiFlows.integration.test.tsx src/tests/architect/tmCapIntegration.ui.tradeApply_updatesCapSheet.integration.test.tsx`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.js`, mixed static/dynamic import chunking, and large chunks
+  - `npm run validate:project`: PASS
+- Notes:
+  - special export-surface handling was required for `basicArchitectUtils` (mixed default + named), `playerRulesProfile/types` (default-only documentation module), and the named-only `OffseasonSection`, `validationCache`, and representative engine/cache leaf surfaces covered by the compatibility guardrail
+  - extra source-scan retargets were limited to `src/tests/architect/offseason.devGate.guardrail.test.ts` and `src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js`; historical docs and return packages stayed untouched
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_GROUPED_33_FILE_SCOPE_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

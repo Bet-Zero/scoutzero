@@ -194,7 +194,7 @@ Phase 78 enforces a single rule: **There is exactly one way to compute team tota
 
 - **Deleted `updateTeamCapTotals()`:**
   - Function definition removed from `tradeManager.js`
-  - Export removed from `architectCore.js` barrel
+  - Export removed from `architectCore.ts` barrel
   - 4 call sites replaced with SSOT `computeTeamCapTotals()`
 
 - **SSOT-only invariant:**

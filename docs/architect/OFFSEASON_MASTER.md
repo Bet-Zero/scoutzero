@@ -20,13 +20,13 @@
 
 | File | Role |
 |------|------|
-| `src/features/architect/GMDashboard/sections/OffseasonSection.jsx` | Section wrapper with DEV gate |
+| `src/features/architect/GMDashboard/sections/OffseasonSection.tsx` | Section wrapper with DEV gate |
 | `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx` | World-wide wizard (production path) |
 | `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx` | Draft positions input (Phase 5) |
 | `src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx` | Single-team preview (DEV only) |
 | `src/features/architect/utils/seasonManager.js` | `advanceSeasonInWorld()` — persistence |
 | `src/features/architect/utils/offseason/resolveOffseasonTransition.ts` | OSTE engine (shared computation) |
-| `src/features/architect/utils/runOffseason.js` | Single-team runner (no persistence) |
+| `src/features/architect/utils/runOffseason.ts` | Single-team runner (no persistence) |
 
 ## Review History
 

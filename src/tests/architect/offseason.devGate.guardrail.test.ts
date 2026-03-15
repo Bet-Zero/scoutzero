@@ -14,7 +14,7 @@ import path from 'node:path';
 
 const offseasonSectionPath = path.resolve(
   process.cwd(),
-  'src/features/architect/GMDashboard/sections/OffseasonSection.jsx'
+  'src/features/architect/GMDashboard/sections/OffseasonSection.tsx'
 );
 
 const offseasonTabPath = path.resolve(

@@ -34,7 +34,7 @@ const SEASON_MANAGER_PATH = path.resolve(
 );
 const ARCHITECT_CORE_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/architectCore.js'
+  '../../features/architect/utils/architectCore.ts'
 );
 
 describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
@@ -60,7 +60,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       expect(content).toBe("export * from './tradeManager.ts';");
     });
 
-    it('TEST 3: architectCore.js does NOT export updateTeamCapTotals', () => {
+    it('TEST 3: architectCore.ts does NOT export updateTeamCapTotals', () => {
       const content = fs.readFileSync(ARCHITECT_CORE_PATH, 'utf-8');
 
       // Check for export of updateTeamCapTotals (not in comments)
