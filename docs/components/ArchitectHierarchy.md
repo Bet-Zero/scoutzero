@@ -146,7 +146,6 @@ history/
     normalizeWorldEventsForTeamHistory.ts
 hooks/
   useArchitectPlayerData.js
-  useCapSheetState.js
   useCapValidation.js
   useCapValidation.ts
   usePlayerRulesProfiles.js
@@ -262,7 +261,6 @@ utils/
     index.js
   capUtils.js
   capUtils.ts
-  cashUtils.js
   cbaConstants.js
   consentUtils.js
   consentUtils.ts
@@ -272,7 +270,6 @@ utils/
   contractSalaryUtils.ts
   contractUtils.js
   contractUtils.ts
-  draftPickUtils.js
   entitlements/
     computeEntitlementClaims.ts
     dare/
@@ -315,7 +312,6 @@ utils/
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.js
   firebaseTeamPlanHelpers.ts
-  freeAgentLogic.js
   hardCapUtils.js
   hardCapUtils.ts
   leagueInvariants.ts
@@ -351,7 +347,6 @@ utils/
     rfaRules.ts
     types.js
   reacqUtils.js
-  rosterUtils.js
   runOffseason.js
   salaryEngine/
     README.md
@@ -371,7 +366,6 @@ utils/
   subscribeArchitectPlayerData.ts
   teamLoader.js
   teamLoader.ts
-  temp_mutation_code.js
   timingUtils.js
   timingUtils.ts
   tpeLifecycle.js
@@ -395,7 +389,6 @@ utils/
       cacheInvalidationManager.js
       index.js
       validationCache.js
-      validationCacheManager.js
       validationCacheService.js
     constants/
       cbaConstants.js
@@ -406,7 +399,6 @@ utils/
       index.js
       performanceMonitor.js
       tradeDebug.js
-      tradeValidator.debug.js
       tradeValidator.js
       tradeValidator.ts
       validationDebugMonitor.js
@@ -414,7 +406,6 @@ utils/
       validationUtils.js
       validationUtils.ts
       validatorDebug.ts
-      validatorFactory.js
     index.js
     rules/
       basicRules.js
@@ -423,9 +414,7 @@ utils/
       draftRules.ts
       enforceConsent.js
       enforceConsent.ts
-      enforceEligibility.js
       enforcement.js
-      enforcementValidation.js
       hardCapValidation.js
       hardCapValidation.ts
       index.js
@@ -483,7 +472,6 @@ utils/
       normalizeTradeInput.ts
       pickIdUtils.js
       pickIdUtils.ts
-      resolveValidationEntitlements.js
       salaryMargin.js
       salaryMargin.ts
       salaryMatchingRules.js
@@ -518,5 +506,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-15T07:57:19.950Z*
+*Generated on: 2026-03-15T09:05:30.564Z*
 *Auto-updated by: npm run docs*

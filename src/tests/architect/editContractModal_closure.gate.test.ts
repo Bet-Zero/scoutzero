@@ -25,7 +25,7 @@ import path from 'path';
 
 const EDIT_CONTRACT_MODAL_PATH = path.resolve(
   __dirname,
-  '../../shared/components/EditContractModal.jsx'
+  '../../shared/components/EditContractModal.tsx'
 );
 
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(

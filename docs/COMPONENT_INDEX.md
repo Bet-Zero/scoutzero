@@ -45,7 +45,6 @@ Quick reference for all components in the ScoutZero project.
 - freeAgency/FreeAgentPool/FreeAgentPool.jsx
 - freeAgency/FreeAgentPool/FreeAgentRow.jsx
 - hooks/useArchitectPlayerData.js
-- hooks/useCapSheetState.js
 - hooks/useCapValidation.js
 - hooks/usePlayerRulesProfiles.js
 - hooks/useTradeMachine.js
@@ -87,13 +86,11 @@ Quick reference for all components in the ScoutZero project.
 - utils/capTotals/computeTeamCapTotals.js
 - utils/capTotals/index.js
 - utils/capUtils.js
-- utils/cashUtils.js
 - utils/cbaConstants.js
 - utils/consentUtils.js
 - utils/contractNormalization.js
 - utils/contractSalaryUtils.js
 - utils/contractUtils.js
-- utils/draftPickUtils.js
 - utils/entitlements/entitlementPickRowProjection.js
 - utils/entitlements/formatEntitlement.js
 - utils/entitlements/seasonManagerProjection.js
@@ -102,7 +99,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/exceptions/index.js
 - utils/faExceptionUtils.js
 - utils/firebaseTeamPlanHelpers.js
-- utils/freeAgentLogic.js
 - utils/hardCapUtils.js
 - utils/mutationPipeline.js
 - utils/persistenceContracts/contracts.js
@@ -119,7 +115,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/playerRulesProfile/rfaRules.js
 - utils/playerRulesProfile/types.js
 - utils/reacqUtils.js
-- utils/rosterUtils.js
 - utils/runOffseason.js
 - utils/salaryUtils.js
 - utils/schemaAdapter.js
@@ -128,7 +123,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/seasonUtils.js
 - utils/stepienUtils.js
 - utils/teamLoader.js
-- utils/temp_mutation_code.js
 - utils/timingUtils.js
 - utils/tpeLifecycle.js
 - utils/tradeContext/assertions.js
@@ -140,7 +134,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/cache/cacheInvalidationManager.js
 - utils/tradeMachine/cache/index.js
 - utils/tradeMachine/cache/validationCache.js
-- utils/tradeMachine/cache/validationCacheManager.js
 - utils/tradeMachine/cache/validationCacheService.js
 - utils/tradeMachine/constants/cbaConstants.js
 - utils/tradeMachine/constants/secondApronMessages.js
@@ -148,19 +141,15 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/engine/index.js
 - utils/tradeMachine/engine/performanceMonitor.js
 - utils/tradeMachine/engine/tradeDebug.js
-- utils/tradeMachine/engine/tradeValidator.debug.js
 - utils/tradeMachine/engine/tradeValidator.js
 - utils/tradeMachine/engine/validationDebugMonitor.js
 - utils/tradeMachine/engine/validationPerformanceMonitor.js
 - utils/tradeMachine/engine/validationUtils.js
-- utils/tradeMachine/engine/validatorFactory.js
 - utils/tradeMachine/index.js
 - utils/tradeMachine/rules/basicRules.js
 - utils/tradeMachine/rules/draftRules.js
 - utils/tradeMachine/rules/enforceConsent.js
-- utils/tradeMachine/rules/enforceEligibility.js
 - utils/tradeMachine/rules/enforcement.js
-- utils/tradeMachine/rules/enforcementValidation.js
 - utils/tradeMachine/rules/hardCapValidation.js
 - utils/tradeMachine/rules/index.js
 - utils/tradeMachine/rules/miscRules.js
@@ -187,7 +176,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/index.js
 - utils/tradeMachine/utils/matchingValues.js
 - utils/tradeMachine/utils/pickIdUtils.js
-- utils/tradeMachine/utils/resolveValidationEntitlements.js
 - utils/tradeMachine/utils/salaryMargin.js
 - utils/tradeMachine/utils/salaryMatchingRules.js
 - utils/tradeMachine/utils/salaryUtils.js
@@ -351,4 +339,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-14T05:02:06.473Z*
+*Generated on: 2026-03-15T09:05:30.607Z*
