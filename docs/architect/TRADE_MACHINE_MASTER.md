@@ -2008,6 +2008,32 @@ Date: 2026-02-26
   - nearby excluded hubs remain excluded and unchanged
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DASHBOARD_WORLD_BOUNDARY_E109_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E110 (2026-03-15)
+
+- Status: all prior scopes through E109 remain closed/complete, including E39, E41, E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, E69, E71, E73, E75, E77, E78, E80, E82, E84, E86, E88, E89, E91, E93, E95, E97, E99, E101, E103, E105, E107, and E109.
+- Frontier:
+  - strongest Lane A target: `shared contract pocket`
+    - `src/shared/components/EditContractModal.jsx`
+    - `src/shared/utils/contracts/contractUtils.js`
+    - `src/shared/utils/contracts/seasonNormalizer.js`
+  - strongest Lane B target: the shared-display/support trio
+    - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+    - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+    - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+  - current repo evidence leaves the frontier surgical-first: the shared contract pocket is the strongest remaining concentrated live JS boundary, while Lane B remains a disconnected low-risk trio rather than a winning batch
+- Recommendation:
+  - final recommended next scope: `shared contract pocket`
+  - chosen lane: `Lane A — surgical`
+  - estimated live business-logic count: `3`
+  - likely execution shape: `one named surgical pocket with modal-first internal slices, while keeping the shared helper pair in-scope from the start`
+  - the repo remains `surgical-by-default`; batching does not re-win after E109
+  - widening rule: do not silently widen into dashboard/world shells, wrappers, or unrelated shared display surfaces unless a future execution pass proves and documents a concrete blocker
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - no broader `npm run test:*` suite was run because this was a documentation-only next-scope audit and static inspection resolved the frontier without ambiguity
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E110_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
