@@ -1774,6 +1774,37 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E100_RETURN_PACKAGE.md`
 
+### Validator TS Trade Team Card Leaf Family E101 (2026-03-14)
+
+- Status:
+  - the counted 7-file Trade Team Card leaf family is now TS-backed through authoritative `.tsx` implementations:
+    - `src/features/architect/tradeMachine/CapImpactTiles.tsx`
+    - `src/features/architect/tradeMachine/SelectTeamCard.tsx`
+    - `src/features/architect/tradeMachine/OutgoingPlayersList.tsx`
+    - `src/features/architect/tradeMachine/TradePlayerRow.tsx`
+    - `src/features/architect/tradeMachine/EntitlementPicksList.tsx`
+    - `src/features/architect/tradeMachine/EntitlementPickRow.tsx`
+    - `src/features/architect/tradeMachine/TradeExceptionManager.tsx`
+  - all seven same-path `.jsx` files remain in place as shim-only compatibility surfaces by rule
+- Migration note:
+  - behavior remained unchanged across the Trade Team Card leaf family, including exact export shapes, display semantics, list/row composition boundaries, menu wording/order, callback names, callback argument order, sign-and-trade behavior, contract-edit behavior, entitlement routing, undo/remove behavior, and vacuum-session behavior
+  - `CapImpactTiles`, `SelectTeamCard`, and `TradeExceptionManager` remain display-only leaves; `OutgoingPlayersList` and `EntitlementPicksList` remain list-composition layers; `TradePlayerRow` and `EntitlementPickRow` remain the action-heavy rows, now moved into TS without widening the scope
+  - execution stayed inside the E101 boundary and did not widen into `TradeTeamCard.jsx`, `TradeEditor.jsx`, `mutationPipeline.js`, dashboard hubs, the closed E97 family, or the closed E99 family
+  - added focused E101 compatibility, display, and row-contract guardrails, retargeted the Phase 73 and no-vacuum-copy guardrails to the new authorities, and made a small test-only cleanup fix in `tradePlayerRow.signAndTradeInjector.test.tsx` to prevent stale-DOM leakage between tests
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:architect -- --reporter=dot src/tests/architect/tradeTeamCardLeafFamily.compatibility.guardrail.test.tsx src/tests/architect/tradeTeamCardLeafFamily.display.e101.test.tsx src/tests/architect/tradeTeamCardLeafFamily.rowContracts.e101.test.tsx src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.js src/tests/architect/noVacuumWording.test.ts src/tests/architect/tradePlayerRow.signAndTradeInjector.test.tsx src/tests/architect/tradePlayerRow.yearsRemainingDisplay.test.tsx src/tests/architect/entitlementPickRowDisplay.test.jsx src/tests/architect/entitlementPickRow.vacuumBadges.test.jsx`: FAIL outside E101 because the repo script still seeded the full architect roots and `src/tests/architect/phase43_apron_drift_prevention_guardrails.test.js` flagged out-of-scope `src/features/architect/tradeMachine/FaExceptionTracker.tsx`
+  - `npm run test:node -- --reporter=dot src/tests/architect/phase73_tile_reactivity_and_totals_drift_guardrails.test.js src/tests/architect/noVacuumWording.test.ts`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/tradeTeamCardLeafFamily.compatibility.guardrail.test.tsx src/tests/architect/tradeTeamCardLeafFamily.display.e101.test.tsx src/tests/architect/tradeTeamCardLeafFamily.rowContracts.e101.test.tsx`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/tradePlayerRow.signAndTradeInjector.test.tsx src/tests/architect/tradePlayerRow.yearsRemainingDisplay.test.tsx src/tests/architect/entitlementPickRowDisplay.test.jsx src/tests/architect/entitlementPickRow.vacuumBadges.test.jsx`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.js`, mixed static/dynamic imports, and large chunks outside the E101 boundary
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - the grouped batch completed cleanly inside the counted seven-file family
+  - no mandatory follow-up remains inside the Trade Team Card leaf family
+  - the broader leaf-family boundary is now effectively complete; remaining nearby live JS/JSX work lives in the excluded orchestration hubs `TradeTeamCard.jsx` and `TradeEditor.jsx`, while the counted family now only retains shim-only `.jsx` compatibility files
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_TEAM_CARD_LEAF_FAMILY_E101_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

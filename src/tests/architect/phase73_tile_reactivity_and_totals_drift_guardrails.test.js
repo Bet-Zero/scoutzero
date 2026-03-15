@@ -24,43 +24,49 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
   // ==========================================================================
 
   describe('Source scan: CapImpactTiles memoization', () => {
-    const capImpactTilesPath = path.resolve(
+    const capImpactTilesAuthorityPath = path.resolve(
+      __dirname,
+      '../../features/architect/tradeMachine/CapImpactTiles.tsx'
+    );
+    const capImpactTilesShimPath = path.resolve(
       __dirname,
       '../../features/architect/tradeMachine/CapImpactTiles.jsx'
     );
 
-    it('CapImpactTiles.jsx uses useMemo', () => {
-      const content = fs.readFileSync(capImpactTilesPath, 'utf-8');
+    it('CapImpactTiles.tsx uses useMemo', () => {
+      const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
       expect(content).toContain('useMemo');
     });
 
-    it('CapImpactTiles.jsx imports useMemo from React', () => {
-      const content = fs.readFileSync(capImpactTilesPath, 'utf-8');
+    it('CapImpactTiles.tsx imports useMemo from React', () => {
+      const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
       expect(content).toMatch(/import\s+.*useMemo.*from\s+['"]react['"]/);
     });
 
-    it('CapImpactTiles.jsx imports computeTeamCapTotals', () => {
-      const content = fs.readFileSync(capImpactTilesPath, 'utf-8');
+    it('CapImpactTiles.tsx imports computeTeamCapTotals', () => {
+      const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
       expect(content).toContain('computeTeamCapTotals');
     });
 
-    it('CapImpactTiles.jsx memoizes baselineTotals with correct deps', () => {
-      const content = fs.readFileSync(capImpactTilesPath, 'utf-8');
-      // Check for useMemo with computeTeamCapTotals and [team, yearKey] deps
-      expect(content).toMatch(
-        /useMemo\(\s*\(\)\s*=>\s*computeTeamCapTotals\(team,\s*yearKey\)/
-      );
+    it('CapImpactTiles.tsx memoizes baselineTotals with correct deps', () => {
+      const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
+      expect(content).toContain('computeTeamCapTotals(');
       expect(content).toMatch(/\[team,\s*yearKey\]/);
     });
 
-    it('CapImpactTiles.jsx memoizes hardCapStatus', () => {
-      const content = fs.readFileSync(capImpactTilesPath, 'utf-8');
+    it('CapImpactTiles.tsx memoizes hardCapStatus', () => {
+      const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
       expect(content).toMatch(/hardCapStatus\s*=\s*useMemo/);
     });
 
-    it('CapImpactTiles.jsx memoizes salaryIn/salaryOut', () => {
-      const content = fs.readFileSync(capImpactTilesPath, 'utf-8');
+    it('CapImpactTiles.tsx memoizes salaryIn/salaryOut', () => {
+      const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
       expect(content).toMatch(/\{\s*salaryOut,\s*salaryIn\s*\}\s*=\s*useMemo/);
+    });
+
+    it('CapImpactTiles.jsx remains a shim-only compatibility surface', () => {
+      const content = fs.readFileSync(capImpactTilesShimPath, 'utf-8').trim();
+      expect(content).toBe("export { default } from './CapImpactTiles.tsx';");
     });
   });
 

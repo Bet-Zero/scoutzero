@@ -178,23 +178,30 @@ shared/
   index.ts
 tradeMachine/
   CapImpactTiles.jsx
+  CapImpactTiles.tsx
   DataWarningsSection.jsx
   DataWarningsSection.tsx
   EntitlementPickRow.jsx
+  EntitlementPickRow.tsx
   EntitlementPicksList.jsx
+  EntitlementPicksList.tsx
   FaExceptionTracker.jsx
   FaExceptionTracker.tsx
   OutgoingPlayersList.jsx
+  OutgoingPlayersList.tsx
   SelectTeamCard.jsx
+  SelectTeamCard.tsx
   TradeEditor.jsx
   TradeExceptionDashboard.jsx
   TradeExceptionDashboard.tsx
   TradeExceptionManager.jsx
+  TradeExceptionManager.tsx
   TradeExportCapture.jsx
   TradeExportCapture.tsx
   TradeLegalChecker.jsx
   TradeLegalChecker.tsx
   TradePlayerRow.jsx
+  TradePlayerRow.tsx
   TradePreviewModal.jsx
   TradePreviewModal.tsx
   TradeReceiptPanel.jsx
@@ -502,5 +509,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-14T11:32:49.772Z*
+*Generated on: 2026-03-15T03:16:40.944Z*
 *Auto-updated by: npm run docs*

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import TradePlayerRow from '@/features/architect/tradeMachine/TradePlayerRow';
 import { buildSyntheticSntPlayers } from '@/features/architect/tradeMachine/utils/devSntInjector';
@@ -35,6 +35,10 @@ function renderOpenMenuRow(player: any) {
   );
 }
 
+afterEach(() => {
+  cleanup();
+});
+
 describe('TradePlayerRow DEV S&T injector eligibility surface', () => {
   it('shows Sign-and-Trade for the eligible synthetic player', () => {
     const [eligiblePlayer] = buildSyntheticSntPlayers({ teamCode: 'LAL' }, 2026);
@@ -55,4 +59,3 @@ describe('TradePlayerRow DEV S&T injector eligibility surface', () => {
     ).not.toBeInTheDocument();
   });
 });
-
