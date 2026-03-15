@@ -2056,6 +2056,19 @@ Date: 2026-02-26
 - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHARED_CONTRACT_POCKET_E111_RETURN_PACKAGE.md`
 
+### Validator TS Shim Cleanup Audit E112 (2026-03-15)
+
+- Status:
+  - inside the audited E112 144-pair architect/shared roots, the repo now supports same-path shim cleanup as the next cleanup category
+  - the 43-file zero-explicit-import set was treated only as the initial candidate pool; a real low-risk first deletion batch exists with 39 pure same-path re-export shims
+  - the four initial-pool files that did not survive into the first-batch recommendation are `src/features/architect/tradeMachine/ValidationStateHeader.jsx`, `src/features/architect/utils/capLegalityValidation.js`, `src/features/architect/utils/tradeContext/legacy/index.js`, and `src/features/architect/utils/tradeContext/types.js`
+  - the strongest keep reason for the remaining same-path shims is unchanged live explicit `.js/.jsx` runtime imports plus active compatibility guardrails for zero-runtime shims
+  - same-path shim cleanup, wrapper cleanup, and barrel/public-entry cleanup remain separate lanes and are not merged into one recommendation
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHIM_CLEANUP_AUDIT_E112_RETURN_PACKAGE.md`
+
 ### Validator TS Grouped 33-File Scope (2026-03-15)
 
 - Status:
