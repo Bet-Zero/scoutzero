@@ -20,7 +20,7 @@ const UI_SOURCE_FILES = [
   'src/features/architect/tradeMachine/EntitlementPicksList.tsx',
   'src/features/architect/tradeMachine/TradeTeamCard.tsx',
   'src/features/architect/admin/EntitlementEditorAdvancedTab.tsx',
-  'src/features/architect/GMDashboard/components/WorldSelector.jsx',
+  'src/features/architect/GMDashboard/components/WorldSelector.tsx',
 ];
 
 /**

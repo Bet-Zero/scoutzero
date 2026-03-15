@@ -13,7 +13,7 @@ const firebaseConfigPath = path.resolve(
 const packageJsonPath = path.resolve(__dirname, '../../../package.json');
 const gmDashboardPath = path.resolve(
   __dirname,
-  '../../../src/features/architect/GMDashboard/GMDashboard.jsx'
+  '../../../src/features/architect/GMDashboard/GMDashboard.tsx'
 );
 const firebaseJsonPath = path.resolve(__dirname, '../../../firebase.json');
 

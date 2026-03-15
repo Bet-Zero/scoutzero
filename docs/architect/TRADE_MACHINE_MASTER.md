@@ -1979,6 +1979,35 @@ Date: 2026-02-26
   - no broader `npm run test:*` suite was run because this was a documentation-only next-scope audit and static inspection resolved the frontier without unresolved ambiguity
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E108_RETURN_PACKAGE.md`
 
+### Validator TS Dashboard/World Boundary E109 (2026-03-15)
+
+- Status: all previously closed scopes through E108 remain closed/complete, and the named dashboard/world boundary is now TS-backed.
+- Scope:
+  - the counted E109 authorities were migrated to:
+    - `src/features/architect/GMDashboard/components/WorldSelector.tsx`
+    - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.tsx`
+    - `src/features/architect/GMDashboard/GMDashboard.tsx`
+  - same-path `.jsx` files now remain only as shim-only compatibility surfaces:
+    - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+    - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+    - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - execution stayed out of `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`, `src/shared/components/EditContractModal.jsx`, shared contract helpers, the already-closed E103 world-support authorities, and other excluded hubs
+- Outcome:
+  - the grouped child-first boundary completed cleanly with `WorldSelector` first, `SeasonAdvanceModal` second, and `GMDashboard` last
+  - behavior remained unchanged across world selection/create/branch/rename/archive/delete flow, season-advance wizard flow, dashboard tab/layout flow, edit-contract modal wiring, localStorage restore/persist behavior, and existing callback/export surfaces
+  - the three same-path `.jsx` files are now pure shims and no business logic remains in JSX inside the named boundary
+  - the broader dashboard/world boundary is now effectively complete, with only explicitly excluded nearby hubs still outside scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:ui -- --reporter=dot src/tests/architect/dashboardWorldBoundary.compatibility.guardrail.test.tsx src/tests/architect/dashboardWorldBoundary.e109.test.tsx`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/security/architectClientEmulatorLock.guardrail.test.ts src/tests/architect/noVacuumWording.test.ts`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.js`, mixed static/dynamic import chunking, and large chunks outside E109
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - no blocker forced widening and no mandatory follow-up remains inside the named boundary beyond the kept shim-only `.jsx` files
+  - nearby excluded hubs remain excluded and unchanged
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_DASHBOARD_WORLD_BOUNDARY_E109_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

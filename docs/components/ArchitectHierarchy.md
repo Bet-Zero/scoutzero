@@ -11,6 +11,7 @@ ExceptionTracker.jsx
 FreeAgentPool.jsx
 GMDashboard/
   GMDashboard.jsx
+  GMDashboard.tsx
   components/
     CapAuditDebugPanel.tsx
     DeleteWorldModal.jsx
@@ -20,7 +21,9 @@ GMDashboard/
     OfferSheetList.jsx
     OfferSheetList.tsx
     SeasonAdvanceModal.jsx
+    SeasonAdvanceModal.tsx
     WorldSelector.jsx
+    WorldSelector.tsx
     WorldTimeControls.jsx
     WorldTimeControls.tsx
     index.js
@@ -515,5 +518,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-15T07:06:15.341Z*
+*Generated on: 2026-03-15T07:57:19.950Z*
 *Auto-updated by: npm run docs*
