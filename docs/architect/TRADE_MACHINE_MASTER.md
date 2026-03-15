@@ -1907,6 +1907,30 @@ Date: 2026-02-26
   - nearby live JS/JSX work still exists only in the explicitly excluded hubs such as `mutationPipeline.js`, `GMDashboard.jsx`, `WorldSelector.jsx`, and `SeasonAdvanceModal.jsx`
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADE_EDITOR_TEAM_CARD_BOUNDARY_E105_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E106 (2026-03-15)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, the E89 Cap Sheet modal-pair sub-arc remains complete, the E91 Free Agency offer-sheet surface arc remains complete, the E93 Offseason preview surface arc remains complete, the E95 `seasonManager` arc remains complete, the E97 Trade Machine validator/result-presentation family arc remains complete, the E99 preview/export family arc remains complete, the E101 Trade Team Card leaf family arc remains complete, the E103 GM world-support family arc remains complete, and the E105 TradeEditor + TradeTeamCard boundary remains complete.
+- Frontier:
+  - current repo evidence shows the frontier has now pivoted to `surgical-by-default`
+  - batching no longer wins by default
+  - strongest Lane A target: `src/features/architect/utils/mutationPipeline.js`
+  - strongest Lane B target: the shared-display/support trio:
+    - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+    - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+    - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+  - dashboard/world (`GMDashboard.jsx` + `WorldSelector.jsx` + `SeasonAdvanceModal.jsx`) and the shared contract pocket (`EditContractModal.jsx` + shared contract helpers) remain real surgical alternatives, but neither beats `mutationPipeline.js`
+- Recommendation:
+  - the final recommended next scope is `src/features/architect/utils/mutationPipeline.js`
+  - the chosen lane is `high-risk surgical`
+  - the estimated live business-logic count is `1`
+  - the likely future execution shape is `one named boundary executed in internal sub-arcs`
+  - widening rule: do not silently widen into other hubs unless a future execution pass proves a real blocker
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - no broader `npm run test:*` suite was run because this was a documentation-only next-scope audit and static inspection resolved the frontier without ambiguity
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E106_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
