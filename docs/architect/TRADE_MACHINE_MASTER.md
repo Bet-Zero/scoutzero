@@ -1956,6 +1956,29 @@ Date: 2026-02-26
   - nearby excluded hubs remain excluded and unchanged
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_MUTATION_PIPELINE_E107_RETURN_PACKAGE.md`
 
+### Validator TS Next-Scope Expansion Audit E108 (2026-03-15)
+
+- Status: all previously closed scopes through E107 remain closed/complete. That includes E39, E41, E43/E44, E46, E48, E50, E52, E54, E56/E57, E59, E61/E62, E64, E66/E67, E69, E71, E73, E75, E77, E78, E80, E82, E84, E86, E88, E89, E91, E93, E95, E97, E99, E101, E103, E105, and E107.
+- Frontier:
+  - strongest Lane A target: `GMDashboard + WorldSelector + SeasonAdvanceModal dashboard/world boundary`
+  - strongest Lane B target: the shared-display/support trio:
+    - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+    - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+    - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+  - `mutationPipeline.js` now remains closed as a TS-backed shim after E107, and current repo evidence leaves the post-E107 live frontier concentrated in the dashboard/world cluster, the shared contract pocket, and a mixed low-risk trio
+  - the repo remains `surgical-by-default`; Lane B no longer has a real winner and batching does not re-win
+- Recommendation:
+  - final recommended next scope: `GMDashboard + WorldSelector + SeasonAdvanceModal dashboard/world boundary`
+  - chosen lane: `Lane A — surgical`
+  - estimated live business-logic count: `3`
+  - likely execution shape: `child-first grouped UI migration, with WorldSelector and SeasonAdvanceModal first and GMDashboard last`
+  - widening rule: do not silently widen into `OffseasonSection.jsx`, `EditContractModal.jsx`, shared contract helpers, wrappers, or unrelated hubs unless a future execution pass proves and documents a concrete blocker
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - no broader `npm run test:*` suite was run because this was a documentation-only next-scope audit and static inspection resolved the frontier without unresolved ambiguity
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E108_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

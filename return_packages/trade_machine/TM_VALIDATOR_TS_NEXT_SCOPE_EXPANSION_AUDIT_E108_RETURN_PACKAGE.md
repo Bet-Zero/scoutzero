@@ -1,0 +1,409 @@
+# TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E108 — EXECUTION RETURN PACKAGE
+
+## 1. Summary
+- Files changed in E108:
+  - `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E108_RETURN_PACKAGE.md`
+  - `docs/architect/TRADE_MACHINE_MASTER.md`
+- E108 is a docs-only post-E107 frontier audit. No runtime code, exports, behavior, or deletion work was performed.
+- E107 closed `src/features/architect/utils/mutationPipeline.js` as a `TS-backed shim`, so current repo evidence now concentrates the remaining live frontier in:
+  - the dashboard/world cluster:
+    - `src/features/architect/GMDashboard/GMDashboard.jsx`
+    - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+    - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+  - the shared contract pocket:
+    - `src/shared/components/EditContractModal.jsx`
+    - `src/shared/utils/contracts/contractUtils.js`
+    - `src/shared/utils/contracts/seasonNormalizer.js`
+  - the mixed low-risk trio:
+    - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+    - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+    - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+- Current repo evidence shows the repo remains `surgical-by-default` after E107.
+- Strongest Lane A target: `GMDashboard + WorldSelector + SeasonAdvanceModal dashboard/world boundary`.
+- Strongest Lane B target: the shared-display/support trio:
+  - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+  - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+  - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+- Final recommendation:
+  - scope: `GMDashboard + WorldSelector + SeasonAdvanceModal dashboard/world boundary`
+  - lane: `Lane A — surgical`
+  - estimated live business-logic count: `3`
+  - likely execution shape: `child-first grouped UI migration, with WorldSelector and SeasonAdvanceModal first and GMDashboard last`
+- Lane B no longer has a real winner after E107. Batching does not re-win.
+
+## 2. Closed Scope Confirmation
+- Current repo evidence does not reopen any previously closed scope through E107. The following remain closed/complete:
+  - E39
+  - E41
+  - E43/E44
+  - E46
+  - E48
+  - E50
+  - E52
+  - E54
+  - E56/E57
+  - E59
+  - E61/E62
+  - E64
+  - E66/E67
+  - E69
+  - E71
+  - E73
+  - E75
+  - E77
+  - E78
+  - E80
+  - E82
+  - E84
+  - E86
+  - E88
+  - E89
+  - E91
+  - E93
+  - E95
+  - E97
+  - E99
+  - E101
+  - E103
+  - E105
+  - E107
+- Same-path `.js/.jsx` files with `.ts/.tsx` authorities remain classified as `TS-backed shim`, not reopened business logic:
+  - E91:
+    - `src/features/architect/GMDashboard/components/OfferSheetList.jsx`
+    - `src/features/architect/GMDashboard/sections/FreeAgencySection.jsx`
+  - E93:
+    - `src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx`
+    - `src/features/architect/offseason/OffseasonTab/OptionManager.jsx`
+  - E95:
+    - `src/features/architect/utils/seasonManager.js`
+  - E97:
+    - `src/features/architect/tradeMachine/ValidationStateHeader.jsx`
+    - `src/features/architect/tradeMachine/ValidationDetailsPanel.jsx`
+    - `src/features/architect/tradeMachine/TradeSummaryPanel.jsx`
+    - `src/features/architect/tradeMachine/DataWarningsSection.jsx`
+    - `src/features/architect/tradeMachine/TradeLegalChecker.jsx`
+    - `src/features/architect/tradeMachine/TradeExceptionDashboard.jsx`
+    - `src/features/architect/tradeMachine/FaExceptionTracker.jsx`
+    - `src/features/architect/tradeMachine/TradeSalaryCalculator.jsx`
+    - `src/features/architect/tradeMachine/TradeReceiptPanel.jsx`
+  - E99:
+    - `src/features/architect/tradeMachine/TradePreviewModal.jsx`
+    - `src/features/architect/tradeMachine/TradeExportCapture.jsx`
+  - E101:
+    - `src/features/architect/tradeMachine/CapImpactTiles.jsx`
+    - `src/features/architect/tradeMachine/SelectTeamCard.jsx`
+    - `src/features/architect/tradeMachine/OutgoingPlayersList.jsx`
+    - `src/features/architect/tradeMachine/TradePlayerRow.jsx`
+    - `src/features/architect/tradeMachine/EntitlementPicksList.jsx`
+    - `src/features/architect/tradeMachine/EntitlementPickRow.jsx`
+    - `src/features/architect/tradeMachine/TradeExceptionManager.jsx`
+  - E103:
+    - `src/features/architect/GMDashboard/components/DeleteWorldModal.jsx`
+    - `src/features/architect/GMDashboard/components/WorldTimeControls.jsx`
+    - `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`
+  - E105:
+    - `src/features/architect/tradeMachine/TradeEditor.jsx`
+    - `src/features/architect/tradeMachine/TradeTeamCard.jsx`
+  - E107:
+    - `src/features/architect/utils/mutationPipeline.js`
+- Top-level wrappers, barrels, and shell surfaces remain excluded from reopened business logic unless importer evidence proves unique live behavior. Current repo evidence did not prove that for the wrapper/barrel surfaces inspected in E108.
+
+## 3. Candidate Next Scopes
+
+### Current Frontier Classification
+- `high-risk state/orchestration hub`
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+    - live `495`-line dashboard hub
+    - composes world selection, season advancement, edit-contract modal wiring, active-tab routing, and TS-backed hook orchestration
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+    - live `798`-line world-management hub
+    - owns select/create/branch/rename/archive/delete world workflow orchestration
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+    - live `781`-line world season-advance wizard
+    - owns option-decision flow, expiry previews, and async season-advance orchestration
+  - `src/shared/components/EditContractModal.jsx`
+    - live `1570`-line shared contract-action modal
+    - still bridges GM Dashboard, Trade Editor, and Free Agent Pool flows
+- `live business logic`
+  - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+    - live `117`-line route/load/navigate surface with parallel team loading and cap-total derivation
+  - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+    - live `140`-line roster-transform/render surface with player hydration, two-way handling, and slot fill logic
+  - `src/shared/utils/contracts/contractUtils.js`
+    - live `21`-line shared current-season and years-remaining helper
+  - `src/shared/utils/contracts/seasonNormalizer.js`
+    - live `94`-line shared season parsing and normalization helper
+- `low-risk presentational component`
+  - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+    - live `73`-line presentational warning/error renderer used by the shared contract modal through the architect wrapper
+- `TS-backed shim`
+  - E91 `OfferSheetList.jsx` and `FreeAgencySection.jsx`
+  - E93 `OffseasonTab.jsx` and `OptionManager.jsx`
+  - E95 `seasonManager.js`
+  - E97 the 9 Trade Machine validation/presentation `.jsx` surfaces
+  - E99 `TradePreviewModal.jsx` and `TradeExportCapture.jsx`
+  - E101 the 7 Trade Team Card leaf `.jsx` surfaces
+  - E103 `DeleteWorldModal.jsx`, `WorldTimeControls.jsx`, and `DraftPositionsInput.jsx`
+  - nearby closed same-path shims:
+    - `src/features/architect/tradeMachine/TradeEditor.jsx`
+    - `src/features/architect/tradeMachine/TradeTeamCard.jsx`
+    - `src/features/architect/utils/mutationPipeline.js`
+- `barrel/public entrypoint`
+  - `src/features/architect/GMDashboard/index.jsx`
+  - `src/features/architect/GMDashboard/components/index.js`
+  - `src/shared/utils/contracts/index.js`
+- `thin wrapper/deprecated wrapper`
+  - `src/features/architect/ValidationWarnings.jsx`
+  - `src/features/architect/LeagueView.jsx`
+  - `src/features/architect/RosterVisual.jsx`
+  - `src/features/architect/GMDashboard/sections/TradeSection.jsx`
+  - `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`
+- `debug/support/monitoring`
+  - `src/features/architect/utils/tradeMachine/engine/validatorFactory.js`
+  - `src/features/architect/utils/tradeMachine/utils/resolveValidationEntitlements.js`
+- `dead/scratch/zero-import residue`
+  - `src/features/architect/hooks/useCapSheetState.js`
+  - `src/features/architect/utils/cashUtils.js`
+  - `src/features/architect/utils/freeAgentLogic.js`
+  - `src/features/architect/utils/temp_mutation_code.js`
+  - `src/features/architect/utils/tradeMachine/rules/enforcementValidation.js`
+  - `src/features/architect/utils/validatePhase21.test.js`
+  - `src/features/architect/utils/draftPickUtils.js`
+  - `src/features/architect/utils/architectCore.js`
+- Zero-import / weak-import residue confirmation:
+  - `useCapSheetState.js`, `cashUtils.js`, `freeAgentLogic.js`, `temp_mutation_code.js`, and `enforcementValidation.js` did not surface live runtime importers in `src`.
+  - `validatorFactory.js` and `resolveValidationEntitlements.js` did not surface live runtime importers in `src`, which keeps them in support/monitoring rather than active frontier scope.
+  - `architectCore.js` surfaced only guardrail-only references, not live runtime consumers.
+  - `draftPickUtils.js` still has only test-backed usage through `src/tests/architect/phase40_secondApron_drift_guardrails.test.js`; current repo evidence did not surface a live runtime importer.
+
+### Candidate A1 — `GMDashboard.jsx` alone
+- Lane: `Lane A — surgical`
+- Scope:
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+- Estimated live business-logic count: `1`
+- Why it is serious:
+  - It remains the visible dashboard composition hub and still owns active-tab switching, world controls placement, edit-contract modal wiring, and section handoff.
+  - It is the runtime entrypoint for `WorldSelector.jsx` and shared-contract modal flow inside the dashboard.
+- Why it is not the winner:
+  - It is now mostly a composition hub over already-TS hooks and section shells.
+  - Converting it alone would leave `WorldSelector.jsx` and `SeasonAdvanceModal.jsx` as the same surrounding live dashboard/world frontier.
+  - That makes the cut too fragmented compared with the grouped dashboard/world boundary.
+
+### Candidate A2 — `WorldSelector.jsx` alone
+- Lane: `Lane A — surgical`
+- Scope:
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+- Estimated live business-logic count: `1`
+- Why it is serious:
+  - It is a live `798`-line world-management surface with real async orchestration around `listUserWorlds`, `createWorld`, `branchWorld`, `updateWorldMetadata`, `getWorldMetadata`, and `purgeWorld`.
+  - It has a tight runtime importer path: `GMDashboard.jsx` is the live consumer.
+- Why it is not the winner:
+  - It is a viable surgical slice, but too narrow versus the grouped dashboard/world boundary.
+  - Migrating it alone would still leave the dashboard entry hub and the season-advance wizard as the remaining adjacent live JSX frontier.
+
+### Candidate A3 — `SeasonAdvanceModal.jsx` alone
+- Lane: `Lane A — surgical`
+- Scope:
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+- Estimated live business-logic count: `1`
+- Why it is serious:
+  - It is a live `781`-line wizard that still owns option-decision staging, expiry previews, and async season-advance completion flow.
+  - It dynamically enters `seasonManager` and reads canonical TPE state through the persistence-contract accessor.
+- Why it is not the winner:
+  - It is a viable wizard slice, but too narrow and still leaves the same surrounding dashboard/world frontier intact.
+  - Its live runtime path still passes through `OffseasonSection.jsx` and the dashboard shell, so it is weaker alone than the grouped dashboard/world cut.
+
+### Candidate A4 — dashboard/world grouped surgical boundary
+- Lane: `Lane A — surgical`
+- Scope:
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+- Estimated live business-logic count: `3`
+- Why it is serious:
+  - It is the tightest remaining live dashboard/world orchestration cluster after E107.
+  - The files are locally connected:
+    - `GMDashboard.jsx` renders `WorldSelector`
+    - `OffseasonSection.jsx` renders `SeasonAdvanceModal`
+    - both child surfaces feed the same GM dashboard world lifecycle
+  - The nearby E103 world-support family is already TS-backed, so this cluster now isolates the remaining high-risk dashboard/world JSX frontier.
+- Why it wins:
+  - This is the strongest remaining surgical UI cluster after E107.
+  - It collapses the remaining live dashboard/world boundary without widening into shared contract flows or unrelated support pockets.
+  - It is more coherent than Lane B and less cross-feature than the shared contract pocket.
+
+### Candidate A5 — shared contract pocket
+- Lane: `Lane A — surgical`
+- Scope:
+  - `src/shared/components/EditContractModal.jsx`
+  - `src/shared/utils/contracts/contractUtils.js`
+  - `src/shared/utils/contracts/seasonNormalizer.js`
+- Estimated live business-logic count: `3`
+- Why it is serious:
+  - `EditContractModal.jsx` is a live `1570`-line shared contract action hub with real validation, rule-profile, override, and async confirm flow.
+  - The shared helpers remain live JS and still feed non-architect consumers.
+  - Current importer evidence shows the modal still bridges:
+    - `src/features/architect/GMDashboard/GMDashboard.jsx`
+    - `src/features/architect/tradeMachine/TradeEditor.tsx`
+    - `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx`
+- Why it does not win:
+  - It is the strongest non-dashboard Lane A alternative, but it is more cross-feature and shared than A4.
+  - It reaches across GM Dashboard, Trade Editor, Free Agent Pool, filtering, year defaults, profile UI, and season-normalization consumers.
+  - That makes it a broader next step than the tighter dashboard/world cluster.
+
+### Candidate B1 — shared-display/support trio
+- Lane: `Lane B — batch`
+- Scope:
+  - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+  - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+  - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+- Estimated live business-logic count: `3`
+- Why it is serious:
+  - It is the strongest remaining Lane B comparator after excluding same-path shims, wrappers, barrels, and residue.
+  - Each file is still live, not a dead compatibility surface.
+- Why it loses:
+  - The trio is too heterogeneous to count as a real post-E107 winner.
+  - `ValidationWarnings.jsx` is presentational, `LeagueView.jsx` is route/load/navigation logic, and `RosterVisual.jsx` is roster hydration and display assembly.
+  - The files do not define one coherent frontier boundary, so Lane B no longer has a real winner after E107.
+
+### Candidate B2 — wrapper/support cleanup pockets
+- Lane: `Lane B — batch`
+- Scope reviewed as explicit non-winners:
+  - `src/features/architect/ValidationWarnings.jsx`
+  - `src/features/architect/LeagueView.jsx`
+  - `src/features/architect/RosterVisual.jsx`
+  - `src/features/architect/GMDashboard/sections/TradeSection.jsx`
+  - `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`
+  - `src/features/architect/GMDashboard/index.jsx`
+  - `src/features/architect/GMDashboard/components/index.js`
+  - `src/shared/utils/contracts/index.js`
+- Why they do not win:
+  - These surfaces are wrappers, barrels, or shells rather than true live-business-logic scope.
+  - `TradeSection.jsx` is a thin handoff into the already-closed E105 authority.
+  - `ValidationWarnings.jsx`, `LeagueView.jsx`, and `RosterVisual.jsx` are compatibility wrappers above the real shared implementations.
+  - `GMDashboard/index.jsx`, `GMDashboard/components/index.js`, and `src/shared/utils/contracts/index.js` are export surfaces, not business-logic boundaries.
+  - `OffseasonSection.jsx` still has shell logic, but current repo evidence keeps it as support shell territory rather than a better next-scope winner than A4.
+
+## 4. Recommended Next Scope
+- Exact scope name: `GMDashboard + WorldSelector + SeasonAdvanceModal dashboard/world boundary`
+- Exact lane: `Lane A — surgical`
+- Exact estimated live business-logic count: `3`
+- Why it wins over the strongest alternative from the other lane:
+  - It collapses the tightest remaining live dashboard/world orchestration cluster.
+  - The strongest Lane B comparator is the shared-display/support trio, but that trio is small and mixed rather than one coherent boundary.
+  - Delaying the dashboard/world cluster for Lane B would preserve the clearest remaining high-risk local frontier while only harvesting a heterogeneous low-risk batch.
+- Why it also beats the strongest non-dashboard Lane A alternative:
+  - The shared contract pocket is real, but it is broader and more cross-feature than the dashboard/world cluster.
+  - A4 is the tighter next boundary with cleaner local execution ordering.
+- Likely execution shape:
+  - child-first grouped UI migration
+  - migrate `WorldSelector.jsx` and `SeasonAdvanceModal.jsx` first
+  - migrate `GMDashboard.jsx` last against the stabilized child interfaces
+- Explicit widening rule:
+  - do not silently widen into `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`
+  - do not silently widen into `src/shared/components/EditContractModal.jsx`
+  - do not silently widen into `src/shared/utils/contracts/contractUtils.js`
+  - do not silently widen into `src/shared/utils/contracts/seasonNormalizer.js`
+  - do not silently widen into wrappers, barrels, or unrelated hubs
+  - widen only if a future execution pass proves a concrete blocker and documents that blocker instead of auto-expanding scope
+- Final decision:
+  - the repo remains `surgical-by-default`
+  - batching does not re-win after E107
+
+## 5. Live JS/JSX/TSX Business-Logic Inventory For Recommended Scope
+- In-scope live business logic:
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+- Explicit exclusions:
+  - already-closed same-path shims:
+    - E91, E93, E95, E97, E99, E101, E103, E105, and E107 same-path shim surfaces
+  - wrappers, shells, and barrels:
+    - `src/features/architect/ValidationWarnings.jsx`
+    - `src/features/architect/LeagueView.jsx`
+    - `src/features/architect/RosterVisual.jsx`
+    - `src/features/architect/GMDashboard/sections/TradeSection.jsx`
+    - `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`
+    - `src/features/architect/GMDashboard/index.jsx`
+    - `src/features/architect/GMDashboard/components/index.js`
+    - `src/shared/utils/contracts/index.js`
+  - other non-winning surgical cluster:
+    - `src/shared/components/EditContractModal.jsx`
+    - `src/shared/utils/contracts/contractUtils.js`
+    - `src/shared/utils/contracts/seasonNormalizer.js`
+  - other non-winning batch candidate:
+    - `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
+    - `src/features/architect/shared/LeagueView/LeagueView.jsx`
+    - `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
+
+## 6. Validation / Inspection Run
+- Inspection commands used to rebuild the post-E107 frontier:
+  - `rg --files src/features/architect src/shared | rg '\\.(js|jsx|ts|tsx)$' | sort`
+  - targeted `rg -n` importer scans for:
+    - dashboard/world candidates
+    - shared contract pocket
+    - shared-display/support trio
+    - wrapper/barrel surfaces
+    - zero-import / weak-import residue
+  - targeted `sed -n` reads for:
+    - `GMDashboard.jsx`
+    - `WorldSelector.jsx`
+    - `SeasonAdvanceModal.jsx`
+    - `EditContractModal.jsx`
+    - `ValidationWarnings.jsx`
+    - `LeagueView.jsx`
+    - `RosterVisual.jsx`
+    - wrapper/barrel/shim samples including `ValidationWarnings.jsx`, `LeagueView.jsx`, `RosterVisual.jsx`, `GMDashboard/index.jsx`, `GMDashboard/components/index.js`, `TradeSection.jsx`, `OfferSheetList.jsx`, `FreeAgencySection.jsx`, `TradeEditor.jsx`, `TradeTeamCard.jsx`, and `seasonManager.js`
+  - `wc -l` comparison for key candidates:
+    - `GMDashboard.jsx`
+    - `WorldSelector.jsx`
+    - `SeasonAdvanceModal.jsx`
+    - `EditContractModal.jsx`
+    - the shared-display/support trio
+    - wrapper/barrel surfaces
+  - same-path shim detection by direct file reads of `.jsx/.js` compatibility surfaces
+  - zero-import / weak-import confirmation by targeted `rg -n` scans across `src` and `tests`
+  - re-reading the recent closure chain through:
+    - E91
+    - E93
+    - E95
+    - E97
+    - E99
+    - E101
+    - E103
+    - E106
+    - E107
+    - plus the E106 and E107 entries in `docs/architect/TRADE_MACHINE_MASTER.md`
+- Validation commands actually run:
+  - `npm run typecheck`
+    - Result: PASS
+  - `npm run validate:project`
+    - Result: PASS
+- Commands intentionally skipped:
+  - no `npm run test:*` suite was run because this is a docs-only next-scope audit and static inspection resolved the frontier without unresolved ambiguity
+  - `npm run test:full` was not run because the prompt did not contain `RUN FULL SUITE`
+  - `npm run build` was not run because E108 made no runtime code changes and the prompt required only `typecheck` and `validate:project`
+
+## 7. Complexity / Risk Assessment
+- E108 execution risk was low because this was a documentation-only audit confined to two files.
+- The audit conclusion is higher stakes than the file edits themselves because a bad recommendation would distort the next TS migration boundary. That risk was controlled by current-file inspection, importer scans, shim confirmation, and zero-import confirmation.
+- The recommended next execution scope is medium-to-high risk once implemented because:
+  - `WorldSelector.jsx` owns async world lifecycle operations and localStorage restoration
+  - `SeasonAdvanceModal.jsx` owns wizard state and async season advancement
+  - `GMDashboard.jsx` composes the dashboard shell and contract modal wiring over TS-backed hooks
+- The recommendation is still safer than the shared contract pocket for the immediate next move because it stays inside one local dashboard/world cluster instead of widening into shared multi-surface flows.
+
+## 8. Master Doc Update
+- Appended `### Validator TS Next-Scope Expansion Audit E108 (2026-03-15)` immediately after the E107 entry in `docs/architect/TRADE_MACHINE_MASTER.md`.
+- The new entry records that:
+  - all prior scopes through E107 remain closed/complete
+  - strongest Lane A target: `GMDashboard + WorldSelector + SeasonAdvanceModal dashboard/world boundary`
+  - strongest Lane B target: the shared-display/support trio
+  - final recommended next scope: `GMDashboard + WorldSelector + SeasonAdvanceModal dashboard/world boundary`
+  - chosen lane: `Lane A — surgical`
+  - estimated live business-logic count: `3`
+  - likely execution shape: `child-first grouped UI migration, with WorldSelector and SeasonAdvanceModal first and GMDashboard last`
+  - the repo remains `surgical-by-default` and batching does not re-win
+  - `npm run typecheck`: PASS
+  - `npm run validate:project`: PASS
+  - return package pointer: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E108_RETURN_PACKAGE.md`
