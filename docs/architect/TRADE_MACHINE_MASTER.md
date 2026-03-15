@@ -1931,6 +1931,31 @@ Date: 2026-02-26
   - no broader `npm run test:*` suite was run because this was a documentation-only next-scope audit and static inspection resolved the frontier without ambiguity
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_NEXT_SCOPE_EXPANSION_AUDIT_E106_RETURN_PACKAGE.md`
 
+### Validator TS Mutation Pipeline E107 (2026-03-15)
+
+- Status: E39 remains closed, E41 remains complete, the E43/E44 `tradeContext` mini-arc remains complete, the E46 trade-facing helper foundation remains complete, the E48 `capTotals` mini-arc remains complete, the E50 `persistenceContracts` arc remains complete, the E52 season-transition helper arc remains complete, the E54 exception-history mini-arc remains complete, the E56/E57 `playerRulesProfile` arc remains complete, the E59 contract/season helper arc remains complete, the E61/E62 non-trade cap-legality arc remains complete, the E64 world-aware loader mini-arc remains complete, the E66/E67 entitlement presentation arc remains complete, the E69 Trade Machine validation snapshot/accessor arc remains complete, the E71 Architect contract/cap hook arc remains complete, the E73 world lifecycle arc remains complete, the E75 trade-execution helper arc remains complete, the E77 helper-trio sub-arc remains complete, the E78 `useTradeMachine` hook arc remains complete, the E80 consent helper arc remains complete, the E82 world/data-access helper arc remains complete, the E84 Team History surface arc remains complete, the E86 Free Agent Pool surface arc remains complete, the E88 Cap Sheet display-core sub-arc remains complete, the E89 Cap Sheet modal-pair sub-arc remains complete, the E91 Free Agency offer-sheet surface arc remains complete, the E93 Offseason preview surface arc remains complete, the E95 `seasonManager` arc remains complete, the E97 Trade Machine validator/result-presentation family arc remains complete, the E99 preview/export family arc remains complete, the E101 Trade Team Card leaf family arc remains complete, the E103 GM world-support family arc remains complete, the E105 TradeEditor + TradeTeamCard boundary remains complete, the E106 next-scope audit remains complete, and the named `mutationPipeline` authority is now TS-backed.
+- Scope:
+  - the counted E107 boundary was migrated through the new authority:
+    - `src/features/architect/utils/mutationPipeline.ts`
+  - same-path `.js` was retained only as a shim-only compatibility surface:
+    - `src/features/architect/utils/mutationPipeline.js`
+  - execution stayed out of `src/features/architect/GMDashboard/GMDashboard.jsx`, `src/features/architect/GMDashboard/components/WorldSelector.jsx`, `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`, `src/shared/components/EditContractModal.jsx`, Trade Machine UI files, and the already-closed E97/E99/E101/E103/E105 authorities
+- Outcome:
+  - `mutationPipeline.ts` is now the authoritative runtime boundary and `mutationPipeline.js` is now a pure compatibility shim
+  - behavior remained unchanged across helper normalization/sanitization, trade and non-trade compute paths, persistence preparation, world write sequencing, event/audit payload generation, apply fail-close behavior, and compute/apply separation
+  - the named E107 boundary completed cleanly with no business logic left in JS and no blocker forcing scope expansion
+  - the broader mutation-pipeline boundary is now effectively complete; remaining nearby live JS/JSX work still lives only in explicitly excluded dashboard, shared-contract, and Trade Machine UI hubs
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run test:node -- --reporter=dot src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts src/tests/architect/mutationPipeline.boundary.e107.test.ts`: PASS
+  - `npm run test:node -- --reporter=dot <retargeted mutationPipeline source-scan guardrails + closest existing node behavior proofs>`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.js`, mixed static/dynamic import chunking, and large chunks outside E107
+  - `npm run validate:project`: PASS
+- Follow-up:
+  - no mandatory E107 follow-up remains inside the named boundary beyond the kept shim-only `.js` compatibility file
+  - nearby excluded hubs remain excluded and unchanged
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_MUTATION_PIPELINE_E107_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

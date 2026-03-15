@@ -5,9 +5,9 @@
  * The canonical SSOT is computeTeamCapTotals() from capTotals module.
  *
  * TESTS:
- * 1. Source scan: mutationPipeline.js must NOT define calculateTeamTotals
+ * 1. Source scan: mutationPipeline.ts must NOT define calculateTeamTotals
  * 2. Source scan: tradeContext.ts must NOT define calculateTeamTotals
- * 3. Source scan: mutationPipeline.js must import computeTeamCapTotals
+ * 3. Source scan: mutationPipeline.ts must import computeTeamCapTotals
  * 4. Source scan: tradeContext.ts must import computeTeamCapTotals
  * 5. Behavioral: SSOT returns incompleteChargesTotal for understaffed roster
  *
@@ -25,11 +25,11 @@ const __dirname = path.dirname(__filename);
 
 describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect/utils');
-  const mutationPipelinePath = path.join(srcRoot, 'mutationPipeline.js');
+  const mutationPipelinePath = path.join(srcRoot, 'mutationPipeline.ts');
   const tradeContextPath = path.join(srcRoot, 'tradeContext/tradeContext.ts');
 
   describe('Source scan: banned legacy function definitions', () => {
-    it('mutationPipeline.js should NOT define calculateTeamTotals function', () => {
+    it('mutationPipeline.ts should NOT define calculateTeamTotals function', () => {
       const content = fs.readFileSync(mutationPipelinePath, 'utf-8');
       const hasFunctionDefinition = /function\s+calculateTeamTotals\s*\(/.test(
         content
@@ -47,7 +47,7 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
   });
 
   describe('Source scan: SSOT import presence', () => {
-    it('mutationPipeline.js should import computeTeamCapTotals from capTotals', () => {
+    it('mutationPipeline.ts should import computeTeamCapTotals from capTotals', () => {
       const content = fs.readFileSync(mutationPipelinePath, 'utf-8');
       const hasImport =
         /import\s+\{[^}]*computeTeamCapTotals[^}]*\}\s+from\s+['"]@\/features\/architect\/utils\/capTotals['"]/.test(
@@ -67,7 +67,7 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
   });
 
   describe('Source scan: SSOT usage in call sites', () => {
-    it('mutationPipeline.js should call computeTeamCapTotals (not calculateTeamTotals)', () => {
+    it('mutationPipeline.ts should call computeTeamCapTotals (not calculateTeamTotals)', () => {
       const content = fs.readFileSync(mutationPipelinePath, 'utf-8');
       // Should have computeTeamCapTotals calls
       const hasSSOTCalls = /computeTeamCapTotals\(/.test(content);

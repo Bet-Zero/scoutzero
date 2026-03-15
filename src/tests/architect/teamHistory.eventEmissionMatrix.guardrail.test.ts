@@ -5,7 +5,7 @@ import { buildWorldMutationEventPayload } from '@/features/architect/utils/mutat
 
 const MUTATION_PIPELINE_PATH = path.resolve(
   process.cwd(),
-  'src/features/architect/utils/mutationPipeline.js'
+  'src/features/architect/utils/mutationPipeline.ts'
 );
 
 describe('TEAM_HISTORY_E3 event emission matrix guardrail', () => {

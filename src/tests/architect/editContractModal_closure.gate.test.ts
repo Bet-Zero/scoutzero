@@ -35,7 +35,7 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
 
 const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/mutationPipeline.js'
+  '../../features/architect/utils/mutationPipeline.ts'
 );
 
 const FREE_AGENT_POOL_PATH = path.resolve(

@@ -7,19 +7,19 @@
  * pipeline established in Phase 56.
  *
  * ENFORCED INVARIANTS:
- * 1. computeTradeResult region of mutationPipeline.js must not contain validateTrade(
- * 2. persistWorldMutation region of mutationPipeline.js must not contain validateTrade(
+ * 1. computeTradeResult region of mutationPipeline.ts must not contain validateTrade(
+ * 2. persistWorldMutation region of mutationPipeline.ts must not contain validateTrade(
  * 3. Compute helpers (buildPostTradeTeamsSnapshot in tradeContext/) must not call validateTrade(
  *
  * PHASE 58 UPDATES:
  * - buildPostTradeTeamsSnapshot and validatePostTradeSnapshotForContext moved to tradeContext/
- * - Tests now cover both mutationPipeline.js AND tradeContext/ module
+ * - Tests now cover both mutationPipeline.ts AND tradeContext/ module
  * - Allowlist approach: validateTrade( allowed ONLY in validatePostTradeSnapshotForContext
  *
  * PHASE 59 UPDATES:
- * - validateTradeForPipeline removed from mutationPipeline.js
+ * - validateTradeForPipeline removed from mutationPipeline.ts
  * - validateTradeForContext moved to tradeContext/legacy/ namespace
- * - mutationPipeline.js no longer re-exports validateTradeForContext
+ * - mutationPipeline.ts no longer re-exports validateTradeForContext
  *
  * ALLOWED EXCEPTIONS (ALLOWLIST):
  * - validatePostTradeSnapshotForContext: This IS the validation function, it calls validateTrade
@@ -105,7 +105,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 1: computeTradeResult region is pure (no validateTrade calls)', () => {
     it('should not contain validateTrade( calls in computeTradeResult function body', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Extract the computeTradeResult function region
@@ -131,7 +131,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 2: persistWorldMutation region is pure (no validateTrade calls)', () => {
     it('should not contain validateTrade( calls in persistWorldMutation function', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Extract the persistWorldMutation function region
@@ -149,7 +149,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     });
   });
 
-  // Phase 58: Updated to check tradeContext module instead of mutationPipeline.js
+  // Phase 58: Updated to check tradeContext module instead of mutationPipeline.ts
   describe('Test 3: buildPostTradeTeamsSnapshot is pure (no validateTrade calls)', () => {
     it('should not contain validateTrade( calls in buildPostTradeTeamsSnapshot function (tradeContext module)', () => {
       const source = readSourceFile(
@@ -174,7 +174,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 4: computeWorldMutation executeTrade case is pure', () => {
     it('should not call validateTrade directly in computeWorldMutation executeTrade case', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // The executeTrade case in computeWorldMutation should only call:
@@ -213,7 +213,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 5: computeSignAndTradeResult follows snapshot→validate→compute pattern', () => {
     it('should call validatePostTradeSnapshotForContext before computeTradeResult', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Extract computeSignAndTradeResult function
@@ -240,7 +240,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
     it('should not call validateTrade directly (only through validatePostTradeSnapshotForContext)', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       const satStart = 'function computeSignAndTradeResult({';
@@ -265,7 +265,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 6: validateMutation for trades uses pre-validated context', () => {
     it('should not call validateTradeForPipeline for executeTrade (removed in Phase 57)', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Extract the validateMutation function executeTrade case
@@ -283,7 +283,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
     it('should not call validateTradeForPipeline for signAndTrade (removed in Phase 57)', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Find the signAndTrade case in validateMutation
@@ -308,7 +308,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 7: Module-level import check (informational)', () => {
     it('should import validateTrade at module level (needed for validation functions)', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // The import should exist at module level
@@ -482,7 +482,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 11: mutationPipeline imports from tradeContext module', () => {
     it('should import trade context functions from tradeContext module', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Should import from tradeContext module
@@ -498,7 +498,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
     it('should re-export core trade context functions (Phase 59: not validateTradeForContext)', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Should re-export core functions for backward compatibility
@@ -517,7 +517,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   describe('Test 12: computeTradeResult uses shared assertions', () => {
     it('should call assertTradeComputeInputs in computeTradeResult', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Extract computeTradeResult function

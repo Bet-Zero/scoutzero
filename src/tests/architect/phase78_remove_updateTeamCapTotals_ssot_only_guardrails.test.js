@@ -187,7 +187,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
         SEASON_MANAGER_PATH,
         path.resolve(
           __dirname,
-          '../../features/architect/utils/mutationPipeline.js'
+          '../../features/architect/utils/mutationPipeline.ts'
         ),
       ];
 

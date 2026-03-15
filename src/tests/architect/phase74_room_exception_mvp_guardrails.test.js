@@ -105,7 +105,7 @@ describe('Phase 74: Room Exception Source Scan Guardrails', () => {
   );
   const mutationPipelinePath = path.resolve(
     __dirname,
-    '../../features/architect/utils/mutationPipeline.js'
+    '../../features/architect/utils/mutationPipeline.ts'
   );
 
   it('TEST 1: capLegalityValidation.ts contains room exception blocking logic', () => {
@@ -120,7 +120,7 @@ describe('Phase 74: Room Exception Source Scan Guardrails', () => {
     expect(content).toContain('Room Exception unavailable above first apron');
   });
 
-  it('TEST 2: mutationPipeline.js contains room exception usage tracking', () => {
+  it('TEST 2: mutationPipeline.ts contains room exception usage tracking', () => {
     const content = fs.readFileSync(mutationPipelinePath, 'utf8');
 
     // Must contain room exception type checks

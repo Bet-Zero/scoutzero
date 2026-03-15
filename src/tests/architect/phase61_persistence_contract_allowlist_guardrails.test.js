@@ -270,18 +270,18 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
 
   beforeAll(() => {
     mutationPipelineSource = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
   });
 
-  it('TEST 16: mutationPipeline.js imports assertPersistableOrThrow', () => {
+  it('TEST 16: mutationPipeline.ts imports assertPersistableOrThrow', () => {
     expect(mutationPipelineSource).toContain('assertPersistableOrThrow');
     expect(mutationPipelineSource).toContain(
       "from '@/features/architect/utils/persistenceContracts'"
     );
   });
 
-  it('TEST 17: mutationPipeline.js imports PERSISTENCE_CONTRACTS', () => {
+  it('TEST 17: mutationPipeline.ts imports PERSISTENCE_CONTRACTS', () => {
     expect(mutationPipelineSource).toContain('PERSISTENCE_CONTRACTS');
   });
 

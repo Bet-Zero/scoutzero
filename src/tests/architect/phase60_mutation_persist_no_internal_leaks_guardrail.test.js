@@ -11,7 +11,7 @@
  * 2. signAndTrade compute results do not leak forbidden transient keys to persistence
  * 3. persistWorldMutation uses sanitizeTransientFieldsForPersistence before writes
  *
- * FORBIDDEN TRANSIENT KEYS (defined in mutationPipeline.js):
+ * FORBIDDEN TRANSIENT KEYS (defined in mutationPipeline.ts):
  * - _validatedTradeContext
  * - _signingValidation
  * - _isPostTradeSnapshot
@@ -349,7 +349,7 @@ describe('Phase 60: executeTrade compute result sanitization', () => {
 describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
   it('TEST 12: persistWorldMutation calls sanitizeTransientFieldsForPersistence for team writes', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Extract the persistWorldMutation function region
@@ -370,7 +370,7 @@ describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
 
   it('TEST 13: persistWorldMutation calls sanitizeTransientFieldsForPersistence for player writes', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Extract the persistWorldMutation function region
@@ -416,7 +416,7 @@ describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
 describe('Phase 60: Event metadata sanitization', () => {
   it('TEST 16: persistWorldMutation sanitizes event metadata', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Look for sanitization of computeResult.metadata (may be multiline due to Phase 61 refactoring)
@@ -434,7 +434,7 @@ describe('Phase 60: Event metadata sanitization', () => {
 
   it('TEST 17: persistWorldMutation sanitizes entire event object', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Look for sanitization of the event object before writing

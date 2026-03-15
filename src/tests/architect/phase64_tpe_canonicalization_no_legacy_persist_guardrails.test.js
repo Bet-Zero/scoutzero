@@ -285,7 +285,7 @@ describe('Phase 64: getTeamTpeList() read helper', () => {
 describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
   it('persistWorldMutation applies normalizeTeamTpeSchema BEFORE assertPersistableOrThrow', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Find the team write section
@@ -310,7 +310,7 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
 
   it('persistWorldMutation uses normalized team for contract validation', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // The assertPersistableOrThrow should receive afterTpeNormalize, not afterSanitize
@@ -322,7 +322,7 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
 
   it('normalizeTeamTpeSchema is imported in mutationPipeline', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     expect(source).toContain('normalizeTeamTpeSchema');

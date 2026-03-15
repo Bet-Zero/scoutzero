@@ -6,9 +6,9 @@
  * preventing accidental regression to pre-Phase 56 architecture.
  *
  * ENFORCED INVARIANTS:
- * 1. mutationPipeline.js must NOT import from tradeContext/legacy/
- * 2. mutationPipeline.js must NOT reference validateTradeForPipeline (removed)
- * 3. mutationPipeline.js must NOT reference legacy_validateTradeForContext
+ * 1. mutationPipeline.ts must NOT import from tradeContext/legacy/
+ * 2. mutationPipeline.ts must NOT reference validateTradeForPipeline (removed)
+ * 3. mutationPipeline.ts must NOT reference legacy_validateTradeForContext
  * 4. No files in utils/ should import from tradeContext/legacy/ except tests
  * 5. legacy/index.ts remains the thin authoritative wrapper; legacy/index.js remains shim-only
  *
@@ -49,12 +49,12 @@ function findJsFiles(dir, files = []) {
 
 describe('Phase 59: Legacy Import Guardrails', () => {
   // ===========================================================================
-  // TEST 1: mutationPipeline.js must NOT import from tradeContext/legacy/
+  // TEST 1: mutationPipeline.ts must NOT import from tradeContext/legacy/
   // ===========================================================================
-  describe('Test 1: mutationPipeline.js must NOT import from legacy namespace', () => {
+  describe('Test 1: mutationPipeline.ts must NOT import from legacy namespace', () => {
     it('should not import from tradeContext/legacy/', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Check for forbidden imports (actual import statements, not comments)
@@ -77,7 +77,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
 
     it('should not reference legacy_validateTradeForContext', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Skip comments
@@ -97,7 +97,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
   describe('Test 2: validateTradeForPipeline has been removed', () => {
     it('should not define validateTradeForPipeline function', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Check for function definition
@@ -109,7 +109,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
 
     it('should not call validateTradeForPipeline anywhere', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       // Skip comments and the marker that says it was removed
@@ -152,7 +152,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       );
 
       expect(source).toContain('DO NOT IMPORT IN MUTATION MODULES');
-      expect(source).toContain('mutationPipeline.js');
+      expect(source).toContain('mutationPipeline.ts');
     });
 
     it('should export legacy_validateTradeForContext and validateTradeForContext alias from legacy/index.ts', () => {
@@ -287,9 +287,9 @@ describe('Phase 59: Legacy Import Guardrails', () => {
   // TEST 6: Phase 59 marker comments exist in modified files
   // ===========================================================================
   describe('Test 6: Phase 59 changes are documented in source', () => {
-    it('should have Phase 59 marker in mutationPipeline.js', () => {
+    it('should have Phase 59 marker in mutationPipeline.ts', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/mutationPipeline.js'
+        'src/features/architect/utils/mutationPipeline.ts'
       );
 
       expect(source).toContain('Phase 59');

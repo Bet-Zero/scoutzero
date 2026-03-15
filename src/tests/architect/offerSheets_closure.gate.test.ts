@@ -30,7 +30,7 @@ import path from 'path';
 
 const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/mutationPipeline.js'
+  '../../features/architect/utils/mutationPipeline.ts'
 );
 
 const CAP_LEGALITY_VALIDATION_AUTHORITY_PATH = path.resolve(

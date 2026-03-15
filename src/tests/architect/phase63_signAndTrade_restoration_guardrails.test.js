@@ -98,24 +98,21 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
   it('validateSigning is called before buildPostTradeTeamsSnapshot in S&T path', () => {
     // Read the mutation pipeline source to verify ordering
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Find the computeSignAndTradeResult function
-    const funcMatch = source.match(
-      /function\s+computeSignAndTradeResult\s*\([^)]*\)\s*\{/
-    );
-    expect(funcMatch).not.toBeNull();
-
-    const funcStartIndex = funcMatch.index;
+    const funcHeader = 'function computeSignAndTradeResult({';
+    const funcStartIndex = source.indexOf(funcHeader);
+    expect(funcStartIndex).toBeGreaterThan(-1);
 
     // Find the next function definition (approximate end of computeSignAndTradeResult)
-    const remainingSource = source.slice(funcStartIndex + funcMatch[0].length);
+    const remainingSource = source.slice(funcStartIndex + funcHeader.length);
     const nextFuncMatch = remainingSource.match(
       /\n(function|async function|export function|export async function)\s+\w+\s*\(/
     );
     const funcEndIndex = nextFuncMatch
-      ? funcStartIndex + funcMatch[0].length + nextFuncMatch.index
+      ? funcStartIndex + funcHeader.length + nextFuncMatch.index
       : source.length;
 
     const funcBody = source.slice(funcStartIndex, funcEndIndex);
@@ -141,24 +138,21 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
 describe('Phase 63: Short-circuit on signing validation failure', () => {
   it('computeSignAndTradeResult returns early when signing validation fails', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Find the computeSignAndTradeResult function
-    const funcMatch = source.match(
-      /function\s+computeSignAndTradeResult\s*\([^)]*\)\s*\{/
-    );
-    expect(funcMatch).not.toBeNull();
-
-    const funcStartIndex = funcMatch.index;
+    const funcHeader = 'function computeSignAndTradeResult({';
+    const funcStartIndex = source.indexOf(funcHeader);
+    expect(funcStartIndex).toBeGreaterThan(-1);
 
     // Extract function body (approximate)
-    const remainingSource = source.slice(funcStartIndex + funcMatch[0].length);
+    const remainingSource = source.slice(funcStartIndex + funcHeader.length);
     const nextFuncMatch = remainingSource.match(
       /\n(function|async function|export function|export async function)\s+\w+\s*\(/
     );
     const funcEndIndex = nextFuncMatch
-      ? funcStartIndex + funcMatch[0].length + nextFuncMatch.index
+      ? funcStartIndex + funcHeader.length + nextFuncMatch.index
       : source.length;
 
     const funcBody = source.slice(funcStartIndex, funcEndIndex);
@@ -188,7 +182,7 @@ describe('Phase 63: Short-circuit on signing validation failure', () => {
 describe('Phase 63: Phase 56 architecture pattern (snapshot → validate → compute/persist)', () => {
   it('executeTrade case in computeWorldMutation follows Phase 56 pattern', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Find the computeWorldMutation function first
@@ -211,7 +205,7 @@ describe('Phase 63: Phase 56 architecture pattern (snapshot → validate → com
 
   it('computeTradeResult does NOT call validateTrade directly (Phase 56/57)', () => {
     const source = readSourceFile(
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
 
     // Find computeTradeResult function

@@ -11,7 +11,7 @@
  * - Quick UI previews (non-mutation paths)
  *
  * 🚫 DO NOT IMPORT IN MUTATION MODULES:
- * - mutationPipeline.js
+ * - mutationPipeline.ts
  * - Any file under utils/mutation/
  * - computeTradeResult or persistWorldMutation regions
  *

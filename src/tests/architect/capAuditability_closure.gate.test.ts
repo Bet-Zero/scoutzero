@@ -19,7 +19,7 @@ import {
 const VALIDATOR_PATH =
   'src/features/architect/utils/capLegality/postStateCapValidator.ts';
 const MUTATION_PIPELINE_PATH =
-  'src/features/architect/utils/mutationPipeline.js';
+  'src/features/architect/utils/mutationPipeline.ts';
 const SEASON_MANAGER_PATH = 'src/features/architect/utils/seasonManager.ts';
 const USE_ARCHITECT_ACTIONS_PATH =
   'src/features/architect/GMDashboard/hooks/useArchitectActions.ts';
@@ -112,17 +112,17 @@ describe('CAP_AUDITABILITY Closure Gate 1: Validator version + rule codes', () =
 
 // === Gate 2: Call-site invocation ===
 describe('CAP_AUDITABILITY Closure Gate 2: Call-site invocation', () => {
-  it('invokes validatePostStateCapLegality in mutationPipeline.js (applyWorldMutation)', () => {
+  it('invokes validatePostStateCapLegality in mutationPipeline.ts (applyWorldMutation)', () => {
     const source = readSource(MUTATION_PIPELINE_PATH);
 
     expect(
       source,
-      'mutationPipeline.js must import validatePostStateCapLegality'
+      'mutationPipeline.ts must import validatePostStateCapLegality'
     ).toContain('validatePostStateCapLegality');
 
     expect(
       source,
-      'mutationPipeline.js must call validatePostStateCapLegality(...)'
+      'mutationPipeline.ts must call validatePostStateCapLegality(...)'
     ).toMatch(/validatePostStateCapLegality\s*\(/);
   });
 
@@ -174,7 +174,7 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
     'diffSummary',
   ];
 
-  it('persistWorldMutation (mutationPipeline.js) emits all required CapAuditEventV1 fields', () => {
+  it('persistWorldMutation (mutationPipeline.ts) emits all required CapAuditEventV1 fields', () => {
     const source = readSource(MUTATION_PIPELINE_PATH);
     const missingFields: string[] = [];
 
@@ -188,7 +188,7 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
 
     expect(
       missingFields,
-      `mutationPipeline.js missing CapAuditEventV1 fields: ${missingFields.join(', ')}`
+      `mutationPipeline.ts missing CapAuditEventV1 fields: ${missingFields.join(', ')}`
     ).toHaveLength(0);
   });
 

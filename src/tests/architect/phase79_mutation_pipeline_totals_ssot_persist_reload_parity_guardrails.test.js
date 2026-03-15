@@ -15,7 +15,7 @@
  *
  * TESTS:
  * A) Source-scan / wiring guardrails:
- *    1. mutationPipeline.js imports computeTeamCapTotals from capTotals
+ *    1. mutationPipeline.ts imports computeTeamCapTotals from capTotals
  *    2. tradeContext.ts imports computeTeamCapTotals from capTotals
  *    3-7. Each compute function calls computeTeamCapTotals:
  *         - computeSigningResult
@@ -53,7 +53,7 @@ const __dirname = path.dirname(__filename);
 
 const MUTATION_PIPELINE_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/mutationPipeline.js'
+  '../../features/architect/utils/mutationPipeline.ts'
 );
 
 const TRADE_CONTEXT_PATH = path.resolve(
@@ -154,7 +154,7 @@ function stripComments(content) {
 
 describe('Phase 79: Source Scan Guardrails', () => {
   describe('SSOT Import Verification', () => {
-    it('TEST 1: mutationPipeline.js imports computeTeamCapTotals from capTotals', () => {
+    it('TEST 1: mutationPipeline.ts imports computeTeamCapTotals from capTotals', () => {
       const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
 
       const hasImport = /import\s*\{[^}]*\bcomputeTeamCapTotals\b[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/capTotals['"]/.test(
@@ -239,7 +239,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
   });
 
   describe('No Legacy Totals Helpers', () => {
-    it('TEST 8: mutationPipeline.js does NOT call calculateTeamTotals (removed Phase 72)', () => {
+    it('TEST 8: mutationPipeline.ts does NOT call calculateTeamTotals (removed Phase 72)', () => {
       const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
@@ -247,7 +247,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
       expect(hasLegacy).toBe(false);
     });
 
-    it('TEST 9: mutationPipeline.js does NOT call updateTeamCapTotals (removed Phase 78)', () => {
+    it('TEST 9: mutationPipeline.ts does NOT call updateTeamCapTotals (removed Phase 78)', () => {
       const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 

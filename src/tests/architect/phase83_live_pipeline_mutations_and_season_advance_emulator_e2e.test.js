@@ -64,12 +64,12 @@ describe('Phase 83: Source Code Guardrails', () => {
     expect(content).toContain('computeTeamCapTotals');
   });
 
-  test('TEST 3: mutationPipeline.js exports applyWorldMutation', async () => {
+  test('TEST 3: mutationPipeline.ts exports applyWorldMutation', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const pipelinePath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
     expect(fs.existsSync(pipelinePath)).toBe(true);
     
@@ -173,7 +173,7 @@ describe('Phase 83: Entrypoint Signature Verification', () => {
     const path = await import('path');
     const pipelinePath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
     const content = fs.readFileSync(pipelinePath, 'utf-8');
     
@@ -204,45 +204,45 @@ describe('Phase 83: Entrypoint Signature Verification', () => {
 // ============================================================================
 
 describe('Phase 83: Mutation Type Coverage', () => {
-  test('TEST 11: mutationPipeline.js handles signFreeAgent', async () => {
+  test('TEST 11: mutationPipeline.ts handles signFreeAgent', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const pipelinePath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
     const content = fs.readFileSync(pipelinePath, 'utf-8');
     expect(content).toContain("'signFreeAgent'");
   });
 
-  test('TEST 12: mutationPipeline.js handles waivePlayer', async () => {
+  test('TEST 12: mutationPipeline.ts handles waivePlayer', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const pipelinePath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
     const content = fs.readFileSync(pipelinePath, 'utf-8');
     expect(content).toContain("'waivePlayer'");
   });
 
-  test('TEST 13: mutationPipeline.js handles renounceRights', async () => {
+  test('TEST 13: mutationPipeline.ts handles renounceRights', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const pipelinePath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
     const content = fs.readFileSync(pipelinePath, 'utf-8');
     expect(content).toContain("'renounceRights'");
   });
 
-  test('TEST 14: mutationPipeline.js handles executeTrade', async () => {
+  test('TEST 14: mutationPipeline.ts handles executeTrade', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const pipelinePath = path.resolve(
       process.cwd(),
-      'src/features/architect/utils/mutationPipeline.js'
+      'src/features/architect/utils/mutationPipeline.ts'
     );
     const content = fs.readFileSync(pipelinePath, 'utf-8');
     expect(content).toContain("'executeTrade'");

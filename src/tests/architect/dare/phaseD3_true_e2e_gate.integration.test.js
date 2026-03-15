@@ -139,10 +139,10 @@ function createCapProjections() {
 
 describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
   describe('A) Source Code Verification', () => {
-    it('TEST 1: mutationPipeline.js exports applyWorldMutation as async function', () => {
+    it('TEST 1: mutationPipeline.ts exports applyWorldMutation as async function', () => {
       const mutationPipelinePath = path.resolve(
         __dirname,
-        '../../../features/architect/utils/mutationPipeline.js'
+        '../../../features/architect/utils/mutationPipeline.ts'
       );
       const content = fs.readFileSync(mutationPipelinePath, 'utf8');
 
@@ -164,7 +164,7 @@ describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
     it('TEST 3: applyWorldMutation handles executeTrade mutation type', () => {
       const mutationPipelinePath = path.resolve(
         __dirname,
-        '../../../features/architect/utils/mutationPipeline.js'
+        '../../../features/architect/utils/mutationPipeline.ts'
       );
       const content = fs.readFileSync(mutationPipelinePath, 'utf8');
 

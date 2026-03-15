@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const MUTATION_PIPELINE_PATH =
-  'src/features/architect/utils/mutationPipeline.js';
+  'src/features/architect/utils/mutationPipeline.ts';
 
 function readMutationPipelineSource() {
   return readFileSync(resolve(process.cwd(), MUTATION_PIPELINE_PATH), 'utf-8');

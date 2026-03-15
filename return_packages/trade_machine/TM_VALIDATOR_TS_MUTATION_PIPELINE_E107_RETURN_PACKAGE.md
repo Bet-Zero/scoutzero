@@ -1,0 +1,180 @@
+# TM_VALIDATOR_TS_MUTATION_PIPELINE_E107 — EXECUTION RETURN PACKAGE
+
+## 1. Summary
+- `src/features/architect/utils/mutationPipeline.ts` is now the authoritative implementation for the named mutation pipeline boundary.
+- `src/features/architect/utils/mutationPipeline.js` is now a shim-only compatibility surface that preserves explicit `.js` imports.
+- Runtime behavior remained unchanged across trade mutations, non-trade mutations, persistence preparation, event payload generation, world mutation application, compute/apply separation, validation wiring, and post-mutation fail-close behavior.
+- No business logic had to remain in JS inside the named boundary.
+- No blocker forced widening into excluded dashboard, world, shared-contract, or Trade Machine UI hubs.
+
+## 2. Files Changed
+- `src/features/architect/utils/mutationPipeline.ts`
+  - Added the TS authority by porting the former JS authority near line-for-line and keeping helper order, marker strings, sequencing, and permissive runtime behavior intact.
+- `src/features/architect/utils/mutationPipeline.js`
+  - Replaced the previous authority with a pure shim re-exporting `./mutationPipeline.ts`.
+- `src/features/architect/utils/tradeContext/legacy/index.ts`
+  - Updated the legacy warning comment to refer to `mutationPipeline.ts`; this was a tiny compatibility-only touch required after the authority move.
+- `src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts`
+  - Added the dedicated E107 compatibility proof for shim-only JS contents, explicit `.js` import parity, no default export, and TS authority export ordering.
+- `src/tests/architect/mutationPipeline.boundary.e107.test.ts`
+  - Added the focused E107 boundary proof for module load, export surface, helper/event entrypoints, mocked compute paths, fail-closed apply behavior, and `.js` shim parity.
+- `src/tests/architect/capAuditEventV1.persistWorldMutation.guardrails.test.ts`
+  - Retargeted the persistence event-envelope source scan from `.js` to `.ts`.
+- `src/tests/architect/capAuditability_closure.gate.test.ts`
+  - Retargeted mutation-pipeline cap-auditability source scans from `.js` to `.ts`.
+- `src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js`
+  - Retargeted mutation-pipeline authority source checks from `.js` to `.ts`.
+- `src/tests/architect/editContractModal_closure.gate.test.ts`
+  - Retargeted the mutation-pipeline source-read closure check from `.js` to `.ts`.
+- `src/tests/architect/offerSheetFinalizeValidatorMapping.guardrail.test.ts`
+  - Retargeted the finalize-offer-sheet validator mapping source scan from `.js` to `.ts`.
+- `src/tests/architect/offerSheets_closure.gate.test.ts`
+  - Retargeted offer-sheet mutation-pipeline authority scans from `.js` to `.ts`.
+- `src/tests/architect/teamHistory.eventEmissionMatrix.guardrail.test.ts`
+  - Retargeted Team History event-emission source checks from `.js` to `.ts`.
+- `src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.js`
+  - Retargeted compute/persist anti-validation source scans to the TS authority.
+- `src/tests/architect/phase59_legacy_import_guardrail.test.js`
+  - Retargeted mutation-pipeline legacy-import guardrails to `.ts`.
+- `src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.js`
+  - Retargeted sanitization/persistence source scans to `.ts`.
+- `src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.js`
+  - Retargeted persistence-contract source scans to `.ts`.
+- `src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.js`
+  - Retargeted S&T source scans to `.ts` and updated the function-header matcher to recognize the typed TS signature.
+- `src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js`
+  - Retargeted TPE canonicalization source scans to `.ts`.
+- `src/tests/architect/phase72_ssot_cap_totals_unification_guardrails.test.js`
+  - Retargeted SSOT totals source scans to `.ts`.
+- `src/tests/architect/phase74_room_exception_mvp_guardrails.test.js`
+  - Retargeted room-exception source scans to `.ts`.
+- `src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js`
+  - Retargeted mutation-pipeline SSOT removal source scans to `.ts`.
+- `src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.js`
+  - Retargeted mutation-pipeline totals SSOT/parity source scans to `.ts`.
+- `src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js`
+  - Retargeted mutation-pipeline entrypoint source scans to `.ts`.
+- `docs/architect/TRADE_MACHINE_MASTER.md`
+  - Added the indexed E107 execution entry immediately after E106.
+- `return_packages/trade_machine/TM_VALIDATOR_TS_MUTATION_PIPELINE_E107_RETURN_PACKAGE.md`
+  - Added the E107 execution return package.
+
+## 3. Types Introduced or Hardened
+- `LooseRecord`
+  - File-local permissive record bag used for dynamic object access without tightening runtime contracts.
+- `MutationPayloadLike`
+  - File-local permissive payload shape for mutation inputs, including loose `teams` and `asOfDate`.
+- `CurrentStateLike`
+  - File-local permissive state bag for mixed team/player/homeTeam/offeringTeam/destinationTeam load shapes.
+- `TeamLike`
+  - File-local permissive team snapshot shape for roster/cap/dead-cap/exception/event persistence work.
+- `PlayerLike`
+  - File-local permissive player shape for contract and ID access.
+- `TeamUpdateLike`
+  - File-local permissive team update wrapper for compute/apply/persist paths.
+- `PlayerUpdateLike`
+  - File-local permissive player update wrapper for compute/apply/persist paths.
+- `ComputeResultLike`
+  - File-local permissive compute/apply result shape used to keep caller-visible contracts loose and avoid inferred union tightening.
+- `AuditContextLike`
+  - File-local permissive audit/event context bag for event payload generation and persistence preparation.
+- `WritesSummaryLike`
+  - File-local permissive writes-summary shape preserving existing field names and optionality.
+- `ApplyWorldMutationArgs`
+  - File-local permissive argument shape keeping `timestamp` and `operationId` optional.
+- `ComputeWorldMutationArgs`
+  - File-local permissive argument shape keeping `asOfDate` and `worldId` optional.
+- `BuildWorldMutationEventPayloadArgs`
+  - File-local permissive argument shape for the event payload builder.
+- No public contracts were tightened.
+  - Exported functions were intentionally typed loosely with optional args and permissive return shapes to preserve the pre-existing caller surface.
+
+## 4. Migration Work Completed
+- Slice A — helper / compute layer
+  - Ported the helper stack through `buildWorldMutationEventPayload` into `mutationPipeline.ts` without refactoring helper order or fallback behavior.
+  - Preserved undefined stripping, transient-field sanitization, override payload stripping, event metadata coercion, team/player ID derivation, contract summary building, diff summary construction, and event payload fail-close rules.
+  - Added only local permissive typing/casts around default `{}` helper params and dynamic object bags.
+- Slice B — mutation assembly / validation / compute pipeline
+  - Ported `computeWorldMutation`, trade compute, non-trade compute helpers, S&T assembly, offer-sheet compute paths, dead-cap/exception mutation assembly, and `validateMutation` into the TS authority.
+  - Preserved snapshot → validate → compute sequencing for trades and sign-and-trades, validator interactions, object-shape looseness, warning propagation, and current fail-soft/fail-close behavior.
+  - Added permissive exported argument typing so existing callers still treat `operationId`, `asOfDate`, and `worldId` as optional where they already behaved that way at runtime.
+- Slice C — apply / persist / event layer
+  - Ported `applyWorldMutation`, `loadStateForMutation`, and `persistWorldMutation` into the TS authority with the existing read → compute → validate → persist → post-update ordering intact.
+  - Preserved sanitize → normalize TPE → assert contract → remove undefined ordering, world-only write-path construction, event write semantics, world metadata patch semantics, writes-summary fields, and persistence truth fail-close logic.
+  - Preserved dynamic import behavior and batch/write sequencing.
+- Minimal compatibility-only fixes required
+  - Updated the legacy `tradeContext/legacy/index.ts` warning comment from `mutationPipeline.js` to `mutationPipeline.ts`.
+  - Updated the Phase 63 source-scan regex to recognize the typed TS function signature for `computeSignAndTradeResult`.
+  - No runtime cleanup or contract redesign was required.
+
+## 5. JS/JSX Holdouts
+- `src/features/architect/utils/mutationPipeline.js`
+  - Remains intentionally as a shim-only compatibility surface by E107 rule.
+- Excluded nearby JS/JSX hubs remain unchanged and out of scope
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+  - `src/shared/components/EditContractModal.jsx`
+  - Trade Machine UI files and already-closed E97/E99/E101/E103/E105 authorities
+- No business logic inside the named mutation-pipeline boundary remains in JS.
+
+## 6. Regression Coverage Run
+- `npm run typecheck`
+  - Result: FAIL.
+  - First raw TS port surfaced expected inference issues: caller-visible `operationId`/`asOfDate` became required, helper params defaulting to `{}` lost dynamic property access, and result unions became too narrow.
+- `npm run typecheck`
+  - Result: FAIL.
+  - Second pass reduced failures to 4 residual TS issues: readonly tuple acceptance, two `Promise.all` casts, and one mutable metadata-object inference edge.
+- `npm run typecheck`
+  - Result: PASS.
+  - Confirmed the TS authority compiled cleanly after local permissive typing/cast fixes.
+- `npm run typecheck`
+  - Result: PASS.
+  - Re-ran after adding the new E107 tests and retargeting source-scan guardrails.
+- `npm run test:node -- --reporter=dot src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts src/tests/architect/mutationPipeline.boundary.e107.test.ts`
+  - Result: PASS.
+  - 2 files, 10 tests passed.
+- `npm run test:node -- --reporter=dot src/tests/architect/capAuditEventV1.persistWorldMutation.guardrails.test.ts src/tests/architect/capAuditability_closure.gate.test.ts src/tests/architect/editContractModal_closure.gate.test.ts src/tests/architect/offerSheetFinalizeValidatorMapping.guardrail.test.ts src/tests/architect/offerSheets_closure.gate.test.ts src/tests/architect/teamHistory.eventEmissionMatrix.guardrail.test.ts src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.js src/tests/architect/phase59_legacy_import_guardrail.test.js src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.js src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.js src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.js src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js src/tests/architect/phase72_ssot_cap_totals_unification_guardrails.test.js src/tests/architect/phase74_room_exception_mvp_guardrails.test.js src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.js src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js src/tests/architect/phase50_executeTrade_integration_persistence.test.js src/tests/architect/signAndTrade.test.js src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.js src/tests/architect/tradeApply_failClosed_noWrite.guardrail.test.ts src/tests/architect/tmCapIntegration.executeTrade_writePaths.guardrail.test.ts src/tests/architect/teamHistory.eventWriteContract.guardrail.test.ts src/tests/architect/worldTime.test.js src/tests/architect/exceptionManagement.test.js tests/architect/offerSheetPersistence.test.js tests/architect/renounceRights.test.js tests/architect/extension_voidedByExtension.test.js tests/trade/validatorTrustFixes.test.js`
+  - Result: FAIL.
+  - 30 files ran; 3 source-scan tests failed because one legacy warning comment still named `mutationPipeline.js` and the Phase 63 regex still expected the untyped JS signature.
+- `npm run test:node -- --reporter=dot src/tests/architect/phase59_legacy_import_guardrail.test.js src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.js`
+  - Result: PASS.
+  - Verified the two targeted follow-up fixes.
+- `npm run test:node -- --reporter=dot src/tests/architect/capAuditEventV1.persistWorldMutation.guardrails.test.ts src/tests/architect/capAuditability_closure.gate.test.ts src/tests/architect/editContractModal_closure.gate.test.ts src/tests/architect/offerSheetFinalizeValidatorMapping.guardrail.test.ts src/tests/architect/offerSheets_closure.gate.test.ts src/tests/architect/teamHistory.eventEmissionMatrix.guardrail.test.ts src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.js src/tests/architect/phase59_legacy_import_guardrail.test.js src/tests/architect/phase60_mutation_persist_no_internal_leaks_guardrail.test.js src/tests/architect/phase61_persistence_contract_allowlist_guardrails.test.js src/tests/architect/phase63_signAndTrade_restoration_guardrails.test.js src/tests/architect/phase64_tpe_canonicalization_no_legacy_persist_guardrails.test.js src/tests/architect/phase72_ssot_cap_totals_unification_guardrails.test.js src/tests/architect/phase74_room_exception_mvp_guardrails.test.js src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js src/tests/architect/phase79_mutation_pipeline_totals_ssot_persist_reload_parity_guardrails.test.js src/tests/architect/phase83_live_pipeline_mutations_and_season_advance_emulator_e2e.test.js src/tests/architect/dare/phaseD3_true_e2e_gate.integration.test.js src/tests/architect/phase50_executeTrade_integration_persistence.test.js src/tests/architect/signAndTrade.test.js src/tests/architect/freeAgency_fixpack_e1.pipeline.behavior.test.js src/tests/architect/tradeApply_failClosed_noWrite.guardrail.test.ts src/tests/architect/tmCapIntegration.executeTrade_writePaths.guardrail.test.ts src/tests/architect/teamHistory.eventWriteContract.guardrail.test.ts src/tests/architect/worldTime.test.js src/tests/architect/exceptionManagement.test.js tests/architect/offerSheetPersistence.test.js tests/architect/renounceRights.test.js tests/architect/extension_voidedByExtension.test.js tests/trade/validatorTrustFixes.test.js`
+  - Result: PASS.
+  - 30 files, 410 tests passed.
+  - Expected stderr appeared from existing fail-closed tests and validator warning/debug logs; these were test assertions or pre-existing debug output, not regressions.
+- `npm run build`
+  - Result: PASS.
+  - Build warnings:
+    - Browserslist data is stale (`caniuse-lite` 7 months old).
+    - `fs` was externalized for browser compatibility from `src/features/architect/utils/tradeMachine/engine/tradeDebug.js`.
+    - Vite reported mixed static/dynamic import chunking for `src/firebaseConfig.js`, `entitlementResolver.ts`, and `leagueInvariants.ts`.
+    - Large chunk warning for `dist/assets/index-959ce3f1.js`.
+- `npm run validate:project`
+  - Result: PASS.
+- Command overrun behavior
+  - No command exceeded the 4-minute budget, so no forced split rerun was required.
+- Commands intentionally skipped
+  - `npm run test:diff` was skipped because the prompt required an explicit mutation-pipeline proof set.
+  - `npm run test:architect`, `npm run test:trade`, and broader UI suites were skipped to avoid widening beyond the named boundary once the focused proof was sufficient.
+  - `npm run test:full` was skipped because the prompt did not include `RUN FULL SUITE`.
+
+## 7. Post-E107 Status
+- The named `mutationPipeline` boundary is effectively complete.
+- No follow-up remains inside the named boundary beyond the intentionally retained shim-only `.js` file.
+- The broader mutation-pipeline boundary is now effectively complete because the live authority is TS-backed and the same-path JS file is compatibility-only.
+- Nearby excluded hubs remain excluded and unchanged:
+  - dashboard/world shells
+  - shared contract UI
+  - Trade Machine UI/orchestration files outside the named boundary
+
+## 8. Master Doc Update
+- Added `### Validator TS Mutation Pipeline E107 (2026-03-15)` immediately after the E106 entry in `docs/architect/TRADE_MACHINE_MASTER.md`.
+- The new entry records that:
+  - `mutationPipeline.ts` is now the authority
+  - `mutationPipeline.js` is shim-only
+  - behavior remained unchanged
+  - the named E107 boundary completed cleanly
+  - the broader mutation-pipeline boundary is now effectively complete
+  - no blocker or mandatory narrow follow-up remains beyond the retained shim and excluded nearby hubs
