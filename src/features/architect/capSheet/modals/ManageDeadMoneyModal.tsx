@@ -15,13 +15,11 @@ type DeadCapAmountByYearArrayEntry = {
   season?: string | null;
   amount?: NumericLike;
   isStretched?: boolean;
-  [key: string]: unknown;
 };
 type DeadCapAmountByYearObjectValue =
   | NumericLike
   | {
       amount?: NumericLike;
-      [key: string]: unknown;
     };
 type DeadCapSourceEntry = {
   playerId?: string | null;
@@ -32,7 +30,6 @@ type DeadCapSourceEntry = {
     | Record<string, DeadCapAmountByYearObjectValue>
     | null;
   stretched?: boolean;
-  [key: string]: unknown;
 };
 type FlatDeadMoneyEntry = {
   id: number;
@@ -45,7 +42,6 @@ type FlatDeadMoneyEntry = {
 };
 type TeamCapSheetLike = {
   deadCap?: DeadCapSourceEntry[] | null;
-  [key: string]: unknown;
 };
 type ManageDeadMoneyModalProps = {
   isOpen?: boolean;

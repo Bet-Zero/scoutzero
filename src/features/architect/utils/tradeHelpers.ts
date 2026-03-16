@@ -12,9 +12,32 @@ import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptio
 import { areSamePickById } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
 import { toEndYear } from './seasonFormat.js';
 import { getTeamApronStatus as getTeamApronStatusSSoT } from '@/features/architect/utils/capUtils';
+import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
 
 type NumericLike = number | string | null | undefined;
 type UnknownRecord = Record<string, unknown>;
+
+interface PickLike {
+  year?: unknown;
+  round?: unknown;
+  via?: string | null;
+  originalTeam?: string | null;
+  owner?: string | null;
+  isSwap?: boolean;
+  swapType?: string | null;
+  swapDetails?: { favorable?: string; swapWith?: string[] } | null;
+  swapId?: string | null;
+  swapWithTeamId?: string | null;
+  resolved?: boolean;
+  resolvedOwner?: string | null;
+  note?: string | null;
+  protection?: string | null;
+  protectionMeta?: {
+    type?: string;
+    maxPosition?: number | null;
+  } | null;
+  [key: string]: unknown;
+}
 
 interface SalariesByYearEntry extends UnknownRecord {
   season?: unknown;
@@ -111,8 +134,8 @@ export const getSalaryForYear = (input: unknown, year: unknown): number => {
 
   const players = Array.isArray(input) ? input : [input];
 
-  return players.reduce((sum: any, player: any) => {
-    let base: any = 0;
+  return players.reduce((sum: number, player: TradeHelperPlayer) => {
+    let base = 0;
     let yData: SalariesByYearEntry = {};
 
     if (player?.contract?.salariesByYear?.length) {
@@ -126,7 +149,7 @@ export const getSalaryForYear = (input: unknown, year: unknown): number => {
         );
       if (slice) {
         yData = slice;
-        base = slice.capHit ?? slice.salary ?? 0;
+        base = Number(slice.capHit ?? slice.salary ?? 0) || 0;
       }
     }
 
@@ -136,15 +159,13 @@ export const getSalaryForYear = (input: unknown, year: unknown): number => {
 
     const likely =
       (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
-      (yData.bonuses?.likely ?? 0) ||
-      (yData.incentives?.likely ?? 0) ||
-      (yData.likelyIncentives ?? 0) ||
-      (player?.bonusesByYear?.[year as any]?.likely ??
-        player?.bonusesByYear?.[String(year)]?.likely ??
-        0);
+      Number(yData.bonuses?.likely ?? 0) ||
+      Number(yData.incentives?.likely ?? 0) ||
+      Number(yData.likelyIncentives ?? 0) ||
+      Number(player?.bonusesByYear?.[String(year)]?.likely ?? 0);
 
     return sum + base + likely;
-  }, 0 as any);
+  }, 0);
 };
 
 const DEFAULT_CAP_SETTINGS: TradeCapSettingsLike = {
@@ -177,8 +198,14 @@ export const getIncomingCeiling = (
 ): number => {
   const effectiveCapSettings = capSettings || DEFAULT_CAP_SETTINGS;
 
-  if (teamTotalSalary < effectiveCapSettings.salaryCap) {
-    return effectiveCapSettings.salaryCap as number;
+  const totalSalaryNum = Number(teamTotalSalary) || 0;
+  const salaryOutNum = Number(salaryOut) || 0;
+  const capNum = Number(effectiveCapSettings.salaryCap) || 0;
+  const firstApronNum = Number(effectiveCapSettings.firstApron) || 0;
+  const secondApronNum = Number(effectiveCapSettings.secondApron) || 0;
+
+  if (totalSalaryNum < capNum) {
+    return capNum;
   }
 
   let ceiling = allowedIncomingBelowFirstApron(
@@ -187,10 +214,10 @@ export const getIncomingCeiling = (
     effectiveCapSettings
   );
 
-  if (teamTotalSalary > effectiveCapSettings.secondApron) {
-    ceiling = salaryOut as number;
-  } else if (teamTotalSalary > effectiveCapSettings.firstApron) {
-    ceiling = salaryOut as number;
+  if (totalSalaryNum > secondApronNum) {
+    ceiling = salaryOutNum;
+  } else if (totalSalaryNum > firstApronNum) {
+    ceiling = salaryOutNum;
   }
 
   const tpeValue = (tradeExceptions || [])
@@ -200,18 +227,18 @@ export const getIncomingCeiling = (
         (!tradeException.expirationDate ||
           Date.parse(tradeException.expirationDate) > Date.now()) &&
         !(
-          teamTotalSalary > effectiveCapSettings.secondApron &&
-          isPriorYearTPE(tradeException as any, Number(yearKey))
+          totalSalaryNum > secondApronNum &&
+          isPriorYearTPE(tradeException as TradeExceptionRecord, Number(yearKey))
         )
     )
     .reduce(
       (sum, tradeException) =>
         sum +
-        ((tradeException.remaining as any) ??
+        (Number(tradeException.remaining) ||
           (typeof tradeException.amount === 'number'
-            ? tradeException.amount - ((tradeException.used ?? 0) as any)
+            ? tradeException.amount - Number(tradeException.used ?? 0)
             : typeof tradeException.value === 'number'
-              ? tradeException.value - ((tradeException.used ?? 0) as any)
+              ? tradeException.value - Number(tradeException.used ?? 0)
               : 0)),
       0
     );
@@ -225,8 +252,8 @@ export const getIncomingCeilingViaFaException = (
 ): number => {
   const buckets = getTeamFaExceptionBuckets((team.team || {}) as UnknownRecord);
   const bucket = buckets.find((entry) => entry.type === bucketType);
-  const remaining = bucket?.remaining ?? 0;
-  return ((team.salaryOut as number) || 0) + (remaining as number);
+  const remaining = Number(bucket?.remaining ?? 0) || 0;
+  return (Number(team.salaryOut) || 0) + remaining;
 };
 
 function _calculateAllowableIncomingObj({
@@ -239,24 +266,27 @@ function _calculateAllowableIncomingObj({
 }: AllowableIncomingObjectParams): AllowableIncomingResult {
   const year = String(yearKey);
   const capData = (CBA_BY_YEAR as Record<string, UnknownRecord>)[year] || {};
-  const salaryCap = (capData.salaryCap || 0) as number;
+  const salaryCap = Number(capData.salaryCap || 0) || 0;
+  const currentSalaryNum = Number(currentTeamSalary) || 0;
+  const salaryOutNum = Number(salaryOut) || 0;
+  const tpeAmountNum = Number(tpeAmount) || 0;
 
-  if ((currentTeamSalary as any) < salaryCap) {
-    const capSpace = salaryCap - ((currentTeamSalary as any) || 0);
-    const margin = Math.max(capSpace, (tpeAmount as number) || 0);
+  if (currentSalaryNum < salaryCap) {
+    const capSpace = salaryCap - currentSalaryNum;
+    const margin = Math.max(capSpace, tpeAmountNum);
     return { ceiling: margin, margin };
   }
 
   let ceiling: number;
   if (secondApronStatus || firstApronStatus) {
-    ceiling = (salaryOut as number) || 0;
+    ceiling = salaryOutNum;
   } else {
     ceiling = allowedIncomingBelowFirstApron(salaryOut, yearKey);
   }
   if (salaryOut === 0) ceiling = 0;
 
-  const gross = ceiling + ((tpeAmount as number) || 0);
-  return { ceiling: gross, margin: gross - ((salaryOut as number) || 0) };
+  const gross = ceiling + tpeAmountNum;
+  return { ceiling: gross, margin: gross - salaryOutNum };
 }
 
 export function calculateAllowableIncoming(
@@ -271,20 +301,18 @@ export function calculateAllowableIncoming(
   yearKey?: NumericLike
 ): number;
 export function calculateAllowableIncoming(
-  ...args: any[]
+  ...args: unknown[]
 ): AllowableIncomingResult | number {
   if (typeof args[0] === 'object' && args[0] !== null && args.length === 1) {
-    return _calculateAllowableIncomingObj(args[0]);
+    return _calculateAllowableIncomingObj(args[0] as AllowableIncomingObjectParams);
   }
 
-  const [
-    currentTeamSalary,
-    salaryOut,
-    ,
-    tradeExceptions = [],
-    capSettings = {},
-    yearKey = 2025,
-  ] = args;
+  const currentTeamSalary = args[0] as NumericLike;
+  const salaryOut = args[1] as NumericLike;
+  // args[2] is incomingPlayers (unused)
+  const tradeExceptions = (args[3] || []) as TradeExceptionLike[];
+  const capSettings = (args[4] || {}) as TradeCapSettingsLike;
+  const yearKey = (args[5] ?? 2025) as NumericLike;
 
   const tpeAmount = (tradeExceptions || [])
     .filter(
@@ -296,22 +324,22 @@ export function calculateAllowableIncoming(
     .reduce(
       (sum: number, tradeException: TradeExceptionLike) =>
         sum +
-        ((tradeException.remaining as any) ??
+        (Number(tradeException.remaining) ||
           (typeof tradeException.amount === 'number'
-            ? tradeException.amount - ((tradeException.used ?? 0) as any)
+            ? tradeException.amount - Number(tradeException.used ?? 0)
             : typeof tradeException.value === 'number'
-              ? tradeException.value - ((tradeException.used ?? 0) as any)
+              ? tradeException.value - Number(tradeException.used ?? 0)
               : 0)),
       0
     );
 
   const secondApronStatus =
     typeof capSettings.secondApron === 'number'
-      ? currentTeamSalary > capSettings.secondApron
+      ? Number(currentTeamSalary) > capSettings.secondApron
       : false;
   const firstApronStatus =
     typeof capSettings.firstApron === 'number'
-      ? currentTeamSalary > capSettings.firstApron
+      ? Number(currentTeamSalary) > capSettings.firstApron
       : false;
 
   return _calculateAllowableIncomingObj({
@@ -364,7 +392,7 @@ export const getSwapTypeDisplay = (swapType: unknown): string => {
   return swapType === 'worst_of' ? 'Worst of' : 'Best of';
 };
 
-export const formatSwapInfo = (pick: any): string => {
+export const formatSwapInfo = (pick: PickLike | null | undefined): string => {
   if (!pick?.isSwap) return '';
 
   const type =
@@ -394,7 +422,7 @@ export const formatSwapInfo = (pick: any): string => {
 };
 
 export const formatPick = (
-  pick: any,
+  pick: PickLike | null | undefined,
   options: { includeNote?: boolean } = {}
 ): string => {
   const { includeNote = true } = options;
@@ -424,7 +452,7 @@ export const formatPick = (
   return str;
 };
 
-function getProtectionDisplayLabel(pick: any): string {
+function getProtectionDisplayLabel(pick: PickLike | null | undefined): string {
   if (!pick) return '';
 
   if (pick.protectionMeta) {
@@ -461,7 +489,7 @@ export { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/
 export const calculateTPERemaining = (
   tpe: { amount?: NumericLike },
   used: NumericLike = 0
-): number => ((tpe.amount as number) || 0) - ((used as number) || 0);
+): number => (Number(tpe.amount) || 0) - (Number(used) || 0);
 
 export const playerFitsInTPE = (
   player: TradeHelperPlayer,
@@ -477,7 +505,7 @@ export const playerFitsInTPE = (
     ? Date.parse(tpe.expirationDate)
     : Infinity;
 
-  return salary <= (tpe.amount as number) && now < expiration;
+  return salary <= (Number(tpe.amount) || 0) && now < expiration;
 };
 
 export const formatCurrency = (val: unknown): string =>
@@ -503,7 +531,7 @@ export const getPlayerAdjustmentTypes = (player: TradeHelperPlayer): string[] =>
     adjustmentTypes.push('BYC');
   }
 
-  if (player.tradeKicker || (player.tradeKickerPct as number) > 0) {
+  if (player.tradeKicker || Number(player.tradeKickerPct) > 0) {
     adjustmentTypes.push('Trade Kicker');
   }
 

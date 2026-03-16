@@ -31,35 +31,29 @@ type WorldSummaryLike = {
   worldName?: string | null;
   description?: string | null;
   isArchived?: boolean;
-  [key: string]: unknown;
 };
 
 type WorldMetadataLike = {
   worldName?: string | null;
   description?: string | null;
-  [key: string]: unknown;
 };
 
 type CreateWorldResultLike = {
   worldId: string;
-  [key: string]: unknown;
 };
 
 type BranchWorldResultLike = {
   worldId: string;
-  [key: string]: unknown;
 };
 
 type PurgeResultLike = {
   ok?: boolean;
   queued?: boolean;
   message?: string;
-  [key: string]: unknown;
 };
 
 type ErrorLike = {
   message?: string;
-  [key: string]: unknown;
 };
 
 type WorldChangeCallback = (worldId: string | null) => void;

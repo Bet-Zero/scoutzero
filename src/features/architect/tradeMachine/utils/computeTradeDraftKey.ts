@@ -10,7 +10,7 @@
  *   - Mar 2026: E77 - Migrated authoritative implementation to TypeScript
  */
 
-type UnknownRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
 interface TradeDraftPlayerLike extends UnknownRecord {
   id?: any;

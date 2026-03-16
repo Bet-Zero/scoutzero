@@ -13,7 +13,7 @@
 
 import { resolveOffseasonTransition } from '@/features/architect/utils/offseason';
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 
 export function runOffseason(
   teamCapSheet: LooseRecord,
@@ -31,7 +31,7 @@ export function runOffseason(
     optionDecisions,
     context: {
       capProjections,
-      teamCode: teamCapSheet?.teamCode,
+      teamCode: teamCapSheet?.teamCode as string | undefined,
     },
   });
 

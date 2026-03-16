@@ -54,7 +54,7 @@ describe('useTradeMachine DEV S&T injector lifecycle', () => {
     });
     expect(
       result.current.teams[0].team.players.some((p) =>
-        p.name?.includes('TM DEV S&T')
+        (p as Record<string, unknown>).name?.toString().includes('TM DEV S&T')
       )
     ).toBe(true);
 
@@ -67,7 +67,7 @@ describe('useTradeMachine DEV S&T injector lifecycle', () => {
     });
     expect(
       result.current.teams[0].team.players.some((p) =>
-        p.name?.includes('TM DEV S&T')
+        (p as Record<string, unknown>).name?.toString().includes('TM DEV S&T')
       )
     ).toBe(false);
   });

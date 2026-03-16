@@ -1,11 +1,11 @@
 import CapSheetFull from '../../CapSheetFull';
 
 type CapTableSectionProps = {
-  teamCapSheet: Record<string, any> | null | undefined;
+  teamCapSheet: Record<string, unknown> | null | undefined;
   currentYear: number;
   onSelectPlayer?: (...args: any[]) => any;
   onActionClick?: (...args: any[]) => any;
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, unknown>;
   getRulesProfileForYear?: (...args: any[]) => any;
 };
 

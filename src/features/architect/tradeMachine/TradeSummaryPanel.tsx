@@ -31,7 +31,7 @@ interface TradeSummaryPanelProps {
   forceTrade?: boolean;
   showRuleExplanations?: boolean;
   isValidating?: boolean;
-  pickRulesById?: Record<string, any>;
+  pickRulesById?: Record<string, unknown>;
 }
 
 function TradeSummaryPanel({
@@ -64,8 +64,8 @@ function TradeSummaryPanel({
         )}
         {!result.legal && hasOverrideRequest && (
           <div className="text-xs text-amber-300/80 mt-1">
-            {overrideState.message ||
-              'Override state is tracked separately. It does not change authoritative legality.'}
+            {String(overrideState.message ||
+              'Override state is tracked separately. It does not change authoritative legality.')}
           </div>
         )}
       </div>
@@ -145,7 +145,7 @@ function TradeSummaryPanel({
                 {teamResult &&
                   (() => {
                     const officialSnapshot =
-                      getOfficialSalaryMatchingSnapshot(teamResult);
+                      getOfficialSalaryMatchingSnapshot(teamResult ? { ...teamResult } : null);
                     const salaryIn = officialSnapshot.salaryIn ?? 0;
                     const effectiveAllowed =
                       officialSnapshot.effectiveAllowableIncoming;
@@ -240,7 +240,7 @@ function TradeSummaryPanel({
                           const hasAdjustment =
                             Math.abs(matchingValue - baseSalary) > 1;
                           const adjustmentLabel =
-                            getAdjustmentTooltipLabel(player);
+                            getAdjustmentTooltipLabel({ ...player });
                           const tooltipText = `${adjustmentLabel}: Base ${formatCurrency(baseSalary)} → Match ${formatCurrency(matchingValue)}`;
 
                           return (
@@ -279,9 +279,9 @@ function TradeSummaryPanel({
                       <div className="space-y-1">
                         {incomingEntitlements.map((entitlement, entitlementIndex) => {
                           const badge = getEntitlementKindBadge(entitlement.kind);
-                          const pickRow = projectEntitlementToPickRow(entitlement, {
+                          const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
                             teamCode: teamMeta?.team?.id,
-                            pickRulesById,
+                            pickRulesById: pickRulesById as any,
                           });
                           const secondaryText =
                             getPickRowSecondaryText(pickRow);
@@ -333,9 +333,9 @@ function TradeSummaryPanel({
                     <div className="space-y-1">
                       {entitlementsOut.map((entitlement, entitlementIndex) => {
                         const badge = getEntitlementKindBadge(entitlement.kind);
-                        const pickRow = projectEntitlementToPickRow(entitlement, {
+                        const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
                           teamCode: teamMeta?.team?.id,
-                          pickRulesById,
+                          pickRulesById: pickRulesById as any,
                         });
                         const secondaryText = getPickRowSecondaryText(pickRow);
 

@@ -4,14 +4,15 @@ import { validationCache } from './validationCache.js';
  * Cache Invalidation Manager
  * Handles intelligent cache invalidation based on trade events
  */
+type CacheType = 'salaryMatch' | 'hardCap' | string;
+
 type InvalidationRule = {
-  affectedCacheTypes: any[];
-  scope: string;
-  [key: string]: any;
+  affectedCacheTypes: CacheType[];
+  scope: 'team' | 'multi_team';
 };
 
 export class CacheInvalidationManager {
-  invalidationRules: Map<any, InvalidationRule>;
+  invalidationRules: Map<string, InvalidationRule>;
 
   constructor() {
     this.invalidationRules = new Map();
@@ -39,7 +40,7 @@ export class CacheInvalidationManager {
   /**
    * Handle team roster updates
    */
-  onTeamUpdate(teamId: any, updateType = 'roster_change') {
+  onTeamUpdate(teamId: string, updateType = 'roster_change') {
     const rule = this.invalidationRules.get(updateType);
     if (!rule) return;
 
@@ -51,11 +52,11 @@ export class CacheInvalidationManager {
   /**
    * Handle multi-team events (like trade completion)
    */
-  onMultiTeamEvent(teamIds: any[], eventType = 'trade_completion') {
+  onMultiTeamEvent(teamIds: string[], eventType = 'trade_completion') {
     const rule = this.invalidationRules.get(eventType);
     if (!rule) return;
 
-    teamIds.forEach((teamId: any) => {
+    teamIds.forEach((teamId) => {
       this.invalidateTeamEntries(rule.affectedCacheTypes, teamId);
     });
   }
@@ -63,14 +64,14 @@ export class CacheInvalidationManager {
   /**
    * Handle contract updates
    */
-  onContractUpdate(teamId: any /* , playerId */) {
+  onContractUpdate(teamId: string /* , playerId */) {
     this.onTeamUpdate(teamId, 'contract_update');
   }
 
   /**
    * Handle salary cap changes
    */
-  onSalaryCapChange(yearKey: any) {
+  onSalaryCapChange(yearKey: string | number) {
     // Invalidate all entries for a specific year
     validationCache.invalidate(`_${yearKey}`);
   }
@@ -78,13 +79,11 @@ export class CacheInvalidationManager {
   /**
    * Invalidate cache entries for a specific team
    */
-  invalidateTeamEntries(cacheTypes: any[] | any, teamId: any) {
-    if (!Array.isArray(cacheTypes)) {
-      cacheTypes = [cacheTypes];
-    }
+  invalidateTeamEntries(cacheTypes: CacheType | CacheType[], teamId: string) {
+    const types = Array.isArray(cacheTypes) ? cacheTypes : [cacheTypes];
 
-    cacheTypes.forEach((cacheType: any) => {
-      let pattern;
+    types.forEach((cacheType) => {
+      let pattern: string;
       switch (cacheType) {
         case 'salaryMatch':
           pattern = 'salary_match_';
@@ -117,7 +116,7 @@ export class CacheInvalidationManager {
   /**
    * Add custom invalidation rule
    */
-  addRule(eventType: any, rule: InvalidationRule) {
+  addRule(eventType: string, rule: InvalidationRule) {
     this.invalidationRules.set(eventType, rule);
   }
 

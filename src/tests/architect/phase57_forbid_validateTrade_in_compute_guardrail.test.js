@@ -395,14 +395,10 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain('export function assertTradeComputeInputs');
     });
 
-    it('should keep assertions.js as a shim-only compatibility re-export', () => {
-      const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/assertions.js'
-      );
-
-      expect(source).toContain("from './assertions.ts'");
-      expect(source).not.toContain('export function assertPostTradeSnapshot');
-      expect(source).not.toContain('validateTrade(');
+    it('should delete assertions.js in the E113 shim cleanup batch', () => {
+      expect(
+        existsSync('src/features/architect/utils/tradeContext/assertions.js')
+      ).toBe(false);
     });
 
     it('should have index.js re-exporting all public API', () => {

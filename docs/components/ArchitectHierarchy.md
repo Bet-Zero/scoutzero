@@ -18,7 +18,6 @@ GMDashboard/
     DeleteWorldModal.tsx
     DraftPositionsInput.jsx
     DraftPositionsInput.tsx
-    OfferSheetList.jsx
     OfferSheetList.tsx
     SeasonAdvanceModal.jsx
     SeasonAdvanceModal.tsx
@@ -35,19 +34,13 @@ GMDashboard/
   index.jsx
   offerSheetTypes.ts
   sections/
-    CapSheetSection.jsx
     CapSheetSection.tsx
-    CapTableSection.jsx
     CapTableSection.tsx
-    FreeAgencySection.jsx
     FreeAgencySection.tsx
-    HistorySection.jsx
     HistorySection.tsx
     OffseasonSection.jsx
     OffseasonSection.tsx
-    RosterSection.jsx
     RosterSection.tsx
-    TradeSection.jsx
     TradeSection.tsx
 LeagueView.jsx
 OffseasonTab.jsx
@@ -196,53 +189,37 @@ shared/
 tradeMachine/
   CapImpactTiles.jsx
   CapImpactTiles.tsx
-  DataWarningsSection.jsx
   DataWarningsSection.tsx
   EntitlementPickRow.jsx
   EntitlementPickRow.tsx
   EntitlementPicksList.jsx
   EntitlementPicksList.tsx
-  FaExceptionTracker.jsx
   FaExceptionTracker.tsx
   OutgoingPlayersList.jsx
   OutgoingPlayersList.tsx
   SelectTeamCard.jsx
   SelectTeamCard.tsx
-  TradeEditor.jsx
   TradeEditor.tsx
-  TradeExceptionDashboard.jsx
   TradeExceptionDashboard.tsx
   TradeExceptionManager.jsx
   TradeExceptionManager.tsx
-  TradeExportCapture.jsx
   TradeExportCapture.tsx
-  TradeLegalChecker.jsx
   TradeLegalChecker.tsx
   TradePlayerRow.jsx
   TradePlayerRow.tsx
-  TradePreviewModal.jsx
   TradePreviewModal.tsx
-  TradeReceiptPanel.jsx
   TradeReceiptPanel.tsx
-  TradeSalaryCalculator.jsx
   TradeSalaryCalculator.tsx
-  TradeSummaryPanel.jsx
   TradeSummaryPanel.tsx
-  TradeTeamCard.jsx
   TradeTeamCard.tsx
-  ValidationDetailsPanel.jsx
   ValidationDetailsPanel.tsx
   ValidationStateHeader.jsx
   ValidationStateHeader.tsx
   tradePreviewExportTypes.ts
   utils/
-    computeTradeDraftKey.js
     computeTradeDraftKey.ts
-    devSntInjector.js
     devSntInjector.ts
-    entitlementWarnings.js
     entitlementWarnings.ts
-    getOfficialSalaryMatchingSnapshot.js
     getOfficialSalaryMatchingSnapshot.ts
   validationPresentationTypes.ts
 types/
@@ -250,14 +227,12 @@ types/
   ruleContext.ts
 utils/
   ARCHITECT_LAYERING.md
-  architectCore.js
   architectCore.ts
   architectFirestorePaths.ts
   basicArchitectUtils.js
   basicArchitectUtils.ts
   buildRuleContext.ts
   capHelpers.ts
-  capHoldTransitionHelpers.js
   capHoldTransitionHelpers.ts
   capHolds.ts
   capLegality/
@@ -280,9 +255,7 @@ utils/
   cbaConstants.ts
   consentUtils.js
   consentUtils.ts
-  contractNormalization.js
   contractNormalization.ts
-  contractSalaryUtils.js
   contractSalaryUtils.ts
   contractUtils.js
   contractUtils.ts
@@ -306,7 +279,6 @@ utils/
     entitlementResolver.ts
     entitlementTerms.ts
     entitlementWriter.ts
-    formatEntitlement.js
     formatEntitlement.ts
     leagueClaimUniquenessGate.ts
     moveWorldEntitlement.ts
@@ -314,11 +286,9 @@ utils/
     protectionPartitionValidator.ts
     runTeamExclusivityGate.ts
     sanitizeVacuumMetadata.ts
-    seasonManagerProjection.js
     seasonManagerProjection.ts
     vacuumEntitlementOverlayStore.ts
   exceptionHistory/
-    historyHelpers.js
     historyHelpers.ts
   exceptions/
     exceptionLifecycle.js
@@ -326,7 +296,6 @@ utils/
     index.js
   faExceptionUtils.js
   faExceptionUtils.ts
-  firebaseTeamPlanHelpers.js
   firebaseTeamPlanHelpers.ts
   hardCapUtils.js
   hardCapUtils.ts
@@ -365,16 +334,13 @@ utils/
     types.ts
   reacqUtils.js
   reacqUtils.ts
-  runOffseason.js
   runOffseason.ts
   salaryEngine/
     README.md
     index.ts
     salaryEngine.ts
     types.ts
-  salaryUtils.js
   salaryUtils.ts
-  schemaAdapter.js
   schemaAdapter.ts
   seasonFormat.js
   seasonFormat.ts
@@ -386,14 +352,12 @@ utils/
   stepienUtils.js
   stepienUtils.ts
   subscribeArchitectPlayerData.ts
-  teamLoader.js
   teamLoader.ts
   timingUtils.js
   timingUtils.ts
   tpeLifecycle.js
   tpeLifecycle.ts
   tradeContext/
-    assertions.js
     assertions.ts
     index.js
     legacy/
@@ -519,7 +483,6 @@ utils/
       swapResolution.ts
       tpeValidation.js
       tpeValidation.ts
-      tradeExportUtils.js
       tradeExportUtils.ts
       tradeTimingWindows.js
       tradeTimingWindows.ts
@@ -530,14 +493,12 @@ utils/
       validationIssueText.ts
     validators/
       index.js
-  tradeManager.js
   tradeManager.ts
   validatePhase21.test.js
-  worldManager.js
   worldManager.ts
   worldTeamData.ts
 ```
 
 ---
-*Generated on: 2026-03-15T09:05:30.564Z*
+*Generated on: 2026-03-16T13:05:14.962Z*
 *Auto-updated by: npm run docs*

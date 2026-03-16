@@ -2,11 +2,11 @@ import TradeEditor from '@/features/architect/tradeMachine/TradeEditor';
 
 type TradeSectionProps = {
   primaryTeam: string | null | undefined;
-  capProjections: Record<string, any> | null | undefined;
+  capProjections: Record<string, unknown> | null | undefined;
   currentYear: number | null | undefined;
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, unknown>;
   onApplyTrade?: (...args: any[]) => any;
-  primaryTeamData?: Record<string, any> | null;
+  primaryTeamData?: Record<string, unknown> | null;
   onEditContract?: (...args: any[]) => any;
   worldId?: string | null;
   worldAsOfDate?: string | Date | null;

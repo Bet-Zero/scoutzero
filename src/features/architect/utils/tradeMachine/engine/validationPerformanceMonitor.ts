@@ -1,7 +1,25 @@
 import { debug } from './engineUtils.js';
 import { validationCache } from '../cache/validationCache.js';
 
-type ValidationMetricsRecord = Record<string, any>;
+interface ValidationTypeMetrics {
+  avgTimeMs: number;
+  totalTimeMs: number;
+  calls: number;
+  cacheHitRate: number;
+}
+
+interface ValidationReport {
+  averageTimeMs: number;
+  totalTimeMs: number;
+  validationCount: number;
+  cacheEfficiency: {
+    hits: number;
+    misses: number;
+    hitRate: number;
+  };
+  validations: Record<string, ValidationTypeMetrics>;
+  validationsByType: Record<string, { averageTimeMs: number; count: number }>;
+}
 
 /**
  * Monitors and reports on validation performance metrics
@@ -61,7 +79,7 @@ export class ValidationPerformanceMonitor {
     const totalTime = allTimings.reduce((sum, time) => sum + time, 0);
     const avgTime = allTimings.length > 0 ? totalTime / allTimings.length : 0;
 
-    const report: ValidationMetricsRecord = {
+    const report: ValidationReport = {
       // Overall metrics
       averageTimeMs: avgTime,
       totalTimeMs: totalTime,
@@ -128,9 +146,7 @@ export class ValidationPerformanceMonitor {
       );
     }
 
-    (Object.entries(report.validations) as Array<
-      [string, ValidationMetricsRecord]
-    >).forEach(([name, metrics]) => {
+    Object.entries(report.validations).forEach(([name, metrics]) => {
       if (metrics.avgTimeMs > 50) {
         recommendations.push(
           `${name} validation is slow (${metrics.avgTimeMs.toFixed(2)}ms avg)`

@@ -126,21 +126,21 @@ const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
                           >
                             {issueMeta.conflictExplanation && (
                               <div className="text-red-300 font-medium">
-                                {issueMeta.conflictExplanation}
+                                {String(issueMeta.conflictExplanation)}
                               </div>
                             )}
                             {issueMeta.entitlementIds &&
                               Array.isArray(issueMeta.entitlementIds) && (
                                 <div className="text-white/40 mt-0.5">
                                   Conflicts between:{' '}
-                                  {issueMeta.entitlementIds.join(' ↔ ')}
+                                  {(issueMeta.entitlementIds as string[]).join(' ↔ ')}
                                 </div>
                               )}
                             {issueMeta.claimsA &&
-                              issueMeta.claimsA.length > 0 && (
+                              Array.isArray(issueMeta.claimsA) && issueMeta.claimsA.length > 0 && (
                                 <div className="text-white/40 mt-0.5">
                                   Claim:{' '}
-                                  {issueMeta.claimsA[0]?.meta?.explanation}
+                                  {String((issueMeta.claimsA[0] as Record<string, unknown>)?.meta ?? '')}
                                 </div>
                               )}
                           </div>

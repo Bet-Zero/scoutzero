@@ -3,11 +3,24 @@
  * Consolidated from: debug.js, tradeKicker.js
  */
 
-type LooseRecord = Record<string, any>;
+interface TradeKickerInfo {
+  percentage: number;
+  waived?: number;
+}
+
+interface TradeKickerPlayer {
+  newSalary: number;
+  tradeKicker?: TradeKickerInfo | null;
+}
+
+interface TradeKickerContext {
+  daysRemainingInSeason?: number;
+  daysInSeason?: number;
+}
 
 // Debug functionality (from debug.js)
 class Debug {
-  [key: string]: any;
+  enabled: boolean;
 
   constructor() {
     this.enabled = false;
@@ -21,13 +34,13 @@ class Debug {
     this.enabled = false;
   }
 
-  log(message: string, data?: any) {
+  log(message: string, data?: unknown) {
     if (this.enabled) {
       console.log(`[Trade Validator] ${message}`, data || '');
     }
   }
 
-  error(message: string, error?: any) {
+  error(message: string, error?: unknown) {
     if (this.enabled) {
       console.error(`[Trade Validator Error] ${message}`, error || '');
     }
@@ -38,8 +51,8 @@ export const debug = new Debug();
 
 // Trade kicker calculation (from tradeKicker.js)
 export function computeTradeKicker(
-  player: LooseRecord,
-  tradeCtx?: LooseRecord | null
+  player: TradeKickerPlayer,
+  tradeCtx?: TradeKickerContext | null
 ) {
   // No kicker if not specified
   if (!player.tradeKicker?.percentage) {

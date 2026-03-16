@@ -25,16 +25,18 @@ import {
 
 describe('E69 Trade Machine snapshot/accessor compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const selectorShimPath = path.join(
+  const selectorDeletedPath = path.join(
     srcRoot,
     'tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js'
   );
   const accessorShimPath = path.join(srcRoot, 'hooks/useTradeMachineSnapshot.js');
+  const selectorAuthorityPath = path.join(
+    srcRoot,
+    'tradeMachine/utils/getOfficialSalaryMatchingSnapshot.ts'
+  );
 
-  it('getOfficialSalaryMatchingSnapshot.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(selectorShimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './getOfficialSalaryMatchingSnapshot.ts';");
+  it('getOfficialSalaryMatchingSnapshot.js is absent after the E113 shim deletion batch', () => {
+    expect(fs.existsSync(selectorDeletedPath)).toBe(false);
   });
 
   it('useTradeMachineSnapshot.js remains a pure compatibility shim', () => {
@@ -43,32 +45,26 @@ describe('E69 Trade Machine snapshot/accessor compatibility guardrails', () => {
     expect(source).toBe("export * from './useTradeMachineSnapshot.ts';");
   });
 
-  it('selector explicit .js import exposes the same named API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js'
-    );
+  it('selector authority still exposes the same named API through extensionless imports', () => {
+    const source = fs.readFileSync(selectorAuthorityPath, 'utf-8');
+    const extensionlessApi = {
+      computeRemainingRoom,
+      getDisplayAllowableIncoming,
+      getOfficialSalaryMatchingSnapshot,
+      getOfficialSnapshotByIndex,
+      getOfficialSnapshotByTeamId,
+    };
 
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
+    expect(Object.keys(extensionlessApi).sort()).toEqual([
       'computeRemainingRoom',
       'getDisplayAllowableIncoming',
       'getOfficialSalaryMatchingSnapshot',
       'getOfficialSnapshotByIndex',
       'getOfficialSnapshotByTeamId',
     ]);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.computeRemainingRoom).toBe(computeRemainingRoom);
-    expect(explicitJsModule.getDisplayAllowableIncoming).toBe(
-      getDisplayAllowableIncoming
-    );
-    expect(explicitJsModule.getOfficialSalaryMatchingSnapshot).toBe(
-      getOfficialSalaryMatchingSnapshot
-    );
-    expect(explicitJsModule.getOfficialSnapshotByIndex).toBe(
-      getOfficialSnapshotByIndex
-    );
-    expect(explicitJsModule.getOfficialSnapshotByTeamId).toBe(
-      getOfficialSnapshotByTeamId
-    );
+    expect(source).toContain('export function getOfficialSalaryMatchingSnapshot');
+    expect(source).toContain('export function getDisplayAllowableIncoming');
+    expect(source).toContain('export function computeRemainingRoom');
   });
 
   it('accessor explicit .js import exposes the same named API as extensionless imports', async () => {

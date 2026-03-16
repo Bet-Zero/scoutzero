@@ -8,86 +8,69 @@
  */
 
 import { toSeasonCode, toEndYear } from './seasonFormat.js';
+import type { BasePlayerContractYear } from '../../../schemas/architect';
 
-type NumericLike = any;
-type ContractOptionsLike = {
+interface ContractOptions {
   guaranteed?: boolean | null;
   playerOption?: boolean | null;
   teamOption?: boolean | null;
   extension?: boolean | null;
   rookieScale?: boolean | null;
+}
+
+/** Salary row input: accepts both full BasePlayerContractYear and partial caller shapes. */
+type SalaryRowInput = Partial<BasePlayerContractYear> & Record<string, unknown>;
+
+/** Minimal contract shape used by contract utility functions. */
+interface ContractUtilsContract {
+  salariesByYear?: SalaryRowInput[];
+  yearsRemaining?: number;
+  freeAgency?: { year?: number } | null;
   [key: string]: unknown;
-};
-type ContractYearLike = {
-  season?: unknown;
-  year?: unknown;
-  salary?: NumericLike;
-  capHit?: NumericLike;
-  guaranteed?: unknown;
-  guaranteedAmount?: NumericLike;
-  option?: unknown;
-  optionType?: unknown;
-  optionUsed?: unknown;
-  tradeBonus?: unknown;
-  [key: string]: unknown;
-};
-type ContractFreeAgencyLike =
-  | {
-      year?: NumericLike;
-      [key: string]: unknown;
-    }
-  | string
-  | null
-  | undefined;
-type ContractLike = {
-  salariesByYear?: ContractYearLike[] | null;
-  yearsRemaining?: NumericLike;
-  freeAgency?: ContractFreeAgencyLike;
-  [key: string]: unknown;
-};
-type PlayerLike = {
-  contract?: ContractLike | null;
-  futureContract?: ContractLike | null;
+}
+
+/** Player shape accepted by contract utility functions. */
+interface ContractUtilsPlayer {
+  contract?: ContractUtilsContract | null;
+  futureContract?: ContractUtilsContract | null;
   bio?: {
-    display?: {
-      freeAgentYear?: NumericLike;
-      [key: string]: unknown;
-    } | null;
+    display?: { freeAgentYear?: number } | null;
     [key: string]: unknown;
   } | null;
-  freeAgentYear?: NumericLike;
-  yearsOfService?: NumericLike;
-  [key: string]: unknown;
-};
-type CapProjectionEntryLike = {
-  cap?: NumericLike;
-  [key: string]: unknown;
-};
-type CapProjectionsLike = Record<string, CapProjectionEntryLike | undefined>;
-type GetContractYearsOptions = {
-  primaryContract?: ContractLike | null;
-};
-type GenerateContractParams = {
-  baseSalary: NumericLike;
-  years: NumericLike;
-  raisePct?: NumericLike;
-  options?: ContractOptionsLike | null;
-  startYear?: NumericLike;
-  roundTo?: NumericLike;
-};
-type GenerateExtensionContractParams = {
-  firstYearSalary: NumericLike;
-  years: NumericLike;
-  raisePct?: NumericLike;
-  startYear?: NumericLike;
-};
-type NormalizedContractYear = ContractYearLike & {
+  freeAgentYear?: number;
+}
+
+interface CapProjectionEntry {
+  cap?: number;
+}
+
+type CapProjections = Record<string, CapProjectionEntry | undefined>;
+
+interface GetContractYearsOptions {
+  primaryContract?: ContractUtilsContract | null;
+}
+
+interface GenerateContractParams {
+  baseSalary: number;
+  years: number;
+  raisePct?: number;
+  options?: ContractOptions | null;
+  startYear?: number;
+  roundTo?: number;
+}
+
+interface GenerateExtensionContractParams {
+  firstYearSalary: number;
+  years: number;
+  raisePct?: number;
+  startYear?: number;
+}
+
+type NormalizedContractYear = Partial<BasePlayerContractYear> & {
   year: number | null;
-  season: string | null;
+  season: string;
   salary: number;
   capHit: number;
-  option: unknown;
-  guaranteed: unknown;
   isExtension: boolean;
 };
 
@@ -101,13 +84,12 @@ export function generateContract({
   roundTo = 100,
 }: GenerateContractParams) {
   const salariesByYear = [];
-  let salary: any = baseSalary;
+  let salary = baseSalary;
 
-  for (let i = 0; i < (years as any); i++) {
-    const endYear = (startYear as any) + i;
+  for (let i = 0; i < years; i++) {
+    const endYear = startYear + i;
     const season = toSeasonCode(endYear);
-    const roundedSalary =
-      Math.round((salary as any) / (roundTo as any)) * (roundTo as any);
+    const roundedSalary = Math.round(salary / roundTo) * roundTo;
 
     const yearEntry = {
       season,
@@ -115,22 +97,22 @@ export function generateContract({
       capHit: roundedSalary,
       guaranteed: options?.guaranteed === false ? false : true,
       guaranteedAmount: options?.guaranteed === false ? 0 : roundedSalary,
-      option: null,
-      optionUsed: null,
-      tradeBonus: null,
+      option: null as string | null,
+      optionUsed: null as boolean | null,
+      tradeBonus: null as number | null,
     };
 
-    if (i === (years as any) - 1) {
+    if (i === years - 1) {
       if (options?.playerOption) yearEntry.option = 'Player Option';
       if (options?.teamOption) yearEntry.option = 'Team Option';
     }
 
     salariesByYear.push(yearEntry);
-    salary *= 1 + (raisePct as any);
+    salary *= 1 + raisePct;
   }
 
   const totalValue = salariesByYear.reduce(
-    (sum, yr) => sum + ((yr as any).salary || 0),
+    (sum, yr) => sum + (yr.salary || 0),
     0
   );
 
@@ -140,7 +122,7 @@ export function generateContract({
     totalValue,
     yearsLeft: years,
     birdRights: 'Full Bird',
-    freeAgency: `${(startYear as any) + (years as any)} (UFA)`,
+    freeAgency: `${startYear + years} (UFA)`,
   };
 }
 
@@ -160,30 +142,29 @@ export function generateExtensionContract({
   });
 }
 
-function normalizeContractYears(entries: ContractYearLike[] | null | undefined, isExtension: boolean) {
-  return (entries || []).map((entry: any) => {
-    const parsedYear = toEndYear(entry?.season ?? entry?.year);
-    const salary = Number(entry?.salary ?? entry?.capHit ?? 0) || 0;
+function normalizeContractYears(entries: SalaryRowInput[] | null | undefined, isExtension: boolean): NormalizedContractYear[] {
+  return (entries || []).map((entry) => {
+    const parsedYear = toEndYear(entry.season ?? entry.year);
+    const salary = Number(entry.salary ?? entry.capHit ?? 0) || 0;
     return {
       ...entry,
       year: parsedYear,
       season:
-        typeof entry?.season === 'string' && entry.season.length > 0
+        typeof entry.season === 'string' && entry.season.length > 0
           ? entry.season
           : Number.isFinite(parsedYear)
             ? toSeasonCode(parsedYear)
-            : null,
+            : '',
       salary,
-      capHit: Number(entry?.capHit ?? salary) || salary,
-      option: entry?.option ?? entry?.optionType ?? null,
-      guaranteed: entry?.guaranteed,
+      capHit: Number(entry.capHit ?? salary) || salary,
+      option: (entry.option ?? entry.optionType ?? null) as string | null,
       isExtension,
     } as NormalizedContractYear;
   });
 }
 
 export function getContractYearsForDisplay(
-  player: PlayerLike | null | undefined,
+  player: ContractUtilsPlayer | null | undefined,
   options: GetContractYearsOptions = {}
 ) {
   if (!player) return [];
@@ -192,11 +173,11 @@ export function getContractYearsForDisplay(
   const contractSources: NormalizedContractYear[] = [];
   const seenContracts = new Set();
 
-  const addContractRows = (contractLike: ContractLike | null | undefined) => {
-    if (!contractLike || seenContracts.has(contractLike)) return;
-    seenContracts.add(contractLike);
+  const addContractRows = (contract: ContractUtilsContract | null | undefined) => {
+    if (!contract || seenContracts.has(contract)) return;
+    seenContracts.add(contract);
     contractSources.push(
-      ...normalizeContractYears(contractLike.salariesByYear, false)
+      ...normalizeContractYears(contract.salariesByYear, false)
     );
   };
 
@@ -218,7 +199,7 @@ export function getContractYearsForDisplay(
     }
   });
 
-  return Array.from(yearMap.values()).sort((a, b) => a.year - b.year);
+  return Array.from(yearMap.values()).sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
 }
 
 export function getYearsRemainingDisplay({
@@ -226,16 +207,16 @@ export function getYearsRemainingDisplay({
   currentYear,
   primaryContract = null,
 }: {
-  player: PlayerLike | null | undefined;
-  currentYear: NumericLike;
-  primaryContract?: ContractLike | null;
+  player: ContractUtilsPlayer | null | undefined;
+  currentYear: number;
+  primaryContract?: ContractUtilsContract | null;
 }) {
   const normalizedCurrentYear = Number(currentYear);
   if (!player || !Number.isFinite(normalizedCurrentYear)) return 0;
 
   const contractYears = getContractYearsForDisplay(player, { primaryContract });
   const yearsFromRows = contractYears.filter(
-    (yearEntry) => yearEntry.year >= normalizedCurrentYear
+    (yearEntry) => (yearEntry.year ?? 0) >= normalizedCurrentYear
   ).length;
   if (yearsFromRows > 0) {
     return yearsFromRows;
@@ -249,8 +230,8 @@ export function getYearsRemainingDisplay({
   }
 
   const freeAgencyYear = Number(
-    (player?.contract?.freeAgency as any)?.year ??
-      (primaryContract?.freeAgency as any)?.year ??
+    player?.contract?.freeAgency?.year ??
+      primaryContract?.freeAgency?.year ??
       player?.bio?.display?.freeAgentYear ??
       player?.freeAgentYear
   );
@@ -260,8 +241,8 @@ export function getYearsRemainingDisplay({
 
 // Helper: get salary entry for a given season, including future extensions
 export function getContractYearSlice(
-  player: PlayerLike | null | undefined,
-  endYear: NumericLike
+  player: ContractUtilsPlayer | null | undefined,
+  endYear: number
 ) {
   const targetYear = Number(endYear);
   if (!player || !Number.isFinite(targetYear)) return null;
@@ -281,19 +262,19 @@ export function getContractYearSlice(
 // 3. Create max contract based on years of service
 export function createMaxContract(
   playerName: unknown,
-  yearsOfService: NumericLike,
-  capProjections: CapProjectionsLike,
-  startYear: NumericLike = 2025
+  yearsOfService: number,
+  capProjections: CapProjections,
+  startYear: number = 2025
 ) {
   void playerName;
 
   let basePct = 0.25;
-  if ((yearsOfService as any) >= 10) basePct = 0.35;
-  else if ((yearsOfService as any) >= 7) basePct = 0.3;
+  if (yearsOfService >= 10) basePct = 0.35;
+  else if (yearsOfService >= 7) basePct = 0.3;
 
-  const key = `${startYear}-${String(((startYear as any) + 1) % 100).padStart(2, '0')}`;
+  const key = `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
   const cap = capProjections?.[key]?.cap || 0;
-  const baseSalary = (cap as any) * basePct;
+  const baseSalary = cap * basePct;
 
   return generateContract({
     baseSalary,
@@ -339,10 +320,10 @@ const rookieScale: Record<number, number> = {
 };
 
 export function generateRookieContract(
-  pickNumber: NumericLike = 10,
-  startYear: NumericLike = 2025
+  pickNumber: number = 10,
+  startYear: number = 2025
 ) {
-  const base = rookieScale[pickNumber as any] || 2500000;
+  const base = rookieScale[pickNumber] || 2500000;
   return generateContract({
     baseSalary: base,
     years: 4,
@@ -353,7 +334,8 @@ export function generateRookieContract(
 }
 
 // 5. Veteran minimum salary scale
-export function getMinimumSalary(yearsOfService: NumericLike) {
+export function getMinimumSalary(yearsOfService: number | string | null | undefined) {
+  const years = Number(yearsOfService);
   const scale: Record<number, number> = {
     0: 1120000,
     1: 1820000,
@@ -367,33 +349,30 @@ export function getMinimumSalary(yearsOfService: NumericLike) {
     9: 3600000,
     10: 3800000,
   };
-  return scale[yearsOfService as any] || 3800000;
+  return scale[years] || 3800000;
 }
 
 // 6. Stretch provision calculator
 export function stretchContract(
-  contract: ContractLike | PlayerLike | null | undefined,
-  currentYear: NumericLike
+  input: { salariesByYear?: SalaryRowInput[]; contract?: { salariesByYear?: SalaryRowInput[] } | null } | null | undefined,
+  currentYear: number
 ) {
-  const salariesByYear =
-    (contract as any)?.salariesByYear || (contract as any)?.contract?.salariesByYear;
+  const salariesByYear = input?.salariesByYear ?? input?.contract?.salariesByYear;
 
-  let yearKeys: Array<number | null> = [];
-  if (salariesByYear?.length) {
-    yearKeys = salariesByYear
-      .map((y: ContractYearLike) => toEndYear(y.season as any))
-      .filter((y: number | null) => y != null);
-  }
-  const remainingYears = yearKeys.filter((y) => y >= (currentYear as any)).length;
+  const yearKeys = (salariesByYear ?? [])
+    .map((y) => toEndYear(y.season))
+    .filter((y): y is number => y != null);
+
+  const remainingYears = yearKeys.filter((y) => y >= currentYear).length;
 
   const totalOwed = yearKeys
-    .filter((y) => y >= (currentYear as any))
+    .filter((y) => y >= currentYear)
     .reduce((sum, key) => {
-      const yearEntry = salariesByYear?.find((y: ContractYearLike) => {
-        const entryEndYear = toEndYear(y.season as any);
+      const yearEntry = salariesByYear?.find((y) => {
+        const entryEndYear = toEndYear(y.season);
         return entryEndYear === key;
       });
-      return sum + ((yearEntry as any)?.salary || 0);
+      return sum + (yearEntry?.salary || 0);
     }, 0);
 
   const stretchYears = remainingYears * 2 + 1;
@@ -401,15 +380,15 @@ export function stretchContract(
 
   const stretched: Record<number, number> = {};
   for (let i = 0; i < stretchYears; i++) {
-    stretched[(currentYear as any) + i] = stretchedAnnual;
+    stretched[currentYear + i] = stretchedAnnual;
   }
 
   return stretched;
 }
 
 // 7. Minimum cap hit calculation (special 2-year rule)
-export function getMinimumCapHit(yearsOfService: NumericLike) {
-  if ((yearsOfService as any) >= 3) return 2092400;
+export function getMinimumCapHit(yearsOfService: number | string | null | undefined) {
+  if (Number(yearsOfService) >= 3) return 2092400;
   return getMinimumSalary(yearsOfService);
 }
 
@@ -427,9 +406,9 @@ export { calculateCapHold } from './capHolds';
 
 // 9. Summary-level free agent contract for UI previews
 export function generateDefaultFreeAgentContract(
-  baseSalary: NumericLike,
-  startYear: NumericLike = 2025,
-  yearsOfService: NumericLike = 0
+  baseSalary: number,
+  startYear: number = 2025,
+  yearsOfService: number = 0
 ) {
   const contract = generateContract({
     baseSalary,
@@ -444,7 +423,7 @@ export function generateDefaultFreeAgentContract(
     options: {},
     signAndTrade: false,
     guaranteed: true,
-    isMinimum: (baseSalary as any) <= 2200000,
+    isMinimum: baseSalary <= 2200000,
     yearsOfService,
   };
 }
@@ -455,14 +434,14 @@ export function generateDefaultFreeAgentContract(
  * @param {Object} player - Player data
  * @returns {number} Last salary or 0
  */
-export function getLastSalary(player: PlayerLike | null | undefined) {
+export function getLastSalary(player: ContractUtilsPlayer | null | undefined) {
   const salaries = player?.contract?.salariesByYear;
 
   if (!salaries?.length) return 0;
 
   const sorted = [...salaries].sort((a, b) => {
-    const yearA = toEndYear(a.season as any) || 0;
-    const yearB = toEndYear(b.season as any) || 0;
+    const yearA = toEndYear(a.season) || 0;
+    const yearB = toEndYear(b.season) || 0;
     return yearB - yearA;
   });
 

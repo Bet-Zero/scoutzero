@@ -14,19 +14,12 @@ Quick reference for all components in the ScoutZero project.
 - GMDashboard/GMDashboard.jsx
 - GMDashboard/components/DeleteWorldModal.jsx
 - GMDashboard/components/DraftPositionsInput.jsx
-- GMDashboard/components/OfferSheetList.jsx
 - GMDashboard/components/SeasonAdvanceModal.jsx
 - GMDashboard/components/WorldSelector.jsx
 - GMDashboard/components/WorldTimeControls.jsx
 - GMDashboard/components/index.js
 - GMDashboard/index.jsx
-- GMDashboard/sections/CapSheetSection.jsx
-- GMDashboard/sections/CapTableSection.jsx
-- GMDashboard/sections/FreeAgencySection.jsx
-- GMDashboard/sections/HistorySection.jsx
 - GMDashboard/sections/OffseasonSection.jsx
-- GMDashboard/sections/RosterSection.jsx
-- GMDashboard/sections/TradeSection.jsx
 - LeagueView.jsx
 - OffseasonTab.jsx
 - RosterVisual.jsx
@@ -55,32 +48,14 @@ Quick reference for all components in the ScoutZero project.
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
 - tradeMachine/CapImpactTiles.jsx
-- tradeMachine/DataWarningsSection.jsx
 - tradeMachine/EntitlementPickRow.jsx
 - tradeMachine/EntitlementPicksList.jsx
-- tradeMachine/FaExceptionTracker.jsx
 - tradeMachine/OutgoingPlayersList.jsx
 - tradeMachine/SelectTeamCard.jsx
-- tradeMachine/TradeEditor.jsx
-- tradeMachine/TradeExceptionDashboard.jsx
 - tradeMachine/TradeExceptionManager.jsx
-- tradeMachine/TradeExportCapture.jsx
-- tradeMachine/TradeLegalChecker.jsx
 - tradeMachine/TradePlayerRow.jsx
-- tradeMachine/TradePreviewModal.jsx
-- tradeMachine/TradeReceiptPanel.jsx
-- tradeMachine/TradeSalaryCalculator.jsx
-- tradeMachine/TradeSummaryPanel.jsx
-- tradeMachine/TradeTeamCard.jsx
-- tradeMachine/ValidationDetailsPanel.jsx
 - tradeMachine/ValidationStateHeader.jsx
-- tradeMachine/utils/computeTradeDraftKey.js
-- tradeMachine/utils/devSntInjector.js
-- tradeMachine/utils/entitlementWarnings.js
-- tradeMachine/utils/getOfficialSalaryMatchingSnapshot.js
-- utils/architectCore.js
 - utils/basicArchitectUtils.js
-- utils/capHoldTransitionHelpers.js
 - utils/capLegalityValidation.js
 - utils/capProjections.js
 - utils/capTotals/computeTeamCapTotals.js
@@ -88,17 +63,11 @@ Quick reference for all components in the ScoutZero project.
 - utils/capUtils.js
 - utils/cbaConstants.js
 - utils/consentUtils.js
-- utils/contractNormalization.js
-- utils/contractSalaryUtils.js
 - utils/contractUtils.js
 - utils/entitlements/entitlementPickRowProjection.js
-- utils/entitlements/formatEntitlement.js
-- utils/entitlements/seasonManagerProjection.js
-- utils/exceptionHistory/historyHelpers.js
 - utils/exceptions/exceptionLifecycle.js
 - utils/exceptions/index.js
 - utils/faExceptionUtils.js
-- utils/firebaseTeamPlanHelpers.js
 - utils/hardCapUtils.js
 - utils/mutationPipeline.js
 - utils/persistenceContracts/contracts.js
@@ -115,17 +84,12 @@ Quick reference for all components in the ScoutZero project.
 - utils/playerRulesProfile/rfaRules.js
 - utils/playerRulesProfile/types.js
 - utils/reacqUtils.js
-- utils/runOffseason.js
-- utils/salaryUtils.js
-- utils/schemaAdapter.js
 - utils/seasonFormat.js
 - utils/seasonManager.js
 - utils/seasonUtils.js
 - utils/stepienUtils.js
-- utils/teamLoader.js
 - utils/timingUtils.js
 - utils/tpeLifecycle.js
-- utils/tradeContext/assertions.js
 - utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
 - utils/tradeContext/tradeContext.js
@@ -183,14 +147,11 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/utils/stepienEntitlementUtils.js
 - utils/tradeMachine/utils/swapResolution.js
 - utils/tradeMachine/utils/tpeValidation.js
-- utils/tradeMachine/utils/tradeExportUtils.js
 - utils/tradeMachine/utils/tradeTimingWindows.js
 - utils/tradeMachine/utils/tradeUtilityMisc.js
 - utils/tradeMachine/utils/validationIssueText.js
 - utils/tradeMachine/validators/index.js
-- utils/tradeManager.js
 - utils/validatePhase21.test.js
-- utils/worldManager.js
 
 ## Filters
 
@@ -339,4 +300,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-15T09:56:32.228Z*
+*Generated on: 2026-03-16T13:05:14.989Z*

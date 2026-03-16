@@ -117,9 +117,8 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
       '../../features/architect/tradeMachine/TradeTeamCard.jsx'
     );
 
-    it('TradeTeamCard.jsx remains a shim-only compatibility surface', () => {
-      const content = fs.readFileSync(tradeTeamCardShimPath, 'utf-8').trim();
-      expect(content).toBe("export { default } from './TradeTeamCard.tsx';");
+    it('TradeTeamCard.jsx is absent after the E113 shim deletion batch', () => {
+      expect(fs.existsSync(tradeTeamCardShimPath)).toBe(false);
     });
 
     it('TradeTeamCard.tsx imports warnOnTotalsDivergence', () => {

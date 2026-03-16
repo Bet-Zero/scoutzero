@@ -6,9 +6,9 @@ import * as tradeManagerModule from '@/features/architect/utils/tradeManager';
 
 describe('E75 trade execution helper compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const schemaAdapterShimPath = path.join(srcRoot, 'utils/schemaAdapter.js');
+  const schemaAdapterDeletedPath = path.join(srcRoot, 'utils/schemaAdapter.js');
   const schemaAdapterAuthorityPath = path.join(srcRoot, 'utils/schemaAdapter.ts');
-  const tradeManagerShimPath = path.join(srcRoot, 'utils/tradeManager.js');
+  const tradeManagerDeletedPath = path.join(srcRoot, 'utils/tradeManager.js');
   const tradeManagerAuthorityPath = path.join(srcRoot, 'utils/tradeManager.ts');
   const expectedSchemaAdapterExports = [
     'adaptContractForValidator',
@@ -39,52 +39,25 @@ describe('E75 trade execution helper compatibility guardrails', () => {
     'extendPlayer',
   ] as const;
 
-  it('schemaAdapter.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(schemaAdapterShimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './schemaAdapter.ts';");
+  it('deleted execution-helper shims are absent after the E113 shim deletion batch', () => {
+    expect(fs.existsSync(schemaAdapterDeletedPath)).toBe(false);
+    expect(fs.existsSync(tradeManagerDeletedPath)).toBe(false);
   });
 
-  it('tradeManager.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(tradeManagerShimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './tradeManager.ts';");
-  });
-
-  it('explicit .js imports expose the same schemaAdapter API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/schemaAdapter.js'
-    );
-
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
-      Array.from(expectedSchemaAdapterExports)
-    );
+  it('extensionless imports expose the same schemaAdapter API as the surviving authority', () => {
     expect(Object.keys(schemaAdapterModule).sort()).toEqual(
       Array.from(expectedSchemaAdapterExports)
     );
-    expect('default' in explicitJsModule).toBe(false);
-
-    for (const exportName of expectedSchemaAdapterExports) {
-      expect(explicitJsModule[exportName]).toBe(schemaAdapterModule[exportName]);
-    }
+    expect(schemaAdapterModule.buildTradeInput).toBeDefined();
+    expect(schemaAdapterModule.buildTradeTeamInput).toBeDefined();
   });
 
-  it('explicit .js imports expose the same tradeManager API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/tradeManager.js'
-    );
-
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
-      Array.from(expectedTradeManagerExports)
-    );
+  it('extensionless imports expose the same tradeManager API as the surviving authority', () => {
     expect(Object.keys(tradeManagerModule).sort()).toEqual(
       Array.from(expectedTradeManagerExports)
     );
-    expect('default' in explicitJsModule).toBe(false);
-
-    for (const exportName of expectedTradeManagerExports) {
-      expect(explicitJsModule[exportName]).toBe(tradeManagerModule[exportName]);
-    }
+    expect(tradeManagerModule.executeTrade).toBeDefined();
+    expect(tradeManagerModule.extendPlayer).toBeDefined();
   });
 
   it('schemaAdapter.ts preserves the current export order and has no default export', () => {

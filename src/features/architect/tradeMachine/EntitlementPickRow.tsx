@@ -28,14 +28,12 @@ type EntitlementLike = {
   residualOfEntitlementId?: string | number | null;
   __vacuumSessionOnly?: boolean;
   __vacuumEdited?: boolean;
-  [key: string]: unknown;
 };
 
 type TeamOptionLike = {
   id?: string;
   teamName?: string;
   teamCode?: string;
-  [key: string]: unknown;
 };
 
 type PickRowLike = {
@@ -45,7 +43,6 @@ type PickRowLike = {
   _debug?: {
     sourceHints?: unknown;
   };
-  [key: string]: unknown;
 };
 
 interface EntitlementPickRowProps {

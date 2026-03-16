@@ -5,16 +5,12 @@
  */
 import React from 'react';
 import FreeAgentCard from './FreeAgentCard';
-
-interface SelectedFreeAgent {
-  name?: string;
-  [key: string]: unknown;
-}
+import type { FreeAgentListItem } from './types';
 
 interface SelectedFreeAgentCardsProps {
-  selectedPlayers: SelectedFreeAgent[];
-  onSign: (player: SelectedFreeAgent) => void;
-  onRemove: (player: SelectedFreeAgent) => void;
+  selectedPlayers: FreeAgentListItem[];
+  onSign: (player: FreeAgentListItem) => void;
+  onRemove: (player: FreeAgentListItem) => void;
 }
 
 export const SelectedFreeAgentCards = ({

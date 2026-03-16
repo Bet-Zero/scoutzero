@@ -141,7 +141,7 @@ vi.mock('firebase/firestore', () => ({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const srcRoot = path.resolve(__dirname, '../../features/architect');
-const shimPath = path.join(srcRoot, 'utils/firebaseTeamPlanHelpers.js');
+const deletedShimPath = path.join(srcRoot, 'utils/firebaseTeamPlanHelpers.js');
 const authorityPath = path.join(srcRoot, 'utils/firebaseTeamPlanHelpers.ts');
 
 const expectedNamedExports = [
@@ -205,31 +205,22 @@ beforeEach(() => {
 });
 
 describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
-  it('firebaseTeamPlanHelpers.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-    expect(source).toBe(
-      "// Phase E82 compatibility shim. Authoritative implementation lives in ./firebaseTeamPlanHelpers.ts.\nexport * from './firebaseTeamPlanHelpers.ts';"
-    );
+  it('firebaseTeamPlanHelpers.js is absent after the E113 shim deletion batch', () => {
+    expect(fs.existsSync(deletedShimPath)).toBe(false);
   });
 
-  it('explicit .js import exposes the same named API as extensionless imports with no default export', async () => {
+  it('extensionless import exposes the same named API as the surviving authority with no default export', () => {
     const source = fs.readFileSync(authorityPath, 'utf-8');
-    const explicitJsModule = await import(
-      '../../features/architect/utils/firebaseTeamPlanHelpers.js'
-    );
 
     expect(Object.keys(firebaseTeamPlanHelpersModule).sort()).toEqual(
       expectedNamedExports
     );
-    expect(Object.keys(explicitJsModule).sort()).toEqual(expectedNamedExports);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.prepareCapSheet).toBe(prepareCapSheet);
-    expect(explicitJsModule.hydrateBaseTeam).toBe(hydrateBaseTeam);
-    expect(explicitJsModule.loadTeamCapSheet).toBe(loadTeamCapSheet);
-    expect(explicitJsModule.getAllTeams).toBe(getAllTeams);
-    expect(explicitJsModule.saveFreeAgents).toBe(saveFreeAgents);
-    expect(explicitJsModule.loadFreeAgents).toBe(loadFreeAgents);
+    expect(firebaseTeamPlanHelpersModule.prepareCapSheet).toBe(prepareCapSheet);
+    expect(firebaseTeamPlanHelpersModule.hydrateBaseTeam).toBe(hydrateBaseTeam);
+    expect(firebaseTeamPlanHelpersModule.loadTeamCapSheet).toBe(loadTeamCapSheet);
+    expect(firebaseTeamPlanHelpersModule.getAllTeams).toBe(getAllTeams);
+    expect(firebaseTeamPlanHelpersModule.saveFreeAgents).toBe(saveFreeAgents);
+    expect(firebaseTeamPlanHelpersModule.loadFreeAgents).toBe(loadFreeAgents);
     expect(source).not.toContain('export default');
   });
 

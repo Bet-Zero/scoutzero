@@ -7,18 +7,17 @@ type PlayerLike = {
   player_id?: string | number;
   name?: string;
   signAndTrade?: boolean;
-  [key: string]: unknown;
+  bio?: { displayName?: string } | null;
+  mockSalary?: number;
 };
 
 type TeamLike = {
   players?: PlayerLike[];
-  [key: string]: unknown;
 };
 
 type TeamOptionLike = {
   id?: string;
   teamName?: string;
-  [key: string]: unknown;
 };
 
 interface OutgoingPlayersListProps {

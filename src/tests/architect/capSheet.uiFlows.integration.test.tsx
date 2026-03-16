@@ -95,14 +95,14 @@ function FixtureInjectorHarness() {
     buildTeamFixture()
   );
 
-  const handleSetDeadCap = React.useCallback(async (deadCap: unknown[]) => {
-    setTeamCapSheet((prev) => ({ ...prev, deadCap }));
+  const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
+    setTeamCapSheet((prev) => ({ ...prev, deadCap } as TeamLike));
     return true;
   }, []);
 
   const handleSetExceptions = React.useCallback(
-    async (exceptions: Record<string, unknown>) => {
-      setTeamCapSheet((prev) => ({ ...prev, exceptions }));
+    async (exceptions: unknown) => {
+      setTeamCapSheet((prev) => ({ ...prev, exceptions } as TeamLike));
       return true;
     },
     []
@@ -149,14 +149,14 @@ function ModalFlowsHarness() {
     buildTeamFixture()
   );
 
-  const handleSetDeadCap = React.useCallback(async (deadCap: unknown[]) => {
-    setTeamCapSheet((prev) => ({ ...prev, deadCap }));
+  const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
+    setTeamCapSheet((prev) => ({ ...prev, deadCap } as TeamLike));
     return true;
   }, []);
 
   const handleSetExceptions = React.useCallback(
-    async (exceptions: Record<string, unknown>) => {
-      setTeamCapSheet((prev) => ({ ...prev, exceptions }));
+    async (exceptions: unknown) => {
+      setTeamCapSheet((prev) => ({ ...prev, exceptions } as TeamLike));
       return true;
     },
     []

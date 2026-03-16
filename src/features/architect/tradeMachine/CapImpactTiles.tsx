@@ -12,7 +12,6 @@ import {
 type YearKeyLike = string | number;
 
 type TradeAssetLike = {
-  [key: string]: unknown;
 };
 
 type TeamLike = {
@@ -20,12 +19,10 @@ type TeamLike = {
   teamId?: string;
   teamTotalSalary?: number;
   totalSalary?: number;
-  [key: string]: unknown;
 };
 
 type SnapshotLike = {
   projectedSalary?: number | null;
-  [key: string]: unknown;
 };
 
 interface CapImpactTilesProps {

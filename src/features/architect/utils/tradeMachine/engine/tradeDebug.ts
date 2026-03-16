@@ -1,19 +1,43 @@
 import { formatCurrency, getApronStatus } from '@/features/architect/utils/tradeHelpers.js';
 import { getCapHitForSeason, normalizeYearInput } from '../utils/seasonUtils.js';
 
-type LooseRecord = Record<string, any>;
+interface DebugMeta {
+  team?: string;
+  rule?: string;
+  salary?: boolean | number;
+  [key: string]: unknown;
+}
+
+interface DebugRecord {
+  msg: string;
+  time: Date;
+  team?: string;
+  rule?: string;
+  salary: boolean | number;
+}
+
+interface DebugTeam {
+  team: { teamName?: string; totalSalary?: number };
+  context?: { capSettings?: Record<string, unknown>; normalizedYear?: { seasonString?: string }; yearKey?: string | number | null };
+  sends?: Array<{ name?: string }>;
+  incomingPlayers?: Array<{ name?: string }>;
+  salaryOut?: number;
+  salaryIn?: number;
+  overSecondApron?: boolean;
+  willBeOverSecond?: boolean;
+}
 
 const debug = {
   enabled: false,
   logs: [] as string[],
-  records: [] as LooseRecord[],
+  records: [] as DebugRecord[],
 
   /**
    * Append a message to the debug log. The message is printed to the
    * console for immediate visibility and stored so it can be flushed to
    * a text file later on.
    */
-  write(msg = '', meta: LooseRecord = {}) {
+  write(msg = '', meta: DebugMeta = {}) {
     if (!this.enabled) return;
     if (msg !== '' || this.logs.length > 0) {
       this.logs.push(msg);
@@ -28,11 +52,11 @@ const debug = {
     console.log(msg);
   },
 
-  log(msg = '', meta: LooseRecord = {}) {
+  log(msg = '', meta: DebugMeta = {}) {
     this.write(msg, meta);
   },
 
-  logTrade(team: LooseRecord) {
+  logTrade(team: DebugTeam) {
     this.log('', { team: team.team.teamName });
     this.log(`=== ${team.team.teamName} ===`, { team: team.team.teamName });
     this.log(`Current Salary: ${formatCurrency(team.team.totalSalary)}`, {
@@ -44,13 +68,13 @@ const debug = {
     );
   },
 
-  logSalaries(team: LooseRecord) {
+  logSalaries(team: DebugTeam) {
     this.log('Outgoing:', { team: team.team.teamName, salary: true });
     const normalizedYear =
       team.context?.normalizedYear || normalizeYearInput(team.context?.yearKey);
     const seasonKey = normalizedYear?.seasonString;
 
-    (team.sends || []).forEach((p: LooseRecord) => {
+    (team.sends || []).forEach((p) => {
       const salary = seasonKey ? getCapHitForSeason(p, seasonKey) : 0;
       this.log(`  - ${p.name}: ${formatCurrency(salary)}`, {
         team: team.team.teamName,
@@ -59,7 +83,7 @@ const debug = {
     });
 
     this.log('Incoming:', { team: team.team.teamName, salary: true });
-    (team.incomingPlayers || []).forEach((p: LooseRecord) => {
+    (team.incomingPlayers || []).forEach((p) => {
       const salary = seasonKey ? getCapHitForSeason(p, seasonKey) : 0;
       this.log(`  - ${p.name}: ${formatCurrency(salary)}`, {
         team: team.team.teamName,
@@ -73,7 +97,7 @@ const debug = {
     );
   },
 
-  logSecondApron(team: LooseRecord, violations: any[] = []) {
+  logSecondApron(team: DebugTeam, violations: string[] = []) {
     if (!team.overSecondApron && !team.willBeOverSecond) return;
 
     const normalizedYear =

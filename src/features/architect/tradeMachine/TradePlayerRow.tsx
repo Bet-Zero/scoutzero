@@ -32,20 +32,16 @@ type PlayerLike = {
     team?: string;
     display?: {
       team?: string;
-      [key: string]: unknown;
     };
     position?: string;
     height?: string | number;
     weight?: string | number;
-    [key: string]: unknown;
   };
-  [key: string]: unknown;
 };
 
 type TeamOptionLike = {
   id?: string;
   teamName?: string;
-  [key: string]: unknown;
 };
 
 interface TradePlayerRowProps {

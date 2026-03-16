@@ -16,7 +16,7 @@
  *  7. Finalize declined recomputes BOTH totals
  *  8. Persistence writes teamUpdates
  *  9. UI wiring + world gating exists
- *  10. JSX compatibility shims remain shim-only
+ *  10. E113 deleted JSX shims remain absent while authorities stay intact
  *  11. Current team sync reads changedTeams
  *
  * @vitest-environment node
@@ -446,30 +446,25 @@ describe('Gate 9: UI wiring + world gating exists (E1)', () => {
   });
 });
 
-// === GATE 10: JSX Compatibility Shims Remain Shim-Only ===
+// === GATE 10: E113 Deleted JSX Shims Remain Absent ===
 
-describe('Gate 10: JSX compatibility shims remain shim-only (E1)', () => {
-  const offerSheetListShimContent = readFileContent(OFFER_SHEET_LIST_SHIM_PATH);
-  const freeAgencySectionShimContent = readFileContent(
-    FREE_AGENCY_SECTION_SHIM_PATH
-  );
-
-  it('OfferSheetList.jsx remains a pure compatibility shim', () => {
-    expect(offerSheetListShimContent).toContain(
-      "export { default } from './OfferSheetList.tsx';"
-    );
-    expect(offerSheetListShimContent).not.toContain('const OfferSheetList =');
-    expect(offerSheetListShimContent).not.toContain('<table');
+describe('Gate 10: E113 deleted JSX shims remain absent while authorities stay intact', () => {
+  it('OfferSheetList.jsx is absent after the E113 shim deletion batch', () => {
+    expect(fs.existsSync(OFFER_SHEET_LIST_SHIM_PATH)).toBe(false);
   });
 
-  it('FreeAgencySection.jsx remains a pure compatibility shim', () => {
-    expect(freeAgencySectionShimContent).toContain(
-      "export { FreeAgencySection } from './FreeAgencySection.tsx';"
-    );
-    expect(freeAgencySectionShimContent).not.toContain(
-      'const FreeAgencySection ='
-    );
-    expect(freeAgencySectionShimContent).not.toContain('<FreeAgentPool');
+  it('FreeAgencySection.jsx is absent after the E113 shim deletion batch', () => {
+    expect(fs.existsSync(FREE_AGENCY_SECTION_SHIM_PATH)).toBe(false);
+  });
+
+  it('OfferSheetList.tsx remains the default-export authority', () => {
+    const authorityContent = readFileContent(OFFER_SHEET_LIST_PATH);
+    expect(authorityContent).toContain('export default OfferSheetList;');
+  });
+
+  it('FreeAgencySection.tsx remains the named-export authority', () => {
+    const authorityContent = readFileContent(FREE_AGENCY_SECTION_PATH);
+    expect(authorityContent).toContain('export { FreeAgencySection };');
   });
 });
 

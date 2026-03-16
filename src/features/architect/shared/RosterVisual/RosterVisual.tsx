@@ -10,10 +10,10 @@ import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { TeamMap } from '@/constants/teamList';
 import { useParams } from 'react-router-dom';
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 type RosterVisualProps = {
   teamCapSheet: LooseRecord | null | undefined;
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, Record<string, unknown>>;
   teamId?: string | null;
 };
 
@@ -23,12 +23,12 @@ const RosterVisual = ({
   teamId: propTeamId,
 }: RosterVisualProps) => {
   const { teamId: routeTeamId } = useParams();
-  const id =
-    propTeamId || teamCapSheet?.teamId || teamCapSheet?.id || routeTeamId || '';
-  const teamInfo = (TeamMap as Record<string, any>)[id] || {};
+  const id = String(
+    propTeamId || teamCapSheet?.teamId || teamCapSheet?.id || routeTeamId || '');
+  const teamInfo = (TeamMap as Record<string, Record<string, unknown>>)[id] || {};
   const roster = useMemo(() => {
-    if (!teamCapSheet?.players) return null;
-    const enriched = teamCapSheet.players.map((p: any) => {
+    if (!teamCapSheet?.players || !Array.isArray(teamCapSheet.players)) return null;
+    const enriched = (teamCapSheet.players as Record<string, unknown>[]).map((p: any) => {
       // Try multiple keys to find player in map
       const details =
         playersMap[p.name] ||
@@ -44,7 +44,7 @@ const RosterVisual = ({
         // Ensure displayName is available
         name: p.displayName || p.name || details.name || p.id,
         displayName:
-          p.displayName || details.bio?.displayName || p.name || p.id,
+          p.displayName || (details.bio as Record<string, unknown> | undefined)?.displayName || p.name || p.id,
         // Preserve headshot from details if available
         // Normalize special characters for headshot lookup (e.g., kristaps_porzingis -> kristaps_porziņģis)
         headshot: (() => {
@@ -102,8 +102,8 @@ const RosterVisual = ({
 
   if (!roster) return null;
 
-  const displayName =
-    teamInfo.nickname || teamInfo.teamName || teamCapSheet.teamName || id;
+  const displayName = String(
+    teamInfo.nickname || teamInfo.teamName || teamCapSheet?.teamName || id);
   const teamKey = getTeamLogoFilename(id || displayName);
   const { primary, secondary } = getTeamColors(teamKey);
 

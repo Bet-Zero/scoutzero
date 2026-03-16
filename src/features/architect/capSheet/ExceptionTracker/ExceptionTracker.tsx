@@ -16,7 +16,6 @@ type UnknownRecord = Record<string, unknown>;
 type TeamCapSheetLike = {
   hardCapped?: NumericLike | boolean;
   exceptions?: (UnknownRecord & { tpe?: unknown }) | null;
-  [key: string]: unknown;
 };
 type NormalizedExceptionLike = {
   enabled: boolean;

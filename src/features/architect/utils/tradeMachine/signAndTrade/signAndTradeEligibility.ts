@@ -154,31 +154,35 @@ function normalizeTeamCode(value: unknown): string | null {
   return trimmed.length === 3 ? trimmed.toUpperCase() : trimmed;
 }
 
-function resolvePlayerId(player: Record<string, any> | null | undefined) {
+function resolvePlayerId(player: Record<string, unknown> | null | undefined): string | null {
   if (!player) return null;
-  return (
+  const bio = player.bio as Record<string, unknown> | null | undefined;
+  const raw =
     player.playerId ||
     player.player_id ||
     player.id ||
-    player.bio?.playerId ||
-    null
-  );
+    bio?.playerId ||
+    null;
+  return raw ? String(raw) : null;
 }
 
-function resolvePlayerName(player: Record<string, any> | null | undefined) {
+function resolvePlayerName(player: Record<string, unknown> | null | undefined): string | null {
   if (!player) return null;
-  return player.displayName || player.name || player.bio?.displayName || null;
+  const bio = player.bio as Record<string, unknown> | null | undefined;
+  const raw = player.displayName || player.name || bio?.displayName || null;
+  return raw ? String(raw) : null;
 }
 
-function resolvePlayerTeamId(player: Record<string, any> | null | undefined) {
+function resolvePlayerTeamId(player: Record<string, unknown> | null | undefined) {
   if (!player) return null;
+  const contract = player.contract as Record<string, unknown> | null | undefined;
   return normalizeTeamCode(
     player.teamCode ||
       player.teamId ||
       player.teamAbbr ||
       player.team ||
       player.originTeamId ||
-      player.contract?.signingTeam ||
+      contract?.signingTeam ||
       null
   );
 }
@@ -207,15 +211,17 @@ function toSeasonString(endYear: number): string {
   return `${endYear - 1}-${String(endYear).slice(-2)}`;
 }
 
-function getContractRows(player: Record<string, any>) {
+function getContractRows(player: Record<string, unknown>) {
+  const contract = player?.contract as Record<string, unknown> | null | undefined;
+  const primaryContract = player?.primaryContract as Record<string, unknown> | null | undefined;
   const primaryRows =
-    player?.contract?.salariesByYear ||
-    player?.primaryContract?.salariesByYear ||
+    contract?.salariesByYear ||
+    primaryContract?.salariesByYear ||
     [];
   return Array.isArray(primaryRows) ? primaryRows : [];
 }
 
-function getRowEndYear(row: Record<string, any>): number | null {
+function getRowEndYear(row: Record<string, unknown>): number | null {
   if (!row) return null;
 
   if (typeof row.year === 'number' && Number.isFinite(row.year)) {
@@ -241,17 +247,18 @@ function getRowEndYear(row: Record<string, any>): number | null {
   return null;
 }
 
-function hasPositiveSalary(row: Record<string, any>) {
+function hasPositiveSalary(row: Record<string, unknown>) {
   return toFiniteNumber(row?.capHit ?? row?.salary) > 0;
 }
 
 function matchPlayerCapHold(
-  hold: Record<string, any>,
+  hold: Record<string, unknown>,
   playerId: string | null,
   playerName: string | null
 ) {
+  const holdPlayer = hold.player as Record<string, unknown> | null | undefined;
   const holdPlayerId =
-    hold.playerId || hold.player_id || hold.id || hold.player?.id || null;
+    hold.playerId || hold.player_id || hold.id || holdPlayer?.id || null;
   if (playerId && holdPlayerId && String(holdPlayerId) === String(playerId)) {
     return true;
   }
@@ -260,7 +267,7 @@ function matchPlayerCapHold(
 }
 
 function isActiveCapHoldForYear(
-  hold: Record<string, any>,
+  hold: Record<string, unknown>,
   seasonKey: string | null,
   endYear: number | null
 ) {
@@ -275,25 +282,31 @@ function isActiveCapHoldForYear(
   }
 
   if (endYear != null) {
-    const normalized = normalizeYearInput(holdSeason);
+    const normalized = normalizeYearInput(holdSeason as string | number);
     if (normalized?.endYear === endYear) return true;
   }
 
   return false;
 }
 
-function resolveFreeAgencyYear(player: Record<string, any>): number | null {
+function resolveFreeAgencyYear(player: Record<string, unknown>): number | null {
+  const bio = player?.bio as Record<string, unknown> | null | undefined;
+  const bioDisplay = bio?.display as Record<string, unknown> | null | undefined;
+  const contract = player?.contract as Record<string, unknown> | null | undefined;
+  const contractFreeAgency = contract?.freeAgency as Record<string, unknown> | null | undefined;
+  const primaryContract = player?.primaryContract as Record<string, unknown> | null | undefined;
+  const primaryContractFreeAgency = primaryContract?.freeAgency as Record<string, unknown> | null | undefined;
   return toIntegerOrNull(
     player?.freeAgentYear ??
-      player?.bio?.display?.freeAgentYear ??
-      player?.contract?.freeAgency?.year ??
-      player?.primaryContract?.freeAgency?.year ??
+      bioDisplay?.freeAgentYear ??
+      contractFreeAgency?.year ??
+      primaryContractFreeAgency?.year ??
       null
   );
 }
 
 export function getPlayerContractStatusForYear(
-  player: Record<string, any> | null | undefined,
+  player: Record<string, unknown> | null | undefined,
   yearKey: number | string,
   ctx: SignAndTradeContext = {}
 ): ContractStatusResult {
@@ -314,7 +327,7 @@ export function getPlayerContractStatusForYear(
   const rowsWithYear = rows
     .map((row) => ({ row, endYear: getRowEndYear(row) }))
     .filter((entry) => entry.endYear != null) as Array<{
-    row: Record<string, any>;
+    row: Record<string, unknown>;
     endYear: number;
   }>;
 
@@ -536,7 +549,7 @@ export function isSignAndTradeEligible({
 }
 
 function normalizeSalaryRowsFromByYear(
-  rows: Array<Record<string, any>>,
+  rows: Array<Record<string, unknown>>,
   startEndYear: number
 ) {
   return rows.map((row, index) => {

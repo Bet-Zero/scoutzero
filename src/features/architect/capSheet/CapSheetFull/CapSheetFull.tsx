@@ -18,7 +18,6 @@ type FreeAgencyLike =
   | {
       year?: NumericLike;
       type?: string | null;
-      [key: string]: unknown;
     }
   | string
   | null
@@ -50,19 +49,15 @@ type CapSheetFullPlayerLike = NonNullable<
   displayName?: string | null;
   bio?: {
     displayName?: string | null;
-    [key: string]: unknown;
   } | null;
   contractType?: string | null;
   contract?: {
     contractType?: string | null;
     freeAgency?: FreeAgencyLike;
-    [key: string]: unknown;
   } | null;
   futureContract?: {
     freeAgency?: FreeAgencyLike;
-    [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
 };
 type CapHoldLike = {
   playerId?: string | number | null;
@@ -71,12 +66,10 @@ type CapHoldLike = {
   amount?: NumericLike;
   type?: string | null;
   isSigned?: boolean | null;
-  [key: string]: unknown;
 };
 type TeamCapSheetLike = {
   players?: CapSheetFullPlayerLike[] | null;
   capHolds?: unknown[] | null;
-  [key: string]: unknown;
 };
 type CapSheetFullProps = {
   teamCapSheet?: TeamCapSheetLike | null;
@@ -93,7 +86,6 @@ type CapSheetFullProps = {
     | ((player: CapSheetFullPlayerLike, year: number) => RulesProfileLike)
     | null;
   playersMap?: unknown;
-  [key: string]: unknown;
 };
 
 // Helper to identify two-way contracts (don't count against cap)
@@ -178,7 +170,10 @@ const CapSheetFull = ({
   const yearTotals = useMemo(() => {
     const totals: Record<number, number> = {};
     for (const year of allYears) {
-      const result = computeTeamCapTotals(teamCapSheet, year);
+      const result = computeTeamCapTotals(
+        teamCapSheet ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) } : null,
+        year
+      );
       totals[year] = result.totalCapAllocations;
     }
     return totals;

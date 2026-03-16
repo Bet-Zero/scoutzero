@@ -17,21 +17,19 @@ type EntitlementLike = {
   seasonYear?: number;
   round?: number;
   kind?: string;
-  [key: string]: unknown;
+  secondaryText?: string;
 };
 
 type OutgoingEntitlementLike = {
   id?: string | number;
   entitlementId?: string | number;
   toTeamId?: string | null;
-  [key: string]: unknown;
 };
 
 type TeamOptionLike = {
   id?: string;
   teamName?: string;
   teamCode?: string;
-  [key: string]: unknown;
 };
 
 interface EntitlementPicksListProps {

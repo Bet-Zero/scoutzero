@@ -238,7 +238,7 @@ interface Player {
 }
 
 interface CalculateCapHitOptions {
-  getContractYearSlice?: (player: Player, year: number) => { capHit?: number; salary?: number } | null;
+  getContractYearSlice?: (player: any, year: number) => { capHit?: number; salary?: number } | null;
 }
 
 /**

@@ -3,13 +3,64 @@ import { performanceMonitor } from './validationPerformanceMonitor.js';
 import { validationCache } from '../cache/validationCacheService.js';
 // import { CACHE_TYPES } from '../cache/validationCacheService.js';
 
-type LooseRecord = Record<string, any>;
+interface ValidationTypeMetrics {
+  averageTimeMs: number;
+  count: number;
+}
+
+interface CacheMetrics {
+  hitRate: number;
+  hits: number;
+  misses: number;
+  invalidations: number;
+}
+
+interface PerformanceReport {
+  validationCount?: number;
+  validations?: Record<string, { avgTimeMs?: number; calls?: number }>;
+  averageTimeMs?: number;
+}
+
+interface DebugWarning {
+  type: string;
+  validator?: string;
+  averageTime?: number;
+  threshold?: number;
+  hitRate?: number;
+  rate?: number;
+}
+
+interface MetricsSnapshot {
+  timestamp: number;
+  performance: PerformanceReport & {
+    totalValidations: number;
+    validationsByType: Record<string, ValidationTypeMetrics>;
+  };
+  cache: CacheMetrics;
+  warnings: DebugWarning[];
+}
+
+interface ValidationTypeTrend {
+  averageTimeChange: number;
+  countChange: number;
+}
+
+interface DebugRecommendation {
+  type: string;
+  validator?: string;
+  reason: string;
+}
 
 /**
  * Monitors validation performance and caching behavior in production
  */
 export class ValidationDebugMonitor {
-  [key: string]: any;
+  slowValidationThreshold: number;
+  lowHitRateThreshold: number;
+  highInvalidationRateThreshold: number;
+  metricsHistory: MetricsSnapshot[];
+  lastReport: number;
+  reportingInterval: number;
 
   constructor() {
     this.slowValidationThreshold = 100; // ms
@@ -21,12 +72,12 @@ export class ValidationDebugMonitor {
   }
 
   // Collect current snapshot of metrics
-  collectMetrics() {
+  collectMetrics(): MetricsSnapshot {
     const timestamp = Date.now();
-    const performance = performanceMonitor.getReport();
-    const cache = validationCache.getMetrics();
+    const performance = performanceMonitor.getReport() as unknown as PerformanceReport;
+    const cache = validationCache.getMetrics() as CacheMetrics;
 
-    const metrics = {
+    const metrics: MetricsSnapshot = {
       timestamp,
       performance: {
         ...performance,
@@ -49,13 +100,11 @@ export class ValidationDebugMonitor {
   }
 
   // Build validationsByType structure expected by tests
-  _buildValidationsByType(performance: LooseRecord) {
-    const validationsByType: LooseRecord = {};
+  _buildValidationsByType(performance: PerformanceReport): Record<string, ValidationTypeMetrics> {
+    const validationsByType: Record<string, ValidationTypeMetrics> = {};
 
     if (performance.validations) {
-      (Object.entries(performance.validations) as Array<
-        [string, LooseRecord]
-      >).forEach(([name, metrics]) => {
+      Object.entries(performance.validations).forEach(([name, metrics]) => {
         validationsByType[name] = {
           averageTimeMs: metrics.avgTimeMs || 0,
           count: metrics.calls || 0,
@@ -67,15 +116,13 @@ export class ValidationDebugMonitor {
   }
 
   // Analyze metrics for potential issues
-  analyzeMetrics(performance: LooseRecord, cache: LooseRecord) {
-    const warnings: LooseRecord[] = [];
+  analyzeMetrics(performance: PerformanceReport, cache: CacheMetrics): DebugWarning[] {
+    const warnings: DebugWarning[] = [];
 
     // Check for slow validations
     if (performance.validations) {
-      (Object.entries(performance.validations) as Array<
-        [string, LooseRecord]
-      >).forEach(([type, metrics]) => {
-        if (metrics.avgTimeMs > this.slowValidationThreshold) {
+      Object.entries(performance.validations).forEach(([type, metrics]) => {
+        if ((metrics.avgTimeMs || 0) > this.slowValidationThreshold) {
           warnings.push({
             type: 'SLOW_VALIDATION',
             validator: type,
@@ -120,8 +167,8 @@ export class ValidationDebugMonitor {
     return {
       timeSpan: timeDiff,
       averageTimeChange: this.calculatePercentChange(
-        current.performance.averageTimeMs,
-        previous.performance.averageTimeMs
+        current.performance.averageTimeMs || 0,
+        previous.performance.averageTimeMs || 0
       ),
       hitRateChange: this.calculatePercentChange(
         current.cache.hitRate,
@@ -138,26 +185,29 @@ export class ValidationDebugMonitor {
   }
 
   // Get trends for each validation type
-  getValidationTypeTrends(current: LooseRecord, previous: LooseRecord) {
-    const trends: LooseRecord = {};
+  getValidationTypeTrends(
+    current: MetricsSnapshot,
+    previous: MetricsSnapshot
+  ): Record<string, ValidationTypeTrend> {
+    const trends: Record<string, ValidationTypeTrend> = {};
 
-    (Object.entries(current.performance.validationsByType) as Array<
-      [string, LooseRecord]
-    >).forEach(([type, metrics]) => {
-      const previousMetrics = previous.performance.validationsByType[type];
-      if (previousMetrics) {
-        trends[type] = {
-          averageTimeChange: this.calculatePercentChange(
-            metrics.averageTimeMs,
-            previousMetrics.averageTimeMs
-          ),
-          countChange: this.calculatePercentChange(
-            metrics.count,
-            previousMetrics.count
-          ),
-        };
+    Object.entries(current.performance.validationsByType).forEach(
+      ([type, metrics]) => {
+        const previousMetrics = previous.performance.validationsByType[type];
+        if (previousMetrics) {
+          trends[type] = {
+            averageTimeChange: this.calculatePercentChange(
+              metrics.averageTimeMs,
+              previousMetrics.averageTimeMs
+            ),
+            countChange: this.calculatePercentChange(
+              metrics.count,
+              previousMetrics.count
+            ),
+          };
+        }
       }
-    });
+    );
 
     return trends;
   }
@@ -188,23 +238,26 @@ export class ValidationDebugMonitor {
   }
 
   // Generate optimization recommendations
-  generateRecommendations(metrics: LooseRecord, trends: LooseRecord | null) {
-    const recommendations: LooseRecord[] = [];
+  generateRecommendations(
+    metrics: MetricsSnapshot,
+    trends: ReturnType<ValidationDebugMonitor['getPerformanceTrends']>
+  ): DebugRecommendation[] {
+    const recommendations: DebugRecommendation[] = [];
 
     // Check for consistently slow validations
     if (trends) {
-      (Object.entries(trends.validationTypeChanges) as Array<
-        [string, LooseRecord]
-      >).forEach(([type, trend]) => {
-        if (trend.averageTimeChange > 10) {
-          // 10% slower
-          recommendations.push({
-            type: 'OPTIMIZATION_NEEDED',
-            validator: type,
-            reason: `Consistent performance degradation: ${Math.round(trend.averageTimeChange)}% slower`,
-          });
+      Object.entries(trends.validationTypeChanges).forEach(
+        ([type, trend]) => {
+          if (trend.averageTimeChange > 10) {
+            // 10% slower
+            recommendations.push({
+              type: 'OPTIMIZATION_NEEDED',
+              validator: type,
+              reason: `Consistent performance degradation: ${Math.round(trend.averageTimeChange)}% slower`,
+            });
+          }
         }
-      });
+      );
     }
 
     // Check cache efficiency

@@ -9,38 +9,21 @@ describe('E105 TradeEditor + TradeTeamCard compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect/tradeMachine');
   const readAuthoritySource = (relativePath: string) =>
     fs.readFileSync(path.join(srcRoot, relativePath), 'utf-8');
-  const shimExpectations = [
-    ['TradeEditor.jsx', "export { default } from './TradeEditor.tsx';"],
-    ['TradeTeamCard.jsx', "export { default } from './TradeTeamCard.tsx';"],
+  const deletedShimPaths = [
+    'TradeEditor.jsx',
+    'TradeTeamCard.jsx',
   ] as const;
 
-  shimExpectations.forEach(([relativePath, expectedSource]) => {
-    it(`${relativePath} remains a pure compatibility shim`, () => {
-      const shimPath = path.join(srcRoot, relativePath);
-      const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-      expect(source).toBe(expectedSource);
+  deletedShimPaths.forEach((relativePath) => {
+    it(`${relativePath} is absent after the E113 shim deletion batch`, () => {
+      const deletedPath = path.join(srcRoot, relativePath);
+      expect(fs.existsSync(deletedPath)).toBe(false);
     });
   });
 
-  it('TradeEditor explicit .jsx import matches extensionless default import', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeEditor.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect('default' in explicitJsxModule).toBe(true);
-    expect(explicitJsxModule.default).toBe(TradeEditor);
-  });
-
-  it('TradeTeamCard explicit .jsx import matches extensionless default import', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeTeamCard.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect('default' in explicitJsxModule).toBe(true);
-    expect(explicitJsxModule.default).toBe(TradeTeamCard);
+  it('extensionless default imports still resolve the deleted-batch authorities', () => {
+    expect(TradeEditor).toBeDefined();
+    expect(TradeTeamCard).toBeDefined();
   });
 
   it('TSX authorities preserve the expected default-only export shape', () => {

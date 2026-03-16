@@ -9,7 +9,6 @@ type TradeExceptionLike = {
   isUsed?: boolean;
   expirationDate?: string | null;
   expiresOn?: string | null;
-  [key: string]: unknown;
 };
 
 interface TradeExceptionManagerProps {

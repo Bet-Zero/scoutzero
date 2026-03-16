@@ -13,51 +13,80 @@ import { TradeReceiptPanel } from '@/features/architect/tradeMachine/TradeReceip
 
 describe('E97 Trade Machine validation presentation compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const shimExpectations = [
+  const retainedShimExpectations = [
     [
       'tradeMachine/ValidationStateHeader.jsx',
       "export { default, MODE_TAGS, ModeTag } from './ValidationStateHeader.tsx';",
     ],
+  ] as const;
+  const deletedBatchCases = [
     [
       'tradeMachine/ValidationDetailsPanel.jsx',
-      "export { default } from './ValidationDetailsPanel.tsx';",
+      'tradeMachine/ValidationDetailsPanel.tsx',
+      ValidationDetailsPanel,
     ],
     [
       'tradeMachine/TradeSummaryPanel.jsx',
-      "export { default } from './TradeSummaryPanel.tsx';",
+      'tradeMachine/TradeSummaryPanel.tsx',
+      TradeSummaryPanel,
     ],
     [
       'tradeMachine/DataWarningsSection.jsx',
-      "export { default } from './DataWarningsSection.tsx';",
+      'tradeMachine/DataWarningsSection.tsx',
+      DataWarningsSection,
     ],
     [
       'tradeMachine/TradeLegalChecker.jsx',
-      "export { default } from './TradeLegalChecker.tsx';",
+      'tradeMachine/TradeLegalChecker.tsx',
+      TradeLegalChecker,
     ],
     [
       'tradeMachine/TradeExceptionDashboard.jsx',
-      "export { default } from './TradeExceptionDashboard.tsx';",
+      'tradeMachine/TradeExceptionDashboard.tsx',
+      TradeExceptionDashboard,
     ],
     [
       'tradeMachine/FaExceptionTracker.jsx',
-      "export { default } from './FaExceptionTracker.tsx';",
+      'tradeMachine/FaExceptionTracker.tsx',
+      FaExceptionTracker,
     ],
     [
       'tradeMachine/TradeSalaryCalculator.jsx',
-      "export { default } from './TradeSalaryCalculator.tsx';",
+      'tradeMachine/TradeSalaryCalculator.tsx',
+      TradeSalaryCalculator,
     ],
     [
       'tradeMachine/TradeReceiptPanel.jsx',
-      "export { TradeReceiptPanel } from './TradeReceiptPanel.tsx';",
+      'tradeMachine/TradeReceiptPanel.tsx',
+      TradeReceiptPanel,
     ],
   ] as const;
 
-  shimExpectations.forEach(([relativePath, expectedSource]) => {
+  retainedShimExpectations.forEach(([relativePath, expectedSource]) => {
     it(`${relativePath} remains a pure compatibility shim`, () => {
       const shimPath = path.join(srcRoot, relativePath);
       const source = fs.readFileSync(shimPath, 'utf-8').trim();
 
       expect(source).toBe(expectedSource);
+    });
+  });
+
+  deletedBatchCases.forEach(([relativePath]) => {
+    it(`${relativePath} is absent after the E113 shim deletion batch`, () => {
+      const deletedPath = path.join(srcRoot, relativePath);
+      expect(fs.existsSync(deletedPath)).toBe(false);
+    });
+  });
+
+  deletedBatchCases.forEach(([, authorityPath, importedValue]) => {
+    it(`${authorityPath} remains the surviving authority export`, () => {
+      const authoritySource = fs.readFileSync(
+        path.join(srcRoot, authorityPath),
+        'utf-8'
+      );
+
+      expect(authoritySource.length).toBeGreaterThan(0);
+      expect(importedValue).toBeDefined();
     });
   });
 
@@ -74,78 +103,5 @@ describe('E97 Trade Machine validation presentation compatibility guardrails', (
     expect(explicitJsxModule.default).toBe(ValidationStateHeader);
     expect(explicitJsxModule.MODE_TAGS).toBe(ValidationStateHeaderModule.MODE_TAGS);
     expect(explicitJsxModule.ModeTag).toBe(ValidationStateHeaderModule.ModeTag);
-  });
-
-  it('ValidationDetailsPanel explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/ValidationDetailsPanel.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect(explicitJsxModule.default).toBe(ValidationDetailsPanel);
-  });
-
-  it('TradeSummaryPanel explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeSummaryPanel.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect(explicitJsxModule.default).toBe(TradeSummaryPanel);
-  });
-
-  it('DataWarningsSection explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/DataWarningsSection.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect(explicitJsxModule.default).toBe(DataWarningsSection);
-  });
-
-  it('TradeLegalChecker explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeLegalChecker.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect(explicitJsxModule.default).toBe(TradeLegalChecker);
-  });
-
-  it('TradeExceptionDashboard explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeExceptionDashboard.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect(explicitJsxModule.default).toBe(TradeExceptionDashboard);
-  });
-
-  it('FaExceptionTracker explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/FaExceptionTracker.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect(explicitJsxModule.default).toBe(FaExceptionTracker);
-  });
-
-  it('TradeSalaryCalculator explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeSalaryCalculator.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect(explicitJsxModule.default).toBe(TradeSalaryCalculator);
-  });
-
-  it('TradeReceiptPanel explicit .jsx import preserves the named-only API', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeReceiptPanel.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['TradeReceiptPanel']);
-    expect('default' in explicitJsxModule).toBe(false);
-    expect(explicitJsxModule.TradeReceiptPanel).toBe(TradeReceiptPanel);
   });
 });

@@ -5,7 +5,7 @@ import * as worldManagerModule from '@/features/architect/utils/worldManager';
 
 describe('E73 worldManager compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const worldManagerShimPath = path.join(srcRoot, 'utils/worldManager.js');
+  const worldManagerDeletedPath = path.join(srcRoot, 'utils/worldManager.js');
   const worldManagerAuthorityPath = path.join(srcRoot, 'utils/worldManager.ts');
   const expectedExports = [
     'archiveWorld',
@@ -42,28 +42,16 @@ describe('E73 worldManager compatibility guardrails', () => {
     'fixWorldOwnership',
   ] as const;
 
-  it('worldManager.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(worldManagerShimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './worldManager.ts';");
+  it('worldManager.js is absent after the E113 shim deletion batch', () => {
+    expect(fs.existsSync(worldManagerDeletedPath)).toBe(false);
   });
 
-  it('explicit .js import exposes the same named API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/worldManager.js'
-    );
-
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
-      Array.from(expectedExports)
-    );
+  it('extensionless import exposes the same named API as the surviving authority', () => {
     expect(Object.keys(worldManagerModule).sort()).toEqual(
       Array.from(expectedExports)
     );
-    expect('default' in explicitJsModule).toBe(false);
-
-    for (const exportName of expectedExports) {
-      expect(explicitJsModule[exportName]).toBe(worldManagerModule[exportName]);
-    }
+    expect(worldManagerModule.createWorld).toBeDefined();
+    expect(worldManagerModule.updateWorldStats).toBeDefined();
   });
 
   it('worldManager.ts preserves the current export order and has no default export', () => {

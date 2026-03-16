@@ -13,8 +13,8 @@
 import RosterVisual from '@/features/architect/RosterVisual';
 
 type RosterSectionProps = {
-  teamCapSheet: Record<string, any> | null | undefined;
-  playersMap?: Record<string, any>;
+  teamCapSheet: Record<string, unknown> | null | undefined;
+  playersMap?: Record<string, unknown>;
   teamId?: string | null;
 };
 

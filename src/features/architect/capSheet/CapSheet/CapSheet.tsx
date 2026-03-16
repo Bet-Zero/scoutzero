@@ -46,14 +46,11 @@ type CapSheetPlayerLike = NonNullable<Parameters<typeof getContractYearSlice>[0]
   bio?: {
     displayName?: string | null;
     playerId?: string | null;
-    [key: string]: unknown;
   } | null;
   contractType?: string | null;
   contract?: {
     contractType?: string | null;
-    [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
 };
 type CapHoldLike = {
   playerId?: string | number | null;
@@ -62,13 +59,31 @@ type CapHoldLike = {
   amount?: NumericLike;
   reason?: string | null;
   playerName?: string | null;
-  [key: string]: unknown;
+};
+type DeadCapAmountByYearArrayEntry = {
+  season?: string | null;
+  amount?: NumericLike;
+  isStretched?: boolean;
+};
+type DeadCapAmountByYearObjectValue =
+  | NumericLike
+  | { amount?: NumericLike };
+type DeadCapSourceEntry = {
+  playerId?: string | null;
+  playerName?: string | null;
+  label?: string | null;
+  amountByYear?:
+    | DeadCapAmountByYearArrayEntry[]
+    | Record<string, DeadCapAmountByYearObjectValue>
+    | null;
+  stretched?: boolean;
 };
 type TeamCapSheetLike = {
   players?: CapSheetPlayerLike[] | null;
   capHolds?: unknown[] | null;
   teamCode?: string | null;
-  [key: string]: unknown;
+  deadCap?: DeadCapSourceEntry[] | null;
+  exceptions?: Record<string, unknown> | null;
 };
 type CapSheetProps = {
   teamCapSheet?: TeamCapSheetLike | null;
@@ -77,7 +92,6 @@ type CapSheetProps = {
   onSetDeadCap?: ((deadCap: unknown) => unknown | Promise<unknown>) | null;
   onSetExceptions?: ((exceptions: unknown) => unknown | Promise<unknown>) | null;
   playersMap?: unknown;
-  [key: string]: unknown;
 };
 
 // Helper to identify two-way contracts (don't count against cap)
@@ -108,7 +122,10 @@ const CapSheet = ({
 
   // SINGLE SOURCE OF TRUTH: Compute totals once for the entire surface
   const totals = React.useMemo(
-    () => computeTeamCapTotals(teamCapSheet, selectedYear),
+    () => computeTeamCapTotals(
+      teamCapSheet ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) } : null,
+      selectedYear
+    ),
     [teamCapSheet, selectedYear]
   );
 
@@ -136,7 +153,7 @@ const CapSheet = ({
     const slice = getContractYearSlice(player, yearKey);
     const salary = slice?.capHit ?? slice?.salary ?? 0;
     if (player.isMinimum && Number(player.yearsOfService) >= 3) {
-      return getMinimumCapHit(player.yearsOfService);
+      return getMinimumCapHit(Number(player.yearsOfService));
     }
     return salary;
   };

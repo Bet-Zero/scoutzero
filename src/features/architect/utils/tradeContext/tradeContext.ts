@@ -94,9 +94,10 @@ export function buildPostTradeTeamsSnapshot({
     const seen = new Map<string, AnyRecord>();
     for (const tpe of tpes) {
       if (!tpe.id) continue;
-      const existing = seen.get(tpe.id);
+      const tpeId = String(tpe.id);
+      const existing = seen.get(tpeId);
       if (!existing) {
-        seen.set(tpe.id, tpe);
+        seen.set(tpeId, tpe);
       } else {
         const existingScore =
           (existing.remainingAmount !== undefined ? 1 : 0) +
@@ -107,7 +108,7 @@ export function buildPostTradeTeamsSnapshot({
           (tpe.usedAmount !== undefined ? 1 : 0) +
           (tpe.expiresOn ? 1 : 0);
         if (newScore > existingScore) {
-          seen.set(tpe.id, tpe);
+          seen.set(tpeId, tpe);
         }
       }
     }
@@ -142,7 +143,9 @@ export function buildPostTradeTeamsSnapshot({
       const senderTeamState =
         currentTeamByCode.get(senderTeamCode) ||
         currentState.teams[senderIndex]?.team;
-      const senderCapHolds = senderTeamState?.capHolds || [];
+      const senderCapHolds = Array.isArray(senderTeamState?.capHolds)
+        ? senderTeamState.capHolds
+        : [];
 
       (teamTrade.sends || []).forEach((player, playerIndex) => {
         if (player.signAndTrade !== true) return;
@@ -348,12 +351,12 @@ export function buildPostTradeTeamsSnapshot({
     );
 
     updatedTeam.roster = [
-      ...(team.roster || []).filter((id: string) => !outgoingPlayerIds.includes(id)),
+      ...(Array.isArray(team.roster) ? team.roster : []).filter((id: string) => !outgoingPlayerIds.includes(id)),
       ...incomingPlayerIds,
     ];
 
     updatedTeam.players = [
-      ...(team.players || []).filter((p: AnyRecord) => {
+      ...(Array.isArray(team.players) ? team.players : []).filter((p: AnyRecord) => {
         const pid = p.player_id || p.id;
         return !outgoingPlayerIds.includes(pid);
       }),
@@ -378,8 +381,9 @@ export function buildPostTradeTeamsSnapshot({
       updatedTeam.twoWayPlayers = merged.filter((p: AnyRecord) => {
         const pid = p.player_id || p.id;
         if (!pid) return true;
-        if (seen.has(pid)) return false;
-        seen.add(pid);
+        const pidStr = String(pid);
+        if (seen.has(pidStr)) return false;
+        seen.add(pidStr);
         return true;
       });
     }
@@ -414,7 +418,7 @@ export function buildPostTradeTeamsSnapshot({
     });
 
     updatedTeam.draftPicks = [
-      ...(team.draftPicks || []).filter(
+      ...(Array.isArray(team.draftPicks) ? team.draftPicks : []).filter(
         (pick: AnyRecord) =>
           !outgoingPicks.some(
             (outgoing: AnyRecord) =>
@@ -444,8 +448,9 @@ export function buildPostTradeTeamsSnapshot({
         [];
 
       otherOut.forEach((e: AnyRecord) => {
-        const entId = e.entitlementId || e.id;
-        if (!entId) return;
+        const entIdRaw = e.entitlementId || e.id;
+        if (!entIdRaw) return;
+        const entId = String(entIdRaw);
 
         const toTeam = normalizeTeamCodeLike(e.toTeamId);
 
@@ -474,7 +479,7 @@ export function buildPostTradeTeamsSnapshot({
       outgoingEntitlementIds.length > 0 ||
       incomingEntitlementIds.length > 0
     ) {
-      const currentEntitlementIds = team.entitlementIds || [];
+      const currentEntitlementIds = Array.isArray(team.entitlementIds) ? team.entitlementIds : [];
       const newEntitlementIds = [
         ...currentEntitlementIds.filter(
           (id: string) => !outgoingEntitlementIds.includes(id)
@@ -484,13 +489,14 @@ export function buildPostTradeTeamsSnapshot({
       updatedTeam.entitlementIds = [...new Set(newEntitlementIds)];
     }
 
-    const primaryTPEs = (team.tradeExceptions || []).map(normalizeTPE);
-    const legacyTPEs = (team.exceptions?.tpe || []).map(normalizeTPE);
+    const primaryTPEs = (Array.isArray(team.tradeExceptions) ? team.tradeExceptions : []).map(normalizeTPE);
+    const exceptions = team.exceptions as AnyRecord | undefined;
+    const legacyTPEs = (Array.isArray(exceptions?.tpe) ? exceptions.tpe : []).map(normalizeTPE);
     const currentTPEs = dedupeById([...primaryTPEs, ...legacyTPEs]);
     updatedTeam.tradeExceptions = currentTPEs;
 
     updatedTeam.source = {
-      ...updatedTeam.source,
+      ...(updatedTeam.source as AnyRecord),
       type: 'world-snapshot',
       lastModifiedAt: timestampISO,
     };
@@ -498,8 +504,9 @@ export function buildPostTradeTeamsSnapshot({
     updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
     if (receivesSignAndTrade) {
+      const totalsObj = updatedTeam.totals as AnyRecord | undefined;
       const existingLevel =
-        updatedTeam.totals?.hardCapLevel ||
+        totalsObj?.hardCapLevel ||
         (updatedTeam.hardCapped === 2 ? 'secondApron' : null);
       const hardCapLevel =
         existingLevel === 'secondApron' ? 'secondApron' : 'firstApron';
@@ -510,7 +517,7 @@ export function buildPostTradeTeamsSnapshot({
         'Triggered by receiving sign-and-trade player';
       updatedTeam.hardCapTriggeredBy = 'signAndTrade';
       updatedTeam.totals = {
-        ...(updatedTeam.totals || {}),
+        ...(totalsObj || {}),
         isHardCapped: true,
         hardCapLevel,
         hardCapDetail: 'Triggered by receiving sign-and-trade player',
@@ -522,7 +529,7 @@ export function buildPostTradeTeamsSnapshot({
 
   const entitlementOwnership = new Map<string, string>();
   for (const { teamCode, team } of teamUpdates) {
-    const entitlementIds = team.entitlementIds || [];
+    const entitlementIds = Array.isArray(team.entitlementIds) ? team.entitlementIds : [];
     for (const entId of entitlementIds) {
       if (entitlementOwnership.has(entId)) {
         const otherTeam = entitlementOwnership.get(entId);
@@ -616,17 +623,17 @@ export function validatePostTradeSnapshotForContext({
 
     return {
       ...validation,
-      legal: validation.legal,
-      valid: validation.legal,
-      reason: validation.reason,
+      legal: Boolean(validation.legal),
+      valid: Boolean(validation.legal),
+      reason: (validation.reason as string | null) ?? null,
       error:
-        validation.error ||
-        (validation.legal ? null : validation.reason || 'Trade is not legal'),
+        (validation.error as string | null) ||
+        (validation.legal ? null : (validation.reason as string) || 'Trade is not legal'),
       violations: normalizedViolations,
       warnings: normalizedWarnings,
       teamResults: normalizedTeamResults,
       summaryByTeamIndex: normalizedSummaryByTeamIndex,
-      tradeReceipt: normalizedTradeReceipt,
+      tradeReceipt: normalizedTradeReceipt as AnyRecord | null,
       dataWarnings: normalizedDataWarnings,
       hasDataIssues:
         typeof validation?.hasDataIssues === 'boolean'
@@ -635,22 +642,22 @@ export function validatePostTradeSnapshotForContext({
       yearKey:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'yearKey')
-          ? validation.yearKey
+          ? (validation.yearKey as number | string)
           : currentYear,
       seasonKey:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'seasonKey')
-          ? validation.seasonKey
+          ? (validation.seasonKey as string | null)
           : seasonId,
       capSettings:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'capSettings')
-          ? validation.capSettings
+          ? (validation.capSettings as AnyRecord | null)
           : null,
       capSettingsSource:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'capSettingsSource')
-          ? validation.capSettingsSource
+          ? (validation.capSettingsSource as string | null)
           : null,
       capSettingsWarnings: Array.isArray(validation?.capSettingsWarnings)
         ? validation.capSettingsWarnings
@@ -658,22 +665,22 @@ export function validatePostTradeSnapshotForContext({
       asOfDate:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'asOfDate')
-          ? validation.asOfDate
-          : payload.asOfDate || payload.tradeCtx?.asOfDate || null,
+          ? (validation.asOfDate as string | null)
+          : (payload.asOfDate as string | null) || (payload.tradeCtx?.asOfDate as string | null) || null,
       tradeDate:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'tradeDate')
-          ? validation.tradeDate
-          : payload.tradeCtx?.tradeDate ||
-            payload.asOfDate ||
-            payload.tradeCtx?.asOfDate ||
+          ? (validation.tradeDate as string | null)
+          : (payload.tradeCtx?.tradeDate as string | null) ||
+            (payload.asOfDate as string | null) ||
+            (payload.tradeCtx?.asOfDate as string | null) ||
             null,
       offseason:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'offseason')
-          ? validation.offseason
+          ? (validation.offseason as boolean | null)
           : typeof payload.tradeCtx?.offseason === 'boolean'
-            ? payload.tradeCtx.offseason
+            ? payload.tradeCtx.offseason as boolean
             : null,
       validationTeams: snapshot.validationTeams,
       _rawValidation: validation,
@@ -705,15 +712,15 @@ export function validatePostTradeSnapshotForContext({
       capSettings: null,
       capSettingsSource: null,
       capSettingsWarnings: [],
-      asOfDate: payload.asOfDate || payload.tradeCtx?.asOfDate || null,
+      asOfDate: (payload.asOfDate as string | null) || (payload.tradeCtx?.asOfDate as string | null) || null,
       tradeDate:
-        payload.tradeCtx?.tradeDate ||
-        payload.asOfDate ||
-        payload.tradeCtx?.asOfDate ||
+        (payload.tradeCtx?.tradeDate as string | null) ||
+        (payload.asOfDate as string | null) ||
+        (payload.tradeCtx?.asOfDate as string | null) ||
         null,
       offseason:
         typeof payload.tradeCtx?.offseason === 'boolean'
-          ? payload.tradeCtx.offseason
+          ? payload.tradeCtx.offseason as boolean
           : null,
       validationTeams: snapshot.validationTeams,
       _isValidatedTradeContext: true,

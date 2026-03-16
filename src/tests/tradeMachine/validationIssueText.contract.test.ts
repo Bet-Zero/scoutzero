@@ -120,7 +120,7 @@ describe('validationIssueText contract', () => {
         meta: { helper: 'issue-meta' },
         extraFlag: true,
         skipped: undefined,
-      },
+      } as Record<string, unknown>,
       {
         rule: 'tradeExceptions',
         meta: { source: 'defaults' },

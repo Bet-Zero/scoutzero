@@ -9,7 +9,7 @@
  * 2. Repo does NOT contain updateTeamCapTotals( function calls (excluding docs/return packages)
  * 3. tradeManager.ts imports computeTeamCapTotals from capTotals
  * 4. tradeManager.ts calls computeTeamCapTotals( at least once
- * 5. tradeManager.js remains a pure compatibility shim
+ * 5. tradeManager.js is absent after the E113 shim deletion batch
  * 5. Phase 77 invariant preserved: seasonManager.ts still uses SSOT (no legacy imports)
  *
  * @file src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js
@@ -54,10 +54,8 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       expect(hasConstArrowFunction).toBe(false);
     });
 
-    it('TEST 2: tradeManager.js remains a pure compatibility shim', () => {
-      const content = fs.readFileSync(TRADE_MANAGER_SHIM_PATH, 'utf-8').trim();
-
-      expect(content).toBe("export * from './tradeManager.ts';");
+    it('TEST 2: tradeManager.js is absent after the E113 shim deletion batch', () => {
+      expect(fs.existsSync(TRADE_MANAGER_SHIM_PATH)).toBe(false);
     });
 
     it('TEST 3: architectCore.ts does NOT export updateTeamCapTotals', () => {

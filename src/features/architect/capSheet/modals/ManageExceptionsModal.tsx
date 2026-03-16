@@ -39,7 +39,6 @@ type CapSettingsLike = {
   bae?: NumericLike;
   roomMLE?: NumericLike;
   room?: NumericLike;
-  [key: string]: unknown;
 };
 type EditableException = {
   enabled: boolean;
@@ -51,7 +50,6 @@ type EditableException = {
 type ExceptionsState = Partial<Record<ExceptionType, EditableException>>;
 type TeamCapSheetLike = {
   exceptions?: Record<string, unknown> | null;
-  [key: string]: unknown;
 };
 type ManageExceptionsModalProps = {
   isOpen?: boolean;

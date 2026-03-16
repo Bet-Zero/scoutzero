@@ -3,13 +3,13 @@ import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import ContractEditor from '../ContractEditor';
 
 type ContractEditorModalProps = {
-  player: Record<string, any> | null | undefined;
+  player: Record<string, unknown> | null | undefined;
   isOpen: boolean;
   onClose: (...args: any[]) => any;
-  capProjections: Record<string, any> | null | undefined;
-  teamCapSheet?: Record<string, any> | null;
+  capProjections: Record<string, unknown> | null | undefined;
+  teamCapSheet?: Record<string, unknown> | null;
   onSign: (...args: any[]) => any;
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, unknown>;
 };
 
 const ContractEditorModal = ({

@@ -68,7 +68,7 @@ import { normalizeSeasonKey } from '@/features/architect/data/capYearData';
 // CONSTANTS
 // ==============================================================================
 
-type AnyRecord = Record<string, any>;
+type AnyRecord = Record<string, unknown>;
 
 type SigningTerms = {
   source?: string;
@@ -1216,8 +1216,8 @@ export function normalizeSigningTerms(
   }
 
   // Start with what we have
-  let mechanism = rawTerms.mechanism || 'UNKNOWN';
-  let rightsType = rawTerms.rightsType || null;
+  let mechanism: string = String(rawTerms.mechanism || 'UNKNOWN');
+  let rightsType: string | null = rawTerms.rightsType ? String(rawTerms.rightsType) : null;
 
   // Check if mechanism contains Bird rights info (legacy conflation)
   const mechanismStr = String(mechanism);
@@ -1241,7 +1241,7 @@ export function normalizeSigningTerms(
   }
 
   return {
-    source: rawTerms.source || 'baseline',
+    source: String(rawTerms.source || 'baseline'),
     mechanism,
     rightsType,
     maxYears: rawTerms.maxYears ?? null,
@@ -1249,7 +1249,7 @@ export function normalizeSigningTerms(
     raisePercentage: rawTerms.raisePercentage ?? null,
     maxFirstYearSalary: rawTerms.maxFirstYearSalary ?? null,
     minFirstYearSalary: rawTerms.minFirstYearSalary ?? null,
-    notes: rawTerms.notes || null,
+    notes: rawTerms.notes ? String(rawTerms.notes) : null,
   };
 }
 
@@ -3674,7 +3674,7 @@ export function validateOptionDecision({
           });
         } else if (expectation.shouldCreate && capHoldExpectation) {
           const expectedAmount = capHoldExpectation.amount;
-          const newHoldAmount = (newHold as AnyRecord)?.amount || 0;
+          const newHoldAmount = Number((newHold as AnyRecord)?.amount || 0);
           const amountDelta = Math.abs(newHoldAmount - expectedAmount);
           if (newHoldAmount <= 0) {
             violations.push({

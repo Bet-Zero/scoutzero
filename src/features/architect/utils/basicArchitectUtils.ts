@@ -1,7 +1,7 @@
 // Consolidated architect utilities
 // Merged from: getCapPercentage.js, hardCapTriggers.js, cbaMechanics.js, defaultPicks.js
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 
 // Calculate salary as percentage of salary cap
 const getCapPercentage = (
@@ -21,7 +21,7 @@ export function markHardCapTriggered(
   teamSeasonState: LooseRecord = {},
   { reason, season }: { reason: any; season: any }
 ): LooseRecord {
-  const current = teamSeasonState.hardCapFirstApron;
+  const current = teamSeasonState.hardCapFirstApron as { active?: boolean } | undefined;
   if (current?.active) return teamSeasonState;
   teamSeasonState.hardCapFirstApron = { active: true, reason, season };
   return teamSeasonState;

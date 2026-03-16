@@ -178,7 +178,7 @@ function removeUndefinedDeep(obj) {
   return obj;
 }
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 
 /**
  * Advance world to next season
@@ -683,7 +683,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
     const afterTeamsByCode = {};
     const beforeTotalsByTeam = {};
     const afterTotalsByTeam = {};
-    const summary: LooseRecord = {
+    const summary: Record<string, unknown[]> & { dareReceipt?: unknown; dareWriteCount?: number; dareError?: string } = {
       exercisedOptions: [],
       declinedOptions: [],
       expiredContracts: [],
@@ -1039,7 +1039,7 @@ async function processTeamSeasonTransitionWithOptions(
       // Use inline entitlements if provided, else resolve from Firestore
       let entitlements = hasInlineEntitlements
         ? teamData.entitlements
-        : await resolveEntitlementsForTeam(worldId || null, teamCode);
+        : await resolveEntitlementsForTeam((worldId as string) || null, teamCode);
 
       if (Array.isArray(entitlements) && entitlements.length > 0) {
         // Extract underlying pick IDs for pick rules lookup (best-effort)
@@ -1170,7 +1170,7 @@ async function processTeamSeasonTransitionWithOptions(
     toYear,
     optionDecisions,
     context: {
-      worldId,
+      worldId: worldId as string,
       teamCode,
     },
   });
@@ -1562,7 +1562,8 @@ export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts
     return team;
   }
 
-  const { nowIso, method = 'lottery' } = opts;
+  const nowIso = opts.nowIso as string | undefined;
+  const method = (opts.method as string) || 'lottery';
 
   const updatedPicks = draftPicksSource.map((pick) => {
     // Skip non-swap picks
@@ -1663,7 +1664,8 @@ export function resolveDraftPickConveyanceForYear(
     return team;
   }
 
-  const { nowIso, method = 'lottery' } = opts;
+  const nowIso = opts.nowIso as string | undefined;
+  const method = (opts.method as string) || 'lottery';
 
   const updatedPicks = draftPicksSource.map((pick) => {
     // Skip invalid picks

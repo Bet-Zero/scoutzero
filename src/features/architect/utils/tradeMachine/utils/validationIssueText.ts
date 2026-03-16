@@ -31,7 +31,6 @@ interface LegacyValidationIssueObject {
   meta?: unknown;
   reason?: unknown;
   type?: unknown;
-  [key: string]: unknown;
 }
 
 type ValidationIssueInput =

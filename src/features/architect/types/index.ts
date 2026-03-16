@@ -5,3 +5,23 @@
  */
 
 export * from './ruleContext';
+export type {
+  BaseTeamDoc,
+  BasePlayerDoc,
+  BasePlayerContract,
+  BasePlayerContractYear,
+  Exceptions,
+  TradeException,
+  DraftPick,
+  EntitlementAsset,
+  DeadCapItem,
+  CapHoldItem,
+  TeamTotals,
+  WorldTeamSnapshot,
+  ProtectionMeta,
+} from '../../../schemas/architect';
+export type {
+  PlayerMainDoc,
+  ContractDoc,
+  PlayerBio,
+} from '../../../schemas/players_v2';

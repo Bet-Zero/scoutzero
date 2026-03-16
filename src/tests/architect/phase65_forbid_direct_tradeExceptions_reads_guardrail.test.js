@@ -51,6 +51,7 @@ const ALLOWLISTED_FILES = [
   'utils/schemaAdapter.ts',
   // Mutation pipeline (TPE persistence, reads legacy during compute)
   'utils/mutationPipeline.js',
+  'utils/mutationPipeline.ts',
   // Trade context snapshot building (merges both sources during snapshot)
   'utils/tradeContext/tradeContext.js',
   'utils/tradeContext/tradeContext.ts',
@@ -252,7 +253,7 @@ describe('Phase 65: Forbid Direct .tradeExceptions Reads in Production Code', ()
 
     it('should have a reasonably small allowlist (prevent drift)', () => {
       // Phase E50 allowlist should remain tightly bounded
-      expect(ALLOWLISTED_FILES.length).toBeLessThanOrEqual(10);
+      expect(ALLOWLISTED_FILES.length).toBeLessThanOrEqual(11);
     });
   });
 });
@@ -386,9 +387,9 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
 
 describe('Phase 65: UI Components Use Canonical Accessor', () => {
   const uiFiles = [
-    'tradeMachine/TradeTeamCard.jsx',
-    'tradeMachine/TradeExceptionDashboard.jsx',
-    'tradeMachine/ValidationDetailsPanel.jsx',
+    'tradeMachine/TradeTeamCard.tsx',
+    'tradeMachine/TradeExceptionDashboard.tsx',
+    'tradeMachine/ValidationDetailsPanel.tsx',
     'GMDashboard/components/SeasonAdvanceModal.jsx',
   ];
 

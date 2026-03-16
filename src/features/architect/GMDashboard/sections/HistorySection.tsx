@@ -13,7 +13,7 @@
 import TeamHistoryTab from '@/features/architect/TeamHistoryTab';
 
 type HistorySectionProps = {
-  teamCapSheet: Record<string, any> | null | undefined;
+  teamCapSheet: Record<string, unknown> | null | undefined;
   worldId?: string | null;
   onInjectTeamHistoryFixtures?: (() => void) | null;
   onClearTeamHistoryFixtures?: (() => void) | null;

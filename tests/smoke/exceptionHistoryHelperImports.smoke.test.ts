@@ -5,18 +5,19 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const helperPath = path.resolve(
+const deletedHelperPath = path.resolve(
   __dirname,
   '../../src/features/architect/utils/exceptionHistory/historyHelpers.js'
 );
+const authorityPath = path.resolve(
+  __dirname,
+  '../../src/features/architect/utils/exceptionHistory/historyHelpers.ts'
+);
 
 describe('exception-history helper import compatibility', () => {
-  it('resolves helper via extensionless and explicit .js imports', async () => {
+  it('resolves helper via extensionless imports after the E113 shim deletion batch', async () => {
     const extensionless = await import(
       '@/features/architect/utils/exceptionHistory/historyHelpers'
-    );
-    const withJs = await import(
-      '@/features/architect/utils/exceptionHistory/historyHelpers.js'
     );
 
     expect(extensionless.createTpeCreationHistoryEntry).toBeTypeOf('function');
@@ -26,33 +27,13 @@ describe('exception-history helper import compatibility', () => {
     expect(extensionless.createTpeExpiryHistoryEntry).toBeTypeOf('function');
     expect(extensionless.buildExpiryHistoryKey).toBeTypeOf('function');
     expect(extensionless.appendExceptionHistory).toBeTypeOf('function');
-
-    expect(withJs.createTpeCreationHistoryEntry).toBe(
-      extensionless.createTpeCreationHistoryEntry
-    );
-    expect(withJs.createTpeConsumptionHistoryEntry).toBe(
-      extensionless.createTpeConsumptionHistoryEntry
-    );
-    expect(withJs.createTpeExpiryHistoryEntry).toBe(
-      extensionless.createTpeExpiryHistoryEntry
-    );
-    expect(withJs.buildExpiryHistoryKey).toBe(
-      extensionless.buildExpiryHistoryKey
-    );
-    expect(withJs.appendExceptionHistory).toBe(
-      extensionless.appendExceptionHistory
-    );
-    expect(withJs.exceptionHistoryHelpers).toBe(
-      extensionless.exceptionHistoryHelpers
-    );
+    expect(extensionless.exceptionHistoryHelpers).toBeDefined();
   });
 
-  it('kept js file remains a pure compatibility shim', () => {
-    const shimContent = fs.readFileSync(helperPath, 'utf8');
+  it('historyHelpers.js stays absent while the TS authority remains in place', () => {
+    const authorityContent = fs.readFileSync(authorityPath, 'utf8');
 
-    expect(shimContent).toContain("export * from './historyHelpers.ts';");
-    expect(shimContent).not.toContain('const ENTRY_TYPES');
-    expect(shimContent).not.toContain('function sanitizePlayers');
-    expect(shimContent).not.toContain('appendExceptionHistory(team');
+    expect(fs.existsSync(deletedHelperPath)).toBe(false);
+    expect(authorityContent.length).toBeGreaterThan(0);
   });
 });

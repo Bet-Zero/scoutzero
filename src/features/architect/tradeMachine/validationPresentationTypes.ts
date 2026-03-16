@@ -3,8 +3,7 @@ export interface ValidationIssueLike {
   reason?: string;
   rule?: string;
   severity?: string;
-  meta?: Record<string, any>;
-  [key: string]: any;
+  meta?: Record<string, unknown>;
 }
 
 export interface ValidationRuleLike {
@@ -14,7 +13,6 @@ export interface ValidationRuleLike {
   message?: string;
   details?: string;
   skipReason?: string | null;
-  [key: string]: any;
 }
 
 export interface TeamPlayerLike {
@@ -29,20 +27,18 @@ export interface TeamPlayerLike {
   absorptionMode?: string | null;
   tpeId?: string | null;
   tpeIndex?: number;
-  flags?: Record<string, any> | null;
-  [key: string]: any;
+  flags?: Record<string, unknown> | null;
 }
 
 export interface TeamEntitlementLike {
   id?: string;
   entitlementId?: string;
-  seasonYear?: any;
-  round?: any;
+  seasonYear?: string | number;
+  round?: string | number;
   kind?: string;
   description?: string;
   fromTeam?: string;
   toTeamId?: string;
-  [key: string]: any;
 }
 
 export interface TpeLike {
@@ -55,7 +51,6 @@ export interface TpeLike {
   createdFrom?: string;
   expirationDate?: string;
   expiresOn?: string;
-  [key: string]: any;
 }
 
 export interface FaExceptionBucketLike {
@@ -64,7 +59,6 @@ export interface FaExceptionBucketLike {
   amount?: number;
   label?: string;
   name?: string;
-  [key: string]: any;
 }
 
 export interface TeamCoreLike {
@@ -76,15 +70,13 @@ export interface TeamCoreLike {
   entitlements?: TeamEntitlementLike[];
   tradeExceptions?: TpeLike[];
   faExceptionBuckets?: FaExceptionBucketLike[];
-  [key: string]: any;
 }
 
 export interface TeamLike {
   team?: TeamCoreLike | null;
-  sends?: any[];
-  picksOut?: any[];
+  sends?: TeamPlayerLike[];
+  picksOut?: TeamEntitlementLike[];
   entitlementsOut?: TeamEntitlementLike[];
-  [key: string]: any;
 }
 
 export interface TeamResultLike {
@@ -98,7 +90,7 @@ export interface TeamResultLike {
   projectedSalary?: number;
   hardCapped?: boolean | number;
   apronStatus?: string;
-  createdTPE?: Record<string, any> | null;
+  createdTPE?: Record<string, unknown> | null;
   incomingPlayers?: TeamPlayerLike[];
   outgoingPlayers?: TeamPlayerLike[];
   incomingEntitlements?: TeamEntitlementLike[];
@@ -107,7 +99,6 @@ export interface TeamResultLike {
   rules?: Record<string, ValidationRuleLike | undefined>;
   violations?: Array<ValidationIssueLike | string>;
   warnings?: Array<ValidationIssueLike | string>;
-  [key: string]: any;
 }
 
 export interface SummaryTeamLike {
@@ -120,13 +111,11 @@ export interface SummaryTeamLike {
   legal?: boolean;
   violations?: Array<ValidationIssueLike | string>;
   warnings?: Array<ValidationIssueLike | string>;
-  [key: string]: any;
 }
 
 export interface DataWarningLike {
   severity?: string;
   message?: string;
-  [key: string]: any;
 }
 
 export interface DataValidationSummaryLike {
@@ -135,18 +124,16 @@ export interface DataValidationSummaryLike {
   bycMissingPrevSalary?: number;
   salaryFallbacks?: number;
   salaryMissing?: number;
-  [key: string]: any;
 }
 
 export interface CapSettingsLike {
-  salaryCap?: any;
-  cap?: any;
-  firstApron?: any;
-  secondApron?: any;
-  firstApronLine?: any;
-  secondApronLine?: any;
-  luxuryTax?: any;
-  [key: string]: any;
+  salaryCap?: number;
+  cap?: number;
+  firstApron?: number;
+  secondApron?: number;
+  firstApronLine?: number;
+  secondApronLine?: number;
+  luxuryTax?: number;
 }
 
 export interface TradeReceiptTeamLike {
@@ -154,15 +141,14 @@ export interface TradeReceiptTeamLike {
   teamCode?: string;
   preTradeTeamSalary?: number;
   preTradeTeamSalarySource?: string;
-  salaryMatchingEvaluation?: Record<string, any> | null;
-  totals?: Record<string, any> | null;
+  salaryMatchingEvaluation?: Record<string, unknown> | null;
+  totals?: Record<string, unknown> | null;
   outgoingPlayers?: TeamPlayerLike[];
   incomingPlayers?: TeamPlayerLike[];
   outgoingEntitlements?: TeamEntitlementLike[];
   incomingEntitlements?: TeamEntitlementLike[];
   violations?: Array<ValidationIssueLike | string>;
   warnings?: Array<ValidationIssueLike | string>;
-  [key: string]: any;
 }
 
 export interface TradeReceiptLike {
@@ -171,18 +157,17 @@ export interface TradeReceiptLike {
   yearKey?: string | number;
   seasonKey?: string;
   teams?: TradeReceiptTeamLike[];
-  allViolations?: any[];
-  performance?: Record<string, any> | null;
+  allViolations?: Array<ValidationIssueLike | string>;
+  performance?: Record<string, unknown> | null;
   capSettingsUsed?: CapSettingsLike | null;
   capSettingsSource?: string;
   capSettingsWarnings?: string[];
   primaryViolation?: string;
-  [key: string]: any;
 }
 
 export interface ValidationResultLike {
   legal?: boolean;
-  override?: Record<string, any> | null;
+  override?: Record<string, unknown> | null;
   violations?: Array<ValidationIssueLike | string>;
   warnings?: Array<ValidationIssueLike | string>;
   summaryByTeamIndex?: Array<SummaryTeamLike | null | undefined>;
@@ -192,5 +177,4 @@ export interface ValidationResultLike {
   dataWarnings?: DataWarningLike[];
   dataValidationSummary?: DataValidationSummaryLike | null;
   hasDataIssues?: boolean;
-  [key: string]: any;
 }

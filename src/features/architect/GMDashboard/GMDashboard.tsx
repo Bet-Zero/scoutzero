@@ -29,6 +29,7 @@ import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { useAuth } from '@/shared/hooks/useAuth';
+import type { OfferSheetLike } from './offerSheetTypes';
 import {
   FIREBASE_TARGET_MODE,
   isLikelyEmulatorConnectionError,
@@ -45,14 +46,12 @@ type PlayerLike = {
   playerId?: string | null;
   name?: string | null;
   displayName?: string | null;
-  [key: string]: unknown;
 };
 
 type TeamCapSheetLike = {
   players?: PlayerLike[] | null;
   offerSheets?: unknown[];
   incomingOfferSheets?: unknown[];
-  [key: string]: unknown;
 };
 
 type OffseasonSummaryLike = {
@@ -65,10 +64,9 @@ type OffseasonSummaryLike = {
     year?: string | number | null;
   }>;
   resetMLE?: boolean;
-  [key: string]: unknown;
 } | null;
 
-type PlayersMapLike = Record<string, any>;
+type PlayersMapLike = Record<string, unknown>;
 
 type DashboardStateLike = {
   teamCapSheet: TeamCapSheetLike | null;
@@ -105,31 +103,31 @@ type ModalsLike = {
   closeContractModal: () => void;
   closeOffseasonModal: () => void;
   setShowOffseasonModal: (value: boolean) => void;
-  openContractModal?: (...args: any[]) => void;
+  openContractModal?: (...args: unknown[]) => void;
 };
 
 type ActionsLike = {
-  handleEditContract: (...args: any[]) => void;
-  handleSetDeadCap: (...args: any[]) => void;
-  handleSetExceptions: (...args: any[]) => void;
-  handleInjectCapSheetFixtures: (...args: any[]) => void;
-  handleClearCapSheetFixtures: (...args: any[]) => void;
+  handleEditContract: (...args: unknown[]) => void;
+  handleSetDeadCap: (...args: unknown[]) => void;
+  handleSetExceptions: (...args: unknown[]) => void;
+  handleInjectCapSheetFixtures: (...args: unknown[]) => void;
+  handleClearCapSheetFixtures: (...args: unknown[]) => void;
   hasInjectedCapSheetFixtures: boolean;
-  applyTradeToCapSheet: (...args: any[]) => void;
-  handleSign: (...args: any[]) => void;
-  handleSignAndTrade: (...args: any[]) => void;
-  handleStoreOfferSheet: (...args: any[]) => void;
-  handleMatchOfferSheet: (...args: any[]) => void;
-  handleDeclineOfferSheet: (...args: any[]) => void;
-  handleFinalizeOfferSheet: (...args: any[]) => void;
-  handleCapSheetAction: (...args: any[]) => void;
-  handleSaveContract: (...args: any[]) => void;
-  handleExtendContract: (...args: any[]) => void;
-  handleWaiveContract: (...args: any[]) => void;
-  handleOptionDecision: (...args: any[]) => void;
-  handleRenounceRights: (...args: any[]) => void;
-  handleInjectTeamHistoryFixtures: (...args: any[]) => void;
-  handleClearTeamHistoryFixtures: (...args: any[]) => void;
+  applyTradeToCapSheet: (...args: unknown[]) => void;
+  handleSign: (...args: unknown[]) => void;
+  handleSignAndTrade: (...args: unknown[]) => void;
+  handleStoreOfferSheet: (...args: unknown[]) => void;
+  handleMatchOfferSheet: (...args: unknown[]) => void;
+  handleDeclineOfferSheet: (...args: unknown[]) => void;
+  handleFinalizeOfferSheet: (...args: unknown[]) => void;
+  handleCapSheetAction: (...args: unknown[]) => void;
+  handleSaveContract: (...args: unknown[]) => void;
+  handleExtendContract: (...args: unknown[]) => void;
+  handleWaiveContract: (...args: unknown[]) => void;
+  handleOptionDecision: (...args: unknown[]) => void;
+  handleRenounceRights: (...args: unknown[]) => void;
+  handleInjectTeamHistoryFixtures: (...args: unknown[]) => void;
+  handleClearTeamHistoryFixtures: (...args: unknown[]) => void;
   hasInjectedTeamHistoryFixtures: boolean;
 };
 
@@ -140,7 +138,7 @@ type PlayerRulesProfilesLike = {
     player: PlayerLike,
     selectedRulesYear?: number | null
   ) => unknown;
-  getProfileForYear: (...args: any[]) => unknown;
+  getProfileForYear: (...args: unknown[]) => unknown;
 };
 
 const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined) => {
@@ -247,7 +245,7 @@ const GMDashboard = () => {
     modals,
     worldId,
     seasonId: toSeasonCode(currentYear),
-  } as any) as ActionsLike;
+  } as unknown as Parameters<typeof useArchitectActions>[0]) as ActionsLike;
 
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
   if (!teamCapSheet) return <p>No team data</p>;
@@ -451,8 +449,8 @@ const GMDashboard = () => {
             onSignAndTrade={actions.handleSignAndTrade}
             onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : null}
             playersMap={playersMap}
-            outgoingOfferSheets={(teamCapSheet?.offerSheets || []) as any}
-            incomingOfferSheets={(teamCapSheet?.incomingOfferSheets || []) as any}
+            outgoingOfferSheets={(teamCapSheet?.offerSheets || []) as OfferSheetLike[]}
+            incomingOfferSheets={(teamCapSheet?.incomingOfferSheets || []) as OfferSheetLike[]}
             onMatch={actions.handleMatchOfferSheet}
             onDecline={actions.handleDeclineOfferSheet}
             onFinalize={actions.handleFinalizeOfferSheet}

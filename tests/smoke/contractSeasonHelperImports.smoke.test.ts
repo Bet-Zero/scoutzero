@@ -27,6 +27,7 @@ const MODULE_CASES = [
       'export function parseSeason',
       'export function seasonEndYearsFromCaps',
     ],
+    deletedBatch: false,
   },
   {
     label: 'contractUtils',
@@ -55,10 +56,15 @@ const MODULE_CASES = [
       'const rookieScale',
       'export function getLastSalary',
     ],
+    deletedBatch: false,
   },
   {
     label: 'contractSalaryUtils',
     aliasBase: '@/features/architect/utils/contractSalaryUtils',
+    authorityPath: path.resolve(
+      __dirname,
+      '../../src/features/architect/utils/contractSalaryUtils.ts'
+    ),
     shimPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/contractSalaryUtils.js'
@@ -69,6 +75,7 @@ const MODULE_CASES = [
       'const fallbackSources',
       'Expected contract.salariesByYear',
     ],
+    deletedBatch: true,
   },
 ] as const;
 
@@ -76,24 +83,37 @@ describe('contract-season helper import compatibility', () => {
   for (const moduleCase of MODULE_CASES) {
     it(`resolves ${moduleCase.label} via extensionless and explicit .js imports`, async () => {
       const extensionless = await import(moduleCase.aliasBase);
-      const withJs = await import(`${moduleCase.aliasBase}.js`);
 
       for (const exportName of moduleCase.exportNames) {
         expect(extensionless[exportName]).toBeDefined();
-        expect(withJs[exportName]).toBe(extensionless[exportName]);
+      }
+
+      if (!moduleCase.deletedBatch) {
+        const withJs = await import(`${moduleCase.aliasBase}.js`);
+
+        for (const exportName of moduleCase.exportNames) {
+          expect(withJs[exportName]).toBe(extensionless[exportName]);
+        }
       }
     });
   }
 
-  it('kept js files remain pure compatibility shims', () => {
+  it('retained shims stay intact and deleted-batch shims stay absent', () => {
     for (const moduleCase of MODULE_CASES) {
-      const shimContent = fs.readFileSync(moduleCase.shimPath, 'utf8');
-      const tsBasename = path.basename(moduleCase.shimPath, '.js');
+      if (moduleCase.deletedBatch) {
+        const authorityContent = fs.readFileSync(moduleCase.authorityPath, 'utf8');
 
-      expect(shimContent).toContain(`export * from './${tsBasename}.ts';`);
+        expect(fs.existsSync(moduleCase.shimPath)).toBe(false);
+        expect(authorityContent.length).toBeGreaterThan(0);
+      } else {
+        const shimContent = fs.readFileSync(moduleCase.shimPath, 'utf8');
+        const tsBasename = path.basename(moduleCase.shimPath, '.js');
 
-      for (const absentToken of moduleCase.absentTokens) {
-        expect(shimContent).not.toContain(absentToken);
+        expect(shimContent).toContain(`export * from './${tsBasename}.ts';`);
+
+        for (const absentToken of moduleCase.absentTokens) {
+          expect(shimContent).not.toContain(absentToken);
+        }
       }
     }
   });

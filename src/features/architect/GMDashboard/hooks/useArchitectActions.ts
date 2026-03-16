@@ -383,7 +383,7 @@ export interface UseArchitectActionsReturn {
   handleSetDeadCap: (deadCap: any[]) => void;
 
   // Manual Exception Management (Phase 27)
-  handleSetExceptions: (exceptions: Record<string, any>) => void;
+  handleSetExceptions: (exceptions: Record<string, unknown>) => void;
 
   // DEV-only Cap Sheet fixtures (CAP_SHEET_FIXPACK_E1)
   handleInjectCapSheetFixtures: () => MutationActionResult;
@@ -2119,7 +2119,7 @@ export function useArchitectActions({
 
   // === Exception Management Actions (Phase 27) ===
   const handleSetExceptions = useCallback(
-    (exceptions: Record<string, any>) => {
+    (exceptions: Record<string, unknown>) => {
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'setExceptions',
         playerIds: [],
@@ -2298,11 +2298,13 @@ export function useArchitectActions({
         );
       };
       const isPlayerRenounceable = (player: ArchitectPlayer): boolean => {
+        const contractObj = (player as Record<string, unknown>)?.contract as Record<string, unknown> | undefined;
+        const birdRightsObj = contractObj?.birdRights as Record<string, unknown> | undefined;
         const playerBirdStatus = String(
-          (player as Record<string, any>)?.contract?.birdRights?.status || ''
+          birdRightsObj?.status || ''
         ).toLowerCase();
         const rightsAlreadyCleared =
-          Boolean((player as Record<string, any>)?.rightsRenounced) &&
+          Boolean((player as Record<string, unknown>)?.rightsRenounced) &&
           (!playerBirdStatus || playerBirdStatus === 'none');
         return !rightsAlreadyCleared;
       };
@@ -2352,13 +2354,14 @@ export function useArchitectActions({
             if (matchesPlayer(p as ArchitectPlayer)) {
               let playerChanged = false;
               const updated = { ...p };
-              if (!(updated as Record<string, any>).rightsRenounced) {
-                (updated as Record<string, any>).rightsRenounced = true;
+              if (!(updated as Record<string, unknown>).rightsRenounced) {
+                (updated as Record<string, unknown>).rightsRenounced = true;
                 playerChanged = true;
               }
+              const updatedContractObj = (updated as Record<string, unknown>)?.contract as Record<string, unknown> | undefined;
+              const updatedBirdRightsObj = updatedContractObj?.birdRights as Record<string, unknown> | undefined;
               const currentStatus = String(
-                (updated as Record<string, any>)?.contract?.birdRights
-                  ?.status || ''
+                updatedBirdRightsObj?.status || ''
               ).toLowerCase();
               if (updated.contract?.birdRights && currentStatus !== 'none') {
                 updated.contract = {

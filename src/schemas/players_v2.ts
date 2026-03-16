@@ -335,6 +335,15 @@ export const PlayerMainDocZ = z.object({
 });
 
 // Types
+export type PlayerAgent = z.infer<typeof PlayerAgentZ>;
+export type PlayerDraft = z.infer<typeof PlayerDraftZ>;
+export type PlayerDisplay = z.infer<typeof PlayerDisplayZ>;
+export type PlayerBio = z.infer<typeof PlayerBioZ>;
+export type ContractMetadata = z.infer<typeof ContractMetadataZ>;
+export type VideoExample = z.infer<typeof VideoExampleZ>;
+export type VideoExamples = z.infer<typeof VideoExamplesZ>;
+export type SeasonStats = z.infer<typeof SeasonStatsZ>;
+export type EvaluationTraits = z.infer<typeof EvaluationTraitsZ>;
 export type PlayerMainDoc = z.infer<typeof PlayerMainDocZ>;
 export type ContractDoc = z.infer<typeof ContractDocZ>;
 export type SeasonDoc = z.infer<typeof SeasonDocZ>;

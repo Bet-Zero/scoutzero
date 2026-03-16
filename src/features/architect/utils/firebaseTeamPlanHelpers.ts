@@ -32,7 +32,7 @@ import {
   TeamCodeMap,
 } from '@/constants/teamList';
 
-type UnknownRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 type TeamIdLike = string | null | undefined;
 
 interface LooseCapSheet extends UnknownRecord {

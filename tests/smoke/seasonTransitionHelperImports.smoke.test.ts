@@ -48,28 +48,15 @@ describe('season-transition helper import compatibility', () => {
     const extensionless = await import(
       '@/features/architect/utils/entitlements/seasonManagerProjection'
     );
-    const withJs = await import(
-      '@/features/architect/utils/entitlements/seasonManagerProjection.js'
-    );
 
     expect(extensionless.projectEntitlementsToSeasonManagerView).toBeTypeOf(
       'function'
     );
     expect(extensionless.__test__selectDraftPicksSource).toBeTypeOf('function');
     expect(extensionless.logDerivedPicksCreation).toBeTypeOf('function');
-
-    expect(withJs.projectEntitlementsToSeasonManagerView).toBe(
-      extensionless.projectEntitlementsToSeasonManagerView
-    );
-    expect(withJs.__test__selectDraftPicksSource).toBe(
-      extensionless.__test__selectDraftPicksSource
-    );
-    expect(withJs.logDerivedPicksCreation).toBe(
-      extensionless.logDerivedPicksCreation
-    );
   });
 
-  it('kept js files remain pure compatibility shims', () => {
+  it('retained shims stay intact and seasonManagerProjection.js stays absent', () => {
     const tpeShim = fs.readFileSync(
       path.join(utilsRoot, 'tpeLifecycle.js'),
       'utf8'
@@ -78,8 +65,8 @@ describe('season-transition helper import compatibility', () => {
       path.join(utilsRoot, 'exceptions/exceptionLifecycle.js'),
       'utf8'
     );
-    const projectionShim = fs.readFileSync(
-      path.join(utilsRoot, 'entitlements/seasonManagerProjection.js'),
+    const projectionAuthority = fs.readFileSync(
+      path.join(utilsRoot, 'entitlements/seasonManagerProjection.ts'),
       'utf8'
     );
 
@@ -91,10 +78,9 @@ describe('season-transition helper import compatibility', () => {
     expect(exceptionShim).not.toContain('getCapRulesForYear');
     expect(exceptionShim).not.toContain('Object.freeze([');
 
-    expect(projectionShim).toContain(
-      "export * from './seasonManagerProjection.ts';"
+    expect(fs.existsSync(path.join(utilsRoot, 'entitlements/seasonManagerProjection.js'))).toBe(
+      false
     );
-    expect(projectionShim).not.toContain('function parseTeamFromPickId');
-    expect(projectionShim).not.toContain('_projectedAt');
+    expect(projectionAuthority.length).toBeGreaterThan(0);
   });
 });

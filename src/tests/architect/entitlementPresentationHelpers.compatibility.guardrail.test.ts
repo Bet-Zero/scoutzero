@@ -22,58 +22,58 @@ import {
 
 describe('E67 entitlement presentation helper compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const formatShimPath = path.join(
+  const formatDeletedPath = path.join(
     srcRoot,
     'utils/entitlements/formatEntitlement.js'
   );
-  const warningsShimPath = path.join(
+  const formatAuthorityPath = path.join(
+    srcRoot,
+    'utils/entitlements/formatEntitlement.ts'
+  );
+  const warningsDeletedPath = path.join(
     srcRoot,
     'tradeMachine/utils/entitlementWarnings.js'
   );
+  const warningsAuthorityPath = path.join(
+    srcRoot,
+    'tradeMachine/utils/entitlementWarnings.ts'
+  );
 
-  it('formatEntitlement.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(formatShimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './formatEntitlement.ts';");
+  it('deleted entitlement helper shims are absent after the E113 shim deletion batch', () => {
+    expect(fs.existsSync(formatDeletedPath)).toBe(false);
+    expect(fs.existsSync(warningsDeletedPath)).toBe(false);
   });
 
-  it('entitlementWarnings.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(warningsShimPath, 'utf-8').trim();
+  it('formatEntitlement authority still exposes the expected named API', () => {
+    const source = fs.readFileSync(formatAuthorityPath, 'utf-8');
+    const extensionlessApi = {
+      formatEntitlementLabel,
+      getEntitlementKindTag,
+      getKindSortPriority,
+    };
 
-    expect(source).toBe("export * from './entitlementWarnings.ts';");
-  });
-
-  it('formatEntitlement explicit .js import matches extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/entitlements/formatEntitlement.js'
-    );
-
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
+    expect(Object.keys(extensionlessApi).sort()).toEqual([
       'formatEntitlementLabel',
       'getEntitlementKindTag',
       'getKindSortPriority',
     ]);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.formatEntitlementLabel).toBe(formatEntitlementLabel);
-    expect(explicitJsModule.getEntitlementKindTag).toBe(getEntitlementKindTag);
-    expect(explicitJsModule.getKindSortPriority).toBe(getKindSortPriority);
+    expect(source).toContain('export const formatEntitlementLabel');
+    expect(source).toContain('export const getEntitlementKindTag');
+    expect(source).toContain('export const getKindSortPriority');
   });
 
-  it('entitlementWarnings explicit .js import matches extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/tradeMachine/utils/entitlementWarnings.js'
-    );
+  it('entitlementWarnings authority still exposes the expected named API', () => {
+    const source = fs.readFileSync(warningsAuthorityPath, 'utf-8');
+    const extensionlessApi = {
+      computeEntitlementWarnings,
+      getEntitlementKindBadge,
+    };
 
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
+    expect(Object.keys(extensionlessApi).sort()).toEqual([
       'computeEntitlementWarnings',
       'getEntitlementKindBadge',
     ]);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.computeEntitlementWarnings).toBe(
-      computeEntitlementWarnings
-    );
-    expect(explicitJsModule.getEntitlementKindBadge).toBe(
-      getEntitlementKindBadge
-    );
+    expect(source).toContain('export function computeEntitlementWarnings');
+    expect(source).toContain('export function getEntitlementKindBadge');
   });
 });

@@ -19,7 +19,7 @@ interface PlayerListItemProps {
 
 interface TradeReceiptPanelProps {
   receipt?: TradeReceiptLike | null;
-  pickRulesById?: Record<string, any>;
+  pickRulesById?: Record<string, unknown>;
 }
 
 const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
@@ -38,7 +38,7 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
       ? flags.isBYC && player.baseSalary !== player.matchingValue
       : (flags.isPoisonPill || flags.hasTradeKicker) &&
         player.baseSalary !== player.matchingValue;
-  const kickerPct = ((flags.tradeKickerPct || 0) * 100).toFixed(0);
+  const kickerPct = (Number(flags.tradeKickerPct || 0) * 100).toFixed(0);
   const adjTooltipText = `Adjusted: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)}`;
 
   return (
@@ -187,7 +187,7 @@ const TradeReceiptPanel = ({
         <span>Teams: {receipt.teams?.length || 0}</span>
         <span>Violations: {receipt.allViolations?.length || 0}</span>
         <span className="text-white/40">
-          ({receipt.performance?.validationTimeMs?.toFixed(2)}ms)
+          ({Number(receipt.performance?.validationTimeMs ?? 0).toFixed(2)}ms)
         </span>
       </div>
 
@@ -278,10 +278,10 @@ const TradeReceiptPanel = ({
 
                 <div className="p-2 mb-2 bg-[#222] rounded border border-white/10">
                   <div className="text-xs font-medium text-blue-400 mb-1">
-                    Rule: {team.salaryMatchingEvaluation?.ruleApplied || 'N/A'}
+                    Rule: {String(team.salaryMatchingEvaluation?.ruleApplied || 'N/A')}
                   </div>
                   <div className="text-xs text-white/60 font-mono break-all">
-                    {team.salaryMatchingEvaluation?.formulaUsed || 'No formula'}
+                    {String(team.salaryMatchingEvaluation?.formulaUsed || 'No formula')}
                   </div>
                 </div>
 
@@ -331,7 +331,7 @@ const TradeReceiptPanel = ({
                     <span className="text-white/60">Margin:</span>
                     <span
                       className={`font-mono ${
-                        (team.salaryMatchingEvaluation?.margin || 0) >= 0
+                        Number(team.salaryMatchingEvaluation?.margin || 0) >= 0
                           ? 'text-green-400'
                           : 'text-red-400'
                       }`}
@@ -380,9 +380,9 @@ const TradeReceiptPanel = ({
                           Entitlements Out:
                         </div>
                         {team.outgoingEntitlements.map((entitlement, entitlementIndex) => {
-                          const pickRow = projectEntitlementToPickRow(entitlement, {
+                          const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
                             teamCode: team.teamCode,
-                            pickRulesById,
+                            pickRulesById: pickRulesById as any,
                           });
                           const secondaryText =
                             getPickRowSecondaryText(pickRow);
@@ -424,9 +424,9 @@ const TradeReceiptPanel = ({
                           Entitlements In:
                         </div>
                         {team.incomingEntitlements.map((entitlement, entitlementIndex) => {
-                          const pickRow = projectEntitlementToPickRow(entitlement, {
+                          const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
                             teamCode: team.teamCode,
-                            pickRulesById,
+                            pickRulesById: pickRulesById as any,
                           });
                           const secondaryText =
                             getPickRowSecondaryText(pickRow);

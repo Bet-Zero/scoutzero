@@ -5,7 +5,6 @@ export interface TradePreviewTeamCoreLike {
   id?: string | number;
   teamId?: string | number;
   teamName?: string;
-  [key: string]: any;
 }
 
 export interface TradePreviewPlayerLike {
@@ -26,19 +25,14 @@ export interface TradePreviewPlayerLike {
   contract?: {
     freeAgency?: {
       year?: string | number | null;
-      [key: string]: any;
     } | null;
-    [key: string]: any;
   } | null;
   bio?: {
     displayName?: string;
     display?: {
       team?: string;
-      [key: string]: any;
     } | null;
-    [key: string]: any;
   } | null;
-  [key: string]: any;
 }
 
 export interface TradePreviewEntitlementLike {
@@ -52,26 +46,22 @@ export interface TradePreviewEntitlementLike {
   originTeamId?: string | number;
   fromTeamId?: string | number;
   toTeamId?: string | number | null;
-  [key: string]: any;
 }
 
 export interface TradePreviewTeamLike {
   team?: TradePreviewTeamCoreLike | null;
   sends?: TradePreviewPlayerLike[] | null;
   entitlementsOut?: TradePreviewEntitlementLike[] | null;
-  [key: string]: any;
 }
 
 export interface TradePreviewSummaryLike {
   teamName?: string;
   capDelta?: number;
-  [key: string]: any;
 }
 
 export interface TradePreviewResultLike {
   legal?: boolean;
   summaryByTeamIndex?: Array<TradePreviewSummaryLike | null | undefined>;
-  [key: string]: any;
 }
 
 export interface TradePreviewModalProps {

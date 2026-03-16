@@ -87,7 +87,7 @@ const TradeExceptionDashboard = ({
                 <div>
                   Expires:{' '}
                   <span className="text-white/60">
-                    {formatDate(getTpeExpiryISO(team.createdTPE as TpeLike))}
+                    {formatDate(getTpeExpiryISO(team.createdTPE))}
                   </span>
                 </div>
                 <div className="text-white/50 mt-1">

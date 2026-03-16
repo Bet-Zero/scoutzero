@@ -27,20 +27,20 @@ import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 // Import kept for DEV preview; rendering is gated by showDevPreview below.
 import OffseasonTab from '@/features/architect/OffseasonTab';
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 
 type OffseasonSectionProps = {
   teamCapSheet: LooseRecord | null | undefined;
   setTeamCapSheet?: (...args: any[]) => any;
   currentYear: number;
   setCurrentYear: (...args: any[]) => any;
-  capProjections: Record<string, any> | null | undefined;
+  capProjections: Record<string, unknown> | null | undefined;
   setLastCapSheet?: (...args: any[]) => any;
   offseasonRun?: boolean;
   setOffseasonRun: (...args: any[]) => any;
   setOffseasonSummary: (...args: any[]) => any;
   setShowOffseasonModal: (...args: any[]) => any;
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, unknown>;
   worldId?: string | null;
   teamCode?: string | null;
   onReloadWorldData?: (() => void) | null;
@@ -107,20 +107,21 @@ const OffseasonSection = ({
       setCurrentYear(toYear);
 
       // Phase 5 PATCH: Also update worldSeason to reflect the new season
-      setWorldSeason(result.toSeason);
+      setWorldSeason(result.toSeason as string);
 
       // Mark offseason as complete
       setOffseasonRun(true);
 
       // Store summary for display
+      const summary = result.summary as Record<string, unknown> | undefined;
       setOffseasonSummary({
-        declinedOptions: result.summary?.declinedOptions?.map((o: any) => o.playerName) || [],
-        expiredContracts: result.summary?.expiredContracts?.map((c: any) => c.playerName) || [],
+        declinedOptions: (Array.isArray(summary?.declinedOptions) ? summary.declinedOptions : []).map((o: any) => o.playerName),
+        expiredContracts: (Array.isArray(summary?.expiredContracts) ? summary.expiredContracts : []).map((c: any) => c.playerName),
         expiredTPEs: [],
         waivedDeadCap: [],
         resetMLE: true,
-        exercisedOptions: result.summary?.exercisedOptions || [],
-        stepienUpdates: result.summary?.stepienUpdates || [],
+        exercisedOptions: Array.isArray(summary?.exercisedOptions) ? summary.exercisedOptions : [],
+        stepienUpdates: Array.isArray(summary?.stepienUpdates) ? summary.stepienUpdates : [],
       });
       setShowOffseasonModal(true);
 

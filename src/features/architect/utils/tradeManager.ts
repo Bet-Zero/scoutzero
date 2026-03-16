@@ -20,7 +20,7 @@ import { buildTradeTeamInput } from '@/features/architect/utils/schemaAdapter';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 
-type UnknownRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
 interface TradeAssetPlayer extends UnknownRecord {
   player_id?: string;

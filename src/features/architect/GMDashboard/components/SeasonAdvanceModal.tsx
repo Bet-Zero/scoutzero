@@ -34,12 +34,10 @@ type SalaryByYearLike = {
   salary?: number | null;
   capHit?: number | null;
   guaranteed?: boolean;
-  [key: string]: unknown;
 };
 
 type ContractLike = {
   salariesByYear?: SalaryByYearLike[] | null;
-  [key: string]: unknown;
 };
 
 type PlayerLike = {
@@ -49,7 +47,6 @@ type PlayerLike = {
   name?: string | null;
   displayName?: string | null;
   contract?: ContractLike | null;
-  [key: string]: unknown;
 };
 
 type CapHoldLike = {
@@ -58,19 +55,16 @@ type CapHoldLike = {
   amount?: number | null;
   type?: string | null;
   expiresOn?: string | null;
-  [key: string]: unknown;
 };
 
 type TeamCapSheetLike = {
   players?: PlayerLike[] | null;
   capHolds?: CapHoldLike[] | null;
-  [key: string]: unknown;
 };
 
 type TpeLike = {
   amount?: number | null;
   source?: string | null;
-  [key: string]: unknown;
 };
 
 type PlayerOptionPreviewLike = {
@@ -105,7 +99,6 @@ type OptionDecisionLike = {
   optionType?: string | null;
   season?: string | null;
   playerName?: string | null;
-  [key: string]: unknown;
 };
 
 type OptionDecisionMap = Record<string, OptionDecisionLike>;
@@ -115,7 +108,6 @@ type AdvanceSummaryLike = {
   exercisedOptions?: Array<Record<string, unknown>>;
   expiredContracts?: Array<{ playerName?: string | null }>;
   stepienUpdates?: Array<Record<string, unknown>>;
-  [key: string]: unknown;
 };
 
 type AdvanceResultLike = {
@@ -124,12 +116,10 @@ type AdvanceResultLike = {
   toSeason?: string;
   summary?: AdvanceSummaryLike;
   updatedTeams?: string[];
-  [key: string]: unknown;
 };
 
 type ErrorLike = {
   message?: string;
-  [key: string]: unknown;
 };
 
 type SeasonAdvanceModalProps = {

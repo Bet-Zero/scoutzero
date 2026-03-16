@@ -1,15 +1,32 @@
-type LooseRecord = Record<string, any>;
+interface EnforcementPlayer {
+  hasNTC?: boolean;
+  consent?: boolean;
+  limitedNTC?: string[];
+  ntcTeamList?: string[];
+  hasBirdVeto?: boolean;
+  moratoriumEnd?: string | Date;
+  eligibleDate?: string | Date;
+  signedDate?: string | Date;
+  lastTradedFrom?: string;
+  lastTradeDate?: string | Date;
+  id?: string;
+}
+
+interface EnforcementTeam {
+  teamId?: string;
+  incomingPlayers?: EnforcementPlayer[];
+  projectedRosterCount?: number;
+  projectedTwoWayCount?: number;
+}
 
 type RuleContext = {
   asOfDate?: string | Date;
   daysUntilTrade?: number;
   daysInSeason?: number;
-  [key: string]: any;
 };
 
 type RuleOptions = {
   reject?: (message: string) => void;
-  [key: string]: any;
 };
 
 const defaultContext = {
@@ -19,13 +36,13 @@ const defaultContext = {
 };
 
 export function enforceConsent(
-  team: LooseRecord,
+  team: EnforcementTeam,
   { reject = () => {} }: RuleOptions = {}
 ) {
   const violations: string[] = [];
   const { incomingPlayers = [] } = team;
 
-  incomingPlayers.forEach((player: LooseRecord) => {
+  incomingPlayers.forEach((player) => {
     if (player.hasNTC && !player.consent) {
       reject('Player NTC — consent required');
       violations.push('Player NTC — consent required');
@@ -48,7 +65,7 @@ export function enforceConsent(
 }
 
 export function enforceTiming(
-  team: LooseRecord,
+  team: EnforcementTeam,
   ctx: RuleContext = defaultContext,
   { reject = () => {} }: RuleOptions = {}
 ) {
@@ -57,7 +74,7 @@ export function enforceTiming(
   const { asOfDate } = ctx;
   const currentDate = new Date(asOfDate);
 
-  incomingPlayers.forEach((player: LooseRecord) => {
+  incomingPlayers.forEach((player) => {
     if (player.moratoriumEnd && new Date(player.moratoriumEnd) > currentDate) {
       reject('Player cannot be traded during moratorium period');
       violations.push('Player cannot be traded during moratorium period');
@@ -87,7 +104,7 @@ export function enforceTiming(
 }
 
 export function enforceEligibility(
-  team: LooseRecord,
+  team: EnforcementTeam,
   ctx: RuleContext = defaultContext,
   { reject = () => {} }: RuleOptions = {}
 ) {
@@ -96,7 +113,7 @@ export function enforceEligibility(
   const { asOfDate } = ctx;
   const currentDate = new Date(asOfDate);
 
-  incomingPlayers.forEach((player: LooseRecord) => {
+  incomingPlayers.forEach((player) => {
     if (player.lastTradedFrom === team.teamId) {
       const lastTradeDate = new Date(player.lastTradeDate);
       const daysSince =
@@ -116,7 +133,7 @@ export function enforceEligibility(
 }
 
 export function enforceRosterWindow(
-  team: LooseRecord,
+  team: EnforcementTeam,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _ctx: RuleContext = {},
   { reject = () => {} }: RuleOptions = {}

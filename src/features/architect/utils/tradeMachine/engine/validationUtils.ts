@@ -8,7 +8,7 @@ import { validationCache } from '../cache/validationCacheService.js';
 import { debug } from './engineUtils.js';
 import tradeDebug from './tradeDebug.js';
 
-type ValidatorFunction<TArgs extends unknown[] = unknown[], TResult = unknown> = (
+type ValidatorFunction<TArgs extends any[] = any[], TResult = unknown> = (
   ...args: TArgs
 ) => TResult;
 

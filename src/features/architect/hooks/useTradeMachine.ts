@@ -29,7 +29,7 @@ import {
   hasSyntheticSntPlayers,
 } from '@/features/architect/tradeMachine/utils/devSntInjector';
 
-type UnknownRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
 type TradeMachinePlayer = UnknownRecord;
 type TradeMachineEntitlement = UnknownRecord;
@@ -93,12 +93,12 @@ const ENABLE_PICK_RULES = import.meta?.env?.VITE_ENABLE_PICK_RULES !== 'false';
 function resolveTeamCodeLike(
   teamObjOrId: UnknownRecord | string | null | undefined,
   teamDataMaybe: UnknownRecord | null = null
-) {
+): string | null {
   const teamObj =
     teamObjOrId && typeof teamObjOrId === 'object' ? teamObjOrId : null;
 
   // Prefer teamData.teamCode if present
-  if (teamDataMaybe?.teamCode) {
+  if (typeof teamDataMaybe?.teamCode === 'string' && teamDataMaybe.teamCode) {
     return teamDataMaybe.teamCode;
   }
   // Else if teamData.id is exactly length 3, use that
@@ -122,11 +122,12 @@ function resolveTeamCodeLike(
     return teamObj.id;
   }
   // Else attempt teamData.team?.id if 3 chars
+  const teamDataTeam = teamDataMaybe?.team as UnknownRecord | undefined;
   if (
-    typeof teamDataMaybe?.team?.id === 'string' &&
-    teamDataMaybe.team.id.length === 3
+    typeof teamDataTeam?.id === 'string' &&
+    teamDataTeam.id.length === 3
   ) {
-    return teamDataMaybe.team.id;
+    return teamDataTeam.id;
   }
   // Could not resolve
   if (DEBUG_ENT) {
@@ -172,7 +173,7 @@ const deepMergeEntitlement = (base: UnknownRecord, override: UnknownRecord) => {
   Object.entries(override).forEach(([key, value]) => {
     const baseValue = base[key];
     if (isPlainObjectValue(baseValue) && isPlainObjectValue(value)) {
-      merged[key] = deepMergeEntitlement(baseValue, value);
+      merged[key] = deepMergeEntitlement(baseValue as UnknownRecord, value as UnknownRecord);
       return;
     }
     merged[key] = value;
@@ -195,13 +196,13 @@ const extractPickIdsFromEntitlements = (
 
   const pickIds = new Set<string>();
   for (const ent of entitlements) {
-    if (ent.underlyingPickId) pickIds.add(ent.underlyingPickId);
+    if (ent.underlyingPickId) pickIds.add(String(ent.underlyingPickId));
     if (Array.isArray(ent.poolUnderlyingPickIds)) {
-      ent.poolUnderlyingPickIds.forEach(
+      (ent.poolUnderlyingPickIds as string[]).forEach(
         (id) => id && pickIds.add(id)
       );
     }
-    if (ent.swapControllerPickId) pickIds.add(ent.swapControllerPickId);
+    if (ent.swapControllerPickId) pickIds.add(String(ent.swapControllerPickId));
   }
   return Array.from(pickIds);
 };

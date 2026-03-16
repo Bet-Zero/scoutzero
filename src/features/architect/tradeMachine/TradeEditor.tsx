@@ -26,7 +26,6 @@ type PlayerLike = {
   player_id?: string | number;
   name?: string;
   tradeTo?: string | null;
-  [key: string]: any;
 };
 
 type TeamLike = {
@@ -34,7 +33,6 @@ type TeamLike = {
   teamId?: string;
   teamCode?: string;
   pickRulesById?: Record<string, unknown>;
-  [key: string]: any;
 };
 
 type EntitlementLike = {
@@ -51,20 +49,18 @@ type EntitlementLike = {
   kind?: string;
   protectionDetails?: string | null;
   protection?: string | null;
-  [key: string]: any;
+  fromTeamId?: string | null;
 };
 
 type TradeTeamSlotLike = {
   team?: TeamLike | null;
   sends: PlayerLike[];
   entitlementsOut?: EntitlementLike[];
-  [key: string]: any;
 };
 
 type TradeDataEntryLike = {
   teamId?: string;
   outgoingEntitlements?: EntitlementLike[];
-  [key: string]: any;
 };
 
 type TradeMachineSatModalState = {
@@ -75,7 +71,7 @@ type TradeMachineSatModalState = {
 
 type EntitlementEditorState = {
   entitlementId: string | number | null;
-  initialDocument: Record<string, any>;
+  initialDocument: Record<string, unknown>;
 } | null;
 
 type SignAndTradeResult = {
@@ -87,10 +83,10 @@ interface TradeEditorProps {
   primaryTeam?: string | null;
   capProjections?: Record<string, unknown> | null;
   currentYear?: number | null;
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, unknown>;
   onApplyTrade?: ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown) | null;
   primaryTeamData?: TeamLike | null;
-  onEditContract?: ((...args: any[]) => unknown) | null;
+  onEditContract?: ((...args: unknown[]) => unknown) | null;
   worldId?: string | null;
   worldAsOfDate?: string | Date | null;
   userId?: string | null;
@@ -228,7 +224,7 @@ const TradeEditor = ({
     return merged;
   }, [teams]);
 
-  const handleEditEntitlement = (entitlement) => {
+  const handleEditEntitlement = (entitlement: EntitlementLike | null | undefined) => {
     if (!canEditEntitlements) {
       toast.error('Entitlement authoring is disabled.');
       return;
@@ -251,7 +247,7 @@ const TradeEditor = ({
     });
   };
 
-  const handleCreateEntitlement = (teamCode) => {
+  const handleCreateEntitlement = (teamCode: string | null | undefined) => {
     if (!canEditEntitlements) {
       toast.error('Entitlement authoring is disabled.');
       return;
@@ -281,7 +277,7 @@ const TradeEditor = ({
   /**
    * Handle viewing entitlement details - shows a toast with parsed entitlement info
    */
-  const handleViewEntitlementDetails = (entitlement) => {
+  const handleViewEntitlementDetails = (entitlement: EntitlementLike | null | undefined) => {
     if (!entitlement) return;
 
     const year = entitlement.seasonYear || entitlement.year || '?';
@@ -334,10 +330,10 @@ const TradeEditor = ({
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_SNT_INJECTOR_FLAG) === 'true';
 
-  const resolveEntitlementTeamCode = (entitlement) =>
+  const resolveEntitlementTeamCode = (entitlement: EntitlementLike | null | undefined) =>
     entitlement?.holderTeam || entitlement?.holder_team || null;
 
-  const handleRevertEntitlementEdit = (entitlement) => {
+  const handleRevertEntitlementEdit = (entitlement: EntitlementLike | null | undefined) => {
     if (!isVacuumMode) return;
     const entitlementId = entitlement?.id || entitlement?.entitlementId;
     const teamCode = resolveEntitlementTeamCode(entitlement);
@@ -349,14 +345,14 @@ const TradeEditor = ({
       return;
     }
 
-    removeEdit(teamCode, entitlementId);
+    removeEdit(teamCode, String(entitlementId));
     refreshEntitlements();
     // TM-VACUUM-E3: Auto-validate after per-item revert
     handleValidate();
     toast.success('Session edit reverted');
   };
 
-  const handleDeleteSessionEntitlement = (entitlement) => {
+  const handleDeleteSessionEntitlement = (entitlement: EntitlementLike | null | undefined) => {
     if (!isVacuumMode) return;
     const entitlementId = entitlement?.id || entitlement?.entitlementId;
     const teamCode = resolveEntitlementTeamCode(entitlement);
@@ -368,7 +364,7 @@ const TradeEditor = ({
       return;
     }
 
-    removeCreate(teamCode, entitlementId);
+    removeCreate(teamCode, String(entitlementId));
     refreshEntitlements();
     // TM-VACUUM-E3: Auto-validate after per-item delete
     handleValidate();
@@ -378,7 +374,7 @@ const TradeEditor = ({
   const openTradeMachineSatModal = (
     teamIndex: number,
     player: PlayerLike,
-    defaultDestinationTeamId
+    defaultDestinationTeamId: string | null | undefined
   ) => {
     setTradeMachineSatModal({
       teamIndex,
@@ -393,8 +389,8 @@ const TradeEditor = ({
 
   const handleTradeMachineSignAndTrade = (
     player: PlayerLike,
-    contractPayload,
-    destinationTeamId
+    contractPayload: Record<string, unknown>,
+    destinationTeamId: string | null | undefined
   ): SignAndTradeResult => {
     if (!tradeMachineSatModal) {
       return { success: false, message: 'Sign-and-trade modal is not active.' };
@@ -425,7 +421,7 @@ const TradeEditor = ({
     const destinationTradeTeam = teams.find((tm) => {
       const teamId =
         tm?.team?.id || tm?.team?.teamCode || tm?.team?.teamId || null;
-      const teamCode = teamId ? resolveTeamCode(teamId) || teamId : null;
+      const teamCode = teamId ? resolveTeamCode(String(teamId)) || teamId : null;
       return teamCode === canonicalDestinationTeamCode;
     });
     const destinationTradeTeamId =
@@ -594,8 +590,8 @@ const TradeEditor = ({
                 onRequestSignAndTrade={(player, defaultDestinationTeamId) =>
                   openTradeMachineSatModal(
                     idx,
-                    player,
-                    defaultDestinationTeamId
+                    player as PlayerLike,
+                    defaultDestinationTeamId as string | null | undefined
                   )
                 }
                 // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
@@ -649,9 +645,9 @@ const TradeEditor = ({
                     const toTeam = ent.toTeamId;
                     if (entId && fromTeam && toTeam) {
                       applyVacuumTransfer(
-                        entId as any,
-                        fromTeam as any,
-                        toTeam as any
+                        String(entId),
+                        String(fromTeam),
+                        String(toTeam)
                       );
                     }
                   }
@@ -662,10 +658,10 @@ const TradeEditor = ({
                 await onApplyTrade(tradeData);
                 // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
                 refreshEntitlements();
-              } catch (error: any) {
+              } catch (error: unknown) {
                 console.error('[TradeEditor] Trade application failed:', error);
                 toast.error(
-                  `Failed to apply trade: ${error.message || 'Unknown error'}`
+                  `Failed to apply trade: ${error instanceof Error ? error.message : 'Unknown error'}`
                 );
               }
             }
@@ -683,10 +679,10 @@ const TradeEditor = ({
         {result && !result.legal && (
           <span
             className={`text-xs ${
-              result.override?.requested ? 'text-amber-300' : 'text-red-400'
+              (result.override as Record<string, unknown> | undefined)?.requested ? 'text-amber-300' : 'text-red-400'
             }`}
           >
-            {result.override?.requested
+            {(result.override as Record<string, unknown> | undefined)?.requested
               ? `Override requested, but authoritative validation still blocks this trade: ${
                   result.reason || 'Validation failed'
                 }`
@@ -704,7 +700,7 @@ const TradeEditor = ({
         teams={teams}
         forceTrade={forceTrade}
         calculatorTeamIndex={calculatorTeamIndex}
-        incomingAssets={incomingAssets as any}
+        incomingAssets={incomingAssets as Record<string, unknown>[]}
         salaryOut={salaryOut}
         capProjections={capProjections}
         yearKey={yearKey}

@@ -2069,6 +2069,19 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHIM_CLEANUP_AUDIT_E112_RETURN_PACKAGE.md`
 
+### Validator TS First Shim Deletion Batch E113 (2026-03-15)
+
+- Status:
+  - the first same-path shim deletion batch completed fully inside the exact E113 scope
+  - deleted all 39 planned same-path `.js/.jsx` shims and retained 0 of the planned 39
+  - runtime behavior remained unchanged; the paired `.ts/.tsx` authorities stayed in place as the surviving source of truth
+  - no broader wrapper, barrel, public-entry, or unrelated runtime cleanup was attempted, and the pass stayed inside the exact E113 deletion scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FIRST_SHIM_DELETION_BATCH_E113_RETURN_PACKAGE.md`
+
 ### Validator TS Grouped 33-File Scope (2026-03-15)
 
 - Status:

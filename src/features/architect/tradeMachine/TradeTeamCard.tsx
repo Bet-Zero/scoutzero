@@ -39,7 +39,8 @@ type PlayerLike = {
   absorptionMode?: string | null;
   tpeId?: string | null;
   bucketType?: string | null;
-  [key: string]: any;
+  bio?: { displayName?: string } | null;
+  mockSalary?: number;
 };
 
 type EntitlementLike = {
@@ -50,7 +51,8 @@ type EntitlementLike = {
   seasonYear?: number;
   round?: number;
   kind?: string;
-  [key: string]: any;
+  secondaryText?: string;
+  identityKey?: string;
 };
 
 type TeamLike = {
@@ -62,15 +64,13 @@ type TeamLike = {
   players?: PlayerLike[];
   entitlements?: EntitlementLike[];
   pickRulesById?: Record<string, unknown>;
-  capHolds?: any[];
-  [key: string]: any;
+  capHolds?: unknown[];
 };
 
 type TeamOptionLike = {
   id?: string;
   teamName?: string;
   teamCode?: string;
-  [key: string]: any;
 };
 
 interface TradeTeamCardProps {
@@ -78,16 +78,16 @@ interface TradeTeamCardProps {
   sends: PlayerLike[];
   yearKey: string | number;
   otherTeams?: TeamOptionLike[];
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, unknown>;
   incomingPlayers?: PlayerLike[];
   incomingEntitlements?: EntitlementLike[];
-  onSetPlayerTrade?: ((...args: any[]) => void) | null;
-  onUndoPlayerTrade?: ((...args: any[]) => void) | null;
-  onRequestSignAndTrade?: ((...args: any[]) => void) | null;
+  onSetPlayerTrade?: ((...args: unknown[]) => void) | null;
+  onUndoPlayerTrade?: ((...args: unknown[]) => void) | null;
+  onRequestSignAndTrade?: ((...args: unknown[]) => void) | null;
   onSelectTeam: (teamId: string) => void;
   onRemove?: (() => void) | null;
-  onEditContract?: ((...args: any[]) => unknown) | null;
-  validationResult?: Record<string, any> | null;
+  onEditContract?: ((...args: unknown[]) => unknown) | null;
+  validationResult?: Record<string, unknown> | null;
   teamIndex?: number | null;
   isValidating?: boolean;
   entitlementsOut?: EntitlementLike[];
@@ -108,7 +108,7 @@ interface TradeTeamCardProps {
  * Example: "HARD_CAP_SKIP" → "Hard cap skip", "TPE_ABSORPTION" → "TPE absorption"
  * If already readable (no underscores, already has spaces), returns as-is.
  */
-function formatSkipReasonLabel(skipReason) {
+function formatSkipReasonLabel(skipReason: unknown): string | null {
   if (!skipReason || typeof skipReason !== 'string') return null;
 
   // If already looks human-readable (contains spaces, no underscores), return as-is
@@ -185,7 +185,7 @@ const TradeTeamCard = ({
   } | null>(null);
   const hasTeam = Boolean(team);
   // Phase 65: Use canonical TPE accessor
-  const teamTradeExceptions: any[] = getTeamTpeList(team as any) as any[];
+  const teamTradeExceptions = getTeamTpeList(team as Record<string, unknown>);
 
   useEffect(() => {
     if (editingTeam && selectRef.current) {
@@ -220,23 +220,23 @@ const TradeTeamCard = ({
   // This ensures TradeTeamCard uses the SAME value as the Cap Sheet and validator
   const teamTotalSalary = useMemo(() => {
     if (!team) return 0;
-    const totals = computeTeamCapTotals(team as any, yearKey as any);
+    const totals = computeTeamCapTotals(team as Record<string, unknown>, Number(yearKey));
     return totals.totalCapAllocations || 0;
   }, [team, yearKey]);
 
   // Phase 1: Get snapshot from validator result (golden source of truth)
   // RULE: For legality-affecting numbers, use snapshot values; do NOT recompute locally
-  const snapshot: any = getTeamSnapshot(team?.id, validationResult as any);
+  const snapshot = getTeamSnapshot(team?.id, validationResult as Record<string, unknown>);
   const hasValidatorResult = snapshot !== null;
 
   // Phase 1: Outgoing/Incoming salaries come from validator snapshot
   // Fallback to local calculation ONLY when validator hasn't run yet (with visible indicator)
   const localOutgoingSalary = useMemo(
-    () => getSalaryForYear(sends as any, yearKey as any),
+    () => getSalaryForYear(sends, yearKey),
     [sends, yearKey]
   );
   const localIncomingSalary = useMemo(
-    () => getSalaryForYear(incomingPlayers as any, yearKey as any),
+    () => getSalaryForYear(incomingPlayers, yearKey),
     [incomingPlayers, yearKey]
   );
 
@@ -299,12 +299,12 @@ const TradeTeamCard = ({
   );
 
   // Use centralized cap settings provider for consistent cap/apron values
-  const capSettings: any = useMemo(() => {
-    return getCapSettingsForYear(yearKey as any);
+  const capSettings = useMemo(() => {
+    return getCapSettingsForYear(yearKey);
   }, [yearKey]);
 
-  const faBuckets: any[] = useMemo(
-    () => getTeamFaExceptionBuckets(team || {}) as any[],
+  const faBuckets = useMemo(
+    () => getTeamFaExceptionBuckets((team || {}) as Record<string, unknown>),
     [team]
   );
 
@@ -317,7 +317,7 @@ const TradeTeamCard = ({
       teamTotalSalary,
       outgoingSalary: localOutgoingSalary,
       capSettings: {
-        salaryCap: capSettings.salaryCap || capSettings.cap || 0,
+        salaryCap: capSettings.salaryCap || Number(capSettings.cap) || 0,
         firstApron: capSettings.firstApron || 0,
         secondApron: capSettings.secondApron || 0,
       },
@@ -391,10 +391,10 @@ const TradeTeamCard = ({
     const seasonKey =
       typeof yearKey === 'string' && yearKey.includes('-')
         ? yearKey
-        : toSeasonKey(yearKey as any);
+        : toSeasonKey(yearKey);
 
     return incomingPlayers.filter((player) => {
-      const playerSalary = getCapHitForSeason(player as any, seasonKey as any) || 0;
+      const playerSalary = getCapHitForSeason(player as Record<string, unknown>, seasonKey) || 0;
       return (teamTradeExceptions || []).some(
         (tpe) =>
           !tpe.isUsed &&
@@ -458,7 +458,7 @@ const TradeTeamCard = ({
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
-        snapshot={snapshot}
+        snapshot={snapshot ? { ...snapshot } : null}
         compact={compact}
         isValidating={isValidating}
       />
@@ -524,13 +524,13 @@ const TradeTeamCard = ({
             <div className="flex flex-wrap gap-2 mt-1 px-1">
               {sends.map((p) => {
                 // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
-                const baseSalary = getSalaryForYear([p] as any, yearKey as any);
+                const baseSalary = getSalaryForYear([p], yearKey);
                 const matchingValue = p.matchOutgoing ?? baseSalary;
                 const hasPlayerAdjustment =
                   Math.abs(matchingValue - baseSalary) > 1;
 
                 // P1: Use shared utility for adjustment type detection
-                const adjustmentLabel = getAdjustmentTooltipLabel(p as any);
+                const adjustmentLabel = getAdjustmentTooltipLabel(p as Record<string, unknown>);
                 const tooltipText = `${adjustmentLabel}: Base ${formatSalary(
                   baseSalary
                 )} → Match ${formatSalary(matchingValue)}`;
@@ -637,13 +637,13 @@ const TradeTeamCard = ({
             <div className="flex flex-wrap gap-2 mt-1 px-1">
               {incomingPlayers.map((p) => {
                 // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
-                const baseSalary = getSalaryForYear([p] as any, yearKey as any);
+                const baseSalary = getSalaryForYear([p], yearKey);
                 const matchingValue = p.matchIncoming ?? baseSalary;
                 const hasPlayerAdjustment =
                   Math.abs(matchingValue - baseSalary) > 1;
 
                 // P1: Use shared utility for adjustment type detection
-                const adjustmentLabel = getAdjustmentTooltipLabel(p as any);
+                const adjustmentLabel = getAdjustmentTooltipLabel(p as Record<string, unknown>);
                 const tooltipText = `${adjustmentLabel}: Base ${formatSalary(
                   baseSalary
                 )} → Match ${formatSalary(matchingValue)}`;
@@ -969,8 +969,8 @@ const TradeTeamCard = ({
                               const amount = formatMillions(tpe.amount, 1);
                               const tpeName = tpe.name || tpe.createdFrom;
                               const playerSalary = getSalaryForYear(
-                                [p] as any,
-                                yearKey as any
+                                [p],
+                                yearKey
                               );
                               const fits = tpe.amount >= playerSalary;
                               return (
@@ -1001,8 +1001,8 @@ const TradeTeamCard = ({
                               isFaExceptionEligibleType(b.type, validationFlags)
                             )
                             .map((b) => (
-                              <option key={b.type} value={b.type}>
-                                {b.type} (${b.remaining})
+                              <option key={String(b.type)} value={String(b.type)}>
+                                {String(b.type)} (${Number(b.remaining)})
                               </option>
                             ))}
                         </select>

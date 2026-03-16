@@ -20,7 +20,7 @@
  * @module schemaAdapter
  */
 
-type UnknownRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
 interface TotalsLike extends UnknownRecord {
   totalSalary?: number;

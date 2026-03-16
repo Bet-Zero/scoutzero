@@ -100,7 +100,7 @@ export const wouldExceedHardCap = (
     hardCapLimit = capSettings.secondApron;
   }
 
-  return hardCapLimit !== null && projectedTotalSalary > hardCapLimit;
+  return hardCapLimit !== null && Number(projectedTotalSalary) > Number(hardCapLimit);
 };
 
 export const getHardCapLimit = (
@@ -136,23 +136,21 @@ export const isHardCappedAtFirstApron = (
 
   if (teamSeasonState.faExceptionBuckets) {
     const hardCapTriggers = ['NTMLE', 'BAE'];
-    const hasUsedHardCapException = (
-      teamSeasonState.faExceptionBuckets as HardCapBucketLike[]
-    ).some(
+    const hasUsedHardCapException = teamSeasonState.faExceptionBuckets.some(
       (bucket) =>
         hardCapTriggers.includes(String(bucket.type)) &&
-        ((bucket.used as any) > 0 ||
-          (bucket.remaining as any) < (bucket.amount as any))
+        (Number(bucket.used) > 0 ||
+          Number(bucket.remaining) < Number(bucket.amount))
     );
     if (hasUsedHardCapException) {
       return true;
     }
   }
 
-  const mle = (teamSeasonState.mle || {}) as HardCapUsageState;
-  const bae = (teamSeasonState.bae || {}) as HardCapUsageState;
-  const usedNTPMLE = ((mle.used || 0) as any) > 0;
-  const usedBAE = ((bae.used || 0) as any) > 0;
+  const mle = teamSeasonState.mle || {};
+  const bae = teamSeasonState.bae || {};
+  const usedNTPMLE = Number(mle.used || 0) > 0;
+  const usedBAE = Number(bae.used || 0) > 0;
   if (usedNTPMLE || usedBAE) {
     return true;
   }
@@ -180,23 +178,21 @@ export const isHardCappedAtSecondApron = (
 export const getFirstApronHardCapReason = (
   teamSeasonState: HardCapTeamState = {}
 ): string => {
-  const mle = (teamSeasonState.mle || {}) as HardCapUsageState;
-  const bae = (teamSeasonState.bae || {}) as HardCapUsageState;
-  const usedNTPMLE = ((mle.used || 0) as any) > 0;
-  const usedBAE = ((bae.used || 0) as any) > 0;
+  const mle = teamSeasonState.mle || {};
+  const bae = teamSeasonState.bae || {};
+  const usedNTPMLE = Number(mle.used || 0) > 0;
+  const usedBAE = Number(bae.used || 0) > 0;
 
   if (usedNTPMLE && usedBAE) return 'Usage of Non-Taxpayer MLE & BAE';
   if (usedNTPMLE) return 'Usage of Non-Taxpayer MLE';
   if (usedBAE) return 'Usage of Bi-Annual Exception';
 
   if (teamSeasonState.faExceptionBuckets) {
-    const usedBuckets = (
-      teamSeasonState.faExceptionBuckets as HardCapBucketLike[]
-    ).filter(
+    const usedBuckets = teamSeasonState.faExceptionBuckets.filter(
       (bucket) =>
         ['NTMLE', 'BAE'].includes(String(bucket.type)) &&
-        ((bucket.used as any) > 0 ||
-          (bucket.remaining as any) < (bucket.amount as any))
+        (Number(bucket.used) > 0 ||
+          Number(bucket.remaining) < Number(bucket.amount))
     );
     if (usedBuckets.length > 0) {
       const names = usedBuckets

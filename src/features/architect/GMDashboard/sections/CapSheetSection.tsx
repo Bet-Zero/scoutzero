@@ -3,12 +3,12 @@ import ExceptionTracker from '@/features/architect/ExceptionTracker';
 import { DEV_CAP_SHEET_FIXTURE_FLAG } from '@/features/architect/capSheet/devCapSheetFixtures';
 
 type CapSheetSectionProps = {
-  teamCapSheet: Record<string, any> | null | undefined;
+  teamCapSheet: Record<string, unknown> | null | undefined;
   currentYear: number;
   onSelectPlayer?: (...args: any[]) => any;
   onSetDeadCap?: (...args: any[]) => any;
   onSetExceptions?: (...args: any[]) => any;
-  playersMap?: Record<string, any>;
+  playersMap?: Record<string, unknown>;
   onInjectCapSheetFixtures?: (() => void) | null;
   onClearCapSheetFixtures?: (() => void) | null;
   hasInjectedCapSheetFixtures?: boolean;

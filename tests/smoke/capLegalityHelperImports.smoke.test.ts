@@ -10,7 +10,11 @@ const MODULE_CASES = [
   {
     label: 'contractNormalization',
     aliasBase: '@/features/architect/utils/contractNormalization',
-    shimPath: path.resolve(
+    authorityPath: path.resolve(
+      __dirname,
+      '../../src/features/architect/utils/contractNormalization.ts'
+    ),
+    deletedPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/contractNormalization.js'
     ),
@@ -38,7 +42,11 @@ const MODULE_CASES = [
   {
     label: 'capHoldTransitionHelpers',
     aliasBase: '@/features/architect/utils/capHoldTransitionHelpers',
-    shimPath: path.resolve(
+    authorityPath: path.resolve(
+      __dirname,
+      '../../src/features/architect/utils/capHoldTransitionHelpers.ts'
+    ),
+    deletedPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/capHoldTransitionHelpers.js'
     ),
@@ -63,27 +71,21 @@ const MODULE_CASES = [
 
 describe('cap legality helper import compatibility', () => {
   for (const moduleCase of MODULE_CASES) {
-    it(`resolves ${moduleCase.label} via extensionless and explicit .js imports`, async () => {
+    it(`resolves ${moduleCase.label} via extensionless imports after the E113 shim deletion batch`, async () => {
       const extensionless = await import(moduleCase.aliasBase);
-      const withJs = await import(`${moduleCase.aliasBase}.js`);
 
       for (const exportName of moduleCase.exportNames) {
         expect(extensionless[exportName]).toBeDefined();
-        expect(withJs[exportName]).toBe(extensionless[exportName]);
       }
     });
   }
 
-  it('kept js files remain pure compatibility shims', () => {
+  it('deleted batch js files stay absent while TS authorities remain in place', () => {
     for (const moduleCase of MODULE_CASES) {
-      const shimContent = fs.readFileSync(moduleCase.shimPath, 'utf8');
-      const tsBasename = path.basename(moduleCase.shimPath, '.js');
+      const authorityContent = fs.readFileSync(moduleCase.authorityPath, 'utf8');
 
-      expect(shimContent).toContain(`export * from './${tsBasename}.ts';`);
-
-      for (const absentToken of moduleCase.absentTokens) {
-        expect(shimContent).not.toContain(absentToken);
-      }
+      expect(fs.existsSync(moduleCase.deletedPath)).toBe(false);
+      expect(authorityContent.length).toBeGreaterThan(0);
     }
   });
 });

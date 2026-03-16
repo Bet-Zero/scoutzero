@@ -164,10 +164,10 @@ function normalizeDecisionValue(rawDecision: any): {
 }
 
 function normalizeOptionDecisions(
-  optionDecisions: Record<string, any> | null | undefined,
+  optionDecisions: Record<string, unknown> | null | undefined,
   players: any[]
-): { decisionsById: Record<string, any>; violations: OffseasonViolation[] } {
-  const decisionsById: Record<string, any> = {};
+): { decisionsById: Record<string, unknown>; violations: OffseasonViolation[] } {
+  const decisionsById: Record<string, unknown> = {};
   const violations: OffseasonViolation[] = [];
 
   if (!optionDecisions || typeof optionDecisions !== 'object') {
@@ -227,8 +227,8 @@ function normalizeOptionDecisions(
 
     decisionsById[resolvedId] = {
       ...normalizedDecision,
-      optionType: normalizedDecision.optionType ?? rawDecision?.optionType,
-      season: normalizedDecision.season ?? rawDecision?.season,
+      optionType: normalizedDecision.optionType ?? (rawDecision as Record<string, unknown>)?.optionType,
+      season: normalizedDecision.season ?? (rawDecision as Record<string, unknown>)?.season,
     };
   }
 
@@ -320,8 +320,8 @@ function advanceDeadMoney(team: any, toYear: number): { hasChanges: boolean } {
   if (!team) return { hasChanges: false };
   let hasChanges = false;
 
-  const filterDeadCapObject = (deadCap: Record<string, any>) => {
-    const remaining: Record<string, any> = {};
+  const filterDeadCapObject = (deadCap: Record<string, unknown>) => {
+    const remaining: Record<string, unknown> = {};
     for (const [year, amount] of Object.entries(deadCap || {})) {
       if (Number(year) >= toYear) {
         remaining[year] = amount;
@@ -497,7 +497,7 @@ function validateOffseasonState(
     }
   }
 
-  const exceptionSubset: Record<string, any> = {};
+  const exceptionSubset: Record<string, unknown> = {};
   if (team?.exceptions && typeof team.exceptions === 'object') {
     for (const key of ['mle', 'tpmle', 'bae', 'room']) {
       if (team.exceptions[key]) {
@@ -579,7 +579,7 @@ export function resolveOffseasonTransition({
   teamCapSheet: any;
   fromYear: number;
   toYear: number;
-  optionDecisions?: Record<string, any>;
+  optionDecisions?: Record<string, unknown>;
   context?: OffseasonTransitionContext;
 }): OffseasonTransitionResult {
   if (!teamCapSheet) {
@@ -659,7 +659,7 @@ export function resolveOffseasonTransition({
 
     if (optionYearIndex === -1) continue;
 
-    const decision = decisionsById[decisionKey];
+    const decision = decisionsById[decisionKey] as Record<string, unknown> | undefined;
     if (!decision) {
       continue; // no decision provided; leave option untouched
     }

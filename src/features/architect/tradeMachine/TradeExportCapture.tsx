@@ -245,7 +245,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                                 typeof e.termsShort === 'string'
                                   ? e.termsShort
                                   : formatEntitlementTermsShort(
-                                      normalizeEntitlementTerms(e)
+                                      normalizeEntitlementTerms({ ...e })
                                     );
 
                               return (

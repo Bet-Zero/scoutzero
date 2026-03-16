@@ -9,7 +9,7 @@
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
 import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 type LoosePick = LooseRecord;
 type StepienCalendarEntry = {
   status: string;
@@ -25,10 +25,10 @@ function getProtectionText(pick: LoosePick | null | undefined): string | null {
 
   // Prefer protectionMeta if present
   if (pick.protectionMeta) {
-    const { type, maxPosition } = pick.protectionMeta;
-    switch (type) {
+    const meta = pick.protectionMeta as { type?: string; maxPosition?: number };
+    switch (meta.type) {
       case 'position':
-        return maxPosition ? `Top ${maxPosition}` : null;
+        return meta.maxPosition ? `Top ${meta.maxPosition}` : null;
       case 'lottery':
         return 'Lottery';
       case 'playoff':
@@ -43,12 +43,13 @@ function getProtectionText(pick: LoosePick | null | undefined): string | null {
   }
 
   // Fall back to protection string (skip "Swap (+/-)" legacy values)
-  if (pick.protection && pick.protection !== 'Swap (+)' && pick.protection !== 'Swap (-)') {
-    return pick.protection;
+  const protection = pick.protection as string | undefined;
+  if (protection && protection !== 'Swap (+)' && protection !== 'Swap (-)') {
+    return protection;
   }
 
   // Fall back to protectionText field if available
-  return pick.protectionText ?? null;
+  return (pick.protectionText as string) ?? null;
 }
 
 export function buildFirstRoundCalendar({
@@ -66,20 +67,22 @@ export function buildFirstRoundCalendar({
   ) as StepienCalendar;
 
   existingPicks.forEach((p) => {
-    if (!cal[p.year]) return;
+    const yr = p.year as number;
+    if (!cal[yr]) return;
     const protectionText = getProtectionText(p);
-    cal[p.year] = {
+    cal[yr] = {
       status: protectionText ? 'protected' : 'owed',
       protection: protectionText,
     };
   });
 
   picksOfferedInTrade.forEach((p) => {
-    if (!cal[p.year]) return;
+    const yr = p.year as number;
+    if (!cal[yr]) return;
     const protectionText = getProtectionText(p);
     // Phase 4: Use isMeaningfulProtection to determine if protected
     const hasMeaningfulProtection = isMeaningfulProtection(p);
-    cal[p.year] = {
+    cal[yr] = {
       status: hasMeaningfulProtection ? 'protected' : 'outgoing',
       protection: protectionText,
     };

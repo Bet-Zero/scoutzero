@@ -11,43 +11,39 @@ vi.mock('@/shared/hooks/useImageDownload', () => ({
 
 describe('E99 Trade Machine preview/export compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const shimExpectations = [
+  const deletedBatchCases = [
     [
       'tradeMachine/TradePreviewModal.jsx',
-      "export { default } from './TradePreviewModal.tsx';",
+      'tradeMachine/TradePreviewModal.tsx',
+      'export default TradePreviewModal;',
+      TradePreviewModal,
     ],
     [
       'tradeMachine/TradeExportCapture.jsx',
-      "export { default } from './TradeExportCapture.tsx';",
+      'tradeMachine/TradeExportCapture.tsx',
+      'export default TradeExportCapture;',
+      TradeExportCapture,
     ],
   ] as const;
 
-  shimExpectations.forEach(([relativePath, expectedSource]) => {
-    it(`${relativePath} remains a pure compatibility shim`, () => {
-      const shimPath = path.join(srcRoot, relativePath);
-      const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-      expect(source).toBe(expectedSource);
+  deletedBatchCases.forEach(([relativePath]) => {
+    it(`${relativePath} is absent after the E113 shim deletion batch`, () => {
+      const deletedPath = path.join(srcRoot, relativePath);
+      expect(fs.existsSync(deletedPath)).toBe(false);
     });
   });
 
-  it('TradePreviewModal explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradePreviewModal.jsx'
-    );
+  deletedBatchCases.forEach(
+    ([, authorityPath, expectedExportSnippet, importedValue]) => {
+      it(`${authorityPath} remains the surviving authority export`, () => {
+        const authoritySource = fs.readFileSync(
+          path.join(srcRoot, authorityPath),
+          'utf-8'
+        );
 
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect('default' in explicitJsxModule).toBe(true);
-    expect(explicitJsxModule.default).toBe(TradePreviewModal);
-  });
-
-  it('TradeExportCapture explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/TradeExportCapture.jsx'
-    );
-
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
-    expect('default' in explicitJsxModule).toBe(true);
-    expect(explicitJsxModule.default).toBe(TradeExportCapture);
-  });
+        expect(authoritySource).toContain(expectedExportSnippet);
+        expect(importedValue).toBeDefined();
+      });
+    }
+  );
 });

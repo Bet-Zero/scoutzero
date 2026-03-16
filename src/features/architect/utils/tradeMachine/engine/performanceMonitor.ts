@@ -4,10 +4,47 @@
 
 import { validationCache } from '../cache/validationCache.js';
 
-type PerformanceReportStats = Record<string, any>;
+interface TimingEntry {
+  type: string;
+  startTime: number;
+  context: Record<string, unknown>;
+}
+
+interface TimingReport {
+  type: string;
+  duration: number;
+  timestamp: number;
+  context: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
+interface TypeStats {
+  count: number;
+  averageTime: number;
+  minTime: number;
+  maxTime: number;
+  totalTime: number;
+}
+
+interface PerformanceRecommendation {
+  type: string;
+  validationType: string;
+  averageTime?: number;
+  count?: number;
+  suggestion: string;
+}
+
+interface MonitorMetrics {
+  validationsPerformed: number;
+  totalTime: number;
+  averageTime: number;
+}
 
 export class PerformanceMonitor {
-  [key: string]: any;
+  timings: Map<string, TimingEntry>;
+  reports: TimingReport[];
+  validationTypes: Set<string>;
+  metrics: MonitorMetrics;
 
   constructor() {
     this.timings = new Map();
@@ -23,7 +60,7 @@ export class PerformanceMonitor {
   /**
    * Start timing a validation operation
    */
-  startTiming(validationType: string, context: Record<string, any> = {}) {
+  startTiming(validationType: string, context: Record<string, unknown> = {}) {
     const key = `${validationType}_${Date.now()}_${Math.random()}`;
     this.timings.set(key, {
       type: validationType,
@@ -37,7 +74,7 @@ export class PerformanceMonitor {
   /**
    * End timing a validation operation
    */
-  endTiming(key: string, result: Record<string, any> = {}) {
+  endTiming(key: string, result: Record<string, unknown> = {}) {
     const timing = this.timings.get(key);
     if (!timing) return null;
 
@@ -46,7 +83,7 @@ export class PerformanceMonitor {
 
     this.timings.delete(key);
 
-    const report = {
+    const report: TimingReport = {
       type: timing.type,
       duration,
       timestamp: Date.now(),
@@ -73,8 +110,14 @@ export class PerformanceMonitor {
   /**
    * Get performance report for validation types
    */
-  getReport() {
-    const typeStats = new Map();
+  getReport(): Record<string, TypeStats> {
+    const typeStats = new Map<string, {
+      count: number;
+      totalTime: number;
+      minTime: number;
+      maxTime: number;
+      times: number[];
+    }>();
 
     for (const report of this.reports) {
       if (!typeStats.has(report.type)) {
@@ -87,7 +130,7 @@ export class PerformanceMonitor {
         });
       }
 
-      const stats = typeStats.get(report.type);
+      const stats = typeStats.get(report.type)!;
       stats.count++;
       stats.totalTime += report.duration;
       stats.minTime = Math.min(stats.minTime, report.duration);
@@ -95,7 +138,7 @@ export class PerformanceMonitor {
       stats.times.push(report.duration);
     }
 
-    const result = {};
+    const result: Record<string, TypeStats> = {};
     for (const [type, stats] of typeStats) {
       result[type] = {
         count: stats.count,
@@ -138,13 +181,11 @@ export class PerformanceMonitor {
   /**
    * Generate performance recommendations
    */
-  generateRecommendations() {
+  generateRecommendations(): PerformanceRecommendation[] {
     const report = this.getReport();
-    const recommendations: PerformanceReportStats[] = [];
+    const recommendations: PerformanceRecommendation[] = [];
 
-    for (const [type, stats] of Object.entries(report) as Array<
-      [string, PerformanceReportStats]
-    >) {
+    for (const [type, stats] of Object.entries(report)) {
       if (stats.averageTime > 50) {
         // ms
         recommendations.push({

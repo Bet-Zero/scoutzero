@@ -35,7 +35,7 @@ interface TradeSalaryCalculatorProps {
 }
 
 function normalizeCapSettings(
-  rawCapSettings: Record<string, any> | null | undefined,
+  rawCapSettings: Record<string, unknown> | null | undefined,
   yearKey: string | number | null = null
 ): NormalizedCapSettings {
   if (!rawCapSettings || typeof rawCapSettings !== 'object') {
@@ -47,10 +47,10 @@ function normalizeCapSettings(
     };
   }
 
-  let settings: Record<string, any> = rawCapSettings;
+  let settings: Record<string, unknown> = rawCapSettings;
 
   if (yearKey && typeof settings[yearKey] === 'object' && settings[yearKey] !== null) {
-    settings = settings[yearKey];
+    settings = settings[yearKey] as Record<string, unknown>;
   } else if (yearKey) {
     const seasonKey =
       typeof yearKey === 'number'
@@ -61,7 +61,7 @@ function normalizeCapSettings(
       typeof settings[seasonKey] === 'object' &&
       settings[seasonKey] !== null
     ) {
-      settings = settings[seasonKey];
+      settings = settings[seasonKey] as Record<string, unknown>;
     }
   }
 
@@ -90,7 +90,7 @@ const TradeSalaryCalculator = ({
   const [incomingSalary, setIncomingSalary] = useState(0);
 
   const normalizedCap = useMemo(
-    () => normalizeCapSettings(capSettings || null, yearKey),
+    () => normalizeCapSettings(capSettings ? { ...capSettings } : null, yearKey),
     [capSettings, yearKey]
   );
   const { hasValidCapSettings } = normalizedCap;

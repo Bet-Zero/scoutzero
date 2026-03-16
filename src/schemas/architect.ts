@@ -432,6 +432,19 @@ export const BasePlayerDocZ = z.object({
 export const WorldTeamSnapshotZ = BaseTeamDocZ.extend({});
 
 // Types
+export type EntitlementAsset = z.infer<typeof EntitlementAssetZ>;
+export type WorldEntitlementOverride = z.infer<typeof WorldEntitlementOverrideZ>;
+export type DeadCapItem = z.infer<typeof DeadCapItemZ>;
+export type CapHoldItem = z.infer<typeof CapHoldItemZ>;
+export type Exceptions = z.infer<typeof ExceptionsZ>;
+export type ProtectionMeta = z.infer<typeof ProtectionMetaZ>;
+export type DraftPick = z.infer<typeof DraftPickZ>;
+export type TeamTotals = z.infer<typeof TeamTotalsZ>;
+export type ArchitectSource = z.infer<typeof ArchitectSourceZ>;
+export type GuaranteeScheduleEntry = z.infer<typeof GuaranteeScheduleEntryZ>;
+export type BasePlayerContractYear = z.infer<typeof BasePlayerContractYearZ>;
+export type BasePlayerContract = z.infer<typeof BasePlayerContractZ>;
+export type TradeException = z.infer<typeof TradeExceptionZ>;
 export type BaseTeamDoc = z.infer<typeof BaseTeamDocZ>;
 export type BasePlayerDoc = z.infer<typeof BasePlayerDocZ>;
 export type WorldTeamSnapshot = z.infer<typeof WorldTeamSnapshotZ>;

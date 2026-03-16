@@ -7,13 +7,13 @@ import {
   getMinimumSalary,
 } from '@/features/architect/utils/contractUtils';
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 
 type ContractEditorProps = {
   player: LooseRecord | null | undefined;
-  capProjections: Record<string, any> | null | undefined;
-  teamCapSheet?: Record<string, any> | null;
-  playersMap?: Record<string, any>;
+  capProjections: Record<string, unknown> | null | undefined;
+  teamCapSheet?: Record<string, unknown> | null;
+  playersMap?: Record<string, unknown>;
   onSign: (...args: any[]) => any;
 };
 
@@ -25,7 +25,7 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
     formatCurrencyFull(10000000)
   );
   const [raisePct, setRaisePct] = useState(0.08);
-  const [options, setOptions] = useState<Record<string, any>>({
+  const [options, setOptions] = useState<Record<string, unknown>>({
     playerOption: false,
     teamOption: false,
   });
@@ -45,16 +45,16 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
     setType(newType);
     if (newType === 'Max') {
       const contract = createMaxContract(
-        player.name,
-        player.yearsOfService,
+        player.name as string,
+        Number(player.yearsOfService),
         capProjections
       );
       setPreview(contract);
     } else if (newType === 'Rookie') {
-      const contract = generateRookieContract(player.draftPick || 10);
+      const contract = generateRookieContract(Number(player.draftPick || 10));
       setPreview(contract);
     } else if (newType === 'Minimum') {
-      const min = getMinimumSalary(player.yearsOfService);
+      const min = getMinimumSalary(Number(player.yearsOfService));
       const contract = generateContract({
         baseSalary: min,
         years: 1,
@@ -108,7 +108,7 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-3">
         Create Contract for{' '}
-        {player.displayName || player.bio?.displayName || player.name}
+        {String(player.displayName || (player.bio as Record<string, unknown> | undefined)?.displayName || player.name)}
       </h2>
 
       <label className="block mb-1">Contract Type:</label>
@@ -161,7 +161,7 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={options.playerOption}
+              checked={Boolean(options.playerOption)}
               onChange={(e) =>
                 setOptions({
                   ...options,
@@ -178,7 +178,7 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={options.teamOption}
+              checked={Boolean(options.teamOption)}
               onChange={(e) =>
                 setOptions({
                   ...options,

@@ -1,6 +1,6 @@
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
-type UnknownRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
 interface SyntheticSntPlayerLike extends UnknownRecord {
   id?: any;

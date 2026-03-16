@@ -25,12 +25,12 @@ interface ValidationDetailsPanelProps {
   teams?: TeamLike[];
   forceTrade?: boolean;
   calculatorTeamIndex?: number;
-  incomingAssets?: Array<{ players?: TeamPlayerLike[]; [key: string]: any }>;
+  incomingAssets?: Array<{ players?: TeamPlayerLike[]; entitlements?: TeamEntitlementLike[] }>;
   salaryOut?: number[];
   capProjections?: CapSettingsLike | null;
   yearKey?: string | number | null;
   onCalculatorTeamChange?: ((teamIndex: number) => void) | null;
-  pickRulesById?: Record<string, any>;
+  pickRulesById?: Record<string, unknown>;
   showSntInjector?: boolean;
   hasInjectedSntPlayers?: boolean;
   onInjectSntPlayers?: (() => void) | null;
@@ -106,10 +106,10 @@ const ValidationDetailsPanel = ({
   const hasMultipleTeams = teamOptions.length > 1;
 
   const entitlementsByTeam = useMemo(() => {
-    const map: Record<string, TeamEntitlementLike[]> = {};
+    const map: Record<string, Record<string, unknown>[]> = {};
     for (const team of teams) {
       if (team.team?.id && Array.isArray(team.team.entitlements)) {
-        map[team.team.id] = team.team.entitlements;
+        map[team.team.id] = team.team.entitlements.map(e => ({ ...e }));
       }
     }
     return map;
@@ -117,7 +117,7 @@ const ValidationDetailsPanel = ({
 
   const selectedTeam = teams[calculatorTeamIndex];
   const teamResult = result?.teamResults?.[calculatorTeamIndex];
-  const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult);
+  const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult ? { ...teamResult } : null);
 
   return (
     <div className="mt-6 space-y-4" data-testid="validation-details-panel">

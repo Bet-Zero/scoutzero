@@ -1,4 +1,4 @@
-export type AnyRecord = Record<string, any>;
+export type AnyRecord = Record<string, unknown>;
 
 export interface TeamUpdate {
   teamCode: string;
@@ -10,9 +10,8 @@ export interface ValidationIssue {
   severity: 'error' | 'warning' | string;
   rule: string;
   code: string;
-  details?: any;
-  meta?: Record<string, any> | null;
-  [key: string]: any;
+  details?: unknown;
+  meta?: Record<string, unknown> | null;
 }
 
 export interface TeamResult extends AnyRecord {

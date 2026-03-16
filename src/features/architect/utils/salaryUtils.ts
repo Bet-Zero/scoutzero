@@ -12,7 +12,7 @@
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
-type LooseCapSheet = Record<string, any> | null | undefined;
+type LooseCapSheet = Record<string, unknown> | null | undefined;
 
 /**
  * Calculate total payroll from cap sheet for a specific year/season.

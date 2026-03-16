@@ -1109,9 +1109,10 @@ describe('Phase D4: TRUE E2E Emulator Gate', () => {
         console.log(`[D4.C] FromSeason: ${result.fromSeason}`);
         console.log(`[D4.C] ToSeason: ${result.toSeason}`);
         console.log(`[D4.C] Updated teams: ${result.updatedTeams?.join(', ')}`);
-        if (result.summary?.dareReceipt) {
+        const summaryObj = result.summary as Record<string, unknown> | undefined;
+        if (summaryObj?.dareReceipt) {
           console.log(
-            `[D4.C] DARE resolved: ${result.summary.dareReceipt.totalResolutions} entitlements`
+            `[D4.C] DARE resolved: ${(summaryObj.dareReceipt as Record<string, unknown>).totalResolutions} entitlements`
           );
         }
       }
