@@ -2397,6 +2397,29 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_BARREL_BATCH_E131_RETURN_PACKAGE.md`
 
+### Validator TS Final Architect Inventory Gate E132 (2026-03-20)
+
+- Status:
+  - completed Phase 7E by freezing the final Architect `.js` / `.jsx` inventory in `src/tests/architect/finalArchitectInventoryGate.e132.guardrail.test.ts`
+  - documented the exact 24 remaining Architect JS/JSX files as the intentional post-cleanup inventory:
+    - 13 nested component compatibility shims
+    - 5 hook compatibility shims
+    - 2 utility compatibility shims
+    - 1 intentional legacy compatibility contract: `src/features/architect/utils/tradeContext/legacy/index.js`
+    - 2 intentional non-twin JS compatibility utilities: `src/features/architect/utils/draftPickUtils.js` and `src/features/architect/utils/tradeMachine/rules/enforceEligibility.js`
+    - 1 embedded test artifact: `src/features/architect/utils/validatePhase21.test.js`
+  - added generic parity proof for the 21 same-path compat surfaces so every kept `.js` / `.jsx` wrapper still resolves to the same TS/TSX authority exports
+  - froze the final explicit Architect import allowlists:
+    - source/runtime allowlist: only `src/features/architect/utils/tradeMachine/utils/capSettingsProvider.ts` may import `@/features/architect/utils/capProjections.js`
+    - test allowlist: only the documented compatibility targets may be imported via explicit Architect `.js` / `.jsx` specifiers
+  - closed the Architect compatibility-shim retirement plan end-to-end; all Phase 7A-7E execution lanes are now complete
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:architect -- --reporter=dot`: PASS (206 files, 2797 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FINAL_ARCHITECT_INVENTORY_GATE_E132_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

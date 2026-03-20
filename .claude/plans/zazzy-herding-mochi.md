@@ -539,9 +539,21 @@ Desired end state:
 - new guardrail preventing fresh same-path Architect shims or new explicit `.js` / `.jsx` imports from being added by accident
 
 **Current status:**
-- Not started yet
-- Next step is the final Architect JS/JSX inventory scan plus the new source-scan guardrail
-- `src/features/architect/utils/tradeContext/legacy/index.js` is the only already-classified intentional legacy compatibility contract that should remain in scope during the inventory pass
+- ✅ complete in E132
+- The final inventory is now frozen at 24 remaining Architect `.js` / `.jsx` files:
+  - 13 nested component compatibility shims
+  - 5 hook compatibility shims
+  - 2 utility compatibility shims
+  - 1 intentional legacy compatibility contract: `src/features/architect/utils/tradeContext/legacy/index.js`
+  - 2 intentional non-twin JS compatibility utilities: `src/features/architect/utils/draftPickUtils.js` and `src/features/architect/utils/tradeMachine/rules/enforceEligibility.js`
+  - 1 embedded test artifact: `src/features/architect/utils/validatePhase21.test.js`
+- The final guardrail is `src/tests/architect/finalArchitectInventoryGate.e132.guardrail.test.ts`
+- It freezes:
+  - the exact remaining Architect JS/JSX inventory
+  - the exact 21-file same-path compat allowlist
+  - the single intentional source-side explicit Architect `.js` import: `src/features/architect/utils/tradeMachine/utils/capSettingsProvider.ts` -> `@/features/architect/utils/capProjections.js`
+  - the explicit test-only Architect `.js` / `.jsx` compatibility import-specifier allowlist
+- Phase 7E final inventory gate: ✅ complete
 
 ## Sequencing Rules
 
@@ -571,8 +583,19 @@ This follow-up plan is complete when:
 - remaining JS/JSX files in Architect are intentional and documented
 - the validation suite above passes after the final deletion wave
 
+**Current outcome:** ✅ all exit criteria satisfied in E132
+
 ## Assumptions
 
 - The TS/TSX files are already the source of truth for Architect behavior
 - Compatibility with explicit `.js` / `.jsx` Architect import paths is not itself a product requirement unless a test or intentional legacy contract says otherwise
 - Some compatibility surfaces, especially `tradeContext/legacy/index.js`, may stay permanently if preserving that contract is valuable
+
+## Plan Status
+
+- Phase 7A: ✅ complete
+- Phase 7B: ✅ complete
+- Phase 7C: ✅ complete
+- Phase 7D: ✅ complete
+- Phase 7E: ✅ complete
+- Architect compatibility-shim retirement plan: ✅ complete
