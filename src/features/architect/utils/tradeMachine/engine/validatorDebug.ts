@@ -38,7 +38,7 @@ export const validatorDebug = {
       validator,
       team: teamName,
       result: status,
-      details: result.details,
+      details: String(result.details || ''),
       violations: result.violations,
       timestamp: new Date().toISOString(),
     });
@@ -51,7 +51,7 @@ export const validatorDebug = {
 
   getValidationHistory(team: { teamName?: string }): ValidationLog[] {
     const teamName = team.teamName || 'Unknown Team';
-    return this.logs.filter((log) => log.team === teamName);
+    return this.logs.filter((log: ValidationLog) => log.team === teamName);
   },
 
   clear(): void {

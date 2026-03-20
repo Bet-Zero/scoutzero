@@ -338,6 +338,8 @@ function TradeSummaryPanel({
                           pickRulesById: pickRulesById as any,
                         });
                         const secondaryText = getPickRowSecondaryText(pickRow);
+                        const entitlementDescription =
+                          entitlement.description || '';
 
                         return (
                           <div
@@ -361,10 +363,10 @@ function TradeSummaryPanel({
                               </div>
                               <div
                                 className="text-white/50 text-[10px] truncate max-w-[120px]"
-                                title={entitlement.description}
+                                title={entitlementDescription}
                               >
-                                {entitlement.description?.slice(0, 25) || ''}
-                                {entitlement.description?.length > 25 ? '…' : ''}
+                                {entitlementDescription.slice(0, 25)}
+                                {entitlementDescription.length > 25 ? '…' : ''}
                               </div>
                             </div>
                             {secondaryText && (

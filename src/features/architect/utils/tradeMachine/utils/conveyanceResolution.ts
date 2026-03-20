@@ -323,7 +323,7 @@ export function resolveTeamConveyanceForYear(
       return resolved;
     } catch (err) {
       warnings.push(
-        `Pick ${conveyancePick.id || 'unknown'}: ${err.message}`
+        `Pick ${conveyancePick.id || 'unknown'}: ${err instanceof Error ? err.message : String(err)}`
       );
       return pick;
     }

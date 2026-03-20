@@ -57,13 +57,14 @@ const debug = {
   },
 
   logTrade(team: DebugTeam) {
+    const capSettings = team.context?.capSettings || {};
     this.log('', { team: team.team.teamName });
     this.log(`=== ${team.team.teamName} ===`, { team: team.team.teamName });
     this.log(`Current Salary: ${formatCurrency(team.team.totalSalary)}`, {
       team: team.team.teamName,
     });
     this.log(
-      `Status: ${getApronStatus(team.team.totalSalary, team.context.capSettings)}`,
+      `Status: ${getApronStatus(team.team.totalSalary, capSettings)}`,
       { team: team.team.teamName }
     );
   },
@@ -109,16 +110,16 @@ const debug = {
       rule: 'secondApron',
     });
     this.log(
-      `Trade Type: ${team.sends.length}-for-${team.incomingPlayers.length}`,
+      `Trade Type: ${(team.sends || []).length}-for-${(team.incomingPlayers || []).length}`,
       {
         team: team.team.teamName,
         rule: 'secondApron',
       }
     );
 
-    if (team.sends.length === 1) {
+    if ((team.sends || []).length === 1) {
       const outgoing = seasonKey
-        ? getCapHitForSeason(team.sends[0], seasonKey)
+        ? getCapHitForSeason((team.sends || [])[0], seasonKey)
         : 0;
       this.log(`1-to-Many max incoming: ${formatCurrency(outgoing)}`, {
         team: team.team.teamName,
@@ -168,13 +169,13 @@ const debug = {
     rule?: string | null;
   } = {}) {
     return this.records
-      .filter((r) => {
+      .filter((r: DebugRecord) => {
         if (!showSalary && r.salary) return false;
         if (team && r.team !== team) return false;
         if (rule && r.rule !== rule) return false;
         return true;
       })
-      .map((r) => `${r.time.toLocaleTimeString()} - ${r.msg}`);
+      .map((r: DebugRecord) => `${r.time.toLocaleTimeString()} - ${r.msg}`);
   },
 };
 

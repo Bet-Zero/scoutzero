@@ -28,6 +28,8 @@ import type {
   ResolvedFreeAgentPlayer,
 } from './types';
 
+type EditContractModalProps = Parameters<typeof EditContractModal>[0];
+
 const normalizeLookupKey = (name?: string) => {
   if (!name) return '';
   return name
@@ -119,9 +121,9 @@ const FreeAgentPool = ({
         capHit: salary,
         guaranteed: true,
         guaranteedAmount: salary,
-        option: null,
-        optionUsed: null,
-        tradeBonus: null,
+        option: null as any,
+        optionUsed: null as any,
+        tradeBonus: null as any,
       });
     }
 
@@ -145,7 +147,7 @@ const FreeAgentPool = ({
       options: values.options || {},
       signAndTrade: false,
       guaranteed: true,
-      isMinimum: values.salaries[0] <= 2200000,
+      isMinimum: (values.salaries[0] || 0) <= 2200000,
       yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
       signedUsing,
       exceptionType: selectedException || values.exceptionType,
@@ -166,7 +168,11 @@ const FreeAgentPool = ({
   const allAgents = freeAgents || [];
 
   const filteredAgents = useMemo(
-    () => applyFreeAgencyFilters(allAgents, filterState),
+    () =>
+      applyFreeAgencyFilters(
+        allAgents as Parameters<typeof applyFreeAgencyFilters>[0],
+        filterState as Parameters<typeof applyFreeAgencyFilters>[1]
+      ),
     [allAgents, filterState]
   );
 
@@ -211,7 +217,7 @@ const FreeAgentPool = ({
                   player={playerData}
                   askInfo={freeAgent}
                   onSelect={() => handleSelect(freeAgent)}
-                  isSelected={selectedNames.has(freeAgent.name)}
+                  isSelected={selectedNames.has(freeAgent.name || '')}
                   openMenu={openMenu}
                   setOpenMenu={setOpenMenu}
                   onSign={() => setContractPlayer(freeAgent)}
@@ -233,8 +239,12 @@ const FreeAgentPool = ({
           isOpen={!!contractPlayer}
           onClose={() => setContractPlayer(null)}
           onSave={handleSaveFromModal}
-          onSignAndTrade={onSignAndTrade}
-          onStoreOfferSheet={worldId ? onStoreOfferSheet : null}
+          onSignAndTrade={
+            onSignAndTrade as EditContractModalProps['onSignAndTrade']
+          }
+          onStoreOfferSheet={
+            (worldId ? onStoreOfferSheet : undefined) as EditContractModalProps['onStoreOfferSheet']
+          }
           actionsOverride={worldId ? ['signNew', 'signAndTrade'] : ['signNew']}
           actionLabelsOverride={{ signNew: 'Sign Free Agent' }}
         />

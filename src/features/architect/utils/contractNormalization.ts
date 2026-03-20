@@ -552,6 +552,7 @@ export function normalizeFutureContract(futureContract: ContractLike) {
   if (!futureContract) return futureContract;
 
   const normalized = normalizeContractForWorld(futureContract);
+  if (!normalized) return normalized;
 
   // Ensure isExtension is true for future contracts
   normalized.isExtension = true;

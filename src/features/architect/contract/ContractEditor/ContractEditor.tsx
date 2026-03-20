@@ -18,6 +18,8 @@ type ContractEditorProps = {
 };
 
 const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps) => {
+  const safeCapProjections =
+    (capProjections || {}) as Parameters<typeof createMaxContract>[2];
   const [type, setType] = useState('Custom');
   const [years, setYears] = useState(4);
   const [baseSalary, setBaseSalary] = useState(10000000);
@@ -47,7 +49,7 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
       const contract = createMaxContract(
         player.name as string,
         Number(player.yearsOfService),
-        capProjections
+        safeCapProjections
       );
       setPreview(contract);
     } else if (newType === 'Rookie') {

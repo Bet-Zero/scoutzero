@@ -398,12 +398,12 @@ export interface TradeValidatorContext extends TeamContext {
   capProjections?: Record<string, unknown>;
   currentYear?: number;
   yearKey?: number;
-  asOfDate?: string | null;
-  tradeDate?: string | null;
-  offseason?: boolean | null;
-  seasonState?: string | null;
-  capSettings?: TradeValidatorCapSettings | null;
-  capSettingsSource?: string | null;
+  asOfDate?: string;
+  tradeDate?: string;
+  offseason?: boolean;
+  seasonState?: string;
+  capSettings?: TradeValidatorCapSettings;
+  capSettingsSource?: string;
   capSettingsWarnings?: string[];
   normalizedYear?: TradeValidationNormalizedYear | null;
   teams?: TradeTeam[];

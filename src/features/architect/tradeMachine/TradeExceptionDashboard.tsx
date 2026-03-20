@@ -57,7 +57,7 @@ const TradeExceptionDashboard = ({
 
   if (tpeData.length === 0) return null;
 
-  const formatDate = (isoString?: string) => {
+  const formatDate = (isoString?: string | null) => {
     if (!isoString) return 'Unknown';
     return new Date(isoString).toLocaleDateString();
   };
@@ -87,7 +87,11 @@ const TradeExceptionDashboard = ({
                 <div>
                   Expires:{' '}
                   <span className="text-white/60">
-                    {formatDate(getTpeExpiryISO(team.createdTPE))}
+                    {formatDate(
+                      getTpeExpiryISO(
+                        team.createdTPE as Record<string, unknown>
+                      ) || undefined
+                    )}
                   </span>
                 </div>
                 <div className="text-white/50 mt-1">
@@ -103,7 +107,7 @@ const TradeExceptionDashboard = ({
               <div className="text-xs text-blue-400 font-medium mb-1">
                 💼 Existing Trade Exceptions
               </div>
-              {team.existingTPEs.map((tpe, tpeIndex) => (
+              {team.existingTPEs.map((tpe: any, tpeIndex: number) => (
                 <div key={tpeIndex} className="text-xs text-white/80 mb-1 pl-2">
                   <span className="font-mono">
                     {formatCurrency(tpe.amount || 0)}
@@ -131,7 +135,7 @@ const TradeExceptionDashboard = ({
                 .map((player, playerIndex) => (
                   <div key={playerIndex} className="text-xs text-white/80">
                     {player.name} ({formatCurrency(player.salary || 0)}) via TPE
-                    #{player.tpeIndex + 1}
+                    #{(player.tpeIndex ?? 0) + 1}
                   </div>
                 ))}
             </div>

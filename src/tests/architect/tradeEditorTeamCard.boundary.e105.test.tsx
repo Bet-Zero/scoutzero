@@ -1017,7 +1017,7 @@ describe('TradeTeamCard boundary E105', () => {
         expirationDate: '2099-01-01',
         name: 'Test TPE',
       },
-    ]);
+    ] as any);
 
     const { rerender } = render(
       <TradeTeamCard

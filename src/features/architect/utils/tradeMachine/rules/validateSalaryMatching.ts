@@ -224,13 +224,16 @@ export function validateSalaryMatching(
 
   const actualFirstApron = firstApron || apron;
   const isWorldless = !context.worldId;
-  const hardCapStatus = getHardCapStatus(team, {
-    isWorldless,
-    capSettings: {
-      firstApron: actualFirstApron,
-      secondApron,
-    },
-  });
+  const hardCapStatus = getHardCapStatus(
+    team as Parameters<typeof getHardCapStatus>[0],
+    {
+      isWorldless,
+      capSettings: {
+        firstApron: actualFirstApron,
+        secondApron,
+      },
+    }
+  );
 
   const violations: string[] = [];
   let allowableIncoming = 0;

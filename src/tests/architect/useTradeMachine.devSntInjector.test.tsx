@@ -3,6 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 
+function assertDefined<T>(value: T | null | undefined, message: string): T {
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
+}
+
 const primaryTeamData = {
   id: 'lal',
   teamCode: 'LAL',
@@ -52,8 +59,12 @@ describe('useTradeMachine DEV S&T injector lifecycle', () => {
     await waitFor(() => {
       expect(result.current.hasInjectedDevSntPlayers).toBe(true);
     });
+    const injectedTeam = assertDefined(
+      result.current.teams[0]?.team,
+      'Expected injected primary team'
+    );
     expect(
-      result.current.teams[0].team.players.some((p) =>
+      assertDefined(injectedTeam.players, 'Expected injected players').some((p) =>
         (p as Record<string, unknown>).name?.toString().includes('TM DEV S&T')
       )
     ).toBe(true);
@@ -65,8 +76,12 @@ describe('useTradeMachine DEV S&T injector lifecycle', () => {
     await waitFor(() => {
       expect(result.current.hasInjectedDevSntPlayers).toBe(false);
     });
+    const resetTeam = assertDefined(
+      result.current.teams[0]?.team,
+      'Expected reset primary team'
+    );
     expect(
-      result.current.teams[0].team.players.some((p) =>
+      assertDefined(resetTeam.players, 'Expected reset players').some((p) =>
         (p as Record<string, unknown>).name?.toString().includes('TM DEV S&T')
       )
     ).toBe(false);

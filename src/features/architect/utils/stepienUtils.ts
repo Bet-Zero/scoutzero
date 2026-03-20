@@ -63,7 +63,7 @@ export function buildFirstRoundCalendar({
   const span = [...Array(8)].map((_, i) => thisYear + i);
 
   const cal = Object.fromEntries(
-    span.map((yr) => [yr, { status: 'owned', protection: null }])
+    span.map((yr) => [yr, { status: 'owned', protection: null as any }])
   ) as StepienCalendar;
 
   existingPicks.forEach((p) => {

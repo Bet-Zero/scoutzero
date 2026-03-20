@@ -144,23 +144,23 @@ type PlayerLike = LooseRecord & {
   contract?: LooseRecord;
   futureContract?: LooseRecord;
 };
-type TeamUpdateLike = LooseRecord & { teamCode?: any; team?: TeamLike };
-type PlayerUpdateLike = LooseRecord & { playerId?: any; player?: PlayerLike };
+type TeamUpdateLike = LooseRecord & { teamCode?: any; team?: TeamLike | null };
+type PlayerUpdateLike = LooseRecord & { playerId?: any; player?: PlayerLike | null };
 type WritesSummaryLike = LooseRecord & {
-  teamsPatched?: number;
-  teamsWritten?: number;
-  teamCodes?: any[];
-  playersPatched?: number;
-  playersWritten?: number;
-  playerIds?: any[];
-  entitlementsPatched?: number;
-  entitlementsWritten?: number;
-  entitlementIds?: any[];
-  eventsWritten?: number;
-  eventWritten?: boolean;
-  eventIds?: any[];
-  worldMetadataPatched?: number;
-  worldStatsUpdated?: boolean;
+  teamsPatched: number;
+  teamsWritten: number;
+  teamCodes: any[];
+  playersPatched: number;
+  playersWritten: number;
+  playerIds: any[];
+  entitlementsPatched: number;
+  entitlementsWritten: number;
+  entitlementIds: any[];
+  eventsWritten: number;
+  eventWritten: boolean;
+  eventIds: any[];
+  worldMetadataPatched: number;
+  worldStatsUpdated: boolean;
 };
 type ComputeResultLike = LooseRecord & {
   success?: boolean;
@@ -184,12 +184,12 @@ type ComputeResultLike = LooseRecord & {
   _tpeConsumptionErrors?: any[];
 };
 type CurrentStateLike = LooseRecord & {
-  teams?: Array<{ teamCode?: any; team?: TeamLike }>;
-  team?: TeamLike;
-  player?: PlayerLike;
-  homeTeam?: TeamLike;
-  offeringTeam?: TeamLike;
-  destinationTeam?: TeamLike;
+  teams?: Array<{ teamCode?: any; team?: TeamLike | null }>;
+  team?: TeamLike | null;
+  player?: PlayerLike | null;
+  homeTeam?: TeamLike | null;
+  offeringTeam?: TeamLike | null;
+  destinationTeam?: TeamLike | null;
   teamCode?: any;
   destinationTeamCode?: any;
   offerSheetId?: any;
@@ -261,8 +261,8 @@ export { buildPostTradeTeamsSnapshot, validatePostTradeSnapshotForContext };
  * @param {string} [parentPath] - Current path (used in recursion)
  * @returns {string[]} Array of paths with undefined values
  */
-function findUndefinedPaths(obj, parentPath = '') {
-  const undefinedPaths = [];
+function findUndefinedPaths(obj: any, parentPath = ''): string[] {
+  const undefinedPaths: string[] = [];
 
   if (obj === null || typeof obj !== 'object') {
     return undefinedPaths;
@@ -293,7 +293,7 @@ function findUndefinedPaths(obj, parentPath = '') {
  * @param {any} obj - Object or array to sanitize
  * @returns {any} Sanitized copy with no undefined values
  */
-function removeUndefinedDeep(obj) {
+function removeUndefinedDeep(obj: any): any {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -301,7 +301,7 @@ function removeUndefinedDeep(obj) {
   if (Array.isArray(obj)) {
     return obj
       .filter((item) => item !== undefined)
-      .map((item) => removeUndefinedDeep(item));
+      .map((item: any) => removeUndefinedDeep(item));
   }
 
   if (typeof obj === 'object') {
@@ -354,15 +354,15 @@ const FORBIDDEN_TRANSIENT_KEYS = Object.freeze([
  * @returns {any} Sanitized copy with transient keys removed
  */
 function sanitizeTransientFieldsForPersistence(
-  obj,
-  forbiddenKeys = FORBIDDEN_TRANSIENT_KEYS
-) {
+  obj: any,
+  forbiddenKeys: readonly string[] = FORBIDDEN_TRANSIENT_KEYS
+): any {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) =>
+    return obj.map((item: any) =>
       sanitizeTransientFieldsForPersistence(item, forbiddenKeys)
     );
   }
@@ -393,7 +393,7 @@ export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
  * @param {any} obj - Object to validate
  * @param {string} label - Description of the object (for error messages)
  */
-function guardAgainstUndefined(obj, label) {
+function guardAgainstUndefined(obj: any, label: string) {
   const undefinedPaths = findUndefinedPaths(obj);
 
   if (undefinedPaths.length === 0) {
@@ -490,7 +490,7 @@ function guardAgainstUndefined(obj, label) {
  * @param {Object} payload - Mutation payload
  * @returns {Object} Sanitized payload with override metadata removed if disabled
  */
-function sanitizePayloadForOverride(payload) {
+function sanitizePayloadForOverride(payload: any) {
   if (!payload) return payload;
 
   const overrideEnabled = isOverrideEnabled();
@@ -569,7 +569,7 @@ function generateOperationId(timestamp = Date.now()) {
   return `op_${timestamp}_${randomSuffix}`;
 }
 
-function safeCloneForAudit(value) {
+function safeCloneForAudit(value: any) {
   if (value === null || value === undefined || typeof value !== 'object') {
     return value;
   }
@@ -578,6 +578,13 @@ function safeCloneForAudit(value) {
   } catch {
     return value;
   }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }
 
 function addTeamSnapshot(teamsByCode: LooseRecord, teamCode: any, team: any) {
@@ -771,7 +778,7 @@ const EMPTY_WRITES_SUMMARY = Object.freeze({
   entitlementIds: [],
   eventsWritten: 0,
   eventWritten: false,
-  eventIds: [],
+  eventIds: [] as string[],
   worldMetadataPatched: 0,
   worldStatsUpdated: false,
 }) as WritesSummaryLike;
@@ -856,7 +863,7 @@ function buildMutationFailureResult(
   };
 }
 
-function sanitizeStringList(input) {
+function sanitizeStringList(input: any) {
   if (!Array.isArray(input)) {
     return [];
   }
@@ -928,14 +935,14 @@ const TEAM_HISTORY_REQUIRED_MUTATION_TYPES = new Set([
   'setDeadCap',
 ]);
 
-function normalizeEventMutationType(mutationType) {
+function normalizeEventMutationType(mutationType: string) {
   if (mutationType === 'setException') {
     return 'setExceptions';
   }
   return mutationType;
 }
 
-function toSafeIsoTimestamp(timestamp) {
+function toSafeIsoTimestamp(timestamp: any) {
   const numericTimestamp = Number(timestamp);
   if (Number.isFinite(numericTimestamp)) {
     return new Date(numericTimestamp).toISOString();
@@ -955,7 +962,7 @@ function coerceObject(input: any): LooseRecord {
   return input;
 }
 
-function toArrayOfStrings(input) {
+function toArrayOfStrings(input: any) {
   if (!Array.isArray(input)) {
     return [];
   }
@@ -1339,7 +1346,7 @@ export async function applyWorldMutation({
       }
     } catch (e) {
       // Non-critical: proceed with no world date (will use payload or fallback)
-      console.warn('Could not load world asOfDate:', e.message);
+      console.warn('Could not load world asOfDate:', getErrorMessage(e));
     }
 
     // Phase 20: Resolve canonical asOfDate SSOT
@@ -1363,7 +1370,9 @@ export async function applyWorldMutation({
       return buildMutationFailureResult(computeResult.error);
     }
 
-    const computeWritesSummary = buildComputeWritesSummary(computeResult);
+    const computeWritesSummary = cloneWritesSummary(
+      buildComputeWritesSummary(computeResult)
+    );
     const appliedToLocalState =
       computeWritesSummary.teamsPatched > 0 ||
       computeWritesSummary.playersPatched > 0 ||
@@ -1495,7 +1504,7 @@ export async function applyWorldMutation({
     }
 
     // PHASE 3.8: POST-STATE CAP VALIDATOR (world mutation gold path)
-    const year = toEndYear(seasonId);
+    const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
     const afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
     const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
     const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
@@ -1548,7 +1557,10 @@ export async function applyWorldMutation({
       });
     }
 
-    const teamCodes = computeResult.teamUpdates.map((u) => u.teamCode);
+    const teamUpdates = computeResult.teamUpdates || [];
+    const playerUpdates = computeResult.playerUpdates || [];
+    const entitlementUpdates = computeResult.entitlementUpdates || [];
+    const teamCodes = teamUpdates.map((u) => u.teamCode);
     const playerIds = collectMutationPlayerIds(sanitizedPayload, computeResult);
     const diffSummary = buildCapAuditDiffSummary({
       beforeTeamsByCode,
@@ -1573,7 +1585,10 @@ export async function applyWorldMutation({
           }
         }
       } catch (e) {
-        console.warn('DEV DEBUG: Could not check world ownership:', e.message);
+        console.warn(
+          'DEV DEBUG: Could not check world ownership:',
+          getErrorMessage(e)
+        );
       }
     }
 
@@ -1642,8 +1657,8 @@ export async function applyWorldMutation({
     // Return success result
     return {
       success: true,
-      changedTeams: computeResult.teamUpdates,
-      changedPlayers: computeResult.playerUpdates,
+      changedTeams: teamUpdates,
+      changedPlayers: playerUpdates,
       worldPatch: persistResult.worldPatch,
       event: persistResult.event,
       appliedToLocalState,
@@ -1654,9 +1669,7 @@ export async function applyWorldMutation({
     };
   } catch (error) {
     console.error(`applyWorldMutation failed for ${mutationType}:`, error);
-    return buildMutationFailureResult(
-      error.message || 'Unknown error during mutation'
-    );
+    return buildMutationFailureResult(getErrorMessage(error));
   }
 }
 
@@ -1697,7 +1710,7 @@ async function loadStateForMutation(
       return {
         teams: teamCodes.map((code, i) => ({
           teamCode: code,
-          team: teamStates[i],
+          team: (teamStates[i] || null) as TeamLike | null,
         })),
       };
     }
@@ -1792,7 +1805,11 @@ async function loadStateForMutation(
         getTeam(worldId, offeringTeamCode),
       ]);
 
-      return { homeTeam, offeringTeam, offerSheetId };
+      return {
+        homeTeam: (homeTeam || null) as CurrentStateLike['homeTeam'],
+        offeringTeam: (offeringTeam || null) as CurrentStateLike['offeringTeam'],
+        offerSheetId,
+      };
     }
 
     case 'signAndTrade': {
@@ -1807,7 +1824,14 @@ async function loadStateForMutation(
         getPlayer(worldId, teamCode, playerId),
       ]);
 
-      return { team, destinationTeam, player, teamCode, destinationTeamCode };
+      return {
+        team: (team || null) as CurrentStateLike['team'],
+        destinationTeam:
+          (destinationTeam || null) as CurrentStateLike['destinationTeam'],
+        player: (player || null) as CurrentStateLike['player'],
+        teamCode,
+        destinationTeamCode,
+      };
     }
 
     case 'renounceRights': {
@@ -2106,7 +2130,7 @@ function computeTradeResult({
     callSite: 'computeTradeResult',
   });
 
-  const playerUpdates = [];
+  const playerUpdates: PlayerUpdateLike[] = [];
 
   const currentYear = toEndYear(seasonId);
   const timestampISO = new Date(timestamp).toISOString();
@@ -2115,13 +2139,13 @@ function computeTradeResult({
     historyContextRef.worldId || payload?.tradeCtx?.worldId || null;
   const resolvedMutationType = historyContextRef.mutationType || 'executeTrade';
   const resolvedMutationId = historyContextRef.mutationId;
-  const getTpeRemaining = (tpe) =>
+  const getTpeRemaining = (tpe: any) =>
     Number(tpe?.remainingAmount ?? tpe?.amount ?? 0) || 0;
 
   // Phase 56: Use pre-built snapshot teamUpdates (already has roster changes applied)
   // Deep clone to avoid mutating the snapshot
   const teamUpdates = postTradeSnapshot.teamUpdates.map(
-    ({ teamCode, team }) => ({
+    ({ teamCode, team }: { teamCode: any; team: any }) => ({
       teamCode,
       team: JSON.parse(JSON.stringify(team)),
     })
@@ -2139,9 +2163,9 @@ function computeTradeResult({
 
   // Warn if multi-team trade without directed routing (informational only)
   if (payload.teams.length > 2) {
-    const hasDirectedRouting = payload.teams.some((t) =>
+    const hasDirectedRouting = payload.teams.some((t: any) =>
       (t.sends || []).some(
-        (s) =>
+        (s: any) =>
           s.receivingTeamIndex !== undefined ||
           s.receivingTeamId !== undefined ||
           s.tradeTo !== undefined ||
@@ -2161,7 +2185,7 @@ function computeTradeResult({
   // Phase 56: Apply validated TPE creation/consumption to each team
   // (validation already ran externally via validatePostTradeSnapshotForContext)
   // ============================================================================
-  teamUpdates.forEach((teamUpdate, idx) => {
+  teamUpdates.forEach((teamUpdate: any, idx: number) => {
     const teamResult = validation.teamResults?.[idx];
     if (!teamResult) return;
 
@@ -2183,11 +2207,11 @@ function computeTradeResult({
       // We need to extract the consumed amounts from the incoming players that used TPEs
       const incomingPlayers = validationTeams[idx].receives || [];
       const tpeUsageMap = new Map(); // tpeId -> consumed amount
-      const tpeConsumptionWarnings = []; // Phase 47C: Track missing matchIncoming warnings
-      const tpeConsumptionErrors = []; // Fail-closed: hard errors that block mutation
+      const tpeConsumptionWarnings: LooseRecord[] = []; // Phase 47C: Track missing matchIncoming warnings
+      const tpeConsumptionErrors: LooseRecord[] = []; // Fail-closed: hard errors that block mutation
 
       // FAIL-CLOSED PRE-CHECK: Any player with absorptionMode='TPE' MUST have tpeId + matchIncoming
-      incomingPlayers.forEach((player) => {
+      incomingPlayers.forEach((player: any) => {
         if (player.absorptionMode === 'TPE') {
           const playerLabel = player.name || player.player_id || 'unknown';
           if (!player.tpeId) {
@@ -2220,7 +2244,7 @@ function computeTradeResult({
         );
         // Skip all TPE processing — do not partially consume
       } else {
-        incomingPlayers.forEach((player) => {
+        incomingPlayers.forEach((player: any) => {
           // Phase 47C: Only process TPE consumption if tpeId is set
           if (!player.tpeId) return;
 
@@ -2271,7 +2295,7 @@ function computeTradeResult({
         }
 
         // Apply consumption to TPEs
-        updatedTPEs = currentTPEs.map((tpe) => {
+        updatedTPEs = currentTPEs.map((tpe: any) => {
           const consumed = tpeUsageMap.get(tpe.id) || 0;
           if (consumed === 0) return tpe;
 
@@ -2293,7 +2317,7 @@ function computeTradeResult({
     // 2. Apply TPE creation from validator (SSOT)
     // Phase 47C: Idempotent creation with signature-based duplicate detection
     // Build consumption history entries before creation adds new TPEs
-    currentTPEs.forEach((previousTpe) => {
+    currentTPEs.forEach((previousTpe: any) => {
       const nextTpe =
         updatedTPEs.find((candidate) => candidate.id === previousTpe.id) ||
         previousTpe;
@@ -2336,7 +2360,7 @@ function computeTradeResult({
       const outgoingPlayers = payload.teams[idx]?.sends || [];
       const createdFrom =
         outgoingPlayers
-          .map((p) => p.name || p.displayName)
+          .map((p: any) => p.name || p.displayName)
           .filter(Boolean)
           .join(', ') || 'Trade';
 
@@ -2426,7 +2450,7 @@ function computeTradeResult({
   // Phase 11.3: Build entitlementsTraded structure for event log
   // Format: { [teamCode]: { out: string[], in: string[] } }
   // Phase 11.3.1: Respect toTeamId routing when present (for multi-team trades)
-  const entitlementsTraded = payload.teams.reduce((acc, teamTrade) => {
+  const entitlementsTraded = payload.teams.reduce((acc: LooseRecord, teamTrade: any) => {
     const teamKey =
       teamTrade.team?.id || teamTrade.teamCode || teamTrade.teamId;
     if (!teamKey) return acc;
@@ -2437,15 +2461,15 @@ function computeTradeResult({
       teamTrade.entitlementsOut ||
       []
     )
-      .map((e) => e.entitlementId || e.id)
+      .map((e: any) => e.entitlementId || e.id)
       .filter(Boolean);
 
     // Incoming entitlement IDs: respect toTeamId routing when present
     // Phase 11.3.1: Only include entitlement if:
     //   - toTeamId is NOT set (broadcast mode - all teams receive)
     //   - OR toTeamId matches this team's key (teamKey or teamCode)
-    const inIds = [];
-    payload.teams.forEach((otherTrade) => {
+    const inIds: string[] = [];
+    payload.teams.forEach((otherTrade: any) => {
       const otherTeamKey =
         otherTrade.team?.id || otherTrade.teamCode || otherTrade.teamId;
       if (otherTeamKey !== teamKey) {
@@ -2453,7 +2477,7 @@ function computeTradeResult({
           otherTrade.outgoingEntitlements ||
           otherTrade.entitlementsOut ||
           []
-        ).forEach((e) => {
+        ).forEach((e: any) => {
           const id = e.entitlementId || e.id;
           if (!id) return;
 
@@ -2500,15 +2524,15 @@ function computeTradeResult({
 
   // FAIL-CLOSED: If any team had TPE consumption errors, block the entire mutation
   const blockedTeams = (validation.teamResults || []).filter(
-    (tr) => tr?._blocked
+    (tr: any) => tr?._blocked
   );
   if (blockedTeams.length > 0) {
     const allErrors = blockedTeams.flatMap(
-      (tr) => tr._tpeConsumptionErrors || []
+      (tr: any) => tr._tpeConsumptionErrors || []
     );
     return {
       success: false,
-      error: `TPE fail-closed: ${allErrors.map((e) => e.reason).join('; ')}`,
+      error: `TPE fail-closed: ${allErrors.map((e: any) => e.reason).join('; ')}`,
       _tpeConsumptionErrors: allErrors,
     };
   }
@@ -2522,9 +2546,9 @@ function computeTradeResult({
     entitlementUpdates,
     metadata: {
       type: 'trade',
-      teamsInvolved: teamUpdates.map((u) => u.teamCode),
-      playersTraded: payload.teams.flatMap((t) =>
-        (t.sends || []).map((p) => p.player_id || p.id || p.name)
+      teamsInvolved: teamUpdates.map((u: any) => u.teamCode),
+      playersTraded: payload.teams.flatMap((t: any) =>
+        (t.sends || []).map((p: any) => p.player_id || p.id || p.name)
       ),
       // Phase 11.3: Include entitlement transfers per team (IDs only for lightweight payload)
       entitlementsTraded:
@@ -2541,7 +2565,7 @@ function computeTradeResult({
 /**
  * Compute free agent signing result
  */
-function resolveSigningMechanismForPipeline(contract, signedUsing) {
+function resolveSigningMechanismForPipeline(contract: any, signedUsing: any) {
   const source = contract?.exceptionType || signedUsing;
   if (!source) {
     return 'UNKNOWN';
@@ -2593,7 +2617,7 @@ function resolveSigningMechanismForPipeline(contract, signedUsing) {
   return 'UNKNOWN';
 }
 
-function getExceptionCandidatesForMechanism(mechanism) {
+function getExceptionCandidatesForMechanism(mechanism: string) {
   switch (mechanism) {
     case 'FULL_MLE':
       return ['mle', 'nonTaxpayerMle', 'fullMLE'];
@@ -2608,7 +2632,7 @@ function getExceptionCandidatesForMechanism(mechanism) {
   }
 }
 
-function resolveTeamExceptionKey(teamExceptions, mechanism) {
+function resolveTeamExceptionKey(teamExceptions: any, mechanism: string) {
   const candidates = getExceptionCandidatesForMechanism(mechanism);
   for (const candidate of candidates) {
     if (teamExceptions?.[candidate] != null) {
@@ -2618,7 +2642,7 @@ function resolveTeamExceptionKey(teamExceptions, mechanism) {
   return null;
 }
 
-function toFiniteAmount(value, fallback = 0) {
+function toFiniteAmount(value: any, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
@@ -2628,6 +2652,11 @@ function consumeSigningExceptionUsage({
   mechanism,
   contractValue,
   timestamp,
+}: {
+  updatedTeam: any;
+  mechanism: string;
+  contractValue: number;
+  timestamp: any;
 }) {
   // Phase 74 guardrail compatibility markers:
   // exceptionType === 'room'
@@ -2713,7 +2742,7 @@ function computeSigningResult({
 
   // Update or add player to players array
   const existingIndex = (updatedTeam.players || []).findIndex(
-    (p) => (p.player_id || p.id) === playerId
+    (p: any) => (p.player_id || p.id) === playerId
   );
 
   // Normalize contract for world persistence (canonical field names/types)
@@ -2761,7 +2790,7 @@ function computeSigningResult({
   // Remove cap hold if player had one
   if (updatedTeam.capHolds) {
     updatedTeam.capHolds = updatedTeam.capHolds.filter(
-      (hold) => hold.playerId !== playerId
+      (hold: any) => hold.playerId !== playerId
     );
   }
 
@@ -2769,9 +2798,9 @@ function computeSigningResult({
   // (processed offer sheets are removed to prevent state staleness)
   // Remove pending offer sheet if finalizing an RFA offer
   // (processed offer sheets are removed to prevent state staleness)
-  if (normalizedContract.rfaOfferSheet && updatedTeam.offerSheets) {
+  if (normalizedContract?.rfaOfferSheet && updatedTeam.offerSheets) {
     updatedTeam.offerSheets = updatedTeam.offerSheets.filter(
-      (os) => os.playerId !== playerId
+      (os: any) => os.playerId !== playerId
     );
   }
 
@@ -2789,14 +2818,14 @@ function computeSigningResult({
 
   // Cleanup incomingOfferSheets on home team if applicable
   if (
-    normalizedContract.rfaOfferSheet &&
+    normalizedContract?.rfaOfferSheet &&
     currentState.homeTeam &&
     currentState.homeTeam.incomingOfferSheets
   ) {
     const updatedHomeTeam = { ...currentState.homeTeam };
     updatedHomeTeam.incomingOfferSheets =
       updatedHomeTeam.incomingOfferSheets.filter(
-        (os) => os.playerId !== playerId
+        (os: any) => os.playerId !== playerId
       );
     // Only add update if something changed
     if (
@@ -2865,24 +2894,25 @@ function computeWaiveResult({
 
   // Remove player from roster
   updatedTeam.roster = (updatedTeam.roster || []).filter(
-    (id) => id !== playerId
+    (id: any) => id !== playerId
   );
 
   // Remove player from players array
   updatedTeam.players = (updatedTeam.players || []).filter(
-    (p) => (p.player_id || p.id) !== playerId
+    (p: any) => (p.player_id || p.id) !== playerId
   );
 
   // Calculate dead cap from guaranteed rows in current/future seasons.
   const contract = player.contract;
   const contractRows = contract?.salariesByYear || [];
+  const seasonEndYear = toEndYear(seasonId) ?? 0;
   const remainingGuaranteedFromRows = contractRows
-    .filter((row) => {
+    .filter((row: any) => {
       const yearEnd = toEndYear(row.season);
-      return Number.isFinite(yearEnd) && yearEnd >= toEndYear(seasonId);
+      return typeof yearEnd === 'number' && yearEnd >= seasonEndYear;
     })
-    .filter((row) => row.guaranteed !== false)
-    .reduce((sum, row) => sum + (Number(row.salary) || 0), 0);
+    .filter((row: any) => row.guaranteed !== false)
+    .reduce((sum: number, row: any) => sum + (Number(row.salary) || 0), 0);
   const guaranteedValueFallback = Number(contract?.guaranteedValue) || 0;
   const remainingSalary =
     remainingGuaranteedFromRows || guaranteedValueFallback;
@@ -2908,7 +2938,7 @@ function computeWaiveResult({
       originalSalary: remainingSalary,
       amountByYear: Array.from({ length: stretchYears }, (_, i) => {
         // Use toSeasonCode for consistent season formatting
-        const startYear = toEndYear(seasonId);
+        const startYear = toEndYear(seasonId) ?? seasonEndYear;
         const yearEndYear = startYear + i;
         // Distribute remainder to first years to avoid losing money
         const yearAmount = baseStretchedAmount + (i < remainder ? 1 : 0);
@@ -2989,7 +3019,7 @@ function computeExtensionResult({
 
   // Update player's contract in players array
   const playerIndex = (updatedTeam.players || []).findIndex(
-    (p) => (p.player_id || p.id) === playerId
+    (p: any) => (p.player_id || p.id) === playerId
   );
 
   if (playerIndex === -1) {
@@ -3002,14 +3032,14 @@ function computeExtensionResult({
   // Determine which years the extension covers so we can void overlapping originals
   const extensionYearSet = new Set(
     (extension.salariesByYear || []).map(
-      (y) => y.year || (y.season ? parseInt(y.season.split('-')[0]) + 1 : null)
+      (y: any) => y.year || (y.season ? parseInt(y.season.split('-')[0]) + 1 : null)
     )
   );
 
   // Mark existing salary rows that overlap with extension years as voidedByExtension
   const existingRows = (
     updatedTeam.players[playerIndex].futureContract?.salariesByYear || []
-  ).map((row) => {
+  ).map((row: any) => {
     const rowYear =
       row.year || (row.season ? parseInt(row.season.split('-')[0]) + 1 : null);
     return extensionYearSet.has(rowYear)
@@ -3022,7 +3052,7 @@ function computeExtensionResult({
     ...(updatedTeam.players[playerIndex].futureContract || {}),
     salariesByYear: [
       ...existingRows,
-      ...(extension.salariesByYear || []).map((y) => ({
+      ...(extension.salariesByYear || []).map((y: any) => ({
         ...normalizeSalaryRow(y),
         isExtensionSeason: true,
       })),
@@ -3082,7 +3112,7 @@ function computeOptionResult({
 
   // Find player in team
   const playerIndex = (updatedTeam.players || []).findIndex(
-    (p) => (p.player_id || p.id) === playerId
+    (p: any) => (p.player_id || p.id) === playerId
   );
 
   if (playerIndex === -1) {
@@ -3096,7 +3126,7 @@ function computeOptionResult({
   const salaries = playerData.contract?.salariesByYear || [];
 
   // Find the option year entry
-  const optionIndex = salaries.findIndex((y) => {
+  const optionIndex = salaries.findIndex((y: any) => {
     const yearEnd = toEndYear(y.season);
     return yearEnd === targetYear && y.option;
   });
@@ -3134,7 +3164,7 @@ function computeOptionResult({
 
     // Declined: remove this year and all future years
     const filteredSalaries = salaries
-      .filter((_, idx) => idx < optionIndex)
+      .filter((_: any, idx: number) => idx < optionIndex)
       .map(normalizeSalaryRow);
 
     updatedPlayer = {
@@ -3181,10 +3211,10 @@ function computeOptionResult({
 
     // Remove from roster if option declined (becomes FA)
     updatedTeam.roster = (updatedTeam.roster || []).filter(
-      (id) => id !== playerId
+      (id: any) => id !== playerId
     );
     updatedTeam.players = (updatedTeam.players || []).filter(
-      (p) => (p.player_id || p.id) !== playerId
+      (p: any) => (p.player_id || p.id) !== playerId
     );
   }
 
@@ -3248,7 +3278,7 @@ function computeRenounceResult({
   // 1. Remove the player's cap hold from the team
   // Match by playerId first (primary), then by playerName (fallback) using OR logic
   if (updatedTeam.capHolds && Array.isArray(updatedTeam.capHolds)) {
-    updatedTeam.capHolds = updatedTeam.capHolds.filter((hold) => {
+    updatedTeam.capHolds = updatedTeam.capHolds.filter((hold: any) => {
       // Remove if playerId matches
       if (hold.playerId === playerId) return false;
       // Also remove if playerName matches (in case IDs don't align)
@@ -3261,7 +3291,7 @@ function computeRenounceResult({
   // Update player entry if present in team's players array
   // Prioritize ID matching over name matching
   if (updatedTeam.players && Array.isArray(updatedTeam.players)) {
-    updatedTeam.players = updatedTeam.players.map((p) => {
+    updatedTeam.players = updatedTeam.players.map((p: any) => {
       const pid = p.player_id || p.id;
       // Prioritize exact ID match, then fall back to name match
       const isMatch =
@@ -3430,7 +3460,7 @@ function validateMutation({
     );
   }
 
-  const currentYear = toEndYear(seasonId);
+  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
 
   // Non-trade mutations use capLegalityValidation
   switch (mutationType) {
@@ -3506,10 +3536,10 @@ function validateMutation({
     case 'optionDecision': {
       // Phase 7.1: Pass updatedTeam to validate cap hold transitions
       const updatedTeam = computeResult?.teamUpdates?.find(
-        (u) => u.teamCode === currentState.team.teamCode
+        (u: any) => u.teamCode === currentState.team.teamCode
       )?.team;
       const updatedPlayer = computeResult?.playerUpdates?.find(
-        (u) => u.playerId === getPlayerId(currentState.player)
+        (u: any) => u.playerId === getPlayerId(currentState.player)
       )?.player;
 
       const result = validateOptionDecision({
@@ -3549,7 +3579,7 @@ function validateMutation({
     case 'matchOfferSheet': {
       // Validate Match Action (including 48h window check)
       const offerSheet = currentState.homeTeam?.incomingOfferSheets?.find(
-        (os) => os.id === currentState.offerSheetId
+        (os: any) => os.id === currentState.offerSheetId
       );
       const result = validateOfferSheetResolution({
         offerSheet,
@@ -3568,7 +3598,7 @@ function validateMutation({
     case 'declineOfferSheet': {
       // Validate Decline Action
       const offerSheet = currentState.homeTeam?.incomingOfferSheets?.find(
-        (os) => os.id === currentState.offerSheetId
+        (os: any) => os.id === currentState.offerSheetId
       );
       const result = validateOfferSheetResolution({
         offerSheet,
@@ -3587,12 +3617,12 @@ function validateMutation({
     case 'finalizeMatchedOfferSheet':
     case 'finalizeDeclinedOfferSheet': {
       const homeOfferSheet = currentState.homeTeam?.incomingOfferSheets?.find(
-        (os) =>
+        (os: any) =>
           os.id === currentState.offerSheetId ||
           (payload.dedupKey && os.dedupKey === payload.dedupKey)
       );
       const offeringOfferSheet = currentState.offeringTeam?.offerSheets?.find(
-        (os) =>
+        (os: any) =>
           os.id === currentState.offerSheetId ||
           (payload.dedupKey && os.dedupKey === payload.dedupKey)
       );
@@ -3742,11 +3772,14 @@ async function persistWorldMutation({
   const teamCodesPatched = [];
   const playerIdsPatched = [];
   const entitlementIdsPatched = [];
-  let eventId = null;
+  let eventId: string | null = null;
+  const teamUpdates = computeResult.teamUpdates || [];
+  const playerUpdates = computeResult.playerUpdates || [];
+  const entitlementUpdates = computeResult.entitlementUpdates || [];
 
   try {
     // 1. Write team snapshots
-    for (const { teamCode, team } of computeResult.teamUpdates) {
+    for (const { teamCode, team } of teamUpdates) {
       // Guard against undefined values (dev throws, prod allows)
       guardAgainstUndefined(
         team,
@@ -3775,10 +3808,13 @@ async function persistWorldMutation({
     }
 
     // 2. Write player overrides (if any)
-    for (const { playerId, player } of computeResult.playerUpdates) {
+    for (const { playerId, player } of playerUpdates) {
       // Player overrides go in the team's players subcollection
+      if (!player) {
+        continue;
+      }
       const teamCode = player.teamCode;
-      if (teamCode) {
+      if (teamCode && player) {
         // Guard against undefined values (dev throws, prod allows)
         guardAgainstUndefined(
           player,
@@ -3804,11 +3840,11 @@ async function persistWorldMutation({
     }
 
     // 2.5 TM-PICKS-E1: Write entitlement overrides (holderTeam patches)
-    if (computeResult.entitlementUpdates?.length > 0) {
+    if (entitlementUpdates.length > 0) {
       for (const {
         entitlementId,
         holderTeam,
-      } of computeResult.entitlementUpdates) {
+      } of entitlementUpdates) {
         const entitlementRef = doc(
           db,
           ARCHITECT_WORLDS_COLLECTION,
@@ -3878,7 +3914,7 @@ async function persistWorldMutation({
     // only teams modified by this single mutation, not cumulative history
     const worldPatch: LooseRecord = {
       lastModifiedAt: serverTimestamp(),
-      lastModifiedTeams: computeResult.teamUpdates.map((u) => u.teamCode),
+      lastModifiedTeams: teamUpdates.map((u) => u.teamCode),
     };
 
     // Phase 20: Only update asOfDate if explicitly provided in payload
@@ -3925,13 +3961,13 @@ async function persistWorldMutation({
       entitlementsPatched: entitlementIdsPatched.length,
       entitlementIds: entitlementIdsPatched,
       eventsWritten: 0,
-      eventIds: [],
+      eventIds: [] as string[],
       worldMetadataPatched: 0,
       worldStatsUpdated: false,
     };
     return {
       success: false,
-      error: error.message || 'Failed to persist mutation',
+      error: (error as any).message || 'Failed to persist mutation',
       writesSummary,
     };
   }
@@ -4000,12 +4036,12 @@ function computeStoreOfferSheetResult({
   // Phase 18.1: DEDUPLICATION - Check by id first, then by dedupKey
   // This ensures retries don't create duplicates even with different timestamps
   let existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(
-    (os) => os.id === offerSheetId
+    (os: any) => os.id === offerSheetId
   );
   if (existingIndex === -1) {
     // Not found by ID, try dedupKey
     existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(
-      (os) => os.dedupKey === dedupKey
+      (os: any) => os.dedupKey === dedupKey
     );
   }
 
@@ -4042,10 +4078,10 @@ function computeStoreOfferSheetResult({
     // Phase 18.1: Same dedup logic for home team
     let existingHomeIndex = (
       updatedHomeTeam.incomingOfferSheets || []
-    ).findIndex((os) => os.id === offerSheetId);
+    ).findIndex((os: any) => os.id === offerSheetId);
     if (existingHomeIndex === -1) {
       existingHomeIndex = (updatedHomeTeam.incomingOfferSheets || []).findIndex(
-        (os) => os.dedupKey === dedupKey
+        (os: any) => os.dedupKey === dedupKey
       );
     }
 
@@ -4101,7 +4137,7 @@ function computeMatchOfferSheetResult({
 
   // Find offer sheet on offering team
   const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(
-    (os) => os.id === offerSheetId
+    (os: any) => os.id === offerSheetId
   );
   if (offerSheetIndex === -1) {
     return {
@@ -4141,7 +4177,7 @@ function computeMatchOfferSheetResult({
   // MIRRORING: Update logic on home team
   if (homeTeam && homeTeam.incomingOfferSheets) {
     const homeIndex = homeTeam.incomingOfferSheets.findIndex(
-      (os) => os.id === offerSheetId
+      (os: any) => os.id === offerSheetId
     );
     if (homeIndex !== -1) {
       const updatedHomeTeam = { ...homeTeam };
@@ -4184,7 +4220,7 @@ function computeDeclineOfferSheetResult({
 
   // Find offer sheet
   const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(
-    (os) => os.id === offerSheetId
+    (os: any) => os.id === offerSheetId
   );
   if (offerSheetIndex === -1) {
     return { success: false, error: `Offer sheet ${offerSheetId} not found` };
@@ -4219,7 +4255,7 @@ function computeDeclineOfferSheetResult({
   // MIRRORING: Update logic on home team
   if (homeTeam && homeTeam.incomingOfferSheets) {
     const homeIndex = homeTeam.incomingOfferSheets.findIndex(
-      (os) => os.id === offerSheetId
+      (os: any) => os.id === offerSheetId
     );
     if (homeIndex !== -1) {
       const updatedHomeTeam = { ...homeTeam };
@@ -4268,7 +4304,7 @@ function computeFinalizeMatchedOfferSheetResult({
 
   // 1. Find the offer sheet (on home team)
   const incomingOfferSheets = homeTeam.incomingOfferSheets || [];
-  const offerSheet = incomingOfferSheets.find((os) => os.id === offerSheetId);
+  const offerSheet = incomingOfferSheets.find((os: any) => os.id === offerSheetId);
 
   // Validation happens in validateMutation via validateOfferSheetResolution,
   // but we can do a sanity check here or let it fail if missing.
@@ -4284,7 +4320,7 @@ function computeFinalizeMatchedOfferSheetResult({
 
   // 2a. Remove from incomingOfferSheets
   updatedHomeTeam.incomingOfferSheets = incomingOfferSheets.filter(
-    (os) => os.id !== offerSheetId
+    (os: any) => os.id !== offerSheetId
   );
 
   // 2b. Apply contract to player
@@ -4292,7 +4328,7 @@ function computeFinalizeMatchedOfferSheetResult({
   // The offer sheet has playerId.
   const playerId = offerSheet.playerId;
   const playerIndex = (updatedHomeTeam.players || []).findIndex(
-    (p) => (p.player_id || p.id) === playerId
+    (p: any) => (p.player_id || p.id) === playerId
   );
 
   if (playerIndex === -1) {
@@ -4313,7 +4349,7 @@ function computeFinalizeMatchedOfferSheetResult({
     signedUsing: 'Match', // Or "Matched Offer Sheet"
     signingTeam: teamCode,
     contractLength: offerSheet.contractYears,
-    salariesByYear: offerSheet.salariesByYear.map((s) => ({
+    salariesByYear: offerSheet.salariesByYear.map((s: any) => ({
       season: s.season,
       salary: s.salary,
       capHit: s.capHit,
@@ -4342,7 +4378,7 @@ function computeFinalizeMatchedOfferSheetResult({
   // 3a. Remove from offerSheets (outgoing)
   updatedOfferingTeam.offerSheets = (
     updatedOfferingTeam.offerSheets || []
-  ).filter((os) => os.id !== offerSheetId);
+  ).filter((os: any) => os.id !== offerSheetId);
 
   return {
     success: true,
@@ -4392,9 +4428,9 @@ function computeFinalizeDeclinedOfferSheetResult({
   // 1. Find the offer sheet (on offering team)
   // Phase 18.2: Find by id first, then by dedupKey
   const offerSheets = offeringTeam.offerSheets || [];
-  let offerSheet = offerSheets.find((os) => os.id === offerSheetId);
+  let offerSheet = offerSheets.find((os: any) => os.id === offerSheetId);
   if (!offerSheet && dedupKey) {
-    offerSheet = offerSheets.find((os) => os.dedupKey === dedupKey);
+    offerSheet = offerSheets.find((os: any) => os.dedupKey === dedupKey);
   }
 
   if (!offerSheet) {
@@ -4416,14 +4452,14 @@ function computeFinalizeDeclinedOfferSheetResult({
 
   // 2a. Remove from offerSheets (by id OR dedupKey for robustness)
   updatedOfferingTeam.offerSheets = offerSheets.filter(
-    (os) => os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
+    (os: any) => os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
   );
 
   // 2b. Add player to roster with contract terms
   // Find or create player entry
   const playerId = offerSheet.playerId;
   let playerIndex = (updatedOfferingTeam.players || []).findIndex(
-    (p) => (p.player_id || p.id) === playerId
+    (p: any) => (p.player_id || p.id) === playerId
   );
 
   // Construct new contract from offer sheet
@@ -4432,7 +4468,7 @@ function computeFinalizeDeclinedOfferSheetResult({
     signedUsing: 'Offer Sheet',
     signingTeam: teamCode,
     contractLength: offerSheet.contractYears,
-    salariesByYear: offerSheet.salariesByYear.map((s) => ({
+    salariesByYear: offerSheet.salariesByYear.map((s: any) => ({
       season: s.season,
       salary: s.salary,
       capHit: s.capHit,
@@ -4495,22 +4531,22 @@ function computeFinalizeDeclinedOfferSheetResult({
   updatedHomeTeam.incomingOfferSheets = (
     updatedHomeTeam.incomingOfferSheets || []
   ).filter(
-    (os) => os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
+    (os: any) => os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
   );
 
   // 3b. Remove player from roster if present (they're leaving)
   if (updatedHomeTeam.roster?.includes(playerId)) {
     updatedHomeTeam.roster = updatedHomeTeam.roster.filter(
-      (id) => id !== playerId
+      (id: any) => id !== playerId
     );
   }
 
   // 3c. Remove player from players array if present
   if (
-    updatedHomeTeam.players?.some((p) => (p.player_id || p.id) === playerId)
+    updatedHomeTeam.players?.some((p: any) => (p.player_id || p.id) === playerId)
   ) {
     updatedHomeTeam.players = updatedHomeTeam.players.filter(
-      (p) => (p.player_id || p.id) !== playerId
+      (p: any) => (p.player_id || p.id) !== playerId
     );
   }
 
@@ -4596,7 +4632,7 @@ function computeSignAndTradeResult({
 
   // Phase 48: Validate signing BEFORE proceeding to trade computation
   // This ensures signing validation failure short-circuits before validateTrade is called
-  const currentYear = toEndYear(seasonId);
+  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
   const signingValidation = validateSigning({
     team,
     player,
@@ -4712,7 +4748,7 @@ function computeSignAndTradeResult({
 /**
  * Map mutation type to action type for stats tracking
  */
-function getMutationActionType(mutationType) {
+function getMutationActionType(mutationType: string) {
   switch (mutationType) {
     case 'executeTrade':
       return 'trade';

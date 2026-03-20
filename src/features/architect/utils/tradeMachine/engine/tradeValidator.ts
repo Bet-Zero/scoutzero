@@ -741,7 +741,7 @@ function generateTradeReceipt({
         },
         // Poison pill breakdown: include extension years and averaging calculation
         poisonPillDetails:
-          isPoisonPill && player.extensionYears?.length > 0
+          isPoisonPill && (player.extensionYears?.length ?? 0) > 0
             ? {
                 currentSalary: player.currentSalary || baseSalary,
                 extensionYears: player.extensionYears,
@@ -1000,7 +1000,7 @@ export function validateTrade({
     capSettingsWarnings: capSettingsResult.warnings,
     normalizedYear: normalizedYear || {
       endYear: resolvedCurrentYear,
-      seasonString: yearToSeason(resolvedCurrentYear),
+      seasonString: yearToSeason(resolvedCurrentYear) || String(resolvedCurrentYear),
     },
     teams: [],
   };
@@ -1088,7 +1088,7 @@ export function validateTrade({
 
   // Calculate incoming/outgoing assets for each team
   // First pass: populate team data structure without salary calculations
-  const teamsWithAssets: TradeValidatorActiveTeamSlot[] = validTeams.map((team, index) => {
+  const teamsWithAssets = validTeams.map((team, index) => {
     const receivingTeamId = teamIdsByIndex[index];
 
     // Populate incoming players (what this team is receiving from other teams)
@@ -1144,7 +1144,7 @@ export function validateTrade({
         yearKey: resolvedCurrentYear,
       },
     };
-  });
+  }) as TradeValidatorActiveTeamSlot[];
 
   // Compute matching values for all teams FIRST
   // This ensures matchIncoming/matchOutgoing are set correctly using the canonical
@@ -1489,7 +1489,8 @@ export function validateTrade({
         });
 
         const exclusivityResult = validateEntitlementExclusivity({
-          entitlements: postTradeSet,
+          entitlements:
+            postTradeSet as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
         });
 
         if (exclusivityResult.valid) {
@@ -1636,7 +1637,10 @@ export function validateTrade({
     const totalSalary =
       team.team?.teamTotalSalary || team.team?.totalSalary || 0;
     const projectedSalary = team.projectedSalary || 0;
-    const apronStatus = getApronStatus(projectedSalary, context.capSettings);
+    const apronStatus = getApronStatus(
+      projectedSalary,
+      (context.capSettings || {}) as Parameters<typeof getApronStatus>[1]
+    );
 
     return {
       teamId,

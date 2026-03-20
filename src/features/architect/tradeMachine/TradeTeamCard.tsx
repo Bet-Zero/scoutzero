@@ -56,11 +56,11 @@ type EntitlementLike = {
 };
 
 type TeamLike = {
-  id?: string;
-  teamId?: string;
-  teamCode?: string;
-  nickname?: string;
-  teamName?: string;
+  id?: string | null;
+  teamId?: string | null;
+  teamCode?: string | null;
+  nickname?: string | null;
+  teamName?: string | null;
   players?: PlayerLike[];
   entitlements?: EntitlementLike[];
   pickRulesById?: Record<string, unknown>;
@@ -68,9 +68,9 @@ type TeamLike = {
 };
 
 type TeamOptionLike = {
-  id?: string;
-  teamName?: string;
-  teamCode?: string;
+  id?: string | null;
+  teamName?: string | null;
+  teamCode?: string | null;
 };
 
 interface TradeTeamCardProps {
@@ -185,7 +185,7 @@ const TradeTeamCard = ({
   } | null>(null);
   const hasTeam = Boolean(team);
   // Phase 65: Use canonical TPE accessor
-  const teamTradeExceptions = getTeamTpeList(team as Record<string, unknown>);
+  const teamTradeExceptions: Array<{ isUsed?: boolean; amount?: number; expirationDate?: string; id?: string; [key: string]: unknown }> = getTeamTpeList(team as Record<string, unknown>) || [];
 
   useEffect(() => {
     if (editingTeam && selectRef.current) {
@@ -396,24 +396,24 @@ const TradeTeamCard = ({
     return incomingPlayers.filter((player) => {
       const playerSalary = getCapHitForSeason(player as Record<string, unknown>, seasonKey) || 0;
       return (teamTradeExceptions || []).some(
-        (tpe) =>
+        (tpe: Record<string, unknown>) =>
           !tpe.isUsed &&
-          playerSalary <= tpe.amount &&
-          (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
+          playerSalary <= Number(tpe.amount) &&
+          (!tpe.expirationDate || new Date(String(tpe.expirationDate)) > new Date())
       );
     });
   }, [hasTeam, incomingPlayers, teamTradeExceptions, yearKey]);
 
   // Modified player trade handler to support multiple selections
   // Replace the existing handleSetPlayerTrade with:
-  const handleSetPlayerTrade = (player, action, targetTeamId, tpe) => {
+  const handleSetPlayerTrade = (player: any, action: string, targetTeamId: string | null, tpe: any) => {
     if (onSetPlayerTrade) {
       onSetPlayerTrade(player, action, targetTeamId, tpe);
     }
   };
 
   // Modified undo trade handler
-  const handleUndoPlayerTrade = (player) => {
+  const handleUndoPlayerTrade = (player: any) => {
     if (onUndoPlayerTrade) {
       onUndoPlayerTrade(player);
     }
@@ -435,7 +435,7 @@ const TradeTeamCard = ({
         <div className="flex-1 min-w-0 max-w-[260px]">
           <TeamSelectDropdown
             selectedTeamId={team.id}
-            onChange={(newId) => {
+            onChange={(newId: string) => {
               setEditingTeam(false);
               onSelectTeam(newId);
             }}
@@ -454,7 +454,25 @@ const TradeTeamCard = ({
       </div>
 
       <CapImpactTiles
-        team={team}
+        team={
+          team
+            ? {
+                ...team,
+                id: team.id ?? undefined,
+                teamId: team.teamId ?? undefined,
+                teamTotalSalary:
+                  typeof (team as { teamTotalSalary?: unknown }).teamTotalSalary ===
+                  'number'
+                    ? (team as { teamTotalSalary?: number }).teamTotalSalary
+                    : undefined,
+                totalSalary:
+                  typeof (team as { totalSalary?: unknown }).totalSalary ===
+                  'number'
+                    ? (team as { totalSalary?: number }).totalSalary
+                    : undefined,
+              }
+            : null
+        }
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
@@ -871,36 +889,46 @@ const TradeTeamCard = ({
         // Phase 14: Always render EntitlementPicksList (removed legacy OutgoingPicksList fallback)
         <EntitlementPicksList
           entitlements={team.entitlements || []}
-          teamId={team.id}
+          teamId={team.id || team.teamCode || ''}
           showPooled={false}
           // Phase 11.1: Pass toggle handler and selected entitlement IDs
-          onToggleEntitlement={onToggleEntitlement}
+          onToggleEntitlement={onToggleEntitlement || undefined}
           selectedEntitlementIds={(entitlementsOut || []).map(
             (e) => e.entitlementId || e.id
+          ).filter(
+            (id): id is string | number => id !== undefined
           )}
           // Phase 12.3B: Pass pick rules for structured derivation
           pickRulesById={team.pickRulesById || {}}
           // Phase 14: Empty state hint for debugging
           emptyStateHint="Check emulator seed / baseTeams.entitlementIds"
           // Phase 17: Pass multi-team destination routing props
-          otherTeams={otherTeams}
+          otherTeams={otherTeams.map((otherTeam) => ({
+            ...otherTeam,
+            id: otherTeam.id ?? undefined,
+            teamName: otherTeam.teamName ?? undefined,
+            teamCode: otherTeam.teamCode ?? undefined,
+          }))}
           entitlementsOut={entitlementsOut}
-          onSetDestination={onSetEntitlementDestination}
-          onEditEntitlement={onEditEntitlement}
-          onViewDetails={onViewEntitlementDetails}
+          onSetDestination={onSetEntitlementDestination || undefined}
+          onEditEntitlement={onEditEntitlement || undefined}
+          onViewDetails={onViewEntitlementDetails || undefined}
           onCreateEntitlement={
-            onCreateEntitlement ? () => onCreateEntitlement(team.id) : null
+            onCreateEntitlement ? () => onCreateEntitlement(team.id) : undefined
           }
           isVacuumMode={isVacuumMode}
-          onRevertEntitlementEdit={onRevertEntitlementEdit}
-          onDeleteSessionEntitlement={onDeleteSessionEntitlement}
+          onRevertEntitlementEdit={onRevertEntitlementEdit || undefined}
+          onDeleteSessionEntitlement={onDeleteSessionEntitlement || undefined}
           compact={compact}
         />
       )}
 
       {activeTab === 'exceptions' &&
         (teamTradeExceptions.length > 0 ? (
-          <TradeExceptionManager exceptions={teamTradeExceptions} teamId={team.id} />
+          <TradeExceptionManager
+            exceptions={teamTradeExceptions}
+            teamId={team.id ?? undefined}
+          />
         ) : (
           <div className="text-xs text-white/40 px-1">
             No trade exceptions available for this team.
@@ -966,13 +994,13 @@ const TradeTeamCard = ({
                                   new Date(tpe.expirationDate) > new Date())
                             )
                             .map((tpe) => {
-                              const amount = formatMillions(tpe.amount, 1);
+                              const amount = formatMillions(tpe.amount ?? 0, 1);
                               const tpeName = tpe.name || tpe.createdFrom;
                               const playerSalary = getSalaryForYear(
                                 [p],
                                 yearKey
                               );
-                              const fits = tpe.amount >= playerSalary;
+                              const fits = (tpe.amount ?? 0) >= playerSalary;
                               return (
                                 <option
                                   key={tpe.id}

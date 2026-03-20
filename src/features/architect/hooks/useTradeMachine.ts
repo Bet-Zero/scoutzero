@@ -70,6 +70,22 @@ type EntitlementOverrideDocument = UnknownRecord & {
   holder_team?: string | null;
 };
 
+const isUnknownRecord = (value: unknown): value is UnknownRecord =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const hasTeamSlot = (
+  slot: TradeMachineTeamSlot
+): slot is TradeMachineTeamSlot & { team: TradeMachineTeam } => {
+  return slot.team !== null;
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
 /* ============================
    DEBUG FLAG & TEAM CODE RESOLUTION
    ============================ */
@@ -234,7 +250,7 @@ const resolvePickRulesForEntitlements = async (
  * Convenience wrapper to get baseline payroll + dead money from SSOT.
  * Returns { playersTotal, deadMoneyTotal, totalWithDead } from computeTeamCapTotals.
  */
-const getCapTotalsForYear = (teamCapSheet, yearKey) => {
+const getCapTotalsForYear = (teamCapSheet: UnknownRecord | null | undefined, yearKey: number) => {
   if (!teamCapSheet)
     return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
   const totals = computeTeamCapTotals(teamCapSheet, yearKey);
@@ -252,25 +268,25 @@ const getCapTotalsForYear = (teamCapSheet, yearKey) => {
 /**
  * Pull MLE/Room MLE/BAE values from capProjections using the **season end-year**.
  */
-function getMLEBAEForYear(endYear, capProjections) {
+function getMLEBAEForYear(endYear: number, capProjections: UnknownRecord | null | undefined) {
   if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
 
   const key = toSeasonKey(endYear); // e.g., 2025 -> "2024-25"
   const fromComposite = capProjections?.[key] || {};
   const fromNumeric = capProjections?.[endYear] || {};
-  const src = Object.keys(fromComposite).length ? fromComposite : fromNumeric;
+  const src = (Object.keys(fromComposite as object).length ? fromComposite : fromNumeric) as Record<string, unknown>;
 
   return {
-    fullMLE: src.fullMLE ?? src.mle ?? 0,
-    roomMLE: src.roomMLE ?? src.rmle ?? 0,
-    bae: src.bae ?? 0,
+    fullMLE: Number(src.fullMLE ?? src.mle ?? 0),
+    roomMLE: Number(src.roomMLE ?? src.rmle ?? 0),
+    bae: Number(src.bae ?? 0),
   };
 }
 
 /**
  * Mutates team to add FA exception buckets and (optionally) seed test TPEs if missing.
  */
-function augmentTeamWithExceptions(team, endYear, capProjections) {
+function augmentTeamWithExceptions(team: UnknownRecord | null, endYear: number, capProjections: UnknownRecord | null | undefined) {
   if (!team) return team;
 
   // Seed FA buckets if not present
@@ -314,10 +330,10 @@ function augmentTeamWithExceptions(team, endYear, capProjections) {
 export const useTradeMachine = (
   primaryTeam: string | null | undefined,
   capProjections: UnknownRecord | null | undefined,
-  currentYear, // ← season **end-year**, e.g. 2025 for 2024-25
+  currentYear: number, // ← season **end-year**, e.g. 2025 for 2024-25
   primaryTeamData: TradeMachineTeam | null = null,
-  worldId = null, // ← optional worldId for world-aware loading
-  worldAsOfDate = null
+  worldId: string | null = null, // ← optional worldId for world-aware loading
+  worldAsOfDate: string | null = null
 ) => {
   // Main state
   const [teams, setTeams] = useState<TradeMachineTeamSlot[]>([]);
@@ -337,7 +353,7 @@ export const useTradeMachine = (
   const lastInitInputsRef = useRef<{
     primaryTeam: string | null | undefined;
     primaryTeamData: TradeMachineTeam | null;
-    yearKey: any;
+    yearKey: string | number;
     worldId: string | null;
   } | null>(null);
 
@@ -346,7 +362,7 @@ export const useTradeMachine = (
 
   // Phase 17: Count active teams for multi-team trade detection
   const activeTeamCount = useMemo(() => {
-    return teams.filter((t) => t.team).length;
+    return teams.filter(hasTeamSlot).length;
   }, [teams]);
 
   // Memoized calculations
@@ -356,23 +372,24 @@ export const useTradeMachine = (
   const incomingAssets = useMemo(() => {
     const isMultiTeamTrade = activeTeamCount > 2;
     return teams.map((tm, idx) => {
-      const players = [];
+      const players: UnknownRecord[] = [];
       // Phase 14.2: Incoming entitlements derived from entitlementsOut
-      const entitlements = [];
+      const entitlements: UnknownRecord[] = [];
       teams.forEach((t, j) => {
         if (j !== idx && t.team) {
+          const sourceTeam = t.team;
           // Phase A5-E1: For 3+ team trades, require explicit tradeTo for players
           // For 2-team trades, allow broadcast fallback (backward compatibility)
           t.sends.forEach((p) => {
             if (isMultiTeamTrade) {
               // 3+ teams: only include if explicitly routed to this team
               if (p.tradeTo === tm.team?.id) {
-                players.push({ ...p, fromTeamId: t.team.id });
+                players.push({ ...p, fromTeamId: sourceTeam.id });
               }
             } else {
               // 2 teams: allow broadcast fallback for backward compatibility
               if (!p.tradeTo || p.tradeTo === tm.team?.id) {
-                players.push({ ...p, fromTeamId: t.team.id });
+                players.push({ ...p, fromTeamId: sourceTeam.id });
               }
             }
           });
@@ -382,12 +399,12 @@ export const useTradeMachine = (
             if (isMultiTeamTrade) {
               // 3+ teams: only include if explicitly routed to this team
               if (e.toTeamId === tm.team?.id) {
-                entitlements.push({ ...e, fromTeamId: t.team.id });
+                entitlements.push({ ...e, fromTeamId: sourceTeam.id });
               }
             } else {
               // 2 teams: allow broadcast fallback for backward compatibility
               if (!e.toTeamId || e.toTeamId === tm.team?.id) {
-                entitlements.push({ ...e, fromTeamId: t.team.id });
+                entitlements.push({ ...e, fromTeamId: sourceTeam.id });
               }
             }
           });
@@ -409,8 +426,10 @@ export const useTradeMachine = (
 
   // Stale validation fix: Check if validation result is current for this draft
   const hasCurrentValidation = useMemo(() => {
+    const teamResults = result?.teamResults;
     return (
-      result?.teamResults?.length > 0 &&
+      Array.isArray(teamResults) &&
+      teamResults.length > 0 &&
       isValidationCurrent(currentDraftKey, lastValidatedDraftKeyRef.current)
     );
   }, [result, currentDraftKey]);
@@ -560,7 +579,7 @@ export const useTradeMachine = (
         // Phase 16.3: Surface init failures instead of silent blank UI
         console.error('[tradeMachine:init] failed to init trade teams', err);
         setInitError(
-          err.message || 'Unknown error during trade machine initialization'
+          getErrorMessage(err) || 'Unknown error during trade machine initialization'
         );
         // Attempt safe fallback: if primaryTeamData exists, try to set minimal slot0
         if (primaryTeamData) {
@@ -586,7 +605,7 @@ export const useTradeMachine = (
 
   // Core trade actions
   const setPlayerTrade = useCallback(
-    (index, player, action, destTeamId = null, actionMeta = null) => {
+    (index: number, player: UnknownRecord, action: string, destTeamId: string | null = null, actionMeta: UnknownRecord | null = null) => {
       setTeams((prev) => {
         const newTeams = [...prev];
         const team = newTeams[index];
@@ -620,7 +639,7 @@ export const useTradeMachine = (
           case 'signAndTrade':
             {
               const validation = validateSignAndTradeContractPayload(
-                actionMeta?.signAndTradeContract || null,
+                (actionMeta?.signAndTradeContract as any) || null,
                 yearKey,
                 { requireActiveYearRow: true }
               );
@@ -759,7 +778,7 @@ export const useTradeMachine = (
 
   // Phase 11.1: Toggle entitlement selection for trading
   // Phase 17: Updated to auto-set toTeamId for 2-team trades (closure of broadcast bug)
-  const toggleEntitlement = useCallback((index, entitlement) => {
+  const toggleEntitlement = useCallback((index: number, entitlement: UnknownRecord) => {
     setTeams((prev) => {
       const newTeams = [...prev];
       const entitlementId = entitlement.id || entitlement.entitlementId;
@@ -774,7 +793,7 @@ export const useTradeMachine = (
         ].entitlementsOut.filter((_, i) => i !== existingIndex);
       } else {
         // Phase 17: Count active teams (teams with a selected team object)
-        const activeTeams = newTeams.filter((t) => t.team);
+        const activeTeams = newTeams.filter(hasTeamSlot);
         const activeTeamCount = activeTeams.length;
 
         // Phase 17: For 2-team trades, auto-set toTeamId to the only other team
@@ -789,14 +808,18 @@ export const useTradeMachine = (
         }
 
         // Add to selection with required metadata
+        const decoratedEntitlement = decorateEntitlementForTrade({
+          ...entitlement,
+          entitlementId,
+          fromTeamId: newTeams[index].team?.id,
+          toTeamId: autoToTeamId, // Phase 17: Auto-set for 2-team, null for 3+
+        });
+        if (!isUnknownRecord(decoratedEntitlement)) {
+          return newTeams;
+        }
         newTeams[index].entitlementsOut = [
           ...(newTeams[index].entitlementsOut || []),
-          decorateEntitlementForTrade({
-            ...entitlement,
-            entitlementId,
-            fromTeamId: newTeams[index].team?.id,
-            toTeamId: autoToTeamId, // Phase 17: Auto-set for 2-team, null for 3+
-          }),
+          decoratedEntitlement,
         ];
       }
 
@@ -806,7 +829,7 @@ export const useTradeMachine = (
 
   // Phase 17: Set destination team for an entitlement in 3+ team trades
   const setEntitlementDestination = useCallback(
-    (fromTeamIndex, entitlementId, toTeamId) => {
+    (fromTeamIndex: number, entitlementId: string, toTeamId: string | null) => {
       setTeams((prev) => {
         const newTeams = [...prev];
         const entitlementsOut = newTeams[fromTeamIndex].entitlementsOut || [];
@@ -831,7 +854,7 @@ export const useTradeMachine = (
 
   // Team management
   const selectTeam = useCallback(
-    async (index, teamId) => {
+    async (index: number, teamId: string | null) => {
       if (!teamId) {
         setTeams((prev) => {
           const newTeams = [...prev];
@@ -979,7 +1002,7 @@ export const useTradeMachine = (
 
   // Phase A5-E1: Updated removeTeam to clean up orphaned routes
   // When removing a team, clear tradeTo/toTeamId for any assets that were routed to that team
-  const removeTeam = useCallback((index) => {
+  const removeTeam = useCallback((index: number) => {
     setTeams((prev) => {
       // Get the id of the team being removed (to clean up orphan routes)
       const removedTeamId = prev[index]?.team?.id || null;
@@ -1024,7 +1047,8 @@ export const useTradeMachine = (
   // Core validation function - extracted for reuse
   // P0-3: Wraps validation with isValidating state for UI loading indicators
   const validateCurrentTrade = useCallback(() => {
-    if (teams.filter((t) => t.team).length < 2) {
+    const activeTeams = teams.filter(hasTeamSlot);
+    if (activeTeams.length < 2) {
       setResult(null);
       // P0-3: Clear isValidating since no validation will run (not enough teams)
       // This is intentional - if we don't have enough teams, there's nothing to validate
@@ -1058,30 +1082,28 @@ export const useTradeMachine = (
     // LOG C) Right before validateTrade(...) in validateCurrentTrade()
     console.log(
       '[validate -> teams payroll]',
-      teams.map(
-        (t) =>
-          t.team && {
-            team: t.team.nickname || t.team.name || t.team.id,
-            teamTotalSalary: t.team.teamTotalSalary,
-            projectedSalary: t.team.projectedSalary,
-          }
-      )
+      activeTeams.map((t) => ({
+        team: t.team.nickname || t.team.name || t.team.id,
+        teamTotalSalary: t.team.teamTotalSalary,
+        projectedSalary: t.team.projectedSalary,
+      }))
     );
+    const validationTeams = patchedTeams
+      .filter(hasTeamSlot)
+      .map((t) => ({
+        team: t.team,
+        sends: t.sends,
+        // Phase 14.2: Removed picksOut - draft assets are entitlements-only
+        hardCapped: t.team.hardCapped as boolean,
+        hardCapLevel: t.team.hardCapLevel || t.team.totals?.hardCapLevel || null,
+        // Phase 12.1: Pass entitlements for Stepien validation
+        entitlementsOut: t.entitlementsOut || [],
+        // Phase 12.2: Pass team's loaded entitlements for baseline calculation
+        validationEntitlements: t.entitlements || [],
+      })) as Parameters<typeof validateTrade>[0]['teams'];
+
     const validation: any = validateTrade({
-        teams: patchedTeams
-          .filter((t) => t.team)
-          .map((t) => ({
-            team: t.team,
-            sends: t.sends,
-            // Phase 14.2: Removed picksOut - draft assets are entitlements-only
-            hardCapped: t.team.hardCapped as boolean,
-            hardCapLevel:
-              t.team.hardCapLevel || t.team.totals?.hardCapLevel || null,
-            // Phase 12.1: Pass entitlements for Stepien validation
-            entitlementsOut: t.entitlementsOut || [],
-            // Phase 12.2: Pass team's loaded entitlements for baseline calculation
-            validationEntitlements: t.entitlements || [],
-          })),
+        teams: validationTeams,
       capProjections,
       currentYear: yearKey,
       // Phase 12.2: Pass worldId and yearKey for validation context
@@ -1137,7 +1159,7 @@ export const useTradeMachine = (
 
     console.log(
       '[after validate]',
-      validation.teamResults.map((tr) => ({
+      validation.teamResults.map((tr: any) => ({
         team: tr.team?.nickname || tr.team?.name || tr.team?.id,
         pre: tr.preTradeStatus?.projectedSalary,
         post: tr.postTradeStatus?.projectedSalary,
@@ -1165,24 +1187,25 @@ export const useTradeMachine = (
 
   const exportCurrentTrade = useCallback(() => {
     const tradeData = teams
-      .filter((t) => t.team)
-      .map((t) => ({
-        teamId: t.team.id,
+      .filter(hasTeamSlot)
+      .map((t) => {
+        const teamId = t.team.id;
+        const incomingTeamAssets = incomingAssets.find((a) => a.teamId === teamId);
+        return {
+        teamId,
         outgoingPlayers: t.sends,
         // Phase 14.2: Removed outgoingPicks - draft assets are entitlements-only
         outgoingEntitlements: (t.entitlementsOut || [])
           .map((ent) => decorateEntitlementForTrade(ent))
-          .filter(Boolean),
-        incomingPlayers:
-          incomingAssets.find((a) => a.teamId === t.team.id)?.players || [],
+          .filter(isUnknownRecord),
+        incomingPlayers: incomingTeamAssets?.players || [],
         // Phase 14.2: Incoming entitlements derived from entitlementsOut routing
-        incomingEntitlements: (
-          incomingAssets.find((a) => a.teamId === t.team.id)?.entitlements || []
-        )
+        incomingEntitlements: (incomingTeamAssets?.entitlements || [])
           .map((ent) => decorateEntitlementForTrade(ent))
-          .filter(Boolean),
+          .filter(isUnknownRecord),
         usedTradeExceptions: extractUsedTpeIds(t.sends),
-      }));
+      };
+      });
 
     return tradeData;
   }, [teams, incomingAssets]);
@@ -1192,15 +1215,15 @@ export const useTradeMachine = (
       // Phase 14.2: Removed picksOut - draft assets are entitlements-only
       (clearSyntheticSntPlayersFromTeams(prev) as TradeMachineTeamSlot[]).map((slot) => ({
         ...slot,
-        sends: [],
-        entitlementsOut: [],
+        sends: [] as UnknownRecord[],
+        entitlementsOut: [] as UnknownRecord[],
       }))
     );
     setResult(null);
     setForceTrade(false);
   }, []);
 
-  const undoPlayerTrade = useCallback((player) => {
+  const undoPlayerTrade = useCallback((player: UnknownRecord) => {
     setTeams((prev) =>
       prev.map((t) => ({
         ...t,
@@ -1212,17 +1235,18 @@ export const useTradeMachine = (
   }, []);
 
   const applyEntitlementOverrideUpdate = useCallback(
-    (entitlementId, document) => {
+    (entitlementId: string, document: UnknownRecord) => {
       if (!entitlementId || !document) return;
 
-      const normalizedDoc = { ...document, id: entitlementId };
-      const affectedIndexes = [];
+      const normalizedDoc: UnknownRecord = { ...document, id: entitlementId };
+      const affectedIndexes: number[] = [];
 
       const updatedTeams = teams.map((slot, index) => {
         if (!slot.team) return slot;
+        const slotTeam = slot.team as TradeMachineTeam;
 
         let entitlementsChanged = false;
-        let updatedEntitlements = (slot.team.entitlements || []).map((ent) => {
+        let updatedEntitlements = (slotTeam.entitlements || []).map((ent) => {
           const entId = ent.id || ent.entitlementId;
           if (entId !== entitlementId) return ent;
           entitlementsChanged = true;
@@ -1235,7 +1259,7 @@ export const useTradeMachine = (
         if (!entitlementsChanged) {
           const holderTeam =
             normalizedDoc.holderTeam || normalizedDoc.holder_team;
-          const teamCode = slot.team.teamCode || slot.team.id;
+          const teamCode = slotTeam.teamCode || slotTeam.id;
           if (holderTeam && holderTeam === teamCode) {
             updatedEntitlements = [...updatedEntitlements, normalizedDoc];
             entitlementsChanged = true;
@@ -1246,8 +1270,8 @@ export const useTradeMachine = (
           affectedIndexes.push(index);
         }
 
-        const updatedEntitlementsOut = (slot.entitlementsOut || []).map(
-          (ent) => {
+        const updatedEntitlementsOut = (slot.entitlementsOut || [])
+          .map((ent) => {
             const entId = ent.id || ent.entitlementId;
             if (entId !== entitlementId) return ent;
             const merged = deepMergeEntitlement(ent, normalizedDoc);
@@ -1256,19 +1280,19 @@ export const useTradeMachine = (
               id: entitlementId,
               entitlementId: entitlementId,
             });
-          }
-        );
+          })
+          .filter(isUnknownRecord);
 
         return {
           ...slot,
           team: entitlementsChanged
-            ? { ...slot.team, entitlements: updatedEntitlements }
-            : slot.team,
+            ? { ...slotTeam, entitlements: updatedEntitlements }
+            : slotTeam,
           entitlementsOut: updatedEntitlementsOut,
         };
       });
 
-      setTeams(updatedTeams);
+      setTeams(updatedTeams as TradeMachineTeamSlot[]);
 
       if (!ENABLE_PICK_RULES || affectedIndexes.length === 0) return;
 

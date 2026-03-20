@@ -49,7 +49,7 @@ const normalizeExceptionForTracker = (
     typeof canonicalEntry === 'object' &&
     !Array.isArray(canonicalEntry);
 
-  const legacyEntry = teamCapSheet?.[legacyKey];
+  const legacyEntry = (teamCapSheet as Record<string, unknown>)?.[legacyKey];
   const sourceEntry = hasCanonicalEntry ? canonicalEntry : legacyEntry || {};
 
   const totalAmount = toNonNegativeNumber(
@@ -207,7 +207,7 @@ const CompactTradeExceptionRow = ({ tpe }: CompactTradeExceptionRowProps) => {
       </div>
 
       <div className="flex items-center text-[10px] text-white/40 group-hover:text-white/60 transition-colors truncate">
-        {tpe.createdFrom && <span>from {String(tpe.createdFrom)}</span>}
+        {Boolean(tpe.createdFrom) && <span>from {String(tpe.createdFrom)}</span>}
       </div>
 
       <div className="text-right whitespace-nowrap">

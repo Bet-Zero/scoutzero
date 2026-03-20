@@ -135,7 +135,7 @@ export function buildStepienOutgoingPicksFromEntitlements(
       return {
         year: ent.seasonYear || ent.year,
         round: 1,
-        protection: null,
+        protection: null as any,
         isSwap: isSwap,
         swapType,
         _source: 'entitlement',

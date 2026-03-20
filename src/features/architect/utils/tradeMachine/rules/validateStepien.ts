@@ -200,10 +200,11 @@ function obligationReservesYear(
   );
   // Only check owner !== originalTeam if BOTH fields are present
   // If either is missing, we can't determine ownership change, so fall back to other signals
-  const notCurrentOwner =
+  const notCurrentOwner = !!(
     obligation.owner &&
     obligation.originalTeam &&
-    obligation.owner !== obligation.originalTeam;
+    obligation.owner !== obligation.originalTeam
+  );
   const notTradeable = obligation.tradeable === false;
   const notStepienEligible = obligation.stepienEligible === false;
 
@@ -314,7 +315,7 @@ export function validateStepien(
   );
   const baselineYears: StepienReservationEntry[] = baselinePicks.map((p) => ({
     year: p.year,
-    protection: null, // Entitlements don't carry protection at this level
+    protection: null as any, // Entitlements don't carry protection at this level
     isSwap: p.isSwap,
     swapType: p.swapType,
     _source: 'entitlement_baseline',

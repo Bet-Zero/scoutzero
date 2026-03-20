@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   batchSet: vi.fn(),
   batchUpdate: vi.fn(),
-  batchCommit: vi.fn(async () => undefined),
+  batchCommit: vi.fn(async (): Promise<any> => undefined),
   getLeague: vi.fn(),
   getWorldMetadata: vi.fn(),
   getDraftPositionsMap: vi.fn(),
@@ -68,8 +68,8 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js', 
 
 vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   normalizeTeamTpeSchema: (team: Record<string, unknown>) => team,
-  getTeamTpeList: () => [],
-  assertPersistableOrThrow: vi.fn(() => undefined),
+  getTeamTpeList: (): any[] => [],
+  assertPersistableOrThrow: vi.fn((): any => undefined),
   PERSISTENCE_CONTRACTS: {
     TEAM: {},
     EVENT: {},
@@ -99,21 +99,21 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js',
 }));
 
 vi.mock('@/features/architect/utils/tpeLifecycle', () => ({
-  processTradeExceptions: vi.fn(() => ({ activeTPEs: [], expiredTPEs: [], hasChanges: false })),
+  processTradeExceptions: vi.fn(() => ({ activeTPEs: [] as any[], expiredTPEs: [] as any[], hasChanges: false })),
   getTpeExpiryISO: vi.fn(() => '2027-07-01T00:00:00.000Z'),
 }));
 
 vi.mock('@/features/architect/utils/exceptionHistory/historyHelpers', () => ({
-  appendExceptionHistory: vi.fn(() => []),
-  createTpeExpiryHistoryEntry: vi.fn(() => ({})),
+  appendExceptionHistory: vi.fn((): any[] => []),
+  createTpeExpiryHistoryEntry: vi.fn((): any => ({})),
 }));
 
 vi.mock('@/features/architect/utils/exceptions', () => ({
-  resetTeamNonTpeExceptionsForNewSeason: vi.fn(() => ({ exceptions: {}, hasChanges: false })),
+  resetTeamNonTpeExceptionsForNewSeason: vi.fn((): any => ({ exceptions: {}, hasChanges: false })),
 }));
 
 vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
-  resolveEntitlementsForTeam: vi.fn(async () => []),
+  resolveEntitlementsForTeam: vi.fn(async (): Promise<any[]> => []),
 }));
 
 vi.mock('@/features/architect/utils/entitlements/pickRulesResolver', () => ({
@@ -122,16 +122,16 @@ vi.mock('@/features/architect/utils/entitlements/pickRulesResolver', () => ({
 }));
 
 vi.mock('@/features/architect/utils/entitlements/seasonManagerProjection', () => ({
-  projectEntitlementsToSeasonManagerView: vi.fn(() => []),
-  logDerivedPicksCreation: vi.fn(() => undefined),
+  projectEntitlementsToSeasonManagerView: vi.fn((): any[] => []),
+  logDerivedPicksCreation: vi.fn((): any => undefined),
 }));
 
 vi.mock('@/features/architect/utils/entitlements/dare', () => ({
   resolveAllDraftAssets: vi.fn(async () => ({
     success: true,
-    entitlementDocWrites: [],
-    teamEntitlementIdUpdates: [],
-    resolutionReceipt: { totalResolutions: 0, entries: [] },
+    entitlementDocWrites: [] as any[],
+    teamEntitlementIdUpdates: [] as any[],
+    resolutionReceipt: { totalResolutions: 0, entries: [] as any[] },
   })),
   applyGatedDAREResultsToBatch: vi.fn(() => ({ ok: true, writeCount: 0 })),
   formatReceiptAsSummary: vi.fn(() => 'none'),
@@ -195,7 +195,7 @@ describe('Season Advance Post-State Validator Fail-Close', () => {
     expect(result.error).toContain('Post-state cap validation failed');
     expect(Array.isArray(result.violations)).toBe(true);
     expect(
-      result.violations.some(
+      (result.violations || []).some(
         (violation: { code?: string }) => violation.code === 'TOTALS_NON_FINITE'
       )
     ).toBe(true);

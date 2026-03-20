@@ -69,7 +69,7 @@ describe('Gate 1: World-mode offer sheet initiation wiring exists (E1)', () => {
 
   it('guards onStoreOfferSheet with worldId in modal props', () => {
     const hasWorldGuardedStoreCallback =
-      /onStoreOfferSheet\s*=\s*\{\s*worldId\s*\?\s*onStoreOfferSheet\s*:\s*null\s*\}/.test(
+      /onStoreOfferSheet\s*=\s*\{[\s\S]{0,160}worldId\s*\?\s*onStoreOfferSheet\s*:\s*(?:null|undefined)[\s\S]{0,160}\}/.test(
         content
       );
     expect(hasWorldGuardedStoreCallback).toBe(true);

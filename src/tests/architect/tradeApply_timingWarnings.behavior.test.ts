@@ -248,9 +248,11 @@ describe('trade apply timing warnings', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.warnings?.some((warning) => warning.rule === 'timingEnforcement')).toBe(
-      true
-    );
+    expect(
+      result.warnings?.some(
+        (warning: { rule?: string }) => warning.rule === 'timingEnforcement'
+      )
+    ).toBe(true);
     expect(issueTexts(result.warnings)).toEqual(
       expect.arrayContaining([expect.stringMatching(/moratorium/i)])
     );

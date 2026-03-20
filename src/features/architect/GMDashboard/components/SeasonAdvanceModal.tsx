@@ -15,6 +15,7 @@ import {
 import {
   processTradeExceptions,
   getTpeExpiryISO,
+  type TpeLifecycleRecord,
 } from '@/features/architect/utils/tpeLifecycle';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
@@ -60,11 +61,6 @@ type CapHoldLike = {
 type TeamCapSheetLike = {
   players?: PlayerLike[] | null;
   capHolds?: CapHoldLike[] | null;
-};
-
-type TpeLike = {
-  amount?: number | null;
-  source?: string | null;
 };
 
 type PlayerOptionPreviewLike = {
@@ -250,20 +246,18 @@ function findExpiringTPEs(
 ): ExpiringTpePreviewLike[] {
   const tpes = getTeamTpeList(
     (teamCapSheet || {}) as Record<string, unknown>
-  ) as TpeLike[];
+  ) as TpeLifecycleRecord[];
   if (tpes.length === 0) {
     return [];
   }
 
   const toSeason = toSeasonCode(toYear);
-  const { expiredTPEs = [] } = processTradeExceptions(tpes, toSeason) as {
-    expiredTPEs?: TpeLike[];
-  };
+  const { expiredTPEs = [] } = processTradeExceptions(tpes, toSeason);
 
   return expiredTPEs.map((tpe) => ({
     amount: tpe.amount || 0,
-    date: getTpeExpiryISO(tpe as Record<string, unknown>),
-    source: tpe.source || 'Trade Exception',
+    date: getTpeExpiryISO(tpe as Record<string, unknown>) || '',
+    source: typeof tpe.source === 'string' ? tpe.source : 'Trade Exception',
   }));
 }
 

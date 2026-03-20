@@ -265,9 +265,9 @@ export function buildTradeInput(
 
   return {
     ...tradeInput,
-    teams: tradeInput.teams.map((team) =>
-      buildTradeTeamInput(team.teamState || team, team)
-    ),
+    teams: tradeInput.teams
+      .map((team) => buildTradeTeamInput(team.teamState || team, team))
+      .filter((team): team is UnknownRecord => team !== null),
   };
 }
 

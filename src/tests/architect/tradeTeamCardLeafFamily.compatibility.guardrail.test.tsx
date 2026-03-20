@@ -89,12 +89,13 @@ describe('E101 Trade Team Card leaf-family compatibility guardrails', () => {
     namedOnlyPairs.forEach(
       ([authorityPath, exportName, jsxModule, extensionlessNamed]) => {
         const authoritySource = readAuthoritySource(authorityPath);
+        const jsxModuleRecord = jsxModule as Record<string, unknown>;
 
         expect(authoritySource).toContain(`export const ${exportName}`);
         expect(authoritySource).not.toContain('export default');
-        expect(Object.keys(jsxModule)).toEqual([exportName]);
-        expect('default' in jsxModule).toBe(false);
-        expect(jsxModule[exportName]).toBe(extensionlessNamed);
+        expect(Object.keys(jsxModuleRecord)).toEqual([exportName]);
+        expect('default' in jsxModuleRecord).toBe(false);
+        expect(jsxModuleRecord[exportName]).toBe(extensionlessNamed);
       }
     );
   });

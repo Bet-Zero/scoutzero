@@ -35,20 +35,20 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-validator',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [],
-    warnings: [],
+    violations: [] as any[],
+    warnings: [] as any[],
   })),
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({
     valid: true,
-    violations: [],
-    warnings: [],
+    violations: [] as any[],
+    warnings: [] as any[],
   })),
-  validateContractRows: vi.fn(() => ({ violations: [], warnings: [] })),
-  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
-  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateContractRows: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -102,7 +102,7 @@ function buildTeamFixture() {
     teamName: 'Los Angeles Lakers',
     roster: players.map((player) => player.id),
     players,
-    deadCap: [],
+    deadCap: [] as any[],
     capHolds: [
       {
         playerId: 'p_renounce',
@@ -160,7 +160,7 @@ function buildPlayersMap(team: any): Record<string, any> {
     player_id: 'p_resign',
     name: 'p_resign',
     displayName: 'p_resign',
-    contract: null,
+    contract: null as any,
   };
   map.p_resign = resignPlayer;
   map['p_resign'] = resignPlayer;
@@ -418,7 +418,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(result.current.teamCapSheet.deadCap).toHaveLength(1);
 
     const resignBefore = totalForYear(result.current.teamCapSheet);
-    let resignResult;
+    let resignResult: any;
     await act(async () => {
       resignResult = await result.current.actions.handleSign(
         {
@@ -441,7 +441,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(getPlayer(result.current.teamCapSheet, 'p_resign')).toBeTruthy();
 
     const signAndTradeBefore = totalForYear(result.current.teamCapSheet);
-    let signAndTradeResult;
+    let signAndTradeResult: any;
     await act(async () => {
       signAndTradeResult = await result.current.actions.handleSignAndTrade(
         {
@@ -628,7 +628,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
     const resignBefore = totalForYear(result.current.teamCapSheet);
-    let resignResult;
+    let resignResult: any;
     await act(async () => {
       resignResult = await result.current.actions.handleSign(
         {
@@ -654,7 +654,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(resignAfter).toBeGreaterThan(resignBefore);
 
     const signAndTradeBefore = totalForYear(result.current.teamCapSheet);
-    let signAndTradeResult;
+    let signAndTradeResult: any;
     await act(async () => {
       signAndTradeResult = await result.current.actions.handleSignAndTrade(
         {

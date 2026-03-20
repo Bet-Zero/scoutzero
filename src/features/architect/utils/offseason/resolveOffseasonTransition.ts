@@ -821,7 +821,9 @@ export function resolveOffseasonTransition({
   }
 
   const remainingIds = new Set(
-    remainingPlayers.map((player) => getPlayerId(player)).filter(Boolean)
+    remainingPlayers
+      .map((player) => getPlayerId(player))
+      .filter((playerId): playerId is string => typeof playerId === 'string')
   );
 
   if (expiredPlayers.length > 0) {
@@ -897,7 +899,7 @@ export function resolveOffseasonTransition({
     if (Array.isArray(contract.salariesByYear)) {
       contract.salariesByYear = contract.salariesByYear.filter((row: any) => {
         const yearEnd = toEndYear(row?.season);
-        return Number.isFinite(yearEnd) && yearEnd >= toYear;
+        return yearEnd !== null && Number.isFinite(yearEnd) && yearEnd >= toYear;
       });
     }
   }

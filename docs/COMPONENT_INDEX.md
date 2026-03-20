@@ -64,6 +64,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/cbaConstants.js
 - utils/consentUtils.js
 - utils/contractUtils.js
+- utils/draftPickUtils.js
 - utils/entitlements/entitlementPickRowProjection.js
 - utils/exceptions/exceptionLifecycle.js
 - utils/exceptions/index.js
@@ -113,6 +114,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/basicRules.js
 - utils/tradeMachine/rules/draftRules.js
 - utils/tradeMachine/rules/enforceConsent.js
+- utils/tradeMachine/rules/enforceEligibility.js
 - utils/tradeMachine/rules/enforcement.js
 - utils/tradeMachine/rules/hardCapValidation.js
 - utils/tradeMachine/rules/index.js
@@ -300,4 +302,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-16T13:05:14.989Z*
+*Generated on: 2026-03-20T06:34:11.473Z*

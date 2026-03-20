@@ -176,16 +176,17 @@ export function validateSalaryFieldData(
   const playerId = getPlayerId(player);
 
   const contract = player.contract || player.primaryContract;
+  const salariesByYear = contract?.salariesByYear || [];
   const hasCanonicalSalary =
-    contract?.salariesByYear?.length > 0 &&
-    contract.salariesByYear.some(
+    salariesByYear.length > 0 &&
+    salariesByYear.some(
       (seasonSalary) =>
         seasonSalary.capHit !== undefined &&
         seasonSalary.capHit !== null &&
         seasonSalary.capHit > 0
     );
 
-  if (!hasCanonicalSalary && salaryValue > 0) {
+  if (!hasCanonicalSalary && (salaryValue ?? 0) > 0) {
     warnings.push(
       createDataWarning(
         DATA_WARNING_CODES.SALARY_FIELD_FALLBACK,
@@ -201,7 +202,7 @@ export function validateSalaryFieldData(
         }
       )
     );
-  } else if (!hasCanonicalSalary && salaryValue === 0) {
+  } else if (!hasCanonicalSalary && (salaryValue ?? 0) === 0) {
     warnings.push(
       createDataWarning(
         DATA_WARNING_CODES.SALARY_FIELD_MISSING,

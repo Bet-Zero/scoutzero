@@ -440,7 +440,7 @@ export function computeExtensionTerms(
     return null;
   }
 
-  const { capSettings = {} } = leagueContext || {};
+  const capSettings = leagueContext?.capSettings ?? {};
   const currentSeason = leagueContext?.currentSeason || 'unknown';
   // Require salaryCap from context - warn but continue for backward compatibility
   // TODO: In future version, require salaryCap and return error result if missing

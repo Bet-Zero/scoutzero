@@ -328,7 +328,7 @@ function normalizeBirdRights(contract: ContractSource) {
 function normalizeTradeEligibility(contract: ContractSource) {
   const te = contract.tradeEligibility ?? {};
   return {
-    canBeTradedNow: null,
+    canBeTradedNow: null as any,
     restrictedUntil: te.restrictedUntil ?? null,
     reason: te.reason ?? null,
     rules: {
@@ -751,10 +751,10 @@ function buildPlayersV2Payload(
 
   Object.keys(currentContractView).forEach((key) => {
     if (
-      currentContractView[key] === null ||
-      currentContractView[key] === undefined
+      (currentContractView as Record<string, unknown>)[key] === null ||
+      (currentContractView as Record<string, unknown>)[key] === undefined
     ) {
-      delete currentContractView[key];
+      delete (currentContractView as Record<string, unknown>)[key];
     }
   });
 

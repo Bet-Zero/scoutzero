@@ -35,10 +35,10 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
-  validateSigning: vi.fn(() => ({ violations: [], warnings: [] })),
-  validateContractRows: vi.fn(() => ({ violations: [], warnings: [] })),
-  validateDeadCap: vi.fn(() => ({ violations: [], warnings: [] })),
-  validateExceptions: vi.fn(() => ({ violations: [], warnings: [] })),
+  validateSigning: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateContractRows: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateDeadCap: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
+  validateExceptions: vi.fn(() => ({ violations: [] as any[], warnings: [] as any[] })),
   isOverrideEnabled: vi.fn(() => false),
 }));
 
@@ -53,8 +53,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: '1.0.0',
   validatePostStateCapLegality: vi.fn(() => ({
     valid: true,
-    violations: [],
-    warnings: [],
+    violations: [] as any[],
+    warnings: [] as any[],
   })),
 }));
 
@@ -74,10 +74,10 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
 const baseTeamFixture = {
   teamCode: 'BOS',
   teamName: 'Boston Celtics',
-  roster: [],
-  players: [],
-  capHolds: [],
-  deadCap: [],
+  roster: [] as any[],
+  players: [] as any[],
+  capHolds: [] as any[],
+  deadCap: [] as any[],
   exceptions: {},
   totals: {
     isHardCapped: false,

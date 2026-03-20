@@ -13,6 +13,11 @@
  */
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import type {
+  PlayerRulesProfileInput,
+  PlayerRulesProfilesResult,
+  PlayerRulesProfileTeamCapSheet,
+} from '@/features/architect/types';
 import EditContractModal from '@/shared/components/EditContractModal';
 import { RosterSection } from './sections/RosterSection';
 import { CapSheetSection } from './sections/CapSheetSection';
@@ -40,19 +45,10 @@ import {
   toSeasonKey,
 } from '@/features/architect/utils/seasonFormat';
 
-type PlayerLike = {
-  id?: string | null;
-  player_id?: string | null;
-  playerId?: string | null;
-  name?: string | null;
-  displayName?: string | null;
-};
+type EditContractModalProps = Parameters<typeof EditContractModal>[0];
 
-type TeamCapSheetLike = {
-  players?: PlayerLike[] | null;
-  offerSheets?: unknown[];
-  incomingOfferSheets?: unknown[];
-};
+type PlayerLike = PlayerRulesProfileInput;
+type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet;
 
 type OffseasonSummaryLike = {
   declinedOptions?: string[];
@@ -131,16 +127,6 @@ type ActionsLike = {
   hasInjectedTeamHistoryFixtures: boolean;
 };
 
-type PlayerRulesProfilesLike = {
-  leagueContext: unknown;
-  leagueContextByYear?: Map<number, unknown>;
-  getProfile: (
-    player: PlayerLike,
-    selectedRulesYear?: number | null
-  ) => unknown;
-  getProfileForYear: (...args: unknown[]) => unknown;
-};
-
 const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined) => {
   const keys = Object.keys(caps || {});
   const years = keys
@@ -162,10 +148,10 @@ const GMDashboard = () => {
   const { userId, loading: authLoading } = useAuth();
 
   const state = useArchitectState({
-    teamId,
+    teamId: teamId ?? '',
     userId,
     authLoading,
-  }) as DashboardStateLike;
+  }) as unknown as DashboardStateLike;
 
   const modals = useArchitectModals() as ModalsLike;
 
@@ -227,7 +213,7 @@ const GMDashboard = () => {
     teamCode: teamId,
     simulationDate: simulatedRulesDate,
     evaluationYears: capTableYears,
-  }) as PlayerRulesProfilesLike;
+  }) as PlayerRulesProfilesResult;
 
   const selectedPlayerRulesProfile = selectedPlayer
     ? getRulesProfile(selectedPlayer, selectedRulesYear)
@@ -447,7 +433,7 @@ const GMDashboard = () => {
             currentYear={currentYear}
             onSign={actions.handleSign}
             onSignAndTrade={actions.handleSignAndTrade}
-            onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : null}
+            onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : undefined}
             playersMap={playersMap}
             outgoingOfferSheets={(teamCapSheet?.offerSheets || []) as OfferSheetLike[]}
             incomingOfferSheets={(teamCapSheet?.incomingOfferSheets || []) as OfferSheetLike[]}
@@ -560,12 +546,12 @@ const GMDashboard = () => {
         <EditContractModal
           isOpen={showContractModal}
           onClose={closeContractModal}
-          player={selectedPlayer}
+          player={selectedPlayer as EditContractModalProps['player']}
           initialAction={initialAction}
           targetYear={targetYear}
           actionContext={actionContext}
           capProjections={capProjections}
-          teamCapSheet={teamCapSheet}
+          teamCapSheet={teamCapSheet as EditContractModalProps['teamCapSheet']}
           currentYear={currentYear}
           onSignFreeAgent={actions.handleSign}
           onResign={actions.handleSign}

@@ -116,23 +116,7 @@ type ExtensionTermsLike = {
   [key: string]: any;
 };
 
-type PlayerRulesProfileLike = {
-  extensionEligibility?: {
-    isEligible?: boolean;
-    reason?: string | null;
-    [key: string]: any;
-  } | null;
-  extensionTerms?: ExtensionTermsLike | null;
-  birdRights?: {
-    type?: string | null;
-    [key: string]: any;
-  } | null;
-  restrictedFreeAgency?: {
-    qualifyingOfferAmount?: number | null;
-    [key: string]: any;
-  } | null;
-  [key: string]: any;
-} | null;
+type PlayerRulesProfileLike = Parameters<typeof buildSigningGuardrails>[0];
 
 type RulesLeagueContextLike = {
   simulationDate?: Date | null;
@@ -402,13 +386,16 @@ const EditContractModal = ({
     if (!isSigningAction) return null;
     return buildSigningGuardrails(
       playerRulesProfile,
-      capSettings,
+      capSettings ?? undefined,
       selectedException
     ) as SigningGuardrailsLike;
   }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
 
   const contractYears = useMemo<ContractYearLike[]>(
-    () => getContractYearsForDisplay(player) as ContractYearLike[],
+    () =>
+      getContractYearsForDisplay(
+        player as Parameters<typeof getContractYearsForDisplay>[0]
+      ) as ContractYearLike[],
     [player]
   );
 
@@ -797,7 +784,7 @@ const EditContractModal = ({
       raisePct: number | null | undefined
     ): number[] => {
       const totalYears = Math.min(Math.max(years, 1), 5);
-      const series = [];
+      const series: number[] = [];
       for (let i = 0; i < totalYears; i += 1) {
         if (i === 0) {
           series.push(Math.round(firstYear));
@@ -873,9 +860,9 @@ const EditContractModal = ({
           salary: amount,
           capHit: amount,
           guaranteed: true,
-          option: null,
-          optionType: null,
-          optionUsed: null,
+          option: null as any,
+          optionType: null as any,
+          optionUsed: null as any,
         };
       });
 
@@ -1098,7 +1085,7 @@ const EditContractModal = ({
         }
       }
 
-      const normalizedResult = normalizeActionResult(actionResult);
+      const normalizedResult = normalizeActionResult(actionResult as ActionResultLike);
       if (normalizedResult.success) {
         onClose();
         return;

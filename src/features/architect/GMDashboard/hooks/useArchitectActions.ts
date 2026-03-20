@@ -260,6 +260,11 @@ type MutationTruthResult = {
   writesSummary?: MutationWritesSummary;
 };
 
+type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type ComputeWorldMutationState = NonNullable<
+  ComputeWorldMutationArgs['currentState']
+>;
+
 /** Free agent type extending ArchitectPlayer */
 interface FreeAgent extends ArchitectPlayer {
   previousSalary: number;
@@ -447,7 +452,7 @@ const ensureContractStructure = (
         salary,
         capHit: salary,
         guaranteed: true,
-        option: null,
+        option: null as any,
       };
     });
 
@@ -1323,7 +1328,7 @@ export function useArchitectActions({
               undefined,
           };
         }),
-        picksOut: [],
+        picksOut: [] as any[],
         // TM-PICKS-E1: Include outgoing entitlements in persistence payload
         outgoingEntitlements: t.outgoingEntitlements || [],
         entitlementsOut: t.outgoingEntitlements || [],
@@ -1382,7 +1387,7 @@ export function useArchitectActions({
           ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
           tradeCtx: {
             ...authoritativeTradeCtx,
-            worldId: null,
+            worldId: null as any,
           },
         };
 
@@ -1391,7 +1396,7 @@ export function useArchitectActions({
           payload: tradePayload,
           currentState: {
             teams: loadedTeams,
-          },
+          } as ComputeWorldMutationState,
           seasonId,
           timestamp: Date.now(),
           asOfDate: worldAsOfDate || undefined,
@@ -1639,7 +1644,7 @@ export function useArchitectActions({
           team: teamCapSheet,
           player: canonicalPlayer,
           teamCode,
-        },
+        } as ComputeWorldMutationState,
         seasonId,
         timestamp: Date.now(),
         worldId: null,
@@ -2491,7 +2496,7 @@ export function useArchitectActions({
               salary: Math.round(s.salary || s.capHit || 0),
               capHit: Math.round(s.capHit || s.salary || 0),
               guaranteed: s.guaranteed ?? true,
-              option: s.option || null,
+              option: s.option || undefined,
             });
           });
         }
@@ -2909,13 +2914,14 @@ export function useArchitectActions({
 
           // Update capHolds array
           let updatedCapHolds = beforeTeam.capHolds || [];
-          if (newCapHold) {
+          const finalCapHold = newCapHold as CapHold | null;
+          if (finalCapHold) {
             // Remove any existing hold for this player and add the new one
-            const holdPlayerId = newCapHold.playerId;
+            const holdPlayerId = finalCapHold.playerId;
             updatedCapHolds = updatedCapHolds.filter(
               (h) => h.playerId !== holdPlayerId
             );
-            updatedCapHolds = [...updatedCapHolds, newCapHold];
+            updatedCapHolds = [...updatedCapHolds, finalCapHold];
           }
 
           const finalPlayers = accepted

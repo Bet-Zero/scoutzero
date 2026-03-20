@@ -1,5 +1,24 @@
 # Type Hardening Plan — Architect Feature
 
+## Current Status Update (2026-03-20)
+
+The original type-hardening phases in this plan are effectively complete for the Architect scope that mattered here. Since the earlier draft was written, the follow-up hardening pass was implemented and verified.
+
+**Architect status now:**
+- Baseline `npm run typecheck` passes
+- Architect-only strict gate passes via `tsconfig.architect-strict.json`
+- `npm run build` passes
+- `npm run test:architect -- --reporter=dot` passes
+- `npm run test:trade -- --reporter=dot` passes
+- `npm run validate:project` passes
+
+**What is still not done:**
+- Architect is not yet a zero-JS/zero-JSX feature
+- Many remaining `.js` / `.jsx` files are compatibility shims, wrappers, barrels, or intentional legacy/public entry surfaces
+- A lot of tests and some runtime imports still reference those exact `.js` / `.jsx` paths on purpose
+
+**Implication:** the next migration lane is no longer “type hardening.” It is **compatibility-shim retirement / TS-only entry-surface cleanup**.
+
 ## Context
 
 The TypeScript migration (E1-E111) ported all JS/JSX files to TS/TSX but used permissive "...Like" types with `any`, optional everything, and `[key: string]: any` catch-alls. This means TypeScript currently can't catch real bugs (wrong field names, missing props, type mismatches). The goal of this plan is to replace those loose types with real ones so the compiler actually enforces correctness.
@@ -155,11 +174,11 @@ export type { PlayerMainDoc, ContractDoc, PlayerBio } from '../../../schemas/pla
 
 ---
 
-## Phase 6: Enable strict tsconfig (1 scope) — PARTIAL ✅
+## Phase 6: Strict Compiler Enforcement — ARCHITECT SCOPE COMPLETE / REPO-WIDE PENDING ✅
 
 **Goal:** Turn on compiler enforcement so TypeScript actually catches bugs going forward.
 
-**File:** `tsconfig.json`
+**Files:** `tsconfig.json`, `tsconfig.architect-strict.json`
 
 ### Scope 6a: `strictFunctionTypes: true` ✅
 - Enabled in `tsconfig.json`
@@ -170,21 +189,28 @@ export type { PlayerMainDoc, ContractDoc, PlayerBio } from '../../../schemas/pla
   - `capSheet.uiFlows.integration.test.tsx`: Widened callback params, added `as TeamLike` casts
 - 0 type errors, 19 test failures (all pre-existing)
 
-### Scope 6b: `noImplicitAny` — NOT YET (1,046 errors)
-- Mostly `: any` callback params in `.map()`, `.filter()`, `.forEach()` across all files
-- Requires annotating every unannotated function parameter — mechanical but massive
-- Recommended: tackle per-directory (tradeMachine/ first, then utils/, then GMDashboard/)
+### Scope 6b: `noImplicitAny` — ARCHITECT SCOPE ✅ / REPO-WIDE NOT YET
+- Cleared the remaining Architect-scope `noImplicitAny` failures by tightening fixtures, callback params, object literals, and shared input contracts
+- This was enforced under the dedicated Architect strict gate in `tsconfig.architect-strict.json`
+- Repo-wide `noImplicitAny` in the base `tsconfig.json` is still deferred because this plan intentionally stayed Architect-scoped
 
-### Scope 6c: `strictNullChecks` — NOT YET (677 errors)
-- Mostly nullable property access without `?.` or `!` guards
-- Many are in mutation pipeline and context files that deal with optional data
-- Recommended: tackle after `noImplicitAny` since some null errors are masked by `any`
+### Scope 6c: `strictNullChecks` — ARCHITECT SCOPE ✅ / REPO-WIDE NOT YET
+- Cleared the remaining Architect-scope nullability failures in cap legality, mutation pipeline, season advancement, trade-machine support flows, and related UI/hook surfaces
+- Replaced a number of unsafe empty-object fallbacks with explicit nullable handling and local narrowing
+- This is passing inside `tsconfig.architect-strict.json`, but not yet enabled repo-wide in the base `tsconfig.json`
 
-### Scope 6d: `strict: true` — NOT YET (1,006 errors)
-- Enables all strict flags simultaneously
-- After 6b + 6c, residual count should be minimal (mostly `strictBindCallApply` and `strictPropertyInitialization`)
+### Scope 6d: `strict: true` — ARCHITECT SCOPE ✅ / REPO-WIDE NOT YET
+- Added `tsconfig.architect-strict.json` and made the Architect feature pass with `strict: true`
+- This is the new enforcement surface for Architect and the practical completion target for this plan
+- Base-config repo-wide `strict: true` is still a separate future project because roster, scouting, scrape tooling, and other legacy surfaces remain out of scope here
 
-**Verification:** `npm run typecheck` passes with `strictFunctionTypes: true`. Tests: 4362 passed, 23 failed (all pre-existing).
+**Verification:**
+- `npm run typecheck` passes
+- `npm run typecheck -- --project tsconfig.architect-strict.json` passes
+- `npm run build` passes
+- `npm run test:architect -- --reporter=dot` passes
+- `npm run test:trade -- --reporter=dot` passes
+- `npm run validate:project` passes
 
 ---
 
@@ -209,3 +235,227 @@ export type { PlayerMainDoc, ContractDoc, PlayerBio } from '../../../schemas/pla
 - `src/features/architect/utils/contractUtils.ts` — Worst offender (30 `as any` casts)
 - `src/features/architect/tradeMachine/TradeTeamCard.tsx` — Second worst (23 `as any` casts)
 - `src/features/architect/tradeMachine/validationPresentationTypes.ts` — 20 `...Like` types with catch-alls
+
+---
+
+## Follow-Up Plan: Architect Compatibility-Shim Retirement
+
+## Summary
+
+Architect logic is now TypeScript-authoritative, but the feature still carries a large compatibility layer of `.js` / `.jsx` files. Those files are not all equal:
+- some are pure same-path shims that only re-export the real `.ts` / `.tsx` authority
+- some are still imported by tests or source-scan guardrails
+- some are still imported by live `src/**` runtime code
+- some are wrappers, barrels, or public entrypoints that change import topology
+- a few are intentionally preserved legacy surfaces
+
+The safe next step is **not** deleting all remaining JS/JSX at once. The safe next step is:
+1. retire compatibility contracts that no longer need the shim files
+2. update remaining runtime imports away from `.js` / `.jsx` Architect paths
+3. delete the shims in batches
+4. finish with an explicit “what JS/JSX remains and why” inventory
+
+## Goal
+
+Reduce Architect’s remaining `.js` / `.jsx` layer as far as possible without changing runtime behavior.
+
+Desired end state:
+- internal Architect `src/**` code imports TS authorities or extensionless module paths, not legacy `.js` / `.jsx` shims
+- Architect tests stop depending on shim-file existence unless a legacy compatibility contract is intentionally preserved
+- compatibility-only shims are deleted
+- any remaining Architect `.js` / `.jsx` files are explicitly classified as intentional wrappers, barrels, or legacy contracts
+
+## Non-Goals
+
+- Repo-wide JS/JSX removal
+- Reopening the completed Architect type-hardening work
+- Business-logic changes in cap, trade, free agency, or season flows
+- Deleting intentional legacy/public-entry surfaces until their callers are retired
+
+## Phase 7A: Compatibility-Only Shim Retirement
+
+**Goal:** Delete the Architect shims that are only being kept alive by compatibility tests or source-scan guardrails, not by real `src/**` runtime imports.
+
+**Primary file families:**
+- Dashboard/world family
+  - `src/features/architect/GMDashboard/GMDashboard.jsx`
+  - `src/features/architect/GMDashboard/components/DeleteWorldModal.jsx`
+  - `src/features/architect/GMDashboard/components/WorldSelector.jsx`
+  - `src/features/architect/GMDashboard/components/WorldTimeControls.jsx`
+  - `src/features/architect/GMDashboard/components/SeasonAdvanceModal.jsx`
+- Trade-team-card leaf family
+  - `src/features/architect/tradeMachine/CapImpactTiles.jsx`
+  - `src/features/architect/tradeMachine/SelectTeamCard.jsx`
+  - `src/features/architect/tradeMachine/OutgoingPlayersList.jsx`
+  - `src/features/architect/tradeMachine/TradePlayerRow.jsx`
+  - `src/features/architect/tradeMachine/EntitlementPickRow.jsx`
+  - `src/features/architect/tradeMachine/TradeExceptionManager.jsx`
+- Offseason preview family
+  - `src/features/architect/GMDashboard/sections/OffseasonSection.jsx`
+  - `src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx`
+  - `src/features/architect/offseason/OffseasonTab/OptionManager.jsx`
+- Helper/util family
+  - `src/features/architect/utils/mutationPipeline.js`
+  - `src/features/architect/utils/seasonManager.js`
+  - `src/features/architect/utils/entitlements/entitlementPickRowProjection.js`
+  - `src/features/architect/utils/tpeLifecycle.js`
+  - `src/features/architect/utils/tradeContext/tradeContext.js`
+
+**Primary test/guardrail targets to retarget first:**
+- `src/tests/architect/dashboardWorldBoundary.compatibility.guardrail.test.tsx`
+- `src/tests/architect/gmWorldSupportFamily.compatibility.guardrail.test.tsx`
+- `src/tests/architect/tradeTeamCardLeafFamily.compatibility.guardrail.test.tsx`
+- `src/tests/architect/offseason.previewSurface.e93.behavior.test.tsx`
+- `src/tests/architect/offseason.devGate.guardrail.test.ts`
+- `src/tests/architect/mutationPipeline.compatibility.guardrail.test.ts`
+- `src/tests/architect/seasonManager.compatibility.guardrail.test.ts`
+- `src/tests/architect/entitlementPickRowProjection.compatibility.guardrail.test.ts`
+- `src/tests/architect/grouped33FileScope.compatibility.guardrail.test.tsx` for the `OffseasonSection.jsx` clause only
+
+**Actions:**
+- Rewrite compatibility tests so they prove the TS authorities and extensionless import surfaces instead of requiring `.js` / `.jsx` file existence
+- Replace explicit `.js` / `.jsx` imports in Architect tests with extensionless or authoritative imports
+- Delete the retired shims in small family-sized batches
+- Keep each batch narrow enough that failures point to one family, not fifty files at once
+
+## Phase 7B: Runtime-Backed Same-Path Shim Conversion
+
+**Goal:** Remove same-path `.js` shims that are still used by real `src/**` imports.
+
+**High-priority runtime-backed clusters:**
+- `src/features/architect/utils/tradeMachine/**`
+- `src/features/architect/utils/playerRulesProfile/**`
+- `src/features/architect/utils/*.js` helper shims such as:
+  - `capProjections.js`
+  - `capUtils.js`
+  - `cbaConstants.js`
+  - `consentUtils.js`
+  - `contractUtils.js`
+  - `faExceptionUtils.js`
+  - `hardCapUtils.js`
+  - `reacqUtils.js`
+  - `seasonFormat.js`
+  - `seasonUtils.js`
+  - `stepienUtils.js`
+  - `timingUtils.js`
+  - `tradeHelpers.js`
+- persistence-contract helpers:
+  - `contracts.js`
+  - `enforcement.js`
+  - `normalizeTeamTpe.js`
+  - `validatePersistableShape.js`
+
+**Actions:**
+- Replace explicit `.js` imports in `.ts` / `.tsx` files with extensionless or authority imports
+- Collapse re-export shims only after all runtime callers are moved
+- Do this by cluster, not by whole-feature sweep, so failures stay understandable
+
+**Suggested batch order:**
+1. `playerRulesProfile`
+2. `tradeMachine/utils`
+3. `tradeMachine/rules`
+4. `tradeMachine/engine`
+5. `tradeMachine/cache`
+6. top-level Architect utils
+7. persistence-contract helpers
+
+## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
+
+**Goal:** Decide which remaining JS/JSX files are actually deletable and which are intentional contracts.
+
+**Expected mixed/structural keepers to evaluate case-by-case:**
+- `src/features/architect/utils/capLegalityValidation.js`
+- `src/features/architect/utils/capTotals/computeTeamCapTotals.js`
+- `src/features/architect/utils/tradeMachine/utils/capSettingsProvider.js`
+- `src/features/architect/utils/tradeMachine/utils/hardCapStatus.js`
+- `src/features/architect/utils/basicArchitectUtils.js`
+- `src/features/architect/utils/playerRulesProfile/types.js`
+- `src/features/architect/utils/tradeContext/types.js`
+- `src/features/architect/utils/tradeContext/legacy/index.js`
+- `src/features/architect/tradeMachine/ValidationStateHeader.jsx`
+- `src/features/architect/tradeMachine/EntitlementPicksList.jsx`
+- `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`
+
+**Decision options per file:**
+- retire it and move tests to the TS authority
+- keep it permanently as an intentional legacy/public contract
+- replace it with a narrower entry surface if export-shape compatibility still matters
+
+**Important:** `tradeContext/legacy/index.js` should be treated as an intentional legacy contract unless the user explicitly wants that compatibility removed.
+
+## Phase 7D: Wrapper / Barrel / Public Entrypoint Cleanup
+
+**Goal:** Clean up the top-level `.jsx` wrappers and `index.js` barrels after callers stop depending on them.
+
+**Wrapper family examples:**
+- `src/features/architect/CapSheet.jsx`
+- `src/features/architect/CapSheetFull.jsx`
+- `src/features/architect/FreeAgentPool.jsx`
+- `src/features/architect/GMDashboard/index.jsx`
+- `src/features/architect/LeagueView.jsx`
+- `src/features/architect/OffseasonTab.jsx`
+- `src/features/architect/RosterVisual.jsx`
+- `src/features/architect/TeamHistoryTab.jsx`
+- `src/features/architect/ValidationWarnings.jsx`
+
+**Barrel/public-entry examples:**
+- `src/features/architect/utils/tradeMachine/index.js`
+- `src/features/architect/utils/tradeMachine/rules/index.js`
+- `src/features/architect/utils/tradeMachine/utils/index.js`
+- `src/features/architect/utils/persistenceContracts/index.js`
+- `src/features/architect/utils/playerRulesProfile/index.js`
+- `src/features/architect/utils/capTotals/index.js`
+- `src/features/architect/utils/tradeContext/index.js`
+
+**Actions:**
+- Move internal callers away from wrapper/barrel compatibility surfaces
+- Keep only the ones that are truly intended public entrypoints
+- Delete the rest after import graph cleanup is complete
+
+## Phase 7E: Final Architect JS/JSX Inventory Gate
+
+**Goal:** End with an explicit, defensible answer to “what Architect JS/JSX remains?”
+
+**Deliverables:**
+- final inventory of remaining Architect `.js` / `.jsx` files
+- per-file classification:
+  - deleted
+  - intentional wrapper
+  - intentional barrel/public entry
+  - intentional legacy compatibility contract
+  - still blocked, with exact reason
+- new guardrail preventing fresh same-path Architect shims or new explicit `.js` / `.jsx` imports from being added by accident
+
+## Sequencing Rules
+
+- Do not delete all shims in one pass
+- Start with compatibility-only blocked files before runtime-backed files
+- Keep runtime-backed, mixed, and intentional-legacy surfaces out of the early deletion batches
+- Prefer extensionless internal imports for Architect callers unless a stronger reason exists for another pattern
+- If a test exists only to enforce shim presence, rewrite that test before deleting the shim
+
+## Validation Plan
+
+Run at minimum after each meaningful batch:
+- `npm run typecheck`
+- `npm run build`
+- `npm run test:architect -- --reporter=dot`
+- `npm run test:trade -- --reporter=dot` when trade-machine, mutation-pipeline, season-manager, trade-context, or shared contract helpers are touched
+- `npm run validate:project` after structural deletions
+
+Optional targeted fallback when a batch is small:
+- `npm run test:diff -- --reporter=dot`
+
+## Exit Criteria
+
+This follow-up plan is complete when:
+- compatibility-only Architect shim families are deleted
+- Architect runtime code no longer depends on same-path `.js` / `.jsx` compatibility files
+- remaining JS/JSX files in Architect are intentional and documented
+- the validation suite above passes after the final deletion wave
+
+## Assumptions
+
+- The TS/TSX files are already the source of truth for Architect behavior
+- Compatibility with explicit `.js` / `.jsx` Architect import paths is not itself a product requirement unless a test or intentional legacy contract says otherwise
+- Some compatibility surfaces, especially `tradeContext/legacy/index.js`, may stay permanently if preserving that contract is valuable

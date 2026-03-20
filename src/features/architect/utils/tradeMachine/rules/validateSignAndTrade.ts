@@ -195,6 +195,7 @@ export function validateSignAndTrade(
   hasSignAndTrade = true;
   const strictContractPayload = isTradeMachinePath(tradeCtx);
   const validationYear = getValidationYear(tradeCtx);
+  const eligibilityYear = validationYear || tradeCtx.currentYear || 0;
   const sourceTeamId = resolveTeamId(team);
   const sourceTeamCapHolds = getSourceTeamCapHolds(team);
   const activeTeamCount = Array.isArray(tradeCtx.teams) ? tradeCtx.teams.length : 2;
@@ -327,7 +328,7 @@ export function validateSignAndTrade(
 
     const eligibility = isSignAndTradeEligible({
       player,
-      yearKey: validationYear,
+      yearKey: eligibilityYear,
       sourceTeamId,
       worldId: tradeCtx.worldId || null,
       sourceTeamCapHolds,

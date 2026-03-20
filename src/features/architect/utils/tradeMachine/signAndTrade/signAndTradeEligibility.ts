@@ -311,7 +311,7 @@ export function getPlayerContractStatusForYear(
   ctx: SignAndTradeContext = {}
 ): ContractStatusResult {
   const normalized = normalizeYearInput(yearKey);
-  const endYear = normalized?.endYear ?? null;
+  const endYear = normalized?.endYear ?? Number(yearKey) ?? null;
   const seasonKey = normalized?.seasonString ?? null;
   const capHolds = Array.isArray(ctx.sourceTeamCapHolds)
     ? ctx.sourceTeamCapHolds

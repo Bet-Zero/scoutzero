@@ -91,7 +91,7 @@ interface ClaimOwnerRef {
   claimType: EntitlementClaimType;
 }
 
-const DEFAULT_TEAM_CODES = TeamListFull.map((team) => team.code).filter(
+const DEFAULT_TEAM_CODES = TeamListFull.map((team: any) => team.code).filter(
   Boolean
 ) as string[];
 

@@ -12,12 +12,12 @@ vi.mock('@/features/architect/history/hooks/useWorldTeamEvents', () => ({
 
 const teamCapSheet = {
   teamCode: 'LAL',
-  waivedContracts: [],
-  exceptionHistory: [],
-  mleHistory: [],
-  pickLog: [],
+  waivedContracts: [] as any[],
+  exceptionHistory: [] as any[],
+  mleHistory: [] as any[],
+  pickLog: [] as any[],
   currentPicks: {},
-  historyTimeline: [],
+  historyTimeline: [] as any[],
 };
 
 describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Team History surface', () => {

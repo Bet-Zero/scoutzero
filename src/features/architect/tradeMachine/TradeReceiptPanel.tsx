@@ -22,8 +22,19 @@ interface TradeReceiptPanelProps {
   pickRulesById?: Record<string, unknown>;
 }
 
+type PlayerFlagsLike = {
+  isBYC?: boolean;
+  hasTradeKicker?: boolean;
+  isPoisonPill?: boolean;
+  tradeKickerPct?: number | string | null;
+};
+
+const toText = (value: unknown) => (value == null ? '' : String(value));
+const toList = <T,>(value: T[] | null | undefined): T[] =>
+  Array.isArray(value) ? value : [];
+
 const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
-  const flags = player.flags || {};
+  const flags = (player.flags || {}) as PlayerFlagsLike;
   const hasAdjustment =
     player.baseSalary !== player.matchingValue &&
     Math.abs((player.baseSalary || 0) - (player.matchingValue || 0)) >
@@ -39,13 +50,14 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
       : (flags.isPoisonPill || flags.hasTradeKicker) &&
         player.baseSalary !== player.matchingValue;
   const kickerPct = (Number(flags.tradeKickerPct || 0) * 100).toFixed(0);
+  const playerName = toText(player.name) || 'Unknown';
   const adjTooltipText = `Adjusted: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)}`;
 
   return (
     <div className="text-xs pl-2 py-1 border-l border-white/10">
       <div className="flex justify-between items-center">
         <span className="flex items-center gap-1">
-          {player.name}
+          {playerName}
           {showAdjBadge && (
             <span
               className="px-1 py-0.5 text-[9px] bg-purple-600/30 text-purple-300 rounded leading-none"
@@ -131,6 +143,8 @@ const TradeReceiptPanel = ({
     );
   }
 
+  const capSettingsWarnings = toList(receipt.capSettingsWarnings);
+
   const handleCopyReceipt = async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(receipt, null, 2));
@@ -160,7 +174,7 @@ const TradeReceiptPanel = ({
             {receipt.isLegal ? '✓ LEGAL' : '✗ ILLEGAL'}
           </span>
           <span className="text-white/40 text-xs">
-            v{receipt.validatorVersion}
+            v{toText(receipt.validatorVersion)}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -182,8 +196,8 @@ const TradeReceiptPanel = ({
       </div>
 
       <div className="flex gap-4 text-white/60 mb-3">
-        <span>Year: {receipt.yearKey}</span>
-        <span>Season: {receipt.seasonKey}</span>
+        <span>Year: {toText(receipt.yearKey)}</span>
+        <span>Season: {toText(receipt.seasonKey)}</span>
         <span>Teams: {receipt.teams?.length || 0}</span>
         <span>Violations: {receipt.allViolations?.length || 0}</span>
         <span className="text-white/40">
@@ -195,10 +209,10 @@ const TradeReceiptPanel = ({
         <div className="p-2 mb-3 bg-blue-900/20 border border-blue-500/30 rounded">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-blue-400 font-medium text-xs">
-              Cap Settings ({receipt.seasonKey})
+              Cap Settings ({toText(receipt.seasonKey)})
             </span>
             <span className="text-white/40 text-xs">
-              Source: {receipt.capSettingsSource}
+              Source: {toText(receipt.capSettingsSource)}
             </span>
           </div>
           <div className="grid grid-cols-4 gap-2 text-xs">
@@ -230,12 +244,12 @@ const TradeReceiptPanel = ({
         </div>
       )}
 
-      {receipt.capSettingsWarnings?.length > 0 && (
+      {capSettingsWarnings.length > 0 && (
         <div className="p-2 mb-3 bg-yellow-900/20 border border-yellow-500/30 rounded">
           <div className="text-yellow-400 text-xs font-medium mb-1">
             Cap Settings Warnings:
           </div>
-          {receipt.capSettingsWarnings.map((warning, index) => (
+          {capSettingsWarnings.map((warning, index) => (
             <div key={index} className="text-xs text-yellow-300 pl-2">
               • {warning}
             </div>
@@ -245,7 +259,7 @@ const TradeReceiptPanel = ({
 
       {receipt.primaryViolation && (
         <div className="p-2 mb-3 bg-red-900/20 border border-red-500/30 rounded text-red-400">
-          <strong>Primary Violation:</strong> {receipt.primaryViolation}
+          <strong>Primary Violation:</strong> {toText(receipt.primaryViolation)}
         </div>
       )}
 
@@ -257,22 +271,30 @@ const TradeReceiptPanel = ({
               gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             }}
           >
-            {receipt.teams?.map((team, index) => (
-              <div
-                key={index}
-                className="bg-[#181818] rounded-lg p-3 border border-white/10"
-              >
+            {receipt.teams?.map((team, index) => {
+              const outgoingPlayers = toList(team.outgoingPlayers);
+              const incomingPlayers = toList(team.incomingPlayers);
+              const outgoingEntitlements = toList(team.outgoingEntitlements);
+              const incomingEntitlements = toList(team.incomingEntitlements);
+              const teamViolations = toList(team.violations);
+              const teamWarnings = toList(team.warnings);
+
+              return (
+                <div
+                  key={index}
+                  className="bg-[#181818] rounded-lg p-3 border border-white/10"
+                >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-sm text-white">
-                    {team.teamName}
+                    {toText(team.teamName)}
                   </h4>
-                  <span className="text-white/40 text-xs">{team.teamCode}</span>
+                  <span className="text-white/40 text-xs">{toText(team.teamCode)}</span>
                 </div>
 
                 <div className="text-white/60 text-xs mb-2">
                   Pre-trade Salary: {formatCurrency(team.preTradeTeamSalary)}
                   <span className="text-white/30 ml-1">
-                    ({team.preTradeTeamSalarySource})
+                    ({toText(team.preTradeTeamSalarySource)})
                   </span>
                 </div>
 
@@ -341,12 +363,12 @@ const TradeReceiptPanel = ({
                   </div>
                 </div>
 
-                {team.outgoingPlayers?.length > 0 && (
+                {outgoingPlayers.length > 0 && (
                   <div className="mb-2">
                     <div className="text-white/40 text-xs mb-1">
                       Outgoing Players:
                     </div>
-                    {team.outgoingPlayers.map((player, playerIndex) => (
+                    {outgoingPlayers.map((player, playerIndex) => (
                       <PlayerListItem
                         key={playerIndex}
                         player={player}
@@ -356,12 +378,12 @@ const TradeReceiptPanel = ({
                   </div>
                 )}
 
-                {team.incomingPlayers?.length > 0 && (
+                {incomingPlayers.length > 0 && (
                   <div className="mb-2">
                     <div className="text-white/40 text-xs mb-1">
                       Incoming Players:
                     </div>
-                    {team.incomingPlayers.map((player, playerIndex) => (
+                    {incomingPlayers.map((player, playerIndex) => (
                       <PlayerListItem
                         key={playerIndex}
                         player={player}
@@ -371,17 +393,17 @@ const TradeReceiptPanel = ({
                   </div>
                 )}
 
-                {(team.outgoingEntitlements?.length > 0 ||
-                  team.incomingEntitlements?.length > 0) && (
+                {(outgoingEntitlements.length > 0 ||
+                  incomingEntitlements.length > 0) && (
                   <div className="mb-2">
-                    {team.outgoingEntitlements?.length > 0 && (
+                    {outgoingEntitlements.length > 0 && (
                       <div className="mb-2">
                         <div className="text-white/40 text-xs mb-1">
                           Entitlements Out:
                         </div>
-                        {team.outgoingEntitlements.map((entitlement, entitlementIndex) => {
+                        {outgoingEntitlements.map((entitlement, entitlementIndex) => {
                           const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
-                            teamCode: team.teamCode,
+                            teamCode: toText(team.teamCode),
                             pickRulesById: pickRulesById as any,
                           });
                           const secondaryText =
@@ -394,17 +416,17 @@ const TradeReceiptPanel = ({
                             >
                               <div>
                                 <span className="text-amber-300">
-                                  {entitlement.seasonYear} R{entitlement.round}
+                                  {toText(entitlement.seasonYear)} R{toText(entitlement.round)}
                                 </span>
                                 <span className="text-white/60 ml-1">
-                                  — {entitlement.kind}
+                                  — {toText(entitlement.kind)}
                                 </span>
                                 <span className="text-white/30 ml-1 text-[10px]">
-                                  ({entitlement.id})
+                                  ({toText(entitlement.id)})
                                 </span>
                                 {entitlement.toTeamId && (
                                   <span className="text-white/30 ml-1 text-[10px]">
-                                    → {entitlement.toTeamId}
+                                    → {toText(entitlement.toTeamId)}
                                   </span>
                                 )}
                               </div>
@@ -418,14 +440,14 @@ const TradeReceiptPanel = ({
                         })}
                       </div>
                     )}
-                    {team.incomingEntitlements?.length > 0 && (
+                    {incomingEntitlements.length > 0 && (
                       <div>
                         <div className="text-white/40 text-xs mb-1">
                           Entitlements In:
                         </div>
-                        {team.incomingEntitlements.map((entitlement, entitlementIndex) => {
+                        {incomingEntitlements.map((entitlement, entitlementIndex) => {
                           const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
-                            teamCode: team.teamCode,
+                            teamCode: toText(team.teamCode),
                             pickRulesById: pickRulesById as any,
                           });
                           const secondaryText =
@@ -438,17 +460,17 @@ const TradeReceiptPanel = ({
                             >
                               <div>
                                 <span className="text-green-300">
-                                  {entitlement.seasonYear} R{entitlement.round}
+                                  {toText(entitlement.seasonYear)} R{toText(entitlement.round)}
                                 </span>
                                 <span className="text-white/60 ml-1">
-                                  — {entitlement.kind}
+                                  — {toText(entitlement.kind)}
                                 </span>
                                 <span className="text-white/30 ml-1 text-[10px]">
-                                  ({entitlement.id})
+                                  ({toText(entitlement.id)})
                                 </span>
                                 {entitlement.fromTeam && (
                                   <span className="text-white/30 ml-1">
-                                    from {entitlement.fromTeam}
+                                    from {toText(entitlement.fromTeam)}
                                   </span>
                                 )}
                                 {entitlement.toTeamId && (
@@ -470,32 +492,33 @@ const TradeReceiptPanel = ({
                   </div>
                 )}
 
-                {team.violations?.length > 0 && (
+                {teamViolations.length > 0 && (
                   <div className="mt-2 p-2 bg-red-900/20 border border-red-500/30 rounded">
                     <div className="text-red-400 text-xs font-medium mb-1">
                       Violations:
                     </div>
-                    {team.violations.map((violation, violationIndex) => (
+                    {teamViolations.map((violation, violationIndex) => (
                       <div key={violationIndex} className="text-xs text-red-300 pl-2">
-                        • {getValidationIssueText(violation)}
+                        • {toText(getValidationIssueText(violation))}
                       </div>
                     ))}
                   </div>
                 )}
-                {team.warnings?.length > 0 && (
+                {teamWarnings.length > 0 && (
                   <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
                     <div className="text-yellow-400 text-xs font-medium mb-1">
                       Warnings:
                     </div>
-                    {team.warnings.map((warning, warningIndex) => (
+                    {teamWarnings.map((warning, warningIndex) => (
                       <div key={warningIndex} className="text-xs text-yellow-300 pl-2">
-                        • {getValidationIssueText(warning)}
+                        • {toText(getValidationIssueText(warning))}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-4">

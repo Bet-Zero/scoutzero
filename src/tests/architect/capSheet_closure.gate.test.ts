@@ -152,8 +152,9 @@ describe('Gate 3: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
 
   it('has legacy fallback read (read-only fallback is ok)', () => {
     // Pattern: legacyEntry = teamCapSheet?.[legacyKey]
+    // TS authority may cast through Record<string, unknown> before bracket access.
     const hasLegacyFallback =
-      /const\s+legacyEntry\s*=\s*teamCapSheet\s*\?\s*\.\s*\[\s*legacyKey/.test(
+      /const\s+legacyEntry\s*=\s*(?:\(\s*teamCapSheet\s+as\s+Record<string,\s*unknown>\s*\)|teamCapSheet)\s*\?\s*\.\s*\[\s*legacyKey/.test(
         content
       );
     expect(hasLegacyFallback).toBe(true);

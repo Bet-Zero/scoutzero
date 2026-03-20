@@ -63,7 +63,8 @@ describe('Trade exclusivity: swap_right conflicts', () => {
     });
 
     const result = validateEntitlementExclusivity({
-      entitlements: postTradeSet,
+      entitlements:
+        postTradeSet as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
     });
 
     expect(result.valid).toBe(false);
@@ -108,7 +109,8 @@ describe('Trade exclusivity: swap_right conflicts', () => {
     });
 
     const result = validateEntitlementExclusivity({
-      entitlements: postTradeSet,
+      entitlements:
+        postTradeSet as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
     });
 
     // Should be valid: old swap removed, new swap added — only one swap on BOS_2027_1st
@@ -146,7 +148,8 @@ describe('Trade exclusivity: pick_ownership conflicts', () => {
     });
 
     const result = validateEntitlementExclusivity({
-      entitlements: postTradeSet,
+      entitlements:
+        postTradeSet as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
     });
 
     expect(result.valid).toBe(false);
@@ -196,7 +199,8 @@ describe('Trade exclusivity: clean trades', () => {
     });
 
     const lalResult = validateEntitlementExclusivity({
-      entitlements: lalPostTrade,
+      entitlements:
+        lalPostTrade as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
     });
     expect(lalResult.valid).toBe(true);
 
@@ -209,7 +213,8 @@ describe('Trade exclusivity: clean trades', () => {
     });
 
     const bosResult = validateEntitlementExclusivity({
-      entitlements: bosPostTrade,
+      entitlements:
+        bosPostTrade as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
     });
     expect(bosResult.valid).toBe(true);
   });
@@ -254,7 +259,8 @@ describe('Trade exclusivity: conveyance conflicts', () => {
     });
 
     const result = validateEntitlementExclusivity({
-      entitlements: postTradeSet,
+      entitlements:
+        postTradeSet as Parameters<typeof validateEntitlementExclusivity>[0]['entitlements'],
     });
 
     expect(result.valid).toBe(false);

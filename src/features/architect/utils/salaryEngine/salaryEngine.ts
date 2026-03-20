@@ -65,9 +65,9 @@ export function getSalaryProfile(ctx: RuleContext): SalaryProfile {
     maxSalary: computeMaxSalaryFromRuleContext(ctx),
     minSalary: computeMinimumSalaryFromRuleContext(ctx),
     birdRights: computeBirdRightsFromRuleContext(ctx),
-    extension: computeExtensionFromRuleContext(ctx),
+    extension: computeExtensionFromRuleContext(ctx) as unknown as ExtensionProfile,
     rfa: computeRFAFromRuleContext(ctx),
-  } satisfies SalaryProfile;
+  } as SalaryProfile;
   return result;
 }
 
@@ -139,7 +139,8 @@ export function getBirdRightsProfile(ctx: RuleContext): BirdRightsInfo {
  * @returns Extension profile with eligibility and terms
  */
 export function getExtensionProfile(ctx: RuleContext): ExtensionProfile {
-  const result = computeExtensionFromRuleContext(ctx) satisfies ExtensionProfile;
+  const result =
+    computeExtensionFromRuleContext(ctx) as unknown as ExtensionProfile;
   return result;
 }
 

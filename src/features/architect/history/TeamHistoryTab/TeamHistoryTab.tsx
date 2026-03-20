@@ -55,7 +55,7 @@ const normalizeTimelineFromSections = (
       teamsInvolved: [
         entry?.sourceTeamCode || teamCapSheet.teamCode || 'TEAM',
         entry?.targetTeamCode,
-      ].filter(Boolean),
+      ].filter((value): value is string => typeof value === 'string' && value.length > 0),
       primaryDeltas:
         entry?.primaryDeltas ||
         `Remaining ${entry?.amountRemaining ? `$${Number(entry.amountRemaining).toLocaleString()}` : '—'}`,
@@ -76,7 +76,7 @@ const normalizeTimelineFromSections = (
       type: entry?.action || 'Pick Activity',
       timestamp: entry?.timestamp || entry?.date || null,
       teamsInvolved: [teamCapSheet.teamCode || 'TEAM', entry?.partner].filter(
-        Boolean
+        (value): value is string => typeof value === 'string' && value.length > 0
       ),
       primaryDeltas: entry?.pick || 'Draft asset updated',
       capDelta: null,
@@ -295,8 +295,8 @@ const TeamHistoryTab = ({
       <section data-testid="team-history-section-timeline" className="mb-10">
         <h3 className="text-lg font-semibold mb-2">Recent History Timeline</h3>
         {shouldUseWorldEventTimeline ? (
-          <WorldEventsTimeline
-            worldId={worldId}
+            <WorldEventsTimeline
+            worldId={worldId || ''}
             teamCode={teamCapSheet?.teamCode || null}
             onSelectEntry={(entry) => setSelectedEntry(entry)}
           />

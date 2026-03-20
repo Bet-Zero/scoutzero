@@ -173,7 +173,8 @@ describe('PickRightWizardModal — Duplicate as new', () => {
       '[data-testid="wizard-duplicate-as-new"]'
     );
     expect(btn).toBeTruthy();
-    fireEvent.click(btn);
+    expect(btn).not.toBeNull();
+    fireEvent.click(btn!);
 
     expect(onDuplicateAsNew).toHaveBeenCalledTimes(1);
     const calledWith = onDuplicateAsNew.mock.calls[0][0];

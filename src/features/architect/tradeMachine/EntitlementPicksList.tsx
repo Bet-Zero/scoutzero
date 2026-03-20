@@ -178,7 +178,9 @@ export const EntitlementPicksList = ({
             </div>
             {yearEntitlements.map((entitlement) => {
               const entitlementId = entitlement.id || entitlement.entitlementId;
-              const isSelected = selectedEntitlementIds.includes(entitlementId);
+              const isSelected = selectedEntitlementIds.includes(
+                entitlementId ?? ''
+              );
 
               return (
                 <EntitlementPickRow

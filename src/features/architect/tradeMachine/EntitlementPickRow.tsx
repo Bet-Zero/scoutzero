@@ -289,7 +289,9 @@ const EntitlementPickRow = ({
             <button
               ref={buttonRef}
               onClick={() =>
-                setOpenMenu?.(openMenu === entitlementId ? null : entitlementId)
+                setOpenMenu?.(
+                  openMenu === entitlementId ? null : (entitlementId ?? null)
+                )
               }
               className="text-xs text-blue-400 hover:underline px-1"
             >
@@ -304,8 +306,8 @@ const EntitlementPickRow = ({
                 {!incoming &&
                   otherTeams.map((t) => (
                     <button
-                      key={t.id}
-                      onClick={() => handleTradeToTeam(t.id)}
+                      key={t.id || t.teamCode || 'team-option'}
+                      onClick={() => handleTradeToTeam(t.id || t.teamCode || '')}
                       className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
                     >
                       {isSelected && currentToTeamId === t.id

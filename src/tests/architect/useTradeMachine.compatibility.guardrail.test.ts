@@ -91,6 +91,13 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+function assertDefined<T>(value: T | null | undefined, message: string): T {
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
+}
+
 function makePlayer(
   id: string,
   teamCode: string,
@@ -243,10 +250,43 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
 
   it('preserves stale-validation invalidation boundaries after explicit validate', async () => {
     const { result } = await setupHookWithSecondaryTeam();
-    const primaryTeamId = result.current.teams[0].team.id;
-    const secondaryTeamId = result.current.teams[1].team.id;
-    const outgoingPlayer = result.current.teams[0].team.players[0];
-    const incomingPlayer = result.current.teams[1].team.players[0];
+    const primarySlot = assertDefined(
+      result.current.teams[0],
+      'Primary trade slot should be present'
+    );
+    const secondarySlot = assertDefined(
+      result.current.teams[1],
+      'Secondary trade slot should be present'
+    );
+    const primaryTeam = assertDefined(
+      primarySlot.team,
+      'Primary team should be loaded'
+    );
+    const secondaryTeam = assertDefined(
+      secondarySlot.team,
+      'Secondary team should be loaded'
+    );
+    const primaryPlayers = assertDefined(
+      primaryTeam.players,
+      'Primary team players should be loaded'
+    );
+    const secondaryPlayers = assertDefined(
+      secondaryTeam.players,
+      'Secondary team players should be loaded'
+    );
+    const primaryTeamId = assertDefined(primaryTeam.id, 'Primary team id missing');
+    const secondaryTeamId = assertDefined(
+      secondaryTeam.id,
+      'Secondary team id missing'
+    );
+    const outgoingPlayer = assertDefined(
+      primaryPlayers[0],
+      'Expected an outgoing player'
+    );
+    const incomingPlayer = assertDefined(
+      secondaryPlayers[0],
+      'Expected an incoming player'
+    );
 
     expect(result.current.hasCurrentValidation).toBe(false);
 
@@ -278,12 +318,52 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
 
   it('preserves trade export payload assembly and usedTradeExceptions ordering', async () => {
     const { result } = await setupHookWithSecondaryTeam();
-    const primaryTeamId = result.current.teams[0].team.id;
-    const secondaryTeamId = result.current.teams[1].team.id;
-    const primaryPlayers = result.current.teams[0].team.players.slice(0, 3);
-    const secondaryPlayer = result.current.teams[1].team.players[0];
-    const primaryTeamEntitlement = result.current.teams[0].team.entitlements[0];
-    const secondaryTeamEntitlement = result.current.teams[1].team.entitlements[0];
+    const primarySlot = assertDefined(
+      result.current.teams[0],
+      'Primary trade slot should be present'
+    );
+    const secondarySlot = assertDefined(
+      result.current.teams[1],
+      'Secondary trade slot should be present'
+    );
+    const primaryTeam = assertDefined(
+      primarySlot.team,
+      'Primary team should be loaded'
+    );
+    const secondaryTeam = assertDefined(
+      secondarySlot.team,
+      'Secondary team should be loaded'
+    );
+    const primaryPlayers = assertDefined(
+      primaryTeam.players,
+      'Primary team players should be loaded'
+    ).slice(0, 3);
+    const secondaryPlayer = assertDefined(
+      assertDefined(
+        secondaryTeam.players,
+        'Secondary team players should be loaded'
+      )[0],
+      'Expected a secondary player'
+    );
+    const primaryTeamEntitlement = assertDefined(
+      assertDefined(
+        primaryTeam.entitlements,
+        'Primary entitlements should be loaded'
+      )[0],
+      'Expected a primary entitlement'
+    );
+    const secondaryTeamEntitlement = assertDefined(
+      assertDefined(
+        secondaryTeam.entitlements,
+        'Secondary entitlements should be loaded'
+      )[0],
+      'Expected a secondary entitlement'
+    );
+    const primaryTeamId = assertDefined(primaryTeam.id, 'Primary team id missing');
+    const secondaryTeamId = assertDefined(
+      secondaryTeam.id,
+      'Secondary team id missing'
+    );
 
     act(() => {
       result.current.setPlayerTrade(0, primaryPlayers[0], 'trade', secondaryTeamId);
@@ -310,26 +390,34 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
     const secondaryExport = exportPayload.find(
       (teamExport: Record<string, any>) => teamExport.teamId === secondaryTeamId
     );
+    const definedPrimaryExport = assertDefined(
+      primaryExport,
+      'Primary export payload should exist'
+    );
+    const definedSecondaryExport = assertDefined(
+      secondaryExport,
+      'Secondary export payload should exist'
+    );
 
-    expect(Object.keys(primaryExport)).toEqual(Array.from(expectedExportKeys));
-    expect(Object.keys(secondaryExport)).toEqual(Array.from(expectedExportKeys));
-    expect(primaryExport.outgoingPlayers).toHaveLength(3);
-    expect(primaryExport.incomingPlayers).toHaveLength(1);
-    expect(primaryExport.outgoingEntitlements).toHaveLength(1);
-    expect(primaryExport.incomingEntitlements).toHaveLength(1);
-    expect(primaryExport.usedTradeExceptions).toEqual([
+    expect(Object.keys(definedPrimaryExport)).toEqual(Array.from(expectedExportKeys));
+    expect(Object.keys(definedSecondaryExport)).toEqual(Array.from(expectedExportKeys));
+    expect(definedPrimaryExport.outgoingPlayers).toHaveLength(3);
+    expect(definedPrimaryExport.incomingPlayers).toHaveLength(1);
+    expect(definedPrimaryExport.outgoingEntitlements).toHaveLength(1);
+    expect(definedPrimaryExport.incomingEntitlements).toHaveLength(1);
+    expect(definedPrimaryExport.usedTradeExceptions).toEqual([
       'LAL-TPE-B',
       'LAL-TPE-A',
     ]);
-    expect(primaryExport.outgoingEntitlements[0]).toMatchObject({
+    expect(definedPrimaryExport.outgoingEntitlements[0]).toMatchObject({
       id: primaryEntitlement.id,
       toTeamId: secondaryTeamId,
     });
-    expect(primaryExport.incomingEntitlements[0]).toMatchObject({
+    expect(definedPrimaryExport.incomingEntitlements[0]).toMatchObject({
       id: secondaryEntitlement.id,
       fromTeamId: secondaryTeamId,
     });
-    expect(secondaryExport.incomingPlayers[0]).toMatchObject({
+    expect(definedSecondaryExport.incomingPlayers[0]).toMatchObject({
       id: primaryPlayers[0].id,
       fromTeamId: primaryTeamId,
     });

@@ -152,9 +152,9 @@ const buildPlayerEntry = (
       player_id: playerId,
       name: playerId,
       displayName: playerId,
-      contract: null,
-      bio: {},
-      original: null,
+      contract: null as any,
+      bio: {} as Record<string, unknown>,
+      original: null as any,
     };
   }
 
@@ -329,7 +329,7 @@ export const getAllTeams = async () => {
     console.error('Error getting base teams:', error);
   }
   // Fallback to static list if architect data unavailable
-  return TeamListFull.map((team) => ({
+  return TeamListFull.map((team: any) => ({
     id: team.id,
     code: team.code,
     name: team.teamName,
@@ -343,7 +343,11 @@ export const saveFreeAgents = async (agents: LooseFreeAgent[]) => {
   try {
     const batch = writeBatch(db);
     agents.forEach((agent) => {
-      const agentRef = doc(db, FREE_AGENTS_COLLECTION, agent.id || agent.name);
+      const agentRef = doc(
+        db,
+        FREE_AGENTS_COLLECTION,
+        (agent.id || agent.name) as string
+      );
       batch.set(agentRef, agent);
     });
     await batch.commit();

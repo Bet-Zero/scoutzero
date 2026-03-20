@@ -37,7 +37,7 @@ import {
   canUseRoomException,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
-import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/index.js';
+import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/computeProfile';
 import {
   buildRuleContextForPlayerMove,
   getSalaryProfile,
@@ -68,7 +68,8 @@ import { normalizeSeasonKey } from '@/features/architect/data/capYearData';
 // CONSTANTS
 // ==============================================================================
 
-type AnyRecord = Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
 
 type SigningTerms = {
   source?: string;
@@ -96,6 +97,16 @@ type ValidateOptionDecisionParams = {
   accepted?: any;
   targetYear?: any;
   currentYear?: any;
+};
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as AnyRecord).message);
+  }
+  return String(error);
 };
 
 // Roster constants are now sourced from getCapRulesForYear()
@@ -267,7 +278,7 @@ export const SOFT_WARNING_RULES = [
  * Helper: Get canonical season start date (Placeholder for Phase 21).
  * Returns YYYY-MM-DD string or null if unknown.
  */
-function getSeasonStartDate(seasonCode) {
+function getSeasonStartDate(seasonCode: string): string | null {
   // MVP Hardcoded boundaries
   // 2024-25: Oct 22, 2024
   if (seasonCode === '2024-25') return '2024-10-22';
@@ -285,7 +296,7 @@ function getSeasonStartDate(seasonCode) {
  * @param {Array} warnings - Array of warning objects
  * @returns {{canOverride: boolean, hasHardBlock: boolean, hardBlockReasons: string[], softWarningReasons: string[]}}
  */
-export function getOverridePolicy(violations = [], warnings = []) {
+export function getOverridePolicy(violations: AnyRecord[] = [], warnings: AnyRecord[] = []) {
   const hardBlockReasons = [];
   const softWarningReasons = [];
 
@@ -359,7 +370,7 @@ export function isOverrideEnabled() {
  * @param {string} operationName - Name of operation for error messages
  * @returns {{blocked: boolean, violation: Object|null, warning: Object|null}}
  */
-export function evaluateDataConfidence(rules, operationName = 'Operation') {
+export function evaluateDataConfidence(rules: AnyRecord, operationName = 'Operation'): { blocked: boolean; violation: AnyRecord | null; warning: AnyRecord | null } {
   if (!rules || !rules._meta)
     return { blocked: false, violation: null, warning: null };
 
@@ -429,7 +440,7 @@ export function evaluateDataConfidence(rules, operationName = 'Operation') {
  * @param {Array} players - Team players array
  * @returns {number} Standard roster count
  */
-function countStandardRoster(players) {
+function countStandardRoster(players: AnyRecord[]) {
   if (!players || !Array.isArray(players)) return 0;
 
   return players.filter((p) => {
@@ -443,7 +454,7 @@ function countStandardRoster(players) {
  * @param {Array} players - Team players array
  * @returns {number} Two-way contract count
  */
-function countTwoWayContracts(players) {
+function countTwoWayContracts(players: AnyRecord[]) {
   if (!players || !Array.isArray(players)) return 0;
 
   return players.filter((p) => {
@@ -457,7 +468,7 @@ function countTwoWayContracts(players) {
  * @param {Object} team - Team data
  * @returns {{isHardCapped: boolean, hardCapLevel: string|null, ceiling: number|null}}
  */
-function getHardCapStatus(team, capRules) {
+function getHardCapStatus(team: AnyRecord, capRules: AnyRecord) {
   const totals = team.totals || {};
   const { firstApron, secondApron } = capRules.cap;
 
@@ -496,7 +507,7 @@ function getHardCapStatus(team, capRules) {
  * @param {string|null} signedUsing - Exception used for signing
  * @returns {string} Normalized mechanism type
  */
-export function resolveSigningMechanism(contract, signedUsing) {
+export function resolveSigningMechanism(contract: AnyRecord | null | undefined, signedUsing: string | null | undefined) {
   // Priority 1: contract.exceptionType
   const source = contract?.exceptionType || signedUsing;
 
@@ -571,8 +582,8 @@ export function resolveSigningMechanism(contract, signedUsing) {
  * @param {string} mechanism - Normalized mechanism from resolveSigningMechanism()
  * @returns {{minYears: number, maxYears: number}|null} Limits object or null for UNKNOWN
  */
-export function getSigningYearsLimits(mechanism) {
-  return SIGNING_YEARS_LIMITS[mechanism] || null;
+export function getSigningYearsLimits(mechanism: string) {
+  return (SIGNING_YEARS_LIMITS as Record<string, { minYears: number; maxYears: number }>)[mechanism] || null;
 }
 
 /**
@@ -586,7 +597,7 @@ export function getSigningYearsLimits(mechanism) {
  * @param {Object} contract - Contract object
  * @returns {number} Contract length in years
  */
-function getContractYears(contract) {
+function getContractYears(contract: AnyRecord | null | undefined) {
   // Priority 1: explicit contractLength
   if (
     typeof contract?.contractLength === 'number' &&
@@ -609,7 +620,7 @@ function getContractYears(contract) {
  * @param {Object} contract - Contract object
  * @returns {{salary: number|null, capHit: number|null}} First year amounts
  */
-function getFirstYearAmounts(contract) {
+function getFirstYearAmounts(contract: AnyRecord | null | undefined) {
   const firstYear = contract?.salariesByYear?.[0];
   const salary = firstYear?.salary ?? null;
   // Fallback capHit to salary if not explicitly set
@@ -627,7 +638,7 @@ function getFirstYearAmounts(contract) {
  * @param {Object} rules - Cap rules profile from getCapRulesForYear()
  * @returns {number|null} Max first-year salary or null if not applicable
  */
-export function getSigningFirstYearMax(mechanism, rules) {
+export function getSigningFirstYearMax(mechanism: string, rules: AnyRecord | null | undefined) {
   if (!rules?.exceptions) return null;
 
   switch (mechanism) {
@@ -666,7 +677,7 @@ const VALID_OPTION_VALUES = ['Team Option', 'Player Option', null];
  * @param {number} index - Index in salariesByYear array (for error messages)
  * @returns {{valid: boolean, violation: Object|null}}
  */
-export function validateSalaryRowSchema(row, index) {
+export function validateSalaryRowSchema(row: AnyRecord | null | undefined, index: number) {
   if (!row) {
     return {
       valid: false,
@@ -738,7 +749,7 @@ export function validateSalaryRowSchema(row, index) {
  * @param {number} index - Index in salariesByYear array
  * @returns {{valid: boolean, violation: Object|null}}
  */
-export function validateGuaranteesPolicy(row, index) {
+export function validateGuaranteesPolicy(row: AnyRecord | null | undefined, index: number) {
   if (!row) {
     return { valid: true, violation: null };
   }
@@ -814,7 +825,7 @@ export function validateGuaranteesPolicy(row, index) {
  * @param {number} index - Index in salariesByYear array
  * @returns {{valid: boolean, violation: Object|null, normalize: boolean}}
  */
-export function validateOptionsPolicy(row, index) {
+export function validateOptionsPolicy(row: AnyRecord | null | undefined, index: number) {
   if (!row) {
     return { valid: true, violation: null, normalize: false };
   }
@@ -864,9 +875,9 @@ export function validateOptionsPolicy(row, index) {
  * @param {Object} contract - Contract object with salariesByYear
  * @returns {{violations: Array, warnings: Array, hasNormalizableOptions: boolean}}
  */
-export function validateContractRows(contract) {
-  const violations = [];
-  const warnings = [];
+export function validateContractRows(contract: AnyRecord | null | undefined) {
+  const violations: AnyRecord[] = [];
+  const warnings: AnyRecord[] = [];
   let hasNormalizableOptions = false;
 
   if (!contract?.salariesByYear || !Array.isArray(contract.salariesByYear)) {
@@ -915,8 +926,8 @@ export function validateContractRows(contract) {
  * @param {Array} deadCap - Array of dead cap entries
  * @returns {{violations: Array}}
  */
-export function validateDeadCap(deadCap) {
-  const violations = [];
+export function validateDeadCap(deadCap: unknown) {
+  const violations: AnyRecord[] = [];
 
   if (!Array.isArray(deadCap)) {
     violations.push({
@@ -991,9 +1002,9 @@ const VALID_EXCEPTION_KEYS = ['mle', 'tpmle', 'bae', 'room'];
  * @param {Object} exceptions - Exceptions object from payload
  * @returns {{violations: Array, warnings: Array}}
  */
-export function validateExceptions(exceptions) {
-  const violations = [];
-  const warnings = [];
+export function validateExceptions(exceptions: unknown) {
+  const violations: AnyRecord[] = [];
+  const warnings: AnyRecord[] = [];
 
   // Must be an object if present
   if (exceptions === null || exceptions === undefined) {
@@ -1011,7 +1022,8 @@ export function validateExceptions(exceptions) {
   }
 
   // Check for unknown keys (hard-block policy)
-  const providedKeys = Object.keys(exceptions);
+  const exceptionsObj = exceptions as AnyRecord;
+  const providedKeys = Object.keys(exceptionsObj);
   const unknownKeys = providedKeys.filter(
     (key) => !VALID_EXCEPTION_KEYS.includes(key)
   );
@@ -1027,7 +1039,7 @@ export function validateExceptions(exceptions) {
 
   // Validate each exception entry
   for (const key of providedKeys) {
-    const entry = exceptions[key];
+    const entry = exceptionsObj[key];
     const prefix = `Exception '${key}'`;
 
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
@@ -1167,7 +1179,7 @@ const BIRD_RIGHTS_KEYWORDS = [
 /**
  * Mapping from raw Bird rights type strings to canonical rightsType values.
  */
-const RIGHTS_TYPE_MAP = {
+const RIGHTS_TYPE_MAP: Record<string, string> = {
   'Full Bird': 'FULL_BIRD',
   'Full Bird Rights': 'FULL_BIRD',
   'Early Bird': 'EARLY_BIRD',
@@ -1249,7 +1261,7 @@ export function normalizeSigningTerms(
     raisePercentage: rawTerms.raisePercentage ?? null,
     maxFirstYearSalary: rawTerms.maxFirstYearSalary ?? null,
     minFirstYearSalary: rawTerms.minFirstYearSalary ?? null,
-    notes: rawTerms.notes ? String(rawTerms.notes) : null,
+    notes: rawTerms.notes ? String(rawTerms.notes) : undefined,
   };
 }
 
@@ -1271,7 +1283,7 @@ export function normalizeSigningTerms(
  * @param {string|null} rightsType - Bird rights type from normalizeSigningTerms()
  * @returns {boolean} True if this is a cap-space signing subject to cap hold check
  */
-export function isCapSpaceSigning(mechanism, rightsType) {
+export function isCapSpaceSigning(mechanism: string | null | undefined, rightsType: string | null | undefined) {
   // Exception signings are NOT cap-space signings
   if (mechanism && mechanism !== 'UNKNOWN') {
     return false;
@@ -1291,7 +1303,7 @@ export function isCapSpaceSigning(mechanism, rightsType) {
 
 const DEFAULT_SIGNING_RAISE_PERCENT = 0.05;
 
-function resolveSigningOperationType(contract, mechanism) {
+function resolveSigningOperationType(contract: AnyRecord | null | undefined, mechanism: string) {
   const contractType = contract?.contractType?.toLowerCase() || '';
   if (contractType === 'two-way' || contractType === 'twoway') {
     return 'TWO_WAY_SIGNING';
@@ -1305,7 +1317,7 @@ function resolveSigningOperationType(contract, mechanism) {
   return 'UFA_SIGNING';
 }
 
-function mapExceptionTypeForMechanism(mechanism) {
+function mapExceptionTypeForMechanism(mechanism: string) {
   switch (mechanism) {
     case 'FULL_MLE':
       return 'FULL_MLE';
@@ -1330,7 +1342,7 @@ function mapExceptionTypeForMechanism(mechanism) {
  * @param {string} [exceptionMechanism] - Exception bucket if known
  * @returns {SigningTerms} Signing terms with proper separation
  */
-function buildBaseSigningTerms(profile, exceptionMechanism = 'UNKNOWN') {
+function buildBaseSigningTerms(profile: AnyRecord | null | undefined, exceptionMechanism = 'UNKNOWN') {
   const birdAbilities = profile?.birdRights?.signingAbilities;
   const birdRightsType = profile?.birdRights?.type || null;
   const maxSalaryCap = profile?.maxSalary?.maxSalary ?? null;
@@ -1377,8 +1389,8 @@ function buildBaseSigningTerms(profile, exceptionMechanism = 'UNKNOWN') {
  * @param {Object} cap - Cap settings object
  * @returns {Partial<SigningTerms>|null} Exception terms or null if unknown mechanism
  */
-function buildExceptionSigningTerms(mechanism, cap) {
-  const limits = SIGNING_YEARS_LIMITS[mechanism] || null;
+function buildExceptionSigningTerms(mechanism: string, cap: AnyRecord | null | undefined) {
+  const limits = (SIGNING_YEARS_LIMITS as Record<string, { minYears: number; maxYears: number }>)[mechanism] || null;
   if (!limits) return null;
 
   let maxFirstYearSalary = null;
@@ -1500,14 +1512,15 @@ export function getSigningTermsForPlayer({
 
     return baseTerms;
   } catch (err) {
+    const errorMessage = getErrorMessage(err);
     console.warn(
       '[getSigningTermsForPlayer] Failed to compute signing terms:',
-      err?.message
+      errorMessage
     );
     return {
       mechanism,
       source: 'baseline',
-      notes: err?.message || 'Salary Engine unavailable',
+      notes: errorMessage || 'Salary Engine unavailable',
     };
   }
 }
@@ -1526,6 +1539,10 @@ export function validateSigningRaises({
   contract,
   raisePercentage,
   mechanism,
+}: {
+  contract: AnyRecord | null | undefined;
+  raisePercentage: number | null | undefined;
+  mechanism: string;
 }) {
   if (!raisePercentage || !Array.isArray(contract?.salariesByYear)) {
     return null;
@@ -1593,7 +1610,7 @@ export function validateSigningRaises({
  * @param {Object} params.contract - Proposed contract object
  * @returns {boolean} True if this action would finalize (roster the player)
  */
-export function isFinalizingSigning({ contract }) {
+export function isFinalizingSigning({ contract }: { contract: AnyRecord | null | undefined }) {
   // If rfaOfferSheetOnly is explicitly true, this is NOT a finalization
   // The consumer is storing offer sheet data only, pending match resolution.
   if (contract?.rfaOfferSheetOnly === true) {
@@ -1617,8 +1634,8 @@ export function isFinalizingSigning({ contract }) {
  * @param {Object} params.contract - Contract object with offer sheet flags
  * @returns {{ valid: boolean, violations: Array }}
  */
-export function validateStoreOnlyInvariants({ contract }) {
-  const violations = [];
+export function validateStoreOnlyInvariants({ contract }: { contract: AnyRecord | null | undefined }) {
+  const violations: AnyRecord[] = [];
 
   // Only check if store-only mode is active
   if (contract?.rfaOfferSheetOnly !== true) {
@@ -1676,7 +1693,7 @@ export function validateStoreOnlyInvariants({ contract }) {
  * @param {Object} contract - Proposed offer sheet contract
  * @returns {{ valid: boolean, violations: Array }}
  */
-export function validateOfferSheetTerms(contract) {
+export function validateOfferSheetTerms(contract: AnyRecord | null | undefined) {
   const violations = [];
   const years = getContractYears(contract);
 
@@ -1731,9 +1748,13 @@ export function validateSigningTermsAndRaises({
   contract,
   signingTerms,
   mechanism,
+}: {
+  contract: AnyRecord | null | undefined;
+  signingTerms: AnyRecord | null | undefined;
+  mechanism: string;
 }) {
-  const violations = [];
-  const warnings = [];
+  const violations: AnyRecord[] = [];
+  const warnings: AnyRecord[] = [];
 
   if (!signingTerms || signingTerms.source !== 'salary_engine') {
     return { violations, warnings };
@@ -1806,14 +1827,14 @@ export function validateSigningTermsAndRaises({
  * @param {Object} contract - Player's current contract object
  * @returns {{salary: number, season: string}|null} Last year salary data or null
  */
-export function getContractLastYearSalary(contract) {
+export function getContractLastYearSalary(contract: AnyRecord | null | undefined) {
   if (!contract?.salariesByYear || !Array.isArray(contract.salariesByYear)) {
     return null;
   }
 
   // Filter to guaranteed years only, then get the last one
   const guaranteedYears = contract.salariesByYear.filter(
-    (y) => y.guaranteed !== false
+    (y: AnyRecord) => y.guaranteed !== false
   );
 
   if (guaranteedYears.length === 0) {
@@ -1843,14 +1864,14 @@ export function getContractLastYearSalary(contract) {
  * @param {Object} extension - Extension object with salariesByYear
  * @returns {{salary: number, capHit: number, season: string}|null} First year data or null
  */
-export function getExtensionFirstYearSalary(extension) {
+export function getExtensionFirstYearSalary(extension: AnyRecord | null | undefined) {
   if (!extension?.salariesByYear || !Array.isArray(extension.salariesByYear)) {
     return null;
   }
 
   // Look for first entry with isExtensionSeason flag, or just first entry
   const extensionYear =
-    extension.salariesByYear.find((y) => y.isExtensionSeason) ||
+    extension.salariesByYear.find((y: AnyRecord) => y.isExtensionSeason) ||
     extension.salariesByYear[0];
 
   if (!extensionYear) return null;
@@ -1871,7 +1892,7 @@ export function getExtensionFirstYearSalary(extension) {
  * @param {Object} extension - Extension object
  * @returns {number} Extension length in years (0 if cannot determine)
  */
-export function getExtensionYears(extension) {
+export function getExtensionYears(extension: AnyRecord | null | undefined) {
   // Priority 1: explicit contractLength
   if (
     typeof extension?.contractLength === 'number' &&
@@ -1942,7 +1963,7 @@ export function getExtensionTermsForPlayer({
     // Log but don't crash - fallback to baseline rules
     console.warn(
       '[getExtensionTermsForPlayer] Failed to compute profile:',
-      err?.message
+      getErrorMessage(err)
     );
     return null;
   }
@@ -1969,9 +1990,13 @@ export function validateExtensionTermsAndRaises({
   player,
   extension,
   extensionTerms,
+}: {
+  player: AnyRecord;
+  extension: AnyRecord | null | undefined;
+  extensionTerms: AnyRecord | null | undefined;
 }) {
-  const violations = [];
-  const warnings = [];
+  const violations: AnyRecord[] = [];
+  const warnings: AnyRecord[] = [];
 
   // Extract data
   const lastYearData = getContractLastYearSalary(player.contract);
@@ -2074,7 +2099,7 @@ export function validateExtensionTermsAndRaises({
  * @param {number} params.year - Season end year
  * @returns {{blocked: boolean, reason: string|null, violation: Object|null}}
  */
-export function validateExceptionEligibility({ team, signedUsing, year }) {
+export function validateExceptionEligibility({ team, signedUsing, year }: { team: AnyRecord; signedUsing: string | null | undefined; year: number }) {
   if (!signedUsing) {
     // Not using an exception - no block needed
     return { blocked: false, reason: null, violation: null };
@@ -2244,7 +2269,7 @@ export function validateExceptionEligibility({ team, signedUsing, year }) {
  * @param {number} params.year - Season end year
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateSigning({ team, player, contract, signedUsing, year }) {
+export function validateSigning({ team, player, contract, signedUsing, year }: { team: AnyRecord; player: AnyRecord; contract: AnyRecord | null | undefined; signedUsing: string | null | undefined; year: number }) {
   const violations = [];
   const warnings = [];
 
@@ -2590,7 +2615,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       const playerId = getPlayerId(player);
       const existingCapHold = Array.isArray(team.capHolds)
         ? team.capHolds.find(
-            (h) =>
+            (h: AnyRecord) =>
               h.playerId === playerId &&
               h.active !== false &&
               h.isSigned !== true
@@ -2635,19 +2660,19 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       // and emit a warning if so (cap_hold_renounce_required)
       if (projectedCapAllocations > salaryCap && teamTotals.capHoldsTotal > 0) {
         const spaceNeeded = projectedCapAllocations - salaryCap;
-        const capHoldsExcludingPlayer = (team.capHolds || [])
+        const capHoldsExcludingPlayer = ((team.capHolds || []) as AnyRecord[])
           .filter(
-            (h) =>
+            (h: AnyRecord) =>
               h.playerId !== playerId &&
               h.active !== false &&
               h.isSigned !== true
           )
-          .map((h) => ({
+          .map((h: AnyRecord) => ({
             playerId: h.playerId,
             playerName: h.playerName,
-            amount: h.amount || 0,
+            amount: (h.amount as number) || 0,
           }))
-          .sort((a, b) => b.amount - a.amount); // Sort by largest first
+          .sort((a: { amount: number }, b: { amount: number }) => b.amount - a.amount); // Sort by largest first
 
         // Check if renouncing some holds would free enough space
         let accumulatedSavings = 0;
@@ -2780,7 +2805,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
         const maxAllowed = Math.ceil(scaleAmount * ROOKIE_SCALE_MAX_PCT);
 
         // Helper to check value against bounds
-        const checkBounds = (val, label) => {
+        const checkBounds = (val: number, label: string) => {
           if (
             val < minAllowed - ROOKIE_SCALE_TOLERANCE ||
             val > maxAllowed + ROOKIE_SCALE_TOLERANCE
@@ -3063,7 +3088,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }) {
       if (maxSalaryAmount != null && firstYearSalary > maxSalaryAmount) {
         violations.push({
           rule: 'max_salary_violation',
-          message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds player max ($${(maxSalaryAmount / 1_000_000).toFixed(2)}M) based on ${maxSalarySource.replace(/_/g, ' ')}`,
+          message: `First-year salary ($${(firstYearSalary / 1_000_000).toFixed(2)}M) exceeds player max ($${(maxSalaryAmount / 1_000_000).toFixed(2)}M) based on ${(maxSalarySource || 'UNKNOWN_SOURCE').replace(/_/g, ' ')}`,
           severity: 'error',
           details: {
             firstYearSalary,
@@ -3219,6 +3244,13 @@ export function validateWaive({
   year,
   isGracePeriod = false,
   asOfDate,
+}: {
+  team: AnyRecord;
+  player: AnyRecord;
+  stretch: boolean;
+  year: number;
+  isGracePeriod?: boolean;
+  asOfDate?: string;
 }) {
   const violations = [];
   const warnings = [];
@@ -3260,14 +3292,14 @@ export function validateWaive({
   const contract = player.contract;
   if (contract?.salariesByYear) {
     const remainingGuaranteed = contract.salariesByYear
-      .filter((y) => {
-        const yearNum = toEndYear(y.season);
+      .filter((y: AnyRecord) => {
+        const yearNum = toEndYear(y.season) ?? year;
         // Only count explicitly guaranteed years (not undefined/null)
         // NBA contracts default to guaranteed for first years, but we require
         // explicit flag for accurate dead cap calculation
         return yearNum >= year && y.guaranteed === true;
       })
-      .reduce((sum, y) => sum + (y.salary || 0), 0);
+      .reduce((sum: number, y: AnyRecord) => sum + ((y.salary as number) || 0), 0);
 
     if (remainingGuaranteed > 0) {
       const stretchInfo = stretch ? ` (stretched over multiple years)` : '';
@@ -3318,9 +3350,9 @@ export function validateWaive({
  * @param {number} params.year - Season end year
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateExtension({ team, player, extension, year }) {
-  const violations = [];
-  const warnings = [];
+export function validateExtension({ team, player, extension, year }: { team: AnyRecord; player: AnyRecord; extension: AnyRecord; year: number }) {
+  const violations: AnyRecord[] = [];
+  const warnings: AnyRecord[] = [];
 
   const capSettings = getCapSettings(year);
   const contract = player.contract;
@@ -3398,7 +3430,7 @@ export function validateExtension({ team, player, extension, year }) {
     // If future year missing data, it might throw or return partial.
     // For now we assume extension year is valid or we catch error?
     // Facade throws if data missing, so this will surface error which is good.
-    const extStartRules = getCapRulesForYear(extStartYear);
+    const extStartRules = getCapRulesForYear(extStartYear ?? year);
 
     if (extStartRules) {
       const hardCapStatus = getHardCapStatus(team, extStartRules);
@@ -3420,39 +3452,39 @@ export function validateExtension({ team, player, extension, year }) {
   };
 }
 
-function getRosterEntryId(entry) {
+function getRosterEntryId(entry: AnyRecord | string | null | undefined) {
   if (!entry) return null;
   if (typeof entry === 'string') return entry;
   return entry.player_id || entry.playerId || entry.id || null;
 }
 
-function isPlayerOnRoster(team, playerId) {
+function isPlayerOnRoster(team: AnyRecord | null | undefined, playerId: string | null) {
   if (!Array.isArray(team?.roster)) {
     return null;
   }
 
-  return team.roster.some((entry) => getRosterEntryId(entry) === playerId);
+  return team.roster.some((entry: AnyRecord | string) => getRosterEntryId(entry) === playerId);
 }
 
-function findPlayerById(players, playerId) {
+function findPlayerById(players: AnyRecord[] | null | undefined, playerId: string | null) {
   if (!Array.isArray(players)) return null;
-  return players.find((p) => getPlayerId(p) === playerId) || null;
+  return players.find((p: AnyRecord) => getPlayerId(p) === playerId) || null;
 }
 
-function getContractRowForYear(contract, targetYear) {
+function getContractRowForYear(contract: AnyRecord | null | undefined, targetYear: number) {
   if (!Array.isArray(contract?.salariesByYear)) return null;
   return (
     contract.salariesByYear.find(
-      (row) => toEndYear(row?.season) === targetYear
+      (row: AnyRecord) => toEndYear(row?.season) === targetYear
     ) || null
   );
 }
 
-function getOptionRowForYear(contract, targetYear) {
+function getOptionRowForYear(contract: AnyRecord | null | undefined, targetYear: number) {
   if (!Array.isArray(contract?.salariesByYear)) return null;
   return (
     contract.salariesByYear.find(
-      (row) => toEndYear(row?.season) === targetYear && row?.option
+      (row: AnyRecord) => toEndYear(row?.season) === targetYear && row?.option
     ) || null
   );
 }
@@ -3531,7 +3563,7 @@ export function validateOptionDecision({
 
         // Calculate projected cap hit including the option salary
         const optionSalary =
-          baselinePlayer.contract?.salariesByYear?.find((y) => {
+          baselinePlayer.contract?.salariesByYear?.find((y: AnyRecord) => {
             return toEndYear(y.season) === targetYear && y.option;
           })?.salary || 0;
 
@@ -3804,8 +3836,8 @@ export function validateOptionDecision({
  * @param {number} [params.year] - Season end year (optional, for consistency with other validators)
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateRenounceRights({ team, player, year = null }) {
-  const violations = [];
+export function validateRenounceRights({ team, player, year = null }: { team: AnyRecord; player: AnyRecord; year?: number | null }) {
+  const violations: AnyRecord[] = [];
   const warnings = [];
 
   // Use helper functions for consistent player data extraction
@@ -3816,7 +3848,7 @@ export function validateRenounceRights({ team, player, year = null }) {
   const capHolds = team.capHolds || [];
 
   const hasCapHold = capHolds.some(
-    (h) => h.playerId === playerId || h.playerName === playerName
+    (h: AnyRecord) => h.playerId === playerId || h.playerName === playerName
   );
 
   // Check if player has Bird rights to renounce
@@ -3835,7 +3867,7 @@ export function validateRenounceRights({ team, player, year = null }) {
   // Info about cap space gained
   if (hasCapHold) {
     const capHold = capHolds.find(
-      (h) => h.playerId === playerId || h.playerName === playerName
+      (h: AnyRecord) => h.playerId === playerId || h.playerName === playerName
     );
     if (capHold?.amount) {
       warnings.push({
@@ -3870,6 +3902,11 @@ export function validateOfferSheetResolution({
   actingTeamCode,
   action,
   asOfDate,
+}: {
+  offerSheet: AnyRecord | null | undefined;
+  actingTeamCode: string;
+  action: string;
+  asOfDate?: string;
 }) {
   const violations = [];
   const warnings = [];
@@ -3929,7 +3966,7 @@ export function validateOfferSheetResolution({
     }
 
     // Phase 21: Check 48-hour window (Warning only)
-    if (action === 'match' && asOfDate && offerSheet.createdAt) {
+    if (action === 'match' && asOfDate && offerSheet?.createdAt) {
       const created = new Date(offerSheet.createdAt);
       const deadline = new Date(created.getTime() + 48 * 60 * 60 * 1000);
       const cutoff = deadline.toISOString().slice(0, 10);

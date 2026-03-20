@@ -397,14 +397,19 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
   it('room exception signing does NOT trigger hard cap (Phase 74 invariant)', () => {
     // Verify source code still does NOT trigger hard cap for room
     const srcRoot = path.resolve(__dirname, '../../features/architect');
-    const pipelinePath = path.join(srcRoot, 'utils/mutationPipeline.js');
-    const source = fs.readFileSync(pipelinePath, 'utf-8');
+    const pipelineAuthorityPath = path.join(srcRoot, 'utils/mutationPipeline.ts');
+    const pipelineShimPath = path.join(srcRoot, 'utils/mutationPipeline.js');
+    const authoritySource = fs.readFileSync(pipelineAuthorityPath, 'utf-8');
+    const shimSource = fs.readFileSync(pipelineShimPath, 'utf-8');
 
-    // Find the room exception block by looking for Phase 74 comment
-    expect(source).toContain('Phase 74: Room Exception usage tracking');
+    // Find the room exception block on the TS-authoritative source.
+    expect(authoritySource).toContain('Phase 74: Room Exception usage tracking');
 
-    // Should contain the no-hard-cap comment
-    expect(source).toContain('Room Exception does NOT trigger hard cap');
+    // Should contain the no-hard-cap comment.
+    expect(authoritySource).toContain('Room Exception does NOT trigger hard cap');
+
+    // JS file remains a pure compatibility shim.
+    expect(shimSource).toContain("export * from './mutationPipeline.ts';");
   });
 
   it('tradeExceptions is NOT in TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST (Phase 64 invariant)', () => {

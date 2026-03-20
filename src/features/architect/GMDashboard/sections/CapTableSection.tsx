@@ -1,12 +1,17 @@
-import CapSheetFull from '../../CapSheetFull';
+import type {
+  PlayerRulesProfileInput,
+  PlayerRulesProfilesResult,
+  PlayerRulesProfileTeamCapSheet,
+} from '@/features/architect/types';
+import CapSheetFull from '@/features/architect/CapSheetFull';
 
 type CapTableSectionProps = {
-  teamCapSheet: Record<string, unknown> | null | undefined;
+  teamCapSheet: PlayerRulesProfileTeamCapSheet | null | undefined;
   currentYear: number;
-  onSelectPlayer?: (...args: any[]) => any;
+  onSelectPlayer?: ((player: PlayerRulesProfileInput) => unknown) | null;
   onActionClick?: (...args: any[]) => any;
   playersMap?: Record<string, unknown>;
-  getRulesProfileForYear?: (...args: any[]) => any;
+  getRulesProfileForYear?: PlayerRulesProfilesResult['getProfileForYear'] | null;
 };
 
 const CapTableSection = ({

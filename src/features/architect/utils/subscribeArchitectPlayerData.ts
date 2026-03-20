@@ -78,8 +78,8 @@ export function subscribeArchitectPlayerData(
 
   // Real-time updates - matches exact behavior from useArchitectPlayerData
   const unsubscribe = onSnapshot(
-    playersQuery,
-    (snapshot: QuerySnapshot) => {
+    playersQuery as unknown as Parameters<typeof onSnapshot>[0],
+    ((snapshot: QuerySnapshot) => {
       // Perform the exact same mapping as useArchitectPlayerData
       const playerData: ArchitectPlayerData[] = snapshot.docs.map((doc) => {
         const data = doc.data();
@@ -111,11 +111,11 @@ export function subscribeArchitectPlayerData(
 
       // Invoke callback with mapped and sorted data
       args.onData(playerData);
-    },
-    (err: FirestoreError) => {
+    }) as Parameters<typeof onSnapshot>[1],
+    ((err: FirestoreError) => {
       // Invoke error callback (hook will handle console.error and state updates)
       args.onError(err);
-    }
+    }) as unknown as Parameters<typeof onSnapshot>[2]
   );
 
   return unsubscribe;

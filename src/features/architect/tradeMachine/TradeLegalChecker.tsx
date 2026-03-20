@@ -115,32 +115,51 @@ const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
                       .slice(0, 3)
                       .map((violation, violationIndex) => {
                         const issueMeta =
-                          typeof violation === 'object' && violation
-                            ? violation.meta || {}
+                          typeof violation === 'object' &&
+                          violation &&
+                          typeof violation.meta === 'object' &&
+                          violation.meta
+                            ? (violation.meta as Record<string, unknown>)
                             : {};
+                        const conflictExplanation =
+                          typeof issueMeta.conflictExplanation === 'string'
+                            ? issueMeta.conflictExplanation
+                            : null;
+                        const entitlementIds = Array.isArray(
+                          issueMeta.entitlementIds
+                        )
+                          ? issueMeta.entitlementIds.map(String)
+                          : [];
+                        const claimMeta =
+                          Array.isArray(issueMeta.claimsA) &&
+                          issueMeta.claimsA.length > 0
+                            ? String(
+                                (
+                                  issueMeta.claimsA[0] as Record<string, unknown>
+                                )?.meta ?? ''
+                              )
+                            : '';
 
                         return (
                           <div
                             key={violationIndex}
                             className="text-xs bg-red-900/20 border border-red-900/30 rounded px-2 py-1"
                           >
-                            {issueMeta.conflictExplanation && (
+                            {conflictExplanation && (
                               <div className="text-red-300 font-medium">
-                                {String(issueMeta.conflictExplanation)}
+                                {conflictExplanation}
                               </div>
                             )}
-                            {issueMeta.entitlementIds &&
-                              Array.isArray(issueMeta.entitlementIds) && (
+                            {entitlementIds.length > 0 && (
                                 <div className="text-white/40 mt-0.5">
                                   Conflicts between:{' '}
-                                  {(issueMeta.entitlementIds as string[]).join(' ↔ ')}
+                                  {entitlementIds.join(' ↔ ')}
                                 </div>
                               )}
-                            {issueMeta.claimsA &&
-                              Array.isArray(issueMeta.claimsA) && issueMeta.claimsA.length > 0 && (
+                            {claimMeta && (
                                 <div className="text-white/40 mt-0.5">
                                   Claim:{' '}
-                                  {String((issueMeta.claimsA[0] as Record<string, unknown>)?.meta ?? '')}
+                                  {claimMeta}
                                 </div>
                               )}
                           </div>

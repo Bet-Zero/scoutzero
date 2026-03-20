@@ -131,15 +131,17 @@ const DataWarningsSection = ({
       )}
 
       {summary &&
-        (summary.bycMissingPrevSalary > 0 || summary.salaryMissing > 0) && (
+        ((summary.bycMissingPrevSalary ?? 0) > 0 ||
+          (summary.salaryMissing ?? 0) > 0) && (
           <div className="mt-2 text-xs text-white/50 border-t border-white/10 pt-2">
-            <strong>Summary:</strong> {summary.totalPlayers} players checked
-            {summary.bycPlayers > 0 && ` • ${summary.bycPlayers} BYC players`}
-            {summary.bycMissingPrevSalary > 0 &&
+            <strong>Summary:</strong> {summary.totalPlayers ?? 0} players checked
+            {(summary.bycPlayers ?? 0) > 0 &&
+              ` • ${summary.bycPlayers} BYC players`}
+            {(summary.bycMissingPrevSalary ?? 0) > 0 &&
               ` (${summary.bycMissingPrevSalary} missing previous salary)`}
-            {summary.salaryFallbacks > 0 &&
+            {(summary.salaryFallbacks ?? 0) > 0 &&
               ` • ${summary.salaryFallbacks} using fallback salary fields`}
-            {summary.salaryMissing > 0 &&
+            {(summary.salaryMissing ?? 0) > 0 &&
               ` • ${summary.salaryMissing} missing salary data`}
           </div>
         )}

@@ -77,6 +77,13 @@ const makeSatContract = (firstYearSalary: number) => ({
   ],
 });
 
+function assertDefined<T>(value: T | null | undefined, message: string): T {
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
+}
+
 const issueTexts = (issues: any[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
@@ -177,21 +184,46 @@ describe('useTradeMachine validator trust contract', () => {
       { timeout: 3000 }
     );
 
-    const outgoingSatPlayer = result.current.teams[0].team.players.find(
+    const primaryTeam = assertDefined(
+      result.current.teams[0]?.team,
+      'Primary team should be loaded'
+    );
+    const secondaryTeam = assertDefined(
+      result.current.teams[1]?.team,
+      'Secondary team should be loaded'
+    );
+    const primaryPlayers = assertDefined(
+      primaryTeam.players,
+      'Primary players should be loaded'
+    );
+    const secondaryPlayers = assertDefined(
+      secondaryTeam.players,
+      'Secondary players should be loaded'
+    );
+
+    const outgoingSatPlayer = primaryPlayers.find(
       (player: Record<string, any>) => (player.player_id || player.id) === 'sat_player'
     );
-    const incomingCounter = result.current.teams[1].team.players.find(
+    const incomingCounter = secondaryPlayers.find(
       (player: Record<string, any>) => (player.player_id || player.id) === 'bos_counter'
     );
 
     expect(outgoingSatPlayer).toBeDefined();
     expect(incomingCounter).toBeDefined();
+    const definedOutgoingSatPlayer = assertDefined(
+      outgoingSatPlayer,
+      'Expected outgoing sign-and-trade player'
+    );
+    const definedIncomingCounter = assertDefined(
+      incomingCounter,
+      'Expected incoming counter player'
+    );
 
     act(() => {
-      result.current.setPlayerTrade(0, outgoingSatPlayer, 'signAndTrade', 'BOS', {
+      result.current.setPlayerTrade(0, definedOutgoingSatPlayer, 'signAndTrade', 'BOS', {
         signAndTradeContract: makeSatContract(15_000_000),
       });
-      result.current.setPlayerTrade(1, incomingCounter, 'trade', 'LAL');
+      result.current.setPlayerTrade(1, definedIncomingCounter, 'trade', 'LAL');
     });
 
     act(() => {
@@ -208,7 +240,10 @@ describe('useTradeMachine validator trust contract', () => {
 
     await waitFor(() => {
       expect(result.current.result).not.toBeNull();
-      expect(result.current.result?.override?.requested).toBe(true);
+      expect(
+        (result.current.result?.override as Record<string, unknown> | undefined)
+          ?.requested
+      ).toBe(true);
     });
 
     expect(result.current.result?.legal).toBe(false);
@@ -217,10 +252,13 @@ describe('useTradeMachine validator trust contract', () => {
       requested: true,
       appliedToLegality: false,
     });
+    const signAndTradeRule = (
+      result.current.result?.teamResults?.[0]?.rules as
+        | Record<string, { violations?: unknown[] } | undefined>
+        | undefined
+    )?.signAndTrade;
     expect(
-      issueTexts(
-        result.current.result?.teamResults?.[0]?.rules?.signAndTrade?.violations
-      )
+      issueTexts(signAndTradeRule?.violations as any[] | undefined)
     ).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/only be traded during the offseason/i),

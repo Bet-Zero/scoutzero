@@ -2082,6 +2082,32 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FIRST_SHIM_DELETION_BATCH_E113_RETURN_PACKAGE.md`
 
+### Validator TS Second Shim Cleanup Audit E114 (2026-03-15)
+
+- Status:
+  - no meaningful second safe removable same-path shim batch exists from current repo evidence
+  - shim cleanup is not the next default category after E113 because the retained same-path frontier is now runtime-import required, compatibility/guardrail-pinned, or mixed/structural
+  - the strongest second-batch candidate set is empty
+  - the strongest keep reason is combined runtime-import plus compatibility/guardrail pressure
+  - mixed-shim cleanup and wrapper/barrel/public-entry cleanup remain separate lanes
+- Validation:
+  - `npm run typecheck`: FAIL (pre-existing / out-of-scope workspace state)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SECOND_SHIM_CLEANUP_AUDIT_E114_RETURN_PACKAGE.md`
+
+### Validator TS Compatibility-Contract / Guardrail-Retirement Audit E115 (2026-03-15)
+
+- Status:
+  - guardrail-retirement / compatibility-contract cleanup is now the strongest next cleanup category
+  - a meaningful compatibility-only blocked same-path shim set still exists after fresh repo inspection
+  - the strongest retargetable/removable cluster is the dashboard/world, GM world-support, trade-team-card leaf, offseason preview/dev-gate, and helper parity/source-scan guardrails
+  - the strongest reason some retained shims still must remain is unchanged runtime-backed or intentional compatibility pressure, especially shared contract pocket shims, Trade Machine cache/engine shims, and `tradeContext/legacy/index.js`
+  - mixed-shim cleanup, wrapper/barrel/public-entry cleanup, and live JS/JSX migration remain separate lanes
+- Validation:
+  - `npm run typecheck`: FAIL
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_COMPATIBILITY_CONTRACT_GUARDRAIL_RETIREMENT_AUDIT_E115_RETURN_PACKAGE.md`
+
 ### Validator TS Grouped 33-File Scope (2026-03-15)
 
 - Status:

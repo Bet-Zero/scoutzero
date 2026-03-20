@@ -295,7 +295,7 @@ export function getCapSettings({
   }
 
   return {
-    settings,
+    settings: settings || { ...EMERGENCY_FALLBACK_2024_25 },
     source,
     warnings,
     resolved,

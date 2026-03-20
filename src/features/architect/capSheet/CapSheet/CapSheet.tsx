@@ -12,6 +12,11 @@
  *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
  */
 import React, { useState } from 'react';
+import type {
+  PlayerRulesProfile,
+  PlayerRulesProfileInput,
+  PlayerRulesProfileTeamCapSheet,
+} from '@/features/architect/types';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   getMinimumCapHit,
@@ -26,32 +31,8 @@ import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDea
 import ManageExceptionsModal from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 
 type NumericLike = number | string | null | undefined;
-type RulesProfileLike = {
-  extensionEligibility?: {
-    isEligible?: boolean;
-    reason?: string | null;
-    eligibleDate?: string | number | Date | null;
-  } | null;
-} | null;
-type CapSheetPlayerLike = NonNullable<Parameters<typeof getContractYearSlice>[0]> & {
-  id?: string | number | null;
-  player_id?: string | number | null;
-  playerId?: string | number | null;
-  name?: string | null;
-  displayName?: string | null;
-  age?: NumericLike;
-  position?: string | null;
-  yearsOfService?: NumericLike;
-  isMinimum?: boolean;
-  bio?: {
-    displayName?: string | null;
-    playerId?: string | null;
-  } | null;
-  contractType?: string | null;
-  contract?: {
-    contractType?: string | null;
-  } | null;
-};
+type RulesProfileLike = PlayerRulesProfile | null;
+type CapSheetPlayerLike = PlayerRulesProfileInput;
 type CapHoldLike = {
   playerId?: string | number | null;
   season?: string | null;
@@ -78,12 +59,9 @@ type DeadCapSourceEntry = {
     | null;
   stretched?: boolean;
 };
-type TeamCapSheetLike = {
+type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetPlayerLike[] | null;
-  capHolds?: unknown[] | null;
-  teamCode?: string | null;
   deadCap?: DeadCapSourceEntry[] | null;
-  exceptions?: Record<string, unknown> | null;
 };
 type CapSheetProps = {
   teamCapSheet?: TeamCapSheetLike | null;
@@ -355,7 +333,7 @@ const CapSheet = ({
             const salary = slice?.salary ?? slice?.capHit ?? 0;
             const capHit = getCapHit(player, selectedYear);
             const isExtensionSeason = slice?.isExtensionSeason;
-            const rulesProfile = getProfile(player) as RulesProfileLike;
+            const rulesProfile = getProfile(player);
 
             const age = player.age ?? '-';
             const position = player.position ?? '-';
@@ -551,7 +529,7 @@ const CapSheet = ({
           onClose={() => setShowDeadMoneyModal(false)}
           teamCapSheet={teamCapSheet}
           currentYear={selectedYear}
-          onSave={onSetDeadCap}
+          onSave={(deadCap) => onSetDeadCap?.(deadCap)}
         />
       )}
       {showExceptionsModal && (
@@ -560,7 +538,7 @@ const CapSheet = ({
           onClose={() => setShowExceptionsModal(false)}
           teamCapSheet={teamCapSheet}
           currentYear={selectedYear}
-          onSave={onSetExceptions}
+          onSave={(exceptions) => onSetExceptions?.(exceptions)}
         />
       )}
     </div>

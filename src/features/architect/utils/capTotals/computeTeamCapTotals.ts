@@ -176,9 +176,10 @@ function computeDeadMoneyForYear(
     }
   }
 
-  const arrs = []
-    .concat(teamCapSheet?.waivedContracts || [])
-    .concat(teamCapSheet?.stretchHistory || []);
+  const arrs: LegacyDeadMoneyItemLike[] = [
+    ...(teamCapSheet?.waivedContracts || []),
+    ...(teamCapSheet?.stretchHistory || []),
+  ];
 
   const fromArrays = arrs.reduce((sum, w) => {
     let amt: unknown = 0;
@@ -186,7 +187,7 @@ function computeDeadMoneyForYear(
     if (w?.amountByYear) {
       if (Array.isArray(w.amountByYear)) {
         const match = w.amountByYear.find(
-          (entry) => toEndYear(entry.season) === endYear
+          (entry: any) => toEndYear(entry.season) === endYear
         );
         amt = match?.amount ?? 0;
       } else {

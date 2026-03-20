@@ -96,7 +96,7 @@ export function validateTradeExceptions(
     }
   });
 
-  if (usesTPE && team.sends?.length > 0) {
+  if (usesTPE && (team.sends?.length ?? 0) > 0) {
     violations.push('Cannot combine TPE with outgoing salary');
   }
 

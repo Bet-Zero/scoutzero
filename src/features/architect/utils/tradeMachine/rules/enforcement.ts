@@ -49,7 +49,7 @@ export function enforceConsent(
     }
 
     if (player.limitedNTC?.length && !player.consent) {
-      if (!player.ntcTeamList?.includes(team.teamId)) {
+      if (team.teamId && !player.ntcTeamList?.includes(team.teamId)) {
         reject('Player NTC — consent required');
         violations.push('Player NTC — consent required');
       }
@@ -72,7 +72,7 @@ export function enforceTiming(
   const violations: string[] = [];
   const { incomingPlayers = [] } = team;
   const { asOfDate } = ctx;
-  const currentDate = new Date(asOfDate);
+  const currentDate = new Date(asOfDate || defaultContext.asOfDate);
 
   incomingPlayers.forEach((player) => {
     if (player.moratoriumEnd && new Date(player.moratoriumEnd) > currentDate) {
@@ -111,11 +111,13 @@ export function enforceEligibility(
   const violations: string[] = [];
   const { incomingPlayers = [] } = team;
   const { asOfDate } = ctx;
-  const currentDate = new Date(asOfDate);
+  const currentDate = new Date(asOfDate || defaultContext.asOfDate);
 
   incomingPlayers.forEach((player) => {
     if (player.lastTradedFrom === team.teamId) {
-      const lastTradeDate = new Date(player.lastTradeDate);
+      const lastTradeDate = new Date(
+        player.lastTradeDate || defaultContext.asOfDate
+      );
       const daysSince =
         (currentDate.getTime() - lastTradeDate.getTime()) /
         (1000 * 60 * 60 * 24);

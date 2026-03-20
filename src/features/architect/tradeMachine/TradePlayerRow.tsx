@@ -26,6 +26,7 @@ type PlayerLike = {
   primaryContract?: Record<string, unknown> | null;
   contracts?: Record<string, unknown> | null;
   signAndTrade?: boolean;
+  mockSalary?: number;
   bio?: {
     displayName?: string;
     playerId?: string | number;

@@ -104,7 +104,7 @@ function generateSeasonAdvanceOperationId(timestamp = Date.now()) {
   return `op_${timestamp}_${randomSuffix}`;
 }
 
-function safeCloneForAudit(value) {
+function safeCloneForAudit(value: unknown): unknown {
   if (value === null || value === undefined || typeof value !== 'object') {
     return value;
   }
@@ -115,7 +115,7 @@ function safeCloneForAudit(value) {
   }
 }
 
-function buildPostStateRulesContext(year) {
+function buildPostStateRulesContext(year: number) {
   const capSettingsResult = getCapSettings({ year });
   const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
 
@@ -143,7 +143,7 @@ const HYDRATION_ONLY_KEYS = Object.freeze([
   'baseline', // reference to original base doc
 ]);
 
-function stripHydrationOnlyFields(team) {
+function stripHydrationOnlyFields(team: LooseRecord | null | undefined): LooseRecord | null | undefined {
   if (!team || typeof team !== 'object') return team;
   const result = { ...team };
   for (const key of HYDRATION_ONLY_KEYS) {
@@ -157,18 +157,18 @@ function stripHydrationOnlyFields(team) {
  * @param {any} obj - Object or array to sanitize
  * @returns {any} Sanitized copy with no undefined values
  */
-function removeUndefinedDeep(obj) {
+function removeUndefinedDeep(obj: unknown): unknown {
   if (obj === null || obj === undefined) {
     return obj;
   }
   if (Array.isArray(obj)) {
     return obj
-      .filter((item) => item !== undefined)
-      .map((item) => removeUndefinedDeep(item));
+      .filter((item: unknown) => item !== undefined)
+      .map((item: unknown) => removeUndefinedDeep(item));
   }
   if (typeof obj === 'object') {
-    const result = {};
-    for (const [key, value] of Object.entries(obj)) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (value !== undefined) {
         result[key] = removeUndefinedDeep(value);
       }
@@ -180,6 +180,34 @@ function removeUndefinedDeep(obj) {
 
 type LooseRecord = Record<string, unknown>;
 
+const FALLBACK_SEASON_YEAR = new Date().getFullYear();
+
+function resolveSeasonEndYear(
+  season: string | null | undefined,
+  fallback = FALLBACK_SEASON_YEAR
+): number {
+  return toEndYear(season) ?? fallback;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
+function getErrorCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+  const code = (error as LooseRecord).code;
+  return typeof code === 'string' ? code : null;
+}
+
 /**
  * Advance world to next season
  *
@@ -187,7 +215,7 @@ type LooseRecord = Record<string, unknown>;
  * @param {string} [targetSeason] - Target season code (e.g., "2026-27"). If not provided, advances by one season.
  * @returns {Promise<Object>} Season advancement result
  */
-export async function advanceSeason(worldId, targetSeason = null) {
+export async function advanceSeason(worldId: string, targetSeason: string | null = null) {
   if (!worldId) {
     throw new Error('worldId is required');
   }
@@ -204,7 +232,7 @@ export async function advanceSeason(worldId, targetSeason = null) {
   // Determine target season
   let nextSeason = targetSeason;
   if (!nextSeason) {
-    const currentYear = toEndYear(currentSeason);
+    const currentYear = resolveSeasonEndYear(currentSeason);
     const nextYear = currentYear + 1;
     nextSeason = toSeasonCode(nextYear);
   }
@@ -221,7 +249,7 @@ export async function advanceSeason(worldId, targetSeason = null) {
  * @param {string} toSeason - Target season code
  * @returns {Promise<Object>} Transition result
  */
-export async function processSeasonTransition(worldId, fromSeason, toSeason) {
+export async function processSeasonTransition(worldId: string, fromSeason: string, toSeason: string) {
   if (!worldId || !fromSeason || !toSeason) {
     throw new Error('worldId, fromSeason, and toSeason are required');
   }
@@ -235,6 +263,9 @@ export async function processSeasonTransition(worldId, fromSeason, toSeason) {
   // Process each team
   for (const team of teams) {
     const teamCode = team.teamCode;
+    if (!isNonEmptyString(teamCode)) {
+      throw new Error('Team missing teamCode during season transition');
+    }
 
     // Process team for season transition
     const updatedTeam = await processTeamSeasonTransition(
@@ -280,7 +311,7 @@ export async function processSeasonTransition(worldId, fromSeason, toSeason) {
  * @param {string} toSeason - Target season
  * @returns {Promise<Object|null>} Updated team data or null if no changes
  */
-async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
+async function processTeamSeasonTransition(teamData: LooseRecord, fromSeason: string, toSeason: string) {
   const updatedTeam = { ...teamData };
   let hasChanges = false;
 
@@ -312,7 +343,7 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
   if (emptyRosterResult.hasChanges) {
     hasChanges = true;
     updatedTeam.totals = {
-      ...updatedTeam.totals,
+      ...((updatedTeam.totals as LooseRecord) || {}),
       ...emptyRosterResult.totals,
     };
   }
@@ -338,7 +369,7 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
   // This replaces the legacy updateTeamCapTotals() call.
   // Runs AFTER all roster/contract/exception changes for correct post-transition state.
   if (hasChanges) {
-    const toYear = toEndYear(toSeason);
+    const toYear = resolveSeasonEndYear(toSeason);
     updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear);
   }
 
@@ -353,16 +384,17 @@ async function processTeamSeasonTransition(teamData, fromSeason, toSeason) {
  * @param {string} toSeason - Target season
  * @returns {Object} Result with updated roster and players
  */
-function processContractExpirations(teamData, fromSeason, toSeason) {
-  const toYear = toEndYear(toSeason);
+function processContractExpirations(teamData: LooseRecord, fromSeason: string, toSeason: string) {
+  void fromSeason;
+  const toYear = resolveSeasonEndYear(toSeason);
 
-  const roster = [...(teamData.roster || [])];
-  const players = [...(teamData.players || [])];
+  const roster = [...((teamData.roster as unknown[]) || [])];
+  const players = [...((teamData.players as LooseRecord[]) || [])];
   let hasChanges = false;
 
   // Filter out expired contracts
-  const activeRoster = [];
-  const activePlayers = [];
+  const activeRoster: unknown[] = [];
+  const activePlayers: (LooseRecord | undefined)[] = [];
 
   roster.forEach((playerId, index) => {
     // Support multiple ID formats: player_id, id, playerId
@@ -382,11 +414,11 @@ function processContractExpirations(teamData, fromSeason, toSeason) {
       return;
     }
 
-    const contract = player.contract;
-    const endSeason = contract.endSeason;
+    const contract = player.contract as LooseRecord;
+    const endSeason = contract.endSeason as string | undefined;
 
     if (endSeason) {
-      const endYear = toEndYear(endSeason);
+      const endYear = resolveSeasonEndYear(endSeason, toYear);
 
       // Contract expires if endYear is before toYear
       if (endYear < toYear) {
@@ -399,21 +431,22 @@ function processContractExpirations(teamData, fromSeason, toSeason) {
 
     // Update contract years remaining
     if (contract.yearsRemaining !== undefined) {
-      const yearsRemaining = Math.max(0, contract.yearsRemaining - 1);
-      if (yearsRemaining !== contract.yearsRemaining) {
+      const yearsRemaining = Math.max(0, (contract.yearsRemaining as number) - 1);
+      if (yearsRemaining !== (contract.yearsRemaining as number)) {
         hasChanges = true;
         contract.yearsRemaining = yearsRemaining;
       }
     }
 
     // Advance salariesByYear array (remove expired years)
-    if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
-      const activeSalaries = contract.salariesByYear.filter((yearData) => {
-        const year = toEndYear(yearData.season);
+    const salariesByYear = contract.salariesByYear as LooseRecord[] | undefined;
+    if (salariesByYear && Array.isArray(salariesByYear)) {
+      const activeSalaries = salariesByYear.filter((yearData: LooseRecord) => {
+        const year = resolveSeasonEndYear(yearData.season as string, toYear);
         return year >= toYear;
       });
 
-      if (activeSalaries.length !== contract.salariesByYear.length) {
+      if (activeSalaries.length !== salariesByYear.length) {
         hasChanges = true;
         contract.salariesByYear = activeSalaries;
       }
@@ -437,21 +470,24 @@ function processContractExpirations(teamData, fromSeason, toSeason) {
  * @param {string} season - Current season
  * @returns {Object} Result with updated roster and players
  */
-function processOptions(teamData, season) {
-  const seasonYear = toEndYear(season);
-  const roster = [...(teamData.roster || [])];
-  const players = [...(teamData.players || [])];
+function processOptions(teamData: LooseRecord, season: string) {
+  const seasonYear = resolveSeasonEndYear(season);
+  const roster = [...((teamData.roster as unknown[]) || [])];
+  const players = [...((teamData.players as LooseRecord[]) || [])];
   let hasChanges = false;
 
-  players.forEach((player) => {
+  players.forEach((player: LooseRecord) => {
     if (!player || !player.contract) return;
 
-    const contract = player.contract;
+    const contract = player.contract as LooseRecord;
 
     // Check salariesByYear for options
     if (contract.salariesByYear && Array.isArray(contract.salariesByYear)) {
-      contract.salariesByYear.forEach((yearData) => {
-        const year = toEndYear(yearData.season);
+      contract.salariesByYear.forEach((yearData: LooseRecord) => {
+        const year = resolveSeasonEndYear(
+          yearData.season as string,
+          seasonYear
+        );
         if (
           year === seasonYear &&
           yearData.option &&
@@ -489,8 +525,8 @@ function processOptions(teamData, season) {
  * @param {string} season - Target season code (e.g., "2025-26")
  * @returns {Object} Result with updated totals
  */
-function processEmptyRosterCharges(teamData, season) {
-  const rosterCount = teamData.roster?.length || 0;
+function processEmptyRosterCharges(teamData: LooseRecord, season: string) {
+  const rosterCount = (teamData.roster as unknown[] | undefined)?.length || 0;
   const MIN_ROSTER_SIZE = 12; // Minimum roster size for NBA
   // Get year-appropriate minimum salary from salary engine
   // The minimum salary scale returns minimum based on YOS (years of service)
@@ -503,7 +539,7 @@ function processEmptyRosterCharges(teamData, season) {
     emptyRosterCharges = (MIN_ROSTER_SIZE - rosterCount) * EMPTY_ROSTER_CHARGE;
   }
 
-  const totals = teamData.totals || {};
+  const totals = (teamData.totals as LooseRecord) || {};
   const hasChanges = totals.emptyRosterCharges !== emptyRosterCharges;
 
   return {
@@ -523,14 +559,14 @@ function processEmptyRosterCharges(teamData, season) {
  * @param {string} season - Current season
  * @returns {Object} Result with updated cap holds
  */
-function updateCapHolds(teamData, season) {
-  const capHolds = [...(teamData.capHolds || [])];
+function updateCapHolds(teamData: LooseRecord, season: string) {
+  const capHolds = [...((teamData.capHolds as LooseRecord[]) || [])];
   let hasChanges = false;
 
   // Filter out expired cap holds
   const activeCapHolds = capHolds.filter((hold) => {
     if (hold.expiresOn) {
-      const expireDate = new Date(hold.expiresOn);
+      const expireDate = new Date(hold.expiresOn as string);
       const seasonStartDate = new Date(`${season.split('-')[0]}-07-01`); // Approximate season start
 
       if (expireDate < seasonStartDate) {
@@ -562,19 +598,20 @@ function updateCapHolds(teamData, season) {
  * @param {string} toSeason - Target season
  * @returns {Object} Result with updated draft picks
  */
-function updateDraftPicks(teamData, fromSeason, toSeason) {
-  const toYear = toEndYear(toSeason);
+function updateDraftPicks(teamData: LooseRecord, fromSeason: string, toSeason: string) {
+  void fromSeason;
+  const toYear = resolveSeasonEndYear(toSeason);
   // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
-  const draftPicks = [
-    ...(teamData._derivedDraftPicks || teamData.draftPicks || []),
+  const draftPicks: LooseRecord[] = [
+    ...((teamData._derivedDraftPicks || teamData.draftPicks || []) as LooseRecord[]),
   ];
   let hasChanges = false;
 
-  const updatedPicks = draftPicks.map((pick) => {
+  const updatedPicks = draftPicks.map((pick: LooseRecord) => {
     const updatedPick = { ...pick };
 
     // Advance pick year if needed
-    if (pick.year && pick.year < toYear) {
+    if (pick.year && (pick.year as number) < toYear) {
       // Pick year has passed - update status if needed
       if (pick.status === 'future' || !pick.status) {
         hasChanges = true;
@@ -615,7 +652,7 @@ function updateDraftPicks(teamData, fromSeason, toSeason) {
  *   Each entry: { decision: 'exercise' | 'decline', optionType: 'player' | 'team', season: string }
  * @returns {Promise<Object>} Season advancement result
  */
-export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
+export async function advanceSeasonInWorld(worldId: string, options: LooseRecord = {}) {
   if (!worldId) {
     return { success: false, error: 'worldId is required' };
   }
@@ -623,7 +660,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
   const operationTimestamp = Date.now();
   const operationId = generateSeasonAdvanceOperationId(operationTimestamp);
   const occurredAt = new Date(operationTimestamp).toISOString();
-  const { optionDecisions = {} } = options;
+  const optionDecisions = (options.optionDecisions || {}) as LooseRecord;
 
   try {
     // Get current world metadata
@@ -649,7 +686,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
       };
     }
 
-    const expectedToYear = toEndYear(worldCurrentSeason) + 1;
+    const expectedToYear = resolveSeasonEndYear(worldCurrentSeason) + 1;
     const expectedToSeason = toSeasonCode(expectedToYear);
     if (options.toSeason && options.toSeason !== expectedToSeason) {
       return {
@@ -662,7 +699,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
 
     // Always use world's current season as the source of truth
     const fromSeason = worldCurrentSeason;
-    const fromYear = toEndYear(fromSeason);
+    const fromYear = resolveSeasonEndYear(fromSeason);
     const toYear = fromYear + 1;
     const toSeason = toSeasonCode(toYear);
 
@@ -679,10 +716,10 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
 
     const batch = writeBatch(db);
     const updatedTeams = [];
-    const beforeTeamsByCode = {};
-    const afterTeamsByCode = {};
-    const beforeTotalsByTeam = {};
-    const afterTotalsByTeam = {};
+    const beforeTeamsByCode: Record<string, Record<string, unknown>> = {};
+    const afterTeamsByCode: Record<string, Record<string, unknown>> = {};
+    const beforeTotalsByTeam: Record<string, Record<string, unknown>> = {};
+    const afterTotalsByTeam: Record<string, Record<string, unknown>> = {};
     const summary: Record<string, unknown[]> & { dareReceipt?: unknown; dareWriteCount?: number; dareError?: string } = {
       exercisedOptions: [],
       declinedOptions: [],
@@ -697,6 +734,9 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
     // Process each team
     for (const team of teams) {
       const teamCode = team.teamCode;
+      if (!isNonEmptyString(teamCode)) {
+        throw new Error('Encountered team without teamCode during season advance');
+      }
 
       // Process team for season transition with explicit option decisions
       // Phase 5: Also pass positionsMap + draftYear for auto-resolution
@@ -726,7 +766,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
       if (teamSummary.expiredTPEs?.length > 0) {
         // Embellish with team info for global summary
         summary.expiredTPEs.push(
-          ...teamSummary.expiredTPEs.map((tpe) => ({ ...tpe, teamCode }))
+          ...teamSummary.expiredTPEs.map((tpe: unknown) => ({ ...(tpe as LooseRecord), teamCode }))
         );
       }
       // Phase 5: Merge resolution summaries
@@ -743,10 +783,10 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
       // Phase 65: Normalize TPE schema before persistence
       // Phase D4: Remove undefined values to prevent Firestore errors
       if (updatedTeam) {
-        beforeTeamsByCode[teamCode] = safeCloneForAudit(team);
-        afterTeamsByCode[teamCode] = safeCloneForAudit(updatedTeam);
-        beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear);
-        afterTotalsByTeam[teamCode] = computeTeamCapTotals(updatedTeam, toYear);
+        beforeTeamsByCode[teamCode] = safeCloneForAudit(team) as Record<string, unknown>;
+        afterTeamsByCode[teamCode] = safeCloneForAudit(updatedTeam) as Record<string, unknown>;
+        beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear) as Record<string, unknown>;
+        afterTotalsByTeam[teamCode] = computeTeamCapTotals(updatedTeam, toYear) as Record<string, unknown>;
 
         const snapshotRef = worldTeamRef(worldId, teamCode);
         // Bridge Gate: match persistWorldMutation hygiene order
@@ -793,29 +833,50 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
     // ==========================================================================
     // Runs AFTER all teams processed, BEFORE batch commit.
     // Resolves swap/conveyance outcomes and persists back to world entitlements.
-    if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
+    if (
+      positionsMap &&
+      typeof draftYear === 'number' &&
+      Object.keys(positionsMap).length > 0
+    ) {
       try {
         // Build DARE input from processed teams
+        const dareTeams = teams
+          .map((t) => ({
+            teamCode: isNonEmptyString(t.teamCode) ? t.teamCode : null,
+            entitlementIds: Array.isArray(t.entitlementIds)
+              ? t.entitlementIds.filter((id): id is string => isNonEmptyString(id))
+              : [],
+          }))
+          .filter(
+            (
+              team
+            ): team is {
+              teamCode: string;
+              entitlementIds: string[];
+            } => isNonEmptyString(team.teamCode)
+          );
         const dareInput = {
           worldId,
           draftYear,
           positionsMap,
-          teams: teams.map((t) => ({
-            teamCode: t.teamCode,
-            entitlementIds: t.entitlementIds || [],
-          })),
+          teams: dareTeams,
           nowIso: new Date().toISOString(),
           method: 'season_advance' as const,
-        };
+        } as Parameters<typeof resolveAllDraftAssets>[1];
 
         const dareResult = await resolveAllDraftAssets(db, dareInput);
 
         if (dareResult.success) {
           // Build full pre-DARE entitlement state for league-wide gated validation.
           // Fail closed: if any team cannot be resolved, block season advance.
-          const currentEntitlementsByTeam = {};
+          const currentEntitlementsByTeam: Record<string, unknown[]> = {};
           for (const teamEntry of teams) {
             const teamCode = teamEntry.teamCode;
+            if (!isNonEmptyString(teamCode)) {
+              throw new Error(
+                'DARE gated persistence unavailable — encountered team without teamCode.'
+              );
+            }
             const resolved = await resolveEntitlementsForTeam(
               worldId,
               teamCode
@@ -834,7 +895,9 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
             batch,
             worldId,
             dareResult,
-            currentEntitlementsByTeam
+            currentEntitlementsByTeam as Parameters<
+              typeof applyGatedDAREResultsToBatch
+            >[4]
           );
 
           if (!gatedDareWriteResult.ok) {
@@ -863,9 +926,9 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
           summary.dareError = dareResult.error;
         }
       } catch (dareErr) {
-        const dareMessage = dareErr?.message || String(dareErr);
+        const dareMessage = getErrorMessage(dareErr);
         const invariantViolation =
-          dareErr?.code === 'ENTITLEMENT_INVARIANT_VIOLATION' ||
+          getErrorCode(dareErr) === 'ENTITLEMENT_INVARIANT_VIOLATION' ||
           dareMessage.includes('ENTITLEMENT_INVARIANT_VIOLATION');
         // Gate failures are ship blockers: fail season advance loudly.
         if (
@@ -930,7 +993,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
       occurredAt,
       worldId,
       teamCodes,
-      playerIds: [],
+      playerIds: [] as string[],
       beforeTotalsByTeam,
       afterTotalsByTeam,
       valid: postStateValidation.valid,
@@ -942,7 +1005,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
         category: 'offseason',
         worldId,
         teams: teamCodes,
-        players: [],
+        players: [] as string[],
       },
     };
     const afterEventSanitize =
@@ -977,7 +1040,7 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
     console.error('advanceSeasonInWorld failed:', error);
     return {
       success: false,
-      error: error.message || 'Season advance failed',
+      error: getErrorMessage(error) || 'Season advance failed',
     };
   }
 }
@@ -996,16 +1059,16 @@ export async function advanceSeasonInWorld(worldId, options: LooseRecord = {}) {
  * @returns {Promise<Object>} Updated team data and summary
  */
 async function processTeamSeasonTransitionWithOptions(
-  teamData,
-  fromSeason,
-  toSeason,
-  optionDecisions,
+  teamData: LooseRecord,
+  fromSeason: string,
+  toSeason: string,
+  optionDecisions: LooseRecord,
   resolutionContext: LooseRecord = {}
 ) {
   let updatedTeam = { ...teamData };
   let hasChanges = false;
-  const teamCode = teamData.teamCode;
-  const teamSummary = {
+  const teamCode = teamData.teamCode as string;
+  const teamSummary: Record<string, unknown[]> = {
     exercisedOptions: [],
     declinedOptions: [],
     expiredContracts: [],
@@ -1037,18 +1100,18 @@ async function processTeamSeasonTransitionWithOptions(
   if ((hasEntitlementIds || hasInlineEntitlements) && teamCode) {
     try {
       // Use inline entitlements if provided, else resolve from Firestore
-      let entitlements = hasInlineEntitlements
-        ? teamData.entitlements
-        : await resolveEntitlementsForTeam((worldId as string) || null, teamCode);
+      let entitlements: unknown[] = hasInlineEntitlements
+        ? (teamData.entitlements as unknown[])
+        : await resolveEntitlementsForTeam((worldId as string) || null, teamCode) as unknown[];
 
       if (Array.isArray(entitlements) && entitlements.length > 0) {
         // Extract underlying pick IDs for pick rules lookup (best-effort)
         const pickIds = entitlements
-          .map((e) => e.underlyingPickId)
+          .map((e: unknown) => (e as LooseRecord).underlyingPickId as string)
           .filter(Boolean);
 
         // Resolve pick rules in batch (graceful if fails or returns empty)
-        let pickRulesById = {};
+        let pickRulesById: Record<string, unknown> = {};
         if (pickIds.length > 0) {
           try {
             const rulesMap = await resolvePickRulesByIds(pickIds);
@@ -1059,9 +1122,10 @@ async function processTeamSeasonTransitionWithOptions(
         }
 
         // Project entitlements to draftPicks-like view
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const derivedDraftPicks = projectEntitlementsToSeasonManagerView({
-          entitlements,
-          pickRulesById,
+          entitlements: entitlements as any,
+          pickRulesById: pickRulesById as any,
           teamCode,
         });
 
@@ -1087,7 +1151,8 @@ async function processTeamSeasonTransitionWithOptions(
   // ===========================================================================
   // Resolution order: conveyance first, then swaps
   // This ensures that rolled picks are properly tracked before swap resolution
-  const { positionsMap, draftYear } = resolutionContext;
+  const positionsMap = resolutionContext.positionsMap as Record<string, number> | undefined;
+  const draftYear = resolutionContext.draftYear as number | undefined;
 
   if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
     const resolutionOpts = {
@@ -1106,21 +1171,22 @@ async function processTeamSeasonTransitionWithOptions(
     // Track conveyance resolutions
     // Build a Set of original pick IDs that already had conveyanceResult for O(1) lookup
     const originalConveyedIds = new Set(
-      (teamData.draftPicks || [])
-        .filter((p) => p?.conveyanceResult)
-        .map((p) => p.id)
+      ((teamData.draftPicks || []) as LooseRecord[])
+        .filter((p: LooseRecord) => p?.conveyanceResult)
+        .map((p: LooseRecord) => p.id)
     );
 
     if (afterConveyance.draftPicks) {
-      const conveyedPicks = afterConveyance.draftPicks.filter(
-        (p) => p?.conveyanceResult && !originalConveyedIds.has(p.id)
+      const conveyedPicks = (afterConveyance.draftPicks as LooseRecord[]).filter(
+        (p: LooseRecord) => p?.conveyanceResult && !originalConveyedIds.has(p.id)
       );
       for (const pick of conveyedPicks) {
+        const convResult = pick.conveyanceResult as LooseRecord | undefined;
         teamSummary.conveyanceResolutions.push({
           pickId: pick.id,
           year: pick.year,
-          outcome: pick.conveyanceResult?.outcome,
-          position: pick.conveyanceResult?.position,
+          outcome: convResult?.outcome,
+          position: convResult?.position,
         });
         hasChanges = true;
       }
@@ -1139,14 +1205,14 @@ async function processTeamSeasonTransitionWithOptions(
     // Track swap resolutions
     // Build a Set of original pick IDs that were already resolved for O(1) lookup
     const originalResolvedIds = new Set(
-      (teamData.draftPicks || [])
-        .filter((p) => p?.resolved === true)
-        .map((p) => p.id)
+      ((teamData.draftPicks || []) as LooseRecord[])
+        .filter((p: LooseRecord) => p?.resolved === true)
+        .map((p: LooseRecord) => p.id)
     );
 
     if (afterSwaps.draftPicks) {
-      const resolvedSwaps = afterSwaps.draftPicks.filter(
-        (p) => p?.resolved === true && !originalResolvedIds.has(p.id)
+      const resolvedSwaps = (afterSwaps.draftPicks as LooseRecord[]).filter(
+        (p: LooseRecord) => p?.resolved === true && !originalResolvedIds.has(p.id)
       );
       for (const pick of resolvedSwaps) {
         teamSummary.swapResolutions.push({
@@ -1162,8 +1228,8 @@ async function processTeamSeasonTransitionWithOptions(
   }
 
   // Offseason transition SSOT (OSTE)
-  const toYear = toEndYear(toSeason);
-  const fromYear = toEndYear(fromSeason);
+  const toYear = resolveSeasonEndYear(toSeason);
+  const fromYear = resolveSeasonEndYear(fromSeason, toYear - 1);
   const transitionResult = resolveOffseasonTransition({
     teamCapSheet: updatedTeam,
     fromYear,
@@ -1242,19 +1308,19 @@ async function processTeamSeasonTransitionWithOptions(
  * @returns {Object} Result with updated roster, players, cap holds, and summaries
  */
 function processOptionsWithDecisions(
-  teamData,
-  fromSeason,
-  toSeason,
-  optionDecisions
+  teamData: LooseRecord,
+  fromSeason: string,
+  toSeason: string,
+  optionDecisions: LooseRecord
 ) {
-  const fromYear = toEndYear(fromSeason);
-  const toYear = toEndYear(toSeason);
-  const roster = [...(teamData.roster || [])];
-  const players = [...(teamData.players || [])];
+  const fromYear = resolveSeasonEndYear(fromSeason);
+  const toYear = resolveSeasonEndYear(toSeason, fromYear + 1);
+  const roster = [...((teamData.roster as unknown[]) || [])];
+  const players = [...((teamData.players as LooseRecord[]) || [])];
   let hasChanges = false;
-  const exercisedOptions = [];
-  const declinedOptions = [];
-  const newCapHolds = [];
+  const exercisedOptions: LooseRecord[] = [];
+  const declinedOptions: LooseRecord[] = [];
+  const newCapHolds: LooseRecord[] = [];
 
   // Process each player
   for (let i = 0; i < players.length; i++) {
@@ -1271,22 +1337,23 @@ function processOptionsWithDecisions(
       );
       continue;
     }
-    const contract = player.contract;
+    const contract = player.contract as LooseRecord;
 
     if (!contract.salariesByYear || !Array.isArray(contract.salariesByYear)) {
       continue;
     }
+    let salariesByYear = contract.salariesByYear as LooseRecord[];
 
     // Find option year entry for the target season
-    const optionYearIndex = contract.salariesByYear.findIndex((yearData) => {
-      const year = toEndYear(yearData.season);
+    const optionYearIndex = salariesByYear.findIndex((yearData: LooseRecord) => {
+      const year = resolveSeasonEndYear(yearData.season as string, toYear);
       return year === toYear && yearData.option;
     });
 
     if (optionYearIndex === -1) continue;
 
-    const optionYear = contract.salariesByYear[optionYearIndex];
-    const decision = optionDecisions[playerId];
+    const optionYear = salariesByYear[optionYearIndex];
+    const decision = optionDecisions[playerId as string] as LooseRecord | undefined;
 
     // If no decision provided for this player, skip (will be handled by validation earlier)
     if (!decision || !decision.decision) {
@@ -1297,12 +1364,13 @@ function processOptionsWithDecisions(
 
     if (decision.decision === 'exercise') {
       // Exercise option - mark as used (canonical boolean format)
-      contract.salariesByYear = contract.salariesByYear.map((yearData, idx) => {
+      salariesByYear = salariesByYear.map((yearData: LooseRecord, idx: number) => {
         if (idx === optionYearIndex) {
           return { ...yearData, optionUsed: true }; // CANONICAL: boolean, not string
         }
         return yearData;
       });
+      contract.salariesByYear = salariesByYear;
 
       exercisedOptions.push({
         playerId,
@@ -1319,11 +1387,12 @@ function processOptionsWithDecisions(
         typeof faYearInfo.year === 'number' ? faYearInfo.year : toYear - 1;
 
       // Decline option - remove this year and all future years
-      const filteredSalaries = contract.salariesByYear.filter(
-        (_, idx) => idx < optionYearIndex
+      const filteredSalaries = salariesByYear.filter(
+        (_: unknown, idx: number) => idx < optionYearIndex
       );
 
       // Update contract
+      salariesByYear = filteredSalaries;
       contract.salariesByYear = filteredSalaries;
       contract.freeAgency = {
         year: freeAgencyYear,
@@ -1339,8 +1408,8 @@ function processOptionsWithDecisions(
       }
 
       // Calculate cap hold
-      const priorRow = contract.salariesByYear[optionYearIndex - 1];
-      const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
+      const priorRow = salariesByYear[optionYearIndex - 1] as LooseRecord | undefined;
+      const lastSalary = (priorRow?.salary ?? priorRow?.capHit ?? 0) as number;
       const rightsType = getRightsTypeFromPlayer(player);
       const capHoldResult = computeExpectedCapHoldAmount({
         player,
@@ -1407,15 +1476,16 @@ function processOptionsWithDecisions(
  * @param {string} toSeason - Target season
  * @returns {Object} Result with updated draft picks and Stepien updates
  */
-function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
-  const toYear = toEndYear(toSeason);
-  const teamCode = teamData.teamCode;
+function updateDraftPicksWithStepien(teamData: LooseRecord, fromSeason: string, toSeason: string) {
+  void fromSeason;
+  const toYear = resolveSeasonEndYear(toSeason);
+  const teamCode = teamData.teamCode as string;
   // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
-  const draftPicks = [
-    ...(teamData._derivedDraftPicks || teamData.draftPicks || []),
+  const draftPicks: LooseRecord[] = [
+    ...((teamData._derivedDraftPicks || teamData.draftPicks || []) as LooseRecord[]),
   ];
   let hasChanges = false;
-  const stepienUpdates = [];
+  const stepienUpdates: LooseRecord[] = [];
 
   // Separate picks into owned and owed
   const ownFirsts = []; // First-round picks the team owns
@@ -1443,11 +1513,11 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
   }
 
   // Sort owed picks by year
-  owedFirsts.sort((a, b) => (a.year || 0) - (b.year || 0));
+  owedFirsts.sort((a, b) => ((a.year as number) || 0) - ((b.year as number) || 0));
 
   // Check Stepien for the next 7 drafts
   const futureYears = Array.from({ length: 7 }, (_, i) => toYear + i);
-  const owedYears = new Set(owedFirsts.map((p) => p.year));
+  const owedYears = new Set(owedFirsts.map((p) => p.year as number));
 
   // Update each pick's status
   const updatedPicks = draftPicks.map((pick) => {
@@ -1455,7 +1525,7 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
     const isFirstRound = pick.round === 1 || pick.round === '1';
 
     // Advance pick year status if needed
-    if (pick.year && pick.year < toYear) {
+    if (pick.year && (pick.year as number) < toYear) {
       if (pick.status === 'future' || !pick.status) {
         hasChanges = true;
         updatedPick.status = 'available';
@@ -1463,8 +1533,8 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
     }
 
     // Stepien check only for first-round picks the team owns
-    if (isFirstRound && pick.year >= toYear) {
-      const pickYear = pick.year;
+    if (isFirstRound && (pick.year as number) >= toYear) {
+      const pickYear = pick.year as number;
       const isOwnedByTeam =
         pick.currentOwner === teamCode ||
         (pick.owner === teamCode && !pick.tradedTo);
@@ -1544,7 +1614,7 @@ function updateDraftPicksWithStepien(teamData, fromSeason, toSeason) {
  * @param {string} [opts.method='lottery'] - Resolution method for audit trail
  * @returns {Object} - Team with updated draftPicks array
  */
-export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts: LooseRecord = {}) {
+export function resolveDraftPickSwapsForYear(team: LooseRecord, draftYear: number, positionsMap: Record<string, number> | null | undefined, opts: LooseRecord = {}) {
   // Return team unchanged if no positions provided (NO-OP)
   if (
     !positionsMap ||
@@ -1642,9 +1712,9 @@ export function resolveDraftPickSwapsForYear(team, draftYear, positionsMap, opts
  * @returns {Object} - Team with updated draftPicks array
  */
 export function resolveDraftPickConveyanceForYear(
-  team,
-  draftYear,
-  positionsMap,
+  team: LooseRecord,
+  draftYear: number,
+  positionsMap: Record<string, number> | null | undefined,
   opts: LooseRecord = {}
 ) {
   // Return team unchanged if no positions provided (NO-OP)

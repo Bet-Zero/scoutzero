@@ -141,7 +141,7 @@ export function computeMaxSalary(
   // Legacy path: (player, leagueContext) signature
   const player = playerOrContext as MaxSalaryPlayerLike | null | undefined;
   const yearsOfService = getYearsOfService(player);
-  const { capSettings = {} } = leagueContext || {};
+  const capSettings = leagueContext?.capSettings ?? {};
 
   // Use cap from leagueContext if available, no hard-coded fallback
   const salaryCap = capSettings.salaryCap;

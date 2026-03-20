@@ -12,6 +12,7 @@ PlayerTable/
       PlayerSubRolesMini.jsx
       PlayerTraitsMiniGrid.jsx
       index.jsx
+    PlayerNameMini.d.ts
     PlayerNameMini.jsx
     RolePill.jsx
     ShootingProfileMini.jsx
@@ -30,5 +31,5 @@ hooks/
 ```
 
 ---
-*Generated on: 2026-03-07T00:15:29.261Z*
+*Generated on: 2026-03-20T06:34:11.450Z*
 *Auto-updated by: npm run docs*

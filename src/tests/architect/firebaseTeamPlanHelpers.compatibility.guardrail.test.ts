@@ -229,7 +229,12 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
       teamCode: 'LAL',
       capHolds: null,
       note: 'keep',
-    });
+    }) as {
+      teamCode: string;
+      capHolds: unknown[];
+      note: string;
+      updatedAt: string;
+    };
 
     expect(Object.keys(prepared)).toEqual([
       'teamCode',
@@ -341,7 +346,10 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
       },
     });
 
-    const hydratedTeam = await hydrateBaseTeam('LAL', baseDoc);
+    const hydratedTeam = (await hydrateBaseTeam('LAL', baseDoc)) as Record<
+      string,
+      any
+    >;
 
     expect(Object.keys(hydratedTeam)).toEqual(expectedHydratedTeamKeys);
     expect(hydratedTeam.teamCode).toBe('LAL');
@@ -506,22 +514,36 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
     firestoreState.baseTeamsEmpty = true;
     firestoreState.baseTeamsSnapshotDocs = [];
     expect(await getAllTeams()).toEqual(
-      TeamListFull.map((team) => ({
+      TeamListFull.map(
+        (team: {
+          id: string;
+          code: string;
+          teamName: string;
+          conference: string | null;
+        }) => ({
         id: team.id,
         code: team.code,
         name: team.teamName,
         conference: team.conference,
-      }))
+      })
+      )
     );
 
     firestoreState.baseTeamsShouldThrow = true;
     expect(await getAllTeams()).toEqual(
-      TeamListFull.map((team) => ({
+      TeamListFull.map(
+        (team: {
+          id: string;
+          code: string;
+          teamName: string;
+          conference: string | null;
+        }) => ({
         id: team.id,
         code: team.code,
         name: team.teamName,
         conference: team.conference,
-      }))
+      })
+      )
     );
     expect(console.error).toHaveBeenCalledWith(
       'Error getting base teams:',

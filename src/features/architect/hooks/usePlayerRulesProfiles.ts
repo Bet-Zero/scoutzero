@@ -14,33 +14,20 @@
  */
 
 import { useMemo } from 'react';
+import type {
+  PlayerRulesProfile,
+  PlayerRulesProfileInput,
+  PlayerRulesProfileLeagueContext,
+  PlayerRulesProfileTeamCapSheet,
+  PlayerRulesProfileTeamContext,
+  PlayerRulesProfilesResult,
+  UsePlayerRulesProfilesParams,
+} from '@/features/architect/types';
 import { computePlayerRulesProfile } from '@/features/architect/utils/salaryEngine';
 import capProjections from '@/features/architect/utils/capProjections';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import { getTeamApronStatus } from '@/features/architect/utils/capUtils';
-
-type ComputePlayerRulesProfileFn = typeof computePlayerRulesProfile;
-type PlayerRulesProfile = ReturnType<ComputePlayerRulesProfileFn>;
-type PlayerRulesProfilePlayer = NonNullable<
-  Parameters<ComputePlayerRulesProfileFn>[0]
-> & {
-  playerId?: string | null;
-  player_id?: string | null;
-  id?: string | null;
-  name?: string | null;
-  bio?: {
-    playerId?: string | null;
-  } | null;
-  contractType?: string | null;
-  contract?: {
-    contractType?: string | null;
-  } | null;
-};
-type TeamContextLike = NonNullable<Parameters<ComputePlayerRulesProfileFn>[1]>;
-type LeagueContextLike = NonNullable<
-  Parameters<ComputePlayerRulesProfileFn>[2]
->;
 
 type CapSettingsLike = {
   salaryCap?: number | null;
@@ -54,42 +41,10 @@ type CapSettingsLike = {
   bae?: number | null;
 };
 
-type TeamCapSheetLike = {
-  players?: PlayerRulesProfilePlayer[] | null;
-  teamCode?: string | null;
-} | null;
-
-type UsePlayerRulesProfilesParams = {
-  players?: PlayerRulesProfilePlayer[] | null;
-  teamCapSheet?: TeamCapSheetLike;
-  currentYear?: number | null;
-  teamCode?: string | null;
-  simulationDate?: Date | null;
-  leaguePhase?: string | null;
-  evaluationYears?: Array<number | null | undefined> | null;
-};
-
-type PlayerRulesProfilesResult = {
-  profilesById: Map<string, PlayerRulesProfile>;
-  leagueContext: LeagueContextLike | null;
-  teamContext: TeamContextLike | null;
-  leagueContextByYear: Map<number, LeagueContextLike>;
-  teamContextByYear: Map<number, TeamContextLike>;
-  profilesByYear: Map<number, Map<string, PlayerRulesProfile>>;
-  getProfile: (
-    player: PlayerRulesProfilePlayer | null | undefined,
-    yearOverride?: number | null
-  ) => PlayerRulesProfile | null;
-  getProfileForYear: (
-    player: PlayerRulesProfilePlayer | null | undefined,
-    year?: number
-  ) => PlayerRulesProfile | null;
-};
-
 const DEFAULT_SIM_MONTH = 6; // July (0-indexed)
 const DEFAULT_SIM_DAY = 15;
 
-const isTwoWayContract = (player: PlayerRulesProfilePlayer | null | undefined) => {
+const isTwoWayContract = (player: PlayerRulesProfileInput | null | undefined) => {
   const contractType =
     player?.contractType || player?.contract?.contractType || '';
   return contractType.toLowerCase() === 'two-way' || contractType === 'TWO-WAY';
@@ -152,7 +107,7 @@ const deriveApronStatus = (
 };
 
 const calculateTeamSalary = (
-  players: PlayerRulesProfilePlayer[] = [],
+  players: PlayerRulesProfileInput[] = [],
   year: number
 ) => {
   return players.reduce((sum, player) => {
@@ -167,7 +122,7 @@ const buildLeagueContext = (
   simulationDate: Date | null | undefined,
   leaguePhase: string | null | undefined,
   capSettings: CapSettingsLike
-): LeagueContextLike => {
+): PlayerRulesProfileLeagueContext => {
   const simDate =
     simulationDate ||
     new Date(year - 1, DEFAULT_SIM_MONTH, DEFAULT_SIM_DAY, 12, 0, 0);
@@ -182,11 +137,11 @@ const buildLeagueContext = (
 };
 
 const buildTeamContext = (
-  teamCapSheet: TeamCapSheetLike,
+  teamCapSheet: PlayerRulesProfileTeamCapSheet | null,
   year: number,
   capSettings: CapSettingsLike,
   teamCode: string | null | undefined
-): TeamContextLike => {
+): PlayerRulesProfileTeamContext => {
   const players = teamCapSheet?.players || [];
   const teamSalary = calculateTeamSalary(players, year);
 
@@ -201,7 +156,7 @@ const buildTeamContext = (
 };
 
 const getPlayerKey = (
-  player: PlayerRulesProfilePlayer | null | undefined
+  player: PlayerRulesProfileInput | null | undefined
 ): string | null => {
   return (
     player?.playerId ||
@@ -236,16 +191,19 @@ export function usePlayerRulesProfiles({
         profilesById: new Map<string, PlayerRulesProfile>(),
         leagueContext: null,
         teamContext: null,
-        leagueContextByYear: new Map<number, LeagueContextLike>(),
-        teamContextByYear: new Map<number, TeamContextLike>(),
+        leagueContextByYear: new Map<number, PlayerRulesProfileLeagueContext>(),
+        teamContextByYear: new Map<number, PlayerRulesProfileTeamContext>(),
         profilesByYear: new Map<number, Map<string, PlayerRulesProfile>>(),
         getProfile: () => null,
         getProfileForYear: () => null,
       };
     }
 
-    const leagueContextByYear = new Map<number, LeagueContextLike>();
-    const teamContextByYear = new Map<number, TeamContextLike>();
+    const leagueContextByYear = new Map<
+      number,
+      PlayerRulesProfileLeagueContext
+    >();
+    const teamContextByYear = new Map<number, PlayerRulesProfileTeamContext>();
     const profilesByYear = new Map<number, Map<string, PlayerRulesProfile>>();
 
     targetYears.forEach((year) => {
@@ -289,7 +247,7 @@ export function usePlayerRulesProfiles({
       profilesByYear.get(defaultYear as number) ||
       new Map<string, PlayerRulesProfile>();
     const getProfileForYear = (
-      player: PlayerRulesProfilePlayer | null | undefined,
+      player: PlayerRulesProfileInput | null | undefined,
       year = defaultYear as number
     ) => {
       const map = profilesByYear.get(year) || defaultProfiles;
@@ -299,7 +257,7 @@ export function usePlayerRulesProfiles({
     };
 
     const getProfile = (
-      player: PlayerRulesProfilePlayer | null | undefined,
+      player: PlayerRulesProfileInput | null | undefined,
       yearOverride: number | null = null
     ) => getProfileForYear(player, yearOverride || (defaultYear as number));
 

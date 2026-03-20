@@ -169,7 +169,7 @@ export function getIncomingCeilingForTeam(
     salaryOut = 0,
     teamTotalSalary = 0,
   } = team as SalaryMarginTeamData;
-  const { capSettings = {} } = context || {};
+  const capSettings = context?.capSettings ?? {};
   const { salaryCap = 0, firstApron = 0, secondApron = 0 } = capSettings;
 
   // Teams above second apron can only take back equal salary

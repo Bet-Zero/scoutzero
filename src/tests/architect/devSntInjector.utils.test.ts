@@ -9,6 +9,13 @@ import {
   stripSyntheticSntPlayers,
 } from '@/features/architect/tradeMachine/utils/devSntInjector';
 
+function assertDefined<T>(value: T | null | undefined, message: string): T {
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
+}
+
 function makeTeamsFixture() {
   return [
     {
@@ -108,14 +115,22 @@ describe('DEV S&T injector utilities', () => {
       'position',
       'team',
     ]);
-    expect(Object.keys(ineligible.contract)).toEqual(['salariesByYear']);
-    expect(Object.keys(ineligible.primaryContract)).toEqual(['salariesByYear']);
-    expect(Object.keys(ineligible.contract.salariesByYear[0])).toEqual([
+    const ineligibleContract = assertDefined(
+      ineligible.contract,
+      'Ineligible synthetic contract should exist'
+    );
+    const ineligiblePrimaryContract = assertDefined(
+      ineligible.primaryContract,
+      'Ineligible primary contract should exist'
+    );
+    expect(Object.keys(ineligibleContract)).toEqual(['salariesByYear']);
+    expect(Object.keys(ineligiblePrimaryContract)).toEqual(['salariesByYear']);
+    expect(Object.keys(ineligibleContract.salariesByYear[0])).toEqual([
       'season',
       'salary',
       'capHit',
     ]);
-    expect(Object.keys(ineligible.primaryContract.salariesByYear[0])).toEqual([
+    expect(Object.keys(ineligiblePrimaryContract.salariesByYear[0])).toEqual([
       'season',
       'salary',
       'capHit',
@@ -134,7 +149,12 @@ describe('DEV S&T injector utilities', () => {
     expect(ineligible.teamId).toBe('lal');
     expect(eligible.freeAgentYear).toBe(2026);
     expect(ineligible.freeAgentYear).toBe(2028);
-    expect(ineligible.contract.salariesByYear[0].season).toBe('2025-26');
+    expect(
+      assertDefined(
+        ineligible.contract,
+        'Ineligible synthetic contract should exist'
+      ).salariesByYear[0].season
+    ).toBe('2025-26');
   });
 
   it('detects synthetic players and strips them without mutating the input array', () => {
@@ -164,16 +184,34 @@ describe('DEV S&T injector utilities', () => {
 
   it('injects synthetic players into local team state and clears them cleanly', () => {
     const initialTeams = makeTeamsFixture();
-    const injectedTeams = injectSyntheticSntPlayersIntoTeams(initialTeams, 2026);
+    const injectedTeams = assertDefined(
+      injectSyntheticSntPlayersIntoTeams(initialTeams, 2026),
+      'Expected injected teams result'
+    );
+    const primaryInjectedTeam = assertDefined(
+      injectedTeams[0]?.team,
+      'Expected primary injected team'
+    );
+    const secondaryInjectedTeam = assertDefined(
+      injectedTeams[1]?.team,
+      'Expected secondary injected team'
+    );
 
     expect(hasSyntheticSntPlayers(initialTeams)).toBe(false);
     expect(hasSyntheticSntPlayers(injectedTeams)).toBe(true);
-    expect(injectedTeams[0].team.players).toHaveLength(3);
-    expect(injectedTeams[1].team.players).toHaveLength(0);
+    expect(primaryInjectedTeam.players).toHaveLength(3);
+    expect(secondaryInjectedTeam.players).toHaveLength(0);
 
-    const cleared = clearSyntheticSntPlayersFromTeams(injectedTeams);
+    const cleared = assertDefined(
+      clearSyntheticSntPlayersFromTeams(injectedTeams),
+      'Expected cleared teams result'
+    );
+    const clearedPrimaryTeam = assertDefined(
+      cleared[0]?.team,
+      'Expected cleared primary team'
+    );
     expect(hasSyntheticSntPlayers(cleared)).toBe(false);
-    expect(cleared[0].team.players).toHaveLength(1);
-    expect(cleared[0].team.players[0].name).toBe('Base Player');
+    expect(clearedPrimaryTeam.players || []).toHaveLength(1);
+    expect(clearedPrimaryTeam.players?.[0]?.name).toBe('Base Player');
   });
 });

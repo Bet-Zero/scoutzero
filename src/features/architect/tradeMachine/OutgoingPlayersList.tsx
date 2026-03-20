@@ -2,23 +2,14 @@ import React, { useMemo, useState } from 'react';
 import TradePlayerRow from './TradePlayerRow';
 import { getSalaryWithFallback } from '@/features/architect/utils/contractSalaryUtils';
 
-type PlayerLike = {
-  id?: string | number;
-  player_id?: string | number;
-  name?: string;
-  signAndTrade?: boolean;
-  bio?: { displayName?: string } | null;
-  mockSalary?: number;
-};
+type TradePlayerRowProps = Parameters<typeof TradePlayerRow>[0];
+type PlayerLike = TradePlayerRowProps['player'];
 
 type TeamLike = {
   players?: PlayerLike[];
 };
 
-type TeamOptionLike = {
-  id?: string;
-  teamName?: string;
-};
+type TeamOptionLike = NonNullable<TradePlayerRowProps['otherTeams']>[number];
 
 interface OutgoingPlayersListProps {
   team: TeamLike;

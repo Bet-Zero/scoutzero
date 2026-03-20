@@ -21,6 +21,12 @@ import { validateSignAndTradeContractPayload } from '@/features/architect/utils/
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
+type UseTradeMachineResult = ReturnType<typeof useTradeMachine>;
+type HookTradeTeamSlot = UseTradeMachineResult['teams'][number];
+type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
+type TradePreviewModalProps = Parameters<typeof TradePreviewModal>[0];
+type TradeTeamCardProps = Parameters<typeof TradeTeamCard>[0];
+
 type PlayerLike = {
   id?: string | number;
   player_id?: string | number;
@@ -145,10 +151,10 @@ const TradeEditor = ({
   } = useTradeMachine(
     primaryTeam,
     capProjections,
-    currentYear,
+    currentYear ?? new Date().getFullYear(),
     primaryTeamData,
     worldId,
-    worldAsOfDate
+    worldAsOfDate as string
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -176,10 +182,10 @@ const TradeEditor = ({
 
   // Phase 14.2: incomingAssets now uses entitlementsOut instead of picksOut
   // Phase 17: Updated to require toTeamId for 3+ team trades (same logic as hook)
-  const incomingAssets = teams.map((tm: TradeTeamSlotLike, idx: number) => {
+  const incomingAssets = teams.map((tm, idx) => {
     const players: PlayerLike[] = [];
     const entitlements: EntitlementLike[] = [];
-    teams.forEach((t: TradeTeamSlotLike, j: number) => {
+    teams.forEach((t, j) => {
       if (j !== idx && t.team) {
         t.sends.forEach((p) => {
           if (!p.tradeTo || p.tradeTo === tm.team?.id) {
@@ -424,11 +430,11 @@ const TradeEditor = ({
       const teamCode = teamId ? resolveTeamCode(String(teamId)) || teamId : null;
       return teamCode === canonicalDestinationTeamCode;
     });
-    const destinationTradeTeamId =
+    const destinationTradeTeamId = String(
       destinationTradeTeam?.team?.id ||
       destinationTradeTeam?.team?.teamCode ||
       destinationTradeTeam?.team?.teamId ||
-      canonicalDestinationTeamCode;
+      canonicalDestinationTeamCode);
 
     const contractValidation = validateSignAndTradeContractPayload(
       contractPayload,
@@ -540,10 +546,11 @@ const TradeEditor = ({
             : { gridTemplateColumns: `repeat(${teams.length}, 1fr)` }
         }
       >
-        {teams.map((t: TradeTeamSlotLike, idx: number) => {
+        {teams.map((t, idx) => {
           const otherTeams = teams
             .filter((_, j) => j !== idx && teams[j].team)
-            .map((tm) => tm.team);
+            .map((tm) => tm.team)
+            .filter(Boolean);
           return (
             <div
               key={idx}
@@ -556,9 +563,18 @@ const TradeEditor = ({
             >
               <TradeTeamCard
                 compact={compact}
-                validationResult={hasCurrentValidation ? result : null}
+                validationResult={
+                  (hasCurrentValidation ? result : null) as TradeTeamCardProps['validationResult']
+                }
                 teamIndex={idx}
-                team={t.team}
+                team={
+                  t.team
+                    ? {
+                        ...t.team,
+                        id: t.team.id ?? undefined,
+                      }
+                    : null
+                }
                 sends={t.sends}
                 // Phase 14.2: Removed picks prop - draft assets are entitlements-only
                 // Phase 11.1: Pass entitlement toggle and selection state
@@ -582,9 +598,9 @@ const TradeEditor = ({
                 // Phase 14.2: Incoming entitlements instead of incoming picks
                 incomingEntitlements={incomingAssets[idx]?.entitlements || []}
                 yearKey={yearKey}
-                otherTeams={otherTeams}
+                otherTeams={otherTeams as TradeTeamCardProps['otherTeams']}
                 playersMap={playersMap}
-                onSetPlayerTrade={(p, action, dest, meta) =>
+                onSetPlayerTrade={(p: any, action: any, dest: any, meta: any) =>
                   setPlayerTrade(idx, p, action, dest, meta)
                 }
                 onRequestSignAndTrade={(player, defaultDestinationTeamId) =>
@@ -595,7 +611,7 @@ const TradeEditor = ({
                   )
                 }
                 // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
-                onUndoPlayerTrade={undoPlayerTrade}
+                onUndoPlayerTrade={undoPlayerTrade as (...args: unknown[]) => void}
                 onSelectTeam={(teamId) => selectTeam(idx, teamId)}
                 onRemove={() => removeTeam(idx)}
                 onEditContract={onEditContract}
@@ -696,8 +712,8 @@ const TradeEditor = ({
       <ValidationDetailsPanel
         hasValidatorResult={hasCurrentValidation}
         isValidating={isValidating}
-        result={result}
-        teams={teams}
+        result={result as ValidationDetailsPanelProps['result']}
+        teams={teams as ValidationDetailsPanelProps['teams']}
         forceTrade={forceTrade}
         calculatorTeamIndex={calculatorTeamIndex}
         incomingAssets={incomingAssets as Record<string, unknown>[]}
@@ -715,8 +731,8 @@ const TradeEditor = ({
       <TradePreviewModal
         open={previewOpen && !!result}
         onClose={() => setPreviewOpen(false)}
-        teams={teams}
-        result={result}
+        teams={teams as TradePreviewModalProps['teams']}
+        result={result as TradePreviewModalProps['result']}
         yearKey={yearKey}
       />
 

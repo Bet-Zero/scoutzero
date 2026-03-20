@@ -35,6 +35,7 @@ export function payrollForYearFromCapSheet(
   const endYear = typeof year === 'string' && year.includes('-')
     ? toEndYear(year)
     : Number(year);
+  if (endYear == null) return 0;
 
   const totals = computeTeamCapTotals(capSheet, endYear);
   return totals.playersTotal;
@@ -58,6 +59,7 @@ export function deadMoneyForYear(
   const endYear = typeof year === 'string' && year.includes('-')
     ? toEndYear(year)
     : Number(year);
+  if (endYear == null) return 0;
 
   const totals = computeTeamCapTotals(capSheet, endYear);
   return totals.deadMoneyTotal;

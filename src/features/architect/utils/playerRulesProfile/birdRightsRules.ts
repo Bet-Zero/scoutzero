@@ -170,7 +170,7 @@ export function computeBirdRights(
   player: BirdRightsPlayerLike | null | undefined,
   leagueContext?: BirdRightsLeagueContextLike | null
 ): BirdRightsInfo {
-  const { capSettings = {} } = leagueContext || {};
+  const capSettings = leagueContext?.capSettings ?? {};
   // Require salaryCap from context - warn but continue with placeholder for backward compatibility
   // TODO: In future version, require salaryCap and return error result if missing
   const salaryCap = capSettings.salaryCap;

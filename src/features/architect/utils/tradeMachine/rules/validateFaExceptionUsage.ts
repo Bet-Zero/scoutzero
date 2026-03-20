@@ -54,8 +54,14 @@ export function validateFaExceptionUsage(
   _context?: FaExceptionValidationContext | null
 ): string[] {
   const violations: string[] = [];
-  const { teamTotalSalary = 0, incomingPlayers = [], context = {} } = team;
-  const { capSettings = {} } = context;
+  const {
+    teamTotalSalary = 0,
+    incomingPlayers: rawIncomingPlayers = [],
+    context: rawContext = null,
+  } = team;
+  const context = rawContext || {};
+  const capSettings = context.capSettings || {};
+  const incomingPlayers = rawIncomingPlayers || [];
   const resolveIncomingTradeSalary = (player: FaExceptionIncomingPlayer) =>
     Number(
       player?.matchIncoming ??
@@ -65,7 +71,9 @@ export function validateFaExceptionUsage(
     );
 
   // Get FA Exception buckets
-  const buckets = getTeamFaExceptionBuckets(team.team || {});
+  const buckets = getTeamFaExceptionBuckets(
+    (team.team || {}) as Parameters<typeof getTeamFaExceptionBuckets>[0]
+  );
 
   // Check if team is above first apron (cannot use FA exceptions)
   const apronStatus = getApronStatus(Number(teamTotalSalary || 0), capSettings);

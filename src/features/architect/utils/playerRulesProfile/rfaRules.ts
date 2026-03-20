@@ -304,7 +304,7 @@ export function computeQualifyingOffer(
     // Veteran QO calculation
     const signingYear = getContractSigningYear(contract);
     const qoPercent =
-      signingYear >= 2023
+      signingYear != null && signingYear >= 2023
         ? QO_PERCENTAGES.veteran2023Plus
         : QO_PERCENTAGES.veteranPre2023;
     qualifyingOfferAmount = Math.round(priorSalary * qoPercent);

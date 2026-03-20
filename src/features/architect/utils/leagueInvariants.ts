@@ -84,19 +84,17 @@ function collectPlayersFromTeam(team: any): PlayerLocation[] {
   const players = team?.players || team?.roster || [];
   if (!Array.isArray(players)) return [];
 
-  return players
-    .map((player: any) => {
+  return players.flatMap((player: any): PlayerLocation[] => {
       const playerId = extractPlayerId(player);
-      if (!playerId) return null;
-      return {
-        playerId,
-        teamCode,
-        playerName: extractPlayerName(player) || undefined,
-      };
-    })
-    .filter(
-      (loc: PlayerLocation | null): loc is PlayerLocation => loc !== null
-    );
+      if (!playerId) return [];
+      return [
+        {
+          playerId,
+          teamCode,
+          playerName: extractPlayerName(player) || undefined,
+        },
+      ];
+    });
 }
 
 /**

@@ -52,6 +52,7 @@ import type {
   ValidatePostTradeSnapshotForContextParams,
   ValidatedTradeContext,
   ValidationTeam,
+  ValidationIssue,
 } from './types';
 
 // ==============================================================================
@@ -125,7 +126,7 @@ export function buildPostTradeTeamsSnapshot({
     .map((t) => normalizeTeamCodeLike(t.team?.id || t.teamCode || t.teamId))
     .filter(Boolean) as string[];
   const activeTeamCount = payloadTeamCodes.length;
-  const currentEndYear = toEndYear(seasonId);
+  const currentEndYear = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
   const enforceSatPreflight =
     payload?.tradeCtx?.source === 'tradeMachine' ||
     payload?.tradeCtx?.enforceSignAndTradePreflight === true;
@@ -583,7 +584,7 @@ export function validatePostTradeSnapshotForContext({
 }: ValidatePostTradeSnapshotForContextParams): ValidatedTradeContext {
   assertPostTradeSnapshot(snapshot, 'validatePostTradeSnapshotForContext');
 
-  const currentYear = toEndYear(seasonId);
+  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
 
   try {
     const validationInput = {
@@ -621,6 +622,13 @@ export function validatePostTradeSnapshotForContext({
       ? validation.dataWarnings
       : [];
 
+    const resolvedYearKey =
+      validation &&
+      Object.prototype.hasOwnProperty.call(validation, 'yearKey') &&
+      validation.yearKey != null
+        ? (validation.yearKey as number | string)
+        : currentYear;
+
     return {
       ...validation,
       legal: Boolean(validation.legal),
@@ -639,11 +647,7 @@ export function validatePostTradeSnapshotForContext({
         typeof validation?.hasDataIssues === 'boolean'
           ? validation.hasDataIssues
           : normalizedDataWarnings.length > 0,
-      yearKey:
-        validation &&
-        Object.prototype.hasOwnProperty.call(validation, 'yearKey')
-          ? (validation.yearKey as number | string)
-          : currentYear,
+      yearKey: resolvedYearKey,
       seasonKey:
         validation &&
         Object.prototype.hasOwnProperty.call(validation, 'seasonKey')
@@ -688,19 +692,25 @@ export function validatePostTradeSnapshotForContext({
     };
   } catch (error: any) {
     const message = error.message || 'Trade validation failed';
+    const failureIssue =
+      createValidationIssue(message, {
+        rule: 'tradeContext',
+        severity: 'error',
+        code: 'TRADE_CONTEXT_VALIDATION_FAILURE',
+      }) ||
+      ({
+        message,
+        rule: 'tradeContext',
+        severity: 'error',
+        code: 'TRADE_CONTEXT_VALIDATION_FAILURE',
+      } as ValidationIssue);
 
     return {
       legal: false,
       valid: false,
       reason: message,
       error: message,
-      violations: [
-        createValidationIssue(message, {
-          rule: 'tradeContext',
-          severity: 'error',
-          code: 'TRADE_CONTEXT_VALIDATION_FAILURE',
-        }),
-      ],
+      violations: [failureIssue],
       warnings: [],
       teamResults: [],
       summaryByTeamIndex: [],

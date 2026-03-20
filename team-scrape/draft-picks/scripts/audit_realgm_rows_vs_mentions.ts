@@ -301,7 +301,7 @@ function parseTableRows($: cheerio.CheerioAPI, table: any) {
   if (table.length === 0) return rows;
   let tableRows = table.find('tbody tr');
   if (tableRows.length === 0) tableRows = table.find('tr');
-  tableRows.each((_, row) => {
+  tableRows.each((_: any, row: any) => {
     const $row = $(row);
     const cells = $row.find('td');
     if (cells.length >= 2) {
@@ -449,11 +449,11 @@ async function auditTeam(teamCode: string) {
       status: 'FAIL',
       realRowsCount: realRows.length,
       mentionsCount: 0,
-      categoryA: [],
-      categoryB: [],
+      categoryA: [] as any[],
+      categoryB: [] as any[],
       categoryC: realRows.map((r) => ({ ...r, reason: 'No mentions file' })),
-      ledgerIssues: [],
-      hygieneIssues: [],
+      ledgerIssues: [] as any[],
+      hygieneIssues: [] as any[],
     };
   }
 

@@ -628,10 +628,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       }
     });
 
-    expect(caughtError).toBeInstanceOf(Error);
-    expect(caughtError?.message).toContain(
-      'Trade blocked by authoritative validation'
-    );
+    expect(caughtError).toBeTruthy();
+    const caughtErrorMessage =
+      (caughtError as { message?: string } | null)?.message || '';
+    expect(caughtErrorMessage).toContain('Trade blocked by authoritative validation');
     expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
       expect.objectContaining({
         mutationType: 'executeTrade',

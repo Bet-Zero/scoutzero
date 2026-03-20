@@ -47,7 +47,9 @@ function buildWorldTeam(teamCode: string, marker: string) {
 }
 
 function WorldSwitchHarness() {
-  const [activeWorldId, setActiveWorldId] = React.useState('world-a');
+  const [activeWorldId, setActiveWorldId] = React.useState<
+    'world-a' | 'world-b'
+  >('world-a');
 
   const worlds = {
     'world-a': buildWorldTeam('ATL', 'WORLD_A_MARKER'),

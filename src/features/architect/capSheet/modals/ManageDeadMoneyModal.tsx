@@ -267,7 +267,7 @@ const ManageDeadMoneyModal = ({
                   <td className="p-2">
                     <input
                       type="number"
-                      value={entry.amount}
+                      value={entry.amount ?? ''}
                       onChange={(e) =>
                         handleChange(
                           entry.id,

@@ -8,8 +8,6 @@
  */
 
 import { toSeasonCode, toEndYear } from './seasonFormat.js';
-import type { BasePlayerContractYear } from '../../../schemas/architect';
-
 interface ContractOptions {
   guaranteed?: boolean | null;
   playerOption?: boolean | null;
@@ -18,14 +16,32 @@ interface ContractOptions {
   rookieScale?: boolean | null;
 }
 
-/** Salary row input: accepts both full BasePlayerContractYear and partial caller shapes. */
-type SalaryRowInput = Partial<BasePlayerContractYear> & Record<string, unknown>;
+/** Salary row input: accepts both full schema rows and looser legacy caller shapes. */
+type SalaryRowInput = {
+  season?: string | null;
+  year?: string | number | null;
+  salary?: number | null;
+  capHit?: number | null;
+  guaranteed?: boolean | null;
+  option?: string | null;
+  guaranteedAmount?: number | null;
+  optionUsed?: boolean | null;
+  optionDecisionDate?: string | Date | null;
+  tradeBonus?: number | null;
+  [key: string]: unknown;
+};
 
 /** Minimal contract shape used by contract utility functions. */
 interface ContractUtilsContract {
-  salariesByYear?: SalaryRowInput[];
-  yearsRemaining?: number;
-  freeAgency?: { year?: number } | null;
+  salariesByYear?: SalaryRowInput[] | null;
+  yearsRemaining?: number | null;
+  freeAgency?:
+    | {
+        year?: number | string | null;
+        type?: string | null;
+      }
+    | string
+    | null;
   [key: string]: unknown;
 }
 
@@ -34,10 +50,10 @@ interface ContractUtilsPlayer {
   contract?: ContractUtilsContract | null;
   futureContract?: ContractUtilsContract | null;
   bio?: {
-    display?: { freeAgentYear?: number } | null;
+    display?: { freeAgentYear?: number | null } | null;
     [key: string]: unknown;
   } | null;
-  freeAgentYear?: number;
+  freeAgentYear?: number | null;
 }
 
 interface CapProjectionEntry {
@@ -66,7 +82,7 @@ interface GenerateExtensionContractParams {
   startYear?: number;
 }
 
-type NormalizedContractYear = Partial<BasePlayerContractYear> & {
+type NormalizedContractYear = SalaryRowInput & {
   year: number | null;
   season: string;
   salary: number;
@@ -229,9 +245,19 @@ export function getYearsRemainingDisplay({
     return legacyYearsRemaining;
   }
 
+  const playerContractFreeAgency =
+    typeof player?.contract?.freeAgency === 'object' &&
+    player.contract.freeAgency !== null
+      ? player.contract.freeAgency.year
+      : null;
+  const primaryContractFreeAgency =
+    typeof primaryContract?.freeAgency === 'object' &&
+    primaryContract.freeAgency !== null
+      ? primaryContract.freeAgency.year
+      : null;
   const freeAgencyYear = Number(
-    player?.contract?.freeAgency?.year ??
-      primaryContract?.freeAgency?.year ??
+    playerContractFreeAgency ??
+      primaryContractFreeAgency ??
       player?.bio?.display?.freeAgentYear ??
       player?.freeAgentYear
   );

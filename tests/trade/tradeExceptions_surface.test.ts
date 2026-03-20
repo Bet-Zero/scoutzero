@@ -229,7 +229,11 @@ describe('tradeExceptions surface', () => {
       message: 'Trade exceptions validated',
       details: '',
     });
-    expect(resolvedTpes[0].remaining).toBe(1_000_000);
-    expect(resolvedTpes[0].isUsed).toBe(true);
+    const resolvedTpe = resolvedTpes[0] as {
+      remaining?: number;
+      isUsed?: boolean;
+    };
+    expect(resolvedTpe.remaining).toBe(1_000_000);
+    expect(resolvedTpe.isUsed).toBe(true);
   });
 });

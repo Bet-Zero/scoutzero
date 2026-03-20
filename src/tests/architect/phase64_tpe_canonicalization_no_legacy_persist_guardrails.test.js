@@ -290,7 +290,7 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
 
     // Find the team write section
     const teamWriteSection = source.match(
-      /for \(const \{ teamCode, team \} of computeResult\.teamUpdates\)[\s\S]*?batch\.set\(teamRef/
+      /for \(const \{ teamCode, team \} of (?:computeResult\.teamUpdates|teamUpdates)\)[\s\S]*?batch\.set\(teamRef/
     );
 
     expect(teamWriteSection).not.toBeNull();

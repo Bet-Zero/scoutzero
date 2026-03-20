@@ -199,7 +199,7 @@ export async function executeTrade(worldId: string, tradeData: TradeDataLike) {
     const outgoingPlayerIds = (teamTrade.sends || []).map(
       (p) => p.player_id || p.id || p.playerId
     );
-    const incomingPlayerIds = [];
+    const incomingPlayerIds: any[] = [];
 
     // Collect incoming players from other teams
     // For multi-team trades, respect explicit destination (tradeTo/toTeamId field)
@@ -248,7 +248,7 @@ export async function executeTrade(worldId: string, tradeData: TradeDataLike) {
 
     // Update draft picks: remove outgoing picks, add incoming picks
     const outgoingPicks = teamTrade.picksOut || [];
-    const incomingPicks = [];
+    const incomingPicks: any[] = [];
 
     // Collect incoming picks from other teams
     // For multi-team trades, respect explicit destination (tradeTo/toTeamId field)

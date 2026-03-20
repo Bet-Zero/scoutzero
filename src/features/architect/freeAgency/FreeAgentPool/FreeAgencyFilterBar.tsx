@@ -55,7 +55,7 @@ export const FreeAgencyFilterBar = ({
         <MultiSelectFilter
           value={filters.position}
           options={FREE_AGENCY_POSITION_OPTIONS}
-          onChange={(value) =>
+          onChange={(value: any) =>
             onChange({ position: value as FreeAgencyPositionFilter })
           }
           allLabel="Position"
@@ -68,7 +68,7 @@ export const FreeAgencyFilterBar = ({
         <MultiSelectFilter
           value={filters.ageBucket}
           options={FREE_AGENCY_AGE_BUCKET_OPTIONS}
-          onChange={(value) =>
+          onChange={(value: any) =>
             onChange({ ageBucket: value as FreeAgencyAgeBucket })
           }
           allLabel="Age"
@@ -81,7 +81,7 @@ export const FreeAgencyFilterBar = ({
         <MultiSelectFilter
           value={filters.salaryBucket}
           options={FREE_AGENCY_SALARY_BUCKET_OPTIONS}
-          onChange={(value) =>
+          onChange={(value: any) =>
             onChange({ salaryBucket: value as FreeAgencySalaryBucket })
           }
           allLabel="Salary"

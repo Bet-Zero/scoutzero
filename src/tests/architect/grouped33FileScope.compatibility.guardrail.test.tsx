@@ -84,11 +84,14 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect(authorityModule.default).toBe(getCapPercentage);
 
     for (const exportName of expectedKeys.filter((key) => key !== 'default')) {
-      expect(basicArchitectUtilsJsModule[exportName]).toBe(
-        basicArchitectUtilsModule[exportName]
+      const jsModuleRecord = basicArchitectUtilsJsModule as Record<string, unknown>;
+      const tsModuleRecord = basicArchitectUtilsModule as Record<string, unknown>;
+      const authorityRecord = authorityModule as Record<string, unknown>;
+      expect(jsModuleRecord[exportName]).toBe(
+        tsModuleRecord[exportName]
       );
-      expect(authorityModule[exportName]).toBe(
-        basicArchitectUtilsModule[exportName]
+      expect(authorityRecord[exportName]).toBe(
+        tsModuleRecord[exportName]
       );
     }
   });

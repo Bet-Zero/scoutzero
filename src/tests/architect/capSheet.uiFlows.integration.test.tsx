@@ -96,13 +96,13 @@ function FixtureInjectorHarness() {
   );
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
-    setTeamCapSheet((prev) => ({ ...prev, deadCap } as TeamLike));
+    setTeamCapSheet((prev): any => ({ ...(prev as any), deadCap }));
     return true;
   }, []);
 
   const handleSetExceptions = React.useCallback(
     async (exceptions: unknown) => {
-      setTeamCapSheet((prev) => ({ ...prev, exceptions } as TeamLike));
+      setTeamCapSheet((prev): any => ({ ...(prev as any), exceptions }));
       return true;
     },
     []
@@ -145,18 +145,30 @@ function FixtureInjectorHarness() {
 }
 
 function ModalFlowsHarness() {
-  const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(() =>
-    buildTeamFixture()
-  );
+  const [teamCapSheet, setTeamCapSheet] = React.useState<
+    Parameters<typeof CapSheet>[0]['teamCapSheet']
+  >(() => buildTeamFixture() as any);
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
-    setTeamCapSheet((prev) => ({ ...prev, deadCap } as TeamLike));
+    setTeamCapSheet(
+      (prev) =>
+        ({
+          ...(prev as any),
+          deadCap,
+        }) as Parameters<typeof CapSheet>[0]['teamCapSheet']
+    );
     return true;
   }, []);
 
   const handleSetExceptions = React.useCallback(
     async (exceptions: unknown) => {
-      setTeamCapSheet((prev) => ({ ...prev, exceptions } as TeamLike));
+      setTeamCapSheet(
+        (prev) =>
+          ({
+            ...(prev as any),
+            exceptions,
+          }) as Parameters<typeof CapSheet>[0]['teamCapSheet']
+      );
       return true;
     },
     []
@@ -164,7 +176,7 @@ function ModalFlowsHarness() {
 
   return (
     <CapSheet
-      teamCapSheet={teamCapSheet}
+      teamCapSheet={teamCapSheet as Parameters<typeof CapSheet>[0]['teamCapSheet']}
       currentYear={CURRENT_YEAR}
       onSelectPlayer={() => {}}
       onSetDeadCap={handleSetDeadCap}

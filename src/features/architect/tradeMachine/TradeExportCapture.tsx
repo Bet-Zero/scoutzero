@@ -32,24 +32,30 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
     },
     ref
   ) {
-    const formattedDate = format(new Date(date), 'MMMM d, yyyy');
+    const captureDate = date ?? new Date();
+    const formattedDate = format(
+      captureDate instanceof Date ? captureDate : new Date(captureDate),
+      'MMMM d, yyyy'
+    );
 
     // 🧮 Preprocess incoming assets by team (Phase 15: entitlements-only)
     const incomingAssets: IncomingTradeAssets[] = teams.map((tm, idx) => {
       const players: TradePreviewPlayerLike[] = [];
       const entitlements: TradePreviewEntitlementLike[] = [];
+      const targetTeam = tm.team;
+      const targetTeamId = targetTeam?.id ?? targetTeam?.teamId;
 
       teams.forEach((t, j) => {
-        if (j !== idx && t.team) {
+        const sourceTeam = t.team;
+        if (j !== idx && sourceTeam) {
           (t.sends || []).forEach((p) => {
             if (
               !p.tradeTo ||
-              p.tradeTo === tm.team?.id ||
-              p.tradeTo === tm.team?.teamId
+              p.tradeTo === targetTeamId
             ) {
               players.push({
                 ...p,
-                originTeamId: p.originTeamId || p.teamId || t.team.id,
+                originTeamId: p.originTeamId || p.teamId || sourceTeam.id,
               });
             }
           });
@@ -58,13 +64,12 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
           (t.entitlementsOut || []).forEach((e) => {
             if (
               !e.toTeamId ||
-              e.toTeamId === tm.team?.id ||
-              e.toTeamId === tm.team?.teamId
+              e.toTeamId === targetTeamId
             ) {
               entitlements.push(
                 sanitizeEntitlement({
                   ...e,
-                  fromTeamId: e.fromTeamId || t.team.id,
+                  fromTeamId: e.fromTeamId || sourceTeam.id,
                 }) as TradePreviewEntitlementLike
               );
             }

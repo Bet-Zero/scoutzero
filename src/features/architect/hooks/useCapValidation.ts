@@ -72,7 +72,14 @@ type CapValidationPlayer = {
   [key: string]: unknown;
 };
 
-type RulesProfileLike = Partial<PlayerRulesProfile> & {
+type RulesProfileLike = Omit<
+  Partial<PlayerRulesProfile>,
+  | 'extensionEligibility'
+  | 'extensionTerms'
+  | 'birdRights'
+  | 'maxSalary'
+  | 'restrictedFreeAgency'
+> & {
   extensionEligibility?: {
     isEligible?: boolean | null;
     reason?: string | null;
@@ -100,7 +107,11 @@ type RulesProfileLike = Partial<PlayerRulesProfile> & {
   } | null;
   restrictedFreeAgency?: {
     isRFA?: boolean | null;
+    qualifyingOfferEligible?: boolean | null;
     qualifyingOfferAmount?: number | null;
+    canAcceptQO?: boolean | null;
+    qoDeadline?: Date | null;
+    teamHasMatchingRights?: boolean | null;
     reason?: string | undefined;
   } | null;
   minimumSalary?: number | null;
@@ -146,6 +157,10 @@ type CapSettingsLike = {
   roomMLE?: number | null;
   bae?: number | null;
   minimumSalary?: number | null;
+};
+
+const getResolvedCapSettings = (year: number): CapSettingsLike => {
+  return (getCapSettings(year) || {}) as CapSettingsLike;
 };
 
 export const buildSigningGuardrails = (
@@ -257,13 +272,17 @@ const calculateTeamCapHitLocal = (
   players: CapValidationPlayer[] | null | undefined,
   year: number
 ) => {
-  return calculateTeamCapHit(players, year, {
+  return calculateTeamCapHit(
+    players as Parameters<typeof calculateTeamCapHit>[0],
+    year,
+    {
     getContractYearSlice:
       getContractYearSlice as unknown as (
         player: CapValidationPlayer,
         seasonYear: number
       ) => { capHit?: number; salary?: number } | null,
-  });
+    }
+  );
 };
 
 /**
@@ -295,24 +314,29 @@ export function useCapValidation({
       return { warnings, errors, isValid: true, incomplete };
     }
 
+    const resolvedCurrentYear =
+      currentYear ?? targetYear ?? new Date().getFullYear();
+
     // Determine which year to use for cap calculations
     // For options/FA, use targetYear (the year clicked); otherwise use currentYear
-    const actionYear = targetYear || currentYear;
+    const actionYear = targetYear ?? resolvedCurrentYear;
 
-    const capSettings = getCapSettings(actionYear as number);
+    const capSettings = getResolvedCapSettings(actionYear);
     const teamPlayers = teamCapSheet?.players || [];
-    const yearCapHit = calculateTeamCapHitLocal(teamPlayers, actionYear as number);
+    const yearCapHit = calculateTeamCapHitLocal(teamPlayers, actionYear);
 
-    const { tax, firstApron, secondApron } = capSettings || {};
+    const tax = capSettings.tax ?? Number.POSITIVE_INFINITY;
+    const firstApron = capSettings.firstApron ?? Number.POSITIVE_INFINITY;
+    const secondApron = capSettings.secondApron ?? Number.POSITIVE_INFINITY;
 
     // ===== TIMING VALIDATION FOR OPTIONS =====
     if (action === 'accept' || action === 'decline') {
       // Options can only be exercised for the upcoming season
       // e.g., in the 2025-26 season (currentYear=2026), you can only decide on 2026-27 options (targetYear=2027)
-      const isActionableOption = targetYear === currentYear + 1;
+      const isActionableOption = targetYear === resolvedCurrentYear + 1;
 
       if (targetYear && !isActionableOption) {
-        if (targetYear < currentYear + 1) {
+        if (targetYear < resolvedCurrentYear + 1) {
           errors.push({
             severity: 'error',
             message: `This option has already been decided (past season)`,
@@ -326,7 +350,7 @@ export function useCapValidation({
         }
       }
 
-      if (action === 'accept' && targetYear === currentYear + 1) {
+      if (action === 'accept' && targetYear === resolvedCurrentYear + 1) {
         // Calculate what the cap hit would be IF this option is exercised
         // The player's salary is already in yearCapHit if they have contract for that year
         // So we don't need to add it again - the team already committed this
@@ -433,9 +457,9 @@ export function useCapValidation({
     if (action === 'resign' || action === 'signNew') {
       const currentYearCapHit = calculateTeamCapHitLocal(
         teamPlayers,
-        currentYear as number
+        resolvedCurrentYear
       );
-      const currentCapSettings = getCapSettings(currentYear as number);
+      const currentCapSettings = getResolvedCapSettings(resolvedCurrentYear);
       const guardrails =
         contractData.guardrails ||
         buildSigningGuardrails(
@@ -518,23 +542,27 @@ export function useCapValidation({
       }
 
       // Check if team has cap room
-      const hasCapRoom = currentYearCapHit < currentCapSettings.cap;
+      const hasCapRoom =
+        currentYearCapHit < (currentCapSettings.cap ?? Number.POSITIVE_INFINITY);
 
       if (!hasCapRoom && proposedSalary > 0) {
         // Over cap - check exception eligibility
         const birdRights = player.contract?.birdRights?.status || 'None';
+        const fullMLE = currentCapSettings.fullMLE ?? Number.POSITIVE_INFINITY;
+        const currentFirstApron =
+          currentCapSettings.firstApron ?? Number.POSITIVE_INFINITY;
 
         if (birdRights === 'None' || birdRights === 'Non-Bird') {
-          if (proposedSalary > currentCapSettings.fullMLE) {
+          if (proposedSalary > fullMLE) {
             warnings.push({
               severity: 'warning',
-              message: `Exceeds Full MLE ($${(currentCapSettings.fullMLE / 1000000).toFixed(1)}M) - need exception or Bird Rights`,
+              message: `Exceeds Full MLE ($${(fullMLE / 1000000).toFixed(1)}M) - need exception or Bird Rights`,
             });
           }
         }
 
         // Hard cap trigger warning
-        if (projectedCap > currentCapSettings.firstApron) {
+        if (projectedCap > currentFirstApron) {
           warnings.push({
             severity: 'warning',
             message: 'This signing may hard-cap the team at First Apron',
@@ -543,12 +571,18 @@ export function useCapValidation({
       }
 
       // Apron warnings
-      if (projectedCap > currentCapSettings.secondApron) {
+      if (
+        projectedCap >
+        (currentCapSettings.secondApron ?? Number.POSITIVE_INFINITY)
+      ) {
         warnings.push({
           severity: 'warning',
           message: `Signing puts team over Second Apron - limited flexibility`,
         });
-      } else if (projectedCap > currentCapSettings.firstApron) {
+      } else if (
+        projectedCap >
+        (currentCapSettings.firstApron ?? Number.POSITIVE_INFINITY)
+      ) {
         warnings.push({
           severity: 'info',
           message: `Signing puts team over First Apron`,
@@ -561,7 +595,7 @@ export function useCapValidation({
       const remainingGuaranteed = (player.contract?.salariesByYear || [])
         .filter((y) => {
           const yearNum = parseInt(String(y.season).split('-')[1], 10) + 2000;
-          return yearNum >= currentYear && y.guaranteed !== false;
+          return yearNum >= resolvedCurrentYear && y.guaranteed !== false;
         })
         .reduce((sum, y) => sum + (y.salary || y.capHit || 0), 0);
 
@@ -587,16 +621,19 @@ export function useCapValidation({
     if (action === 'signAndTrade') {
       const currentYearCapHit = calculateTeamCapHitLocal(
         teamPlayers,
-        currentYear as number
+        resolvedCurrentYear
       );
-      const currentCapSettings = getCapSettings(currentYear as number);
+      const currentCapSettings = getResolvedCapSettings(resolvedCurrentYear);
 
       warnings.push({
         severity: 'info',
         message: 'Sign-and-trade will hard cap receiving team at First Apron',
       });
 
-      if (currentYearCapHit > currentCapSettings.firstApron) {
+      if (
+        currentYearCapHit >
+        (currentCapSettings.firstApron ?? Number.POSITIVE_INFINITY)
+      ) {
         errors.push({
           severity: 'error',
           message: 'Team over First Apron - cannot execute sign-and-trade',

@@ -310,7 +310,7 @@ describe('Phase 17.5: Priority Conflict Resolution', () => {
 
       // Both are pick_ownership with same priority
       // 'ent:AAA' should win over 'ent:BBB' alphabetically
-      expect(ownershipA.id < ownershipB.id).toBe(true);
+      expect(String(ownershipA.id) < String(ownershipB.id)).toBe(true);
     });
   });
 

@@ -191,10 +191,8 @@ function collectAuthoritativeReacquisitionIssues(
       ? (otherTeam.sends as ReacquisitionPlayer[])
       : [];
     outgoingPlayers.forEach((player) => {
-      const wasTraded = tradeCtx.wasTradedAwayWithinOneYear(
-        player.id,
-        destTeamId
-      );
+      const wasTraded =
+        tradeCtx.wasTradedAwayWithinOneYear?.(player.id, destTeamId) ?? false;
 
       if (wasTraded) {
         const playerLabel = player.name || player.id || 'player';

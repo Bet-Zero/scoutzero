@@ -190,7 +190,9 @@ export function resolveTeamSwaps(
       }
       return resolved;
     } catch (err) {
-      warnings.push(`Pick ${swapPick.id || 'unknown'}: ${err.message}`);
+      warnings.push(
+        `Pick ${swapPick.id || 'unknown'}: ${err instanceof Error ? err.message : String(err)}`
+      );
       return pick;
     }
   });

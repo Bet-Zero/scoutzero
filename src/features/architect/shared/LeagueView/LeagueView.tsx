@@ -6,6 +6,8 @@ import TeamLogo from '@/shared/components/TeamLogo';
 import { getDefaultSeasonEndYear } from '@/features/architect/utils/seasonUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
+type CapSheetInputLike = Parameters<typeof computeTeamCapTotals>[0];
+
 type TeamSummaryLike = {
   id: string;
   code?: string;
@@ -30,7 +32,10 @@ const LeagueView = () => {
           const capSheet = await loadTeamCapSheet(t.code || t.id);
           if (capSheet) {
             // SSOT: Use computeTeamCapTotals for canonical totals
-            const capTotals = computeTeamCapTotals(capSheet, currentYear);
+            const capTotals = computeTeamCapTotals(
+              capSheet as CapSheetInputLike,
+              currentYear
+            );
             const totalSalary = capTotals.totalCapAllocations;
             return {
               id: t.id,

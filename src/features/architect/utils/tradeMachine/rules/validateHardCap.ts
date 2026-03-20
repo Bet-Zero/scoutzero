@@ -29,12 +29,14 @@ function createIssue(
  */
 export function validateHardCap(team: TradeTeam): HardCapResult {
   const { projectedSalary, context } = team;
-  const { capSettings } = context;
+  const capSettings = context?.capSettings || {};
 
   // Apply appropriate hard cap type
-  const capSheet = team.hardCapped
-    ? { ...team.team, hardCapTriggered: 'FirstApron' as HardCapType }
-    : team.team;
+  const capSheet = (
+    team.hardCapped
+      ? { ...(team.team || {}), hardCapTriggered: 'FirstApron' as HardCapType }
+      : team.team || {}
+  ) as NonNullable<TradeTeam['team']>;
 
   const hardCapPass = !wouldExceedHardCap(
     capSheet,
@@ -68,7 +70,7 @@ export function validateHardCap(team: TradeTeam): HardCapResult {
     details: hardCapPass
       ? ''
       : `Projected salary ${formatCurrency(projectedSalary)} would exceed ${hardCapType} hard cap.`,
-    projectedSalary,
+    projectedSalary: projectedSalary || 0,
     hardCapType: hardCapType,
     trigger: team.hardCapTrigger || null,
   };

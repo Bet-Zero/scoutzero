@@ -25,11 +25,11 @@ interface ValidationReport {
  * Monitors and reports on validation performance metrics
  */
 export class ValidationPerformanceMonitor {
-  timings: Map<string, number[]>;
-  startTimes: Map<string, number>;
-  cacheHits: Map<string, number>;
-  cacheMisses: Map<string, number>;
-  validationCounts: Map<string, number>;
+  timings!: Map<string, number[]>;
+  startTimes!: Map<string, number>;
+  cacheHits!: Map<string, number>;
+  cacheMisses!: Map<string, number>;
+  validationCounts!: Map<string, number>;
 
   constructor() {
     this.reset();

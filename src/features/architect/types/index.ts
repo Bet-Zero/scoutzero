@@ -5,6 +5,7 @@
  */
 
 export * from './ruleContext';
+export * from './playerRulesProfiles';
 export type {
   BaseTeamDoc,
   BasePlayerDoc,

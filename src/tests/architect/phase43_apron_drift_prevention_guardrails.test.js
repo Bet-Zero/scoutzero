@@ -42,6 +42,7 @@ const ALLOWLIST = [
   // UI-only warning patterns (acceptable inline for display purposes)
   'src/features/architect/hooks/useCapValidation.js',
   'src/features/architect/hooks/useCapValidation.ts',
+  'src/features/architect/tradeMachine/FaExceptionTracker.tsx',
 
   // Hard cap utilities (threshold-based, not apron derivation)
   'src/features/architect/utils/hardCapUtils.js',

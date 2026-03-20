@@ -72,8 +72,8 @@ export function getMinimumSalaryScale(
   const seasonCode = normalizeSeasonCode(season);
 
   // Return scale for the season, or fall back to most recent
-  if (MINIMUM_SALARY_SCALES[seasonCode]) {
-    return MINIMUM_SALARY_SCALES[seasonCode];
+  if ((MINIMUM_SALARY_SCALES as Record<string, MinimumSalaryScale>)[seasonCode]) {
+    return (MINIMUM_SALARY_SCALES as Record<string, MinimumSalaryScale>)[seasonCode];
   }
 
   // Fall back to the latest available scale
@@ -83,7 +83,7 @@ export function getMinimumSalaryScale(
     return yearA - yearB;
   });
   const latestSeason = seasons[seasons.length - 1];
-  return MINIMUM_SALARY_SCALES[latestSeason];
+  return (MINIMUM_SALARY_SCALES as Record<string, MinimumSalaryScale>)[latestSeason];
 }
 
 /**

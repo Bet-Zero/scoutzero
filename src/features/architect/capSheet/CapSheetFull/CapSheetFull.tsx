@@ -9,56 +9,18 @@
  *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E88.
  */
 import React, { useState, useMemo } from 'react';
+import type {
+  PlayerRulesProfile,
+  PlayerRulesProfileInput,
+  PlayerRulesProfileTeamCapSheet,
+} from '@/features/architect/types';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import BirdRightsIcon from '@/shared/components/BirdRightsIcon';
 
 type NumericLike = number | string | null | undefined;
-type FreeAgencyLike =
-  | {
-      year?: NumericLike;
-      type?: string | null;
-    }
-  | string
-  | null
-  | undefined;
-type RulesProfileLike = {
-  extensionEligibility?: {
-    isEligible?: boolean;
-    reason?: string | null;
-    eligibleDate?: string | number | Date | null;
-  } | null;
-  birdRights?: {
-    type?: string | null;
-  } | null;
-  restrictedFreeAgency?: {
-    qualifyingOfferAmount?: NumericLike;
-    reason?: string | null;
-  } | null;
-  contractSummary?: {
-    freeAgencyYear?: NumericLike;
-    freeAgencyType?: string | null;
-  } | null;
-} | null;
-type CapSheetFullPlayerLike = NonNullable<
-  Parameters<typeof getContractYearSlice>[0]
-> & {
-  id?: string | number | null;
-  player_id?: string | number | null;
-  name?: string | null;
-  displayName?: string | null;
-  bio?: {
-    displayName?: string | null;
-  } | null;
-  contractType?: string | null;
-  contract?: {
-    contractType?: string | null;
-    freeAgency?: FreeAgencyLike;
-  } | null;
-  futureContract?: {
-    freeAgency?: FreeAgencyLike;
-  } | null;
-};
+type RulesProfileLike = PlayerRulesProfile | null;
+type CapSheetFullPlayerLike = PlayerRulesProfileInput;
 type CapHoldLike = {
   playerId?: string | number | null;
   playerName?: string | null;
@@ -67,9 +29,8 @@ type CapHoldLike = {
   type?: string | null;
   isSigned?: boolean | null;
 };
-type TeamCapSheetLike = {
+type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetFullPlayerLike[] | null;
-  capHolds?: unknown[] | null;
 };
 type CapSheetFullProps = {
   teamCapSheet?: TeamCapSheetLike | null;
@@ -171,7 +132,9 @@ const CapSheetFull = ({
     const totals: Record<number, number> = {};
     for (const year of allYears) {
       const result = computeTeamCapTotals(
-        teamCapSheet ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) } : null,
+        (teamCapSheet
+          ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) }
+          : null) as Parameters<typeof computeTeamCapTotals>[0],
         year
       );
       totals[year] = result.totalCapAllocations;

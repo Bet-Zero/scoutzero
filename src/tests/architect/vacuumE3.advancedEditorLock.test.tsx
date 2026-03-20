@@ -84,7 +84,8 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
       null,
       2
     );
-    fireEvent.change(textarea, { target: { value: modified } });
+    expect(textarea).not.toBeNull();
+    fireEvent.change(textarea!, { target: { value: modified } });
     fireEvent.click(screen.getByText('Apply JSON'));
 
     expect(onApplyJson).toHaveBeenCalled();
@@ -111,7 +112,8 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
       null,
       2
     );
-    fireEvent.change(textarea, { target: { value: modified } });
+    expect(textarea).not.toBeNull();
+    fireEvent.change(textarea!, { target: { value: modified } });
     fireEvent.click(screen.getByText('Apply JSON'));
 
     expect(onApplyJson).toHaveBeenCalled();
@@ -135,7 +137,8 @@ describe('EntitlementEditorAdvancedTab — edit mode lock parity', () => {
       null,
       2
     );
-    fireEvent.change(textarea, { target: { value: modified } });
+    expect(textarea).not.toBeNull();
+    fireEvent.change(textarea!, { target: { value: modified } });
     fireEvent.click(screen.getByText('Apply JSON'));
 
     expect(onApplyJson).toHaveBeenCalled();

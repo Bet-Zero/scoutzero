@@ -72,7 +72,8 @@ export function validateAggregation(
     teamTotalSalary = 0,
   } = team;
   const resolvedContext = context || team.context || {};
-  const { yearKey, capSettings = {} } = resolvedContext;
+  const yearKey = resolvedContext.yearKey;
+  const capSettings = resolvedContext.capSettings ?? {};
 
   // Calculate if team is ABOVE second apron
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)

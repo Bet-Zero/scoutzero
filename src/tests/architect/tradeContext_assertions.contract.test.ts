@@ -3,7 +3,7 @@ import {
   assertPostTradeSnapshot,
   assertTradeComputeInputs,
   assertValidatedTradeContext,
-} from '@/features/architect/utils/tradeContext';
+} from '@/features/architect/utils/tradeContext/assertions';
 
 describe('tradeContext assertion contracts', () => {
   it('assertPostTradeSnapshot throws the exact null/undefined message', () => {
@@ -53,27 +53,27 @@ describe('tradeContext assertion contracts', () => {
 
   it('accepts valid snapshot/context shapes through the combined assertion', () => {
     const snapshot = {
-      teamUpdates: [{ teamCode: 'BOS', team: { roster: [] } }],
-      validationTeams: [],
-      payloadTeams: [],
+      teamUpdates: [{ teamCode: 'BOS', team: { roster: [] as any[] } }],
+      validationTeams: [] as any[],
+      payloadTeams: [] as any[],
       _isPostTradeSnapshot: true,
     };
     const validatedContext = {
       legal: true,
       valid: true,
-      reason: null,
-      error: null,
-      violations: [],
-      warnings: [],
-      teamResults: [],
-      summaryByTeamIndex: [],
-      capSettings: null,
-      capSettingsSource: null,
-      capSettingsWarnings: [],
-      dataWarnings: [],
+      reason: null as any,
+      error: null as any,
+      violations: [] as any[],
+      warnings: [] as any[],
+      teamResults: [] as any[],
+      summaryByTeamIndex: [] as any[],
+      capSettings: null as any,
+      capSettingsSource: null as any,
+      capSettingsWarnings: [] as any[],
+      dataWarnings: [] as any[],
       hasDataIssues: false,
-      tradeReceipt: null,
-      validationTeams: [],
+      tradeReceipt: null as any,
+      validationTeams: [] as any[],
       _isValidatedTradeContext: true as const,
     };
 

@@ -341,7 +341,7 @@ const ManageExceptionsModal = ({
                         </span>
                         <input
                           type="number"
-                          value={exc.totalAmount}
+                          value={exc.totalAmount ?? ''}
                           onChange={(e) =>
                             handleChange(
                               type,
@@ -362,7 +362,7 @@ const ManageExceptionsModal = ({
                         </span>
                         <input
                           type="number"
-                          value={exc.usedAmount}
+                          value={exc.usedAmount ?? ''}
                           onChange={(e) =>
                             handleChange(
                               type,

@@ -1043,18 +1043,19 @@ describe('Phase D4: TRUE E2E Emulator Gate', () => {
       );
       const allTeams = await getLeague(DETERMINISTIC_WORLD_ID);
       const atlTeam = allTeams.find((t: any) => t.teamCode === 'ATL');
+      const atlPlayers = atlTeam?.players || [];
       console.log(
         `[D4.C DEBUG] ATL from getLeague: players=${atlTeam?.players?.length}, roster=${atlTeam?.roster?.length}`
       );
-      if (atlTeam?.players?.length > 0) {
+      if (atlPlayers.length > 0) {
         console.log(
-          `[D4.C DEBUG] ATL first player contract: ${JSON.stringify(atlTeam.players[0].contract)}`
+          `[D4.C DEBUG] ATL first player contract: ${JSON.stringify(atlPlayers[0].contract)}`
         );
         console.log(
-          `[D4.C DEBUG] ATL first player contractType: ${atlTeam.players[0].contract?.contractType}`
+          `[D4.C DEBUG] ATL first player contractType: ${atlPlayers[0].contract?.contractType}`
         );
         // Check what countStandardRoster would return
-        const standardCount = atlTeam.players.filter((p: any) => {
+        const standardCount = atlPlayers.filter((p: any) => {
           const contractType = p?.contract?.contractType?.toLowerCase() || '';
           return contractType !== 'two-way';
         }).length;

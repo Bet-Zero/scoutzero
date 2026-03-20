@@ -129,7 +129,7 @@ export function buildEntitlementRoutingMap(
 
       // Auto-resolve for 2-team trades
       if (!toTeamId && activeSlots.length === 2) {
-        const otherSlot = activeSlots.find(
+        const otherSlot: TeamSlot | undefined = activeSlots.find(
           (s) => resolveTeamId(s) !== fromTeamId
         );
         toTeamId = otherSlot ? resolveTeamId(otherSlot) : null;

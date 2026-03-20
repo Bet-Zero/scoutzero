@@ -139,7 +139,9 @@ describe('World Context Parent Fallback + Cap Legality Guardrail', () => {
       currentYear: CURRENT_YEAR,
     });
 
-    const lakersResult = validation.teamResults.find((t) => t.teamId === 'LAL');
+    const lakersResult = validation.teamResults.find(
+      (t: { teamId?: string }) => t.teamId === 'LAL'
+    );
 
     expect(lakersResult?.totalSalary).toBe(177_000_000);
     expect(lakersResult?.rules?.salaryMatching?.passed).toBe(true);

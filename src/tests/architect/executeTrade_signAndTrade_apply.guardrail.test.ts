@@ -235,8 +235,12 @@ describe('executeTrade sign-and-trade apply semantics', () => {
       result._validatedTradeContext?._rawValidation?.teamResults?.find(
         (entry: any) => entry.teamId === 'BOS'
       );
-    const sourceUpdate = result.teamUpdates.find((entry) => entry.teamCode === 'LAL');
-    const destinationUpdate = result.teamUpdates.find((entry) => entry.teamCode === 'BOS');
+    const sourceUpdate = result.teamUpdates.find(
+      (entry: { teamCode?: string }) => entry.teamCode === 'LAL'
+    );
+    const destinationUpdate = result.teamUpdates.find(
+      (entry: { teamCode?: string }) => entry.teamCode === 'BOS'
+    );
 
     expect(sourceUpdate).toBeDefined();
     expect(destinationUpdate).toBeDefined();

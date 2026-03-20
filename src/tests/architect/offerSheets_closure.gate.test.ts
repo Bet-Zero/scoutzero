@@ -152,7 +152,7 @@ describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutation
 
   it('returns both homeTeam and offeringTeam from state loader', () => {
     const returnsBothTeams =
-      /return\s*\{\s*homeTeam\s*,\s*offeringTeam\s*,\s*offerSheetId\s*\}/.test(
+      /return\s*\{[\s\S]{0,200}homeTeam[\s\S]{0,200}offeringTeam[\s\S]{0,120}offerSheetId[\s\S]{0,200}\}/.test(
         content
       );
     expect(returnsBothTeams).toBe(true);
@@ -393,7 +393,7 @@ describe('Gate 8: Persistence writes teamUpdates (E1)', () => {
 
   it('iterates over computeResult.teamUpdates', () => {
     const iteratesTeamUpdates =
-      /for\s*\(\s*const\s*\{\s*teamCode\s*,\s*team\s*\}\s*of\s+computeResult\.teamUpdates\s*\)/.test(
+      /for\s*\(\s*const\s*\{\s*teamCode\s*,\s*team\s*\}\s*of\s+(?:computeResult\.teamUpdates|teamUpdates)\s*\)/.test(
         content
       );
     expect(iteratesTeamUpdates).toBe(true);

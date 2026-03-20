@@ -224,6 +224,7 @@ tradeMachine/
   validationPresentationTypes.ts
 types/
   index.ts
+  playerRulesProfiles.ts
   ruleContext.ts
 utils/
   ARCHITECT_LAYERING.md
@@ -259,6 +260,7 @@ utils/
   contractSalaryUtils.ts
   contractUtils.js
   contractUtils.ts
+  draftPickUtils.js
   entitlements/
     computeEntitlementClaims.ts
     dare/
@@ -323,6 +325,7 @@ utils/
     computeProfile.ts
     extensionRules.js
     extensionRules.ts
+    index.d.ts
     index.js
     maxSalaryRules.js
     maxSalaryRules.ts
@@ -410,6 +413,7 @@ utils/
       draftRules.ts
       enforceConsent.js
       enforceConsent.ts
+      enforceEligibility.js
       enforcement.js
       enforcement.ts
       hardCapValidation.js
@@ -500,5 +504,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-16T13:05:14.962Z*
+*Generated on: 2026-03-20T06:34:11.425Z*
 *Auto-updated by: npm run docs*

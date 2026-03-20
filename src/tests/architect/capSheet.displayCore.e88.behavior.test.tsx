@@ -6,6 +6,10 @@ import '@testing-library/jest-dom/vitest';
 import CapSummaryTiles from '@/features/architect/capSheet/CapSheet/CapSummaryTiles';
 import { CapTableSection } from '@/features/architect/GMDashboard/sections/CapTableSection';
 
+type GetRulesProfileForYear = NonNullable<
+  Parameters<typeof CapTableSection>[0]['getRulesProfileForYear']
+>;
+
 const SUMMARY_TOTALS = {
   yearKey: 2026,
   playersTotal: 120_000_000,
@@ -60,7 +64,10 @@ const TEAM_CAP_SHEET = {
   capHolds: [],
 };
 
-const getRulesProfileForYear = (player: { name?: string }) => {
+const getRulesProfileForYear: GetRulesProfileForYear = (player) => {
+  if (!player) {
+    return null;
+  }
   if (player.name === 'Ext Player') {
     return {
       extensionEligibility: {
@@ -70,7 +77,7 @@ const getRulesProfileForYear = (player: { name?: string }) => {
       },
       birdRights: { type: 'Full Bird' },
       contractSummary: { freeAgencyYear: 2027, freeAgencyType: 'Unrestricted' },
-    };
+    } as any;
   }
 
   if (player.name === 'RFA Player') {
@@ -84,7 +91,7 @@ const getRulesProfileForYear = (player: { name?: string }) => {
         reason: 'RFA rights active',
       },
       contractSummary: { freeAgencyYear: 2025, freeAgencyType: 'Restricted' },
-    };
+    } as any;
   }
 
   return null;

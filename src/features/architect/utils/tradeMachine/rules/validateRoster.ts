@@ -21,7 +21,11 @@ interface RosterValidationContext {
   [key: string]: unknown;
 }
 
-interface RosterValidationTeamLike extends TradeTeam {
+interface RosterValidationTeamLike
+  extends Omit<
+    TradeTeam,
+    'incomingPlayers' | 'outgoingPlayers' | 'postTradeTeam'
+  > {
   incomingPlayers?: RosterValidationPlayerLike[] | null;
   outgoingPlayers?: RosterValidationPlayerLike[] | null;
   postTradeTeam?: RosterValidationPostTradeTeamLike | null;
@@ -42,13 +46,14 @@ interface EnforceRosterWindowResult {
  */
 export function validateRoster(team: RosterValidationTeamLike): RosterResult {
   const violations: string[] = [];
-  const {
-    projectedRosterCount = 0,
-    incomingPlayers = [],
-    outgoingPlayers = [],
-  } = team;
+  const projectedRosterCount = Number(team.projectedRosterCount || 0);
+  const incomingPlayers = team.incomingPlayers || [];
+  const outgoingPlayers = team.outgoingPlayers || [];
+  const currentTeam = (team.team || {}) as {
+    twoWayPlayers?: RosterValidationPlayerLike[];
+  };
 
-  const currentTwoWay = team.team?.twoWayPlayers?.length || 0;
+  const currentTwoWay = currentTeam.twoWayPlayers?.length || 0;
   const outgoingTwoWay = (outgoingPlayers || []).filter(
     (player) => player.isTwoWay
   ).length;
@@ -89,11 +94,12 @@ export function validateRoster(team: RosterValidationTeamLike): RosterResult {
       standard: projectedRosterCount,
       twoWay: projectedTwoWay,
       projected: projectedRosterCount,
-      current: team.initialRosterCount || 0,
+      current: Number(team.initialRosterCount || 0),
     },
-    warningsOnly:
+    warningsOnly: Boolean(
       (standardViolation && validationFlags.rosterEnforcement === 'warn') ||
       (twoWayViolation && validationFlags.twoWayRoster === 'warn'),
+    ),
   };
 
   return result;
@@ -107,7 +113,7 @@ export function enforceRosterWindow(
   const violations: string[] = [];
   const warnings: string[] = [];
 
-  let projectedRosterCount = team.projectedRosterCount || 0;
+  let projectedRosterCount = Number(team.projectedRosterCount || 0);
 
   if (!projectedRosterCount && team.postTradeTeam?.players) {
     projectedRosterCount = team.postTradeTeam.players.length;

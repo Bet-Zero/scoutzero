@@ -350,7 +350,11 @@ export function computePlayerRulesProfile(
       type: birdRights.type,
       yearsWithTeam: birdRights.yearsWithTeam,
       summary: birdRights.summary,
-      signingAbilities: birdRights.signingAbilities,
+      signingAbilities: {
+        ...birdRights.signingAbilities,
+        maxFirstYearSalary:
+          birdRights.signingAbilities.maxFirstYearSalary ?? undefined,
+      },
     },
 
     // Salary constraints
@@ -421,8 +425,17 @@ function normalizeLeagueContext(
     simulationDate: effectiveDate,
     leaguePhase: leagueContext.leaguePhase || 'regular',
     capSettings: {
-      ...defaultCapSettings,
-      ...leagueContext.capSettings,
+      salaryCap:
+        leagueContext.capSettings?.salaryCap ?? defaultCapSettings.salaryCap,
+      firstApron:
+        leagueContext.capSettings?.firstApron ?? defaultCapSettings.firstApron,
+      secondApron:
+        leagueContext.capSettings?.secondApron ??
+        defaultCapSettings.secondApron,
+      taxLine: leagueContext.capSettings?.taxLine ?? defaultCapSettings.taxLine,
+      averageSalary:
+        leagueContext.capSettings?.averageSalary ??
+        defaultCapSettings.averageSalary,
     },
   };
 }
