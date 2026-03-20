@@ -2226,8 +2226,26 @@ Date: 2026-02-26
   - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
   - `npm run test:diff -- --reporter=dot`: PASS (selected `ARCHITECT`; final result 198 files, 2726 tests)
   - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
-  - `npm run validate:project`: PASS
+- `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_ENGINE_SHIM_BATCH_E121_RETURN_PACKAGE.md`
+
+### Validator TS TradeMachine Cache Shim Retirement Batch E122 (2026-03-20)
+
+- Status:
+  - completed the sixth Phase 7B runtime-backed same-path cleanup batch
+  - deleted 3 runtime-backed same-path `.js` shims in `src/features/architect/utils/tradeMachine/cache`: `cacheInvalidationManager.js`, `validationCache.js`, and `validationCacheService.js`
+  - moved live `src/**` imports, trade tests, and Architect guardrails off explicit `.js` imports for those cache modules; extensionless imports are now the internal contract for the retired cache surface
+  - added `src/tests/architect/tradeMachineCacheShimBatch.e122.guardrail.test.ts` to prove deleted-path absence plus representative extensionless/authority parity
+  - retargeted `src/tests/architect/grouped33FileScope.compatibility.guardrail.test.tsx` so `validationCache.js` is now treated as an intentionally deleted shim path while extensionless/authority parity remains covered
+  - kept `src/features/architect/utils/tradeMachine/cache/index.js` as the intentional barrel surface, updated it to extensionless specifiers, and removed its stale nonexistent `validationCacheManager.js` export
+  - kept persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js` out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: PASS (selected `ARCHITECT`; final result 199 files, 2731 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_CACHE_SHIM_BATCH_E122_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

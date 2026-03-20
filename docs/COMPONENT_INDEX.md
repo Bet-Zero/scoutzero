@@ -59,10 +59,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
 - utils/tradeContext/types.js
-- utils/tradeMachine/cache/cacheInvalidationManager.js
 - utils/tradeMachine/cache/index.js
-- utils/tradeMachine/cache/validationCache.js
-- utils/tradeMachine/cache/validationCacheService.js
 - utils/tradeMachine/engine/index.js
 - utils/tradeMachine/index.js
 - utils/tradeMachine/rules/enforceEligibility.js
@@ -220,4 +217,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T10:08:04.222Z*
+*Generated on: 2026-03-20T10:21:24.339Z*

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
+import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService';
 import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor';
-import { cacheInvalidationManager } from '@/features/architect/utils/tradeMachine/cache/cacheInvalidationManager.js';
+import { cacheInvalidationManager } from '@/features/architect/utils/tradeMachine/cache/cacheInvalidationManager';
 import { debugMonitor } from '@/features/architect/utils/tradeMachine/engine/validationDebugMonitor';
 
 const RUN_PERF = process.env.RUN_PERF_TESTS === '1';

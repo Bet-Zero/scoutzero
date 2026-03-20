@@ -338,12 +338,9 @@ utils/
   tradeMachine/
     MIGRATION_NOTES.md
     cache/
-      cacheInvalidationManager.js
       cacheInvalidationManager.ts
       index.js
-      validationCache.js
       validationCache.ts
-      validationCacheService.js
       validationCacheService.ts
     constants/
       cbaConstants.ts
@@ -422,5 +419,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T10:08:04.103Z*
+*Generated on: 2026-03-20T10:21:24.305Z*
 *Auto-updated by: npm run docs*

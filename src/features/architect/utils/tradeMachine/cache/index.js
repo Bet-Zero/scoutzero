@@ -1,15 +1,13 @@
 /**
  * Cache barrel file
- * Exports caching functionality for trade validation
- * Only the engine should import from this module
+ * Exports caching functionality for trade validation.
  */
 
 // Main validation cache
-export * from './validationCache.js';
+export * from './validationCache';
 
-// Cache services and managers
-export * from './validationCacheService.js';
-export * from './validationCacheManager.js';
+// Cache services
+export * from './validationCacheService';
 
 // Cache invalidation management
-export * from './cacheInvalidationManager.js';
+export * from './cacheInvalidationManager';

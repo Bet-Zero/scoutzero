@@ -24,7 +24,6 @@ import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebu
 import * as basicArchitectUtilsJsModule from '../../features/architect/utils/basicArchitectUtils.js';
 import * as playerRulesProfileTypesJsModule from '../../features/architect/utils/playerRulesProfile/types.js';
 import * as ContractEditorModalJsxModule from '../../features/architect/contract/ContractEditorModal/ContractEditorModal.jsx';
-import * as validationCacheJsModule from '../../features/architect/utils/tradeMachine/cache/validationCache.js';
 
 describe('Grouped 33-file scope compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
@@ -38,6 +37,8 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     '../../features/architect/GMDashboard/sections/OffseasonSection.tsx';
   const contractEditorModalAuthoritySpecifier =
     '../../features/architect/contract/ContractEditorModal/ContractEditorModal.tsx';
+  const validationCacheExtensionlessSpecifier =
+    '@/features/architect/utils/tradeMachine/cache/validationCache';
   const validationCacheAuthoritySpecifier =
     '../../features/architect/utils/tradeMachine/cache/validationCache.ts';
   const tradeDebugExtensionlessSpecifier =
@@ -57,9 +58,6 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect(
       readSource('contract/ContractEditorModal/ContractEditorModal.jsx')
     ).toBe("export { default } from './ContractEditorModal.tsx';");
-    expect(
-      readSource('utils/tradeMachine/cache/validationCache.js')
-    ).toBe("export * from './validationCache.ts';");
   });
 
   it('deletes the OffseasonSection.jsx compatibility shim', () => {
@@ -73,6 +71,14 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
   it('deletes the tradeDebug.js compatibility shim', () => {
     expect(
       fs.existsSync(path.join(srcRoot, 'utils/tradeMachine/engine/tradeDebug.js'))
+    ).toBe(false);
+  });
+
+  it('deletes the validationCache.js compatibility shim', () => {
+    expect(
+      fs.existsSync(
+        path.join(srcRoot, 'utils/tradeMachine/cache/validationCache.js')
+      )
     ).toBe(false);
   });
 
@@ -149,17 +155,18 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect(authorityModule.default).toBe(ContractEditorModal);
   });
 
-  it('preserves validationCache named export parity across extensionless, shim, and authority imports', async () => {
+  it('preserves validationCache named export parity across extensionless and authority imports', async () => {
+    const extensionlessModule = await import(validationCacheExtensionlessSpecifier);
     const authorityModule = await import(validationCacheAuthoritySpecifier);
     const expectedKeys = ['ValidationCache', 'validationCache'];
 
-    expect(Object.keys(validationCacheJsModule).sort()).toEqual(expectedKeys);
+    expect(Object.keys(extensionlessModule).sort()).toEqual(expectedKeys);
     expect(Object.keys(authorityModule).sort()).toEqual(expectedKeys);
-    expect(validationCacheJsModule.ValidationCache).toBe(ValidationCache);
-    expect(validationCacheJsModule.validationCache).toBe(validationCache);
+    expect(extensionlessModule.ValidationCache).toBe(ValidationCache);
+    expect(extensionlessModule.validationCache).toBe(validationCache);
     expect(authorityModule.ValidationCache).toBe(ValidationCache);
     expect(authorityModule.validationCache).toBe(validationCache);
-    expect('default' in validationCacheJsModule).toBe(false);
+    expect('default' in extensionlessModule).toBe(false);
     expect('default' in authorityModule).toBe(false);
   });
 

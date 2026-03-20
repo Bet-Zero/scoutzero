@@ -6,7 +6,7 @@ import {
   wrapCommonValidators,
 } from '@/features/architect/utils/tradeMachine/engine/validationUtils';
 import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor';
-import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
+import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService';
 import { debug } from '@/features/architect/utils/tradeMachine/engine/engineUtils';
 import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
 

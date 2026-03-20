@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
+import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService';
 
 describe('Validation Caching', () => {
   const season = '2025-26';

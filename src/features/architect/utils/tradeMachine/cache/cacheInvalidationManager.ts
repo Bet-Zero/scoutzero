@@ -1,4 +1,4 @@
-import { validationCache } from './validationCache.js';
+import { validationCache } from './validationCache';
 
 /**
  * Cache Invalidation Manager
