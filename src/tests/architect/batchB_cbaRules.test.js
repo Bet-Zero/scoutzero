@@ -4,7 +4,7 @@
  * OWNERSHIP: Trade Machine Team
  * HISTORY:
  *  - 2026-02-15: Created for Batch B — CBA Rules Completeness
- * LINKS: validateEligibility.js, computeTeamCapTotals.js, rosterValidation.js
+ * LINKS: validateEligibility.js, computeTeamCapTotals.ts, rosterValidation.js
  *
  * Coverage:
  * - GAP-MISS-003: Incomplete roster charges verification
@@ -12,7 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals.js';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const currentYear = 2025;

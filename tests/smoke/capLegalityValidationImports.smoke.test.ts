@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const MODULE_BASE = '@/features/architect/utils/capLegalityValidation';
-const SHIM_PATH = path.resolve(
+const RETIRED_SHIM_PATH = path.resolve(
   __dirname,
   '../../src/features/architect/utils/capLegalityValidation.js'
 );
@@ -95,37 +95,27 @@ const EXPECTED_DEFAULT_EXPORT_MEMBERS = [
 ] as const;
 
 describe('capLegalityValidation import compatibility', () => {
-  it('resolves named exports and default export via extensionless and explicit .js imports', async () => {
+  it('resolves named exports and default export via extensionless and TS-authority imports after shim retirement', async () => {
     const extensionless = await import(MODULE_BASE);
-    const withJs = await import(`${MODULE_BASE}.js`);
+    const authority = await import(`${MODULE_BASE}.ts`);
 
     for (const exportName of EXPECTED_NAMED_EXPORTS) {
       expect(extensionless[exportName]).toBeDefined();
-      expect(withJs[exportName]).toBe(extensionless[exportName]);
+      expect(authority[exportName]).toBe(extensionless[exportName]);
     }
 
-    expect(withJs.default).toBe(extensionless.default);
+    expect(authority.default).toBe(extensionless.default);
     expect(Object.keys(extensionless.default)).toEqual(
       EXPECTED_DEFAULT_EXPORT_MEMBERS
     );
 
     for (const member of EXPECTED_DEFAULT_EXPORT_MEMBERS) {
       expect(extensionless.default[member]).toBe(extensionless[member]);
-      expect(withJs.default[member]).toBe(withJs[member]);
+      expect(authority.default[member]).toBe(authority[member]);
     }
   });
 
-  it('kept js file remains a pure compatibility shim', () => {
-    const shimContent = fs.readFileSync(SHIM_PATH, 'utf8');
-
-    expect(shimContent).toContain("export * from './capLegalityValidation.ts';");
-    expect(shimContent).toContain(
-      "export { default } from './capLegalityValidation.ts';"
-    );
-    expect(shimContent).not.toContain('export const HARD_BLOCK_RULES');
-    expect(shimContent).not.toContain('export function validateSigning');
-    expect(shimContent).not.toContain(
-      'Room Exception unavailable above first apron'
-    );
+  it('retired js shim path is absent', () => {
+    expect(fs.existsSync(RETIRED_SHIM_PATH)).toBe(false);
   });
 });

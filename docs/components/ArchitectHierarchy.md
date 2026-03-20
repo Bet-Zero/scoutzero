@@ -212,7 +212,6 @@ utils/
   capLegality/
     localCapAuditLog.ts
     postStateCapValidator.ts
-  capLegalityValidation.js
   capLegalityValidation.ts
   capProjections.js
   capProjections.ts
@@ -220,7 +219,6 @@ utils/
     capRulesProfile.ts
     index.ts
   capTotals/
-    computeTeamCapTotals.js
     computeTeamCapTotals.ts
     index.js
   capUtils.ts
@@ -402,5 +400,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T11:27:11.037Z*
+*Generated on: 2026-03-20T11:43:42.076Z*
 *Auto-updated by: npm run docs*

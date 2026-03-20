@@ -190,13 +190,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(usesRosterForCompute).toBe(false);
   });
 
-  it('TEST 8: computeTeamCapTotals.js remains a shim-only compatibility surface', () => {
-    const source = fs.readFileSync(COMPUTE_TOTALS_SHIM_PATH, 'utf-8');
-
-    expect(source).toContain("export * from './computeTeamCapTotals.ts';");
-    expect(source).toContain(
-      "export { default } from './computeTeamCapTotals.ts';"
-    );
-    expect(source).not.toContain('teamCapSheet?.players');
+  it('TEST 8: computeTeamCapTotals.js is absent after shim retirement', () => {
+    expect(fs.existsSync(COMPUTE_TOTALS_SHIM_PATH)).toBe(false);
   });
 });

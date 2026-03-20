@@ -31,6 +31,10 @@ describe('Phase 75: Source Scan Guardrails', () => {
     srcRoot,
     'utils/capLegalityValidation.js'
   );
+  const computeTotalsShimPath = path.join(
+    srcRoot,
+    'utils/capTotals/computeTeamCapTotals.js'
+  );
 
   it('canUseRoomException exists in computeTeamCapTotals.ts and references computeTeamCapTotals', () => {
     const filePath = path.join(
@@ -46,18 +50,8 @@ describe('Phase 75: Source Scan Guardrails', () => {
     expect(source).toContain('computeTeamCapTotals(team, yearKey)');
   });
 
-  it('computeTeamCapTotals.js remains a pure compatibility shim', () => {
-    const filePath = path.join(
-      srcRoot,
-      'utils/capTotals/computeTeamCapTotals.js'
-    );
-    const source = fs.readFileSync(filePath, 'utf-8');
-
-    expect(source).toContain("export * from './computeTeamCapTotals.ts';");
-    expect(source).toContain(
-      "export { default } from './computeTeamCapTotals.ts';"
-    );
-    expect(source).not.toContain('export function canUseRoomException');
+  it('computeTeamCapTotals.js is absent after shim retirement', () => {
+    expect(fs.existsSync(computeTotalsShimPath)).toBe(false);
   });
 
   it('canUseRoomException is exported from capTotals/index.js', () => {
@@ -83,15 +77,8 @@ describe('Phase 75: Source Scan Guardrails', () => {
     expect(source).toContain("rule: 'ROOM_REQUIRES_UNDER_CAP'");
   });
 
-  it('capLegalityValidation.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(capLegalityShimPath, 'utf-8');
-
-    expect(source).toContain("export * from './capLegalityValidation.ts';");
-    expect(source).toContain(
-      "export { default } from './capLegalityValidation.ts';"
-    );
-    expect(source).not.toContain('canUseRoomException');
-    expect(source).not.toContain("rule: 'ROOM_REQUIRES_UNDER_CAP'");
+  it('capLegalityValidation.js is absent after shim retirement', () => {
+    expect(fs.existsSync(capLegalityShimPath)).toBe(false);
   });
 
   it('ManageExceptionsModal.tsx imports canUseRoomException', () => {

@@ -54,22 +54,30 @@ describe('helper foundation import compatibility', () => {
     });
   }
 
-  it('resolves capTotals via barrel, extensionless, and explicit .js imports', async () => {
+  it('resolves capTotals via barrel, extensionless, and TS-authority imports after shim retirement', async () => {
     const barrel = await import('@/features/architect/utils/capTotals');
     const extensionless = await import(
       '@/features/architect/utils/capTotals/computeTeamCapTotals'
     );
-    const withJs = await import(
-      '@/features/architect/utils/capTotals/computeTeamCapTotals.js'
+    const authority = await import(
+      '@/features/architect/utils/capTotals/computeTeamCapTotals.ts'
+    );
+    const retiredShimPath = path.join(
+      architectUtilsRoot,
+      'capTotals/computeTeamCapTotals.js'
     );
 
     expect(barrel.computeTeamCapTotals).toBeTypeOf('function');
     expect(barrel.canUseRoomException).toBeTypeOf('function');
     expect(extensionless.computeTeamCapTotals).toBeTypeOf('function');
     expect(extensionless.default).toBeTypeOf('function');
-    expect(withJs.computeTeamCapTotals).toBeTypeOf('function');
-    expect(withJs.canUseRoomException).toBeTypeOf('function');
-    expect(withJs.default).toBeTypeOf('function');
+    expect(authority.computeTeamCapTotals).toBeTypeOf('function');
+    expect(authority.canUseRoomException).toBeTypeOf('function');
+    expect(authority.default).toBeTypeOf('function');
+    expect(extensionless.computeTeamCapTotals).toBe(authority.computeTeamCapTotals);
+    expect(extensionless.canUseRoomException).toBe(authority.canUseRoomException);
+    expect(extensionless.default).toBe(authority.default);
+    expect(fs.existsSync(retiredShimPath)).toBe(false);
   });
 
   it('resolves persistenceContracts via barrel and extensionless imports after helper shim retirement', async () => {

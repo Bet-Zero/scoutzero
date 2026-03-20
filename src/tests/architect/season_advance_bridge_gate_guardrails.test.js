@@ -126,16 +126,8 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
     expect(usesRosterForCompute).toBe(false);
   });
 
-  it('TEST 6b: computeTeamCapTotals.js remains a shim-only compatibility surface', () => {
-    const computeShimSource = fs.readFileSync(COMPUTE_TOTALS_SHIM_PATH, 'utf-8');
-
-    expect(computeShimSource).toContain(
-      "export * from './computeTeamCapTotals.ts';"
-    );
-    expect(computeShimSource).toContain(
-      "export { default } from './computeTeamCapTotals.ts';"
-    );
-    expect(computeShimSource).not.toContain('teamCapSheet?.players');
+  it('TEST 6b: computeTeamCapTotals.js is absent after shim retirement', () => {
+    expect(fs.existsSync(COMPUTE_TOTALS_SHIM_PATH)).toBe(false);
   });
 
   it('TEST 7: seasonManager.ts strips hydration-only display fields before persistence', () => {

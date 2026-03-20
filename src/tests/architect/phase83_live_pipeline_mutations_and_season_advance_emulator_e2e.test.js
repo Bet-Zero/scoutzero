@@ -90,7 +90,7 @@ describe('Phase 83: Source Code Guardrails', () => {
     expect(content).toContain('export async function advanceSeasonInWorld');
   });
 
-  test('TEST 5: capTotals keeps JS shim + TS authority for computeTeamCapTotals (SSOT)', async () => {
+  test('TEST 5: capTotals keeps TS authority and extensionless surface after shim retirement', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const totalsJsPath = path.resolve(
@@ -101,17 +101,13 @@ describe('Phase 83: Source Code Guardrails', () => {
       process.cwd(),
       'src/features/architect/utils/capTotals/computeTeamCapTotals.ts'
     );
-    expect(fs.existsSync(totalsJsPath)).toBe(true);
+    expect(fs.existsSync(totalsJsPath)).toBe(false);
     expect(fs.existsSync(totalsTsPath)).toBe(true);
 
-    const jsContent = fs.readFileSync(totalsJsPath, 'utf-8');
     const tsContent = fs.readFileSync(totalsTsPath, 'utf-8');
 
-    expect(jsContent).toContain("export * from './computeTeamCapTotals.ts';");
-    expect(jsContent).toContain(
-      "export { default } from './computeTeamCapTotals.ts';"
-    );
     expect(tsContent).toContain('export function computeTeamCapTotals');
+    expect(tsContent).toContain('export function canUseRoomException');
   });
 });
 

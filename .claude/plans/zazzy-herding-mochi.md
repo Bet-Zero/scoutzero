@@ -315,12 +315,18 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Added `src/tests/architect/internalWrapperBatch.e125.guardrail.test.tsx` to prove deleted-path absence, extensionless/authority parity, and direct `OffseasonSection` imports for `SeasonAdvanceModal` plus `DraftPositionsInput`
 - Kept remaining route/public-entry surfaces and mixed keepers untouched: `GMDashboard/index.jsx`, `LeagueView.jsx`, `tradeContext/legacy/index.js`, `DraftPositionsInput.jsx`, `EntitlementPicksList.jsx`, `ValidationStateHeader.jsx`, and the nested same-path `.jsx` hosts that were not part of this internal-wrapper batch
 
+**Phase 7C batch-1 status now:**
+- Retired 2 mixed/structural helper candidates that no longer had live `src/**` callers: `capLegalityValidation.js` and `capTotals/computeTeamCapTotals.js`
+- Retargeted the affected smoke tests and Architect guardrails from “shim file exists” to the new deleted-path-absence plus extensionless/TS-authority parity contract
+- Added `src/tests/architect/capCoreHelperShimBatch.e126.guardrail.test.ts` to prove the exact 2-file deletion batch, extensionless/authority parity, and continued `capTotals/index.js` barrel alignment
+- Removed `capLegalityValidation.js` and `computeTeamCapTotals.js` from the open mixed/structural keeper list; the remaining 7C review set is now `capSettingsProvider.js`, `hardCapStatus.js`, `basicArchitectUtils.js`, `playerRulesProfile/types.js`, `tradeContext/types.js`, `tradeContext/legacy/index.js`, `ValidationStateHeader.jsx`, `EntitlementPicksList.jsx`, and `DraftPositionsInput.jsx`
+
 **Verification (latest pass):**
 - `npm run typecheck` passes
 - `npm run build` passes
 - `npm run test:architect -- --reporter=dot` passes
 - `npm run validate:project` passes
-- `npm run test:diff -- --reporter=dot` escalated to `FULL` because `src/global-shims.d.ts` changed and failed outside the E125 wrapper scope: `src/tests/security/firestoreRules.integration.test.ts` requires `FIRESTORE_EMULATOR_HOST`, and `tests/validators/roster.test.js` currently expects `warningsOnly: null` while the live validator returns `false`
+- `npm run test:diff -- --reporter=dot` was not used for E126 signoff because the required Architect suite matched the touched helper/guardrail surface directly and avoided diff-based `FULL` escalation behavior
 
 **What remains:**
 - Phase 7C mixed/structural keeper review
@@ -442,8 +448,6 @@ Desired end state:
 **Goal:** Decide which remaining JS/JSX files are actually deletable and which are intentional contracts.
 
 **Expected mixed/structural keepers to evaluate case-by-case:**
-- `src/features/architect/utils/capLegalityValidation.js`
-- `src/features/architect/utils/capTotals/computeTeamCapTotals.js`
 - `src/features/architect/utils/tradeMachine/utils/capSettingsProvider.js`
 - `src/features/architect/utils/tradeMachine/utils/hardCapStatus.js`
 - `src/features/architect/utils/basicArchitectUtils.js`
@@ -458,6 +462,10 @@ Desired end state:
 - retire it and move tests to the TS authority
 - keep it permanently as an intentional legacy/public contract
 - replace it with a narrower entry surface if export-shape compatibility still matters
+
+**Current status:**
+- `capLegalityValidation.js`: ✅ retired in E126
+- `computeTeamCapTotals.js`: ✅ retired in E126
 
 **Important:** `tradeContext/legacy/index.js` should be treated as an intentional legacy contract unless the user explicitly wants that compatibility removed.
 

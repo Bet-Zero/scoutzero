@@ -96,14 +96,8 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
       expect(content).toContain('export function resetWarnedKeys');
     });
 
-    it('computeTeamCapTotals.js remains a pure compatibility shim', () => {
-      const content = fs.readFileSync(computeCapTotalsJsPath, 'utf-8');
-      expect(content).toContain("export * from './computeTeamCapTotals.ts';");
-      expect(content).toContain(
-        "export { default } from './computeTeamCapTotals.ts';"
-      );
-      expect(content).not.toContain('import.meta.env.DEV');
-      expect(content).not.toContain('warnedKeys');
+    it('computeTeamCapTotals.js is absent after shim retirement', () => {
+      expect(fs.existsSync(computeCapTotalsJsPath)).toBe(false);
     });
   });
 

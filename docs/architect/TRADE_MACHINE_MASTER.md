@@ -2302,6 +2302,21 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_INTERNAL_WRAPPER_BATCH_E125_RETURN_PACKAGE.md`
 
+### Validator TS Cap-Core Helper Shim Batch E126 (2026-03-20)
+
+- Status:
+  - completed the first Phase 7C mixed/structural keeper retirement batch
+  - deleted 2 retired helper shim surfaces: `src/features/architect/utils/capLegalityValidation.js` and `src/features/architect/utils/capTotals/computeTeamCapTotals.js`
+  - moved the affected smoke tests and Architect guardrails off explicit `.js` imports and shim-presence assertions; extensionless imports plus direct TS-authority parity are now the internal contract for those helper surfaces
+  - added `src/tests/architect/capCoreHelperShimBatch.e126.guardrail.test.ts` to prove the exact 2-file deletion batch, representative extensionless/authority parity, and continued `capTotals/index.js` barrel alignment
+  - removed `capLegalityValidation.js` and `computeTeamCapTotals.js` from the open mixed/structural keeper inventory; the remaining 7C review set is now the true mixed/legacy cluster (`capSettingsProvider.js`, `hardCapStatus.js`, `basicArchitectUtils.js`, `playerRulesProfile/types.js`, `tradeContext/types.js`, `tradeContext/legacy/index.js`, `ValidationStateHeader.jsx`, `EntitlementPicksList.jsx`, `DraftPositionsInput.jsx`)
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:architect -- --reporter=dot`: PASS (202 files, 2748 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_CORE_HELPER_SHIM_BATCH_E126_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

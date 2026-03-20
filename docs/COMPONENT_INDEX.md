@@ -29,9 +29,7 @@ Quick reference for all components in the ScoutZero project.
 - tradeMachine/EntitlementPicksList.jsx
 - tradeMachine/ValidationStateHeader.jsx
 - utils/basicArchitectUtils.js
-- utils/capLegalityValidation.js
 - utils/capProjections.js
-- utils/capTotals/computeTeamCapTotals.js
 - utils/capTotals/index.js
 - utils/draftPickUtils.js
 - utils/exceptions/exceptionLifecycle.js
@@ -200,4 +198,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T11:27:11.090Z*
+*Generated on: 2026-03-20T11:43:42.117Z*
