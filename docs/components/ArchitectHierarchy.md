@@ -10,20 +10,15 @@ ExceptionHistoryTracker.jsx
 ExceptionTracker.jsx
 FreeAgentPool.jsx
 GMDashboard/
-  GMDashboard.jsx
   GMDashboard.tsx
   components/
     CapAuditDebugPanel.tsx
-    DeleteWorldModal.jsx
     DeleteWorldModal.tsx
     DraftPositionsInput.jsx
     DraftPositionsInput.tsx
     OfferSheetList.tsx
-    SeasonAdvanceModal.jsx
     SeasonAdvanceModal.tsx
-    WorldSelector.jsx
     WorldSelector.tsx
-    WorldTimeControls.jsx
     WorldTimeControls.tsx
     index.js
   hooks/
@@ -38,7 +33,6 @@ GMDashboard/
     CapTableSection.tsx
     FreeAgencySection.tsx
     HistorySection.tsx
-    OffseasonSection.jsx
     OffseasonSection.tsx
     RosterSection.tsx
     TradeSection.tsx
@@ -162,9 +156,7 @@ offseason/
     DraftPickTracker.tsx
     index.ts
   OffseasonTab/
-    OffseasonTab.jsx
     OffseasonTab.tsx
-    OptionManager.jsx
     OptionManager.tsx
     index.ts
     types.ts
@@ -187,25 +179,19 @@ shared/
     index.ts
   index.ts
 tradeMachine/
-  CapImpactTiles.jsx
   CapImpactTiles.tsx
   DataWarningsSection.tsx
-  EntitlementPickRow.jsx
   EntitlementPickRow.tsx
   EntitlementPicksList.jsx
   EntitlementPicksList.tsx
   FaExceptionTracker.tsx
-  OutgoingPlayersList.jsx
   OutgoingPlayersList.tsx
-  SelectTeamCard.jsx
   SelectTeamCard.tsx
   TradeEditor.tsx
   TradeExceptionDashboard.tsx
-  TradeExceptionManager.jsx
   TradeExceptionManager.tsx
   TradeExportCapture.tsx
   TradeLegalChecker.tsx
-  TradePlayerRow.jsx
   TradePlayerRow.tsx
   TradePreviewModal.tsx
   TradeReceiptPanel.tsx
@@ -276,7 +262,6 @@ utils/
     entitlementExclusivityValidator.ts
     entitlementHealthReport.ts
     entitlementIdentity.ts
-    entitlementPickRowProjection.js
     entitlementPickRowProjection.ts
     entitlementResolver.ts
     entitlementTerms.ts
@@ -303,7 +288,6 @@ utils/
   hardCapUtils.ts
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
-  mutationPipeline.js
   mutationPipeline.ts
   offseason/
     index.ts
@@ -348,7 +332,6 @@ utils/
   seasonFormat.js
   seasonFormat.ts
   seasonHelpers.ts
-  seasonManager.js
   seasonManager.ts
   seasonUtils.js
   seasonUtils.ts
@@ -358,7 +341,6 @@ utils/
   teamLoader.ts
   timingUtils.js
   timingUtils.ts
-  tpeLifecycle.js
   tpeLifecycle.ts
   tradeContext/
     assertions.ts
@@ -366,7 +348,6 @@ utils/
     legacy/
       index.js
       index.ts
-    tradeContext.js
     tradeContext.ts
     types.js
     types.ts
@@ -504,5 +485,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T06:34:11.425Z*
+*Generated on: 2026-03-20T07:14:05.831Z*
 *Auto-updated by: npm run docs*

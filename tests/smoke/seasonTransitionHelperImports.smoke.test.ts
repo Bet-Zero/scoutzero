@@ -8,16 +8,16 @@ const __dirname = path.dirname(__filename);
 const utilsRoot = path.resolve(__dirname, '../../src/features/architect/utils');
 
 describe('season-transition helper import compatibility', () => {
-  it('resolves tpeLifecycle via extensionless and explicit .js imports', async () => {
+  it('resolves tpeLifecycle via extensionless and TS authority imports', async () => {
     const extensionless = await import('@/features/architect/utils/tpeLifecycle');
-    const withJs = await import('@/features/architect/utils/tpeLifecycle.js');
+    const authority = await import('../../src/features/architect/utils/tpeLifecycle.ts');
 
     expect(extensionless.processTradeExceptions).toBeTypeOf('function');
     expect(extensionless.getTpeExpiryISO).toBeTypeOf('function');
-    expect(withJs.processTradeExceptions).toBe(
+    expect(authority.processTradeExceptions).toBe(
       extensionless.processTradeExceptions
     );
-    expect(withJs.getTpeExpiryISO).toBe(extensionless.getTpeExpiryISO);
+    expect(authority.getTpeExpiryISO).toBe(extensionless.getTpeExpiryISO);
   });
 
   it('resolves exception lifecycle via barrel, extensionless, and explicit .js imports', async () => {
@@ -56,11 +56,7 @@ describe('season-transition helper import compatibility', () => {
     expect(extensionless.logDerivedPicksCreation).toBeTypeOf('function');
   });
 
-  it('retained shims stay intact and seasonManagerProjection.js stays absent', () => {
-    const tpeShim = fs.readFileSync(
-      path.join(utilsRoot, 'tpeLifecycle.js'),
-      'utf8'
-    );
+  it('retained helper shims stay intentional and seasonManagerProjection.js stays absent', () => {
     const exceptionShim = fs.readFileSync(
       path.join(utilsRoot, 'exceptions/exceptionLifecycle.js'),
       'utf8'
@@ -70,9 +66,7 @@ describe('season-transition helper import compatibility', () => {
       'utf8'
     );
 
-    expect(tpeShim).toContain("export * from './tpeLifecycle.ts';");
-    expect(tpeShim).not.toContain('console.warn');
-    expect(tpeShim).not.toContain('new Date(');
+    expect(fs.existsSync(path.join(utilsRoot, 'tpeLifecycle.js'))).toBe(false);
 
     expect(exceptionShim).toContain("export * from './exceptionLifecycle.ts';");
     expect(exceptionShim).not.toContain('getCapRulesForYear');

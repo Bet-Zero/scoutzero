@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import EditContractModal from '@/shared/components/EditContractModal.jsx';
+import EditContractModal from '@/shared/components/EditContractModal';
 
 // Stub TeamSelectDropdown so the S&T destination picker is testable
 vi.mock('@/shared/components/TeamSelectDropdown', () => ({

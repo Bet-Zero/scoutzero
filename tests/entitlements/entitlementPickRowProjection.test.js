@@ -6,14 +6,14 @@
  *   - 2026-01-30: Created for Phase 12.3C - Entitlement PickRow Projection Layer
  * LINKS:
  *   - docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 12.3C)
- *   - src/features/architect/utils/entitlements/entitlementPickRowProjection.js
+ *   - src/features/architect/utils/entitlements/entitlementPickRowProjection.ts
  */
 import { describe, it, expect } from 'vitest';
 import {
   projectEntitlementToPickRow,
   getPickRowDisplayLabel,
   getPickRowSecondaryText,
-} from '@/features/architect/utils/entitlements/entitlementPickRowProjection.js';
+} from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
 
 describe('entitlementPickRowProjection', () => {
   describe('projectEntitlementToPickRow', () => {

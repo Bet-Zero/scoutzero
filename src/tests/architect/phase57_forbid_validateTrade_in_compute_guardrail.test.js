@@ -342,14 +342,10 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain('PHASE 59: LEGACY FUNCTION MOVED');
     });
 
-    it('should keep tradeContext.js as a shim-only compatibility re-export', () => {
-      const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/tradeContext.js'
-      );
-
-      expect(source).toContain("from './tradeContext.ts'");
-      expect(source).not.toContain('export function buildPostTradeTeamsSnapshot');
-      expect(source).not.toContain('validateTrade(');
+    it('should retire tradeContext.js once the TS authority owns the surface', () => {
+      expect(
+        existsSync('src/features/architect/utils/tradeContext/tradeContext.js')
+      ).toBe(false);
     });
 
     it('should have legacy/index.ts with deprecated validateTradeForContext', () => {

@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/architect/utils/mutationPipeline.js
+ * FILE: src/features/architect/utils/mutationPipeline.ts
  * PURPOSE: Centralized mutation pipeline for all Architect world mutations.
  * OWNERSHIP: Feature: architect/core
  *
@@ -246,9 +246,9 @@ export { buildPostTradeTeamsSnapshot, validatePostTradeSnapshotForContext };
 // PHASE 58: LEGACY FUNCTION MARKER (kept for reference, replaced by tradeContext module)
 // ==============================================================================
 // The following comment block shows what was removed in Phase 58:
-// - buildPostTradeTeamsSnapshot(): Moved to tradeContext/tradeContext.js
-// - validatePostTradeSnapshotForContext(): Moved to tradeContext/tradeContext.js
-// - validateTradeForContext(): Moved to tradeContext/tradeContext.js (deprecated wrapper)
+// - buildPostTradeTeamsSnapshot(): Moved to tradeContext/tradeContext.ts
+// - validatePostTradeSnapshotForContext(): Moved to tradeContext/tradeContext.ts
+// - validateTradeForContext(): Moved to tradeContext/tradeContext.ts (deprecated wrapper)
 
 // ==============================================================================
 // UNDEFINED VALUE SANITIZATION

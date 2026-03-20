@@ -4,7 +4,7 @@
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
- *  - 2025-12-12: Created - extracted all state from GMDashboard.jsx (Phase 2 refactor)
+ *  - 2025-12-12: Created - extracted all state from GMDashboard.tsx (Phase 2 refactor)
  *  - 2025-12-12: Converted to TypeScript with proper type annotations
  *  - 2025-12-20: Phase 2B - wired world-aware data loading via loadWorldTeamData
  *

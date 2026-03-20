@@ -11,9 +11,9 @@
  *  - 2026-02-28: Added CapAuditDebugPanel for cap auditability debugging (E4)
  *
  * LINKS:
- *  - WorldSelector: ./WorldSelector.jsx
- *  - SeasonAdvanceModal: ./SeasonAdvanceModal.jsx
- *  - DeleteWorldModal: ./DeleteWorldModal.jsx
+ *  - WorldSelector: ./WorldSelector
+ *  - SeasonAdvanceModal: ./SeasonAdvanceModal
+ *  - DeleteWorldModal: ./DeleteWorldModal
  *  - DraftPositionsInput: ./DraftPositionsInput.jsx
  *  - CapAuditDebugPanel: ./CapAuditDebugPanel.tsx
  */

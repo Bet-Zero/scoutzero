@@ -9,7 +9,7 @@
  *
  * LINKS:
  *  - Audit: docs/architect/LEAGUE_INTEGRITY_COMPLETION_AUDIT.md
- *  - Mutation Pipeline: src/features/architect/utils/mutationPipeline.js
+ *  - Mutation Pipeline: src/features/architect/utils/mutationPipeline.ts
  */
 
 import { getLeague } from './teamLoader';

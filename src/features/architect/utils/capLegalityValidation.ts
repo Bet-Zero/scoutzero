@@ -19,7 +19,7 @@
  * 1) All validation logic must be PURE (no Firestore, no React state)
  * 2) Returns structured validation result for UI consumption
  * 3) Uses same patterns as Trade Machine validators for consistency
- * 4) Imported by mutationPipeline.js for preflight validation
+ * 4) Imported by mutationPipeline.ts for preflight validation
  *
  * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */

@@ -86,6 +86,9 @@ import {
   resolveWorldAsOfDate,
 } from '@/features/architect/utils/mutationPipeline';
 
+const MUTATION_PIPELINE_AUTHORITY_SPECIFIER =
+  '../../features/architect/utils/mutationPipeline.ts';
+
 function makeTeam(teamCode: string) {
   return {
     teamCode,
@@ -264,15 +267,13 @@ describe('E107 mutationPipeline boundary proof', () => {
     expect(harness.writeBatchMock).not.toHaveBeenCalled();
   });
 
-  it('keeps the .js shim pointed at the same effective boundary', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/mutationPipeline.js'
-    );
+  it('keeps the TS authority pointed at the same effective boundary as extensionless imports', async () => {
+    const authorityModule = await import(MUTATION_PIPELINE_AUTHORITY_SPECIFIER);
 
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
+    expect(Object.keys(authorityModule).sort()).toEqual(
       Object.keys(mutationPipelineModule).sort()
     );
-    expect(explicitJsModule.computeWorldMutation).toBe(computeWorldMutation);
-    expect(explicitJsModule.applyWorldMutation).toBe(applyWorldMutation);
+    expect(authorityModule.computeWorldMutation).toBe(computeWorldMutation);
+    expect(authorityModule.applyWorldMutation).toBe(applyWorldMutation);
   });
 });

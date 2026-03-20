@@ -400,7 +400,6 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
     const pipelineAuthorityPath = path.join(srcRoot, 'utils/mutationPipeline.ts');
     const pipelineShimPath = path.join(srcRoot, 'utils/mutationPipeline.js');
     const authoritySource = fs.readFileSync(pipelineAuthorityPath, 'utf-8');
-    const shimSource = fs.readFileSync(pipelineShimPath, 'utf-8');
 
     // Find the room exception block on the TS-authoritative source.
     expect(authoritySource).toContain('Phase 74: Room Exception usage tracking');
@@ -408,8 +407,8 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
     // Should contain the no-hard-cap comment.
     expect(authoritySource).toContain('Room Exception does NOT trigger hard cap');
 
-    // JS file remains a pure compatibility shim.
-    expect(shimSource).toContain("export * from './mutationPipeline.ts';");
+    // The retired shim path stays absent.
+    expect(fs.existsSync(pipelineShimPath)).toBe(false);
   });
 
   it('tradeExceptions is NOT in TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST (Phase 64 invariant)', () => {

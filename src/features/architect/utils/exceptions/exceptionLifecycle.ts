@@ -16,7 +16,7 @@
  *
  * IMPORTANT:
  *  - This module does NOT touch TPE arrays - TPE lifecycle is handled separately
- *    in tpeLifecycle.js via processTradeExceptions().
+ *    in tpeLifecycle.ts via processTradeExceptions().
  *  - This module does NOT change Room exception eligibility gating - that is handled
  *    by the capTotals module (Phase 75).
  */
@@ -102,7 +102,7 @@ const EXCEPTION_TO_CAP_RULES_MAP = Object.freeze({
  * 4. Recomputes `remainingAmount` = maxAmount (when enabled) or 0 (when disabled)
  *
  * IMPORTANT: This function does NOT modify TPE arrays - TPE lifecycle
- * is handled separately in tpeLifecycle.js.
+ * is handled separately in tpeLifecycle.ts.
  *
  * @param team - Team object to transition (will be mutated)
  * @param toYearKey - Target season end year (e.g., 2027) or season code (e.g., "2026-27")

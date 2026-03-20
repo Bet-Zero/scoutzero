@@ -23,7 +23,6 @@ import {
 import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
 import * as basicArchitectUtilsJsModule from '../../features/architect/utils/basicArchitectUtils.js';
 import * as playerRulesProfileTypesJsModule from '../../features/architect/utils/playerRulesProfile/types.js';
-import * as OffseasonSectionJsxModule from '../../features/architect/GMDashboard/sections/OffseasonSection.jsx';
 import * as ContractEditorModalJsxModule from '../../features/architect/contract/ContractEditorModal/ContractEditorModal.jsx';
 import * as validationCacheJsModule from '../../features/architect/utils/tradeMachine/cache/validationCache.js';
 import * as tradeDebugJsModule from '../../features/architect/utils/tradeMachine/engine/tradeDebug.js';
@@ -34,6 +33,8 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     '../../features/architect/utils/basicArchitectUtils.ts';
   const playerRulesProfileTypesAuthoritySpecifier =
     '../../features/architect/utils/playerRulesProfile/types.ts';
+  const offseasonSectionExtensionlessSpecifier =
+    '../../features/architect/GMDashboard/sections/OffseasonSection';
   const offseasonSectionAuthoritySpecifier =
     '../../features/architect/GMDashboard/sections/OffseasonSection.tsx';
   const contractEditorModalAuthoritySpecifier =
@@ -53,9 +54,6 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
       "export { default } from './types.ts';"
     );
     expect(
-      readSource('GMDashboard/sections/OffseasonSection.jsx')
-    ).toBe("export * from './OffseasonSection.tsx';");
-    expect(
       readSource('contract/ContractEditorModal/ContractEditorModal.jsx')
     ).toBe("export { default } from './ContractEditorModal.tsx';");
     expect(
@@ -64,6 +62,14 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect(
       readSource('utils/tradeMachine/engine/tradeDebug.js')
     ).toBe("export { default } from './tradeDebug.ts';");
+  });
+
+  it('deletes the OffseasonSection.jsx compatibility shim', () => {
+    expect(
+      fs.existsSync(
+        path.join(srcRoot, 'GMDashboard/sections/OffseasonSection.jsx')
+      )
+    ).toBe(false);
   });
 
   it('preserves basicArchitectUtils mixed export parity across extensionless, shim, and authority imports', async () => {
@@ -111,21 +117,22 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect(authoritySource).toContain('export default {};');
   });
 
-  it('preserves OffseasonSection named export parity across extensionless, shim, and authority imports', async () => {
+  it('preserves OffseasonSection named export parity across extensionless and authority imports', async () => {
+    const extensionlessModule = await import(offseasonSectionExtensionlessSpecifier);
     const authorityModule = await import(offseasonSectionAuthoritySpecifier);
     const expectedKeys = ['DEV_OFFSEASON_PREVIEW_FLAG', 'OffseasonSection'];
 
-    expect(Object.keys(OffseasonSectionJsxModule).sort()).toEqual(expectedKeys);
+    expect(Object.keys(extensionlessModule).sort()).toEqual(expectedKeys);
     expect(Object.keys(authorityModule).sort()).toEqual(expectedKeys);
-    expect(OffseasonSectionJsxModule.DEV_OFFSEASON_PREVIEW_FLAG).toBe(
+    expect(extensionlessModule.DEV_OFFSEASON_PREVIEW_FLAG).toBe(
       DEV_OFFSEASON_PREVIEW_FLAG
     );
     expect(authorityModule.DEV_OFFSEASON_PREVIEW_FLAG).toBe(
       DEV_OFFSEASON_PREVIEW_FLAG
     );
-    expect(OffseasonSectionJsxModule.OffseasonSection).toBe(OffseasonSection);
+    expect(extensionlessModule.OffseasonSection).toBe(OffseasonSection);
     expect(authorityModule.OffseasonSection).toBe(OffseasonSection);
-    expect('default' in OffseasonSectionJsxModule).toBe(false);
+    expect('default' in extensionlessModule).toBe(false);
     expect('default' in authorityModule).toBe(false);
   });
 

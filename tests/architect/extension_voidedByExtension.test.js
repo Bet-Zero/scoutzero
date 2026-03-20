@@ -5,7 +5,7 @@
  *          is applied.
  */
 import { describe, it, expect } from 'vitest';
-import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline.js';
+import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 
 const TEAM_CODE = 'LAL';
 const PLAYER_ID = 'player-42';

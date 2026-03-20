@@ -198,7 +198,7 @@ interface GenerateTradeReceiptParams {
  * - These are MATCHING values (with BYC, poison pill, trade kicker adjustments)
  * - NOT the same as base salary
  *
- * ⚠️ KNOWN GAP: CapImpactTiles.jsx computes capHoldsTotal separately.
+ * ⚠️ KNOWN GAP: CapImpactTiles computes capHoldsTotal separately.
  *    If cap holds are significant, CapImpactTiles may show different numbers
  *    than validator's projectedSalary. This must be resolved before Phase 1.6.
  */

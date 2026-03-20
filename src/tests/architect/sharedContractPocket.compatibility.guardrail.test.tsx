@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/sharedContractPocket.compatibility.guardrail.test.tsx
- * PURPOSE: Guardrail coverage for the E111 shared contract pocket TS authorities and JS/JSX shims.
+ * PURPOSE: Guardrail coverage for the E111 shared contract pocket TS authorities after EditContractModal shim retirement.
  * OWNERSHIP: Feature: architect/shared-contract-pocket
  *
  * @vitest-environment jsdom
@@ -36,10 +36,7 @@ describe('E111 shared contract pocket compatibility guardrails', () => {
     'seasonStartYear',
   ] as const;
 
-  it('keeps each JS/JSX file as a pure compatibility shim', () => {
-    const editContractModalShim = fs
-      .readFileSync(path.join(componentRoot, 'EditContractModal.jsx'), 'utf-8')
-      .trim();
+  it('removes EditContractModal.jsx and keeps the shared contract utility shims', () => {
     const contractUtilsShim = fs
       .readFileSync(path.join(contractsRoot, 'contractUtils.js'), 'utf-8')
       .trim();
@@ -47,25 +44,32 @@ describe('E111 shared contract pocket compatibility guardrails', () => {
       .readFileSync(path.join(contractsRoot, 'seasonNormalizer.js'), 'utf-8')
       .trim();
 
-    expect(editContractModalShim).toBe(
-      "export { default } from './EditContractModal.tsx';"
-    );
+    expect(
+      fs.existsSync(path.join(componentRoot, 'EditContractModal.jsx'))
+    ).toBe(false);
     expect(contractUtilsShim).toBe("export * from './contractUtils.ts';");
     expect(seasonNormalizerShim).toBe("export * from './seasonNormalizer.ts';");
   });
 
-  it('preserves EditContractModal default-only parity across extensionless, JSX shim, and TSX authority imports', async () => {
-    const explicitJsxModule = await import(
-      '../../shared/components/EditContractModal.jsx'
-    );
+  it('preserves EditContractModal default-only parity across extensionless and TSX authority imports', async () => {
     const explicitTsxModule = await import(editContractModalTsxSpecifier);
 
     expect(Object.keys(EditContractModalModule)).toEqual(['default']);
-    expect(Object.keys(explicitJsxModule)).toEqual(['default']);
     expect(Object.keys(explicitTsxModule)).toEqual(['default']);
     expect(EditContractModalModule.default).toBe(EditContractModal);
-    expect(explicitJsxModule.default).toBe(EditContractModal);
     expect(explicitTsxModule.default).toBe(EditContractModal);
+  });
+
+  it('keeps contractUtils and seasonNormalizer as pure compatibility shims', () => {
+    const contractUtilsShim = fs
+      .readFileSync(path.join(contractsRoot, 'contractUtils.js'), 'utf-8')
+      .trim();
+    const seasonNormalizerShim = fs
+      .readFileSync(path.join(contractsRoot, 'seasonNormalizer.js'), 'utf-8')
+      .trim();
+
+    expect(contractUtilsShim).toBe("export * from './contractUtils.ts';");
+    expect(seasonNormalizerShim).toBe("export * from './seasonNormalizer.ts';");
   });
 
   it('preserves contractUtils named-only parity across extensionless, JS shim, and TS authority imports', async () => {

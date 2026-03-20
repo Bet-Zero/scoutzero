@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
-import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline.js';
+import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
 
 const CURRENT_YEAR = 2026;

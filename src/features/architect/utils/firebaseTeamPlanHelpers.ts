@@ -8,7 +8,7 @@
  *  - 2026-01-21: Added entitlementIds pass-through for base team hydration
  *  - 2026-03-13: Migrated authoritative implementation to TypeScript without changing helper behavior
  *
- * NOTE: All team mutations now go through mutationPipeline.js for world persistence.
+ * NOTE: All team mutations now go through mutationPipeline.ts for world persistence.
  *       This file only handles READ operations for base data and free agents.
  */
 

@@ -69,6 +69,7 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
   const shimPath = path.join(srcRoot, 'utils/mutationPipeline.js');
   const authorityPath = path.join(srcRoot, 'utils/mutationPipeline.ts');
+  const authoritySpecifier = '../../features/architect/utils/mutationPipeline.ts';
   const expectedExports = [
     'FORBIDDEN_TRANSIENT_KEYS',
     'applyWorldMutation',
@@ -88,29 +89,23 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
     'export function computeWorldMutation',
   ] as const;
 
-  it('mutationPipeline.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-    expect(source).toBe(
-      "// Phase E107 compatibility shim. Authoritative implementation lives in ./mutationPipeline.ts.\nexport * from './mutationPipeline.ts';"
-    );
+  it('deletes the mutationPipeline.js compatibility shim', () => {
+    expect(fs.existsSync(shimPath)).toBe(false);
   });
 
-  it('explicit .js import exposes the same named API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/mutationPipeline.js'
-    );
+  it('extensionless imports expose the same named API as the TS authority', async () => {
+    const authorityModule = await import(authoritySpecifier);
 
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
+    expect(Object.keys(authorityModule).sort()).toEqual(
       Array.from(expectedExports).sort()
     );
     expect(Object.keys(mutationPipelineModule).sort()).toEqual(
       Array.from(expectedExports).sort()
     );
-    expect('default' in explicitJsModule).toBe(false);
+    expect('default' in authorityModule).toBe(false);
 
     for (const exportName of expectedExports) {
-      expect(explicitJsModule[exportName]).toBe(
+      expect(authorityModule[exportName]).toBe(
         mutationPipelineModule[exportName]
       );
     }

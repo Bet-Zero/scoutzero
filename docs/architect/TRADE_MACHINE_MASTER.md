@@ -2127,6 +2127,22 @@ Date: 2026-02-26
   - extra source-scan retargets were limited to `src/tests/architect/offseason.devGate.guardrail.test.ts` and `src/tests/architect/phase78_remove_updateTeamCapTotals_ssot_only_guardrails.test.js`; historical docs and return packages stayed untouched
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_GROUPED_33_FILE_SCOPE_RETURN_PACKAGE.md`
 
+### Validator TS Compatibility Shim Retirement Batch E116 (2026-03-20)
+
+- Status:
+  - completed the compatibility-only shim retirement tranche recommended by E115
+  - deleted 20 compatibility-only same-path `.js/.jsx` shims across dashboard/world, trade-team-card leaves, offseason preview, helper utilities, `tradeContext/tradeContext.js`, and `shared/components/EditContractModal.jsx`
+  - rewired guardrails and behavior tests from shim-presence assertions to deleted-path absence plus extensionless/authority parity
+  - kept mixed/structural surfaces (`DraftPositionsInput.jsx`, `EntitlementPicksList.jsx`, `ValidationStateHeader.jsx`, `basicArchitectUtils.js`, `playerRulesProfile/types.js`, `capLegalityValidation.js`, `computeTeamCapTotals.js`, `hardCapStatus.js`, `tradeContext/types.js`) out of scope
+  - kept intentional/runtime-backed surfaces (`tradeContext/legacy/index.js`, `shared/utils/contracts/*.js`, wrapper/barrel/public-entry files, runtime-backed Trade Machine cache/engine/helper shims) out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: PASS (193 files, 2677 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_COMPATIBILITY_SHIM_RETIREMENT_BATCH_E116_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

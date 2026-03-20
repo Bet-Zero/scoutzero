@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/architect/GMDashboard/sections/OffseasonSection.jsx
+ * FILE: src/features/architect/GMDashboard/sections/OffseasonSection.tsx
  * PURPOSE: Wraps the OffseasonTab component for the GM dashboard Offseason view.
  *          Phase 3B: Added world-aware season advancement with SeasonAdvanceModal.
  *          Phase 5: Added DraftPositionsInput for real draft results input.

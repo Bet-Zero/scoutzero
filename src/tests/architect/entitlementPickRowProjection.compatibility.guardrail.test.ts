@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/entitlementPickRowProjection.compatibility.guardrail.test.ts
- * PURPOSE: Guardrail coverage for the E66 entitlementPickRowProjection TS authority + JS shim split.
+ * PURPOSE: Guardrail coverage for the E66 entitlementPickRowProjection TS authority after shim retirement.
  * OWNERSHIP: Feature: architect
  *
  * HISTORY:
@@ -18,40 +18,49 @@ import {
 
 describe('E66 entitlementPickRowProjection compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const shimPath = path.join(
+  const authoritySpecifier =
+    '../../features/architect/utils/entitlements/entitlementPickRowProjection.ts';
+  const retiredShimPath = path.join(
     srcRoot,
     'utils/entitlements/entitlementPickRowProjection.js'
   );
 
-  it('entitlementPickRowProjection.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(shimPath, 'utf-8');
-
-    expect(source).toContain(
-      "export * from './entitlementPickRowProjection.ts';"
-    );
-    expect(source).not.toContain('const PROTECTION_PATTERNS');
-    expect(source).not.toContain('export const projectEntitlementToPickRow');
-    expect(source).not.toContain('formatEntitlementTermsShort');
+  it('deletes the entitlementPickRowProjection.js compatibility shim', () => {
+    expect(fs.existsSync(retiredShimPath)).toBe(false);
   });
 
-  it('explicit .js import exposes the same named API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/entitlements/entitlementPickRowProjection.js'
+  it('extensionless imports expose the same named API as the TS authority', async () => {
+    const extensionlessModule = await import(
+      '../../features/architect/utils/entitlements/entitlementPickRowProjection'
     );
+    const authorityModule = await import(authoritySpecifier);
 
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
+    expect(Object.keys(extensionlessModule).sort()).toEqual([
       'getPickRowDisplayLabel',
       'getPickRowSecondaryText',
       'projectEntitlementToPickRow',
     ]);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.projectEntitlementToPickRow).toBe(
+    expect(Object.keys(authorityModule).sort()).toEqual([
+      'getPickRowDisplayLabel',
+      'getPickRowSecondaryText',
+      'projectEntitlementToPickRow',
+    ]);
+    expect('default' in extensionlessModule).toBe(false);
+    expect('default' in authorityModule).toBe(false);
+    expect(extensionlessModule.projectEntitlementToPickRow).toBe(
       projectEntitlementToPickRow
     );
-    expect(explicitJsModule.getPickRowDisplayLabel).toBe(
+    expect(authorityModule.projectEntitlementToPickRow).toBe(
+      projectEntitlementToPickRow
+    );
+    expect(extensionlessModule.getPickRowDisplayLabel).toBe(
       getPickRowDisplayLabel
     );
-    expect(explicitJsModule.getPickRowSecondaryText).toBe(
+    expect(authorityModule.getPickRowDisplayLabel).toBe(getPickRowDisplayLabel);
+    expect(extensionlessModule.getPickRowSecondaryText).toBe(
+      getPickRowSecondaryText
+    );
+    expect(authorityModule.getPickRowSecondaryText).toBe(
       getPickRowSecondaryText
     );
   });

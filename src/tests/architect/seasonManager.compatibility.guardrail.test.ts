@@ -7,6 +7,8 @@ describe('E95 seasonManager compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
   const seasonManagerShimPath = path.join(srcRoot, 'utils/seasonManager.js');
   const seasonManagerAuthorityPath = path.join(srcRoot, 'utils/seasonManager.ts');
+  const seasonManagerAuthoritySpecifier =
+    '../../features/architect/utils/seasonManager.ts';
   const expectedExports = [
     'advanceSeason',
     'advanceSeasonInWorld',
@@ -22,29 +24,23 @@ describe('E95 seasonManager compatibility guardrails', () => {
     'resolveDraftPickConveyanceForYear',
   ] as const;
 
-  it('seasonManager.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(seasonManagerShimPath, 'utf-8').trim();
-
-    expect(source).toBe(
-      "// Phase E95 compatibility shim. Authoritative implementation lives in ./seasonManager.ts.\nexport * from './seasonManager.ts';"
-    );
+  it('deletes the seasonManager.js compatibility shim', () => {
+    expect(fs.existsSync(seasonManagerShimPath)).toBe(false);
   });
 
-  it('explicit .js import exposes the same named API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/seasonManager.js'
-    );
+  it('extensionless imports expose the same named API as the TS authority', async () => {
+    const authorityModule = await import(seasonManagerAuthoritySpecifier);
 
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
+    expect(Object.keys(authorityModule).sort()).toEqual(
       Array.from(expectedExports).sort()
     );
     expect(Object.keys(seasonManagerModule).sort()).toEqual(
       Array.from(expectedExports).sort()
     );
-    expect('default' in explicitJsModule).toBe(false);
+    expect('default' in authorityModule).toBe(false);
 
     for (const exportName of expectedExports) {
-      expect(explicitJsModule[exportName]).toBe(seasonManagerModule[exportName]);
+      expect(authorityModule[exportName]).toBe(seasonManagerModule[exportName]);
     }
   });
 

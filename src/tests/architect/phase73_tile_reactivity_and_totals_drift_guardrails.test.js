@@ -28,10 +28,6 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
       __dirname,
       '../../features/architect/tradeMachine/CapImpactTiles.tsx'
     );
-    const capImpactTilesShimPath = path.resolve(
-      __dirname,
-      '../../features/architect/tradeMachine/CapImpactTiles.jsx'
-    );
 
     it('CapImpactTiles.tsx uses useMemo', () => {
       const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
@@ -64,9 +60,13 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
       expect(content).toMatch(/\{\s*salaryOut,\s*salaryIn\s*\}\s*=\s*useMemo/);
     });
 
-    it('CapImpactTiles.jsx remains a shim-only compatibility surface', () => {
-      const content = fs.readFileSync(capImpactTilesShimPath, 'utf-8').trim();
-      expect(content).toBe("export { default } from './CapImpactTiles.tsx';");
+    it('CapImpactTiles.jsx is absent after shim retirement', () => {
+      const capImpactTilesShimPath = path.resolve(
+        __dirname,
+        '../../features/architect/tradeMachine/CapImpactTiles.jsx'
+      );
+
+      expect(fs.existsSync(capImpactTilesShimPath)).toBe(false);
     });
   });
 

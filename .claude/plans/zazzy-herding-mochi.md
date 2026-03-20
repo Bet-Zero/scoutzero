@@ -240,6 +240,29 @@ export type { PlayerMainDoc, ContractDoc, PlayerBio } from '../../../schemas/pla
 
 ## Follow-Up Plan: Architect Compatibility-Shim Retirement
 
+## Current Status Update (2026-03-20)
+
+The compatibility-only retirement tranche from this follow-up plan is now complete.
+
+**Phase 7A status now:**
+- Deleted 20 compatibility-only same-path `.js` / `.jsx` shims across dashboard/world, trade-team-card leaves, offseason preview, helper utilities, trade-context, and shared modal surfaces
+- Retargeted guardrails and behavior tests from shim-presence checks to deleted-path absence plus extensionless/authority parity
+- Kept mixed/structural keepers untouched: `DraftPositionsInput.jsx`, `EntitlementPicksList.jsx`, `ValidationStateHeader.jsx`, `basicArchitectUtils.js`, `playerRulesProfile/types.js`, `capLegalityValidation.js`, `computeTeamCapTotals.js`, `hardCapStatus.js`, `tradeContext/types.js`
+- Kept intentional/runtime-backed surfaces untouched: `tradeContext/legacy/index.js`, `shared/utils/contracts/*.js`, wrapper/barrel/public-entry files, and the broader runtime-backed Trade Machine shim frontier
+
+**Verification:**
+- `npm run typecheck` passes
+- `npm run build` passes
+- `npm run test:diff -- --reporter=dot` passes
+- `npm run test:trade -- --reporter=dot` passes
+- `npm run validate:project` passes
+
+**What remains:**
+- Phase 7B runtime-backed same-path cleanup
+- Phase 7C mixed/structural keeper review
+- Phase 7D wrapper/barrel/public-entry cleanup
+- Phase 7E final Architect JS/JSX inventory gate
+
 ## Summary
 
 Architect logic is now TypeScript-authoritative, but the feature still carries a large compatibility layer of `.js` / `.jsx` files. Those files are not all equal:
@@ -272,7 +295,7 @@ Desired end state:
 - Business-logic changes in cap, trade, free agency, or season flows
 - Deleting intentional legacy/public-entry surfaces until their callers are retired
 
-## Phase 7A: Compatibility-Only Shim Retirement
+## Phase 7A: Compatibility-Only Shim Retirement ✅ DONE
 
 **Goal:** Delete the Architect shims that are only being kept alive by compatibility tests or source-scan guardrails, not by real `src/**` runtime imports.
 

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import EditContractModal from '@/shared/components/EditContractModal.jsx';
+import EditContractModal from '@/shared/components/EditContractModal';
 
 vi.mock('@/features/architect/hooks/useCapValidation', () => ({
   __esModule: true,

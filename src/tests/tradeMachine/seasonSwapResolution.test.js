@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { resolveDraftPickSwapsForYear } from '@/features/architect/utils/seasonManager.js';
+import { resolveDraftPickSwapsForYear } from '@/features/architect/utils/seasonManager';
 
 /**
  * Season Advance Swap Resolution Tests

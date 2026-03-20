@@ -19,7 +19,7 @@
  * ALLOWLIST (files that may reference .tradeExceptions):
  * - normalizeTeamTpe.js: The canonical helper that handles both locations
  * - schemaAdapter.ts: Building trade input structure (adapts external data)
- * - mutationPipeline.js: TPE persistence logic (reads legacy, writes canonical)
+ * - mutationPipeline.ts: TPE persistence logic (reads legacy, writes canonical)
  * - tradeContext.ts: Snapshot building (reads from both sources)
  *
  * These tests source-scan production directories to detect forbidden patterns.
@@ -50,10 +50,8 @@ const ALLOWLISTED_FILES = [
   // Schema adapter for building trade input structure
   'utils/schemaAdapter.ts',
   // Mutation pipeline (TPE persistence, reads legacy during compute)
-  'utils/mutationPipeline.js',
   'utils/mutationPipeline.ts',
   // Trade context snapshot building (merges both sources during snapshot)
-  'utils/tradeContext/tradeContext.js',
   'utils/tradeContext/tradeContext.ts',
   // Persistence contract validation (references field in comments/tests)
   'utils/persistenceContracts/validatePersistableShape.js',
@@ -390,7 +388,7 @@ describe('Phase 65: UI Components Use Canonical Accessor', () => {
     'tradeMachine/TradeTeamCard.tsx',
     'tradeMachine/TradeExceptionDashboard.tsx',
     'tradeMachine/ValidationDetailsPanel.tsx',
-    'GMDashboard/components/SeasonAdvanceModal.jsx',
+    'GMDashboard/components/SeasonAdvanceModal.tsx',
   ];
 
   uiFiles.forEach((file) => {

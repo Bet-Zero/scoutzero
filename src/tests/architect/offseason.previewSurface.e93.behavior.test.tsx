@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/offseason.previewSurface.e93.behavior.test.tsx
- * PURPOSE: Focused UI coverage for the E93 Offseason preview TS surface and kept JSX shims.
+ * PURPOSE: Focused UI coverage for the E93 Offseason preview TS surface after shim retirement.
  * OWNERSHIP: Feature: architect/offseason
  *
  * HISTORY:
@@ -25,8 +25,6 @@ import {
 import '@testing-library/jest-dom/vitest';
 import OffseasonTab from '@/features/architect/offseason/OffseasonTab/OffseasonTab';
 import OptionManager from '@/features/architect/offseason/OffseasonTab/OptionManager';
-import OffseasonTabJsxShim from '@/features/architect/offseason/OffseasonTab/OffseasonTab.jsx';
-import OptionManagerJsxShim from '@/features/architect/offseason/OffseasonTab/OptionManager.jsx';
 import type { OffseasonTeamCapSheet } from '@/features/architect/offseason/OffseasonTab/types';
 
 const { mockRunOffseason } = vi.hoisted(() => ({
@@ -39,6 +37,10 @@ vi.mock('@/features/architect/utils/runOffseason', () => ({
 
 const CURRENT_YEAR = 2026;
 const NEXT_SEASON_CODE = '2026-27';
+const OFFSEASON_TAB_AUTHORITY_SPECIFIER =
+  '../../features/architect/offseason/OffseasonTab/OffseasonTab.tsx';
+const OPTION_MANAGER_AUTHORITY_SPECIFIER =
+  '../../features/architect/offseason/OffseasonTab/OptionManager.tsx';
 
 const buildTeam = (
   players: Array<Record<string, unknown>>
@@ -101,9 +103,16 @@ describe('Offseason preview surface E93 behavior', () => {
     cleanup();
   });
 
-  it('keeps explicit in-folder JSX shims importable', () => {
-    expect(OffseasonTabJsxShim).toBeTruthy();
-    expect(OptionManagerJsxShim).toBeTruthy();
+  it('keeps extensionless imports aligned with the TSX authorities', async () => {
+    const offseasonTabAuthority = await import(OFFSEASON_TAB_AUTHORITY_SPECIFIER);
+    const optionManagerAuthority = await import(
+      OPTION_MANAGER_AUTHORITY_SPECIFIER
+    );
+
+    expect(Object.keys(offseasonTabAuthority)).toEqual(['default']);
+    expect(Object.keys(optionManagerAuthority)).toEqual(['default']);
+    expect(offseasonTabAuthority.default).toBe(OffseasonTab);
+    expect(optionManagerAuthority.default).toBe(OptionManager);
   });
 
   it('preserves OptionManager empty-state placement', () => {

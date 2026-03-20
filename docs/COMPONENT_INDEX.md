@@ -11,15 +11,9 @@ Quick reference for all components in the ScoutZero project.
 - ExceptionHistoryTracker.jsx
 - ExceptionTracker.jsx
 - FreeAgentPool.jsx
-- GMDashboard/GMDashboard.jsx
-- GMDashboard/components/DeleteWorldModal.jsx
 - GMDashboard/components/DraftPositionsInput.jsx
-- GMDashboard/components/SeasonAdvanceModal.jsx
-- GMDashboard/components/WorldSelector.jsx
-- GMDashboard/components/WorldTimeControls.jsx
 - GMDashboard/components/index.js
 - GMDashboard/index.jsx
-- GMDashboard/sections/OffseasonSection.jsx
 - LeagueView.jsx
 - OffseasonTab.jsx
 - RosterVisual.jsx
@@ -42,18 +36,10 @@ Quick reference for all components in the ScoutZero project.
 - hooks/usePlayerRulesProfiles.js
 - hooks/useTradeMachine.js
 - hooks/useTradeMachineSnapshot.js
-- offseason/OffseasonTab/OffseasonTab.jsx
-- offseason/OffseasonTab/OptionManager.jsx
 - shared/LeagueView/LeagueView.jsx
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
-- tradeMachine/CapImpactTiles.jsx
-- tradeMachine/EntitlementPickRow.jsx
 - tradeMachine/EntitlementPicksList.jsx
-- tradeMachine/OutgoingPlayersList.jsx
-- tradeMachine/SelectTeamCard.jsx
-- tradeMachine/TradeExceptionManager.jsx
-- tradeMachine/TradePlayerRow.jsx
 - tradeMachine/ValidationStateHeader.jsx
 - utils/basicArchitectUtils.js
 - utils/capLegalityValidation.js
@@ -65,12 +51,10 @@ Quick reference for all components in the ScoutZero project.
 - utils/consentUtils.js
 - utils/contractUtils.js
 - utils/draftPickUtils.js
-- utils/entitlements/entitlementPickRowProjection.js
 - utils/exceptions/exceptionLifecycle.js
 - utils/exceptions/index.js
 - utils/faExceptionUtils.js
 - utils/hardCapUtils.js
-- utils/mutationPipeline.js
 - utils/persistenceContracts/contracts.js
 - utils/persistenceContracts/enforcement.js
 - utils/persistenceContracts/index.js
@@ -86,14 +70,11 @@ Quick reference for all components in the ScoutZero project.
 - utils/playerRulesProfile/types.js
 - utils/reacqUtils.js
 - utils/seasonFormat.js
-- utils/seasonManager.js
 - utils/seasonUtils.js
 - utils/stepienUtils.js
 - utils/timingUtils.js
-- utils/tpeLifecycle.js
 - utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
-- utils/tradeContext/tradeContext.js
 - utils/tradeContext/types.js
 - utils/tradeHelpers.js
 - utils/tradeMachine/cache/cacheInvalidationManager.js
@@ -302,4 +283,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T06:34:11.473Z*
+*Generated on: 2026-03-20T07:14:05.874Z*

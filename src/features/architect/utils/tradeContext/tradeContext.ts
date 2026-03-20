@@ -4,7 +4,7 @@
  * OWNERSHIP: Feature: architect/tradeMachine
  *
  * HISTORY:
- *  - 2026-01-30: Phase 58 - Extracted from mutationPipeline.js
+ *  - 2026-01-30: Phase 58 - Extracted from mutationPipeline.ts
  *  - 2026-01-30: Phase 59 - Moved validateTradeForContext to legacy/ namespace
  *
  * LINKS:
@@ -21,7 +21,7 @@
  *
  * Legacy convenience wrapper (validateTradeForContext) moved to ./legacy/ in Phase 59.
  *
- * These were extracted from mutationPipeline.js to:
+ * These were extracted from mutationPipeline.ts to:
  * 1. Improve maintainability (smaller files, single responsibility)
  * 2. Enable better testing of snapshot/context logic in isolation
  * 3. Define a clear module boundary for the trade validation pipeline

@@ -4,7 +4,7 @@
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:
- *  - 2025-12-12: Created - extracted all handlers from GMDashboard.jsx (Phase 3 refactor)
+ *  - 2025-12-12: Created - extracted all handlers from GMDashboard.tsx (Phase 3 refactor)
  *  - 2025-12-12: Converted to TypeScript with proper type annotations
  *  - 2025-12-14: Option B refactor - removed capSheetState dependency, all mutations now update teamCapSheet directly
  *  - 2026-01-18: Phase 7.2 option decline FA-year derivation + cap hold multipliers

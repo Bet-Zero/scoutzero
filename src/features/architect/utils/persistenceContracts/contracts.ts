@@ -117,7 +117,7 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.fre
 // TRADE EXCEPTION ITEM PERSISTENCE CONTRACT
 // ==============================================================================
 // Path: team.exceptions.tpe[] items
-// Reference: TradeExceptionZ in src/schemas/architect.ts + runtime shape in mutationPipeline.js
+// Reference: TradeExceptionZ in src/schemas/architect.ts + runtime shape in mutationPipeline.ts
 
 /**
  * Keys allowed on individual trade exception items within exceptions.tpe[].
@@ -274,7 +274,7 @@ export const PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.
 // EVENT PERSISTENCE CONTRACT
 // ==============================================================================
 // Doc path: architect_worlds/{worldId}/events/{eventId}
-// Reference: persistWorldMutation() event construction in mutationPipeline.js
+// Reference: persistWorldMutation() event construction in mutationPipeline.ts
 
 /**
  * Top-level keys allowed on event log documents.

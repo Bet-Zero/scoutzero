@@ -15,8 +15,6 @@ import DraftPositionsInput, * as DraftPositionsInputModule from '@/features/arch
 import {
   DraftPositionsInput as NamedDraftPositionsInput,
 } from '@/features/architect/GMDashboard/components/DraftPositionsInput';
-import * as DeleteWorldModalJsxModule from '../../features/architect/GMDashboard/components/DeleteWorldModal.jsx';
-import * as WorldTimeControlsJsxModule from '../../features/architect/GMDashboard/components/WorldTimeControls.jsx';
 import * as DraftPositionsInputJsxModule from '../../features/architect/GMDashboard/components/DraftPositionsInput.jsx';
 
 describe('E103 GM world-support family compatibility guardrails', () => {
@@ -24,52 +22,51 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     __dirname,
     '../../features/architect/GMDashboard/components'
   );
+  const deleteWorldModalTsxSpecifier =
+    '../../features/architect/GMDashboard/components/DeleteWorldModal.tsx';
+  const worldTimeControlsTsxSpecifier =
+    '../../features/architect/GMDashboard/components/WorldTimeControls.tsx';
   const readAuthoritySource = (relativePath: string) =>
     fs.readFileSync(path.join(srcRoot, relativePath), 'utf-8');
-  const shimExpectations = [
-    [
-      'DeleteWorldModal.jsx',
-      "export { DeleteWorldModal } from './DeleteWorldModal.tsx';",
-    ],
-    [
-      'WorldTimeControls.jsx',
-      "export { WorldTimeControls } from './WorldTimeControls.tsx';",
-    ],
-    [
-      'DraftPositionsInput.jsx',
-      "export { default, DraftPositionsInput } from './DraftPositionsInput.tsx';",
-    ],
-  ] as const;
+  const draftPositionsInputShimExpectation =
+    "export { default, DraftPositionsInput } from './DraftPositionsInput.tsx';";
 
-  shimExpectations.forEach(([relativePath, expectedSource]) => {
-    it(`${relativePath} remains a pure compatibility shim`, () => {
-      const shimPath = path.join(srcRoot, relativePath);
-      const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-      expect(source).toBe(expectedSource);
-    });
+  it('deletes the retired DeleteWorldModal and WorldTimeControls shims', () => {
+    expect(fs.existsSync(path.join(srcRoot, 'DeleteWorldModal.jsx'))).toBe(
+      false
+    );
+    expect(fs.existsSync(path.join(srcRoot, 'WorldTimeControls.jsx'))).toBe(
+      false
+    );
   });
 
-  it('DeleteWorldModal preserves a named-only export shape across extensionless and JSX shim imports', () => {
+  it('DraftPositionsInput.jsx remains a pure compatibility shim', () => {
+    const shimPath = path.join(srcRoot, 'DraftPositionsInput.jsx');
+    const source = fs.readFileSync(shimPath, 'utf-8').trim();
+
+    expect(source).toBe(draftPositionsInputShimExpectation);
+  });
+
+  it('DeleteWorldModal preserves a named-only export shape across extensionless and TSX authority imports', async () => {
+    const authorityModule = await import(deleteWorldModalTsxSpecifier);
+
     expect(Object.keys(DeleteWorldModalModule)).toEqual(['DeleteWorldModal']);
-    expect(Object.keys(DeleteWorldModalJsxModule)).toEqual([
-      'DeleteWorldModal',
-    ]);
+    expect(Object.keys(authorityModule)).toEqual(['DeleteWorldModal']);
     expect('default' in DeleteWorldModalModule).toBe(false);
-    expect('default' in DeleteWorldModalJsxModule).toBe(false);
-    expect(DeleteWorldModalJsxModule.DeleteWorldModal).toBe(
+    expect('default' in authorityModule).toBe(false);
+    expect(authorityModule.DeleteWorldModal).toBe(
       DeleteWorldModalModule.DeleteWorldModal
     );
   });
 
-  it('WorldTimeControls preserves a named-only export shape across extensionless and JSX shim imports', () => {
+  it('WorldTimeControls preserves a named-only export shape across extensionless and TSX authority imports', async () => {
+    const authorityModule = await import(worldTimeControlsTsxSpecifier);
+
     expect(Object.keys(WorldTimeControlsModule)).toEqual(['WorldTimeControls']);
-    expect(Object.keys(WorldTimeControlsJsxModule)).toEqual([
-      'WorldTimeControls',
-    ]);
+    expect(Object.keys(authorityModule)).toEqual(['WorldTimeControls']);
     expect('default' in WorldTimeControlsModule).toBe(false);
-    expect('default' in WorldTimeControlsJsxModule).toBe(false);
-    expect(WorldTimeControlsJsxModule.WorldTimeControls).toBe(
+    expect('default' in authorityModule).toBe(false);
+    expect(authorityModule.WorldTimeControls).toBe(
       WorldTimeControlsModule.WorldTimeControls
     );
   });
