@@ -23,13 +23,8 @@ Quick reference for all components in the ScoutZero project.
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
 - utils/capProjections.js
-- utils/capTotals/index.js
 - utils/draftPickUtils.js
 - utils/exceptions/exceptionLifecycle.js
-- utils/exceptions/index.js
-- utils/persistenceContracts/index.js
-- utils/playerRulesProfile/index.js
-- utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
 - utils/tradeMachine/cache/index.js
 - utils/tradeMachine/engine/index.js
@@ -187,4 +182,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T12:21:17.860Z*
+*Generated on: 2026-03-20T21:30:57.048Z*

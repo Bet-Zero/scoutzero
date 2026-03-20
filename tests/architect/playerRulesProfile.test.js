@@ -34,7 +34,7 @@ import {
   EXTENSION_TYPES,
   MAX_SALARY_TIERS,
   RFA_STATUS,
-} from '@/features/architect/utils/playerRulesProfile/index.js';
+} from '@/features/architect/utils/playerRulesProfile';
 
 /**
  * Test Fixtures - Representative player scenarios

@@ -457,7 +457,7 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. remaining route/public-entry wrapper decisions
+1. remaining Trade Machine barrel/public-entry decisions
 2. final inventory gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
@@ -519,7 +519,9 @@ Desired end state:
 **Current status:**
 - Internal wrapper/barrel subset: ✅ first cleanup batch complete (`CapSheet.jsx`, `CapSheetFull.jsx`, `CapSummaryTiles.jsx`, `DraftPickTracker.jsx`, `ExceptionHistoryTracker.jsx`, `ExceptionTracker.jsx`, `FreeAgentPool.jsx`, `OffseasonTab.jsx`, `RosterVisual.jsx`, `TeamHistoryTab.jsx`, `ValidationWarnings.jsx`, `WaiveStretchTracker.jsx`, `GMDashboard/components/index.js`)
 - Route/public-entry wrapper subset: ✅ second cleanup batch complete (`GMDashboard/index.jsx`, `LeagueView.jsx`, `shared/LeagueView/LeagueView.jsx`)
-- Remaining 7D work is now the retained barrel/public-entry decision set (`tradeMachine/index.js`, `tradeMachine/rules/index.js`, `tradeMachine/utils/index.js`, `persistenceContracts/index.js`, `playerRulesProfile/index.js`, `capTotals/index.js`, `tradeContext/index.js`) rather than route-wrapper aliases
+- Support-barrel subset: ✅ third cleanup batch complete (`capTotals/index.js`, `persistenceContracts/index.js`, `exceptions/index.js`, `playerRulesProfile/index.js`, `tradeContext/index.js`, plus redundant `playerRulesProfile/index.d.ts`) with TS-backed `index.ts` authorities and guardrails retargeted away from direct `index.js` file reads
+- `src/global-shims.d.ts` still intentionally carries compatibility declarations for `capTotals`, `exceptions`, `persistenceContracts`, and `tradeContext` so this runtime barrel cleanup does not widen type-surface expectations midstream
+- Remaining 7D work is now the Trade Machine barrel/public-entry set (`tradeMachine/index.js`, `tradeMachine/rules/index.js`, `tradeMachine/utils/index.js`, `tradeMachine/validators/index.js`, `tradeMachine/engine/index.js`, `tradeMachine/cache/index.js`) rather than support-barrel wrappers
 
 ## Phase 7E: Final Architect JS/JSX Inventory Gate
 

@@ -195,10 +195,14 @@ declare module '@/features/roster/RosterSection' {
 declare module '@/features/architect/utils/capTotals' {
   export const computeTeamCapTotals: any;
   export const warnOnTotalsDivergence: any;
+  export const resetWarnedKeys: any;
+  export const canUseRoomException: any;
 }
 
 declare module '@/features/architect/utils/exceptions' {
   export const resetTeamNonTpeExceptionsForNewSeason: any;
+  export const validateNonTpeExceptionsForYear: any;
+  export const NON_TPE_EXCEPTION_TYPES: any;
 }
 
 declare module '@/features/architect/utils/persistenceContracts' {

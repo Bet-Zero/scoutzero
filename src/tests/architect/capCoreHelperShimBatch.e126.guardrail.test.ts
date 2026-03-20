@@ -60,7 +60,7 @@ describe('E126 cap-core helper shim deletion batch guardrails', () => {
   }
 
   it('keeps the capTotals barrel aligned with the retired compute helper authority', async () => {
-    const barrelModule = await import('../../features/architect/utils/capTotals/index.js');
+    const barrelModule = await import('../../features/architect/utils/capTotals');
     const extensionlessModule = await import(
       '@/features/architect/utils/capTotals/computeTeamCapTotals'
     );

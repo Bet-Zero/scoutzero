@@ -14,7 +14,7 @@
  *
  * ALLOWED EXCEPTIONS:
  * - Test files may import from legacy/ for backward compatibility testing
- * - tradeContext/index.js re-exports from legacy/ (for external consumers)
+ * - tradeContext/index.ts re-exports from legacy/ (for external consumers)
  *
  * NOTE: This test reads source files as plain text and uses regex to detect violations.
  * It is designed to be fast and strict.
@@ -197,12 +197,12 @@ describe('Phase 59: Legacy Import Guardrails', () => {
   });
 
   // ===========================================================================
-  // TEST 4: tradeContext index.js re-exports from legacy for backward compat
+  // TEST 4: tradeContext index.ts re-exports from legacy for backward compat
   // ===========================================================================
-  describe('Test 4: tradeContext index.js provides backward compatibility', () => {
+  describe('Test 4: tradeContext index.ts provides backward compatibility', () => {
     it('should re-export validateTradeForContext from legacy', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/index.js'
+        'src/features/architect/utils/tradeContext/index.ts'
       );
 
       expect(source).toContain("from './legacy'");
@@ -212,7 +212,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
 
     it('should document the legacy exports clearly', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/index.js'
+        'src/features/architect/utils/tradeContext/index.ts'
       );
 
       expect(source).toContain('LEGACY EXPORTS');
@@ -254,8 +254,8 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       const violations = [];
 
       for (const filePath of files) {
-        // Skip the tradeContext/index.js which is allowed to re-export
-        if (filePath.includes('tradeContext/index.js')) continue;
+        // Skip the tradeContext/index.ts which is allowed to re-export
+        if (filePath.includes('tradeContext/index.ts')) continue;
         // Skip legacy directory itself
         if (filePath.includes('/legacy/')) continue;
 
@@ -303,9 +303,9 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       expect(source).toContain('Phase 59');
     });
 
-    it('should have Phase 59 marker in tradeContext/index.js', () => {
+    it('should have Phase 59 marker in tradeContext/index.ts', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/index.js'
+        'src/features/architect/utils/tradeContext/index.ts'
       );
 
       expect(source).toContain('Phase 59');

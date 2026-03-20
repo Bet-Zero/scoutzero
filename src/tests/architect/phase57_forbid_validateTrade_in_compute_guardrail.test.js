@@ -397,9 +397,9 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       ).toBe(false);
     });
 
-    it('should have index.js re-exporting all public API', () => {
+    it('should have index.ts re-exporting all public API', () => {
       const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/index.js'
+        'src/features/architect/utils/tradeContext/index.ts'
       );
 
       // Should re-export core functions

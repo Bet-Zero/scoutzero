@@ -213,7 +213,7 @@ utils/
     index.ts
   capTotals/
     computeTeamCapTotals.ts
-    index.js
+    index.ts
   capUtils.ts
   cbaConstants.ts
   consentUtils.ts
@@ -254,7 +254,7 @@ utils/
   exceptions/
     exceptionLifecycle.js
     exceptionLifecycle.ts
-    index.js
+    index.ts
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.ts
   hardCapUtils.ts
@@ -267,15 +267,14 @@ utils/
   persistenceContracts/
     contracts.ts
     enforcement.ts
-    index.js
+    index.ts
     normalizeTeamTpe.ts
     validatePersistableShape.ts
   playerRulesProfile/
     birdRightsRules.ts
     computeProfile.ts
     extensionRules.ts
-    index.d.ts
-    index.js
+    index.ts
     maxSalaryRules.ts
     minimumSalaryRules.ts
     rfaRules.ts
@@ -300,7 +299,7 @@ utils/
   tpeLifecycle.ts
   tradeContext/
     assertions.ts
-    index.js
+    index.ts
     legacy/
       index.js
       index.ts
@@ -389,5 +388,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T12:21:17.831Z*
+*Generated on: 2026-03-20T21:30:57.014Z*
 *Auto-updated by: npm run docs*

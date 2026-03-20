@@ -2363,6 +2363,23 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ROUTE_ENTRY_WRAPPER_BATCH_E129_RETURN_PACKAGE.md`
 
+### Validator TS Support Barrel Batch E130 (2026-03-20)
+
+- Status:
+  - completed the support-barrel slice of Phase 7D by deleting 5 JS barrel wrappers: `src/features/architect/utils/capTotals/index.js`, `src/features/architect/utils/persistenceContracts/index.js`, `src/features/architect/utils/exceptions/index.js`, `src/features/architect/utils/playerRulesProfile/index.js`, and `src/features/architect/utils/tradeContext/index.js`
+  - deleted the redundant `src/features/architect/utils/playerRulesProfile/index.d.ts` stub and replaced the retired wrappers with TS-backed barrel authorities: `capTotals/index.ts`, `persistenceContracts/index.ts`, `exceptions/index.ts`, `playerRulesProfile/index.ts`, and `tradeContext/index.ts`
+  - retargeted the affected compatibility suites away from direct `index.js` reads, including the capTotals room-exception guardrails and the Phase 57 / Phase 59 trade-context source-scan suites
+  - added `src/tests/architect/supportBarrelBatch.e130.guardrail.test.ts` to prove the exact 6-path retirement batch and extensionless-barrel parity against the direct TS authorities
+  - intentionally preserved the existing ambient extensionless compatibility declarations in `src/global-shims.d.ts` for `capTotals`, `exceptions`, `persistenceContracts`, and `tradeContext` so this runtime cleanup does not widen type expectations in unrelated callers
+  - reduced the remaining Phase 7D work to the Trade Machine barrel/public-entry set (`tradeMachine/index.js`, `tradeMachine/rules/index.js`, `tradeMachine/utils/index.js`, `tradeMachine/validators/index.js`, `tradeMachine/engine/index.js`, `tradeMachine/cache/index.js`)
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:architect -- --reporter=dot`: PASS (204 files, 2762 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SUPPORT_BARREL_BATCH_E130_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -1,9 +1,10 @@
 /**
- * FILE: src/features/architect/utils/persistenceContracts/index.js
+ * FILE: src/features/architect/utils/persistenceContracts/index.ts
  * PURPOSE: Public API surface for persistence contract enforcement.
  * OWNERSHIP: Feature: architect/core
  *
  * HISTORY:
+ *  - 2026-03-20: E130 - TS-backed the persistence-contract barrel and retired index.js
  *  - 2026-03-20: E123 - Retired same-path persistence-contract shim hosts; barrel now resolves extensionless authorities
  *  - 2026-01-30: Phase 61 - Created for allowlist-based persistence contract enforcement
  *  - 2026-01-30: Phase 62 - Added exports for deadCap, capHolds, and amountByYear allowlists
@@ -28,7 +29,6 @@
  *   });
  */
 
-// Contracts (allowlists)
 export {
   TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST,
   TRADE_EXCEPTION_ITEM_ALLOWLIST,
@@ -43,21 +43,18 @@ export {
   PERSISTENCE_CONTRACTS,
 } from './contracts';
 
-// Validation functions
 export {
   findDisallowedKeyPaths,
   validatePersistableShape,
   formatViolationMessage,
 } from './validatePersistableShape';
 
-// Enforcement functions
 export {
   shouldEnforcePersistenceContracts,
   assertPersistableOrThrow,
   checkPersistableContract,
 } from './enforcement';
 
-// Phase 64: TPE schema normalization (canonical persistence helpers)
 export {
   normalizeTeamTpeSchema,
   getTeamTpeList,

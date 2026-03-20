@@ -31,6 +31,8 @@ describe('Phase 75: Source Scan Guardrails', () => {
     srcRoot,
     'utils/capLegalityValidation.js'
   );
+  const capTotalsBarrelWrapperPath = path.join(srcRoot, 'utils/capTotals/index.js');
+  const capTotalsBarrelAuthorityPath = path.join(srcRoot, 'utils/capTotals/index.ts');
   const computeTotalsShimPath = path.join(
     srcRoot,
     'utils/capTotals/computeTeamCapTotals.js'
@@ -54,11 +56,23 @@ describe('Phase 75: Source Scan Guardrails', () => {
     expect(fs.existsSync(computeTotalsShimPath)).toBe(false);
   });
 
-  it('canUseRoomException is exported from capTotals/index.js', () => {
-    const filePath = path.join(srcRoot, 'utils/capTotals/index.js');
-    const source = fs.readFileSync(filePath, 'utf-8');
+  it('capTotals/index.js is absent after barrel retirement', () => {
+    expect(fs.existsSync(capTotalsBarrelWrapperPath)).toBe(false);
+  });
 
+  it('canUseRoomException is re-exported from capTotals/index.ts', () => {
+    const source = fs.readFileSync(capTotalsBarrelAuthorityPath, 'utf-8');
     expect(source).toContain('canUseRoomException');
+  });
+
+  it('canUseRoomException remains available from the extensionless capTotals barrel', async () => {
+    const barrel = await import('@/features/architect/utils/capTotals');
+    const authority = await import(
+      '@/features/architect/utils/capTotals/computeTeamCapTotals.ts'
+    );
+
+    expect(barrel.canUseRoomException).toBe(authority.canUseRoomException);
+    expect(barrel.computeTeamCapTotals).toBe(authority.computeTeamCapTotals);
   });
 
   it('capLegalityValidation.ts imports and uses canUseRoomException', () => {
