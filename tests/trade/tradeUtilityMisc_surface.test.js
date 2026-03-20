@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import * as utilsBarrel from '@/features/architect/utils/tradeMachine/utils/index.js';
+import * as utilsBarrel from '@/features/architect/utils/tradeMachine/utils';
 import * as tradeUtilityMisc from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc';
 import * as tpeValidation from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
 

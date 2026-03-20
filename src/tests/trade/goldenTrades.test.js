@@ -27,7 +27,7 @@ import {
   validateIncomingSalary,
   SALARY_MATCHING_TIERS,
   SALARY_MATCHING_RULE_KEYS,
-} from '@/features/architect/utils/tradeMachine/index.js';
+} from '@/features/architect/utils/tradeMachine';
 import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections.js';

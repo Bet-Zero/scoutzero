@@ -26,13 +26,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/draftPickUtils.js
 - utils/exceptions/exceptionLifecycle.js
 - utils/tradeContext/legacy/index.js
-- utils/tradeMachine/cache/index.js
-- utils/tradeMachine/engine/index.js
-- utils/tradeMachine/index.js
 - utils/tradeMachine/rules/enforceEligibility.js
-- utils/tradeMachine/rules/index.js
-- utils/tradeMachine/utils/index.js
-- utils/tradeMachine/validators/index.js
 - utils/validatePhase21.test.js
 
 ## Filters
@@ -182,4 +176,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T21:30:57.048Z*
+*Generated on: 2026-03-20T21:54:48.432Z*

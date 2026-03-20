@@ -19,7 +19,7 @@ src/utils/architect/tradeMachine/
 │   ├── validatorFactory.js       # Validator factories
 │   ├── templateValidator.js      # Template validator
 │   ├── tradeKicker.js            # Trade kicker logic
-│   └── index.js                  # Engine barrel exports
+│   └── index.ts                  # Engine barrel exports
 ├── rules/            # Pure validation functions
 │   ├── validateSalaryMatching.ts  # Salary matching rules
 │   ├── validateHardCap.ts         # Hard cap rules
@@ -32,7 +32,7 @@ src/utils/architect/tradeMachine/
 │   ├── timingValidation.ts        # Timing restrictions
 │   ├── validateSignAndTrade.ts    # Sign-and-trade rules
 │   ├── enforce*.ts                # Enforcement functions
-│   └── index.js                  # Rules barrel exports
+│   └── index.ts                  # Rules barrel exports
 ├── utils/            # Helper functions and utilities
 │   ├── capUtils.js               # Cap calculations
 │   ├── salaryMargin.js           # Salary margin utilities
@@ -43,7 +43,7 @@ src/utils/architect/tradeMachine/
 │   ├── tpeUtils.js               # Trade exception utilities
 │   ├── validateInput.js          # Input validation
 │   ├── normalizeTradeInput.js    # Input normalization
-│   └── index.js                  # Utils barrel exports
+│   └── index.ts                  # Utils barrel exports
 ├── constants/        # Shared constants and types
 │   ├── cbaConstants.js           # CBA constants
 │   ├── types.ts                  # Type definitions
@@ -53,10 +53,10 @@ src/utils/architect/tradeMachine/
 │   ├── validationCacheService.js # Cache service
 │   ├── validationCacheManager.js # Cache manager
 │   ├── cacheInvalidationManager.js # Cache invalidation
-│   └── index.js                  # Cache barrel exports
+│   └── index.ts                  # Cache barrel exports
 ├── validators/       # Compatibility layer (DEPRECATED)
-│   └── index.js                  # Re-exports for backwards compatibility
-└── index.js          # Public API
+│   └── index.ts                  # Re-exports for backwards compatibility
+└── index.ts          # Public API
 ```
 
 ## Path Migration Mapping
@@ -192,7 +192,7 @@ Rules no longer have debug statements. Debug functionality is handled at the eng
 
 ## Compatibility Layer
 
-The `validators/index.js` file provides backwards compatibility for existing imports, but is deprecated:
+The `validators/index.ts` file provides backwards compatibility for existing imports, but is deprecated:
 
 ```javascript
 // DEPRECATED - use new paths

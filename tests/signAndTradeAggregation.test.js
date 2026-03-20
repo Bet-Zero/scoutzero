@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/index.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 

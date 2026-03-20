@@ -9,12 +9,10 @@
  * - constants/ for shared constants
  * - cache/ for caching (engine only)
  *
- * TODO: Remove this compatibility layer once all external imports are updated
+ * HISTORY:
+ *  - 2026-03-20: E131 - TS-backed the validator compatibility barrel and retired index.js
  */
 
-// Re-export from new structure for backwards compatibility
-
-// Core validation functions - now in rules/
 export { validateTradeExceptions } from '../rules/validateTradeExceptions';
 export { validateCash } from '../rules/validateCash';
 export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
@@ -22,32 +20,23 @@ export { validateSalaryMatching } from '../rules/validateSalaryMatching';
 export {
   validateRoster,
   enforceRosterWindow,
-} from '../rules/validateRoster.ts';
+} from '../rules/validateRoster';
 export { validateHardCap } from '../rules/hardCapValidation';
 export { validateStepien } from '../rules/validateStepien';
-// Phase 35: Import from canonical basicRules authority instead of deleted validateSecondApronRules.js
 export { validateSecondApronRules } from '../rules/basicRules';
 export { validateBYC } from '../rules/miscRules';
 export { validateConsent } from '../rules/validateConsent';
 export { validateEligibility } from '../rules/validateEligibility';
 export { validateTiming } from '../rules/timingValidation';
 export { validateSignAndTrade } from '../rules/validateSignAndTrade';
-
-// Enforcement functions - now in rules/
 export { enforceSecondApronHandcuffs } from '../rules/basicRules';
 export { enforceConsent } from '../rules/enforceConsent';
 export { enforceEligibility } from '../rules/validateEligibility';
 export { enforceTiming } from '../rules/timingValidation';
-
-// Utility functions - now in utils/
 export { getIncomingCeilingForTeam } from '../utils/salaryMargin';
 export { computeMatchingValues } from '../utils/matchingValues';
-export * from '../utils/validateInput.ts';
-export * from '../utils/normalizeTradeInput.ts';
-
-// Stepien utility - from parent architect utils
+export * from '../utils/validateInput';
+export * from '../utils/normalizeTradeInput';
 export { hasStepienViolation } from '../../stepienUtils';
-
-// Cache and debugging - now in engine/ and cache/
 export { validationCache } from '../cache/validationCache';
 export { debug } from '../engine/engineUtils';

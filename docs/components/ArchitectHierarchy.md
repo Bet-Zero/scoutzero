@@ -310,7 +310,7 @@ utils/
     MIGRATION_NOTES.md
     cache/
       cacheInvalidationManager.ts
-      index.js
+      index.ts
       validationCache.ts
       validationCacheService.ts
     constants/
@@ -319,7 +319,7 @@ utils/
       types.ts
     engine/
       engineUtils.ts
-      index.js
+      index.ts
       performanceMonitor.ts
       tradeDebug.ts
       tradeValidator.ts
@@ -327,7 +327,7 @@ utils/
       validationPerformanceMonitor.ts
       validationUtils.ts
       validatorDebug.ts
-    index.js
+    index.ts
     rules/
       basicRules.ts
       draftRules.ts
@@ -335,7 +335,7 @@ utils/
       enforceEligibility.js
       enforcement.ts
       hardCapValidation.ts
-      index.js
+      index.ts
       miscRules.ts
       rosterValidation.ts
       timingValidation.ts
@@ -363,7 +363,7 @@ utils/
       conveyanceResolution.ts
       dataValidation.ts
       hardCapStatus.ts
-      index.js
+      index.ts
       matchingValues.ts
       normalizeTradeInput.ts
       pickIdUtils.ts
@@ -380,7 +380,7 @@ utils/
       validateInput.ts
       validationIssueText.ts
     validators/
-      index.js
+      index.ts
   tradeManager.ts
   validatePhase21.test.js
   worldManager.ts
@@ -388,5 +388,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T21:30:57.014Z*
+*Generated on: 2026-03-20T21:54:48.396Z*
 *Auto-updated by: npm run docs*

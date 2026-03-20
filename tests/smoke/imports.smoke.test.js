@@ -36,45 +36,37 @@ describe('Critical Imports Smoke Test', () => {
   });
 
   it('can import salaryMargin through the tradeMachine public index', async () => {
-    const tradeMachine = await import('@/features/architect/utils/tradeMachine/index.js');
+    const tradeMachine = await import('@/features/architect/utils/tradeMachine');
     expect(tradeMachine.getAllowableIncomingMargin).toBeTypeOf('function');
     expect(tradeMachine.getIncomingCeilingForTeam).toBeTypeOf('function');
   });
 
   it('can import validateFaExceptionUsage through the tradeMachine public index', async () => {
-    const tradeMachine = await import('@/features/architect/utils/tradeMachine/index.js');
+    const tradeMachine = await import('@/features/architect/utils/tradeMachine');
     expect(tradeMachine.validateFaExceptionUsage).toBeTypeOf('function');
   });
 
   it('can import salaryMargin through the validator compatibility index', async () => {
-    const validators = await import(
-      '@/features/architect/utils/tradeMachine/validators/index.js'
-    );
+    const validators = await import('@/features/architect/utils/tradeMachine/validators');
     expect(validators.getIncomingCeilingForTeam).toBeTypeOf('function');
     expect(validators.validateCash).toBeTypeOf('function');
     expect(validators.computeMatchingValues).toBeTypeOf('function');
   });
 
   it('can import validateFaExceptionUsage through the validator compatibility index', async () => {
-    const validators = await import(
-      '@/features/architect/utils/tradeMachine/validators/index.js'
-    );
+    const validators = await import('@/features/architect/utils/tradeMachine/validators');
     expect(validators.validateFaExceptionUsage).toBeTypeOf('function');
   });
 
   it('can import the rules barrel after stale export cleanup', async () => {
-    const rules = await import(
-      '@/features/architect/utils/tradeMachine/rules/index.js'
-    );
+    const rules = await import('@/features/architect/utils/tradeMachine/rules');
     expect(rules.validateRoster).toBeTypeOf('function');
     expect(rules.validateCash).toBeTypeOf('function');
     expect(rules.validateReacquisition).toBeTypeOf('function');
   });
 
   it('can import the utils barrel after stale export cleanup', async () => {
-    const utils = await import(
-      '@/features/architect/utils/tradeMachine/utils/index.js'
-    );
+    const utils = await import('@/features/architect/utils/tradeMachine/utils');
     expect(utils.createTPE).toBeTypeOf('function');
     expect(utils.getIncomingCeilingForTeam).toBeTypeOf('function');
     expect(utils.isMeaningfulProtection).toBeTypeOf('function');

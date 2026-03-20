@@ -457,8 +457,7 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. remaining Trade Machine barrel/public-entry decisions
-2. final inventory gate
+1. final inventory gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
 
@@ -521,7 +520,9 @@ Desired end state:
 - Route/public-entry wrapper subset: ✅ second cleanup batch complete (`GMDashboard/index.jsx`, `LeagueView.jsx`, `shared/LeagueView/LeagueView.jsx`)
 - Support-barrel subset: ✅ third cleanup batch complete (`capTotals/index.js`, `persistenceContracts/index.js`, `exceptions/index.js`, `playerRulesProfile/index.js`, `tradeContext/index.js`, plus redundant `playerRulesProfile/index.d.ts`) with TS-backed `index.ts` authorities and guardrails retargeted away from direct `index.js` file reads
 - `src/global-shims.d.ts` still intentionally carries compatibility declarations for `capTotals`, `exceptions`, `persistenceContracts`, and `tradeContext` so this runtime barrel cleanup does not widen type-surface expectations midstream
-- Remaining 7D work is now the Trade Machine barrel/public-entry set (`tradeMachine/index.js`, `tradeMachine/rules/index.js`, `tradeMachine/utils/index.js`, `tradeMachine/validators/index.js`, `tradeMachine/engine/index.js`, `tradeMachine/cache/index.js`) rather than support-barrel wrappers
+- Trade Machine barrel/public-entry subset: ✅ fourth cleanup batch complete (`tradeMachine/index.js`, `tradeMachine/rules/index.js`, `tradeMachine/utils/index.js`, `tradeMachine/validators/index.js`, `tradeMachine/engine/index.js`, `tradeMachine/cache/index.js`) with TS-backed `index.ts` authorities, caller retargets, and explicit canonical exports to resolve the old star-barrel collisions without changing runtime behavior
+- `src/global-shims.d.ts` now preserves only the extensionless `@/features/architect/utils/tradeMachine` compatibility declaration; the deleted `index.js` ambient surface is retired
+- Phase 7D wrapper / barrel / public-entry cleanup: ✅ complete
 
 ## Phase 7E: Final Architect JS/JSX Inventory Gate
 
@@ -536,6 +537,11 @@ Desired end state:
   - intentional legacy compatibility contract
   - still blocked, with exact reason
 - new guardrail preventing fresh same-path Architect shims or new explicit `.js` / `.jsx` imports from being added by accident
+
+**Current status:**
+- Not started yet
+- Next step is the final Architect JS/JSX inventory scan plus the new source-scan guardrail
+- `src/features/architect/utils/tradeContext/legacy/index.js` is the only already-classified intentional legacy compatibility contract that should remain in scope during the inventory pass
 
 ## Sequencing Rules
 

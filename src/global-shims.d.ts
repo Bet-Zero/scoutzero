@@ -240,9 +240,5 @@ declare module '@/features/architect/utils/tradeContext' {
 
 declare module '@/features/architect/utils/tradeMachine' {
   export const validateTrade: any;
-}
-
-declare module '@/features/architect/utils/tradeMachine/index.js' {
-  export const validateTrade: any;
   export const hasStepienViolation: any;
 }

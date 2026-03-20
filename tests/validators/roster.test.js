@@ -6,7 +6,7 @@ import {
 import {
   enforceRosterWindow as compatEnforceRosterWindow,
   validateRoster as compatValidateRoster,
-} from '@/features/architect/utils/tradeMachine/validators/index.js';
+} from '@/features/architect/utils/tradeMachine/validators';
 import { validationFlags } from '@/config/validationFlags.js';
 
 describe('validateRoster compatibility surface', () => {

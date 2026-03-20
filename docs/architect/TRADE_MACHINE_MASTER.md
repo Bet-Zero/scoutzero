@@ -2380,6 +2380,23 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SUPPORT_BARREL_BATCH_E130_RETURN_PACKAGE.md`
 
+### Validator TS Trade Machine Barrel Batch E131 (2026-03-20)
+
+- Status:
+  - completed the final Trade Machine barrel/public-entry slice of Phase 7D by deleting 6 JS barrel wrappers: `src/features/architect/utils/tradeMachine/index.js`, `src/features/architect/utils/tradeMachine/rules/index.js`, `src/features/architect/utils/tradeMachine/utils/index.js`, `src/features/architect/utils/tradeMachine/validators/index.js`, `src/features/architect/utils/tradeMachine/engine/index.js`, and `src/features/architect/utils/tradeMachine/cache/index.js`
+  - replaced the retired wrappers with TS-backed barrel authorities at the matching `index.ts` paths and retargeted the affected runtime/test callers to extensionless folder imports
+  - tightened the new `rules/index.ts`, `utils/index.ts`, `engine/index.ts`, and `cache/index.ts` barrels to explicit canonical exports so the old JS star-barrel ambiguity resolves cleanly under TypeScript without changing the underlying runtime authorities
+  - updated `src/global-shims.d.ts` to retire the explicit `@/features/architect/utils/tradeMachine/index.js` ambient surface while preserving the extensionless `@/features/architect/utils/tradeMachine` compatibility declaration
+  - refreshed `src/features/architect/utils/tradeMachine/MIGRATION_NOTES.md` and added `src/tests/architect/tradeMachineBarrelBatch.e131.guardrail.test.ts` to prove the exact 6-path retirement batch plus extensionless-barrel parity against the direct TS authorities
+  - closed Phase 7D; the remaining plan work is now the Phase 7E final Architect JS/JSX inventory gate
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:architect -- --reporter=dot`: PASS (205 files, 2769 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_BARREL_BATCH_E131_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
