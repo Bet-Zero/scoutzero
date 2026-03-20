@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { enforceEligibility } from '@/features/architect/utils/tradeMachine/rules/enforceEligibility.js';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
 

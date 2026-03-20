@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const CURRENT_YEAR = 2026;
 const SEASON = `${CURRENT_YEAR - 1}-${String(CURRENT_YEAR).slice(-2)}`;

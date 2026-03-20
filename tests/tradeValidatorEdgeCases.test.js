@@ -4,8 +4,8 @@ import capProjections from '@/features/architect/utils/capProjections.js';
 import {
   SECOND_APRON_AGGREGATION_UP_BLOCKED,
   SECOND_APRON_CASH_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;

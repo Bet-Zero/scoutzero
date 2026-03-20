@@ -14,7 +14,7 @@ import {
   getCapHitForSeason,
   yearToSeason,
   seasonToYear,
-} from '../utils/seasonUtils.js';
+} from '../utils/seasonUtils';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
 
 type MiscRulesYearKey = number | string;

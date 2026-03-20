@@ -4,9 +4,9 @@
  * OWNERSHIP: Trade Machine Team
  *
  * @deprecated This module is deprecated. Import from canonical modules instead:
- * - computeMatchingValues → import from './matchingValues.js'
- * - getCapHitForSeason → import from './seasonUtils.js'
- * - getSalaryMatchingResult → import from './salaryMatchingRules.js'
+ * - computeMatchingValues → import from './matchingValues'
+ * - getCapHitForSeason → import from './seasonUtils'
+ * - getSalaryMatchingResult → import from './salaryMatchingRules'
  *
  * This file exists for backwards compatibility only. New code should import
  * from the canonical sources listed above.
@@ -15,9 +15,9 @@
  * @see seasonUtils.js - Cap hit lookups by season
  * @see salaryMatchingRules.ts - Salary matching thresholds and rules
  */
-import { computeMatchingValues as computeMatchingValuesCanonical } from './matchingValues.js';
-import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils.js';
-import { getSalaryMatchingResult } from './salaryMatchingRules.js';
+import { computeMatchingValues as computeMatchingValuesCanonical } from './matchingValues';
+import { getCapHitForSeason as getCapHitForSeasonUtil } from './seasonUtils';
+import { getSalaryMatchingResult } from './salaryMatchingRules';
 import type {
   TradeExceptionPlayer,
   TradeTeam,

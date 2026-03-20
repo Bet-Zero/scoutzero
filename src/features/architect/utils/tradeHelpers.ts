@@ -5,11 +5,11 @@ import {
 import {
   getSalaryMatchingResult,
   SALARY_MATCHING_TIERS,
-} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 export { wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils.js';
-import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation.js';
+import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
 import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils.js';
-import { areSamePickById } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
+import { areSamePickById } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
 import { toEndYear } from './seasonFormat.js';
 import { getTeamApronStatus as getTeamApronStatusSSoT } from '@/features/architect/utils/capUtils';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
@@ -484,7 +484,7 @@ function getProtectionDisplayLabel(pick: PickLike | null | undefined): string {
   return '';
 }
 
-export { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
+export { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc';
 
 export const calculateTPERemaining = (
   tpe: { amount?: NumericLike },

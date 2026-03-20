@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as utilsBarrel from '@/features/architect/utils/tradeMachine/utils/index.js';
-import * as tradeUtilityMisc from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
-import * as tpeValidation from '@/features/architect/utils/tradeMachine/utils/tpeValidation.js';
+import * as tradeUtilityMisc from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc';
+import * as tpeValidation from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
 
 describe('trade utility surface', () => {
   it('keeps misc helper identity through the surviving utils barrel', () => {

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { validationFlags } from '@/config/validationFlags.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const firestoreMocks = vi.hoisted(() => {
   const commit = vi.fn(async () => undefined);

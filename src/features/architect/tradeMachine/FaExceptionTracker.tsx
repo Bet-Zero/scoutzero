@@ -3,7 +3,7 @@ import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import {
   getValidationIssueText,
   normalizeValidationIssues,
-} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type { TeamLike, ValidationResultLike } from './validationPresentationTypes';
 
 interface FaExceptionTrackerProps {

@@ -3,7 +3,7 @@ import { validateAggregation } from '@/features/architect/utils/tradeMachine/rul
 import {
   SECOND_APRON_AGGREGATION_UP_BLOCKED,
   SECOND_APRON_MULTI_TEAM_AGGREGATION_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 
 const capSettings = {
   salaryCap: 141_000_000,

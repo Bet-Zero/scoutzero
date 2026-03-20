@@ -16,7 +16,7 @@ export {
   SALARY_MATCHING_TIERS,
   SALARY_MATCHING_RULE_KEYS,
   SALARY_MATCHING_RULE_LABELS,
-} from './utils/salaryMatchingRules.js';
+} from './utils/salaryMatchingRules';
 
 // Core validators - from rules
 export { validateCash } from './rules/validateCash.js';
@@ -39,11 +39,11 @@ export {
   normalizeCaps,
   getTeamObject,
   resolvePayroll,
-} from './utils/capUtils.js';
+} from './utils/capUtils';
 export {
   getAllowableIncomingMargin,
   getIncomingCeilingForTeam,
-} from './utils/salaryMargin.js';
+} from './utils/salaryMargin';
 
 // Enforcers (rules with enforcement logic) - from rules
 export { enforceConsent } from './rules/enforceConsent.js';
@@ -59,8 +59,8 @@ export { debug } from './engine/engineUtils.js';
 export {
   computeMatchingValues,
   getMatchingValue,
-} from './utils/matchingValues.js';
-export { isMeaningfulProtection } from './utils/tradeUtilityMisc.js';
+} from './utils/matchingValues';
+export { isMeaningfulProtection } from './utils/tradeUtilityMisc';
 
 // Pick ID utilities (Phase 1 SSOT) - canonical pick identification
 export {
@@ -68,14 +68,14 @@ export {
   generatePickId,
   ensurePickId,
   areSamePickById,
-} from './utils/pickIdUtils.js';
+} from './utils/pickIdUtils';
 
 // Swap resolution utilities (Phase 3) - swap resolution infrastructure
 export {
   resolveSwapWinner,
   resolvePickSwap,
   resolveTeamSwaps,
-} from './utils/swapResolution.js';
+} from './utils/swapResolution';
 
 // Conveyance resolution utilities (Phase 4) - conveyance infrastructure
 export {
@@ -85,7 +85,7 @@ export {
   resolveTeamConveyanceForYear,
   getProtectionLabel,
   normalizeProtection,
-} from './utils/conveyanceResolution.js';
+} from './utils/conveyanceResolution';
 
 // Protection normalization utilities (Phase 4)
-export { normalizeProtectionValue } from './utils/tradeUtilityMisc.js';
+export { normalizeProtectionValue } from './utils/tradeUtilityMisc';

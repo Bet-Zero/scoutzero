@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import ValidationDetailsPanel from '@/features/architect/tradeMachine/ValidationDetailsPanel';
 import { validateTradeExceptions as validateLegacyTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/tradeExceptions.js';
-import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const issue = (message, rule, severity = 'error') =>
   createValidationIssue(message, { rule, severity });

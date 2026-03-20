@@ -5,7 +5,7 @@ import {
   validateTrade,
 } from '@/features/architect/utils/tradeMachine/index.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { validateBYC } from '@/features/architect/utils/tradeMachine/rules/miscRules.js';
 
 const currentYear = 2025;

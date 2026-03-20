@@ -4,7 +4,7 @@ import {
   generatePickId,
   ensurePickId,
   areSamePickById,
-} from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
+} from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
 
 describe('Pick ID Utilities', () => {
   describe('normalizeRound', () => {

@@ -11,8 +11,8 @@
  *                unified salaryMatchingRules.js module
  *
  * LINKS:
- *  - Canonical Source: tradeMachine/utils/salaryMatchingRules.js (SINGLE SOURCE OF TRUTH for salary matching)
- *  - Legacy Source: tradeMachine/constants/cbaConstants.js (for other trade-specific constants)
+ *  - Canonical Source: tradeMachine/utils/salaryMatchingRules (SINGLE SOURCE OF TRUTH for salary matching)
+ *  - Legacy Source: tradeMachine/constants/cbaConstants (for other trade-specific constants)
  *
  * ⚠️  DEPRECATION NOTICE  ⚠️
  * Do not import constants directly from this file for feature code.
@@ -34,7 +34,7 @@ type CbaYearLike = {
 // ============================================================================
 // IMPORTANT: For salary matching calculations, use the unified module:
 // import { getSalaryMatchingResult, SALARY_MATCHING_TIERS } from
-//   '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+//   '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 // ============================================================================
 
 // Re-export unified salary matching rules as the authoritative source
@@ -45,7 +45,7 @@ export {
   SALARY_MATCHING_TIERS,
   SALARY_MATCHING_RULE_KEYS,
   SALARY_MATCHING_RULE_LABELS,
-} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 
 // ============================================================================
 // Re-exports from canonical trade machine module
@@ -60,7 +60,7 @@ export {
   TRADE_TIMING,
   TRADE_RESTRICTIONS,
   getThresholdForSeason,
-} from '@/features/architect/utils/tradeMachine/constants/cbaConstants.js';
+} from '@/features/architect/utils/tradeMachine/constants/cbaConstants';
 
 // ============================================================================
 // Feature-specific constants (not duplicated in trade machine)
@@ -144,10 +144,10 @@ export const FA_EXCEPTION_TRADE_USAGE = {
    -------------------------------------------------------------------------- */
 
 /**
- * @deprecated Use the re-exported BYC_PERCENT from tradeMachine/constants/cbaConstants.js
+ * @deprecated Use the re-exported BYC_PERCENT from tradeMachine/constants/cbaConstants
  * This is kept for backwards compatibility but the value should match.
  */
-import { BYC_PERCENT as TM_BYC_PERCENT } from '@/features/architect/utils/tradeMachine/constants/cbaConstants.js';
+import { BYC_PERCENT as TM_BYC_PERCENT } from '@/features/architect/utils/tradeMachine/constants/cbaConstants';
 export const BYC_PERCENT = TM_BYC_PERCENT;
 
 export const PPP_MULTIPLIER = 1.2; // poison-pill default (rookie max ext.)

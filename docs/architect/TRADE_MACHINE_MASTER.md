@@ -1,6 +1,6 @@
 # TRADE_MACHINE_MASTER
 
-Last updated: 2026-03-15
+Last updated: 2026-03-20
 
 ## Trade Machine Overview
 
@@ -2142,6 +2142,22 @@ Date: 2026-02-26
   - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_COMPATIBILITY_SHIM_RETIREMENT_BATCH_E116_RETURN_PACKAGE.md`
+
+### Validator TS Runtime-Backed Utils/Constants Shim Retirement Batch E117 (2026-03-20)
+
+- Status:
+  - completed the first Phase 7B runtime-backed same-path cleanup batch
+  - deleted 17 runtime-backed same-path `.js` shims under `tradeMachine/utils` and `tradeMachine/constants`
+  - moved live `src/**`, tests, and retained barrel/wrapper exports off explicit `.js` imports for those modules; extensionless imports are now the internal contract for that utils/constants surface
+  - added `src/tests/architect/runtimeBackedUtilsConstantsBatch.e117.guardrail.test.ts` to prove deleted-path absence plus representative extensionless/authority parity
+  - kept `capSettingsProvider.js`, `hardCapStatus.js`, top-level Architect helper shims, `playerRulesProfile/**`, `tradeMachine/rules/*.js`, `tradeMachine/engine/*.js`, `tradeMachine/cache/*.js`, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js` out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: PASS (194 files, 2680 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_RUNTIME_BACKED_UTILS_CONSTANTS_BATCH_E117_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

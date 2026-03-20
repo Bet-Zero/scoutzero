@@ -1,5 +1,5 @@
 import { formatCurrency, getApronStatus } from '@/features/architect/utils/tradeHelpers.js';
-import { getCapHitForSeason, normalizeYearInput } from '../utils/seasonUtils.js';
+import { getCapHitForSeason, normalizeYearInput } from '../utils/seasonUtils';
 
 interface DebugMeta {
   team?: string;

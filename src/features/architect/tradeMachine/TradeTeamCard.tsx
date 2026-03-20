@@ -17,9 +17,9 @@ import {
   isFaExceptionEligibleType,
 } from '@/features/architect/utils/faExceptionUtils.js';
 import { validationFlags } from '@/config/validationFlags.js';
-import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
+import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
-import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 // Phase 1: Accessor function for validator result consumption (TRADE_MACHINE_UI_WIRING_AUDIT v2.1.0)
 import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';

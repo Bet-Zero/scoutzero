@@ -5,7 +5,7 @@ import {
   TradeTeam,
   ValidationIssue,
 } from '../constants/types';
-import { summarizeValidationIssues } from '../utils/validationIssueText.js';
+import { summarizeValidationIssues } from '../utils/validationIssueText';
 
 type ReacquisitionPlayer = TradeExceptionPlayer & {
   name?: string;

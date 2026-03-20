@@ -32,7 +32,7 @@ import { formatSalary } from '@/shared/utils/formatting';
 import {
   createValidationIssue,
   getValidationIssueText,
-} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const issue = (message, rule, severity = 'error') =>
   createValidationIssue(message, { rule, severity });

@@ -1,10 +1,10 @@
-import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
+import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc';
 import { normalizeEntitlementTerms } from '@/features/architect/utils/entitlements/entitlementTerms';
-import { isSecondApronTeam } from '../utils/capUtils.js';
+import { isSecondApronTeam } from '../utils/capUtils';
 import {
   buildStepienBaselinePicksFromEntitlements,
   buildStepienOutgoingPicksFromEntitlements,
-} from '../utils/stepienEntitlementUtils.js';
+} from '../utils/stepienEntitlementUtils';
 import type { TradeTeam } from '../constants/types';
 
 type StepienYearLike = number | string | null | undefined;

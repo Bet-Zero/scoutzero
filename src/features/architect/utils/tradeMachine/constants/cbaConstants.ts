@@ -42,7 +42,7 @@ export const CBA_THRESHOLDS: Record<string, ThresholdMap> = {
  *
  * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules.js instead.
  * This constant is kept for backwards compatibility but the authoritative
- * source is in src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js
+ * source is in src/features/architect/utils/tradeMachine/utils/salaryMatchingRules
  *
  * 2023 CBA tiered matching rules for over-cap teams below first apron:
  *  - Band 1: outgoing ≤ $6.5M → 200% + $250k

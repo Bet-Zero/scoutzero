@@ -7,7 +7,7 @@
  */
 
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
-import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
+import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc';
 
 type LooseRecord = Record<string, unknown>;
 type LoosePick = LooseRecord;

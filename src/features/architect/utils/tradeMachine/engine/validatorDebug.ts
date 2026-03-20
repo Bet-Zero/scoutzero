@@ -1,6 +1,6 @@
 import debug from './tradeDebug.js';
 import { ValidationIssue, ValidationResult } from '../constants/types';
-import { getValidationIssueText } from '../utils/validationIssueText.js';
+import { getValidationIssueText } from '../utils/validationIssueText';
 
 interface ValidationLog {
   validator: string;

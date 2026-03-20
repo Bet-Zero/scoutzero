@@ -21,7 +21,7 @@ import {
 import {
   getValidationIssueText,
   normalizeValidationIssues,
-} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import DataWarningsSection from './DataWarningsSection';
 import type { TeamLike, ValidationResultLike } from './validationPresentationTypes';
 

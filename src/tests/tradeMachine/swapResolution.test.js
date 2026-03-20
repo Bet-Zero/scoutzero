@@ -14,7 +14,7 @@ import {
   resolveSwapWinner,
   resolvePickSwap,
   resolveTeamSwaps,
-} from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
+} from '@/features/architect/utils/tradeMachine/utils/swapResolution';
 
 /**
  * Swap Resolution Core Logic

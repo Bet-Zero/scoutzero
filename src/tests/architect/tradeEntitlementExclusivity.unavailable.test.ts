@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockComputePostTradeEntitlements = vi.fn();
 vi.mock(
-  '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils.js',
+  '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils',
   async (importOriginal) => {
     const actual = (await importOriginal()) as Record<string, unknown>;
     return {

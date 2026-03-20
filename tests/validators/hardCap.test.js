@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/validateHardCap';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 describe('validateHardCap', () => {
   const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));

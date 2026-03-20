@@ -6,8 +6,8 @@
  *  - Phase 66: Updated to use getTeamTpeList canonical accessor for TPE reads
  */
 
-import { toNum, normalizeCaps } from './capUtils.js';
-import { getMatchingValue } from './matchingValues.js';
+import { toNum, normalizeCaps } from './capUtils';
+import { getMatchingValue } from './matchingValues';
 import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe.js';
 
 type NumericLike = number | string | null | undefined;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues.js';
+import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 
 const yearKey = 2025;
 const season = `${yearKey - 1}-${String(yearKey).slice(-2)}`;

@@ -4,7 +4,7 @@
  * OWNERSHIP: Trade Machine Team
  * HISTORY:
  *  - 2026-02-15: Created for Batch C — Data Model Hardening (GAP-DATA-001, GAP-DATA-002)
- * LINKS: dataValidation.js
+ * LINKS: dataValidation.ts
  *
  * Coverage:
  * - GAP-DATA-001: BYC player previousSalary validation
@@ -18,8 +18,8 @@ import {
   formatDataWarning,
   DATA_WARNING_CODES,
   DATA_WARNING_SEVERITY,
-} from '@/features/architect/utils/tradeMachine/utils/dataValidation.js';
-import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues.js';
+} from '@/features/architect/utils/tradeMachine/utils/dataValidation';
+import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;

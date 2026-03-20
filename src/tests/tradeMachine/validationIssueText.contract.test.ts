@@ -6,7 +6,7 @@ import {
   isValidationIssue,
   normalizeValidationIssues,
   summarizeValidationIssues,
-} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 describe('validationIssueText contract', () => {
   it('preserves canonical issue passthrough semantics', () => {

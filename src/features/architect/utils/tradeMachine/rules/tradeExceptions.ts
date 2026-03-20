@@ -1,4 +1,4 @@
-import { isSecondApronTeam } from '../utils/capUtils.js';
+import { isSecondApronTeam } from '../utils/capUtils';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
 interface LegacyTradeExceptionRecord {

@@ -9,7 +9,7 @@
  *
  * LINKS:
  *  - Audit: docs/architect/DRAFT_ASSET_TERMS_AND_LIFECYCLE_COMPLETION_AUDIT.md
- *  - Original: src/features/architect/utils/tradeMachine/utils/swapResolution.js
+ *  - Original: src/features/architect/utils/tradeMachine/utils/swapResolution
  *
  * KEY DEFINITIONS:
  *  - swap_right entitlement: Right to swap picks with another team

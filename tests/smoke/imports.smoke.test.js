@@ -21,7 +21,7 @@ describe('Critical Imports Smoke Test', () => {
 
   it('can import architect utils', async () => {
     const capUtils = await import(
-      '@/features/architect/utils/tradeMachine/utils/capUtils.js'
+      '@/features/architect/utils/tradeMachine/utils/capUtils'
     );
     expect(capUtils.toNum).toBeTypeOf('function');
     expect(capUtils.toSeasonKey).toBeTypeOf('function');
@@ -29,7 +29,7 @@ describe('Critical Imports Smoke Test', () => {
 
   it('can import salaryMargin through the direct helper path', async () => {
     const salaryMargin = await import(
-      '@/features/architect/utils/tradeMachine/utils/salaryMargin.js'
+      '@/features/architect/utils/tradeMachine/utils/salaryMargin'
     );
     expect(salaryMargin.getAllowableIncomingMargin).toBeTypeOf('function');
     expect(salaryMargin.getIncomingCeilingForTeam).toBeTypeOf('function');

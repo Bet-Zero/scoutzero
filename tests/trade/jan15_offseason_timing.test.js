@@ -3,7 +3,7 @@ import capProjections from '@/features/architect/utils/capProjections.js';
 import { validationFlags } from '@/config/validationFlags.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import { validateTiming } from '@/features/architect/utils/tradeMachine/rules/timingValidation.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const CURRENT_YEAR = 2025;
 const SEASON = '2024-25';

@@ -48,8 +48,8 @@ import {
   deriveFreeAgencyYearFromOptionSeason,
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
-import { resolvePickSwap } from '@/features/architect/utils/tradeMachine/utils/swapResolution.js';
-import { resolveConveyanceForPick } from '@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js';
+import { resolvePickSwap } from '@/features/architect/utils/tradeMachine/utils/swapResolution';
+import { resolveConveyanceForPick } from '@/features/architect/utils/tradeMachine/utils/conveyanceResolution';
 import {
   processTradeExceptions,
   getTpeExpiryISO,

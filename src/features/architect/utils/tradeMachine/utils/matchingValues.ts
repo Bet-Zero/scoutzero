@@ -2,14 +2,14 @@
 // GAP-DATA-001: Now validates BYC player data requirements and surfaces warnings
 // GAP-DATA-002: Tracks salary field fallback usage for data quality monitoring
 import { getSalaryForYear } from '../../tradeHelpers.js';
-import { BYC_PERCENT } from '../constants/cbaConstants.js';
-import { getCapHitForSeason, normalizeYearInput } from './seasonUtils.js';
+import { BYC_PERCENT } from '../constants/cbaConstants';
+import { getCapHitForSeason, normalizeYearInput } from './seasonUtils';
 import {
   validateBYCPlayerData,
   validateSalaryFieldData,
   DATA_WARNING_CODES,
   type DataWarning,
-} from './dataValidation.js';
+} from './dataValidation';
 import { getSignAndTradeSalaryForYear } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 
 type YearKey = number | string;

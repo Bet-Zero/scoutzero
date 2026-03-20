@@ -7,11 +7,11 @@
  * LINKS:
  *   - docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 12.2)
  *   - src/features/architect/utils/tradeMachine/rules/validateStepien.js
- *   - src/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils.js
+ *   - src/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils
  */
 import { describe, it, expect } from 'vitest';
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
-import { buildStepienBaselinePicksFromEntitlements } from '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils.js';
+import { buildStepienBaselinePicksFromEntitlements } from '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils';
 
 /**
  * Test helper: Creates a team object for Stepien validation

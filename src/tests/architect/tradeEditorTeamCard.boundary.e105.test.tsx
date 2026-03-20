@@ -208,7 +208,7 @@ vi.mock('@/config/validationFlags.js', () => ({
   },
 }));
 
-vi.mock('@/features/architect/utils/tradeMachine/utils/seasonUtils.js', () => ({
+vi.mock('@/features/architect/utils/tradeMachine/utils/seasonUtils', () => ({
   getCapHitForSeason: (player: Record<string, any>) =>
     Number(player.capHit ?? player.salary ?? 0),
 }));
@@ -218,7 +218,7 @@ vi.mock('@/features/architect/utils/seasonUtils', () => ({
 }));
 
 vi.mock(
-  '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js',
+  '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules',
   () => ({
     getSalaryMatchingResult: () => ({
       allowableIncoming: 12_000_000,

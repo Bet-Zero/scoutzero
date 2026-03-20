@@ -3,9 +3,9 @@ import {
   SECOND_APRON_CASH_BLOCKED,
   SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
   SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
-import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation.js';
-import { isSecondApronTeam } from '../utils/capUtils.js';
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
+import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
+import { isSecondApronTeam } from '../utils/capUtils';
 
 interface BasicRulesCapSettings {
   secondApron?: number | null;
@@ -134,4 +134,4 @@ export function enforceSecondApronHandcuffs(
 }
 
 export { validateSecondApronRules as validateSecondApron };
-export * from '../constants/cbaConstants.js';
+export * from '../constants/cbaConstants';

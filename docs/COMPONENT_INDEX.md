@@ -81,8 +81,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/cache/index.js
 - utils/tradeMachine/cache/validationCache.js
 - utils/tradeMachine/cache/validationCacheService.js
-- utils/tradeMachine/constants/cbaConstants.js
-- utils/tradeMachine/constants/secondApronMessages.js
 - utils/tradeMachine/engine/engineUtils.js
 - utils/tradeMachine/engine/index.js
 - utils/tradeMachine/engine/performanceMonitor.js
@@ -116,23 +114,8 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/validateStepien.js
 - utils/tradeMachine/rules/validateTradeExceptions.js
 - utils/tradeMachine/utils/capSettingsProvider.js
-- utils/tradeMachine/utils/capUtils.js
-- utils/tradeMachine/utils/conveyanceResolution.js
-- utils/tradeMachine/utils/dataValidation.js
 - utils/tradeMachine/utils/hardCapStatus.js
 - utils/tradeMachine/utils/index.js
-- utils/tradeMachine/utils/matchingValues.js
-- utils/tradeMachine/utils/pickIdUtils.js
-- utils/tradeMachine/utils/salaryMargin.js
-- utils/tradeMachine/utils/salaryMatchingRules.js
-- utils/tradeMachine/utils/salaryUtils.js
-- utils/tradeMachine/utils/seasonUtils.js
-- utils/tradeMachine/utils/stepienEntitlementUtils.js
-- utils/tradeMachine/utils/swapResolution.js
-- utils/tradeMachine/utils/tpeValidation.js
-- utils/tradeMachine/utils/tradeTimingWindows.js
-- utils/tradeMachine/utils/tradeUtilityMisc.js
-- utils/tradeMachine/utils/validationIssueText.js
 - utils/tradeMachine/validators/index.js
 - utils/validatePhase21.test.js
 
@@ -283,4 +266,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T07:14:05.874Z*
+*Generated on: 2026-03-20T07:37:45.282Z*

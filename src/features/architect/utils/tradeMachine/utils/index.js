@@ -4,17 +4,17 @@
  */
 
 // Salary matching rules - SINGLE SOURCE OF TRUTH for salary matching calculations
-export * from './salaryMatchingRules.js';
+export * from './salaryMatchingRules';
 
 // Salary and cap utilities
-export * from './capUtils.js';
-export * from './salaryMargin.js';
-export * from './tpeValidation.js';
-export * from './tradeUtilityMisc.js';
-export * from './salaryUtils.js';
+export * from './capUtils';
+export * from './salaryMargin';
+export * from './tpeValidation';
+export * from './tradeUtilityMisc';
+export * from './salaryUtils';
 
 // Trade-specific utilities
-export * from './matchingValues.js';
+export * from './matchingValues';
 
 // Pick utilities now use direct helper entrypoints; no pickUtils.js compatibility barrel remains
 
@@ -23,4 +23,4 @@ export * from './validateInput.ts';
 export * from './normalizeTradeInput.ts';
 
 // Season utilities
-export * from './seasonUtils.js';
+export * from './seasonUtils';

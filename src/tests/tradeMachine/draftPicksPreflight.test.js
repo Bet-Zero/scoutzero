@@ -11,7 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
-import { ensurePickId, generatePickId, normalizeRound } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils.js';
+import { ensurePickId, generatePickId, normalizeRound } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
 
 // Import fixtures
 import swapOnly from '../fixtures/tradeMachinePicks/swapOnly.json';

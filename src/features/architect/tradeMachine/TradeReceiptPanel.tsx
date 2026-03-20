@@ -4,7 +4,7 @@ import {
   projectEntitlementToPickRow,
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
   TeamPlayerLike,
   TradeReceiptLike,

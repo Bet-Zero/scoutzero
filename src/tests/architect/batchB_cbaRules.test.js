@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility.js';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;

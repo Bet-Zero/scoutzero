@@ -2,7 +2,7 @@ import {
   getTeamApronStatus,
   isSecondApronTeam,
   isFirstApronTeam,
-} from './tradeMachine/utils/capUtils.js';
+} from './tradeMachine/utils/capUtils';
 
 type NumericLike = number | string | null | undefined;
 type UnknownRecord = Record<string, unknown>;

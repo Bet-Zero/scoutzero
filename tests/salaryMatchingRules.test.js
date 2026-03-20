@@ -11,7 +11,7 @@ import {
   SALARY_MATCHING_TIERS,
   SALARY_MATCHING_RULE_KEYS,
   SALARY_MATCHING_RULE_LABELS,
-} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 
 const defaultCapSettings = {
   salaryCap: 141_000_000,

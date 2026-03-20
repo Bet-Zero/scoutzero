@@ -1,4 +1,4 @@
-import { isMeaningfulProtection } from './tradeUtilityMisc.js';
+import { isMeaningfulProtection } from './tradeUtilityMisc';
 
 type PositionsMap = Record<string, number>;
 

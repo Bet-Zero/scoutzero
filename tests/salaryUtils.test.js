@@ -3,10 +3,10 @@ import {
   computeMatchingValues as computeMatchingValuesWrapper,
   getCapHitForSeason as getCapHitForSeasonWrapper,
   getIncomingCeilingForTeam,
-} from '@/features/architect/utils/tradeMachine/utils/salaryUtils.js';
-import { computeMatchingValues as computeMatchingValuesCanonical } from '@/features/architect/utils/tradeMachine/utils/matchingValues.js';
-import { getCapHitForSeason as getCapHitForSeasonCanonical } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
-import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+} from '@/features/architect/utils/tradeMachine/utils/salaryUtils';
+import { computeMatchingValues as computeMatchingValuesCanonical } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
+import { getCapHitForSeason as getCapHitForSeasonCanonical } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
+import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;

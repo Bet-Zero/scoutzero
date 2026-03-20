@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/validateTradeExceptions.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const futureDate = () => {
   const d = new Date();

@@ -1,5 +1,5 @@
-import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
-import { isSecondApronTeam } from '../utils/capUtils.js';
+import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
+import { isSecondApronTeam } from '../utils/capUtils';
 import {
   CashValidationResult,
   TradeTeam,
@@ -8,7 +8,7 @@ import {
 import {
   getFirstValidationIssueText,
   summarizeValidationIssues,
-} from '../utils/validationIssueText.js';
+} from '../utils/validationIssueText';
 
 const SEASONAL_CASH_LIMIT = 5_800_000;
 

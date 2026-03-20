@@ -7,7 +7,7 @@ import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/
 import {
   getSalaryMatchingResult,
   SALARY_MATCHING_RULE_KEYS,
-} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js';
+} from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 
 const defaultCapSettings = {
   salaryCap: 141_000_000,

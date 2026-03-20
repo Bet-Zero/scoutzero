@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   toNum,
   toSeasonKey,
-} from '@/features/architect/utils/tradeMachine/utils/capUtils.js';
+} from '@/features/architect/utils/tradeMachine/utils/capUtils';
 import { formatHeight } from '@/shared/utils/formatting';
 
 describe('Core Utilities Smoke Test', () => {

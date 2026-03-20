@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getMatchingValue,
   computeMatchingValues,
-} from '@/features/architect/utils/tradeMachine/utils/matchingValues.js';
+} from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 
 describe('Legacy getMatchingValue() vs Canonical computeMatchingValues()', () => {
   const currentYear = '2024-25';

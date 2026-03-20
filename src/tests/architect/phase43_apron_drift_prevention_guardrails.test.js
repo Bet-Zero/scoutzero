@@ -23,10 +23,8 @@ import { glob } from 'glob';
 // ============================================================================
 const ALLOWLIST = [
   // SSOT - canonical apron derivation logic lives here
-  'src/features/architect/utils/tradeMachine/utils/capUtils.js',
   'src/features/architect/utils/tradeMachine/utils/capUtils.ts',
-  'src/features/architect/utils/tradeMachine/utils/salaryMargin.js',
-  'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.js',
+  'src/features/architect/utils/tradeMachine/utils/salaryMargin.ts',
   'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.ts',
 
   // TradeMachine rule validators (internal to tradeMachine)
@@ -164,7 +162,7 @@ describe('Phase 43 Apron Drift Prevention Guardrails', () => {
     }
   });
 
-  test('canonical capUtils.js is a shim over the TS-authoritative facade', () => {
+  test('canonical capUtils.js shim points at the extensionless TS-authoritative facade', () => {
     const projectRoot = process.cwd();
     const capUtilsPath = path.join(
       projectRoot,
@@ -181,7 +179,7 @@ describe('Phase 43 Apron Drift Prevention Guardrails', () => {
     expect(shimContent).toContain("export * from './capUtils.ts'");
 
     expect(authoritativeContent).toContain(
-      "from './tradeMachine/utils/capUtils.js'"
+      "from './tradeMachine/utils/capUtils'"
     );
     expect(authoritativeContent).toContain('export { getTeamApronStatus');
     expect(authoritativeContent).toContain('isSecondApronTeam');

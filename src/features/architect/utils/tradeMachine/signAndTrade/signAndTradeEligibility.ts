@@ -1,4 +1,4 @@
-import { normalizeYearInput } from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
+import { normalizeYearInput } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 
 export const PLAYER_CONTRACT_STATUS = Object.freeze({
   UNDER_CONTRACT: 'UNDER_CONTRACT',

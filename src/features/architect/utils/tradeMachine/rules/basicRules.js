@@ -3,4 +3,4 @@ export {
   validateSecondApron,
   validateSecondApronRules,
 } from './basicRules.ts';
-export * from '../constants/cbaConstants.js';
+export * from '../constants/cbaConstants';

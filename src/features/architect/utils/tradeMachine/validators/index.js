@@ -40,8 +40,8 @@ export { enforceEligibility } from '../rules/validateEligibility.js';
 export { enforceTiming } from '../rules/timingValidation.js';
 
 // Utility functions - now in utils/
-export { getIncomingCeilingForTeam } from '../utils/salaryMargin.js';
-export { computeMatchingValues } from '../utils/matchingValues.js';
+export { getIncomingCeilingForTeam } from '../utils/salaryMargin';
+export { computeMatchingValues } from '../utils/matchingValues';
 export * from '../utils/validateInput.ts';
 export * from '../utils/normalizeTradeInput.ts';
 

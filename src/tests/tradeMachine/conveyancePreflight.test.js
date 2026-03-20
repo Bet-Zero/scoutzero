@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import {
   isMeaningfulProtection,
   getPickOptions,
-} from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc.js';
+} from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc';
 
 // Import fixtures
 import conveyanceRollsForward from '../fixtures/tradeMachinePicks/conveyance_rolls_forward.json';
@@ -176,7 +176,7 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
    */
 
   it('resolveConveyanceForPick() rolls pick forward when protection triggers', async () => {
-    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution');
     
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     const positionsMap = { LAL: 2 }; // Position 2 triggers Top 3 protection
@@ -191,7 +191,7 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
   });
 
   it('resolveConveyanceForPick() conveys pick when protection does NOT trigger', async () => {
-    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution');
     
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     const positionsMap = { LAL: 7 }; // Position 7 does NOT trigger Top 3 protection
@@ -205,7 +205,7 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
   });
 
   it('resolveConveyanceForPick() converts 1st to 2nd when conversion target exists', async () => {
-    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution');
     
     const pick = conveyanceConvertsTo2nd.teams[0].picksOut[0];
     const positionsMap = { NYK: 10 }; // Position 10 triggers Lottery protection
@@ -219,7 +219,7 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
   });
 
   it('resolveConveyanceForPick() is NO-OP when positionsMap is empty', async () => {
-    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution');
     
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     
@@ -230,7 +230,7 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
   });
 
   it('resolveConveyanceForPick() is NO-OP when positionsMap is null', async () => {
-    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution');
     
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     
@@ -241,7 +241,7 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
   });
 
   it('resolveConveyanceForPick() is NO-OP when position key is missing', async () => {
-    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution');
     
     const pick = conveyanceRollsForward.teams[0].picksOut[0];
     const positionsMap = { BOS: 5, MIA: 10 }; // LAL not present
@@ -253,7 +253,7 @@ describe('Phase 4 EXECUTION - Conveyance Resolution', () => {
   });
 
   it('multi-year ladder tracks conveyance through protection tiers', async () => {
-    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js');
+    const { resolveConveyanceForPick } = await import('@/features/architect/utils/tradeMachine/utils/conveyanceResolution');
     
     const pick = conveyanceMultiYearLadder.teams[0].picksOut[0];
     

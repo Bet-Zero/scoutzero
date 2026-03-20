@@ -8,8 +8,8 @@ import {
 import {
   getJanuary15RestrictionDate,
   resolveTradeTimingDate,
-} from '../utils/tradeTimingWindows.js';
-import { summarizeValidationIssues } from '../utils/validationIssueText.js';
+} from '../utils/tradeTimingWindows';
+import { summarizeValidationIssues } from '../utils/validationIssueText';
 import type {
   TeamContext,
   TradeTeam,

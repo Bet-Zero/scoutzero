@@ -112,7 +112,7 @@ import {
 ### Utilities
 ```javascript
 // Cap utilities
-import { toNum, getTeamObject } from '@/utils/architect/tradeMachine/utils/capUtils.js';
+import { toNum, getTeamObject } from '@/utils/architect/tradeMachine/utils/capUtils';
 
 // Or use barrel import
 import { toNum, getTeamObject } from '@/utils/architect/tradeMachine/utils';
@@ -121,7 +121,7 @@ import { toNum, getTeamObject } from '@/utils/architect/tradeMachine/utils';
 ### Constants
 ```javascript
 // CBA constants
-import { SALARY_CAP_2025 } from '@/utils/architect/tradeMachine/constants/cbaConstants.js';
+import { SALARY_CAP_2025 } from '@/utils/architect/tradeMachine/constants/cbaConstants';
 
 // Or use barrel import
 import { SALARY_CAP_2025 } from '@/utils/architect/tradeMachine/constants';

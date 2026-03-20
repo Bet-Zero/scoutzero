@@ -16,11 +16,11 @@ import {
 import {
   getJanuary15RestrictionDate,
   resolveTradeTimingDate,
-} from '../utils/tradeTimingWindows.js';
+} from '../utils/tradeTimingWindows';
 import {
   normalizeValidationIssues,
   summarizeValidationIssues,
-} from '../utils/validationIssueText.js';
+} from '../utils/validationIssueText';
 import type {
   TeamContext,
   TradeExceptionPlayer,

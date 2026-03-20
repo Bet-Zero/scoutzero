@@ -14,7 +14,7 @@ import {
   computePostTradeEntitlements as computePostTradeEntitlementsJs,
   buildStepienOutgoingPicksFromEntitlements as buildStepienOutgoingPicksFromEntitlementsJs,
   buildStepienBaselinePicksFromEntitlements as buildStepienBaselinePicksFromEntitlementsJs,
-} from '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils.js';
+} from '@/features/architect/utils/tradeMachine/utils/stepienEntitlementUtils';
 
 // ── Test fixtures ──
 

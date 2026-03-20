@@ -250,6 +250,12 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Kept mixed/structural keepers untouched: `DraftPositionsInput.jsx`, `EntitlementPicksList.jsx`, `ValidationStateHeader.jsx`, `basicArchitectUtils.js`, `playerRulesProfile/types.js`, `capLegalityValidation.js`, `computeTeamCapTotals.js`, `hardCapStatus.js`, `tradeContext/types.js`
 - Kept intentional/runtime-backed surfaces untouched: `tradeContext/legacy/index.js`, `shared/utils/contracts/*.js`, wrapper/barrel/public-entry files, and the broader runtime-backed Trade Machine shim frontier
 
+**Phase 7B batch-1 status now:**
+- Deleted 17 runtime-backed same-path `.js` shims under `tradeMachine/utils` and `tradeMachine/constants`: `cbaConstants.js`, `secondApronMessages.js`, `capUtils.js`, `conveyanceResolution.js`, `dataValidation.js`, `matchingValues.js`, `pickIdUtils.js`, `salaryMargin.js`, `salaryMatchingRules.js`, `salaryUtils.js`, `seasonUtils.js`, `stepienEntitlementUtils.js`, `swapResolution.js`, `tpeValidation.js`, `tradeTimingWindows.js`, `tradeUtilityMisc.js`, `validationIssueText.js`
+- Retargeted live `src/**` imports, tests, and retained barrel/wrapper exports to extensionless paths for that utils/constants batch
+- Added E117 guardrail coverage proving deleted-path absence plus representative extensionless/authority parity for the retired runtime-backed surfaces
+- Kept batch-excluded runtime-backed surfaces untouched: `capSettingsProvider.js`, `hardCapStatus.js`, `playerRulesProfile/**`, top-level Architect helper shims, rule/engine/cache same-path `.js` hosts, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js`
+
 **Verification:**
 - `npm run typecheck` passes
 - `npm run build` passes
@@ -258,7 +264,7 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - `npm run validate:project` passes
 
 **What remains:**
-- Phase 7B runtime-backed same-path cleanup
+- Phase 7B runtime-backed same-path cleanup for the remaining clusters: top-level Architect helper shims, `playerRulesProfile/**`, Trade Machine rules/engine/cache hosts, persistence-contract helpers, and shared contract helpers
 - Phase 7C mixed/structural keeper review
 - Phase 7D wrapper/barrel/public-entry cleanup
 - Phase 7E final Architect JS/JSX inventory gate
@@ -345,6 +351,10 @@ Desired end state:
 
 **Goal:** Remove same-path `.js` shims that are still used by real `src/**` imports.
 
+**Current batch status:**
+- `tradeMachine/utils` + `tradeMachine/constants`: ✅ first runtime-backed batch complete
+- Next safe batch: top-level Architect helper shims (`capUtils.js`, `cbaConstants.js`, `contractUtils.js`, `faExceptionUtils.js`, `seasonUtils.js`, `stepienUtils.js`, `tradeHelpers.js`, related helpers)
+
 **High-priority runtime-backed clusters:**
 - `src/features/architect/utils/tradeMachine/**`
 - `src/features/architect/utils/playerRulesProfile/**`
@@ -373,14 +383,14 @@ Desired end state:
 - Collapse re-export shims only after all runtime callers are moved
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
-**Suggested batch order:**
-1. `playerRulesProfile`
-2. `tradeMachine/utils`
+**Suggested batch order from here:**
+1. top-level Architect utils
+2. `playerRulesProfile`
 3. `tradeMachine/rules`
 4. `tradeMachine/engine`
 5. `tradeMachine/cache`
-6. top-level Architect utils
-7. persistence-contract helpers
+6. persistence-contract helpers
+7. shared contract helpers
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
 

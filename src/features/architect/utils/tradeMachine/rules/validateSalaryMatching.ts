@@ -19,9 +19,9 @@ import {
   SALARY_MATCHING_RULE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
-import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
-import { isSecondApronTeam } from '../utils/capUtils.js';
+import { isSecondApronTeam } from '../utils/capUtils';
 import type {
   AuthoritativeSalaryMatchingResult,
   TeamContext,

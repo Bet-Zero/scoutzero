@@ -18,7 +18,7 @@ import {
   getTeamApronStatus,
   isSecondApronTeam,
   isFirstApronTeam,
-} from '../../features/architect/utils/tradeMachine/utils/capUtils.js';
+} from '../../features/architect/utils/tradeMachine/utils/capUtils';
 
 // Architect capUtils (canonical Architect surface)
 import {

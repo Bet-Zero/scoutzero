@@ -41,7 +41,7 @@ import {
   resolveSignAndTradeContractPayload,
   validateSignAndTradeContractPayload,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
-import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import type {
   AnyRecord,

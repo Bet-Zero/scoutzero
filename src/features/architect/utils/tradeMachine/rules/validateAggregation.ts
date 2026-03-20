@@ -1,9 +1,9 @@
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
-import { isSecondApronTeam } from '../utils/capUtils.js';
+import { isSecondApronTeam } from '../utils/capUtils';
 import {
   SECOND_APRON_AGGREGATION_UP_BLOCKED,
   SECOND_APRON_MULTI_TEAM_AGGREGATION_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 
 interface AggregationPlayer {
   salary?: number;

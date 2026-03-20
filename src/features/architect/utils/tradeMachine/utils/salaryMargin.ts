@@ -9,7 +9,7 @@ import {
   isSecondApronTeam,
   resolvePayroll,
   toNum,
-} from './capUtils.js';
+} from './capUtils';
 
 type NumericLike = number | string | null | undefined;
 

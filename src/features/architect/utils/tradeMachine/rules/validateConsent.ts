@@ -11,7 +11,7 @@ import {
   TradeTeam,
   ValidationIssue,
 } from '../constants/types';
-import { summarizeValidationIssues } from '../utils/validationIssueText.js';
+import { summarizeValidationIssues } from '../utils/validationIssueText';
 
 type ConsentPlayer = TradeExceptionPlayer & {
   destTeamId?: string | number | null;

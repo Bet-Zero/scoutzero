@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import capProjections from '@/features/architect/utils/capProjections.js';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const DEFAULT_CURRENT_YEAR = 2025;
 const DEFAULT_TRADE_DATE = '2025-07-01T00:00:00.000Z';

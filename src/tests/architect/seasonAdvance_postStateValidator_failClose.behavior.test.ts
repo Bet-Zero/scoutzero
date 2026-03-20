@@ -90,11 +90,11 @@ vi.mock('@/features/architect/utils/capHoldTransitionHelpers', () => ({
   getRightsTypeFromPlayer: vi.fn(() => 'Bird'),
 }));
 
-vi.mock('@/features/architect/utils/tradeMachine/utils/swapResolution.js', () => ({
+vi.mock('@/features/architect/utils/tradeMachine/utils/swapResolution', () => ({
   resolvePickSwap: vi.fn(),
 }));
 
-vi.mock('@/features/architect/utils/tradeMachine/utils/conveyanceResolution.js', () => ({
+vi.mock('@/features/architect/utils/tradeMachine/utils/conveyanceResolution', () => ({
   resolveConveyanceForPick: vi.fn(),
 }));
 

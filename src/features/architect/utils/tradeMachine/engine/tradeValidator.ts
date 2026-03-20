@@ -4,7 +4,7 @@ import {
   getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers.js';
 import { wrapCommonValidators } from './validationUtils.js';
-import { createTPE } from '../utils/tpeValidation.js';
+import { createTPE } from '../utils/tpeValidation';
 
 // Import base validators from new structure
 import {
@@ -22,16 +22,16 @@ import { enforceConsent } from '../rules/enforceConsent.js';
 import { enforceEligibility } from '../rules/validateEligibility.js';
 import { enforceTiming } from '../rules/timingValidation.js';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
-import { computeMatchingValues } from '../utils/salaryUtils.js';
+import { computeMatchingValues } from '../utils/salaryUtils';
 import { enforceRosterWindow } from '../rules/rosterValidation.js';
 import { validationFlags } from '@/config/validationFlags.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
 import { validateAggregation } from '../rules/validateAggregation.js';
-import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils.js';
+import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 // TM-EXCL-E1: Entitlement exclusivity validation (blocking)
 import { validateEntitlementExclusivity } from '@/features/architect/utils/entitlements/entitlementExclusivityValidator';
-import { computePostTradeEntitlements } from '../utils/stepienEntitlementUtils.js';
+import { computePostTradeEntitlements } from '../utils/stepienEntitlementUtils';
 // TM-EXCL-E2: Explicit entitlement routing map builder (no silent skips)
 import { buildEntitlementRoutingMap } from '../utils/buildEntitlementRoutingMap';
 // Phase 17: Entitlement routing validation (uniqueness, routing, ownership)
@@ -52,7 +52,7 @@ import {
   getValidationIssueText,
   normalizeValidationIssues,
   summarizeValidationIssues,
-} from '../utils/validationIssueText.js';
+} from '../utils/validationIssueText';
 import type {
   TradeReceipt,
   TradeRuleEnvelope,

@@ -8,7 +8,7 @@ import {
   SECOND_APRON_CASH_BLOCKED,
   SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
   SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
+} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 
 const capSettings = {
   salaryCap: 141_000_000,

@@ -364,9 +364,7 @@ utils/
       validationCacheService.js
       validationCacheService.ts
     constants/
-      cbaConstants.js
       cbaConstants.ts
-      secondApronMessages.js
       secondApronMessages.ts
       types.ts
     engine/
@@ -440,41 +438,26 @@ utils/
       buildEntitlementRoutingMap.ts
       capSettingsProvider.js
       capSettingsProvider.ts
-      capUtils.js
       capUtils.ts
-      conveyanceResolution.js
       conveyanceResolution.ts
-      dataValidation.js
       dataValidation.ts
       hardCapStatus.js
       hardCapStatus.ts
       index.js
-      matchingValues.js
       matchingValues.ts
       normalizeTradeInput.ts
-      pickIdUtils.js
       pickIdUtils.ts
-      salaryMargin.js
       salaryMargin.ts
-      salaryMatchingRules.js
       salaryMatchingRules.ts
-      salaryUtils.js
       salaryUtils.ts
-      seasonUtils.js
       seasonUtils.ts
-      stepienEntitlementUtils.js
       stepienEntitlementUtils.ts
-      swapResolution.js
       swapResolution.ts
-      tpeValidation.js
       tpeValidation.ts
       tradeExportUtils.ts
-      tradeTimingWindows.js
       tradeTimingWindows.ts
-      tradeUtilityMisc.js
       tradeUtilityMisc.ts
       validateInput.ts
-      validationIssueText.js
       validationIssueText.ts
     validators/
       index.js
@@ -485,5 +468,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T07:14:05.831Z*
+*Generated on: 2026-03-20T07:37:45.255Z*
 *Auto-updated by: npm run docs*

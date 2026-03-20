@@ -2,7 +2,7 @@ import React from 'react';
 import {
   getValidationIssueText,
   normalizeValidationIssues,
-} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
   TeamResultLike,
   ValidationRuleLike,

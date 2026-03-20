@@ -5,7 +5,7 @@ import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts'
 import {
   getValidationIssueText,
   normalizeValidationIssues,
-} from '@/features/architect/utils/tradeMachine/utils/validationIssueText.js';
+} from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
   TeamLike,
   TpeLike,

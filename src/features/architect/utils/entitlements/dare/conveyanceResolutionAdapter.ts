@@ -8,7 +8,7 @@
  *
  * LINKS:
  *  - Audit: docs/architect/DRAFT_ASSET_TERMS_AND_LIFECYCLE_COMPLETION_AUDIT.md
- *  - Original: src/features/architect/utils/tradeMachine/utils/conveyanceResolution.js
+ *  - Original: src/features/architect/utils/tradeMachine/utils/conveyanceResolution
  *
  * KEY DEFINITIONS:
  *  - Conveyance: Pick transfers to receiving team (protection didn't trigger)

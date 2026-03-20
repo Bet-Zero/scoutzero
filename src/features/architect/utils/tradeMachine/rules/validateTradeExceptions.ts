@@ -1,6 +1,6 @@
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
-import { SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages.js';
-import { isSecondApronTeam as checkSecondApron } from '../utils/capUtils.js';
+import { SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
+import { isSecondApronTeam as checkSecondApron } from '../utils/capUtils';
 import {
   TradeExceptionPlayer,
   TradeExceptionRecord,
@@ -11,13 +11,13 @@ import {
 import {
   getFirstValidationIssueText,
   summarizeValidationIssues,
-} from '../utils/validationIssueText.js';
+} from '../utils/validationIssueText';
 import {
   buildCanonicalTeamTpeUsage,
   createTPE,
   isExpiredTPE,
   isPriorYearTPE,
-} from '../utils/tpeValidation.js';
+} from '../utils/tpeValidation';
 
 function createIssue(
   message: string,

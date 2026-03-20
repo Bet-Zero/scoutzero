@@ -6,8 +6,8 @@ import {
   normalizeYearInput,
   seasonToYear,
   yearToSeason,
-} from '@/features/architect/utils/tradeMachine/utils/seasonUtils.js';
-import { getCapHitForSeason as getCapHitForSeasonFromSalaryUtils } from '@/features/architect/utils/tradeMachine/utils/salaryUtils.js';
+} from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
+import { getCapHitForSeason as getCapHitForSeasonFromSalaryUtils } from '@/features/architect/utils/tradeMachine/utils/salaryUtils';
 
 describe('seasonUtils compatibility surface', () => {
   it('preserves season/year conversions', () => {
