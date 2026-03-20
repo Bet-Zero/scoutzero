@@ -4,7 +4,6 @@ Quick reference for all components in the ScoutZero project.
 
 ## Architect
 
-- GMDashboard/components/DraftPositionsInput.jsx
 - GMDashboard/index.jsx
 - LeagueView.jsx
 - capSheet/CapSheet/CapSheet.jsx
@@ -26,9 +25,6 @@ Quick reference for all components in the ScoutZero project.
 - shared/LeagueView/LeagueView.jsx
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
-- tradeMachine/EntitlementPicksList.jsx
-- tradeMachine/ValidationStateHeader.jsx
-- utils/basicArchitectUtils.js
 - utils/capProjections.js
 - utils/capTotals/index.js
 - utils/draftPickUtils.js
@@ -36,7 +32,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/exceptions/index.js
 - utils/persistenceContracts/index.js
 - utils/playerRulesProfile/index.js
-- utils/playerRulesProfile/types.js
 - utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
 - utils/tradeContext/types.js
@@ -46,7 +41,6 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/rules/enforceEligibility.js
 - utils/tradeMachine/rules/index.js
 - utils/tradeMachine/utils/capSettingsProvider.js
-- utils/tradeMachine/utils/hardCapStatus.js
 - utils/tradeMachine/utils/index.js
 - utils/tradeMachine/validators/index.js
 - utils/validatePhase21.test.js
@@ -198,4 +192,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T11:43:42.117Z*
+*Generated on: 2026-03-20T11:57:24.717Z*

@@ -321,12 +321,18 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Added `src/tests/architect/capCoreHelperShimBatch.e126.guardrail.test.ts` to prove the exact 2-file deletion batch, extensionless/authority parity, and continued `capTotals/index.js` barrel alignment
 - Removed `capLegalityValidation.js` and `computeTeamCapTotals.js` from the open mixed/structural keeper list; the remaining 7C review set is now `capSettingsProvider.js`, `hardCapStatus.js`, `basicArchitectUtils.js`, `playerRulesProfile/types.js`, `tradeContext/types.js`, `tradeContext/legacy/index.js`, `ValidationStateHeader.jsx`, `EntitlementPicksList.jsx`, and `DraftPositionsInput.jsx`
 
+**Phase 7C batch-2 status now:**
+- Retired 6 residual pure shims that no longer had live `src/**` callers despite earlier keeper treatment: `DraftPositionsInput.jsx`, `EntitlementPicksList.jsx`, `ValidationStateHeader.jsx`, `basicArchitectUtils.js`, `playerRulesProfile/types.js`, and `hardCapStatus.js`
+- Retargeted the affected Architect compatibility suites and the hard-cap trade guardrail from explicit `.js` / `.jsx` imports or retained-shim expectations to the new deleted-path-absence plus extensionless/authority parity contract
+- Added `src/tests/architect/residualPureShimBatch.e127.guardrail.test.tsx` to prove the exact 6-file deletion batch and direct extensionless parity against the TS / TSX authorities
+- Reduced the open Phase 7C review set to the true remaining mixed/legacy trio: `capSettingsProvider.js`, `tradeContext/types.js`, and `tradeContext/legacy/index.js`
+
 **Verification (latest pass):**
 - `npm run typecheck` passes
 - `npm run build` passes
 - `npm run test:architect -- --reporter=dot` passes
 - `npm run validate:project` passes
-- `npm run test:diff -- --reporter=dot` was not used for E126 signoff because the required Architect suite matched the touched helper/guardrail surface directly and avoided diff-based `FULL` escalation behavior
+- `npm run test:diff -- --reporter=dot` was not used for E127 signoff because the required Architect suite matched the touched compatibility/guardrail surface directly and avoided diff-based `FULL` escalation behavior
 
 **What remains:**
 - Phase 7C mixed/structural keeper review
@@ -449,14 +455,8 @@ Desired end state:
 
 **Expected mixed/structural keepers to evaluate case-by-case:**
 - `src/features/architect/utils/tradeMachine/utils/capSettingsProvider.js`
-- `src/features/architect/utils/tradeMachine/utils/hardCapStatus.js`
-- `src/features/architect/utils/basicArchitectUtils.js`
-- `src/features/architect/utils/playerRulesProfile/types.js`
 - `src/features/architect/utils/tradeContext/types.js`
 - `src/features/architect/utils/tradeContext/legacy/index.js`
-- `src/features/architect/tradeMachine/ValidationStateHeader.jsx`
-- `src/features/architect/tradeMachine/EntitlementPicksList.jsx`
-- `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`
 
 **Decision options per file:**
 - retire it and move tests to the TS authority
@@ -466,6 +466,12 @@ Desired end state:
 **Current status:**
 - `capLegalityValidation.js`: ✅ retired in E126
 - `computeTeamCapTotals.js`: ✅ retired in E126
+- `hardCapStatus.js`: ✅ retired in E127
+- `basicArchitectUtils.js`: ✅ retired in E127
+- `playerRulesProfile/types.js`: ✅ retired in E127
+- `ValidationStateHeader.jsx`: ✅ retired in E127
+- `EntitlementPicksList.jsx`: ✅ retired in E127
+- `DraftPositionsInput.jsx`: ✅ retired in E127
 
 **Important:** `tradeContext/legacy/index.js` should be treated as an intentional legacy contract unless the user explicitly wants that compatibility removed.
 

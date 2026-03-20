@@ -2317,6 +2317,22 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_CAP_CORE_HELPER_SHIM_BATCH_E126_RETURN_PACKAGE.md`
 
+### Validator TS Residual Pure Shim Batch E127 (2026-03-20)
+
+- Status:
+  - completed the second Phase 7C mixed/structural review batch by retiring 6 residual pure same-path shims that no longer had live `src/**` callers
+  - deleted `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`, `src/features/architect/tradeMachine/EntitlementPicksList.jsx`, `src/features/architect/tradeMachine/ValidationStateHeader.jsx`, `src/features/architect/utils/basicArchitectUtils.js`, `src/features/architect/utils/playerRulesProfile/types.js`, and `src/features/architect/utils/tradeMachine/utils/hardCapStatus.js`
+  - rewrote the affected Architect compatibility suites and the worldless hard-cap trade guardrail from retained-shim assertions or explicit `.js` / `.jsx` imports to deleted-path absence plus extensionless / TS-authority parity
+  - added `src/tests/architect/residualPureShimBatch.e127.guardrail.test.tsx` to prove the exact 6-file deletion batch and representative export-surface parity between extensionless imports and the TS / TSX authorities
+  - updated `src/features/architect/utils/playerRulesProfile/types.ts` JSDoc to point at the authoritative TS file instead of the retired `types.js` shim
+  - reduced the remaining Phase 7C inventory to the true mixed/legacy trio: `src/features/architect/utils/tradeMachine/utils/capSettingsProvider.js`, `src/features/architect/utils/tradeContext/types.js`, and `src/features/architect/utils/tradeContext/legacy/index.js`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:architect -- --reporter=dot`: PASS (202 files, 2749 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_RESIDUAL_PURE_SHIM_BATCH_E127_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

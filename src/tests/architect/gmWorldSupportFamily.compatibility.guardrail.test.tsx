@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/gmWorldSupportFamily.compatibility.guardrail.test.tsx
- * PURPOSE: Guardrail coverage for the E103 GM world-support TS authorities and JSX shims.
+ * PURPOSE: Guardrail coverage for the E103 GM world-support TS authorities after shim retirement.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * @vitest-environment node
@@ -15,7 +15,6 @@ import DraftPositionsInput, * as DraftPositionsInputModule from '@/features/arch
 import {
   DraftPositionsInput as NamedDraftPositionsInput,
 } from '@/features/architect/GMDashboard/components/DraftPositionsInput';
-import * as DraftPositionsInputJsxModule from '../../features/architect/GMDashboard/components/DraftPositionsInput.jsx';
 
 describe('E103 GM world-support family compatibility guardrails', () => {
   const srcRoot = path.resolve(
@@ -26,10 +25,10 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     '../../features/architect/GMDashboard/components/DeleteWorldModal.tsx';
   const worldTimeControlsTsxSpecifier =
     '../../features/architect/GMDashboard/components/WorldTimeControls.tsx';
+  const draftPositionsInputTsxSpecifier =
+    '../../features/architect/GMDashboard/components/DraftPositionsInput.tsx';
   const readAuthoritySource = (relativePath: string) =>
     fs.readFileSync(path.join(srcRoot, relativePath), 'utf-8');
-  const draftPositionsInputShimExpectation =
-    "export { default, DraftPositionsInput } from './DraftPositionsInput.tsx';";
 
   it('deletes the retired DeleteWorldModal and WorldTimeControls shims', () => {
     expect(fs.existsSync(path.join(srcRoot, 'DeleteWorldModal.jsx'))).toBe(
@@ -40,11 +39,10 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     );
   });
 
-  it('DraftPositionsInput.jsx remains a pure compatibility shim', () => {
-    const shimPath = path.join(srcRoot, 'DraftPositionsInput.jsx');
-    const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-    expect(source).toBe(draftPositionsInputShimExpectation);
+  it('deletes the retired DraftPositionsInput.jsx shim', () => {
+    expect(fs.existsSync(path.join(srcRoot, 'DraftPositionsInput.jsx'))).toBe(
+      false
+    );
   });
 
   it('DeleteWorldModal preserves a named-only export shape across extensionless and TSX authority imports', async () => {
@@ -71,12 +69,14 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     );
   });
 
-  it('DraftPositionsInput preserves default and named exports across extensionless and JSX shim imports', () => {
+  it('DraftPositionsInput preserves default and named exports across extensionless and TSX authority imports', async () => {
+    const authorityModule = await import(draftPositionsInputTsxSpecifier);
+
     expect(Object.keys(DraftPositionsInputModule).sort()).toEqual([
       'DraftPositionsInput',
       'default',
     ]);
-    expect(Object.keys(DraftPositionsInputJsxModule).sort()).toEqual([
+    expect(Object.keys(authorityModule).sort()).toEqual([
       'DraftPositionsInput',
       'default',
     ]);
@@ -84,8 +84,8 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     expect(DraftPositionsInputModule.DraftPositionsInput).toBe(
       NamedDraftPositionsInput
     );
-    expect(DraftPositionsInputJsxModule.default).toBe(DraftPositionsInput);
-    expect(DraftPositionsInputJsxModule.DraftPositionsInput).toBe(
+    expect(authorityModule.default).toBe(DraftPositionsInput);
+    expect(authorityModule.DraftPositionsInput).toBe(
       NamedDraftPositionsInput
     );
   });

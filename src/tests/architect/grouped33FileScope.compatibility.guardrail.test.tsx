@@ -21,8 +21,6 @@ import {
   validationCache,
 } from '@/features/architect/utils/tradeMachine/cache/validationCache';
 import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
-import * as basicArchitectUtilsJsModule from '../../features/architect/utils/basicArchitectUtils.js';
-import * as playerRulesProfileTypesJsModule from '../../features/architect/utils/playerRulesProfile/types.js';
 import * as ContractEditorModalJsxModule from '../../features/architect/contract/ContractEditorModal/ContractEditorModal.jsx';
 
 describe('Grouped 33-file scope compatibility guardrails', () => {
@@ -48,13 +46,16 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
   const readSource = (relativePath: string) =>
     fs.readFileSync(path.join(srcRoot, relativePath), 'utf-8').trim();
 
-  it('keeps each remaining high-risk legacy file as a pure shim', () => {
-    expect(readSource('utils/basicArchitectUtils.js')).toBe(
-      "export { default } from './basicArchitectUtils.ts';\nexport * from './basicArchitectUtils.ts';"
-    );
-    expect(readSource('utils/playerRulesProfile/types.js')).toBe(
-      "export { default } from './types.ts';"
-    );
+  it('deletes the retired basicArchitectUtils.js and playerRulesProfile/types.js shims', () => {
+    expect(
+      fs.existsSync(path.join(srcRoot, 'utils/basicArchitectUtils.js'))
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.join(srcRoot, 'utils/playerRulesProfile/types.js'))
+    ).toBe(false);
+  });
+
+  it('keeps ContractEditorModal.jsx as a pure compatibility shim', () => {
     expect(
       readSource('contract/ContractEditorModal/ContractEditorModal.jsx')
     ).toBe("export { default } from './ContractEditorModal.tsx';");
@@ -93,19 +94,13 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     ];
 
     expect(Object.keys(basicArchitectUtilsModule).sort()).toEqual(expectedKeys);
-    expect(Object.keys(basicArchitectUtilsJsModule).sort()).toEqual(expectedKeys);
     expect(Object.keys(authorityModule).sort()).toEqual(expectedKeys);
     expect(basicArchitectUtilsModule.default).toBe(getCapPercentage);
-    expect(basicArchitectUtilsJsModule.default).toBe(getCapPercentage);
     expect(authorityModule.default).toBe(getCapPercentage);
 
     for (const exportName of expectedKeys.filter((key) => key !== 'default')) {
-      const jsModuleRecord = basicArchitectUtilsJsModule as Record<string, unknown>;
       const tsModuleRecord = basicArchitectUtilsModule as Record<string, unknown>;
       const authorityRecord = authorityModule as Record<string, unknown>;
-      expect(jsModuleRecord[exportName]).toBe(
-        tsModuleRecord[exportName]
-      );
       expect(authorityRecord[exportName]).toBe(
         tsModuleRecord[exportName]
       );
@@ -119,9 +114,7 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
       'utf-8'
     );
 
-    expect(Object.keys(playerRulesProfileTypesJsModule)).toEqual(['default']);
     expect(Object.keys(authorityModule)).toEqual(['default']);
-    expect(playerRulesProfileTypesJsModule.default).toBe(playerRulesProfileTypes);
     expect(authorityModule.default).toBe(playerRulesProfileTypes);
     expect(authoritySource).toContain('@typedef {Object} PlayerRulesProfile');
     expect(authoritySource).toContain('export default {};');

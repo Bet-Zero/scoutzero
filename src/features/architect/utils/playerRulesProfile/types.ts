@@ -4,7 +4,7 @@
  * These are JSDoc type definitions that serve as documentation
  * for the shapes of data used throughout the player rules system.
  *
- * @file src/features/architect/utils/playerRulesProfile/types.js
+ * @file src/features/architect/utils/playerRulesProfile/types.ts
  */
 
 /**

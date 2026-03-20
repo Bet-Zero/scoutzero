@@ -7,7 +7,6 @@ GMDashboard/
   components/
     CapAuditDebugPanel.tsx
     DeleteWorldModal.tsx
-    DraftPositionsInput.jsx
     DraftPositionsInput.tsx
     OfferSheetList.tsx
     SeasonAdvanceModal.tsx
@@ -169,7 +168,6 @@ tradeMachine/
   CapImpactTiles.tsx
   DataWarningsSection.tsx
   EntitlementPickRow.tsx
-  EntitlementPicksList.jsx
   EntitlementPicksList.tsx
   FaExceptionTracker.tsx
   OutgoingPlayersList.tsx
@@ -186,7 +184,6 @@ tradeMachine/
   TradeSummaryPanel.tsx
   TradeTeamCard.tsx
   ValidationDetailsPanel.tsx
-  ValidationStateHeader.jsx
   ValidationStateHeader.tsx
   tradePreviewExportTypes.ts
   utils/
@@ -203,7 +200,6 @@ utils/
   ARCHITECT_LAYERING.md
   architectCore.ts
   architectFirestorePaths.ts
-  basicArchitectUtils.js
   basicArchitectUtils.ts
   buildRuleContext.ts
   capHelpers.ts
@@ -286,7 +282,6 @@ utils/
     maxSalaryRules.ts
     minimumSalaryRules.ts
     rfaRules.ts
-    types.js
     types.ts
   reacqUtils.ts
   runOffseason.ts
@@ -373,7 +368,6 @@ utils/
       capUtils.ts
       conveyanceResolution.ts
       dataValidation.ts
-      hardCapStatus.js
       hardCapStatus.ts
       index.js
       matchingValues.ts
@@ -400,5 +394,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T11:43:42.076Z*
+*Generated on: 2026-03-20T11:57:24.671Z*
 *Auto-updated by: npm run docs*

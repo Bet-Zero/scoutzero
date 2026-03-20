@@ -13,13 +13,14 @@ import { TradeReceiptPanel } from '@/features/architect/tradeMachine/TradeReceip
 
 describe('E97 Trade Machine validation presentation compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const retainedShimExpectations = [
+  const validationStateHeaderAuthoritySpecifier =
+    '../../features/architect/tradeMachine/ValidationStateHeader.tsx';
+  const deletedBatchCases = [
     [
       'tradeMachine/ValidationStateHeader.jsx',
-      "export { default, MODE_TAGS, ModeTag } from './ValidationStateHeader.tsx';",
+      'tradeMachine/ValidationStateHeader.tsx',
+      ValidationStateHeader,
     ],
-  ] as const;
-  const deletedBatchCases = [
     [
       'tradeMachine/ValidationDetailsPanel.jsx',
       'tradeMachine/ValidationDetailsPanel.tsx',
@@ -62,17 +63,8 @@ describe('E97 Trade Machine validation presentation compatibility guardrails', (
     ],
   ] as const;
 
-  retainedShimExpectations.forEach(([relativePath, expectedSource]) => {
-    it(`${relativePath} remains a pure compatibility shim`, () => {
-      const shimPath = path.join(srcRoot, relativePath);
-      const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-      expect(source).toBe(expectedSource);
-    });
-  });
-
   deletedBatchCases.forEach(([relativePath]) => {
-    it(`${relativePath} is absent after the E113 shim deletion batch`, () => {
+    it(`${relativePath} is absent after the shim retirement batches`, () => {
       const deletedPath = path.join(srcRoot, relativePath);
       expect(fs.existsSync(deletedPath)).toBe(false);
     });
@@ -90,18 +82,16 @@ describe('E97 Trade Machine validation presentation compatibility guardrails', (
     });
   });
 
-  it('ValidationStateHeader explicit .jsx import matches extensionless imports', async () => {
-    const explicitJsxModule = await import(
-      '../../features/architect/tradeMachine/ValidationStateHeader.jsx'
-    );
+  it('ValidationStateHeader extensionless import matches the TSX authority', async () => {
+    const authorityModule = await import(validationStateHeaderAuthoritySpecifier);
 
-    expect(Object.keys(explicitJsxModule).sort()).toEqual([
+    expect(Object.keys(authorityModule).sort()).toEqual([
       'MODE_TAGS',
       'ModeTag',
       'default',
     ]);
-    expect(explicitJsxModule.default).toBe(ValidationStateHeader);
-    expect(explicitJsxModule.MODE_TAGS).toBe(ValidationStateHeaderModule.MODE_TAGS);
-    expect(explicitJsxModule.ModeTag).toBe(ValidationStateHeaderModule.ModeTag);
+    expect(authorityModule.default).toBe(ValidationStateHeader);
+    expect(authorityModule.MODE_TAGS).toBe(ValidationStateHeaderModule.MODE_TAGS);
+    expect(authorityModule.ModeTag).toBe(ValidationStateHeaderModule.ModeTag);
   });
 });

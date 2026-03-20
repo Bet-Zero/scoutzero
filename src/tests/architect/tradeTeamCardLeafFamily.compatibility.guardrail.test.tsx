@@ -11,14 +11,11 @@ import EntitlementPicksList, {
 } from '@/features/architect/tradeMachine/EntitlementPicksList';
 import EntitlementPickRow from '@/features/architect/tradeMachine/EntitlementPickRow';
 import TradeExceptionManager from '@/features/architect/tradeMachine/TradeExceptionManager';
-import * as EntitlementPicksListJsxModule from '../../features/architect/tradeMachine/EntitlementPicksList.jsx';
 
 describe('E101 Trade Team Card leaf-family compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect/tradeMachine');
   const readAuthoritySource = (relativePath: string) =>
     fs.readFileSync(path.join(srcRoot, relativePath), 'utf-8');
-  const retainedShimExpectation =
-    "export { default, EntitlementPicksList } from './EntitlementPicksList.tsx';";
   const CAP_IMPACT_TILES_AUTHORITY_SPECIFIER =
     '../../features/architect/tradeMachine/CapImpactTiles.tsx';
   const TRADE_PLAYER_ROW_AUTHORITY_SPECIFIER =
@@ -31,6 +28,8 @@ describe('E101 Trade Team Card leaf-family compatibility guardrails', () => {
     '../../features/architect/tradeMachine/SelectTeamCard.tsx';
   const OUTGOING_PLAYERS_LIST_AUTHORITY_SPECIFIER =
     '../../features/architect/tradeMachine/OutgoingPlayersList.tsx';
+  const ENTITLEMENT_PICKS_LIST_AUTHORITY_SPECIFIER =
+    '../../features/architect/tradeMachine/EntitlementPicksList.tsx';
 
   it('deletes the retired pure leaf shims', () => {
     expect(fs.existsSync(path.join(srcRoot, 'CapImpactTiles.jsx'))).toBe(false);
@@ -47,13 +46,9 @@ describe('E101 Trade Team Card leaf-family compatibility guardrails', () => {
     expect(
       fs.existsSync(path.join(srcRoot, 'TradeExceptionManager.jsx'))
     ).toBe(false);
-  });
-
-  it('EntitlementPicksList.jsx remains a pure compatibility shim', () => {
-    const shimPath = path.join(srcRoot, 'EntitlementPicksList.jsx');
-    const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-    expect(source).toBe(retainedShimExpectation);
+    expect(fs.existsSync(path.join(srcRoot, 'EntitlementPicksList.jsx'))).toBe(
+      false
+    );
   });
 
   it('default-only deleted shims preserve extensionless and authority parity', async () => {
@@ -153,17 +148,20 @@ describe('E101 Trade Team Card leaf-family compatibility guardrails', () => {
     }
   });
 
-  it('EntitlementPicksList preserves both default and named exports across authority and shim', () => {
+  it('EntitlementPicksList preserves both default and named exports across extensionless and authority imports', async () => {
     const authoritySource = readAuthoritySource('EntitlementPicksList.tsx');
+    const authorityModule = await import(
+      ENTITLEMENT_PICKS_LIST_AUTHORITY_SPECIFIER
+    );
 
-    expect(authoritySource).toContain('export const EntitlementPicksList');
+    expect(authoritySource).toContain('export const EntitlementPicksList =');
     expect(authoritySource).toContain('export default EntitlementPicksList;');
-    expect(Object.keys(EntitlementPicksListJsxModule).sort()).toEqual([
+    expect(Object.keys(authorityModule).sort()).toEqual([
       'EntitlementPicksList',
       'default',
     ]);
-    expect(EntitlementPicksListJsxModule.default).toBe(EntitlementPicksList);
-    expect(EntitlementPicksListJsxModule.EntitlementPicksList).toBe(
+    expect(authorityModule.default).toBe(EntitlementPicksList);
+    expect(authorityModule.EntitlementPicksList).toBe(
       NamedEntitlementPicksList
     );
   });
