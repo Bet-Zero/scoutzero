@@ -3,10 +3,10 @@
  * Consolidated from: validationDecorator.js, validatorDebug.js, templateValidator.js
  */
 
-import { performanceMonitor } from './validationPerformanceMonitor.js';
+import { performanceMonitor } from './validationPerformanceMonitor';
 import { validationCache } from '../cache/validationCacheService.js';
-import { debug } from './engineUtils.js';
-import tradeDebug from './tradeDebug.js';
+import { debug } from './engineUtils';
+import tradeDebug from './tradeDebug';
 
 type ValidatorFunction<TArgs extends any[] = any[], TResult = unknown> = (
   ...args: TArgs

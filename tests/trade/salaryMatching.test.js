@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
 describe('salary matching validation', () => {
   const capSettings = {

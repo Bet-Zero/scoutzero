@@ -1,4 +1,4 @@
-import debug from './tradeDebug.js';
+import debug from './tradeDebug';
 import { ValidationIssue, ValidationResult } from '../constants/types';
 import { getValidationIssueText } from '../utils/validationIssueText';
 

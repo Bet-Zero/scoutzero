@@ -17,7 +17,7 @@
 import { describe, test, expect } from 'vitest';
 import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 import { getHardCapStatus, isTeamHardCapped } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
 describe('P0 HARD_CAP_SKIP Worldless Regression Tests', () => {
   // ==========================================================================

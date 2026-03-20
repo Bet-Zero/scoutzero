@@ -350,20 +350,13 @@ utils/
       secondApronMessages.ts
       types.ts
     engine/
-      engineUtils.js
       engineUtils.ts
       index.js
-      performanceMonitor.js
       performanceMonitor.ts
-      tradeDebug.js
       tradeDebug.ts
-      tradeValidator.js
       tradeValidator.ts
-      validationDebugMonitor.js
       validationDebugMonitor.ts
-      validationPerformanceMonitor.js
       validationPerformanceMonitor.ts
-      validationUtils.js
       validationUtils.ts
       validatorDebug.ts
     index.js
@@ -429,5 +422,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T08:51:30.667Z*
+*Generated on: 2026-03-20T10:08:04.103Z*
 *Auto-updated by: npm run docs*

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput.ts';
 import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts';
 import { getMatchingValue } from '@/features/architect/utils/tradeMachine/utils/matchingValues';

@@ -1,6 +1,6 @@
 // regression.secondApron.test.js
 import { describe, it, expect } from 'vitest';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
 describe('Second-apron regression: cannot take back more than send out', () => {
   it('Suns (>$2nd apron) 1-for-1: 15.6M out vs 29.5M in -> ILLEGAL', () => {

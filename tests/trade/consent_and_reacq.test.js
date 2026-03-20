@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validateConsent } from '@/features/architect/utils/tradeMachine/rules/validateConsent';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import capProjections from '@/features/architect/utils/capProjections.js';

@@ -51,7 +51,7 @@ vi.mock(
 
 // ─── Import module under test AFTER mocks ────────────────────────────────────
 
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

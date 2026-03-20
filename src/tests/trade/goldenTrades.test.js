@@ -4,7 +4,7 @@
  * OWNERSHIP: Trade Machine Team
  * HISTORY:
  *  - 2025-12-27: Created golden test suite for Phase 1
- * LINKS: tradeValidator.js, salaryMatchingRules.ts
+ * LINKS: tradeValidator, salaryMatchingRules.ts
  */
 
 /**
@@ -29,7 +29,7 @@ import {
   SALARY_MATCHING_RULE_KEYS,
 } from '@/features/architect/utils/tradeMachine/index.js';
 import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections.js';
 
 // Custom cap values for test isolation (differ from capProjections 2024-25)

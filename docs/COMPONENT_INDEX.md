@@ -63,14 +63,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/cache/index.js
 - utils/tradeMachine/cache/validationCache.js
 - utils/tradeMachine/cache/validationCacheService.js
-- utils/tradeMachine/engine/engineUtils.js
 - utils/tradeMachine/engine/index.js
-- utils/tradeMachine/engine/performanceMonitor.js
-- utils/tradeMachine/engine/tradeDebug.js
-- utils/tradeMachine/engine/tradeValidator.js
-- utils/tradeMachine/engine/validationDebugMonitor.js
-- utils/tradeMachine/engine/validationPerformanceMonitor.js
-- utils/tradeMachine/engine/validationUtils.js
 - utils/tradeMachine/index.js
 - utils/tradeMachine/rules/enforceEligibility.js
 - utils/tradeMachine/rules/index.js
@@ -227,4 +220,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T08:51:30.725Z*
+*Generated on: 2026-03-20T10:08:04.222Z*

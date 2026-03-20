@@ -15,7 +15,7 @@ import validateEntitlementRoutingDefault, {
   validateEntitlementRouting,
   validateEntitlementLinkageLegality,
 } from '@/features/architect/utils/tradeMachine/rules/validateEntitlementRouting';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

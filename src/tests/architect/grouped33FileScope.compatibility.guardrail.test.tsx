@@ -25,7 +25,6 @@ import * as basicArchitectUtilsJsModule from '../../features/architect/utils/bas
 import * as playerRulesProfileTypesJsModule from '../../features/architect/utils/playerRulesProfile/types.js';
 import * as ContractEditorModalJsxModule from '../../features/architect/contract/ContractEditorModal/ContractEditorModal.jsx';
 import * as validationCacheJsModule from '../../features/architect/utils/tradeMachine/cache/validationCache.js';
-import * as tradeDebugJsModule from '../../features/architect/utils/tradeMachine/engine/tradeDebug.js';
 
 describe('Grouped 33-file scope compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
@@ -41,12 +40,14 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     '../../features/architect/contract/ContractEditorModal/ContractEditorModal.tsx';
   const validationCacheAuthoritySpecifier =
     '../../features/architect/utils/tradeMachine/cache/validationCache.ts';
+  const tradeDebugExtensionlessSpecifier =
+    '@/features/architect/utils/tradeMachine/engine/tradeDebug';
   const tradeDebugAuthoritySpecifier =
     '../../features/architect/utils/tradeMachine/engine/tradeDebug.ts';
   const readSource = (relativePath: string) =>
     fs.readFileSync(path.join(srcRoot, relativePath), 'utf-8').trim();
 
-  it('keeps each high-risk legacy file as a pure shim', () => {
+  it('keeps each remaining high-risk legacy file as a pure shim', () => {
     expect(readSource('utils/basicArchitectUtils.js')).toBe(
       "export { default } from './basicArchitectUtils.ts';\nexport * from './basicArchitectUtils.ts';"
     );
@@ -59,9 +60,6 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect(
       readSource('utils/tradeMachine/cache/validationCache.js')
     ).toBe("export * from './validationCache.ts';");
-    expect(
-      readSource('utils/tradeMachine/engine/tradeDebug.js')
-    ).toBe("export { default } from './tradeDebug.ts';");
   });
 
   it('deletes the OffseasonSection.jsx compatibility shim', () => {
@@ -69,6 +67,12 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
       fs.existsSync(
         path.join(srcRoot, 'GMDashboard/sections/OffseasonSection.jsx')
       )
+    ).toBe(false);
+  });
+
+  it('deletes the tradeDebug.js compatibility shim', () => {
+    expect(
+      fs.existsSync(path.join(srcRoot, 'utils/tradeMachine/engine/tradeDebug.js'))
     ).toBe(false);
   });
 
@@ -159,12 +163,13 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect('default' in authorityModule).toBe(false);
   });
 
-  it('preserves tradeDebug default-only parity across extensionless, shim, and authority imports', async () => {
+  it('preserves tradeDebug default-only parity across extensionless and authority imports', async () => {
+    const extensionlessModule = await import(tradeDebugExtensionlessSpecifier);
     const authorityModule = await import(tradeDebugAuthoritySpecifier);
 
-    expect(Object.keys(tradeDebugJsModule)).toEqual(['default']);
+    expect(Object.keys(extensionlessModule)).toEqual(['default']);
     expect(Object.keys(authorityModule)).toEqual(['default']);
-    expect(tradeDebugJsModule.default).toBe(tradeDebug);
+    expect(extensionlessModule.default).toBe(tradeDebug);
     expect(authorityModule.default).toBe(tradeDebug);
   });
 });

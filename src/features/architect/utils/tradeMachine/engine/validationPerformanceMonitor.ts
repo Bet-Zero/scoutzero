@@ -1,4 +1,4 @@
-import { debug } from './engineUtils.js';
+import { debug } from './engineUtils';
 import { validationCache } from '../cache/validationCache.js';
 
 interface ValidationTypeMetrics {

@@ -9,13 +9,13 @@ The trade validation logic has been reorganized into a clean, layered architectu
 ```
 src/utils/architect/tradeMachine/
 ├── engine/           # Orchestration, performance monitoring, debug
-│   ├── tradeValidator.js          # Main validateTrade function
-│   ├── debug.js                   # Debug utilities  
-│   ├── tradeDebug.js             # Trade-specific debug
-│   ├── performanceMonitor.js      # Performance tracking
-│   ├── validationPerformanceMonitor.js
+│   ├── tradeValidator.ts         # Main validateTrade function
+│   ├── engineUtils.ts           # Debug utilities
+│   ├── tradeDebug.ts            # Trade-specific debug
+│   ├── performanceMonitor.ts    # Performance tracking
+│   ├── validationPerformanceMonitor.ts
 │   ├── validationDecorator.js     # Caching decorators
-│   ├── validationDebugMonitor.js  # Debug monitoring
+│   ├── validationDebugMonitor.ts # Debug monitoring
 │   ├── validatorFactory.js       # Validator factories
 │   ├── templateValidator.js      # Template validator
 │   ├── tradeKicker.js            # Trade kicker logic
@@ -181,7 +181,7 @@ export function validateSalaryMatching(team, context) {
 Caching and performance monitoring are now handled by the engine layer through decorators:
 
 ```javascript
-// In engine/tradeValidator.js
+// In engine/tradeValidator.ts
 import { wrapCommonValidators } from './validationDecorator.js';
 const validators = wrapCommonValidators(baseValidators);
 ```

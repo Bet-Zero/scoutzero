@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enforceRosterWindow } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { enforceRosterWindow } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validationFlags } from '@/config/validationFlags.js';
 
 const makeTeam = (std, tw) => ({

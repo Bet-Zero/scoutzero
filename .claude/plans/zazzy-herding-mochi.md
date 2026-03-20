@@ -277,6 +277,14 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Updated the remaining `tradeMachine/rules` wrapper/barrel surfaces to resolve through extensionless specifiers, preserving `rules/index.js` as the barrel and `enforceEligibility.js` as the intentional wrapper
 - Kept the next runtime-backed frontier untouched: `tradeMachine/engine/*.js`, `tradeMachine/cache/*.js`, persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js`
 
+**Phase 7B batch-5 status now:**
+- Deleted 7 runtime-backed same-path `tradeMachine/engine` shims: `engineUtils.js`, `performanceMonitor.js`, `tradeDebug.js`, `tradeValidator.js`, `validationDebugMonitor.js`, `validationPerformanceMonitor.js`, and `validationUtils.js`
+- Retargeted live `src/**` imports, trade tests, and Architect guardrails to extensionless paths or TS-authority checks for the retired engine surfaces
+- Added E121 guardrail coverage proving deleted-path absence plus representative extensionless/authority parity for the retired `tradeMachine/engine` surfaces
+- Retargeted the grouped compatibility guardrail so `tradeDebug.js` is now an intentionally deleted shim path while preserving extensionless/default-authority parity
+- Updated the retained barrel surfaces to resolve through extensionless engine specifiers, preserving `engine/index.js` as the barrel and removing its stale nonexistent `tradeValidator.debug.js` export
+- Kept the next runtime-backed frontier untouched: `tradeMachine/cache/*.js`, persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js`
+
 **Verification:**
 - `npm run typecheck` passes
 - `npm run build` passes
@@ -285,7 +293,7 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - `npm run validate:project` passes
 
 **What remains:**
-- Phase 7B runtime-backed same-path cleanup for the remaining clusters: Trade Machine engine/cache hosts, persistence-contract helpers, shared contract helpers, and any still-intentional top-level data/wrapper surfaces
+- Phase 7B runtime-backed same-path cleanup for the remaining clusters: Trade Machine cache hosts, persistence-contract helpers, shared contract helpers, and any still-intentional top-level data/wrapper surfaces
 - Phase 7C mixed/structural keeper review
 - Phase 7D wrapper/barrel/public-entry cleanup
 - Phase 7E final Architect JS/JSX inventory gate
@@ -377,7 +385,8 @@ Desired end state:
 - top-level Architect helper shims: ✅ second runtime-backed batch complete (`capUtils.js`, `cbaConstants.js`, `consentUtils.js`, `contractUtils.js`, `faExceptionUtils.js`, `hardCapUtils.js`, `reacqUtils.js`, `seasonFormat.js`, `seasonUtils.js`, `stepienUtils.js`, `timingUtils.js`, `tradeHelpers.js`)
 - `playerRulesProfile` leaf shims: ✅ third runtime-backed batch complete (`minimumSalaryRules.js`, `maxSalaryRules.js`, `birdRightsRules.js`, `rfaRules.js`, `extensionRules.js`, `computeProfile.js`)
 - `tradeMachine/rules`: ✅ fourth runtime-backed batch complete
-- Next safe batch: `tradeMachine/engine`
+- `tradeMachine/engine`: ✅ fifth runtime-backed batch complete
+- Next safe batch: `tradeMachine/cache`
 
 **High-priority runtime-backed clusters:**
 - `src/features/architect/utils/tradeMachine/**`
@@ -394,10 +403,9 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. `tradeMachine/engine`
-2. `tradeMachine/cache`
-3. persistence-contract helpers
-4. shared contract helpers
+1. `tradeMachine/cache`
+2. persistence-contract helpers
+3. shared contract helpers
 6. wrapper/barrel/public-entry cleanup gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces

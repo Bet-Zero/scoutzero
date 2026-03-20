@@ -5,7 +5,7 @@
  */
 
 // Core validation engine - main entry point
-export { validateTrade } from './engine/tradeValidator.js';
+export { validateTrade } from './engine/tradeValidator';
 
 // Unified salary matching rules - SINGLE SOURCE OF TRUTH
 export {
@@ -53,7 +53,7 @@ export { enforceRosterWindow } from './rules/rosterValidation';
 export { enforceSecondApronHandcuffs } from './rules/basicRules';
 
 // Debug utilities - from engine
-export { debug } from './engine/engineUtils.js';
+export { debug } from './engine/engineUtils';
 
 // Constants and matching utilities - from utils
 export {

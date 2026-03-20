@@ -1,26 +1,19 @@
 /**
  * Engine barrel file
- * Exports orchestration, performance monitoring, and debug functionality
- * This is the only module that should import cache
+ * Exports orchestration, performance monitoring, and debug functionality.
  */
 
 // Main trade validation orchestrator
-export * from './tradeValidator.js';
+export * from './tradeValidator';
 
 // Performance monitoring
-export * from './performanceMonitor.js';
-export * from './validationPerformanceMonitor.js';
+export * from './performanceMonitor';
+export * from './validationPerformanceMonitor';
 
 // Validation decorators and factories
-export * from './validationUtils.js';  // includes validationDecorator.js, validatorDebug.js, templateValidator.js
+export * from './validationUtils';
 
 // Debug utilities
-export * from './engineUtils.js';
-export * from './tradeDebug.js';
-export * from './validationDebugMonitor.js';
-export * from './validationUtils.js';  // includes validatorDebug.js
-
-// Trade-specific engine components (trade kicker now in engineUtils.js)
-
-// Template and debugging (templateValidator.js now in validationUtils.js)
-export * from './tradeValidator.debug.js';
+export * from './engineUtils';
+export * from './tradeDebug';
+export * from './validationDebugMonitor';

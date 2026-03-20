@@ -3,7 +3,7 @@ import {
   getApronStatus,
   getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
-import { wrapCommonValidators } from './validationUtils.js';
+import { wrapCommonValidators } from './validationUtils';
 import { createTPE } from '../utils/tpeValidation';
 
 // Import base validators from new structure

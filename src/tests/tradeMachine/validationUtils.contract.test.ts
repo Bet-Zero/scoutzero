@@ -4,11 +4,11 @@ import {
   validateTemplateRule,
   validatorDebug,
   wrapCommonValidators,
-} from '@/features/architect/utils/tradeMachine/engine/validationUtils.js';
-import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor.js';
+} from '@/features/architect/utils/tradeMachine/engine/validationUtils';
+import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor';
 import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
-import { debug } from '@/features/architect/utils/tradeMachine/engine/engineUtils.js';
-import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug.js';
+import { debug } from '@/features/architect/utils/tradeMachine/engine/engineUtils';
+import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
 
 describe('validationUtils contract', () => {
   beforeEach(() => {

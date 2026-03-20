@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validationCache } from '@/features/architect/utils/tradeMachine/cache/validationCacheService.js';
-import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor.js';
+import { performanceMonitor } from '@/features/architect/utils/tradeMachine/engine/validationPerformanceMonitor';
 import { cacheInvalidationManager } from '@/features/architect/utils/tradeMachine/cache/cacheInvalidationManager.js';
-import { debugMonitor } from '@/features/architect/utils/tradeMachine/engine/validationDebugMonitor.js';
+import { debugMonitor } from '@/features/architect/utils/tradeMachine/engine/validationDebugMonitor';
 
 const RUN_PERF = process.env.RUN_PERF_TESTS === '1';
 const describePerf = RUN_PERF ? describe : describe.skip;

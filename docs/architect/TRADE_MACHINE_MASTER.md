@@ -2211,6 +2211,24 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_RULES_SHIM_BATCH_E120_RETURN_PACKAGE.md`
 
+### Validator TS TradeMachine Engine Shim Retirement Batch E121 (2026-03-20)
+
+- Status:
+  - completed the fifth Phase 7B runtime-backed same-path cleanup batch
+  - deleted 7 runtime-backed same-path `.js` shims in `src/features/architect/utils/tradeMachine/engine`: `engineUtils.js`, `performanceMonitor.js`, `tradeDebug.js`, `tradeValidator.js`, `validationDebugMonitor.js`, `validationPerformanceMonitor.js`, and `validationUtils.js`
+  - moved live `src/**` imports, trade tests, and Architect guardrails off explicit `.js` imports for those engine modules; extensionless imports are now the internal contract for the retired engine surface
+  - added `src/tests/architect/tradeMachineEngineShimBatch.e121.guardrail.test.ts` to prove deleted-path absence plus representative extensionless/authority parity
+  - retargeted `src/tests/architect/grouped33FileScope.compatibility.guardrail.test.tsx` so `tradeDebug.js` is now treated as an intentionally deleted shim path while extensionless/default-authority parity remains covered
+  - kept `src/features/architect/utils/tradeMachine/engine/index.js` as the intentional barrel surface, updated it to extensionless specifiers, and removed its stale nonexistent `tradeValidator.debug.js` export
+  - kept `tradeMachine/cache/*.js`, persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js` out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: PASS (selected `ARCHITECT`; final result 198 files, 2726 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_ENGINE_SHIM_BATCH_E121_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.
