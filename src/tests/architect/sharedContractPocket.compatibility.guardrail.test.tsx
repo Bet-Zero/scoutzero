@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/sharedContractPocket.compatibility.guardrail.test.tsx
- * PURPOSE: Guardrail coverage for the E111 shared contract pocket TS authorities after EditContractModal shim retirement.
+ * PURPOSE: Guardrail coverage for the E111 shared contract pocket TS authorities after EditContractModal and shared contract-helper shim retirement.
  * OWNERSHIP: Feature: architect/shared-contract-pocket
  *
  * @vitest-environment jsdom
@@ -36,19 +36,16 @@ describe('E111 shared contract pocket compatibility guardrails', () => {
     'seasonStartYear',
   ] as const;
 
-  it('removes EditContractModal.jsx and keeps the shared contract utility shims', () => {
-    const contractUtilsShim = fs
-      .readFileSync(path.join(contractsRoot, 'contractUtils.js'), 'utf-8')
-      .trim();
-    const seasonNormalizerShim = fs
-      .readFileSync(path.join(contractsRoot, 'seasonNormalizer.js'), 'utf-8')
-      .trim();
-
+  it('removes EditContractModal.jsx plus the retired shared contract helper shim paths', () => {
     expect(
       fs.existsSync(path.join(componentRoot, 'EditContractModal.jsx'))
     ).toBe(false);
-    expect(contractUtilsShim).toBe("export * from './contractUtils.ts';");
-    expect(seasonNormalizerShim).toBe("export * from './seasonNormalizer.ts';");
+    expect(fs.existsSync(path.join(contractsRoot, 'contractUtils.js'))).toBe(
+      false
+    );
+    expect(fs.existsSync(path.join(contractsRoot, 'seasonNormalizer.js'))).toBe(
+      false
+    );
   });
 
   it('preserves EditContractModal default-only parity across extensionless and TSX authority imports', async () => {
@@ -60,66 +57,36 @@ describe('E111 shared contract pocket compatibility guardrails', () => {
     expect(explicitTsxModule.default).toBe(EditContractModal);
   });
 
-  it('keeps contractUtils and seasonNormalizer as pure compatibility shims', () => {
-    const contractUtilsShim = fs
-      .readFileSync(path.join(contractsRoot, 'contractUtils.js'), 'utf-8')
-      .trim();
-    const seasonNormalizerShim = fs
-      .readFileSync(path.join(contractsRoot, 'seasonNormalizer.js'), 'utf-8')
-      .trim();
-
-    expect(contractUtilsShim).toBe("export * from './contractUtils.ts';");
-    expect(seasonNormalizerShim).toBe("export * from './seasonNormalizer.ts';");
-  });
-
-  it('preserves contractUtils named-only parity across extensionless, JS shim, and TS authority imports', async () => {
-    const explicitJsModule = await import(
-      '../../shared/utils/contracts/contractUtils.js'
-    );
+  it('preserves contractUtils named-only parity across extensionless and TS authority imports', async () => {
     const explicitTsModule = await import(contractUtilsTsSpecifier);
 
     expect(Object.keys(ContractUtilsModule).sort()).toEqual(
-      Array.from(expectedContractUtilsExports)
-    );
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
       Array.from(expectedContractUtilsExports)
     );
     expect(Object.keys(explicitTsModule).sort()).toEqual(
       Array.from(expectedContractUtilsExports)
     );
     expect('default' in ContractUtilsModule).toBe(false);
-    expect('default' in explicitJsModule).toBe(false);
     expect('default' in explicitTsModule).toBe(false);
 
     for (const exportName of expectedContractUtilsExports) {
-      expect(explicitJsModule[exportName]).toBe(ContractUtilsModule[exportName]);
       expect(explicitTsModule[exportName]).toBe(ContractUtilsModule[exportName]);
     }
   });
 
-  it('preserves seasonNormalizer named-only parity across extensionless, JS shim, and TS authority imports', async () => {
-    const explicitJsModule = await import(
-      '../../shared/utils/contracts/seasonNormalizer.js'
-    );
+  it('preserves seasonNormalizer named-only parity across extensionless and TS authority imports', async () => {
     const explicitTsModule = await import(seasonNormalizerTsSpecifier);
 
     expect(Object.keys(SeasonNormalizerModule).sort()).toEqual(
-      Array.from(expectedSeasonNormalizerExports)
-    );
-    expect(Object.keys(explicitJsModule).sort()).toEqual(
       Array.from(expectedSeasonNormalizerExports)
     );
     expect(Object.keys(explicitTsModule).sort()).toEqual(
       Array.from(expectedSeasonNormalizerExports)
     );
     expect('default' in SeasonNormalizerModule).toBe(false);
-    expect('default' in explicitJsModule).toBe(false);
     expect('default' in explicitTsModule).toBe(false);
 
     for (const exportName of expectedSeasonNormalizerExports) {
-      expect(explicitJsModule[exportName]).toBe(
-        SeasonNormalizerModule[exportName]
-      );
       expect(explicitTsModule[exportName]).toBe(
         SeasonNormalizerModule[exportName]
       );

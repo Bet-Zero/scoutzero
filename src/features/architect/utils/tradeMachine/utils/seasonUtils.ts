@@ -7,7 +7,7 @@
 import {
   normalizeSeason,
   seasonStartYear,
-} from '@/shared/utils/contracts/seasonNormalizer.js';
+} from '@/shared/utils/contracts/seasonNormalizer';
 
 type SeasonYearInput = string | number | null | undefined;
 

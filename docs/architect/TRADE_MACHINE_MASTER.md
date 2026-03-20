@@ -2267,6 +2267,24 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PERSISTENCE_CONTRACT_SHIM_BATCH_E123_RETURN_PACKAGE.md`
 
+### Validator TS Shared Contract Helper Shim Retirement Batch E124 (2026-03-20)
+
+- Status:
+  - completed the eighth Phase 7B runtime-backed same-path cleanup batch
+  - deleted 2 runtime-backed same-path `.js` shims in `src/shared/utils/contracts`: `contractUtils.js` and `seasonNormalizer.js`
+  - moved the live `src/**` shared-helper import in `src/features/architect/utils/tradeMachine/utils/seasonUtils.ts`, the retained shared barrel, the live `contractParser.js` local import, and the affected tests/Architect guardrails off explicit `.js` helper imports; extensionless imports are now the internal contract for the retired shared-helper surface
+  - added `src/tests/architect/sharedContractHelpersShimBatch.e124.guardrail.test.ts` to prove deleted-path absence plus representative extensionless/authority parity
+  - retargeted `src/tests/architect/sharedContractPocket.compatibility.guardrail.test.tsx` so the shared helper paths are now treated as intentionally deleted shim paths while EditContractModal authority parity remains covered
+  - kept `src/shared/utils/contracts/index.js` as the intentional barrel surface and `src/shared/utils/contracts/contractParser.js` as the intentional live JS module
+  - kept `tradeContext/legacy/index.js` and still-intentional top-level data/wrapper surfaces out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: PASS (selected `ARCHITECT`; final result 201 files, 2743 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHARED_CONTRACT_HELPER_SHIM_BATCH_E124_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -7,7 +7,7 @@ import {
   isSeasonActive,
   isSeasonFuture,
   isSeasonExpired,
-} from './seasonNormalizer.js';
+} from './seasonNormalizer';
 
 /**
  * Normalize a single contract from canonical format

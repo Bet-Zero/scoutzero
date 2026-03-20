@@ -301,6 +301,13 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Architect UI smoke exposed season-code `yearKey` handling in `TradeTeamCard.tsx`; the card now normalizes season inputs before calling `computeTeamCapTotals`, preventing `NaN` cap-profile crashes without changing the intended salary/totals behavior
 - Kept the next runtime-backed frontier untouched: `shared/utils/contracts/*.js`, `tradeContext/legacy/index.js`, and any still-intentional top-level data/wrapper surfaces
 
+**Phase 7B batch-8 status now:**
+- Deleted 2 runtime-backed same-path shared contract-helper shims: `contractUtils.js` and `seasonNormalizer.js`
+- Retargeted the live `src/**` shared-helper import in `tradeMachine/utils/seasonUtils.ts`, the retained shared barrel, the live `contractParser.js` local import, and the affected tests/Architect guardrails to extensionless paths or TS-authority checks
+- Added E124 guardrail coverage proving deleted-path absence plus representative extensionless/authority parity for the retired shared contract-helper surfaces
+- Preserved `shared/utils/contracts/index.js` as the intentional barrel surface and `shared/utils/contracts/contractParser.js` as the intentional live JS module while removing the two same-path helper hosts beneath them
+- Kept the next runtime-backed frontier untouched: `tradeContext/legacy/index.js` and any still-intentional top-level data/wrapper surfaces
+
 **Verification:**
 - `npm run typecheck` passes
 - `npm run build` passes
@@ -310,7 +317,7 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - `npm run validate:project` passes
 
 **What remains:**
-- Phase 7B runtime-backed same-path cleanup for the remaining clusters: shared contract helpers and any still-intentional top-level data/wrapper surfaces
+- Phase 7B runtime-backed same-path cleanup for the remaining clusters: any still-intentional top-level data/wrapper surfaces
 - Phase 7C mixed/structural keeper review
 - Phase 7D wrapper/barrel/public-entry cleanup
 - Phase 7E final Architect JS/JSX inventory gate
@@ -405,14 +412,13 @@ Desired end state:
 - `tradeMachine/engine`: ✅ fifth runtime-backed batch complete
 - `tradeMachine/cache`: ✅ sixth runtime-backed batch complete (`cacheInvalidationManager.js`, `validationCache.js`, `validationCacheService.js`)
 - persistence-contract helpers: ✅ seventh runtime-backed batch complete (`contracts.js`, `enforcement.js`, `normalizeTeamTpe.js`, `validatePersistableShape.js`)
-- Next safe batch: shared contract helpers
+- shared contract helpers: ✅ eighth runtime-backed batch complete (`contractUtils.js`, `seasonNormalizer.js`)
+- Next safe batch: wrapper/barrel/public-entry cleanup gate
 
 **High-priority runtime-backed clusters:**
 - `src/features/architect/utils/tradeMachine/**`
 - remaining top-level Architect utility/data surfaces that still intentionally carry `.js` hosts
-- shared contract helpers:
-  - `contractUtils.js`
-  - `seasonNormalizer.js`
+- still-intentional wrapper/barrel/data surfaces whose callers can be moved without changing public behavior
 
 **Actions:**
 - Replace explicit `.js` imports in `.ts` / `.tsx` files with extensionless or authority imports
@@ -420,8 +426,9 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. shared contract helpers
-2. wrapper/barrel/public-entry cleanup gate
+1. wrapper/barrel/public-entry cleanup gate
+2. mixed/structural keeper review
+3. final inventory gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
 

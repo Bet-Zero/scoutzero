@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getCurrentSeasonYear,
   getYearsRemaining,
-} from '@/shared/utils/contracts/index.js';
+} from '@/shared/utils/contracts';
 
 describe('contract year helpers', () => {
   it('computes current season based on date', () => {
