@@ -333,16 +333,22 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Added `src/tests/architect/finalMixedKeeperBatch.e128.guardrail.test.ts` to prove the exact 2-file deletion batch, extensionless/authority parity, and continued intentional preservation of `tradeContext/legacy/index.js`
 - Closed Phase 7C by classifying `tradeContext/legacy/index.js` as the intentional preserved legacy contract; no open mixed/structural keeper candidates remain
 
+**Phase 7D batch-2 status now:**
+- Retired 3 route/public-entry wrapper surfaces whose only live callers were internal route pages: `GMDashboard/index.jsx`, `LeagueView.jsx`, and `shared/LeagueView/LeagueView.jsx`
+- Moved `GmDashboardView.jsx` and `GmLeagueView.jsx` off the deleted wrapper aliases to direct canonical imports (`GMDashboard/GMDashboard` and `shared/LeagueView`)
+- Added `src/tests/architect/routeEntryWrapperBatch.e129.guardrail.test.tsx` to prove the exact 3-file deletion batch, direct route-page import targets, and continued `shared/LeagueView/index.ts` folder-entry alignment with the TS authority
+- Reduced the remaining Phase 7D work to retained barrel/public-entry decisions, not route-wrapper aliases
+
 **Verification (latest pass):**
 - `npm run typecheck` passes
 - `npm run build` passes
 - `npm run test:architect -- --reporter=dot` passes
-- `npm run test:trade -- --reporter=dot` passes
 - `npm run validate:project` passes
-- `npm run test:diff -- --reporter=dot` was not used for E128 signoff because the Architect plus trade suites matched the touched helper/runtime/guardrail surface directly and avoided diff-based `FULL` escalation behavior
+- `npm run test:trade -- --reporter=dot` was not required for E129 signoff because this batch stayed in route/public-entry wrapper imports and Architect guardrail surfaces, not trade-helper runtime logic
+- `npm run test:diff -- --reporter=dot` was not used for E129 signoff because the Architect suite matched the touched route-wrapper/guardrail surface directly and avoided diff-based `FULL` escalation behavior
 
 **What remains:**
-- Phase 7D remaining route/public-entry wrapper cleanup decisions
+- Phase 7D retained barrel/public-entry cleanup decisions
 - Phase 7E final Architect JS/JSX inventory gate
 
 ## Summary
@@ -512,7 +518,8 @@ Desired end state:
 
 **Current status:**
 - Internal wrapper/barrel subset: ✅ first cleanup batch complete (`CapSheet.jsx`, `CapSheetFull.jsx`, `CapSummaryTiles.jsx`, `DraftPickTracker.jsx`, `ExceptionHistoryTracker.jsx`, `ExceptionTracker.jsx`, `FreeAgentPool.jsx`, `OffseasonTab.jsx`, `RosterVisual.jsx`, `TeamHistoryTab.jsx`, `ValidationWarnings.jsx`, `WaiveStretchTracker.jsx`, `GMDashboard/components/index.js`)
-- Remaining route/public-entry wrappers such as `GMDashboard/index.jsx` and `LeagueView.jsx` stay open for a separate decision pass because they shape public import topology more directly than the deleted internal wrappers did
+- Route/public-entry wrapper subset: ✅ second cleanup batch complete (`GMDashboard/index.jsx`, `LeagueView.jsx`, `shared/LeagueView/LeagueView.jsx`)
+- Remaining 7D work is now the retained barrel/public-entry decision set (`tradeMachine/index.js`, `tradeMachine/rules/index.js`, `tradeMachine/utils/index.js`, `persistenceContracts/index.js`, `playerRulesProfile/index.js`, `capTotals/index.js`, `tradeContext/index.js`) rather than route-wrapper aliases
 
 ## Phase 7E: Final Architect JS/JSX Inventory Gate
 

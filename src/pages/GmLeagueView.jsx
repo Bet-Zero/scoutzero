@@ -1,5 +1,5 @@
 import React from 'react';
-import LeagueView from '@/features/architect/LeagueView';
+import LeagueView from '@/features/architect/shared/LeagueView';
 
 const GmLeagueView = () => (
   <div className="px-4 pt-4">

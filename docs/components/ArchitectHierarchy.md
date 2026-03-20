@@ -17,7 +17,6 @@ GMDashboard/
     useArchitectActions.ts
     useArchitectModals.ts
     useArchitectState.ts
-  index.jsx
   offerSheetTypes.ts
   sections/
     CapSheetSection.tsx
@@ -27,7 +26,6 @@ GMDashboard/
     OffseasonSection.tsx
     RosterSection.tsx
     TradeSection.tsx
-LeagueView.jsx
 admin/
   EntitlementEditorAdvancedTab.tsx
   EntitlementEditorBasicsTab.tsx
@@ -152,7 +150,6 @@ offseason/
   index.ts
 shared/
   LeagueView/
-    LeagueView.jsx
     LeagueView.tsx
     index.ts
   RosterVisual/
@@ -392,5 +389,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T12:08:36.894Z*
+*Generated on: 2026-03-20T12:21:17.831Z*
 *Auto-updated by: npm run docs*

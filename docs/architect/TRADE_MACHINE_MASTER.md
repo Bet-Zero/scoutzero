@@ -2349,6 +2349,20 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_FINAL_MIXED_KEEPER_BATCH_E128_RETURN_PACKAGE.md`
 
+### Validator TS Route Entry Wrapper Batch E129 (2026-03-20)
+
+- Status:
+  - completed the route/public-entry wrapper slice of Phase 7D by deleting `src/features/architect/GMDashboard/index.jsx`, `src/features/architect/LeagueView.jsx`, and `src/features/architect/shared/LeagueView/LeagueView.jsx`
+  - moved the only live app callers in `src/pages/GmDashboardView.jsx` and `src/pages/GmLeagueView.jsx` onto direct canonical imports: `@/features/architect/GMDashboard/GMDashboard` and `@/features/architect/shared/LeagueView`
+  - added `src/tests/architect/routeEntryWrapperBatch.e129.guardrail.test.tsx` to prove the exact 3-file deletion batch, direct route-page import targets, and continued `src/features/architect/shared/LeagueView/index.ts` folder-entry alignment with the TS authority
+  - reduced the remaining Phase 7D work to retained barrel/public-entry decisions rather than route-wrapper aliases
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:architect -- --reporter=dot`: PASS (203 files, 2753 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_ROUTE_ENTRY_WRAPPER_BATCH_E129_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

@@ -4,8 +4,6 @@ Quick reference for all components in the ScoutZero project.
 
 ## Architect
 
-- GMDashboard/index.jsx
-- LeagueView.jsx
 - capSheet/CapSheet/CapSheet.jsx
 - capSheet/CapSheet/CapSummaryTiles.jsx
 - capSheet/CapSheetFull/CapSheetFull.jsx
@@ -22,7 +20,6 @@ Quick reference for all components in the ScoutZero project.
 - hooks/usePlayerRulesProfiles.js
 - hooks/useTradeMachine.js
 - hooks/useTradeMachineSnapshot.js
-- shared/LeagueView/LeagueView.jsx
 - shared/RosterVisual/RosterVisual.jsx
 - shared/ValidationWarnings/ValidationWarnings.jsx
 - utils/capProjections.js
@@ -190,4 +187,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T12:08:36.923Z*
+*Generated on: 2026-03-20T12:21:17.860Z*

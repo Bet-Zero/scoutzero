@@ -1,5 +1,5 @@
 import React from 'react';
-import GMDashboard from '@/features/architect/GMDashboard';
+import GMDashboard from '@/features/architect/GMDashboard/GMDashboard';
 import { useAuth } from '@/shared/hooks/useAuth';
 
 const GmDashboardView = () => {
