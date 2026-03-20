@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
+import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import {
   getHardCapStatus,
   HARD_CAP_TYPES,

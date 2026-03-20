@@ -197,7 +197,7 @@ vi.mock('@/features/architect/tradeMachine/TradeExceptionManager', () => ({
   default: harness.tradeExceptionManagerMock,
 }));
 
-vi.mock('@/features/architect/utils/faExceptionUtils.js', () => ({
+vi.mock('@/features/architect/utils/faExceptionUtils', () => ({
   getTeamFaExceptionBuckets: () => [{ type: 'ROOM', remaining: 1_500_000 }],
   isFaExceptionEligibleType: () => true,
 }));

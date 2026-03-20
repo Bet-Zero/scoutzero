@@ -296,7 +296,7 @@ describe('Season Advance + Resolution (structure tests)', () => {
 import {
   formatPick,
   formatSwapInfo,
-} from '@/features/architect/utils/tradeHelpers.js';
+} from '@/features/architect/utils/tradeHelpers';
 
 describe('Display Labels for Resolved Swaps', () => {
   it('unresolved swap label includes swap partner and type', () => {

@@ -29,8 +29,8 @@ import {
 } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
 import { computeRFAStatus } from '@/features/architect/utils/playerRulesProfile/rfaRules.js';
 import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules.js';
-import { parseSeasonEndYear } from '@/features/architect/utils/seasonUtils.js';
-import { DEFAULT_AVERAGE_SALARY } from '@/features/architect/utils/cbaConstants.js';
+import { parseSeasonEndYear } from '@/features/architect/utils/seasonUtils';
+import { DEFAULT_AVERAGE_SALARY } from '@/features/architect/utils/cbaConstants';
 import { getCapForSeason } from '@/features/architect/utils/capHelpers';
 import {
   getCurrentSeasonId,

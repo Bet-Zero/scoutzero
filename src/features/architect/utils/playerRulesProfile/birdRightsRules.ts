@@ -30,7 +30,7 @@
  */
 
 import { formatSalary } from '@/shared/utils/formatting/basicFormatting.js';
-import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
+import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants';
 import { CAP_HOLD_MULTIPLIERS } from '../capHolds';
 
 type BirdRightsType = string;

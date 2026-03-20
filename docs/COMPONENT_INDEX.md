@@ -46,15 +46,9 @@ Quick reference for all components in the ScoutZero project.
 - utils/capProjections.js
 - utils/capTotals/computeTeamCapTotals.js
 - utils/capTotals/index.js
-- utils/capUtils.js
-- utils/cbaConstants.js
-- utils/consentUtils.js
-- utils/contractUtils.js
 - utils/draftPickUtils.js
 - utils/exceptions/exceptionLifecycle.js
 - utils/exceptions/index.js
-- utils/faExceptionUtils.js
-- utils/hardCapUtils.js
 - utils/persistenceContracts/contracts.js
 - utils/persistenceContracts/enforcement.js
 - utils/persistenceContracts/index.js
@@ -68,15 +62,9 @@ Quick reference for all components in the ScoutZero project.
 - utils/playerRulesProfile/minimumSalaryRules.js
 - utils/playerRulesProfile/rfaRules.js
 - utils/playerRulesProfile/types.js
-- utils/reacqUtils.js
-- utils/seasonFormat.js
-- utils/seasonUtils.js
-- utils/stepienUtils.js
-- utils/timingUtils.js
 - utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
 - utils/tradeContext/types.js
-- utils/tradeHelpers.js
 - utils/tradeMachine/cache/cacheInvalidationManager.js
 - utils/tradeMachine/cache/index.js
 - utils/tradeMachine/cache/validationCache.js
@@ -266,4 +254,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T07:37:45.282Z*
+*Generated on: 2026-03-20T07:58:19.773Z*

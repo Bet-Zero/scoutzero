@@ -11,6 +11,8 @@ interface SignedDateCarrier {
   signedDate?: DateLike | null;
 }
 
+export { violatesReacquisitionBar } from './reacqUtils';
+
 export function isWithinMoratorium(
   date: DateLike,
   { startMonth, startDay, endMonth, endDay }: MoratoriumWindow

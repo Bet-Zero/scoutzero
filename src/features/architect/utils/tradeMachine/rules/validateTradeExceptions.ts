@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/features/architect/utils/tradeHelpers.js';
+import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import { SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { isSecondApronTeam as checkSecondApron } from '../utils/capUtils';
 import {

@@ -20,7 +20,7 @@
  */
 
 import { getYearsOfService, getMinimumSalaryScale } from './minimumSalaryRules.js';
-import { parseSeasonEndYear } from '../seasonUtils.js';
+import { parseSeasonEndYear } from '../seasonUtils';
 
 type PlayerSalaryEntryLike = {
   season?: string | null;

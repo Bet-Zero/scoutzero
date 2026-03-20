@@ -2159,6 +2159,23 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_RUNTIME_BACKED_UTILS_CONSTANTS_BATCH_E117_RETURN_PACKAGE.md`
 
+### Validator TS Top-Level Helper Shim Retirement Batch E118 (2026-03-20)
+
+- Status:
+  - completed the second Phase 7B runtime-backed same-path cleanup batch
+  - deleted 12 runtime-backed same-path `.js` shims in `src/features/architect/utils`: `capUtils.js`, `cbaConstants.js`, `consentUtils.js`, `contractUtils.js`, `faExceptionUtils.js`, `hardCapUtils.js`, `reacqUtils.js`, `seasonFormat.js`, `seasonUtils.js`, `stepienUtils.js`, `timingUtils.js`, and `tradeHelpers.js`
+  - moved live `src/**`, tests, and retained barrel/wrapper exports off explicit `.js` imports for those helper modules; extensionless imports are now the internal contract for that helper surface
+  - added `src/tests/architect/topLevelHelperShimBatch.e118.guardrail.test.ts` to prove deleted-path absence plus representative extensionless/authority parity
+  - folded `violatesReacquisitionBar` into the authoritative `timingUtils.ts` export surface so `timingUtils.js` and `reacqUtils.js` could retire in the same batch without a contract break
+  - kept `playerRulesProfile/**`, `tradeMachine/rules/*.js`, `tradeMachine/engine/*.js`, `tradeMachine/cache/*.js`, persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js` out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: PASS (195 files, 2694 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TOP_LEVEL_HELPER_SHIM_BATCH_E118_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

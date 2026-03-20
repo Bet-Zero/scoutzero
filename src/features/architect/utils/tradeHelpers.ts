@@ -1,16 +1,16 @@
 import {
   CBA_BY_YEAR,
   MATCHING_BANDS_2023,
-} from '@/features/architect/utils/cbaConstants.js';
+} from '@/features/architect/utils/cbaConstants';
 import {
   getSalaryMatchingResult,
   SALARY_MATCHING_TIERS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
-export { wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils.js';
+export { wouldExceedHardCap } from '@/features/architect/utils/hardCapUtils';
 import { isPriorYearTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
-import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils.js';
+import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils';
 import { areSamePickById } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
-import { toEndYear } from './seasonFormat.js';
+import { toEndYear } from './seasonFormat';
 import { getTeamApronStatus as getTeamApronStatusSSoT } from '@/features/architect/utils/capUtils';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
 

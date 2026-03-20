@@ -23,8 +23,8 @@
 
 import { getYearsOfService } from './minimumSalaryRules.js';
 import { checkSupermaxEligibility } from './maxSalaryRules.js';
-import { parseSeasonEndYear } from '../seasonUtils.js';
-import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants.js';
+import { parseSeasonEndYear } from '../seasonUtils';
+import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants';
 
 type ExtensionSalaryEntryLike = {
   season?: string | null;

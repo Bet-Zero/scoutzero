@@ -3,7 +3,7 @@
  * Handles calculations for allowable incoming salary
  */
 
-import { calculateAllowableIncoming } from '@/features/architect/utils/tradeHelpers.js';
+import { calculateAllowableIncoming } from '@/features/architect/utils/tradeHelpers';
 import {
   getTeamObject,
   isSecondApronTeam,

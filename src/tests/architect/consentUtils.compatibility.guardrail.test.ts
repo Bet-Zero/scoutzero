@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as consentUtilsModule from '@/features/architect/utils/consentUtils';
 import {
   birdRightsVetoApplies,
   collectConsentViolations,
@@ -28,23 +29,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const srcRoot = path.resolve(__dirname, '../../features/architect');
 const consentUtilsShimPath = path.join(srcRoot, 'utils/consentUtils.js');
+const consentUtilsAuthoritySpecifier =
+  '../../features/architect/utils/consentUtils.ts';
 
 describe('E80 consentUtils compatibility guardrails', () => {
-  it('consentUtils.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(consentUtilsShimPath, 'utf-8');
-
-    expect(source).toContain("export * from './consentUtils.ts';");
-    expect(source).not.toContain('export function requiresConsent');
-    expect(source).not.toContain('export function collectConsentViolations');
-    expect(source).not.toContain('Player NTC — consent required');
+  it('deletes the consentUtils.js compatibility shim', () => {
+    expect(fs.existsSync(consentUtilsShimPath)).toBe(false);
   });
 
-  it('explicit .js import exposes the same named API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/utils/consentUtils.js'
-    );
+  it('extensionless imports expose the same named API as the TS authority', async () => {
+    const authorityModule = await import(consentUtilsAuthoritySpecifier);
 
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
+    expect(Object.keys(consentUtilsModule).sort()).toEqual([
       'birdRightsVetoApplies',
       'collectConsentViolations',
       'destinationRequiresLimitedNTCConsent',
@@ -56,27 +52,30 @@ describe('E80 consentUtils compatibility guardrails', () => {
       'requiresLimitedNTCConsent',
       'requiresOneYearBirdVetoConsent',
     ]);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.requiresConsent).toBe(requiresConsent);
-    expect(explicitJsModule.hasConsent).toBe(hasConsent);
-    expect(explicitJsModule.birdRightsVetoApplies).toBe(birdRightsVetoApplies);
-    expect(explicitJsModule.hasFullNTC).toBe(hasFullNTC);
-    expect(explicitJsModule.destinationRequiresLimitedNTCConsent).toBe(
+    expect(Object.keys(authorityModule).sort()).toEqual(
+      Object.keys(consentUtilsModule).sort()
+    );
+    expect('default' in authorityModule).toBe(false);
+    expect(authorityModule.requiresConsent).toBe(requiresConsent);
+    expect(authorityModule.hasConsent).toBe(hasConsent);
+    expect(authorityModule.birdRightsVetoApplies).toBe(birdRightsVetoApplies);
+    expect(authorityModule.hasFullNTC).toBe(hasFullNTC);
+    expect(authorityModule.destinationRequiresLimitedNTCConsent).toBe(
       destinationRequiresLimitedNTCConsent
     );
-    expect(explicitJsModule.requiresBirdOneYearConsent).toBe(
+    expect(authorityModule.requiresBirdOneYearConsent).toBe(
       requiresBirdOneYearConsent
     );
-    expect(explicitJsModule.collectConsentViolations).toBe(
+    expect(authorityModule.collectConsentViolations).toBe(
       collectConsentViolations
     );
-    expect(explicitJsModule.requiresFullNTCConsent).toBe(
+    expect(authorityModule.requiresFullNTCConsent).toBe(
       requiresFullNTCConsent
     );
-    expect(explicitJsModule.requiresLimitedNTCConsent).toBe(
+    expect(authorityModule.requiresLimitedNTCConsent).toBe(
       requiresLimitedNTCConsent
     );
-    expect(explicitJsModule.requiresOneYearBirdVetoConsent).toBe(
+    expect(authorityModule.requiresOneYearBirdVetoConsent).toBe(
       requiresOneYearBirdVetoConsent
     );
   });

@@ -1,4 +1,4 @@
-import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { isSecondApronTeam } from '../utils/capUtils';
 import {
   SECOND_APRON_AGGREGATION_UP_BLOCKED,

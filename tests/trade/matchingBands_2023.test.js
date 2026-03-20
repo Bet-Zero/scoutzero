@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateAllowableIncoming,
   getTierThresholds,
-} from '@/features/architect/utils/tradeHelpers.js';
+} from '@/features/architect/utils/tradeHelpers';
 
 const [BAND1, BAND2] = getTierThresholds(2025);
 

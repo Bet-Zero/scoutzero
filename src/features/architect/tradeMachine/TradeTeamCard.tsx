@@ -15,7 +15,7 @@ import TradeExceptionManager from './TradeExceptionManager';
 import {
   getTeamFaExceptionBuckets,
   isFaExceptionEligibleType,
-} from '@/features/architect/utils/faExceptionUtils.js';
+} from '@/features/architect/utils/faExceptionUtils';
 import { validationFlags } from '@/config/validationFlags.js';
 import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';

@@ -2,7 +2,7 @@
 import {
   getApronStatus,
   getSalaryForYear,
-} from '@/features/architect/utils/tradeHelpers.js';
+} from '@/features/architect/utils/tradeHelpers';
 import { wrapCommonValidators } from './validationUtils.js';
 import { createTPE } from '../utils/tpeValidation';
 

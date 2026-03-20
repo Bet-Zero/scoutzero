@@ -183,7 +183,7 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
     });
   });
 
-  describe('faExceptionUtils.js: canUseFaException', () => {
+  describe('faExceptionUtils: canUseFaException', () => {
     it('should ALLOW use when salary is EXACTLY at second apron', () => {
        const teamCtx = {
            teamTotalSalary: CAP_CONTEXT.secondApron,

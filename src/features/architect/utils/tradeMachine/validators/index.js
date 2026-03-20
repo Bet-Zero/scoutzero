@@ -46,7 +46,7 @@ export * from '../utils/validateInput.ts';
 export * from '../utils/normalizeTradeInput.ts';
 
 // Stepien utility - from parent architect utils
-export { hasStepienViolation } from '../../stepienUtils.js';
+export { hasStepienViolation } from '../../stepienUtils';
 
 // Cache and debugging - now in engine/ and cache/
 export { validationCache } from '../cache/validationCache.js';

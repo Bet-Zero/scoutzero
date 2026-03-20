@@ -1,5 +1,5 @@
-import { getApronStatus, getSalaryForYear } from '../../tradeHelpers.js';
-import { getTeamFaExceptionBuckets } from '../../faExceptionUtils.js';
+import { getApronStatus, getSalaryForYear } from '../../tradeHelpers';
+import { getTeamFaExceptionBuckets } from '../../faExceptionUtils';
 
 type NumericLike = number | string | null | undefined;
 

@@ -236,15 +236,11 @@ utils/
     computeTeamCapTotals.js
     computeTeamCapTotals.ts
     index.js
-  capUtils.js
   capUtils.ts
-  cbaConstants.js
   cbaConstants.ts
-  consentUtils.js
   consentUtils.ts
   contractNormalization.ts
   contractSalaryUtils.ts
-  contractUtils.js
   contractUtils.ts
   draftPickUtils.js
   entitlements/
@@ -281,10 +277,8 @@ utils/
     exceptionLifecycle.js
     exceptionLifecycle.ts
     index.js
-  faExceptionUtils.js
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.ts
-  hardCapUtils.js
   hardCapUtils.ts
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
@@ -319,7 +313,6 @@ utils/
     rfaRules.ts
     types.js
     types.ts
-  reacqUtils.js
   reacqUtils.ts
   runOffseason.ts
   salaryEngine/
@@ -329,17 +322,13 @@ utils/
     types.ts
   salaryUtils.ts
   schemaAdapter.ts
-  seasonFormat.js
   seasonFormat.ts
   seasonHelpers.ts
   seasonManager.ts
-  seasonUtils.js
   seasonUtils.ts
-  stepienUtils.js
   stepienUtils.ts
   subscribeArchitectPlayerData.ts
   teamLoader.ts
-  timingUtils.js
   timingUtils.ts
   tpeLifecycle.ts
   tradeContext/
@@ -351,7 +340,6 @@ utils/
     tradeContext.ts
     types.js
     types.ts
-  tradeHelpers.js
   tradeHelpers.ts
   tradeMachine/
     MIGRATION_NOTES.md
@@ -468,5 +456,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T07:37:45.255Z*
+*Generated on: 2026-03-20T07:58:19.724Z*
 *Auto-updated by: npm run docs*

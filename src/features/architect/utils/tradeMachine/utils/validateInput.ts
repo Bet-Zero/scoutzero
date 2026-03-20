@@ -3,7 +3,7 @@
  * Ensures data meets minimum requirements before normalization
  */
 
-import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 
 interface ValidateInputContractLike {
   salariesByYear?: unknown[] | null;

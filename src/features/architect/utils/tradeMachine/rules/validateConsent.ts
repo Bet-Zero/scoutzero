@@ -3,7 +3,7 @@ import {
   destinationRequiresLimitedNTCConsent,
   hasConsent,
   hasFullNTC,
-} from '@/features/architect/utils/consentUtils.js';
+} from '@/features/architect/utils/consentUtils';
 import {
   ConsentValidationResult,
   TeamContext,

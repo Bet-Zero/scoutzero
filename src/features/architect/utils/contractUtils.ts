@@ -7,7 +7,7 @@
  *  - 2026-03-12: Migrated authoritative implementation to TypeScript for E59.
  */
 
-import { toSeasonCode, toEndYear } from './seasonFormat.js';
+import { toSeasonCode, toEndYear } from './seasonFormat';
 interface ContractOptions {
   guaranteed?: boolean | null;
   playerOption?: boolean | null;

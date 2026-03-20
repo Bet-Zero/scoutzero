@@ -1,5 +1,5 @@
 import { validationFlags } from '@/config/validationFlags.js';
-import { hasConsent } from '@/features/architect/utils/consentUtils.js';
+import { hasConsent } from '@/features/architect/utils/consentUtils';
 import { TeamContext, TradeExceptionPlayer, TradeTeam } from '../constants/types';
 
 interface ConsentEnforcementPlayer extends TradeExceptionPlayer {

@@ -1,5 +1,5 @@
 /**
- * FILE: src/features/architect/utils/cbaConstants.js
+ * FILE: src/features/architect/utils/cbaConstants.ts
  * PURPOSE: Feature-level CBA constants for the Architect feature. Provides CBA constants
  *          used throughout the Architect system, re-exporting shared constants from the
  *          canonical trade machine module to avoid duplication and drift.
@@ -8,7 +8,7 @@
  * HISTORY:
  *  - 2025-12-26: Refactored header to standard template; consolidated re-exports
  *  - 2024-12-27: Phase 2 - Deprecated local matching tier constants in favor of
- *                unified salaryMatchingRules.js module
+ *                unified salaryMatchingRules module
  *
  * LINKS:
  *  - Canonical Source: tradeMachine/utils/salaryMatchingRules (SINGLE SOURCE OF TRUTH for salary matching)
@@ -75,7 +75,7 @@ export {
 export const DEFAULT_AVERAGE_SALARY = 11_100_000;
 
 /**
- * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules.js instead.
+ * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules instead.
  * This object's matchingTiers formulas were INCORRECT and have been superseded.
  *
  * CBA constants by year - kept for legacy cashLimit lookups only
@@ -86,7 +86,7 @@ export const CBA_BY_YEAR: Record<number, CbaYearLike> = {
     salaryTiers: [6_500_000, 19_600_000], // legacy thresholds - use SALARY_MATCHING_TIERS instead
     /**
      * @deprecated INCORRECT FORMULAS - DO NOT USE
-     * Use getSalaryMatchingResult() from salaryMatchingRules.js instead
+     * Use getSalaryMatchingResult() from salaryMatchingRules instead
      */
     matchingTiers: [
       // DEPRECATED - these formulas were incorrect
@@ -100,25 +100,25 @@ export const CBA_BY_YEAR: Record<number, CbaYearLike> = {
 };
 
 /**
- * @deprecated Use getSalaryMatchingResult() from salaryMatchingRules.js instead
+ * @deprecated Use getSalaryMatchingResult() from salaryMatchingRules instead
  */
 export const getMatchingTiers = (year = 2025): MatchingTier[] =>
   CBA_BY_YEAR[year]?.matchingTiers || CBA_BY_YEAR[2025].matchingTiers;
 
 /**
- * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules.js instead
+ * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules instead
  */
 export const OUTGOING_BAND1_MAX = 'BAND1'; // placeholder token
 /**
- * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules.js instead
+ * @deprecated Use SALARY_MATCHING_TIERS from salaryMatchingRules instead
  */
 export const OUTGOING_BAND2_MAX = 'BAND2'; // placeholder token
 
 /**
- * @deprecated Use getSalaryMatchingResult() from salaryMatchingRules.js instead.
+ * @deprecated Use getSalaryMatchingResult() from salaryMatchingRules instead.
  *
  * These formulas are kept for backwards compatibility but the authoritative
- * source is now salaryMatchingRules.js which both the validator and UI use.
+ * source is now salaryMatchingRules, which both the validator and UI use.
  *
  * Matching bands for teams below first apron (2023+):
  * A) S_out ≤ BAND1  ⇒ allowed = 200% * S_out + 250k
@@ -161,4 +161,4 @@ export const MAX_STANDARD_PLAYERS = 15; // roster size (two-ways excluded)
  * @deprecated Use ROSTER_REQUIREMENTS.MAX_TWO_WAY_CONTRACTS from re-exported trade machine constants
  */
 export const MAX_TWO_WAY_PLAYERS = 3;
-/***********************  END SCSP™ BLOCK: cbaConstants.js  ***********************/
+/***********************  END SCSP™ BLOCK: cbaConstants.ts  ***********************/

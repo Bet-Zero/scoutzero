@@ -43,7 +43,7 @@ const ALLOWLIST = [
   'src/features/architect/tradeMachine/FaExceptionTracker.tsx',
 
   // Hard cap utilities (threshold-based, not apron derivation)
-  'src/features/architect/utils/hardCapUtils.js',
+  'src/features/architect/utils/hardCapUtils.ts',
 ];
 
 // Patterns that indicate apron derivation/gating logic
@@ -162,24 +162,20 @@ describe('Phase 43 Apron Drift Prevention Guardrails', () => {
     }
   });
 
-  test('canonical capUtils.js shim points at the extensionless TS-authoritative facade', () => {
+  test('capUtils.ts points at the extensionless tradeMachine authority facade', () => {
     const projectRoot = process.cwd();
-    const capUtilsPath = path.join(
-      projectRoot,
-      'src/features/architect/utils/capUtils.js'
-    );
     const capUtilsTsPath = path.join(
       projectRoot,
       'src/features/architect/utils/capUtils.ts'
     );
 
-    const shimContent = fs.readFileSync(capUtilsPath, 'utf-8');
     const authoritativeContent = fs.readFileSync(capUtilsTsPath, 'utf-8');
-
-    expect(shimContent).toContain("export * from './capUtils.ts'");
 
     expect(authoritativeContent).toContain(
       "from './tradeMachine/utils/capUtils'"
+    );
+    expect(authoritativeContent).not.toContain(
+      "from './tradeMachine/utils/capUtils.js'"
     );
     expect(authoritativeContent).toContain('export { getTeamApronStatus');
     expect(authoritativeContent).toContain('isSecondApronTeam');
@@ -202,27 +198,40 @@ describe('Phase 43 Apron Drift Prevention Guardrails', () => {
     expect(content).toContain("from '@/features/architect/utils/capUtils'");
   });
 
-  test('tradeHelpers.js is a shim and tradeHelpers.ts uses canonical import path', () => {
+  test('tradeHelpers.ts uses canonical extensionless helper imports', () => {
     const projectRoot = process.cwd();
-    const tradeHelpersPath = path.join(
-      projectRoot,
-      'src/features/architect/utils/tradeHelpers.js'
-    );
     const tradeHelpersTsPath = path.join(
       projectRoot,
       'src/features/architect/utils/tradeHelpers.ts'
     );
 
-    const shimContent = fs.readFileSync(tradeHelpersPath, 'utf-8');
     const authoritativeContent = fs.readFileSync(tradeHelpersTsPath, 'utf-8');
-
-    expect(shimContent).toContain("export * from './tradeHelpers.ts'");
 
     expect(authoritativeContent).not.toContain(
       "from './tradeMachine/utils/capUtils"
     );
+    expect(authoritativeContent).not.toContain(
+      "@/features/architect/utils/cbaConstants.js"
+    );
+    expect(authoritativeContent).not.toContain(
+      "@/features/architect/utils/hardCapUtils.js"
+    );
+    expect(authoritativeContent).not.toContain(
+      "@/features/architect/utils/faExceptionUtils.js"
+    );
+    expect(authoritativeContent).not.toContain("from './seasonFormat.js'");
     expect(authoritativeContent).toContain(
       "from '@/features/architect/utils/capUtils'"
     );
+    expect(authoritativeContent).toContain(
+      "from '@/features/architect/utils/cbaConstants'"
+    );
+    expect(authoritativeContent).toContain(
+      "from '@/features/architect/utils/hardCapUtils'"
+    );
+    expect(authoritativeContent).toContain(
+      "from '@/features/architect/utils/faExceptionUtils'"
+    );
+    expect(authoritativeContent).toContain("from './seasonFormat'");
   });
 });

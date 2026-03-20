@@ -9,13 +9,13 @@ import { validateCash } from './validateCash.js';
 import { validateSignAndTrade } from './validateSignAndTrade.js';
 // Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
 import { validateSecondApronRules } from './basicRules.js';
-import { BYC_PERCENT } from '@/features/architect/utils/cbaConstants.js';
+import { BYC_PERCENT } from '@/features/architect/utils/cbaConstants';
 import {
   getCapHitForSeason,
   yearToSeason,
   seasonToYear,
 } from '../utils/seasonUtils';
-import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers.js';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 
 type MiscRulesYearKey = number | string;
 

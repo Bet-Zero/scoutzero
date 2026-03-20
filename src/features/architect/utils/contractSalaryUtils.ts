@@ -7,7 +7,7 @@
  *  - 2026-03-12: Migrated authoritative implementation to TypeScript for E59.
  */
 
-import { toEndYear, toSeasonCode } from './seasonFormat.js';
+import { toEndYear, toSeasonCode } from './seasonFormat';
 
 type NumericLike = any;
 type SalaryYearEntryLike = {

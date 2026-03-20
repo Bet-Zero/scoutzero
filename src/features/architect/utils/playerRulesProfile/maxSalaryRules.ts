@@ -13,8 +13,8 @@
  */
 
 import { getYearsOfService } from './minimumSalaryRules.js';
-import { parseSeasonEndYear } from '../seasonUtils.js';
-import { getLastSalary } from '../contractUtils.js';
+import { parseSeasonEndYear } from '../seasonUtils';
+import { getLastSalary } from '../contractUtils';
 import { parseSeasonId } from '../seasonHelpers';
 
 type AwardLike = {

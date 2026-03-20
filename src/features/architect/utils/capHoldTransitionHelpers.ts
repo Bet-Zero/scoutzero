@@ -16,7 +16,7 @@
  * Used by validateOptionDecision() to detect cap hold transition violations.
  */
 
-import { toEndYear } from './seasonUtils.js';
+import { toEndYear } from './seasonUtils';
 import { CAP_HOLD_MULTIPLIERS } from './capHolds';
 
 type SalaryYearLike = any;

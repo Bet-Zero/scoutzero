@@ -1,7 +1,7 @@
 // Handles Base Year Compensation (BYC), trade kicker, and poison pill calculations
 // GAP-DATA-001: Now validates BYC player data requirements and surfaces warnings
 // GAP-DATA-002: Tracks salary field fallback usage for data quality monitoring
-import { getSalaryForYear } from '../../tradeHelpers.js';
+import { getSalaryForYear } from '../../tradeHelpers';
 import { BYC_PERCENT } from '../constants/cbaConstants';
 import { getCapHitForSeason, normalizeYearInput } from './seasonUtils';
 import {

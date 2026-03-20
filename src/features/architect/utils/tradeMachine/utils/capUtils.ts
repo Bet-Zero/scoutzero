@@ -6,7 +6,7 @@
 
 // Phase 3.1: Re-export toSeasonKey from canonical module for backwards compatibility
 // All new code should import directly from '@/features/architect/utils/seasonFormat'
-export { toSeasonKey } from '@/features/architect/utils/seasonFormat.js';
+export { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
 type NumericLike = number | string | null | undefined;
 

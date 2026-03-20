@@ -256,6 +256,13 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Added E117 guardrail coverage proving deleted-path absence plus representative extensionless/authority parity for the retired runtime-backed surfaces
 - Kept batch-excluded runtime-backed surfaces untouched: `capSettingsProvider.js`, `hardCapStatus.js`, `playerRulesProfile/**`, top-level Architect helper shims, rule/engine/cache same-path `.js` hosts, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js`
 
+**Phase 7B batch-2 status now:**
+- Deleted 12 runtime-backed same-path top-level helper shims: `capUtils.js`, `cbaConstants.js`, `consentUtils.js`, `contractUtils.js`, `faExceptionUtils.js`, `hardCapUtils.js`, `reacqUtils.js`, `seasonFormat.js`, `seasonUtils.js`, `stepienUtils.js`, `timingUtils.js`, `tradeHelpers.js`
+- Retargeted live `src/**` imports, tests, and retained barrel/wrapper exports to extensionless paths for those helper surfaces
+- Added E118 guardrail coverage proving deleted-path absence plus representative extensionless/authority parity for the retired top-level helper surfaces
+- Folded the `violatesReacquisitionBar` re-export into `timingUtils.ts` so `timingUtils.js` and `reacqUtils.js` could retire together without changing the export contract
+- Kept the next runtime-backed frontier untouched: `playerRulesProfile/**`, `tradeMachine/rules/*.js`, `tradeMachine/engine/*.js`, `tradeMachine/cache/*.js`, persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js`
+
 **Verification:**
 - `npm run typecheck` passes
 - `npm run build` passes
@@ -264,7 +271,7 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - `npm run validate:project` passes
 
 **What remains:**
-- Phase 7B runtime-backed same-path cleanup for the remaining clusters: top-level Architect helper shims, `playerRulesProfile/**`, Trade Machine rules/engine/cache hosts, persistence-contract helpers, and shared contract helpers
+- Phase 7B runtime-backed same-path cleanup for the remaining clusters: `playerRulesProfile/**`, Trade Machine rules/engine/cache hosts, persistence-contract helpers, shared contract helpers, and any still-intentional top-level data/wrapper surfaces
 - Phase 7C mixed/structural keeper review
 - Phase 7D wrapper/barrel/public-entry cleanup
 - Phase 7E final Architect JS/JSX inventory gate
@@ -353,25 +360,13 @@ Desired end state:
 
 **Current batch status:**
 - `tradeMachine/utils` + `tradeMachine/constants`: ✅ first runtime-backed batch complete
-- Next safe batch: top-level Architect helper shims (`capUtils.js`, `cbaConstants.js`, `contractUtils.js`, `faExceptionUtils.js`, `seasonUtils.js`, `stepienUtils.js`, `tradeHelpers.js`, related helpers)
+- top-level Architect helper shims: ✅ second runtime-backed batch complete (`capUtils.js`, `cbaConstants.js`, `consentUtils.js`, `contractUtils.js`, `faExceptionUtils.js`, `hardCapUtils.js`, `reacqUtils.js`, `seasonFormat.js`, `seasonUtils.js`, `stepienUtils.js`, `timingUtils.js`, `tradeHelpers.js`)
+- Next safe batch: `playerRulesProfile/**`
 
 **High-priority runtime-backed clusters:**
-- `src/features/architect/utils/tradeMachine/**`
 - `src/features/architect/utils/playerRulesProfile/**`
-- `src/features/architect/utils/*.js` helper shims such as:
-  - `capProjections.js`
-  - `capUtils.js`
-  - `cbaConstants.js`
-  - `consentUtils.js`
-  - `contractUtils.js`
-  - `faExceptionUtils.js`
-  - `hardCapUtils.js`
-  - `reacqUtils.js`
-  - `seasonFormat.js`
-  - `seasonUtils.js`
-  - `stepienUtils.js`
-  - `timingUtils.js`
-  - `tradeHelpers.js`
+- `src/features/architect/utils/tradeMachine/**`
+- remaining top-level Architect utility/data surfaces that still intentionally carry `.js` hosts
 - persistence-contract helpers:
   - `contracts.js`
   - `enforcement.js`
@@ -384,13 +379,13 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. top-level Architect utils
-2. `playerRulesProfile`
-3. `tradeMachine/rules`
-4. `tradeMachine/engine`
-5. `tradeMachine/cache`
-6. persistence-contract helpers
-7. shared contract helpers
+1. `playerRulesProfile`
+2. `tradeMachine/rules`
+3. `tradeMachine/engine`
+4. `tradeMachine/cache`
+5. persistence-contract helpers
+6. shared contract helpers
+7. wrapper/barrel/public-entry cleanup gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
 

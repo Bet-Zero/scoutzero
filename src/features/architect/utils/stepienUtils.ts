@@ -1,4 +1,4 @@
-// src/utils/architect/stepienUtils.js
+// src/utils/architect/stepienUtils.ts
 
 /* Stepien-rule helpers
  *

@@ -12,7 +12,7 @@ import {
   isWithinMoratorium,
   daysSince,
   violates30Day,
-} from '@/features/architect/utils/timingUtils.js';
+} from '@/features/architect/utils/timingUtils';
 import {
   getJanuary15RestrictionDate,
   resolveTradeTimingDate,

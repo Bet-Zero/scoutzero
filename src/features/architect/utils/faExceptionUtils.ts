@@ -1,8 +1,8 @@
-import { FA_EXCEPTION_TRADE_USAGE } from '@/features/architect/utils/cbaConstants.js';
+import { FA_EXCEPTION_TRADE_USAGE } from '@/features/architect/utils/cbaConstants';
 import {
   isSecondApronTeam,
   isFirstApronTeam,
-} from '@/features/architect/utils/capUtils.js';
+} from '@/features/architect/utils/capUtils';
 
 type NumericLike = number | string | null | undefined;
 type UnknownRecord = Record<string, unknown>;

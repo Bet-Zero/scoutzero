@@ -27,13 +27,13 @@ import {
   getTeamApronStatus as getTeamApronStatusFromCapUtils,
   isSecondApronTeam as isSecondApronTeamFromCapUtils,
   isFirstApronTeam as isFirstApronTeamFromCapUtils,
-} from '../../features/architect/utils/capUtils.js';
+} from '../../features/architect/utils/capUtils';
 
 // tradeHelpers consolidated function
-import { getApronStatus as getTradeHelpersApronStatus } from '../../features/architect/utils/tradeHelpers.js';
+import { getApronStatus as getTradeHelpersApronStatus } from '../../features/architect/utils/tradeHelpers';
 
 // faExceptionUtils consolidated function
-import { canUseFaException } from '../../features/architect/utils/faExceptionUtils.js';
+import { canUseFaException } from '../../features/architect/utils/faExceptionUtils';
 
 describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
   const CAP_SETTINGS = {

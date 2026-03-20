@@ -1,5 +1,5 @@
 /**
- * @deprecated This module is deprecated. Import from seasonFormat.js instead.
+ * @deprecated This module is deprecated. Import from seasonFormat instead.
  *
  * All functions are re-exported from the canonical module for backwards compatibility.
  * Please update your imports to use:
@@ -12,13 +12,13 @@ export {
   toSeasonCode,
   toEndYear,
   seasonEndYearsFromCaps,
-} from '@/features/architect/utils/seasonFormat.js';
+} from '@/features/architect/utils/seasonFormat';
 
 /**
- * @deprecated Use toEndYear from seasonFormat.js instead
+ * @deprecated Use toEndYear from seasonFormat instead
  * Parse season code to end year
  *
  * @param {string} season - Season code (e.g., "2024-25")
  * @returns {number|null} End year
  */
-export { toEndYear as parseSeasonEndYear } from '@/features/architect/utils/seasonFormat.js';
+export { toEndYear as parseSeasonEndYear } from '@/features/architect/utils/seasonFormat';

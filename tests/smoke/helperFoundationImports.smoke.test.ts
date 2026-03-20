@@ -1,37 +1,54 @@
 import { describe, expect, it } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const architectUtilsRoot = path.resolve(
+  __dirname,
+  '../../src/features/architect/utils'
+);
+
+const helperCases = [
+  {
+    label: 'tradeHelpers',
+    aliasBase: '@/features/architect/utils/tradeHelpers',
+    shimPath: path.join(architectUtilsRoot, 'tradeHelpers.js'),
+    exportNames: ['getSalaryForYear', 'formatCurrency'],
+  },
+  {
+    label: 'hardCapUtils',
+    aliasBase: '@/features/architect/utils/hardCapUtils',
+    shimPath: path.join(architectUtilsRoot, 'hardCapUtils.js'),
+    exportNames: ['wouldExceedHardCap', 'getFirstApronHardCapReason'],
+  },
+  {
+    label: 'faExceptionUtils',
+    aliasBase: '@/features/architect/utils/faExceptionUtils',
+    shimPath: path.join(architectUtilsRoot, 'faExceptionUtils.js'),
+    exportNames: ['canUseFaException', 'getTeamFaExceptionBuckets'],
+  },
+  {
+    label: 'capUtils',
+    aliasBase: '@/features/architect/utils/capUtils',
+    shimPath: path.join(architectUtilsRoot, 'capUtils.js'),
+    exportNames: ['getApronStatus', 'getAllowableIncomingMargin'],
+  },
+] as const;
 
 describe('helper foundation import compatibility', () => {
-  it('resolves tradeHelpers via extensionless and .js imports', async () => {
-    const extensionless = await import('@/features/architect/utils/tradeHelpers');
-    const withJs = await import('@/features/architect/utils/tradeHelpers.js');
+  for (const helperCase of helperCases) {
+    it(`resolves ${helperCase.label} via extensionless imports after helper shim retirement`, async () => {
+      const extensionless = await import(helperCase.aliasBase);
 
-    expect(extensionless.getSalaryForYear).toBeTypeOf('function');
-    expect(withJs.formatCurrency).toBeTypeOf('function');
-  });
+      for (const exportName of helperCase.exportNames) {
+        expect(extensionless[exportName]).toBeTypeOf('function');
+      }
 
-  it('resolves hardCapUtils via extensionless and .js imports', async () => {
-    const extensionless = await import('@/features/architect/utils/hardCapUtils');
-    const withJs = await import('@/features/architect/utils/hardCapUtils.js');
-
-    expect(extensionless.wouldExceedHardCap).toBeTypeOf('function');
-    expect(withJs.getFirstApronHardCapReason).toBeTypeOf('function');
-  });
-
-  it('resolves faExceptionUtils via extensionless and .js imports', async () => {
-    const extensionless = await import('@/features/architect/utils/faExceptionUtils');
-    const withJs = await import('@/features/architect/utils/faExceptionUtils.js');
-
-    expect(extensionless.canUseFaException).toBeTypeOf('function');
-    expect(withJs.getTeamFaExceptionBuckets).toBeTypeOf('function');
-  });
-
-  it('resolves capUtils via extensionless and .js imports', async () => {
-    const extensionless = await import('@/features/architect/utils/capUtils');
-    const withJs = await import('@/features/architect/utils/capUtils.js');
-
-    expect(extensionless.getApronStatus).toBeTypeOf('function');
-    expect(withJs.getAllowableIncomingMargin).toBeTypeOf('function');
-  });
+      expect(fs.existsSync(helperCase.shimPath)).toBe(false);
+    });
+  }
 
   it('resolves capTotals via barrel, extensionless, and explicit .js imports', async () => {
     const barrel = await import('@/features/architect/utils/capTotals');
