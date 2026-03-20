@@ -10,7 +10,7 @@ import {
   validateCapSettings,
   yearToSeasonKey,
   CAP_SETTINGS_SOURCE_KEYS,
-} from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
+} from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import capProjections from '@/features/architect/utils/capProjections.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/index.js';
 

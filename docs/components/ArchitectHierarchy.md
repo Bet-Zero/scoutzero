@@ -308,7 +308,6 @@ utils/
       index.js
       index.ts
     tradeContext.ts
-    types.js
     types.ts
   tradeHelpers.ts
   tradeMachine/
@@ -363,7 +362,6 @@ utils/
       signAndTradeEligibility.ts
     utils/
       buildEntitlementRoutingMap.ts
-      capSettingsProvider.js
       capSettingsProvider.ts
       capUtils.ts
       conveyanceResolution.ts
@@ -394,5 +392,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T11:57:24.671Z*
+*Generated on: 2026-03-20T12:08:36.894Z*
 *Auto-updated by: npm run docs*

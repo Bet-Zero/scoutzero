@@ -53,7 +53,7 @@ vi.mock('@/features/architect/utils/offseason', () => ({
   resolveOffseasonTransition: mocks.resolveOffseasonTransition,
 }));
 
-vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js', () => ({
+vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () => ({
   getCapSettings: vi.fn(() => ({
     settings: {
       floor: 120000000,

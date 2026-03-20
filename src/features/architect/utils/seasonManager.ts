@@ -42,7 +42,7 @@ import {
   worldMetadataRef,
 } from '@/features/architect/utils/architectFirestorePaths';
 import { getMinimumSalaryScale } from '@/features/architect/utils/salaryEngine';
-import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
+import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import {
   computeExpectedCapHoldAmount,
   deriveFreeAgencyYearFromOptionSeason,

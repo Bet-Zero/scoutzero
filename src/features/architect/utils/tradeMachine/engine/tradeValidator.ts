@@ -45,7 +45,7 @@ import { validatePlayerRouting } from '../rules/validatePlayerRouting';
 import {
   getCapSettings,
   CAP_SETTINGS_VERSION,
-} from '../utils/capSettingsProvider.js';
+} from '../utils/capSettingsProvider';
 import {
   createValidationIssue,
   getFirstValidationIssueText,

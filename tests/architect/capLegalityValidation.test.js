@@ -66,7 +66,7 @@ import {
   deriveFreeAgencyYearFromOptionSeason,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { CAP_HOLD_MULTIPLIERS } from '@/features/architect/utils/capHolds';
-import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
+import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 describe('Cap Legality Validation', () => {
   const seasonId = '2025-26';

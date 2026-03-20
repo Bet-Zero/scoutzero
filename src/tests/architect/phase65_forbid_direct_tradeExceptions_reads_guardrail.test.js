@@ -54,8 +54,6 @@ const ALLOWLISTED_FILES = [
   'utils/tradeContext/tradeContext.ts',
   // TPE lifecycle processing helper (operates on passed array, not team object)
   'utils/tpeLifecycle.ts',
-  // Exception history types/comments
-  'utils/tradeContext/types.js',
   // buildRuleContext builds internal context objects (uses exceptions.tradeExceptions as internal key)
   'utils/buildRuleContext.ts',
 ];

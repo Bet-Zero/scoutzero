@@ -327,15 +327,21 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Added `src/tests/architect/residualPureShimBatch.e127.guardrail.test.tsx` to prove the exact 6-file deletion batch and direct extensionless parity against the TS / TSX authorities
 - Reduced the open Phase 7C review set to the true remaining mixed/legacy trio: `capSettingsProvider.js`, `tradeContext/types.js`, and `tradeContext/legacy/index.js`
 
+**Phase 7C batch-3 status now:**
+- Retired the final 2 deletable mixed/runtime shims: `tradeMachine/utils/capSettingsProvider.js` and `tradeContext/types.js`
+- Retargeted the remaining live source imports, Architect behavior tests, trade-facing tests, and the Phase 65 `.tradeExceptions` allowlist off the deleted shim paths to extensionless or TS-authority resolution
+- Added `src/tests/architect/finalMixedKeeperBatch.e128.guardrail.test.ts` to prove the exact 2-file deletion batch, extensionless/authority parity, and continued intentional preservation of `tradeContext/legacy/index.js`
+- Closed Phase 7C by classifying `tradeContext/legacy/index.js` as the intentional preserved legacy contract; no open mixed/structural keeper candidates remain
+
 **Verification (latest pass):**
 - `npm run typecheck` passes
 - `npm run build` passes
 - `npm run test:architect -- --reporter=dot` passes
+- `npm run test:trade -- --reporter=dot` passes
 - `npm run validate:project` passes
-- `npm run test:diff -- --reporter=dot` was not used for E127 signoff because the required Architect suite matched the touched compatibility/guardrail surface directly and avoided diff-based `FULL` escalation behavior
+- `npm run test:diff -- --reporter=dot` was not used for E128 signoff because the Architect plus trade suites matched the touched helper/runtime/guardrail surface directly and avoided diff-based `FULL` escalation behavior
 
 **What remains:**
-- Phase 7C mixed/structural keeper review
 - Phase 7D remaining route/public-entry wrapper cleanup decisions
 - Phase 7E final Architect JS/JSX inventory gate
 
@@ -445,17 +451,14 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. mixed/structural keeper review
-2. remaining route/public-entry wrapper decisions
-3. final inventory gate
+1. remaining route/public-entry wrapper decisions
+2. final inventory gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
 
 **Goal:** Decide which remaining JS/JSX files are actually deletable and which are intentional contracts.
 
 **Expected mixed/structural keepers to evaluate case-by-case:**
-- `src/features/architect/utils/tradeMachine/utils/capSettingsProvider.js`
-- `src/features/architect/utils/tradeContext/types.js`
 - `src/features/architect/utils/tradeContext/legacy/index.js`
 
 **Decision options per file:**
@@ -472,6 +475,9 @@ Desired end state:
 - `ValidationStateHeader.jsx`: ✅ retired in E127
 - `EntitlementPicksList.jsx`: ✅ retired in E127
 - `DraftPositionsInput.jsx`: ✅ retired in E127
+- `capSettingsProvider.js`: ✅ retired in E128
+- `tradeContext/types.js`: ✅ retired in E128
+- `tradeContext/legacy/index.js`: ✅ intentionally preserved legacy contract in E128
 
 **Important:** `tradeContext/legacy/index.js` should be treated as an intentional legacy contract unless the user explicitly wants that compatibility removed.
 

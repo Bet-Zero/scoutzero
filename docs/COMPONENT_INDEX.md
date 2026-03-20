@@ -34,13 +34,11 @@ Quick reference for all components in the ScoutZero project.
 - utils/playerRulesProfile/index.js
 - utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
-- utils/tradeContext/types.js
 - utils/tradeMachine/cache/index.js
 - utils/tradeMachine/engine/index.js
 - utils/tradeMachine/index.js
 - utils/tradeMachine/rules/enforceEligibility.js
 - utils/tradeMachine/rules/index.js
-- utils/tradeMachine/utils/capSettingsProvider.js
 - utils/tradeMachine/utils/index.js
 - utils/tradeMachine/validators/index.js
 - utils/validatePhase21.test.js
@@ -192,4 +190,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T11:57:24.717Z*
+*Generated on: 2026-03-20T12:08:36.923Z*

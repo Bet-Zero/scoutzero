@@ -55,7 +55,7 @@ import {
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
 } from '@/constants/collections';
-import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider.js';
+import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 // Cap legality validators for non-trade mutations (Phase 5 Production Hardening)
 import {
   validateSigning,
