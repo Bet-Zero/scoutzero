@@ -3,9 +3,10 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
+import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
 
-const baseTeam = {
+const baseTeam: TeamHistoryCapSheetLike = {
   teamCode: 'LAL',
   waivedContracts: [],
   exceptionHistory: [],

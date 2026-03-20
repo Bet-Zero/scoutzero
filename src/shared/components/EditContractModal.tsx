@@ -1663,8 +1663,8 @@ const EditContractModal = ({
           {/* === Validation Warnings === */}
           {selectedAction && (warnings.length > 0 || errors.length > 0) && (
             <ValidationWarnings
-              warnings={warnings}
-              errors={errors}
+              warnings={warnings as { severity?: string; message?: string }[]}
+              errors={errors as { severity?: string; message?: string }[]}
               showErrors={showValidationErrors}
             />
           )}

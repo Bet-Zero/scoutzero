@@ -1,19 +1,13 @@
+import type { TeamHistoryCapSheetLike } from './TeamHistoryTab/types';
+
 export const DEV_TEAM_HISTORY_FIXTURE_FLAG = 'hz.dev.teamHistoryFixtures';
 const DEV_TEAM_HISTORY_FIXTURE_MARKER = '__hzDevTeamHistoryFixture';
 
 export type TeamHistoryEntry = Record<string, unknown>;
 
-export type TeamCapSheetLike = {
-  teamCode?: string;
+export type TeamCapSheetLike = TeamHistoryCapSheetLike & {
   abbreviation?: string;
   id?: string;
-  waivedContracts?: TeamHistoryEntry[];
-  exceptionHistory?: TeamHistoryEntry[];
-  mleHistory?: TeamHistoryEntry[];
-  pickLog?: TeamHistoryEntry[];
-  currentPicks?: Record<string, unknown>;
-  historyTimeline?: TeamHistoryEntry[];
-  [key: string]: unknown;
 };
 
 function resolveTeamCode(teamCapSheet: TeamCapSheetLike): string {
@@ -217,7 +211,7 @@ export function injectTeamHistoryFixtures(
         ? teamCapSheet.currentPicks
         : {}),
       ...buildFixtureCurrentPicks(),
-    },
+    } as TeamHistoryCapSheetLike['currentPicks'],
     historyTimeline: [
       ...stripFixtureEntries(teamCapSheet.historyTimeline),
       ...timeline,

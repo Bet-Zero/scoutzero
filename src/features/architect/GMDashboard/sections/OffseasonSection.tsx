@@ -188,7 +188,7 @@ const OffseasonSection = ({
         <div className="mb-6">
           <DraftPositionsInput
             worldId={worldId}
-            currentYear={worldDraftYear}
+            currentYear={worldDraftYear ?? currentYear}
             worldSeason={worldSeason}
           />
         </div>
@@ -215,12 +215,12 @@ const OffseasonSection = ({
             Preview only — does not persist. Changes will be lost on refresh.
           </div>
           <OffseasonTab
-            teamCapSheet={teamCapSheet}
-            setTeamCapSheet={setTeamCapSheet}
+            teamCapSheet={teamCapSheet as Record<string, unknown>}
+            setTeamCapSheet={setTeamCapSheet as (next: Record<string, unknown>) => void}
             currentYear={currentYear}
             setCurrentYear={setCurrentYear}
             capProjections={capProjections}
-            setLastCapSheet={setLastCapSheet}
+            setLastCapSheet={setLastCapSheet as (prev: Record<string, unknown>) => void}
             offseasonRun={offseasonRun}
             setOffseasonRun={setOffseasonRun}
             setOffseasonSummary={setOffseasonSummary}

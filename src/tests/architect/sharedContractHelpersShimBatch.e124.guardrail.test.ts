@@ -70,6 +70,7 @@ describe('E124 shared contract-helper shim deletion batch guardrails', () => {
   }
 
   it('keeps the shared contracts barrel aligned with representative extensionless exports', async () => {
+    // @ts-ignore — intentional .js barrel import for guardrail verification
     const barrelModule = await import('../../shared/utils/contracts/index.js');
     const contractUtilsModule = await import('@/shared/utils/contracts/contractUtils');
     const seasonNormalizerModule = await import(
