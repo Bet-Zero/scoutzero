@@ -287,14 +287,10 @@ utils/
     index.ts
     resolveOffseasonTransition.ts
   persistenceContracts/
-    contracts.js
     contracts.ts
-    enforcement.js
     enforcement.ts
     index.js
-    normalizeTeamTpe.js
     normalizeTeamTpe.ts
-    validatePersistableShape.js
     validatePersistableShape.ts
   playerRulesProfile/
     birdRightsRules.ts
@@ -419,5 +415,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T10:21:24.305Z*
+*Generated on: 2026-03-20T10:47:41.900Z*
 *Auto-updated by: npm run docs*

@@ -4,12 +4,13 @@
  * OWNERSHIP: Feature: architect/core
  *
  * HISTORY:
+ *  - 2026-03-20: E123 - Retired same-path .js host imports for persistence contract helpers
  *  - 2026-03-11: Phase E50 - Migrated authoritative implementation to TypeScript
  *  - 2026-01-30: Phase 61 - Created for allowlist-based persistence contract enforcement
  *
  * LINKS:
- *  - Validator: src/features/architect/utils/persistenceContracts/validatePersistableShape.js
- *  - Contracts: src/features/architect/utils/persistenceContracts/contracts.js
+ *  - Validator: src/features/architect/utils/persistenceContracts/validatePersistableShape.ts
+ *  - Contracts: src/features/architect/utils/persistenceContracts/contracts.ts
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
  *
  * DESIGN:
@@ -24,7 +25,7 @@ import {
   validatePersistableShape,
   formatViolationMessage,
   type PersistableDeepRules,
-} from './validatePersistableShape.js';
+} from './validatePersistableShape';
 
 export interface PersistableContractLike {
   topLevel: readonly string[];

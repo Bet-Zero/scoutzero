@@ -232,7 +232,7 @@ Receiving an S&T player sets hard-cap fields on receiver snapshot:
 
 - **SSOT location:** `team.exceptions.tpe[]` (Phase 64)
 - **Legacy fallback:** `team.tradeExceptions[]` (read-only backward compat; removed before Firestore write)
-- **SSOT accessor:** `getTeamTpeList(team)` in `src/features/architect/utils/persistenceContracts/normalizeTeamTpe.js`
+- **SSOT accessor:** `getTeamTpeList(team)` in `src/features/architect/utils/persistenceContracts/normalizeTeamTpe.ts`
   - Prefers canonical `team.exceptions.tpe[]`; falls back to `team.tradeExceptions[]` with telemetry
   - Normalizes field names (`totalAmount` ↔ `amount`, `remainingAmount` ↔ `remaining`, `expiresOn` ↔ `expirationDate`)
 
@@ -2244,8 +2244,28 @@ Date: 2026-02-26
   - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
   - `npm run test:diff -- --reporter=dot`: PASS (selected `ARCHITECT`; final result 199 files, 2731 tests)
   - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
-  - `npm run validate:project`: PASS
+- `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_CACHE_SHIM_BATCH_E122_RETURN_PACKAGE.md`
+
+### Validator TS Persistence-Contract Shim Retirement Batch E123 (2026-03-20)
+
+- Status:
+  - completed the seventh Phase 7B runtime-backed same-path cleanup batch
+  - deleted 4 runtime-backed same-path `.js` shims in `src/features/architect/utils/persistenceContracts`: `contracts.js`, `enforcement.js`, `normalizeTeamTpe.js`, and `validatePersistableShape.js`
+  - moved live `src/**` imports, smoke tests, and Architect guardrails off explicit `.js` imports for those persistence-contract modules; extensionless imports are now the internal contract for the retired persistence-contract surface
+  - added `src/tests/architect/persistenceContractsShimBatch.e123.guardrail.test.ts` to prove deleted-path absence plus representative extensionless/authority parity
+  - kept `src/features/architect/utils/persistenceContracts/index.js` as the intentional barrel surface and updated it to extensionless specifiers
+  - smoke coverage exposed 5 residual explicit `tradeMachine/cache` `.js` imports in engine/validator surfaces, and those imports were retargeted extensionlessly in-batch so the earlier cache retirement is now fully reflected in live runtime imports
+  - Architect UI smoke exposed season-code `yearKey` handling in `src/features/architect/tradeMachine/TradeTeamCard.tsx`; the card now normalizes season inputs before calling `computeTeamCapTotals`, preventing `NaN` cap-profile crashes without changing intended salary/totals behavior
+  - kept `shared/utils/contracts/*.js` and `tradeContext/legacy/index.js` out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:fast -- --reporter=dot`: PASS (12 files, 57 tests)
+  - `npm run test:diff -- --reporter=dot`: PASS (selected `ARCHITECT`; final result 200 files, 2738 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PERSISTENCE_CONTRACT_SHIM_BATCH_E123_RETURN_PACKAGE.md`
 
 ### RC1 Gate Snapshot
 

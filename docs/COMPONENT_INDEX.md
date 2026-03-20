@@ -49,11 +49,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/draftPickUtils.js
 - utils/exceptions/exceptionLifecycle.js
 - utils/exceptions/index.js
-- utils/persistenceContracts/contracts.js
-- utils/persistenceContracts/enforcement.js
 - utils/persistenceContracts/index.js
-- utils/persistenceContracts/normalizeTeamTpe.js
-- utils/persistenceContracts/validatePersistableShape.js
 - utils/playerRulesProfile/index.js
 - utils/playerRulesProfile/types.js
 - utils/tradeContext/index.js
@@ -217,4 +213,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T10:21:24.339Z*
+*Generated on: 2026-03-20T10:47:41.949Z*

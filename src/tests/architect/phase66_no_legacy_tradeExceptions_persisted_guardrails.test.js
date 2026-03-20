@@ -87,7 +87,7 @@ describe('Phase 66 Guardrail: Zod Schema Canonical Shape', () => {
 describe('Phase 66 Guardrail: Persistence Contracts Normalization', () => {
   it('normalizeTeamTpeSchema removes tradeExceptions from team object', async () => {
     const { normalizeTeamTpeSchema } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     const legacyTeam = {
@@ -111,7 +111,7 @@ describe('Phase 66 Guardrail: Persistence Contracts Normalization', () => {
 
   it('normalizeTeamTpeSchema merges legacy and canonical, canonical wins', async () => {
     const { normalizeTeamTpeSchema } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     const team = {
@@ -140,7 +140,7 @@ describe('Phase 66 Guardrail: Persistence Contracts Normalization', () => {
 
   it('NEGATIVE: team with only tradeExceptions gets normalized before persist', async () => {
     const { normalizeTeamTpeSchema } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     // Simulate legacy team doc that would come from old world
@@ -171,7 +171,7 @@ describe('Phase 66 Guardrail: Legacy Fallback Telemetry', () => {
   beforeEach(async () => {
     // Reset telemetry state before each test
     const { resetLegacyTpeFallbackTelemetry } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
     resetLegacyTpeFallbackTelemetry();
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -183,7 +183,7 @@ describe('Phase 66 Guardrail: Legacy Fallback Telemetry', () => {
 
   it('getTeamTpeList increments fallback counter when using legacy tradeExceptions', async () => {
     const { getTeamTpeList, getLegacyTpeFallbackCount } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     const legacyTeam = {
@@ -206,7 +206,7 @@ describe('Phase 66 Guardrail: Legacy Fallback Telemetry', () => {
       getLegacyTpeFallbackCount,
       resetLegacyTpeFallbackTelemetry,
     } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     resetLegacyTpeFallbackTelemetry();
@@ -233,7 +233,7 @@ describe('Phase 66 Guardrail: Legacy Fallback Telemetry', () => {
       getLegacyTpeFallbackCount,
       resetLegacyTpeFallbackTelemetry,
     } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     resetLegacyTpeFallbackTelemetry();
@@ -264,7 +264,7 @@ describe('Phase 66 Guardrail: Legacy Fallback Telemetry', () => {
       getLegacyTpeFallbackCount,
       resetLegacyTpeFallbackTelemetry,
     } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     // Trigger fallback
@@ -284,7 +284,7 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
   it('TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST does NOT include tradeExceptions as an allowlisted key', async () => {
     const contractsPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/persistenceContracts/contracts.js'
+      '../../features/architect/utils/persistenceContracts/contracts.ts'
     );
     const content = readAuthoritativeImplementationContent(contractsPath);
 
@@ -314,7 +314,7 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
   it('TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST includes exceptions (canonical TPE location)', async () => {
     const contractsPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/persistenceContracts/contracts.js'
+      '../../features/architect/utils/persistenceContracts/contracts.ts'
     );
     const content = readAuthoritativeImplementationContent(contractsPath);
 
@@ -329,15 +329,13 @@ describe('Phase 66 Guardrail: Persistence Allowlists Exclude tradeExceptions', (
     expect(keyList).toContain("'exceptions'");
   });
 
-  it('contracts.js remains a pure compatibility shim', async () => {
-    const contractsPath = path.resolve(
+  it('deletes the contracts.js compatibility shim', async () => {
+    const contractsShimPath = path.resolve(
       __dirname,
       '../../features/architect/utils/persistenceContracts/contracts.js'
     );
-    const content = fs.readFileSync(contractsPath, 'utf-8');
 
-    expect(content).toContain("export * from './contracts.ts';");
-    expect(content).not.toContain('TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST');
+    expect(fs.existsSync(contractsShimPath)).toBe(false);
   });
 });
 
@@ -353,7 +351,7 @@ describe('Phase 66 Guardrail: normalizeTradeInput Uses getTeamTpeList', () => {
     const content = readAuthoritativeImplementationContent(filePath);
 
     expect(content).toContain(
-      "import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe.js'"
+      "import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe'"
     );
   });
 
@@ -402,7 +400,7 @@ describe('Phase 66 Guardrail: Persisted Team Fixture Shape', () => {
 
   it('NEGATIVE: legacy team fixture with tradeExceptions gets normalized', async () => {
     const { normalizeTeamTpeSchema } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
 
     const legacyTeamFixture = {

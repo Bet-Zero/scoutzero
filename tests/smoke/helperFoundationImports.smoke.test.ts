@@ -9,6 +9,10 @@ const architectUtilsRoot = path.resolve(
   __dirname,
   '../../src/features/architect/utils'
 );
+const persistenceContractsRoot = path.join(
+  architectUtilsRoot,
+  'persistenceContracts'
+);
 
 const helperCases = [
   {
@@ -68,32 +72,26 @@ describe('helper foundation import compatibility', () => {
     expect(withJs.default).toBeTypeOf('function');
   });
 
-  it('resolves persistenceContracts via barrel, extensionless, and explicit .js imports', async () => {
+  it('resolves persistenceContracts via barrel and extensionless imports after helper shim retirement', async () => {
     const barrel = await import('@/features/architect/utils/persistenceContracts');
     const normalizeExtensionless = await import(
       '@/features/architect/utils/persistenceContracts/normalizeTeamTpe'
     );
-    const normalizeWithJs = await import(
-      '@/features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
-    );
     const validateExtensionless = await import(
       '@/features/architect/utils/persistenceContracts/validatePersistableShape'
-    );
-    const validateWithJs = await import(
-      '@/features/architect/utils/persistenceContracts/validatePersistableShape.js'
     );
     const enforcementExtensionless = await import(
       '@/features/architect/utils/persistenceContracts/enforcement'
     );
-    const enforcementWithJs = await import(
-      '@/features/architect/utils/persistenceContracts/enforcement.js'
-    );
     const contractsExtensionless = await import(
       '@/features/architect/utils/persistenceContracts/contracts'
     );
-    const contractsWithJs = await import(
-      '@/features/architect/utils/persistenceContracts/contracts.js'
-    );
+    const retiredShimPaths = [
+      'normalizeTeamTpe.js',
+      'validatePersistableShape.js',
+      'enforcement.js',
+      'contracts.js',
+    ] as const;
 
     expect(barrel.getTeamTpeList).toBeTypeOf('function');
     expect(barrel.validatePersistableShape).toBeTypeOf('function');
@@ -101,18 +99,33 @@ describe('helper foundation import compatibility', () => {
     expect(barrel.PERSISTENCE_CONTRACTS.TEAM).toBeDefined();
 
     expect(normalizeExtensionless.normalizeTeamTpeSchema).toBeTypeOf('function');
-    expect(normalizeWithJs.getTpeIdentityKey).toBeTypeOf('function');
+    expect(normalizeExtensionless.getTpeIdentityKey).toBeTypeOf('function');
     expect(validateExtensionless.findDisallowedKeyPaths).toBeTypeOf('function');
-    expect(validateWithJs.formatViolationMessage).toBeTypeOf('function');
+    expect(validateExtensionless.formatViolationMessage).toBeTypeOf('function');
     expect(enforcementExtensionless.assertPersistableOrThrow).toBeTypeOf(
       'function'
     );
-    expect(enforcementWithJs.shouldEnforcePersistenceContracts).toBeTypeOf(
+    expect(enforcementExtensionless.shouldEnforcePersistenceContracts).toBeTypeOf(
       'function'
     );
     expect(Array.isArray(contractsExtensionless.TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST)).toBe(true);
-    expect(Array.isArray(contractsWithJs.TRADE_EXCEPTION_ITEM_ALLOWLIST)).toBe(
+    expect(Array.isArray(contractsExtensionless.TRADE_EXCEPTION_ITEM_ALLOWLIST)).toBe(
       true
     );
+    expect(barrel.getTeamTpeList).toBe(normalizeExtensionless.getTeamTpeList);
+    expect(barrel.validatePersistableShape).toBe(
+      validateExtensionless.validatePersistableShape
+    );
+    expect(barrel.assertPersistableOrThrow).toBe(
+      enforcementExtensionless.assertPersistableOrThrow
+    );
+    expect(barrel.PERSISTENCE_CONTRACTS).toBe(
+      contractsExtensionless.PERSISTENCE_CONTRACTS
+    );
+    expect(
+      retiredShimPaths.filter((relativePath) =>
+        fs.existsSync(path.join(persistenceContractsRoot, relativePath))
+      )
+    ).toEqual([]);
   });
 });

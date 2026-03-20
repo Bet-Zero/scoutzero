@@ -133,10 +133,12 @@ describe('Phase 67 Guardrail: Telemetry Quiet-by-Default', () => {
     __dirname,
     '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.ts'
   );
-  const telemetryShimPath = path.resolve(
+  const telemetryLegacyShimPath = path.resolve(
     __dirname,
     '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
   );
+  const telemetryExtensionlessSpecifier =
+    '../../features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
   it('telemetry is quiet by default (only logs when LOG_LEGACY_TPE_FALLBACK=true)', () => {
     const content = fs.readFileSync(telemetryAuthorityPath, 'utf-8');
@@ -146,10 +148,8 @@ describe('Phase 67 Guardrail: Telemetry Quiet-by-Default', () => {
     expect(content.toLowerCase()).toContain('quiet');
   });
 
-  it('normalizeTeamTpe.js remains a pure compatibility shim', () => {
-    const shimContent = fs.readFileSync(telemetryShimPath, 'utf-8');
-    expect(shimContent).toContain("export * from './normalizeTeamTpe.ts';");
-    expect(shimContent).not.toContain("LOG_LEGACY_TPE_FALLBACK === 'true'");
+  it('deletes the normalizeTeamTpe.js compatibility shim', () => {
+    expect(fs.existsSync(telemetryLegacyShimPath)).toBe(false);
   });
 
   it('telemetry counter still increments silently', async () => {
@@ -157,9 +157,7 @@ describe('Phase 67 Guardrail: Telemetry Quiet-by-Default', () => {
       getTeamTpeList,
       getLegacyTpeFallbackCount,
       resetLegacyTpeFallbackTelemetry,
-    } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
-    );
+    } = await import(telemetryExtensionlessSpecifier);
 
     resetLegacyTpeFallbackTelemetry();
     const initialCount = getLegacyTpeFallbackCount();
@@ -179,7 +177,7 @@ describe('Phase 67 Guardrail: Telemetry Quiet-by-Default', () => {
 
   it('telemetry does NOT log to console by default', async () => {
     const { getTeamTpeList, resetLegacyTpeFallbackTelemetry } = await import(
-      '../../features/architect/utils/persistenceContracts/normalizeTeamTpe.js'
+      telemetryExtensionlessSpecifier
     );
 
     resetLegacyTpeFallbackTelemetry();

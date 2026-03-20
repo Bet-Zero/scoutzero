@@ -631,7 +631,7 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
     } catch (error) {
       expect(error.message).toContain('TEAM');
       expect(error.message).toContain('team.deadCap[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.js');
+      expect(error.message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -659,7 +659,7 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
     } catch (error) {
       expect(error.message).toContain('TEAM');
       expect(error.message).toContain('team.capHolds[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.js');
+      expect(error.message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -690,7 +690,7 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
       expect(error.message).toContain(
         'team.deadCap[0].amountByYear[0].debugFoo'
       );
-      expect(error.message).toContain('persistenceContracts/contracts.js');
+      expect(error.message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -718,7 +718,7 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
     } catch (error) {
       expect(error.message).toContain('TEAM');
       expect(error.message).toContain('team.exceptions.tpe[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.js');
+      expect(error.message).toContain('persistenceContracts/contracts.ts');
     }
   });
 
@@ -745,7 +745,7 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
     } catch (error) {
       expect(error.message).toContain('TEAM');
       expect(error.message).toContain('team.exceptionHistory[0].debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.js');
+      expect(error.message).toContain('persistenceContracts/contracts.ts');
     }
   });
 });

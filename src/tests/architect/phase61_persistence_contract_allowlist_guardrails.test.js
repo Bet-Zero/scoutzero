@@ -227,7 +227,7 @@ describe('Phase 61: formatViolationMessage tests', () => {
     expect(message).toContain('[PERSISTENCE CONTRACT VIOLATION]');
     expect(message).toContain('TEAM');
     expect(message).toContain('team.foo');
-    expect(message).toContain('persistenceContracts/contracts.js');
+    expect(message).toContain('persistenceContracts/contracts.ts');
   });
 
   it('TEST 12: truncates long violation lists with count', () => {
@@ -427,7 +427,7 @@ describe('Phase 61: Drift detection - assertPersistableOrThrow throws for violat
     } catch (error) {
       expect(error.message).toContain('TEAM');
       expect(error.message).toContain('team.debugFoo');
-      expect(error.message).toContain('persistenceContracts/contracts.js');
+      expect(error.message).toContain('persistenceContracts/contracts.ts');
     }
   });
 

@@ -2,7 +2,7 @@
  * Performance monitoring for trade validation operations
  */
 
-import { validationCache } from '../cache/validationCache.js';
+import { validationCache } from '../cache/validationCache';
 
 interface TimingEntry {
   type: string;

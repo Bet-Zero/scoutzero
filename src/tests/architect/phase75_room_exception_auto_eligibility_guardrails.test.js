@@ -440,16 +440,13 @@ describe('Phase 75: Regression Checks - Phase 74 Invariants', () => {
     expect(allowlistContents).not.toMatch(/"tradeExceptions"/);
   });
 
-  it('contracts.js remains a pure compatibility shim', () => {
+  it('deletes the contracts.js compatibility shim', () => {
     const srcRoot = path.resolve(__dirname, '../../features/architect');
     const contractsPath = path.join(
       srcRoot,
       'utils/persistenceContracts/contracts.js'
     );
-    const source = fs.readFileSync(contractsPath, 'utf-8');
-
-    expect(source).toContain("export * from './contracts.ts';");
-    expect(source).not.toContain('TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST');
+    expect(fs.existsSync(contractsPath)).toBe(false);
   });
 });
 

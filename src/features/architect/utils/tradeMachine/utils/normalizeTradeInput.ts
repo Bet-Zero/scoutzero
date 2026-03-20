@@ -8,7 +8,7 @@
 
 import { toNum, normalizeCaps } from './capUtils';
 import { getMatchingValue } from './matchingValues';
-import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe.js';
+import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe';
 
 type NumericLike = number | string | null | undefined;
 

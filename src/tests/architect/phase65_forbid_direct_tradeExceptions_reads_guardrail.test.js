@@ -17,7 +17,7 @@
  * Direct reads of `team.tradeExceptions` are forbidden in production code outside a tight allowlist.
  *
  * ALLOWLIST (files that may reference .tradeExceptions):
- * - normalizeTeamTpe.js: The canonical helper that handles both locations
+ * - normalizeTeamTpe.ts: The canonical helper that handles both locations
  * - schemaAdapter.ts: Building trade input structure (adapts external data)
  * - mutationPipeline.ts: TPE persistence logic (reads legacy, writes canonical)
  * - tradeContext.ts: Snapshot building (reads from both sources)
@@ -45,7 +45,6 @@ const SRC_ROOT = path.resolve(__dirname, '../../features/architect');
  */
 const ALLOWLISTED_FILES = [
   // Core normalization helper (the canonical accessor lives here)
-  'utils/persistenceContracts/normalizeTeamTpe.js',
   'utils/persistenceContracts/normalizeTeamTpe.ts',
   // Schema adapter for building trade input structure
   'utils/schemaAdapter.ts',
@@ -53,8 +52,6 @@ const ALLOWLISTED_FILES = [
   'utils/mutationPipeline.ts',
   // Trade context snapshot building (merges both sources during snapshot)
   'utils/tradeContext/tradeContext.ts',
-  // Persistence contract validation (references field in comments/tests)
-  'utils/persistenceContracts/validatePersistableShape.js',
   // TPE lifecycle processing helper (operates on passed array, not team object)
   'utils/tpeLifecycle.ts',
   // Exception history types/comments

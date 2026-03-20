@@ -1,7 +1,7 @@
 import { debug } from './engineUtils';
 import { performanceMonitor } from './validationPerformanceMonitor';
-import { validationCache } from '../cache/validationCacheService.js';
-// import { CACHE_TYPES } from '../cache/validationCacheService.js';
+import { validationCache } from '../cache/validationCacheService';
+// import { CACHE_TYPES } from '../cache/validationCacheService';
 
 interface ValidationTypeMetrics {
   averageTimeMs: number;

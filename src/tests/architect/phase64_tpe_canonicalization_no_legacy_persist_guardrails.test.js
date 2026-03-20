@@ -28,13 +28,13 @@ import {
   normalizeTeamTpeSchema,
   getTeamTpeList,
   getTpeIdentityKey,
-} from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe.js';
+} from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
 // Import contracts for guardrail tests
 import {
   TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST,
   TEAM_DEEP_RULES,
-} from '@/features/architect/utils/persistenceContracts/contracts.js';
+} from '@/features/architect/utils/persistenceContracts/contracts';
 
 // Helper to read source files
 function readSourceFile(relativePath) {

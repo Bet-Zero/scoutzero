@@ -1,4 +1,4 @@
-import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe.js';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import {
   CanonicalTeamTpeUsage,
   CanonicalTeamTpeUsageEntry,

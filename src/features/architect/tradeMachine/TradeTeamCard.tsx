@@ -17,7 +17,10 @@ import {
   isFaExceptionEligibleType,
 } from '@/features/architect/utils/faExceptionUtils';
 import { validationFlags } from '@/config/validationFlags.js';
-import { getCapHitForSeason } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
+import {
+  getCapHitForSeason,
+  normalizeYearInput,
+} from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
@@ -220,7 +223,13 @@ const TradeTeamCard = ({
   // This ensures TradeTeamCard uses the SAME value as the Cap Sheet and validator
   const teamTotalSalary = useMemo(() => {
     if (!team) return 0;
-    const totals = computeTeamCapTotals(team as Record<string, unknown>, Number(yearKey));
+    const normalizedYear = normalizeYearInput(yearKey);
+    if (!normalizedYear) return 0;
+
+    const totals = computeTeamCapTotals(
+      team as Record<string, unknown>,
+      normalizedYear.endYear
+    );
     return totals.totalCapAllocations || 0;
   }, [team, yearKey]);
 

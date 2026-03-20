@@ -4,12 +4,13 @@
  * OWNERSHIP: Feature: architect/core
  *
  * HISTORY:
+ *  - 2026-03-20: E123 - Retired same-path .js contract-host guidance in favor of TS authority paths
  *  - 2026-03-11: Phase E50 - Migrated authoritative implementation to TypeScript
  *  - 2026-01-30: Phase 61 - Created for allowlist-based persistence contract validation
  *  - 2026-01-30: Phase 62 - Extended to support 3-level nesting (e.g., deadCap[].amountByYear[])
  *
  * LINKS:
- *  - Contracts: src/features/architect/utils/persistenceContracts/contracts.js
+ *  - Contracts: src/features/architect/utils/persistenceContracts/contracts.ts
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
  *
  * DESIGN:
@@ -196,7 +197,7 @@ export function formatViolationMessage(
     message += `\n  ... and ${remaining} more`;
   }
 
-  message += `\n\nTo fix: Update allowlist in src/features/architect/utils/persistenceContracts/contracts.js if this field is intentional.`;
+  message += `\n\nTo fix: Update allowlist in src/features/architect/utils/persistenceContracts/contracts.ts if this field is intentional.`;
 
   return message;
 }

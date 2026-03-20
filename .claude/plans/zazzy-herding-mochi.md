@@ -292,15 +292,25 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Preserved `tradeMachine/cache/index.js` as the intentional barrel surface, updated it to extensionless specifiers, and removed its stale nonexistent `validationCacheManager.js` export
 - Kept the next runtime-backed frontier untouched: persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js`
 
+**Phase 7B batch-7 status now:**
+- Deleted 4 runtime-backed same-path `persistenceContracts` shims: `contracts.js`, `enforcement.js`, `normalizeTeamTpe.js`, and `validatePersistableShape.js`
+- Retargeted live `src/**` imports, smoke tests, and Architect guardrails to extensionless paths or TS-authority checks for the retired persistence-contract surfaces
+- Added E123 guardrail coverage proving deleted-path absence plus representative extensionless/authority parity for the retired `persistenceContracts` surfaces
+- Preserved `persistenceContracts/index.js` as the intentional barrel surface and updated it to extensionless specifiers
+- Smoke coverage exposed 5 residual explicit `tradeMachine/cache` `.js` imports in engine/validator surfaces; those imports were also retargeted extensionlessly in-batch so the earlier cache retirement is now fully reflected in live runtime imports
+- Architect UI smoke exposed season-code `yearKey` handling in `TradeTeamCard.tsx`; the card now normalizes season inputs before calling `computeTeamCapTotals`, preventing `NaN` cap-profile crashes without changing the intended salary/totals behavior
+- Kept the next runtime-backed frontier untouched: `shared/utils/contracts/*.js`, `tradeContext/legacy/index.js`, and any still-intentional top-level data/wrapper surfaces
+
 **Verification:**
 - `npm run typecheck` passes
 - `npm run build` passes
+- `npm run test:fast -- --reporter=dot` passes
 - `npm run test:diff -- --reporter=dot` passes
 - `npm run test:trade -- --reporter=dot` passes
 - `npm run validate:project` passes
 
 **What remains:**
-- Phase 7B runtime-backed same-path cleanup for the remaining clusters: persistence-contract helpers, shared contract helpers, and any still-intentional top-level data/wrapper surfaces
+- Phase 7B runtime-backed same-path cleanup for the remaining clusters: shared contract helpers and any still-intentional top-level data/wrapper surfaces
 - Phase 7C mixed/structural keeper review
 - Phase 7D wrapper/barrel/public-entry cleanup
 - Phase 7E final Architect JS/JSX inventory gate
@@ -394,16 +404,15 @@ Desired end state:
 - `tradeMachine/rules`: ✅ fourth runtime-backed batch complete
 - `tradeMachine/engine`: ✅ fifth runtime-backed batch complete
 - `tradeMachine/cache`: ✅ sixth runtime-backed batch complete (`cacheInvalidationManager.js`, `validationCache.js`, `validationCacheService.js`)
-- Next safe batch: persistence-contract helpers
+- persistence-contract helpers: ✅ seventh runtime-backed batch complete (`contracts.js`, `enforcement.js`, `normalizeTeamTpe.js`, `validatePersistableShape.js`)
+- Next safe batch: shared contract helpers
 
 **High-priority runtime-backed clusters:**
 - `src/features/architect/utils/tradeMachine/**`
 - remaining top-level Architect utility/data surfaces that still intentionally carry `.js` hosts
-- persistence-contract helpers:
-  - `contracts.js`
-  - `enforcement.js`
-  - `normalizeTeamTpe.js`
-  - `validatePersistableShape.js`
+- shared contract helpers:
+  - `contractUtils.js`
+  - `seasonNormalizer.js`
 
 **Actions:**
 - Replace explicit `.js` imports in `.ts` / `.tsx` files with extensionless or authority imports
@@ -411,9 +420,8 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. persistence-contract helpers
-2. shared contract helpers
-3. wrapper/barrel/public-entry cleanup gate
+1. shared contract helpers
+2. wrapper/barrel/public-entry cleanup gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
 

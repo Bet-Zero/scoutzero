@@ -1,5 +1,5 @@
 import { debug } from './engineUtils';
-import { validationCache } from '../cache/validationCache.js';
+import { validationCache } from '../cache/validationCache';
 
 interface ValidationTypeMetrics {
   avgTimeMs: number;

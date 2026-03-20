@@ -49,5 +49,5 @@ export * from '../utils/normalizeTradeInput.ts';
 export { hasStepienViolation } from '../../stepienUtils';
 
 // Cache and debugging - now in engine/ and cache/
-export { validationCache } from '../cache/validationCache.js';
+export { validationCache } from '../cache/validationCache';
 export { debug } from '../engine/engineUtils';
