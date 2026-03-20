@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hasStepienViolation as publicHasStepienViolation } from '@/features/architect/utils/tradeMachine/index.js';
-import { validateAllNewRules } from '@/features/architect/utils/tradeMachine/rules/miscRules.js';
-import * as draftRules from '@/features/architect/utils/tradeMachine/rules/draftRules.js';
+import { validateAllNewRules } from '@/features/architect/utils/tradeMachine/rules/miscRules';
+import * as draftRules from '@/features/architect/utils/tradeMachine/rules/draftRules';
 
 function installEmptyObjectIterator(): () => void {
   const originalDescriptor = Object.getOwnPropertyDescriptor(

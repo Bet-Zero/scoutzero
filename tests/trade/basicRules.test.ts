@@ -3,7 +3,7 @@ import {
   enforceSecondApronHandcuffs,
   validateSecondApron,
   validateSecondApronRules,
-} from '@/features/architect/utils/tradeMachine/rules/basicRules.js';
+} from '@/features/architect/utils/tradeMachine/rules/basicRules';
 import {
   SECOND_APRON_CASH_BLOCKED,
   SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,

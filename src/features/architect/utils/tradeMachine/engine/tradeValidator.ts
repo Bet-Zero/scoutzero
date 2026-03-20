@@ -10,23 +10,23 @@ import { createTPE } from '../utils/tpeValidation';
 import {
   validateSalaryMatching,
   SALARY_MATCHING_VERSION,
-} from '../rules/validateSalaryMatching.js';
-import { validateHardCap } from '../rules/hardCapValidation.js';
-import { validateStepien } from '../rules/validateStepien.js';
-import { validateCash } from '../rules/validateCash.js';
-import { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
-import { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
-import { validateConsent } from '../rules/validateConsent.js';
-import { validateReacquisition } from '../rules/validateReacquisition.js';
-import { enforceConsent } from '../rules/enforceConsent.js';
-import { enforceEligibility } from '../rules/validateEligibility.js';
-import { enforceTiming } from '../rules/timingValidation.js';
-import { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
+} from '../rules/validateSalaryMatching';
+import { validateHardCap } from '../rules/hardCapValidation';
+import { validateStepien } from '../rules/validateStepien';
+import { validateCash } from '../rules/validateCash';
+import { validateTradeExceptions } from '../rules/validateTradeExceptions';
+import { validateSignAndTrade } from '../rules/validateSignAndTrade';
+import { validateConsent } from '../rules/validateConsent';
+import { validateReacquisition } from '../rules/validateReacquisition';
+import { enforceConsent } from '../rules/enforceConsent';
+import { enforceEligibility } from '../rules/validateEligibility';
+import { enforceTiming } from '../rules/timingValidation';
+import { enforceSecondApronHandcuffs } from '../rules/basicRules';
 import { computeMatchingValues } from '../utils/salaryUtils';
-import { enforceRosterWindow } from '../rules/rosterValidation.js';
+import { enforceRosterWindow } from '../rules/rosterValidation';
 import { validationFlags } from '@/config/validationFlags.js';
-import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
-import { validateAggregation } from '../rules/validateAggregation.js';
+import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
+import { validateAggregation } from '../rules/validateAggregation';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 // TM-EXCL-E1: Entitlement exclusivity validation (blocking)
@@ -38,9 +38,9 @@ import { buildEntitlementRoutingMap } from '../utils/buildEntitlementRoutingMap'
 import {
   validateEntitlementRouting,
   validateEntitlementLinkageLegality,
-} from '../rules/validateEntitlementRouting.js';
+} from '../rules/validateEntitlementRouting';
 // Phase A5-E1: Player routing validation (uniqueness, routing, destinations)
-import { validatePlayerRouting } from '../rules/validatePlayerRouting.js';
+import { validatePlayerRouting } from '../rules/validatePlayerRouting';
 // Phase 4: Centralized cap settings provider for explicit sourcing
 import {
   getCapSettings,

@@ -8,7 +8,7 @@
  *
  * LINKS:
  *   - Audit: docs/architect/DRAFT_ASSET_TRADING_CLOSURE_AUDIT.md
- *   - Rule: src/features/architect/utils/tradeMachine/rules/validateEntitlementRouting.js
+ *   - Rule: src/features/architect/utils/tradeMachine/rules/validateEntitlementRouting
  *
  * TESTS:
  *   1. 3-team trade: entitlement routed to exactly one team (no broadcast)

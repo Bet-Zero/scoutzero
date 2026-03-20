@@ -17,7 +17,7 @@
  * See: docs/tradeMachine/TRADE_MACHINE_DRAFT_PICKS_MASTER.md
  */
 import { describe, it, expect } from 'vitest';
-import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
+import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 
 describe('validateStepien - Phase 13 SSOT (Legacy Obligations Removed)', () => {
   const makeTeam = (params) => ({

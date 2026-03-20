@@ -7,4 +7,4 @@
  *  - 2026-03-20: Restored explicit JS import path during Architect type-hardening follow-up.
  */
 
-export { enforceEligibility } from './validateEligibility.js';
+export { enforceEligibility } from './validateEligibility';

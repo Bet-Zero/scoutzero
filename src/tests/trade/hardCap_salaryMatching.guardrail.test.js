@@ -17,7 +17,7 @@
  */
 
 import { describe, test, expect } from 'vitest';
-import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 
 const defaultCapSettings = {
   salaryCap: 141_000_000,

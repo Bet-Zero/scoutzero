@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import validatePlayerRoutingDefault, {
   enforcePlayerRouting,
   validatePlayerRouting,
-} from '@/features/architect/utils/tradeMachine/rules/validatePlayerRouting.js';
+} from '@/features/architect/utils/tradeMachine/rules/validatePlayerRouting';
 
 // Helper to create a mock team slot
 const makeTeamSlot = (teamId, sends = [], entitlementsOut = []) => ({

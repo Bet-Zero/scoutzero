@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 
 describe('salary matching validation', () => {

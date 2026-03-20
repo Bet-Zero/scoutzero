@@ -6,7 +6,7 @@ import {
   enforceRosterWindowLegacy,
   validateRosterWindow,
   validateRosterWindowLegacy,
-} from '@/features/architect/utils/tradeMachine/rules/rosterValidation.js';
+} from '@/features/architect/utils/tradeMachine/rules/rosterValidation';
 import { enforceRosterWindow as tradeValidatorEnforceRosterWindow } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 import { validationFlags } from '@/config/validationFlags.js';
 

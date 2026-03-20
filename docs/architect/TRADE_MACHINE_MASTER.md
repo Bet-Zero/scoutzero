@@ -2193,6 +2193,24 @@ Date: 2026-02-26
   - `npm run test:trade -- --reporter=dot`: not run for this batch because the scope stayed inside player-rules/cap-legality surfaces and `npm run test:diff -- --reporter=dot` already selected the Architect tier
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_PLAYERRULESPROFILE_LEAF_SHIM_BATCH_E119_RETURN_PACKAGE.md`
 
+### Validator TS TradeMachine Rules Shim Retirement Batch E120 (2026-03-20)
+
+- Status:
+  - completed the fourth Phase 7B runtime-backed same-path cleanup batch
+  - deleted 21 runtime-backed same-path `.js` shims in `src/features/architect/utils/tradeMachine/rules`: `basicRules.js`, `draftRules.js`, `enforceConsent.js`, `enforcement.js`, `hardCapValidation.js`, `miscRules.js`, `rosterValidation.js`, `timingValidation.js`, `tradeExceptions.js`, `validateAggregation.js`, `validateCash.js`, `validateConsent.js`, `validateEligibility.js`, `validateEntitlementRouting.js`, `validateFaExceptionUsage.js`, `validatePlayerRouting.js`, `validateReacquisition.js`, `validateSalaryMatching.js`, `validateSignAndTrade.js`, `validateStepien.js`, and `validateTradeExceptions.js`
+  - moved live `src/**` imports, trade tests, and Architect guardrails off explicit `.js` imports for those rule modules; extensionless imports are now the internal contract for the retired rule surface
+  - added `src/tests/architect/tradeMachineRulesShimBatch.e120.guardrail.test.ts` to prove deleted-path absence plus representative extensionless/authority parity
+  - corrected the new `timingValidation` guardrail expectation in-batch so it matches the actual TS authority export surface, then reran validation cleanly
+  - kept `src/features/architect/utils/tradeMachine/rules/index.js` as the intentional barrel surface and `src/features/architect/utils/tradeMachine/rules/enforceEligibility.js` as the intentional wrapper surface
+  - kept `tradeMachine/engine/*.js`, `tradeMachine/cache/*.js`, persistence-contract helpers, `tradeContext/legacy/index.js`, and `shared/utils/contracts/*.js` out of scope
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: PASS after one in-batch rerun (selected `ARCHITECT`; final result 197 files, 2717 tests)
+  - `npm run test:trade -- --reporter=dot`: PASS (71 files, 637 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_TRADEMACHINE_RULES_SHIM_BATCH_E120_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

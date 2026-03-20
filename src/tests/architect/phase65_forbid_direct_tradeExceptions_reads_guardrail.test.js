@@ -410,9 +410,9 @@ describe('Phase 65: UI Components Use Canonical Accessor', () => {
 
 describe('Phase 65: Validation Rules Use Canonical Accessor', () => {
   const ruleFiles = [
-    'utils/tradeMachine/rules/tradeExceptions.js',
-    'utils/tradeMachine/rules/basicRules.js',
-    'utils/tradeMachine/rules/validateSalaryMatching.js',
+    'utils/tradeMachine/rules/tradeExceptions.ts',
+    'utils/tradeMachine/rules/basicRules.ts',
+    'utils/tradeMachine/rules/validateSalaryMatching.ts',
   ];
 
   ruleFiles.forEach((file) => {

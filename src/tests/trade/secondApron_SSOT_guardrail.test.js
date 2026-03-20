@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { isSecondApronTeam } from '@/features/architect/utils/tradeMachine/utils/capUtils';
-import { validateAggregation } from '@/features/architect/utils/tradeMachine/rules/validateAggregation.js';
-import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js';
+import { validateAggregation } from '@/features/architect/utils/tradeMachine/rules/validateAggregation';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 
 /**

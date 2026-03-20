@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as persistenceContracts from '@/features/architect/utils/persistenceContracts';
-import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/tradeExceptions.js';
+import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/tradeExceptions';
 
 const futureDate = () => {
   const date = new Date();

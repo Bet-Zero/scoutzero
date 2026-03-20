@@ -6,7 +6,7 @@
  * Phase 4: Added protectionMeta support to buildFirstRoundCalendar
  */
 
-import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
+import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 import { isMeaningfulProtection } from '@/features/architect/utils/tradeMachine/utils/tradeUtilityMisc';
 
 type LooseRecord = Record<string, unknown>;

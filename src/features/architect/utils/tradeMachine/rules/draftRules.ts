@@ -6,7 +6,7 @@
  */
 
 import { isMeaningfulProtection } from '../utils/tradeUtilityMisc';
-import { validateStepien } from './validateStepien.js';
+import { validateStepien } from './validateStepien';
 
 type DraftRulesYearLike = number | string | null | undefined;
 type DraftRulesRoundLike = number | string | null | undefined;

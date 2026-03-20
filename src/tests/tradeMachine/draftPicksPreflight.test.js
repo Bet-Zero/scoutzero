@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
+import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 import { ensurePickId, generatePickId, normalizeRound } from '@/features/architect/utils/tradeMachine/utils/pickIdUtils';
 
 // Import fixtures

@@ -19,20 +19,20 @@ export {
 } from './utils/salaryMatchingRules';
 
 // Core validators - from rules
-export { validateCash } from './rules/validateCash.js';
-export { validateStepien } from './rules/validateStepien.js';
+export { validateCash } from './rules/validateCash';
+export { validateStepien } from './rules/validateStepien';
 export { validateRoster } from './rules/validateRoster.ts';
-export { validateHardCap } from './rules/hardCapValidation.js';
-export { validateSalaryMatching } from './rules/validateSalaryMatching.js';
-export { validateTradeExceptions } from './rules/validateTradeExceptions.js';
-export { validateFaExceptionUsage } from './rules/validateFaExceptionUsage.js';
-// Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
-export { validateSecondApronRules } from './rules/basicRules.js';
-export { validateSignAndTrade } from './rules/validateSignAndTrade.js';
-export { validateEligibility } from './rules/validateEligibility.js';
+export { validateHardCap } from './rules/hardCapValidation';
+export { validateSalaryMatching } from './rules/validateSalaryMatching';
+export { validateTradeExceptions } from './rules/validateTradeExceptions';
+export { validateFaExceptionUsage } from './rules/validateFaExceptionUsage';
+// Phase 35: Import from canonical basicRules authority instead of deleted validateSecondApronRules.js
+export { validateSecondApronRules } from './rules/basicRules';
+export { validateSignAndTrade } from './rules/validateSignAndTrade';
+export { validateEligibility } from './rules/validateEligibility';
 
 // Utility functions - from utils
-export { hasStepienViolation } from './rules/draftRules.js';
+export { hasStepienViolation } from './rules/draftRules';
 export {
   toNum,
   toSeasonKey,
@@ -46,11 +46,11 @@ export {
 } from './utils/salaryMargin';
 
 // Enforcers (rules with enforcement logic) - from rules
-export { enforceConsent } from './rules/enforceConsent.js';
-export { enforceEligibility } from './rules/validateEligibility.js';
-export { enforceTiming } from './rules/timingValidation.js';
-export { enforceRosterWindow } from './rules/rosterValidation.js';
-export { enforceSecondApronHandcuffs } from './rules/basicRules.js';
+export { enforceConsent } from './rules/enforceConsent';
+export { enforceEligibility } from './rules/validateEligibility';
+export { enforceTiming } from './rules/timingValidation';
+export { enforceRosterWindow } from './rules/rosterValidation';
+export { enforceSecondApronHandcuffs } from './rules/basicRules';
 
 // Debug utilities - from engine
 export { debug } from './engine/engineUtils.js';

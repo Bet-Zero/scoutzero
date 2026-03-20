@@ -11,7 +11,7 @@
  * - GAP-MISS-005: Two-way contract trade blocking
  */
 import { describe, it, expect } from 'vitest';
-import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility.js';
+import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 

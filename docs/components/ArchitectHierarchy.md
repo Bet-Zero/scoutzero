@@ -368,51 +368,30 @@ utils/
       validatorDebug.ts
     index.js
     rules/
-      basicRules.js
       basicRules.ts
-      draftRules.js
       draftRules.ts
-      enforceConsent.js
       enforceConsent.ts
       enforceEligibility.js
-      enforcement.js
       enforcement.ts
-      hardCapValidation.js
       hardCapValidation.ts
       index.js
-      miscRules.js
       miscRules.ts
-      rosterValidation.js
       rosterValidation.ts
-      timingValidation.js
       timingValidation.ts
-      tradeExceptions.js
       tradeExceptions.ts
-      validateAggregation.js
       validateAggregation.ts
-      validateCash.js
       validateCash.ts
-      validateConsent.js
       validateConsent.ts
-      validateEligibility.js
       validateEligibility.ts
-      validateEntitlementRouting.js
       validateEntitlementRouting.ts
-      validateFaExceptionUsage.js
       validateFaExceptionUsage.ts
       validateHardCap.ts
-      validatePlayerRouting.js
       validatePlayerRouting.ts
-      validateReacquisition.js
       validateReacquisition.ts
       validateRoster.ts
-      validateSalaryMatching.js
       validateSalaryMatching.ts
-      validateSignAndTrade.js
       validateSignAndTrade.ts
-      validateStepien.js
       validateStepien.ts
-      validateTradeExceptions.js
       validateTradeExceptions.ts
     signAndTrade/
       signAndTradeEligibility.ts
@@ -450,5 +429,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T08:14:12.897Z*
+*Generated on: 2026-03-20T08:51:30.667Z*
 *Auto-updated by: npm run docs*

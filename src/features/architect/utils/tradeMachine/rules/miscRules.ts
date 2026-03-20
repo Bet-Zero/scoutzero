@@ -3,12 +3,12 @@
  * Consolidated from: validateAllNewRules.js, playerConsent.js, enforceTradeKicker.js, validateBYC.js
  */
 
-import { validateTradeExceptions } from './validateTradeExceptions.js';
-import { validateDraftPicks } from './draftRules.js';
-import { validateCash } from './validateCash.js';
-import { validateSignAndTrade } from './validateSignAndTrade.js';
-// Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
-import { validateSecondApronRules } from './basicRules.js';
+import { validateTradeExceptions } from './validateTradeExceptions';
+import { validateDraftPicks } from './draftRules';
+import { validateCash } from './validateCash';
+import { validateSignAndTrade } from './validateSignAndTrade';
+// Phase 35: Import from canonical basicRules authority instead of deleted validateSecondApronRules.js
+import { validateSecondApronRules } from './basicRules';
 import { BYC_PERCENT } from '@/features/architect/utils/cbaConstants';
 import {
   getCapHitForSeason,

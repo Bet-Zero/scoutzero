@@ -160,4 +160,4 @@ export function enforceRosterWindow(
 }
 
 // Phase 35: Fixed import - enforceSecondApronHandcuffs is in basicRules.js, not a separate file
-export { enforceSecondApronHandcuffs } from './basicRules.js';
+export { enforceSecondApronHandcuffs } from './basicRules';

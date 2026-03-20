@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien.js';
+import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 
 describe('validateStepien', () => {
   const makeTeam = (params) => ({

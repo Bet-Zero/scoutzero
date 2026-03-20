@@ -7,7 +7,7 @@ import {
   ValidationIssue,
 } from '../constants/types';
 import { summarizeValidationIssues } from '../utils/validationIssueText';
-import { collectEligibilityReacquisitionIssues } from './validateReacquisition.js';
+import { collectEligibilityReacquisitionIssues } from './validateReacquisition';
 
 interface EligibilityPlayer extends TradeExceptionPlayer {
   isTwoWay?: boolean;

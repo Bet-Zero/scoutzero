@@ -15,29 +15,29 @@
 // Re-export from new structure for backwards compatibility
 
 // Core validation functions - now in rules/
-export { validateTradeExceptions } from '../rules/validateTradeExceptions.js';
-export { validateCash } from '../rules/validateCash.js';
-export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage.js';
-export { validateSalaryMatching } from '../rules/validateSalaryMatching.js';
+export { validateTradeExceptions } from '../rules/validateTradeExceptions';
+export { validateCash } from '../rules/validateCash';
+export { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
+export { validateSalaryMatching } from '../rules/validateSalaryMatching';
 export {
   validateRoster,
   enforceRosterWindow,
 } from '../rules/validateRoster.ts';
-export { validateHardCap } from '../rules/hardCapValidation.js';
-export { validateStepien } from '../rules/validateStepien.js';
-// Phase 35: Import from basicRules.js (canonical) instead of deleted validateSecondApronRules.js
-export { validateSecondApronRules } from '../rules/basicRules.js';
-export { validateBYC } from '../rules/miscRules.js';
-export { validateConsent } from '../rules/validateConsent.js';
-export { validateEligibility } from '../rules/validateEligibility.js';
-export { validateTiming } from '../rules/timingValidation.js';
-export { validateSignAndTrade } from '../rules/validateSignAndTrade.js';
+export { validateHardCap } from '../rules/hardCapValidation';
+export { validateStepien } from '../rules/validateStepien';
+// Phase 35: Import from canonical basicRules authority instead of deleted validateSecondApronRules.js
+export { validateSecondApronRules } from '../rules/basicRules';
+export { validateBYC } from '../rules/miscRules';
+export { validateConsent } from '../rules/validateConsent';
+export { validateEligibility } from '../rules/validateEligibility';
+export { validateTiming } from '../rules/timingValidation';
+export { validateSignAndTrade } from '../rules/validateSignAndTrade';
 
 // Enforcement functions - now in rules/
-export { enforceSecondApronHandcuffs } from '../rules/basicRules.js';
-export { enforceConsent } from '../rules/enforceConsent.js';
-export { enforceEligibility } from '../rules/validateEligibility.js';
-export { enforceTiming } from '../rules/timingValidation.js';
+export { enforceSecondApronHandcuffs } from '../rules/basicRules';
+export { enforceConsent } from '../rules/enforceConsent';
+export { enforceEligibility } from '../rules/validateEligibility';
+export { enforceTiming } from '../rules/timingValidation';
 
 // Utility functions - now in utils/
 export { getIncomingCeilingForTeam } from '../utils/salaryMargin';

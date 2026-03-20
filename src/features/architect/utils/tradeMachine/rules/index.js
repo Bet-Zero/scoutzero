@@ -5,62 +5,62 @@
  */
 
 // Salary matching rules
-export * from './validateSalaryMatching.js';
+export * from './validateSalaryMatching';
 // NOTE: salaryMatching.js removed in Phase 35 - orphaned duplicate with wrong semantics
 
 // Roster rules - consolidated
 export * from './validateRoster.ts';
-export * from './rosterValidation.js'; // consolidated: rosterRules + enforceRosterWindow + enforceRosterRules + validateRosterWindow
+export * from './rosterValidation'; // consolidated: rosterRules + enforceRosterWindow + enforceRosterRules + validateRosterWindow
 
 // Hard cap rules - consolidated
-export * from './hardCapValidation.js'; // consolidated: hardCap + validateHardCap
+export * from './hardCapValidation'; // consolidated: hardCap + validateHardCap
 
 // Stepien rule
-export * from './draftRules.js'; // includes stepienRule.js and validateDraftPicks.js
+export * from './draftRules'; // includes stepienRule.js and validateDraftPicks.js
 
 // Second apron rules
 // NOTE: validateSecondApron.js and enforceSecondApronRules.js removed - files never existed
 // NOTE: validateSecondApronRules.js removed in Phase 35 - duplicate of basicRules.js
-export * from './basicRules.js';
+export * from './basicRules';
 
 // Cash validation and reacquisition
-export { validateCash } from './validateCash.js';
-export { validateReacquisition } from './validateReacquisition.js';
+export { validateCash } from './validateCash';
+export { validateReacquisition } from './validateReacquisition';
 
 // Trade exceptions
-export * from './validateTradeExceptions.js';
-export * from './tradeExceptions.js';
+export * from './validateTradeExceptions';
+export * from './tradeExceptions';
 
 // FA exception usage
-export * from './validateFaExceptionUsage.js';
+export * from './validateFaExceptionUsage';
 
 // BYC rules
-export * from './miscRules.js'; // includes validateBYC.js
+export * from './miscRules'; // includes validateBYC.js
 
 // Eligibility rules
-export { enforceEligibility } from './validateEligibility.js';
+export { enforceEligibility } from './validateEligibility';
 
 // Consent rules
-export * from './validateConsent.js';
-export * from './enforceConsent.js';
-export * from './miscRules.js'; // includes playerConsent, enforceTradeKicker, validateAllNewRules
+export * from './validateConsent';
+export * from './enforceConsent';
+export * from './miscRules'; // includes playerConsent, enforceTradeKicker, validateAllNewRules
 
 // Timing rules - consolidated
-export * from './timingValidation.js'; // consolidated: enforceTiming + timingGates + validateTiming
+export * from './timingValidation'; // consolidated: enforceTiming + timingGates + validateTiming
 
 // Sign and trade rules
-export * from './validateSignAndTrade.js';
+export * from './validateSignAndTrade';
 
 // Draft pick rules
-export * from './draftRules.js'; // includes validateDraftPicks.js
+export * from './draftRules'; // includes validateDraftPicks.js
 
 // Aggregation rules
-export * from './validateAggregation.js';
+export * from './validateAggregation';
 // NOTE: aggregationValidator.js removed in Phase 35 - orphaned duplicate with wrong semantics
 
 // Trade kicker enforcement - now in miscRules.js
 
 // General enforcement
-export * from './enforcement.js';
+export * from './enforcement';
 
 // All new rules validation - now in miscRules.js

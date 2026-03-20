@@ -28,14 +28,13 @@ const ALLOWLIST = [
   'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.ts',
 
   // TradeMachine rule validators (internal to tradeMachine)
-  'src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.js',
   'src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.ts',
-  'src/features/architect/utils/tradeMachine/rules/hardCapValidation.js',
-  'src/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js',
-  'src/features/architect/utils/tradeMachine/rules/validateTradeExceptions.js',
-  'src/features/architect/utils/tradeMachine/rules/validateStepien.js',
-  'src/features/architect/utils/tradeMachine/rules/validateAggregation.js',
-  'src/features/architect/utils/tradeMachine/rules/basicRules.js',
+  'src/features/architect/utils/tradeMachine/rules/hardCapValidation.ts',
+  'src/features/architect/utils/tradeMachine/rules/validateSalaryMatching.ts',
+  'src/features/architect/utils/tradeMachine/rules/validateTradeExceptions.ts',
+  'src/features/architect/utils/tradeMachine/rules/validateStepien.ts',
+  'src/features/architect/utils/tradeMachine/rules/validateAggregation.ts',
+  'src/features/architect/utils/tradeMachine/rules/basicRules.ts',
 
   // UI-only warning patterns (acceptable inline for display purposes)
   'src/features/architect/hooks/useCapValidation.js',

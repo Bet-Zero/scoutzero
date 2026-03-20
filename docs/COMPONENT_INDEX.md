@@ -72,29 +72,8 @@ Quick reference for all components in the ScoutZero project.
 - utils/tradeMachine/engine/validationPerformanceMonitor.js
 - utils/tradeMachine/engine/validationUtils.js
 - utils/tradeMachine/index.js
-- utils/tradeMachine/rules/basicRules.js
-- utils/tradeMachine/rules/draftRules.js
-- utils/tradeMachine/rules/enforceConsent.js
 - utils/tradeMachine/rules/enforceEligibility.js
-- utils/tradeMachine/rules/enforcement.js
-- utils/tradeMachine/rules/hardCapValidation.js
 - utils/tradeMachine/rules/index.js
-- utils/tradeMachine/rules/miscRules.js
-- utils/tradeMachine/rules/rosterValidation.js
-- utils/tradeMachine/rules/timingValidation.js
-- utils/tradeMachine/rules/tradeExceptions.js
-- utils/tradeMachine/rules/validateAggregation.js
-- utils/tradeMachine/rules/validateCash.js
-- utils/tradeMachine/rules/validateConsent.js
-- utils/tradeMachine/rules/validateEligibility.js
-- utils/tradeMachine/rules/validateEntitlementRouting.js
-- utils/tradeMachine/rules/validateFaExceptionUsage.js
-- utils/tradeMachine/rules/validatePlayerRouting.js
-- utils/tradeMachine/rules/validateReacquisition.js
-- utils/tradeMachine/rules/validateSalaryMatching.js
-- utils/tradeMachine/rules/validateSignAndTrade.js
-- utils/tradeMachine/rules/validateStepien.js
-- utils/tradeMachine/rules/validateTradeExceptions.js
 - utils/tradeMachine/utils/capSettingsProvider.js
 - utils/tradeMachine/utils/hardCapStatus.js
 - utils/tradeMachine/utils/index.js
@@ -248,4 +227,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T08:14:12.933Z*
+*Generated on: 2026-03-20T08:51:30.725Z*

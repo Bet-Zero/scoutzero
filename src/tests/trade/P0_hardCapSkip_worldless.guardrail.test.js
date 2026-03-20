@@ -15,7 +15,7 @@
  */
 
 import { describe, test, expect } from 'vitest';
-import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 import { getHardCapStatus, isTeamHardCapped } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.js';
 

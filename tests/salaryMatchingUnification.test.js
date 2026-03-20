@@ -3,7 +3,7 @@
  * This test ensures the Phase 2 unification goal is achieved
  */
 import { describe, it, expect } from 'vitest';
-import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching.js';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 import {
   getSalaryMatchingResult,
   SALARY_MATCHING_RULE_KEYS,

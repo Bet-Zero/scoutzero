@@ -4,7 +4,7 @@ import {
   validateAllNewRules,
   validateBYC,
   validatePlayerConsent,
-} from '@/features/architect/utils/tradeMachine/rules/miscRules.js';
+} from '@/features/architect/utils/tradeMachine/rules/miscRules';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;

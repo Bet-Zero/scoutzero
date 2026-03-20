@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateAggregation } from '@/features/architect/utils/tradeMachine/rules/validateAggregation.js';
+import { validateAggregation } from '@/features/architect/utils/tradeMachine/rules/validateAggregation';
 import {
   SECOND_APRON_AGGREGATION_UP_BLOCKED,
   SECOND_APRON_MULTI_TEAM_AGGREGATION_BLOCKED,

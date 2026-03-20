@@ -21,17 +21,17 @@ src/utils/architect/tradeMachine/
 │   ├── tradeKicker.js            # Trade kicker logic
 │   └── index.js                  # Engine barrel exports
 ├── rules/            # Pure validation functions
-│   ├── validateSalaryMatching.js  # Salary matching rules
-│   ├── validateHardCap.js         # Hard cap rules
-│   ├── validateStepien.js         # Stepien rule validation
-│   ├── validateRoster.js          # Roster validation
-│   ├── validateCash.js            # Cash validation
-│   ├── validateTradeExceptions.js # TPE validation
-│   ├── validateEligibility.js     # Player eligibility
-│   ├── validateConsent.js         # Player consent
-│   ├── validateTiming.js          # Timing restrictions
-│   ├── validateSignAndTrade.js    # Sign-and-trade rules
-│   ├── enforce*.js               # Enforcement functions
+│   ├── validateSalaryMatching.ts  # Salary matching rules
+│   ├── validateHardCap.ts         # Hard cap rules
+│   ├── validateStepien.ts         # Stepien rule validation
+│   ├── validateRoster.ts          # Roster validation
+│   ├── validateCash.ts            # Cash validation
+│   ├── validateTradeExceptions.ts # TPE validation
+│   ├── validateEligibility.ts     # Player eligibility
+│   ├── validateConsent.ts         # Player consent
+│   ├── timingValidation.ts        # Timing restrictions
+│   ├── validateSignAndTrade.ts    # Sign-and-trade rules
+│   ├── enforce*.ts                # Enforcement functions
 │   └── index.js                  # Rules barrel exports
 ├── utils/            # Helper functions and utilities
 │   ├── capUtils.js               # Cap calculations
@@ -65,17 +65,17 @@ src/utils/architect/tradeMachine/
 
 | Old Path | New Path | Notes |
 |----------|----------|-------|
-| `validators/validateSalaryMatching.js` | `rules/validateSalaryMatching.js` | Now pure function |
-| `validators/validateHardCap.js` | `rules/validateHardCap.js` | Cache removed |
-| `validators/validateStepien.js` | `rules/validateStepien.js` | Cache removed |
-| `validators/validateRoster.js` | `rules/validateRoster.js` | Cache removed |
-| `validators/capUtils.js` | `utils/capUtils.js` | Helper utilities |
-| `validators/salaryMargin.js` | `utils/salaryMargin.js` | Helper utilities |
-| `validators/validationCache.js` | `cache/validationCache.js` | Engine-only |
-| `validators/performanceMonitor.js` | `engine/performanceMonitor.js` | Engine-only |
-| `tradeValidator.js` | `engine/tradeValidator.js` | Main orchestrator |
-| `debug.js` | `engine/debug.js` | Debug utilities |
-| `cbaConstants.js` | `constants/cbaConstants.js` | Shared constants |
+| `validators/validateSalaryMatching` | `rules/validateSalaryMatching` | Now pure function |
+| `validators/validateHardCap` | `rules/validateHardCap` | Cache removed |
+| `validators/validateStepien` | `rules/validateStepien` | Cache removed |
+| `validators/validateRoster` | `rules/validateRoster` | Cache removed |
+| `validators/capUtils` | `utils/capUtils` | Helper utilities |
+| `validators/salaryMargin` | `utils/salaryMargin` | Helper utilities |
+| `validators/validationCache` | `cache/validationCache` | Engine-only |
+| `validators/performanceMonitor` | `engine/performanceMonitor` | Engine-only |
+| `tradeValidator` | `engine/tradeValidator` | Main orchestrator |
+| `debug` | `engine/tradeDebug` | Debug utilities |
+| `cbaConstants` | `constants/cbaConstants` | Shared constants |
 
 ### Removed Files
 
@@ -90,41 +90,41 @@ The following files were moved from `validators/` and consolidated:
 ### Engine (Main Entry Point)
 ```javascript
 // Main validation function
-import { validateTrade } from '@/utils/architect/tradeMachine/engine/tradeValidator.js';
+import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 
 // Or use public API
-import { validateTrade } from '@/utils/architect/tradeMachine';
+import { validateTrade } from '@/features/architect/utils/tradeMachine';
 ```
 
 ### Rules (Pure Validation Functions)
 ```javascript
 // Individual rules
-import { validateSalaryMatching } from '@/utils/architect/tradeMachine/rules/validateSalaryMatching.js';
-import { validateHardCap } from '@/utils/architect/tradeMachine/rules/validateHardCap.js';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
+import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/validateHardCap';
 
 // Or use barrel import
 import { 
   validateSalaryMatching, 
   validateHardCap 
-} from '@/utils/architect/tradeMachine/rules';
+} from '@/features/architect/utils/tradeMachine/rules';
 ```
 
 ### Utilities
 ```javascript
 // Cap utilities
-import { toNum, getTeamObject } from '@/utils/architect/tradeMachine/utils/capUtils';
+import { toNum, getTeamObject } from '@/features/architect/utils/tradeMachine/utils/capUtils';
 
 // Or use barrel import
-import { toNum, getTeamObject } from '@/utils/architect/tradeMachine/utils';
+import { toNum, getTeamObject } from '@/features/architect/utils/tradeMachine/utils';
 ```
 
 ### Constants
 ```javascript
 // CBA constants
-import { SALARY_CAP_2025 } from '@/utils/architect/tradeMachine/constants/cbaConstants';
+import { SALARY_CAP_2025 } from '@/features/architect/utils/tradeMachine/constants/cbaConstants';
 
 // Or use barrel import
-import { SALARY_CAP_2025 } from '@/utils/architect/tradeMachine/constants';
+import { SALARY_CAP_2025 } from '@/features/architect/utils/tradeMachine/constants';
 ```
 
 ## Layering Rules
@@ -196,10 +196,10 @@ The `validators/index.js` file provides backwards compatibility for existing imp
 
 ```javascript
 // DEPRECATED - use new paths
-import { validateSalaryMatching } from '@/utils/architect/tradeMachine/validators';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/validators';
 
 // PREFERRED - use new structure  
-import { validateSalaryMatching } from '@/utils/architect/tradeMachine/rules';
+import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules';
 ```
 
 ## Dependency Checking
@@ -222,12 +222,12 @@ Test imports have been updated to use the new structure:
 
 **Before:**
 ```javascript
-import { validateHardCap } from '@/utils/architect/tradeMachine/validators/validateHardCap.js';
+import { validateHardCap } from '@/features/architect/utils/tradeMachine/validators/validateHardCap';
 ```
 
 **After:**
 ```javascript
-import { validateHardCap } from '@/utils/architect/tradeMachine/rules/validateHardCap.js';
+import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/validateHardCap';
 ```
 
 ## Public API
@@ -240,7 +240,7 @@ import {
   validateSalaryMatching, // Individual rules
   validateHardCap,
   debug                   // Debug utilities
-} from '@/utils/architect/tradeMachine';
+} from '@/features/architect/utils/tradeMachine';
 ```
 
 ## Migration Checklist
