@@ -11,8 +11,9 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENCY_OFFER_SHEET_SURFACE_E91_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
-import FreeAgentPool from '@/features/architect/FreeAgentPool';
+import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool';
 import OfferSheetList from '@/features/architect/GMDashboard/components/OfferSheetList';
+import type { FreeAgentPoolProps } from '@/features/architect/freeAgency/FreeAgentPool/types';
 
 import type { FreeAgencySectionProps } from '../offerSheetTypes';
 
@@ -65,12 +66,12 @@ const FreeAgencySection = ({
     />
 
     <FreeAgentPool
-      freeAgents={freeAgents}
+      freeAgents={freeAgents as FreeAgentPoolProps['freeAgents']}
       currentYear={currentYear}
-      onSign={onSign}
-      onSignAndTrade={onSignAndTrade}
-      onStoreOfferSheet={onStoreOfferSheet}
-      playersMap={playersMap}
+      onSign={onSign as FreeAgentPoolProps['onSign']}
+      onSignAndTrade={onSignAndTrade as FreeAgentPoolProps['onSignAndTrade']}
+      onStoreOfferSheet={onStoreOfferSheet as FreeAgentPoolProps['onStoreOfferSheet']}
+      playersMap={playersMap as FreeAgentPoolProps['playersMap']}
       worldId={worldId}
     />
   </div>

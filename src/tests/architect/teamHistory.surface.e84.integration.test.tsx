@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import TeamHistoryTab from '@/features/architect/TeamHistoryTab';
+import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
 import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const useWorldTeamEventsMock = vi.fn();

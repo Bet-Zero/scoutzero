@@ -1,5 +1,5 @@
-import CapSheet from '@/features/architect/CapSheet';
-import ExceptionTracker from '@/features/architect/ExceptionTracker';
+import CapSheet from '@/features/architect/capSheet/CapSheet';
+import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker';
 import { DEV_CAP_SHEET_FIXTURE_FLAG } from '@/features/architect/capSheet/devCapSheetFixtures';
 
 type CapSheetSectionProps = {

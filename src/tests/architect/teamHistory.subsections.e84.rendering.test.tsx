@@ -2,9 +2,9 @@
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import ExceptionHistoryTracker from '@/features/architect/ExceptionHistoryTracker';
-import DraftPickTracker from '@/features/architect/DraftPickTracker';
-import WaiveStretchTracker from '@/features/architect/WaiveStretchTracker';
+import ExceptionHistoryTracker from '@/features/architect/capSheet/ExceptionHistoryTracker';
+import DraftPickTracker from '@/features/architect/offseason/DraftPickTracker';
+import WaiveStretchTracker from '@/features/architect/offseason/WaiveStretchTracker';
 
 describe('Team History E84 subsection rendering', () => {
   it('preserves exception history row order and empty states', () => {

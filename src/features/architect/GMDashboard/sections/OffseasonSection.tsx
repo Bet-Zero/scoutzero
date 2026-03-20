@@ -19,13 +19,14 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { SeasonAdvanceModal, DraftPositionsInput } from '@/features/architect/GMDashboard/components';
+import SeasonAdvanceModal from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
+import DraftPositionsInput from '@/features/architect/GMDashboard/components/DraftPositionsInput';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 
 // OFFSEASON_E1: DEV-only flag for single-team offseason preview (non-persisting).
 // Import kept for DEV preview; rendering is gated by showDevPreview below.
-import OffseasonTab from '@/features/architect/OffseasonTab';
+import OffseasonTab from '@/features/architect/offseason/OffseasonTab';
 
 type LooseRecord = Record<string, unknown>;
 

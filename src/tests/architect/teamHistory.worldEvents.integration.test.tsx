@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import TeamHistoryTab from '@/features/architect/TeamHistoryTab';
+import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
 
 const useWorldTeamEventsMock = vi.fn();
 

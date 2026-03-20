@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import CapSheetFull from '@/features/architect/CapSheetFull.jsx';
+import CapSheetFull from '@/features/architect/capSheet/CapSheetFull';
 
 const TEAM_CAP_SHEET = {
   teamCode: 'TST',

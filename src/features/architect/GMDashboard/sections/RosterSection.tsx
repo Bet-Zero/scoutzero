@@ -10,7 +10,7 @@
  *  - Plan: n/a (single-step task)
  *  - Latest Chunk: n/a
  */
-import RosterVisual from '@/features/architect/RosterVisual';
+import RosterVisual from '@/features/architect/shared/RosterVisual';
 
 type RosterSectionProps = {
   teamCapSheet: Record<string, unknown> | null | undefined;
@@ -21,7 +21,7 @@ type RosterSectionProps = {
 const RosterSection = ({ teamCapSheet, playersMap, teamId }: RosterSectionProps) => (
   <RosterVisual
     teamCapSheet={teamCapSheet}
-    playersMap={playersMap}
+    playersMap={playersMap as Record<string, Record<string, unknown>> | undefined}
     teamId={teamId}
   />
 );

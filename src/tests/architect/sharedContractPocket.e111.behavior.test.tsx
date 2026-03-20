@@ -79,7 +79,7 @@ vi.mock('@/features/architect/hooks/useCapValidation', () => ({
   buildSigningGuardrails: () => mockValidationState.signingGuardrails,
 }));
 
-vi.mock('@/features/architect/ValidationWarnings', () => ({
+vi.mock('@/features/architect/shared/ValidationWarnings', () => ({
   __esModule: true,
   default: ({
     warnings,

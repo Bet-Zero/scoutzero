@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import WaiveStretchTracker from '@/features/architect/WaiveStretchTracker';
-import ExceptionHistoryTracker from '@/features/architect/ExceptionHistoryTracker';
-import DraftPickTracker from '@/features/architect/DraftPickTracker';
+import WaiveStretchTracker from '@/features/architect/offseason/WaiveStretchTracker';
+import ExceptionHistoryTracker from '@/features/architect/capSheet/ExceptionHistoryTracker';
+import DraftPickTracker from '@/features/architect/offseason/DraftPickTracker';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
 import {

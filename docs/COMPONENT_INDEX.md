@@ -4,22 +4,9 @@ Quick reference for all components in the ScoutZero project.
 
 ## Architect
 
-- CapSheet.jsx
-- CapSheetFull.jsx
-- CapSummaryTiles.jsx
-- DraftPickTracker.jsx
-- ExceptionHistoryTracker.jsx
-- ExceptionTracker.jsx
-- FreeAgentPool.jsx
 - GMDashboard/components/DraftPositionsInput.jsx
-- GMDashboard/components/index.js
 - GMDashboard/index.jsx
 - LeagueView.jsx
-- OffseasonTab.jsx
-- RosterVisual.jsx
-- TeamHistoryTab.jsx
-- ValidationWarnings.jsx
-- WaiveStretchTracker.jsx
 - capSheet/CapSheet/CapSheet.jsx
 - capSheet/CapSheet/CapSummaryTiles.jsx
 - capSheet/CapSheetFull/CapSheetFull.jsx
@@ -213,4 +200,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T10:47:41.949Z*
+*Generated on: 2026-03-20T11:27:11.090Z*

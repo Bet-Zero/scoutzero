@@ -2,13 +2,6 @@
 
 ```text
 ARCHITECT_FEATURE_README.md
-CapSheet.jsx
-CapSheetFull.jsx
-CapSummaryTiles.jsx
-DraftPickTracker.jsx
-ExceptionHistoryTracker.jsx
-ExceptionTracker.jsx
-FreeAgentPool.jsx
 GMDashboard/
   GMDashboard.tsx
   components/
@@ -20,7 +13,6 @@ GMDashboard/
     SeasonAdvanceModal.tsx
     WorldSelector.tsx
     WorldTimeControls.tsx
-    index.js
   hooks/
     optimisticMutationLock.ts
     useArchitectActions.ts
@@ -37,11 +29,6 @@ GMDashboard/
     RosterSection.tsx
     TradeSection.tsx
 LeagueView.jsx
-OffseasonTab.jsx
-RosterVisual.jsx
-TeamHistoryTab.jsx
-ValidationWarnings.jsx
-WaiveStretchTracker.jsx
 admin/
   EntitlementEditorAdvancedTab.tsx
   EntitlementEditorBasicsTab.tsx
@@ -415,5 +402,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T10:47:41.900Z*
+*Generated on: 2026-03-20T11:27:11.037Z*
 *Auto-updated by: npm run docs*

@@ -192,67 +192,6 @@ declare module '@/features/roster/RosterSection' {
   export default RosterSection;
 }
 
-declare module '@/features/architect/CapSheet' {
-  const CapSheet: any;
-  export default CapSheet;
-}
-
-declare module '@/features/architect/CapSheetFull' {
-  const CapSheetFull: any;
-  export default CapSheetFull;
-}
-
-declare module '@/features/architect/DraftPickTracker' {
-  const DraftPickTracker: any;
-  export default DraftPickTracker;
-}
-
-declare module '@/features/architect/ExceptionHistoryTracker' {
-  const ExceptionHistoryTracker: any;
-  export default ExceptionHistoryTracker;
-}
-
-declare module '@/features/architect/ExceptionTracker' {
-  const ExceptionTracker: any;
-  export default ExceptionTracker;
-}
-
-declare module '@/features/architect/FreeAgentPool' {
-  const FreeAgentPool: any;
-  export default FreeAgentPool;
-}
-
-declare module '@/features/architect/GMDashboard/components' {
-  export const WorldSelector: any;
-  export const SeasonAdvanceModal: any;
-  export const DraftPositionsInput: any;
-}
-
-declare module '@/features/architect/OffseasonTab' {
-  const OffseasonTab: any;
-  export default OffseasonTab;
-}
-
-declare module '@/features/architect/RosterVisual' {
-  const RosterVisual: any;
-  export default RosterVisual;
-}
-
-declare module '@/features/architect/TeamHistoryTab' {
-  const TeamHistoryTab: any;
-  export default TeamHistoryTab;
-}
-
-declare module '@/features/architect/ValidationWarnings' {
-  const ValidationWarnings: any;
-  export default ValidationWarnings;
-}
-
-declare module '@/features/architect/WaiveStretchTracker' {
-  const WaiveStretchTracker: any;
-  export default WaiveStretchTracker;
-}
-
 declare module '@/features/architect/utils/capTotals' {
   export const computeTeamCapTotals: any;
   export const warnOnTotalsDivergence: any;

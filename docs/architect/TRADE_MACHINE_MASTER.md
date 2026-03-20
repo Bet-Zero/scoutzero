@@ -2285,6 +2285,23 @@ Date: 2026-02-26
   - `npm run validate:project`: PASS
 - Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_SHARED_CONTRACT_HELPER_SHIM_BATCH_E124_RETURN_PACKAGE.md`
 
+### Validator TS Internal Wrapper Batch E125 (2026-03-20)
+
+- Status:
+  - completed the first internal wrapper/barrel cleanup batch after the Phase 7B same-path retirement lane
+  - deleted 13 internal wrapper/barrel surfaces: `src/features/architect/CapSheet.jsx`, `src/features/architect/CapSheetFull.jsx`, `src/features/architect/CapSummaryTiles.jsx`, `src/features/architect/DraftPickTracker.jsx`, `src/features/architect/ExceptionHistoryTracker.jsx`, `src/features/architect/ExceptionTracker.jsx`, `src/features/architect/FreeAgentPool.jsx`, `src/features/architect/OffseasonTab.jsx`, `src/features/architect/RosterVisual.jsx`, `src/features/architect/TeamHistoryTab.jsx`, `src/features/architect/ValidationWarnings.jsx`, `src/features/architect/WaiveStretchTracker.jsx`, and `src/features/architect/GMDashboard/components/index.js`
+  - moved live dashboard section callers, `src/features/architect/history/TeamHistoryTab/TeamHistoryTab.tsx`, `src/shared/components/EditContractModal.tsx`, and the affected Architect behavior/guardrail suites off those wrapper aliases; canonical feature-folder imports or direct component imports are now the internal contract for the retired surfaces
+  - removed the retired wrapper aliases from `src/global-shims.d.ts`, so the deleted wrapper paths are no longer treated as valid internal module declarations
+  - added `src/tests/architect/internalWrapperBatch.e125.guardrail.test.tsx` to prove deleted-path absence plus representative extensionless/authority parity across the retired wrapper family, and to assert that `OffseasonSection.tsx` now imports `SeasonAdvanceModal` plus `DraftPositionsInput` directly instead of through the deleted barrel
+  - kept route/public-entry and mixed keeper surfaces out of scope, including `src/features/architect/GMDashboard/index.jsx`, `src/features/architect/LeagueView.jsx`, `src/features/architect/shared/LeagueView/LeagueView.jsx`, `src/features/architect/GMDashboard/components/DraftPositionsInput.jsx`, `src/features/architect/tradeMachine/EntitlementPicksList.jsx`, `src/features/architect/tradeMachine/ValidationStateHeader.jsx`, and `src/features/architect/utils/tradeContext/legacy/index.js`
+- Validation:
+  - `npm run typecheck`: PASS
+  - `npm run build`: PASS with the same pre-existing warnings about stale Browserslist data, `fs` browser externalization from `tradeDebug.ts`, mixed static/dynamic import chunking, and large chunks
+  - `npm run test:diff -- --reporter=dot`: FAIL for signoff; changing `src/global-shims.d.ts` caused the diff runner to select `FULL`, which surfaced failures outside the E125 wrapper scope: `src/tests/security/firestoreRules.integration.test.ts` requires `FIRESTORE_EMULATOR_HOST`, and `tests/validators/roster.test.js` expects `warningsOnly: null` while the current validator returns `false`
+  - `npm run test:architect -- --reporter=dot`: PASS (201 files, 2743 tests)
+  - `npm run validate:project`: PASS
+- Return package: `return_packages/trade_machine/TM_VALIDATOR_TS_INTERNAL_WRAPPER_BATCH_E125_RETURN_PACKAGE.md`
+
 ### RC1 Gate Snapshot
 
 - Trade suites confirmed clean: `test:trade` PASS (58 files, 525 passed), `test:architect` PASS (136 files, 2206 passed). Full-suite run surfaced 16 pre-existing failures in 3 non-trade files — none implicate the 5-pack. See `return_packages/ship_gates/SHIP_GATES_RC1_FULL_SUITE_P1_PREFLIGHT_RETURN_PACKAGE.md`.

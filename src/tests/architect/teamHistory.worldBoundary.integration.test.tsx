@@ -2,7 +2,7 @@
 import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import TeamHistoryTab from '@/features/architect/TeamHistoryTab';
+import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
 import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const baseTeam = {

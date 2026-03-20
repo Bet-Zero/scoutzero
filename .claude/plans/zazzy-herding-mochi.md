@@ -308,18 +308,23 @@ The compatibility-only retirement tranche from this follow-up plan is now comple
 - Preserved `shared/utils/contracts/index.js` as the intentional barrel surface and `shared/utils/contracts/contractParser.js` as the intentional live JS module while removing the two same-path helper hosts beneath them
 - Kept the next runtime-backed frontier untouched: `tradeContext/legacy/index.js` and any still-intentional top-level data/wrapper surfaces
 
-**Verification:**
+**Phase 7D batch-1 status now:**
+- Deleted 13 internal Architect wrapper/barrel surfaces: `CapSheet.jsx`, `CapSheetFull.jsx`, `CapSummaryTiles.jsx`, `DraftPickTracker.jsx`, `ExceptionHistoryTracker.jsx`, `ExceptionTracker.jsx`, `FreeAgentPool.jsx`, `OffseasonTab.jsx`, `RosterVisual.jsx`, `TeamHistoryTab.jsx`, `ValidationWarnings.jsx`, `WaiveStretchTracker.jsx`, and `GMDashboard/components/index.js`
+- Retargeted live dashboard section callers, `TeamHistoryTab`, `EditContractModal`, and the affected Architect behavior/guardrail suites to canonical feature paths or direct component imports
+- Removed the retired top-level wrapper aliases from `src/global-shims.d.ts` so the deleted wrapper paths are no longer treated as valid internal contracts
+- Added `src/tests/architect/internalWrapperBatch.e125.guardrail.test.tsx` to prove deleted-path absence, extensionless/authority parity, and direct `OffseasonSection` imports for `SeasonAdvanceModal` plus `DraftPositionsInput`
+- Kept remaining route/public-entry surfaces and mixed keepers untouched: `GMDashboard/index.jsx`, `LeagueView.jsx`, `tradeContext/legacy/index.js`, `DraftPositionsInput.jsx`, `EntitlementPicksList.jsx`, `ValidationStateHeader.jsx`, and the nested same-path `.jsx` hosts that were not part of this internal-wrapper batch
+
+**Verification (latest pass):**
 - `npm run typecheck` passes
 - `npm run build` passes
-- `npm run test:fast -- --reporter=dot` passes
-- `npm run test:diff -- --reporter=dot` passes
-- `npm run test:trade -- --reporter=dot` passes
+- `npm run test:architect -- --reporter=dot` passes
 - `npm run validate:project` passes
+- `npm run test:diff -- --reporter=dot` escalated to `FULL` because `src/global-shims.d.ts` changed and failed outside the E125 wrapper scope: `src/tests/security/firestoreRules.integration.test.ts` requires `FIRESTORE_EMULATOR_HOST`, and `tests/validators/roster.test.js` currently expects `warningsOnly: null` while the live validator returns `false`
 
 **What remains:**
-- Phase 7B runtime-backed same-path cleanup for the remaining clusters: any still-intentional top-level data/wrapper surfaces
 - Phase 7C mixed/structural keeper review
-- Phase 7D wrapper/barrel/public-entry cleanup
+- Phase 7D remaining route/public-entry wrapper cleanup decisions
 - Phase 7E final Architect JS/JSX inventory gate
 
 ## Summary
@@ -413,7 +418,9 @@ Desired end state:
 - `tradeMachine/cache`: ✅ sixth runtime-backed batch complete (`cacheInvalidationManager.js`, `validationCache.js`, `validationCacheService.js`)
 - persistence-contract helpers: ✅ seventh runtime-backed batch complete (`contracts.js`, `enforcement.js`, `normalizeTeamTpe.js`, `validatePersistableShape.js`)
 - shared contract helpers: ✅ eighth runtime-backed batch complete (`contractUtils.js`, `seasonNormalizer.js`)
-- Next safe batch: wrapper/barrel/public-entry cleanup gate
+- Runtime-backed same-path shim conversion lane: ✅ planned clusters complete
+- Follow-on gate completed: ✅ first internal wrapper/barrel cleanup batch complete
+- Next safe batch: mixed/structural keeper review, with remaining route/public-entry wrappers held for separate case-by-case decisions
 
 **High-priority runtime-backed clusters:**
 - `src/features/architect/utils/tradeMachine/**`
@@ -426,8 +433,8 @@ Desired end state:
 - Do this by cluster, not by whole-feature sweep, so failures stay understandable
 
 **Suggested batch order from here:**
-1. wrapper/barrel/public-entry cleanup gate
-2. mixed/structural keeper review
+1. mixed/structural keeper review
+2. remaining route/public-entry wrapper decisions
 3. final inventory gate
 
 ## Phase 7C: Mixed / Structural / Intentional Compatibility Surfaces
@@ -482,6 +489,10 @@ Desired end state:
 - Move internal callers away from wrapper/barrel compatibility surfaces
 - Keep only the ones that are truly intended public entrypoints
 - Delete the rest after import graph cleanup is complete
+
+**Current status:**
+- Internal wrapper/barrel subset: ✅ first cleanup batch complete (`CapSheet.jsx`, `CapSheetFull.jsx`, `CapSummaryTiles.jsx`, `DraftPickTracker.jsx`, `ExceptionHistoryTracker.jsx`, `ExceptionTracker.jsx`, `FreeAgentPool.jsx`, `OffseasonTab.jsx`, `RosterVisual.jsx`, `TeamHistoryTab.jsx`, `ValidationWarnings.jsx`, `WaiveStretchTracker.jsx`, `GMDashboard/components/index.js`)
+- Remaining route/public-entry wrappers such as `GMDashboard/index.jsx` and `LeagueView.jsx` stay open for a separate decision pass because they shape public import topology more directly than the deleted internal wrappers did
 
 ## Phase 7E: Final Architect JS/JSX Inventory Gate
 

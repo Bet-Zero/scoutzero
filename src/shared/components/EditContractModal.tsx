@@ -32,7 +32,7 @@ import {
 import useCapValidation, {
   buildSigningGuardrails,
 } from '@/features/architect/hooks/useCapValidation';
-import ValidationWarnings from '@/features/architect/ValidationWarnings';
+import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 

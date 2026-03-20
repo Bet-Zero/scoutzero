@@ -3,7 +3,7 @@ import type {
   PlayerRulesProfilesResult,
   PlayerRulesProfileTeamCapSheet,
 } from '@/features/architect/types';
-import CapSheetFull from '@/features/architect/CapSheetFull';
+import CapSheetFull from '@/features/architect/capSheet/CapSheetFull';
 
 type CapTableSectionProps = {
   teamCapSheet: PlayerRulesProfileTeamCapSheet | null | undefined;

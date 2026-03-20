@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import TeamHistoryTab from '@/features/architect/TeamHistoryTab';
+import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const emptyTeam = {
