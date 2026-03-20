@@ -21,14 +21,14 @@
 import {
   computeExtensionEligibility,
   computeExtensionTerms,
-} from '@/features/architect/utils/playerRulesProfile/extensionRules.js';
-import { computeBirdRights } from '@/features/architect/utils/playerRulesProfile/birdRightsRules.js';
+} from '@/features/architect/utils/playerRulesProfile/extensionRules';
+import { computeBirdRights } from '@/features/architect/utils/playerRulesProfile/birdRightsRules';
 import {
   computeMinimumSalary,
   getYearsOfService,
-} from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
-import { computeRFAStatus } from '@/features/architect/utils/playerRulesProfile/rfaRules.js';
-import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules.js';
+} from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
+import { computeRFAStatus } from '@/features/architect/utils/playerRulesProfile/rfaRules';
+import { computeMaxSalary } from '@/features/architect/utils/playerRulesProfile/maxSalaryRules';
 import { parseSeasonEndYear } from '@/features/architect/utils/seasonUtils';
 import { DEFAULT_AVERAGE_SALARY } from '@/features/architect/utils/cbaConstants';
 import { getCapForSeason } from '@/features/architect/utils/capHelpers';

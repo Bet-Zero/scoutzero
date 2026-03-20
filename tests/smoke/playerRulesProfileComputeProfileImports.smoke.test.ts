@@ -8,30 +8,29 @@ const __dirname = path.dirname(__filename);
 
 const COMPUTE_PROFILE_ALIAS =
   '@/features/architect/utils/playerRulesProfile/computeProfile';
-const COMPUTE_PROFILE_SHIM_PATH = path.resolve(
+const COMPUTE_PROFILE_AUTHORITY_SPECIFIER =
+  '../../src/features/architect/utils/playerRulesProfile/computeProfile.ts';
+const COMPUTE_PROFILE_DELETED_SHIM_PATH = path.resolve(
   __dirname,
   '../../src/features/architect/utils/playerRulesProfile/computeProfile.js'
 );
 
 describe('playerRulesProfile computeProfile import compatibility', () => {
-  it('resolves computeProfile via extensionless and explicit .js imports', async () => {
+  it('keeps computeProfile extensionless imports aligned with the TS authority', async () => {
     const extensionless = await import(COMPUTE_PROFILE_ALIAS);
-    const withJs = await import(`${COMPUTE_PROFILE_ALIAS}.js`);
+    const authority = await import(COMPUTE_PROFILE_AUTHORITY_SPECIFIER);
 
+    expect('default' in authority).toBe(false);
+    expect(Object.keys(authority)).toEqual(
+      expect.arrayContaining(['computePlayerRulesProfile'])
+    );
     expect(extensionless.computePlayerRulesProfile).toBeDefined();
-    expect(withJs.computePlayerRulesProfile).toBe(
-      extensionless.computePlayerRulesProfile
+    expect(extensionless.computePlayerRulesProfile).toBe(
+      authority.computePlayerRulesProfile
     );
   });
 
-  it('kept computeProfile.js remains a pure compatibility shim', () => {
-    const shimContent = fs.readFileSync(COMPUTE_PROFILE_SHIM_PATH, 'utf8');
-
-    expect(shimContent).toContain("export * from './computeProfile.ts';");
-    expect(shimContent).not.toContain('function normalizeLeagueContext');
-    expect(shimContent).not.toContain('function buildContractSummary');
-    expect(shimContent).not.toContain(
-      'export function computePlayerRulesProfile'
-    );
+  it('retired computeProfile shim path is absent', () => {
+    expect(fs.existsSync(COMPUTE_PROFILE_DELETED_SHIM_PATH)).toBe(false);
   });
 });

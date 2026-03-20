@@ -36,7 +36,7 @@ import {
   computeTeamCapTotals,
   canUseRoomException,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
-import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js';
+import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/computeProfile';
 import {
   buildRuleContextForPlayerMove,

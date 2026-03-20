@@ -943,10 +943,10 @@ describe('Export contracts', () => {
 
   it('preserves direct leaf-module aliases and award constants', async () => {
     const { MINIMUM_SALARY_SCALE } = await import(
-      '@/features/architect/utils/playerRulesProfile/minimumSalaryRules.js'
+      '@/features/architect/utils/playerRulesProfile/minimumSalaryRules'
     );
     const { SUPERMAX_QUALIFYING_AWARDS } = await import(
-      '@/features/architect/utils/playerRulesProfile/maxSalaryRules.js'
+      '@/features/architect/utils/playerRulesProfile/maxSalaryRules'
     );
     const { MINIMUM_SALARY_SCALES } = await import(
       '@/features/architect/data/minimumSalaryScales'

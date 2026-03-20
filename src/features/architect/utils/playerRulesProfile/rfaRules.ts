@@ -19,7 +19,7 @@
  * @file src/features/architect/utils/playerRulesProfile/rfaRules.ts
  */
 
-import { getYearsOfService, getMinimumSalaryScale } from './minimumSalaryRules.js';
+import { getYearsOfService, getMinimumSalaryScale } from './minimumSalaryRules';
 import { parseSeasonEndYear } from '../seasonUtils';
 
 type PlayerSalaryEntryLike = {

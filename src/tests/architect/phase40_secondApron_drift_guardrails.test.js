@@ -58,13 +58,13 @@ vi.mock('../../features/architect/utils/capTotals/computeTeamCapTotals', () => (
 }));
 
 // Mock playerRulesProfile
-vi.mock('../../features/architect/utils/playerRulesProfile/index.js', () => ({
+vi.mock('../../features/architect/utils/playerRulesProfile/computeProfile', () => ({
   computePlayerRulesProfile: vi.fn(() => ({
     maxSalary: 35e6,
     // other props
   })),
 }));
-vi.mock('../../features/architect/utils/playerRulesProfile/minimumSalaryRules.js', () => ({
+vi.mock('../../features/architect/utils/playerRulesProfile/minimumSalaryRules', () => ({
     getYearsOfService: vi.fn(() => 5),
 }));
 
@@ -137,7 +137,7 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
     });
   });
 
-  describe('capLegalityValidation.js: validateSigning (Rule 1.8)', () => {
+  describe('capLegalityValidation: validateSigning (Rule 1.8)', () => {
     it('should ALLOW signing above minimum when projected salary is EXACTLY at second apron', () => {
         // Mock inputs for validateSigning
         const team = {

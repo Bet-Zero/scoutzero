@@ -21,8 +21,8 @@
  * @file src/features/architect/utils/playerRulesProfile/extensionRules.ts
  */
 
-import { getYearsOfService } from './minimumSalaryRules.js';
-import { checkSupermaxEligibility } from './maxSalaryRules.js';
+import { getYearsOfService } from './minimumSalaryRules';
+import { checkSupermaxEligibility } from './maxSalaryRules';
 import { parseSeasonEndYear } from '../seasonUtils';
 import { DEFAULT_AVERAGE_SALARY } from '../cbaConstants';
 

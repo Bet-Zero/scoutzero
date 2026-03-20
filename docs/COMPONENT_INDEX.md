@@ -54,13 +54,7 @@ Quick reference for all components in the ScoutZero project.
 - utils/persistenceContracts/index.js
 - utils/persistenceContracts/normalizeTeamTpe.js
 - utils/persistenceContracts/validatePersistableShape.js
-- utils/playerRulesProfile/birdRightsRules.js
-- utils/playerRulesProfile/computeProfile.js
-- utils/playerRulesProfile/extensionRules.js
 - utils/playerRulesProfile/index.js
-- utils/playerRulesProfile/maxSalaryRules.js
-- utils/playerRulesProfile/minimumSalaryRules.js
-- utils/playerRulesProfile/rfaRules.js
 - utils/playerRulesProfile/types.js
 - utils/tradeContext/index.js
 - utils/tradeContext/legacy/index.js
@@ -254,4 +248,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T07:58:19.773Z*
+*Generated on: 2026-03-20T08:14:12.933Z*

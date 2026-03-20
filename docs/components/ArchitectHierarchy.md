@@ -297,19 +297,13 @@ utils/
     validatePersistableShape.js
     validatePersistableShape.ts
   playerRulesProfile/
-    birdRightsRules.js
     birdRightsRules.ts
-    computeProfile.js
     computeProfile.ts
-    extensionRules.js
     extensionRules.ts
     index.d.ts
     index.js
-    maxSalaryRules.js
     maxSalaryRules.ts
-    minimumSalaryRules.js
     minimumSalaryRules.ts
-    rfaRules.js
     rfaRules.ts
     types.js
     types.ts
@@ -456,5 +450,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-20T07:58:19.724Z*
+*Generated on: 2026-03-20T08:14:12.897Z*
 *Auto-updated by: npm run docs*

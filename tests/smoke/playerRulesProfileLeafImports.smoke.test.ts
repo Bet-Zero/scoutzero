@@ -10,7 +10,9 @@ const MODULE_CASES = [
   {
     label: 'minimumSalaryRules',
     aliasBase: '@/features/architect/utils/playerRulesProfile/minimumSalaryRules',
-    shimPath: path.resolve(
+    authoritySpecifier:
+      '../../src/features/architect/utils/playerRulesProfile/minimumSalaryRules.ts',
+    deletedShimPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/playerRulesProfile/minimumSalaryRules.js'
     ),
@@ -22,16 +24,13 @@ const MODULE_CASES = [
       'getMinimumCapHit',
       'MINIMUM_SALARY_SCALE',
     ],
-    absentTokens: [
-      'function normalizeSeasonCode',
-      'function computeMinimumSalary',
-      'export const MINIMUM_SALARY_SCALE =',
-    ],
   },
   {
     label: 'maxSalaryRules',
     aliasBase: '@/features/architect/utils/playerRulesProfile/maxSalaryRules',
-    shimPath: path.resolve(
+    authoritySpecifier:
+      '../../src/features/architect/utils/playerRulesProfile/maxSalaryRules.ts',
+    deletedShimPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/playerRulesProfile/maxSalaryRules.js'
     ),
@@ -43,16 +42,13 @@ const MODULE_CASES = [
       'checkSupermaxEligibility',
       'getMaxSalaryTier',
     ],
-    absentTokens: [
-      'function buildMaxSalaryReason',
-      'function normalizeAwardType',
-      'export const MAX_SALARY_TIERS =',
-    ],
   },
   {
     label: 'birdRightsRules',
     aliasBase: '@/features/architect/utils/playerRulesProfile/birdRightsRules',
-    shimPath: path.resolve(
+    authoritySpecifier:
+      '../../src/features/architect/utils/playerRulesProfile/birdRightsRules.ts',
+    deletedShimPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/playerRulesProfile/birdRightsRules.js'
     ),
@@ -61,16 +57,13 @@ const MODULE_CASES = [
       'computeBirdRightsFromRuleContext',
       'BIRD_RIGHTS_TYPES',
     ],
-    absentTokens: [
-      'function computeSigningAbilities',
-      'function buildBirdRightsSummary',
-      'export const BIRD_RIGHTS_TYPES =',
-    ],
   },
   {
     label: 'rfaRules',
     aliasBase: '@/features/architect/utils/playerRulesProfile/rfaRules',
-    shimPath: path.resolve(
+    authoritySpecifier:
+      '../../src/features/architect/utils/playerRulesProfile/rfaRules.ts',
+    deletedShimPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/playerRulesProfile/rfaRules.js'
     ),
@@ -80,16 +73,13 @@ const MODULE_CASES = [
       'computeRFAFromRuleContext',
       'RFA_STATUS',
     ],
-    absentTokens: [
-      'function computeQOAcceptanceDeadline',
-      'const QO_PERCENTAGES =',
-      'export const RFA_STATUS =',
-    ],
   },
   {
     label: 'extensionRules',
     aliasBase: '@/features/architect/utils/playerRulesProfile/extensionRules',
-    shimPath: path.resolve(
+    authoritySpecifier:
+      '../../src/features/architect/utils/playerRulesProfile/extensionRules.ts',
+    deletedShimPath: path.resolve(
       __dirname,
       '../../src/features/architect/utils/playerRulesProfile/extensionRules.js'
     ),
@@ -99,37 +89,30 @@ const MODULE_CASES = [
       'computeExtensionFromRuleContext',
       'EXTENSION_TYPES',
     ],
-    absentTokens: [
-      'function computeVeteranExtensionTerms',
-      'function computeRookieExtensionEligibility',
-      'export const EXTENSION_TYPES =',
-    ],
   },
 ] as const;
 
 describe('playerRulesProfile leaf import compatibility', () => {
   for (const moduleCase of MODULE_CASES) {
-    it(`resolves ${moduleCase.label} via extensionless and explicit .js imports`, async () => {
+    it(`keeps ${moduleCase.label} extensionless imports aligned with the TS authority`, async () => {
       const extensionless = await import(moduleCase.aliasBase);
-      const withJs = await import(`${moduleCase.aliasBase}.js`);
+      const authority = await import(moduleCase.authoritySpecifier);
+
+      expect('default' in authority).toBe(false);
+      expect(Object.keys(authority)).toEqual(
+        expect.arrayContaining([...moduleCase.exportNames])
+      );
 
       for (const exportName of moduleCase.exportNames) {
         expect(extensionless[exportName]).toBeDefined();
-        expect(withJs[exportName]).toBe(extensionless[exportName]);
+        expect(extensionless[exportName]).toBe(authority[exportName]);
       }
     });
   }
 
-  it('kept js files remain pure compatibility shims', () => {
+  it('retired leaf shim paths are absent', () => {
     for (const moduleCase of MODULE_CASES) {
-      const shimContent = fs.readFileSync(moduleCase.shimPath, 'utf8');
-      const tsBasename = path.basename(moduleCase.shimPath, '.js');
-
-      expect(shimContent).toContain(`export * from './${tsBasename}.ts';`);
-
-      for (const absentToken of moduleCase.absentTokens) {
-        expect(shimContent).not.toContain(absentToken);
-      }
+      expect(fs.existsSync(moduleCase.deletedShimPath)).toBe(false);
     }
   });
 });

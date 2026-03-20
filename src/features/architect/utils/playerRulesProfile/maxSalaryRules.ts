@@ -12,7 +12,7 @@
  * @file src/features/architect/utils/playerRulesProfile/maxSalaryRules.ts
  */
 
-import { getYearsOfService } from './minimumSalaryRules.js';
+import { getYearsOfService } from './minimumSalaryRules';
 import { parseSeasonEndYear } from '../seasonUtils';
 import { getLastSalary } from '../contractUtils';
 import { parseSeasonId } from '../seasonHelpers';
