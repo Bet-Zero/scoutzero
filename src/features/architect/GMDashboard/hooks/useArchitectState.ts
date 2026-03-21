@@ -18,8 +18,13 @@ import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import type {
+  CapHoldItem,
+  DeadCapItem,
+  DraftPick,
+  Exceptions,
   PlayerRulesProfileInput,
   PlayerRulesProfileTeamCapSheet,
+  TeamTotals,
 } from '@/features/architect/types';
 import type { OfferSheetLike } from '../offerSheetTypes';
 import capProjections from '@/features/architect/utils/capProjections';
@@ -42,23 +47,8 @@ function deepClone<T>(obj: T): T {
 
 // ==== Type Definitions ====
 
-/** Cap projections object keyed by season string */
-type CapProjections = Record<
-  string,
-  {
-    cap: number;
-    floor: number;
-    tax: number;
-    firstApron: number;
-    secondApron: number;
-    bae: number;
-    roomMLE: number;
-    fullMLE: number;
-    taxpayerMLE: number;
-    growthRate: number;
-    confirmed?: boolean;
-  }
->;
+type CapProjectionRow = (typeof capProjections)[string];
+type CapProjectionMap = Record<string, CapProjectionRow | undefined>;
 
 /** Salary entry by year in a contract */
 interface SalaryByYear {
@@ -98,7 +88,18 @@ type ArchitectPlayer = PlayerRulesProfileInput & {
   futureContract?: ArchitectContract | null;
 };
 
-const mergeWorldPlayerOverride = (
+type WorldRosterPlayerLike = ArchitectPlayer & {
+  bio?: ArchitectPlayer['bio'] & {
+    playerId?: string | number | null;
+  };
+};
+
+type WorldLeagueTeamLike = {
+  roster?: unknown[];
+  players?: WorldRosterPlayerLike[];
+};
+
+export const mergeWorldPlayerOverride = (
   basePlayer: ArchitectPlayer | null,
   overridePlayer: ArchitectPlayer
 ): ArchitectPlayer => ({
@@ -122,6 +123,10 @@ interface FreeAgent extends ArchitectPlayer {
 type OffseasonSummaryTradeException = {
   amount?: number;
   source?: string | null;
+  expiresOn?: string | null;
+  expiryISO?: string | null;
+  expiryDate?: string | null;
+  teamCode?: string | null;
 };
 
 type OffseasonSummaryWaivedDeadCap = {
@@ -130,42 +135,65 @@ type OffseasonSummaryWaivedDeadCap = {
   year?: string | number | null;
 };
 
+type ExercisedOptionSummary = {
+  playerId?: string | number | null;
+  playerName?: string | null;
+  optionType?: string | null;
+  salary?: number | null;
+};
+
+type StepienUpdateSummary = {
+  pickId?: string | null;
+  year?: number | null;
+  status?: string | null;
+  reason?: string | null;
+};
+
 export type DashboardOffseasonSummary = {
   declinedOptions?: string[];
   expiredContracts?: string[];
   expiredTPEs?: OffseasonSummaryTradeException[];
   waivedDeadCap?: OffseasonSummaryWaivedDeadCap[];
   resetMLE?: boolean;
-  exercisedOptions?: unknown[];
-  stepienUpdates?: unknown[];
+  exercisedOptions?: ExercisedOptionSummary[];
+  stepienUpdates?: StepienUpdateSummary[];
 };
 
-type CapHoldLike = {
-  playerId?: string | null;
-  playerName?: string | null;
-  amount?: number | null;
-  season?: string | null;
-  type?: string | null;
+type CapHoldLike = Omit<CapHoldItem, 'playerId'> & {
+  playerId?: string | number | null;
   active?: boolean | null;
-  isSigned?: boolean | null;
   reason?: string | null;
+};
+
+type DeadCapLike = Partial<DeadCapItem> & {
+  id?: string | null;
+  playerId?: string | number | null;
+  label?: string | null;
+  amountByYear?: DeadCapItem['amountByYear'] | null;
+  stretched?: boolean | null;
+};
+
+type ArchitectExceptionEntryLike = {
+  type?: string | null;
+  enabled?: boolean;
+  available?: boolean;
+  totalAmount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
   notes?: string | null;
+  seasonKey?: string | null;
   [key: string]: unknown;
 };
 
-type DeadCapYearLike = {
-  season?: string | null;
-  amount?: number | null;
-  isStretched?: boolean | null;
-};
-
-type DeadCapLike = {
-  playerId?: string | null;
-  playerName?: string | null;
-  label?: string | null;
-  amountByYear?: DeadCapYearLike[] | Record<string, unknown> | null;
-  notes?: string | null;
-  stretched?: boolean | null;
+type ArchitectExceptionsLike = Exceptions & {
+  mle?: ArchitectExceptionEntryLike;
+  taxpayerMle?: ArchitectExceptionEntryLike;
+  room?: ArchitectExceptionEntryLike;
+  bae?: ArchitectExceptionEntryLike;
+  dpe?: ArchitectExceptionEntryLike;
   [key: string]: unknown;
 };
 
@@ -175,9 +203,9 @@ interface CapSheet extends PlayerRulesProfileTeamCapSheet {
   players?: ArchitectPlayer[];
   deadCap?: DeadCapLike[] | null;
   capHolds?: CapHoldLike[] | null;
-  exceptions?: Record<string, unknown> | null;
-  draftPicks?: unknown[];
-  totals?: unknown;
+  exceptions?: ArchitectExceptionsLike | null;
+  draftPicks?: DraftPick[] | null;
+  totals?: TeamTotals | null;
   offerSheets?: OfferSheetLike[] | null;
   incomingOfferSheets?: OfferSheetLike[] | null;
   [key: string]: unknown;
@@ -266,7 +294,7 @@ const getDefaultSeasonEndYear = (date: Date = new Date()): number => {
 };
 
 const seasonEndYearsFromCaps = (
-  caps: CapProjections | null | undefined
+  caps: CapProjectionMap | null | undefined
 ): number[] => {
   const keys = Object.keys(caps || {});
   const years = keys
@@ -345,9 +373,7 @@ export function useArchitectState({
   // === Selection state ===
   const [currentYear, setCurrentYear] = useState<number>(() => {
     // Get available years from cap projections
-    const availableYears = seasonEndYearsFromCaps(
-      capProjections as CapProjections
-    );
+    const availableYears = seasonEndYearsFromCaps(capProjections);
 
     // Check URL query parameter first
     const qp = new URLSearchParams(window.location.search).get('season');
@@ -450,14 +476,14 @@ export function useArchitectState({
       const nextIndex = new Set<string>();
       const nextOverrides: Record<string, ArchitectPlayer> = {};
 
-      league.forEach((team: any) => {
+      league.forEach((team: WorldLeagueTeamLike) => {
         (team?.roster || []).forEach((rawId: unknown) => {
           if (typeof rawId === 'string' && rawId.trim()) {
             nextIndex.add(rawId.trim());
           }
         });
 
-        (team?.players || []).forEach((player: any) => {
+        (team?.players || []).forEach((player: WorldRosterPlayerLike) => {
           const playerId =
             player?.id || player?.player_id || player?.bio?.playerId || null;
           if (typeof playerId === 'string' && playerId.trim()) {

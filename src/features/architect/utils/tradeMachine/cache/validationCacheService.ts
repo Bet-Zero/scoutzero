@@ -10,15 +10,27 @@ export const CACHE_TYPES = {
 };
 
 type CacheBucketMap = {
-  hardCapStatus: Map<any, any>;
-  tpeValidations: Map<any, any>;
-  salaryMatching: Map<any, any>;
-  signAndTrade: Map<any, any>;
-  stepien: Map<any, any>;
-  roster: Map<any, any>;
+  hardCapStatus: Map<ValidationCacheKey, unknown>;
+  tpeValidations: Map<ValidationCacheKey, unknown>;
+  salaryMatching: Map<ValidationCacheKey, unknown>;
+  signAndTrade: Map<ValidationCacheKey, unknown>;
+  stepien: Map<ValidationCacheKey, unknown>;
+  roster: Map<ValidationCacheKey, unknown>;
 };
 
-class ValidationCacheManager {
+export type ValidationCacheKey = string;
+
+type ValidationCacheBucket = Map<ValidationCacheKey, unknown>;
+
+export interface ValidationCacheMetrics {
+  hitRate: number;
+  hits: number;
+  misses: number;
+  invalidations: number;
+  size: number;
+}
+
+export class ValidationCacheManager {
   _cache: CacheBucketMap;
   hits: number;
   misses: number;
@@ -38,8 +50,11 @@ class ValidationCacheManager {
     this.invalidations = 0;
   }
 
-  getCachedResult(key: any) {
-    const result = this._cache.salaryMatching.get(key);
+  private readCacheValue<T>(
+    cache: ValidationCacheBucket,
+    key: ValidationCacheKey
+  ): T | null {
+    const result = cache.get(key) as T | undefined;
     if (result) {
       this.hits++;
       return result;
@@ -48,82 +63,64 @@ class ValidationCacheManager {
     return null;
   }
 
-  cacheResult(key: any, result: any) {
-    this._cache.salaryMatching.set(key, result);
+  private writeCacheValue<T>(
+    cache: ValidationCacheBucket,
+    key: ValidationCacheKey,
+    result: T
+  ): void {
+    cache.set(key, result);
+  }
+
+  getCachedResult<T>(key: ValidationCacheKey): T | null {
+    return this.readCacheValue<T>(this._cache.salaryMatching, key);
+  }
+
+  cacheResult<T>(key: ValidationCacheKey, result: T): void {
+    this.writeCacheValue(this._cache.salaryMatching, key, result);
   }
 
   // Hard cap cache methods
-  getCachedHardCap(key: any) {
-    const result = this._cache.hardCapStatus.get(key);
-    if (result) {
-      this.hits++;
-      return result;
-    }
-    this.misses++;
-    return null;
+  getCachedHardCap<T>(key: ValidationCacheKey): T | null {
+    return this.readCacheValue<T>(this._cache.hardCapStatus, key);
   }
 
-  cacheHardCap(key: any, result: any) {
-    this._cache.hardCapStatus.set(key, result);
+  cacheHardCap<T>(key: ValidationCacheKey, result: T): void {
+    this.writeCacheValue(this._cache.hardCapStatus, key, result);
   }
 
-  getCachedHardCapStatus(key: any) {
-    const result = this._cache.hardCapStatus.get(key);
-    if (result) {
-      this.hits++;
-      return result;
-    }
-    this.misses++;
-    return null;
+  getCachedHardCapStatus<T>(key: ValidationCacheKey): T | null {
+    return this.readCacheValue<T>(this._cache.hardCapStatus, key);
   }
 
-  cacheHardCapStatus(key: any, result: any) {
-    this._cache.hardCapStatus.set(key, result);
+  cacheHardCapStatus<T>(key: ValidationCacheKey, result: T): void {
+    this.writeCacheValue(this._cache.hardCapStatus, key, result);
   }
 
   // TPE cache methods
-  getCachedTPE(key: any) {
-    const result = this._cache.tpeValidations.get(key);
-    if (result) {
-      this.hits++;
-      return result;
-    }
-    this.misses++;
-    return null;
+  getCachedTPE<T>(key: ValidationCacheKey): T | null {
+    return this.readCacheValue<T>(this._cache.tpeValidations, key);
   }
 
-  cacheTPE(key: any, result: any) {
-    this._cache.tpeValidations.set(key, result);
+  cacheTPE<T>(key: ValidationCacheKey, result: T): void {
+    this.writeCacheValue(this._cache.tpeValidations, key, result);
   }
 
   // Sign and trade cache methods
-  getCachedSignAndTrade(key: any) {
-    const result = this._cache.signAndTrade.get(key);
-    if (result) {
-      this.hits++;
-      return result;
-    }
-    this.misses++;
-    return null;
+  getCachedSignAndTrade<T>(key: ValidationCacheKey): T | null {
+    return this.readCacheValue<T>(this._cache.signAndTrade, key);
   }
 
-  cacheSignAndTrade(key: any, result: any) {
-    this._cache.signAndTrade.set(key, result);
+  cacheSignAndTrade<T>(key: ValidationCacheKey, result: T): void {
+    this.writeCacheValue(this._cache.signAndTrade, key, result);
   }
 
   // Stepien cache methods
-  getCachedStepienValidation(key: any) {
-    const result = this._cache.stepien.get(key);
-    if (result) {
-      this.hits++;
-      return result;
-    }
-    this.misses++;
-    return null;
+  getCachedStepienValidation<T>(key: ValidationCacheKey): T | null {
+    return this.readCacheValue<T>(this._cache.stepien, key);
   }
 
-  cacheStepienValidation(key: any, result: any) {
-    this._cache.stepien.set(key, result);
+  cacheStepienValidation<T>(key: ValidationCacheKey, result: T): void {
+    this.writeCacheValue(this._cache.stepien, key, result);
   }
 
   invalidateCache() {
@@ -137,7 +134,7 @@ class ValidationCacheManager {
     this.invalidateCache();
   }
 
-  getMetrics() {
+  getMetrics(): ValidationCacheMetrics {
     const total = this.hits + this.misses;
     const totalSize = Object.values(this._cache).reduce(
       (sum, cache) => sum + cache.size,
@@ -149,12 +146,12 @@ class ValidationCacheManager {
       hits: this.hits,
       misses: this.misses,
       invalidations: this.invalidations,
-      size: totalSize,  // Changed from cacheSize to size
+      size: totalSize,
     };
   }
 
   // Add missing clear method for compatibility
-  clear() {
+  clear(): void {
     this.invalidateCache();
   }
 }

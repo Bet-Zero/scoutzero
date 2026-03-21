@@ -53,11 +53,10 @@ import {
   normalizeValidationIssues,
   summarizeValidationIssues,
 } from '../utils/validationIssueText';
+import type { DataWarning } from '../utils/dataValidation';
 import type {
-  AuthoritativeHardCapResult,
-  AuthoritativeSalaryMatchingDetails,
-  AuthoritativeSalaryMatchingResult,
   TradeReceipt,
+  TradeFaExceptionBucket,
   TradeRuleEnvelope,
   TradeSummaryByTeamIndexRow,
   TradeTeam,
@@ -77,7 +76,12 @@ type TradeValidatorPlayer = TradeExceptionPlayer & {
   teamCode?: string | null;
   currentSalary?: number;
   previousSalary?: number;
-  extensionYears?: Array<Record<string, unknown>>;
+  extensionYears?: Array<{
+    season?: string | null;
+    year?: number | string | null;
+    salary?: number | string | null;
+    [key: string]: unknown;
+  }>;
   tradeKicker?: {
     percentage?: number;
     waived?: number;
@@ -95,11 +99,15 @@ type TradeValidatorPlayer = TradeExceptionPlayer & {
 type TradeValidatorTeamData = NonNullable<TradeTeam['team']> & {
   players?: TradeValidatorPlayer[];
   twoWayPlayers?: TradeValidatorPlayer[];
-  faExceptionBuckets?: Array<Record<string, unknown>>;
-  hardCapFirstApron?: Record<string, unknown> | null;
+  faExceptionBuckets?: TradeFaExceptionBucket[];
+  hardCapFirstApron?: {
+    active?: boolean;
+    reason?: string | null;
+    season?: string | null;
+  } | null;
 };
 
-type TradeValidatorEntitlement = Record<string, unknown> & {
+type TradeValidatorEntitlement = {
   entitlementId?: string;
   id?: string;
   seasonYear?: number | string;
@@ -111,6 +119,7 @@ type TradeValidatorEntitlement = Record<string, unknown> & {
   terms?: unknown;
   termsShort?: unknown;
   linkedEntitlementIds?: string[];
+  [key: string]: unknown;
 };
 
 type TradeValidatorTeamSlot = TradeTeam & {
@@ -137,13 +146,55 @@ type TradeValidatorActiveTeamSlot = TradeValidatorTeamSlot & {
   team: TradeValidatorTeamData;
 };
 
-type RuleEnvelopeLike =
-  | ValidationIssueLike[]
-  | Record<string, unknown>
-  | null
-  | undefined;
+type RuleEnvelopeObjectLike = {
+  passed?: boolean;
+  violations?: unknown;
+  warnings?: unknown;
+  message?: string | null;
+  sourceType?: string | null;
+  details?: unknown;
+  skipReason?: string | null;
+  allowableIncoming?: number | null;
+  salaryIn?: number | null;
+  hardCapped?: boolean;
+  hardCapStatus?: {
+    isHardCapped?: boolean;
+  } | null;
+};
 
-type WrappedValidator = (...args: unknown[]) => unknown;
+type RuleEnvelopeLike = ValidationIssueLike[] | RuleEnvelopeObjectLike | null | undefined;
+
+type TeamIdentityLike = {
+  teamCode?: unknown;
+  id?: unknown;
+  teamId?: unknown;
+  code?: unknown;
+  abbreviation?: unknown;
+};
+
+type SignAndTradeResultLike = {
+  hardCapped?: boolean;
+};
+
+type HardCapStatusLike = {
+  isHardCapped?: boolean;
+};
+
+type SalaryMatchingReceiptDetailsLike = {
+  totalSalarySource?: string;
+  ruleApplied?: string | null;
+  formulaUsed?: string | null;
+  margin?: number | null;
+  capSettingsSource?: string;
+};
+
+type SalaryMatchingReceiptRuleLike = {
+  skipReason: string | null;
+  allowableIncoming: number | null;
+  salaryIn: number | null;
+  passed: boolean | null;
+  details: SalaryMatchingReceiptDetailsLike;
+};
 
 interface BuildValidationResultParams {
   legal: boolean;
@@ -155,7 +206,7 @@ interface BuildValidationResultParams {
   summaryByTeamIndex?: TradeSummaryByTeamIndexRow[];
   validationTime: number;
   tradeReceipt?: TradeReceipt | null;
-  dataWarnings?: unknown[];
+  dataWarnings?: DataWarning[];
   context?: TradeValidatorContext;
 }
 
@@ -219,7 +270,7 @@ function normalizeTeamCodeLike(teamIdLike: unknown): string | null {
   }
 
   if (typeof teamIdLike === 'object') {
-    const teamIdObject = teamIdLike as Record<string, unknown>;
+    const teamIdObject = teamIdLike as TeamIdentityLike;
     return normalizeTeamCodeLike(
       teamIdObject.teamCode ||
         teamIdObject.id ||
@@ -336,6 +387,143 @@ function normalizeArrayInput<T>(values: T | T[] | null | undefined): T[] {
   return Array.isArray(values) ? values.filter((value) => value != null) : [values];
 }
 
+function isObjectLike(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isRuleEnvelopeObject(value: unknown): value is RuleEnvelopeObjectLike {
+  return isObjectLike(value);
+}
+
+function readSalaryMatchingRuleEnvelope(
+  value: unknown
+): SalaryMatchingReceiptRuleLike {
+  if (!isRuleEnvelopeObject(value)) {
+    return {
+      skipReason: null,
+      allowableIncoming: null,
+      salaryIn: null,
+      passed: null,
+      details: {},
+    };
+  }
+
+  const details = isObjectLike(value.details) ? value.details : null;
+  const skipReason = value.skipReason;
+  const allowableIncoming = value.allowableIncoming;
+  const salaryIn = value.salaryIn;
+  const passed = value.passed;
+  const totalSalarySource = details?.totalSalarySource;
+  const ruleApplied = details?.ruleApplied;
+  const formulaUsed = details?.formulaUsed;
+  const margin = details?.margin;
+  const capSettingsSource = details?.capSettingsSource;
+  let normalizedRuleApplied: string | null | undefined;
+  let normalizedFormulaUsed: string | null | undefined;
+  let normalizedMargin: number | null | undefined;
+
+  if (typeof ruleApplied === 'string') {
+    normalizedRuleApplied = ruleApplied;
+  } else if (ruleApplied === null) {
+    normalizedRuleApplied = null;
+  }
+  if (typeof formulaUsed === 'string') {
+    normalizedFormulaUsed = formulaUsed;
+  } else if (formulaUsed === null) {
+    normalizedFormulaUsed = null;
+  }
+  if (typeof margin === 'number') {
+    normalizedMargin = margin;
+  } else if (margin === null) {
+    normalizedMargin = null;
+  }
+
+  return {
+    skipReason:
+      typeof skipReason === 'string' || skipReason === null
+        ? (skipReason ?? null)
+        : null,
+    allowableIncoming:
+      typeof allowableIncoming === 'number' || allowableIncoming === null
+        ? (allowableIncoming ?? null)
+        : null,
+    salaryIn:
+      typeof salaryIn === 'number' || salaryIn === null
+        ? (salaryIn ?? null)
+        : null,
+    passed: typeof passed === 'boolean' || passed === null ? (passed ?? null) : null,
+    details: {
+      totalSalarySource:
+        typeof totalSalarySource === 'string' ? totalSalarySource : undefined,
+      ruleApplied: normalizedRuleApplied,
+      formulaUsed: normalizedFormulaUsed,
+      margin: normalizedMargin,
+      capSettingsSource:
+        typeof capSettingsSource === 'string'
+          ? capSettingsSource
+          : undefined,
+    },
+  };
+}
+
+function readSignAndTradeRuleEnvelope(value: unknown): SignAndTradeResultLike {
+  if (!isRuleEnvelopeObject(value)) {
+    return {};
+  }
+
+  const hardCapped = value.hardCapped;
+  return {
+    hardCapped: typeof hardCapped === 'boolean' ? hardCapped : undefined,
+  };
+}
+
+function readHardCapRuleEnvelope(value: unknown): {
+  hardCapStatus: HardCapStatusLike | null;
+} {
+  if (!isRuleEnvelopeObject(value) || !isObjectLike(value.hardCapStatus)) {
+    return { hardCapStatus: null };
+  }
+
+  const isHardCapped = value.hardCapStatus.isHardCapped;
+  return {
+    hardCapStatus: {
+      isHardCapped:
+        typeof isHardCapped === 'boolean'
+          ? isHardCapped
+          : undefined,
+    },
+  };
+}
+
+function toSignAndTradeCapProjectionMap(
+  capProjections: TradeValidatorContext['capProjections']
+): Record<string, { firstApron?: number } | undefined> | undefined {
+  if (!capProjections || typeof capProjections !== 'object') {
+    return undefined;
+  }
+
+  const normalizedEntries = Object.entries(capProjections).filter(([, value]) =>
+    isObjectLike(value)
+  );
+
+  if (normalizedEntries.length === 0) {
+    return undefined;
+  }
+
+  return normalizedEntries.reduce<Record<string, { firstApron?: number }>>(
+    (accumulator, [seasonKey, value]) => {
+      if (isObjectLike(value)) {
+        accumulator[seasonKey] = {
+          firstApron:
+            typeof value.firstApron === 'number' ? value.firstApron : undefined,
+        };
+      }
+      return accumulator;
+    },
+    {}
+  );
+}
+
 function createRuleEnvelope(
   ruleKey: string,
   rawResult: RuleEnvelopeLike,
@@ -357,7 +545,7 @@ function createRuleEnvelope(
     };
   }
 
-  if (!rawResult || typeof rawResult !== 'object') {
+  if (!isRuleEnvelopeObject(rawResult)) {
     return {
       key: ruleKey,
       sourceType: 'validator',
@@ -370,24 +558,14 @@ function createRuleEnvelope(
   }
 
   const violations = normalizeValidationIssues(
-    rawResult.violations as
-      | ValidationIssueLike
-      | Record<string, unknown>
-      | Array<ValidationIssueLike | Record<string, unknown>>
-      | null
-      | undefined,
+    rawResult.violations,
     {
       rule: ruleKey,
       severity: 'error',
     }
   );
   const warnings = normalizeValidationIssues(
-    rawResult.warnings as
-      | ValidationIssueLike
-      | Record<string, unknown>
-      | Array<ValidationIssueLike | Record<string, unknown>>
-      | null
-      | undefined,
+    rawResult.warnings,
     {
       rule: ruleKey,
       severity: 'warning',
@@ -631,10 +809,7 @@ const baseValidators = {
   enforceTiming,
   enforceSecondApronHandcuffs,
 };
-const validators = wrapCommonValidators(baseValidators) as Record<
-  keyof typeof baseValidators,
-  WrappedValidator
->;
+const validators = wrapCommonValidators(baseValidators);
 
 // Export functions for external use
 export { enforceRosterWindow, validateFaExceptionUsage };
@@ -662,11 +837,10 @@ function generateTradeReceipt({
 }: GenerateTradeReceiptParams): TradeReceipt {
   const teamReceipts = teamsWithAssets.map((team, index) => {
     const teamResult = teamResults[index];
-    const salaryMatchingResult = (teamResult?.rules?.salaryMatching ||
-      {}) as Partial<AuthoritativeSalaryMatchingResult>;
-    const salaryMatchingDetails =
-      (salaryMatchingResult.details as Partial<AuthoritativeSalaryMatchingDetails> | null | undefined) ||
-      {};
+    const salaryMatchingResult = readSalaryMatchingRuleEnvelope(
+      teamResult?.rules?.salaryMatching
+    );
+    const salaryMatchingDetails = salaryMatchingResult.details;
 
     // Get the team's name and code
     const teamCode = resolveTeamIdentity(team, index);
@@ -679,7 +853,7 @@ function generateTradeReceipt({
     // Pre-trade team salary with source tracking
     const preTradeTeamSalary = team.teamTotalSalary || 0;
     const preTradeTeamSalarySource =
-      (salaryMatchingDetails.totalSalarySource as string | undefined) ||
+      salaryMatchingDetails.totalSalarySource ||
       'team.teamTotalSalary';
 
     // Build outgoing players list with detailed info
@@ -688,6 +862,10 @@ function generateTradeReceipt({
         const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
         const matchingValue = player.matchOutgoing || baseSalary;
         const isBYC = !!player.isBYC || !!player.baseYearCompensation;
+        const bycMethod: 'previousSalary' | '50%_of_new' =
+          (player.previousSalary || 0) >= Math.floor(baseSalary * 0.5)
+            ? 'previousSalary'
+            : '50%_of_new';
 
         return {
           id: player.id || player.player_id,
@@ -709,10 +887,7 @@ function generateTradeReceipt({
             ? {
                 previousSalary: player.previousSalary || 0,
                 fiftyPercentNew: Math.floor(baseSalary * 0.5),
-                method:
-                  (player.previousSalary || 0) >= Math.floor(baseSalary * 0.5)
-                    ? 'previousSalary'
-                    : '50%_of_new',
+                method: bycMethod,
               }
             : null,
         };
@@ -728,6 +903,8 @@ function generateTradeReceipt({
       const hasTradeKicker = !!(
         player.tradeKicker?.percentage || player.tradeKickerPct
       );
+      const poisonPillMethod: 'averaging_current_plus_extensions' =
+        'averaging_current_plus_extensions';
 
       return {
         id: player.id || player.player_id,
@@ -749,7 +926,7 @@ function generateTradeReceipt({
                 currentSalary: player.currentSalary || baseSalary,
                 extensionYears: player.extensionYears,
                 averagedSalary: matchingValue,
-                method: 'averaging_current_plus_extensions',
+                method: poisonPillMethod,
               }
             : null,
         // Trade kicker breakdown: include kicker calculation
@@ -854,33 +1031,27 @@ function generateTradeReceipt({
       // When skipped, ruleApplied should be null (not "HARD_CAP_SKIP" - that's the skipReason)
       ruleApplied: isSkipped
         ? null
-        : ((salaryMatchingDetails.ruleApplied as string | null | undefined) ?? null),
-      skipReason: (salaryMatchingResult.skipReason as string | null | undefined) ?? null,
-      formulaUsed:
-        (salaryMatchingDetails.formulaUsed as string | null | undefined) ?? null,
+        : (salaryMatchingDetails.ruleApplied ?? null),
+      skipReason: salaryMatchingResult.skipReason ?? null,
+      formulaUsed: salaryMatchingDetails.formulaUsed ?? null,
       // When skipped, allowableIncoming should be null (not 0)
       allowableIncoming: isSkipped
         ? null
-        : ((salaryMatchingResult.allowableIncoming as number | null | undefined) ??
-          null),
-      actualIncoming:
-        (salaryMatchingResult.salaryIn as number | null | undefined) ??
-        team.salaryIn ??
-        null,
+        : (salaryMatchingResult.allowableIncoming ?? null),
+      actualIncoming: salaryMatchingResult.salaryIn ?? team.salaryIn ?? null,
       // When skipped, passed should be null (validation didn't run)
       passed: isSkipped
         ? null
-        : ((salaryMatchingResult.passed as boolean | null | undefined) ?? null),
+        : (salaryMatchingResult.passed ?? null),
       // When skipped, margin should be null
       margin: isSkipped
         ? null
-        : ((salaryMatchingDetails.margin as number | null | undefined) ?? null),
+        : (salaryMatchingDetails.margin ?? null),
       // Reference global cap settings even on skip (for transparency)
       capSettings: context.capSettings,
       capSettingsSource: isSkipped
-        ? (salaryMatchingDetails.capSettingsSource as string | undefined) ||
-          'N/A (skipped)'
-        : (salaryMatchingDetails.capSettingsSource as string | undefined) ||
+        ? salaryMatchingDetails.capSettingsSource || 'N/A (skipped)'
+        : salaryMatchingDetails.capSettingsSource ||
           context.capSettingsSource ||
           'unknown',
     };
@@ -1327,10 +1498,14 @@ export function validateTrade({
     }
 
     const teamForValidation: TradeValidatorActiveTeamSlot & {
-      faExceptionValidation?: unknown;
+      notes: string[];
+      faExceptionValidation?: {
+        passed?: boolean;
+        [key: string]: unknown;
+      };
     } = {
       ...team,
-      notes: Array.isArray(team.notes) ? [...team.notes] : team.notes,
+      notes: Array.isArray(team.notes) ? [...team.notes] : [],
       team:
         team.team && typeof team.team === 'object'
           ? {
@@ -1348,7 +1523,7 @@ export function validateTrade({
     const faExceptionUsageViolations = validators.validateFaExceptionUsage(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const faExceptionUsageResult = Array.isArray(
       faExceptionUsageViolations
     )
@@ -1366,61 +1541,63 @@ export function validateTrade({
     const salaryMatchingResult = validators.validateSalaryMatching(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const hardCapResult = validators.validateHardCap(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const stepienResult = validators.validateStepien(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const cashResult = validators.validateCash(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const tradeExceptionsResult = validators.validateTradeExceptions(
-      teamForValidation,
-      context
-    ) as RuleEnvelopeLike;
+      teamForValidation
+    );
     // Sign-and-trade owns all S&T-specific season/timing restrictions.
     const signAndTradeResult = validators.validateSignAndTrade(
       teamForValidation,
-      context
-    ) as RuleEnvelopeLike;
+      {
+        ...context,
+        capProjections: toSignAndTradeCapProjectionMap(context.capProjections),
+      }
+    );
     const consentResult = validators.validateConsent(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const reacquisitionResult = validators.validateReacquisition(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const aggregationResult = validators.validateAggregation(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
 
     // Enforcement rules
     const consentEnforcement = validators.enforceConsent(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     const eligibilityEnforcement = validators.enforceEligibility(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
     // Generic trade timing gates remain here; S&T-specific timing no longer lives in timingEnforcement.
     const timingEnforcement = validators.enforceTiming(teamForValidation, {
       ...context,
       // Timing policy is driven by a mutable runtime flag, so include it in the
       // validator args to prevent cache reuse across warn/error modes.
       timingEnforcementMode: validationFlags.timingEnforcement,
-    }) as RuleEnvelopeLike;
+    });
     const secondApronEnforcement = validators.enforceSecondApronHandcuffs(
       teamForValidation,
       context
-    ) as RuleEnvelopeLike;
+    );
 
     // Roster structural legality (min/max standard roster, two-way max)
     const rosterCountResult = computeRosterValidation(team);
@@ -1612,27 +1789,19 @@ export function validateTrade({
     const isTeamLegal = violations.length === 0;
 
     // Extract salary matching calculations for UI display
-    const salaryMatchingCalcs =
-      salaryMatchingResult && !Array.isArray(salaryMatchingResult)
-        ? (salaryMatchingResult as Partial<AuthoritativeSalaryMatchingResult>)
-        : {};
-    const signAndTradeResultObject =
-      signAndTradeResult && !Array.isArray(signAndTradeResult)
-        ? (signAndTradeResult as Record<string, unknown>)
-        : {};
-    const hardCapResultObject =
-      hardCapResult && !Array.isArray(hardCapResult)
-        ? (hardCapResult as Partial<AuthoritativeHardCapResult>)
-        : {};
+    const salaryMatchingCalcs = readSalaryMatchingRuleEnvelope(
+      salaryMatchingResult
+    );
+    const signAndTradeResultObject = readSignAndTradeRuleEnvelope(
+      signAndTradeResult
+    );
+    const hardCapResultObject = readHardCapRuleEnvelope(hardCapResult);
     const calculations = {
       salaryIn: team.salaryIn || 0,
       salaryOut: team.salaryOut || 0,
       salaryMatching: {
-        allowedIncoming:
-          (salaryMatchingCalcs.allowableIncoming as number | undefined) || 0,
-        margin:
-          ((salaryMatchingCalcs.allowableIncoming as number | undefined) || 0) -
-          (team.salaryOut || 0),
+        allowedIncoming: salaryMatchingCalcs.allowableIncoming || 0,
+        margin: (salaryMatchingCalcs.allowableIncoming || 0) - (team.salaryOut || 0),
         difference: (team.salaryIn || 0) - (team.salaryOut || 0),
       },
     };
@@ -1642,7 +1811,11 @@ export function validateTrade({
     const projectedSalary = team.projectedSalary || 0;
     const apronStatus = getApronStatus(
       projectedSalary,
-      (context.capSettings || {}) as Parameters<typeof getApronStatus>[1]
+      {
+        salaryCap: context.capSettings?.salaryCap,
+        firstApron: context.capSettings?.firstApron,
+        secondApron: context.capSettings?.secondApron,
+      }
     );
 
     return {
@@ -1668,11 +1841,7 @@ export function validateTrade({
         teamForValidation.team?.hardCapped ||
           teamForValidation.team?.hardCapFirstApron?.active ||
           signAndTradeResultObject.hardCapped ||
-          (
-            hardCapResultObject.hardCapStatus as
-              | { isHardCapped?: boolean }
-              | undefined
-          )?.isHardCapped
+          hardCapResultObject.hardCapStatus?.isHardCapped
       ),
       apronStatus,
       faExceptionBuckets: teamForValidation.team?.faExceptionBuckets || [],

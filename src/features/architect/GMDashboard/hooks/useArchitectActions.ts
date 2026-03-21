@@ -41,7 +41,17 @@ import {
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
-import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import {
+  type SignAndTradeContractLike,
+  validateSignAndTradeContractPayload,
+} from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import type {
+  CapHoldItem,
+  DeadCapItem,
+  DraftPick,
+  Exceptions,
+  TeamTotals,
+} from '@/features/architect/types';
 import {
   acquireOptimisticLock,
   releaseOptimisticLock,
@@ -65,7 +75,7 @@ import type { UseArchitectStateReturn } from './useArchitectState';
 
 /** Salary entry by year in a contract */
 interface SalaryByYear {
-  season?: string | number | null;
+  season?: string | null;
   salary?: number | null;
   option?: string | null;
   optionType?: string | null;
@@ -75,23 +85,39 @@ interface SalaryByYear {
   [key: string]: unknown;
 }
 
+type LocalContractLegacySalaryInput =
+  | number
+  | string
+  | {
+      salary?: number | string | null;
+      [key: string]: unknown;
+    };
+
+interface LocalBirdRights {
+  status?: string | null;
+  yearsOfService?: number | null;
+  yearsWithTeam?: number | null;
+  eligibleFor?: string[] | null;
+}
+
 /** Local contract structure for architect actions (avoids schema naming pattern) */
 interface LocalContract {
   salariesByYear?: SalaryByYear[];
-  salaries?: Array<number | Record<string, unknown>>;
-  years?: number;
-  startYear?: number;
-  year?: number;
-  birdRights?: {
-    status?: string;
-    yearsOfService?: number;
-    yearsWithTeam?: number;
-    eligibleFor?: string[];
-  };
-  contractType?: string;
+  salaries?: LocalContractLegacySalaryInput[];
+  years?: number | string | null;
+  startYear?: number | string | null;
+  year?: number | string | null;
+  birdRights?: LocalBirdRights;
+  contractType?: string | null;
   isExtension?: boolean;
   isRookieScale?: boolean;
-  signingTeam?: string;
+  signingTeam?: string | null;
+  signedUsing?: string | null;
+  exceptionType?: string | null;
+  contractYears?: number | string | null;
+  firstYearGuaranteed?: boolean | null;
+  rfaOfferSheet?: boolean;
+  rfaOfferSheetOnly?: boolean;
   [key: string]: unknown;
 }
 
@@ -107,6 +133,7 @@ interface LocalBio {
 /** Player data structure */
 interface ArchitectPlayer {
   id?: string | null;
+  playerId?: string | null;
   player_id?: string | null;
   name?: string | null;
   displayName?: string | null;
@@ -127,9 +154,26 @@ interface ArchitectPlayer {
   ['Years Pro']?: unknown;
   guaranteed?: boolean;
   signAndTrade?: boolean;
+  signAndTradeContract?: SignAndTradeContractLike | null;
+  receivingTeamId?: string | null;
+  tradeTo?: string | null;
+  toTeamId?: string | null;
+  destTeamId?: string | null;
+  rightsRenounced?: boolean;
+  contractYears?: number | string | null;
+  firstYearGuaranteed?: boolean | null;
   contractType?: string;
   isExtension?: boolean;
   isRookieScale?: boolean;
+  [key: string]: unknown;
+}
+
+interface TradeEntitlementPayload {
+  id?: string | null;
+  type?: string | null;
+  name?: string | null;
+  year?: number | string | null;
+  round?: number | null;
   [key: string]: unknown;
 }
 
@@ -139,9 +183,9 @@ interface TradeDataItem {
   incoming?: ArchitectPlayer[];
   outgoing?: ArchitectPlayer[];
   /** TM-PICKS-E1: Entitlements this team is trading away */
-  outgoingEntitlements?: Record<string, unknown>[];
+  outgoingEntitlements?: TradeEntitlementPayload[];
   /** TM-PICKS-E1: Entitlements this team is receiving */
-  incomingEntitlements?: Record<string, unknown>[];
+  incomingEntitlements?: TradeEntitlementPayload[];
   /** Alias used by exportCurrentTrade */
   outgoingPlayers?: ArchitectPlayer[];
   incomingPlayers?: ArchitectPlayer[];
@@ -154,10 +198,17 @@ interface SigningDetails {
   signAndTrade?: boolean;
   guaranteed?: boolean;
   isMinimum?: boolean;
-  yearsOfService?: number;
-  contractType?: string;
+  yearsOfService?: number | null;
+  contractType?: string | null;
   isExtension?: boolean;
   isRookieScale?: boolean;
+  signedUsing?: string | null;
+  exceptionType?: string | null;
+  contractYears?: number | string | null;
+  firstYearGuaranteed?: boolean | null;
+  signingTeam?: string | null;
+  rfaOfferSheet?: boolean;
+  rfaOfferSheetOnly?: boolean;
   // Override metadata when action bypasses validation
   overrideUsed?: boolean;
   overrideReasons?: string[];
@@ -193,28 +244,43 @@ interface ActiveContract {
 }
 
 /** Cap hold structure */
-interface CapHold {
-  playerId?: string | null;
-  playerName?: string | null;
-  amount?: number | null;
-  season?: string | null;
-  type?: string | null;
+interface CapHold extends Omit<CapHoldItem, 'playerId'> {
+  playerId?: string | number | null;
   active?: boolean | null;
-  isSigned?: boolean | null;
   reason?: string | null;
-  notes?: string | null;
-  [key: string]: unknown;
 }
 
-interface DeadCapEntry {
-  playerId?: string | null;
-  playerName?: string | null;
+interface DeadCapEntry extends Omit<Partial<DeadCapItem>, 'playerId'> {
+  id?: string | null;
+  playerId?: string | number | null;
   label?: string | null;
-  amountByYear?: SalaryByYear[] | Record<string, unknown> | null;
-  notes?: string | null;
+  amountByYear?: DeadCapItem['amountByYear'] | null;
   stretched?: boolean | null;
-  [key: string]: unknown;
 }
+
+type ArchitectExceptionEntryLike = {
+  type?: string | null;
+  enabled?: boolean;
+  available?: boolean;
+  totalAmount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+  seasonKey?: string | null;
+  [key: string]: unknown;
+};
+
+type ArchitectExceptionsLike = Exceptions & {
+  mle?: ArchitectExceptionEntryLike;
+  taxpayerMle?: ArchitectExceptionEntryLike;
+  room?: ArchitectExceptionEntryLike;
+  bae?: ArchitectExceptionEntryLike;
+  dpe?: ArchitectExceptionEntryLike;
+  [key: string]: unknown;
+};
 
 /** Override audit log entry */
 interface OverrideAuditEntry {
@@ -240,9 +306,9 @@ interface CapSheet {
   currentPicks?: Record<string, unknown>;
   deadCap?: DeadCapEntry[] | null;
   capHolds?: CapHold[] | null;
-  exceptions?: unknown;
-  draftPicks?: unknown[];
-  totals?: unknown;
+  exceptions?: ArchitectExceptionsLike | null;
+  draftPicks?: DraftPick[] | null;
+  totals?: TeamTotals | null;
   amount?: number;
   overrideAuditLog?: OverrideAuditEntry[];
   [key: string]: unknown;
@@ -267,7 +333,7 @@ interface TeamMutationUpdate {
 
 interface PersistMutationResult extends MutationTruthResult {
   changedTeams?: TeamMutationUpdate[];
-  event?: Record<string, unknown>;
+  event?: CapAuditEventV1Like | { operationId?: string; [key: string]: unknown };
   worldPatch?: Record<string, unknown>;
 }
 
@@ -423,10 +489,12 @@ export interface UseArchitectActionsReturn {
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
 
   // Manual Dead Money (Phase 24)
-  handleSetDeadCap: (deadCap: unknown[]) => Promise<boolean>;
+  handleSetDeadCap: (deadCap: DeadCapEntry[]) => Promise<boolean>;
 
   // Manual Exception Management (Phase 27)
-  handleSetExceptions: (exceptions: Record<string, unknown>) => Promise<boolean>;
+  handleSetExceptions: (
+    exceptions: NonNullable<CapSheet['exceptions']>
+  ) => Promise<boolean>;
 
   // DEV-only Cap Sheet fixtures (CAP_SHEET_FIXPACK_E1)
   handleInjectCapSheetFixtures: () => MutationActionResult;
@@ -444,17 +512,17 @@ export interface UseArchitectActionsReturn {
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
 // Helper to ensure contract has proper structure
-const ensureContractStructure = (
+export const ensureContractStructure = (
   contract: LocalContract | null | undefined,
   overrides: Partial<LocalContract> = {}
 ): LocalContract | null => {
   if (!contract) return null;
 
-  const mutableOverrides = { ...overrides } as Record<string, unknown>;
+  const mutableOverrides: Partial<LocalContract> = { ...overrides };
   const startYearOverride = Number(
     mutableOverrides.startYear ??
-      (contract as Record<string, unknown>).startYear ??
-      (contract as Record<string, unknown>).year
+      contract.startYear ??
+      contract.year
   );
   delete mutableOverrides.startYear;
 
@@ -467,11 +535,9 @@ const ensureContractStructure = (
   }
 
   // Legacy UI payload fallback: convert salaries[] to canonical salariesByYear[]
-  const legacySalaries = (contract as Record<string, unknown>).salaries;
+  const legacySalaries = contract.salaries;
   if (Array.isArray(legacySalaries) && legacySalaries.length > 0) {
-    const yearsRaw =
-      Number((contract as Record<string, unknown>).years) ||
-      legacySalaries.length;
+    const yearsRaw = Number(contract.years) || legacySalaries.length;
     const years = Math.max(1, Math.min(yearsRaw, legacySalaries.length));
     const startYear = Number.isFinite(startYearOverride)
       ? startYearOverride
@@ -483,7 +549,7 @@ const ensureContractStructure = (
           ? row
           : typeof row === 'string'
             ? Number(row)
-            : Number((row as Record<string, unknown>)?.salary);
+            : Number(row?.salary);
       const salary = Number.isFinite(salaryRaw) ? Math.round(salaryRaw) : 0;
       return {
         season: toSeasonCode(startYear + idx),
@@ -505,14 +571,10 @@ const ensureContractStructure = (
   return null;
 };
 
-const deriveSigningMechanism = (
+export const deriveSigningMechanism = (
   contract: SigningDetails | null | undefined
 ): string | null => {
-  const signedUsingRaw =
-    contract?.signedUsing ??
-    contract?.exceptionType ??
-    (contract as Record<string, unknown> | null)?.signedUsing ??
-    (contract as Record<string, unknown> | null)?.exceptionType;
+  const signedUsingRaw = contract?.signedUsing ?? contract?.exceptionType;
   const normalized =
     typeof signedUsingRaw === 'string' ? signedUsingRaw.trim() : '';
   if (!normalized || normalized.toLowerCase() === 'none') {
@@ -649,8 +711,11 @@ function buildAuditDiffSummary(params: {
   };
 }
 
-function buildTotalsByTeam(teamsByCode: TeamsByCode, year: number) {
-  const totalsByTeam: Record<string, Record<string, unknown>> = {};
+function buildTotalsByTeam(
+  teamsByCode: TeamsByCode,
+  year: number
+): CapAuditEventV1Like['beforeTotalsByTeam'] {
+  const totalsByTeam: CapAuditEventV1Like['beforeTotalsByTeam'] = {};
   for (const [teamCode, team] of Object.entries(teamsByCode || {})) {
     totalsByTeam[teamCode] = computeTeamCapTotals(team, year);
   }
@@ -716,8 +781,8 @@ function buildCapAuditEvaluation(params: {
     beforeTotalsByTeam,
     afterTotalsByTeam,
     valid: validation.valid,
-    violations: validation.violations as Record<string, unknown>[],
-    warnings: validation.warnings as Record<string, unknown>[],
+    violations: validation.violations.map((issue) => ({ ...issue })),
+    warnings: validation.warnings.map((issue) => ({ ...issue })),
     diffSummary: buildAuditDiffSummary({
       beforeTeamsByCode,
       afterTeamsByCode,
@@ -1318,13 +1383,10 @@ export function useArchitectActions({
       const teams = tradeData.map((t, teamIndex) => ({
         teamCode: resolvedTeamCodes[teamIndex],
         sends: (
-          (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
-        ).map((p) => {
+        (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
+      ).map((p) => {
           const rawDestination =
-            (p as Record<string, unknown>).receivingTeamId ||
-            (p as Record<string, unknown>).tradeTo ||
-            (p as Record<string, unknown>).toTeamId ||
-            (p as Record<string, unknown>).destTeamId;
+            p.receivingTeamId || p.tradeTo || p.toTeamId || p.destTeamId;
           const destinationTeamCode = rawDestination
             ? resolveTeamCode(String(rawDestination)) || String(rawDestination)
             : undefined;
@@ -1333,11 +1395,24 @@ export function useArchitectActions({
               ? teamIndexByCode.get(destinationTeamCode)
               : undefined;
 
+          const tradeContract =
+            p.signAndTradeContract ||
+            (p.contract
+              ? {
+                  ...p.contract,
+                  years:
+                    typeof p.contract.years === 'string'
+                      ? Number(p.contract.years) || null
+                      : p.contract.years ?? null,
+                  contractYears:
+                    typeof p.contract.contractYears === 'string'
+                      ? Number(p.contract.contractYears) || null
+                      : p.contract.contractYears ?? null,
+                }
+              : null);
           const signAndTradeValidation = p.signAndTrade
             ? validateSignAndTradeContractPayload(
-                ((p as Record<string, unknown>).signAndTradeContract ||
-                  p.contract ||
-                  null) as Record<string, unknown> | null,
+                tradeContract,
                 currentYear,
                 { requireActiveYearRow: true }
               )
@@ -1372,21 +1447,16 @@ export function useArchitectActions({
             receivingTeamIndex,
             signAndTrade: !!p.signAndTrade,
             signAndTradeContract:
-              signAndTradeValidation?.contract ||
-              ((p as Record<string, unknown>).signAndTradeContract as Record<
-                string,
-                unknown
-              >) ||
-              undefined,
+              signAndTradeValidation?.contract || p.signAndTradeContract || undefined,
             contract:
               signAndTradeValidation?.contract || p.contract || undefined,
             contractYears:
               signAndTradeValidation?.contract?.contractYears ||
-              (p as Record<string, unknown>).contractYears ||
+              p.contractYears ||
               undefined,
             firstYearGuaranteed:
               signAndTradeValidation?.contract?.firstYearGuaranteed ??
-              (p as Record<string, unknown>).firstYearGuaranteed ??
+              p.firstYearGuaranteed ??
               undefined,
           };
         }),
@@ -2156,14 +2226,14 @@ export function useArchitectActions({
 
   // === Dead Money Actions (Phase 24) ===
   const handleSetDeadCap = useCallback(
-    (deadCap: unknown[]): Promise<boolean> => {
+    (deadCap: DeadCapEntry[]): Promise<boolean> => {
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'setDeadCap',
         playerIds: [],
         invalidMessage: 'Dead cap update blocked by post-state cap validation.',
         computeNextTeam: (beforeTeam) => ({
           ...beforeTeam,
-          deadCap: deadCap as CapSheet['deadCap'],
+          deadCap,
         }),
         persistPayload: {
           teamCode,
@@ -2180,7 +2250,7 @@ export function useArchitectActions({
 
   // === Exception Management Actions (Phase 27) ===
   const handleSetExceptions = useCallback(
-    (exceptions: Record<string, unknown>): Promise<boolean> => {
+    (exceptions: NonNullable<CapSheet['exceptions']>): Promise<boolean> => {
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'setExceptions',
         playerIds: [],
@@ -2297,11 +2367,12 @@ export function useArchitectActions({
       playerOrHold: ArchitectPlayer | CapHold,
       overrideMetadata?: OverrideMetadata | null
     ): Promise<MutationActionResult> => {
-      const playerName =
+      const playerName = String(
         (playerOrHold as ArchitectPlayer).displayName ||
-        (playerOrHold as ArchitectPlayer).name ||
-        (playerOrHold as CapHold).playerName ||
-        'this player';
+          (playerOrHold as ArchitectPlayer).name ||
+          (playerOrHold as CapHold).playerName ||
+          'this player'
+      );
 
       if (
         !window.confirm(
@@ -2359,13 +2430,11 @@ export function useArchitectActions({
         );
       };
       const isPlayerRenounceable = (player: ArchitectPlayer): boolean => {
-        const contractObj = (player as Record<string, unknown>)?.contract as Record<string, unknown> | undefined;
-        const birdRightsObj = contractObj?.birdRights as Record<string, unknown> | undefined;
         const playerBirdStatus = String(
-          birdRightsObj?.status || ''
+          player.contract?.birdRights?.status || ''
         ).toLowerCase();
         const rightsAlreadyCleared =
-          Boolean((player as Record<string, unknown>)?.rightsRenounced) &&
+          Boolean(player.rightsRenounced) &&
           (!playerBirdStatus || playerBirdStatus === 'none');
         return !rightsAlreadyCleared;
       };
@@ -2414,15 +2483,13 @@ export function useArchitectActions({
           const updatedPlayers = (beforeTeam.players || []).map((p) => {
             if (matchesPlayer(p as ArchitectPlayer)) {
               let playerChanged = false;
-              const updated = { ...p };
-              if (!(updated as Record<string, unknown>).rightsRenounced) {
-                (updated as Record<string, unknown>).rightsRenounced = true;
+              const updated: ArchitectPlayer = { ...p };
+              if (!updated.rightsRenounced) {
+                updated.rightsRenounced = true;
                 playerChanged = true;
               }
-              const updatedContractObj = (updated as Record<string, unknown>)?.contract as Record<string, unknown> | undefined;
-              const updatedBirdRightsObj = updatedContractObj?.birdRights as Record<string, unknown> | undefined;
               const currentStatus = String(
-                updatedBirdRightsObj?.status || ''
+                updated.contract?.birdRights?.status || ''
               ).toLowerCase();
               if (updated.contract?.birdRights && currentStatus !== 'none') {
                 updated.contract = {
@@ -3070,10 +3137,6 @@ export function useArchitectActions({
     if (!confirmReset) return;
 
     const seasonKey = toSeasonKey(currentYear);
-    const capProjectionsTyped = capProjections as Record<
-      string,
-      { fullMLE?: number }
-    >;
 
     const resetSheet: CapSheet = {
       ...teamCapSheet,
@@ -3085,7 +3148,7 @@ export function useArchitectActions({
       pickLog: [],
       historyTimeline: [],
       currentPicks: {},
-      amount: capProjectionsTyped[seasonKey]?.fullMLE || 0,
+      amount: capProjections[seasonKey]?.fullMLE || 0,
     };
 
     setTeamCapSheetSafe(resetSheet);

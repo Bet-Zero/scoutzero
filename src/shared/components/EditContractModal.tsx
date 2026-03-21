@@ -37,8 +37,6 @@ import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
-type LooseRecord = Record<string, unknown>;
-
 type UseCapValidationParams = Parameters<typeof useCapValidation>[0];
 type HookPlayerLike = NonNullable<UseCapValidationParams['player']>;
 type HookContractLike = NonNullable<HookPlayerLike['contract']>;
@@ -56,10 +54,10 @@ type ValidationEntryLike = UseCapValidationResult['warnings'][number];
 type ValidationSeverity = ValidationEntryLike['severity'];
 
 type PlayerBioLike = {
-  experience?: number | string | null;
-  draftYear?: number | string | null;
-  draftRound?: number | string | null;
-  draftPick?: number | string | null;
+  experience?: unknown;
+  draftYear?: unknown;
+  draftRound?: unknown;
+  draftPick?: unknown;
   [key: string]: unknown;
 };
 
@@ -95,7 +93,7 @@ type PlayerLike = HookPlayerLike & {
   name?: string | null;
   displayName?: string | null;
   yearsOfService?: number | null;
-  yearsPro?: number | null;
+  yearsPro?: unknown;
   bio?: PlayerBioLike | null;
   contract?: ContractLike | null;
   freeAgentYear?: number | null;
@@ -103,8 +101,15 @@ type PlayerLike = HookPlayerLike & {
 };
 
 type SigningGuardrailsLike = ReturnType<typeof buildSigningGuardrails> | null;
-type CapHoldLike = Partial<CapHoldItem> & LooseRecord;
-type DeadCapLike = Partial<DeadCapItem> & LooseRecord;
+type CapHoldLike = Partial<CapHoldItem> & {
+  active?: boolean | null;
+  reason?: string | null;
+};
+type DeadCapLike = Partial<DeadCapItem> & {
+  label?: string | null;
+  amountByYear?: DeadCapItem['amountByYear'] | null;
+  stretched?: boolean | null;
+};
 
 type ExtensionStateLike = {
   years: number;
@@ -152,66 +157,129 @@ type TeamCapSheetLike = HookTeamCapSheetLike & {
   [key: string]: unknown;
 };
 
+type OverrideMetadataLike = {
+  overrideUsed: boolean;
+  overrideReasons: string[];
+  overrideTimestamp: string;
+};
+
+type AuditLogEntryLike = {
+  actionType: string;
+  timestamp: string;
+  reasons: string[];
+  overrideUsed: boolean;
+  playerId?: string | number | null;
+  playerName?: string | null;
+};
+
 type MutationWritesSummaryLike = {
   eventsWritten?: number;
   worldMetadataPatched?: number;
   teamsPatched?: number;
-  [key: string]: unknown;
+  playersPatched?: number;
+  entitlementsPatched?: number;
+};
+
+type ContractActionResultLike = {
+  success?: boolean;
+  message?: string | null;
+  error?: string | null;
+  appliedToLocalState?: boolean;
+  persistedToWorld?: boolean;
+  writesSummary?: MutationWritesSummaryLike | null;
 };
 
 type ActionResultLike =
-  | {
-      success?: boolean;
-      message?: string | null;
-      error?: string | null;
-      appliedToLocalState?: boolean;
-      persistedToWorld?: boolean;
-      writesSummary?: MutationWritesSummaryLike | null;
-      [key: string]: unknown;
-    }
+  | ContractActionResultLike
   | boolean
   | null
   | undefined;
 
-type SaveCallback = (
+type SigningPayloadLike = {
+  years: number;
+  contractType: string;
+  salaries: number[];
+  raisePct?: number;
+  contractYears: number;
+  salariesByYear: Array<{
+    season: string;
+    salary: number;
+    capHit: number;
+    guaranteed: boolean;
+    option: string | null;
+    optionType: string | null;
+    optionUsed: boolean | null;
+  }>;
+  base: number;
+  totalValue: number;
+  averageAnnualValue: number;
+  firstYearGuaranteed: boolean;
+  exceptionType: string;
+  signedUsing: string | null;
+  guardrails: SigningGuardrailsLike;
+  signAndTrade?: boolean;
+  rfaOfferSheet?: boolean;
+  rfaOfferSheetOnly?: boolean;
+} & Partial<OverrideMetadataLike>;
+
+type ExtensionPayloadLike = ReturnType<typeof generateExtensionContract> &
+  Partial<OverrideMetadataLike>;
+
+type WaivePayloadLike = {
+  stretch: boolean;
+  buyout: boolean;
+  buyoutAmount?: number;
+} & Partial<OverrideMetadataLike>;
+
+type SigningActionCallback = (
   player: PlayerLike,
-  payload: LooseRecord,
-) => Promise<ActionResultLike> | ActionResultLike | void;
+  payload: SigningPayloadLike,
+) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 type OptionDecisionCallback = (
   player: PlayerLike,
   accept: boolean,
-  overrideMetadata?: LooseRecord | null,
-) => Promise<ActionResultLike> | ActionResultLike | void;
+  overrideMetadata?: OverrideMetadataLike | null,
+) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 type SignAndTradeCallback = (
   player: PlayerLike,
-  payload: LooseRecord,
+  payload: SigningPayloadLike,
   destTeamCode: string,
-) => Promise<ActionResultLike> | ActionResultLike | void;
+) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
+
+type ExtendCallback = (
+  player: PlayerLike,
+  payload: ExtensionPayloadLike,
+) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
+
+type WaiveCallback = (
+  player: PlayerLike,
+  payload: WaivePayloadLike,
+) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 type SimpleActionCallback = (
   player: PlayerLike,
-  overrideMetadata?: LooseRecord | null,
-) => Promise<ActionResultLike> | ActionResultLike | void;
+  overrideMetadata?: OverrideMetadataLike | null,
+) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
-type AuditLogCallback = (entry: LooseRecord) => void;
+type AuditLogCallback = (entry: AuditLogEntryLike) => void;
 type ActionSetKey = 'option' | 'freeAgent' | 'underContract';
 
 type EditContractModalProps = {
   player?: PlayerLike | null;
   isOpen?: boolean;
   onClose: () => void;
-  onSave?: SaveCallback | null;
-  onSaveContract?: SaveCallback | null;
-  onSignFreeAgent?: SaveCallback | null;
-  onResign?: SaveCallback | null;
-  onWaive?: SaveCallback | null;
+  onSave?: SigningActionCallback | null;
+  onSaveContract?: SigningActionCallback | null;
+  onSignFreeAgent?: SigningActionCallback | null;
+  onResign?: SigningActionCallback | null;
+  onWaive?: WaiveCallback | null;
   onOptionDecision?: OptionDecisionCallback | null;
-  onExtend?: SaveCallback | null;
+  onExtend?: ExtendCallback | null;
   onSignAndTrade?: SignAndTradeCallback | null;
   onRenounce?: SimpleActionCallback | null;
-  onStoreOfferSheet?: SaveCallback | null;
+  onStoreOfferSheet?: SigningActionCallback | null;
   initialAction?: string | null;
   targetYear?: number | null;
   actionContext?: ActionSetKey | null;
@@ -223,13 +291,18 @@ type EditContractModalProps = {
   actionLabelsOverride?: Record<string, string>;
   onAuditLog?: AuditLogCallback | null;
   capProjections?: unknown;
-  playersMap?: LooseRecord | null;
+  playersMap?: Record<string, PlayerLike> | null;
 };
 
 type ValidationResultLike = {
   isLegal: boolean;
   reasons: string[];
   severity: ValidationSeverity;
+};
+
+type NormalizedContractActionResult = {
+  success: boolean;
+  message: string;
 };
 
 /**
@@ -286,6 +359,45 @@ const buildValidationResult = ({
     isLegal,
     reasons,
     severity: maxSeverity,
+  };
+};
+
+export const normalizeContractActionResult = (
+  result: ActionResultLike
+): NormalizedContractActionResult => {
+  if (result && typeof result === 'object' && 'success' in result) {
+    const writesSummary = result.writesSummary || {};
+    const hasPersistSummary =
+      writesSummary.eventsWritten !== undefined ||
+      writesSummary.worldMetadataPatched !== undefined ||
+      writesSummary.teamsPatched !== undefined;
+    const hasPersistedWrites =
+      !hasPersistSummary ||
+      (Number(writesSummary.eventsWritten ?? 1) > 0 &&
+        Number(writesSummary.worldMetadataPatched ?? 1) > 0 &&
+        Number(writesSummary.teamsPatched ?? 1) > 0);
+    const success =
+      result.success === true &&
+      result.appliedToLocalState !== false &&
+      result.persistedToWorld !== false &&
+      hasPersistedWrites;
+    return {
+      success,
+      message:
+        result.message ||
+        result.error ||
+        (success ? '' : 'Action did not complete required save writes.'),
+    };
+  }
+  if (result === false) {
+    return {
+      success: false,
+      message: 'Action canceled. No changes were saved.',
+    };
+  }
+  return {
+    success: false,
+    message: 'Action did not complete. Please try again.',
   };
 };
 
@@ -868,7 +980,7 @@ const EditContractModal = ({
   ]);
 
   const buildCanonicalSigningPayload = useCallback(
-    (overrides: LooseRecord = {}): LooseRecord => {
+    (overrides: Partial<SigningPayloadLike> = {}): SigningPayloadLike => {
       const years = extension.years || extension.salaries?.length || 0;
       const salaries = (extension.salaries || []).slice(0, years);
       const totalValue = salaries.reduce(
@@ -913,45 +1025,6 @@ const EditContractModal = ({
     [CURRENT_YEAR, extension, selectedException, signingGuardrails]
   );
 
-  const normalizeActionResult = (
-    result: ActionResultLike
-  ): { success: boolean; message: string } => {
-    if (result && typeof result === 'object' && 'success' in result) {
-      const writesSummary = result.writesSummary || {};
-      const hasPersistSummary =
-        writesSummary.eventsWritten !== undefined ||
-        writesSummary.worldMetadataPatched !== undefined ||
-        writesSummary.teamsPatched !== undefined;
-      const hasPersistedWrites =
-        !hasPersistSummary ||
-        (Number(writesSummary.eventsWritten ?? 1) > 0 &&
-          Number(writesSummary.worldMetadataPatched ?? 1) > 0 &&
-          Number(writesSummary.teamsPatched ?? 1) > 0);
-      const success =
-        result.success === true &&
-        result.appliedToLocalState !== false &&
-        result.persistedToWorld !== false &&
-        hasPersistedWrites;
-      return {
-        success,
-        message:
-          result.message ||
-          result.error ||
-          (success ? '' : 'Action did not complete required save writes.'),
-      };
-    }
-    if (result === false) {
-      return {
-        success: false,
-        message: 'Action canceled. No changes were saved.',
-      };
-    }
-    return {
-      success: false,
-      message: 'Action did not complete. Please try again.',
-    };
-  };
-
   const handleConfirm = async () => {
     if (isSubmitting) return;
     setSaveError('');
@@ -989,7 +1062,7 @@ const EditContractModal = ({
       : null;
 
     try {
-      let actionResult;
+      let actionResult: ActionResultLike;
 
       // Phase 16: MVP Offer Sheet toggle Logic
       if (
@@ -1107,7 +1180,7 @@ const EditContractModal = ({
         }
       }
 
-      const normalizedResult = normalizeActionResult(actionResult as ActionResultLike);
+      const normalizedResult = normalizeContractActionResult(actionResult);
       if (normalizedResult.success) {
         onClose();
         return;

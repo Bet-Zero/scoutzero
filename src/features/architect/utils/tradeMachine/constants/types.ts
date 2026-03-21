@@ -8,6 +8,8 @@
  * `tradeExceptions` in NormalizedTeam is populated via getTeamTpeList() accessor.
  */
 
+import type { DataWarning } from '../utils/dataValidation';
+
 // Normalized cap settings
 export interface CapSettings {
   salaryCap: number;
@@ -18,6 +20,7 @@ export interface CapSettings {
   fullMLE: number;
   roomMLE: number;
   bae: number;
+  [key: string]: unknown;
 }
 
 // Normalized player data
@@ -387,15 +390,57 @@ export interface TradeValidationNormalizedYear {
 }
 
 export interface TradeValidatorCapSettings {
+  cap?: number;
   salaryCap?: number;
   firstApron?: number;
   secondApron?: number;
   luxuryTax?: number;
+  tax?: number;
+  fullMLE?: number;
+  roomMLE?: number;
+  taxpayerMLE?: number;
+  [key: string]: unknown;
+}
+
+export interface TradeValidatorCapProjectionRow {
+  cap?: number;
+  salaryCap?: number;
+  firstApron?: number;
+  secondApron?: number;
+  luxuryTax?: number;
+  tax?: number;
+  fullMLE?: number;
+  roomMLE?: number;
+  taxpayerMLE?: number;
+  confirmed?: boolean;
+  growthRate?: number;
+}
+
+export interface TradeValidatorCapProjections {
+  salaryCap?: number;
+  cap?: number;
+  firstApron?: number;
+  secondApron?: number;
+  luxuryTax?: number;
+  tax?: number;
+  fullMLE?: number;
+  roomMLE?: number;
+  taxpayerMLE?: number;
+  [seasonKey: string]: TradeValidatorCapProjectionRow | number | undefined;
+}
+
+export interface TradeFaExceptionBucket {
+  type?: string | null;
+  name?: string | null;
+  label?: string | null;
+  amount?: number | null;
+  remaining?: number | null;
+  remainingAmount?: number | null;
   [key: string]: unknown;
 }
 
 export interface TradeValidatorContext extends TeamContext {
-  capProjections?: Record<string, unknown>;
+  capProjections?: TradeValidatorCapProjections;
   currentYear?: number;
   yearKey?: number;
   asOfDate?: string;
@@ -413,7 +458,7 @@ export interface TradeValidatorContext extends TeamContext {
 
 export interface ValidateTradeParams {
   teams?: Array<TradeTeam | null | undefined> | null;
-  capProjections?: Record<string, unknown> | null;
+  capProjections?: TradeValidatorCapProjections | null;
   currentYear?: number | string | null;
   tradeCtx?: TradeValidatorContext | null;
 }
@@ -455,8 +500,8 @@ export interface TradeTeamResult {
   projectedSalary: number;
   capRoom: number;
   hardCapped: boolean;
-  apronStatus: unknown;
-  faExceptionBuckets: Array<Record<string, unknown>>;
+  apronStatus: '2nd Apron' | '1st Apron' | 'Below Aprons';
+  faExceptionBuckets: TradeFaExceptionBucket[];
   notes: unknown;
   createdTPE: TradeExceptionRecord | null;
   details: string;
@@ -484,15 +529,35 @@ export interface TradeReceiptPlayerFlags {
   isSignAndTrade: boolean;
 }
 
+export interface TradeReceiptBycDetails {
+  previousSalary: number;
+  fiftyPercentNew: number;
+  method: 'previousSalary' | '50%_of_new';
+}
+
+export interface TradeReceiptPoisonPillDetails {
+  currentSalary: number;
+  extensionYears: Array<Record<string, unknown>>;
+  averagedSalary: number;
+  method: 'averaging_current_plus_extensions';
+}
+
+export interface TradeReceiptTradeKickerDetails {
+  percentage: number;
+  kickerAmount: number;
+  waivedPct: number;
+  maximum: unknown;
+}
+
 export interface TradeReceiptPlayerRow {
   id?: string;
   name: string;
   baseSalary: number;
   matchingValue: number;
   flags: TradeReceiptPlayerFlags;
-  bycDetails?: Record<string, unknown> | null;
-  poisonPillDetails?: Record<string, unknown> | null;
-  tradeKickerDetails?: Record<string, unknown> | null;
+  bycDetails?: TradeReceiptBycDetails | null;
+  poisonPillDetails?: TradeReceiptPoisonPillDetails | null;
+  tradeKickerDetails?: TradeReceiptTradeKickerDetails | null;
 }
 
 export interface TradeReceiptEntitlementRow {
@@ -577,13 +642,13 @@ export interface TradeValidationResult {
     validationTime: number;
   };
   tradeReceipt: TradeReceipt | null;
-  dataWarnings: unknown[];
+  dataWarnings: DataWarning[];
   hasDataIssues: boolean;
   yearKey: number | null;
   seasonKey: string | null;
   capSettings: TradeValidatorCapSettings | null;
   capSettingsSource: string | null;
-  capSettingsWarnings: unknown[];
+  capSettingsWarnings: string[];
   asOfDate: string | null;
   tradeDate: string | null;
   offseason: boolean | null;
