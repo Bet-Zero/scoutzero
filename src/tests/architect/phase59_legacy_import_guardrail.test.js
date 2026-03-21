@@ -21,7 +21,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
 
 // Helper to read source file content
@@ -182,17 +182,10 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       expect(validateIndex).toBeGreaterThan(buildIndex);
     });
 
-    it('should keep legacy/index.js as a shim-only compatibility re-export', () => {
-      const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/legacy/index.js'
-      );
-
-      expect(source).toContain("from './index.ts'");
-      expect(source).not.toContain('const timestamp = Date.now()');
-      expect(source).not.toContain('buildPostTradeTeamsSnapshot({');
-      expect(source).not.toContain(
-        'validatePostTradeSnapshotForContext({ snapshot, payload, seasonId })'
-      );
+    it('confirms legacy/index.js shim has been deleted (TS authority owns the surface)', () => {
+      expect(
+        existsSync(resolve(process.cwd(), 'src/features/architect/utils/tradeContext/legacy/index.js'))
+      ).toBe(false);
     });
   });
 
@@ -220,12 +213,9 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       expect(source.toLowerCase()).toContain('deprecated');
     });
 
-    it('should preserve direct legacy namespace import compatibility', async () => {
+    it('should preserve direct legacy namespace import compatibility via TS authority', async () => {
       const legacyNamespace = await import(
         '@/features/architect/utils/tradeContext/legacy'
-      );
-      const legacyShim = await import(
-        '@/features/architect/utils/tradeContext/legacy/index.js'
       );
 
       expect(legacyNamespace.legacy_validateTradeForContext).toBeTypeOf(
@@ -233,12 +223,6 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       );
       expect(legacyNamespace.validateTradeForContext).toBe(
         legacyNamespace.legacy_validateTradeForContext
-      );
-      expect(legacyShim.legacy_validateTradeForContext).toBe(
-        legacyNamespace.legacy_validateTradeForContext
-      );
-      expect(legacyShim.validateTradeForContext).toBe(
-        legacyNamespace.validateTradeForContext
       );
     });
   });

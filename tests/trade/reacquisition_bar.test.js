@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { enforceEligibility } from '@/features/architect/utils/tradeMachine/rules/enforceEligibility.js';
+import { enforceEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
 import { validationFlags } from '@/config/validationFlags.js';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';

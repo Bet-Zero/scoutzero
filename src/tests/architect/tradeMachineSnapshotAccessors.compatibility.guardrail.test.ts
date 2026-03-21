@@ -39,10 +39,8 @@ describe('E69 Trade Machine snapshot/accessor compatibility guardrails', () => {
     expect(fs.existsSync(selectorDeletedPath)).toBe(false);
   });
 
-  it('useTradeMachineSnapshot.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(accessorShimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './useTradeMachineSnapshot.ts';");
+  it('useTradeMachineSnapshot.js shim has been deleted (TS authority owns the surface)', () => {
+    expect(fs.existsSync(accessorShimPath)).toBe(false);
   });
 
   it('selector authority still exposes the same named API through extensionless imports', () => {
@@ -67,19 +65,9 @@ describe('E69 Trade Machine snapshot/accessor compatibility guardrails', () => {
     expect(source).toContain('export function computeRemainingRoom');
   });
 
-  it('accessor explicit .js import exposes the same named API as extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/hooks/useTradeMachineSnapshot.js'
-    );
-
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
-      'getTeamSnapshot',
-      'getTeamSnapshotByIndex',
-      'getTradeSnapshot',
-    ]);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.getTeamSnapshot).toBe(getTeamSnapshot);
-    expect(explicitJsModule.getTeamSnapshotByIndex).toBe(getTeamSnapshotByIndex);
-    expect(explicitJsModule.getTradeSnapshot).toBe(getTradeSnapshot);
+  it('accessor TS authority exposes the expected API through extensionless imports', () => {
+    expect(typeof getTeamSnapshot).toBe('function');
+    expect(typeof getTeamSnapshotByIndex).toBe('function');
+    expect(typeof getTradeSnapshot).toBe('function');
   });
 });

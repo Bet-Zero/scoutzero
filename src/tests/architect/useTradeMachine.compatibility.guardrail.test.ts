@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 import * as useTradeMachineModule from '@/features/architect/hooks/useTradeMachine';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 
@@ -189,7 +189,6 @@ async function setupHookWithSecondaryTeam() {
 
 describe('E78 useTradeMachine compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
-  const shimPath = path.join(srcRoot, 'hooks/useTradeMachine.js');
   const authorityPath = path.join(srcRoot, 'hooks/useTradeMachine.ts');
 
   beforeEach(() => {
@@ -218,22 +217,15 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
     );
   });
 
-  it('useTradeMachine.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(shimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './useTradeMachine.ts';");
+  it('useTradeMachine.js shim has been deleted', () => {
+    const shimPath = path.join(srcRoot, 'hooks/useTradeMachine.js');
+    expect(fs.existsSync(shimPath)).toBe(false);
   });
 
-  it('explicit .js import matches extensionless import with no default export', async () => {
+  it('extensionless import resolves to the TS authority with no default export', () => {
     const source = fs.readFileSync(authorityPath, 'utf-8');
-    const explicitJsModule = await import(
-      '../../features/architect/hooks/useTradeMachine.js'
-    );
 
     expect(Object.keys(useTradeMachineModule)).toEqual(['useTradeMachine']);
-    expect(Object.keys(explicitJsModule)).toEqual(['useTradeMachine']);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.useTradeMachine).toBe(useTradeMachine);
     expect(
       Array.from(source.matchAll(/^export (?:(?:async )?function|const) (\w+)/gm)).map(
         ([, exportName]) => exportName

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateCash } from '@/features/architect/utils/tradeMachine/rules/validateCash';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const currentYear = 2025;

@@ -57,38 +57,30 @@ admin/
   wizardToEntitlement.ts
 capSheet/
   CapSheet/
-    CapSheet.jsx
     CapSheet.tsx
-    CapSummaryTiles.jsx
     CapSummaryTiles.tsx
     index.ts
   CapSheetFull/
-    CapSheetFull.jsx
     CapSheetFull.tsx
     index.ts
   ExceptionHistoryTracker/
     ExceptionHistoryTracker.tsx
     index.ts
   ExceptionTracker/
-    ExceptionTracker.jsx
     ExceptionTracker.tsx
     index.ts
   devCapSheetFixtures.ts
   index.ts
   modals/
-    ManageDeadMoneyModal.jsx
     ManageDeadMoneyModal.tsx
-    ManageExceptionsModal.jsx
     ManageExceptionsModal.tsx
 constants/
   playerNameCorrections.ts
 contract/
   ContractEditor/
-    ContractEditor.jsx
     ContractEditor.tsx
     index.ts
   ContractEditorModal/
-    ContractEditorModal.jsx
     ContractEditorModal.tsx
     index.ts
   index.ts
@@ -99,12 +91,9 @@ data/
 freeAgency/
   FreeAgentPool/
     FreeAgencyFilterBar.tsx
-    FreeAgentCard.jsx
     FreeAgentCard.tsx
-    FreeAgentPool.jsx
     FreeAgentPool.tsx
     FreeAgentPoolHeader.tsx
-    FreeAgentRow.jsx
     FreeAgentRow.tsx
     SelectedFreeAgentCards.tsx
     index.ts
@@ -124,16 +113,11 @@ history/
   utils/
     normalizeWorldEventsForTeamHistory.ts
 hooks/
-  useArchitectPlayerData.js
   useArchitectPlayerData.ts
-  useCapValidation.js
   useCapValidation.ts
-  usePlayerRulesProfiles.js
   usePlayerRulesProfiles.ts
   useTeamEntitlements.ts
-  useTradeMachine.js
   useTradeMachine.ts
-  useTradeMachineSnapshot.js
   useTradeMachineSnapshot.ts
 offseason/
   DraftPickTracker/
@@ -153,11 +137,9 @@ shared/
     LeagueView.tsx
     index.ts
   RosterVisual/
-    RosterVisual.jsx
     RosterVisual.tsx
     index.ts
   ValidationWarnings/
-    ValidationWarnings.jsx
     ValidationWarnings.tsx
     index.ts
   index.ts
@@ -206,7 +188,6 @@ utils/
     localCapAuditLog.ts
     postStateCapValidator.ts
   capLegalityValidation.ts
-  capProjections.js
   capProjections.ts
   capRulesProfile/
     capRulesProfile.ts
@@ -220,7 +201,7 @@ utils/
   contractNormalization.ts
   contractSalaryUtils.ts
   contractUtils.ts
-  draftPickUtils.js
+  draftPickUtils.ts
   entitlements/
     computeEntitlementClaims.ts
     dare/
@@ -252,7 +233,6 @@ utils/
   exceptionHistory/
     historyHelpers.ts
   exceptions/
-    exceptionLifecycle.js
     exceptionLifecycle.ts
     index.ts
   faExceptionUtils.ts
@@ -301,7 +281,6 @@ utils/
     assertions.ts
     index.ts
     legacy/
-      index.js
       index.ts
     tradeContext.ts
     types.ts
@@ -332,7 +311,6 @@ utils/
       basicRules.ts
       draftRules.ts
       enforceConsent.ts
-      enforceEligibility.js
       enforcement.ts
       hardCapValidation.ts
       index.ts
@@ -382,11 +360,11 @@ utils/
     validators/
       index.ts
   tradeManager.ts
-  validatePhase21.test.js
+  validatePhase21.test.ts
   worldManager.ts
   worldTeamData.ts
 ```
 
 ---
-*Generated on: 2026-03-20T21:54:48.396Z*
+*Generated on: 2026-03-21T09:09:16.399Z*
 *Auto-updated by: npm run docs*

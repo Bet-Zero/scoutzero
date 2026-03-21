@@ -30,7 +30,7 @@ import {
 } from '@/features/architect/utils/tradeMachine';
 import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 
 // Custom cap values for test isolation (differ from capProjections 2024-25)
 const DEFAULT_CAP_SETTINGS = {

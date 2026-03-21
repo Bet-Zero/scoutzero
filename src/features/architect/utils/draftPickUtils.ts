@@ -1,21 +1,32 @@
 /**
- * FILE: src/features/architect/utils/draftPickUtils.js
- * PURPOSE: Compatibility surface for frozen-pick guardrail tests and legacy imports.
+ * FILE: src/features/architect/utils/draftPickUtils.ts
+ * PURPOSE: Frozen-pick detection utility for second-apron draft asset rules.
  * OWNERSHIP: Feature: architect/draft-assets
- *
- * HISTORY:
- *  - 2026-03-20: Restored as a small JS compatibility utility during Architect type-hardening follow-up.
  */
 
-const toNumericYear = (value) => {
+interface DraftPick {
+  round?: number | string;
+  year?: number | string;
+  originalTeam?: string;
+  originalTeamId?: string;
+  teamId?: string;
+}
+
+interface FrozenPickOptions {
+  currentSeason?: number | string;
+  teamIsSecondApron?: boolean;
+  teamId?: string;
+}
+
+const toNumericYear = (value: number | string | null | undefined): number | null => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const isFirstRoundPick = (round) =>
+const isFirstRoundPick = (round: number | string | undefined): boolean =>
   round === 1 || round === '1st' || round === 'first';
 
-const isOwnPick = (pick, teamId) => {
+const isOwnPick = (pick: DraftPick, teamId: string | undefined): boolean => {
   if (teamId == null) return true;
 
   return (
@@ -25,7 +36,7 @@ const isOwnPick = (pick, teamId) => {
   );
 };
 
-export function isFrozenPick(pick, options = {}) {
+export function isFrozenPick(pick: DraftPick | null | undefined, options: FrozenPickOptions = {}): boolean {
   const currentYear = toNumericYear(options.currentSeason);
   const pickYear = toNumericYear(pick?.year);
 

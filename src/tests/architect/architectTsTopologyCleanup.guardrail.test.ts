@@ -126,11 +126,8 @@ describe('Architect TS topology cleanup guardrails', () => {
       expect(fs.existsSync(barrelCase.authorityPath)).toBe(true);
     });
 
-    it(`keeps ${barrelCase.label} legacy index.js as an exact compatibility-only forwarder`, () => {
-      expect(fs.existsSync(barrelCase.shimPath)).toBe(true);
-      expect(fs.readFileSync(barrelCase.shimPath, 'utf-8').trim()).toBe(
-        barrelCase.expectedShimSource
-      );
+    it(`confirms ${barrelCase.label} legacy index.js shim has been deleted`, () => {
+      expect(fs.existsSync(barrelCase.shimPath)).toBe(false);
     });
   }
 

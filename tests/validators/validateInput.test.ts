@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput.ts';
 import { validateTradeInput as compatValidateTradeInput } from '@/features/architect/utils/tradeMachine/validators';
 import { validateTradeInput as utilsValidateTradeInput } from '@/features/architect/utils/tradeMachine/utils';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 
 const currentYear = 2025;
 

@@ -363,17 +363,10 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain('DO NOT IMPORT IN MUTATION MODULES');
     });
 
-    it('should keep legacy/index.js as a shim-only compatibility re-export', () => {
-      const source = readSourceFile(
-        'src/features/architect/utils/tradeContext/legacy/index.js'
-      );
-
-      expect(source).toContain("from './index.ts'");
-      expect(source).not.toContain('const timestamp = Date.now()');
-      expect(source).not.toContain('buildPostTradeTeamsSnapshot({');
-      expect(source).not.toContain(
-        'validatePostTradeSnapshotForContext({ snapshot, payload, seasonId })'
-      );
+    it('confirms legacy/index.js shim has been deleted (TS authority owns the surface)', () => {
+      expect(
+        existsSync('src/features/architect/utils/tradeContext/legacy/index.js')
+      ).toBe(false);
     });
 
     it('should have assertions.ts with runtime assertions', () => {

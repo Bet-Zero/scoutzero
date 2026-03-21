@@ -192,12 +192,8 @@ describe('Phase 76: Source Scan Guardrails', () => {
     expect(content).not.toContain('computeTeamCapTotals');
   });
 
-  it('TEST 3c: exceptionLifecycle.js remains a pure compatibility shim', () => {
-    const content = fs.readFileSync(exceptionLifecycleShimPath, 'utf8');
-
-    expect(content).toContain("export * from './exceptionLifecycle.ts';");
-    expect(content).not.toContain('Object.freeze([');
-    expect(content).not.toContain('getCapRulesForYear');
+  it('TEST 3c: exceptionLifecycle.js shim has been deleted (TS authority owns the surface)', () => {
+    expect(fs.existsSync(exceptionLifecycleShimPath)).toBe(false);
   });
 });
 

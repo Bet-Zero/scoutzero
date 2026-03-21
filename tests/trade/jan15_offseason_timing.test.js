@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 import { validationFlags } from '@/config/validationFlags.js';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { validateTiming } from '@/features/architect/utils/tradeMachine/rules/timingValidation';

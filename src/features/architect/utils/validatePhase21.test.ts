@@ -12,11 +12,9 @@ vi.mock('@/features/architect/utils/capRulesProfile', () => ({
 
 // Mock countStandardRoster
 vi.mock('@/features/architect/utils/capLegalityValidation', async (importOriginal) => {
-    const actual = await importOriginal();
+    const actual = await importOriginal() as Record<string, unknown>;
     return {
         ...actual,
-        // We are testing exported functions, but internal calls might use original or need mocking if exported.
-        // validateWaive is what we are testing so we don't mock it.
     };
 });
 

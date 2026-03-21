@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getTeam } from '@/features/architect/utils/teamLoader';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 
 type DocShape = Record<string, unknown> | null;
 

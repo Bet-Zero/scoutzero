@@ -12,17 +12,17 @@
 
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
 
-const makePlayer = (name, salary) => ({
+const makePlayer = (name: string, salary: number) => ({
   name,
   contract: { salariesByYear: [{ season, salary }] },
 });
 
-const makeTeam = (name, totalSalary) => ({
+const makeTeam = (name: string, totalSalary: number) => ({
   id: name.toLowerCase(),
   teamName: name,
   totalSalary,

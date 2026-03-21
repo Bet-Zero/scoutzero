@@ -65,15 +65,7 @@ describe('Final mixed keeper batch E128 guardrails', () => {
     expect(Object.keys(authorityModule)).toEqual([]);
   });
 
-  it('keeps tradeContext/legacy/index.js as the intentional shim-only legacy contract', () => {
-    const legacyShimSource = fs.readFileSync(legacyShimPath, 'utf-8').trim();
-
-    expect(legacyShimSource).toContain('compatibility shim');
-    expect(legacyShimSource).toContain("from './index.ts'");
-    expect(legacyShimSource).not.toContain('Date.now()');
-    expect(legacyShimSource).not.toContain('buildPostTradeTeamsSnapshot({');
-    expect(legacyShimSource).not.toContain(
-      'validatePostTradeSnapshotForContext({ snapshot, payload, seasonId })'
-    );
+  it('confirms tradeContext/legacy/index.js shim has been deleted (TS authority owns the surface)', () => {
+    expect(fs.existsSync(legacyShimPath)).toBe(false);
   });
 });

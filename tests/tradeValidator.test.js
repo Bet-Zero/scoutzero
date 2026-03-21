@@ -4,7 +4,7 @@ import {
   getSalaryMatchingResult,
   validateTrade,
 } from '@/features/architect/utils/tradeMachine';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { validateBYC } from '@/features/architect/utils/tradeMachine/rules/miscRules';
 

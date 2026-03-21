@@ -21,7 +21,6 @@ import {
   validationCache,
 } from '@/features/architect/utils/tradeMachine/cache/validationCache';
 import tradeDebug from '@/features/architect/utils/tradeMachine/engine/tradeDebug';
-import * as ContractEditorModalJsxModule from '../../features/architect/contract/ContractEditorModal/ContractEditorModal.jsx';
 
 describe('Grouped 33-file scope compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
@@ -55,10 +54,10 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     ).toBe(false);
   });
 
-  it('keeps ContractEditorModal.jsx as a pure compatibility shim', () => {
+  it('deletes the ContractEditorModal.jsx compatibility shim', () => {
     expect(
-      readSource('contract/ContractEditorModal/ContractEditorModal.jsx')
-    ).toBe("export { default } from './ContractEditorModal.tsx';");
+      fs.existsSync(path.join(srcRoot, 'contract/ContractEditorModal/ContractEditorModal.jsx'))
+    ).toBe(false);
   });
 
   it('deletes the OffseasonSection.jsx compatibility shim', () => {
@@ -139,12 +138,10 @@ describe('Grouped 33-file scope compatibility guardrails', () => {
     expect('default' in authorityModule).toBe(false);
   });
 
-  it('preserves ContractEditorModal default-only parity across extensionless, shim, and authority imports', async () => {
+  it('preserves ContractEditorModal default-only parity across extensionless and authority imports', async () => {
     const authorityModule = await import(contractEditorModalAuthoritySpecifier);
 
-    expect(Object.keys(ContractEditorModalJsxModule)).toEqual(['default']);
     expect(Object.keys(authorityModule)).toEqual(['default']);
-    expect(ContractEditorModalJsxModule.default).toBe(ContractEditorModal);
     expect(authorityModule.default).toBe(ContractEditorModal);
   });
 

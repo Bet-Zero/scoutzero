@@ -11,7 +11,7 @@ import {
   yearToSeasonKey,
   CAP_SETTINGS_SOURCE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-import capProjections from '@/features/architect/utils/capProjections.js';
+import capProjections from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 
 describe('Phase 4: Cap Settings Provider', () => {

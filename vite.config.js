@@ -7,20 +7,6 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^@\/shared\/components\/ui\/filters$/,
-        replacement: path.resolve(
-          __dirname,
-          './src/shared/components/ui/filters/index.ts'
-        ),
-      },
-      {
-        find: /^@\/shared\/utils\/contracts$/,
-        replacement: path.resolve(
-          __dirname,
-          './src/shared/utils/contracts/index.ts'
-        ),
-      },
-      {
         find: '@hello-pangea/dnd',
         replacement: path.resolve(
           __dirname,

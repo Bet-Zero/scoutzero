@@ -25,10 +25,6 @@ describe('season-transition helper import compatibility', () => {
     const extensionless = await import(
       '@/features/architect/utils/exceptions/exceptionLifecycle'
     );
-    const withJs = await import(
-      '@/features/architect/utils/exceptions/exceptionLifecycle.js'
-    );
-
     expect(barrel.resetTeamNonTpeExceptionsForNewSeason).toBeTypeOf('function');
     expect(barrel.validateNonTpeExceptionsForYear).toBeTypeOf('function');
     expect(Array.isArray(barrel.NON_TPE_EXCEPTION_TYPES)).toBe(true);
@@ -36,11 +32,11 @@ describe('season-transition helper import compatibility', () => {
     expect(extensionless.resetTeamNonTpeExceptionsForNewSeason).toBe(
       barrel.resetTeamNonTpeExceptionsForNewSeason
     );
-    expect(withJs.validateNonTpeExceptionsForYear).toBe(
-      extensionless.validateNonTpeExceptionsForYear
+    expect(extensionless.validateNonTpeExceptionsForYear).toBe(
+      barrel.validateNonTpeExceptionsForYear
     );
-    expect(withJs.NON_TPE_EXCEPTION_TYPES).toBe(
-      extensionless.NON_TPE_EXCEPTION_TYPES
+    expect(extensionless.NON_TPE_EXCEPTION_TYPES).toBe(
+      barrel.NON_TPE_EXCEPTION_TYPES
     );
   });
 
@@ -56,22 +52,14 @@ describe('season-transition helper import compatibility', () => {
     expect(extensionless.logDerivedPicksCreation).toBeTypeOf('function');
   });
 
-  it('retained helper shims stay intentional and seasonManagerProjection.js stays absent', () => {
-    const exceptionShim = fs.readFileSync(
-      path.join(utilsRoot, 'exceptions/exceptionLifecycle.js'),
-      'utf8'
-    );
+  it('deleted helper shims stay absent and seasonManagerProjection.ts exists', () => {
     const projectionAuthority = fs.readFileSync(
       path.join(utilsRoot, 'entitlements/seasonManagerProjection.ts'),
       'utf8'
     );
 
     expect(fs.existsSync(path.join(utilsRoot, 'tpeLifecycle.js'))).toBe(false);
-
-    expect(exceptionShim).toContain("export * from './exceptionLifecycle.ts';");
-    expect(exceptionShim).not.toContain('getCapRulesForYear');
-    expect(exceptionShim).not.toContain('Object.freeze([');
-
+    expect(fs.existsSync(path.join(utilsRoot, 'exceptions/exceptionLifecycle.js'))).toBe(false);
     expect(fs.existsSync(path.join(utilsRoot, 'entitlements/seasonManagerProjection.js'))).toBe(
       false
     );

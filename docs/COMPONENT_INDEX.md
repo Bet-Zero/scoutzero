@@ -2,33 +2,6 @@
 
 Quick reference for all components in the ScoutZero project.
 
-## Architect
-
-- capSheet/CapSheet/CapSheet.jsx
-- capSheet/CapSheet/CapSummaryTiles.jsx
-- capSheet/CapSheetFull/CapSheetFull.jsx
-- capSheet/ExceptionTracker/ExceptionTracker.jsx
-- capSheet/modals/ManageDeadMoneyModal.jsx
-- capSheet/modals/ManageExceptionsModal.jsx
-- contract/ContractEditor/ContractEditor.jsx
-- contract/ContractEditorModal/ContractEditorModal.jsx
-- freeAgency/FreeAgentPool/FreeAgentCard.jsx
-- freeAgency/FreeAgentPool/FreeAgentPool.jsx
-- freeAgency/FreeAgentPool/FreeAgentRow.jsx
-- hooks/useArchitectPlayerData.js
-- hooks/useCapValidation.js
-- hooks/usePlayerRulesProfiles.js
-- hooks/useTradeMachine.js
-- hooks/useTradeMachineSnapshot.js
-- shared/RosterVisual/RosterVisual.jsx
-- shared/ValidationWarnings/ValidationWarnings.jsx
-- utils/capProjections.js
-- utils/draftPickUtils.js
-- utils/exceptions/exceptionLifecycle.js
-- utils/tradeContext/legacy/index.js
-- utils/tradeMachine/rules/enforceEligibility.js
-- utils/validatePhase21.test.js
-
 ## Filters
 
 - ActiveFiltersDisplay/FilterPill/FilterContent.jsx
@@ -176,4 +149,4 @@ Quick reference for all components in the ScoutZero project.
 - utils/saveAsListBridge.js
 
 ---
-*Generated on: 2026-03-20T21:54:48.432Z*
+*Generated on: 2026-03-21T09:09:16.464Z*

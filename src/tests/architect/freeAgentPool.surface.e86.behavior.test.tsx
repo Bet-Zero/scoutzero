@@ -23,9 +23,6 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool';
-import FreeAgentPoolJsxShim from '@/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx';
-import FreeAgentRowJsxShim from '@/features/architect/freeAgency/FreeAgentPool/FreeAgentRow.jsx';
-import FreeAgentCardJsxShim from '@/features/architect/freeAgency/FreeAgentPool/FreeAgentCard.jsx';
 
 const { mockGetPlayerProfileUrl } = vi.hoisted(() => ({
   mockGetPlayerProfileUrl: vi.fn(() => '#player-profile'),
@@ -122,12 +119,6 @@ describe('FreeAgentPool surface E86 behavior', () => {
 
   afterEach(() => {
     cleanup();
-  });
-
-  it('keeps explicit in-folder JSX shims importable', () => {
-    expect(FreeAgentPoolJsxShim).toBeTruthy();
-    expect(FreeAgentRowJsxShim).toBeTruthy();
-    expect(FreeAgentCardJsxShim).toBeTruthy();
   });
 
   it('toggles row selection into and out of the selected-card strip through the top-level wrapper import', () => {

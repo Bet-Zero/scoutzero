@@ -12,45 +12,21 @@ describe('E71 architect contract/cap hook compatibility guardrails', () => {
   const playerRulesShimPath = path.join(srcRoot, 'hooks/usePlayerRulesProfiles.js');
   const capValidationShimPath = path.join(srcRoot, 'hooks/useCapValidation.js');
 
-  it('usePlayerRulesProfiles.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(playerRulesShimPath, 'utf-8').trim();
-
-    expect(source).toBe("export * from './usePlayerRulesProfiles.ts';");
+  it('usePlayerRulesProfiles.js shim has been deleted (TS authority owns the surface)', () => {
+    expect(fs.existsSync(playerRulesShimPath)).toBe(false);
   });
 
-  it('useCapValidation.js remains a pure compatibility shim', () => {
-    const source = fs.readFileSync(capValidationShimPath, 'utf-8').trim();
-
-    expect(source).toBe(
-      "export * from './useCapValidation.ts';\nexport { default } from './useCapValidation.ts';"
-    );
+  it('useCapValidation.js shim has been deleted (TS authority owns the surface)', () => {
+    expect(fs.existsSync(capValidationShimPath)).toBe(false);
   });
 
-  it('usePlayerRulesProfiles explicit .js import matches extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/hooks/usePlayerRulesProfiles.js'
-    );
-
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
-      'usePlayerRulesProfiles',
-    ]);
-    expect('default' in explicitJsModule).toBe(false);
-    expect(explicitJsModule.usePlayerRulesProfiles).toBe(usePlayerRulesProfiles);
+  it('usePlayerRulesProfiles TS authority exports the expected API', () => {
+    expect(typeof usePlayerRulesProfiles).toBe('function');
   });
 
-  it('useCapValidation explicit .js import matches extensionless imports', async () => {
-    const explicitJsModule = await import(
-      '../../features/architect/hooks/useCapValidation.js'
-    );
-
-    expect(Object.keys(explicitJsModule).sort()).toEqual([
-      'buildSigningGuardrails',
-      'default',
-      'useCapValidation',
-    ]);
-    expect('default' in explicitJsModule).toBe(true);
-    expect(explicitJsModule.buildSigningGuardrails).toBe(buildSigningGuardrails);
-    expect(explicitJsModule.useCapValidation).toBe(namedUseCapValidation);
-    expect(explicitJsModule.default).toBe(useCapValidation);
+  it('useCapValidation TS authority exports the expected API', () => {
+    expect(typeof useCapValidation).toBe('function');
+    expect(typeof buildSigningGuardrails).toBe('function');
+    expect(typeof namedUseCapValidation).toBe('function');
   });
 });
