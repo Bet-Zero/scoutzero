@@ -13,11 +13,6 @@
  */
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import type {
-  PlayerRulesProfileInput,
-  PlayerRulesProfilesResult,
-  PlayerRulesProfileTeamCapSheet,
-} from '@/features/architect/types';
 import EditContractModal from '@/shared/components/EditContractModal';
 import { RosterSection } from './sections/RosterSection';
 import { CapSheetSection } from './sections/CapSheetSection';
@@ -34,7 +29,6 @@ import { useArchitectActions } from './hooks/useArchitectActions';
 import { useArchitectModals } from './hooks/useArchitectModals';
 import { usePlayerRulesProfiles } from '@/features/architect/hooks/usePlayerRulesProfiles';
 import { useAuth } from '@/shared/hooks/useAuth';
-import type { OfferSheetLike } from './offerSheetTypes';
 import {
   FIREBASE_TARGET_MODE,
   isLikelyEmulatorConnectionError,
@@ -46,85 +40,27 @@ import {
 } from '@/features/architect/utils/seasonFormat';
 
 type EditContractModalProps = Parameters<typeof EditContractModal>[0];
+type FreeAgencySectionProps = Parameters<typeof FreeAgencySection>[0];
+type ArchitectOverrideMetadata = Parameters<
+  ReturnType<typeof useArchitectActions>['handleOptionDecision']
+>[2];
 
-type PlayerLike = PlayerRulesProfileInput;
-type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet;
+const toModalActionResult = async (
+  resultPromise: Promise<{ success: boolean; message?: string }>
+) => ({ ...(await resultPromise) });
 
-type OffseasonSummaryLike = {
-  declinedOptions?: string[];
-  expiredContracts?: string[];
-  expiredTPEs?: Array<{ amount?: number; source?: string | null }>;
-  waivedDeadCap?: Array<{
-    name?: string | null;
-    amount?: number;
-    year?: string | number | null;
-  }>;
-  resetMLE?: boolean;
-} | null;
+const toOverrideMetadata = (value: unknown): ArchitectOverrideMetadata => {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'overrideUsed' in value &&
+    'overrideReasons' in value &&
+    'overrideTimestamp' in value
+  ) {
+    return value as ArchitectOverrideMetadata;
+  }
 
-type PlayersMapLike = Record<string, unknown>;
-
-type DashboardStateLike = {
-  teamCapSheet: TeamCapSheetLike | null;
-  currentYear: number;
-  selectedRulesYear?: number | null;
-  activeTab: string;
-  selectedPlayer: PlayerLike | null;
-  freeAgents: unknown[];
-  isLoading: boolean;
-  isSaving: boolean;
-  error: string | null;
-  offseasonRun: boolean;
-  offseasonSummary: OffseasonSummaryLike;
-  playersMap: PlayersMapLike;
-  capTableYears: number[];
-  worldId: string | null;
-  worldAsOfDate: string | null;
-  setTeamCapSheet: (value: unknown) => void;
-  setCurrentYear: (value: number) => void;
-  setActiveTab: (value: string) => void;
-  setLastCapSheet: (value: unknown) => void;
-  setOffseasonRun: (value: boolean) => void;
-  setOffseasonSummary: (value: OffseasonSummaryLike) => void;
-  setWorldId: (value: string | null) => void;
-  setWorldAsOfDate: (value: string | null) => void;
-};
-
-type ModalsLike = {
-  showOffseasonModal: boolean;
-  showContractModal: boolean;
-  initialAction: unknown;
-  targetYear: unknown;
-  actionContext: unknown;
-  closeContractModal: () => void;
-  closeOffseasonModal: () => void;
-  setShowOffseasonModal: (value: boolean) => void;
-  openContractModal?: (...args: unknown[]) => void;
-};
-
-type ActionsLike = {
-  handleEditContract: (...args: unknown[]) => void;
-  handleSetDeadCap: (...args: unknown[]) => void;
-  handleSetExceptions: (...args: unknown[]) => void;
-  handleInjectCapSheetFixtures: (...args: unknown[]) => void;
-  handleClearCapSheetFixtures: (...args: unknown[]) => void;
-  hasInjectedCapSheetFixtures: boolean;
-  applyTradeToCapSheet: (...args: unknown[]) => void;
-  handleSign: (...args: unknown[]) => void;
-  handleSignAndTrade: (...args: unknown[]) => void;
-  handleStoreOfferSheet: (...args: unknown[]) => void;
-  handleMatchOfferSheet: (...args: unknown[]) => void;
-  handleDeclineOfferSheet: (...args: unknown[]) => void;
-  handleFinalizeOfferSheet: (...args: unknown[]) => void;
-  handleCapSheetAction: (...args: unknown[]) => void;
-  handleSaveContract: (...args: unknown[]) => void;
-  handleExtendContract: (...args: unknown[]) => void;
-  handleWaiveContract: (...args: unknown[]) => void;
-  handleOptionDecision: (...args: unknown[]) => void;
-  handleRenounceRights: (...args: unknown[]) => void;
-  handleInjectTeamHistoryFixtures: (...args: unknown[]) => void;
-  handleClearTeamHistoryFixtures: (...args: unknown[]) => void;
-  hasInjectedTeamHistoryFixtures: boolean;
+  return null;
 };
 
 const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined) => {
@@ -146,14 +82,15 @@ const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined
 const GMDashboard = () => {
   const { teamId } = useParams();
   const { userId, loading: authLoading } = useAuth();
+  const normalizedTeamId = teamId ?? '';
 
   const state = useArchitectState({
-    teamId: teamId ?? '',
+    teamId: normalizedTeamId,
     userId,
     authLoading,
-  }) as unknown as DashboardStateLike;
+  });
 
-  const modals = useArchitectModals() as ModalsLike;
+  const modals = useArchitectModals();
 
   const {
     teamCapSheet,
@@ -210,10 +147,10 @@ const GMDashboard = () => {
     players: teamCapSheet?.players || [],
     teamCapSheet,
     currentYear,
-    teamCode: teamId,
+    teamCode: normalizedTeamId,
     simulationDate: simulatedRulesDate,
     evaluationYears: capTableYears,
-  }) as PlayerRulesProfilesResult;
+  });
 
   const selectedPlayerRulesProfile = selectedPlayer
     ? getRulesProfile(selectedPlayer, selectedRulesYear)
@@ -223,7 +160,7 @@ const GMDashboard = () => {
     rulesLeagueContext;
 
   const actions = useArchitectActions({
-    teamId,
+    teamId: normalizedTeamId,
     userId,
     authLoading,
     state,
@@ -231,7 +168,63 @@ const GMDashboard = () => {
     modals,
     worldId,
     seasonId: toSeasonCode(currentYear),
-  } as unknown as Parameters<typeof useArchitectActions>[0]) as ActionsLike;
+  });
+
+  const freeAgencyOnSign =
+    actions.handleSign as FreeAgencySectionProps['onSign'];
+  const freeAgencyOnSignAndTrade =
+    actions.handleSignAndTrade as FreeAgencySectionProps['onSignAndTrade'];
+  const freeAgencyOnStoreOfferSheet =
+    actions.handleStoreOfferSheet as FreeAgencySectionProps['onStoreOfferSheet'];
+  const freeAgencyOnMatch =
+    actions.handleMatchOfferSheet as FreeAgencySectionProps['onMatch'];
+  const freeAgencyOnDecline =
+    actions.handleDeclineOfferSheet as FreeAgencySectionProps['onDecline'];
+  const freeAgencyOnFinalize =
+    actions.handleFinalizeOfferSheet as FreeAgencySectionProps['onFinalize'];
+
+  const modalPlayer = selectedPlayer as EditContractModalProps['player'];
+  const modalTeamCapSheet = teamCapSheet as EditContractModalProps['teamCapSheet'];
+  const modalOnSignFreeAgent =
+    actions.handleSign as EditContractModalProps['onSignFreeAgent'];
+  const modalOnResign = actions.handleSign as EditContractModalProps['onResign'];
+  const modalOnSignAndTrade =
+    actions.handleSignAndTrade as EditContractModalProps['onSignAndTrade'];
+  const modalOnStoreOfferSheet =
+    actions.handleStoreOfferSheet as EditContractModalProps['onStoreOfferSheet'];
+  const modalOnSaveContract =
+    actions.handleSaveContract as EditContractModalProps['onSaveContract'];
+  const modalOnExtend = actions.handleExtendContract as EditContractModalProps['onExtend'];
+  const modalOnWaive: NonNullable<EditContractModalProps['onWaive']> = (
+    player,
+    payload
+  ) =>
+    toModalActionResult(
+      actions.handleWaiveContract(
+        player as Parameters<typeof actions.handleWaiveContract>[0],
+        payload as Parameters<typeof actions.handleWaiveContract>[1]
+      )
+    );
+  const modalOnOptionDecision: NonNullable<
+    EditContractModalProps['onOptionDecision']
+  > = (player, accepted, overrideMetadata) =>
+    toModalActionResult(
+      actions.handleOptionDecision(
+        player as Parameters<typeof actions.handleOptionDecision>[0],
+        accepted,
+        toOverrideMetadata(overrideMetadata)
+      )
+    );
+  const modalOnRenounce: NonNullable<EditContractModalProps['onRenounce']> = (
+    player,
+    overrideMetadata
+  ) =>
+    toModalActionResult(
+      actions.handleRenounceRights(
+        player as Parameters<typeof actions.handleRenounceRights>[0],
+        toOverrideMetadata(overrideMetadata)
+      )
+    );
 
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
   if (!teamCapSheet) return <p>No team data</p>;
@@ -382,7 +375,7 @@ const GMDashboard = () => {
           <RosterSection
             teamCapSheet={teamCapSheet}
             playersMap={playersMap}
-            teamId={teamId}
+            teamId={normalizedTeamId}
           />
         )}
 
@@ -413,7 +406,7 @@ const GMDashboard = () => {
 
         {activeTab === 'trade' && (
           <TradeSection
-            primaryTeam={teamId}
+            primaryTeam={normalizedTeamId}
             capProjections={capProjections}
             currentYear={currentYear}
             playersMap={playersMap}
@@ -431,15 +424,17 @@ const GMDashboard = () => {
             freeAgents={freeAgents}
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
-            onSign={actions.handleSign}
-            onSignAndTrade={actions.handleSignAndTrade}
-            onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : undefined}
+            onSign={freeAgencyOnSign}
+            onSignAndTrade={freeAgencyOnSignAndTrade}
+            onStoreOfferSheet={
+              worldId ? freeAgencyOnStoreOfferSheet : undefined
+            }
             playersMap={playersMap}
-            outgoingOfferSheets={(teamCapSheet?.offerSheets || []) as OfferSheetLike[]}
-            incomingOfferSheets={(teamCapSheet?.incomingOfferSheets || []) as OfferSheetLike[]}
-            onMatch={actions.handleMatchOfferSheet}
-            onDecline={actions.handleDeclineOfferSheet}
-            onFinalize={actions.handleFinalizeOfferSheet}
+            outgoingOfferSheets={teamCapSheet?.offerSheets || []}
+            incomingOfferSheets={teamCapSheet?.incomingOfferSheets || []}
+            onMatch={freeAgencyOnMatch}
+            onDecline={freeAgencyOnDecline}
+            onFinalize={freeAgencyOnFinalize}
             worldId={worldId}
           />
         )}
@@ -458,7 +453,7 @@ const GMDashboard = () => {
             setShowOffseasonModal={setShowOffseasonModal}
             playersMap={playersMap}
             worldId={worldId}
-            teamCode={teamId}
+            teamCode={normalizedTeamId}
           />
         )}
 
@@ -546,22 +541,22 @@ const GMDashboard = () => {
         <EditContractModal
           isOpen={showContractModal}
           onClose={closeContractModal}
-          player={selectedPlayer as EditContractModalProps['player']}
-          initialAction={initialAction as string | null}
-          targetYear={targetYear as number | null}
-          actionContext={actionContext as EditContractModalProps['actionContext']}
+          player={modalPlayer}
+          initialAction={initialAction}
+          targetYear={targetYear}
+          actionContext={actionContext}
           capProjections={capProjections}
-          teamCapSheet={teamCapSheet as EditContractModalProps['teamCapSheet']}
+          teamCapSheet={modalTeamCapSheet}
           currentYear={currentYear}
-          onSignFreeAgent={actions.handleSign}
-          onResign={actions.handleSign}
-          onSignAndTrade={actions.handleSignAndTrade}
-          onStoreOfferSheet={worldId ? actions.handleStoreOfferSheet : null}
-          onSaveContract={actions.handleSaveContract}
-          onExtend={actions.handleExtendContract}
-          onWaive={actions.handleWaiveContract}
-          onOptionDecision={actions.handleOptionDecision}
-          onRenounce={actions.handleRenounceRights}
+          onSignFreeAgent={modalOnSignFreeAgent}
+          onResign={modalOnResign}
+          onSignAndTrade={modalOnSignAndTrade}
+          onStoreOfferSheet={worldId ? modalOnStoreOfferSheet : null}
+          onSaveContract={modalOnSaveContract}
+          onExtend={modalOnExtend}
+          onWaive={modalOnWaive}
+          onOptionDecision={modalOnOptionDecision}
+          onRenounce={modalOnRenounce}
           playersMap={playersMap}
           playerRulesProfile={selectedPlayerRulesProfile}
           rulesLeagueContext={selectedRulesLeagueContext}

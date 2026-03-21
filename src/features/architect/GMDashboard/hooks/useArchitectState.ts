@@ -17,6 +17,11 @@ import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
+import type {
+  PlayerRulesProfileInput,
+  PlayerRulesProfileTeamCapSheet,
+} from '@/features/architect/types';
+import type { OfferSheetLike } from '../offerSheetTypes';
 import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { resolvePlayerDisplayName } from '@/features/architect/constants/playerNameCorrections';
@@ -57,10 +62,13 @@ type CapProjections = Record<
 
 /** Salary entry by year in a contract */
 interface SalaryByYear {
-  season: string;
-  salary?: number;
-  option?: string;
-  optionType?: string;
+  season?: string | number | null;
+  salary?: number | null;
+  option?: string | null;
+  optionType?: string | null;
+  capHit?: number | null;
+  guaranteed?: boolean | null;
+  [key: string]: unknown;
 }
 
 /** Player contract structure */
@@ -76,27 +84,19 @@ interface ArchitectContract {
 }
 
 /** Player data from useArchitectPlayerData */
-interface ArchitectPlayer {
-  id?: string;
-  player_id?: string;
-  name?: string;
-  displayName?: string;
-  position?: string;
+type ArchitectPlayer = PlayerRulesProfileInput & {
+  id?: string | number | null;
+  player_id?: string | number | null;
+  name?: string | null;
+  displayName?: string | null;
   age?: number | null;
-  teamCode?: string;
-  teamName?: string;
+  yearsOfService?: number | null;
+  yearsPro?: number | null;
+  teamCode?: string | null;
+  teamName?: string | null;
   contract?: ArchitectContract | null;
   futureContract?: ArchitectContract | null;
-  bio?: {
-    playerId?: string;
-    displayName?: string;
-    position?: string;
-    age?: number;
-    [key: string]: unknown;
-  };
-  representation?: unknown;
-  [key: string]: unknown;
-}
+};
 
 const mergeWorldPlayerOverride = (
   basePlayer: ArchitectPlayer | null,
@@ -119,26 +119,67 @@ interface FreeAgent extends ArchitectPlayer {
   freeAgentType: 'UFA' | 'RFA' | 'PO' | 'TO';
 }
 
-/** Player entry in a cap sheet */
-interface CapSheetPlayer {
-  id?: string;
-  player_id?: string;
-  name?: string;
-  displayName?: string;
-  contract?: ArchitectContract | null;
+type OffseasonSummaryTradeException = {
+  amount?: number;
+  source?: string | null;
+};
+
+type OffseasonSummaryWaivedDeadCap = {
+  name?: string | null;
+  amount?: number;
+  year?: string | number | null;
+};
+
+export type DashboardOffseasonSummary = {
+  declinedOptions?: string[];
+  expiredContracts?: string[];
+  expiredTPEs?: OffseasonSummaryTradeException[];
+  waivedDeadCap?: OffseasonSummaryWaivedDeadCap[];
+  resetMLE?: boolean;
+  exercisedOptions?: unknown[];
+  stepienUpdates?: unknown[];
+};
+
+type CapHoldLike = {
+  playerId?: string | null;
+  playerName?: string | null;
+  amount?: number | null;
+  season?: string | null;
+  type?: string | null;
+  active?: boolean | null;
+  isSigned?: boolean | null;
+  reason?: string | null;
+  notes?: string | null;
   [key: string]: unknown;
-}
+};
+
+type DeadCapYearLike = {
+  season?: string | null;
+  amount?: number | null;
+  isStretched?: boolean | null;
+};
+
+type DeadCapLike = {
+  playerId?: string | null;
+  playerName?: string | null;
+  label?: string | null;
+  amountByYear?: DeadCapYearLike[] | Record<string, unknown> | null;
+  notes?: string | null;
+  stretched?: boolean | null;
+  [key: string]: unknown;
+};
 
 /** Cap sheet structure */
-interface CapSheet {
-  teamCode?: string;
+interface CapSheet extends PlayerRulesProfileTeamCapSheet {
   teamName?: string;
-  players?: CapSheetPlayer[];
-  deadCap?: unknown[];
-  capHolds?: unknown[];
-  exceptions?: unknown;
+  players?: ArchitectPlayer[];
+  deadCap?: DeadCapLike[] | null;
+  capHolds?: CapHoldLike[] | null;
+  exceptions?: Record<string, unknown> | null;
   draftPicks?: unknown[];
   totals?: unknown;
+  offerSheets?: OfferSheetLike[] | null;
+  incomingOfferSheets?: OfferSheetLike[] | null;
   [key: string]: unknown;
 }
 
@@ -163,7 +204,7 @@ type ActiveTab =
 type PlayersMap = Record<string, ArchitectPlayer>;
 
 /** Return type of the hook */
-interface UseArchitectStateReturn {
+export interface UseArchitectStateReturn {
   // Values (all state + derived)
   baselineCapSheet: CapSheet | null;
   teamCapSheet: CapSheet | null;
@@ -177,7 +218,7 @@ interface UseArchitectStateReturn {
   error: string;
   lastCapSheet: CapSheet | null;
   offseasonRun: boolean;
-  offseasonSummary: unknown | null;
+  offseasonSummary: DashboardOffseasonSummary | null;
   playersMap: PlayersMap;
   capTableYears: number[];
   players: ArchitectPlayer[];
@@ -196,7 +237,9 @@ interface UseArchitectStateReturn {
   setFreeAgents: React.Dispatch<React.SetStateAction<FreeAgent[]>>;
   setLastCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
   setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
-  setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
+  setOffseasonSummary: React.Dispatch<
+    React.SetStateAction<DashboardOffseasonSummary | null>
+  >;
   setWorldId: React.Dispatch<React.SetStateAction<string | null>>;
   setWorldAsOfDate: React.Dispatch<React.SetStateAction<string | null>>;
 
@@ -338,9 +381,8 @@ export function useArchitectState({
   // === Offseason state ===
   const [lastCapSheet, setLastCapSheet] = useState<CapSheet | null>(null);
   const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-  const [offseasonSummary, setOffseasonSummary] = useState<unknown | null>(
-    null
-  );
+  const [offseasonSummary, setOffseasonSummary] =
+    useState<DashboardOffseasonSummary | null>(null);
 
   // === Loading/error state ===
   const [isLoading, setIsLoading] = useState<boolean>(true);

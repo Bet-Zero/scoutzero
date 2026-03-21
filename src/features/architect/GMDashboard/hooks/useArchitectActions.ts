@@ -57,19 +57,22 @@ import {
   injectTeamHistoryFixtures,
   type TeamCapSheetLike,
 } from '@/features/architect/history/devTeamHistoryFixtures';
+import type { CapSheetActionType } from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
 import toast from 'react-hot-toast';
+import type { UseArchitectStateReturn } from './useArchitectState';
 
 // ==== Type Definitions ====
 
 /** Salary entry by year in a contract */
 interface SalaryByYear {
-  season: string;
-  salary?: number;
-  option?: string;
-  optionType?: string;
-  capHit?: number;
-  guaranteed?: boolean;
+  season?: string | number | null;
+  salary?: number | null;
+  option?: string | null;
+  optionType?: string | null;
+  capHit?: number | null;
+  guaranteed?: boolean | null;
   optionUsed?: boolean | null; // CANONICAL: boolean, not string
+  [key: string]: unknown;
 }
 
 /** Local contract structure for architect actions (avoids schema naming pattern) */
@@ -103,22 +106,25 @@ interface LocalBio {
 
 /** Player data structure */
 interface ArchitectPlayer {
-  id?: string;
-  player_id?: string;
-  name?: string;
-  displayName?: string;
-  position?: string;
-  formattedPosition?: string;
-  age?: number | null;
-  teamCode?: string;
-  teamName?: string;
+  id?: string | null;
+  player_id?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  position?: string | null;
+  formattedPosition?: string | null;
+  age?: number | string | null;
+  teamCode?: string | null;
+  teamName?: string | null;
   contract?: LocalContract | null;
   futureContract?: LocalContract | null;
   bio?: LocalBio;
   representation?: unknown;
   options?: Record<string, unknown>;
   isMinimum?: boolean;
-  yearsOfService?: number;
+  yearsOfService?: number | string | null;
+  yearsPro?: unknown;
+  experience?: unknown;
+  ['Years Pro']?: unknown;
   guaranteed?: boolean;
   signAndTrade?: boolean;
   contractType?: string;
@@ -188,15 +194,26 @@ interface ActiveContract {
 
 /** Cap hold structure */
 interface CapHold {
-  playerId: string;
-  playerName: string;
-  amount: number;
-  season: string;
-  type: string;
-  active: boolean;
-  isSigned: boolean;
-  reason?: string;
-  notes?: string;
+  playerId?: string | null;
+  playerName?: string | null;
+  amount?: number | null;
+  season?: string | null;
+  type?: string | null;
+  active?: boolean | null;
+  isSigned?: boolean | null;
+  reason?: string | null;
+  notes?: string | null;
+  [key: string]: unknown;
+}
+
+interface DeadCapEntry {
+  playerId?: string | null;
+  playerName?: string | null;
+  label?: string | null;
+  amountByYear?: SalaryByYear[] | Record<string, unknown> | null;
+  notes?: string | null;
+  stretched?: boolean | null;
+  [key: string]: unknown;
 }
 
 /** Override audit log entry */
@@ -221,8 +238,8 @@ interface CapSheet {
   mleHistory?: unknown[];
   pickLog?: unknown[];
   currentPicks?: Record<string, unknown>;
-  deadCap?: unknown[];
-  capHolds?: CapHold[];
+  deadCap?: DeadCapEntry[] | null;
+  capHolds?: CapHold[] | null;
   exceptions?: unknown;
   draftPicks?: unknown[];
   totals?: unknown;
@@ -241,6 +258,31 @@ interface OverrideMetadata {
 interface MutationActionResult {
   success: boolean;
   message?: string;
+}
+
+interface TeamMutationUpdate {
+  teamCode?: string;
+  team?: CapSheet | null;
+}
+
+interface PersistMutationResult extends MutationTruthResult {
+  changedTeams?: TeamMutationUpdate[];
+  event?: Record<string, unknown>;
+  worldPatch?: Record<string, unknown>;
+}
+
+interface ValidatedTradeContextLike {
+  _isValidatedTradeContext?: boolean;
+  legal?: boolean;
+  error?: string | null;
+  reason?: string;
+}
+
+interface ComputeMutationResult {
+  success?: boolean;
+  error?: string;
+  teamUpdates?: TeamMutationUpdate[];
+  _validatedTradeContext?: ValidatedTradeContextLike;
 }
 
 type MutationWritesSummary = {
@@ -265,13 +307,6 @@ type ComputeWorldMutationState = NonNullable<
   ComputeWorldMutationArgs['currentState']
 >;
 
-/** Free agent type extending ArchitectPlayer */
-interface FreeAgent extends ArchitectPlayer {
-  previousSalary: number;
-  birdRights: string;
-  freeAgentType: 'UFA' | 'RFA' | 'PO' | 'TO';
-}
-
 interface OfferSheet {
   id?: string;
   status?: string;
@@ -283,34 +318,37 @@ interface OfferSheet {
   [key: string]: unknown;
 }
 
-import type { ActionContext, EditModalContext } from './useArchitectModals';
-
-/** Map of players by various keys for fast lookup */
-type PlayersMap = Record<string, ArchitectPlayer>;
-
-/** State object from useArchitectState (subset needed by actions) */
-interface ArchitectStateForActions {
-  teamCapSheet: CapSheet | null;
-  currentYear: number;
-  worldAsOfDate?: string | null;
-  setTeamCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
-  setSelectedRulesYear: React.Dispatch<React.SetStateAction<number>>;
-  setSelectedPlayer: React.Dispatch<
-    React.SetStateAction<ArchitectPlayer | null>
-  >;
-  setFreeAgents: React.Dispatch<React.SetStateAction<FreeAgent[]>>;
-  startSave: () => void;
-  finishSave: (errorMsg?: string) => void;
-  setOffseasonRun: React.Dispatch<React.SetStateAction<boolean>>;
-  setOffseasonSummary: React.Dispatch<React.SetStateAction<unknown | null>>;
-  refreshWorldRosterIndex: () => Promise<Set<string>>;
-}
+import type {
+  ActionContext,
+  UseArchitectModalsReturn,
+} from './useArchitectModals';
 
 /** Modal helpers from useArchitectModals (subset needed by actions) */
-interface ArchitectModalsForActions {
-  openContractModal: (context?: EditModalContext) => void;
-  closeContractModal: () => void;
-}
+type ArchitectModalsForActions = Pick<
+  UseArchitectModalsReturn,
+  'openContractModal' | 'closeContractModal'
+>;
+
+type ArchitectStateForActions = Omit<
+  Pick<
+    UseArchitectStateReturn,
+    | 'teamCapSheet'
+    | 'currentYear'
+    | 'worldAsOfDate'
+    | 'setTeamCapSheet'
+    | 'setSelectedRulesYear'
+    | 'setSelectedPlayer'
+    | 'setFreeAgents'
+    | 'startSave'
+    | 'finishSave'
+    | 'setOffseasonRun'
+    | 'setOffseasonSummary'
+    | 'refreshWorldRosterIndex'
+  >,
+  'worldAsOfDate'
+> & {
+  worldAsOfDate?: UseArchitectStateReturn['worldAsOfDate'];
+};
 
 /** Hook input parameters */
 export interface UseArchitectActionsParams {
@@ -318,7 +356,7 @@ export interface UseArchitectActionsParams {
   userId: string | null;
   authLoading?: boolean;
   state: ArchitectStateForActions;
-  playersMap: PlayersMap;
+  playersMap: UseArchitectStateReturn['playersMap'];
   modals: ArchitectModalsForActions;
   worldId: string | null;
   seasonId: string;
@@ -338,8 +376,8 @@ export interface UseArchitectActionsReturn {
   ) => Promise<MutationActionResult>;
   handleEditContract: (player: ArchitectPlayer) => void;
   handleCapSheetAction: (
-    player: ArchitectPlayer,
-    actionType: string,
+    player: ArchitectPlayer | CapHold,
+    actionType: CapSheetActionType,
     year?: number
   ) => void;
   handleSaveContract: (
@@ -358,7 +396,7 @@ export interface UseArchitectActionsReturn {
     player: ArchitectPlayer,
     accepted: boolean,
     overrideMetadata?: OverrideMetadata | null
-  ) => void;
+  ) => Promise<MutationActionResult>;
   handleRenounceRights: (
     player: ArchitectPlayer,
     overrideMetadata?: OverrideMetadata | null
@@ -370,7 +408,7 @@ export interface UseArchitectActionsReturn {
   handleStoreOfferSheet: (
     playerObj: ArchitectPlayer,
     contract: SigningDetails
-  ) => void;
+  ) => Promise<MutationActionResult>;
   handleMatchOfferSheet: (
     offeringTeamCode: string,
     offerSheetId: string
@@ -385,10 +423,10 @@ export interface UseArchitectActionsReturn {
   applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
 
   // Manual Dead Money (Phase 24)
-  handleSetDeadCap: (deadCap: any[]) => void;
+  handleSetDeadCap: (deadCap: unknown[]) => Promise<boolean>;
 
   // Manual Exception Management (Phase 27)
-  handleSetExceptions: (exceptions: Record<string, unknown>) => void;
+  handleSetExceptions: (exceptions: Record<string, unknown>) => Promise<boolean>;
 
   // DEV-only Cap Sheet fixtures (CAP_SHEET_FIXPACK_E1)
   handleInjectCapSheetFixtures: () => MutationActionResult;
@@ -452,7 +490,7 @@ const ensureContractStructure = (
         salary,
         capHit: salary,
         guaranteed: true,
-        option: null as any,
+        option: null,
       };
     });
 
@@ -715,6 +753,16 @@ function getWorldOptimisticLockScopeKey(worldId: string): string {
   return `architect_world_cap_mutation_lock:${worldId}`;
 }
 
+function findUpdatedTeamSnapshot(
+  teamUpdates: TeamMutationUpdate[] | null | undefined,
+  targetTeamCode: string
+): CapSheet | null {
+  const matchingUpdate = (teamUpdates || []).find(
+    (update) => update?.teamCode === targetTeamCode && update?.team
+  );
+  return matchingUpdate?.team || null;
+}
+
 /**
  * Centralized action handlers hook for GMDashboard
  *
@@ -754,11 +802,25 @@ export function useArchitectActions({
   // Destructure modals for easier access
   const { openContractModal } = modals;
 
+  const setTeamCapSheetSafe = useCallback(
+    (nextTeam: CapSheet | null): void => {
+      setTeamCapSheet(nextTeam as UseArchitectStateReturn['teamCapSheet']);
+    },
+    [setTeamCapSheet]
+  );
+
+  const setSelectedPlayerSafe = useCallback(
+    (player: ArchitectPlayer | null): void => {
+      setSelectedPlayer(player as UseArchitectStateReturn['selectedPlayer']);
+    },
+    [setSelectedPlayer]
+  );
+
   // === Persistence Helper ===
   type PersistMutationOptions = {
     operationId?: string;
-    onSuccess?: (result: any) => void;
-    onFailure?: (message: string, result?: any) => void;
+    onSuccess?: (result: PersistMutationResult) => void;
+    onFailure?: (message: string, result?: PersistMutationResult) => void;
   };
 
   const evaluateMutationTruth = useCallback(
@@ -823,7 +885,7 @@ export function useArchitectActions({
       mutationType: string,
       payload: Record<string, unknown>,
       options: PersistMutationOptions = {}
-    ): Promise<any> => {
+    ): Promise<PersistMutationResult> => {
       // Base mode: no persistence
       if (!worldId) {
         return { success: true, skipped: true };
@@ -838,19 +900,19 @@ export function useArchitectActions({
 
       try {
         console.log(`💾 Saving ${mutationType}...`);
-        const result = await applyWorldMutation({
+        const result = (await applyWorldMutation({
           userId,
           worldId,
           seasonId,
           mutationType,
           payload,
           operationId: options.operationId,
-        });
+        })) as PersistMutationResult;
 
         const truth = evaluateMutationTruth(mutationType, result, {
           requireWorldPersistence: true,
         });
-        const normalizedResult = {
+        const normalizedResult: PersistMutationResult = {
           ...result,
           success: truth.ok,
           error: truth.ok ? result?.error : truth.message,
@@ -876,7 +938,7 @@ export function useArchitectActions({
         }
 
         return normalizedResult;
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('[Architect][PersistMutation] failed', {
           mutationType,
           payload,
@@ -907,20 +969,18 @@ export function useArchitectActions({
   );
 
   const syncTeamFromMutationResult = useCallback(
-    async (mutationType: string, result: any): Promise<void> => {
-      const changedTeams = Array.isArray(result?.changedTeams)
-        ? result.changedTeams
-        : [];
-      const currentTeamUpdate = changedTeams.find(
-        (update: any) => update?.teamCode === teamCode && update?.team
-      );
+    async (
+      mutationType: string,
+      result: PersistMutationResult
+    ): Promise<void> => {
+      const currentTeam = findUpdatedTeamSnapshot(result?.changedTeams, teamCode);
 
-      if (currentTeamUpdate?.team) {
-        setTeamCapSheet(currentTeamUpdate.team as CapSheet);
+      if (currentTeam) {
+        setTeamCapSheetSafe(currentTeam);
       } else if (worldId) {
         const refreshedTeam = await loadWorldTeamData(worldId, teamCode);
         if (refreshedTeam) {
-          setTeamCapSheet(refreshedTeam as CapSheet);
+          setTeamCapSheetSafe(refreshedTeam as CapSheet);
         }
       }
 
@@ -943,7 +1003,7 @@ export function useArchitectActions({
       options: {
         worldRequiredMessage?: string;
       } = {}
-    ): Promise<any> => {
+    ): Promise<PersistMutationResult> => {
       if (!worldId) {
         const message =
           options.worldRequiredMessage ||
@@ -960,18 +1020,18 @@ export function useArchitectActions({
 
       startSave();
       try {
-        const rawResult = await applyWorldMutation({
+        const rawResult = (await applyWorldMutation({
           userId,
           worldId,
           seasonId,
           mutationType,
           payload,
-        });
+        })) as PersistMutationResult;
 
         const truth = evaluateMutationTruth(mutationType, rawResult, {
           requireWorldPersistence: true,
         });
-        const result = {
+        const result: PersistMutationResult = {
           ...rawResult,
           success: truth.ok,
           error: truth.ok
@@ -996,9 +1056,11 @@ export function useArchitectActions({
         toast.success('Saved changes');
         finishSave();
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         const message =
-          error?.message || `Failed to run ${mutationType} mutation.`;
+          error instanceof Error
+            ? error.message
+            : `Failed to run ${mutationType} mutation.`;
         reportMutationError(message, { mutationType, payload, error });
         finishSave(message);
         return { success: false, error: message };
@@ -1111,7 +1173,7 @@ export function useArchitectActions({
           return { applied: false, operationId, persistPromise: null };
         }
 
-        setTeamCapSheet(afterTeamSnapshot);
+        setTeamCapSheetSafe(afterTeamSnapshot);
 
         if (!worldId) {
           return {
@@ -1140,7 +1202,7 @@ export function useArchitectActions({
             );
           },
           onFailure: (message) => {
-            setTeamCapSheet(beforeTeamSnapshot);
+            setTeamCapSheetSafe(beforeTeamSnapshot);
             const didUpdatePreview = updateLocalCapAuditEvent(
               operationId,
               {
@@ -1328,7 +1390,7 @@ export function useArchitectActions({
               undefined,
           };
         }),
-        picksOut: [] as any[],
+        picksOut: [],
         // TM-PICKS-E1: Include outgoing entitlements in persistence payload
         outgoingEntitlements: t.outgoingEntitlements || [],
         entitlementsOut: t.outgoingEntitlements || [],
@@ -1387,7 +1449,7 @@ export function useArchitectActions({
           ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
           tradeCtx: {
             ...authoritativeTradeCtx,
-            worldId: null as any,
+            worldId: null,
           },
         };
 
@@ -1401,7 +1463,7 @@ export function useArchitectActions({
           timestamp: Date.now(),
           asOfDate: worldAsOfDate || undefined,
           worldId: null,
-        });
+        }) as ComputeMutationResult;
 
         if (!computeResult?.success) {
           throw new Error(
@@ -1410,15 +1472,7 @@ export function useArchitectActions({
           );
         }
 
-        const validatedContext = (computeResult as Record<string, unknown>)
-          ._validatedTradeContext as
-          | {
-              _isValidatedTradeContext?: boolean;
-              legal?: boolean;
-              error?: string | null;
-              reason?: string;
-            }
-          | undefined;
+        const validatedContext = computeResult._validatedTradeContext;
 
         if (!validatedContext?._isValidatedTradeContext) {
           throw new Error(
@@ -1434,9 +1488,10 @@ export function useArchitectActions({
           );
         }
 
-        const updatedTeam = computeResult.teamUpdates?.find(
-          (update: any) => update?.teamCode === teamCode && update?.team
-        )?.team;
+        const updatedTeam = findUpdatedTeamSnapshot(
+          computeResult.teamUpdates,
+          teamCode
+        );
 
         if (!updatedTeam) {
           throw new Error(
@@ -1497,7 +1552,7 @@ export function useArchitectActions({
           );
         }
 
-        setTeamCapSheet(updatedTeam as CapSheet);
+        setTeamCapSheetSafe(updatedTeam as CapSheet);
       } catch (error) {
         console.error('[Architect][Trade][BaseStateApply] failed', {
           teamCode,
@@ -1648,7 +1703,7 @@ export function useArchitectActions({
         seasonId,
         timestamp: Date.now(),
         worldId: null,
-      });
+      }) as ComputeMutationResult;
 
       if (!computeResult.success) {
         const message =
@@ -1661,9 +1716,10 @@ export function useArchitectActions({
         return { success: false, message };
       }
 
-      const updatedTeam = computeResult.teamUpdates?.find(
-        (update: any) => update?.teamCode === teamCode && update?.team
-      )?.team;
+      const updatedTeam = findUpdatedTeamSnapshot(
+        computeResult.teamUpdates,
+        teamCode
+      );
 
       if (!updatedTeam) {
         const message =
@@ -1709,7 +1765,7 @@ export function useArchitectActions({
         return { success: false, message };
       }
 
-      setTeamCapSheet(updatedTeam as CapSheet);
+      setTeamCapSheetSafe(updatedTeam as CapSheet);
       setFreeAgents((prev) =>
         prev.filter(
           (p) =>
@@ -2100,14 +2156,14 @@ export function useArchitectActions({
 
   // === Dead Money Actions (Phase 24) ===
   const handleSetDeadCap = useCallback(
-    (deadCap: any[]) => {
+    (deadCap: unknown[]): Promise<boolean> => {
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'setDeadCap',
         playerIds: [],
         invalidMessage: 'Dead cap update blocked by post-state cap validation.',
         computeNextTeam: (beforeTeam) => ({
           ...beforeTeam,
-          deadCap,
+          deadCap: deadCap as CapSheet['deadCap'],
         }),
         persistPayload: {
           teamCode,
@@ -2124,7 +2180,7 @@ export function useArchitectActions({
 
   // === Exception Management Actions (Phase 27) ===
   const handleSetExceptions = useCallback(
-    (exceptions: Record<string, unknown>) => {
+    (exceptions: Record<string, unknown>): Promise<boolean> => {
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'setExceptions',
         playerIds: [],
@@ -2161,7 +2217,7 @@ export function useArchitectActions({
     }
 
     const nextTeam = injectCapSheetFixtures(teamCapSheet, currentYear);
-    setTeamCapSheet(nextTeam as CapSheet);
+    setTeamCapSheetSafe(nextTeam as CapSheet);
     return { success: true };
   }, [currentYear, setTeamCapSheet, teamCapSheet]);
 
@@ -2174,7 +2230,7 @@ export function useArchitectActions({
     }
 
     const nextTeam = clearCapSheetFixtures(teamCapSheet);
-    setTeamCapSheet(nextTeam as CapSheet);
+    setTeamCapSheetSafe(nextTeam as CapSheet);
     return { success: true };
   }, [setTeamCapSheet, teamCapSheet]);
 
@@ -2199,7 +2255,7 @@ export function useArchitectActions({
       const nextTeam = injectTeamHistoryFixtures(
         teamCapSheet as TeamCapSheetLike
       );
-      setTeamCapSheet(nextTeam as CapSheet);
+      setTeamCapSheetSafe(nextTeam as CapSheet);
       return { success: true };
     }, [setTeamCapSheet, teamCapSheet]);
 
@@ -2216,13 +2272,13 @@ export function useArchitectActions({
       const nextTeam = clearTeamHistoryFixtures(
         teamCapSheet as TeamCapSheetLike
       );
-      setTeamCapSheet(nextTeam as CapSheet);
+      setTeamCapSheetSafe(nextTeam as CapSheet);
       return { success: true };
     }, [setTeamCapSheet, teamCapSheet]);
 
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
-      setSelectedPlayer(player);
+      setSelectedPlayerSafe(player);
       setSelectedRulesYear(currentYear);
       // No pre-selection when just clicking player name - show based on player state
       openContractModal({
@@ -2432,17 +2488,23 @@ export function useArchitectActions({
 
   // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce
   const handleCapSheetAction = useCallback(
-    (player: ArchitectPlayer, actionType: string, year?: number): void => {
+    (
+      playerOrHold: ArchitectPlayer | CapHold,
+      actionType: CapSheetActionType,
+      year?: number
+    ): void => {
       if (actionType === 'renounce') {
-        void confirmAndRenounceRights(player);
+        void confirmAndRenounceRights(playerOrHold);
         return;
       }
 
-      setSelectedPlayer(player);
+      const player = playerOrHold as ArchitectPlayer;
+
+      setSelectedPlayerSafe(player);
       setSelectedRulesYear(year || currentYear);
 
       // Determine action context based on what was clicked
-      const contextMap: Record<string, ActionContext> = {
+      const contextMap: Partial<Record<CapSheetActionType, ActionContext>> = {
         po: 'option',
         to: 'option',
         ufa: 'freeAgent',
@@ -2477,65 +2539,70 @@ export function useArchitectActions({
       const playerId = player.id || player.player_id || player.name;
       const startYear = currentYear + 1;
 
-      setTeamCapSheet((prev: CapSheet | null) => {
-        if (!prev) return prev;
-
-        // Build new contract salaries
-        const salaries: SalaryByYear[] = [];
-        const providedSalaries = (contractData.salariesByYear || []).slice(
-          0,
-          contractData.salariesByYear?.length || 0
-        );
-        const hasProvidedSalaries = providedSalaries.length > 0;
-
-        if (hasProvidedSalaries) {
-          providedSalaries.forEach((s, i) => {
-            const endYear = startYear + i;
-            salaries.push({
-              season: toSeasonCode(endYear),
-              salary: Math.round(s.salary || s.capHit || 0),
-              capHit: Math.round(s.capHit || s.salary || 0),
-              guaranteed: s.guaranteed ?? true,
-              option: s.option || undefined,
-            });
-          });
-        }
-
-        // Update player's contract in players array
-        const updatedPlayers = (prev.players || []).map((p) => {
-          if (
-            p.id === playerId ||
-            p.player_id === playerId ||
-            p.name === playerId
-          ) {
-            return {
-              ...p,
-              contract: {
-                ...(p.contract || {}),
-                salariesByYear: salaries,
-                contractType: contractData.contractType || 'Signed FA',
-                isExtension: !!contractData.isExtension,
-                isRookieScale: !!contractData.isRookieScale,
-                signingTeam: teamCode,
-              },
-              freeAgentYear: null,
-              futureContract: null,
-            };
+      setTeamCapSheet(
+        ((prev) => {
+          const previousTeam = prev as CapSheet | null;
+          if (!previousTeam) {
+            return previousTeam;
           }
-          return p;
-        });
 
-        // Remove cap hold if any
-        const updatedCapHolds = (prev.capHolds || []).filter(
-          (h) => h.playerId !== playerId && h.playerName !== player.name
-        );
+          // Build new contract salaries
+          const salaries: SalaryByYear[] = [];
+          const providedSalaries = (contractData.salariesByYear || []).slice(
+            0,
+            contractData.salariesByYear?.length || 0
+          );
+          const hasProvidedSalaries = providedSalaries.length > 0;
 
-        return {
-          ...prev,
-          players: updatedPlayers,
-          capHolds: updatedCapHolds,
-        };
-      });
+          if (hasProvidedSalaries) {
+            providedSalaries.forEach((s, i) => {
+              const endYear = startYear + i;
+              salaries.push({
+                season: toSeasonCode(endYear),
+                salary: Math.round(s.salary || s.capHit || 0),
+                capHit: Math.round(s.capHit || s.salary || 0),
+                guaranteed: s.guaranteed ?? true,
+                option: s.option || undefined,
+              });
+            });
+          }
+
+          // Update player's contract in players array
+          const updatedPlayers = (previousTeam.players || []).map((p) => {
+            if (
+              p.id === playerId ||
+              p.player_id === playerId ||
+              p.name === playerId
+            ) {
+              return {
+                ...p,
+                contract: {
+                  ...(p.contract || {}),
+                  salariesByYear: salaries,
+                  contractType: contractData.contractType || 'Signed FA',
+                  isExtension: !!contractData.isExtension,
+                  isRookieScale: !!contractData.isRookieScale,
+                  signingTeam: teamCode,
+                },
+                freeAgentYear: null,
+                futureContract: null,
+              };
+            }
+            return p;
+          });
+
+          // Remove cap hold if any
+          const updatedCapHolds = (previousTeam.capHolds || []).filter(
+            (h) => h.playerId !== playerId && h.playerName !== player.name
+          );
+
+          return {
+            ...previousTeam,
+            players: updatedPlayers,
+            capHolds: updatedCapHolds,
+          } as UseArchitectStateReturn['teamCapSheet'];
+        }) as Parameters<typeof setTeamCapSheet>[0]
+      );
       return { success: true };
     },
     [currentYear, teamCode, setTeamCapSheet]
@@ -2991,7 +3058,7 @@ export function useArchitectActions({
 
   const handleUpdateRoster = useCallback(
     (updatedCapSheet: CapSheet): void => {
-      setTeamCapSheet(updatedCapSheet);
+      setTeamCapSheetSafe(updatedCapSheet);
     },
     [setTeamCapSheet]
   );
@@ -3021,7 +3088,7 @@ export function useArchitectActions({
       amount: capProjectionsTyped[seasonKey]?.fullMLE || 0,
     };
 
-    setTeamCapSheet(resetSheet);
+    setTeamCapSheetSafe(resetSheet);
     setOffseasonRun(false);
     setOffseasonSummary(null);
   }, [
