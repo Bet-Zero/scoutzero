@@ -69,7 +69,6 @@ type ContractLike = {
 
 type CapValidationPlayer = {
   contract?: ContractLike | null;
-  [key: string]: unknown;
 };
 
 type RulesProfileLike = Omit<
@@ -83,14 +82,18 @@ type RulesProfileLike = Omit<
   extensionEligibility?: {
     isEligible?: boolean | null;
     reason?: string | null;
-    [key: string]: unknown;
+    eligibleDate?: Date | string | null;
+    blockers?: string[] | null;
+    extensionType?: string | null;
   } | null;
   extensionTerms?: {
     minFirstYearSalary?: number | null;
     maxFirstYearSalary?: number | null;
     maxYears?: number | null;
     extensionType?: string | null;
-    [key: string]: unknown;
+    raisePercentage?: number | null;
+    basedOn?: string | null;
+    notes?: string | null;
   } | null;
   birdRights?: {
     type?: string | null;
@@ -123,7 +126,6 @@ type ContractDataLike = {
   years?: number | null;
   salaries?: number[] | null;
   base?: number | null;
-  [key: string]: unknown;
 };
 
 type TeamCapSheetLike = {
@@ -241,9 +243,9 @@ export const buildSigningGuardrails = (
   };
 
   const selectedGuardrail =
-    exceptionGuardrails[exceptionType as keyof typeof exceptionGuardrails] ||
-    exceptionGuardrails[String(exceptionType) as keyof typeof exceptionGuardrails] ||
-    null;
+    exceptionType in exceptionGuardrails
+      ? exceptionGuardrails[exceptionType as keyof typeof exceptionGuardrails]
+      : null;
 
   const mergedGuardrails = {
     ...baseGuardrails,
@@ -275,13 +277,7 @@ const calculateTeamCapHitLocal = (
   return calculateTeamCapHit(
     players as Parameters<typeof calculateTeamCapHit>[0],
     year,
-    {
-    getContractYearSlice:
-      getContractYearSlice as unknown as (
-        player: CapValidationPlayer,
-        seasonYear: number
-      ) => { capHit?: number; salary?: number } | null,
-    }
+    { getContractYearSlice }
   );
 };
 
@@ -465,7 +461,7 @@ export function useCapValidation({
         buildSigningGuardrails(
           rulesProfile,
           currentCapSettings || {},
-          (contractData.exceptionType as string) || 'None'
+          contractData.exceptionType || 'None'
         );
 
       const contractYears =

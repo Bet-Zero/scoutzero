@@ -22,7 +22,7 @@ import {
   getMinimumCapHit,
   getContractYearSlice,
 } from '@/features/architect/utils/contractUtils';
-import { getActiveUnsignedCapHoldsByEndYear } from '@/features/architect/utils/capHolds';
+import { getActiveUnsignedCapHoldsByEndYear, type CapHold } from '@/features/architect/utils/capHolds';
 import CapSummaryTiles from './CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import getCapPercentage from '@/features/architect/utils/basicArchitectUtils';
@@ -67,9 +67,8 @@ type CapSheetProps = {
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear: number;
   onSelectPlayer?: ((player: CapSheetPlayerLike) => void) | null;
-  onSetDeadCap?: ((deadCap: unknown) => unknown | Promise<unknown>) | null;
-  onSetExceptions?: ((exceptions: unknown) => unknown | Promise<unknown>) | null;
-  playersMap?: unknown;
+  onSetDeadCap?: ((deadCap: unknown[]) => void) | null;
+  onSetExceptions?: ((exceptions: Record<string, unknown>) => void) | null;
 };
 
 // Helper to identify two-way contracts (don't count against cap)
@@ -229,7 +228,7 @@ const CapSheet = ({
   // Get cap holds from teamCapSheet.capHolds (canonical source), filter by selected year
   // Using shared utility - selectedYear is the END year (e.g., 2025 for "2024-25")
   const displayedCapHolds = getActiveUnsignedCapHoldsByEndYear(
-    teamCapSheet.capHolds as Parameters<typeof getActiveUnsignedCapHoldsByEndYear>[0],
+    (teamCapSheet.capHolds || []) as CapHold[],
     selectedYear
   ).sort((a, b) => (Number(b.amount || 0) || 0) - (Number(a.amount || 0) || 0));
 

@@ -32,6 +32,9 @@ type CapHoldLike = {
 type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetFullPlayerLike[] | null;
 };
+
+export type CapSheetActionType = 'rfa' | 'ufa' | 'po' | 'to' | 'renounce';
+
 type CapSheetFullProps = {
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear: number;
@@ -39,14 +42,13 @@ type CapSheetFullProps = {
   onActionClick?:
     | ((
         item: CapSheetFullPlayerLike | CapHoldLike,
-        action: string,
+        action: CapSheetActionType,
         year?: number
       ) => void)
     | null;
   getRulesProfileForYear?:
     | ((player: CapSheetFullPlayerLike, year: number) => RulesProfileLike)
     | null;
-  playersMap?: unknown;
 };
 
 // Helper to identify two-way contracts (don't count against cap)
@@ -57,12 +59,12 @@ const isTwoWayContract = (player: CapSheetFullPlayerLike | null | undefined) => 
 };
 
 // Helper to normalize free agent type to display format
-const normalizeFAType = (type: unknown) => {
+const normalizeFAType = (type: string | null | undefined): string | null => {
   if (!type) return null;
-  const t = String(type).toLowerCase();
+  const t = type.toLowerCase();
   if (t === 'unrestricted' || t === 'ufa') return 'UFA';
   if (t === 'restricted' || t === 'rfa') return 'RFA';
-  return String(type).toUpperCase();
+  return type.toUpperCase();
 };
 
 // Color scheme for tags - matching chart style
@@ -122,7 +124,7 @@ const CapSheetFull = ({
   // For the separate table below, likely show all active holds or just imminent ones?
   // Let's show all valid holds.
   const displayedCapHolds = ((teamCapSheet.capHolds || []) as CapHoldLike[]).filter(
-    (h) => !h.isSigned
+    (h: CapHoldLike) => !h.isSigned
   );
 
   // SSOT: Use computeTeamCapTotals for each year to include
@@ -132,9 +134,9 @@ const CapSheetFull = ({
     const totals: Record<number, number> = {};
     for (const year of allYears) {
       const result = computeTeamCapTotals(
-        (teamCapSheet
+        teamCapSheet
           ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) }
-          : null) as Parameters<typeof computeTeamCapTotals>[0],
+          : null,
         year
       );
       totals[year] = result.totalCapAllocations;

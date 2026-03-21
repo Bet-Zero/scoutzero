@@ -27,7 +27,6 @@ const CapTableSection = ({
     currentYear={currentYear}
     onSelectPlayer={onSelectPlayer}
     onActionClick={onActionClick}
-    playersMap={playersMap}
     getRulesProfileForYear={getRulesProfileForYear}
   />
 );

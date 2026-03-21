@@ -42,7 +42,6 @@ const CapSheetSection = ({
         onSelectPlayer={onSelectPlayer}
         onSetDeadCap={onSetDeadCap}
         onSetExceptions={onSetExceptions}
-        playersMap={playersMap}
       />
       {showDevFixturePanel && (
         <section
