@@ -8,9 +8,26 @@ import path from 'path';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    alias: [
+      {
+        find: /^@\/shared\/components\/ui\/filters$/,
+        replacement: path.resolve(
+          __dirname,
+          './src/shared/components/ui/filters/index.ts'
+        ),
+      },
+      {
+        find: /^@\/shared\/utils\/contracts$/,
+        replacement: path.resolve(
+          __dirname,
+          './src/shared/utils/contracts/index.ts'
+        ),
+      },
+      {
+        find: /^@\//,
+        replacement: `${path.resolve(__dirname, './src')}/`,
+      },
+    ],
   },
   test: {
     environment: 'node',
