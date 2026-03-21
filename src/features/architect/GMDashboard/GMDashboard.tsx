@@ -547,9 +547,9 @@ const GMDashboard = () => {
           isOpen={showContractModal}
           onClose={closeContractModal}
           player={selectedPlayer as EditContractModalProps['player']}
-          initialAction={initialAction}
-          targetYear={targetYear}
-          actionContext={actionContext}
+          initialAction={initialAction as string | null}
+          targetYear={targetYear as number | null}
+          actionContext={actionContext as EditContractModalProps['actionContext']}
           capProjections={capProjections}
           teamCapSheet={teamCapSheet as EditContractModalProps['teamCapSheet']}
           currentYear={currentYear}

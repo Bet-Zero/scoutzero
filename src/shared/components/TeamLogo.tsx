@@ -9,8 +9,8 @@ import React from 'react';
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 
 type TeamLogoProps = {
-  teamAbbr?: any;
-  teamId?: any;
+  teamAbbr?: string | null;
+  teamId?: string | null;
   className?: string;
 };
 

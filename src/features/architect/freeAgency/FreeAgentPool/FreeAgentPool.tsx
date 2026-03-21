@@ -238,7 +238,7 @@ const FreeAgentPool = ({
           }
           isOpen={!!contractPlayer}
           onClose={() => setContractPlayer(null)}
-          onSave={handleSaveFromModal}
+          onSave={handleSaveFromModal as EditContractModalProps['onSave']}
           onSignAndTrade={
             onSignAndTrade as EditContractModalProps['onSignAndTrade']
           }

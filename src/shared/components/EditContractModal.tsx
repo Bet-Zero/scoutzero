@@ -36,14 +36,14 @@ import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
-type LooseRecord = Record<string, any>;
+type LooseRecord = Record<string, unknown>;
 
 type ValidationSeverity = 'error' | 'warning' | 'info';
 
 type ValidationEntryLike = {
   severity?: ValidationSeverity | string | null;
   message?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type ContractYearLike = {
@@ -53,7 +53,7 @@ type ContractYearLike = {
   option?: string | null;
   isExtension?: boolean;
   guaranteed?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type ContractSalaryRowLike = {
@@ -64,14 +64,14 @@ type ContractSalaryRowLike = {
   guaranteed?: boolean;
   option?: string | null;
   isExtension?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type ContractLike = {
   salariesByYear?: ContractSalaryRowLike[] | null;
   isRookieScale?: boolean | null;
   contractType?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type PlayerLike = {
@@ -85,7 +85,7 @@ type PlayerLike = {
   bio?: LooseRecord | null;
   contract?: ContractLike | null;
   freeAgentYear?: number | null;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type SigningGuardrailsLike = {
@@ -94,7 +94,7 @@ type SigningGuardrailsLike = {
   raisePct?: number | null;
   maxYears?: number | null;
   source?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 } | null;
 
 type ExtensionStateLike = {
@@ -102,7 +102,7 @@ type ExtensionStateLike = {
   contractType: string;
   salaries: number[];
   raisePct?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type ExtensionTermsLike = {
@@ -113,15 +113,26 @@ type ExtensionTermsLike = {
   extensionType?: string | null;
   basedOn?: string | null;
   notes?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type PlayerRulesProfileLike = Parameters<typeof buildSigningGuardrails>[0];
 
+/** Narrowed state for extension max terms (replaces LooseRecord for extMax state) */
+type ExtMaxState = {
+  maxYears: number | null | undefined;
+  maxFirstYearSalary: number | null | undefined;
+  minFirstYearSalary: number | null | undefined;
+  baseRaisePct: number | null | undefined;
+  type?: string | null;
+  basedOn?: string | null;
+  notes?: string | null;
+};
+
 type RulesLeagueContextLike = {
   simulationDate?: Date | null;
   currentYear?: number | null;
-  [key: string]: any;
+  [key: string]: unknown;
 } | null;
 
 type TeamCapSheetLike = {
@@ -129,14 +140,14 @@ type TeamCapSheetLike = {
   players?: PlayerLike[] | null;
   deadCap?: LooseRecord[] | null;
   capHolds?: LooseRecord[] | null;
-  [key: string]: any;
+  [key: string]: unknown;
 } | null;
 
 type MutationWritesSummaryLike = {
   eventsWritten?: number;
   worldMetadataPatched?: number;
   teamsPatched?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type ActionResultLike =
@@ -147,26 +158,32 @@ type ActionResultLike =
       appliedToLocalState?: boolean;
       persistedToWorld?: boolean;
       writesSummary?: MutationWritesSummaryLike | null;
-      [key: string]: any;
+      [key: string]: unknown;
     }
   | boolean
   | null
   | undefined;
 
 type SaveCallback = (
-  ...args: any[]
+  player: PlayerLike,
+  payload: LooseRecord,
 ) => Promise<ActionResultLike> | ActionResultLike | void;
 
 type OptionDecisionCallback = (
-  ...args: any[]
+  player: PlayerLike,
+  accept: boolean,
+  overrideMetadata?: LooseRecord | null,
 ) => Promise<ActionResultLike> | ActionResultLike | void;
 
 type SignAndTradeCallback = (
-  ...args: any[]
+  player: PlayerLike,
+  payload: LooseRecord,
+  destTeamCode: string,
 ) => Promise<ActionResultLike> | ActionResultLike | void;
 
 type SimpleActionCallback = (
-  ...args: any[]
+  player: PlayerLike,
+  overrideMetadata?: LooseRecord | null,
 ) => Promise<ActionResultLike> | ActionResultLike | void;
 
 type AuditLogCallback = (entry: LooseRecord) => void;
@@ -175,7 +192,7 @@ type ActionSetKey = 'option' | 'freeAgent' | 'underContract';
 type EditContractModalProps = {
   player?: PlayerLike | null;
   isOpen?: boolean;
-  onClose: (...args: any[]) => void;
+  onClose: () => void;
   onSave?: SaveCallback | null;
   onSaveContract?: SaveCallback | null;
   onSignFreeAgent?: SaveCallback | null;
@@ -186,9 +203,9 @@ type EditContractModalProps = {
   onSignAndTrade?: SignAndTradeCallback | null;
   onRenounce?: SimpleActionCallback | null;
   onStoreOfferSheet?: SaveCallback | null;
-  initialAction?: any;
-  targetYear?: any;
-  actionContext?: any;
+  initialAction?: string | null;
+  targetYear?: number | null;
+  actionContext?: ActionSetKey | null;
   teamCapSheet?: TeamCapSheetLike;
   currentYear?: number | null;
   playerRulesProfile?: PlayerRulesProfileLike;
@@ -353,7 +370,7 @@ const EditContractModal = ({
   const isOverrideConfirmed = overrideText === 'OVERRIDE';
 
   const [extReason, setExtReason] = useState('');
-  const [extMax, setExtMax] = useState<LooseRecord | null>(null);
+  const [extMax, setExtMax] = useState<ExtMaxState | null>(null);
   const normalizedTargetYear =
     typeof targetYear === 'number' ? targetYear : null;
   const normalizedActionContext: ActionSetKey | null =
@@ -505,7 +522,7 @@ const EditContractModal = ({
     currentYear: CURRENT_YEAR,
     targetYear: normalizedTargetYear, // The specific year the action applies to
     rulesProfile: playerRulesProfile,
-  } as any) as {
+  } as unknown) as {
     warnings: ValidationEntryLike[];
     errors: ValidationEntryLike[];
     isValid: boolean;
@@ -653,10 +670,10 @@ const EditContractModal = ({
               maxYears: terms.maxYears,
               maxFirstYearSalary: terms.maxFirstYearSalary,
               minFirstYearSalary: terms.minFirstYearSalary,
-              baseRaisePct: terms.raisePercentage,
+              baseRaisePct: (terms.raisePercentage as number | null) ?? null,
               type: terms.extensionType,
-              basedOn: terms.basedOn,
-              notes: terms.notes,
+              basedOn: (terms.basedOn as string | null) ?? null,
+              notes: (terms.notes as string | null) ?? null,
             }
           : null
       );
@@ -677,7 +694,7 @@ const EditContractModal = ({
           playerId: String(player.id || player.player_id || 'unknown'),
           displayName: player.displayName || player.name || 'Unknown',
           yearsOfServiceAtOperation:
-            player.yearsOfService || player.bio?.experience || 0,
+            Number(player.yearsOfService || player.bio?.experience || 0),
           priorSeasonSalary: lastSalaryForPrefill || null,
           currentSeasonSalary: lastSalaryForPrefill || null,
           isRookieScale:
@@ -685,9 +702,9 @@ const EditContractModal = ({
             player.contract?.contractType === 'Rookie Scale',
           draftInfo: player.bio?.draftYear
             ? {
-                year: player.bio.draftYear,
-                round: player.bio.draftRound || 0,
-                pick: player.bio.draftPick || 0,
+                year: Number(player.bio.draftYear),
+                round: Number(player.bio.draftRound || 0),
+                pick: Number(player.bio.draftPick || 0),
               }
             : null,
         },
@@ -860,9 +877,9 @@ const EditContractModal = ({
           salary: amount,
           capHit: amount,
           guaranteed: true,
-          option: null as any,
-          optionType: null as any,
-          optionUsed: null as any,
+          option: null,
+          optionType: null,
+          optionUsed: null,
         };
       });
 

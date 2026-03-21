@@ -54,6 +54,9 @@ import {
   summarizeValidationIssues,
 } from '../utils/validationIssueText';
 import type {
+  AuthoritativeHardCapResult,
+  AuthoritativeSalaryMatchingDetails,
+  AuthoritativeSalaryMatchingResult,
   TradeReceipt,
   TradeRuleEnvelope,
   TradeSummaryByTeamIndexRow,
@@ -660,9 +663,9 @@ function generateTradeReceipt({
   const teamReceipts = teamsWithAssets.map((team, index) => {
     const teamResult = teamResults[index];
     const salaryMatchingResult = (teamResult?.rules?.salaryMatching ||
-      {}) as Record<string, unknown>;
+      {}) as Partial<AuthoritativeSalaryMatchingResult>;
     const salaryMatchingDetails =
-      (salaryMatchingResult.details as Record<string, unknown> | null | undefined) ||
+      (salaryMatchingResult.details as Partial<AuthoritativeSalaryMatchingDetails> | null | undefined) ||
       {};
 
     // Get the team's name and code
@@ -1611,7 +1614,7 @@ export function validateTrade({
     // Extract salary matching calculations for UI display
     const salaryMatchingCalcs =
       salaryMatchingResult && !Array.isArray(salaryMatchingResult)
-        ? (salaryMatchingResult as Record<string, unknown>)
+        ? (salaryMatchingResult as Partial<AuthoritativeSalaryMatchingResult>)
         : {};
     const signAndTradeResultObject =
       signAndTradeResult && !Array.isArray(signAndTradeResult)
@@ -1619,7 +1622,7 @@ export function validateTrade({
         : {};
     const hardCapResultObject =
       hardCapResult && !Array.isArray(hardCapResult)
-        ? (hardCapResult as Record<string, unknown>)
+        ? (hardCapResult as Partial<AuthoritativeHardCapResult>)
         : {};
     const calculations = {
       salaryIn: team.salaryIn || 0,

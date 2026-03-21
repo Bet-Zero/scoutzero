@@ -9,27 +9,108 @@ import {
   isSeasonExpired,
 } from './seasonNormalizer';
 
-type ContractParserRecord = Record<string, any>;
+// ---------------------------------------------------------------------------
+// Local types — output-shape interfaces for normalized contract data
+// ---------------------------------------------------------------------------
+
+/** Permissive record for unstructured upstream contract data */
+type ContractParserRecord = Record<string, unknown>;
+
+/** Season input accepted by this parser (mirrors seasonNormalizer's local type) */
+type SeasonInputLike = string | number | null | undefined;
+
+/** A single normalized salary row produced by normalizeSalariesByYear */
+interface NormalizedSalaryRow {
+  season: string | null;
+  salary: number;
+  guaranteed: boolean;
+  option: 'PO' | 'TO' | null;
+}
+
+/** Free agency block from normalizeFreeAgency */
+interface NormalizedFreeAgency {
+  type: unknown;
+  year: unknown;
+  birdRights: unknown;
+  capHold: number | null;
+  qualifyingOffer: number | null;
+}
+
+/** Max contract detection result from detectMaxContract */
+interface MaxContractInfo {
+  isMax: boolean;
+  firstYearCapPct: number | null;
+  tierPercent: number | null;
+  capSeason: string | null;
+  basis: string;
+  notes: string | null;
+}
+
+/** Contract status flags */
+interface ContractStatus {
+  isActive: boolean;
+  isFuture: boolean;
+  isExpired: boolean;
+}
+
+/** Source metadata */
+interface ContractSource {
+  provider: string;
+  scrapedAt: unknown;
+}
+
+/** A single fully normalized contract (return of normalizeContract) */
+interface NormalizedContract {
+  docId: string;
+  kind: 'std' | 'ext';
+  isExtension: boolean;
+  extensionOf: string | null;
+  extendedBy: string | null;
+  contractGroupId: string | null;
+  contractType: string;
+  contractLength: number;
+  startSeason: string | null;
+  endSeason: string | null;
+  totalValue: number;
+  averageAnnualValue: number;
+  guaranteedValue: number;
+  guaranteedYears: number;
+  signedUsing: string | null;
+  signingDate: string | null;
+  noTradeClause: boolean;
+  tradeKicker: number | null;
+  salariesByYear: NormalizedSalaryRow[];
+  freeAgency: NormalizedFreeAgency;
+  status: ContractStatus;
+  max: MaxContractInfo;
+  source: ContractSource;
+}
+
+/** Result of parseContractSituation (the sole export) */
+export interface ParsedContractSituation {
+  playerId: unknown;
+  currentSeason: string | null;
+  contracts: NormalizedContract[];
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Normalize a single contract from canonical format
- * @param {Object} contract - Raw contract data
- * @param {string} playerId - Player ID
- * @param {string} currentSeason - Current season in "YYYY-YY" format
- * @param {Object} options - Options including leagueCaps
- * @returns {Object} Normalized contract
  */
 function normalizeContract(
   contract: ContractParserRecord,
-  playerId: any,
-  currentSeason: any,
+  playerId: unknown,
+  currentSeason: SeasonInputLike,
   options: ContractParserRecord = {}
-) {
-  const { leagueCaps = {} } = options;
+): NormalizedContract {
+  const leagueCaps = (options.leagueCaps ?? {}) as ContractParserRecord;
 
   // Normalize seasons
-  const startSeason = normalizeSeason(contract.startSeason);
-  const endSeason = normalizeSeason(contract.endSeason);
+  const startSeason = normalizeSeason(contract.startSeason as SeasonInputLike);
+  const endSeason = normalizeSeason(contract.endSeason as SeasonInputLike);
 
   // Determine kind and isExtension
   let isExtension;
@@ -39,16 +120,18 @@ function normalizeContract(
   } else {
     isExtension = Boolean(contract.isExtension);
   }
-  const kind = isExtension ? 'ext' : 'std';
+  const kind: 'std' | 'ext' = isExtension ? 'ext' : 'std';
 
   // Build docId
   const docId = `${kind}_${startSeason}`;
 
   // Normalize salariesByYear
-  const salariesByYear = normalizeSalariesByYear(contract.salariesByYear || []);
+  const salariesByYear = normalizeSalariesByYear(
+    (contract.salariesByYear as unknown[]) || []
+  );
 
   // Calculate status flags
-  const status = {
+  const status: ContractStatus = {
     isActive: isSeasonActive(startSeason, endSeason, currentSeason),
     isFuture: isSeasonFuture(startSeason, currentSeason),
     isExpired: isSeasonExpired(endSeason, currentSeason),
@@ -63,7 +146,11 @@ function normalizeContract(
   );
 
   // Normalize free agency
-  const freeAgency = normalizeFreeAgency(contract.freeAgency || {});
+  const freeAgency = normalizeFreeAgency(
+    (contract.freeAgency as ContractParserRecord) || {}
+  );
+
+  const source = contract.source as ContractParserRecord | null | undefined;
 
   // Build normalized contract
   return {
@@ -73,7 +160,7 @@ function normalizeContract(
     extensionOf: null, // Will be set later during linking
     extendedBy: null, // Will be set later during linking
     contractGroupId: null, // Will be set later during linking
-    contractType: contract.contractType || 'VETERAN CONTRACT',
+    contractType: (contract.contractType as string) || 'VETERAN CONTRACT',
     contractLength: Number(contract.contractLength) || 0,
     startSeason,
     endSeason,
@@ -93,20 +180,21 @@ function normalizeContract(
     status,
     max,
     source: {
-      provider: contract.source?.provider || 'Unknown',
-      scrapedAt: contract.source?.scrapedAt || null,
+      provider: (source?.provider as string) || 'Unknown',
+      scrapedAt: source?.scrapedAt ?? null,
     },
   };
 }
 
 /**
  * Normalize salaries by year to consistent format
- * @param {Array} salaries - Array of salary objects
- * @returns {Array} Normalized salary array
  */
-function normalizeSalariesByYear(salaries: any[]) {
-  return salaries.map((row) => {
-    const season = normalizeSeason(row.season || row.year);
+function normalizeSalariesByYear(salaries: unknown[]): NormalizedSalaryRow[] {
+  return salaries.map((raw) => {
+    const row = raw as ContractParserRecord;
+    const season = normalizeSeason(
+      (row.season as SeasonInputLike) ?? (row.year as SeasonInputLike)
+    );
     return {
       season,
       salary: Number(row.salary) || 0,
@@ -118,10 +206,8 @@ function normalizeSalariesByYear(salaries: any[]) {
 
 /**
  * Normalize option values
- * @param {string|null} option - Option type
- * @returns {string|null} Normalized option
  */
-function normalizeOption(option: any) {
+function normalizeOption(option: unknown): 'PO' | 'TO' | null {
   if (!option) return null;
   const opt = String(option).toUpperCase();
   if (opt.includes('PLAYER') || opt === 'PO') return 'PO';
@@ -131,14 +217,20 @@ function normalizeOption(option: any) {
 
 /**
  * Normalize free agency data
- * @param {Object} freeAgency - Free agency data
- * @returns {Object} Normalized free agency
  */
-function normalizeFreeAgency(freeAgency: ContractParserRecord) {
+function normalizeFreeAgency(
+  freeAgency: ContractParserRecord
+): NormalizedFreeAgency {
+  const birdRightsVal = freeAgency.birdRights;
+  const birdRightsObj =
+    birdRightsVal && typeof birdRightsVal === 'object'
+      ? (birdRightsVal as ContractParserRecord)
+      : null;
+
   return {
     type: freeAgency.type || freeAgency.freeAgentType || null,
     year: freeAgency.year || freeAgency.freeAgentYear || null,
-    birdRights: freeAgency.birdRights?.status || freeAgency.birdRights || null,
+    birdRights: birdRightsObj?.status ?? birdRightsVal ?? null,
     capHold:
       freeAgency.capHold !== null && freeAgency.capHold !== undefined
         ? Number(freeAgency.capHold)
@@ -153,10 +245,8 @@ function normalizeFreeAgency(freeAgency: ContractParserRecord) {
 
 /**
  * Normalize signedUsing field
- * @param {string} signedUsing - Signing method
- * @returns {string|null} Normalized signing method
  */
-function normalizeSignedUsing(signedUsing: any) {
+function normalizeSignedUsing(signedUsing: unknown): string | null {
   if (!signedUsing) return null;
 
   const str = String(signedUsing).trim();
@@ -174,20 +264,20 @@ function normalizeSignedUsing(signedUsing: any) {
 
 /**
  * Normalize signing date to ISO format
- * @param {string} signingDate - Signing date
- * @returns {string|null} ISO date or null
  */
-function normalizeSigningDate(signingDate: any) {
+function normalizeSigningDate(signingDate: unknown): string | null {
   if (!signingDate) return null;
 
+  const str = String(signingDate);
+
   // If already ISO format, return as is
-  if (/^\d{4}-\d{2}-\d{2}/.test(signingDate)) {
-    return signingDate;
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return str;
   }
 
   // Try to parse common date formats
   try {
-    const date = new Date(signingDate);
+    const date = new Date(str);
     if (!isNaN(date.getTime())) {
       return date.toISOString().split('T')[0];
     }
@@ -205,19 +295,14 @@ function normalizeSigningDate(signingDate: any) {
 
 /**
  * Detect max contract based on first-year cap percentage
- * @param {Array} salariesByYear - Normalized salary array
- * @param {string} startSeason - Start season
- * @param {Object} leagueCaps - League cap by season
- * @param {Object} contract - Original contract data (may have capPercentage)
- * @returns {Object} Max contract info
  */
 function detectMaxContract(
-  salariesByYear: any[],
-  startSeason: any,
+  salariesByYear: NormalizedSalaryRow[],
+  startSeason: string | null,
   leagueCaps: ContractParserRecord,
   contract: ContractParserRecord
-) {
-  const maxInfo: ContractParserRecord = {
+): MaxContractInfo {
+  const maxInfo: MaxContractInfo = {
     isMax: false,
     firstYearCapPct: null,
     tierPercent: null,
@@ -236,7 +321,7 @@ function detectMaxContract(
   if (contract.capPercentage !== null && contract.capPercentage !== undefined) {
     maxInfo.firstYearCapPct = Number(contract.capPercentage);
     maxInfo.basis = 'source_estimate';
-  } else if (leagueCaps[startSeason]) {
+  } else if (startSeason && leagueCaps[startSeason]) {
     // Compute from league cap
     const cap = Number(leagueCaps[startSeason]);
     maxInfo.firstYearCapPct = (firstRow.salary / cap) * 100;
@@ -251,7 +336,10 @@ function detectMaxContract(
   const tiers = [25, 30, 35];
 
   for (const tier of tiers) {
-    if (Math.abs(maxInfo.firstYearCapPct - tier) <= tolerance) {
+    if (
+      maxInfo.firstYearCapPct !== null &&
+      Math.abs(maxInfo.firstYearCapPct - tier) <= tolerance
+    ) {
       maxInfo.isMax = true;
       maxInfo.tierPercent = tier;
       maxInfo.notes = 'Snapped within ±0.75%';
@@ -264,10 +352,8 @@ function detectMaxContract(
 
 /**
  * Link extensions between contracts
- * @param {Array} contracts - Array of normalized contracts
- * @returns {Array} Contracts with extension links set
  */
-function linkExtensions(contracts: any[]) {
+function linkExtensions(contracts: NormalizedContract[]): NormalizedContract[] {
   // Sort by start season
   const sorted = [...contracts].sort((a, b) =>
     compareSeason(a.startSeason, b.startSeason)
@@ -295,25 +381,25 @@ function linkExtensions(contracts: any[]) {
   return sorted;
 }
 
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /**
  * Parse contract situation from canonical format
- * @param {Object} canonical - Canonical contract data (contract or contracts array)
- * @param {string} currentSeason - Current season in "YYYY-YY" format
- * @param {Object} options - Options including leagueCaps
- * @returns {Object} Parsed contract situation
  */
 export function parseContractSituation(
   canonical: ContractParserRecord,
-  currentSeason: any,
+  currentSeason: SeasonInputLike,
   options: ContractParserRecord = {}
-) {
+): ParsedContractSituation {
   const playerId = canonical.playerId;
 
   // Normalize current season
   const normalizedCurrentSeason = normalizeSeason(currentSeason);
 
   // Determine if we have a single contract or multiple
-  let rawContracts: any[] = [];
+  let rawContracts: unknown[] = [];
 
   if (canonical.contract) {
     rawContracts.push(canonical.contract);
@@ -324,12 +410,17 @@ export function parseContractSituation(
   }
 
   if (canonical.contracts && Array.isArray(canonical.contracts)) {
-    rawContracts = canonical.contracts;
+    rawContracts = canonical.contracts as unknown[];
   }
 
   // Normalize all contracts
   let contracts = rawContracts.map((contract) =>
-    normalizeContract(contract, playerId, normalizedCurrentSeason, options)
+    normalizeContract(
+      contract as ContractParserRecord,
+      playerId,
+      normalizedCurrentSeason,
+      options
+    )
   );
 
   // Link extensions
