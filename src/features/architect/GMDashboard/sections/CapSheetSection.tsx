@@ -2,12 +2,13 @@ import CapSheet from '@/features/architect/capSheet/CapSheet';
 import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker';
 import { DEV_CAP_SHEET_FIXTURE_FLAG } from '@/features/architect/capSheet/devCapSheetFixtures';
 
-type CapSheetSectionProps = {
-  teamCapSheet: Record<string, unknown> | null | undefined;
+type ForwardedCapSheetProps = Pick<
+  Parameters<typeof CapSheet>[0],
+  'teamCapSheet' | 'onSelectPlayer' | 'onSetDeadCap' | 'onSetExceptions'
+>;
+
+type CapSheetSectionProps = ForwardedCapSheetProps & {
   currentYear: number;
-  onSelectPlayer?: (...args: any[]) => any;
-  onSetDeadCap?: (...args: any[]) => any;
-  onSetExceptions?: (...args: any[]) => any;
   playersMap?: Record<string, unknown>;
   onInjectCapSheetFixtures?: (() => void) | null;
   onClearCapSheetFixtures?: (() => void) | null;

@@ -24,6 +24,7 @@ import {
   generateExtensionContract,
   getContractYearsForDisplay,
 } from '@/features/architect/utils/contractUtils';
+import type { CapHoldItem, DeadCapItem } from '@/features/architect/types';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
   getExtensionProfile,
@@ -38,11 +39,27 @@ import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
 type LooseRecord = Record<string, unknown>;
 
-type ValidationSeverity = 'error' | 'warning' | 'info';
+type UseCapValidationParams = Parameters<typeof useCapValidation>[0];
+type HookPlayerLike = NonNullable<UseCapValidationParams['player']>;
+type HookContractLike = NonNullable<HookPlayerLike['contract']>;
+type HookContractSalaryRowLike = NonNullable<
+  HookContractLike['salariesByYear']
+>[number];
+type HookTeamCapSheetLike = NonNullable<
+  UseCapValidationParams['teamCapSheet']
+>;
+type HookContractDataLike = NonNullable<
+  UseCapValidationParams['contractData']
+>;
+type UseCapValidationResult = ReturnType<typeof useCapValidation>;
+type ValidationEntryLike = UseCapValidationResult['warnings'][number];
+type ValidationSeverity = ValidationEntryLike['severity'];
 
-type ValidationEntryLike = {
-  severity?: ValidationSeverity | string | null;
-  message?: string | null;
+type PlayerBioLike = {
+  experience?: number | string | null;
+  draftYear?: number | string | null;
+  draftRound?: number | string | null;
+  draftPick?: number | string | null;
   [key: string]: unknown;
 };
 
@@ -56,25 +73,22 @@ type ContractYearLike = {
   [key: string]: unknown;
 };
 
-type ContractSalaryRowLike = {
+type ContractSalaryRowLike = HookContractSalaryRowLike & {
   season?: string | null;
   year?: string | number | null;
-  salary?: number | null;
-  capHit?: number | null;
-  guaranteed?: boolean;
   option?: string | null;
-  isExtension?: boolean;
+  isExtension?: boolean | null;
   [key: string]: unknown;
 };
 
-type ContractLike = {
+type ContractLike = HookContractLike & {
   salariesByYear?: ContractSalaryRowLike[] | null;
   isRookieScale?: boolean | null;
   contractType?: string | null;
   [key: string]: unknown;
 };
 
-type PlayerLike = {
+type PlayerLike = HookPlayerLike & {
   id?: string | number | null;
   player_id?: string | number | null;
   playerId?: string | number | null;
@@ -82,20 +96,15 @@ type PlayerLike = {
   displayName?: string | null;
   yearsOfService?: number | null;
   yearsPro?: number | null;
-  bio?: LooseRecord | null;
+  bio?: PlayerBioLike | null;
   contract?: ContractLike | null;
   freeAgentYear?: number | null;
   [key: string]: unknown;
 };
 
-type SigningGuardrailsLike = {
-  minFirstYear?: number | null;
-  maxFirstYear?: number | null;
-  raisePct?: number | null;
-  maxYears?: number | null;
-  source?: string | null;
-  [key: string]: unknown;
-} | null;
+type SigningGuardrailsLike = ReturnType<typeof buildSigningGuardrails> | null;
+type CapHoldLike = Partial<CapHoldItem> & LooseRecord;
+type DeadCapLike = Partial<DeadCapItem> & LooseRecord;
 
 type ExtensionStateLike = {
   years: number;
@@ -135,13 +144,13 @@ type RulesLeagueContextLike = {
   [key: string]: unknown;
 } | null;
 
-type TeamCapSheetLike = {
+type TeamCapSheetLike = HookTeamCapSheetLike & {
   teamCode?: string | null;
   players?: PlayerLike[] | null;
-  deadCap?: LooseRecord[] | null;
-  capHolds?: LooseRecord[] | null;
+  deadCap?: DeadCapLike[] | null;
+  capHolds?: CapHoldLike[] | null;
   [key: string]: unknown;
-} | null;
+};
 
 type MutationWritesSummaryLike = {
   eventsWritten?: number;
@@ -405,7 +414,7 @@ const EditContractModal = ({
       playerRulesProfile,
       capSettings ?? undefined,
       selectedException
-    ) as SigningGuardrailsLike;
+    );
   }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
 
   const contractYears = useMemo<ContractYearLike[]>(
@@ -499,7 +508,7 @@ const EditContractModal = ({
         : `Cannot act on this option yet. It can be decided during the ${normalizedTargetYear - 2}-${String((normalizedTargetYear - 1) % 100).padStart(2, '0')} offseason.`
       : null;
 
-  const contractDataForValidation = useMemo(
+  const contractDataForValidation = useMemo<HookContractDataLike>(
     () => ({
       ...extension,
       salaries: (extension.salaries || []).slice(
@@ -522,11 +531,7 @@ const EditContractModal = ({
     currentYear: CURRENT_YEAR,
     targetYear: normalizedTargetYear, // The specific year the action applies to
     rulesProfile: playerRulesProfile,
-  } as unknown) as {
-    warnings: ValidationEntryLike[];
-    errors: ValidationEntryLike[];
-    isValid: boolean;
-  };
+  });
 
   // Build structured validation result
   const validationResult = useMemo(

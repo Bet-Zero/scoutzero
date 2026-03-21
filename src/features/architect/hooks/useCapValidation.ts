@@ -54,7 +54,7 @@ type SigningGuardrails = {
 };
 
 type SalaryByYearLike = {
-  season: string;
+  season?: string | number | null;
   salary?: number | null;
   capHit?: number | null;
   guaranteed?: boolean | null;
