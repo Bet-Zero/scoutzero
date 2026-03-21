@@ -65,12 +65,7 @@ const exactRemainingInventory = [
   ...embeddedTestArtifacts,
 ].sort() as string[];
 
-const allowedSourceExplicitArchitectImports = [
-  {
-    importer: 'src/features/architect/utils/tradeMachine/utils/capSettingsProvider.ts',
-    specifier: '@/features/architect/utils/capProjections.js',
-  },
-] as const;
+const allowedSourceExplicitArchitectImports = [] as const;
 
 const allowedTestExplicitArchitectCompatSpecifiers = [
   '../../features/architect/contract/ContractEditorModal/ContractEditorModal.jsx',
