@@ -107,6 +107,7 @@ import {
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
+import type { CapHold } from '@/features/architect/utils/capHolds';
 
 // ==============================================================================
 // PHASE 58: TRADE CONTEXT MODULE RE-EXPORTS
@@ -637,8 +638,8 @@ function addTeamSnapshot(teamsByCode: LooseRecord, teamCode: string, team: TeamL
 
 function extractTeamsByCodeFromCurrentState(
   currentState: CurrentStateLike = {}
-): LooseRecord {
-  const teamsByCode: LooseRecord = {};
+): Record<string, LooseRecord> {
+  const teamsByCode: Record<string, LooseRecord> = {};
 
   if (Array.isArray(currentState.teams)) {
     for (const entry of currentState.teams) {
@@ -673,8 +674,8 @@ function extractTeamsByCodeFromCurrentState(
 
 function extractTeamsByCodeFromComputeResult(
   computeResult: ComputeResultLike = {}
-): LooseRecord {
-  const teamsByCode: LooseRecord = {};
+): Record<string, LooseRecord> {
+  const teamsByCode: Record<string, LooseRecord> = {};
   for (const update of computeResult.teamUpdates || []) {
     addTeamSnapshot(teamsByCode, update?.teamCode, update?.team);
   }
@@ -1577,8 +1578,8 @@ export async function applyWorldMutation({
       mutationType,
       worldId,
       year,
-      beforeTeamsByCode: beforeTeamsByCode as unknown as Record<string, AnyRecord>,
-      afterTeamsByCode: afterTeamsByCode as unknown as Record<string, AnyRecord>,
+      beforeTeamsByCode,
+      afterTeamsByCode,
       beforeTotalsByTeam: beforeTotalsByTeam as unknown as Record<string, AnyRecord>,
       afterTotalsByTeam: afterTotalsByTeam as unknown as Record<string, AnyRecord>,
       rulesContext,
@@ -2830,7 +2831,7 @@ function computeSigningResult({
   // Remove cap hold if player had one
   if (updatedTeam.capHolds) {
     updatedTeam.capHolds = updatedTeam.capHolds.filter(
-      (hold: any) => hold.playerId !== playerId
+      (hold) => hold.playerId !== playerId
     );
   }
 
@@ -3320,7 +3321,7 @@ function computeRenounceResult({
   // 1. Remove the player's cap hold from the team
   // Match by playerId first (primary), then by playerName (fallback) using OR logic
   if (updatedTeam.capHolds && Array.isArray(updatedTeam.capHolds)) {
-    updatedTeam.capHolds = updatedTeam.capHolds.filter((hold: any) => {
+    updatedTeam.capHolds = updatedTeam.capHolds.filter((hold) => {
       // Remove if playerId matches
       if (hold.playerId === playerId) return false;
       // Also remove if playerName matches (in case IDs don't align)

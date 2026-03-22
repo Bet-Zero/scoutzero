@@ -798,8 +798,8 @@ function buildCapAuditEvaluation(params: {
     mutationType,
     worldId: worldId || BASE_MODE_VALIDATOR_WORLD_ID,
     year,
-    beforeTeamsByCode: beforeTeamsByCode as unknown as Record<string, Record<string, unknown>>,
-    afterTeamsByCode: afterTeamsByCode as unknown as Record<string, Record<string, unknown>>,
+    beforeTeamsByCode: beforeTeamsByCode as Record<string, Record<string, unknown>>,
+    afterTeamsByCode: afterTeamsByCode as Record<string, Record<string, unknown>>,
     beforeTotalsByTeam,
     afterTotalsByTeam,
   });

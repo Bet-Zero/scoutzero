@@ -135,7 +135,7 @@ Support edits (other files) are allowed only if a concrete type blocker makes on
 
 ---
 
-### ⬜ Chunk 3 — AFTER CHUNK 2
+### ✅ Chunk 3 — COMPLETE (2026-03-22)
 
 **Files:** Only the same five primary files (unless one tiny support edit is truly required)
 
@@ -162,9 +162,35 @@ From Chunk 2:
 - `ArchitectContract[key: string]: unknown` (useArchitectState.ts) — requires updating `ContractLike` in `playerRulesProfiles.ts` to drop its own catch-all, or decoupling `ArchitectContract` from the `PlayerLike` intersection
 - Lines 801–802 double-cast in `useArchitectActions.ts` — `validatePostStateCapLegality` parameter types need widening to accept `Record<string, CapSheet>`
 
-**Required test:** `src/tests/architect/architectFinalHardeningPack.chunk3.test.ts`
+**What was done:**
+
+`constants/types.ts`
+
+- `NormalizedTeam.team.capHolds?: unknown[]` → `CapHold[]` (canonical `CapHold` interface from `capHolds.ts`)
+- `TradeTeam.team.capHolds?: unknown[]` → `CapHold[]`
+- Added comment documenting `standardRoster`/`twoWayRoster` as deliberate non-changes (only `.length` accessed)
+
+`mutationPipeline.ts`
+
+- `extractTeamsByCodeFromCurrentState` return type: `LooseRecord` → `Record<string, LooseRecord>`
+- `extractTeamsByCodeFromComputeResult` return type: `LooseRecord` → `Record<string, LooseRecord>`
+- `beforeTeamsByCode`/`afterTeamsByCode` at `validatePostStateCapLegality` call site: double-cast removed (types now structurally compatible)
+- `(hold: any)` callbacks at lines ~2834 and ~3324: explicit `any` annotation removed; TypeScript infers `LooseRecord`
+
+`useArchitectActions.ts`
+
+- Lines 801–802: `as unknown as Record<string, Record<string, unknown>>` → `as Record<string, Record<string, unknown>>` (double-cast reduced to single cast)
+
+**Deliberate non-changes (documented):**
+
+- `NormalizedTeam.team.standardRoster/twoWayRoster: unknown[]` — only `.length` accessed; no element field access in pipeline
+- `TeamLike.capHolds?: LooseRecord[]` in `mutationPipeline.ts` — cast compatibility constraint with `CapHoldLike` in `CapSheet`; narrowing to `CapHold[]` breaks existing pipeline casts in `useArchitectActions.ts`
+- `beforeTotalsByTeam`/`afterTotalsByTeam` double-casts retained — `buildTotalsByTeam` returns `LooseRecord`; single-cast fails TypeScript type check
+- `ArchitectContract[key: string]: unknown` — `contract.years` and `contract.contractYears` accessed at `useArchitectActions.ts:1439–1444` but not declared; full audit out of scope
 
 **Return package:** `return_packages/trade_machine/ARCHITECT_FINAL_HARDENING_PACK_CHUNK3_RETURN_PACKAGE.md`
+
+**Regression test:** `src/tests/architect/architectFinalHardeningPack.chunk3.test.ts` (12 tests, all pass)
 
 ---
 
@@ -217,5 +243,5 @@ Each chunk creates one return package at `return_packages/trade_machine/ARCHITEC
 |-------|--------|------|
 | Chunk 1: core trade pipeline | ✅ COMPLETE | 2026-03-22 |
 | Chunk 2: dashboard hooks | ✅ COMPLETE | 2026-03-22 |
-| Chunk 3: final polish | ⬜ NOT STARTED | — |
+| Chunk 3: final polish | ✅ COMPLETE | 2026-03-22 |
 | Final audit | ⬜ NOT STARTED | — |

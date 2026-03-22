@@ -9,6 +9,7 @@
  */
 
 import type { DataWarning } from '../utils/dataValidation';
+import type { CapHold } from '../../capHolds';
 
 // Normalized cap settings
 export interface CapSettings {
@@ -267,8 +268,9 @@ export interface NormalizedTeam {
     faExceptionBuckets?: TradeFaExceptionBucket[];
     hardCapFirstApron?: Record<string, unknown>;
     hardCapSecondApron?: Record<string, unknown>;
-    capHolds?: unknown[];
+    capHolds?: CapHold[];
     usedTaxpayerMLEThisSeason?: boolean;
+    // Deliberate unknown[]: only .length is accessed in the pipeline; no runtime evidence of element shape
     standardRoster?: unknown[];
     twoWayRoster?: unknown[];
     entitlementIds?: string[];
@@ -497,7 +499,7 @@ export interface TradeTeam {
     faExceptionBuckets?: TradeFaExceptionBucket[];
     hardCapFirstApron?: Record<string, unknown>;
     hardCapSecondApron?: Record<string, unknown>;
-    capHolds?: unknown[];
+    capHolds?: CapHold[];
     usedTaxpayerMLEThisSeason?: boolean;
     standardRoster?: unknown[];
     twoWayRoster?: unknown[];
