@@ -2,51 +2,43 @@
 
 ## 1. Summary
 
-This audit was re-run from current repo state. Prior audits, return packages, and recent exploration were treated as context only, not as proof.
+This audit was re-run from current repo state. Prior audits, return packages, and the hardening-pack master doc were used only to target likely hotspots, not as proof.
 
 Architect passes structural TS conversion standards but not hardening standards.
 
 - Architect is fully TS-owned on the audited runtime path.
 - No live business logic remains in `.js/.jsx` within the audited scope.
-- The current expected runtime-closure baseline was confirmed from fresh proof: `301 / 14 / 315 / 0 / 0`.
+- Fresh runtime inventory from the current repo state is `300 / 14 / 314 / 0 / 0`:
+  - `300` Architect runtime code files
+  - `14` Architect-reached shared runtime files
+  - `314` total in-scope runtime code files
+  - `0` remaining in-scope `.js/.jsx`
+  - `0` same-path `.js/.jsx` + `.ts/.tsx` sibling pairs
 - Type quality is `partially hardened`, not `strongly typed`.
-- The remaining blocker is hardening quality in core TS authorities, not migration residue, shim residue, or resolver topology.
+- The remaining blocker is permissive live TypeScript in core and shared runtime authorities, not migration residue, shim residue, or resolver topology.
 
 ## 2. Runtime Ownership Verdict
 
 `PASS`
 
-Fresh runtime-closure inventory from current repo state:
+Why:
 
-| Scope | Total | `.ts` | `.tsx` | `.js` | `.jsx` |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `src/features/architect/**` | 301 | 224 | 77 | 0 | 0 |
-| Architect-reached `src/shared/components/**` + `src/shared/utils/contracts/**` | 14 | 5 | 9 | 0 | 0 |
-| **Total in audited runtime scope** | **315** | **229** | **86** | **0** | **0** |
-
-Fresh same-path sibling scan:
-
-- same-path `.js/.jsx` + `.ts/.tsx` pairs in audited scope: `0`
-
-Fresh resolver / topology result:
-
-- All 7 required specifiers resolved to `.ts/.tsx` in both TypeScript and Vite.
-- No in-scope specifier landed on a `.js/.jsx` compatibility forwarder first.
-
-Why this is `PASS`:
-
-- All meaningful implementation authority on the audited runtime path is `.ts/.tsx`.
-- No in-scope `.js/.jsx` files remain to classify as live logic, wrappers, barrels, or shims.
-- No same-path compat topology remains in scope.
+- `src/features/architect/**` contains `0` runtime `.js/.jsx` files from fresh proof.
+- The recursive Architect-to-shared runtime walk reached `14` shared files, and all `14` are `.ts/.tsx`.
+- Same-path `.js/.jsx` + `.ts/.tsx` sibling pairs in the audited runtime scope: `0`.
+- All 7 required resolver checks land on `.ts/.tsx`; no required specifier lands on a `.js/.jsx` forwarder first.
 
 Why this is not `PASS WITH RESIDUAL CLEANUP`:
 
-- Fresh proof found no in-scope runtime residue to clean up.
-- The earlier expected baseline of `PASS` was confirmed rather than disproved.
+- Fresh proof found no in-scope JS/JSX residue to classify as compatibility-only cleanup.
+
+Why this is not `FAIL`:
+
+- The `live business logic still in JS/JSX` bucket is empty.
 
 ## 3. Remaining JS/JSX Classification
 
-Fresh in-scope JS/JSX classification from current repo state:
+Fresh in-scope `.js/.jsx` classification from current repo state:
 
 - `shim-only compatibility surface`: none
 - `intentional wrapper / public entrypoint`: none
@@ -57,67 +49,70 @@ Fresh in-scope JS/JSX classification from current repo state:
 
 Fresh proof result:
 
-- remaining in-scope `.js/.jsx` files: `0`
-- the `live business logic still in JS/JSX` bucket is empty
+- Remaining in-scope `.js/.jsx` files: `0`
+- The `live business logic still in JS/JSX` bucket is empty, so runtime ownership is not a standards blocker.
 
 Out-of-scope note:
 
-- Shared `.jsx` files still exist outside the audited runtime closure:
-  - `src/shared/components/ErrorBoundary.jsx`
-  - `src/shared/components/SeasonYearSelector.jsx`
+- `10` `.jsx` files still exist under `src/shared/components/**`, but the fresh Architect runtime-closure walk proved Architect does not currently reach them:
   - `src/shared/components/DropdownGroup.jsx`
+  - `src/shared/components/ErrorBoundary.jsx`
   - `src/shared/components/PlayerHeadshot.jsx`
+  - `src/shared/components/SeasonYearSelector.jsx`
   - `src/shared/components/ui/Modal.jsx`
   - `src/shared/components/ui/ToggleButton.jsx`
   - `src/shared/components/ui/VideoExamples.jsx`
   - `src/shared/components/ui/drawers/DrawerShell.jsx`
   - `src/shared/components/ui/drawers/OpenDrawerButton.jsx`
   - `src/shared/components/ui/grades/OverallGradeBlock.jsx`
-- These do not affect the verdict because the fresh runtime-closure walk showed Architect does not reach them.
 
 ## 4. Type Quality Verdict
 
 `partially hardened`
 
-Fresh grep-based concentration scan across current `src/features/architect/**/*.ts?(x)` files:
+Current file-content evidence:
 
-| Pattern | Current count |
-| --- | ---: |
-| `any` | 294 |
-| `Record<string, unknown>` | 378 |
-| `[key: string]: unknown` | 123 |
-| `...Like` type references | 1,452 |
-| `as ...` cast sites | 1,331 |
-| `as unknown as` double-casts | 32 |
-| schema/Zod reference hits | 30 |
-
-What the current reads show:
-
-- [mutationPipeline.ts](../../../src/features/architect/utils/mutationPipeline.ts) remains the clearest hardening blocker.
-  - It still centers core flows around `LooseRecord`, `MutationPayloadLike`, `TeamLike`, `PlayerLike`, and `ComputeResultLike`.
-  - It still carries `[key: string]: unknown` on important pipeline-facing types and remains the top permissiveness hotspot in the scan.
-- [resolveOffseasonTransition.ts](../../../src/features/architect/utils/offseason/resolveOffseasonTransition.ts) is still dominated by local `...Like` compatibility shapes and open bags.
-- [useCapValidation.ts](../../../src/features/architect/hooks/useCapValidation.ts) is TS-owned, but the surface still depends on `SalaryByYearLike`, `ContractLike`, `RulesProfileLike`, `ContractDataLike`, `TeamCapSheetLike`, and repeated local shape reconstruction instead of narrower shared contracts.
-- [useArchitectActions.ts](../../../src/features/architect/GMDashboard/hooks/useArchitectActions.ts) still ranks as a top permissiveness hotspot in the scan because of `Record<string, unknown>`, `...Like`, and cast bridges.
+- The active project `tsconfig.json` still runs with `strict: false`. That does not decide the verdict by itself, but it raises the bar for calling the current runtime surface `strongly typed`.
+- `src/features/architect/utils/mutationPipeline.ts` remains the clearest hardening blocker:
+  - `57` text-hit `any`
+  - `12` text-hit `[key: string]: unknown`
+  - `16` text-hit `as unknown as`
+  - `102` text-hit `LooseRecord`
+  - Core orchestration is still dominated by `LooseRecord`, bag-shaped payload/state types, and cast bridges.
+- `src/features/architect/utils/offseason/resolveOffseasonTransition.ts` is improved but still permissive:
+  - `6` text-hit `Record<string, unknown>`
+  - `4` text-hit `[key: string]: unknown`
+  - Important offseason contracts still retain open bags such as `capProjections`, `deadMoney`, and exception/dead-cap support shapes.
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` is still permissive in live mutation flows:
+  - `12` text-hit `Record<string, unknown>`
+  - `3` text-hit `as unknown as`
+  - The remaining bridges are still in active cap-audit, signing, fixture, and reset flows.
+- The Architect-reached shared runtime pocket is TS-owned, but it is not strongly typed yet:
+  - `src/shared/components/TeamSelectDropdown.tsx` still uses `Record<string, any>` and multiple `any` props/parameters.
+  - `src/shared/components/ui/Dialog.tsx` still uses `any` for `open` and `onOpenChange`.
+  - `src/shared/components/BirdRightsIcon.tsx` still uses `type?: any`.
+  - `src/shared/components/ui/filters/MultiSelectFilter.tsx` still uses `any`-typed props.
+  - `src/shared/components/EditContractModal.tsx` still carries multiple open index signatures on live Architect-adjacent shapes.
 
 Why this is not `strongly typed`:
 
-- Core authorities are still materially shaped by local compatibility bags rather than closed contracts.
-- `Record<string, unknown>`, `[key: string]: unknown`, `...Like`, and bridge casts are still concentrated in live orchestration and transition code.
-- Shared schema-backed and contract-oriented types exist, but they are underused in the weakest core flows.
+- Core Architect orchestration still relies heavily on permissive local bags and bridge casts.
+- The live shared runtime surface reached by Architect still contains obvious `any`-based UI authorities.
+- Shared/schema-backed contracts exist but are still underused in the weakest core flows.
 
 Why this is stronger than `fully converted but still permissive`:
 
-- [contracts.ts](../../../src/features/architect/utils/persistenceContracts/contracts.ts) defines closed persistence contracts with named interfaces and readonly allowlists.
-- [validatePersistableShape.ts](../../../src/features/architect/utils/persistenceContracts/validatePersistableShape.ts) is a genuine typed validation module rather than a loose compatibility shell.
-- [ruleContext.ts](../../../src/features/architect/types/ruleContext.ts) shows strong closed typing with explicit unions and required fields.
-- [types/index.ts](../../../src/features/architect/types/index.ts) already exposes schema-backed Architect types from `src/schemas/architect.ts` and `src/schemas/players_v2.ts`.
+- Stronger contract-oriented pockets are present and active in the current repo:
+  - `src/features/architect/types/ruleContext.ts` uses explicit unions and closed required interfaces.
+  - `src/shared/utils/contracts/contractUtils.ts` and `src/shared/utils/contracts/seasonNormalizer.ts` are straightforward closed TS helpers.
+  - The hardening-pack targets are TS-owned and have clearly improved from pure migration residue into mixed-strength TS authorities.
 
 Schema / Zod / shared contract usage:
 
-- Schema-backed types are available and reachable.
-- They still appear underused in the most permissive runtime authorities.
-- Fresh inspection supports the expected baseline: Architect is `partially hardened`, not yet `strongly typed`.
+- Schema-backed and shared contract types are available in the repo.
+- They still appear underused in the most permissive runtime authorities, especially `mutationPipeline.ts` and adjacent action/transition hubs.
+
+Prior hardening-pack summaries were used only to identify likely weak files. The final type-quality class above is based on current file contents, not earlier package claims.
 
 ## 5. Validation Status
 
@@ -133,7 +128,7 @@ Validation commands actually run:
 
 Commands intentionally skipped:
 
-- All broad test suites and raw `vitest` commands, because this audit required only the three validation commands above.
+- All test suites and raw `vitest` commands, because this audit required only the three commands above.
 
 Validation results:
 
@@ -143,70 +138,81 @@ Validation results:
 | `npm run build` | `PASS` | In-scope signal, non-blocking |
 | `npm run validate:project` | `PASS` | Structural signal, non-blocking |
 
-Build warnings observed during the fresh run:
+Warnings observed during the fresh build:
 
-- browser compatibility warning for `fs` imported by `src/features/architect/utils/tradeMachine/engine/tradeDebug.ts`
-- dynamic/static import-mixing warnings involving `src/firebaseConfig.js`, `src/features/architect/utils/entitlements/entitlementResolver.ts`, and `src/features/architect/utils/leagueInvariants.ts`
-- large bundle chunk warning for the main production bundle
+- Browserslist staleness notice
+- Vite browser-compatibility warning for `fs` imported by `src/features/architect/utils/tradeMachine/engine/tradeDebug.ts`
+- Vite mixed dynamic/static import warnings involving `src/firebaseConfig.js`, `src/features/architect/utils/entitlements/entitlementResolver.ts`, and `src/features/architect/utils/leagueInvariants.ts`
+- Large-chunk warning for the main production bundle
 
 Verdict impact:
 
-- These warnings are real current-state build hygiene / bundle concerns.
-- They did not fail the build and do not change the closeout verdict for TS runtime ownership.
+- No required validation command failed.
+- The warnings are real current-state build hygiene issues, but they are not closeout blockers for Architect TS runtime ownership.
 
 ## 6. Evidence / Inspection Run
 
-Anti-staleness rule used for this audit:
+Anti-staleness rule applied:
 
-- prior audits, return packages, and baseline hypotheses were used only to target hotspots
-- all facts below were re-proved from current repo state before writing the verdict
+- Prior audits, prior return packages, and hardening-pack summaries were treated as context only.
+- All inventory counts, bucket membership, topology claims, and type-quality claims below were re-proved from the current repo state during this run.
 
-Runtime inventory and closure walk:
+Inventory and same-path scan:
 
-- Node closure walk starting from `src/features/architect/**`, resolving only into `src/shared/components/**` and `src/shared/utils/contracts/**`
-- Fresh result:
-  - Architect files in closure: `301`
-  - Architect-reached shared files: `14`
-  - total audited runtime files: `315`
-  - in-scope `.js/.jsx`: `0`
-- Current expected baseline `301 / 14 / 315 / 0 / 0` was confirmed, not disproved
+- Read-only Node closure walk over `src/features/architect/**`, `src/shared/components/**`, and `src/shared/utils/contracts/**`, excluding `*.test.*` and `*.spec.*`, proved:
+  - `300` Architect runtime code files
+  - `14` Architect-reached shared runtime files
+  - `314` total in-scope runtime code files
+  - `0` in-scope `.js/.jsx`
+  - `0` same-path `.js/.jsx` + `.ts/.tsx` sibling pairs
+- `find src/features/architect -type f \( -name '*.js' -o -name '*.jsx' \) | sort`
+  - proved there are no runtime `.js/.jsx` files left under `src/features/architect/**`
 
-Fresh shared runtime closure proved Architect currently reaches exactly these shared files:
+Shared-runtime path check:
 
-- `src/shared/components/BirdRightsIcon.tsx`
-- `src/shared/components/EditContractModal.tsx`
-- `src/shared/components/TeamLogo.tsx`
-- `src/shared/components/TeamSelectDropdown.tsx`
-- `src/shared/components/ui/Dialog.tsx`
-- `src/shared/components/ui/filters/BadgeFilterSelect.tsx`
-- `src/shared/components/ui/filters/MultiSelectFilter.tsx`
-- `src/shared/components/ui/filters/RangeSelector.tsx`
-- `src/shared/components/ui/filters/RoleChecklist.tsx`
-- `src/shared/components/ui/filters/index.ts`
-- `src/shared/utils/contracts/contractParser.ts`
-- `src/shared/utils/contracts/contractUtils.ts`
-- `src/shared/utils/contracts/index.ts`
-- `src/shared/utils/contracts/seasonNormalizer.ts`
+- The recursive Architect-to-shared import walk proved Architect currently reaches exactly these `14` shared runtime files:
+  - `src/shared/components/BirdRightsIcon.tsx`
+  - `src/shared/components/EditContractModal.tsx`
+  - `src/shared/components/TeamLogo.tsx`
+  - `src/shared/components/TeamSelectDropdown.tsx`
+  - `src/shared/components/ui/Dialog.tsx`
+  - `src/shared/components/ui/filters/BadgeFilterSelect.tsx`
+  - `src/shared/components/ui/filters/MultiSelectFilter.tsx`
+  - `src/shared/components/ui/filters/RangeSelector.tsx`
+  - `src/shared/components/ui/filters/RoleChecklist.tsx`
+  - `src/shared/components/ui/filters/index.ts`
+  - `src/shared/utils/contracts/contractParser.ts`
+  - `src/shared/utils/contracts/contractUtils.ts`
+  - `src/shared/utils/contracts/index.ts`
+  - `src/shared/utils/contracts/seasonNormalizer.ts`
+- Fresh conclusion:
+  - Architect does still depend on shared runtime surfaces.
+  - Those shared runtime surfaces are all `.ts/.tsx`.
+  - None of them is a shared JS business-logic blocker or a shared JS forwarder.
 
-Same-path scan:
+Residual shared JS/JSX proof:
 
-- `find ... | sed ... | uniq -d | wc -l`
-- Fresh result: `0`
-- Therefore there were no same-path `.js/.jsx` + `.ts/.tsx` pairs to classify in scope
+- `find src/shared/components src/shared/utils/contracts -type f \( -name '*.js' -o -name '*.jsx' \) | sort`
+  - proved `10` residual shared `.jsx` files still exist in those directories
+- The closure walk above proved none of those residual shared `.jsx` files are on the current Architect runtime path
 
-Explicit `.js/.jsx` runtime-import scan in `src/**`:
+Explicit `.js/.jsx` importer scan:
 
-- `rg -n "from ...\\.(js|jsx)|import\\(...\\.(js|jsx)" src/features/architect --glob '*.{ts,tsx}'`
-- Fresh result: `10` explicit `.js` imports, `0` explicit `.jsx` imports
-- All 10 are outside the audit scope:
-  - `@/config/validationFlags.js` x8
-  - `@/shared/utils/formatting/basicFormatting.js` x2
-- Fresh conclusion: out-of-scope explicit JS imports exist, but there is zero in-scope JS/JSX runtime-import pressure
+- `rg -n --glob '*.{ts,tsx,js,jsx}' "from ...\\.(js|jsx)|import\\(...\\.(js|jsx)" src`
+  - found Architect-side explicit `.js` imports, but all are outside the audit scope:
+    - `@/config/validationFlags.js` x8
+    - `@/shared/utils/formatting/basicFormatting.js` x2
+- Fresh conclusion:
+  - There is zero in-scope Architect runtime import pressure onto audited shared `.js/.jsx` surfaces
+  - The remaining explicit `.js` imports are real, but they do not change the in-scope runtime-ownership verdict for this audit
 
 Resolver / topology checks:
 
-- Fresh resolver proof used both `ts.resolveModuleName(...)` and Vite `pluginContainer.resolveId(...)`
-- Fresh outcomes:
+- This resolver conclusion is an inference from current repo config plus current file layout:
+  - `tsconfig.json` uses `moduleResolution: bundler` and `@/* -> ./src/*`
+  - `vite.config.js` maps `@/` directly to `./src/`
+  - a read-only candidate-resolution script confirmed the first existing match for each required specifier
+- Fresh required outcomes:
 
 | Specifier | TypeScript | Vite |
 | --- | --- | --- |
@@ -218,75 +224,83 @@ Resolver / topology checks:
 | `@/shared/components/ui/Dialog` | `src/shared/components/ui/Dialog.tsx` | `src/shared/components/ui/Dialog.tsx` |
 | `@/features/architect/utils/capProjections` | `src/features/architect/utils/capProjections.ts` | `src/features/architect/utils/capProjections.ts` |
 
-Fresh conclusion:
-
-- The expected TS-target baseline was confirmed for all 7 required specifiers.
-- No required specifier resolves through a `.js/.jsx` forwarder first anymore.
-
 Targeted file reads and what each proved:
 
-- same-path shim read: none required, because the fresh same-path scan found `0`
-- wrapper / public entry read: [validators/index.ts](../../../src/features/architect/utils/tradeMachine/validators/index.ts)
-  - confirmed a TS compatibility barrel still exists, but as TS-owned public surface rather than JS residue
-- barrel / index reads:
-  - [filters/index.ts](../../../src/shared/components/ui/filters/index.ts)
-  - [contracts/index.ts](../../../src/shared/utils/contracts/index.ts)
-  - both proved the live shared barrels on the Architect runtime path are TS authorities
-- retained standalone JS read: [PlayerHeadshot.jsx](../../../src/shared/components/PlayerHeadshot.jsx)
-  - proved out-of-scope shared JSX still exists
-  - fresh closure walk proved Architect does not currently reach it
-- major Architect TS authority read: [mutationPipeline.ts](../../../src/features/architect/utils/mutationPipeline.ts)
-  - proved the runtime core is TS-owned but still permissive
-- permissive-heavy TS reads:
-  - [resolveOffseasonTransition.ts](../../../src/features/architect/utils/offseason/resolveOffseasonTransition.ts)
-  - [useCapValidation.ts](../../../src/features/architect/hooks/useCapValidation.ts)
-  - both showed active reliance on local `...Like` compatibility shapes and bag typing
-- stronger contract-oriented TS reads:
-  - [contracts.ts](../../../src/features/architect/utils/persistenceContracts/contracts.ts)
-  - [validatePersistableShape.ts](../../../src/features/architect/utils/persistenceContracts/validatePersistableShape.ts)
-  - both showed genuinely structured contract typing
-- shared Architect-adjacent runtime TS read: [TeamLogo.tsx](../../../src/shared/components/TeamLogo.tsx)
-  - confirmed the current shared runtime authority on the Architect path is TS-owned
-- compatibility guardrail test read: [sharedContractPocket.compatibility.guardrail.test.tsx](../../../src/tests/architect/sharedContractPocket.compatibility.guardrail.test.tsx)
-  - confirmed the shared contract pocket guardrails now assert TS authority parity and deleted shim absence
-- stronger type export read: [types/index.ts](../../../src/features/architect/types/index.ts) plus [ruleContext.ts](../../../src/features/architect/types/ruleContext.ts)
-  - confirmed schema-backed and closed-contract types exist, even though they are not yet used deeply enough in the weakest authorities
+- Same-path shim read:
+  - none in scope from fresh proof, because same-path sibling pairs = `0`
+- Wrapper / public-entry JS read:
+  - none in scope from fresh proof, because in-scope `.js/.jsx` = `0`
+- Barrel / index JS read:
+  - none in scope from fresh proof, because in-scope `.js/.jsx` = `0`
+- Retained standalone JS read:
+  - none in scope from fresh proof, because in-scope `.js/.jsx` = `0`
+- Barrel / entry TS reads:
+  - `src/shared/components/ui/filters/index.ts`
+  - `src/shared/utils/contracts/index.ts`
+  - `src/features/architect/capSheet/CapSheet/index.ts`
+  - proved current live barrels/entrypoints on the audited path are TS-owned surfaces
+- Major Architect TS authority read:
+  - `src/features/architect/utils/mutationPipeline.ts`
+  - proved the runtime core is TS-owned but still materially bag-shaped and cast-heavy
+- Hardening-pack target reads:
+  - `src/features/architect/utils/offseason/resolveOffseasonTransition.ts`
+  - `src/features/architect/hooks/useCapValidation.ts`
+  - `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+  - proved the Final Hardening Pack improved ownership, but did not eliminate permissive local compatibility typing
+- Shared Architect-adjacent runtime TS reads:
+  - `src/shared/utils/contracts/contractParser.ts`
+  - `src/shared/components/TeamSelectDropdown.tsx`
+  - `src/shared/components/ui/Dialog.tsx`
+  - proved the shared runtime pocket is TS-owned but still permissive at several live boundaries
+- Compatibility guardrail test reads:
+  - `src/tests/architect/finalArchitectInventoryGate.e132.guardrail.test.ts`
+  - `src/tests/architect/sharedRuntimeBlockers.behavior.test.tsx`
+  - proved current guardrails assert zero Architect JS/JSX residue and behavior coverage for the migrated shared runtime blockers
+- Stronger contract-oriented TS reads:
+  - `src/features/architect/types/ruleContext.ts`
+  - `src/shared/utils/contracts/contractUtils.ts`
+  - proved stronger closed-contract pockets do exist in the current runtime surface
 
 ## 7. Final Standards Verdict
 
 `Architect passes structural TS conversion standards but not hardening standards`
 
-Fresh repo evidence supports this verdict.
-
 Why:
 
-- Runtime ownership is now a clean `PASS`.
-- No live business logic remains in `.js/.jsx` in the audited scope.
-- Resolver topology for the required surfaces now lands on TS in both TypeScript and Vite.
+- Runtime ownership is a clean `PASS`.
+- No live business logic remains in `.js/.jsx` on the audited runtime path.
+- Required resolver/topology checks now land on TS authorities rather than JS forwarders.
 - All three required validation commands passed.
-- Type quality is still only `partially hardened`, and the most important orchestration and transition files remain too permissive to call Architect fully hardened.
+- Current file contents still show core orchestration and some live shared runtime authorities are too permissive to call Architect `strongly typed`.
 
 Why not `Architect passes our standards`:
 
-- The Final Hardening Pack standard was not merely "converted to TS".
-- Fresh reads still show core flows dominated by local bag types, `...Like` compatibility shapes, and cast bridges.
+- The remaining blocker is hardening depth, not conversion depth.
+- `mutationPipeline.ts` remains too dominated by `LooseRecord`, `any`, and bridge casts.
+- The live shared runtime pocket still contains several `any`-based UI authorities.
 
 Why not `Architect does not yet pass our standards`:
 
-- Structural TS conversion and runtime ownership now do pass.
-- The remaining problem is specifically hardening depth, not unresolved migration, topology, or validation failure.
+- Structural TS conversion, runtime ownership, topology, and required validation all pass from fresh current-state proof.
+- The remaining issue is narrower: type hardening quality.
 
 ## 8. Recommended Next Actions
 
 1. Type hardening
-   - Start with `src/features/architect/utils/mutationPipeline.ts`.
-   - Then target `src/features/architect/utils/offseason/resolveOffseasonTransition.ts`, `src/features/architect/hooks/useCapValidation.ts`, and `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`.
-2. Replace local compatibility bags where shared contracts already exist
-   - Prefer `src/features/architect/types/index.ts`, `src/schemas/architect.ts`, and existing persistence / salary-engine contracts over new local `...Like` shapes.
-3. Reduce bridge casts in core flows
-   - Prioritize removing `as unknown as`, open index signatures, and catch-all `Record<string, unknown>` usage where runtime shapes are already stable.
-4. Guardrail retargeting only if needed
-   - Keep or add guardrails around current TS authorities and current extensionless import behavior.
-   - Do not reopen migration, shim cleanup, or wrapper cleanup unless future runtime-closure proof shows new JS/JSX pressure.
-5. Closeout complete
-   - Architect can be treated as fully closed out only after the core authorities are no longer dominated by permissive local bags and cast-driven type forcing.
+   - Prioritize `src/features/architect/utils/mutationPipeline.ts` first.
+   - Then continue with `src/features/architect/utils/offseason/resolveOffseasonTransition.ts`, `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`, and `src/features/architect/hooks/useCapValidation.ts`.
+2. Shared-runtime hardening
+   - Tighten the Architect-reached shared TS authorities that still expose `any` or open bag types:
+   - `src/shared/components/TeamSelectDropdown.tsx`
+   - `src/shared/components/ui/Dialog.tsx`
+   - `src/shared/components/BirdRightsIcon.tsx`
+   - `src/shared/components/ui/filters/MultiSelectFilter.tsx`
+   - `src/shared/components/EditContractModal.tsx`
+3. Prefer shared/schema-backed contracts over local compatibility bags
+   - Replace local `...Like`, `Record<string, unknown>`, and bridge-cast usage where stable contracts already exist.
+4. Guardrail retargeting
+   - Keep the inventory/topology guardrails.
+   - Add or tighten hardening-focused guardrails only after the remaining permissive hotspots are reduced.
+5. No remaining migration / shim / wrapper cleanup lane
+   - The fresh audit found no in-scope JS/JSX residue to migrate or clean up.
+   - The next lane is hardening only.
