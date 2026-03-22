@@ -9,16 +9,15 @@
 
 import React from 'react';
 
+type DialogOpenChangeHandler = ((open: boolean) => void) | (() => void);
+
 type DialogProps = {
-  open?: any;
-  onOpenChange?: any;
+  open?: boolean;
+  onOpenChange?: DialogOpenChangeHandler;
   children?: React.ReactNode;
 };
 
-type DialogContentProps = {
-  children?: React.ReactNode;
-  className?: string;
-};
+type DialogContentProps = React.HTMLAttributes<HTMLDivElement>;
 
 export const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
   if (!open) return null;
@@ -26,7 +25,7 @@ export const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
   return (
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={() => onOpenChange(false)}
+      onClick={() => onOpenChange?.(false)}
     >
       <div
         className="relative"
@@ -41,6 +40,11 @@ export const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
 export const DialogContent = ({
   children,
   className = '',
+  ...props
 }: DialogContentProps) => {
-  return <div className={className}>{children}</div>;
+  return (
+    <div className={className} {...props}>
+      {children}
+    </div>
+  );
 };

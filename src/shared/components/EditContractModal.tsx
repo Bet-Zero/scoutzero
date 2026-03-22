@@ -24,6 +24,7 @@ import {
   generateExtensionContract,
   getContractYearsForDisplay,
 } from '@/features/architect/utils/contractUtils';
+import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 import type { CapHoldItem, DeadCapItem } from '@/features/architect/types';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
@@ -52,23 +53,39 @@ type HookContractDataLike = NonNullable<
 type UseCapValidationResult = ReturnType<typeof useCapValidation>;
 type ValidationEntryLike = UseCapValidationResult['warnings'][number];
 type ValidationSeverity = ValidationEntryLike['severity'];
+type ContractYearLike = NonNullable<
+  ReturnType<typeof getContractYearsForDisplay>[number]
+>;
+type ContractActionKey =
+  | 'accept'
+  | 'decline'
+  | 'signNew'
+  | 'resign'
+  | 'signAndTrade'
+  | 'renounce'
+  | 'extend'
+  | 'waive'
+  | 'waiveStretch'
+  | 'buyout';
+type SelectedContractAction = ContractActionKey | '';
 
 type PlayerBioLike = {
+  playerId?: string | null;
+  displayName?: string | null;
+  age?: number | string | null;
+  position?: string | null;
+  height?: number | string | null;
+  weight?: number | string | null;
+  display?: {
+    freeAgentType?: string | null;
+    freeAgentYear?: number | null;
+    teamId?: string | null;
+    team?: string | null;
+  } | null;
   experience?: unknown;
   draftYear?: unknown;
   draftRound?: unknown;
   draftPick?: unknown;
-  [key: string]: unknown;
-};
-
-type ContractYearLike = {
-  year: number;
-  season: string;
-  salary: number;
-  option?: string | null;
-  isExtension?: boolean;
-  guaranteed?: boolean;
-  [key: string]: unknown;
 };
 
 type ContractSalaryRowLike = HookContractSalaryRowLike & {
@@ -76,14 +93,12 @@ type ContractSalaryRowLike = HookContractSalaryRowLike & {
   year?: string | number | null;
   option?: string | null;
   isExtension?: boolean | null;
-  [key: string]: unknown;
 };
 
 type ContractLike = HookContractLike & {
   salariesByYear?: ContractSalaryRowLike[] | null;
   isRookieScale?: boolean | null;
   contractType?: string | null;
-  [key: string]: unknown;
 };
 
 type PlayerLike = HookPlayerLike & {
@@ -96,8 +111,8 @@ type PlayerLike = HookPlayerLike & {
   yearsPro?: unknown;
   bio?: PlayerBioLike | null;
   contract?: ContractLike | null;
+  futureContract?: ContractLike | null;
   freeAgentYear?: number | null;
-  [key: string]: unknown;
 };
 
 type SigningGuardrailsLike = ReturnType<typeof buildSigningGuardrails> | null;
@@ -116,18 +131,6 @@ type ExtensionStateLike = {
   contractType: string;
   salaries: number[];
   raisePct?: number;
-  [key: string]: unknown;
-};
-
-type ExtensionTermsLike = {
-  maxYears?: number | null;
-  maxFirstYearSalary?: number | null;
-  minFirstYearSalary?: number | null;
-  raisePercentage?: number | null;
-  extensionType?: string | null;
-  basedOn?: string | null;
-  notes?: string | null;
-  [key: string]: unknown;
 };
 
 type PlayerRulesProfileLike = Parameters<typeof buildSigningGuardrails>[0];
@@ -146,7 +149,6 @@ type ExtMaxState = {
 type RulesLeagueContextLike = {
   simulationDate?: Date | null;
   currentYear?: number | null;
-  [key: string]: unknown;
 } | null;
 
 type TeamCapSheetLike = HookTeamCapSheetLike & {
@@ -154,7 +156,6 @@ type TeamCapSheetLike = HookTeamCapSheetLike & {
   players?: PlayerLike[] | null;
   deadCap?: DeadCapLike[] | null;
   capHolds?: CapHoldLike[] | null;
-  [key: string]: unknown;
 };
 
 type OverrideMetadataLike = {
@@ -288,9 +289,9 @@ type EditContractModalProps = {
   playerRulesProfile?: PlayerRulesProfileLike;
   rulesLeagueContext?: RulesLeagueContextLike;
   actionsOverride?: string[] | null;
-  actionLabelsOverride?: Record<string, string>;
+  actionLabelsOverride?: Partial<Record<ContractActionKey, string>>;
   onAuditLog?: AuditLogCallback | null;
-  capProjections?: unknown;
+  capProjections?: CapProjectionOverrides | null;
   playersMap?: Record<string, PlayerLike> | null;
 };
 
@@ -326,9 +327,9 @@ const buildValidationResult = ({
   errors: ValidationEntryLike[];
   warnings: ValidationEntryLike[];
   isExtendEligible: boolean;
-  selectedAction: string;
+  selectedAction: SelectedContractAction;
 }): ValidationResultLike => {
-  const reasons = [];
+  const reasons: string[] = [];
   let maxSeverity: ValidationSeverity = 'info';
 
   // Collect all error messages
@@ -401,13 +402,13 @@ export const normalizeContractActionResult = (
   };
 };
 
-const ACTION_SETS: Record<ActionSetKey, string[]> = {
+const ACTION_SETS: Record<ActionSetKey, ContractActionKey[]> = {
   option: ['accept', 'decline', 'signNew'],
   freeAgent: ['resign', 'signAndTrade', 'renounce'],
   underContract: ['extend', 'waive', 'waiveStretch', 'buyout'],
 };
 
-const ACTION_LABELS: Record<string, string> = {
+const ACTION_LABELS: Record<ContractActionKey, string> = {
   accept: 'Accept Option',
   decline: 'Decline Option',
   signNew: 'Sign New Contract',
@@ -420,7 +421,7 @@ const ACTION_LABELS: Record<string, string> = {
   buyout: 'Buyout Contract',
 };
 
-const ACTION_DESCRIPTIONS: Record<string, string> = {
+const ACTION_DESCRIPTIONS: Record<ContractActionKey, string> = {
   accept: 'Player remains under contract for the option year.',
   decline: 'Player becomes a Free Agent immediately.',
   signNew: 'Negotiate a new contract, replacing the option.',
@@ -433,7 +434,7 @@ const ACTION_DESCRIPTIONS: Record<string, string> = {
   buyout: 'Negotiate a reduced amount to release player.',
 };
 
-const ACTION_TEST_IDS: Record<string, string> = {
+const ACTION_TEST_IDS: Partial<Record<ContractActionKey, string>> = {
   resign: 'contract-action-resign',
   signAndTrade: 'contract-action-sign-and-trade',
   renounce: 'contract-action-renounce-rights',
@@ -442,6 +443,13 @@ const ACTION_TEST_IDS: Record<string, string> = {
   waiveStretch: 'contract-action-waive-stretch',
   buyout: 'contract-action-buyout',
 };
+
+const CONTRACT_ACTION_KEYS = Object.freeze(
+  Object.keys(ACTION_LABELS)
+) as readonly ContractActionKey[];
+
+const isContractActionKey = (value: string): value is ContractActionKey =>
+  CONTRACT_ACTION_KEYS.includes(value as ContractActionKey);
 
 const EditContractModal = ({
   player,
@@ -468,7 +476,8 @@ const EditContractModal = ({
   actionLabelsOverride = {},
   onAuditLog = null, // Callback to record override audit entries
 }: EditContractModalProps) => {
-  const [selectedAction, setSelectedAction] = useState('');
+  const [selectedAction, setSelectedAction] =
+    useState<SelectedContractAction>('');
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [extension, setExtension] = useState<ExtensionStateLike>({
     years: 1,
@@ -530,10 +539,7 @@ const EditContractModal = ({
   }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
 
   const contractYears = useMemo<ContractYearLike[]>(
-    () =>
-      getContractYearsForDisplay(
-        player as Parameters<typeof getContractYearsForDisplay>[0]
-      ) as ContractYearLike[],
+    () => getContractYearsForDisplay(player),
     [player]
   );
 
@@ -600,7 +606,13 @@ const EditContractModal = ({
             ? 'underContract'
             : null;
 
-  const actions = actionsOverride || (actionSet ? ACTION_SETS[actionSet] : []) || [];
+  const actions = useMemo<ContractActionKey[]>(
+    () =>
+      (actionsOverride || (actionSet ? ACTION_SETS[actionSet] : []) || []).filter(
+        isContractActionKey
+      ),
+    [actionSet, actionsOverride]
+  );
   const extensionEligibility = playerRulesProfile?.extensionEligibility;
   const isExtendEligible =
     extensionEligibility?.isEligible ?? extReason === 'Eligible';
@@ -770,7 +782,9 @@ const EditContractModal = ({
         .map((s) => (s ? formatCurrencyFull(s) : ''))
     );
     // Use initialAction if provided, otherwise reset
-    setSelectedAction(initialAction || '');
+    setSelectedAction(
+      initialAction && isContractActionKey(initialAction) ? initialAction : ''
+    );
     setSelectedException('None');
 
     const eligibility = playerRulesProfile?.extensionEligibility;
@@ -787,10 +801,10 @@ const EditContractModal = ({
               maxYears: terms.maxYears,
               maxFirstYearSalary: terms.maxFirstYearSalary,
               minFirstYearSalary: terms.minFirstYearSalary,
-              baseRaisePct: (terms.raisePercentage as number | null) ?? null,
+              baseRaisePct: terms.raisePercentage ?? null,
               type: terms.extensionType,
-              basedOn: (terms.basedOn as string | null) ?? null,
-              notes: (terms.notes as string | null) ?? null,
+              basedOn: terms.basedOn ?? null,
+              notes: terms.notes ?? null,
             }
           : null
       );
@@ -1206,7 +1220,7 @@ const EditContractModal = ({
   if (!player) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose as (open: boolean) => void}>
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent
         data-testid="edit-contract-modal"
         className="max-w-6xl w-[95vw] bg-[#0f0f0f] border-2 border-white/20 rounded-xl shadow-2xl shadow-black/50 p-0 overflow-hidden flex flex-col lg:flex-row min-h-[500px] max-h-[85vh]"
@@ -1758,8 +1772,8 @@ const EditContractModal = ({
           {/* === Validation Warnings === */}
           {selectedAction && (warnings.length > 0 || errors.length > 0) && (
             <ValidationWarnings
-              warnings={warnings as { severity?: string; message?: string }[]}
-              errors={errors as { severity?: string; message?: string }[]}
+              warnings={warnings}
+              errors={errors}
               showErrors={showValidationErrors}
             />
           )}

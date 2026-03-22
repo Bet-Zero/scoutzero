@@ -14,26 +14,30 @@ import TeamLogo from './TeamLogo';
 import { TeamListFull } from '@/constants/teamList';
 import { getTeamColors } from '@/shared/utils/formatting';
 
-type TeamOption = Record<string, any>;
+type TeamOption = (typeof TeamListFull)[number];
+type TeamSelectValue = TeamOption['id'] | TeamOption['code'] | TeamOption['teamId'];
+type TeamSelectValueFormat = 'id' | 'teamCode';
 
 type TeamSelectDropdownProps = {
-  selectedTeamId?: any;
-  onChange?: any;
-  valueFormat?: any;
+  selectedTeamId?: TeamSelectValue | null;
+  onChange?: (value: TeamSelectValue) => void;
+  valueFormat?: TeamSelectValueFormat;
 };
 
-const resolveTeamByAnyIdentifier = (identifier: any) => {
+const resolveTeamByAnyIdentifier = (
+  identifier: TeamSelectValue | null | undefined
+): TeamOption | null => {
   if (!identifier) return null;
   const normalized = String(identifier).trim().toUpperCase();
   return (
     TeamListFull.find(
-      (team: TeamOption) =>
+      (team) =>
         team.id === identifier ||
         team.code === identifier ||
         team.teamId === identifier
     ) ||
     TeamListFull.find(
-      (team: TeamOption) =>
+      (team) =>
         team.code?.toUpperCase() === normalized ||
         team.teamId?.toUpperCase() === normalized
     ) ||
@@ -50,7 +54,7 @@ const TeamSelectDropdown = ({
     () => resolveTeamByAnyIdentifier(selectedTeamId),
     [selectedTeamId]
   );
-  const optionValueFor = (team: TeamOption) =>
+  const optionValueFor = (team: TeamOption): TeamSelectValue =>
     valueFormat === 'teamCode' ? team.code || team.teamId || team.id : team.id;
   const selectedColorInput = selectedTeam?.id || selectedTeamId;
   const { primary: selectedColor } = getTeamColors(selectedColorInput) || {};

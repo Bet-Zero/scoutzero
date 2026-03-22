@@ -11,11 +11,21 @@ Finish Architect by replacing placeholder and bridge typing with specific, meani
 
 ## 3. Known Remaining Runtime Blockers
 
+Original core runtime blockers completed in Pass 1:
+
 - `src/features/architect/utils/mutationPipeline.ts`
 - `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
 - `src/features/architect/utils/offseason/resolveOffseasonTransition.ts`
 
-A later follow-up pass may still be needed for the Architect-reached shared runtime pocket, but that is not this pass.
+Shared runtime pocket follow-up completed in Pass 2:
+
+- `src/shared/components/TeamSelectDropdown.tsx`
+- `src/shared/components/ui/Dialog.tsx`
+- `src/shared/components/BirdRightsIcon.tsx`
+- `src/shared/components/ui/filters/MultiSelectFilter.tsx`
+- `src/shared/components/EditContractModal.tsx`
+
+No new TS-authority runtime blocker files are currently tracked ahead of the final audit.
 
 ## 4. Pass Plan
 
@@ -33,13 +43,17 @@ Goal:
 
 ### Pass 2 — Shared runtime pocket hardening
 
-Reserved but not executed in this run:
+Files executed in this repo’s current authoritative paths:
 
-- `TeamSelectDropdown.tsx`
-- `Dialog.tsx`
-- `BirdRightsIcon.tsx`
-- `MultiSelectFilter.tsx`
-- `EditContractModal.tsx`
+- `src/shared/components/TeamSelectDropdown.tsx`
+- `src/shared/components/ui/Dialog.tsx`
+- `src/shared/components/BirdRightsIcon.tsx`
+- `src/shared/components/ui/filters/MultiSelectFilter.tsx`
+- `src/shared/components/EditContractModal.tsx`
+
+Goal:
+
+- materially reduce placeholder typing in the shared runtime pocket without widening back into migration or shim cleanup work
 
 ### Final Audit
 
@@ -50,24 +64,39 @@ Reserved but not executed in this run.
 - `Pass 1 — Core runtime blocker hardening — COMPLETE`
   Summary: tightened the main `executeTrade` payload/result/update contracts in `mutationPipeline.ts`, aligned the world-mode free-agency action path in `useArchitectActions.ts` to those stronger contracts, tightened offseason transition context/dead-cap/exception contracts in `resolveOffseasonTransition.ts`, added a focused runtime proof, and kept runtime behavior unchanged in scoped validation.
   Support edits used: 1
-- `Pass 2 — Shared runtime pocket hardening — NOT STARTED`
+- `Pass 2 — Shared runtime pocket hardening — COMPLETE`
+  Summary: removed the remaining `any`-based and open bag-dominated prop surfaces from `TeamSelectDropdown.tsx`, `Dialog.tsx`, `BirdRightsIcon.tsx`, and `MultiSelectFilter.tsx`; tightened the highest-value local compatibility contracts in `EditContractModal.tsx`; aligned `DialogContent` prop forwarding with its typed surface; and kept the focused shared-pocket behavior proofs green.
 - `Final Audit — NOT STARTED`
 
 ## 6. Current Risks / Open Questions
 
-- `mutationPipeline.ts` shed the highest-value trade-path placeholder usage, but broader compatibility aliases still remain outside the targeted trade and audit/result helpers to avoid widening into a larger orchestration refactor.
-- `useArchitectActions.ts` now consumes stronger mutation payload/result contracts for the key mutation paths, but it still keeps localized adapter casts for validator boundaries, dev fixtures, and reset flows that were deliberately left out of Pass 1.
-- `resolveOffseasonTransition.ts` no longer relies on open bags for the core transition fields it reads and rewrites, but it still preserves opaque forwarded exception keys where closing the full exception contract would widen into a shared refactor.
-- One tiny support edit was needed: `capRulesProfile.ts` now exports the canonical cap-projection override type consumed by `resolveOffseasonTransition.ts`.
-- The `handleSign` bridge was removed without widening contract normalization beyond scope; if future signing normalization work expands, that should be treated as a separate follow-up rather than folded back into Pass 1.
+- `mutationPipeline.ts`, `useArchitectActions.ts`, and `resolveOffseasonTransition.ts` are no longer concentrated blocker hotspots, but their remaining loose adapter pockets should still be reviewed once during the final audit rather than reopened piecemeal.
+- `EditContractModal.tsx` now uses tighter local action, player, contract-year, and modal-boundary contracts, but it still accepts some intentionally loose upstream player data fields where caller shapes differ across Architect surfaces.
+- The shared runtime pocket behavior is covered, but `src/tests/architect/sharedRuntimeBlockers.compatibility.guardrail.test.tsx` currently fails because the legacy `.jsx/.js` shim files it expects are absent in this checkout. That is a compatibility-surface question, not a TS-authority hardening blocker, and should be decided explicitly during final audit.
+- The broad `npm run test:architect -- --reporter=dot ...` command pulled in unrelated Architect suites and exposed an offer-sheet closure failure outside the Pass 2 file set. That failure should not be treated as a Pass 2 regression without separate confirmation.
 
 ## 7. Validation Ledger
+
+**Post-Pass 1:**
 
 - `npm run typecheck` — PASS
 - `npm run test:node -- --reporter=dot src/tests/architect/architectRuntimeBlockers.pass1.test.ts` — PASS
   Notes: 3/3 tests passed. Test output included the expected projected-cap warning from the trade validation path for `2025-26`.
 - `npm run build` — PASS
   Warnings: pre-existing Browserslist staleness notice; pre-existing Vite browser externalization warning for `fs`; pre-existing mixed static/dynamic import warnings for `firebaseConfig.js`, `entitlementResolver.ts`, and `leagueInvariants.ts`; pre-existing large chunk size warning for the main build output.
+- `npm run validate:project` — PASS
+
+**Post-Pass 2:**
+
+- `npm run typecheck` — PASS
+- `npm run test:architect -- --reporter=dot src/tests/architect/sharedRuntimeBlockers.behavior.test.tsx src/tests/architect/sharedRuntimeBlockers.compatibility.guardrail.test.tsx src/tests/architect/sharedContractPocket.e111.behavior.test.tsx` — FAIL
+  Notes: command expanded into the broader Architect suite via the script definition and surfaced unrelated offer-sheet closure failures outside the Pass 2 shared-pocket scope.
+- `npm run test:ui -- --reporter=dot src/tests/architect/sharedRuntimeBlockers.behavior.test.tsx src/tests/architect/sharedContractPocket.e111.behavior.test.tsx` — PASS
+  Notes: 17/17 tests passed.
+- `npm run test:ui -- --reporter=dot src/tests/architect/sharedRuntimeBlockers.compatibility.guardrail.test.tsx` — FAIL
+  Notes: failing assertions expect legacy `.jsx/.js` shim files that are absent in this checkout.
+- `npm run build` — PASS
+  Warnings: same pre-existing set as Pass 1; no new build warnings introduced by Pass 2.
 - `npm run validate:project` — PASS
 
 ## 8. Final Audit Gate

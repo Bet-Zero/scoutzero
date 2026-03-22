@@ -8,17 +8,38 @@
 import React from 'react';
 import clsx from 'clsx';
 
+type MultiSelectFilterValue = string | number;
+type MultiSelectFilterOptionObject = {
+  id?: MultiSelectFilterValue;
+  value?: MultiSelectFilterValue;
+  code?: string;
+  teamId?: string;
+  label?: string;
+  name?: string;
+  teamName?: string;
+};
+type MultiSelectFilterOption =
+  | MultiSelectFilterValue
+  | MultiSelectFilterOptionObject;
+type MultiSelectFilterValueKey = 'id' | 'value' | 'code' | 'teamId';
+type MultiSelectFilterLabelKey = 'label' | 'name' | 'teamName' | 'code' | 'value';
+
 type MultiSelectFilterProps = {
-  label?: any;
-  value?: any;
-  options?: any[];
-  onChange?: any;
+  label?: React.ReactNode;
+  value?: MultiSelectFilterValue | '';
+  options?: MultiSelectFilterOption[];
+  onChange?: (value: string) => void;
   allLabel?: string;
   containerClass?: string;
   selectClass?: string;
-  valueKey?: string;
-  labelKey?: string;
+  valueKey?: MultiSelectFilterValueKey;
+  labelKey?: MultiSelectFilterLabelKey;
 };
+
+const isOptionObject = (
+  option: MultiSelectFilterOption
+): option is MultiSelectFilterOptionObject =>
+  typeof option === 'object' && option !== null;
 
 const MultiSelectFilter = ({
   label,
@@ -49,11 +70,12 @@ const MultiSelectFilter = ({
       >
         <option value="">{allLabel}</option>
         {options.map((opt) => {
-          const isObj = typeof opt === 'object';
-          const val = isObj ? (opt[valueKey] ?? opt.id) : opt;
-          const optLabel = isObj ? opt[labelKey] || opt.label : opt;
+          const val = isOptionObject(opt) ? (opt[valueKey] ?? opt.id ?? '') : opt;
+          const optLabel = isOptionObject(opt)
+            ? opt[labelKey] ?? opt.label ?? String(val)
+            : opt;
           return (
-            <option key={val} value={val}>
+            <option key={String(val)} value={String(val)}>
               {optLabel}
             </option>
           );

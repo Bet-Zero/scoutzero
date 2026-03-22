@@ -21,7 +21,7 @@ import React from 'react';
  * @param {number} props.size - Icon size in pixels (default: 16)
  */
 type BirdRightsIconProps = {
-  type?: any;
+  type?: string | null;
   className?: string;
   size?: number;
 };
@@ -34,14 +34,21 @@ const BirdRightsIcon = ({
   if (!type) return null;
 
   // Map bird rights types to icon filenames
-  const iconMap: Record<string, string | null> = {
+  const iconMap: Partial<
+    Record<'Early Bird' | 'Full Bird' | 'Non-Bird' | 'None', string>
+  > = {
     'Early Bird': 'bird_early_bird.svg',
     'Full Bird': 'bird_full_bird.svg',
     'Non-Bird': 'bird_non_bird.svg',
-    None: null, // No icon for None
   };
 
-  const iconFile = iconMap[type];
+  const iconFile =
+    type === 'Early Bird' ||
+    type === 'Full Bird' ||
+    type === 'Non-Bird' ||
+    type === 'None'
+      ? iconMap[type]
+      : null;
   if (!iconFile) return null;
 
   return (

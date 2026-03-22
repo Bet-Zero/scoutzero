@@ -119,7 +119,9 @@ describe('Architect shared runtime blocker behavior', () => {
     const onOpenChange = vi.fn();
     const { container, rerender } = render(
       <Dialog open={false} onOpenChange={onOpenChange}>
-        <DialogContent className="dialog-body">Modal Body</DialogContent>
+        <DialogContent className="dialog-body" data-testid="dialog-body">
+          Modal Body
+        </DialogContent>
       </Dialog>
     );
 
@@ -128,12 +130,14 @@ describe('Architect shared runtime blocker behavior', () => {
 
     rerender(
       <Dialog open onOpenChange={onOpenChange}>
-        <DialogContent className="dialog-body">Modal Body</DialogContent>
+        <DialogContent className="dialog-body" data-testid="dialog-body">
+          Modal Body
+        </DialogContent>
       </Dialog>
     );
 
     const overlay = container.firstChild as HTMLElement;
-    const body = screen.getByText('Modal Body');
+    const body = screen.getByTestId('dialog-body');
 
     expect(body).toBeInTheDocument();
     expect(body).toHaveClass('dialog-body');
