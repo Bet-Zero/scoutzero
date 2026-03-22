@@ -123,8 +123,117 @@ import {
 } from '@/features/architect/utils/tradeContext';
 
 type LooseRecord = Record<string, unknown>;
+type TradePayloadPlayerLike = {
+  player_id?: string | null;
+  id?: string | null;
+  playerId?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  playerName?: string | null;
+  matchIncoming?: number | string | null;
+  absorptionMode?: string | null;
+  tpeId?: string | null;
+  receivingTeamIndex?: unknown;
+  receivingTeamId?: unknown;
+  tradeTo?: unknown;
+  toTeamId?: unknown;
+  destTeamId?: unknown;
+  [key: string]: unknown;
+};
+type TradePayloadEntitlementLike = {
+  entitlementId?: string | number | null;
+  id?: string | number | null;
+  toTeamId?: unknown;
+};
+type TradePayloadTeamLike = {
+  team?: {
+    id?: unknown;
+    teamCode?: unknown;
+    [key: string]: unknown;
+  } | null;
+  teamCode?: unknown;
+  teamId?: unknown;
+  sends?: TradePayloadPlayerLike[];
+  receives?: TradePayloadPlayerLike[];
+  outgoingEntitlements?: TradePayloadEntitlementLike[];
+  entitlementsOut?: TradePayloadEntitlementLike[];
+  [key: string]: unknown;
+};
+type TradeTpeConsumptionIssue = {
+  playerId?: string | null;
+  tpeId?: string | null;
+  reason: string;
+};
+type TradeAbsorbedPlayer = {
+  playerId?: string | null;
+  name?: string | null;
+  amountAbsorbed: number;
+};
+type TradeEntitlementTransferSummary = {
+  out: string[];
+  in: string[];
+};
+type TradeEntitlementsMovedByTeam = Record<
+  string,
+  TradeEntitlementTransferSummary
+>;
+type EntitlementUpdateLike = {
+  entitlementId: string;
+  holderTeam: string;
+};
+type TradeMutationMetadata = {
+  type: 'trade';
+  teamsInvolved: Array<string | null | undefined>;
+  playersTraded: Array<string | null | undefined>;
+  entitlementsTraded?: TradeEntitlementsMovedByTeam;
+  timestamp: number;
+};
+type TradeSnapshotLike = {
+  teamUpdates?: Array<{
+    teamCode?: string | null;
+    team?: TeamLike | null;
+  }>;
+  validationTeams?: TradeValidationTeamLike[];
+  [key: string]: unknown;
+};
+type TradeValidationTeamLike = {
+  receives?: TradePayloadPlayerLike[];
+  [key: string]: unknown;
+};
+type TradeValidationTeamResultLike = LooseRecord & {
+  createdTPE?: TradeExceptionRecord | null;
+  rules?: {
+    tradeExceptions?: unknown;
+    [key: string]: unknown;
+  } | null;
+  _blocked?: boolean;
+  _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
+  _tpeConsumptionWarnings?: TradeTpeConsumptionIssue[];
+};
+type TradeValidationResultLike = LooseRecord & {
+  legal?: boolean;
+  teamResults?: TradeValidationTeamResultLike[];
+};
+type TradeValidatedContextLike = LooseRecord & {
+  _rawValidation?: TradeValidationResultLike;
+  legal?: boolean;
+  teamResults?: TradeValidationTeamResultLike[];
+  validationTeams?: TradeValidationTeamLike[];
+};
+type TradeHistoryContextLike = LooseRecord & {
+  worldId?: unknown;
+  mutationType?: unknown;
+  mutationId?: unknown;
+};
+type TradeTeamUpdate = {
+  teamCode: string | null;
+  team: TeamLike;
+};
+type TradeExceptionHistoryEntry =
+  | NonNullable<ReturnType<typeof createTpeConsumptionHistoryEntry>>
+  | NonNullable<ReturnType<typeof createTpeCreationHistoryEntry>>;
 type MutationPayloadLike = {
-  teams?: LooseRecord[];
+  teams?: TradePayloadTeamLike[];
   asOfDate?: string | number | null;
   teamCode?: string | null;
   playerId?: string | null;
@@ -153,7 +262,7 @@ type TeamLike = {
   capHolds?: LooseRecord[];
   deadCap?: LooseRecord[];
   exceptions?: LooseRecord;
-  tradeExceptions?: LooseRecord[];
+  tradeExceptions?: TradeExceptionRecord[];
   offerSheets?: LooseRecord[];
   incomingOfferSheets?: LooseRecord[];
   totals?: LooseRecord;
@@ -175,8 +284,8 @@ type PlayerLike = {
   tpeId?: string | null;
   [key: string]: unknown;
 };
-type TeamUpdateLike = { teamCode?: string | null; team?: TeamLike | null; [key: string]: unknown };
-type PlayerUpdateLike = { playerId?: string | null; player?: PlayerLike | null; [key: string]: unknown };
+type TeamUpdateLike = { teamCode?: string | null; team?: TeamLike | null };
+type PlayerUpdateLike = { playerId?: string | null; player?: PlayerLike | null };
 type WritesSummaryLike = {
   teamsPatched: number;
   teamsWritten: number;
@@ -198,7 +307,7 @@ type ComputeResultLike = {
   error?: string | Error | null;
   teamUpdates?: TeamUpdateLike[];
   playerUpdates?: PlayerUpdateLike[];
-  entitlementUpdates?: LooseRecord[];
+  entitlementUpdates?: EntitlementUpdateLike[];
   metadata?: LooseRecord;
   warnings?: (string | LooseRecord)[];
   violations?: string[];
@@ -212,11 +321,15 @@ type ComputeResultLike = {
   eventWritten?: boolean;
   _validatedTradeContext?: LooseRecord;
   _signingValidation?: LooseRecord;
-  _tpeConsumptionErrors?: string[];
+  _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
   [key: string]: unknown;
 };
+type CurrentStateTeamEntryLike = {
+  teamCode?: string | null;
+  team?: TeamLike | null;
+};
 type CurrentStateLike = {
-  teams?: Array<{ teamCode?: string | null; team?: TeamLike | null }>;
+  teams?: CurrentStateTeamEntryLike[];
   team?: TeamLike | null;
   player?: PlayerLike | null;
   homeTeam?: TeamLike | null;
@@ -2162,7 +2275,11 @@ function computeTradeResult({
   historyContext = {},
   postTradeSnapshot,
   validatedContext,
-}: ComputeMutationParams & { historyContext?: LooseRecord; postTradeSnapshot?: LooseRecord; validatedContext?: LooseRecord }): ComputeResultLike {
+}: ComputeMutationParams & {
+  historyContext?: TradeHistoryContextLike;
+  postTradeSnapshot: TradeSnapshotLike;
+  validatedContext: TradeValidatedContextLike;
+}): ComputeResultLike {
   // Phase 58: Use shared assertions from tradeContext module
   // (replaces Phase 56 inline checks with centralized assertions)
   assertTradeComputeInputs({
@@ -2172,6 +2289,7 @@ function computeTradeResult({
   });
 
   const playerUpdates: PlayerUpdateLike[] = [];
+  const tradeTeams = Array.isArray(payload.teams) ? payload.teams : [];
 
   const currentYear = toEndYear(seasonId);
   const timestampISO = new Date(timestamp).toISOString();
@@ -2185,33 +2303,38 @@ function computeTradeResult({
 
   // Phase 56: Use pre-built snapshot teamUpdates (already has roster changes applied)
   // Deep clone to avoid mutating the snapshot
-  const teamUpdates: TeamUpdateLike[] = (postTradeSnapshot.teamUpdates as LooseRecord[]).map(
-    (entry: LooseRecord) => ({
-      teamCode: entry.teamCode as string | null,
-      team: JSON.parse(JSON.stringify(entry.team)) as TeamLike,
+  const teamUpdates: TradeTeamUpdate[] = (postTradeSnapshot.teamUpdates || []).map(
+    (entry) => ({
+      teamCode: entry.teamCode ?? null,
+      team: JSON.parse(JSON.stringify(entry.team || {})) as TeamLike,
     })
   );
 
   // Phase 56: Use validation results from validatedContext (already validated once)
-  const validation = (validatedContext._rawValidation || {
+  const validation: TradeValidationResultLike = validatedContext._rawValidation || {
     legal: validatedContext.legal,
     teamResults: validatedContext.teamResults || [],
-  }) as LooseRecord;
+  };
 
   // Phase 56: Use validationTeams from context (has matchIncoming populated by validator)
-  const validationTeams =
-    (validatedContext.validationTeams || postTradeSnapshot.validationTeams) as LooseRecord[];
+  const validationTeams: TradeValidationTeamLike[] = Array.isArray(
+    validatedContext.validationTeams
+  )
+    ? validatedContext.validationTeams
+    : Array.isArray(postTradeSnapshot.validationTeams)
+      ? postTradeSnapshot.validationTeams
+      : [];
 
   // Warn if multi-team trade without directed routing (informational only)
-  if (payload.teams.length > 2) {
-    const hasDirectedRouting = payload.teams.some((t: LooseRecord) =>
-      ((t.sends || []) as LooseRecord[]).some(
-        (s: LooseRecord) =>
-          s.receivingTeamIndex !== undefined ||
-          s.receivingTeamId !== undefined ||
-          s.tradeTo !== undefined ||
-          s.toTeamId !== undefined ||
-          s.destTeamId !== undefined
+  if (tradeTeams.length > 2) {
+    const hasDirectedRouting = tradeTeams.some((teamTrade) =>
+      (teamTrade.sends || []).some(
+        (sentPlayer) =>
+          sentPlayer.receivingTeamIndex !== undefined ||
+          sentPlayer.receivingTeamId !== undefined ||
+          sentPlayer.tradeTo !== undefined ||
+          sentPlayer.toTeamId !== undefined ||
+          sentPlayer.destTeamId !== undefined
       )
     );
     if (!hasDirectedRouting) {
@@ -2226,14 +2349,14 @@ function computeTradeResult({
   // Phase 56: Apply validated TPE creation/consumption to each team
   // (validation already ran externally via validatePostTradeSnapshotForContext)
   // ============================================================================
-  teamUpdates.forEach((teamUpdate: TeamUpdateLike, idx: number) => {
+  teamUpdates.forEach((teamUpdate: TradeTeamUpdate, idx: number) => {
     const teamResult = validation.teamResults?.[idx];
     if (!teamResult) return;
 
     const updatedTeam = teamUpdate.team;
     const currentTPEs = updatedTeam.tradeExceptions || [];
-    const historyEntries = [];
-    const tpeAbsorptionDetails = new Map();
+    const historyEntries: TradeExceptionHistoryEntry[] = [];
+    const tpeAbsorptionDetails = new Map<string, TradeAbsorbedPlayer[]>();
 
     // 1. Apply TPE consumption from validator
     // The validator's tradeExceptions rule modifies TPE objects with updated remaining/used amounts
@@ -2246,13 +2369,13 @@ function computeTradeResult({
     if (tradeExceptionsResult) {
       // The validator already updated the TPE objects in place during validation
       // We need to extract the consumed amounts from the incoming players that used TPEs
-      const incomingPlayers = (validationTeams[idx].receives as LooseRecord[] | undefined) || [];
-      const tpeUsageMap = new Map(); // tpeId -> consumed amount
-      const tpeConsumptionWarnings: LooseRecord[] = []; // Phase 47C: Track missing matchIncoming warnings
-      const tpeConsumptionErrors: LooseRecord[] = []; // Fail-closed: hard errors that block mutation
+      const incomingPlayers = validationTeams[idx]?.receives || [];
+      const tpeUsageMap = new Map<string, number>(); // tpeId -> consumed amount
+      const tpeConsumptionWarnings: TradeTpeConsumptionIssue[] = []; // Phase 47C: Track missing matchIncoming warnings
+      const tpeConsumptionErrors: TradeTpeConsumptionIssue[] = []; // Fail-closed: hard errors that block mutation
 
       // FAIL-CLOSED PRE-CHECK: Any player with absorptionMode='TPE' MUST have tpeId + matchIncoming
-      incomingPlayers.forEach((player: LooseRecord) => {
+      incomingPlayers.forEach((player) => {
         if (player.absorptionMode === 'TPE') {
           const playerLabel = player.name || player.player_id || 'unknown';
           if (!player.tpeId) {
@@ -2285,7 +2408,7 @@ function computeTradeResult({
         );
         // Skip all TPE processing — do not partially consume
       } else {
-        incomingPlayers.forEach((player: any) => {
+        incomingPlayers.forEach((player) => {
           // Phase 47C: Only process TPE consumption if tpeId is set
           if (!player.tpeId) return;
 
@@ -2336,8 +2459,9 @@ function computeTradeResult({
         }
 
         // Apply consumption to TPEs
-        updatedTPEs = currentTPEs.map((tpe: any) => {
-          const consumed = tpeUsageMap.get(tpe.id) || 0;
+        updatedTPEs = currentTPEs.map((tpe) => {
+          const currentTpeId = typeof tpe.id === 'string' ? tpe.id : null;
+          const consumed = currentTpeId ? tpeUsageMap.get(currentTpeId) || 0 : 0;
           if (consumed === 0) return tpe;
 
           const currentRemaining = getTpeRemaining(tpe);
@@ -2358,9 +2482,15 @@ function computeTradeResult({
     // 2. Apply TPE creation from validator (SSOT)
     // Phase 47C: Idempotent creation with signature-based duplicate detection
     // Build consumption history entries before creation adds new TPEs
-    currentTPEs.forEach((previousTpe: any) => {
+    currentTPEs.forEach((previousTpe) => {
+      const previousTpeId =
+        typeof previousTpe.id === 'string' ? previousTpe.id : null;
+      if (!previousTpeId) {
+        return;
+      }
+
       const nextTpe =
-        updatedTPEs.find((candidate) => candidate.id === previousTpe.id) ||
+        updatedTPEs.find((candidate) => candidate.id === previousTpeId) ||
         previousTpe;
       const previousRemaining = getTpeRemaining(previousTpe);
       const nextRemaining = getTpeRemaining(nextTpe);
@@ -2371,11 +2501,11 @@ function computeTradeResult({
 
       const consumptionEntry = createTpeConsumptionHistoryEntry({
         teamCode: teamUpdate.teamCode,
-        tpeId: previousTpe.id,
+        tpeId: previousTpeId,
         amountConsumed: consumedAmount,
         remainingAmountAfter: nextRemaining,
         fullyConsumed: nextRemaining === 0,
-        absorbedPlayers: tpeAbsorptionDetails.get(previousTpe.id) || [],
+        absorbedPlayers: tpeAbsorptionDetails.get(previousTpeId) || [],
         seasonId,
         seasonYear: currentYear,
         timestampISO,
@@ -2398,10 +2528,10 @@ function computeTradeResult({
         createdTPE.id ||
         `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-      const outgoingPlayers = (payload.teams[idx]?.sends as LooseRecord[] | undefined) || [];
+      const outgoingPlayers = tradeTeams[idx]?.sends || [];
       const createdFrom =
         outgoingPlayers
-          .map((p: LooseRecord) => p.name || p.displayName)
+          .map((player) => player.name || player.displayName)
           .filter(Boolean)
           .join(', ') || 'Trade';
 
@@ -2421,13 +2551,13 @@ function computeTradeResult({
         createdFrom,
       ].join('|');
 
-      const hasDuplicateById = updatedTPEs.some((t) => t.id === tpeId);
-      const hasDuplicateBySignature = updatedTPEs.some((t) => {
+      const hasDuplicateById = updatedTPEs.some((tpe) => tpe.id === tpeId);
+      const hasDuplicateBySignature = updatedTPEs.some((tpe) => {
         const existingSignature = [
-          t.createdSeason,
-          t.expiresOn,
-          t.totalAmount ?? t.amount,
-          t.createdFrom,
+          tpe.createdSeason,
+          tpe.expiresOn,
+          tpe.totalAmount ?? tpe.amount,
+          tpe.createdFrom,
         ].join('|');
         return existingSignature === newTPESignature;
       });
@@ -2491,10 +2621,14 @@ function computeTradeResult({
   // Phase 11.3: Build entitlementsTraded structure for event log
   // Format: { [teamCode]: { out: string[], in: string[] } }
   // Phase 11.3.1: Respect toTeamId routing when present (for multi-team trades)
-  const entitlementsTraded = payload.teams.reduce((acc: LooseRecord, teamTrade: any) => {
-    const teamKey =
-      teamTrade.team?.id || teamTrade.teamCode || teamTrade.teamId;
-    if (!teamKey) return acc;
+  const entitlementsTraded: TradeEntitlementsMovedByTeam = {};
+  for (const teamTrade of tradeTeams) {
+    const rawTeamKey =
+      teamTrade.team?.id || teamTrade.teamCode || teamTrade.teamId || null;
+    const teamKey = rawTeamKey == null ? null : String(rawTeamKey);
+    if (!teamKey) {
+      continue;
+    }
 
     // Outgoing entitlement IDs from this team (unchanged)
     const outIds = (
@@ -2502,59 +2636,63 @@ function computeTradeResult({
       teamTrade.entitlementsOut ||
       []
     )
-      .map((e: any) => e.entitlementId || e.id)
-      .filter(Boolean);
+      .map((entitlement) => {
+        const rawEntitlementId = entitlement.entitlementId ?? entitlement.id;
+        return rawEntitlementId == null ? null : String(rawEntitlementId);
+      })
+      .filter((entitlementId): entitlementId is string => Boolean(entitlementId));
 
     // Incoming entitlement IDs: respect toTeamId routing when present
     // Phase 11.3.1: Only include entitlement if:
     //   - toTeamId is NOT set (broadcast mode - all teams receive)
     //   - OR toTeamId matches this team's key (teamKey or teamCode)
     const inIds: string[] = [];
-    payload.teams.forEach((otherTrade: any) => {
+    for (const otherTrade of tradeTeams) {
+      const rawOtherTeamKey =
+        otherTrade.team?.id || otherTrade.teamCode || otherTrade.teamId || null;
       const otherTeamKey =
-        otherTrade.team?.id || otherTrade.teamCode || otherTrade.teamId;
-      if (otherTeamKey !== teamKey) {
-        (
-          otherTrade.outgoingEntitlements ||
-          otherTrade.entitlementsOut ||
-          []
-        ).forEach((e: any) => {
-          const id = e.entitlementId || e.id;
-          if (!id) return;
-
-          // Phase 11.3.1: Check toTeamId routing
-          const routedTo = e.toTeamId;
-          if (!routedTo) {
-            // No routing specified: broadcast to all other teams (backward compatible)
-            inIds.push(id);
-          } else {
-            // Routing specified: only include if this team matches
-            // Compare against both teamKey and teamCode for defensive matching
-            const teamCode = teamTrade.teamCode || teamTrade.team?.teamCode;
-            if (routedTo === teamKey || routedTo === teamCode) {
-              inIds.push(id);
-            }
-          }
-        });
+        rawOtherTeamKey == null ? null : String(rawOtherTeamKey);
+      if (otherTeamKey === teamKey) {
+        continue;
       }
-    });
+
+      for (const entitlement of otherTrade.outgoingEntitlements ||
+        otherTrade.entitlementsOut ||
+        []) {
+        const rawEntitlementId = entitlement.entitlementId ?? entitlement.id;
+        const entitlementId =
+          rawEntitlementId == null ? null : String(rawEntitlementId);
+        if (!entitlementId) {
+          continue;
+        }
+
+        const routedTo =
+          entitlement.toTeamId == null ? null : String(entitlement.toTeamId);
+        const rawTeamCode = teamTrade.teamCode || teamTrade.team?.teamCode;
+        const teamCode = rawTeamCode == null ? null : String(rawTeamCode);
+        if (!routedTo || routedTo === teamKey || routedTo === teamCode) {
+          inIds.push(entitlementId);
+        }
+      }
+    }
 
     // Only add entry if there are entitlement transfers
     if (outIds.length > 0 || inIds.length > 0) {
-      acc[teamKey] = { out: [...new Set(outIds)], in: [...new Set(inIds)] };
+      entitlementsTraded[teamKey] = {
+        out: [...new Set(outIds)],
+        in: [...new Set(inIds)],
+      };
     }
-    return acc;
-  }, {});
+  }
 
   // TM-PICKS-E1: Build entitlementUpdates for holderTeam patches
   // When an entitlement is traded, we need to update its holderTeam field
   // in the world overlay so downstream readers see the correct owner.
-  const entitlementUpdates: LooseRecord[] = [];
+  const entitlementUpdates: EntitlementUpdateLike[] = [];
   if (Object.keys(entitlementsTraded).length > 0) {
     for (const [teamKey, transfers] of Object.entries(entitlementsTraded)) {
-      const transferRecord = transfers as LooseRecord;
       // For each entitlement this team received, patch holderTeam to this team
-      for (const entitlementId of (transferRecord.in as unknown[] | undefined) || []) {
+      for (const entitlementId of transfers.in) {
         entitlementUpdates.push({
           entitlementId,
           holderTeam: teamKey,
@@ -2564,19 +2702,35 @@ function computeTradeResult({
   }
 
   // FAIL-CLOSED: If any team had TPE consumption errors, block the entire mutation
-  const blockedTeams = ((validation.teamResults as LooseRecord[] | undefined) || []).filter(
-    (tr: LooseRecord) => tr?._blocked
+  const blockedTeams = (validation.teamResults || []).filter(
+    (teamResult) => teamResult?._blocked
   );
   if (blockedTeams.length > 0) {
     const allErrors = blockedTeams.flatMap(
-      (tr: any) => tr._tpeConsumptionErrors || []
+      (teamResult) => teamResult._tpeConsumptionErrors || []
     );
     return {
       success: false,
-      error: `TPE fail-closed: ${allErrors.map((e: any) => e.reason).join('; ')}`,
+      error: `TPE fail-closed: ${allErrors.map((issue) => issue.reason).join('; ')}`,
       _tpeConsumptionErrors: allErrors,
     };
   }
+
+  const metadata: TradeMutationMetadata = {
+    type: 'trade',
+    teamsInvolved: teamUpdates.map((teamUpdate) => teamUpdate.teamCode),
+    playersTraded: tradeTeams.flatMap((teamTrade) =>
+      (teamTrade.sends || []).map(
+        (player) => player.player_id || player.id || player.name
+      )
+    ),
+    // Phase 11.3: Include entitlement transfers per team (IDs only for lightweight payload)
+    entitlementsTraded:
+      Object.keys(entitlementsTraded).length > 0
+        ? entitlementsTraded
+        : undefined,
+    timestamp,
+  };
 
   // Phase 56: Return pure compute result - validation context is passed through, not created here
   return {
@@ -2585,19 +2739,7 @@ function computeTradeResult({
     playerUpdates,
     // TM-PICKS-E1: Include entitlement doc patches for persistence
     entitlementUpdates,
-    metadata: {
-      type: 'trade',
-      teamsInvolved: teamUpdates.map((u: any) => u.teamCode),
-      playersTraded: payload.teams.flatMap((t: any) =>
-        (t.sends || []).map((p: any) => p.player_id || p.id || p.name)
-      ),
-      // Phase 11.3: Include entitlement transfers per team (IDs only for lightweight payload)
-      entitlementsTraded:
-        Object.keys(entitlementsTraded).length > 0
-          ? entitlementsTraded
-          : undefined,
-      timestamp,
-    },
+    metadata,
     // Phase 56: Pass through the provided validated context (created externally)
     _validatedTradeContext: validatedContext,
   };

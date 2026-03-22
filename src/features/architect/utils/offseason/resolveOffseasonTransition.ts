@@ -25,7 +25,7 @@ import {
   getCapHoldForPlayer,
   isCapHoldAmountValid,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
-import { calculateCapHold } from '@/features/architect/utils/capHolds';
+import { calculateCapHold, type CapHold } from '@/features/architect/utils/capHolds';
 import {
   processTradeExceptions,
   getTpeExpiryISO,
@@ -56,96 +56,158 @@ export type OffseasonViolation = {
   severity: 'error' | 'warning';
 };
 
-export type OffseasonTransitionResult = {
-  success: boolean;
-  nextTeamCapSheet?: OffseasonTeamLike;
-  appliedChangesSummary?: {
-    exercisedOptions: OptionChangeSummary[];
-    declinedOptions: OptionChangeSummary[];
-    expiredContracts: ExpiredContractSummary[];
-    expiredTPEs: TpeSummary[];
-    capHoldsCreated: number;
-    transitionedExceptions: string[];
-    hardCapCleared: boolean;
-  };
-  violations?: OffseasonViolation[];
-  warnings?: OffseasonViolation[];
-  error?: string;
-};
+type OffseasonBirdRights = {
+  status?: string | null;
+  type?: string | null;
+  yearsOfService?: number | null;
+  yearsWithTeam?: number | null;
+  renounced?: boolean | null;
+} | null;
 
-/** Internal-only types for offseason transition helpers */
-type SalaryRowLike = {
+type OffseasonSalaryRow = {
   season?: string | null;
   salary?: number | null;
   capHit?: number | null;
   guaranteed?: boolean;
   option?: string | null;
   optionUsed?: boolean;
-  [key: string]: unknown;
 };
 
-type ContractLike = {
-  salariesByYear?: SalaryRowLike[];
+type OffseasonContract = {
+  salariesByYear?: OffseasonSalaryRow[];
   contractType?: string | null;
   yearsRemaining?: number | null;
   freeAgency?: { year?: number; type?: string } | null;
-  birdRights?: Record<string, unknown> | null;
-  [key: string]: unknown;
+  birdRights?: OffseasonBirdRights;
 };
 
-type OffseasonPlayerLike = {
+export type OffseasonPlayer = {
   player_id?: string | null;
   id?: string | null;
   playerId?: string | null;
   name?: string | null;
   displayName?: string | null;
   playerName?: string | null;
-  contract?: ContractLike | null;
+  bio?: {
+    yearsExperience?: number | null;
+  } | null;
+  draft?: {
+    pick?: number | null;
+    round?: number | null;
+  } | null;
+  contract?: OffseasonContract | null;
+  birdRights?: OffseasonBirdRights | string;
+  renounced?: boolean | null;
   freeAgentYear?: number | null;
   salary?: number | null;
   currentSalary?: number | null;
   teamCode?: string | null;
-  [key: string]: unknown;
 };
 
-type CapHoldLike = {
-  playerId?: string | null;
-  playerName?: string | null;
-  amount?: number | null;
-  season?: string | null;
-  isSigned?: boolean;
-  active?: boolean;
+export type OffseasonCapHold = CapHold & {
   expiresOn?: string | null;
-  type?: string | null;
-  reason?: string;
   notes?: string;
+};
+
+type OffseasonRosterEntry =
+  | string
+  | {
+      player_id?: string | null;
+      playerId?: string | null;
+      id?: string | null;
+    };
+
+type OffseasonDeadCapHistoryEntry = {
+  deadCap?: Record<string, unknown> | null;
   [key: string]: unknown;
 };
 
-type OffseasonTeamLike = {
+type OffseasonTeamTotals = {
+  isHardCapped?: boolean | null;
+  hardCapLevel?: string | null;
+  hardCapDetail?: string | null;
+  hardCapReason?: string | null;
+  totalCapAllocations?: number | string | null;
+  [key: string]: unknown;
+};
+
+type OffseasonHardCapMarker = {
+  active?: boolean | null;
+  [key: string]: unknown;
+};
+
+type OffseasonExceptionEntry = {
+  enabled?: boolean | null;
+  totalAmount?: number | string | null;
+  usedAmount?: number | string | null;
+  remainingAmount?: number | string | null;
+  seasonKey?: string | null;
+  [key: string]: unknown;
+};
+
+type OffseasonExceptions = Record<
+  string,
+  OffseasonExceptionEntry | TpeLifecycleRecord[] | unknown
+> & {
+  mle?: OffseasonExceptionEntry;
+  tpmle?: OffseasonExceptionEntry;
+  bae?: OffseasonExceptionEntry;
+  room?: OffseasonExceptionEntry;
+  dpe?: OffseasonExceptionEntry;
+  tpe?: TpeLifecycleRecord[];
+};
+
+export type OffseasonTeamCapSheet = {
   teamCode?: string | null;
   teamName?: string | null;
-  players?: OffseasonPlayerLike[];
-  roster?: unknown[];
-  capHolds?: CapHoldLike[];
-  waivedContracts?: Record<string, unknown>[];
-  stretchHistory?: Record<string, unknown>[];
+  players?: OffseasonPlayer[];
+  roster?: OffseasonRosterEntry[];
+  capHolds?: OffseasonCapHold[];
+  waivedContracts?: OffseasonDeadCapHistoryEntry[];
+  stretchHistory?: OffseasonDeadCapHistoryEntry[];
   deadMoney?: Record<string, unknown> | null;
-  totals?: Record<string, unknown> | null;
-  exceptions?: Record<string, unknown> | null;
-  tradeExceptions?: unknown[];
+  totals?: OffseasonTeamTotals | null;
+  exceptions?: OffseasonExceptions | null;
+  tradeExceptions?: TpeLifecycleRecord[];
   exceptionHistory?: unknown[];
   season?: string | null;
-  hardCapTriggered?: unknown;
-  hardCapFirstApron?: Record<string, unknown> | null;
-  hardCapSecondApron?: Record<string, unknown> | null;
+  hardCapTriggered?: string | boolean | null;
+  hardCapFirstApron?: OffseasonHardCapMarker | null;
+  hardCapSecondApron?: OffseasonHardCapMarker | null;
   hardCapped?: boolean | number | null;
   hardCapLevel?: string | null;
   hardCapReason?: string | null;
   hardCapTriggeredBy?: string | null;
-  hardCapYear?: unknown;
-  [key: string]: unknown;
+  hardCapYear?: string | number | null;
 };
+
+export type OffseasonOptionDecision = {
+  decision: 'exercise' | 'decline';
+  optionType?: string;
+  season?: string;
+};
+
+type OffseasonOptionDecisionObject = {
+  decision?: string | null;
+  choice?: string | null;
+  action?: string | null;
+  accepted?: boolean;
+  optionType?: string | null;
+  season?: string | null;
+};
+
+export type OffseasonOptionDecisionInput =
+  | OffseasonOptionDecision
+  | OffseasonOptionDecisionObject
+  | boolean
+  | string
+  | null
+  | undefined;
+
+export type OffseasonOptionDecisionMap = Record<
+  string,
+  OffseasonOptionDecisionInput
+>;
 
 type OptionChangeSummary = {
   playerId: string;
@@ -161,6 +223,43 @@ type ExpiredContractSummary = {
 
 type TpeSummary = TpeLifecycleRecord;
 
+export type OffseasonAppliedChangesSummary = {
+  exercisedOptions: OptionChangeSummary[];
+  declinedOptions: OptionChangeSummary[];
+  expiredContracts: ExpiredContractSummary[];
+  expiredTPEs: TpeSummary[];
+  capHoldsCreated: number;
+  transitionedExceptions: string[];
+  hardCapCleared: boolean;
+};
+
+export type OffseasonTransitionResult = {
+  success: boolean;
+  nextTeamCapSheet?: OffseasonTeamCapSheet;
+  appliedChangesSummary?: OffseasonAppliedChangesSummary;
+  violations?: OffseasonViolation[];
+  warnings?: OffseasonViolation[];
+  error?: string;
+};
+
+export type OffseasonTransitionParams = {
+  teamCapSheet: OffseasonTeamCapSheet;
+  fromYear: number;
+  toYear: number;
+  optionDecisions?: OffseasonOptionDecisionMap;
+  context?: OffseasonTransitionContext;
+};
+
+type NormalizedOptionDecisionMap = Record<string, OffseasonOptionDecision>;
+
+type OffseasonHardCapStateSnapshot = {
+  hadHardCap: boolean;
+  hardCapTriggered: string | boolean | null | undefined;
+  hardCapLevel: string | null | undefined;
+  hardCapped: boolean | number | null | undefined;
+  totalsIsHardCapped: boolean | null | undefined;
+};
+
 function cloneTeam<T>(team: T): T {
   if (typeof structuredClone === 'function') {
     return structuredClone(team);
@@ -168,40 +267,68 @@ function cloneTeam<T>(team: T): T {
   return JSON.parse(JSON.stringify(team));
 }
 
-function getPlayerId(player: OffseasonPlayerLike | Record<string, unknown> | null | undefined): string | null {
+function getPlayerId(player: OffseasonPlayer | null | undefined): string | null {
   if (!player) return null;
-  return (player.player_id || player.id || player.playerId || null) as string | null;
+  return player.player_id || player.id || player.playerId || null;
 }
 
-function getPlayerName(player: OffseasonPlayerLike | Record<string, unknown> | null | undefined): string {
-  return (player?.displayName || player?.name || player?.playerName || '') as string;
+function getPlayerName(player: OffseasonPlayer | null | undefined): string {
+  return player?.displayName || player?.name || player?.playerName || '';
 }
 
-function getRosterEntryId(entry: string | Record<string, unknown> | null | undefined): string | null {
+function getRosterEntryId(entry: OffseasonRosterEntry | null | undefined): string | null {
   if (!entry) return null;
   if (typeof entry === 'string') return entry;
-  return (entry.player_id || entry.playerId || entry.id || null) as string | null;
+  return entry.player_id || entry.playerId || entry.id || null;
 }
 
-function removePlayerFromRoster(roster: unknown[], playerId: string): unknown[] {
+function removePlayerFromRoster(
+  roster: OffseasonRosterEntry[],
+  playerId: string
+): OffseasonRosterEntry[] {
   if (!Array.isArray(roster)) return roster;
-  return roster.filter((entry) => getRosterEntryId(entry as string | Record<string, unknown>) !== playerId);
+  return roster.filter((entry) => getRosterEntryId(entry) !== playerId);
 }
 
-function filterRosterByPlayerIds(roster: unknown[], playerIds: Set<string>): unknown[] {
+function filterRosterByPlayerIds(
+  roster: OffseasonRosterEntry[],
+  playerIds: Set<string>
+): OffseasonRosterEntry[] {
   if (!Array.isArray(roster)) return roster;
   return roster.filter((entry) => {
-    const entryId = getRosterEntryId(entry as string | Record<string, unknown>);
+    const entryId = getRosterEntryId(entry);
     if (!entryId) return true;
     return playerIds.has(entryId);
   });
 }
 
-function normalizeDecisionValue(rawDecision: unknown): {
-  decision: 'exercise' | 'decline';
-  optionType?: string;
-  season?: string;
-} | null {
+function getDecisionMetadata(
+  rawDecision: OffseasonOptionDecisionInput
+): Pick<OffseasonOptionDecision, 'optionType' | 'season'> {
+  if (
+    !rawDecision ||
+    typeof rawDecision !== 'object' ||
+    Array.isArray(rawDecision)
+  ) {
+    return {};
+  }
+
+  const decisionObject = rawDecision as OffseasonOptionDecisionObject;
+  return {
+    optionType:
+      typeof decisionObject.optionType === 'string'
+        ? decisionObject.optionType
+        : undefined,
+    season:
+      typeof decisionObject.season === 'string'
+        ? decisionObject.season
+        : undefined,
+  };
+}
+
+function normalizeDecisionValue(
+  rawDecision: OffseasonOptionDecisionInput
+): OffseasonOptionDecision | null {
   if (rawDecision === null || rawDecision === undefined) return null;
 
   if (typeof rawDecision === 'boolean') {
@@ -219,8 +346,8 @@ function normalizeDecisionValue(rawDecision: unknown): {
     return null;
   }
 
-  if (typeof rawDecision === 'object') {
-    const obj = rawDecision as Record<string, unknown>;
+  if (typeof rawDecision === 'object' && !Array.isArray(rawDecision)) {
+    const obj = rawDecision as OffseasonOptionDecisionObject;
     const decisionValue =
       obj.decision ?? obj.choice ?? obj.action ?? null;
     if (typeof decisionValue === 'string') {
@@ -228,15 +355,13 @@ function normalizeDecisionValue(rawDecision: unknown): {
       if (['accept', 'exercise', 'yes', 'true'].includes(normalized)) {
         return {
           decision: 'exercise',
-          optionType: obj.optionType as string | undefined,
-          season: obj.season as string | undefined,
+          ...getDecisionMetadata(obj),
         };
       }
       if (['decline', 'reject', 'no', 'false'].includes(normalized)) {
         return {
           decision: 'decline',
-          optionType: obj.optionType as string | undefined,
-          season: obj.season as string | undefined,
+          ...getDecisionMetadata(obj),
         };
       }
     }
@@ -244,8 +369,7 @@ function normalizeDecisionValue(rawDecision: unknown): {
     if (typeof obj.accepted === 'boolean') {
       return {
         decision: obj.accepted ? 'exercise' : 'decline',
-        optionType: obj.optionType as string | undefined,
-        season: obj.season as string | undefined,
+        ...getDecisionMetadata(obj),
       };
     }
   }
@@ -254,18 +378,18 @@ function normalizeDecisionValue(rawDecision: unknown): {
 }
 
 function normalizeOptionDecisions(
-  optionDecisions: Record<string, unknown> | null | undefined,
-  players: OffseasonPlayerLike[]
-): { decisionsById: Record<string, unknown>; violations: OffseasonViolation[] } {
-  const decisionsById: Record<string, unknown> = {};
+  optionDecisions: OffseasonOptionDecisionMap | null | undefined,
+  players: OffseasonPlayer[]
+): { decisionsById: NormalizedOptionDecisionMap; violations: OffseasonViolation[] } {
+  const decisionsById: NormalizedOptionDecisionMap = {};
   const violations: OffseasonViolation[] = [];
 
   if (!optionDecisions || typeof optionDecisions !== 'object') {
     return { decisionsById, violations };
   }
 
-  const playersById = new Map<string, OffseasonPlayerLike>();
-  const playersByName = new Map<string, OffseasonPlayerLike[]>();
+  const playersById = new Map<string, OffseasonPlayer>();
+  const playersByName = new Map<string, OffseasonPlayer[]>();
 
   for (const player of players || []) {
     const playerId = getPlayerId(player);
@@ -315,21 +439,23 @@ function normalizeOptionDecisions(
       continue;
     }
 
+    const decisionMetadata = getDecisionMetadata(rawDecision);
     decisionsById[resolvedId] = {
       ...normalizedDecision,
-      optionType: normalizedDecision.optionType ?? (rawDecision as Record<string, unknown>)?.optionType,
-      season: normalizedDecision.season ?? (rawDecision as Record<string, unknown>)?.season,
+      ...decisionMetadata,
+      optionType: normalizedDecision.optionType ?? decisionMetadata.optionType,
+      season: normalizedDecision.season ?? decisionMetadata.season,
     };
   }
 
   return { decisionsById, violations };
 }
 
-function normalizeExceptionsShape(exceptions: Record<string, unknown> | null | undefined): {
-  normalized: Record<string, unknown>;
+function normalizeExceptionsShape(exceptions: OffseasonExceptions | null | undefined): {
+  normalized: OffseasonExceptions;
   changed: boolean;
 } {
-  const normalized = { ...(exceptions || {}) };
+  const normalized: OffseasonExceptions = { ...(exceptions || {}) };
   let changed = false;
 
   const remap = [
@@ -355,7 +481,7 @@ function normalizeExceptionsShape(exceptions: Record<string, unknown> | null | u
   return { normalized, changed };
 }
 
-function countStandardRoster(players: OffseasonPlayerLike[]): number {
+function countStandardRoster(players: OffseasonPlayer[]): number {
   if (!Array.isArray(players)) return 0;
   return players.filter((p) => {
     const contractType = p?.contract?.contractType?.toLowerCase() || '';
@@ -363,7 +489,7 @@ function countStandardRoster(players: OffseasonPlayerLike[]): number {
   }).length;
 }
 
-function countTwoWayRoster(players: OffseasonPlayerLike[]): number {
+function countTwoWayRoster(players: OffseasonPlayer[]): number {
   if (!Array.isArray(players)) return 0;
   return players.filter((p) => {
     const contractType = p?.contract?.contractType?.toLowerCase() || '';
@@ -372,7 +498,7 @@ function countTwoWayRoster(players: OffseasonPlayerLike[]): number {
 }
 
 function pruneExpiredCapHolds(
-  team: OffseasonTeamLike,
+  team: OffseasonTeamCapSheet,
   toSeason: string
 ): { hasChanges: boolean } {
   if (!team?.capHolds || !Array.isArray(team.capHolds)) {
@@ -382,7 +508,7 @@ function pruneExpiredCapHolds(
   let hasChanges = false;
   const seasonStartDate = new Date(`${toSeason.split('-')[0]}-07-01`);
 
-  const activeCapHolds = team.capHolds.filter((hold: CapHoldLike) => {
+  const activeCapHolds = team.capHolds.filter((hold: OffseasonCapHold) => {
     if (hold?.expiresOn) {
       const expireDate = new Date(hold.expiresOn);
       if (expireDate < seasonStartDate) {
@@ -406,7 +532,10 @@ function pruneExpiredCapHolds(
   return { hasChanges };
 }
 
-function advanceDeadMoney(team: OffseasonTeamLike, toYear: number): { hasChanges: boolean } {
+function advanceDeadMoney(
+  team: OffseasonTeamCapSheet,
+  toYear: number
+): { hasChanges: boolean } {
   if (!team) return { hasChanges: false };
   let hasChanges = false;
 
@@ -424,44 +553,58 @@ function advanceDeadMoney(team: OffseasonTeamLike, toYear: number): { hasChanges
 
   if (Array.isArray(team.waivedContracts)) {
     team.waivedContracts = team.waivedContracts
-      .map((contract: Record<string, unknown>) => {
+      .map((contract) => {
         if (!contract?.deadCap || typeof contract.deadCap !== 'object') {
           return contract;
         }
-        const remaining = filterDeadCapObject(contract.deadCap as Record<string, unknown>);
+        const remaining = filterDeadCapObject(contract.deadCap);
         return Object.keys(remaining).length > 0
           ? { ...contract, deadCap: remaining }
           : null;
       })
-      .filter(Boolean);
+      .filter(
+        (contract): contract is OffseasonDeadCapHistoryEntry =>
+          Boolean(contract)
+      );
   }
 
   if (Array.isArray(team.stretchHistory)) {
     team.stretchHistory = team.stretchHistory
-      .map((contract: Record<string, unknown>) => {
+      .map((contract) => {
         if (!contract?.deadCap || typeof contract.deadCap !== 'object') {
           return contract;
         }
-        const remaining = filterDeadCapObject(contract.deadCap as Record<string, unknown>);
+        const remaining = filterDeadCapObject(contract.deadCap);
         return Object.keys(remaining).length > 0
           ? { ...contract, deadCap: remaining }
           : null;
       })
-      .filter(Boolean);
+      .filter(
+        (contract): contract is OffseasonDeadCapHistoryEntry =>
+          Boolean(contract)
+      );
   }
 
   if (team.deadMoney && typeof team.deadMoney === 'object') {
-    const remainingDeadMoney = filterDeadCapObject(team.deadMoney as Record<string, unknown>);
+    const remainingDeadMoney = filterDeadCapObject(team.deadMoney);
     team.deadMoney = remainingDeadMoney;
   }
 
   return { hasChanges };
 }
 
-function clearHardCapState(team: OffseasonTeamLike): boolean {
+function clearHardCapState(team: OffseasonTeamCapSheet): boolean {
   if (!team) return false;
 
-  const fields = [
+  const fields: Array<
+    | 'hardCapTriggered'
+    | 'hardCapFirstApron'
+    | 'hardCapSecondApron'
+    | 'hardCapYear'
+    | 'hardCapLevel'
+    | 'hardCapReason'
+    | 'hardCapTriggeredBy'
+  > = [
     'hardCapTriggered',
     'hardCapFirstApron',
     'hardCapSecondApron',
@@ -503,16 +646,10 @@ function clearHardCapState(team: OffseasonTeamLike): boolean {
 }
 
 function validateOffseasonState(
-  team: OffseasonTeamLike,
+  team: OffseasonTeamCapSheet,
   toYear: number,
   context: OffseasonTransitionContext | undefined,
-  preTransitionHardCapState?: {
-    hadHardCap: boolean;
-    hardCapTriggered: unknown;
-    hardCapLevel: unknown;
-    hardCapped: unknown;
-    totalsIsHardCapped: unknown;
-  }
+  preTransitionHardCapState?: OffseasonHardCapStateSnapshot
 ): { violations: OffseasonViolation[]; warnings: OffseasonViolation[] } {
   const violations: OffseasonViolation[] = [];
   const warnings: OffseasonViolation[] = [];
@@ -665,13 +802,7 @@ export function resolveOffseasonTransition({
   toYear,
   optionDecisions = {},
   context = {},
-}: {
-  teamCapSheet: OffseasonTeamLike;
-  fromYear: number;
-  toYear: number;
-  optionDecisions?: Record<string, unknown>;
-  context?: OffseasonTransitionContext;
-}): OffseasonTransitionResult {
+}: OffseasonTransitionParams): OffseasonTransitionResult {
   if (!teamCapSheet) {
     return {
       success: false,
@@ -703,13 +834,13 @@ export function resolveOffseasonTransition({
   const baselineTeam = cloneTeam(teamCapSheet);
   const nextTeam = cloneTeam(teamCapSheet);
 
-  const appliedChangesSummary = {
-    exercisedOptions: [] as OptionChangeSummary[],
-    declinedOptions: [] as OptionChangeSummary[],
-    expiredContracts: [] as ExpiredContractSummary[],
-    expiredTPEs: [] as TpeSummary[],
+  const appliedChangesSummary: OffseasonAppliedChangesSummary = {
+    exercisedOptions: [],
+    declinedOptions: [],
+    expiredContracts: [],
+    expiredTPEs: [],
     capHoldsCreated: 0,
-    transitionedExceptions: [] as string[],
+    transitionedExceptions: [],
     hardCapCleared: false,
   };
 
@@ -742,24 +873,24 @@ export function resolveOffseasonTransition({
       ? player.contract.salariesByYear
       : [];
 
-    const optionYearIndex = salaries.findIndex((row: SalaryRowLike) => {
+    const optionYearIndex = salaries.findIndex((row: OffseasonSalaryRow) => {
       const yearEnd = toEndYear(row?.season);
       return yearEnd === toYear && row?.option;
     });
 
     if (optionYearIndex === -1) continue;
 
-    const decision = decisionsById[decisionKey] as Record<string, unknown> | undefined;
+    const decision = decisionsById[decisionKey];
     if (!decision) {
       continue; // no decision provided; leave option untouched
     }
 
     const originalPlayer = (baselineTeam.players || []).find(
-      (p: OffseasonPlayerLike) => getPlayerId(p) === playerId
+      (p) => getPlayerId(p) === playerId
     );
 
     if (decision.decision === 'exercise') {
-      player.contract.salariesByYear = salaries.map((row: SalaryRowLike, idx: number) => {
+      player.contract.salariesByYear = salaries.map((row: OffseasonSalaryRow, idx: number) => {
         if (idx === optionYearIndex) {
           return { ...row, optionUsed: true };
         }
@@ -781,7 +912,7 @@ export function resolveOffseasonTransition({
       const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
 
       const filteredSalaries = salaries.filter(
-        (_: SalaryRowLike, idx: number) => idx < optionYearIndex
+        (_: OffseasonSalaryRow, idx: number) => idx < optionYearIndex
       );
       player.contract.salariesByYear = filteredSalaries;
 
@@ -889,8 +1020,8 @@ export function resolveOffseasonTransition({
   // =========================================================================
   // 2) Process expirations (standard)
   // =========================================================================
-  const remainingPlayers: OffseasonPlayerLike[] = [];
-  const expiredPlayers: OffseasonPlayerLike[] = [];
+  const remainingPlayers: OffseasonPlayer[] = [];
+  const expiredPlayers: OffseasonPlayer[] = [];
 
   for (const player of nextTeam.players) {
     if (
@@ -987,7 +1118,7 @@ export function resolveOffseasonTransition({
     }
 
     if (Array.isArray(contract.salariesByYear)) {
-      contract.salariesByYear = contract.salariesByYear.filter((row: SalaryRowLike) => {
+      contract.salariesByYear = contract.salariesByYear.filter((row: OffseasonSalaryRow) => {
         const yearEnd = toEndYear(row?.season);
         return yearEnd !== null && Number.isFinite(yearEnd) && yearEnd >= toYear;
       });
@@ -1021,7 +1152,7 @@ export function resolveOffseasonTransition({
 
   // DPE lifecycle: clear on rollover
   const seasonKey = `${toYear - 1}-${String(toYear).slice(-2)}`;
-  const dpe = nextTeam.exceptions?.dpe as Record<string, unknown> | null | undefined;
+  const dpe = nextTeam.exceptions?.dpe;
   const dpeWasActive =
     dpe &&
     ((dpe.enabled ?? false) ||
@@ -1064,18 +1195,22 @@ export function resolveOffseasonTransition({
         .map((expiredTpe) => {
           const expiresOn = getTpeExpiryISO(expiredTpe);
           const amountExpired =
-            expiredTpe.remainingAmount ?? expiredTpe.amount ?? 0;
+            Number(expiredTpe.remainingAmount ?? expiredTpe.amount ?? 0) || 0;
           const totalAmount =
-            expiredTpe.totalAmount ?? expiredTpe.amount ?? amountExpired;
+            Number(expiredTpe.totalAmount ?? expiredTpe.amount ?? amountExpired) ||
+            amountExpired;
 
           return createTpeExpiryHistoryEntry({
-            teamCode: teamCode as string,
-            tpeId: expiredTpe.id as string,
-            amountExpired: amountExpired as number,
-            totalAmount: totalAmount as number,
-            expiresOn: expiresOn as string,
+            teamCode: teamCode || '',
+            tpeId: expiredTpe.id || '',
+            amountExpired,
+            totalAmount,
+            expiresOn: expiresOn || undefined,
             toSeason,
-            createdFrom: expiredTpe.createdFrom as string,
+            createdFrom:
+              typeof expiredTpe.createdFrom === 'string'
+                ? expiredTpe.createdFrom
+                : undefined,
             timestampISO,
             worldId: context?.worldId || undefined,
           });
