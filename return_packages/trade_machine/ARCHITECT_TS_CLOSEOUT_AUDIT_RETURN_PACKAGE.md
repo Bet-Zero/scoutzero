@@ -2,347 +2,291 @@
 
 ## 1. Summary
 
+This audit was re-run from current repo state. Prior audits, return packages, and recent exploration were treated as context only, not as proof.
+
 Architect passes structural TS conversion standards but not hardening standards.
 
-- Architect is fully TS-owned on the audited runtime path. All meaningful implementation authority lives in `.ts/.tsx`.
+- Architect is fully TS-owned on the audited runtime path.
 - No live business logic remains in `.js/.jsx` within the audited scope.
-- Type quality is `partially hardened`. Permissive patterns (`any`, `Record<string, unknown>`, `[key: string]: unknown`, cast bridges) remain widespread in core runtime authorities, while some contract-oriented and schema-backed pockets show genuine strength.
-- What blocks full closeout is hardening, not migration. The remaining work is more than optional polish.
+- The current expected runtime-closure baseline was confirmed from fresh proof: `301 / 14 / 315 / 0 / 0`.
+- Type quality is `partially hardened`, not `strongly typed`.
+- The remaining blocker is hardening quality in core TS authorities, not migration residue, shim residue, or resolver topology.
 
 ## 2. Runtime Ownership Verdict
 
-`PASS WITH RESIDUAL CLEANUP`
+`PASS`
 
-Fresh inventory from current repo state:
+Fresh runtime-closure inventory from current repo state:
 
-| Scope | Total | .ts | .tsx | .js | .jsx |
-|-------|-------|-----|------|-----|------|
-| `src/features/architect/**` | 323 | 222 | 77 | 11 | 13 |
-| Architect-reached `src/shared/components/**` | 18 | 1 | 9 | 0 | 8 |
-| Architect-reached `src/shared/utils/contracts/**` | 5 | 4 | 0 | 1 | 0 |
-| **Total in scope** | **346** | **227** | **86** | **12** | **21** |
-| **TS/TSX** | **313** (90.5%) | | | | |
-| **JS/JSX** | **33** (9.5%) | | | | |
+| Scope | Total | `.ts` | `.tsx` | `.js` | `.jsx` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `src/features/architect/**` | 301 | 224 | 77 | 0 | 0 |
+| Architect-reached `src/shared/components/**` + `src/shared/utils/contracts/**` | 14 | 5 | 9 | 0 | 0 |
+| **Total in audited runtime scope** | **315** | **229** | **86** | **0** | **0** |
 
-Structural findings:
+Fresh same-path sibling scan:
 
-- 30 in-scope `.js/.jsx` files have same-path `.ts/.tsx` siblings. All 30 are pure compatibility forwarders (1–2 line re-exports). None carry implementation authority.
-- 3 in-scope JS files have no same-path TS twin:
-  - `src/features/architect/utils/draftPickUtils.js` — contains real logic but has zero live runtime importers (test-only residue)
-  - `src/features/architect/utils/tradeMachine/rules/enforceEligibility.js` — intentional wrapper re-exporting from `validateEligibility.ts`, zero live runtime importers
-  - `src/features/architect/utils/validatePhase21.test.js` — test file
-- The `live business logic still in JS/JSX` bucket is empty.
-- Vite still resolves several extensionless imports through compatibility `.js/.jsx` shims first (see Section 6, resolver checks). This is residual cleanup, not structural failure, because those shims are pure forwarders to TS/TSX authorities.
+- same-path `.js/.jsx` + `.ts/.tsx` pairs in audited scope: `0`
 
-Why not full `PASS`:
+Fresh resolver / topology result:
 
-- Shim-first Vite resolution remains on the live runtime path for 5 of 7 checked specifiers.
-- That residue is compatibility-only and acceptable, but cleanup is still desirable.
+- All 7 required specifiers resolved to `.ts/.tsx` in both TypeScript and Vite.
+- No in-scope specifier landed on a `.js/.jsx` compatibility forwarder first.
 
-Why not `FAIL`:
+Why this is `PASS`:
 
-- All shim-first files are pure forwarders with no implementation authority.
-- No explicit in-scope `.js/.jsx` import strings exist in Architect source code. The remaining JS runtime pressure comes from extensionless resolver behavior, not hard-coded JS paths.
+- All meaningful implementation authority on the audited runtime path is `.ts/.tsx`.
+- No in-scope `.js/.jsx` files remain to classify as live logic, wrappers, barrels, or shims.
+- No same-path compat topology remains in scope.
 
-Note on out-of-scope shared JS: Architect does have 10 explicit `.js` import strings pointing to out-of-scope files (`@/config/validationFlags.js` ×8, `@/shared/utils/formatting/basicFormatting.js` ×2). These are outside the defined audit scope and do not affect the scoped verdict.
+Why this is not `PASS WITH RESIDUAL CLEANUP`:
+
+- Fresh proof found no in-scope runtime residue to clean up.
+- The earlier expected baseline of `PASS` was confirmed rather than disproved.
 
 ## 3. Remaining JS/JSX Classification
 
-`shim-only compatibility surface`
+Fresh in-scope JS/JSX classification from current repo state:
 
-- `src/features/architect/capSheet/CapSheet/CapSheet.jsx`
-- `src/features/architect/capSheet/CapSheet/CapSummaryTiles.jsx`
-- `src/features/architect/capSheet/CapSheetFull/CapSheetFull.jsx`
-- `src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.jsx`
-- `src/features/architect/capSheet/modals/ManageDeadMoneyModal.jsx`
-- `src/features/architect/capSheet/modals/ManageExceptionsModal.jsx`
-- `src/features/architect/contract/ContractEditor/ContractEditor.jsx`
-- `src/features/architect/contract/ContractEditorModal/ContractEditorModal.jsx`
-- `src/features/architect/freeAgency/FreeAgentPool/FreeAgentCard.jsx`
-- `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.jsx`
-- `src/features/architect/freeAgency/FreeAgentPool/FreeAgentRow.jsx`
-- `src/features/architect/hooks/useArchitectPlayerData.js`
-- `src/features/architect/hooks/useCapValidation.js`
-- `src/features/architect/hooks/usePlayerRulesProfiles.js`
-- `src/features/architect/hooks/useTradeMachine.js`
-- `src/features/architect/hooks/useTradeMachineSnapshot.js`
-- `src/features/architect/shared/RosterVisual/RosterVisual.jsx`
-- `src/features/architect/shared/ValidationWarnings/ValidationWarnings.jsx`
-- `src/features/architect/utils/capProjections.js`
-- `src/features/architect/utils/exceptions/exceptionLifecycle.js`
-- `src/features/architect/utils/tradeContext/legacy/index.js`
-- `src/shared/components/BirdRightsIcon.jsx`
-- `src/shared/components/TeamLogo.jsx`
-- `src/shared/components/TeamSelectDropdown.jsx`
-- `src/shared/components/ui/Dialog.jsx`
-- `src/shared/components/ui/filters/BadgeFilterSelect.jsx`
-- `src/shared/components/ui/filters/MultiSelectFilter.jsx`
-- `src/shared/components/ui/filters/RangeSelector.jsx`
-- `src/shared/components/ui/filters/RoleChecklist.jsx`
-- `src/shared/utils/contracts/contractParser.js`
+- `shim-only compatibility surface`: none
+- `intentional wrapper / public entrypoint`: none
+- `barrel / index surface`: none
+- `live business logic still in JS/JSX`: none
+- `debug / support / monitoring residue`: none
+- `dead / test-only / zero-runtime-import residue`: none
 
-`intentional wrapper / public entrypoint`
+Fresh proof result:
 
-- `src/features/architect/utils/tradeMachine/rules/enforceEligibility.js`
-  - One-line explicit wrapper: `export { enforceEligibility } from './validateEligibility';`
-  - No same-path TS twin exists. Zero live runtime importers.
-  - Current pressure is compatibility/test-facing, not live runtime authority.
+- remaining in-scope `.js/.jsx` files: `0`
+- the `live business logic still in JS/JSX` bucket is empty
 
-`barrel / index surface`
+Out-of-scope note:
 
-- None on the live audited runtime path.
-- `src/shared/components/ui/filters/index.js` and `src/shared/utils/contracts/index.js` exist as pure compatibility barrels but are bypassed by Vite aliases that point directly to their `.ts` counterparts.
-
-`live business logic still in JS/JSX`
-
-- **None.**
-
-`debug / support / monitoring residue`
-
-- None.
-
-`dead / test-only / zero-runtime-import residue`
-
-- `src/features/architect/utils/draftPickUtils.js`
-  - Contains real logic (`isFrozenPick` function, 43 lines).
-  - Fresh importer scan found zero live runtime importers. Only test-backed usage from `src/tests/architect/phase40_secondApron_drift_guardrails.test.js`.
-  - Does not qualify as live runtime business logic.
-- `src/features/architect/utils/validatePhase21.test.js`
-  - Vitest test file. Legitimate test-only residue.
-
-The `live business logic still in JS/JSX` bucket is empty. This confirms Architect passes the runtime ownership standard.
-
-What still prevents a clean finish-line closeout:
-
-- Compatibility-only shim residue remains on the live runtime path (30 same-path forwarders).
-- Runtime topology cleanup (removing shim-first Vite resolution) is desirable but not blocking.
-- Type hardening remains materially incomplete in core TS authorities.
+- Shared `.jsx` files still exist outside the audited runtime closure:
+  - `src/shared/components/ErrorBoundary.jsx`
+  - `src/shared/components/SeasonYearSelector.jsx`
+  - `src/shared/components/DropdownGroup.jsx`
+  - `src/shared/components/PlayerHeadshot.jsx`
+  - `src/shared/components/ui/Modal.jsx`
+  - `src/shared/components/ui/ToggleButton.jsx`
+  - `src/shared/components/ui/VideoExamples.jsx`
+  - `src/shared/components/ui/drawers/DrawerShell.jsx`
+  - `src/shared/components/ui/drawers/OpenDrawerButton.jsx`
+  - `src/shared/components/ui/grades/OverallGradeBlock.jsx`
+- These do not affect the verdict because the fresh runtime-closure walk showed Architect does not reach them.
 
 ## 4. Type Quality Verdict
 
 `partially hardened`
 
-Fresh type quality metrics from current repo state (across 299 Architect `.ts/.tsx` files):
+Fresh grep-based concentration scan across current `src/features/architect/**/*.ts?(x)` files:
 
-| Pattern | Occurrences | Files affected | % of TS files |
-|---------|-------------|----------------|---------------|
-| `any` in type positions (`: any`, `as any`, `<any`, `any[]`, `any>`) | 355 | 44 | 15% |
-| Permissive bags (`Record<string, unknown>` + `[key: string]: unknown`) | 567 | 136 | 46% |
-| `...Like` suffix type references | 1,463 | 123 | 41% |
-| Type casts (`as SomeType`) | 561 | 137 | 46% |
-| `@ts-ignore` / `@ts-expect-error` | 0 | 0 | 0% |
-| Zod runtime validation in Architect | 0 | 0 | 0% |
+| Pattern | Current count |
+| --- | ---: |
+| `any` | 294 |
+| `Record<string, unknown>` | 378 |
+| `[key: string]: unknown` | 123 |
+| `...Like` type references | 1,452 |
+| `as ...` cast sites | 1,331 |
+| `as unknown as` double-casts | 32 |
+| schema/Zod reference hits | 30 |
 
-Why it is not `strongly typed`:
+What the current reads show:
 
-- `src/features/architect/GMDashboard/hooks/useArchitectState.ts` — uses local `SalaryByYear`, `ArchitectContract`, and `ArchitectPlayer` interfaces with `[key: string]: unknown` index signatures on every shape. Local `CapProjectionMap` is `Record<string, ... | undefined>`.
-- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` — uses `SalaryByYear`, `LocalContract`, `LocalBio`, `ArchitectPlayer` interfaces all carrying `[key: string]: unknown`. Multiple `Record<string, unknown>` patterns.
-- `src/features/architect/utils/tradeMachine/constants/types.ts` — `CapSettings`, `NormalizedPlayer`, `TradeExceptionPlayer`, `TradeExceptionRecord` all carry `[key: string]: unknown` open index signatures. Fields that should be required are optional.
-- `src/features/architect/utils/tradeMachine/cache/validationCacheService.ts` — uses `Map<any, any>` and `key/result: any` patterns.
-- `src/shared/components/EditContractModal.tsx` — relies on `LooseRecord` and `Partial<...> & LooseRecord` even where schema-backed types exist.
-- No Zod runtime validation is used anywhere in Architect. Schema enforcement relies entirely on compile-time types + Firestore structure + test coverage.
+- [mutationPipeline.ts](../../../src/features/architect/utils/mutationPipeline.ts) remains the clearest hardening blocker.
+  - It still centers core flows around `LooseRecord`, `MutationPayloadLike`, `TeamLike`, `PlayerLike`, and `ComputeResultLike`.
+  - It still carries `[key: string]: unknown` on important pipeline-facing types and remains the top permissiveness hotspot in the scan.
+- [resolveOffseasonTransition.ts](../../../src/features/architect/utils/offseason/resolveOffseasonTransition.ts) is still dominated by local `...Like` compatibility shapes and open bags.
+- [useCapValidation.ts](../../../src/features/architect/hooks/useCapValidation.ts) is TS-owned, but the surface still depends on `SalaryByYearLike`, `ContractLike`, `RulesProfileLike`, `ContractDataLike`, `TeamCapSheetLike`, and repeated local shape reconstruction instead of narrower shared contracts.
+- [useArchitectActions.ts](../../../src/features/architect/GMDashboard/hooks/useArchitectActions.ts) still ranks as a top permissiveness hotspot in the scan because of `Record<string, unknown>`, `...Like`, and cast bridges.
 
-Why it is stronger than `fully converted but still permissive`:
+Why this is not `strongly typed`:
 
-- `src/features/architect/utils/persistenceContracts/contracts.ts` — genuine contract-oriented typing with `PersistenceAllowlist`, `PersistenceDeepRules`, `PersistenceContract`, `PersistenceContractsMap`. Frozen allowlists, `readonly` arrays, no open index signatures.
-- `src/features/architect/utils/persistenceContracts/validatePersistableShape.ts` — structured validation logic with typed contracts.
-- `src/features/architect/types/ruleContext.ts` — proper discriminated union types (`LeaguePhase`), required fields in `TimingContext`, no index signatures.
-- `src/features/architect/types/index.ts` — bridges schema-backed type exports (from `src/schemas/architect.ts`) into Architect with real typed imports.
-- `src/shared/utils/contracts/contractParser.ts` — typed interfaces for `NormalizedSalaryRow`, `MaxContractInfo`, `ContractStatus` with precise field types, though still uses `ContractParserRecord = Record<string, unknown>` for upstream data.
-- Zero `@ts-ignore` / `@ts-expect-error` suppressions — the code compiles without escape hatches.
-- The hardening passes (E-series scopes) have already eliminated significant type debt. The remaining permissiveness is concentrated, not uniform.
+- Core authorities are still materially shaped by local compatibility bags rather than closed contracts.
+- `Record<string, unknown>`, `[key: string]: unknown`, `...Like`, and bridge casts are still concentrated in live orchestration and transition code.
+- Shared schema-backed and contract-oriented types exist, but they are underused in the weakest core flows.
 
-Assessment of schema/Zod-backed type usage:
+Why this is stronger than `fully converted but still permissive`:
 
-- Schema-backed types exist in `src/schemas/architect.ts` and are imported into Architect via `src/features/architect/types/index.ts`.
-- They are underused in the major runtime authorities (GMDashboard hooks, tradeMachine engine/types, validation presentation types).
-- The dominant pattern in core authorities is local `...Like` types, `Record<string, unknown>`, and `[key: string]: unknown` rather than end-to-end schema-backed contracts.
+- [contracts.ts](../../../src/features/architect/utils/persistenceContracts/contracts.ts) defines closed persistence contracts with named interfaces and readonly allowlists.
+- [validatePersistableShape.ts](../../../src/features/architect/utils/persistenceContracts/validatePersistableShape.ts) is a genuine typed validation module rather than a loose compatibility shell.
+- [ruleContext.ts](../../../src/features/architect/types/ruleContext.ts) shows strong closed typing with explicit unions and required fields.
+- [types/index.ts](../../../src/features/architect/types/index.ts) already exposes schema-backed Architect types from `src/schemas/architect.ts` and `src/schemas/players_v2.ts`.
+
+Schema / Zod / shared contract usage:
+
+- Schema-backed types are available and reachable.
+- They still appear underused in the most permissive runtime authorities.
+- Fresh inspection supports the expected baseline: Architect is `partially hardened`, not yet `strongly typed`.
 
 ## 5. Validation Status
 
-`npm run typecheck`
+Files changed:
 
-- **PASS**
-- Clean exit, no errors.
-- Impact on verdict: no blocking typecheck failure in scope.
+- `return_packages/trade_machine/ARCHITECT_TS_CLOSEOUT_AUDIT_RETURN_PACKAGE.md`
 
-`npm run build`
+Validation commands actually run:
 
-- **PASS**
-- Completed in 28.48s.
-- Non-failing warnings observed:
-  - Browser compatibility warning for `fs` imported from `src/features/architect/utils/tradeMachine/engine/tradeDebug.ts`
-  - Mixed static/dynamic import warnings for `src/firebaseConfig.js`, `src/features/architect/utils/entitlements/entitlementResolver.ts`, `src/features/architect/utils/leagueInvariants.ts`
-  - Large bundle chunk warning (2,440 kB main chunk)
-- These are build hygiene and performance follow-up items, not TS-closeout failures.
-- Impact on verdict: no blocking build failure in scope.
+- `npm run typecheck`
+- `npm run build`
+- `npm run validate:project`
 
-`npm run validate:project`
+Commands intentionally skipped:
 
-- **PASS**
-- All structural validations passed.
-- Impact on verdict: no structural/project-schema failure in scope.
+- All broad test suites and raw `vitest` commands, because this audit required only the three validation commands above.
+
+Validation results:
+
+| Command | Result | Impact on verdict |
+| --- | --- | --- |
+| `npm run typecheck` | `PASS` | In-scope signal, non-blocking |
+| `npm run build` | `PASS` | In-scope signal, non-blocking |
+| `npm run validate:project` | `PASS` | Structural signal, non-blocking |
+
+Build warnings observed during the fresh run:
+
+- browser compatibility warning for `fs` imported by `src/features/architect/utils/tradeMachine/engine/tradeDebug.ts`
+- dynamic/static import-mixing warnings involving `src/firebaseConfig.js`, `src/features/architect/utils/entitlements/entitlementResolver.ts`, and `src/features/architect/utils/leagueInvariants.ts`
+- large bundle chunk warning for the main production bundle
+
+Verdict impact:
+
+- These warnings are real current-state build hygiene / bundle concerns.
+- They did not fail the build and do not change the closeout verdict for TS runtime ownership.
 
 ## 6. Evidence / Inspection Run
 
-### Inventory proof
+Anti-staleness rule used for this audit:
 
-- `find src/features/architect -name "*.ts" | wc -l` → 222
-- `find src/features/architect -name "*.tsx" | wc -l` → 77
-- `find src/features/architect -name "*.js" | wc -l` → 11
-- `find src/features/architect -name "*.jsx" | wc -l` → 13
-- Glob scans of `src/shared/components/**` and `src/shared/utils/contracts/**` by extension
-- Architect-reached shared files identified via import tracing from `src/features/architect/**/*.{ts,tsx}`
-- Non-Architect-reached shared files (DropdownGroup, ErrorBoundary, PlayerHeadshot, SeasonYearSelector, ToggleButton, VideoExamples, Modal, OverallGradeBlock, drawers/DrawerShell, drawers/OpenDrawerButton) excluded from scope
+- prior audits, return packages, and baseline hypotheses were used only to target hotspots
+- all facts below were re-proved from current repo state before writing the verdict
 
-### Same-path sibling proof
+Runtime inventory and closure walk:
 
-30 in-scope same-path `.js/.jsx` + `.ts/.tsx` pairs identified. All 30 `.js/.jsx` files confirmed as pure 1–2 line compatibility forwarders via targeted reads:
+- Node closure walk starting from `src/features/architect/**`, resolving only into `src/shared/components/**` and `src/shared/utils/contracts/**`
+- Fresh result:
+  - Architect files in closure: `301`
+  - Architect-reached shared files: `14`
+  - total audited runtime files: `315`
+  - in-scope `.js/.jsx`: `0`
+- Current expected baseline `301 / 14 / 315 / 0 / 0` was confirmed, not disproved
 
-- `src/features/architect/capSheet/CapSheet/CapSheet.jsx` → `export { default } from './CapSheet.tsx';`
-- `src/features/architect/capSheet/CapSheet/CapSummaryTiles.jsx` → `export { default } from './CapSummaryTiles.tsx';`
-- `src/features/architect/hooks/useCapValidation.js` → `export * from './useCapValidation.ts'; export { default } from './useCapValidation.ts';`
-- `src/shared/components/BirdRightsIcon.jsx` → `export { default } from './BirdRightsIcon.tsx';`
-- `src/shared/components/TeamLogo.jsx` → `export { default } from './TeamLogo.tsx';`
-- `src/shared/components/TeamSelectDropdown.jsx` → `export { default } from './TeamSelectDropdown.tsx';`
-- `src/shared/components/ui/Dialog.jsx` → `export * from './Dialog.tsx';`
-- `src/shared/components/ui/filters/MultiSelectFilter.jsx` → `export { default } from './MultiSelectFilter.tsx';`
-- `src/shared/utils/contracts/contractParser.js` → `export * from './contractParser.ts';`
+Fresh shared runtime closure proved Architect currently reaches exactly these shared files:
 
-The guardrail test `src/tests/architect/finalArchitectInventoryGate.e132.guardrail.test.ts` also independently verifies all 21 Architect same-path shims: it dynamically imports both shim and authority, confirms identical export names, and verifies object identity (`toBe`). This test passes.
+- `src/shared/components/BirdRightsIcon.tsx`
+- `src/shared/components/EditContractModal.tsx`
+- `src/shared/components/TeamLogo.tsx`
+- `src/shared/components/TeamSelectDropdown.tsx`
+- `src/shared/components/ui/Dialog.tsx`
+- `src/shared/components/ui/filters/BadgeFilterSelect.tsx`
+- `src/shared/components/ui/filters/MultiSelectFilter.tsx`
+- `src/shared/components/ui/filters/RangeSelector.tsx`
+- `src/shared/components/ui/filters/RoleChecklist.tsx`
+- `src/shared/components/ui/filters/index.ts`
+- `src/shared/utils/contracts/contractParser.ts`
+- `src/shared/utils/contracts/contractUtils.ts`
+- `src/shared/utils/contracts/index.ts`
+- `src/shared/utils/contracts/seasonNormalizer.ts`
 
-### Non-twin file proof
+Same-path scan:
 
-- `src/features/architect/utils/draftPickUtils.js` — read in full. Contains `isFrozenPick` function (43 lines). Glob confirmed no `.ts` sibling exists. File header states "Compatibility surface for frozen-pick guardrail tests and legacy imports."
-- `src/features/architect/utils/tradeMachine/rules/enforceEligibility.js` — read in full. Single re-export line: `export { enforceEligibility } from './validateEligibility';`. Glob confirmed no `.ts` sibling exists.
-- `src/features/architect/utils/validatePhase21.test.js` — read. Vitest test file importing from `capLegalityValidation.ts`.
-- `src/features/architect/utils/tradeContext/legacy/index.js` — read. Re-exports from `./index.ts`.
-- `src/features/architect/utils/exceptions/exceptionLifecycle.js` — read. Re-exports from `./exceptionLifecycle.ts`.
+- `find ... | sed ... | uniq -d | wc -l`
+- Fresh result: `0`
+- Therefore there were no same-path `.js/.jsx` + `.ts/.tsx` pairs to classify in scope
 
-### Importer scan proof
+Explicit `.js/.jsx` runtime-import scan in `src/**`:
 
-- `rg "from ['\""][^'\"]+\.(js|jsx)['\""]" src/features/architect --glob "*.{ts,tsx}"` — found 10 explicit `.js` imports:
-  - 8× `@/config/validationFlags.js` (out of scope)
-  - 2× `@/shared/utils/formatting/basicFormatting.js` (out of scope)
-- Zero explicit in-scope `.js/.jsx` import strings exist in Architect source code.
-- Remaining in-scope JS runtime resolution comes entirely from extensionless specifiers + Vite resolver behavior.
+- `rg -n "from ...\\.(js|jsx)|import\\(...\\.(js|jsx)" src/features/architect --glob '*.{ts,tsx}'`
+- Fresh result: `10` explicit `.js` imports, `0` explicit `.jsx` imports
+- All 10 are outside the audit scope:
+  - `@/config/validationFlags.js` x8
+  - `@/shared/utils/formatting/basicFormatting.js` x2
+- Fresh conclusion: out-of-scope explicit JS imports exist, but there is zero in-scope JS/JSX runtime-import pressure
 
-### Resolver / topology checks
+Resolver / topology checks:
 
-Read `vite.config.js` — confirmed two explicit aliases:
+- Fresh resolver proof used both `ts.resolveModuleName(...)` and Vite `pluginContainer.resolveId(...)`
+- Fresh outcomes:
 
-- `@/shared/components/ui/filters` → `src/shared/components/ui/filters/index.ts`
-- `@/shared/utils/contracts` → `src/shared/utils/contracts/index.ts`
+| Specifier | TypeScript | Vite |
+| --- | --- | --- |
+| `@/shared/components/ui/filters` | `src/shared/components/ui/filters/index.ts` | `src/shared/components/ui/filters/index.ts` |
+| `@/shared/utils/contracts` | `src/shared/utils/contracts/index.ts` | `src/shared/utils/contracts/index.ts` |
+| `@/shared/components/TeamLogo` | `src/shared/components/TeamLogo.tsx` | `src/shared/components/TeamLogo.tsx` |
+| `@/shared/components/TeamSelectDropdown` | `src/shared/components/TeamSelectDropdown.tsx` | `src/shared/components/TeamSelectDropdown.tsx` |
+| `@/shared/components/BirdRightsIcon` | `src/shared/components/BirdRightsIcon.tsx` | `src/shared/components/BirdRightsIcon.tsx` |
+| `@/shared/components/ui/Dialog` | `src/shared/components/ui/Dialog.tsx` | `src/shared/components/ui/Dialog.tsx` |
+| `@/features/architect/utils/capProjections` | `src/features/architect/utils/capProjections.ts` | `src/features/architect/utils/capProjections.ts` |
 
-Read `tsconfig.json` — confirmed `moduleResolution: "bundler"`, `paths: { "@/*": ["./src/*"] }`.
+Fresh conclusion:
 
-Vite's default resolve.extensions order: `.mjs, .js, .mts, .ts, .jsx, .tsx, .json` — `.js/.jsx` precedes `.ts/.tsx` for extensionless imports where both exist.
+- The expected TS-target baseline was confirmed for all 7 required specifiers.
+- No required specifier resolves through a `.js/.jsx` forwarder first anymore.
 
-Resolution results for the 7 required specifiers:
+Targeted file reads and what each proved:
 
-| Specifier | TypeScript resolves to | Vite resolves to |
-|-----------|----------------------|------------------|
-| `@/shared/components/ui/filters` | `src/shared/components/ui/filters/index.ts` | `src/shared/components/ui/filters/index.ts` (alias) |
-| `@/shared/utils/contracts` | `src/shared/utils/contracts/index.ts` | `src/shared/utils/contracts/index.ts` (alias) |
-| `@/shared/components/TeamLogo` | `src/shared/components/TeamLogo.tsx` | `src/shared/components/TeamLogo.jsx` (shim-first) |
-| `@/shared/components/TeamSelectDropdown` | `src/shared/components/TeamSelectDropdown.tsx` | `src/shared/components/TeamSelectDropdown.jsx` (shim-first) |
-| `@/shared/components/BirdRightsIcon` | `src/shared/components/BirdRightsIcon.tsx` | `src/shared/components/BirdRightsIcon.jsx` (shim-first) |
-| `@/shared/components/ui/Dialog` | `src/shared/components/ui/Dialog.tsx` | `src/shared/components/ui/Dialog.jsx` (shim-first) |
-| `@/features/architect/utils/capProjections` | `src/features/architect/utils/capProjections.ts` | `src/features/architect/utils/capProjections.js` (shim-first) |
-
-The two aliased specifiers (filters, contracts) resolve directly to TS in both TypeScript and Vite. The remaining 5 resolve to TS in TypeScript but land on the `.js/.jsx` shim first in Vite due to extension priority.
-
-Internal extensionless leaf exports from the filters barrel still fan out through `BadgeFilterSelect.jsx`, `MultiSelectFilter.jsx`, `RangeSelector.jsx`, `RoleChecklist.jsx` under Vite resolution. Similarly, `contractParser.js` is hit when `index.ts` imports `./contractParser` extensionless.
-
-### Required evidence target reads
-
-| Target | File read | What it proved |
-|--------|-----------|----------------|
-| Same-path shim | `CapSheet.jsx`, `useCapValidation.js`, `TeamLogo.jsx`, `Dialog.jsx`, `MultiSelectFilter.jsx`, `contractParser.js` | All are pure 1–2 line forwarders |
-| Wrapper / public entry | `enforceEligibility.js` | Single re-export, no logic, no TS twin |
-| Barrel / index | `filters/index.js`, `contracts/index.js` | Pure `export * from './index.ts'` barrels |
-| Retained standalone JS | `draftPickUtils.js` | Contains real logic but zero runtime importers |
-| Major Architect TS authority | `useArchitectActions.ts` (160 lines read) | TS-owned, heavily permissive local interfaces with `[key: string]: unknown` |
-| Shared Architect-adjacent TS | `contractParser.ts` (60 lines read) | TS-owned, typed interfaces but uses `ContractParserRecord = Record<string, unknown>` |
-| Compatibility guardrail test | `finalArchitectInventoryGate.e132.guardrail.test.ts` (full read) | Freezes exact 24-file JS/JSX inventory, verifies shim export parity |
-| Permissive-typing-heavy TS | `useArchitectState.ts` (80 lines read), `types.ts` (80 lines read) | Heavy `[key: string]: unknown` index signatures, all-optional fields, `Record<string, unknown>` envelopes |
-| Stronger contract-oriented TS | `persistenceContracts/contracts.ts` (80 lines read) | Frozen allowlists, `readonly` arrays, strict interface shapes, no open index signatures |
-
-### Type quality proof
-
-- `rg -c ':\s*any\b|<any\b|as\s+any\b|\bany\[\]|\bany\s*>' --type ts src/features/architect` → 355 occurrences across 44 files
-- `rg -c 'Record<string,\s*unknown>|\[key:\s*string\]:\s*unknown' --type ts src/features/architect` → 567 occurrences across 136 files
-- `rg -c '\w+Like\b' --type ts src/features/architect` → 1,463 references across 123 files
-- `rg -c '\bas [A-Z]\w+' --type ts src/features/architect` → 561 casts across 137 files
-- `rg -c '@ts-ignore|@ts-expect-error' --type ts src/features/architect` → 0
-- `rg -c 'z\.(object|string|number|boolean|array|enum|union|literal|infer|ZodType)' --type ts src/features/architect` → 0
+- same-path shim read: none required, because the fresh same-path scan found `0`
+- wrapper / public entry read: [validators/index.ts](../../../src/features/architect/utils/tradeMachine/validators/index.ts)
+  - confirmed a TS compatibility barrel still exists, but as TS-owned public surface rather than JS residue
+- barrel / index reads:
+  - [filters/index.ts](../../../src/shared/components/ui/filters/index.ts)
+  - [contracts/index.ts](../../../src/shared/utils/contracts/index.ts)
+  - both proved the live shared barrels on the Architect runtime path are TS authorities
+- retained standalone JS read: [PlayerHeadshot.jsx](../../../src/shared/components/PlayerHeadshot.jsx)
+  - proved out-of-scope shared JSX still exists
+  - fresh closure walk proved Architect does not currently reach it
+- major Architect TS authority read: [mutationPipeline.ts](../../../src/features/architect/utils/mutationPipeline.ts)
+  - proved the runtime core is TS-owned but still permissive
+- permissive-heavy TS reads:
+  - [resolveOffseasonTransition.ts](../../../src/features/architect/utils/offseason/resolveOffseasonTransition.ts)
+  - [useCapValidation.ts](../../../src/features/architect/hooks/useCapValidation.ts)
+  - both showed active reliance on local `...Like` compatibility shapes and bag typing
+- stronger contract-oriented TS reads:
+  - [contracts.ts](../../../src/features/architect/utils/persistenceContracts/contracts.ts)
+  - [validatePersistableShape.ts](../../../src/features/architect/utils/persistenceContracts/validatePersistableShape.ts)
+  - both showed genuinely structured contract typing
+- shared Architect-adjacent runtime TS read: [TeamLogo.tsx](../../../src/shared/components/TeamLogo.tsx)
+  - confirmed the current shared runtime authority on the Architect path is TS-owned
+- compatibility guardrail test read: [sharedContractPocket.compatibility.guardrail.test.tsx](../../../src/tests/architect/sharedContractPocket.compatibility.guardrail.test.tsx)
+  - confirmed the shared contract pocket guardrails now assert TS authority parity and deleted shim absence
+- stronger type export read: [types/index.ts](../../../src/features/architect/types/index.ts) plus [ruleContext.ts](../../../src/features/architect/types/ruleContext.ts)
+  - confirmed schema-backed and closed-contract types exist, even though they are not yet used deeply enough in the weakest authorities
 
 ## 7. Final Standards Verdict
 
 `Architect passes structural TS conversion standards but not hardening standards`
 
+Fresh repo evidence supports this verdict.
+
 Why:
 
-- The audited live runtime path is meaningfully TS-owned. All 33 in-scope JS/JSX files are either compatibility forwarders, intentional wrappers, or dead/test-only residue. Zero live business logic remains in JS/JSX.
-- Remaining shim-first Vite resolution is compatibility-only residue and is acceptable cleanup, not structural failure.
-- The repo has an active guardrail test (`finalArchitectInventoryGate.e132.guardrail.test.ts`) that freezes the exact JS/JSX inventory and verifies shim correctness.
-- Architect does **not** yet read as finish-line polish only because:
-  - 355 `any` in type positions across 15% of TS files
-  - 567 permissive bag patterns across 46% of TS files
-  - 561 type casts across 46% of TS files
-  - Zero Zod runtime validation
-  - Core runtime authorities (GMDashboard hooks, tradeMachine types/engine) still rely heavily on open index signatures, `Record<string, unknown>`, and permissive `...Like` local types
+- Runtime ownership is now a clean `PASS`.
+- No live business logic remains in `.js/.jsx` in the audited scope.
+- Resolver topology for the required surfaces now lands on TS in both TypeScript and Vite.
+- All three required validation commands passed.
+- Type quality is still only `partially hardened`, and the most important orchestration and transition files remain too permissive to call Architect fully hardened.
 
-Direct answer to the closeout question:
+Why not `Architect passes our standards`:
 
-- Architect now passes the structural TS conversion bar.
-- What still blocks full closeout is hardening, not migration.
-- The remaining work is more than optional polish — it is concentrated in core runtime authorities where permissive types undermine the value of the conversion.
+- The Final Hardening Pack standard was not merely "converted to TS".
+- Fresh reads still show core flows dominated by local bag types, `...Like` compatibility shapes, and cast bridges.
+
+Why not `Architect does not yet pass our standards`:
+
+- Structural TS conversion and runtime ownership now do pass.
+- The remaining problem is specifically hardening depth, not unresolved migration, topology, or validation failure.
 
 ## 8. Recommended Next Actions
 
-1. **type hardening** (priority)
-   - Focus on the highest-traffic permissive authorities:
-     - `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
-     - `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
-     - `src/features/architect/utils/tradeMachine/constants/types.ts`
-     - `src/features/architect/utils/tradeMachine/engine/tradeValidator.ts`
-     - `src/features/architect/utils/tradeMachine/cache/validationCacheService.ts`
-     - `src/shared/components/EditContractModal.tsx`
-   - Reduce `any`, `[key: string]: unknown`, `Record<string, unknown>`, and cast bridges.
-   - Push schema-backed types from `src/schemas/architect.ts` deeper into the live runtime authorities.
-   - Consider Zod runtime validation at persistence boundaries (Firestore writes).
-
-2. **shim cleanup**
-   - Retarget live extensionless imports so Vite lands directly on TS/TSX authorities:
-     - Add explicit `.ts`/`.tsx` extensions to extensionless import specifiers, OR
-     - Add Vite aliases for the remaining shim-first paths (TeamLogo, TeamSelectDropdown, BirdRightsIcon, Dialog, capProjections), OR
-     - Delete the `.js/.jsx` shims after verifying no external consumers depend on them
-   - Update the guardrail test inventory after cleanup.
-
-3. **wrapper/barrel cleanup**
-   - After shim cleanup, decide whether these zero-runtime residues should remain:
-     - `src/features/architect/utils/draftPickUtils.js` (test-only, could be converted to `.ts`)
-     - `src/features/architect/utils/tradeMachine/rules/enforceEligibility.js` (wrapper, could be deleted if test imports are retargeted)
-     - `src/features/architect/utils/validatePhase21.test.js` (test file, could be renamed to `.test.ts`)
-   - Off-path shared barrels (`filters/index.js`, `contracts/index.js`) can be deleted once no consumer relies on them.
-
-4. **guardrail retargeting**
-   - Once the desired steady-state runtime topology is chosen, update `finalArchitectInventoryGate.e132.guardrail.test.ts` to enforce the new end state.
-
-5. **out-of-scope shared JS awareness**
-   - Architect has 10 explicit `.js` import strings pointing outside the audit scope (`validationFlags.js` ×8, `basicFormatting.js` ×2). These represent real JS dependencies that a broader migration effort should address, but they do not affect the Architect-scoped verdict.
-
-### Files changed
-
-None (verification-only audit).
-
-### Validation commands run
-
-- `npm run typecheck` — PASS
-- `npm run build` — PASS
-- `npm run validate:project` — PASS
-
-### Commands intentionally skipped
-
-- `npm run test:architect` — per audit prompt: "Do not run broad test suites in this audit." The guardrail test was read and analyzed but not executed as part of this audit.
+1. Type hardening
+   - Start with `src/features/architect/utils/mutationPipeline.ts`.
+   - Then target `src/features/architect/utils/offseason/resolveOffseasonTransition.ts`, `src/features/architect/hooks/useCapValidation.ts`, and `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`.
+2. Replace local compatibility bags where shared contracts already exist
+   - Prefer `src/features/architect/types/index.ts`, `src/schemas/architect.ts`, and existing persistence / salary-engine contracts over new local `...Like` shapes.
+3. Reduce bridge casts in core flows
+   - Prioritize removing `as unknown as`, open index signatures, and catch-all `Record<string, unknown>` usage where runtime shapes are already stable.
+4. Guardrail retargeting only if needed
+   - Keep or add guardrails around current TS authorities and current extensionless import behavior.
+   - Do not reopen migration, shim cleanup, or wrapper cleanup unless future runtime-closure proof shows new JS/JSX pressure.
+5. Closeout complete
+   - Architect can be treated as fully closed out only after the core authorities are no longer dominated by permissive local bags and cast-driven type forcing.
