@@ -51,6 +51,7 @@ import type {
   DraftPick,
   Exceptions,
   TeamTotals,
+  TradeException,
 } from '@/features/architect/types';
 import {
   acquireOptimisticLock,
@@ -334,7 +335,7 @@ interface CapSheet {
   players?: ArchitectPlayer[];
   activeContracts?: ActiveContract[];
   waivedContracts?: unknown[];
-  tradeExceptions?: unknown[];
+  tradeExceptions?: TradeException[];
   exceptionHistory?: unknown[];
   mleHistory?: unknown[];
   pickLog?: unknown[];

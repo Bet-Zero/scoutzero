@@ -64,7 +64,11 @@ Goal:
 - `Chunk 1 — Core pipeline + transition hardening — COMPLETE`
   Summary: hardened the `executeTrade` path in `mutationPipeline.ts`, tightened the main transition input/output/state contracts in `resolveOffseasonTransition.ts`, added a focused node proof for one representative trade path plus two representative offseason transition paths, and kept runtime behavior unchanged.
   Support edits used: `0`
-- `Chunk 2 — Validation + dashboard action hardening — NOT STARTED`
+- `Chunk 2 — Validation + dashboard action hardening — COMPLETE`
+  Summary: hardened the two Chunk 2 target files with zero support edits and kept runtime behavior unchanged.
+  - `useCapValidation.ts`: already clean at start of chunk (0 `any`, 0 `unknown`, 0 catch-all index signatures); both boundary casts (`getCapSettings → CapSettingsLike` and `CapValidationPlayer[] → Player[]`) are load-bearing adapter casts where the shapes genuinely differ (`CapSettingsLike` adds `minimumSalary` not present in `RawCapProjection`; `Player` is broader than `CapValidationPlayer`). No changes needed — documented as intentional.
+  - `useArchitectActions.ts`: narrowed `CapSheet.tradeExceptions?: unknown[]` to `TradeException[]` using the canonical schema-derived type already exported from `@/features/architect/types`; the three double-casts (lines 1729, 2312, 3177) are load-bearing adapter bridges (different `TeamCapSheetLike` types from two separate modules; `LocalContract` → `Record<string, unknown>` has no structural overlap for a single-cast); remaining `unknown[]` fields in `CapSheet` (`waivedContracts`, `exceptionHistory`, `mleHistory`, `pickLog`, `historyTimeline`) and `Record<string, unknown>` fields are legacy data with no canonical typed shapes available without new type introductions.
+  Support edits used: `0`
 - `Final Audit — NOT STARTED`
 
 ## 6. Current Risks / Open Questions
@@ -73,15 +77,25 @@ Goal:
 - `mutationPipeline.ts` still keeps broader shared mutation aliases outside the trade path; widening those would spill into signing, waive, option, and offer-sheet branches that were explicitly out of scope for Chunk 1.
 - `resolveOffseasonTransition.ts` now uses specific transition contracts for players, cap sheet state, option decisions, and applied summary output, but `context.capProjections` remains intentionally loose because this pass did not establish a stronger shared projection contract.
 - `resolveOffseasonTransition.ts` still retains a few localized compatibility casts inside option decision normalization where runtime input can arrive as either string decisions or decision objects.
-- `useCapValidation.ts` has not yet been hardened and may still rely on local compatibility `...Like` shapes instead of stronger domain contracts.
-- `useArchitectActions.ts` has not yet been hardened and may still rely on broad payload/result bridges because upstream action-facing shapes are still mixed.
+- `useCapValidation.ts`: both boundary casts are intentional adapters; local `...Like` interfaces are well-enumerated (no catch-alls) and serve as clean input boundary contracts.
+- `useArchitectActions.ts`: `CapSheet.tradeExceptions` narrowed to `TradeException[]`; remaining `unknown[]` legacy fields (`waivedContracts`, `exceptionHistory`, `mleHistory`, `pickLog`, `historyTimeline`) and `Record<string, unknown>` metadata fields are intentionally loose — genuinely dynamic legacy data with no canonical typed shapes and no element-level access in this file.
 
 ## 7. Validation Ledger
+
+**Post-Chunk 1:**
 
 - `npm run typecheck` — PASS
 - `npm run test:node -- --reporter=dot src/tests/architect/architectFinalHardeningPack.chunk1.test.ts` — PASS
 - `npm run build` — PASS
   Warnings: pre-existing Browserslist staleness notice; pre-existing Vite warnings for `fs` browser externalization, mixed static/dynamic imports, and large chunk size reporting
+- `npm run validate:project` — PASS
+
+**Post-Chunk 2:**
+
+- `npm run typecheck` — PASS
+- `npm run test:node -- --reporter=dot src/tests/architect/architectFinalHardeningPack.chunk1.test.ts` — PASS (3/3)
+- `npm run build` — PASS
+  Warnings: same pre-existing set as after Chunk 1; no new warnings introduced
 - `npm run validate:project` — PASS
 
 ## 8. Final Audit Gate
