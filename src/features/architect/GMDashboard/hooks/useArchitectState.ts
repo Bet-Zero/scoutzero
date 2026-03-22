@@ -58,7 +58,6 @@ interface SalaryByYear {
   optionType?: string | null;
   capHit?: number | null;
   guaranteed?: boolean | null;
-  [key: string]: unknown;
 }
 
 /** Player contract structure */
@@ -70,6 +69,9 @@ interface ArchitectContract {
     yearsWithTeam?: number;
     eligibleFor?: string[];
   };
+  // NOTE: catch-all retained — ArchitectContract participates in PlayerLike-compatible
+  // intersections; removing it breaks index signature compatibility with ContractLike
+  // throughout GMDashboard.tsx and the pipeline cast in useArchitectActions.ts.
   [key: string]: unknown;
 }
 
@@ -95,6 +97,8 @@ type WorldRosterPlayerLike = ArchitectPlayer & {
 };
 
 type WorldLeagueTeamLike = {
+  // NOTE: kept as unknown[] — getLeague() returns TeamLike[] with roster: unknown[];
+  // narrowing here would conflict with the external return type.
   roster?: unknown[];
   players?: WorldRosterPlayerLike[];
 };
@@ -185,7 +189,6 @@ type ArchitectExceptionEntryLike = {
   expiresOn?: string | null;
   notes?: string | null;
   seasonKey?: string | null;
-  [key: string]: unknown;
 };
 
 type ArchitectExceptionsLike = Exceptions & {

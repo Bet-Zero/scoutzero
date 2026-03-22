@@ -161,9 +161,9 @@ interface ArchitectPlayer {
   options?: Record<string, unknown>;
   isMinimum?: boolean;
   yearsOfService?: number | string | null;
-  yearsPro?: unknown;
-  experience?: unknown;
-  ['Years Pro']?: unknown;
+  yearsPro?: number | string | null;
+  experience?: number | string | null;
+  ['Years Pro']?: number | string | null;
   guaranteed?: boolean;
   signAndTrade?: boolean;
   signAndTradeContract?: SignAndTradeContractLike | null;
@@ -182,7 +182,7 @@ interface ArchitectPlayer {
   height_ft_in?: string | null;
   weight?: number | string | null;
   weight_lbs?: number | null;
-  draftPick?: unknown;
+  draftPick?: number | string | null;
   // Salary variants
   salary?: number | null;
   baseSalary?: number | null;
@@ -194,7 +194,7 @@ interface ArchitectPlayer {
   askingSalary?: number | null;
   // Consent/rights
   limitedNTCTeamIds?: (string | number)[] | null;
-  ntcTeamList?: unknown[] | null;
+  ntcTeamList?: (string | number)[] | null;
   hasNoTradeClause?: boolean;
   hasProvidedConsent?: boolean;
   // Free agency

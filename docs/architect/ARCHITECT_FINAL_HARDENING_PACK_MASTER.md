@@ -99,38 +99,39 @@ Support edits (other files) are allowed only if a concrete type blocker makes on
 
 ---
 
-### ⬜ Chunk 2 — NEXT
+### ✅ Chunk 2 — COMPLETE (2026-03-22)
 
 **Files:** `useArchitectState.ts`, `useArchitectActions.ts`
 
-**Why second:** These hooks should consume the tighter contracts from Chunk 1 (especially `WritesSummaryLike` without catch-all, and the cleaner `ComputeResultLike` fields) rather than defining local compatibility shapes first.
+**What was done:**
 
-**Goals:**
+`useArchitectState.ts`
 
-- Dashboard-facing state slices more specifically typed
-- Action payloads/results more specifically typed
-- Action/state contracts aligned with pipeline contracts from Chunk 1
-- Broad local compatibility typing materially reduced
-- Behavior unchanged
+- `SalaryByYear[key: string]: unknown` → removed (all 6 fields explicitly named; underlying schema has no passthrough at row level)
+- `ArchitectExceptionEntryLike[key: string]: unknown` → removed (all 11 fields explicitly named; `MleExceptionZ`/`BaeExceptionZ` do not use passthrough)
 
-**Success criteria:**
+`useArchitectActions.ts`
 
-- No major placeholder typing dominates the two files
-- Any remaining broad types are clearly justified
-- Action/state shapes align with `ComputeResultLike`, `WritesSummaryLike`, `TradeExceptionRecord` from Chunk 1
+- `ArchitectPlayer.yearsPro?: unknown` → `number | string | null`
+- `ArchitectPlayer.experience?: unknown` → `number | string | null`
+- `ArchitectPlayer['Years Pro']?: unknown` → `number | string | null`
+- `ArchitectPlayer.draftPick?: unknown` → `number | string | null`
+- `ArchitectPlayer.ntcTeamList?: unknown[] | null` → `(string | number)[] | null`
 
-**What NOT to do:**
+**Deliberate non-changes (documented):**
 
-- Do not redesign dashboard orchestration
-- Do not redesign action flow
-- Do not turn this into a broader UI state rewrite
-- Keep the work boundary-focused and surgical
-
-**Required test:** `src/tests/architect/architectFinalHardeningPack.chunk2.test.ts`
-
-- Narrow node-oriented proof covering representative action result shapes and state slice contracts
+- `ArchitectContract[key: string]: unknown` — load-bearing; intersection with `ContractLike` (which has catch-all) requires it
+- `WorldLeagueTeamLike.roster?: unknown[]` — `getLeague()` returns `TeamLike.roster: unknown[]`; narrowing causes TS2345
+- `ArchitectExceptionsLike[key: string]: unknown` — `ExceptionsZ` uses `.passthrough()` at top level
+- `CapSheet[key: string]: unknown` (both files) — genuine; broad Firestore document compatibility layer
+- `ArchitectPlayer.representation?: unknown` — no runtime evidence of stable shape
+- `ArchitectPlayer.options?: Record<string, unknown>` — year-keyed option data, no field access in file
+- `persistMutation`/`runAuthoritativeFAMutation` `payload: Record<string, unknown>` — `MutationPayloadLike` also has catch-all; no clean win
+- Lines 801–802 double-cast — `validatePostStateCapLegality` signature change required; out of scope
 
 **Return package:** `return_packages/trade_machine/ARCHITECT_FINAL_HARDENING_PACK_CHUNK2_RETURN_PACKAGE.md`
+
+**Regression test:** `src/tests/architect/architectFinalHardeningPack.chunk2.test.ts` (11 tests, all pass)
 
 ---
 
@@ -149,10 +150,17 @@ Support edits (other files) are allowed only if a concrete type blocker makes on
 
 Known candidates going into Chunk 3 (from Chunk 1 documented non-changes):
 
+From Chunk 1:
+
 - `NormalizedTeam.team.capHolds?: unknown[]` — needs `CapHoldLike` type definition
 - `NormalizedTeam.team.standardRoster/twoWayRoster: unknown[]` — needs runtime evidence check
 - Line 1580 double-cast — needs investigation of `extractTeamsByCodeFromComputeResult` return type
 - Remaining `(hold: any)` callbacks in capHolds filters (lines 2833, 3323 of `mutationPipeline.ts`)
+
+From Chunk 2:
+
+- `ArchitectContract[key: string]: unknown` (useArchitectState.ts) — requires updating `ContractLike` in `playerRulesProfiles.ts` to drop its own catch-all, or decoupling `ArchitectContract` from the `PlayerLike` intersection
+- Lines 801–802 double-cast in `useArchitectActions.ts` — `validatePostStateCapLegality` parameter types need widening to accept `Record<string, CapSheet>`
 
 **Required test:** `src/tests/architect/architectFinalHardeningPack.chunk3.test.ts`
 
@@ -208,6 +216,6 @@ Each chunk creates one return package at `return_packages/trade_machine/ARCHITEC
 | Chunk | Status | Date |
 |-------|--------|------|
 | Chunk 1: core trade pipeline | ✅ COMPLETE | 2026-03-22 |
-| Chunk 2: dashboard hooks | ⬜ NOT STARTED | — |
+| Chunk 2: dashboard hooks | ✅ COMPLETE | 2026-03-22 |
 | Chunk 3: final polish | ⬜ NOT STARTED | — |
 | Final audit | ⬜ NOT STARTED | — |
