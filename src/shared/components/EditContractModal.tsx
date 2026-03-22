@@ -297,6 +297,7 @@ type EditContractModalProps = {
 
 type ValidationResultLike = {
   isLegal: boolean;
+  incomplete: boolean;
   reasons: string[];
   severity: ValidationSeverity;
 };
@@ -322,12 +323,14 @@ const buildValidationResult = ({
   warnings,
   isExtendEligible,
   selectedAction,
+  incomplete,
 }: {
   isValid: boolean;
   errors: ValidationEntryLike[];
   warnings: ValidationEntryLike[];
   isExtendEligible: boolean;
   selectedAction: SelectedContractAction;
+  incomplete?: boolean;
 }): ValidationResultLike => {
   const reasons: string[] = [];
   let maxSeverity: ValidationSeverity = 'info';
@@ -346,6 +349,14 @@ const buildValidationResult = ({
     maxSeverity = 'error';
   }
 
+  // When validation is incomplete, block confirm and record the reason
+  if (incomplete) {
+    reasons.push(
+      'Validation incomplete — some rules could not be evaluated'
+    );
+    if (maxSeverity !== 'error') maxSeverity = 'warning';
+  }
+
   // Collect warning messages (these don't block but are advisory)
   warnings.forEach((w) => {
     if (w.severity === 'warning') {
@@ -354,10 +365,12 @@ const buildValidationResult = ({
     }
   });
 
-  const isLegal = isValid && (selectedAction !== 'extend' || isExtendEligible);
+  const isLegal =
+    isValid && !incomplete && (selectedAction !== 'extend' || isExtendEligible);
 
   return {
     isLegal,
+    incomplete: !!incomplete,
     reasons,
     severity: maxSeverity,
   };
@@ -647,7 +660,7 @@ const EditContractModal = ({
 
   // CBA Validation - get warnings/errors for current action
   // Use targetYear for option/FA actions, currentYear for extensions/waivers
-  const { warnings, errors, isValid } = useCapValidation({
+  const { warnings, errors, isValid, incomplete } = useCapValidation({
     player,
     action: selectedAction,
     contractData: contractDataForValidation,
@@ -666,9 +679,23 @@ const EditContractModal = ({
         warnings,
         isExtendEligible,
         selectedAction,
+        incomplete,
       }),
-    [isValid, errors, warnings, isExtendEligible, selectedAction]
+    [isValid, errors, warnings, isExtendEligible, selectedAction, incomplete]
   );
+
+  // When validation is incomplete, replace technical info messages with user-facing warning
+  const displayWarnings = useMemo(() => {
+    if (!incomplete) return warnings;
+    return [
+      ...warnings.filter((w) => w.severity !== 'info'),
+      {
+        severity: 'warning',
+        message:
+          'Validation incomplete — some rules could not be evaluated',
+      },
+    ];
+  }, [warnings, incomplete]);
 
   // Primary button is disabled if:
   // 1. No action selected
@@ -709,12 +736,12 @@ const EditContractModal = ({
 
   // Show validation errors when validation has run and there are warnings/errors
   useEffect(() => {
-    if (selectedAction && (warnings.length > 0 || errors.length > 0)) {
+    if (selectedAction && (displayWarnings.length > 0 || errors.length > 0)) {
       setShowValidationErrors(true);
     } else {
       setShowValidationErrors(false);
     }
-  }, [selectedAction, warnings, errors]);
+  }, [selectedAction, displayWarnings, errors]);
 
   // Reset override state when action changes or modal closes
   useEffect(() => {
@@ -1770,13 +1797,14 @@ const EditContractModal = ({
           )}
 
           {/* === Validation Warnings === */}
-          {selectedAction && (warnings.length > 0 || errors.length > 0) && (
-            <ValidationWarnings
-              warnings={warnings}
-              errors={errors}
-              showErrors={showValidationErrors}
-            />
-          )}
+          {selectedAction &&
+            (displayWarnings.length > 0 || errors.length > 0) && (
+              <ValidationWarnings
+                warnings={displayWarnings}
+                errors={errors}
+                showErrors={showValidationErrors}
+              />
+            )}
 
           {/* === Advanced Override Section === */}
           {showOverrideOption && (
@@ -1875,9 +1903,11 @@ const EditContractModal = ({
                 ? 'Saving...'
                 : validationResult.isLegal
                   ? 'Confirm Action'
-                  : isOverrideConfirmed
-                    ? '⚠️ Force Override'
-                    : 'Action Blocked'}
+                  : validationResult.incomplete && !isOverrideConfirmed
+                    ? 'Validation Incomplete'
+                    : isOverrideConfirmed
+                      ? '⚠️ Force Override'
+                      : 'Action Blocked'}
             </button>
           </div>
         </div>
