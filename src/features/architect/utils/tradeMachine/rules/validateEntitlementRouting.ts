@@ -7,7 +7,6 @@ type TeamIdentifierLike =
       id?: TeamIdentifierValue;
       code?: TeamIdentifierValue;
       abbreviation?: TeamIdentifierValue;
-      [key: string]: unknown;
     };
 
 type EntitlementIdentifier = string | number;
@@ -18,7 +17,6 @@ type EntitlementRoutingEntitlement = {
   toTeamId?: TeamIdentifierLike;
   linkedEntitlementIds?: unknown;
   residualOfEntitlementId?: string | null;
-  [key: string]: unknown;
 };
 
 type EntitlementRoutingTeam = {
@@ -28,14 +26,12 @@ type EntitlementRoutingTeam = {
   code?: TeamIdentifierValue;
   abbreviation?: TeamIdentifierValue;
   entitlementIds?: EntitlementIdentifier[] | null;
-  [key: string]: unknown;
 };
 
 type EntitlementRoutingTeamSlot = {
   team?: EntitlementRoutingTeam | null;
   entitlementsOut?: EntitlementRoutingEntitlement[] | null;
   validationEntitlements?: EntitlementRoutingEntitlement[] | null;
-  [key: string]: unknown;
 };
 
 type EntitlementRoutingParams = {
@@ -50,7 +46,6 @@ type EntitlementRoutingResult = {
 
 type EntitlementRoutingContext = {
   teams?: EntitlementRoutingTeamSlot[] | null;
-  [key: string]: unknown;
 };
 
 type EntitlementRoutingEnforcementResult = {

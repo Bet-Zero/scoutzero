@@ -245,7 +245,7 @@ describe('E107 mutationPipeline boundary proof', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.teamUpdates[0].team.exceptions.mle.totalAmount).toBe(
+    expect((result.teamUpdates as any)[0].team.exceptions.mle.totalAmount).toBe(
       12_900_000
     );
   });

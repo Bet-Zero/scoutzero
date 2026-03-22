@@ -42,7 +42,6 @@ export type SignAndTradeSalaryRow = {
   salary?: number | string | null;
   capHit?: number | string | null;
   guaranteed?: boolean;
-  [key: string]: unknown;
 };
 
 export type SignAndTradeContractLike = {
@@ -54,7 +53,6 @@ export type SignAndTradeContractLike = {
   years?: number | null;
   firstYearGuaranteed?: boolean | null;
   signingTeam?: string | null;
-  [key: string]: unknown;
 };
 
 export type SignAndTradeNormalizedContract = SignAndTradeContractLike & {
@@ -71,14 +69,12 @@ export type SignAndTradeCapHold = {
   id?: string | number | null;
   player?: {
     id?: string | number | null;
-    [key: string]: unknown;
   } | null;
   playerName?: string | null;
   name?: string | null;
   active?: boolean;
   isSigned?: boolean;
   season?: string | number | null;
-  [key: string]: unknown;
 };
 
 export type SignAndTradePlayerLike = {
@@ -92,9 +88,7 @@ export type SignAndTradePlayerLike = {
     displayName?: string | null;
     display?: {
       freeAgentYear?: number | string | null;
-      [key: string]: unknown;
     };
-    [key: string]: unknown;
   } | null;
   teamCode?: string | null;
   teamId?: string | null;
@@ -112,7 +106,6 @@ export type SignAndTradePlayerLike = {
   contractYears?: number | null;
   years?: number | null;
   firstYearGuaranteed?: boolean | null;
-  [key: string]: unknown;
 };
 
 export type SignAndTradeContractCarrier = SignAndTradePlayerLike;

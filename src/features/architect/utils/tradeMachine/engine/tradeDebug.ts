@@ -5,7 +5,11 @@ interface DebugMeta {
   team?: string;
   rule?: string;
   salary?: boolean | number;
-  [key: string]: unknown;
+  type?: string;
+  timestamp?: string;
+  teamName?: string;
+  result?: unknown;
+  validation?: boolean;
 }
 
 interface DebugRecord {
@@ -19,8 +23,8 @@ interface DebugRecord {
 interface DebugTeam {
   team: { teamName?: string; totalSalary?: number };
   context?: { capSettings?: Record<string, unknown>; normalizedYear?: { seasonString?: string }; yearKey?: string | number | null };
-  sends?: Array<{ name?: string }>;
-  incomingPlayers?: Array<{ name?: string }>;
+  sends?: Array<{ name?: string; contract?: { salariesByYear?: unknown[] | null } | null; primaryContract?: { salariesByYear?: unknown[] | null } | null }>;
+  incomingPlayers?: Array<{ name?: string; contract?: { salariesByYear?: unknown[] | null } | null; primaryContract?: { salariesByYear?: unknown[] | null } | null }>;
   salaryOut?: number;
   salaryIn?: number;
   overSecondApron?: boolean;

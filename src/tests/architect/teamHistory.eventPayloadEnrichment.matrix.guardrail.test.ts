@@ -239,7 +239,7 @@ describe('TEAM_HISTORY_E5 event payload enrichment matrix guardrail', () => {
       expect(event.occurredAt).toBe('2026-03-03T12:00:00.000Z');
       expect(event.timestamp).toBe('2026-03-03T12:00:00.000Z');
       expect(Array.isArray(event.teamCodes)).toBe(true);
-      expect(event.teamCodes.length).toBeGreaterThan(0);
+      expect((event.teamCodes as any[]).length).toBeGreaterThan(0);
       expect(Array.isArray(event.playerIds)).toBe(true);
       expect(event.metadata).toBeTruthy();
       expect(event.mutationMetadata).toBeTruthy();

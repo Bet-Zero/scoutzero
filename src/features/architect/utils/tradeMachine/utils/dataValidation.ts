@@ -34,12 +34,10 @@ export type TradeDataValidationYearKey = string | number;
 
 interface DataValidationSalaryRow {
   capHit?: number | null;
-  [key: string]: unknown;
 }
 
 interface DataValidationContractLike {
   salariesByYear?: DataValidationSalaryRow[] | null;
-  [key: string]: unknown;
 }
 
 export interface DataValidationPlayer {
@@ -48,14 +46,12 @@ export interface DataValidationPlayer {
   name?: string | null;
   bio?: {
     displayName?: string | null;
-    [key: string]: unknown;
   } | null;
   contract?: DataValidationContractLike | null;
   primaryContract?: DataValidationContractLike | null;
   previousSalary?: number | null;
   isBYC?: boolean;
   baseYearCompensation?: boolean;
-  [key: string]: unknown;
 }
 
 export interface SalaryFieldValidationOptions {

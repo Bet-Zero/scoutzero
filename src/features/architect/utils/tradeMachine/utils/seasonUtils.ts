@@ -20,18 +20,15 @@ interface SeasonSalaryRow {
   season?: string | null;
   salary?: number | null;
   capHit?: number | null;
-  [key: string]: unknown;
 }
 
 interface SeasonContractLike {
   salariesByYear?: SeasonSalaryRow[] | null;
-  [key: string]: unknown;
 }
 
 interface SeasonUtilsPlayer {
   contract?: SeasonContractLike | null;
   primaryContract?: SeasonContractLike | null;
-  [key: string]: unknown;
 }
 
 /**

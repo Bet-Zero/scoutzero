@@ -134,32 +134,18 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
 
     // Check that at least one team's exclusivity rule failed
     const anyExclusivityFailed = result.teamResults.some(
-      (r: Record<string, unknown>) => {
-        const rules = r.rules as Record<string, unknown> | undefined;
-        const excl = rules?.entitlementExclusivity as
-          | Record<string, unknown>
-          | undefined;
+      (r: any) => {
+        const excl = r.rules?.entitlementExclusivity;
         return excl?.passed === false;
       }
     );
     expect(anyExclusivityFailed).toBe(true);
 
     // Verify the failure message references the compute error
-    const failedTeam = result.teamResults.find((r: Record<string, unknown>) => {
-      const rules = r.rules as Record<string, unknown> | undefined;
-      const excl = rules?.entitlementExclusivity as
-        | Record<string, unknown>
-        | undefined;
-      return excl?.passed === false;
+    const failedTeam = result.teamResults.find((r: any) => {
+      return r.rules?.entitlementExclusivity?.passed === false;
     });
-    const failedRule = (failedTeam as Record<string, unknown>).rules as Record<
-      string,
-      unknown
-    >;
-    const exclRule = failedRule.entitlementExclusivity as Record<
-      string,
-      unknown
-    >;
+    const exclRule = (failedTeam as any).rules.entitlementExclusivity;
     expect(exclRule.details).toContain(
       'Error computing post-trade entitlement set'
     );
@@ -201,31 +187,16 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
 
     // Check that at least one team's exclusivity rule failed
     const anyExclusivityFailed = result.teamResults.some(
-      (r: Record<string, unknown>) => {
-        const rules = r.rules as Record<string, unknown> | undefined;
-        const excl = rules?.entitlementExclusivity as
-          | Record<string, unknown>
-          | undefined;
-        return excl?.passed === false;
+      (r: any) => {
+        return r.rules?.entitlementExclusivity?.passed === false;
       }
     );
     expect(anyExclusivityFailed).toBe(true);
 
-    const failedTeam = result.teamResults.find((r: Record<string, unknown>) => {
-      const rules = r.rules as Record<string, unknown> | undefined;
-      const excl = rules?.entitlementExclusivity as
-        | Record<string, unknown>
-        | undefined;
-      return excl?.passed === false;
+    const failedTeam = result.teamResults.find((r: any) => {
+      return r.rules?.entitlementExclusivity?.passed === false;
     });
-    const failedRule = (failedTeam as Record<string, unknown>).rules as Record<
-      string,
-      unknown
-    >;
-    const exclRule = failedRule.entitlementExclusivity as Record<
-      string,
-      unknown
-    >;
+    const exclRule = (failedTeam as any).rules.entitlementExclusivity;
     expect(exclRule.details).toContain(
       'Error computing post-trade entitlement set'
     );
@@ -341,11 +312,8 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
     // Check for routing error — either at top level or in team rules
     const hasRoutingError =
       result.error === 'ENTITLEMENT_ROUTING_ERROR' ||
-      result.teamResults?.some((r: Record<string, unknown>) => {
-        const rules = r.rules as Record<string, unknown> | undefined;
-        const excl = rules?.entitlementExclusivity as
-          | Record<string, unknown>
-          | undefined;
+      result.teamResults?.some((r: any) => {
+        const excl = r.rules?.entitlementExclusivity;
         return (
           excl?.passed === false &&
           typeof excl?.details === 'string' &&
@@ -389,30 +357,18 @@ describe('Trade exclusivity: error handling (integrity-first)', () => {
 
     // At least one team's exclusivity rule should fail
     const anyExclusivityFailed = result.teamResults.some(
-      (r: Record<string, unknown>) => {
-        const rules = r.rules as Record<string, unknown> | undefined;
-        const excl = rules?.entitlementExclusivity as
-          | Record<string, unknown>
-          | undefined;
-        return excl?.passed === false;
+      (r: any) => {
+        return r.rules?.entitlementExclusivity?.passed === false;
       }
     );
     expect(anyExclusivityFailed).toBe(true);
 
     // The failure message should reference Pick Exclusivity
-    const failedTeam = result.teamResults.find((r: Record<string, unknown>) => {
-      const rules = r.rules as Record<string, unknown> | undefined;
-      const excl = rules?.entitlementExclusivity as
-        | Record<string, unknown>
-        | undefined;
-      return excl?.passed === false;
+    const failedTeam = result.teamResults.find((r: any) => {
+      return r.rules?.entitlementExclusivity?.passed === false;
     });
     if (failedTeam) {
-      const rules = (failedTeam as Record<string, unknown>).rules as Record<
-        string,
-        unknown
-      >;
-      const exclRule = rules.entitlementExclusivity as Record<string, unknown>;
+      const exclRule = (failedTeam as any).rules.entitlementExclusivity;
       expect(
         typeof exclRule.details === 'string' &&
           exclRule.details.includes('Pick Exclusivity')

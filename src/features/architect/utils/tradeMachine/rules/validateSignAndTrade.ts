@@ -29,6 +29,7 @@ type SignAndTradeRulePlayer = SignAndTradeContractCarrier & {
 };
 
 type SignAndTradeRuleTeam = TradeTeam & {
+  teamCode?: string;
   capHolds?: SignAndTradeCapHold[] | null;
   incomingPlayers?: SignAndTradeRulePlayer[];
   sends?: SignAndTradeRulePlayer[];
@@ -41,7 +42,6 @@ type SignAndTradeRuleTeam = TradeTeam & {
 
 type CapProjectionYear = {
   firstApron?: number;
-  [key: string]: unknown;
 };
 
 type SignAndTradeTradeContext = TeamContext & {

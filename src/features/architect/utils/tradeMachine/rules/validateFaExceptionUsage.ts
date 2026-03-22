@@ -6,7 +6,6 @@ type NumericLike = number | string | null | undefined;
 type FaExceptionBucket = {
   type?: unknown;
   remaining?: NumericLike;
-  [key: string]: unknown;
 };
 
 type FaExceptionIncomingPlayer = {
@@ -14,7 +13,6 @@ type FaExceptionIncomingPlayer = {
   bucketType?: unknown;
   matchIncoming?: NumericLike;
   salary?: NumericLike;
-  [key: string]: unknown;
 };
 
 type FaExceptionTeamData = {
@@ -22,9 +20,7 @@ type FaExceptionTeamData = {
   hardCapFirstApron?: {
     active?: boolean;
     year?: number | string;
-    [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
 };
 
 type FaExceptionValidationContext = {
@@ -32,9 +28,7 @@ type FaExceptionValidationContext = {
   capSettings?: {
     firstApron?: NumericLike;
     secondApron?: NumericLike;
-    [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
 };
 
 type FaExceptionValidationTeam = {
@@ -42,11 +36,10 @@ type FaExceptionValidationTeam = {
   teamTotalSalary?: NumericLike;
   projectedSalary?: NumericLike;
   incomingPlayers?: FaExceptionIncomingPlayer[] | null;
-  outgoingPlayers?: Array<Record<string, unknown>> | null;
+  outgoingPlayers?: unknown[] | null;
   salaryOut?: NumericLike;
   notes?: string[] | null;
   context?: FaExceptionValidationContext | null;
-  [key: string]: unknown;
 };
 
 export function validateFaExceptionUsage(

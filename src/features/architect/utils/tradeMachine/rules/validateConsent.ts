@@ -28,7 +28,7 @@ type ConsentPlayer = TradeExceptionPlayer & {
   contract?: {
     fullNTC?: boolean;
     limitedNTCList?: Array<string | number>;
-    [key: string]: unknown;
+    yearsRemaining?: number;
   };
 };
 

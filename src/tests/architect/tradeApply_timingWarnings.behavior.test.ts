@@ -219,7 +219,7 @@ describe('trade apply timing warnings', () => {
       worldId: WORLD_ID,
     });
 
-    const validatedContext = result._validatedTradeContext;
+    const validatedContext = result._validatedTradeContext as any;
     const teamAResult = validatedContext?.teamResults?.find(
       (team: { teamId: string }) => team.teamId === 'A'
     );
@@ -227,7 +227,7 @@ describe('trade apply timing warnings', () => {
     expect(result.success).toBe(true);
     expect(validatedContext?._isValidatedTradeContext).toBe(true);
     expect(validatedContext?.legal).toBe(true);
-    expect(issueTexts(validatedContext?.warnings)).toEqual(
+    expect(issueTexts(validatedContext?.warnings as any)).toEqual(
       expect.arrayContaining([expect.stringMatching(/moratorium/i)])
     );
     expect(issueTexts(teamAResult?.warnings)).toEqual(
@@ -249,11 +249,11 @@ describe('trade apply timing warnings', () => {
 
     expect(result.success).toBe(true);
     expect(
-      result.warnings?.some(
+      (result.warnings as any[])?.some(
         (warning: { rule?: string }) => warning.rule === 'timingEnforcement'
       )
     ).toBe(true);
-    expect(issueTexts(result.warnings)).toEqual(
+    expect(issueTexts(result.warnings as any)).toEqual(
       expect.arrayContaining([expect.stringMatching(/moratorium/i)])
     );
     expect(firestoreMocks.writeBatch).toHaveBeenCalled();
@@ -295,13 +295,13 @@ describe('trade apply timing warnings', () => {
       worldId: WORLD_ID,
     });
 
-    const validatedContext = computeResult._validatedTradeContext;
+    const validatedContext = computeResult._validatedTradeContext as any;
     const teamAResult = validatedContext?.teamResults?.find(
       (team: { teamId: string }) => team.teamId === 'A'
     );
     const applyTexts = [
-      ...issueTexts(validatedContext?.warnings),
-      ...issueTexts(validatedContext?.violations),
+      ...issueTexts(validatedContext?.warnings as any),
+      ...issueTexts(validatedContext?.violations as any),
       ...issueTexts(teamAResult?.warnings),
       ...issueTexts(teamAResult?.violations),
       ...issueTexts(teamAResult?.rules?.timingEnforcement?.warnings),
@@ -319,7 +319,7 @@ describe('trade apply timing warnings', () => {
       payload,
     });
 
-    const warningTexts = issueTexts(result.warnings).join(' | ');
+    const warningTexts = issueTexts(result.warnings as any).join(' | ');
 
     expect(result.success).toBe(true);
     expect(warningTexts).not.toMatch(/acquired within the last 60 days/i);

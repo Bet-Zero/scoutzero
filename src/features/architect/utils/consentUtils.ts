@@ -4,19 +4,16 @@ interface ConsentContract {
   fullNTC?: boolean;
   limitedNTCList?: ConsentTeamId[] | null;
   yearsRemaining?: number;
-  [key: string]: unknown;
 }
 
 interface ConsentFlags {
   full?: boolean;
   limited?: boolean;
   birdOneYear?: boolean;
-  [key: string]: unknown;
 }
 
 interface ConsentRights {
   bird?: unknown;
-  [key: string]: unknown;
 }
 
 interface ConsentPlayerLike {
@@ -33,19 +30,16 @@ interface ConsentPlayerLike {
   oneYearBirdVeto?: boolean;
   currentTeamId?: ConsentTeamId;
   rights?: ConsentRights | null;
-  [key: string]: unknown;
 }
 
 interface ConsentInfo {
   full?: boolean;
   limited?: boolean;
   bird?: boolean;
-  [key: string]: unknown;
 }
 
 interface ConsentNotifier {
   reject?: ((message: string) => void) | null;
-  [key: string]: unknown;
 }
 
 export function requiresConsent(

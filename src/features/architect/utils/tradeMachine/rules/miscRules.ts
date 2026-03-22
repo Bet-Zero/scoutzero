@@ -22,7 +22,6 @@ type MiscRulesYearKey = number | string;
 interface MiscRulesNormalizedYear {
   seasonString?: string | null;
   endYear?: number | null;
-  [key: string]: unknown;
 }
 
 interface MiscRulesContext {
@@ -31,7 +30,6 @@ interface MiscRulesContext {
   normalizedYear?: MiscRulesNormalizedYear | null;
   daysRemainingInSeason?: number;
   daysInSeason?: number;
-  [key: string]: unknown;
 }
 
 interface MiscRulesPlayer {
@@ -46,13 +44,14 @@ interface MiscRulesPlayer {
   hasProvidedConsent?: boolean;
   limitedNTCTeams?: Array<string | null | undefined> | null;
   hasBirdRights?: boolean;
-  [key: string]: unknown;
+  contract?: { salariesByYear?: unknown[] | null } | null;
+  primaryContract?: { salariesByYear?: unknown[] | null } | null;
+  name?: string;
 }
 
 interface MiscRulesTeam {
   sends?: MiscRulesPlayer[] | null;
   teamId?: string | null;
-  [key: string]: unknown;
 }
 
 interface MiscRulesValidationResult {

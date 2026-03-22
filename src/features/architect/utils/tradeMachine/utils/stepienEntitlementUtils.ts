@@ -21,7 +21,7 @@ type StepienEntitlementId = string | null | undefined;
 type StepienYearLike = number | string | null | undefined;
 type StepienRoundLike = number | string | null | undefined;
 
-interface StepienEntitlementLike extends Record<string, unknown> {
+interface StepienEntitlementLike {
   id?: StepienEntitlementId;
   entitlementId?: StepienEntitlementId;
   kind?: string;
@@ -126,7 +126,7 @@ export function buildStepienOutgoingPicksFromEntitlements(
       return true;
     })
     .map((ent) => {
-      const terms = normalizeEntitlementTerms(ent);
+      const terms = normalizeEntitlementTerms(ent as Record<string, unknown>);
       const protectionText =
         terms.protectionLadder?.currentTier?.condition || null;
       const isSwap = ent.kind === 'swap_right';
@@ -176,7 +176,7 @@ export function buildStepienBaselinePicksFromEntitlements(
       return true;
     })
     .map((ent) => {
-      const terms = normalizeEntitlementTerms(ent);
+      const terms = normalizeEntitlementTerms(ent as Record<string, unknown>);
       const protectionText =
         terms.protectionLadder?.currentTier?.condition || null;
       const isSwap = ent.kind === 'swap_right';

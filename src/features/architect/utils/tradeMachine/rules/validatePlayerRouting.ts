@@ -7,7 +7,6 @@ type TeamIdentifierLike =
       id?: TeamIdentifierValue;
       code?: TeamIdentifierValue;
       abbreviation?: TeamIdentifierValue;
-      [key: string]: unknown;
     };
 
 type PlayerRoutingPlayer = {
@@ -18,7 +17,6 @@ type PlayerRoutingPlayer = {
   tradeTo?: TeamIdentifierValue;
   toTeamId?: TeamIdentifierValue;
   destTeamId?: TeamIdentifierValue;
-  [key: string]: unknown;
 };
 
 type PlayerRoutingTeamSlot = {
@@ -29,13 +27,11 @@ type PlayerRoutingTeamSlot = {
         teamCode?: TeamIdentifierValue;
         code?: TeamIdentifierValue;
         abbreviation?: TeamIdentifierValue;
-        [key: string]: unknown;
       }
     | null;
   teamId?: TeamIdentifierValue;
   teamCode?: TeamIdentifierValue;
   sends?: PlayerRoutingPlayer[] | null;
-  [key: string]: unknown;
 };
 
 type PlayerRoutingParams = {

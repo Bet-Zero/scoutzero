@@ -28,7 +28,7 @@ const makeTeam = (name: string, totalSalary: number) => ({
   totalSalary,
   players: Array.from({ length: 12 }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000)
-  ),
+  ) as any,
   entitlements: [],
   entitlementIds: [],
 });

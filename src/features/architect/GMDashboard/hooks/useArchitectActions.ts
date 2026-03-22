@@ -82,7 +82,6 @@ interface SalaryByYear {
   capHit?: number | null;
   guaranteed?: boolean | null;
   optionUsed?: boolean | null; // CANONICAL: boolean, not string
-  [key: string]: unknown;
 }
 
 type LocalContractLegacySalaryInput =
@@ -90,7 +89,7 @@ type LocalContractLegacySalaryInput =
   | string
   | {
       salary?: number | string | null;
-      [key: string]: unknown;
+      season?: string | null;
     };
 
 interface LocalBirdRights {
@@ -118,7 +117,12 @@ interface LocalContract {
   firstYearGuaranteed?: boolean | null;
   rfaOfferSheet?: boolean;
   rfaOfferSheetOnly?: boolean;
-  [key: string]: unknown;
+  yearsRemaining?: number | null;
+  contractLength?: number | null;
+  originalLength?: number | null;
+  totalValue?: number | null;
+  freeAgency?: { year?: number | string | null; type?: string | null } | string | null;
+  rfaOfferSheetStatus?: string | null;
 }
 
 /** Bio structure for player data (avoids schema naming pattern) */
@@ -127,7 +131,15 @@ interface LocalBio {
   displayName?: string;
   position?: string;
   age?: number;
-  [key: string]: unknown;
+  height?: number | string | null;
+  weight?: number | string | null;
+  draftRound?: number | null;
+  draftPick?: number | string | null;
+  yearsExperience?: number | null;
+  experience?: number | string | null;
+  'Years Pro'?: number | string | null;
+  display?: { freeAgentType?: string | null; team?: string | null } | null;
+  team?: string | null;
 }
 
 /** Player data structure */
@@ -165,7 +177,31 @@ interface ArchitectPlayer {
   contractType?: string;
   isExtension?: boolean;
   isRookieScale?: boolean;
-  [key: string]: unknown;
+  // Physical attributes (fallback from bio)
+  height?: number | string | null;
+  height_ft_in?: string | null;
+  weight?: number | string | null;
+  weight_lbs?: number | null;
+  draftPick?: unknown;
+  // Salary variants
+  salary?: number | null;
+  baseSalary?: number | null;
+  newSalary?: number | null;
+  currentSalary?: number | null;
+  previousSalary?: number | null;
+  matchIncoming?: number | null;
+  matchingValue?: number | null;
+  askingSalary?: number | null;
+  // Consent/rights
+  limitedNTCTeamIds?: (string | number)[] | null;
+  ntcTeamList?: unknown[] | null;
+  hasNoTradeClause?: boolean;
+  hasProvidedConsent?: boolean;
+  // Free agency
+  freeAgentType?: string | null;
+  fa_type?: string | null;
+  // Experience variants
+  years_of_service?: number | string | null;
 }
 
 interface TradeEntitlementPayload {
@@ -174,7 +210,7 @@ interface TradeEntitlementPayload {
   name?: string | null;
   year?: number | string | null;
   round?: number | null;
-  [key: string]: unknown;
+  entitlementId?: string | null;
 }
 
 /** Trade data item for a single team */
@@ -213,7 +249,6 @@ interface SigningDetails {
   overrideUsed?: boolean;
   overrideReasons?: string[];
   overrideTimestamp?: string;
-  [key: string]: unknown;
 }
 
 /** Waive options */
@@ -240,7 +275,6 @@ interface ActiveContract {
   isMinimum?: boolean;
   yearsOfService?: number;
   contract?: LocalContract;
-  [key: string]: unknown;
 }
 
 /** Cap hold structure */
@@ -270,7 +304,8 @@ type ArchitectExceptionEntryLike = {
   expiresOn?: string | null;
   notes?: string | null;
   seasonKey?: string | null;
-  [key: string]: unknown;
+  maxAmount?: number | null;
+  amount?: number | null;
 };
 
 type ArchitectExceptionsLike = Exceptions & {
@@ -279,7 +314,7 @@ type ArchitectExceptionsLike = Exceptions & {
   room?: ArchitectExceptionEntryLike;
   bae?: ArchitectExceptionEntryLike;
   dpe?: ArchitectExceptionEntryLike;
-  [key: string]: unknown;
+  roomMLE?: ArchitectExceptionEntryLike;
 };
 
 /** Override audit log entry */
@@ -311,7 +346,8 @@ interface CapSheet {
   totals?: TeamTotals | null;
   amount?: number;
   overrideAuditLog?: OverrideAuditEntry[];
-  [key: string]: unknown;
+  roster?: ArchitectPlayer[] | null;
+  historyTimeline?: unknown[] | null;
 }
 
 /** Override metadata passed from EditContractModal when bypassing validation */
@@ -333,7 +369,7 @@ interface TeamMutationUpdate {
 
 interface PersistMutationResult extends MutationTruthResult {
   changedTeams?: TeamMutationUpdate[];
-  event?: CapAuditEventV1Like | { operationId?: string; [key: string]: unknown };
+  event?: CapAuditEventV1Like | { operationId?: string; type?: string; timestamp?: string };
   worldPatch?: Record<string, unknown>;
 }
 
@@ -381,7 +417,6 @@ interface OfferSheet {
   dedupKey?: string;
   playerId?: string;
   seasonKey?: string;
-  [key: string]: unknown;
 }
 
 import type {
@@ -763,8 +798,8 @@ function buildCapAuditEvaluation(params: {
     mutationType,
     worldId: worldId || BASE_MODE_VALIDATOR_WORLD_ID,
     year,
-    beforeTeamsByCode,
-    afterTeamsByCode,
+    beforeTeamsByCode: beforeTeamsByCode as unknown as Record<string, Record<string, unknown>>,
+    afterTeamsByCode: afterTeamsByCode as unknown as Record<string, Record<string, unknown>>,
     beforeTotalsByTeam,
     afterTotalsByTeam,
   });
@@ -1691,7 +1726,7 @@ export function useArchitectActions({
       const signingPayload = {
         teamCode,
         playerId: idToSign,
-        contract: architectContract,
+        contract: architectContract as unknown as Record<string, unknown>,
         signedUsing,
       };
 
@@ -2274,7 +2309,7 @@ export function useArchitectActions({
   );
 
   const hasInjectedCapSheetFixtures = useMemo(
-    () => hasInjectedCapSheetFixturesInTeam(teamCapSheet as CapSheet | null),
+    () => hasInjectedCapSheetFixturesInTeam(teamCapSheet as unknown as Parameters<typeof hasInjectedCapSheetFixturesInTeam>[0]),
     [teamCapSheet]
   );
 
@@ -3139,7 +3174,7 @@ export function useArchitectActions({
     const seasonKey = toSeasonKey(currentYear);
 
     const resetSheet: CapSheet = {
-      ...teamCapSheet,
+      ...(teamCapSheet as unknown as CapSheet),
       activeContracts: [],
       waivedContracts: [],
       tradeExceptions: [],

@@ -383,7 +383,7 @@ const GMDashboard = () => {
           <CapSheetSection
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
-            onSelectPlayer={actions.handleEditContract}
+            onSelectPlayer={actions.handleEditContract as (player: unknown) => void}
             onSetDeadCap={actions.handleSetDeadCap}
             onSetExceptions={actions.handleSetExceptions}
             playersMap={playersMap}
@@ -397,7 +397,7 @@ const GMDashboard = () => {
           <CapTableSection
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
-            onSelectPlayer={actions.handleEditContract}
+            onSelectPlayer={actions.handleEditContract as (player: unknown) => void}
             onActionClick={actions.handleCapSheetAction}
             playersMap={playersMap}
             getRulesProfileForYear={getProfileForYear}

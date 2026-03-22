@@ -26,10 +26,8 @@ type PlayerLike =
       contract?: {
         birdRights?: unknown;
         salariesByYear?: SalaryYearLike[] | null;
-        [key: string]: unknown;
       } | null;
       birdRights?: unknown;
-      [key: string]: unknown;
     }
   | null
   | undefined;
@@ -38,7 +36,6 @@ type CapHoldLike =
   | {
       amount?: unknown;
       playerId?: unknown;
-      [key: string]: unknown;
     }
   | null
   | undefined;
@@ -46,7 +43,6 @@ type CapHoldLike =
 type TeamLike =
   | {
       capHolds?: CapHoldLike[] | null;
-      [key: string]: unknown;
     }
   | null
   | undefined;

@@ -22,7 +22,7 @@ interface StepienPickLike {
   teamId?: StepienTeamIdLike;
 }
 
-interface StepienEntitlementLike extends Record<string, unknown> {
+interface StepienEntitlementLike {
   terms?: unknown;
   kind?: string;
   seasonYear?: StepienYearLike;
@@ -36,15 +36,13 @@ interface StepienTradeContext {
   yearKey?: number | string;
   capSettings?: {
     secondApron?: number;
-    [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
 }
 
 interface StepienTeam
   extends Omit<
     TradeTeam,
-    'teamId' | 'team' | 'context' | 'postTradeStatus' | 'outgoingPicks'
+    'teamId' | 'team' | 'context' | 'postTradeStatus' | 'outgoingPicks' | 'picksOut'
   > {
   teamId?: StepienTeamIdLike;
   team?: (NonNullable<TradeTeam['team']> & {
@@ -53,7 +51,6 @@ interface StepienTeam
   }) | null;
   context?: {
     yearKey?: number | string;
-    [key: string]: unknown;
   };
   postTradeStatus?: {
     isAtOrAboveSecondApron?: boolean;
@@ -273,7 +270,7 @@ export function validateStepien(
       const terms: StepienWarningTerms =
         ent && typeof ent.terms === 'object'
           ? (ent.terms as StepienWarningTerms)
-          : normalizeEntitlementTerms(ent);
+          : normalizeEntitlementTerms(ent as Record<string, unknown>);
       if (terms?.hasProtectionLadder) {
         const tierCount = terms.protectionLadder?.tiers?.length || 0;
         const firstYear =

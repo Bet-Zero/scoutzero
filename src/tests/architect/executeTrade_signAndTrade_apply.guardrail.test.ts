@@ -232,7 +232,7 @@ describe('executeTrade sign-and-trade apply semantics', () => {
     expect(result.success).toBe(true);
 
     const validatedReceiver =
-      result._validatedTradeContext?._rawValidation?.teamResults?.find(
+      (result._validatedTradeContext as any)?._rawValidation?.teamResults?.find(
         (entry: any) => entry.teamId === 'BOS'
       );
     const sourceUpdate = result.teamUpdates.find(

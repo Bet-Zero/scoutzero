@@ -20,7 +20,12 @@ export interface CapSettings {
   fullMLE: number;
   roomMLE: number;
   bae: number;
-  [key: string]: unknown;
+  luxuryTax?: number;
+  cap?: number;
+  taxpayerMLE?: number;
+  tax?: number;
+  minimumSalary?: number;
+  averageSalary?: number;
 }
 
 // Normalized player data
@@ -37,7 +42,67 @@ export interface NormalizedPlayer {
   tpeId?: string;
   fromTeamId?: string;
   toTeamId?: string;
-  [key: string]: unknown; // Allow additional properties
+  // Identity
+  id?: string;
+  playerId?: string;
+  player_id?: string;
+  playerName?: string;
+  displayName?: string;
+  fullName?: string;
+  // Team
+  teamCode?: string;
+  teamId?: string;
+  // Bio & physical
+  bio?: Record<string, unknown>;
+  height?: number | string;
+  weight?: number | string;
+  headshotUrl?: string;
+  formattedPosition?: string;
+  position?: string;
+  age?: number;
+  // Contract
+  contract?: Record<string, unknown>;
+  primaryContract?: Record<string, unknown>;
+  newSalary?: number;
+  currentSalary?: number;
+  previousSalary?: number;
+  salariesByYear?: unknown[];
+  extension?: Record<string, unknown>;
+  extensionYears?: unknown[];
+  years?: number;
+  optionType?: string;
+  remainingGuaranteedOnCurrentContract?: number;
+  // Compensation rules
+  isBYC?: boolean;
+  baseYearCompensation?: boolean;
+  isPoisonPill?: boolean;
+  isRookieScale?: boolean;
+  tradeKicker?: number;
+  tradeKickerPct?: number;
+  tradeKickerWaivedPct?: number;
+  // Consent & rights
+  hasNoTradeClause?: boolean;
+  hasProvidedConsent?: boolean;
+  limitedNTCTeams?: string[];
+  limitedNTCTeamIds?: (string | number)[];
+  hasBirdRights?: boolean;
+  hasBirdRightsVeto?: boolean;
+  birdRights?: unknown;
+  onOneYearBirdDeal?: boolean;
+  rightsRenounced?: boolean;
+  // Season/proration
+  daysRemainingInSeason?: number;
+  daysInSeason?: number;
+  // Legacy/alternate field names
+  tradeTo?: string;
+  originTeamId?: string;
+  isSignAndTrade?: boolean;
+  askingSalary?: number;
+  lastTradedFromTeamId?: string;
+  lastTradeDate?: string;
+  wasWaivedByTeamId?: string;
+  contractEndDate?: string;
+  eligibleReacqDate?: string;
 }
 
 export interface TradeExceptionPlayer {
@@ -52,7 +117,55 @@ export interface TradeExceptionPlayer {
   tpeId?: string;
   fromTeamId?: string;
   toTeamId?: string;
-  [key: string]: unknown;
+  // Identity variants
+  playerId?: string;
+  player_id?: string;
+  playerName?: string;
+  fullName?: string;
+  // Bio & physical
+  bio?: Record<string, unknown>;
+  height?: number | string;
+  height_ft_in?: string;
+  weight?: number | string;
+  weight_lbs?: number;
+  formattedPosition?: string;
+  age?: number;
+  position?: string;
+  // Contract
+  contract?: Record<string, unknown>;
+  contracts?: Record<string, unknown>;
+  yearsOfService?: number;
+  draftPick?: unknown;
+  isMinimum?: boolean;
+  contractYears?: number;
+  firstYearGuaranteed?: boolean;
+  // Rights & consent
+  rightsRenounced?: boolean;
+  hasNoTradeClause?: boolean;
+  hasProvidedConsent?: boolean;
+  limitedNTCTeams?: string[];
+  limitedNTCTeamIds?: (string | number)[];
+  hasBirdRights?: boolean;
+  birdRights?: unknown;
+  // Trade history
+  lastTradedFromTeamId?: string;
+  lastTradeDate?: string;
+  wasWaivedByTeamId?: string;
+  contractEndDate?: string;
+  eligibleReacqDate?: string;
+  tpeIndex?: number;
+  originTeamId?: string;
+  destTeamId?: string;
+  tradeTo?: string;
+  // Team
+  teamCode?: string;
+  teamId?: string;
+  isTwoWay?: boolean;
+  // Sign-and-trade
+  isSignAndTrade?: boolean;
+  newSalary?: number;
+  currentSalary?: number;
+  previousSalary?: number;
 }
 
 export interface TradeExceptionRecord {
@@ -71,7 +184,14 @@ export interface TradeExceptionRecord {
   isUsed?: boolean;
   isBeingUsed?: boolean;
   sourceRef?: TradeExceptionRecord | Record<string, unknown> | null;
-  [key: string]: unknown;
+  // Additional fields used across the codebase
+  name?: string;
+  createdFrom?: string;
+  usedAmount?: number;
+  label?: string;
+  source?: string | Record<string, unknown>;
+  expires?: string | null;
+  type?: string;
 }
 
 export interface NormalizedTradeExceptionRecord extends TradeExceptionRecord {
@@ -109,6 +229,17 @@ export interface CanonicalTeamTpeUsage {
 // NOTE: This is an INTERNAL COMPUTE type, NOT the persisted shape.
 // The `tradeExceptions` field is populated via getTeamTpeList() accessor
 // which reads from canonical `team.exceptions.tpe[]` (or legacy fallback).
+export interface NormalizedTeamPick {
+  year: number | string;
+  round: number | string;
+  isSwap?: boolean;
+  swapType?: string;
+  protection?: string | null;
+  originalTeam?: string;
+  teamId?: string;
+  owner?: string;
+}
+
 export interface NormalizedTeam {
   team: {
     id: string;
@@ -121,25 +252,66 @@ export interface NormalizedTeam {
     tradeExceptions: TradeExceptionRecord[];
     exceptions?: {
       tpe?: TradeExceptionRecord[];
-      [key: string]: unknown;
     };
     cashLedger?: {
       totalOut?: number;
-      [key: string]: unknown;
     };
-    [key: string]: unknown;
+    // Additional team fields used during validation
+    name?: string;
+    nickname?: string;
+    teamId?: string;
+    teamCode?: string;
+    totalSalary?: number;
+    hardCapTriggered?: boolean | 'FirstApron' | 'SecondApron';
+    hardCapLevel?: string | number | null;
+    faExceptionBuckets?: TradeFaExceptionBucket[];
+    hardCapFirstApron?: Record<string, unknown>;
+    hardCapSecondApron?: Record<string, unknown>;
+    capHolds?: unknown[];
+    usedTaxpayerMLEThisSeason?: boolean;
+    standardRoster?: unknown[];
+    twoWayRoster?: unknown[];
+    entitlementIds?: string[];
+    picks?: Array<Record<string, unknown>>;
   };
   sends: NormalizedPlayer[];
-  picksOut: Array<{
-    year: number | string;
-    round: number | string;
-    [key: string]: unknown;
-  }>;
+  picksOut: NormalizedTeamPick[];
   cashSent: number;
   cashReceived?: number;
   hardCapped: boolean;
   appliedTPEs: TradeExceptionRecord[];
-  [key: string]: unknown;
+  // Computed during validation
+  outgoingPlayers?: NormalizedPlayer[];
+  incomingPlayers?: NormalizedPlayer[];
+  salaryOut?: number;
+  salaryIn?: number;
+  teamId?: string;
+  teamName?: string;
+  teamCode?: string;
+  teamTotalSalary?: number;
+  projectedSalary?: number;
+  projectedRosterCount?: number;
+  initialRosterCount?: number;
+  absorptionMode?: string;
+  bucketType?: string;
+  hardCapTrigger?: string | null;
+  postTradeTeam?: { players?: NormalizedPlayer[]; twoWayPlayers?: NormalizedPlayer[] };
+  postTradeStatus?: { isAtOrAboveSecondApron?: boolean };
+  validationEntitlements?: unknown[];
+  entitlementsOut?: unknown[];
+  outgoingEntitlements?: unknown[];
+  outgoingPicks?: Array<Record<string, unknown>>;
+  notes?: unknown[];
+  receives?: NormalizedPlayer[];
+  faExceptionValidation?: Record<string, unknown>;
+  context?: TeamContext;
+  capSettings?: CapSettings;
+  hardCapLevel?: string | number | null;
+  hardCapTriggered?: boolean;
+  standardContracts?: number;
+  twoWayContracts?: number;
+  draftPicksObligations?: unknown[];
+  tradedPicks?: unknown[];
 }
 
 // Normalized trade input
@@ -149,7 +321,11 @@ export interface NormalizedTradeInput {
   yearKey: number;
   tradeCtx: {
     tradeDate: string;
-    [key: string]: unknown;
+    asOfDate?: string;
+    offseason?: boolean;
+    seasonState?: string;
+    yearKey?: number;
+    capSettings?: CapSettings;
   };
 }
 
@@ -234,7 +410,6 @@ export interface AuthoritativeSalaryMatchingResult {
   warningsOnly?: boolean;
   usingTPE?: boolean;
   details: AuthoritativeSalaryMatchingDetails;
-  [key: string]: unknown;
 }
 
 // Common validation result interface
@@ -245,7 +420,6 @@ export interface ValidationResult {
   message: string;
   details?: unknown;
   warningsOnly?: boolean;
-  [key: string]: unknown;
 }
 
 export interface TeamContext {
@@ -262,7 +436,18 @@ export interface TeamContext {
   season?: number | string;
   teams?: TradeTeam[];
   wasTradedAwayWithinOneYear?: (playerId: unknown, destTeamId: unknown) => boolean;
-  [key: string]: unknown;
+  currentYear?: number;
+  offseason?: boolean;
+  seasonState?: string;
+  normalizedYear?: TradeValidationNormalizedYear | null;
+  daysRemainingInSeason?: number;
+  daysInSeason?: number;
+  capProjections?: TradeValidatorCapProjections;
+  capSettingsSource?: string;
+  capSettingsWarnings?: string[];
+  worldId?: string;
+  timingEnforcementMode?: string;
+  isAtOrAboveSecondApron?: boolean;
 }
 
 export interface TradeTeam {
@@ -305,17 +490,43 @@ export interface TradeTeam {
     tradeExceptions?: TradeExceptionRecord[];
     exceptions?: {
       tpe?: TradeExceptionRecord[];
-      [key: string]: unknown;
     };
     cashLedger?: {
       totalOut?: number;
-      [key: string]: unknown;
     };
-    [key: string]: unknown;
+    faExceptionBuckets?: TradeFaExceptionBucket[];
+    hardCapFirstApron?: Record<string, unknown>;
+    hardCapSecondApron?: Record<string, unknown>;
+    capHolds?: unknown[];
+    usedTaxpayerMLEThisSeason?: boolean;
+    standardRoster?: unknown[];
+    twoWayRoster?: unknown[];
+    entitlementIds?: string[];
+    players?: NormalizedPlayer[];
+    standardContracts?: unknown[];
+    twoWayContracts?: unknown[];
   };
+  picksOut?: NormalizedTeamPick[];
+  incomingPicks?: Array<Record<string, unknown>>;
   context?: TeamContext;
   capSettings?: CapSettings;
-  [key: string]: unknown;
+  // Validation-computed fields
+  rules?: Record<string, TradeRuleEnvelope>;
+  validationEntitlements?: unknown[];
+  outgoingEntitlements?: unknown[];
+  entitlementsOut?: unknown[];
+  existingTPEs?: TradeExceptionRecord[];
+  createdTPE?: TradeExceptionRecord | null;
+  createdFrom?: string;
+  notes?: unknown[];
+  faExceptionValidation?: Record<string, unknown>;
+  faExceptionBuckets?: TradeFaExceptionBucket[];
+  hardCapLevel?: string | number | null;
+  hardCapTriggered?: boolean;
+  postTradeTeam?: { players?: NormalizedPlayer[]; twoWayPlayers?: NormalizedPlayer[] };
+  _tpeConsumptionErrors?: unknown[];
+  _tpeConsumptionWarnings?: unknown[];
+  _blocked?: boolean;
 }
 
 export interface RosterCounts {
@@ -341,7 +552,6 @@ export interface RosterResult {
   details: string;
   warningsOnly: boolean | null;
   rosterCounts: RosterCounts;
-  [key: string]: unknown;
 }
 
 export interface AuthoritativeHardCapResult {
@@ -357,7 +567,6 @@ export interface AuthoritativeHardCapResult {
   hardCapStatus?: HardCapStatusResult | null;
   capLimits?: HardCapCapLimits;
   trigger?: string | null;
-  [key: string]: unknown;
 }
 
 export interface HardCapResult extends ValidationResult {
@@ -399,7 +608,11 @@ export interface TradeValidatorCapSettings {
   fullMLE?: number;
   roomMLE?: number;
   taxpayerMLE?: number;
-  [key: string]: unknown;
+  taxLine?: number;
+  bae?: number;
+  minimumSalary?: number;
+  averageSalary?: number;
+  apron?: number;
 }
 
 export interface TradeValidatorCapProjectionRow {
@@ -436,7 +649,7 @@ export interface TradeFaExceptionBucket {
   amount?: number | null;
   remaining?: number | null;
   remainingAmount?: number | null;
-  [key: string]: unknown;
+  used?: number | null;
 }
 
 export interface TradeValidatorContext extends TeamContext {
@@ -454,6 +667,7 @@ export interface TradeValidatorContext extends TeamContext {
   teams?: TradeTeam[];
   daysRemainingInSeason?: number;
   daysInSeason?: number;
+  source?: string;
 }
 
 export interface ValidateTradeParams {
@@ -468,7 +682,6 @@ export interface TradeRuleEnvelope extends ValidationResult {
   sourceType: 'validator' | 'enforcement' | string;
   warnings: ValidationIssue[];
   details: unknown;
-  [key: string]: unknown;
 }
 
 export interface TradeTeamSalaryMatchingCalculations {
@@ -506,7 +719,9 @@ export interface TradeTeamResult {
   createdTPE: TradeExceptionRecord | null;
   details: string;
   warningDetails: string;
-  [key: string]: unknown;
+  _tpeConsumptionErrors?: unknown[];
+  _tpeConsumptionWarnings?: unknown[];
+  _blocked?: boolean;
 }
 
 export interface TradeSummaryByTeamIndexRow {

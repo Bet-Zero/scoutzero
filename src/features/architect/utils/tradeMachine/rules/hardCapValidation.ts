@@ -9,20 +9,17 @@ type PlayerLike = {
   newSalary?: number | string | null;
   salary?: number | string | null;
   signAndTrade?: boolean;
-  [key: string]: unknown;
 };
 
 type CapSettingsLike = {
   firstApron?: number | string | null;
   apron?: number | string | null;
   secondApron?: number | string | null;
-  [key: string]: unknown;
 };
 
 type HardCapValidationTeamData = {
   teamTotalSalary?: number | string | null;
   totalSalary?: number | string | null;
-  [key: string]: unknown;
 } | null;
 
 type HardCapValidationTeam = {
@@ -37,7 +34,6 @@ type HardCapValidationTeam = {
   salaryIn?: number | string | null;
   salaryOut?: number | string | null;
   capSettings?: CapSettingsLike | null;
-  [key: string]: unknown;
 };
 
 type HardCapValidationContext = TeamContext & {

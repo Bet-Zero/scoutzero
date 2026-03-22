@@ -8,24 +8,20 @@ import {
 interface AggregationPlayer {
   salary?: number;
   fromTeamId?: string | number | null;
-  [key: string]: unknown;
 }
 
 interface AggregationCapSettings {
   secondApron?: number | string | null;
-  [key: string]: unknown;
 }
 
 interface AggregationContext {
   yearKey?: number | string;
   capSettings?: AggregationCapSettings | null;
-  [key: string]: unknown;
 }
 
 interface AggregationTeamData {
   totalSalary?: number | string | null;
   teamTotalSalary?: number | string | null;
-  [key: string]: unknown;
 }
 
 interface AggregationTeam {
@@ -38,7 +34,6 @@ interface AggregationTeam {
   teamTotalSalary?: number | string | null;
   team?: AggregationTeamData | null;
   context?: AggregationContext | null;
-  [key: string]: unknown;
 }
 
 interface AggregationValidationResult {

@@ -10,13 +10,11 @@ export { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
 type NumericLike = number | string | null | undefined;
 
-type TeamRecord = Record<string, unknown>;
-
-interface CapUtilsPayrollStatus extends TeamRecord {
+interface CapUtilsPayrollStatus {
   projectedSalary?: NumericLike;
 }
 
-interface CapUtilsTeamData extends TeamRecord {
+interface CapUtilsTeamData {
   totalSalary?: NumericLike;
   teamTotalSalary?: NumericLike;
   projectedSalary?: NumericLike;
@@ -25,15 +23,15 @@ interface CapUtilsTeamData extends TeamRecord {
   preTradeStatus?: CapUtilsPayrollStatus | null;
 }
 
-interface CapUtilsTeamWrapper extends TeamRecord {
-  team?: TeamRecord | null;
-  sourceTeam?: TeamRecord | null;
-  ctx?: TeamRecord | null;
+interface CapUtilsTeamWrapper {
+  team?: CapUtilsTeamData | null;
+  sourceTeam?: CapUtilsTeamData | null;
+  ctx?: CapUtilsTeamData | null;
 }
 
 type CapUtilsTeamLike = CapUtilsTeamData | CapUtilsTeamWrapper | null | undefined;
 
-interface CapUtilsCapSettingsLike extends TeamRecord {
+interface CapUtilsCapSettingsLike {
   salaryCap?: NumericLike;
   cap?: NumericLike;
   softCap?: NumericLike;
@@ -71,7 +69,7 @@ interface NormalizedCapSettings {
   bae: number;
 }
 
-function asTeamData(team: TeamRecord | null | undefined): CapUtilsTeamData {
+function asTeamData(team: CapUtilsTeamData | null | undefined): CapUtilsTeamData {
   return (team || {}) as CapUtilsTeamData;
 }
 
@@ -107,7 +105,7 @@ export function isSecondApronTeam(
   if (!teamLike || !capSettings) return false;
 
   // Utilize robust extraction
-  const team = asTeamData(getTeamObject(teamLike) || (teamLike as TeamRecord));
+  const team = asTeamData(getTeamObject(teamLike) || (teamLike as CapUtilsTeamData));
   const teamSalary = (team.totalSalary || team.teamTotalSalary || 0) as
     | number
     | string;
@@ -191,10 +189,10 @@ export function normalizeCaps(
  * @param {Object} teamLike - An object that might contain a team
  * @returns {Object|null} The team object or null
  */
-export function getTeamObject(teamLike: CapUtilsTeamLike): TeamRecord | null {
+export function getTeamObject(teamLike: CapUtilsTeamLike): CapUtilsTeamData | null {
   if (!teamLike) return null;
   const wrapper = teamLike as CapUtilsTeamWrapper;
-  return wrapper.team || wrapper.sourceTeam || wrapper.ctx || (teamLike as TeamRecord);
+  return wrapper.team || wrapper.sourceTeam || wrapper.ctx || (teamLike as CapUtilsTeamData);
 }
 
 /**

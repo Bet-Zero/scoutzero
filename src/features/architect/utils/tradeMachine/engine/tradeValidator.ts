@@ -100,6 +100,7 @@ type TradeValidatorTeamData = NonNullable<TradeTeam['team']> & {
   players?: TradeValidatorPlayer[];
   twoWayPlayers?: TradeValidatorPlayer[];
   faExceptionBuckets?: TradeFaExceptionBucket[];
+  hardCapped?: boolean | string;
   hardCapFirstApron?: {
     active?: boolean;
     reason?: string | null;
@@ -119,7 +120,6 @@ type TradeValidatorEntitlement = {
   terms?: unknown;
   termsShort?: unknown;
   linkedEntitlementIds?: string[];
-  [key: string]: unknown;
 };
 
 type TradeValidatorTeamSlot = TradeTeam & {
@@ -1325,7 +1325,7 @@ export function validateTrade({
   // implementation (BYC, poison pill, trade kicker) before any salary calculations
   // GAP-DATA-001/002: Now also captures data validation warnings
   const matchingValuesResult = computeMatchingValues({
-    teams: teamsWithAssets,
+    teams: teamsWithAssets as Parameters<typeof computeMatchingValues>[0]['teams'],
     yearKey: resolvedCurrentYear,
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
@@ -1505,7 +1505,7 @@ export function validateTrade({
       };
     } = {
       ...team,
-      notes: Array.isArray(team.notes) ? [...team.notes] : [],
+      notes: Array.isArray(team.notes) ? ([...team.notes] as string[]) : [],
       team:
         team.team && typeof team.team === 'object'
           ? {
@@ -1633,7 +1633,7 @@ export function validateTrade({
 
         const allTeamsEntOut = teamsWithAssets.map((t, participantIndex) => {
           const tId = resolveTeamIdentity(t, participantIndex);
-          return (t.entitlementsOut || []).map((e) => {
+          return (t.entitlementsOut || []).map((e: TradeValidatorEntitlement) => {
             const entId = e.entitlementId || e.id;
             const routingKey = `${tId}::${entId}`;
             const resolvedToTeamId =

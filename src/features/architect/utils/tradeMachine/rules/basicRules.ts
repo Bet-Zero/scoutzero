@@ -9,25 +9,24 @@ import { isSecondApronTeam } from '../utils/capUtils';
 
 interface BasicRulesCapSettings {
   secondApron?: number | null;
-  [key: string]: unknown;
 }
 
 interface BasicRulesTpe {
   season?: number;
   createdSeason?: number;
   createdAtSeason?: number;
-  [key: string]: unknown;
+  id?: string;
+  amount?: number;
+  remaining?: number;
 }
 
 interface BasicRulesTeamContextLike {
   isAtOrAboveSecondApron?: boolean;
-  [key: string]: unknown;
 }
 
 interface BasicRulesTeamData {
   teamTotalSalary?: number;
   totalSalary?: number;
-  [key: string]: unknown;
 }
 
 interface BasicRulesTeam {
@@ -39,20 +38,17 @@ interface BasicRulesTeam {
   tradeExceptions?: BasicRulesTpe[] | null;
   exceptions?: {
     tpe?: BasicRulesTpe[] | null;
-    [key: string]: unknown;
   };
   postTradeStatus?: {
     isAtOrAboveSecondApron?: boolean;
   };
   context?: BasicRulesTeamContextLike;
   team?: BasicRulesTeamData | null;
-  [key: string]: unknown;
 }
 
 interface BasicRulesContext {
   capSettings?: BasicRulesCapSettings | null;
   year?: number;
-  [key: string]: unknown;
 }
 
 interface BasicRulesValidationResult {

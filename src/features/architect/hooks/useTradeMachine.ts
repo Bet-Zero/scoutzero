@@ -1100,7 +1100,7 @@ export const useTradeMachine = (
         entitlementsOut: t.entitlementsOut || [],
         // Phase 12.2: Pass team's loaded entitlements for baseline calculation
         validationEntitlements: t.entitlements || [],
-      })) as Parameters<typeof validateTrade>[0]['teams'];
+      })) as unknown as Parameters<typeof validateTrade>[0]['teams'];
 
     const validation: any = validateTrade({
         teams: validationTeams,

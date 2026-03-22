@@ -11,9 +11,10 @@ type FixturePlayer = {
   playerId?: string;
   name?: string;
   displayName?: string;
-  contract?: Record<string, unknown> | null;
-  futureContract?: Record<string, unknown> | null;
-  [key: string]: unknown;
+  position?: string;
+  contract?: unknown;
+  futureContract?: unknown;
+  bio?: unknown;
 };
 
 type TeamCapSheetLike = {
@@ -21,8 +22,7 @@ type TeamCapSheetLike = {
   abbreviation?: string;
   id?: string;
   players?: FixturePlayer[];
-  roster?: Array<string | number>;
-  [key: string]: unknown;
+  roster?: unknown[];
 };
 
 function resolveTeamCode(teamCapSheet: TeamCapSheetLike): string {

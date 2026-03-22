@@ -22,25 +22,21 @@ type MatchingValueSalarySource =
 
 interface MatchingValueExtensionYear {
   salary?: number | null;
-  [key: string]: unknown;
 }
 
 interface MatchingValueExtension {
   salary?: number | null;
-  [key: string]: unknown;
 }
 
 interface MatchingValueContractLike {
   isRookieScale?: boolean;
   salariesByYear?: Array<Record<string, unknown>>;
-  [key: string]: unknown;
 }
 
 interface MatchingValueTradeKicker {
   percentage?: number | null;
   waived?: number | null;
   maximum?: number | null;
-  [key: string]: unknown;
 }
 
 interface MatchingValuePlayer {
@@ -49,7 +45,6 @@ interface MatchingValuePlayer {
   name?: string | null;
   bio?: {
     displayName?: string | null;
-    [key: string]: unknown;
   } | null;
   contract?: MatchingValueContractLike | null;
   primaryContract?: MatchingValueContractLike | null;
@@ -72,13 +67,11 @@ interface MatchingValuePlayer {
   daysInSeason?: number | null;
   matchOutgoing?: number;
   matchIncoming?: number;
-  [key: string]: unknown;
 }
 
 interface MatchingValueTeam {
   sends?: MatchingValuePlayer[];
   dataWarnings?: DataWarning[];
-  [key: string]: unknown;
 }
 
 interface EffectiveTradeSalaryResult {

@@ -162,19 +162,20 @@ describe('Phase 86: OSTE core validation', () => {
 
     expect(result.success).toBe(true);
     const updated = result.nextTeamCapSheet;
+    const exceptions = updated!.exceptions as Record<string, Record<string, unknown>>;
 
-    expect(updated.exceptions.mle.usedAmount).toBe(0);
-    expect(updated.exceptions.tpmle.usedAmount).toBe(0);
-    expect(updated.exceptions.bae.usedAmount).toBe(0);
-    expect(updated.exceptions.room.usedAmount).toBe(0);
+    expect(exceptions.mle.usedAmount).toBe(0);
+    expect(exceptions.tpmle.usedAmount).toBe(0);
+    expect(exceptions.bae.usedAmount).toBe(0);
+    expect(exceptions.room.usedAmount).toBe(0);
 
-    expect(updated.exceptions.mle.totalAmount).toBe(capRules.exceptions.fullMLE);
-    expect(updated.exceptions.tpmle.totalAmount).toBe(capRules.exceptions.taxpayerMLE);
-    expect(updated.exceptions.bae.totalAmount).toBe(capRules.exceptions.bae);
-    expect(updated.exceptions.room.totalAmount).toBe(capRules.exceptions.roomMLE);
+    expect(exceptions.mle.totalAmount).toBe(capRules.exceptions.fullMLE);
+    expect(exceptions.tpmle.totalAmount).toBe(capRules.exceptions.taxpayerMLE);
+    expect(exceptions.bae.totalAmount).toBe(capRules.exceptions.bae);
+    expect(exceptions.room.totalAmount).toBe(capRules.exceptions.roomMLE);
 
-    expect(updated.exceptions.dpe.enabled).toBe(false);
-    expect(updated.exceptions.dpe.totalAmount).toBe(0);
+    expect(exceptions.dpe.enabled).toBe(false);
+    expect(exceptions.dpe.totalAmount).toBe(0);
 
     expect(updated.exceptions.tpe).toHaveLength(1);
     expect(updated.exceptions.tpe[0].id).toBe('tpe-active');

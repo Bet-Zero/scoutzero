@@ -34,13 +34,11 @@ type SalaryMatchingCapSettingsLike = {
   firstApron?: number | string | null;
   apron?: number | string | null;
   secondApron?: number | string | null;
-  [key: string]: unknown;
 };
 
 type FaExceptionBucketLike = {
   type?: unknown;
   remaining?: number | string | null;
-  [key: string]: unknown;
 };
 
 type SalaryMatchingPlayer = TradeExceptionPlayer & {
@@ -67,14 +65,11 @@ type SalaryMatchingTeamData = {
   hardCapped?: unknown;
   totals?: {
     hardCapLevel?: unknown;
-    [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
 } | null;
 
 type SalaryMatchingValidationState = {
   passed?: boolean;
-  [key: string]: unknown;
 } | null;
 
 type SalaryMatchingTeam = {
@@ -98,9 +93,7 @@ type SalaryMatchingTeam = {
   hardCapped?: unknown;
   totals?: {
     hardCapLevel?: unknown;
-    [key: string]: unknown;
   } | null;
-  [key: string]: unknown;
 } | null;
 
 type TpeUsage = {

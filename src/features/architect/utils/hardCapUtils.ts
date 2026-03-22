@@ -1,33 +1,36 @@
 type NumericLike = number | string | null | undefined;
-type UnknownRecord = Record<string, unknown>;
 
-interface HardCapBucketLike extends UnknownRecord {
+interface HardCapBucketLike {
   type?: unknown;
   used?: NumericLike;
   remaining?: NumericLike;
   amount?: NumericLike;
 }
 
-interface HardCapFirstApronState extends UnknownRecord {
+interface HardCapFirstApronState {
   active?: boolean;
   season?: unknown;
   year?: unknown;
 }
 
-interface HardCapUsageState extends UnknownRecord {
+interface HardCapUsageState {
   used?: NumericLike;
 }
 
-interface HardCapTeamState extends UnknownRecord {
+interface HardCapTeamState {
   hardCapTriggered?: unknown;
   hardCapFirstApron?: HardCapFirstApronState | null;
   faExceptionBuckets?: HardCapBucketLike[];
   mle?: HardCapUsageState | null;
   bae?: HardCapUsageState | null;
   hardCapped?: NumericLike;
+  hardCapYear?: unknown;
+  exceptions?: Record<string, unknown> | null;
+  teamCode?: string | null;
+  players?: unknown[] | null;
 }
 
-interface HardCapSettingsLike extends UnknownRecord {
+interface HardCapSettingsLike {
   firstApron?: NumericLike;
   secondApron?: NumericLike;
 }

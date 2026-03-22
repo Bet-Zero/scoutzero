@@ -6,8 +6,6 @@ interface ConsentEnforcementPlayer extends TradeExceptionPlayer {
   hasFullNTC?: boolean;
   noTradeClause?: boolean;
   hasFullNoTrade?: boolean;
-  limitedNTCTeamIds?: Array<string | number>;
-  tradeTo?: string | number | null;
   onOneYearBirdDeal?: boolean;
   hasBirdRightsVeto?: boolean;
   consentGranted?: boolean;

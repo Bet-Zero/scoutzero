@@ -21,7 +21,7 @@ function makeTeam(code: string, totalSalary: number, players: unknown[] = []) {
     teamCode: code,
     teamName: code,
     totalSalary,
-    players,
+    players: players as any,
   };
 }
 

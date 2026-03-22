@@ -254,7 +254,7 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
     const receiver = result.teamResults.find((entry: any) => entry.teamId === 'BOS');
 
     expect(receiver?.rules.signAndTrade.passed).toBe(true);
-    expect(receiver?.rules.signAndTrade.hardCapped).toBe(true);
+    expect((receiver?.rules.signAndTrade as any).hardCapped).toBe(true);
     expect(receiver?.hardCapped).toBe(true);
     expect(receiver?.rules.signAndTrade.violations).toEqual([]);
   });
