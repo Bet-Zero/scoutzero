@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import { formatCurrencyFull } from '@/shared/utils/formatting';
+import type {
+  PlayerRulesProfileInput,
+  PlayerRulesProfileTeamCapSheet,
+} from '@/features/architect/types';
+import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 import {
   generateContract,
   createMaxContract,
@@ -7,32 +12,67 @@ import {
   getMinimumSalary,
 } from '@/features/architect/utils/contractUtils';
 
-type LooseRecord = Record<string, unknown>;
+type ContractTemplate = 'Custom' | 'Max' | 'Rookie' | 'Minimum';
+type ContractPreview = ReturnType<typeof generateContract>;
+type ContractPreviewYear = ContractPreview['salariesByYear'][number];
+type ContractEditorOptions = NonNullable<
+  Parameters<typeof generateContract>[0]['options']
+> & {
+  playerOptionYear?: number | null;
+  teamOptionYear?: number | null;
+};
+type ContractEditorSignPayload = ContractPreview & {
+  type: 'Max' | 'Rookie Scale' | 'Vet Minimum' | 'Custom';
+  guaranteed: boolean | number;
+  yearsOfService: PlayerRulesProfileInput['yearsOfService'] | 0;
+  isMinimum: boolean;
+};
 
-type ContractEditorProps = {
-  player: LooseRecord | null | undefined;
-  capProjections: Record<string, unknown> | null | undefined;
-  teamCapSheet?: Record<string, unknown> | null;
-  playersMap?: Record<string, unknown>;
-  onSign: (...args: any[]) => any;
+export type ContractEditorProps = {
+  player: PlayerRulesProfileInput | null | undefined;
+  capProjections: CapProjectionOverrides | null | undefined;
+  teamCapSheet?: PlayerRulesProfileTeamCapSheet | null;
+  playersMap?: Record<string, PlayerRulesProfileInput> | null;
+  onSign: (
+    player: PlayerRulesProfileInput,
+    contract: ContractEditorSignPayload
+  ) => unknown;
 };
 
 const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps) => {
-  const safeCapProjections =
-    (capProjections || {}) as Parameters<typeof createMaxContract>[2];
-  const [type, setType] = useState('Custom');
+  const safeCapProjections = Object.entries(capProjections ?? {}).reduce<
+    Parameters<typeof createMaxContract>[2]
+  >((resolvedProjections, [seasonKey, projection]) => {
+    if (projection && typeof projection === 'object') {
+      resolvedProjections[seasonKey] = projection;
+    }
+    return resolvedProjections;
+  }, {});
+  const [type, setType] = useState<ContractTemplate>('Custom');
   const [years, setYears] = useState(4);
   const [baseSalary, setBaseSalary] = useState(10000000);
   const [baseSalaryInput, setBaseSalaryInput] = useState(
     formatCurrencyFull(10000000)
   );
   const [raisePct, setRaisePct] = useState(0.08);
-  const [options, setOptions] = useState<Record<string, unknown>>({
+  const [options, setOptions] = useState<ContractEditorOptions>({
     playerOption: false,
     teamOption: false,
   });
   const [guaranteedPercent, setGuaranteedPercent] = useState(100);
-  const [preview, setPreview] = useState<any>(null);
+  const [preview, setPreview] = useState<ContractPreview | null>(null);
+
+  const toContractTemplate = (value: string): ContractTemplate => {
+    if (
+      value === 'Custom' ||
+      value === 'Max' ||
+      value === 'Rookie' ||
+      value === 'Minimum'
+    ) {
+      return value;
+    }
+    return 'Custom';
+  };
 
   // Guard against missing player
   if (!player || !player.name) {
@@ -43,11 +83,11 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
     );
   }
 
-  const handleTypeChange = (newType: string) => {
+  const handleTypeChange = (newType: ContractTemplate) => {
     setType(newType);
     if (newType === 'Max') {
       const contract = createMaxContract(
-        player.name as string,
+        player.name,
         Number(player.yearsOfService),
         safeCapProjections
       );
@@ -83,7 +123,7 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
   const handleSign = () => {
     if (!preview) return;
 
-    const finalContract = {
+    const finalContract: ContractEditorSignPayload = {
       ...preview,
       type:
         type === 'Max'
@@ -110,13 +150,13 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-3">
         Create Contract for{' '}
-        {String(player.displayName || (player.bio as Record<string, unknown> | undefined)?.displayName || player.name)}
+        {String(player.displayName || player.bio?.displayName || player.name)}
       </h2>
 
       <label className="block mb-1">Contract Type:</label>
       <select
         value={type}
-        onChange={(e) => handleTypeChange(e.target.value)}
+        onChange={(e) => handleTypeChange(toContractTemplate(e.target.value))}
         className="mb-3 p-2 bg-[#1a1a1a] border border-white/20 rounded"
       >
         <option value="Custom">Custom</option>
@@ -220,7 +260,7 @@ const ContractEditor = ({ player, capProjections, onSign }: ContractEditorProps)
         <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mt-4">
           <h3 className="font-semibold mb-2">Contract Preview:</h3>
           <ul>
-            {preview.salariesByYear.map((yearEntry: any) => (
+            {preview.salariesByYear.map((yearEntry: ContractPreviewYear) => (
               <li key={yearEntry.season}>
                 {yearEntry.season}: ${yearEntry.salary.toLocaleString()}{' '}
                 {yearEntry.option ? `(${yearEntry.option})` : ''}

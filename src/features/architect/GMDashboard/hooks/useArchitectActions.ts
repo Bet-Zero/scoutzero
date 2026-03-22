@@ -50,6 +50,8 @@ import {
   validateSignAndTradeContractPayload,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type {
+  BasePlayerContract,
+  BasePlayerContractYear,
   CapHoldItem,
   DeadCapItem,
   DraftPick,
@@ -78,16 +80,23 @@ import type { UseArchitectStateReturn } from './useArchitectState';
 
 // ==== Type Definitions ====
 
+type StateSelectedPlayer = NonNullable<UseArchitectStateReturn['selectedPlayer']>;
+type StateTeamCapSheet = NonNullable<UseArchitectStateReturn['teamCapSheet']>;
+type StatePlayersMap = UseArchitectStateReturn['playersMap'];
+
 /** Salary entry by year in a contract */
-interface SalaryByYear {
-  season?: string | null;
+type SalaryByYear = Pick<
+  BasePlayerContractYear,
+  'season'
+> & {
   salary?: number | null;
-  option?: string | null;
-  optionType?: string | null;
   capHit?: number | null;
   guaranteed?: boolean | null;
+  option?: string | null;
+  isExtensionSeason?: boolean | null;
+  optionType?: string | null;
   optionUsed?: boolean | null; // CANONICAL: boolean, not string
-}
+};
 
 type LocalContractLegacySalaryInput =
   | number
@@ -105,7 +114,11 @@ interface LocalBirdRights {
 }
 
 /** Local contract structure for architect actions (avoids schema naming pattern) */
-interface LocalContract extends ArchitectMutationContract {
+type LocalContract = ArchitectMutationContract &
+  Omit<
+    Partial<BasePlayerContract>,
+    'birdRights' | 'freeAgency' | 'salariesByYear'
+  > & {
   salariesByYear?: SalaryByYear[];
   salaries?: LocalContractLegacySalaryInput[];
   birdRights?: LocalBirdRights;
@@ -113,7 +126,7 @@ interface LocalContract extends ArchitectMutationContract {
     | { year?: number | string | null; type?: string | null }
     | string
     | null;
-}
+};
 
 /** Bio structure for player data (avoids schema naming pattern) */
 interface LocalBio {
@@ -133,17 +146,9 @@ interface LocalBio {
 }
 
 /** Player data structure */
-interface ArchitectPlayer {
-  id?: string | null;
-  playerId?: string | null;
-  player_id?: string | null;
-  name?: string | null;
-  displayName?: string | null;
-  position?: string | null;
+type ArchitectPlayer = Omit<StateSelectedPlayer, 'contract' | 'futureContract'> & {
+  position?: StateSelectedPlayer['position'];
   formattedPosition?: string | null;
-  age?: number | string | null;
-  teamCode?: string | null;
-  teamName?: string | null;
   contract?: LocalContract | null;
   futureContract?: LocalContract | null;
   bio?: LocalBio;
@@ -192,7 +197,7 @@ interface ArchitectPlayer {
   fa_type?: string | null;
   // Experience variants
   years_of_service?: number | string | null;
-}
+};
 
 interface TradeEntitlementPayload {
   id?: string | null;
@@ -218,28 +223,21 @@ interface TradeDataItem {
 }
 
 /** Contract details for signing/saving (avoids schema naming pattern) */
-interface SigningDetails {
+type SigningDetails = Omit<Partial<LocalContract>, 'birdRights'> & {
   salariesByYear?: SalaryByYear[];
   options?: Record<string, unknown>;
-  signAndTrade?: boolean;
   guaranteed?: boolean;
   isMinimum?: boolean;
   yearsOfService?: number | null;
-  contractType?: string | null;
-  isExtension?: boolean;
-  isRookieScale?: boolean;
-  signedUsing?: string | null;
-  exceptionType?: string | null;
-  contractYears?: number | string | null;
-  firstYearGuaranteed?: boolean | null;
-  signingTeam?: string | null;
   rfaOfferSheet?: boolean;
   rfaOfferSheetOnly?: boolean;
+  base?: number | null;
+  birdRights?: LocalContract['birdRights'] | string | null;
   // Override metadata when action bypasses validation
   overrideUsed?: boolean;
   overrideReasons?: string[];
   overrideTimestamp?: string;
-}
+};
 
 /** Waive options */
 interface WaiveOptions {
@@ -318,9 +316,10 @@ interface OverrideAuditEntry {
 }
 
 /** Cap sheet structure */
-interface CapSheet {
-  teamCode?: string;
-  teamName?: string;
+type CapSheet = Omit<
+  StateTeamCapSheet,
+  'players' | 'deadCap' | 'capHolds' | 'exceptions' | 'totals'
+> & {
   players?: ArchitectPlayer[];
   activeContracts?: ActiveContract[];
   waivedContracts?: unknown[];
@@ -336,9 +335,9 @@ interface CapSheet {
   totals?: TeamTotals | null;
   amount?: number;
   overrideAuditLog?: OverrideAuditEntry[];
-  roster?: ArchitectPlayer[] | null;
+  roster?: Array<string | number> | null;
   historyTimeline?: unknown[] | null;
-}
+};
 
 /** Override metadata passed from EditContractModal when bypassing validation */
 interface OverrideMetadata {
@@ -424,7 +423,7 @@ export interface UseArchitectActionsParams {
   userId: string | null;
   authLoading?: boolean;
   state: ArchitectStateForActions;
-  playersMap: UseArchitectStateReturn['playersMap'];
+  playersMap: StatePlayersMap;
   modals: ArchitectModalsForActions;
   worldId: string | null;
   seasonId: string;
@@ -1677,7 +1676,10 @@ export function useArchitectActions({
       const architectContract = ensureContractStructure(
         contract as LocalContract,
         {
-          contractType: contract.contractType || 'Signed FA',
+          contractType:
+            typeof contract.contractType === 'string'
+              ? contract.contractType
+              : 'Signed FA',
           isExtension: !!contract.isExtension,
           isRookieScale: !!contract.isRookieScale,
           signingTeam: teamCode,
@@ -2026,7 +2028,6 @@ export function useArchitectActions({
       }
 
       const offerContract = ensureContractStructure(contract as LocalContract, {
-        ...contract,
         contractType: 'Offer Sheet',
         signingTeam: teamCode,
         rfaOfferSheet: true,
@@ -2629,7 +2630,9 @@ export function useArchitectActions({
 
           // Build new contract salaries
           const salaries: SalaryByYear[] = [];
-          const providedSalaries = (contractData.salariesByYear || []).slice(
+          const providedSalaries: SalaryByYear[] = (
+            contractData.salariesByYear || []
+          ).slice(
             0,
             contractData.salariesByYear?.length || 0
           );
@@ -2640,8 +2643,8 @@ export function useArchitectActions({
               const endYear = startYear + i;
               salaries.push({
                 season: toSeasonCode(endYear),
-                salary: Math.round(s.salary || s.capHit || 0),
-                capHit: Math.round(s.capHit || s.salary || 0),
+                salary: Math.round(Number(s.salary ?? s.capHit ?? 0)),
+                capHit: Math.round(Number(s.capHit ?? s.salary ?? 0)),
                 guaranteed: s.guaranteed ?? true,
                 option: s.option || undefined,
               });
@@ -2719,12 +2722,18 @@ export function useArchitectActions({
                 extension: true,
               };
 
-              const newYears = (extensionContract.salariesByYear || []).map(
-                (y) => ({
-                  ...y,
-                  isExtensionSeason: true,
-                })
-              );
+              const newYears: SalaryByYear[] = (
+                extensionContract.salariesByYear || []
+              ).map((y) => ({
+                season: String(y.season || ''),
+                salary: Number(y.salary ?? y.capHit ?? 0),
+                capHit: Number(y.capHit ?? y.salary ?? 0),
+                guaranteed: y.guaranteed ?? true,
+                option: y.option ?? null,
+                optionType: y.optionType ?? null,
+                optionUsed: y.optionUsed ?? null,
+                isExtensionSeason: true,
+              }));
 
               return {
                 ...p,
@@ -2817,7 +2826,7 @@ export function useArchitectActions({
               p.player_id === playerId ||
               p.name === playerId
           );
-          const contractRows =
+          const contractRows: SalaryByYear[] =
             rosterPlayer?.contract?.salariesByYear ||
             player.contract?.salariesByYear ||
             [];
@@ -2831,7 +2840,7 @@ export function useArchitectActions({
                 : parseInt(season, 10);
               return yearEnd >= currentYear && y.guaranteed !== false;
             })
-            .reduce((sum, y) => sum + (y.salary || 0), 0);
+            .reduce((sum, y) => sum + Number(y.salary || 0), 0);
 
           const boundedBuyoutAmount = buyout
             ? Math.min(remainingGuaranteed, normalizedBuyoutAmount)
@@ -2967,7 +2976,7 @@ export function useArchitectActions({
               p.player_id === playerId ||
               p.name === playerId
             ) {
-              const salaries = p.contract?.salariesByYear || [];
+              const salaries: SalaryByYear[] = p.contract?.salariesByYear || [];
 
               // Find the option year entry
               const optionIndex = salaries.findIndex((y) => {
@@ -2984,7 +2993,7 @@ export function useArchitectActions({
               }
 
               // Mark option as used (canonical boolean format)
-              const updatedSalaries = [...salaries];
+              const updatedSalaries: SalaryByYear[] = [...salaries];
               updatedSalaries[optionIndex] = {
                 ...updatedSalaries[optionIndex],
                 optionUsed: accepted, // CANONICAL: boolean, not string
@@ -3002,7 +3011,7 @@ export function useArchitectActions({
                     : targetYear - 1;
 
                 // Declining: remove this year and all future years
-                const filteredSalaries = salaries.filter(
+                const filteredSalaries: SalaryByYear[] = salaries.filter(
                   (_, idx) => idx < optionIndex
                 );
 

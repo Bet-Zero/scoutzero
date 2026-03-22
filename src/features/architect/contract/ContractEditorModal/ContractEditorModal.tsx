@@ -1,15 +1,12 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
-import ContractEditor from '../ContractEditor';
+import ContractEditor, {
+  type ContractEditorProps,
+} from '../ContractEditor/ContractEditor';
 
-type ContractEditorModalProps = {
-  player: Record<string, unknown> | null | undefined;
+export type ContractEditorModalProps = ContractEditorProps & {
   isOpen: boolean;
-  onClose: (...args: any[]) => any;
-  capProjections: Record<string, unknown> | null | undefined;
-  teamCapSheet?: Record<string, unknown> | null;
-  onSign: (...args: any[]) => any;
-  playersMap?: Record<string, unknown>;
+  onClose: () => void;
 };
 
 const ContractEditorModal = ({
