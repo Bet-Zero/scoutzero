@@ -77,6 +77,20 @@ export interface CapRulesProfile {
   _meta?: CapRulesMeta;
 }
 
+export type CapProjectionOverrideRow = Partial<
+  (typeof capProjections)[string]
+> & {
+  salaryCap?: number | null;
+  luxuryTax?: number | null;
+  apron?: number | null;
+  mle?: number | null;
+};
+
+export type CapProjectionOverrides = Record<
+  string,
+  CapProjectionOverrideRow | null | undefined
+>;
+
 /**
  * Gets the consolidated cap rules profile for a specific year.
  * Throws an error if critical data (like rookie scale) is missing and cannot be projected.
@@ -85,7 +99,18 @@ export interface CapRulesProfile {
  * @param customCapProjections - Optional override for cap projections (for simulation/sandbox)
  * @returns CapRulesProfile containing all necessary rules/constants
  */
-export function getCapRulesForYear(yearKey: number, customCapProjections?: any): CapRulesProfile {
+export function getCapRulesForYear(
+  yearKey: number,
+  customCapProjections?: CapProjectionOverrides | null
+): CapRulesProfile;
+export function getCapRulesForYear(
+  yearKey: number,
+  customCapProjections?: unknown
+): CapRulesProfile;
+export function getCapRulesForYear(
+  yearKey: number,
+  customCapProjections?: unknown
+): CapRulesProfile {
   const seasonKey = yearToSeasonKey(yearKey);
 
   if (!seasonKey) {
@@ -94,7 +119,9 @@ export function getCapRulesForYear(yearKey: number, customCapProjections?: any):
 
   // 1. Get Cap & Exception settings
   // Pass custom projections if provided, otherwise default to the imported source
-  const capSettings = getCapSettingsForYear(yearKey, customCapProjections || capProjections);
+  const projectionOverrides = (customCapProjections ||
+    capProjections) as Record<string, unknown>;
+  const capSettings = getCapSettingsForYear(yearKey, projectionOverrides);
   
   // 2. Resolve Rookie Minimum
   // Primary Source: Cap Settings (extended projections in capProjections.js)
@@ -132,7 +159,10 @@ export function getCapRulesForYear(yearKey: number, customCapProjections?: any):
            throw new Error('Projection reached limit (2020)');
         }
 
-        const prevRules = getCapRulesForYear(prevYearKey, customCapProjections);
+        const prevRules = getCapRulesForYear(
+          prevYearKey,
+          customCapProjections as CapProjectionOverrides | null | undefined
+        );
         const prevRookieMin = prevRules.salaries.rookieMin;
         const prevCap = prevRules.cap.salaryCap;
         const currentCap = capSettings.salaryCap;

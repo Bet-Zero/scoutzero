@@ -17,7 +17,10 @@ import {
 } from '@/features/architect/utils/seasonFormat';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
-import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import {
+  getCapRulesForYear,
+  type CapProjectionOverrides,
+} from '@/features/architect/utils/capRulesProfile';
 import {
   computeExpectedCapHoldAmount,
   deriveFreeAgencyYearFromOptionSeason,
@@ -47,7 +50,7 @@ export type OffseasonTransitionContext = {
   worldId?: string | null;
   teamId?: string | null;
   teamCode?: string | null;
-  capProjections?: Record<string, unknown> | null;
+  capProjections?: CapProjectionOverrides | null;
 };
 
 export type OffseasonViolation = {
@@ -117,9 +120,14 @@ type OffseasonRosterEntry =
       id?: string | null;
     };
 
+type OffseasonDeadCapByYear = Record<string, number | string | null>;
+
 type OffseasonDeadCapHistoryEntry = {
-  deadCap?: Record<string, unknown> | null;
-  [key: string]: unknown;
+  id?: string | null;
+  name?: string | null;
+  waivedOn?: string | null;
+  stretched?: boolean | null;
+  deadCap?: OffseasonDeadCapByYear | null;
 };
 
 type OffseasonTeamTotals = {
@@ -128,34 +136,55 @@ type OffseasonTeamTotals = {
   hardCapDetail?: string | null;
   hardCapReason?: string | null;
   totalCapAllocations?: number | string | null;
-  [key: string]: unknown;
+  yearKey?: number | string | null;
+  playersTotal?: number | string | null;
+  deadMoneyTotal?: number | string | null;
+  capHoldsTotal?: number | string | null;
+  incompleteChargesTotal?: number | string | null;
+  salaryCap?: number | string | null;
+  luxuryTax?: number | string | null;
+  firstApron?: number | string | null;
+  secondApron?: number | string | null;
 };
 
 type OffseasonHardCapMarker = {
   active?: boolean | null;
-  [key: string]: unknown;
+  reason?: string | null;
+  season?: string | null;
 };
 
 type OffseasonExceptionEntry = {
+  type?: string | null;
   enabled?: boolean | null;
+  available?: boolean | null;
+  maxAmount?: number | string | null;
+  amount?: number | string | null;
   totalAmount?: number | string | null;
   usedAmount?: number | string | null;
   remainingAmount?: number | string | null;
   seasonKey?: string | null;
-  [key: string]: unknown;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
 };
 
-type OffseasonExceptions = Record<
-  string,
-  OffseasonExceptionEntry | TpeLifecycleRecord[] | unknown
-> & {
+type OffseasonKnownExceptions = {
   mle?: OffseasonExceptionEntry;
   tpmle?: OffseasonExceptionEntry;
   bae?: OffseasonExceptionEntry;
   room?: OffseasonExceptionEntry;
   dpe?: OffseasonExceptionEntry;
   tpe?: TpeLifecycleRecord[];
+  taxpayerMle?: OffseasonExceptionEntry;
+  tpMle?: OffseasonExceptionEntry;
+  miniMle?: OffseasonExceptionEntry;
+  nonTaxpayerMle?: OffseasonExceptionEntry;
+  fullMLE?: OffseasonExceptionEntry;
+  biAnnual?: OffseasonExceptionEntry;
 };
+
+type OffseasonExceptions = OffseasonKnownExceptions & Record<string, unknown>;
 
 export type OffseasonTeamCapSheet = {
   teamCode?: string | null;
@@ -165,7 +194,7 @@ export type OffseasonTeamCapSheet = {
   capHolds?: OffseasonCapHold[];
   waivedContracts?: OffseasonDeadCapHistoryEntry[];
   stretchHistory?: OffseasonDeadCapHistoryEntry[];
-  deadMoney?: Record<string, unknown> | null;
+  deadMoney?: OffseasonDeadCapByYear | null;
   totals?: OffseasonTeamTotals | null;
   exceptions?: OffseasonExceptions | null;
   tradeExceptions?: TpeLifecycleRecord[];
@@ -539,8 +568,8 @@ function advanceDeadMoney(
   if (!team) return { hasChanges: false };
   let hasChanges = false;
 
-  const filterDeadCapObject = (deadCap: Record<string, unknown>) => {
-    const remaining: Record<string, unknown> = {};
+  const filterDeadCapObject = (deadCap: OffseasonDeadCapByYear) => {
+    const remaining: OffseasonDeadCapByYear = {};
     for (const [year, amount] of Object.entries(deadCap || {})) {
       if (Number(year) >= toYear) {
         remaining[year] = amount;
@@ -724,9 +753,12 @@ function validateOffseasonState(
     }
   }
 
-  const exceptionSubset: Record<string, unknown> = {};
+  const exceptionSubset: Pick<
+    OffseasonKnownExceptions,
+    'mle' | 'tpmle' | 'bae' | 'room'
+  > = {};
   if (team?.exceptions && typeof team.exceptions === 'object') {
-    for (const key of ['mle', 'tpmle', 'bae', 'room']) {
+    for (const key of ['mle', 'tpmle', 'bae', 'room'] as const) {
       if (team.exceptions[key]) {
         exceptionSubset[key] = team.exceptions[key];
       }

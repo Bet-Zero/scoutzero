@@ -18,6 +18,10 @@ import capProjections from '@/features/architect/utils/capProjections';
 import {
   applyWorldMutation,
   computeWorldMutation,
+  type ArchitectMutationContract,
+  type ArchitectMutationPayload,
+  type ArchitectMutationResult,
+  type ArchitectMutationTeamUpdate,
 } from '@/features/architect/utils/mutationPipeline';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
@@ -101,29 +105,14 @@ interface LocalBirdRights {
 }
 
 /** Local contract structure for architect actions (avoids schema naming pattern) */
-interface LocalContract {
+interface LocalContract extends ArchitectMutationContract {
   salariesByYear?: SalaryByYear[];
   salaries?: LocalContractLegacySalaryInput[];
-  years?: number | string | null;
-  startYear?: number | string | null;
-  year?: number | string | null;
   birdRights?: LocalBirdRights;
-  contractType?: string | null;
-  isExtension?: boolean;
-  isRookieScale?: boolean;
-  signingTeam?: string | null;
-  signedUsing?: string | null;
-  exceptionType?: string | null;
-  contractYears?: number | string | null;
-  firstYearGuaranteed?: boolean | null;
-  rfaOfferSheet?: boolean;
-  rfaOfferSheetOnly?: boolean;
-  yearsRemaining?: number | null;
-  contractLength?: number | null;
-  originalLength?: number | null;
-  totalValue?: number | null;
-  freeAgency?: { year?: number | string | null; type?: string | null } | string | null;
-  rfaOfferSheetStatus?: string | null;
+  freeAgency?:
+    | { year?: number | string | null; type?: string | null }
+    | string
+    | null;
 }
 
 /** Bio structure for player data (avoids schema naming pattern) */
@@ -363,46 +352,23 @@ interface MutationActionResult {
   message?: string;
 }
 
-interface TeamMutationUpdate {
-  teamCode?: string;
-  team?: CapSheet | null;
-}
-
-interface PersistMutationResult extends MutationTruthResult {
-  changedTeams?: TeamMutationUpdate[];
+type PersistMutationResult = ArchitectMutationResult & {
+  skipped?: boolean;
+  changedTeams?: ArchitectMutationTeamUpdate[];
   event?: CapAuditEventV1Like | { operationId?: string; type?: string; timestamp?: string };
-  worldPatch?: Record<string, unknown>;
-}
-
-interface ValidatedTradeContextLike {
-  _isValidatedTradeContext?: boolean;
-  legal?: boolean;
-  error?: string | null;
-  reason?: string;
-}
-
-interface ComputeMutationResult {
-  success?: boolean;
-  error?: string;
-  teamUpdates?: TeamMutationUpdate[];
-  _validatedTradeContext?: ValidatedTradeContextLike;
-}
-
-type MutationWritesSummary = {
-  teamsPatched?: number;
-  playersPatched?: number;
-  entitlementsPatched?: number;
-  eventsWritten?: number;
-  worldMetadataPatched?: number;
 };
 
-type MutationTruthResult = {
-  success?: boolean;
+type ComputeMutationResult = ArchitectMutationResult;
+
+type MutationTruthResult = Pick<
+  ArchitectMutationResult,
+  | 'success'
+  | 'error'
+  | 'appliedToLocalState'
+  | 'persistedToWorld'
+  | 'writesSummary'
+> & {
   skipped?: boolean;
-  error?: string;
-  appliedToLocalState?: boolean;
-  persistedToWorld?: boolean;
-  writesSummary?: MutationWritesSummary;
 };
 
 type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
@@ -855,13 +821,13 @@ function getWorldOptimisticLockScopeKey(worldId: string): string {
 }
 
 function findUpdatedTeamSnapshot(
-  teamUpdates: TeamMutationUpdate[] | null | undefined,
+  teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
   targetTeamCode: string
 ): CapSheet | null {
   const matchingUpdate = (teamUpdates || []).find(
     (update) => update?.teamCode === targetTeamCode && update?.team
   );
-  return matchingUpdate?.team || null;
+  return (matchingUpdate?.team as unknown as CapSheet | null | undefined) || null;
 }
 
 /**
@@ -935,27 +901,27 @@ export function useArchitectActions({
       appliedToLocalState: boolean;
       persistedToWorld: boolean;
     } => {
-      const writesSummary = result?.writesSummary || {};
+      const writesSummary = result?.writesSummary;
       const summaryBackedApplyCheck =
-        Number(writesSummary.teamsPatched || 0) > 0 ||
-        Number(writesSummary.playersPatched || 0) > 0 ||
-        Number(writesSummary.entitlementsPatched || 0) > 0;
+        Number(writesSummary?.teamsPatched || 0) > 0 ||
+        Number(writesSummary?.playersPatched || 0) > 0 ||
+        Number(writesSummary?.entitlementsPatched || 0) > 0;
       const hasApplySummary =
-        writesSummary.teamsPatched !== undefined ||
-        writesSummary.playersPatched !== undefined ||
-        writesSummary.entitlementsPatched !== undefined;
+        writesSummary?.teamsPatched !== undefined ||
+        writesSummary?.playersPatched !== undefined ||
+        writesSummary?.entitlementsPatched !== undefined;
       const appliedToLocalState =
         result?.appliedToLocalState !== false &&
         (!hasApplySummary || summaryBackedApplyCheck);
 
       const hasPersistSummary =
-        writesSummary.eventsWritten !== undefined ||
-        writesSummary.worldMetadataPatched !== undefined ||
-        writesSummary.teamsPatched !== undefined;
+        writesSummary?.eventsWritten !== undefined ||
+        writesSummary?.worldMetadataPatched !== undefined ||
+        writesSummary?.teamsPatched !== undefined;
       const summaryBackedPersistCheck =
-        Number(writesSummary.eventsWritten ?? 1) > 0 &&
-        Number(writesSummary.worldMetadataPatched ?? 1) > 0 &&
-        Number(writesSummary.teamsPatched ?? 1) > 0;
+        Number(writesSummary?.eventsWritten ?? 1) > 0 &&
+        Number(writesSummary?.worldMetadataPatched ?? 1) > 0 &&
+        Number(writesSummary?.teamsPatched ?? 1) > 0;
       const persistedToWorld = options.requireWorldPersistence
         ? result?.persistedToWorld !== false &&
           result?.skipped !== true &&
@@ -984,7 +950,7 @@ export function useArchitectActions({
   const persistMutation = useCallback(
     async (
       mutationType: string,
-      payload: Record<string, unknown>,
+      payload: ArchitectMutationPayload,
       options: PersistMutationOptions = {}
     ): Promise<PersistMutationResult> => {
       // Base mode: no persistence
@@ -1100,7 +1066,7 @@ export function useArchitectActions({
   const runAuthoritativeFAMutation = useCallback(
     async (
       mutationType: string,
-      payload: Record<string, unknown>,
+      payload: ArchitectMutationPayload,
       options: {
         worldRequiredMessage?: string;
       } = {}
@@ -1184,7 +1150,7 @@ export function useArchitectActions({
       mutationType: string;
       playerIds?: string[];
       computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
-      persistPayload?: Record<string, unknown>;
+      persistPayload?: ArchitectMutationPayload;
       invalidMessage: string;
     }): {
       applied: boolean;
@@ -1439,11 +1405,19 @@ export function useArchitectActions({
                   years:
                     typeof p.contract.years === 'string'
                       ? Number(p.contract.years) || null
-                      : p.contract.years ?? null,
+                      : typeof p.contract.years === 'number'
+                        ? p.contract.years
+                        : null,
                   contractYears:
                     typeof p.contract.contractYears === 'string'
                       ? Number(p.contract.contractYears) || null
-                      : p.contract.contractYears ?? null,
+                      : typeof p.contract.contractYears === 'number'
+                        ? p.contract.contractYears
+                        : null,
+                  firstYearGuaranteed:
+                    typeof p.contract.firstYearGuaranteed === 'boolean'
+                      ? p.contract.firstYearGuaranteed
+                      : null,
                 }
               : null);
           const signAndTradeValidation = p.signAndTrade
@@ -1564,7 +1538,7 @@ export function useArchitectActions({
           payload: tradePayload,
           currentState: {
             teams: loadedTeams,
-          } as ComputeWorldMutationState,
+          } as unknown as ComputeWorldMutationState,
           seasonId,
           timestamp: Date.now(),
           asOfDate: worldAsOfDate || undefined,
@@ -1573,8 +1547,10 @@ export function useArchitectActions({
 
         if (!computeResult?.success) {
           throw new Error(
-            computeResult?.error ||
+            String(
+              computeResult?.error ||
               'Base-state trade apply failed authoritative compute.'
+            )
           );
         }
 
@@ -1609,7 +1585,7 @@ export function useArchitectActions({
         for (const loadedTeam of loadedTeams) {
           if (loadedTeam?.teamCode && loadedTeam?.team) {
             beforeTeamsByCode[loadedTeam.teamCode] = safeCloneForAudit(
-              loadedTeam.team as CapSheet
+              loadedTeam.team as unknown as CapSheet
             );
           }
         }
@@ -1618,7 +1594,7 @@ export function useArchitectActions({
         for (const update of computeResult.teamUpdates || []) {
           if (update?.teamCode && update?.team) {
             afterTeamsByCode[update.teamCode] = safeCloneForAudit(
-              update.team as CapSheet
+              update.team as unknown as CapSheet
             );
           }
         }
@@ -1724,10 +1700,10 @@ export function useArchitectActions({
       }
 
       const signedUsing = deriveSigningMechanism(contract);
-      const signingPayload = {
+      const signingPayload: ArchitectMutationPayload = {
         teamCode,
         playerId: idToSign,
-        contract: architectContract as unknown as Record<string, unknown>,
+        contract: architectContract,
         signedUsing,
       };
 
@@ -1743,8 +1719,9 @@ export function useArchitectActions({
         if (!result?.success) {
           return {
             success: false,
-            message:
-              result?.error || 'Failed to save signing. Please try again.',
+            message: String(
+              result?.error || 'Failed to save signing. Please try again.'
+            ),
           };
         }
 
@@ -1805,16 +1782,17 @@ export function useArchitectActions({
           team: teamCapSheet,
           player: canonicalPlayer,
           teamCode,
-        } as ComputeWorldMutationState,
+        } as unknown as ComputeWorldMutationState,
         seasonId,
         timestamp: Date.now(),
         worldId: null,
       }) as ComputeMutationResult;
 
       if (!computeResult.success) {
-        const message =
+        const message = String(
           computeResult.error ||
-          'Unable to apply signing in vacuum mode with canonical compute.';
+            'Unable to apply signing in vacuum mode with canonical compute.'
+        );
         reportMutationError(message, {
           playerId: idToSign,
           computeResult,
@@ -2007,7 +1985,7 @@ export function useArchitectActions({
       if (!result?.success) {
         return {
           success: false,
-          message: result?.error || 'Failed to save sign-and-trade.',
+          message: String(result?.error || 'Failed to save sign-and-trade.'),
         };
       }
 
@@ -2090,7 +2068,7 @@ export function useArchitectActions({
       if (!result?.success) {
         return {
           success: false,
-          message: result?.error || 'Failed to store offer sheet.',
+          message: String(result?.error || 'Failed to store offer sheet.'),
         };
       }
 
