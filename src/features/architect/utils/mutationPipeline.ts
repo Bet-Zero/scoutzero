@@ -106,6 +106,7 @@ import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
 
 // ==============================================================================
 // PHASE 58: TRADE CONTEXT MODULE RE-EXPORTS
@@ -147,7 +148,7 @@ type TeamLike = {
   teamCode?: string | null;
   teamName?: string | null;
   players?: PlayerLike[];
-  roster?: unknown[];
+  roster?: string[]; // roster arrays contain player ID strings
   capHolds?: LooseRecord[];
   deadCap?: LooseRecord[];
   exceptions?: LooseRecord;
@@ -190,7 +191,6 @@ type WritesSummaryLike = {
   eventIds: string[];
   worldMetadataPatched: number;
   worldStatsUpdated: boolean;
-  [key: string]: unknown;
 };
 type ComputeResultLike = {
   success?: boolean;
@@ -2179,7 +2179,7 @@ function computeTradeResult({
     (historyContextRef.worldId || (payload?.tradeCtx as LooseRecord | undefined)?.worldId || null) as string | null;
   const resolvedMutationType = (historyContextRef.mutationType || 'executeTrade') as string;
   const resolvedMutationId = historyContextRef.mutationId as string | null | undefined;
-  const getTpeRemaining = (tpe: any) =>
+  const getTpeRemaining = (tpe: TradeExceptionRecord) =>
     Number(tpe?.remainingAmount ?? tpe?.amount ?? 0) || 0;
 
   // Phase 56: Use pre-built snapshot teamUpdates (already has roster changes applied)
@@ -2203,9 +2203,9 @@ function computeTradeResult({
 
   // Warn if multi-team trade without directed routing (informational only)
   if (payload.teams.length > 2) {
-    const hasDirectedRouting = payload.teams.some((t: any) =>
-      (t.sends || []).some(
-        (s: any) =>
+    const hasDirectedRouting = payload.teams.some((t: LooseRecord) =>
+      ((t.sends || []) as LooseRecord[]).some(
+        (s: LooseRecord) =>
           s.receivingTeamIndex !== undefined ||
           s.receivingTeamId !== undefined ||
           s.tradeTo !== undefined ||
@@ -2225,7 +2225,7 @@ function computeTradeResult({
   // Phase 56: Apply validated TPE creation/consumption to each team
   // (validation already ran externally via validatePostTradeSnapshotForContext)
   // ============================================================================
-  teamUpdates.forEach((teamUpdate: any, idx: number) => {
+  teamUpdates.forEach((teamUpdate: TeamUpdateLike, idx: number) => {
     const teamResult = validation.teamResults?.[idx];
     if (!teamResult) return;
 
@@ -4499,7 +4499,7 @@ function computeFinalizeDeclinedOfferSheetResult({
 
   // 2b. Add player to roster with contract terms
   // Find or create player entry
-  const playerId = offerSheet.playerId;
+  const playerId = offerSheet.playerId as string;
   let playerIndex = (updatedOfferingTeam.players || []).findIndex(
     (p: any) => (p.player_id || p.id) === playerId
   );

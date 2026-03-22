@@ -78,12 +78,12 @@ interface RawTeamRecord {
   totalSalary?: NumericLike;
   projectedSalary?: NumericLike;
   payroll?: NumericLike;
-  players?: unknown;
-  twoWayPlayers?: unknown;
-  hardCapped?: unknown;
-  hardCapLevel?: unknown;
+  players?: Array<RawTradeInputPlayer | null | undefined> | null;
+  twoWayPlayers?: Array<RawTradeInputPlayer | null | undefined> | null;
+  hardCapped?: boolean | string | number | null;
+  hardCapLevel?: string | number | null;
   totals?: {
-    hardCapLevel?: unknown;
+    hardCapLevel?: string | number | null;
     [key: string]: unknown;
   } | null;
   [key: string]: unknown;
@@ -91,17 +91,27 @@ interface RawTeamRecord {
 
 interface RawTradeTeam {
   team?: RawTeamRecord | null;
-  sends?: unknown;
-  picksOut?: unknown;
+  sends?: Array<RawTradeInputPlayer | null | undefined> | null;
+  picksOut?: unknown[]; // pick shapes are unstable across contexts
   cashSent?: NumericLike;
-  hardCapped?: unknown;
-  hardCapLevel?: unknown;
-  appliedTPEs?: unknown;
+  hardCapped?: boolean | string | number | null;
+  hardCapLevel?: string | number | null;
+  appliedTPEs?: Array<RawTradeException | null | undefined> | null;
   [key: string]: unknown;
 }
 
 interface CapProjectionEntry {
-  [key: string]: unknown;
+  salaryCap?: number | null;
+  firstApron?: number | null;
+  secondApron?: number | null;
+  taxLine?: number | null;
+  fullMLE?: number | null;
+  roomMLE?: number | null;
+  bae?: number | null;
+  taxpayerMLE?: number | null;
+  minimumSalary?: number | null;
+  averageSalary?: number | null;
+  [key: string]: unknown; // preserve for forward-compat raw Firestore data
 }
 
 type CapProjectionMap = Record<string | number, CapProjectionEntry | undefined>;
@@ -117,17 +127,17 @@ interface NormalizedTeamRecord extends RawTeamRecord {
   teamTotalSalary: number;
   projectedSalary: number;
   players: Array<NormalizedTradeInputPlayer | null>;
-  twoWayPlayers: unknown;
+  twoWayPlayers: Array<NormalizedTradeInputPlayer | null>;
   tradeExceptions: NormalizedTradeException[];
 }
 
 interface NormalizedTradeTeam extends RawTradeTeam {
   team: NormalizedTeamRecord;
   sends: Array<NormalizedTradeInputPlayer | null>;
-  picksOut: unknown;
+  picksOut: unknown[]; // pick shapes are unstable; passthrough only
   cashSent: number;
-  hardCapped: unknown;
-  hardCapLevel: unknown;
+  hardCapped: boolean | string | number | null;
+  hardCapLevel: string | number | null;
   appliedTPEs: NormalizedTradeException[];
 }
 
@@ -141,7 +151,7 @@ interface NormalizedTradeInputResult {
 }
 
 interface NormalizeTradeInputParams {
-  teams?: unknown;
+  teams?: Array<RawTradeTeam | null | undefined> | null;
   capProjections?: CapProjectionMap | null;
   currentYear: number;
   tradeCtx?: RawTradeContext;
@@ -202,21 +212,21 @@ function normalizeTeam(
       teamName: raw.teamName || raw.name || 'Unknown Team',
       teamTotalSalary: toNum(raw.teamTotalSalary ?? raw.totalSalary ?? base),
       projectedSalary: toNum(raw.projectedSalary ?? base),
-      players: ((raw.players || []) as Array<RawTradeInputPlayer | null>).map(
+      players: (raw.players || []).map(
         (player) => normalizePlayer(player, yearKey as number)
       ),
-      twoWayPlayers: raw.twoWayPlayers || [],
+      twoWayPlayers: (raw.twoWayPlayers || []).map(
+        (player) => normalizePlayer(player, yearKey as number)
+      ),
       // Phase 66: Use canonical accessor for TPE reads
+      // TradeExceptionLike has amount/remaining as unknown; toNum normalizes them.
       tradeExceptions: getTeamTpeList(raw).map((tpe) => ({
         ...tpe,
-        amount: toNum((tpe as RawTradeException).amount),
-        remaining: toNum(
-          (tpe as RawTradeException).remaining ??
-            (tpe as RawTradeException).amount
-        ),
+        amount: toNum(tpe.amount),
+        remaining: toNum(tpe.remaining ?? tpe.amount),
       })),
     },
-    sends: ((team.sends || []) as Array<RawTradeInputPlayer | null>).map(
+    sends: (team.sends || []).map(
       (player) => normalizePlayer(player, yearKey as number)
     ),
     picksOut: team.picksOut || [],
@@ -229,11 +239,11 @@ function normalizeTeam(
       raw.hardCapLevel ||
       raw.totals?.hardCapLevel ||
       null,
-    appliedTPEs: ((team.appliedTPEs || []) as Array<RawTradeException>).map(
+    appliedTPEs: (team.appliedTPEs || []).map(
       (tpe) => ({
         ...tpe,
-        amount: toNum(tpe.amount),
-        remaining: toNum(tpe.remaining ?? tpe.amount),
+        amount: toNum(tpe?.amount),
+        remaining: toNum(tpe?.remaining ?? tpe?.amount),
       })
     ),
   };
@@ -256,7 +266,7 @@ export function normalizeTradeInput({
   const yearKey = currentYear;
 
   // Normalize teams and their components
-  const normalizedTeams = ((teams || []) as Array<RawTradeTeam | null>)
+  const normalizedTeams = (teams || [])
     .map((team) => normalizeTeam(team, { yearKey }))
     .filter((team): team is NormalizedTradeTeam => Boolean(team));
 

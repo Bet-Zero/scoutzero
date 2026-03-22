@@ -272,7 +272,7 @@ export interface NormalizedTeam {
     standardRoster?: unknown[];
     twoWayRoster?: unknown[];
     entitlementIds?: string[];
-    picks?: Array<Record<string, unknown>>;
+    picks?: NormalizedTeamPick[];
   };
   sends: NormalizedPlayer[];
   picksOut: NormalizedTeamPick[];
@@ -486,7 +486,7 @@ export interface TradeTeam {
     totalSalary?: number;
     hardCapTriggered?: boolean | 'FirstApron' | 'SecondApron';
     twoWayPlayers?: Array<Record<string, unknown>>;
-    picks?: Array<Record<string, unknown>>;
+    picks?: NormalizedTeamPick[];
     tradeExceptions?: TradeExceptionRecord[];
     exceptions?: {
       tpe?: TradeExceptionRecord[];
