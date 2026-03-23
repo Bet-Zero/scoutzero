@@ -23,6 +23,8 @@
 export {
   buildPostTradeTeamsSnapshot,
   validatePostTradeSnapshotForContext,
+  normalizeTradeTeamCodeLike,
+  resolveOutgoingTradeDestinationTeamCode,
 } from './tradeContext';
 
 export {

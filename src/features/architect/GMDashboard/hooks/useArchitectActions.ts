@@ -56,11 +56,8 @@ import type {
   BasePlayerContract,
   BasePlayerContractYear,
   DeadCapItem,
-  DraftPick,
   Exceptions,
   PlayerRulesProfileInput,
-  TeamTotals,
-  TradeException,
 } from '@/features/architect/types';
 import {
   acquireOptimisticLock,
@@ -75,16 +72,18 @@ import {
   clearTeamHistoryFixtures,
   hasInjectedTeamHistoryFixtures as hasInjectedTeamHistoryFixturesInTeam,
   injectTeamHistoryFixtures,
-  type TeamCapSheetLike,
 } from '@/features/architect/history/devTeamHistoryFixtures';
 import type { CapHold as SharedCapHold } from '@/features/architect/utils/capHolds';
 import type { CapSheetActionType } from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
 import toast from 'react-hot-toast';
-import type { UseArchitectStateReturn } from './useArchitectState';
+import type {
+  ArchitectDashboardCapSheet,
+  ArchitectDashboardPlayer,
+  UseArchitectStateReturn,
+} from './useArchitectState';
 
 // ==== Type Definitions ====
 
-type StateTeamCapSheet = NonNullable<UseArchitectStateReturn['teamCapSheet']>;
 type StatePlayersMap = UseArchitectStateReturn['playersMap'];
 type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
 type ComputeWorldMutationCurrentState = NonNullable<
@@ -166,10 +165,9 @@ interface LocalBio {
 
 /** Player data structure */
 type ArchitectPlayer = Omit<
-  PlayerRulesProfileInput,
+  ArchitectDashboardPlayer,
   'bio' | 'contract' | 'futureContract'
 > & {
-  position?: PlayerRulesProfileInput['position'];
   formattedPosition?: string | null;
   contract?: LocalContract | null;
   futureContract?: LocalContract | null;
@@ -316,26 +314,15 @@ interface OverrideAuditEntry {
 
 /** Cap sheet structure */
 type CapSheet = Omit<
-  StateTeamCapSheet,
-  'players' | 'deadCap' | 'capHolds' | 'exceptions' | 'totals'
+  ArchitectDashboardCapSheet,
+  'players' | 'deadCap' | 'capHolds' | 'exceptions'
 > & {
   players?: ArchitectPlayer[];
   activeContracts?: ActiveContract[];
-  waivedContracts?: unknown[];
-  tradeExceptions?: TradeException[];
-  exceptionHistory?: unknown[];
-  mleHistory?: unknown[];
-  pickLog?: unknown[];
-  currentPicks?: Record<string, unknown>;
   deadCap?: DeadCapEntry[] | null;
   capHolds?: CapHold[] | null;
   exceptions?: ArchitectExceptionsLike | null;
-  draftPicks?: DraftPick[] | null;
-  totals?: TeamTotals | null;
-  amount?: number;
   overrideAuditLog?: OverrideAuditEntry[];
-  roster?: Array<string | number> | null;
-  historyTimeline?: unknown[] | null;
 };
 
 /** Override metadata passed from EditContractModal when bypassing validation */
@@ -870,7 +857,7 @@ function findUpdatedTeamSnapshot(
   const matchingUpdate = (teamUpdates || []).find(
     (update) => update?.teamCode === targetTeamCode && update?.team
   );
-  return (matchingUpdate?.team as unknown as CapSheet | null | undefined) || null;
+  return (matchingUpdate?.team as CapSheet | null | undefined) || null;
 }
 
 /**
@@ -1640,7 +1627,7 @@ export function useArchitectActions({
         for (const loadedTeam of loadedTeams) {
           if (loadedTeam?.teamCode && loadedTeam?.team) {
             beforeTeamsByCode[loadedTeam.teamCode] = safeCloneForAudit(
-              loadedTeam.team as unknown as CapSheet
+              loadedTeam.team as CapSheet
             );
           }
         }
@@ -1649,7 +1636,7 @@ export function useArchitectActions({
         for (const update of computeResult.teamUpdates || []) {
           if (update?.teamCode && update?.team) {
             afterTeamsByCode[update.teamCode] = safeCloneForAudit(
-              update.team as unknown as CapSheet
+              update.team as CapSheet
             );
           }
         }
@@ -2345,7 +2332,7 @@ export function useArchitectActions({
   );
 
   const hasInjectedCapSheetFixtures = useMemo(
-    () => hasInjectedCapSheetFixturesInTeam(teamCapSheet as unknown as Parameters<typeof hasInjectedCapSheetFixturesInTeam>[0]),
+    () => hasInjectedCapSheetFixturesInTeam(teamCapSheet),
     [teamCapSheet]
   );
 
@@ -2376,10 +2363,7 @@ export function useArchitectActions({
   }, [setTeamCapSheet, teamCapSheet]);
 
   const hasInjectedTeamHistoryFixtures = useMemo(
-    () =>
-      hasInjectedTeamHistoryFixturesInTeam(
-        (teamCapSheet as TeamCapSheetLike | null) ?? null
-      ),
+    () => hasInjectedTeamHistoryFixturesInTeam(teamCapSheet ?? null),
     [teamCapSheet]
   );
 
@@ -2394,7 +2378,7 @@ export function useArchitectActions({
       }
 
       const nextTeam = injectTeamHistoryFixtures(
-        teamCapSheet as TeamCapSheetLike
+        teamCapSheet
       );
       setTeamCapSheetSafe(nextTeam as CapSheet);
       return { success: true };
@@ -2411,7 +2395,7 @@ export function useArchitectActions({
       }
 
       const nextTeam = clearTeamHistoryFixtures(
-        teamCapSheet as TeamCapSheetLike
+        teamCapSheet
       );
       setTeamCapSheetSafe(nextTeam as CapSheet);
       return { success: true };
@@ -3205,7 +3189,7 @@ export function useArchitectActions({
     const seasonKey = toSeasonKey(currentYear);
 
     const resetSheet: CapSheet = {
-      ...(teamCapSheet as unknown as CapSheet),
+      ...(teamCapSheet as CapSheet),
       activeContracts: [],
       waivedContracts: [],
       tradeExceptions: [],

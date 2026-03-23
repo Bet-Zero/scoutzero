@@ -18,6 +18,11 @@ import {
   type TpeLifecycleRecord,
 } from '@/features/architect/utils/tpeLifecycle';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+import type {
+  OffseasonAppliedChangesSummary,
+  OffseasonOptionDecision,
+} from '@/features/architect/utils/offseason/resolveOffseasonTransition';
+import type { TeamTpeLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
 const WIZARD_STEPS = {
   SUMMARY: 'summary',
@@ -28,6 +33,21 @@ const WIZARD_STEPS = {
 } as const;
 
 type WizardStepValue = (typeof WIZARD_STEPS)[keyof typeof WIZARD_STEPS];
+type AdvanceSeasonInWorld = typeof import('@/features/architect/utils/seasonManager').advanceSeasonInWorld;
+type AdvanceSeasonResult = Awaited<ReturnType<AdvanceSeasonInWorld>>;
+type SeasonAdvanceSummary = AdvanceSeasonResult extends {
+  summary?: infer Summary;
+}
+  ? Summary
+  : never;
+type SeasonAdvanceResult = {
+  summary?: SeasonAdvanceSummary;
+  updatedTeams?: string[];
+  toSeason?: string;
+  error?: string;
+  success?: boolean;
+};
+type SeasonAdvanceModalTeamCapSheet = TeamCapSheetLike & TeamTpeLike;
 
 type SalaryByYearLike = {
   season?: string | null;
@@ -90,42 +110,21 @@ type ExpiringTpePreviewLike = {
   source?: string | null;
 };
 
-type OptionDecisionLike = {
-  decision?: 'exercise' | 'decline' | null;
-  optionType?: string | null;
-  season?: string | null;
+type PendingOptionDecision = Omit<OffseasonOptionDecision, 'decision'> & {
+  decision?: OffseasonOptionDecision['decision'] | null;
   playerName?: string | null;
 };
 
-type OptionDecisionMap = Record<string, OptionDecisionLike>;
-
-type AdvanceSummaryLike = {
-  declinedOptions?: Array<{ playerName?: string | null }>;
-  exercisedOptions?: Array<Record<string, unknown>>;
-  expiredContracts?: Array<{ playerName?: string | null }>;
-  stepienUpdates?: Array<Record<string, unknown>>;
-};
-
-type AdvanceResultLike = {
-  success?: boolean;
-  error?: string;
-  toSeason?: string;
-  summary?: AdvanceSummaryLike;
-  updatedTeams?: string[];
-};
-
-type ErrorLike = {
-  message?: string;
-};
+type OptionDecisionMap = Record<string, PendingOptionDecision>;
 
 type SeasonAdvanceModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  teamCapSheet?: TeamCapSheetLike | null;
+  teamCapSheet?: SeasonAdvanceModalTeamCapSheet | null;
   currentYear: number;
   worldId?: string | null;
   teamCode?: string | null;
-  onAdvanceComplete?: ((result: AdvanceResultLike) => void) | null;
+  onAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;
 };
 
 type SeasonAdvanceModalComponent = ((
@@ -135,7 +134,7 @@ type SeasonAdvanceModalComponent = ((
 };
 
 function findPlayersWithOptions(
-  teamCapSheet: TeamCapSheetLike | null | undefined,
+  teamCapSheet: SeasonAdvanceModalTeamCapSheet | null | undefined,
   targetYear: number
 ): PlayerOptionPreviewLike[] {
   if (!teamCapSheet?.players || !Array.isArray(teamCapSheet.players)) {
@@ -177,7 +176,7 @@ function findPlayersWithOptions(
 }
 
 function findExpiringContracts(
-  teamCapSheet: TeamCapSheetLike | null | undefined,
+  teamCapSheet: SeasonAdvanceModalTeamCapSheet | null | undefined,
   fromYear: number
 ): ExpiringContractPreviewLike[] {
   if (!teamCapSheet?.players || !Array.isArray(teamCapSheet.players)) {
@@ -213,7 +212,7 @@ function findExpiringContracts(
 }
 
 function findExpiringCapHolds(
-  teamCapSheet: TeamCapSheetLike | null | undefined,
+  teamCapSheet: SeasonAdvanceModalTeamCapSheet | null | undefined,
   toYear: number
 ): ExpiringCapHoldPreviewLike[] {
   if (!teamCapSheet?.capHolds || !Array.isArray(teamCapSheet.capHolds)) {
@@ -241,12 +240,10 @@ function findExpiringCapHolds(
 }
 
 function findExpiringTPEs(
-  teamCapSheet: TeamCapSheetLike | null | undefined,
+  teamCapSheet: SeasonAdvanceModalTeamCapSheet | null | undefined,
   toYear: number
 ): ExpiringTpePreviewLike[] {
-  const tpes = getTeamTpeList(
-    (teamCapSheet || {}) as Record<string, unknown>
-  ) as TpeLifecycleRecord[];
+  const tpes = getTeamTpeList(teamCapSheet ?? null) as TpeLifecycleRecord[];
   if (tpes.length === 0) {
     return [];
   }
@@ -278,7 +275,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   const [optionDecisions, setOptionDecisions] = useState<OptionDecisionMap>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<AdvanceResultLike | null>(null);
+  const [result, setResult] = useState<SeasonAdvanceResult | null>(null);
 
   const toYear = currentYear + 1;
   const fromSeason = toSeasonCode(currentYear);
@@ -400,13 +397,10 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
       const { advanceSeasonInWorld } = (await import(
         '@/features/architect/utils/seasonManager'
       )) as {
-        advanceSeasonInWorld: (
-          worldId: string,
-          options?: Record<string, unknown>
-        ) => Promise<AdvanceResultLike>;
+        advanceSeasonInWorld: AdvanceSeasonInWorld;
       };
 
-      const decisions: Record<string, Record<string, unknown>> = {};
+      const decisions: Record<string, OffseasonOptionDecision> = {};
       for (const [playerId, data] of Object.entries(optionDecisions)) {
         if (data.decision) {
           const normalizedType = String(data.optionType || '')
@@ -417,7 +411,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
           decisions[playerId] = {
             decision: data.decision,
             optionType: normalizedType,
-            season: data.season,
+            season: data.season || toSeason,
           };
         }
       }
@@ -430,21 +424,36 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
         throw new Error(advanceResult.error || 'Season advance failed');
       }
 
-      setResult(advanceResult);
+      const modalResult: SeasonAdvanceResult = {
+        success: advanceResult.success,
+        error:
+          typeof advanceResult.error === 'string'
+            ? advanceResult.error
+            : undefined,
+        toSeason:
+          typeof advanceResult.toSeason === 'string'
+            ? advanceResult.toSeason
+            : undefined,
+        updatedTeams: Array.isArray(advanceResult.updatedTeams)
+          ? advanceResult.updatedTeams
+          : [],
+        summary: advanceResult.summary as SeasonAdvanceSummary | undefined,
+      };
+
+      setResult(modalResult);
       setCurrentStep(WIZARD_STEPS.COMPLETE);
 
       if (onAdvanceComplete) {
-        onAdvanceComplete(advanceResult);
+        onAdvanceComplete(modalResult);
       }
     } catch (err) {
-      const errorLike = err as ErrorLike;
       console.error('Season advance failed:', err);
-      setError(errorLike.message || 'Failed to advance season');
+      setError(err instanceof Error ? err.message : 'Failed to advance season');
       setCurrentStep(WIZARD_STEPS.CONFIRMATION);
     } finally {
       setIsProcessing(false);
     }
-  }, [worldId, optionDecisions, onAdvanceComplete]);
+  }, [worldId, optionDecisions, onAdvanceComplete, toSeason]);
 
   const renderSummaryStep = () => (
     <div className="space-y-4">

@@ -55,6 +55,46 @@ import type {
   ValidationIssue,
 } from './types';
 
+export function normalizeTradeTeamCodeLike(value: unknown): string | null {
+  if (!value) return null;
+  const normalized = String(value).trim();
+  if (!normalized) return null;
+  return normalized.length === 3 ? normalized.toUpperCase() : normalized;
+}
+
+export function resolveOutgoingTradeDestinationTeamCode({
+  payloadTeamCodes,
+  senderIndex,
+  player,
+}: {
+  payloadTeamCodes: string[];
+  senderIndex: number;
+  player: AnyRecord;
+}): string | null {
+  const parsedTargetIndex = Number(player.receivingTeamIndex);
+  const hasIndexRoute = Number.isInteger(parsedTargetIndex);
+  const normalizedTargetId = normalizeTradeTeamCodeLike(
+    player.receivingTeamId ||
+      player.tradeTo ||
+      player.toTeamId ||
+      player.destTeamId
+  );
+
+  if (hasIndexRoute) {
+    return payloadTeamCodes[parsedTargetIndex] || normalizedTargetId || null;
+  }
+
+  if (normalizedTargetId) {
+    return normalizedTargetId;
+  }
+
+  if (payloadTeamCodes.length === 2) {
+    return payloadTeamCodes.find((_, index) => index !== senderIndex) || null;
+  }
+
+  return null;
+}
+
 // ==============================================================================
 // PHASE 56/58: POST-TRADE SNAPSHOT BUILDER
 // ==============================================================================
@@ -116,14 +156,10 @@ export function buildPostTradeTeamsSnapshot({
     return Array.from(seen.values());
   };
 
-  const normalizeTeamCodeLike = (x: unknown): string | null => {
-    if (!x) return null;
-    const s = String(x).trim();
-    return s.length === 3 ? s.toUpperCase() : s;
-  };
-
   const payloadTeamCodes = payload.teams
-    .map((t) => normalizeTeamCodeLike(t.team?.id || t.teamCode || t.teamId))
+    .map((t) =>
+      normalizeTradeTeamCodeLike(t.team?.id || t.teamCode || t.teamId)
+    )
     .filter(Boolean) as string[];
   const activeTeamCount = payloadTeamCodes.length;
   const currentEndYear = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
@@ -133,7 +169,7 @@ export function buildPostTradeTeamsSnapshot({
 
   const currentTeamByCode = new Map<string | null, AnyRecord>(
     (currentState.teams || []).map(({ teamCode, team }) => [
-      normalizeTeamCodeLike(teamCode),
+      normalizeTradeTeamCodeLike(teamCode),
       team,
     ])
   );
@@ -151,12 +187,11 @@ export function buildPostTradeTeamsSnapshot({
       (teamTrade.sends || []).forEach((player, playerIndex) => {
         if (player.signAndTrade !== true) return;
 
-        const destinationTeamId = normalizeTeamCodeLike(
-          player.receivingTeamId ||
-            player.tradeTo ||
-            player.toTeamId ||
-            player.destTeamId
-        );
+        const destinationTeamId = resolveOutgoingTradeDestinationTeamCode({
+          payloadTeamCodes,
+          senderIndex,
+          player,
+        });
         const playerLabel =
           player.name ||
           player.player_id ||
@@ -216,19 +251,11 @@ export function buildPostTradeTeamsSnapshot({
     payload.teams.forEach((teamTrade, senderIndex) => {
       const senderTeamCode = payloadTeamCodes[senderIndex];
       (teamTrade.sends || []).forEach((player, playerIndex) => {
-        const parsedTargetIndex = Number(player.receivingTeamIndex);
-        const hasIndexRoute = Number.isInteger(parsedTargetIndex);
-        const normalizedTargetId = normalizeTeamCodeLike(
-          player.receivingTeamId ||
-            player.tradeTo ||
-            player.toTeamId ||
-            player.destTeamId
-        );
-
-        let resolvedTarget = normalizedTargetId;
-        if (hasIndexRoute) {
-          resolvedTarget = payloadTeamCodes[parsedTargetIndex] || null;
-        }
+        const resolvedTarget = resolveOutgoingTradeDestinationTeamCode({
+          payloadTeamCodes,
+          senderIndex,
+          player,
+        });
 
         const isValidTarget =
           !!resolvedTarget &&
@@ -256,7 +283,7 @@ export function buildPostTradeTeamsSnapshot({
   for (let i = 0; i < payload.teams.length; i++) {
     const teamTrade = payload.teams[i];
     const { teamCode, team } = currentState.teams[i];
-    const thisTeamCode = normalizeTeamCodeLike(teamCode);
+    const thisTeamCode = normalizeTradeTeamCodeLike(teamCode);
 
     const updatedTeam: AnyRecord = { ...team };
 
@@ -277,22 +304,11 @@ export function buildPostTradeTeamsSnapshot({
     payload.teams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
         (otherTeamTrade.sends || []).forEach((player) => {
-          const parsedTargetIndex = Number(player.receivingTeamIndex);
-          const normalizedTargetId = normalizeTeamCodeLike(
-            player.receivingTeamId ||
-              player.tradeTo ||
-              player.toTeamId ||
-              player.destTeamId
-          );
-          const hasIndexRoute = Number.isInteger(parsedTargetIndex);
-
-          let resolvedTarget = normalizedTargetId;
-          if (hasIndexRoute) {
-            const indexedTarget = payloadTeamCodes[parsedTargetIndex];
-            if (indexedTarget) {
-              resolvedTarget = indexedTarget;
-            }
-          }
+          const resolvedTarget = resolveOutgoingTradeDestinationTeamCode({
+            payloadTeamCodes,
+            senderIndex: otherIndex,
+            player,
+          });
 
           if (resolvedTarget) {
             if (resolvedTarget === thisTeamCode) {
@@ -310,7 +326,7 @@ export function buildPostTradeTeamsSnapshot({
                     signingDate: timestampISO,
                     signingTeam:
                       payloadTeamCodes[otherIndex] ||
-                      normalizeTeamCodeLike(
+                      normalizeTradeTeamCodeLike(
                         currentState.teams[otherIndex]?.teamCode
                       ),
                   }) || null;
@@ -324,7 +340,7 @@ export function buildPostTradeTeamsSnapshot({
                   isNewlySignedFA: true,
                   originTeamId:
                     payloadTeamCodes[otherIndex] ||
-                    normalizeTeamCodeLike(
+                    normalizeTradeTeamCodeLike(
                       currentState.teams[otherIndex]?.teamCode
                     ),
                 });
@@ -453,7 +469,7 @@ export function buildPostTradeTeamsSnapshot({
         if (!entIdRaw) return;
         const entId = String(entIdRaw);
 
-        const toTeam = normalizeTeamCodeLike(e.toTeamId);
+        const toTeam = normalizeTradeTeamCodeLike(e.toTeamId);
 
         if (toTeam) {
           if (!payloadTeamCodes.includes(toTeam)) {

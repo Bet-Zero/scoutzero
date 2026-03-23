@@ -121,6 +121,10 @@ import {
   assertValidatedTradeContext,
   assertTradeComputeInputs,
 } from '@/features/architect/utils/tradeContext';
+import {
+  normalizeTradeTeamCodeLike,
+  resolveOutgoingTradeDestinationTeamCode,
+} from '@/features/architect/utils/tradeContext/tradeContext';
 
 type LooseRecord = Record<string, unknown>;
 type MutationScalarId = string | number | null | undefined;
@@ -260,11 +264,18 @@ export type ArchitectMutationPlayerRecord = {
   id?: string | null;
   playerId?: string | null;
   teamCode?: string | null;
+  teamName?: string | null;
   name?: string | null;
   displayName?: string | null;
   playerName?: string | null;
+  bio?: unknown;
   contract?: ArchitectMutationContract | null;
   futureContract?: ArchitectMutationContract | null;
+  representation?: unknown;
+  source?: unknown;
+  lastUpdated?: unknown;
+  version?: unknown;
+  rfaContext?: unknown;
   matchIncoming?: number | string | null;
   absorptionMode?: string | null;
   tpeId?: string | null;
@@ -456,6 +467,10 @@ export type ArchitectMutationPlayerUpdate = {
   playerId?: string | null;
   player?: PlayerLike | null;
 };
+export type ArchitectMutationPlayerDelete = {
+  playerId?: string | null;
+  teamCode?: string | null;
+};
 export type ArchitectMutationWritesSummary = {
   teamsPatched: number;
   teamsWritten: number;
@@ -498,6 +513,7 @@ export type ArchitectMutationResult = {
   error?: string | Error | null;
   teamUpdates?: ArchitectMutationTeamUpdate[];
   playerUpdates?: ArchitectMutationPlayerUpdate[];
+  playerDeletes?: ArchitectMutationPlayerDelete[];
   entitlementUpdates?: EntitlementUpdateLike[];
   metadata?: MutationMetadataLike;
   warnings?: unknown[];
@@ -517,6 +533,7 @@ export type ArchitectMutationResult = {
 type MutationPayloadLike = ArchitectMutationPayload;
 type TeamUpdateLike = ArchitectMutationTeamUpdate;
 type PlayerUpdateLike = ArchitectMutationPlayerUpdate;
+type PlayerDeleteLike = ArchitectMutationPlayerDelete;
 type WritesSummaryLike = ArchitectMutationWritesSummary;
 type TradeValidatedContextLike = ArchitectMutationValidatedTradeContext;
 type TradeTeamUpdate = ArchitectMutationTeamUpdate;
@@ -1166,9 +1183,7 @@ function buildComputeWritesSummary(
   const teamCodes = (computeResult.teamUpdates || [])
     .map((update) => String(update?.teamCode || '').trim())
     .filter(Boolean);
-  const playerIds = (computeResult.playerUpdates || [])
-    .map((update) => String(update?.playerId || '').trim())
-    .filter(Boolean);
+  const playerIds = collectPlayerTouchIds(computeResult);
   const entitlementIds = (computeResult.entitlementUpdates || [])
     .map((update) => String(update?.entitlementId || '').trim())
     .filter(Boolean);
@@ -1215,6 +1230,28 @@ function sanitizeStringList(input: unknown) {
   return input.map((value) => String(value || '').trim()).filter(Boolean);
 }
 
+function collectPlayerTouchIds(
+  computeResult: ComputeResultLike = {}
+): string[] {
+  const playerIds = new Set<string>();
+
+  for (const update of computeResult.playerUpdates || []) {
+    const playerId = String(update?.playerId || '').trim();
+    if (playerId) {
+      playerIds.add(playerId);
+    }
+  }
+
+  for (const deletion of computeResult.playerDeletes || []) {
+    const playerId = String(deletion?.playerId || '').trim();
+    if (playerId) {
+      playerIds.add(playerId);
+    }
+  }
+
+  return Array.from(playerIds);
+}
+
 function deriveEventTeamCodes({
   auditContext = {},
   computeResult = {},
@@ -1249,7 +1286,7 @@ function deriveEventPlayerIds({
 }) {
   const candidates = [
     auditContext.playerIds,
-    (computeResult.playerUpdates || []).map((update) => update?.playerId),
+    collectPlayerTouchIds(computeResult),
     computeResult.metadata?.playerIds,
     computeResult.metadata?.playersTraded,
     computeResult.metadata?.playerId ? [computeResult.metadata.playerId] : [],
@@ -2257,6 +2294,223 @@ async function loadStateForMutation(
   }
 }
 
+function withDefaultPlayerDeletes(
+  result: ComputeResultLike
+): ComputeResultLike {
+  return {
+    ...result,
+    playerDeletes: Array.isArray(result.playerDeletes)
+      ? result.playerDeletes
+      : [],
+  };
+}
+
+function getMutationPlayerId(player: LooseRecord | null | undefined) {
+  if (!player) {
+    return null;
+  }
+
+  const rawId = player.player_id || player.playerId || player.id || null;
+  if (!rawId) {
+    return null;
+  }
+
+  const playerId = String(rawId).trim();
+  return playerId || null;
+}
+
+function findPlayerInTeamPlayers(
+  team: TeamLike | null | undefined,
+  playerId: string
+): PlayerLike | null {
+  const players = Array.isArray(team?.players) ? team.players : [];
+  return (
+    players.find((player) => getMutationPlayerId(player as LooseRecord) === playerId) ||
+    null
+  ) as PlayerLike | null;
+}
+
+function toPersistablePlayerOverrideFromSnapshot(player: PlayerLike): PlayerLike {
+  const playerId = getMutationPlayerId(player as LooseRecord);
+  const bio =
+    player.bio && typeof player.bio === 'object' && !Array.isArray(player.bio)
+      ? (player.bio as LooseRecord)
+      : undefined;
+
+  return removeUndefinedDeep({
+    playerId: playerId || undefined,
+    displayName:
+      player.displayName ||
+      player.playerName ||
+      player.name ||
+      bio?.displayName ||
+      undefined,
+    teamCode: player.teamCode || undefined,
+    teamName: player.teamName || undefined,
+    bio,
+    contract: player.contract || undefined,
+    futureContract: player.futureContract || undefined,
+    representation: (player as LooseRecord).representation,
+    source: player.source || undefined,
+    lastUpdated: (player as LooseRecord).lastUpdated,
+    version: (player as LooseRecord).version,
+    rfaOfferSheet: (player as LooseRecord).rfaOfferSheet,
+    rfaOfferSheetOnly: (player as LooseRecord).rfaOfferSheetOnly,
+    rfaContext: (player as LooseRecord).rfaContext,
+  }) as PlayerLike;
+}
+
+type TradePlayerMoveCandidate = {
+  playerId: string;
+  sourceTeamCode: string;
+  destinationTeamCode: string;
+};
+
+function buildTradePlayerPersistenceManifest({
+  payload,
+  currentState,
+  teamUpdates,
+}: {
+  payload: ArchitectMutationPayload;
+  currentState: CurrentStateLike;
+  teamUpdates: ArchitectMutationTeamUpdate[];
+}):
+  | {
+      success: true;
+      playerUpdates: PlayerUpdateLike[];
+      playerDeletes: PlayerDeleteLike[];
+    }
+  | { success: false; error: string } {
+  const tradeTeams = Array.isArray(payload.teams) ? payload.teams : [];
+  const payloadTeamCodes: string[] = [];
+
+  tradeTeams.forEach((teamTrade, index) => {
+    const sourceTeamCode = normalizeTradeTeamCodeLike(
+      teamTrade.teamCode ||
+        teamTrade.team?.teamCode ||
+        teamTrade.team?.id ||
+        teamTrade.teamId ||
+        currentState.teams?.[index]?.teamCode
+    );
+
+    if (sourceTeamCode) {
+      payloadTeamCodes.push(sourceTeamCode);
+    }
+  });
+
+  if (payloadTeamCodes.length !== tradeTeams.length) {
+    return {
+      success: false,
+      error:
+        'Trade player persistence manifest could not resolve all source team codes.',
+    };
+  }
+
+  const moveCandidates = new Map<string, TradePlayerMoveCandidate>();
+
+  for (const [senderIndex, teamTrade] of tradeTeams.entries()) {
+    const sourceTeamCode = payloadTeamCodes[senderIndex];
+
+    for (const rawPlayer of teamTrade.sends || []) {
+      const player = (rawPlayer || {}) as LooseRecord;
+      const playerId = getMutationPlayerId(player);
+      if (!playerId) {
+        return {
+          success: false,
+          error:
+            'Trade player persistence manifest requires every moved player to have a stable playerId.',
+        };
+      }
+
+      const destinationTeamCode = resolveOutgoingTradeDestinationTeamCode({
+        payloadTeamCodes,
+        senderIndex,
+        player,
+      });
+
+      if (!destinationTeamCode || !sourceTeamCode) {
+        return {
+          success: false,
+          error: `Trade player persistence manifest could not conclusively resolve source/destination for player ${playerId}.`,
+        };
+      }
+
+      if (destinationTeamCode === sourceTeamCode) {
+        continue;
+      }
+
+      const existing = moveCandidates.get(playerId);
+      if (
+        existing &&
+        (existing.sourceTeamCode !== sourceTeamCode ||
+          existing.destinationTeamCode !== destinationTeamCode)
+      ) {
+        return {
+          success: false,
+          error: `Trade player persistence manifest resolved conflicting destinations for player ${playerId}.`,
+        };
+      }
+
+      if (!existing) {
+        moveCandidates.set(playerId, {
+          playerId,
+          sourceTeamCode,
+          destinationTeamCode,
+        });
+      }
+    }
+  }
+
+  const destinationTeamsByCode = new Map<string, TeamLike | null>(
+    teamUpdates.map((update) => [
+      String(update.teamCode || ''),
+      (update.team || null) as TeamLike | null,
+    ])
+  );
+  const playerUpdates: PlayerUpdateLike[] = [];
+  const playerDeletes: PlayerDeleteLike[] = [];
+
+  for (const move of moveCandidates.values()) {
+    const destinationTeam = destinationTeamsByCode.get(move.destinationTeamCode);
+    if (!destinationTeam) {
+      return {
+        success: false,
+        error: `Trade player persistence manifest could not find final destination team ${move.destinationTeamCode} for player ${move.playerId}.`,
+      };
+    }
+
+    const finalPlayer = findPlayerInTeamPlayers(destinationTeam, move.playerId);
+    if (!finalPlayer) {
+      return {
+        success: false,
+        error: `Trade player persistence manifest could not find final destination snapshot player ${move.playerId} on ${move.destinationTeamCode}.`,
+      };
+    }
+
+    if (normalizeTradeTeamCodeLike(finalPlayer.teamCode) !== move.destinationTeamCode) {
+      return {
+        success: false,
+        error: `Trade player persistence manifest found mismatched teamCode for player ${move.playerId} on destination ${move.destinationTeamCode}.`,
+      };
+    }
+
+    playerUpdates.push({
+      playerId: move.playerId,
+      player: toPersistablePlayerOverrideFromSnapshot(finalPlayer),
+    });
+    playerDeletes.push({
+      playerId: move.playerId,
+      teamCode: move.sourceTeamCode,
+    });
+  }
+
+  return {
+    success: true,
+    playerUpdates,
+    playerDeletes,
+  };
+}
+
 // ==============================================================================
 // PHASE 2: COMPUTE (PURE) - Calculate mutation result
 // ==============================================================================
@@ -2323,115 +2577,141 @@ export function computeWorldMutation({
         validatedContext,
       });
 
-      return result;
+      return withDefaultPlayerDeletes(result);
     }
 
     case 'signFreeAgent':
-      return computeSigningResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeSigningResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'waivePlayer':
-      return computeWaiveResult({ payload, currentState, seasonId, timestamp });
+      return withDefaultPlayerDeletes(
+        computeWaiveResult({ payload, currentState, seasonId, timestamp })
+      );
 
     case 'extendPlayer':
-      return computeExtensionResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeExtensionResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'storeOfferSheet':
-      return computeStoreOfferSheetResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeStoreOfferSheetResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'matchOfferSheet':
-      return computeMatchOfferSheetResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeMatchOfferSheetResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'declineOfferSheet':
-      return computeDeclineOfferSheetResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeDeclineOfferSheetResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'finalizeMatchedOfferSheet':
-      return computeFinalizeMatchedOfferSheetResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeFinalizeMatchedOfferSheetResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'finalizeDeclinedOfferSheet':
-      return computeFinalizeDeclinedOfferSheetResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeFinalizeDeclinedOfferSheetResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'optionDecision':
-      return computeOptionResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeOptionResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'renounceRights':
-      return computeRenounceResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeRenounceResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'signAndTrade':
-      return computeSignAndTradeResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-        worldId,
-        historyContext: { worldId, mutationType },
-      });
+      return withDefaultPlayerDeletes(
+        computeSignAndTradeResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+          worldId,
+          historyContext: { worldId, mutationType },
+        })
+      );
 
     case 'setDeadCap':
-      return computeSetDeadCapResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeSetDeadCapResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     case 'setExceptions':
-      return computeSetExceptionsResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-      });
+      return withDefaultPlayerDeletes(
+        computeSetExceptionsResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
+        })
+      );
 
     default:
-      return {
+      return withDefaultPlayerDeletes({
         success: false,
         error: `Unknown mutation type: ${mutationType}`,
-      };
+      });
   }
 }
 
@@ -2478,6 +2758,7 @@ function computeTradeResult({
   });
 
   const playerUpdates: PlayerUpdateLike[] = [];
+  const playerDeletes: PlayerDeleteLike[] = [];
   const tradeTeams = Array.isArray(payload.teams) ? payload.teams : [];
 
   const currentYear = toEndYear(seasonId);
@@ -2909,6 +3190,22 @@ function computeTradeResult({
     };
   }
 
+  const tradePlayerManifest = buildTradePlayerPersistenceManifest({
+    payload,
+    currentState,
+    teamUpdates,
+  });
+
+  if ('error' in tradePlayerManifest) {
+    return {
+      success: false,
+      error: tradePlayerManifest.error,
+    };
+  }
+
+  playerUpdates.push(...tradePlayerManifest.playerUpdates);
+  playerDeletes.push(...tradePlayerManifest.playerDeletes);
+
   const metadata: TradeMutationMetadata = {
     type: 'trade',
     teamsInvolved: teamUpdates.map((teamUpdate) => teamUpdate.teamCode),
@@ -2930,6 +3227,7 @@ function computeTradeResult({
     success: true,
     teamUpdates,
     playerUpdates,
+    playerDeletes,
     // TM-PICKS-E1: Include entitlement doc patches for persistence
     entitlementUpdates,
     metadata,
@@ -4150,11 +4448,12 @@ async function persistWorldMutation({
 }): Promise<LooseRecord> {
   const batch = writeBatch(db);
   const teamCodesPatched = [];
-  const playerIdsPatched = [];
+  const playerIdsPatched = new Set<string>();
   const entitlementIdsPatched = [];
   let eventId: string | null = null;
   const teamUpdates = computeResult.teamUpdates || [];
   const playerUpdates = computeResult.playerUpdates || [];
+  const playerDeletes = computeResult.playerDeletes || [];
   const entitlementUpdates = computeResult.entitlementUpdates || [];
 
   try {
@@ -4214,9 +4513,25 @@ async function persistWorldMutation({
         const playerRef = worldPlayerRef(worldId, teamCode, playerId);
         batch.set(playerRef, sanitizedPlayer);
         if (playerId) {
-          playerIdsPatched.push(String(playerId));
+          playerIdsPatched.add(String(playerId));
         }
       }
+    }
+
+    // 2.25 Delete superseded player overrides (trade/SAT source-team cleanup only)
+    for (const { playerId, teamCode } of playerDeletes) {
+      const normalizedPlayerId = String(playerId || '').trim();
+      const normalizedTeamCode = String(teamCode || '').trim();
+      if (!normalizedPlayerId || !normalizedTeamCode) {
+        continue;
+      }
+      const playerRef = worldPlayerRef(
+        worldId,
+        normalizedTeamCode,
+        normalizedPlayerId
+      );
+      batch.delete(playerRef);
+      playerIdsPatched.add(normalizedPlayerId);
     }
 
     // 2.5 TM-PICKS-E1: Write entitlement overrides (holderTeam patches)
@@ -4312,8 +4627,8 @@ async function persistWorldMutation({
       ...cloneWritesSummary(),
       teamsPatched: teamCodesPatched.length,
       teamCodes: teamCodesPatched,
-      playersPatched: playerIdsPatched.length,
-      playerIds: playerIdsPatched,
+      playersPatched: playerIdsPatched.size,
+      playerIds: Array.from(playerIdsPatched),
       entitlementsPatched: entitlementIdsPatched.length,
       entitlementIds: entitlementIdsPatched,
       eventsWritten: eventId ? 1 : 0,
@@ -4334,8 +4649,8 @@ async function persistWorldMutation({
       ...cloneWritesSummary(),
       teamsPatched: teamCodesPatched.length,
       teamCodes: teamCodesPatched,
-      playersPatched: playerIdsPatched.length,
-      playerIds: playerIdsPatched,
+      playersPatched: playerIdsPatched.size,
+      playerIds: Array.from(playerIdsPatched),
       entitlementsPatched: entitlementIdsPatched.length,
       entitlementIds: entitlementIdsPatched,
       eventsWritten: 0,
@@ -5105,6 +5420,7 @@ function computeSignAndTradeResult({
     success: true,
     teamUpdates: tradeResult.teamUpdates, // Contains both Source (minus player) and Dest (plus player)
     playerUpdates: tradeResult.playerUpdates, // Player with new teamCode
+    playerDeletes: tradeResult.playerDeletes,
     metadata: {
       type: 'signAndTrade',
       sourceTeam: teamCode,

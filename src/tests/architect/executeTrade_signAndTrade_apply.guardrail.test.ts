@@ -7,6 +7,7 @@ const firestoreMocks = vi.hoisted(() => {
     writeBatch: vi.fn(() => ({
       set: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
       commit,
     })),
     getDoc: vi.fn(async () => ({

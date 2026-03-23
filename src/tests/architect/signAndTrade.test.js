@@ -30,6 +30,7 @@ vi.mock('firebase/firestore', () => ({
   writeBatch: vi.fn(() => ({
     set: vi.fn(),
     update: vi.fn(),
+    delete: vi.fn(),
     commit: vi.fn(() => Promise.resolve()),
   })),
   getDoc: vi.fn(() =>

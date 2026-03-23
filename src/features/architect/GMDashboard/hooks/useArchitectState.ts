@@ -18,6 +18,7 @@ import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import type {
+  BasePlayerContract,
   CapHoldItem,
   DeadCapItem,
   DraftPick,
@@ -26,10 +27,12 @@ import type {
   PlayerRulesProfileTeamCapSheet,
   TeamTotals,
 } from '@/features/architect/types';
+import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 import type { OfferSheetLike } from '../offerSheetTypes';
 import capProjections from '@/features/architect/utils/capProjections';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { resolvePlayerDisplayName } from '@/features/architect/constants/playerNameCorrections';
+import type { OffseasonAppliedChangesSummary } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
 
 // ==== Utility: Deep Clone ====
 /**
@@ -49,34 +52,57 @@ function deepClone<T>(obj: T): T {
 
 type CapProjectionRow = (typeof capProjections)[string];
 type CapProjectionMap = Record<string, CapProjectionRow | undefined>;
+type LoadedWorldTeamData = NonNullable<
+  Awaited<ReturnType<typeof loadWorldTeamData>>
+>;
+type LeagueTeamSnapshot = Awaited<ReturnType<typeof getLeague>>[number];
+type RulesProfileContract = NonNullable<PlayerRulesProfileInput['contract']>;
+type RulesProfileSalaryRow = NonNullable<
+  NonNullable<RulesProfileContract['salariesByYear']>[number]
+>;
+type DashboardBaseTeamCapSheet = Omit<
+  LoadedWorldTeamData,
+  | 'players'
+  | 'roster'
+  | 'deadCap'
+  | 'capHolds'
+  | 'draftPicks'
+  | 'exceptions'
+  | 'totals'
+> &
+  Omit<
+    PlayerRulesProfileTeamCapSheet,
+    | 'players'
+    | 'capHolds'
+    | 'offerSheets'
+    | 'incomingOfferSheets'
+    | 'deadCap'
+    | 'exceptions'
+  > &
+  TeamHistoryCapSheetLike;
 
 /** Salary entry by year in a contract */
-interface SalaryByYear {
+type SalaryByYear = RulesProfileSalaryRow & {
   season?: string | number | null;
   salary?: number | null;
   option?: string | null;
   optionType?: string | null;
   capHit?: number | null;
   guaranteed?: boolean | null;
-}
+};
 
 /** Player contract structure */
-interface ArchitectContract {
-  salariesByYear?: SalaryByYear[];
-  birdRights?: {
-    status?: string;
-    yearsOfService?: number;
-    yearsWithTeam?: number;
-    eligibleFor?: string[];
-  };
+type ArchitectContract = Omit<RulesProfileContract, 'salariesByYear' | 'birdRights'> & {
+  salariesByYear?: SalaryByYear[] | null;
+  birdRights?: BasePlayerContract['birdRights'] | null;
   // NOTE: catch-all retained — ArchitectContract participates in PlayerLike-compatible
   // intersections; removing it breaks index signature compatibility with ContractLike
   // throughout GMDashboard.tsx and the pipeline cast in useArchitectActions.ts.
   [key: string]: unknown;
-}
+};
 
 /** Player data from useArchitectPlayerData */
-type ArchitectPlayer = PlayerRulesProfileInput & {
+export type ArchitectDashboardPlayer = PlayerRulesProfileInput & {
   id?: string | number | null;
   player_id?: string | number | null;
   name?: string | null;
@@ -90,16 +116,16 @@ type ArchitectPlayer = PlayerRulesProfileInput & {
   futureContract?: ArchitectContract | null;
 };
 
-type WorldRosterPlayerLike = ArchitectPlayer & {
-  bio?: ArchitectPlayer['bio'] & {
+type ArchitectPlayer = ArchitectDashboardPlayer;
+
+type WorldRosterPlayerLike = ArchitectDashboardPlayer &
+  NonNullable<LeagueTeamSnapshot['players']>[number] & {
+  bio?: ArchitectDashboardPlayer['bio'] & {
     playerId?: string | number | null;
   };
 };
 
-type WorldLeagueTeamLike = {
-  // NOTE: kept as unknown[] — getLeague() returns TeamLike[] with roster: unknown[];
-  // narrowing here would conflict with the external return type.
-  roster?: unknown[];
+type WorldLeagueTeamLike = Pick<LeagueTeamSnapshot, 'roster'> & {
   players?: WorldRosterPlayerLike[];
 };
 
@@ -124,12 +150,11 @@ interface FreeAgent extends ArchitectPlayer {
   freeAgentType: 'UFA' | 'RFA' | 'PO' | 'TO';
 }
 
-type OffseasonSummaryTradeException = {
-  amount?: number;
+type OffseasonSummaryTradeException = Omit<
+  OffseasonAppliedChangesSummary['expiredTPEs'][number],
+  'source'
+> & {
   source?: string | null;
-  expiresOn?: string | null;
-  expiryISO?: string | null;
-  expiryDate?: string | null;
   teamCode?: string | null;
 };
 
@@ -139,12 +164,8 @@ type OffseasonSummaryWaivedDeadCap = {
   year?: string | number | null;
 };
 
-type ExercisedOptionSummary = {
-  playerId?: string | number | null;
-  playerName?: string | null;
-  optionType?: string | null;
-  salary?: number | null;
-};
+type ExercisedOptionSummary =
+  OffseasonAppliedChangesSummary['exercisedOptions'][number];
 
 type StepienUpdateSummary = {
   pickId?: string | null;
@@ -201,9 +222,14 @@ type ArchitectExceptionsLike = Exceptions & {
 };
 
 /** Cap sheet structure */
-interface CapSheet extends PlayerRulesProfileTeamCapSheet {
+export type ArchitectDashboardCapSheet = DashboardBaseTeamCapSheet & {
+  id?: string | null;
+  teamCode?: string | null;
   teamName?: string;
-  players?: ArchitectPlayer[];
+  season?: string | null;
+  abbreviation?: string | null;
+  players?: ArchitectDashboardPlayer[];
+  roster?: Array<string | number> | null;
   deadCap?: DeadCapLike[] | null;
   capHolds?: CapHoldLike[] | null;
   exceptions?: ArchitectExceptionsLike | null;
@@ -211,8 +237,14 @@ interface CapSheet extends PlayerRulesProfileTeamCapSheet {
   totals?: TeamTotals | null;
   offerSheets?: OfferSheetLike[] | null;
   incomingOfferSheets?: OfferSheetLike[] | null;
+  activeContracts?: LoadedWorldTeamData['activeContracts'] | null;
+  tradeExceptions?: LoadedWorldTeamData['tradeExceptions'] | null;
+  hardCapped?: LoadedWorldTeamData['hardCapped'] | null;
+  amount?: number;
   [key: string]: unknown;
-}
+};
+
+type CapSheet = ArchitectDashboardCapSheet;
 
 /** Hook input parameters */
 interface UseArchitectStateParams {

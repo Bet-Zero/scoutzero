@@ -32,76 +32,144 @@ import {
 } from '@/features/architect/utils/capTotals';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+import type { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
+import type {
+  TeamTpeLike,
+  TradeExceptionLike,
+} from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
-type PlayerLike = {
-  id?: string | number;
-  player_id?: string | number;
-  name?: string;
-  matchOutgoing?: number;
-  matchIncoming?: number;
-  absorptionMode?: string | null;
-  tpeId?: string | null;
-  bucketType?: string | null;
-  bio?: { displayName?: string } | null;
-  mockSalary?: number;
-};
-
-type EntitlementLike = {
+type UnknownRecord = Record<string, unknown>;
+type UseTradeMachineResult = ReturnType<typeof useTradeMachine>;
+type HookTradeTeamSlot = UseTradeMachineResult['teams'][number];
+type HookTradeTeam = NonNullable<HookTradeTeamSlot['team']>;
+type OutgoingPlayersListProps = Parameters<typeof OutgoingPlayersList>[0];
+type EntitlementPicksListProps = Parameters<typeof EntitlementPicksList>[0];
+type ChildPlayerLike = OutgoingPlayersListProps['sends'][number];
+type ChildTeamOptionLike = NonNullable<OutgoingPlayersListProps['otherTeams']>[number];
+type ChildEntitlementTeamOptionLike =
+  NonNullable<EntitlementPicksListProps['otherTeams']>[number];
+type ValidationResultLike = Parameters<typeof getTeamSnapshot>[1];
+type HookTradePlayer = HookTradeTeamSlot['sends'][number];
+type HookTradeEntitlement =
+  NonNullable<HookTradeTeamSlot['entitlementsOut']>[number];
+type PlayerLike = HookTradePlayer &
+  ChildPlayerLike & {
+    matchOutgoing?: number | null;
+    matchIncoming?: number | null;
+    absorptionMode?: string | null;
+    tpeId?: string | number | null;
+    bucketType?: string | null;
+  };
+type EntitlementLike = HookTradeEntitlement & {
   id?: string | number;
   entitlementId?: string | number;
+  identityKey?: string;
+  underlyingStatus?: string;
+  seasonYear?: number | null;
+  round?: number | null;
+  kind?: string | null;
+  secondaryText?: string | null;
   fromTeamId?: string | null;
   toTeamId?: string | null;
-  seasonYear?: number;
-  round?: number;
-  kind?: string;
-  secondaryText?: string;
-  identityKey?: string;
+  linkedEntitlementIds?: Array<string | number>;
+  residualOfEntitlementId?: string | number | null;
+  __vacuumSessionOnly?: boolean;
+  __vacuumEdited?: boolean;
 };
-
-type TeamLike = {
+type TeamOptionLike = ChildTeamOptionLike &
+  ChildEntitlementTeamOptionLike & {
+    id?: string;
+    teamName?: string;
+    teamCode?: string;
+  };
+type TeamLike = Omit<
+  HookTradeTeam,
+  | 'id'
+  | 'teamId'
+  | 'teamCode'
+  | 'teamName'
+  | 'abbreviation'
+  | 'players'
+  | 'entitlements'
+  | 'pickRulesById'
+  | 'capHolds'
+  | 'teamTotalSalary'
+  | 'totalSalary'
+> & {
   id?: string | null;
   teamId?: string | null;
   teamCode?: string | null;
-  nickname?: string | null;
   teamName?: string | null;
+  abbreviation?: string | null;
   players?: PlayerLike[];
   entitlements?: EntitlementLike[];
   pickRulesById?: Record<string, unknown>;
   capHolds?: unknown[];
+  teamTotalSalary?: number;
+  totalSalary?: number;
+};
+type TeamTradeException = TradeExceptionLike & {
+  id?: string | number;
+  amount?: number | null;
+  remaining?: number | null;
+  name?: string | null;
+  createdFrom?: string | null;
+  isUsed?: boolean;
+  expirationDate?: string | null;
+  expiresOn?: string | null;
 };
 
-type TeamOptionLike = {
-  id?: string | null;
-  teamName?: string | null;
-  teamCode?: string | null;
-};
+const getPlayerKey = (player: PlayerLike) =>
+  player.player_id ?? player.id ?? player.name ?? 'player';
+
+const getPlayerLabel = (player: PlayerLike) =>
+  player.name ?? player.bio?.displayName ?? 'Unnamed player';
+
+const getEntitlementKey = (entitlement: EntitlementLike) =>
+  entitlement.id ??
+  entitlement.entitlementId ??
+  entitlement.identityKey ??
+  `${entitlement.seasonYear ?? 'unknown'}-${entitlement.round ?? 'unknown'}-${
+    entitlement.kind ?? 'unknown'
+  }`;
 
 interface TradeTeamCardProps {
   team?: TeamLike | null;
   sends: PlayerLike[];
   yearKey: string | number;
   otherTeams?: TeamOptionLike[];
-  playersMap?: Record<string, unknown>;
+  playersMap?: OutgoingPlayersListProps['playersMap'];
   incomingPlayers?: PlayerLike[];
   incomingEntitlements?: EntitlementLike[];
-  onSetPlayerTrade?: ((...args: unknown[]) => void) | null;
-  onUndoPlayerTrade?: ((...args: unknown[]) => void) | null;
-  onRequestSignAndTrade?: ((...args: unknown[]) => void) | null;
+  onSetPlayerTrade?: ((
+    player: PlayerLike,
+    action: string,
+    targetTeamId?: string | null,
+    meta?: unknown
+  ) => void) | null;
+  onUndoPlayerTrade?: ((player: PlayerLike) => void) | null;
+  onRequestSignAndTrade?: ((
+    player: PlayerLike,
+    defaultDestinationTeamId?: string | null
+  ) => void) | null;
   onSelectTeam: (teamId: string) => void;
   onRemove?: (() => void) | null;
-  onEditContract?: ((...args: unknown[]) => unknown) | null;
-  validationResult?: Record<string, unknown> | null;
+  onEditContract?: ((player: PlayerLike) => void) | null;
+  validationResult?: ValidationResultLike;
   teamIndex?: number | null;
   isValidating?: boolean;
   entitlementsOut?: EntitlementLike[];
-  onToggleEntitlement?: ((...args: any[]) => void) | null;
-  onSetEntitlementDestination?: ((...args: any[]) => void) | null;
-  onEditEntitlement?: ((...args: any[]) => void) | null;
-  onViewEntitlementDetails?: ((...args: any[]) => void) | null;
-  onCreateEntitlement?: ((...args: any[]) => void) | null;
+  onToggleEntitlement?: ((entitlement: EntitlementLike) => void) | null;
+  onSetEntitlementDestination?: ((
+    entitlementId: string | undefined | null,
+    toTeamId: string | undefined | null
+  ) => void) | null;
+  onEditEntitlement?: ((entitlement: EntitlementLike) => void) | null;
+  onViewEntitlementDetails?: ((entitlement: EntitlementLike) => void) | null;
+  onCreateEntitlement?: ((teamId?: string | null) => void) | null;
   isVacuumMode?: boolean;
-  onRevertEntitlementEdit?: ((...args: any[]) => void) | null;
-  onDeleteSessionEntitlement?: ((...args: any[]) => void) | null;
+  onRevertEntitlementEdit?: ((entitlement: EntitlementLike) => void) | null;
+  onDeleteSessionEntitlement?: ((entitlement: EntitlementLike) => void) | null;
   worldId?: string | null;
   compact?: boolean;
 }
@@ -187,8 +255,28 @@ const TradeTeamCard = ({
     click: () => void;
   } | null>(null);
   const hasTeam = Boolean(team);
+  const selectedTeamId = team?.id ?? team?.teamCode ?? null;
   // Phase 65: Use canonical TPE accessor
-  const teamTradeExceptions: Array<{ isUsed?: boolean; amount?: number; expirationDate?: string; id?: string; [key: string]: unknown }> = getTeamTpeList(team as Record<string, unknown>) || [];
+  const teamTradeExceptions = getTeamTpeList(
+    (team as TeamTpeLike | null) ?? null
+  ) as TeamTradeException[];
+  const activeTradeExceptions = teamTradeExceptions.filter(
+    (tpe) =>
+      !tpe.isUsed &&
+      (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
+  );
+  const capImpactTeam = team
+    ? {
+        id: team.id ?? undefined,
+        teamId: team.teamId ?? undefined,
+        teamTotalSalary:
+          typeof team.teamTotalSalary === 'number'
+            ? team.teamTotalSalary
+            : undefined,
+        totalSalary:
+          typeof team.totalSalary === 'number' ? team.totalSalary : undefined,
+      }
+    : null;
 
   useEffect(() => {
     if (editingTeam && selectRef.current) {
@@ -200,15 +288,6 @@ const TradeTeamCard = ({
       }
     }
   }, [editingTeam]);
-
-  // Filter available players (not in sends)
-  const availablePlayers = useMemo(
-    () =>
-      (team?.players || []).filter(
-        (p) => !sends.some((s) => s.player_id === p.player_id)
-      ),
-    [team?.players, sends]
-  );
 
   // Filter incoming players (not already on team)
   const filteredIncomingPlayers = useMemo(
@@ -227,7 +306,7 @@ const TradeTeamCard = ({
     if (!normalizedYear) return 0;
 
     const totals = computeTeamCapTotals(
-      team as Record<string, unknown>,
+      team as UnknownRecord,
       normalizedYear.endYear
     );
     return totals.totalCapAllocations || 0;
@@ -235,7 +314,7 @@ const TradeTeamCard = ({
 
   // Phase 1: Get snapshot from validator result (golden source of truth)
   // RULE: For legality-affecting numbers, use snapshot values; do NOT recompute locally
-  const snapshot = getTeamSnapshot(team?.id, validationResult as Record<string, unknown>);
+  const snapshot = getTeamSnapshot(selectedTeamId, validationResult);
   const hasValidatorResult = snapshot !== null;
 
   // Phase 1: Outgoing/Incoming salaries come from validator snapshot
@@ -313,7 +392,7 @@ const TradeTeamCard = ({
   }, [yearKey]);
 
   const faBuckets = useMemo(
-    () => getTeamFaExceptionBuckets((team || {}) as Record<string, unknown>),
+    () => getTeamFaExceptionBuckets(team || {}),
     [team]
   );
 
@@ -403,30 +482,72 @@ const TradeTeamCard = ({
         : toSeasonKey(yearKey);
 
     return incomingPlayers.filter((player) => {
-      const playerSalary = getCapHitForSeason(player as Record<string, unknown>, seasonKey) || 0;
+      const playerSalary =
+        getCapHitForSeason(player as UnknownRecord, seasonKey) || 0;
       return (teamTradeExceptions || []).some(
-        (tpe: Record<string, unknown>) =>
-          !tpe.isUsed &&
-          playerSalary <= Number(tpe.amount) &&
-          (!tpe.expirationDate || new Date(String(tpe.expirationDate)) > new Date())
+        (tpe) =>
+          !tpe?.isUsed &&
+          playerSalary <= Number(tpe?.amount ?? 0) &&
+          (!tpe?.expirationDate ||
+            new Date(String(tpe.expirationDate)) > new Date())
       );
     });
   }, [hasTeam, incomingPlayers, teamTradeExceptions, yearKey]);
 
   // Modified player trade handler to support multiple selections
   // Replace the existing handleSetPlayerTrade with:
-  const handleSetPlayerTrade = (player: any, action: string, targetTeamId: string | null, tpe: any) => {
+  const handleSetPlayerTrade = (
+    player: PlayerLike,
+    action: string,
+    targetTeamId: string | null,
+    tpe: unknown
+  ) => {
     if (onSetPlayerTrade) {
       onSetPlayerTrade(player, action, targetTeamId, tpe);
     }
   };
 
   // Modified undo trade handler
-  const handleUndoPlayerTrade = (player: any) => {
+  const handleUndoPlayerTrade = (player: PlayerLike) => {
     if (onUndoPlayerTrade) {
       onUndoPlayerTrade(player);
     }
   };
+
+  const relaySetPlayerTrade: OutgoingPlayersListProps['onSetPlayerTrade'] = (
+    ...args
+  ) => {
+    const [player, action, targetTeamId, tpe] = args as [
+      PlayerLike,
+      string,
+      string | null | undefined,
+      unknown,
+    ];
+    handleSetPlayerTrade(player, action, targetTeamId ?? null, tpe);
+  };
+
+  const relayUndoPlayerTrade: OutgoingPlayersListProps['onUndoPlayerTrade'] = (
+    ...args
+  ) => {
+    const [player] = args as [PlayerLike];
+    handleUndoPlayerTrade(player);
+  };
+
+  const relayRequestSignAndTrade:
+    | OutgoingPlayersListProps['onRequestSignAndTrade']
+    | undefined = onRequestSignAndTrade
+    ? (...args) => {
+        const [player, destinationTeamId] = args as [
+          PlayerLike,
+          string | null | undefined,
+        ];
+        onRequestSignAndTrade(player, destinationTeamId ?? null);
+      }
+    : undefined;
+
+  const relayEditContract = onEditContract
+    ? ((player: ChildPlayerLike) => onEditContract(player as PlayerLike))
+    : undefined;
 
   if (!team) {
     return <SelectTeamCard onSelectTeam={onSelectTeam} onRemove={onRemove} />;
@@ -463,25 +584,7 @@ const TradeTeamCard = ({
       </div>
 
       <CapImpactTiles
-        team={
-          team
-            ? {
-                ...team,
-                id: team.id ?? undefined,
-                teamId: team.teamId ?? undefined,
-                teamTotalSalary:
-                  typeof (team as { teamTotalSalary?: unknown }).teamTotalSalary ===
-                  'number'
-                    ? (team as { teamTotalSalary?: number }).teamTotalSalary
-                    : undefined,
-                totalSalary:
-                  typeof (team as { totalSalary?: unknown }).totalSalary ===
-                  'number'
-                    ? (team as { totalSalary?: number }).totalSalary
-                    : undefined,
-              }
-            : null
-        }
+        team={capImpactTeam}
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
@@ -552,7 +655,7 @@ const TradeTeamCard = ({
               {sends.map((p) => {
                 // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
                 const baseSalary = getSalaryForYear([p], yearKey);
-                const matchingValue = p.matchOutgoing ?? baseSalary;
+                const matchingValue = Number(p.matchOutgoing ?? baseSalary);
                 const hasPlayerAdjustment =
                   Math.abs(matchingValue - baseSalary) > 1;
 
@@ -564,10 +667,10 @@ const TradeTeamCard = ({
 
                 return (
                   <span
-                    key={p.player_id || p.id}
+                    key={String(getPlayerKey(p))}
                     className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                   >
-                    {p.name}
+                    {getPlayerLabel(p)}
                     {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
@@ -590,13 +693,13 @@ const TradeTeamCard = ({
               })}
               {/* Phase 14.2: Show outgoing entitlements instead of picks */}
               {entitlementsOut
-                .filter((e) => e.fromTeamId === team.id || !e.fromTeamId)
+                .filter((e) => e.fromTeamId === selectedTeamId || !e.fromTeamId)
                 .map((e) => (
                   <span
-                    key={e.id || e.entitlementId}
+                    key={String(getEntitlementKey(e))}
                     className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
                   >
-                    {e.seasonYear} R{e.round}{' '}
+                    {e.seasonYear ?? '—'} R{e.round ?? '—'}{' '}
                     {e.kind === 'swap_right' ? 'Swap' : ''}
                   </span>
                 ))}
@@ -665,7 +768,7 @@ const TradeTeamCard = ({
               {incomingPlayers.map((p) => {
                 // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
                 const baseSalary = getSalaryForYear([p], yearKey);
-                const matchingValue = p.matchIncoming ?? baseSalary;
+                const matchingValue = Number(p.matchIncoming ?? baseSalary);
                 const hasPlayerAdjustment =
                   Math.abs(matchingValue - baseSalary) > 1;
 
@@ -677,10 +780,10 @@ const TradeTeamCard = ({
 
                 return (
                   <span
-                    key={p.player_id || p.id}
+                    key={String(getPlayerKey(p))}
                     className="bg-[#2a2a2a] text-white/90 text-[11px] px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1"
                   >
-                    {p.name}
+                    {getPlayerLabel(p)}
                     {/* P1: Player-level adjustment indicator with specific tooltip */}
                     {hasPlayerAdjustment && (
                       <span
@@ -704,10 +807,10 @@ const TradeTeamCard = ({
               {/* Phase 14.2: Show incoming entitlements instead of picks */}
               {incomingEntitlements.map((e) => (
                 <span
-                  key={e.id || e.entitlementId}
+                  key={String(getEntitlementKey(e))}
                   className="bg-[#2a2a2a] text-white/70 text-[11px] px-2 py-0.5 rounded-full border border-white/10"
                 >
-                  {e.seasonYear} R{e.round}{' '}
+                  {e.seasonYear ?? '—'} R{e.round ?? '—'}{' '}
                   {e.kind === 'swap_right' ? 'Swap' : ''}
                 </span>
               ))}
@@ -792,27 +895,17 @@ const TradeTeamCard = ({
             {teamTradeExceptions.length > 0 && (
               <div className="flex gap-2 items-center">
                 <span className="text-white/60">Available TPEs:</span>
-                {teamTradeExceptions
-                  .filter(
-                    (tpe) =>
-                      !tpe.isUsed &&
-                      (!tpe.expirationDate ||
-                        new Date(tpe.expirationDate) > new Date())
-                  )
-                  .map((tpe, idx) => (
-                    <span
-                      key={idx}
-                      className="bg-[#2a2a2a] text-white/80 px-2 py-0.5 rounded-full border border-white/10"
-                    >
-                      {formatMillions(tpe.amount, 1)}
-                    </span>
-                  ))}
-                {teamTradeExceptions.filter(
-                  (tpe) =>
-                    !tpe.isUsed &&
-                    (!tpe.expirationDate ||
-                      new Date(tpe.expirationDate) > new Date())
-                ).length === 0 && <span className="text-white/40">None</span>}
+                {activeTradeExceptions.map((tpe) => (
+                  <span
+                    key={String(tpe.id ?? getEntitlementKey(tpe as never))}
+                    className="bg-[#2a2a2a] text-white/80 px-2 py-0.5 rounded-full border border-white/10"
+                  >
+                    {formatMillions(Number(tpe.amount ?? 0), 1)}
+                  </span>
+                ))}
+                {activeTradeExceptions.length === 0 && (
+                  <span className="text-white/40">None</span>
+                )}
               </div>
             )}
           </div>
@@ -853,44 +946,27 @@ const TradeTeamCard = ({
           onClick={() => setActiveTab('exceptions')}
         >
           {compact
-            ? `Exc (${
-                teamTradeExceptions.filter(
-                  (tpe) =>
-                    !tpe.isUsed &&
-                    (!tpe.expirationDate ||
-                      new Date(tpe.expirationDate) > new Date())
-                ).length
-              })`
-            : `Exceptions (${
-                teamTradeExceptions.filter(
-                  (tpe) =>
-                    !tpe.isUsed &&
-                    (!tpe.expirationDate ||
-                      new Date(tpe.expirationDate) > new Date())
-                ).length
-              })`}
+            ? `Exc (${activeTradeExceptions.length})`
+            : `Exceptions (${activeTradeExceptions.length})`}
         </button>
       </div>
 
       {activeTab === 'players' && (
         <OutgoingPlayersList
-          {...({
-            team,
-            players: availablePlayers,
-            sends,
-            incomingPlayers: filteredIncomingPlayers,
-            yearKey,
-            worldId,
-            otherTeams,
-            playersMap,
-            sourceTeamId: team?.teamCode || team?.id || null,
-            sourceTeamCapHolds: team?.capHolds || [],
-            onSetPlayerTrade: handleSetPlayerTrade,
-            onRequestSignAndTrade,
-            onUndoPlayerTrade: handleUndoPlayerTrade,
-            onEditContract,
-            compact,
-          } as any)}
+          team={team}
+          sends={sends}
+          incomingPlayers={filteredIncomingPlayers}
+          yearKey={yearKey}
+          worldId={worldId}
+          otherTeams={otherTeams}
+          playersMap={playersMap}
+          sourceTeamId={team?.teamCode || team?.id || null}
+          sourceTeamCapHolds={team?.capHolds || []}
+          onSetPlayerTrade={relaySetPlayerTrade}
+          onRequestSignAndTrade={relayRequestSignAndTrade}
+          onUndoPlayerTrade={relayUndoPlayerTrade}
+          onEditContract={relayEditContract}
+          compact={compact}
         />
       )}
 
@@ -901,7 +977,11 @@ const TradeTeamCard = ({
           teamId={team.id || team.teamCode || ''}
           showPooled={false}
           // Phase 11.1: Pass toggle handler and selected entitlement IDs
-          onToggleEntitlement={onToggleEntitlement || undefined}
+          onToggleEntitlement={
+            onToggleEntitlement
+              ? (entitlement) => onToggleEntitlement(entitlement as EntitlementLike)
+              : undefined
+          }
           selectedEntitlementIds={(entitlementsOut || []).map(
             (e) => e.entitlementId || e.id
           ).filter(
@@ -919,15 +999,42 @@ const TradeTeamCard = ({
             teamCode: otherTeam.teamCode ?? undefined,
           }))}
           entitlementsOut={entitlementsOut}
-          onSetDestination={onSetEntitlementDestination || undefined}
-          onEditEntitlement={onEditEntitlement || undefined}
-          onViewDetails={onViewEntitlementDetails || undefined}
+          onSetDestination={
+            onSetEntitlementDestination
+              ? (entitlementId, toTeamId) =>
+                  onSetEntitlementDestination(
+                    entitlementId == null ? null : String(entitlementId),
+                    toTeamId == null ? null : String(toTeamId)
+                  )
+              : undefined
+          }
+          onEditEntitlement={
+            onEditEntitlement
+              ? (entitlement) => onEditEntitlement(entitlement as EntitlementLike)
+              : undefined
+          }
+          onViewDetails={
+            onViewEntitlementDetails
+              ? (entitlement) =>
+                  onViewEntitlementDetails(entitlement as EntitlementLike)
+              : undefined
+          }
           onCreateEntitlement={
             onCreateEntitlement ? () => onCreateEntitlement(team.id) : undefined
           }
           isVacuumMode={isVacuumMode}
-          onRevertEntitlementEdit={onRevertEntitlementEdit || undefined}
-          onDeleteSessionEntitlement={onDeleteSessionEntitlement || undefined}
+          onRevertEntitlementEdit={
+            onRevertEntitlementEdit
+              ? (entitlement) =>
+                  onRevertEntitlementEdit(entitlement as EntitlementLike)
+              : undefined
+          }
+          onDeleteSessionEntitlement={
+            onDeleteSessionEntitlement
+              ? (entitlement) =>
+                  onDeleteSessionEntitlement(entitlement as EntitlementLike)
+              : undefined
+          }
           compact={compact}
         />
       )}
@@ -962,15 +1069,15 @@ const TradeTeamCard = ({
 
               return (
                 <div
-                  key={p.player_id || p.id}
+                  key={String(getPlayerKey(p))}
                   className="mb-1 flex items-center gap-2"
                 >
-                  <span>• {p.name}</span>
+                  <span>• {getPlayerLabel(p)}</span>
                   {validationFlags.faExceptionTrade !== 'off' && (
                     <>
                       <select
                         className="bg-[#333] text-xs rounded px-1"
-                        value={effectiveMode}
+                        value={String(effectiveMode)}
                         onChange={(e) =>
                           onSetPlayerTrade &&
                           onSetPlayerTrade(
@@ -988,7 +1095,7 @@ const TradeTeamCard = ({
                       {effectiveMode === 'TPE' && (
                         <select
                           className="bg-[#333] text-xs rounded px-1"
-                          value={p.tpeId || ''}
+                          value={p.tpeId == null ? '' : String(p.tpeId)}
                           onChange={(e) =>
                             onSetPlayerTrade &&
                             onSetPlayerTrade(p, 'setTpeId', e.target.value)
@@ -1003,17 +1110,21 @@ const TradeTeamCard = ({
                                   new Date(tpe.expirationDate) > new Date())
                             )
                             .map((tpe) => {
-                              const amount = formatMillions(tpe.amount ?? 0, 1);
+                              const amount = formatMillions(
+                                Number(tpe.amount ?? 0),
+                                1
+                              );
                               const tpeName = tpe.name || tpe.createdFrom;
                               const playerSalary = getSalaryForYear(
                                 [p],
                                 yearKey
                               );
-                              const fits = (tpe.amount ?? 0) >= playerSalary;
+                              const fits =
+                                Number(tpe.amount ?? 0) >= playerSalary;
                               return (
                                 <option
-                                  key={tpe.id}
-                                  value={tpe.id}
+                                  key={String(tpe.id ?? amount)}
+                                  value={String(tpe.id ?? '')}
                                   disabled={!fits}
                                 >
                                   {amount}
@@ -1027,7 +1138,7 @@ const TradeTeamCard = ({
                       {effectiveMode === 'FA_EXCEPTION' && (
                         <select
                           className="bg-[#333] text-xs rounded px-1"
-                          value={p.bucketType || ''}
+                          value={String(p.bucketType ?? '')}
                           onChange={(e) =>
                             onSetPlayerTrade &&
                             onSetPlayerTrade(p, 'setFaBucket', e.target.value)
@@ -1051,8 +1162,8 @@ const TradeTeamCard = ({
             })}
             {/* Phase 14.2: Show incoming entitlements instead of picks */}
             {incomingEntitlements.map((e) => (
-              <div key={e.id || e.entitlementId}>
-                • {e.seasonYear} R{e.round}{' '}
+              <div key={String(getEntitlementKey(e))}>
+                • {e.seasonYear ?? '—'} R{e.round ?? '—'}{' '}
                 {e.kind === 'swap_right' ? 'Swap Right' : 'Pick'}
               </div>
             ))}

@@ -8,6 +8,7 @@ import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSh
 const firestoreMocks = vi.hoisted(() => ({
   batchSet: vi.fn(),
   batchUpdate: vi.fn(),
+  batchDelete: vi.fn(),
   batchCommit: vi.fn(async (): Promise<any> => undefined),
   getDoc: vi.fn(async (): Promise<any> => ({ exists: () => false, data: () => ({}) })),
 }));
@@ -27,6 +28,7 @@ vi.mock('firebase/firestore', () => ({
   writeBatch: vi.fn(() => ({
     set: firestoreMocks.batchSet,
     update: firestoreMocks.batchUpdate,
+    delete: firestoreMocks.batchDelete,
     commit: firestoreMocks.batchCommit,
   })),
   getDoc: firestoreMocks.getDoc,

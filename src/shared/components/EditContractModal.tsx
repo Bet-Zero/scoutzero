@@ -34,6 +34,8 @@ import {
 import useCapValidation, {
   buildSigningGuardrails,
 } from '@/features/architect/hooks/useCapValidation';
+import type { ArchitectMutationResult } from '@/features/architect/utils/mutationPipeline';
+import type { PlayerRulesProfileLeagueContext } from '@/features/architect/types';
 import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
@@ -115,7 +117,7 @@ type PlayerLike = HookPlayerLike & {
   freeAgentYear?: number | null;
 };
 
-type SigningGuardrailsLike = ReturnType<typeof buildSigningGuardrails> | null;
+type SigningGuardrailsLike = HookContractDataLike['guardrails'] | null;
 type CapHoldLike = Partial<CapHoldItem> & {
   active?: boolean | null;
   reason?: string | null;
@@ -133,7 +135,7 @@ type ExtensionStateLike = {
   raisePct?: number;
 };
 
-type PlayerRulesProfileLike = Parameters<typeof buildSigningGuardrails>[0];
+type PlayerRulesProfileLike = UseCapValidationParams['rulesProfile'];
 
 /** Narrowed state for extension max terms (replaces LooseRecord for extMax state) */
 type ExtMaxState = {
@@ -146,10 +148,10 @@ type ExtMaxState = {
   notes?: string | null;
 };
 
-type RulesLeagueContextLike = {
-  simulationDate?: Date | null;
-  currentYear?: number | null;
-} | null;
+type RulesLeagueContextLike = Pick<
+  PlayerRulesProfileLeagueContext,
+  'simulationDate' | 'currentYear'
+> | null;
 
 type TeamCapSheetLike = HookTeamCapSheetLike & {
   teamCode?: string | null;
@@ -173,20 +175,15 @@ type AuditLogEntryLike = {
   playerName?: string | null;
 };
 
-type MutationWritesSummaryLike = {
-  eventsWritten?: number;
-  worldMetadataPatched?: number;
-  teamsPatched?: number;
-  playersPatched?: number;
-  entitlementsPatched?: number;
-};
+type MutationWritesSummaryLike = Partial<
+  NonNullable<ArchitectMutationResult['writesSummary']>
+>;
 
-type ContractActionResultLike = {
-  success?: boolean;
+type ContractActionResultLike = Pick<
+  ArchitectMutationResult,
+  'success' | 'error' | 'appliedToLocalState' | 'persistedToWorld'
+> & {
   message?: string | null;
-  error?: string | null;
-  appliedToLocalState?: boolean;
-  persistedToWorld?: boolean;
   writesSummary?: MutationWritesSummaryLike | null;
 };
 
@@ -380,16 +377,16 @@ export const normalizeContractActionResult = (
   result: ActionResultLike
 ): NormalizedContractActionResult => {
   if (result && typeof result === 'object' && 'success' in result) {
-    const writesSummary = result.writesSummary || {};
+    const writesSummary = result.writesSummary;
     const hasPersistSummary =
-      writesSummary.eventsWritten !== undefined ||
-      writesSummary.worldMetadataPatched !== undefined ||
-      writesSummary.teamsPatched !== undefined;
+      writesSummary?.eventsWritten !== undefined ||
+      writesSummary?.worldMetadataPatched !== undefined ||
+      writesSummary?.teamsPatched !== undefined;
     const hasPersistedWrites =
       !hasPersistSummary ||
-      (Number(writesSummary.eventsWritten ?? 1) > 0 &&
-        Number(writesSummary.worldMetadataPatched ?? 1) > 0 &&
-        Number(writesSummary.teamsPatched ?? 1) > 0);
+      (Number(writesSummary?.eventsWritten ?? 1) > 0 &&
+        Number(writesSummary?.worldMetadataPatched ?? 1) > 0 &&
+        Number(writesSummary?.teamsPatched ?? 1) > 0);
     const success =
       result.success === true &&
       result.appliedToLocalState !== false &&
@@ -397,10 +394,11 @@ export const normalizeContractActionResult = (
       hasPersistedWrites;
     return {
       success,
-      message:
+      message: String(
         result.message ||
-        result.error ||
-        (success ? '' : 'Action did not complete required save writes.'),
+          result.error ||
+          (success ? '' : 'Action did not complete required save writes.')
+      ),
     };
   }
   if (result === false) {
