@@ -304,18 +304,18 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('removes offer sheet from home team incomingOfferSheets', () => {
     const removesFromHome =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,2000}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}filter/.test(
+      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,2500}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
         content
       );
     expect(removesFromHome).toBe(true);
   });
 
-  it('applies contract to player on home team', () => {
-    const appliesContract =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,3500}updatedPlayer\.contract\s*=/.test(
+  it('normalizes the matched contract before applying it', () => {
+    const normalizesContract =
+      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,3500}buildNormalizedOfferSheetFinalContract/.test(
         content
       );
-    expect(appliesContract).toBe(true);
+    expect(normalizesContract).toBe(true);
   });
 
   it('calls computeTeamCapTotals for home team', () => {
@@ -328,10 +328,18 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('cleans up offer sheet from offering team', () => {
     const cleansUpOffering =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,5500}updatedOfferingTeam\.offerSheets\s*=[\s\S]{0,200}filter/.test(
+      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,5500}updatedOfferingTeam\.offerSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
         content
       );
     expect(cleansUpOffering).toBe(true);
+  });
+
+  it('builds canonical replace manifest with no delete path', () => {
+    const usesReplaceManifest =
+      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,6500}buildCanonicalPlayerPersistenceManifest[\s\S]{0,400}mode:\s*['"]replace['"]/.test(
+        content
+      );
+    expect(usesReplaceManifest).toBe(true);
   });
 });
 
@@ -376,6 +384,22 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
         content
       );
     expect(recomputesHomeTotals).toBe(true);
+  });
+
+  it('derives destination player from canonical home snapshot plus normalized contract', () => {
+    const derivesFromSourceSnapshot =
+      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,3000}const sourcePlayer = findPlayerInTeamPlayers\(homeTeam,\s*playerId\)[\s\S]{0,2200}buildNormalizedOfferSheetFinalContract[\s\S]{0,1600}const updatedPlayer = \{\s*\.\.\.sourcePlayer/.test(
+        content
+      );
+    expect(derivesFromSourceSnapshot).toBe(true);
+  });
+
+  it('builds canonical move manifest with explicit delete path', () => {
+    const usesMoveManifest =
+      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,8500}buildCanonicalPlayerPersistenceManifest[\s\S]{0,500}mode:\s*['"]move['"]/.test(
+        content
+      );
+    expect(usesMoveManifest).toBe(true);
   });
 });
 
@@ -487,13 +511,15 @@ describe('Gate 11: Current team sync reads changedTeams (E1)', () => {
 
   it('finds current team update by teamCode', () => {
     const findsCurrentTeam =
-      /changedTeams\.find[\s\S]{0,200}teamCode\s*===\s*teamCode/.test(content);
+      /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/.test(
+        content
+      );
     expect(findsCurrentTeam).toBe(true);
   });
 
   it('calls setTeamCapSheet with current team data', () => {
     const callsSetTeamCapSheet =
-      /setTeamCapSheet\s*\(\s*currentTeamUpdate\.team/.test(content);
+      /setTeamCapSheetSafe\s*\(\s*currentTeam\s*\)/.test(content);
     expect(callsSetTeamCapSheet).toBe(true);
   });
 });

@@ -2171,8 +2171,14 @@ async function loadStateForMutation(
     case 'declineOfferSheet':
     case 'finalizeMatchedOfferSheet':
     case 'finalizeDeclinedOfferSheet': {
-      // Load home team (actor) and offering team (target)
-      const homeTeamCode = payload.teamCode as string | null | undefined;
+      // Match / decline / finalizeMatched are home-team actions.
+      // finalizeDeclined is an offering-team action and must load the explicit homeTeamCode.
+      const homeTeamCode =
+        mutationType === 'finalizeDeclinedOfferSheet'
+          ? ((payload.homeTeamCode as string | null | undefined) ||
+            (payload.teamCode as string | null | undefined))
+          : ((payload.teamCode as string | null | undefined) ||
+            (payload.homeTeamCode as string | null | undefined));
       const offeringTeamCode = payload.offeringTeamCode as string | null | undefined;
       const offerSheetId = payload.offerSheetId as string | null | undefined;
 
@@ -2366,6 +2372,261 @@ type TradePlayerMoveCandidate = {
   destinationTeamCode: string;
 };
 
+type CanonicalPlayerPersistenceMode = 'replace' | 'move';
+
+type CanonicalPlayerPersistenceCandidate = {
+  playerId: string;
+  destinationTeamCode: string;
+  sourceTeamCode?: string;
+  mode: CanonicalPlayerPersistenceMode;
+};
+
+function buildCanonicalPlayerPersistenceManifest({
+  teamUpdates,
+  candidates,
+  manifestLabel,
+}: {
+  teamUpdates: ArchitectMutationTeamUpdate[];
+  candidates: CanonicalPlayerPersistenceCandidate[];
+  manifestLabel: string;
+}):
+  | {
+      success: true;
+      playerUpdates: PlayerUpdateLike[];
+      playerDeletes: PlayerDeleteLike[];
+    }
+  | { success: false; error: string } {
+  const destinationTeamsByCode = new Map<string, TeamLike | null>(
+    teamUpdates.map((update) => [
+      String(update.teamCode || '').trim(),
+      (update.team || null) as TeamLike | null,
+    ])
+  );
+  const uniqueCandidates = new Map<string, CanonicalPlayerPersistenceCandidate>();
+
+  for (const candidate of candidates) {
+    const playerId = String(candidate?.playerId || '').trim();
+    const destinationTeamCode = String(candidate?.destinationTeamCode || '').trim();
+    const sourceTeamCode = String(candidate?.sourceTeamCode || '').trim();
+    const mode = candidate?.mode;
+
+    if (!playerId) {
+      return {
+        success: false,
+        error: `${manifestLabel} requires every candidate to have a stable playerId.`,
+      };
+    }
+
+    if (!destinationTeamCode) {
+      return {
+        success: false,
+        error: `${manifestLabel} could not conclusively resolve destination team for player ${playerId}.`,
+      };
+    }
+
+    if (mode !== 'replace' && mode !== 'move') {
+      return {
+        success: false,
+        error: `${manifestLabel} received an unsupported persistence mode for player ${playerId}.`,
+      };
+    }
+
+    if (mode === 'replace' && sourceTeamCode && sourceTeamCode !== destinationTeamCode) {
+      return {
+        success: false,
+        error: `${manifestLabel} received conflicting replace candidate teams for player ${playerId}.`,
+      };
+    }
+
+    if (mode === 'move' && !sourceTeamCode) {
+      return {
+        success: false,
+        error: `${manifestLabel} requires a source team for moved player ${playerId}.`,
+      };
+    }
+
+    const normalizedCandidate: CanonicalPlayerPersistenceCandidate = {
+      playerId,
+      destinationTeamCode,
+      sourceTeamCode: sourceTeamCode || undefined,
+      mode,
+    };
+
+    const existing = uniqueCandidates.get(playerId);
+    if (
+      existing &&
+      (existing.destinationTeamCode !== normalizedCandidate.destinationTeamCode ||
+        existing.sourceTeamCode !== normalizedCandidate.sourceTeamCode ||
+        existing.mode !== normalizedCandidate.mode)
+    ) {
+      return {
+        success: false,
+        error: `${manifestLabel} resolved conflicting persistence candidates for player ${playerId}.`,
+      };
+    }
+
+    if (!existing) {
+      uniqueCandidates.set(playerId, normalizedCandidate);
+    }
+  }
+
+  const playerUpdates: PlayerUpdateLike[] = [];
+  const playerDeletes: PlayerDeleteLike[] = [];
+
+  for (const candidate of uniqueCandidates.values()) {
+    const destinationTeam = destinationTeamsByCode.get(
+      candidate.destinationTeamCode
+    );
+    if (!destinationTeam) {
+      return {
+        success: false,
+        error: `${manifestLabel} could not find final destination team ${candidate.destinationTeamCode} for player ${candidate.playerId}.`,
+      };
+    }
+
+    const finalPlayer = findPlayerInTeamPlayers(destinationTeam, candidate.playerId);
+    if (!finalPlayer) {
+      return {
+        success: false,
+        error: `${manifestLabel} could not find final destination snapshot player ${candidate.playerId} on ${candidate.destinationTeamCode}.`,
+      };
+    }
+
+    if (normalizeTradeTeamCodeLike(finalPlayer.teamCode) !== candidate.destinationTeamCode) {
+      return {
+        success: false,
+        error: `${manifestLabel} found mismatched teamCode for player ${candidate.playerId} on destination ${candidate.destinationTeamCode}.`,
+      };
+    }
+
+    playerUpdates.push({
+      playerId: candidate.playerId,
+      player: toPersistablePlayerOverrideFromSnapshot(finalPlayer),
+    });
+
+    if (
+      candidate.mode === 'move' &&
+      candidate.sourceTeamCode &&
+      candidate.sourceTeamCode !== candidate.destinationTeamCode
+    ) {
+      playerDeletes.push({
+        playerId: candidate.playerId,
+        teamCode: candidate.sourceTeamCode,
+      });
+    }
+  }
+
+  return {
+    success: true,
+    playerUpdates,
+    playerDeletes,
+  };
+}
+
+function matchesOfferSheetIdentity(
+  offerSheet: LooseRecord | null | undefined,
+  offerSheetId: string,
+  dedupKey?: string | null
+) {
+  if (!offerSheet) {
+    return false;
+  }
+
+  const normalizedDedupKey = String(dedupKey || '').trim();
+  return (
+    String(offerSheet.id || '') === offerSheetId ||
+    (normalizedDedupKey.length > 0 &&
+      String(offerSheet.dedupKey || '') === normalizedDedupKey)
+  );
+}
+
+function removeOfferSheetEntries(
+  entries: unknown,
+  offerSheetId: string,
+  dedupKey?: string | null
+) {
+  const normalizedOfferSheetId = String(offerSheetId || '').trim();
+  const normalizedDedupKey = String(dedupKey || '').trim();
+
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  return entries.filter((entry) => {
+    const offerSheet = (entry || {}) as LooseRecord;
+    const entryId = String(offerSheet.id || '').trim();
+    const entryDedupKey = String(offerSheet.dedupKey || '').trim();
+
+    if (normalizedOfferSheetId && entryId === normalizedOfferSheetId) {
+      return false;
+    }
+
+    if (normalizedDedupKey && entryDedupKey === normalizedDedupKey) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function buildNormalizedOfferSheetFinalContract({
+  offerSheet,
+  signingTeam,
+  signedUsing,
+  timestamp,
+}: {
+  offerSheet: LooseRecord;
+  signingTeam: string;
+  signedUsing: string;
+  timestamp: number;
+}) {
+  const salariesByYear = (
+    (offerSheet.salariesByYear as LooseRecord[] | undefined) || []
+  ).map(normalizeSalaryRow);
+  const contractYearsCandidate =
+    Number(offerSheet.contractYears) ||
+    Number(offerSheet.contractLength) ||
+    Number(offerSheet.years) ||
+    salariesByYear.length;
+
+  if (
+    salariesByYear.length === 0 ||
+    !Number.isFinite(contractYearsCandidate) ||
+    contractYearsCandidate <= 0
+  ) {
+    return null;
+  }
+
+  const computedTotalValue = salariesByYear.reduce(
+    (sum, row) => sum + (Number(row.salary ?? row.capHit) || 0),
+    0
+  );
+  const explicitTotalValue = Number(offerSheet.totalValue);
+  const totalValue =
+    Number.isFinite(explicitTotalValue) && explicitTotalValue > 0
+      ? explicitTotalValue
+      : computedTotalValue > 0
+        ? computedTotalValue
+        : undefined;
+
+  const normalizedContract = normalizeContractForWorld({
+    contractType: 'Standard',
+    signedUsing,
+    signingTeam,
+    signingDate: new Date(timestamp).toISOString(),
+    contractLength: contractYearsCandidate,
+    years: contractYearsCandidate,
+    totalValue,
+    salariesByYear,
+    freeAgency: undefined,
+    rfaOfferSheet: undefined,
+    rfaOfferSheetOnly: undefined,
+    rfaOfferSheetStatus: undefined,
+  });
+
+  return removeUndefinedDeep(normalizedContract) as ArchitectMutationContract;
+}
+
 function buildTradePlayerPersistenceManifest({
   payload,
   currentState,
@@ -2461,54 +2722,14 @@ function buildTradePlayerPersistenceManifest({
     }
   }
 
-  const destinationTeamsByCode = new Map<string, TeamLike | null>(
-    teamUpdates.map((update) => [
-      String(update.teamCode || ''),
-      (update.team || null) as TeamLike | null,
-    ])
-  );
-  const playerUpdates: PlayerUpdateLike[] = [];
-  const playerDeletes: PlayerDeleteLike[] = [];
-
-  for (const move of moveCandidates.values()) {
-    const destinationTeam = destinationTeamsByCode.get(move.destinationTeamCode);
-    if (!destinationTeam) {
-      return {
-        success: false,
-        error: `Trade player persistence manifest could not find final destination team ${move.destinationTeamCode} for player ${move.playerId}.`,
-      };
-    }
-
-    const finalPlayer = findPlayerInTeamPlayers(destinationTeam, move.playerId);
-    if (!finalPlayer) {
-      return {
-        success: false,
-        error: `Trade player persistence manifest could not find final destination snapshot player ${move.playerId} on ${move.destinationTeamCode}.`,
-      };
-    }
-
-    if (normalizeTradeTeamCodeLike(finalPlayer.teamCode) !== move.destinationTeamCode) {
-      return {
-        success: false,
-        error: `Trade player persistence manifest found mismatched teamCode for player ${move.playerId} on destination ${move.destinationTeamCode}.`,
-      };
-    }
-
-    playerUpdates.push({
-      playerId: move.playerId,
-      player: toPersistablePlayerOverrideFromSnapshot(finalPlayer),
-    });
-    playerDeletes.push({
-      playerId: move.playerId,
-      teamCode: move.sourceTeamCode,
-    });
-  }
-
-  return {
-    success: true,
-    playerUpdates,
-    playerDeletes,
-  };
+  return buildCanonicalPlayerPersistenceManifest({
+    teamUpdates,
+    candidates: Array.from(moveCandidates.values()).map((move) => ({
+      ...move,
+      mode: 'move' as const,
+    })),
+    manifestLabel: 'Trade player persistence manifest',
+  });
 }
 
 // ==============================================================================
@@ -4518,7 +4739,7 @@ async function persistWorldMutation({
       }
     }
 
-    // 2.25 Delete superseded player overrides (trade/SAT source-team cleanup only)
+    // 2.25 Delete superseded player overrides for canonical move flows
     for (const { playerId, teamCode } of playerDeletes) {
       const normalizedPlayerId = String(playerId || '').trim();
       const normalizedTeamCode = String(teamCode || '').trim();
@@ -4992,15 +5213,13 @@ function computeFinalizeMatchedOfferSheetResult({
   seasonId,
   timestamp,
 }: ComputeMutationParams): ComputeResultLike {
-  const { homeTeam, offeringTeam, offerSheetId } = currentState; // Loaded by loadStateForMutation
-  const { teamCode } = payload; // Should be homeTeamCode
-
-  // 1. Find the offer sheet (on home team)
+  const { homeTeam, offeringTeam, offerSheetId } = currentState;
   const incomingOfferSheets = homeTeam.incomingOfferSheets || [];
-  const offerSheet = incomingOfferSheets.find((os: any) => os.id === offerSheetId);
+  const requestedDedupKey = payload.dedupKey as string | null | undefined;
+  const offerSheet = incomingOfferSheets.find((os: any) =>
+    matchesOfferSheetIdentity(os as LooseRecord, offerSheetId || '', requestedDedupKey)
+  ) as LooseRecord | undefined;
 
-  // Validation happens in validateMutation via validateOfferSheetResolution,
-  // but we can do a sanity check here or let it fail if missing.
   if (!offerSheet) {
     return {
       success: false,
@@ -5008,19 +5227,22 @@ function computeFinalizeMatchedOfferSheetResult({
     };
   }
 
-  // 2. Prepare Home Team Update
-  const updatedHomeTeam = { ...homeTeam };
+  if (offerSheet.status !== 'MATCHED') {
+    return {
+      success: false,
+      error: `Offer sheet status is ${offerSheet.status}, expected MATCHED.`,
+    };
+  }
 
-  // 2a. Remove from incomingOfferSheets
-  updatedHomeTeam.incomingOfferSheets = incomingOfferSheets.filter(
-    (os: any) => os.id !== offerSheetId
-  );
+  const playerId = String(offerSheet.playerId || '').trim();
+  if (!playerId) {
+    return {
+      success: false,
+      error: `Offer sheet ${offerSheetId} is missing playerId.`,
+    };
+  }
 
-  // 2b. Apply contract to player
-  // We need to find the player on the home team roster/players list.
-  // The offer sheet has playerId.
-  const playerId = offerSheet.playerId;
-  const playerIndex = (updatedHomeTeam.players || []).findIndex(
+  const playerIndex = (homeTeam.players || []).findIndex(
     (p: any) => (p.player_id || p.id) === playerId
   );
 
@@ -5031,54 +5253,92 @@ function computeFinalizeMatchedOfferSheetResult({
     };
   }
 
-  // Clone the player to update contract
-  const updatedPlayer = { ...updatedHomeTeam.players[playerIndex] };
+  const normalizedContract = buildNormalizedOfferSheetFinalContract({
+    offerSheet,
+    signingTeam: homeTeam.teamCode || '',
+    signedUsing: 'Match',
+    timestamp,
+  });
+  if (!normalizedContract) {
+    return {
+      success: false,
+      error: `Offer sheet ${offerSheetId} could not be normalized for matched finalization.`,
+    };
+  }
 
-  // Construct new contract from offer sheet
-  // Offer sheet structure: salariesByYear: [{ season, salary, capHit, guaranteed }]
-  // We need to convert this to the standard contract format.
-  const newContract = {
-    contractType: 'Standard', // Offer sheets are standard contracts
-    signedUsing: 'Match', // Or "Matched Offer Sheet"
-    signingTeam: teamCode,
-    contractLength: offerSheet.contractYears,
-    salariesByYear: ((offerSheet.salariesByYear as LooseRecord[] | undefined) || []).map((s: LooseRecord) => ({
-      season: s.season,
-      salary: s.salary,
-      capHit: s.capHit,
-      guaranteed: s.guaranteed,
-    })),
+  const updatedPlayer = {
+    ...homeTeam.players[playerIndex],
+    teamCode: homeTeam.teamCode,
+    teamName: homeTeam.teamName,
+    contract: normalizedContract,
   };
+  delete (updatedPlayer as LooseRecord).rfaOfferSheet;
+  delete (updatedPlayer as LooseRecord).rfaOfferSheetOnly;
+  delete (updatedPlayer as LooseRecord).rfaContext;
 
-  updatedPlayer.contract = newContract;
-
-  // Update player in team array
+  const resolvedDedupKey = String(offerSheet.dedupKey || requestedDedupKey || '').trim();
+  const updatedHomeTeam = { ...homeTeam };
+  updatedHomeTeam.incomingOfferSheets = removeOfferSheetEntries(
+    incomingOfferSheets,
+    offerSheetId || '',
+    resolvedDedupKey
+  );
   updatedHomeTeam.players = [
     ...updatedHomeTeam.players.slice(0, playerIndex),
     updatedPlayer,
     ...updatedHomeTeam.players.slice(playerIndex + 1),
   ];
+  if (Array.isArray(updatedHomeTeam.capHolds)) {
+    updatedHomeTeam.capHolds = updatedHomeTeam.capHolds.filter(
+      (hold) => String(hold?.playerId || '').trim() !== playerId
+    );
+  }
+  updatedHomeTeam.source = {
+    ...(updatedHomeTeam.source as unknown as LooseRecord | null | undefined),
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
 
-  // Recalculate totals
-  updatedHomeTeam.totals = computeTeamCapTotals(
-    updatedHomeTeam,
-    toEndYear(seasonId)
-  );
-
-  // 3. Prepare Offering Team Update
   const updatedOfferingTeam = { ...offeringTeam };
+  updatedOfferingTeam.offerSheets = removeOfferSheetEntries(
+    updatedOfferingTeam.offerSheets || [],
+    offerSheetId || '',
+    resolvedDedupKey
+  );
+  updatedOfferingTeam.source = {
+    ...(updatedOfferingTeam.source as unknown as LooseRecord | null | undefined),
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
 
-  // 3a. Remove from offerSheets (outgoing)
-  updatedOfferingTeam.offerSheets = (
-    updatedOfferingTeam.offerSheets || []
-  ).filter((os: any) => os.id !== offerSheetId);
+  const teamUpdates = [
+    { teamCode: homeTeam.teamCode, team: updatedHomeTeam },
+    { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },
+  ];
+  const persistenceManifest = buildCanonicalPlayerPersistenceManifest({
+    teamUpdates,
+    candidates: [
+      {
+        playerId,
+        destinationTeamCode: String(homeTeam.teamCode || '').trim(),
+        mode: 'replace',
+      },
+    ],
+    manifestLabel: 'Offer sheet matched persistence manifest',
+  });
+  if ('error' in persistenceManifest) {
+    return {
+      success: false,
+      error: persistenceManifest.error,
+    };
+  }
 
   return {
     success: true,
-    teamUpdates: [
-      { teamCode: homeTeam.teamCode, team: updatedHomeTeam },
-      { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },
-    ],
+    teamUpdates,
+    playerUpdates: persistenceManifest.playerUpdates,
+    playerDeletes: persistenceManifest.playerDeletes,
     metadata: {
       type: 'finalizeMatchedOfferSheet',
       offerSheetId,
@@ -5088,14 +5348,7 @@ function computeFinalizeMatchedOfferSheetResult({
       teamCode: homeTeam.teamCode,
       playerName: updatedPlayer.displayName || updatedPlayer.name,
       signedUsing: 'Match',
-      contract: {
-        years: offerSheet.contractYears,
-        firstYearSalary:
-          Number(offerSheet.salariesByYear?.[0]?.salary) ||
-          Number(offerSheet.salariesByYear?.[0]?.capHit) ||
-          undefined,
-        salariesByYear: offerSheet.salariesByYear || [],
-      },
+      contract: normalizedContract,
       timestamp,
     },
   };
@@ -5116,15 +5369,13 @@ function computeFinalizeDeclinedOfferSheetResult({
   timestamp,
 }: ComputeMutationParams): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = currentState;
-  const { teamCode, dedupKey } = payload; // Phase 18.2: Accept dedupKey for dual lookup
+  const dedupKey = payload.dedupKey as string | null | undefined;
 
   // 1. Find the offer sheet (on offering team)
-  // Phase 18.2: Find by id first, then by dedupKey
   const offerSheets = offeringTeam.offerSheets || [];
-  let offerSheet = offerSheets.find((os: any) => os.id === offerSheetId);
-  if (!offerSheet && dedupKey) {
-    offerSheet = offerSheets.find((os: any) => os.dedupKey === dedupKey);
-  }
+  const offerSheet = offerSheets.find((os: any) =>
+    matchesOfferSheetIdentity(os as LooseRecord, offerSheetId || '', dedupKey)
+  ) as LooseRecord | undefined;
 
   if (!offerSheet) {
     return {
@@ -5140,127 +5391,131 @@ function computeFinalizeDeclinedOfferSheetResult({
     };
   }
 
-  // 2. Prepare Offering Team Update
+  const playerId = String(offerSheet.playerId || '').trim();
+  if (!playerId) {
+    return {
+      success: false,
+      error: `Offer sheet ${offerSheetId} is missing playerId.`,
+    };
+  }
+
+  const sourcePlayer = findPlayerInTeamPlayers(homeTeam, playerId);
+  if (!sourcePlayer) {
+    return {
+      success: false,
+      error: `Player ${playerId} not found on home team roster for declined finalization.`,
+    };
+  }
+
+  const normalizedContract = buildNormalizedOfferSheetFinalContract({
+    offerSheet,
+    signingTeam: offeringTeam.teamCode || '',
+    signedUsing: 'Offer Sheet',
+    timestamp,
+  });
+  if (!normalizedContract) {
+    return {
+      success: false,
+      error: `Offer sheet ${offerSheetId} could not be normalized for declined finalization.`,
+    };
+  }
+
+  const resolvedDedupKey = String(offerSheet.dedupKey || dedupKey || '').trim();
+  const updatedPlayer = {
+    ...sourcePlayer,
+    teamCode: offeringTeam.teamCode,
+    teamName: offeringTeam.teamName,
+    contract: normalizedContract,
+  };
+  delete (updatedPlayer as LooseRecord).rfaOfferSheet;
+  delete (updatedPlayer as LooseRecord).rfaOfferSheetOnly;
+  delete (updatedPlayer as LooseRecord).rfaContext;
+
   const updatedOfferingTeam = { ...offeringTeam };
-
-  // 2a. Remove from offerSheets (by id OR dedupKey for robustness)
-  updatedOfferingTeam.offerSheets = offerSheets.filter(
-    (os: any) => os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
+  updatedOfferingTeam.offerSheets = removeOfferSheetEntries(
+    offerSheets,
+    offerSheetId || '',
+    resolvedDedupKey
   );
-
-  // 2b. Add player to roster with contract terms
-  // Find or create player entry
-  const playerId = offerSheet.playerId as string;
-  let playerIndex = (updatedOfferingTeam.players || []).findIndex(
+  const offeringPlayerIndex = (updatedOfferingTeam.players || []).findIndex(
     (p: any) => (p.player_id || p.id) === playerId
   );
-
-  // Construct new contract from offer sheet
-  const newContract = {
-    contractType: 'Standard',
-    signedUsing: 'Offer Sheet',
-    signingTeam: teamCode,
-    contractLength: offerSheet.contractYears,
-    salariesByYear: ((offerSheet.salariesByYear as LooseRecord[] | undefined) || []).map((s: LooseRecord) => ({
-      season: s.season,
-      salary: s.salary,
-      capHit: s.capHit,
-      guaranteed: s.guaranteed,
-    })),
-  };
-
-  if (playerIndex !== -1) {
-    // Update existing player's contract
-    const updatedPlayer = {
-      ...updatedOfferingTeam.players[playerIndex],
-      contract: newContract,
-      teamCode,
-    };
+  if (offeringPlayerIndex !== -1) {
     updatedOfferingTeam.players = [
-      ...updatedOfferingTeam.players.slice(0, playerIndex),
+      ...updatedOfferingTeam.players.slice(0, offeringPlayerIndex),
       updatedPlayer,
-      ...updatedOfferingTeam.players.slice(playerIndex + 1),
+      ...updatedOfferingTeam.players.slice(offeringPlayerIndex + 1),
     ];
   } else {
-    // Create new player entry
-    const newPlayer: PlayerLike = {
-      player_id: playerId as string | null,
-      id: playerId as string | null,
-      name: offerSheet.playerName as string | null,
-      displayName: offerSheet.playerName as string | null,
-      contract: newContract,
-      teamCode: teamCode as string | null,
-    };
-    updatedOfferingTeam.players = [
-      ...(updatedOfferingTeam.players || []),
-      newPlayer,
-    ];
+    updatedOfferingTeam.players = [...(updatedOfferingTeam.players || []), updatedPlayer];
   }
-
-  // Update roster
   if (!updatedOfferingTeam.roster?.includes(playerId)) {
-    updatedOfferingTeam.roster = [
-      ...(updatedOfferingTeam.roster || []),
-      playerId,
-    ];
+    updatedOfferingTeam.roster = [...(updatedOfferingTeam.roster || []), playerId];
   }
-
-  // Recalculate totals
-  updatedOfferingTeam.totals = computeTeamCapTotals(
-    updatedOfferingTeam,
-    toEndYear(seasonId)
-  );
-
+  if (Array.isArray(updatedOfferingTeam.capHolds)) {
+    updatedOfferingTeam.capHolds = updatedOfferingTeam.capHolds.filter(
+      (hold) => String(hold?.playerId || '').trim() !== playerId
+    );
+  }
   updatedOfferingTeam.source = {
     ...(updatedOfferingTeam.source as unknown as LooseRecord | null | undefined),
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
+  updatedOfferingTeam.totals = computeTeamCapTotals(updatedOfferingTeam, toEndYear(seasonId));
 
-  // 3. Prepare Home Team Update (cleanup only)
   const updatedHomeTeam = { ...homeTeam };
-
-  // 3a. Remove from incomingOfferSheets (by id OR dedupKey for robustness)
-  updatedHomeTeam.incomingOfferSheets = (
-    updatedHomeTeam.incomingOfferSheets || []
-  ).filter(
-    (os: any) => os.id !== offerSheetId && (!dedupKey || os.dedupKey !== dedupKey)
+  updatedHomeTeam.incomingOfferSheets = removeOfferSheetEntries(
+    updatedHomeTeam.incomingOfferSheets || [],
+    offerSheetId || '',
+    resolvedDedupKey
   );
-
-  // 3b. Remove player from roster if present (they're leaving)
-  if (updatedHomeTeam.roster?.includes(playerId)) {
-    updatedHomeTeam.roster = updatedHomeTeam.roster.filter(
-      (id: any) => id !== playerId
+  updatedHomeTeam.roster = (updatedHomeTeam.roster || []).filter(
+    (id: any) => String(id || '').trim() !== playerId
+  );
+  updatedHomeTeam.players = (updatedHomeTeam.players || []).filter(
+    (p: any) => (p.player_id || p.id) !== playerId
+  );
+  if (Array.isArray(updatedHomeTeam.capHolds)) {
+    updatedHomeTeam.capHolds = updatedHomeTeam.capHolds.filter(
+      (hold) => String(hold?.playerId || '').trim() !== playerId
     );
   }
-
-  // 3c. Remove player from players array if present
-  if (
-    updatedHomeTeam.players?.some((p: any) => (p.player_id || p.id) === playerId)
-  ) {
-    updatedHomeTeam.players = updatedHomeTeam.players.filter(
-      (p: any) => (p.player_id || p.id) !== playerId
-    );
-  }
-
-  // Recalculate home team totals
-  updatedHomeTeam.totals = computeTeamCapTotals(
-    updatedHomeTeam,
-    toEndYear(seasonId)
-  );
-
   updatedHomeTeam.source = {
     ...(updatedHomeTeam.source as LooseRecord | null | undefined),
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
+  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
+
+  const teamUpdates = [
+    { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },
+    { teamCode: homeTeam.teamCode, team: updatedHomeTeam },
+  ];
+  const persistenceManifest = buildCanonicalPlayerPersistenceManifest({
+    teamUpdates,
+    candidates: [
+      {
+        playerId,
+        sourceTeamCode: String(homeTeam.teamCode || '').trim(),
+        destinationTeamCode: String(offeringTeam.teamCode || '').trim(),
+        mode: 'move',
+      },
+    ],
+    manifestLabel: 'Offer sheet declined persistence manifest',
+  });
+  if ('error' in persistenceManifest) {
+    return {
+      success: false,
+      error: persistenceManifest.error,
+    };
+  }
 
   return {
     success: true,
-    teamUpdates: [
-      { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },
-      { teamCode: homeTeam.teamCode, team: updatedHomeTeam },
-    ],
+    teamUpdates,
+    playerUpdates: persistenceManifest.playerUpdates,
+    playerDeletes: persistenceManifest.playerDeletes,
     metadata: {
       type: 'finalizeDeclinedOfferSheet',
       offerSheetId,
@@ -5268,16 +5523,9 @@ function computeFinalizeDeclinedOfferSheetResult({
       offeringTeam: offeringTeam.teamCode,
       homeTeam: homeTeam.teamCode,
       teamCode: offeringTeam.teamCode,
-      playerName: offerSheet.playerName,
+      playerName: updatedPlayer.displayName || updatedPlayer.name,
       signedUsing: 'Offer Sheet',
-      contract: {
-        years: offerSheet.contractYears,
-        firstYearSalary:
-          Number(offerSheet.salariesByYear?.[0]?.salary) ||
-          Number(offerSheet.salariesByYear?.[0]?.capHit) ||
-          undefined,
-        salariesByYear: offerSheet.salariesByYear || [],
-      },
+      contract: normalizedContract,
       timestamp,
     },
   };

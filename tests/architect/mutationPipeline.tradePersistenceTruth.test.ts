@@ -161,6 +161,51 @@ function makeTeam(
   };
 }
 
+function makeOfferSheet(
+  overrides: Record<string, any> = {}
+): Record<string, any> {
+  return {
+    id: 'os_default',
+    dedupKey: 'os:world_default:LAL:player_default:2025-26',
+    playerId: 'player_default',
+    playerName: 'Offer Sheet Fragment Name',
+    offeringTeamCode: 'LAL',
+    homeTeamCode: 'BOS',
+    seasonKey: SEASON_ID,
+    year: 2026,
+    status: 'PENDING_MATCH',
+    contractYears: 4,
+    totalValue: 72_000_000,
+    salariesByYear: [
+      {
+        season: SEASON_ID,
+        salary: 18_000_000,
+        capHit: 18_000_000,
+        guaranteed: true,
+      },
+      {
+        season: '2026-27',
+        salary: 18_900_000,
+        capHit: 18_900_000,
+        guaranteed: true,
+      },
+      {
+        season: '2027-28',
+        salary: 19_845_000,
+        capHit: 19_845_000,
+        guaranteed: true,
+      },
+      {
+        season: '2028-29',
+        salary: 20_837_250,
+        capHit: 20_837_250,
+        guaranteed: true,
+      },
+    ],
+    ...overrides,
+  };
+}
+
 function seedBasePlayer(player: Record<string, any>) {
   seedMockData(`architect_basePlayers/${player.playerId}`, player);
 }
@@ -343,6 +388,232 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(movedPlayer.contract?.contractType).toBe('Sign & Trade');
     expect(movedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(15_000_000);
     expect(movedPlayer.contract?.signingTeam).toBe('LAL');
+  });
+
+  it('persists finalizeMatchedOfferSheet as a same-team canonical upsert with no delete path', async () => {
+    const worldId = 'world_offer_sheet_matched_truth';
+    seedWorldMetadata(
+      worldId,
+      createMockWorld({ worldId, userId: USER_ID, currentSeason: SEASON_ID })
+    );
+
+    const matchedPlayer = makePlayer('matched_rfa', 'BOS', 9_000_000, {
+      displayName: 'Canonical Matched Player',
+      contract: makeContract(9_000_000, {
+        contractType: 'Standard',
+        signingTeam: 'BOS',
+      }),
+    });
+    const lalKeeper = makePlayer('lal_keeper', 'LAL', 7_000_000);
+    const matchedOfferSheet = makeOfferSheet({
+      id: 'os_match_truth',
+      dedupKey: `os:${worldId}:LAL:matched_rfa:${SEASON_ID}`,
+      playerId: 'matched_rfa',
+      playerName: 'Offer Sheet Fragment Name',
+      offeringTeamCode: 'LAL',
+      homeTeamCode: 'BOS',
+      status: 'MATCHED',
+      totalValue: 77_582_250,
+    });
+
+    seedBasePlayer(matchedPlayer);
+    seedBasePlayer(lalKeeper);
+    seedTeamSnapshot(
+      worldId,
+      'BOS',
+      {
+        ...makeTeam('BOS', [matchedPlayer], [
+          {
+            playerId: 'matched_rfa',
+            playerName: 'Canonical Matched Player',
+            season: SEASON_ID,
+            amount: 14_000_000,
+            active: true,
+            isSigned: false,
+          },
+        ]),
+        incomingOfferSheets: [matchedOfferSheet],
+      },
+      { padRoster: false }
+    );
+    seedTeamSnapshot(
+      worldId,
+      'LAL',
+      {
+        ...makeTeam('LAL', [lalKeeper]),
+        offerSheets: [matchedOfferSheet],
+      },
+      { padRoster: false }
+    );
+    seedPlayerOverride(worldId, 'BOS', matchedPlayer);
+
+    const result = await applyWorldMutation({
+      userId: USER_ID,
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'finalizeMatchedOfferSheet',
+      timestamp: TIMESTAMP,
+      payload: {
+        teamCode: 'BOS',
+        offeringTeamCode: 'LAL',
+        offerSheetId: matchedOfferSheet.id,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.changedPlayers?.map((entry) => entry.playerId)).toEqual([
+      'matched_rfa',
+    ]);
+    expect(result.writesSummary?.playersPatched).toBe(1);
+
+    const homeSnapshot = getMockTeamSnapshot(worldId, 'BOS');
+    const offeringSnapshot = getMockTeamSnapshot(worldId, 'LAL');
+    expect(homeSnapshot.incomingOfferSheets || []).toHaveLength(0);
+    expect(offeringSnapshot.offerSheets || []).toHaveLength(0);
+    expect(
+      (homeSnapshot.capHolds || []).some(
+        (hold: Record<string, any>) => hold.playerId === 'matched_rfa'
+      )
+    ).toBe(false);
+
+    const homeOverride = await getDoc(
+      worldPlayerRef(worldId, 'BOS', 'matched_rfa')
+    );
+    const unexpectedOfferingOverride = await getDoc(
+      worldPlayerRef(worldId, 'LAL', 'matched_rfa')
+    );
+    expect(homeOverride.exists()).toBe(true);
+    expect(unexpectedOfferingOverride.exists()).toBe(false);
+
+    const persistedPlayer = await getPlayer(worldId, 'BOS', 'matched_rfa');
+    expect(persistedPlayer.teamCode).toBe('BOS');
+    expect(persistedPlayer.displayName).toBe('Canonical Matched Player');
+    expect(persistedPlayer.contract?.signedUsing).toBe('Match');
+    expect(persistedPlayer.contract?.signingTeam).toBe('BOS');
+    expect(persistedPlayer.contract?.contractLength).toBe(4);
+    expect(persistedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(18_000_000);
+  });
+
+  it('persists finalizeDeclinedOfferSheet as canonical movement with destination upsert and source delete', async () => {
+    const worldId = 'world_offer_sheet_declined_truth';
+    seedWorldMetadata(
+      worldId,
+      createMockWorld({ worldId, userId: USER_ID, currentSeason: SEASON_ID })
+    );
+
+    const declinedPlayer = makePlayer('declined_rfa', 'BOS', 8_000_000, {
+      displayName: 'Canonical Declined Player',
+      contract: makeContract(8_000_000, {
+        contractType: 'Standard',
+        signingTeam: 'BOS',
+      }),
+    });
+    const lalKeeper = makePlayer('lal_keeper_2', 'LAL', 6_500_000);
+    const declinedOfferSheet = makeOfferSheet({
+      id: 'os_decline_truth',
+      dedupKey: `os:${worldId}:LAL:declined_rfa:${SEASON_ID}`,
+      playerId: 'declined_rfa',
+      playerName: 'Fragment-Only Name',
+      offeringTeamCode: 'LAL',
+      homeTeamCode: 'BOS',
+      status: 'DECLINED',
+      totalValue: 77_582_250,
+    });
+
+    seedBasePlayer(declinedPlayer);
+    seedBasePlayer(lalKeeper);
+    seedTeamSnapshot(
+      worldId,
+      'BOS',
+      {
+        ...makeTeam('BOS', [declinedPlayer], [
+          {
+            playerId: 'declined_rfa',
+            playerName: 'Canonical Declined Player',
+            season: SEASON_ID,
+            amount: 13_500_000,
+            active: true,
+            isSigned: false,
+          },
+        ]),
+        incomingOfferSheets: [declinedOfferSheet],
+      },
+      { padRoster: false }
+    );
+    seedTeamSnapshot(
+      worldId,
+      'LAL',
+      {
+        ...makeTeam('LAL', [lalKeeper], [
+          {
+            playerId: 'declined_rfa',
+            playerName: 'Canonical Declined Player',
+            season: SEASON_ID,
+            amount: 3_500_000,
+            active: true,
+            isSigned: false,
+          },
+        ]),
+        offerSheets: [declinedOfferSheet],
+      },
+      { padRoster: false }
+    );
+    seedPlayerOverride(worldId, 'BOS', declinedPlayer);
+
+    const result = await applyWorldMutation({
+      userId: USER_ID,
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'finalizeDeclinedOfferSheet',
+      timestamp: TIMESTAMP,
+      payload: {
+        teamCode: 'LAL',
+        homeTeamCode: 'BOS',
+        offeringTeamCode: 'LAL',
+        offerSheetId: declinedOfferSheet.id,
+        dedupKey: declinedOfferSheet.dedupKey,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.changedPlayers?.map((entry) => entry.playerId)).toEqual([
+      'declined_rfa',
+    ]);
+
+    const homeSnapshot = getMockTeamSnapshot(worldId, 'BOS');
+    const offeringSnapshot = getMockTeamSnapshot(worldId, 'LAL');
+    expect(homeSnapshot.roster).not.toContain('declined_rfa');
+    expect(offeringSnapshot.roster).toContain('declined_rfa');
+    expect(homeSnapshot.incomingOfferSheets || []).toHaveLength(0);
+    expect(offeringSnapshot.offerSheets || []).toHaveLength(0);
+    expect(
+      (homeSnapshot.capHolds || []).some(
+        (hold: Record<string, any>) => hold.playerId === 'declined_rfa'
+      )
+    ).toBe(false);
+    expect(
+      (offeringSnapshot.capHolds || []).some(
+        (hold: Record<string, any>) => hold.playerId === 'declined_rfa'
+      )
+    ).toBe(false);
+
+    const deletedSourceOverride = await getDoc(
+      worldPlayerRef(worldId, 'BOS', 'declined_rfa')
+    );
+    const destinationOverride = await getDoc(
+      worldPlayerRef(worldId, 'LAL', 'declined_rfa')
+    );
+    expect(deletedSourceOverride.exists()).toBe(false);
+    expect(destinationOverride.exists()).toBe(true);
+
+    const movedPlayer = await getPlayer(worldId, 'LAL', 'declined_rfa');
+    expect(movedPlayer.teamCode).toBe('LAL');
+    expect(movedPlayer.displayName).toBe('Canonical Declined Player');
+    expect(movedPlayer.displayName).not.toBe('Fragment-Only Name');
+    expect(movedPlayer.contract?.signedUsing).toBe('Offer Sheet');
+    expect(movedPlayer.contract?.signingTeam).toBe('LAL');
+    expect(movedPlayer.contract?.contractLength).toBe(4);
+    expect(movedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(18_000_000);
   });
 
   it('fails closed when duplicate move candidates resolve to conflicting destinations', () => {

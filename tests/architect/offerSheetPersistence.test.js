@@ -591,3 +591,221 @@ describe('Phase 18.2: finalizeDeclinedOfferSheet Cleanup by dedupKey', () => {
         expect(offeringTeamResult.roster).toContain('player123');
     });
 });
+
+describe('E4: Offer sheet finalization canonical persistence manifests', () => {
+    it('finalizeMatchedOfferSheet emits a same-team player upsert with no delete path', () => {
+        const offerSheet = {
+            id: 'os_match_e4',
+            dedupKey: 'os:world1:LAL:player123:2025-26',
+            playerId: 'player123',
+            playerName: 'Fragment Name',
+            offeringTeamCode: 'LAL',
+            homeTeamCode: 'BOS',
+            status: 'MATCHED',
+            seasonKey: '2025-26',
+            contractYears: 4,
+            totalValue: 100000000,
+            salariesByYear: [
+                { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+            ],
+        };
+
+        const currentState = {
+            offeringTeam: {
+                teamCode: 'LAL',
+                teamName: 'Los Angeles Lakers',
+                players: [],
+                roster: [],
+                offerSheets: [offerSheet],
+            },
+            homeTeam: {
+                teamCode: 'BOS',
+                teamName: 'Boston Celtics',
+                players: [
+                    {
+                        player_id: 'player123',
+                        id: 'player123',
+                        name: 'Canonical Matched Name',
+                        displayName: 'Canonical Matched Name',
+                        teamCode: 'BOS',
+                        teamName: 'Boston Celtics',
+                        contract: {
+                            contractType: 'Standard',
+                            salariesByYear: [
+                                { season: '2024-25', salary: 8000000, capHit: 8000000, guaranteed: true },
+                            ],
+                        },
+                    },
+                ],
+                roster: ['player123'],
+                capHolds: [
+                    { playerId: 'player123', playerName: 'Canonical Matched Name', amount: 12000000, active: true },
+                ],
+                incomingOfferSheets: [offerSheet],
+            },
+            offerSheetId: 'os_match_e4',
+        };
+
+        const result = computeWorldMutation({
+            mutationType: 'finalizeMatchedOfferSheet',
+            payload: {
+                teamCode: 'BOS',
+                offeringTeamCode: 'LAL',
+                offerSheetId: 'os_match_e4',
+            },
+            currentState,
+            seasonId: '2025-26',
+            timestamp: Date.now(),
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.playerUpdates).toHaveLength(1);
+        expect(result.playerDeletes).toEqual([]);
+        expect(result.playerUpdates[0].playerId).toBe('player123');
+        expect(result.playerUpdates[0].player.teamCode).toBe('BOS');
+        expect(result.playerUpdates[0].player.displayName).toBe('Canonical Matched Name');
+        expect(result.playerUpdates[0].player.contract.signedUsing).toBe('Match');
+
+        const homeTeamResult = result.teamUpdates.find((u) => u.teamCode === 'BOS').team;
+        expect(homeTeamResult.incomingOfferSheets).toHaveLength(0);
+        expect(homeTeamResult.capHolds).toHaveLength(0);
+    });
+
+    it('finalizeDeclinedOfferSheet emits move manifest and preserves canonical source player identity', () => {
+        const offerSheet = {
+            id: 'os_decline_e4',
+            dedupKey: 'os:world1:LAL:player123:2025-26',
+            playerId: 'player123',
+            playerName: 'Fragment-Only Name',
+            offeringTeamCode: 'LAL',
+            homeTeamCode: 'BOS',
+            status: 'DECLINED',
+            seasonKey: '2025-26',
+            contractYears: 4,
+            totalValue: 100000000,
+            salariesByYear: [
+                { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+            ],
+        };
+
+        const currentState = {
+            offeringTeam: {
+                teamCode: 'LAL',
+                teamName: 'Los Angeles Lakers',
+                players: [],
+                roster: [],
+                capHolds: [
+                    { playerId: 'player123', playerName: 'Canonical Source Name', amount: 3000000, active: true },
+                ],
+                offerSheets: [offerSheet],
+            },
+            homeTeam: {
+                teamCode: 'BOS',
+                teamName: 'Boston Celtics',
+                players: [
+                    {
+                        player_id: 'player123',
+                        id: 'player123',
+                        name: 'Canonical Source Name',
+                        displayName: 'Canonical Source Name',
+                        teamCode: 'BOS',
+                        teamName: 'Boston Celtics',
+                        contract: {
+                            contractType: 'Standard',
+                            salariesByYear: [
+                                { season: '2024-25', salary: 9000000, capHit: 9000000, guaranteed: true },
+                            ],
+                        },
+                    },
+                ],
+                roster: ['player123'],
+                capHolds: [
+                    { playerId: 'player123', playerName: 'Canonical Source Name', amount: 12000000, active: true },
+                ],
+                incomingOfferSheets: [offerSheet],
+            },
+            offerSheetId: 'os_decline_e4',
+        };
+
+        const result = computeWorldMutation({
+            mutationType: 'finalizeDeclinedOfferSheet',
+            payload: {
+                teamCode: 'LAL',
+                homeTeamCode: 'BOS',
+                offeringTeamCode: 'LAL',
+                offerSheetId: 'os_decline_e4',
+                dedupKey: offerSheet.dedupKey,
+            },
+            currentState,
+            seasonId: '2025-26',
+            timestamp: Date.now(),
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.playerUpdates).toHaveLength(1);
+        expect(result.playerDeletes).toEqual([
+            { playerId: 'player123', teamCode: 'BOS' },
+        ]);
+        expect(result.playerUpdates[0].player.teamCode).toBe('LAL');
+        expect(result.playerUpdates[0].player.displayName).toBe('Canonical Source Name');
+        expect(result.playerUpdates[0].player.displayName).not.toBe('Fragment-Only Name');
+        expect(result.playerUpdates[0].player.contract.signedUsing).toBe('Offer Sheet');
+
+        const offeringTeamResult = result.teamUpdates.find((u) => u.teamCode === 'LAL').team;
+        const homeTeamResult = result.teamUpdates.find((u) => u.teamCode === 'BOS').team;
+        expect(offeringTeamResult.roster).toContain('player123');
+        expect(offeringTeamResult.capHolds).toHaveLength(0);
+        expect(homeTeamResult.roster).not.toContain('player123');
+        expect(homeTeamResult.capHolds).toHaveLength(0);
+    });
+
+    it('finalizeDeclinedOfferSheet fails closed when canonical source player cannot be resolved', () => {
+        const offerSheet = {
+            id: 'os_decline_missing_player',
+            dedupKey: 'os:world1:LAL:missing_player:2025-26',
+            playerId: 'missing_player',
+            playerName: 'Fragment Name',
+            offeringTeamCode: 'LAL',
+            homeTeamCode: 'BOS',
+            status: 'DECLINED',
+            seasonKey: '2025-26',
+            contractYears: 4,
+            salariesByYear: [
+                { season: '2025-26', salary: 25000000, capHit: 25000000, guaranteed: true },
+            ],
+        };
+
+        const result = computeWorldMutation({
+            mutationType: 'finalizeDeclinedOfferSheet',
+            payload: {
+                teamCode: 'LAL',
+                homeTeamCode: 'BOS',
+                offeringTeamCode: 'LAL',
+                offerSheetId: offerSheet.id,
+                dedupKey: offerSheet.dedupKey,
+            },
+            currentState: {
+                offeringTeam: {
+                    teamCode: 'LAL',
+                    teamName: 'Los Angeles Lakers',
+                    players: [],
+                    roster: [],
+                    offerSheets: [offerSheet],
+                },
+                homeTeam: {
+                    teamCode: 'BOS',
+                    teamName: 'Boston Celtics',
+                    players: [],
+                    roster: [],
+                    incomingOfferSheets: [offerSheet],
+                },
+                offerSheetId: offerSheet.id,
+            },
+            seasonId: '2025-26',
+            timestamp: Date.now(),
+        });
+
+        expect(result.success).toBe(false);
+        expect(String(result.error)).toContain('not found on home team roster');
+    });
+});
