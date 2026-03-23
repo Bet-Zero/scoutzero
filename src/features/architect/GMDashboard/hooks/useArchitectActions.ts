@@ -19,6 +19,9 @@ import {
   applyWorldMutation,
   computeWorldMutation,
   type ArchitectMutationContract,
+  type ArchitectMutationDeadCapEntry,
+  type ArchitectMutationExceptionEntry,
+  type ArchitectMutationExceptions,
   type ArchitectMutationPayload,
   type ArchitectMutationResult,
   type ArchitectMutationTeamUpdate,
@@ -52,10 +55,10 @@ import {
 import type {
   BasePlayerContract,
   BasePlayerContractYear,
-  CapHoldItem,
   DeadCapItem,
   DraftPick,
   Exceptions,
+  PlayerRulesProfileInput,
   TeamTotals,
   TradeException,
 } from '@/features/architect/types';
@@ -74,15 +77,31 @@ import {
   injectTeamHistoryFixtures,
   type TeamCapSheetLike,
 } from '@/features/architect/history/devTeamHistoryFixtures';
+import type { CapHold as SharedCapHold } from '@/features/architect/utils/capHolds';
 import type { CapSheetActionType } from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
 import toast from 'react-hot-toast';
 import type { UseArchitectStateReturn } from './useArchitectState';
 
 // ==== Type Definitions ====
 
-type StateSelectedPlayer = NonNullable<UseArchitectStateReturn['selectedPlayer']>;
 type StateTeamCapSheet = NonNullable<UseArchitectStateReturn['teamCapSheet']>;
 type StatePlayersMap = UseArchitectStateReturn['playersMap'];
+type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
+type ComputeWorldMutationCurrentState = NonNullable<
+  ComputeWorldMutationArgs['currentState']
+>;
+type FreeAgentComputeState = Pick<
+  ComputeWorldMutationCurrentState,
+  'team' | 'player' | 'teamCode'
+>;
+type TradeComputeState = Pick<ComputeWorldMutationCurrentState, 'teams'>;
+type TradeComputeTeamEntry = NonNullable<TradeComputeState['teams']>[number];
+type TradeMutationPayloadTeam = NonNullable<
+  ArchitectMutationPayload['teams']
+>[number];
+type TradeMutationPayloadEntitlement = NonNullable<
+  TradeMutationPayloadTeam['outgoingEntitlements']
+>[number];
 
 /** Salary entry by year in a contract */
 type SalaryByYear = Pick<
@@ -146,8 +165,11 @@ interface LocalBio {
 }
 
 /** Player data structure */
-type ArchitectPlayer = Omit<StateSelectedPlayer, 'contract' | 'futureContract'> & {
-  position?: StateSelectedPlayer['position'];
+type ArchitectPlayer = Omit<
+  PlayerRulesProfileInput,
+  'bio' | 'contract' | 'futureContract'
+> & {
+  position?: PlayerRulesProfileInput['position'];
   formattedPosition?: string | null;
   contract?: LocalContract | null;
   futureContract?: LocalContract | null;
@@ -199,24 +221,15 @@ type ArchitectPlayer = Omit<StateSelectedPlayer, 'contract' | 'futureContract'> 
   years_of_service?: number | string | null;
 };
 
-interface TradeEntitlementPayload {
-  id?: string | null;
-  type?: string | null;
-  name?: string | null;
-  year?: number | string | null;
-  round?: number | null;
-  entitlementId?: string | null;
-}
-
 /** Trade data item for a single team */
 interface TradeDataItem {
   teamId: string;
   incoming?: ArchitectPlayer[];
   outgoing?: ArchitectPlayer[];
   /** TM-PICKS-E1: Entitlements this team is trading away */
-  outgoingEntitlements?: TradeEntitlementPayload[];
+  outgoingEntitlements?: TradeMutationPayloadEntitlement[];
   /** TM-PICKS-E1: Entitlements this team is receiving */
-  incomingEntitlements?: TradeEntitlementPayload[];
+  incomingEntitlements?: TradeMutationPayloadEntitlement[];
   /** Alias used by exportCurrentTrade */
   outgoingPlayers?: ArchitectPlayer[];
   incomingPlayers?: ArchitectPlayer[];
@@ -266,44 +279,30 @@ interface ActiveContract {
 }
 
 /** Cap hold structure */
-interface CapHold extends Omit<CapHoldItem, 'playerId'> {
-  playerId?: string | number | null;
+type CapHold = Omit<SharedCapHold, 'playerId' | 'active'> & {
+  playerId?: SharedCapHold['playerId'] | number | null;
   active?: boolean | null;
-  reason?: string | null;
-}
+  notes?: string | null;
+};
 
-interface DeadCapEntry extends Omit<Partial<DeadCapItem>, 'playerId'> {
+type CapHoldActionItem = Partial<Omit<CapHold, 'amount' | 'playerId' | 'playerName'>> & {
+  amount?: unknown;
+  playerId?: CapHold['playerId'];
+  playerName?: string | null;
+};
+
+type DeadCapEntry = ArchitectMutationDeadCapEntry & {
   id?: string | null;
   playerId?: string | number | null;
   label?: string | null;
   amountByYear?: DeadCapItem['amountByYear'] | null;
   stretched?: boolean | null;
-}
-
-type ArchitectExceptionEntryLike = {
-  type?: string | null;
-  enabled?: boolean;
-  available?: boolean;
-  totalAmount?: number | null;
-  usedAmount?: number | null;
-  remainingAmount?: number | null;
-  createdFrom?: string | null;
-  createdOn?: string | null;
-  expiresOn?: string | null;
-  notes?: string | null;
-  seasonKey?: string | null;
-  maxAmount?: number | null;
-  amount?: number | null;
 };
 
-type ArchitectExceptionsLike = Exceptions & {
-  mle?: ArchitectExceptionEntryLike;
-  taxpayerMle?: ArchitectExceptionEntryLike;
-  room?: ArchitectExceptionEntryLike;
-  bae?: ArchitectExceptionEntryLike;
-  dpe?: ArchitectExceptionEntryLike;
-  roomMLE?: ArchitectExceptionEntryLike;
-};
+type ArchitectExceptionsLike = Exceptions &
+  ArchitectMutationExceptions & {
+    roomMLE?: ArchitectMutationExceptionEntry | null;
+  };
 
 /** Override audit log entry */
 interface OverrideAuditEntry {
@@ -369,11 +368,6 @@ type MutationTruthResult = Pick<
 > & {
   skipped?: boolean;
 };
-
-type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
-type ComputeWorldMutationState = NonNullable<
-  ComputeWorldMutationArgs['currentState']
->;
 
 interface OfferSheet {
   id?: string;
@@ -443,7 +437,7 @@ export interface UseArchitectActionsReturn {
   ) => Promise<MutationActionResult>;
   handleEditContract: (player: ArchitectPlayer) => void;
   handleCapSheetAction: (
-    player: ArchitectPlayer | CapHold,
+    player: PlayerRulesProfileInput | CapHoldActionItem,
     actionType: CapSheetActionType,
     year?: number
   ) => void;
@@ -583,6 +577,56 @@ export const deriveSigningMechanism = (
   }
   return normalized;
 };
+
+type RenounceActionTarget =
+  | PlayerRulesProfileInput
+  | ArchitectPlayer
+  | CapHoldActionItem;
+
+function isCapHoldTarget(
+  value: RenounceActionTarget
+): value is CapHoldActionItem {
+  return 'playerName' in value || 'amount' in value;
+}
+
+function getRenounceTargetDisplayName(target: RenounceActionTarget): string {
+  if (isCapHoldTarget(target)) {
+    return String(target.playerName || 'this player');
+  }
+
+  return String(
+    ('displayName' in target ? target.displayName : undefined) ||
+      ('name' in target ? target.name : undefined) ||
+      'this player'
+  );
+}
+
+function getRenounceTargetCandidateValues(
+  target: RenounceActionTarget
+): unknown[] {
+  if (isCapHoldTarget(target)) {
+    return [target.playerId, target.playerName];
+  }
+
+  return [
+    'id' in target ? target.id : undefined,
+    'player_id' in target ? target.player_id : undefined,
+    'name' in target ? target.name : undefined,
+    'displayName' in target ? target.displayName : undefined,
+  ];
+}
+
+function getRenounceTargetPrimaryId(
+  target: RenounceActionTarget
+): string | null {
+  const rawId = isCapHoldTarget(target)
+    ? target.playerId
+    : ('id' in target ? target.id : undefined) ||
+      ('player_id' in target ? target.player_id : undefined) ||
+      ('name' in target ? target.name : undefined);
+  const normalized = String(rawId || '').trim();
+  return normalized || null;
+}
 
 const normalizeEntityIdentity = (value: unknown): string => {
   if (value == null) {
@@ -1381,99 +1425,105 @@ export function useArchitectActions({
         teamIndexByCode.set(code, index);
       });
 
-      const teams = tradeData.map((t, teamIndex) => ({
-        teamCode: resolvedTeamCodes[teamIndex],
-        sends: (
-        (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
-      ).map((p) => {
-          const rawDestination =
-            p.receivingTeamId || p.tradeTo || p.toTeamId || p.destTeamId;
-          const destinationTeamCode = rawDestination
-            ? resolveTeamCode(String(rawDestination)) || String(rawDestination)
-            : undefined;
-          const receivingTeamIndex =
-            destinationTeamCode != null
-              ? teamIndexByCode.get(destinationTeamCode)
-              : undefined;
+      const teams: NonNullable<ArchitectMutationPayload['teams']> = tradeData.map(
+        (t, teamIndex): TradeMutationPayloadTeam => ({
+          teamCode: resolvedTeamCodes[teamIndex],
+          sends: ((t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]).map(
+            (p) => {
+              const rawDestination =
+                p.receivingTeamId || p.tradeTo || p.toTeamId || p.destTeamId;
+              const destinationTeamCode = rawDestination
+                ? resolveTeamCode(String(rawDestination)) ||
+                  String(rawDestination)
+                : undefined;
+              const receivingTeamIndex =
+                destinationTeamCode != null
+                  ? teamIndexByCode.get(destinationTeamCode)
+                  : undefined;
 
-          const tradeContract =
-            p.signAndTradeContract ||
-            (p.contract
-              ? {
-                  ...p.contract,
-                  years:
-                    typeof p.contract.years === 'string'
-                      ? Number(p.contract.years) || null
-                      : typeof p.contract.years === 'number'
-                        ? p.contract.years
-                        : null,
-                  contractYears:
-                    typeof p.contract.contractYears === 'string'
-                      ? Number(p.contract.contractYears) || null
-                      : typeof p.contract.contractYears === 'number'
-                        ? p.contract.contractYears
-                        : null,
-                  firstYearGuaranteed:
-                    typeof p.contract.firstYearGuaranteed === 'boolean'
-                      ? p.contract.firstYearGuaranteed
-                      : null,
-                }
-              : null);
-          const signAndTradeValidation = p.signAndTrade
-            ? validateSignAndTradeContractPayload(
-                tradeContract,
-                currentYear,
-                { requireActiveYearRow: true }
-              )
-            : null;
+              const tradeContract =
+                p.signAndTradeContract ||
+                (p.contract
+                  ? {
+                      ...p.contract,
+                      years:
+                        typeof p.contract.years === 'string'
+                          ? Number(p.contract.years) || null
+                          : typeof p.contract.years === 'number'
+                            ? p.contract.years
+                            : null,
+                      contractYears:
+                        typeof p.contract.contractYears === 'string'
+                          ? Number(p.contract.contractYears) || null
+                          : typeof p.contract.contractYears === 'number'
+                            ? p.contract.contractYears
+                            : null,
+                      firstYearGuaranteed:
+                        typeof p.contract.firstYearGuaranteed === 'boolean'
+                          ? p.contract.firstYearGuaranteed
+                          : null,
+                    }
+                  : null);
+              const signAndTradeValidation = p.signAndTrade
+                ? validateSignAndTradeContractPayload(
+                    tradeContract,
+                    currentYear,
+                    { requireActiveYearRow: true }
+                  )
+                : null;
 
-          if (
-            p.signAndTrade &&
-            (!destinationTeamCode ||
-              destinationTeamCode === (resolveTeamCode(t.teamId) || t.teamId))
-          ) {
-            throw new Error(
-              `Sign-and-trade asset "${p.name || p.id || p.player_id}" must include a valid destination team`
-            );
-          }
+              if (
+                p.signAndTrade &&
+                (!destinationTeamCode ||
+                  destinationTeamCode === (resolveTeamCode(t.teamId) || t.teamId))
+              ) {
+                throw new Error(
+                  `Sign-and-trade asset "${p.name || p.id || p.player_id}" must include a valid destination team`
+                );
+              }
 
-          if (
-            p.signAndTrade &&
-            (!signAndTradeValidation?.valid || !signAndTradeValidation.contract)
-          ) {
-            throw new Error(
-              `Sign-and-trade asset "${p.name || p.id || p.player_id}" is missing valid contract details`
-            );
-          }
+              if (
+                p.signAndTrade &&
+                (!signAndTradeValidation?.valid ||
+                  !signAndTradeValidation.contract)
+              ) {
+                throw new Error(
+                  `Sign-and-trade asset "${p.name || p.id || p.player_id}" is missing valid contract details`
+                );
+              }
 
-          return {
-            ...p,
-            // Explicitly map ID for pipeline consumption
-            playerId: p.id || p.player_id,
-            // Normalize routing fields so apply-time pipeline can consume either path.
-            tradeTo: destinationTeamCode,
-            receivingTeamId: destinationTeamCode,
-            receivingTeamIndex,
-            signAndTrade: !!p.signAndTrade,
-            signAndTradeContract:
-              signAndTradeValidation?.contract || p.signAndTradeContract || undefined,
-            contract:
-              signAndTradeValidation?.contract || p.contract || undefined,
-            contractYears:
-              signAndTradeValidation?.contract?.contractYears ||
-              p.contractYears ||
-              undefined,
-            firstYearGuaranteed:
-              signAndTradeValidation?.contract?.firstYearGuaranteed ??
-              p.firstYearGuaranteed ??
-              undefined,
-          };
-        }),
-        picksOut: [],
-        // TM-PICKS-E1: Include outgoing entitlements in persistence payload
-        outgoingEntitlements: t.outgoingEntitlements || [],
-        entitlementsOut: t.outgoingEntitlements || [],
-      }));
+              return {
+                ...p,
+                // Explicitly map ID for pipeline consumption
+                playerId: p.id || p.player_id,
+                // Normalize routing fields so apply-time pipeline can consume either path.
+                tradeTo: destinationTeamCode,
+                receivingTeamId: destinationTeamCode,
+                receivingTeamIndex,
+                signAndTrade: !!p.signAndTrade,
+                signAndTradeContract:
+                  signAndTradeValidation?.contract ||
+                  p.signAndTradeContract ||
+                  undefined,
+                contract:
+                  signAndTradeValidation?.contract || p.contract || undefined,
+                contractYears:
+                  signAndTradeValidation?.contract?.contractYears ||
+                  p.contractYears ||
+                  undefined,
+                firstYearGuaranteed:
+                  signAndTradeValidation?.contract?.firstYearGuaranteed ??
+                  p.firstYearGuaranteed ??
+                  undefined,
+              };
+            }
+          ),
+          picksOut: [],
+          // TM-PICKS-E1: Include outgoing entitlements in persistence payload
+          outgoingEntitlements: t.outgoingEntitlements || [],
+          entitlementsOut: t.outgoingEntitlements || [],
+        })
+      );
 
       // Validation guard
       for (const team of teams) {
@@ -1505,23 +1555,29 @@ export function useArchitectActions({
       }
 
       try {
-        const loadedTeams = await Promise.all(
-          resolvedTeamCodes.map(async (resolvedTeamCode, index) => {
-            const baseTeamSnapshot = await loadWorldTeamData(
-              null,
-              resolvedTeamCode
-            );
-            if (!baseTeamSnapshot) {
-              throw new Error(
-                `Unable to load base-state snapshot for team ${resolvedTeamCode} (trade index ${index})`
-              );
-            }
-            return {
-              teamCode: resolvedTeamCode,
-              team: baseTeamSnapshot as CapSheet,
-            };
-          })
-        );
+        const loadedTeams: NonNullable<TradeComputeState['teams']> =
+          await Promise.all(
+            resolvedTeamCodes.map(
+              async (
+                resolvedTeamCode,
+                index
+              ): Promise<TradeComputeTeamEntry> => {
+                const baseTeamSnapshot = await loadWorldTeamData(
+                  null,
+                  resolvedTeamCode
+                );
+                if (!baseTeamSnapshot) {
+                  throw new Error(
+                    `Unable to load base-state snapshot for team ${resolvedTeamCode} (trade index ${index})`
+                  );
+                }
+                return {
+                  teamCode: resolvedTeamCode,
+                  team: baseTeamSnapshot as TradeComputeTeamEntry['team'],
+                };
+              }
+            )
+          );
 
         const tradePayload = {
           teams,
@@ -1537,7 +1593,7 @@ export function useArchitectActions({
           payload: tradePayload,
           currentState: {
             teams: loadedTeams,
-          } as unknown as ComputeWorldMutationState,
+          } satisfies TradeComputeState,
           seasonId,
           timestamp: Date.now(),
           asOfDate: worldAsOfDate || undefined,
@@ -1781,10 +1837,10 @@ export function useArchitectActions({
         mutationType: 'signFreeAgent',
         payload: signingPayload,
         currentState: {
-          team: teamCapSheet,
-          player: canonicalPlayer,
+          team: teamCapSheet as FreeAgentComputeState['team'],
+          player: canonicalPlayer as FreeAgentComputeState['player'],
           teamCode,
-        } as unknown as ComputeWorldMutationState,
+        } satisfies FreeAgentComputeState,
         seasonId,
         timestamp: Date.now(),
         worldId: null,
@@ -2379,15 +2435,10 @@ export function useArchitectActions({
   // Now directly updates teamCapSheet instead of using capSheetState
   const confirmAndRenounceRights = useCallback(
     async (
-      playerOrHold: ArchitectPlayer | CapHold,
+      playerOrHold: RenounceActionTarget,
       overrideMetadata?: OverrideMetadata | null
     ): Promise<MutationActionResult> => {
-      const playerName = String(
-        (playerOrHold as ArchitectPlayer).displayName ||
-          (playerOrHold as ArchitectPlayer).name ||
-          (playerOrHold as CapHold).playerName ||
-          'this player'
-      );
+      const playerName = getRenounceTargetDisplayName(playerOrHold);
 
       if (
         !window.confirm(
@@ -2413,21 +2464,13 @@ export function useArchitectActions({
         }
       };
 
-      collectCandidate((playerOrHold as ArchitectPlayer).id);
-      collectCandidate((playerOrHold as ArchitectPlayer).player_id);
-      collectCandidate((playerOrHold as CapHold).playerId);
-      collectCandidate((playerOrHold as ArchitectPlayer).name);
-      collectCandidate((playerOrHold as ArchitectPlayer).displayName);
-      collectCandidate((playerOrHold as CapHold).playerName);
+      for (const candidateValue of getRenounceTargetCandidateValues(
+        playerOrHold
+      )) {
+        collectCandidate(candidateValue);
+      }
 
-      const idToRenounce = [
-        (playerOrHold as CapHold).playerId,
-        (playerOrHold as ArchitectPlayer).id,
-        (playerOrHold as ArchitectPlayer).player_id,
-        (playerOrHold as ArchitectPlayer).name,
-      ]
-        .map((value) => String(value || '').trim())
-        .find(Boolean);
+      const idToRenounce = getRenounceTargetPrimaryId(playerOrHold);
 
       // Persist to world if in world mode
       if (!idToRenounce) {
@@ -2571,7 +2614,7 @@ export function useArchitectActions({
   // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce
   const handleCapSheetAction = useCallback(
     (
-      playerOrHold: ArchitectPlayer | CapHold,
+      playerOrHold: PlayerRulesProfileInput | CapHoldActionItem,
       actionType: CapSheetActionType,
       year?: number
     ): void => {

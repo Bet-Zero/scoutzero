@@ -684,11 +684,14 @@ const EditContractModal = ({
     [isValid, errors, warnings, isExtendEligible, selectedAction, incomplete]
   );
 
-  // When validation is incomplete, replace technical info messages with user-facing warning
+  // When validation is incomplete, replace the technical skip message with a user-facing warning
   const displayWarnings = useMemo(() => {
     if (!incomplete) return warnings;
     return [
-      ...warnings.filter((w) => w.severity !== 'info'),
+      ...warnings.filter(
+        (w) =>
+          w.message !== 'Extension validation skipped: rulesProfile not provided'
+      ),
       {
         severity: 'warning',
         message:

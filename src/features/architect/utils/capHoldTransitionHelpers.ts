@@ -17,28 +17,45 @@
  */
 
 import { toEndYear } from './seasonUtils';
-import { CAP_HOLD_MULTIPLIERS } from './capHolds';
+import {
+  CAP_HOLD_MULTIPLIERS,
+  type CapHold,
+  type CapHoldPlayerInput,
+} from './capHolds';
+import type { PlayerRulesProfileFreeAgency } from '@/features/architect/types';
 
-type SalaryYearLike = any;
+type SalaryYearLike = Omit<
+  NonNullable<NonNullable<CapHoldPlayerInput['contract']>['salariesByYear']>[number],
+  'season' | 'salary' | 'capHit'
+> & {
+  season?: unknown;
+  salary?: unknown;
+  capHit?: unknown;
+  option?: unknown;
+};
+
+type PlayerContractLike = Omit<
+  NonNullable<CapHoldPlayerInput['contract']>,
+  'birdRights' | 'salariesByYear'
+> & {
+  birdRights?:
+    | {
+        status?: unknown;
+        type?: unknown;
+      }
+    | unknown;
+  salariesByYear?: SalaryYearLike[] | null;
+};
 
 type PlayerLike =
-  | {
-      contract?: {
-        birdRights?: unknown;
-        salariesByYear?: SalaryYearLike[] | null;
-      } | null;
+  | (Omit<CapHoldPlayerInput, 'contract'> & {
+      contract?: PlayerContractLike | null;
       birdRights?: unknown;
-    }
+    })
   | null
   | undefined;
 
-type CapHoldLike =
-  | {
-      amount?: unknown;
-      playerId?: unknown;
-    }
-  | null
-  | undefined;
+type CapHoldLike = Partial<CapHold> | null | undefined;
 
 type TeamLike =
   | {
@@ -77,6 +94,15 @@ type DeclineFreeAgencyValidationResult = {
   warnings: TransitionIssue[];
 };
 
+type DeclineFreeAgencyMeta = {
+  source?: string | null;
+};
+
+type CanonicalFreeAgencyState = Exclude<
+  PlayerRulesProfileFreeAgency,
+  string | null | undefined
+>;
+
 const DEFAULT_CAP_HOLD_MULTIPLIER = 1.5;
 
 const RIGHTS_TYPE_MULTIPLIERS = {
@@ -84,6 +110,22 @@ const RIGHTS_TYPE_MULTIPLIERS = {
   EARLY_BIRD: CAP_HOLD_MULTIPLIERS.EARLY_BIRD,
   NON_BIRD: CAP_HOLD_MULTIPLIERS.NON_BIRD,
 };
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isBirdRightsCarrier(
+  value: unknown
+): value is { status?: unknown; type?: unknown } {
+  return Boolean(value && typeof value === 'object');
+}
+
+function isCanonicalFreeAgencyState(
+  value: PlayerRulesProfileFreeAgency
+): value is CanonicalFreeAgencyState {
+  return Boolean(value && typeof value === 'object');
+}
 
 function normalizeRightsType(rawType: unknown) {
   if (!rawType) return null;
@@ -108,10 +150,14 @@ function normalizeRightsType(rawType: unknown) {
 }
 
 export function getRightsTypeFromPlayer(player: PlayerLike) {
-  const contractBirdRights = (player?.contract as any)?.birdRights;
+  const contractBirdRights = player?.contract?.birdRights;
+  const contractBirdRightsObject: {
+    status?: unknown;
+    type?: unknown;
+  } | null = isBirdRightsCarrier(contractBirdRights) ? contractBirdRights : null;
   const rawRights =
-    contractBirdRights?.status ??
-    contractBirdRights?.type ??
+    contractBirdRightsObject?.status ??
+    contractBirdRightsObject?.type ??
     contractBirdRights ??
     player?.birdRights ??
     null;
@@ -124,12 +170,12 @@ export function deriveFreeAgencyYearFromOptionSeason(
   fallbackEndYear: unknown = null
 ) {
   const endYear = toEndYear(optionSeason);
-  if (Number.isFinite(endYear as number)) {
-    return { year: (endYear as number) - 1, source: 'option_season' };
+  if (isFiniteNumber(endYear)) {
+    return { year: endYear - 1, source: 'option_season' };
   }
-  if (Number.isFinite(fallbackEndYear as number)) {
+  if (isFiniteNumber(fallbackEndYear)) {
     return {
-      year: (fallbackEndYear as number) - 1,
+      year: fallbackEndYear - 1,
       source: 'fallback_end_year',
     };
   }
@@ -255,20 +301,20 @@ export function shouldExpectCapHoldOnDecline(
     return {
       shouldCreate: false,
       priorSalary: 0,
-      optionSeason: (salaries[optionIndex]?.season as string) || null,
+      optionSeason: salaries[optionIndex]?.season ?? null,
       reason:
         optionIndex === -1 ? 'No option year found' : 'No prior year salary found',
     };
   }
 
   const priorRow = salaries[optionIndex - 1];
-  const priorSalary = (priorRow?.salary ?? priorRow?.capHit ?? 0) as number;
+  const priorSalary = Number(priorRow?.salary ?? priorRow?.capHit ?? 0);
 
   if (!Number.isFinite(priorSalary) || priorSalary <= 0) {
     return {
       shouldCreate: false,
       priorSalary: 0,
-      optionSeason: (salaries[optionIndex]?.season as string) || null,
+      optionSeason: salaries[optionIndex]?.season ?? null,
       reason: 'Prior year salary is zero or negative',
     };
   }
@@ -276,7 +322,7 @@ export function shouldExpectCapHoldOnDecline(
   return {
     shouldCreate: true,
     priorSalary,
-    optionSeason: (salaries[optionIndex]?.season as string) || null,
+    optionSeason: salaries[optionIndex]?.season ?? null,
   };
 }
 
@@ -310,9 +356,7 @@ export function computeExpectedCapHoldAmount({
     ];
   const missingRightsType = !resolvedRightsType;
 
-  const baseSalary = Number.isFinite(lastSalary as number)
-    ? (lastSalary as number)
-    : 0;
+  const baseSalary = isFiniteNumber(lastSalary) ? lastSalary : 0;
   const amount = Math.round(baseSalary * multiplier);
   const safeAmount = Number.isFinite(amount) && amount >= 0 ? amount : 0;
 
@@ -333,9 +377,9 @@ export function computeExpectedCapHoldAmount({
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
 export function validateDeclineFreeAgency(
-  freeAgency: unknown,
+  freeAgency: PlayerRulesProfileFreeAgency,
   expectedYear: unknown,
-  meta: Record<string, unknown> = {}
+  meta: DeclineFreeAgencyMeta = {}
 ): DeclineFreeAgencyValidationResult {
   const violations: TransitionIssue[] = [];
   const warnings: TransitionIssue[] = [];
@@ -361,42 +405,29 @@ export function validateDeclineFreeAgency(
 
   // Validate type field
   const validTypes = ['UFA', 'RFA', 'TO', 'PO'];
-  if (
-    !(
-      freeAgency &&
-      typeof freeAgency === 'object' &&
-      'type' in freeAgency &&
-      validTypes.includes((freeAgency as Record<string, unknown>).type as string)
-    )
-  ) {
+  if (!isCanonicalFreeAgencyState(freeAgency) || !validTypes.includes(String(freeAgency.type))) {
     violations.push({
       rule: 'cap_hold_transition_invalid',
-      message: `freeAgency.type must be one of: ${validTypes.join(', ')}. Got: ${(freeAgency as Record<string, unknown>).type}`,
+      message: `freeAgency.type must be one of: ${validTypes.join(', ')}. Got: ${isCanonicalFreeAgencyState(freeAgency) ? freeAgency.type : undefined}`,
       severity: 'error',
     });
   }
 
   // Validate year field
-  if (
-    !(
-      freeAgency &&
-      typeof freeAgency === 'object' &&
-      typeof (freeAgency as Record<string, unknown>).year === 'number'
-    )
-  ) {
+  if (!isCanonicalFreeAgencyState(freeAgency) || typeof freeAgency.year !== 'number') {
     violations.push({
       rule: 'cap_hold_transition_invalid',
-      message: `freeAgency.year must be a number. Got: ${typeof (freeAgency as Record<string, unknown>).year}`,
+      message: `freeAgency.year must be a number. Got: ${isCanonicalFreeAgencyState(freeAgency) ? typeof freeAgency.year : typeof freeAgency}`,
       severity: 'error',
     });
   } else if (
     typeof expectedYear === 'number' &&
-    (freeAgency as Record<string, unknown>).year !== expectedYear
+    freeAgency.year !== expectedYear
   ) {
     const expectedSource = meta?.source || 'expected';
     violations.push({
       rule: 'option_decline_free_agency_year_mismatch',
-      message: `freeAgency.year (${(freeAgency as Record<string, unknown>).year}) differs from ${expectedSource} (${expectedYear})`,
+      message: `freeAgency.year (${freeAgency.year}) differs from ${expectedSource} (${expectedYear})`,
       severity: 'error',
     });
   }

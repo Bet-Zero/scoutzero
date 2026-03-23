@@ -28,8 +28,6 @@
  */
 import { useMemo } from 'react';
 import type {
-  BasePlayerContract,
-  BasePlayerContractYear,
   PlayerRulesProfile,
   PlayerRulesProfileInput,
   PlayerRulesProfileTeamCapSheet,
@@ -58,37 +56,76 @@ type SigningGuardrails = {
 };
 
 type PartialOrNull<T> = Partial<NonNullable<T>> | null;
-type CapValidationSalaryRow = Partial<
-  Pick<BasePlayerContractYear, 'season' | 'salary' | 'capHit' | 'guaranteed'>
+type UseCapValidationRulesProfileFields = Pick<
+  PlayerRulesProfile,
+  | 'minimumSalary'
+  | 'extensionEligibility'
+  | 'extensionTerms'
+  | 'birdRights'
+  | 'maxSalary'
+  | 'restrictedFreeAgency'
 >;
-type CapValidationContract = {
-  birdRights?: Partial<NonNullable<BasePlayerContract['birdRights']>> | null;
-  contractType?: string | null;
-  salariesByYear?: CapValidationSalaryRow[] | null;
+
+type UseCapValidationRulesProfile = {
+  minimumSalary?: UseCapValidationRulesProfileFields['minimumSalary'];
+  extensionEligibility?: PartialOrNull<PlayerRulesProfile['extensionEligibility']>;
+  extensionTerms?: PartialOrNull<PlayerRulesProfile['extensionTerms']>;
+  birdRights?:
+    | (Omit<
+        Partial<NonNullable<PlayerRulesProfile['birdRights']>>,
+        'signingAbilities'
+      > & {
+        signingAbilities?: PartialOrNull<
+          NonNullable<
+            NonNullable<PlayerRulesProfile['birdRights']>['signingAbilities']
+          >
+        >;
+      })
+    | null;
+  maxSalary?: PartialOrNull<PlayerRulesProfile['maxSalary']>;
+  restrictedFreeAgency?: PartialOrNull<PlayerRulesProfile['restrictedFreeAgency']>;
 };
-type CapValidationPlayer = Pick<
-  Partial<PlayerRulesProfileInput>,
-  'contractType' | 'displayName' | 'name'
+
+type UseCapValidationSalaryRow = {
+  season?: unknown;
+  salary?: number | null;
+  capHit?: number | null;
+  guaranteed?: boolean | null;
+};
+
+type UseCapValidationContract = Omit<
+  NonNullable<PlayerRulesProfileInput['contract']>,
+  'freeAgency' | 'salariesByYear'
+> & {
+  birdRights?: {
+    status?: string | null;
+  } | null;
+  freeAgency?:
+    | {
+        year?: number | string | null;
+        type?: string | null;
+      }
+    | string
+    | null;
+  salariesByYear?: UseCapValidationSalaryRow[] | null;
+};
+
+type UseCapValidationPlayer = Omit<
+  PlayerRulesProfileInput,
+  'contract' | 'futureContract' | 'id' | 'playerId' | 'player_id'
 > & {
   id?: string | number | null;
   playerId?: string | number | null;
   player_id?: string | number | null;
-  contract?: CapValidationContract | null;
+  contract?: UseCapValidationContract | null;
+  futureContract?: UseCapValidationContract | null;
 };
-type RulesProfileBirdRights = Omit<
-  Partial<NonNullable<PlayerRulesProfile['birdRights']>>,
-  'signingAbilities'
+
+type UseCapValidationTeamCapSheet = Omit<
+  PlayerRulesProfileTeamCapSheet,
+  'players'
 > & {
-  signingAbilities?: PartialOrNull<
-    NonNullable<NonNullable<PlayerRulesProfile['birdRights']>['signingAbilities']>
-  >;
-};
-type RulesProfileLike = Pick<Partial<PlayerRulesProfile>, 'minimumSalary'> & {
-  extensionEligibility?: PartialOrNull<PlayerRulesProfile['extensionEligibility']>;
-  extensionTerms?: PartialOrNull<PlayerRulesProfile['extensionTerms']>;
-  birdRights?: RulesProfileBirdRights | null;
-  maxSalary?: PartialOrNull<PlayerRulesProfile['maxSalary']>;
-  restrictedFreeAgency?: PartialOrNull<PlayerRulesProfile['restrictedFreeAgency']>;
+  players?: UseCapValidationPlayer[] | null;
 };
 
 type ContractDataLike = {
@@ -99,27 +136,14 @@ type ContractDataLike = {
   base?: number | null;
 };
 
-type TeamCapSheetLike =
-  | (Omit<
-      Pick<
-        NonNullable<PlayerRulesProfileTeamCapSheet>,
-        'capHolds' | 'deadCap' | 'players' | 'teamCode'
-      >,
-      'players'
-    > & {
-      players?: CapValidationPlayer[] | null;
-    })
-  | null
-  | undefined;
-
 type UseCapValidationParams = {
-  player?: CapValidationPlayer | null;
+  player?: UseCapValidationPlayer | null;
   action?: string | null;
   contractData?: ContractDataLike;
-  teamCapSheet?: TeamCapSheetLike;
+  teamCapSheet?: UseCapValidationTeamCapSheet | null;
   currentYear?: number;
   targetYear?: number | null;
-  rulesProfile?: RulesProfileLike | null;
+  rulesProfile?: UseCapValidationRulesProfile | null;
 };
 
 type UseCapValidationResult = {
@@ -138,7 +162,7 @@ const getResolvedCapSettings = (year: number): CapSettingsLike => {
 };
 
 export const buildSigningGuardrails = (
-  rulesProfile: RulesProfileLike | null = null,
+  rulesProfile: UseCapValidationRulesProfile | null = null,
   capSettings: CapSettingsLike = {},
   exceptionType = 'None'
 ): SigningGuardrails => {
@@ -243,7 +267,7 @@ export const buildSigningGuardrails = (
  * Uses shared calculateTeamCapHit with getContractYearSlice adapter
  */
 const calculateTeamCapHitLocal = (
-  players: CapValidationPlayer[] | null | undefined,
+  players: UseCapValidationPlayer[] | null | undefined,
   year: number
 ) => {
   return calculateTeamCapHit(
