@@ -97,6 +97,7 @@ import {
   applyGatedDAREResultsToBatch,
   formatReceiptAsSummary,
 } from '@/features/architect/utils/entitlements/dare';
+import type { DAREResolutionReceipt } from '@/features/architect/utils/entitlements/dare';
 import type {
   OffseasonAppliedChangesSummary,
   OffseasonOptionDecisionMap,
@@ -190,6 +191,9 @@ function removeUndefinedDeep(obj: unknown): unknown {
 }
 
 type LooseRecord = Record<string, unknown>;
+type StepienUpdate = { pickId: string; year: number; status: string; reason: string };
+type ConveyanceResolutionEntry = { pickId?: string; year?: number; outcome?: string; position?: number };
+type SwapResolutionEntry = { pickId?: string; year?: number; resolvedOwner?: string | null; resolvedPosition?: number | null };
 
 type SeasonAdvanceOptions = {
   fromSeason?: string;
@@ -210,8 +214,8 @@ type SeasonManagerDraftPickConveyanceResult = {
   method?: string;
   reason?: string;
   previousYear?: number;
-  previousProtection?: unknown;
-  originalRound?: unknown;
+  previousProtection?: string;
+  originalRound?: number | string;
 };
 
 type SeasonManagerDraftPick = {
@@ -287,13 +291,13 @@ type SeasonAdvanceTeamSummary = Pick<
   | 'transitionedExceptions'
 > & {
   expiredTPEs: SeasonAdvanceExpiredTpe[];
-  stepienUpdates: unknown[];
-  conveyanceResolutions: unknown[];
-  swapResolutions: unknown[];
+  stepienUpdates: StepienUpdate[];
+  conveyanceResolutions: ConveyanceResolutionEntry[];
+  swapResolutions: SwapResolutionEntry[];
 };
 
 type SeasonAdvanceSummary = SeasonAdvanceTeamSummary & {
-  dareReceipt?: unknown;
+  dareReceipt?: DAREResolutionReceipt;
   dareWriteCount?: number;
   dareError?: string;
 };
@@ -1665,7 +1669,7 @@ function updateDraftPicksWithStepien(
   const teamCode = teamData.teamCode as string;
   const draftPicks = getSeasonManagerDraftPicks(teamData);
   let hasChanges = false;
-  const stepienUpdates: LooseRecord[] = [];
+  const stepienUpdates: StepienUpdate[] = [];
 
   // Separate picks into owned and owed
   const ownFirsts = []; // First-round picks the team owns
@@ -1818,8 +1822,8 @@ export function resolveDraftPickSwapsForYear(
     return team;
   }
 
-  const nowIso = opts.nowIso as string | undefined;
-  const method = (opts.method as string) || 'lottery';
+  const nowIso = opts.nowIso;
+  const method = opts.method ?? 'lottery';
 
   const updatedPicks = draftPicksSource.map((pick) => {
     // Skip non-swap picks
@@ -1920,8 +1924,8 @@ export function resolveDraftPickConveyanceForYear(
     return team;
   }
 
-  const nowIso = opts.nowIso as string | undefined;
-  const method = (opts.method as string) || 'lottery';
+  const nowIso = opts.nowIso;
+  const method = opts.method ?? 'lottery';
 
   const updatedPicks = draftPicksSource.map((pick) => {
     // Skip invalid picks
