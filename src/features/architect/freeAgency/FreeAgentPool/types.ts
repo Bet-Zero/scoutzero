@@ -82,6 +82,7 @@ export interface FreeAgentPoolProps {
     | void;
   onSignAndTrade?: LooseCallback | null;
   getSignAndTradePreflight?: LooseCallback | null;
+  getOfferSheetPreflight?: LooseCallback | null;
   onStoreOfferSheet?: LooseCallback | null;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
   playersById?: Record<string, FreeAgentLookupPlayer>;

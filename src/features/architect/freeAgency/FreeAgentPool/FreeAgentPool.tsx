@@ -73,6 +73,7 @@ const FreeAgentPool = ({
   onSign,
   onSignAndTrade,
   getSignAndTradePreflight = null,
+  getOfferSheetPreflight = null,
   onStoreOfferSheet = null,
   playersMap = {},
   playersById = {},
@@ -247,6 +248,11 @@ const FreeAgentPool = ({
             (worldId
               ? getSignAndTradePreflight
               : undefined) as EditContractModalProps['getSignAndTradePreflight']
+          }
+          getOfferSheetPreflight={
+            (worldId
+              ? getOfferSheetPreflight
+              : undefined) as EditContractModalProps['getOfferSheetPreflight']
           }
           onStoreOfferSheet={
             (worldId ? onStoreOfferSheet : undefined) as EditContractModalProps['onStoreOfferSheet']

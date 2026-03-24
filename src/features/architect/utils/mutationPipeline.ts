@@ -545,6 +545,13 @@ export type SignAndTradePreflightResult = {
   warnings: string[];
   source: 'authoritative-preflight';
 };
+export type OfferSheetPreflightStatus = 'legal' | 'blocked' | 'incomplete';
+export type OfferSheetPreflightResult = {
+  status: OfferSheetPreflightStatus;
+  reasons: string[];
+  warnings: string[];
+  source: 'authoritative-preflight';
+};
 type MutationPayloadLike = ArchitectMutationPayload;
 type TeamUpdateLike = ArchitectMutationTeamUpdate;
 type PlayerUpdateLike = ArchitectMutationPlayerUpdate;
@@ -2777,6 +2784,161 @@ export async function preflightSignAndTradeMutation({
       ],
       warnings: [],
       source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+    };
+  }
+}
+
+export async function preflightOfferSheetMutation({
+  worldId,
+  seasonId,
+  offeringTeamCode,
+  playerId,
+  contract,
+  timestamp = Date.now(),
+}: {
+  worldId: string;
+  seasonId: string;
+  offeringTeamCode: string;
+  playerId: string;
+  contract: ArchitectMutationContract;
+  timestamp?: number;
+}): Promise<OfferSheetPreflightResult> {
+  const source = AUTHORITATIVE_SAT_PREFLIGHT_SOURCE;
+
+  if (!worldId) {
+    return {
+      status: 'blocked',
+      reasons: ['Offer sheet requires an active world to commit.'],
+      warnings: [],
+      source,
+    };
+  }
+
+  if (!seasonId) {
+    return {
+      status: 'incomplete',
+      reasons: ['Authoritative offer sheet preflight is missing season context.'],
+      warnings: [],
+      source,
+    };
+  }
+
+  if (!offeringTeamCode) {
+    return {
+      status: 'blocked',
+      reasons: ['Offering team is required for offer sheet.'],
+      warnings: [],
+      source,
+    };
+  }
+
+  if (!playerId) {
+    return {
+      status: 'incomplete',
+      reasons: ['Authoritative offer sheet preflight is missing player context.'],
+      warnings: [],
+      source,
+    };
+  }
+
+  if (!contract) {
+    return {
+      status: 'blocked',
+      reasons: ['Cannot complete offer sheet: contract payload is invalid.'],
+      warnings: [],
+      source,
+    };
+  }
+
+  // Ensure offer-sheet flags are set; computeStoreOfferSheetResult hard-fails without them.
+  const preflightContract: ArchitectMutationContract = {
+    ...contract,
+    rfaOfferSheet: true,
+    rfaOfferSheetOnly: true,
+    contractType: 'Offer Sheet',
+  };
+
+  const payload: ArchitectMutationPayload = {
+    teamCode: offeringTeamCode,
+    playerId,
+    contract: preflightContract,
+    signedUsing: contract.exceptionType ?? null,
+  };
+
+  try {
+    // loadStateForMutation('storeOfferSheet') calls resolveStoreOfferSheetAuthority (E5):
+    // scans world lineage snapshots, resolves authoritative home team, fails closed on ambiguity.
+    const currentState = await loadStateForMutation(worldId, 'storeOfferSheet', payload);
+    const { team, player } = requireTeamAndPlayerState(currentState, 'storeOfferSheet');
+    const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
+
+    // validateSigning with offer-sheet flags routes into the RFA/offer-sheet validation path:
+    // validateOfferSheetTerms (years 1–4, raises ≤8%) + offering-team-vs-home-team checks.
+    const signingValidation = validateSigning({
+      team,
+      player,
+      contract: preflightContract,
+      signedUsing: payload.signedUsing,
+      year: currentYear,
+    });
+
+    if (!signingValidation.valid) {
+      const reasons = dedupeMessages(
+        signingValidation.violations.map((v) => v.message)
+      );
+      const warnMessages = dedupeMessages(
+        signingValidation.warnings.map((w) => w.message)
+      );
+      return {
+        status: 'blocked',
+        reasons: reasons.length > 0 ? reasons : ['Offer sheet validation failed.'],
+        warnings: warnMessages,
+        source,
+      };
+    }
+
+    // computeWorldMutation catches pre-compute guardrails: player in home team players[],
+    // dedup/worldId checks. Pure compute — does not persist.
+    const computeResult = computeWorldMutation({
+      mutationType: 'storeOfferSheet',
+      payload,
+      currentState,
+      seasonId,
+      timestamp,
+      worldId,
+    });
+
+    if (!computeResult.success) {
+      return {
+        status: 'blocked',
+        reasons: [
+          String(
+            computeResult.error ||
+              'Offer sheet would be rejected by authoritative validation.'
+          ),
+        ],
+        warnings: dedupeMessages(
+          Array.isArray(computeResult.warnings) ? computeResult.warnings : []
+        ),
+        source,
+      };
+    }
+
+    const warnings = dedupeMessages([
+      ...signingValidation.warnings.map((w) => w.message),
+      ...(Array.isArray(computeResult.warnings) ? computeResult.warnings : []),
+    ]);
+
+    return { status: 'legal', reasons: [], warnings, source };
+  } catch (error) {
+    return {
+      status: 'incomplete',
+      reasons: [
+        getErrorMessage(error) ||
+          'Authoritative offer sheet preflight failed before legality could be determined.',
+      ],
+      warnings: [],
+      source,
     };
   }
 }

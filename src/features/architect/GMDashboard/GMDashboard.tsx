@@ -176,6 +176,8 @@ const GMDashboard = () => {
     actions.handleSignAndTrade as FreeAgencySectionProps['onSignAndTrade'];
   const freeAgencyGetSignAndTradePreflight =
     actions.getSignAndTradePreflight as FreeAgencySectionProps['getSignAndTradePreflight'];
+  const freeAgencyGetOfferSheetPreflight =
+    actions.getOfferSheetPreflight as FreeAgencySectionProps['getOfferSheetPreflight'];
   const freeAgencyOnStoreOfferSheet =
     actions.handleStoreOfferSheet as FreeAgencySectionProps['onStoreOfferSheet'];
   const freeAgencyOnMatch =
@@ -194,6 +196,8 @@ const GMDashboard = () => {
     actions.handleSignAndTrade as EditContractModalProps['onSignAndTrade'];
   const modalGetSignAndTradePreflight =
     actions.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'];
+  const modalGetOfferSheetPreflight =
+    actions.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'];
   const modalOnStoreOfferSheet =
     actions.handleStoreOfferSheet as EditContractModalProps['onStoreOfferSheet'];
   const modalOnSaveContract =
@@ -433,6 +437,9 @@ const GMDashboard = () => {
             getSignAndTradePreflight={
               worldId ? freeAgencyGetSignAndTradePreflight : undefined
             }
+            getOfferSheetPreflight={
+              worldId ? freeAgencyGetOfferSheetPreflight : undefined
+            }
             onStoreOfferSheet={
               worldId ? freeAgencyOnStoreOfferSheet : undefined
             }
@@ -560,6 +567,9 @@ const GMDashboard = () => {
           onSignAndTrade={worldId ? modalOnSignAndTrade : null}
           getSignAndTradePreflight={
             worldId ? modalGetSignAndTradePreflight : null
+          }
+          getOfferSheetPreflight={
+            worldId ? modalGetOfferSheetPreflight : null
           }
           onStoreOfferSheet={worldId ? modalOnStoreOfferSheet : null}
           onSaveContract={modalOnSaveContract}

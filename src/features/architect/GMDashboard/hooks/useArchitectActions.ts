@@ -19,6 +19,7 @@ import {
   applyWorldMutation,
   computeWorldMutation,
   preflightSignAndTradeMutation,
+  preflightOfferSheetMutation,
   type ArchitectMutationContract,
   type ArchitectMutationDeadCapEntry,
   type ArchitectMutationExceptionEntry,
@@ -27,6 +28,7 @@ import {
   type ArchitectMutationResult,
   type ArchitectMutationTeamUpdate,
   type SignAndTradePreflightResult,
+  type OfferSheetPreflightResult,
 } from '@/features/architect/utils/mutationPipeline';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
@@ -429,6 +431,10 @@ export interface UseArchitectActionsReturn {
     contract: SigningDetails,
     destinationTeamCode: string
   ) => Promise<SignAndTradePreflightResult>;
+  getOfferSheetPreflight: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => Promise<OfferSheetPreflightResult>;
   handleEditContract: (player: ArchitectPlayer) => void;
   handleCapSheetAction: (
     player: PlayerRulesProfileInput | CapHoldActionItem,
@@ -2149,6 +2155,74 @@ export function useArchitectActions({
     [currentYear, seasonId, teamCode, worldId]
   );
 
+  const getOfferSheetPreflight = useCallback(
+    async (
+      playerObj: ArchitectPlayer,
+      contract: SigningDetails
+    ): Promise<OfferSheetPreflightResult> => {
+      if (!worldId) {
+        return {
+          status: 'blocked',
+          reasons: ['Offer sheet requires an active world to commit.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      const playerId = playerObj.id || playerObj.player_id;
+      if (!playerId) {
+        return {
+          status: 'incomplete',
+          reasons: ['Authoritative offer sheet preflight is missing player context.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      const architectContract = ensureContractStructure(
+        contract as LocalContract,
+        {
+          contractType: 'Offer Sheet',
+          isExtension: false,
+          isRookieScale: !!contract.isRookieScale,
+          signingTeam: teamCode,
+          startYear: currentYear,
+        }
+      );
+
+      if (!architectContract) {
+        return {
+          status: 'blocked',
+          reasons: ['Cannot complete offer sheet: contract payload is invalid.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      try {
+        return await preflightOfferSheetMutation({
+          worldId,
+          seasonId,
+          offeringTeamCode: teamCode,
+          playerId,
+          contract: architectContract,
+        });
+      } catch (error) {
+        return {
+          status: 'incomplete',
+          reasons: [
+            error instanceof Error
+              ? error.message
+              : 'Authoritative offer sheet preflight failed before legality could be determined.',
+          ],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+    },
+    [currentYear, seasonId, teamCode, worldId]
+  );
+
   // === RFA Offer Sheet Actions ===
 
   const handleStoreOfferSheet = useCallback(
@@ -3327,6 +3401,7 @@ export function useArchitectActions({
     handleSign,
     handleSignAndTrade,
     getSignAndTradePreflight,
+    getOfferSheetPreflight,
     handleEditContract,
     handleCapSheetAction,
     handleSaveContract,

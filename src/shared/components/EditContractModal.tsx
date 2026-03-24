@@ -43,6 +43,7 @@ import useCapValidation, {
 import type {
   ArchitectMutationResult,
   SignAndTradePreflightResult,
+  OfferSheetPreflightResult,
 } from '@/features/architect/utils/mutationPipeline';
 import type { PlayerRulesProfileLeagueContext } from '@/features/architect/types';
 import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
@@ -65,6 +66,7 @@ type UseCapValidationResult = ReturnType<typeof useCapValidation>;
 type ValidationEntryLike = UseCapValidationResult['warnings'][number];
 type ValidationSeverity = ValidationEntryLike['severity'];
 type SignAndTradePreflightLike = SignAndTradePreflightResult | null;
+type OfferSheetPreflightLike = OfferSheetPreflightResult | null;
 type ContractYearLike = NonNullable<
   ReturnType<typeof getContractYearsForDisplay>[number]
 >;
@@ -266,6 +268,15 @@ type SignAndTradePreflightCallback = (
   | null
   | undefined;
 
+type GetOfferSheetPreflightCallback = (
+  player: PlayerLike,
+  payload: SigningPayloadLike,
+) =>
+  | Promise<OfferSheetPreflightResult | null | undefined>
+  | OfferSheetPreflightResult
+  | null
+  | undefined;
+
 type ExtendCallback = (
   player: PlayerLike,
   payload: ExtensionPayloadLike,
@@ -297,6 +308,7 @@ type EditContractModalProps = {
   onExtend?: ExtendCallback | null;
   onSignAndTrade?: SignAndTradeCallback | null;
   getSignAndTradePreflight?: SignAndTradePreflightCallback | null;
+  getOfferSheetPreflight?: GetOfferSheetPreflightCallback | null;
   onRenounce?: SimpleActionCallback | null;
   onStoreOfferSheet?: SigningActionCallback | null;
   initialAction?: string | null;
@@ -478,6 +490,50 @@ const normalizeSignAndTradePreflightResult = (
   );
 };
 
+const buildOfferSheetPreflightResult = (
+  status: OfferSheetPreflightResult['status'],
+  reasons: string[],
+  warnings: string[] = []
+): OfferSheetPreflightResult => ({
+  status,
+  reasons: reasons
+    .map((reason) => String(reason || '').trim())
+    .filter(Boolean),
+  warnings: warnings
+    .map((warning) => String(warning || '').trim())
+    .filter(Boolean),
+  source: 'authoritative-preflight',
+});
+
+const normalizeOfferSheetPreflightResult = (
+  result: OfferSheetPreflightResult | null | undefined
+): OfferSheetPreflightResult => {
+  if (!result) {
+    return buildOfferSheetPreflightResult('incomplete', [
+      'Authoritative offer sheet preflight did not return a result.',
+    ]);
+  }
+
+  const status =
+    result.status === 'legal' ||
+    result.status === 'blocked' ||
+    result.status === 'incomplete'
+      ? result.status
+      : 'incomplete';
+  const reasons = Array.isArray(result.reasons) ? result.reasons : [];
+  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+
+  return buildOfferSheetPreflightResult(
+    status,
+    reasons.length > 0
+      ? reasons
+      : status === 'legal'
+        ? []
+        : ['Authoritative offer sheet preflight returned no reasons.'],
+    warnings
+  );
+};
+
 const ACTION_SETS: Record<ActionSetKey, ContractActionKey[]> = {
   option: ['accept', 'decline', 'signNew'],
   freeAgent: ['resign', 'signAndTrade', 'renounce'],
@@ -540,6 +596,7 @@ const EditContractModal = ({
   onExtend,
   onSignAndTrade,
   getSignAndTradePreflight = null,
+  getOfferSheetPreflight = null,
   onRenounce,
   onStoreOfferSheet = null, // Phase 16
   initialAction = null,
@@ -573,6 +630,9 @@ const EditContractModal = ({
   const [signAndTradePreflight, setSignAndTradePreflight] =
     useState<SignAndTradePreflightLike>(null);
   const latestSignAndTradePreflightRequestId = useRef(0);
+  const [offerSheetPreflight, setOfferSheetPreflight] =
+    useState<OfferSheetPreflightLike>(null);
+  const latestOfferSheetPreflightRequestId = useRef(0);
 
   // Override state management
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -737,6 +797,16 @@ const EditContractModal = ({
       }) as SigningPayloadLike,
     [contractDataForValidation]
   );
+  const offerSheetPreflightPayload = useMemo(
+    () =>
+      ({
+        ...contractDataForValidation,
+        rfaOfferSheet: true,
+        rfaOfferSheetOnly: true,
+        contractType: 'Offer Sheet',
+      }) as SigningPayloadLike,
+    [contractDataForValidation]
+  );
 
   // CBA Validation - get warnings/errors for current action
   // Use targetYear for option/FA actions, currentYear for extensions/waivers
@@ -749,6 +819,8 @@ const EditContractModal = ({
     targetYear: normalizedTargetYear, // The specific year the action applies to
     rulesProfile: playerRulesProfile,
     signAndTradePreflight,
+    offerSheetPreflight,
+    isOfferSheet,
   });
 
   // Build structured validation result
@@ -885,6 +957,71 @@ const EditContractModal = ({
     signAndTradePreflightPayload,
   ]);
 
+  useEffect(() => {
+    latestOfferSheetPreflightRequestId.current += 1;
+    const requestId = latestOfferSheetPreflightRequestId.current;
+
+    if (!isOpen || selectedAction !== 'signNew' || !isOfferSheet) {
+      setOfferSheetPreflight(null);
+      return;
+    }
+
+    if (!player) {
+      setOfferSheetPreflight(
+        buildOfferSheetPreflightResult('incomplete', [
+          'Authoritative offer sheet preflight is missing player context.',
+        ])
+      );
+      return;
+    }
+
+    if (!getOfferSheetPreflight) {
+      setOfferSheetPreflight(
+        buildOfferSheetPreflightResult('blocked', [
+          'Offer sheet preflight unavailable (no world context).',
+        ])
+      );
+      return;
+    }
+
+    setOfferSheetPreflight(
+      buildOfferSheetPreflightResult('incomplete', [
+        'Checking authoritative offer sheet legality...',
+      ])
+    );
+
+    void Promise.resolve(
+      getOfferSheetPreflight(player, offerSheetPreflightPayload)
+    )
+      .then((result) => {
+        if (latestOfferSheetPreflightRequestId.current !== requestId) {
+          return;
+        }
+
+        setOfferSheetPreflight(normalizeOfferSheetPreflightResult(result));
+      })
+      .catch((error) => {
+        if (latestOfferSheetPreflightRequestId.current !== requestId) {
+          return;
+        }
+
+        setOfferSheetPreflight(
+          buildOfferSheetPreflightResult('incomplete', [
+            error instanceof Error
+              ? error.message
+              : 'Authoritative offer sheet preflight failed before legality could be determined.',
+          ])
+        );
+      });
+  }, [
+    getOfferSheetPreflight,
+    isOpen,
+    isOfferSheet,
+    offerSheetPreflightPayload,
+    player,
+    selectedAction,
+  ]);
+
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
@@ -918,6 +1055,7 @@ const EditContractModal = ({
     setOverrideText('');
     setDestinationTeamId(null);
     setSignAndTradePreflight(null);
+    setOfferSheetPreflight(null);
     setSaveError('');
     setIsSubmitting(false);
     if (selectedAction !== 'buyout') {

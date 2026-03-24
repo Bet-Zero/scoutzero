@@ -24,6 +24,7 @@ const FreeAgencySection = ({
   onSign,
   onSignAndTrade,
   getSignAndTradePreflight,
+  getOfferSheetPreflight,
   onStoreOfferSheet,
   playersMap,
   outgoingOfferSheets,
@@ -73,6 +74,9 @@ const FreeAgencySection = ({
       onSignAndTrade={onSignAndTrade as FreeAgentPoolProps['onSignAndTrade']}
       getSignAndTradePreflight={
         getSignAndTradePreflight as FreeAgentPoolProps['getSignAndTradePreflight']
+      }
+      getOfferSheetPreflight={
+        getOfferSheetPreflight as FreeAgentPoolProps['getOfferSheetPreflight']
       }
       onStoreOfferSheet={onStoreOfferSheet as FreeAgentPoolProps['onStoreOfferSheet']}
       playersMap={playersMap as FreeAgentPoolProps['playersMap']}

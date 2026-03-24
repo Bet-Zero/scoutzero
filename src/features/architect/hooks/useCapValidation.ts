@@ -27,7 +27,7 @@
  * an info warning. This ensures consistent behavior via the Salary Engine.
  */
 import { useMemo } from 'react';
-import type { SignAndTradePreflightResult } from '@/features/architect/utils/mutationPipeline';
+import type { SignAndTradePreflightResult, OfferSheetPreflightResult } from '@/features/architect/utils/mutationPipeline';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -146,6 +146,8 @@ type UseCapValidationParams = {
   targetYear?: number | null;
   rulesProfile?: UseCapValidationRulesProfile | null;
   signAndTradePreflight?: SignAndTradePreflightResult | null;
+  offerSheetPreflight?: OfferSheetPreflightResult | null;
+  isOfferSheet?: boolean;
 };
 
 type UseCapValidationResult = {
@@ -299,6 +301,8 @@ export function useCapValidation({
   targetYear = null,
   rulesProfile = null,
   signAndTradePreflight = null,
+  offerSheetPreflight = null,
+  isOfferSheet = false,
 }: UseCapValidationParams): UseCapValidationResult {
   return useMemo(() => {
     const warnings: ValidationMessage[] = [];
@@ -650,6 +654,43 @@ export function useCapValidation({
       }
     }
 
+    // ===== OFFER SHEET =====
+    if (action === 'signNew' && isOfferSheet) {
+      const normalizedPreflight = offerSheetPreflight;
+
+      if (!normalizedPreflight) {
+        incomplete = true;
+        warnings.push({
+          severity: 'warning',
+          message: 'Authoritative offer sheet preflight is unavailable.',
+        });
+      } else {
+        normalizedPreflight.warnings.forEach((message) => {
+          warnings.push({
+            severity: 'warning',
+            message,
+          });
+        });
+
+        if (normalizedPreflight.status === 'blocked') {
+          normalizedPreflight.reasons.forEach((message) => {
+            errors.push({
+              severity: 'error',
+              message,
+            });
+          });
+        } else if (normalizedPreflight.status === 'incomplete') {
+          incomplete = true;
+          normalizedPreflight.reasons.forEach((message) => {
+            warnings.push({
+              severity: 'warning',
+              message,
+            });
+          });
+        }
+      }
+    }
+
     const isValid = errors.length === 0;
 
     return { warnings, errors, isValid, incomplete };
@@ -662,6 +703,8 @@ export function useCapValidation({
     targetYear,
     rulesProfile,
     signAndTradePreflight,
+    offerSheetPreflight,
+    isOfferSheet,
   ]);
 }
 
