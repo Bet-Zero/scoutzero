@@ -170,7 +170,7 @@ function makeTeam(teamCode: string) {
     players: [] as Array<Record<string, unknown>>,
     capHolds: [] as Array<Record<string, unknown>>,
     deadCap: [] as Array<Record<string, unknown>>,
-    draftPicks: [] as Array<Record<string, unknown>>,
+    draftPicks: [],
     tradeExceptions: [] as Array<Record<string, unknown>>,
     exceptionHistory: [] as Array<Record<string, unknown>>,
     entitlementIds: [] as string[],

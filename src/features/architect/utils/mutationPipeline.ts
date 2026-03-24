@@ -116,6 +116,7 @@ import {
 import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
 import type { CapHold } from '@/features/architect/utils/capHolds';
+import type { DraftPick } from '@/schemas/architect';
 import type {
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
   TeamResult as TradeContextTeamResult,
@@ -330,7 +331,7 @@ export type ArchitectMutationTeamRecord = {
   offerSheets?: ArchitectMutationOfferSheet[];
   incomingOfferSheets?: ArchitectMutationOfferSheet[];
   totals?: Record<string, unknown> | null;
-  draftPicks?: Record<string, unknown>[];
+  draftPicks?: DraftPick[];
   entitlementIds?: string[];
   source?: Record<string, unknown> | string | null;
   hardCapTriggered?: string | boolean | null;
@@ -456,9 +457,9 @@ export type ArchitectMutationPayload = {
   offerSheetId?: string | null;
   dedupKey?: string | null;
   deadCap?: ArchitectMutationDeadCapEntry[] | null;
-  deadCapChanges?: unknown[] | null;
+  deadCapChanges?: string[] | null;
   exceptions?: ArchitectMutationExceptions | null;
-  exceptionChanges?: unknown[] | null;
+  exceptionChanges?: string[] | null;
   worldId?: string | null;
   tradeCtx?: ArchitectMutationTradeContext | null;
 };
@@ -523,7 +524,7 @@ export type ArchitectMutationResult = {
   playerDeletes?: ArchitectMutationPlayerDelete[];
   entitlementUpdates?: EntitlementUpdateLike[];
   metadata?: MutationMetadataLike;
-  warnings?: unknown[];
+  warnings?: (string | LooseRecord)[];
   violations?: string[];
   writesSummary?: ArchitectMutationWritesSummary;
   changedTeams?: ArchitectMutationTeamUpdate[];
