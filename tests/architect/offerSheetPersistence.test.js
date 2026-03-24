@@ -388,6 +388,74 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
             expect(offeringTeamAfter2.offerSheets[0].createdAt).toBe(firstCreatedAt);
         });
     });
+
+    describe('Strict home-team truth guardrails', () => {
+        it('fails closed when authoritative home team is missing', () => {
+            const result = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: createMockPayload(),
+                currentState: {
+                    team: createMockState().team,
+                    player: createMockState().player,
+                    teamCode: 'LAL',
+                    homeTeam: null,
+                },
+                seasonId: '2025-26',
+                timestamp: Date.now(),
+            });
+
+            expect(result.success).toBe(false);
+            expect(String(result.error)).toContain('resolved authoritative home-team truth');
+        });
+
+        it('fails closed when home team resolves to the offering team', () => {
+            const result = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: createMockPayload(),
+                currentState: createMockState({
+                    homeTeam: {
+                        teamCode: 'LAL',
+                        teamName: 'Los Angeles Lakers',
+                        players: [{
+                            player_id: 'player123',
+                            id: 'player123',
+                            name: 'Test Player',
+                            displayName: 'Test Player',
+                            contract: { signingTeam: 'LAL' }
+                        }],
+                        roster: ['player123'],
+                        incomingOfferSheets: [],
+                    },
+                }),
+                seasonId: '2025-26',
+                timestamp: Date.now(),
+            });
+
+            expect(result.success).toBe(false);
+            expect(String(result.error)).toContain('home team distinct from the offering team');
+        });
+
+        it('fails closed when canonical player truth is not backed by the home-team snapshot player', () => {
+            const result = computeWorldMutation({
+                mutationType: 'storeOfferSheet',
+                payload: createMockPayload(),
+                currentState: createMockState({
+                    homeTeam: {
+                        teamCode: 'BOS',
+                        teamName: 'Boston Celtics',
+                        players: [],
+                        roster: ['player123'],
+                        incomingOfferSheets: [],
+                    },
+                }),
+                seasonId: '2025-26',
+                timestamp: Date.now(),
+            });
+
+            expect(result.success).toBe(false);
+            expect(String(result.error)).toContain('home-team snapshot player truth');
+        });
+    });
 });
 
 // ==============================================================================

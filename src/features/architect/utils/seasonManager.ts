@@ -71,6 +71,7 @@ import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
@@ -95,6 +96,12 @@ import {
   applyGatedDAREResultsToBatch,
   formatReceiptAsSummary,
 } from '@/features/architect/utils/entitlements/dare';
+import type {
+  OffseasonAppliedChangesSummary,
+  OffseasonOptionDecisionMap,
+  OffseasonTransitionContext,
+  OffseasonTransitionResult,
+} from '@/features/architect/utils/offseason/resolveOffseasonTransition';
 
 const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
 const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance';
@@ -115,7 +122,9 @@ function safeCloneForAudit(value: unknown): unknown {
   }
 }
 
-function buildPostStateRulesContext(year: number) {
+function buildPostStateRulesContext(
+  year: number
+): NonNullable<PostStateCapValidationInput['rulesContext']> {
   const capSettingsResult = getCapSettings({ year });
   const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
 
@@ -179,6 +188,30 @@ function removeUndefinedDeep(obj: unknown): unknown {
 }
 
 type LooseRecord = Record<string, unknown>;
+
+type SeasonAdvanceExpiredTpe =
+  OffseasonAppliedChangesSummary['expiredTPEs'][number] & {
+    teamCode?: string;
+  };
+
+type SeasonAdvanceTeamSummary = Pick<
+  OffseasonAppliedChangesSummary,
+  | 'exercisedOptions'
+  | 'declinedOptions'
+  | 'expiredContracts'
+  | 'transitionedExceptions'
+> & {
+  expiredTPEs: SeasonAdvanceExpiredTpe[];
+  stepienUpdates: unknown[];
+  conveyanceResolutions: unknown[];
+  swapResolutions: unknown[];
+};
+
+type SeasonAdvanceSummary = SeasonAdvanceTeamSummary & {
+  dareReceipt?: unknown;
+  dareWriteCount?: number;
+  dareError?: string;
+};
 
 const FALLBACK_SEASON_YEAR = new Date().getFullYear();
 
@@ -660,7 +693,8 @@ export async function advanceSeasonInWorld(worldId: string, options: LooseRecord
   const operationTimestamp = Date.now();
   const operationId = generateSeasonAdvanceOperationId(operationTimestamp);
   const occurredAt = new Date(operationTimestamp).toISOString();
-  const optionDecisions = (options.optionDecisions || {}) as LooseRecord;
+  const optionDecisions = (options.optionDecisions ||
+    {}) as OffseasonOptionDecisionMap;
 
   try {
     // Get current world metadata
@@ -718,12 +752,17 @@ export async function advanceSeasonInWorld(worldId: string, options: LooseRecord
     const updatedTeams = [];
     const beforeTeamsByCode: Record<string, Record<string, unknown>> = {};
     const afterTeamsByCode: Record<string, Record<string, unknown>> = {};
-    const beforeTotalsByTeam: Record<string, Record<string, unknown>> = {};
-    const afterTotalsByTeam: Record<string, Record<string, unknown>> = {};
-    const summary: Record<string, unknown[]> & { dareReceipt?: unknown; dareWriteCount?: number; dareError?: string } = {
+    const beforeTotalsByTeam: NonNullable<
+      PostStateCapValidationInput['beforeTotalsByTeam']
+    > = {};
+    const afterTotalsByTeam: NonNullable<
+      PostStateCapValidationInput['afterTotalsByTeam']
+    > = {};
+    const summary: SeasonAdvanceSummary = {
       exercisedOptions: [],
       declinedOptions: [],
       expiredContracts: [],
+      transitionedExceptions: [],
       stepienUpdates: [],
       expiredTPEs: [],
       // Phase 5: Track draft pick resolutions
@@ -760,6 +799,11 @@ export async function advanceSeasonInWorld(worldId: string, options: LooseRecord
       if (teamSummary.expiredContracts.length > 0) {
         summary.expiredContracts.push(...teamSummary.expiredContracts);
       }
+      if (teamSummary.transitionedExceptions.length > 0) {
+        summary.transitionedExceptions.push(
+          ...teamSummary.transitionedExceptions
+        );
+      }
       if (teamSummary.stepienUpdates.length > 0) {
         summary.stepienUpdates.push(...teamSummary.stepienUpdates);
       }
@@ -785,8 +829,8 @@ export async function advanceSeasonInWorld(worldId: string, options: LooseRecord
       if (updatedTeam) {
         beforeTeamsByCode[teamCode] = safeCloneForAudit(team) as Record<string, unknown>;
         afterTeamsByCode[teamCode] = safeCloneForAudit(updatedTeam) as Record<string, unknown>;
-        beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear) as Record<string, unknown>;
-        afterTotalsByTeam[teamCode] = computeTeamCapTotals(updatedTeam, toYear) as Record<string, unknown>;
+        beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear);
+        afterTotalsByTeam[teamCode] = computeTeamCapTotals(updatedTeam, toYear);
 
         const snapshotRef = worldTeamRef(worldId, teamCode);
         // Bridge Gate: match persistWorldMutation hygiene order
@@ -1062,13 +1106,13 @@ async function processTeamSeasonTransitionWithOptions(
   teamData: LooseRecord,
   fromSeason: string,
   toSeason: string,
-  optionDecisions: LooseRecord,
+  optionDecisions: OffseasonOptionDecisionMap,
   resolutionContext: LooseRecord = {}
 ) {
   let updatedTeam = { ...teamData };
   let hasChanges = false;
   const teamCode = teamData.teamCode as string;
-  const teamSummary: Record<string, unknown[]> = {
+  const teamSummary: SeasonAdvanceTeamSummary = {
     exercisedOptions: [],
     declinedOptions: [],
     expiredContracts: [],
@@ -1230,16 +1274,18 @@ async function processTeamSeasonTransitionWithOptions(
   // Offseason transition SSOT (OSTE)
   const toYear = resolveSeasonEndYear(toSeason);
   const fromYear = resolveSeasonEndYear(fromSeason, toYear - 1);
-  const transitionResult = resolveOffseasonTransition({
-    teamCapSheet: updatedTeam,
-    fromYear,
-    toYear,
-    optionDecisions,
-    context: {
-      worldId: worldId as string,
-      teamCode,
-    },
-  });
+  const transitionContext: OffseasonTransitionContext = {
+    worldId: worldId as string,
+    teamCode,
+  };
+  const transitionResult: OffseasonTransitionResult =
+    resolveOffseasonTransition({
+      teamCapSheet: updatedTeam,
+      fromYear,
+      toYear,
+      optionDecisions,
+      context: transitionContext,
+    });
 
   if (!transitionResult.success) {
     const message =

@@ -34,9 +34,16 @@
  */
 
 import { db } from '@/firebaseConfig';
-import { writeBatch, serverTimestamp } from 'firebase/firestore';
-import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
-import { updateWorldStats } from '@/features/architect/utils/worldManager';
+import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import {
+  getTeam,
+  getPlayer,
+  mergePlayerOverride,
+} from '@/features/architect/utils/teamLoader';
+import {
+  getWorldMetadata,
+  updateWorldStats,
+} from '@/features/architect/utils/worldManager';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { buildTradeTeamInput } from '@/features/architect/utils/schemaAdapter';
 import {
@@ -106,8 +113,15 @@ import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
 import type { CapHold } from '@/features/architect/utils/capHolds';
+import type {
+  PostTradeSnapshot as TradeContextPostTradeSnapshot,
+  TeamResult as TradeContextTeamResult,
+  ValidatedTradeContext as TradeContextValidatedTradeContext,
+  ValidationTeam as TradeContextValidationTeam,
+} from '@/features/architect/utils/tradeContext/types';
 
 // ==============================================================================
 // PHASE 58: TRADE CONTEXT MODULE RE-EXPORTS
@@ -130,15 +144,15 @@ type LooseRecord = Record<string, unknown>;
 type MutationScalarId = string | number | null | undefined;
 
 export type ArchitectMutationSalaryRow = {
-  season?: unknown;
-  salary?: unknown;
-  capHit?: unknown;
-  guaranteed?: unknown;
-  guaranteedAmount?: unknown;
+  season?: string | null;
+  salary?: number | string | null;
+  capHit?: number | string | null;
+  guaranteed?: boolean | null;
+  guaranteedAmount?: number | string | null;
   option?: string | null;
   optionType?: string | null;
-  optionUsed?: unknown;
-  isExtensionSeason?: boolean;
+  optionUsed?: boolean | null;
+  isExtensionSeason?: boolean | null;
 };
 
 export type ArchitectMutationBirdRights = {
@@ -151,38 +165,38 @@ export type ArchitectMutationBirdRights = {
 };
 
 export type ArchitectMutationFreeAgency = {
-  year?: unknown;
-  type?: unknown;
-  capHold?: unknown;
-  qualifyingOffer?: unknown;
-  earlyTerminationOption?: unknown;
-  hasOption?: unknown;
-  optionYear?: unknown;
-  optionType?: unknown;
+  year?: number | string | null;
+  type?: string | null;
+  capHold?: number | null;
+  qualifyingOffer?: number | null;
+  earlyTerminationOption?: boolean | null;
+  hasOption?: boolean | null;
+  optionYear?: number | string | null;
+  optionType?: string | null;
 };
 
 export type ArchitectMutationContract = {
   salariesByYear?: ArchitectMutationSalaryRow[];
-  years?: number | string | null;
-  startYear?: number | string | null;
-  year?: number | string | null;
+  years?: number | null;
+  startYear?: number | null;
+  year?: number | null;
   birdRights?: ArchitectMutationBirdRights | null;
   contractType?: string | null;
-  isExtension?: unknown;
-  isRookieScale?: unknown;
+  isExtension?: boolean | null;
+  isRookieScale?: boolean | null;
   signingTeam?: string | null;
-  signingDate?: unknown;
+  signingDate?: string | number | null;
   signedUsing?: string | null;
   exceptionType?: string | null;
-  contractYears?: unknown;
-  firstYearGuaranteed?: unknown;
-  rfaOfferSheet?: unknown;
-  rfaOfferSheetOnly?: unknown;
-  yearsRemaining?: unknown;
-  contractLength?: unknown;
-  originalLength?: unknown;
-  totalValue?: unknown;
-  guaranteedValue?: unknown;
+  contractYears?: number | null;
+  firstYearGuaranteed?: boolean | null;
+  rfaOfferSheet?: boolean | null;
+  rfaOfferSheetOnly?: boolean | null;
+  yearsRemaining?: number | null;
+  contractLength?: number | null;
+  originalLength?: number | null;
+  totalValue?: number | null;
+  guaranteedValue?: number | null;
   freeAgency?: ArchitectMutationFreeAgency | string | null;
   rfaOfferSheetStatus?: string | null;
   [key: string]: unknown;
@@ -230,27 +244,27 @@ export type ArchitectMutationExceptions = {
   room?: ArchitectMutationExceptionEntry | null;
   bae?: ArchitectMutationExceptionEntry | null;
   dpe?: ArchitectMutationExceptionEntry | null;
-  tpe?: TradeExceptionRecord[];
+  tpe?: any[];
 } & Record<string, unknown>;
 
 export type ArchitectMutationOfferSheet = {
-  id?: string | null;
+  id?: string | number | null;
   dedupKey?: string | null;
   playerId?: string | null;
   playerName?: string | null;
   offeringTeamCode?: string | null;
   homeTeamCode?: string | null;
   status?: string | null;
-  contractYears?: unknown;
-  totalValue?: unknown;
+  contractYears?: number | string | null;
+  totalValue?: number | string | null;
   salariesByYear?: ArchitectMutationSalaryRow[];
   createdAt?: string | number | Date | null;
 };
 
 type ArchitectMutationCapHold = {
-  playerId?: MutationScalarId;
+  playerId?: string | null;
   playerName?: string | null;
-  amount?: unknown;
+  amount?: number | null;
   type?: string | null;
   season?: string | null;
   isSigned?: boolean | null;
@@ -271,11 +285,18 @@ export type ArchitectMutationPlayerRecord = {
   bio?: unknown;
   contract?: ArchitectMutationContract | null;
   futureContract?: ArchitectMutationContract | null;
+  age?: number | null;
+  salary?: number | null;
+  currentSalary?: number | null;
+  freeAgency?: ArchitectMutationFreeAgency | string | null;
+  birdRights?: ArchitectMutationBirdRights | string | null;
+  renounced?: boolean | null;
   representation?: unknown;
   source?: unknown;
   lastUpdated?: unknown;
   version?: unknown;
   rfaContext?: unknown;
+  draft?: Record<string, unknown> | null;
   matchIncoming?: number | string | null;
   absorptionMode?: string | null;
   tpeId?: string | null;
@@ -294,19 +315,23 @@ export type ArchitectMutationTeamRecord = {
   teamCode?: string | null;
   teamName?: string | null;
   players?: ArchitectMutationPlayerRecord[];
-  roster?: unknown[];
+  roster?: string[];
+  twoWayPlayers?: ArchitectMutationPlayerRecord[];
   capHolds?: ArchitectMutationCapHold[];
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptions | null;
-  tradeExceptions?: TradeExceptionRecord[];
+  tradeExceptions?: any[];
   offerSheets?: ArchitectMutationOfferSheet[];
   incomingOfferSheets?: ArchitectMutationOfferSheet[];
   totals?: Record<string, unknown> | null;
+  draftPicks?: Record<string, unknown>[];
+  entitlementIds?: string[];
   source?: Record<string, unknown> | string | null;
   hardCapTriggered?: string | boolean | null;
   hardCapTriggeredBy?: string | null;
   hardCapReason?: string | null;
   hardCapped?: boolean | number | null;
+  hardCapLevel?: string | null;
 };
 
 export type ArchitectTradePayloadPlayer = ArchitectMutationPlayerRecord & {
@@ -338,8 +363,8 @@ export type ArchitectTradePayloadTeam = {
   outgoingEntitlements?: TradePayloadEntitlementLike[];
   incomingEntitlements?: TradePayloadEntitlementLike[];
   entitlementsOut?: TradePayloadEntitlementLike[];
-  picksOut?: unknown[];
-  picksIn?: unknown[];
+  picksOut?: Record<string, unknown>[];
+  picksIn?: Record<string, unknown>[];
   cashSent?: number | null;
   cashReceived?: number | null;
 };
@@ -372,43 +397,14 @@ type TradeMutationMetadata = {
   entitlementsTraded?: TradeEntitlementsMovedByTeam;
   timestamp: number;
 } & Record<string, unknown>;
-type TradeSnapshotLike = {
-  teamUpdates?: Array<{
-    teamCode?: string | null;
-    team?: ArchitectMutationTeamRecord | null;
-  }>;
-  validationTeams?: TradeValidationTeamLike[];
-  [key: string]: unknown;
-};
-type TradeValidationTeamLike = {
-  receives?: ArchitectTradePayloadPlayer[];
-  [key: string]: unknown;
-};
-type TradeValidationTeamResultLike = LooseRecord & {
-  createdTPE?: TradeExceptionRecord | null;
-  rules?: {
-    tradeExceptions?: unknown;
-    [key: string]: unknown;
-  } | null;
-  _blocked?: boolean;
-  _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
-  _tpeConsumptionWarnings?: TradeTpeConsumptionIssue[];
-};
-type TradeValidationResultLike = LooseRecord & {
-  legal?: boolean;
-  teamResults?: TradeValidationTeamResultLike[];
-};
-export type ArchitectMutationValidatedTradeContext = {
-  _isValidatedTradeContext?: boolean;
-  _rawValidation?: TradeValidationResultLike;
-  legal?: boolean;
-  error?: string | null;
-  reason?: string;
-  violations?: string[];
-  warnings?: unknown[];
-  teamResults?: TradeValidationTeamResultLike[];
-  validationTeams?: TradeValidationTeamLike[];
-};
+type TradeSnapshotLike = TradeContextPostTradeSnapshot;
+type TradeValidationTeamLike = TradeContextValidationTeam;
+type TradeValidationTeamResultLike = TradeContextTeamResult;
+type TradeValidationResultLike =
+  | NonNullable<TradeContextValidatedTradeContext['_rawValidation']>
+  | Pick<TradeContextValidatedTradeContext, 'legal' | 'teamResults'>;
+export type ArchitectMutationValidatedTradeContext =
+  TradeContextValidatedTradeContext;
 type TradeHistoryContextLike = LooseRecord & {
   worldId?: unknown;
   mutationType?: unknown;
@@ -501,8 +497,8 @@ type MutationAuditContext = {
   mutationCategory?: string | null;
   teamCodes?: readonly string[];
   playerIds?: readonly string[];
-  beforeTotalsByTeam?: Record<string, Record<string, unknown>>;
-  afterTotalsByTeam?: Record<string, Record<string, unknown>>;
+  beforeTotalsByTeam?: NonNullable<PostStateCapValidationInput['beforeTotalsByTeam']>;
+  afterTotalsByTeam?: NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
   valid?: boolean | null;
   violations?: string[];
   warnings?: string[];
@@ -539,6 +535,7 @@ type TradeValidatedContextLike = ArchitectMutationValidatedTradeContext;
 type TradeTeamUpdate = ArchitectMutationTeamUpdate;
 type ComputeResultLike = ArchitectMutationResult;
 type AuditContextLike = MutationAuditContext;
+type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
 type CurrentStateTeamEntryLike = {
   teamCode?: string | null;
   team?: TeamLike | null;
@@ -588,6 +585,48 @@ type ComputeMutationParams = {
   currentState: CurrentStateLike;
   seasonId: string;
   timestamp: number;
+};
+
+const AUTHORITATIVE_WORLD_TEAM_CODES = [
+  'ATL',
+  'BOS',
+  'BKN',
+  'CHA',
+  'CHI',
+  'CLE',
+  'DAL',
+  'DEN',
+  'DET',
+  'GSW',
+  'HOU',
+  'IND',
+  'LAC',
+  'LAL',
+  'MEM',
+  'MIA',
+  'MIL',
+  'MIN',
+  'NOP',
+  'NYK',
+  'OKC',
+  'ORL',
+  'PHI',
+  'PHX',
+  'POR',
+  'SAC',
+  'SAS',
+  'TOR',
+  'UTA',
+  'WAS',
+] as const;
+
+type StoreOfferSheetOwnershipCandidate = {
+  teamCode: string;
+  snapshotWorldId: string;
+  team: TeamLike;
+  rosterMatch: boolean | null;
+  playersMatch: boolean | null;
+  snapshotPlayer: PlayerLike | null;
 };
 
 // Re-export for backward compatibility
@@ -988,6 +1027,256 @@ function extractTeamsByCodeFromCurrentState(
   return teamsByCode;
 }
 
+function getMutationRosterEntryId(entry: unknown) {
+  if (!entry) {
+    return null;
+  }
+  if (typeof entry === 'string') {
+    const normalized = entry.trim();
+    return normalized || null;
+  }
+  if (typeof entry !== 'object') {
+    return null;
+  }
+
+  const rawId =
+    (entry as LooseRecord).player_id ||
+    (entry as LooseRecord).playerId ||
+    (entry as LooseRecord).id ||
+    null;
+  if (!rawId) {
+    return null;
+  }
+
+  const playerId = String(rawId).trim();
+  return playerId || null;
+}
+
+function getSnapshotRosterMembership(
+  team: TeamLike | null | undefined,
+  playerId: string
+) {
+  if (!Array.isArray(team?.roster)) {
+    return null;
+  }
+
+  return team.roster.some((entry) => getMutationRosterEntryId(entry) === playerId);
+}
+
+function getSnapshotPlayersMembership(
+  team: TeamLike | null | undefined,
+  playerId: string
+) {
+  if (!Array.isArray(team?.players)) {
+    return {
+      playersMatch: null,
+      snapshotPlayer: null,
+    };
+  }
+
+  const snapshotPlayer = findPlayerInTeamPlayers(team, playerId);
+  return {
+    playersMatch: snapshotPlayer !== null,
+    snapshotPlayer,
+  };
+}
+
+async function resolveWorldLineage(worldId: string) {
+  const lineageWorldIds: string[] = [];
+  const visitedWorldIds = new Set<string>();
+  let currentWorldId = worldId;
+
+  while (currentWorldId) {
+    if (visitedWorldIds.has(currentWorldId)) {
+      throw new Error(
+        `World lineage cycle detected while resolving authoritative offer-sheet ownership for ${currentWorldId}.`
+      );
+    }
+
+    visitedWorldIds.add(currentWorldId);
+    lineageWorldIds.push(currentWorldId);
+
+    const metadata = (await getWorldMetadata(currentWorldId)) as LooseRecord;
+    const parentWorldId =
+      typeof metadata.parentWorldId === 'string'
+        ? metadata.parentWorldId.trim()
+        : '';
+    currentWorldId = parentWorldId || '';
+  }
+
+  return lineageWorldIds;
+}
+
+async function getFirstExplicitWorldTeamSnapshotFromLineage(
+  lineageWorldIds: string[],
+  teamCode: string
+) {
+  for (const lineageWorldId of lineageWorldIds) {
+    const snapshot = await getDoc(worldTeamRef(lineageWorldId, teamCode));
+    if (snapshot.exists()) {
+      return {
+        snapshotWorldId: lineageWorldId,
+        team: snapshot.data() as TeamLike,
+      };
+    }
+  }
+
+  return null;
+}
+
+async function getFirstExplicitWorldPlayerOverrideFromLineage(
+  lineageWorldIds: string[],
+  teamCode: string,
+  playerId: string
+) {
+  for (const lineageWorldId of lineageWorldIds) {
+    const overrideSnapshot = await getDoc(
+      worldPlayerRef(lineageWorldId, teamCode, playerId)
+    );
+    if (overrideSnapshot.exists()) {
+      return {
+        overrideWorldId: lineageWorldId,
+        player: overrideSnapshot.data() as PlayerLike,
+      };
+    }
+  }
+
+  return null;
+}
+
+async function resolveStoreOfferSheetAuthority({
+  worldId,
+  offeringTeamCode,
+  playerId,
+}: {
+  worldId: string;
+  offeringTeamCode: string;
+  playerId: string;
+}) {
+  const [offeringTeam, lineageWorldIds] = await Promise.all([
+    getTeam(worldId, offeringTeamCode),
+    resolveWorldLineage(worldId),
+  ]);
+
+  const ownershipCandidates = (
+    await Promise.all(
+      AUTHORITATIVE_WORLD_TEAM_CODES.map(async (teamCode) => {
+        const snapshotEntry = await getFirstExplicitWorldTeamSnapshotFromLineage(
+          lineageWorldIds,
+          teamCode
+        );
+        if (!snapshotEntry) {
+          return null;
+        }
+
+        const rosterMatch = getSnapshotRosterMembership(
+          snapshotEntry.team,
+          playerId
+        );
+        const { playersMatch, snapshotPlayer } = getSnapshotPlayersMembership(
+          snapshotEntry.team,
+          playerId
+        );
+
+        if (
+          rosterMatch !== null &&
+          playersMatch !== null &&
+          rosterMatch !== playersMatch
+        ) {
+          throw new Error(
+            `Strict storeOfferSheet ownership conflict for ${playerId}: ${teamCode} snapshot roster membership disagrees with players[] membership.`
+          );
+        }
+
+        return {
+          teamCode,
+          snapshotWorldId: snapshotEntry.snapshotWorldId,
+          team: snapshotEntry.team,
+          rosterMatch,
+          playersMatch,
+          snapshotPlayer,
+        } as StoreOfferSheetOwnershipCandidate;
+      })
+    )
+  ).filter(Boolean) as StoreOfferSheetOwnershipCandidate[];
+
+  const rosterOwners = ownershipCandidates.filter(
+    (candidate) => candidate.rosterMatch === true
+  );
+  const playersOwners = ownershipCandidates.filter(
+    (candidate) => candidate.playersMatch === true
+  );
+
+  let resolvedOwner: StoreOfferSheetOwnershipCandidate | null = null;
+
+  if (rosterOwners.length === 1) {
+    resolvedOwner = rosterOwners[0];
+  } else if (rosterOwners.length > 1) {
+    throw new Error(
+      `Strict storeOfferSheet ownership is ambiguous for ${playerId}: multiple roster owners found (${rosterOwners
+        .map((candidate) => candidate.teamCode)
+        .join(', ')}).`
+    );
+  } else if (playersOwners.length === 1) {
+    resolvedOwner = playersOwners[0];
+  } else if (playersOwners.length > 1) {
+    throw new Error(
+      `Strict storeOfferSheet ownership is ambiguous for ${playerId}: multiple players[] owners found (${playersOwners
+        .map((candidate) => candidate.teamCode)
+        .join(', ')}).`
+    );
+  } else {
+    throw new Error(
+      `Strict storeOfferSheet ownership could not resolve an authoritative home team for ${playerId} from world snapshots.`
+    );
+  }
+
+  if (resolvedOwner.teamCode === offeringTeamCode) {
+    throw new Error(
+      `storeOfferSheet requires a distinct home team. Player ${playerId} resolves to offering team ${offeringTeamCode}.`
+    );
+  }
+
+  const overrideEntry = await getFirstExplicitWorldPlayerOverrideFromLineage(
+    lineageWorldIds,
+    resolvedOwner.teamCode,
+    playerId
+  );
+
+  if (overrideEntry && !resolvedOwner.snapshotPlayer) {
+    throw new Error(
+      `Strict storeOfferSheet source truth requires a home-team snapshot player for ${playerId} on ${resolvedOwner.teamCode} before applying override truth.`
+    );
+  }
+
+  const canonicalPlayer = overrideEntry
+    ? (mergePlayerOverride(
+        resolvedOwner.snapshotPlayer as any,
+        overrideEntry.player as any
+      ) as PlayerLike)
+    : resolvedOwner.snapshotPlayer;
+
+  if (!canonicalPlayer) {
+    throw new Error(
+      `Strict storeOfferSheet source truth could not resolve player ${playerId} from authoritative home team ${resolvedOwner.teamCode}.`
+    );
+  }
+
+  return {
+    team: offeringTeam as TeamLike,
+    player: {
+      ...canonicalPlayer,
+      teamCode: resolvedOwner.teamCode,
+      teamName:
+        resolvedOwner.team.teamName ||
+        canonicalPlayer.teamName ||
+        null,
+    } as PlayerLike,
+    teamCode: offeringTeamCode,
+    homeTeam: resolvedOwner.team,
+  };
+}
+
 function extractTeamsByCodeFromComputeResult(
   computeResult: ComputeResultLike = {}
 ): MutationTeamMap {
@@ -1001,8 +1290,8 @@ function extractTeamsByCodeFromComputeResult(
 function buildTotalsByTeam(
   teamsByCode: MutationTeamMap,
   year: number
-): Record<string, Record<string, unknown>> {
-  const totalsByTeam: Record<string, Record<string, unknown>> = {};
+): PostStateTotalsByTeam {
+  const totalsByTeam: PostStateTotalsByTeam = {};
   for (const [teamCode, team] of Object.entries(teamsByCode)) {
     totalsByTeam[teamCode] = computeTeamCapTotals(team, year);
   }
@@ -1046,7 +1335,9 @@ function collectMutationPlayerIds(
   return Array.from(playerIds);
 }
 
-function buildPostStateRulesContext(year: number): LooseRecord {
+function buildPostStateRulesContext(
+  year: number
+): NonNullable<PostStateCapValidationInput['rulesContext']> {
   const capSettingsResult = getCapSettings({ year });
   const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
 
@@ -1911,7 +2202,6 @@ export async function applyWorldMutation({
     }
 
     const rulesContext = buildPostStateRulesContext(year);
-    type AnyRecord = Record<string, unknown>;
     const postStateValidation = validatePostStateCapLegality({
       operationId,
       mutationType,
@@ -1919,8 +2209,8 @@ export async function applyWorldMutation({
       year,
       beforeTeamsByCode,
       afterTeamsByCode,
-      beforeTotalsByTeam: beforeTotalsByTeam as unknown as Record<string, AnyRecord>,
-      afterTotalsByTeam: afterTotalsByTeam as unknown as Record<string, AnyRecord>,
+      beforeTotalsByTeam,
+      afterTotalsByTeam,
       rulesContext,
     });
 
@@ -2138,33 +2428,16 @@ async function loadStateForMutation(
     }
 
     case 'storeOfferSheet': {
-      // Load offering team and player first
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
       if (!teamCode || !playerId)
         throw new Error('Missing teamCode or playerId');
 
-      const [offeringTeam, player] = (await Promise.all([
-        getTeam(worldId, teamCode),
-        getPlayer(worldId, teamCode, playerId),
-      ])) as [TeamLike, PlayerLike];
-
-      // If player belongs to another team, load that home team too
-      // (needed for mirroring incomingOfferSheets)
-      const homeTeamCode = (player.teamCode || player.contract?.signingTeam) as string | null | undefined;
-      let homeTeam = null;
-
-      if (homeTeamCode && homeTeamCode !== teamCode) {
-        homeTeam = (await getTeam(worldId, homeTeamCode)) as TeamLike;
-      }
-
-      // Normalize return structure to include both
-      return {
-        team: offeringTeam, // Maintain 'team' as the primary actor (offering team)
-        player,
-        teamCode,
-        homeTeam,
-      };
+      return await resolveStoreOfferSheetAuthority({
+        worldId,
+        offeringTeamCode: String(teamCode),
+        playerId: String(playerId),
+      });
     }
 
     case 'matchOfferSheet':
@@ -2622,7 +2895,7 @@ function buildNormalizedOfferSheetFinalContract({
     rfaOfferSheet: undefined,
     rfaOfferSheetOnly: undefined,
     rfaOfferSheetStatus: undefined,
-  });
+  }) as ArchitectMutationContract | null;
 
   return removeUndefinedDeep(normalizedContract) as ArchitectMutationContract;
 }
@@ -3158,7 +3431,7 @@ function computeTradeResult({
           if (consumed === 0) return tpe;
 
           const currentRemaining = getTpeRemaining(tpe);
-          const currentUsed = tpe.usedAmount ?? 0;
+          const currentUsed = toFiniteAmount(tpe.usedAmount, 0);
           const newRemaining = Math.max(0, currentRemaining - consumed);
           const newUsed = currentUsed + consumed;
 
@@ -3401,9 +3674,19 @@ function computeTradeResult({
     (teamResult) => teamResult?._blocked
   );
   if (blockedTeams.length > 0) {
-    const allErrors = blockedTeams.flatMap(
-      (teamResult) => teamResult._tpeConsumptionErrors || []
-    );
+    const allErrors = blockedTeams
+      .flatMap((teamResult) =>
+        Array.isArray(teamResult._tpeConsumptionErrors)
+          ? teamResult._tpeConsumptionErrors
+          : []
+      )
+      .filter(
+        (issue): issue is TradeTpeConsumptionIssue =>
+          !!issue &&
+          typeof issue === 'object' &&
+          'reason' in issue &&
+          typeof (issue as { reason?: unknown }).reason === 'string'
+      );
     return {
       success: false,
       error: `TPE fail-closed: ${allErrors.map((issue) => issue.reason).join('; ')}`,
@@ -3645,7 +3928,7 @@ function computeSigningResult({
     ...contract,
     signingTeam: teamCode,
     signingDate: new Date(timestamp).toISOString(),
-  });
+  }) as ArchitectMutationContract | null;
 
   const updatedPlayer = {
     ...player,
@@ -3960,7 +4243,9 @@ function computeExtensionResult({
 
   const updatedPlayer = {
     ...updatedTeam.players[playerIndex],
-    futureContract: normalizeFutureContract(rawFutureContract),
+    futureContract: normalizeFutureContract(
+      rawFutureContract
+    ) as ArchitectMutationContract | null,
   };
 
   updatedTeam.players = [...updatedTeam.players];
@@ -4048,7 +4333,7 @@ function computeOptionResult({
       contract: normalizeContractForWorld({
         ...playerData.contract,
         salariesByYear: updatedSalaries,
-      }),
+      }) as ArchitectMutationContract | null,
     };
   } else {
     const optionSeason = salaries[optionIndex]?.season || null;
@@ -4073,7 +4358,7 @@ function computeOptionResult({
           year: freeAgencyYear,
           type: 'UFA',
         },
-      }),
+      }) as ArchitectMutationContract | null,
       freeAgentYear: freeAgencyYear,
     };
 
@@ -4340,11 +4625,17 @@ function validateMutation({
     // Phase 56+: Trade validation MUST have already occurred via validatePostTradeSnapshotForContext
     // computeWorldMutation guarantees _validatedTradeContext is attached to computeResult
     if (computeResult?._validatedTradeContext?._isValidatedTradeContext) {
-      const preValidated = computeResult._validatedTradeContext as LooseRecord;
+      const preValidated =
+        computeResult._validatedTradeContext as unknown as LooseRecord;
       return {
         valid: preValidated.legal as boolean,
         error: preValidated.error as string | undefined,
-        violations: (preValidated.violations as string[] | undefined) || [],
+        violations: ((preValidated.violations as unknown[] | undefined) || []).map(
+          (violation) =>
+            typeof violation === 'string'
+              ? violation
+              : JSON.stringify(violation)
+        ),
         warnings: [...((preValidated.warnings as unknown[] | undefined) || []), ...pipelineWarnings],
       };
     }
@@ -4389,7 +4680,7 @@ function validateMutation({
         signedUsing: payload.signedUsing,
         year: currentYear,
         asOfDate, // Phase 20: Pass world time to validator (unused now, ready for Phase 21)
-      } as any);
+      });
       return {
         valid: result.valid,
         error: result.violations[0]?.message || null,
@@ -4406,7 +4697,7 @@ function validateMutation({
         year: currentYear,
         isGracePeriod: payload.isGracePeriod || false,
         asOfDate, // Phase 21: World time for stretch timing check
-      } as any);
+      });
       return {
         valid: result.valid,
         error: result.violations[0]?.message || null,
@@ -4432,12 +4723,19 @@ function validateMutation({
 
     case 'optionDecision': {
       // Phase 7.1: Pass updatedTeam to validate cap hold transitions
-      const updatedTeam = computeResult?.teamUpdates?.find(
-        (u: any) => u.teamCode === currentState.team.teamCode
-      )?.team;
-      const updatedPlayer = computeResult?.playerUpdates?.find(
-        (u: any) => u.playerId === getPlayerId(currentState.player as any)
-      )?.player;
+      const teamCode = currentState.team?.teamCode || null;
+      const playerId = getPlayerId(
+        currentState.player as Parameters<typeof getPlayerId>[0]
+      );
+      const updatedTeam = teamCode
+        ? computeResult?.teamUpdates?.find((update) => update.teamCode === teamCode)
+            ?.team
+        : null;
+      const updatedPlayer = playerId
+        ? computeResult?.playerUpdates?.find(
+            (update) => update.playerId === playerId
+          )?.player
+        : null;
 
       const result = validateOptionDecision({
         originalTeam: currentState.team,
@@ -4464,7 +4762,7 @@ function validateMutation({
         contract: payload.contract,
         signedUsing: payload.signedUsing,
         year: currentYear,
-      } as any);
+      });
       return {
         valid: result.valid,
         error: result.violations[0]?.message || null,
@@ -4476,7 +4774,7 @@ function validateMutation({
     case 'matchOfferSheet': {
       // Validate Match Action (including 48h window check)
       const offerSheet = currentState.homeTeam?.incomingOfferSheets?.find(
-        (os: any) => os.id === currentState.offerSheetId
+        (offerSheetEntry) => offerSheetEntry.id === currentState.offerSheetId
       );
       const result = validateOfferSheetResolution({
         offerSheet,
@@ -4495,7 +4793,7 @@ function validateMutation({
     case 'declineOfferSheet': {
       // Validate Decline Action
       const offerSheet = currentState.homeTeam?.incomingOfferSheets?.find(
-        (os: any) => os.id === currentState.offerSheetId
+        (offerSheetEntry) => offerSheetEntry.id === currentState.offerSheetId
       );
       const result = validateOfferSheetResolution({
         offerSheet,
@@ -4514,14 +4812,14 @@ function validateMutation({
     case 'finalizeMatchedOfferSheet':
     case 'finalizeDeclinedOfferSheet': {
       const homeOfferSheet = currentState.homeTeam?.incomingOfferSheets?.find(
-        (os: any) =>
-          os.id === currentState.offerSheetId ||
-          (payload.dedupKey && os.dedupKey === payload.dedupKey)
+        (offerSheetEntry) =>
+          offerSheetEntry.id === currentState.offerSheetId ||
+          (payload.dedupKey && offerSheetEntry.dedupKey === payload.dedupKey)
       );
       const offeringOfferSheet = currentState.offeringTeam?.offerSheets?.find(
-        (os: any) =>
-          os.id === currentState.offerSheetId ||
-          (payload.dedupKey && os.dedupKey === payload.dedupKey)
+        (offerSheetEntry) =>
+          offerSheetEntry.id === currentState.offerSheetId ||
+          (payload.dedupKey && offerSheetEntry.dedupKey === payload.dedupKey)
       );
       const offerSheet = homeOfferSheet || offeringOfferSheet;
 
@@ -4577,7 +4875,8 @@ function validateMutation({
 
       if (hasPreValidatedSigning && hasPreValidatedTrade) {
         const preSigningResult = computeResult._signingValidation as LooseRecord;
-        const preTradeResult = computeResult._validatedTradeContext as LooseRecord;
+        const preTradeResult =
+          computeResult._validatedTradeContext as unknown as LooseRecord;
         const preSigningViolations = (preSigningResult.violations as LooseRecord[] | undefined) || [];
         const preTradeViolations = (preTradeResult.violations as LooseRecord[] | undefined) || [];
 
@@ -4897,6 +5196,37 @@ function computeStoreOfferSheetResult({
   const { contract, worldId } = payload;
   const currentYear = toEndYear(seasonId);
 
+  if (!offeringTeam || !teamCode) {
+    return {
+      success: false,
+      error: 'storeOfferSheet requires an authoritative offering team snapshot.',
+    };
+  }
+
+  if (!homeTeam?.teamCode) {
+    return {
+      success: false,
+      error:
+        'storeOfferSheet requires resolved authoritative home-team truth before offer-sheet creation.',
+    };
+  }
+
+  if (homeTeam.teamCode === teamCode) {
+    return {
+      success: false,
+      error:
+        'storeOfferSheet requires a home team distinct from the offering team.',
+    };
+  }
+
+  if (!player) {
+    return {
+      success: false,
+      error:
+        'storeOfferSheet requires canonical home-team player truth before offer-sheet creation.',
+    };
+  }
+
   // Validate store-only invariants programmatically just in case
   if (contract.rfaOfferSheetOnly !== true || contract.rfaOfferSheet !== true) {
     return {
@@ -4907,7 +5237,26 @@ function computeStoreOfferSheetResult({
   }
 
   const playerId = player.player_id || player.id;
-  const homeTeamCode = player.teamCode || player.contract?.signingTeam;
+  const homeTeamCode = homeTeam.teamCode;
+  const authoritativeSnapshotPlayer = findPlayerInTeamPlayers(
+    homeTeam,
+    String(playerId || '')
+  );
+
+  if (!playerId) {
+    return {
+      success: false,
+      error: 'storeOfferSheet requires a stable playerId from canonical truth.',
+    };
+  }
+
+  if (!authoritativeSnapshotPlayer) {
+    return {
+      success: false,
+      error:
+        'storeOfferSheet requires pre-resolved authoritative home-team snapshot player truth.',
+    };
+  }
 
   // Phase 18.2: worldId is REQUIRED for audit-grade dedupKey
   // Cannot store offer sheet without worldId - fail fast
@@ -4939,7 +5288,10 @@ function computeStoreOfferSheetResult({
     seasonKey: seasonId,
     year: currentYear,
     contractYears: contract.contractYears || contract.years || 1,
-    salariesByYear: (contract.salariesByYear as LooseRecord[] | undefined)?.map(normalizeSalaryRow) || [],
+    salariesByYear:
+      ((contract.salariesByYear as LooseRecord[] | undefined)?.map(
+        normalizeSalaryRow
+      ) as ArchitectMutationSalaryRow[] | undefined) || [],
     status: 'PENDING_MATCH',
     createdAt: new Date(timestamp).toISOString(),
     totalValue: contract.totalValue,
@@ -5588,7 +5940,9 @@ function computeSignAndTradeResult({
       error:
         signingValidation.violations?.[0]?.message ||
         'Signing validation failed',
-      violations: signingValidation.violations,
+      violations: signingValidation.violations.map((violation) =>
+        typeof violation === 'string' ? violation : JSON.stringify(violation)
+      ),
       warnings: signingValidation.warnings,
     };
   }

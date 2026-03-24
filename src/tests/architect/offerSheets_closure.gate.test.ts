@@ -244,6 +244,41 @@ describe('Gate 4: Store mirrors to offering + home team arrays (E1)', () => {
   });
 });
 
+describe('Gate 4B: Store ownership resolves from strict home-team authority (E5)', () => {
+  const content = readFileContent(MUTATION_PIPELINE_PATH);
+  const storeOfferSheetBlock =
+    content.match(
+      /case\s+['"]storeOfferSheet['"]:\s*\{[\s\S]{0,1200}\n\s*\}/
+    )?.[0] || '';
+
+  it('routes storeOfferSheet through resolveStoreOfferSheetAuthority', () => {
+    expect(storeOfferSheetBlock).toContain('resolveStoreOfferSheetAuthority');
+  });
+
+  it('does not load storeOfferSheet player truth from offering-team getPlayer path', () => {
+    expect(storeOfferSheetBlock).not.toMatch(
+      /getPlayer\s*\(\s*worldId\s*,\s*teamCode\s*,\s*playerId\s*\)/
+    );
+  });
+
+  it('checks roster membership before players[] fallback for ownership', () => {
+    expect(content).toContain('const rosterOwners = ownershipCandidates.filter');
+    expect(content).toContain('const playersOwners = ownershipCandidates.filter');
+    expect(content).toContain('if (rosterOwners.length === 1)');
+    expect(content).toContain('else if (playersOwners.length === 1)');
+  });
+
+  it('fails closed when snapshot roster and players[] membership disagree', () => {
+    expect(content).toContain(
+      'snapshot roster membership disagrees with players[] membership'
+    );
+  });
+
+  it('derives storeOfferSheet homeTeamCode from resolved homeTeam authority', () => {
+    expect(content).toContain('const homeTeamCode = homeTeam.teamCode;');
+  });
+});
+
 // === GATE 5: Match/Decline Enforce Status + Mirror Update ===
 
 describe('Gate 5: Match/Decline enforce status + mirror update (E1)', () => {

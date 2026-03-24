@@ -64,6 +64,12 @@ import {
   ROOKIE_SCALE_TOLERANCE,
 } from '@/features/architect/data/rookieScale';
 import { normalizeSeasonKey } from '@/features/architect/data/capYearData';
+import type { CapHold } from '@/features/architect/utils/capHolds';
+import type {
+  ArchitectMutationContract,
+  ArchitectMutationPlayerRecord,
+  ArchitectMutationTeamRecord,
+} from '@/features/architect/utils/mutationPipeline';
 // ==============================================================================
 // CONSTANTS
 // ==============================================================================
@@ -71,32 +77,157 @@ import { normalizeSeasonKey } from '@/features/architect/data/capYearData';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
 
+type MutationSalaryRow = Omit<
+  NonNullable<ArchitectMutationContract['salariesByYear']>[number],
+  | 'season'
+  | 'salary'
+  | 'capHit'
+  | 'guaranteed'
+  | 'guaranteedAmount'
+  | 'optionUsed'
+  | 'isExtensionSeason'
+> & {
+  season?: string | null;
+  salary?: number | string | null;
+  capHit?: number | string | null;
+  guaranteed?: boolean | null;
+  guaranteedAmount?: number | string | null;
+  optionUsed?: boolean | null;
+  isExtensionSeason?: boolean | null;
+};
+type MutationContract = Omit<
+  ArchitectMutationContract,
+  | 'salariesByYear'
+  | 'freeAgency'
+  | 'contractYears'
+  | 'yearsRemaining'
+  | 'contractLength'
+  | 'totalValue'
+  | 'guaranteedValue'
+> &
+  AnyRecord & {
+    salariesByYear?: MutationSalaryRow[];
+    freeAgency?:
+      | {
+          year?: number | string | null;
+          type?: string | null;
+          qualifyingOffer?: number | null;
+        }
+      | string
+      | null;
+    contractYears?: number | string | null;
+    yearsRemaining?: number | string | null;
+    contractLength?: number | string | null;
+    totalValue?: number | string | null;
+    guaranteedValue?: number | string | null;
+  };
+type MutationPlayer = Omit<
+  ArchitectMutationPlayerRecord,
+  'contract' | 'futureContract'
+> &
+  AnyRecord & {
+    contract?: MutationContract | null;
+    futureContract?: MutationContract | null;
+  };
+type MutationTeam = Omit<
+  ArchitectMutationTeamRecord,
+  | 'players'
+  | 'twoWayPlayers'
+  | 'capHolds'
+  | 'roster'
+  | 'totals'
+  | 'draftPicks'
+> &
+  AnyRecord & {
+    players?: MutationPlayer[];
+    twoWayPlayers?: MutationPlayer[];
+    capHolds?: AnyRecord[];
+    roster?: MutationRosterEntry[];
+    totals?: Record<string, unknown> | null;
+    draftPicks?: AnyRecord[];
+    exceptions?: AnyRecord | null;
+    tradeExceptions?: AnyRecord[];
+  };
+type MutationRosterEntry =
+  | string
+  | number
+  | {
+      player_id?: string | null;
+      playerId?: string | null;
+      id?: string | null;
+    };
+type MutationCapHold = (Omit<Partial<CapHold>, 'playerId'> & {
+  playerId?: string | number | null;
+  playerName?: string | null;
+  amount?: number | null;
+  active?: boolean | null;
+  isSigned?: boolean | null;
+}) &
+  AnyRecord;
+type KnownCapHold = CapHold & MutationCapHold;
+type MutationValidationResult = {
+  valid: boolean;
+  violations: AnyRecord[];
+  warnings: AnyRecord[];
+};
+
 type SigningTerms = {
   source?: string;
-  mechanism?: any;
-  rightsType?: any;
-  maxYears?: any;
-  minYears?: any;
-  raisePercentage?: any;
-  maxFirstYearSalary?: any;
-  minFirstYearSalary?: any;
+  mechanism?: string | null;
+  rightsType?: string | null;
+  maxYears?: number | null;
+  minYears?: number | null;
+  raisePercentage?: number | null;
+  maxFirstYearSalary?: number | null;
+  minFirstYearSalary?: number | null;
   notes?: string;
 };
 
 type NormalizeSigningTermsOptions = {
-  fallbackMechanism?: any;
+  fallbackMechanism?: string | null;
 };
 
 type ValidateOptionDecisionParams = {
-  originalTeam?: any;
-  updatedTeam?: any;
-  originalPlayer?: any;
-  updatedPlayer?: any;
-  team?: any;
-  player?: any;
-  accepted?: any;
-  targetYear?: any;
-  currentYear?: any;
+  originalTeam?: MutationTeam | null;
+  updatedTeam?: MutationTeam | null;
+  originalPlayer?: MutationPlayer | null;
+  updatedPlayer?: MutationPlayer | null;
+  team?: MutationTeam | null;
+  player?: MutationPlayer | null;
+  accepted?: boolean | null;
+  targetYear?: number | string | null;
+  currentYear?: number | string | null;
+};
+
+type ValidateSigningParams = {
+  team: MutationTeam;
+  player: MutationPlayer;
+  contract: MutationContract | null | undefined;
+  signedUsing: string | null | undefined;
+  year: number;
+  asOfDate?: string;
+};
+
+type ValidateWaiveParams = {
+  team: MutationTeam;
+  player: MutationPlayer;
+  stretch: boolean;
+  year: number;
+  isGracePeriod?: boolean;
+  asOfDate?: string;
+};
+
+type ValidateExtensionParams = {
+  team: MutationTeam;
+  player: MutationPlayer;
+  extension: MutationContract | null | undefined;
+  year: number;
+};
+
+type ValidateRenounceRightsParams = {
+  team: MutationTeam;
+  player: MutationPlayer;
+  year?: number | null;
 };
 
 const getErrorMessage = (error: unknown): string => {
@@ -108,6 +239,68 @@ const getErrorMessage = (error: unknown): string => {
   }
   return String(error);
 };
+
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+};
+
+const asRecordLike = <T extends Record<string, unknown> = AnyRecord>(
+  value: unknown
+): T | null => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as T;
+  }
+  return null;
+};
+
+const normalizeFreeAgency = (
+  value: unknown
+): {
+  type?: string | null;
+  year?: number | string | null;
+  qualifyingOffer?: number | null;
+} | null =>
+  asRecordLike<{
+    type?: string | null;
+    year?: number | string | null;
+    qualifyingOffer?: number | null;
+  }>(value);
+
+const normalizeBirdRights = (
+  value: unknown
+): {
+  status?: string | null;
+  renounced?: boolean | null;
+} | null =>
+  asRecordLike<{
+    status?: string | null;
+    renounced?: boolean | null;
+  }>(value);
+
+const getMutationYearsOfService = (player: MutationPlayer): number =>
+  getYearsOfService(player as Parameters<typeof getYearsOfService>[0]);
+
+const calculateMutationTeamCapHit = (
+  players: MutationPlayer[] | null | undefined,
+  year: number
+): number =>
+  calculateTeamCapHit(
+    (players || []) as Parameters<typeof calculateTeamCapHit>[0],
+    year
+  );
+
+const computeMutationTeamCapTotals = (team: MutationTeam, year: number) =>
+  computeTeamCapTotals(
+    team as Parameters<typeof computeTeamCapTotals>[0],
+    year
+  );
 
 // Roster constants are now sourced from getCapRulesForYear()
 
@@ -468,7 +661,7 @@ function countTwoWayContracts(players: AnyRecord[]) {
  * @param {Object} team - Team data
  * @returns {{isHardCapped: boolean, hardCapLevel: string|null, ceiling: number|null}}
  */
-function getHardCapStatus(team: AnyRecord, capRules: AnyRecord) {
+function getHardCapStatus(team: MutationTeam, capRules: AnyRecord) {
   const totals = team.totals || {};
   const { firstApron, secondApron } = capRules.cap;
 
@@ -507,7 +700,10 @@ function getHardCapStatus(team: AnyRecord, capRules: AnyRecord) {
  * @param {string|null} signedUsing - Exception used for signing
  * @returns {string} Normalized mechanism type
  */
-export function resolveSigningMechanism(contract: AnyRecord | null | undefined, signedUsing: string | null | undefined) {
+export function resolveSigningMechanism(
+  contract: MutationContract | null | undefined,
+  signedUsing: string | null | undefined
+) {
   // Priority 1: contract.exceptionType
   const source = contract?.exceptionType || signedUsing;
 
@@ -597,13 +793,11 @@ export function getSigningYearsLimits(mechanism: string) {
  * @param {Object} contract - Contract object
  * @returns {number} Contract length in years
  */
-function getContractYears(contract: AnyRecord | null | undefined) {
+function getContractYears(contract: MutationContract | null | undefined) {
   // Priority 1: explicit contractLength
-  if (
-    typeof contract?.contractLength === 'number' &&
-    contract.contractLength > 0
-  ) {
-    return contract.contractLength;
+  const explicitLength = toFiniteNumber(contract?.contractLength, 0);
+  if (explicitLength > 0) {
+    return explicitLength;
   }
 
   // Priority 2: salariesByYear array length
@@ -620,11 +814,13 @@ function getContractYears(contract: AnyRecord | null | undefined) {
  * @param {Object} contract - Contract object
  * @returns {{salary: number|null, capHit: number|null}} First year amounts
  */
-function getFirstYearAmounts(contract: AnyRecord | null | undefined) {
+function getFirstYearAmounts(contract: MutationContract | null | undefined) {
   const firstYear = contract?.salariesByYear?.[0];
-  const salary = firstYear?.salary ?? null;
+  const rawSalary = firstYear?.salary ?? null;
+  const salary = rawSalary == null ? null : toFiniteNumber(rawSalary, 0);
   // Fallback capHit to salary if not explicitly set
-  const capHit = firstYear?.capHit ?? salary;
+  const rawCapHit = firstYear?.capHit ?? salary;
+  const capHit = rawCapHit == null ? null : toFiniteNumber(rawCapHit, 0);
   return { salary, capHit };
 }
 
@@ -1303,7 +1499,10 @@ export function isCapSpaceSigning(mechanism: string | null | undefined, rightsTy
 
 const DEFAULT_SIGNING_RAISE_PERCENT = 0.05;
 
-function resolveSigningOperationType(contract: AnyRecord | null | undefined, mechanism: string) {
+function resolveSigningOperationType(
+  contract: MutationContract | null | undefined,
+  mechanism: string
+) {
   const contractType = contract?.contractType?.toLowerCase() || '';
   if (contractType === 'two-way' || contractType === 'twoway') {
     return 'TWO_WAY_SIGNING';
@@ -1450,11 +1649,11 @@ export function getSigningTermsForPlayer({
   year,
   signedUsing,
 }: {
-  team?: any;
-  player?: any;
-  contract?: any;
-  year?: any;
-  signedUsing?: any;
+  team?: MutationTeam | null;
+  player?: MutationPlayer | null;
+  contract?: MutationContract | null;
+  year?: number | null;
+  signedUsing?: string | null;
 }): SigningTerms | null {
   const mechanism = resolveSigningMechanism(contract, signedUsing);
 
@@ -1479,7 +1678,7 @@ export function getSigningTermsForPlayer({
       operationSeasonId: year,
       exceptionUsed,
       simulationDate,
-    });
+    } as unknown as Parameters<typeof buildRuleContextForPlayerMove>[0]);
 
     const profile = getSalaryProfile(ctx);
     if (!profile) {
@@ -1540,7 +1739,7 @@ export function validateSigningRaises({
   raisePercentage,
   mechanism,
 }: {
-  contract: AnyRecord | null | undefined;
+  contract: MutationContract | null | undefined;
   raisePercentage: number | null | undefined;
   mechanism: string;
 }) {
@@ -1563,10 +1762,10 @@ export function validateSigningRaises({
   for (let i = 1; i < contract.salariesByYear.length; i++) {
     const prev = contract.salariesByYear[i - 1];
     const curr = contract.salariesByYear[i];
-    const prevAmount = prev?.salary ?? prev?.capHit ?? null;
-    const currAmount = curr?.salary ?? curr?.capHit ?? null;
+    const prevAmount = toFiniteNumber(prev?.salary ?? prev?.capHit, 0);
+    const currAmount = toFiniteNumber(curr?.salary ?? curr?.capHit, 0);
 
-    if (prevAmount == null || currAmount == null) {
+    if (!Number.isFinite(prevAmount) || !Number.isFinite(currAmount)) {
       continue;
     }
 
@@ -1610,7 +1809,11 @@ export function validateSigningRaises({
  * @param {Object} params.contract - Proposed contract object
  * @returns {boolean} True if this action would finalize (roster the player)
  */
-export function isFinalizingSigning({ contract }: { contract: AnyRecord | null | undefined }) {
+export function isFinalizingSigning({
+  contract,
+}: {
+  contract: MutationContract | null | undefined;
+}) {
   // If rfaOfferSheetOnly is explicitly true, this is NOT a finalization
   // The consumer is storing offer sheet data only, pending match resolution.
   if (contract?.rfaOfferSheetOnly === true) {
@@ -1634,7 +1837,11 @@ export function isFinalizingSigning({ contract }: { contract: AnyRecord | null |
  * @param {Object} params.contract - Contract object with offer sheet flags
  * @returns {{ valid: boolean, violations: Array }}
  */
-export function validateStoreOnlyInvariants({ contract }: { contract: AnyRecord | null | undefined }) {
+export function validateStoreOnlyInvariants({
+  contract,
+}: {
+  contract: MutationContract | null | undefined;
+}) {
   const violations: AnyRecord[] = [];
 
   // Only check if store-only mode is active
@@ -1693,7 +1900,9 @@ export function validateStoreOnlyInvariants({ contract }: { contract: AnyRecord 
  * @param {Object} contract - Proposed offer sheet contract
  * @returns {{ valid: boolean, violations: Array }}
  */
-export function validateOfferSheetTerms(contract: AnyRecord | null | undefined) {
+export function validateOfferSheetTerms(
+  contract: MutationContract | null | undefined
+) {
   const violations = [];
   const years = getContractYears(contract);
 
@@ -1749,8 +1958,8 @@ export function validateSigningTermsAndRaises({
   signingTerms,
   mechanism,
 }: {
-  contract: AnyRecord | null | undefined;
-  signingTerms: AnyRecord | null | undefined;
+  contract: MutationContract | null | undefined;
+  signingTerms: SigningTerms | AnyRecord | null | undefined;
   mechanism: string;
 }) {
   const violations: AnyRecord[] = [];
@@ -1827,14 +2036,16 @@ export function validateSigningTermsAndRaises({
  * @param {Object} contract - Player's current contract object
  * @returns {{salary: number, season: string}|null} Last year salary data or null
  */
-export function getContractLastYearSalary(contract: AnyRecord | null | undefined) {
+export function getContractLastYearSalary(
+  contract: MutationContract | null | undefined
+) {
   if (!contract?.salariesByYear || !Array.isArray(contract.salariesByYear)) {
     return null;
   }
 
   // Filter to guaranteed years only, then get the last one
   const guaranteedYears = contract.salariesByYear.filter(
-    (y: AnyRecord) => y.guaranteed !== false
+    (y: MutationSalaryRow) => y.guaranteed !== false
   );
 
   if (guaranteedYears.length === 0) {
@@ -1843,14 +2054,17 @@ export function getContractLastYearSalary(contract: AnyRecord | null | undefined
       contract.salariesByYear[contract.salariesByYear.length - 1];
     if (!lastYear) return null;
     return {
-      salary: lastYear.salary ?? lastYear.capHit ?? 0,
+      salary: toFiniteNumber(lastYear.salary ?? lastYear.capHit, 0),
       season: lastYear.season,
     };
   }
 
   const lastGuaranteed = guaranteedYears[guaranteedYears.length - 1];
   return {
-    salary: lastGuaranteed.salary ?? lastGuaranteed.capHit ?? 0,
+    salary: toFiniteNumber(
+      lastGuaranteed.salary ?? lastGuaranteed.capHit,
+      0
+    ),
     season: lastGuaranteed.season,
   };
 }
@@ -1864,22 +2078,27 @@ export function getContractLastYearSalary(contract: AnyRecord | null | undefined
  * @param {Object} extension - Extension object with salariesByYear
  * @returns {{salary: number, capHit: number, season: string}|null} First year data or null
  */
-export function getExtensionFirstYearSalary(extension: AnyRecord | null | undefined) {
+export function getExtensionFirstYearSalary(
+  extension: MutationContract | null | undefined
+) {
   if (!extension?.salariesByYear || !Array.isArray(extension.salariesByYear)) {
     return null;
   }
 
   // Look for first entry with isExtensionSeason flag, or just first entry
   const extensionYear =
-    extension.salariesByYear.find((y: AnyRecord) => y.isExtensionSeason) ||
+    extension.salariesByYear.find((y: MutationSalaryRow) => y.isExtensionSeason) ||
     extension.salariesByYear[0];
 
   if (!extensionYear) return null;
 
-  const salary = extensionYear.salary ?? extensionYear.capHit ?? 0;
+  const salary = toFiniteNumber(
+    extensionYear.salary ?? extensionYear.capHit,
+    0
+  );
   return {
     salary,
-    capHit: extensionYear.capHit ?? salary,
+    capHit: toFiniteNumber(extensionYear.capHit ?? salary, salary),
     season: extensionYear.season,
   };
 }
@@ -1892,13 +2111,13 @@ export function getExtensionFirstYearSalary(extension: AnyRecord | null | undefi
  * @param {Object} extension - Extension object
  * @returns {number} Extension length in years (0 if cannot determine)
  */
-export function getExtensionYears(extension: AnyRecord | null | undefined) {
+export function getExtensionYears(
+  extension: MutationContract | null | undefined
+) {
   // Priority 1: explicit contractLength
-  if (
-    typeof extension?.contractLength === 'number' &&
-    extension.contractLength > 0
-  ) {
-    return extension.contractLength;
+  const explicitLength = toFiniteNumber(extension?.contractLength, 0);
+  if (explicitLength > 0) {
+    return explicitLength;
   }
 
   // Priority 2: salariesByYear array length
@@ -1927,9 +2146,9 @@ export function getExtensionTermsForPlayer({
   team,
   year,
 }: {
-  player?: any;
-  team?: any;
-  year?: any;
+  player?: MutationPlayer | null;
+  team?: MutationTeam | null;
+  year?: number | null;
 }) {
   // Guard: need valid player data
   if (!player) {
@@ -1945,7 +2164,7 @@ export function getExtensionTermsForPlayer({
 
     // Compute profile using Salary Engine
     const profile = computePlayerRulesProfile(
-      player,
+      player as Parameters<typeof computePlayerRulesProfile>[0],
       teamContext,
       leagueContext
     );
@@ -1991,8 +2210,8 @@ export function validateExtensionTermsAndRaises({
   extension,
   extensionTerms,
 }: {
-  player: AnyRecord;
-  extension: AnyRecord | null | undefined;
+  player: MutationPlayer;
+  extension: MutationContract | null | undefined;
   extensionTerms: AnyRecord | null | undefined;
 }) {
   const violations: AnyRecord[] = [];
@@ -2058,8 +2277,14 @@ export function validateExtensionTermsAndRaises({
     extension.salariesByYear.length > 1
   ) {
     for (let i = 1; i < extension.salariesByYear.length; i++) {
-      const prevSalary = extension.salariesByYear[i - 1]?.salary || 0;
-      const currSalary = extension.salariesByYear[i]?.salary || 0;
+      const prevSalary = toFiniteNumber(
+        extension.salariesByYear[i - 1]?.salary,
+        0
+      );
+      const currSalary = toFiniteNumber(
+        extension.salariesByYear[i]?.salary,
+        0
+      );
 
       if (prevSalary > 0 && currSalary > 0) {
         const maxAllowed = Math.round(
@@ -2099,7 +2324,15 @@ export function validateExtensionTermsAndRaises({
  * @param {number} params.year - Season end year
  * @returns {{blocked: boolean, reason: string|null, violation: Object|null}}
  */
-export function validateExceptionEligibility({ team, signedUsing, year }: { team: AnyRecord; signedUsing: string | null | undefined; year: number }) {
+export function validateExceptionEligibility({
+  team,
+  signedUsing,
+  year,
+}: {
+  team: MutationTeam;
+  signedUsing: string | null | undefined;
+  year: number;
+}) {
   if (!signedUsing) {
     // Not using an exception - no block needed
     return { blocked: false, reason: null, violation: null };
@@ -2111,8 +2344,10 @@ export function validateExceptionEligibility({ team, signedUsing, year }: { team
   }
 
   const totals = team.totals || {};
-  const currentCapHit =
-    totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
+  const currentCapHit = toFiniteNumber(
+    totals.capHit ?? totals.totalSalary ?? totals.totalCapAllocations,
+    0
+  );
   const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
 
   // Check if team is at or above second apron (STRICT > per Phase 39)
@@ -2130,7 +2365,10 @@ export function validateExceptionEligibility({ team, signedUsing, year }: { team
     normalizedException === 'roommle' ||
     normalizedException === 'rmle';
   if (isRoomMLEVariant) {
-    const roomEligibility = canUseRoomException(team, year);
+    const roomEligibility = canUseRoomException(
+      team as Parameters<typeof canUseRoomException>[0],
+      year
+    );
     if (!roomEligibility.eligible) {
       return {
         blocked: true,
@@ -2269,7 +2507,13 @@ export function validateExceptionEligibility({ team, signedUsing, year }: { team
  * @param {number} params.year - Season end year
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateSigning({ team, player, contract, signedUsing, year }: { team: AnyRecord; player: AnyRecord; contract: AnyRecord | null | undefined; signedUsing: string | null | undefined; year: number }) {
+export function validateSigning({
+  team,
+  player,
+  contract,
+  signedUsing,
+  year,
+}: ValidateSigningParams): MutationValidationResult {
   const violations = [];
   const warnings = [];
 
@@ -2334,7 +2578,9 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
   // Home team RFA actions are allowed. Offer sheet attempts (non-home team) require
   // explicit flag and valid resolution state (Phase 12).
   // Unverifiable team identity is also blocked to prevent silent incorrect state.
-  const playerFreeAgency = player?.freeAgency || player?.contract?.freeAgency;
+  const playerFreeAgency = normalizeFreeAgency(
+    player?.freeAgency || player?.contract?.freeAgency
+  );
   if (playerFreeAgency?.type === 'RFA') {
     const normalizedSigningTeam = normalizeTeamRef(team);
     const normalizedPlayerTeam = normalizePlayerTeamRef(player);
@@ -2516,11 +2762,13 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
     // Phase 9: Use canonical normalizers for team identity
     const normalizedTeamCode = normalizeTeamRef(team);
     const normalizedPlayerTeam = normalizePlayerTeamRef(player);
+    const contractBirdRights = normalizeBirdRights(player?.contract?.birdRights);
+    const playerBirdRights = normalizeBirdRights(player?.birdRights);
     const birdRightsStatus =
-      player?.contract?.birdRights?.status || player?.birdRights?.status;
+      contractBirdRights?.status || playerBirdRights?.status;
     const rightsRenounced =
-      player?.contract?.birdRights?.renounced === true ||
-      player?.birdRights?.renounced === true;
+      contractBirdRights?.renounced === true ||
+      playerBirdRights?.renounced === true;
 
     // Phase 9: Check if we can verify eligibility (both sides must be normalizable)
     const canVerifyTeamMatch =
@@ -2601,18 +2849,27 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
     // Only enforce for cap-space signings (no exception, no Bird rights)
     if (isCapSpaceSigning(capSpaceCheckMechanism, capSpaceCheckRightsType)) {
       // Get current team cap totals (includes cap holds in totalCapAllocations)
-      const teamTotals = computeTeamCapTotals(team, year);
-      const currentCapAllocations = teamTotals.totalCapAllocations || 0;
-      const salaryCap = teamTotals.salaryCap || rules.cap.salaryCap || 0;
+      const teamTotals = computeMutationTeamCapTotals(team, year);
+      const currentCapAllocations = toFiniteNumber(
+        teamTotals.totalCapAllocations,
+        0
+      );
+      const salaryCap = toFiniteNumber(
+        teamTotals.salaryCap ?? rules.cap.salaryCap,
+        0
+      );
 
       // Get the first-year cap hit for the new contract
-      const newContractCapHit =
+      const newContractCapHit = toFiniteNumber(
         contract?.salariesByYear?.[0]?.capHit ??
-        contract?.salariesByYear?.[0]?.salary ??
-        0;
+          contract?.salariesByYear?.[0]?.salary,
+        0
+      );
 
       // Check if this player has an existing cap hold that will be replaced
-      const playerId = getPlayerId(player);
+      const playerId = getPlayerId(
+        player as Parameters<typeof getPlayerId>[0]
+      );
       const existingCapHold = Array.isArray(team.capHolds)
         ? team.capHolds.find(
             (h: AnyRecord) =>
@@ -2745,12 +3002,18 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
   // 1.5. Minimum salary check (PHASE 1 - CBA Contract Rules)
   // Two-way contracts are excluded - they follow separate salary rules not governed by YOS scale
   if (!isTwoWay && rules) {
-    const firstYearSalary = contract?.salariesByYear?.[0]?.salary;
-    const firstYearCapHit = contract?.salariesByYear?.[0]?.capHit;
+    const firstYearSalary = toFiniteNumber(
+      contract?.salariesByYear?.[0]?.salary,
+      Number.NaN
+    );
+    const firstYearCapHit = toFiniteNumber(
+      contract?.salariesByYear?.[0]?.capHit,
+      Number.NaN
+    );
 
-    if (firstYearSalary !== undefined && firstYearSalary !== null) {
+    if (Number.isFinite(firstYearSalary)) {
       // Get player's years of service - defaults to 0 (rookie) if not found
-      const yos = getYearsOfService(player);
+      const yos = getMutationYearsOfService(player);
       const minSalary = rules.salaries.getMinimumForYOS(yos);
 
       // Check if first-year salary is below minimum
@@ -2765,8 +3028,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
       // If capHit exists and differs from salary, validate capHit separately
       // Cap charge also cannot be below minimum (prevents cap manipulation)
       if (
-        firstYearCapHit !== undefined &&
-        firstYearCapHit !== null &&
+        Number.isFinite(firstYearCapHit) &&
         firstYearCapHit !== firstYearSalary
       ) {
         if (firstYearCapHit < minSalary) {
@@ -2896,7 +3158,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
       if (signingMechanism === 'MINIMUM') {
         // MINIMUM mechanism: salary must be EXACTLY at minimum (not above)
         // This enforces "minimum exception" means minimum salary, not just "at least minimum"
-        const yos = getYearsOfService(player);
+        const yos = getMutationYearsOfService(player);
         const minSalary = rules.salaries.getMinimumForYOS(yos);
 
         if (firstYearSalary > minSalary) {
@@ -3020,9 +3282,12 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
     const { salary: firstYearSalary } = getFirstYearAmounts(contract);
 
     if (firstYearSalary !== null) {
-      const yos = getYearsOfService(player);
-      const playerAge = player?.bio?.age ?? player?.age ?? null;
-      const hasDraftYear = player?.bio?.draftYear != null;
+      const yos = getMutationYearsOfService(player);
+      const playerAge = toFiniteNumber(
+        asRecordLike(player?.bio)?.age ?? player?.age,
+        0
+      );
+      const hasDraftYear = asRecordLike(player?.bio)?.draftYear != null;
 
       // Phase 31 Safety Net: Detect unreliable YOS data
       // YOS=0 + no draftYear + age>=25 = likely missing data for veteran
@@ -3115,13 +3380,16 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
   // PHASE 2.5 PATCH: Use capHit (not salary) for projected cap calculation
   if (!isTwoWay && rules) {
     const totals = team.totals || {};
-    const currentCapHit =
-      totals.capHit || totals.totalSalary || totals.totalCapAllocations || 0;
+    const currentCapHit = toFiniteNumber(
+      totals.capHit ?? totals.totalSalary ?? totals.totalCapAllocations,
+      0
+    );
     // Use capHit for projection (fallback to salary if capHit not set)
-    const contractCapImpact =
+    const contractCapImpact = toFiniteNumber(
       contract?.salariesByYear?.[0]?.capHit ??
-      contract?.salariesByYear?.[0]?.salary ??
-      0;
+        contract?.salariesByYear?.[0]?.salary,
+      0
+    );
     const projectedCapHit = currentCapHit + contractCapImpact;
 
     // Check if the signing would put/keep team above second apron
@@ -3132,7 +3400,7 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
         getFirstYearAmounts(contract);
 
       if (firstYearSalary !== null) {
-        const yos = getYearsOfService(player);
+        const yos = getMutationYearsOfService(player);
         const minSalary = rules.salaries.getMinimumForYOS(yos);
 
         // Block if salary is above minimum while team is at/above second apron
@@ -3166,8 +3434,12 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
 
     if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
       const currentCapHit =
-        team.totals?.capHit || calculateTeamCapHit(players, year);
-      const contractValue = contract?.salariesByYear?.[0]?.salary || 0;
+        toFiniteNumber(team.totals?.capHit, 0) ||
+        calculateMutationTeamCapHit(players, year);
+      const contractValue = toFiniteNumber(
+        contract?.salariesByYear?.[0]?.salary,
+        0
+      );
       const projectedCapHit = currentCapHit + contractValue;
 
       if (projectedCapHit > hardCapStatus.ceiling) {
@@ -3185,7 +3457,8 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
       signedUsing?.toLowerCase() === 'full mle'
     ) {
       const currentCapHit =
-        team.totals?.capHit || calculateTeamCapHit(players, year);
+        toFiniteNumber(team.totals?.capHit, 0) ||
+        calculateMutationTeamCapHit(players, year);
       if (currentCapHit > rules.cap.luxuryTax) {
         warnings.push({
           rule: 'mle_taxpayer',
@@ -3198,8 +3471,12 @@ export function validateSigning({ team, player, contract, signedUsing, year }: {
 
     // 4. Apron proximity warnings
     const currentCapHit =
-      team.totals?.capHit || calculateTeamCapHit(players, year);
-    const contractValue = contract?.salariesByYear?.[0]?.salary || 0;
+      toFiniteNumber(team.totals?.capHit, 0) ||
+      calculateMutationTeamCapHit(players, year);
+    const contractValue = toFiniteNumber(
+      contract?.salariesByYear?.[0]?.salary,
+      0
+    );
     const projectedCapHit = currentCapHit + contractValue;
 
     if (projectedCapHit > rules.cap.secondApron) {
@@ -3244,14 +3521,7 @@ export function validateWaive({
   year,
   isGracePeriod = false,
   asOfDate,
-}: {
-  team: AnyRecord;
-  player: AnyRecord;
-  stretch: boolean;
-  year: number;
-  isGracePeriod?: boolean;
-  asOfDate?: string;
-}) {
+}: ValidateWaiveParams): MutationValidationResult {
   const violations = [];
   const warnings = [];
 
@@ -3350,7 +3620,12 @@ export function validateWaive({
  * @param {number} params.year - Season end year
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateExtension({ team, player, extension, year }: { team: AnyRecord; player: AnyRecord; extension: AnyRecord; year: number }) {
+export function validateExtension({
+  team,
+  player,
+  extension,
+  year,
+}: ValidateExtensionParams): MutationValidationResult {
   const violations: AnyRecord[] = [];
   const warnings: AnyRecord[] = [];
 
@@ -3452,39 +3727,51 @@ export function validateExtension({ team, player, extension, year }: { team: Any
   };
 }
 
-function getRosterEntryId(entry: AnyRecord | string | null | undefined) {
+function getRosterEntryId(entry: MutationRosterEntry | null | undefined) {
   if (!entry) return null;
   if (typeof entry === 'string') return entry;
+  if (typeof entry === 'number') return String(entry);
   return entry.player_id || entry.playerId || entry.id || null;
 }
 
-function isPlayerOnRoster(team: AnyRecord | null | undefined, playerId: string | null) {
+function isPlayerOnRoster(team: MutationTeam | null | undefined, playerId: string | null) {
   if (!Array.isArray(team?.roster)) {
     return null;
   }
 
-  return team.roster.some((entry: AnyRecord | string) => getRosterEntryId(entry) === playerId);
+  return team.roster.some((entry: MutationRosterEntry) => getRosterEntryId(entry) === playerId);
 }
 
-function findPlayerById(players: AnyRecord[] | null | undefined, playerId: string | null) {
+function findPlayerById(players: MutationPlayer[] | null | undefined, playerId: string | null) {
   if (!Array.isArray(players)) return null;
-  return players.find((p: AnyRecord) => getPlayerId(p) === playerId) || null;
-}
-
-function getContractRowForYear(contract: AnyRecord | null | undefined, targetYear: number) {
-  if (!Array.isArray(contract?.salariesByYear)) return null;
   return (
-    contract.salariesByYear.find(
-      (row: AnyRecord) => toEndYear(row?.season) === targetYear
+    players.find(
+      (p) => getPlayerId(p as Parameters<typeof getPlayerId>[0]) === playerId
     ) || null
   );
 }
 
-function getOptionRowForYear(contract: AnyRecord | null | undefined, targetYear: number) {
+function getContractRowForYear(
+  contract: MutationContract | null | undefined,
+  targetYear: number
+) {
   if (!Array.isArray(contract?.salariesByYear)) return null;
   return (
     contract.salariesByYear.find(
-      (row: AnyRecord) => toEndYear(row?.season) === targetYear && row?.option
+      (row: MutationSalaryRow) => toEndYear(row?.season) === targetYear
+    ) || null
+  );
+}
+
+function getOptionRowForYear(
+  contract: MutationContract | null | undefined,
+  targetYear: number
+) {
+  if (!Array.isArray(contract?.salariesByYear)) return null;
+  return (
+    contract.salariesByYear.find(
+      (row: MutationSalaryRow) =>
+        toEndYear(row?.season) === targetYear && row?.option
     ) || null
   );
 }
@@ -3512,21 +3799,30 @@ export function validateOptionDecision({
   accepted,
   targetYear,
   currentYear,
-}: ValidateOptionDecisionParams) {
+}: ValidateOptionDecisionParams): MutationValidationResult {
   const violations = [];
   const warnings = [];
 
   const baselineTeam = originalTeam || team;
   const baselinePlayer = originalPlayer || player;
-  const playerId = getPlayerId(baselinePlayer);
+  const playerId = getPlayerId(
+    baselinePlayer as Parameters<typeof getPlayerId>[0]
+  );
   const resolvedUpdatedPlayer =
     updatedPlayer || findPlayerById(updatedTeam?.players, playerId);
+  const resolvedTargetYear =
+    typeof targetYear === 'number' ? targetYear : Number(targetYear);
+  const resolvedCurrentYear =
+    typeof currentYear === 'number' ? currentYear : Number(currentYear);
 
   // 1. Timing validation - can only decide options for upcoming season
-  const isActionableOption = targetYear === currentYear + 1;
+  const hasValidTimingInput =
+    Number.isFinite(resolvedTargetYear) && Number.isFinite(resolvedCurrentYear);
+  const isActionableOption =
+    hasValidTimingInput && resolvedTargetYear === resolvedCurrentYear + 1;
 
   if (!isActionableOption) {
-    if (targetYear < currentYear + 1) {
+    if (hasValidTimingInput && resolvedTargetYear < resolvedCurrentYear + 1) {
       violations.push({
         rule: 'option_timing',
         message: 'This option has already been decided (past season)',
@@ -3535,15 +3831,17 @@ export function validateOptionDecision({
     } else {
       violations.push({
         rule: 'option_timing',
-        message: `Cannot act on this option yet. It can be decided during the ${targetYear - 2}-${String((targetYear - 1) % 100).padStart(2, '0')} offseason.`,
+        message: hasValidTimingInput
+          ? `Cannot act on this option yet. It can be decided during the ${resolvedTargetYear - 2}-${String((resolvedTargetYear - 1) % 100).padStart(2, '0')} offseason.`
+          : 'Cannot act on this option because target year or current year is invalid.',
         severity: 'error',
       });
     }
   }
 
   // 2. If accepting, check hard cap impact
-  if (accepted && isActionableOption) {
-    const rules = getCapRulesForYear(targetYear);
+  if (accepted && isActionableOption && baselineTeam && baselinePlayer) {
+    const rules = getCapRulesForYear(resolvedTargetYear);
 
     if (rules) {
       const hardCapStatus = getHardCapStatus(baselineTeam, rules);
@@ -3563,18 +3861,22 @@ export function validateOptionDecision({
 
         // Calculate projected cap hit including the option salary
         const optionSalary =
-          baselinePlayer.contract?.salariesByYear?.find((y: AnyRecord) => {
-            return toEndYear(y.season) === targetYear && y.option;
-          })?.salary || 0;
+          baselinePlayer.contract?.salariesByYear?.find(
+            (y: MutationSalaryRow) =>
+              toEndYear(y.season) === resolvedTargetYear && y.option
+          )?.salary || 0;
 
         const players = baselineTeam.players || [];
-        const currentCapHit = calculateTeamCapHit(players, targetYear);
-        const projectedCapHit = currentCapHit + optionSalary;
+        const currentCapHit = calculateMutationTeamCapHit(
+          players,
+          resolvedTargetYear
+        );
+        const projectedCapHit = currentCapHit + toFiniteNumber(optionSalary, 0);
 
         if (projectedCapHit > hardCapStatus.ceiling) {
           warnings.push({
             rule: 'option_hard_cap',
-            message: `Accepting option may cause hard cap issues in ${targetYear - 1}-${String(targetYear % 100).padStart(2, '0')}`,
+            message: `Accepting option may cause hard cap issues in ${resolvedTargetYear - 1}-${String(resolvedTargetYear % 100).padStart(2, '0')}`,
             severity: 'warning',
           });
         }
@@ -3585,8 +3887,8 @@ export function validateOptionDecision({
     // If we accepted, we shouldn't have created a cap hold
     if (updatedTeam) {
       const capHoldCreated = didCreateCapHold(
-        baselineTeam,
-        updatedTeam,
+        baselineTeam as Parameters<typeof didCreateCapHold>[0],
+        updatedTeam as Parameters<typeof didCreateCapHold>[1],
         playerId
       );
       if (capHoldCreated) {
@@ -3630,7 +3932,7 @@ export function validateOptionDecision({
         } else {
           const optionRow = getOptionRowForYear(
             resolvedUpdatedPlayer.contract,
-            targetYear
+            resolvedTargetYear
           );
           if (!optionRow) {
             violations.push({
@@ -3653,16 +3955,19 @@ export function validateOptionDecision({
   }
 
   // 3. If declining, validate cap hold transition and free agency state
-  if (!accepted && isActionableOption) {
+  if (!accepted && isActionableOption && baselineTeam && baselinePlayer) {
     // Check if cap hold should be expected
     const expectation = shouldExpectCapHoldOnDecline(
-      baselinePlayer,
-      targetYear
+      baselinePlayer as Parameters<typeof shouldExpectCapHoldOnDecline>[0],
+      resolvedTargetYear
     );
-    const rightsType = getRightsTypeFromPlayer(baselinePlayer);
+    const rightsType = getRightsTypeFromPlayer(
+      baselinePlayer as Parameters<typeof getRightsTypeFromPlayer>[0]
+    );
     const capHoldExpectation = expectation.shouldCreate
       ? computeExpectedCapHoldAmount({
-          player: baselinePlayer,
+          player:
+            baselinePlayer as Parameters<typeof computeExpectedCapHoldAmount>[0]['player'],
           lastSalary: expectation.priorSalary,
           rules: null,
           rightsType,
@@ -3670,7 +3975,7 @@ export function validateOptionDecision({
       : null;
     const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
       expectation.optionSeason,
-      targetYear
+      resolvedTargetYear
     );
     const faYearSourceLabel =
       faYearInfo.source === 'option_season' ? 'option season' : 'fallback year';
@@ -3679,8 +3984,8 @@ export function validateOptionDecision({
     if (updatedTeam) {
       // 3.1 Validate cap hold creation
       const capHoldCreated = didCreateCapHold(
-        baselineTeam,
-        updatedTeam,
+        baselineTeam as Parameters<typeof didCreateCapHold>[0],
+        updatedTeam as Parameters<typeof didCreateCapHold>[1],
         playerId
       );
 
@@ -3695,8 +4000,14 @@ export function validateOptionDecision({
 
       // 3.2 If cap hold created, validate its amount
       if (capHoldCreated) {
-        const newHold = getCapHoldForPlayer(updatedTeam, playerId);
+        const newHold = getCapHoldForPlayer(
+          updatedTeam as Parameters<typeof getCapHoldForPlayer>[0],
+          playerId
+        );
         const amountCheck = isCapHoldAmountValid(newHold);
+        const newHoldAmount = Number(
+          (newHold as KnownCapHold | null | undefined)?.amount || 0
+        );
 
         if (!amountCheck.valid) {
           violations.push({
@@ -3706,7 +4017,6 @@ export function validateOptionDecision({
           });
         } else if (expectation.shouldCreate && capHoldExpectation) {
           const expectedAmount = capHoldExpectation.amount;
-          const newHoldAmount = Number((newHold as AnyRecord)?.amount || 0);
           const amountDelta = Math.abs(newHoldAmount - expectedAmount);
           if (newHoldAmount <= 0) {
             violations.push({
@@ -3726,7 +4036,9 @@ export function validateOptionDecision({
         // Info warning for UI
         warnings.push({
           rule: 'cap_hold_creation',
-          message: `Declining option creates $${((((newHold as AnyRecord)?.amount || 0) as any) / 1_000_000).toFixed(1)}M cap hold`,
+          message: `Declining option creates $${(
+            newHoldAmount / 1_000_000
+          ).toFixed(1)}M cap hold`,
           severity: 'info',
         });
       } else {
@@ -3792,7 +4104,7 @@ export function validateOptionDecision({
       if (updatedDeclinedPlayer?.contract) {
         const declinedRow = getContractRowForYear(
           updatedDeclinedPlayer.contract,
-          targetYear
+          resolvedTargetYear
         );
         if (declinedRow) {
           violations.push({
@@ -3836,25 +4148,35 @@ export function validateOptionDecision({
  * @param {number} [params.year] - Season end year (optional, for consistency with other validators)
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
-export function validateRenounceRights({ team, player, year = null }: { team: AnyRecord; player: AnyRecord; year?: number | null }) {
+export function validateRenounceRights({
+  team,
+  player,
+  year = null,
+}: ValidateRenounceRightsParams): MutationValidationResult {
   const violations: AnyRecord[] = [];
   const warnings = [];
+  void year;
 
   // Use helper functions for consistent player data extraction
-  const playerId = getPlayerId(player);
-  const playerName = getPlayerName(player);
+  const playerId = getPlayerId(player as Parameters<typeof getPlayerId>[0]);
+  const playerName = getPlayerName(
+    player as Parameters<typeof getPlayerName>[0]
+  );
 
   // Check if player has a cap hold to renounce
-  const capHolds = team.capHolds || [];
+  const capHolds: KnownCapHold[] = Array.isArray(team.capHolds)
+    ? (team.capHolds as KnownCapHold[])
+    : [];
 
   const hasCapHold = capHolds.some(
-    (h: AnyRecord) => h.playerId === playerId || h.playerName === playerName
+    (capHold) =>
+      capHold.playerId === playerId || capHold.playerName === playerName
   );
 
   // Check if player has Bird rights to renounce
+  const contractBirdRights = normalizeBirdRights(player.contract?.birdRights);
   const hasBirdRights =
-    player.contract?.birdRights?.status &&
-    player.contract.birdRights.status !== 'None';
+    !!contractBirdRights?.status && contractBirdRights.status !== 'None';
 
   if (!hasCapHold && !hasBirdRights) {
     warnings.push({
@@ -3867,7 +4189,8 @@ export function validateRenounceRights({ team, player, year = null }: { team: An
   // Info about cap space gained
   if (hasCapHold) {
     const capHold = capHolds.find(
-      (h: AnyRecord) => h.playerId === playerId || h.playerName === playerName
+      (candidate) =>
+        candidate.playerId === playerId || candidate.playerName === playerName
     );
     if (capHold?.amount) {
       warnings.push({

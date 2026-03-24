@@ -1,12 +1,12 @@
 # Architect Contract Flow Trust Review
 
-Code-trace review originally created on 2026-03-22, updated the same day after E3 execution fixed the trade/sign-and-trade persisted-player-truth blocker at the authoritative mutation layer, and updated again on 2026-03-23 after E4 brought offer-sheet finalization onto the same canonical final-snapshot persistence model.
+Code-trace review originally created on 2026-03-22, updated the same day after E3 execution fixed the trade/sign-and-trade persisted-player-truth blocker at the authoritative mutation layer, updated again on 2026-03-23 after E4 brought offer-sheet finalization onto the same canonical final-snapshot persistence model, and updated later on 2026-03-23 after E5 fixed authoritative `storeOfferSheet` ownership and source-player resolution.
 
 ## Executive verdict
 
 `NOT TRUSTWORTHY YET`
 
-The authoritative mutation pipeline is strong on sequencing and atomic batch persistence. E3 closed the trade/sign-and-trade persisted-player-truth blocker, and E4 did the same for offer-sheet finalization: matched finalization now persists a same-team canonical player override replacement, declined finalization now persists canonical destination truth plus explicit old-team cleanup, and both flows derive player persistence from the final post-resolution team snapshots. The flow is still not trustworthy end-to-end because `storeOfferSheet` still resolves player state through the offering-team path, and UI SAT validation still drifts from authoritative receiving-team hard-cap logic.
+The authoritative mutation pipeline is strong on sequencing and atomic batch persistence. E3 closed the trade/sign-and-trade persisted-player-truth blocker, E4 did the same for offer-sheet finalization, and E5 now closes the remaining offer-sheet creation truth gap: `storeOfferSheet` resolves ownership from authoritative world snapshot membership, loads canonical player truth from the resolved home-team path, and fails closed when ownership or source truth is ambiguous. The flow is still not trustworthy end-to-end because UI SAT validation still drifts from authoritative receiving-team hard-cap logic, the offer-sheet modal still does not use authoritative preflight, and the 48-hour match window remains warning-only.
 
 ## Files reviewed
 
@@ -38,7 +38,7 @@ Primary evidence came from live `.ts/.tsx` code paths. Older docs/tests were not
 | Stage | Entry file/function | Validation file/function | Compute file/function | Persistence file/function | SSOT status | Resulting state change | Failure-path safety | Stage assessment | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1. UI initiation | `EditContractModal.handleConfirm`; `GMDashboard` modal wiring; `FreeAgentPool` modal wiring | `useCapValidation` on generic `signNew` payload only | None | None | `UI-only` | Local `isOfferSheet` toggle only. No world mutation yet. | Safe from partial persistence because nothing is written. Risk is preflight drift: UI legality is computed before offer-sheet flags/status are added. | `Confirmed risk` | `src/shared/components/EditContractModal.tsx:648-671,1111-1124,1519-1535`; `src/features/architect/GMDashboard/GMDashboard.tsx:188-196,540-556`; `src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx:231-250` |
-| 2. Store + mirror | `EditContractModal.handleConfirm` -> `useArchitectActions.handleStoreOfferSheet` | UI: `useCapValidation`; authoritative: `validateMutation('storeOfferSheet')` -> `validateSigning` | `computeStoreOfferSheetResult` | `applyWorldMutation` -> `persistWorldMutation` | `persisted world truth` | Writes outgoing `offerSheets[]` on offering team, mirrors to home-team `incomingOfferSheets[]`, preserves deterministic `dedupKey`, does not touch roster/totals by design. | Atomic batch means no partial mirror writes if commit fails. Later failures leave truthful `PENDING_MATCH` state. Main safety gap is earlier in the stage: authoritative load resolves the player through the offering team path, which can miss world-specific home-team overrides before mirroring target and RFA state are derived. | `Confirmed bug` | `src/features/architect/GMDashboard/hooks/useArchitectActions.ts:2057-2135`; `src/features/architect/utils/mutationPipeline.ts:2103-2130,2348-2354,3940-3954,4354-4503`; `src/features/architect/utils/teamLoader.ts:251-300` |
+| 2. Store + mirror | `EditContractModal.handleConfirm` -> `useArchitectActions.handleStoreOfferSheet` | UI: `useCapValidation`; authoritative: `validateMutation('storeOfferSheet')` -> `validateSigning` | `computeStoreOfferSheetResult` | `applyWorldMutation` -> `persistWorldMutation` | `persisted world truth` | Writes outgoing `offerSheets[]` on offering team, mirrors to home-team `incomingOfferSheets[]`, preserves deterministic `dedupKey`, does not touch roster/totals by design. | Atomic batch means no partial mirror writes if commit fails. E5 moved source-of-truth resolution ahead of validation/storage: ownership now resolves from authoritative world snapshot membership with strict precedence `roster` then `players[]`, disagreement fails closed, offering-team-path player reads are not used, and canonical player truth comes only from the resolved home-team snapshot plus home-team override lineage. | `No issue confirmed` | `src/features/architect/GMDashboard/hooks/useArchitectActions.ts:2057-2135`; `src/features/architect/utils/mutationPipeline.ts`; `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`; `tests/architect/offerSheetPersistence.test.js` |
 | 3. Match | `OfferSheetList` Match button -> `useArchitectActions.handleMatchOfferSheet` | `validateOfferSheetResolution(action='match')` | `computeMatchOfferSheetResult` | `applyWorldMutation` -> `persistWorldMutation` | `persisted world truth` | Updates status to `MATCHED` on both offering and home-team mirrored rows. | Atomic dual-team write is safe from partial commit. If later finalization fails, the saved `MATCHED` status is still truthful intermediate state. The main rule gap is that an expired 48-hour match window only emits a warning, so a late match can still persist. | `Confirmed risk` | `src/features/architect/GMDashboard/components/OfferSheetList.tsx:85-126`; `src/features/architect/GMDashboard/hooks/useArchitectActions.ts:2137-2174`; `src/features/architect/utils/mutationPipeline.ts:3957-3974,4508-4586`; `src/features/architect/utils/capLegalityValidation.ts:3958-3980` |
 | 4. Decline | `OfferSheetList` Decline button -> `useArchitectActions.handleDeclineOfferSheet` | `validateOfferSheetResolution(action='decline')` | `computeDeclineOfferSheetResult` | `applyWorldMutation` -> `persistWorldMutation` | `persisted world truth` | Updates status to `DECLINED` on both offering and home-team mirrored rows. | Atomic dual-team write is safe from partial commit. If later finalization fails, saved `DECLINED` status remains truthful intermediate state. I did not confirm a separate decline-stage correctness bug beyond the later finalization issues. | `No issue confirmed` | `src/features/architect/GMDashboard/components/OfferSheetList.tsx:85-112`; `src/features/architect/GMDashboard/hooks/useArchitectActions.ts:2176-2213`; `src/features/architect/utils/mutationPipeline.ts:3976-3993,4591-4664`; `src/features/architect/utils/capLegalityValidation.ts:3958-3988` |
 | 5. Finalize matched | `OfferSheetList` Finalize Match -> `useArchitectActions.handleFinalizeOfferSheet` -> `finalizeMatchedOfferSheet` | `validateOfferSheetResolution(action='finalize')` | `computeFinalizeMatchedOfferSheetResult` | `applyWorldMutation` -> `persistWorldMutation` | `persisted world truth` | Removes the sheet from both sides, replaces the home-team player with the normalized matched contract in the final home-team snapshot, removes the matching cap hold, and emits a canonical same-team player override upsert. | Commit remains atomic, and E4 changed the compute path to fail closed if the player cannot be resolved on the home-team snapshot or the final snapshot cannot supply a canonical persisted player object. Because persistence is now derived from the final home-team snapshot, downstream `getPlayer` reads stay aligned with saved team truth. | `No issue confirmed` | `src/features/architect/GMDashboard/components/OfferSheetList.tsx:114-126`; `src/features/architect/GMDashboard/hooks/useArchitectActions.ts:2215-2295`; `src/features/architect/utils/mutationPipeline.ts:2384-2488,5210-5363,4653-4868`; `tests/architect/mutationPipeline.tradePersistenceTruth.test.ts`; `tests/architect/offerSheetPersistence.test.js` |
@@ -59,11 +59,28 @@ Primary evidence came from live `.ts/.tsx` code paths. Older docs/tests were not
 
 ## Findings table
 
-Trade/sign-and-trade persisted-player-truth is no longer an active finding after E3. The table below lists the remaining confirmed issues and drift risks.
+## Store Offer Sheet Read Path (E5)
+
+Current read path before E5:
+
+- `handleStoreOfferSheet` sent `teamCode` as the offering team plus `playerId`.
+- `loadStateForMutation('storeOfferSheet')` loaded `getPlayer(worldId, offeringTeamCode, playerId)`.
+- The loader then inferred `homeTeamCode` from that offering-team-path player object and only afterward loaded the home team.
+- Validation and mirrored offer-sheet creation therefore depended on player truth that could be stale, mismatched, or sourced from the wrong team path.
+
+Corrected read path after E5:
+
+- `loadStateForMutation('storeOfferSheet')` now resolves world lineage first and scans only explicit world team snapshots in that lineage.
+- Ownership precedence is strict: unique `roster` membership wins, otherwise unique `players[]` membership wins, and any disagreement or ambiguity fails closed.
+- The offering team is treated only as the actor. It is never used as the player source-of-truth path.
+- After ownership resolves, canonical player truth is built only from the resolved home-team snapshot player plus the first home-team override found in lineage. No base fallback is used to break ambiguity or manufacture player truth.
+
+## Findings table
+
+Trade/sign-and-trade persisted-player-truth is no longer an active finding after E3, and the offer-sheet store loader is no longer an active finding after E5. The table below lists the remaining confirmed issues and drift risks.
 
 | Severity | Finding label | Area | Exact file(s) | Exact function(s) | What is wrong / risky | Why it matters | Layer | Recommended fix direction |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| High | Confirmed bug | Offer Sheet store loader | `src/features/architect/utils/mutationPipeline.ts`; `src/features/architect/utils/teamLoader.ts` | `loadStateForMutation` (`storeOfferSheet` branch); `getPlayer`; `computeStoreOfferSheetResult` | `storeOfferSheet` loads the player via `getPlayer(worldId, offeringTeamCode, playerId)`. For an RFA on another team, that path misses any world-specific override stored under the actual home team. The later mirror target is then derived from potentially stale player data. | Once a world diverges from base data, offer-sheet storage can validate and mirror against stale player/home-team truth. That is a direct correctness bug in the primary offer-sheet flow. | Cross-layer | Add world player lookup by playerId/current owner, or explicitly resolve the player from the actual home team before deriving `homeTeamCode`, validation inputs, and mirror targets. |
 | High | Confirmed bug | UI vs authoritative SAT hard-cap rule | `src/features/architect/hooks/useCapValidation.ts`; `src/features/architect/utils/tradeMachine/rules/validateSignAndTrade.ts`; `src/features/architect/utils/tradeContext/tradeContext.ts` | `useCapValidation`; `validateSignAndTrade`; `buildPostTradeTeamsSnapshot` | UI preflight warns about the receiving team hard cap but actually blocks SAT if the current/source team is already over the first apron. Authoritative SAT validation blocks based on the receiving team’s post-trade salary and hard-cap status. | Users can be blocked from legal SATs or allowed to attempt illegal SATs. This is confirmed current drift, not hypothetical. | Cross-layer | Make the authoritative trade validator stack the SSOT for SAT preflight, or compute receiving-team post-trade projections in the modal with the same shared helper path. |
 | High | Confirmed risk | Offer Sheet UI validation drift | `src/shared/components/EditContractModal.tsx`; `src/features/architect/hooks/useCapValidation.ts`; `src/features/architect/utils/capLegalityValidation.ts` | `contractDataForValidation`; `useCapValidation`; `validateSigning` | The modal computes legality from `contractDataForValidation`, but that object does not include `rfaOfferSheet`, `rfaOfferSheetOnly`, `rfaOfferSheetStatus`, or any home-team resolution context. The authoritative layer requires those flags/statuses for RFA offer-sheet logic. | The modal can present generic signing legality that does not match the actual authoritative offer-sheet store/finalize rules. | Cross-layer | Pass canonical offer-sheet flags/status into modal validation, or replace modal-side duplication with a shared authoritative preflight helper. |
 | Medium | Confirmed risk | Offer Sheet timing enforcement | `src/features/architect/utils/capLegalityValidation.ts`; `src/features/architect/utils/mutationPipeline.ts` | `validateOfferSheetResolution`; `validateMutation` | The 48-hour match window is warning-only. A late match still returns `valid: true` and can persist. | If the product expects the 48-hour window to be a real rule, the current authoritative layer does not enforce it. | Authoritative validation | Promote expired-match-window handling from warning to blocking violation if the business rule is mandatory. |
@@ -85,7 +102,7 @@ Where it is confirmed:
 Where drift is only potential:
 
 - `handleSaveContract` is currently fallback-only in the reviewed dashboard path, but if another surface uses it as the primary save handler, it would create committed-looking local truth without authoritative persistence.
-- Offer-sheet finalization is no longer an active canonical-shape drift risk after E4. The remaining offer-sheet risk is earlier in the flow: `storeOfferSheet` still resolves player truth through the offering-team path.
+- Offer-sheet finalization is no longer an active canonical-shape drift risk after E4, and authoritative offer-sheet storage is no longer a canonical source-truth drift risk after E5. The remaining offer-sheet drift is UI-side preflight that still does not use the authoritative home-team resolution context.
 
 What should be SSOT going forward:
 
@@ -97,32 +114,31 @@ What should be SSOT going forward:
 - `handleSaveContract` is explicitly local-only preview code. The comment says it “updates local state only,” and the implementation directly mutates `teamCapSheet` plus `capHolds` without calling `runAuthoritativeFAMutation`, `persistMutation`, or `applyWorldMutation`. Evidence: `src/features/architect/GMDashboard/hooks/useArchitectActions.ts:2655-2735`.
 - In the current reviewed GMDashboard path, `handleSaveContract` is not the primary commit path for sign/resign. `EditContractModal` prefers `onSignFreeAgent` / `onResign` before `onSaveContract`, and `GMDashboard` passes both authoritative handlers and the local fallback. Evidence: `src/shared/components/EditContractModal.tsx:1141-1159`; `src/features/architect/GMDashboard/GMDashboard.tsx:188-196,540-556`.
 - Trade Machine SAT modal behavior is intentionally preview/local until `applyTradeToCapSheet` dispatches `executeTrade`. `TradeEditor.handleTradeMachineSignAndTrade` only updates local trade state with `setPlayerTrade`; the world write happens later via `useArchitectActions.applyTradeToCapSheet`. Evidence: `src/features/architect/tradeMachine/TradeEditor.tsx:396-470,765-779`; `src/features/architect/GMDashboard/hooks/useArchitectActions.ts:1428-1554`.
-- For the current primary free-agency contract path, I did not confirm a “saved-looking local-only commit” bug. Offer-sheet finalization is no longer a primary trust problem after E4; the remaining serious issues are the `storeOfferSheet` load path and SAT/UI validation drift.
+- For the current primary free-agency contract path, I did not confirm a “saved-looking local-only commit” bug. Offer-sheet finalization is no longer a primary trust problem after E4, and authoritative offer-sheet storage is no longer a primary trust problem after E5; the remaining serious issues are SAT/UI validation drift, offer-sheet modal preflight drift, and warning-only timing enforcement.
 - UX messaging is sufficient for the Trade Machine preview branch because that surface is inherently an editor/preview tool. It would not be sufficient if `handleSaveContract` were ever reused as a primary save path, because that handler returns success after local mutation with no built-in preview-only messaging.
 
 ## Trust blockers
 
 - Trade/sign-and-trade persisted-player-truth is no longer an active blocker after E3. Remaining blockers are below.
-- `storeOfferSheet` resolves player state through the offering team path, which can miss world-specific home-team overrides before validation and mirroring.
 - UI SAT validation is not aligned with authoritative receiving-team hard-cap logic.
+- Offer-sheet modal preflight still does not use authoritative home-team resolution context or authoritative store-only flags/status.
 - Offer-sheet resolution still allows late matches because the 48-hour window is warning-only.
 
 ## Recommended next ticket list (ordered)
 
-1. Fix `storeOfferSheet` player loading so the authoritative flow resolves current world player truth from the actual home-team/player owner, not the offering team path.
-2. Replace modal-side SAT apron logic with shared authoritative preflight based on receiving-team post-trade context.
-3. Pass canonical offer-sheet flags/status into modal validation or expose a shared authoritative offer-sheet preflight helper.
-4. Make the 48-hour match window a blocking authoritative rule if that is the intended product behavior.
-5. Remove or rewrite `rfa_offer_sheet_stub_active` so validator messaging matches live code.
-6. Hide or disable SAT consistently in all no-world modal entry surfaces.
+1. Replace modal-side SAT apron logic with shared authoritative preflight based on receiving-team post-trade context.
+2. Pass canonical offer-sheet flags/status plus authoritative home-team context into modal validation or expose a shared authoritative offer-sheet preflight helper.
+3. Make the 48-hour match window a blocking authoritative rule if that is the intended product behavior.
+4. Remove or rewrite `rfa_offer_sheet_stub_active` so validator messaging matches live code.
+5. Hide or disable SAT consistently in all no-world modal entry surfaces.
 
 ## Validation commands run / intentionally skipped
 
 Commands run:
 
 - `npm run typecheck` — passed.
-- `npm run test:node -- tests/architect/mutationPipeline.tradePersistenceTruth.test.ts tests/architect/offerSheetPersistence.test.js src/tests/architect/offerSheets_closure.gate.test.ts src/tests/architect/offerSheetFinalizeValidatorMapping.guardrail.test.ts src/tests/architect/teamHistory.eventPayloadEnrichment.matrix.guardrail.test.ts --reporter=dot` — passed. This targeted E4 proof covered matched same-team canonical upsert truth, declined destination upsert plus source delete truth, canonical source-player derivation for declined finalization, event-metadata contract summary parity, and the extracted helper’s no-regression coverage for E3 trade/SAT persistence.
-- `npm run test:node -- --reporter=dot` — failed, but the active failures are outside the E4 offer-sheet finalization change set:
+- `npm run test:node -- --reporter=dot tests/architect/offerSheetPersistence.test.js tests/architect/mutationPipeline.tradePersistenceTruth.test.ts src/tests/architect/offerSheets_closure.gate.test.ts` — passed. This targeted E5 proof covered strict home-team ownership resolution, home-team override precedence over stale offering/base truth, fail-closed behavior for missing/ambiguous/conflicting owners, direct compute fail-closed guardrails, closure gates for the new resolver path, and store-to-finalize compatibility for both matched and declined E4 flows.
+- `npm run test:node -- --reporter=dot` — failed, but the active failures remain outside the E5 offer-sheet ownership change set:
 - `tests/contractParser.test.js` — suite failed because `@/shared/utils/contracts/contractParser.js` could not be resolved.
 - `src/tests/security/firestoreRules.integration.test.ts` — suite failed because `FIRESTORE_EMULATOR_HOST` was not set under `test:node`.
 - `src/tests/security/firestoreRules.integration.test.ts` — teardown also failed because `testEnv` was never initialized after the missing emulator-host precondition.

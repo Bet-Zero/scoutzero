@@ -1,41 +1,47 @@
-export type AnyRecord = Record<string, unknown>;
+import type {
+  TradeSummaryByTeamIndexRow,
+  TradeTeamResult,
+  TradeValidationResult,
+  TradeValidatorCapProjections,
+  TradeValidatorContext,
+  TradeValidatorCapSettings,
+  ValidationIssue as TradeValidationIssue,
+} from '@/features/architect/utils/tradeMachine/constants/types';
+import type {
+  ArchitectMutationTeamRecord,
+  ArchitectTradePayloadPlayer,
+  ArchitectTradePayloadTeam,
+} from '@/features/architect/utils/mutationPipeline';
+
+// Narrow support surface for mutationPipeline's live trade path.
+// This layer still consumes mixed validator/runtime blobs, so `any` remains
+// localized here instead of leaking through the primary mutation file.
+export type AnyRecord = Record<string, any>;
 
 export interface TeamUpdate {
-  teamCode: string;
-  team: AnyRecord;
+  teamCode: string | null;
+  team: ArchitectMutationTeamRecord;
 }
 
-export interface ValidationIssue {
-  message: string;
-  severity: 'error' | 'warning' | string;
-  rule: string;
-  code: string;
-  details?: unknown;
-  meta?: Record<string, unknown> | null;
-}
+export type ValidationIssue = TradeValidationIssue;
 
-export interface TeamResult extends AnyRecord {
-  createdTPE?: AnyRecord;
-  rules?: AnyRecord;
-  violations?: ValidationIssue[];
-  warnings?: ValidationIssue[];
-}
+export type TeamResult = TradeTeamResult & AnyRecord;
 
-export interface ValidationTeam extends AnyRecord {
-  team: AnyRecord;
-  teamCode: string;
-  sends: AnyRecord[];
-  receives: AnyRecord[];
-  picksOut: AnyRecord[];
-  picksIn: AnyRecord[];
+export interface ValidationTeam {
+  team: ArchitectMutationTeamRecord;
+  teamCode: string | null;
+  sends: ArchitectTradePayloadPlayer[];
+  receives: ArchitectTradePayloadPlayer[];
+  picksOut: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
+  picksIn: NonNullable<ArchitectTradePayloadTeam['picksIn']>;
   cashSent: number;
   cashReceived: number;
 }
 
-export interface PostTradeSnapshot extends AnyRecord {
+export interface PostTradeSnapshot {
   teamUpdates: TeamUpdate[];
   validationTeams: ValidationTeam[];
-  payloadTeams: AnyRecord[];
+  payloadTeams: ArchitectTradePayloadTeam[];
   _isPostTradeSnapshot?: boolean;
 }
 
@@ -47,47 +53,40 @@ export interface ValidatedTradeContext extends AnyRecord {
   violations: ValidationIssue[];
   warnings: ValidationIssue[];
   teamResults: TeamResult[];
-  summaryByTeamIndex: any[];
-  capSettings: AnyRecord | null;
-  capSettingsSource: string | null;
-  capSettingsWarnings: any[];
-  dataWarnings: any[];
+  summaryByTeamIndex: TradeSummaryByTeamIndexRow[];
+  performance?: TradeValidationResult['performance'];
+  tradeReceipt: TradeValidationResult['tradeReceipt'] | AnyRecord | null;
+  dataWarnings: TradeValidationResult['dataWarnings'];
   hasDataIssues: boolean;
-  tradeReceipt: AnyRecord | null;
-  validationTeams: ValidationTeam[];
-  _rawValidation?: AnyRecord;
-  _isValidatedTradeContext: true;
-  yearKey?: number | string;
+  yearKey: number | string | null;
   seasonKey?: string | null;
-  asOfDate?: string | null;
-  tradeDate?: string | null;
-  offseason?: boolean | null;
+  capSettings: TradeValidatorCapSettings | null;
+  capSettingsSource: string | null;
+  capSettingsWarnings: string[];
+  asOfDate: string | null;
+  tradeDate: string | null;
+  offseason: boolean | null;
+  validationTeams: ValidationTeam[];
+  _rawValidation?: TradeValidationResult | AnyRecord;
+  _isValidatedTradeContext: true;
 }
 
-export interface PayloadTeam extends AnyRecord {
-  team?: AnyRecord;
-  teamCode?: string;
-  teamId?: string;
-  sends?: AnyRecord[];
-  receives?: AnyRecord[];
-  picksOut?: AnyRecord[];
-  picksIn?: AnyRecord[];
-  cashSent?: number;
-  cashReceived?: number;
-  outgoingEntitlements?: AnyRecord[];
-  entitlementsOut?: AnyRecord[];
-}
+export type PayloadTeam = ArchitectTradePayloadTeam;
 
 export interface TradeContextPayload extends AnyRecord {
   teams: PayloadTeam[];
-  capProjections?: AnyRecord;
-  tradeCtx?: AnyRecord;
-  asOfDate?: string | null;
+  capProjections?: TradeValidatorCapProjections | null;
+  tradeCtx?:
+    | (TradeValidatorContext & {
+        enforceSignAndTradePreflight?: boolean | null;
+      })
+    | null;
+  asOfDate?: string | number | null;
 }
 
 export interface CurrentStateTeamEntry {
-  teamCode: string;
-  team: AnyRecord;
+  teamCode: string | null;
+  team: ArchitectMutationTeamRecord;
 }
 
 export interface TradeContextCurrentState extends AnyRecord {
