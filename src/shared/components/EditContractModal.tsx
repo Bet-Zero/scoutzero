@@ -16,7 +16,13 @@
  * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
@@ -34,7 +40,10 @@ import {
 import useCapValidation, {
   buildSigningGuardrails,
 } from '@/features/architect/hooks/useCapValidation';
-import type { ArchitectMutationResult } from '@/features/architect/utils/mutationPipeline';
+import type {
+  ArchitectMutationResult,
+  SignAndTradePreflightResult,
+} from '@/features/architect/utils/mutationPipeline';
 import type { PlayerRulesProfileLeagueContext } from '@/features/architect/types';
 import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
@@ -55,6 +64,7 @@ type HookContractDataLike = NonNullable<
 type UseCapValidationResult = ReturnType<typeof useCapValidation>;
 type ValidationEntryLike = UseCapValidationResult['warnings'][number];
 type ValidationSeverity = ValidationEntryLike['severity'];
+type SignAndTradePreflightLike = SignAndTradePreflightResult | null;
 type ContractYearLike = NonNullable<
   ReturnType<typeof getContractYearsForDisplay>[number]
 >;
@@ -246,6 +256,16 @@ type SignAndTradeCallback = (
   destTeamCode: string,
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
+type SignAndTradePreflightCallback = (
+  player: PlayerLike,
+  payload: SigningPayloadLike,
+  destTeamCode: string,
+) =>
+  | Promise<SignAndTradePreflightResult | null | undefined>
+  | SignAndTradePreflightResult
+  | null
+  | undefined;
+
 type ExtendCallback = (
   player: PlayerLike,
   payload: ExtensionPayloadLike,
@@ -276,6 +296,7 @@ type EditContractModalProps = {
   onOptionDecision?: OptionDecisionCallback | null;
   onExtend?: ExtendCallback | null;
   onSignAndTrade?: SignAndTradeCallback | null;
+  getSignAndTradePreflight?: SignAndTradePreflightCallback | null;
   onRenounce?: SimpleActionCallback | null;
   onStoreOfferSheet?: SigningActionCallback | null;
   initialAction?: string | null;
@@ -413,6 +434,50 @@ export const normalizeContractActionResult = (
   };
 };
 
+const buildSignAndTradePreflightResult = (
+  status: SignAndTradePreflightResult['status'],
+  reasons: string[],
+  warnings: string[] = []
+): SignAndTradePreflightResult => ({
+  status,
+  reasons: reasons
+    .map((reason) => String(reason || '').trim())
+    .filter(Boolean),
+  warnings: warnings
+    .map((warning) => String(warning || '').trim())
+    .filter(Boolean),
+  source: 'authoritative-preflight',
+});
+
+const normalizeSignAndTradePreflightResult = (
+  result: SignAndTradePreflightResult | null | undefined
+): SignAndTradePreflightResult => {
+  if (!result) {
+    return buildSignAndTradePreflightResult('incomplete', [
+      'Authoritative sign-and-trade preflight did not return a result.',
+    ]);
+  }
+
+  const status =
+    result.status === 'legal' ||
+    result.status === 'blocked' ||
+    result.status === 'incomplete'
+      ? result.status
+      : 'incomplete';
+  const reasons = Array.isArray(result.reasons) ? result.reasons : [];
+  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+
+  return buildSignAndTradePreflightResult(
+    status,
+    reasons.length > 0
+      ? reasons
+      : status === 'legal'
+        ? []
+        : ['Authoritative sign-and-trade preflight returned no reasons.'],
+    warnings
+  );
+};
+
 const ACTION_SETS: Record<ActionSetKey, ContractActionKey[]> = {
   option: ['accept', 'decline', 'signNew'],
   freeAgent: ['resign', 'signAndTrade', 'renounce'],
@@ -474,6 +539,7 @@ const EditContractModal = ({
   onOptionDecision,
   onExtend,
   onSignAndTrade,
+  getSignAndTradePreflight = null,
   onRenounce,
   onStoreOfferSheet = null, // Phase 16
   initialAction = null,
@@ -504,6 +570,9 @@ const EditContractModal = ({
   const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [signAndTradePreflight, setSignAndTradePreflight] =
+    useState<SignAndTradePreflightLike>(null);
+  const latestSignAndTradePreflightRequestId = useRef(0);
 
   // Override state management
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -655,6 +724,19 @@ const EditContractModal = ({
     }),
     [extension, signingGuardrails, selectedException]
   );
+  const signAndTradeActionDisabledReason =
+    !onSignAndTrade || !getSignAndTradePreflight
+      ? 'Sign-and-trade requires an active world to commit.'
+      : null;
+  const signAndTradePreflightPayload = useMemo(
+    () =>
+      ({
+        ...contractDataForValidation,
+        signAndTrade: true,
+        contractType: 'Sign & Trade',
+      }) as SigningPayloadLike,
+    [contractDataForValidation]
+  );
 
   // CBA Validation - get warnings/errors for current action
   // Use targetYear for option/FA actions, currentYear for extensions/waivers
@@ -666,6 +748,7 @@ const EditContractModal = ({
     currentYear: CURRENT_YEAR,
     targetYear: normalizedTargetYear, // The specific year the action applies to
     rulesProfile: playerRulesProfile,
+    signAndTradePreflight,
   });
 
   // Build structured validation result
@@ -723,17 +806,102 @@ const EditContractModal = ({
       ? resolveTeamCode(String(destinationTeamId)) || String(destinationTeamId)
       : null;
 
+  useEffect(() => {
+    latestSignAndTradePreflightRequestId.current += 1;
+    const requestId = latestSignAndTradePreflightRequestId.current;
+
+    if (!isOpen || selectedAction !== 'signAndTrade') {
+      setSignAndTradePreflight(null);
+      return;
+    }
+
+    if (!player) {
+      setSignAndTradePreflight(
+        buildSignAndTradePreflightResult('incomplete', [
+          'Authoritative sign-and-trade preflight is missing player context.',
+        ])
+      );
+      return;
+    }
+
+    if (signAndTradeActionDisabledReason) {
+      setSignAndTradePreflight(
+        buildSignAndTradePreflightResult('blocked', [
+          signAndTradeActionDisabledReason,
+        ])
+      );
+      return;
+    }
+
+    if (!resolvedDestinationTeamCode) {
+      setSignAndTradePreflight(
+        buildSignAndTradePreflightResult('blocked', [
+          'Destination team is required for sign-and-trade.',
+        ])
+      );
+      return;
+    }
+
+    setSignAndTradePreflight(
+      buildSignAndTradePreflightResult('incomplete', [
+        'Checking authoritative sign-and-trade legality...',
+      ])
+    );
+
+    void Promise.resolve(
+      getSignAndTradePreflight?.(
+        player,
+        signAndTradePreflightPayload,
+        resolvedDestinationTeamCode
+      )
+    )
+      .then((result) => {
+        if (latestSignAndTradePreflightRequestId.current !== requestId) {
+          return;
+        }
+
+        setSignAndTradePreflight(normalizeSignAndTradePreflightResult(result));
+      })
+      .catch((error) => {
+        if (latestSignAndTradePreflightRequestId.current !== requestId) {
+          return;
+        }
+
+        setSignAndTradePreflight(
+          buildSignAndTradePreflightResult('incomplete', [
+            error instanceof Error
+              ? error.message
+              : 'Authoritative sign-and-trade preflight failed before legality could be determined.',
+          ])
+        );
+      });
+  }, [
+    getSignAndTradePreflight,
+    isOpen,
+    player,
+    resolvedDestinationTeamCode,
+    selectedAction,
+    signAndTradeActionDisabledReason,
+    signAndTradePreflightPayload,
+  ]);
+
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
-    (!validationResult.isLegal && (!canOverride || !isOverrideConfirmed)) ||
+    validationResult.incomplete ||
+    (!validationResult.isLegal &&
+      !validationResult.incomplete &&
+      (!canOverride || !isOverrideConfirmed)) ||
     !buyoutAmountIsValid ||
     isSubmitting;
 
   // Show override/advanced section when action is illegal AND override is enabled
   // In production (canOverride=false), illegal actions are simply blocked
   const showOverrideOption =
-    canOverride && selectedAction && !validationResult.isLegal;
+    canOverride &&
+    selectedAction &&
+    !validationResult.isLegal &&
+    !validationResult.incomplete;
 
   // Show validation errors when validation has run and there are warnings/errors
   useEffect(() => {
@@ -749,6 +917,7 @@ const EditContractModal = ({
     setShowAdvanced(false);
     setOverrideText('');
     setDestinationTeamId(null);
+    setSignAndTradePreflight(null);
     setSaveError('');
     setIsSubmitting(false);
     if (selectedAction !== 'buyout') {
@@ -1421,8 +1590,12 @@ const EditContractModal = ({
               // Option actions (accept/decline) are disabled when not actionable
               const isOptionAction = type === 'accept' || type === 'decline';
               const extendBlocked = type === 'extend' && !isExtendEligible;
+              const signAndTradeBlocked =
+                type === 'signAndTrade' && !!signAndTradeActionDisabledReason;
               const isDisabled =
-                (isOptionAction && !isOptionActionable) || extendBlocked;
+                (isOptionAction && !isOptionActionable) ||
+                extendBlocked ||
+                signAndTradeBlocked;
 
               return (
                 <label
@@ -1462,6 +1635,11 @@ const EditContractModal = ({
                         <span className="block text-red-300 mt-1">
                           {playerRulesProfile?.extensionEligibility?.reason ||
                             'Not extension eligible'}
+                        </span>
+                      )}
+                      {signAndTradeBlocked && (
+                        <span className="block text-red-300 mt-1">
+                          {signAndTradeActionDisabledReason}
                         </span>
                       )}
                     </div>

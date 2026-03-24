@@ -237,7 +237,7 @@ describe('Gate 4: Store mirrors to offering + home team arrays (E1)', () => {
   it('returns teamUpdates containing both teams', () => {
     // Look for pattern that returns teamUpdates with both offering and home team
     const returnsBothTeams =
-      /computeStoreOfferSheetResult[\s\S]{0,6000}teamUpdates\.push\s*\(\s*\{\s*teamCode\s*:\s*homeTeam\.teamCode/.test(
+      /computeStoreOfferSheetResult[\s\S]{0,9000}teamUpdates\.push\s*\(\s*\{\s*teamCode\s*:\s*homeTeam\.teamCode/.test(
         content
       );
     expect(returnsBothTeams).toBe(true);

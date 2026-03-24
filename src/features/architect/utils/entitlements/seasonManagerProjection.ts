@@ -60,6 +60,8 @@ type DraftPickLike = {
   _projectedAt: string;
 };
 
+export type SeasonManagerProjectedDraftPickView = DraftPickLike;
+
 type ProjectionArgs = {
   entitlements: ProjectionEntitlement[] | null | undefined;
   pickRulesById?: Record<string, PickRuleDoc> | null;

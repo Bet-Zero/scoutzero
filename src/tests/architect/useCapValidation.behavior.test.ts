@@ -398,7 +398,72 @@ describe('useCapValidation', () => {
     expect(result.current.errors).toEqual([]);
   });
 
-  it('preserves sign-and-trade warning and blocking error order', () => {
+  it('interprets legal SAT preflight warnings synchronously', () => {
+    const player = createPlayer();
+    const { result } = renderHook(() =>
+      useCapValidation({
+        player,
+        action: 'signAndTrade',
+        contractData: {},
+        teamCapSheet: {
+          players: [player],
+        },
+        currentYear: 2026,
+        signAndTradePreflight: {
+          status: 'legal',
+          reasons: [],
+          warnings: ['Sign-and-trade will hard cap receiving team at First Apron'],
+          source: 'authoritative-preflight',
+        },
+      })
+    );
+
+    expect(result.current.warnings).toEqual([
+      {
+        severity: 'warning',
+        message: 'Sign-and-trade will hard cap receiving team at First Apron',
+      },
+    ]);
+    expect(result.current.errors).toEqual([]);
+    expect(result.current.isValid).toBe(true);
+    expect(result.current.incomplete).toBe(false);
+  });
+
+  it('blocks SAT from authoritative blocked preflight reasons instead of local apron guesses', () => {
+    const capSettings = requireCapSettings(2026);
+    const player = createPlayer({
+      salariesByYear: [createSalaryRow(2026, capSettings.firstApron - 10_000_000)],
+    });
+    const { result } = renderHook(() =>
+      useCapValidation({
+        player,
+        action: 'signAndTrade',
+        contractData: {},
+        teamCapSheet: {
+          players: [player],
+        },
+        currentYear: 2026,
+        signAndTradePreflight: {
+          status: 'blocked',
+          reasons: ['Receiver would exceed First Apron after sign-and-trade.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        },
+      })
+    );
+
+    expect(result.current.warnings).toEqual([]);
+    expect(result.current.errors).toEqual([
+      {
+        severity: 'error',
+        message: 'Receiver would exceed First Apron after sign-and-trade.',
+      },
+    ]);
+    expect(result.current.isValid).toBe(false);
+    expect(result.current.incomplete).toBe(false);
+  });
+
+  it('treats incomplete SAT preflight as non-confirmable without reviving the old local branch', () => {
     const capSettings = requireCapSettings(2026);
     const player = createPlayer({
       salariesByYear: [createSalaryRow(2026, capSettings.firstApron + 1_000_000)],
@@ -412,21 +477,26 @@ describe('useCapValidation', () => {
           players: [player],
         },
         currentYear: 2026,
+        signAndTradePreflight: {
+          status: 'incomplete',
+          reasons: [
+            'Cannot validate sign-and-trade hard cap: firstApron not available for season',
+          ],
+          warnings: [],
+          source: 'authoritative-preflight',
+        },
       })
     );
 
     expect(result.current.warnings).toEqual([
       {
-        severity: 'info',
-        message: 'Sign-and-trade will hard cap receiving team at First Apron',
+        severity: 'warning',
+        message:
+          'Cannot validate sign-and-trade hard cap: firstApron not available for season',
       },
     ]);
-    expect(result.current.errors).toEqual([
-      {
-        severity: 'error',
-        message: 'Team over First Apron - cannot execute sign-and-trade',
-      },
-    ]);
-    expect(result.current.isValid).toBe(false);
+    expect(result.current.errors).toEqual([]);
+    expect(result.current.isValid).toBe(true);
+    expect(result.current.incomplete).toBe(true);
   });
 });

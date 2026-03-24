@@ -464,6 +464,12 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
 
   it('calls onSignAndTrade with (player, contract, destinationTeamId) on confirm', async () => {
     const mockOnSignAndTrade = vi.fn();
+    const mockGetSignAndTradePreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: ['Sign-and-trade will hard cap receiving team at First Apron'],
+      source: 'authoritative-preflight',
+    });
     const faPlayer = {
       name: 'Trade Target',
       player_id: 'tt_1',
@@ -478,6 +484,7 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
         onSignAndTrade={mockOnSignAndTrade}
+        getSignAndTradePreflight={mockGetSignAndTradePreflight}
         actionContext="freeAgent"
       />
     );
@@ -517,6 +524,11 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
     // Verify the real S&T handler was called with all three args
     expect(mockOnSignAndTrade).toHaveBeenCalledTimes(1);
     expect(mockOnSignAndTrade).toHaveBeenCalledWith(
+      faPlayer,
+      expect.objectContaining({ signAndTrade: true }),
+      'BOS'
+    );
+    expect(mockGetSignAndTradePreflight).toHaveBeenCalledWith(
       faPlayer,
       expect.objectContaining({ signAndTrade: true }),
       'BOS'

@@ -24,7 +24,10 @@
  * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */
 
-import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 import {
   getCapSettings,
   calculateTeamCapHit,
@@ -32,6 +35,7 @@ import {
   getPlayerName,
 } from '@/features/architect/utils/capHelpers';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import type { CapRulesProfile } from '@/features/architect/utils/capRulesProfile';
 import {
   computeTeamCapTotals,
   canUseRoomException,
@@ -42,11 +46,16 @@ import {
   buildRuleContextForPlayerMove,
   getSalaryProfile,
 } from '@/features/architect/utils/salaryEngine';
+import type {
+  RuleContext,
+  SalaryProfile,
+} from '@/features/architect/utils/salaryEngine';
 import {
   validateFreeAgencyState,
   normalizeTeamRef,
   normalizePlayerTeamRef,
 } from '@/features/architect/utils/contractNormalization';
+import type { BuildRuleContextInput } from '@/features/architect/utils/buildRuleContext';
 import {
   getCapHoldForPlayer,
   didCreateCapHold,
@@ -67,6 +76,7 @@ import { normalizeSeasonKey } from '@/features/architect/data/capYearData';
 import type { CapHold } from '@/features/architect/utils/capHolds';
 import type {
   ArchitectMutationContract,
+  ArchitectMutationOfferSheet,
   ArchitectMutationPlayerRecord,
   ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
@@ -141,12 +151,12 @@ type MutationTeam = Omit<
   AnyRecord & {
     players?: MutationPlayer[];
     twoWayPlayers?: MutationPlayer[];
-    capHolds?: AnyRecord[];
+    capHolds?: MutationCapHold[];
     roster?: MutationRosterEntry[];
     totals?: Record<string, unknown> | null;
-    draftPicks?: AnyRecord[];
-    exceptions?: AnyRecord | null;
-    tradeExceptions?: AnyRecord[];
+    draftPicks?: ArchitectMutationTeamRecord['draftPicks'];
+    exceptions?: ArchitectMutationTeamRecord['exceptions'] | null;
+    tradeExceptions?: ArchitectMutationTeamRecord['tradeExceptions'];
   };
 type MutationRosterEntry =
   | string
@@ -186,6 +196,11 @@ type SigningTerms = {
 type NormalizeSigningTermsOptions = {
   fallbackMechanism?: string | null;
 };
+
+type PlayerRulesProfileResult = ReturnType<typeof computePlayerRulesProfile>;
+type ProducedExtensionTerms = NonNullable<
+  PlayerRulesProfileResult['extensionTerms']
+>;
 
 type ValidateOptionDecisionParams = {
   originalTeam?: MutationTeam | null;
@@ -563,8 +578,11 @@ export function isOverrideEnabled() {
  * @param {string} operationName - Name of operation for error messages
  * @returns {{blocked: boolean, violation: Object|null, warning: Object|null}}
  */
-export function evaluateDataConfidence(rules: AnyRecord, operationName = 'Operation'): { blocked: boolean; violation: AnyRecord | null; warning: AnyRecord | null } {
-  if (!rules || !rules._meta)
+export function evaluateDataConfidence(
+  rules: CapRulesProfile,
+  operationName = 'Operation'
+): { blocked: boolean; violation: AnyRecord | null; warning: AnyRecord | null } {
+  if (!rules._meta)
     return { blocked: false, violation: null, warning: null };
 
   const summary = rules._meta.sourcesSummary;
@@ -661,7 +679,7 @@ function countTwoWayContracts(players: AnyRecord[]) {
  * @param {Object} team - Team data
  * @returns {{isHardCapped: boolean, hardCapLevel: string|null, ceiling: number|null}}
  */
-function getHardCapStatus(team: MutationTeam, capRules: AnyRecord) {
+function getHardCapStatus(team: MutationTeam, capRules: CapRulesProfile) {
   const totals = team.totals || {};
   const { firstApron, secondApron } = capRules.cap;
 
@@ -673,7 +691,10 @@ function getHardCapStatus(team: MutationTeam, capRules: AnyRecord) {
   }
 
   // Check if team is at/above second apron (auto hard-capped)
-  const currentCapHit = totals.capHit || totals.totalSalary || 0;
+  const currentCapHit = toFiniteNumber(
+    totals.capHit ?? totals.totalSalary,
+    0
+  );
   // Phase 38: Strict > for Second Apron hard-cap status
   if (currentCapHit > secondApron) {
     return {
@@ -834,7 +855,10 @@ function getFirstYearAmounts(contract: MutationContract | null | undefined) {
  * @param {Object} rules - Cap rules profile from getCapRulesForYear()
  * @returns {number|null} Max first-year salary or null if not applicable
  */
-export function getSigningFirstYearMax(mechanism: string, rules: AnyRecord | null | undefined) {
+export function getSigningFirstYearMax(
+  mechanism: string,
+  rules: CapRulesProfile | null | undefined
+) {
   if (!rules?.exceptions) return null;
 
   switch (mechanism) {
@@ -1541,7 +1565,10 @@ function mapExceptionTypeForMechanism(mechanism: string) {
  * @param {string} [exceptionMechanism] - Exception bucket if known
  * @returns {SigningTerms} Signing terms with proper separation
  */
-function buildBaseSigningTerms(profile: AnyRecord | null | undefined, exceptionMechanism = 'UNKNOWN') {
+function buildBaseSigningTerms(
+  profile: SalaryProfile | null | undefined,
+  exceptionMechanism = 'UNKNOWN'
+) {
   const birdAbilities = profile?.birdRights?.signingAbilities;
   const birdRightsType = profile?.birdRights?.type || null;
   const maxSalaryCap = profile?.maxSalary?.maxSalary ?? null;
@@ -1588,7 +1615,10 @@ function buildBaseSigningTerms(profile: AnyRecord | null | undefined, exceptionM
  * @param {Object} cap - Cap settings object
  * @returns {Partial<SigningTerms>|null} Exception terms or null if unknown mechanism
  */
-function buildExceptionSigningTerms(mechanism: string, cap: AnyRecord | null | undefined) {
+function buildExceptionSigningTerms(
+  mechanism: string,
+  cap: RuleContext['cap'] | null | undefined
+) {
   const limits = (SIGNING_YEARS_LIMITS as Record<string, { minYears: number; maxYears: number }>)[mechanism] || null;
   if (!limits) return null;
 
@@ -1622,6 +1652,284 @@ function buildExceptionSigningTerms(mechanism: string, cap: AnyRecord | null | u
     mechanism,
     // rightsType is NOT set here - it's merged from base terms
     notes: `Exception: ${mechanism.replace(/_/g, ' ')}`,
+  };
+}
+
+function buildRuleContextContract(
+  contract: MutationContract | null | undefined
+): BuildRuleContextInput['player']['contract'] | undefined {
+  if (!contract) {
+    return undefined;
+  }
+
+  const salariesByYear = Array.isArray(contract.salariesByYear)
+    ? contract.salariesByYear
+        .filter(
+          (
+            yearData
+          ): yearData is MutationSalaryRow & {
+            season: string;
+          } => typeof yearData?.season === 'string' && yearData.season.trim().length > 0
+        )
+        .map((yearData) => ({
+          season: yearData.season,
+          salary:
+            yearData.salary == null
+              ? undefined
+              : toFiniteNumber(yearData.salary, 0),
+          capHit:
+            yearData.capHit == null
+              ? undefined
+              : toFiniteNumber(yearData.capHit, 0),
+          guaranteed:
+            typeof yearData.guaranteed === 'boolean'
+              ? yearData.guaranteed
+              : undefined,
+        }))
+    : undefined;
+
+  const birdRights =
+    contract.birdRights && typeof contract.birdRights === 'object'
+      ? {
+          status:
+            typeof contract.birdRights.status === 'string'
+              ? contract.birdRights.status
+              : undefined,
+          yearsWithTeam:
+            contract.birdRights.yearsWithTeam == null
+              ? undefined
+              : toFiniteNumber(contract.birdRights.yearsWithTeam, 0),
+        }
+      : undefined;
+
+  return {
+    salariesByYear,
+    endSeason:
+      typeof contract.endSeason === 'string' ? contract.endSeason : undefined,
+    startSeason:
+      typeof contract.startSeason === 'string'
+        ? contract.startSeason
+        : undefined,
+    isRookieScale: contract.isRookieScale === true,
+    contractType:
+      typeof contract.contractType === 'string'
+        ? contract.contractType
+        : undefined,
+    birdRights,
+  };
+}
+
+function buildRuleContextPlayerInput(
+  player: MutationPlayer
+): BuildRuleContextInput['player'] {
+  const bio = asRecordLike<{
+    displayName?: string;
+    experience?: number | string | null;
+    yearsExperience?: number | string | null;
+    draftYear?: number | string | null;
+    draftRound?: number | string | null;
+    draftPick?: number | string | null;
+  }>(player.bio);
+
+  return {
+    playerId:
+      typeof player.playerId === 'string' ? player.playerId : undefined,
+    player_id:
+      typeof player.player_id === 'string' ? player.player_id : undefined,
+    id: typeof player.id === 'string' ? player.id : undefined,
+    displayName:
+      typeof player.displayName === 'string'
+        ? player.displayName
+        : undefined,
+    name: typeof player.name === 'string' ? player.name : undefined,
+    bio: bio
+      ? {
+          displayName:
+            typeof bio.displayName === 'string'
+              ? bio.displayName
+              : undefined,
+          experience:
+            bio.experience == null
+              ? undefined
+              : toFiniteNumber(bio.experience, 0),
+          yearsExperience:
+            bio.yearsExperience == null
+              ? undefined
+              : toFiniteNumber(bio.yearsExperience, 0),
+          draftYear:
+            bio.draftYear == null
+              ? undefined
+              : toFiniteNumber(bio.draftYear, 0),
+          draftRound:
+            bio.draftRound == null
+              ? undefined
+              : toFiniteNumber(bio.draftRound, 0),
+          draftPick:
+            bio.draftPick == null
+              ? undefined
+              : toFiniteNumber(bio.draftPick, 0),
+        }
+      : undefined,
+    contract: buildRuleContextContract(player.contract),
+    yearsOfService:
+      player.yearsOfService == null
+        ? undefined
+        : toFiniteNumber(player.yearsOfService, 0),
+    experience:
+      player.experience == null
+        ? undefined
+        : toFiniteNumber(player.experience, 0),
+    teamId: typeof player.teamId === 'string' ? player.teamId : undefined,
+    teamCode:
+      typeof player.teamCode === 'string' ? player.teamCode : undefined,
+  };
+}
+
+function buildRuleContextTeamState(
+  team: MutationTeam | null | undefined
+): BuildRuleContextInput['teamState'] | undefined {
+  if (!team) {
+    return undefined;
+  }
+
+  const totals = team.totals || {};
+  const tradeExceptions = (team.tradeExceptions || [])
+    .map((tradeException) => {
+      const id =
+        tradeException && typeof tradeException.id === 'string'
+          ? tradeException.id
+          : null;
+      const amount = toFiniteNumber(
+        tradeException?.remainingAmount ??
+          tradeException?.amount ??
+          tradeException?.totalAmount,
+        Number.NaN
+      );
+
+      if (!id || !Number.isFinite(amount)) {
+        return null;
+      }
+
+      return {
+        id,
+        amount,
+        ...(typeof tradeException.expiresOn === 'string'
+          ? { expiresSeasonId: tradeException.expiresOn }
+          : {}),
+      };
+    })
+    .filter(
+      (
+        tradeException
+      ): tradeException is NonNullable<
+        NonNullable<
+          NonNullable<BuildRuleContextInput['teamState']>['exceptions']
+        >['tradeExceptions']
+      >[number] => Boolean(tradeException)
+    );
+
+  const exceptions = team.exceptions;
+
+  return {
+    teamId: typeof team.id === 'string' ? team.id : undefined,
+    teamCode:
+      typeof team.teamCode === 'string' ? team.teamCode : undefined,
+    players: (team.players || []).map((teamPlayer) => ({
+      playerId:
+        typeof teamPlayer.playerId === 'string'
+          ? teamPlayer.playerId
+          : undefined,
+      contract: buildRuleContextContract(teamPlayer.contract),
+    })),
+    totals: {
+      totalSalary: toFiniteNumber(
+        totals.totalSalary ?? totals.capHit ?? 0,
+        0
+      ),
+    },
+    exceptions: {
+      ...(exceptions?.mle
+        ? {
+            fullMLE: {
+              available: exceptions.mle.available !== false,
+              remaining: toFiniteNumber(
+                exceptions.mle.remainingAmount ??
+                  exceptions.mle.amount ??
+                  exceptions.mle.totalAmount,
+                0
+              ),
+            },
+          }
+        : {}),
+      ...(exceptions?.taxpayerMle || exceptions?.tpmle
+        ? {
+            taxpayerMLE: {
+              available:
+                (exceptions?.taxpayerMle || exceptions?.tpmle)?.available !==
+                false,
+              remaining: toFiniteNumber(
+                (exceptions?.taxpayerMle || exceptions?.tpmle)
+                  ?.remainingAmount ??
+                  (exceptions?.taxpayerMle || exceptions?.tpmle)?.amount ??
+                  (exceptions?.taxpayerMle || exceptions?.tpmle)?.totalAmount,
+                0
+              ),
+            },
+          }
+        : {}),
+      ...(exceptions?.room
+        ? {
+            roomMLE: {
+              available: exceptions.room.available !== false,
+              remaining: toFiniteNumber(
+                exceptions.room.remainingAmount ??
+                  exceptions.room.amount ??
+                  exceptions.room.totalAmount,
+                0
+              ),
+            },
+          }
+        : {}),
+      ...(exceptions?.bae
+        ? {
+            bae: {
+              available: exceptions.bae.available !== false,
+              remaining: toFiniteNumber(
+                exceptions.bae.remainingAmount ??
+                  exceptions.bae.amount ??
+                  exceptions.bae.totalAmount,
+                0
+              ),
+            },
+          }
+        : {}),
+      ...(tradeExceptions.length > 0 ? { tradeExceptions } : {}),
+    },
+  };
+}
+
+function buildSigningRuleContextInput({
+  team,
+  player,
+  contract,
+  year,
+  signedUsing,
+}: {
+  team?: MutationTeam | null;
+  player: MutationPlayer;
+  contract?: MutationContract | null;
+  year: number;
+  signedUsing?: string | null;
+}): BuildRuleContextInput {
+  const mechanism = resolveSigningMechanism(contract, signedUsing);
+
+  return {
+    player: buildRuleContextPlayerInput(player),
+    teamState: buildRuleContextTeamState(team),
+    operationType: resolveSigningOperationType(contract, mechanism),
+    operationSeasonId: toSeasonCode(year),
+    exceptionUsed: mapExceptionTypeForMechanism(mechanism),
+    simulationDate: new Date(year - 1, 6, 15, 12, 0, 0),
   };
 }
 
@@ -1667,18 +1975,15 @@ export function getSigningTermsForPlayer({
   }
 
   try {
-    const operationType = resolveSigningOperationType(contract, mechanism);
-    const exceptionUsed = mapExceptionTypeForMechanism(mechanism);
-    const simulationDate = new Date(year - 1, 6, 15, 12, 0, 0);
-
-    const ctx = buildRuleContextForPlayerMove({
-      player,
-      teamState: team,
-      operationType,
-      operationSeasonId: year,
-      exceptionUsed,
-      simulationDate,
-    } as unknown as Parameters<typeof buildRuleContextForPlayerMove>[0]);
+    const ctx = buildRuleContextForPlayerMove(
+      buildSigningRuleContextInput({
+        team,
+        player,
+        contract,
+        year,
+        signedUsing,
+      })
+    );
 
     const profile = getSalaryProfile(ctx);
     if (!profile) {
@@ -1959,7 +2264,7 @@ export function validateSigningTermsAndRaises({
   mechanism,
 }: {
   contract: MutationContract | null | undefined;
-  signingTerms: SigningTerms | AnyRecord | null | undefined;
+  signingTerms: SigningTerms | null | undefined;
   mechanism: string;
 }) {
   const violations: AnyRecord[] = [];
@@ -2149,7 +2454,7 @@ export function getExtensionTermsForPlayer({
   player?: MutationPlayer | null;
   team?: MutationTeam | null;
   year?: number | null;
-}) {
+}): { extensionTerms: ProducedExtensionTerms; source: 'salary_engine' } | null {
   // Guard: need valid player data
   if (!player) {
     return null;
@@ -2212,7 +2517,7 @@ export function validateExtensionTermsAndRaises({
 }: {
   player: MutationPlayer;
   extension: MutationContract | null | undefined;
-  extensionTerms: AnyRecord | null | undefined;
+  extensionTerms: ProducedExtensionTerms | null | undefined;
 }) {
   const violations: AnyRecord[] = [];
   const warnings: AnyRecord[] = [];
@@ -4226,7 +4531,7 @@ export function validateOfferSheetResolution({
   action,
   asOfDate,
 }: {
-  offerSheet: AnyRecord | null | undefined;
+  offerSheet: ArchitectMutationOfferSheet | null | undefined;
   actingTeamCode: string;
   action: string;
   asOfDate?: string;

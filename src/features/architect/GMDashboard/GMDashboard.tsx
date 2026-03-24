@@ -174,6 +174,8 @@ const GMDashboard = () => {
     actions.handleSign as FreeAgencySectionProps['onSign'];
   const freeAgencyOnSignAndTrade =
     actions.handleSignAndTrade as FreeAgencySectionProps['onSignAndTrade'];
+  const freeAgencyGetSignAndTradePreflight =
+    actions.getSignAndTradePreflight as FreeAgencySectionProps['getSignAndTradePreflight'];
   const freeAgencyOnStoreOfferSheet =
     actions.handleStoreOfferSheet as FreeAgencySectionProps['onStoreOfferSheet'];
   const freeAgencyOnMatch =
@@ -190,6 +192,8 @@ const GMDashboard = () => {
   const modalOnResign = actions.handleSign as EditContractModalProps['onResign'];
   const modalOnSignAndTrade =
     actions.handleSignAndTrade as EditContractModalProps['onSignAndTrade'];
+  const modalGetSignAndTradePreflight =
+    actions.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'];
   const modalOnStoreOfferSheet =
     actions.handleStoreOfferSheet as EditContractModalProps['onStoreOfferSheet'];
   const modalOnSaveContract =
@@ -425,7 +429,10 @@ const GMDashboard = () => {
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
             onSign={freeAgencyOnSign}
-            onSignAndTrade={freeAgencyOnSignAndTrade}
+            onSignAndTrade={worldId ? freeAgencyOnSignAndTrade : undefined}
+            getSignAndTradePreflight={
+              worldId ? freeAgencyGetSignAndTradePreflight : undefined
+            }
             onStoreOfferSheet={
               worldId ? freeAgencyOnStoreOfferSheet : undefined
             }
@@ -550,7 +557,10 @@ const GMDashboard = () => {
           currentYear={currentYear}
           onSignFreeAgent={modalOnSignFreeAgent}
           onResign={modalOnResign}
-          onSignAndTrade={modalOnSignAndTrade}
+          onSignAndTrade={worldId ? modalOnSignAndTrade : null}
+          getSignAndTradePreflight={
+            worldId ? modalGetSignAndTradePreflight : null
+          }
           onStoreOfferSheet={worldId ? modalOnStoreOfferSheet : null}
           onSaveContract={modalOnSaveContract}
           onExtend={modalOnExtend}

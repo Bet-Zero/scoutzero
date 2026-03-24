@@ -111,7 +111,7 @@ describe('Gate 2: Success-Gated Modal Close (E1)', () => {
 
   it('normalizes action result before close decision', () => {
     // Pattern: normalizeActionResult(actionResult) or normalizedResult usage
-    const normalizesResult = /normalizeActionResult\s*\(/.test(content);
+    const normalizesResult = /normalizeContractActionResult\s*\(/.test(content);
     expect(normalizesResult).toBe(true);
   });
 

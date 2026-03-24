@@ -76,6 +76,7 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
     'buildPostTradeTeamsSnapshot',
     'buildWorldMutationEventPayload',
     'computeWorldMutation',
+    'preflightSignAndTradeMutation',
     'resolveWorldAsOfDate',
     'sanitizeTransientFieldsForPersistence',
     'validatePostTradeSnapshotForContext',
@@ -86,6 +87,7 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
     'export function resolveWorldAsOfDate',
     'export function buildWorldMutationEventPayload',
     'export async function applyWorldMutation',
+    'export async function preflightSignAndTradeMutation',
     'export function computeWorldMutation',
   ] as const;
 

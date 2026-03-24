@@ -50,6 +50,7 @@ export interface FreeAgencySectionProps {
   currentYear: number;
   onSign: LooseCallback;
   onSignAndTrade?: LooseCallback;
+  getSignAndTradePreflight?: LooseCallback;
   onStoreOfferSheet?: LooseCallback;
   playersMap?: Record<string, unknown>;
   outgoingOfferSheets?: OfferSheetLike[] | null;

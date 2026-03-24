@@ -244,7 +244,7 @@ export type ArchitectMutationExceptions = {
   room?: ArchitectMutationExceptionEntry | null;
   bae?: ArchitectMutationExceptionEntry | null;
   dpe?: ArchitectMutationExceptionEntry | null;
-  tpe?: any[];
+  tpe?: TradeExceptionRecord[];
 } & Record<string, unknown>;
 
 export type ArchitectMutationOfferSheet = {
@@ -255,10 +255,14 @@ export type ArchitectMutationOfferSheet = {
   offeringTeamCode?: string | null;
   homeTeamCode?: string | null;
   status?: string | null;
+  seasonKey?: string | null;
+  year?: number | null;
   contractYears?: number | string | null;
   totalValue?: number | string | null;
   salariesByYear?: ArchitectMutationSalaryRow[];
   createdAt?: string | number | Date | null;
+  matchedAt?: string | null;
+  declinedAt?: string | null;
 };
 
 type ArchitectMutationCapHold = {
@@ -295,6 +299,8 @@ export type ArchitectMutationPlayerRecord = {
   source?: unknown;
   lastUpdated?: unknown;
   version?: unknown;
+  rfaOfferSheet?: boolean | null;
+  rfaOfferSheetOnly?: boolean | null;
   rfaContext?: unknown;
   draft?: Record<string, unknown> | null;
   matchIncoming?: number | string | null;
@@ -320,7 +326,7 @@ export type ArchitectMutationTeamRecord = {
   capHolds?: ArchitectMutationCapHold[];
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptions | null;
-  tradeExceptions?: any[];
+  tradeExceptions?: TradeExceptionRecord[];
   offerSheets?: ArchitectMutationOfferSheet[];
   incomingOfferSheets?: ArchitectMutationOfferSheet[];
   totals?: Record<string, unknown> | null;
@@ -523,8 +529,15 @@ export type ArchitectMutationResult = {
   persistedToWorld?: boolean;
   eventWritten?: boolean;
   _validatedTradeContext?: ArchitectMutationValidatedTradeContext;
-  _signingValidation?: Record<string, unknown>;
+  _signingValidation?: ReturnType<typeof validateSigning>;
   _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
+};
+export type SignAndTradePreflightStatus = 'legal' | 'blocked' | 'incomplete';
+export type SignAndTradePreflightResult = {
+  status: SignAndTradePreflightStatus;
+  reasons: string[];
+  warnings: string[];
+  source: 'authoritative-preflight';
 };
 type MutationPayloadLike = ArchitectMutationPayload;
 type TeamUpdateLike = ArchitectMutationTeamUpdate;
@@ -585,6 +598,15 @@ type ComputeMutationParams = {
   currentState: CurrentStateLike;
   seasonId: string;
   timestamp: number;
+};
+
+type SignAndTradeAuthoritySummary = {
+  status: SignAndTradePreflightStatus;
+  reasons: string[];
+  warnings: string[];
+  error: string | null;
+  violations: string[];
+  warningIssues: unknown[];
 };
 
 const AUTHORITATIVE_WORLD_TEAM_CODES = [
@@ -955,6 +977,13 @@ export function resolveWorldAsOfDate({
   };
 }
 
+const AUTHORITATIVE_SAT_PREFLIGHT_SOURCE = 'authoritative-preflight' as const;
+const SAT_INCOMPLETE_VALIDATION_CODES = new Set([
+  'SIGN_AND_TRADE__MISSING_VALIDATION_YEAR',
+  'SIGN_AND_TRADE__MISSING_CURRENT_YEAR',
+  'SIGN_AND_TRADE__MISSING_FIRST_APRON',
+]);
+
 const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
 
 function generateOperationId(timestamp = Date.now()) {
@@ -978,6 +1007,172 @@ function getErrorMessage(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+function toValidationMessage(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    return normalized || null;
+  }
+
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const message =
+    'message' in value && typeof value.message === 'string'
+      ? value.message.trim()
+      : '';
+  if (message) {
+    return message;
+  }
+
+  const reason =
+    'reason' in value && typeof value.reason === 'string'
+      ? value.reason.trim()
+      : '';
+  return reason || null;
+}
+
+function dedupeMessages(values: unknown[]): string[] {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  values.forEach((value) => {
+    const message = toValidationMessage(value);
+    if (!message || seen.has(message)) {
+      return;
+    }
+    seen.add(message);
+    normalized.push(message);
+  });
+
+  return normalized;
+}
+
+function hasIncompleteSignAndTradeViolation(issues: unknown[]): boolean {
+  return issues.some((issue) => {
+    if (!issue || typeof issue !== 'object') {
+      return false;
+    }
+
+    const code =
+      'code' in issue && typeof issue.code === 'string' ? issue.code : '';
+    return SAT_INCOMPLETE_VALIDATION_CODES.has(code);
+  });
+}
+
+function summarizeSignAndTradeAuthority({
+  signingValidation,
+  tradeValidation,
+}: {
+  signingValidation?: ReturnType<typeof validateSigning> | null;
+  tradeValidation?: TradeContextValidatedTradeContext | null;
+}): SignAndTradeAuthoritySummary {
+  const signingWarnings = Array.isArray(signingValidation?.warnings)
+    ? signingValidation.warnings
+    : [];
+  const tradeWarnings = Array.isArray(tradeValidation?.warnings)
+    ? tradeValidation.warnings
+    : [];
+  const warnings = dedupeMessages([...signingWarnings, ...tradeWarnings]);
+  const warningIssues = [...signingWarnings, ...tradeWarnings];
+
+  if (!signingValidation || typeof signingValidation.valid !== 'boolean') {
+    const reason = 'Authoritative sign-and-trade preflight is incomplete.';
+    return {
+      status: 'incomplete',
+      reasons: [reason],
+      warnings,
+      error: reason,
+      violations: [reason],
+      warningIssues,
+    };
+  }
+
+  const signingViolations = Array.isArray(signingValidation.violations)
+    ? signingValidation.violations
+    : [];
+  const signingReasons = dedupeMessages(signingViolations);
+
+  if (!signingValidation.valid) {
+    const reasons =
+      signingReasons.length > 0
+        ? signingReasons
+        : ['Signing validation failed'];
+    return {
+      status: 'blocked',
+      reasons,
+      warnings,
+      error: reasons[0] || 'Signing validation failed',
+      violations: reasons,
+      warningIssues,
+    };
+  }
+
+  if (!tradeValidation?._isValidatedTradeContext) {
+    const reason = 'Authoritative sign-and-trade preflight is incomplete.';
+    return {
+      status: 'incomplete',
+      reasons: [reason],
+      warnings,
+      error: reason,
+      violations: [reason],
+      warningIssues,
+    };
+  }
+
+  const tradeViolations = Array.isArray(tradeValidation.violations)
+    ? tradeValidation.violations
+    : [];
+  const tradeReasons = dedupeMessages(tradeViolations);
+
+  if (tradeValidation.legal) {
+    return {
+      status: 'legal',
+      reasons: [],
+      warnings,
+      error: null,
+      violations: [],
+      warningIssues,
+    };
+  }
+
+  const fallbackReason =
+    typeof tradeValidation.error === 'string' && tradeValidation.error.trim()
+      ? tradeValidation.error.trim()
+      : typeof tradeValidation.reason === 'string' &&
+          tradeValidation.reason.trim()
+        ? tradeValidation.reason.trim()
+        : 'Sign-and-trade failed authoritative validation.';
+  const reasons =
+    tradeReasons.length > 0 ? tradeReasons : [fallbackReason];
+  const status = hasIncompleteSignAndTradeViolation(tradeViolations)
+    ? 'incomplete'
+    : 'blocked';
+
+  return {
+    status,
+    reasons,
+    warnings,
+    error: reasons[0] || fallbackReason,
+    violations: reasons,
+    warningIssues,
+  };
+}
+
+async function loadWorldAsOfDate(worldId: string): Promise<string | null> {
+  try {
+    const worldRef = worldMetadataRef(worldId);
+    const worldSnap = await getDoc(worldRef);
+    if (worldSnap.exists()) {
+      return worldSnap.data()?.asOfDate || null;
+    }
+  } catch (error) {
+    console.warn('Could not load world asOfDate:', getErrorMessage(error));
+  }
+
+  return null;
 }
 
 function addTeamSnapshot(
@@ -2008,18 +2203,7 @@ export async function applyWorldMutation({
     const beforeTeamsByCode = extractTeamsByCodeFromCurrentState(currentState);
 
     // Phase 20: Load world metadata asOfDate for SSOT resolution
-    let worldAsOfDate = null;
-    try {
-      const { getDoc } = await import('firebase/firestore');
-      const worldRef = worldMetadataRef(worldId);
-      const worldSnap = await getDoc(worldRef);
-      if (worldSnap.exists()) {
-        worldAsOfDate = worldSnap.data()?.asOfDate || null;
-      }
-    } catch (e) {
-      // Non-critical: proceed with no world date (will use payload or fallback)
-      console.warn('Could not load world asOfDate:', getErrorMessage(e));
-    }
+    const worldAsOfDate = await loadWorldAsOfDate(worldId);
 
     // Phase 20: Resolve canonical asOfDate SSOT
     const { asOfDate, defaulted: dateDefaulted } = resolveWorldAsOfDate({
@@ -2345,6 +2529,141 @@ export async function applyWorldMutation({
   }
 }
 
+export async function preflightSignAndTradeMutation({
+  worldId,
+  seasonId,
+  payload,
+  timestamp = Date.now(),
+}: {
+  worldId: string;
+  seasonId: string;
+  payload: ArchitectMutationPayload;
+  timestamp?: number;
+}): Promise<SignAndTradePreflightResult> {
+  if (!worldId) {
+    return {
+      status: 'blocked',
+      reasons: ['Sign-and-trade requires an active world to commit.'],
+      warnings: [],
+      source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+    };
+  }
+
+  if (!seasonId) {
+    return {
+      status: 'incomplete',
+      reasons: ['Authoritative sign-and-trade preflight is missing season context.'],
+      warnings: [],
+      source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+    };
+  }
+
+  const sanitizedPayload = sanitizePayloadForOverride(payload) as MutationPayloadLike;
+  if (!sanitizedPayload.destinationTeamCode) {
+    return {
+      status: 'blocked',
+      reasons: ['Destination team is required for sign-and-trade.'],
+      warnings: [],
+      source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+    };
+  }
+
+  if (!sanitizedPayload.teamCode || !sanitizedPayload.playerId || !sanitizedPayload.contract) {
+    return {
+      status: 'blocked',
+      reasons: ['Cannot complete sign-and-trade: contract payload is invalid.'],
+      warnings: [],
+      source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+    };
+  }
+
+  try {
+    const currentState = await loadStateForMutation(
+      worldId,
+      'signAndTrade',
+      sanitizedPayload
+    );
+    const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
+    const signingValidation = validateSigning({
+      team: currentState.team,
+      player: currentState.player,
+      contract: sanitizedPayload.contract,
+      signedUsing: sanitizedPayload.signedUsing,
+      year: currentYear,
+    });
+
+    if (!signingValidation.valid) {
+      const summary = summarizeSignAndTradeAuthority({
+        signingValidation,
+        tradeValidation: null,
+      });
+
+      return {
+        status: summary.status,
+        reasons: summary.reasons,
+        warnings: summary.warnings,
+        source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+      };
+    }
+
+    const worldAsOfDate = await loadWorldAsOfDate(worldId);
+    const { asOfDate } = resolveWorldAsOfDate({
+      payloadAsOfDate:
+        sanitizedPayload.asOfDate != null
+          ? String(sanitizedPayload.asOfDate)
+          : null,
+      worldAsOfDate,
+    });
+    const computeResult = computeWorldMutation({
+      mutationType: 'signAndTrade',
+      payload: sanitizedPayload,
+      currentState,
+      seasonId,
+      timestamp,
+      asOfDate,
+      worldId,
+    });
+
+    if (!computeResult.success) {
+      return {
+        status: 'incomplete',
+        reasons: [
+          String(
+            computeResult.error ||
+              'Authoritative sign-and-trade preflight failed before legality could be determined.'
+          ),
+        ],
+        warnings: dedupeMessages(
+          Array.isArray(computeResult.warnings) ? computeResult.warnings : []
+        ),
+        source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+      };
+    }
+
+    const summary = summarizeSignAndTradeAuthority({
+      signingValidation: computeResult._signingValidation || signingValidation,
+      tradeValidation: computeResult._validatedTradeContext || null,
+    });
+
+    return {
+      status: summary.status,
+      reasons: summary.reasons,
+      warnings: summary.warnings,
+      source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+    };
+  } catch (error) {
+    return {
+      status: 'incomplete',
+      reasons: [
+        getErrorMessage(error) ||
+          'Authoritative sign-and-trade preflight failed before legality could be determined.',
+      ],
+      warnings: [],
+      source: AUTHORITATIVE_SAT_PREFLIGHT_SOURCE,
+    };
+  }
+}
+
 // ==============================================================================
 // PHASE 1: READ - Load state for mutation
 // ==============================================================================
@@ -2584,7 +2903,9 @@ function withDefaultPlayerDeletes(
   };
 }
 
-function getMutationPlayerId(player: LooseRecord | null | undefined) {
+function getMutationPlayerId(
+  player: ArchitectMutationPlayerRecord | null | undefined
+) {
   if (!player) {
     return null;
   }
@@ -2603,17 +2924,14 @@ function findPlayerInTeamPlayers(
   playerId: string
 ): PlayerLike | null {
   const players = Array.isArray(team?.players) ? team.players : [];
-  return (
-    players.find((player) => getMutationPlayerId(player as LooseRecord) === playerId) ||
-    null
-  ) as PlayerLike | null;
+  return players.find((player) => getMutationPlayerId(player) === playerId) || null;
 }
 
 function toPersistablePlayerOverrideFromSnapshot(player: PlayerLike): PlayerLike {
-  const playerId = getMutationPlayerId(player as LooseRecord);
+  const playerId = getMutationPlayerId(player);
   const bio =
     player.bio && typeof player.bio === 'object' && !Array.isArray(player.bio)
-      ? (player.bio as LooseRecord)
+      ? (player.bio as Record<string, unknown>)
       : undefined;
 
   return removeUndefinedDeep({
@@ -2629,13 +2947,13 @@ function toPersistablePlayerOverrideFromSnapshot(player: PlayerLike): PlayerLike
     bio,
     contract: player.contract || undefined,
     futureContract: player.futureContract || undefined,
-    representation: (player as LooseRecord).representation,
+    representation: player.representation,
     source: player.source || undefined,
-    lastUpdated: (player as LooseRecord).lastUpdated,
-    version: (player as LooseRecord).version,
-    rfaOfferSheet: (player as LooseRecord).rfaOfferSheet,
-    rfaOfferSheetOnly: (player as LooseRecord).rfaOfferSheetOnly,
-    rfaContext: (player as LooseRecord).rfaContext,
+    lastUpdated: player.lastUpdated,
+    version: player.version,
+    rfaOfferSheet: player.rfaOfferSheet,
+    rfaOfferSheetOnly: player.rfaOfferSheetOnly,
+    rfaContext: player.rfaContext,
   }) as PlayerLike;
 }
 
@@ -2797,7 +3115,7 @@ function buildCanonicalPlayerPersistenceManifest({
 }
 
 function matchesOfferSheetIdentity(
-  offerSheet: LooseRecord | null | undefined,
+  offerSheet: ArchitectMutationOfferSheet | null | undefined,
   offerSheetId: string,
   dedupKey?: string | null
 ) {
@@ -2814,10 +3132,10 @@ function matchesOfferSheetIdentity(
 }
 
 function removeOfferSheetEntries(
-  entries: unknown,
+  entries: ArchitectMutationOfferSheet[] | null | undefined,
   offerSheetId: string,
   dedupKey?: string | null
-) {
+): ArchitectMutationOfferSheet[] {
   const normalizedOfferSheetId = String(offerSheetId || '').trim();
   const normalizedDedupKey = String(dedupKey || '').trim();
 
@@ -2826,9 +3144,8 @@ function removeOfferSheetEntries(
   }
 
   return entries.filter((entry) => {
-    const offerSheet = (entry || {}) as LooseRecord;
-    const entryId = String(offerSheet.id || '').trim();
-    const entryDedupKey = String(offerSheet.dedupKey || '').trim();
+    const entryId = String(entry.id || '').trim();
+    const entryDedupKey = String(entry.dedupKey || '').trim();
 
     if (normalizedOfferSheetId && entryId === normalizedOfferSheetId) {
       return false;
@@ -2848,18 +3165,14 @@ function buildNormalizedOfferSheetFinalContract({
   signedUsing,
   timestamp,
 }: {
-  offerSheet: LooseRecord;
+  offerSheet: ArchitectMutationOfferSheet;
   signingTeam: string;
   signedUsing: string;
   timestamp: number;
 }) {
-  const salariesByYear = (
-    (offerSheet.salariesByYear as LooseRecord[] | undefined) || []
-  ).map(normalizeSalaryRow);
+  const salariesByYear = (offerSheet.salariesByYear || []).map(normalizeSalaryRow);
   const contractYearsCandidate =
     Number(offerSheet.contractYears) ||
-    Number(offerSheet.contractLength) ||
-    Number(offerSheet.years) ||
     salariesByYear.length;
 
   if (
@@ -3176,6 +3489,7 @@ export function computeWorldMutation({
           currentState,
           seasonId,
           timestamp,
+          asOfDate,
           worldId,
           historyContext: { worldId, mutationType },
         })
@@ -3743,7 +4057,10 @@ function computeTradeResult({
 /**
  * Compute free agent signing result
  */
-function resolveSigningMechanismForPipeline(contract: any, signedUsing: any) {
+function resolveSigningMechanismForPipeline(
+  contract: ArchitectMutationContract | null | undefined,
+  signedUsing: string | null | undefined
+) {
   const source = contract?.exceptionType || signedUsing;
   if (!source) {
     return 'UNKNOWN';
@@ -3810,7 +4127,10 @@ function getExceptionCandidatesForMechanism(mechanism: string) {
   }
 }
 
-function resolveTeamExceptionKey(teamExceptions: any, mechanism: string) {
+function resolveTeamExceptionKey(
+  teamExceptions: ArchitectMutationExceptions | null | undefined,
+  mechanism: string
+) {
   const candidates = getExceptionCandidatesForMechanism(mechanism);
   for (const candidate of candidates) {
     if (teamExceptions?.[candidate] != null) {
@@ -3820,7 +4140,7 @@ function resolveTeamExceptionKey(teamExceptions: any, mechanism: string) {
   return null;
 }
 
-function toFiniteAmount(value: any, fallback = 0) {
+function toFiniteAmount(value: unknown, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
@@ -3831,10 +4151,10 @@ function consumeSigningExceptionUsage({
   contractValue,
   timestamp,
 }: {
-  updatedTeam: any;
+  updatedTeam: ArchitectMutationTeamRecord;
   mechanism: string;
   contractValue: number;
-  timestamp: any;
+  timestamp: number;
 }) {
   // Phase 74 guardrail compatibility markers:
   // exceptionType === 'room'
@@ -3852,10 +4172,10 @@ function consumeSigningExceptionUsage({
     return null;
   }
 
-  const currentState = updatedTeam.exceptions[exceptionKey];
-  const normalizedState =
+  const currentState = updatedTeam.exceptions?.[exceptionKey];
+  const normalizedState: ArchitectMutationExceptionEntry =
     currentState && typeof currentState === 'object'
-      ? { ...currentState }
+      ? { ...(currentState as ArchitectMutationExceptionEntry) }
       : {
           enabled: true,
           maxAmount: toFiniteAmount(currentState, 0),
@@ -3913,14 +4233,20 @@ function computeSigningResult({
   const updatedTeam = { ...team };
 
   // Add player to roster if not already present
-  const playerId = payload.playerId || player.player_id || player.id;
+  const playerId = String(payload.playerId || player.player_id || player.id || '').trim();
+  if (!playerId) {
+    return {
+      success: false,
+      error: 'Player ID is required for signing.',
+    };
+  }
   if (!updatedTeam.roster?.includes(playerId)) {
     updatedTeam.roster = [...(updatedTeam.roster || []), playerId];
   }
 
   // Update or add player to players array
   const existingIndex = (updatedTeam.players || []).findIndex(
-    (p: any) => (p.player_id || p.id) === playerId
+    (existingPlayer) => getMutationPlayerId(existingPlayer) === playerId
   );
 
   // Normalize contract for world persistence (canonical field names/types)
@@ -3978,7 +4304,7 @@ function computeSigningResult({
   // (processed offer sheets are removed to prevent state staleness)
   if (normalizedContract?.rfaOfferSheet && updatedTeam.offerSheets) {
     updatedTeam.offerSheets = updatedTeam.offerSheets.filter(
-      (os: any) => os.playerId !== playerId
+      (offerSheet) => String(offerSheet.playerId || '').trim() !== playerId
     );
   }
 
@@ -4003,7 +4329,7 @@ function computeSigningResult({
     const updatedHomeTeam = { ...currentState.homeTeam };
     updatedHomeTeam.incomingOfferSheets =
       updatedHomeTeam.incomingOfferSheets.filter(
-        (os: any) => os.playerId !== playerId
+        (offerSheet) => String(offerSheet.playerId || '').trim() !== playerId
       );
     // Only add update if something changed
     if (
@@ -4625,18 +4951,17 @@ function validateMutation({
     // Phase 56+: Trade validation MUST have already occurred via validatePostTradeSnapshotForContext
     // computeWorldMutation guarantees _validatedTradeContext is attached to computeResult
     if (computeResult?._validatedTradeContext?._isValidatedTradeContext) {
-      const preValidated =
-        computeResult._validatedTradeContext as unknown as LooseRecord;
+      const preValidated = computeResult._validatedTradeContext;
       return {
-        valid: preValidated.legal as boolean,
-        error: preValidated.error as string | undefined,
-        violations: ((preValidated.violations as unknown[] | undefined) || []).map(
+        valid: preValidated.legal,
+        error: preValidated.error || undefined,
+        violations: (preValidated.violations || []).map(
           (violation) =>
             typeof violation === 'string'
               ? violation
               : JSON.stringify(violation)
         ),
-        warnings: [...((preValidated.warnings as unknown[] | undefined) || []), ...pipelineWarnings],
+        warnings: [...(preValidated.warnings || []), ...pipelineWarnings],
       };
     }
 
@@ -4874,27 +5199,16 @@ function validateMutation({
         computeResult?._validatedTradeContext?._isValidatedTradeContext;
 
       if (hasPreValidatedSigning && hasPreValidatedTrade) {
-        const preSigningResult = computeResult._signingValidation as LooseRecord;
-        const preTradeResult =
-          computeResult._validatedTradeContext as unknown as LooseRecord;
-        const preSigningViolations = (preSigningResult.violations as LooseRecord[] | undefined) || [];
-        const preTradeViolations = (preTradeResult.violations as LooseRecord[] | undefined) || [];
+        const summary = summarizeSignAndTradeAuthority({
+          signingValidation: computeResult._signingValidation,
+          tradeValidation: computeResult._validatedTradeContext,
+        });
 
         return {
-          valid: (preSigningResult.valid as boolean) && (preTradeResult.legal as boolean),
-          error: preSigningResult.valid
-            ? (preTradeResult.error as string | undefined)
-            : (preSigningViolations[0]?.message as string | undefined) ||
-              'Signing validation failed',
-          violations: [
-            ...preSigningViolations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-            ...preTradeViolations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-          ],
-          warnings: [
-            ...((preSigningResult.warnings as unknown[] | undefined) || []),
-            ...((preTradeResult.warnings as unknown[] | undefined) || []),
-            ...pipelineWarnings,
-          ],
+          valid: summary.status === 'legal',
+          error: summary.error || undefined,
+          violations: summary.violations,
+          warnings: [...summary.warningIssues, ...pipelineWarnings],
         };
       }
 
@@ -5278,7 +5592,7 @@ function computeStoreOfferSheetResult({
     payload.offerSheetId || `os_${teamCode}_${playerId}_${timestamp}`;
 
   // Build canonical OfferSheet object
-  const offerSheet = {
+  const offerSheet: ArchitectMutationOfferSheet = {
     id: offerSheetId,
     dedupKey, // Phase 18.1: Deterministic key for idempotency
     playerId,
@@ -5302,12 +5616,12 @@ function computeStoreOfferSheetResult({
   // Phase 18.1: DEDUPLICATION - Check by id first, then by dedupKey
   // This ensures retries don't create duplicates even with different timestamps
   let existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(
-    (os: any) => os.id === offerSheetId
+    (existingOfferSheet) => existingOfferSheet.id === offerSheetId
   );
   if (existingIndex === -1) {
     // Not found by ID, try dedupKey
     existingIndex = (updatedOfferingTeam.offerSheets || []).findIndex(
-      (os: any) => os.dedupKey === dedupKey
+      (existingOfferSheet) => existingOfferSheet.dedupKey === dedupKey
     );
   }
 
@@ -5344,10 +5658,10 @@ function computeStoreOfferSheetResult({
     // Phase 18.1: Same dedup logic for home team
     let existingHomeIndex = (
       updatedHomeTeam.incomingOfferSheets || []
-    ).findIndex((os: any) => os.id === offerSheetId);
+    ).findIndex((existingOfferSheet) => existingOfferSheet.id === offerSheetId);
     if (existingHomeIndex === -1) {
       existingHomeIndex = (updatedHomeTeam.incomingOfferSheets || []).findIndex(
-        (os: any) => os.dedupKey === dedupKey
+        (existingOfferSheet) => existingOfferSheet.dedupKey === dedupKey
       );
     }
 
@@ -5403,7 +5717,7 @@ function computeMatchOfferSheetResult({
 
   // Find offer sheet on offering team
   const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(
-    (os: any) => os.id === offerSheetId
+    (offerSheet) => offerSheet.id === offerSheetId
   );
   if (offerSheetIndex === -1) {
     return {
@@ -5443,7 +5757,7 @@ function computeMatchOfferSheetResult({
   // MIRRORING: Update logic on home team
   if (homeTeam && homeTeam.incomingOfferSheets) {
     const homeIndex = homeTeam.incomingOfferSheets.findIndex(
-      (os: any) => os.id === offerSheetId
+      (offerSheet) => offerSheet.id === offerSheetId
     );
     if (homeIndex !== -1) {
       const updatedHomeTeam = { ...homeTeam };
@@ -5486,7 +5800,7 @@ function computeDeclineOfferSheetResult({
 
   // Find offer sheet
   const offerSheetIndex = (offeringTeam.offerSheets || []).findIndex(
-    (os: any) => os.id === offerSheetId
+    (offerSheet) => offerSheet.id === offerSheetId
   );
   if (offerSheetIndex === -1) {
     return { success: false, error: `Offer sheet ${offerSheetId} not found` };
@@ -5521,7 +5835,7 @@ function computeDeclineOfferSheetResult({
   // MIRRORING: Update logic on home team
   if (homeTeam && homeTeam.incomingOfferSheets) {
     const homeIndex = homeTeam.incomingOfferSheets.findIndex(
-      (os: any) => os.id === offerSheetId
+      (offerSheet) => offerSheet.id === offerSheetId
     );
     if (homeIndex !== -1) {
       const updatedHomeTeam = { ...homeTeam };
@@ -5568,9 +5882,13 @@ function computeFinalizeMatchedOfferSheetResult({
   const { homeTeam, offeringTeam, offerSheetId } = currentState;
   const incomingOfferSheets = homeTeam.incomingOfferSheets || [];
   const requestedDedupKey = payload.dedupKey as string | null | undefined;
-  const offerSheet = incomingOfferSheets.find((os: any) =>
-    matchesOfferSheetIdentity(os as LooseRecord, offerSheetId || '', requestedDedupKey)
-  ) as LooseRecord | undefined;
+  const offerSheet = incomingOfferSheets.find((existingOfferSheet) =>
+    matchesOfferSheetIdentity(
+      existingOfferSheet,
+      offerSheetId || '',
+      requestedDedupKey
+    )
+  );
 
   if (!offerSheet) {
     return {
@@ -5595,7 +5913,7 @@ function computeFinalizeMatchedOfferSheetResult({
   }
 
   const playerIndex = (homeTeam.players || []).findIndex(
-    (p: any) => (p.player_id || p.id) === playerId
+    (teamPlayer) => getMutationPlayerId(teamPlayer) === playerId
   );
 
   if (playerIndex === -1) {
@@ -5624,9 +5942,9 @@ function computeFinalizeMatchedOfferSheetResult({
     teamName: homeTeam.teamName,
     contract: normalizedContract,
   };
-  delete (updatedPlayer as LooseRecord).rfaOfferSheet;
-  delete (updatedPlayer as LooseRecord).rfaOfferSheetOnly;
-  delete (updatedPlayer as LooseRecord).rfaContext;
+  delete updatedPlayer.rfaOfferSheet;
+  delete updatedPlayer.rfaOfferSheetOnly;
+  delete updatedPlayer.rfaContext;
 
   const resolvedDedupKey = String(offerSheet.dedupKey || requestedDedupKey || '').trim();
   const updatedHomeTeam = { ...homeTeam };
@@ -5725,9 +6043,9 @@ function computeFinalizeDeclinedOfferSheetResult({
 
   // 1. Find the offer sheet (on offering team)
   const offerSheets = offeringTeam.offerSheets || [];
-  const offerSheet = offerSheets.find((os: any) =>
-    matchesOfferSheetIdentity(os as LooseRecord, offerSheetId || '', dedupKey)
-  ) as LooseRecord | undefined;
+  const offerSheet = offerSheets.find((existingOfferSheet) =>
+    matchesOfferSheetIdentity(existingOfferSheet, offerSheetId || '', dedupKey)
+  );
 
   if (!offerSheet) {
     return {
@@ -5779,9 +6097,9 @@ function computeFinalizeDeclinedOfferSheetResult({
     teamName: offeringTeam.teamName,
     contract: normalizedContract,
   };
-  delete (updatedPlayer as LooseRecord).rfaOfferSheet;
-  delete (updatedPlayer as LooseRecord).rfaOfferSheetOnly;
-  delete (updatedPlayer as LooseRecord).rfaContext;
+  delete updatedPlayer.rfaOfferSheet;
+  delete updatedPlayer.rfaOfferSheetOnly;
+  delete updatedPlayer.rfaContext;
 
   const updatedOfferingTeam = { ...offeringTeam };
   updatedOfferingTeam.offerSheets = removeOfferSheetEntries(
@@ -5790,7 +6108,7 @@ function computeFinalizeDeclinedOfferSheetResult({
     resolvedDedupKey
   );
   const offeringPlayerIndex = (updatedOfferingTeam.players || []).findIndex(
-    (p: any) => (p.player_id || p.id) === playerId
+    (teamPlayer) => getMutationPlayerId(teamPlayer) === playerId
   );
   if (offeringPlayerIndex !== -1) {
     updatedOfferingTeam.players = [
@@ -5823,10 +6141,10 @@ function computeFinalizeDeclinedOfferSheetResult({
     resolvedDedupKey
   );
   updatedHomeTeam.roster = (updatedHomeTeam.roster || []).filter(
-    (id: any) => String(id || '').trim() !== playerId
+    (id) => String(id || '').trim() !== playerId
   );
   updatedHomeTeam.players = (updatedHomeTeam.players || []).filter(
-    (p: any) => (p.player_id || p.id) !== playerId
+    (teamPlayer) => getMutationPlayerId(teamPlayer) !== playerId
   );
   if (Array.isArray(updatedHomeTeam.capHolds)) {
     updatedHomeTeam.capHolds = updatedHomeTeam.capHolds.filter(
@@ -5894,9 +6212,14 @@ function computeSignAndTradeResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate = null,
   worldId,
   historyContext = {},
-}: ComputeMutationParams & { worldId?: string; historyContext?: LooseRecord }): ComputeResultLike {
+}: ComputeMutationParams & {
+  asOfDate?: string | number | null;
+  worldId?: string;
+  historyContext?: LooseRecord;
+}): ComputeResultLike {
   const { team, destinationTeam, player } = currentState;
   const { teamCode, destinationTeamCode } = payload;
 
@@ -5971,6 +6294,11 @@ function computeSignAndTradeResult({
         sends: [],
       },
     ],
+    ...(asOfDate != null ? { asOfDate } : {}),
+    tradeCtx: {
+      ...(asOfDate != null ? { asOfDate } : {}),
+      ...(worldId ? { worldId } : {}),
+    },
   };
 
   // Construct trade state (Source has signed player, Dest is original)

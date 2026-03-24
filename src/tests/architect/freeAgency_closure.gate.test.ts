@@ -157,18 +157,17 @@ describe('Gate 4: Authoritative sync path updates current team from changedTeams
   });
 
   it('reads changedTeams and resolves currentTeamUpdate', () => {
-    const readsChangedTeams =
-      /const\s+changedTeams\s*=\s*Array\.isArray\(result\?\.changedTeams\)/.test(
-        content
-      );
-    const resolvesCurrentTeam = /changedTeams\.find\s*\(/.test(content);
+    const readsChangedTeams = /result\?\.changedTeams/.test(content);
+    const resolvesCurrentTeam = /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/.test(
+      content
+    );
     expect(readsChangedTeams).toBe(true);
     expect(resolvesCurrentTeam).toBe(true);
   });
 
   it('updates team state from authoritative changed team snapshot', () => {
     const updatesTeamState =
-      /setTeamCapSheet\s*\(\s*currentTeamUpdate\.team\s+as\s+CapSheet\s*\)/.test(
+      /setTeamCapSheetSafe\s*\(\s*currentTeam\s*\)/.test(
         content
       );
     expect(updatesTeamState).toBe(true);

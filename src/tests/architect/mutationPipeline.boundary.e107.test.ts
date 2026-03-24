@@ -149,6 +149,7 @@ describe('E107 mutationPipeline boundary proof', () => {
       'buildPostTradeTeamsSnapshot',
       'buildWorldMutationEventPayload',
       'computeWorldMutation',
+      'preflightSignAndTradeMutation',
       'resolveWorldAsOfDate',
       'sanitizeTransientFieldsForPersistence',
       'validatePostTradeSnapshotForContext',

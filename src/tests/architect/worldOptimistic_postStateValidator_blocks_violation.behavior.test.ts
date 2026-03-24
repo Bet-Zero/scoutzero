@@ -12,6 +12,7 @@ import {
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
   computeWorldMutation: vi.fn(),
+  preflightSignAndTradeMutation: vi.fn(),
 }));
 
 const capTotalsMocks = vi.hoisted(() => ({
@@ -31,6 +32,7 @@ const toastMocks = vi.hoisted(() => ({
 vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   applyWorldMutation: mutationMocks.applyWorldMutation,
   computeWorldMutation: mutationMocks.computeWorldMutation,
+  preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
 }));
 
 vi.mock('@/features/architect/utils/capTotals', () => ({

@@ -23,6 +23,7 @@ const toastMocks = vi.hoisted(() => ({
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
   computeWorldMutation: vi.fn(),
+  preflightSignAndTradeMutation: vi.fn(),
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -32,6 +33,7 @@ vi.mock('react-hot-toast', () => ({
 vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   applyWorldMutation: mutationMocks.applyWorldMutation,
   computeWorldMutation: mutationMocks.computeWorldMutation,
+  preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({

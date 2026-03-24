@@ -6,6 +6,7 @@ import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useA
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
   computeWorldMutation: vi.fn(),
+  preflightSignAndTradeMutation: vi.fn(),
 }));
 
 const validationMocks = vi.hoisted(() => ({
@@ -25,6 +26,7 @@ const toastMocks = vi.hoisted(() => ({
 vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   applyWorldMutation: mutationMocks.applyWorldMutation,
   computeWorldMutation: mutationMocks.computeWorldMutation,
+  preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
@@ -165,6 +167,12 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       valid: true,
       violations: [],
       warnings: [],
+    });
+    mutationMocks.preflightSignAndTradeMutation.mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
     });
     worldTeamDataMocks.resolveTeamCode.mockImplementation((teamId: string) =>
       String(teamId || '').toUpperCase()
@@ -640,5 +648,72 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     );
     expect(result.current.teamCapSheet).toBe(beforeApplyTeam);
     expect((result.current.teamCapSheet as any).marker).toBeUndefined();
+  });
+
+  it('returns a conservative blocked SAT preflight result in base mode', async () => {
+    const { result } = renderActionsHarness({ worldId: null });
+
+    let preflightResult: any;
+    await act(async () => {
+      preflightResult = await result.current.actions.getSignAndTradePreflight(
+        playerFixture as any,
+        contractFixture as any,
+        'BOS'
+      );
+    });
+
+    expect(preflightResult).toEqual({
+      status: 'blocked',
+      reasons: ['Sign-and-trade requires an active world to commit.'],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    expect(mutationMocks.preflightSignAndTradeMutation).not.toHaveBeenCalled();
+  });
+
+  it('canonicalizes SAT preflight inputs and delegates to the authoritative preflight helper', async () => {
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    await act(async () => {
+      await result.current.actions.getSignAndTradePreflight(
+        playerFixture as any,
+        {
+          years: 2,
+          salaries: [12_000_000, 12_600_000],
+          exceptionType: 'Full MLE',
+        } as any,
+        'bos'
+      );
+    });
+
+    expect(mutationMocks.preflightSignAndTradeMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        worldId: 'world_1',
+        seasonId: '2025-26',
+        payload: expect.objectContaining({
+          teamCode: 'LAL',
+          destinationTeamCode: 'BOS',
+          playerId: 'player_1',
+          signAndTrade: true,
+          signedUsing: 'Full MLE',
+          contract: expect.objectContaining({
+            contractType: 'Sign & Trade',
+            signingTeam: 'LAL',
+            salariesByYear: [
+              expect.objectContaining({
+                season: '2025-26',
+                salary: 12_000_000,
+                capHit: 12_000_000,
+              }),
+              expect.objectContaining({
+                season: '2026-27',
+                salary: 12_600_000,
+                capHit: 12_600_000,
+              }),
+            ],
+          }),
+        }),
+      })
+    );
   });
 });

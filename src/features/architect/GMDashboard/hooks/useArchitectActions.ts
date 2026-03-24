@@ -18,6 +18,7 @@ import capProjections from '@/features/architect/utils/capProjections';
 import {
   applyWorldMutation,
   computeWorldMutation,
+  preflightSignAndTradeMutation,
   type ArchitectMutationContract,
   type ArchitectMutationDeadCapEntry,
   type ArchitectMutationExceptionEntry,
@@ -25,6 +26,7 @@ import {
   type ArchitectMutationPayload,
   type ArchitectMutationResult,
   type ArchitectMutationTeamUpdate,
+  type SignAndTradePreflightResult,
 } from '@/features/architect/utils/mutationPipeline';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
@@ -422,6 +424,11 @@ export interface UseArchitectActionsReturn {
     contract: SigningDetails,
     destinationTeamCode: string
   ) => Promise<MutationActionResult>;
+  getSignAndTradePreflight: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails,
+    destinationTeamCode: string
+  ) => Promise<SignAndTradePreflightResult>;
   handleEditContract: (player: ArchitectPlayer) => void;
   handleCapSheetAction: (
     player: PlayerRulesProfileInput | CapHoldActionItem,
@@ -2036,7 +2043,110 @@ export function useArchitectActions({
 
       return { success: true };
     },
-    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
+    [
+      currentYear,
+      reportMutationError,
+      runAuthoritativeFAMutation,
+      teamCode,
+      worldId,
+    ]
+  );
+
+  const getSignAndTradePreflight = useCallback(
+    async (
+      playerObj: ArchitectPlayer,
+      contract: SigningDetails,
+      destinationTeamCode: string
+    ): Promise<SignAndTradePreflightResult> => {
+      if (!worldId) {
+        return {
+          status: 'blocked',
+          reasons: ['Sign-and-trade requires an active world to commit.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      const canonicalDestinationTeamCode = destinationTeamCode
+        ? resolveTeamCode(destinationTeamCode) || destinationTeamCode
+        : '';
+      if (!canonicalDestinationTeamCode) {
+        return {
+          status: 'blocked',
+          reasons: ['Destination team is required for sign-and-trade.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      if (canonicalDestinationTeamCode === teamCode) {
+        return {
+          status: 'blocked',
+          reasons: [
+            'Destination team must be different from the current team for sign-and-trade.',
+          ],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      const playerId = playerObj.id || playerObj.player_id;
+      if (!playerId) {
+        return {
+          status: 'blocked',
+          reasons: ['Cannot complete sign-and-trade: missing player ID.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      const architectContract = ensureContractStructure(
+        contract as LocalContract,
+        {
+          contractType: 'Sign & Trade',
+          isExtension: false,
+          isRookieScale: !!contract.isRookieScale,
+          signingTeam: teamCode,
+          startYear: currentYear,
+        }
+      );
+
+      if (!architectContract) {
+        return {
+          status: 'blocked',
+          reasons: ['Cannot complete sign-and-trade: contract payload is invalid.'],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+
+      try {
+        return await preflightSignAndTradeMutation({
+          worldId,
+          seasonId,
+          payload: {
+            teamCode,
+            destinationTeamCode: canonicalDestinationTeamCode,
+            playerId,
+            contract: architectContract,
+            signedUsing: deriveSigningMechanism(contract),
+            signAndTrade: true,
+          },
+        });
+      } catch (error) {
+        return {
+          status: 'incomplete',
+          reasons: [
+            error instanceof Error
+              ? error.message
+              : 'Authoritative sign-and-trade preflight failed before legality could be determined.',
+          ],
+          warnings: [],
+          source: 'authoritative-preflight',
+        };
+      }
+    },
+    [currentYear, seasonId, teamCode, worldId]
   );
 
   // === RFA Offer Sheet Actions ===
@@ -3216,6 +3326,7 @@ export function useArchitectActions({
     // Contract/Player actions
     handleSign,
     handleSignAndTrade,
+    getSignAndTradePreflight,
     handleEditContract,
     handleCapSheetAction,
     handleSaveContract,

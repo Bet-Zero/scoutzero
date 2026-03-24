@@ -17,7 +17,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import {
+  applyWorldMutation,
+  preflightSignAndTradeMutation,
+} from '@/features/architect/utils/mutationPipeline';
 import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
@@ -206,6 +209,219 @@ describe('Sign and Trade Mutation', () => {
         contract.contractType === 'Sign & Trade' ||
           contract.signAndTrade === true
       ).toBe(true);
+    });
+  });
+
+  describe('SAT preflight alignment', () => {
+    it('closes the old source-team drift by allowing a SAT that is legal for the receiving team post-trade', async () => {
+      const firstApron = 178_000_000;
+      const sourceTotalSalary = firstApron + 2_000_000;
+      getTeam.mockImplementation((wid, code) => {
+        if (code === sourceTeamCode) {
+          return Promise.resolve({
+            ...mockSourceTeam,
+            totals: { totalSalary: sourceTotalSalary, capHit: sourceTotalSalary },
+          });
+        }
+        if (code === destTeamCode) {
+          return Promise.resolve({
+            ...mockDestTeam,
+            totals: { totalSalary: firstApron - 12_000_000, capHit: firstApron - 12_000_000 },
+          });
+        }
+        return Promise.resolve(null);
+      });
+      validateTrade.mockReturnValue({
+        valid: true,
+        legal: true,
+        reason: null,
+        error: null,
+        violations: [],
+        warnings: [
+          {
+            message: 'Sign-and-trade will hard cap receiving team at First Apron',
+            severity: 'warning',
+            rule: 'signAndTrade',
+            code: 'SIGN_AND_TRADE__RECEIVER_HARD_CAP_TRIGGER',
+          },
+        ],
+        teamResults: [],
+        summaryByTeamIndex: [],
+        tradeReceipt: null,
+        dataWarnings: [],
+        hasDataIssues: false,
+        yearKey: 2026,
+        seasonKey: '2025-26',
+        capSettings: { firstApron },
+        capSettingsSource: 'test',
+        capSettingsWarnings: [],
+        asOfDate: '2025-07-01',
+        tradeDate: '2025-07-01',
+        offseason: true,
+      });
+
+      const oldLocalWouldBlock = sourceTotalSalary > firstApron;
+      expect(oldLocalWouldBlock).toBe(true);
+
+      const result = await preflightSignAndTradeMutation({
+        worldId,
+        seasonId,
+        payload: {
+          teamCode: sourceTeamCode,
+          destinationTeamCode: destTeamCode,
+          playerId,
+          contract: validSigningContract,
+          signedUsing: 'Bird Rights',
+        },
+      });
+
+      expect(result).toEqual({
+        status: 'legal',
+        reasons: [],
+        warnings: ['Sign-and-trade will hard cap receiving team at First Apron'],
+        source: 'authoritative-preflight',
+      });
+    });
+
+    it('blocks SAT from receiving-team post-trade context even when the source team local total is under the apron', async () => {
+      const firstApron = 178_000_000;
+      const sourceTotalSalary = firstApron - 15_000_000;
+      getTeam.mockImplementation((wid, code) => {
+        if (code === sourceTeamCode) {
+          return Promise.resolve({
+            ...mockSourceTeam,
+            totals: { totalSalary: sourceTotalSalary, capHit: sourceTotalSalary },
+          });
+        }
+        if (code === destTeamCode) {
+          return Promise.resolve({
+            ...mockDestTeam,
+            totals: { totalSalary: firstApron - 1_000_000, capHit: firstApron - 1_000_000 },
+          });
+        }
+        return Promise.resolve(null);
+      });
+      validateTrade.mockReturnValue({
+        valid: false,
+        legal: false,
+        reason: 'Receiver would exceed First Apron after sign-and-trade.',
+        error: 'Receiver would exceed First Apron after sign-and-trade.',
+        violations: [
+          {
+            message: 'Receiver would exceed First Apron after sign-and-trade.',
+            severity: 'error',
+            rule: 'signAndTrade',
+            code: 'SIGN_AND_TRADE__FIRST_APRON_HARD_CAP_EXCEEDED',
+          },
+        ],
+        warnings: [],
+        teamResults: [],
+        summaryByTeamIndex: [],
+        tradeReceipt: null,
+        dataWarnings: [],
+        hasDataIssues: false,
+        yearKey: 2026,
+        seasonKey: '2025-26',
+        capSettings: { firstApron },
+        capSettingsSource: 'test',
+        capSettingsWarnings: [],
+        asOfDate: '2025-07-01',
+        tradeDate: '2025-07-01',
+        offseason: true,
+      });
+
+      const oldLocalWouldBlock = sourceTotalSalary > firstApron;
+      expect(oldLocalWouldBlock).toBe(false);
+
+      const preflightResult = await preflightSignAndTradeMutation({
+        worldId,
+        seasonId,
+        payload: {
+          teamCode: sourceTeamCode,
+          destinationTeamCode: destTeamCode,
+          playerId,
+          contract: validSigningContract,
+          signedUsing: 'Bird Rights',
+        },
+      });
+
+      expect(preflightResult).toEqual({
+        status: 'blocked',
+        reasons: ['Receiver would exceed First Apron after sign-and-trade.'],
+        warnings: [],
+        source: 'authoritative-preflight',
+      });
+
+      const applyResult = await applyWorldMutation({
+        userId,
+        worldId,
+        seasonId,
+        mutationType: 'signAndTrade',
+        payload: {
+          teamCode: sourceTeamCode,
+          destinationTeamCode: destTeamCode,
+          playerId,
+          contract: validSigningContract,
+          signedUsing: 'Bird Rights',
+        },
+      });
+
+      expect(applyResult.success).toBe(false);
+      expect(applyResult.error).toContain(
+        'Receiver would exceed First Apron after sign-and-trade.'
+      );
+    });
+
+    it('fails closed as incomplete when authoritative SAT hard-cap context is unavailable', async () => {
+      validateTrade.mockReturnValue({
+        valid: false,
+        legal: false,
+        reason: 'Cannot validate sign-and-trade hard cap: firstApron not available for season',
+        error: 'Cannot validate sign-and-trade hard cap: firstApron not available for season',
+        violations: [
+          {
+            message: 'Cannot validate sign-and-trade hard cap: firstApron not available for season',
+            severity: 'error',
+            rule: 'signAndTrade',
+            code: 'SIGN_AND_TRADE__MISSING_FIRST_APRON',
+          },
+        ],
+        warnings: [],
+        teamResults: [],
+        summaryByTeamIndex: [],
+        tradeReceipt: null,
+        dataWarnings: [],
+        hasDataIssues: false,
+        yearKey: 2026,
+        seasonKey: '2025-26',
+        capSettings: null,
+        capSettingsSource: 'test',
+        capSettingsWarnings: [],
+        asOfDate: '2025-07-01',
+        tradeDate: '2025-07-01',
+        offseason: true,
+      });
+
+      const result = await preflightSignAndTradeMutation({
+        worldId,
+        seasonId,
+        payload: {
+          teamCode: sourceTeamCode,
+          destinationTeamCode: destTeamCode,
+          playerId,
+          contract: validSigningContract,
+          signedUsing: 'Bird Rights',
+        },
+      });
+
+      expect(result).toEqual({
+        status: 'incomplete',
+        reasons: [
+          'Cannot validate sign-and-trade hard cap: firstApron not available for season',
+        ],
+        warnings: [],
+        source: 'authoritative-preflight',
+      });
     });
   });
 

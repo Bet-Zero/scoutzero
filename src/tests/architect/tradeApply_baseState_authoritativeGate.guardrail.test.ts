@@ -25,7 +25,7 @@ describe('Base-state trade apply authoritative gate guardrail', () => {
     expect(region).toContain("mutationType: 'executeTrade'");
     expect(region).toContain('_validatedTradeContext');
     expect(region).toContain('validatedContext.legal');
-    expect(region).toContain('setTeamCapSheet(updatedTeam as CapSheet)');
+    expect(region).toContain('setTeamCapSheetSafe(updatedTeam as CapSheet)');
 
     // Ensure we no longer use the old direct-local mutation path.
     expect(region).not.toContain('const targetTrade = tradeData.find');
@@ -34,7 +34,7 @@ describe('Base-state trade apply authoritative gate guardrail', () => {
     const computeIdx = region.indexOf('computeWorldMutation({');
     const validatedContextIdx = region.indexOf('_validatedTradeContext');
     const legalIdx = region.indexOf('validatedContext.legal');
-    const setTeamIdx = region.indexOf('setTeamCapSheet(updatedTeam as CapSheet)');
+    const setTeamIdx = region.indexOf('setTeamCapSheetSafe(updatedTeam as CapSheet)');
 
     expect(computeIdx).toBeGreaterThan(-1);
     expect(validatedContextIdx).toBeGreaterThan(-1);

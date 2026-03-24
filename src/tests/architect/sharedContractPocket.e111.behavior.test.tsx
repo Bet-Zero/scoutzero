@@ -333,6 +333,12 @@ describe('E111 EditContractModal behavior', () => {
   it('uses the current destination-team flow for sign-and-trade', async () => {
     const onClose = vi.fn();
     const onSignAndTrade = vi.fn().mockResolvedValue({ success: true });
+    const getSignAndTradePreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
 
     render(
       <EditContractModal
@@ -345,6 +351,7 @@ describe('E111 EditContractModal behavior', () => {
         actionContext="freeAgent"
         actionsOverride={['signAndTrade']}
         onSignAndTrade={onSignAndTrade}
+        getSignAndTradePreflight={getSignAndTradePreflight}
       />
     );
 
@@ -372,6 +379,14 @@ describe('E111 EditContractModal behavior', () => {
         'BOS'
       );
     });
+    expect(getSignAndTradePreflight).toHaveBeenCalledWith(
+      PLAYER,
+      expect.objectContaining({
+        signAndTrade: true,
+        contractType: 'Sign & Trade',
+      }),
+      'BOS'
+    );
 
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledTimes(1);

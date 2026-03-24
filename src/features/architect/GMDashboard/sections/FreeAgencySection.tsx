@@ -23,6 +23,7 @@ const FreeAgencySection = ({
   currentYear,
   onSign,
   onSignAndTrade,
+  getSignAndTradePreflight,
   onStoreOfferSheet,
   playersMap,
   outgoingOfferSheets,
@@ -70,6 +71,9 @@ const FreeAgencySection = ({
       currentYear={currentYear}
       onSign={onSign as FreeAgentPoolProps['onSign']}
       onSignAndTrade={onSignAndTrade as FreeAgentPoolProps['onSignAndTrade']}
+      getSignAndTradePreflight={
+        getSignAndTradePreflight as FreeAgentPoolProps['getSignAndTradePreflight']
+      }
       onStoreOfferSheet={onStoreOfferSheet as FreeAgentPoolProps['onStoreOfferSheet']}
       playersMap={playersMap as FreeAgentPoolProps['playersMap']}
       worldId={worldId}

@@ -27,6 +27,7 @@
  * an info warning. This ensures consistent behavior via the Salary Engine.
  */
 import { useMemo } from 'react';
+import type { SignAndTradePreflightResult } from '@/features/architect/utils/mutationPipeline';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -144,6 +145,7 @@ type UseCapValidationParams = {
   currentYear?: number;
   targetYear?: number | null;
   rulesProfile?: UseCapValidationRulesProfile | null;
+  signAndTradePreflight?: SignAndTradePreflightResult | null;
 };
 
 type UseCapValidationResult = {
@@ -296,6 +298,7 @@ export function useCapValidation({
   currentYear,
   targetYear = null,
   rulesProfile = null,
+  signAndTradePreflight = null,
 }: UseCapValidationParams): UseCapValidationResult {
   return useMemo(() => {
     const warnings: ValidationMessage[] = [];
@@ -611,25 +614,39 @@ export function useCapValidation({
 
     // ===== SIGN AND TRADE =====
     if (action === 'signAndTrade') {
-      const currentYearCapHit = calculateTeamCapHitLocal(
-        teamPlayers,
-        resolvedCurrentYear
-      );
-      const currentCapSettings = getResolvedCapSettings(resolvedCurrentYear);
+      const normalizedPreflight = signAndTradePreflight;
 
-      warnings.push({
-        severity: 'info',
-        message: 'Sign-and-trade will hard cap receiving team at First Apron',
-      });
-
-      if (
-        currentYearCapHit >
-        (currentCapSettings.firstApron ?? Number.POSITIVE_INFINITY)
-      ) {
-        errors.push({
-          severity: 'error',
-          message: 'Team over First Apron - cannot execute sign-and-trade',
+      if (!normalizedPreflight) {
+        incomplete = true;
+        warnings.push({
+          severity: 'warning',
+          message:
+            'Authoritative sign-and-trade preflight is unavailable.',
         });
+      } else {
+        normalizedPreflight.warnings.forEach((message) => {
+          warnings.push({
+            severity: 'warning',
+            message,
+          });
+        });
+
+        if (normalizedPreflight.status === 'blocked') {
+          normalizedPreflight.reasons.forEach((message) => {
+            errors.push({
+              severity: 'error',
+              message,
+            });
+          });
+        } else if (normalizedPreflight.status === 'incomplete') {
+          incomplete = true;
+          normalizedPreflight.reasons.forEach((message) => {
+            warnings.push({
+              severity: 'warning',
+              message,
+            });
+          });
+        }
       }
     }
 
@@ -644,6 +661,7 @@ export function useCapValidation({
     currentYear,
     targetYear,
     rulesProfile,
+    signAndTradePreflight,
   ]);
 }
 

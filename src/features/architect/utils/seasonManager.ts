@@ -90,6 +90,7 @@ import {
   projectEntitlementsToSeasonManagerView,
   logDerivedPicksCreation,
 } from '@/features/architect/utils/entitlements/seasonManagerProjection';
+import type { SeasonManagerProjectedDraftPickView } from '@/features/architect/utils/entitlements/seasonManagerProjection';
 // DARE: Draft Asset Resolution Engine for entitlement lifecycle persistence (B2/B3)
 import {
   resolveAllDraftAssets,
@@ -188,6 +189,63 @@ function removeUndefinedDeep(obj: unknown): unknown {
 }
 
 type LooseRecord = Record<string, unknown>;
+
+type SeasonAdvanceOptions = {
+  fromSeason?: string;
+  toSeason?: string;
+  optionDecisions?: OffseasonOptionDecisionMap;
+};
+
+type DraftResolutionContext = {
+  positionsMap?: Record<string, number>;
+  draftYear?: number;
+  worldId?: string | null;
+};
+
+type SeasonManagerDraftPick = {
+  id?: string;
+  year?: number;
+  round?: number | string;
+  owner?: string;
+  currentOwner?: string;
+  originalTeam?: string | null;
+  tradedTo?: string | null;
+  via?: string;
+  isSwap?: boolean;
+  swapType?: SeasonManagerProjectedDraftPickView['swapType'] | 'worst_of';
+  swapWithTeamId?: string | null;
+  protection?: string | null;
+  conveyance?:
+    | SeasonManagerProjectedDraftPickView['conveyance']
+    | {
+        conditions?: unknown;
+        description?: string;
+        affects?: string[];
+      };
+  status?: string;
+  resolved?: boolean;
+  resolvedOwner?: string | null;
+  resolvedPosition?: number | null;
+  stepienBlocked?: boolean;
+  stepienReason?: string | null;
+  conveyanceResult?: Record<string, unknown> | null;
+  tradeable?: boolean;
+  resolutionMeta?: unknown;
+};
+
+type DraftPickCarrier = LooseRecord & {
+  _derivedDraftPicks?: SeasonManagerProjectedDraftPickView[];
+  draftPicks?: SeasonManagerDraftPick[];
+};
+
+type SeasonTransitionTeam = DraftPickCarrier &
+  Parameters<typeof resolveOffseasonTransition>[0]['teamCapSheet'];
+
+function getSeasonManagerDraftPicks(teamData: DraftPickCarrier): SeasonManagerDraftPick[] {
+  return [
+    ...((teamData._derivedDraftPicks || teamData.draftPicks || []) as SeasonManagerDraftPick[]),
+  ];
+}
 
 type SeasonAdvanceExpiredTpe =
   OffseasonAppliedChangesSummary['expiredTPEs'][number] & {
@@ -631,16 +689,13 @@ function updateCapHolds(teamData: LooseRecord, season: string) {
  * @param {string} toSeason - Target season
  * @returns {Object} Result with updated draft picks
  */
-function updateDraftPicks(teamData: LooseRecord, fromSeason: string, toSeason: string) {
+function updateDraftPicks(teamData: DraftPickCarrier, fromSeason: string, toSeason: string) {
   void fromSeason;
   const toYear = resolveSeasonEndYear(toSeason);
-  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
-  const draftPicks: LooseRecord[] = [
-    ...((teamData._derivedDraftPicks || teamData.draftPicks || []) as LooseRecord[]),
-  ];
+  const draftPicks = getSeasonManagerDraftPicks(teamData);
   let hasChanges = false;
 
-  const updatedPicks = draftPicks.map((pick: LooseRecord) => {
+  const updatedPicks = draftPicks.map((pick) => {
     const updatedPick = { ...pick };
 
     // Advance pick year if needed
@@ -685,7 +740,10 @@ function updateDraftPicks(teamData: LooseRecord, fromSeason: string, toSeason: s
  *   Each entry: { decision: 'exercise' | 'decline', optionType: 'player' | 'team', season: string }
  * @returns {Promise<Object>} Season advancement result
  */
-export async function advanceSeasonInWorld(worldId: string, options: LooseRecord = {}) {
+export async function advanceSeasonInWorld(
+  worldId: string,
+  options: SeasonAdvanceOptions = {}
+) {
   if (!worldId) {
     return { success: false, error: 'worldId is required' };
   }
@@ -693,8 +751,7 @@ export async function advanceSeasonInWorld(worldId: string, options: LooseRecord
   const operationTimestamp = Date.now();
   const operationId = generateSeasonAdvanceOperationId(operationTimestamp);
   const occurredAt = new Date(operationTimestamp).toISOString();
-  const optionDecisions = (options.optionDecisions ||
-    {}) as OffseasonOptionDecisionMap;
+  const optionDecisions = options.optionDecisions || {};
 
   try {
     // Get current world metadata
@@ -1103,13 +1160,13 @@ export async function advanceSeasonInWorld(worldId: string, options: LooseRecord
  * @returns {Promise<Object>} Updated team data and summary
  */
 async function processTeamSeasonTransitionWithOptions(
-  teamData: LooseRecord,
+  teamData: SeasonTransitionTeam,
   fromSeason: string,
   toSeason: string,
   optionDecisions: OffseasonOptionDecisionMap,
-  resolutionContext: LooseRecord = {}
+  resolutionContext: DraftResolutionContext = {}
 ) {
-  let updatedTeam = { ...teamData };
+  let updatedTeam: SeasonTransitionTeam = { ...teamData };
   let hasChanges = false;
   const teamCode = teamData.teamCode as string;
   const teamSummary: SeasonAdvanceTeamSummary = {
@@ -1155,7 +1212,7 @@ async function processTeamSeasonTransitionWithOptions(
           .filter(Boolean);
 
         // Resolve pick rules in batch (graceful if fails or returns empty)
-        let pickRulesById: Record<string, unknown> = {};
+        let pickRulesById: ReturnType<typeof pickRulesMapToObject> = {};
         if (pickIds.length > 0) {
           try {
             const rulesMap = await resolvePickRulesByIds(pickIds);
@@ -1165,11 +1222,12 @@ async function processTeamSeasonTransitionWithOptions(
           }
         }
 
-        // Project entitlements to draftPicks-like view
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const derivedDraftPicks = projectEntitlementsToSeasonManagerView({
-          entitlements: entitlements as any,
-          pickRulesById: pickRulesById as any,
+          entitlements:
+            entitlements as Parameters<
+              typeof projectEntitlementsToSeasonManagerView
+            >[0]['entitlements'],
+          pickRulesById,
           teamCode,
         });
 
@@ -1195,8 +1253,8 @@ async function processTeamSeasonTransitionWithOptions(
   // ===========================================================================
   // Resolution order: conveyance first, then swaps
   // This ensures that rolled picks are properly tracked before swap resolution
-  const positionsMap = resolutionContext.positionsMap as Record<string, number> | undefined;
-  const draftYear = resolutionContext.draftYear as number | undefined;
+  const positionsMap = resolutionContext.positionsMap;
+  const draftYear = resolutionContext.draftYear;
 
   if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
     const resolutionOpts = {
@@ -1215,22 +1273,28 @@ async function processTeamSeasonTransitionWithOptions(
     // Track conveyance resolutions
     // Build a Set of original pick IDs that already had conveyanceResult for O(1) lookup
     const originalConveyedIds = new Set(
-      ((teamData.draftPicks || []) as LooseRecord[])
-        .filter((p: LooseRecord) => p?.conveyanceResult)
-        .map((p: LooseRecord) => p.id)
+      ((teamData.draftPicks || []) as SeasonManagerDraftPick[])
+        .filter((pick) => pick?.conveyanceResult)
+        .map((pick) => pick.id)
     );
 
     if (afterConveyance.draftPicks) {
-      const conveyedPicks = (afterConveyance.draftPicks as LooseRecord[]).filter(
-        (p: LooseRecord) => p?.conveyanceResult && !originalConveyedIds.has(p.id)
+      const conveyedPicks = afterConveyance.draftPicks.filter(
+        (pick) => pick?.conveyanceResult && !originalConveyedIds.has(pick.id)
       );
       for (const pick of conveyedPicks) {
-        const convResult = pick.conveyanceResult as LooseRecord | undefined;
+        const convResult = pick.conveyanceResult || undefined;
         teamSummary.conveyanceResolutions.push({
           pickId: pick.id,
           year: pick.year,
-          outcome: convResult?.outcome,
-          position: convResult?.position,
+          outcome:
+            convResult && typeof convResult === 'object'
+              ? (convResult.outcome as string | undefined)
+              : undefined,
+          position:
+            convResult && typeof convResult === 'object'
+              ? (convResult.position as number | undefined)
+              : undefined,
         });
         hasChanges = true;
       }
@@ -1249,14 +1313,14 @@ async function processTeamSeasonTransitionWithOptions(
     // Track swap resolutions
     // Build a Set of original pick IDs that were already resolved for O(1) lookup
     const originalResolvedIds = new Set(
-      ((teamData.draftPicks || []) as LooseRecord[])
-        .filter((p: LooseRecord) => p?.resolved === true)
-        .map((p: LooseRecord) => p.id)
+      ((teamData.draftPicks || []) as SeasonManagerDraftPick[])
+        .filter((pick) => pick?.resolved === true)
+        .map((pick) => pick.id)
     );
 
     if (afterSwaps.draftPicks) {
-      const resolvedSwaps = (afterSwaps.draftPicks as LooseRecord[]).filter(
-        (p: LooseRecord) => p?.resolved === true && !originalResolvedIds.has(p.id)
+      const resolvedSwaps = afterSwaps.draftPicks.filter(
+        (pick) => pick?.resolved === true && !originalResolvedIds.has(pick.id)
       );
       for (const pick of resolvedSwaps) {
         teamSummary.swapResolutions.push({
@@ -1295,7 +1359,10 @@ async function processTeamSeasonTransitionWithOptions(
     throw new Error(`[OSTE] ${teamCode}: ${message}`);
   }
 
-  updatedTeam = transitionResult.nextTeamCapSheet;
+  updatedTeam = {
+    ...updatedTeam,
+    ...(transitionResult.nextTeamCapSheet || {}),
+  };
   hasChanges = true;
 
   if (transitionResult.appliedChangesSummary) {
@@ -1522,14 +1589,15 @@ function processOptionsWithDecisions(
  * @param {string} toSeason - Target season
  * @returns {Object} Result with updated draft picks and Stepien updates
  */
-function updateDraftPicksWithStepien(teamData: LooseRecord, fromSeason: string, toSeason: string) {
+function updateDraftPicksWithStepien(
+  teamData: DraftPickCarrier,
+  fromSeason: string,
+  toSeason: string
+) {
   void fromSeason;
   const toYear = resolveSeasonEndYear(toSeason);
   const teamCode = teamData.teamCode as string;
-  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
-  const draftPicks: LooseRecord[] = [
-    ...((teamData._derivedDraftPicks || teamData.draftPicks || []) as LooseRecord[]),
-  ];
+  const draftPicks = getSeasonManagerDraftPicks(teamData);
   let hasChanges = false;
   const stepienUpdates: LooseRecord[] = [];
 
@@ -1660,7 +1728,12 @@ function updateDraftPicksWithStepien(teamData: LooseRecord, fromSeason: string, 
  * @param {string} [opts.method='lottery'] - Resolution method for audit trail
  * @returns {Object} - Team with updated draftPicks array
  */
-export function resolveDraftPickSwapsForYear(team: LooseRecord, draftYear: number, positionsMap: Record<string, number> | null | undefined, opts: LooseRecord = {}) {
+export function resolveDraftPickSwapsForYear(
+  team: DraftPickCarrier,
+  draftYear: number,
+  positionsMap: Record<string, number> | null | undefined,
+  opts: { nowIso?: string; method?: string } = {}
+) {
   // Return team unchanged if no positions provided (NO-OP)
   if (
     !positionsMap ||
@@ -1671,7 +1744,8 @@ export function resolveDraftPickSwapsForYear(team: LooseRecord, draftYear: numbe
   }
 
   // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
-  const draftPicksSource = team?._derivedDraftPicks || team?.draftPicks;
+  const draftPicksSource =
+    team?._derivedDraftPicks || team?.draftPicks;
 
   // Return team unchanged if no draft picks
   if (!draftPicksSource || !Array.isArray(draftPicksSource)) {
@@ -1758,10 +1832,10 @@ export function resolveDraftPickSwapsForYear(team: LooseRecord, draftYear: numbe
  * @returns {Object} - Team with updated draftPicks array
  */
 export function resolveDraftPickConveyanceForYear(
-  team: LooseRecord,
+  team: DraftPickCarrier,
   draftYear: number,
   positionsMap: Record<string, number> | null | undefined,
-  opts: LooseRecord = {}
+  opts: { nowIso?: string; method?: string } = {}
 ) {
   // Return team unchanged if no positions provided (NO-OP)
   if (
