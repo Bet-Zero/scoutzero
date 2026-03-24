@@ -84,8 +84,12 @@ import type {
 // CONSTANTS
 // ==============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyRecord = Record<string, any>;
+type CapLegalityViolation = {
+  rule: string;
+  message: string;
+  severity?: string;
+  [key: string]: unknown;
+};
 
 type MutationSalaryRow = Omit<
   NonNullable<ArchitectMutationContract['salariesByYear']>[number],
@@ -128,10 +132,10 @@ type MutationPlayer = Omit<
 > & {
   contract?: MutationContract | null;
   futureContract?: MutationContract | null;
-  yearsOfService?: unknown;
+  yearsOfService?: number | string | null;
   experience?: unknown;
-  teamId?: unknown;
-  team_id?: unknown;
+  teamId?: string | null;
+  team_id?: string | null;
   draftPick?: unknown;
 };
 type MutationTeamTotals = {
@@ -170,8 +174,8 @@ type MutationCapHold = Omit<Partial<CapHold>, 'playerId'> & {
 type KnownCapHold = CapHold & MutationCapHold;
 type MutationValidationResult = {
   valid: boolean;
-  violations: AnyRecord[];
-  warnings: AnyRecord[];
+  violations: CapLegalityViolation[];
+  warnings: CapLegalityViolation[];
 };
 
 type SigningTerms = {
@@ -243,7 +247,7 @@ const getErrorMessage = (error: unknown): string => {
     return error.message;
   }
   if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as AnyRecord).message);
+    return String((error as Record<string, unknown>).message);
   }
   return String(error);
 };
@@ -259,7 +263,7 @@ const toFiniteNumber = (value: unknown, fallback = 0): number => {
   return fallback;
 };
 
-const asRecordLike = <T extends Record<string, unknown> = AnyRecord>(
+const asRecordLike = <T extends Record<string, unknown> = Record<string, unknown>>(
   value: unknown
 ): T | null => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -531,7 +535,7 @@ function getSeasonStartDate(seasonCode: string): string | null {
  * @param {Array} warnings - Array of warning objects
  * @returns {{canOverride: boolean, hasHardBlock: boolean, hardBlockReasons: string[], softWarningReasons: string[]}}
  */
-export function getOverridePolicy(violations: AnyRecord[] = [], warnings: AnyRecord[] = []) {
+export function getOverridePolicy(violations: CapLegalityViolation[] = [], warnings: CapLegalityViolation[] = []) {
   const hardBlockReasons = [];
   const softWarningReasons = [];
 
@@ -608,7 +612,7 @@ export function isOverrideEnabled() {
 export function evaluateDataConfidence(
   rules: CapRulesProfile,
   operationName = 'Operation'
-): { blocked: boolean; violation: AnyRecord | null; warning: AnyRecord | null } {
+): { blocked: boolean; violation: CapLegalityViolation | null; warning: CapLegalityViolation | null } {
   if (!rules._meta)
     return { blocked: false, violation: null, warning: null };
 
@@ -1132,8 +1136,8 @@ export function validateOptionsPolicy(
  * @returns {{violations: Array, warnings: Array, hasNormalizableOptions: boolean}}
  */
 export function validateContractRows(contract: MutationContract | null | undefined) {
-  const violations: AnyRecord[] = [];
-  const warnings: AnyRecord[] = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
   let hasNormalizableOptions = false;
 
   if (!contract?.salariesByYear || !Array.isArray(contract.salariesByYear)) {
@@ -1183,7 +1187,7 @@ export function validateContractRows(contract: MutationContract | null | undefin
  * @returns {{violations: Array}}
  */
 export function validateDeadCap(deadCap: unknown) {
-  const violations: AnyRecord[] = [];
+  const violations: CapLegalityViolation[] = [];
 
   if (!Array.isArray(deadCap)) {
     violations.push({
@@ -1209,7 +1213,7 @@ export function validateDeadCap(deadCap: unknown) {
     } else {
       // Validate amounts inside
       Object.entries(entry.amountByYear).forEach(([year, val]) => {
-        const amount = (val as AnyRecord)?.amount;
+        const amount = (val as Record<string, unknown>)?.amount;
         if (typeof amount !== 'number' || amount <= 0) {
           violations.push({
             rule: 'dead_cap_schema_invalid',
@@ -1259,8 +1263,8 @@ const VALID_EXCEPTION_KEYS = ['mle', 'tpmle', 'bae', 'room'];
  * @returns {{violations: Array, warnings: Array}}
  */
 export function validateExceptions(exceptions: unknown) {
-  const violations: AnyRecord[] = [];
-  const warnings: AnyRecord[] = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   // Must be an object if present
   if (exceptions === null || exceptions === undefined) {
@@ -1278,7 +1282,8 @@ export function validateExceptions(exceptions: unknown) {
   }
 
   // Check for unknown keys (hard-block policy)
-  const exceptionsObj = exceptions as AnyRecord;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exceptionsObj = exceptions as Record<string, any>;
   const providedKeys = Object.keys(exceptionsObj);
   const unknownKeys = providedKeys.filter(
     (key) => !VALID_EXCEPTION_KEYS.includes(key)
@@ -1466,7 +1471,7 @@ const RIGHTS_TYPE_MAP: Record<string, string> = {
  * @returns {SigningTerms} Canonical signing terms
  */
 export function normalizeSigningTerms(
-  rawTerms: AnyRecord | null | undefined,
+  rawTerms: SigningTerms | null | undefined,
   options: NormalizeSigningTermsOptions = {}
 ): SigningTerms {
   if (!rawTerms) {
@@ -2186,7 +2191,7 @@ export function validateStoreOnlyInvariants({
 }: {
   contract: MutationContract | null | undefined;
 }) {
-  const violations: AnyRecord[] = [];
+  const violations: CapLegalityViolation[] = [];
 
   // Only check if store-only mode is active
   if (contract?.rfaOfferSheetOnly !== true) {
@@ -2247,7 +2252,7 @@ export function validateStoreOnlyInvariants({
 export function validateOfferSheetTerms(
   contract: MutationContract | null | undefined
 ) {
-  const violations = [];
+  const violations: CapLegalityViolation[] = [];
   const years = getContractYears(contract);
 
   // Years check (1-4 per CBA)
@@ -2306,8 +2311,8 @@ export function validateSigningTermsAndRaises({
   signingTerms: SigningTerms | null | undefined;
   mechanism: string;
 }) {
-  const violations: AnyRecord[] = [];
-  const warnings: AnyRecord[] = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   if (!signingTerms || signingTerms.source !== 'salary_engine') {
     return { violations, warnings };
@@ -2558,8 +2563,8 @@ export function validateExtensionTermsAndRaises({
   extension: MutationContract | null | undefined;
   extensionTerms: ProducedExtensionTerms | null | undefined;
 }) {
-  const violations: AnyRecord[] = [];
-  const warnings: AnyRecord[] = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   // Extract data
   const lastYearData = getContractLastYearSalary(player.contract);
@@ -2858,8 +2863,8 @@ export function validateSigning({
   signedUsing,
   year,
 }: ValidateSigningParams): MutationValidationResult {
-  const violations = [];
-  const warnings = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   const rules = getCapRulesForYear(year);
   if (!rules) {
@@ -3867,8 +3872,8 @@ export function validateWaive({
   isGracePeriod = false,
   asOfDate,
 }: ValidateWaiveParams): MutationValidationResult {
-  const violations = [];
-  const warnings = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   const players = team.players || [];
 
@@ -3971,8 +3976,8 @@ export function validateExtension({
   extension,
   year,
 }: ValidateExtensionParams): MutationValidationResult {
-  const violations: AnyRecord[] = [];
-  const warnings: AnyRecord[] = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   const capSettings = getCapSettings(year);
   const contract = player.contract;
@@ -4145,8 +4150,8 @@ export function validateOptionDecision({
   targetYear,
   currentYear,
 }: ValidateOptionDecisionParams): MutationValidationResult {
-  const violations = [];
-  const warnings = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   const baselineTeam = originalTeam || team;
   const baselinePlayer = originalPlayer || player;
@@ -4498,8 +4503,8 @@ export function validateRenounceRights({
   player,
   year = null,
 }: ValidateRenounceRightsParams): MutationValidationResult {
-  const violations: AnyRecord[] = [];
-  const warnings = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
   void year;
 
   // Use helper functions for consistent player data extraction
@@ -4576,8 +4581,8 @@ export function validateOfferSheetResolution({
   action: string;
   asOfDate?: string;
 }) {
-  const violations = [];
-  const warnings = [];
+  const violations: CapLegalityViolation[] = [];
+  const warnings: CapLegalityViolation[] = [];
 
   const status = offerSheet?.status;
   const homeTeamCode = offerSheet?.homeTeamCode;
