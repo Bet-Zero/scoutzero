@@ -100,6 +100,7 @@ import {
 import type {
   OffseasonAppliedChangesSummary,
   OffseasonOptionDecisionMap,
+  OffseasonTeamCapSheet,
   OffseasonTransitionContext,
   OffseasonTransitionResult,
 } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
@@ -202,49 +203,75 @@ type DraftResolutionContext = {
   worldId?: string | null;
 };
 
+type SeasonManagerDraftPickConveyanceResult = {
+  outcome?: string;
+  position?: number;
+  resolvedAt?: string;
+  method?: string;
+  reason?: string;
+  previousYear?: number;
+  previousProtection?: unknown;
+  originalRound?: unknown;
+};
+
 type SeasonManagerDraftPick = {
-  id?: string;
-  year?: number;
-  round?: number | string;
-  owner?: string;
-  currentOwner?: string;
-  originalTeam?: string | null;
-  tradedTo?: string | null;
-  via?: string;
+  id?: SeasonManagerProjectedDraftPickView['id'];
+  year?: SeasonManagerProjectedDraftPickView['year'];
+  round?: SeasonManagerProjectedDraftPickView['round'];
+  owner?: SeasonManagerProjectedDraftPickView['owner'];
+  currentOwner?: SeasonManagerProjectedDraftPickView['currentOwner'];
+  originalTeam?: SeasonManagerProjectedDraftPickView['originalTeam'];
+  via?: SeasonManagerProjectedDraftPickView['via'];
   isSwap?: boolean;
-  swapType?: SeasonManagerProjectedDraftPickView['swapType'] | 'worst_of';
-  swapWithTeamId?: string | null;
-  protection?: string | null;
-  conveyance?:
-    | SeasonManagerProjectedDraftPickView['conveyance']
-    | {
-        conditions?: unknown;
-        description?: string;
-        affects?: string[];
-      };
-  status?: string;
+  swapWithTeamId?: SeasonManagerProjectedDraftPickView['swapWithTeamId'];
+  protection?: SeasonManagerProjectedDraftPickView['protection'];
+  conveyance?: SeasonManagerProjectedDraftPickView['conveyance'];
+  status?: SeasonManagerProjectedDraftPickView['status'] | 'future' | 'available' | string;
   resolved?: boolean;
   resolvedOwner?: string | null;
   resolvedPosition?: number | null;
   stepienBlocked?: boolean;
   stepienReason?: string | null;
-  conveyanceResult?: Record<string, unknown> | null;
   tradeable?: boolean;
   resolutionMeta?: unknown;
+  tradedTo?: string | null;
+  swapType?: SeasonManagerProjectedDraftPickView['swapType'] | 'worst_of';
+  conveyanceResult?: SeasonManagerDraftPickConveyanceResult | null;
 };
 
-type DraftPickCarrier = LooseRecord & {
-  _derivedDraftPicks?: SeasonManagerProjectedDraftPickView[];
+type DraftPickCarrier = {
+  teamCode?: string | null;
+  _derivedDraftPicks?: SeasonManagerDraftPick[];
   draftPicks?: SeasonManagerDraftPick[];
 };
 
-type SeasonTransitionTeam = DraftPickCarrier &
-  Parameters<typeof resolveOffseasonTransition>[0]['teamCapSheet'];
+type SeasonTransitionTeam = OffseasonTeamCapSheet &
+  DraftPickCarrier & {
+    entitlementIds?: string[];
+    entitlements?: unknown[];
+  };
+
+type PostStateTeamSnapshots = NonNullable<
+  PostStateCapValidationInput['beforeTeamsByCode']
+>;
 
 function getSeasonManagerDraftPicks(teamData: DraftPickCarrier): SeasonManagerDraftPick[] {
   return [
-    ...((teamData._derivedDraftPicks || teamData.draftPicks || []) as SeasonManagerDraftPick[]),
+    ...(teamData._derivedDraftPicks || teamData.draftPicks || []),
   ];
+}
+
+function toSeasonManagerDraftPicks(
+  draftPicks: unknown
+): SeasonManagerDraftPick[] | null {
+  if (!Array.isArray(draftPicks)) {
+    return null;
+  }
+
+  return draftPicks.filter(
+    (pick): pick is SeasonManagerDraftPick =>
+      Boolean(pick) && typeof pick === 'object'
+  );
 }
 
 type SeasonAdvanceExpiredTpe =
@@ -297,6 +324,18 @@ function getErrorCode(error: unknown): string | null {
   }
   const code = (error as LooseRecord).code;
   return typeof code === 'string' ? code : null;
+}
+
+function getUnderlyingPickId(entitlement: unknown): string | null {
+  if (!entitlement || typeof entitlement !== 'object') {
+    return null;
+  }
+
+  const rawPickId = (entitlement as { underlyingPickId?: unknown })
+    .underlyingPickId;
+  return typeof rawPickId === 'string' && rawPickId.trim().length > 0
+    ? rawPickId
+    : null;
 }
 
 /**
@@ -807,8 +846,8 @@ export async function advanceSeasonInWorld(
 
     const batch = writeBatch(db);
     const updatedTeams = [];
-    const beforeTeamsByCode: Record<string, Record<string, unknown>> = {};
-    const afterTeamsByCode: Record<string, Record<string, unknown>> = {};
+    const beforeTeamsByCode: PostStateTeamSnapshots = {};
+    const afterTeamsByCode: PostStateTeamSnapshots = {};
     const beforeTotalsByTeam: NonNullable<
       PostStateCapValidationInput['beforeTotalsByTeam']
     > = {};
@@ -867,7 +906,12 @@ export async function advanceSeasonInWorld(
       if (teamSummary.expiredTPEs?.length > 0) {
         // Embellish with team info for global summary
         summary.expiredTPEs.push(
-          ...teamSummary.expiredTPEs.map((tpe: unknown) => ({ ...(tpe as LooseRecord), teamCode }))
+          ...teamSummary.expiredTPEs.map(
+            (tpe): SeasonAdvanceExpiredTpe => ({
+              ...tpe,
+              teamCode,
+            })
+          )
         );
       }
       // Phase 5: Merge resolution summaries
@@ -884,8 +928,12 @@ export async function advanceSeasonInWorld(
       // Phase 65: Normalize TPE schema before persistence
       // Phase D4: Remove undefined values to prevent Firestore errors
       if (updatedTeam) {
-        beforeTeamsByCode[teamCode] = safeCloneForAudit(team) as Record<string, unknown>;
-        afterTeamsByCode[teamCode] = safeCloneForAudit(updatedTeam) as Record<string, unknown>;
+        beforeTeamsByCode[teamCode] = safeCloneForAudit(
+          team
+        ) as PostStateTeamSnapshots[string];
+        afterTeamsByCode[teamCode] = safeCloneForAudit(
+          updatedTeam
+        ) as PostStateTeamSnapshots[string];
         beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear);
         afterTotalsByTeam[teamCode] = computeTeamCapTotals(updatedTeam, toYear);
 
@@ -970,7 +1018,9 @@ export async function advanceSeasonInWorld(
         if (dareResult.success) {
           // Build full pre-DARE entitlement state for league-wide gated validation.
           // Fail closed: if any team cannot be resolved, block season advance.
-          const currentEntitlementsByTeam: Record<string, unknown[]> = {};
+          const currentEntitlementsByTeam: Parameters<
+            typeof applyGatedDAREResultsToBatch
+          >[4] = {};
           for (const teamEntry of teams) {
             const teamCode = teamEntry.teamCode;
             if (!isNonEmptyString(teamCode)) {
@@ -996,14 +1046,13 @@ export async function advanceSeasonInWorld(
             batch,
             worldId,
             dareResult,
-            currentEntitlementsByTeam as Parameters<
-              typeof applyGatedDAREResultsToBatch
-            >[4]
+            currentEntitlementsByTeam
           );
 
-          if (!gatedDareWriteResult.ok) {
+          if (gatedDareWriteResult.ok === false) {
+            const gateMessage = gatedDareWriteResult.message;
             throw new Error(
-              `DARE gated persistence blocked season advance: ${(gatedDareWriteResult as LooseRecord).message}`
+              `DARE gated persistence blocked season advance: ${gateMessage}`
             );
           }
 
@@ -1201,15 +1250,15 @@ async function processTeamSeasonTransitionWithOptions(
   if ((hasEntitlementIds || hasInlineEntitlements) && teamCode) {
     try {
       // Use inline entitlements if provided, else resolve from Firestore
-      let entitlements: unknown[] = hasInlineEntitlements
-        ? (teamData.entitlements as unknown[])
-        : await resolveEntitlementsForTeam((worldId as string) || null, teamCode) as unknown[];
+      const entitlements: unknown[] = hasInlineEntitlements
+        ? teamData.entitlements || []
+        : await resolveEntitlementsForTeam(worldId || null, teamCode);
 
       if (Array.isArray(entitlements) && entitlements.length > 0) {
         // Extract underlying pick IDs for pick rules lookup (best-effort)
         const pickIds = entitlements
-          .map((e: unknown) => (e as LooseRecord).underlyingPickId as string)
-          .filter(Boolean);
+          .map(getUnderlyingPickId)
+          .filter((pickId): pickId is string => Boolean(pickId));
 
         // Resolve pick rules in batch (graceful if fails or returns empty)
         let pickRulesById: ReturnType<typeof pickRulesMapToObject> = {};
@@ -1273,38 +1322,48 @@ async function processTeamSeasonTransitionWithOptions(
     // Track conveyance resolutions
     // Build a Set of original pick IDs that already had conveyanceResult for O(1) lookup
     const originalConveyedIds = new Set(
-      ((teamData.draftPicks || []) as SeasonManagerDraftPick[])
+      (teamData.draftPicks || [])
         .filter((pick) => pick?.conveyanceResult)
         .map((pick) => pick.id)
+        .filter((pickId): pickId is string => typeof pickId === 'string')
     );
 
-    if (afterConveyance.draftPicks) {
-      const conveyedPicks = afterConveyance.draftPicks.filter(
-        (pick) => pick?.conveyanceResult && !originalConveyedIds.has(pick.id)
+    const afterConveyanceDraftPicks = toSeasonManagerDraftPicks(
+      afterConveyance.draftPicks
+    );
+
+    if (afterConveyanceDraftPicks) {
+      const conveyedPicks = afterConveyanceDraftPicks.filter(
+        (pick) =>
+          pick?.conveyanceResult &&
+          !(
+            typeof pick.id === 'string' && originalConveyedIds.has(pick.id)
+          )
       );
       for (const pick of conveyedPicks) {
         const convResult = pick.conveyanceResult || undefined;
         teamSummary.conveyanceResolutions.push({
           pickId: pick.id,
           year: pick.year,
-          outcome:
-            convResult && typeof convResult === 'object'
-              ? (convResult.outcome as string | undefined)
-              : undefined,
-          position:
-            convResult && typeof convResult === 'object'
-              ? (convResult.position as number | undefined)
-              : undefined,
+          outcome: convResult?.outcome,
+          position: convResult?.position,
         });
         hasChanges = true;
       }
-      updatedTeam.draftPicks = afterConveyance.draftPicks;
+      updatedTeam.draftPicks = afterConveyanceDraftPicks;
     }
 
     // 2) Resolve swaps (best_of / worst_of resolution)
     // IMPORTANT: Pass afterConveyance (not updatedTeam) so swaps see post-conveyance state
+    const swapResolutionInput: DraftPickCarrier = {
+      teamCode,
+      draftPicks:
+        afterConveyanceDraftPicks ||
+        updatedTeam.draftPicks ||
+        getSeasonManagerDraftPicks(teamData),
+    };
     const afterSwaps = resolveDraftPickSwapsForYear(
-      afterConveyance,
+      swapResolutionInput,
       draftYear,
       positionsMap,
       resolutionOpts
@@ -1313,14 +1372,21 @@ async function processTeamSeasonTransitionWithOptions(
     // Track swap resolutions
     // Build a Set of original pick IDs that were already resolved for O(1) lookup
     const originalResolvedIds = new Set(
-      ((teamData.draftPicks || []) as SeasonManagerDraftPick[])
+      (teamData.draftPicks || [])
         .filter((pick) => pick?.resolved === true)
         .map((pick) => pick.id)
+        .filter((pickId): pickId is string => typeof pickId === 'string')
     );
 
-    if (afterSwaps.draftPicks) {
-      const resolvedSwaps = afterSwaps.draftPicks.filter(
-        (pick) => pick?.resolved === true && !originalResolvedIds.has(pick.id)
+    const afterSwapsDraftPicks = toSeasonManagerDraftPicks(afterSwaps.draftPicks);
+
+    if (afterSwapsDraftPicks) {
+      const resolvedSwaps = afterSwapsDraftPicks.filter(
+        (pick) =>
+          pick?.resolved === true &&
+          !(
+            typeof pick.id === 'string' && originalResolvedIds.has(pick.id)
+          )
       );
       for (const pick of resolvedSwaps) {
         teamSummary.swapResolutions.push({
@@ -1331,7 +1397,7 @@ async function processTeamSeasonTransitionWithOptions(
         });
         hasChanges = true;
       }
-      updatedTeam.draftPicks = afterSwaps.draftPicks;
+      updatedTeam.draftPicks = afterSwapsDraftPicks;
     }
   }
 
@@ -1339,7 +1405,7 @@ async function processTeamSeasonTransitionWithOptions(
   const toYear = resolveSeasonEndYear(toSeason);
   const fromYear = resolveSeasonEndYear(fromSeason, toYear - 1);
   const transitionContext: OffseasonTransitionContext = {
-    worldId: worldId as string,
+    worldId: worldId || null,
     teamCode,
   };
   const transitionResult: OffseasonTransitionResult =

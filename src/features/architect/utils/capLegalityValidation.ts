@@ -107,57 +107,51 @@ type MutationSalaryRow = Omit<
 };
 type MutationContract = Omit<
   ArchitectMutationContract,
-  | 'salariesByYear'
-  | 'freeAgency'
-  | 'contractYears'
-  | 'yearsRemaining'
-  | 'contractLength'
-  | 'totalValue'
-  | 'guaranteedValue'
-> &
-  AnyRecord & {
-    salariesByYear?: MutationSalaryRow[];
-    freeAgency?:
-      | {
-          year?: number | string | null;
-          type?: string | null;
-          qualifyingOffer?: number | null;
-        }
-      | string
-      | null;
-    contractYears?: number | string | null;
-    yearsRemaining?: number | string | null;
-    contractLength?: number | string | null;
-    totalValue?: number | string | null;
-    guaranteedValue?: number | string | null;
-  };
+  'salariesByYear' | 'freeAgency'
+> & {
+  salariesByYear?: MutationSalaryRow[];
+  freeAgency?:
+    | {
+        year?: number | string | null;
+        type?: string | null;
+        qualifyingOffer?: number | null;
+      }
+    | string
+    | null;
+  startSeason?: string | null;
+  endSeason?: string | null;
+  draftPick?: unknown;
+};
 type MutationPlayer = Omit<
   ArchitectMutationPlayerRecord,
   'contract' | 'futureContract'
-> &
-  AnyRecord & {
-    contract?: MutationContract | null;
-    futureContract?: MutationContract | null;
-  };
+> & {
+  contract?: MutationContract | null;
+  futureContract?: MutationContract | null;
+  yearsOfService?: unknown;
+  experience?: unknown;
+  teamId?: unknown;
+  team_id?: unknown;
+  draftPick?: unknown;
+};
+type MutationTeamTotals = {
+  totalSalary?: number | string | null;
+  capHit?: number | string | null;
+  totalCapAllocations?: number | string | null;
+  isHardCapped?: boolean | null;
+  hardCapLevel?: string | null;
+};
 type MutationTeam = Omit<
   ArchitectMutationTeamRecord,
-  | 'players'
-  | 'twoWayPlayers'
-  | 'capHolds'
-  | 'roster'
-  | 'totals'
-  | 'draftPicks'
-> &
-  AnyRecord & {
-    players?: MutationPlayer[];
-    twoWayPlayers?: MutationPlayer[];
-    capHolds?: MutationCapHold[];
-    roster?: MutationRosterEntry[];
-    totals?: Record<string, unknown> | null;
-    draftPicks?: ArchitectMutationTeamRecord['draftPicks'];
-    exceptions?: ArchitectMutationTeamRecord['exceptions'] | null;
-    tradeExceptions?: ArchitectMutationTeamRecord['tradeExceptions'];
-  };
+  'players' | 'twoWayPlayers' | 'capHolds' | 'roster' | 'totals'
+> & {
+  players?: MutationPlayer[];
+  twoWayPlayers?: MutationPlayer[];
+  capHolds?: MutationCapHold[];
+  roster?: MutationRosterEntry[];
+  totals?: MutationTeamTotals | null;
+  code?: string | null;
+};
 type MutationRosterEntry =
   | string
   | number
@@ -166,14 +160,13 @@ type MutationRosterEntry =
       playerId?: string | null;
       id?: string | null;
     };
-type MutationCapHold = (Omit<Partial<CapHold>, 'playerId'> & {
+type MutationCapHold = Omit<Partial<CapHold>, 'playerId'> & {
   playerId?: string | number | null;
   playerName?: string | null;
   amount?: number | null;
   active?: boolean | null;
   isSigned?: boolean | null;
-}) &
-  AnyRecord;
+};
 type KnownCapHold = CapHold & MutationCapHold;
 type MutationValidationResult = {
   valid: boolean;
@@ -298,6 +291,40 @@ const normalizeBirdRights = (
     status?: string | null;
     renounced?: boolean | null;
   }>(value);
+
+const getNormalizedContractType = (
+  contract: MutationContract | null | undefined
+): string =>
+  typeof contract?.contractType === 'string'
+    ? contract.contractType.toLowerCase()
+    : '';
+
+const getDraftPickNumber = (draftPick: unknown): number | null => {
+  if (draftPick == null) {
+    return null;
+  }
+  if (typeof draftPick === 'number' && Number.isFinite(draftPick)) {
+    return draftPick;
+  }
+  if (typeof draftPick === 'string' && draftPick.trim()) {
+    const parsed = Number(draftPick);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  const draftPickRecord = asRecordLike<{
+    pick?: unknown;
+    number?: unknown;
+  }>(draftPick);
+  if (!draftPickRecord) {
+    return null;
+  }
+
+  const parsed = toFiniteNumber(
+    draftPickRecord.pick ?? draftPickRecord.number,
+    Number.NaN
+  );
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 const getMutationYearsOfService = (player: MutationPlayer): number =>
   getYearsOfService(player as Parameters<typeof getYearsOfService>[0]);
@@ -651,11 +678,11 @@ export function evaluateDataConfidence(
  * @param {Array} players - Team players array
  * @returns {number} Standard roster count
  */
-function countStandardRoster(players: AnyRecord[]) {
+function countStandardRoster(players: MutationPlayer[] | null | undefined) {
   if (!players || !Array.isArray(players)) return 0;
 
   return players.filter((p) => {
-    const contractType = p.contract?.contractType?.toLowerCase() || '';
+    const contractType = getNormalizedContractType(p.contract);
     return contractType !== 'two-way';
   }).length;
 }
@@ -665,11 +692,11 @@ function countStandardRoster(players: AnyRecord[]) {
  * @param {Array} players - Team players array
  * @returns {number} Two-way contract count
  */
-function countTwoWayContracts(players: AnyRecord[]) {
+function countTwoWayContracts(players: MutationPlayer[] | null | undefined) {
   if (!players || !Array.isArray(players)) return 0;
 
   return players.filter((p) => {
-    const contractType = p.contract?.contractType?.toLowerCase() || '';
+    const contractType = getNormalizedContractType(p.contract);
     return contractType === 'two-way';
   }).length;
 }
@@ -897,7 +924,10 @@ const VALID_OPTION_VALUES = ['Team Option', 'Player Option', null];
  * @param {number} index - Index in salariesByYear array (for error messages)
  * @returns {{valid: boolean, violation: Object|null}}
  */
-export function validateSalaryRowSchema(row: AnyRecord | null | undefined, index: number) {
+export function validateSalaryRowSchema(
+  row: MutationSalaryRow | null | undefined,
+  index: number
+) {
   if (!row) {
     return {
       valid: false,
@@ -969,12 +999,16 @@ export function validateSalaryRowSchema(row: AnyRecord | null | undefined, index
  * @param {number} index - Index in salariesByYear array
  * @returns {{valid: boolean, violation: Object|null}}
  */
-export function validateGuaranteesPolicy(row: AnyRecord | null | undefined, index: number) {
+export function validateGuaranteesPolicy(
+  row: MutationSalaryRow | null | undefined,
+  index: number
+) {
   if (!row) {
     return { valid: true, violation: null };
   }
 
   const salary = row.salary ?? 0;
+  const numericSalary = toFiniteNumber(salary, 0);
   const guaranteedAmount = row.guaranteedAmount;
   const guaranteed = row.guaranteed;
 
@@ -994,16 +1028,16 @@ export function validateGuaranteesPolicy(row: AnyRecord | null | undefined, inde
       };
     }
 
-    if (guaranteedAmount > salary) {
+    if (guaranteedAmount > numericSalary) {
       return {
         valid: false,
         violation: {
           rule: 'contract_guarantee_invalid',
-          message: `Salary row at index ${index} (${row.season || 'unknown'}) has guaranteedAmount ($${(guaranteedAmount / 1_000_000).toFixed(2)}M) exceeding salary ($${(salary / 1_000_000).toFixed(2)}M)`,
+          message: `Salary row at index ${index} (${row.season || 'unknown'}) has guaranteedAmount ($${(guaranteedAmount / 1_000_000).toFixed(2)}M) exceeding salary ($${(numericSalary / 1_000_000).toFixed(2)}M)`,
           severity: 'error',
           field: 'guaranteedAmount',
           season: row.season || 'unknown',
-          expected: `<= ${salary}`,
+          expected: `<= ${numericSalary}`,
           value: guaranteedAmount,
         },
       };
@@ -1013,8 +1047,7 @@ export function validateGuaranteesPolicy(row: AnyRecord | null | undefined, inde
   // Check guaranteed=false does not have positive guaranteedAmount
   if (
     guaranteed === false &&
-    guaranteedAmount !== undefined &&
-    guaranteedAmount !== null &&
+    typeof guaranteedAmount === 'number' &&
     guaranteedAmount > 0
   ) {
     return {
@@ -1045,7 +1078,10 @@ export function validateGuaranteesPolicy(row: AnyRecord | null | undefined, inde
  * @param {number} index - Index in salariesByYear array
  * @returns {{valid: boolean, violation: Object|null, normalize: boolean}}
  */
-export function validateOptionsPolicy(row: AnyRecord | null | undefined, index: number) {
+export function validateOptionsPolicy(
+  row: MutationSalaryRow | null | undefined,
+  index: number
+) {
   if (!row) {
     return { valid: true, violation: null, normalize: false };
   }
@@ -1095,7 +1131,7 @@ export function validateOptionsPolicy(row: AnyRecord | null | undefined, index: 
  * @param {Object} contract - Contract object with salariesByYear
  * @returns {{violations: Array, warnings: Array, hasNormalizableOptions: boolean}}
  */
-export function validateContractRows(contract: AnyRecord | null | undefined) {
+export function validateContractRows(contract: MutationContract | null | undefined) {
   const violations: AnyRecord[] = [];
   const warnings: AnyRecord[] = [];
   let hasNormalizableOptions = false;
@@ -1527,7 +1563,7 @@ function resolveSigningOperationType(
   contract: MutationContract | null | undefined,
   mechanism: string
 ) {
-  const contractType = contract?.contractType?.toLowerCase() || '';
+  const contractType = getNormalizedContractType(contract);
   if (contractType === 'two-way' || contractType === 'twoway') {
     return 'TWO_WAY_SIGNING';
   }
@@ -1688,19 +1724,22 @@ function buildRuleContextContract(
         }))
     : undefined;
 
-  const birdRights =
-    contract.birdRights && typeof contract.birdRights === 'object'
-      ? {
-          status:
-            typeof contract.birdRights.status === 'string'
-              ? contract.birdRights.status
-              : undefined,
-          yearsWithTeam:
-            contract.birdRights.yearsWithTeam == null
-              ? undefined
-              : toFiniteNumber(contract.birdRights.yearsWithTeam, 0),
-        }
-      : undefined;
+  const birdRightsRecord = asRecordLike<{
+    status?: unknown;
+    yearsWithTeam?: unknown;
+  }>(contract.birdRights);
+  const birdRights = birdRightsRecord
+    ? {
+        status:
+          typeof birdRightsRecord.status === 'string'
+            ? birdRightsRecord.status
+            : undefined,
+        yearsWithTeam:
+          birdRightsRecord.yearsWithTeam == null
+            ? undefined
+            : toFiniteNumber(birdRightsRecord.yearsWithTeam, 0),
+      }
+    : undefined;
 
   return {
     salariesByYear,
@@ -2052,7 +2091,7 @@ export function validateSigningRaises({
     return null;
   }
 
-  const contractType = contract?.contractType?.toLowerCase() || '';
+  const contractType = getNormalizedContractType(contract);
   const isStandardContract =
     !contractType || contractType === 'standard' || contractType === 'nba';
 
@@ -3130,7 +3169,7 @@ export function validateSigning({
   // under the salary cap INCLUDING all cap holds. Re-signings replace their
   // player's cap hold with the new contract.
   // Only apply to standard contracts (not two-way).
-  const isTwoWayContract = contract?.contractType?.toLowerCase() === 'two-way';
+  const isTwoWayContract = getNormalizedContractType(contract) === 'two-way';
   if (!isTwoWayContract && rules) {
     // Get signing mechanism and rights type for cap-space detection
     const capSpaceCheckMechanism = resolveSigningMechanism(
@@ -3177,7 +3216,7 @@ export function validateSigning({
       );
       const existingCapHold = Array.isArray(team.capHolds)
         ? team.capHolds.find(
-            (h: AnyRecord) =>
+            (h: MutationCapHold) =>
               h.playerId === playerId &&
               h.active !== false &&
               h.isSigned !== true
@@ -3222,14 +3261,14 @@ export function validateSigning({
       // and emit a warning if so (cap_hold_renounce_required)
       if (projectedCapAllocations > salaryCap && teamTotals.capHoldsTotal > 0) {
         const spaceNeeded = projectedCapAllocations - salaryCap;
-        const capHoldsExcludingPlayer = ((team.capHolds || []) as AnyRecord[])
+        const capHoldsExcludingPlayer = (team.capHolds || [])
           .filter(
-            (h: AnyRecord) =>
+            (h: MutationCapHold) =>
               h.playerId !== playerId &&
               h.active !== false &&
               h.isSigned !== true
           )
-          .map((h: AnyRecord) => ({
+          .map((h: MutationCapHold) => ({
             playerId: h.playerId,
             playerName: h.playerName,
             amount: (h.amount as number) || 0,
@@ -3274,7 +3313,7 @@ export function validateSigning({
 
   // 1. Roster size check
   const currentStandardRoster = countStandardRoster(players);
-  const isTwoWay = contract?.contractType?.toLowerCase() === 'two-way';
+  const isTwoWay = getNormalizedContractType(contract) === 'two-way';
   const signingMechanism = resolveSigningMechanism(contract, signedUsing);
   const signingTerms = !isTwoWay
     ? getSigningTermsForPlayer({ team, player, contract, year, signedUsing })
@@ -3352,8 +3391,9 @@ export function validateSigning({
   if (!isTwoWay) {
     // Detect rookie scale signing context
     // We look for draftPick metadata on contract (preferred) or player
-    const draftPick = contract?.draftPick || player?.draftPick;
-    const pickNumber = draftPick?.pick || draftPick?.number;
+    const pickNumber = getDraftPickNumber(
+      contract?.draftPick ?? player?.draftPick
+    );
 
     // Only enforce if we successfully resolved a 1st Round Pick (1-30)
     // and we have a valid season key to lookup scale data.
@@ -3834,7 +3874,7 @@ export function validateWaive({
 
   // 1. Roster minimum check
   const currentStandardRoster = countStandardRoster(players);
-  const isTwoWay = player.contract?.contractType?.toLowerCase() === 'two-way';
+  const isTwoWay = getNormalizedContractType(player.contract) === 'two-way';
 
   const rules = getCapRulesForYear(year);
 
@@ -3867,14 +3907,14 @@ export function validateWaive({
   const contract = player.contract;
   if (contract?.salariesByYear) {
     const remainingGuaranteed = contract.salariesByYear
-      .filter((y: AnyRecord) => {
-        const yearNum = toEndYear(y.season) ?? year;
+      .filter((row: MutationSalaryRow) => {
+        const yearNum = toEndYear(row.season) ?? year;
         // Only count explicitly guaranteed years (not undefined/null)
         // NBA contracts default to guaranteed for first years, but we require
         // explicit flag for accurate dead cap calculation
-        return yearNum >= year && y.guaranteed === true;
+        return yearNum >= year && row.guaranteed === true;
       })
-      .reduce((sum: number, y: AnyRecord) => sum + ((y.salary as number) || 0), 0);
+      .reduce((sum, row) => sum + (Number(row.salary) || 0), 0);
 
     if (remainingGuaranteed > 0) {
       const stretchInfo = stretch ? ` (stretched over multiple years)` : '';
@@ -3938,7 +3978,7 @@ export function validateExtension({
   const contract = player.contract;
 
   // 0. PHASE 3: Check for two-way contracts (cannot be extended)
-  const isTwoWay = contract?.contractType?.toLowerCase() === 'two-way';
+  const isTwoWay = getNormalizedContractType(contract) === 'two-way';
   if (isTwoWay) {
     violations.push({
       rule: 'extension_ineligible',
