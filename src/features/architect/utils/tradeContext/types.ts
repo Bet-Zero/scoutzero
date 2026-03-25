@@ -73,14 +73,22 @@ export interface ValidatedTradeContext extends AnyRecord {
 
 export type PayloadTeam = ArchitectTradePayloadTeam;
 
-export interface TradeContextPayload extends AnyRecord {
+export interface TradeContextTradeBridge {
+  worldId?: TradeValidatorContext['worldId'] | null;
+  source?: TradeValidatorContext['source'] | null;
+  asOfDate?: string | number | null;
+  tradeDate?: TradeValidatorContext['tradeDate'] | null;
+  yearKey?: number | string | null;
+  // Compatibility passthrough for existing public callers; tradeContext does not read this field.
+  seasonId?: string | null;
+  offseason?: boolean | null;
+  enforceSignAndTradePreflight?: boolean | null;
+}
+
+export interface TradeContextPayload {
   teams: PayloadTeam[];
   capProjections?: TradeValidatorCapProjections | null;
-  tradeCtx?:
-    | (TradeValidatorContext & {
-        enforceSignAndTradePreflight?: boolean | null;
-      })
-    | null;
+  tradeCtx?: TradeContextTradeBridge | null;
   asOfDate?: string | number | null;
 }
 
@@ -89,8 +97,16 @@ export interface CurrentStateTeamEntry {
   team: ArchitectMutationTeamRecord;
 }
 
-export interface TradeContextCurrentState extends AnyRecord {
+export interface TradeContextCurrentState {
   teams: CurrentStateTeamEntry[];
+}
+
+export interface OutgoingTradeRouteLike {
+  receivingTeamIndex?: string | number | null;
+  receivingTeamId?: string | number | null;
+  tradeTo?: string | number | null;
+  toTeamId?: string | number | null;
+  destTeamId?: string | number | null;
 }
 
 export interface BuildPostTradeTeamsSnapshotParams {

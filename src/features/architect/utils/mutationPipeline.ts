@@ -114,11 +114,22 @@ import {
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
-import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
+import type {
+  TradeExceptionRecord,
+  TradeValidatorCapProjections,
+  TradeValidatorContext,
+} from '@/features/architect/utils/tradeMachine/constants/types';
 import type { CapHold } from '@/features/architect/utils/capHolds';
-import type { DraftPick } from '@/schemas/architect';
+import type {
+  ArchitectSource,
+  BasePlayerDoc,
+  DraftPick,
+} from '@/schemas/architect';
+import type { PlayerBio, PlayerDraft } from '@/schemas/players_v2';
+import type { SignAndTradeContractLike } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type { TeamTotals } from '@/features/architect/types';
 import type {
+  OutgoingTradeRouteLike,
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
   TeamResult as TradeContextTeamResult,
   ValidatedTradeContext as TradeContextValidatedTradeContext,
@@ -145,6 +156,51 @@ import {
 type LooseRecord = Record<string, unknown>;
 type MutationScalarId = string | number | null | undefined;
 type ComputedTeamCapTotalsShape = ReturnType<typeof computeTeamCapTotals>;
+type MutationPlayerBioLike = {
+  displayName?: string | null;
+  playerId?: string | null;
+  name?: string | null;
+  position?: string | null;
+  age?: number | null;
+  height?: number | string | null;
+  weight?: number | string | null;
+  dob?: string | null;
+  birthplace?: string | null;
+  nationality?: string | null;
+  shoots?: string | null;
+  agent?: NonNullable<NonNullable<PlayerBio>['agent']> | null;
+  draft?: PlayerDraft | null;
+  display?: {
+    freeAgentType?: string | null;
+    freeAgentYear?: number | string | null;
+    team?: string | null;
+  } | null;
+  nbaId?: number | null;
+  experience?: unknown;
+  yearsExperience?: unknown;
+  yearsPro?: unknown;
+  team?: string | null;
+  draftYear?: number | string | null;
+  draftRound?: number | null;
+  draftPick?: number | string | null;
+  ['Years Pro']?: unknown;
+};
+type MutationPlayerSourceLike =
+  | ArchitectSource
+  | NonNullable<BasePlayerDoc['source']>
+  | LooseRecord
+  | string
+  | null;
+type MutationTradeExceptionRecord = TradeExceptionRecord & {
+  used?: number | null;
+};
+type MutationTeamSourceLike =
+  | (ArchitectSource & { lastModifiedAt?: string | null })
+  | string
+  | null;
+type CapHoldComputationPlayer = NonNullable<
+  NonNullable<Parameters<typeof computeExpectedCapHoldAmount>[0]['player']>
+>;
 
 export type ArchitectComputedTeamTotalsSnapshot = Pick<
   ComputedTeamCapTotalsShape,
@@ -336,7 +392,7 @@ export type ArchitectMutationPlayerRecord = {
   name?: string | null;
   displayName?: string | null;
   playerName?: string | null;
-  bio?: unknown;
+  bio?: MutationPlayerBioLike | null;
   contract?: ArchitectMutationContract | null;
   futureContract?: ArchitectMutationContract | null;
   age?: number | null;
@@ -345,21 +401,24 @@ export type ArchitectMutationPlayerRecord = {
   freeAgency?: ArchitectMutationFreeAgency | string | null;
   birdRights?: ArchitectMutationBirdRights | string | null;
   renounced?: boolean | null;
-  representation?: unknown;
-  source?: unknown;
-  lastUpdated?: unknown;
-  version?: unknown;
+  representation?: BasePlayerDoc['representation'] | null;
+  source?: MutationPlayerSourceLike;
+  lastUpdated?: string | null;
+  version?: string | null;
   rfaOfferSheet?: boolean | null;
   rfaOfferSheetOnly?: boolean | null;
-  rfaContext?: unknown;
-  draft?: Record<string, unknown> | null;
+  // Deliberately localized: live mutation flow only preserves/deletes this blob.
+  rfaContext?: LooseRecord | null;
+  draft?: Partial<PlayerDraft> | null;
   matchIncoming?: number | string | null;
   absorptionMode?: string | null;
   tpeId?: string | null;
   signAndTrade?: boolean;
-  // LooseRecord arm accepts SignAndTradeContractLike from the UI-side ArchitectPlayer type.
-  // Pipeline never reads salariesByYear from this field — only writes it at line 6701.
-  signAndTradeContract?: ArchitectMutationContract | LooseRecord | null;
+  // Live flow currently carries either the canonical mutation contract or the UI SAT payload shape.
+  signAndTradeContract?:
+    | ArchitectMutationContract
+    | SignAndTradeContractLike
+    | null;
   homeTeamCode?: string | null;
   receivingTeamIndex?: MutationScalarId;
   receivingTeamId?: MutationScalarId;
@@ -378,13 +437,13 @@ export type ArchitectMutationTeamRecord = {
   capHolds?: ArchitectMutationCapHold[];
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptions | null;
-  tradeExceptions?: TradeExceptionRecord[];
+  tradeExceptions?: MutationTradeExceptionRecord[];
   offerSheets?: ArchitectMutationOfferSheet[];
   incomingOfferSheets?: ArchitectMutationOfferSheet[];
   totals?: ArchitectMutationTeamTotals | null;
   draftPicks?: DraftPick[];
   entitlementIds?: string[];
-  source?: Record<string, unknown> | string | null;
+  source?: MutationTeamSourceLike;
   hardCapTriggered?: string | boolean | null;
   hardCapTriggeredBy?: string | null;
   hardCapReason?: string | null;
@@ -476,18 +535,22 @@ type TradeExceptionHistoryEntry =
   | NonNullable<ReturnType<typeof createTpeConsumptionHistoryEntry>>
   | NonNullable<ReturnType<typeof createTpeCreationHistoryEntry>>;
 export type ArchitectMutationTradeContext = {
-  worldId?: string | null;
-  seasonId?: string | null;
+  worldId?: TradeValidatorContext['worldId'] | null;
   asOfDate?: string | number | null;
-  source?: string | null;
+  source?: TradeValidatorContext['source'] | null;
+  tradeDate?: TradeValidatorContext['tradeDate'] | null;
   yearKey?: number | string | null;
-  offseason?: boolean;
+  // Compatibility passthrough: existing typed callers still send seasonId,
+  // but mutationPipeline does not read it on the live trade bridge.
+  seasonId?: string | null;
+  offseason?: boolean | null;
+  enforceSignAndTradePreflight?: boolean | null;
 };
 
 export type ArchitectMutationPayload = {
   teams?: ArchitectTradePayloadTeam[];
   asOfDate?: string | number | null;
-  capProjections?: Record<string, unknown> | null;
+  capProjections?: TradeValidatorCapProjections | null;
   seasonKey?: string | null;
   teamCode?: string | null;
   destinationTeamCode?: string | null;
@@ -617,7 +680,9 @@ type CurrentStateTeamEntryLike = {
   teamCode?: string | null;
   team?: TeamLike | null;
 };
-type CurrentStateLike = {
+// Broad public carrier used by shared ingress/aggregation sites that need to inspect
+// partially populated mutation state across multiple mutation families.
+type MutationCurrentState = {
   teams?: CurrentStateTeamEntryLike[];
   team?: TeamLike | null;
   player?: PlayerLike | null;
@@ -628,6 +693,7 @@ type CurrentStateLike = {
   destinationTeamCode?: string | null;
   offerSheetId?: string | null;
 };
+type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
 type ApplyWorldMutationArgs = {
   userId: string;
   worldId: string;
@@ -640,7 +706,7 @@ type ApplyWorldMutationArgs = {
 type ComputeWorldMutationArgs = {
   mutationType: string;
   payload: ArchitectMutationPayload;
-  currentState: CurrentStateLike;
+  currentState: MutationCurrentState;
   seasonId: string;
   timestamp: number;
   asOfDate?: string | number | null;
@@ -659,7 +725,7 @@ type BuildWorldMutationEventPayloadArgs = {
 /** Shared base parameter type for all compute*Result functions */
 type ComputeMutationParams = {
   payload: ArchitectMutationPayload;
-  currentState: CurrentStateLike;
+  currentState: MutationCurrentState;
   seasonId: string;
   timestamp: number;
 };
@@ -1251,7 +1317,7 @@ function addTeamSnapshot(
 }
 
 function extractTeamsByCodeFromCurrentState(
-  currentState: CurrentStateLike = {}
+  currentState: MutationCurrentState = {}
 ): MutationTeamMap {
   const teamsByCode: MutationTeamMap = {};
 
@@ -1284,6 +1350,12 @@ function extractTeamsByCodeFromCurrentState(
   );
 
   return teamsByCode;
+}
+
+function toTradeStateSlice(currentState: TradeStateSlice): { teams: CurrentStateTeamEntryLike[] } {
+  return {
+    teams: Array.isArray(currentState.teams) ? currentState.teams : [],
+  };
 }
 
 function toCurrentStateTeam(
@@ -1323,7 +1395,7 @@ function getMutationRosterEntryId(entry: unknown) {
   return playerId || null;
 }
 
-type CurrentStateWithTeam = CurrentStateLike & {
+type CurrentStateWithTeam = MutationCurrentState & {
   team: TeamLike;
 };
 
@@ -1335,14 +1407,14 @@ type CurrentStateWithDestination = CurrentStateWithTeamAndPlayer & {
   destinationTeam: TeamLike;
 };
 
-type CurrentStateWithOfferSheetTeams = CurrentStateLike & {
+type CurrentStateWithOfferSheetTeams = MutationCurrentState & {
   homeTeam: TeamLike;
   offeringTeam: TeamLike;
   offerSheetId: string;
 };
 
 function requireTeamState(
-  currentState: CurrentStateLike,
+  currentState: MutationCurrentState,
   mutationType: string
 ): CurrentStateWithTeam {
   if (!currentState.team) {
@@ -1353,7 +1425,7 @@ function requireTeamState(
 }
 
 function requireTeamAndPlayerState(
-  currentState: CurrentStateLike,
+  currentState: MutationCurrentState,
   mutationType: string
 ): CurrentStateWithTeamAndPlayer {
   const teamState = requireTeamState(currentState, mutationType);
@@ -1366,7 +1438,7 @@ function requireTeamAndPlayerState(
 }
 
 function requireDestinationState(
-  currentState: CurrentStateLike,
+  currentState: MutationCurrentState,
   mutationType: string
 ): CurrentStateWithDestination {
   const teamAndPlayerState = requireTeamAndPlayerState(currentState, mutationType);
@@ -1379,7 +1451,7 @@ function requireDestinationState(
 }
 
 function requireOfferSheetTeamState(
-  currentState: CurrentStateLike,
+  currentState: MutationCurrentState,
   mutationType: string
 ): CurrentStateWithOfferSheetTeams {
   if (!currentState.homeTeam) {
@@ -3012,7 +3084,7 @@ async function loadStateForMutation(
   worldId: string,
   mutationType: string,
   payload: MutationPayloadLike
-): Promise<CurrentStateLike> {
+): Promise<MutationCurrentState> {
   switch (mutationType) {
     case 'executeTrade': {
       // Load all teams involved in trade
@@ -3275,7 +3347,7 @@ function toPersistablePlayerOverrideFromSnapshot(player: PlayerLike): PlayerLike
   const playerId = getMutationPlayerId(player);
   const bio =
     player.bio && typeof player.bio === 'object' && !Array.isArray(player.bio)
-      ? (player.bio as Record<string, unknown>)
+      ? (player.bio as MutationPlayerBioLike)
       : undefined;
 
   return removeUndefinedDeep({
@@ -3563,7 +3635,7 @@ function buildTradePlayerPersistenceManifest({
   teamUpdates,
 }: {
   payload: ArchitectMutationPayload;
-  currentState: CurrentStateLike;
+  currentState: TradeStateSlice;
   teamUpdates: ArchitectMutationTeamUpdate[];
 }):
   | {
@@ -3574,6 +3646,7 @@ function buildTradePlayerPersistenceManifest({
   | { success: false; error: string } {
   const tradeTeams = Array.isArray(payload.teams) ? payload.teams : [];
   const payloadTeamCodes: string[] = [];
+  const tradeState = toTradeStateSlice(currentState);
 
   tradeTeams.forEach((teamTrade, index) => {
     const sourceTeamCode = normalizeTradeTeamCodeLike(
@@ -3581,7 +3654,7 @@ function buildTradePlayerPersistenceManifest({
         teamTrade.team?.teamCode ||
         teamTrade.team?.id ||
         teamTrade.teamId ||
-        currentState.teams?.[index]?.teamCode
+        tradeState.teams[index]?.teamCode
     );
 
     if (sourceTeamCode) {
@@ -3603,7 +3676,7 @@ function buildTradePlayerPersistenceManifest({
     const sourceTeamCode = payloadTeamCodes[senderIndex];
 
     for (const rawPlayer of teamTrade.sends || []) {
-      const player = (rawPlayer || {}) as LooseRecord;
+      const player = rawPlayer as ArchitectTradePayloadPlayer | null | undefined;
       const playerId = getMutationPlayerId(player);
       if (!playerId) {
         return {
@@ -3616,7 +3689,7 @@ function buildTradePlayerPersistenceManifest({
       const destinationTeamCode = resolveOutgoingTradeDestinationTeamCode({
         payloadTeamCodes,
         senderIndex,
-        player,
+        player: (player || {}) as OutgoingTradeRouteLike,
       });
 
       if (!destinationTeamCode || !sourceTeamCode) {
@@ -4489,6 +4562,69 @@ function toFiniteAmount(value: unknown, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+function toFiniteIntegerOrNull(value: unknown) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.trunc(numeric) : null;
+}
+
+function toCapHoldComputationPlayer(
+  player: ArchitectMutationPlayerRecord
+): CapHoldComputationPlayer {
+  const yearsExperience = toFiniteIntegerOrNull(player.bio?.yearsExperience);
+  const draftRound = toFiniteIntegerOrNull(player.draft?.round);
+  const draftPick = toFiniteIntegerOrNull(player.draft?.pick);
+  const contractBirdRightsStatus =
+    typeof player.contract?.birdRights?.status === 'string'
+      ? player.contract.birdRights.status
+      : typeof player.contract?.birdRights?.type === 'string'
+        ? player.contract.birdRights.type
+        : undefined;
+  const fallbackBirdRights =
+    typeof player.birdRights === 'string'
+      ? player.birdRights
+      : typeof player.birdRights?.status === 'string'
+        ? player.birdRights.status
+        : typeof player.birdRights?.type === 'string'
+          ? player.birdRights.type
+          : undefined;
+
+  return {
+    renounced: player.renounced === true,
+    bio:
+      player.bio || yearsExperience != null
+        ? {
+            yearsExperience: yearsExperience ?? undefined,
+          }
+        : undefined,
+    contract:
+      player.contract || contractBirdRightsStatus
+        ? {
+            birdRights: contractBirdRightsStatus
+              ? { status: contractBirdRightsStatus }
+              : undefined,
+            salariesByYear: Array.isArray(player.contract?.salariesByYear)
+              ? player.contract.salariesByYear.map((row) => ({
+                  season:
+                    typeof row?.season === 'string' ? row.season : undefined,
+                  salary:
+                    typeof row?.salary === 'number' ? row.salary : undefined,
+                  capHit:
+                    typeof row?.capHit === 'number' ? row.capHit : undefined,
+                }))
+              : undefined,
+          }
+        : undefined,
+    draft:
+      player.draft || draftRound != null || draftPick != null
+        ? {
+            round: draftRound ?? undefined,
+            pick: draftPick ?? undefined,
+          }
+        : undefined,
+    birdRights: fallbackBirdRights,
+  };
+}
+
 function consumeSigningExceptionUsage({
   updatedTeam,
   mechanism,
@@ -5079,9 +5215,10 @@ function computeOptionResult({
     // Create cap hold for declined option
     const priorRow = salaries[optionIndex - 1];
     const lastSalary = Number(priorRow?.salary ?? priorRow?.capHit ?? 0);
-    const rightsType = getRightsTypeFromPlayer(playerData);
+    const capHoldPlayer = toCapHoldComputationPlayer(playerData);
+    const rightsType = getRightsTypeFromPlayer(capHoldPlayer);
     const capHoldExpectation = computeExpectedCapHoldAmount({
-      player: playerData,
+      player: capHoldPlayer,
       lastSalary,
       rules: null,
       rightsType,
@@ -5326,7 +5463,7 @@ function validateMutation({
   seasonId,
   asOfDate,
   dateDefaulted,
-}: { mutationType: string; payload: MutationPayloadLike; currentState: CurrentStateLike; computeResult: ComputeResultLike; seasonId: string; asOfDate?: string | null; dateDefaulted?: boolean }): { valid: boolean; error?: string; violations?: string[]; warnings?: unknown[] } {
+}: { mutationType: string; payload: MutationPayloadLike; currentState: MutationCurrentState; computeResult: ComputeResultLike; seasonId: string; asOfDate?: string | null; dateDefaulted?: boolean }): { valid: boolean; error?: string; violations?: string[]; warnings?: unknown[] } {
   // Phase 20: Collect warnings including world time defaulted warning
   const pipelineWarnings = [];
 
@@ -6680,7 +6817,7 @@ function computeSignAndTradeResult({
     signedUsing: payload.signedUsing,
   };
 
-  const signingState = { team, player, teamCode };
+  const signingState: CurrentStateWithTeamAndPlayer = { team, player, teamCode };
   const signingResult = computeSigningResult({
     payload: signingPayload,
     currentState: signingState,
@@ -6724,7 +6861,7 @@ function computeSignAndTradeResult({
   const signedPlayer = signingResult.playerUpdates[0].player;
 
   // 2. Construct trade payload and state (using post-signing state per Phase 48)
-  const tradePayload = {
+  const tradePayload: ArchitectMutationPayload = {
     teams: [
       {
         teamCode: teamCode,
@@ -6751,7 +6888,7 @@ function computeSignAndTradeResult({
   };
 
   // Construct trade state (Source has signed player, Dest is original)
-  const tradeState: CurrentStateLike = {
+  const tradeState: { teams: CurrentStateTeamEntryLike[] } = {
     teams: [
       { teamCode: teamCode as string | null, team: updatedSourceTeam as TeamLike },
       { teamCode: destinationTeamCode as string | null, team: destinationTeam as TeamLike },

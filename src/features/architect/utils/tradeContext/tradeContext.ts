@@ -46,6 +46,7 @@ import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import type {
   AnyRecord,
   BuildPostTradeTeamsSnapshotParams,
+  OutgoingTradeRouteLike,
   PostTradeSnapshot,
   TeamResult,
   TeamUpdate,
@@ -69,7 +70,7 @@ export function resolveOutgoingTradeDestinationTeamCode({
 }: {
   payloadTeamCodes: string[];
   senderIndex: number;
-  player: AnyRecord;
+  player: OutgoingTradeRouteLike;
 }): string | null {
   const parsedTargetIndex = Number(player.receivingTeamIndex);
   const hasIndexRoute = Number.isInteger(parsedTargetIndex);
