@@ -115,6 +115,7 @@ import {
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type {
+  NormalizedTeamPick,
   TradeExceptionRecord,
   TradeValidatorCapProjections,
   TradeValidatorContext,
@@ -343,6 +344,9 @@ export type ArchitectMutationExceptionEntry = {
   lastUsedAt?: string | null;
 };
 
+// Deliberately open-ended: live exception usage still indexes buckets by
+// computed key (e.g. mechanism-derived MLE aliases), so a closed object here
+// would be false to the current runtime contract.
 export type ArchitectMutationExceptions = {
   mle?: ArchitectMutationExceptionEntry | null;
   taxpayerMle?: ArchitectMutationExceptionEntry | null;
@@ -401,6 +405,9 @@ export type ArchitectMutationPlayerRecord = {
   freeAgency?: ArchitectMutationFreeAgency | string | null;
   birdRights?: ArchitectMutationBirdRights | string | null;
   renounced?: boolean | null;
+  freeAgentYear?: number | string | null;
+  rightsRenounced?: boolean | null;
+  renouncedAt?: string | null;
   representation?: BasePlayerDoc['representation'] | null;
   source?: MutationPlayerSourceLike;
   lastUpdated?: string | null;
@@ -410,6 +417,10 @@ export type ArchitectMutationPlayerRecord = {
   // Deliberately localized: live mutation flow only preserves/deletes this blob.
   rfaContext?: LooseRecord | null;
   draft?: Partial<PlayerDraft> | null;
+  isTwoWay?: boolean | null;
+  signedDate?: string | null;
+  isNewlySignedFA?: boolean | null;
+  originTeamId?: string | null;
   matchIncoming?: number | string | null;
   absorptionMode?: string | null;
   tpeId?: string | null;
@@ -440,7 +451,15 @@ export type ArchitectMutationTeamRecord = {
   tradeExceptions?: MutationTradeExceptionRecord[];
   offerSheets?: ArchitectMutationOfferSheet[];
   incomingOfferSheets?: ArchitectMutationOfferSheet[];
+  // Deliberately opaque: this path preserves existing history entries and may
+  // append typed TPE lifecycle events, but the wider repo still produces mixed
+  // object shapes here without one stable schema.
+  exceptionHistory?: unknown[];
   totals?: ArchitectMutationTeamTotals | null;
+  // Compute-time compatibility field for live trade validation only.
+  // This is synthesized from totals.totalSalary when a loaded team does not
+  // expose an explicit top-level teamTotalSalary.
+  teamTotalSalary?: number | string | null;
   draftPicks?: DraftPick[];
   entitlementIds?: string[];
   source?: MutationTeamSourceLike;
@@ -468,11 +487,13 @@ type TradePayloadEntitlementLike = {
   toTeamId?: MutationScalarId;
 };
 
+type ArchitectTradePayloadTeamRef = {
+  id?: MutationScalarId;
+  teamCode?: MutationScalarId;
+};
+
 export type ArchitectTradePayloadTeam = {
-  team?: {
-    id?: MutationScalarId;
-    teamCode?: MutationScalarId;
-  } | null;
+  team?: ArchitectTradePayloadTeamRef | null;
   teamCode?: MutationScalarId;
   teamId?: MutationScalarId;
   sends?: ArchitectTradePayloadPlayer[];
@@ -480,8 +501,8 @@ export type ArchitectTradePayloadTeam = {
   outgoingEntitlements?: TradePayloadEntitlementLike[];
   incomingEntitlements?: TradePayloadEntitlementLike[];
   entitlementsOut?: TradePayloadEntitlementLike[];
-  picksOut?: Record<string, unknown>[];
-  picksIn?: Record<string, unknown>[];
+  picksOut?: NormalizedTeamPick[];
+  picksIn?: unknown[];
   cashSent?: number | null;
   cashReceived?: number | null;
 };
@@ -580,6 +601,29 @@ export type ArchitectMutationPayload = {
 };
 type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
 type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
+type MergePlayerOverrideInput = Parameters<typeof mergePlayerOverride>[0];
+type MergePlayerOverrideShape = Pick<
+  ArchitectMutationPlayerRecord,
+  | 'player_id'
+  | 'id'
+  | 'playerId'
+  | 'teamCode'
+  | 'teamName'
+  | 'name'
+  | 'displayName'
+  | 'playerName'
+  | 'bio'
+  | 'contract'
+  | 'futureContract'
+  | 'renounced'
+  | 'representation'
+  | 'source'
+  | 'lastUpdated'
+  | 'version'
+  | 'rfaOfferSheet'
+  | 'rfaOfferSheetOnly'
+  | 'rfaContext'
+>;
 type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
   year?: number | string | null;
 };
@@ -1109,6 +1153,11 @@ function sanitizeTransientFieldsForPersistence(
 // Export for testing
 export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
+function stripComputeOnlyTeamFieldsForPersistence(team: TeamLike): TeamLike {
+  const { teamTotalSalary: _teamTotalSalary, ...persistableTeam } = team;
+  return persistableTeam;
+}
+
 /**
  * Dev-only guard that validates an object has no undefined values before Firestore write.
  * In DEV: logs error details and throws.
@@ -1536,16 +1585,488 @@ function toTradeStateSlice(currentState: TradeStateSlice): { teams: CurrentState
   };
 }
 
-function toCurrentStateTeam(
-  team: LoadedMutationTeam | TeamLike | null | undefined
-): TeamLike | null {
-  return team ? (team as TeamLike) : null;
+function asLooseRecord(value: unknown): LooseRecord | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as LooseRecord;
+  }
+
+  return null;
 }
 
-function toCurrentStatePlayer(
-  player: LoadedMutationPlayer | PlayerLike | null | undefined
-): PlayerLike | null {
-  return player ? (player as PlayerLike) : null;
+function toOptionalTrimmedString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized || undefined;
+}
+
+function toOptionalIdString(value: unknown): string | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return toOptionalTrimmedString(value);
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const numericValue = Number(value);
+    if (Number.isFinite(numericValue)) {
+      return numericValue;
+    }
+  }
+
+  return undefined;
+}
+
+function toOptionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function toOptionalScalarId(value: unknown): MutationScalarId {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  return toOptionalTrimmedString(value);
+}
+
+function toOptionalNumberish(value: unknown): number | string | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  return toOptionalTrimmedString(value);
+}
+
+function toOptionalObject<T>(value: unknown): T | undefined {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as T;
+  }
+
+  return undefined;
+}
+
+function toOptionalObjectOrString<T>(value: unknown): T | undefined {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    return normalized ? (normalized as T) : undefined;
+  }
+
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as T;
+  }
+
+  return undefined;
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => toOptionalIdString(entry))
+    .filter((entry): entry is string => typeof entry === 'string');
+}
+
+function normalizeRosterEntries(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => getMutationRosterEntryId(entry))
+    .filter((entry): entry is string => typeof entry === 'string');
+}
+
+function normalizeObjectArray<T>(value: unknown): T[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value.filter((entry): entry is T => asLooseRecord(entry) !== null);
+}
+
+function normalizeCurrentStatePlayerArray(value: unknown): PlayerLike[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => toCurrentStatePlayer(entry))
+    .filter((entry): entry is PlayerLike => entry !== null);
+}
+
+function resolveCurrentStateTeamTotalSalary(
+  teamRecord: LooseRecord,
+  totals: ArchitectMutationTeamTotals | null | undefined
+): number | string | undefined {
+  const explicitTeamTotalSalary = toOptionalNumberish(teamRecord.teamTotalSalary);
+  if (explicitTeamTotalSalary !== undefined) {
+    return explicitTeamTotalSalary;
+  }
+
+  const totalsRecord = asLooseRecord(totals);
+  return totalsRecord ? toOptionalNumberish(totalsRecord.totalSalary) : undefined;
+}
+
+function toCurrentStateTeam(team: unknown): TeamLike | null {
+  const teamRecord = asLooseRecord(team);
+  if (!teamRecord) {
+    return null;
+  }
+
+  const normalized: TeamLike = {};
+  const id = toOptionalScalarId(teamRecord.id);
+  const teamCode = toOptionalTrimmedString(teamRecord.teamCode);
+  const teamName = toOptionalTrimmedString(teamRecord.teamName);
+  const players = normalizeCurrentStatePlayerArray(teamRecord.players);
+  const roster = normalizeRosterEntries(teamRecord.roster);
+  const twoWayPlayers = normalizeCurrentStatePlayerArray(
+    teamRecord.twoWayPlayers
+  );
+  const capHolds = normalizeObjectArray<ArchitectMutationCapHold>(
+    teamRecord.capHolds
+  );
+  const deadCap = normalizeObjectArray<ArchitectMutationDeadCapEntry>(
+    teamRecord.deadCap
+  );
+  const exceptions = toOptionalObject<ArchitectMutationExceptions>(
+    teamRecord.exceptions
+  );
+  const tradeExceptions = normalizeObjectArray<MutationTradeExceptionRecord>(
+    teamRecord.tradeExceptions
+  );
+  const offerSheets = normalizeObjectArray<ArchitectMutationOfferSheet>(
+    teamRecord.offerSheets
+  );
+  const incomingOfferSheets = normalizeObjectArray<ArchitectMutationOfferSheet>(
+    teamRecord.incomingOfferSheets
+  );
+  const exceptionHistory = Array.isArray(teamRecord.exceptionHistory)
+    ? [...teamRecord.exceptionHistory]
+    : undefined;
+  const totals = toOptionalObject<ArchitectMutationTeamTotals>(teamRecord.totals);
+  const teamTotalSalary = resolveCurrentStateTeamTotalSalary(teamRecord, totals);
+  const draftPicks = normalizeObjectArray<DraftPick>(teamRecord.draftPicks);
+  const entitlementIds = normalizeStringArray(teamRecord.entitlementIds);
+  const source = toOptionalObjectOrString<MutationTeamSourceLike>(teamRecord.source);
+  const hardCapped = teamRecord.hardCapped;
+  const hardCapLevel = toOptionalTrimmedString(teamRecord.hardCapLevel);
+  const hardCapReason = toOptionalTrimmedString(teamRecord.hardCapReason);
+  const hardCapTriggeredBy = toOptionalTrimmedString(
+    teamRecord.hardCapTriggeredBy
+  );
+
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
+  }
+  if (teamName !== undefined) {
+    normalized.teamName = teamName;
+  }
+  if (players !== undefined) {
+    normalized.players = players;
+  }
+  if (roster !== undefined) {
+    normalized.roster = roster;
+  }
+  if (twoWayPlayers !== undefined) {
+    normalized.twoWayPlayers = twoWayPlayers;
+  }
+  if (capHolds !== undefined) {
+    normalized.capHolds = capHolds;
+  }
+  if (deadCap !== undefined) {
+    normalized.deadCap = deadCap;
+  }
+  if (exceptions !== undefined) {
+    normalized.exceptions = exceptions;
+  }
+  if (tradeExceptions !== undefined) {
+    normalized.tradeExceptions = tradeExceptions;
+  }
+  if (offerSheets !== undefined) {
+    normalized.offerSheets = offerSheets;
+  }
+  if (incomingOfferSheets !== undefined) {
+    normalized.incomingOfferSheets = incomingOfferSheets;
+  }
+  if (exceptionHistory !== undefined) {
+    normalized.exceptionHistory = exceptionHistory;
+  }
+  if (totals !== undefined) {
+    normalized.totals = totals;
+  }
+  if (teamTotalSalary !== undefined) {
+    normalized.teamTotalSalary = teamTotalSalary;
+  }
+  if (draftPicks !== undefined) {
+    normalized.draftPicks = draftPicks;
+  }
+  if (entitlementIds !== undefined) {
+    normalized.entitlementIds = entitlementIds;
+  }
+  if (source !== undefined) {
+    normalized.source = source;
+  }
+  if (
+    typeof hardCapped === 'boolean' ||
+    (typeof hardCapped === 'number' && Number.isFinite(hardCapped))
+  ) {
+    normalized.hardCapped = hardCapped;
+  }
+  if (hardCapLevel !== undefined) {
+    normalized.hardCapLevel = hardCapLevel;
+  }
+  if (hardCapReason !== undefined) {
+    normalized.hardCapReason = hardCapReason;
+  }
+  if (hardCapTriggeredBy !== undefined) {
+    normalized.hardCapTriggeredBy = hardCapTriggeredBy;
+  }
+
+  return normalized;
+}
+
+function toCurrentStatePlayer(player: unknown): PlayerLike | null {
+  const playerRecord = asLooseRecord(player);
+  if (!playerRecord) {
+    return null;
+  }
+
+  const normalized: PlayerLike = {};
+  const bio = toOptionalObject<MutationPlayerBioLike>(playerRecord.bio);
+  const bioPlayerId = toOptionalIdString(bio?.playerId);
+  const bioDisplayName = toOptionalTrimmedString(bio?.displayName);
+  const playerId = toOptionalIdString(playerRecord.player_id) ?? bioPlayerId;
+  const id = toOptionalIdString(playerRecord.id) ?? bioPlayerId;
+  const playerIdAlias =
+    toOptionalIdString(playerRecord.playerId) ?? bioPlayerId;
+  const name = toOptionalTrimmedString(playerRecord.name);
+  const displayName =
+    toOptionalTrimmedString(playerRecord.displayName) ?? bioDisplayName;
+  const playerName = toOptionalTrimmedString(playerRecord.playerName);
+  const teamCode = toOptionalTrimmedString(playerRecord.teamCode);
+  const teamName = toOptionalTrimmedString(playerRecord.teamName);
+  const contract = toOptionalObject<ArchitectMutationContract>(
+    playerRecord.contract
+  );
+  const futureContract = toOptionalObject<ArchitectMutationContract>(
+    playerRecord.futureContract
+  );
+  const draft = toOptionalObject<Partial<PlayerDraft>>(playerRecord.draft);
+  const representation = toOptionalObject<BasePlayerDoc['representation']>(
+    playerRecord.representation
+  );
+  const source = toOptionalObjectOrString<MutationPlayerSourceLike>(
+    playerRecord.source
+  );
+  const salary = toOptionalNumber(playerRecord.salary);
+  const currentSalary = toOptionalNumber(playerRecord.currentSalary);
+  const renounced = toOptionalBoolean(playerRecord.renounced);
+  const freeAgentYear = toOptionalNumberish(playerRecord.freeAgentYear);
+  const rightsRenounced = toOptionalBoolean(playerRecord.rightsRenounced);
+  const renouncedAt = toOptionalTrimmedString(playerRecord.renouncedAt);
+  const rfaOfferSheet = toOptionalBoolean(playerRecord.rfaOfferSheet);
+  const rfaOfferSheetOnly = toOptionalBoolean(playerRecord.rfaOfferSheetOnly);
+  const rfaContext = toOptionalObject<LooseRecord>(playerRecord.rfaContext);
+  const lastUpdated = toOptionalTrimmedString(playerRecord.lastUpdated);
+  const version = toOptionalTrimmedString(playerRecord.version);
+  const isTwoWay = toOptionalBoolean(playerRecord.isTwoWay);
+  const signedDate = toOptionalTrimmedString(playerRecord.signedDate);
+  const isNewlySignedFA = toOptionalBoolean(playerRecord.isNewlySignedFA);
+  const originTeamId = toOptionalTrimmedString(playerRecord.originTeamId);
+
+  if (playerId !== undefined) {
+    normalized.player_id = playerId;
+  }
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (playerIdAlias !== undefined) {
+    normalized.playerId = playerIdAlias;
+  }
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
+  }
+  if (teamName !== undefined) {
+    normalized.teamName = teamName;
+  }
+  if (name !== undefined) {
+    normalized.name = name;
+  }
+  if (displayName !== undefined) {
+    normalized.displayName = displayName;
+  }
+  if (playerName !== undefined) {
+    normalized.playerName = playerName;
+  }
+  if (bio !== undefined) {
+    normalized.bio = bio;
+  }
+  if (contract !== undefined) {
+    normalized.contract = contract;
+  }
+  if (futureContract !== undefined) {
+    normalized.futureContract = futureContract;
+  }
+  if (draft !== undefined) {
+    normalized.draft = draft;
+  }
+  if (representation !== undefined) {
+    normalized.representation = representation;
+  }
+  if (source !== undefined) {
+    normalized.source = source;
+  }
+  if (salary !== undefined) {
+    normalized.salary = salary;
+  }
+  if (currentSalary !== undefined) {
+    normalized.currentSalary = currentSalary;
+  }
+  if (renounced !== undefined) {
+    normalized.renounced = renounced;
+  }
+  if (freeAgentYear !== undefined) {
+    normalized.freeAgentYear = freeAgentYear;
+  }
+  if (rightsRenounced !== undefined) {
+    normalized.rightsRenounced = rightsRenounced;
+  }
+  if (renouncedAt !== undefined) {
+    normalized.renouncedAt = renouncedAt;
+  }
+  if (rfaOfferSheet !== undefined) {
+    normalized.rfaOfferSheet = rfaOfferSheet;
+  }
+  if (rfaOfferSheetOnly !== undefined) {
+    normalized.rfaOfferSheetOnly = rfaOfferSheetOnly;
+  }
+  if (rfaContext !== undefined) {
+    normalized.rfaContext = rfaContext;
+  }
+  if (lastUpdated !== undefined) {
+    normalized.lastUpdated = lastUpdated;
+  }
+  if (version !== undefined) {
+    normalized.version = version;
+  }
+  if (isTwoWay !== undefined) {
+    normalized.isTwoWay = isTwoWay;
+  }
+  if (signedDate !== undefined) {
+    normalized.signedDate = signedDate;
+  }
+  if (isNewlySignedFA !== undefined) {
+    normalized.isNewlySignedFA = isNewlySignedFA;
+  }
+  if (originTeamId !== undefined) {
+    normalized.originTeamId = originTeamId;
+  }
+
+  return normalized;
+}
+
+function toMergePlayerOverrideInput(player: unknown): MergePlayerOverrideInput {
+  const playerRecord = toCurrentStatePlayer(player);
+  const normalized: MergePlayerOverrideShape = {};
+
+  if (!playerRecord) {
+    return normalized;
+  }
+
+  const {
+    player_id,
+    id,
+    playerId,
+    teamCode,
+    teamName,
+    name,
+    displayName,
+    playerName,
+    bio,
+    contract,
+    futureContract,
+    renounced,
+    representation,
+    source,
+    lastUpdated,
+    version,
+    rfaOfferSheet,
+    rfaOfferSheetOnly,
+    rfaContext,
+  } = playerRecord;
+
+  if (player_id !== undefined) {
+    normalized.player_id = player_id;
+  }
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (playerId !== undefined) {
+    normalized.playerId = playerId;
+  }
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
+  }
+  if (teamName !== undefined) {
+    normalized.teamName = teamName;
+  }
+  if (name !== undefined) {
+    normalized.name = name;
+  }
+  if (displayName !== undefined) {
+    normalized.displayName = displayName;
+  }
+  if (playerName !== undefined) {
+    normalized.playerName = playerName;
+  }
+  if (bio !== undefined) {
+    normalized.bio = bio;
+  }
+  if (contract !== undefined) {
+    normalized.contract = contract;
+  }
+  if (futureContract !== undefined) {
+    normalized.futureContract = futureContract;
+  }
+  if (renounced !== undefined) {
+    normalized.renounced = renounced;
+  }
+  if (representation !== undefined) {
+    normalized.representation = representation;
+  }
+  if (source !== undefined) {
+    normalized.source = source;
+  }
+  if (lastUpdated !== undefined) {
+    normalized.lastUpdated = lastUpdated;
+  }
+  if (version !== undefined) {
+    normalized.version = version;
+  }
+  if (rfaOfferSheet !== undefined) {
+    normalized.rfaOfferSheet = rfaOfferSheet;
+  }
+  if (rfaOfferSheetOnly !== undefined) {
+    normalized.rfaOfferSheetOnly = rfaOfferSheetOnly;
+  }
+  if (rfaContext !== undefined) {
+    normalized.rfaContext = rfaContext;
+  }
+
+  return normalized;
 }
 
 function getMutationRosterEntryId(entry: unknown) {
@@ -1730,9 +2251,13 @@ async function getFirstExplicitWorldTeamSnapshotFromLineage(
   for (const lineageWorldId of lineageWorldIds) {
     const snapshot = await getDoc(worldTeamRef(lineageWorldId, teamCode));
     if (snapshot.exists()) {
+      const normalizedTeam = toCurrentStateTeam(snapshot.data());
+      if (!normalizedTeam) {
+        continue;
+      }
       return {
         snapshotWorldId: lineageWorldId,
-        team: snapshot.data() as TeamLike,
+        team: normalizedTeam,
       };
     }
   }
@@ -1750,9 +2275,13 @@ async function getFirstExplicitWorldPlayerOverrideFromLineage(
       worldPlayerRef(lineageWorldId, teamCode, playerId)
     );
     if (overrideSnapshot.exists()) {
+      const normalizedPlayer = toCurrentStatePlayer(overrideSnapshot.data());
+      if (!normalizedPlayer) {
+        continue;
+      }
       return {
         overrideWorldId: lineageWorldId,
-        player: overrideSnapshot.data() as PlayerLike,
+        player: normalizedPlayer,
       };
     }
   }
@@ -1770,9 +2299,15 @@ async function resolveStoreOfferSheetAuthority({
   playerId: string;
 }) {
   const [offeringTeam, lineageWorldIds] = await Promise.all([
-    getTeam(worldId, offeringTeamCode),
+    getTeam(worldId, offeringTeamCode).then((team) => toCurrentStateTeam(team)),
     resolveWorldLineage(worldId),
   ]);
+
+  if (!offeringTeam) {
+    throw new Error(
+      `storeOfferSheet requires an authoritative offering team snapshot for ${offeringTeamCode}.`
+    );
+  }
 
   const ownershipCandidates = (
     await Promise.all(
@@ -1866,10 +2401,12 @@ async function resolveStoreOfferSheetAuthority({
   }
 
   const canonicalPlayer = overrideEntry
-    ? (mergePlayerOverride(
-        resolvedOwner.snapshotPlayer as any,
-        overrideEntry.player as any
-      ) as PlayerLike)
+    ? toCurrentStatePlayer(
+        mergePlayerOverride(
+          toMergePlayerOverrideInput(resolvedOwner.snapshotPlayer),
+          toMergePlayerOverrideInput(overrideEntry.player)
+        )
+      )
     : resolvedOwner.snapshotPlayer;
 
   if (!canonicalPlayer) {
@@ -1879,7 +2416,7 @@ async function resolveStoreOfferSheetAuthority({
   }
 
   return {
-    team: offeringTeam as TeamLike,
+    team: offeringTeam,
     player: {
       ...canonicalPlayer,
       teamCode: resolvedOwner.teamCode,
@@ -1887,7 +2424,7 @@ async function resolveStoreOfferSheetAuthority({
         resolvedOwner.team.teamName ||
         canonicalPlayer.teamName ||
         null,
-    } as PlayerLike,
+    },
     teamCode: offeringTeamCode,
     homeTeam: resolvedOwner.team,
   };
@@ -3558,9 +4095,16 @@ function toPersistablePlayerOverrideFromSnapshot(player: PlayerLike): PlayerLike
     source: player.source || undefined,
     lastUpdated: player.lastUpdated,
     version: player.version,
+    freeAgentYear: player.freeAgentYear,
+    rightsRenounced: player.rightsRenounced,
+    renouncedAt: player.renouncedAt,
     rfaOfferSheet: player.rfaOfferSheet,
     rfaOfferSheetOnly: player.rfaOfferSheetOnly,
     rfaContext: player.rfaContext,
+    isTwoWay: player.isTwoWay,
+    signedDate: player.signedDate,
+    isNewlySignedFA: player.isNewlySignedFA,
+    originTeamId: player.originTeamId,
   }) as PlayerLike;
 }
 
@@ -6073,8 +6617,11 @@ async function persistWorldMutation({
         team,
         `architect_worlds/${worldId}/teams/${teamCode}`
       );
+      const persistenceReadyTeam = stripComputeOnlyTeamFieldsForPersistence(team);
       // Phase 60: Sanitize transient fields first
-      const afterSanitize = sanitizeTransientFieldsForPersistence(team);
+      const afterSanitize = sanitizeTransientFieldsForPersistence(
+        persistenceReadyTeam
+      );
       // Phase 64: Normalize TPE schema (tradeExceptions → exceptions.tpe)
       // This ensures legacy tradeExceptions[] is merged into canonical exceptions.tpe[]
       // and the legacy field is removed BEFORE contract validation
