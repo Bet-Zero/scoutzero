@@ -1,9 +1,0 @@
-command	start_utc	end_utc	duration_s	exit_code	log
-npm run validate:project	2026-02-13T13:52:21Z	2026-02-13T13:52:23Z	2	1	return_packages/architect/_logs/p0_validate_project_20260213_135221.log
-npm run validate:project (TSX_DISABLE_IPC=1)	2026-02-13T13:52:39Z	2026-02-13T13:52:40Z	1	1	return_packages/architect/_logs/p0_validate_project_20260213_135239_tsx_disable_ipc.log
-node --import tsx scripts/validate-project-schema.ts	2026-02-13T13:52:51Z	2026-02-13T13:52:52Z	1	0	return_packages/architect/_logs/p0_validate_project_20260213_135251_node_import_tsx.log
-npm run build	2026-02-13T13:52:58Z	2026-02-13T13:54:35Z	97	0	return_packages/architect/_logs/p0_build_20260213_135258.log
-npm run test -- --run	2026-02-13T13:54:43Z	2026-02-13T13:57:07Z	144	143	return_packages/architect/_logs/p0_test_20260213_135443.log
-npm run lint	2026-02-13T23:35:33Z	2026-02-13T23:36:37Z	64	1	return_packages/architect/_logs/p0_lint_20260213_233533_rerun.log
-npm run typecheck	2026-02-13T23:36:45Z	2026-02-13T23:37:01Z	16	2	return_packages/architect/_logs/p0_typecheck_20260213_233645_rerun.log
-npm run test -- --run (rerun)	2026-02-13T23:32:25Z	2026-02-13T23:35:19Z	174	0	return_packages/architect/_logs/p0_test_20260213_233225_rerun.log

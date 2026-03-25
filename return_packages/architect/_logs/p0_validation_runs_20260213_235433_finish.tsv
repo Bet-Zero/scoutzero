@@ -1,7 +1,0 @@
-command	start_utc	end_utc	duration_s	exit_code	log
-npm run validate:project	2026-02-13T23:54:39Z	2026-02-13T23:54:39Z	0	1	return_packages/architect/_logs/p0_validate_project_20260213_235433_finish.log
-npm run build	2026-02-13T23:54:46Z	2026-02-13T23:55:13Z	27	0	return_packages/architect/_logs/p0_build_20260213_235433_finish.log
-npm run test -- --run	2026-02-13T23:55:20Z	2026-02-13T23:58:13Z	173	0	return_packages/architect/_logs/p0_test_20260213_235433_finish.log
-npm run lint	2026-02-13T23:58:19Z	2026-02-13T23:59:02Z	43	1	return_packages/architect/_logs/p0_lint_20260213_235433_finish.log
-npm run typecheck	2026-02-13T23:59:09Z	2026-02-13T23:59:20Z	11	2	return_packages/architect/_logs/p0_typecheck_20260213_235433_finish.log
-node --import tsx scripts/validate-project-schema.ts	2026-02-13T23:59:27Z	2026-02-13T23:59:28Z	1	0	return_packages/architect/_logs/p0_validate_project_20260213_235433_finish_node_import_tsx.log
