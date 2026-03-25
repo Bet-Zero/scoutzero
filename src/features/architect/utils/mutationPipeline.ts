@@ -132,9 +132,9 @@ import type { TeamTotals } from '@/features/architect/types';
 import type {
   OutgoingTradeRouteLike,
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
+  TradeApplyValidationTeam as TradeContextApplyValidationTeam,
   TeamResult as TradeContextTeamResult,
   ValidatedTradeContext as TradeContextValidatedTradeContext,
-  ValidationTeam as TradeContextValidationTeam,
 } from '@/features/architect/utils/tradeContext/types';
 
 // ==============================================================================
@@ -536,7 +536,7 @@ type TradeMutationMetadata = {
   timestamp: number;
 } & Record<string, unknown>;
 type TradeSnapshotLike = TradeContextPostTradeSnapshot;
-type TradeValidationTeamLike = TradeContextValidationTeam;
+type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;
 type TradeValidationTeamResultLike = TradeContextTeamResult;
 type TradeValidationApplyTimeSlice = {
   legal: boolean;
@@ -627,12 +627,77 @@ type MergePlayerOverrideShape = Pick<
 type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
   year?: number | string | null;
 };
-type TeamLike = ArchitectMutationTeamRecord;
-type PlayerLike = ArchitectMutationPlayerRecord;
-type MutationTeamMap = Record<string, TeamLike>;
+type CurrentStatePlayer = Pick<
+  ArchitectMutationPlayerRecord,
+  | 'player_id'
+  | 'id'
+  | 'playerId'
+  | 'teamCode'
+  | 'teamName'
+  | 'name'
+  | 'displayName'
+  | 'playerName'
+  | 'bio'
+  | 'contract'
+  | 'futureContract'
+  | 'draft'
+  | 'representation'
+  | 'source'
+  | 'salary'
+  | 'currentSalary'
+  | 'renounced'
+  | 'freeAgentYear'
+  | 'rightsRenounced'
+  | 'renouncedAt'
+  | 'rfaOfferSheet'
+  | 'rfaOfferSheetOnly'
+  | 'rfaContext'
+  | 'lastUpdated'
+  | 'version'
+  | 'isTwoWay'
+  | 'signedDate'
+  | 'isNewlySignedFA'
+  | 'originTeamId'
+>;
+type CurrentStateTeam = Omit<
+  Pick<
+    ArchitectMutationTeamRecord,
+    | 'teamCode'
+    | 'teamName'
+    | 'players'
+    | 'roster'
+    | 'twoWayPlayers'
+    | 'capHolds'
+    | 'deadCap'
+    | 'exceptions'
+    | 'tradeExceptions'
+    | 'offerSheets'
+    | 'incomingOfferSheets'
+    | 'exceptionHistory'
+    | 'totals'
+    | 'teamTotalSalary'
+    | 'draftPicks'
+    | 'entitlementIds'
+    | 'source'
+    | 'hardCapped'
+    | 'hardCapLevel'
+    | 'hardCapReason'
+    | 'hardCapTriggeredBy'
+  >,
+  'players' | 'twoWayPlayers' | 'teamTotalSalary'
+> & {
+  players?: CurrentStatePlayer[];
+  twoWayPlayers?: CurrentStatePlayer[];
+  teamTotalSalary?: number;
+};
+type TeamSnapshotLike = ArchitectMutationTeamRecord | TeamLike;
+type PlayerSnapshotLike = ArchitectMutationPlayerRecord | PlayerLike;
+type TeamLike = CurrentStateTeam;
+type PlayerLike = CurrentStatePlayer;
+type MutationTeamMap = Record<string, TeamSnapshotLike>;
 export type ArchitectMutationPlayerUpdate = {
   playerId?: string | null;
-  player?: PlayerLike | null;
+  player?: ArchitectMutationPlayerRecord | null;
 };
 export type ArchitectMutationPlayerDelete = {
   playerId?: string | null;
@@ -900,17 +965,17 @@ type AuditContextLike = MutationAuditContext;
 type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
 type CurrentStateTeamEntryLike = {
   teamCode?: string | null;
-  team?: TeamLike | null;
+  team?: TeamSnapshotLike | null;
 };
 // Broad public carrier used by shared ingress/aggregation sites that need to inspect
 // partially populated mutation state across multiple mutation families.
 type MutationCurrentState = {
   teams?: CurrentStateTeamEntryLike[];
-  team?: TeamLike | null;
-  player?: PlayerLike | null;
-  homeTeam?: TeamLike | null;
-  offeringTeam?: TeamLike | null;
-  destinationTeam?: TeamLike | null;
+  team?: TeamSnapshotLike | null;
+  player?: PlayerSnapshotLike | null;
+  homeTeam?: TeamSnapshotLike | null;
+  offeringTeam?: TeamSnapshotLike | null;
+  destinationTeam?: TeamSnapshotLike | null;
   teamCode?: string | null;
   destinationTeamCode?: string | null;
   offerSheetId?: string | null;
@@ -1153,7 +1218,9 @@ function sanitizeTransientFieldsForPersistence(
 // Export for testing
 export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
-function stripComputeOnlyTeamFieldsForPersistence(team: TeamLike): TeamLike {
+function stripComputeOnlyTeamFieldsForPersistence<
+  T extends { teamTotalSalary?: unknown }
+>(team: T): Omit<T, 'teamTotalSalary'> {
   const { teamTotalSalary: _teamTotalSalary, ...persistableTeam } = team;
   return persistableTeam;
 }
@@ -1535,7 +1602,7 @@ async function loadWorldAsOfDate(worldId: string): Promise<string | null> {
 function addTeamSnapshot(
   teamsByCode: MutationTeamMap,
   teamCode: string | null | undefined,
-  team: TeamLike | null | undefined
+  team: TeamSnapshotLike | null | undefined
 ) {
   if (!teamCode || !team || teamsByCode[teamCode]) {
     return;
@@ -1707,14 +1774,14 @@ function normalizeCurrentStatePlayerArray(value: unknown): PlayerLike[] | undefi
 function resolveCurrentStateTeamTotalSalary(
   teamRecord: LooseRecord,
   totals: ArchitectMutationTeamTotals | null | undefined
-): number | string | undefined {
-  const explicitTeamTotalSalary = toOptionalNumberish(teamRecord.teamTotalSalary);
+): number | undefined {
+  const explicitTeamTotalSalary = toOptionalNumber(teamRecord.teamTotalSalary);
   if (explicitTeamTotalSalary !== undefined) {
     return explicitTeamTotalSalary;
   }
 
   const totalsRecord = asLooseRecord(totals);
-  return totalsRecord ? toOptionalNumberish(totalsRecord.totalSalary) : undefined;
+  return totalsRecord ? toOptionalNumber(totalsRecord.totalSalary) : undefined;
 }
 
 function toCurrentStateTeam(team: unknown): TeamLike | null {
@@ -1724,7 +1791,6 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   }
 
   const normalized: TeamLike = {};
-  const id = toOptionalScalarId(teamRecord.id);
   const teamCode = toOptionalTrimmedString(teamRecord.teamCode);
   const teamName = toOptionalTrimmedString(teamRecord.teamName);
   const players = normalizeCurrentStatePlayerArray(teamRecord.players);
@@ -1765,9 +1831,6 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
     teamRecord.hardCapTriggeredBy
   );
 
-  if (id !== undefined) {
-    normalized.id = id;
-  }
   if (teamCode !== undefined) {
     normalized.teamCode = teamCode;
   }
@@ -4064,10 +4127,14 @@ function getMutationPlayerId(
 }
 
 function findPlayerInTeamPlayers(
-  team: TeamLike | null | undefined,
+  team: TeamSnapshotLike | null | undefined,
   playerId: string
 ): PlayerLike | null {
-  const players = Array.isArray(team?.players) ? team.players : [];
+  const players = Array.isArray(team?.players)
+    ? team.players
+        .map((player) => toCurrentStatePlayer(player))
+        .filter((player): player is PlayerLike => player !== null)
+    : [];
   return players.find((player) => getMutationPlayerId(player) === playerId) || null;
 }
 
@@ -4766,14 +4833,12 @@ function computeTradeResult({
   // Phase 56: Use validation results from validatedContext (already validated once)
   const validation = getTradeValidationApplyTimeSlice(validatedContext);
 
-  // Phase 56: Use validationTeams from context (has matchIncoming populated by validator)
-  const validationTeams: TradeValidationTeamLike[] = Array.isArray(
+  // Phase 56: Use only the authoritative apply-time validationTeams from context.
+  const validationTeams: TradeApplyValidationTeamLike[] = Array.isArray(
     validatedContext.validationTeams
   )
     ? validatedContext.validationTeams
-    : Array.isArray(postTradeSnapshot.validationTeams)
-      ? postTradeSnapshot.validationTeams
-      : [];
+    : [];
 
   // Warn if multi-team trade without directed routing (informational only)
   if (tradeTeams.length > 2) {
@@ -4877,7 +4942,7 @@ function computeTradeResult({
             return; // Skip this player - no consumption without validator-produced value
           }
 
-          const consumed = Number(player.matchIncoming) || 0;
+          const consumed = player.matchIncoming ?? 0;
           if (consumed <= 0) {
             return;
           }
@@ -5564,7 +5629,9 @@ function computeSigningResult({
   // Recalculate totals
   updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
 
-  const teamUpdates = [{ teamCode, team: updatedTeam }];
+  const teamUpdates: ArchitectMutationTeamUpdate[] = [
+    { teamCode, team: updatedTeam },
+  ];
 
   // Cleanup incomingOfferSheets on home team if applicable
   if (

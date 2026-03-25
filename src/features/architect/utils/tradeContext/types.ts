@@ -35,6 +35,29 @@ export interface ValidationTeam {
   cashReceived: number;
 }
 
+export type TradeApplyValidationPlayer = Omit<
+  Pick<
+    ArchitectTradePayloadPlayer,
+    | 'player_id'
+    | 'id'
+    | 'playerId'
+    | 'name'
+    | 'displayName'
+    | 'playerName'
+    | 'absorptionMode'
+    | 'tpeId'
+    | 'matchIncoming'
+  >,
+  'matchIncoming'
+> & {
+  matchIncoming?: number;
+};
+
+export interface TradeApplyValidationTeam {
+  teamCode: string | null;
+  receives: TradeApplyValidationPlayer[];
+}
+
 export interface PostTradeSnapshot {
   teamUpdates: TeamUpdate[];
   validationTeams: ValidationTeam[];
@@ -47,7 +70,7 @@ export type ValidatedTradeContext = Pick<
   'legal' | 'reason' | 'error' | 'violations' | 'warnings'
 > & {
   teamResults: TeamResult[];
-  validationTeams: ValidationTeam[];
+  validationTeams: TradeApplyValidationTeam[];
   _rawValidation?: TradeValidationResult;
   _isValidatedTradeContext: true;
 };

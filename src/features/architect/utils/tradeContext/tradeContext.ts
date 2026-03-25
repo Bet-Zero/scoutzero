@@ -52,6 +52,8 @@ import type {
   BuildPostTradeTeamsSnapshotParams,
   OutgoingTradeRouteLike,
   PostTradeSnapshot,
+  TradeApplyValidationPlayer,
+  TradeApplyValidationTeam,
   TeamResult,
   TeamUpdate,
   ValidatePostTradeSnapshotForContextParams,
@@ -98,6 +100,75 @@ function toNonEmptyString(value: unknown): string | undefined {
 
   const normalized = value.trim();
   return normalized ? normalized : undefined;
+}
+
+function projectTradeApplyValidationPlayer(
+  player: unknown
+): TradeApplyValidationPlayer | null {
+  if (!player || typeof player !== 'object') {
+    return null;
+  }
+
+  const record = player as AnyRecord;
+  const projected: TradeApplyValidationPlayer = {};
+  const playerId = toNonEmptyString(record.player_id);
+  const id = toNonEmptyString(record.id);
+  const playerIdAlias = toNonEmptyString(record.playerId);
+  const name = toNonEmptyString(record.name);
+  const displayName = toNonEmptyString(record.displayName);
+  const playerName = toNonEmptyString(record.playerName);
+  const absorptionMode = toNonEmptyString(record.absorptionMode);
+  const tpeId = toNonEmptyString(record.tpeId);
+  const matchIncoming = toFiniteNumberOrUndefined(record.matchIncoming);
+
+  if (playerId !== undefined) {
+    projected.player_id = playerId;
+  }
+  if (id !== undefined) {
+    projected.id = id;
+  }
+  if (playerIdAlias !== undefined) {
+    projected.playerId = playerIdAlias;
+  }
+  if (name !== undefined) {
+    projected.name = name;
+  }
+  if (displayName !== undefined) {
+    projected.displayName = displayName;
+  }
+  if (playerName !== undefined) {
+    projected.playerName = playerName;
+  }
+  if (absorptionMode !== undefined) {
+    projected.absorptionMode = absorptionMode;
+  }
+  if (tpeId !== undefined) {
+    projected.tpeId = tpeId;
+  }
+  if (matchIncoming !== undefined) {
+    projected.matchIncoming = matchIncoming;
+  }
+
+  return projected;
+}
+
+function normalizeFallbackTradeApplyValidationTeam(
+  team: ValidationTeam | null | undefined
+): TradeApplyValidationTeam {
+  const receives = Array.isArray(team?.receives)
+    ? team.receives
+        .map((player) => projectTradeApplyValidationPlayer(player))
+        .filter(
+          (
+            player
+          ): player is TradeApplyValidationPlayer => player !== null
+        )
+    : [];
+
+  return {
+    teamCode: toNonEmptyString(team?.teamCode) ?? null,
+    receives,
+  };
 }
 
 function normalizeSnapshotTradeException({
@@ -762,6 +833,27 @@ export function validatePostTradeSnapshotForContext({
     const normalizedWarnings = Array.isArray(validation.warnings)
       ? validation.warnings
       : [];
+    const applyValidationTeams: TradeApplyValidationTeam[] =
+      snapshot.validationTeams.map((snapshotTeam, index) => {
+        const authoritativeReceives = Array.isArray(
+          normalizedTeamResults[index]?.incomingPlayers
+        )
+          ? normalizedTeamResults[index].incomingPlayers
+              .map((player) => projectTradeApplyValidationPlayer(player))
+              .filter(
+                (
+                  player
+                ): player is TradeApplyValidationPlayer => player !== null
+              )
+          : [];
+
+        return {
+          teamCode:
+            toNonEmptyString(normalizedTeamResults[index]?.teamCode) ??
+            snapshotTeam.teamCode,
+          receives: authoritativeReceives,
+        };
+      });
     const context = {
       ...validation,
       legal: Boolean(validation.legal),
@@ -772,7 +864,7 @@ export function validatePostTradeSnapshotForContext({
       violations: normalizedViolations,
       warnings: normalizedWarnings,
       teamResults: normalizedTeamResults,
-      validationTeams: snapshot.validationTeams,
+      validationTeams: applyValidationTeams,
       _rawValidation: validation,
       _isValidatedTradeContext: true,
     };
@@ -800,7 +892,9 @@ export function validatePostTradeSnapshotForContext({
       violations: [failureIssue],
       warnings: [],
       teamResults: [],
-      validationTeams: snapshot.validationTeams,
+      validationTeams: snapshot.validationTeams.map(
+        normalizeFallbackTradeApplyValidationTeam
+      ),
       _isValidatedTradeContext: true,
     };
   }
