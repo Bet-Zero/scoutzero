@@ -31,6 +31,8 @@ docs/architect/return_packages/
 docs/architect/audits/
 docs/return_packages/
 docs/audits/
+docs/team-scrape/return_packages/
+docs/tradeMachine/return_packages/
 
 # Player data backups
 players_backup.jsonl
