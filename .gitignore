@@ -23,6 +23,14 @@ functions/node_modules/
 archive/
 data_pipeline/
 plans/_archive/
+_archive/
+
+# Workflow result docs (return packages, audits)
+return_packages/
+docs/architect/return_packages/
+docs/architect/audits/
+docs/return_packages/
+docs/audits/
 
 # Player data backups
 players_backup.jsonl
