@@ -177,4 +177,7 @@ export interface ValidationResultLike {
   dataWarnings?: DataWarningLike[];
   dataValidationSummary?: DataValidationSummaryLike | null;
   hasDataIssues?: boolean;
+  // TM-TRUTH-E2: Preview coverage tier metadata
+  previewTier?: 'cba-validator';
+  applyOnlyGates?: string[];
 }

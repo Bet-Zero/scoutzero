@@ -692,6 +692,14 @@ const TradeEditor = ({
           Apply Trade
         </button>
 
+        {canApplyTrade && (
+          <span className="text-xs text-white/40">
+            CBA validation passed. World-state and post-state checks (duplicate
+            players, entitlement conflicts, exclusivity, cap/roster integrity)
+            run at apply time.
+          </span>
+        )}
+
         {result && !result.legal && (
           <span
             className={`text-xs ${

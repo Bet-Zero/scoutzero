@@ -610,12 +610,139 @@ export type ArchitectMutationWritesSummary = {
   worldMetadataPatched: number;
   worldStatsUpdated: boolean;
 };
-type MutationMetadataLike = Record<string, unknown>;
 type MutationDiffSummary = {
   playersMoved: number;
   deadCapChanged: number;
   exceptionsChanged: number;
   teamsTouched: number;
+};
+type MutationResultIssueLike = string | LooseRecord;
+type MutationEventContractSalaryRow = {
+  season?: string | number | null;
+  salary?: number | string | null;
+  capHit?: number | string | null;
+};
+type MutationEventContractLike = {
+  salariesByYear?: readonly MutationEventContractSalaryRow[] | null;
+  years?: number | string | null;
+  contractYears?: number | string | null;
+  contractLength?: number | string | null;
+  firstYearSalary?: number | string | null;
+  year1Salary?: number | string | null;
+  totalValue?: number | string | null;
+  signedUsing?: string | null;
+};
+type MutationEventExtensionTermsLike = {
+  salariesByYear?: readonly MutationEventContractSalaryRow[] | null;
+  contractYears?: number | string | null;
+  years?: number | string | null;
+  firstYearSalary?: number | string | null;
+};
+type MutationEventEntitlementTransferSummary = {
+  out: readonly string[];
+  in: readonly string[];
+};
+type MutationEventEntitlementsMovedByTeam = Record<
+  string,
+  MutationEventEntitlementTransferSummary
+>;
+type MutationEventMetadataLike = {
+  playersTraded?: readonly (string | number | null | undefined)[] | null;
+  teamsAffected?: readonly (string | number | null | undefined)[] | null;
+  teamsInvolved?: readonly (string | number | null | undefined)[] | null;
+  teamCodes?: readonly (string | number | null | undefined)[] | null;
+  contract?: MutationEventContractLike | null;
+  extensionTerms?: MutationEventExtensionTermsLike | null;
+  extensionYears?: number | string | null;
+  contractValue?: number | string | null;
+  signedUsing?: string | null;
+  picksTraded?: readonly (string | number | null | undefined)[] | null;
+  entitlementsTraded?:
+    | MutationEventEntitlementsMovedByTeam
+    | readonly (string | number | null | undefined)[]
+    | null;
+  exceptionChanges?: readonly string[] | null;
+  deadCapChanges?: readonly string[] | null;
+  teamCode?: string | null;
+  playerId?: string | number | null;
+  playerName?: string | null;
+  waivedPlayer?: string | null;
+  renouncedPlayer?: string | null;
+  rightsUsed?: string | null;
+  stretched?: boolean | null;
+  buyout?: boolean | null;
+  deadCapAmount?: number | string | null;
+  optionType?: string | null;
+  accepted?: boolean | null;
+  summary?: string | null;
+} & Record<string, unknown>;
+type ArchitectWorldMutationContractSummary = {
+  years?: number;
+  firstYearSalary?: number;
+  totalValue?: number;
+  startYear?: string;
+  endYear?: string;
+  signedUsing?: string;
+};
+type ArchitectWorldMutationHistoryMetadata = {
+  mutationType: string;
+  category: string;
+  worldId: string;
+  teams: string[];
+  players: string[];
+  teamCode?: string;
+  playerId?: string;
+  playerName?: string;
+  signedUsing?: string;
+  rightsUsed?: string;
+  stretched?: boolean;
+  buyout?: boolean;
+  deadCapAmount?: number;
+  extensionYears?: number;
+  optionType?: string;
+  accepted?: boolean;
+  contract: ArchitectWorldMutationContractSummary;
+  contractSummary: ArchitectWorldMutationContractSummary;
+  summary?: string;
+  picksMoved?: string[];
+};
+type ArchitectWorldMutationEventDiffSummary = {
+  playersMoved?: number | string[];
+  deadCapChanged?: number;
+  exceptionsChanged?: number;
+  teamsTouched?: number;
+  picksMoved?: string[];
+  exceptionChanges?: string[];
+  deadCapChanges?: string[];
+};
+type ArchitectWorldMutationPatch = {
+  lastModifiedAt: ReturnType<typeof serverTimestamp>;
+  lastModifiedTeams: Array<string | null | undefined>;
+  asOfDate?: string;
+};
+type ArchitectWorldMutationEvent = {
+  eventId: string;
+  id: string;
+  type: string;
+  timestamp: string;
+  seasonId: string;
+  metadata: MutationEventMetadataLike;
+  teamsAffected: string[];
+  schemaVersion: string;
+  validatorVersion: string;
+  operationId: string;
+  mutationType: string;
+  occurredAt: string;
+  worldId: string;
+  teamCodes: string[];
+  playerIds: string[];
+  beforeTotalsByTeam: NonNullable<PostStateCapValidationInput['beforeTotalsByTeam']>;
+  afterTotalsByTeam: NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
+  valid: boolean;
+  violations: string[];
+  warnings: string[];
+  diffSummary: ArchitectWorldMutationEventDiffSummary;
+  mutationMetadata: ArchitectWorldMutationHistoryMetadata;
 };
 type MutationAuditContext = {
   operationId?: string | null;
@@ -638,9 +765,9 @@ export type ArchitectMutationResult = {
   playerUpdates?: ArchitectMutationPlayerUpdate[];
   playerDeletes?: ArchitectMutationPlayerDelete[];
   entitlementUpdates?: EntitlementUpdateLike[];
-  metadata?: MutationMetadataLike;
-  warnings?: (string | LooseRecord)[];
-  violations?: string[];
+  metadata?: MutationEventMetadataLike;
+  warnings?: MutationResultIssueLike[];
+  violations?: MutationResultIssueLike[];
   writesSummary?: ArchitectMutationWritesSummary;
   changedTeams?: ArchitectMutationTeamUpdate[];
   changedPlayers?: ArchitectMutationPlayerUpdate[];
@@ -674,7 +801,57 @@ type PlayerDeleteLike = ArchitectMutationPlayerDelete;
 type WritesSummaryLike = ArchitectMutationWritesSummary;
 type TradeValidatedContextLike = ArchitectMutationValidatedTradeContext;
 type TradeTeamUpdate = ArchitectMutationTeamUpdate;
-type ComputeResultLike = ArchitectMutationResult;
+type ArchitectMutationBridgeResult = {
+  success?: boolean;
+  error?: string | Error | null;
+  teamUpdates?: ArchitectMutationTeamUpdate[];
+  playerUpdates?: ArchitectMutationPlayerUpdate[];
+  playerDeletes?: ArchitectMutationPlayerDelete[];
+  entitlementUpdates?: EntitlementUpdateLike[];
+  metadata?: MutationEventMetadataLike;
+  warnings?: MutationResultIssueLike[];
+  violations?: MutationResultIssueLike[];
+  _validatedTradeContext?: ArchitectMutationValidatedTradeContext;
+  _signingValidation?: ReturnType<typeof validateSigning>;
+  _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
+};
+type PersistWorldMutationResult = {
+  success: boolean;
+  error?: string | Error | null;
+  worldPatch?: ArchitectWorldMutationPatch;
+  event?: ArchitectWorldMutationEvent;
+  writesSummary?: WritesSummaryLike;
+};
+type MutationBridgeTeamUpdatesSlice = Pick<
+  ArchitectMutationBridgeResult,
+  'teamUpdates'
+>;
+type MutationBridgePlayerTouchSlice = Pick<
+  ArchitectMutationBridgeResult,
+  'playerUpdates' | 'playerDeletes'
+>;
+type MutationBridgeWritesSlice = Pick<
+  ArchitectMutationBridgeResult,
+  'teamUpdates' | 'playerUpdates' | 'playerDeletes' | 'entitlementUpdates'
+>;
+type MutationBridgePlayerIdSlice = Pick<
+  ArchitectMutationBridgeResult,
+  'playerUpdates' | 'metadata'
+>;
+type MutationEventSourceResult = Pick<
+  ArchitectMutationBridgeResult,
+  'metadata' | 'teamUpdates' | 'playerUpdates' | 'playerDeletes'
+>;
+type MutationFailureOverrides = Pick<
+  ArchitectMutationResult,
+  | 'appliedToLocalState'
+  | 'persistedToWorld'
+  | 'eventWritten'
+  | 'writesSummary'
+  | 'violations'
+  | 'warnings'
+>;
+type ComputeResultLike = ArchitectMutationBridgeResult;
 type AuditContextLike = MutationAuditContext;
 type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
 type CurrentStateTeamEntryLike = {
@@ -719,7 +896,7 @@ type BuildWorldMutationEventPayloadArgs = {
   seasonId: string;
   worldId: string;
   timestamp: number;
-  computeResult: ArchitectMutationResult;
+  computeResult: MutationEventSourceResult;
   auditContext?: MutationAuditContext;
 };
 
@@ -1717,7 +1894,7 @@ async function resolveStoreOfferSheetAuthority({
 }
 
 function extractTeamsByCodeFromComputeResult(
-  computeResult: ComputeResultLike = {}
+  computeResult: MutationBridgeTeamUpdatesSlice = {}
 ): MutationTeamMap {
   const teamsByCode: MutationTeamMap = {};
   for (const update of computeResult.teamUpdates || []) {
@@ -1738,8 +1915,8 @@ function buildTotalsByTeam(
 }
 
 function collectMutationPlayerIds(
-  payload: MutationPayloadLike = {},
-  computeResult: ComputeResultLike = {}
+  payload: Pick<ArchitectMutationPayload, 'playerId' | 'teams'> = {},
+  computeResult: MutationBridgePlayerIdSlice = {}
 ) {
   const playerIds = new Set();
 
@@ -1908,7 +2085,7 @@ function cloneWritesSummary(
 }
 
 function buildComputeWritesSummary(
-  computeResult: ComputeResultLike = {}
+  computeResult: MutationBridgeWritesSlice = {}
 ): WritesSummaryLike {
   const teamCodes = (computeResult.teamUpdates || [])
     .map((update) => String(update?.teamCode || '').trim())
@@ -1931,8 +2108,8 @@ function buildComputeWritesSummary(
 
 function buildMutationFailureResult(
   error: unknown,
-  overrides: LooseRecord = {}
-): ComputeResultLike {
+  overrides: MutationFailureOverrides = {}
+): ArchitectMutationResult {
   const {
     appliedToLocalState = false,
     persistedToWorld = false,
@@ -1944,10 +2121,10 @@ function buildMutationFailureResult(
   return {
     success: false,
     error: error as string | Error,
-    appliedToLocalState: appliedToLocalState as boolean,
-    persistedToWorld: persistedToWorld as boolean,
-    eventWritten: eventWritten as boolean,
-    writesSummary: cloneWritesSummary(writesSummary as WritesSummaryLike),
+    appliedToLocalState,
+    persistedToWorld,
+    eventWritten,
+    writesSummary: cloneWritesSummary(writesSummary || EMPTY_WRITES_SUMMARY),
     ...restOverrides,
   };
 }
@@ -1961,7 +2138,7 @@ function sanitizeStringList(input: unknown) {
 }
 
 function collectPlayerTouchIds(
-  computeResult: ComputeResultLike = {}
+  computeResult: MutationBridgePlayerTouchSlice = {}
 ): string[] {
   const playerIds = new Set<string>();
 
@@ -1987,7 +2164,7 @@ function deriveEventTeamCodes({
   computeResult = {},
 }: {
   auditContext?: AuditContextLike;
-  computeResult?: ComputeResultLike;
+  computeResult?: Pick<MutationEventSourceResult, 'teamUpdates' | 'metadata'>;
 }) {
   const candidates = [
     auditContext.teamCodes,
@@ -2012,12 +2189,14 @@ function deriveEventPlayerIds({
   computeResult = {},
 }: {
   auditContext?: AuditContextLike;
-  computeResult?: ComputeResultLike;
+  computeResult?: Pick<
+    MutationEventSourceResult,
+    'playerUpdates' | 'playerDeletes' | 'metadata'
+  >;
 }) {
   const candidates = [
     auditContext.playerIds,
     collectPlayerTouchIds(computeResult),
-    computeResult.metadata?.playerIds,
     computeResult.metadata?.playersTraded,
     computeResult.metadata?.playerId ? [computeResult.metadata.playerId] : [],
   ];
@@ -2080,7 +2259,9 @@ function toArrayOfStrings(input: unknown) {
   return input.map((value) => String(value || '').trim()).filter(Boolean);
 }
 
-function deriveContractSummary(metadata: LooseRecord = {}) {
+function deriveContractSummary(
+  metadata: MutationEventMetadataLike = {}
+): ArchitectWorldMutationContractSummary {
   const contract = coerceObject(metadata.contract);
   const extensionTerms = coerceObject(metadata.extensionTerms);
   const salariesByYear = Array.isArray(contract.salariesByYear)
@@ -2143,13 +2324,18 @@ function deriveContractSummary(metadata: LooseRecord = {}) {
           : undefined,
   };
 
-  return removeUndefinedDeep(summary);
+  return removeUndefinedDeep(summary) as ArchitectWorldMutationContractSummary;
 }
 
-function deriveTradePicksMoved(metadata: LooseRecord = {}) {
+function deriveTradePicksMoved(metadata: MutationEventMetadataLike = {}) {
   const picksTraded = toArrayOfStrings(metadata.picksTraded);
   if (picksTraded.length > 0) {
     return picksTraded;
+  }
+
+  const legacyEntitlementsTraded = toArrayOfStrings(metadata.entitlementsTraded);
+  if (legacyEntitlementsTraded.length > 0) {
+    return legacyEntitlementsTraded;
   }
 
   const entitlementsTraded = coerceObject(metadata.entitlementsTraded);
@@ -2177,9 +2363,9 @@ function buildTeamHistoryDiffSummary({
 }: {
   mutationType: string;
   auditContext?: AuditContextLike;
-  metadata?: LooseRecord;
+  metadata?: MutationEventMetadataLike;
   playerIds?: string[];
-}) {
+}): ArchitectWorldMutationEventDiffSummary {
   const baseDiffSummary = coerceObject(auditContext.diffSummary);
   const diffSummary = {
     ...baseDiffSummary,
@@ -2219,7 +2405,9 @@ function buildTeamHistoryDiffSummary({
     }
   }
 
-  return removeUndefinedDeep(diffSummary);
+  return removeUndefinedDeep(
+    diffSummary
+  ) as ArchitectWorldMutationEventDiffSummary;
 }
 
 function buildTeamHistoryMutationMetadata({
@@ -2235,16 +2423,16 @@ function buildTeamHistoryMutationMetadata({
   worldId: string;
   teamCodes?: readonly string[];
   playerIds?: readonly string[];
-  metadata?: LooseRecord;
-}) {
-  const contractSummary = deriveContractSummary(metadata) as LooseRecord;
+  metadata?: MutationEventMetadataLike;
+}): ArchitectWorldMutationHistoryMetadata {
+  const contractSummary = deriveContractSummary(metadata);
 
-  const mutationMetadata: LooseRecord = {
+  const mutationMetadata: ArchitectWorldMutationHistoryMetadata = {
     mutationType,
     category: auditContext.mutationCategory || 'unknown',
     worldId,
-    teams: teamCodes,
-    players: playerIds,
+    teams: [...teamCodes],
+    players: [...playerIds],
     teamCode:
       typeof metadata.teamCode === 'string' && metadata.teamCode
         ? metadata.teamCode
@@ -2303,7 +2491,9 @@ function buildTeamHistoryMutationMetadata({
     }
   }
 
-  return removeUndefinedDeep(mutationMetadata);
+  return removeUndefinedDeep(
+    mutationMetadata
+  ) as ArchitectWorldMutationHistoryMetadata;
 }
 
 export function buildWorldMutationEventPayload({
@@ -2314,7 +2504,7 @@ export function buildWorldMutationEventPayload({
   timestamp,
   computeResult,
   auditContext = {},
-}: BuildWorldMutationEventPayloadArgs): LooseRecord {
+}: BuildWorldMutationEventPayloadArgs): ArchitectWorldMutationEvent {
   const canonicalMutationType = normalizeEventMutationType(mutationType);
   const teamCodes = deriveEventTeamCodes({ auditContext, computeResult });
   if (
@@ -2344,7 +2534,7 @@ export function buildWorldMutationEventPayload({
       : stableEventId;
   const metadata = removeUndefinedDeep(
     sanitizeTransientFieldsForPersistence(computeResult.metadata)
-  ) as LooseRecord;
+  ) as MutationEventMetadataLike;
   const diffSummary = buildTeamHistoryDiffSummary({
     mutationType: canonicalMutationType,
     auditContext,
@@ -2411,7 +2601,7 @@ export async function applyWorldMutation({
   payload,
   timestamp = Date.now(),
   operationId: operationIdOverride,
-}: ApplyWorldMutationArgs): Promise<ComputeResultLike> {
+}: ApplyWorldMutationArgs): Promise<ArchitectMutationResult> {
   // Input validation
   if (!userId) {
     return buildMutationFailureResult('userId is required');
@@ -2508,7 +2698,7 @@ export async function applyWorldMutation({
           persistedToWorld: false,
           writesSummary: computeWritesSummary,
           violations: validationResult.violations,
-          warnings: validationResult.warnings || [],
+          warnings: (validationResult.warnings || []) as MutationResultIssueLike[],
         }
       );
     }
@@ -2624,7 +2814,7 @@ export async function applyWorldMutation({
               severity: 'error',
             },
           ],
-          warnings: validationResult.warnings || [],
+          warnings: (validationResult.warnings || []) as MutationResultIssueLike[],
         }
       );
     }
@@ -2642,9 +2832,9 @@ export async function applyWorldMutation({
       rulesContext,
     });
 
-    const combinedWarnings: (string | LooseRecord)[] = [
-      ...((validationResult.warnings || []) as (string | LooseRecord)[]),
-      ...((postStateValidation.warnings || []) as (string | LooseRecord)[]),
+    const combinedWarnings: MutationResultIssueLike[] = [
+      ...((validationResult.warnings || []) as MutationResultIssueLike[]),
+      ...((postStateValidation.warnings || []) as MutationResultIssueLike[]),
     ];
 
     if (!postStateValidation.valid) {
@@ -2652,7 +2842,7 @@ export async function applyWorldMutation({
         appliedToLocalState: false,
         persistedToWorld: false,
         writesSummary: computeWritesSummary,
-        violations: postStateValidation.violations,
+        violations: postStateValidation.violations as MutationResultIssueLike[],
         warnings: combinedWarnings,
       });
     }
@@ -2692,7 +2882,7 @@ export async function applyWorldMutation({
       }
     }
 
-    const persistResult: ComputeResultLike = await persistWorldMutation({
+    const persistResult: PersistWorldMutationResult = await persistWorldMutation({
       worldId,
       seasonId,
       mutationType,
@@ -3309,9 +3499,9 @@ async function loadStateForMutation(
   }
 }
 
-function withDefaultPlayerDeletes(
-  result: ComputeResultLike
-): ComputeResultLike {
+function withDefaultPlayerDeletes<T extends Record<string, unknown>>(
+  result: T & { playerDeletes?: PlayerDeleteLike[] }
+): Omit<T, 'playerDeletes'> & { playerDeletes: PlayerDeleteLike[] } {
   return {
     ...result,
     playerDeletes: Array.isArray(result.playerDeletes)
@@ -5860,11 +6050,11 @@ async function persistWorldMutation({
   worldId: string;
   seasonId: string;
   mutationType: string;
-  computeResult: ComputeResultLike;
+  computeResult: ArchitectMutationBridgeResult;
   timestamp: number;
   payloadAsOfDate?: string | null;
   auditContext?: AuditContextLike;
-}): Promise<LooseRecord> {
+}): Promise<PersistWorldMutationResult> {
   const batch = writeBatch(db);
   const teamCodesPatched = [];
   const playerIdsPatched = new Set<string>();
@@ -6004,7 +6194,7 @@ async function persistWorldMutation({
       timestamp,
       computeResult: {
         ...computeResult,
-        metadata: sanitizedMetadata as LooseRecord,
+        metadata: sanitizedMetadata as MutationEventMetadataLike,
       },
       auditContext,
     });
@@ -6024,7 +6214,7 @@ async function persistWorldMutation({
     // 4. Update world metadata
     // Use lastModifiedTeams (not modifiedTeams) to clarify this field records
     // only teams modified by this single mutation, not cumulative history
-    const worldPatch: LooseRecord = {
+    const worldPatch: ArchitectWorldMutationPatch = {
       lastModifiedAt: serverTimestamp(),
       lastModifiedTeams: teamUpdates.map((u) => u.teamCode),
     };

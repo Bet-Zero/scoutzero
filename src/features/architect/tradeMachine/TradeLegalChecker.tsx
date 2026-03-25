@@ -182,6 +182,11 @@ const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
 
       <div className="mt-3 text-xs text-white/60">
         <p>🟢 Compliant • 🔴 Violation • ⚪ Not Applicable</p>
+        <p className="mt-2 text-white/40">
+          Preview covers CBA validator rules only. World-state checks (duplicate
+          players, entitlement conflicts, exclusivity) and post-state cap/roster
+          integrity run at apply time.
+        </p>
       </div>
     </div>
   );

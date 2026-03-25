@@ -235,8 +235,21 @@ Apply reuses the same `validateTrade(...)` result through `validatePostTradeSnap
 
 ## Recommended next ticket list
 
-1. **TM validator truth alignment E2**: surface apply-only world gates in preview, or explicitly downgrade preview wording so green means “validator passed” rather than “apply guaranteed.”
-2. **TM authority consolidation E3**: introduce a single surfaced execute-trade authority result that composes prevalidated trade context plus later invariant/post-state gates.
+1. **TM validator truth alignment E2**: ✅ COMPLETE (2026-03-25). UI semantic downgrade implemented. Green preview now explicitly discloses that world-state checks (duplicate players, entitlement conflicts, exclusivity, post-state schema) run at apply time. Three UI surfaces updated: `TradeEditor.tsx` Apply button area, `TradeLegalChecker.tsx` legend, `ValidationDetailsPanel.tsx` section header. Preferred path (surfacing apply-only gates in preview) blocked by stop condition — 3 of 4 gates require Firestore, 4th requires full post-trade compute. See `return_packages/architect/ARCHITECT_TM_PREVIEW_APPLY_TRUTH_ALIGNMENT_E2.md`.
+   **E2A hardening**: ✅ COMPLETE (2026-03-25). Added 23 focused tests (18 guardrail + 5 RTL component), tightened disclosure language to cover post-state cap/roster integrity on all three surfaces. See `return_packages/architect/ARCHITECT_TM_PREVIEW_APPLY_TRUTH_ALIGNMENT_E2A.md`.
+2. **TM authority consolidation E3**: introduce a single surfaced execute-trade authority result that composes prevalidated trade context plus later invariant/post-state gates. This is the prerequisite for E2's preferred path (surfacing `validatePostStateCapLegality` in preview).
 3. **TM alternate apply surface retirement E4**: deprecate or remove `tradeManager.executeTrade()` and the `architectCore` re-export.
 4. **TM hard-cap SSOT consolidation E5**: retire `rules/validateHardCap.ts` and keep `hardCapValidation.ts` as the only hard-cap implementation.
 5. **TM roster SSOT consolidation E6**: collapse inline / exported / legacy roster helpers into one clearly tiered authoritative roster path reused by preview and post-state validation.
+
+## E2 execution status (2026-03-25)
+
+| Finding | Status |
+|---------|--------|
+| Preview/apply trust gap: silent | **CLOSED** — disclosed at 3 UI surfaces |
+| `validateMutationLeagueInvariants` apply-only | Apply-only, now disclosed |
+| `validateMutationEntitlementInvariants` apply-only | Apply-only, now disclosed |
+| `validateTradeApplyExclusivity` apply-only | Apply-only, now disclosed |
+| `validatePostStateCapLegality` apply-only | Apply-only, now disclosed |
+| UI green implies “guaranteed apply” | **FIXED** — now “CBA validator passed, world-state checks at apply time” |
+| Preferred path (surface all 4 in preview) | Deferred to E3 prerequisite — stop condition invoked |
