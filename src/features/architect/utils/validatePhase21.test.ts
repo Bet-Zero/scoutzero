@@ -61,15 +61,16 @@ describe('Phase 21: Timing Warnings', () => {
       expect(result.warnings.some(w => w.rule === 'offer_sheet_window_expired')).toBe(false);
     });
 
-    it('4. should warn if matching on day 4 (strictly after deadline date)', () => {
+    it('4. should block if matching on day 4 (strictly after deadline date)', () => {
       const result = validateOfferSheetResolution({
         offerSheet: { status: 'PENDING_MATCH', homeTeamCode: 'HOU', createdAt },
         actingTeamCode: 'HOU',
         action: 'match',
         asOfDate: '2024-07-04',
       });
-      expect(result.valid).toBe(true); // Warning only
-      expect(result.warnings.some(w => w.rule === 'offer_sheet_window_expired')).toBe(true);
+      expect(result.valid).toBe(false); // Blocking violation
+      expect(result.violations.some(v => v.rule === 'offer_sheet_window_expired')).toBe(true);
+      expect(result.warnings.some(w => w.rule === 'offer_sheet_window_expired')).toBe(false);
     });
 
     it('5. should NOT warn if declining (deadline applies to matching only)', () => {

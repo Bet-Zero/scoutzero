@@ -230,6 +230,7 @@ type SigningPayloadLike = {
   signAndTrade?: boolean;
   rfaOfferSheet?: boolean;
   rfaOfferSheetOnly?: boolean;
+  rfaOfferSheetStatus?: string;
 } & Partial<OverrideMetadataLike>;
 
 type ExtensionPayloadLike = ReturnType<typeof generateExtensionContract> &
@@ -788,6 +789,51 @@ const EditContractModal = ({
     !onSignAndTrade || !getSignAndTradePreflight
       ? 'Sign-and-trade requires an active world to commit.'
       : null;
+  const buildCanonicalSigningPayload = useCallback(
+    (overrides: Partial<SigningPayloadLike> = {}): SigningPayloadLike => {
+      const years = extension.years || extension.salaries?.length || 0;
+      const salaries = (extension.salaries || []).slice(0, years);
+      const totalValue = salaries.reduce(
+        (sum, value) => sum + Math.round(Number(value) || 0),
+        0
+      );
+      const salariesByYear = salaries.map((value, index) => {
+        const amount = Math.round(Number(value) || 0);
+        return {
+          season: toSeasonCode(CURRENT_YEAR + index),
+          salary: amount,
+          capHit: amount,
+          guaranteed: true,
+          option: null,
+          optionType: null,
+          optionUsed: null,
+        };
+      });
+
+      const signedUsing =
+        selectedException && selectedException !== 'None'
+          ? selectedException
+          : null;
+
+      return {
+        ...extension,
+        years,
+        contractYears: years,
+        salaries,
+        salariesByYear,
+        base: salaries[0] || 0,
+        totalValue,
+        averageAnnualValue: years > 0 ? Math.round(totalValue / years) : 0,
+        firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
+        exceptionType: selectedException,
+        signedUsing,
+        guardrails: signingGuardrails,
+        raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
+        ...overrides,
+      };
+    },
+    [CURRENT_YEAR, extension, selectedException, signingGuardrails]
+  );
   const signAndTradePreflightPayload = useMemo(
     () =>
       ({
@@ -799,13 +845,13 @@ const EditContractModal = ({
   );
   const offerSheetPreflightPayload = useMemo(
     () =>
-      ({
-        ...contractDataForValidation,
+      buildCanonicalSigningPayload({
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
         contractType: 'Offer Sheet',
-      }) as SigningPayloadLike,
-    [contractDataForValidation]
+      }),
+    [buildCanonicalSigningPayload]
   );
 
   // CBA Validation - get warnings/errors for current action
@@ -1053,6 +1099,7 @@ const EditContractModal = ({
   useEffect(() => {
     setShowAdvanced(false);
     setOverrideText('');
+    setIsOfferSheet(false);
     setDestinationTeamId(null);
     setSignAndTradePreflight(null);
     setOfferSheetPreflight(null);
@@ -1328,52 +1375,6 @@ const EditContractModal = ({
     toSalaryInputs,
   ]);
 
-  const buildCanonicalSigningPayload = useCallback(
-    (overrides: Partial<SigningPayloadLike> = {}): SigningPayloadLike => {
-      const years = extension.years || extension.salaries?.length || 0;
-      const salaries = (extension.salaries || []).slice(0, years);
-      const totalValue = salaries.reduce(
-        (sum, value) => sum + Math.round(Number(value) || 0),
-        0
-      );
-      const salariesByYear = salaries.map((value, index) => {
-        const amount = Math.round(Number(value) || 0);
-        return {
-          season: toSeasonCode(CURRENT_YEAR + index),
-          salary: amount,
-          capHit: amount,
-          guaranteed: true,
-          option: null,
-          optionType: null,
-          optionUsed: null,
-        };
-      });
-
-      const signedUsing =
-        selectedException && selectedException !== 'None'
-          ? selectedException
-          : null;
-
-      return {
-        ...extension,
-        years,
-        contractYears: years,
-        salaries,
-        salariesByYear,
-        base: salaries[0] || 0,
-        totalValue,
-        averageAnnualValue: years > 0 ? Math.round(totalValue / years) : 0,
-        firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
-        exceptionType: selectedException,
-        signedUsing,
-        guardrails: signingGuardrails,
-        raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
-        ...overrides,
-      };
-    },
-    [CURRENT_YEAR, extension, selectedException, signingGuardrails]
-  );
-
   const handleConfirm = async () => {
     if (isSubmitting) return;
     setSaveError('');
@@ -1414,16 +1415,14 @@ const EditContractModal = ({
       let actionResult: ActionResultLike;
 
       // Phase 16: MVP Offer Sheet toggle Logic
-      if (
-        isOfferSheet &&
-        (selectedAction === 'signNew' || selectedAction === 'resign')
-      ) {
+      if (isOfferSheet && selectedAction === 'signNew') {
         actionResult = await onStoreOfferSheet?.(
           player,
           buildCanonicalSigningPayload({
             contractType: 'Offer Sheet',
             rfaOfferSheet: true,
             rfaOfferSheetOnly: true,
+            rfaOfferSheetStatus: 'PENDING_MATCH',
             ...(overrideMetadata || {}),
           })
         );

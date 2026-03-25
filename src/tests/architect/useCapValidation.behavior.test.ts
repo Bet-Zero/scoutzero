@@ -499,4 +499,81 @@ describe('useCapValidation', () => {
     expect(result.current.isValid).toBe(true);
     expect(result.current.incomplete).toBe(true);
   });
+
+  it('uses only authoritative offer-sheet preflight output in offer-sheet mode', () => {
+    const capSettings = requireCapSettings(2026);
+    const proposedSalary = capSettings.secondApron + 1_000_000;
+    const player = createPlayer({
+      birdRights: 'None',
+      salariesByYear: [createSalaryRow(2026, 1_000_000)],
+    });
+    const { result } = renderHook(() =>
+      useCapValidation({
+        player,
+        action: 'signNew',
+        contractData: {
+          base: proposedSalary,
+          years: 2,
+          salaries: [proposedSalary, Math.floor(proposedSalary * 1.05)],
+        },
+        teamCapSheet: {
+          players: [player],
+        },
+        currentYear: 2026,
+        rulesProfile: {
+          minimumSalary: 1_000_000,
+          birdRights: {
+            type: 'None',
+            signingAbilities: {
+              maxFirstYearSalary: proposedSalary + 10_000_000,
+              raisePercentage: 0.05,
+              maxYears: 4,
+              canSignToMax: false,
+            },
+          },
+          maxSalary: {
+            maxSalary: proposedSalary + 10_000_000,
+            maxSalaryBird: proposedSalary + 10_000_000,
+          },
+          restrictedFreeAgency: {
+            isRFA: true,
+            qualifyingOfferAmount: 8_000_000,
+            reason: 'Qualifying offer required',
+          },
+        },
+        isOfferSheet: true,
+        offerSheetPreflight: {
+          status: 'blocked',
+          reasons: ['Offer sheet requires a distinct home team.'],
+          warnings: ['Home team has 2 days remaining to match.'],
+          source: 'authoritative-preflight',
+        },
+      })
+    );
+
+    expect(result.current.warnings).toEqual([
+      {
+        severity: 'warning',
+        message: 'Home team has 2 days remaining to match.',
+      },
+    ]);
+    expect(result.current.errors).toEqual([
+      {
+        severity: 'error',
+        message: 'Offer sheet requires a distinct home team.',
+      },
+    ]);
+    expect(
+      result.current.warnings.some((entry) =>
+        entry.message.includes('Qualifying offer required')
+      )
+    ).toBe(false);
+    expect(
+      result.current.warnings.some((entry) =>
+        entry.message.includes('Second Apron')
+      )
+    ).toBe(false);
+    expect(result.current.isValid).toBe(false);
+    expect(result.current.incomplete).toBe(false);
+  });
 });

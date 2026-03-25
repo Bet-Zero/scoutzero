@@ -505,10 +505,8 @@ export const SOFT_WARNING_RULES = [
   'cap_data', // Cap data not available
   'resigning_eligibility_unverifiable', // Phase 9: Cannot verify re-signing eligibility (missing fields)
   'rfa_qualifying_offer_suspicious', // Phase 10: QO > 3x last salary (may be data issue)
-  'rfa_offer_sheet_stub_active', // Phase 12: Offer sheet processing in stub mode (UI informational)
   'rfa_offer_sheet_store_only_flag_in_use', // Phase 14: Store-only mode is active for offer sheet (info)
   'world_time_defaulted', // Phase 20: World time was defaulted (not from payload or world metadata)
-  'offer_sheet_window_expired', // Phase 21: 48-hour match window expired
   'stretch_timing_suspicious', // Phase 21: Stretch used after season start
   'stretch_timing_not_enforced_missing_season_boundary', // Phase 21: Missing season start date
 ];
@@ -3067,18 +3065,6 @@ export function validateSigning({
         }
         // Case C: MATCHED status - allowed for finalization
         // No block needed, proceed through normal signing validation
-
-        // Add stub warning for UI awareness
-        warnings.push({
-          rule: 'rfa_offer_sheet_stub_active',
-          message: `RFA offer sheet processing is in stub mode (Phase 13). Status: "${status}", Finalizing: ${finalizing}. Full match/decline workflow not yet implemented.`,
-          severity: 'warning',
-          playerName: player?.name || player?.displayName || player?.player_id,
-          normalizedPlayerTeam,
-          normalizedSigningTeam,
-          offerSheetStatus: status,
-          isFinalizingAttempt: finalizing,
-        });
       }
     }
     // Case 3: Home team RFA action - allowed, continue through normal validation
@@ -4638,17 +4624,17 @@ export function validateOfferSheetResolution({
       });
     }
 
-    // Phase 21: Check 48-hour window (Warning only)
+    // Phase 21: Check 48-hour window (blocking violation — late match is not allowed)
     if (action === 'match' && asOfDate && offerSheet?.createdAt) {
       const created = new Date(offerSheet.createdAt);
       const deadline = new Date(created.getTime() + 48 * 60 * 60 * 1000);
       const cutoff = deadline.toISOString().slice(0, 10);
 
       if (asOfDate > cutoff) {
-        warnings.push({
+        violations.push({
           rule: 'offer_sheet_window_expired',
           message: `48-hour match window expired on ${cutoff} (As of: ${asOfDate}).`,
-          severity: 'warning',
+          severity: 'error',
         });
       }
     }

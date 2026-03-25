@@ -2177,6 +2177,9 @@ export function useArchitectActions({
           contractType: 'Offer Sheet',
           isExtension: false,
           isRookieScale: !!contract.isRookieScale,
+          rfaOfferSheet: true,
+          rfaOfferSheetOnly: true,
+          rfaOfferSheetStatus: 'PENDING_MATCH',
           signingTeam: teamCode,
           startYear: currentYear,
         }

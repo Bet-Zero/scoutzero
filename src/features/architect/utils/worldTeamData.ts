@@ -17,34 +17,47 @@
  */
 
 import { getTeam } from '@/features/architect/utils/teamLoader';
-import { loadTeamCapSheet } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import {
+  loadTeamCapSheet,
+  type HydratedBaseTeamCapSheet,
+} from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { TeamSlugToCode, TeamCodeMap } from '@/constants/teamList';
+import type { TeamTotals } from '@/features/architect/types';
 
 // ==== Type Definitions ====
 
-/** Cap sheet structure returned by data loading */
-interface CapSheet {
-  id?: string;
-  teamCode?: string;
-  teamName?: string;
-  season?: string;
-  abbreviation?: string;
-  players?: unknown[];
-  roster?: unknown[];
-  activeContracts?: unknown[];
-  capHolds?: unknown[];
-  draftPicks?: unknown[];
-  exceptions?: unknown;
-  mle?: unknown;
-  tpMle?: unknown;
-  bae?: unknown;
-  tradeExceptions?: unknown[];
-  hardCapped?: boolean;
-  deadCap?: unknown[];
-  baseline?: unknown;
-  totals?: unknown;
-  [key: string]: unknown;
-}
+/** Explicit hydrated team shape returned to dashboard consumers. */
+export type LoadedWorldTeamCapSheet = Pick<
+  Partial<HydratedBaseTeamCapSheet>,
+  | 'id'
+  | 'teamCode'
+  | 'teamName'
+  | 'season'
+  | 'abbreviation'
+  | 'activeContracts'
+  | 'draftAssets'
+  | 'entitlementIds'
+  | 'mle'
+  | 'tpMle'
+  | 'bae'
+  | 'tradeExceptions'
+  | 'hardCapLevel'
+  | 'hardCapped'
+  | 'baseline'
+> & {
+  players?: unknown[] | null;
+  roster?: unknown[] | null;
+  capHolds?: unknown[] | null;
+  deadCap?: unknown[] | null;
+  draftPicks?: unknown[] | null;
+  draftPicksInventory?: unknown[] | null;
+  draftPicksObligations?: unknown[] | null;
+  draftPicksContested?: unknown[] | null;
+  offerSheets?: unknown[] | null;
+  incomingOfferSheets?: unknown[] | null;
+  exceptions?: HydratedBaseTeamCapSheet['exceptions'] | null;
+  totals?: TeamTotals | null;
+};
 
 /**
  * Resolve a team ID to a team code
@@ -81,7 +94,7 @@ export function resolveTeamCode(teamId: string | null | undefined): string | nul
 export async function loadWorldTeamData(
   worldId: string | null,
   teamId: string
-): Promise<CapSheet | null> {
+): Promise<LoadedWorldTeamCapSheet | null> {
   const teamCode = resolveTeamCode(teamId);
   if (!teamCode) {
     console.warn('Unable to resolve team code for:', teamId);
@@ -98,7 +111,7 @@ export async function loadWorldTeamData(
     // teamLoader.getTeam handles the fallback chain:
     // world snapshot → parent world → base team
     const teamData = await getTeam(worldId, teamCode);
-    return teamData as CapSheet;
+    return teamData as LoadedWorldTeamCapSheet;
   } catch (error) {
     console.error('Error loading world team data:', error);
     return null;

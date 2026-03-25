@@ -117,6 +117,7 @@ import type { PostStateCapValidationInput } from '@/features/architect/utils/cap
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
 import type { CapHold } from '@/features/architect/utils/capHolds';
 import type { DraftPick } from '@/schemas/architect';
+import type { TeamTotals } from '@/features/architect/types';
 import type {
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
   TeamResult as TradeContextTeamResult,
@@ -143,6 +144,34 @@ import {
 
 type LooseRecord = Record<string, unknown>;
 type MutationScalarId = string | number | null | undefined;
+type ComputedTeamCapTotalsShape = ReturnType<typeof computeTeamCapTotals>;
+
+export type ArchitectComputedTeamTotalsSnapshot = Pick<
+  ComputedTeamCapTotalsShape,
+  | 'yearKey'
+  | 'playersTotal'
+  | 'deadMoneyTotal'
+  | 'capHoldsTotal'
+  | 'incompleteChargesTotal'
+  | 'totalCapAllocations'
+  | 'salaryCap'
+  | 'luxuryTax'
+  | 'firstApron'
+  | 'secondApron'
+  | 'deltas'
+  | '_meta'
+>;
+
+type ArchitectComputedTeamTotalsHardCapOverlay = Pick<
+  TeamTotals,
+  'isHardCapped' | 'hardCapLevel' | 'hardCapDetail'
+>;
+
+export type ArchitectMutationTeamTotals =
+  | TeamTotals
+  | (ArchitectComputedTeamTotalsSnapshot &
+      ArchitectComputedTeamTotalsHardCapOverlay &
+      Partial<TeamTotals>);
 
 export type ArchitectMutationSalaryRow = {
   season?: string | null;
@@ -352,7 +381,7 @@ export type ArchitectMutationTeamRecord = {
   tradeExceptions?: TradeExceptionRecord[];
   offerSheets?: ArchitectMutationOfferSheet[];
   incomingOfferSheets?: ArchitectMutationOfferSheet[];
-  totals?: Record<string, unknown> | null;
+  totals?: ArchitectMutationTeamTotals | null;
   draftPicks?: DraftPick[];
   entitlementIds?: string[];
   source?: Record<string, unknown> | string | null;
@@ -2877,6 +2906,7 @@ export async function preflightOfferSheetMutation({
     ...contract,
     rfaOfferSheet: true,
     rfaOfferSheetOnly: true,
+    rfaOfferSheetStatus: contract.rfaOfferSheetStatus || 'PENDING_MATCH',
     contractType: 'Offer Sheet',
   };
 
@@ -4608,10 +4638,12 @@ function computeSigningResult({
   });
 
   if (signingMechanism === 'FULL_MLE' && consumedExceptionKey) {
-    updatedTeam.totals = updatedTeam.totals || {};
-    updatedTeam.totals.isHardCapped = true;
-    updatedTeam.totals.hardCapLevel = 'firstApron';
-    updatedTeam.totals.hardCapDetail = 'Triggered by Non-Taxpayer MLE';
+    updatedTeam.totals = {
+      ...(updatedTeam.totals || {}),
+      isHardCapped: true,
+      hardCapLevel: 'firstApron',
+      hardCapDetail: 'Triggered by Non-Taxpayer MLE',
+    };
   }
   // Phase 74: Room Exception usage tracking
   // Room Exception does NOT trigger hard cap (only Full MLE does).

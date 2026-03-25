@@ -31,6 +31,7 @@ import {
   TeamSlugToCode,
   TeamCodeMap,
 } from '@/constants/teamList';
+import type { TeamTotals } from '@/features/architect/types';
 
 type UnknownRecord = Record<string, unknown>;
 type TeamIdLike = string | null | undefined;
@@ -58,11 +59,13 @@ interface LooseExceptionData extends UnknownRecord {
   taxpayerMle?: LooseExceptionValue | null;
   tpMle?: LooseExceptionValue | null;
   bae?: LooseExceptionValue | null;
+  room?: LooseExceptionValue | null;
+  dpe?: LooseExceptionValue | null;
   tpe?: LooseTradeException[] | null;
 }
 
 interface LooseBaseTeamDoc extends UnknownRecord {
-  roster?: any[] | null;
+  roster?: unknown[] | null;
   teamName?: string;
   season?: string;
   abbreviation?: string | null;
@@ -72,7 +75,7 @@ interface LooseBaseTeamDoc extends UnknownRecord {
   draftPicksObligations?: unknown[] | null;
   draftPicksContested?: unknown[] | null;
   draftAssets?: unknown;
-  entitlementIds?: unknown[] | null;
+  entitlementIds?: string[] | null;
   offerSheets?: unknown[] | null;
   incomingOfferSheets?: unknown[] | null;
   exceptions?: LooseExceptionData | null;
@@ -82,14 +85,27 @@ interface LooseBaseTeamDoc extends UnknownRecord {
 }
 
 interface LooseBirdRights extends UnknownRecord {
+  status?: string | null;
   yearsOfService?: number | null;
+  yearsWithTeam?: number | null;
+  eligibleFor?: string[] | null;
 }
 
 interface LooseContract extends UnknownRecord {
   salariesByYear?: unknown[] | null;
   yearsRemaining?: number | null;
   contractType?: string | null;
+  isExtension?: boolean | null;
+  isRookieScale?: boolean | null;
+  signedUsing?: string | null;
+  signingTeam?: string | null;
+  signingDate?: string | null;
+  totalValue?: number | null;
   birdRights?: LooseBirdRights | null;
+  freeAgency?:
+    | { year?: number | string | null; type?: string | null }
+    | string
+    | null;
 }
 
 interface LooseBio extends UnknownRecord {
@@ -180,12 +196,75 @@ const buildPlayerEntry = (
   };
 };
 
+type HydratedBaseTeamPlayer = ReturnType<typeof buildPlayerEntry>;
+
+type HydratedBaseTeamActiveContract = {
+  name: HydratedBaseTeamPlayer['name'];
+  player_id: HydratedBaseTeamPlayer['player_id'];
+  contract: HydratedBaseTeamPlayer['contract'];
+  years: number;
+  type: string;
+  signAndTrade: boolean;
+  guaranteed: boolean;
+  isMinimum: boolean;
+  yearsOfService: number | null;
+};
+
+type HydratedBaseTeamSimpleException = {
+  amount: number;
+  used: number;
+  remaining: number;
+};
+
+type HydratedBaseTeamTradeException = {
+  id?: string;
+  name?: string | null;
+  amount: number;
+  used: number;
+  createdFrom: string | null;
+  expires: string | null;
+};
+
+export type HydratedBaseTeamCapSheet = {
+  id: string;
+  teamCode: string;
+  teamName?: string;
+  season?: string;
+  abbreviation: string;
+  players: HydratedBaseTeamPlayer[];
+  roster: HydratedBaseTeamPlayer[];
+  activeContracts: HydratedBaseTeamActiveContract[];
+  capHolds: NonNullable<LooseBaseTeamDoc['capHolds']>;
+  draftPicks: NonNullable<LooseBaseTeamDoc['draftPicks']>;
+  draftPicksInventory: NonNullable<LooseBaseTeamDoc['draftPicksInventory']>;
+  draftPicksObligations: NonNullable<LooseBaseTeamDoc['draftPicksObligations']>;
+  draftPicksContested: NonNullable<LooseBaseTeamDoc['draftPicksContested']>;
+  draftAssets: LooseBaseTeamDoc['draftAssets'] | null;
+  entitlementIds: NonNullable<LooseBaseTeamDoc['entitlementIds']>;
+  offerSheets: NonNullable<LooseBaseTeamDoc['offerSheets']>;
+  incomingOfferSheets: NonNullable<LooseBaseTeamDoc['incomingOfferSheets']>;
+  exceptions: LooseExceptionData;
+  mle: HydratedBaseTeamSimpleException | null;
+  tpMle: HydratedBaseTeamSimpleException | null;
+  bae: HydratedBaseTeamSimpleException | null;
+  tradeExceptions: HydratedBaseTeamTradeException[];
+  hardCapLevel: string | null;
+  hardCapped: boolean;
+  deadCap: NonNullable<LooseBaseTeamDoc['deadCap']>;
+  baseline: LooseBaseTeamDoc;
+  totals: TeamTotals;
+};
+
 export const hydrateBaseTeam = async (
   teamCode: string,
   baseDoc: LooseBaseTeamDoc
-) => {
-  const players = [];
-  for (const playerId of baseDoc.roster || []) {
+): Promise<HydratedBaseTeamCapSheet> => {
+  const players: HydratedBaseTeamPlayer[] = [];
+  for (const rawPlayerId of baseDoc.roster || []) {
+    const playerId = String(rawPlayerId || '').trim();
+    if (!playerId) {
+      continue;
+    }
     try {
       const playerSnap = await getDoc(basePlayerRef(playerId));
       if (!playerSnap.exists()) {
@@ -204,7 +283,7 @@ export const hydrateBaseTeam = async (
   }
 
   // Build activeContracts from new schema format
-  const activeContracts = players
+  const activeContracts: HydratedBaseTeamActiveContract[] = players
     .filter((p) => p.contract?.salariesByYear?.length > 0)
     .map((p) => {
       const contract = p.contract;
@@ -222,8 +301,8 @@ export const hydrateBaseTeam = async (
       };
     });
 
-  const exceptionData = baseDoc.exceptions || {};
-  const tradeExceptions =
+  const exceptionData: LooseExceptionData = baseDoc.exceptions || {};
+  const tradeExceptions: HydratedBaseTeamTradeException[] =
     exceptionData.tpe?.map((tpe) => ({
       id: tpe.id,
       name: tpe.label || tpe.id,
@@ -233,7 +312,9 @@ export const hydrateBaseTeam = async (
       expires: tpe.expiresOn ?? tpe.expires ?? null,
     })) || [];
 
-  const toSimpleException = (value?: LooseExceptionValue | null) =>
+  const toSimpleException = (
+    value?: LooseExceptionValue | null
+  ): HydratedBaseTeamSimpleException | null =>
     value
       ? {
           amount: value.totalAmount ?? 0,
@@ -249,6 +330,7 @@ export const hydrateBaseTeam = async (
     hardCapLevel != null &&
     String(hardCapLevel).toLowerCase() !== 'none' &&
     String(hardCapLevel).toLowerCase() !== 'false';
+  const totals = (baseDoc.totals || {}) as TeamTotals;
 
   // Return team in new schema format - no conversion needed
   return {
@@ -285,7 +367,7 @@ export const hydrateBaseTeam = async (
     hardCapped,
     deadCap: baseDoc.deadCap || [],
     baseline: baseDoc,
-    totals: baseDoc.totals || {},
+    totals,
   };
 };
 

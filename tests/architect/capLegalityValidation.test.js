@@ -4547,8 +4547,6 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_not_supported')).toBe(false);
       // Should NOT have resolution required violation (status is MATCHED)
       expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
-      // Should have stub warning
-      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_stub_active')).toBe(true);
     });
 
     it('hard-blocks offer sheet with invalid years (>4)', () => {
@@ -4787,47 +4785,6 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
       expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
     });
 
-    it('emits stub_active warning for all processed offer sheets', () => {
-      const lalTeam = {
-        teamCode: 'LAL',
-        teamName: 'Los Angeles Lakers',
-        players: [],
-        roster: [],
-        totals: { capHit: 100_000_000 },
-      };
-
-      const rfaPlayerOnGSW = {
-        player_id: 'rfa_gsw_player',
-        name: 'RFA GSW Player',
-        bio: { experience: 3 },
-        teamId: 'GSW',
-        freeAgency: {
-          type: 'RFA',
-          year: 2026,
-          qualifyingOffer: 5_000_000,
-        },
-      };
-
-      // Any offer sheet attempt should get stub warning
-      const contract = {
-        contractType: 'Standard',
-        salariesByYear: [{ season: '2025-26', salary: 10_000_000 }],
-        rfaOfferSheet: true,
-        rfaOfferSheetStatus: 'MATCHED',
-      };
-
-      const result = validateSigning({
-        team: lalTeam,
-        player: rfaPlayerOnGSW,
-        contract,
-        signedUsing: null,
-        year,
-      });
-
-      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_stub_active')).toBe(true);
-      const warning = result.warnings.find(w => w.rule === 'rfa_offer_sheet_stub_active');
-      expect(warning.message).toMatch(/stub mode/i);
-    });
   });
 
   // ==========================================================================
@@ -4841,10 +4798,6 @@ describe('Phase 12: RFA Offer Sheet Matching Stub', () => {
 
     it('confirms rfa_offer_sheet_invalid_terms is HARD_BLOCK', () => {
       expect(HARD_BLOCK_RULES).toContain('rfa_offer_sheet_invalid_terms');
-    });
-
-    it('confirms rfa_offer_sheet_stub_active is SOFT_WARNING', () => {
-      expect(SOFT_WARNING_RULES).toContain('rfa_offer_sheet_stub_active');
     });
   });
 
@@ -4973,10 +4926,6 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
 
       // Should NOT have resolution_required violation
       expect(result.violations.some(v => v.rule === 'rfa_offer_sheet_resolution_required')).toBe(false);
-      // Should still have stub warning
-      expect(result.warnings.some(w => w.rule === 'rfa_offer_sheet_stub_active')).toBe(true);
-      const warning = result.warnings.find(w => w.rule === 'rfa_offer_sheet_stub_active');
-      expect(warning.isFinalizingAttempt).toBe(false);
     });
 
     it('blocks PENDING_MATCH when finalizing (default behavior)', () => {
@@ -5194,10 +5143,6 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
 
     it('confirms rfa_offer_sheet_resolution_required is HARD_BLOCK', () => {
       expect(HARD_BLOCK_RULES).toContain('rfa_offer_sheet_resolution_required');
-    });
-
-    it('confirms rfa_offer_sheet_stub_active is SOFT_WARNING', () => {
-      expect(SOFT_WARNING_RULES).toContain('rfa_offer_sheet_stub_active');
     });
   });
 

@@ -308,6 +308,8 @@ export function useCapValidation({
     const warnings: ValidationMessage[] = [];
     const errors: ValidationMessage[] = [];
     let incomplete = false;
+    const authoritativeOfferSheetMode =
+      action === 'signNew' && isOfferSheet === true;
 
     if (!player || !action) {
       return { warnings, errors, isValid: true, incomplete };
@@ -453,7 +455,7 @@ export function useCapValidation({
     }
 
     // ===== RE-SIGNING FREE AGENTS =====
-    if (action === 'resign' || action === 'signNew') {
+    if (action === 'resign' || (action === 'signNew' && !authoritativeOfferSheetMode)) {
       const currentYearCapHit = calculateTeamCapHitLocal(
         teamPlayers,
         resolvedCurrentYear
@@ -655,7 +657,7 @@ export function useCapValidation({
     }
 
     // ===== OFFER SHEET =====
-    if (action === 'signNew' && isOfferSheet) {
+    if (authoritativeOfferSheetMode) {
       const normalizedPreflight = offerSheetPreflight;
 
       if (!normalizedPreflight) {

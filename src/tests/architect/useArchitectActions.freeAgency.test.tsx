@@ -7,6 +7,7 @@ const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
   computeWorldMutation: vi.fn(),
   preflightSignAndTradeMutation: vi.fn(),
+  preflightOfferSheetMutation: vi.fn(),
 }));
 
 const validationMocks = vi.hoisted(() => ({
@@ -27,6 +28,7 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   applyWorldMutation: mutationMocks.applyWorldMutation,
   computeWorldMutation: mutationMocks.computeWorldMutation,
   preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
+  preflightOfferSheetMutation: mutationMocks.preflightOfferSheetMutation,
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
@@ -169,6 +171,12 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       warnings: [],
     });
     mutationMocks.preflightSignAndTradeMutation.mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    mutationMocks.preflightOfferSheetMutation.mockResolvedValue({
       status: 'legal',
       reasons: [],
       warnings: [],
@@ -715,5 +723,43 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         }),
       })
     );
+  });
+
+  it('canonicalizes offer-sheet preflight inputs and delegates to the authoritative preflight helper', async () => {
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    await act(async () => {
+      await result.current.actions.getOfferSheetPreflight(playerFixture as any, {
+        years: 2,
+        salaries: [12_000_000, 12_960_000],
+        exceptionType: 'Minimum',
+      } as any);
+    });
+
+    expect(mutationMocks.preflightOfferSheetMutation).toHaveBeenCalledWith({
+      worldId: 'world_1',
+      seasonId: '2025-26',
+      offeringTeamCode: 'LAL',
+      playerId: 'player_1',
+      contract: expect.objectContaining({
+        contractType: 'Offer Sheet',
+        signingTeam: 'LAL',
+        rfaOfferSheet: true,
+        rfaOfferSheetOnly: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+        salariesByYear: [
+          expect.objectContaining({
+            season: '2025-26',
+            salary: 12_000_000,
+            capHit: 12_000_000,
+          }),
+          expect.objectContaining({
+            season: '2026-27',
+            salary: 12_960_000,
+            capHit: 12_960_000,
+          }),
+        ],
+      }),
+    });
   });
 });

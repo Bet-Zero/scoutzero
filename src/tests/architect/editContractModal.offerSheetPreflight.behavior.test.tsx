@@ -190,6 +190,26 @@ const TEAM_CAP_SHEET = {
   capHolds: [],
 };
 
+const HIGH_SALARY_RFA_PLAYER = {
+  ...RFA_PLAYER,
+  contract: {
+    ...RFA_PLAYER.contract,
+    salariesByYear: [
+      {
+        season: '2025-26',
+        salary: 200_000_000,
+        capHit: 200_000_000,
+        guaranteed: true,
+      },
+    ],
+  },
+};
+
+const HIGH_SALARY_TEAM_CAP_SHEET = {
+  ...TEAM_CAP_SHEET,
+  players: [HIGH_SALARY_RFA_PLAYER],
+};
+
 function deferred<T>() {
   let resolve: ((value: T) => void) | undefined;
   let reject: ((error?: unknown) => void) | undefined;
@@ -251,6 +271,7 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
         expect.objectContaining({
           rfaOfferSheet: true,
           rfaOfferSheetOnly: true,
+          rfaOfferSheetStatus: 'PENDING_MATCH',
           contractType: 'Offer Sheet',
         })
       );
@@ -473,10 +494,81 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
         expect.objectContaining({
           rfaOfferSheet: true,
           rfaOfferSheetOnly: true,
+          rfaOfferSheetStatus: 'PENDING_MATCH',
           contractType: 'Offer Sheet',
         })
       );
     });
+  });
+
+  it('renders only authoritative offer-sheet output when local signNew warnings would otherwise fire', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'blocked',
+      reasons: ['Offer sheet requires a distinct home team.'],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={HIGH_SALARY_RFA_PLAYER}
+        teamCapSheet={HIGH_SALARY_TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onStoreOfferSheet={vi.fn()}
+        getOfferSheetPreflight={getOfferSheetPreflight}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
+        'Offer sheet requires a distinct home team.'
+      );
+    });
+    expect(screen.getByTestId('validation-warnings')).not.toHaveTextContent(
+      'Signing puts team over Second Apron - limited flexibility'
+    );
+  });
+
+  it('resets offer-sheet toggle state when the modal closes and reopens', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    const props = {
+      onClose: () => {},
+      player: RFA_PLAYER,
+      teamCapSheet: TEAM_CAP_SHEET,
+      currentYear: 2026,
+      initialAction: 'signNew' as const,
+      actionsOverride: ['signNew'],
+      onStoreOfferSheet: vi.fn(),
+      getOfferSheetPreflight,
+    };
+
+    const { rerender } = render(<EditContractModal isOpen {...props} />);
+
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    await waitFor(() => {
+      expect(getOfferSheetPreflight).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('checkbox')).toBeChecked();
+    });
+
+    rerender(<EditContractModal isOpen={false} {...props} />);
+    rerender(<EditContractModal isOpen {...props} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox')).not.toBeChecked();
+    });
+    expect(getOfferSheetPreflight).toHaveBeenCalledTimes(1);
   });
 
   it('uses authoritative preflight result (blocked) over local state — home-team truth proof', async () => {
