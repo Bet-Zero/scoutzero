@@ -136,6 +136,7 @@ Commands run:
 - `npm run test:node -- --reporter=dot src/tests/architect/useCapValidation.behavior.test.ts` — passed. This covered the new preflight-only `useCapValidation` routing for `signNew + isOfferSheet`.
 - `npm run test:ui -- --reporter=dot src/tests/architect/editContractModal.offerSheetPreflight.behavior.test.tsx` — passed. This covered canonical payload flags/status, single-path modal rendering, authoritative-only warning/error display, and offer-sheet toggle reset on close/reopen.
 - `npm run test:ui -- --reporter=dot src/tests/architect/useArchitectActions.freeAgency.test.tsx` — passed. This covered canonicalization of the authoritative offer-sheet preflight call into `preflightOfferSheetMutation`.
+- `npm run test:diff -- --reporter=dot` — passed. `run-tests-by-diff` detected no pending diff and fell back to `npm run test:fast`, which passed 12/12 files and 57/57 tests.
 - `npm run typecheck` — passed.
 - `npm run build` — passed with existing Vite warnings about `fs` browser externalization, mixed static/dynamic imports, stale `caniuse-lite` data, and large chunk sizes.
 - `npm run test:node -- --reporter=dot` — exceeded the 4-minute repo time budget and surfaced standing failures outside the E9 change set while running:
@@ -158,4 +159,3 @@ Intentionally skipped:
 - `npm run test:full` was not run because the prompt did not include `RUN FULL SUITE`.
 - `npm run validate:project` was not rerun because this ticket did not add new folders, exports, or structural wiring.
 - `npm run lint` and `npm run lint:md` were not run because repo policy does not require them for this ticket.
-- `npm run lint` and `npm run lint:md` were not run because repo policy does not require them for this mutation-layer ticket.
