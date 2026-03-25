@@ -29,6 +29,7 @@ import {
   type ArchitectMutationTeamUpdate,
   type SignAndTradePreflightResult,
   type OfferSheetPreflightResult,
+  type NormalizedMutationSalaryRow,
 } from '@/features/architect/utils/mutationPipeline';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import {
@@ -58,7 +59,6 @@ import {
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type {
   BasePlayerContract,
-  BasePlayerContractYear,
   DeadCapItem,
   Exceptions,
   PlayerRulesProfileInput,
@@ -106,19 +106,8 @@ type TradeMutationPayloadEntitlement = NonNullable<
   TradeMutationPayloadTeam['outgoingEntitlements']
 >[number];
 
-/** Salary entry by year in a contract */
-type SalaryByYear = Pick<
-  BasePlayerContractYear,
-  'season'
-> & {
-  salary?: number | null;
-  capHit?: number | null;
-  guaranteed?: boolean | null;
-  option?: string | null;
-  isExtensionSeason?: boolean | null;
-  optionType?: string | null;
-  optionUsed?: boolean | null; // CANONICAL: boolean, not string
-};
+/** Salary entry by year in a contract — canonical (normalized) form. */
+type SalaryByYear = NormalizedMutationSalaryRow;
 
 type LocalContractLegacySalaryInput =
   | number
@@ -1506,7 +1495,10 @@ export function useArchitectActions({
                   p.signAndTradeContract ||
                   undefined,
                 contract:
-                  signAndTradeValidation?.contract || p.contract || undefined,
+                  // Cast: SignAndTradeNormalizedContract is validated (requireActiveYearRow: true)
+                  // so seasons are always present — compatible with ArchitectMutationContract at runtime.
+                  (signAndTradeValidation?.contract || p.contract || undefined) as
+                    ArchitectMutationContract | undefined,
                 contractYears:
                   signAndTradeValidation?.contract?.contractYears ||
                   p.contractYears ||

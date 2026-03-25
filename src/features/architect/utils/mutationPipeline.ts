@@ -156,6 +156,24 @@ export type ArchitectMutationSalaryRow = {
   isExtensionSeason?: boolean | null;
 };
 
+/**
+ * Salary row after normalization: season is required, numeric fields are numbers only.
+ * Raw UI input arrives as ArchitectMutationSalaryRow; this is the post-normalization
+ * boundary used in ArchitectMutationContract and throughout the mutation pipeline.
+ * SalaryByYear in useArchitectActions.ts is a type alias for this.
+ */
+export type NormalizedMutationSalaryRow = {
+  season: string;                    // required — string guaranteed after normalization
+  salary?: number | null;            // strictly number, no string
+  capHit?: number | null;            // strictly number, no string
+  guaranteed?: boolean | null;
+  guaranteedAmount?: number | null;  // strictly number, no string
+  option?: string | null;
+  optionType?: string | null;
+  optionUsed?: boolean | null;       // boolean, not string
+  isExtensionSeason?: boolean | null;
+};
+
 export type ArchitectMutationBirdRights = {
   status?: string | null;
   type?: string | null;
@@ -177,7 +195,7 @@ export type ArchitectMutationFreeAgency = {
 };
 
 export type ArchitectMutationContract = {
-  salariesByYear?: ArchitectMutationSalaryRow[];
+  salariesByYear?: NormalizedMutationSalaryRow[];
   years?: number | null;
   startYear?: number | null;
   year?: number | null;
@@ -200,7 +218,9 @@ export type ArchitectMutationContract = {
   guaranteedValue?: number | null;
   freeAgency?: ArchitectMutationFreeAgency | string | null;
   rfaOfferSheetStatus?: string | null;
-  [key: string]: unknown;
+  // Formerly-implicit fields now explicitly declared (read in deriveContractSummary fallback chain).
+  firstYearSalary?: number | null;
+  year1Salary?: number | null;
 };
 
 type MutationDeadCapYear = {
@@ -260,7 +280,7 @@ export type ArchitectMutationOfferSheet = {
   year?: number | null;
   contractYears?: number | string | null;
   totalValue?: number | string | null;
-  salariesByYear?: ArchitectMutationSalaryRow[];
+  salariesByYear?: NormalizedMutationSalaryRow[];
   createdAt?: string | number | Date | null;
   matchedAt?: string | null;
   declinedAt?: string | null;
@@ -308,7 +328,9 @@ export type ArchitectMutationPlayerRecord = {
   absorptionMode?: string | null;
   tpeId?: string | null;
   signAndTrade?: boolean;
-  signAndTradeContract?: ArchitectMutationContract | null;
+  // LooseRecord arm accepts SignAndTradeContractLike from the UI-side ArchitectPlayer type.
+  // Pipeline never reads salariesByYear from this field — only writes it at line 6701.
+  signAndTradeContract?: ArchitectMutationContract | LooseRecord | null;
   homeTeamCode?: string | null;
   receivingTeamIndex?: MutationScalarId;
   receivingTeamId?: MutationScalarId;
@@ -465,7 +487,7 @@ export type ArchitectMutationPayload = {
 };
 type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
 type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
-type MutationPipelineSalaryRow = ArchitectMutationSalaryRow & {
+type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
   year?: number | string | null;
 };
 type TeamLike = ArchitectMutationTeamRecord;
@@ -5978,9 +6000,7 @@ function computeStoreOfferSheetResult({
     year: currentYear,
     contractYears: contract.contractYears || contract.years || 1,
     salariesByYear:
-      ((contract.salariesByYear as LooseRecord[] | undefined)?.map(
-        normalizeSalaryRow
-      ) as ArchitectMutationSalaryRow[] | undefined) || [],
+      (contract.salariesByYear?.map(normalizeSalaryRow) as NormalizedMutationSalaryRow[] | undefined) || [],
     status: 'PENDING_MATCH',
     createdAt: new Date(timestamp).toISOString(),
     totalValue: contract.totalValue,
