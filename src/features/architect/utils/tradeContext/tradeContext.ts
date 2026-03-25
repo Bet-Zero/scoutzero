@@ -44,6 +44,10 @@ import {
 import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 import type {
+  TradeExceptionRecord,
+  TradeValidationResult,
+} from '@/features/architect/utils/tradeMachine/constants/types';
+import type {
   AnyRecord,
   BuildPostTradeTeamsSnapshotParams,
   OutgoingTradeRouteLike,
@@ -55,6 +59,175 @@ import type {
   ValidationTeam,
   ValidationIssue,
 } from './types';
+
+type SnapshotTradeException = Required<
+  Pick<
+    TradeExceptionRecord,
+    'id' | 'amount' | 'totalAmount' | 'remainingAmount' | 'usedAmount'
+  >
+> &
+  Pick<TradeExceptionRecord, 'createdSeason' | 'expiresOn' | 'createdFrom'>;
+
+type SnapshotTradeExceptionSource = 'legacy' | 'canonical';
+
+type SnapshotTradeExceptionCandidate = {
+  normalized: SnapshotTradeException;
+  completeness: number;
+  source: SnapshotTradeExceptionSource;
+};
+
+function toFiniteNumberOrUndefined(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const numericValue = Number(value);
+    if (Number.isFinite(numericValue)) {
+      return numericValue;
+    }
+  }
+
+  return undefined;
+}
+
+function toNonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized ? normalized : undefined;
+}
+
+function normalizeSnapshotTradeException({
+  raw,
+  source,
+  teamCode,
+  index,
+  timestamp,
+}: {
+  raw: unknown;
+  source: SnapshotTradeExceptionSource;
+  teamCode: string | null;
+  index: number;
+  timestamp: number;
+}): SnapshotTradeExceptionCandidate | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const record = raw as AnyRecord;
+  const explicitId = toNonEmptyString(record.id);
+  const amountValue =
+    toFiniteNumberOrUndefined(record.totalAmount) ??
+    toFiniteNumberOrUndefined(record.amount);
+  const remainingValue = toFiniteNumberOrUndefined(record.remainingAmount);
+  const usedAmountValue = toFiniteNumberOrUndefined(record.usedAmount);
+  const createdSeason =
+    toFiniteNumberOrUndefined(record.createdSeason) ??
+    toFiniteNumberOrUndefined(record.createdAtSeason) ??
+    toFiniteNumberOrUndefined(record.season);
+  const expiresOn =
+    toNonEmptyString(record.expiresOn) ??
+    toNonEmptyString(record.expirationDate) ??
+    toNonEmptyString(record.expiryISO) ??
+    toNonEmptyString(record.expiryDate);
+  const createdFrom =
+    toNonEmptyString(record.createdFrom) ?? toNonEmptyString(record.name);
+
+  return {
+    normalized: {
+      id:
+        explicitId ||
+        `tpe_${teamCode || 'unknown'}_${source}_${index}_${timestamp}`,
+      amount: amountValue ?? remainingValue ?? 0,
+      totalAmount: amountValue ?? remainingValue ?? 0,
+      remainingAmount: remainingValue ?? amountValue ?? 0,
+      usedAmount: usedAmountValue ?? 0,
+      ...(createdSeason !== undefined ? { createdSeason } : {}),
+      ...(expiresOn !== undefined ? { expiresOn } : {}),
+      ...(createdFrom !== undefined ? { createdFrom } : {}),
+    },
+    completeness:
+      Number(Boolean(explicitId)) +
+      Number(amountValue !== undefined) +
+      Number(remainingValue !== undefined) +
+      Number(usedAmountValue !== undefined) +
+      Number(createdSeason !== undefined) +
+      Number(expiresOn !== undefined) +
+      Number(createdFrom !== undefined),
+    source,
+  };
+}
+
+function buildSnapshotTradeExceptions({
+  team,
+  teamCode,
+  timestamp,
+}: {
+  team: AnyRecord;
+  teamCode: string | null;
+  timestamp: number;
+}): SnapshotTradeException[] {
+  const compatibilityCandidates: SnapshotTradeExceptionCandidate[] = [];
+  const exceptions = team.exceptions as AnyRecord | undefined;
+
+  (Array.isArray(team.tradeExceptions) ? team.tradeExceptions : []).forEach(
+    (rawTpe, index) => {
+      const candidate = normalizeSnapshotTradeException({
+        raw: rawTpe,
+        source: 'legacy',
+        teamCode,
+        index,
+        timestamp,
+      });
+      if (candidate) {
+        compatibilityCandidates.push(candidate);
+      }
+    }
+  );
+
+  (Array.isArray(exceptions?.tpe) ? exceptions.tpe : []).forEach(
+    (rawTpe, index) => {
+      const candidate = normalizeSnapshotTradeException({
+        raw: rawTpe,
+        source: 'canonical',
+        teamCode,
+        index,
+        timestamp,
+      });
+      if (candidate) {
+        compatibilityCandidates.push(candidate);
+      }
+    }
+  );
+
+  const deduped = new Map<string, SnapshotTradeExceptionCandidate>();
+  for (const candidate of compatibilityCandidates) {
+    const existing = deduped.get(candidate.normalized.id);
+    if (!existing) {
+      deduped.set(candidate.normalized.id, candidate);
+      continue;
+    }
+
+    // Exact overlap rule for the live trade bridge:
+    // prefer the record that already carries more of the fields this path reads
+    // (`id`, amount/totalAmount, remainingAmount, usedAmount, createdSeason,
+    // expiresOn, createdFrom). When completeness ties, keep canonical data.
+    const shouldReplace =
+      candidate.completeness > existing.completeness ||
+      (candidate.completeness === existing.completeness &&
+        candidate.source === 'canonical' &&
+        existing.source === 'legacy');
+
+    if (shouldReplace) {
+      deduped.set(candidate.normalized.id, candidate);
+    }
+  }
+
+  return Array.from(deduped.values()).map((candidate) => candidate.normalized);
+}
 
 export function normalizeTradeTeamCodeLike(value: unknown): string | null {
   if (!value) return null;
@@ -120,42 +293,6 @@ export function buildPostTradeTeamsSnapshot({
 }: BuildPostTradeTeamsSnapshotParams): PostTradeSnapshot {
   const teamUpdates: TeamUpdate[] = [];
   const timestampISO = new Date(timestamp).toISOString();
-
-  const normalizeTPE = (t: AnyRecord) => ({
-    ...t,
-    id:
-      t.id ||
-      `tpe_legacy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    amount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
-    totalAmount: t.totalAmount ?? t.amount ?? 0,
-    remainingAmount: t.remainingAmount ?? t.totalAmount ?? t.amount ?? 0,
-    usedAmount: t.usedAmount ?? 0,
-  });
-
-  const dedupeById = (tpes: AnyRecord[]) => {
-    const seen = new Map<string, AnyRecord>();
-    for (const tpe of tpes) {
-      if (!tpe.id) continue;
-      const tpeId = String(tpe.id);
-      const existing = seen.get(tpeId);
-      if (!existing) {
-        seen.set(tpeId, tpe);
-      } else {
-        const existingScore =
-          (existing.remainingAmount !== undefined ? 1 : 0) +
-          (existing.usedAmount !== undefined ? 1 : 0) +
-          (existing.expiresOn ? 1 : 0);
-        const newScore =
-          (tpe.remainingAmount !== undefined ? 1 : 0) +
-          (tpe.usedAmount !== undefined ? 1 : 0) +
-          (tpe.expiresOn ? 1 : 0);
-        if (newScore > existingScore) {
-          seen.set(tpeId, tpe);
-        }
-      }
-    }
-    return Array.from(seen.values());
-  };
 
   const payloadTeamCodes = payload.teams
     .map((t) =>
@@ -507,11 +644,11 @@ export function buildPostTradeTeamsSnapshot({
       updatedTeam.entitlementIds = [...new Set(newEntitlementIds)];
     }
 
-    const primaryTPEs = (Array.isArray(team.tradeExceptions) ? team.tradeExceptions : []).map(normalizeTPE);
-    const exceptions = team.exceptions as AnyRecord | undefined;
-    const legacyTPEs = (Array.isArray(exceptions?.tpe) ? exceptions.tpe : []).map(normalizeTPE);
-    const currentTPEs = dedupeById([...primaryTPEs, ...legacyTPEs]);
-    updatedTeam.tradeExceptions = currentTPEs;
+    updatedTeam.tradeExceptions = buildSnapshotTradeExceptions({
+      team,
+      teamCode,
+      timestamp,
+    });
 
     updatedTeam.source = {
       ...(updatedTeam.source as AnyRecord),
@@ -614,99 +751,33 @@ export function validatePostTradeSnapshotForContext({
       },
     };
 
-    const validation = validateTrade(validationInput) as AnyRecord;
+    const validation = validateTrade(validationInput) as TradeValidationResult;
 
-    const normalizedTeamResults = Array.isArray(validation?.teamResults)
-      ? (validation.teamResults as TeamResult[])
+    const normalizedTeamResults = Array.isArray(validation.teamResults)
+      ? validation.teamResults
       : [];
-    const normalizedSummaryByTeamIndex = Array.isArray(
-      validation?.summaryByTeamIndex
-    )
-      ? validation.summaryByTeamIndex
-      : [];
-    const normalizedViolations = Array.isArray(validation?.violations)
+    const normalizedViolations = Array.isArray(validation.violations)
       ? validation.violations
       : [];
-    const normalizedWarnings = Array.isArray(validation?.warnings)
+    const normalizedWarnings = Array.isArray(validation.warnings)
       ? validation.warnings
       : [];
-    const normalizedTradeReceipt =
-      validation &&
-      Object.prototype.hasOwnProperty.call(validation, 'tradeReceipt')
-        ? validation.tradeReceipt
-        : null;
-    const normalizedDataWarnings = Array.isArray(validation?.dataWarnings)
-      ? validation.dataWarnings
-      : [];
-
-    const resolvedYearKey =
-      validation &&
-      Object.prototype.hasOwnProperty.call(validation, 'yearKey') &&
-      validation.yearKey != null
-        ? (validation.yearKey as number | string)
-        : currentYear;
-
-    return {
+    const context = {
       ...validation,
       legal: Boolean(validation.legal),
-      valid: Boolean(validation.legal),
-      reason: (validation.reason as string | null) ?? null,
+      reason: validation.reason ?? null,
       error:
-        (validation.error as string | null) ||
+        validation.error ||
         (validation.legal ? null : (validation.reason as string) || 'Trade is not legal'),
       violations: normalizedViolations,
       warnings: normalizedWarnings,
       teamResults: normalizedTeamResults,
-      summaryByTeamIndex: normalizedSummaryByTeamIndex,
-      tradeReceipt: normalizedTradeReceipt as AnyRecord | null,
-      dataWarnings: normalizedDataWarnings,
-      hasDataIssues:
-        typeof validation?.hasDataIssues === 'boolean'
-          ? validation.hasDataIssues
-          : normalizedDataWarnings.length > 0,
-      yearKey: resolvedYearKey,
-      seasonKey:
-        validation &&
-        Object.prototype.hasOwnProperty.call(validation, 'seasonKey')
-          ? (validation.seasonKey as string | null)
-          : seasonId,
-      capSettings:
-        validation &&
-        Object.prototype.hasOwnProperty.call(validation, 'capSettings')
-          ? (validation.capSettings as AnyRecord | null)
-          : null,
-      capSettingsSource:
-        validation &&
-        Object.prototype.hasOwnProperty.call(validation, 'capSettingsSource')
-          ? (validation.capSettingsSource as string | null)
-          : null,
-      capSettingsWarnings: Array.isArray(validation?.capSettingsWarnings)
-        ? validation.capSettingsWarnings
-        : [],
-      asOfDate:
-        validation &&
-        Object.prototype.hasOwnProperty.call(validation, 'asOfDate')
-          ? (validation.asOfDate as string | null)
-          : (payload.asOfDate as string | null) || (payload.tradeCtx?.asOfDate as string | null) || null,
-      tradeDate:
-        validation &&
-        Object.prototype.hasOwnProperty.call(validation, 'tradeDate')
-          ? (validation.tradeDate as string | null)
-          : (payload.tradeCtx?.tradeDate as string | null) ||
-            (payload.asOfDate as string | null) ||
-            (payload.tradeCtx?.asOfDate as string | null) ||
-            null,
-      offseason:
-        validation &&
-        Object.prototype.hasOwnProperty.call(validation, 'offseason')
-          ? (validation.offseason as boolean | null)
-          : typeof payload.tradeCtx?.offseason === 'boolean'
-            ? payload.tradeCtx.offseason as boolean
-            : null,
       validationTeams: snapshot.validationTeams,
       _rawValidation: validation,
       _isValidatedTradeContext: true,
     };
+
+    return context as ValidatedTradeContext;
   } catch (error: any) {
     const message = error.message || 'Trade validation failed';
     const failureIssue =
@@ -724,31 +795,11 @@ export function validatePostTradeSnapshotForContext({
 
     return {
       legal: false,
-      valid: false,
       reason: message,
       error: message,
       violations: [failureIssue],
       warnings: [],
       teamResults: [],
-      summaryByTeamIndex: [],
-      tradeReceipt: null,
-      dataWarnings: [],
-      hasDataIssues: false,
-      yearKey: currentYear,
-      seasonKey: seasonId,
-      capSettings: null,
-      capSettingsSource: null,
-      capSettingsWarnings: [],
-      asOfDate: (payload.asOfDate as string | null) || (payload.tradeCtx?.asOfDate as string | null) || null,
-      tradeDate:
-        (payload.tradeCtx?.tradeDate as string | null) ||
-        (payload.asOfDate as string | null) ||
-        (payload.tradeCtx?.asOfDate as string | null) ||
-        null,
-      offseason:
-        typeof payload.tradeCtx?.offseason === 'boolean'
-          ? payload.tradeCtx.offseason as boolean
-          : null,
       validationTeams: snapshot.validationTeams,
       _isValidatedTradeContext: true,
     };

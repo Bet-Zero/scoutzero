@@ -517,9 +517,10 @@ type TradeMutationMetadata = {
 type TradeSnapshotLike = TradeContextPostTradeSnapshot;
 type TradeValidationTeamLike = TradeContextValidationTeam;
 type TradeValidationTeamResultLike = TradeContextTeamResult;
-type TradeValidationResultLike =
-  | NonNullable<TradeContextValidatedTradeContext['_rawValidation']>
-  | Pick<TradeContextValidatedTradeContext, 'legal' | 'teamResults'>;
+type TradeValidationApplyTimeSlice = {
+  legal: boolean;
+  teamResults: TradeValidationTeamResultLike[];
+};
 export type ArchitectMutationValidatedTradeContext =
   TradeContextValidatedTradeContext;
 type TradeHistoryContextLike = LooseRecord & {
@@ -3961,6 +3962,27 @@ export function computeWorldMutation({
  * @param {Object} params.postTradeSnapshot - Result from buildPostTradeTeamsSnapshot (REQUIRED for Phase 56)
  * @param {Object} params.validatedContext - Result from validatePostTradeSnapshotForContext (REQUIRED for Phase 56)
  */
+function getTradeValidationApplyTimeSlice(
+  validatedContext: TradeValidatedContextLike
+): TradeValidationApplyTimeSlice {
+  const rawValidation = validatedContext._rawValidation;
+  if (rawValidation) {
+    return {
+      legal: Boolean(rawValidation.legal),
+      teamResults: Array.isArray(rawValidation.teamResults)
+        ? rawValidation.teamResults
+        : [],
+    };
+  }
+
+  return {
+    legal: Boolean(validatedContext.legal),
+    teamResults: Array.isArray(validatedContext.teamResults)
+      ? validatedContext.teamResults
+      : [],
+  };
+}
+
 function computeTradeResult({
   payload,
   currentState,
@@ -4008,10 +4030,7 @@ function computeTradeResult({
   );
 
   // Phase 56: Use validation results from validatedContext (already validated once)
-  const validation: TradeValidationResultLike = validatedContext._rawValidation || {
-    legal: validatedContext.legal,
-    teamResults: validatedContext.teamResults || [],
-  };
+  const validation = getTradeValidationApplyTimeSlice(validatedContext);
 
   // Phase 56: Use validationTeams from context (has matchIncoming populated by validator)
   const validationTeams: TradeValidationTeamLike[] = Array.isArray(

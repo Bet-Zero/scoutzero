@@ -1,10 +1,8 @@
 import type {
-  TradeSummaryByTeamIndexRow,
   TradeTeamResult,
   TradeValidationResult,
   TradeValidatorCapProjections,
   TradeValidatorContext,
-  TradeValidatorCapSettings,
   ValidationIssue as TradeValidationIssue,
 } from '@/features/architect/utils/tradeMachine/constants/types';
 import type {
@@ -13,9 +11,8 @@ import type {
   ArchitectTradePayloadTeam,
 } from '@/features/architect/utils/mutationPipeline';
 
-// Narrow support surface for mutationPipeline's live trade path.
-// This layer still consumes mixed validator/runtime blobs, so `any` remains
-// localized here instead of leaking through the primary mutation file.
+// Local object-shape carrier for snapshot-building compatibility paths.
+// Validator output is narrowed below to the exact live trade bridge contract.
 export type AnyRecord = Record<string, any>;
 
 export interface TeamUpdate {
@@ -25,7 +22,7 @@ export interface TeamUpdate {
 
 export type ValidationIssue = TradeValidationIssue;
 
-export type TeamResult = TradeTeamResult & AnyRecord;
+export type TeamResult = TradeTeamResult;
 
 export interface ValidationTeam {
   team: ArchitectMutationTeamRecord;
@@ -45,31 +42,15 @@ export interface PostTradeSnapshot {
   _isPostTradeSnapshot?: boolean;
 }
 
-export interface ValidatedTradeContext extends AnyRecord {
-  legal: boolean;
-  valid: boolean;
-  reason: string | null;
-  error: string | null;
-  violations: ValidationIssue[];
-  warnings: ValidationIssue[];
+export type ValidatedTradeContext = Pick<
+  TradeValidationResult,
+  'legal' | 'reason' | 'error' | 'violations' | 'warnings'
+> & {
   teamResults: TeamResult[];
-  summaryByTeamIndex: TradeSummaryByTeamIndexRow[];
-  performance?: TradeValidationResult['performance'];
-  tradeReceipt: TradeValidationResult['tradeReceipt'] | AnyRecord | null;
-  dataWarnings: TradeValidationResult['dataWarnings'];
-  hasDataIssues: boolean;
-  yearKey: number | string | null;
-  seasonKey?: string | null;
-  capSettings: TradeValidatorCapSettings | null;
-  capSettingsSource: string | null;
-  capSettingsWarnings: string[];
-  asOfDate: string | null;
-  tradeDate: string | null;
-  offseason: boolean | null;
   validationTeams: ValidationTeam[];
-  _rawValidation?: TradeValidationResult | AnyRecord;
+  _rawValidation?: TradeValidationResult;
   _isValidatedTradeContext: true;
-}
+};
 
 export type PayloadTeam = ArchitectTradePayloadTeam;
 
