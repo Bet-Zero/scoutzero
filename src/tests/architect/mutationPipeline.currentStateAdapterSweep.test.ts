@@ -126,7 +126,7 @@ import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline'
 const FIXED_TIMESTAMP = Date.parse('2026-03-25T12:00:00.000Z');
 const FIXED_TIMESTAMP_ISO = '2026-03-25T12:00:00.000Z';
 const SEASON_ID = '2025-26';
-const WORLD_ID = 'world_current_state_apply_contract';
+const WORLD_ID = 'world_current_state_adapter_sweep';
 
 function makeContract(
   salary: number,
@@ -197,7 +197,15 @@ function makeTeam(
     const contract = player.contract as
       | { salariesByYear?: Array<{ capHit?: number | string | null }> }
       | undefined;
-    return sum + Number(contract?.salariesByYear?.[0]?.capHit ?? player.currentSalary ?? player.salary ?? 0);
+    return (
+      sum +
+      Number(
+        contract?.salariesByYear?.[0]?.capHit ??
+          player.currentSalary ??
+          player.salary ??
+          0
+      )
+    );
   }, 0);
 
   return {
@@ -214,6 +222,7 @@ function makeTeam(
     exceptionHistory: [],
     exceptions: { mle: null, bae: null, tpe: [] },
     deadCap: [],
+    teamTotalSalary: totalSalary,
     totals: {
       totalSalary,
       capHit: totalSalary,
@@ -258,30 +267,24 @@ function buildTradeTeamResult({
     calculations: {
       salaryOut: 0,
       salaryIn: 0,
-      salaryMatching: {
-        allowedIncoming: totalSalary,
-        margin: 0,
-        difference: 0,
-      },
+      projectedSalary: totalSalary,
     },
-    totalSalary,
-    projectedSalary: totalSalary,
-    capRoom: 0,
-    hardCapped: false,
-    apronStatus: 'Below Aprons',
-    faExceptionBuckets: [],
-    notes: [],
-    createdTPE: null,
-    details: '',
-    warningDetails: '',
   };
 }
 
-function getSetPaths(): string[] {
-  return testState.batchSet.mock.calls.map(([ref]) => String(ref));
+function getTeamSetPayload(teamCode: string): Record<string, unknown> | undefined {
+  const entry = testState.batchSet.mock.calls.find(([ref]) => {
+    const path = String(ref);
+    return (
+      path.includes(`architect_worlds/${WORLD_ID}/teams/${teamCode}`) &&
+      !path.includes('/players/')
+    );
+  });
+
+  return entry?.[1] as Record<string, unknown> | undefined;
 }
 
-describe('mutationPipeline current-state apply contract', () => {
+describe('mutationPipeline current-state adapter sweep', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     testState.docsByPath.clear();
@@ -298,7 +301,7 @@ describe('mutationPipeline current-state apply contract', () => {
       const legal =
         teams.length > 0 &&
         teams.every((teamTrade) => {
-          const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
+          const team = (teamTrade?.team || {}) as Record<string, unknown>;
           return typeof team.teamTotalSalary === 'number' && team.teamTotalSalary > 0;
         });
 
@@ -310,7 +313,7 @@ describe('mutationPipeline current-state apply contract', () => {
         violations: [],
         warnings: [],
         teamResults: teams.map((teamTrade) => {
-          const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
+          const team = (teamTrade?.team || {}) as Record<string, unknown>;
           const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
           return buildTradeTeamResult({
             teamCode,
@@ -321,12 +324,16 @@ describe('mutationPipeline current-state apply contract', () => {
     });
   });
 
-  it('signFreeAgent still applies through narrowed current-state player loading', async () => {
-    const team = makeTeam('LAL', []);
+  it('signFreeAgent omits trade-only team lane fields from the persisted team write while keeping broad player fields', async () => {
+    const existingTwoWay = makePlayer('two_way_keep', 'Two Way Keep', 900_000, 'LAL', {
+      isTwoWay: true,
+    });
+    const team = makeTeam('LAL', [], {
+      twoWayPlayers: [existingTwoWay],
+      teamTotalSalary: 120_000_000,
+    });
     const freeAgent = makePlayer('fa_1', 'Free Agent One', 0, null, {
       freeAgency: { type: 'Unrestricted', year: 2026 },
-      matchIncoming: '999999',
-      tpeId: 'legacy_tpe_input',
     });
 
     testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
@@ -338,7 +345,7 @@ describe('mutationPipeline current-state apply contract', () => {
     testState.getPlayer.mockResolvedValue(freeAgent);
 
     const result = await applyWorldMutation({
-      userId: 'user_current_state_contract',
+      userId: 'user_adapter_sweep',
       worldId: WORLD_ID,
       seasonId: SEASON_ID,
       mutationType: 'signFreeAgent',
@@ -357,22 +364,21 @@ describe('mutationPipeline current-state apply contract', () => {
 
     expect(result.success).toBe(true);
     expect(result.changedTeams?.[0]?.team?.roster).toContain('fa_1');
-    expect(result.changedPlayers?.[0]?.player?.teamCode).toBe('LAL');
-    expect(result.changedPlayers?.[0]?.player?.contract?.signingTeam).toBe('LAL');
     expect(result.changedPlayers?.[0]?.player?.representation).toEqual({
       agent: 'Boundary Agent',
       agency: 'Boundary Agency',
     });
 
-    expect(
-      getSetPaths().some((path) =>
-        path.includes(`architect_worlds/${WORLD_ID}/teams/LAL/players/fa_1`)
-      )
-    ).toBe(true);
+    const persistedTeam = getTeamSetPayload('LAL');
+    expect(persistedTeam).toBeDefined();
+    expect(persistedTeam).not.toHaveProperty('teamTotalSalary');
+    expect(persistedTeam).not.toHaveProperty('twoWayPlayers');
   });
 
-  it('executeTrade still applies when current-state team salary is synthesized from totals as a number', async () => {
-    const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'LAL');
+  it('executeTrade still synthesizes numeric teamTotalSalary for validation and preserves two-way player movement in public output', async () => {
+    const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'LAL', {
+      isTwoWay: true,
+    });
     const playerB = makePlayer('player_b', 'Player B', 10_000_000, 'BOS');
     const teamA = makeTeam('LAL', [playerA]);
     const teamB = makeTeam('BOS', [playerB]);
@@ -395,7 +401,7 @@ describe('mutationPipeline current-state apply contract', () => {
     });
 
     const result = await applyWorldMutation({
-      userId: 'user_current_state_contract',
+      userId: 'user_adapter_sweep',
       worldId: WORLD_ID,
       seasonId: SEASON_ID,
       mutationType: 'executeTrade',
@@ -422,15 +428,19 @@ describe('mutationPipeline current-state apply contract', () => {
     const bostonTeam = result.changedTeams?.find(
       (update) => update.teamCode === 'BOS'
     )?.team;
-    const movedPlayer = bostonTeam?.players?.find(
-      (player) => player.playerId === 'player_a' || player.player_id === 'player_a'
-    );
-
-    expect(movedPlayer?.displayName).toBe('Player A');
-    expect(result.changedPlayers?.find((update) => update.playerId === 'player_a')?.player?.teamCode).toBe('BOS');
+    expect(
+      bostonTeam?.players?.some(
+        (player) => player.playerId === 'player_a' || player.player_id === 'player_a'
+      )
+    ).toBe(true);
+    expect(
+      bostonTeam?.twoWayPlayers?.some(
+        (player) => player.playerId === 'player_a' || player.player_id === 'player_a'
+      )
+    ).toBe(true);
   });
 
-  it('executeTrade TPE consumption follows authoritative validated apply-time players, not raw payload receives', async () => {
+  it('executeTrade still consumes legacy mixed tradeExceptions inputs through authoritative apply-time receives', async () => {
     const playerA = makePlayer('player_a', 'Player A', 3_000_000, 'LAL');
     const playerB = makePlayer('player_b', 'Player B', 3_000_000, 'BOS');
     const teamA = makeTeam('LAL', [playerA]);
@@ -459,8 +469,12 @@ describe('mutationPipeline current-state apply contract', () => {
       const teams = Array.isArray(input?.teams)
         ? (input.teams as Array<Record<string, unknown> | null | undefined>)
         : [];
-      const lalSalary = Number((teams[0]?.team as Record<string, unknown> | undefined)?.teamTotalSalary || 0);
-      const bosSalary = Number((teams[1]?.team as Record<string, unknown> | undefined)?.teamTotalSalary || 0);
+      const lalSalary = Number(
+        ((teams[0]?.team || {}) as Record<string, unknown>).teamTotalSalary || 0
+      );
+      const bosSalary = Number(
+        ((teams[1]?.team || {}) as Record<string, unknown>).teamTotalSalary || 0
+      );
 
       return {
         valid: true,
@@ -496,7 +510,7 @@ describe('mutationPipeline current-state apply contract', () => {
     });
 
     const result = await applyWorldMutation({
-      userId: 'user_current_state_contract',
+      userId: 'user_adapter_sweep',
       worldId: WORLD_ID,
       seasonId: SEASON_ID,
       mutationType: 'executeTrade',

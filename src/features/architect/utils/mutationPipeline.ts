@@ -539,6 +539,8 @@ type TradeMutationMetadata = {
 };
 type TradeSnapshotLike = TradeContextPostTradeSnapshot;
 type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;
+type TradeApplyValidationPlayerLike =
+  TradeContextApplyValidationTeam['receives'][number];
 type TradeValidationTeamResultLike = TradeContextTeamResult;
 type TradeValidationApplyTimeSlice = {
   legal: boolean;
@@ -629,6 +631,22 @@ type MergePlayerOverrideShape = Pick<
 type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
   year?: number | string | null;
 };
+type CurrentStateTradeException = {
+  id?: string;
+  amount?: number;
+  totalAmount?: number;
+  remainingAmount?: number;
+  usedAmount?: number;
+  createdSeason?: number;
+  expiresOn?: string | null;
+  createdFrom?: string | null;
+  isUsed?: boolean | null;
+};
+// Deliberately broader than the team lane projections below. These player fields
+// still round-trip through live player merge/write paths in this file:
+// - resolveStoreOfferSheetAuthority() via toMergePlayerOverrideInput()
+// - computeSigningResult() / computeSignAndTradeResult() spread updates
+// - toPersistablePlayerOverrideFromSnapshot() persistence writes
 type CurrentStatePlayer = Pick<
   ArchitectMutationPlayerRecord,
   | 'player_id'
@@ -661,6 +679,30 @@ type CurrentStatePlayer = Pick<
   | 'isNewlySignedFA'
   | 'originTeamId'
 >;
+type CurrentStateBaseTeam = Pick<
+  CurrentStateTeam,
+  | 'teamCode'
+  | 'teamName'
+  | 'players'
+  | 'roster'
+  | 'capHolds'
+  | 'deadCap'
+  | 'exceptions'
+  | 'tradeExceptions'
+  | 'offerSheets'
+  | 'incomingOfferSheets'
+  | 'exceptionHistory'
+  | 'totals'
+  | 'draftPicks'
+  | 'entitlementIds'
+  | 'source'
+  | 'hardCapped'
+  | 'hardCapLevel'
+  | 'hardCapReason'
+  | 'hardCapTriggeredBy'
+>;
+type CurrentStateTradeTeam = CurrentStateBaseTeam &
+  Pick<CurrentStateTeam, 'twoWayPlayers' | 'teamTotalSalary'>;
 type CurrentStateTeam = Omit<
   Pick<
     ArchitectMutationTeamRecord,
@@ -686,20 +728,24 @@ type CurrentStateTeam = Omit<
     | 'hardCapReason'
     | 'hardCapTriggeredBy'
   >,
-  'players' | 'twoWayPlayers' | 'teamTotalSalary'
+  'players' | 'twoWayPlayers' | 'tradeExceptions' | 'teamTotalSalary'
 > & {
   players?: CurrentStatePlayer[];
   twoWayPlayers?: CurrentStatePlayer[];
+  tradeExceptions?: CurrentStateTradeException[];
   teamTotalSalary?: number;
 };
 type TeamSnapshotLike = ArchitectMutationTeamRecord | TeamLike;
 type PlayerSnapshotLike = ArchitectMutationPlayerRecord | PlayerLike;
 type TeamLike = CurrentStateTeam;
+type BaseTeamLike = CurrentStateBaseTeam;
+type TradeTeamLike = CurrentStateTradeTeam;
+type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
 type PlayerLike = CurrentStatePlayer;
 type MutationTeamMap = Record<string, TeamSnapshotLike>;
 type MutationCurrentStateTeamEntry = {
   teamCode?: string | null;
-  team?: TeamLike | null;
+  team?: TradeTeamLike | null;
 };
 type MutationCurrentStateIngressTeamEntry = {
   teamCode?: string | null;
@@ -995,11 +1041,11 @@ type MutationCurrentStateIngress = {
 // by compute/apply paths are carried forward from the public ingress.
 type MutationCurrentState = {
   teams?: MutationCurrentStateTeamEntry[];
-  team?: TeamLike | null;
+  team?: CurrentStatePrimaryTeam | null;
   player?: PlayerLike | null;
-  homeTeam?: TeamLike | null;
-  offeringTeam?: TeamLike | null;
-  destinationTeam?: TeamLike | null;
+  homeTeam?: BaseTeamLike | null;
+  offeringTeam?: BaseTeamLike | null;
+  destinationTeam?: TradeTeamLike | null;
   teamCode?: string | null;
   offerSheetId?: string | null;
 };
@@ -1786,6 +1832,84 @@ function normalizeObjectArray<T>(value: unknown): T[] | undefined {
   return value.filter((entry): entry is T => asLooseRecord(entry) !== null);
 }
 
+function toCurrentStateTradeException(
+  value: unknown
+): CurrentStateTradeException | null {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const amount = toOptionalNumber(record.amount);
+  const totalAmount = toOptionalNumber(record.totalAmount) ?? amount;
+  const remainingAmount =
+    toOptionalNumber(record.remainingAmount) ??
+    toOptionalNumber(record.remaining) ??
+    totalAmount ??
+    amount;
+  const usedAmount =
+    toOptionalNumber(record.usedAmount) ?? toOptionalNumber(record.used);
+  const normalized: CurrentStateTradeException = {};
+  const id = toOptionalIdString(record.id);
+  const createdSeason =
+    toOptionalNumber(record.createdSeason) ??
+    toOptionalNumber(record.createdAtSeason) ??
+    toOptionalNumber(record.season);
+  const expiresOn =
+    toOptionalTrimmedString(record.expiresOn) ??
+    toOptionalTrimmedString(record.expirationDate) ??
+    toOptionalTrimmedString(record.expiryISO) ??
+    toOptionalTrimmedString(record.expiryDate);
+  const createdFrom =
+    toOptionalTrimmedString(record.createdFrom) ??
+    toOptionalTrimmedString(record.name);
+  const isUsed = toOptionalBoolean(record.isUsed);
+
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (amount !== undefined || totalAmount !== undefined) {
+    normalized.amount = amount ?? totalAmount;
+  }
+  if (totalAmount !== undefined || amount !== undefined) {
+    normalized.totalAmount = totalAmount ?? amount;
+  }
+  if (remainingAmount !== undefined) {
+    normalized.remainingAmount = remainingAmount;
+  }
+  if (usedAmount !== undefined) {
+    normalized.usedAmount = usedAmount;
+  }
+  if (createdSeason !== undefined) {
+    normalized.createdSeason = createdSeason;
+  }
+  if (expiresOn !== undefined) {
+    normalized.expiresOn = expiresOn;
+  }
+  if (createdFrom !== undefined) {
+    normalized.createdFrom = createdFrom;
+  }
+  if (isUsed !== undefined) {
+    normalized.isUsed = isUsed;
+  }
+
+  return normalized;
+}
+
+function normalizeCurrentStateTradeExceptions(
+  value: unknown
+): CurrentStateTradeException[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => toCurrentStateTradeException(entry))
+    .filter(
+      (entry): entry is CurrentStateTradeException => entry !== null
+    );
+}
+
 function normalizeCurrentStatePlayerArray(value: unknown): PlayerLike[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -1805,6 +1929,8 @@ function resolveCurrentStateTeamTotalSalary(
     return explicitTeamTotalSalary;
   }
 
+  // Live trade validation/apply expects the explicit top-level teamTotalSalary
+  // bridge. When loaded state omits it, normalize from totals.totalSalary only.
   const totalsRecord = asLooseRecord(totals);
   return totalsRecord ? toOptionalNumber(totalsRecord.totalSalary) : undefined;
 }
@@ -1829,10 +1955,12 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   const deadCap = normalizeObjectArray<ArchitectMutationDeadCapEntry>(
     teamRecord.deadCap
   );
+  // Load-bearing broad bag: this file reads dynamic exception buckets during
+  // signing logic and persists the object back out on team snapshot writes.
   const exceptions = toOptionalObject<ArchitectMutationExceptions>(
     teamRecord.exceptions
   );
-  const tradeExceptions = normalizeObjectArray<MutationTradeExceptionRecord>(
+  const tradeExceptions = normalizeCurrentStateTradeExceptions(
     teamRecord.tradeExceptions
   );
   const offerSheets = normalizeObjectArray<ArchitectMutationOfferSheet>(
@@ -1841,6 +1969,8 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   const incomingOfferSheets = normalizeObjectArray<ArchitectMutationOfferSheet>(
     teamRecord.incomingOfferSheets
   );
+  // Preserve-only bag: this file appends typed TPE history entries but does not
+  // own a stable schema for older history payloads already on the team.
   const exceptionHistory = Array.isArray(teamRecord.exceptionHistory)
     ? [...teamRecord.exceptionHistory]
     : undefined;
@@ -2066,10 +2196,104 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   return normalized;
 }
 
+type CurrentStateTeamProjectionLane = 'base' | 'trade';
+
+function projectCurrentStateTeam(
+  team: TeamLike | null | undefined,
+  lane: 'base'
+): BaseTeamLike | null;
+function projectCurrentStateTeam(
+  team: TeamLike | null | undefined,
+  lane: 'trade'
+): TradeTeamLike | null;
+function projectCurrentStateTeam(
+  team: TeamLike | null | undefined,
+  lane: CurrentStateTeamProjectionLane
+): CurrentStatePrimaryTeam | null {
+  if (!team) {
+    return null;
+  }
+
+  const projected: BaseTeamLike = {};
+
+  if (team.teamCode !== undefined) {
+    projected.teamCode = team.teamCode;
+  }
+  if (team.teamName !== undefined) {
+    projected.teamName = team.teamName;
+  }
+  if (team.players !== undefined) {
+    projected.players = team.players;
+  }
+  if (team.roster !== undefined) {
+    projected.roster = team.roster;
+  }
+  if (team.capHolds !== undefined) {
+    projected.capHolds = team.capHolds;
+  }
+  if (team.deadCap !== undefined) {
+    projected.deadCap = team.deadCap;
+  }
+  if (team.exceptions !== undefined) {
+    projected.exceptions = team.exceptions;
+  }
+  if (team.tradeExceptions !== undefined) {
+    projected.tradeExceptions = team.tradeExceptions;
+  }
+  if (team.offerSheets !== undefined) {
+    projected.offerSheets = team.offerSheets;
+  }
+  if (team.incomingOfferSheets !== undefined) {
+    projected.incomingOfferSheets = team.incomingOfferSheets;
+  }
+  if (team.exceptionHistory !== undefined) {
+    projected.exceptionHistory = team.exceptionHistory;
+  }
+  if (team.totals !== undefined) {
+    projected.totals = team.totals;
+  }
+  if (team.draftPicks !== undefined) {
+    projected.draftPicks = team.draftPicks;
+  }
+  if (team.entitlementIds !== undefined) {
+    projected.entitlementIds = team.entitlementIds;
+  }
+  if (team.source !== undefined) {
+    projected.source = team.source;
+  }
+  if (team.hardCapped !== undefined) {
+    projected.hardCapped = team.hardCapped;
+  }
+  if (team.hardCapLevel !== undefined) {
+    projected.hardCapLevel = team.hardCapLevel;
+  }
+  if (team.hardCapReason !== undefined) {
+    projected.hardCapReason = team.hardCapReason;
+  }
+  if (team.hardCapTriggeredBy !== undefined) {
+    projected.hardCapTriggeredBy = team.hardCapTriggeredBy;
+  }
+
+  if (lane === 'base') {
+    return projected;
+  }
+
+  const tradeProjected: TradeTeamLike = { ...projected };
+
+  if (team.twoWayPlayers !== undefined) {
+    tradeProjected.twoWayPlayers = team.twoWayPlayers;
+  }
+  if (team.teamTotalSalary !== undefined) {
+    tradeProjected.teamTotalSalary = team.teamTotalSalary;
+  }
+
+  return tradeProjected;
+}
+
 function normalizeMutationCurrentStateTeamEntry(
   entry: MutationCurrentStateIngressTeamEntry | null | undefined
 ): MutationCurrentStateTeamEntry {
-  const team = toCurrentStateTeam(entry?.team);
+  const team = projectCurrentStateTeam(toCurrentStateTeam(entry?.team), 'trade');
   const normalized: MutationCurrentStateTeamEntry = {};
   const teamCode = toOptionalTrimmedString(entry?.teamCode) ?? team?.teamCode;
 
@@ -2084,6 +2308,7 @@ function normalizeMutationCurrentStateTeamEntry(
 }
 
 function normalizeMutationCurrentState(
+  mutationType: string,
   currentState: MutationCurrentStateIngress | null | undefined
 ): MutationCurrentState {
   const normalized: MutationCurrentState = {};
@@ -2092,11 +2317,24 @@ function normalizeMutationCurrentState(
         normalizeMutationCurrentStateTeamEntry(entry)
       )
     : undefined;
-  const team = toCurrentStateTeam(currentState?.team);
+  const normalizedTeam = toCurrentStateTeam(currentState?.team);
+  const team =
+    mutationType === 'signAndTrade'
+      ? projectCurrentStateTeam(normalizedTeam, 'trade')
+      : projectCurrentStateTeam(normalizedTeam, 'base');
   const player = toCurrentStatePlayer(currentState?.player);
-  const homeTeam = toCurrentStateTeam(currentState?.homeTeam);
-  const offeringTeam = toCurrentStateTeam(currentState?.offeringTeam);
-  const destinationTeam = toCurrentStateTeam(currentState?.destinationTeam);
+  const homeTeam = projectCurrentStateTeam(
+    toCurrentStateTeam(currentState?.homeTeam),
+    'base'
+  );
+  const offeringTeam = projectCurrentStateTeam(
+    toCurrentStateTeam(currentState?.offeringTeam),
+    'base'
+  );
+  const destinationTeam = projectCurrentStateTeam(
+    toCurrentStateTeam(currentState?.destinationTeam),
+    'trade'
+  );
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
   const offerSheetId = toOptionalTrimmedString(currentState?.offerSheetId);
 
@@ -2245,20 +2483,22 @@ function getMutationRosterEntryId(entry: unknown) {
 }
 
 type CurrentStateWithTeam = MutationCurrentState & {
-  team: TeamLike;
+  team: CurrentStatePrimaryTeam;
 };
 
 type CurrentStateWithTeamAndPlayer = CurrentStateWithTeam & {
   player: PlayerLike;
 };
 
-type CurrentStateWithDestination = CurrentStateWithTeamAndPlayer & {
-  destinationTeam: TeamLike;
+type CurrentStateWithDestination = MutationCurrentState & {
+  team: TradeTeamLike;
+  player: PlayerLike;
+  destinationTeam: TradeTeamLike;
 };
 
 type CurrentStateWithOfferSheetTeams = MutationCurrentState & {
-  homeTeam: TeamLike;
-  offeringTeam: TeamLike;
+  homeTeam: BaseTeamLike;
+  offeringTeam: BaseTeamLike;
   offerSheetId: string;
 };
 
@@ -3982,7 +4222,10 @@ async function loadStateForMutation(
       return {
         teams: teamCodes.map((code, i) => ({
           teamCode: code,
-          team: toCurrentStateTeam(teamStates[i] || null),
+          team: projectCurrentStateTeam(
+            toCurrentStateTeam(teamStates[i] || null),
+            'trade'
+          ),
         })),
       };
     }
@@ -4002,11 +4245,14 @@ async function loadStateForMutation(
       const homeTeamCode = (player.teamCode || player.contract?.signingTeam) as string | null | undefined;
       let homeTeam = null;
       if (homeTeamCode && homeTeamCode !== teamCode) {
-        homeTeam = toCurrentStateTeam(await getTeam(worldId, homeTeamCode));
+        homeTeam = projectCurrentStateTeam(
+          toCurrentStateTeam(await getTeam(worldId, homeTeamCode)),
+          'base'
+        );
       }
 
       return {
-        team: toCurrentStateTeam(team),
+        team: projectCurrentStateTeam(toCurrentStateTeam(team), 'base'),
         player: toCurrentStatePlayer(player),
         teamCode,
         homeTeam,
@@ -4030,7 +4276,7 @@ async function loadStateForMutation(
       const team = await getTeam(worldId, teamCode);
       const player = await getPlayer(worldId, teamCode, playerId);
       return {
-        team: toCurrentStateTeam(team),
+        team: projectCurrentStateTeam(toCurrentStateTeam(team), 'base'),
         player: toCurrentStatePlayer(player),
         teamCode,
       };
@@ -4042,11 +4288,16 @@ async function loadStateForMutation(
       if (!teamCode || !playerId)
         throw new Error('Missing teamCode or playerId');
 
-      return await resolveStoreOfferSheetAuthority({
+      const authority = await resolveStoreOfferSheetAuthority({
         worldId,
         offeringTeamCode: String(teamCode),
         playerId: String(playerId),
       });
+      return {
+        ...authority,
+        team: projectCurrentStateTeam(authority.team, 'base'),
+        homeTeam: projectCurrentStateTeam(authority.homeTeam, 'base'),
+      };
     }
 
     case 'matchOfferSheet':
@@ -4074,8 +4325,14 @@ async function loadStateForMutation(
       ]);
 
       return {
-        homeTeam: toCurrentStateTeam(homeTeam || null),
-        offeringTeam: toCurrentStateTeam(offeringTeam || null),
+        homeTeam: projectCurrentStateTeam(
+          toCurrentStateTeam(homeTeam || null),
+          'base'
+        ),
+        offeringTeam: projectCurrentStateTeam(
+          toCurrentStateTeam(offeringTeam || null),
+          'base'
+        ),
         offerSheetId,
       };
     }
@@ -4093,8 +4350,11 @@ async function loadStateForMutation(
       ]);
 
       return {
-        team: toCurrentStateTeam(team || null),
-        destinationTeam: toCurrentStateTeam(destinationTeam || null),
+        team: projectCurrentStateTeam(toCurrentStateTeam(team || null), 'trade'),
+        destinationTeam: projectCurrentStateTeam(
+          toCurrentStateTeam(destinationTeam || null),
+          'trade'
+        ),
         player: toCurrentStatePlayer(player || null),
         teamCode: teamCode as string,
       };
@@ -4113,7 +4373,10 @@ async function loadStateForMutation(
         throw new Error(`Missing playerId in payload for renounceRights`);
       }
 
-      const team = toCurrentStateTeam(await getTeam(worldId, teamCode));
+      const team = projectCurrentStateTeam(
+        toCurrentStateTeam(await getTeam(worldId, teamCode)),
+        'base'
+      );
       if (!team) {
         throw new Error(`Team ${teamCode} not found for renounceRights`);
       }
@@ -4169,14 +4432,20 @@ async function loadStateForMutation(
     case 'setDeadCap': {
       const { teamCode } = payload;
       if (!teamCode) throw new Error('Missing teamCode');
-      const team = toCurrentStateTeam(await getTeam(worldId, teamCode));
+      const team = projectCurrentStateTeam(
+        toCurrentStateTeam(await getTeam(worldId, teamCode)),
+        'base'
+      );
       return { team, teamCode };
     }
 
     case 'setExceptions': {
       const { teamCode } = payload;
       if (!teamCode) throw new Error('Missing teamCode');
-      const team = toCurrentStateTeam(await getTeam(worldId, teamCode));
+      const team = projectCurrentStateTeam(
+        toCurrentStateTeam(await getTeam(worldId, teamCode)),
+        'base'
+      );
       return { team, teamCode };
     }
 
@@ -4648,7 +4917,10 @@ export function computeWorldMutation({
   asOfDate,
   worldId,
 }: ComputeWorldMutationArgs): ComputeResultLike {
-  const currentState = normalizeMutationCurrentState(currentStateInput);
+  const currentState = normalizeMutationCurrentState(
+    mutationType,
+    currentStateInput
+  );
 
   switch (mutationType) {
     case 'executeTrade': {
@@ -4903,7 +5175,7 @@ function computeTradeResult({
     historyContext.worldId || payload?.tradeCtx?.worldId || null;
   const resolvedMutationType = historyContext.mutationType || 'executeTrade';
   const resolvedMutationId = historyContext.mutationId;
-  const getTpeRemaining = (tpe: TradeExceptionRecord) =>
+  const getTpeRemaining = (tpe: CurrentStateTradeException) =>
     Number(tpe?.remainingAmount ?? tpe?.amount ?? 0) || 0;
 
   // Phase 56: Use pre-built snapshot teamUpdates (already has roster changes applied)
@@ -4919,11 +5191,8 @@ function computeTradeResult({
   const validation = getTradeValidationApplyTimeSlice(validatedContext);
 
   // Phase 56: Use only the authoritative apply-time validationTeams from context.
-  const validationTeams: TradeApplyValidationTeamLike[] = Array.isArray(
-    validatedContext.validationTeams
-  )
-    ? validatedContext.validationTeams
-    : [];
+  const validationTeams: TradeApplyValidationTeamLike[] =
+    validatedContext.validationTeams;
 
   // Warn if multi-team trade without directed routing (informational only)
   if (tradeTeams.length > 2) {
@@ -4969,7 +5238,8 @@ function computeTradeResult({
     if (tradeExceptionsResult) {
       // The validator already updated the TPE objects in place during validation
       // We need to extract the consumed amounts from the incoming players that used TPEs
-      const incomingPlayers = validationTeams[idx]?.receives || [];
+      const incomingPlayers: TradeApplyValidationPlayerLike[] =
+        validationTeams[idx]?.receives || [];
       const tpeUsageMap = new Map<string, number>(); // tpeId -> consumed amount
       const tpeConsumptionWarnings: TradeTpeConsumptionIssue[] = []; // Phase 47C: Track missing matchIncoming warnings
       const tpeConsumptionErrors: TradeTpeConsumptionIssue[] = []; // Fail-closed: hard errors that block mutation
