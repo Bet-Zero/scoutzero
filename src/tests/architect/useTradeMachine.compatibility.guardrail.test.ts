@@ -58,6 +58,7 @@ const expectedReturnKeys = [
   'clearInjectedDevSntPlayers',
   'getValidatedAt',
   'initError',
+  'fullLegalityResult',
 ] as const;
 
 const expectedExportKeys = [

@@ -268,6 +268,12 @@ export const PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.
   'rfaOfferSheet',
   'rfaOfferSheetOnly',
   'rfaContext',
+
+  // Live player override carry-through for trade/signing timing and routing
+  'isTwoWay',
+  'signedDate',
+  'isNewlySignedFA',
+  'originTeamId',
 ]);
 
 // ==============================================================================

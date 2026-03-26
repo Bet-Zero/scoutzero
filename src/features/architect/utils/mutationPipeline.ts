@@ -605,29 +605,6 @@ export type ArchitectMutationPayload = {
 };
 type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
 type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
-type MergePlayerOverrideInput = Parameters<typeof mergePlayerOverride>[0];
-type MergePlayerOverrideShape = Pick<
-  ArchitectMutationPlayerRecord,
-  | 'player_id'
-  | 'id'
-  | 'playerId'
-  | 'teamCode'
-  | 'teamName'
-  | 'name'
-  | 'displayName'
-  | 'playerName'
-  | 'bio'
-  | 'contract'
-  | 'futureContract'
-  | 'renounced'
-  | 'representation'
-  | 'source'
-  | 'lastUpdated'
-  | 'version'
-  | 'rfaOfferSheet'
-  | 'rfaOfferSheetOnly'
-  | 'rfaContext'
->;
 type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
   year?: number | string | null;
 };
@@ -642,11 +619,89 @@ type CurrentStateTradeException = {
   createdFrom?: string | null;
   isUsed?: boolean | null;
 };
-// Deliberately broader than the team lane projections below. These player fields
-// still round-trip through live player merge/write paths in this file:
-// - resolveStoreOfferSheetAuthority() via toMergePlayerOverrideInput()
-// - computeSigningResult() / computeSignAndTradeResult() spread updates
-// - toPersistablePlayerOverrideFromSnapshot() persistence writes
+type NormalizedCurrentStatePlayerDraft = Pick<
+  NonNullable<ArchitectMutationPlayerRecord['draft']>,
+  'round' | 'pick'
+>;
+type NormalizedCurrentStatePlayer = Omit<
+  Pick<
+    ArchitectMutationPlayerRecord,
+    | 'player_id'
+    | 'id'
+    | 'playerId'
+    | 'teamCode'
+    | 'teamName'
+    | 'name'
+    | 'displayName'
+    | 'playerName'
+    | 'bio'
+    | 'contract'
+    | 'futureContract'
+    | 'representation'
+    | 'source'
+    | 'salary'
+    | 'currentSalary'
+    | 'renounced'
+    | 'freeAgentYear'
+    | 'rightsRenounced'
+    | 'rfaOfferSheet'
+    | 'rfaOfferSheetOnly'
+    | 'rfaContext'
+    | 'lastUpdated'
+    | 'version'
+    | 'isTwoWay'
+    | 'signedDate'
+    | 'isNewlySignedFA'
+    | 'originTeamId'
+  >,
+  'draft'
+> & {
+  draft?: NormalizedCurrentStatePlayerDraft | null;
+};
+type LineageOverrideMergeBio = Pick<
+  NonNullable<NormalizedCurrentStatePlayer['bio']>,
+  'playerId' | 'displayName'
+>;
+type LineageOverrideMergePlayer = Omit<
+  Pick<
+    NormalizedCurrentStatePlayer,
+    | 'player_id'
+    | 'id'
+    | 'playerId'
+    | 'teamCode'
+    | 'teamName'
+    | 'name'
+    | 'displayName'
+    | 'playerName'
+    | 'bio'
+    | 'contract'
+  >,
+  'bio'
+> & {
+  bio?: LineageOverrideMergeBio | null;
+};
+type PersistablePlayerOverride = Pick<
+  NormalizedCurrentStatePlayer,
+  | 'displayName'
+  | 'teamCode'
+  | 'teamName'
+  | 'bio'
+  | 'contract'
+  | 'futureContract'
+  | 'representation'
+  | 'source'
+  | 'lastUpdated'
+  | 'version'
+  | 'rfaOfferSheet'
+  | 'rfaOfferSheetOnly'
+  | 'rfaContext'
+  | 'isTwoWay'
+  | 'signedDate'
+  | 'isNewlySignedFA'
+  | 'originTeamId'
+> & {
+  playerId?: string | null;
+};
 type CurrentStatePlayer = Pick<
   ArchitectMutationPlayerRecord,
   | 'player_id'
@@ -660,7 +715,6 @@ type CurrentStatePlayer = Pick<
   | 'bio'
   | 'contract'
   | 'futureContract'
-  | 'draft'
   | 'representation'
   | 'source'
   | 'salary'
@@ -668,7 +722,6 @@ type CurrentStatePlayer = Pick<
   | 'renounced'
   | 'freeAgentYear'
   | 'rightsRenounced'
-  | 'renouncedAt'
   | 'rfaOfferSheet'
   | 'rfaOfferSheetOnly'
   | 'rfaContext'
@@ -678,7 +731,9 @@ type CurrentStatePlayer = Pick<
   | 'signedDate'
   | 'isNewlySignedFA'
   | 'originTeamId'
->;
+> & {
+  draft?: NormalizedCurrentStatePlayerDraft | null;
+};
 type CurrentStateBaseTeam = Pick<
   CurrentStateTeam,
   | 'teamCode'
@@ -741,7 +796,7 @@ type TeamLike = CurrentStateTeam;
 type BaseTeamLike = CurrentStateBaseTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
-type PlayerLike = CurrentStatePlayer;
+type PlayerLike = NormalizedCurrentStatePlayer;
 type MutationTeamMap = Record<string, TeamSnapshotLike>;
 type MutationCurrentStateTeamEntry = {
   teamCode?: string | null;
@@ -2056,6 +2111,28 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   return normalized;
 }
 
+function normalizeCurrentStatePlayerDraft(
+  value: unknown
+): NormalizedCurrentStatePlayer['draft'] | undefined {
+  const draftRecord = asLooseRecord(value);
+  if (!draftRecord) {
+    return undefined;
+  }
+
+  const normalized: NonNullable<NormalizedCurrentStatePlayer['draft']> = {};
+  const round = toOptionalNumber(draftRecord.round);
+  const pick = toOptionalNumber(draftRecord.pick);
+
+  if (round !== undefined) {
+    normalized.round = round;
+  }
+  if (pick !== undefined) {
+    normalized.pick = pick;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
 function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   const playerRecord = asLooseRecord(player);
   if (!playerRecord) {
@@ -2082,7 +2159,7 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   const futureContract = toOptionalObject<ArchitectMutationContract>(
     playerRecord.futureContract
   );
-  const draft = toOptionalObject<Partial<PlayerDraft>>(playerRecord.draft);
+  const draft = normalizeCurrentStatePlayerDraft(playerRecord.draft);
   const representation = toOptionalObject<BasePlayerDoc['representation']>(
     playerRecord.representation
   );
@@ -2094,7 +2171,6 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   const renounced = toOptionalBoolean(playerRecord.renounced);
   const freeAgentYear = toOptionalNumberish(playerRecord.freeAgentYear);
   const rightsRenounced = toOptionalBoolean(playerRecord.rightsRenounced);
-  const renouncedAt = toOptionalTrimmedString(playerRecord.renouncedAt);
   const rfaOfferSheet = toOptionalBoolean(playerRecord.rfaOfferSheet);
   const rfaOfferSheetOnly = toOptionalBoolean(playerRecord.rfaOfferSheetOnly);
   const rfaContext = toOptionalObject<LooseRecord>(playerRecord.rfaContext);
@@ -2161,9 +2237,6 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   }
   if (rightsRenounced !== undefined) {
     normalized.rightsRenounced = rightsRenounced;
-  }
-  if (renouncedAt !== undefined) {
-    normalized.renouncedAt = renouncedAt;
   }
   if (rfaOfferSheet !== undefined) {
     normalized.rfaOfferSheet = rfaOfferSheet;
@@ -2366,9 +2439,30 @@ function normalizeMutationCurrentState(
   return normalized;
 }
 
-function toMergePlayerOverrideInput(player: unknown): MergePlayerOverrideInput {
+function toLineageOverrideMergeBio(
+  bio: NormalizedCurrentStatePlayer['bio']
+): LineageOverrideMergePlayer['bio'] | undefined {
+  if (!bio || typeof bio !== 'object' || Array.isArray(bio)) {
+    return undefined;
+  }
+
+  const normalized: NonNullable<LineageOverrideMergePlayer['bio']> = {};
+  const playerId = toOptionalIdString(bio.playerId);
+  const displayName = toOptionalTrimmedString(bio.displayName);
+
+  if (playerId !== undefined) {
+    normalized.playerId = playerId;
+  }
+  if (displayName !== undefined) {
+    normalized.displayName = displayName;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function toLineageOverrideMergePlayer(player: unknown): LineageOverrideMergePlayer {
   const playerRecord = toCurrentStatePlayer(player);
-  const normalized: MergePlayerOverrideShape = {};
+  const normalized: LineageOverrideMergePlayer = {};
 
   if (!playerRecord) {
     return normalized;
@@ -2385,16 +2479,8 @@ function toMergePlayerOverrideInput(player: unknown): MergePlayerOverrideInput {
     playerName,
     bio,
     contract,
-    futureContract,
-    renounced,
-    representation,
-    source,
-    lastUpdated,
-    version,
-    rfaOfferSheet,
-    rfaOfferSheetOnly,
-    rfaContext,
   } = playerRecord;
+  const mergeBio = toLineageOverrideMergeBio(bio);
 
   if (player_id !== undefined) {
     normalized.player_id = player_id;
@@ -2420,38 +2506,11 @@ function toMergePlayerOverrideInput(player: unknown): MergePlayerOverrideInput {
   if (playerName !== undefined) {
     normalized.playerName = playerName;
   }
-  if (bio !== undefined) {
-    normalized.bio = bio;
+  if (mergeBio !== undefined) {
+    normalized.bio = mergeBio;
   }
   if (contract !== undefined) {
     normalized.contract = contract;
-  }
-  if (futureContract !== undefined) {
-    normalized.futureContract = futureContract;
-  }
-  if (renounced !== undefined) {
-    normalized.renounced = renounced;
-  }
-  if (representation !== undefined) {
-    normalized.representation = representation;
-  }
-  if (source !== undefined) {
-    normalized.source = source;
-  }
-  if (lastUpdated !== undefined) {
-    normalized.lastUpdated = lastUpdated;
-  }
-  if (version !== undefined) {
-    normalized.version = version;
-  }
-  if (rfaOfferSheet !== undefined) {
-    normalized.rfaOfferSheet = rfaOfferSheet;
-  }
-  if (rfaOfferSheetOnly !== undefined) {
-    normalized.rfaOfferSheetOnly = rfaOfferSheetOnly;
-  }
-  if (rfaContext !== undefined) {
-    normalized.rfaContext = rfaContext;
   }
 
   return normalized;
@@ -2793,8 +2852,8 @@ async function resolveStoreOfferSheetAuthority({
   const canonicalPlayer = overrideEntry
     ? toCurrentStatePlayer(
         mergePlayerOverride(
-          toMergePlayerOverrideInput(resolvedOwner.snapshotPlayer),
-          toMergePlayerOverrideInput(overrideEntry.player)
+          toLineageOverrideMergePlayer(resolvedOwner.snapshotPlayer),
+          toLineageOverrideMergePlayer(overrideEntry.player)
         )
       )
     : resolvedOwner.snapshotPlayer;
@@ -4493,41 +4552,47 @@ function findPlayerInTeamPlayers(
   return players.find((player) => getMutationPlayerId(player) === playerId) || null;
 }
 
-function toPersistablePlayerOverrideFromSnapshot(player: PlayerLike): PlayerLike {
-  const playerId = getMutationPlayerId(player);
+function toPersistablePlayerOverrideFromSnapshot(
+  player: PlayerSnapshotLike | null | undefined
+): PersistablePlayerOverride | null {
+  const normalizedPlayer = toCurrentStatePlayer(player);
+  if (!normalizedPlayer) {
+    return null;
+  }
+
+  const playerId = getMutationPlayerId(normalizedPlayer);
   const bio =
-    player.bio && typeof player.bio === 'object' && !Array.isArray(player.bio)
-      ? (player.bio as MutationPlayerBioLike)
+    normalizedPlayer.bio &&
+    typeof normalizedPlayer.bio === 'object' &&
+    !Array.isArray(normalizedPlayer.bio)
+      ? (normalizedPlayer.bio as MutationPlayerBioLike)
       : undefined;
 
   return removeUndefinedDeep({
     playerId: playerId || undefined,
     displayName:
-      player.displayName ||
-      player.playerName ||
-      player.name ||
+      normalizedPlayer.displayName ||
+      normalizedPlayer.playerName ||
+      normalizedPlayer.name ||
       bio?.displayName ||
       undefined,
-    teamCode: player.teamCode || undefined,
-    teamName: player.teamName || undefined,
+    teamCode: normalizedPlayer.teamCode || undefined,
+    teamName: normalizedPlayer.teamName || undefined,
     bio,
-    contract: player.contract || undefined,
-    futureContract: player.futureContract || undefined,
-    representation: player.representation,
-    source: player.source || undefined,
-    lastUpdated: player.lastUpdated,
-    version: player.version,
-    freeAgentYear: player.freeAgentYear,
-    rightsRenounced: player.rightsRenounced,
-    renouncedAt: player.renouncedAt,
-    rfaOfferSheet: player.rfaOfferSheet,
-    rfaOfferSheetOnly: player.rfaOfferSheetOnly,
-    rfaContext: player.rfaContext,
-    isTwoWay: player.isTwoWay,
-    signedDate: player.signedDate,
-    isNewlySignedFA: player.isNewlySignedFA,
-    originTeamId: player.originTeamId,
-  }) as PlayerLike;
+    contract: normalizedPlayer.contract || undefined,
+    futureContract: normalizedPlayer.futureContract || undefined,
+    representation: normalizedPlayer.representation,
+    source: normalizedPlayer.source || undefined,
+    lastUpdated: normalizedPlayer.lastUpdated,
+    version: normalizedPlayer.version,
+    rfaOfferSheet: normalizedPlayer.rfaOfferSheet,
+    rfaOfferSheetOnly: normalizedPlayer.rfaOfferSheetOnly,
+    rfaContext: normalizedPlayer.rfaContext,
+    isTwoWay: normalizedPlayer.isTwoWay,
+    signedDate: normalizedPlayer.signedDate,
+    isNewlySignedFA: normalizedPlayer.isNewlySignedFA,
+    originTeamId: normalizedPlayer.originTeamId,
+  }) as PersistablePlayerOverride;
 }
 
 type TradePlayerMoveCandidate = {
@@ -4663,9 +4728,17 @@ function buildCanonicalPlayerPersistenceManifest({
       };
     }
 
+    const persistedPlayer = toPersistablePlayerOverrideFromSnapshot(finalPlayer);
+    if (!persistedPlayer) {
+      return {
+        success: false,
+        error: `${manifestLabel} could not normalize persisted player override for ${candidate.playerId}.`,
+      };
+    }
+
     playerUpdates.push({
       playerId: candidate.playerId,
-      player: toPersistablePlayerOverrideFromSnapshot(finalPlayer),
+      player: persistedPlayer,
     });
 
     if (
@@ -7086,15 +7159,21 @@ async function persistWorldMutation({
       if (!player) {
         continue;
       }
-      const teamCode = player.teamCode;
-      if (teamCode && player) {
+      const normalizedPlayerId = String(
+        playerId || getMutationPlayerId(player) || ''
+      ).trim();
+      const persistablePlayer = toPersistablePlayerOverrideFromSnapshot(player);
+      const teamCode = persistablePlayer?.teamCode;
+      if (teamCode && persistablePlayer && normalizedPlayerId) {
         // Guard against undefined values (dev throws, prod allows)
         guardAgainstUndefined(
-          player,
-          `architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`
+          persistablePlayer,
+          `architect_worlds/${worldId}/teams/${teamCode}/players/${normalizedPlayerId}`
         );
         // Phase 60: Sanitize transient fields first
-        const afterSanitize = sanitizeTransientFieldsForPersistence(player);
+        const afterSanitize = sanitizeTransientFieldsForPersistence(
+          persistablePlayer
+        );
         // Phase 61: Validate against persistence contract (test-only enforcement)
         // Ordering: sanitize → validate contract → removeUndefined
         assertPersistableOrThrow({
@@ -7104,11 +7183,9 @@ async function persistWorldMutation({
         });
         // Then remove undefined values
         const sanitizedPlayer = removeUndefinedDeep(afterSanitize);
-        const playerRef = worldPlayerRef(worldId, teamCode, playerId);
+        const playerRef = worldPlayerRef(worldId, teamCode, normalizedPlayerId);
         batch.set(playerRef, sanitizedPlayer);
-        if (playerId) {
-          playerIdsPatched.add(String(playerId));
-        }
+        playerIdsPatched.add(normalizedPlayerId);
       }
     }
 
