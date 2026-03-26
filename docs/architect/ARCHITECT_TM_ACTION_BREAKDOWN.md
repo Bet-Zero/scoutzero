@@ -295,3 +295,24 @@ Ensure ALL trade execution flows through:
 This Action Breakdown is derived directly from the Step 1 Review Record and must remain aligned with it.
 
 If Review Record changes, this document must be regenerated.
+
+---
+
+## STEP 2 — Preview vs Apply Truth Gap (UI Trust Layer)
+
+Result:
+
+- Review completed
+- No execution substeps created
+
+Reason:
+
+- Step 1 resolved the practical local/UI trust gap
+- Remaining mismatch is limited to world-state gates that are explicitly disclosed and not locally previewable
+
+Status:
+
+- No action required at this time
+- Future enhancement only if world-state preflight becomes a priority
+
+---

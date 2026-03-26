@@ -1,6 +1,22 @@
-| ID    | Title                                          | Status | Notes |
-| ----- | ---------------------------------------------- | ------ | ----- |
-| TM-1A | Preview vs Apply Truth Alignment               | DONE | All local gates in preview (CBA snapshot + post-state cap); 3 Firestore-dependent gates remain apply-only by necessity; UI truthfully discloses limits |
-| TM-1B | Roster Validation Consolidation                | DONE   | ROSTER_LIMITS + checkRosterCounts canonical in validateRoster.ts; tradeValidator delegates; postStateCapValidator uses shared constants + adds min-roster check; rosterValidation.ts and enforcement.ts use ROSTER_LIMITS; 15 new tests pass |
-| TM-1C | Hard Cap / Apron Rule Consolidation            | DONE   | Orphaned validateHardCap.ts deleted. All three behavioral conflicts resolved (TM-1C followup). (1) basicRules.ts prior-year TPE existence guard removed — validateTradeExceptions.ts is sole canonical authority (usage-only, per CBA). (2) basicRules.ts multi-player broad block removed — validateAggregation.ts is sole canonical authority (aggregate-up only; equal-value multi-player trades allowed per CBA). (3) postStateCapValidator.ts resolveHardCapCeiling() now delegates ceiling-value resolution to hardCapStatus.ts:resolveHardCapCeiling() (exported); detection logic retained locally for post-state shape. Ownership model is now truly consolidated, not just documented. |
-| TM-1D | Alternate Execution Path Removal / Containment | DONE   | Removed dormant `tradeManager.executeTrade()` and the `architectCore.ts` re-export. Authoritative trade execution now stays on `applyWorldMutation('executeTrade')` for world persistence and `computeWorldMutation({ mutationType: 'executeTrade' })` for base-state local apply. |
+## STEP 1 — Trade Machine Validator Core Truth
+
+| ID    | Title                         | Status | Notes |
+| ----- | ----------------------------- | ------ | ----- |
+| TM-1A | Preview vs Apply Gap          | DONE   |       |
+| TM-1B | Roster Validation Split       | DONE   |       |
+| TM-1C | Hard Cap / Apron Distribution | DONE   |       |
+| TM-1D | Alternate Execution Path Risk | DONE   |       |
+
+**STEP STATUS: DONE**
+
+---
+
+## STEP 2 — Preview vs Apply Truth Gap (UI Trust Layer)
+
+| ID  | Title                 | Status | Notes            |
+| --- | --------------------- | ------ | ---------------- |
+| —   | No execution substeps | —      | Review-only step |
+
+**STEP STATUS: DONE (No execution required)**
+
+---
