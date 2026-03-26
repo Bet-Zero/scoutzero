@@ -148,6 +148,8 @@ const TradeEditor = ({
     applyEntitlementOverrideUpdate,
     // TM-VACUUM-E1: Re-resolve entitlements for all active slots
     refreshEntitlements,
+    // TM-1A: Apply-path preview validation result
+    fullLegalityResult,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -330,7 +332,9 @@ const TradeEditor = ({
   }, [containerWidth, teams.length]);
   const compact = layoutMode !== 'normal';
 
-  const canApplyTrade = hasCurrentValidation && result?.legal === true;
+  // TM-1A: Apply-path snapshot validation blocks apply when it computes a non-legal result
+  const fullPreviewBlocked = fullLegalityResult != null && fullLegalityResult.legal === false;
+  const canApplyTrade = hasCurrentValidation && result?.legal === true && !fullPreviewBlocked;
   const isDevSntInjectorEnabled =
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
@@ -697,6 +701,15 @@ const TradeEditor = ({
             CBA validation passed. World-state and post-state checks (duplicate
             players, entitlement conflicts, exclusivity, cap/roster integrity)
             run at apply time.
+          </span>
+        )}
+
+        {fullPreviewBlocked && (
+          <span className="text-xs text-red-400">
+            Apply blocked (post-trade check):{' '}
+            {fullLegalityResult?.reason ||
+              fullLegalityResult?.violations?.[0]?.message ||
+              'Trade fails apply-path validation'}
           </span>
         )}
 

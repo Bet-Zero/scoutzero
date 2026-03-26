@@ -502,6 +502,8 @@ export type ArchitectTradePayloadTeam = {
   incomingEntitlements?: TradePayloadEntitlementLike[];
   entitlementsOut?: TradePayloadEntitlementLike[];
   picksOut?: NormalizedTeamPick[];
+  // Deliberately passthrough: tradeContext/validator still consume this as an
+  // undeconstructed inbound payload boundary rather than a normalized asset shape.
   picksIn?: unknown[];
   cashSent?: number | null;
   cashReceived?: number | null;
@@ -534,7 +536,7 @@ type TradeMutationMetadata = {
   playersTraded: Array<string | null | undefined>;
   entitlementsTraded?: TradeEntitlementsMovedByTeam;
   timestamp: number;
-} & Record<string, unknown>;
+};
 type TradeSnapshotLike = TradeContextPostTradeSnapshot;
 type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;
 type TradeValidationTeamResultLike = TradeContextTeamResult;
@@ -544,10 +546,10 @@ type TradeValidationApplyTimeSlice = {
 };
 export type ArchitectMutationValidatedTradeContext =
   TradeContextValidatedTradeContext;
-type TradeHistoryContextLike = LooseRecord & {
-  worldId?: unknown;
-  mutationType?: unknown;
-  mutationId?: unknown;
+type TradeHistoryContextLike = {
+  worldId?: string | null;
+  mutationType?: string | null;
+  mutationId?: string | null;
 };
 export type ArchitectMutationTeamUpdate = {
   teamCode?: string | null;
@@ -695,6 +697,14 @@ type PlayerSnapshotLike = ArchitectMutationPlayerRecord | PlayerLike;
 type TeamLike = CurrentStateTeam;
 type PlayerLike = CurrentStatePlayer;
 type MutationTeamMap = Record<string, TeamSnapshotLike>;
+type MutationCurrentStateTeamEntry = {
+  teamCode?: string | null;
+  team?: TeamLike | null;
+};
+type MutationCurrentStateIngressTeamEntry = {
+  teamCode?: string | null;
+  team?: TeamSnapshotLike | null;
+};
 export type ArchitectMutationPlayerUpdate = {
   playerId?: string | null;
   player?: ArchitectMutationPlayerRecord | null;
@@ -725,6 +735,8 @@ type MutationDiffSummary = {
   exceptionsChanged: number;
   teamsTouched: number;
 };
+// Deliberately mixed: this aggregates issue payloads from multiple validators and
+// invariant checks that do not yet share one cross-module issue contract.
 type MutationResultIssueLike = string | LooseRecord;
 type MutationEventContractSalaryRow = {
   season?: string | number | null;
@@ -829,6 +841,9 @@ type ArchitectWorldMutationPatch = {
   lastModifiedTeams: Array<string | null | undefined>;
   asOfDate?: string;
 };
+type ArchitectWorldMutationEventBridge = Partial<
+  Pick<ArchitectWorldMutationEvent, 'eventId' | 'id' | 'operationId'>
+>;
 type ArchitectWorldMutationEvent = {
   eventId: string;
   id: string;
@@ -880,8 +895,8 @@ export type ArchitectMutationResult = {
   writesSummary?: ArchitectMutationWritesSummary;
   changedTeams?: ArchitectMutationTeamUpdate[];
   changedPlayers?: ArchitectMutationPlayerUpdate[];
-  worldPatch?: Record<string, unknown>;
-  event?: Record<string, unknown>;
+  worldPatch?: ArchitectWorldMutationPatch;
+  event?: ArchitectWorldMutationEventBridge;
   appliedToLocalState?: boolean;
   persistedToWorld?: boolean;
   eventWritten?: boolean;
@@ -928,7 +943,7 @@ type PersistWorldMutationResult = {
   success: boolean;
   error?: string | Error | null;
   worldPatch?: ArchitectWorldMutationPatch;
-  event?: ArchitectWorldMutationEvent;
+  event?: ArchitectWorldMutationEventBridge;
   writesSummary?: WritesSummaryLike;
 };
 type MutationBridgeTeamUpdatesSlice = Pick<
@@ -963,14 +978,10 @@ type MutationFailureOverrides = Pick<
 type ComputeResultLike = ArchitectMutationBridgeResult;
 type AuditContextLike = MutationAuditContext;
 type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
-type CurrentStateTeamEntryLike = {
-  teamCode?: string | null;
-  team?: TeamSnapshotLike | null;
-};
-// Broad public carrier used by shared ingress/aggregation sites that need to inspect
-// partially populated mutation state across multiple mutation families.
-type MutationCurrentState = {
-  teams?: CurrentStateTeamEntryLike[];
+// Public compute ingress used by shared callers that may still carry partially
+// populated team/player snapshots across mutation families.
+type MutationCurrentStateIngress = {
+  teams?: MutationCurrentStateIngressTeamEntry[];
   team?: TeamSnapshotLike | null;
   player?: PlayerSnapshotLike | null;
   homeTeam?: TeamSnapshotLike | null;
@@ -978,6 +989,18 @@ type MutationCurrentState = {
   destinationTeam?: TeamSnapshotLike | null;
   teamCode?: string | null;
   destinationTeamCode?: string | null;
+  offerSheetId?: string | null;
+};
+// Internal mutation state after ingress normalization. Only fields actually read
+// by compute/apply paths are carried forward from the public ingress.
+type MutationCurrentState = {
+  teams?: MutationCurrentStateTeamEntry[];
+  team?: TeamLike | null;
+  player?: PlayerLike | null;
+  homeTeam?: TeamLike | null;
+  offeringTeam?: TeamLike | null;
+  destinationTeam?: TeamLike | null;
+  teamCode?: string | null;
   offerSheetId?: string | null;
 };
 type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
@@ -993,7 +1016,7 @@ type ApplyWorldMutationArgs = {
 type ComputeWorldMutationArgs = {
   mutationType: string;
   payload: ArchitectMutationPayload;
-  currentState: MutationCurrentState;
+  currentState: MutationCurrentStateIngress;
   seasonId: string;
   timestamp: number;
   asOfDate?: string | number | null;
@@ -1639,14 +1662,16 @@ function extractTeamsByCodeFromCurrentState(
   );
   addTeamSnapshot(
     teamsByCode,
-    currentState.destinationTeamCode || currentState.destinationTeam?.teamCode,
+    currentState.destinationTeam?.teamCode,
     currentState.destinationTeam
   );
 
   return teamsByCode;
 }
 
-function toTradeStateSlice(currentState: TradeStateSlice): { teams: CurrentStateTeamEntryLike[] } {
+function toTradeStateSlice(
+  currentState: TradeStateSlice
+): { teams: MutationCurrentStateTeamEntry[] } {
   return {
     teams: Array.isArray(currentState.teams) ? currentState.teams : [],
   };
@@ -2036,6 +2061,68 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   }
   if (originTeamId !== undefined) {
     normalized.originTeamId = originTeamId;
+  }
+
+  return normalized;
+}
+
+function normalizeMutationCurrentStateTeamEntry(
+  entry: MutationCurrentStateIngressTeamEntry | null | undefined
+): MutationCurrentStateTeamEntry {
+  const team = toCurrentStateTeam(entry?.team);
+  const normalized: MutationCurrentStateTeamEntry = {};
+  const teamCode = toOptionalTrimmedString(entry?.teamCode) ?? team?.teamCode;
+
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
+  }
+  if (team) {
+    normalized.team = team;
+  }
+
+  return normalized;
+}
+
+function normalizeMutationCurrentState(
+  currentState: MutationCurrentStateIngress | null | undefined
+): MutationCurrentState {
+  const normalized: MutationCurrentState = {};
+  const teams = Array.isArray(currentState?.teams)
+    ? currentState.teams.map((entry) =>
+        normalizeMutationCurrentStateTeamEntry(entry)
+      )
+    : undefined;
+  const team = toCurrentStateTeam(currentState?.team);
+  const player = toCurrentStatePlayer(currentState?.player);
+  const homeTeam = toCurrentStateTeam(currentState?.homeTeam);
+  const offeringTeam = toCurrentStateTeam(currentState?.offeringTeam);
+  const destinationTeam = toCurrentStateTeam(currentState?.destinationTeam);
+  const teamCode = toOptionalTrimmedString(currentState?.teamCode);
+  const offerSheetId = toOptionalTrimmedString(currentState?.offerSheetId);
+
+  if (teams !== undefined) {
+    normalized.teams = teams;
+  }
+  if (team) {
+    normalized.team = team;
+  }
+  if (player) {
+    normalized.player = player;
+  }
+  if (homeTeam) {
+    normalized.homeTeam = homeTeam;
+  }
+  if (offeringTeam) {
+    normalized.offeringTeam = offeringTeam;
+  }
+  if (destinationTeam) {
+    normalized.destinationTeam = destinationTeam;
+  }
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
+  }
+  if (offerSheetId !== undefined) {
+    normalized.offerSheetId = offerSheetId;
   }
 
   return normalized;
@@ -4010,7 +4097,6 @@ async function loadStateForMutation(
         destinationTeam: toCurrentStateTeam(destinationTeam || null),
         player: toCurrentStatePlayer(player || null),
         teamCode: teamCode as string,
-        destinationTeamCode: destinationTeamCode as string,
       };
     }
 
@@ -4099,7 +4185,7 @@ async function loadStateForMutation(
   }
 }
 
-function withDefaultPlayerDeletes<T extends Record<string, unknown>>(
+function withDefaultPlayerDeletes<T>(
   result: T & { playerDeletes?: PlayerDeleteLike[] }
 ): Omit<T, 'playerDeletes'> & { playerDeletes: PlayerDeleteLike[] } {
   return {
@@ -4556,19 +4642,21 @@ function buildTradePlayerPersistenceManifest({
 export function computeWorldMutation({
   mutationType,
   payload,
-  currentState,
+  currentState: currentStateInput,
   seasonId,
   timestamp,
   asOfDate,
   worldId,
 }: ComputeWorldMutationArgs): ComputeResultLike {
+  const currentState = normalizeMutationCurrentState(currentStateInput);
+
   switch (mutationType) {
     case 'executeTrade': {
       // Phase 56: Build snapshot → validate snapshot → compute with context
       // Step 1: Build post-trade snapshot (pure function, no validation)
       const postTradeSnapshot = buildPostTradeTeamsSnapshot({
         payload,
-        currentState,
+        currentState: toTradeStateSlice(currentState),
         seasonId,
         timestamp,
       });
@@ -4811,13 +4899,10 @@ function computeTradeResult({
 
   const currentYear = toEndYear(seasonId);
   const timestampISO = new Date(timestamp).toISOString();
-  const historyContextRef = historyContext || {};
   const resolvedWorldId =
-    historyContextRef.worldId ||
-    payload?.tradeCtx?.worldId ||
-    null;
-  const resolvedMutationType = (historyContextRef.mutationType || 'executeTrade') as string;
-  const resolvedMutationId = historyContextRef.mutationId as string | null | undefined;
+    historyContext.worldId || payload?.tradeCtx?.worldId || null;
+  const resolvedMutationType = historyContext.mutationType || 'executeTrade';
+  const resolvedMutationId = historyContext.mutationId;
   const getTpeRemaining = (tpe: TradeExceptionRecord) =>
     Number(tpe?.remainingAmount ?? tpe?.amount ?? 0) || 0;
 
@@ -5861,10 +5946,32 @@ function computeExtensionResult({
     };
   }
 
+  const normalizedExtensionRows: MutationPipelineSalaryRow[] = Array.isArray(
+    extension?.salariesByYear
+  )
+    ? extension.salariesByYear.map(
+        (row): MutationPipelineSalaryRow => {
+          const normalizedRow = normalizeSalaryRow(row);
+          const capHit = toOptionalNumber(normalizedRow?.capHit);
+          const optionUsed =
+            typeof normalizedRow?.optionUsed === 'boolean'
+              ? normalizedRow.optionUsed
+              : undefined;
+
+          return {
+            ...row,
+            ...(capHit !== undefined ? { capHit } : {}),
+            ...(optionUsed !== undefined ? { optionUsed } : {}),
+            isExtensionSeason: true,
+          };
+        }
+      )
+    : [];
+
   // Determine which years the extension covers so we can void overlapping originals
   const extensionYearSet = new Set(
-    (Array.isArray(extension?.salariesByYear) ? extension.salariesByYear : [])
-      .map((row) => getSalaryRowEndYear(row as MutationPipelineSalaryRow))
+    normalizedExtensionRows
+      .map((row) => getSalaryRowEndYear(row))
       .filter((year): year is number => typeof year === 'number')
   );
 
@@ -5886,13 +5993,7 @@ function computeExtensionResult({
     ...(existingFutureContract || {}),
     salariesByYear: [
       ...existingRows,
-      ...(Array.isArray(extension?.salariesByYear)
-        ? extension.salariesByYear
-        : []
-      ).map((row) => ({
-        ...normalizeSalaryRow(row),
-        isExtensionSeason: true,
-      })),
+      ...normalizedExtensionRows,
     ],
     isExtension: true,
     signingDate: new Date(timestamp).toISOString(),
@@ -5924,10 +6025,10 @@ function computeExtensionResult({
       teamCode,
       playerId,
       playerName: player.displayName || player.name,
-      extensionYears: (extension.salariesByYear as unknown[] | undefined)?.length || 0,
+      extensionYears: normalizedExtensionRows.length,
       extensionTerms: {
-        years: (extension.salariesByYear as unknown[] | undefined)?.length || 0,
-        salariesByYear: (extension.salariesByYear as unknown[] | undefined) || [],
+        years: normalizedExtensionRows.length,
+        salariesByYear: normalizedExtensionRows,
       },
       timestamp,
     },
@@ -7624,7 +7725,7 @@ function computeSignAndTradeResult({
 }: ComputeMutationParams & {
   asOfDate?: string | number | null;
   worldId?: string;
-  historyContext?: LooseRecord;
+  historyContext?: TradeHistoryContextLike;
 }): ComputeResultLike {
   const { team, destinationTeam, player } = requireDestinationState(
     currentState,
@@ -7711,7 +7812,7 @@ function computeSignAndTradeResult({
   };
 
   // Construct trade state (Source has signed player, Dest is original)
-  const tradeState: { teams: CurrentStateTeamEntryLike[] } = {
+  const tradeState: TradeStateSlice = {
     teams: [
       { teamCode: teamCode as string | null, team: updatedSourceTeam as TeamLike },
       { teamCode: destinationTeamCode as string | null, team: destinationTeam as TeamLike },

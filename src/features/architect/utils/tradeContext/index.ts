@@ -11,6 +11,8 @@
  * EXPORTS:
  * - buildPostTradeTeamsSnapshot: Build post-trade snapshot (PURE)
  * - validatePostTradeSnapshotForContext: Validate snapshot to context
+ * - getFullLegalityPreview: TM-1A apply-path preview without world-state gates
+ * - FullLegalityPreviewResult: Type for apply-path preview result
  * - assertPostTradeSnapshot: Runtime assertion for PostTradeSnapshot shape
  * - assertValidatedTradeContext: Runtime assertion for ValidatedTradeContext shape
  * - assertTradeComputeInputs: Combined assertion for compute inputs
@@ -25,6 +27,8 @@ export {
   validatePostTradeSnapshotForContext,
   normalizeTradeTeamCodeLike,
   resolveOutgoingTradeDestinationTeamCode,
+  getFullLegalityPreview,
+  type FullLegalityPreviewResult,
 } from './tradeContext';
 
 export {

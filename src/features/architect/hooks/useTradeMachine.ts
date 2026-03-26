@@ -28,6 +28,18 @@ import {
   clearSyntheticSntPlayersFromTeams,
   hasSyntheticSntPlayers,
 } from '@/features/architect/tradeMachine/utils/devSntInjector';
+import {
+  getFullLegalityPreview,
+  type FullLegalityPreviewResult,
+} from '@/features/architect/utils/tradeContext/tradeContext';
+import type {
+  TradeContextPayload,
+  TradeContextCurrentState,
+} from '@/features/architect/utils/tradeContext/types';
+import type {
+  ArchitectMutationTeamRecord,
+  ArchitectTradePayloadPlayer,
+} from '@/features/architect/utils/mutationPipeline';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -346,6 +358,8 @@ export const useTradeMachine = (
   const [isValidating, setIsValidating] = useState(false);
   // Phase 16.3: Track init failure for error surfacing
   const [initError, setInitError] = useState<string | null>(null);
+  // TM-1A: Apply-path preview validation result (null = not yet computed)
+  const [fullLegalityResult, setFullLegalityResult] = useState<FullLegalityPreviewResult | null>(null);
 
   // Stale validation fix: Track which draft configuration was validated
   const lastValidatedDraftKeyRef = useRef<string | null>(null);
@@ -1050,6 +1064,7 @@ export const useTradeMachine = (
     const activeTeams = teams.filter(hasTeamSlot);
     if (activeTeams.length < 2) {
       setResult(null);
+      setFullLegalityResult(null); // TM-1A: clear stale apply-preview
       // P0-3: Clear isValidating since no validation will run (not enough teams)
       // This is intentional - if we don't have enough teams, there's nothing to validate
       setIsValidating(false);
@@ -1195,9 +1210,53 @@ export const useTradeMachine = (
       // Stale validation fix: Record the draft key that was validated
       lastValidatedDraftKeyRef.current = currentDraftKey;
       validatedAtRef.current = Date.now();
+
+      // TM-1A: Run apply-path snapshot validation for full legality preview
+      const previewActiveTeams = teams.filter(hasTeamSlot);
+      if (previewActiveTeams.length >= 2) {
+        const previewSeasonId = toSeasonKey(yearKey) ?? String(yearKey);
+        try {
+          const previewPayload: TradeContextPayload = {
+            teams: previewActiveTeams.map((slot) => ({
+              teamCode: String(slot.team.teamCode || slot.team.id || ''),
+              teamId: String(slot.team.id || slot.team.teamCode || ''),
+              sends: slot.sends as unknown as ArchitectTradePayloadPlayer[],
+              entitlementsOut:
+                (slot.entitlementsOut || []) as unknown as NonNullable<
+                  TradeContextPayload['teams'][0]['entitlementsOut']
+                >,
+            })),
+            capProjections: capProjections as TradeContextPayload['capProjections'],
+            tradeCtx: {
+              worldId: worldId ?? undefined,
+              yearKey,
+              source: 'tradeMachine',
+              ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+            },
+          };
+          const previewCurrentState: TradeContextCurrentState = {
+            teams: previewActiveTeams.map((slot) => ({
+              teamCode: (slot.team.teamCode || slot.team.id || null) as string | null,
+              team: slot.team as unknown as ArchitectMutationTeamRecord,
+            })),
+          };
+          const fullResult = getFullLegalityPreview({
+            payload: previewPayload,
+            currentState: previewCurrentState,
+            seasonId: previewSeasonId,
+          });
+          setFullLegalityResult(fullResult);
+        } catch (err) {
+          console.error('[useTradeMachine] getFullLegalityPreview unexpected error:', err);
+          setFullLegalityResult(null);
+        }
+      } else {
+        setFullLegalityResult(null);
+      }
+
       setPreviewOpen(true);
     }
-  }, [validateCurrentTrade, currentDraftKey]);
+  }, [validateCurrentTrade, currentDraftKey, teams, yearKey, capProjections, worldId, worldAsOfDate]);
 
   const exportCurrentTrade = useCallback(() => {
     const tradeData = teams
@@ -1235,6 +1294,7 @@ export const useTradeMachine = (
     );
     setResult(null);
     setForceTrade(false);
+    setFullLegalityResult(null); // TM-1A: clear apply-preview on reset
   }, []);
 
   const undoPlayerTrade = useCallback((player: UnknownRecord) => {
@@ -1414,5 +1474,7 @@ export const useTradeMachine = (
     getValidatedAt: () => validatedAtRef.current,
     // Phase 16.3: Expose init error for UI error surfacing
     initError,
+    // TM-1A: Apply-path preview validation result (null = not yet computed, does not block Apply)
+    fullLegalityResult,
   };
 };

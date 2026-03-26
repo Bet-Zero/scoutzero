@@ -60,6 +60,8 @@ import type {
   ValidatedTradeContext,
   ValidationTeam,
   ValidationIssue,
+  TradeContextPayload,
+  TradeContextCurrentState,
 } from './types';
 
 type SnapshotTradeException = Required<
@@ -896,6 +898,71 @@ export function validatePostTradeSnapshotForContext({
         normalizeFallbackTradeApplyValidationTeam
       ),
       _isValidatedTradeContext: true,
+    };
+  }
+}
+
+// ==============================================================================
+// TM-1A: FULL LEGALITY PREVIEW (apply-path validation without world-state gates)
+// ==============================================================================
+
+// TM-1A: Type for apply-path preview result
+export type FullLegalityPreviewResult = {
+  legal: boolean;
+  violations: ValidationIssue[];
+  warnings: ValidationIssue[];
+  reason: string;
+  error: string | null;
+  source: 'apply-preview';
+};
+
+// TM-1A: Run the same snapshot + validation path as apply — without world-state gates.
+// Catches build errors (S&T eligibility, routing) and returns legal: false with violation details.
+export function getFullLegalityPreview({
+  payload,
+  currentState,
+  seasonId,
+}: {
+  payload: TradeContextPayload;
+  currentState: TradeContextCurrentState;
+  seasonId: string;
+}): FullLegalityPreviewResult {
+  try {
+    const snapshot = buildPostTradeTeamsSnapshot({
+      payload,
+      currentState,
+      seasonId,
+      timestamp: Date.now(),
+    });
+    const ctx = validatePostTradeSnapshotForContext({
+      snapshot,
+      payload,
+      seasonId,
+    });
+    return {
+      legal: ctx.legal,
+      violations: Array.isArray(ctx.violations) ? ctx.violations : [],
+      warnings: Array.isArray(ctx.warnings) ? ctx.warnings : [],
+      reason: ctx.reason ?? '',
+      error: ctx.error ?? null,
+      source: 'apply-preview',
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      legal: false,
+      violations: [
+        {
+          message,
+          severity: 'error' as const,
+          rule: 'apply-preview-error',
+          code: 'APPLY_PREVIEW_ERROR',
+        },
+      ],
+      warnings: [],
+      reason: message,
+      error: message,
+      source: 'apply-preview',
     };
   }
 }
