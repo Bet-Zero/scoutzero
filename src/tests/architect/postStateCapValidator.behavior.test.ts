@@ -475,7 +475,8 @@ describe('postStateCapValidator behavior', () => {
   });
 
   it('valid:true when all v1.0.0 checks pass on a clean team', () => {
-    const players = Array.from({ length: 12 }, (_, i) =>
+    // 14 players = legal minimum standard roster; satisfies PSV_ROSTER_001/002.
+    const players = Array.from({ length: 14 }, (_, i) =>
       makePlayer(`p${i}`)
     );
     const result = validatePostStateCapLegality(

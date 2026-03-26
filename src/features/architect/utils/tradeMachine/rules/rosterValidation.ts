@@ -4,11 +4,13 @@
  */
 
 import { validationFlags } from '@/config/validationFlags.js';
+import { ROSTER_LIMITS } from './validateRoster';
 
-const MIN_ROSTER = 14;
-const MAX_ROSTER = 15;
-const GRACE_MIN_ROSTER = 13;
-const MAX_TWO_WAY = 3;
+// Aliases for local readability — source of truth is ROSTER_LIMITS in validateRoster.ts.
+const MIN_ROSTER = ROSTER_LIMITS.MIN_STANDARD;
+const MAX_ROSTER = ROSTER_LIMITS.MAX_STANDARD;
+const GRACE_MIN_ROSTER = ROSTER_LIMITS.GRACE_MIN_STANDARD;
+const MAX_TWO_WAY = ROSTER_LIMITS.MAX_TWO_WAY;
 
 type RosterValidationFlag = 'rosterEnforcement' | 'twoWayRoster';
 

@@ -10,6 +10,7 @@ import {
   validateExceptions,
 } from '@/features/architect/utils/capLegalityValidation';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
+import { ROSTER_LIMITS } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 
 export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
 
@@ -345,10 +346,11 @@ export function validatePostStateCapLegality(
       });
     }
 
-    // PSV_ROSTER_001 / PSV_ROSTER_003: Roster limits
-    const players = Array.isArray(team.players)
-      ? (team.players as AnyRecord[])
-      : [];
+    // PSV_ROSTER_001 / PSV_ROSTER_002 / PSV_ROSTER_003: Roster limits
+    // Only run roster counts when the players array was explicitly provided.
+    // Callers that don't populate players (e.g. cap-only fixtures) skip this block.
+    const hasPlayersData = Array.isArray(team.players);
+    const players = hasPlayersData ? (team.players as AnyRecord[]) : [];
     let standardCount = 0;
     let twoWayCount = 0;
     for (const p of players) {
@@ -361,24 +363,38 @@ export function validatePostStateCapLegality(
       }
     }
 
-    if (standardCount > 15) {
+    if (hasPlayersData && standardCount > ROSTER_LIMITS.MAX_STANDARD) {
       violations.push({
         code: 'ROSTER_MAX_EXCEEDED',
         teamCode,
         path: `teams.${teamCode}.players`,
-        message: `Team ${teamCode} has ${standardCount} standard contracts (max 15).`,
-        expected: 15,
+        message: `Team ${teamCode} has ${standardCount} standard contracts (max ${ROSTER_LIMITS.MAX_STANDARD}).`,
+        expected: ROSTER_LIMITS.MAX_STANDARD,
         actual: standardCount,
       });
     }
 
-    if (twoWayCount > 3) {
+    // PSV_ROSTER_002: Minimum roster — mirrors the trade-time minimum check in the pre-trade path.
+    // Only fires when players data is present (non-null array), to avoid false positives on
+    // cap-only fixtures that don't populate the players field.
+    if (hasPlayersData && standardCount < ROSTER_LIMITS.MIN_STANDARD) {
+      violations.push({
+        code: 'ROSTER_MIN_VIOLATED',
+        teamCode,
+        path: `teams.${teamCode}.players`,
+        message: `Team ${teamCode} has ${standardCount} standard contracts (min ${ROSTER_LIMITS.MIN_STANDARD}).`,
+        expected: ROSTER_LIMITS.MIN_STANDARD,
+        actual: standardCount,
+      });
+    }
+
+    if (hasPlayersData && twoWayCount > ROSTER_LIMITS.MAX_TWO_WAY) {
       violations.push({
         code: 'TWO_WAY_LIMIT_EXCEEDED',
         teamCode,
         path: `teams.${teamCode}.players`,
-        message: `Team ${teamCode} has ${twoWayCount} two-way contracts (max 3).`,
-        expected: 3,
+        message: `Team ${teamCode} has ${twoWayCount} two-way contracts (max ${ROSTER_LIMITS.MAX_TWO_WAY}).`,
+        expected: ROSTER_LIMITS.MAX_TWO_WAY,
         actual: twoWayCount,
       });
     }

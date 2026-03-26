@@ -1,3 +1,5 @@
+import { ROSTER_LIMITS } from './validateRoster';
+
 interface EnforcementPlayer {
   hasNTC?: boolean;
   consent?: boolean;
@@ -143,17 +145,17 @@ export function enforceRosterWindow(
   const violations: string[] = [];
   const { projectedRosterCount = 0, projectedTwoWayCount = 0 } = team;
 
-  if (projectedRosterCount < 14) {
-    reject('Roster cannot fall below 14 players');
-    violations.push('Roster cannot fall below 14 players');
+  if (projectedRosterCount < ROSTER_LIMITS.MIN_STANDARD) {
+    reject(`Roster cannot fall below ${ROSTER_LIMITS.MIN_STANDARD} players`);
+    violations.push(`Roster cannot fall below ${ROSTER_LIMITS.MIN_STANDARD} players`);
   }
-  if (projectedRosterCount > 15) {
-    reject('Roster cannot exceed 15 players');
-    violations.push('Roster cannot exceed 15 players');
+  if (projectedRosterCount > ROSTER_LIMITS.MAX_STANDARD) {
+    reject(`Roster cannot exceed ${ROSTER_LIMITS.MAX_STANDARD} players`);
+    violations.push(`Roster cannot exceed ${ROSTER_LIMITS.MAX_STANDARD} players`);
   }
 
-  if (projectedTwoWayCount > 3) {
-    violations.push('Two-way slots exceeded (4/3)');
+  if (projectedTwoWayCount > ROSTER_LIMITS.MAX_TWO_WAY) {
+    violations.push(`Two-way slots exceeded (${projectedTwoWayCount}/${ROSTER_LIMITS.MAX_TWO_WAY})`);
   }
 
   return violations;

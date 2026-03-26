@@ -24,6 +24,7 @@ import { enforceTiming } from '../rules/timingValidation';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules';
 import { computeMatchingValues } from '../utils/salaryUtils';
 import { enforceRosterWindow } from '../rules/rosterValidation';
+import { ROSTER_LIMITS, checkRosterCounts } from '../rules/validateRoster';
 import { validationFlags } from '@/config/validationFlags.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
 import { validateAggregation } from '../rules/validateAggregation';
@@ -668,9 +669,7 @@ function shouldRoutePlayerToTeam({
 // ---------------------------------------------------------------------------
 // Roster structural legality
 // ---------------------------------------------------------------------------
-const MIN_ROSTER = 14;
-const MAX_ROSTER = 15;
-const MAX_TWO_WAY = 3;
+// Constants sourced from ROSTER_LIMITS (validateRoster.ts) — the canonical source of truth.
 
 function extractPlayerId(p: TradeValidatorPlayer | string | null | undefined) {
   if (!p) return null;
@@ -750,46 +749,12 @@ function computeRosterValidation(team: TradeValidatorTeamSlot) {
     projectedTwoWay = currentTwoWay - outTw + inTw;
   }
 
-  const violations = [];
-
-  if (projectedStandard < MIN_ROSTER) {
-    violations.push(
-      `Post-trade standard roster (${projectedStandard}) below minimum ${MIN_ROSTER}`
-    );
-  }
-  if (projectedStandard > MAX_ROSTER) {
-    violations.push(
-      `Post-trade standard roster (${projectedStandard}) exceeds maximum ${MAX_ROSTER}`
-    );
-  }
-  if (projectedTwoWay > MAX_TWO_WAY) {
-    violations.push(
-      `Two-way slots exceeded (${projectedTwoWay}/${MAX_TWO_WAY})`
-    );
-  }
-
-  // Respect enforcement flags — only block when the flag is 'error'
-  const hasStandardViolation = violations.some((v) => !v.includes('Two-way'));
-  const hasTwoWayViolation = violations.some((v) => v.includes('Two-way'));
-  const standardBlocks =
-    hasStandardViolation && validationFlags.rosterEnforcement === 'error';
-  const twoWayBlocks =
-    hasTwoWayViolation && validationFlags.twoWayRoster === 'error';
-
-  const passed = !standardBlocks && !twoWayBlocks;
-
-  return {
-    passed,
-    violations: passed ? [] : violations,
-    message: violations.length === 0
-      ? 'Roster size validated'
-      : violations.join('; '),
-    details: `Standard: ${projectedStandard} (${MIN_ROSTER}–${MAX_ROSTER}), Two-way: ${projectedTwoWay} (max ${MAX_TWO_WAY})`,
-    rosterCounts: {
-      standard: projectedStandard,
-      twoWay: projectedTwoWay,
-    },
-  };
+  // Delegate rule enforcement to the canonical checkRosterCounts function.
+  // This ensures pre-trade and post-state paths share the same rule definitions.
+  const result = checkRosterCounts(projectedStandard, projectedTwoWay);
+  // Override rosterCounts.current with the actual pre-trade count for display purposes.
+  result.rosterCounts.current = currentStandard;
+  return result;
 }
 
 // Create wrapped versions with performance monitoring and caching
