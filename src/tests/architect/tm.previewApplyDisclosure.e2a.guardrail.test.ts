@@ -1,17 +1,23 @@
 /**
  * E2A TM Preview/Apply Disclosure Guardrails
  *
- * Proves that the E2 fallback disclosure behavior is present, complete, and
+ * Proves that the E2/TM-1A-FINAL disclosure behavior is present, complete, and
  * consistent across all three user-facing surfaces. These tests block accidental
  * removal or under-disclosure of the apply-only gate set.
  *
  * What these tests guard:
  *   1. Machine-readable metadata: previewTier + applyOnlyGates in validation result
- *   2. Apply-area disclosure (TradeEditor) mentions the full blocker set
- *   3. Legend disclosure (TradeLegalChecker) mentions the full blocker set
+ *   2. Apply-area disclosure (TradeEditor) mentions the remaining apply-only gates
+ *   3. Legend disclosure (TradeLegalChecker) mentions the remaining apply-only gates
  *   4. Section header (ValidationDetailsPanel) includes post-state qualifier
  *   5. No surface implies guaranteed apply success
  *   6. Type contract (ValidationResultLike) declares both metadata fields
+ *   7. tradeContext getFullLegalityPreview runs validatePostStateCapLegality (TM-1A-FINAL)
+ *
+ * TM-1A-FINAL changes (why some old tests were removed):
+ *   - validatePostStateCapLegality moved from apply-only to preview (getFullLegalityPreview)
+ *   - applyOnlyGates no longer includes 'post-state-cap-schema'
+ *   - TradeEditor/TradeLegalChecker disclosure no longer lists cap/roster as apply-only
  */
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
@@ -23,6 +29,7 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     '../../features/architect/tradeMachine'
   );
   const hooksRoot = path.resolve(__dirname, '../../features/architect/hooks');
+  const utilsRoot = path.resolve(__dirname, '../../features/architect/utils');
 
   const useTradeMachineSrc = fs.readFileSync(
     path.join(hooksRoot, 'useTradeMachine.ts'),
@@ -44,6 +51,10 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     path.join(tmRoot, 'validationPresentationTypes.ts'),
     'utf-8'
   );
+  const tradeContextSrc = fs.readFileSync(
+    path.join(utilsRoot, 'tradeContext/tradeContext.ts'),
+    'utf-8'
+  );
 
   // ─── Metadata: previewTier ────────────────────────────────────────────────
 
@@ -51,7 +62,7 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     expect(useTradeMachineSrc).toContain("previewTier: 'cba-validator'");
   });
 
-  // ─── Metadata: applyOnlyGates ─────────────────────────────────────────────
+  // ─── Metadata: applyOnlyGates (3 Firestore-dependent gates remain) ────────
 
   it('useTradeMachine applyOnlyGates includes duplicate-player-world-check', () => {
     expect(useTradeMachineSrc).toContain('duplicate-player-world-check');
@@ -65,8 +76,16 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     expect(useTradeMachineSrc).toContain('entitlement-exclusivity-world-check');
   });
 
-  it('useTradeMachine applyOnlyGates includes post-state-cap-schema', () => {
-    expect(useTradeMachineSrc).toContain('post-state-cap-schema');
+  // TM-1A-FINAL: post-state-cap-schema removed from applyOnlyGates — now in preview
+  it('useTradeMachine applyOnlyGates does NOT include post-state-cap-schema (moved to preview)', () => {
+    // The string may appear in a comment but must not appear in the applyOnlyGates array value
+    expect(useTradeMachineSrc).not.toMatch(/'post-state-cap-schema'/);
+  });
+
+  // ─── tradeContext: post-state cap now in preview ──────────────────────────
+
+  it('tradeContext getFullLegalityPreview runs validatePostStateCapLegality', () => {
+    expect(tradeContextSrc).toContain('validatePostStateCapLegality');
   });
 
   // ─── TradeEditor: Apply-area disclosure ───────────────────────────────────
@@ -75,16 +94,8 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     expect(tradeEditorSrc).toContain('apply time');
   });
 
-  it('TradeEditor disclosure mentions post-state checks', () => {
-    expect(tradeEditorSrc).toContain('post-state');
-  });
-
   it('TradeEditor disclosure mentions exclusivity', () => {
     expect(tradeEditorSrc).toContain('exclusivity');
-  });
-
-  it('TradeEditor disclosure mentions cap/roster integrity', () => {
-    expect(tradeEditorSrc).toContain('cap/roster');
   });
 
   it('TradeEditor disclosure does not claim guaranteed apply success', () => {
@@ -99,14 +110,8 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     expect(tradeLegalCheckerSrc).toContain('apply time');
   });
 
-  it('TradeLegalChecker legend mentions post-state cap/roster integrity', () => {
-    expect(tradeLegalCheckerSrc).toContain('post-state cap/roster');
-  });
-
-  it('TradeLegalChecker legend clarifies preview covers CBA validator rules only', () => {
-    expect(tradeLegalCheckerSrc).toContain(
-      'Preview covers CBA validator rules only'
-    );
+  it('TradeLegalChecker legend clarifies preview covers CBA validator and post-state cap', () => {
+    expect(tradeLegalCheckerSrc).toContain('Preview covers CBA validator');
   });
 
   it('TradeLegalChecker legend does not claim guaranteed apply success', () => {

@@ -1162,19 +1162,18 @@ export const useTradeMachine = (
       hasDataIssues: dataValidation.hasIssues,
       dataWarnings: dataValidation.warnings,
       dataValidationSummary: dataValidation.summary,
-      // TM-TRUTH-E2: Document preview coverage tier explicitly.
-      // Green preview means the CBA validator passed — it does NOT mean apply is guaranteed.
-      // Four additional gates run only at apply time (applyWorldMutation):
+      // TM-TRUTH-E2 / TM-1A-FINAL: Document preview coverage tier explicitly.
+      // Green preview means CBA snapshot validation + post-state cap legality passed.
+      // Three gates still run only at apply time (require Firestore / live world state):
       //   1. validateMutationLeagueInvariants — duplicate player world check (requires getLeague())
       //   2. validateMutationEntitlementInvariants — duplicate entitlement world check (requires getLeague())
       //   3. validateTradeApplyExclusivity — entitlement exclusivity world check (requires Firestore)
-      //   4. validatePostStateCapLegality — post-state cap/roster schema integrity (requires post-trade compute)
+      // NOTE: validatePostStateCapLegality moved to preview (getFullLegalityPreview) in TM-1A-FINAL.
       previewTier: 'cba-validator' as const,
       applyOnlyGates: [
         'duplicate-player-world-check',
         'duplicate-entitlement-world-check',
         'entitlement-exclusivity-world-check',
-        'post-state-cap-schema',
       ],
     };
 

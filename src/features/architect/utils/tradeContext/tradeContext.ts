@@ -34,6 +34,8 @@
 
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { assertPostTradeSnapshot } from './assertions';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
@@ -916,8 +918,9 @@ export type FullLegalityPreviewResult = {
   source: 'apply-preview';
 };
 
-// TM-1A: Run the same snapshot + validation path as apply — without world-state gates.
-// Catches build errors (S&T eligibility, routing) and returns legal: false with violation details.
+// TM-1A-FINAL: Run the same snapshot + validation path as apply — without world-state gates.
+// Covers: CBA snapshot validation + post-state cap legality (pure, no Firestore).
+// Remaining apply-only gates: league invariants, entitlement invariants, exclusivity (all Firestore).
 export function getFullLegalityPreview({
   payload,
   currentState,
@@ -939,11 +942,84 @@ export function getFullLegalityPreview({
       payload,
       seasonId,
     });
+
+    // TM-1A-FINAL: Also run validatePostStateCapLegality — pure function, no Firestore.
+    // Build before/after team maps from currentState and snapshot output.
+    const year = toEndYear(seasonId) ?? new Date().getFullYear();
+
+    const beforeTeamsByCode: Record<string, AnyRecord> = {};
+    const beforeTotalsByTeam: Record<string, AnyRecord> = {};
+    for (const entry of currentState.teams ?? []) {
+      const code = entry?.teamCode;
+      if (code && entry.team) {
+        beforeTeamsByCode[code] = entry.team as unknown as AnyRecord;
+        beforeTotalsByTeam[code] = computeTeamCapTotals(entry.team, year) as unknown as AnyRecord;
+      }
+    }
+
+    const afterTeamsByCode: Record<string, AnyRecord> = {};
+    const afterTotalsByTeam: Record<string, AnyRecord> = {};
+    for (const update of snapshot.teamUpdates) {
+      const code = update?.teamCode;
+      if (code && update.team) {
+        afterTeamsByCode[code] = update.team as unknown as AnyRecord;
+        afterTotalsByTeam[code] = computeTeamCapTotals(update.team, year) as unknown as AnyRecord;
+      }
+    }
+
+    const capSettingsResult = getCapSettings({ year });
+    const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
+    const rulesContext: AnyRecord = {
+      capSettings: capSettingsResult?.settings ?? null,
+      minimumTeamSalary: Number.isFinite(minimumTeamSalary) ? minimumTeamSalary : undefined,
+    };
+
+    const postStateResult = validatePostStateCapLegality({
+      operationId: 'full-legality-preview',
+      mutationType: 'executeTrade',
+      worldId: String(payload.tradeCtx?.worldId ?? 'preview-world'),
+      year,
+      beforeTeamsByCode,
+      afterTeamsByCode,
+      beforeTotalsByTeam,
+      afterTotalsByTeam,
+      rulesContext,
+    });
+
+    // Merge snapshot context + post-state cap results.
+    const mergedLegal = ctx.legal && postStateResult.valid;
+
+    const postStateViolations: ValidationIssue[] = postStateResult.violations.map((v) => ({
+      message: v.message,
+      code: `POST_STATE_${v.code}`,
+      rule: 'post-state-cap' as const,
+      severity: 'error' as const,
+    }));
+    const postStateWarnings: ValidationIssue[] = postStateResult.warnings.map((w) => ({
+      message: w.message,
+      code: `POST_STATE_${w.code}`,
+      rule: 'post-state-cap' as const,
+      severity: 'warning' as const,
+    }));
+
+    const mergedViolations = [
+      ...(Array.isArray(ctx.violations) ? ctx.violations : []),
+      ...postStateViolations,
+    ];
+    const mergedWarnings = [
+      ...(Array.isArray(ctx.warnings) ? ctx.warnings : []),
+      ...postStateWarnings,
+    ];
+
+    const ctxReason = ctx.reason ?? '';
+    const postStateReason = postStateResult.violations[0]?.message ?? '';
+    const mergedReason = ctxReason || postStateReason;
+
     return {
-      legal: ctx.legal,
-      violations: Array.isArray(ctx.violations) ? ctx.violations : [],
-      warnings: Array.isArray(ctx.warnings) ? ctx.warnings : [],
-      reason: ctx.reason ?? '',
+      legal: mergedLegal,
+      violations: mergedViolations,
+      warnings: mergedWarnings,
+      reason: mergedReason,
       error: ctx.error ?? null,
       source: 'apply-preview',
     };

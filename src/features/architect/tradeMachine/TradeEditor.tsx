@@ -697,10 +697,10 @@ const TradeEditor = ({
         </button>
 
         {canApplyTrade && (
-          <span className="text-xs text-white/40">
-            CBA validation passed. World-state and post-state checks (duplicate
-            players, entitlement conflicts, exclusivity, cap/roster integrity)
-            run at apply time.
+          <span className="text-xs text-yellow-400/50">
+            All local checks passed. World-state checks (duplicate players,
+            entitlement conflicts, exclusivity) run at apply time and may still
+            reject this trade.
           </span>
         )}
 
