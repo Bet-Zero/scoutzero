@@ -1,3 +1,18 @@
+/**
+ * TM-1C OWNERSHIP NOTE:
+ * validateSecondApronRules / enforceSecondApronHandcuffs enforce three second-apron restrictions:
+ *
+ * 1. Prior-year TPE EXISTENCE guard — fires if team holds any prior-year TPEs (even unused).
+ *    validateTradeExceptions.ts is the canonical USAGE guard (fires only when actively using one).
+ *    Both intentionally fire; validateTradeExceptions.ts is authoritative for the CBA rule.
+ *
+ * 2. Multi-player outgoing BROAD BLOCK — fires for any 2+ outgoing players.
+ *    validateAggregation.ts is the canonical CBA-precise AGGREGATE-UP guard (fires only when
+ *    combining smaller salaries to acquire a higher-paid player; equal-value multi-player trades
+ *    are allowed). Both intentionally fire; validateAggregation.ts is authoritative for the CBA rule.
+ *
+ * 3. Cash sent — SSOT; not enforced elsewhere.
+ */
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import {
   SECOND_APRON_CASH_BLOCKED,
@@ -91,6 +106,8 @@ export function validateSecondApronRules(
     };
   }
 
+  // TM-1C EXISTENCE GUARD: fires if team holds any prior-year TPEs (regardless of usage in this trade).
+  // validateTradeExceptions.ts is the canonical USAGE guard and CBA authority; this is a broader safety net.
   const tpes = getTeamTpeList(team) as BasicRulesTpe[];
   const priorYearTPEs = tpes.filter((tpe) =>
     isPriorYearTPE(tpe, context.year || 2025)
@@ -99,6 +116,9 @@ export function validateSecondApronRules(
     violations.push(SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED);
   }
 
+  // TM-1C BROAD BLOCK: fires for any multi-player outgoing (2+ players sent).
+  // validateAggregation.ts is the canonical CBA-precise authority (blocks aggregate-up only;
+  // equal-value multi-player trades are allowed). This is a broader safety net.
   const outgoingPlayers = (team.sends || team.outgoingPlayers || []) as unknown[];
   if (outgoingPlayers.length > 1) {
     violations.push(SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED);

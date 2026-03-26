@@ -1,3 +1,10 @@
+/**
+ * TM-1C CANONICAL: CBA-precise second-apron aggregation validator.
+ * Owns the aggregate-up rule (combining multiple smaller salaries to acquire a higher-paid player)
+ * and the multi-team aggregation rule.
+ * basicRules.ts enforces a broader multi-player outgoing block; this file is authoritative
+ * for the CBA rule definition. Equal-value multi-player trades are allowed under this rule.
+ */
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { isSecondApronTeam } from '../utils/capUtils';
 import {

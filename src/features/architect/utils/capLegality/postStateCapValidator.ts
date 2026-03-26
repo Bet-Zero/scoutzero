@@ -88,6 +88,10 @@ function getTeamSalaryFromTotals(totals: AnyRecord): number | null {
   return toFiniteNumber(totals.currentCapHit);
 }
 
+// TM-1C: resolveHardCapCeiling is intentionally independent of hardCapStatus.ts (tradeMachine).
+// Post-state validation operates on afterTotalsByTeam / afterTeamsByCode shapes which differ from
+// validation-time HardCapStatusTeamLike. If this logic drifts from hardCapStatus.ts:getHardCapStatus(),
+// update both sites. Future improvement: introduce a shape adapter and delegate to getHardCapStatus().
 function resolveHardCapCeiling({
   teamCode,
   team,

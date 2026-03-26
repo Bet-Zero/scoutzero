@@ -1,3 +1,9 @@
+/**
+ * TM-1C CANONICAL: Trade-time hard cap validator.
+ * All trade validation layers must call validateHardCap() (or getHardCapStatus()) for hard cap
+ * ceiling checks. Do not add parallel hard cap ceiling logic elsewhere in the trade pipeline.
+ * Ceiling detection is delegated to hardCapStatus.ts (getHardCapStatus).
+ */
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import {
   getHardCapStatus,

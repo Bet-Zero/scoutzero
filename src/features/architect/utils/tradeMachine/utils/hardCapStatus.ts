@@ -1,3 +1,9 @@
+/**
+ * TM-1C CANONICAL: Hard cap status resolver (shared detection utility).
+ * Detects hard cap type (FirstApron / SecondApron) and ceiling from team data.
+ * Used by hardCapValidation.ts (trade-time) and validateSalaryMatching.ts (incoming ceiling).
+ * Other layers must not replicate this detection logic — call getHardCapStatus() instead.
+ */
 import type {
   HardCapStatusResult,
   HardCapTypeCanonical,
