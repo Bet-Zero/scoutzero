@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/utils/tradeManager.ts
- * PURPOSE: Computes and validates trade-related roster transactions (trades, signings, waivers, extensions) and returns updated snapshots without persisting to Firestore.
+ * PURPOSE: Computes read-only roster transaction helpers for signings, waivers, and extensions without persisting to Firestore.
  * OWNERSHIP: Feature: architect/utils
  *
  * HISTORY:
@@ -11,32 +11,14 @@
  * LINKS:
  *  - Plan: N/A (not created via plan)
  *  - Latest Chunk: N/A
- *  - Related: src/features/architect/utils/tradeMachine (trade validation)
+ *  - Related: src/features/architect/utils/mutationPipeline (authoritative trade execution)
  */
 
 import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
-import { validateTrade } from '@/features/architect/utils/tradeMachine';
-import { buildTradeTeamInput } from '@/features/architect/utils/schemaAdapter';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
 
 type UnknownRecord = Record<string, unknown>;
-
-interface TradeAssetPlayer extends UnknownRecord {
-  player_id?: string;
-  id?: string;
-  playerId?: string;
-  tradeTo?: string;
-  toTeamId?: string;
-}
-
-interface TradePickLike extends UnknownRecord {
-  year?: number;
-  round?: number;
-  owner?: string;
-  tradeTo?: string;
-  toTeamId?: string;
-}
 
 type RosterItem =
   | string
@@ -72,7 +54,6 @@ interface CapHoldLike extends UnknownRecord {
 
 interface TeamStateLike extends UnknownRecord {
   roster: RosterItem[];
-  draftPicks?: TradePickLike[];
   source?: TeamSourceLike;
   season?: string;
   hardCapped?: boolean;
@@ -92,28 +73,6 @@ interface PlayerLike extends UnknownRecord {
   contract?: ContractLike | null;
 }
 
-interface TeamTradeLike extends UnknownRecord {
-  teamCode?: string;
-  team?: {
-    teamCode?: string;
-  } & UnknownRecord;
-  sends?: TradeAssetPlayer[];
-  picksOut?: TradePickLike[];
-}
-
-interface TradeDataLike extends UnknownRecord {
-  teams: TeamTradeLike[];
-  capProjections?: UnknownRecord;
-  currentYear?: number | string;
-  tradeCtx?: UnknownRecord;
-}
-
-interface TradeValidationLike extends UnknownRecord {
-  legal?: boolean;
-  reason?: string;
-  error?: string;
-}
-
 interface SigningDataLike extends UnknownRecord {
   playerId?: string;
   contract?: UnknownRecord & {
@@ -130,185 +89,10 @@ interface WaiveOptionsLike extends UnknownRecord {
 /**
  * Client-side note:
  * This module is intentionally READ-ONLY with respect to Firestore.
- * It computes updated team/player snapshots and returns them to callers,
- * but does not persist them. Persistence must be handled server-side.
+ * It computes updated team/player snapshots for non-trade helpers and returns
+ * them to callers, but does not persist them. Persistence must be handled
+ * through the mutation pipeline authority path.
  */
-
-/**
- * Execute trade between teams
- *
- * @param {string} worldId - World ID
- * @param {Object} tradeData - Trade data
- * @param {Array<Object>} tradeData.teams - Array of team trade objects
- * @param {Object} tradeData.capProjections - Cap projections for validation
- * @param {number|string} tradeData.currentYear - Current year (numeric or season code)
- * @returns {Promise<Object>} Trade execution result
- */
-export async function executeTrade(worldId: string, tradeData: TradeDataLike) {
-  if (!worldId) {
-    throw new Error('worldId is required');
-  }
-  if (!tradeData || !tradeData.teams || tradeData.teams.length < 2) {
-    throw new Error('Trade must include at least 2 teams');
-  }
-
-  // Get current year (convert season code to year if needed)
-  const currentYear =
-    typeof tradeData.currentYear === 'string'
-      ? toEndYear(tradeData.currentYear)
-      : tradeData.currentYear || new Date().getFullYear();
-
-  // Load team states for all teams in trade
-  const teamCodes = tradeData.teams.map((t) => t.teamCode || t.team?.teamCode);
-  const teamStates = (await Promise.all(
-    teamCodes.map((code) => getTeam(worldId, code as string))
-  )) as TeamStateLike[];
-
-  // Build trade input for validator
-  // Each team combines baseline state with trade-specific data
-  const tradeInput = {
-    teams: tradeData.teams.map((teamTrade, index) =>
-      buildTradeTeamInput(teamStates[index], teamTrade)
-    ),
-    capProjections: tradeData.capProjections || {},
-    currentYear,
-    tradeCtx: tradeData.tradeCtx || {},
-  };
-
-  // Validate trade
-  const validation = validateTrade(tradeInput) as TradeValidationLike;
-
-  if (!validation.legal) {
-    throw new Error(
-      `Trade invalid: ${validation.reason || validation.error || 'Unknown error'}`
-    );
-  }
-
-  // Execute trade: update rosters and draft picks
-  const updatedTeams = [];
-
-  for (let i = 0; i < tradeData.teams.length; i++) {
-    const teamTrade = tradeData.teams[i];
-    const currentTeamState = teamStates[i];
-    const teamCode = teamCodes[i];
-
-    // Build updated team state
-    const updatedTeam = { ...currentTeamState };
-
-    // Update roster: remove outgoing players, add incoming players
-    const outgoingPlayerIds = (teamTrade.sends || []).map(
-      (p) => p.player_id || p.id || p.playerId
-    );
-    const incomingPlayerIds: any[] = [];
-
-    // Collect incoming players from other teams
-    // For multi-team trades, respect explicit destination (tradeTo/toTeamId field)
-    // For 2-team trades, players go to the other team by default
-    const isMultiTeamTrade = tradeData.teams.length > 2;
-
-    tradeData.teams.forEach((otherTeamTrade, otherIndex) => {
-      if (otherIndex !== i) {
-        const incoming = otherTeamTrade.sends || [];
-        incoming.forEach((player) => {
-          const playerId = player.player_id || player.id || player.playerId;
-          const destTeam = player.tradeTo || player.toTeamId;
-
-          if (playerId) {
-            // If explicit destination is specified, only add if this is the destination team
-            // If no destination specified and it's a 2-team trade, add to the other team
-            // If no destination specified and it's a multi-team trade, skip (ambiguous)
-            if (destTeam) {
-              // Explicit destination - only add if this team matches
-              if (destTeam === teamCode) {
-                incomingPlayerIds.push(playerId);
-              }
-            } else if (!isMultiTeamTrade) {
-              // 2-team trade without explicit destination - add to the other team (backward compatible)
-              incomingPlayerIds.push(playerId);
-            }
-            // For multi-team trades without explicit destination, player is not routed (ambiguous)
-          }
-        });
-      }
-    });
-
-    // Update roster array
-    // Handle roster items that may be strings (player IDs) or objects (player objects)
-    updatedTeam.roster = [
-      ...currentTeamState.roster.filter((rosterItem) => {
-        // Extract player ID from roster item (may be string or object)
-        const rosterId =
-          typeof rosterItem === 'string'
-            ? rosterItem
-            : rosterItem.player_id || rosterItem.playerId || rosterItem.id;
-        return !outgoingPlayerIds.includes(rosterId);
-      }),
-      ...incomingPlayerIds,
-    ];
-
-    // Update draft picks: remove outgoing picks, add incoming picks
-    const outgoingPicks = teamTrade.picksOut || [];
-    const incomingPicks: any[] = [];
-
-    // Collect incoming picks from other teams
-    // For multi-team trades, respect explicit destination (tradeTo/toTeamId field)
-    // For 2-team trades, picks go to the other team by default
-    tradeData.teams.forEach((otherTeamTrade, otherIndex) => {
-      if (otherIndex !== i) {
-        const incoming = otherTeamTrade.picksOut || [];
-        incoming.forEach((pick) => {
-          const destTeam = pick.tradeTo || pick.toTeamId;
-
-          if (destTeam) {
-            // Explicit destination - only add if this team matches
-            if (destTeam === teamCode) {
-              incomingPicks.push(pick);
-            }
-          } else if (!isMultiTeamTrade) {
-            // 2-team trade without explicit destination - add to the other team (backward compatible)
-            incomingPicks.push(pick);
-          }
-          // For multi-team trades without explicit destination, pick is not routed (ambiguous)
-        });
-      }
-    });
-
-    // Update draft picks array
-    updatedTeam.draftPicks = [
-      ...(currentTeamState.draftPicks || []).filter(
-        (pick) =>
-          !outgoingPicks.some(
-            (outgoing) =>
-              outgoing.year === pick.year &&
-              outgoing.round === pick.round &&
-              outgoing.owner === pick.owner
-          )
-      ),
-      ...incomingPicks,
-    ];
-
-    // Update source metadata
-    updatedTeam.source = {
-      ...updatedTeam.source,
-      type: 'world-snapshot',
-      worldId,
-      generatedAt: new Date().toISOString(),
-      baseTeamVersion:
-        currentTeamState.source?.scrapedAt || currentTeamState.source?.version,
-    };
-
-    // Recalculate cap totals using SSOT (Phase 78)
-    updatedTeam.totals = computeTeamCapTotals(updatedTeam, currentYear);
-
-    updatedTeams.push({ teamCode, team: updatedTeam });
-  }
-
-  return {
-    success: true,
-    validation,
-    teams: updatedTeams,
-  };
-}
 
 /**
  * Sign free agent to team

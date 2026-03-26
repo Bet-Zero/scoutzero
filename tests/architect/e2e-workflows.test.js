@@ -18,10 +18,8 @@ import {
   archiveWorld,
 } from '@/features/architect/utils/worldManager';
 import { getTeam } from '@/features/architect/utils/teamLoader';
-import {
-  executeTrade,
-  signFreeAgent,
-} from '@/features/architect/utils/tradeManager';
+import { signFreeAgent } from '@/features/architect/utils/tradeManager';
+import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { advanceSeason } from '@/features/architect/utils/seasonManager';
 import {
   seedBaseData,
@@ -47,6 +45,46 @@ function getRosterIds(roster) {
   return roster.map((p) =>
     typeof p === 'string' ? p : p.player_id || p.playerId || p.id
   );
+}
+
+function toSeasonId(currentYear) {
+  if (typeof currentYear === 'string' && currentYear) {
+    return currentYear;
+  }
+
+  const year = typeof currentYear === 'number' ? currentYear : 2025;
+  return `${year}-${String(year + 1).slice(-2)}`;
+}
+
+async function computeTrade(worldId, tradeData) {
+  const teams = await Promise.all(
+    tradeData.teams.map(async (tradeTeam) => {
+      const teamCode = tradeTeam.teamCode || tradeTeam.team?.teamCode;
+      return {
+        teamCode,
+        team: await getTeam(worldId, teamCode),
+      };
+    })
+  );
+
+  const result = computeWorldMutation({
+    mutationType: 'executeTrade',
+    payload: tradeData,
+    currentState: { teams },
+    seasonId: toSeasonId(tradeData.currentYear),
+    timestamp: Date.now(),
+    worldId,
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || 'Authoritative trade compute failed');
+  }
+
+  return {
+    success: true,
+    teams: result.teamUpdates,
+    validation: result._validatedTradeContext,
+  };
 }
 
 // Mock validateTrade to return valid trades for testing
@@ -306,7 +344,7 @@ describe('E2E Workflow Tests', () => {
         currentYear: 2025,
       };
 
-      const tradeResult = await executeTrade(worldId, tradeData);
+      const tradeResult = await computeTrade(worldId, tradeData);
 
       // Step 4: Verify trade execution succeeded
       expect(tradeResult.success).toBe(true);
@@ -320,9 +358,9 @@ describe('E2E Workflow Tests', () => {
 
       // Verify source metadata updated
       expect(lalTradeResult.team.source.type).toBe('world-snapshot');
-      expect(lalTradeResult.team.source.worldId).toBe(worldId);
+      expect(lalTradeResult.team.source.worldId).toBeUndefined();
       expect(gswTradeResult.team.source.type).toBe('world-snapshot');
-      expect(gswTradeResult.team.source.worldId).toBe(worldId);
+      expect(gswTradeResult.team.source.worldId).toBeUndefined();
 
       // Step 5: Verify trade result includes incoming players (added as string IDs)
       const lalTradeRosterIds = getRosterIds(lalTradeResult.team.roster);
@@ -364,7 +402,7 @@ describe('E2E Workflow Tests', () => {
         currentYear: 2025,
       };
 
-      const tradeResult = await executeTrade(worldId, tradeData);
+      const tradeResult = await computeTrade(worldId, tradeData);
       expect(tradeResult.success).toBe(true);
 
       // Save the trade result snapshots
@@ -426,7 +464,7 @@ describe('E2E Workflow Tests', () => {
         currentYear: 2025,
       };
 
-      const tradeResult = await executeTrade(worldId, tradeData);
+      const tradeResult = await computeTrade(worldId, tradeData);
 
       // Verify trade executed successfully
       expect(tradeResult.success).toBe(true);
@@ -435,7 +473,7 @@ describe('E2E Workflow Tests', () => {
       // All teams should have snapshot source metadata
       for (const teamResult of tradeResult.teams) {
         expect(teamResult.team.source.type).toBe('world-snapshot');
-        expect(teamResult.team.source.worldId).toBe(worldId);
+        expect(teamResult.team.source.worldId).toBeUndefined();
       }
 
       // Verify each team received exactly the player routed to them

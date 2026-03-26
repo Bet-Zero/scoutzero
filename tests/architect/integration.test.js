@@ -17,11 +17,8 @@ import {
   branchWorld,
 } from '@/features/architect/utils/worldManager';
 import { getTeam } from '@/features/architect/utils/teamLoader';
-import {
-  executeTrade,
-  signFreeAgent,
-  waivePlayer,
-} from '@/features/architect/utils/tradeManager';
+import { signFreeAgent, waivePlayer } from '@/features/architect/utils/tradeManager';
+import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { advanceSeason } from '@/features/architect/utils/seasonManager';
 import {
   seedBaseData,
@@ -39,6 +36,46 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
     teamResults: [],
   })),
 }));
+
+function toSeasonId(currentYear) {
+  if (typeof currentYear === 'string' && currentYear) {
+    return currentYear;
+  }
+
+  const year = typeof currentYear === 'number' ? currentYear : 2025;
+  return `${year}-${String(year + 1).slice(-2)}`;
+}
+
+async function computeTrade(worldId, tradeData) {
+  const teams = await Promise.all(
+    tradeData.teams.map(async (tradeTeam) => {
+      const teamCode = tradeTeam.teamCode || tradeTeam.team?.teamCode;
+      return {
+        teamCode,
+        team: await getTeam(worldId, teamCode),
+      };
+    })
+  );
+
+  const result = computeWorldMutation({
+    mutationType: 'executeTrade',
+    payload: tradeData,
+    currentState: { teams },
+    seasonId: toSeasonId(tradeData.currentYear),
+    timestamp: Date.now(),
+    worldId,
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || 'Authoritative trade compute failed');
+  }
+
+  return {
+    success: true,
+    teams: result.teamUpdates,
+    validation: result._validatedTradeContext,
+  };
+}
 
 describe('Architect Integration Tests', () => {
   const userId = 'user_123';
@@ -76,7 +113,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      const tradeResult = await executeTrade(worldResult.worldId, tradeData);
+      const tradeResult = await computeTrade(worldResult.worldId, tradeData);
 
       expect(tradeResult.success).toBe(true);
 
@@ -87,7 +124,7 @@ describe('Architect Integration Tests', () => {
       expect(lalTeam).toBeDefined();
       expect(gswTeam).toBeDefined();
       expect(lalTeam.team.source.type).toBe('world-snapshot');
-      expect(lalTeam.team.source.worldId).toBe(worldResult.worldId);
+      expect(lalTeam.team.source.worldId).toBeUndefined();
     });
 
     it('verifies cap totals updated correctly', async () => {
@@ -115,7 +152,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      const tradeResult = await executeTrade(worldResult.worldId, tradeData);
+      const tradeResult = await computeTrade(worldResult.worldId, tradeData);
 
       const lalTeam = tradeResult.teams.find((t) => t.teamCode === 'LAL');
 
@@ -125,7 +162,7 @@ describe('Architect Integration Tests', () => {
       expect(typeof lalTeam.team.totals.totalCapAllocations).toBe('number');
     });
 
-    it('verifies executeTrade is read-only (does not modify world metadata)', async () => {
+    it('verifies authoritative trade compute is read-only (does not modify world metadata)', async () => {
       const worldResult = await createWorld({
         name: 'Test World',
         userId,
@@ -154,9 +191,9 @@ describe('Architect Integration Tests', () => {
       const metadataBefore = getMockWorldMetadata(worldResult.worldId);
       const statsBefore = metadataBefore.stats.totalTrades;
 
-      await executeTrade(worldResult.worldId, tradeData);
+      await computeTrade(worldResult.worldId, tradeData);
 
-      // Verify world metadata was not modified (executeTrade is read-only)
+      // Verify world metadata was not modified (computeWorldMutation is read-only)
       const metadataAfter = getMockWorldMetadata(worldResult.worldId);
       expect(metadataAfter.stats.totalTrades).toBe(statsBefore);
       expect(metadataAfter.actionCount).toBe(metadataBefore.actionCount);
@@ -191,7 +228,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(parentResult.worldId, tradeData);
+      await computeTrade(parentResult.worldId, tradeData);
 
       // Branch world
       const branchResult = await branchWorld(
@@ -211,7 +248,7 @@ describe('Architect Integration Tests', () => {
         userId,
       });
 
-      // Execute trade in parent (but don't persist - executeTrade is read-only)
+      // Compute trade in parent (but don't persist - authoritative compute is read-only)
       const tradeData = {
         teams: [
           {
@@ -231,7 +268,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(parentResult.worldId, tradeData);
+      await computeTrade(parentResult.worldId, tradeData);
 
       // Branch world
       const branchResult = await branchWorld(
@@ -241,7 +278,7 @@ describe('Architect Integration Tests', () => {
         userId
       );
 
-      // Get team from branch - since executeTrade doesn't persist, branch falls back to base data
+      // Get team from branch - since authoritative compute doesn't persist, branch falls back to base data
       const lalTeam = await getTeam(branchResult.worldId, 'LAL');
       // Base LAL team has lebron_james in roster, trade was not persisted
       // Note: getTeam hydrates team with players array in roster field
@@ -276,7 +313,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(parentResult.worldId, parentTradeData);
+      await computeTrade(parentResult.worldId, parentTradeData);
 
       // Branch world
       const branchResult = await branchWorld(
@@ -306,9 +343,9 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      const branchTradeResult = await executeTrade(branchResult.worldId, branchTradeData);
+      const branchTradeResult = await computeTrade(branchResult.worldId, branchTradeData);
 
-      // Verify branch trade result (executeTrade doesn't persist, so no snapshots created)
+      // Verify branch trade result (computeWorldMutation doesn't persist, so no snapshots created)
       const branchLalTeam = branchTradeResult.teams.find((t) => t.teamCode === 'LAL');
       const branchRosterIds = branchLalTeam.team.roster;
       expect(branchRosterIds).not.toContain('anthony_davis');
@@ -350,7 +387,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldResult.worldId, tradeData);
+      await computeTrade(worldResult.worldId, tradeData);
 
       // Advance season
       const advanceResult = await advanceSeason(worldResult.worldId);
@@ -571,7 +608,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldResult.worldId, tradeData);
+      await computeTrade(worldResult.worldId, tradeData);
 
       // Sign free agent
       const signingData = {
@@ -662,7 +699,7 @@ describe('Architect Integration Tests', () => {
         currentYear: 2025,
       };
 
-      await executeTrade(worldResult.worldId, tradeData);
+      await computeTrade(worldResult.worldId, tradeData);
 
       // Sign free agent
       const signResult = await signFreeAgent(worldResult.worldId, 'LAL', {

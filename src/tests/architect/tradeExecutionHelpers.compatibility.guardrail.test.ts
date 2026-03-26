@@ -8,6 +8,7 @@ describe('E75 trade execution helper compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
   const schemaAdapterDeletedPath = path.join(srcRoot, 'utils/schemaAdapter.js');
   const schemaAdapterAuthorityPath = path.join(srcRoot, 'utils/schemaAdapter.ts');
+  const architectCoreAuthorityPath = path.join(srcRoot, 'utils/architectCore.ts');
   const tradeManagerDeletedPath = path.join(srcRoot, 'utils/tradeManager.js');
   const tradeManagerAuthorityPath = path.join(srcRoot, 'utils/tradeManager.ts');
   const expectedSchemaAdapterExports = [
@@ -27,13 +28,11 @@ describe('E75 trade execution helper compatibility guardrails', () => {
     'adaptTradeInputForValidator',
   ] as const;
   const expectedTradeManagerExports = [
-    'executeTrade',
     'extendPlayer',
     'signFreeAgent',
     'waivePlayer',
   ] as const;
   const expectedTradeManagerSourceOrder = [
-    'executeTrade',
     'signFreeAgent',
     'waivePlayer',
     'extendPlayer',
@@ -56,7 +55,7 @@ describe('E75 trade execution helper compatibility guardrails', () => {
     expect(Object.keys(tradeManagerModule).sort()).toEqual(
       Array.from(expectedTradeManagerExports)
     );
-    expect(tradeManagerModule.executeTrade).toBeDefined();
+    expect('executeTrade' in tradeManagerModule).toBe(false);
     expect(tradeManagerModule.extendPlayer).toBeDefined();
   });
 
@@ -77,6 +76,16 @@ describe('E75 trade execution helper compatibility guardrails', () => {
     ).map(([, exportName]) => exportName);
 
     expect(exportNames).toEqual(Array.from(expectedTradeManagerSourceOrder));
+    expect(source).not.toContain('export async function executeTrade');
     expect(source).not.toContain('export default');
+  });
+
+  it('architectCore.ts does not re-export executeTrade', () => {
+    const source = fs.readFileSync(architectCoreAuthorityPath, 'utf-8');
+
+    expect(source).not.toMatch(/\bexecuteTrade\b/);
+    expect(source).toContain('signFreeAgent');
+    expect(source).toContain('waivePlayer');
+    expect(source).toContain('extendPlayer');
   });
 });

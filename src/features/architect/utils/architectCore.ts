@@ -3,7 +3,7 @@
  *
  * Centralized exports for all Architect core functionality.
  * This provides a single import point for world management, team loading,
- * trade execution, and season advancement.
+ * read-only roster helpers, and season advancement.
  *
  * @file src/utils/architect/architectCore.ts
  * @module architectCore
@@ -31,7 +31,6 @@ export {
 // Trade Management
 // Note: updateTeamCapTotals was removed in Phase 78; use computeTeamCapTotals from capTotals instead
 export {
-  executeTrade,
   signFreeAgent,
   waivePlayer,
   extendPlayer,

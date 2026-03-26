@@ -1,7 +1,7 @@
 /**
  * Trade Manager Tests
  *
- * Comprehensive unit tests for tradeManager.js covering executeTrade,
+ * Comprehensive unit tests for the surviving tradeManager helpers:
  * signFreeAgent, waivePlayer, and extendPlayer.
  *
  * Note: updateTeamCapTotals was removed in Phase 78. All totals now use
@@ -11,8 +11,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as tradeManagerModule from '@/features/architect/utils/tradeManager';
 import {
-  executeTrade,
   signFreeAgent,
   waivePlayer,
   extendPlayer,
@@ -22,19 +22,8 @@ import {
   seedWorldMetadata,
   createMockWorld,
   createMockTeam,
-  createMockPlayer,
-  createMockCapProjections,
 } from '../helpers/architectTestHelpers.js';
 import { seedMockData } from '../__mocks__/firebase.js';
-
-// Mock validateTrade to return valid trades for testing
-vi.mock('@/features/architect/utils/tradeMachine', () => ({
-  validateTrade: vi.fn(() => ({
-    legal: true,
-    reason: 'Trade is valid',
-    teamResults: [],
-  })),
-}));
 
 describe('Trade Manager', () => {
   const worldId = 'world_123';
@@ -46,259 +35,12 @@ describe('Trade Manager', () => {
     seedWorldMetadata(worldId, world);
   });
 
-  describe('executeTrade', () => {
-    it('executes valid 2-team trade', async () => {
-      const tradeData = {
-        teams: [
-          {
-            teamCode: 'LAL',
-            sends: [{ player_id: 'lebron_james' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'GSW',
-            sends: [{ player_id: 'stephen_curry' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      const result = await executeTrade(worldId, tradeData);
-
-      expect(result.success).toBe(true);
-      expect(Object.keys(result)).toEqual(['success', 'validation', 'teams']);
-      expect(result.teams.length).toBe(2);
-      expect(Object.keys(result.teams[0])).toEqual(['teamCode', 'team']);
-      expect(result.validation.legal).toBe(true);
-    });
-
-    it('updates rosters correctly (remove outgoing, add incoming)', async () => {
-      const tradeData = {
-        teams: [
-          {
-            teamCode: 'LAL',
-            sends: [{ player_id: 'lebron_james' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'GSW',
-            sends: [{ player_id: 'stephen_curry' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      const result = await executeTrade(worldId, tradeData);
-
-      // Check LAL team in returned result
-      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
-      expect(lalTeam).toBeDefined();
-      expect(lalTeam.team.roster).not.toContain('lebron_james');
-      expect(lalTeam.team.roster).toContain('stephen_curry');
-    });
-
-    it('updates draft picks correctly', async () => {
-      const tradeData = {
-        teams: [
-          {
-            teamCode: 'LAL',
-            sends: [],
-            picksOut: [
-              {
-                id: 'lal_2026_1',
-                year: 2026,
-                round: 1,
-                owner: 'LAL',
-              },
-            ],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'GSW',
-            sends: [],
-            picksOut: [],
-            cashSent: 0,
-          },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      const result = await executeTrade(worldId, tradeData);
-
-      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
-      const gswTeam = result.teams.find((t) => t.teamCode === 'GSW');
-
-      // LAL should not have the pick anymore
-      const lalPick = lalTeam.team.draftPicks?.find(
-        (p) => p.id === 'lal_2026_1'
-      );
-      expect(lalPick).toBeUndefined();
-
-      // GSW should have the pick
-      const gswPick = gswTeam.team.draftPicks?.find(
-        (p) => p.id === 'lal_2026_1'
-      );
-      expect(gswPick).toBeDefined();
-    });
-
-    it('returns updated teams for all trade participants', async () => {
-      const tradeData = {
-        teams: [
-          {
-            teamCode: 'LAL',
-            sends: [{ player_id: 'lebron_james' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'GSW',
-            sends: [],
-            picksOut: [],
-            cashSent: 0,
-          },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      const result = await executeTrade(worldId, tradeData);
-
-      // Both teams should be in the returned result (both were in the trade)
-      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
-      const gswTeam = result.teams.find((t) => t.teamCode === 'GSW');
-
-      expect(lalTeam).toBeDefined();
-      expect(gswTeam).toBeDefined();
-    });
-
-    it('recalculates cap totals after trade', async () => {
-      const tradeData = {
-        teams: [
-          {
-            teamCode: 'LAL',
-            sends: [{ player_id: 'lebron_james' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'GSW',
-            sends: [{ player_id: 'stephen_curry' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      const result = await executeTrade(worldId, tradeData);
-
-      const lalTeam = result.teams.find((t) => t.teamCode === 'LAL');
-      expect(lalTeam.team.totals).toBeDefined();
-      // Phase 77: totals now uses computeTeamCapTotals SSOT field names
-      expect(typeof lalTeam.team.totals.playersTotal).toBe('number');
-    });
-
-    it('throws error for invalid trade', async () => {
-      const { validateTrade } = await import(
-        '@/features/architect/utils/tradeMachine'
-      );
-      vi.mocked(validateTrade).mockReturnValueOnce({
-        legal: false,
-        reason: 'Trade violates salary matching rules',
-        teamResults: [],
-      });
-
-      const tradeData = {
-        teams: [
-          {
-            teamCode: 'LAL',
-            sends: [{ player_id: 'lebron_james' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'GSW',
-            sends: [],
-            picksOut: [],
-            cashSent: 0,
-          },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      await expect(executeTrade(worldId, tradeData)).rejects.toThrow(
-        'Trade invalid'
-      );
-    });
-
-    it('handles 3-team trade', async () => {
-      const tradeData = {
-        teams: [
-          {
-            teamCode: 'LAL',
-            sends: [{ player_id: 'lebron_james' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'GSW',
-            sends: [{ player_id: 'stephen_curry' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-          {
-            teamCode: 'BOS',
-            sends: [{ player_id: 'jayson_tatum' }],
-            picksOut: [],
-            cashSent: 0,
-          },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      const result = await executeTrade(worldId, tradeData);
-
-      expect(result.success).toBe(true);
-      expect(result.teams.length).toBe(3);
-    });
-
-    it('throws error when worldId is missing', async () => {
-      const tradeData = {
-        teams: [
-          { teamCode: 'LAL', sends: [], picksOut: [], cashSent: 0 },
-          { teamCode: 'GSW', sends: [], picksOut: [], cashSent: 0 },
-        ],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      await expect(executeTrade(null, tradeData)).rejects.toThrow(
-        'worldId is required'
-      );
-    });
-
-    it('throws error when trade has less than 2 teams', async () => {
-      const tradeData = {
-        teams: [{ teamCode: 'LAL', sends: [], picksOut: [], cashSent: 0 }],
-        capProjections: createMockCapProjections(),
-        currentYear: 2025,
-      };
-
-      await expect(executeTrade(worldId, tradeData)).rejects.toThrow(
-        'Trade must include at least 2 teams'
-      );
+  describe('trade authority removal', () => {
+    it('does not expose executeTrade from tradeManager', () => {
+      expect('executeTrade' in tradeManagerModule).toBe(false);
+      expect(tradeManagerModule.signFreeAgent).toBeTypeOf('function');
+      expect(tradeManagerModule.waivePlayer).toBeTypeOf('function');
+      expect(tradeManagerModule.extendPlayer).toBeTypeOf('function');
     });
   });
 
