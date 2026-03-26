@@ -404,9 +404,11 @@ describe('Phase 65: UI Components Use Canonical Accessor', () => {
 // ==============================================================================
 
 describe('Phase 65: Validation Rules Use Canonical Accessor', () => {
+  // TM-1C followup: basicRules.ts removed from this list because the TPE existence guard
+  // was removed — the file no longer accesses TPEs at all, so getTeamTpeList is not needed.
+  // validateTradeExceptions.ts is the sole canonical authority for TPE restriction.
   const ruleFiles = [
     'utils/tradeMachine/rules/tradeExceptions.ts',
-    'utils/tradeMachine/rules/basicRules.ts',
     'utils/tradeMachine/rules/validateSalaryMatching.ts',
   ];
 

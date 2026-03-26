@@ -9,6 +9,10 @@ import {
   validateDeadCap,
   validateExceptions,
 } from '@/features/architect/utils/capLegalityValidation';
+import {
+  resolveHardCapCeiling as resolveHardCapCeilingShared,
+  HARD_CAP_TYPES,
+} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { ROSTER_LIMITS } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 
@@ -88,10 +92,10 @@ function getTeamSalaryFromTotals(totals: AnyRecord): number | null {
   return toFiniteNumber(totals.currentCapHit);
 }
 
-// TM-1C: resolveHardCapCeiling is intentionally independent of hardCapStatus.ts (tradeMachine).
-// Post-state validation operates on afterTotalsByTeam / afterTeamsByCode shapes which differ from
-// validation-time HardCapStatusTeamLike. If this logic drifts from hardCapStatus.ts:getHardCapStatus(),
-// update both sites. Future improvement: introduce a shape adapter and delegate to getHardCapStatus().
+// TM-1C: Hard-cap detection logic (reading from afterTeamsByCode / afterTotalsByTeam shapes)
+// is unique to post-state and cannot be delegated to getHardCapStatus() directly. Once the
+// hard-cap type is determined, ceiling resolution is delegated to hardCapStatus.ts:resolveHardCapCeiling()
+// to avoid drift in the shared fallback logic.
 function resolveHardCapCeiling({
   teamCode,
   team,
@@ -123,8 +127,6 @@ function resolveHardCapCeiling({
     (typeof totalsObj.hardCapLevel === 'string' && totalsObj.hardCapLevel) ||
     (typeof totals.hardCapLevel === 'string' &&
       (totals.hardCapLevel as string));
-  const hardCapLevel =
-    hardCapLevelRaw === 'secondApron' ? 'secondApron' : 'firstApron';
 
   const hardCapTriggered = String(team.hardCapTriggered || '').toLowerCase();
   const hardCappedRaw =
@@ -159,14 +161,21 @@ function resolveHardCapCeiling({
     hardCappedRaw === 2 ||
     hardCapTriggered === 'secondapron';
 
-  if (inferredSecondApron && secondApron !== null) {
-    return { isHardCapped: true, level: 'secondApron', ceiling: secondApron };
-  }
+  // Delegate ceiling-value resolution to the shared canonical function in hardCapStatus.ts.
+  // This ensures fallback logic (e.g. SECOND_APRON falls back to firstApron when secondApron
+  // is unavailable) stays in sync with trade-time validation.
+  const hardCapTypeKey = inferredSecondApron
+    ? HARD_CAP_TYPES.SECOND_APRON
+    : HARD_CAP_TYPES.FIRST_APRON;
+  const { hardCapCeiling } = resolveHardCapCeilingShared(hardCapTypeKey, {
+    firstApron: firstApron ?? undefined,
+    secondApron: secondApron ?? undefined,
+  });
 
   return {
     isHardCapped: true,
-    level: 'firstApron',
-    ceiling: firstApron,
+    level: inferredSecondApron ? 'secondApron' : 'firstApron',
+    ceiling: hardCapCeiling,
   };
 }
 

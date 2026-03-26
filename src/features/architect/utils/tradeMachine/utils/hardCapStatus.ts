@@ -174,7 +174,7 @@ function normalizeSourceLabel(source: string, rawValue: unknown): string {
   return source;
 }
 
-function resolveHardCapCeiling(
+export function resolveHardCapCeiling(
   hardCapType: CanonicalHardCapType | null,
   capSettings: HardCapCapSettingsLike | null = {}
 ): {
