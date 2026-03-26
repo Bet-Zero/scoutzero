@@ -623,7 +623,7 @@ type NormalizedCurrentStatePlayerDraft = Pick<
   NonNullable<ArchitectMutationPlayerRecord['draft']>,
   'round' | 'pick'
 >;
-type NormalizedCurrentStatePlayer = Omit<
+type CurrentStatePlayerCore = Omit<
   Pick<
     ArchitectMutationPlayerRecord,
     | 'player_id'
@@ -644,20 +644,28 @@ type NormalizedCurrentStatePlayer = Omit<
     | 'renounced'
     | 'freeAgentYear'
     | 'rightsRenounced'
-    | 'rfaOfferSheet'
-    | 'rfaOfferSheetOnly'
-    | 'rfaContext'
     | 'lastUpdated'
     | 'version'
     | 'isTwoWay'
     | 'signedDate'
-    | 'isNewlySignedFA'
-    | 'originTeamId'
   >,
   'draft'
 > & {
   draft?: NormalizedCurrentStatePlayerDraft | null;
 };
+type CurrentStatePlayerRfaSidecar = {
+  rfaOfferSheet?: boolean;
+  rfaOfferSheetOnly?: boolean;
+  // Localized mixed boundary: this file only transports/deletes the blob, and
+  // current normalization already preserves only non-array object inputs.
+  rfaContext?: LooseRecord;
+};
+type CurrentStatePlayerRfaBoundary = CurrentStatePlayerRfaSidecar & {
+  isNewlySignedFA?: boolean;
+  originTeamId?: string;
+};
+type NormalizedCurrentStatePlayer = CurrentStatePlayerCore &
+  CurrentStatePlayerRfaBoundary;
 type LineageOverrideMergeBio = Pick<
   NonNullable<NormalizedCurrentStatePlayer['bio']>,
   'playerId' | 'displayName'
@@ -681,7 +689,7 @@ type LineageOverrideMergePlayer = Omit<
   bio?: LineageOverrideMergeBio | null;
 };
 type PersistablePlayerOverride = Pick<
-  NormalizedCurrentStatePlayer,
+  CurrentStatePlayerCore,
   | 'displayName'
   | 'teamCode'
   | 'teamName'
@@ -692,48 +700,13 @@ type PersistablePlayerOverride = Pick<
   | 'source'
   | 'lastUpdated'
   | 'version'
-  | 'rfaOfferSheet'
-  | 'rfaOfferSheetOnly'
-  | 'rfaContext'
   | 'isTwoWay'
   | 'signedDate'
-  | 'isNewlySignedFA'
-  | 'originTeamId'
-> & {
+> &
+  CurrentStatePlayerRfaBoundary & {
   playerId?: string | null;
 };
-type CurrentStatePlayer = Pick<
-  ArchitectMutationPlayerRecord,
-  | 'player_id'
-  | 'id'
-  | 'playerId'
-  | 'teamCode'
-  | 'teamName'
-  | 'name'
-  | 'displayName'
-  | 'playerName'
-  | 'bio'
-  | 'contract'
-  | 'futureContract'
-  | 'representation'
-  | 'source'
-  | 'salary'
-  | 'currentSalary'
-  | 'renounced'
-  | 'freeAgentYear'
-  | 'rightsRenounced'
-  | 'rfaOfferSheet'
-  | 'rfaOfferSheetOnly'
-  | 'rfaContext'
-  | 'lastUpdated'
-  | 'version'
-  | 'isTwoWay'
-  | 'signedDate'
-  | 'isNewlySignedFA'
-  | 'originTeamId'
-> & {
-  draft?: NormalizedCurrentStatePlayerDraft | null;
-};
+type CurrentStatePlayer = CurrentStatePlayerCore & CurrentStatePlayerRfaBoundary;
 type CurrentStateBaseTeam = Pick<
   CurrentStateTeam,
   | 'teamCode'
@@ -2133,6 +2106,35 @@ function normalizeCurrentStatePlayerDraft(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
+function normalizeCurrentStatePlayerRfaBoundary(
+  player: LooseRecord | null | undefined
+): CurrentStatePlayerRfaBoundary {
+  const normalized: CurrentStatePlayerRfaBoundary = {};
+  const rfaOfferSheet = toOptionalBoolean(player?.rfaOfferSheet);
+  const rfaOfferSheetOnly = toOptionalBoolean(player?.rfaOfferSheetOnly);
+  const rfaContext = toOptionalObject<LooseRecord>(player?.rfaContext);
+  const isNewlySignedFA = toOptionalBoolean(player?.isNewlySignedFA);
+  const originTeamId = toOptionalTrimmedString(player?.originTeamId);
+
+  if (rfaOfferSheet !== undefined) {
+    normalized.rfaOfferSheet = rfaOfferSheet;
+  }
+  if (rfaOfferSheetOnly !== undefined) {
+    normalized.rfaOfferSheetOnly = rfaOfferSheetOnly;
+  }
+  if (rfaContext !== undefined) {
+    normalized.rfaContext = rfaContext;
+  }
+  if (isNewlySignedFA !== undefined) {
+    normalized.isNewlySignedFA = isNewlySignedFA;
+  }
+  if (originTeamId !== undefined) {
+    normalized.originTeamId = originTeamId;
+  }
+
+  return normalized;
+}
+
 function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   const playerRecord = asLooseRecord(player);
   if (!playerRecord) {
@@ -2171,15 +2173,11 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   const renounced = toOptionalBoolean(playerRecord.renounced);
   const freeAgentYear = toOptionalNumberish(playerRecord.freeAgentYear);
   const rightsRenounced = toOptionalBoolean(playerRecord.rightsRenounced);
-  const rfaOfferSheet = toOptionalBoolean(playerRecord.rfaOfferSheet);
-  const rfaOfferSheetOnly = toOptionalBoolean(playerRecord.rfaOfferSheetOnly);
-  const rfaContext = toOptionalObject<LooseRecord>(playerRecord.rfaContext);
   const lastUpdated = toOptionalTrimmedString(playerRecord.lastUpdated);
   const version = toOptionalTrimmedString(playerRecord.version);
   const isTwoWay = toOptionalBoolean(playerRecord.isTwoWay);
   const signedDate = toOptionalTrimmedString(playerRecord.signedDate);
-  const isNewlySignedFA = toOptionalBoolean(playerRecord.isNewlySignedFA);
-  const originTeamId = toOptionalTrimmedString(playerRecord.originTeamId);
+  const rfaBoundary = normalizeCurrentStatePlayerRfaBoundary(playerRecord);
 
   if (playerId !== undefined) {
     normalized.player_id = playerId;
@@ -2238,15 +2236,6 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   if (rightsRenounced !== undefined) {
     normalized.rightsRenounced = rightsRenounced;
   }
-  if (rfaOfferSheet !== undefined) {
-    normalized.rfaOfferSheet = rfaOfferSheet;
-  }
-  if (rfaOfferSheetOnly !== undefined) {
-    normalized.rfaOfferSheetOnly = rfaOfferSheetOnly;
-  }
-  if (rfaContext !== undefined) {
-    normalized.rfaContext = rfaContext;
-  }
   if (lastUpdated !== undefined) {
     normalized.lastUpdated = lastUpdated;
   }
@@ -2259,12 +2248,7 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   if (signedDate !== undefined) {
     normalized.signedDate = signedDate;
   }
-  if (isNewlySignedFA !== undefined) {
-    normalized.isNewlySignedFA = isNewlySignedFA;
-  }
-  if (originTeamId !== undefined) {
-    normalized.originTeamId = originTeamId;
-  }
+  Object.assign(normalized, rfaBoundary);
 
   return normalized;
 }
@@ -4567,6 +4551,9 @@ function toPersistablePlayerOverrideFromSnapshot(
     !Array.isArray(normalizedPlayer.bio)
       ? (normalizedPlayer.bio as MutationPlayerBioLike)
       : undefined;
+  const rfaBoundary = normalizeCurrentStatePlayerRfaBoundary(
+    asLooseRecord(normalizedPlayer)
+  );
 
   return removeUndefinedDeep({
     playerId: playerId || undefined,
@@ -4585,13 +4572,9 @@ function toPersistablePlayerOverrideFromSnapshot(
     source: normalizedPlayer.source || undefined,
     lastUpdated: normalizedPlayer.lastUpdated,
     version: normalizedPlayer.version,
-    rfaOfferSheet: normalizedPlayer.rfaOfferSheet,
-    rfaOfferSheetOnly: normalizedPlayer.rfaOfferSheetOnly,
-    rfaContext: normalizedPlayer.rfaContext,
     isTwoWay: normalizedPlayer.isTwoWay,
     signedDate: normalizedPlayer.signedDate,
-    isNewlySignedFA: normalizedPlayer.isNewlySignedFA,
-    originTeamId: normalizedPlayer.originTeamId,
+    ...rfaBoundary,
   }) as PersistablePlayerOverride;
 }
 
