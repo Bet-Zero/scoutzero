@@ -283,6 +283,7 @@ utils/
     legacy/
       index.ts
     tradeContext.ts
+    tradeExecutionAuthority.ts
     types.ts
   tradeHelpers.ts
   tradeMachine/
@@ -365,5 +366,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-26T11:03:09.548Z*
+*Generated on: 2026-03-26T21:22:15.067Z*
 *Auto-updated by: npm run docs*

@@ -149,6 +149,10 @@ import {
   assertValidatedTradeContext,
   assertTradeComputeInputs,
 } from '@/features/architect/utils/tradeContext';
+// TM-3A: Direct import to avoid circular dependency through barrel.
+// tradeExecutionAuthority imports from mutationPipeline, so routing through
+// tradeContext/index.ts would create a circular initialization path.
+import { validateTradeExecutionAuthority } from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
 import {
   normalizeTradeTeamCodeLike,
   resolveOutgoingTradeDestinationTeamCode,
@@ -623,6 +627,11 @@ type NormalizedCurrentStatePlayerDraft = Pick<
   NonNullable<ArchitectMutationPlayerRecord['draft']>,
   'round' | 'pick'
 >;
+type CurrentStatePlayerRfaContext = {
+  pendingHomeTeamCode?: string;
+  offerSheetId?: string;
+  retainedUntilFinalize?: boolean;
+};
 type CurrentStatePlayerCore = Omit<
   Pick<
     ArchitectMutationPlayerRecord,
@@ -656,9 +665,9 @@ type CurrentStatePlayerCore = Omit<
 type CurrentStatePlayerRfaSidecar = {
   rfaOfferSheet?: boolean;
   rfaOfferSheetOnly?: boolean;
-  // Localized mixed boundary: this file only transports/deletes the blob, and
-  // current normalization already preserves only non-array object inputs.
-  rfaContext?: LooseRecord;
+  // Raw ingress stays broad, but the normalized player/persistence seam only
+  // carries the small observed offer-sheet sidecar used by this file.
+  rfaContext?: CurrentStatePlayerRfaContext;
 };
 type CurrentStatePlayerRfaBoundary = CurrentStatePlayerRfaSidecar & {
   isNewlySignedFA?: boolean;
@@ -770,7 +779,7 @@ type BaseTeamLike = CurrentStateBaseTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
 type PlayerLike = NormalizedCurrentStatePlayer;
-type MutationTeamMap = Record<string, TeamSnapshotLike>;
+export type MutationTeamMap = Record<string, TeamSnapshotLike>;
 type MutationCurrentStateTeamEntry = {
   teamCode?: string | null;
   team?: TradeTeamLike | null;
@@ -811,7 +820,7 @@ type MutationDiffSummary = {
 };
 // Deliberately mixed: this aggregates issue payloads from multiple validators and
 // invariant checks that do not yet share one cross-module issue contract.
-type MutationResultIssueLike = string | LooseRecord;
+export type MutationResultIssueLike = string | LooseRecord;
 type MutationEventContractSalaryRow = {
   season?: string | number | null;
   salary?: number | string | null;
@@ -992,7 +1001,7 @@ export type OfferSheetPreflightResult = {
   warnings: string[];
   source: 'authoritative-preflight';
 };
-type MutationPayloadLike = ArchitectMutationPayload;
+export type MutationPayloadLike = ArchitectMutationPayload;
 type TeamUpdateLike = ArchitectMutationTeamUpdate;
 type PlayerUpdateLike = ArchitectMutationPlayerUpdate;
 type PlayerDeleteLike = ArchitectMutationPlayerDelete;
@@ -1049,9 +1058,9 @@ type MutationFailureOverrides = Pick<
   | 'violations'
   | 'warnings'
 >;
-type ComputeResultLike = ArchitectMutationBridgeResult;
+export type ComputeResultLike = ArchitectMutationBridgeResult;
 type AuditContextLike = MutationAuditContext;
-type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
+export type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
 // Public compute ingress used by shared callers that may still carry partially
 // populated team/player snapshots across mutation families.
 type MutationCurrentStateIngress = {
@@ -1067,7 +1076,7 @@ type MutationCurrentStateIngress = {
 };
 // Internal mutation state after ingress normalization. Only fields actually read
 // by compute/apply paths are carried forward from the public ingress.
-type MutationCurrentState = {
+export type MutationCurrentState = {
   teams?: MutationCurrentStateTeamEntry[];
   team?: CurrentStatePrimaryTeam | null;
   player?: PlayerLike | null;
@@ -2106,13 +2115,43 @@ function normalizeCurrentStatePlayerDraft(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
+function normalizeCurrentStatePlayerRfaContext(
+  value: unknown
+): CurrentStatePlayerRfaContext | undefined {
+  const context = asLooseRecord(value);
+  if (!context) {
+    return undefined;
+  }
+
+  const normalized: CurrentStatePlayerRfaContext = {};
+  const pendingHomeTeamCode = toOptionalTrimmedString(
+    context.pendingHomeTeamCode
+  );
+  const offerSheetId = toOptionalTrimmedString(context.offerSheetId);
+  const retainedUntilFinalize = toOptionalBoolean(
+    context.retainedUntilFinalize
+  );
+
+  if (pendingHomeTeamCode !== undefined) {
+    normalized.pendingHomeTeamCode = pendingHomeTeamCode;
+  }
+  if (offerSheetId !== undefined) {
+    normalized.offerSheetId = offerSheetId;
+  }
+  if (retainedUntilFinalize !== undefined) {
+    normalized.retainedUntilFinalize = retainedUntilFinalize;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
 function normalizeCurrentStatePlayerRfaBoundary(
   player: LooseRecord | null | undefined
 ): CurrentStatePlayerRfaBoundary {
   const normalized: CurrentStatePlayerRfaBoundary = {};
   const rfaOfferSheet = toOptionalBoolean(player?.rfaOfferSheet);
   const rfaOfferSheetOnly = toOptionalBoolean(player?.rfaOfferSheetOnly);
-  const rfaContext = toOptionalObject<LooseRecord>(player?.rfaContext);
+  const rfaContext = normalizeCurrentStatePlayerRfaContext(player?.rfaContext);
   const isNewlySignedFA = toOptionalBoolean(player?.isNewlySignedFA);
   const originTeamId = toOptionalTrimmedString(player?.originTeamId);
 
@@ -2863,7 +2902,7 @@ async function resolveStoreOfferSheetAuthority({
   };
 }
 
-function extractTeamsByCodeFromComputeResult(
+export function extractTeamsByCodeFromComputeResult(
   computeResult: MutationBridgeTeamUpdatesSlice = {}
 ): MutationTeamMap {
   const teamsByCode: MutationTeamMap = {};
@@ -2873,7 +2912,7 @@ function extractTeamsByCodeFromComputeResult(
   return teamsByCode;
 }
 
-function buildTotalsByTeam(
+export function buildTotalsByTeam(
   teamsByCode: MutationTeamMap,
   year: number
 ): PostStateTotalsByTeam {
@@ -2921,7 +2960,7 @@ function collectMutationPlayerIds(
   return Array.from(playerIds);
 }
 
-function buildPostStateRulesContext(
+export function buildPostStateRulesContext(
   year: number
 ): NonNullable<PostStateCapValidationInput['rulesContext']> {
   const capSettingsResult = getCapSettings({ year });
@@ -3650,171 +3689,216 @@ export async function applyWorldMutation({
     }
 
     // PHASE 3: VALIDATE - Ensure mutation is legal
-    const validationResult = validateMutation({
-      mutationType,
-      payload: sanitizedPayload,
-      currentState,
-      computeResult,
-      seasonId,
-      asOfDate, // Phase 20: World time SSOT
-      dateDefaulted, // Phase 20: Flag for warning emission
-    });
+    // TM-3A: Trade mutations use the explicit execution authority surface.
+    // Non-trade mutations continue with the existing inline validation chain.
+    let afterTeamsByCode: MutationTeamMap;
+    let beforeTotalsByTeam: PostStateTotalsByTeam;
+    let afterTotalsByTeam: PostStateTotalsByTeam;
+    let combinedWarnings: MutationResultIssueLike[];
+    let postStateValidation: { valid: boolean; violations: unknown[]; warnings: unknown[] };
 
-    if (!validationResult.valid) {
-      return buildMutationFailureResult(
-        validationResult.error || 'Validation failed',
-        {
-          appliedToLocalState: false,
-          persistedToWorld: false,
-          writesSummary: computeWritesSummary,
-          violations: validationResult.violations,
-          warnings: (validationResult.warnings || []) as MutationResultIssueLike[],
-        }
+    if (mutationType === 'executeTrade') {
+      // TM-3A: Trade Execution Authority — all 5 apply-time legality gates
+      // composed in one discoverable surface (tradeContext/tradeExecutionAuthority.ts).
+      const authorityResult = await validateTradeExecutionAuthority({
+        worldId,
+        operationId,
+        mutationType,
+        payload: sanitizedPayload,
+        currentState,
+        computeResult,
+        seasonId,
+        asOfDate,
+        dateDefaulted,
+        timestamp,
+        beforeTeamsByCode,
+      });
+
+      if (!authorityResult.valid) {
+        return buildMutationFailureResult(
+          authorityResult.error || 'Trade execution authority validation failed',
+          {
+            appliedToLocalState: false,
+            persistedToWorld: false,
+            writesSummary: computeWritesSummary,
+            violations: authorityResult.violations,
+            warnings: authorityResult.warnings,
+          }
+        );
+      }
+
+      afterTeamsByCode = authorityResult.auditArtifacts.afterTeamsByCode;
+      beforeTotalsByTeam = authorityResult.auditArtifacts.beforeTotalsByTeam;
+      afterTotalsByTeam = authorityResult.auditArtifacts.afterTotalsByTeam;
+      combinedWarnings = authorityResult.warnings;
+      postStateValidation = {
+        valid: authorityResult.auditArtifacts.postStateValid,
+        violations: authorityResult.auditArtifacts.postStateViolations,
+        warnings: authorityResult.auditArtifacts.postStateWarnings,
+      };
+    } else {
+      // Non-trade: existing inline validation chain (unchanged)
+      const validationResult = validateMutation({
+        mutationType,
+        payload: sanitizedPayload,
+        currentState,
+        computeResult,
+        seasonId,
+        asOfDate,
+        dateDefaulted,
+      });
+
+      if (!validationResult.valid) {
+        return buildMutationFailureResult(
+          validationResult.error || 'Validation failed',
+          {
+            appliedToLocalState: false,
+            persistedToWorld: false,
+            writesSummary: computeWritesSummary,
+            violations: validationResult.violations,
+            warnings: (validationResult.warnings || []) as MutationResultIssueLike[],
+          }
+        );
+      }
+
+      // PHASE 3.5: LEAGUE INVARIANTS - Validate no cross-team duplicates
+      const leagueInvariantResult = await validateMutationLeagueInvariants(
+        worldId,
+        mutationType,
+        sanitizedPayload,
+        computeResult
       );
-    }
 
-    // PHASE 3.5: LEAGUE INVARIANTS - Validate no cross-team duplicates
-    // Phase 86: Prevents players from appearing on multiple teams
-    const leagueInvariantResult = await validateMutationLeagueInvariants(
-      worldId,
-      mutationType,
-      sanitizedPayload,
-      computeResult
-    );
+      if (!leagueInvariantResult.valid) {
+        return buildMutationFailureResult(
+          leagueInvariantResult.error || 'League invariant violation',
+          {
+            appliedToLocalState: false,
+            persistedToWorld: false,
+            writesSummary: computeWritesSummary,
+            violations: leagueInvariantResult.duplicates
+              ? [
+                  {
+                    rule: 'LEAGUE_DUPLICATE_PLAYER',
+                    details: leagueInvariantResult.duplicates,
+                  },
+                ]
+              : [],
+            warnings: [],
+          }
+        );
+      }
 
-    if (!leagueInvariantResult.valid) {
-      return buildMutationFailureResult(
-        leagueInvariantResult.error || 'League invariant violation',
-        {
-          appliedToLocalState: false,
-          persistedToWorld: false,
-          writesSummary: computeWritesSummary,
-          violations: leagueInvariantResult.duplicates
-            ? [
-                {
-                  rule: 'LEAGUE_DUPLICATE_PLAYER',
-                  details: leagueInvariantResult.duplicates,
-                },
-              ]
-            : [],
-          warnings: [],
-        }
+      // PHASE 3.6: ENTITLEMENT INVARIANTS - Validate no cross-team duplicate entitlements
+      const entitlementInvariantResult =
+        await validateMutationEntitlementInvariants(
+          worldId,
+          mutationType,
+          computeResult
+        );
+
+      if (!entitlementInvariantResult.valid) {
+        return buildMutationFailureResult(
+          entitlementInvariantResult.error || 'Entitlement invariant violation',
+          {
+            appliedToLocalState: false,
+            persistedToWorld: false,
+            writesSummary: computeWritesSummary,
+            violations: entitlementInvariantResult.duplicates
+              ? [
+                  {
+                    rule: 'LEAGUE_DUPLICATE_ENTITLEMENT',
+                    details: entitlementInvariantResult.duplicates,
+                  },
+                ]
+              : [],
+            warnings: [],
+          }
+        );
+      }
+
+      // PHASE 3.7: PER-TEAM ENTITLEMENT EXCLUSIVITY (TM-EXCL-E3)
+      const { validateTradeApplyExclusivity } = await import(
+        './leagueInvariants'
       );
-    }
-
-    // PHASE 3.6: ENTITLEMENT INVARIANTS - Validate no cross-team duplicate entitlements
-    // Phase B5: Prevents entitlements from appearing on multiple teams after trade
-    const entitlementInvariantResult =
-      await validateMutationEntitlementInvariants(
+      const exclusivityResult = await validateTradeApplyExclusivity(
         worldId,
         mutationType,
         computeResult
       );
 
-    if (!entitlementInvariantResult.valid) {
-      return buildMutationFailureResult(
-        entitlementInvariantResult.error || 'Entitlement invariant violation',
-        {
-          appliedToLocalState: false,
-          persistedToWorld: false,
-          writesSummary: computeWritesSummary,
-          violations: entitlementInvariantResult.duplicates
-            ? [
-                {
-                  rule: 'LEAGUE_DUPLICATE_ENTITLEMENT',
-                  details: entitlementInvariantResult.duplicates,
-                },
-              ]
-            : [],
-          warnings: [],
-        }
-      );
-    }
+      if (!exclusivityResult.valid) {
+        return buildMutationFailureResult(
+          exclusivityResult.error ||
+            'Trade would create exclusivity-violating entitlement set',
+          {
+            appliedToLocalState: false,
+            persistedToWorld: false,
+            writesSummary: computeWritesSummary,
+            violations: exclusivityResult.teamViolations
+              ? exclusivityResult.teamViolations.map((tv) => ({
+                  rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
+                  details: tv,
+                }))
+              : [],
+            warnings: [],
+          }
+        );
+      }
 
-    // PHASE 3.7: PER-TEAM ENTITLEMENT EXCLUSIVITY (TM-EXCL-E3)
-    // Phase 3.6 checks cross-team duplicate entitlement IDs.
-    // Phase 3.7 checks that no team ends up with overlapping entitlement claims
-    // (duplicate ownership, swap controllers, conveyance rights) after the trade.
-    const { validateTradeApplyExclusivity } = await import(
-      './leagueInvariants'
-    );
-    const exclusivityResult = await validateTradeApplyExclusivity(
-      worldId,
-      mutationType,
-      computeResult
-    );
+      // PHASE 3.8: POST-STATE CAP VALIDATOR (world mutation gold path)
+      const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
+      afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
+      beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
+      afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
 
-    if (!exclusivityResult.valid) {
-      return buildMutationFailureResult(
-        exclusivityResult.error ||
-          'Trade would create exclusivity-violating entitlement set',
-        {
-          appliedToLocalState: false,
-          persistedToWorld: false,
-          writesSummary: computeWritesSummary,
-          violations: exclusivityResult.teamViolations
-            ? exclusivityResult.teamViolations.map((tv) => ({
-                rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
-                details: tv,
-              }))
-            : [],
-          warnings: [],
-        }
-      );
-    }
+      if (Object.keys(afterTotalsByTeam).length === 0) {
+        return buildMutationFailureResult(
+          'Post-state validator requires afterTotalsByTeam for at least one affected team',
+          {
+            appliedToLocalState: false,
+            persistedToWorld: false,
+            writesSummary: computeWritesSummary,
+            violations: [
+              {
+                rule: 'POST_STATE_TOTALS_UNAVAILABLE',
+                message:
+                  'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
+                severity: 'error',
+              },
+            ],
+            warnings: (validationResult.warnings || []) as MutationResultIssueLike[],
+          }
+        );
+      }
 
-    // PHASE 3.8: POST-STATE CAP VALIDATOR (world mutation gold path)
-    const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
-    const afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
-    const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
-    const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
-
-    if (Object.keys(afterTotalsByTeam).length === 0) {
-      return buildMutationFailureResult(
-        'Post-state validator requires afterTotalsByTeam for at least one affected team',
-        {
-          appliedToLocalState: false,
-          persistedToWorld: false,
-          writesSummary: computeWritesSummary,
-          violations: [
-            {
-              rule: 'POST_STATE_TOTALS_UNAVAILABLE',
-              message:
-                'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
-              severity: 'error',
-            },
-          ],
-          warnings: (validationResult.warnings || []) as MutationResultIssueLike[],
-        }
-      );
-    }
-
-    const rulesContext = buildPostStateRulesContext(year);
-    const postStateValidation = validatePostStateCapLegality({
-      operationId,
-      mutationType,
-      worldId,
-      year,
-      beforeTeamsByCode,
-      afterTeamsByCode,
-      beforeTotalsByTeam,
-      afterTotalsByTeam,
-      rulesContext,
-    });
-
-    const combinedWarnings: MutationResultIssueLike[] = [
-      ...((validationResult.warnings || []) as MutationResultIssueLike[]),
-      ...((postStateValidation.warnings || []) as MutationResultIssueLike[]),
-    ];
-
-    if (!postStateValidation.valid) {
-      return buildMutationFailureResult('Post-state cap validation failed', {
-        appliedToLocalState: false,
-        persistedToWorld: false,
-        writesSummary: computeWritesSummary,
-        violations: postStateValidation.violations as MutationResultIssueLike[],
-        warnings: combinedWarnings,
+      const rulesContext = buildPostStateRulesContext(year);
+      postStateValidation = validatePostStateCapLegality({
+        operationId,
+        mutationType,
+        worldId,
+        year,
+        beforeTeamsByCode,
+        afterTeamsByCode,
+        beforeTotalsByTeam,
+        afterTotalsByTeam,
+        rulesContext,
       });
+
+      combinedWarnings = [
+        ...((validationResult.warnings || []) as MutationResultIssueLike[]),
+        ...((postStateValidation.warnings || []) as MutationResultIssueLike[]),
+      ];
+
+      if (!postStateValidation.valid) {
+        return buildMutationFailureResult('Post-state cap validation failed', {
+          appliedToLocalState: false,
+          persistedToWorld: false,
+          writesSummary: computeWritesSummary,
+          violations: postStateValidation.violations as MutationResultIssueLike[],
+          warnings: combinedWarnings,
+        });
+      }
     }
 
     const teamUpdates = computeResult.teamUpdates || [];
@@ -6702,7 +6786,7 @@ function computeSetExceptionsResult({
  * @param {boolean} [params.dateDefaulted] - Phase 20: True if asOfDate was defaulted
  * @returns {{valid: boolean, error?: string, violations?: Array}}
  */
-function validateMutation({
+export function validateMutation({
   mutationType,
   payload,
   currentState,

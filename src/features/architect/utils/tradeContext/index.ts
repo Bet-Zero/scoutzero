@@ -17,6 +17,13 @@
  * - assertValidatedTradeContext: Runtime assertion for ValidatedTradeContext shape
  * - assertTradeComputeInputs: Combined assertion for compute inputs
  *
+ * TM-3A EXPORTS (from ./tradeExecutionAuthority):
+ * - validateTradeExecutionAuthority: Explicit execution authority surface for trade apply-time legality
+ * - TradeExecutionAuthorityInput: Input type
+ * - TradeExecutionAuthorityResult: Result type
+ * - TradeExecutionAuditArtifacts: Audit artifacts type
+ * - TradeExecutionAuthorityStage: Stage identifier type
+ *
  * LEGACY EXPORTS (from ./legacy/):
  * - legacy_validateTradeForContext: Deprecated convenience wrapper
  * - validateTradeForContext: Alias for legacy_validateTradeForContext
@@ -41,3 +48,11 @@ export {
   assertValidatedTradeContext,
   assertTradeComputeInputs,
 } from './assertions';
+
+export {
+  validateTradeExecutionAuthority,
+  type TradeExecutionAuthorityInput,
+  type TradeExecutionAuthorityResult,
+  type TradeExecutionAuditArtifacts,
+  type TradeExecutionAuthorityStage,
+} from './tradeExecutionAuthority';
