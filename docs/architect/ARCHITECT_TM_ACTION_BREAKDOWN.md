@@ -316,3 +316,191 @@ Status:
 - Future enhancement only if world-state preflight becomes a priority
 
 ---
+
+# STEP 3 — ACTION BREAKDOWN
+
+## Apply Pipeline Authority (True Execution Source of Truth)
+
+---
+
+## TM-3A — Define Explicit Execution Authority Surface
+
+### Problem
+
+There is no single function or surface that clearly represents “final trade execution authority.”  
+Authority exists across a chain (snapshot → validation → post-state → world checks), but is not explicitly named or exposed.
+
+### Why It Matters
+
+- Developers cannot easily identify the true source of execution truth
+- Increases risk of incorrect assumptions (e.g. treating `validateTrade()` as final authority)
+- Makes future changes to execution logic more error-prone
+
+### Goal
+
+Define a clear, explicit **execution authority surface** that represents the full apply pipeline legality.
+
+### Success Criteria
+
+- A single function (or clearly defined entry surface) represents full execution legality
+- That surface is:
+  - discoverable
+  - documented by structure (not just comments)
+- No ambiguity remains about what constitutes “final legality”
+
+---
+
+## TM-3B — Centralize Apply Pipeline Legality Chain
+
+### Problem
+
+Execution legality is currently spread across multiple layers:
+
+- snapshot building
+- `validateTrade(...)` reuse
+- post-state validation
+- world invariant checks
+
+There is no unified orchestration layer that clearly composes these.
+
+### Why It Matters
+
+- Logic is harder to trace and reason about
+- Risk of future drift between layers
+- Hard to guarantee ordering and completeness
+
+### Goal
+
+Create or refactor into a **single orchestrated apply legality chain** that:
+
+- explicitly runs all required stages
+- preserves correct ordering
+- clearly defines inputs/outputs between stages
+
+### Success Criteria
+
+- All execution legality stages are composed in one place
+- Order of operations is explicit and enforced
+- No validation stage exists outside the orchestrated flow
+
+---
+
+## TM-3C — Clarify Ownership of Each Validation Layer
+
+### Problem
+
+Validation responsibilities are split across:
+
+- `validateTrade(...)`
+- post-state validation
+- world invariant checks
+
+But ownership boundaries are not clearly defined.
+
+### Why It Matters
+
+- Makes it unclear where new rules should be added
+- Increases duplication risk
+- Blurs responsibility between preview and apply
+
+### Goal
+
+Define clear ownership for each layer:
+
+- trade-level validation
+- post-state validation
+- world-state validation
+
+### Success Criteria
+
+- Each rule category has one clear owner
+- No rule is duplicated across layers
+- Adding a new rule has an obvious destination
+
+---
+
+## TM-3D — Align Preview with Execution Authority Model
+
+### Problem
+
+Preview uses:
+
+- `validateTrade(...)`
+- `getFullLegalityPreview(...)`
+
+Execution uses a broader authority chain.
+
+Even after Step 1, preview is still a partial mirror, not a direct representation of execution authority.
+
+### Why It Matters
+
+- Conceptual mismatch still exists between preview and execution
+- Makes reasoning about UI trust harder
+- Limits long-term maintainability
+
+### Goal
+
+Align preview structure with execution authority model where possible.
+
+This does NOT require full parity, but requires:
+
+- structural alignment
+- shared mental model
+
+### Success Criteria
+
+- Preview flow mirrors execution flow conceptually
+- Differences between preview and apply are:
+  - minimal
+  - explicitly defined
+- No hidden divergence remains
+
+---
+
+## TM-3E — Expose and Document Execution Authority Boundary
+
+### Problem
+
+The true execution boundary (what happens after UI and before persistence) is not clearly exposed.
+
+### Why It Matters
+
+- Hard to onboard new contributors
+- Hard to debug execution issues
+- Hard to verify correctness of future changes
+
+### Goal
+
+Make the execution authority boundary explicit through:
+
+- code structure
+- naming
+- minimal documentation (in-code clarity first)
+
+### Success Criteria
+
+- A developer can easily locate:
+  - where execution begins
+  - where final legality is determined
+- No ambiguity remains about where authority lives
+
+---
+
+## Step 3 Summary
+
+This step focuses on:
+
+- making execution authority explicit
+- reducing fragmentation
+- aligning mental model across preview and apply
+
+This is a **clarity + architecture alignment step**, not just a bug-fix step.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---

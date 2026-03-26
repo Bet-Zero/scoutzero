@@ -569,6 +569,282 @@ But after Step 1, it now appears to represent **all local previewable truth** an
 
 That is a meaningful difference.
 
-```
+---
 
-```
+# STEP 3 — APPLY PIPELINE AUTHORITY (TRUE EXECUTION SOURCE OF TRUTH)
+
+## Scope
+
+Trade Machine — Step 3: Apply Pipeline Authority (True Execution Source of Truth)
+
+**Date:** 2026-03-26  
+**Source:** Direct code inspection (no prior docs trusted)
+
+---
+
+## Purpose of this Step
+
+Trace the full execution path of a trade from Apply click to persistence, and determine whether there is a true single source of truth for execution legality.
+
+This step answers:
+
+- What the exact apply chain is
+- In what order validation stages run
+- Where `validateTrade(...)` is reused
+- Where new rules are introduced after it
+- Whether execution authority is centralized or fragmented
+
+---
+
+## Executive Verdict
+
+**FUNCTIONALLY AUTHORITATIVE, STRUCTURALLY FRAGMENTED**
+
+There is a real authoritative execution path, but it is **not represented by one clean single function**.
+
+The actual apply-time legality chain is spread across:
+
+1. UI gate / user click in `TradeEditor.tsx`
+2. exported trade payload via `useTradeMachine.ts`
+3. trade snapshot + validation context in `tradeContext.ts`
+4. mutation pipeline orchestration in `mutationPipeline.ts`
+5. additional apply-only world invariant gates
+6. post-state validation
+
+So the system **does have a real authority path**, but that authority is layered rather than centralized.
+
+The correct classification is:
+
+- **PASS** for existence of a real authoritative path
+- **RISK** for authority clarity / single-source-of-truth readability
+
+---
+
+## What Was Reviewed
+
+- `src/features/architect/tradeMachine/TradeEditor.tsx`
+- `src/features/architect/hooks/useTradeMachine.ts`
+- `src/features/architect/utils/tradeContext/tradeContext.ts`
+
+---
+
+## Apply Pipeline Diagram (Step-by-Step)
+
+### 1. UI Apply button gate
+
+In `TradeEditor.tsx`, Apply is enabled only when:
+
+- `hasCurrentValidation`
+- `result?.legal === true`
+- `!fullPreviewBlocked`
+
+Where:
+
+- `fullPreviewBlocked = fullLegalityResult != null && fullLegalityResult.legal === false`
+- `canApplyTrade = hasCurrentValidation && result?.legal === true && !fullPreviewBlocked` :contentReference[oaicite:0]{index=0}
+
+This is the final UI-side boolean gate before apply is allowed.
+
+---
+
+### 2. User clicks Apply
+
+Still in `TradeEditor.tsx`, clicking Apply does the following:
+
+- rechecks `hasCurrentValidation`
+- rechecks `result?.legal`
+- exports the current trade via `exportCurrentTrade()`
+- passes that payload into `onApplyTrade(...)` if provided :contentReference[oaicite:1]{index=1}
+
+This means the Trade Machine UI does **not** itself persist the trade. It hands off execution to the downstream apply surface.
+
+---
+
+### 3. Preview-side apply-path simulation already exists
+
+Before apply, `useTradeMachine.ts` runs two preview layers when Validate is clicked:
+
+- `validateTrade(...)` via `validateCurrentTrade()`
+- `getFullLegalityPreview(...)` via `handleValidate()` :contentReference[oaicite:2]{index=2}
+
+`getFullLegalityPreview(...)` is a reduced apply-path legality preview that:
+
+- builds the post-trade snapshot
+- validates the snapshot
+- runs post-state cap legality
+- intentionally excludes world-state gates that require broader reads :contentReference[oaicite:3]{index=3}
+
+This matters because it mirrors much of the eventual apply authority path, but it is still only a preview.
+
+---
+
+### 4. Snapshot builder
+
+In `tradeContext.ts`, the first real execution-logic building block is:
+
+- `buildPostTradeTeamsSnapshot(...)` :contentReference[oaicite:4]{index=4}
+
+This function is explicitly documented as:
+
+- pure
+- deterministic
+- no validator calls
+- responsible for applying roster / player / entitlement / pick movement into a post-trade state
+
+This is the first major stage in real execution logic.
+
+---
+
+### 5. Snapshot validation context
+
+Then `tradeContext.ts` uses:
+
+- `validatePostTradeSnapshotForContext(...)` :contentReference[oaicite:5]{index=5}
+
+This function:
+
+- asserts snapshot shape
+- constructs validation input
+- calls `validateTrade(...)` exactly once on the **post-trade snapshot**
+- returns a validated context object
+
+This is the main place where `validateTrade(...)` is reused in the apply path.
+
+---
+
+### 6. Post-state legality
+
+Still in `tradeContext.ts`, `getFullLegalityPreview(...)` shows that post-state cap legality is a separate layer:
+
+- `validatePostStateCapLegality(...)` is run after the snapshot validation context
+- its result is merged with the post-trade snapshot validation result :contentReference[oaicite:6]{index=6}
+
+This means even within the apply-like path, `validateTrade(...)` is not the final authority alone.
+
+---
+
+## Where `validateTrade(...)` Is Reused vs Where New Rules Enter
+
+### Reused
+
+`validateTrade(...)` is reused in the apply-related path through:
+
+- `validatePostTradeSnapshotForContext(...)` :contentReference[oaicite:7]{index=7}
+
+This is important: the apply path does **not** invent an entirely separate legality engine. It reuses the canonical trade validator on the **post-trade snapshot**.
+
+### New layers added after `validateTrade(...)`
+
+After that reuse, new rule layers are introduced:
+
+- `validatePostStateCapLegality(...)` :contentReference[oaicite:8]{index=8}
+- world-only gates (as documented in the hook):
+  - duplicate player world check
+  - duplicate entitlement world check
+  - entitlement exclusivity world check :contentReference[oaicite:9]{index=9}
+
+So `validateTrade(...)` is necessary, but not sufficient, for final execution authority.
+
+---
+
+## True Execution Authority — Is There a Single Source?
+
+### Strict answer
+
+**No single function fully represents final execution authority.**
+
+### Practical answer
+
+There is a **single authoritative pipeline**, but it is composed of multiple layers:
+
+- post-trade snapshot construction
+- snapshot validation via `validateTrade(...)`
+- post-state legality
+- world invariant / exclusivity checks
+
+So the source of truth is not one function. It is a **chain**.
+
+---
+
+## Authority Clarity Assessment
+
+### PASS — There is a real authoritative path
+
+The system is not ad hoc. It has a real execution chain with defined stages, and `validateTrade(...)` is reused inside that chain rather than bypassed.
+
+### RISK — Authority is fragmented
+
+A developer could still incorrectly assume:
+
+- `validateTrade(...)` alone is final truth
+- or `getFullLegalityPreview(...)` alone is final truth
+
+But the code shows the final truth is broader than either of those, because additional apply-only world gates still exist.
+
+### FAIL?
+
+No. This is not a failure of authority existence. It is a readability / ownership clarity issue.
+
+---
+
+## Final Classification
+
+### Execution authority
+
+**PASS**
+
+There is a real, layered authoritative apply path.
+
+### Single-function authority clarity
+
+**RISK**
+
+There is no single clearly named function that a reader can point to and say:
+
+> “This alone is the final trade execution authority.”
+
+### Overall Step 3 verdict
+
+**Functionally authoritative, structurally fragmented**
+
+---
+
+## Conclusion
+
+The apply path is not missing authority.
+
+The real issue is that authority is distributed across a chain rather than embodied in one obvious surface.
+
+That means Step 3 should likely produce follow-up work focused on one or both of:
+
+- making the authoritative chain easier to understand / expose
+- reducing ambiguity around what actually counts as “final authority”
+
+---
+
+## Recommendation
+
+This step **does justify Action Breakdown work**.
+
+The likely follow-up theme is:
+
+- execution authority clarity
+- explicit ownership of final legality
+- possibly exposing or naming the true final authority chain more clearly
+
+---
+
+## Final Note
+
+`validateTrade(...)` remains the core validator, but it is not the final authority by itself.
+
+The final authority is the layered apply chain that includes:
+
+- snapshot construction
+- snapshot validation
+- post-state legality
+- world invariant checks
+
+That is the true execution truth model today.
+
+---
