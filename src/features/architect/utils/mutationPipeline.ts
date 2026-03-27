@@ -151,13 +151,15 @@ import {
   assertValidatedTradeContext,
   assertTradeComputeInputs,
 } from '@/features/architect/utils/tradeContext';
-// TM-3A: Direct import to avoid circular dependency through barrel.
+// TM-3A/TM-3C: Direct import to avoid circular dependency through barrel.
 // tradeExecutionAuthority imports from mutationPipeline, so routing through
 // tradeContext/index.ts would create a circular initialization path.
-import { validateTradeExecutionAuthority } from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
+import {
+  evaluateTradeSnapshotValidationStage,
+  validateTradeExecutionAuthority,
+} from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
 import {
   buildTradeApplyPreparation,
-  evaluatePreparedTradeContext,
   normalizeTradeTeamCodeLike,
   resolveOutgoingTradeDestinationTeamCode,
 } from '@/features/architect/utils/tradeContext/tradeContext';
@@ -6798,9 +6800,10 @@ export function validateMutation({
   if (mutationType === 'executeTrade') {
     // Phase 56+/TM-3B: Trade validation MUST have already occurred via
     // buildTradeApplyPreparation, which attaches _validatedTradeContext.
+    // TM-3C: The authority layer owns the stage-1 verdict adapter for that context.
     // computeWorldMutation guarantees _validatedTradeContext is attached to computeResult
     if (computeResult?._validatedTradeContext?._isValidatedTradeContext) {
-      return evaluatePreparedTradeContext({
+      return evaluateTradeSnapshotValidationStage({
         validatedTradeContext: computeResult._validatedTradeContext,
         asOfDate: asOfDate ?? null,
         dateDefaulted,

@@ -140,19 +140,6 @@ export interface TradeApplyPreparation {
   validationPayload: TradeContextPayload;
 }
 
-export interface EvaluatePreparedTradeContextParams {
-  validatedTradeContext: ValidatedTradeContext;
-  asOfDate?: string | null;
-  dateDefaulted?: boolean;
-}
-
-export interface PreparedTradeContextVerdict {
-  valid: boolean;
-  error?: string;
-  violations: string[];
-  warnings: unknown[];
-}
-
 export interface AssertTradeComputeInputsParams {
   postTradeSnapshot: unknown;
   validatedContext: unknown;

@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/phase57_forbid_validateTrade_in_compute_guardrail.test.js
- * PURPOSE: Anti-regression guardrail tests for Phase 57 + Phase 58 + Phase 59.
+ * PURPOSE: Anti-regression guardrail tests for Phase 57 + Phase 58 + Phase 59 + TM-3C.
  *
  * These tests enforce that validateTrade() is NOT called within compute/persistence
  * modules. Trade validation must occur BEFORE compute via the snapshot → validate → compute
@@ -289,8 +289,8 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       // Should NOT contain validateTradeForPipeline (removed in Phase 57)
       expect(regionCode).not.toContain('validateTradeForPipeline');
 
-      // TM-3B: executeTrade should delegate to the prepared-context verdict helper
-      expect(regionCode).toContain('evaluatePreparedTradeContext');
+      // TM-3C: executeTrade should delegate to the authority-owned stage-1 helper
+      expect(regionCode).toContain('evaluateTradeSnapshotValidationStage');
       expect(regionCode).toContain('_validatedTradeContext');
 
       // Should contain the Phase 57 error for missing context
@@ -356,7 +356,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       // TM-3B: Should export the centralized preparation helper
       expect(source).toContain('export function buildTradeApplyPreparation');
-      expect(source).toContain('export function evaluatePreparedTradeContext');
+      expect(source).not.toContain('export function evaluatePreparedTradeContext');
 
       // Phase 59: validateTradeForContext moved to legacy namespace
       expect(source).toContain('PHASE 59: LEGACY FUNCTION MOVED');
@@ -538,12 +538,12 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
   });
 
   describe('Test 13: tradeExecutionAuthority Stage 1 uses explicit prepared context', () => {
-    it('should use evaluatePreparedTradeContext and not call validateMutation()', () => {
+    it('should use evaluateTradeSnapshotValidationStage and not call validateMutation()', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts'
       );
 
-      expect(source).toContain('evaluatePreparedTradeContext');
+      expect(source).toContain('evaluateTradeSnapshotValidationStage');
       expect(source).toContain('validatedTradeContext');
 
       const violations = source
@@ -558,6 +558,30 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
         );
 
       expect(violations).toEqual([]);
+    });
+  });
+
+  describe('Test 14: tradeExecutionAuthority stage 5 is a thin delegator', () => {
+    it('should delegate post-state rule ownership to validatePostStateCapLegality', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts'
+      );
+
+      const regionCode = extractRegion(
+        source,
+        'function runTradePostStateLegalityStage({',
+        '\nfunction buildFailure('
+      );
+
+      expect(regionCode).toContain('validatePostStateCapLegality');
+      expect(regionCode).toContain('extractTeamsByCodeFromComputeResult');
+      expect(regionCode).toContain('buildTotalsByTeam');
+      expect(regionCode).toContain('buildPostStateRulesContext');
+
+      expect(regionCode).not.toContain('ROSTER_LIMITS');
+      expect(regionCode).not.toContain('validateContractRows');
+      expect(regionCode).not.toContain('validateDeadCap');
+      expect(regionCode).not.toContain('validateExceptions');
     });
   });
 });

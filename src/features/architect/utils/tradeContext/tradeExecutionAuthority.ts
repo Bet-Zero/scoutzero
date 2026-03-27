@@ -8,15 +8,20 @@
  * HISTORY:
  *  - 2026-03-26: TM-3A - Created. Extracted from applyWorldMutation inline stages.
  *  - 2026-03-26: TM-3B - Stage 1 now consumes explicit prepared trade context.
+ *  - 2026-03-26: TM-3C - Stage ownership made explicit: authority composes, validators own rules.
  *
  * AUTHORITY CHAIN (5 stages, short-circuits on first failure):
- *  1. SNAPSHOT_VALIDATION     — evaluatePreparedTradeContext (verifies prepared trade context)
+ *  1. SNAPSHOT_VALIDATION     — evaluateTradeSnapshotValidationStage (adapts prepared trade verdict)
  *  2. LEAGUE_INVARIANTS       — validateMutationLeagueInvariants (no duplicate players)
  *  3. ENTITLEMENT_INVARIANTS  — validateMutationEntitlementInvariants (no duplicate entitlements)
  *  4. ENTITLEMENT_EXCLUSIVITY — validateTradeApplyExclusivity (per-team + league-wide)
- *  5. POST_STATE_CAP_LEGALITY — validatePostStateCapLegality (hard cap, roster limits, etc.)
+ *  5. POST_STATE_CAP_LEGALITY — runTradePostStateLegalityStage (derives inputs, delegates rules)
  *
  * Every trade mutation must pass all 5 stages before persistence is allowed.
+ *
+ * OWNERSHIP:
+ * - This module owns sequencing, short-circuit behavior, warning aggregation, and audit artifacts.
+ * - This module does NOT own trade rules, post-state cap rules, or world invariants themselves.
  */
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -36,7 +41,7 @@ import {
   validateTradeApplyExclusivity,
 } from '@/features/architect/utils/leagueInvariants';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
-import { evaluatePreparedTradeContext } from './tradeContext';
+import { assertValidatedTradeContext } from './assertions';
 import type { ValidatedTradeContext } from './types';
 
 // ---------------------------------------------------------------------------
@@ -93,6 +98,21 @@ export interface TradeExecutionAuthorityInput {
   beforeTeamsByCode: MutationTeamMap;
 }
 
+/** Input for the stage-1 snapshot validation adapter. */
+export interface TradeSnapshotValidationStageInput {
+  validatedTradeContext: ValidatedTradeContext;
+  asOfDate?: string | null;
+  dateDefaulted?: boolean;
+}
+
+/** Result for the stage-1 snapshot validation adapter. */
+export interface TradeSnapshotValidationStageResult {
+  valid: boolean;
+  error?: string;
+  violations: string[];
+  warnings: unknown[];
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -105,6 +125,138 @@ const EMPTY_AUDIT_ARTIFACTS: TradeExecutionAuditArtifacts = {
   postStateViolations: [],
   postStateWarnings: [],
 };
+
+interface TradePostStateLegalityStageInput {
+  operationId: string;
+  mutationType: string;
+  worldId: string;
+  seasonId: string;
+  timestamp: number;
+  beforeTeamsByCode: MutationTeamMap;
+  computeResult: ComputeResultLike;
+}
+
+interface TradePostStateLegalityStageResult {
+  valid: boolean;
+  error?: string;
+  violations: MutationResultIssueLike[];
+  warnings: MutationResultIssueLike[];
+  auditArtifacts: TradeExecutionAuditArtifacts;
+}
+
+function buildTradeSnapshotValidationStageWarnings({
+  asOfDate,
+  dateDefaulted,
+}: Pick<TradeSnapshotValidationStageInput, 'asOfDate' | 'dateDefaulted'>): unknown[] {
+  if (!dateDefaulted) {
+    return [];
+  }
+
+  return [
+    {
+      rule: 'world_time_defaulted',
+      message: `World time was defaulted to ${asOfDate}. For accurate timing-based validation, provide asOfDate in payload or world metadata.`,
+      severity: 'warning',
+      asOfDateUsed: asOfDate,
+    },
+  ];
+}
+
+export function evaluateTradeSnapshotValidationStage({
+  validatedTradeContext,
+  asOfDate,
+  dateDefaulted,
+}: TradeSnapshotValidationStageInput): TradeSnapshotValidationStageResult {
+  assertValidatedTradeContext(
+    validatedTradeContext,
+    'evaluateTradeSnapshotValidationStage'
+  );
+
+  const stageWarnings = buildTradeSnapshotValidationStageWarnings({
+    asOfDate,
+    dateDefaulted,
+  });
+
+  return {
+    valid: validatedTradeContext.legal,
+    error: validatedTradeContext.error || undefined,
+    violations: (validatedTradeContext.violations || []).map((violation) =>
+      typeof violation === 'string' ? violation : JSON.stringify(violation)
+    ),
+    warnings: [
+      ...(validatedTradeContext.warnings || []),
+      ...stageWarnings,
+    ],
+  };
+}
+
+function runTradePostStateLegalityStage({
+  operationId,
+  mutationType,
+  worldId,
+  seasonId,
+  timestamp,
+  beforeTeamsByCode,
+  computeResult,
+}: TradePostStateLegalityStageInput): TradePostStateLegalityStageResult {
+  const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
+  const afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
+  const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
+  const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
+
+  if (Object.keys(afterTotalsByTeam).length === 0) {
+    return {
+      valid: false,
+      error: 'Post-state validator requires afterTotalsByTeam for at least one affected team',
+      violations: [
+        {
+          rule: 'POST_STATE_TOTALS_UNAVAILABLE',
+          message: 'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
+          severity: 'error',
+        } as LooseRecord,
+      ],
+      warnings: [],
+      auditArtifacts: {
+        afterTeamsByCode,
+        beforeTotalsByTeam,
+        afterTotalsByTeam,
+        postStateValid: false,
+        postStateViolations: [],
+        postStateWarnings: [],
+      },
+    };
+  }
+
+  const rulesContext = buildPostStateRulesContext(year);
+  const postStateValidation = validatePostStateCapLegality({
+    operationId,
+    mutationType,
+    worldId,
+    year,
+    beforeTeamsByCode,
+    afterTeamsByCode,
+    beforeTotalsByTeam,
+    afterTotalsByTeam,
+    rulesContext,
+  });
+
+  return {
+    valid: postStateValidation.valid,
+    error: postStateValidation.valid
+      ? undefined
+      : 'Post-state cap validation failed',
+    violations: postStateValidation.violations as MutationResultIssueLike[],
+    warnings: postStateValidation.warnings as MutationResultIssueLike[],
+    auditArtifacts: {
+      afterTeamsByCode,
+      beforeTotalsByTeam,
+      afterTotalsByTeam,
+      postStateValid: postStateValidation.valid,
+      postStateViolations: postStateValidation.violations as MutationResultIssueLike[],
+      postStateWarnings: postStateValidation.warnings as MutationResultIssueLike[],
+    },
+  };
+}
 
 function buildFailure(
   failedStage: TradeExecutionAuthorityStage,
@@ -147,10 +299,10 @@ export async function validateTradeExecutionAuthority(
 
   // =========================================================================
   // STAGE 1: SNAPSHOT_VALIDATION
-  // Verifies that the prepared trade context (from buildTradeApplyPreparation /
-  // computeWorldMutation) is present and carries the legality determination.
+  // Adapts the prepared trade context (from buildTradeApplyPreparation /
+  // computeWorldMutation) into the authority-stage contract.
   // =========================================================================
-  const validationResult = evaluatePreparedTradeContext({
+  const validationResult = evaluateTradeSnapshotValidationStage({
     validatedTradeContext,
     asOfDate,
     dateDefaulted,
@@ -236,68 +388,31 @@ export async function validateTradeExecutionAuthority(
 
   // =========================================================================
   // STAGE 5: POST_STATE_CAP_LEGALITY
-  // Validates post-trade state against cap rules (hard cap, roster limits, etc.).
+  // Derives post-state inputs, then delegates rule ownership to
+  // validatePostStateCapLegality().
   // =========================================================================
-  const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
-  const afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
-  const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
-  const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
-
-  if (Object.keys(afterTotalsByTeam).length === 0) {
-    return buildFailure(
-      'POST_STATE_CAP_LEGALITY',
-      'Post-state validator requires afterTotalsByTeam for at least one affected team',
-      [{
-        rule: 'POST_STATE_TOTALS_UNAVAILABLE',
-        message: 'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
-        severity: 'error',
-      } as LooseRecord],
-      stage1Warnings,
-      {
-        afterTeamsByCode,
-        beforeTotalsByTeam,
-        afterTotalsByTeam,
-        postStateValid: false,
-        postStateViolations: [],
-        postStateWarnings: [],
-      },
-    );
-  }
-
-  const rulesContext = buildPostStateRulesContext(year);
-  const postStateValidation = validatePostStateCapLegality({
+  const postStateStage = runTradePostStateLegalityStage({
     operationId,
     mutationType,
     worldId,
-    year,
+    seasonId,
+    timestamp,
     beforeTeamsByCode,
-    afterTeamsByCode,
-    beforeTotalsByTeam,
-    afterTotalsByTeam,
-    rulesContext,
+    computeResult,
   });
 
   const combinedWarnings: MutationResultIssueLike[] = [
     ...stage1Warnings,
-    ...((postStateValidation.warnings || []) as MutationResultIssueLike[]),
+    ...postStateStage.warnings,
   ];
 
-  const auditArtifacts: TradeExecutionAuditArtifacts = {
-    afterTeamsByCode,
-    beforeTotalsByTeam,
-    afterTotalsByTeam,
-    postStateValid: postStateValidation.valid,
-    postStateViolations: postStateValidation.violations as MutationResultIssueLike[],
-    postStateWarnings: postStateValidation.warnings as MutationResultIssueLike[],
-  };
-
-  if (!postStateValidation.valid) {
+  if (!postStateStage.valid) {
     return buildFailure(
       'POST_STATE_CAP_LEGALITY',
-      'Post-state cap validation failed',
-      postStateValidation.violations as MutationResultIssueLike[],
+      postStateStage.error || 'Post-state cap validation failed',
+      postStateStage.violations,
       combinedWarnings,
-      auditArtifacts,
+      postStateStage.auditArtifacts,
     );
   }
 
@@ -308,6 +423,6 @@ export async function validateTradeExecutionAuthority(
     valid: true,
     violations: [],
     warnings: combinedWarnings,
-    auditArtifacts,
+    auditArtifacts: postStateStage.auditArtifacts,
   };
 }

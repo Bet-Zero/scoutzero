@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/utils/tradeContext/tradeContext.ts
- * PURPOSE: Trade snapshot, preparation, and validation context builders.
+ * PURPOSE: Trade snapshot, preparation, and preview helpers.
  * OWNERSHIP: Feature: architect/tradeMachine
  *
  * HISTORY:
@@ -15,11 +15,12 @@
  *  - Phase 59: Legacy Trade Validation Retirement
  *
  * DESIGN:
- * This module contains the Phase 56 / TM-3B trade-apply helpers:
+ * This module contains the Phase 56 / TM-3B trade-apply helpers up to the
+ * prepared validated context handoff:
  * - buildPostTradeTeamsSnapshot(): Pure function that applies roster moves
  * - validatePostTradeSnapshotForContext(): Validates snapshot and returns context
  * - buildTradeApplyPreparation(): Centralizes the snapshot → validate handoff
- * - evaluatePreparedTradeContext(): Adapts validated context into pipeline verdict
+ * - getFullLegalityPreview(): Pure preview composition without world-state gates
  *
  * Legacy convenience wrapper (validateTradeForContext) moved to ./legacy/ in Phase 59.
  *
@@ -38,10 +39,7 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-import {
-  assertPostTradeSnapshot,
-  assertValidatedTradeContext,
-} from './assertions';
+import { assertPostTradeSnapshot } from './assertions';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
   isSignAndTradeEligible,
@@ -58,10 +56,8 @@ import type {
   AnyRecord,
   BuildTradeApplyPreparationParams,
   BuildPostTradeTeamsSnapshotParams,
-  EvaluatePreparedTradeContextParams,
   OutgoingTradeRouteLike,
   PostTradeSnapshot,
-  PreparedTradeContextVerdict,
   TradeApplyPreparation,
   TradeApplyValidationPlayer,
   TradeApplyValidationTeam,
@@ -935,24 +931,6 @@ function buildTradeValidationPayload({
   };
 }
 
-function buildPreparedTradeContextWarnings({
-  asOfDate,
-  dateDefaulted,
-}: Pick<EvaluatePreparedTradeContextParams, 'asOfDate' | 'dateDefaulted'>): unknown[] {
-  if (!dateDefaulted) {
-    return [];
-  }
-
-  return [
-    {
-      rule: 'world_time_defaulted',
-      message: `World time was defaulted to ${asOfDate}. For accurate timing-based validation, provide asOfDate in payload or world metadata.`,
-      severity: 'warning',
-      asOfDateUsed: asOfDate,
-    },
-  ];
-}
-
 export function buildTradeApplyPreparation({
   payload,
   currentState,
@@ -982,34 +960,6 @@ export function buildTradeApplyPreparation({
     postTradeSnapshot,
     validatedContext,
     validationPayload,
-  };
-}
-
-export function evaluatePreparedTradeContext({
-  validatedTradeContext,
-  asOfDate,
-  dateDefaulted,
-}: EvaluatePreparedTradeContextParams): PreparedTradeContextVerdict {
-  assertValidatedTradeContext(
-    validatedTradeContext,
-    'evaluatePreparedTradeContext'
-  );
-
-  const pipelineWarnings = buildPreparedTradeContextWarnings({
-    asOfDate,
-    dateDefaulted,
-  });
-
-  return {
-    valid: validatedTradeContext.legal,
-    error: validatedTradeContext.error || undefined,
-    violations: (validatedTradeContext.violations || []).map((violation) =>
-      typeof violation === 'string' ? violation : JSON.stringify(violation)
-    ),
-    warnings: [
-      ...(validatedTradeContext.warnings || []),
-      ...pipelineWarnings,
-    ],
   };
 }
 

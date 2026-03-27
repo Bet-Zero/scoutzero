@@ -241,6 +241,11 @@ function validateTotalsSanity({
 export function validatePostStateCapLegality(
   input: PostStateCapValidationInput
 ): PostStateCapValidationResult {
+  // Ownership boundary:
+  // - Owns post-mutation team legality rules and post-state input sanity for the
+  //   before/after team snapshots and totals it receives.
+  // - Does NOT own trade-term validation, authority-stage sequencing, or
+  //   world-state invariant checks such as league/entitlement exclusivity.
   const violations: PostStateCapValidationIssue[] = [];
   const warnings: PostStateCapValidationIssue[] = [];
 
