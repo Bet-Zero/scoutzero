@@ -28,7 +28,8 @@ const SEASON = '2025-26';
 
 const expectedReturnKeys = [
   'teams',
-  'result',
+  'previewAuthority',
+  'snapshotValidationDetails',
   'forceTrade',
   'previewOpen',
   'setPreviewOpen',
@@ -58,7 +59,6 @@ const expectedReturnKeys = [
   'clearInjectedDevSntPlayers',
   'getValidatedAt',
   'initError',
-  'fullLegalityResult',
 ] as const;
 
 const expectedExportKeys = [
@@ -288,7 +288,8 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.result).not.toBeNull();
+      expect(result.current.snapshotValidationDetails).not.toBeNull();
+      expect(result.current.previewAuthority).not.toBeNull();
       expect(result.current.hasCurrentValidation).toBe(true);
     });
 

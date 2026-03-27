@@ -341,9 +341,19 @@ function makeTradeMachineReturn(overrides: Record<string, any> = {}) {
       sends: [...team.sends],
       entitlementsOut: [...team.entitlementsOut],
     })),
-    result: {
+    previewAuthority: {
       legal: true,
-      reason: null,
+      reason: 'Preview authority passed',
+      violations: [],
+      warnings: [],
+      source: 'apply-preview',
+      omittedStages: [
+        'LEAGUE_INVARIANTS',
+        'ENTITLEMENT_INVARIANTS',
+        'ENTITLEMENT_EXCLUSIVITY',
+      ],
+    },
+    snapshotValidationDetails: {
       override: null,
       teamResults: [{ teamId: 'ATL' }, { teamId: 'BOS' }],
     },
@@ -675,7 +685,7 @@ describe('TradeEditor boundary E105', () => {
     expect(harness.editorTradeTeamCardProps[0]).toMatchObject({
       teamIndex: 0,
       team: expect.objectContaining({ id: 'ATL' }),
-      validationResult: tradeMachine.result,
+      validationResult: tradeMachine.snapshotValidationDetails,
     });
 
     const firstCard = screen.getByTestId('mock-trade-team-card-0');

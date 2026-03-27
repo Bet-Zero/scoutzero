@@ -37,14 +37,20 @@ const teams = [
   },
 ];
 
-const result = {
+const previewAuthority = {
   legal: false,
-  authoritativeLegal: false,
   reason: 'Incoming exceeds allowable',
   violations: [issue('Incoming exceeds allowable', 'salaryMatching')],
   warnings: [issue('Trade-level warning', 'tradeValidation', 'warning')],
-  yearKey: 2026,
-  seasonKey: '2025-26',
+  source: 'apply-preview',
+  omittedStages: [
+    'LEAGUE_INVARIANTS',
+    'ENTITLEMENT_INVARIANTS',
+    'ENTITLEMENT_EXCLUSIVITY',
+  ],
+};
+
+const snapshotValidationDetails = {
   capSettings: {
     salaryCap: 154_000_000,
     firstApron: 178_132_000,
@@ -207,9 +213,10 @@ describe('validator contract consumers', () => {
       <ValidationDetailsPanel
         hasValidatorResult
         isValidating={false}
-        result={result}
+        previewAuthority={previewAuthority}
+        snapshotValidationDetails={snapshotValidationDetails}
         teams={teams}
-        capProjections={result.capSettings}
+        capProjections={snapshotValidationDetails.capSettings}
         yearKey={2026}
         salaryOut={[0, 0]}
         incomingAssets={[{ players: [], picks: [] }, { players: [], picks: [] }]}
@@ -276,10 +283,10 @@ describe('validator contract consumers', () => {
       issue(message, 'tradeExceptions')
     );
     const legacyConsumerResult = {
-      ...result,
+      ...snapshotValidationDetails,
       teamResults: [
         {
-          ...result.teamResults[0],
+          ...snapshotValidationDetails.teamResults[0],
           incomingPlayers: [
             {
               id: 'legacy-exception-wing',
@@ -290,7 +297,7 @@ describe('validator contract consumers', () => {
             },
           ],
           rules: {
-            ...result.teamResults[0].rules,
+            ...snapshotValidationDetails.teamResults[0].rules,
             tradeExceptions: {
               passed: legacyTradeExceptionsResult.passed,
               violations: legacyIssues,
@@ -300,7 +307,7 @@ describe('validator contract consumers', () => {
             },
           },
         },
-        result.teamResults[1],
+        snapshotValidationDetails.teamResults[1],
       ],
     };
 
@@ -308,7 +315,8 @@ describe('validator contract consumers', () => {
       <ValidationDetailsPanel
         hasValidatorResult
         isValidating={false}
-        result={legacyConsumerResult}
+        previewAuthority={previewAuthority}
+        snapshotValidationDetails={legacyConsumerResult}
         teams={teams}
         capProjections={legacyConsumerResult.capSettings}
         yearKey={2026}

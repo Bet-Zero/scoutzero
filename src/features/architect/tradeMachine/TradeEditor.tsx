@@ -112,7 +112,8 @@ const TradeEditor = ({
 }: TradeEditorProps) => {
   const {
     teams,
-    result,
+    previewAuthority,
+    snapshotValidationDetails,
     forceTrade,
     // setForceTrade,
     setPlayerTrade,
@@ -134,7 +135,7 @@ const TradeEditor = ({
     isValidating,
     // P2: Expose salaryOut for TradeSalaryCalculator
     salaryOut,
-    // Stale validation fix: Use hasCurrentValidation instead of result check
+    // Stale validation fix: Use hasCurrentValidation instead of stale detail payload checks
     hasCurrentValidation,
     getValidatedAt,
     hasInjectedDevSntPlayers,
@@ -148,8 +149,6 @@ const TradeEditor = ({
     applyEntitlementOverrideUpdate,
     // TM-VACUUM-E1: Re-resolve entitlements for all active slots
     refreshEntitlements,
-    // TM-1A: Apply-path preview validation result
-    fullLegalityResult,
   } = useTradeMachine(
     primaryTeam,
     capProjections,
@@ -332,9 +331,23 @@ const TradeEditor = ({
   }, [containerWidth, teams.length]);
   const compact = layoutMode !== 'normal';
 
-  // TM-1A: Apply-path snapshot validation blocks apply when it computes a non-legal result
-  const fullPreviewBlocked = fullLegalityResult != null && fullLegalityResult.legal === false;
-  const canApplyTrade = hasCurrentValidation && result?.legal === true && !fullPreviewBlocked;
+  const currentPreviewAuthority = hasCurrentValidation ? previewAuthority : null;
+  const currentSnapshotValidationDetails = hasCurrentValidation
+    ? snapshotValidationDetails
+    : null;
+  const previewAuthorityReason =
+    currentPreviewAuthority?.reason ||
+    currentPreviewAuthority?.violations?.[0]?.message ||
+    'Trade validation failed';
+  const previewOverrideRequested = Boolean(
+    (currentSnapshotValidationDetails?.override as Record<string, unknown> | undefined)
+      ?.requested
+  );
+  const previewHasApplyTimeWorldChecks =
+    Array.isArray(currentPreviewAuthority?.omittedStages) &&
+    currentPreviewAuthority.omittedStages.length > 0;
+  const canApplyTrade =
+    hasCurrentValidation && currentPreviewAuthority?.legal === true;
   const isDevSntInjectorEnabled =
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
@@ -518,7 +531,7 @@ const TradeEditor = ({
 
       {/* Task A: Mode + Validation State Header */}
       {/* Stale validation fix: Uses hasCurrentValidation to only show "Validated"
-          when result matches current draft configuration */}
+          when the current preview authority/detail payload matches this draft */}
       <ValidationStateHeader
         hasValidatorResult={hasCurrentValidation}
         isValidating={isValidating}
@@ -568,7 +581,7 @@ const TradeEditor = ({
               <TradeTeamCard
                 compact={compact}
                 validationResult={
-                  (hasCurrentValidation ? result : null) as TradeTeamCardProps['validationResult']
+                  (currentSnapshotValidationDetails ?? null) as TradeTeamCardProps['validationResult']
                 }
                 teamIndex={idx}
                 team={
@@ -645,10 +658,10 @@ const TradeEditor = ({
               toast.error('Re-validate trade before applying.');
               return;
             }
-            if (result?.legal !== true) {
+            if (currentPreviewAuthority?.legal !== true) {
               alert(
                 'Cannot apply trade: ' +
-                  (result?.reason || 'Trade validation failed')
+                  previewAuthorityReason
               );
               return;
             }
@@ -696,44 +709,38 @@ const TradeEditor = ({
           Apply Trade
         </button>
 
-        {canApplyTrade && (
+        {canApplyTrade && previewHasApplyTimeWorldChecks && (
           <span className="text-xs text-yellow-400/50">
-            All local checks passed. World-state checks (duplicate players,
+            All local preview checks passed. World-state checks (duplicate players,
             entitlement conflicts, exclusivity) run at apply time and may still
             reject this trade.
           </span>
         )}
 
-        {fullPreviewBlocked && (
-          <span className="text-xs text-red-400">
-            Apply blocked (post-trade check):{' '}
-            {fullLegalityResult?.reason ||
-              fullLegalityResult?.violations?.[0]?.message ||
-              'Trade fails apply-path validation'}
-          </span>
-        )}
-
-        {result && !result.legal && (
+        {currentPreviewAuthority?.legal === false && (
           <span
             className={`text-xs ${
-              (result.override as Record<string, unknown> | undefined)?.requested ? 'text-amber-300' : 'text-red-400'
+              previewOverrideRequested ? 'text-amber-300' : 'text-red-400'
             }`}
           >
-            {(result.override as Record<string, unknown> | undefined)?.requested
-              ? `Override requested, but authoritative validation still blocks this trade: ${
-                  result.reason || 'Validation failed'
+            {previewOverrideRequested
+              ? `Override requested, but preview authority still blocks this trade: ${
+                  previewAuthorityReason
                 }`
-              : `Trade blocked: ${result.reason || 'Validation failed'}`}
+              : `Trade blocked: ${previewAuthorityReason}`}
           </span>
         )}
       </div>
 
       {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
-      {/* Stale validation fix: Uses hasCurrentValidation for proper gating */}
+      {/* Stale validation fix: Uses hasCurrentValidation for proper authority/detail gating */}
       <ValidationDetailsPanel
         hasValidatorResult={hasCurrentValidation}
         isValidating={isValidating}
-        result={result as ValidationDetailsPanelProps['result']}
+        previewAuthority={currentPreviewAuthority as ValidationDetailsPanelProps['previewAuthority']}
+        snapshotValidationDetails={
+          currentSnapshotValidationDetails as ValidationDetailsPanelProps['snapshotValidationDetails']
+        }
         teams={teams as ValidationDetailsPanelProps['teams']}
         forceTrade={forceTrade}
         calculatorTeamIndex={calculatorTeamIndex}
@@ -750,10 +757,13 @@ const TradeEditor = ({
       />
 
       <TradePreviewModal
-        open={previewOpen && !!result}
+        open={previewOpen && !!currentPreviewAuthority && !!currentSnapshotValidationDetails}
         onClose={() => setPreviewOpen(false)}
         teams={teams as TradePreviewModalProps['teams']}
-        result={result as TradePreviewModalProps['result']}
+        previewAuthority={currentPreviewAuthority as TradePreviewModalProps['previewAuthority']}
+        snapshotValidationDetails={
+          currentSnapshotValidationDetails as TradePreviewModalProps['snapshotValidationDetails']
+        }
         yearKey={yearKey}
       />
 

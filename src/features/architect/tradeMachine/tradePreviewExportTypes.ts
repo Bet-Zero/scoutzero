@@ -1,3 +1,8 @@
+import type {
+  PreviewAuthorityLike,
+  SnapshotValidationDetailsLike,
+} from './validationPresentationTypes';
+
 export type YearKeyLike = string | number | null | undefined;
 export type ExportDateLike = string | number | Date | null | undefined;
 
@@ -59,22 +64,19 @@ export interface TradePreviewSummaryLike {
   capDelta?: number;
 }
 
-export interface TradePreviewResultLike {
-  legal?: boolean;
-  summaryByTeamIndex?: Array<TradePreviewSummaryLike | null | undefined>;
-}
-
 export interface TradePreviewModalProps {
   open?: boolean;
   onClose?: () => void;
   teams?: TradePreviewTeamLike[];
-  result?: TradePreviewResultLike | null;
+  previewAuthority?: PreviewAuthorityLike | null;
+  snapshotValidationDetails?: SnapshotValidationDetailsLike | null;
   yearKey?: YearKeyLike;
 }
 
 export interface TradeExportCaptureProps {
   teams?: TradePreviewTeamLike[];
-  result?: TradePreviewResultLike | null;
+  previewAuthority?: PreviewAuthorityLike | null;
+  snapshotValidationDetails?: SnapshotValidationDetailsLike | null;
   yearKey?: YearKeyLike;
   label?: string;
   date?: ExportDateLike;

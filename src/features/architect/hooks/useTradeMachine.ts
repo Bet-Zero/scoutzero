@@ -32,7 +32,6 @@ import {
   getFullLegalityPreview,
   type FullLegalityPreviewResult,
 } from '@/features/architect/utils/tradeContext/tradeContext';
-import { evaluateTradeSnapshotValidationStage } from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
 import type {
   TradeApplyPreparation,
   TradeContextPayload,
@@ -74,9 +73,10 @@ type TradeMachineTeamSlot = {
   entitlements?: TradeMachineEntitlement[];
 };
 
-type TradeMachineValidationResult = UnknownRecord & {
-  legal?: boolean;
-  teamResults?: UnknownRecord[] | null;
+type TradeMachinePreviewAuthority = FullLegalityPreviewResult;
+
+type TradeMachineSnapshotValidationDetails = UnknownRecord & {
+  teamResults?: unknown[] | null;
 };
 
 type PreparedTradePreviewContext = {
@@ -88,7 +88,7 @@ type PreparedTradePreviewContext = {
 };
 
 type ValidateCurrentTradeOutcome = {
-  result: TradeMachineValidationResult;
+  snapshotValidationDetails: TradeMachineSnapshotValidationDetails;
   previewContext: PreparedTradePreviewContext;
 };
 
@@ -96,12 +96,6 @@ type EntitlementOverrideDocument = UnknownRecord & {
   holderTeam?: string | null;
   holder_team?: string | null;
 };
-
-const APPLY_ONLY_WORLD_STATE_GATES = [
-  'duplicate-player-world-check',
-  'duplicate-entitlement-world-check',
-  'entitlement-exclusivity-world-check',
-] as const;
 
 const isUnknownRecord = (value: unknown): value is UnknownRecord =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -370,17 +364,17 @@ export const useTradeMachine = (
 ) => {
   // Main state
   const [teams, setTeams] = useState<TradeMachineTeamSlot[]>([]);
-  const [result, setResult] = useState<TradeMachineValidationResult | null>(
-    null
-  );
+  const [snapshotValidationDetails, setSnapshotValidationDetails] =
+    useState<TradeMachineSnapshotValidationDetails | null>(null);
   const [forceTrade, setForceTrade] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   // P0-3: Track validation in-flight state for UI loading indicators
   const [isValidating, setIsValidating] = useState(false);
   // Phase 16.3: Track init failure for error surfacing
   const [initError, setInitError] = useState<string | null>(null);
-  // TM-1A: Apply-path preview validation result (null = not yet computed)
-  const [fullLegalityResult, setFullLegalityResult] = useState<FullLegalityPreviewResult | null>(null);
+  // TM-1A / TM-3D follow-up: Primary preview authority surface for UI legality
+  const [previewAuthority, setPreviewAuthority] =
+    useState<TradeMachinePreviewAuthority | null>(null);
 
   // Stale validation fix: Track which draft configuration was validated
   const lastValidatedDraftKeyRef = useRef<string | null>(null);
@@ -461,13 +455,13 @@ export const useTradeMachine = (
 
   // Stale validation fix: Check if validation result is current for this draft
   const hasCurrentValidation = useMemo(() => {
-    const teamResults = result?.teamResults;
+    const teamResults = snapshotValidationDetails?.teamResults;
     return (
       Array.isArray(teamResults) &&
       teamResults.length > 0 &&
       isValidationCurrent(currentDraftKey, lastValidatedDraftKeyRef.current)
     );
-  }, [result, currentDraftKey]);
+  }, [snapshotValidationDetails, currentDraftKey]);
 
   const hasInjectedDevSntPlayers = useMemo(
     () => hasSyntheticSntPlayers(teams),
@@ -1153,8 +1147,8 @@ export const useTradeMachine = (
   const validateCurrentTrade = useCallback((): ValidateCurrentTradeOutcome | null => {
     const previewContext = buildCurrentTradePreviewContext();
     if (!previewContext) {
-      setResult(null);
-      setFullLegalityResult(null); // TM-1A: clear stale apply-preview
+      setSnapshotValidationDetails(null);
+      setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
       // P0-3: Clear isValidating since no validation will run (not enough teams)
       // This is intentional - if we don't have enough teams, there's nothing to validate
       setIsValidating(false);
@@ -1185,11 +1179,6 @@ export const useTradeMachine = (
           reason?: unknown;
           error?: unknown;
         };
-      const snapshotStage = evaluateTradeSnapshotValidationStage({
-        validatedTradeContext: preparation.validatedContext,
-        asOfDate: worldAsOfDate ?? undefined,
-      });
-
       // TM_DATAWARN_UI_E1: Validate data quality for all players in trade
       const allPlayers = activeTeams.flatMap((teamSlot) => teamSlot.sends || []);
       const dataValidation = validateTradeData(allPlayers, yearKey) as UnknownRecord & {
@@ -1202,24 +1191,15 @@ export const useTradeMachine = (
       // In production (canOverride=false), forceTrade has no effect
       const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
 
-      const result = {
-        ...validation,
-        legal: snapshotStage.valid,
-        authoritativeLegal: snapshotStage.valid,
-        reason:
-          typeof validation.reason === 'string'
-            ? validation.reason
-            : preparation.validatedContext.reason ?? snapshotStage.error ?? null,
-        error:
-          typeof validation.error === 'string'
-            ? validation.error
-            : preparation.validatedContext.error ?? snapshotStage.error ?? null,
-        violations: Array.isArray(validation.violations)
-          ? validation.violations
-          : preparation.validatedContext.violations,
-        warnings: Array.isArray(validation.warnings)
-          ? validation.warnings
-          : preparation.validatedContext.warnings,
+      const snapshotValidationDetails: TradeMachineSnapshotValidationDetails = {
+        summaryByTeamIndex: Array.isArray(validation.summaryByTeamIndex)
+          ? validation.summaryByTeamIndex
+          : [],
+        teamResults: Array.isArray(validation.teamResults)
+          ? validation.teamResults
+          : preparation.validatedContext.teamResults,
+        capSettings: validation.capSettings ?? null,
+        tradeReceipt: validation.tradeReceipt ?? null,
         override: {
           requested: Boolean(forceTrade),
           enabled: canOverride,
@@ -1230,17 +1210,13 @@ export const useTradeMachine = (
               : 'Force-trade was requested, but override is disabled in this environment.'
             : null,
         },
-        // TM_DATAWARN_UI_E1: Attach data warnings to result
+        // TM_DATAWARN_UI_E1: Attach data warnings to snapshot detail payload
         hasDataIssues: dataValidation.hasIssues,
         dataWarnings: dataValidation.warnings,
         dataValidationSummary: dataValidation.summary,
-        // TM-TRUTH-E2 / TM-3D: This surface now reflects the shared snapshot
-        // authority stage. Full preview authority adds post-state checks locally.
-        previewTier: 'cba-validator' as const,
-        applyOnlyGates: [...APPLY_ONLY_WORLD_STATE_GATES],
       };
 
-      setResult(result);
+      setSnapshotValidationDetails(snapshotValidationDetails);
 
       console.log(
         '[after validate]',
@@ -1257,14 +1233,14 @@ export const useTradeMachine = (
         )
       );
 
-      return { result, previewContext };
+      return { snapshotValidationDetails, previewContext };
     } catch (error) {
       console.error(
         '[useTradeMachine] validateCurrentTrade unexpected error:',
         error
       );
-      setResult(null);
-      setFullLegalityResult(null);
+      setSnapshotValidationDetails(null);
+      setPreviewAuthority(null);
       return null;
     } finally {
       // P0-3: Clear validating state after validation completes
@@ -1287,16 +1263,16 @@ export const useTradeMachine = (
       validatedAtRef.current = Date.now();
 
       try {
-        const fullResult = getFullLegalityPreview({
+        const previewAuthority = getFullLegalityPreview({
           payload: previewContext.payload,
           currentState: previewContext.currentState,
           seasonId: previewContext.seasonId,
           preparation: previewContext.preparation,
         });
-        setFullLegalityResult(fullResult);
+        setPreviewAuthority(previewAuthority);
       } catch (err) {
         console.error('[useTradeMachine] getFullLegalityPreview unexpected error:', err);
-        setFullLegalityResult(null);
+        setPreviewAuthority(null);
       }
 
       setPreviewOpen(true);
@@ -1337,9 +1313,9 @@ export const useTradeMachine = (
         entitlementsOut: [] as UnknownRecord[],
       }))
     );
-    setResult(null);
+    setSnapshotValidationDetails(null);
     setForceTrade(false);
-    setFullLegalityResult(null); // TM-1A: clear apply-preview on reset
+    setPreviewAuthority(null); // TM-1A / TM-3D: clear preview authority on reset
   }, []);
 
   const undoPlayerTrade = useCallback((player: UnknownRecord) => {
@@ -1479,7 +1455,8 @@ export const useTradeMachine = (
 
   return {
     teams,
-    result,
+    previewAuthority,
+    snapshotValidationDetails,
     forceTrade,
     previewOpen,
     setPreviewOpen,
@@ -1519,7 +1496,5 @@ export const useTradeMachine = (
     getValidatedAt: () => validatedAtRef.current,
     // Phase 16.3: Expose init error for UI error surfacing
     initError,
-    // TM-1A: Apply-path preview validation result (null = not yet computed, does not block Apply)
-    fullLegalityResult,
   };
 };

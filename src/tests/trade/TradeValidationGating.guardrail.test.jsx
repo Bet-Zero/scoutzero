@@ -71,6 +71,19 @@ const mockResult = {
   },
 };
 
+const mockPreviewAuthority = {
+  legal: true,
+  reason: 'Preview authority passed',
+  violations: [],
+  warnings: [],
+  source: 'apply-preview',
+  omittedStages: [
+    'LEAGUE_INVARIANTS',
+    'ENTITLEMENT_INVARIANTS',
+    'ENTITLEMENT_EXCLUSIVITY',
+  ],
+};
+
 const mockCapProjections = {
   salaryCap: 141_000_000,
   firstApron: 178_132_000,
@@ -215,7 +228,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={false}
           isValidating={false}
-          result={null}
+          snapshotValidationDetails={null}
           teams={mockTeams}
         />
       );
@@ -236,7 +249,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={false}
           isValidating={false}
-          result={null}
+          snapshotValidationDetails={null}
           teams={mockTeams}
         />
       );
@@ -253,7 +266,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
           capProjections={mockCapProjections}
           yearKey={2025}
@@ -276,7 +290,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={false}
           isValidating={false}
-          result={null}
+          snapshotValidationDetails={null}
           teams={mockTeams}
         />
       );
@@ -291,7 +305,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
           capProjections={mockCapProjections}
           yearKey={2025}
@@ -313,7 +328,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
           capProjections={mockCapProjections}
           yearKey={2025}
@@ -334,7 +350,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
           capProjections={mockCapProjections}
           yearKey={2025}
@@ -355,7 +372,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
           capProjections={mockCapProjections}
           yearKey={2025}
@@ -377,7 +395,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
           capProjections={mockCapProjections}
           yearKey={2025}
@@ -401,7 +420,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
           capProjections={mockCapProjections}
           yearKey={2025}
@@ -434,7 +454,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
         />
       );
@@ -448,7 +469,8 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={true}
           isValidating={false}
-          result={mockResult}
+          previewAuthority={mockPreviewAuthority}
+          snapshotValidationDetails={mockResult}
           teams={mockTeams}
         />
       );
@@ -461,7 +483,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
         <ValidationDetailsPanel
           hasValidatorResult={false}
           isValidating={false}
-          result={null}
+          snapshotValidationDetails={null}
           teams={mockTeams}
         />
       );

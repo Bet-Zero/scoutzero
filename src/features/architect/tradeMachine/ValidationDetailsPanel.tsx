@@ -12,16 +12,18 @@ import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts'
 import { EntitlementHealthPanel } from '@/features/architect/admin/EntitlementHealthPanel';
 import type {
   CapSettingsLike,
+  PreviewAuthorityLike,
+  SnapshotValidationDetailsLike,
   TeamEntitlementLike,
   TeamLike,
   TeamPlayerLike,
-  ValidationResultLike,
 } from './validationPresentationTypes';
 
 interface ValidationDetailsPanelProps {
   hasValidatorResult?: boolean;
   isValidating?: boolean;
-  result?: ValidationResultLike | null;
+  previewAuthority?: PreviewAuthorityLike | null;
+  snapshotValidationDetails?: SnapshotValidationDetailsLike | null;
   teams?: TeamLike[];
   forceTrade?: boolean;
   calculatorTeamIndex?: number;
@@ -71,7 +73,8 @@ const NotValidatedCallout = () => (
 const ValidationDetailsPanel = ({
   hasValidatorResult = false,
   isValidating = false,
-  result = null,
+  previewAuthority = null,
+  snapshotValidationDetails = null,
   teams = [],
   forceTrade = false,
   calculatorTeamIndex = 0,
@@ -116,7 +119,7 @@ const ValidationDetailsPanel = ({
   }, [teams]);
 
   const selectedTeam = teams[calculatorTeamIndex];
-  const teamResult = result?.teamResults?.[calculatorTeamIndex];
+  const teamResult = snapshotValidationDetails?.teamResults?.[calculatorTeamIndex];
   const officialSnapshot = getOfficialSalaryMatchingSnapshot(teamResult ? { ...teamResult } : null);
 
   return (
@@ -153,7 +156,8 @@ const ValidationDetailsPanel = ({
                     Per-team matching status and trade legality
                   </SectionHeader>
                   <TradeSummaryPanel
-                    result={result}
+                    previewAuthority={previewAuthority}
+                    snapshotValidationDetails={snapshotValidationDetails}
                     teams={teams}
                     forceTrade={forceTrade}
                     isValidating={isValidating}
@@ -161,7 +165,7 @@ const ValidationDetailsPanel = ({
                   />
                 </section>
 
-                {result?.teamResults && (
+                {snapshotValidationDetails?.teamResults && (
                   <section data-testid="section-rule-compliance">
                     <SectionHeader
                       title="Rule Compliance Overview"
@@ -170,8 +174,8 @@ const ValidationDetailsPanel = ({
                       CBA rule pass/fail per team (preview only — snapshot stage here, post-state preview runs locally, world-state checks run at apply time)
                     </SectionHeader>
                     <TradeLegalChecker
-                      teamResults={result.teamResults}
-                      capSettings={result.capSettings}
+                      teamResults={snapshotValidationDetails.teamResults}
+                      capSettings={snapshotValidationDetails.capSettings}
                     />
                   </section>
                 )}
@@ -181,8 +185,14 @@ const ValidationDetailsPanel = ({
                     TPE creation, usage, FA exceptions, and existing exceptions
                   </SectionHeader>
                   <div className="space-y-4">
-                    <TradeExceptionDashboard result={result} teams={teams} />
-                    <FaExceptionTracker result={result} teams={teams} />
+                    <TradeExceptionDashboard
+                      snapshotValidationDetails={snapshotValidationDetails}
+                      teams={teams}
+                    />
+                    <FaExceptionTracker
+                      snapshotValidationDetails={snapshotValidationDetails}
+                      teams={teams}
+                    />
                   </div>
                 </section>
               </div>
@@ -288,7 +298,7 @@ const ValidationDetailsPanel = ({
                         outgoingSalary={salaryOut[calculatorTeamIndex] || 0}
                         incomingPlayers={incomingAssets[calculatorTeamIndex]?.players || []}
                         tpes={getTeamTpeList(selectedTeam.team)}
-                        capSettings={result?.capSettings || capProjections}
+                        capSettings={snapshotValidationDetails?.capSettings || capProjections}
                         yearKey={yearKey}
                         validatorAllowableIncoming={
                           officialSnapshot.allowableIncoming
@@ -305,7 +315,7 @@ const ValidationDetailsPanel = ({
                       Developer diagnostic data — not required reading
                     </SectionHeader>
                     <TradeReceiptPanel
-                      receipt={result?.tradeReceipt}
+                      receipt={snapshotValidationDetails?.tradeReceipt}
                       pickRulesById={pickRulesById}
                     />
                   </section>

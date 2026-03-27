@@ -239,21 +239,25 @@ describe('useTradeMachine validator trust contract', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.result).not.toBeNull();
+      expect(result.current.snapshotValidationDetails).not.toBeNull();
+      expect(result.current.previewAuthority).not.toBeNull();
       expect(
-        (result.current.result?.override as Record<string, unknown> | undefined)
+        (
+          result.current.snapshotValidationDetails?.override as
+            | Record<string, unknown>
+            | undefined
+        )
           ?.requested
       ).toBe(true);
     });
 
-    expect(result.current.result?.legal).toBe(false);
-    expect(result.current.result?.authoritativeLegal).toBe(false);
-    expect(result.current.result?.override).toMatchObject({
+    expect(result.current.previewAuthority?.legal).toBe(false);
+    expect(result.current.snapshotValidationDetails?.override).toMatchObject({
       requested: true,
       appliedToLegality: false,
     });
     const signAndTradeRule = (
-      result.current.result?.teamResults?.[0]?.rules as
+      result.current.snapshotValidationDetails?.teamResults?.[0]?.rules as
         | Record<string, { violations?: unknown[] } | undefined>
         | undefined
     )?.signAndTrade;

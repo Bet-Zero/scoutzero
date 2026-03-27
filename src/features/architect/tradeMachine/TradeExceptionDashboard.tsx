@@ -7,23 +7,23 @@ import {
   normalizeValidationIssues,
 } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
+  SnapshotValidationDetailsLike,
   TeamLike,
   TpeLike,
-  ValidationResultLike,
 } from './validationPresentationTypes';
 
 interface TradeExceptionDashboardProps {
-  result?: ValidationResultLike | null;
+  snapshotValidationDetails?: SnapshotValidationDetailsLike | null;
   teams?: TeamLike[];
 }
 
 const TradeExceptionDashboard = ({
-  result,
+  snapshotValidationDetails,
   teams = [],
 }: TradeExceptionDashboardProps) => {
-  if (!result?.teamResults) return null;
+  if (!snapshotValidationDetails?.teamResults) return null;
 
-  const tpeData = result.teamResults
+  const tpeData = snapshotValidationDetails.teamResults
     .map((team, index) => {
       const teamData = teams[index];
       const tradeExceptionRule = team.rules?.tradeExceptions;

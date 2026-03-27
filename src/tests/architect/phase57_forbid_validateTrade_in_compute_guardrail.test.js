@@ -561,14 +561,14 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     });
   });
 
-  describe('Test 14: useTradeMachine reuses prepare -> snapshot authority path', () => {
+  describe('Test 14: useTradeMachine reuses prepare -> preview authority path', () => {
     it('should not call validateTrade directly in useTradeMachine.ts', () => {
       const source = readSourceFile(
         'src/features/architect/hooks/useTradeMachine.ts'
       );
 
       expect(source).toContain('buildTradeApplyPreparation');
-      expect(source).toContain('evaluateTradeSnapshotValidationStage');
+      expect(source).toContain('getFullLegalityPreview');
 
       const violations = source
         .split('\n')

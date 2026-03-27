@@ -159,9 +159,23 @@ function buildTeams() {
   ];
 }
 
-function buildResult(legal = true) {
+function buildPreviewAuthority(legal = true) {
   return {
     legal,
+    reason: legal ? 'Preview authority passed' : 'Preview authority failed',
+    violations: legal ? [] : [{ message: 'Incoming exceeds allowable' }],
+    warnings: [],
+    source: 'apply-preview',
+    omittedStages: [
+      'LEAGUE_INVARIANTS',
+      'ENTITLEMENT_INVARIANTS',
+      'ENTITLEMENT_EXCLUSIVITY',
+    ],
+  };
+}
+
+function buildSnapshotValidationDetails() {
+  return {
     summaryByTeamIndex: [
       {
         teamName: 'Boston Celtics',
@@ -273,7 +287,8 @@ describe('E99 TradePreviewModal guardrails', () => {
         open={false}
         onClose={vi.fn()}
         teams={buildTeams()}
-        result={buildResult()}
+        previewAuthority={buildPreviewAuthority()}
+        snapshotValidationDetails={buildSnapshotValidationDetails()}
         yearKey="2027-28"
       />
     );
@@ -287,7 +302,8 @@ describe('E99 TradePreviewModal guardrails', () => {
         open
         onClose={vi.fn()}
         teams={buildTeams()}
-        result={buildResult()}
+        previewAuthority={buildPreviewAuthority()}
+        snapshotValidationDetails={buildSnapshotValidationDetails()}
         yearKey="2027-28"
       />
     );
@@ -319,7 +335,8 @@ describe('E99 TradePreviewModal guardrails', () => {
         open
         onClose={onClose}
         teams={buildTeams()}
-        result={buildResult()}
+        previewAuthority={buildPreviewAuthority()}
+        snapshotValidationDetails={buildSnapshotValidationDetails()}
         yearKey="2027-28"
       />
     );
@@ -361,7 +378,8 @@ describe('E99 TradeExportCapture guardrails', () => {
       <TradeExportCapture
         ref={ref}
         teams={buildTeams()}
-        result={buildResult(true)}
+        previewAuthority={buildPreviewAuthority(true)}
+        snapshotValidationDetails={buildSnapshotValidationDetails()}
         yearKey="2027-28"
         date={new Date('2026-01-15T12:00:00.000Z')}
       />
@@ -407,11 +425,12 @@ describe('E99 TradeExportCapture guardrails', () => {
     ).toBe('/assets/headshots/p1.png');
   });
 
-  it('preserves the failed legal footer text when result.legal is false', () => {
+  it('preserves the failed legal footer text when preview authority is false', () => {
     render(
       <TradeExportCapture
         teams={buildTeams()}
-        result={buildResult(false)}
+        previewAuthority={buildPreviewAuthority(false)}
+        snapshotValidationDetails={buildSnapshotValidationDetails()}
         yearKey="2027-28"
       />
     );

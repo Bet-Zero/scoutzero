@@ -23,10 +23,15 @@ import {
   normalizeValidationIssues,
 } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import DataWarningsSection from './DataWarningsSection';
-import type { TeamLike, ValidationResultLike } from './validationPresentationTypes';
+import type {
+  PreviewAuthorityLike,
+  SnapshotValidationDetailsLike,
+  TeamLike,
+} from './validationPresentationTypes';
 
 interface TradeSummaryPanelProps {
-  result?: ValidationResultLike | null;
+  previewAuthority?: PreviewAuthorityLike | null;
+  snapshotValidationDetails?: SnapshotValidationDetailsLike | null;
   teams?: TeamLike[];
   forceTrade?: boolean;
   showRuleExplanations?: boolean;
@@ -35,34 +40,39 @@ interface TradeSummaryPanelProps {
 }
 
 function TradeSummaryPanel({
-  result,
+  previewAuthority = null,
+  snapshotValidationDetails = null,
   teams = [],
   forceTrade = false,
   showRuleExplanations = true,
   isValidating = false,
   pickRulesById = {},
 }: TradeSummaryPanelProps) {
-  if (!result) return null;
+  if (!previewAuthority && !snapshotValidationDetails) return null;
 
-  const overrideState = result.override || {};
+  const overrideState = snapshotValidationDetails?.override || {};
   const hasOverrideRequest = Boolean(forceTrade || overrideState.requested);
-  const topLevelViolations = normalizeValidationIssues(result.violations);
-  const topStatus = result.legal
-    ? '✅ Trade is CBA Legal'
+  const topLevelViolations = normalizeValidationIssues(previewAuthority?.violations);
+  const previewPassed = previewAuthority?.legal === true;
+  const previewFailed = previewAuthority?.legal === false;
+  const topStatus = previewPassed
+    ? '✅ Trade passes preview authority'
     : hasOverrideRequest
-      ? '⚠️ Override Requested – Trade is Still Not CBA Legal'
-      : '❌ Trade is NOT CBA Legal';
+      ? '⚠️ Override Requested – Preview Authority Still Blocks This Trade'
+      : previewFailed
+        ? '❌ Trade fails preview authority'
+        : '⚪ Preview authority unavailable';
 
   return (
     <div className="mt-6 text-sm border-t border-white/10 pt-4 space-y-6">
       <div>
         <strong className="text-base">{topStatus}</strong>
-        {!result.legal && !hasOverrideRequest && (
+        {previewFailed && !hasOverrideRequest && (
           <div className="text-xs text-white/60 mt-1">
             Fix the issues below before applying the trade.
           </div>
         )}
-        {!result.legal && hasOverrideRequest && (
+        {previewFailed && hasOverrideRequest && (
           <div className="text-xs text-amber-300/80 mt-1">
             {String(overrideState.message ||
               'Override state is tracked separately. It does not change authoritative legality.')}
@@ -71,9 +81,9 @@ function TradeSummaryPanel({
       </div>
 
       <DataWarningsSection
-        warnings={result.dataWarnings}
-        summary={result.dataValidationSummary}
-        hasDataIssues={result.hasDataIssues}
+        warnings={snapshotValidationDetails?.dataWarnings}
+        summary={snapshotValidationDetails?.dataValidationSummary}
+        hasDataIssues={snapshotValidationDetails?.hasDataIssues}
       />
 
       {showRuleExplanations && topLevelViolations.length > 0 && (
@@ -90,10 +100,10 @@ function TradeSummaryPanel({
       )}
 
       <div className="grid md:grid-cols-2 gap-4">
-        {result.summaryByTeamIndex?.map((teamSummary, index) => {
+        {snapshotValidationDetails?.summaryByTeamIndex?.map((teamSummary, index) => {
           if (!teamSummary) return null;
 
-          const teamResult = result.teamResults?.[index];
+          const teamResult = snapshotValidationDetails?.teamResults?.[index];
           const isIllegal = teamResult ? !teamResult.legal : false;
           const teamMeta =
             teams.find((team) => team.team?.teamName === teamSummary.teamName) ||

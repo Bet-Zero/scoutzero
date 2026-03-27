@@ -165,6 +165,27 @@ export interface TradeReceiptLike {
   primaryViolation?: string;
 }
 
+export interface PreviewAuthorityLike {
+  legal?: boolean;
+  reason?: string | null;
+  error?: string | null;
+  violations?: Array<ValidationIssueLike | string>;
+  warnings?: Array<ValidationIssueLike | string>;
+  source?: string;
+  omittedStages?: string[];
+}
+
+export interface SnapshotValidationDetailsLike {
+  override?: Record<string, unknown> | null;
+  summaryByTeamIndex?: Array<SummaryTeamLike | null | undefined>;
+  teamResults?: TeamResultLike[];
+  capSettings?: CapSettingsLike | null;
+  tradeReceipt?: TradeReceiptLike | null;
+  dataWarnings?: DataWarningLike[];
+  dataValidationSummary?: DataValidationSummaryLike | null;
+  hasDataIssues?: boolean;
+}
+
 export interface ValidationResultLike {
   legal?: boolean;
   override?: Record<string, unknown> | null;
@@ -177,7 +198,4 @@ export interface ValidationResultLike {
   dataWarnings?: DataWarningLike[];
   dataValidationSummary?: DataValidationSummaryLike | null;
   hasDataIssues?: boolean;
-  // TM-TRUTH-E2: Preview coverage tier metadata
-  previewTier?: 'cba-validator';
-  applyOnlyGates?: string[];
 }

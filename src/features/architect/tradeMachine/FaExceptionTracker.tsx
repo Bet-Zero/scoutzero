@@ -4,20 +4,23 @@ import {
   getValidationIssueText,
   normalizeValidationIssues,
 } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
-import type { TeamLike, ValidationResultLike } from './validationPresentationTypes';
+import type {
+  SnapshotValidationDetailsLike,
+  TeamLike,
+} from './validationPresentationTypes';
 
 interface FaExceptionTrackerProps {
-  result?: ValidationResultLike | null;
+  snapshotValidationDetails?: SnapshotValidationDetailsLike | null;
   teams?: TeamLike[];
 }
 
 const FaExceptionTracker = ({
-  result,
+  snapshotValidationDetails,
   teams = [],
 }: FaExceptionTrackerProps) => {
-  if (!result?.teamResults) return null;
+  if (!snapshotValidationDetails?.teamResults) return null;
 
-  const faExceptionData = result.teamResults
+  const faExceptionData = snapshotValidationDetails.teamResults
     .map((team, index) => {
       const teamData = teams[index];
       const faExceptionRule = team.rules?.faExceptionUsage;
@@ -61,7 +64,7 @@ const FaExceptionTracker = ({
     return 'text-green-400 bg-green-900/20';
   };
 
-  const firstApron = Number(result?.capSettings?.firstApron || 0);
+  const firstApron = Number(snapshotValidationDetails?.capSettings?.firstApron || 0);
 
   return (
     <div className="bg-[#111] border border-white/10 rounded-lg p-4">

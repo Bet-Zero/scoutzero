@@ -3,22 +3,21 @@
  *
  * Proves that the E2/TM-1A-FINAL disclosure behavior is present, complete, and
  * consistent across all three user-facing surfaces. These tests block accidental
- * removal or under-disclosure of the apply-only gate set.
+ * removal or under-disclosure of the remaining apply-only gate set.
  *
  * What these tests guard:
- *   1. Machine-readable metadata: previewTier + applyOnlyGates in validation result
+ *   1. Hook/UI naming exposes one primary previewAuthority and one detail-only snapshot payload
  *   2. Apply-area disclosure (TradeEditor) mentions the remaining apply-only gates
  *   3. Legend disclosure (TradeLegalChecker) mentions the remaining apply-only gates
  *   4. Section header (ValidationDetailsPanel) includes post-state qualifier
  *   5. No surface implies guaranteed apply success
- *   6. Type contract (ValidationResultLike) declares both metadata fields
+ *   6. Type contracts declare PreviewAuthorityLike + SnapshotValidationDetailsLike
  *   7. tradeContext getFullLegalityPreview routes through preview authority stages
  *
- * TM-1A-FINAL changes (why some old tests were removed):
- *   - validatePostStateCapLegality moved from apply-only to preview
- *   - TM-3D: getFullLegalityPreview now delegates to validateTradePreviewAuthority
- *   - applyOnlyGates no longer includes 'post-state-cap-schema'
- *   - TradeEditor/TradeLegalChecker disclosure no longer lists cap/roster as apply-only
+ * TM-3D follow-up changes:
+ *   - previewAuthority is now the only top-level legality surface in the UI
+ *   - snapshotValidationDetails is detail-only and no longer carries previewTier/applyOnlyGates
+ *   - TradeEditor/TradeSummary/TradePreview no longer key off snapshot detail legality
  */
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
@@ -57,30 +56,18 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     'utf-8'
   );
 
-  // ─── Metadata: previewTier ────────────────────────────────────────────────
+  // ─── Hook contract: one primary authority + one detail payload ───────────
 
-  it('useTradeMachine emits previewTier: cba-validator in validation result', () => {
-    expect(useTradeMachineSrc).toContain("previewTier: 'cba-validator'");
+  it('useTradeMachine exposes previewAuthority and snapshotValidationDetails', () => {
+    expect(useTradeMachineSrc).toContain('previewAuthority');
+    expect(useTradeMachineSrc).toContain('snapshotValidationDetails');
   });
 
-  // ─── Metadata: applyOnlyGates (3 Firestore-dependent gates remain) ────────
-
-  it('useTradeMachine applyOnlyGates includes duplicate-player-world-check', () => {
-    expect(useTradeMachineSrc).toContain('duplicate-player-world-check');
-  });
-
-  it('useTradeMachine applyOnlyGates includes duplicate-entitlement-world-check', () => {
-    expect(useTradeMachineSrc).toContain('duplicate-entitlement-world-check');
-  });
-
-  it('useTradeMachine applyOnlyGates includes entitlement-exclusivity-world-check', () => {
-    expect(useTradeMachineSrc).toContain('entitlement-exclusivity-world-check');
-  });
-
-  // TM-1A-FINAL: post-state-cap-schema removed from applyOnlyGates — now in preview
-  it('useTradeMachine applyOnlyGates does NOT include post-state-cap-schema (moved to preview)', () => {
-    // The string may appear in a comment but must not appear in the applyOnlyGates array value
-    expect(useTradeMachineSrc).not.toMatch(/'post-state-cap-schema'/);
+  it('useTradeMachine no longer exposes the old dual-truth fields', () => {
+    expect(useTradeMachineSrc).not.toContain('fullLegalityResult');
+    expect(useTradeMachineSrc).not.toContain('authoritativeLegal');
+    expect(useTradeMachineSrc).not.toContain('previewTier');
+    expect(useTradeMachineSrc).not.toContain('applyOnlyGates');
   });
 
   // ─── tradeContext: preview now routes through shared authority stages ─────
@@ -97,6 +84,12 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
 
   it('TradeEditor disclosure mentions apply time', () => {
     expect(tradeEditorSrc).toContain('apply time');
+  });
+
+  it('TradeEditor gates apply with previewAuthority rather than snapshot detail legality', () => {
+    expect(tradeEditorSrc).toContain('currentPreviewAuthority?.legal === true');
+    expect(tradeEditorSrc).not.toContain('result?.legal');
+    expect(tradeEditorSrc).not.toContain('fullLegalityResult');
   });
 
   it('TradeEditor disclosure mentions exclusivity', () => {
@@ -142,11 +135,15 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
 
   // ─── Type contract ────────────────────────────────────────────────────────
 
-  it('ValidationResultLike type declares previewTier field', () => {
-    expect(presentationTypesSrc).toContain("previewTier?: 'cba-validator'");
+  it('validation presentation types declare PreviewAuthorityLike', () => {
+    expect(presentationTypesSrc).toContain('export interface PreviewAuthorityLike');
+    expect(presentationTypesSrc).toContain('omittedStages?: string[]');
   });
 
-  it('ValidationResultLike type declares applyOnlyGates field', () => {
-    expect(presentationTypesSrc).toContain('applyOnlyGates?: string[]');
+  it('validation presentation types declare SnapshotValidationDetailsLike', () => {
+    expect(presentationTypesSrc).toContain(
+      'export interface SnapshotValidationDetailsLike'
+    );
+    expect(presentationTypesSrc).toContain('summaryByTeamIndex?:');
   });
 });

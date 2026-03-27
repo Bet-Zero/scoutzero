@@ -28,7 +28,7 @@
 | TM-3A | Define Explicit Execution Authority Surface      | DONE   | `validateTradeExecutionAuthority()` in `tradeContext/tradeExecutionAuthority.ts` |
 | TM-3B | Centralize Apply Pipeline Legality Chain         | DONE   | `buildTradeApplyPreparation()` now centralizes trade apply preparation; `validateTradeExecutionAuthority()` consumes explicit prepared trade context. |
 | TM-3C | Clarify Ownership of Each Validation Layer       | DONE   | Stage-1 snapshot verdict adapter now lives in `tradeContext/tradeExecutionAuthority.ts` as `evaluateTradeSnapshotValidationStage()`. Stage 5 is a named authority delegator (`runTradePostStateLegalityStage()`) that derives inputs, then hands rule ownership to `validatePostStateCapLegality()`. |
-| TM-3D | Align Preview with Execution Authority Model     | DONE   | Preview now reuses the shared preparation + authority-stage model: `validateCurrentTrade()` sources Stage 1 from prepared context, `getFullLegalityPreview()` delegates to `validateTradePreviewAuthority()`, and the world-state-only gates remain explicit omissions. |
+| TM-3D | Align Preview with Execution Authority Model     | DONE   | Preview now reuses the shared preparation + authority-stage model and the UI consumes one primary preview authority surface: `previewAuthority` drives top-level legality/apply gating/preview trust, while `snapshotValidationDetails` remains detail-only for per-team validator panels and export summaries. |
 | TM-3E | Expose and Document Execution Authority Boundary | TODO   |       |
 
 **STEP STATUS: IN_PROGRESS**

@@ -8,7 +8,8 @@ const TradePreviewModal = ({
   open,
   onClose,
   teams = [],
-  result,
+  previewAuthority,
+  snapshotValidationDetails,
   yearKey,
 }: TradePreviewModalProps) => {
   const exportRef = useRef<HTMLDivElement | null>(null);
@@ -52,7 +53,8 @@ const TradePreviewModal = ({
         <TradeExportCapture
           ref={exportRef}
           teams={teams}
-          result={result}
+          previewAuthority={previewAuthority}
+          snapshotValidationDetails={snapshotValidationDetails}
           yearKey={yearKey}
         />
       </div>
@@ -79,7 +81,8 @@ const TradePreviewModal = ({
             </button>
             <TradeExportCapture
               teams={teams}
-              result={result}
+              previewAuthority={previewAuthority}
+              snapshotValidationDetails={snapshotValidationDetails}
               yearKey={yearKey}
             />
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30">

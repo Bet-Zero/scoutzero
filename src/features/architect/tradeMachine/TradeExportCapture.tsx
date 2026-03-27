@@ -25,7 +25,8 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
   function TradeExportCapture(
     {
       teams = [],
-      result,
+      previewAuthority,
+      snapshotValidationDetails,
       yearKey,
       label = 'Trade Summary',
       date = new Date(),
@@ -119,7 +120,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
           {teams.map((tm, idx) => {
             if (!tm.team) return null;
             const { players, entitlements } = incomingAssets[idx] || {};
-            const summary = result?.summaryByTeamIndex?.find(
+            const summary = snapshotValidationDetails?.summaryByTeamIndex?.find(
               (s) => s?.teamName === tm.team?.teamName
             );
             const capDelta = summary?.capDelta || 0;
@@ -328,7 +329,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
         </div>
 
         {/* ✅ Trade Result Footer */}
-        {result && (
+        {previewAuthority && (
           <div className="border-t border-black/20 relative -mt-1">
             {' '}
             {/* Subtle pull-up */}
@@ -338,7 +339,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
             <div
               className="w-full text-center py-4 text-xl font-bold uppercase tracking-wider text-white"
               style={{
-                background: result.legal
+                background: previewAuthority.legal
                   ? 'linear-gradient(to bottom, #14532d, #15803d)'
                   : 'linear-gradient(to bottom, #7f1d1d, #991b1b)',
                 boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.3)',
@@ -346,7 +347,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                 zIndex: 10,
               }}
             >
-              {result.legal ? 'Trade Passed' : 'Trade Failed'}
+              {previewAuthority.legal ? 'Trade Passed' : 'Trade Failed'}
             </div>
           </div>
         )}
