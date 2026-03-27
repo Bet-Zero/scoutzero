@@ -412,7 +412,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       ).toBe(false);
     });
 
-    it('should have index.ts re-exporting all public API', () => {
+    it('should have index.ts re-exporting the canonical public API only', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/index.ts'
       );
@@ -421,7 +421,10 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain('buildPostTradeTeamsSnapshot');
       expect(source).toContain('validatePostTradeSnapshotForContext');
       expect(source).toContain('getTradePreviewAuthority');
-      expect(source).toContain('validateTradeForContext');
+      expect(source).not.toContain("from './legacy'");
+      expect(source).not.toContain('getFullLegalityPreview,');
+      expect(source).not.toContain('validateTradeForContext,');
+      expect(source).not.toContain('legacy_validateTradeForContext,');
 
       // Should re-export assertions
       expect(source).toContain('assertPostTradeSnapshot');

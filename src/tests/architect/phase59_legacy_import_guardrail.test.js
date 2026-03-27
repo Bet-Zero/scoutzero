@@ -10,11 +10,11 @@
  * 2. mutationPipeline.ts must NOT reference validateTradeForPipeline (removed)
  * 3. mutationPipeline.ts must NOT reference legacy_validateTradeForContext
  * 4. No files in utils/ should import from tradeContext/legacy/ except tests
- * 5. legacy/index.ts remains the thin authoritative wrapper; legacy/index.js remains shim-only
+ * 5. legacy/index.ts remains the thin authoritative wrapper for deprecated helpers
  *
  * ALLOWED EXCEPTIONS:
  * - Test files may import from legacy/ for backward compatibility testing
- * - tradeContext/index.ts re-exports from legacy/ (for external consumers)
+ * - Only the legacy namespace itself may export deprecated compatibility helpers
  *
  * NOTE: This test reads source files as plain text and uses regex to detect violations.
  * It is designed to be fast and strict.
@@ -190,27 +190,27 @@ describe('Phase 59: Legacy Import Guardrails', () => {
   });
 
   // ===========================================================================
-  // TEST 4: tradeContext index.ts re-exports from legacy for backward compat
+  // TEST 4: Main barrel stays canonical-only while legacy owns compatibility
   // ===========================================================================
-  describe('Test 4: tradeContext index.ts provides backward compatibility', () => {
-    it('should re-export validateTradeForContext from legacy', () => {
+  describe('Test 4: Canonical vs legacy export boundary', () => {
+    it('should not re-export legacy helpers from tradeContext/index.ts', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/index.ts'
       );
 
-      expect(source).toContain("from './legacy'");
-      expect(source).toContain('validateTradeForContext');
-      expect(source).toContain('legacy_validateTradeForContext');
+      expect(source).not.toContain("from './legacy'");
+      expect(source).not.toContain('validateTradeForContext,');
+      expect(source).not.toContain('legacy_validateTradeForContext,');
+      expect(source).not.toContain('getFullLegalityPreview,');
     });
 
-    it('should document the legacy exports clearly', () => {
+    it('should document the canonical-only boundary clearly', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/index.ts'
       );
 
-      expect(source).toContain('LEGACY EXPORTS');
-      // Check for deprecated marker (case insensitive)
-      expect(source.toLowerCase()).toContain('deprecated');
+      expect(source).toContain('CANONICAL EXPORTS');
+      expect(source).toContain('LEGACY COMPATIBILITY IMPORTS');
     });
 
     it('should preserve direct legacy namespace import compatibility via TS authority', async () => {
@@ -224,6 +224,7 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       expect(legacyNamespace.validateTradeForContext).toBe(
         legacyNamespace.legacy_validateTradeForContext
       );
+      expect(legacyNamespace.getFullLegalityPreview).toBeTypeOf('function');
     });
   });
 
@@ -238,8 +239,6 @@ describe('Phase 59: Legacy Import Guardrails', () => {
       const violations = [];
 
       for (const filePath of files) {
-        // Skip the tradeContext/index.ts which is allowed to re-export
-        if (filePath.includes('tradeContext/index.ts')) continue;
         // Skip legacy directory itself
         if (filePath.includes('/legacy/')) continue;
 

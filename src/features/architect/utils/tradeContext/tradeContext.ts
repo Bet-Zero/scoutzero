@@ -1096,7 +1096,8 @@ export function getTradePreviewAuthority({
 
 /**
  * @deprecated Compatibility alias. Use getTradePreviewAuthority() as the
- * canonical preview authority surface.
+ * canonical preview authority surface. This alias is retained for legacy/
+ * compatibility re-export only.
  */
 export function getFullLegalityPreview(
   params: TradePreviewAuthorityParams
@@ -1107,5 +1108,5 @@ export function getFullLegalityPreview(
 // ==============================================================================
 // PHASE 59: LEGACY FUNCTION MOVED
 // ==============================================================================
-// validateTradeForContext has been moved to tradeContext/legacy/index.js
+// validateTradeForContext has been moved to tradeContext/legacy/index.ts
 // Import from '@/features/architect/utils/tradeContext/legacy' for the deprecated wrapper

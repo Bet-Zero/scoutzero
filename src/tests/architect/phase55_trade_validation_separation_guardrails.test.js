@@ -395,9 +395,9 @@ describe('Phase 55: Trade Validation Separation Guardrails', () => {
   // ==========================================================================
   describe('Test 4: validateTradeForContext Export (Legacy)', () => {
     test('validateTradeForContext returns valid context structure', async () => {
-      // Phase 59: Import from tradeContext (re-exports from legacy namespace)
+      // TM-4B: Import from the explicit legacy namespace only.
       const { validateTradeForContext } = await import(
-        '@/features/architect/utils/tradeContext'
+        '@/features/architect/utils/tradeContext/legacy'
       );
 
       const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'TMA');

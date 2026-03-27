@@ -14,11 +14,9 @@ import {
   buildPostTradeTeamsSnapshot,
   validatePostTradeSnapshotForContext,
 } from '@/features/architect/utils/mutationPipeline';
-// Phase 59: validateTradeForContext is now in legacy namespace
-import {
-  buildTradeApplyPreparation,
-  validateTradeForContext,
-} from '@/features/architect/utils/tradeContext';
+import { buildTradeApplyPreparation } from '@/features/architect/utils/tradeContext';
+// Phase 59/TM-4B: validateTradeForContext remains compatibility-only in legacy/
+import { validateTradeForContext } from '@/features/architect/utils/tradeContext/legacy';
 
 // Mock validateTrade to track calls
 const validateTradeMock = vi.fn();

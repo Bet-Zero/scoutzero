@@ -154,9 +154,6 @@ describe('E130 support-barrel retirement batch guardrails', () => {
     expect(barrelRecord.getTradePreviewAuthority).toBe(
       tradeContext.getTradePreviewAuthority
     );
-    expect(barrelRecord.getFullLegalityPreview).toBe(
-      tradeContext.getFullLegalityPreview
-    );
     expect(barrel.assertPostTradeSnapshot).toBe(assertions.assertPostTradeSnapshot);
     expect(barrel.assertValidatedTradeContext).toBe(
       assertions.assertValidatedTradeContext
@@ -167,10 +164,16 @@ describe('E130 support-barrel retirement batch guardrails', () => {
     expect(barrelRecord.validateTradeExecutionAuthority).toBe(
       authority.validateTradeExecutionAuthority
     );
-    expect(barrel.legacy_validateTradeForContext).toBe(
+    expect(barrel).not.toHaveProperty('getFullLegalityPreview');
+    expect(barrel).not.toHaveProperty('legacy_validateTradeForContext');
+    expect(barrel).not.toHaveProperty('validateTradeForContext');
+    expect(legacy.getFullLegalityPreview).toBe(
+      tradeContext.getFullLegalityPreview
+    );
+    expect(legacy.legacy_validateTradeForContext).toBeTypeOf('function');
+    expect(legacy.validateTradeForContext).toBe(
       legacy.legacy_validateTradeForContext
     );
-    expect(barrel.validateTradeForContext).toBe(legacy.validateTradeForContext);
     expect(barrel).not.toHaveProperty('evaluateTradeSnapshotValidationStage');
     expect(barrel).not.toHaveProperty('runTradePostStateLegalityStage');
     expect(barrel).not.toHaveProperty('validateTradePreviewAuthority');

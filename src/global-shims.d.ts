@@ -229,13 +229,23 @@ declare module '@/features/architect/utils/persistenceContracts' {
 }
 
 declare module '@/features/architect/utils/tradeContext' {
+  export const buildTradeApplyPreparation: any;
   export const buildPostTradeTeamsSnapshot: any;
+  export const getTradePreviewAuthority: any;
+  export const normalizeTradeTeamCodeLike: any;
+  export const resolveOutgoingTradeDestinationTeamCode: any;
   export const validatePostTradeSnapshotForContext: any;
-  export const legacy_validateTradeForContext: any;
-  export const validateTradeForContext: any;
+  export const validateTradeExecutionAuthority: any;
   export const assertPostTradeSnapshot: any;
   export const assertValidatedTradeContext: any;
   export const assertTradeComputeInputs: any;
+  export type FullLegalityPreviewResult = any;
+}
+
+declare module '@/features/architect/utils/tradeContext/legacy' {
+  export const getFullLegalityPreview: any;
+  export const legacy_validateTradeForContext: any;
+  export const validateTradeForContext: any;
 }
 
 declare module '@/features/architect/utils/tradeMachine' {

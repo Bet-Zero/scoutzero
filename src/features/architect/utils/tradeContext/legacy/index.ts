@@ -21,6 +21,7 @@
  * HISTORY:
  *  - 2026-01-30: Phase 59 - Moved validateTradeForContext here from tradeContext.js
  *  - 2026-03-10: E44 - TS-backed the legacy wrapper and left index.js as a pure shim
+ *  - 2026-03-27: TM-4B - Became the sole compatibility namespace for deprecated exports
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -29,6 +30,7 @@
 
 import {
   buildPostTradeTeamsSnapshot,
+  getFullLegalityPreview,
   validatePostTradeSnapshotForContext,
 } from '../tradeContext';
 import type {
@@ -85,3 +87,5 @@ export function legacy_validateTradeForContext({
  * buildPostTradeTeamsSnapshot + validatePostTradeSnapshotForContext.
  */
 export const validateTradeForContext = legacy_validateTradeForContext;
+
+export { getFullLegalityPreview };

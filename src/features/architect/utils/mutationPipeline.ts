@@ -1192,7 +1192,7 @@ export { buildPostTradeTeamsSnapshot, validatePostTradeSnapshotForContext };
 // The following comment block shows what was removed in Phase 58:
 // - buildPostTradeTeamsSnapshot(): Moved to tradeContext/tradeContext.ts
 // - validatePostTradeSnapshotForContext(): Moved to tradeContext/tradeContext.ts
-// - validateTradeForContext(): Moved to tradeContext/tradeContext.ts (deprecated wrapper)
+// - validateTradeForContext(): Moved to tradeContext/legacy/ (deprecated wrapper)
 
 // ==============================================================================
 // UNDEFINED VALUE SANITIZATION
