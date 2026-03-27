@@ -504,3 +504,133 @@ This is a **clarity + architecture alignment step**, not just a bug-fix step.
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 4 — ACTION BREAKDOWN
+
+## Duplicate / Legacy / Alternate Paths Audit
+
+---
+
+## TM-4A — Retire or Fence Deprecated Validation Compatibility Barrel
+
+### Problem
+
+`tradeMachine/validators/index.ts` remains as a broad deprecated compatibility barrel that exports many legacy-style validator and helper surfaces.
+
+### Why It Matters
+
+- Encourages future imports from non-canonical locations
+- Preserves a wide legacy surface area
+- Creates long-term drift risk even if current behavior is safe
+
+### Goal
+
+Narrow, fence, or retire the deprecated validator compatibility barrel so it no longer acts as an attractive alternate import path.
+
+### Success Criteria
+
+- The deprecated barrel is either:
+  - removed
+  - narrowed significantly
+  - or clearly fenced to compatibility-only use
+- Future developers are steered toward canonical surfaces by code structure
+- No active code path depends on the broad legacy barrel without clear justification
+
+---
+
+## TM-4B — Separate Canonical vs Legacy Trade Context Exports
+
+### Problem
+
+`tradeContext/index.ts` still exposes both canonical surfaces and legacy compatibility wrappers from one barrel.
+
+### Why It Matters
+
+- Mixes canonical and deprecated paths in one import surface
+- Makes it easier to accidentally use old wrappers
+- Weakens the clarity established in Step 3
+
+### Goal
+
+Make canonical trade-context imports clearly distinct from legacy compatibility exports.
+
+### Success Criteria
+
+- Canonical surfaces remain easy to discover
+- Legacy wrappers are:
+  - removed from the main barrel
+  - or clearly isolated behind a compatibility namespace
+- Future import ambiguity is reduced
+
+---
+
+## TM-4C — Prune or Fence Dormant Secondary Helper Modules
+
+### Problem
+
+Secondary helper modules such as `rosterValidation.ts` and `enforcement.ts` still retain multiple dormant or legacy-style helper variants.
+
+### Why It Matters
+
+- Preserves duplicate-ish helper surfaces
+- Creates future misuse risk
+- Makes the validation landscape look broader than the real canonical model
+
+### Goal
+
+Prune, narrow, or clearly fence dormant secondary helper modules so they no longer look like first-class validation entrypoints.
+
+### Success Criteria
+
+- Non-canonical dormant helpers are either:
+  - removed if safe
+  - narrowed
+  - or clearly marked as compatibility / legacy-only
+- Canonical validation ownership remains unchanged
+- Future drift risk is reduced
+
+---
+
+## TM-4D — Review Broad Public TradeMachine Barrel for Drift Risk
+
+### Problem
+
+`tradeMachine/index.ts` is a very broad public barrel that exports canonical surfaces alongside many lower-level rule and enforcement helpers.
+
+### Why It Matters
+
+- Broad export surfaces encourage inconsistent import patterns
+- Makes it easier to bypass the intended canonical model conceptually
+- Can preserve long-term cleanup debt even when behavior is correct
+
+### Goal
+
+Determine whether the public `tradeMachine/index.ts` barrel should be narrowed, reorganized, or left alone with clearer intent.
+
+### Success Criteria
+
+- Public trade-machine exports are reviewed through the lens of canonical vs convenience
+- Any narrowing or fencing preserves valid consumers
+- If no change is made, the reason is explicit and justified
+
+---
+
+## Step 4 Summary
+
+This step focuses on:
+
+- removing or fencing non-canonical import surfaces
+- reducing long-term drift risk
+- cleaning up legacy / compatibility exposure
+- preserving the canonical authority model established in Steps 1 and 3
+
+This is a **surface-area cleanup and canonical-entrypoint protection step**, not a business-rules rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---

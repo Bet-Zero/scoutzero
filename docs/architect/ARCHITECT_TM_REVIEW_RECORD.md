@@ -848,3 +848,387 @@ The final authority is the layered apply chain that includes:
 That is the true execution truth model today.
 
 ---
+
+# STEP 4 — DUPLICATE / LEGACY / ALTERNATE PATHS AUDIT
+
+## Scope
+
+Trade Machine — Step 4: Duplicate / Legacy / Alternate Paths Audit
+
+**Date:** 2026-03-26  
+**Source:** Direct code inspection (no prior docs trusted)
+
+---
+
+## Purpose of this Step
+
+Identify whether any remaining alternate, legacy, compatibility, or duplicate surfaces still exist that could:
+
+- confuse future development
+- create drift risk
+- expose non-canonical trade validation / authority entrypoints
+- preserve duplicate helper implementations
+
+This step re-checks the system **after** Step 1 removed the obvious trade execution bypass and **after** Step 3 clarified the canonical authority surfaces.
+
+---
+
+## Executive Verdict
+
+**NO CURRENT DANGEROUS ALTERNATE EXECUTION PATH FOUND**
+
+The obvious dangerous execution bypass has been removed.
+
+What remains is mostly:
+
+- compatibility barrels
+- legacy wrappers
+- broad public helper exports
+- retained duplicate helper modules whose drift risk has been reduced but not eliminated
+
+So Step 4 is **not** uncovering a new severe execution-authority bug.
+
+Instead, it identifies a smaller set of **cleanup / drift-risk surfaces** that should be treated as either:
+
+- harmless compatibility
+- dormant cleanup debt
+- future drift risk
+
+---
+
+## What Was Reviewed
+
+- `src/features/architect/utils/tradeContext/index.ts`
+- `src/features/architect/utils/tradeContext/legacy/index.ts`
+- `src/features/architect/utils/tradeMachine/validators/index.ts`
+- `src/features/architect/utils/tradeMachine/index.ts`
+- `src/features/architect/utils/tradeManager.ts`
+- `src/features/architect/utils/architectCore.ts`
+- `src/features/architect/utils/tradeMachine/rules/rosterValidation.ts`
+- `src/features/architect/utils/tradeMachine/rules/enforcement.ts`
+- `src/features/architect/utils/tradeMachine/rules/hardCapValidation.ts`
+
+---
+
+## 1. Alternate Execution Paths — Current State
+
+### Finding
+
+No reviewed live surface currently exposes a direct alternate **trade execution** path comparable to the old `tradeManager.executeTrade()` risk.
+
+### Evidence
+
+`tradeManager.ts` is now explicitly a **read-only roster transaction helper** module for non-trade helpers like:
+
+- `signFreeAgent`
+- `waivePlayer`
+- `extendPlayer`
+
+and it explicitly says persistence must be handled through mutation-pipeline authority. :contentReference[oaicite:0]{index=0}
+
+`architectCore.ts` no longer re-exports trade execution. It only re-exports those read-only roster helpers from `tradeManager.ts`. :contentReference[oaicite:1]{index=1}
+
+### Classification
+
+**No dangerous alternate trade execution surface found in reviewed files.**
+
+---
+
+## 2. Remaining Legacy / Compatibility / Duplicate Surfaces
+
+---
+
+### A. `tradeContext/legacy/index.ts`
+
+#### What it is
+
+A deprecated legacy wrapper namespace containing:
+
+- `legacy_validateTradeForContext(...)`
+- `validateTradeForContext` (alias)
+
+The file explicitly warns it is:
+
+- deprecated
+- not for mutation pipeline use
+- kept for backward compatibility, legacy test compatibility, and quick UI previews / external tooling :contentReference[oaicite:2]{index=2}
+
+#### Why it matters
+
+This is not a dangerous execution surface now, but it is still a **non-canonical validation wrapper** that could be imported incorrectly later.
+
+#### Classification
+
+**Harmless Compatibility / Drift Risk**
+
+---
+
+### B. `tradeContext/index.ts` legacy barrel exposure
+
+#### What it is
+
+The canonical `tradeContext` barrel now exports:
+
+- canonical surfaces such as:
+  - `buildTradeApplyPreparation`
+  - `getTradePreviewAuthority`
+  - `validateTradeExecutionAuthority`
+
+but it also still barrel-exports:
+
+- `legacy_validateTradeForContext`
+- `validateTradeForContext` from `./legacy` :contentReference[oaicite:3]{index=3}
+
+It also exposes:
+
+- `getFullLegalityPreview` as a compatibility alias for preview authority callers :contentReference[oaicite:4]{index=4}
+
+#### Why it matters
+
+The barrel is much better than before, but it still exposes both canonical and legacy paths from one import surface. That keeps some future confusion alive even though the file comments clearly separate them.
+
+#### Classification
+
+**Harmless Compatibility / Drift Risk**
+
+---
+
+### C. `tradeMachine/validators/index.ts`
+
+#### What it is
+
+A deprecated compatibility barrel that exports a large set of trade-machine validators and helpers, including:
+
+- `validateTradeExceptions`
+- `validateSalaryMatching`
+- `validateRoster`
+- `validateHardCap`
+- `validateSecondApronRules`
+- `computeMatchingValues`
+- `validationCache`
+- and more :contentReference[oaicite:5]{index=5}
+
+The file explicitly calls itself:
+
+> `COMPATIBILITY LAYER - DEPRECATED` :contentReference[oaicite:6]{index=6}
+
+#### Why it matters
+
+This is not necessarily wrong by itself, but it preserves a very broad old-style import surface that can bypass the newer, clearer canonical trade authority mental model.
+
+It is unlikely to be a dangerous runtime path by itself, but it is a strong **future drift risk** because it makes it easy to import pieces from legacy-style locations instead of the intended canonical surfaces.
+
+#### Classification
+
+**Drift Risk**
+
+---
+
+### D. `tradeMachine/index.ts` broad public barrel
+
+#### What it is
+
+The public trade-machine barrel exports:
+
+- canonical `validateTrade`
+- many individual rule helpers
+- many enforcement helpers
+- matching utilities
+- cap utilities
+- swap / conveyance utilities
+- helper exports such as `enforceRosterWindow`, `enforceSecondApronHandcuffs`, etc. :contentReference[oaicite:7]{index=7}
+
+#### Why it matters
+
+This is an **active** public API and not inherently wrong. But it is broad enough that it still exposes many lower-level rule / enforcement surfaces to consumers, which can encourage non-canonical usage patterns later.
+
+This is less of a legacy problem and more of a **public API breadth / drift risk** problem.
+
+#### Classification
+
+**Active / Mild Drift Risk**
+
+---
+
+### E. `rosterValidation.ts`
+
+#### What it is
+
+This file retains multiple roster helper variants, including:
+
+- `validateRosterWindow(...)`
+- `enforceRosterWindow(...)`
+- `enforceRosterRules(...)`
+- `enforceRosterWindowAdvanced(...)`
+- legacy compatibility exports at the bottom :contentReference[oaicite:8]{index=8}
+
+It now imports shared `ROSTER_LIMITS` from `validateRoster`, which reduces constant drift. :contentReference[oaicite:9]{index=9}
+
+#### Why it matters
+
+This is no longer the same high-risk drift surface it once was, because the limits are shared.
+
+But it still preserves multiple secondary roster helper shapes, including clearly legacy-facing exports, which makes the roster surface broader than the canonical ownership model really needs.
+
+#### Classification
+
+**Dormant / Drift Risk**
+
+---
+
+### F. `enforcement.ts`
+
+#### What it is
+
+This file still exports secondary enforcement helpers like:
+
+- `enforceConsent`
+- `enforceTiming`
+- `enforceEligibility`
+- `enforceRosterWindow`
+- re-export of `enforceSecondApronHandcuffs` from `basicRules` :contentReference[oaicite:10]{index=10}
+
+It also now imports shared `ROSTER_LIMITS`, so roster constant drift is reduced. :contentReference[oaicite:11]{index=11}
+
+#### Why it matters
+
+This file looks more like a retained helper surface than an active canonical validation authority surface.
+
+It is not dangerous by itself, but it is another example of a broad duplicate-ish enforcement layer that could be misused if future code imports from convenience surfaces rather than canonical ones.
+
+#### Classification
+
+**Dormant / Drift Risk**
+
+---
+
+### G. `hardCapValidation.ts` compatibility exports
+
+#### What it is
+
+This file is explicitly marked as the **canonical trade-time hard cap validator** through `validateHardCap(...)`. :contentReference[oaicite:12]{index=12}
+
+However, it also still exports additional secondary surfaces:
+
+- `validateHardCapLegacy(...)`
+- `wouldExceedHardCapAfterTrade(...)`
+- `getActiveHardCapLimit(...)`
+- aliases:
+  - `hardCapValidation`
+  - `hardCapValidationLegacy` :contentReference[oaicite:13]{index=13}
+
+#### Why it matters
+
+This is not a duplicate active implementation problem in the old sense, because the canonical function is clearly identified in the file.
+
+But the retained legacy and alias exports still widen the surface area and preserve some compatibility debt.
+
+#### Classification
+
+**Harmless Compatibility / Drift Risk**
+
+---
+
+## 3. Classification Summary
+
+### Active
+
+- `tradeMachine/index.ts` public barrel — active broad public API surface :contentReference[oaicite:14]{index=14}
+
+### Dormant
+
+- `rosterValidation.ts` retained secondary roster helpers / legacy exports :contentReference[oaicite:15]{index=15}
+- `enforcement.ts` retained secondary enforcement helper layer :contentReference[oaicite:16]{index=16}
+
+### Harmless Compatibility
+
+- `tradeContext/legacy/index.ts` deprecated wrapper namespace :contentReference[oaicite:17]{index=17}
+- `tradeContext/index.ts` compatibility alias exports such as `getFullLegalityPreview` and legacy barrel exposure :contentReference[oaicite:18]{index=18}
+- `hardCapValidation.ts` legacy / alias exports around canonical `validateHardCap` :contentReference[oaicite:19]{index=19}
+
+### Drift Risk
+
+- `tradeMachine/validators/index.ts` deprecated compatibility barrel :contentReference[oaicite:20]{index=20}
+- broad `tradeMachine/index.ts` public export surface :contentReference[oaicite:21]{index=21}
+- retained secondary roster / enforcement modules (`rosterValidation.ts`, `enforcement.ts`)
+- mixed canonical + legacy exposure in `tradeContext/index.ts`
+
+### Dangerous
+
+- **None confirmed in reviewed files**
+
+---
+
+## 4. Recommendations
+
+### Should become Step 4 execution work
+
+#### 1. Narrow or fence compatibility barrels
+
+Highest-value target:
+
+- `tradeMachine/validators/index.ts`
+
+Reason:
+
+- explicitly deprecated
+- very broad
+- strong future drift risk
+- likely the cleanest Step 4 execution target
+
+#### 2. Reduce mixed canonical + legacy exposure in `tradeContext/index.ts`
+
+Reason:
+
+- canonical barrel still exposes deprecated wrapper paths
+- future confusion risk remains even though comments are clear
+
+#### 3. Prune or fence dormant roster / enforcement helper surfaces if safe
+
+Reason:
+
+- not dangerous
+- but they preserve secondary non-canonical helper shapes
+
+This is lower priority than the barrel cleanup.
+
+---
+
+### Should probably be documented and left alone for now
+
+#### 1. `tradeManager.ts`
+
+It no longer exposes trade execution authority and is explicitly read-only. :contentReference[oaicite:24]{index=24}
+
+#### 2. `architectCore.ts`
+
+Its current role is not a trade execution bypass risk anymore. :contentReference[oaicite:25]{index=25}
+
+#### 3. `hardCapValidation.ts` legacy aliases
+
+These are compatibility debt, but much less urgent than the broader deprecated barrels because the canonical owner is now clearly identified in-file. :contentReference[oaicite:26]{index=26}
+
+---
+
+## Final Conclusion
+
+Step 4 does **not** reveal a remaining dangerous alternate trade execution path.
+
+The major execution-risk cleanup appears to have been accomplished in Step 1.
+
+What remains now is mostly **surface-area cleanup**:
+
+- deprecated barrels
+- legacy wrappers
+- retained secondary helper modules
+- broad compatibility exports
+
+So Step 4 is likely an execution arc about:
+
+- reducing drift risk
+- narrowing non-canonical entry surfaces
+- cleaning up legacy compatibility layers
+
+—not about fixing a live dangerous execution bypass.
+
+---
