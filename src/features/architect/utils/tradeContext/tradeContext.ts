@@ -184,6 +184,88 @@ function normalizeFallbackTradeApplyValidationTeam(
   };
 }
 
+function getTradeApplyValidationPlayerKey(
+  player: TradeApplyValidationPlayer | null | undefined
+): string | null {
+  return (
+    player?.player_id ||
+    player?.id ||
+    player?.playerId ||
+    player?.name ||
+    player?.displayName ||
+    player?.playerName ||
+    null
+  );
+}
+
+function mergeTradeApplyValidationPlayer(
+  validatedPlayer: TradeApplyValidationPlayer,
+  fallbackPlayer: TradeApplyValidationPlayer | undefined
+): TradeApplyValidationPlayer {
+  if (!fallbackPlayer) {
+    return validatedPlayer;
+  }
+
+  const merged: TradeApplyValidationPlayer = { ...validatedPlayer };
+
+  if (
+    merged.absorptionMode === undefined &&
+    fallbackPlayer.absorptionMode !== undefined
+  ) {
+    merged.absorptionMode = fallbackPlayer.absorptionMode;
+  }
+  if (merged.tpeId === undefined && fallbackPlayer.tpeId !== undefined) {
+    merged.tpeId = fallbackPlayer.tpeId;
+  }
+  if (
+    merged.matchIncoming === undefined &&
+    fallbackPlayer.matchIncoming !== undefined
+  ) {
+    merged.matchIncoming = fallbackPlayer.matchIncoming;
+  }
+
+  return merged;
+}
+
+function buildAuthoritativeTradeApplyReceives({
+  validatedReceives,
+  fallbackReceives,
+}: {
+  validatedReceives: TradeApplyValidationPlayer[];
+  fallbackReceives: TradeApplyValidationPlayer[];
+}): TradeApplyValidationPlayer[] {
+  if (validatedReceives.length === 0) {
+    return fallbackReceives;
+  }
+
+  const fallbackByKey = new Map<string, TradeApplyValidationPlayer>();
+  fallbackReceives.forEach((player) => {
+    const key = getTradeApplyValidationPlayerKey(player);
+    if (key) {
+      fallbackByKey.set(key, player);
+    }
+  });
+
+  const validatedKeys = new Set<string>();
+  const mergedReceives = validatedReceives.map((player) => {
+    const key = getTradeApplyValidationPlayerKey(player);
+    if (key) {
+      validatedKeys.add(key);
+    }
+    return mergeTradeApplyValidationPlayer(
+      player,
+      key ? fallbackByKey.get(key) : undefined
+    );
+  });
+
+  const unmatchedFallbackReceives = fallbackReceives.filter((player) => {
+    const key = getTradeApplyValidationPlayerKey(player);
+    return key ? !validatedKeys.has(key) : true;
+  });
+
+  return [...mergedReceives, ...unmatchedFallbackReceives];
+}
+
 function normalizeSnapshotTradeException({
   raw,
   source,
@@ -848,7 +930,7 @@ export function validatePostTradeSnapshotForContext({
       : [];
     const applyValidationTeams: TradeApplyValidationTeam[] =
       snapshot.validationTeams.map((snapshotTeam, index) => {
-        const authoritativeReceives = Array.isArray(
+        const validatedReceives = Array.isArray(
           normalizedTeamResults[index]?.incomingPlayers
         )
           ? normalizedTeamResults[index].incomingPlayers
@@ -859,6 +941,12 @@ export function validatePostTradeSnapshotForContext({
                 ): player is TradeApplyValidationPlayer => player !== null
               )
           : [];
+        const fallbackReceives =
+          normalizeFallbackTradeApplyValidationTeam(snapshotTeam).receives;
+        const authoritativeReceives = buildAuthoritativeTradeApplyReceives({
+          validatedReceives,
+          fallbackReceives,
+        });
 
         return {
           teamCode:

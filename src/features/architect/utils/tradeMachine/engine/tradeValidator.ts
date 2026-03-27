@@ -4,7 +4,6 @@ import {
   getSalaryForYear,
 } from '@/features/architect/utils/tradeHelpers';
 import { wrapCommonValidators } from './validationUtils';
-import { createTPE } from '../utils/tpeValidation';
 
 // Import base validators from new structure
 import {
@@ -1810,25 +1809,11 @@ export function validateTrade({
       apronStatus,
       faExceptionBuckets: teamForValidation.team?.faExceptionBuckets || [],
       notes: Array.isArray(teamForValidation.notes) ? teamForValidation.notes : [],
-      createdTPE: (() => {
-        // TPE is created when team sends out more salary than received and is over cap
-        const salaryOut = team.salaryOut || 0;
-        const salaryIn = team.salaryIn || 0;
-        const teamTotalSalary = team.teamTotalSalary || 0;
-        const salaryCap = Number(
-          context.capProjections?.salaryCap ||
-            context.capSettings?.salaryCap ||
-            141000000
-        );
-        const isOverCap = teamTotalSalary > salaryCap;
-
-        return createTPE({
-          teamCtx: { isOverCap },
-          outgoing: salaryOut,
-          incoming: salaryIn,
-          tradeDate: context.tradeDate,
-        });
-      })(),
+      createdTPE:
+        isRuleEnvelopeObject(tradeExceptionsResult) &&
+        'createdTPE' in tradeExceptionsResult
+          ? tradeExceptionsResult.createdTPE || null
+          : null,
       details: isTeamLegal
         ? 'Valid trade for this team'
         : summarizeValidationIssues(violations, 'Trade validation failed'),

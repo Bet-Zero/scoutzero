@@ -1,8 +1,8 @@
 /**
- * TM-1C CANONICAL: TPE restriction SSOT.
- * Owns all trade-exception (TPE) validation including the second-apron prior-year TPE USAGE ban
- * (fires only when the team actively uses a prior-year TPE in this trade).
- * See basicRules.ts for the complementary EXISTENCE guard (fires if team holds any prior-year TPEs).
+ * TM-5A CANONICAL: TPE legality owner.
+ * Owns trade-exception legality and the validator-stage `createdTPE` seed for a legal trade.
+ * It does NOT apply lifecycle mutations or generate history entries; apply-time lifecycle ownership
+ * lives in tradeMachine/utils/tradeExceptionLifecycle.ts.
  */
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import { SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
@@ -144,7 +144,6 @@ export function validateTradeExceptions(
 
   // TM-1C CANONICAL: Second-apron prior-year TPE USAGE ban.
   // Fires only when the team is actively using a prior-year TPE in this trade.
-  // basicRules.ts enforces a separate EXISTENCE guard (fires if the team holds any prior-year TPE).
   if (isSecondApronTeam && usesTpe) {
     const hasPriorYearTPE = usedTpes.some(({ tpe }) =>
       tpe ? isPriorYearTPE(tpe, numericYear) : false

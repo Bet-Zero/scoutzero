@@ -52,7 +52,7 @@
 
 | ID    | Title                                                                        | Status | Notes |
 | ----- | ---------------------------------------------------------------------------- | ------ | ----- |
-| TM-5A | Clarify TPE / Trade-Exception Lifecycle Ownership                            | TODO   |       |
+| TM-5A | Clarify TPE / Trade-Exception Lifecycle Ownership                            | DONE   | `validateTradeExceptions.ts` now owns legality + `createdTPE` seeding, `tradeExceptionLifecycle.ts` owns apply-time lifecycle + history, and `persistWorldMutation()` remains the persistence boundary. |
 | TM-5B | Clarify Sign-and-Trade Ownership Across Signing vs Trade Phases              | TODO   |       |
 | TM-5C | Separate Non-Trade Mutation Validation Ownership from Pipeline Orchestration | TODO   |       |
 | TM-5D | Preserve Intentional Staging and Leave Safe Ownership Boundaries Alone       | TODO   |       |

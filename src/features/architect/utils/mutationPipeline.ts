@@ -85,12 +85,8 @@ import {
   deriveFreeAgencyYearFromOptionSeason,
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
-import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
-import {
-  appendExceptionHistory,
-  createTpeConsumptionHistoryEntry,
-  createTpeCreationHistoryEntry,
-} from '@/features/architect/utils/exceptionHistory/historyHelpers';
+import { appendExceptionHistory } from '@/features/architect/utils/exceptionHistory/historyHelpers';
+import { applyTradeExceptionLifecycle } from '@/features/architect/utils/tradeMachine/utils/tradeExceptionLifecycle';
 
 // Phase 72: SSOT for team cap totals computation
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
@@ -523,11 +519,6 @@ type TradeTpeConsumptionIssue = {
   tpeId?: string | null;
   reason: string;
 };
-type TradeAbsorbedPlayer = {
-  playerId?: string | null;
-  name?: string | null;
-  amountAbsorbed: number;
-};
 type TradeEntitlementTransferSummary = {
   out: string[];
   in: string[];
@@ -549,8 +540,6 @@ type TradeMutationMetadata = {
 };
 type TradeSnapshotLike = TradeContextPostTradeSnapshot;
 type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;
-type TradeApplyValidationPlayerLike =
-  TradeContextApplyValidationTeam['receives'][number];
 type TradeValidationTeamResultLike = TradeContextTeamResult;
 type TradeValidationApplyTimeSlice = {
   legal: boolean;
@@ -567,9 +556,6 @@ export type ArchitectMutationTeamUpdate = {
   teamCode?: string | null;
   team?: ArchitectMutationTeamRecord | null;
 };
-type TradeExceptionHistoryEntry =
-  | NonNullable<ReturnType<typeof createTpeConsumptionHistoryEntry>>
-  | NonNullable<ReturnType<typeof createTpeCreationHistoryEntry>>;
 export type ArchitectMutationTradeContext = {
   worldId?: TradeValidatorContext['worldId'] | null;
   asOfDate?: string | number | null;
@@ -613,11 +599,6 @@ export type ArchitectMutationPayload = {
   worldId?: string | null;
   tradeCtx?: ArchitectMutationTradeContext | null;
 };
-type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
-type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
-type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
-  year?: number | string | null;
-};
 type CurrentStateTradeException = {
   id?: string;
   amount?: number;
@@ -628,6 +609,11 @@ type CurrentStateTradeException = {
   expiresOn?: string | null;
   createdFrom?: string | null;
   isUsed?: boolean | null;
+};
+type LoadedMutationTeam = Awaited<ReturnType<typeof getTeam>>;
+type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
+type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
+  year?: number | string | null;
 };
 type NormalizedCurrentStatePlayerDraft = Pick<
   NonNullable<ArchitectMutationPlayerRecord['draft']>,
@@ -5306,8 +5292,6 @@ function computeTradeResult({
     historyContext.worldId || payload?.tradeCtx?.worldId || null;
   const resolvedMutationType = historyContext.mutationType || 'executeTrade';
   const resolvedMutationId = historyContext.mutationId;
-  const getTpeRemaining = (tpe: CurrentStateTradeException) =>
-    Number(tpe?.remainingAmount ?? tpe?.amount ?? 0) || 0;
 
   // Phase 56: Use pre-built snapshot teamUpdates (already has roster changes applied)
   // Deep clone to avoid mutating the snapshot
@@ -5354,270 +5338,46 @@ function computeTradeResult({
     if (!teamResult) return;
 
     const updatedTeam = teamUpdate.team;
-    const currentTPEs = updatedTeam.tradeExceptions || [];
-    const historyEntries: TradeExceptionHistoryEntry[] = [];
-    const tpeAbsorptionDetails = new Map<string, TradeAbsorbedPlayer[]>();
-
-    // 1. Apply TPE consumption from validator
-    // The validator's tradeExceptions rule modifies TPE objects with updated remaining/used amounts
-    const tradeExceptionsResult = teamResult.rules?.tradeExceptions;
-    let updatedTPEs = [...currentTPEs];
-
-    // If validator processed TPEs, apply consumption from incoming players with tpeId
-    // Phase 50 fix: Check for existence of tradeExceptionsResult, not details
-    // (details is empty string when no violations, which was incorrectly falsy)
-    if (tradeExceptionsResult) {
-      // The validator already updated the TPE objects in place during validation
-      // We need to extract the consumed amounts from the incoming players that used TPEs
-      const incomingPlayers: TradeApplyValidationPlayerLike[] =
-        validationTeams[idx]?.receives || [];
-      const tpeUsageMap = new Map<string, number>(); // tpeId -> consumed amount
-      const tpeConsumptionWarnings: TradeTpeConsumptionIssue[] = []; // Phase 47C: Track missing matchIncoming warnings
-      const tpeConsumptionErrors: TradeTpeConsumptionIssue[] = []; // Fail-closed: hard errors that block mutation
-
-      // FAIL-CLOSED PRE-CHECK: Any player with absorptionMode='TPE' MUST have tpeId + matchIncoming
-      incomingPlayers.forEach((player) => {
-        if (player.absorptionMode === 'TPE') {
-          const playerLabel = player.name || player.player_id || 'unknown';
-          if (!player.tpeId) {
-            tpeConsumptionErrors.push({
-              playerId: player.player_id || player.name,
-              reason: `Player ${playerLabel} has absorptionMode='TPE' but no tpeId — apply-time blocked`,
-            });
-          }
-          if (
-            player.tpeId &&
-            (player.matchIncoming === undefined ||
-              player.matchIncoming === null)
-          ) {
-            tpeConsumptionErrors.push({
-              playerId: player.player_id || player.name,
-              tpeId: player.tpeId,
-              reason: `Player ${playerLabel} has absorptionMode='TPE' with tpeId but missing matchIncoming — apply-time blocked`,
-            });
-          }
-        }
-      });
-
-      // If fail-closed errors exist, block this team's mutation
-      if (tpeConsumptionErrors.length > 0) {
-        teamResult._tpeConsumptionErrors = tpeConsumptionErrors;
-        teamResult._blocked = true;
-        console.error(
-          '[mutationPipeline] TPE fail-closed: blocking mutation due to invalid TPE state:',
-          tpeConsumptionErrors
-        );
-        // Skip all TPE processing — do not partially consume
-      } else {
-        incomingPlayers.forEach((player) => {
-          // Phase 47C: Only process TPE consumption if tpeId is set
-          if (!player.tpeId) return;
-
-          // Phase 47C SSOT: Use matchIncoming ONLY - no salary fallback
-          // If matchIncoming is missing for a TPE player, log warning and skip consumption
-          if (
-            player.matchIncoming === undefined ||
-            player.matchIncoming === null
-          ) {
-            tpeConsumptionWarnings.push({
-              playerId: player.player_id || player.name,
-              tpeId: player.tpeId,
-              reason:
-                'matchIncoming missing for TPE consumption - consumption skipped',
-            });
-            return; // Skip this player - no consumption without validator-produced value
-          }
-
-          const consumed = player.matchIncoming ?? 0;
-          if (consumed <= 0) {
-            return;
-          }
-          const current = tpeUsageMap.get(player.tpeId) || 0;
-          tpeUsageMap.set(player.tpeId, current + consumed);
-
-          const absorptionList = tpeAbsorptionDetails.get(player.tpeId) || [];
-          absorptionList.push({
-            playerId: player.player_id || player.id || player.playerId || null,
-            name:
-              player.name || player.displayName || player.playerName || null,
-            amountAbsorbed: consumed,
-          });
-          tpeAbsorptionDetails.set(player.tpeId, absorptionList);
-        });
-
-        // Log warnings in dev mode for debugging
-        if (tpeConsumptionWarnings.length > 0) {
-          const isDev =
-            import.meta.env?.DEV || process.env.NODE_ENV === 'development';
-          if (isDev) {
-            console.warn(
-              '[mutationPipeline] Phase 47C TPE consumption warnings:',
-              tpeConsumptionWarnings
-            );
-          }
-          // Attach warnings to team result for visibility (non-blocking)
-          teamResult._tpeConsumptionWarnings = tpeConsumptionWarnings;
-        }
-
-        // Apply consumption to TPEs
-        updatedTPEs = currentTPEs.map((tpe) => {
-          const currentTpeId = typeof tpe.id === 'string' ? tpe.id : null;
-          const consumed = currentTpeId ? tpeUsageMap.get(currentTpeId) || 0 : 0;
-          if (consumed === 0) return tpe;
-
-          const currentRemaining = getTpeRemaining(tpe);
-          const currentUsed = toFiniteAmount(tpe.usedAmount, 0);
-          const newRemaining = Math.max(0, currentRemaining - consumed);
-          const newUsed = currentUsed + consumed;
-
-          return {
-            ...tpe,
-            remainingAmount: newRemaining,
-            usedAmount: newUsed,
-            isUsed: newRemaining === 0,
-          };
-        });
-      } // end fail-closed else block
-    }
-
-    // 2. Apply TPE creation from validator (SSOT)
-    // Phase 47C: Idempotent creation with signature-based duplicate detection
-    // Build consumption history entries before creation adds new TPEs
-    currentTPEs.forEach((previousTpe) => {
-      const previousTpeId =
-        typeof previousTpe.id === 'string' ? previousTpe.id : null;
-      if (!previousTpeId) {
-        return;
-      }
-
-      const nextTpe =
-        updatedTPEs.find((candidate) => candidate.id === previousTpeId) ||
-        previousTpe;
-      const previousRemaining = getTpeRemaining(previousTpe);
-      const nextRemaining = getTpeRemaining(nextTpe);
-      const consumedAmount = Math.max(0, previousRemaining - nextRemaining);
-      if (consumedAmount <= 0) {
-        return;
-      }
-
-      const consumptionEntry = createTpeConsumptionHistoryEntry({
-        teamCode: teamUpdate.teamCode || '',
-        tpeId: previousTpeId,
-        amountConsumed: consumedAmount,
-        remainingAmountAfter: nextRemaining,
-        fullyConsumed: nextRemaining === 0,
-        absorbedPlayers: tpeAbsorptionDetails.get(previousTpeId) || [],
-        seasonId,
-        seasonYear: currentYear,
-        timestampISO,
-        worldId:
-          typeof resolvedWorldId === 'string' ? resolvedWorldId : undefined,
-        mutationType: resolvedMutationType,
-        mutationId: resolvedMutationId,
-      });
-
-      if (consumptionEntry) {
-        historyEntries.push(consumptionEntry);
-      }
+    const lifecycleResult = applyTradeExceptionLifecycle({
+      currentTradeExceptions: updatedTeam.tradeExceptions || [],
+      hasTradeExceptionsValidation: Boolean(teamResult.rules?.tradeExceptions),
+      createdTPE: teamResult.createdTPE,
+      incomingPlayers: validationTeams[idx]?.receives || [],
+      outgoingPlayers: tradeTeams[idx]?.sends || [],
+      teamCode: teamUpdate.teamCode || '',
+      seasonId,
+      seasonYear: currentYear,
+      timestampISO,
+      worldId: resolvedWorldId,
+      mutationType: resolvedMutationType,
+      mutationId: resolvedMutationId,
     });
 
-    const createdTPE = teamResult.createdTPE;
-    if (createdTPE) {
-      const teamCode = teamUpdate.teamCode || '';
-
-      // Phase 47C: Preserve validator-provided id if present
-      const tpeId =
-        (typeof createdTPE.id === 'string' && createdTPE.id) ||
-        `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-      const outgoingPlayers = tradeTeams[idx]?.sends || [];
-      const createdFrom =
-        outgoingPlayers
-          .map((player) => player.name || player.displayName)
-          .filter(Boolean)
-          .join(', ') || 'Trade';
-
-      /**
-       * Phase 47C: Idempotent creation - signature-based duplicate detection
-       * Signature: (createdSeason, expiresOn, totalAmount, createdFrom)
-       * If an equivalent TPE already exists, do not add again.
-       *
-       * RATIONALE: A TPE is unique per trade. If the same trade is rerun:
-       * - createdSeason + expiresOn + totalAmount + createdFrom will match
-       * - We skip adding to prevent duplicates on retries
-       */
-      const newTPESignature = [
-        createdTPE.createdSeason,
-        createdTPE.expiresOn,
-        createdTPE.amount,
-        createdFrom,
-      ].join('|');
-
-      const hasDuplicateById = updatedTPEs.some((tpe) => tpe.id === tpeId);
-      const hasDuplicateBySignature = updatedTPEs.some((tpe) => {
-        const existingSignature = [
-          tpe.createdSeason,
-          tpe.expiresOn,
-          tpe.totalAmount ?? tpe.amount,
-          tpe.createdFrom,
-        ].join('|');
-        return existingSignature === newTPESignature;
-      });
-
-      if (!hasDuplicateById && !hasDuplicateBySignature) {
-        updatedTPEs.push({
-          id: tpeId,
-          amount: createdTPE.amount,
-          totalAmount: createdTPE.amount,
-          remainingAmount: createdTPE.amount,
-          usedAmount: 0,
-          createdSeason: createdTPE.createdSeason,
-          expiresOn: createdTPE.expiresOn,
-          createdFrom,
-          isUsed: false,
-        });
-
-        const creationEntry = createTpeCreationHistoryEntry({
-          teamCode,
-          tpeId,
-          amountCreated: createdTPE.amount,
-          createdFrom,
-          createdSeason: createdTPE.createdSeason,
-          expiresOn: createdTPE.expiresOn,
-          seasonId,
-          seasonYear: currentYear,
-          timestampISO,
-          worldId:
-            typeof resolvedWorldId === 'string' ? resolvedWorldId : undefined,
-          mutationType: resolvedMutationType,
-          mutationId: resolvedMutationId,
-        });
-
-        if (creationEntry) {
-          historyEntries.push(creationEntry);
-        }
-      } else {
-        // Dev logging for duplicate detection
-        const isDev =
-          import.meta.env?.DEV || process.env.NODE_ENV === 'development';
-        if (isDev) {
-          console.info(
-            '[mutationPipeline] Phase 47C: Duplicate TPE detected, skipping creation',
-            {
-              tpeId,
-              byId: hasDuplicateById,
-              bySignature: hasDuplicateBySignature,
-            }
-          );
-        }
-      }
+    if (lifecycleResult.blockingIssues.length > 0) {
+      teamResult._tpeConsumptionErrors = lifecycleResult.blockingIssues;
+      teamResult._blocked = true;
+      console.error(
+        '[mutationPipeline] TPE fail-closed: blocking mutation due to invalid TPE state:',
+        lifecycleResult.blockingIssues
+      );
     }
 
-    // Persist the updated TPE array
-    updatedTeam.tradeExceptions = updatedTPEs;
+    if (lifecycleResult.warnings.length > 0) {
+      const isDev =
+        import.meta.env?.DEV || process.env.NODE_ENV === 'development';
+      if (isDev) {
+        console.warn(
+          '[mutationPipeline] Phase 47C TPE consumption warnings:',
+          lifecycleResult.warnings
+        );
+      }
+      teamResult._tpeConsumptionWarnings = lifecycleResult.warnings;
+    }
 
-    if (historyEntries.length > 0) {
-      appendExceptionHistory(updatedTeam, historyEntries);
+    updatedTeam.tradeExceptions = lifecycleResult.updatedTradeExceptions;
+
+    if (lifecycleResult.historyEntries.length > 0) {
+      appendExceptionHistory(updatedTeam, lifecycleResult.historyEntries);
     }
   });
 
