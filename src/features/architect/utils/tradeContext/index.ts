@@ -12,14 +12,16 @@
  * - buildPostTradeTeamsSnapshot: Build post-trade snapshot (PURE)
  * - validatePostTradeSnapshotForContext: Validate snapshot to context
  * - buildTradeApplyPreparation: Centralized snapshot + validation handoff
- * - getFullLegalityPreview: TM-1A apply-path preview without world-state gates
- * - FullLegalityPreviewResult: Type for apply-path preview result
+ * - getFullLegalityPreview: Execution-authority preview minus world-state gates
+ * - FullLegalityPreviewResult: Type for preview-authority result wrapper
  * - assertPostTradeSnapshot: Runtime assertion for PostTradeSnapshot shape
  * - assertValidatedTradeContext: Runtime assertion for ValidatedTradeContext shape
  * - assertTradeComputeInputs: Combined assertion for compute inputs
  *
  * TM-3A EXPORTS (from ./tradeExecutionAuthority):
  * - evaluateTradeSnapshotValidationStage: Stage-1 trade authority adapter
+ * - runTradePostStateLegalityStage: Shared stage-5 trade authority delegator
+ * - validateTradePreviewAuthority: Preview authority surface (execution minus world-state)
  * - validateTradeExecutionAuthority: Explicit execution authority surface for trade apply-time legality
  * - TradeExecutionAuthorityInput: Input type
  * - TradeExecutionAuthorityResult: Result type
@@ -54,9 +56,16 @@ export {
 
 export {
   evaluateTradeSnapshotValidationStage,
+  runTradePostStateLegalityStage,
+  validateTradePreviewAuthority,
   validateTradeExecutionAuthority,
   type TradeSnapshotValidationStageInput,
   type TradeSnapshotValidationStageResult,
+  type TradePostStateLegalityStageInput,
+  type TradePostStateLegalityStageResult,
+  type TradePreviewAuthorityInput,
+  type TradePreviewAuthorityResult,
+  type TradePreviewExcludedAuthorityStage,
   type TradeExecutionAuthorityInput,
   type TradeExecutionAuthorityResult,
   type TradeExecutionAuditArtifacts,

@@ -20,7 +20,7 @@
  * - buildPostTradeTeamsSnapshot(): Pure function that applies roster moves
  * - validatePostTradeSnapshotForContext(): Validates snapshot and returns context
  * - buildTradeApplyPreparation(): Centralizes the snapshot → validate handoff
- * - getFullLegalityPreview(): Pure preview composition without world-state gates
+ * - getFullLegalityPreview(): Execution-authority preview minus world-state gates
  *
  * Legacy convenience wrapper (validateTradeForContext) moved to ./legacy/ in Phase 59.
  *
@@ -37,8 +37,6 @@
 
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
-import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
-import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { assertPostTradeSnapshot } from './assertions';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
@@ -52,6 +50,10 @@ import type {
   TradeExceptionRecord,
   TradeValidationResult,
 } from '@/features/architect/utils/tradeMachine/constants/types';
+import {
+  validateTradePreviewAuthority,
+  type TradePreviewExcludedAuthorityStage,
+} from './tradeExecutionAuthority';
 import type {
   AnyRecord,
   BuildTradeApplyPreparationParams,
@@ -964,10 +966,41 @@ export function buildTradeApplyPreparation({
 }
 
 // ==============================================================================
-// TM-1A: FULL LEGALITY PREVIEW (apply-path validation without world-state gates)
+// TM-1A / TM-3D: FULL LEGALITY PREVIEW (execution authority minus world-state gates)
 // ==============================================================================
 
-// TM-1A: Type for apply-path preview result
+function buildPreviewAuthorityTeamMaps({
+  currentState,
+  postTradeSnapshot,
+}: {
+  currentState: TradeContextCurrentState;
+  postTradeSnapshot: PostTradeSnapshot;
+}): {
+  beforeTeamsByCode: Record<string, AnyRecord>;
+  afterTeamsByCode: Record<string, AnyRecord>;
+} {
+  const beforeTeamsByCode: Record<string, AnyRecord> = {};
+  for (const entry of currentState.teams ?? []) {
+    const code = entry?.teamCode;
+    if (code && entry.team) {
+      beforeTeamsByCode[code] = entry.team as unknown as AnyRecord;
+    }
+  }
+
+  const afterTeamsByCode: Record<string, AnyRecord> = {};
+  for (const update of postTradeSnapshot.teamUpdates) {
+    const code = update?.teamCode;
+    if (code && update.team) {
+      afterTeamsByCode[code] = update.team as unknown as AnyRecord;
+    }
+  }
+
+  return {
+    beforeTeamsByCode,
+    afterTeamsByCode,
+  };
+}
+
 export type FullLegalityPreviewResult = {
   legal: boolean;
   violations: ValidationIssue[];
@@ -975,112 +1008,61 @@ export type FullLegalityPreviewResult = {
   reason: string;
   error: string | null;
   source: 'apply-preview';
+  omittedStages?: TradePreviewExcludedAuthorityStage[];
 };
 
-// TM-1A-FINAL: Run the same snapshot + validation path as apply — without world-state gates.
-// Covers: CBA snapshot validation + post-state cap legality (pure, no Firestore).
-// Remaining apply-only gates: league invariants, entitlement invariants, exclusivity (all Firestore).
+// TM-3D: Preview now mirrors the execution authority model up to the preview boundary:
+// prepare -> snapshot stage -> post-state stage.
+// The three world-state gates remain intentionally excluded from preview.
 export function getFullLegalityPreview({
   payload,
   currentState,
   seasonId,
+  preparation,
 }: {
   payload: TradeContextPayload;
   currentState: TradeContextCurrentState;
   seasonId: string;
+  preparation?: TradeApplyPreparation;
 }): FullLegalityPreviewResult {
   try {
-    const snapshot = buildPostTradeTeamsSnapshot({
-      payload,
-      currentState,
-      seasonId,
-      timestamp: Date.now(),
-    });
-    const ctx = validatePostTradeSnapshotForContext({
-      snapshot,
-      payload,
-      seasonId,
-    });
-
-    // TM-1A-FINAL: Also run validatePostStateCapLegality — pure function, no Firestore.
-    // Build before/after team maps from currentState and snapshot output.
-    const year = toEndYear(seasonId) ?? new Date().getFullYear();
-
-    const beforeTeamsByCode: Record<string, AnyRecord> = {};
-    const beforeTotalsByTeam: Record<string, AnyRecord> = {};
-    for (const entry of currentState.teams ?? []) {
-      const code = entry?.teamCode;
-      if (code && entry.team) {
-        beforeTeamsByCode[code] = entry.team as unknown as AnyRecord;
-        beforeTotalsByTeam[code] = computeTeamCapTotals(entry.team, year) as unknown as AnyRecord;
+    const prepared =
+      preparation ||
+      buildTradeApplyPreparation({
+        payload,
+        currentState,
+        seasonId,
+        timestamp: Date.now(),
+      });
+    const { beforeTeamsByCode, afterTeamsByCode } = buildPreviewAuthorityTeamMaps(
+      {
+        currentState,
+        postTradeSnapshot: prepared.postTradeSnapshot,
       }
-    }
-
-    const afterTeamsByCode: Record<string, AnyRecord> = {};
-    const afterTotalsByTeam: Record<string, AnyRecord> = {};
-    for (const update of snapshot.teamUpdates) {
-      const code = update?.teamCode;
-      if (code && update.team) {
-        afterTeamsByCode[code] = update.team as unknown as AnyRecord;
-        afterTotalsByTeam[code] = computeTeamCapTotals(update.team, year) as unknown as AnyRecord;
-      }
-    }
-
-    const capSettingsResult = getCapSettings({ year });
-    const minimumTeamSalary = Number(capSettingsResult?.settings?.floor);
-    const rulesContext: AnyRecord = {
-      capSettings: capSettingsResult?.settings ?? null,
-      minimumTeamSalary: Number.isFinite(minimumTeamSalary) ? minimumTeamSalary : undefined,
-    };
-
-    const postStateResult = validatePostStateCapLegality({
-      operationId: 'full-legality-preview',
-      mutationType: 'executeTrade',
-      worldId: String(payload.tradeCtx?.worldId ?? 'preview-world'),
-      year,
+    );
+    const previewAuthority = validateTradePreviewAuthority({
+      seasonId,
+      validatedTradeContext: prepared.validatedContext,
       beforeTeamsByCode,
       afterTeamsByCode,
-      beforeTotalsByTeam,
-      afterTotalsByTeam,
-      rulesContext,
+      worldId: String(payload.tradeCtx?.worldId ?? 'preview-world'),
+      asOfDate:
+        typeof payload.tradeCtx?.asOfDate === 'string'
+          ? payload.tradeCtx.asOfDate
+          : null,
     });
 
-    // Merge snapshot context + post-state cap results.
-    const mergedLegal = ctx.legal && postStateResult.valid;
-
-    const postStateViolations: ValidationIssue[] = postStateResult.violations.map((v) => ({
-      message: v.message,
-      code: `POST_STATE_${v.code}`,
-      rule: 'post-state-cap' as const,
-      severity: 'error' as const,
-    }));
-    const postStateWarnings: ValidationIssue[] = postStateResult.warnings.map((w) => ({
-      message: w.message,
-      code: `POST_STATE_${w.code}`,
-      rule: 'post-state-cap' as const,
-      severity: 'warning' as const,
-    }));
-
-    const mergedViolations = [
-      ...(Array.isArray(ctx.violations) ? ctx.violations : []),
-      ...postStateViolations,
-    ];
-    const mergedWarnings = [
-      ...(Array.isArray(ctx.warnings) ? ctx.warnings : []),
-      ...postStateWarnings,
-    ];
-
-    const ctxReason = ctx.reason ?? '';
-    const postStateReason = postStateResult.violations[0]?.message ?? '';
-    const mergedReason = ctxReason || postStateReason;
-
     return {
-      legal: mergedLegal,
-      violations: mergedViolations,
-      warnings: mergedWarnings,
-      reason: mergedReason,
-      error: ctx.error ?? null,
+      legal: previewAuthority.valid,
+      violations: previewAuthority.violations,
+      warnings: previewAuthority.warnings,
+      reason: previewAuthority.reason,
+      error:
+        previewAuthority.failedStage === 'SNAPSHOT_VALIDATION'
+          ? previewAuthority.error ?? prepared.validatedContext.error ?? null
+          : prepared.validatedContext.error ?? null,
       source: 'apply-preview',
+      omittedStages: previewAuthority.omittedStages,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

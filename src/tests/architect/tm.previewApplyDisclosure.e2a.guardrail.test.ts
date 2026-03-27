@@ -12,10 +12,11 @@
  *   4. Section header (ValidationDetailsPanel) includes post-state qualifier
  *   5. No surface implies guaranteed apply success
  *   6. Type contract (ValidationResultLike) declares both metadata fields
- *   7. tradeContext getFullLegalityPreview runs validatePostStateCapLegality (TM-1A-FINAL)
+ *   7. tradeContext getFullLegalityPreview routes through preview authority stages
  *
  * TM-1A-FINAL changes (why some old tests were removed):
- *   - validatePostStateCapLegality moved from apply-only to preview (getFullLegalityPreview)
+ *   - validatePostStateCapLegality moved from apply-only to preview
+ *   - TM-3D: getFullLegalityPreview now delegates to validateTradePreviewAuthority
  *   - applyOnlyGates no longer includes 'post-state-cap-schema'
  *   - TradeEditor/TradeLegalChecker disclosure no longer lists cap/roster as apply-only
  */
@@ -82,10 +83,14 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     expect(useTradeMachineSrc).not.toMatch(/'post-state-cap-schema'/);
   });
 
-  // ─── tradeContext: post-state cap now in preview ──────────────────────────
+  // ─── tradeContext: preview now routes through shared authority stages ─────
 
-  it('tradeContext getFullLegalityPreview runs validatePostStateCapLegality', () => {
-    expect(tradeContextSrc).toContain('validatePostStateCapLegality');
+  it('tradeContext getFullLegalityPreview delegates to validateTradePreviewAuthority', () => {
+    expect(tradeContextSrc).toContain('validateTradePreviewAuthority');
+  });
+
+  it('tradeContext getFullLegalityPreview does not call validatePostStateCapLegality directly', () => {
+    expect(tradeContextSrc).not.toMatch(/validatePostStateCapLegality\s*\(/);
   });
 
   // ─── TradeEditor: Apply-area disclosure ───────────────────────────────────
@@ -127,6 +132,12 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
 
   it('ValidationDetailsPanel section header includes post-state qualifier', () => {
     expect(validationDetailsPanelSrc).toContain('post-state');
+  });
+
+  it('ValidationDetailsPanel does not claim post-state checks only run at apply time', () => {
+    expect(validationDetailsPanelSrc).not.toContain(
+      'world-state + post-state checks run at apply time'
+    );
   });
 
   // ─── Type contract ────────────────────────────────────────────────────────

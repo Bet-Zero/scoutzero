@@ -167,7 +167,7 @@ const ValidationDetailsPanel = ({
                       title="Rule Compliance Overview"
                       mode="OFFICIAL"
                     >
-                      CBA rule pass/fail per team (preview only — world-state + post-state checks run at apply time)
+                      CBA rule pass/fail per team (preview only — snapshot stage here, post-state preview runs locally, world-state checks run at apply time)
                     </SectionHeader>
                     <TradeLegalChecker
                       teamResults={result.teamResults}

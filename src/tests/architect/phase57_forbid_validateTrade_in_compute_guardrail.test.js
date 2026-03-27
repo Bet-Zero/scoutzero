@@ -561,7 +561,30 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     });
   });
 
-  describe('Test 14: tradeExecutionAuthority stage 5 is a thin delegator', () => {
+  describe('Test 14: useTradeMachine reuses prepare -> snapshot authority path', () => {
+    it('should not call validateTrade directly in useTradeMachine.ts', () => {
+      const source = readSourceFile(
+        'src/features/architect/hooks/useTradeMachine.ts'
+      );
+
+      expect(source).toContain('buildTradeApplyPreparation');
+      expect(source).toContain('evaluateTradeSnapshotValidationStage');
+
+      const violations = source
+        .split('\n')
+        .filter(
+          (line) =>
+            /validateTrade\s*\(/.test(line) &&
+            !line.trim().startsWith('//') &&
+            !line.trim().startsWith('*') &&
+            !line.includes('validateTradeData')
+        );
+
+      expect(violations).toEqual([]);
+    });
+  });
+
+  describe('Test 15: tradeExecutionAuthority stage 5 is a thin delegator', () => {
     it('should delegate post-state rule ownership to validatePostStateCapLegality', () => {
       const source = readSourceFile(
         'src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts'
@@ -569,12 +592,11 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       const regionCode = extractRegion(
         source,
-        'function runTradePostStateLegalityStage({',
-        '\nfunction buildFailure('
+        'export function runTradePostStateLegalityStage({',
+        '\nfunction runTradePostStateLegalityStageFromComputeResult('
       );
 
       expect(regionCode).toContain('validatePostStateCapLegality');
-      expect(regionCode).toContain('extractTeamsByCodeFromComputeResult');
       expect(regionCode).toContain('buildTotalsByTeam');
       expect(regionCode).toContain('buildPostStateRulesContext');
 
@@ -582,6 +604,28 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(regionCode).not.toContain('validateContractRows');
       expect(regionCode).not.toContain('validateDeadCap');
       expect(regionCode).not.toContain('validateExceptions');
+    });
+  });
+
+  describe('Test 16: tradeExecutionAuthority keeps compute adaptation outside shared stage 5', () => {
+    it('should adapt computeResult separately and expose preview authority omissions explicitly', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts'
+      );
+
+      const adapterRegion = extractRegion(
+        source,
+        'function runTradePostStateLegalityStageFromComputeResult({',
+        '\nexport function validateTradePreviewAuthority({'
+      );
+
+      expect(adapterRegion).toContain('extractTeamsByCodeFromComputeResult');
+      expect(adapterRegion).toContain('runTradePostStateLegalityStage');
+      expect(source).toContain('validateTradePreviewAuthority');
+      expect(source).toContain('TRADE_PREVIEW_EXCLUDED_AUTHORITY_STAGES');
+      expect(source).toContain("'LEAGUE_INVARIANTS'");
+      expect(source).toContain("'ENTITLEMENT_INVARIANTS'");
+      expect(source).toContain("'ENTITLEMENT_EXCLUSIVITY'");
     });
   });
 });

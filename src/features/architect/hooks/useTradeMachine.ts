@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 // Phase 14.2: Removed ensurePickId import (legacy picks state removed)
@@ -29,10 +28,13 @@ import {
   hasSyntheticSntPlayers,
 } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import {
+  buildTradeApplyPreparation,
   getFullLegalityPreview,
   type FullLegalityPreviewResult,
 } from '@/features/architect/utils/tradeContext/tradeContext';
+import { evaluateTradeSnapshotValidationStage } from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
 import type {
+  TradeApplyPreparation,
   TradeContextPayload,
   TradeContextCurrentState,
 } from '@/features/architect/utils/tradeContext/types';
@@ -77,10 +79,29 @@ type TradeMachineValidationResult = UnknownRecord & {
   teamResults?: UnknownRecord[] | null;
 };
 
+type PreparedTradePreviewContext = {
+  activeTeams: Array<TradeMachineTeamSlot & { team: TradeMachineTeam }>;
+  payload: TradeContextPayload;
+  currentState: TradeContextCurrentState;
+  seasonId: string;
+  preparation: TradeApplyPreparation;
+};
+
+type ValidateCurrentTradeOutcome = {
+  result: TradeMachineValidationResult;
+  previewContext: PreparedTradePreviewContext;
+};
+
 type EntitlementOverrideDocument = UnknownRecord & {
   holderTeam?: string | null;
   holder_team?: string | null;
 };
+
+const APPLY_ONLY_WORLD_STATE_GATES = [
+  'duplicate-player-world-check',
+  'duplicate-entitlement-world-check',
+  'entitlement-exclusivity-world-check',
+] as const;
 
 const isUnknownRecord = (value: unknown): value is UnknownRecord =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -1058,11 +1079,80 @@ export const useTradeMachine = (
     });
   }, []);
 
+  const buildCurrentTradePreviewContext = useCallback((): PreparedTradePreviewContext | null => {
+    const patchedTeams = teams.map((teamSlot) => {
+      if (!teamSlot.team) {
+        return teamSlot;
+      }
+
+      if (
+        !Number.isFinite(teamSlot.team.teamTotalSalary) ||
+        teamSlot.team.teamTotalSalary === 0
+      ) {
+        const { totalWithDead } = getCapTotalsForYear(teamSlot.team, yearKey);
+        return {
+          ...teamSlot,
+          team: {
+            ...teamSlot.team,
+            teamTotalSalary: totalWithDead,
+            projectedSalary: totalWithDead,
+          },
+        };
+      }
+
+      return teamSlot;
+    });
+    const activeTeams = patchedTeams.filter(hasTeamSlot);
+
+    if (activeTeams.length < 2) {
+      return null;
+    }
+
+    const seasonId = toSeasonKey(yearKey) ?? String(yearKey);
+    const payload: TradeContextPayload = {
+      teams: activeTeams.map((slot) => ({
+        teamCode: String(slot.team.teamCode || slot.team.id || ''),
+        teamId: String(slot.team.id || slot.team.teamCode || ''),
+        sends: slot.sends as unknown as ArchitectTradePayloadPlayer[],
+        entitlementsOut:
+          (slot.entitlementsOut || []) as unknown as NonNullable<
+            TradeContextPayload['teams'][0]['entitlementsOut']
+          >,
+      })),
+      capProjections: capProjections as TradeContextPayload['capProjections'],
+      tradeCtx: {
+        worldId: worldId ?? undefined,
+        yearKey,
+        source: 'tradeMachine',
+        ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+      },
+    };
+    const currentState: TradeContextCurrentState = {
+      teams: activeTeams.map((slot) => ({
+        teamCode: (slot.team.teamCode || slot.team.id || null) as string | null,
+        team: slot.team as unknown as ArchitectMutationTeamRecord,
+      })),
+    };
+
+    return {
+      activeTeams,
+      payload,
+      currentState,
+      seasonId,
+      preparation: buildTradeApplyPreparation({
+        payload,
+        currentState,
+        seasonId,
+        timestamp: Date.now(),
+      }),
+    };
+  }, [teams, capProjections, yearKey, worldId, worldAsOfDate]);
+
   // Core validation function - extracted for reuse
   // P0-3: Wraps validation with isValidating state for UI loading indicators
-  const validateCurrentTrade = useCallback(() => {
-    const activeTeams = teams.filter(hasTeamSlot);
-    if (activeTeams.length < 2) {
+  const validateCurrentTrade = useCallback((): ValidateCurrentTradeOutcome | null => {
+    const previewContext = buildCurrentTradePreviewContext();
+    if (!previewContext) {
       setResult(null);
       setFullLegalityResult(null); // TM-1A: clear stale apply-preview
       // P0-3: Clear isValidating since no validation will run (not enough teams)
@@ -1074,129 +1164,113 @@ export const useTradeMachine = (
     // P0-3: Set validating state before validation runs
     setIsValidating(true);
 
-    // (Optional) last-second safety net: if any team is missing payroll, patch it (SSOT)
-    const patchedTeams = teams.map((t) => {
-      if (!t.team) return t;
-      if (
-        !Number.isFinite(t.team.teamTotalSalary) ||
-        t.team.teamTotalSalary === 0
-      ) {
-        const { totalWithDead } = getCapTotalsForYear(t.team, yearKey);
-        return {
-          ...t,
-          team: {
-            ...t.team,
-            teamTotalSalary: totalWithDead,
-            projectedSalary: totalWithDead,
-          },
+    try {
+      const { activeTeams, preparation } = previewContext;
+
+      console.log(
+        '[validate -> teams payroll]',
+        activeTeams.map((teamSlot) => ({
+          team: teamSlot.team.nickname || teamSlot.team.name || teamSlot.team.id,
+          teamTotalSalary: teamSlot.team.teamTotalSalary,
+          projectedSalary: teamSlot.team.projectedSalary,
+        }))
+      );
+
+      const validation =
+        (preparation.validatedContext._rawValidation ||
+          preparation.validatedContext) as unknown as UnknownRecord & {
+          teamResults?: UnknownRecord[] | null;
+          violations?: unknown[];
+          warnings?: unknown[];
+          reason?: unknown;
+          error?: unknown;
         };
-      }
-      return t;
-    });
+      const snapshotStage = evaluateTradeSnapshotValidationStage({
+        validatedTradeContext: preparation.validatedContext,
+        asOfDate: worldAsOfDate ?? undefined,
+      });
 
-    // LOG C) Right before validateTrade(...) in validateCurrentTrade()
-    console.log(
-      '[validate -> teams payroll]',
-      activeTeams.map((t) => ({
-        team: t.team.nickname || t.team.name || t.team.id,
-        teamTotalSalary: t.team.teamTotalSalary,
-        projectedSalary: t.team.projectedSalary,
-      }))
-    );
-    const validationTeams = patchedTeams
-      .filter(hasTeamSlot)
-      .map((t) => ({
-        team: t.team,
-        sends: t.sends,
-        // Phase 14.2: Removed picksOut - draft assets are entitlements-only
-        hardCapped: t.team.hardCapped as boolean,
-        hardCapLevel: t.team.hardCapLevel || t.team.totals?.hardCapLevel || null,
-        // Phase 12.1: Pass entitlements for Stepien validation
-        entitlementsOut: t.entitlementsOut || [],
-        // Phase 12.2: Pass team's loaded entitlements for baseline calculation
-        validationEntitlements: t.entitlements || [],
-      })) as unknown as Parameters<typeof validateTrade>[0]['teams'];
+      // TM_DATAWARN_UI_E1: Validate data quality for all players in trade
+      const allPlayers = activeTeams.flatMap((teamSlot) => teamSlot.sends || []);
+      const dataValidation = validateTradeData(allPlayers, yearKey) as UnknownRecord & {
+        hasIssues?: boolean;
+        warnings?: unknown[];
+        summary?: unknown;
+      };
 
-    const validation: any = validateTrade({
-        teams: validationTeams,
-      capProjections,
-      currentYear: yearKey,
-      // Phase 12.2: Pass worldId and yearKey for validation context
-      tradeCtx: {
-        worldId,
-        yearKey,
-        source: 'tradeMachine',
-        ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
-      },
-    });
+      // Environment flag to enable force trade bypass
+      // In production (canOverride=false), forceTrade has no effect
+      const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
 
-    // TM_DATAWARN_UI_E1: Validate data quality for all players in trade
-    const allPlayers = patchedTeams
-      .filter((t) => t.team)
-      .flatMap((t) => t.sends || []);
-    const dataValidation = validateTradeData(allPlayers, yearKey) as UnknownRecord & {
-      hasIssues?: boolean;
-      warnings?: unknown[];
-      summary?: unknown;
-    };
+      const result = {
+        ...validation,
+        legal: snapshotStage.valid,
+        authoritativeLegal: snapshotStage.valid,
+        reason:
+          typeof validation.reason === 'string'
+            ? validation.reason
+            : preparation.validatedContext.reason ?? snapshotStage.error ?? null,
+        error:
+          typeof validation.error === 'string'
+            ? validation.error
+            : preparation.validatedContext.error ?? snapshotStage.error ?? null,
+        violations: Array.isArray(validation.violations)
+          ? validation.violations
+          : preparation.validatedContext.violations,
+        warnings: Array.isArray(validation.warnings)
+          ? validation.warnings
+          : preparation.validatedContext.warnings,
+        override: {
+          requested: Boolean(forceTrade),
+          enabled: canOverride,
+          appliedToLegality: false,
+          message: forceTrade
+            ? canOverride
+              ? 'Force-trade was requested, but authoritative legality remains unchanged.'
+              : 'Force-trade was requested, but override is disabled in this environment.'
+            : null,
+        },
+        // TM_DATAWARN_UI_E1: Attach data warnings to result
+        hasDataIssues: dataValidation.hasIssues,
+        dataWarnings: dataValidation.warnings,
+        dataValidationSummary: dataValidation.summary,
+        // TM-TRUTH-E2 / TM-3D: This surface now reflects the shared snapshot
+        // authority stage. Full preview authority adds post-state checks locally.
+        previewTier: 'cba-validator' as const,
+        applyOnlyGates: [...APPLY_ONLY_WORLD_STATE_GATES],
+      };
 
-    // Environment flag to enable force trade bypass
-    // In production (canOverride=false), forceTrade has no effect
-    const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
+      setResult(result);
 
-    const result = {
-      ...validation,
-      legal: validation.legal,
-      authoritativeLegal: validation.legal,
-      override: {
-        requested: Boolean(forceTrade),
-        enabled: canOverride,
-        appliedToLegality: false,
-        message: forceTrade
-          ? canOverride
-            ? 'Force-trade was requested, but authoritative legality remains unchanged.'
-            : 'Force-trade was requested, but override is disabled in this environment.'
-          : null,
-      },
-      // TM_DATAWARN_UI_E1: Attach data warnings to result
-      hasDataIssues: dataValidation.hasIssues,
-      dataWarnings: dataValidation.warnings,
-      dataValidationSummary: dataValidation.summary,
-      // TM-TRUTH-E2 / TM-1A-FINAL: Document preview coverage tier explicitly.
-      // Green preview means CBA snapshot validation + post-state cap legality passed.
-      // Three gates still run only at apply time (require Firestore / live world state):
-      //   1. validateMutationLeagueInvariants — duplicate player world check (requires getLeague())
-      //   2. validateMutationEntitlementInvariants — duplicate entitlement world check (requires getLeague())
-      //   3. validateTradeApplyExclusivity — entitlement exclusivity world check (requires Firestore)
-      // NOTE: validatePostStateCapLegality moved to preview (getFullLegalityPreview) in TM-1A-FINAL.
-      previewTier: 'cba-validator' as const,
-      applyOnlyGates: [
-        'duplicate-player-world-check',
-        'duplicate-entitlement-world-check',
-        'entitlement-exclusivity-world-check',
-      ],
-    };
+      console.log(
+        '[after validate]',
+        (Array.isArray(validation.teamResults) ? validation.teamResults : []).map(
+          (teamResult: any) => ({
+            team:
+              teamResult.team?.nickname ||
+              teamResult.team?.name ||
+              teamResult.team?.id,
+            pre: teamResult.preTradeStatus?.projectedSalary,
+            post: teamResult.postTradeStatus?.projectedSalary,
+            apron: teamResult.postTradeStatus?.isAtOrAboveSecondApron,
+          })
+        )
+      );
 
-    setResult(result);
-    // P0-3: Clear validating state after validation completes
-    setIsValidating(false);
-
-    // Stale validation fix: Record the draft key that was validated
-    // This is only set on explicit validation, not auto-validation
-    // (Note: Auto-validation has been removed to fix the stale state bug)
-
-    console.log(
-      '[after validate]',
-      validation.teamResults.map((tr: any) => ({
-        team: tr.team?.nickname || tr.team?.name || tr.team?.id,
-        pre: tr.preTradeStatus?.projectedSalary,
-        post: tr.postTradeStatus?.projectedSalary,
-        apron: tr.postTradeStatus?.isAtOrAboveSecondApron,
-      }))
-    );
-
-    return result;
-  }, [teams, capProjections, yearKey, forceTrade, worldAsOfDate, worldId]);
+      return { result, previewContext };
+    } catch (error) {
+      console.error(
+        '[useTradeMachine] validateCurrentTrade unexpected error:',
+        error
+      );
+      setResult(null);
+      setFullLegalityResult(null);
+      return null;
+    } finally {
+      // P0-3: Clear validating state after validation completes
+      setIsValidating(false);
+    }
+  }, [buildCurrentTradePreviewContext, yearKey, forceTrade, worldAsOfDate]);
 
   // REMOVED: Auto-validation effect was causing stale "Validated" state
   // Validation now ONLY happens when user clicks "Validate Trade" (explicit action)
@@ -1204,58 +1278,30 @@ export const useTradeMachine = (
 
   // Manual validation trigger - the ONLY way validation should happen
   const handleValidate = useCallback(() => {
-    const result = validateCurrentTrade();
-    if (result) {
+    const validationOutcome = validateCurrentTrade();
+    if (validationOutcome) {
+      const { previewContext } = validationOutcome;
+
       // Stale validation fix: Record the draft key that was validated
       lastValidatedDraftKeyRef.current = currentDraftKey;
       validatedAtRef.current = Date.now();
 
-      // TM-1A: Run apply-path snapshot validation for full legality preview
-      const previewActiveTeams = teams.filter(hasTeamSlot);
-      if (previewActiveTeams.length >= 2) {
-        const previewSeasonId = toSeasonKey(yearKey) ?? String(yearKey);
-        try {
-          const previewPayload: TradeContextPayload = {
-            teams: previewActiveTeams.map((slot) => ({
-              teamCode: String(slot.team.teamCode || slot.team.id || ''),
-              teamId: String(slot.team.id || slot.team.teamCode || ''),
-              sends: slot.sends as unknown as ArchitectTradePayloadPlayer[],
-              entitlementsOut:
-                (slot.entitlementsOut || []) as unknown as NonNullable<
-                  TradeContextPayload['teams'][0]['entitlementsOut']
-                >,
-            })),
-            capProjections: capProjections as TradeContextPayload['capProjections'],
-            tradeCtx: {
-              worldId: worldId ?? undefined,
-              yearKey,
-              source: 'tradeMachine',
-              ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
-            },
-          };
-          const previewCurrentState: TradeContextCurrentState = {
-            teams: previewActiveTeams.map((slot) => ({
-              teamCode: (slot.team.teamCode || slot.team.id || null) as string | null,
-              team: slot.team as unknown as ArchitectMutationTeamRecord,
-            })),
-          };
-          const fullResult = getFullLegalityPreview({
-            payload: previewPayload,
-            currentState: previewCurrentState,
-            seasonId: previewSeasonId,
-          });
-          setFullLegalityResult(fullResult);
-        } catch (err) {
-          console.error('[useTradeMachine] getFullLegalityPreview unexpected error:', err);
-          setFullLegalityResult(null);
-        }
-      } else {
+      try {
+        const fullResult = getFullLegalityPreview({
+          payload: previewContext.payload,
+          currentState: previewContext.currentState,
+          seasonId: previewContext.seasonId,
+          preparation: previewContext.preparation,
+        });
+        setFullLegalityResult(fullResult);
+      } catch (err) {
+        console.error('[useTradeMachine] getFullLegalityPreview unexpected error:', err);
         setFullLegalityResult(null);
       }
 
       setPreviewOpen(true);
     }
-  }, [validateCurrentTrade, currentDraftKey, teams, yearKey, capProjections, worldId, worldAsOfDate]);
+  }, [validateCurrentTrade, currentDraftKey]);
 
   const exportCurrentTrade = useCallback(() => {
     const tradeData = teams
