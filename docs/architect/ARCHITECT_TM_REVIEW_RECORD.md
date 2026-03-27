@@ -1232,3 +1232,541 @@ So Step 4 is likely an execution arc about:
 —not about fixing a live dangerous execution bypass.
 
 ---
+
+# STEP 5 — RULE OWNERSHIP & CONSOLIDATION AUDIT
+
+## Scope
+
+Trade Machine — Step 5: Rule Ownership & Consolidation Audit
+
+**Date:** 2026-03-27  
+**Source:** Direct code inspection (no prior docs trusted)
+
+---
+
+## Purpose of this Step
+
+Evaluate how rule ownership is distributed across the live Trade Machine / apply system after the Step 1–4 cleanup.
+
+This step answers:
+
+- which layer owns each major rule family now
+- whether rules are centralized, duplicated, or intentionally staged
+- whether any remaining staging is safe or still creates drift risk
+- whether further consolidation work is actually needed
+
+---
+
+## Executive Verdict
+
+**MOSTLY CLEAN, WITH A FEW INTENTIONAL STAGING BOUNDARIES AND A SMALL NUMBER OF RISK AREAS**
+
+The system is much cleaner than it was earlier in this audit arc.
+
+The dominant pattern now is:
+
+- **trade-rule ownership** in `tradeValidator.ts`
+- **trade preparation / snapshot bridging** in `tradeContext.ts`
+- **execution-stage sequencing** in `tradeExecutionAuthority.ts`
+- **post-state team legality** in `postStateCapValidator.ts`
+- **mutation-family-specific non-trade validation** in `mutationPipeline.ts` via `capLegalityValidation`
+- **world-state invariant checks** staged separately in the authority path
+
+That is a real ownership model, not just accidental distribution.
+
+The remaining concerns are mostly about **staging clarity** and a few families that are still split across phases by design.
+
+---
+
+## What Was Reviewed
+
+- `src/features/architect/utils/tradeMachine/engine/tradeValidator.ts`
+- `src/features/architect/utils/tradeContext/tradeContext.ts`
+- `src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts`
+- `src/features/architect/utils/capLegality/postStateCapValidator.ts`
+- `src/features/architect/utils/mutationPipeline.ts`
+
+---
+
+## Rule Ownership Map
+
+---
+
+### 1. Trade-rule validator core
+
+#### Owner
+
+`tradeValidator.ts` owns the core trade-rule family. It directly imports and composes rule modules including:
+
+- salary matching
+- hard cap
+- Stepien
+- cash
+- trade exceptions
+- sign-and-trade
+- consent
+- reacquisition
+- aggregation
+- entitlement routing / linkage
+- player routing
+- entitlement exclusivity
+- roster counts :contentReference[oaicite:0]{index=0}
+
+#### Role
+
+This is the **main rule-owning trade validator**.
+
+It is the canonical home for trade-rule legality on the validator side, including per-team rule envelopes and overall trade legality. :contentReference[oaicite:1]{index=1}
+
+#### Assessment
+
+**PASS**
+
+This family is clearly centralized enough now.
+
+---
+
+### 2. Trade preparation / snapshot bridge
+
+#### Owner
+
+`tradeContext.ts` owns:
+
+- `buildPostTradeTeamsSnapshot(...)`
+- `validatePostTradeSnapshotForContext(...)`
+- preview authority bridge helpers like `getFullLegalityPreview(...)` / preview authority reuse :contentReference[oaicite:2]{index=2}
+
+#### Role
+
+This layer does **not** own trade rules themselves.
+
+It owns:
+
+- post-trade state construction
+- adapting that state into validator/apply inputs
+- bridging between mutation payloads and validation stages :contentReference[oaicite:3]{index=3}
+
+#### Assessment
+
+**PASS**
+
+Ownership is appropriately narrow and clearer than before.
+
+---
+
+### 3. Execution authority sequencing
+
+#### Owner
+
+`tradeExecutionAuthority.ts` explicitly says it owns:
+
+- sequencing
+- short-circuit behavior
+- warning aggregation
+- audit artifacts
+
+and explicitly does **not** own:
+
+- trade rules
+- post-state cap rules
+- world invariants themselves :contentReference[oaicite:4]{index=4}
+
+Its five-stage authority chain is:
+
+1. snapshot validation
+2. league invariants
+3. entitlement invariants
+4. entitlement exclusivity
+5. post-state cap legality :contentReference[oaicite:5]{index=5}
+
+#### Role
+
+This is the **composition / stage ownership layer**, not a rule-definition layer.
+
+#### Assessment
+
+**PASS**
+
+This is exactly the kind of ownership separation Step 3 was trying to produce.
+
+---
+
+### 4. Post-state team legality
+
+#### Owner
+
+`postStateCapValidator.ts` explicitly says it owns:
+
+- post-mutation team legality rules
+- post-state input sanity for before/after teams and totals
+
+and explicitly does **not** own:
+
+- trade-term validation
+- authority sequencing
+- world-state invariants/exclusivity :contentReference[oaicite:6]{index=6}
+
+It owns post-state checks including:
+
+- hard cap exceeded
+- salary floor warning
+- luxury tax warning
+- roster min/max / two-way limits
+- contract row validity
+- dead cap schema validity
+- exception schema validity
+- cap hold validity :contentReference[oaicite:7]{index=7}
+
+#### Assessment
+
+**PASS**
+
+This family has a clear home now.
+
+---
+
+### 5. Mutation-pipeline rule ownership
+
+#### Owner
+
+`mutationPipeline.ts` owns the centralized mutation pipeline and says trade validation follows:
+
+> prepare → compute/persist :contentReference[oaicite:8]{index=8}
+
+For **trade mutations**, it now defers to:
+
+- `buildTradeApplyPreparation(...)`
+- `validateTradeExecutionAuthority(...)` :contentReference[oaicite:9]{index=9}
+
+For **non-trade mutations**, it still directly owns mutation-family validation routing through:
+
+- `validateSigning`
+- `validateWaive`
+- `validateExtension`
+- `validateOptionDecision`
+- `validateOfferSheetResolution`
+- `validateRenounceRights`
+- `validateDeadCap`
+- `validateExceptions` :contentReference[oaicite:10]{index=10}
+
+#### Role
+
+This file now mostly owns:
+
+- mutation-family dispatch
+- read / compute / persist orchestration
+- non-trade mutation validation routing
+- persistence boundary
+
+It is no longer the primary place where trade-rule ownership is supposed to live. :contentReference[oaicite:11]{index=11}
+
+#### Assessment
+
+**PASS, with some staging complexity**
+
+This is appropriate, but it is still a large file with both orchestration and non-trade validation dispatch concerns.
+
+---
+
+## PASS / RISK / FAIL by Major Rule Family
+
+---
+
+### A. Trade core CBA rules
+
+Includes:
+
+- salary matching
+- hard cap
+- Stepien
+- aggregation
+- trade exceptions
+- sign-and-trade
+- consent
+- reacquisition
+- routing / entitlement exclusivity
+- roster counts
+
+#### Home
+
+`tradeValidator.ts` and its imported rule modules :contentReference[oaicite:12]{index=12}
+
+#### Verdict
+
+**PASS**
+
+This is the cleanest ownership family in the system right now.
+
+---
+
+### B. Snapshot / trade-bridge rules
+
+Includes:
+
+- snapshot building
+- snapshot-to-context validation handoff
+- preview authority reuse of post-trade inputs
+
+#### Home
+
+`tradeContext.ts` :contentReference[oaicite:13]{index=13}
+
+#### Verdict
+
+**PASS**
+
+This is staged, but intentionally and clearly.
+
+---
+
+### C. Execution-stage authority rules
+
+Includes:
+
+- when each validation stage runs
+- which stage short-circuits
+- how warnings aggregate
+- audit artifacts
+
+#### Home
+
+`tradeExecutionAuthority.ts` :contentReference[oaicite:14]{index=14}
+
+#### Verdict
+
+**PASS**
+
+This is composition-only ownership and it is now explicit.
+
+---
+
+### D. World-state invariant rules
+
+Includes:
+
+- duplicate player world checks
+- duplicate entitlement checks
+- entitlement exclusivity at apply time
+
+#### Home
+
+These are staged through `tradeExecutionAuthority.ts`, but the rules themselves are imported from `leagueInvariants` and run as separate authority stages.
+
+#### Verdict
+
+**PASS**
+
+These are intentionally staged and correctly outside preview.
+
+---
+
+### E. Post-state team legality rules
+
+Includes:
+
+- hard cap after mutation
+- roster post-state legality
+- contract/dead-cap/exception/cap-hold schema validity
+
+#### Home
+
+`postStateCapValidator.ts` :contentReference[oaicite:16]{index=16}
+
+#### Verdict
+
+**PASS**
+
+This family has a clear home.
+
+---
+
+### F. Non-trade mutation rule family
+
+Includes:
+
+- signing
+- waive
+- extension
+- option decision
+- offer sheet resolution
+- renounce rights
+- dead cap
+- exceptions
+
+#### Home
+
+`mutationPipeline.ts` via `capLegalityValidation` routing :contentReference[oaicite:17]{index=17}
+
+#### Verdict
+
+**RISK**
+
+Not because it is wrong, but because this family is still owned through a very large orchestration file instead of an equally explicit authority surface like the trade path now has.
+
+This looks durable enough for now, but less clean than the trade path.
+
+---
+
+### G. TPE / trade-exception lifecycle family
+
+Includes:
+
+- trade-time TPE legality
+- TPE creation
+- TPE consumption
+- exception history creation
+- persistence of updated TPE state
+
+#### Home
+
+This family is **staged**:
+
+- legality at trade-validation time in `tradeValidator.ts`
+- creation/consumption + history application in `computeTradeResult()` inside `mutationPipeline.ts`
+
+#### Verdict
+
+**RISK**
+
+This staging looks intentional, but it is one of the most obviously split rule/lifecycle families remaining.
+
+The split is understandable:
+
+- validator decides legality
+- compute applies the validated TPE consequences
+
+But it is still a family where future drift is plausible if changes touch only one side.
+
+---
+
+## Fragmented / Awkwardly Staged Rule Families
+
+---
+
+### 1. TPE / trade-exception lifecycle
+
+#### Why fragmented
+
+The legality of TPE usage is validated in the trade validator, but actual creation/consumption/history mutation happens later in `computeTradeResult()` in the mutation pipeline.
+
+#### Is staging intentional?
+
+Yes.
+
+#### Is it safe?
+
+Mostly, but it is still a **future drift risk** family.
+
+---
+
+### 2. Sign-and-trade family
+
+#### Why staged
+
+For trade validation, `validateSignAndTrade` is part of trade validator ownership. For the `signAndTrade` mutation path, `mutationPipeline.ts` also runs `validateSigning(...)` first, then uses trade preparation and validated context before compute.
+
+#### Is staging intentional?
+
+Yes.
+
+#### Is it safe?
+
+Mostly yes, but this family is still conceptually more complex than the simpler rule families.
+
+#### Verdict
+
+**RISK, but acceptable**
+
+---
+
+### 3. Non-trade mutation validation dispatch
+
+#### Why awkward
+
+The trade path now has:
+
+- explicit authority surface
+- explicit stage ownership
+
+The non-trade mutation families still route through a big switch inside `validateMutation()` in `mutationPipeline.ts`. :contentReference[oaicite:21]{index=21}
+
+#### Is staging intentional?
+
+Yes.
+
+#### Is it safe?
+
+Probably yes.
+
+#### Verdict
+
+**RISK**
+This is more of a maintainability / future architecture concern than a current correctness problem.
+
+---
+
+## Consolidation Recommendations
+
+---
+
+### Should become Step 5 execution work
+
+#### 1. TPE / trade-exception lifecycle ownership clarity
+
+This is the strongest Step 5 candidate.
+
+Reason:
+
+- legality lives in validator
+- lifecycle application lives in compute/persistence path
+- history writes are yet another layer
+- this is a natural place for future drift if not clarified further
+
+#### 2. Non-trade mutation rule ownership clarity
+
+Also a good candidate.
+
+Reason:
+
+- trade path has a clearer authority model now
+- non-trade validation is still structurally “big switch in mutationPipeline”
+- future growth may make this harder to maintain cleanly
+
+---
+
+### Should probably be documented and left alone for now
+
+#### 1. Snapshot → authority → post-state staging
+
+This is staged, but the staging now appears intentional and safe.
+
+#### 2. World-state invariant staging
+
+This is intentionally outside preview and belongs in apply authority only. That is correct, not a cleanup target. :contentReference[oaicite:23]{index=23}
+
+#### 3. Core trade-rule ownership in `tradeValidator.ts`
+
+This family is centralized enough now and does not look like a Step 5 problem. :contentReference[oaicite:24]{index=24}
+
+---
+
+## Final Conclusion
+
+The rule ownership model is now **mostly durable**.
+
+The cleanup work from Steps 1–4 clearly paid off.
+
+The remaining issues are not broad chaos or obvious duplication. They are narrower and more architectural:
+
+- some families are intentionally staged
+- most of that staging is now safe
+- the biggest remaining consolidation opportunities are the families where legality and lifecycle application are still split across phases
+
+So Step 5 is no longer about “rules are everywhere.”
+
+It is about deciding whether the remaining staged families:
+
+- are good enough as-is
+- or need one more round of ownership tightening for long-term durability
+
+---

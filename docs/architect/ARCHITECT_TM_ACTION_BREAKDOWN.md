@@ -634,3 +634,141 @@ This is a **surface-area cleanup and canonical-entrypoint protection step**, not
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 5 — ACTION BREAKDOWN
+
+## Rule Ownership & Consolidation Audit
+
+---
+
+## TM-5A — Clarify TPE / Trade-Exception Lifecycle Ownership
+
+### Problem
+
+TPE and trade-exception logic is still split across phases:
+
+- legality is validated in the trade validator
+- creation / consumption / history application happens later in `computeTradeResult()` inside `mutationPipeline.ts`
+
+### Why It Matters
+
+- This is one of the clearest remaining staged rule families
+- Future changes could touch legality without updating lifecycle application, or vice versa
+- Drift risk is higher here than in the more centralized rule families
+
+### Goal
+
+Make TPE / trade-exception ownership boundaries more explicit and durable so legality and lifecycle application stay aligned.
+
+### Success Criteria
+
+- The ownership split is either tightened or made structurally explicit
+- Future contributors can clearly tell:
+  - where TPE legality is decided
+  - where TPE lifecycle effects are applied
+  - where history entries are generated
+- The family no longer feels like an accidental cross-phase split
+
+---
+
+## TM-5B — Clarify Sign-and-Trade Ownership Across Signing vs Trade Phases
+
+### Problem
+
+Sign-and-trade remains a staged family:
+
+- signing legality is validated in one path
+- trade legality is validated in another
+- the combined mutation path still requires multiple prevalidated contexts
+
+### Why It Matters
+
+- Sign-and-trade is more complex than most other rule families
+- The current structure is mostly correct, but still easier to misunderstand than simpler rule families
+- Future edits could accidentally weaken the relationship between signing validation and trade validation
+
+### Goal
+
+Make sign-and-trade ownership and staging boundaries clearer and more durable.
+
+### Success Criteria
+
+- It is obvious which layer owns:
+  - signing legality
+  - trade legality
+  - the staged handoff between them
+- The staged design looks intentional, not improvised
+- Future changes are less likely to update only one half of the flow
+
+---
+
+## TM-5C — Separate Non-Trade Mutation Validation Ownership from Pipeline Orchestration
+
+### Problem
+
+Trade now has an explicit authority model, but non-trade mutation validation is still routed through a large switch inside `validateMutation()` in `mutationPipeline.ts`.
+
+### Why It Matters
+
+- The current setup works, but it is less structurally clean than the trade path
+- As more non-trade mutation logic grows, the pipeline risks becoming both orchestration layer and rule-ownership layer at once
+- This creates long-term maintainability risk even if current behavior is correct
+
+### Goal
+
+Reduce ambiguity around whether `mutationPipeline.ts` is merely dispatching non-trade validation or actually owning those rule families.
+
+### Success Criteria
+
+- Non-trade validation ownership is clearer
+- Pipeline orchestration and rule ownership are less entangled
+- Future contributors can tell whether a non-trade rule belongs:
+  - in mutation orchestration
+  - in a dedicated validator
+  - or in a separate authority/dispatch layer
+
+---
+
+## TM-5D — Preserve Intentional Staging and Leave Safe Ownership Boundaries Alone
+
+### Problem
+
+Some rule families are staged by design and should not be “consolidated” just for the sake of consolidation.
+
+### Why It Matters
+
+- Not every multi-stage flow is a problem
+- Snapshot → authority → post-state and world-state-only apply gates are intentional and currently safe
+- Over-consolidation could blur legitimate separation of concerns
+
+### Goal
+
+Protect the ownership boundaries that are already correct while tightening only the staged families that still carry real drift risk.
+
+### Success Criteria
+
+- Safe staged boundaries are explicitly recognized as intentional
+- Cleanup work does not collapse layers that should remain separate
+- Step 5 execution focuses only on real ownership risks, not cosmetic consolidation
+
+---
+
+## Step 5 Summary
+
+This step focuses on:
+
+- tightening ownership around the remaining staged rule families
+- reducing future drift risk where legality and lifecycle are split
+- improving durability of complex staged flows
+- preserving the ownership boundaries that are already correct
+
+This is an **ownership-clarity and consolidation step**, not a business-rules rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---
