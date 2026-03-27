@@ -11,6 +11,8 @@
  *  - 2026-03-26: TM-3C - Stage ownership made explicit: authority composes, validators own rules.
  *  - 2026-03-26: TM-3D - Preview now reuses the same named authority stages,
  *                        explicitly omitting only world-state gates.
+ *  - 2026-03-27: TM-3E - Grouped world-state-only gates and narrowed
+ *                        canonical-vs-supporting surface discoverability.
  *
  * AUTHORITY CHAIN (5 stages, short-circuits on first failure):
  *  1. SNAPSHOT_VALIDATION     — evaluateTradeSnapshotValidationStage (adapts prepared trade verdict)
@@ -65,12 +67,14 @@ export type TradeExecutionAuthorityStage =
   | 'ENTITLEMENT_EXCLUSIVITY'
   | 'POST_STATE_CAP_LEGALITY';
 
-export type TradePreviewExcludedAuthorityStage = Extract<
-  TradeExecutionAuthorityStage,
-  | 'LEAGUE_INVARIANTS'
-  | 'ENTITLEMENT_INVARIANTS'
-  | 'ENTITLEMENT_EXCLUSIVITY'
->;
+export const TRADE_WORLD_STATE_ONLY_AUTHORITY_STAGES = [
+  'LEAGUE_INVARIANTS',
+  'ENTITLEMENT_INVARIANTS',
+  'ENTITLEMENT_EXCLUSIVITY',
+] as const;
+
+export type TradePreviewExcludedAuthorityStage =
+  (typeof TRADE_WORLD_STATE_ONLY_AUTHORITY_STAGES)[number];
 
 /** Computed artifacts the persist phase needs for audit context. */
 export interface TradeExecutionAuditArtifacts {
@@ -166,13 +170,6 @@ const EMPTY_AUDIT_ARTIFACTS: TradeExecutionAuditArtifacts = {
   postStateViolations: [],
   postStateWarnings: [],
 };
-
-export const TRADE_PREVIEW_EXCLUDED_AUTHORITY_STAGES: TradePreviewExcludedAuthorityStage[] =
-  [
-    'LEAGUE_INVARIANTS',
-    'ENTITLEMENT_INVARIANTS',
-    'ENTITLEMENT_EXCLUSIVITY',
-  ];
 
 export interface TradePostStateLegalityStageInput {
   operationId: string;
@@ -279,6 +276,11 @@ function normalizeValidationIssues(
   return issues.map((issue) => normalizeValidationIssue(issue, config));
 }
 
+/**
+ * Supporting Stage 1 adapter shared by preview and execution authority.
+ * Canonical callers should use getTradePreviewAuthority() or
+ * validateTradeExecutionAuthority(), not this stage helper directly.
+ */
 export function evaluateTradeSnapshotValidationStage({
   validatedTradeContext,
   asOfDate,
@@ -307,6 +309,11 @@ export function evaluateTradeSnapshotValidationStage({
   };
 }
 
+/**
+ * Supporting Stage 5 delegator shared by preview and execution authority.
+ * Canonical callers should use getTradePreviewAuthority() or
+ * validateTradeExecutionAuthority(), not this stage helper directly.
+ */
 export function runTradePostStateLegalityStage({
   operationId,
   mutationType,
@@ -394,6 +401,10 @@ function runTradePostStateLegalityStageFromComputeResult({
   });
 }
 
+/**
+ * Supporting preview-stage surface reused by the canonical preview entrypoint.
+ * The discoverable preview authority surface is getTradePreviewAuthority().
+ */
 export function validateTradePreviewAuthority({
   seasonId,
   validatedTradeContext,
@@ -424,7 +435,7 @@ export function validateTradePreviewAuthority({
       severity: 'warning',
     }
   );
-  const omittedStages = [...TRADE_PREVIEW_EXCLUDED_AUTHORITY_STAGES];
+  const omittedStages = [...TRADE_WORLD_STATE_ONLY_AUTHORITY_STAGES];
 
   if (!snapshotStage.valid) {
     return {
@@ -512,6 +523,83 @@ function buildFailure(
   return { valid: false, failedStage, error, violations, warnings, auditArtifacts };
 }
 
+/**
+ * Apply-only gates that require live world reads and therefore remain outside
+ * preview authority.
+ */
+async function validateTradeWorldStateAuthorityGates({
+  worldId,
+  mutationType,
+  payload,
+  computeResult,
+}: Pick<
+  TradeExecutionAuthorityInput,
+  'worldId' | 'mutationType' | 'payload' | 'computeResult'
+>): Promise<TradeExecutionAuthorityResult | null> {
+  // STAGE 2: LEAGUE_INVARIANTS
+  // Prevents players from appearing on multiple teams after the trade.
+  const leagueInvariantResult = await validateMutationLeagueInvariants(
+    worldId,
+    mutationType,
+    payload,
+    computeResult,
+  );
+
+  if (!leagueInvariantResult.valid) {
+    return buildFailure(
+      'LEAGUE_INVARIANTS',
+      leagueInvariantResult.error || 'League invariant violation',
+      leagueInvariantResult.duplicates
+        ? [{ rule: 'LEAGUE_DUPLICATE_PLAYER', details: leagueInvariantResult.duplicates } as LooseRecord]
+        : [],
+      [],
+    );
+  }
+
+  // STAGE 3: ENTITLEMENT_INVARIANTS
+  // Prevents entitlements from appearing on multiple teams after the trade.
+  const entitlementInvariantResult = await validateMutationEntitlementInvariants(
+    worldId,
+    mutationType,
+    computeResult,
+  );
+
+  if (!entitlementInvariantResult.valid) {
+    return buildFailure(
+      'ENTITLEMENT_INVARIANTS',
+      entitlementInvariantResult.error || 'Entitlement invariant violation',
+      entitlementInvariantResult.duplicates
+        ? [{ rule: 'LEAGUE_DUPLICATE_ENTITLEMENT', details: entitlementInvariantResult.duplicates } as LooseRecord]
+        : [],
+      [],
+    );
+  }
+
+  // STAGE 4: ENTITLEMENT_EXCLUSIVITY
+  // Validates per-team and league-wide entitlement exclusivity constraints.
+  const exclusivityResult = await validateTradeApplyExclusivity(
+    worldId,
+    mutationType,
+    computeResult,
+  );
+
+  if (!exclusivityResult.valid) {
+    return buildFailure(
+      'ENTITLEMENT_EXCLUSIVITY',
+      exclusivityResult.error || 'Trade would create exclusivity-violating entitlement set',
+      exclusivityResult.teamViolations
+        ? exclusivityResult.teamViolations.map((tv) => ({
+            rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
+            details: tv,
+          } as LooseRecord))
+        : [],
+      [],
+    );
+  }
+
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Main authority function
 // ---------------------------------------------------------------------------
@@ -520,6 +608,7 @@ function buildFailure(
  * Validate all apply-time legality gates for a trade mutation.
  *
  * This is the single authoritative surface for trade execution legality.
+ * It is the last legality surface before persistence begins.
  * All 5 validation stages must pass before persistence is allowed.
  * Stages run sequentially and short-circuit on first failure, matching
  * the behavior of the original inline chain in applyWorldMutation.
@@ -563,71 +652,15 @@ export async function validateTradeExecutionAuthority(
 
   const stage1Warnings = (validationResult.warnings || []) as MutationResultIssueLike[];
 
-  // =========================================================================
-  // STAGE 2: LEAGUE_INVARIANTS
-  // Prevents players from appearing on multiple teams after the trade.
-  // =========================================================================
-  const leagueInvariantResult = await validateMutationLeagueInvariants(
+  const worldStateAuthorityFailure = await validateTradeWorldStateAuthorityGates({
     worldId,
     mutationType,
     payload,
     computeResult,
-  );
+  });
 
-  if (!leagueInvariantResult.valid) {
-    return buildFailure(
-      'LEAGUE_INVARIANTS',
-      leagueInvariantResult.error || 'League invariant violation',
-      leagueInvariantResult.duplicates
-        ? [{ rule: 'LEAGUE_DUPLICATE_PLAYER', details: leagueInvariantResult.duplicates } as LooseRecord]
-        : [],
-      [],
-    );
-  }
-
-  // =========================================================================
-  // STAGE 3: ENTITLEMENT_INVARIANTS
-  // Prevents entitlements from appearing on multiple teams after the trade.
-  // =========================================================================
-  const entitlementInvariantResult = await validateMutationEntitlementInvariants(
-    worldId,
-    mutationType,
-    computeResult,
-  );
-
-  if (!entitlementInvariantResult.valid) {
-    return buildFailure(
-      'ENTITLEMENT_INVARIANTS',
-      entitlementInvariantResult.error || 'Entitlement invariant violation',
-      entitlementInvariantResult.duplicates
-        ? [{ rule: 'LEAGUE_DUPLICATE_ENTITLEMENT', details: entitlementInvariantResult.duplicates } as LooseRecord]
-        : [],
-      [],
-    );
-  }
-
-  // =========================================================================
-  // STAGE 4: ENTITLEMENT_EXCLUSIVITY
-  // Validates per-team and league-wide entitlement exclusivity constraints.
-  // =========================================================================
-  const exclusivityResult = await validateTradeApplyExclusivity(
-    worldId,
-    mutationType,
-    computeResult,
-  );
-
-  if (!exclusivityResult.valid) {
-    return buildFailure(
-      'ENTITLEMENT_EXCLUSIVITY',
-      exclusivityResult.error || 'Trade would create exclusivity-violating entitlement set',
-      exclusivityResult.teamViolations
-        ? exclusivityResult.teamViolations.map((tv) => ({
-            rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
-            details: tv,
-          } as LooseRecord))
-        : [],
-      [],
-    );
+  if (worldStateAuthorityFailure) {
+    return worldStateAuthorityFailure;
   }
 
   // =========================================================================

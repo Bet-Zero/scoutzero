@@ -6,6 +6,8 @@
  * HISTORY:
  *  - 2026-01-30: Phase 58 - Extracted from mutationPipeline.ts
  *  - 2026-01-30: Phase 59 - Moved validateTradeForContext to legacy/ namespace
+ *  - 2026-03-27: TM-3E - Added canonical preview authority naming and
+ *                        clarified preparation-vs-authority boundary.
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -933,6 +935,11 @@ function buildTradeValidationPayload({
   };
 }
 
+/**
+ * Canonical trade-apply preparation handoff. Builds the post-trade snapshot
+ * and validated context consumed by compute and authority surfaces; it does
+ * not determine final execution legality.
+ */
 export function buildTradeApplyPreparation({
   payload,
   currentState,
@@ -1011,20 +1018,23 @@ export type FullLegalityPreviewResult = {
   omittedStages?: TradePreviewExcludedAuthorityStage[];
 };
 
-// TM-3D: Preview now mirrors the execution authority model up to the preview boundary:
-// prepare -> snapshot stage -> post-state stage.
-// The three world-state gates remain intentionally excluded from preview.
-export function getFullLegalityPreview({
-  payload,
-  currentState,
-  seasonId,
-  preparation,
-}: {
+type TradePreviewAuthorityParams = {
   payload: TradeContextPayload;
   currentState: TradeContextCurrentState;
   seasonId: string;
   preparation?: TradeApplyPreparation;
-}): FullLegalityPreviewResult {
+};
+
+// TM-3D/TM-3E: Canonical preview authority surface.
+// Preview mirrors execution authority as:
+// prepare -> snapshot stage -> post-state stage.
+// The three world-state gates remain intentionally excluded from preview.
+export function getTradePreviewAuthority({
+  payload,
+  currentState,
+  seasonId,
+  preparation,
+}: TradePreviewAuthorityParams): FullLegalityPreviewResult {
   try {
     const prepared =
       preparation ||
@@ -1082,6 +1092,16 @@ export function getFullLegalityPreview({
       source: 'apply-preview',
     };
   }
+}
+
+/**
+ * @deprecated Compatibility alias. Use getTradePreviewAuthority() as the
+ * canonical preview authority surface.
+ */
+export function getFullLegalityPreview(
+  params: TradePreviewAuthorityParams
+): FullLegalityPreviewResult {
+  return getTradePreviewAuthority(params);
 }
 
 // ==============================================================================

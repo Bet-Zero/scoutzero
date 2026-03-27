@@ -133,19 +133,29 @@ describe('E130 support-barrel retirement batch guardrails', () => {
     const barrel = await import('@/features/architect/utils/tradeContext');
     const tradeContextSpecifier =
       '../../features/architect/utils/tradeContext/tradeContext.ts';
+    const authoritySpecifier =
+      '../../features/architect/utils/tradeContext/tradeExecutionAuthority.ts';
     const assertionsSpecifier =
       '../../features/architect/utils/tradeContext/assertions.ts';
     const legacySpecifier =
       '../../features/architect/utils/tradeContext/legacy/index.ts';
     const tradeContext = await import(tradeContextSpecifier);
+    const authority = await import(authoritySpecifier);
     const assertions = await import(assertionsSpecifier);
     const legacy = await import(legacySpecifier);
+    const barrelRecord = barrel as Record<string, unknown>;
 
     expect(barrel.buildPostTradeTeamsSnapshot).toBe(
       tradeContext.buildPostTradeTeamsSnapshot
     );
     expect(barrel.validatePostTradeSnapshotForContext).toBe(
       tradeContext.validatePostTradeSnapshotForContext
+    );
+    expect(barrelRecord.getTradePreviewAuthority).toBe(
+      tradeContext.getTradePreviewAuthority
+    );
+    expect(barrelRecord.getFullLegalityPreview).toBe(
+      tradeContext.getFullLegalityPreview
     );
     expect(barrel.assertPostTradeSnapshot).toBe(assertions.assertPostTradeSnapshot);
     expect(barrel.assertValidatedTradeContext).toBe(
@@ -154,9 +164,15 @@ describe('E130 support-barrel retirement batch guardrails', () => {
     expect(barrel.assertTradeComputeInputs).toBe(
       assertions.assertTradeComputeInputs
     );
+    expect(barrelRecord.validateTradeExecutionAuthority).toBe(
+      authority.validateTradeExecutionAuthority
+    );
     expect(barrel.legacy_validateTradeForContext).toBe(
       legacy.legacy_validateTradeForContext
     );
     expect(barrel.validateTradeForContext).toBe(legacy.validateTradeForContext);
+    expect(barrel).not.toHaveProperty('evaluateTradeSnapshotValidationStage');
+    expect(barrel).not.toHaveProperty('runTradePostStateLegalityStage');
+    expect(barrel).not.toHaveProperty('validateTradePreviewAuthority');
   });
 });

@@ -29,7 +29,7 @@ import {
 } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import {
   buildTradeApplyPreparation,
-  getFullLegalityPreview,
+  getTradePreviewAuthority,
   type FullLegalityPreviewResult,
 } from '@/features/architect/utils/tradeContext/tradeContext';
 import type {
@@ -1263,7 +1263,7 @@ export const useTradeMachine = (
       validatedAtRef.current = Date.now();
 
       try {
-        const previewAuthority = getFullLegalityPreview({
+        const previewAuthority = getTradePreviewAuthority({
           payload: previewContext.payload,
           currentState: previewContext.currentState,
           seasonId: previewContext.seasonId,
@@ -1271,7 +1271,7 @@ export const useTradeMachine = (
         });
         setPreviewAuthority(previewAuthority);
       } catch (err) {
-        console.error('[useTradeMachine] getFullLegalityPreview unexpected error:', err);
+        console.error('[useTradeMachine] getTradePreviewAuthority unexpected error:', err);
         setPreviewAuthority(null);
       }
 

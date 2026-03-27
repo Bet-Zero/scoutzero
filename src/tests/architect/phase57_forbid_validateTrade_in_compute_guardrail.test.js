@@ -356,6 +356,8 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       // TM-3B: Should export the centralized preparation helper
       expect(source).toContain('export function buildTradeApplyPreparation');
+      expect(source).toContain('export function getTradePreviewAuthority');
+      expect(source).toContain('export function getFullLegalityPreview');
       expect(source).not.toContain('export function evaluatePreparedTradeContext');
 
       // Phase 59: validateTradeForContext moved to legacy namespace
@@ -418,6 +420,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       // Should re-export core functions
       expect(source).toContain('buildPostTradeTeamsSnapshot');
       expect(source).toContain('validatePostTradeSnapshotForContext');
+      expect(source).toContain('getTradePreviewAuthority');
       expect(source).toContain('validateTradeForContext');
 
       // Should re-export assertions
@@ -568,7 +571,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       );
 
       expect(source).toContain('buildTradeApplyPreparation');
-      expect(source).toContain('getFullLegalityPreview');
+      expect(source).toContain('getTradePreviewAuthority');
 
       const violations = source
         .split('\n')
@@ -621,8 +624,9 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       expect(adapterRegion).toContain('extractTeamsByCodeFromComputeResult');
       expect(adapterRegion).toContain('runTradePostStateLegalityStage');
+      expect(source).toContain('validateTradeWorldStateAuthorityGates');
       expect(source).toContain('validateTradePreviewAuthority');
-      expect(source).toContain('TRADE_PREVIEW_EXCLUDED_AUTHORITY_STAGES');
+      expect(source).toContain('TRADE_WORLD_STATE_ONLY_AUTHORITY_STAGES');
       expect(source).toContain("'LEAGUE_INVARIANTS'");
       expect(source).toContain("'ENTITLEMENT_INVARIANTS'");
       expect(source).toContain("'ENTITLEMENT_EXCLUSIVITY'");

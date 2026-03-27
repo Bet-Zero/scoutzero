@@ -12,7 +12,8 @@
  *   4. Section header (ValidationDetailsPanel) includes post-state qualifier
  *   5. No surface implies guaranteed apply success
  *   6. Type contracts declare PreviewAuthorityLike + SnapshotValidationDetailsLike
- *   7. tradeContext getFullLegalityPreview routes through preview authority stages
+ *   7. tradeContext getTradePreviewAuthority routes through preview authority stages
+ *   8. getFullLegalityPreview remains a compatibility alias only
  *
  * TM-3D follow-up changes:
  *   - previewAuthority is now the only top-level legality surface in the UI
@@ -72,12 +73,18 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
 
   // ─── tradeContext: preview now routes through shared authority stages ─────
 
-  it('tradeContext getFullLegalityPreview delegates to validateTradePreviewAuthority', () => {
+  it('tradeContext getTradePreviewAuthority delegates to validateTradePreviewAuthority', () => {
+    expect(tradeContextSrc).toContain('export function getTradePreviewAuthority');
     expect(tradeContextSrc).toContain('validateTradePreviewAuthority');
   });
 
-  it('tradeContext getFullLegalityPreview does not call validatePostStateCapLegality directly', () => {
+  it('tradeContext preview authority file does not call validatePostStateCapLegality directly', () => {
     expect(tradeContextSrc).not.toMatch(/validatePostStateCapLegality\s*\(/);
+  });
+
+  it('tradeContext keeps getFullLegalityPreview as a compatibility alias', () => {
+    expect(tradeContextSrc).toContain('export function getFullLegalityPreview');
+    expect(tradeContextSrc).toContain('return getTradePreviewAuthority(params);');
   });
 
   // ─── TradeEditor: Apply-area disclosure ───────────────────────────────────

@@ -3706,7 +3706,7 @@ export async function applyWorldMutation({
     if (mutationType === 'executeTrade') {
       // TM-3A: Trade Execution Authority — all 5 apply-time legality gates
       // composed in one discoverable surface (tradeContext/tradeExecutionAuthority.ts).
-      const authorityResult = await validateTradeExecutionAuthority({
+      const tradeExecutionAuthorityResult = await validateTradeExecutionAuthority({
         worldId,
         operationId,
         mutationType,
@@ -3721,27 +3721,29 @@ export async function applyWorldMutation({
         beforeTeamsByCode,
       });
 
-      if (!authorityResult.valid) {
+      if (!tradeExecutionAuthorityResult.valid) {
         return buildMutationFailureResult(
-          authorityResult.error || 'Trade execution authority validation failed',
+          tradeExecutionAuthorityResult.error || 'Trade execution authority validation failed',
           {
             appliedToLocalState: false,
             persistedToWorld: false,
             writesSummary: computeWritesSummary,
-            violations: authorityResult.violations,
-            warnings: authorityResult.warnings,
+            violations: tradeExecutionAuthorityResult.violations,
+            warnings: tradeExecutionAuthorityResult.warnings,
           }
         );
       }
 
-      afterTeamsByCode = authorityResult.auditArtifacts.afterTeamsByCode;
-      beforeTotalsByTeam = authorityResult.auditArtifacts.beforeTotalsByTeam;
-      afterTotalsByTeam = authorityResult.auditArtifacts.afterTotalsByTeam;
-      combinedWarnings = authorityResult.warnings;
+      // TM-3E: Trade legality is complete above. Everything below this point
+      // is persist/audit handoff into persistWorldMutation().
+      afterTeamsByCode = tradeExecutionAuthorityResult.auditArtifacts.afterTeamsByCode;
+      beforeTotalsByTeam = tradeExecutionAuthorityResult.auditArtifacts.beforeTotalsByTeam;
+      afterTotalsByTeam = tradeExecutionAuthorityResult.auditArtifacts.afterTotalsByTeam;
+      combinedWarnings = tradeExecutionAuthorityResult.warnings;
       postStateValidation = {
-        valid: authorityResult.auditArtifacts.postStateValid,
-        violations: authorityResult.auditArtifacts.postStateViolations,
-        warnings: authorityResult.auditArtifacts.postStateWarnings,
+        valid: tradeExecutionAuthorityResult.auditArtifacts.postStateValid,
+        violations: tradeExecutionAuthorityResult.auditArtifacts.postStateViolations,
+        warnings: tradeExecutionAuthorityResult.auditArtifacts.postStateWarnings,
       };
     } else {
       // Non-trade: existing inline validation chain (unchanged)
