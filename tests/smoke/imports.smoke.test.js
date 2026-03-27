@@ -35,15 +35,10 @@ describe('Critical Imports Smoke Test', () => {
     expect(salaryMargin.getIncomingCeilingForTeam).toBeTypeOf('function');
   });
 
-  it('can import salaryMargin through the tradeMachine public index', async () => {
+  it('can import validateTrade through the tradeMachine public index', async () => {
     const tradeMachine = await import('@/features/architect/utils/tradeMachine');
-    expect(tradeMachine.getAllowableIncomingMargin).toBeTypeOf('function');
-    expect(tradeMachine.getIncomingCeilingForTeam).toBeTypeOf('function');
-  });
-
-  it('can import validateFaExceptionUsage through the tradeMachine public index', async () => {
-    const tradeMachine = await import('@/features/architect/utils/tradeMachine');
-    expect(tradeMachine.validateFaExceptionUsage).toBeTypeOf('function');
+    expect(Object.keys(tradeMachine)).toEqual(['validateTrade']);
+    expect(tradeMachine.validateTrade).toBeTypeOf('function');
   });
 
   it('can import the rules barrel after stale export cleanup', async () => {

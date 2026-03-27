@@ -250,5 +250,4 @@ declare module '@/features/architect/utils/tradeContext/legacy' {
 
 declare module '@/features/architect/utils/tradeMachine' {
   export const validateTrade: any;
-  export const hasStepienViolation: any;
 }

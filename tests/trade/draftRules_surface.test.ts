@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasStepienViolation as publicHasStepienViolation } from '@/features/architect/utils/tradeMachine';
+import { hasStepienViolation } from '@/features/architect/utils/tradeMachine/rules/draftRules';
 import { validateAllNewRules } from '@/features/architect/utils/tradeMachine/rules/miscRules';
 import * as draftRules from '@/features/architect/utils/tradeMachine/rules/draftRules';
 
@@ -30,8 +30,8 @@ function installEmptyObjectIterator(): () => void {
 describe('draftRules surface', () => {
   const currentYear = new Date().getFullYear();
 
-  it('keeps the public tradeMachine barrel export aligned with the direct rule authority', () => {
-    expect(publicHasStepienViolation).toBe(draftRules.hasStepienViolation);
+  it('keeps the direct draft-rules named export aligned with the module authority', () => {
+    expect(hasStepienViolation).toBe(draftRules.hasStepienViolation);
   });
 
   it('preserves hasStepienViolation fast-path behavior', () => {

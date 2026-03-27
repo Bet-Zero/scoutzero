@@ -38,29 +38,13 @@ describe('E131 Trade Machine barrel retirement batch guardrails', () => {
     expect(existingPaths).toEqual([]);
   });
 
-  it('keeps the extensionless Trade Machine public barrel aligned with direct authorities', async () => {
+  it('keeps the extensionless Trade Machine public barrel narrowed to the canonical validator authority', async () => {
     const tradeMachine = (await import('@/features/architect/utils/tradeMachine')) as any;
     const tradeValidatorSpecifier = '../../features/architect/utils/tradeMachine/engine/tradeValidator.ts';
-    const draftRulesSpecifier = '../../features/architect/utils/tradeMachine/rules/draftRules.ts';
-    const salaryMarginSpecifier = '../../features/architect/utils/tradeMachine/utils/salaryMargin.ts';
-    const faExceptionSpecifier =
-      '../../features/architect/utils/tradeMachine/rules/validateFaExceptionUsage.ts';
     const tradeValidator = await import(tradeValidatorSpecifier);
-    const draftRules = await import(draftRulesSpecifier);
-    const salaryMargin = await import(salaryMarginSpecifier);
-    const faExceptionUsage = await import(faExceptionSpecifier);
 
+    expect(Object.keys(tradeMachine)).toEqual(['validateTrade']);
     expect(tradeMachine.validateTrade).toBe(tradeValidator.validateTrade);
-    expect(tradeMachine.hasStepienViolation).toBe(draftRules.hasStepienViolation);
-    expect(tradeMachine.getIncomingCeilingForTeam).toBe(
-      salaryMargin.getIncomingCeilingForTeam
-    );
-    expect(tradeMachine.getAllowableIncomingMargin).toBe(
-      salaryMargin.getAllowableIncomingMargin
-    );
-    expect(tradeMachine.validateFaExceptionUsage).toBe(
-      faExceptionUsage.validateFaExceptionUsage
-    );
   });
 
   it('keeps the extensionless rules barrel aligned with direct rule authorities', async () => {

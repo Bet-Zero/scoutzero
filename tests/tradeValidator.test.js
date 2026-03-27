@@ -1,10 +1,8 @@
 // tradeValidator.test.js
 import { describe, it, expect } from 'vitest';
-import {
-  getSalaryMatchingResult,
-  validateTrade,
-} from '@/features/architect/utils/tradeMachine';
+import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import capProjections from '@/features/architect/utils/capProjections';
+import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { validateBYC } from '@/features/architect/utils/tradeMachine/rules/miscRules';
 

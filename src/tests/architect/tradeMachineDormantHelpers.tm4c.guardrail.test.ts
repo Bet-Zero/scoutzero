@@ -142,16 +142,11 @@ describe('TM-4C dormant helper retirement guardrails', () => {
     });
   });
 
-  it('keeps the public Trade Machine roster helper aligned with validateRoster.ts', async () => {
+  it('keeps roster helpers out of the root Trade Machine public barrel', async () => {
     const tradeMachine = (await import(
       '@/features/architect/utils/tradeMachine'
     )) as Record<string, unknown>;
-    const validateRoster = await import(
-      '@/features/architect/utils/tradeMachine/rules/validateRoster'
-    );
-
-    expect(tradeMachine.enforceRosterWindow).toBe(
-      validateRoster.enforceRosterWindow
-    );
+    expect(tradeMachine).not.toHaveProperty('enforceRosterWindow');
+    expect(tradeMachine).not.toHaveProperty('validateRoster');
   });
 });

@@ -217,7 +217,8 @@ This will verify:
 
 ## Test Updates
 
-Test imports should use canonical rule files or the public Trade Machine entrypoint.
+Test imports should use canonical rule and helper files directly. Reserve the
+public Trade Machine entrypoint for `validateTrade`.
 For example:
 
 ```javascript
@@ -226,15 +227,10 @@ import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/h
 
 ## Public API
 
-The main public API remains unchanged:
+The root public API is intentionally narrow:
 
 ```javascript
-import { 
-  validateTrade,          // Main entry point
-  validateSalaryMatching, // Individual rules
-  validateHardCap,
-  debug                   // Debug utilities
-} from '@/features/architect/utils/tradeMachine';
+import { validateTrade } from '@/features/architect/utils/tradeMachine';
 ```
 
 ## Migration Checklist
