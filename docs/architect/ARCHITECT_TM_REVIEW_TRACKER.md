@@ -26,11 +26,11 @@
 | ID    | Title                                            | Status | Notes |
 | ----- | ------------------------------------------------ | ------ | ----- |
 | TM-3A | Define Explicit Execution Authority Surface      | DONE   | `validateTradeExecutionAuthority()` in `tradeContext/tradeExecutionAuthority.ts` |
-| TM-3B | Centralize Apply Pipeline Legality Chain         | TODO   |       |
+| TM-3B | Centralize Apply Pipeline Legality Chain         | DONE   | `buildTradeApplyPreparation()` now centralizes trade apply preparation; `validateTradeExecutionAuthority()` consumes explicit prepared trade context. |
 | TM-3C | Clarify Ownership of Each Validation Layer       | TODO   |       |
 | TM-3D | Align Preview with Execution Authority Model     | TODO   |       |
 | TM-3E | Expose and Document Execution Authority Boundary | TODO   |       |
 
-**STEP STATUS: TODO**
+**STEP STATUS: IN_PROGRESS**
 
 ---

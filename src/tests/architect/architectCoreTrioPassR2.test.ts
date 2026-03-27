@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getDraftPositionsMap: vi.fn(),
   updateWorldStats: vi.fn(async (): Promise<void> => undefined),
   validateTrade: vi.fn(),
+  buildTradeApplyPreparation: vi.fn(),
   buildPostTradeTeamsSnapshot: vi.fn(),
   validatePostTradeSnapshotForContext: vi.fn(),
   assertPostTradeSnapshot: vi.fn(),
@@ -71,6 +72,7 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tradeContext', () => ({
+  buildTradeApplyPreparation: mocks.buildTradeApplyPreparation,
   buildPostTradeTeamsSnapshot: mocks.buildPostTradeTeamsSnapshot,
   validatePostTradeSnapshotForContext:
     mocks.validatePostTradeSnapshotForContext,
@@ -78,6 +80,21 @@ vi.mock('@/features/architect/utils/tradeContext', () => ({
   assertValidatedTradeContext: mocks.assertValidatedTradeContext,
   assertTradeComputeInputs: mocks.assertTradeComputeInputs,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeContext/tradeContext',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/tradeContext/tradeContext')
+      >();
+
+    return {
+      ...actual,
+      buildTradeApplyPreparation: mocks.buildTradeApplyPreparation,
+    };
+  }
+);
 
 vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',
@@ -223,7 +240,7 @@ describe('Architect core trio pass R2 proof', () => {
       success: true,
     });
 
-    mocks.buildPostTradeTeamsSnapshot.mockReturnValue({
+    const postTradeSnapshot = {
       teamUpdates: [
         { teamCode: 'LAL', team: makeTeam('LAL') },
         { teamCode: 'BOS', team: makeTeam('BOS') },
@@ -250,9 +267,9 @@ describe('Architect core trio pass R2 proof', () => {
         { teamCode: 'LAL', sends: [], receives: [], picksOut: [], picksIn: [] },
         { teamCode: 'BOS', sends: [], receives: [], picksOut: [], picksIn: [] },
       ],
-    });
+    };
 
-    mocks.validatePostTradeSnapshotForContext.mockReturnValue({
+    const validatedContext = {
       legal: true,
       valid: true,
       violations: [],
@@ -282,6 +299,31 @@ describe('Architect core trio pass R2 proof', () => {
       ],
       tradeReceipt: null,
       _isValidatedTradeContext: true,
+    };
+
+    mocks.buildTradeApplyPreparation.mockReturnValue({
+      postTradeSnapshot,
+      validatedContext,
+      validationPayload: {
+        teams: [
+          {
+            teamCode: 'LAL',
+            sends: [],
+            receives: [],
+            picksOut: [],
+            picksIn: [],
+            entitlementsOut: [],
+          },
+          {
+            teamCode: 'BOS',
+            sends: [],
+            receives: [],
+            picksOut: [],
+            picksIn: [],
+            entitlementsOut: [],
+          },
+        ],
+      },
     });
 
     const result = computeWorldMutation({
@@ -321,8 +363,7 @@ describe('Architect core trio pass R2 proof', () => {
     expect(result.metadata.type).toBe('trade');
     expect(result.teamUpdates).toHaveLength(2);
     expect(result._validatedTradeContext?._isValidatedTradeContext).toBe(true);
-    expect(mocks.buildPostTradeTeamsSnapshot).toHaveBeenCalledTimes(1);
-    expect(mocks.validatePostTradeSnapshotForContext).toHaveBeenCalledTimes(1);
+    expect(mocks.buildTradeApplyPreparation).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the season-advance handoff/result path on the narrowed offseason contracts', async () => {

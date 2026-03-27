@@ -126,6 +126,33 @@ export interface ValidatePostTradeSnapshotForContextParams {
   seasonId: string;
 }
 
+export interface BuildTradeApplyPreparationParams {
+  payload: TradeContextPayload;
+  currentState: TradeContextCurrentState;
+  seasonId: string;
+  timestamp: number;
+  asOfDate?: string | number | null;
+}
+
+export interface TradeApplyPreparation {
+  postTradeSnapshot: PostTradeSnapshot;
+  validatedContext: ValidatedTradeContext;
+  validationPayload: TradeContextPayload;
+}
+
+export interface EvaluatePreparedTradeContextParams {
+  validatedTradeContext: ValidatedTradeContext;
+  asOfDate?: string | null;
+  dateDefaulted?: boolean;
+}
+
+export interface PreparedTradeContextVerdict {
+  valid: boolean;
+  error?: string;
+  violations: string[];
+  warnings: unknown[];
+}
+
 export interface AssertTradeComputeInputsParams {
   postTradeSnapshot: unknown;
   validatedContext: unknown;

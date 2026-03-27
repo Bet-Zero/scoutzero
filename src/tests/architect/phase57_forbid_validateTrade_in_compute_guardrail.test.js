@@ -178,9 +178,8 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       );
 
       // The executeTrade case in computeWorldMutation should only call:
-      // - buildPostTradeTeamsSnapshot (pure)
-      // - validatePostTradeSnapshotForContext (the designated validation point)
-      // - computeTradeResult (pure, requires validated context)
+      // - buildTradeApplyPreparation (centralized snapshot+validation handoff)
+      // - computeTradeResult (pure, requires prepared context)
 
       // Extract the computeWorldMutation function region
       const computeWorldStart = 'export function computeWorldMutation({';
@@ -192,26 +191,21 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
         computeWorldEnd
       );
 
-      // Check that validatePostTradeSnapshotForContext is called (the ONLY allowed validation call)
-      expect(regionCode).toContain('validatePostTradeSnapshotForContext');
+      // Check that buildTradeApplyPreparation is the centralized handoff point
+      expect(regionCode).toContain('buildTradeApplyPreparation');
 
-      // Check that validateTrade is NOT called directly (it should go through the snapshot validator)
+      // Check that validateTrade is NOT called directly
       const violations = findValidateTradeCallsInRegion(
         regionCode,
         'computeWorldMutation.executeTrade'
       );
 
-      // Filter out the validatePostTradeSnapshotForContext call since that's allowed
-      const realViolations = violations.filter(
-        (v) => !v.content.includes('validatePostTradeSnapshotForContext')
-      );
-
-      expect(realViolations).toEqual([]);
+      expect(violations).toEqual([]);
     });
   });
 
-  describe('Test 5: computeSignAndTradeResult follows snapshot→validate→compute pattern', () => {
-    it('should call validatePostTradeSnapshotForContext before computeTradeResult', () => {
+  describe('Test 5: computeSignAndTradeResult follows prepare→compute pattern', () => {
+    it('should call buildTradeApplyPreparation before computeTradeResult', () => {
       const source = readSourceFile(
         'src/features/architect/utils/mutationPipeline.ts'
       );
@@ -222,23 +216,18 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       const regionCode = extractRegion(source, satStart, satEnd);
 
-      // Should contain the snapshot→validate→compute calls in order
-      expect(regionCode).toContain('buildPostTradeTeamsSnapshot');
-      expect(regionCode).toContain('validatePostTradeSnapshotForContext');
+      // Should contain the centralized prepare→compute calls in order
+      expect(regionCode).toContain('buildTradeApplyPreparation');
       expect(regionCode).toContain('computeTradeResult');
 
-      // The order should be correct (buildSnapshot before validateSnapshot before computeResult)
-      const buildIdx = regionCode.indexOf('buildPostTradeTeamsSnapshot');
-      const validateIdx = regionCode.indexOf(
-        'validatePostTradeSnapshotForContext'
-      );
+      // The order should be correct (prepare before computeResult)
+      const preparationIdx = regionCode.indexOf('buildTradeApplyPreparation');
       const computeIdx = regionCode.indexOf('computeTradeResult({');
 
-      expect(buildIdx).toBeLessThan(validateIdx);
-      expect(validateIdx).toBeLessThan(computeIdx);
+      expect(preparationIdx).toBeLessThan(computeIdx);
     });
 
-    it('should not call validateTrade directly (only through validatePostTradeSnapshotForContext)', () => {
+    it('should not call validateTrade directly inside computeSignAndTradeResult', () => {
       const source = readSourceFile(
         'src/features/architect/utils/mutationPipeline.ts'
       );
@@ -253,12 +242,27 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
         'computeSignAndTradeResult'
       );
 
-      // Filter out validatePostTradeSnapshotForContext (allowed)
-      const realViolations = violations.filter(
-        (v) => !v.content.includes('validatePostTradeSnapshotForContext')
+      expect(violations).toEqual([]);
+    });
+
+    it('should keep buildTradeApplyPreparation ordered as snapshot then validation', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/tradeContext.ts'
       );
 
-      expect(realViolations).toEqual([]);
+      const helperStart = 'export function buildTradeApplyPreparation({';
+      const helperEnd = '\n// ====';
+      const regionCode = extractRegion(source, helperStart, helperEnd);
+
+      expect(regionCode).toContain('buildPostTradeTeamsSnapshot');
+      expect(regionCode).toContain('validatePostTradeSnapshotForContext');
+
+      const snapshotIdx = regionCode.indexOf('buildPostTradeTeamsSnapshot');
+      const validateIdx = regionCode.indexOf(
+        'validatePostTradeSnapshotForContext'
+      );
+
+      expect(snapshotIdx).toBeLessThan(validateIdx);
     });
   });
 
@@ -268,14 +272,26 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
         'src/features/architect/utils/mutationPipeline.ts'
       );
 
-      // Extract the validateMutation function executeTrade case
-      const vmStart = "if (mutationType === 'executeTrade')";
-      const vmEnd = '\n  const currentYear';
+      // Extract the validateMutation function executeTrade case specifically.
+      // mutationPipeline.ts also has an applyWorldMutation executeTrade branch,
+      // so anchor this search after validateMutation starts.
+      const validateMutationStart = source.indexOf(
+        'export function validateMutation({'
+      );
+      const vmStart = source.indexOf(
+        "if (mutationType === 'executeTrade')",
+        validateMutationStart
+      );
+      const vmEnd = source.indexOf('\n  const currentYear', vmStart);
 
-      const regionCode = extractRegion(source, vmStart, vmEnd);
+      const regionCode = source.slice(vmStart, vmEnd);
 
       // Should NOT contain validateTradeForPipeline (removed in Phase 57)
       expect(regionCode).not.toContain('validateTradeForPipeline');
+
+      // TM-3B: executeTrade should delegate to the prepared-context verdict helper
+      expect(regionCode).toContain('evaluatePreparedTradeContext');
+      expect(regionCode).toContain('_validatedTradeContext');
 
       // Should contain the Phase 57 error for missing context
       expect(regionCode).toContain('Phase 57 violation');
@@ -337,6 +353,10 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       expect(source).toContain(
         'export function validatePostTradeSnapshotForContext'
       );
+
+      // TM-3B: Should export the centralized preparation helper
+      expect(source).toContain('export function buildTradeApplyPreparation');
+      expect(source).toContain('export function evaluatePreparedTradeContext');
 
       // Phase 59: validateTradeForContext moved to legacy namespace
       expect(source).toContain('PHASE 59: LEGACY FUNCTION MOVED');
@@ -476,6 +496,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       );
 
       // Should import the core functions
+      expect(source).toContain('buildTradeApplyPreparation');
       expect(source).toContain('buildPostTradeTeamsSnapshot');
       expect(source).toContain('validatePostTradeSnapshotForContext');
       expect(source).toContain('assertTradeComputeInputs');
@@ -513,6 +534,30 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       // Should use the shared assertion
       expect(regionCode).toContain('assertTradeComputeInputs');
+    });
+  });
+
+  describe('Test 13: tradeExecutionAuthority Stage 1 uses explicit prepared context', () => {
+    it('should use evaluatePreparedTradeContext and not call validateMutation()', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts'
+      );
+
+      expect(source).toContain('evaluatePreparedTradeContext');
+      expect(source).toContain('validatedTradeContext');
+
+      const violations = source
+        .split('\n')
+        .filter(
+          (line) =>
+            /validateMutation\s*\(/.test(line) &&
+            !line.trim().startsWith('//') &&
+            !line.trim().startsWith('*') &&
+            !line.includes('validateMutationLeagueInvariants') &&
+            !line.includes('validateMutationEntitlementInvariants')
+        );
+
+      expect(violations).toEqual([]);
     });
   });
 });

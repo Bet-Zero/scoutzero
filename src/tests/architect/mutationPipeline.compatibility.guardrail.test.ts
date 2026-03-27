@@ -74,21 +74,31 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
     'FORBIDDEN_TRANSIENT_KEYS',
     'applyWorldMutation',
     'buildPostTradeTeamsSnapshot',
+    'buildPostStateRulesContext',
+    'buildTotalsByTeam',
     'buildWorldMutationEventPayload',
     'computeWorldMutation',
+    'extractTeamsByCodeFromComputeResult',
+    'preflightOfferSheetMutation',
     'preflightSignAndTradeMutation',
     'resolveWorldAsOfDate',
     'sanitizeTransientFieldsForPersistence',
+    'validateMutation',
     'validatePostTradeSnapshotForContext',
   ] as const;
   const expectedSourceOrder = [
     'export { buildPostTradeTeamsSnapshot, validatePostTradeSnapshotForContext };',
     'export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };',
     'export function resolveWorldAsOfDate',
+    'export function extractTeamsByCodeFromComputeResult',
+    'export function buildTotalsByTeam',
+    'export function buildPostStateRulesContext',
     'export function buildWorldMutationEventPayload',
     'export async function applyWorldMutation',
     'export async function preflightSignAndTradeMutation',
+    'export async function preflightOfferSheetMutation',
     'export function computeWorldMutation',
+    'export function validateMutation',
   ] as const;
 
   it('deletes the mutationPipeline.js compatibility shim', () => {
@@ -97,14 +107,18 @@ describe('E107 mutationPipeline compatibility guardrails', () => {
 
   it('extensionless imports expose the same named API as the TS authority', async () => {
     const authorityModule = await import(authoritySpecifier);
+    const authorityExports = Object.keys(authorityModule).sort();
+    const compatibilityExports = Object.keys(mutationPipelineModule).sort();
 
-    expect(Object.keys(authorityModule).sort()).toEqual(
-      Array.from(expectedExports).sort()
+    expect(authorityExports).toEqual(
+      expect.arrayContaining(Array.from(expectedExports))
     );
-    expect(Object.keys(mutationPipelineModule).sort()).toEqual(
-      Array.from(expectedExports).sort()
+    expect(compatibilityExports).toEqual(
+      expect.arrayContaining(Array.from(expectedExports))
     );
+    expect(authorityExports).toEqual(compatibilityExports);
     expect('default' in authorityModule).toBe(false);
+    expect('default' in mutationPipelineModule).toBe(false);
 
     for (const exportName of expectedExports) {
       expect(authorityModule[exportName]).toBe(

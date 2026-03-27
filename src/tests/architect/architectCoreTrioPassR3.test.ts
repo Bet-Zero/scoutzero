@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getDraftPositionsMap: vi.fn(),
   updateWorldStats: vi.fn(async (): Promise<void> => undefined),
   validateTrade: vi.fn(),
+  buildTradeApplyPreparation: vi.fn(),
   buildPostTradeTeamsSnapshot: vi.fn(),
   validatePostTradeSnapshotForContext: vi.fn(),
   assertPostTradeSnapshot: vi.fn(),
@@ -69,6 +70,7 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tradeContext', () => ({
+  buildTradeApplyPreparation: mocks.buildTradeApplyPreparation,
   buildPostTradeTeamsSnapshot: mocks.buildPostTradeTeamsSnapshot,
   validatePostTradeSnapshotForContext:
     mocks.validatePostTradeSnapshotForContext,
@@ -76,6 +78,21 @@ vi.mock('@/features/architect/utils/tradeContext', () => ({
   assertValidatedTradeContext: mocks.assertValidatedTradeContext,
   assertTradeComputeInputs: mocks.assertTradeComputeInputs,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeContext/tradeContext',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/tradeContext/tradeContext')
+      >();
+
+    return {
+      ...actual,
+      buildTradeApplyPreparation: mocks.buildTradeApplyPreparation,
+    };
+  }
+);
 
 vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',

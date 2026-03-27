@@ -7,9 +7,10 @@
  *
  * HISTORY:
  *  - 2026-03-26: TM-3A - Created. Extracted from applyWorldMutation inline stages.
+ *  - 2026-03-26: TM-3B - Stage 1 now consumes explicit prepared trade context.
  *
  * AUTHORITY CHAIN (5 stages, short-circuits on first failure):
- *  1. SNAPSHOT_VALIDATION     — validateMutation (verifies pre-validated trade context)
+ *  1. SNAPSHOT_VALIDATION     — evaluatePreparedTradeContext (verifies prepared trade context)
  *  2. LEAGUE_INVARIANTS       — validateMutationLeagueInvariants (no duplicate players)
  *  3. ENTITLEMENT_INVARIANTS  — validateMutationEntitlementInvariants (no duplicate entitlements)
  *  4. ENTITLEMENT_EXCLUSIVITY — validateTradeApplyExclusivity (per-team + league-wide)
@@ -20,12 +21,10 @@
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import {
-  validateMutation,
   extractTeamsByCodeFromComputeResult,
   buildTotalsByTeam,
   buildPostStateRulesContext,
   type MutationPayloadLike,
-  type MutationCurrentState,
   type ComputeResultLike,
   type MutationTeamMap,
   type MutationResultIssueLike,
@@ -37,6 +36,8 @@ import {
   validateTradeApplyExclusivity,
 } from '@/features/architect/utils/leagueInvariants';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import { evaluatePreparedTradeContext } from './tradeContext';
+import type { ValidatedTradeContext } from './types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -83,8 +84,8 @@ export interface TradeExecutionAuthorityInput {
   operationId: string;
   mutationType: string;
   payload: MutationPayloadLike;
-  currentState: MutationCurrentState;
   computeResult: ComputeResultLike;
+  validatedTradeContext: ValidatedTradeContext;
   seasonId: string;
   asOfDate?: string | null;
   dateDefaulted?: boolean;
@@ -135,8 +136,8 @@ export async function validateTradeExecutionAuthority(
     operationId,
     mutationType,
     payload,
-    currentState,
     computeResult,
+    validatedTradeContext,
     seasonId,
     asOfDate,
     dateDefaulted,
@@ -146,15 +147,11 @@ export async function validateTradeExecutionAuthority(
 
   // =========================================================================
   // STAGE 1: SNAPSHOT_VALIDATION
-  // Verifies that the pre-validated trade context (from computeWorldMutation)
-  // is present and carries the legality determination.
+  // Verifies that the prepared trade context (from buildTradeApplyPreparation /
+  // computeWorldMutation) is present and carries the legality determination.
   // =========================================================================
-  const validationResult = validateMutation({
-    mutationType,
-    payload,
-    currentState,
-    computeResult,
-    seasonId,
+  const validationResult = evaluatePreparedTradeContext({
+    validatedTradeContext,
     asOfDate,
     dateDefaulted,
   });

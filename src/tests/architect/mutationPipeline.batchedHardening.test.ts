@@ -22,6 +22,7 @@ const harness = vi.hoisted(() => ({
   getTeamMock: vi.fn(),
   getPlayerMock: vi.fn(),
   updateWorldStatsMock: vi.fn(async (): Promise<any> => undefined),
+  buildTradeApplyPreparationMock: vi.fn(),
   buildPostTradeTeamsSnapshotMock: vi.fn(),
   validatePostTradeSnapshotForContextMock: vi.fn(),
   assertPostTradeSnapshotMock: vi.fn(),
@@ -93,12 +94,28 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tradeContext', () => ({
+  buildTradeApplyPreparation: harness.buildTradeApplyPreparationMock,
   buildPostTradeTeamsSnapshot: harness.buildPostTradeTeamsSnapshotMock,
   validatePostTradeSnapshotForContext: harness.validatePostTradeSnapshotForContextMock,
   assertPostTradeSnapshot: harness.assertPostTradeSnapshotMock,
   assertValidatedTradeContext: harness.assertValidatedTradeContextMock,
   assertTradeComputeInputs: harness.assertTradeComputeInputsMock,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeContext/tradeContext',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/tradeContext/tradeContext')
+      >();
+
+    return {
+      ...actual,
+      buildTradeApplyPreparation: harness.buildTradeApplyPreparationMock,
+    };
+  }
+);
 
 vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   assertPersistableOrThrow: vi.fn(),

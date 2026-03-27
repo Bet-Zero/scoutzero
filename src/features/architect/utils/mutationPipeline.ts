@@ -22,7 +22,7 @@
  * 3) UI components and hooks MUST NOT write to Firestore directly
  * 4) World context (worldId) MUST be respected for all reads and writes
  * 5) The pipeline must be movable into Cloud Functions later with minimal rewrite
- * 6) Trade validation follows: snapshot → validate → compute/persist (Phase 56/58)
+ * 6) Trade validation follows: prepare → compute/persist (Phase 56/58, TM-3B)
  *
  * MUTATION TYPES SUPPORTED:
  * - executeTrade
@@ -133,6 +133,8 @@ import type {
   OutgoingTradeRouteLike,
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
   TradeApplyValidationTeam as TradeContextApplyValidationTeam,
+  TradeContextCurrentState,
+  TradeContextPayload,
   TeamResult as TradeContextTeamResult,
   ValidatedTradeContext as TradeContextValidatedTradeContext,
 } from '@/features/architect/utils/tradeContext/types';
@@ -154,6 +156,8 @@ import {
 // tradeContext/index.ts would create a circular initialization path.
 import { validateTradeExecutionAuthority } from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
 import {
+  buildTradeApplyPreparation,
+  evaluatePreparedTradeContext,
   normalizeTradeTeamCodeLike,
   resolveOutgoingTradeDestinationTeamCode,
 } from '@/features/architect/utils/tradeContext/tradeContext';
@@ -3705,8 +3709,9 @@ export async function applyWorldMutation({
         operationId,
         mutationType,
         payload: sanitizedPayload,
-        currentState,
         computeResult,
+        validatedTradeContext:
+          computeResult._validatedTradeContext as TradeContextValidatedTradeContext,
         seasonId,
         asOfDate,
         dateDefaulted,
@@ -5064,43 +5069,25 @@ export function computeWorldMutation({
 
   switch (mutationType) {
     case 'executeTrade': {
-      // Phase 56: Build snapshot → validate snapshot → compute with context
-      // Step 1: Build post-trade snapshot (pure function, no validation)
-      const postTradeSnapshot = buildPostTradeTeamsSnapshot({
-        payload,
-        currentState: toTradeStateSlice(currentState),
+      // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
+      const tradeApplyPreparation = buildTradeApplyPreparation({
+        payload: payload as TradeContextPayload,
+        currentState:
+          toTradeStateSlice(currentState) as TradeContextCurrentState,
         seasonId,
         timestamp,
+        asOfDate,
       });
 
-      const tradePayloadForValidation =
-        asOfDate && payload?.asOfDate !== asOfDate
-          ? {
-              ...payload,
-              asOfDate,
-              tradeCtx: {
-                ...(payload?.tradeCtx || {}),
-                asOfDate,
-              },
-            }
-          : payload;
-
-      // Step 2: Validate the post-trade snapshot ONCE
-      const validatedContext = validatePostTradeSnapshotForContext({
-        snapshot: postTradeSnapshot,
-        payload: tradePayloadForValidation,
-        seasonId,
-      });
-
-      // Step 3: Call pure computeTradeResult with pre-validated context
+      // Step 2: Call pure computeTradeResult with prepared snapshot/context
       const result = computeTradeResult({
         payload,
         currentState,
         seasonId,
         timestamp,
         historyContext: { worldId, mutationType },
-        postTradeSnapshot,
-        validatedContext,
+        postTradeSnapshot: tradeApplyPreparation.postTradeSnapshot,
+        validatedContext: tradeApplyPreparation.validatedContext,
       });
 
       return withDefaultPlayerDeletes(result);
@@ -6809,28 +6796,22 @@ export function validateMutation({
 
   // Trade validation uses the full Trade Machine
   if (mutationType === 'executeTrade') {
-    // Phase 56+: Trade validation MUST have already occurred via validatePostTradeSnapshotForContext
+    // Phase 56+/TM-3B: Trade validation MUST have already occurred via
+    // buildTradeApplyPreparation, which attaches _validatedTradeContext.
     // computeWorldMutation guarantees _validatedTradeContext is attached to computeResult
     if (computeResult?._validatedTradeContext?._isValidatedTradeContext) {
-      const preValidated = computeResult._validatedTradeContext;
-      return {
-        valid: preValidated.legal,
-        error: preValidated.error || undefined,
-        violations: (preValidated.violations || []).map(
-          (violation) =>
-            typeof violation === 'string'
-              ? violation
-              : JSON.stringify(violation)
-        ),
-        warnings: [...(preValidated.warnings || []), ...pipelineWarnings],
-      };
+      return evaluatePreparedTradeContext({
+        validatedTradeContext: computeResult._validatedTradeContext,
+        asOfDate: asOfDate ?? null,
+        dateDefaulted,
+      });
     }
 
     // Phase 57: Hard error if context is missing - no fallback validation
     // This should never happen if the pipeline is correctly structured
     throw new Error(
       '[validateMutation] Phase 57 violation: executeTrade requires pre-validated context. ' +
-        'computeWorldMutation must attach _validatedTradeContext via validatePostTradeSnapshotForContext.'
+        'computeWorldMutation must attach _validatedTradeContext via buildTradeApplyPreparation().'
     );
   }
 
@@ -7143,8 +7124,8 @@ export function validateMutation({
 // ==============================================================================
 // validateTradeForPipeline was a deprecated function that validated PRE-TRADE state.
 // It has been removed in Phase 59 as no production or test code uses it.
-// The correct approach (Phase 56+) validates POST-TRADE state via:
-//   buildPostTradeTeamsSnapshot → validatePostTradeSnapshotForContext → compute/persist
+// The correct approach (Phase 56+/TM-3B) validates POST-TRADE state via:
+//   buildTradeApplyPreparation → compute/persist
 //
 // validateTradeForContext has been moved to tradeContext/legacy/ namespace.
 // Import from '@/features/architect/utils/tradeContext/legacy' if needed.
@@ -8233,20 +8214,13 @@ function computeSignAndTradeResult({
     ],
   };
 
-  // Phase 56: Build snapshot → validate snapshot → compute with context
-  // Step 1: Build post-trade snapshot from post-signing state
-  const postTradeSnapshot = buildPostTradeTeamsSnapshot({
-    payload: tradePayload,
-    currentState: tradeState,
+  // TM-3B: Reuse the canonical trade-apply preparation surface for the trade substep.
+  const tradeApplyPreparation = buildTradeApplyPreparation({
+    payload: tradePayload as TradeContextPayload,
+    currentState: tradeState as TradeContextCurrentState,
     seasonId,
     timestamp,
-  });
-
-  // Step 2: Validate the post-trade snapshot ONCE
-  const tradeValidatedContext = validatePostTradeSnapshotForContext({
-    snapshot: postTradeSnapshot,
-    payload: tradePayload,
-    seasonId,
+    asOfDate,
   });
 
   // Step 3: Call pure computeTradeResult with pre-validated context
@@ -8260,8 +8234,8 @@ function computeSignAndTradeResult({
       mutationType: historyContext.mutationType || 'signAndTrade',
       mutationId: historyContext.mutationId,
     },
-    postTradeSnapshot,
-    validatedContext: tradeValidatedContext,
+    postTradeSnapshot: tradeApplyPreparation.postTradeSnapshot,
+    validatedContext: tradeApplyPreparation.validatedContext,
   });
 
   if (!tradeResult.success) {
@@ -8285,7 +8259,7 @@ function computeSignAndTradeResult({
     },
     // Phase 56: Attach validated contexts for validateMutation de-duplication
     _signingValidation: signingValidation,
-    _validatedTradeContext: tradeValidatedContext,
+    _validatedTradeContext: tradeApplyPreparation.validatedContext,
   };
 }
 

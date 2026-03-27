@@ -9,6 +9,7 @@ const harness = vi.hoisted(() => ({
   getTeamMock: vi.fn(),
   getPlayerMock: vi.fn(),
   updateWorldStatsMock: vi.fn(async (): Promise<any> => undefined),
+  buildTradeApplyPreparationMock: vi.fn(),
   buildPostTradeTeamsSnapshotMock: vi.fn(),
   validatePostTradeSnapshotForContextMock: vi.fn(),
   assertPostTradeSnapshotMock: vi.fn(),
@@ -70,6 +71,7 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 }));
 
 vi.mock('@/features/architect/utils/tradeContext', () => ({
+  buildTradeApplyPreparation: harness.buildTradeApplyPreparationMock,
   buildPostTradeTeamsSnapshot: harness.buildPostTradeTeamsSnapshotMock,
   validatePostTradeSnapshotForContext:
     harness.validatePostTradeSnapshotForContextMock,
@@ -77,6 +79,21 @@ vi.mock('@/features/architect/utils/tradeContext', () => ({
   assertValidatedTradeContext: harness.assertValidatedTradeContextMock,
   assertTradeComputeInputs: harness.assertTradeComputeInputsMock,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeContext/tradeContext',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/tradeContext/tradeContext')
+      >();
+
+    return {
+      ...actual,
+      buildTradeApplyPreparation: harness.buildTradeApplyPreparationMock,
+    };
+  }
+);
 
 import * as mutationPipelineModule from '@/features/architect/utils/mutationPipeline';
 import {
@@ -88,6 +105,22 @@ import {
 
 const MUTATION_PIPELINE_AUTHORITY_SPECIFIER =
   '../../features/architect/utils/mutationPipeline.ts';
+const REQUIRED_MUTATION_PIPELINE_EXPORTS = [
+  'FORBIDDEN_TRANSIENT_KEYS',
+  'applyWorldMutation',
+  'buildPostTradeTeamsSnapshot',
+  'buildPostStateRulesContext',
+  'buildTotalsByTeam',
+  'buildWorldMutationEventPayload',
+  'computeWorldMutation',
+  'extractTeamsByCodeFromComputeResult',
+  'preflightOfferSheetMutation',
+  'preflightSignAndTradeMutation',
+  'resolveWorldAsOfDate',
+  'sanitizeTransientFieldsForPersistence',
+  'validateMutation',
+  'validatePostTradeSnapshotForContext',
+] as const;
 
 function makeTeam(teamCode: string) {
   return {
@@ -109,15 +142,15 @@ describe('E107 mutationPipeline boundary proof', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    harness.buildPostTradeTeamsSnapshotMock.mockImplementation(() => ({
+    const postTradeSnapshot = {
       teamUpdates: [
         { teamCode: 'LAL', team: makeTeam('LAL') },
         { teamCode: 'BOS', team: makeTeam('BOS') },
       ],
       validationTeams: [{ receives: [] }, { receives: [] }],
-    }));
+    };
 
-    harness.validatePostTradeSnapshotForContextMock.mockImplementation(() => ({
+    const validatedContext = {
       legal: true,
       success: true,
       warnings: [],
@@ -128,7 +161,23 @@ describe('E107 mutationPipeline boundary proof', () => {
         { rules: { tradeExceptions: {} } },
       ],
       validationTeams: [{ receives: [] }, { receives: [] }],
+    };
+
+    harness.buildTradeApplyPreparationMock.mockImplementation(() => ({
+      postTradeSnapshot,
+      validatedContext,
+      validationPayload: {
+        teams: [
+          { teamCode: 'LAL', sends: [], entitlementsOut: [] },
+          { teamCode: 'BOS', sends: [], entitlementsOut: [] },
+        ],
+      },
     }));
+
+    harness.buildPostTradeTeamsSnapshotMock.mockImplementation(() => postTradeSnapshot);
+    harness.validatePostTradeSnapshotForContextMock.mockImplementation(
+      () => validatedContext
+    );
 
     harness.getTeamMock.mockImplementation(async (_worldId: string, teamCode: string) =>
       makeTeam(teamCode)
@@ -143,17 +192,12 @@ describe('E107 mutationPipeline boundary proof', () => {
   });
 
   it('loads the authoritative module with the retained named export surface', () => {
-    expect(Object.keys(mutationPipelineModule).sort()).toEqual([
-      'FORBIDDEN_TRANSIENT_KEYS',
-      'applyWorldMutation',
-      'buildPostTradeTeamsSnapshot',
-      'buildWorldMutationEventPayload',
-      'computeWorldMutation',
-      'preflightSignAndTradeMutation',
-      'resolveWorldAsOfDate',
-      'sanitizeTransientFieldsForPersistence',
-      'validatePostTradeSnapshotForContext',
-    ]);
+    const actualExports = Object.keys(mutationPipelineModule).sort();
+
+    expect(actualExports).toEqual(
+      expect.arrayContaining([...REQUIRED_MUTATION_PIPELINE_EXPORTS])
+    );
+    expect(actualExports).not.toContain('default');
   });
 
   it('keeps resolveWorldAsOfDate callable', () => {
@@ -218,10 +262,7 @@ describe('E107 mutationPipeline boundary proof', () => {
     expect(result.metadata.type).toBe('trade');
     expect(result.teamUpdates).toHaveLength(2);
     expect(result._validatedTradeContext?._isValidatedTradeContext).toBe(true);
-    expect(harness.buildPostTradeTeamsSnapshotMock).toHaveBeenCalledTimes(1);
-    expect(
-      harness.validatePostTradeSnapshotForContextMock
-    ).toHaveBeenCalledTimes(1);
+    expect(harness.buildTradeApplyPreparationMock).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a non-trade compute pathway callable', () => {

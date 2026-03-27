@@ -15,7 +15,10 @@ import {
   validatePostTradeSnapshotForContext,
 } from '@/features/architect/utils/mutationPipeline';
 // Phase 59: validateTradeForContext is now in legacy namespace
-import { validateTradeForContext } from '@/features/architect/utils/tradeContext';
+import {
+  buildTradeApplyPreparation,
+  validateTradeForContext,
+} from '@/features/architect/utils/tradeContext';
 
 // Mock validateTrade to track calls
 const validateTradeMock = vi.fn();
@@ -308,6 +311,58 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
       expect(validatedContext).toHaveProperty('validationTeams');
       expect(Array.isArray(validatedContext.violations)).toBe(true);
       expect(Array.isArray(validatedContext.warnings)).toBe(true);
+    });
+  });
+
+  describe('Test 2B: buildTradeApplyPreparation centralizes snapshot + validation', () => {
+    it('returns both prepared artifacts and canonicalizes validation payload asOfDate', () => {
+      const payload = {
+        teams: [
+          {
+            teamCode: 'TMA',
+            sends: [
+              {
+                player_id: 'player-a',
+                name: 'Player A',
+                currentSalary: 15000000,
+              },
+            ],
+          },
+          {
+            teamCode: 'TMB',
+            sends: [
+              {
+                player_id: 'player-b',
+                name: 'Player B',
+                currentSalary: 12000000,
+              },
+            ],
+          },
+        ],
+      };
+
+      const currentState = {
+        teams: [
+          { teamCode: 'TMA', team: mockTeamA },
+          { teamCode: 'TMB', team: mockTeamB },
+        ],
+      };
+
+      const preparation = buildTradeApplyPreparation({
+        payload,
+        currentState,
+        seasonId: '2025-26',
+        timestamp: Date.now(),
+        asOfDate: '2026-03-15',
+      });
+
+      expect(preparation.postTradeSnapshot.teamUpdates).toHaveLength(2);
+      expect(preparation.validatedContext._isValidatedTradeContext).toBe(true);
+      expect(preparation.validationPayload.asOfDate).toBe('2026-03-15');
+      expect(preparation.validationPayload.tradeCtx.asOfDate).toBe(
+        '2026-03-15'
+      );
+      expect(validateTradeMock).toHaveBeenCalledTimes(1);
     });
   });
 

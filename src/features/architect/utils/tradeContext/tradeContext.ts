@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/utils/tradeContext/tradeContext.ts
- * PURPOSE: Trade snapshot and validation context builders.
+ * PURPOSE: Trade snapshot, preparation, and validation context builders.
  * OWNERSHIP: Feature: architect/tradeMachine
  *
  * HISTORY:
@@ -15,9 +15,11 @@
  *  - Phase 59: Legacy Trade Validation Retirement
  *
  * DESIGN:
- * This module contains the Phase 56 "snapshot → validate → context" helpers:
+ * This module contains the Phase 56 / TM-3B trade-apply helpers:
  * - buildPostTradeTeamsSnapshot(): Pure function that applies roster moves
  * - validatePostTradeSnapshotForContext(): Validates snapshot and returns context
+ * - buildTradeApplyPreparation(): Centralizes the snapshot → validate handoff
+ * - evaluatePreparedTradeContext(): Adapts validated context into pipeline verdict
  *
  * Legacy convenience wrapper (validateTradeForContext) moved to ./legacy/ in Phase 59.
  *
@@ -36,7 +38,10 @@ import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-import { assertPostTradeSnapshot } from './assertions';
+import {
+  assertPostTradeSnapshot,
+  assertValidatedTradeContext,
+} from './assertions';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
   isSignAndTradeEligible,
@@ -51,9 +56,13 @@ import type {
 } from '@/features/architect/utils/tradeMachine/constants/types';
 import type {
   AnyRecord,
+  BuildTradeApplyPreparationParams,
   BuildPostTradeTeamsSnapshotParams,
+  EvaluatePreparedTradeContextParams,
   OutgoingTradeRouteLike,
   PostTradeSnapshot,
+  PreparedTradeContextVerdict,
+  TradeApplyPreparation,
   TradeApplyValidationPlayer,
   TradeApplyValidationTeam,
   TeamResult,
@@ -902,6 +911,106 @@ export function validatePostTradeSnapshotForContext({
       _isValidatedTradeContext: true,
     };
   }
+}
+
+// ==============================================================================
+// TM-3B: TRADE APPLY PREPARATION + STAGE-1 VERDICT ADAPTER
+// ==============================================================================
+
+function buildTradeValidationPayload({
+  payload,
+  asOfDate,
+}: Pick<BuildTradeApplyPreparationParams, 'payload' | 'asOfDate'>): TradeContextPayload {
+  if (!asOfDate || payload?.asOfDate === asOfDate) {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    asOfDate,
+    tradeCtx: {
+      ...(payload?.tradeCtx || {}),
+      asOfDate,
+    },
+  };
+}
+
+function buildPreparedTradeContextWarnings({
+  asOfDate,
+  dateDefaulted,
+}: Pick<EvaluatePreparedTradeContextParams, 'asOfDate' | 'dateDefaulted'>): unknown[] {
+  if (!dateDefaulted) {
+    return [];
+  }
+
+  return [
+    {
+      rule: 'world_time_defaulted',
+      message: `World time was defaulted to ${asOfDate}. For accurate timing-based validation, provide asOfDate in payload or world metadata.`,
+      severity: 'warning',
+      asOfDateUsed: asOfDate,
+    },
+  ];
+}
+
+export function buildTradeApplyPreparation({
+  payload,
+  currentState,
+  seasonId,
+  timestamp,
+  asOfDate,
+}: BuildTradeApplyPreparationParams): TradeApplyPreparation {
+  const validationPayload = buildTradeValidationPayload({
+    payload,
+    asOfDate,
+  });
+
+  const postTradeSnapshot = buildPostTradeTeamsSnapshot({
+    payload,
+    currentState,
+    seasonId,
+    timestamp,
+  });
+
+  const validatedContext = validatePostTradeSnapshotForContext({
+    snapshot: postTradeSnapshot,
+    payload: validationPayload,
+    seasonId,
+  });
+
+  return {
+    postTradeSnapshot,
+    validatedContext,
+    validationPayload,
+  };
+}
+
+export function evaluatePreparedTradeContext({
+  validatedTradeContext,
+  asOfDate,
+  dateDefaulted,
+}: EvaluatePreparedTradeContextParams): PreparedTradeContextVerdict {
+  assertValidatedTradeContext(
+    validatedTradeContext,
+    'evaluatePreparedTradeContext'
+  );
+
+  const pipelineWarnings = buildPreparedTradeContextWarnings({
+    asOfDate,
+    dateDefaulted,
+  });
+
+  return {
+    valid: validatedTradeContext.legal,
+    error: validatedTradeContext.error || undefined,
+    violations: (validatedTradeContext.violations || []).map((violation) =>
+      typeof violation === 'string' ? violation : JSON.stringify(violation)
+    ),
+    warnings: [
+      ...(validatedTradeContext.warnings || []),
+      ...pipelineWarnings,
+    ],
+  };
 }
 
 // ==============================================================================

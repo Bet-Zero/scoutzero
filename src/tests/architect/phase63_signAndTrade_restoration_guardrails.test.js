@@ -15,7 +15,7 @@
  * 1) Allowlist completeness: S&T-required fields are on allowlists
  * 2) Validation order: Signing validation before trade snapshot validation
  * 3) Short-circuit: Signing failure prevents trade validation
- * 4) Architecture: Phase 56 pattern (snapshot → validate → compute/persist)
+ * 4) Architecture: Phase 56 / TM-3B pattern (prepare → compute/persist)
  */
 
 import { describe, it, expect } from 'vitest';
@@ -95,7 +95,7 @@ describe('Phase 63: Allowlist completeness for S&T mutations', () => {
 // TEST CATEGORY 2: Validation Order (Phase 48 invariant)
 // ==============================================================================
 describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
-  it('validateSigning is called before buildPostTradeTeamsSnapshot in S&T path', () => {
+  it('validateSigning is called before buildTradeApplyPreparation in S&T path', () => {
     // Read the mutation pipeline source to verify ordering
     const source = readSourceFile(
       'src/features/architect/utils/mutationPipeline.ts'
@@ -122,13 +122,13 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
     expect(signingMatch).not.toBeNull();
     const signingIndex = signingMatch.index;
 
-    // Find first occurrence of buildPostTradeTeamsSnapshot
-    const snapshotMatch = funcBody.match(/buildPostTradeTeamsSnapshot\s*\(/);
-    expect(snapshotMatch).not.toBeNull();
-    const snapshotIndex = snapshotMatch.index;
+    // Find first occurrence of buildTradeApplyPreparation
+    const preparationMatch = funcBody.match(/buildTradeApplyPreparation\s*\(/);
+    expect(preparationMatch).not.toBeNull();
+    const preparationIndex = preparationMatch.index;
 
     // Signing validation MUST come before trade snapshot building
-    expect(signingIndex).toBeLessThan(snapshotIndex);
+    expect(signingIndex).toBeLessThan(preparationIndex);
   });
 });
 
@@ -177,9 +177,9 @@ describe('Phase 63: Short-circuit on signing validation failure', () => {
 });
 
 // ==============================================================================
-// TEST CATEGORY 4: Phase 56 architecture pattern
+// TEST CATEGORY 4: Phase 56 / TM-3B architecture pattern
 // ==============================================================================
-describe('Phase 63: Phase 56 architecture pattern (snapshot → validate → compute/persist)', () => {
+describe('Phase 63: Phase 56 / TM-3B architecture pattern (prepare → compute/persist)', () => {
   it('executeTrade case in computeWorldMutation follows Phase 56 pattern', () => {
     const source = readSourceFile(
       'src/features/architect/utils/mutationPipeline.ts'
@@ -195,9 +195,9 @@ describe('Phase 63: Phase 56 architecture pattern (snapshot → validate → com
     const remainingFromFunc = source.slice(funcStartIndex);
 
     // Look for the executeTrade case WITHIN computeWorldMutation
-    // The Phase 56 pattern includes buildPostTradeTeamsSnapshot
+    // TM-3B centralizes the snapshot+validation handoff in buildTradeApplyPreparation
     const pattern56Match = remainingFromFunc.match(
-      /case\s+['"]executeTrade['"][\s\S]*?buildPostTradeTeamsSnapshot[\s\S]*?validatePostTradeSnapshotForContext[\s\S]*?computeTradeResult/
+      /case\s+['"]executeTrade['"][\s\S]*?buildTradeApplyPreparation[\s\S]*?computeTradeResult/
     );
 
     expect(pattern56Match).not.toBeNull();

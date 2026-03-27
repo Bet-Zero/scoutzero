@@ -11,6 +11,8 @@
  * EXPORTS:
  * - buildPostTradeTeamsSnapshot: Build post-trade snapshot (PURE)
  * - validatePostTradeSnapshotForContext: Validate snapshot to context
+ * - buildTradeApplyPreparation: Centralized snapshot + validation handoff
+ * - evaluatePreparedTradeContext: Stage-1 verdict adapter for validated trade context
  * - getFullLegalityPreview: TM-1A apply-path preview without world-state gates
  * - FullLegalityPreviewResult: Type for apply-path preview result
  * - assertPostTradeSnapshot: Runtime assertion for PostTradeSnapshot shape
@@ -30,7 +32,9 @@
  */
 
 export {
+  buildTradeApplyPreparation,
   buildPostTradeTeamsSnapshot,
+  evaluatePreparedTradeContext,
   validatePostTradeSnapshotForContext,
   normalizeTradeTeamCodeLike,
   resolveOutgoingTradeDestinationTeamCode,
