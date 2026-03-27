@@ -3,13 +3,9 @@ import {
   enforceRosterWindow,
   validateRoster,
 } from '@/features/architect/utils/tradeMachine/rules/validateRoster.ts';
-import {
-  enforceRosterWindow as compatEnforceRosterWindow,
-  validateRoster as compatValidateRoster,
-} from '@/features/architect/utils/tradeMachine/validators';
 import { validationFlags } from '@/config/validationFlags.js';
 
-describe('validateRoster compatibility surface', () => {
+describe('validateRoster behavior', () => {
   const makeTeam = (params) => ({
     teamName: 'Test Team',
     team: {
@@ -26,11 +22,6 @@ describe('validateRoster compatibility surface', () => {
   beforeEach(() => {
     validationFlags.rosterEnforcement = 'error';
     validationFlags.twoWayRoster = 'error';
-  });
-
-  it('preserves helper identity through the validator compatibility path', () => {
-    expect(compatValidateRoster).toBe(validateRoster);
-    expect(compatEnforceRosterWindow).toBe(enforceRosterWindow);
   });
 
   describe('standard roster spots', () => {
@@ -146,7 +137,7 @@ describe('validateRoster compatibility surface', () => {
   });
 
   describe('enforceRosterWindow', () => {
-    it('preserves legacy enforcement behavior through the compatibility path', () => {
+    it('preserves legacy enforcement behavior through the direct authority', () => {
       validationFlags.rosterEnforcement = 'error';
       validationFlags.twoWayRoster = 'warn';
 
@@ -160,7 +151,7 @@ describe('validateRoster compatibility surface', () => {
         },
       };
 
-      const result = compatEnforceRosterWindow(team, {}, {
+      const result = enforceRosterWindow(team, {}, {
         warn: (message) => warns.push(message),
         reject: (message) => rejects.push(message),
       });

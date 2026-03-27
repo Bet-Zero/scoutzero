@@ -190,16 +190,15 @@ const validators = wrapCommonValidators(baseValidators);
 
 Rules no longer have debug statements. Debug functionality is handled at the engine level.
 
-## Compatibility Layer
+## Canonical Import Surfaces
 
-The `validators/index.ts` file provides backwards compatibility for existing imports, but is deprecated:
+The deprecated `validators/index.ts` compatibility barrel has been removed. Use
+the canonical Trade Machine surfaces directly:
 
 ```javascript
-// DEPRECATED - use new paths
-import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/validators';
-
-// PREFERRED - use new structure  
+import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules';
+import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils';
 ```
 
 ## Dependency Checking
@@ -218,16 +217,11 @@ This will verify:
 
 ## Test Updates
 
-Test imports have been updated to use the new structure:
+Test imports should use canonical rule files or the public Trade Machine entrypoint.
+For example:
 
-**Before:**
 ```javascript
-import { validateHardCap } from '@/features/architect/utils/tradeMachine/validators/validateHardCap';
-```
-
-**After:**
-```javascript
-import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/validateHardCap';
+import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/hardCapValidation';
 ```
 
 ## Public API

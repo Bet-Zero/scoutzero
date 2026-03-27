@@ -118,32 +118,6 @@ describe('E131 Trade Machine barrel retirement batch guardrails', () => {
     );
   });
 
-  it('keeps the extensionless validators barrel aligned with the direct authorities it re-exports', async () => {
-    const validators = (await import('@/features/architect/utils/tradeMachine/validators')) as any;
-    const normalizeTradeInputSpecifier =
-      '../../features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts';
-    const validateInputSpecifier =
-      '../../features/architect/utils/tradeMachine/utils/validateInput.ts';
-    const validateRosterSpecifier =
-      '../../features/architect/utils/tradeMachine/rules/validateRoster.ts';
-    const salaryMarginSpecifier =
-      '../../features/architect/utils/tradeMachine/utils/salaryMargin.ts';
-    const normalizeTradeInput = await import(normalizeTradeInputSpecifier);
-    const validateInput = await import(validateInputSpecifier);
-    const validateRoster = await import(validateRosterSpecifier);
-    const salaryMargin = await import(salaryMarginSpecifier);
-
-    expect(validators.normalizeTradeInput).toBe(
-      normalizeTradeInput.normalizeTradeInput
-    );
-    expect(validators.validateTradeInput).toBe(validateInput.validateTradeInput);
-    expect(validators.validateRoster).toBe(validateRoster.validateRoster);
-    expect(validators.enforceRosterWindow).toBe(validateRoster.enforceRosterWindow);
-    expect(validators.getIncomingCeilingForTeam).toBe(
-      salaryMargin.getIncomingCeilingForTeam
-    );
-  });
-
   it('keeps the extensionless engine and cache barrels aligned with their direct authorities', async () => {
     const engine = (await import('@/features/architect/utils/tradeMachine/engine')) as any;
     const cache = (await import('@/features/architect/utils/tradeMachine/cache')) as any;

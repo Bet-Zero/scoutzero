@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { validateTradeInput } from '@/features/architect/utils/tradeMachine/utils/validateInput.ts';
-import { validateTradeInput as compatValidateTradeInput } from '@/features/architect/utils/tradeMachine/validators';
 import { validateTradeInput as utilsValidateTradeInput } from '@/features/architect/utils/tradeMachine/utils';
 import capProjections from '@/features/architect/utils/capProjections';
 
 const currentYear = 2025;
 
-describe('validateTradeInput compatibility surface', () => {
-  it('preserves helper identity through the kept compatibility barrels', () => {
-    expect(compatValidateTradeInput).toBe(validateTradeInput);
+describe('validateTradeInput canonical surfaces', () => {
+  it('preserves helper identity through the utils barrel', () => {
     expect(utilsValidateTradeInput).toBe(validateTradeInput);
   });
 

@@ -357,8 +357,6 @@ utils/
       tradeUtilityMisc.ts
       validateInput.ts
       validationIssueText.ts
-    validators/
-      index.ts
   tradeManager.ts
   validatePhase21.test.ts
   worldManager.ts
@@ -366,5 +364,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-26T21:22:15.067Z*
+*Generated on: 2026-03-27T08:23:32.986Z*
 *Auto-updated by: npm run docs*

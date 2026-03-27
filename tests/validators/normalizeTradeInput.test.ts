@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts';
-import { normalizeTradeInput as compatNormalizeTradeInput } from '@/features/architect/utils/tradeMachine/validators';
 import { normalizeTradeInput as utilsNormalizeTradeInput } from '@/features/architect/utils/tradeMachine/utils';
 import capProjections from '@/features/architect/utils/capProjections';
 
 const currentYear = 2025;
 
-describe('normalizeTradeInput compatibility surface', () => {
-  it('preserves helper identity through the kept compatibility barrels', () => {
-    expect(compatNormalizeTradeInput).toBe(normalizeTradeInput);
+describe('normalizeTradeInput canonical surfaces', () => {
+  it('preserves helper identity through the utils barrel', () => {
     expect(utilsNormalizeTradeInput).toBe(normalizeTradeInput);
   });
 

@@ -46,18 +46,6 @@ describe('Critical Imports Smoke Test', () => {
     expect(tradeMachine.validateFaExceptionUsage).toBeTypeOf('function');
   });
 
-  it('can import salaryMargin through the validator compatibility index', async () => {
-    const validators = await import('@/features/architect/utils/tradeMachine/validators');
-    expect(validators.getIncomingCeilingForTeam).toBeTypeOf('function');
-    expect(validators.validateCash).toBeTypeOf('function');
-    expect(validators.computeMatchingValues).toBeTypeOf('function');
-  });
-
-  it('can import validateFaExceptionUsage through the validator compatibility index', async () => {
-    const validators = await import('@/features/architect/utils/tradeMachine/validators');
-    expect(validators.validateFaExceptionUsage).toBeTypeOf('function');
-  });
-
   it('can import the rules barrel after stale export cleanup', async () => {
     const rules = await import('@/features/architect/utils/tradeMachine/rules');
     expect(rules.validateRoster).toBeTypeOf('function');
