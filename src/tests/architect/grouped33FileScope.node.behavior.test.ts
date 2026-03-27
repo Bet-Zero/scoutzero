@@ -6,12 +6,6 @@ import getCapPercentage, {
 } from '@/features/architect/utils/basicArchitectUtils';
 import { ValidationCache } from '@/features/architect/utils/tradeMachine/cache/validationCache';
 import { computeTradeKicker } from '@/features/architect/utils/tradeMachine/engine/engineUtils';
-import {
-  enforceConsent,
-  enforceEligibility,
-  enforceRosterWindow,
-  enforceTiming,
-} from '@/features/architect/utils/tradeMachine/rules/enforcement';
 
 describe('Grouped 33-file scope node behavior', () => {
   it('preserves the basicArchitectUtils mixed helper behavior', () => {
@@ -102,96 +96,4 @@ describe('Grouped 33-file scope node behavior', () => {
     ).toBe(0);
   });
 
-  it('preserves enforcement rejection messages and violation lists', () => {
-    const consentRejects: string[] = [];
-    const consentViolations = enforceConsent(
-      {
-        teamId: 'LAL',
-        incomingPlayers: [
-          { hasNTC: true, consent: false },
-          { limitedNTC: ['BOS'], ntcTeamList: ['BOS'], consent: false },
-          { hasBirdVeto: true, consent: false },
-        ],
-      },
-      {
-        reject: (message) => consentRejects.push(message),
-      }
-    );
-
-    expect(consentViolations).toEqual([
-      'Player NTC — consent required',
-      'Player NTC — consent required',
-      '1-yr Bird veto — consent required',
-    ]);
-    expect(consentRejects).toEqual(consentViolations);
-
-    const timingRejects: string[] = [];
-    const timingViolations = enforceTiming(
-      {
-        incomingPlayers: [
-          {
-            moratoriumEnd: '2026-02-01',
-            eligibleDate: '2026-02-15',
-            signedDate: '2026-01-01',
-          },
-        ],
-      },
-      { asOfDate: '2026-01-15' },
-      {
-        reject: (message) => timingRejects.push(message),
-      }
-    );
-
-    expect(timingViolations).toHaveLength(3);
-    expect(timingViolations[0]).toBe(
-      'Player cannot be traded during moratorium period'
-    );
-    expect(timingViolations[1]).toMatch(
-      /^Player cannot be traded until \d{1,2}\/\d{1,2}\/\d{4}$/
-    );
-    expect(timingViolations[2]).toBe(
-      'Player cannot be traded within 30 days of signing'
-    );
-    expect(timingRejects).toEqual(timingViolations);
-
-    const eligibilityRejects: string[] = [];
-    const eligibilityViolations = enforceEligibility(
-      {
-        teamId: 'LAL',
-        incomingPlayers: [
-          {
-            lastTradedFrom: 'LAL',
-            lastTradeDate: '2025-07-01',
-          },
-        ],
-      },
-      { asOfDate: '2026-01-15' },
-      {
-        reject: (message) => eligibilityRejects.push(message),
-      }
-    );
-
-    expect(eligibilityViolations).toEqual([
-      'Cannot reacquire player within 1 year of trading them',
-    ]);
-    expect(eligibilityRejects).toEqual(eligibilityViolations);
-
-    const rosterRejects: string[] = [];
-    const rosterViolations = enforceRosterWindow(
-      {
-        projectedRosterCount: 13,
-        projectedTwoWayCount: 4,
-      },
-      {},
-      {
-        reject: (message) => rosterRejects.push(message),
-      }
-    );
-
-    expect(rosterViolations).toEqual([
-      'Roster cannot fall below 14 players',
-      'Two-way slots exceeded (4/3)',
-    ]);
-    expect(rosterRejects).toEqual(['Roster cannot fall below 14 players']);
-  });
 });

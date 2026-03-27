@@ -35,7 +35,6 @@ const moduleParityCases = [
       '../../features/architect/utils/tradeMachine/engine/tradeValidator.ts',
     exportNames: [
       'TRADE_VALIDATOR_VERSION',
-      'enforceRosterWindow',
       'validateFaExceptionUsage',
       'validateTrade',
     ],

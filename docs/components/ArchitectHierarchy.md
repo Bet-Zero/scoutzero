@@ -312,11 +312,9 @@ utils/
       basicRules.ts
       draftRules.ts
       enforceConsent.ts
-      enforcement.ts
       hardCapValidation.ts
       index.ts
       miscRules.ts
-      rosterValidation.ts
       timingValidation.ts
       tradeExceptions.ts
       validateAggregation.ts
@@ -364,5 +362,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-27T08:23:32.986Z*
+*Generated on: 2026-03-27T09:27:09.488Z*
 *Auto-updated by: npm run docs*

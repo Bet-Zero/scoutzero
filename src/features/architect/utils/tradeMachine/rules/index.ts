@@ -8,13 +8,6 @@
 
 export * from './validateSalaryMatching';
 export { validateRoster, enforceRosterWindow } from './validateRoster';
-export {
-  validateRosterWindow,
-  enforceRosterRules,
-  enforceRosterWindowAdvanced,
-  enforceRosterWindowLegacy,
-  validateRosterWindowLegacy,
-} from './rosterValidation';
 export * from './hardCapValidation';
 export * from './draftRules';
 export * from './basicRules';

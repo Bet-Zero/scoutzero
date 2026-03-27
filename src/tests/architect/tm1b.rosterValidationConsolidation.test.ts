@@ -1,7 +1,7 @@
 /**
  * FILE: src/tests/architect/tm1b.rosterValidationConsolidation.test.ts
  * PURPOSE: TM-1B guardrails — verify that roster legality has one canonical
- *          source of truth and that all validation paths use it.
+ *          source of truth and that post-state checks use the same limits.
  * OWNERSHIP: Feature: architect/tradeMachine
  */
 
@@ -86,66 +86,7 @@ describe('checkRosterCounts — canonical rule function', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. rosterValidation.ts — constants sourced from ROSTER_LIMITS
-// ---------------------------------------------------------------------------
-
-describe('rosterValidation.ts — constants derived from ROSTER_LIMITS', () => {
-  it('validateRosterWindow enforces the same standard bounds as ROSTER_LIMITS', async () => {
-    const { validateRosterWindow } = await import(
-      '@/features/architect/utils/tradeMachine/rules/rosterValidation'
-    );
-
-    // 16 players → should produce a violation referencing 15 (MAX_STANDARD)
-    const overResult = validateRosterWindow({
-      postTradeTeam: {
-        players: Array(16).fill({ isTwoWay: false }),
-        twoWayPlayers: [],
-      },
-    });
-    if (overResult.violations.length > 0) {
-      expect(overResult.violations[0]).toContain(String(ROSTER_LIMITS.MAX_STANDARD));
-    }
-
-    // 13 players → violation referencing 14 (MIN_STANDARD)
-    const underResult = validateRosterWindow({
-      postTradeTeam: {
-        players: Array(13).fill({ isTwoWay: false }),
-        twoWayPlayers: [],
-      },
-    });
-    if (underResult.violations.length > 0) {
-      expect(underResult.violations[0]).toContain(String(ROSTER_LIMITS.MIN_STANDARD));
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 4. enforcement.ts — constants sourced from ROSTER_LIMITS, message is dynamic
-// ---------------------------------------------------------------------------
-
-describe('enforcement.ts — constants and dynamic violation message', () => {
-  it('enforceRosterWindow violation message uses dynamic count, not hardcoded (4/3)', async () => {
-    const { enforceRosterWindow } = await import(
-      '@/features/architect/utils/tradeMachine/rules/enforcement'
-    );
-
-    const violations: string[] = [];
-    enforceRosterWindow(
-      { projectedRosterCount: 14, projectedTwoWayCount: 4 },
-      {},
-      { reject: (msg) => violations.push(msg) }
-    );
-
-    // Should reference actual count (4) and canonical limit, not hardcoded "(4/3)"
-    const twViolation = violations.find((v) => v.includes('Two-way'));
-    if (twViolation) {
-      expect(twViolation).toContain(String(ROSTER_LIMITS.MAX_TWO_WAY));
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 5. postStateCapValidator.ts — uses ROSTER_LIMITS, enforces minimum
+// 3. postStateCapValidator.ts — uses ROSTER_LIMITS, enforces minimum
 // ---------------------------------------------------------------------------
 
 // Minimal totals object: must be truthy so the validator doesn't skip the team.

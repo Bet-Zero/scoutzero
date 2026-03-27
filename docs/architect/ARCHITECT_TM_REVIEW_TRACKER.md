@@ -41,7 +41,7 @@
 | ----- | ---------------------------------------------------------- | ------ | ----- |
 | TM-4A | Retire or Fence Deprecated Validation Compatibility Barrel | DONE   | Removed `tradeMachine/validators/index.ts` after confirming there were no non-test live consumers. |
 | TM-4B | Separate Canonical vs Legacy Trade Context Exports         | DONE   | `tradeContext/index.ts` is now canonical-only; deprecated compatibility exports live under `tradeContext/legacy`. |
-| TM-4C | Prune or Fence Dormant Secondary Helper Modules            | TODO   |       |
+| TM-4C | Prune or Fence Dormant Secondary Helper Modules            | DONE   | Deleted dormant `rules/rosterValidation.ts` and `rules/enforcement.ts`, narrowed the rules barrel to canonical roster helpers, and added TM-4C guardrails against reintroduction. |
 | TM-4D | Review Broad Public TradeMachine Barrel for Drift Risk     | TODO   |       |
 
 **STEP STATUS: TODO**

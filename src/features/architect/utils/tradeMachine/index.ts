@@ -46,7 +46,7 @@ export {
 export { enforceConsent } from './rules/enforceConsent';
 export { enforceEligibility } from './rules/validateEligibility';
 export { enforceTiming } from './rules/timingValidation';
-export { enforceRosterWindow } from './rules/rosterValidation';
+export { enforceRosterWindow } from './rules/validateRoster';
 export { enforceSecondApronHandcuffs } from './rules/basicRules';
 
 export { debug } from './engine/engineUtils';

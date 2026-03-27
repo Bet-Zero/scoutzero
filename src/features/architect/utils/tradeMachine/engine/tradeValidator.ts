@@ -23,7 +23,6 @@ import { enforceEligibility } from '../rules/validateEligibility';
 import { enforceTiming } from '../rules/timingValidation';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules';
 import { computeMatchingValues } from '../utils/salaryUtils';
-import { enforceRosterWindow } from '../rules/rosterValidation';
 import { ROSTER_LIMITS, checkRosterCounts } from '../rules/validateRoster';
 import { validationFlags } from '@/config/validationFlags.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
@@ -777,7 +776,7 @@ const baseValidators = {
 const validators = wrapCommonValidators(baseValidators);
 
 // Export functions for external use
-export { enforceRosterWindow, validateFaExceptionUsage };
+export { validateFaExceptionUsage };
 
 /**
  * Generates a detailed Trade Receipt object for debugging.

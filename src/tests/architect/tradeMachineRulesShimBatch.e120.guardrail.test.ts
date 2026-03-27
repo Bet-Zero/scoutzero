@@ -156,19 +156,6 @@ const moduleParityCases = [
       '../../features/architect/utils/tradeMachine/rules/draftRules.ts',
     exportNames: ['hasStepienViolation', 'validateDraftPicks'],
   },
-  {
-    label: 'enforcement',
-    extensionlessSpecifier:
-      '@/features/architect/utils/tradeMachine/rules/enforcement',
-    authoritySpecifier:
-      '../../features/architect/utils/tradeMachine/rules/enforcement.ts',
-    exportNames: [
-      'enforceConsent',
-      'enforceEligibility',
-      'enforceSecondApronHandcuffs',
-      'enforceTiming',
-    ],
-  },
 ] as const;
 
 describe('E120 tradeMachine rules shim deletion batch guardrails', () => {
