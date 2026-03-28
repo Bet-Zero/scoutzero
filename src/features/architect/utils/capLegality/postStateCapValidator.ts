@@ -246,11 +246,293 @@ function validateTotalsSanity({
 }
 
 /**
+ * Category 2: Mirrored final-state legality re-checks.
+ *
+ * These checks re-verify rules that are ALSO enforced earlier in the validation
+ * pipeline (e.g. trade-time hard-cap enforcement, pre-trade roster validation).
+ * They exist here as a deliberate final-state safety net — if an earlier stage
+ * is bypassed or produces stale results, these catch the discrepancy against
+ * the authoritative post-mutation snapshots.
+ *
+ * Codes: HARD_CAP_EXCEEDED, ROSTER_MAX_EXCEEDED, ROSTER_MIN_VIOLATED, TWO_WAY_LIMIT_EXCEEDED
+ */
+function runMirroredFinalStateLegalityRechecks({
+  teamCode,
+  team,
+  teamSalary,
+  afterTotals,
+  rulesContext,
+  hasPlayersData,
+  players,
+  violations,
+}: {
+  teamCode: string;
+  team: AnyRecord;
+  teamSalary: number | null;
+  afterTotals: AnyRecord;
+  rulesContext: AnyRecord;
+  hasPlayersData: boolean;
+  players: AnyRecord[];
+  violations: PostStateCapValidationIssue[];
+}) {
+  // Hard-cap ceiling re-check (mirrors trade-time hard-cap enforcement in validateTrade/hardCapStatus)
+  const hardCapStatus = resolveHardCapCeiling({
+    teamCode,
+    team,
+    totals: afterTotals,
+    rulesContext,
+  });
+
+  if (
+    hardCapStatus.isHardCapped &&
+    hardCapStatus.ceiling !== null &&
+    teamSalary !== null &&
+    teamSalary > hardCapStatus.ceiling
+  ) {
+    violations.push({
+      code: 'HARD_CAP_EXCEEDED',
+      teamCode,
+      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+      message: `Team ${teamCode} exceeds ${hardCapStatus.level || 'hard cap'} ceiling.`,
+      expected: hardCapStatus.ceiling,
+      actual: teamSalary,
+    });
+  }
+
+  // Roster limit re-checks (mirror trade-time roster validation in computeRosterValidation)
+  // Only run when the players array was explicitly provided.
+  if (!hasPlayersData) {
+    return;
+  }
+
+  let standardCount = 0;
+  let twoWayCount = 0;
+  for (const p of players) {
+    const contract = asRecord(p.contract);
+    const contractType = String(contract?.contractType || '').toLowerCase();
+    if (contractType === 'two-way') {
+      twoWayCount++;
+    } else {
+      standardCount++;
+    }
+  }
+
+  if (standardCount > ROSTER_LIMITS.MAX_STANDARD) {
+    violations.push({
+      code: 'ROSTER_MAX_EXCEEDED',
+      teamCode,
+      path: `teams.${teamCode}.players`,
+      message: `Team ${teamCode} has ${standardCount} standard contracts (max ${ROSTER_LIMITS.MAX_STANDARD}).`,
+      expected: ROSTER_LIMITS.MAX_STANDARD,
+      actual: standardCount,
+    });
+  }
+
+  // PSV_ROSTER_002: Minimum roster — mirrors the trade-time minimum check in the pre-trade path.
+  if (standardCount < ROSTER_LIMITS.MIN_STANDARD) {
+    violations.push({
+      code: 'ROSTER_MIN_VIOLATED',
+      teamCode,
+      path: `teams.${teamCode}.players`,
+      message: `Team ${teamCode} has ${standardCount} standard contracts (min ${ROSTER_LIMITS.MIN_STANDARD}).`,
+      expected: ROSTER_LIMITS.MIN_STANDARD,
+      actual: standardCount,
+    });
+  }
+
+  if (twoWayCount > ROSTER_LIMITS.MAX_TWO_WAY) {
+    violations.push({
+      code: 'TWO_WAY_LIMIT_EXCEEDED',
+      teamCode,
+      path: `teams.${teamCode}.players`,
+      message: `Team ${teamCode} has ${twoWayCount} two-way contracts (max ${ROSTER_LIMITS.MAX_TWO_WAY}).`,
+      expected: ROSTER_LIMITS.MAX_TWO_WAY,
+      actual: twoWayCount,
+    });
+  }
+}
+
+/**
+ * Category 3: Warning-only observational checks.
+ *
+ * Non-blocking surfaces that report final-state cap observations without
+ * failing validation. These only make sense against post-mutation snapshots
+ * because earlier projection stages may not have final salary totals.
+ *
+ * Codes: SALARY_FLOOR_NOT_MET, LUXURY_TAX_EXCEEDED
+ */
+function collectFinalStateWarnings({
+  teamCode,
+  teamSalary,
+  afterTotals,
+  minimumTeamSalary,
+  warnings,
+}: {
+  teamCode: string;
+  teamSalary: number | null;
+  afterTotals: AnyRecord;
+  minimumTeamSalary: number | null;
+  warnings: PostStateCapValidationIssue[];
+}) {
+  if (
+    minimumTeamSalary !== null &&
+    teamSalary !== null &&
+    teamSalary < minimumTeamSalary
+  ) {
+    warnings.push({
+      code: 'SALARY_FLOOR_NOT_MET',
+      teamCode,
+      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+      message: `Team ${teamCode} is below minimum team salary floor.`,
+      expected: minimumTeamSalary,
+      actual: teamSalary,
+    });
+  }
+
+  const luxuryTax = toFiniteNumber(afterTotals.luxuryTax);
+  if (luxuryTax !== null && teamSalary !== null && teamSalary > luxuryTax) {
+    warnings.push({
+      code: 'LUXURY_TAX_EXCEEDED',
+      teamCode,
+      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+      message: `Team ${teamCode} exceeds luxury tax threshold.`,
+      expected: luxuryTax,
+      actual: teamSalary,
+    });
+  }
+}
+
+/**
+ * Category 4: True post-state-only artifact validation.
+ *
+ * These checks validate final schema integrity and data correctness that can
+ * ONLY be verified after the mutation has produced its output state. No earlier
+ * pipeline stage performs these checks — they are unique to the post-state layer.
+ *
+ * Codes: CONTRACT_ROWS_INVALID, DEAD_CAP_INVALID, EXCEPTIONS_INVALID, CAP_HOLD_INVALID
+ */
+function runPostStateArtifactValidation({
+  teamCode,
+  team,
+  players,
+  violations,
+}: {
+  teamCode: string;
+  team: AnyRecord;
+  players: AnyRecord[];
+  violations: PostStateCapValidationIssue[];
+}) {
+  // PSV_CONTRACT_004: Contract rows validity
+  for (const p of players) {
+    const contract = asRecord(p.contract);
+    if (
+      contract &&
+      Array.isArray(contract.salariesByYear) &&
+      contract.salariesByYear.length > 0
+    ) {
+      const result = validateContractRows(contract);
+      if (result?.violations?.length > 0) {
+        const playerId = String(p.playerId || p.id || 'unknown');
+        for (const v of result.violations) {
+          violations.push({
+            code: 'CONTRACT_ROWS_INVALID',
+            teamCode,
+            path: `teams.${teamCode}.players.${playerId}.contract`,
+            message:
+              v.message ||
+              `Contract row validation failed for player ${playerId}.`,
+          });
+        }
+      }
+    }
+  }
+
+  // PSV_DEAD_001: Dead cap schema validity
+  if (team.deadCap !== undefined) {
+    const deadCapResult = validateDeadCap(team.deadCap);
+    if (deadCapResult?.violations?.length > 0) {
+      for (const v of deadCapResult.violations) {
+        violations.push({
+          code: 'DEAD_CAP_INVALID',
+          teamCode,
+          path: `teams.${teamCode}.deadCap`,
+          message:
+            v.message ||
+            `Dead cap schema validation failed for team ${teamCode}.`,
+        });
+      }
+    }
+  }
+
+  // PSV_EXC_001-002: Exception schema validity
+  const exceptionsObj = asRecord(team.exceptions);
+  if (exceptionsObj) {
+    const EXCEPTION_KEYS = ['mle', 'tpmle', 'bae', 'room'];
+    const exceptionSubset: Record<string, unknown> = {};
+    for (const key of EXCEPTION_KEYS) {
+      if (exceptionsObj[key]) {
+        exceptionSubset[key] = exceptionsObj[key];
+      }
+    }
+    if (Object.keys(exceptionSubset).length > 0) {
+      const excResult = validateExceptions(exceptionSubset);
+      if (excResult?.violations?.length > 0) {
+        for (const v of excResult.violations) {
+          violations.push({
+            code: 'EXCEPTIONS_INVALID',
+            teamCode,
+            path: `teams.${teamCode}.exceptions`,
+            message:
+              v.message ||
+              `Exception schema validation failed for team ${teamCode}.`,
+          });
+        }
+      }
+    }
+  }
+
+  // PSV_HOLD_001: Cap hold amounts validity
+  const capHolds = Array.isArray(team.capHolds)
+    ? (team.capHolds as AnyRecord[])
+    : [];
+  for (const hold of capHolds) {
+    const holdValidation = isCapHoldAmountValid(hold);
+    if (!holdValidation.valid) {
+      violations.push({
+        code: 'CAP_HOLD_INVALID',
+        teamCode,
+        path: `teams.${teamCode}.capHolds`,
+        message:
+          holdValidation.reason || `Invalid cap hold for team ${teamCode}.`,
+      });
+    }
+  }
+}
+
+/**
  * Canonical post-state team legality validator.
  *
  * This file owns post-state team legality only. It must not absorb authority
  * sequencing, trade-term validation, world-state invariants, or persistence
  * concerns.
+ *
+ * Internal check categories (TM-6A):
+ *
+ *   Category 1 — Input-sanity preconditions (inline + validateTotalsSanity)
+ *     OPERATION_ID_MISSING, TEAM_SCOPE_EMPTY,
+ *     TOTALS_MISSING, TOTALS_YEAR_KEY_MISSING, TOTALS_YEAR_KEY_MISMATCH, TOTALS_NON_FINITE
+ *
+ *   Category 2 — Mirrored final-state legality re-checks (runMirroredFinalStateLegalityRechecks)
+ *     HARD_CAP_EXCEEDED, ROSTER_MAX_EXCEEDED, ROSTER_MIN_VIOLATED, TWO_WAY_LIMIT_EXCEEDED
+ *     These re-verify rules already enforced at trade/projection time as a final safety net.
+ *
+ *   Category 3 — Warning-only observational checks (collectFinalStateWarnings)
+ *     SALARY_FLOOR_NOT_MET, LUXURY_TAX_EXCEEDED
+ *     Non-blocking surfaces reporting final-state cap observations.
+ *
+ *   Category 4 — True post-state-only artifact validation (runPostStateArtifactValidation)
+ *     CONTRACT_ROWS_INVALID, DEAD_CAP_INVALID, EXCEPTIONS_INVALID, CAP_HOLD_INVALID
+ *     Final schema/integrity checks unique to the post-state layer.
  */
 export function validatePostStateCapLegality(
   input: PostStateCapValidationInput
@@ -265,6 +547,7 @@ export function validatePostStateCapLegality(
   const afterTotalsByTeam = input.afterTotalsByTeam || {};
   const rulesContext = asRecord(input.rulesContext) || {};
 
+  // Category 1: Input-sanity preconditions
   if (!input.operationId) {
     violations.push({
       code: 'OPERATION_ID_MISSING',
@@ -320,197 +603,40 @@ export function validatePostStateCapLegality(
 
     const team = asRecord(afterTeamsByCode[teamCode]) || {};
     const teamSalary = getTeamSalaryFromTotals(afterTotals);
-    const hardCapStatus = resolveHardCapCeiling({
-      teamCode,
-      team,
-      totals: afterTotals,
-      rulesContext,
-    });
-
-    if (
-      hardCapStatus.isHardCapped &&
-      hardCapStatus.ceiling !== null &&
-      teamSalary !== null &&
-      teamSalary > hardCapStatus.ceiling
-    ) {
-      violations.push({
-        code: 'HARD_CAP_EXCEEDED',
-        teamCode,
-        path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
-        message: `Team ${teamCode} exceeds ${hardCapStatus.level || 'hard cap'} ceiling.`,
-        expected: hardCapStatus.ceiling,
-        actual: teamSalary,
-      });
-    }
-
-    if (
-      minimumTeamSalary !== null &&
-      teamSalary !== null &&
-      teamSalary < minimumTeamSalary
-    ) {
-      warnings.push({
-        code: 'SALARY_FLOOR_NOT_MET',
-        teamCode,
-        path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
-        message: `Team ${teamCode} is below minimum team salary floor.`,
-        expected: minimumTeamSalary,
-        actual: teamSalary,
-      });
-    }
-
-    // --- v1.0.0 rules below ---
-
-    // PSV_CAP_004: Luxury tax threshold warning
-    const luxuryTax = toFiniteNumber(afterTotals.luxuryTax);
-    if (luxuryTax !== null && teamSalary !== null && teamSalary > luxuryTax) {
-      warnings.push({
-        code: 'LUXURY_TAX_EXCEEDED',
-        teamCode,
-        path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
-        message: `Team ${teamCode} exceeds luxury tax threshold.`,
-        expected: luxuryTax,
-        actual: teamSalary,
-      });
-    }
-
-    // PSV_ROSTER_001 / PSV_ROSTER_002 / PSV_ROSTER_003: Roster limits
-    // Only run roster counts when the players array was explicitly provided.
-    // Callers that don't populate players (e.g. cap-only fixtures) skip this block.
     const hasPlayersData = Array.isArray(team.players);
     const players = hasPlayersData ? (team.players as AnyRecord[]) : [];
-    let standardCount = 0;
-    let twoWayCount = 0;
-    for (const p of players) {
-      const contract = asRecord(p.contract);
-      const contractType = String(contract?.contractType || '').toLowerCase();
-      if (contractType === 'two-way') {
-        twoWayCount++;
-      } else {
-        standardCount++;
-      }
-    }
 
-    if (hasPlayersData && standardCount > ROSTER_LIMITS.MAX_STANDARD) {
-      violations.push({
-        code: 'ROSTER_MAX_EXCEEDED',
-        teamCode,
-        path: `teams.${teamCode}.players`,
-        message: `Team ${teamCode} has ${standardCount} standard contracts (max ${ROSTER_LIMITS.MAX_STANDARD}).`,
-        expected: ROSTER_LIMITS.MAX_STANDARD,
-        actual: standardCount,
-      });
-    }
+    // Category 2: Mirrored final-state legality re-checks
+    // (hard cap ceiling + roster limits — re-verify rules already enforced at trade/projection time)
+    runMirroredFinalStateLegalityRechecks({
+      teamCode,
+      team,
+      teamSalary,
+      afterTotals,
+      rulesContext,
+      hasPlayersData,
+      players,
+      violations,
+    });
 
-    // PSV_ROSTER_002: Minimum roster — mirrors the trade-time minimum check in the pre-trade path.
-    // Only fires when players data is present (non-null array), to avoid false positives on
-    // cap-only fixtures that don't populate the players field.
-    if (hasPlayersData && standardCount < ROSTER_LIMITS.MIN_STANDARD) {
-      violations.push({
-        code: 'ROSTER_MIN_VIOLATED',
-        teamCode,
-        path: `teams.${teamCode}.players`,
-        message: `Team ${teamCode} has ${standardCount} standard contracts (min ${ROSTER_LIMITS.MIN_STANDARD}).`,
-        expected: ROSTER_LIMITS.MIN_STANDARD,
-        actual: standardCount,
-      });
-    }
+    // Category 3: Warning-only observational checks
+    // (salary floor + luxury tax — non-blocking final-state observations)
+    collectFinalStateWarnings({
+      teamCode,
+      teamSalary,
+      afterTotals,
+      minimumTeamSalary,
+      warnings,
+    });
 
-    if (hasPlayersData && twoWayCount > ROSTER_LIMITS.MAX_TWO_WAY) {
-      violations.push({
-        code: 'TWO_WAY_LIMIT_EXCEEDED',
-        teamCode,
-        path: `teams.${teamCode}.players`,
-        message: `Team ${teamCode} has ${twoWayCount} two-way contracts (max ${ROSTER_LIMITS.MAX_TWO_WAY}).`,
-        expected: ROSTER_LIMITS.MAX_TWO_WAY,
-        actual: twoWayCount,
-      });
-    }
-
-    // PSV_CONTRACT_004: Contract rows validity
-    for (const p of players) {
-      const contract = asRecord(p.contract);
-      if (
-        contract &&
-        Array.isArray(contract.salariesByYear) &&
-        contract.salariesByYear.length > 0
-      ) {
-        const result = validateContractRows(contract);
-        if (result?.violations?.length > 0) {
-          const playerId = String(p.playerId || p.id || 'unknown');
-          for (const v of result.violations) {
-            violations.push({
-              code: 'CONTRACT_ROWS_INVALID',
-              teamCode,
-              path: `teams.${teamCode}.players.${playerId}.contract`,
-              message:
-                v.message ||
-                `Contract row validation failed for player ${playerId}.`,
-            });
-          }
-        }
-      }
-    }
-
-    // PSV_DEAD_001: Dead cap schema validity
-    if (team.deadCap !== undefined) {
-      const deadCapResult = validateDeadCap(team.deadCap);
-      if (deadCapResult?.violations?.length > 0) {
-        for (const v of deadCapResult.violations) {
-          violations.push({
-            code: 'DEAD_CAP_INVALID',
-            teamCode,
-            path: `teams.${teamCode}.deadCap`,
-            message:
-              v.message ||
-              `Dead cap schema validation failed for team ${teamCode}.`,
-          });
-        }
-      }
-    }
-
-    // PSV_EXC_001-002: Exception schema validity
-    const exceptionsObj = asRecord(team.exceptions);
-    if (exceptionsObj) {
-      const EXCEPTION_KEYS = ['mle', 'tpmle', 'bae', 'room'];
-      const exceptionSubset: Record<string, unknown> = {};
-      for (const key of EXCEPTION_KEYS) {
-        if (exceptionsObj[key]) {
-          exceptionSubset[key] = exceptionsObj[key];
-        }
-      }
-      if (Object.keys(exceptionSubset).length > 0) {
-        const excResult = validateExceptions(exceptionSubset);
-        if (excResult?.violations?.length > 0) {
-          for (const v of excResult.violations) {
-            violations.push({
-              code: 'EXCEPTIONS_INVALID',
-              teamCode,
-              path: `teams.${teamCode}.exceptions`,
-              message:
-                v.message ||
-                `Exception schema validation failed for team ${teamCode}.`,
-            });
-          }
-        }
-      }
-    }
-
-    // PSV_HOLD_001: Cap hold amounts validity
-    const capHolds = Array.isArray(team.capHolds)
-      ? (team.capHolds as AnyRecord[])
-      : [];
-    for (const hold of capHolds) {
-      const holdValidation = isCapHoldAmountValid(hold);
-      if (!holdValidation.valid) {
-        violations.push({
-          code: 'CAP_HOLD_INVALID',
-          teamCode,
-          path: `teams.${teamCode}.capHolds`,
-          message:
-            holdValidation.reason || `Invalid cap hold for team ${teamCode}.`,
-        });
-      }
-    }
+    // Category 4: True post-state-only artifact validation
+    // (contract rows, dead cap, exceptions, cap holds — unique to post-state layer)
+    runPostStateArtifactValidation({
+      teamCode,
+      team,
+      players,
+      violations,
+    });
   }
 
   return {
