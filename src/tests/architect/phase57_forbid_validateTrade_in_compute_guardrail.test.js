@@ -204,8 +204,8 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
     });
   });
 
-  describe('Test 5: computeSignAndTradeResult follows prepare→compute pattern', () => {
-    it('should call buildTradeApplyPreparation before computeTradeResult', () => {
+  describe('Test 5: computeSignAndTradeResult follows staged handoff pattern', () => {
+    it('should call signing validation and SAT handoff helper before computeTradeResult', () => {
       const source = readSourceFile(
         'src/features/architect/utils/mutationPipeline.ts'
       );
@@ -216,15 +216,30 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
 
       const regionCode = extractRegion(source, satStart, satEnd);
 
-      // Should contain the centralized prepare→compute calls in order
-      expect(regionCode).toContain('buildTradeApplyPreparation');
+      expect(regionCode).toContain('validateSignAndTradeSigningPhase');
+      expect(regionCode).toContain('buildSignAndTradeTradeHandoff');
       expect(regionCode).toContain('computeTradeResult');
 
-      // The order should be correct (prepare before computeResult)
-      const preparationIdx = regionCode.indexOf('buildTradeApplyPreparation');
+      const signingIdx = regionCode.indexOf('validateSignAndTradeSigningPhase');
+      const handoffIdx = regionCode.indexOf('buildSignAndTradeTradeHandoff');
       const computeIdx = regionCode.indexOf('computeTradeResult({');
 
-      expect(preparationIdx).toBeLessThan(computeIdx);
+      expect(signingIdx).toBeLessThan(handoffIdx);
+      expect(handoffIdx).toBeLessThan(computeIdx);
+    });
+
+    it('should keep the SAT handoff helper responsible for trade preparation', () => {
+      const source = readSourceFile(
+        'src/features/architect/utils/tradeContext/tradeContext.ts'
+      );
+
+      const helperStart = 'export function buildSignAndTradeTradeHandoff({';
+      const helperEnd = '\n/**\n * Canonical trade-apply preparation handoff.';
+      const regionCode = extractRegion(source, helperStart, helperEnd);
+
+      expect(regionCode).toContain('buildTradeApplyPreparation');
+      expect(regionCode).toContain('tradePayload');
+      expect(regionCode).toContain('tradeState');
     });
 
     it('should not call validateTrade directly inside computeSignAndTradeResult', () => {

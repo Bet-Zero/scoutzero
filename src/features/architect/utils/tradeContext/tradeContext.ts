@@ -22,6 +22,7 @@
  * - buildPostTradeTeamsSnapshot(): Pure function that applies roster moves
  * - validatePostTradeSnapshotForContext(): Validates snapshot and returns context
  * - buildTradeApplyPreparation(): Centralizes the snapshot → validate handoff
+ * - buildSignAndTradeTradeHandoff(): SAT-specific handoff into trade preparation
  * - getFullLegalityPreview(): Execution-authority preview minus world-state gates
  *
  * Legacy convenience wrapper (validateTradeForContext) moved to ./legacy/ in Phase 59.
@@ -34,6 +35,7 @@
  * PURE FUNCTION GUARANTEES:
  * - buildPostTradeTeamsSnapshot: No side effects, no validation calls
  * - validatePostTradeSnapshotForContext: Calls validateTrade exactly ONCE
+ * - buildSignAndTradeTradeHandoff: Deterministic SAT handoff builder
  * - Both functions are deterministic given the same inputs
  */
 
@@ -1020,6 +1022,94 @@ function buildTradeValidationPayload({
       ...(payload?.tradeCtx || {}),
       asOfDate,
     },
+  };
+}
+
+/**
+ * SAT-specific handoff owner for the mutation pipeline.
+ *
+ * This helper does not own signing or trade legality rules. It owns only the
+ * explicit handoff from an already-signed source-team state into the canonical
+ * trade preparation surface.
+ */
+export function buildSignAndTradeTradeHandoff({
+  sourceTeamCode,
+  destinationTeamCode,
+  updatedSourceTeam,
+  destinationTeam,
+  signedPlayer,
+  contract,
+  seasonId,
+  timestamp,
+  asOfDate = null,
+  worldId = null,
+}: {
+  sourceTeamCode: string | null | undefined;
+  destinationTeamCode: string | null | undefined;
+  updatedSourceTeam: AnyRecord;
+  destinationTeam: AnyRecord;
+  signedPlayer: AnyRecord;
+  contract: AnyRecord;
+  seasonId: string;
+  timestamp: number;
+  asOfDate?: string | number | null;
+  worldId?: string | null;
+}): {
+  tradePayload: TradeContextPayload;
+  tradeState: TradeContextCurrentState;
+  tradeApplyPreparation: TradeApplyPreparation;
+} {
+  const tradePayload: TradeContextPayload = {
+    teams: [
+      {
+        teamCode: sourceTeamCode ?? null,
+        sends: [
+          {
+            ...signedPlayer,
+            signAndTrade: true,
+            signAndTradeContract: contract,
+            receivingTeamId: destinationTeamCode ?? null,
+            receivingTeamIndex: 1,
+          },
+        ],
+      },
+      {
+        teamCode: destinationTeamCode ?? null,
+        sends: [],
+      },
+    ],
+    ...(asOfDate != null ? { asOfDate } : {}),
+    tradeCtx: {
+      ...(asOfDate != null ? { asOfDate } : {}),
+      ...(worldId ? { worldId } : {}),
+    },
+  };
+
+  const tradeState: TradeContextCurrentState = {
+    teams: [
+      {
+        teamCode: sourceTeamCode ?? null,
+        team: updatedSourceTeam as ValidationTeam['team'],
+      },
+      {
+        teamCode: destinationTeamCode ?? null,
+        team: destinationTeam as ValidationTeam['team'],
+      },
+    ],
+  };
+
+  const tradeApplyPreparation = buildTradeApplyPreparation({
+    payload: tradePayload,
+    currentState: tradeState,
+    seasonId,
+    timestamp,
+    asOfDate,
+  });
+
+  return {
+    tradePayload,
+    tradeState,
+    tradeApplyPreparation,
   };
 }
 

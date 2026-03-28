@@ -155,6 +155,7 @@ import {
   validateTradeExecutionAuthority,
 } from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
 import {
+  buildSignAndTradeTradeHandoff,
   buildTradeApplyPreparation,
   normalizeTradeTeamCodeLike,
   resolveOutgoingTradeDestinationTeamCode,
@@ -1584,6 +1585,43 @@ function hasIncompleteSignAndTradeViolation(issues: unknown[]): boolean {
   });
 }
 
+/**
+ * SAT signing-stage adapter shared by preflight and mutation compute.
+ *
+ * Rule ownership remains in validateSigning(); this helper exists only so the
+ * S&T path has one named source-team signing validation surface.
+ */
+function validateSignAndTradeSigningPhase({
+  team,
+  player,
+  contract,
+  signedUsing,
+  seasonId,
+}: {
+  team: TeamLike;
+  player: PlayerLike;
+  contract: ArchitectMutationPayload['contract'];
+  signedUsing: ArchitectMutationPayload['signedUsing'];
+  seasonId: string;
+}) {
+  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
+
+  return validateSigning({
+    team,
+    player,
+    contract,
+    signedUsing,
+    year: currentYear,
+  });
+}
+
+/**
+ * Shared SAT authority summary surface.
+ *
+ * This does not own signing or trade rules. It summarizes the prevalidated
+ * signing verdict plus the prevalidated trade context so preflight and
+ * validateMutation('signAndTrade') read the same staged authority result.
+ */
 function summarizeSignAndTradeAuthority({
   signingValidation,
   tradeValidation,
@@ -4070,13 +4108,12 @@ export async function preflightSignAndTradeMutation({
       currentState,
       'signAndTrade'
     );
-    const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
-    const signingValidation = validateSigning({
+    const signingValidation = validateSignAndTradeSigningPhase({
       team,
       player,
       contract: sanitizedPayload.contract,
       signedUsing: sanitizedPayload.signedUsing,
-      year: currentYear,
+      seasonId,
     });
 
     if (!signingValidation.valid) {
@@ -7916,15 +7953,13 @@ function computeSignAndTradeResult({
     };
   }
 
-  // Phase 48: Validate signing BEFORE proceeding to trade computation
-  // This ensures signing validation failure short-circuits before validateTrade is called
-  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
-  const signingValidation = validateSigning({
+  // Phase 48: Validate the SAT signing phase before the trade handoff.
+  const signingValidation = validateSignAndTradeSigningPhase({
     team,
     player,
     contract: payload.contract,
     signedUsing: payload.signedUsing,
-    year: currentYear,
+    seasonId,
   });
 
   if (!signingValidation.valid) {
@@ -7944,54 +7979,24 @@ function computeSignAndTradeResult({
   const updatedSourceTeam = signingResult.teamUpdates[0].team;
   const signedPlayer = signingResult.playerUpdates[0].player;
 
-  // 2. Construct trade payload and state (using post-signing state per Phase 48)
-  const tradePayload: ArchitectMutationPayload = {
-    teams: [
-      {
-        teamCode: teamCode,
-        sends: [
-          {
-            ...signedPlayer, // Send the fully signed player object with new contract
-            signAndTrade: true,
-            signAndTradeContract: payload.contract,
-            receivingTeamId: destinationTeamCode,
-            receivingTeamIndex: 1,
-          },
-        ],
-      },
-      {
-        teamCode: destinationTeamCode,
-        sends: [],
-      },
-    ],
-    ...(asOfDate != null ? { asOfDate } : {}),
-    tradeCtx: {
-      ...(asOfDate != null ? { asOfDate } : {}),
-      ...(worldId ? { worldId } : {}),
-    },
-  };
-
-  // Construct trade state (Source has signed player, Dest is original)
-  const tradeState: TradeStateSlice = {
-    teams: [
-      { teamCode: teamCode as string | null, team: updatedSourceTeam as TeamLike },
-      { teamCode: destinationTeamCode as string | null, team: destinationTeam as TeamLike },
-    ],
-  };
-
-  // TM-3B: Reuse the canonical trade-apply preparation surface for the trade substep.
-  const tradeApplyPreparation = buildTradeApplyPreparation({
-    payload: tradePayload as TradeContextPayload,
-    currentState: tradeState as TradeContextCurrentState,
+  // 2. Build the SAT handoff into the canonical trade preparation surface.
+  const tradeHandoff = buildSignAndTradeTradeHandoff({
+    sourceTeamCode: teamCode,
+    destinationTeamCode,
+    updatedSourceTeam,
+    destinationTeam,
+    signedPlayer,
+    contract: payload.contract || null,
     seasonId,
     timestamp,
     asOfDate,
+    worldId,
   });
 
-  // Step 3: Call pure computeTradeResult with pre-validated context
+  // 3. Call pure trade compute with the prepared SAT trade handoff.
   const tradeResult = computeTradeResult({
-    payload: tradePayload,
-    currentState: tradeState,
+    payload: tradeHandoff.tradePayload as ArchitectMutationPayload,
+    currentState: tradeHandoff.tradeState as TradeStateSlice,
     seasonId,
     timestamp,
     historyContext: {
@@ -7999,15 +8004,15 @@ function computeSignAndTradeResult({
       mutationType: historyContext.mutationType || 'signAndTrade',
       mutationId: historyContext.mutationId,
     },
-    postTradeSnapshot: tradeApplyPreparation.postTradeSnapshot,
-    validatedContext: tradeApplyPreparation.validatedContext,
+    postTradeSnapshot: tradeHandoff.tradeApplyPreparation.postTradeSnapshot,
+    validatedContext: tradeHandoff.tradeApplyPreparation.validatedContext,
   });
 
   if (!tradeResult.success) {
     return { success: false, error: tradeResult.error || 'Trade step failed' };
   }
 
-  // 3. Return Combined Result
+  // 4. Return combined SAT result with both prevalidated contexts attached.
   // Phase 56: Attach validated contexts for validateMutation de-duplication
   return {
     success: true,
@@ -8024,7 +8029,7 @@ function computeSignAndTradeResult({
     },
     // Phase 56: Attach validated contexts for validateMutation de-duplication
     _signingValidation: signingValidation,
-    _validatedTradeContext: tradeApplyPreparation.validatedContext,
+    _validatedTradeContext: tradeHandoff.tradeApplyPreparation.validatedContext,
   };
 }
 

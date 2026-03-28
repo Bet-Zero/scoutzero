@@ -95,7 +95,7 @@ describe('Phase 63: Allowlist completeness for S&T mutations', () => {
 // TEST CATEGORY 2: Validation Order (Phase 48 invariant)
 // ==============================================================================
 describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
-  it('validateSigning is called before buildTradeApplyPreparation in S&T path', () => {
+  it('signing-stage validation is called before the SAT trade handoff in S&T path', () => {
     // Read the mutation pipeline source to verify ordering
     const source = readSourceFile(
       'src/features/architect/utils/mutationPipeline.ts'
@@ -117,17 +117,21 @@ describe('Phase 63: Validation order in computeSignAndTradeResult', () => {
 
     const funcBody = source.slice(funcStartIndex, funcEndIndex);
 
-    // Find first occurrence of validateSigning
-    const signingMatch = funcBody.match(/validateSigning\s*\(/);
+    // Find first occurrence of the SAT signing-stage adapter
+    const signingMatch = funcBody.match(
+      /validateSignAndTradeSigningPhase\s*\(/
+    );
     expect(signingMatch).not.toBeNull();
     const signingIndex = signingMatch.index;
 
-    // Find first occurrence of buildTradeApplyPreparation
-    const preparationMatch = funcBody.match(/buildTradeApplyPreparation\s*\(/);
+    // Find first occurrence of the SAT trade handoff helper
+    const preparationMatch = funcBody.match(
+      /buildSignAndTradeTradeHandoff\s*\(/
+    );
     expect(preparationMatch).not.toBeNull();
     const preparationIndex = preparationMatch.index;
 
-    // Signing validation MUST come before trade snapshot building
+    // Signing validation MUST come before SAT trade handoff
     expect(signingIndex).toBeLessThan(preparationIndex);
   });
 });

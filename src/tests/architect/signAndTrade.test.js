@@ -19,6 +19,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   applyWorldMutation,
+  computeWorldMutation,
   preflightSignAndTradeMutation,
 } from '@/features/architect/utils/mutationPipeline';
 import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
@@ -209,6 +210,33 @@ describe('Sign and Trade Mutation', () => {
         contract.contractType === 'Sign & Trade' ||
           contract.signAndTrade === true
       ).toBe(true);
+    });
+
+    it('attaches both signing and trade validation contexts to the compute result', () => {
+      const result = computeWorldMutation({
+        mutationType: 'signAndTrade',
+        payload: {
+          teamCode: sourceTeamCode,
+          destinationTeamCode: destTeamCode,
+          playerId,
+          contract: validSigningContract,
+          signedUsing: 'Bird Rights',
+        },
+        currentState: {
+          team: { ...mockSourceTeam },
+          player: { ...mockPlayer },
+          destinationTeam: { ...mockDestTeam },
+        },
+        seasonId,
+        timestamp: Date.parse('2025-07-01T12:00:00.000Z'),
+        worldId,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result._signingValidation?.valid).toBe(true);
+      expect(result._validatedTradeContext?._isValidatedTradeContext).toBe(
+        true
+      );
     });
   });
 
