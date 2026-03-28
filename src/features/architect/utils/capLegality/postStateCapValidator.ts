@@ -17,7 +17,7 @@ import {
   validateExceptions,
 } from '@/features/architect/utils/capLegalityValidation';
 import {
-  resolveHardCapCeiling as resolveHardCapCeilingShared,
+  resolveHardCapCeiling as resolveSharedHardCapCeiling,
   HARD_CAP_TYPES,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
@@ -26,6 +26,11 @@ import { ROSTER_LIMITS } from '@/features/architect/utils/tradeMachine/rules/val
 export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
 
 type AnyRecord = Record<string, unknown>;
+type FinalStateHardCapRecheckStatus = {
+  isHardCapped: boolean;
+  level: string | null;
+  ceiling: number | null;
+};
 
 export type PostStateCapValidationIssue = {
   code: string;
@@ -99,11 +104,14 @@ function getTeamSalaryFromTotals(totals: AnyRecord): number | null {
   return toFiniteNumber(totals.currentCapHit);
 }
 
-// TM-1C: Hard-cap detection logic (reading from afterTeamsByCode / afterTotalsByTeam shapes)
-// is unique to post-state and cannot be delegated to getHardCapStatus() directly. Once the
-// hard-cap type is determined, ceiling resolution is delegated to hardCapStatus.ts:resolveHardCapCeiling()
-// to avoid drift in the shared fallback logic.
-function resolveHardCapCeiling({
+/**
+ * Final-state hard-cap re-check adapter.
+ * Projected hard-cap legality is decided earlier in hardCapValidation.ts against projected trade
+ * totals. This helper exists because the later post-state layer reads authoritative
+ * afterTeamsByCode/afterTotalsByTeam shapes, then delegates shared ceiling fallback policy to
+ * hardCapStatus.ts:resolveHardCapCeiling().
+ */
+function getFinalStateHardCapRecheckStatus({
   teamCode,
   team,
   totals,
@@ -113,7 +121,7 @@ function resolveHardCapCeiling({
   team: AnyRecord;
   totals: AnyRecord;
   rulesContext: AnyRecord;
-}): { isHardCapped: boolean; level: string | null; ceiling: number | null } {
+}): FinalStateHardCapRecheckStatus {
   const hardCapByTeam = asRecord(rulesContext.hardCapByTeam) || {};
   const explicit = asRecord(hardCapByTeam[teamCode]);
   const explicitCeiling = toFiniteNumber(explicit?.ceiling);
@@ -170,11 +178,11 @@ function resolveHardCapCeiling({
 
   // Delegate ceiling-value resolution to the shared canonical function in hardCapStatus.ts.
   // This ensures fallback logic (e.g. SECOND_APRON falls back to firstApron when secondApron
-  // is unavailable) stays in sync with trade-time validation.
+  // is unavailable) stays in sync with the earlier projection-time legality owner.
   const hardCapTypeKey = inferredSecondApron
     ? HARD_CAP_TYPES.SECOND_APRON
     : HARD_CAP_TYPES.FIRST_APRON;
-  const { hardCapCeiling } = resolveHardCapCeilingShared(hardCapTypeKey, {
+  const { hardCapCeiling } = resolveSharedHardCapCeiling(hardCapTypeKey, {
     firstApron: firstApron ?? undefined,
     secondApron: secondApron ?? undefined,
   });
@@ -184,6 +192,50 @@ function resolveHardCapCeiling({
     level: inferredSecondApron ? 'secondApron' : 'firstApron',
     ceiling: hardCapCeiling,
   };
+}
+
+/**
+ * Later-layer hard-cap re-verification against authoritative final totals.
+ * Earlier projected legality remains owned by hardCapValidation.ts; this helper only compares the
+ * final derived hard-cap status against the final post-mutation salary artifact.
+ */
+function runFinalStateHardCapRecheck({
+  teamCode,
+  team,
+  teamSalary,
+  afterTotals,
+  rulesContext,
+  violations,
+}: {
+  teamCode: string;
+  team: AnyRecord;
+  teamSalary: number | null;
+  afterTotals: AnyRecord;
+  rulesContext: AnyRecord;
+  violations: PostStateCapValidationIssue[];
+}) {
+  const hardCapStatus = getFinalStateHardCapRecheckStatus({
+    teamCode,
+    team,
+    totals: afterTotals,
+    rulesContext,
+  });
+
+  if (
+    hardCapStatus.isHardCapped &&
+    hardCapStatus.ceiling !== null &&
+    teamSalary !== null &&
+    teamSalary > hardCapStatus.ceiling
+  ) {
+    violations.push({
+      code: 'HARD_CAP_EXCEEDED',
+      teamCode,
+      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+      message: `Team ${teamCode} exceeds ${hardCapStatus.level || 'hard cap'} ceiling.`,
+      expected: hardCapStatus.ceiling,
+      actual: teamSalary,
+    });
+  }
 }
 
 function validateTotalsSanity({
@@ -248,11 +300,10 @@ function validateTotalsSanity({
 /**
  * Category 2: Mirrored final-state legality re-checks.
  *
- * These checks re-verify rules that are ALSO enforced earlier in the validation
- * pipeline (e.g. trade-time hard-cap enforcement, pre-trade roster validation).
- * They exist here as a deliberate final-state safety net — if an earlier stage
- * is bypassed or produces stale results, these catch the discrepancy against
- * the authoritative post-mutation snapshots.
+ * These checks re-verify rules that are ALSO enforced earlier in the validation pipeline.
+ * Earlier layers decide projected legality before a mutation is finalized; this later layer keeps
+ * a separate final-state safety net against authoritative post-mutation snapshots and totals.
+ * Shared hard-cap ceiling fallback policy remains owned by hardCapStatus.ts.
  *
  * Codes: HARD_CAP_EXCEEDED, ROSTER_MAX_EXCEEDED, ROSTER_MIN_VIOLATED, TWO_WAY_LIMIT_EXCEEDED
  */
@@ -275,29 +326,16 @@ function runMirroredFinalStateLegalityRechecks({
   players: AnyRecord[];
   violations: PostStateCapValidationIssue[];
 }) {
-  // Hard-cap ceiling re-check (mirrors trade-time hard-cap enforcement in validateTrade/hardCapStatus)
-  const hardCapStatus = resolveHardCapCeiling({
+  // Later-layer hard-cap re-verification against final artifacts.
+  // Earlier projected legality remains in tradeMachine/rules/hardCapValidation.ts.
+  runFinalStateHardCapRecheck({
     teamCode,
     team,
-    totals: afterTotals,
+    teamSalary,
+    afterTotals,
     rulesContext,
+    violations,
   });
-
-  if (
-    hardCapStatus.isHardCapped &&
-    hardCapStatus.ceiling !== null &&
-    teamSalary !== null &&
-    teamSalary > hardCapStatus.ceiling
-  ) {
-    violations.push({
-      code: 'HARD_CAP_EXCEEDED',
-      teamCode,
-      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
-      message: `Team ${teamCode} exceeds ${hardCapStatus.level || 'hard cap'} ceiling.`,
-      expected: hardCapStatus.ceiling,
-      actual: teamSalary,
-    });
-  }
 
   // Roster limit re-checks (mirror trade-time roster validation in computeRosterValidation)
   // Only run when the players array was explicitly provided.
@@ -524,7 +562,9 @@ function runPostStateArtifactValidation({
  *
  *   Category 2 — Mirrored final-state legality re-checks (runMirroredFinalStateLegalityRechecks)
  *     HARD_CAP_EXCEEDED, ROSTER_MAX_EXCEEDED, ROSTER_MIN_VIOLATED, TWO_WAY_LIMIT_EXCEEDED
- *     These re-verify rules already enforced at trade/projection time as a final safety net.
+ *     Earlier layers own projected legality; this later layer re-verifies final-state legality
+ *     against authoritative post-mutation artifacts. Shared hard-cap ceiling fallback stays in
+ *     hardCapStatus.ts.
  *
  *   Category 3 — Warning-only observational checks (collectFinalStateWarnings)
  *     SALARY_FLOOR_NOT_MET, LUXURY_TAX_EXCEEDED

@@ -50,6 +50,14 @@ type HardCapValidationContext = TeamContext & {
 };
 
 type HardCapLegacyType = NonNullable<AuthoritativeHardCapResult['hardCapType']>;
+type ProjectedHardCapEnforcementContext = {
+  hardCapTypeCanonical: ReturnType<typeof getHardCapStatus>['hardCapType'];
+  hardCapTypeForCeiling: ReturnType<typeof getHardCapStatus>['hardCapType'];
+  hardCapType: HardCapLegacyType | null;
+  hardCapLimit: number | null;
+  hardCapLabel: string | null;
+  isUnknownFailClosed: boolean;
+};
 
 function toFiniteNumber(value: unknown): number {
   const numericValue = Number(value);
@@ -78,6 +86,50 @@ function isDevEnvironment(): boolean {
   );
 }
 
+function getProjectedHardCapEnforcementContext({
+  hardCapStatus,
+  firstApron,
+  secondApron,
+}: {
+  hardCapStatus: ReturnType<typeof getHardCapStatus>;
+  firstApron: number;
+  secondApron: number;
+}): ProjectedHardCapEnforcementContext {
+  const hardCapTypeCanonical = hardCapStatus.isHardCapped
+    ? hardCapStatus.hardCapType
+    : null;
+  const isUnknownFailClosed = hardCapTypeCanonical === HARD_CAP_TYPES.UNKNOWN;
+  const hardCapTypeForCeiling = isUnknownFailClosed
+    ? HARD_CAP_TYPES.FIRST_APRON
+    : hardCapTypeCanonical;
+
+  let hardCapType: HardCapLegacyType | null = null;
+  let hardCapLabel: string | null = null;
+
+  if (hardCapTypeForCeiling === HARD_CAP_TYPES.SECOND_APRON) {
+    hardCapType = 'SecondApron';
+    hardCapLabel = secondApron > 0 ? '2nd Apron' : '1st Apron (fallback)';
+  } else if (hardCapTypeForCeiling === HARD_CAP_TYPES.FIRST_APRON) {
+    hardCapType = 'FirstApron';
+    hardCapLabel = firstApron > 0 ? '1st Apron' : '2nd Apron (fallback)';
+  }
+
+  return {
+    hardCapTypeCanonical,
+    hardCapTypeForCeiling,
+    hardCapType,
+    hardCapLimit: hardCapStatus.hardCapCeiling,
+    hardCapLabel: hardCapStatus.hardCapCeiling !== null ? hardCapLabel : null,
+    isUnknownFailClosed,
+  };
+}
+
+/**
+ * Canonical projected hard-cap legality owner.
+ * This function decides whether the proposed transaction is legal against projected salary totals.
+ * Final-state hard-cap re-verification against authoritative post-mutation artifacts remains in
+ * postStateCapValidator.ts and must stay separate.
+ */
 export function validateHardCap(
   team: HardCapValidationTeam | null | undefined,
   context: HardCapValidationContext = {}
@@ -155,10 +207,6 @@ export function validateHardCap(
     },
   });
 
-  let hardCapTypeCanonical = hardCapStatus.isHardCapped
-    ? hardCapStatus.hardCapType
-    : null;
-
   if (!hardCapStatus.isHardCapped) {
     return {
       passed: true,
@@ -175,27 +223,18 @@ export function validateHardCap(
     };
   }
 
-  const isUnknownFailClosed = hardCapTypeCanonical === HARD_CAP_TYPES.UNKNOWN;
-  const hardCapTypeForCeiling = isUnknownFailClosed
-    ? HARD_CAP_TYPES.FIRST_APRON
-    : hardCapTypeCanonical;
-  const hardCapType: HardCapLegacyType | null =
-    hardCapTypeForCeiling === HARD_CAP_TYPES.SECOND_APRON
-      ? 'SecondApron'
-      : hardCapTypeForCeiling === HARD_CAP_TYPES.FIRST_APRON
-        ? 'FirstApron'
-        : null;
-
-  let hardCapLimit: number | null = null;
-  let hardCapLabel: string | null = null;
-
-  if (hardCapTypeForCeiling === HARD_CAP_TYPES.SECOND_APRON) {
-    hardCapLimit = secondApron > 0 ? secondApron : actualFirstApron;
-    hardCapLabel = secondApron > 0 ? '2nd Apron' : '1st Apron (fallback)';
-  } else if (hardCapTypeForCeiling === HARD_CAP_TYPES.FIRST_APRON) {
-    hardCapLimit = actualFirstApron > 0 ? actualFirstApron : secondApron;
-    hardCapLabel = actualFirstApron > 0 ? '1st Apron' : '2nd Apron (fallback)';
-  }
+  const {
+    hardCapTypeCanonical,
+    hardCapTypeForCeiling,
+    hardCapType,
+    hardCapLimit,
+    hardCapLabel,
+    isUnknownFailClosed,
+  } = getProjectedHardCapEnforcementContext({
+    hardCapStatus,
+    firstApron: actualFirstApron,
+    secondApron,
+  });
 
   const normalizedProjectedSalary = toFiniteNumber(projectedSalary);
 

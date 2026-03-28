@@ -136,6 +136,45 @@ describe('postStateCapValidator behavior', () => {
     );
   });
 
+  it('re-verifies hard cap from rulesContext.hardCapByTeam against final totals', () => {
+    const result = validatePostStateCapLegality(
+      makeInput({
+        afterTeamsByCode: {
+          BOS: {
+            teamCode: 'BOS',
+          },
+        },
+        afterTotalsByTeam: {
+          BOS: makeTotals({
+            totalCapAllocations: 181_000_000,
+          }),
+        },
+        rulesContext: {
+          capSettings: {
+            firstApron: 180_000_000,
+            secondApron: 190_000_000,
+          },
+          minimumTeamSalary: 120_000_000,
+          hardCapByTeam: {
+            BOS: {
+              isHardCapped: true,
+              hardCapLevel: 'firstApron',
+              ceiling: 180_000_000,
+            },
+          },
+        },
+      })
+    );
+
+    expect(result.valid).toBe(false);
+    const violation = result.violations.find((v) => v.code === 'HARD_CAP_EXCEEDED');
+    expect(violation).toMatchObject({
+      teamCode: 'BOS',
+      expected: 180_000_000,
+      actual: 181_000_000,
+    });
+  });
+
   // --- v1.0.0 new rule tests ---
 
   it('PSV_ROSTER_001: returns violation when standard roster exceeds 15', () => {

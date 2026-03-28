@@ -1,8 +1,10 @@
 /**
  * TM-1C CANONICAL: Hard cap status resolver (shared detection utility).
- * Detects hard cap type (FirstApron / SecondApron) and ceiling from team data.
- * Used by hardCapValidation.ts (trade-time) and validateSalaryMatching.ts (incoming ceiling).
- * Other layers must not replicate this detection logic — call getHardCapStatus() instead.
+ * getHardCapStatus() owns trade/projection-time hard-cap status detection for trade-team shapes.
+ * resolveHardCapCeiling() owns the shared hard-cap ceiling/fallback policy reused by projected
+ * trade legality and final-state re-verification.
+ * Trade-time callers should not replicate status detection, and later final-state layers should
+ * not replicate ceiling fallback policy.
  */
 import type {
   HardCapStatusResult,
@@ -174,6 +176,11 @@ function normalizeSourceLabel(source: string, rawValue: unknown): string {
   return source;
 }
 
+/**
+ * Canonical shared hard-cap ceiling resolver.
+ * This helper does not decide whether a team is hard-capped; it only maps a resolved hard-cap
+ * type to the applicable ceiling/fallback behavior.
+ */
 export function resolveHardCapCeiling(
   hardCapType: CanonicalHardCapType | null,
   capSettings: HardCapCapSettingsLike | null = {}
@@ -308,6 +315,12 @@ function buildStatus({
   };
 }
 
+/**
+ * Canonical projection-time hard-cap status resolver for trade-team inputs.
+ * Trade-time legality owners call this to determine whether projected salary must be checked
+ * against a hard-cap ceiling. Final-state re-verification uses its own shape adapter and
+ * delegates only the ceiling/fallback policy back to resolveHardCapCeiling().
+ */
 export function getHardCapStatus(
   team: HardCapStatusTeamLike | null | undefined,
   options: HardCapStatusOptions = {}
