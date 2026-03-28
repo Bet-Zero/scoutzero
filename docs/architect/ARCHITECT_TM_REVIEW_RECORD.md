@@ -1770,3 +1770,305 @@ It is about deciding whether the remaining staged families:
 - or need one more round of ownership tightening for long-term durability
 
 ---
+
+# STEP 6 — POST-STATE VALIDATION LAYER REVIEW
+
+## Scope
+
+Trade Machine — Step 6: Post-State Validation Layer Review
+
+**Date:** 2026-03-28  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Analyze the post-state validation layer that runs on authoritative mutation paths after compute/apply staging.
+
+Main questions:
+
+- what `validatePostStateCapLegality(...)` actually enforces
+- which rules are truly post-state-only
+- which checks duplicate earlier validation
+- whether this layer is still a preview/apply mismatch source
+- whether anything should be shifted or consolidated
+
+---
+
+## Executive Verdict
+
+**USEFUL AND MOSTLY CORRECT, WITH SOME INTENTIONAL DUPLICATION**
+
+The post-state layer is not random redundancy.
+
+It has two real jobs:
+
+1. **validate final post-mutation team state and totals artifacts**
+2. **re-check a small set of legality constraints against actual final snapshots**
+
+Its strongest value is not “re-running trade validation.”  
+Its strongest value is catching things that only make sense once final `afterTeamsByCode` / `afterTotalsByTeam` exist. `postStateCapValidator.ts` explicitly defines itself that way: it owns post-state team legality and post-state input sanity, and does **not** own trade-term validation, authority sequencing, world-state invariants, or persistence :contentReference[oaicite:0]{index=0}
+
+---
+
+## Where the Layer Runs
+
+For the trade path, apply-time authority uses a 5-stage chain, and Stage 5 is `POST_STATE_CAP_LEGALITY`, implemented by `runTradePostStateLegalityStage(...)`, which derives before/after totals and delegates to `validatePostStateCapLegality(...)` :contentReference[oaicite:1]{index=1}
+
+For non-trade mutation paths, `applyWorldMutation()` also runs the post-state validator after mutation validation and invariant checks, using built totals from `beforeTeamsByCode` / `afterTeamsByCode` :contentReference[oaicite:2]{index=2}
+
+So this is not just a trade-only layer. It is a broader authoritative post-state team-legality layer.
+
+---
+
+## Full Post-State Validation Breakdown
+
+`validatePostStateCapLegality(...)` currently enforces the following families:
+
+### 1. Post-state totals/input sanity
+
+These are clearly post-state-specific:
+
+- `OPERATION_ID_MISSING`
+- `TEAM_SCOPE_EMPTY`
+- `TOTALS_MISSING`
+- `TOTALS_YEAR_KEY_MISSING`
+- `TOTALS_YEAR_KEY_MISMATCH`
+- `TOTALS_NON_FINITE`
+
+These checks validate the before/after totals artifacts themselves, not trade rules. They only make sense after totals have been derived from final snapshots :contentReference[oaicite:3]{index=3}
+
+### 2. Post-state hard-cap legality
+
+The validator derives hard-cap status from actual `afterTeamsByCode` + `afterTotalsByTeam` shapes, then fails if the final team salary exceeds the resolved ceiling (`HARD_CAP_EXCEEDED`) :contentReference[oaicite:4]{index=4}
+
+### 3. Salary-floor / luxury-tax warnings
+
+These are warning-only:
+
+- `SALARY_FLOOR_NOT_MET`
+- `LUXURY_TAX_EXCEEDED`
+
+These are post-state output warnings, not trade-blocking rule families :contentReference[oaicite:5]{index=5}
+
+### 4. Final roster-count legality
+
+From the actual `team.players` array:
+
+- `ROSTER_MAX_EXCEEDED`
+- `ROSTER_MIN_VIOLATED`
+- `TWO_WAY_LIMIT_EXCEEDED`
+
+These are evaluated from final post-state players, not projected counts :contentReference[oaicite:6]{index=6}
+
+### 5. Final contract/dead-cap/exception/cap-hold schema validity
+
+Also post-state final-shape checks:
+
+- `CONTRACT_ROWS_INVALID`
+- `DEAD_CAP_INVALID`
+- `EXCEPTIONS_INVALID`
+- `CAP_HOLD_INVALID`
+
+These validate the final mutated team artifacts and supporting records that exist after compute/apply shaping :contentReference[oaicite:7]{index=7}
+
+---
+
+## Post-State-Only Rules
+
+These are the clearest **true post-state-only** checks:
+
+### A. Totals artifact sanity
+
+Why post-state-only:
+
+- requires built `beforeTotalsByTeam` / `afterTotalsByTeam`
+- checks the integrity of the computed totals payload itself
+- cannot be meaningfully enforced at raw trade-preview rule time
+
+### B. Final dead-cap / exception / cap-hold schema validity
+
+Why post-state-only:
+
+- validates the actual final team documents and sidecar structures
+- these are mutation outputs, not just trade-input legality
+
+### C. Final contract-row validity on actual mutated player contracts
+
+Why post-state-only:
+
+- validates the final stored contract rows on actual post-state players
+- especially relevant outside pure trade flows, where mutation compute may normalize or synthesize contracts
+
+### D. Salary floor / luxury tax warnings
+
+Why post-state-only:
+
+- they are observational warnings about the final team state
+- not really part of earlier trade legality
+
+---
+
+## Rules That Duplicate Earlier Validation
+
+There is some real duplication.
+
+### 1. Hard-cap legality
+
+This is checked earlier in trade validation and then re-checked again against final post-state totals.  
+That duplication looks intentional.
+
+Why:
+
+- earlier layer checks projected legality during trade validation
+- post-state layer verifies the **actual final state artifacts** still satisfy the ceiling
+
+### 2. Roster min / max / two-way limits
+
+These are also enforced earlier in trade validation, but post-state re-checks them from actual `team.players` arrays rather than projected counts :contentReference[oaicite:9]{index=9}
+
+This is duplication, but it is “projection check” vs “final-snapshot check,” not accidental same-layer duplication.
+
+---
+
+## Why These Rules Are Not Enforced Earlier
+
+### They need final computed artifacts
+
+Totals sanity, contract-row validity, cap-hold validity, dead-cap schema, and exception schema all depend on the **final mutation output**.
+
+### They validate actual final snapshots, not projections
+
+Hard cap and roster counts earlier are projection-based.  
+Post-state re-runs them against actual final `afterTeamsByCode` / `afterTotalsByTeam`.
+
+### They are shared across mutation families
+
+This validator is a shared authoritative world-mutation layer, not just a trade validator. Keeping these checks here lets non-trade mutations reuse the same post-state team-legality contract
+
+---
+
+## Can This Layer Reject Trades Preview Marked Legal?
+
+### Important nuance
+
+**For the modern trade path, this layer is no longer the main preview/apply mismatch source.**
+
+Reason:
+
+- preview authority already includes the same Stage 5 post-state legality model
+- apply authority also includes Stage 5 post-state legality
+- the preview/apply mismatch source is now mostly the **world-state-only gates** in stages 2–4, not Stage 5 :contentReference[oaicite:11]{index=11}
+
+### So the real answer is
+
+- **Yes, post-state validation can reject a trade that snapshot-stage validation alone would have considered legal**
+- **No, it should usually not reject a trade that the canonical preview authority already marked legal**, unless the preview/apply inputs differ or some non-preview path bypasses the canonical preview surface
+
+That is a good sign. It means Stage 5 is now aligned between preview and apply.
+
+---
+
+## Risk Assessment
+
+### Overall risk
+
+**LOW to MODERATE**
+
+### Strengths
+
+- clear ownership boundary
+- shared across mutation families
+- validates real final state, not just projections
+- catches malformed post-compute artifacts
+- no longer appears to be the main preview/apply trust-gap source
+
+### Risks / weaknesses
+
+- some duplication with earlier trade validation remains
+- that duplication is intentional, but still adds maintenance surface
+- fixture/test brittleness is likely where callers omit `team.players` or provide partial totals shapes
+- hard-cap and roster checks living both earlier and later create some future drift risk if one side changes and the other does not
+
+---
+
+## Recommendations
+
+### Should stay where it is
+
+#### 1. Totals sanity checks
+
+Keep them here. They are genuinely post-state-only.
+
+#### 2. Final schema checks
+
+Keep:
+
+- contract rows
+- dead cap
+- exceptions
+- cap holds
+
+These belong in final-state validation, not earlier trade-rule validation.
+
+#### 3. Salary floor / luxury tax warnings
+
+Keep them here as final-state observational warnings.
+
+---
+
+### Candidate consolidation / clarification work later
+
+#### 1. Explicitly separate “post-state-only” vs “post-state re-check” categories inside the file
+
+Right now both live together. The code is fine, but the conceptual split could be clearer:
+
+- post-state-only artifact checks
+- mirrored final-state legality re-checks
+
+#### 2. Tighten shared ownership around hard-cap + roster re-check duplication
+
+Not necessarily remove duplication, but make the relationship even more explicit so future rule edits update both projection-time and final-state logic correctly.
+
+---
+
+### Should NOT be shifted earlier
+
+Do **not** move these earlier just for consolidation:
+
+- totals sanity
+- final schema validation
+- cap-hold validity
+- dead-cap/exception schema checks
+
+Those are properly final-state concerns.
+
+---
+
+## Final Conclusion
+
+The post-state validation layer is doing real work.
+
+It is **not** just dead duplication of earlier trade validation.
+
+Its best role is:
+
+- final-state artifact sanity
+- final-state schema validity
+- a last legality verification against actual computed team state
+
+The duplication that remains is mostly in:
+
+- hard cap
+- roster counts
+
+That duplication appears intentional and defensible.
+
+So Step 6 does **not** reveal a broken post-state layer.  
+It reveals a layer that is mostly correct, but would benefit from a future clarity pass separating:
+
+- **true post-state-only checks**
+- from **mirrored final-state legality re-checks**
+
+---

@@ -772,3 +772,140 @@ This is an **ownership-clarity and consolidation step**, not a business-rules re
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 6 — ACTION BREAKDOWN
+
+## Post-State Validation Layer Review
+
+---
+
+## TM-6A — Separate True Post-State-Only Checks from Mirrored Final-State Re-Checks
+
+### Problem
+
+`validatePostStateCapLegality(...)` currently mixes two different categories of validation in one layer:
+
+- checks that are genuinely post-state-only
+- checks that re-verify legality already enforced earlier using final snapshots
+
+### Why It Matters
+
+- Makes the layer harder to reason about
+- Blurs the difference between:
+  - final artifact sanity
+  - final-state schema validity
+  - mirrored legality enforcement
+- Increases the chance that future contributors misunderstand what should or should not be duplicated earlier
+
+### Goal
+
+Make the internal structure of the post-state layer clearly distinguish:
+
+- true post-state-only validation
+- mirrored final-state legality re-checks
+
+### Success Criteria
+
+- A future contributor can quickly tell which checks only belong here
+- The duplicated/re-check families are explicitly identifiable as such
+- The layer no longer reads like one undifferentiated “everything after apply” validator
+
+---
+
+## TM-6B — Clarify Hard-Cap Re-Check Ownership Across Trade-Time vs Post-State Validation
+
+### Problem
+
+Hard-cap legality is enforced earlier in trade validation and then re-checked again post-state against final totals and derived hard-cap status.
+
+### Why It Matters
+
+- The duplication appears intentional, but the ownership boundary could still drift over time
+- Future changes could update trade-time logic without updating post-state verification, or vice versa
+- Hard-cap is one of the clearest “projection vs final-state” duplicated rule families
+
+### Goal
+
+Make the relationship between:
+
+- trade-time hard-cap validation
+- post-state hard-cap re-check validation
+
+more explicit and durable.
+
+### Success Criteria
+
+- It is obvious why both checks exist
+- The earlier layer is clearly about projected legality
+- The later layer is clearly about validating final post-state artifacts
+- Future hard-cap changes are less likely to create drift between the two layers
+
+---
+
+## TM-6C — Clarify Roster Re-Check Ownership Across Projection vs Final Player Snapshots
+
+### Problem
+
+Roster limits are enforced earlier during trade validation and then re-checked again post-state using actual final `team.players` arrays.
+
+### Why It Matters
+
+- This is another intentional duplication family, but one that can still be misread as unnecessary redundancy
+- Projection-based roster validation and final-snapshot roster validation serve different purposes
+- Future edits could accidentally weaken one side or create inconsistent thresholds/assumptions
+
+### Goal
+
+Make the ownership and reason for roster re-check staging explicit and durable.
+
+### Success Criteria
+
+- The difference between projected roster legality and final roster-snapshot legality is clear
+- Future contributors can tell why both layers exist
+- Drift risk between projection logic and final-state re-check logic is reduced
+
+---
+
+## TM-6D — Preserve the Shared Post-State Layer Role Across Mutation Families
+
+### Problem
+
+The post-state validator is shared across trade and non-trade mutation families, but its mixed responsibilities can make it tempting to over-specialize it around trade-only concerns or over-consolidate it into earlier validators.
+
+### Why It Matters
+
+- The shared post-state layer is one of the few places that validates actual final mutation outputs across mutation families
+- Moving too much out of it could weaken final-state artifact protection
+- Over-specializing it around trade could reduce reuse and clarity for non-trade paths
+
+### Goal
+
+Protect the post-state layer’s correct shared role while tightening only the parts that create real duplication/confusion.
+
+### Success Criteria
+
+- The layer remains clearly post-state-focused and mutation-family-agnostic
+- Cleanup does not collapse truly post-state-only validation into earlier rule layers
+- Shared authoritative final-state validation remains intact across mutation types
+
+---
+
+## Step 6 Summary
+
+This step focuses on:
+
+- separating true post-state-only validation from mirrored final-state legality re-checks
+- tightening ownership clarity around duplicated hard-cap and roster enforcement
+- protecting the correct shared role of the post-state layer
+- reducing future drift without removing justified final-state validation
+
+This is a **post-state ownership and staging clarity step**, not a business-rules rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---

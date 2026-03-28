@@ -50,13 +50,26 @@
 
 ## STEP 5 — Rule Ownership & Consolidation Audit
 
-| ID    | Title                                                                        | Status | Notes |
-| ----- | ---------------------------------------------------------------------------- | ------ | ----- |
-| TM-5A | Clarify TPE / Trade-Exception Lifecycle Ownership                            | DONE   | `validateTradeExceptions.ts` now owns legality + `createdTPE` seeding, `tradeExceptionLifecycle.ts` owns apply-time lifecycle + history, and `persistWorldMutation()` remains the persistence boundary. |
+| ID    | Title                                                                        | Status | Notes                                                                                                                                                                                                                                                                                                                     |
+| ----- | ---------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TM-5A | Clarify TPE / Trade-Exception Lifecycle Ownership                            | DONE   | `validateTradeExceptions.ts` now owns legality + `createdTPE` seeding, `tradeExceptionLifecycle.ts` owns apply-time lifecycle + history, and `persistWorldMutation()` remains the persistence boundary.                                                                                                                   |
 | TM-5B | Clarify Sign-and-Trade Ownership Across Signing vs Trade Phases              | DONE   | `validateSignAndTradeSigningPhase()` now owns the SAT signing-stage adapter, `buildSignAndTradeTradeHandoff()` owns the signed-player handoff into `buildTradeApplyPreparation()`, trade legality remains in `validateTrade()` / `validateSignAndTrade()`, and `persistWorldMutation()` remains the persistence boundary. |
-| TM-5C | Separate Non-Trade Mutation Validation Ownership from Pipeline Orchestration | DONE   | `mutationPipeline.ts` now stays on orchestration, `nonTradeMutationValidationStage.ts` owns non-trade validation-stage adaptation/dispatch, and the mutation-specific rule owners remain in `capLegalityValidation.ts`. |
-| TM-5D | Preserve Intentional Staging and Leave Safe Ownership Boundaries Alone       | DONE   | Strengthened canonical-vs-supporting ownership docblocks, added TM-5D guardrail coverage for helper-import drift, and preserved the existing staged boundaries without changing business rules. |
+| TM-5C | Separate Non-Trade Mutation Validation Ownership from Pipeline Orchestration | DONE   | `mutationPipeline.ts` now stays on orchestration, `nonTradeMutationValidationStage.ts` owns non-trade validation-stage adaptation/dispatch, and the mutation-specific rule owners remain in `capLegalityValidation.ts`.                                                                                                   |
+| TM-5D | Preserve Intentional Staging and Leave Safe Ownership Boundaries Alone       | DONE   | Strengthened canonical-vs-supporting ownership docblocks, added TM-5D guardrail coverage for helper-import drift, and preserved the existing staged boundaries without changing business rules.                                                                                                                           |
 
 **STEP STATUS: DONE**
+
+---
+
+## STEP 6 — Post-State Validation Layer Review
+
+| ID    | Title                                                                          | Status | Notes |
+| ----- | ------------------------------------------------------------------------------ | ------ | ----- |
+| TM-6A | Separate True Post-State-Only Checks from Mirrored Final-State Re-Checks       | TODO   |       |
+| TM-6B | Clarify Hard-Cap Re-Check Ownership Across Trade-Time vs Post-State Validation | TODO   |       |
+| TM-6C | Clarify Roster Re-Check Ownership Across Projection vs Final Player Snapshots  | TODO   |       |
+| TM-6D | Preserve the Shared Post-State Layer Role Across Mutation Families             | TODO   |       |
+
+**STEP STATUS: TODO**
 
 ---
