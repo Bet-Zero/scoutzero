@@ -13,6 +13,8 @@
  *                        explicitly omitting only world-state gates.
  *  - 2026-03-27: TM-3E - Grouped world-state-only gates and narrowed
  *                        canonical-vs-supporting surface discoverability.
+ *  - 2026-03-28: TM-5D - Strengthened canonical-vs-supporting boundary
+ *                        guidance so safe staging is harder to collapse.
  *
  * AUTHORITY CHAIN (5 stages, short-circuits on first failure):
  *  1. SNAPSHOT_VALIDATION     — evaluateTradeSnapshotValidationStage (adapts prepared trade verdict)
@@ -28,6 +30,14 @@
  * OWNERSHIP:
  * - This module owns sequencing, short-circuit behavior, warning aggregation, and audit artifacts.
  * - This module does NOT own trade rules, post-state cap rules, or world invariants themselves.
+ *
+ * CANONICAL SURFACES VS SUPPORTING HELPERS:
+ * - Canonical execution authority surface: validateTradeExecutionAuthority().
+ * - Canonical preview surface lives in tradeContext.ts as getTradePreviewAuthority().
+ * - Supporting helpers in this file remain intentionally separate supporting-stage
+ *   surfaces. They make stage ownership explicit and should not be promoted into
+ *   new peer public authorities, folded into persistence, or used to blur the
+ *   preview/apply boundary.
  */
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -280,6 +290,8 @@ function normalizeValidationIssues(
  * Supporting Stage 1 adapter shared by preview and execution authority.
  * Canonical callers should use getTradePreviewAuthority() or
  * validateTradeExecutionAuthority(), not this stage helper directly.
+ *
+ * This is a supporting-stage surface, not a new canonical public authority.
  */
 export function evaluateTradeSnapshotValidationStage({
   validatedTradeContext,
@@ -313,6 +325,10 @@ export function evaluateTradeSnapshotValidationStage({
  * Supporting Stage 5 delegator shared by preview and execution authority.
  * Canonical callers should use getTradePreviewAuthority() or
  * validateTradeExecutionAuthority(), not this stage helper directly.
+ *
+ * This is a supporting-stage surface, not a new canonical public authority.
+ * It owns post-state input derivation only; validatePostStateCapLegality()
+ * remains the rule owner.
  */
 export function runTradePostStateLegalityStage({
   operationId,
@@ -404,6 +420,9 @@ function runTradePostStateLegalityStageFromComputeResult({
 /**
  * Supporting preview-stage surface reused by the canonical preview entrypoint.
  * The discoverable preview authority surface is getTradePreviewAuthority().
+ *
+ * This is a supporting-stage surface, not a new canonical public preview
+ * authority.
  */
 export function validateTradePreviewAuthority({
   seasonId,
@@ -526,6 +545,10 @@ function buildFailure(
 /**
  * Apply-only gates that require live world reads and therefore remain outside
  * preview authority.
+ *
+ * This is a supporting apply-only gate group behind
+ * validateTradeExecutionAuthority(), not a standalone replacement authority
+ * surface.
  */
 async function validateTradeWorldStateAuthorityGates({
   worldId,

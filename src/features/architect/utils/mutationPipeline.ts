@@ -22,7 +22,9 @@
  * 3) UI components and hooks MUST NOT write to Firestore directly
  * 4) World context (worldId) MUST be respected for all reads and writes
  * 5) The pipeline must be movable into Cloud Functions later with minimal rewrite
- * 6) Trade validation follows: prepare → compute/persist (Phase 56/58, TM-3B)
+ * 6) Trade validation follows the staged chain:
+ *    buildTradeApplyPreparation → validateTradeExecutionAuthority →
+ *    persistWorldMutation (Phase 56/58, TM-3B/TM-5D)
  *
  * MUTATION TYPES SUPPORTED:
  * - executeTrade
@@ -3723,6 +3725,8 @@ export async function applyWorldMutation({
     if (mutationType === 'executeTrade') {
       // TM-3A: Trade Execution Authority — all 5 apply-time legality gates
       // composed in one discoverable surface (tradeContext/tradeExecutionAuthority.ts).
+      // TM-5D: The staged trade chain remains intentional and should not be
+      // collapsed: prepared context -> execution authority -> persist boundary.
       const tradeExecutionAuthorityResult = await validateTradeExecutionAuthority({
         worldId,
         operationId,
@@ -6566,6 +6570,11 @@ function computeSetExceptionsResult({
  * IMPORTANT: This function blocks persistence when violations exist.
  * There is no bypass mechanism - illegal states cannot be persisted.
  *
+ * For executeTrade, this function only exposes a compatibility-stage adapter
+ * over the prepared trade context. It is not the canonical trade execution
+ * authority surface; applyWorldMutation() keeps the prepared context →
+ * execution authority → persist boundary chain.
+ *
  * @param {Object} params
  * @param {string} [params.asOfDate] - Phase 20: World time SSOT
  * @param {boolean} [params.dateDefaulted] - Phase 20: True if asOfDate was defaulted
@@ -6592,8 +6601,12 @@ export function validateMutation({
     });
   }
 
-  // Trade validation uses the full Trade Machine
+  // Trade validation uses the prepared Trade Machine context.
   if (mutationType === 'executeTrade') {
+    // This remains a compatibility-stage adapter for callers that still route
+    // through validateMutation(). It is NOT the canonical execution surface.
+    // applyWorldMutation() must continue to use:
+    // prepared context -> validateTradeExecutionAuthority() -> persistWorldMutation().
     // Phase 56+/TM-3B: Trade validation MUST have already occurred via
     // buildTradeApplyPreparation, which attaches _validatedTradeContext.
     // TM-3C: The authority layer owns the stage-1 verdict adapter for that context.
@@ -6676,6 +6689,11 @@ export function validateMutation({
 /**
  * Persist mutation to Firestore.
  * THIS IS THE ONLY PLACE THAT WRITES TO FIRESTORE FOR MUTATIONS.
+ * It owns sanitization, persistence contract enforcement, canonical writes,
+ * and event emission only.
+ *
+ * It must not absorb legality/business-rule ownership, authority sequencing,
+ * or mutation computation.
  *
  * @param {Object} params
  * @returns {Promise<{success: boolean, worldPatch?: Object, event?: Object, error?: string}>}

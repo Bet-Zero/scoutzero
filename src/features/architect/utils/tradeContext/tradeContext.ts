@@ -8,6 +8,8 @@
  *  - 2026-01-30: Phase 59 - Moved validateTradeForContext to legacy/ namespace
  *  - 2026-03-27: TM-3E - Added canonical preview authority naming and
  *                        clarified preparation-vs-authority boundary.
+ *  - 2026-03-28: TM-5D - Clarified canonical preparation and preview
+ *                        ownership boundaries so safe staging is preserved.
  *
  * LINKS:
  *  - Master Doc: docs/architect/CAP_SHEET_MUTATIONS_VALIDATION_MASTER_DOC.md
@@ -21,9 +23,15 @@
  * prepared validated context handoff:
  * - buildPostTradeTeamsSnapshot(): Pure function that applies roster moves
  * - validatePostTradeSnapshotForContext(): Validates snapshot and returns context
- * - buildTradeApplyPreparation(): Centralizes the snapshot → validate handoff
+ * - buildTradeApplyPreparation(): Canonical preparation handoff only
  * - buildSignAndTradeTradeHandoff(): SAT-specific handoff into trade preparation
- * - getFullLegalityPreview(): Execution-authority preview minus world-state gates
+ * - getTradePreviewAuthority(): Canonical preview authority surface
+ *
+ * INTENTIONAL STAGING BOUNDARIES:
+ * - Preparation stays separate from execution authority so preview/apply can
+ *   reuse the same prepared trade context without blurring final legality.
+ * - Preview stays separate from apply because it intentionally omits the live
+ *   world-state-only gates and never crosses into persistence.
  *
  * Legacy convenience wrapper (validateTradeForContext) moved to ./legacy/ in Phase 59.
  *
@@ -1115,8 +1123,11 @@ export function buildSignAndTradeTradeHandoff({
 
 /**
  * Canonical trade-apply preparation handoff. Builds the post-trade snapshot
- * and validated context consumed by compute and authority surfaces; it does
- * not determine final execution legality.
+ * and validated context consumed by compute and authority surfaces.
+ *
+ * This function is the canonical preparation handoff. It does NOT determine
+ * final execution legality, run live world-state-only gates, or persist
+ * anything.
  */
 export function buildTradeApplyPreparation({
   payload,
@@ -1203,10 +1214,11 @@ type TradePreviewAuthorityParams = {
   preparation?: TradeApplyPreparation;
 };
 
-// TM-3D/TM-3E: Canonical preview authority surface.
-// Preview mirrors execution authority as:
+// TM-3D/TM-3E/TM-5D: Canonical preview authority surface.
+// Preview mirrors apply across the shared non-live stages only:
 // prepare -> snapshot stage -> post-state stage.
-// The three world-state gates remain intentionally excluded from preview.
+// Preview intentionally omits the live world-state-only gates and never
+// replaces apply authority or persistence.
 export function getTradePreviewAuthority({
   payload,
   currentState,

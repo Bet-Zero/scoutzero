@@ -2,6 +2,13 @@
  * FILE: src/features/architect/utils/capLegality/postStateCapValidator.ts
  * PURPOSE: Shared post-state cap validator contract for authoritative world mutations.
  * OWNERSHIP: Feature: architect/core
+ *
+ * OWNERSHIP CONTRACT:
+ * - This file owns post-state team legality rules and post-state input sanity
+ *   for the before/after team snapshots and totals it receives.
+ * - This file does NOT own trade-term validation, authority sequencing,
+ *   live world-state invariants, or persistence.
+ * - This file must not absorb sequencing or persistence concerns.
  */
 
 import {
@@ -238,14 +245,16 @@ function validateTotalsSanity({
   }
 }
 
+/**
+ * Canonical post-state team legality validator.
+ *
+ * This file owns post-state team legality only. It must not absorb authority
+ * sequencing, trade-term validation, world-state invariants, or persistence
+ * concerns.
+ */
 export function validatePostStateCapLegality(
   input: PostStateCapValidationInput
 ): PostStateCapValidationResult {
-  // Ownership boundary:
-  // - Owns post-mutation team legality rules and post-state input sanity for the
-  //   before/after team snapshots and totals it receives.
-  // - Does NOT own trade-term validation, authority-stage sequencing, or
-  //   world-state invariant checks such as league/entitlement exclusivity.
   const violations: PostStateCapValidationIssue[] = [];
   const warnings: PostStateCapValidationIssue[] = [];
 
