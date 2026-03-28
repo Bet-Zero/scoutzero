@@ -366,6 +366,16 @@ function computeCanonicalTotalCapAllocations({
   );
 }
 
+/**
+ * Canonical Cap Sheet totals owner.
+ *
+ * Use computeTeamCapTotals(...) when a caller needs totalCapAllocations,
+ * dead money, cap holds, incomplete roster charges, cap/tax/apron thresholds,
+ * or threshold deltas.
+ *
+ * Do not use computeTeamCapTotals(...) for player-only validation/projection
+ * math. Those narrower helpers are allowed to exist separately.
+ */
 export function computeTeamCapTotals(
   teamCapSheet: TeamCapSheetLike | null | undefined,
   selectedYear: number,

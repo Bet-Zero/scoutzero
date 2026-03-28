@@ -267,14 +267,14 @@ export const buildSigningGuardrails = (
 };
 
 /**
- * Calculate player-only team cap hit for a given year.
- * Uses shared calculateTeamCapHit with getContractYearSlice adapter.
+ * CAP-MATH OWNERSHIP
  *
- * This remains a validation helper, not a canonical Cap Sheet totals surface.
- * It intentionally excludes dead money, cap holds, incomplete roster charges,
- * thresholds, and delta outputs that belong to computeTeamCapTotals(...).
+ * useCapValidation owns action-specific UI validation math only.
+ * calculateValidationPlayerOnlyCapHit(...) intentionally stays player-only.
+ * When validation needs canonical Cap Sheet allocations, use
+ * computeTeamCapTotals(...) instead.
  */
-const calculateTeamCapHitLocal = (
+const calculateValidationPlayerOnlyCapHit = (
   players: UseCapValidationPlayer[] | null | undefined,
   year: number
 ) => {
@@ -328,7 +328,10 @@ export function useCapValidation({
 
     const capSettings = getResolvedCapSettings(actionYear);
     const teamPlayers = teamCapSheet?.players || [];
-    const yearCapHit = calculateTeamCapHitLocal(teamPlayers, actionYear);
+    const playerOnlyActionYearCapHit = calculateValidationPlayerOnlyCapHit(
+      teamPlayers,
+      actionYear
+    );
 
     const tax = capSettings.tax ?? Number.POSITIVE_INFINITY;
     const firstApron = capSettings.firstApron ?? Number.POSITIVE_INFINITY;
@@ -357,9 +360,10 @@ export function useCapValidation({
 
       if (action === 'accept' && targetYear === resolvedCurrentYear + 1) {
         // Calculate what the cap hit would be IF this option is exercised
-        // The player's salary is already in yearCapHit if they have contract for that year
+        // The player's salary is already in the player-only baseline if they
+        // have contract for that year.
         // So we don't need to add it again - the team already committed this
-        const projectedCap = yearCapHit;
+        const projectedCap = playerOnlyActionYearCapHit;
 
         // Show cap impact for the option YEAR (not current year)
         if (projectedCap > secondApron) {
@@ -460,10 +464,8 @@ export function useCapValidation({
 
     // ===== RE-SIGNING FREE AGENTS =====
     if (action === 'resign' || (action === 'signNew' && !authoritativeOfferSheetMode)) {
-      const currentYearCapHit = calculateTeamCapHitLocal(
-        teamPlayers,
-        resolvedCurrentYear
-      );
+      const playerOnlyCurrentYearCapHit =
+        calculateValidationPlayerOnlyCapHit(teamPlayers, resolvedCurrentYear);
       const currentCapSettings = getResolvedCapSettings(resolvedCurrentYear);
       const guardrails =
         contractData.guardrails ||
@@ -484,7 +486,7 @@ export function useCapValidation({
       );
       const proposedSalary =
         (salaries.length ? salaries[0] : null) || contractData.base || 0;
-      const projectedCap = currentYearCapHit + proposedSalary;
+      const projectedCap = playerOnlyCurrentYearCapHit + proposedSalary;
 
       if (guardrails) {
         if (
@@ -548,7 +550,8 @@ export function useCapValidation({
 
       // Check if team has cap room
       const hasCapRoom =
-        currentYearCapHit < (currentCapSettings.cap ?? Number.POSITIVE_INFINITY);
+        playerOnlyCurrentYearCapHit <
+        (currentCapSettings.cap ?? Number.POSITIVE_INFINITY);
 
       if (!hasCapRoom && proposedSalary > 0) {
         // Over cap - check exception eligibility

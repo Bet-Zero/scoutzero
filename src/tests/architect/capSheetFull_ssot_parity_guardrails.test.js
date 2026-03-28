@@ -11,14 +11,19 @@
  *    1. CapSheetFull.tsx imports computeTeamCapTotals
  *    2. CapSheetFull.tsx does NOT contain local reduce salary summation
  *    3. computeTeamCapTotals.ts declares explicit included/excluded ownership lists
+ *    4. computeTeamCapTotals.ts declares canonical-owner usage fence
+ *    5. calculateTeamCapHit(...) is fenced as player-only validation math
+ *    6. useCapValidation.ts declares validation-only cap-math ownership
+ *    7. capLegalityValidation.ts declares action-specific validation ownership
  *
  * B) Behavioral guardrails:
- *    4. yearTotals match computeTeamCapTotals.totalCapAllocations for team with dead money
- *    5. Dead money IS included in total (regression guard)
- *    6. Incomplete roster charges ARE included in total (regression guard)
- *    7. Cap holds ARE included in total
- *    8. Adjacent exception/TPE/hard-cap surfaces do NOT alter canonical totals
- *    9. computeTeamCapTotals uses team.players (not team.roster) for salary computation
+ *    8. yearTotals match computeTeamCapTotals.totalCapAllocations for team with dead money
+ *    9. Dead money IS included in total (regression guard)
+ *    10. Incomplete roster charges ARE included in total (regression guard)
+ *    11. Cap holds ARE included in total
+ *    12. Adjacent exception/TPE/hard-cap surfaces do NOT alter canonical totals
+ *    13. calculateTeamCapHit stays player-only while computeTeamCapTotals includes full allocations
+ *    14. computeTeamCapTotals uses team.players (not team.roster) for salary computation
  */
 
 import { describe, it, expect } from 'vitest';
@@ -26,6 +31,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { calculateTeamCapHit } from '@/features/architect/utils/capHelpers';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +44,21 @@ const CAP_SHEET_FULL_PATH = path.resolve(
 const COMPUTE_TOTALS_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/capTotals/computeTeamCapTotals.ts'
+);
+
+const CAP_HELPERS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capHelpers.ts'
+);
+
+const USE_CAP_VALIDATION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/hooks/useCapValidation.ts'
+);
+
+const CAP_LEGALITY_VALIDATION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation.ts'
 );
 
 const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
@@ -68,6 +89,15 @@ function createPlayers(count, salary = 5_000_000) {
 describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
   const capSheetFullSource = fs.readFileSync(CAP_SHEET_FULL_PATH, 'utf-8');
   const computeTotalsSource = fs.readFileSync(COMPUTE_TOTALS_PATH, 'utf-8');
+  const capHelpersSource = fs.readFileSync(CAP_HELPERS_PATH, 'utf-8');
+  const useCapValidationSource = fs.readFileSync(
+    USE_CAP_VALIDATION_PATH,
+    'utf-8'
+  );
+  const capLegalityValidationSource = fs.readFileSync(
+    CAP_LEGALITY_VALIDATION_PATH,
+    'utf-8'
+  );
 
   it('TEST 1: CapSheetFull imports computeTeamCapTotals', () => {
     expect(capSheetFullSource).toMatch(/import.*computeTeamCapTotals.*from/);
@@ -86,6 +116,56 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     expect(computeTotalsSource).toContain('INCLUDED IN CANONICAL TOTALS');
     expect(computeTotalsSource).toContain('EXCLUDED FROM CANONICAL TOTALS');
   });
+
+  it('TEST 4: computeTeamCapTotals declares canonical-owner usage fence', () => {
+    expect(computeTotalsSource).toContain('Canonical Cap Sheet totals owner.');
+    expect(computeTotalsSource).toContain(
+      'Use computeTeamCapTotals(...) when a caller needs totalCapAllocations,'
+    );
+    expect(computeTotalsSource).toContain(
+      'Do not use computeTeamCapTotals(...) for player-only validation/projection'
+    );
+  });
+
+  it('TEST 5: calculateTeamCapHit is fenced as player-only validation math', () => {
+    expect(capHelpersSource).toContain(
+      'calculateTeamCapHit(...) keeps a historical generic name'
+    );
+    expect(capHelpersSource).toMatch(
+      /not a Cap Sheet\s+totals authority\./
+    );
+    expect(capHelpersSource).toContain(
+      'For full Cap Sheet allocations, use computeTeamCapTotals(...).'
+    );
+  });
+
+  it('TEST 6: useCapValidation declares validation-only cap-math ownership', () => {
+    expect(useCapValidationSource).toContain('CAP-MATH OWNERSHIP');
+    expect(useCapValidationSource).toContain(
+      'useCapValidation owns action-specific UI validation math only.'
+    );
+    expect(useCapValidationSource).toContain(
+      'calculateValidationPlayerOnlyCapHit(...) intentionally stays player-only.'
+    );
+    expect(useCapValidationSource).toContain(
+      'const calculateValidationPlayerOnlyCapHit ='
+    );
+  });
+
+  it('TEST 7: capLegalityValidation declares action-specific validation ownership', () => {
+    expect(capLegalityValidationSource).toContain(
+      'This file owns action-specific validation and projection math for'
+    );
+    expect(capLegalityValidationSource).toContain(
+      'These helpers must not become alternate Cap Sheet totals authorities.'
+    );
+    expect(capLegalityValidationSource).toContain(
+      'const calculateValidationPlayerOnlyTeamCapHit ='
+    );
+    expect(capLegalityValidationSource).toContain(
+      'const computeCanonicalMutationTeamCapTotals ='
+    );
+  });
 });
 
 // ==============================================================================
@@ -93,7 +173,7 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
 // ==============================================================================
 
 describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
-  it('TEST 4: yearTotals match computeTeamCapTotals for team with dead money + players + holds', () => {
+  it('TEST 8: yearTotals match computeTeamCapTotals for team with dead money + players + holds', () => {
     const team = {
       players: createPlayers(14, 10_000_000),
       deadCap: [
@@ -131,7 +211,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBe(145_000_000);
   });
 
-  it('TEST 5: Dead money IS included in totalCapAllocations (regression guard)', () => {
+  it('TEST 9: Dead money IS included in totalCapAllocations (regression guard)', () => {
     const team = {
       players: createPlayers(14, 0), // No salary
       deadCap: [
@@ -150,7 +230,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBeGreaterThanOrEqual(7_500_000);
   });
 
-  it('TEST 6: Incomplete roster charges ARE included in totalCapAllocations', () => {
+  it('TEST 10: Incomplete roster charges ARE included in totalCapAllocations', () => {
     // Only 10 players, below minimum roster requirement
     const team = {
       players: createPlayers(10, 0),
@@ -164,7 +244,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBe(totals.incompleteChargesTotal);
   });
 
-  it('TEST 7: Cap holds ARE included in totalCapAllocations', () => {
+  it('TEST 11: Cap holds ARE included in totalCapAllocations', () => {
     const team = {
       players: createPlayers(14, 0),
       deadCap: [],
@@ -186,7 +266,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBe(5_000_000);
   });
 
-  it('TEST 8: adjacent exception/TPE/hard-cap surfaces do NOT alter canonical totals', () => {
+  it('TEST 12: adjacent exception/TPE/hard-cap surfaces do NOT alter canonical totals', () => {
     const baseTeam = {
       players: createPlayers(14, 6_000_000),
       deadCap: [
@@ -227,7 +307,46 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(adjacentTotals).toEqual(baseTotals);
   });
 
-  it('TEST 9: computeTeamCapTotals reads from team.players, not team.roster', () => {
+  it('TEST 13: calculateTeamCapHit stays player-only while computeTeamCapTotals includes full allocations', () => {
+    const team = {
+      players: createPlayers(10, 4_000_000),
+      deadCap: [
+        {
+          playerId: 'waived-1',
+          amountByYear: [{ season: '2025-26', amount: 3_000_000 }],
+        },
+      ],
+      capHolds: [
+        {
+          playerId: 'hold-1',
+          playerName: 'Hold Player',
+          amount: 2_000_000,
+          season: '2025-26',
+          type: 'bird',
+          active: true,
+          isSigned: false,
+        },
+      ],
+    };
+
+    const playerOnlyCapHit = calculateTeamCapHit(team.players, YEAR);
+    const totals = computeTeamCapTotals(team, YEAR);
+
+    expect(playerOnlyCapHit).toBe(40_000_000);
+    expect(totals.playersTotal).toBe(playerOnlyCapHit);
+    expect(totals.deadMoneyTotal).toBe(3_000_000);
+    expect(totals.capHoldsTotal).toBe(2_000_000);
+    expect(totals.incompleteChargesTotal).toBeGreaterThan(0);
+    expect(totals.totalCapAllocations).toBe(
+      totals.playersTotal +
+        totals.deadMoneyTotal +
+        totals.capHoldsTotal +
+        totals.incompleteChargesTotal
+    );
+    expect(totals.totalCapAllocations).toBeGreaterThan(playerOnlyCapHit);
+  });
+
+  it('TEST 14: computeTeamCapTotals reads from team.players, not team.roster', () => {
     const source = fs.readFileSync(COMPUTE_TOTALS_PATH, 'utf-8');
 
     // computePlayersTotal receives "players" parameter from teamCapSheet?.players
@@ -239,7 +358,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(usesRosterForCompute).toBe(false);
   });
 
-  it('TEST 10: computeTeamCapTotals.js is absent after shim retirement', () => {
+  it('TEST 15: computeTeamCapTotals.js is absent after shim retirement', () => {
     expect(fs.existsSync(COMPUTE_TOTALS_SHIM_PATH)).toBe(false);
   });
 });

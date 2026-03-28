@@ -21,6 +21,14 @@
  * 3) Uses same patterns as Trade Machine validators for consistency
  * 4) Imported by mutationPipeline.ts for preflight validation
  *
+ * CAP-MATH OWNERSHIP CONTRACT:
+ * - This file owns action-specific validation and projection math for
+ *   non-trade mutations.
+ * - Player-only salary helpers here are allowed for validation and warnings.
+ * - This file may call computeTeamCapTotals(...) only when a rule truly needs
+ *   canonical totalCapAllocations or the full Cap Sheet allocation set.
+ * - These helpers must not become alternate Cap Sheet totals authorities.
+ *
  * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6
  */
 
@@ -333,7 +341,15 @@ const getDraftPickNumber = (draftPick: unknown): number | null => {
 const getMutationYearsOfService = (player: MutationPlayer): number =>
   getYearsOfService(player as Parameters<typeof getYearsOfService>[0]);
 
-const calculateMutationTeamCapHit = (
+/**
+ * Player-only validation salary adapter.
+ *
+ * This helper is intentionally narrower than computeTeamCapTotals(...). It is
+ * allowed to exclude dead money, cap holds, incomplete roster charges, and
+ * threshold metadata because many validation checks only need committed player
+ * salary.
+ */
+const calculateValidationPlayerOnlyTeamCapHit = (
   players: MutationPlayer[] | null | undefined,
   year: number
 ): number =>
@@ -342,7 +358,11 @@ const calculateMutationTeamCapHit = (
     year
   );
 
-const computeMutationTeamCapTotals = (team: MutationTeam, year: number) =>
+/**
+ * Canonical totals adapter for validation rules that truly need Cap Sheet
+ * allocations rather than player-only salary.
+ */
+const computeCanonicalMutationTeamCapTotals = (team: MutationTeam, year: number) =>
   computeTeamCapTotals(
     team as Parameters<typeof computeTeamCapTotals>[0],
     year
@@ -3184,7 +3204,7 @@ export function validateSigning({
     // Only enforce for cap-space signings (no exception, no Bird rights)
     if (isCapSpaceSigning(capSpaceCheckMechanism, capSpaceCheckRightsType)) {
       // Get current team cap totals (includes cap holds in totalCapAllocations)
-      const teamTotals = computeMutationTeamCapTotals(team, year);
+      const teamTotals = computeCanonicalMutationTeamCapTotals(team, year);
       const currentCapAllocations = toFiniteNumber(
         teamTotals.totalCapAllocations,
         0
@@ -3771,7 +3791,7 @@ export function validateSigning({
     if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
       const currentCapHit =
         toFiniteNumber(team.totals?.capHit, 0) ||
-        calculateMutationTeamCapHit(players, year);
+        calculateValidationPlayerOnlyTeamCapHit(players, year);
       const contractValue = toFiniteNumber(
         contract?.salariesByYear?.[0]?.salary,
         0
@@ -3794,7 +3814,7 @@ export function validateSigning({
     ) {
       const currentCapHit =
         toFiniteNumber(team.totals?.capHit, 0) ||
-        calculateMutationTeamCapHit(players, year);
+        calculateValidationPlayerOnlyTeamCapHit(players, year);
       if (currentCapHit > rules.cap.luxuryTax) {
         warnings.push({
           rule: 'mle_taxpayer',
@@ -3808,7 +3828,7 @@ export function validateSigning({
     // 4. Apron proximity warnings
     const currentCapHit =
       toFiniteNumber(team.totals?.capHit, 0) ||
-      calculateMutationTeamCapHit(players, year);
+      calculateValidationPlayerOnlyTeamCapHit(players, year);
     const contractValue = toFiniteNumber(
       contract?.salariesByYear?.[0]?.salary,
       0
@@ -4203,7 +4223,7 @@ export function validateOptionDecision({
           )?.salary || 0;
 
         const players = baselineTeam.players || [];
-        const currentCapHit = calculateMutationTeamCapHit(
+        const currentCapHit = calculateValidationPlayerOnlyTeamCapHit(
           players,
           resolvedTargetYear
         );

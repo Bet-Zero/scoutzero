@@ -243,6 +243,11 @@ interface CalculateCapHitOptions {
 
 /**
  * Calculate player-only cap hit from a players array for validation flows.
+ *
+ * calculateTeamCapHit(...) keeps a historical generic name, but it is
+ * intentionally player-only validation/projection math and not a Cap Sheet
+ * totals authority.
+ *
  * Used by validation hooks and mutation helpers that intentionally need only
  * committed player salary, not canonical Cap Sheet totals.
  *
@@ -252,6 +257,8 @@ interface CalculateCapHitOptions {
  * - Incomplete roster charges
  * - Salary-cap / tax / apron thresholds
  * - Delta outputs
+ *
+ * For full Cap Sheet allocations, use computeTeamCapTotals(...).
  *
  * @param players - Team players array
  * @param year - Season end year
