@@ -8,7 +8,10 @@
  *  - 2026-03-11: Phase E48 - Migrated authoritative implementation to TypeScript.
  */
 
-import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
+import {
+  getContractYearSlice,
+  isTwoWayContract,
+} from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import {
@@ -110,10 +113,7 @@ const num = (v: unknown): number => {
 function countStandardRoster(players?: TeamPlayerLike[] | null): number {
   if (!Array.isArray(players) || players.length === 0) return 0;
 
-  return players.filter((p) => {
-    const contractType = p?.contract?.contractType?.toLowerCase() || '';
-    return contractType !== 'two-way';
-  }).length;
+  return players.filter((player) => !isTwoWayContract(player)).length;
 }
 
 function getAmountByYearMapValue(
@@ -216,6 +216,9 @@ function computePlayersTotal(
   if (!Array.isArray(players)) return 0;
 
   return players.reduce((sum, player) => {
+    if (isTwoWayContract(player)) {
+      return sum;
+    }
     const seasonEntry = getContractYearSlice(player, endYear);
     const salary = seasonEntry?.capHit ?? seasonEntry?.salary ?? 0;
     return sum + num(salary);

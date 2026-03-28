@@ -14,6 +14,7 @@ import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import CapSheet from '@/features/architect/capSheet/CapSheet/CapSheet';
 import CapSheetFull from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
 import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSheetSection';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   DEV_CAP_SHEET_FIXTURE_FLAG,
   injectCapSheetFixtures,
@@ -42,6 +43,14 @@ function parseCurrency(value: string | null | undefined): number {
 
 function readVisibleTotalCapHit(): number {
   const label = screen.getByText(/Total Cap Hit/i);
+  const row = label.parentElement;
+  const values = row ? Array.from(row.querySelectorAll('span')) : [];
+  const rawValue = values[values.length - 1]?.textContent;
+  return parseCurrency(rawValue);
+}
+
+function readBreakdownValue(labelText: string): number {
+  const label = screen.getByText(labelText);
   const row = label.parentElement;
   const values = row ? Array.from(row.querySelectorAll('span')) : [];
   const rawValue = values[values.length - 1]?.textContent;
@@ -87,6 +96,38 @@ function buildTeamFixture(): TeamLike {
     capHolds: [],
     exceptions: {},
     totals: {},
+  };
+}
+
+function buildTeamWithNonZeroTwoWayFixture(): TeamLike {
+  const baseTeam = buildTeamFixture();
+  const twoWayId = 'two_way_non_zero';
+
+  return {
+    ...baseTeam,
+    roster: [...baseTeam.roster, twoWayId],
+    players: [
+      ...baseTeam.players,
+      {
+        id: twoWayId,
+        player_id: twoWayId,
+        name: 'two_way_non_zero',
+        displayName: 'Two-Way Prospect',
+        position: 'G',
+        contractType: 'two-way',
+        contract: {
+          contractType: 'Two-Way',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 500_000,
+              capHit: 500_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+    ],
   };
 }
 
@@ -289,5 +330,35 @@ describe('Cap Sheet UI integration flows', () => {
     });
 
     expect(readVisibleTotalCapHit()).toBe(afterDeadMoneyTotal);
+  });
+
+  it('keeps two-way row cap hit at zero and excludes stored two-way salary from canonical totals', () => {
+    const teamCapSheet = buildTeamWithNonZeroTwoWayFixture();
+    const totals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR);
+
+    render(
+      <CapSheet
+        teamCapSheet={teamCapSheet as Parameters<typeof CapSheet>[0]['teamCapSheet']}
+        currentYear={CURRENT_YEAR}
+        onSelectPlayer={() => {}}
+      />
+    );
+
+    const twoWayButton = screen.getByRole('button', {
+      name: 'Two-Way Prospect',
+    });
+    const twoWayRow = twoWayButton.closest('div.grid');
+
+    expect(twoWayRow).not.toBeNull();
+    expect(within(twoWayRow as HTMLElement).getByText('$0')).toBeInTheDocument();
+    expect(
+      within(twoWayRow as HTMLElement).getByText('$500,000')
+    ).toBeInTheDocument();
+    expect(within(twoWayRow as HTMLElement).getByText('2W')).toBeInTheDocument();
+
+    expect(totals.playersTotal).toBe(14_000_000);
+    expect(totals.totalCapAllocations).toBe(14_000_000);
+    expect(readBreakdownValue('Player Salaries')).toBe(totals.playersTotal);
+    expect(readVisibleTotalCapHit()).toBe(totals.totalCapAllocations);
   });
 });

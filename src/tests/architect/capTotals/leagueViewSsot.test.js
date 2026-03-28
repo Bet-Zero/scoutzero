@@ -206,6 +206,44 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
     expect(totals.incompleteChargesTotal).toBeGreaterThan(0);
   });
 
+  it('excludes non-zero stored two-way salaries from playersTotal', () => {
+    const mockCapSheet = {
+      players: [
+        ...createRoster(12, 10000000), // 12 standard players = $120M
+        {
+          player_id: 'two-way-1',
+          displayName: 'Two-Way Nested Type',
+          contract: {
+            contractType: 'Two-Way',
+            salariesByYear: [
+              { season: '2025-26', salary: 500000, capHit: 500000 },
+            ],
+          },
+        },
+        {
+          player_id: 'two-way-2',
+          displayName: 'Two-Way Top-Level Type',
+          contractType: 'two-way',
+          contract: {
+            salariesByYear: [
+              { season: '2025-26', salary: 750000, capHit: 750000 },
+            ],
+          },
+        },
+      ],
+      capHolds: [],
+      deadCap: [],
+    };
+
+    const totals = computeTeamCapTotals(mockCapSheet, YEAR);
+
+    expect(totals.playersTotal).toBe(120000000);
+    expect(totals.incompleteChargesTotal).toBeGreaterThan(0);
+    expect(totals.totalCapAllocations).toBe(
+      totals.playersTotal + totals.incompleteChargesTotal
+    );
+  });
+
   /**
    * Test 8: Combined scenario - all components contribute to total.
    */

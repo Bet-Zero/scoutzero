@@ -21,6 +21,7 @@ import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/compu
 import {
   getMinimumCapHit,
   getContractYearSlice,
+  isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsByEndYear, type CapHold } from '@/features/architect/utils/capHolds';
 import CapSummaryTiles from './CapSummaryTiles';
@@ -69,13 +70,6 @@ type CapSheetProps = {
   onSelectPlayer?: ((player: CapSheetPlayerLike) => void) | null;
   onSetDeadCap?: ((deadCap: unknown[]) => void) | null;
   onSetExceptions?: ((exceptions: Record<string, unknown>) => void) | null;
-};
-
-// Helper to identify two-way contracts (don't count against cap)
-const isTwoWayContract = (player: CapSheetPlayerLike | null | undefined) => {
-  const contractType =
-    player?.contractType || player?.contract?.contractType || '';
-  return contractType.toLowerCase() === 'two-way' || contractType === 'TWO-WAY';
 };
 
 const CapSheet = ({

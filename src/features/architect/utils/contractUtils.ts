@@ -49,6 +49,7 @@ interface ContractUtilsContract {
 interface ContractUtilsPlayer {
   contract?: ContractUtilsContract | null;
   futureContract?: ContractUtilsContract | null;
+  contractType?: string | null;
   bio?: {
     display?: { freeAgentYear?: number | null } | null;
     [key: string]: unknown;
@@ -89,6 +90,17 @@ type NormalizedContractYear = SalaryRowInput & {
   capHit: number;
   isExtension: boolean;
 };
+
+export function isTwoWayContract(
+  player: ContractUtilsPlayer | null | undefined
+): boolean {
+  const contractType = player?.contractType ?? player?.contract?.contractType;
+
+  return (
+    typeof contractType === 'string' &&
+    contractType.trim().toLowerCase() === 'two-way'
+  );
+}
 
 // 1. Generate any generic contract
 export function generateContract({

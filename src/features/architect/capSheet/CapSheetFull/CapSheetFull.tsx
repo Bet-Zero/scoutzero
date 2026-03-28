@@ -14,7 +14,10 @@ import type {
   PlayerRulesProfileInput,
   PlayerRulesProfileTeamCapSheet,
 } from '@/features/architect/types';
-import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
+import {
+  getContractYearSlice,
+  isTwoWayContract,
+} from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import BirdRightsIcon from '@/shared/components/BirdRightsIcon';
 
@@ -49,13 +52,6 @@ type CapSheetFullProps = {
   getRulesProfileForYear?:
     | ((player: CapSheetFullPlayerLike, year: number) => RulesProfileLike)
     | null;
-};
-
-// Helper to identify two-way contracts (don't count against cap)
-const isTwoWayContract = (player: CapSheetFullPlayerLike | null | undefined) => {
-  const contractType =
-    player?.contractType || player?.contract?.contractType || '';
-  return contractType.toLowerCase() === 'two-way' || contractType === 'TWO-WAY';
 };
 
 // Helper to normalize free agent type to display format
