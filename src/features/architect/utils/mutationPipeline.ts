@@ -3880,7 +3880,11 @@ export async function applyWorldMutation({
         );
       }
 
-      // PHASE 3.8: POST-STATE CAP VALIDATOR (world mutation gold path)
+      // PHASE 3.8: SHARED POST-STATE FINAL-ARTIFACT GATE
+      // This shared validator runs after compute has produced authoritative
+      // final artifacts and before persistence begins.
+      // The mutation-stage validators above remain required, but they are not
+      // substitutes for final-state artifact validation.
       const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
       afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
       beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);

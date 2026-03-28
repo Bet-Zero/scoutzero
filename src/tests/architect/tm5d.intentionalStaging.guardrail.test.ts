@@ -223,4 +223,38 @@ describe('TM-5D intentional staging guardrails', () => {
       'It must not absorb legality/business-rule ownership'
     );
   });
+
+  it('documents the shared post-state validator role across mutation families', () => {
+    const postStateSource = readRepoFile(
+      'src/features/architect/utils/capLegality/postStateCapValidator.ts'
+    );
+    const authoritySource = readRepoFile(
+      'src/features/architect/utils/tradeContext/tradeExecutionAuthority.ts'
+    );
+    const mutationPipelineSource = readRepoFile(
+      'src/features/architect/utils/mutationPipeline.ts'
+    );
+    const seasonManagerSource = readRepoFile(
+      'src/features/architect/utils/seasonManager.ts'
+    );
+
+    expect(postStateSource).toContain(
+      'This file is intentionally shared across mutation families.'
+    );
+    expect(postStateSource).toContain(
+      'Earlier validators feed this layer, but they are not substitutes for'
+    );
+    expect(authoritySource).toContain(
+      'That shared post-state layer is also used by non-trade apply paths, season'
+    );
+    expect(mutationPipelineSource).toContain(
+      'This shared validator runs after compute has produced authoritative'
+    );
+    expect(mutationPipelineSource).toContain(
+      'substitutes for final-state artifact validation.'
+    );
+    expect(seasonManagerSource).toContain(
+      'Season advance intentionally reuses the shared post-state final-artifact'
+    );
+  });
 });

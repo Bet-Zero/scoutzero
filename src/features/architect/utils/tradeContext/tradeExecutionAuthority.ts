@@ -327,8 +327,12 @@ export function evaluateTradeSnapshotValidationStage({
  * validateTradeExecutionAuthority(), not this stage helper directly.
  *
  * This is a supporting-stage surface, not a new canonical public authority.
- * It owns post-state input derivation only; validatePostStateCapLegality()
- * remains the rule owner.
+ * It only adapts trade outputs into the shared post-state layer;
+ * validatePostStateCapLegality() remains the rule owner.
+ *
+ * That shared post-state layer is also used by non-trade apply paths, season
+ * advance, and cap-audit event generation. This helper must not make the
+ * post-state validator trade-specific.
  */
 export function runTradePostStateLegalityStage({
   operationId,
@@ -688,8 +692,11 @@ export async function validateTradeExecutionAuthority(
 
   // =========================================================================
   // STAGE 5: POST_STATE_CAP_LEGALITY
-  // Derives post-state inputs, then delegates rule ownership to
-  // validatePostStateCapLegality().
+  // Derives trade-specific inputs into the shared late post-state layer, then
+  // delegates rule ownership to validatePostStateCapLegality().
+  // This stage stays after compute/final snapshot derivation and before
+  // persistence; non-trade apply paths and season advance use the same shared
+  // validator for final artifact verification.
   // =========================================================================
   const postStateStage = runTradePostStateLegalityStageFromComputeResult({
     operationId,

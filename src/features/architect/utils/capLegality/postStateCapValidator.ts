@@ -4,8 +4,17 @@
  * OWNERSHIP: Feature: architect/core
  *
  * OWNERSHIP CONTRACT:
+ * - This file is intentionally shared across mutation families.
+ * - Prominent live callers include tradeExecutionAuthority.ts Stage 5,
+ *   mutationPipeline.ts non-trade apply, seasonManager.ts, and
+ *   useArchitectActions.ts cap-audit event generation.
  * - This file owns post-state team legality rules and post-state input sanity
  *   for the before/after team snapshots and totals it receives.
+ * - It must run after compute has produced authoritative final artifacts and
+ *   before persistence or batch commit.
+ * - Earlier validators feed this layer, but they are not substitutes for
+ *   final-state artifact validation.
+ * - Trade is a prominent caller, not the owner of this layer.
  * - This file does NOT own trade-term validation, authority sequencing,
  *   live world-state invariants, or persistence.
  * - This file must not absorb sequencing or persistence concerns.
@@ -106,10 +115,12 @@ function getTeamSalaryFromTotals(totals: AnyRecord): number | null {
 
 /**
  * Final-state hard-cap re-check adapter.
- * Projected hard-cap legality is decided earlier in hardCapValidation.ts against projected trade
- * totals. This helper exists because the later post-state layer reads authoritative
- * afterTeamsByCode/afterTotalsByTeam shapes, then delegates shared ceiling fallback policy to
- * hardCapStatus.ts:resolveHardCapCeiling().
+ * Earlier stage-specific validators may already have projected hard-cap
+ * legality. For trade-time projections, that owner is
+ * hardCapValidation.ts against projected totals. This helper exists because
+ * the shared later post-state layer reads authoritative
+ * afterTeamsByCode/afterTotalsByTeam shapes, then delegates shared ceiling
+ * fallback policy to hardCapStatus.ts:resolveHardCapCeiling().
  */
 function getFinalStateHardCapRecheckStatus({
   teamCode,
@@ -267,10 +278,11 @@ function countFinalStateRosterFromPlayers(players: AnyRecord[]) {
  * Later-layer roster re-verification against authoritative final player
  * snapshots.
  *
- * Earlier projected legality remains owned by
- * tradeValidator.ts:computeProjectedRosterLegality(); this helper only
- * re-checks the final team.players artifact and maps shared threshold breaches
- * into post-state issue codes.
+ * Earlier stage-specific projection owners remain separate. For trade flows,
+ * that owner is tradeValidator.ts:computeProjectedRosterLegality(). This
+ * helper only re-checks the final team.players artifact and maps shared
+ * threshold breaches into post-state issue codes for whatever mutation family
+ * produced the authoritative final roster snapshot.
  */
 function runFinalStateRosterRecheck({
   teamCode,
@@ -384,9 +396,12 @@ function validateTotalsSanity({
 /**
  * Category 2: Mirrored final-state legality re-checks.
  *
- * These checks re-verify rules that are ALSO enforced earlier in the validation pipeline.
- * Earlier layers decide projected legality before a mutation is finalized; this later layer keeps
- * a separate final-state safety net against authoritative post-mutation snapshots and totals.
+ * These checks re-verify rule families that may ALSO be enforced earlier in a
+ * projection-time or mutation-stage validator. Those earlier layers remain
+ * the first legality owners for their own inputs; this later shared layer
+ * keeps a separate final-state safety net against authoritative
+ * post-mutation snapshots and totals.
+ *
  * Shared hard-cap ceiling fallback policy remains owned by hardCapStatus.ts,
  * and shared roster threshold interpretation remains owned by
  * validateRoster.ts:evaluateRosterCountsAgainstLimits().
@@ -423,8 +438,8 @@ function runMirroredFinalStateLegalityRechecks({
     violations,
   });
 
-  // Roster limit re-checks (mirror trade-time roster validation in
-  // computeProjectedRosterLegality)
+  // Roster limit re-checks mirror earlier projected roster validation.
+  // For trade flows, that earlier projection owner is computeProjectedRosterLegality().
   // Only run when the players array was explicitly provided.
   if (!hasPlayersData) {
     return;
@@ -441,8 +456,9 @@ function runMirroredFinalStateLegalityRechecks({
  * Category 3: Warning-only observational checks.
  *
  * Non-blocking surfaces that report final-state cap observations without
- * failing validation. These only make sense against post-mutation snapshots
- * because earlier projection stages may not have final salary totals.
+ * failing validation. These only make sense against the authoritative
+ * post-mutation snapshots/totals because earlier validators may not yet have
+ * final salary artifacts to inspect.
  *
  * Codes: SALARY_FLOOR_NOT_MET, LUXURY_TAX_EXCEEDED
  */
@@ -595,11 +611,18 @@ function runPostStateArtifactValidation({
 }
 
 /**
- * Canonical post-state team legality validator.
+ * Canonical shared post-state team legality validator.
  *
- * This file owns post-state team legality only. It must not absorb authority
- * sequencing, trade-term validation, world-state invariants, or persistence
- * concerns.
+ * This file owns post-state team legality only. It is intentionally shared
+ * across trade and non-trade mutation families and must remain a late-stage
+ * validator after compute has produced authoritative final artifacts and
+ * before persistence/commit.
+ *
+ * Earlier validators establish projected or mutation-input legality, but they
+ * do not replace final-state artifact validation here.
+ *
+ * This file must not absorb authority sequencing, trade-term validation,
+ * world-state invariants, or persistence concerns.
  *
  * Internal check categories (TM-6A):
  *
@@ -609,9 +632,10 @@ function runPostStateArtifactValidation({
  *
  *   Category 2 — Mirrored final-state legality re-checks (runMirroredFinalStateLegalityRechecks)
  *     HARD_CAP_EXCEEDED, ROSTER_MAX_EXCEEDED, ROSTER_MIN_VIOLATED, TWO_WAY_LIMIT_EXCEEDED
- *     Earlier layers own projected legality (`validateHardCap()` and
- *     `computeProjectedRosterLegality()`); this later layer re-verifies
- *     final-state legality against authoritative post-mutation artifacts.
+ *     Earlier layers own stage-specific projected legality (`validateHardCap()`
+ *     and `computeProjectedRosterLegality()` for the trade-time projection
+ *     path); this later layer re-verifies final-state legality against
+ *     authoritative post-mutation artifacts.
  *     Shared hard-cap ceiling fallback stays in hardCapStatus.ts, and shared
  *     roster threshold interpretation stays in
  *     validateRoster.ts:evaluateRosterCountsAgainstLimits().
@@ -697,7 +721,8 @@ export function validatePostStateCapLegality(
     const players = hasPlayersData ? (team.players as AnyRecord[]) : [];
 
     // Category 2: Mirrored final-state legality re-checks
-    // (hard cap ceiling + roster limits — re-verify rules already enforced at trade/projection time)
+    // (hard cap ceiling + roster limits — re-verify final artifacts when those
+    // rule families also have earlier projected or mutation-stage owners)
     runMirroredFinalStateLegalityRechecks({
       teamCode,
       team,

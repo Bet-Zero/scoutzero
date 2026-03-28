@@ -316,6 +316,24 @@ describe('postStateCapValidator behavior', () => {
     ).toBe(true);
   });
 
+  it('applies the same post-state artifact validation to non-trade mutation types', () => {
+    const result = validatePostStateCapLegality(
+      makeInput({
+        mutationType: 'waivePlayer',
+        afterTeamsByCode: {
+          BOS: { teamCode: 'BOS', deadCap: 'not-an-array' },
+        },
+      })
+    );
+
+    expect(result.valid).toBe(false);
+    expect(
+      result.violations.some(
+        (v) => v.code === 'DEAD_CAP_INVALID' && v.teamCode === 'BOS'
+      )
+    ).toBe(true);
+  });
+
   it('PSV_DEAD_001: passes when deadCap is a valid array', () => {
     const result = validatePostStateCapLegality(
       makeInput({

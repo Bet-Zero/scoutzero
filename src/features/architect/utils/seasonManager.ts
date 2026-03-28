@@ -959,6 +959,8 @@ export async function advanceSeasonInWorld(
       }
     }
 
+    // Season advance intentionally reuses the shared post-state final-artifact
+    // validator after all snapshots/totals are computed and before batch commit.
     const postStateValidation = validatePostStateCapLegality({
       operationId,
       mutationType: SEASON_ADVANCE_MUTATION_TYPE,
