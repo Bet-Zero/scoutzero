@@ -124,6 +124,11 @@ interface CanonicalCapTotalsInputs {
   incompleteChargesTotal: number;
 }
 
+interface DeadMoneyResolution {
+  hasCoverage: boolean;
+  total: number;
+}
+
 const num = (v: unknown): number => {
   if (v == null) return 0;
   if (typeof v === 'number') return v;
@@ -156,78 +161,179 @@ function getAmountByYearMapValue(
   return mapVal;
 }
 
+function resolveCanonicalDeadCapAmountByYearArrayForYear(
+  amountByYear: AmountByYearArrayEntry[],
+  endYear: number
+): DeadMoneyResolution {
+  const match = amountByYear.find((entry) => toEndYear(entry.season) === endYear);
+
+  if (!match) {
+    return {
+      hasCoverage: false,
+      total: 0,
+    };
+  }
+
+  return {
+    hasCoverage: true,
+    total: num(match.amount),
+  };
+}
+
+function resolveLegacyDeadCapAmountByYearMapForYear(
+  amountByYear: UnknownRecord,
+  endYear: number,
+  yearString: string
+): DeadMoneyResolution {
+  const mapVal = getAmountByYearMapValue(amountByYear, endYear, yearString);
+
+  if (mapVal === undefined) {
+    return {
+      hasCoverage: false,
+      total: 0,
+    };
+  }
+
+  return {
+    hasCoverage: true,
+    total:
+      typeof mapVal === 'object' && mapVal !== null
+        ? num((mapVal as UnknownRecord).amount)
+        : num(mapVal),
+  };
+}
+
+/**
+ * Canonical dead-money ownership starts at team.deadCap[].
+ *
+ * New code should write deadCap[].amountByYear as the canonical
+ * array shape: [{ season, amount, isStretched? }].
+ *
+ * Compatibility support is intentionally bounded here:
+ * - deadCap[].amountByYear object maps are still read for older stored data
+ * - top-level legacy ledgers are handled later by a separate fallback helper
+ */
+function resolveDeadCapFieldForYear(
+  deadCap: DeadCapItemLike[] | null | undefined,
+  endYear: number
+): DeadMoneyResolution {
+  if (!Array.isArray(deadCap) || deadCap.length === 0) {
+    return {
+      hasCoverage: false,
+      total: 0,
+    };
+  }
+
+  const yearString = String(endYear);
+  let hasCoverage = false;
+  let total = 0;
+
+  for (const item of deadCap) {
+    let itemResolution: DeadMoneyResolution = {
+      hasCoverage: false,
+      total: 0,
+    };
+
+    if (Array.isArray(item?.amountByYear)) {
+      itemResolution = resolveCanonicalDeadCapAmountByYearArrayForYear(
+        item.amountByYear,
+        endYear
+      );
+    } else if (item?.amountByYear && typeof item.amountByYear === 'object') {
+      itemResolution = resolveLegacyDeadCapAmountByYearMapForYear(
+        item.amountByYear as UnknownRecord,
+        endYear,
+        yearString
+      );
+    }
+
+    if (itemResolution.hasCoverage) {
+      hasCoverage = true;
+      total += itemResolution.total;
+    }
+  }
+
+  return {
+    hasCoverage,
+    total,
+  };
+}
+
+function getLegacyDeadMoneyArrayEntryAmountForYear(
+  entry: LegacyDeadMoneyItemLike,
+  endYear: number,
+  yearString: string
+): number {
+  if (entry?.amountByYear) {
+    if (Array.isArray(entry.amountByYear)) {
+      const match = entry.amountByYear.find(
+        (amountEntry) => toEndYear(amountEntry.season) === endYear
+      );
+      return num(match?.amount ?? 0);
+    }
+
+    const amountByYear = entry.amountByYear as UnknownRecord;
+    return num(amountByYear[String(endYear)] ?? amountByYear[yearString] ?? 0);
+  }
+
+  if (entry?.deadMoneyByYear) {
+    const deadMoneyByYear = entry.deadMoneyByYear as UnknownRecord;
+    return num(deadMoneyByYear[String(endYear)] ?? deadMoneyByYear[yearString] ?? 0);
+  }
+
+  return 0;
+}
+
+/**
+ * Compatibility-only fallback for legacy dead-money ledgers.
+ *
+ * These branches remain because older workspace code/data still reference them:
+ * - waivedContracts
+ * - stretchHistory
+ * - flat deadMoney
+ *
+ * Remove this helper later only after the repo is fully standardized on deadCap.
+ */
+function computeLegacyDeadMoneyCompatibilityTotalForYear(
+  teamCapSheet: TeamCapSheetLike,
+  endYear: number
+): number {
+  const yearString = String(endYear);
+  const legacyEntries: LegacyDeadMoneyItemLike[] = [
+    ...(teamCapSheet.waivedContracts || []),
+    ...(teamCapSheet.stretchHistory || []),
+  ];
+
+  const legacyArraysTotal = legacyEntries.reduce(
+    (sum, entry) =>
+      sum + getLegacyDeadMoneyArrayEntryAmountForYear(entry, endYear, yearString),
+    0
+  );
+
+  const deadMoney = teamCapSheet.deadMoney as UnknownRecord | undefined | null;
+  const legacyFlatMapTotal = num(
+    deadMoney?.[String(endYear)] ?? deadMoney?.[yearString] ?? 0
+  );
+
+  return legacyArraysTotal + legacyFlatMapTotal;
+}
+
 function computeDeadMoneyForYear(
   teamCapSheet: TeamCapSheetLike | null | undefined,
   endYear: number
 ): number {
   if (!teamCapSheet) return 0;
 
-  const y = String(endYear);
+  const deadCapResolution = resolveDeadCapFieldForYear(
+    teamCapSheet.deadCap,
+    endYear
+  );
 
-  if (Array.isArray(teamCapSheet.deadCap) && teamCapSheet.deadCap.length > 0) {
-    let hasCoverage = false;
-    let deadCapTotal = 0;
-
-    for (const item of teamCapSheet.deadCap) {
-      if (Array.isArray(item?.amountByYear)) {
-        const match = item.amountByYear.find(
-          (entry) => toEndYear(entry.season) === endYear
-        );
-        if (match) {
-          hasCoverage = true;
-          deadCapTotal += num(match.amount);
-        }
-      } else if (item?.amountByYear && typeof item.amountByYear === 'object') {
-        const amountByYear = item.amountByYear as UnknownRecord;
-        const mapVal = getAmountByYearMapValue(amountByYear, endYear, y);
-
-        if (mapVal !== undefined) {
-          hasCoverage = true;
-          const amt =
-            typeof mapVal === 'object' && mapVal !== null
-              ? num((mapVal as UnknownRecord).amount)
-              : num(mapVal);
-          deadCapTotal += amt;
-        }
-      }
-    }
-
-    if (hasCoverage) {
-      return deadCapTotal;
-    }
+  if (deadCapResolution.hasCoverage) {
+    return deadCapResolution.total;
   }
 
-  const arrs: LegacyDeadMoneyItemLike[] = [
-    ...(teamCapSheet?.waivedContracts || []),
-    ...(teamCapSheet?.stretchHistory || []),
-  ];
-
-  const fromArrays = arrs.reduce((sum, w) => {
-    let amt: unknown = 0;
-
-    if (w?.amountByYear) {
-      if (Array.isArray(w.amountByYear)) {
-        const match = w.amountByYear.find(
-          (entry: any) => toEndYear(entry.season) === endYear
-        );
-        amt = match?.amount ?? 0;
-      } else {
-        const amountByYear = w.amountByYear as UnknownRecord;
-        amt = amountByYear[String(endYear)] ?? amountByYear[y] ?? 0;
-      }
-    } else if (w?.deadMoneyByYear) {
-      const deadMoneyByYear = w.deadMoneyByYear as UnknownRecord;
-      amt = deadMoneyByYear[String(endYear)] ?? deadMoneyByYear[y] ?? 0;
-    }
-
-    return sum + num(amt);
-  }, 0);
-
-  const deadMoney = teamCapSheet?.deadMoney as UnknownRecord | undefined | null;
-  const flatValue = deadMoney?.[String(endYear)] ?? deadMoney?.[y] ?? 0;
-  const fromFlat = num(flatValue);
-
-  return fromArrays + fromFlat;
+  return computeLegacyDeadMoneyCompatibilityTotalForYear(teamCapSheet, endYear);
 }
 
 function computePlayersTotal(

@@ -99,6 +99,81 @@ describe('computeTeamCapTotals - Dead Money Schema Compatibility', () => {
     expect(totals.deadMoneyTotal).toBe(3000000);
   });
 
+  it('Case D2: FALLBACK - stretchHistory contributes when deadCap has no coverage for year', () => {
+    const teamSheet = {
+      deadCap: [
+        {
+          playerId: 'p1',
+          amountByYear: [{ season: '2025-26', amount: 9000000 }],
+        },
+      ],
+      stretchHistory: [
+        {
+          playerId: 'p3',
+          amountByYear: { 2025: 1500000 },
+        },
+      ],
+      players: createFullRoster(),
+      capHolds: [],
+    };
+
+    const totals = computeTeamCapTotals(teamSheet, YEAR);
+    expect(totals.deadMoneyTotal).toBe(1500000);
+    expect(totals.totalCapAllocations).toBe(1500000);
+  });
+
+  it('Case D3: FALLBACK - flat deadMoney contributes when deadCap has no coverage for year', () => {
+    const teamSheet = {
+      deadCap: [
+        {
+          playerId: 'p1',
+          amountByYear: [{ season: '2025-26', amount: 9000000 }],
+        },
+      ],
+      deadMoney: {
+        2025: 2750000,
+      },
+      players: createFullRoster(),
+      capHolds: [],
+    };
+
+    const totals = computeTeamCapTotals(teamSheet, YEAR);
+    expect(totals.deadMoneyTotal).toBe(2750000);
+    expect(totals.totalCapAllocations).toBe(2750000);
+  });
+
+  it('Case D4: FALLBACK - legacy sources sum together when canonical deadCap has no coverage', () => {
+    const teamSheet = {
+      deadCap: [
+        {
+          playerId: 'p1',
+          amountByYear: [{ season: '2025-26', amount: 9000000 }],
+        },
+      ],
+      waivedContracts: [
+        {
+          playerId: 'p2',
+          amountByYear: { 2025: 3000000 },
+        },
+      ],
+      stretchHistory: [
+        {
+          playerId: 'p3',
+          amountByYear: { 2025: 1500000 },
+        },
+      ],
+      deadMoney: {
+        2025: 2750000,
+      },
+      players: createFullRoster(),
+      capHolds: [],
+    };
+
+    const totals = computeTeamCapTotals(teamSheet, YEAR);
+    expect(totals.deadMoneyTotal).toBe(7250000);
+    expect(totals.totalCapAllocations).toBe(7250000);
+  });
+
   it('Case E: EXPLICIT ZERO - deadCap 0 entry overrides legacy non-zero', () => {
     const teamSheet = {
       deadCap: [
