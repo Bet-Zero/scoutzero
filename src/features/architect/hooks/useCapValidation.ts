@@ -267,8 +267,12 @@ export const buildSigningGuardrails = (
 };
 
 /**
- * Calculate team's total cap hit for a given year
- * Uses shared calculateTeamCapHit with getContractYearSlice adapter
+ * Calculate player-only team cap hit for a given year.
+ * Uses shared calculateTeamCapHit with getContractYearSlice adapter.
+ *
+ * This remains a validation helper, not a canonical Cap Sheet totals surface.
+ * It intentionally excludes dead money, cap holds, incomplete roster charges,
+ * thresholds, and delta outputs that belong to computeTeamCapTotals(...).
  */
 const calculateTeamCapHitLocal = (
   players: UseCapValidationPlayer[] | null | undefined,

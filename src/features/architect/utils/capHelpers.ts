@@ -242,13 +242,21 @@ interface CalculateCapHitOptions {
 }
 
 /**
- * Calculate team's current cap hit from players array
- * Used by both validation hooks and mutation pipeline
+ * Calculate player-only cap hit from a players array for validation flows.
+ * Used by validation hooks and mutation helpers that intentionally need only
+ * committed player salary, not canonical Cap Sheet totals.
+ *
+ * EXCLUDES:
+ * - Dead money
+ * - Cap holds
+ * - Incomplete roster charges
+ * - Salary-cap / tax / apron thresholds
+ * - Delta outputs
  *
  * @param players - Team players array
  * @param year - Season end year
  * @param options - Optional configuration
- * @returns Total cap hit
+ * @returns Total player cap hit only
  */
 export function calculateTeamCapHit(
   players: Player[] | null | undefined,

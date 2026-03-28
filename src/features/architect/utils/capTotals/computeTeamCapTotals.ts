@@ -1,7 +1,21 @@
 /**
  * FILE: src/features/architect/utils/capTotals/computeTeamCapTotals.ts
- * PURPOSE: Single source of truth for Team Cap Totals computation.
+ * PURPOSE: Single source of truth for canonical team cap totals computation.
  * OWNERSHIP: Feature: architect
+ *
+ * INCLUDED IN CANONICAL TOTALS:
+ * - Player salaries/cap hits for standard roster contracts
+ * - Dead money
+ * - Active unsigned cap holds
+ * - Incomplete roster charges
+ * - Salary cap / tax / apron thresholds
+ * - Delta outputs versus those thresholds
+ *
+ * EXCLUDED FROM CANONICAL TOTALS:
+ * - Exception state, usage display, or exception-card presentation
+ * - Trade exception (TPE) state or display
+ * - Hard-cap trigger state and human-readable reason text
+ * - Action-specific validation or projection math
  *
  * HISTORY:
  *  - 2025-12-29: Created as part of Single Source of Truth initiative.
@@ -101,6 +115,13 @@ interface RoomExceptionEligibility {
     salaryCap: number;
     delta: number;
   };
+}
+
+interface CanonicalCapTotalsInputs {
+  playersTotal: number;
+  deadMoneyTotal: number;
+  capHoldsTotal: number;
+  incompleteChargesTotal: number;
 }
 
 const num = (v: unknown): number => {
@@ -225,6 +246,20 @@ function computePlayersTotal(
   }, 0);
 }
 
+function computeCanonicalTotalCapAllocations({
+  playersTotal,
+  deadMoneyTotal,
+  capHoldsTotal,
+  incompleteChargesTotal,
+}: CanonicalCapTotalsInputs): number {
+  return (
+    playersTotal +
+    deadMoneyTotal +
+    capHoldsTotal +
+    incompleteChargesTotal
+  );
+}
+
 export function computeTeamCapTotals(
   teamCapSheet: TeamCapSheetLike | null | undefined,
   selectedYear: number,
@@ -251,8 +286,12 @@ export function computeTeamCapTotals(
   const chargePerSlot = rules.salaries.rookieMin;
   const incompleteChargesTotal = missingSlots * chargePerSlot;
 
-  const totalCapAllocations =
-    playersTotal + deadMoneyTotal + capHoldsTotal + incompleteChargesTotal;
+  const totalCapAllocations = computeCanonicalTotalCapAllocations({
+    playersTotal,
+    deadMoneyTotal,
+    capHoldsTotal,
+    incompleteChargesTotal,
+  });
 
   const deltas = {
     vsCap: totalCapAllocations - salaryCap,
@@ -293,6 +332,12 @@ export function computeTeamCapTotals(
   };
 }
 
+/**
+ * DERIVED CONSUMER HELPER
+ *
+ * This helper consumes canonical totals to answer a room-exception question.
+ * It does not widen the ownership boundary of computeTeamCapTotals().
+ */
 export function canUseRoomException(
   team: TeamCapSheetLike | null | undefined,
   yearKey: number

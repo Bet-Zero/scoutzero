@@ -7,12 +7,13 @@
  *  - 2026-02-28: Created for TM_CAP_SHEET_E3 Task A — permanent regression gates
  *
  * GATES:
- *  1. Cap % denominator uses SSOT totals.salaryCap (no capProjections)
- *  2. DPE not exposed in Cap Sheet Exceptions UI
- *  3. ExceptionTracker reads canonical exceptions first
- *  4. TPE expiry display uses canonical normalized fields
- *  5. Modal save does not close-before-confirm
- *  6. World failure toast dedupe logic exists
+ *  1. Cap % denominator uses SSOT canonicalTotals.salaryCap (no capProjections)
+ *  2. CapSummaryTiles consumes parent-supplied canonical totals
+ *  3. DPE not exposed in Cap Sheet Exceptions UI
+ *  4. ExceptionTracker reads canonical exceptions first and does not own totals
+ *  5. TPE expiry display uses canonical normalized fields
+ *  6. Modal save does not close-before-confirm
+ *  7. World failure toast dedupe logic exists
  *
  * @vitest-environment node
  */
@@ -26,6 +27,11 @@ import path from 'path';
 const CAP_SHEET_PATH = path.resolve(
   __dirname,
   '../../features/architect/capSheet/CapSheet/CapSheet.tsx'
+);
+
+const CAP_SUMMARY_TILES_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/capSheet/CapSheet/CapSummaryTiles.tsx'
 );
 
 const EXCEPTION_TRACKER_PATH = path.resolve(
@@ -60,7 +66,7 @@ const readFileContent = (filePath: string): string => {
   return fs.readFileSync(filePath, 'utf-8');
 };
 
-// === GATE 1: Cap % uses totals.salaryCap (SSOT) ===
+// === GATE 1: Cap % uses canonicalTotals.salaryCap (SSOT) ===
 
 describe('Gate 1: Cap % Denominator SSOT (E1/E2)', () => {
   const content = readFileContent(CAP_SHEET_PATH);
@@ -71,12 +77,13 @@ describe('Gate 1: Cap % Denominator SSOT (E1/E2)', () => {
     expect(importCapProjections).toBe(false);
   });
 
-  it('uses totals.salaryCap (or equivalent SSOT) for cap percentage', () => {
-    // The cap percentage call should reference totals.salaryCap
-    // Pattern: getCapPercentage(capHit, totals.salaryCap
-    const usesTotalsSalaryCapPattern =
-      /getCapPercentage\s*\(\s*\w+\s*,\s*totals\.salaryCap/.test(content);
-    expect(usesTotalsSalaryCapPattern).toBe(true);
+  it('uses canonicalTotals.salaryCap (or equivalent SSOT) for cap percentage', () => {
+    // The cap percentage call should reference canonicalTotals.salaryCap
+    const usesCanonicalTotalsSalaryCapPattern =
+      /getCapPercentage\s*\(\s*\w+\s*,\s*canonicalTotals\.salaryCap/.test(
+        content
+      );
+    expect(usesCanonicalTotalsSalaryCapPattern).toBe(true);
   });
 
   it('does NOT use capProjections[yearKey]?.cap as cap % denominator', () => {
@@ -89,7 +96,29 @@ describe('Gate 1: Cap % Denominator SSOT (E1/E2)', () => {
 
 // === GATE 2: DPE not exposed in Cap Sheet Exceptions UI ===
 
-describe('Gate 2: DPE Not Exposed in Cap Sheet Exceptions UI (E1)', () => {
+describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
+  const capSheetContent = readFileContent(CAP_SHEET_PATH);
+  const capSummaryTilesContent = readFileContent(CAP_SUMMARY_TILES_PATH);
+
+  it('CapSheet passes parent-computed canonicalTotals into CapSummaryTiles', () => {
+    const passesCanonicalTotals =
+      /<CapSummaryTiles[\s\S]*canonicalTotals=\{canonicalTotals\}/.test(
+        capSheetContent
+      );
+    expect(passesCanonicalTotals).toBe(true);
+  });
+
+  it('CapSummaryTiles accepts canonicalTotals and does NOT call computeTeamCapTotals locally', () => {
+    expect(capSummaryTilesContent).toContain('canonicalTotals');
+    expect(/computeTeamCapTotals\s*\(/.test(capSummaryTilesContent)).toBe(
+      false
+    );
+  });
+});
+
+// === GATE 3: DPE not exposed in Cap Sheet Exceptions UI ===
+
+describe('Gate 3: DPE Not Exposed in Cap Sheet Exceptions UI (E1)', () => {
   it('ManageExceptionsModal does NOT include DPE in EXCEPTION_TYPES', () => {
     const content = readFileContent(MANAGE_EXCEPTIONS_MODAL_PATH);
 
@@ -124,9 +153,9 @@ describe('Gate 2: DPE Not Exposed in Cap Sheet Exceptions UI (E1)', () => {
   });
 });
 
-// === GATE 3: ExceptionTracker reads canonical exceptions first ===
+// === GATE 4: ExceptionTracker reads canonical exceptions first ===
 
-describe('Gate 3: ExceptionTracker Canonical Exceptions Read-First (E1)', () => {
+describe('Gate 4: ExceptionTracker Canonical Exceptions Read-First (E1)', () => {
   const content = readFileContent(EXCEPTION_TRACKER_PATH);
 
   it('reads from teamCapSheet.exceptions (canonical) for MLE/TPMLE/BAE/ROOM', () => {
@@ -168,11 +197,18 @@ describe('Gate 3: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
       );
     expect(hasSourceSelection).toBe(true);
   });
+
+  it('does NOT import or call computeTeamCapTotals', () => {
+    const importsComputeTeamCapTotals =
+      /import[\s\S]*computeTeamCapTotals[\s\S]*from/.test(content);
+    expect(importsComputeTeamCapTotals).toBe(false);
+    expect(/computeTeamCapTotals\s*\(/.test(content)).toBe(false);
+  });
 });
 
-// === GATE 4: TPE expiry display uses canonical normalized fields ===
+// === GATE 5: TPE expiry display uses canonical normalized fields ===
 
-describe('Gate 4: TPE Expiry Canonical Fields (E1)', () => {
+describe('Gate 5: TPE Expiry Canonical Fields (E1)', () => {
   const content = readFileContent(EXCEPTION_TRACKER_PATH);
 
   it('TPE expiry display prefers expiresOn and/or expirationDate', () => {
@@ -211,9 +247,9 @@ describe('Gate 4: TPE Expiry Canonical Fields (E1)', () => {
   });
 });
 
-// === GATE 5: Modal save does not close-before-confirm ===
+// === GATE 6: Modal save does not close-before-confirm ===
 
-describe('Gate 5: Modal Save Close-After-Confirm (E1)', () => {
+describe('Gate 6: Modal Save Close-After-Confirm (E1)', () => {
   describe('ManageExceptionsModal', () => {
     const content = readFileContent(MANAGE_EXCEPTIONS_MODAL_PATH);
 
@@ -279,9 +315,9 @@ describe('Gate 5: Modal Save Close-After-Confirm (E1)', () => {
   });
 });
 
-// === GATE 6: World failure toast dedupe logic exists ===
+// === GATE 7: World failure toast dedupe logic exists ===
 
-describe('Gate 6: World Failure Toast Dedupe (E2)', () => {
+describe('Gate 7: World Failure Toast Dedupe (E2)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
 
   it('persistMutation helper exists', () => {

@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/capSheet_capPct_ssot.behavior.test.jsx
- * PURPOSE: Verify cap % denominator uses totals.salaryCap (SSOT), not deprecated capProjections.
+ * PURPOSE: Verify cap % denominator uses canonicalTotals.salaryCap (SSOT), not deprecated capProjections.
  * OWNERSHIP: Feature: architect/cap-sheet (E2)
  *
  * HISTORY:
@@ -24,14 +24,14 @@ describe('Cap Sheet Cap % Denominator SSOT Guardrail (E2)', () => {
     expect(importMatches).toBeNull();
   });
 
-  it('uses totals.salaryCap for cap percentage calculation, not capProjections', () => {
+  it('uses canonicalTotals.salaryCap for cap percentage calculation, not capProjections', () => {
     const content = fs.readFileSync(capSheetPath, 'utf-8');
 
-    // Verify getCapPercentage is called with totals.salaryCap
-    const usesTotalsSalaryCap = content.includes(
-      'getCapPercentage(capHit, totals.salaryCap'
+    // Verify getCapPercentage is called with canonicalTotals.salaryCap
+    const usesCanonicalTotalsSalaryCap = content.includes(
+      'getCapPercentage(capHit, canonicalTotals.salaryCap'
     );
-    expect(usesTotalsSalaryCap).toBe(true);
+    expect(usesCanonicalTotalsSalaryCap).toBe(true);
 
     // Verify it does NOT use capProjections[yearKey] for salaryCap
     const usesCapProjectionsSalaryCap = content.includes(

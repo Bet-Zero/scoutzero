@@ -10,13 +10,15 @@
  * A) Source-scan guardrails:
  *    1. CapSheetFull.tsx imports computeTeamCapTotals
  *    2. CapSheetFull.tsx does NOT contain local reduce salary summation
+ *    3. computeTeamCapTotals.ts declares explicit included/excluded ownership lists
  *
  * B) Behavioral guardrails:
- *    3. yearTotals match computeTeamCapTotals.totalCapAllocations for team with dead money
- *    4. Dead money IS included in total (regression guard)
- *    5. Incomplete roster charges ARE included in total (regression guard)
- *    6. Cap holds ARE included in total
- *    7. computeTeamCapTotals uses team.players (not team.roster) for salary computation
+ *    4. yearTotals match computeTeamCapTotals.totalCapAllocations for team with dead money
+ *    5. Dead money IS included in total (regression guard)
+ *    6. Incomplete roster charges ARE included in total (regression guard)
+ *    7. Cap holds ARE included in total
+ *    8. Adjacent exception/TPE/hard-cap surfaces do NOT alter canonical totals
+ *    9. computeTeamCapTotals uses team.players (not team.roster) for salary computation
  */
 
 import { describe, it, expect } from 'vitest';
@@ -65,6 +67,7 @@ function createPlayers(count, salary = 5_000_000) {
 
 describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
   const capSheetFullSource = fs.readFileSync(CAP_SHEET_FULL_PATH, 'utf-8');
+  const computeTotalsSource = fs.readFileSync(COMPUTE_TOTALS_PATH, 'utf-8');
 
   it('TEST 1: CapSheetFull imports computeTeamCapTotals', () => {
     expect(capSheetFullSource).toMatch(/import.*computeTeamCapTotals.*from/);
@@ -78,6 +81,11 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
       /yearTotals\[year\]\s*=\s*sortedPlayers\.reduce/.test(capSheetFullSource);
     expect(hasLocalReduceForTotals).toBe(false);
   });
+
+  it('TEST 3: computeTeamCapTotals declares explicit included/excluded ownership lists', () => {
+    expect(computeTotalsSource).toContain('INCLUDED IN CANONICAL TOTALS');
+    expect(computeTotalsSource).toContain('EXCLUDED FROM CANONICAL TOTALS');
+  });
 });
 
 // ==============================================================================
@@ -85,7 +93,7 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
 // ==============================================================================
 
 describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
-  it('TEST 3: yearTotals match computeTeamCapTotals for team with dead money + players + holds', () => {
+  it('TEST 4: yearTotals match computeTeamCapTotals for team with dead money + players + holds', () => {
     const team = {
       players: createPlayers(14, 10_000_000),
       deadCap: [
@@ -123,7 +131,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBe(145_000_000);
   });
 
-  it('TEST 4: Dead money IS included in totalCapAllocations (regression guard)', () => {
+  it('TEST 5: Dead money IS included in totalCapAllocations (regression guard)', () => {
     const team = {
       players: createPlayers(14, 0), // No salary
       deadCap: [
@@ -142,7 +150,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBeGreaterThanOrEqual(7_500_000);
   });
 
-  it('TEST 5: Incomplete roster charges ARE included in totalCapAllocations', () => {
+  it('TEST 6: Incomplete roster charges ARE included in totalCapAllocations', () => {
     // Only 10 players, below minimum roster requirement
     const team = {
       players: createPlayers(10, 0),
@@ -156,7 +164,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBe(totals.incompleteChargesTotal);
   });
 
-  it('TEST 6: Cap holds ARE included in totalCapAllocations', () => {
+  it('TEST 7: Cap holds ARE included in totalCapAllocations', () => {
     const team = {
       players: createPlayers(14, 0),
       deadCap: [],
@@ -178,7 +186,48 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.totalCapAllocations).toBe(5_000_000);
   });
 
-  it('TEST 7: computeTeamCapTotals reads from team.players, not team.roster', () => {
+  it('TEST 8: adjacent exception/TPE/hard-cap surfaces do NOT alter canonical totals', () => {
+    const baseTeam = {
+      players: createPlayers(14, 6_000_000),
+      deadCap: [
+        {
+          playerId: 'waived-1',
+          amountByYear: [{ season: '2025-26', amount: 2_000_000 }],
+        },
+      ],
+      capHolds: [
+        {
+          playerId: 'hold-1',
+          playerName: 'Hold Player',
+          amount: 3_000_000,
+          season: '2025-26',
+          type: 'bird',
+          active: true,
+          isSigned: false,
+        },
+      ],
+    };
+
+    const baseTotals = computeTeamCapTotals(baseTeam, YEAR);
+    const adjacentSurfaceStateTeam = {
+      ...baseTeam,
+      exceptions: {
+        mle: { enabled: true, totalAmount: 12_800_000, usedAmount: 5_000_000 },
+      },
+      tradeExceptions: [
+        { id: 'tpe-1', amount: 7_500_000, expiresOn: '2026-07-01' },
+      ],
+      hardCapped: 1,
+      hardCapTriggered: 'SignAndTrade',
+      hardCapFirstApron: { active: true, season: '2025-26' },
+      faExceptionBuckets: [{ type: 'NTMLE', used: 5_000_000, amount: 12_800_000 }],
+    };
+
+    const adjacentTotals = computeTeamCapTotals(adjacentSurfaceStateTeam, YEAR);
+    expect(adjacentTotals).toEqual(baseTotals);
+  });
+
+  it('TEST 9: computeTeamCapTotals reads from team.players, not team.roster', () => {
     const source = fs.readFileSync(COMPUTE_TOTALS_PATH, 'utf-8');
 
     // computePlayersTotal receives "players" parameter from teamCapSheet?.players
@@ -190,7 +239,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(usesRosterForCompute).toBe(false);
   });
 
-  it('TEST 8: computeTeamCapTotals.js is absent after shim retirement', () => {
+  it('TEST 10: computeTeamCapTotals.js is absent after shim retirement', () => {
     expect(fs.existsSync(COMPUTE_TOTALS_SHIM_PATH)).toBe(false);
   });
 });

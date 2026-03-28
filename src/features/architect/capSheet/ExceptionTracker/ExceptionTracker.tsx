@@ -3,6 +3,11 @@
  * PURPOSE: Exception and TPE display surface for the Architect cap sheet.
  * OWNERSHIP: Feature: architect/cap-sheet
  *
+ * NOTE:
+ * - Owns exception, TPE, and hard-cap presentation for the Cap Sheet surface.
+ * - Does not compute or redefine canonical cap totals; that remains owned by
+ *   the cap totals authority.
+ *
  * HISTORY:
  *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E88.
  */

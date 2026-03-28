@@ -103,7 +103,7 @@ describe('Cap Sheet display-core E88 compatibility', () => {
       <CapSummaryTiles
         teamCapSheet={{ mle: { used: 1 } }}
         selectedYear={2026}
-        totals={SUMMARY_TOTALS}
+        canonicalTotals={SUMMARY_TOTALS}
       />
     );
 

@@ -91,8 +91,8 @@ const CapSheet = ({
     teamCode: teamCapSheet?.teamCode,
   });
 
-  // SINGLE SOURCE OF TRUTH: Compute totals once for the entire surface
-  const totals = React.useMemo(
+  // SINGLE SOURCE OF TRUTH: Compute canonical totals once for the entire surface
+  const canonicalTotals = React.useMemo(
     () => computeTeamCapTotals(
       teamCapSheet ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) } : null,
       selectedYear
@@ -226,13 +226,13 @@ const CapSheet = ({
     selectedYear
   ).sort((a, b) => (Number(b.amount || 0) || 0) - (Number(a.amount || 0) || 0));
 
-  // REMOVED: Local totals calculation in favor of SSOT `totals` object
+  // REMOVED: Local totals calculation in favor of SSOT `canonicalTotals` object
   // const playersCapTotal = calculateCapHitTotal(filteredPlayers, selectedYear);
   // const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(teamCapSheet.capHolds, selectedYear);
   // const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
   const confidenceLabel = React.useMemo(() => {
-    const summary = totals?._meta?.rulesSourcesSummary;
+    const summary = canonicalTotals?._meta?.rulesSourcesSummary;
     if (!summary) return null; // Fallback or loading state
 
     // Detailed mapping for display
@@ -263,7 +263,7 @@ const CapSheet = ({
           className: 'text-white/40 bg-white/5 border-white/10',
         };
     }
-  }, [totals]);
+  }, [canonicalTotals]);
 
   return (
     <div className="text-white font-sans">
@@ -303,7 +303,7 @@ const CapSheet = ({
       <CapSummaryTiles
         teamCapSheet={teamCapSheet}
         selectedYear={selectedYear}
-        totals={totals}
+        canonicalTotals={canonicalTotals}
       />
 
       {/* Roster Cap Table (Grid Layout) */}
@@ -330,8 +330,8 @@ const CapSheet = ({
 
             const age = player.age ?? '-';
             const position = player.position ?? '-';
-            // Use totals.salaryCap (SSOT) for cap % to match totals display
-            const capPct = getCapPercentage(capHit, totals.salaryCap || 1);
+            // Use canonicalTotals.salaryCap (SSOT) for cap % to match totals display
+            const capPct = getCapPercentage(capHit, canonicalTotals.salaryCap || 1);
             const capPctDisplay = capPct ? `${capPct}%` : '—';
 
             return (
@@ -460,36 +460,36 @@ const CapSheet = ({
             <div className="flex items-center justify-between text-[10px] text-white/50">
               <span>Player Salaries</span>
               <span className="tabular-nums">
-                ${totals.playersTotal.toLocaleString()}
+                ${canonicalTotals.playersTotal.toLocaleString()}
               </span>
             </div>
-            {totals.deadMoneyTotal > 0 && (
+            {canonicalTotals.deadMoneyTotal > 0 && (
               <div className="flex items-center justify-between text-[10px] text-white/50">
                 <span>Dead Money</span>
                 <span className="tabular-nums">
-                  ${totals.deadMoneyTotal.toLocaleString()}
+                  ${canonicalTotals.deadMoneyTotal.toLocaleString()}
                 </span>
               </div>
             )}
-            {totals.capHoldsTotal > 0 && (
+            {canonicalTotals.capHoldsTotal > 0 && (
               <div className="flex items-center justify-between text-[10px] text-white/50">
                 <span>Cap Holds</span>
                 <span className="tabular-nums">
-                  ${totals.capHoldsTotal.toLocaleString()}
+                  ${canonicalTotals.capHoldsTotal.toLocaleString()}
                 </span>
               </div>
             )}
-            {totals.incompleteChargesTotal > 0 && (
+            {canonicalTotals.incompleteChargesTotal > 0 && (
               <div
                 data-testid="incomplete-roster-charge-row"
                 className="flex items-center justify-between text-[10px] text-amber-400/80"
               >
                 <span>
                   Incomplete Roster Charge
-                  {totals._meta?.incompleteRosterCharge?.missingSlots && (
+                  {canonicalTotals._meta?.incompleteRosterCharge?.missingSlots && (
                     <span className="text-white/40 ml-1">
-                      ({totals._meta.incompleteRosterCharge.missingSlots} open{' '}
-                      {totals._meta.incompleteRosterCharge.missingSlots === 1
+                      ({canonicalTotals._meta.incompleteRosterCharge.missingSlots} open{' '}
+                      {canonicalTotals._meta.incompleteRosterCharge.missingSlots === 1
                         ? 'slot'
                         : 'slots'}
                       )
@@ -497,7 +497,7 @@ const CapSheet = ({
                   )}
                 </span>
                 <span className="tabular-nums">
-                  ${totals.incompleteChargesTotal.toLocaleString()}
+                  ${canonicalTotals.incompleteChargesTotal.toLocaleString()}
                 </span>
               </div>
             )}
@@ -509,7 +509,7 @@ const CapSheet = ({
               Total Cap Hit
             </span>
             <span className="text-lg font-bold text-white tabular-nums tracking-tight">
-              ${totals.totalCapAllocations.toLocaleString()}
+              ${canonicalTotals.totalCapAllocations.toLocaleString()}
             </span>
           </div>
         </div>

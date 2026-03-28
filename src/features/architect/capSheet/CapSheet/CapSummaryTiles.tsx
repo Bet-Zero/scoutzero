@@ -1,7 +1,11 @@
 /**
  * FILE: src/features/architect/capSheet/CapSheet/CapSummaryTiles.tsx
- * PURPOSE: Cap summary tile strip for canonical totals and hard-cap indicators.
+ * PURPOSE: Cap summary tile strip that consumes canonical totals and adjacent hard-cap indicators.
  * OWNERSHIP: Feature: architect/cap-sheet
+ *
+ * NOTE:
+ * - Canonical totals ownership stays in the cap totals authority.
+ * - Hard-cap badge/reason ownership stays in hardCapUtils.
  *
  * HISTORY:
  *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E88.
@@ -18,17 +22,18 @@ import type { computeTeamCapTotals } from '@/features/architect/utils/capTotals/
 type CapSummaryTilesProps = {
   teamCapSheet: Parameters<typeof isHardCappedAtFirstApron>[0];
   selectedYear: Parameters<typeof isHardCappedAtFirstApron>[1];
-  totals: ReturnType<typeof computeTeamCapTotals>;
+  canonicalTotals: ReturnType<typeof computeTeamCapTotals>;
 };
 
 const CapSummaryTiles = ({
   teamCapSheet,
   selectedYear,
-  totals,
+  canonicalTotals,
 }: CapSummaryTilesProps) => {
   // =========================================================================
-  // SINGLE SOURCE OF TRUTH: Totals are now passed from parent (CapSheet)
-  // which calls computeTeamCapTotals once.
+  // CONSUMER SURFACE: Canonical totals are passed in from CapSheet, which
+  // calls the cap totals authority once. Hard-cap badges remain adjacent UI
+  // owned by hardCapUtils-based state, not by the totals engine.
   // =========================================================================
 
   const {
@@ -41,7 +46,7 @@ const CapSummaryTiles = ({
     firstApron,
     secondApron,
     deltas,
-  } = totals;
+  } = canonicalTotals;
 
   // Determine if hard capped
   const isFirstApronHardCapped = isHardCappedAtFirstApron(
