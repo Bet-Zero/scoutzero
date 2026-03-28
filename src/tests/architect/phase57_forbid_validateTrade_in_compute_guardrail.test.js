@@ -297,7 +297,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
         "if (mutationType === 'executeTrade')",
         validateMutationStart
       );
-      const vmEnd = source.indexOf('\n  const currentYear', vmStart);
+      const vmEnd = source.indexOf('\n\n  switch (mutationType)', vmStart);
 
       const regionCode = source.slice(vmStart, vmEnd);
 

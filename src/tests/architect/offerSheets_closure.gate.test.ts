@@ -38,6 +38,11 @@ const CAP_LEGALITY_VALIDATION_AUTHORITY_PATH = path.resolve(
   '../../features/architect/utils/capLegalityValidation.ts'
 );
 
+const NON_TRADE_STAGE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/nonTradeMutationValidationStage.ts'
+);
+
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
@@ -163,6 +168,7 @@ describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutation
 
 describe('Gate 3: Validation uses validateOfferSheetResolution (E1)', () => {
   const pipelineContent = readFileContent(MUTATION_PIPELINE_PATH);
+  const nonTradeStageContent = readFileContent(NON_TRADE_STAGE_PATH);
   const validationContent = readFileContent(
     CAP_LEGALITY_VALIDATION_AUTHORITY_PATH
   );
@@ -175,34 +181,38 @@ describe('Gate 3: Validation uses validateOfferSheetResolution (E1)', () => {
     expect(hasFunctionDef).toBe(true);
   });
 
-  it('mutationPipeline imports validateOfferSheetResolution', () => {
+  it('non-trade validation stage imports validateOfferSheetResolution', () => {
     const importsValidator =
       /import[\s\S]{0,500}validateOfferSheetResolution[\s\S]{0,200}from/.test(
-        pipelineContent
+        nonTradeStageContent
       );
     expect(importsValidator).toBe(true);
   });
 
-  it('validateOfferSheetResolution is called for match action', () => {
+  it('mutationPipeline delegates non-trade validation to the extracted stage', () => {
+    expect(pipelineContent).toContain('validateNonTradeMutationStage');
+  });
+
+  it('validateOfferSheetResolution is called for match action in the extracted stage', () => {
     const usedForMatch =
       /validateOfferSheetResolution\s*\(\s*\{[\s\S]{0,200}action\s*:\s*['"]match['"]/.test(
-        pipelineContent
+        nonTradeStageContent
       );
     expect(usedForMatch).toBe(true);
   });
 
-  it('validateOfferSheetResolution is called for decline action', () => {
+  it('validateOfferSheetResolution is called for decline action in the extracted stage', () => {
     const usedForDecline =
       /validateOfferSheetResolution\s*\(\s*\{[\s\S]{0,200}action\s*:\s*['"]decline['"]/.test(
-        pipelineContent
+        nonTradeStageContent
       );
     expect(usedForDecline).toBe(true);
   });
 
-  it('validateOfferSheetResolution is called for finalize action', () => {
+  it('validateOfferSheetResolution is called for finalize action in the extracted stage', () => {
     const usedForFinalize =
       /validateOfferSheetResolution\s*\(\s*\{[\s\S]{0,200}action\s*:\s*['"]finalize['"]/.test(
-        pipelineContent
+        nonTradeStageContent
       );
     expect(usedForFinalize).toBe(true);
   });

@@ -50,7 +50,6 @@ import {
   toEndYear,
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
-import { getPlayerId } from '@/features/architect/utils/capHelpers';
 import {
   worldTeamRef,
   worldPlayerRef,
@@ -66,15 +65,9 @@ import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/ca
 // Cap legality validators for non-trade mutations (Phase 5 Production Hardening)
 import {
   validateSigning,
-  validateWaive,
-  validateExtension,
-  validateOptionDecision,
-  validateOfferSheetResolution,
-  validateRenounceRights,
-  validateDeadCap,
-  validateExceptions,
   isOverrideEnabled,
 } from '@/features/architect/utils/capLegalityValidation';
+import { validateNonTradeMutationStage } from '@/features/architect/utils/nonTradeMutationValidationStage';
 import {
   normalizeContractForWorld,
   normalizeFutureContract,
@@ -3770,7 +3763,11 @@ export async function applyWorldMutation({
         warnings: tradeExecutionAuthorityResult.auditArtifacts.postStateWarnings,
       };
     } else {
-      // Non-trade: existing inline validation chain (unchanged)
+      // Non-trade orchestration stays here:
+      // validation stage -> league invariants -> entitlement invariants ->
+      // exclusivity -> post-state cap validator -> persistence.
+      // Mutation-specific validation-stage adaptation now lives in
+      // validateNonTradeMutationStage().
       const validationResult = validateMutation({
         mutationType,
         payload: sanitizedPayload,
@@ -6617,259 +6614,7 @@ export function validateMutation({
     );
   }
 
-  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
-
-  // Non-trade mutations use capLegalityValidation
   switch (mutationType) {
-    case 'setDeadCap': {
-      const result = validateDeadCap(payload.deadCap);
-      return {
-        valid: result.violations.length === 0,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: pipelineWarnings,
-      };
-    }
-
-    case 'setExceptions': {
-      const result = validateExceptions(payload.exceptions);
-      return {
-        valid: result.violations.length === 0,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: [...(result.warnings || []), ...pipelineWarnings],
-      };
-    }
-
-    case 'signFreeAgent': {
-      const { team, player } = requireTeamAndPlayerState(
-        currentState,
-        'signFreeAgent'
-      );
-      const result = validateSigning({
-        team,
-        player,
-        contract: payload.contract,
-        signedUsing: payload.signedUsing,
-        year: currentYear,
-        asOfDate, // Phase 20: Pass world time to validator (unused now, ready for Phase 21)
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: [...result.warnings, ...pipelineWarnings],
-      };
-    }
-
-    case 'waivePlayer': {
-      const { team, player } = requireTeamAndPlayerState(
-        currentState,
-        'waivePlayer'
-      );
-      const result = validateWaive({
-        team,
-        player,
-        stretch: payload.stretch,
-        year: currentYear,
-        isGracePeriod: payload.isGracePeriod || false,
-        asOfDate, // Phase 21: World time for stretch timing check
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: result.warnings,
-      };
-    }
-
-    case 'extendPlayer': {
-      const { team, player } = requireTeamAndPlayerState(
-        currentState,
-        'extendPlayer'
-      );
-      const result = validateExtension({
-        team,
-        player,
-        extension: payload.extension,
-        year: currentYear,
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: result.warnings,
-      };
-    }
-
-    case 'optionDecision': {
-      const { team, player } = requireTeamAndPlayerState(
-        currentState,
-        'optionDecision'
-      );
-      // Phase 7.1: Pass updatedTeam to validate cap hold transitions
-      const teamCode = team.teamCode || null;
-      const playerId = getPlayerId(
-        player as Parameters<typeof getPlayerId>[0]
-      );
-      const updatedTeam = teamCode
-        ? computeResult?.teamUpdates?.find((update) => update.teamCode === teamCode)
-            ?.team
-        : null;
-      const updatedPlayer = playerId
-        ? computeResult?.playerUpdates?.find(
-            (update) => update.playerId === playerId
-          )?.player
-        : null;
-
-      const result = validateOptionDecision({
-        originalTeam: team,
-        originalPlayer: player,
-        updatedTeam,
-        updatedPlayer,
-        accepted: payload.accepted,
-        targetYear: payload.targetYear,
-        currentYear,
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: result.warnings,
-      };
-    }
-
-    case 'storeOfferSheet': {
-      const { team, player } = requireTeamAndPlayerState(
-        currentState,
-        'storeOfferSheet'
-      );
-      // Offer sheets reuse signing validation with store-only contract flags.
-      const result = validateSigning({
-        team,
-        player,
-        contract: payload.contract,
-        signedUsing: payload.signedUsing,
-        year: currentYear,
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: result.warnings,
-      };
-    }
-
-    case 'matchOfferSheet': {
-      const { homeTeam, offerSheetId } = requireOfferSheetTeamState(
-        currentState,
-        'matchOfferSheet'
-      );
-      // Validate Match Action (including 48h window check)
-      const offerSheet = homeTeam.incomingOfferSheets?.find(
-        (offerSheetEntry) => offerSheetEntry.id === offerSheetId
-      );
-      const result = validateOfferSheetResolution({
-        offerSheet,
-        actingTeamCode: payload.teamCode,
-        action: 'match',
-        asOfDate, // Phase 21
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: [...result.warnings, ...pipelineWarnings],
-      };
-    }
-
-    case 'declineOfferSheet': {
-      const { homeTeam, offerSheetId } = requireOfferSheetTeamState(
-        currentState,
-        'declineOfferSheet'
-      );
-      // Validate Decline Action
-      const offerSheet = homeTeam.incomingOfferSheets?.find(
-        (offerSheetEntry) => offerSheetEntry.id === offerSheetId
-      );
-      const result = validateOfferSheetResolution({
-        offerSheet,
-        actingTeamCode: payload.teamCode,
-        action: 'decline',
-        asOfDate, // Phase 21
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: [...result.warnings, ...pipelineWarnings],
-      };
-    }
-
-    case 'finalizeMatchedOfferSheet':
-    case 'finalizeDeclinedOfferSheet': {
-      const { homeTeam, offeringTeam, offerSheetId } = requireOfferSheetTeamState(
-        currentState,
-        mutationType
-      );
-      const homeOfferSheet = homeTeam.incomingOfferSheets?.find(
-        (offerSheetEntry) =>
-          offerSheetEntry.id === offerSheetId ||
-          (payload.dedupKey && offerSheetEntry.dedupKey === payload.dedupKey)
-      );
-      const offeringOfferSheet = offeringTeam.offerSheets?.find(
-        (offerSheetEntry) =>
-          offerSheetEntry.id === offerSheetId ||
-          (payload.dedupKey && offerSheetEntry.dedupKey === payload.dedupKey)
-      );
-      const offerSheet = homeOfferSheet || offeringOfferSheet;
-
-      if (!offerSheet) {
-        return {
-          valid: false,
-          error: `Offer sheet ${offerSheetId} not found`,
-          violations: [
-            JSON.stringify({
-              rule: 'offer_sheet_not_found',
-              message: `Offer sheet ${offerSheetId} not found for finalize action.`,
-              severity: 'error',
-            }),
-          ],
-          warnings: pipelineWarnings,
-        };
-      }
-
-      const result = validateOfferSheetResolution({
-        offerSheet,
-        actingTeamCode: payload.teamCode,
-        action: 'finalize',
-        asOfDate, // Phase 21
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: [...result.warnings, ...pipelineWarnings],
-      };
-    }
-
-    case 'renounceRights': {
-      const { team, player } = requireTeamAndPlayerState(
-        currentState,
-        'renounceRights'
-      );
-      const result = validateRenounceRights({
-        team,
-        player,
-      });
-      return {
-        valid: result.valid,
-        error: result.violations[0]?.message || null,
-        violations: result.violations.map((v) => typeof v === 'string' ? v : JSON.stringify(v)),
-        warnings: result.warnings,
-      };
-    }
-
     case 'signAndTrade': {
       // Phase 56+: S&T validation MUST have already occurred via computeSignAndTradeResult
       // which calls validateSigning + validatePostTradeSnapshotForContext before computeTradeResult
@@ -6901,23 +6646,15 @@ export function validateMutation({
     }
 
     default:
-      // Unknown mutation type - fail closed for security
-      // If you're adding a new mutation type, add validation logic above
-      console.warn(
-        `Unknown mutation type: ${mutationType}, blocking for safety`
-      );
-      return {
-        valid: false,
-        error: `Unknown mutation type: ${mutationType}`,
-        violations: [
-          JSON.stringify({
-            rule: 'unknown_type',
-            message: `Unknown mutation type: ${mutationType}`,
-            severity: 'error',
-          }),
-        ],
-        warnings: [],
-      };
+      return validateNonTradeMutationStage({
+        mutationType,
+        payload,
+        currentState,
+        computeResult,
+        seasonId,
+        asOfDate,
+        dateDefaulted,
+      });
   }
 }
 
