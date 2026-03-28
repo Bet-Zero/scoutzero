@@ -1230,18 +1230,15 @@ export function validateTrade({
     resolveTeamIdentity(teamSlot, index)
   );
   const activeTeamCount = validTeams.length;
-
-  // Calculate incoming/outgoing assets for each team
-  // First pass: populate team data structure without salary calculations
-  const teamsWithAssets = validTeams.map((team, index) => {
-    const receivingTeamId = teamIdsByIndex[index];
-
-    // Populate incoming players (what this team is receiving from other teams)
-    // 2-team trades keep broadcast fallback for compatibility.
-    // 3+ team trades require explicit destination routing.
+  const buildRoutedIncomingPlayers = (
+    receivingTeamId: string,
+    receivingIndex: number,
+    teamSlots: Array<{ sends?: TradeValidatorPlayer[] }>
+  ): TradeValidatorPlayer[] => {
     const incomingPlayers: TradeValidatorPlayer[] = [];
-    validTeams.forEach((otherTeam, otherIndex) => {
-      if (otherIndex === index) return;
+
+    teamSlots.forEach((otherTeam, otherIndex) => {
+      if (otherIndex === receivingIndex) return;
 
       const fromTeamId = teamIdsByIndex[otherIndex];
       (otherTeam.sends || []).forEach((player) => {
@@ -1262,6 +1259,12 @@ export function validateTrade({
       });
     });
 
+    return incomingPlayers;
+  };
+
+  // Calculate incoming/outgoing assets for each team
+  // First pass: populate team data structure without salary calculations
+  const teamsWithAssets = validTeams.map((team, index) => {
     // Populate outgoing players (what this team is sending out)
     const outgoingPlayers = team.sends || [];
 
@@ -1276,7 +1279,7 @@ export function validateTrade({
       salaryIn: 0, // Will be computed from matchIncoming values
       projectedSalary: currentSalary, // Will be updated after salary calculations
       teamTotalSalary: currentSalary,
-      incomingPlayers,
+      incomingPlayers: [],
       outgoingPlayers,
       cashSent: team.cashSent || 0,
       cashReceived: team.cashReceived || 0,
@@ -1397,7 +1400,11 @@ export function validateTrade({
 
   // Second pass: calculate salaryOut and salaryIn using the canonical matching values
   teamsWithAssets.forEach((team, index) => {
-    const receivingTeamId = teamIdsByIndex[index];
+    const incomingPlayers = buildRoutedIncomingPlayers(
+      teamIdsByIndex[index],
+      index,
+      teamsWithAssets
+    );
 
     // Calculate outgoing salary using canonical matchOutgoing values
     const salaryOut = (team.sends || []).reduce((sum, player) => {
@@ -1409,31 +1416,18 @@ export function validateTrade({
       return sum + matchingValue;
     }, 0);
 
-    // Calculate incoming salary from other teams using canonical matchIncoming values
-    let salaryIn = 0;
-    teamsWithAssets.forEach((otherTeam, otherIndex) => {
-      if (otherIndex === index) return;
-
-      (otherTeam.sends || []).forEach((player) => {
-        if (
-          !shouldRoutePlayerToTeam({
-            player,
-            receivingTeamId,
-            activeTeamCount,
-          })
-        ) {
-          return;
-        }
-
-        const matchingValue =
-          player.matchIncoming ??
-          getSalaryForYear(player, resolvedCurrentYear) ??
-          0;
-        salaryIn += matchingValue;
-      });
-    });
+    // Rebuild routed incoming players after matching values are computed so
+    // downstream rule envelopes and apply-time handoff preserve matchIncoming.
+    const salaryIn = incomingPlayers.reduce((sum, player) => {
+      const matchingValue =
+        player.matchIncoming ??
+        getSalaryForYear(player, resolvedCurrentYear) ??
+        0;
+      return sum + matchingValue;
+    }, 0);
 
     // Update team with computed salaries
+    team.incomingPlayers = incomingPlayers;
     team.salaryOut = salaryOut;
     team.salaryIn = salaryIn;
     team.projectedSalary = (team.teamTotalSalary || 0) - salaryOut + salaryIn;

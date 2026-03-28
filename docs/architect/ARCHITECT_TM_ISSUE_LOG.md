@@ -21,8 +21,15 @@
 ## Closeout Note — 2026-03-28
 
 - All original Trade Machine issue-log rows above remain marked `RESOLVED` based on the completed review/fix execution work.
-- TM closeout is currently blocked by live TM-suite failures discovered during closeout verification, not by reopened tracker steps or newly opened issue-log rows.
-- Blocking TM verification currently comes from:
+- E1 closeout verification discovered TM-scoped blockers in:
   - `tests/trade/basicRules.test.ts`
   - `tests/trade/secondApron_handcuffs.test.js`
   - `tests/trade/validatorTrustFixes.test.js`
+- E2 resolved those blockers without reopening tracker steps:
+  - stale second-apron compatibility tests were updated to the current canonical rule-owner model
+  - the authoritative compute/prepared path now preserves `cashLedger` through the mutation-pipeline team bridge
+  - the validator now rebuilds routed `incomingPlayers` after `computeMatchingValues()` so `matchIncoming` survives into validated-context/apply-time TPE handling
+- Current TM closeout truth:
+  - `npm run test:trade -- --reporter=dot` passes (`72` files, `632` tests)
+  - TM closeout is unblocked
+- `npm run test:diff -- --reporter=dot` still selects the broader `ARCHITECT` tier and remains red in unrelated architect baseline files; that is not TM-owned closeout blocking truth.

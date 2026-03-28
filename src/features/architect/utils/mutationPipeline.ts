@@ -440,6 +440,10 @@ export type ArchitectMutationPlayerRecord = {
   destTeamId?: MutationScalarId;
 };
 
+type ArchitectMutationCashLedger = {
+  totalOut?: number | string | null;
+};
+
 export type ArchitectMutationTeamRecord = {
   id?: MutationScalarId;
   teamCode?: string | null;
@@ -451,6 +455,7 @@ export type ArchitectMutationTeamRecord = {
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptions | null;
   tradeExceptions?: MutationTradeExceptionRecord[];
+  cashLedger?: ArchitectMutationCashLedger | null;
   offerSheets?: ArchitectMutationOfferSheet[];
   incomingOfferSheets?: ArchitectMutationOfferSheet[];
   // Deliberately opaque: this path preserves existing history entries and may
@@ -714,6 +719,7 @@ type CurrentStateBaseTeam = Pick<
   | 'deadCap'
   | 'exceptions'
   | 'tradeExceptions'
+  | 'cashLedger'
   | 'offerSheets'
   | 'incomingOfferSheets'
   | 'exceptionHistory'
@@ -740,6 +746,7 @@ type CurrentStateTeam = Omit<
     | 'deadCap'
     | 'exceptions'
     | 'tradeExceptions'
+    | 'cashLedger'
     | 'offerSheets'
     | 'incomingOfferSheets'
     | 'exceptionHistory'
@@ -2022,6 +2029,9 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   const exceptions = toOptionalObject<ArchitectMutationExceptions>(
     teamRecord.exceptions
   );
+  const cashLedger = toOptionalObject<ArchitectMutationCashLedger>(
+    teamRecord.cashLedger
+  );
   const tradeExceptions = normalizeCurrentStateTradeExceptions(
     teamRecord.tradeExceptions
   );
@@ -2071,6 +2081,9 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   }
   if (exceptions !== undefined) {
     normalized.exceptions = exceptions;
+  }
+  if (cashLedger !== undefined) {
+    normalized.cashLedger = cashLedger;
   }
   if (tradeExceptions !== undefined) {
     normalized.tradeExceptions = tradeExceptions;
@@ -2357,6 +2370,9 @@ function projectCurrentStateTeam(
   }
   if (team.exceptions !== undefined) {
     projected.exceptions = team.exceptions;
+  }
+  if (team.cashLedger !== undefined) {
+    projected.cashLedger = team.cashLedger;
   }
   if (team.tradeExceptions !== undefined) {
     projected.tradeExceptions = team.tradeExceptions;

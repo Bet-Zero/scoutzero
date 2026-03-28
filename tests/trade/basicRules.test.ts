@@ -4,11 +4,7 @@ import {
   validateSecondApron,
   validateSecondApronRules,
 } from '@/features/architect/utils/tradeMachine/rules/basicRules';
-import {
-  SECOND_APRON_CASH_BLOCKED,
-  SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
-  SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
+import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 
 const capSettings = {
   salaryCap: 141_000_000,
@@ -36,11 +32,7 @@ describe('basicRules compatibility surface', () => {
       )
     ).toEqual({
       passed: false,
-      violations: [
-        SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
-        SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
-        SECOND_APRON_CASH_BLOCKED,
-      ],
+      violations: [SECOND_APRON_CASH_BLOCKED],
       warningsOnly: false,
     });
   });
@@ -78,15 +70,7 @@ describe('basicRules compatibility surface', () => {
       { reject }
     );
 
-    expect(violations).toEqual([
-      SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
-      SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED,
-      SECOND_APRON_CASH_BLOCKED,
-    ]);
-    expect(reject.mock.calls).toEqual([
-      [SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED],
-      [SECOND_APRON_MULTI_PLAYER_AGGREGATION_BLOCKED],
-      [SECOND_APRON_CASH_BLOCKED],
-    ]);
+    expect(violations).toEqual([SECOND_APRON_CASH_BLOCKED]);
+    expect(reject.mock.calls).toEqual([[SECOND_APRON_CASH_BLOCKED]]);
   });
 });
