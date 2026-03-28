@@ -21,7 +21,7 @@ import {
   HARD_CAP_TYPES,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
-import { ROSTER_LIMITS } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
+import { evaluateRosterCountsAgainstLimits } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 
 export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
 
@@ -238,6 +238,90 @@ function runFinalStateHardCapRecheck({
   }
 }
 
+/**
+ * Final-state roster counter.
+ * Reads only the authoritative after-mutation team.players array. It does not
+ * project roster changes or inspect pre-trade trade inputs.
+ */
+function countFinalStateRosterFromPlayers(players: AnyRecord[]) {
+  let standardCount = 0;
+  let twoWayCount = 0;
+
+  for (const player of players) {
+    const contract = asRecord(player.contract);
+    const contractType = String(contract?.contractType || '').toLowerCase();
+    if (contractType === 'two-way') {
+      twoWayCount++;
+    } else {
+      standardCount++;
+    }
+  }
+
+  return {
+    standardCount,
+    twoWayCount,
+  };
+}
+
+/**
+ * Later-layer roster re-verification against authoritative final player
+ * snapshots.
+ *
+ * Earlier projected legality remains owned by
+ * tradeValidator.ts:computeProjectedRosterLegality(); this helper only
+ * re-checks the final team.players artifact and maps shared threshold breaches
+ * into post-state issue codes.
+ */
+function runFinalStateRosterRecheck({
+  teamCode,
+  players,
+  violations,
+}: {
+  teamCode: string;
+  players: AnyRecord[];
+  violations: PostStateCapValidationIssue[];
+}) {
+  const { standardCount, twoWayCount } =
+    countFinalStateRosterFromPlayers(players);
+  const evaluation = evaluateRosterCountsAgainstLimits(
+    standardCount,
+    twoWayCount,
+  );
+
+  if (evaluation.isAboveMaximumStandard) {
+    violations.push({
+      code: 'ROSTER_MAX_EXCEEDED',
+      teamCode,
+      path: `teams.${teamCode}.players`,
+      message: `Team ${teamCode} has ${standardCount} standard contracts (max ${evaluation.maximumStandard}).`,
+      expected: evaluation.maximumStandard,
+      actual: standardCount,
+    });
+  }
+
+  if (evaluation.isBelowMinimumStandard) {
+    violations.push({
+      code: 'ROSTER_MIN_VIOLATED',
+      teamCode,
+      path: `teams.${teamCode}.players`,
+      message: `Team ${teamCode} has ${standardCount} standard contracts (min ${evaluation.minimumStandard}).`,
+      expected: evaluation.minimumStandard,
+      actual: standardCount,
+    });
+  }
+
+  if (evaluation.exceedsTwoWayLimit) {
+    violations.push({
+      code: 'TWO_WAY_LIMIT_EXCEEDED',
+      teamCode,
+      path: `teams.${teamCode}.players`,
+      message: `Team ${teamCode} has ${twoWayCount} two-way contracts (max ${evaluation.maximumTwoWay}).`,
+      expected: evaluation.maximumTwoWay,
+      actual: twoWayCount,
+    });
+  }
+}
+
 function validateTotalsSanity({
   teamCode,
   bucketLabel,
@@ -303,7 +387,9 @@ function validateTotalsSanity({
  * These checks re-verify rules that are ALSO enforced earlier in the validation pipeline.
  * Earlier layers decide projected legality before a mutation is finalized; this later layer keeps
  * a separate final-state safety net against authoritative post-mutation snapshots and totals.
- * Shared hard-cap ceiling fallback policy remains owned by hardCapStatus.ts.
+ * Shared hard-cap ceiling fallback policy remains owned by hardCapStatus.ts,
+ * and shared roster threshold interpretation remains owned by
+ * validateRoster.ts:evaluateRosterCountsAgainstLimits().
  *
  * Codes: HARD_CAP_EXCEEDED, ROSTER_MAX_EXCEEDED, ROSTER_MIN_VIOLATED, TWO_WAY_LIMIT_EXCEEDED
  */
@@ -337,57 +423,18 @@ function runMirroredFinalStateLegalityRechecks({
     violations,
   });
 
-  // Roster limit re-checks (mirror trade-time roster validation in computeRosterValidation)
+  // Roster limit re-checks (mirror trade-time roster validation in
+  // computeProjectedRosterLegality)
   // Only run when the players array was explicitly provided.
   if (!hasPlayersData) {
     return;
   }
 
-  let standardCount = 0;
-  let twoWayCount = 0;
-  for (const p of players) {
-    const contract = asRecord(p.contract);
-    const contractType = String(contract?.contractType || '').toLowerCase();
-    if (contractType === 'two-way') {
-      twoWayCount++;
-    } else {
-      standardCount++;
-    }
-  }
-
-  if (standardCount > ROSTER_LIMITS.MAX_STANDARD) {
-    violations.push({
-      code: 'ROSTER_MAX_EXCEEDED',
-      teamCode,
-      path: `teams.${teamCode}.players`,
-      message: `Team ${teamCode} has ${standardCount} standard contracts (max ${ROSTER_LIMITS.MAX_STANDARD}).`,
-      expected: ROSTER_LIMITS.MAX_STANDARD,
-      actual: standardCount,
-    });
-  }
-
-  // PSV_ROSTER_002: Minimum roster — mirrors the trade-time minimum check in the pre-trade path.
-  if (standardCount < ROSTER_LIMITS.MIN_STANDARD) {
-    violations.push({
-      code: 'ROSTER_MIN_VIOLATED',
-      teamCode,
-      path: `teams.${teamCode}.players`,
-      message: `Team ${teamCode} has ${standardCount} standard contracts (min ${ROSTER_LIMITS.MIN_STANDARD}).`,
-      expected: ROSTER_LIMITS.MIN_STANDARD,
-      actual: standardCount,
-    });
-  }
-
-  if (twoWayCount > ROSTER_LIMITS.MAX_TWO_WAY) {
-    violations.push({
-      code: 'TWO_WAY_LIMIT_EXCEEDED',
-      teamCode,
-      path: `teams.${teamCode}.players`,
-      message: `Team ${teamCode} has ${twoWayCount} two-way contracts (max ${ROSTER_LIMITS.MAX_TWO_WAY}).`,
-      expected: ROSTER_LIMITS.MAX_TWO_WAY,
-      actual: twoWayCount,
-    });
-  }
+  runFinalStateRosterRecheck({
+    teamCode,
+    players,
+    violations,
+  });
 }
 
 /**
@@ -562,9 +609,12 @@ function runPostStateArtifactValidation({
  *
  *   Category 2 — Mirrored final-state legality re-checks (runMirroredFinalStateLegalityRechecks)
  *     HARD_CAP_EXCEEDED, ROSTER_MAX_EXCEEDED, ROSTER_MIN_VIOLATED, TWO_WAY_LIMIT_EXCEEDED
- *     Earlier layers own projected legality; this later layer re-verifies final-state legality
- *     against authoritative post-mutation artifacts. Shared hard-cap ceiling fallback stays in
- *     hardCapStatus.ts.
+ *     Earlier layers own projected legality (`validateHardCap()` and
+ *     `computeProjectedRosterLegality()`); this later layer re-verifies
+ *     final-state legality against authoritative post-mutation artifacts.
+ *     Shared hard-cap ceiling fallback stays in hardCapStatus.ts, and shared
+ *     roster threshold interpretation stays in
+ *     validateRoster.ts:evaluateRosterCountsAgainstLimits().
  *
  *   Category 3 — Warning-only observational checks (collectFinalStateWarnings)
  *     SALARY_FLOOR_NOT_MET, LUXURY_TAX_EXCEEDED

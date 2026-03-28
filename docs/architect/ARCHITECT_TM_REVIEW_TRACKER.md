@@ -67,7 +67,7 @@
 | ----- | ------------------------------------------------------------------------------ | ------ | ----- |
 | TM-6A | Separate True Post-State-Only Checks from Mirrored Final-State Re-Checks       | DONE   | Extracted 3 category-scoped internal helpers; main function is now a clear dispatcher with category map docblock |
 | TM-6B | Clarify Hard-Cap Re-Check Ownership Across Trade-Time vs Post-State Validation | DONE   | `validateHardCap()` now consumes shared hard-cap ceiling data from `getHardCapStatus()`, and `postStateCapValidator.ts` now exposes a dedicated final-state hard-cap re-check seam while still delegating shared ceiling fallback to `hardCapStatus.ts`. |
-| TM-6C | Clarify Roster Re-Check Ownership Across Projection vs Final Player Snapshots  | TODO   |       |
+| TM-6C | Clarify Roster Re-Check Ownership Across Projection vs Final Player Snapshots  | DONE   | `computeProjectedRosterLegality()` now owns projection-time roster counts, `runFinalStateRosterRecheck()` owns final `team.players` verification, and both layers share `evaluateRosterCountsAgainstLimits()` / `ROSTER_LIMITS` from `validateRoster.ts`. |
 | TM-6D | Preserve the Shared Post-State Layer Role Across Mutation Families             | TODO   |       |
 
 **STEP STATUS: TODO**

@@ -22,7 +22,7 @@ import { enforceEligibility } from '../rules/validateEligibility';
 import { enforceTiming } from '../rules/timingValidation';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules';
 import { computeMatchingValues } from '../utils/salaryUtils';
-import { ROSTER_LIMITS, checkRosterCounts } from '../rules/validateRoster';
+import { checkRosterCounts } from '../rules/validateRoster';
 import { validationFlags } from '@/config/validationFlags.js';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
 import { validateAggregation } from '../rules/validateAggregation';
@@ -667,7 +667,8 @@ function shouldRoutePlayerToTeam({
 // ---------------------------------------------------------------------------
 // Roster structural legality
 // ---------------------------------------------------------------------------
-// Constants sourced from ROSTER_LIMITS (validateRoster.ts) — the canonical source of truth.
+// Shared roster thresholds live in validateRoster.ts.
+// This file owns projected count construction only.
 
 function extractPlayerId(p: TradeValidatorPlayer | string | null | undefined) {
   if (!p) return null;
@@ -676,7 +677,10 @@ function extractPlayerId(p: TradeValidatorPlayer | string | null | undefined) {
 }
 
 /**
- * Compute projected roster counts for a team in validateTrade's per-team loop.
+ * Projection-time roster legality owner for validateTrade().
+ * Computes projected roster counts from the current roster plus outgoing and
+ * incoming assets, then delegates shared threshold interpretation to
+ * checkRosterCounts().
  *
  * Handles two team-data shapes:
  *   1. Pre-trade (UI flow) — players/twoWayPlayers not yet adjusted for the trade.
@@ -686,8 +690,12 @@ function extractPlayerId(p: TradeValidatorPlayer | string | null | undefined) {
  *
  * When player IDs are unavailable (common in test fixtures), falls back to
  * simple arithmetic which is correct for the pre-trade shape.
+ *
+ * Final-state roster verification remains separate in
+ * postStateCapValidator.ts:runFinalStateRosterRecheck() because that later
+ * layer re-reads authoritative after-mutation team.players artifacts.
  */
-function computeRosterValidation(team: TradeValidatorTeamSlot) {
+function computeProjectedRosterLegality(team: TradeValidatorTeamSlot) {
   const teamPlayers: TradeValidatorPlayer[] = team.team?.players || [];
   const teamTwoWay: TradeValidatorPlayer[] = team.team?.twoWayPlayers || [];
   const outgoing: TradeValidatorPlayer[] = team.outgoingPlayers || [];
@@ -1563,7 +1571,7 @@ export function validateTrade({
     );
 
     // Roster structural legality (min/max standard roster, two-way max)
-    const rosterCountResult = computeRosterValidation(team);
+  const rosterCountResult = computeProjectedRosterLegality(team);
 
     // TM-EXCL-E1 + TM-EXCL-E2: Entitlement exclusivity — block trades that create overlapping claims
     // TM-EXCL-E2: Build explicit routing map FIRST; if routing is incomplete, fail immediately.

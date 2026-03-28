@@ -13,35 +13,74 @@ export const ROSTER_LIMITS = {
 } as const;
 
 /**
- * Canonical roster rule-check function.
- * Takes pre-computed projected counts and returns a RosterResult.
- * Does NOT compute projections — projection logic stays in the caller.
- * All validation paths (pre-trade, post-state) must delegate here.
+ * Canonical shared roster-limit evaluator.
+ * Owns threshold interpretation only; callers still own how counts are built.
+ *
+ * Projection-time trade legality and final-state roster re-verification must
+ * both delegate to this helper instead of interpreting ROSTER_LIMITS inline.
+ */
+export function evaluateRosterCountsAgainstLimits(
+  standardCount: number,
+  twoWayCount: number,
+) {
+  const minimumStandard = ROSTER_LIMITS.MIN_STANDARD;
+  const maximumStandard = ROSTER_LIMITS.MAX_STANDARD;
+  const maximumTwoWay = ROSTER_LIMITS.MAX_TWO_WAY;
+  const isBelowMinimumStandard = standardCount < minimumStandard;
+  const isAboveMaximumStandard = standardCount > maximumStandard;
+  const exceedsTwoWayLimit = twoWayCount > maximumTwoWay;
+
+  return {
+    standardCount,
+    twoWayCount,
+    minimumStandard,
+    maximumStandard,
+    maximumTwoWay,
+    isBelowMinimumStandard,
+    isAboveMaximumStandard,
+    exceedsTwoWayLimit,
+    hasStandardViolation:
+      isBelowMinimumStandard || isAboveMaximumStandard,
+    hasTwoWayViolation: exceedsTwoWayLimit,
+  };
+}
+
+/**
+ * Canonical projected-roster result builder.
+ * Takes pre-computed counts and builds the trade-layer RosterResult.
+ *
+ * This function does NOT compute projections. Projection-time count
+ * construction stays with the caller, while final-state verification maps the
+ * same shared threshold evaluation into post-state issue codes locally.
  */
 export function checkRosterCounts(
   standardCount: number,
   twoWayCount: number,
 ): RosterResult {
+  const evaluation = evaluateRosterCountsAgainstLimits(
+    standardCount,
+    twoWayCount,
+  );
   const violations: string[] = [];
 
-  if (standardCount < ROSTER_LIMITS.MIN_STANDARD) {
+  if (evaluation.isBelowMinimumStandard) {
     violations.push(
-      `Post-trade standard roster (${standardCount}) below minimum ${ROSTER_LIMITS.MIN_STANDARD}`
+      `Post-trade standard roster (${standardCount}) below minimum ${evaluation.minimumStandard}`
     );
   }
-  if (standardCount > ROSTER_LIMITS.MAX_STANDARD) {
+  if (evaluation.isAboveMaximumStandard) {
     violations.push(
-      `Post-trade standard roster (${standardCount}) exceeds maximum ${ROSTER_LIMITS.MAX_STANDARD}`
+      `Post-trade standard roster (${standardCount}) exceeds maximum ${evaluation.maximumStandard}`
     );
   }
-  if (twoWayCount > ROSTER_LIMITS.MAX_TWO_WAY) {
+  if (evaluation.exceedsTwoWayLimit) {
     violations.push(
-      `Two-way slots exceeded (${twoWayCount}/${ROSTER_LIMITS.MAX_TWO_WAY})`
+      `Two-way slots exceeded (${twoWayCount}/${evaluation.maximumTwoWay})`
     );
   }
 
-  const hasStandardViolation = violations.some((v) => !v.includes('Two-way'));
-  const hasTwoWayViolation = violations.some((v) => v.includes('Two-way'));
+  const hasStandardViolation = evaluation.hasStandardViolation;
+  const hasTwoWayViolation = evaluation.hasTwoWayViolation;
   const standardBlocks =
     hasStandardViolation && validationFlags.rosterEnforcement === 'error';
   const twoWayBlocks =
@@ -55,7 +94,7 @@ export function checkRosterCounts(
       violations.length === 0
         ? 'Roster size validated'
         : violations.join('; '),
-    details: `Standard: ${standardCount} (${ROSTER_LIMITS.MIN_STANDARD}–${ROSTER_LIMITS.MAX_STANDARD}), Two-way: ${twoWayCount} (max ${ROSTER_LIMITS.MAX_TWO_WAY})`,
+    details: `Standard: ${standardCount} (${evaluation.minimumStandard}–${evaluation.maximumStandard}), Two-way: ${twoWayCount} (max ${evaluation.maximumTwoWay})`,
     rosterCounts: {
       standard: standardCount,
       twoWay: twoWayCount,
@@ -129,17 +168,19 @@ export function validateRoster(team: RosterValidationTeamLike): RosterResult {
     (player) => player.isTwoWay
   ).length;
   const projectedTwoWay = currentTwoWay - outgoingTwoWay + incomingTwoWay;
+  const evaluation = evaluateRosterCountsAgainstLimits(
+    projectedRosterCount,
+    projectedTwoWay,
+  );
 
   let standardViolation: string | null = null;
-  if (projectedRosterCount < ROSTER_LIMITS.MIN_STANDARD) {
-    standardViolation = `Standard roster must be ${ROSTER_LIMITS.MIN_STANDARD}–${ROSTER_LIMITS.MAX_STANDARD}`;
-  } else if (projectedRosterCount > ROSTER_LIMITS.MAX_STANDARD) {
-    standardViolation = `Standard roster must be ${ROSTER_LIMITS.MIN_STANDARD}–${ROSTER_LIMITS.MAX_STANDARD}`;
+  if (evaluation.hasStandardViolation) {
+    standardViolation = `Standard roster must be ${evaluation.minimumStandard}–${evaluation.maximumStandard}`;
   }
 
   let twoWayViolation: string | null = null;
-  if (projectedTwoWay > ROSTER_LIMITS.MAX_TWO_WAY) {
-    twoWayViolation = `Two-way slots cannot exceed ${ROSTER_LIMITS.MAX_TWO_WAY}`;
+  if (evaluation.hasTwoWayViolation) {
+    twoWayViolation = `Two-way slots cannot exceed ${evaluation.maximumTwoWay}`;
   }
 
   const standardPass =
@@ -195,21 +236,25 @@ export function enforceRosterWindow(
   const enforcement = validationFlags.rosterEnforcement || 'error';
   const twoWayEnforcement = validationFlags.twoWayRoster || 'error';
   const isGraceMode = context.graceMode;
+  const evaluation = evaluateRosterCountsAgainstLimits(
+    projectedRosterCount,
+    projectedTwoWayCount,
+  );
 
-  if (projectedRosterCount > ROSTER_LIMITS.MAX_STANDARD) {
+  if (evaluation.isAboveMaximumStandard) {
     violations.push(
-      `Post-trade roster size (${projectedRosterCount}) exceeds maximum of ${ROSTER_LIMITS.MAX_STANDARD} players`
+      `Post-trade roster size (${projectedRosterCount}) exceeds maximum of ${evaluation.maximumStandard} players`
     );
   }
 
-  if (projectedRosterCount < ROSTER_LIMITS.MIN_STANDARD) {
+  if (evaluation.isBelowMinimumStandard) {
     violations.push(
-      `Post-trade roster size (${projectedRosterCount}) below minimum of ${ROSTER_LIMITS.MIN_STANDARD} players`
+      `Post-trade roster size (${projectedRosterCount}) below minimum of ${evaluation.minimumStandard} players`
     );
   }
 
-  if (projectedTwoWayCount > ROSTER_LIMITS.MAX_TWO_WAY) {
-    const twoWayViolation = `Two-way slots exceeded (${projectedTwoWayCount}/${ROSTER_LIMITS.MAX_TWO_WAY})`;
+  if (evaluation.exceedsTwoWayLimit) {
+    const twoWayViolation = `Two-way slots exceeded (${projectedTwoWayCount}/${evaluation.maximumTwoWay})`;
     violations.push(twoWayViolation);
   }
 
