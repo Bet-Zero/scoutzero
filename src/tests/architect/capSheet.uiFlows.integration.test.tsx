@@ -602,7 +602,7 @@ function FixtureInjectorHarness() {
       <CapSheetSection
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
-        onSelectPlayer={() => {}}
+        onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
         onInjectCapSheetFixtures={handleInjectCapSheetFixtures}
         onClearCapSheetFixtures={handleClearCapSheetFixtures}
@@ -855,7 +855,7 @@ describe('Cap Sheet UI integration flows', () => {
           buildTeamWithCapHoldFixture() as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
-        onSelectPlayer={() => {}}
+        onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={{
           handleSetDeadCap: async () => true,
           handleSetExceptions: async () => true,

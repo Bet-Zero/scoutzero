@@ -99,7 +99,8 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
     handleDeclineOfferSheet: vi.fn(),
     handleFinalizeOfferSheet: vi.fn(),
     applyTradeToCapSheet: vi.fn(),
-    handleCapSheetAction: vi.fn(),
+    handleCapTableModalAction: vi.fn(),
+    handleCapHoldRenounce: vi.fn(),
   }),
 }));
 

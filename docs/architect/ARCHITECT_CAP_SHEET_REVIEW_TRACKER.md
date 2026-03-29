@@ -73,7 +73,7 @@ Progress and execution status for the Cap Sheet review series.
 
 | ID    | Title                                                                                             | Status | Notes |
 | ----- | ------------------------------------------------------------------------------------------------- | ------ | ----- |
-| CS-6A | Clarify the Contract-Action Routing Map from Cap Sheet Surfaces into the Modal and Action Layer   | TODO   |       |
+| CS-6A | Clarify the Contract-Action Routing Map from Cap Sheet Surfaces into the Modal and Action Layer   | DONE   | Dashboard/section routing now splits current-year modal-open, full-table modal-launch, and cap-hold renounce into explicit paths with focused guardrails. |
 | CS-6B | Tighten the Boundary Between Advisory Modal Validation and Authoritative Cap-State Mutation Truth | TODO   |       |
 | CS-6C | Align Modal Action Surfaces and Callback Contracts with the Live Dashboard Integration Model      | TODO   |       |
 | CS-6D | Add Focused Guardrails for Contract-Action Integration Truth                                      | TODO   |       |

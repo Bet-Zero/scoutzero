@@ -305,7 +305,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       <CapSheetSection
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
-        onSelectPlayer={vi.fn()}
+        onOpenPlayerContractModal={vi.fn()}
         manualCapSheetMutationAuthority={{
           handleSetDeadCap: vi.fn(async () => true),
           handleSetExceptions: vi.fn(async () => true),

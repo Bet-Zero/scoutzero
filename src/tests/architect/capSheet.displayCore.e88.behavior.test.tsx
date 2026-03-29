@@ -61,7 +61,16 @@ const TEAM_CAP_SHEET = {
       },
     },
   ],
-  capHolds: [],
+  capHolds: [
+    {
+      playerId: 'hold_fixture',
+      playerName: 'Hold Fixture',
+      season: '2025-26',
+      amount: 4_250_000,
+      type: 'Bird Rights',
+      isSigned: false,
+    },
+  ],
 };
 
 const getRulesProfileForYear: GetRulesProfileForYear = (player) => {
@@ -149,15 +158,17 @@ describe('Cap Sheet display-core E88 compatibility', () => {
   });
 
   it('keeps CapTableSection as a pass-through shell for CapSheetFull callbacks and rules-profile rendering', () => {
-    const onSelectPlayer = vi.fn();
-    const onActionClick = vi.fn();
+    const onOpenPlayerContractModal = vi.fn();
+    const onLaunchContractAction = vi.fn();
+    const onRenounceCapHold = vi.fn();
 
     render(
       <CapTableSection
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
-        onSelectPlayer={onSelectPlayer}
-        onActionClick={onActionClick}
+        onOpenPlayerContractModal={onOpenPlayerContractModal}
+        onLaunchContractAction={onLaunchContractAction}
+        onRenounceCapHold={onRenounceCapHold}
         getRulesProfileForYear={getRulesProfileForYear}
       />
     );
@@ -168,15 +179,26 @@ describe('Cap Sheet display-core E88 compatibility', () => {
     );
 
     fireEvent.click(screen.getByText('Ext Player'));
-    expect(onSelectPlayer).toHaveBeenCalledTimes(1);
-    expect(onSelectPlayer.mock.calls[0][0]).toMatchObject({ name: 'Ext Player' });
+    expect(onOpenPlayerContractModal).toHaveBeenCalledTimes(1);
+    expect(onOpenPlayerContractModal.mock.calls[0][0]).toMatchObject({
+      name: 'Ext Player',
+    });
 
     fireEvent.click(screen.getByText('RFA'));
-    expect(onActionClick).toHaveBeenCalledTimes(1);
-    expect(onActionClick.mock.calls[0][0]).toMatchObject({
+    expect(onLaunchContractAction).toHaveBeenCalledTimes(1);
+    expect(onLaunchContractAction.mock.calls[0][0]).toMatchObject({
       name: 'RFA Player',
     });
-    expect(onActionClick.mock.calls[0][1]).toBe('rfa');
-    expect(onActionClick.mock.calls[0][2]).toBe(2026);
+    expect(onLaunchContractAction.mock.calls[0][1]).toBe('rfa');
+    expect(onLaunchContractAction.mock.calls[0][2]).toBe(2026);
+
+    fireEvent.click(screen.getByTestId('cap-sheet-full-cap-holds-toggle'));
+    fireEvent.click(screen.getByTestId('cap-sheet-full-absolve-button'));
+
+    expect(onRenounceCapHold).toHaveBeenCalledTimes(1);
+    expect(onRenounceCapHold.mock.calls[0][0]).toMatchObject({
+      playerId: 'hold_fixture',
+      playerName: 'Hold Fixture',
+    });
   });
 });

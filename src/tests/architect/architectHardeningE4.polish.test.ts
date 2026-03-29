@@ -259,7 +259,11 @@ describe('Architect TypeScript hardening E4 regression', () => {
 
     cases.forEach(([actionType, expectedContext], index) => {
       act(() => {
-        result.current.actions.handleCapSheetAction(TEST_PLAYER, actionType, 2028);
+        result.current.actions.handleCapTableModalAction(
+          TEST_PLAYER,
+          actionType,
+          2028
+        );
       });
 
       expect(result.current.selectedPlayer).toEqual(TEST_PLAYER);
@@ -270,6 +274,26 @@ describe('Architect TypeScript hardening E4 regression', () => {
         actionContext: expectedContext,
       });
     });
+  });
+
+  it('keeps cap-hold renounce on an immediate path that does not reopen the modal', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { result, openContractModal } = renderActionsHarness();
+
+    act(() => {
+      result.current.actions.handleCapHoldRenounce({
+        playerId: 'hold_only',
+        playerName: 'Hold Only',
+      });
+    });
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Hold Only')
+    );
+    expect(openContractModal).not.toHaveBeenCalled();
+    expect(result.current.selectedPlayer).toBeNull();
+    expect(result.current.selectedRulesYear).toBe(2026);
   });
 
   it('returns the stable offer-sheet failure result when no active world is present', async () => {

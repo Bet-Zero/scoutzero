@@ -370,10 +370,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
 
     const absolveBefore = totalForYear(result.current.teamCapSheet);
     act(() => {
-      result.current.actions.handleCapSheetAction(
-        { playerId: 'hold_only', playerName: 'hold_only' },
-        'renounce'
-      );
+      result.current.actions.handleCapHoldRenounce({
+        playerId: 'hold_only',
+        playerName: 'hold_only',
+      });
     });
     await waitFor(() => {
       expect(
@@ -550,10 +550,10 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     });
 
     act(() => {
-      result.current.actions.handleCapSheetAction(
-        { playerId: 'hold_only', playerName: 'hold_only' },
-        'renounce'
-      );
+      result.current.actions.handleCapHoldRenounce({
+        playerId: 'hold_only',
+        playerName: 'hold_only',
+      });
     });
     await waitFor(() => {
       expect(mutationMocks.applyWorldMutation).toHaveBeenCalled();

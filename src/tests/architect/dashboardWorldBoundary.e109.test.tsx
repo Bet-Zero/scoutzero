@@ -69,6 +69,21 @@ const {
   mockSetActiveTab: vi.fn(),
 }));
 
+const dashboardRouteFixtures = vi.hoisted(() => ({
+  capSheetPlayer: {
+    player_id: 'cap_sheet_player',
+    displayName: 'Cap Sheet Player',
+  },
+  capTablePlayer: {
+    player_id: 'cap_table_player',
+    displayName: 'Cap Table Player',
+  },
+  capHold: {
+    playerId: 'cap_hold_fixture',
+    playerName: 'Cap Hold Fixture',
+  },
+}));
+
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ teamId: 'LAL' }),
 }));
@@ -129,10 +144,20 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     isOpen,
     player,
     onClose,
+    targetYear,
+    actionContext,
+    playerRulesProfile,
+    rulesLeagueContext,
   }: {
     isOpen?: boolean;
     player?: { displayName?: string; name?: string };
     onClose?: () => void;
+    targetYear?: number | null;
+    actionContext?: string | null;
+    playerRulesProfile?: {
+      contractSummary?: { freeAgencyType?: string | null; freeAgencyYear?: number | null };
+    } | null;
+    rulesLeagueContext?: { currentYear?: number | null } | null;
   }) => {
     if (!isOpen) return null;
 
@@ -140,6 +165,20 @@ vi.mock('@/shared/components/EditContractModal', () => ({
       <div data-testid="mock-edit-contract-modal">
         <div data-testid="mock-edit-contract-modal-player">
           {player?.displayName || player?.name || ''}
+        </div>
+        <div data-testid="mock-edit-contract-modal-target-year">
+          {targetYear == null ? '' : String(targetYear)}
+        </div>
+        <div data-testid="mock-edit-contract-modal-action-context">
+          {actionContext || ''}
+        </div>
+        <div data-testid="mock-edit-contract-modal-profile-free-agency-type">
+          {playerRulesProfile?.contractSummary?.freeAgencyType || ''}
+        </div>
+        <div data-testid="mock-edit-contract-modal-rules-year">
+          {rulesLeagueContext?.currentYear == null
+            ? ''
+            : String(rulesLeagueContext.currentYear)}
         </div>
         <button onClick={onClose}>Close Contract Modal</button>
       </div>
@@ -152,14 +191,72 @@ vi.mock('@/features/architect/GMDashboard/sections/RosterSection', () => ({
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/CapSheetSection', () => ({
-  CapSheetSection: () => (
-    <div data-testid="mock-cap-sheet-section">CapSheetSection</div>
+  CapSheetSection: ({
+    onOpenPlayerContractModal,
+  }: {
+    onOpenPlayerContractModal?: ((player: typeof dashboardRouteFixtures.capSheetPlayer) => void) | null;
+  }) => (
+    <div data-testid="mock-cap-sheet-section">
+      CapSheetSection
+      <button
+        type="button"
+        data-testid="mock-cap-sheet-open-player-contract"
+        onClick={() =>
+          onOpenPlayerContractModal?.(dashboardRouteFixtures.capSheetPlayer)
+        }
+      >
+        Open Current-Year Contract
+      </button>
+    </div>
   ),
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
-  CapTableSection: () => (
-    <div data-testid="mock-cap-table-section">CapTableSection</div>
+  CapTableSection: ({
+    onOpenPlayerContractModal,
+    onLaunchContractAction,
+    onRenounceCapHold,
+  }: {
+    onOpenPlayerContractModal?: ((player: typeof dashboardRouteFixtures.capTablePlayer) => void) | null;
+    onLaunchContractAction?: ((
+      player: typeof dashboardRouteFixtures.capTablePlayer,
+      action: 'rfa',
+      year: number
+    ) => void) | null;
+    onRenounceCapHold?: ((capHold: typeof dashboardRouteFixtures.capHold) => void) | null;
+  }) => (
+    <div data-testid="mock-cap-table-section">
+      CapTableSection
+      <button
+        type="button"
+        data-testid="mock-cap-table-open-player-contract"
+        onClick={() =>
+          onOpenPlayerContractModal?.(dashboardRouteFixtures.capTablePlayer)
+        }
+      >
+        Open Full-Table Contract
+      </button>
+      <button
+        type="button"
+        data-testid="mock-cap-table-launch-action"
+        onClick={() =>
+          onLaunchContractAction?.(
+            dashboardRouteFixtures.capTablePlayer,
+            'rfa',
+            2028
+          )
+        }
+      >
+        Launch Full-Table Action
+      </button>
+      <button
+        type="button"
+        data-testid="mock-cap-table-renounce-hold"
+        onClick={() => onRenounceCapHold?.(dashboardRouteFixtures.capHold)}
+      >
+        Renounce Cap Hold
+      </button>
+    </div>
   ),
 }));
 
@@ -305,6 +402,8 @@ function buildDashboardState(
 function buildDashboardActions(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     handleEditContract: vi.fn(),
+    handleCapTableModalAction: vi.fn(),
+    handleCapHoldRenounce: vi.fn(),
     handleSetDeadCap: vi.fn(),
     handleSetExceptions: vi.fn(),
     capSheetDevTools: {
@@ -321,7 +420,6 @@ function buildDashboardActions(overrides: Partial<Record<string, unknown>> = {})
     handleMatchOfferSheet: vi.fn(),
     handleDeclineOfferSheet: vi.fn(),
     handleFinalizeOfferSheet: vi.fn(),
-    handleCapSheetAction: vi.fn(),
     handleExtendContract: vi.fn(),
     handleWaiveContract: vi.fn(),
     handleOptionDecision: vi.fn(),
@@ -855,20 +953,77 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(mockSetActiveTab).toHaveBeenCalledWith('cap');
     });
 
-    it('preserves edit-contract modal open/close wiring', async () => {
+    it('routes current-year and full-table contract launch surfaces through distinct dashboard handlers', async () => {
+      const dashboardActions = buildDashboardActions();
+      mockUseArchitectActions.mockReturnValue(dashboardActions);
+      mockUseArchitectState.mockReturnValue(
+        buildDashboardState({
+          activeTab: 'cap',
+        })
+      );
+
+      const { rerender } = render(<GMDashboard />);
+
+      fireEvent.click(screen.getByTestId('mock-cap-sheet-open-player-contract'));
+      expect(dashboardActions.handleEditContract).toHaveBeenCalledWith(
+        dashboardRouteFixtures.capSheetPlayer
+      );
+      expect(dashboardActions.handleCapTableModalAction).not.toHaveBeenCalled();
+      expect(dashboardActions.handleCapHoldRenounce).not.toHaveBeenCalled();
+
+      mockUseArchitectState.mockReturnValue(
+        buildDashboardState({
+          activeTab: 'capfull',
+        })
+      );
+      rerender(<GMDashboard />);
+
+      fireEvent.click(screen.getByTestId('mock-cap-table-open-player-contract'));
+      expect(dashboardActions.handleEditContract).toHaveBeenCalledWith(
+        dashboardRouteFixtures.capTablePlayer
+      );
+
+      fireEvent.click(screen.getByTestId('mock-cap-table-launch-action'));
+      expect(dashboardActions.handleCapTableModalAction).toHaveBeenCalledWith(
+        dashboardRouteFixtures.capTablePlayer,
+        'rfa',
+        2028
+      );
+
+      fireEvent.click(screen.getByTestId('mock-cap-table-renounce-hold'));
+      expect(dashboardActions.handleCapHoldRenounce).toHaveBeenCalledWith(
+        dashboardRouteFixtures.capHold
+      );
+    });
+
+    it('passes selected player, modal context, and rules-year profile context into the contract modal', async () => {
       mockUseArchitectState.mockReturnValue(
         buildDashboardState({
           activeTab: 'cap',
           selectedPlayer: {
             displayName: 'LeBron James',
           },
+          selectedRulesYear: 2028,
         })
       );
       mockUseArchitectModals.mockReturnValue(
         buildDashboardModals({
           showContractModal: true,
+          targetYear: 2028,
+          actionContext: 'freeAgent',
         })
       );
+      mockUsePlayerRulesProfiles.mockReturnValue({
+        leagueContext: { currentYear: 2026 },
+        leagueContextByYear: new Map([[2028, { currentYear: 2028 }]]),
+        getProfile: vi.fn(() => ({
+          contractSummary: {
+            freeAgencyType: 'Restricted',
+            freeAgencyYear: 2027,
+          },
+        })),
+        getProfileForYear: vi.fn(() => null),
+      });
 
       render(<GMDashboard />);
 
@@ -876,6 +1031,18 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
         'LeBron James'
       );
+      expect(
+        screen.getByTestId('mock-edit-contract-modal-target-year')
+      ).toHaveTextContent('2028');
+      expect(
+        screen.getByTestId('mock-edit-contract-modal-action-context')
+      ).toHaveTextContent('freeAgent');
+      expect(
+        screen.getByTestId('mock-edit-contract-modal-profile-free-agency-type')
+      ).toHaveTextContent('Restricted');
+      expect(
+        screen.getByTestId('mock-edit-contract-modal-rules-year')
+      ).toHaveTextContent('2028');
 
       fireEvent.click(screen.getByRole('button', { name: 'Close Contract Modal' }));
       expect(mockCloseContractModal).toHaveBeenCalledTimes(1);

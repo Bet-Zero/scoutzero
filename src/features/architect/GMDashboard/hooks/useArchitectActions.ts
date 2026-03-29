@@ -77,7 +77,7 @@ import {
   injectTeamHistoryFixtures,
 } from '@/features/architect/history/devTeamHistoryFixtures';
 import type { CapHold as SharedCapHold } from '@/features/architect/utils/capHolds';
-import type { CapSheetActionType } from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
+import type { CapSheetModalActionType } from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
 import toast from 'react-hot-toast';
 import type {
   ArchitectDashboardCapSheet,
@@ -445,11 +445,12 @@ export interface UseArchitectActionsReturn {
     contract: SigningDetails
   ) => Promise<OfferSheetPreflightResult>;
   handleEditContract: (player: ArchitectPlayer) => void;
-  handleCapSheetAction: (
-    player: PlayerRulesProfileInput | CapHoldActionItem,
-    actionType: CapSheetActionType,
-    year?: number
+  handleCapTableModalAction: (
+    player: PlayerRulesProfileInput,
+    actionType: CapSheetModalActionType,
+    year: number
   ) => void;
+  handleCapHoldRenounce: (capHold: CapHoldActionItem) => void;
   handleExtendContract: (
     player: ArchitectPlayer,
     extensionContract: SigningDetails
@@ -915,6 +916,31 @@ export function useArchitectActions({
       setSelectedPlayer(player as UseArchitectStateReturn['selectedPlayer']);
     },
     [setSelectedPlayer]
+  );
+
+  const openPlayerContractModalRoute = useCallback(
+    ({
+      player,
+      rulesYear,
+      targetYear = null,
+      actionContext = null,
+      initialAction = null,
+    }: {
+      player: PlayerRulesProfileInput | ArchitectPlayer;
+      rulesYear: number;
+      targetYear?: number | null;
+      actionContext?: ActionContext;
+      initialAction?: string | null;
+    }): void => {
+      setSelectedPlayerSafe(player as ArchitectPlayer);
+      setSelectedRulesYear(rulesYear);
+      openContractModal({
+        initialAction,
+        targetYear,
+        actionContext,
+      });
+    },
+    [openContractModal, setSelectedPlayerSafe, setSelectedRulesYear]
   );
 
   type PreparedCapAuditedMutationLifecycle = {
@@ -2678,16 +2704,15 @@ export function useArchitectActions({
 
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
-      setSelectedPlayerSafe(player);
-      setSelectedRulesYear(currentYear);
-      // No pre-selection when just clicking player name - show based on player state
-      openContractModal({
+      openPlayerContractModalRoute({
+        player,
+        rulesYear: currentYear,
         initialAction: null,
         targetYear: null,
         actionContext: null,
       });
     },
-    [currentYear, setSelectedPlayer, setSelectedRulesYear, openContractModal]
+    [currentYear, openPlayerContractModalRoute]
   );
 
   // Shared helper for renounce confirmation and execution
@@ -2870,45 +2895,35 @@ export function useArchitectActions({
     ]
   );
 
-  // Handler for clicking action cells (PO/TO/UFA/RFA) in CapSheetFull or Renounce
-  const handleCapSheetAction = useCallback(
+  const handleCapTableModalAction = useCallback(
     (
-      playerOrHold: PlayerRulesProfileInput | CapHoldActionItem,
-      actionType: CapSheetActionType,
-      year?: number
+      player: PlayerRulesProfileInput,
+      actionType: CapSheetModalActionType,
+      year: number
     ): void => {
-      if (actionType === 'renounce') {
-        void confirmAndRenounceRights(playerOrHold);
-        return;
-      }
-
-      const player = playerOrHold as ArchitectPlayer;
-
-      setSelectedPlayerSafe(player);
-      setSelectedRulesYear(year || currentYear);
-
-      // Determine action context based on what was clicked
-      const contextMap: Partial<Record<CapSheetActionType, ActionContext>> = {
+      const contextMap: Record<CapSheetModalActionType, ActionContext> = {
         po: 'option',
         to: 'option',
         ufa: 'freeAgent',
         rfa: 'freeAgent',
       };
 
-      // No pre-selection - user picks
-      openContractModal({
+      openPlayerContractModalRoute({
+        player,
+        rulesYear: year || currentYear,
         initialAction: null,
-        targetYear: year ?? null, // Store which year was clicked
-        actionContext: contextMap[actionType] || null,
+        targetYear: year,
+        actionContext: contextMap[actionType],
       });
     },
-    [
-      currentYear,
-      confirmAndRenounceRights,
-      setSelectedPlayer,
-      setSelectedRulesYear,
-      openContractModal,
-    ]
+    [currentYear, openPlayerContractModalRoute]
+  );
+
+  const handleCapHoldRenounce = useCallback(
+    (capHold: CapHoldActionItem): void => {
+      void confirmAndRenounceRights(capHold);
+    },
+    [confirmAndRenounceRights]
   );
 
   // handleExtendContract - directly updates teamCapSheet
@@ -3372,7 +3387,8 @@ export function useArchitectActions({
     getSignAndTradePreflight,
     getOfferSheetPreflight,
     handleEditContract,
-    handleCapSheetAction,
+    handleCapTableModalAction,
+    handleCapHoldRenounce,
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,

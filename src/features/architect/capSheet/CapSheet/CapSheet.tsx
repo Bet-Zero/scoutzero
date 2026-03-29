@@ -124,6 +124,8 @@ export type ManualCapSheetMutationAuthority = {
 type CapSheetProps = {
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear: number;
+  onOpenPlayerContractModal?: ((player: CapSheetPlayerLike) => void) | null;
+  // Legacy alias kept temporarily so older tests/helpers do not silently break.
   onSelectPlayer?: ((player: CapSheetPlayerLike) => void) | null;
   manualCapSheetMutationAuthority?: ManualCapSheetMutationAuthority | null;
 };
@@ -137,6 +139,7 @@ const CAP_SHEET_SURFACE_LABELS = {
 const CapSheet = ({
   teamCapSheet,
   currentYear,
+  onOpenPlayerContractModal,
   onSelectPlayer,
   manualCapSheetMutationAuthority,
 }: CapSheetProps) => {
@@ -146,6 +149,8 @@ const CapSheet = ({
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
   const hasManualCapSheetMutationAuthority =
     !!manualCapSheetMutationAuthority;
+  const openPlayerContractModal =
+    onOpenPlayerContractModal ?? onSelectPlayer ?? null;
 
   const { getProfile } = usePlayerRulesProfiles({
     players: teamCapSheet?.players || [],
@@ -417,7 +422,7 @@ const CapSheet = ({
                 <div className="font-medium text-xs text-white/90 truncate">
                   <button
                     data-testid="cap-sheet-player-row-button"
-                    onClick={() => onSelectPlayer && onSelectPlayer(player)}
+                    onClick={() => openPlayerContractModal?.(player)}
                     className="hover:text-blue-400 transition-colors text-left truncate w-full"
                   >
                     {player.displayName ||

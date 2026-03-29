@@ -41,6 +41,8 @@ import {
 
 type EditContractModalProps = Parameters<typeof EditContractModal>[0];
 type FreeAgencySectionProps = Parameters<typeof FreeAgencySection>[0];
+type CapSheetSectionProps = Parameters<typeof CapSheetSection>[0];
+type CapTableSectionProps = Parameters<typeof CapTableSection>[0];
 type ArchitectOverrideMetadata = Parameters<
   ReturnType<typeof useArchitectActions>['handleOptionDecision']
 >[2];
@@ -176,6 +178,28 @@ const GMDashboard = () => {
       handleSetExceptions: actions.handleSetExceptions,
     }),
     [actions.handleSetDeadCap, actions.handleSetExceptions]
+  );
+
+  const contractActionRouting = useMemo(
+    () => ({
+      currentYearCapSheet: {
+        openPlayerContractModal:
+          actions.handleEditContract as CapSheetSectionProps['onOpenPlayerContractModal'],
+      },
+      fullCapTable: {
+        openPlayerContractModal:
+          actions.handleEditContract as CapTableSectionProps['onOpenPlayerContractModal'],
+        launchContractAction:
+          actions.handleCapTableModalAction as CapTableSectionProps['onLaunchContractAction'],
+        renounceCapHold:
+          actions.handleCapHoldRenounce as CapTableSectionProps['onRenounceCapHold'],
+      },
+    }),
+    [
+      actions.handleCapHoldRenounce,
+      actions.handleCapTableModalAction,
+      actions.handleEditContract,
+    ]
   );
 
   const freeAgencyOnSign =
@@ -397,7 +421,9 @@ const GMDashboard = () => {
           <CapSheetSection
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
-            onSelectPlayer={actions.handleEditContract as (player: unknown) => void}
+            onOpenPlayerContractModal={
+              contractActionRouting.currentYearCapSheet.openPlayerContractModal
+            }
             manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
             playersMap={playersMap}
             onInjectCapSheetFixtures={actions.capSheetDevTools.injectFixtures}
@@ -412,8 +438,15 @@ const GMDashboard = () => {
           <CapTableSection
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
-            onSelectPlayer={actions.handleEditContract as (player: unknown) => void}
-            onActionClick={actions.handleCapSheetAction}
+            onOpenPlayerContractModal={
+              contractActionRouting.fullCapTable.openPlayerContractModal
+            }
+            onLaunchContractAction={
+              contractActionRouting.fullCapTable.launchContractAction
+            }
+            onRenounceCapHold={
+              contractActionRouting.fullCapTable.renounceCapHold
+            }
             playersMap={playersMap}
             getRulesProfileForYear={getProfileForYear}
           />

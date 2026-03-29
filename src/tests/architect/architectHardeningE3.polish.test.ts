@@ -67,12 +67,17 @@ const wrapperFixtures = vi.hoisted(() => ({
       ],
     },
   },
+  capHold: {
+    playerId: 'cap_hold_fixture',
+    playerName: 'Cap Hold Fixture',
+  },
   lastForwardedManualCapSheetMutationAuthority: null as unknown,
 }));
 
 vi.mock('@/features/architect/capSheet/CapSheet', () => ({
   default: ({
     manualCapSheetMutationAuthority,
+    onOpenPlayerContractModal,
   }: CapSheetChildProps) => {
     wrapperFixtures.lastForwardedManualCapSheetMutationAuthority =
       manualCapSheetMutationAuthority ?? null;
@@ -103,13 +108,27 @@ vi.mock('@/features/architect/capSheet/CapSheet', () => ({
             ),
         },
         'Forward Exceptions'
+      ),
+      React.createElement(
+        'button',
+        {
+          type: 'button',
+          'data-testid': 'cap-sheet-forward-open-contract',
+          onClick: () =>
+            onOpenPlayerContractModal?.(wrapperFixtures.capTablePlayer),
+        },
+        'Forward Open Contract'
       )
     );
   },
 }));
 
 vi.mock('@/features/architect/capSheet/CapSheetFull', () => ({
-  default: ({ onSelectPlayer, onActionClick }: CapSheetFullChildProps) =>
+  default: ({
+    onOpenPlayerContractModal,
+    onLaunchContractAction,
+    onRenounceCapHold,
+  }: CapSheetFullChildProps) =>
     React.createElement(
       'div',
       null,
@@ -118,7 +137,8 @@ vi.mock('@/features/architect/capSheet/CapSheetFull', () => ({
         {
           type: 'button',
           'data-testid': 'cap-table-forward-select-player',
-          onClick: () => onSelectPlayer?.(wrapperFixtures.capTablePlayer),
+          onClick: () =>
+            onOpenPlayerContractModal?.(wrapperFixtures.capTablePlayer),
         },
         'Forward Select Player'
       ),
@@ -128,9 +148,22 @@ vi.mock('@/features/architect/capSheet/CapSheetFull', () => ({
           type: 'button',
           'data-testid': 'cap-table-forward-action',
           onClick: () =>
-            onActionClick?.(wrapperFixtures.capTablePlayer, 'rfa', 2027),
+            onLaunchContractAction?.(
+              wrapperFixtures.capTablePlayer,
+              'rfa',
+              2027
+            ),
         },
         'Forward Action'
+      ),
+      React.createElement(
+        'button',
+        {
+          type: 'button',
+          'data-testid': 'cap-table-forward-renounce',
+          onClick: () => onRenounceCapHold?.(wrapperFixtures.capHold),
+        },
+        'Forward Renounce'
       )
     ),
 }));
@@ -243,6 +276,7 @@ describe('Architect TypeScript hardening E3 regression', () => {
       handleSetDeadCap: vi.fn(),
       handleSetExceptions: vi.fn(),
     };
+    const onOpenPlayerContractModal = vi.fn();
 
     render(
       React.createElement(CapSheetSection, {
@@ -251,12 +285,14 @@ describe('Architect TypeScript hardening E3 regression', () => {
           players: [wrapperFixtures.capTablePlayer],
         },
         currentYear: 2026,
+        onOpenPlayerContractModal,
         manualCapSheetMutationAuthority,
       })
     );
 
     fireEvent.click(screen.getByTestId('cap-sheet-forward-dead-cap'));
     fireEvent.click(screen.getByTestId('cap-sheet-forward-exceptions'));
+    fireEvent.click(screen.getByTestId('cap-sheet-forward-open-contract'));
 
     expect(wrapperFixtures.lastForwardedManualCapSheetMutationAuthority).toBe(
       manualCapSheetMutationAuthority
@@ -275,11 +311,16 @@ describe('Architect TypeScript hardening E3 regression', () => {
     ).toBe(
       wrapperFixtures.exceptionsPayload
     );
+    expect(onOpenPlayerContractModal).toHaveBeenCalledTimes(1);
+    expect(onOpenPlayerContractModal.mock.calls[0][0]).toBe(
+      wrapperFixtures.capTablePlayer
+    );
   });
 
   it('forwards CapTableSection select/action payloads unchanged', () => {
-    const onSelectPlayer = vi.fn();
-    const onActionClick = vi.fn();
+    const onOpenPlayerContractModal = vi.fn();
+    const onLaunchContractAction = vi.fn();
+    const onRenounceCapHold = vi.fn();
 
     render(
       React.createElement(CapTableSection, {
@@ -288,23 +329,27 @@ describe('Architect TypeScript hardening E3 regression', () => {
           players: [wrapperFixtures.capTablePlayer],
         },
         currentYear: 2026,
-        onSelectPlayer,
-        onActionClick,
+        onOpenPlayerContractModal,
+        onLaunchContractAction,
+        onRenounceCapHold,
       })
     );
 
     fireEvent.click(screen.getByTestId('cap-table-forward-select-player'));
     fireEvent.click(screen.getByTestId('cap-table-forward-action'));
+    fireEvent.click(screen.getByTestId('cap-table-forward-renounce'));
 
-    expect(onSelectPlayer).toHaveBeenCalledTimes(1);
-    expect(onSelectPlayer.mock.calls[0][0]).toBe(
+    expect(onOpenPlayerContractModal).toHaveBeenCalledTimes(1);
+    expect(onOpenPlayerContractModal.mock.calls[0][0]).toBe(
       wrapperFixtures.capTablePlayer
     );
-    expect(onActionClick).toHaveBeenCalledTimes(1);
-    expect(onActionClick.mock.calls[0][0]).toBe(
+    expect(onLaunchContractAction).toHaveBeenCalledTimes(1);
+    expect(onLaunchContractAction.mock.calls[0][0]).toBe(
       wrapperFixtures.capTablePlayer
     );
-    expect(onActionClick.mock.calls[0][1]).toBe('rfa');
-    expect(onActionClick.mock.calls[0][2]).toBe(2027);
+    expect(onLaunchContractAction.mock.calls[0][1]).toBe('rfa');
+    expect(onLaunchContractAction.mock.calls[0][2]).toBe(2027);
+    expect(onRenounceCapHold).toHaveBeenCalledTimes(1);
+    expect(onRenounceCapHold.mock.calls[0][0]).toBe(wrapperFixtures.capHold);
   });
 });

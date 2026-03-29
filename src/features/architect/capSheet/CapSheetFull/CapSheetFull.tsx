@@ -48,10 +48,27 @@ type VisiblePlayerEntry = {
 };
 
 export type CapSheetActionType = 'rfa' | 'ufa' | 'po' | 'to' | 'renounce';
+export type CapSheetModalActionType = Exclude<CapSheetActionType, 'renounce'>;
+export type CapSheetImmediateActionType = Extract<
+  CapSheetActionType,
+  'renounce'
+>;
 
 type CapSheetFullProps = {
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear: number;
+  onOpenPlayerContractModal?:
+    | ((player: CapSheetFullPlayerLike) => void)
+    | null;
+  onLaunchContractAction?:
+    | ((
+        player: CapSheetFullPlayerLike,
+        action: CapSheetModalActionType,
+        year: number
+      ) => void)
+    | null;
+  onRenounceCapHold?: ((capHold: CapHoldLike) => void) | null;
+  // Legacy aliases kept temporarily while the live dashboard route migrates.
   onSelectPlayer?: ((player: CapSheetFullPlayerLike) => void) | null;
   onActionClick?:
     | ((
@@ -148,11 +165,23 @@ const ContractAmountDisplay = ({
 const CapSheetFull = ({
   teamCapSheet,
   currentYear,
+  onOpenPlayerContractModal,
+  onLaunchContractAction,
+  onRenounceCapHold,
   onSelectPlayer,
   onActionClick,
   getRulesProfileForYear = null,
 }: CapSheetFullProps) => {
   const [showCapHolds, setShowCapHolds] = useState(false);
+  const openPlayerContractModal =
+    onOpenPlayerContractModal ?? onSelectPlayer ?? null;
+  const launchContractAction =
+    onLaunchContractAction ??
+    ((player: CapSheetFullPlayerLike, action: CapSheetModalActionType, year: number) =>
+      onActionClick?.(player, action, year));
+  const renounceCapHold =
+    onRenounceCapHold ??
+    ((capHold: CapHoldLike) => onActionClick?.(capHold, 'renounce'));
 
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
@@ -312,7 +341,7 @@ const CapSheetFull = ({
                         <div className="sticky left-0 z-10 bg-[#0f0f0f] group-hover:bg-[#131313] px-4 py-2 flex items-center gap-2 border-r border-white/5 shadow-[4px_0_24px_rgba(0,0,0,0.4)] transition-colors h-[36px]">
                           <button
                             data-testid="cap-sheet-full-player-row-button"
-                            onClick={() => onSelectPlayer && onSelectPlayer(player)}
+                            onClick={() => openPlayerContractModal?.(player)}
                             className="text-xs font-medium text-white/90 hover:text-blue-400 transition-colors text-left truncate flex-1"
                           >
                             {player.displayName ||
@@ -385,7 +414,7 @@ const CapSheetFull = ({
                                 <div
                                   key={year}
                                   onClick={() =>
-                                    onActionClick?.(
+                                    launchContractAction?.(
                                       player,
                                       faLabel === 'RFA' ? 'rfa' : 'ufa',
                                       year
@@ -454,7 +483,7 @@ const CapSheetFull = ({
                               <div
                                 key={year}
                                 onClick={() =>
-                                  onActionClick?.(
+                                  launchContractAction?.(
                                     player,
                                     isPO ? 'po' : 'to',
                                     year
@@ -632,7 +661,7 @@ const CapSheetFull = ({
                     data-testid="cap-sheet-full-absolve-button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onActionClick?.(h, 'renounce');
+                      renounceCapHold?.(h);
                     }}
                     className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded border border-red-500/20"
                   >

@@ -2,7 +2,11 @@ import CapSheetFull from '@/features/architect/capSheet/CapSheetFull';
 
 type ForwardedCapTableProps = Pick<
   Parameters<typeof CapSheetFull>[0],
-  'teamCapSheet' | 'onSelectPlayer' | 'onActionClick' | 'getRulesProfileForYear'
+  | 'teamCapSheet'
+  | 'onOpenPlayerContractModal'
+  | 'onLaunchContractAction'
+  | 'onRenounceCapHold'
+  | 'getRulesProfileForYear'
 >;
 
 type CapTableSectionProps = ForwardedCapTableProps & {
@@ -13,16 +17,18 @@ type CapTableSectionProps = ForwardedCapTableProps & {
 const CapTableSection = ({
   teamCapSheet,
   currentYear,
-  onSelectPlayer,
-  onActionClick,
+  onOpenPlayerContractModal,
+  onLaunchContractAction,
+  onRenounceCapHold,
   playersMap,
   getRulesProfileForYear,
 }: CapTableSectionProps) => (
   <CapSheetFull
     teamCapSheet={teamCapSheet}
     currentYear={currentYear}
-    onSelectPlayer={onSelectPlayer}
-    onActionClick={onActionClick}
+    onOpenPlayerContractModal={onOpenPlayerContractModal}
+    onLaunchContractAction={onLaunchContractAction}
+    onRenounceCapHold={onRenounceCapHold}
     getRulesProfileForYear={getRulesProfileForYear}
   />
 );

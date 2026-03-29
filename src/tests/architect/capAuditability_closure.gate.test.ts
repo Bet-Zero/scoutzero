@@ -270,7 +270,7 @@ describe('CAP_AUDITABILITY Closure Gate 4: Base-mode no Firestore writes', () =>
       },
       {
         start: 'const confirmAndRenounceRights = useCallback(',
-        end: 'const handleCapSheetAction = useCallback(',
+        end: 'const handleCapTableModalAction = useCallback(',
       },
       {
         start: 'const handleExtendContract = useCallback(',

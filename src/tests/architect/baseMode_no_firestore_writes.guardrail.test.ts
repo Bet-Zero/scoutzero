@@ -43,7 +43,7 @@ describe('base-mode Firestore write guardrail', () => {
       readRegion(
         source,
         'const confirmAndRenounceRights = useCallback(',
-        'const handleCapSheetAction = useCallback('
+        'const handleCapTableModalAction = useCallback('
       ),
       readRegion(
         source,
