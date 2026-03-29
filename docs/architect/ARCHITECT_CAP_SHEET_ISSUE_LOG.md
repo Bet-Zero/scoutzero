@@ -23,3 +23,13 @@ Underlying system problems identified during Cap Sheet review.
 | CS-2-3 | CS-2C, CS-2D | MEDIUM | The player table shows only player contract rows while total cap allocations include dead money, cap holds, and incomplete roster charges in a separate lower section. CS-2C reduced the partial-truth layout risk by moving the canonical breakdown directly under the roster table and adding user-facing truth cues. CS-2D resolves the remaining drift-guardrail gap by pinning single current-year `canonicalTotals` ownership, forcing summary/breakdown/footer consumers to follow canonical totals under sentinel mismatch conditions, and checking summary/footer lockstep after apply-time rerenders. | RESOLVED |
 
 ---
+
+## Step 3 Issues — Full Cap Table / Multi-Year Truth
+
+| Issue ID | Related Step(s) | Severity | Description | Status |
+|----------|-----------------|----------|-------------|--------|
+| CS-3-1 | CS-3A, CS-3D | HIGH | Multi-year player-year row cells render values via `getContractYearSlice(...).salary ?? capHit` rather than the shared cap-hit helper used by canonical `computeTeamCapTotals(...)`. This means veteran-min treatment, two-way exclusions, and any future cap-hit-vs-salary rule can diverge between what the visible per-player rows show and what the canonical yearly `Total Cap` row reports. The same row-to-total seam that was fixed in the current-year Cap Sheet (CS-2A) has not yet been closed for the multi-year surface. Existing guardrails protect the total row but do not equally protect row-value semantics, so future regressions in this seam may not be caught. | OPEN |
+| CS-3-2 | CS-3B | HIGH | The multi-year table builds its visible player population from players who have a contract slice in the current year. A player with no current-year row but a future-year contract can still affect future-year totals through `computeTeamCapTotals(...)` while being silently omitted from the visible table body. This creates a structural future-year truth gap: the yearly `Total Cap` row can be correct while the player rows below it are visibly incomplete, with no indication to the user that the discrepancy exists. | OPEN |
+| CS-3-3 | CS-3C, CS-3D | MEDIUM | The Full Cap Table presents three parallel surfaces — custom player rows, a separate cap-holds detail table, and a canonical yearly total row — without making the hierarchy between them structurally explicit. The screen asks the user to mentally reconcile these surfaces without signals clarifying which is canonical versus supporting detail. Future contributors can blur the ownership boundary between these sections, and the guardrail suite does not yet protect the coherence of the full multi-year body beyond total-row SSOT. | OPEN |
+
+---

@@ -29,3 +29,16 @@ Progress and execution status for the Cap Sheet review series.
 **STEP STATUS: DONE**
 
 ---
+
+## STEP 3 — Full Cap Table / Multi-Year Truth
+
+| ID    | Title                                                                                                                        | Status | Notes |
+|-------|------------------------------------------------------------------------------------------------------------------------------|--------|-------|
+| CS-3A | Align Multi-Year Player Row Values with Canonical Future-Year Cap-Hit Rules                                                  | TODO   |       |
+| CS-3B | Fix Future-Only Player Visibility Risk in the Multi-Year Table                                                               | TODO   |       |
+| CS-3C | Clarify the Relationship Between Multi-Year Player Rows, Cap Holds Table, and Canonical Yearly Totals                        | TODO   |       |
+| CS-3D | Add Guardrails for Multi-Year Row-to-Total Parity and Future-Year Population Truth                                           | TODO   |       |
+
+**STEP STATUS: TODO**
+
+---

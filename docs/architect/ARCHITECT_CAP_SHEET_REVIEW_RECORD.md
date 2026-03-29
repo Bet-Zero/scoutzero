@@ -536,3 +536,240 @@ So the correct conclusion is:
 **Current-year Cap Sheet display truth is mostly aligned, but still has a meaningful row-to-total drift seam that should be tightened before this surface can be considered fully clean.**
 
 ---
+
+# STEP 3 — Full Cap Table / Multi-Year Truth
+
+## Scope
+
+Cap Sheet — Step 3: Full Cap Table / Multi-Year Truth
+
+**Date:** 2026-03-28  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the Full Cap Table / multi-year cap view is accurate and structurally aligned with the Cap Sheet system.
+
+Main questions:
+
+- whether the multi-year view uses canonical totals correctly for each year
+- whether future-year contract rows, option years, free-agency years, and cap holds are represented correctly
+- whether total rows in the full cap table align with canonical yearly totals
+- whether the multi-year view still contains independent logic that could drift from the current-year Cap Sheet
+- whether this layer is structurally trustworthy or still has future-year drift risk
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+The multi-year Cap Table has a strong canonical total-row foundation, but the per-player future-year display still contains enough custom logic that it is not clean enough for a PASS yet.
+
+The strongest part of the screen is the yearly total row:
+
+- `CapSheetFull.tsx` computes `yearTotals` by calling `computeTeamCapTotals(...)` for each displayed year
+- the final `Total Cap` row renders `result.totalCapAllocations` rather than a local salary-summing loop
+- the existing multi-year SSOT guardrail file explicitly protects this total-row behavior, including dead money, cap holds, incomplete roster charges, and the separation between player-only math and canonical totals
+
+However, the per-player future-year cells still render custom values from `getContractYearSlice(...)` using `salary ?? capHit`, rather than the shared cap-hit helper used by the current-year Cap Sheet and canonical totals.
+
+In addition, the multi-year player list is anchored to **current-year** contract presence, which creates risk that future-only rows could be omitted from the table body even while future-year totals still include them.
+
+So the correct conclusion is:
+
+**The Full Cap Table has a trustworthy canonical totals backbone, but the custom multi-year row logic still creates future-year display drift risk.**
+
+---
+
+## Multi-Year Cap-Table Truth Map
+
+### 1. Canonical Yearly Total Path
+
+`CapSheetFull.tsx` builds `yearTotals` inside `useMemo` by looping over all displayed years and calling `computeTeamCapTotals(...)` for each year.
+
+The final `Total Cap` row then renders `yearTotals[year]`, which comes from `result.totalCapAllocations`.
+
+This is the strongest source-of-truth path in the entire multi-year surface.
+
+---
+
+### 2. Player-Row Future-Year Path
+
+The player-row year cells do **not** use canonical totals.
+
+For each player and year, the table:
+
+- calls `getContractYearSlice(player, year)`
+- derives `salaryValue = entry?.salary ?? entry?.capHit ?? 0`
+- renders that value directly into the cell
+
+That means the row body uses a custom contract-row display path rather than the canonical yearly cap-counting path used by `computeTeamCapTotals(...)`.
+
+---
+
+### 3. Future-Year Annotations / Action Surface
+
+The multi-year table also contains custom logic for:
+
+- player option years
+- team option years
+- restricted / unrestricted free-agency years
+- extension-season highlighting
+- extension-eligibility badges
+- bird-rights / qualifying-offer decorations
+
+These are legitimate display concerns, but they make the body of the table a highly custom future-year surface rather than a pure projection of canonical totals.
+
+---
+
+### 4. Cap Holds Surface
+
+Cap holds are rendered in a separate multi-year table below the main player grid.
+
+This cap-holds table is built from `teamCapSheet.capHolds`, filtered to unsigned holds, then plotted into future-year columns by season match.
+
+Meanwhile, canonical yearly totals include cap holds through `computeTeamCapTotals(...)`.
+
+So the final multi-year screen asks the user to reconcile:
+
+- player rows
+- a separate cap-holds table
+- a canonical yearly total row
+
+This is structurally valid, but still increases complexity and future drift risk.
+
+---
+
+## Canonical vs Custom Logic Breakdown
+
+### Canonical / Trustworthy Surfaces
+
+The following are clearly grounded in canonical truth:
+
+- yearly `Total Cap` row
+- inclusion of dead money in yearly totals
+- inclusion of cap holds in yearly totals
+- inclusion of incomplete roster charges in yearly totals
+- separation between canonical totals and player-only helper math
+
+This is not just a code-reading assumption — the existing guardrail suite explicitly checks these behaviors.
+
+---
+
+### Custom / Drift-Prone Surfaces
+
+The following remain custom and therefore more drift-prone:
+
+- row-cell salary rendering via `salary ?? capHit`
+- current-year-based player inclusion filter
+- future-year free-agency / option / extension labeling logic
+- separate cap-holds table grouping and ordering logic
+- row-body reliance on `isTwoWayContract(...)` for badges/styling rather than a shared future-year cap-hit helper
+
+These surfaces are not necessarily wrong, but they are not yet as tightly tied to canonical future-year cap truth as the total row is.
+
+---
+
+## Future-Year Drift Risks / Duplicated Paths
+
+### 1. Row-Value vs Total-Row Drift
+
+This is the biggest risk found in Step 3.
+
+The current-year Cap Sheet already fixed this problem by centralizing row-level cap-hit logic through a shared helper.
+
+The multi-year table has **not** done the same thing.
+
+Current multi-year row cells still render:
+
+- `entry?.salary ?? entry?.capHit ?? 0`
+
+rather than using the shared cap-hit helper used by canonical totals.
+
+This means future-year row display can drift from the yearly canonical totals path in cases involving:
+
+- veteran-min cap-hit treatment
+- two-way treatment
+- any future cap-hit-vs-salary distinction added later
+
+So the yearly total row and the visible player row values are not yet guaranteed to tell the same future-year cap story.
+
+---
+
+### 2. Future-Only Player Omission Risk
+
+The displayed player list is built from:
+
+- players who have a contract slice in the **current year**
+
+Specifically, players are filtered by `getContractYearSlice(p, currentYear)` before being included in `sortedPlayers`.
+
+That means a player who has no current-year row but **does** have a future-year contract row could still affect future-year totals while being omitted from the visible table body.
+
+This is a real future-year truth seam.
+
+---
+
+### 3. Separate Cap Holds Detail vs Total-Row Truth
+
+The separate cap-holds table is not automatically a bug, but it does increase reconciliation burden:
+
+- one canonical yearly total row
+- one custom player-row table
+- one separate cap-holds table
+
+The yearly totals may be correct while the visible row/detail composition remains harder to verify or easier to drift.
+
+---
+
+### 4. Existing Guardrails Protect Totals More Than Row Semantics
+
+The existing multi-year guardrail file is strong, but it is mainly protecting:
+
+- total-row SSOT
+- inclusion of dead money / cap holds / incomplete charges
+- separation from player-only cap math
+
+It does **not** appear to equally protect the future-year semantics of the visible player-row cells.
+
+So the screen is well-protected where totals are concerned, but not yet equally protected where visible row semantics are concerned.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why This Is Not FAIL
+
+- the yearly total row is genuinely canonical
+- the old local salary-sum total path is gone
+- meaningful guardrails already protect total-row SSOT behavior
+- the canonical totals backbone is real, not cosmetic
+
+---
+
+### Why This Is Not PASS
+
+- future-year player cells still use custom row rendering rather than shared canonical cap-hit logic
+- current-year player filtering can hide future-only rows
+- body rows and total rows are not yet fully guaranteed to tell the same future-year story
+- existing tests protect totals better than they protect row semantics
+
+---
+
+## Final Conclusion
+
+The Full Cap Table is currently **half-strong**:
+
+- **strong** at the yearly total-row level
+- **still risky** at the per-player future-year row level
+
+So the correct Step 3 conclusion is:
+
+**The Full Cap Table has a trustworthy canonical totals backbone, but the custom multi-year row logic still creates future-year display drift risk.**
+
+---

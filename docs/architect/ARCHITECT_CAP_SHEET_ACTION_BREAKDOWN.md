@@ -274,3 +274,145 @@ This is a **display-truth and UI-alignment step**, not a broad Cap Sheet rewrite
 
 - Substeps defined
 - Ready for bootstrap + execution
+
+---
+
+# STEP 3 — ACTION BREAKDOWN
+
+## Full Cap Table / Multi-Year Truth
+
+---
+
+## CS-3A — Align Multi-Year Player Row Values with Canonical Future-Year Cap-Hit Rules
+
+### Problem
+
+The multi-year table still renders per-player year cells from `getContractYearSlice(...).salary ?? capHit`, while canonical yearly totals flow through `computeTeamCapTotals(...)`.
+
+### Why It Matters
+
+- The yearly `Total Cap` row can be correct while visible player-year cells still tell a slightly different story
+- Veteran-min treatment, two-way treatment, and any future cap-hit-vs-salary distinction can drift between row display and canonical totals
+- This creates the same kind of row-to-total seam that already had to be fixed in the current-year Cap Sheet
+
+### Goal
+
+Make multi-year player-year value display use clearly aligned future-year cap-counting rules.
+
+### Success Criteria
+
+- Multi-year row cells no longer depend on a custom-only value path that can diverge from canonical future-year cap truth
+- Veteran-min / two-way / cap-hit rules are shared or explicitly aligned
+- The yearly total row and visible player-year values cannot silently drift apart on cap-counting semantics
+
+---
+
+## CS-3B — Fix Future-Only Player Visibility Risk in the Multi-Year Table
+
+### Problem
+
+The multi-year table body is built from players who have a contract slice in the **current year**, even though future-year totals can still include players with future-only contract rows.
+
+### Why It Matters
+
+- A player can affect future-year totals while being omitted from the visible multi-year player table
+- That creates a real future-year truth gap between the table body and the yearly `Total Cap` row
+- The multi-year surface should not hide future contributors to visible future-year cap allocations
+
+### Goal
+
+Ensure the multi-year player table includes the right future-year player population rather than anchoring visibility too tightly to current-year presence.
+
+### Success Criteria
+
+- Future-only players that materially affect future-year cap truth are not silently omitted from the multi-year table
+- Player inclusion rules for the multi-year body are aligned with the purpose of the screen
+- The visible table body better matches the population implied by future-year totals
+
+---
+
+## CS-3C — Clarify the Relationship Between Multi-Year Player Rows, Cap Holds Table, and Canonical Yearly Totals
+
+### Problem
+
+The Full Cap Table currently asks the user to reconcile:
+
+- custom player rows
+- a separate cap-holds table
+- a canonical yearly total row
+
+without making that structure fully explicit.
+
+### Why It Matters
+
+- Even when the totals are correct, the screen can still feel fragmented
+- Separate multi-year surfaces can read like parallel truths instead of one coherent future-year cap view
+- Future contributors can blur boundaries between canonical totals, supporting detail, and custom row display
+
+### Goal
+
+Make the multi-year display hierarchy clearer so the relationship between:
+
+- player rows
+- cap holds detail
+- yearly total row
+
+is easier to understand and maintain.
+
+### Success Criteria
+
+- The multi-year screen reads as one coherent future-year display system
+- The yearly total row is clearly identifiable as canonical yearly totals
+- Player rows and cap holds remain supporting/detail surfaces rather than shadow totals owners
+
+---
+
+## CS-3D — Add Guardrails for Multi-Year Row-to-Total Parity and Future-Year Population Truth
+
+### Problem
+
+Existing multi-year guardrails strongly protect the canonical total row, but they do not appear to equally protect:
+
+- per-player future-year row semantics
+- future-only player visibility
+- coherence between body rows and yearly total row
+
+### Why It Matters
+
+- The total row can remain correct while the visible multi-year body quietly drifts
+- Future regressions could reintroduce row-level inconsistencies without breaking current SSOT parity tests
+- Multi-year truth needs protection beyond just “the total row is canonical”
+
+### Goal
+
+Add focused guardrails so the Full Cap Table is protected against future drift in:
+
+- row-value semantics
+- future-year player inclusion
+- visible body vs total-row coherence
+
+### Success Criteria
+
+- Regressions in multi-year row-to-total parity are easier to detect
+- Future-only player omission risk is explicitly guarded if it remains part of the live truth contract
+- The multi-year surface is protected as a whole, not just at the total-row level
+
+---
+
+## Step 3 Summary
+
+This step focuses on:
+
+- aligning multi-year row values with canonical future-year cap truth
+- fixing future-only player visibility risk
+- clarifying the relationship between player rows, cap holds, and yearly totals
+- adding focused guardrails for full multi-year truth rather than only total-row SSOT
+
+This is a **multi-year truth and row-to-total parity step**, not a broad Cap Sheet rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
