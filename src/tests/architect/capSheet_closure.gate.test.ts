@@ -84,7 +84,7 @@ const readFileContent = (filePath: string): string => {
 
 const readRegion = (source: string, start: string, end: string): string => {
   const startIndex = source.indexOf(start);
-  const endIndex = source.indexOf(end);
+  const endIndex = source.indexOf(end, startIndex + start.length);
   if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
     throw new Error(`Could not extract region from ${start} to ${end}`);
   }
@@ -528,6 +528,16 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     'const handleSetExceptions = useCallback(',
     'const hasInjectedCapSheetFixtures = useMemo('
   );
+  const handleSaveDeadCapEditRegion = readRegion(
+    capSheetContent,
+    'const handleSaveDeadCapEdit = React.useCallback(',
+    'const handleSaveExceptionsEdit = React.useCallback('
+  );
+  const handleSaveExceptionsEditRegion = readRegion(
+    capSheetContent,
+    'const handleSaveExceptionsEdit = React.useCallback(',
+    '  return ('
+  );
 
   it('CapSheet uses an explicit manualCapSheetMutationAuthority prop with named handoff callbacks', () => {
     expect(capSheetContent).toMatch(/manualCapSheetMutationAuthority\?:/);
@@ -538,6 +548,30 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
       /const\s+handleSaveExceptionsEdit\s*=\s*React\.useCallback/
     );
     expect(capSheetContent).not.toMatch(/onSave=\{\s*\(\w+\)\s*=>/);
+  });
+
+  it('CapSheet save callbacks remain thin authority handoffs without local mutation ownership', () => {
+    expect(handleSaveDeadCapEditRegion).toMatch(
+      /manualCapSheetMutationAuthority\.handleSetDeadCap/
+    );
+    expect(handleSaveExceptionsEditRegion).toMatch(
+      /manualCapSheetMutationAuthority\.handleSetExceptions/
+    );
+
+    const forbiddenPatterns = [
+      /setTeamCapSheet/,
+      /appendLocalCapAuditEvent/,
+      /updateLocalCapAuditEvent/,
+      /validatePostStateCapLegality/,
+      /persistMutation/,
+      /applyWorldMutation/,
+      /applyCapAuditedTeamMutation/,
+    ];
+
+    for (const forbidden of forbiddenPatterns) {
+      expect(handleSaveDeadCapEditRegion).not.toMatch(forbidden);
+      expect(handleSaveExceptionsEditRegion).not.toMatch(forbidden);
+    }
   });
 
   it('CapSheet disables manual edit controls when audited authority is unavailable', () => {
@@ -683,6 +717,54 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     );
     expect(applyCapAuditedTeamMutationRegion).not.toMatch(
       /buildCapAuditEvaluation\(/ 
+    );
+  });
+
+  it('applyCapAuditedTeamMutation preserves the authoritative preview -> validation -> local apply -> persist order', () => {
+    const previewAppendIndex = applyCapAuditedTeamMutationRegion.indexOf(
+      'appendLocalCapAuditEvent(lifecycle.previewAuditEvaluation.event'
+    );
+    const invalidGateIndex = applyCapAuditedTeamMutationRegion.indexOf(
+      'if (!lifecycle.previewAuditEvaluation.validation.valid)'
+    );
+    const invalidReturnIndex = applyCapAuditedTeamMutationRegion.indexOf(
+      'applied: false',
+      invalidGateIndex
+    );
+    const localPreviewIndex = applyCapAuditedTeamMutationRegion.indexOf(
+      'lifecycle.applyLocalPreview()'
+    );
+    const persistScheduleIndex = applyCapAuditedTeamMutationRegion.indexOf(
+      'const persistPromise = persistMutation'
+    );
+
+    expect(previewAppendIndex).toBeGreaterThan(-1);
+    expect(invalidGateIndex).toBeGreaterThan(-1);
+    expect(invalidReturnIndex).toBeGreaterThan(-1);
+    expect(localPreviewIndex).toBeGreaterThan(-1);
+    expect(persistScheduleIndex).toBeGreaterThan(-1);
+
+    expect(previewAppendIndex).toBeLessThan(invalidGateIndex);
+    expect(invalidGateIndex).toBeLessThan(invalidReturnIndex);
+    expect(invalidReturnIndex).toBeLessThan(localPreviewIndex);
+    expect(localPreviewIndex).toBeLessThan(persistScheduleIndex);
+  });
+
+  it('applyCapAuditedTeamMutation threads the preview operationId into persistence and keeps lifecycle callbacks bound', () => {
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /const\s+persistPromise\s*=\s*persistMutation\(\s*mutationType\s*,\s*persistPayload\s*,\s*\{/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /operationId:\s*lifecycle\.operationId/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /onSuccess:\s*lifecycle\.linkPersistSuccess/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /onFailure:\s*\(message\)\s*=>\s*\{/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /lifecycle\.rollbackPersistFailure\(\)/
     );
   });
 });

@@ -208,7 +208,15 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
       storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
     });
     expect(previewEventsWhileLocked).toHaveLength(1);
-    expect(previewEventsWhileLocked[0]?.mutationType).toBe('setDeadCap');
+    const [previewEventWhileLocked] = previewEventsWhileLocked;
+    expect(previewEventWhileLocked).toBeDefined();
+    expect(previewEventWhileLocked?.mutationType).toBe('setDeadCap');
+    expect(previewEventWhileLocked?.preview).toBe(true);
+    expect(previewEventWhileLocked?.authoritativeEventLinked).toBe(false);
+    expect(mutationMocks.applyWorldMutation.mock.calls[0]?.[0]).toMatchObject({
+      mutationType: 'setDeadCap',
+      operationId: previewEventWhileLocked?.operationId,
+    });
 
     act(() => {
       resolveFirstPersist?.({
@@ -225,6 +233,10 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
       const previewEvents = readLocalCapAuditEvents({
         storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
       });
+      expect(previewEvents).toHaveLength(1);
+      expect(previewEvents[0]?.operationId).toBe(
+        previewEventWhileLocked?.operationId
+      );
       expect(previewEvents[0]?.authoritativeEventLinked).toBe(true);
       expect(previewEvents[0]?.authoritativeOperationId).toBe('auth_op_1');
     });
@@ -244,18 +256,25 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
   });
 
   it('rolls back the optimistic local preview and marks the preview audit event when persistence fails', async () => {
-    mutationMocks.applyWorldMutation.mockResolvedValueOnce({
-      success: false,
-      error: 'Simulated world save failure',
-    });
+    let resolvePersistFailure:
+      | ((value: { success: boolean; error: string }) => void)
+      | null = null;
+
+    mutationMocks.applyWorldMutation.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePersistFailure = resolve as (
+            value: { success: boolean; error: string }
+          ) => void;
+        })
+    );
 
     const { result } = renderActionsHarness('world_1');
     const beforeSnapshot = result.current.teamCapSheet;
+    let savePromise: Promise<boolean> | null = null;
 
-    let saveResult = true;
-
-    await act(async () => {
-      saveResult = await result.current.actions.handleSetExceptions({
+    act(() => {
+      savePromise = result.current.actions.handleSetExceptions({
         mle: {
           type: 'non-taxpayer',
           remainingAmount: 7_500_000,
@@ -263,8 +282,38 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
       });
     });
 
-    expect(saveResult).toBe(false);
     expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(1);
+
+    const previewEventsBeforeFailure = readLocalCapAuditEvents({
+      storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+    });
+    expect(previewEventsBeforeFailure).toHaveLength(1);
+    const [previewEventBeforeFailure] = previewEventsBeforeFailure;
+    expect(previewEventBeforeFailure).toBeDefined();
+    expect(previewEventBeforeFailure?.mutationType).toBe('setExceptions');
+    expect(previewEventBeforeFailure?.persistFailed).toBeUndefined();
+    expect(previewEventBeforeFailure?.authoritativeEventLinked).toBe(false);
+    expect(result.current.teamCapSheet.exceptions).toEqual({
+      mle: {
+        type: 'non-taxpayer',
+        remainingAmount: 7_500_000,
+      },
+    });
+
+    let saveResult = true;
+    if (!savePromise) {
+      throw new Error('Expected save promise to be created for optimistic mutation.');
+    }
+
+    await act(async () => {
+      resolvePersistFailure?.({
+        success: false,
+        error: 'Simulated world save failure',
+      });
+      saveResult = await savePromise;
+    });
+
+    expect(saveResult).toBe(false);
     expect(result.current.teamCapSheet).toEqual(beforeSnapshot);
     expect(result.current.teamCapSheet.exceptions).toEqual({});
     expect(toastMocks.error).toHaveBeenCalledWith(
@@ -276,9 +325,13 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
       storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
     });
     expect(previewEvents).toHaveLength(1);
+    expect(previewEvents[0]?.operationId).toBe(
+      previewEventBeforeFailure?.operationId
+    );
     expect(previewEvents[0]?.mutationType).toBe('setExceptions');
     expect(previewEvents[0]?.persistFailed).toBe(true);
     expect(previewEvents[0]?.authoritativeEventLinked).toBe(false);
+    expect(previewEvents[0]?.authoritativeOperationId).toBeUndefined();
   });
 
   it('keeps base-mode no-write behavior for optimistic handlers', () => {

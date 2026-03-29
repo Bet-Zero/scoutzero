@@ -189,8 +189,14 @@ describe('world optimistic post-state validator gate', () => {
       storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
     });
     expect(previewEvents).toHaveLength(1);
-    expect(previewEvents[0].preview).toBe(true);
-    expect(previewEvents[0].valid).toBe(false);
-    expect(previewEvents[0].mutationType).toBe('setDeadCap');
+    const [previewEvent] = previewEvents;
+    expect(previewEvent).toBeDefined();
+    expect(previewEvent?.preview).toBe(true);
+    expect(previewEvent?.worldId).toBe('world_1');
+    expect(previewEvent?.valid).toBe(false);
+    expect(previewEvent?.mutationType).toBe('setDeadCap');
+    expect(previewEvent?.operationId).toEqual(expect.any(String));
+    expect(previewEvent?.authoritativeEventLinked).toBe(false);
+    expect(previewEvent?.authoritativeOperationId).toBeUndefined();
   });
 });
