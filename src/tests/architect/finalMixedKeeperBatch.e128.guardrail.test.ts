@@ -39,6 +39,7 @@ describe('Final mixed keeper batch E128 guardrails', () => {
       'getCapSettings',
       'getCapSettingsForReceipt',
       'getCapSettingsForYear',
+      'getExceptionDefaultAmountFromCapSettings',
       'validateCapSettings',
       'yearToSeasonKey',
     ];

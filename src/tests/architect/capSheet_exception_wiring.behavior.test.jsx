@@ -12,23 +12,41 @@ import '@testing-library/jest-dom/vitest';
 import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker/ExceptionTracker';
 import ManageExceptionsModal from '@/features/architect/capSheet/modals/ManageExceptionsModal';
 import ManageDeadMoneyModal from '@/features/architect/capSheet/modals/ManageDeadMoneyModal';
+import {
+  getCapSettingsForYear,
+  getExceptionDefaultAmountFromCapSettings,
+} from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const hoistedMocks = vi.hoisted(() => ({
   tpeList: [],
+  buildCapSettings: (overrides = {}) => ({
+    salaryCap: 141_000_000,
+    firstApron: 179_000_000,
+    secondApron: 189_000_000,
+    luxuryTax: 171_000_000,
+    fullMLE: 12_800_000,
+    taxpayerMLE: 5_000_000,
+    bae: 4_700_000,
+    roomMLE: 7_900_000,
+    _meta: {
+      source: 'test',
+      warnings: [],
+      seasonKey: '2025-26',
+      resolved: true,
+    },
+    ...overrides,
+  }),
 }));
 
 vi.mock(
   '@/features/architect/utils/tradeMachine/utils/capSettingsProvider',
-  () => ({
-    getCapSettingsForYear: vi.fn(() => ({
-      fullMLE: 12_800_000,
-      taxpayerMLE: 5_000_000,
-      bae: 4_700_000,
-      roomMLE: 7_900_000,
-      firstApron: 179_000_000,
-      secondApron: 189_000_000,
-    })),
-  })
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      getCapSettingsForYear: vi.fn(() => hoistedMocks.buildCapSettings()),
+    };
+  }
 );
 
 vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
@@ -55,10 +73,119 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoistedMocks.tpeList = [];
+    vi
+      .mocked(getCapSettingsForYear)
+      .mockReturnValue(hoistedMocks.buildCapSettings());
   });
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('reads exception defaults from normalized cap-settings keys only', () => {
+    const normalizedCapSettings = hoistedMocks.buildCapSettings({
+      fullMLE: 11_111_111,
+      taxpayerMLE: 2_222_222,
+      bae: 3_333_333,
+      roomMLE: 4_444_444,
+      nonTaxMLE: 91_000_000,
+      mle: 92_000_000,
+      taxMLE: 93_000_000,
+      tpmle: 94_000_000,
+      room: 95_000_000,
+    });
+
+    expect(
+      getExceptionDefaultAmountFromCapSettings('mle', normalizedCapSettings)
+    ).toBe(11_111_111);
+    expect(
+      getExceptionDefaultAmountFromCapSettings('tpmle', normalizedCapSettings)
+    ).toBe(2_222_222);
+    expect(
+      getExceptionDefaultAmountFromCapSettings('bae', normalizedCapSettings)
+    ).toBe(3_333_333);
+    expect(
+      getExceptionDefaultAmountFromCapSettings('room', normalizedCapSettings)
+    ).toBe(4_444_444);
+
+    expect(
+      getExceptionDefaultAmountFromCapSettings('mle', {
+        nonTaxMLE: 91_000_000,
+        mle: 92_000_000,
+      })
+    ).toBe(0);
+    expect(
+      getExceptionDefaultAmountFromCapSettings('tpmle', {
+        taxMLE: 93_000_000,
+        tpmle: 94_000_000,
+      })
+    ).toBe(0);
+    expect(
+      getExceptionDefaultAmountFromCapSettings('room', {
+        room: 95_000_000,
+      })
+    ).toBe(0);
+    expect(getExceptionDefaultAmountFromCapSettings('bae', { bae: 3_333_333 })).toBe(
+      3_333_333
+    );
+  });
+
+  it('shares the same normalized season defaults across tracker and modal surfaces', () => {
+    vi.mocked(getCapSettingsForYear).mockReturnValue(
+      hoistedMocks.buildCapSettings({
+        fullMLE: 11_111_111,
+        taxpayerMLE: 2_222_222,
+        bae: 3_333_333,
+        roomMLE: 4_444_444,
+      })
+    );
+
+    render(
+      <>
+        <ExceptionTracker
+          teamCapSheet={{ hardCapped: 0, exceptions: {} }}
+          currentYear={2026}
+        />
+        <ManageExceptionsModal
+          isOpen
+          onClose={() => {}}
+          onSave={vi.fn()}
+          currentYear={2026}
+          teamCapSheet={{ exceptions: {} }}
+        />
+      </>
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+    expect(within(trackerSection).getByText('$11,111,111')).toBeInTheDocument();
+    expect(within(trackerSection).getByText('$2,222,222')).toBeInTheDocument();
+    expect(within(trackerSection).getByText('$3,333,333')).toBeInTheDocument();
+    expect(within(trackerSection).getByText('$4,444,444')).toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    const findExceptionRow = (label) =>
+      within(table)
+        .getAllByRole('row')
+        .find((row) => within(row).queryByText(label));
+
+    expect(
+      within(findExceptionRow('Mid-Level Exception (MLE)')).getByDisplayValue(
+        '11111111'
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(findExceptionRow('Taxpayer MLE')).getByDisplayValue('2222222')
+    ).toBeInTheDocument();
+    expect(
+      within(findExceptionRow('Bi-Annual Exception (BAE)')).getByDisplayValue(
+        '3333333'
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(findExceptionRow('Room Exception')).getByDisplayValue('4444444')
+    ).toBeInTheDocument();
   });
 
   it('updates ExceptionTracker cards after modal save in the same page session', async () => {

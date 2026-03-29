@@ -14,7 +14,10 @@
  */
 import React from 'react';
 import { BadgeAlert, ShieldAlert } from 'lucide-react';
-import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import {
+  getCapSettingsForYear,
+  getExceptionDefaultAmountFromCapSettings,
+} from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
 type NumericLike = number | string | null | undefined;
@@ -240,25 +243,25 @@ const ExceptionTracker = ({
     teamCapSheet,
     'mle',
     'mle',
-    capData.fullMLE
+    getExceptionDefaultAmountFromCapSettings('mle', capData)
   );
   const tpMleException = normalizeExceptionForTracker(
     teamCapSheet,
     'tpmle',
     'tpMle',
-    capData.taxpayerMLE
+    getExceptionDefaultAmountFromCapSettings('tpmle', capData)
   );
   const baeException = normalizeExceptionForTracker(
     teamCapSheet,
     'bae',
     'bae',
-    capData.bae
+    getExceptionDefaultAmountFromCapSettings('bae', capData)
   );
   const roomException = normalizeExceptionForTracker(
     teamCapSheet,
     'room',
     'room',
-    capData.roomMLE || capData.room || 0
+    getExceptionDefaultAmountFromCapSettings('room', capData)
   );
 
   // --- Logic for Availability & Hard Cap ---

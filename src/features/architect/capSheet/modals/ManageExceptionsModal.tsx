@@ -13,7 +13,10 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import {
+  getCapSettingsForYear,
+  getExceptionDefaultAmountFromCapSettings,
+} from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 /**
@@ -31,15 +34,7 @@ const EXCEPTION_LABELS: Record<ExceptionType, string> = {
 
 type NumericLike = number | string | null | undefined;
 type ExceptionType = (typeof EXCEPTION_TYPES)[number];
-type CapSettingsLike = {
-  nonTaxMLE?: NumericLike;
-  mle?: NumericLike;
-  taxMLE?: NumericLike;
-  tpmle?: NumericLike;
-  bae?: NumericLike;
-  roomMLE?: NumericLike;
-  room?: NumericLike;
-};
+type CapSettingsLike = ReturnType<typeof getCapSettingsForYear>;
 type EditableException = {
   enabled: boolean;
   totalAmount: NumericLike;
@@ -65,28 +60,6 @@ const DEFAULT_EXCEPTION: EditableException = {
   usedAmount: 0,
   seasonKey: '',
   notes: '',
-};
-
-/**
- * Get default totals for exceptions based on cap settings
- */
-const getDefaultTotalAmount = (
-  type: ExceptionType,
-  capSettings: CapSettingsLike | null
-) => {
-  if (!capSettings) return 0;
-  switch (type) {
-    case 'mle':
-      return capSettings.nonTaxMLE || capSettings.mle || 0;
-    case 'tpmle':
-      return capSettings.taxMLE || capSettings.tpmle || 0;
-    case 'bae':
-      return capSettings.bae || 0;
-    case 'room':
-      return capSettings.roomMLE || capSettings.room || 0;
-    default:
-      return 0;
-  }
 };
 
 /**
@@ -144,7 +117,7 @@ const ManageExceptionsModal = ({
             enabled: existing.enabled ?? true,
             totalAmount:
               existing.totalAmount ??
-              getDefaultTotalAmount(type, capSettings) ??
+              getExceptionDefaultAmountFromCapSettings(type, capSettings) ??
               0,
             usedAmount: existing.usedAmount ?? 0,
             seasonKey: existing.seasonKey ?? seasonKey,
@@ -154,7 +127,10 @@ const ManageExceptionsModal = ({
           // Initialize with defaults
           initialState[type] = {
             ...DEFAULT_EXCEPTION,
-            totalAmount: getDefaultTotalAmount(type, capSettings),
+            totalAmount: getExceptionDefaultAmountFromCapSettings(
+              type,
+              capSettings
+            ),
             seasonKey,
           };
         }
@@ -411,7 +387,9 @@ const ManageExceptionsModal = ({
                 <div key={type} className="text-xs">
                   <span className="text-white/40 uppercase">{type}:</span>
                   <span className="ml-1 text-white/60 tabular-nums">
-                    {formatCurrency(getDefaultTotalAmount(type, capSettings))}
+                    {formatCurrency(
+                      getExceptionDefaultAmountFromCapSettings(type, capSettings)
+                    )}
                   </span>
                 </div>
               ))}

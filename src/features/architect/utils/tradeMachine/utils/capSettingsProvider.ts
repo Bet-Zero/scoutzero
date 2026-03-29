@@ -59,6 +59,13 @@ interface NormalizedCapSettings {
   [key: string]: unknown;
 }
 
+export type ExceptionDefaultType = 'mle' | 'tpmle' | 'bae' | 'room';
+
+export type ExceptionDefaultCapSettings = Pick<
+  NormalizedCapSettings,
+  'fullMLE' | 'taxpayerMLE' | 'bae' | 'roomMLE'
+>;
+
 interface GetCapSettingsParams {
   year: CapYearInput;
   capProjections?: CapProjectionSource;
@@ -133,6 +140,37 @@ const EMERGENCY_FALLBACK_2024_25 = Object.freeze<NormalizedCapSettings>({
 });
 
 const defaultCapProjections = capProjectionsData as CapProjectionMap;
+
+function toNonNegativeAmount(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.max(0, parsed);
+}
+
+export function getExceptionDefaultAmountFromCapSettings(
+  type: ExceptionDefaultType,
+  capSettings: Partial<ExceptionDefaultCapSettings> | null | undefined
+): number {
+  if (!capSettings || typeof capSettings !== 'object') {
+    return 0;
+  }
+
+  switch (type) {
+    case 'mle':
+      return toNonNegativeAmount(capSettings.fullMLE);
+    case 'tpmle':
+      return toNonNegativeAmount(capSettings.taxpayerMLE);
+    case 'bae':
+      return toNonNegativeAmount(capSettings.bae);
+    case 'room':
+      return toNonNegativeAmount(capSettings.roomMLE);
+    default:
+      return 0;
+  }
+}
 
 export function yearToSeasonKey(year: CapYearInput): string | null {
   if (typeof year === 'string' && year.includes('-')) {

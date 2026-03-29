@@ -251,11 +251,41 @@ describe('Gate 4: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
     expect(hasSourceSelection).toBe(true);
   });
 
+  it('uses the shared normalized exception default helper from capSettingsProvider', () => {
+    expect(content).toContain('getExceptionDefaultAmountFromCapSettings');
+
+    const helperCallCount =
+      content.match(/getExceptionDefaultAmountFromCapSettings\s*\(/g)?.length || 0;
+    expect(helperCallCount).toBeGreaterThanOrEqual(4);
+  });
+
   it('does NOT import or call computeTeamCapTotals', () => {
     const importsComputeTeamCapTotals =
       /import[\s\S]*computeTeamCapTotals[\s\S]*from/.test(content);
     expect(importsComputeTeamCapTotals).toBe(false);
     expect(/computeTeamCapTotals\s*\(/.test(content)).toBe(false);
+  });
+});
+
+describe('Gate 4B: ManageExceptionsModal Shared Exception Default Contract (CS-4A)', () => {
+  const content = readFileContent(MANAGE_EXCEPTIONS_MODAL_PATH);
+
+  it('imports and calls the shared normalized exception default helper', () => {
+    expect(content).toContain('getExceptionDefaultAmountFromCapSettings');
+
+    const helperCallCount =
+      content.match(/getExceptionDefaultAmountFromCapSettings\s*\(/g)?.length || 0;
+    expect(helperCallCount).toBeGreaterThanOrEqual(3);
+  });
+
+  it('does NOT keep a modal-local default amount resolver', () => {
+    expect(content).not.toContain('getDefaultTotalAmount');
+  });
+
+  it('does NOT reference stale legacy cap-settings keys for MLE/TPMLE defaults', () => {
+    expect(content).not.toContain('nonTaxMLE');
+    expect(content).not.toContain('taxMLE');
+    expect(content).not.toMatch(/capSettings\.(?:mle|tpmle|room)\b/);
   });
 });
 
