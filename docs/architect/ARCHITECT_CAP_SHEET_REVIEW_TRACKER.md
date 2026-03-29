@@ -21,11 +21,11 @@ Progress and execution status for the Cap Sheet review series.
 
 | ID    | Title                                                                 | Status | Notes |
 |-------|-----------------------------------------------------------------------|--------|-------|
-| CS-2A | Align Row-Level Cap Hit Display with Canonical Player Salary Math     | TODO   |       |
+| CS-2A | Align Row-Level Cap Hit Display with Canonical Player Salary Math     | DONE   | Current-year row `Cap Hit` now uses shared `getPlayerCapHitForYear(...)`, canonical `playersTotal` sums the same helper, and focused UI/source-scan/SSOT guardrails cover veteran-min and two-way alignment. Required `typecheck` and `build` passed; `test:diff` still reports unrelated pre-existing Architect failures outside CS-2A scope. |
 | CS-2B | Clarify Which Current-Year Display Elements Are Canonical Totals Consumers vs Adjacent Detail Views | TODO |       |
 | CS-2C | Reduce Partial-Truth Risk in the Current-Year Cap Sheet Layout        | TODO   |       |
 | CS-2D | Guard the Current-Year Display Against Future Local Recalculation Drift | TODO |       |
 
-**STEP STATUS: TODO**
+**STEP STATUS: IN_PROGRESS**
 
 ---

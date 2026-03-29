@@ -50,6 +50,8 @@ interface ContractUtilsPlayer {
   contract?: ContractUtilsContract | null;
   futureContract?: ContractUtilsContract | null;
   contractType?: string | null;
+  isMinimum?: boolean;
+  yearsOfService?: unknown;
   bio?: {
     display?: { freeAgentYear?: number | null } | null;
     [key: string]: unknown;
@@ -295,6 +297,23 @@ export function getContractYearSlice(
     isExtensionSeason: contractYear.isExtension,
     source: contractYear.isExtension ? 'extension' : 'contract',
   };
+}
+
+export function getPlayerCapHitForYear(
+  player: ContractUtilsPlayer | null | undefined,
+  endYear: number
+): number {
+  if (!player) return 0;
+  if (isTwoWayContract(player)) return 0;
+
+  const slice = getContractYearSlice(player, endYear);
+  const salary = Number(slice?.capHit ?? slice?.salary ?? 0) || 0;
+
+  if (player.isMinimum && Number(player.yearsOfService) >= 3) {
+    return getMinimumCapHit(Number(player.yearsOfService));
+  }
+
+  return salary;
 }
 
 // 3. Create max contract based on years of service

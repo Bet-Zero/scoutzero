@@ -19,8 +19,8 @@ import type {
 } from '@/features/architect/types';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
-  getMinimumCapHit,
   getContractYearSlice,
+  getPlayerCapHitForYear,
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsByEndYear, type CapHold } from '@/features/architect/utils/capHolds';
@@ -116,23 +116,6 @@ const CapSheet = ({
   const formatYearLabel = (year: number) =>
     `${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
-  const getCapHit = (player: CapSheetPlayerLike, yearKey: number) => {
-    // Two-way contracts don't count against the cap
-    if (isTwoWayContract(player)) {
-      return 0;
-    }
-    const slice = getContractYearSlice(player, yearKey);
-    const salary = slice?.capHit ?? slice?.salary ?? 0;
-    if (player.isMinimum && Number(player.yearsOfService) >= 3) {
-      return getMinimumCapHit(Number(player.yearsOfService));
-    }
-    return salary;
-  };
-
-  // Helper to aggregate cap hits for a group of players
-  // const calculateCapHitTotal = (players, yearKey) =>
-  //   players.reduce((sum, p) => sum + getCapHit(p, yearKey), 0);
-
   const renderNotes = (
     player: CapSheetPlayerLike,
     yearKey: number,
@@ -225,11 +208,6 @@ const CapSheet = ({
     (teamCapSheet.capHolds || []) as CapHold[],
     selectedYear
   ).sort((a, b) => (Number(b.amount || 0) || 0) - (Number(a.amount || 0) || 0));
-
-  // REMOVED: Local totals calculation in favor of SSOT `canonicalTotals` object
-  // const playersCapTotal = calculateCapHitTotal(filteredPlayers, selectedYear);
-  // const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(teamCapSheet.capHolds, selectedYear);
-  // const totalCapHit = playersCapTotal + (showCapHolds ? capHoldsTotal : 0);
 
   const confidenceLabel = React.useMemo(() => {
     const summary = canonicalTotals?._meta?.rulesSourcesSummary;
@@ -324,7 +302,7 @@ const CapSheet = ({
           {filteredPlayers.map((player, idx) => {
             const slice = getContractYearSlice(player, selectedYear);
             const salary = slice?.salary ?? slice?.capHit ?? 0;
-            const capHit = getCapHit(player, selectedYear);
+            const capHit = getPlayerCapHitForYear(player, selectedYear);
             const isExtensionSeason = slice?.isExtensionSeason;
             const rulesProfile = getProfile(player);
 

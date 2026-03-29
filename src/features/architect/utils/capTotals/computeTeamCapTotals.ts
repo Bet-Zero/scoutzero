@@ -23,7 +23,7 @@
  */
 
 import {
-  getContractYearSlice,
+  getPlayerCapHitForYear,
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
@@ -342,14 +342,10 @@ function computePlayersTotal(
 ): number {
   if (!Array.isArray(players)) return 0;
 
-  return players.reduce((sum, player) => {
-    if (isTwoWayContract(player)) {
-      return sum;
-    }
-    const seasonEntry = getContractYearSlice(player, endYear);
-    const salary = seasonEntry?.capHit ?? seasonEntry?.salary ?? 0;
-    return sum + num(salary);
-  }, 0);
+  return players.reduce(
+    (sum, player) => sum + num(getPlayerCapHitForYear(player, endYear)),
+    0
+  );
 }
 
 function computeCanonicalTotalCapAllocations({

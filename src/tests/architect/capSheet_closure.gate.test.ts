@@ -71,6 +71,14 @@ const readFileContent = (filePath: string): string => {
 describe('Gate 1: Cap % Denominator SSOT (E1/E2)', () => {
   const content = readFileContent(CAP_SHEET_PATH);
 
+  it('imports getPlayerCapHitForYear from contractUtils for row cap-hit display', () => {
+    const importsSharedCapHitHelper =
+      /import[\s\S]*getPlayerCapHitForYear[\s\S]*from\s+['"]@\/features\/architect\/utils\/contractUtils['"]/.test(
+        content
+      );
+    expect(importsSharedCapHitHelper).toBe(true);
+  });
+
   it('does NOT import capProjections for cap % denominator', () => {
     // capProjections import should not exist for cap % calculation
     const importCapProjections = /import\s+capProjections\s+from/.test(content);
@@ -91,6 +99,19 @@ describe('Gate 1: Cap % Denominator SSOT (E1/E2)', () => {
     const usesCapProjectionsLegacy =
       /capProjections\s*\[\s*\w+\s*\]?\s*\?\s*\.cap/.test(content);
     expect(usesCapProjectionsLegacy).toBe(false);
+  });
+
+  it('does NOT define a local getCapHit helper in CapSheet', () => {
+    const definesLocalGetCapHit = /const\s+getCapHit\s*=\s*\(/.test(content);
+    expect(definesLocalGetCapHit).toBe(false);
+  });
+
+  it('uses getPlayerCapHitForYear for row cap-hit display', () => {
+    const usesSharedCapHitHelper =
+      /getPlayerCapHitForYear\s*\(\s*player\s*,\s*selectedYear\s*\)/.test(
+        content
+      );
+    expect(usesSharedCapHitHelper).toBe(true);
   });
 });
 

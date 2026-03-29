@@ -244,6 +244,45 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
     );
   });
 
+  it('applies veteran-minimum cap-hit treatment while still excluding two-way salary', () => {
+    const mockCapSheet = {
+      players: [
+        ...createRoster(13, 1000000), // 13 standard players = $13M
+        {
+          player_id: 'vet-min-1',
+          displayName: 'Veteran Minimum Wing',
+          isMinimum: true,
+          yearsOfService: 4,
+          contract: {
+            contractType: 'Standard',
+            salariesByYear: [
+              { season: '2025-26', salary: 2390000, capHit: 2390000 },
+            ],
+          },
+        },
+        {
+          player_id: 'two-way-1',
+          displayName: 'Two-Way Prospect',
+          contractType: 'two-way',
+          contract: {
+            contractType: 'Two-Way',
+            salariesByYear: [
+              { season: '2025-26', salary: 500000, capHit: 500000 },
+            ],
+          },
+        },
+      ],
+      capHolds: [],
+      deadCap: [],
+    };
+
+    const totals = computeTeamCapTotals(mockCapSheet, YEAR);
+
+    expect(totals.playersTotal).toBe(15092400);
+    expect(totals.incompleteChargesTotal).toBe(0);
+    expect(totals.totalCapAllocations).toBe(15092400);
+  });
+
   /**
    * Test 8: Combined scenario - all components contribute to total.
    */

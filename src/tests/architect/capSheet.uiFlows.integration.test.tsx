@@ -99,15 +99,41 @@ function buildTeamFixture(): TeamLike {
   };
 }
 
-function buildTeamWithNonZeroTwoWayFixture(): TeamLike {
-  const baseTeam = buildTeamFixture();
+function buildTeamWithVeteranMinimumAndTwoWayFixture(): TeamLike {
+  const basePlayers = Array.from({ length: 13 }, (_, index) => makePlayer(index));
+  const veteranMinimumId = 'vet_minimum_standard';
   const twoWayId = 'two_way_non_zero';
 
   return {
-    ...baseTeam,
-    roster: [...baseTeam.roster, twoWayId],
+    teamCode: 'LAL',
+    teamName: 'Los Angeles Lakers',
+    roster: [
+      ...basePlayers.map((player) => String(player.id)),
+      veteranMinimumId,
+      twoWayId,
+    ],
     players: [
-      ...baseTeam.players,
+      ...basePlayers,
+      {
+        id: veteranMinimumId,
+        player_id: veteranMinimumId,
+        name: 'vet_minimum_standard',
+        displayName: 'Veteran Minimum Wing',
+        position: 'F',
+        isMinimum: true,
+        yearsOfService: 4,
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 2_390_000,
+              capHit: 2_390_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
       {
         id: twoWayId,
         player_id: twoWayId,
@@ -128,6 +154,10 @@ function buildTeamWithNonZeroTwoWayFixture(): TeamLike {
         },
       },
     ],
+    deadCap: [],
+    capHolds: [],
+    exceptions: {},
+    totals: {},
   };
 }
 
@@ -332,8 +362,8 @@ describe('Cap Sheet UI integration flows', () => {
     expect(readVisibleTotalCapHit()).toBe(afterDeadMoneyTotal);
   });
 
-  it('keeps two-way row cap hit at zero and excludes stored two-way salary from canonical totals', () => {
-    const teamCapSheet = buildTeamWithNonZeroTwoWayFixture();
+  it('keeps veteran-minimum and two-way row cap hits aligned with canonical player salaries', () => {
+    const teamCapSheet = buildTeamWithVeteranMinimumAndTwoWayFixture();
     const totals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR);
 
     render(
@@ -343,6 +373,22 @@ describe('Cap Sheet UI integration flows', () => {
         onSelectPlayer={() => {}}
       />
     );
+
+    const veteranButton = screen.getByRole('button', {
+      name: 'Veteran Minimum Wing',
+    });
+    const veteranRow = veteranButton.closest('div.grid');
+
+    expect(veteranRow).not.toBeNull();
+    expect(
+      within(veteranRow as HTMLElement).getByText('$2,092,400')
+    ).toBeInTheDocument();
+    expect(
+      within(veteranRow as HTMLElement).getByText('$2,390,000')
+    ).toBeInTheDocument();
+    expect(
+      within(veteranRow as HTMLElement).getByText('Vet Min')
+    ).toBeInTheDocument();
 
     const twoWayButton = screen.getByRole('button', {
       name: 'Two-Way Prospect',
@@ -356,8 +402,8 @@ describe('Cap Sheet UI integration flows', () => {
     ).toBeInTheDocument();
     expect(within(twoWayRow as HTMLElement).getByText('2W')).toBeInTheDocument();
 
-    expect(totals.playersTotal).toBe(14_000_000);
-    expect(totals.totalCapAllocations).toBe(14_000_000);
+    expect(totals.playersTotal).toBe(15_092_400);
+    expect(totals.totalCapAllocations).toBe(15_092_400);
     expect(readBreakdownValue('Player Salaries')).toBe(totals.playersTotal);
     expect(readVisibleTotalCapHit()).toBe(totals.totalCapAllocations);
   });
