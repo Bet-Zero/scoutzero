@@ -36,6 +36,7 @@ Use only these commands unless the user explicitly requests something else.
 | ------------------------ | -------------------------------------- | ---------------------------------------------- |
 | `npm run test:diff`      | Run tests impacted by current git diff | **Preferred default** when unsure what to run  |
 | `npm run test:fast`      | Fast smoke tests only (`tests/smoke`)  | Very small changes / quick sanity              |
+| `npm run test:cap-sheet-boundary` | Focused Cap Sheet mutation-boundary guardrails | Narrow Cap Sheet action-layer / mutation-boundary changes |
 | `npm run test:trade`     | Trade-only tests (`tests/trade`)       | Trade Machine changes                          |
 | `npm run test:architect` | Architect + tradeMachine scoped tests  | Architect feature changes                      |
 | `npm run test:roster`    | Roster tests (`src/tests/roster`)      | Roster Builder changes                         |
@@ -71,7 +72,7 @@ npm run test:diff -- --reporter=dot
 After changes, run **one** of the following by default:
 
 - `npm run test:diff` (preferred if uncertain), OR
-- the most relevant scoped suite (`npm run test:trade`, `npm run test:architect`, `npm run test:roster`, `npm run test:scouting`), OR
+- the most relevant scoped suite (`npm run test:cap-sheet-boundary`, `npm run test:trade`, `npm run test:architect`, `npm run test:roster`, `npm run test:scouting`), OR
 - `npm run test:fast` for tiny/local changes.
 
 ### Hard rule: Full suite requires explicit permission

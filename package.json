@@ -26,6 +26,7 @@
     "test:full": "vitest run -c vitest.node.config.js && vitest run -c vitest.ui.config.js",
     "test:profile": "node scripts/analyze-test-performance.mjs",
     "test:architect": "vitest run -c vitest.node.config.js tests/architect src/tests/architect src/tests/tradeMachine",
+    "test:cap-sheet-boundary": "vitest run -c vitest.node.config.js src/tests/architect/capSheet_closure.gate.test.ts src/tests/architect/architectHardeningE4.polish.test.ts",
     "test:rules": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 node scripts/ci/run_rules_integration_tests.mjs",
     "gates:architect": "node scripts/ci/run_architect_ship_gates.mjs",
     "test:smoke:architect": "vitest --config vitest.smoke.config.js --run --reporter=dot",

@@ -529,6 +529,7 @@ describe('Architect core trio pass R2 proof', () => {
         operationType: 'EXCEPTION_SIGNING',
         operationSeasonId: '2026-27',
         exceptionUsed: 'FULL_MLE',
+        simulationDate: expect.any(Date),
         teamState: expect.objectContaining({
           teamCode: 'LAL',
           totals: { totalSalary: 120_000_000 },
@@ -537,13 +538,21 @@ describe('Architect core trio pass R2 proof', () => {
               available: true,
               remaining: 14_100_000,
             }),
-            tradeExceptions: expect.arrayContaining([
-              expect.objectContaining({
-                id: 'tpe_1',
-                amount: 4_000_000,
-              }),
-            ]),
           }),
+          players: expect.arrayContaining([
+            expect.objectContaining({
+              playerId: 'player_1',
+              contract: expect.objectContaining({
+                salariesByYear: expect.arrayContaining([
+                  expect.objectContaining({
+                    season: '2025-26',
+                    salary: 12_000_000,
+                    capHit: 12_000_000,
+                  }),
+                ]),
+              }),
+            }),
+          ]),
         }),
         player: expect.objectContaining({
           playerId: 'player_1',

@@ -17,11 +17,12 @@
  *   node scripts/run-tests-by-diff.mjs --verbose
  */
 
-import { execSync } from 'child_process';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import { execSync, spawnSync } from 'child_process';
 
 const VERBOSE = process.argv.includes('--verbose');
+const FORWARDED_ARGS = process.argv
+  .slice(2)
+  .filter((arg) => arg !== '--verbose');
 
 // ANSI colors for output
 const colors = {
@@ -124,6 +125,27 @@ const TIER_3_TRIGGERS = [
 ];
 
 /**
+ * Cap Sheet mutation-boundary slice.
+ * Keep this narrow so we only bypass the broader architect tier when every
+ * executable change is inside the audited dashboard/action-boundary surface.
+ */
+const CAP_SHEET_BOUNDARY_PATTERNS = [
+  /^src\/features\/architect\/GMDashboard\/hooks\/useArchitectActions\.ts$/,
+  /^src\/features\/architect\/GMDashboard\/GMDashboard\.tsx$/,
+  /^src\/shared\/components\/EditContractModal\.tsx$/,
+  /^src\/tests\/architect\/capSheet_closure\.gate\.test\.ts$/,
+  /^src\/tests\/architect\/architectHardeningE4\.polish\.test\.ts$/,
+  /^src\/tests\/architect\/GMDashboard\.smoke\.test\.tsx$/,
+  /^src\/tests\/architect\/dashboardWorldBoundary\.e109\.test\.tsx$/,
+  /^src\/tests\/smoke\/architect\.uiSmoke\.e1\.test\.tsx$/,
+];
+
+const NON_EXECUTION_SUPPORT_PATTERNS = [
+  /^docs\/architect\/.*\.md$/,
+  /^return_packages\/architect\/.*\.md$/,
+];
+
+/**
  * Feature-specific patterns
  */
 const FEATURE_PATTERNS = {
@@ -137,6 +159,20 @@ const FEATURE_PATTERNS = {
   roster: [/^src\/features\/roster\//, /^src\/tests\/roster\//],
   scouting: [/^src\/features\/scouting\//, /^src\/tests\/scouting\//],
 };
+
+function isCapSheetBoundaryChange(changedFiles) {
+  const executableFiles = changedFiles.filter(
+    (file) =>
+      !NON_EXECUTION_SUPPORT_PATTERNS.some((pattern) => pattern.test(file))
+  );
+
+  return (
+    executableFiles.length > 0 &&
+    executableFiles.every((file) =>
+      CAP_SHEET_BOUNDARY_PATTERNS.some((pattern) => pattern.test(file))
+    )
+  );
+}
 
 /**
  * Determine which tier to run based on changed files
@@ -160,6 +196,15 @@ function selectTestTier(changedFiles) {
         };
       }
     }
+  }
+
+  if (isCapSheetBoundaryChange(changedFiles)) {
+    return {
+      tier: 'capSheetBoundary',
+      reason:
+        'Cap Sheet mutation-boundary/dashboard action slice modified',
+      files: changedFiles,
+    };
   }
 
   // Check for feature-specific patterns
@@ -234,31 +279,47 @@ function runTests(selection) {
   log('');
 
   const commands = {
-    fast: 'npm run test:fast',
-    full: 'npm run test:full',
-    architect: 'npm run test:architect',
-    trade: 'npm run test:trade',
-    roster: 'npm run test:roster',
-    scouting: 'npm run test:scouting',
+    fast: 'test:fast',
+    full: 'test:full',
+    architect: 'test:architect',
+    capSheetBoundary: 'test:cap-sheet-boundary',
+    trade: 'test:trade',
+    roster: 'test:roster',
+    scouting: 'test:scouting',
   };
 
-  const command = commands[tier];
-  if (!command) {
+  const script = commands[tier];
+  if (!script) {
     log(`❌ Unknown tier: ${tier}`, colors.red);
     process.exit(1);
   }
 
-  log(`Running: ${colors.green}${command}${colors.reset}`);
+  const displayCommand = `npm run ${script}${
+    FORWARDED_ARGS.length > 0 ? ` -- ${FORWARDED_ARGS.join(' ')}` : ''
+  }`;
+
+  log(`Running: ${colors.green}${displayCommand}${colors.reset}`);
   log('');
 
-  try {
-    execSync(command, { stdio: 'inherit' });
+  const result = spawnSync(
+    'npm',
+    [
+      'run',
+      script,
+      ...(FORWARDED_ARGS.length > 0 ? ['--', ...FORWARDED_ARGS] : []),
+    ],
+    {
+      stdio: 'inherit',
+    }
+  );
+
+  if (result.status === 0) {
     log('');
     log('✅ Tests passed', colors.green);
-  } catch (err) {
+  } else {
     log('');
     log('❌ Tests failed', colors.red);
-    process.exit(1);
+    process.exit(result.status ?? 1);
   }
 }
 
