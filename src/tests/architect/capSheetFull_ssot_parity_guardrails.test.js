@@ -24,6 +24,8 @@
  *    12. Adjacent exception/TPE/hard-cap surfaces do NOT alter canonical totals
  *    13. calculateTeamCapHit stays player-only while computeTeamCapTotals includes full allocations
  *    14. computeTeamCapTotals uses team.players (not team.roster) for salary computation
+ *    15. CapSheetFull visible body is not filtered only by current-year slices
+ *    16. Future-only contract rows still carry future-year canonical cap truth
  */
 
 import { describe, it, expect } from 'vitest';
@@ -118,6 +120,14 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     expect(capSheetFullSource).not.toContain(
       'const salaryValue = entry?.salary ?? entry?.capHit ?? 0;'
     );
+  });
+
+  it('TEST 2C: CapSheetFull does not filter visible players solely by current-year slices', () => {
+    expect(capSheetFullSource).not.toMatch(
+      /\.filter\(\(p\)\s*=>\s*getContractYearSlice\(p,\s*currentYear\)\)/
+    );
+    expect(capSheetFullSource).toContain('firstVisibleYear');
+    expect(capSheetFullSource).toContain('for (const year of allYears)');
   });
 
   it('TEST 3: computeTeamCapTotals declares explicit included/excluded ownership lists', () => {
@@ -435,5 +445,50 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
       baseSalary: 700_000,
       hasCapHitAdjustment: true,
     });
+  });
+
+  it('TEST 17: future-only contract rows still produce future-year canonical cap truth', () => {
+    const futureOnlyPlayer = {
+      player_id: 'future-only-1',
+      displayName: 'Future Only Big',
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2026-27', salary: 6_000_000, capHit: 6_000_000 },
+          { season: '2027-28', salary: 6_500_000, capHit: 6_500_000 },
+        ],
+      },
+    };
+    const futureOnlyCurrentYearAmounts = getPlayerCapSheetAmountsForYear(
+      futureOnlyPlayer,
+      YEAR
+    );
+    const futureYearTeam = {
+      players: [
+        ...createPlayers(14, 1_000_000),
+        futureOnlyPlayer,
+      ],
+      deadCap: [],
+      capHolds: [],
+    };
+    const futureYearTotals = computeTeamCapTotals(futureYearTeam, YEAR + 1);
+
+    expect(futureOnlyCurrentYearAmounts).toEqual({
+      contractSlice: null,
+      capHit: 0,
+      baseSalary: 0,
+      hasCapHitAdjustment: false,
+    });
+    expect(getPlayerCapSheetAmountsForYear(futureOnlyPlayer, YEAR + 1)).toEqual({
+      contractSlice: expect.objectContaining({
+        salary: 6_000_000,
+        capHit: 6_000_000,
+      }),
+      capHit: 6_000_000,
+      baseSalary: 6_000_000,
+      hasCapHitAdjustment: false,
+    });
+    expect(futureYearTotals.playersTotal).toBe(6_000_000);
+    expect(futureYearTotals.totalCapAllocations).toBe(6_000_000);
   });
 });

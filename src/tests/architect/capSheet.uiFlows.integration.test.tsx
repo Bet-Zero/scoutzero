@@ -335,6 +335,44 @@ function buildTeamWithFutureYearCapHitAdjustmentsFixture(): TeamLike {
   };
 }
 
+function buildTeamWithFutureOnlyVisiblePlayerFixture(): TeamLike {
+  const baseTeam = buildTeamFixture();
+  const futureOnlyId = 'future_only_visible_player';
+  const futureYear = CURRENT_YEAR + 1;
+
+  return {
+    ...baseTeam,
+    roster: [...baseTeam.roster, futureOnlyId],
+    players: [
+      ...baseTeam.players,
+      {
+        id: futureOnlyId,
+        player_id: futureOnlyId,
+        name: 'future_only_visible_player',
+        displayName: 'Future Only Stretch Big',
+        position: 'C',
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [
+            {
+              season: toSeasonCode(futureYear),
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+            {
+              season: toSeasonCode(futureYear + 1),
+              salary: 6_500_000,
+              capHit: 6_500_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+    ],
+  };
+}
+
 function FixtureInjectorHarness() {
   const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(() =>
     buildTeamFixture()
@@ -796,5 +834,51 @@ describe('Cap Sheet UI integration flows', () => {
     ).toBeInTheDocument();
     expect(totals.playersTotal).toBe(23_092_400);
     expect(totals.totalCapAllocations).toBe(23_092_400);
+  });
+
+  it('shows future-only contract contributors in the multi-year body alongside coherent future totals', () => {
+    const teamCapSheet = buildTeamWithFutureOnlyVisiblePlayerFixture();
+    const futureYear = CURRENT_YEAR + 1;
+    const totals = computeTeamCapTotals(teamCapSheet, futureYear);
+
+    render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet as Parameters<typeof CapSheetFull>[0]['teamCapSheet']}
+        currentYear={CURRENT_YEAR}
+        onSelectPlayer={() => {}}
+        onActionClick={() => {}}
+      />
+    );
+
+    const currentYearPlayerButton = screen.getByRole('button', {
+      name: 'Base Player 1',
+    });
+    const futureOnlyButton = screen.getByRole('button', {
+      name: 'Future Only Stretch Big',
+    });
+    const futureOnlyRow = futureOnlyButton.closest('div.grid');
+
+    expect(futureOnlyRow).not.toBeNull();
+    expectBefore(currentYearPlayerButton, futureOnlyButton);
+
+    const futureOnlyCurrentYearCell = getFutureYearCell(futureOnlyRow, 0);
+    const futureOnlyFirstFutureCell = getFutureYearCell(futureOnlyRow, 1);
+
+    expect(futureOnlyCurrentYearCell).toBeEmptyDOMElement();
+    expect(
+      within(futureOnlyFirstFutureCell).getByText('$6,000,000')
+    ).toBeInTheDocument();
+
+    const totalRow = screen.getByText('Total Cap').closest('div.grid');
+    expect(totalRow).not.toBeNull();
+
+    const futureTotalCell = getFutureYearCell(totalRow, 1);
+    expect(
+      within(futureTotalCell).getByText(
+        `$${totals.totalCapAllocations.toLocaleString()}`
+      )
+    ).toBeInTheDocument();
+    expect(totals.playersTotal).toBe(20_000_000);
+    expect(totals.totalCapAllocations).toBe(20_000_000);
   });
 });

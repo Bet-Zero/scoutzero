@@ -36,6 +36,15 @@ type CapHoldLike = {
 type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetFullPlayerLike[] | null;
 };
+type ContractYearSliceLike = ReturnType<typeof getContractYearSlice>;
+type VisiblePlayerEntry = {
+  player: CapSheetFullPlayerLike;
+  currentYearSlice: ContractYearSliceLike;
+  currentYearAmount: number;
+  firstVisibleYear: number;
+  firstVisibleAmount: number;
+  originalIndex: number;
+};
 
 export type CapSheetActionType = 'rfa' | 'ufa' | 'po' | 'to' | 'renounce';
 
@@ -140,18 +149,79 @@ const CapSheetFull = ({
   if (!teamCapSheet || !teamCapSheet.players) return null;
 
   // Generate 7 years starting from currentYear
-  const allYears = Array.from({ length: 7 }, (_, i) => currentYear + i);
+  const allYears = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => currentYear + i),
+    [currentYear]
+  );
 
-  // Sort players by current year salary descending
-  const sortedPlayers = teamCapSheet.players
-    .filter((p) => getContractYearSlice(p, currentYear))
-    .sort((a, b) => {
-      const aSlice = getContractYearSlice(a, currentYear);
-      const bSlice = getContractYearSlice(b, currentYear);
-      const aSalary = aSlice?.salary ?? aSlice?.capHit ?? 0;
-      const bSalary = bSlice?.salary ?? bSlice?.capHit ?? 0;
-      return bSalary - aSalary;
+  const sortedPlayers = useMemo(() => {
+    const visiblePlayers = (teamCapSheet.players || [])
+      .map((player, originalIndex): VisiblePlayerEntry | null => {
+        const currentYearSlice = getContractYearSlice(player, currentYear);
+        const currentYearAmount =
+          Number(currentYearSlice?.salary ?? currentYearSlice?.capHit ?? 0) || 0;
+
+        let firstVisibleYear: number | null = null;
+        let firstVisibleAmount = 0;
+
+        for (const year of allYears) {
+          const yearSlice = getContractYearSlice(player, year);
+          if (!yearSlice) continue;
+
+          firstVisibleYear = year;
+          firstVisibleAmount =
+            Number(yearSlice.salary ?? yearSlice.capHit ?? 0) || 0;
+          break;
+        }
+
+        if (firstVisibleYear == null) {
+          return null;
+        }
+
+        return {
+          player,
+          currentYearSlice,
+          currentYearAmount,
+          firstVisibleYear,
+          firstVisibleAmount,
+          originalIndex,
+        };
+      })
+      .filter((entry): entry is VisiblePlayerEntry => entry !== null);
+
+    visiblePlayers.sort((a, b) => {
+      const aHasCurrentYearSlice = Boolean(a.currentYearSlice);
+      const bHasCurrentYearSlice = Boolean(b.currentYearSlice);
+
+      if (aHasCurrentYearSlice !== bHasCurrentYearSlice) {
+        return aHasCurrentYearSlice ? -1 : 1;
+      }
+
+      if (aHasCurrentYearSlice && bHasCurrentYearSlice) {
+        const currentYearDelta = b.currentYearAmount - a.currentYearAmount;
+        if (currentYearDelta !== 0) {
+          return currentYearDelta;
+        }
+
+        return a.originalIndex - b.originalIndex;
+      }
+
+      const firstVisibleYearDelta = a.firstVisibleYear - b.firstVisibleYear;
+      if (firstVisibleYearDelta !== 0) {
+        return firstVisibleYearDelta;
+      }
+
+      const firstVisibleAmountDelta =
+        b.firstVisibleAmount - a.firstVisibleAmount;
+      if (firstVisibleAmountDelta !== 0) {
+        return firstVisibleAmountDelta;
+      }
+
+      return a.originalIndex - b.originalIndex;
     });
+
+    return visiblePlayers.map((entry) => entry.player);
+  }, [teamCapSheet.players, currentYear, allYears]);
 
   // For the separate table below, likely show all active holds or just imminent ones?
   // Let's show all valid holds.
