@@ -72,6 +72,12 @@ type CapSheetProps = {
   onSetExceptions?: ((exceptions: Record<string, unknown>) => void) | null;
 };
 
+const CAP_SHEET_SURFACE_LABELS = {
+  rosterDetail: 'Current-year roster detail surface',
+  capHoldsDetail: 'Current-year cap holds detail surface',
+  canonicalTotalsBreakdown: 'Current-year canonical totals breakdown surface',
+} as const;
+
 const CapSheet = ({
   teamCapSheet,
   currentYear,
@@ -278,15 +284,30 @@ const CapSheet = ({
         </div>
       </div>
 
-      <CapSummaryTiles
-        teamCapSheet={teamCapSheet}
-        selectedYear={selectedYear}
-        canonicalTotals={canonicalTotals}
-      />
+      {/* CANONICAL TOTALS CONSUMER SURFACE: Summary tiles read canonicalTotals directly. */}
+      <div data-surface-role="canonical-totals-summary">
+        <CapSummaryTiles
+          teamCapSheet={teamCapSheet}
+          selectedYear={selectedYear}
+          canonicalTotals={canonicalTotals}
+        />
+      </div>
 
-      {/* Roster Cap Table (Grid Layout) */}
-      <div className="mt-4 bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-2xl shadow-black/50">
-        {/* Header */}
+      <section
+        aria-label={CAP_SHEET_SURFACE_LABELS.rosterDetail}
+        className="mt-4 bg-[#0f0f0f] border border-white/5 rounded-lg overflow-hidden shadow-2xl shadow-black/50"
+      >
+        {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
+            They may borrow canonical thresholds for display, but they do not own totals truth. */}
+        <div className="px-4 py-2 border-b border-white/5 bg-white/[0.03]">
+          <p className="text-[10px] text-white/40 leading-relaxed">
+            Supporting detail view: player rows use shared contract utilities
+            for current-year detail, while canonical totals ownership stays with
+            the summary tiles and totals breakdown surfaces.
+          </p>
+        </div>
+
+        {/* Roster detail table header */}
         <div className="grid grid-cols-[2fr,0.8fr,0.6fr,1.2fr,0.8fr,1.2fr,1.5fr] gap-2 px-4 py-2 bg-white/5 border-b border-white/5 text-[10px] uppercase tracking-wider font-semibold text-white/40">
           <div>Player</div>
           <div>Pos</div>
@@ -297,7 +318,7 @@ const CapSheet = ({
           <div>Notes</div>
         </div>
 
-        {/* Rows */}
+        {/* Supporting detail rows */}
         <div className="divide-y divide-white/5">
           {filteredPlayers.map((player, idx) => {
             const slice = getContractYearSlice(player, selectedYear);
@@ -365,11 +386,16 @@ const CapSheet = ({
           })}
         </div>
 
-        {/* Footer Section (Cap Holds, Total, Actions) */}
+        {/* Supporting detail, control rows, and canonical totals breakdown stay
+            in one frame visually, but remain separated by ownership below. */}
         <div className="bg-white/[0.02] border-t border-white/5">
-          {/* Cap Holds Toggle */}
+          {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
+              canonical capHoldsTotal without becoming a totals owner. */}
           {displayedCapHolds.length > 0 && (
-            <div className="border-b border-white/5">
+            <section
+              aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
+              className="border-b border-white/5"
+            >
               <button
                 onClick={() => setShowCapHolds(!showCapHolds)}
                 className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
@@ -412,10 +438,11 @@ const CapSheet = ({
                   </div>
                 </div>
               )}
-            </div>
+            </section>
           )}
 
-          {/* Manage Actions Row */}
+          {/* CONTROL SURFACE: These actions mutate canonical inputs, but do not
+              own or redefine current-year totals display. */}
           <div className="border-b border-white/5 bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-4">
             <button
               data-testid="cap-sheet-manage-exceptions-button"
@@ -433,65 +460,71 @@ const CapSheet = ({
             </button>
           </div>
 
-          {/* Cap Breakdown */}
-          <div className="border-b border-white/5 bg-white/[0.01] px-4 py-2 space-y-1">
-            <div className="flex items-center justify-between text-[10px] text-white/50">
-              <span>Player Salaries</span>
-              <span className="tabular-nums">
-                ${canonicalTotals.playersTotal.toLocaleString()}
+          {/* CANONICAL TOTALS CONSUMER SURFACE: These breakdown rows and the
+              footer consume canonicalTotals directly and define the totals view. */}
+          <section
+            aria-label={CAP_SHEET_SURFACE_LABELS.canonicalTotalsBreakdown}
+          >
+            <div className="border-b border-white/5 bg-white/[0.01] px-4 py-2 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-white/50">
+                <span>Player Salaries</span>
+                <span className="tabular-nums">
+                  ${canonicalTotals.playersTotal.toLocaleString()}
+                </span>
+              </div>
+              {canonicalTotals.deadMoneyTotal > 0 && (
+                <div className="flex items-center justify-between text-[10px] text-white/50">
+                  <span>Dead Money</span>
+                  <span className="tabular-nums">
+                    ${canonicalTotals.deadMoneyTotal.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {canonicalTotals.capHoldsTotal > 0 && (
+                <div className="flex items-center justify-between text-[10px] text-white/50">
+                  <span>Cap Holds</span>
+                  <span className="tabular-nums">
+                    ${canonicalTotals.capHoldsTotal.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {canonicalTotals.incompleteChargesTotal > 0 && (
+                <div
+                  data-testid="incomplete-roster-charge-row"
+                  className="flex items-center justify-between text-[10px] text-amber-400/80"
+                >
+                  <span>
+                    Incomplete Roster Charge
+                    {canonicalTotals._meta?.incompleteRosterCharge?.missingSlots && (
+                      <span className="text-white/40 ml-1">
+                        ({canonicalTotals._meta.incompleteRosterCharge.missingSlots}{' '}
+                        open{' '}
+                        {canonicalTotals._meta.incompleteRosterCharge.missingSlots ===
+                        1
+                          ? 'slot'
+                          : 'slots'}
+                        )
+                      </span>
+                    )}
+                  </span>
+                  <span className="tabular-nums">
+                    ${canonicalTotals.incompleteChargesTotal.toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="px-4 py-3 flex items-center justify-between bg-white/[0.02]">
+              <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                Total Cap Hit
+              </span>
+              <span className="text-lg font-bold text-white tabular-nums tracking-tight">
+                ${canonicalTotals.totalCapAllocations.toLocaleString()}
               </span>
             </div>
-            {canonicalTotals.deadMoneyTotal > 0 && (
-              <div className="flex items-center justify-between text-[10px] text-white/50">
-                <span>Dead Money</span>
-                <span className="tabular-nums">
-                  ${canonicalTotals.deadMoneyTotal.toLocaleString()}
-                </span>
-              </div>
-            )}
-            {canonicalTotals.capHoldsTotal > 0 && (
-              <div className="flex items-center justify-between text-[10px] text-white/50">
-                <span>Cap Holds</span>
-                <span className="tabular-nums">
-                  ${canonicalTotals.capHoldsTotal.toLocaleString()}
-                </span>
-              </div>
-            )}
-            {canonicalTotals.incompleteChargesTotal > 0 && (
-              <div
-                data-testid="incomplete-roster-charge-row"
-                className="flex items-center justify-between text-[10px] text-amber-400/80"
-              >
-                <span>
-                  Incomplete Roster Charge
-                  {canonicalTotals._meta?.incompleteRosterCharge?.missingSlots && (
-                    <span className="text-white/40 ml-1">
-                      ({canonicalTotals._meta.incompleteRosterCharge.missingSlots} open{' '}
-                      {canonicalTotals._meta.incompleteRosterCharge.missingSlots === 1
-                        ? 'slot'
-                        : 'slots'}
-                      )
-                    </span>
-                  )}
-                </span>
-                <span className="tabular-nums">
-                  ${canonicalTotals.incompleteChargesTotal.toLocaleString()}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Total Cap Hit */}
-          <div className="px-4 py-3 flex items-center justify-between bg-white/[0.02]">
-            <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-              Total Cap Hit
-            </span>
-            <span className="text-lg font-bold text-white tabular-nums tracking-tight">
-              ${canonicalTotals.totalCapAllocations.toLocaleString()}
-            </span>
-          </div>
+          </section>
         </div>
-      </div>
+      </section>
 
       {/* Modals */}
       {showDeadMoneyModal && (

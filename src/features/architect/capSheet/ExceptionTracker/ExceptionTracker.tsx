@@ -1,10 +1,11 @@
 /**
  * FILE: src/features/architect/capSheet/ExceptionTracker/ExceptionTracker.tsx
- * PURPOSE: Exception and TPE display surface for the Architect cap sheet.
+ * PURPOSE: Adjacent exception/TPE/hard-cap presentation surface for the Architect cap sheet.
  * OWNERSHIP: Feature: architect/cap-sheet
  *
  * NOTE:
  * - Owns exception, TPE, and hard-cap presentation for the Cap Sheet surface.
+ * - This surface is adjacent to the current-year canonical totals display.
  * - Does not compute or redefine canonical cap totals; that remains owned by
  *   the cap totals authority.
  *
@@ -318,7 +319,13 @@ const ExceptionTracker = ({
   }
 
   return (
-    <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-4">
+    <section
+      aria-label="Cap sheet adjacent exception presentation surface"
+      className="mt-4 grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-4"
+    >
+      {/* ADJACENT PRESENTATION SURFACE: Exception cards, TPEs, and hard-cap
+          state may explain roster-building tools, but they do not own or
+          recompute canonical current-year cap totals. */}
       {/* Left Column: Exceptions & Hard Cap Info */}
       <div className="flex flex-col gap-3">
         {/* Hard Cap Section */}
@@ -387,7 +394,7 @@ const ExceptionTracker = ({
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

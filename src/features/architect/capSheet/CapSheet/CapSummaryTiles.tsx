@@ -1,11 +1,12 @@
 /**
  * FILE: src/features/architect/capSheet/CapSheet/CapSummaryTiles.tsx
- * PURPOSE: Cap summary tile strip that consumes canonical totals and adjacent hard-cap indicators.
+ * PURPOSE: Current-year canonical totals summary surface for the Cap Sheet.
  * OWNERSHIP: Feature: architect/cap-sheet
  *
  * NOTE:
+ * - This surface is a direct consumer of canonicalTotals passed down from CapSheet.
  * - Canonical totals ownership stays in the cap totals authority.
- * - Hard-cap badge/reason ownership stays in hardCapUtils.
+ * - Hard-cap badge/reason ownership stays in hardCapUtils as adjacent presentation.
  *
  * HISTORY:
  *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E88.
@@ -31,9 +32,10 @@ const CapSummaryTiles = ({
   canonicalTotals,
 }: CapSummaryTilesProps) => {
   // =========================================================================
-  // CONSUMER SURFACE: Canonical totals are passed in from CapSheet, which
-  // calls the cap totals authority once. Hard-cap badges remain adjacent UI
-  // owned by hardCapUtils-based state, not by the totals engine.
+  // CANONICAL TOTALS CONSUMER SURFACE:
+  // CapSheet computes canonicalTotals once, then this summary surface renders
+  // threshold-space outputs from those totals. Hard-cap badges stay adjacent
+  // presentation layered on the tiles, not a competing totals owner.
   // =========================================================================
 
   const {
@@ -70,7 +72,10 @@ const CapSummaryTiles = ({
     `${amount < 0 ? '-' : ''}$${Math.abs(amount).toLocaleString()}`;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 my-4">
+    <section
+      aria-label="Current-year canonical totals summary surface"
+      className="grid grid-cols-2 sm:grid-cols-5 gap-4 my-4"
+    >
       <div className="bg-[#1c1c1c] rounded p-4 text-center border border-white/10">
         <div className="text-sm text-white/70 mb-1">TOTAL CAP ALLOCATIONS</div>
         <div className="text-lg font-bold text-white">
@@ -142,7 +147,7 @@ const CapSummaryTiles = ({
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 };
 

@@ -41,6 +41,12 @@ function parseCurrency(value: string | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function expectBefore(first: Element, second: Element) {
+  expect(
+    first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).not.toBe(0);
+}
+
 function readVisibleTotalCapHit(): number {
   const label = screen.getByText(/Total Cap Hit/i);
   const row = label.parentElement;
@@ -96,6 +102,24 @@ function buildTeamFixture(): TeamLike {
     capHolds: [],
     exceptions: {},
     totals: {},
+  };
+}
+
+function buildTeamWithCapHoldFixture(): TeamLike {
+  return {
+    ...buildTeamFixture(),
+    capHolds: [
+      {
+        playerId: 'unsigned_hold_player',
+        playerName: 'Unsigned Hold Wing',
+        amount: 4_500_000,
+        season: toSeasonCode(CURRENT_YEAR),
+        type: 'Bird',
+        active: true,
+        isSigned: false,
+        reason: 'Bird rights cap hold',
+      },
+    ],
   };
 }
 
@@ -360,6 +384,71 @@ describe('Cap Sheet UI integration flows', () => {
     });
 
     expect(readVisibleTotalCapHit()).toBe(afterDeadMoneyTotal);
+  });
+
+  it('keeps canonical totals, supporting detail, and adjacent exception surfaces structurally separated', async () => {
+    render(
+      <CapSheetSection
+        teamCapSheet={
+          buildTeamWithCapHoldFixture() as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
+        }
+        currentYear={CURRENT_YEAR}
+        onSelectPlayer={() => {}}
+        onSetDeadCap={async () => true}
+        onSetExceptions={async () => true}
+      />
+    );
+
+    const primarySurface = screen.getByRole('region', {
+      name: 'Primary current-year cap sheet surface',
+    });
+    const summarySurface = within(primarySurface).getByRole('region', {
+      name: 'Current-year canonical totals summary surface',
+    });
+    const rosterSurface = within(primarySurface).getByRole('region', {
+      name: 'Current-year roster detail surface',
+    });
+    const capHoldsSurface = within(rosterSurface).getByRole('region', {
+      name: 'Current-year cap holds detail surface',
+    });
+    const breakdownSurface = within(rosterSurface).getByRole('region', {
+      name: 'Current-year canonical totals breakdown surface',
+    });
+
+    expect(summarySurface).toBeInTheDocument();
+    expect(
+      within(rosterSurface).getByText(/Supporting detail view:/i)
+    ).toBeInTheDocument();
+    expectBefore(summarySurface, rosterSurface);
+
+    fireEvent.click(
+      within(capHoldsSurface).getByRole('button', { name: /show cap holds/i })
+    );
+
+    expect(
+      within(capHoldsSurface).getByText('Unsigned Hold Wing')
+    ).toBeInTheDocument();
+    expect(
+      within(capHoldsSurface).getByText('Bird rights cap hold')
+    ).toBeInTheDocument();
+    expect(within(breakdownSurface).getByText(/Total Cap Hit/i)).toBeInTheDocument();
+    expect(
+      within(breakdownSurface).queryByText('Unsigned Hold Wing')
+    ).not.toBeInTheDocument();
+    expectBefore(capHoldsSurface, breakdownSurface);
+
+    const adjacentSurface = screen.getByRole('region', {
+      name: 'Adjacent exception presentation surface',
+    });
+    expectBefore(primarySurface, adjacentSurface);
+    expect(
+      within(adjacentSurface).getByRole('region', {
+        name: 'Cap sheet adjacent exception presentation surface',
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(adjacentSurface).queryByText(/Total Cap Hit/i)
+    ).not.toBeInTheDocument();
   });
 
   it('keeps veteran-minimum and two-way row cap hits aligned with canonical player salaries', () => {
