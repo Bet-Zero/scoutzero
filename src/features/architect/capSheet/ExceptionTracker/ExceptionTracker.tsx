@@ -18,22 +18,24 @@ import {
   getCapSettingsForYear,
   getExceptionDefaultAmountFromCapSettings,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import {
+  getHardCapStatus,
+  HARD_CAP_TYPES,
+} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
-type NumericLike = number | string | null | undefined;
 type UnknownRecord = Record<string, unknown>;
-type TeamCapSheetLike = NonNullable<Parameters<typeof canUseRoomException>[0]> & {
-  hardCapped?: NumericLike | boolean;
-  exceptions?: (UnknownRecord & { tpe?: unknown }) | null;
-};
+type TeamCapSheetLike = NonNullable<Parameters<typeof canUseRoomException>[0]> &
+  NonNullable<Parameters<typeof getHardCapStatus>[0]> & {
+    exceptions?: (UnknownRecord & { tpe?: unknown }) | null;
+  };
 type NormalizedExceptionLike = {
   enabled: boolean;
   totalAmount: number;
   usedAmount: number;
   remainingAmount: number;
 };
-type CapDataLike = ReturnType<typeof getCapSettingsForYear>;
 type TeamTpeLike = ReturnType<typeof getTeamTpeList>[number];
 
 type ExceptionTrackerProps = {
@@ -145,27 +147,18 @@ const ExceptionCard = ({
 };
 
 type HardCapCardProps = {
-  capData: CapDataLike;
-  hardCapped: NumericLike | boolean;
-  reason: string | null;
+  hardCapStatus: ReturnType<typeof getHardCapStatus>;
+  hasApronData: boolean;
 };
 
-const HardCapCard = ({ capData, hardCapped, reason }: HardCapCardProps) => {
-  // If explicitly hard capped or logical reason exists
-  const isActive = !!hardCapped || !!reason;
+const HardCapCard = ({ hardCapStatus, hasApronData }: HardCapCardProps) => {
+  const isActive = hardCapStatus.isHardCapped;
 
-  if (!isActive && !capData.firstApron) return null;
+  if (!isActive && !hasApronData) return null;
 
-  const apronLevel = hardCapped === 2 ? 'Second Apron' : 'First Apron';
-  const limitAmount =
-    hardCapped === 2 ? capData.secondApron : capData.firstApron;
-
-  // Custom description based on the specific trigger (passed as reason)
-  const description =
-    reason ||
-    (hardCapped
-      ? `Team is hard capped at the ${apronLevel} due to roster moves (MLE/BAE usage or Sign & Trade).`
-      : `Team is not hard capped.`);
+  const limitAmount = hardCapStatus.hardCapCeiling;
+  const ceilingLabel = hardCapStatus.hardCapCeilingLabel;
+  const description = hardCapStatus.reason || 'Hard cap active.';
 
   if (!isActive)
     return (
@@ -182,12 +175,19 @@ const HardCapCard = ({ capData, hardCapped, reason }: HardCapCardProps) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShieldAlert size={14} className="text-red-500" />
-          <span className="text-[10px] uppercase tracking-widest font-bold text-red-100">
-            Hard Capped
-          </span>
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-red-100">
+              Hard Capped
+            </span>
+            {ceilingLabel && (
+              <span className="text-[8px] uppercase tracking-widest text-red-300/70">
+                {ceilingLabel}
+              </span>
+            )}
+          </div>
         </div>
         <span className="text-xs font-bold tabular-nums text-red-100">
-          ${limitAmount?.toLocaleString()}
+          {limitAmount !== null ? `$${limitAmount.toLocaleString()}` : '—'}
         </span>
       </div>
       <div className="text-[9px] text-red-400/70 pl-6 leading-tight max-w-[200px]">
@@ -233,12 +233,14 @@ const ExceptionTracker = ({
   teamCapSheet,
   currentYear,
 }: ExceptionTrackerProps) => {
-  const { hardCapped } = teamCapSheet;
   const tradeExceptions = getTeamTpeList(teamCapSheet);
 
   // Use centralized cap settings provider for consistent cap/apron values
   // currentYear is the END year (e.g., 2025 for "2024-25" season)
   const capData = getCapSettingsForYear(currentYear);
+  const hardCapStatus = getHardCapStatus(teamCapSheet, {
+    capSettings: capData,
+  });
   const roomExceptionEligibility = React.useMemo(() => {
     if (!teamCapSheet || !currentYear) {
       return { eligible: false, reason: 'Missing team data' };
@@ -273,8 +275,6 @@ const ExceptionTracker = ({
 
   // --- Logic for Availability & Hard Cap ---
 
-  const mleUsedAmount = mleException.usedAmount;
-  const baeUsedAmount = baeException.usedAmount;
   const tpMleUsedAmount = tpMleException.usedAmount;
 
   let mleRemaining = mleException.enabled ? mleException.remainingAmount : 0;
@@ -290,42 +290,16 @@ const ExceptionTracker = ({
   let baeStatus = baeException.enabled ? null : 'N/A';
   let roomStatus =
     roomException.enabled && roomExceptionEligibility.eligible ? null : 'N/A';
-  let hardCapReason = null;
-
-  // 1. Check for Hard Cap triggers (NTPMLE or BAE used)
-  const usedNTPMLE = mleUsedAmount > 0;
-  const usedBAE = baeUsedAmount > 0;
   const usedTPMLE = tpMleUsedAmount > 0;
+  const isFirstApronHardCap =
+    hardCapStatus.hardCapCeilingType === HARD_CAP_TYPES.FIRST_APRON;
+  const isSecondApronHardCap =
+    hardCapStatus.hardCapCeilingType === HARD_CAP_TYPES.SECOND_APRON;
 
-  // If NTPMLE or BAE used => Hard Capped at 1st Apron => TPMLE Unavailable
-  // Also if already hardcapped at 1st apron by other means (sign&trade), logic holds.
-  if (usedNTPMLE || usedBAE) {
+  if (isFirstApronHardCap) {
     tpRemaining = 0;
     tpStatus = 'N/A';
-    if (!hardCapReason)
-      hardCapReason =
-        'Hard capped at 1st Apron due to usage of Non-Taxpayer MLE or BAE.';
-  } else if (usedTPMLE) {
-    // If TPMLE used => Hard Capped at 2nd Apron (technically you just can't use NTPMLE/BAE)
-    // Actually: Using TPMLE hard caps you at 2nd Apron? No, being ABOVE apron forces TPMLE.
-    // BUT: Using TPMLE means you CANNOT use NTPMLE or BAE.
-    mleRemaining = 0;
-    baeRemaining = 0;
-    mleStatus = 'N/A';
-    baeStatus = 'N/A';
-  } else if (hardCapped === 1) {
-    // Explicitly hard capped at 1st apron (e.g. via S&T receiving player)
-    // Can use NTPMLE/BAE consistent with hard cap, but usually TPMLE is not relevant here (since it's smaller).
-    // Wait, if hard capped at 1st apron, you are allowed to use NTPMLE/BAE? Yes, that's usually why you are hard capped.
-    // But if you were hard capped by S&T, you effectively have access to these tools until you hit the wall.
-    // However, TPMLE is strictly for teams > 1st Apron < 2nd Apron? No, TPMLE is for taxpayers.
-    // If you are hard capped at 1st Apron, you are by definition NOT a taxpayer in the TPMLE sense (which goes deeper).
-    // Simplification: If hard capped 1st apron, disable TPMLE display to avoid confusion.
-    tpRemaining = 0;
-    tpStatus = 'N/A';
-  } else if (hardCapped === 2) {
-    // Hard capped at 2nd apron
-    // Usually means you used TPMLE.
+  } else if (usedTPMLE || isSecondApronHardCap) {
     mleRemaining = 0;
     baeRemaining = 0;
     mleStatus = 'N/A';
@@ -344,9 +318,8 @@ const ExceptionTracker = ({
       <div className="flex flex-col gap-3">
         {/* Hard Cap Section */}
         <HardCapCard
-          capData={capData}
-          hardCapped={hardCapped || (usedNTPMLE || usedBAE ? 1 : 0)}
-          reason={hardCapReason}
+          hardCapStatus={hardCapStatus}
+          hasApronData={Boolean(capData.firstApron || capData.secondApron)}
         />
 
         {/* Exception Stats Grid */}

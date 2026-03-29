@@ -350,6 +350,89 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(roomRow).getByRole('checkbox')).toBeDisabled();
   });
 
+  it('renders structured hard-cap level and reason from the canonical resolver in ExceptionTracker', () => {
+    render(
+      <ExceptionTracker
+        teamCapSheet={{
+          exceptions: {},
+          hardCapSecondApron: {
+            active: true,
+            reason: 'Structured second-apron trigger',
+          },
+        }}
+        currentYear={2026}
+      />
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+
+    expect(within(trackerSection).getByText('Hard Capped')).toBeInTheDocument();
+    expect(within(trackerSection).getByText('2nd Apron')).toBeInTheDocument();
+    expect(
+      within(trackerSection).getByText('Structured second-apron trigger')
+    ).toBeInTheDocument();
+    expect(within(trackerSection).getByText('$189,000,000')).toBeInTheDocument();
+  });
+
+  it('renders legacy ambiguous hard-cap state through the canonical resolver fail-closed path', () => {
+    render(
+      <ExceptionTracker
+        teamCapSheet={{
+          hardCapped: true,
+          exceptions: {},
+        }}
+        currentYear={2026}
+      />
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+
+    expect(within(trackerSection).getByText('Hard Capped')).toBeInTheDocument();
+    expect(
+      within(trackerSection).getByText('1st Apron (fail-closed)')
+    ).toBeInTheDocument();
+    expect(
+      within(trackerSection).getByText(
+        'Hard cap indicated by legacy/ambiguous value. Applying fail-closed ceiling.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('uses the shared resolver for legacy MLE hard-cap compatibility instead of tracker-local copy', () => {
+    render(
+      <ExceptionTracker
+        teamCapSheet={{
+          mle: {
+            amount: 11_111_111,
+            used: 2_500_000,
+          },
+        }}
+        currentYear={2026}
+      />
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+
+    expect(within(trackerSection).getByText('Hard Capped')).toBeInTheDocument();
+    expect(within(trackerSection).getByText('1st Apron')).toBeInTheDocument();
+    expect(
+      within(trackerSection).getByText(
+        'Hard cap triggered at First Apron via Non-Taxpayer MLE usage.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(trackerSection).queryByText(
+        'Hard capped at 1st Apron due to usage of Non-Taxpayer MLE or BAE.'
+      )
+    ).not.toBeInTheDocument();
+  });
+
   it('does not render or persist unsupported DPE exception key', async () => {
     const onSave = vi.fn().mockResolvedValue(true);
 

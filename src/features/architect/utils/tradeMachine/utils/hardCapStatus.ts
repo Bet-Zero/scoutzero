@@ -17,6 +17,24 @@ type HardCapStructuredFlag = {
   reason?: string | null;
 } | null;
 
+type HardCapUsageEntryLike = {
+  usedAmount?: unknown;
+  used?: unknown;
+  remainingAmount?: unknown;
+  remaining?: unknown;
+  totalAmount?: unknown;
+  amount?: unknown;
+  [key: string]: unknown;
+} | null;
+
+type HardCapExceptionBucketLike = {
+  type?: unknown;
+  used?: unknown;
+  remaining?: unknown;
+  amount?: unknown;
+  [key: string]: unknown;
+};
+
 type HardCapCapSettingsLike = {
   firstApron?: number | string | null;
   apron?: number | string | null;
@@ -31,6 +49,10 @@ type HardCapStatusTeamData = {
   hardCapLevel?: unknown;
   hardCapTriggered?: unknown;
   hardCapped?: unknown;
+  exceptions?: Record<string, unknown> | null;
+  mle?: HardCapUsageEntryLike;
+  bae?: HardCapUsageEntryLike;
+  faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
   totals?: {
     hardCapLevel?: unknown;
     [key: string]: unknown;
@@ -46,6 +68,10 @@ type HardCapStatusTeamLike = {
   hardCapLevel?: unknown;
   hardCapTriggered?: unknown;
   hardCapped?: unknown;
+  exceptions?: Record<string, unknown> | null;
+  mle?: HardCapUsageEntryLike;
+  bae?: HardCapUsageEntryLike;
+  faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
   totals?: {
     hardCapLevel?: unknown;
     [key: string]: unknown;
@@ -174,6 +200,143 @@ function normalizeSourceLabel(source: string, rawValue: unknown): string {
   }
 
   return source;
+}
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function getUsageSourceLabel(
+  sourceBase: string,
+  rawEntry: unknown
+): string | null {
+  const entry = toRecord(rawEntry);
+  if (!entry) return null;
+
+  const usedAmount = entry.usedAmount;
+  if (usedAmount !== undefined && toFiniteNumber(usedAmount) > 0) {
+    return `${sourceBase}.usedAmount > 0`;
+  }
+
+  const used = entry.used;
+  if (used !== undefined && toFiniteNumber(used) > 0) {
+    return `${sourceBase}.used > 0`;
+  }
+
+  const remainingAmount = entry.remainingAmount;
+  if (
+    remainingAmount !== undefined &&
+    toFiniteNumber(entry.totalAmount) > toFiniteNumber(remainingAmount)
+  ) {
+    return `${sourceBase}.remainingAmount < ${sourceBase}.totalAmount`;
+  }
+
+  const remaining = entry.remaining;
+  if (
+    remaining !== undefined &&
+    toFiniteNumber(entry.amount) > toFiniteNumber(remaining)
+  ) {
+    return `${sourceBase}.remaining < ${sourceBase}.amount`;
+  }
+
+  return null;
+}
+
+function normalizeExceptionBucketType(value: unknown): string {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function getBucketUsageSourceLabel(
+  sourceBase: string,
+  rawBuckets: unknown,
+  supportedTypes: readonly string[]
+): string | null {
+  if (!Array.isArray(rawBuckets)) return null;
+
+  const normalizedSupportedTypes = new Set(
+    supportedTypes.map(normalizeExceptionBucketType)
+  );
+
+  for (const bucket of rawBuckets) {
+    const bucketRecord = toRecord(bucket);
+    if (!bucketRecord) continue;
+
+    const normalizedType = normalizeExceptionBucketType(bucketRecord.type);
+    if (!normalizedSupportedTypes.has(normalizedType)) continue;
+
+    if (toFiniteNumber(bucketRecord.used) > 0) {
+      return `${sourceBase}[${normalizedType}].used > 0`;
+    }
+
+    if (
+      bucketRecord.remaining !== undefined &&
+      toFiniteNumber(bucketRecord.amount) > toFiniteNumber(bucketRecord.remaining)
+    ) {
+      return `${sourceBase}[${normalizedType}].remaining < ${sourceBase}[${normalizedType}].amount`;
+    }
+  }
+
+  return null;
+}
+
+function getCompatibilityHardCapUsage(
+  team: HardCapStatusTeamLike,
+  teamLike: HardCapStatusTeamData
+): { source: string; reason: string } | null {
+  const mleSource =
+    getUsageSourceLabel('team.team.exceptions.mle', teamLike?.exceptions?.mle) ||
+    getUsageSourceLabel('team.exceptions.mle', team.exceptions?.mle) ||
+    getUsageSourceLabel('team.team.mle', teamLike?.mle) ||
+    getUsageSourceLabel('team.mle', team.mle) ||
+    getBucketUsageSourceLabel(
+      'team.team.faExceptionBuckets',
+      teamLike?.faExceptionBuckets,
+      ['NTMLE', 'NON_TAXPAYER_MLE']
+    ) ||
+    getBucketUsageSourceLabel('team.faExceptionBuckets', team.faExceptionBuckets, [
+      'NTMLE',
+      'NON_TAXPAYER_MLE',
+    ]);
+
+  const baeSource =
+    getUsageSourceLabel('team.team.exceptions.bae', teamLike?.exceptions?.bae) ||
+    getUsageSourceLabel('team.exceptions.bae', team.exceptions?.bae) ||
+    getUsageSourceLabel('team.team.bae', teamLike?.bae) ||
+    getUsageSourceLabel('team.bae', team.bae) ||
+    getBucketUsageSourceLabel(
+      'team.team.faExceptionBuckets',
+      teamLike?.faExceptionBuckets,
+      ['BAE']
+    ) ||
+    getBucketUsageSourceLabel('team.faExceptionBuckets', team.faExceptionBuckets, [
+      'BAE',
+    ]);
+
+  if (!mleSource && !baeSource) {
+    return null;
+  }
+
+  const reasonParts: string[] = [];
+  if (mleSource) reasonParts.push('Non-Taxpayer MLE');
+  if (baeSource) reasonParts.push('BAE');
+
+  const joinedReason =
+    reasonParts.length > 1
+      ? `${reasonParts.slice(0, -1).join(', ')} and ${reasonParts[reasonParts.length - 1]}`
+      : reasonParts[0];
+  const joinedSource = [mleSource, baeSource].filter(Boolean).join(' + ');
+
+  return {
+    source: joinedSource,
+    reason: `Hard cap triggered at First Apron via ${joinedReason} usage.`,
+  };
 }
 
 /**
@@ -425,6 +588,17 @@ export function getHardCapStatus(
       reason:
         'Hard cap indicated by legacy/ambiguous value. Applying fail-closed ceiling.',
       source: unknownSource,
+      capSettings,
+    });
+  }
+
+  const compatibilityUsage = getCompatibilityHardCapUsage(team, teamLike);
+  if (compatibilityUsage) {
+    return buildStatus({
+      isHardCapped: true,
+      hardCapType: HARD_CAP_TYPES.FIRST_APRON,
+      reason: compatibilityUsage.reason,
+      source: compatibilityUsage.source,
       capSettings,
     });
   }

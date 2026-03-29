@@ -98,7 +98,7 @@ const getRulesProfileForYear: GetRulesProfileForYear = (player) => {
 };
 
 describe('Cap Sheet display-core E88 compatibility', () => {
-  it('renders CapSummaryTiles in the existing visible order with hard-cap status intact', () => {
+  it('renders CapSummaryTiles in the existing visible order with canonical hard-cap compatibility intact', () => {
     const { container } = render(
       <CapSummaryTiles
         teamCapSheet={{ mle: { used: 1 } }}
@@ -123,6 +123,29 @@ describe('Cap Sheet display-core E88 compatibility', () => {
     expect(screen.getByText('-$25,000,000')).toBeInTheDocument();
     expect(screen.getByText('$5,000,000')).toBeInTheDocument();
     expect(screen.getByText('Hard Capped at 1st Apron')).toBeInTheDocument();
+    expect(
+      screen.getByText('Hard cap triggered at First Apron via Non-Taxpayer MLE usage.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders second-apron lock copy from canonical structured hard-cap state', () => {
+    render(
+      <CapSummaryTiles
+        teamCapSheet={{
+          hardCapSecondApron: {
+            active: true,
+            reason: 'Structured second-apron tile reason',
+          },
+        }}
+        selectedYear={2026}
+        canonicalTotals={SUMMARY_TOTALS}
+      />
+    );
+
+    expect(screen.getByText('Hard Capped at 2nd Apron')).toBeInTheDocument();
+    expect(
+      screen.getByText('Structured second-apron tile reason')
+    ).toBeInTheDocument();
   });
 
   it('keeps CapTableSection as a pass-through shell for CapSheetFull callbacks and rules-profile rendering', () => {

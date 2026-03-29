@@ -167,6 +167,14 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
       /teamCapSheet\s*\??\.\s*totals/
     );
   });
+
+  it('CapSummaryTiles routes hard-cap badge display through getHardCapStatus', () => {
+    expect(capSummaryTilesContent).toContain('getHardCapStatus');
+    expect(capSummaryTilesContent).toContain('hardCapCeilingType');
+    expect(capSummaryTilesContent).toContain('hardCapCeilingLabel');
+    expect(capSummaryTilesContent).not.toContain('isHardCappedAtFirstApron');
+    expect(capSummaryTilesContent).not.toContain('getFirstApronHardCapReason');
+  });
 });
 
 // === GATE 3: DPE not exposed in Cap Sheet Exceptions UI ===
@@ -272,6 +280,21 @@ describe('Gate 4: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
       /import\s+computeTeamCapTotals\s+from/.test(content);
     expect(importsComputeTeamCapTotals).toBe(false);
     expect(/computeTeamCapTotals\s*\(/.test(content)).toBe(false);
+  });
+
+  it('routes hard-cap card display through getHardCapStatus', () => {
+    expect(content).toContain('getHardCapStatus');
+    expect(content).toMatch(/const\s+hardCapStatus\s*=\s*getHardCapStatus\s*\(/);
+    expect(content).toMatch(
+      /<HardCapCard[\s\S]*hardCapStatus=\{hardCapStatus\}/
+    );
+  });
+
+  it('does NOT keep tracker-local hard-cap reason or activation synthesis', () => {
+    expect(content).not.toContain('let hardCapReason');
+    expect(content).not.toContain('usedNTPMLE');
+    expect(content).not.toContain('usedBAE');
+    expect(content).not.toContain('hardCapped || (');
   });
 });
 
