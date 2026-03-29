@@ -503,6 +503,11 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     "{activeTab === 'cap' && (",
     "{activeTab === 'capfull' && ("
   );
+  const modalActionCallbacksRegion = readRegion(
+    gmDashboardContent,
+    'const modalActionCallbacks: EditContractArchitectActionCallbacks = {',
+    '  if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;'
+  );
   const manualLedgerHelperRegion = readRegion(
     actionsContent,
     'const runManualCapSheetLedgerMutation = useCallback(',
@@ -614,6 +619,59 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(gmDashboardCapRegion).not.toMatch(/applyWorldMutation/);
     expect(gmDashboardCapRegion).not.toMatch(/applyCapAuditedTeamMutation/);
     expect(gmDashboardCapRegion).not.toMatch(/setTeamCapSheet/);
+  });
+
+  it('GMDashboard cap-tab region fences current-year Cap Sheet from Full Cap Table-only contract launch props', () => {
+    expect(gmDashboardCapRegion).toMatch(
+      /onOpenPlayerContractModal=\{\s*contractActionRouting\.currentYearCapSheet\.openPlayerContractModal\s*\}/
+    );
+    expect(gmDashboardCapRegion).not.toMatch(/onLaunchContractAction=/);
+    expect(gmDashboardCapRegion).not.toMatch(/onRenounceCapHold=/);
+    expect(gmDashboardCapRegion).not.toMatch(
+      /contractActionRouting\.fullCapTable/
+    );
+  });
+
+  it('GMDashboard modal callback surface keeps world-only SAT and offer-sheet callbacks behind worldId guards', () => {
+    expect(modalActionCallbacksRegion).toMatch(
+      /onSignAndTrade:\s*worldId[\s\S]*\?\s*\(actions\.handleSignAndTrade[\s\S]*:\s*null/
+    );
+    expect(modalActionCallbacksRegion).toMatch(
+      /getSignAndTradePreflight:\s*worldId[\s\S]*\?\s*\(actions\.getSignAndTradePreflight[\s\S]*:\s*null/
+    );
+    expect(modalActionCallbacksRegion).toMatch(
+      /getOfferSheetPreflight:\s*worldId[\s\S]*\?\s*\(actions\.getOfferSheetPreflight[\s\S]*:\s*null/
+    );
+    expect(modalActionCallbacksRegion).toMatch(
+      /onStoreOfferSheet:\s*worldId[\s\S]*\?\s*\(actions\.handleStoreOfferSheet[\s\S]*:\s*null/
+    );
+  });
+
+  it('GMDashboard still derives rules-profile context from selectedRulesYear while targetYear and actionContext come from modal state', () => {
+    expect(gmDashboardContent).toMatch(
+      /selectedPlayer\s*\?\s*getRulesProfile\(selectedPlayer,\s*selectedRulesYear\)\s*:\s*null/
+    );
+    expect(gmDashboardContent).not.toMatch(
+      /getRulesProfile\(selectedPlayer,\s*targetYear\)/
+    );
+    expect(gmDashboardContent).not.toMatch(
+      /getRulesProfile\(selectedPlayer,\s*currentYear\)/
+    );
+    expect(gmDashboardContent).toMatch(
+      /\(\s*selectedRulesYear\s*&&\s*leagueContextByYear\?\.get\(selectedRulesYear\)\s*\)\s*\|\|\s*rulesLeagueContext/
+    );
+    expect(gmDashboardContent).not.toMatch(
+      /leagueContextByYear\?\.get\(targetYear\)/
+    );
+    expect(gmDashboardContent).toMatch(
+      /<EditContractModal[\s\S]*targetYear=\{targetYear\}/
+    );
+    expect(gmDashboardContent).toMatch(
+      /<EditContractModal[\s\S]*actionContext=\{actionContext\}/
+    );
+    expect(gmDashboardContent).toMatch(
+      /<EditContractModal[\s\S]*rulesLeagueContext=\{selectedRulesLeagueContext\}/
+    );
   });
 
   it('removes raw local-only contract-editor and reset mutators from the public action surface', () => {

@@ -1110,5 +1110,202 @@ describe('E109 dashboard/world boundary behavior', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Close Contract Modal' }));
       expect(mockCloseContractModal).toHaveBeenCalledTimes(1);
     });
+
+    it('keeps selectedRulesYear independent from modal targetYear when threading modal rules context', async () => {
+      const dashboardActions = buildDashboardActions();
+      const selectedPlayer = {
+        player_id: 'rules_context_player',
+        displayName: 'Rules Context Player',
+      };
+      const getProfile = vi.fn((player, year) => ({
+        contractSummary: {
+          freeAgencyType: `Rules ${String(year)}`,
+          freeAgencyYear: 2028,
+        },
+      }));
+
+      mockUseArchitectActions.mockReturnValue(dashboardActions);
+      mockUseArchitectState.mockReturnValue(
+        buildDashboardState({
+          activeTab: 'cap',
+          selectedPlayer,
+          selectedRulesYear: 2029,
+        })
+      );
+      mockUseArchitectModals.mockReturnValue(
+        buildDashboardModals({
+          showContractModal: true,
+          targetYear: 2028,
+          actionContext: 'freeAgent',
+        })
+      );
+      mockUsePlayerRulesProfiles.mockReturnValue({
+        leagueContext: { currentYear: 2026 },
+        leagueContextByYear: new Map([
+          [2028, { currentYear: 2028 }],
+          [2029, { currentYear: 2029 }],
+        ]),
+        getProfile,
+        getProfileForYear: vi.fn(() => null),
+      });
+
+      render(<GMDashboard />);
+
+      await screen.findByTestId('mock-edit-contract-modal');
+      expect(
+        screen.getByTestId('mock-edit-contract-modal-target-year')
+      ).toHaveTextContent('2028');
+      expect(
+        screen.getByTestId('mock-edit-contract-modal-rules-year')
+      ).toHaveTextContent('2029');
+      expect(
+        screen.getByTestId('mock-edit-contract-modal-profile-free-agency-type')
+      ).toHaveTextContent('Rules 2029');
+
+      expect(getProfile).toHaveBeenCalledWith(selectedPlayer, 2029);
+      expect(getProfile).not.toHaveBeenCalledWith(selectedPlayer, 2028);
+
+      const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+      expect(modalProps).toEqual(
+        expect.objectContaining({
+          targetYear: 2028,
+          rulesLeagueContext: { currentYear: 2029 },
+        })
+      );
+    });
+
+    it('withholds world-only modal callbacks when no world is selected while keeping local Architect callbacks', async () => {
+      const dashboardActions = buildDashboardActions();
+
+      mockUseArchitectActions.mockReturnValue(dashboardActions);
+      mockUseArchitectState.mockReturnValue(
+        buildDashboardState({
+          activeTab: 'cap',
+          worldId: null,
+          selectedPlayer: {
+            player_id: 'no_world_player',
+            displayName: 'No World Player',
+          },
+          selectedRulesYear: 2026,
+        })
+      );
+      mockUseArchitectModals.mockReturnValue(
+        buildDashboardModals({
+          showContractModal: true,
+          targetYear: 2027,
+          actionContext: 'underContract',
+        })
+      );
+      mockUsePlayerRulesProfiles.mockReturnValue({
+        leagueContext: { currentYear: 2026 },
+        leagueContextByYear: new Map([[2026, { currentYear: 2026 }]]),
+        getProfile: vi.fn(() => null),
+        getProfileForYear: vi.fn(() => null),
+      });
+
+      render(<GMDashboard />);
+
+      await screen.findByTestId('mock-edit-contract-modal');
+      const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+
+      expect(modalProps).toEqual(
+        expect.objectContaining({
+          onSignFreeAgent: dashboardActions.handleSign,
+          onResign: dashboardActions.handleSign,
+          onExtend: dashboardActions.handleExtendContract,
+          onWaive: expect.any(Function),
+          onOptionDecision: expect.any(Function),
+          onRenounce: expect.any(Function),
+        })
+      );
+      expect(modalProps?.onSignAndTrade).toBeNull();
+      expect(modalProps?.getSignAndTradePreflight).toBeNull();
+      expect(modalProps?.getOfferSheetPreflight).toBeNull();
+      expect(modalProps?.onStoreOfferSheet).toBeNull();
+    });
+
+    it('keeps wrapped modal mutation callbacks as thin adapters into shared Architect action handlers', async () => {
+      const selectedPlayer = {
+        player_id: 'adapter_player',
+        displayName: 'Adapter Player',
+      };
+      const overrideMetadata = {
+        overrideUsed: true,
+        overrideReasons: ['manual override'],
+        overrideTimestamp: '2026-02-10T00:00:00.000Z',
+      };
+      const waivePayload = {
+        stretch: true,
+        buyout: false,
+      };
+      const dashboardActions = buildDashboardActions({
+        handleWaiveContract: vi
+          .fn()
+          .mockResolvedValue({ success: true, message: 'Waived.' }),
+        handleOptionDecision: vi
+          .fn()
+          .mockResolvedValue({ success: true, message: 'Option saved.' }),
+        handleRenounceRights: vi
+          .fn()
+          .mockResolvedValue({ success: true, message: 'Rights renounced.' }),
+      });
+
+      mockUseArchitectActions.mockReturnValue(dashboardActions);
+      mockUseArchitectState.mockReturnValue(
+        buildDashboardState({
+          activeTab: 'cap',
+          selectedPlayer,
+          selectedRulesYear: 2026,
+        })
+      );
+      mockUseArchitectModals.mockReturnValue(
+        buildDashboardModals({
+          showContractModal: true,
+          targetYear: 2027,
+          actionContext: 'underContract',
+        })
+      );
+      mockUsePlayerRulesProfiles.mockReturnValue({
+        leagueContext: { currentYear: 2026 },
+        leagueContextByYear: new Map([[2026, { currentYear: 2026 }]]),
+        getProfile: vi.fn(() => null),
+        getProfileForYear: vi.fn(() => null),
+      });
+
+      render(<GMDashboard />);
+
+      await screen.findByTestId('mock-edit-contract-modal');
+      const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+
+      expect(modalProps).toEqual(
+        expect.objectContaining({
+          onWaive: expect.any(Function),
+          onOptionDecision: expect.any(Function),
+          onRenounce: expect.any(Function),
+        })
+      );
+
+      await modalProps?.onWaive?.(selectedPlayer, waivePayload);
+      await modalProps?.onOptionDecision?.(
+        selectedPlayer,
+        false,
+        overrideMetadata
+      );
+      await modalProps?.onRenounce?.(selectedPlayer, overrideMetadata);
+
+      expect(dashboardActions.handleWaiveContract).toHaveBeenCalledWith(
+        selectedPlayer,
+        waivePayload
+      );
+      expect(dashboardActions.handleOptionDecision).toHaveBeenCalledWith(
+        selectedPlayer,
+        false,
+        overrideMetadata
+      );
+      expect(dashboardActions.handleRenounceRights).toHaveBeenCalledWith(
+        selectedPlayer,
+        overrideMetadata
+      );
+    });
   });
 });

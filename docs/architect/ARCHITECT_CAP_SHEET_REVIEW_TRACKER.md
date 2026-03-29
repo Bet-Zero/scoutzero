@@ -76,8 +76,8 @@ Progress and execution status for the Cap Sheet review series.
 | CS-6A | Clarify the Contract-Action Routing Map from Cap Sheet Surfaces into the Modal and Action Layer   | DONE   | Dashboard/section routing now splits current-year modal-open, full-table modal-launch, and cap-hold renounce into explicit paths with focused guardrails. |
 | CS-6B | Tighten the Boundary Between Advisory Modal Validation and Authoritative Cap-State Mutation Truth | DONE   | `useCapValidation.ts` is advisory-only again, `EditContractModal.tsx` now stages explicit `advisory-modal` vs `authoritative-preflight` validation states, and focused guardrails pin the ownership split. |
 | CS-6C | Align Modal Action Surfaces and Callback Contracts with the Live Dashboard Integration Model      | DONE   | `EditContractModal.tsx` now exposes only explicit contract-action callbacks for signing/resigning, `FreeAgentPool.tsx` has been migrated off the generic save prop, and focused guardrails pin the live dashboard callback model against fallback-surface regression. |
-| CS-6D | Add Focused Guardrails for Contract-Action Integration Truth                                      | TODO   |       |
+| CS-6D | Add Focused Guardrails for Contract-Action Integration Truth                                      | DONE   | Focused dashboard behavior tests and closure gates now pin rules-year vs target-year threading, world-only preflight callback withholding, thin modal dispatch adapters, current-year Cap Sheet launch fencing, and the shared mutation-owner route. |
 
-**STEP STATUS: IN_PROGRESS**
+**STEP STATUS: DONE**
 
 ---
