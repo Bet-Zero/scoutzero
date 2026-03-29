@@ -67,11 +67,17 @@ const wrapperFixtures = vi.hoisted(() => ({
       ],
     },
   },
+  lastForwardedManualCapSheetMutationAuthority: null as unknown,
 }));
 
 vi.mock('@/features/architect/capSheet/CapSheet', () => ({
-  default: ({ onSetDeadCap, onSetExceptions }: CapSheetChildProps) =>
-    React.createElement(
+  default: ({
+    manualCapSheetMutationAuthority,
+  }: CapSheetChildProps) => {
+    wrapperFixtures.lastForwardedManualCapSheetMutationAuthority =
+      manualCapSheetMutationAuthority ?? null;
+
+    return React.createElement(
       'div',
       null,
       React.createElement(
@@ -79,7 +85,10 @@ vi.mock('@/features/architect/capSheet/CapSheet', () => ({
         {
           type: 'button',
           'data-testid': 'cap-sheet-forward-dead-cap',
-          onClick: () => onSetDeadCap?.(wrapperFixtures.deadCapPayload),
+          onClick: () =>
+            manualCapSheetMutationAuthority?.handleSetDeadCap(
+              wrapperFixtures.deadCapPayload
+            ),
         },
         'Forward Dead Cap'
       ),
@@ -88,11 +97,15 @@ vi.mock('@/features/architect/capSheet/CapSheet', () => ({
         {
           type: 'button',
           'data-testid': 'cap-sheet-forward-exceptions',
-          onClick: () => onSetExceptions?.(wrapperFixtures.exceptionsPayload),
+          onClick: () =>
+            manualCapSheetMutationAuthority?.handleSetExceptions(
+              wrapperFixtures.exceptionsPayload
+            ),
         },
         'Forward Exceptions'
       )
-    ),
+    );
+  },
 }));
 
 vi.mock('@/features/architect/capSheet/CapSheetFull', () => ({
@@ -225,9 +238,11 @@ describe('Architect TypeScript hardening E3 regression', () => {
     expect(result.current.incomplete).toBe(false);
   });
 
-  it('forwards CapSheetSection callback payloads unchanged', () => {
-    const onSetDeadCap = vi.fn();
-    const onSetExceptions = vi.fn();
+  it('forwards CapSheetSection manual mutation authority unchanged', () => {
+    const manualCapSheetMutationAuthority = {
+      handleSetDeadCap: vi.fn(),
+      handleSetExceptions: vi.fn(),
+    };
 
     render(
       React.createElement(CapSheetSection, {
@@ -236,18 +251,28 @@ describe('Architect TypeScript hardening E3 regression', () => {
           players: [wrapperFixtures.capTablePlayer],
         },
         currentYear: 2026,
-        onSetDeadCap,
-        onSetExceptions,
+        manualCapSheetMutationAuthority,
       })
     );
 
     fireEvent.click(screen.getByTestId('cap-sheet-forward-dead-cap'));
     fireEvent.click(screen.getByTestId('cap-sheet-forward-exceptions'));
 
-    expect(onSetDeadCap).toHaveBeenCalledTimes(1);
-    expect(onSetDeadCap.mock.calls[0][0]).toBe(wrapperFixtures.deadCapPayload);
-    expect(onSetExceptions).toHaveBeenCalledTimes(1);
-    expect(onSetExceptions.mock.calls[0][0]).toBe(
+    expect(wrapperFixtures.lastForwardedManualCapSheetMutationAuthority).toBe(
+      manualCapSheetMutationAuthority
+    );
+    expect(manualCapSheetMutationAuthority.handleSetDeadCap).toHaveBeenCalledTimes(
+      1
+    );
+    expect(
+      manualCapSheetMutationAuthority.handleSetDeadCap.mock.calls[0][0]
+    ).toBe(wrapperFixtures.deadCapPayload);
+    expect(
+      manualCapSheetMutationAuthority.handleSetExceptions
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      manualCapSheetMutationAuthority.handleSetExceptions.mock.calls[0][0]
+    ).toBe(
       wrapperFixtures.exceptionsPayload
     );
   });

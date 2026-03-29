@@ -301,8 +301,10 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
         onSelectPlayer={vi.fn()}
-        onSetDeadCap={vi.fn(async () => true)}
-        onSetExceptions={vi.fn(async () => true)}
+        manualCapSheetMutationAuthority={{
+          handleSetDeadCap: vi.fn(async () => true),
+          handleSetExceptions: vi.fn(async () => true),
+        }}
         playersMap={{}}
       />
     );

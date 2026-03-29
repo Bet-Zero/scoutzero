@@ -289,16 +289,17 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
 
     expect(afterLal).toBeDefined();
 
-    const onSetDeadCap = vi.fn(async () => true);
-    const onSetExceptions = vi.fn(async () => true);
+    const manualCapSheetMutationAuthority = {
+      handleSetDeadCap: vi.fn(async () => true),
+      handleSetExceptions: vi.fn(async () => true),
+    };
 
     const { rerender } = render(
       <CapSheetSection
         teamCapSheet={beforeLal}
         currentYear={CURRENT_YEAR}
         onSelectPlayer={() => {}}
-        onSetDeadCap={onSetDeadCap}
-        onSetExceptions={onSetExceptions}
+        manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
       />
     );
 
@@ -315,8 +316,7 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
         teamCapSheet={afterLal}
         currentYear={CURRENT_YEAR}
         onSelectPlayer={() => {}}
-        onSetDeadCap={onSetDeadCap}
-        onSetExceptions={onSetExceptions}
+        manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
       />
     );
 

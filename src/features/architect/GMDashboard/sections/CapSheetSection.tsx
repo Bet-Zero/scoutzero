@@ -4,7 +4,7 @@ import { DEV_CAP_SHEET_FIXTURE_FLAG } from '@/features/architect/capSheet/devCap
 
 type ForwardedCapSheetProps = Pick<
   Parameters<typeof CapSheet>[0],
-  'teamCapSheet' | 'onSelectPlayer' | 'onSetDeadCap' | 'onSetExceptions'
+  'teamCapSheet' | 'onSelectPlayer' | 'manualCapSheetMutationAuthority'
 >;
 
 type CapSheetSectionProps = ForwardedCapSheetProps & {
@@ -19,8 +19,7 @@ const CapSheetSection = ({
   teamCapSheet,
   currentYear,
   onSelectPlayer,
-  onSetDeadCap,
-  onSetExceptions,
+  manualCapSheetMutationAuthority,
   playersMap,
   onInjectCapSheetFixtures = null,
   onClearCapSheetFixtures = null,
@@ -44,8 +43,7 @@ const CapSheetSection = ({
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
           onSelectPlayer={onSelectPlayer}
-          onSetDeadCap={onSetDeadCap}
-          onSetExceptions={onSetExceptions}
+          manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
         />
         {showDevFixturePanel && (
           <section

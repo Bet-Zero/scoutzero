@@ -170,6 +170,14 @@ const GMDashboard = () => {
     seasonId: toSeasonCode(currentYear),
   });
 
+  const manualCapSheetMutationAuthority = useMemo(
+    () => ({
+      handleSetDeadCap: actions.handleSetDeadCap,
+      handleSetExceptions: actions.handleSetExceptions,
+    }),
+    [actions.handleSetDeadCap, actions.handleSetExceptions]
+  );
+
   const freeAgencyOnSign =
     actions.handleSign as FreeAgencySectionProps['onSign'];
   const freeAgencyOnSignAndTrade =
@@ -392,8 +400,7 @@ const GMDashboard = () => {
             teamCapSheet={teamCapSheet}
             currentYear={currentYear}
             onSelectPlayer={actions.handleEditContract as (player: unknown) => void}
-            onSetDeadCap={actions.handleSetDeadCap}
-            onSetExceptions={actions.handleSetExceptions}
+            manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
             playersMap={playersMap}
             onInjectCapSheetFixtures={actions.handleInjectCapSheetFixtures}
             onClearCapSheetFixtures={actions.handleClearCapSheetFixtures}

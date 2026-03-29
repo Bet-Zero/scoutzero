@@ -46,11 +46,46 @@ type ExceptionsState = Partial<Record<ExceptionType, EditableException>>;
 type TeamCapSheetLike = {
   exceptions?: Record<string, unknown> | null;
 };
+type ManualExceptionEntry = {
+  type?: string | null;
+  enabled?: boolean | null;
+  available?: boolean | null;
+  totalAmount?: number | null;
+  maxAmount?: number | null;
+  amount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+  seasonKey?: string | null;
+  lastUsedAt?: string | null;
+};
+type ManualTradeExceptionEntry = {
+  id: string;
+  totalAmount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+};
+type ManualExceptionsSavePayload = {
+  mle?: ManualExceptionEntry | null;
+  taxpayerMle?: ManualExceptionEntry | null;
+  tpmle?: ManualExceptionEntry | null;
+  room?: ManualExceptionEntry | null;
+  bae?: ManualExceptionEntry | null;
+  dpe?: ManualExceptionEntry | null;
+  tpe?: ManualTradeExceptionEntry[];
+} & Record<string, unknown>;
 type ManageExceptionsModalProps = {
   isOpen?: boolean;
   onClose: () => void;
   teamCapSheet?: TeamCapSheetLike | null;
-  onSave: (exceptions: Record<string, unknown>) => unknown | Promise<unknown>;
+  onSave: (exceptions: ManualExceptionsSavePayload) => Promise<boolean>;
   currentYear: number;
 };
 
@@ -170,7 +205,7 @@ const ManageExceptionsModal = ({
 
     // Build the canonical exceptions object
     // Only include enabled exceptions or those with non-zero values
-    const canonicalExceptions: Record<string, unknown> = {};
+    const canonicalExceptions: ManualExceptionsSavePayload = {};
 
     EXCEPTION_TYPES.forEach((type) => {
       const exc = exceptions[type];

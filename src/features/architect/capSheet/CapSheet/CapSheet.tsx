@@ -64,12 +64,68 @@ type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetPlayerLike[] | null;
   deadCap?: DeadCapSourceEntry[] | null;
 };
+type ManualDeadCapSavePayloadEntry = {
+  id?: string | null;
+  playerId?: string | number | null;
+  playerName?: string | null;
+  label?: string | null;
+  originalSalary?: NumericLike;
+  amountByYear?: Array<{
+    season: string;
+    amount: number;
+    isStretched?: boolean;
+  }> | null;
+  waiveDate?: string | null;
+  notes?: string | null;
+  stretched?: boolean | null;
+};
+type ManualDeadCapSavePayload = ManualDeadCapSavePayloadEntry[];
+type ManualExceptionEntry = {
+  type?: string | null;
+  enabled?: boolean | null;
+  available?: boolean | null;
+  totalAmount?: number | null;
+  maxAmount?: number | null;
+  amount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+  seasonKey?: string | null;
+  lastUsedAt?: string | null;
+};
+type ManualTradeExceptionEntry = {
+  id: string;
+  totalAmount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+};
+type ManualExceptionsSavePayload = {
+  mle?: ManualExceptionEntry | null;
+  taxpayerMle?: ManualExceptionEntry | null;
+  tpmle?: ManualExceptionEntry | null;
+  room?: ManualExceptionEntry | null;
+  bae?: ManualExceptionEntry | null;
+  dpe?: ManualExceptionEntry | null;
+  tpe?: ManualTradeExceptionEntry[];
+} & Record<string, unknown>;
+export type ManualCapSheetMutationAuthority = {
+  handleSetDeadCap: (deadCap: ManualDeadCapSavePayload) => Promise<boolean>;
+  handleSetExceptions: (
+    exceptions: ManualExceptionsSavePayload
+  ) => Promise<boolean>;
+};
 type CapSheetProps = {
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear: number;
   onSelectPlayer?: ((player: CapSheetPlayerLike) => void) | null;
-  onSetDeadCap?: ((deadCap: unknown[]) => void) | null;
-  onSetExceptions?: ((exceptions: Record<string, unknown>) => void) | null;
+  manualCapSheetMutationAuthority?: ManualCapSheetMutationAuthority | null;
 };
 
 const CAP_SHEET_SURFACE_LABELS = {
@@ -82,13 +138,14 @@ const CapSheet = ({
   teamCapSheet,
   currentYear,
   onSelectPlayer,
-  onSetDeadCap,
-  onSetExceptions,
+  manualCapSheetMutationAuthority,
 }: CapSheetProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
+  const hasManualCapSheetMutationAuthority =
+    !!manualCapSheetMutationAuthority;
 
   const { getProfile } = usePlayerRulesProfiles({
     players: teamCapSheet?.players || [],
@@ -248,6 +305,26 @@ const CapSheet = ({
         };
     }
   }, [canonicalTotals]);
+
+  const handleSaveDeadCapEdit = React.useCallback(
+    (deadCap: ManualDeadCapSavePayload) => {
+      if (!manualCapSheetMutationAuthority) {
+        return Promise.resolve(false);
+      }
+      return manualCapSheetMutationAuthority.handleSetDeadCap(deadCap);
+    },
+    [manualCapSheetMutationAuthority]
+  );
+
+  const handleSaveExceptionsEdit = React.useCallback(
+    (exceptions: ManualExceptionsSavePayload) => {
+      if (!manualCapSheetMutationAuthority) {
+        return Promise.resolve(false);
+      }
+      return manualCapSheetMutationAuthority.handleSetExceptions(exceptions);
+    },
+    [manualCapSheetMutationAuthority]
+  );
 
   return (
     <div className="text-white font-sans">
@@ -530,15 +607,33 @@ const CapSheet = ({
           >
             <button
               data-testid="cap-sheet-manage-exceptions-button"
-              onClick={() => setShowExceptionsModal(true)}
-              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
+              type="button"
+              disabled={!hasManualCapSheetMutationAuthority}
+              onClick={() => {
+                if (!hasManualCapSheetMutationAuthority) return;
+                setShowExceptionsModal(true);
+              }}
+              className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
+                hasManualCapSheetMutationAuthority
+                  ? 'text-white/40 hover:text-white'
+                  : 'text-white/20 cursor-not-allowed'
+              }`}
             >
               <span className="opacity-50">📋</span> Manage Exceptions
             </button>
             <button
               data-testid="cap-sheet-manage-dead-money-button"
-              onClick={() => setShowDeadMoneyModal(true)}
-              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
+              type="button"
+              disabled={!hasManualCapSheetMutationAuthority}
+              onClick={() => {
+                if (!hasManualCapSheetMutationAuthority) return;
+                setShowDeadMoneyModal(true);
+              }}
+              className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
+                hasManualCapSheetMutationAuthority
+                  ? 'text-white/40 hover:text-white'
+                  : 'text-white/20 cursor-not-allowed'
+              }`}
             >
               <span className="opacity-50">⚙️</span> Manage Dead Money
             </button>
@@ -554,7 +649,7 @@ const CapSheet = ({
           onClose={() => setShowDeadMoneyModal(false)}
           teamCapSheet={teamCapSheet}
           currentYear={selectedYear}
-          onSave={(deadCap) => onSetDeadCap?.(deadCap)}
+          onSave={handleSaveDeadCapEdit}
         />
       )}
       {showExceptionsModal && (
@@ -563,7 +658,7 @@ const CapSheet = ({
           onClose={() => setShowExceptionsModal(false)}
           teamCapSheet={teamCapSheet}
           currentYear={selectedYear}
-          onSave={(exceptions) => onSetExceptions?.(exceptions)}
+          onSave={handleSaveExceptionsEdit}
         />
       )}
     </div>

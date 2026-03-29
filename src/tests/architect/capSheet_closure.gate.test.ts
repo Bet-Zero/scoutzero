@@ -14,6 +14,7 @@
  *  5. TPE expiry display uses canonical normalized fields
  *  6. Modal save does not close-before-confirm
  *  7. World failure toast dedupe logic exists
+ *  8. Manual Cap Sheet save authority remains routed through audited owner
  *
  * @vitest-environment node
  */
@@ -49,6 +50,16 @@ const MANAGE_DEAD_MONEY_MODAL_PATH = path.resolve(
   '../../features/architect/capSheet/modals/ManageDeadMoneyModal.tsx'
 );
 
+const CAP_SHEET_SECTION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/sections/CapSheetSection.tsx'
+);
+
+const GM_DASHBOARD_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/GMDashboard.tsx'
+);
+
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
@@ -64,6 +75,15 @@ const readFileContent = (filePath: string): string => {
     throw new Error(`Gate file not found: ${filePath}`);
   }
   return fs.readFileSync(filePath, 'utf-8');
+};
+
+const readRegion = (source: string, start: string, end: string): string => {
+  const startIndex = source.indexOf(start);
+  const endIndex = source.indexOf(end);
+  if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+    throw new Error(`Could not extract region from ${start} to ${end}`);
+  }
+  return source.slice(startIndex, endIndex);
 };
 
 // === GATE 1: Cap % uses canonicalTotals.salaryCap (SSOT) ===
@@ -464,5 +484,104 @@ describe('Gate 7: World Failure Toast Dedupe (E2)', () => {
         content
       );
     expect(hasDedupeComment).toBe(true);
+  });
+});
+
+describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
+  const capSheetContent = readFileContent(CAP_SHEET_PATH);
+  const capSheetSectionContent = readFileContent(CAP_SHEET_SECTION_PATH);
+  const gmDashboardContent = readFileContent(GM_DASHBOARD_PATH);
+  const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const gmDashboardCapRegion = readRegion(
+    gmDashboardContent,
+    "{activeTab === 'cap' && (",
+    "{activeTab === 'capfull' && ("
+  );
+  const manualLedgerHelperRegion = readRegion(
+    actionsContent,
+    'const runManualCapSheetLedgerMutation = useCallback(',
+    '// === Dead Money Actions (Phase 24) ==='
+  );
+  const handleSetDeadCapRegion = readRegion(
+    actionsContent,
+    'const handleSetDeadCap = useCallback(',
+    'const handleSetExceptions = useCallback('
+  );
+  const handleSetExceptionsRegion = readRegion(
+    actionsContent,
+    'const handleSetExceptions = useCallback(',
+    'const hasInjectedCapSheetFixtures = useMemo('
+  );
+
+  it('CapSheet uses an explicit manualCapSheetMutationAuthority prop with named handoff callbacks', () => {
+    expect(capSheetContent).toMatch(/manualCapSheetMutationAuthority\?:/);
+    expect(capSheetContent).toMatch(
+      /const\s+handleSaveDeadCapEdit\s*=\s*React\.useCallback/
+    );
+    expect(capSheetContent).toMatch(
+      /const\s+handleSaveExceptionsEdit\s*=\s*React\.useCallback/
+    );
+    expect(capSheetContent).not.toMatch(/onSave=\{\s*\(\w+\)\s*=>/);
+  });
+
+  it('CapSheet disables manual edit controls when audited authority is unavailable', () => {
+    const disabledMatches =
+      capSheetContent.match(/disabled=\{!hasManualCapSheetMutationAuthority\}/g) ||
+      [];
+    expect(disabledMatches).toHaveLength(2);
+    expect(capSheetContent).toMatch(
+      /if\s*\(!hasManualCapSheetMutationAuthority\)\s*return;\s*setShowExceptionsModal\(true\);/
+    );
+    expect(capSheetContent).toMatch(
+      /if\s*\(!hasManualCapSheetMutationAuthority\)\s*return;\s*setShowDeadMoneyModal\(true\);/
+    );
+  });
+
+  it('CapSheet and CapSheetSection stay free of local save or audited-persist ownership logic', () => {
+    const forbiddenPatterns = [
+      /setTeamCapSheet/,
+      /applyWorldMutation/,
+      /applyCapAuditedTeamMutation/,
+    ];
+
+    for (const forbidden of forbiddenPatterns) {
+      expect(capSheetContent).not.toMatch(forbidden);
+      expect(capSheetSectionContent).not.toMatch(forbidden);
+    }
+  });
+
+  it('GMDashboard cap-tab region passes one authority object instead of wiring alternate mutation logic', () => {
+    expect(gmDashboardContent).toMatch(
+      /const\s+manualCapSheetMutationAuthority\s*=\s*useMemo/
+    );
+    expect(gmDashboardContent).toMatch(/handleSetDeadCap:\s*actions\.handleSetDeadCap/);
+    expect(gmDashboardContent).toMatch(
+      /handleSetExceptions:\s*actions\.handleSetExceptions/
+    );
+    expect(gmDashboardCapRegion).toMatch(
+      /manualCapSheetMutationAuthority=\{manualCapSheetMutationAuthority\}/
+    );
+    expect(gmDashboardCapRegion).not.toMatch(/applyWorldMutation/);
+    expect(gmDashboardCapRegion).not.toMatch(/applyCapAuditedTeamMutation/);
+    expect(gmDashboardCapRegion).not.toMatch(/setTeamCapSheet/);
+  });
+
+  it('handleSetDeadCap and handleSetExceptions delegate through the shared manual ledger helper', () => {
+    expect(handleSetDeadCapRegion).toMatch(/runManualCapSheetLedgerMutation\(\{/);
+    expect(handleSetDeadCapRegion).not.toMatch(/applyCapAuditedTeamMutation/);
+    expect(handleSetExceptionsRegion).toMatch(
+      /runManualCapSheetLedgerMutation\(\{/
+    );
+    expect(handleSetExceptionsRegion).not.toMatch(/applyCapAuditedTeamMutation/);
+  });
+
+  it('shared manual ledger helper remains the only audited mutation bridge for dead cap and exceptions', () => {
+    expect(manualLedgerHelperRegion).toMatch(
+      /const\s+runManualCapSheetLedgerMutation\s*=\s*useCallback/
+    );
+    expect(manualLedgerHelperRegion).toMatch(/params\.type === 'deadCap'/);
+    expect(manualLedgerHelperRegion).toMatch(/mutationType:\s*'setDeadCap'/);
+    expect(manualLedgerHelperRegion).toMatch(/mutationType:\s*'setExceptions'/);
+    expect(manualLedgerHelperRegion).toMatch(/applyCapAuditedTeamMutation\(/);
   });
 });

@@ -34,6 +34,9 @@ type TeamLike = {
   exceptions: Record<string, unknown>;
   totals: Record<string, unknown>;
 };
+type ManualCapSheetMutationAuthority = NonNullable<
+  Parameters<typeof CapSheet>[0]['manualCapSheetMutationAuthority']
+>;
 
 function parseCurrency(value: string | null | undefined): number {
   if (!value) return 0;
@@ -584,6 +587,15 @@ function FixtureInjectorHarness() {
   }, []);
 
   const injected = hasInjectedCapSheetFixtures(teamCapSheet);
+  const manualCapSheetMutationAuthority = React.useMemo<
+    ManualCapSheetMutationAuthority
+  >(
+    () => ({
+      handleSetDeadCap,
+      handleSetExceptions,
+    }),
+    [handleSetDeadCap, handleSetExceptions]
+  );
 
   return (
     <div>
@@ -591,8 +603,7 @@ function FixtureInjectorHarness() {
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
         onSelectPlayer={() => {}}
-        onSetDeadCap={handleSetDeadCap}
-        onSetExceptions={handleSetExceptions}
+        manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
         onInjectCapSheetFixtures={handleInjectCapSheetFixtures}
         onClearCapSheetFixtures={handleClearCapSheetFixtures}
         hasInjectedCapSheetFixtures={injected}
@@ -607,12 +618,23 @@ function FixtureInjectorHarness() {
   );
 }
 
-function ModalFlowsHarness() {
+type ModalFlowsHarnessProps = {
+  includeManualCapSheetMutationAuthority?: boolean;
+  onDeadCapMutation?: (deadCap: unknown) => void;
+  onExceptionsMutation?: (exceptions: unknown) => void;
+};
+
+function ModalFlowsHarness({
+  includeManualCapSheetMutationAuthority = true,
+  onDeadCapMutation,
+  onExceptionsMutation,
+}: ModalFlowsHarnessProps) {
   const [teamCapSheet, setTeamCapSheet] = React.useState<
     Parameters<typeof CapSheet>[0]['teamCapSheet']
   >(() => buildTeamFixture() as any);
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
+    onDeadCapMutation?.(deadCap);
     setTeamCapSheet(
       (prev) =>
         ({
@@ -621,10 +643,11 @@ function ModalFlowsHarness() {
         }) as Parameters<typeof CapSheet>[0]['teamCapSheet']
     );
     return true;
-  }, []);
+  }, [onDeadCapMutation]);
 
   const handleSetExceptions = React.useCallback(
     async (exceptions: unknown) => {
+      onExceptionsMutation?.(exceptions);
       setTeamCapSheet(
         (prev) =>
           ({
@@ -634,16 +657,31 @@ function ModalFlowsHarness() {
       );
       return true;
     },
-    []
+    [onExceptionsMutation]
   );
+
+  const manualCapSheetMutationAuthority = React.useMemo<
+    ManualCapSheetMutationAuthority | null
+  >(() => {
+    if (!includeManualCapSheetMutationAuthority) {
+      return null;
+    }
+    return {
+      handleSetDeadCap,
+      handleSetExceptions,
+    };
+  }, [
+    handleSetDeadCap,
+    handleSetExceptions,
+    includeManualCapSheetMutationAuthority,
+  ]);
 
   return (
     <CapSheet
       teamCapSheet={teamCapSheet as Parameters<typeof CapSheet>[0]['teamCapSheet']}
       currentYear={CURRENT_YEAR}
       onSelectPlayer={() => {}}
-      onSetDeadCap={handleSetDeadCap}
-      onSetExceptions={handleSetExceptions}
+      manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
     />
   );
 }
@@ -704,7 +742,15 @@ describe('Cap Sheet UI integration flows', () => {
   });
 
   it('submits dead-money and exceptions modal flows and reflects deterministic totals on screen', async () => {
-    render(<ModalFlowsHarness />);
+    const deadCapMutationSpy = vi.fn();
+    const exceptionsMutationSpy = vi.fn();
+
+    render(
+      <ModalFlowsHarness
+        onDeadCapMutation={deadCapMutationSpy}
+        onExceptionsMutation={exceptionsMutationSpy}
+      />
+    );
 
     const beforeActionsTotal = readVisibleTotalCapHit();
 
@@ -727,6 +773,21 @@ describe('Cap Sheet UI integration flows', () => {
         screen.queryByTestId('manage-dead-money-modal')
       ).not.toBeInTheDocument();
     });
+    expect(deadCapMutationSpy).toHaveBeenCalledTimes(1);
+    expect(deadCapMutationSpy.mock.calls[0][0]).toEqual([
+      {
+        playerId: expect.stringMatching(/^manual_/),
+        playerName: 'New Dead Money Adjustment',
+        amountByYear: [
+          {
+            season: '2025-26',
+            amount: 2500000,
+            isStretched: false,
+          },
+        ],
+        notes: 'Manual Adjustment',
+      },
+    ]);
 
     const afterDeadMoneyTotal = readVisibleTotalCapHit();
     expect(afterDeadMoneyTotal).toBeGreaterThan(beforeActionsTotal);
@@ -750,8 +811,41 @@ describe('Cap Sheet UI integration flows', () => {
         screen.queryByTestId('manage-exceptions-modal')
       ).not.toBeInTheDocument();
     });
+    expect(exceptionsMutationSpy).toHaveBeenCalledTimes(1);
+    expect(exceptionsMutationSpy.mock.calls[0][0]).toEqual({
+      mle: expect.objectContaining({
+        enabled: true,
+        totalAmount: expect.any(Number),
+        usedAmount: 0,
+        seasonKey: '2025-26',
+      }),
+    });
 
     expect(readVisibleTotalCapHit()).toBe(afterDeadMoneyTotal);
+  });
+
+  it('disables manual dead-money and exception edit buttons when no audited authority is provided', () => {
+    render(<ModalFlowsHarness includeManualCapSheetMutationAuthority={false} />);
+
+    const deadMoneyButton = screen.getByTestId(
+      'cap-sheet-manage-dead-money-button'
+    );
+    const exceptionsButton = screen.getByTestId(
+      'cap-sheet-manage-exceptions-button'
+    );
+
+    expect(deadMoneyButton).toBeDisabled();
+    expect(exceptionsButton).toBeDisabled();
+
+    fireEvent.click(deadMoneyButton);
+    fireEvent.click(exceptionsButton);
+
+    expect(
+      screen.queryByTestId('manage-dead-money-modal')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('manage-exceptions-modal')
+    ).not.toBeInTheDocument();
   });
 
   it('keeps canonical totals, supporting detail, and adjacent exception surfaces structurally separated', async () => {
@@ -762,8 +856,10 @@ describe('Cap Sheet UI integration flows', () => {
         }
         currentYear={CURRENT_YEAR}
         onSelectPlayer={() => {}}
-        onSetDeadCap={async () => true}
-        onSetExceptions={async () => true}
+        manualCapSheetMutationAuthority={{
+          handleSetDeadCap: async () => true,
+          handleSetExceptions: async () => true,
+        }}
       />
     );
 

@@ -43,11 +43,26 @@ type FlatDeadMoneyEntry = {
 type TeamCapSheetLike = {
   deadCap?: DeadCapSourceEntry[] | null;
 };
+type ManualDeadCapSavePayload = Array<{
+  id?: string | null;
+  playerId?: string | number | null;
+  playerName?: string | null;
+  label?: string | null;
+  originalSalary?: NumericLike;
+  amountByYear?: Array<{
+    season: string;
+    amount: number;
+    isStretched?: boolean;
+  }> | null;
+  waiveDate?: string | null;
+  notes?: string | null;
+  stretched?: boolean | null;
+}>;
 type ManageDeadMoneyModalProps = {
   isOpen?: boolean;
   onClose: () => void;
   teamCapSheet?: TeamCapSheetLike | null;
-  onSave: (deadCap: unknown[]) => unknown | Promise<unknown>;
+  onSave: (deadCap: ManualDeadCapSavePayload) => Promise<boolean>;
   currentYear: number;
 };
 
@@ -165,7 +180,7 @@ const ManageDeadMoneyModal = ({
 
     // Canonical Schema per DeadCapItemZ (src/schemas/architect.ts):
     // { playerId, playerName, amountByYear: [{ season, amount, isStretched? }], notes? }
-    const canonicalDeadCap = entries.map((e) => {
+    const canonicalDeadCap: ManualDeadCapSavePayload = entries.map((e) => {
       return {
         playerId:
           e.originalEntry?.playerId ||

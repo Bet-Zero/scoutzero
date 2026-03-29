@@ -294,6 +294,15 @@ type ArchitectExceptionsLike = Exceptions &
   ArchitectMutationExceptions & {
     roomMLE?: ArchitectMutationExceptionEntry | null;
   };
+type ManualCapSheetLedgerMutationParams =
+  | {
+      type: 'deadCap';
+      deadCap: DeadCapEntry[];
+    }
+  | {
+      type: 'exceptions';
+      exceptions: NonNullable<CapSheet['exceptions']>;
+    };
 
 /** Override audit log entry */
 interface OverrideAuditEntry {
@@ -2461,22 +2470,39 @@ export function useArchitectActions({
     [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
   );
 
-  // === Dead Money Actions (Phase 24) ===
-  const handleSetDeadCap = useCallback(
-    (deadCap: DeadCapEntry[]): Promise<boolean> => {
-      const mutationResult = applyCapAuditedTeamMutation({
-        mutationType: 'setDeadCap',
-        playerIds: [],
-        invalidMessage: 'Dead cap update blocked by post-state cap validation.',
-        computeNextTeam: (beforeTeam) => ({
-          ...beforeTeam,
-          deadCap,
-        }),
-        persistPayload: {
-          teamCode,
-          deadCap,
-        },
-      });
+  const runManualCapSheetLedgerMutation = useCallback(
+    (params: ManualCapSheetLedgerMutationParams): Promise<boolean> => {
+      const mutationConfig =
+        params.type === 'deadCap'
+          ? {
+              mutationType: 'setDeadCap',
+              playerIds: [],
+              invalidMessage:
+                'Dead cap update blocked by post-state cap validation.',
+              computeNextTeam: (beforeTeam: CapSheet) => ({
+                ...beforeTeam,
+                deadCap: params.deadCap,
+              }),
+              persistPayload: {
+                teamCode,
+                deadCap: params.deadCap,
+              },
+            }
+          : {
+              mutationType: 'setExceptions',
+              playerIds: [],
+              invalidMessage:
+                'Exception update blocked by post-state cap validation.',
+              computeNextTeam: (beforeTeam: CapSheet) => ({
+                ...beforeTeam,
+                exceptions: params.exceptions,
+              }),
+              persistPayload: {
+                teamCode,
+                exceptions: params.exceptions,
+              },
+            };
+      const mutationResult = applyCapAuditedTeamMutation(mutationConfig);
       if (!mutationResult.applied) {
         return Promise.resolve(false);
       }
@@ -2485,29 +2511,24 @@ export function useArchitectActions({
     [applyCapAuditedTeamMutation, teamCode]
   );
 
+  // === Dead Money Actions (Phase 24) ===
+  const handleSetDeadCap = useCallback(
+    (deadCap: DeadCapEntry[]): Promise<boolean> =>
+      runManualCapSheetLedgerMutation({
+        type: 'deadCap',
+        deadCap,
+      }),
+    [runManualCapSheetLedgerMutation]
+  );
+
   // === Exception Management Actions (Phase 27) ===
   const handleSetExceptions = useCallback(
-    (exceptions: NonNullable<CapSheet['exceptions']>): Promise<boolean> => {
-      const mutationResult = applyCapAuditedTeamMutation({
-        mutationType: 'setExceptions',
-        playerIds: [],
-        invalidMessage:
-          'Exception update blocked by post-state cap validation.',
-        computeNextTeam: (beforeTeam) => ({
-          ...beforeTeam,
-          exceptions,
-        }),
-        persistPayload: {
-          teamCode,
-          exceptions,
-        },
-      });
-      if (!mutationResult.applied) {
-        return Promise.resolve(false);
-      }
-      return mutationResult.persistPromise || Promise.resolve(true);
-    },
-    [applyCapAuditedTeamMutation, teamCode]
+    (exceptions: NonNullable<CapSheet['exceptions']>): Promise<boolean> =>
+      runManualCapSheetLedgerMutation({
+        type: 'exceptions',
+        exceptions,
+      }),
+    [runManualCapSheetLedgerMutation]
   );
 
   const hasInjectedCapSheetFixtures = useMemo(
