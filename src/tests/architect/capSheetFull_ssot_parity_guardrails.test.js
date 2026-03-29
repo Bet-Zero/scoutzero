@@ -10,6 +10,7 @@
  * A) Source-scan guardrails:
  *    1. CapSheetFull.tsx imports computeTeamCapTotals
  *    2. CapSheetFull.tsx does NOT contain local reduce salary summation
+ *    2D. CapSheetFull.tsx declares explicit multi-year hierarchy surfaces
  *    3. computeTeamCapTotals.ts declares explicit included/excluded ownership lists
  *    4. computeTeamCapTotals.ts declares canonical-owner usage fence
  *    5. calculateTeamCapHit(...) is fenced as player-only validation math
@@ -128,6 +129,26 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     );
     expect(capSheetFullSource).toContain('firstVisibleYear');
     expect(capSheetFullSource).toContain('for (const year of allYears)');
+  });
+
+  it('TEST 2D: CapSheetFull declares explicit multi-year hierarchy surfaces and copy', () => {
+    expect(capSheetFullSource).toContain('Primary multi-year cap sheet surface');
+    expect(capSheetFullSource).toContain('Multi-year player detail surface');
+    expect(capSheetFullSource).toContain(
+      'Multi-year canonical yearly totals surface'
+    );
+    expect(capSheetFullSource).toContain('Multi-year cap holds detail surface');
+    expect(capSheetFullSource).toContain('Canonical Yearly Totals');
+    expect(capSheetFullSource).toContain(
+      'Player rows show season-by-season contract detail only.'
+    );
+    expect(capSheetFullSource).toContain(
+      'Player rows above and cap hold details below support the same'
+    );
+    expect(capSheetFullSource).toContain(
+      'Separate from player rows. Matching-season holds feed the'
+    );
+    expect(capSheetFullSource).toContain('Canonical yearly total');
   });
 
   it('TEST 3: computeTeamCapTotals declares explicit included/excluded ownership lists', () => {

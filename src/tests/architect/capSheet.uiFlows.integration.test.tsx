@@ -373,6 +373,26 @@ function buildTeamWithFutureOnlyVisiblePlayerFixture(): TeamLike {
   };
 }
 
+function buildTeamWithMultiYearHierarchyFixture(): TeamLike {
+  const futureYear = CURRENT_YEAR + 1;
+
+  return {
+    ...buildTeamWithFutureOnlyVisiblePlayerFixture(),
+    capHolds: [
+      {
+        playerId: 'hierarchy_hold_player',
+        playerName: 'Hierarchy Hold Wing',
+        amount: 4_250_000,
+        season: toSeasonCode(futureYear),
+        type: 'Bird',
+        active: true,
+        isSigned: false,
+        reason: 'Future Bird rights cap hold',
+      },
+    ],
+  };
+}
+
 function FixtureInjectorHarness() {
   const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(() =>
     buildTeamFixture()
@@ -880,5 +900,95 @@ describe('Cap Sheet UI integration flows', () => {
     ).toBeInTheDocument();
     expect(totals.playersTotal).toBe(20_000_000);
     expect(totals.totalCapAllocations).toBe(20_000_000);
+  });
+
+  it('clarifies the multi-year hierarchy between player detail, canonical totals, and cap-hold detail', () => {
+    const teamCapSheet = buildTeamWithMultiYearHierarchyFixture();
+    const futureYear = CURRENT_YEAR + 1;
+    const totals = computeTeamCapTotals(teamCapSheet, futureYear);
+
+    render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet as Parameters<typeof CapSheetFull>[0]['teamCapSheet']}
+        currentYear={CURRENT_YEAR}
+        onSelectPlayer={() => {}}
+        onActionClick={() => {}}
+      />
+    );
+
+    const primarySurface = screen.getByRole('region', {
+      name: 'Primary multi-year cap sheet surface',
+    });
+    const playerDetailSurface = within(primarySurface).getByRole('region', {
+      name: 'Multi-year player detail surface',
+    });
+    const canonicalTotalsSurface = within(primarySurface).getByRole('region', {
+      name: 'Multi-year canonical yearly totals surface',
+    });
+    const capHoldsSurface = screen.getByRole('region', {
+      name: 'Multi-year cap holds detail surface',
+    });
+
+    expect(
+      within(playerDetailSurface).getByText(
+        /Player rows show season-by-season contract detail only\./i
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(playerDetailSurface).getByRole('button', {
+        name: 'Future Only Stretch Big',
+      })
+    ).toBeInTheDocument();
+
+    expect(
+      within(canonicalTotalsSurface).getByText('Canonical Yearly Totals')
+    ).toBeInTheDocument();
+    expect(
+      within(canonicalTotalsSurface).getByText(
+        /Player rows above and cap hold details below support the same future-year cap story\./i
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(canonicalTotalsSurface).getByText(/^Total Cap$/i)
+    ).toBeInTheDocument();
+    expect(
+      within(canonicalTotalsSurface).getByText(/^Canonical yearly total$/i)
+    ).toBeInTheDocument();
+
+    expect(
+      within(capHoldsSurface).getByText(
+        /Separate from player rows\. Matching-season holds feed the canonical Total Cap row\./i
+      )
+    ).toBeInTheDocument();
+
+    expectBefore(playerDetailSurface, canonicalTotalsSurface);
+    expectBefore(canonicalTotalsSurface, capHoldsSurface);
+
+    fireEvent.click(screen.getByTestId('cap-sheet-full-cap-holds-toggle'));
+
+    expect(
+      within(capHoldsSurface).getByText('Hierarchy Hold Wing')
+    ).toBeInTheDocument();
+    expect(
+      within(capHoldsSurface).getByText('$4,250,000')
+    ).toBeInTheDocument();
+    expect(
+      within(canonicalTotalsSurface).queryByText('Hierarchy Hold Wing')
+    ).not.toBeInTheDocument();
+
+    const totalRow = within(canonicalTotalsSurface)
+      .getByText(/^Total Cap$/i)
+      .closest('div.grid');
+    expect(totalRow).not.toBeNull();
+
+    const futureTotalCell = getFutureYearCell(totalRow, 1);
+    expect(
+      within(futureTotalCell).getByText(
+        `$${totals.totalCapAllocations.toLocaleString()}`
+      )
+    ).toBeInTheDocument();
+    expect(totals.playersTotal).toBe(20_000_000);
+    expect(totals.capHoldsTotal).toBe(4_250_000);
+    expect(totals.totalCapAllocations).toBe(24_250_000);
   });
 });
