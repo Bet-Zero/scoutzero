@@ -398,182 +398,30 @@ describe('useCapValidation', () => {
     expect(result.current.errors).toEqual([]);
   });
 
-  it('interprets legal SAT preflight warnings synchronously', () => {
-    const player = createPlayer();
-    const { result } = renderHook(() =>
-      useCapValidation({
-        player,
-        action: 'signAndTrade',
-        contractData: {},
-        teamCapSheet: {
-          players: [player],
-        },
-        currentYear: 2026,
-        signAndTradePreflight: {
-          status: 'legal',
-          reasons: [],
-          warnings: ['Sign-and-trade will hard cap receiving team at First Apron'],
-          source: 'authoritative-preflight',
-        },
-      })
-    );
-
-    expect(result.current.warnings).toEqual([
-      {
-        severity: 'warning',
-        message: 'Sign-and-trade will hard cap receiving team at First Apron',
-      },
-    ]);
-    expect(result.current.errors).toEqual([]);
-    expect(result.current.isValid).toBe(true);
-    expect(result.current.incomplete).toBe(false);
-  });
-
-  it('blocks SAT from authoritative blocked preflight reasons instead of local apron guesses', () => {
+  it('treats sign-and-trade as outside advisory hook ownership', () => {
     const capSettings = requireCapSettings(2026);
     const player = createPlayer({
-      salariesByYear: [createSalaryRow(2026, capSettings.firstApron - 10_000_000)],
+      salariesByYear: [createSalaryRow(2026, capSettings.secondApron + 5_000_000)],
     });
     const { result } = renderHook(() =>
       useCapValidation({
         player,
         action: 'signAndTrade',
-        contractData: {},
-        teamCapSheet: {
-          players: [player],
-        },
-        currentYear: 2026,
-        signAndTradePreflight: {
-          status: 'blocked',
-          reasons: ['Receiver would exceed First Apron after sign-and-trade.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        },
-      })
-    );
-
-    expect(result.current.warnings).toEqual([]);
-    expect(result.current.errors).toEqual([
-      {
-        severity: 'error',
-        message: 'Receiver would exceed First Apron after sign-and-trade.',
-      },
-    ]);
-    expect(result.current.isValid).toBe(false);
-    expect(result.current.incomplete).toBe(false);
-  });
-
-  it('treats incomplete SAT preflight as non-confirmable without reviving the old local branch', () => {
-    const capSettings = requireCapSettings(2026);
-    const player = createPlayer({
-      salariesByYear: [createSalaryRow(2026, capSettings.firstApron + 1_000_000)],
-    });
-    const { result } = renderHook(() =>
-      useCapValidation({
-        player,
-        action: 'signAndTrade',
-        contractData: {},
-        teamCapSheet: {
-          players: [player],
-        },
-        currentYear: 2026,
-        signAndTradePreflight: {
-          status: 'incomplete',
-          reasons: [
-            'Cannot validate sign-and-trade hard cap: firstApron not available for season',
-          ],
-          warnings: [],
-          source: 'authoritative-preflight',
-        },
-      })
-    );
-
-    expect(result.current.warnings).toEqual([
-      {
-        severity: 'warning',
-        message:
-          'Cannot validate sign-and-trade hard cap: firstApron not available for season',
-      },
-    ]);
-    expect(result.current.errors).toEqual([]);
-    expect(result.current.isValid).toBe(true);
-    expect(result.current.incomplete).toBe(true);
-  });
-
-  it('uses only authoritative offer-sheet preflight output in offer-sheet mode', () => {
-    const capSettings = requireCapSettings(2026);
-    const proposedSalary = capSettings.secondApron + 1_000_000;
-    const player = createPlayer({
-      birdRights: 'None',
-      salariesByYear: [createSalaryRow(2026, 1_000_000)],
-    });
-    const { result } = renderHook(() =>
-      useCapValidation({
-        player,
-        action: 'signNew',
         contractData: {
-          base: proposedSalary,
-          years: 2,
-          salaries: [proposedSalary, Math.floor(proposedSalary * 1.05)],
+          base: capSettings.secondApron + 10_000_000,
         },
         teamCapSheet: {
           players: [player],
         },
         currentYear: 2026,
-        rulesProfile: {
-          minimumSalary: 1_000_000,
-          birdRights: {
-            type: 'None',
-            signingAbilities: {
-              maxFirstYearSalary: proposedSalary + 10_000_000,
-              raisePercentage: 0.05,
-              maxYears: 4,
-              canSignToMax: false,
-            },
-          },
-          maxSalary: {
-            maxSalary: proposedSalary + 10_000_000,
-            maxSalaryBird: proposedSalary + 10_000_000,
-          },
-          restrictedFreeAgency: {
-            isRFA: true,
-            qualifyingOfferAmount: 8_000_000,
-            reason: 'Qualifying offer required',
-          },
-        },
-        isOfferSheet: true,
-        offerSheetPreflight: {
-          status: 'blocked',
-          reasons: ['Offer sheet requires a distinct home team.'],
-          warnings: ['Home team has 2 days remaining to match.'],
-          source: 'authoritative-preflight',
-        },
       })
     );
 
-    expect(result.current.warnings).toEqual([
-      {
-        severity: 'warning',
-        message: 'Home team has 2 days remaining to match.',
-      },
-    ]);
-    expect(result.current.errors).toEqual([
-      {
-        severity: 'error',
-        message: 'Offer sheet requires a distinct home team.',
-      },
-    ]);
-    expect(
-      result.current.warnings.some((entry) =>
-        entry.message.includes('Qualifying offer required')
-      )
-    ).toBe(false);
-    expect(
-      result.current.warnings.some((entry) =>
-        entry.message.includes('Second Apron')
-      )
-    ).toBe(false);
-    expect(result.current.isValid).toBe(false);
-    expect(result.current.incomplete).toBe(false);
+    expect(result.current).toEqual({
+      warnings: [],
+      errors: [],
+      isValid: true,
+      incomplete: false,
+    });
   });
 });

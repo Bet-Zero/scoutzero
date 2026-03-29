@@ -325,11 +325,17 @@ type EditContractModalProps = {
   playersMap?: Record<string, PlayerLike> | null;
 };
 
-type ValidationResultLike = {
+type ValidationAuthority = 'advisory-modal' | 'authoritative-preflight';
+type AuthoritativePreflightKind = 'sign-and-trade' | 'offer-sheet';
+
+type ValidationStateLike = {
+  authority: ValidationAuthority;
   isLegal: boolean;
   incomplete: boolean;
   reasons: string[];
   severity: ValidationSeverity;
+  warnings: ValidationEntryLike[];
+  errors: ValidationEntryLike[];
 };
 
 type NormalizedContractActionResult = {
@@ -337,17 +343,20 @@ type NormalizedContractActionResult = {
   message: string;
 };
 
-/**
- * Build a structured validation result for contract actions.
- * @param {Object} params
- * @param {boolean} params.isValid - Whether there are no validation errors
- * @param {Array} params.errors - List of error objects with { severity, message }
- * @param {Array} params.warnings - List of warning objects with { severity, message }
- * @param {boolean} params.isExtendEligible - For extend actions, whether player is eligible
- * @param {string} params.selectedAction - The currently selected action
- * @returns {{ isLegal: boolean, reasons: string[], severity: 'error' | 'warning' | 'info' }}
- */
-const buildValidationResult = ({
+const DEFAULT_VALIDATION_STATE: ValidationStateLike = {
+  authority: 'advisory-modal',
+  isLegal: true,
+  incomplete: false,
+  reasons: [],
+  severity: 'info',
+  warnings: [],
+  errors: [],
+};
+
+const ADVISORY_MODAL_INCOMPLETE_MESSAGE =
+  'Modal guardrails incomplete — some UI checks could not be evaluated.';
+
+const buildAdvisoryModalValidationState = ({
   isValid,
   errors,
   warnings,
@@ -361,11 +370,23 @@ const buildValidationResult = ({
   isExtendEligible: boolean;
   selectedAction: SelectedContractAction;
   incomplete?: boolean;
-}): ValidationResultLike => {
+}): ValidationStateLike => {
   const reasons: string[] = [];
   let maxSeverity: ValidationSeverity = 'info';
+  const normalizedWarnings = incomplete
+    ? [
+        ...warnings.filter(
+          (entry) =>
+            entry.message !==
+            'Extension validation skipped: rulesProfile not provided'
+        ),
+        {
+          severity: 'warning' as const,
+          message: ADVISORY_MODAL_INCOMPLETE_MESSAGE,
+        },
+      ]
+    : warnings;
 
-  // Collect all error messages
   errors.forEach((e) => {
     reasons.push(e.message || '');
     if (e.severity === 'error') maxSeverity = 'error';
@@ -373,22 +394,17 @@ const buildValidationResult = ({
       maxSeverity = 'warning';
   });
 
-  // Add extension eligibility reason if applicable
   if (selectedAction === 'extend' && !isExtendEligible) {
     reasons.push('Player is not extension eligible');
     maxSeverity = 'error';
   }
 
-  // When validation is incomplete, block confirm and record the reason
   if (incomplete) {
-    reasons.push(
-      'Validation incomplete — some rules could not be evaluated'
-    );
+    reasons.push(ADVISORY_MODAL_INCOMPLETE_MESSAGE);
     if (maxSeverity !== 'error') maxSeverity = 'warning';
   }
 
-  // Collect warning messages (these don't block but are advisory)
-  warnings.forEach((w) => {
+  normalizedWarnings.forEach((w) => {
     if (w.severity === 'warning') {
       reasons.push(w.message || '');
       if (maxSeverity !== 'error') maxSeverity = 'warning';
@@ -399,12 +415,142 @@ const buildValidationResult = ({
     isValid && !incomplete && (selectedAction !== 'extend' || isExtendEligible);
 
   return {
+    authority: 'advisory-modal',
     isLegal,
     incomplete: !!incomplete,
     reasons,
     severity: maxSeverity,
+    warnings: normalizedWarnings,
+    errors,
   };
 };
+
+const getAuthoritativePreflightUnavailableMessage = (
+  kind: AuthoritativePreflightKind
+) =>
+  kind === 'sign-and-trade'
+    ? 'Authoritative sign-and-trade preflight is unavailable.'
+    : 'Authoritative offer sheet preflight is unavailable.';
+
+const buildAuthoritativePreflightState = ({
+  kind,
+  preflight,
+}: {
+  kind: AuthoritativePreflightKind;
+  preflight: SignAndTradePreflightLike | OfferSheetPreflightLike;
+}): ValidationStateLike => {
+  const warnings: ValidationEntryLike[] = [];
+  const errors: ValidationEntryLike[] = [];
+  const reasons: string[] = [];
+  const normalizedPreflight = preflight;
+
+  if (!normalizedPreflight) {
+    const message = getAuthoritativePreflightUnavailableMessage(kind);
+    warnings.push({
+      severity: 'warning',
+      message,
+    });
+
+    return {
+      authority: 'authoritative-preflight',
+      isLegal: false,
+      incomplete: true,
+      reasons: [message],
+      severity: 'warning',
+      warnings,
+      errors,
+    };
+  }
+
+  normalizedPreflight.warnings.forEach((message) => {
+    warnings.push({
+      severity: 'warning',
+      message,
+    });
+  });
+
+  if (normalizedPreflight.status === 'blocked') {
+    normalizedPreflight.reasons.forEach((message) => {
+      errors.push({
+        severity: 'error',
+        message,
+      });
+      reasons.push(message);
+    });
+
+    return {
+      authority: 'authoritative-preflight',
+      isLegal: false,
+      incomplete: false,
+      reasons,
+      severity: 'error',
+      warnings,
+      errors,
+    };
+  }
+
+  if (normalizedPreflight.status === 'incomplete') {
+    normalizedPreflight.reasons.forEach((message) => {
+      warnings.push({
+        severity: 'warning',
+        message,
+      });
+      reasons.push(message);
+    });
+
+    return {
+      authority: 'authoritative-preflight',
+      isLegal: false,
+      incomplete: true,
+      reasons,
+      severity: 'warning',
+      warnings,
+      errors,
+    };
+  }
+
+  return {
+    authority: 'authoritative-preflight',
+    isLegal: true,
+    incomplete: false,
+    reasons: [],
+    severity: warnings.length > 0 ? 'warning' : 'info',
+    warnings,
+    errors,
+  };
+};
+
+const buildValidationCopy = (
+  authority: ValidationAuthority
+): {
+  disclosureTitle: string;
+  disclosureMessage: string;
+  overrideTitle: string;
+  overrideFootnote: string;
+  blockedButtonLabel: string;
+  incompleteButtonLabel: string;
+} =>
+  authority === 'authoritative-preflight'
+    ? {
+        disclosureTitle: 'Authoritative preflight',
+        disclosureMessage:
+          'This action is using authoritative preflight from the action and mutation layer before confirm.',
+        overrideTitle: 'Authoritative preflight blocked this action:',
+        overrideFootnote:
+          'The modal is deferring to authoritative preflight truth for this action.',
+        blockedButtonLabel: 'Preflight Blocked',
+        incompleteButtonLabel: 'Authoritative Preflight Pending',
+      }
+    : {
+        disclosureTitle: 'Modal guardrails',
+        disclosureMessage:
+          'These checks are advisory UI guardrails only. Final cap-state truth is still enforced later by the action and mutation layer.',
+        overrideTitle: 'This action failed modal guardrails:',
+        overrideFootnote:
+          'Proceeding bypasses modal guardrails only. The action and mutation layer still owns final cap-state truth, and the override will be logged.',
+        blockedButtonLabel: 'Action Blocked',
+        incompleteButtonLabel: 'Modal Guardrails Incomplete',
+      };
 
 export const normalizeContractActionResult = (
   result: ActionResultLike
@@ -851,51 +997,64 @@ const EditContractModal = ({
       }),
     [buildCanonicalSigningPayload]
   );
+  const validationAuthority: ValidationAuthority =
+    selectedAction === 'signAndTrade' ||
+    (selectedAction === 'signNew' && isOfferSheet)
+      ? 'authoritative-preflight'
+      : 'advisory-modal';
 
-  // CBA Validation - get warnings/errors for current action
-  // Use targetYear for option/FA actions, currentYear for extensions/waivers
-  const { warnings, errors, isValid, incomplete } = useCapValidation({
+  const {
+    warnings: advisoryWarnings,
+    errors: advisoryErrors,
+    isValid: isAdvisoryValid,
+    incomplete: advisoryIncomplete,
+  } = useCapValidation({
     player,
-    action: selectedAction,
+    action: validationAuthority === 'advisory-modal' ? selectedAction : null,
     contractData: contractDataForValidation,
     teamCapSheet,
     currentYear: CURRENT_YEAR,
-    targetYear: normalizedTargetYear, // The specific year the action applies to
+    targetYear: normalizedTargetYear,
     rulesProfile: playerRulesProfile,
-    signAndTradePreflight,
-    offerSheetPreflight,
-    isOfferSheet,
   });
+  const validationState = useMemo(() => {
+    if (!selectedAction) {
+      return DEFAULT_VALIDATION_STATE;
+    }
 
-  // Build structured validation result
-  const validationResult = useMemo(
-    () =>
-      buildValidationResult({
-        isValid,
-        errors,
-        warnings,
-        isExtendEligible,
-        selectedAction,
-        incomplete,
-      }),
-    [isValid, errors, warnings, isExtendEligible, selectedAction, incomplete]
+    if (validationAuthority === 'authoritative-preflight') {
+      return buildAuthoritativePreflightState({
+        kind: selectedAction === 'signAndTrade' ? 'sign-and-trade' : 'offer-sheet',
+        preflight:
+          selectedAction === 'signAndTrade'
+            ? signAndTradePreflight
+            : offerSheetPreflight,
+      });
+    }
+
+    return buildAdvisoryModalValidationState({
+      isValid: isAdvisoryValid,
+      errors: advisoryErrors,
+      warnings: advisoryWarnings,
+      isExtendEligible,
+      selectedAction,
+      incomplete: advisoryIncomplete,
+    });
+  }, [
+    advisoryErrors,
+    advisoryIncomplete,
+    advisoryWarnings,
+    isAdvisoryValid,
+    isExtendEligible,
+    offerSheetPreflight,
+    selectedAction,
+    signAndTradePreflight,
+    validationAuthority,
+  ]);
+  const validationCopy = useMemo(
+    () => buildValidationCopy(validationState.authority),
+    [validationState.authority]
   );
-
-  // When validation is incomplete, replace the technical skip message with a user-facing warning
-  const displayWarnings = useMemo(() => {
-    if (!incomplete) return warnings;
-    return [
-      ...warnings.filter(
-        (w) =>
-          w.message !== 'Extension validation skipped: rulesProfile not provided'
-      ),
-      {
-        severity: 'warning',
-        message:
-          'Validation incomplete — some rules could not be evaluated',
-      },
-    ];
-  }, [warnings, incomplete]);
 
   // Primary button is disabled if:
   // 1. No action selected
@@ -1069,29 +1228,32 @@ const EditContractModal = ({
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
-    validationResult.incomplete ||
-    (!validationResult.isLegal &&
-      !validationResult.incomplete &&
-      (!canOverride || !isOverrideConfirmed)) ||
+    validationState.incomplete ||
+    (!validationState.isLegal &&
+      !validationState.incomplete &&
+      (validationState.authority === 'authoritative-preflight' ||
+        !canOverride ||
+        !isOverrideConfirmed)) ||
     !buyoutAmountIsValid ||
     isSubmitting;
 
-  // Show override/advanced section when action is illegal AND override is enabled
-  // In production (canOverride=false), illegal actions are simply blocked
   const showOverrideOption =
     canOverride &&
     selectedAction &&
-    !validationResult.isLegal &&
-    !validationResult.incomplete;
+    validationState.authority === 'advisory-modal' &&
+    !validationState.isLegal &&
+    !validationState.incomplete;
 
-  // Show validation errors when validation has run and there are warnings/errors
   useEffect(() => {
-    if (selectedAction && (displayWarnings.length > 0 || errors.length > 0)) {
+    if (
+      selectedAction &&
+      (validationState.warnings.length > 0 || validationState.errors.length > 0)
+    ) {
       setShowValidationErrors(true);
     } else {
       setShowValidationErrors(false);
     }
-  }, [selectedAction, displayWarnings, errors]);
+  }, [selectedAction, validationState.errors, validationState.warnings]);
 
   // Reset override state when action changes or modal closes
   useEffect(() => {
@@ -1107,6 +1269,26 @@ const EditContractModal = ({
       setBuyoutAmountInput('');
     }
   }, [selectedAction, isOpen]);
+
+  const confirmButtonLabel = useMemo(() => {
+    if (isSubmitting) {
+      return 'Saving...';
+    }
+
+    if (validationState.isLegal) {
+      return 'Confirm Action';
+    }
+
+    if (validationState.incomplete && !isOverrideConfirmed) {
+      return validationCopy.incompleteButtonLabel;
+    }
+
+    if (isOverrideConfirmed) {
+      return '⚠️ Force Override';
+    }
+
+    return validationCopy.blockedButtonLabel;
+  }, [isOverrideConfirmed, isSubmitting, validationCopy, validationState]);
 
   // Contract Summary Calculations
   const summary = useMemo(() => {
@@ -1388,13 +1570,15 @@ const EditContractModal = ({
 
     setIsSubmitting(true);
     const timestamp = new Date().toISOString();
-    // Record audit log if override was used
-    const overrideUsed = !validationResult.isLegal && isOverrideConfirmed;
+    const overrideUsed =
+      validationState.authority === 'advisory-modal' &&
+      !validationState.isLegal &&
+      isOverrideConfirmed;
     if (overrideUsed && onAuditLog) {
       onAuditLog({
         actionType: selectedAction,
         timestamp,
-        reasons: validationResult.reasons,
+        reasons: validationState.reasons,
         overrideUsed: true,
         playerId: player?.id || player?.player_id || player?.name,
         playerName: player?.name || player?.displayName,
@@ -1404,7 +1588,7 @@ const EditContractModal = ({
     const overrideMetadata = overrideUsed
       ? {
           overrideUsed: true,
-          overrideReasons: validationResult.reasons,
+          overrideReasons: validationState.reasons,
           overrideTimestamp: timestamp,
         }
       : null;
@@ -2111,12 +2295,23 @@ const EditContractModal = ({
 
           {/* === Validation Warnings === */}
           {selectedAction &&
-            (displayWarnings.length > 0 || errors.length > 0) && (
-              <ValidationWarnings
-                warnings={displayWarnings}
-                errors={errors}
-                showErrors={showValidationErrors}
-              />
+            (validationState.warnings.length > 0 ||
+              validationState.errors.length > 0) && (
+              <div className="mt-4 space-y-3">
+                <div className="rounded border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100">
+                  <div className="font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
+                    {validationCopy.disclosureTitle}
+                  </div>
+                  <p className="mt-1 text-cyan-50/85">
+                    {validationCopy.disclosureMessage}
+                  </p>
+                </div>
+                <ValidationWarnings
+                  warnings={validationState.warnings}
+                  errors={validationState.errors}
+                  showErrors={showValidationErrors}
+                />
+              </div>
             )}
 
           {/* === Advanced Override Section === */}
@@ -2139,16 +2334,15 @@ const EditContractModal = ({
                 <div className="p-4 bg-red-900/10 space-y-4">
                   <div className="text-xs text-red-300/80 space-y-2">
                     <p className="font-semibold text-red-300">
-                      This action violates CBA rules:
+                      {validationCopy.overrideTitle}
                     </p>
                     <ul className="list-disc pl-4 space-y-1">
-                      {validationResult.reasons.map((reason, idx) => (
+                      {validationState.reasons.map((reason, idx) => (
                         <li key={idx}>{reason}</li>
                       ))}
                     </ul>
                     <p className="pt-2 border-t border-red-500/20 mt-2">
-                      Proceeding will create an illegal world state. This action
-                      will be logged and marked as an override.
+                      {validationCopy.overrideFootnote}
                     </p>
                   </div>
 
@@ -2205,22 +2399,14 @@ const EditContractModal = ({
               onClick={handleConfirm}
               disabled={disableConfirm}
               className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                validationResult.isLegal
+                validationState.isLegal
                   ? 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
                   : isOverrideConfirmed
                     ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
                     : 'bg-gray-600 text-white/50'
               }`}
             >
-              {isSubmitting
-                ? 'Saving...'
-                : validationResult.isLegal
-                  ? 'Confirm Action'
-                  : validationResult.incomplete && !isOverrideConfirmed
-                    ? 'Validation Incomplete'
-                    : isOverrideConfirmed
-                      ? '⚠️ Force Override'
-                      : 'Action Blocked'}
+              {confirmButtonLabel}
             </button>
           </div>
         </div>

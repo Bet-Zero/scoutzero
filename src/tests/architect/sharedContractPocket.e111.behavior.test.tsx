@@ -75,6 +75,7 @@ vi.mock('@/features/architect/hooks/useCapValidation', () => ({
     warnings: mockValidationState.warnings,
     errors: mockValidationState.errors,
     isValid: mockValidationState.isValid,
+    incomplete: false,
   }),
   buildSigningGuardrails: () => mockValidationState.signingGuardrails,
 }));
@@ -325,6 +326,12 @@ describe('E111 EditContractModal behavior', () => {
     expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
       'Proceed carefully'
     );
+    expect(screen.getByText('Modal guardrails')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /These checks are advisory UI guardrails only\. Final cap-state truth is still enforced later/i
+      )
+    ).toBeInTheDocument();
     expect(
       screen.getByTestId('edit-contract-confirm-action-button')
     ).toHaveTextContent('Action Blocked');
@@ -365,7 +372,15 @@ describe('E111 EditContractModal behavior', () => {
     expect(screen.getByTestId('selected-destination-team')).toHaveTextContent(
       'BOS'
     );
-    expect(confirmButton).not.toBeDisabled();
+    expect(screen.getByText('Authoritative preflight')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /This action is using authoritative preflight from the action and mutation layer before confirm\./i
+      )
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(confirmButton).not.toBeDisabled();
+    });
 
     fireEvent.click(confirmButton);
 

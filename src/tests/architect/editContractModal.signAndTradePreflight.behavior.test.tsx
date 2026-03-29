@@ -255,6 +255,13 @@ describe('EditContractModal SAT preflight behavior', () => {
     expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
       'Checking authoritative sign-and-trade legality...'
     );
+    expect(screen.getByText('Authoritative preflight')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /This action is using authoritative preflight from the action and mutation layer before confirm\./i
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Modal guardrails')).toBeNull();
 
     pendingPreflight.resolve({
       status: 'legal',

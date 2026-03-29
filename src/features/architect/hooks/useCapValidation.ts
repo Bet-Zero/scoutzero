@@ -27,7 +27,6 @@
  * an info warning. This ensures consistent behavior via the Salary Engine.
  */
 import { useMemo } from 'react';
-import type { SignAndTradePreflightResult, OfferSheetPreflightResult } from '@/features/architect/utils/mutationPipeline';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -145,9 +144,6 @@ type UseCapValidationParams = {
   currentYear?: number;
   targetYear?: number | null;
   rulesProfile?: UseCapValidationRulesProfile | null;
-  signAndTradePreflight?: SignAndTradePreflightResult | null;
-  offerSheetPreflight?: OfferSheetPreflightResult | null;
-  isOfferSheet?: boolean;
 };
 
 type UseCapValidationResult = {
@@ -304,16 +300,11 @@ export function useCapValidation({
   currentYear,
   targetYear = null,
   rulesProfile = null,
-  signAndTradePreflight = null,
-  offerSheetPreflight = null,
-  isOfferSheet = false,
 }: UseCapValidationParams): UseCapValidationResult {
   return useMemo(() => {
     const warnings: ValidationMessage[] = [];
     const errors: ValidationMessage[] = [];
     let incomplete = false;
-    const authoritativeOfferSheetMode =
-      action === 'signNew' && isOfferSheet === true;
 
     if (!player || !action) {
       return { warnings, errors, isValid: true, incomplete };
@@ -463,7 +454,7 @@ export function useCapValidation({
     }
 
     // ===== RE-SIGNING FREE AGENTS =====
-    if (action === 'resign' || (action === 'signNew' && !authoritativeOfferSheetMode)) {
+    if (action === 'resign' || action === 'signNew') {
       const playerOnlyCurrentYearCapHit =
         calculateValidationPlayerOnlyCapHit(teamPlayers, resolvedCurrentYear);
       const currentCapSettings = getResolvedCapSettings(resolvedCurrentYear);
@@ -625,81 +616,6 @@ export function useCapValidation({
       }
     }
 
-    // ===== SIGN AND TRADE =====
-    if (action === 'signAndTrade') {
-      const normalizedPreflight = signAndTradePreflight;
-
-      if (!normalizedPreflight) {
-        incomplete = true;
-        warnings.push({
-          severity: 'warning',
-          message:
-            'Authoritative sign-and-trade preflight is unavailable.',
-        });
-      } else {
-        normalizedPreflight.warnings.forEach((message) => {
-          warnings.push({
-            severity: 'warning',
-            message,
-          });
-        });
-
-        if (normalizedPreflight.status === 'blocked') {
-          normalizedPreflight.reasons.forEach((message) => {
-            errors.push({
-              severity: 'error',
-              message,
-            });
-          });
-        } else if (normalizedPreflight.status === 'incomplete') {
-          incomplete = true;
-          normalizedPreflight.reasons.forEach((message) => {
-            warnings.push({
-              severity: 'warning',
-              message,
-            });
-          });
-        }
-      }
-    }
-
-    // ===== OFFER SHEET =====
-    if (authoritativeOfferSheetMode) {
-      const normalizedPreflight = offerSheetPreflight;
-
-      if (!normalizedPreflight) {
-        incomplete = true;
-        warnings.push({
-          severity: 'warning',
-          message: 'Authoritative offer sheet preflight is unavailable.',
-        });
-      } else {
-        normalizedPreflight.warnings.forEach((message) => {
-          warnings.push({
-            severity: 'warning',
-            message,
-          });
-        });
-
-        if (normalizedPreflight.status === 'blocked') {
-          normalizedPreflight.reasons.forEach((message) => {
-            errors.push({
-              severity: 'error',
-              message,
-            });
-          });
-        } else if (normalizedPreflight.status === 'incomplete') {
-          incomplete = true;
-          normalizedPreflight.reasons.forEach((message) => {
-            warnings.push({
-              severity: 'warning',
-              message,
-            });
-          });
-        }
-      }
-    }
-
     const isValid = errors.length === 0;
 
     return { warnings, errors, isValid, incomplete };
@@ -711,9 +627,6 @@ export function useCapValidation({
     currentYear,
     targetYear,
     rulesProfile,
-    signAndTradePreflight,
-    offerSheetPreflight,
-    isOfferSheet,
   ]);
 }
 

@@ -1,0 +1,49 @@
+import fs from 'fs';
+import path from 'path';
+import { describe, expect, it } from 'vitest';
+
+const repoRoot = path.resolve(__dirname, '..', '..');
+const useCapValidationPath = path.join(
+  repoRoot,
+  'features/architect/hooks/useCapValidation.ts'
+);
+const editContractModalPath = path.join(
+  repoRoot,
+  'shared/components/EditContractModal.tsx'
+);
+
+const useCapValidationSource = fs.readFileSync(useCapValidationPath, 'utf8');
+const editContractModalSource = fs.readFileSync(editContractModalPath, 'utf8');
+
+describe('CS-6B validation authority boundary guardrails', () => {
+  it('keeps authoritative preflight ownership out of useCapValidation', () => {
+    expect(useCapValidationSource).not.toContain('signAndTradePreflight');
+    expect(useCapValidationSource).not.toContain('offerSheetPreflight');
+    expect(useCapValidationSource).not.toContain('isOfferSheet');
+    expect(useCapValidationSource).not.toContain(
+      'Authoritative sign-and-trade preflight is unavailable.'
+    );
+    expect(useCapValidationSource).not.toContain(
+      'Authoritative offer sheet preflight is unavailable.'
+    );
+  });
+
+  it('keeps EditContractModal split between advisory modal checks and authoritative preflight', () => {
+    expect(editContractModalSource).toContain(
+      "type ValidationAuthority = 'advisory-modal' | 'authoritative-preflight';"
+    );
+    expect(editContractModalSource).toContain(
+      'buildAdvisoryModalValidationState'
+    );
+    expect(editContractModalSource).toContain(
+      'buildAuthoritativePreflightState'
+    );
+    expect(editContractModalSource).toContain(
+      "validationState.authority === 'advisory-modal'"
+    );
+    expect(editContractModalSource).toContain("disclosureTitle: 'Modal guardrails'");
+    expect(editContractModalSource).toContain(
+      "disclosureTitle: 'Authoritative preflight'"
+    );
+  });
+});

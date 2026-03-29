@@ -282,6 +282,13 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
     expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
       'Checking authoritative offer sheet legality...'
     );
+    expect(screen.getByText('Authoritative preflight')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /This action is using authoritative preflight from the action and mutation layer before confirm\./i
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Modal guardrails')).toBeNull();
 
     // Resolve legal with a home-team warning
     pendingPreflight.resolve({
