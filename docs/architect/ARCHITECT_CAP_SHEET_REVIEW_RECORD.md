@@ -1538,3 +1538,465 @@ So the correct Step 5 conclusion is:
 **Dead money and exceptions edits follow a real authoritative audited path, but the broader Cap Sheet mutation surface still contains nearby weaker local-only paths, so overall mutation truth is strong-but-not-fully-clean.**
 
 ---
+
+# STEP 6 — Contract-Action / Modal Integration with Cap Sheet
+
+## Scope
+
+Cap Sheet — Step 6: Contract-Action / Modal Integration with Cap Sheet
+
+**Date:** 2026-03-29  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether Cap Sheet state stays aligned with contract-action flows driven by:
+
+- Cap Sheet / Full Cap Table action clicks
+- Edit Contract modal actions
+- dashboard handler wiring
+- contract-action validation logic
+- cap-state mutation handlers
+
+Main questions:
+
+- how Cap Sheet and Full Cap Table actions feed into contract/modal flows
+- whether `useCapValidation` and Cap Sheet mutation behavior are aligned
+- whether option, renounce, waive/stretch, sign, extend, and related actions update Cap Sheet truth correctly
+- whether the integration between UI actions and cap-state mutation paths is clean
+- whether there are ownership or staging risks in this integration layer
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+This layer is mostly working and is clearly better than a fragmented or ad-hoc integration setup.
+
+Key strengths:
+
+- `GMDashboard.tsx` acts as a centralized wiring hub
+- Full Cap Table action clicks are routed through shared dashboard actions
+- `EditContractModal.tsx` dispatches to explicit action callbacks instead of mutating Cap Sheet state directly
+- most cap-affecting actions ultimately land in shared action-hook mutation paths
+- sign-and-trade / offer-sheet flows are especially aligned because they use authoritative preflight callbacks before confirm
+
+However, this step is not a PASS because the integration layer still contains a meaningful ownership split between:
+
+- UI-layer action validation in `useCapValidation.ts`
+- actual Cap Sheet mutation truth in `useArchitectActions.ts` and authoritative/audited mutation paths
+
+That split is not hidden — it is partly declared in code — but it still means the modal can present a simpler or more advisory cap picture than the actual mutation path enforces.
+
+So the correct conclusion is:
+
+**Cap Sheet contract-action integration is mostly functional and mutation truth is usually routed through the right action layer, but the validation/ownership boundary is still split enough that this layer remains risky rather than fully clean.**
+
+---
+
+## Cap Sheet Contract-Action Integration Map
+
+### 1. Dashboard Is the Integration Hub
+
+`GMDashboard.tsx` is the main integration surface.
+
+It combines:
+
+- state from `useArchitectState`
+- action handlers from `useArchitectActions`
+- modal state from `useArchitectModals`
+- rules-profile context from `usePlayerRulesProfiles`
+
+It then wires those into:
+
+- current-year Cap Sheet
+- Full Cap Table
+- Free Agency
+- Edit Contract modal
+
+This is the main reason the integration layer is not chaotic.
+
+---
+
+### 2. Current-Year Cap Sheet Integration
+
+`CapSheetSection.tsx` forwards:
+
+- `onSelectPlayer`
+- `manualCapSheetMutationAuthority`
+
+into `CapSheet`
+
+That means the current-year Cap Sheet mainly owns:
+
+- player selection → open contract modal
+- dead-cap / exception edit handoff through the separate manual mutation authority
+
+It is **not** the main source of option / FA / renounce action-click logic.
+
+---
+
+### 3. Full Cap Table Integration
+
+`CapTableSection.tsx` is a thin forwarding wrapper into `CapSheetFull.tsx`, passing:
+
+- `onSelectPlayer`
+- `onActionClick`
+- `getRulesProfileForYear`
+
+`CapSheetFull.tsx` is where the action-aware Cap Sheet UI actually lives.
+
+It sends:
+
+- player-row name clicks through `onSelectPlayer`
+- PO / TO contract cells through `onActionClick(player, 'po' | 'to', year)`
+- UFA / RFA tags through `onActionClick(player, 'ufa' | 'rfa', year)`
+- cap-hold “Absolve” clicks through `onActionClick(hold, 'renounce')`
+
+So the Full Cap Table is the main Cap Sheet-side action launcher for modal-driven contract actions.
+
+---
+
+### 4. Full Cap Table Action Click → Dashboard Action Flow
+
+In `useArchitectActions.ts`, `handleCapSheetAction(...)` maps Full Cap Table interactions into dashboard modal flow.
+
+The live action routing is:
+
+- `po` / `to` → open modal in option context
+- `ufa` / `rfa` → open modal in free-agent context
+- `renounce` → immediate renounce handler path
+
+For non-renounce cases, the action hook sets:
+
+- selected player
+- selected rules year
+- modal action context
+- target year
+
+and then opens the contract modal.
+
+So the Full Cap Table → modal integration is real and centralized, not a loose chain of local callbacks.
+
+---
+
+### 5. Edit Contract Modal as Action Dispatcher
+
+`EditContractModal.tsx` is the main contract-action UI surface.
+
+It uses:
+
+- `useCapValidation(...)`
+- sign-and-trade preflight callback
+- offer-sheet preflight callback
+
+Then `handleConfirm()` dispatches to the supplied action callbacks:
+
+- `onOptionDecision`
+- `onSignFreeAgent`
+- `onResign`
+- `onSignAndTrade`
+- `onStoreOfferSheet`
+- `onExtend`
+- `onWaive`
+- `onRenounce`
+
+So the modal does not own mutation truth. It owns:
+
+- action selection
+- local payload assembly
+- real-time UI validation
+- preflight checks for selected action types
+- final dispatch into the action layer
+
+---
+
+### 6. Actual Mutation Owner
+
+The actual mutation owner remains `useArchitectActions.ts`.
+
+That file owns the action handlers wired into the modal and dashboard, including:
+
+- `handleSign`
+- `handleSignAndTrade`
+- `handleStoreOfferSheet`
+- `handleExtendContract`
+- `handleWaiveContract`
+- `handleOptionDecision`
+- `handleRenounceRights`
+
+The mutation layer is therefore centralized, even if the validation layer is not identical to it.
+
+This is one of the strongest architectural positives in Step 6.
+
+---
+
+## Validation / Mutation / UI Alignment Analysis
+
+### What Is Aligned Well
+
+#### A. Top-Level Wiring Is Centralized
+
+`GMDashboard.tsx` wires contract actions through one shared action hook rather than spreading separate mutation callbacks across multiple tabs or views.
+
+That is clean.
+
+---
+
+#### B. Full Cap Table Action Context Is Year-Aware
+
+`CapSheetFull.tsx` passes the clicked year to `onActionClick(...)`, and the action layer carries that into modal action context / target-year state.
+
+That means option / FA modal flows are tied to the clicked contract year rather than acting as generic player-level actions.
+
+This is a real integration strength.
+
+---
+
+#### C. Sign-and-Trade / Offer-Sheet Flows Are Better Than Average
+
+`EditContractModal.tsx` requests authoritative preflight legality for:
+
+- sign-and-trade
+- offer sheets
+
+before allowing those actions to proceed.
+
+That gives those flows a stronger relationship between:
+
+- UI validation
+- real mutation legality
+- world-aware action execution
+
+than the more general local warning flows.
+
+---
+
+#### D. Most Actual Cap-State Changes Reach Shared Mutation Paths
+
+Option, renounce, waive/stretch, extend, sign, offer-sheet, and sign-and-trade actions are mostly dispatched into the centralized action layer.
+
+That means this integration layer is not mutating Cap Sheet state directly from the modal.
+
+---
+
+## Whether `useCapValidation` and Cap Sheet Mutation Behavior Are Aligned
+
+### Not Fully
+
+This is the main Step 6 risk.
+
+`useCapValidation.ts` explicitly states that it owns **action-specific UI validation math only**.
+
+It also explicitly states that its internal cap math helper is:
+
+- player-only
+- not the canonical Cap Sheet totals owner
+
+and that canonical totals should come from `computeTeamCapTotals(...)` when that full truth matters.
+
+That means the modal’s validation layer is intentionally advisory / UI-oriented rather than fully canonical.
+
+---
+
+### What This Means in Practice
+
+For several actions — especially sign / re-sign style flows — the modal can warn based on a simplified cap picture using player-only cap hit math.
+
+But the actual mutation truth is enforced later in the action hook and authoritative mutation path.
+
+So the real model is:
+
+- `useCapValidation.ts` = advisory validation + UX guidance
+- `useArchitectActions.ts` + audited/authoritative mutation paths = actual cap-state truth
+
+That is not inherently wrong, but it is a real ownership split.
+
+It creates a risk that:
+
+- contributors assume modal validation is authoritative when it is not
+- a UI warning path and mutation path drift apart over time
+- a modal flow appears cleaner or simpler than the true mutation layer
+
+This is the biggest reason Step 6 is RISK.
+
+---
+
+## Whether Contract Actions Update Cap Sheet Truth Correctly
+
+### Option Decisions
+
+Options originate from Full Cap Table action clicks and end up in the modal via action context / target year.
+
+The modal dispatches to `onOptionDecision`, and dashboard wiring sends that into `handleOptionDecision(...)`.
+
+This is structurally aligned with shared mutation ownership and does not look like a rogue local path.
+
+**Assessment:** mostly good
+
+---
+
+### Renounce
+
+Renounce can be triggered in two different UI ways:
+
+- directly from the Full Cap Table cap-hold row
+- through the modal free-agent action set
+
+Both routes converge on the shared renounce handler path in the action layer.
+
+So mutation truth is not obviously split, but the staging is less uniform than other modal-driven actions.
+
+**Assessment:** mutation truth good, staging slightly mixed
+
+---
+
+### Waive / Waive Stretch / Buyout
+
+The modal dispatches all waive-family actions through `onWaive`, which the dashboard wires to `handleWaiveContract(...)`.
+
+This is structurally aligned with centralized mutation ownership.
+
+**Assessment:** good
+
+---
+
+### Extend
+
+The modal dispatches extension actions through `onExtend`, and dashboard wiring sends them to `handleExtendContract(...)`.
+
+Again, this is centralized in the action layer rather than owned by the modal itself.
+
+**Assessment:** good
+
+---
+
+### Sign / Re-sign
+
+The modal uses separate callback names:
+
+- `onSignFreeAgent`
+- `onResign`
+
+But `GMDashboard.tsx` wires both of those to the same underlying `actions.handleSign`.
+
+That means the distinction is mainly a modal/UI distinction, not a separate mutation-owner distinction.
+
+This is acceptable, but it slightly reduces clarity about whether those actions are actually separate at the mutation layer.
+
+**Assessment:** functionally good, ownership clarity only moderate
+
+---
+
+### Sign-and-Trade / Offer Sheet
+
+These are the most aligned actions in the integration layer because the modal depends on authoritative preflights and world-aware action callbacks.
+
+These flows are less likely to drift between UI legality and actual mutation legality than the more general signing / warning flows.
+
+**Assessment:** strongest integration in Step 6
+
+---
+
+## Ownership, Staging, and Wiring Risks
+
+### 1. Validation Ownership Is Split
+
+This is the central risk.
+
+The modal validation hook is not the authoritative Cap Sheet mutation truth owner.
+It is a UI-layer validator with intentionally limited cap-math ownership.
+
+That is workable, but risky.
+
+---
+
+### 2. `EditContractModal.tsx` Still Carries a Broader Fallback Surface Than the Active Dashboard Flow Uses
+
+Even after prior cleanup, the modal still supports:
+
+- `onSave`
+- `onSignFreeAgent || onSave`
+- `onResign || onSave`
+
+In the active `GMDashboard.tsx` flow, `onSave` is not being used for these contract actions.
+
+So the live integration path is cleaner than the modal API surface suggests.
+
+That means the active dashboard integration is cleaner than the reusable component contract itself, which is a component-level ownership risk.
+
+---
+
+### 3. Renounce Is Structurally Split Across Immediate and Modal Paths
+
+Renounce can happen:
+
+- directly from Full Cap Table cap-hold UI
+- from the modal action set
+
+Even though the underlying mutation owner is shared, the UI staging is less unified than other contract actions.
+
+That is not a correctness failure, but it is a staging / integration cleanliness risk.
+
+---
+
+### 4. Current-Year Cap Sheet and Full Cap Table Are Not Symmetric Action Surfaces
+
+The current-year Cap Sheet mostly opens the generic contract modal through player selection and handles dead-cap / exception edits through separate manual mutation authority.
+
+The Full Cap Table is the place where explicit PO / TO / UFA / RFA / renounce contract actions are surfaced.
+
+This is not inherently wrong, but it means contract-action integration is concentrated more heavily in one Cap Sheet surface than the other.
+
+That asymmetry increases integration complexity.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why This Is Not FAIL
+
+- dashboard wiring is centralized
+- Full Cap Table action launch paths are real and not ad-hoc
+- the modal dispatches into explicit action callbacks
+- most actual cap-state mutations flow through the shared action hook
+- sign-and-trade / offer-sheet flows are especially well-aligned
+
+This layer is clearly functioning and is structurally better than a fragmented setup.
+
+---
+
+### Why This Is Not PASS
+
+- `useCapValidation.ts` is not the authoritative Cap Sheet truth owner
+- modal validation and actual mutation truth are intentionally split
+- `EditContractModal.tsx` still exposes a broader fallback callback surface than the active dashboard flow uses
+- renounce staging is less uniform than other contract actions
+- the integration is good enough to function, but not ownership-clean enough to call fully hardened
+
+---
+
+## Final Conclusion
+
+Cap Sheet contract-action integration is substantially functional:
+
+- Cap Table actions feed into shared modal context cleanly
+- dashboard wiring is centralized
+- modal actions are dispatched into the shared action layer
+- most cap-affecting actions update Cap Sheet truth through the right mutation owner
+
+However, the integration layer still has a meaningful validation/ownership split between:
+
+- advisory modal validation
+- actual authoritative mutation truth
+
+That split, plus a few remaining staging / fallback-surface risks, makes the correct Step 6 conclusion:
+
+**Cap Sheet contract-action integration is mostly working and mutation truth is usually routed through the right action layer, but the validation/ownership boundary is still split enough that this layer remains risky rather than fully clean.**
+
+---

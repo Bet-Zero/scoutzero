@@ -699,3 +699,158 @@ This is a **mutation-path and final-validation integrity step**, not a broad Cap
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 6 — ACTION BREAKDOWN
+
+## Contract-Action / Modal Integration with Cap Sheet
+
+---
+
+## CS-6A — Clarify the Contract-Action Routing Map from Cap Sheet Surfaces into the Modal and Action Layer
+
+### Problem
+
+The Cap Sheet integration path is functional, but the action-launch surface is split across:
+
+- current-year Cap Sheet player selection
+- Full Cap Table action cells
+- cap-hold renounce actions
+- Edit Contract modal dispatch callbacks
+
+That means the routing is centralized in practice, but not yet fully explicit as one clearly declared action map.
+
+### Why It Matters
+
+- Future contributors can struggle to tell which Cap Sheet surface is supposed to launch which contract actions
+- The current-year Cap Sheet and Full Cap Table do not behave as symmetric action surfaces
+- A routing layer that works but is not explicit is easier to extend incorrectly
+
+### Goal
+
+Make the Cap Sheet contract-action routing map clearer so a contributor can easily trace how contract actions move from:
+
+- Cap Sheet / Full Cap Table UI
+- into modal context
+- into the shared action layer
+
+### Success Criteria
+
+- The route from Cap Sheet surfaces into modal/action flows is easier to trace
+- Current-year and multi-year action-launch responsibilities are more clearly defined
+- Contributors are less likely to add ad-hoc launch paths outside the intended contract-action map
+
+---
+
+## CS-6B — Tighten the Boundary Between Advisory Modal Validation and Authoritative Cap-State Mutation Truth
+
+### Problem
+
+`useCapValidation.ts` explicitly owns UI-layer action validation only, and it intentionally uses player-only cap math rather than canonical Cap Sheet totals in several places.
+
+Actual cap-state truth is enforced later by shared mutation handlers and authoritative/audited mutation paths.
+
+### Why It Matters
+
+- The modal can present a simpler cap picture than the true mutation path enforces
+- Contributors can easily assume the validation hook is authoritative when it is not
+- This creates an ownership split between:
+  - advisory validation truth
+  - real mutation truth
+
+### Goal
+
+Make the validation-vs-mutation boundary more explicit and harder to misread.
+
+### Success Criteria
+
+- It is clearer what `useCapValidation.ts` owns and what it does not
+- Contributors are less likely to treat modal validation as canonical Cap Sheet legality
+- The relationship between advisory validation and authoritative mutation truth is more durable
+
+---
+
+## CS-6C — Align Modal Action Surfaces and Callback Contracts with the Live Dashboard Integration Model
+
+### Problem
+
+The active dashboard flow is cleaner than the reusable modal API surface suggests.
+
+`EditContractModal.tsx` still supports broader callback fallbacks like:
+
+- `onSave`
+- `onSignFreeAgent || onSave`
+- `onResign || onSave`
+
+even though the active `GMDashboard.tsx` integration no longer relies on those broader save fallbacks for the Cap Sheet contract-action flow.
+
+### Why It Matters
+
+- The modal component contract suggests a wider ownership model than the live dashboard integration actually uses
+- Future contributors can read those fallback surfaces as valid integration patterns for Architect contract actions
+- A reusable component API can quietly preserve stale integration assumptions
+
+### Goal
+
+Tighten the modal callback surface or fence it more clearly so the live Architect integration model is easier to understand and less likely to regress.
+
+### Success Criteria
+
+- The modal’s action-callback contract better matches the live dashboard integration pattern
+- Stale callback fallback paths are reduced, fenced, or clarified
+- Contributors are less likely to route real Cap Sheet contract actions through weaker or legacy-style callback surfaces
+
+---
+
+## CS-6D — Add Focused Guardrails for Contract-Action Integration Truth
+
+### Problem
+
+The contract-action integration layer is strong in many places, but its correctness still depends on multiple connected pieces staying aligned:
+
+- Full Cap Table action clicks
+- dashboard modal/context wiring
+- modal validation/preflight behavior
+- modal action dispatch
+- shared mutation handlers
+
+### Why It Matters
+
+- Integration truth can regress without immediately breaking core Cap Sheet totals
+- A contributor can preserve the UI while silently drifting:
+  - action context
+  - target year wiring
+  - callback ownership
+  - validation-vs-mutation boundaries
+- This layer needs focused protection, not just a one-time code review
+
+### Goal
+
+Add focused guardrails that protect the contract-action integration chain between Cap Sheet surfaces, modal dispatch, validation behavior, and shared mutation ownership.
+
+### Success Criteria
+
+- Regressions in contract-action routing are easier to detect
+- The relationship between modal validation, preflight, and mutation handlers is better protected
+- The Cap Sheet integration layer is guarded as a system rather than as isolated handlers
+
+---
+
+## Step 6 Summary
+
+This step focuses on:
+
+- clarifying the contract-action routing map from Cap Sheet surfaces into the modal/action layer
+- tightening the boundary between advisory modal validation and authoritative mutation truth
+- aligning the modal callback surface with the actual dashboard integration model
+- adding focused guardrails for contract-action integration truth
+
+This is an **integration-boundary and contract-action wiring step**, not a broad Cap Sheet rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---
