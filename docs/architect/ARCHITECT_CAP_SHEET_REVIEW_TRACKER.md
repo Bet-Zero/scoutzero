@@ -42,3 +42,16 @@ Progress and execution status for the Cap Sheet review series.
 **STEP STATUS: DONE**
 
 ---
+
+## STEP 4 — Exceptions / TPE / Hard-Cap Display and Accounting
+
+| ID    | Title                                                                                       | Status | Notes |
+|-------|---------------------------------------------------------------------------------------------|--------|-------|
+| CS-4A | Unify Exception Default-Amount Ownership Across Tracker and Modal Surfaces                  | TODO   |       |
+| CS-4B | Align Room Exception Display Eligibility with Canonical Under-Cap Logic                     | TODO   |       |
+| CS-4C | Route Hard-Cap Display Through the Canonical Hard-Cap Resolver                              | TODO   |       |
+| CS-4D | Reduce Legacy / Compatibility Drift in TPE and Exception Presentation Reads                 | TODO   |       |
+
+**STEP STATUS: TODO**
+
+---

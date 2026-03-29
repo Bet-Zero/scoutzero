@@ -416,3 +416,146 @@ This is a **multi-year truth and row-to-total parity step**, not a broad Cap She
 
 - Substeps defined
 - Ready for bootstrap + execution
+
+---
+
+# STEP 4 — ACTION BREAKDOWN
+
+## Exceptions / TPE / Hard-Cap Display and Accounting
+
+---
+
+## CS-4A — Unify Exception Default-Amount Ownership Across Tracker and Modal Surfaces
+
+### Problem
+
+The exception tracker and the exception management modal do not use the same effective cap-settings contract for default exception amounts.
+
+`ExceptionTracker.tsx` reads normalized cap-settings values like:
+
+- `fullMLE`
+- `taxpayerMLE`
+- `bae`
+- `roomMLE`
+
+But `ManageExceptionsModal.tsx` still looks for older-style keys like:
+
+- `nonTaxMLE`
+- `mle`
+- `taxMLE`
+- `tpmle`
+
+### Why It Matters
+
+- Different exception UI surfaces can derive different default totals from the same season settings
+- MLE / TPMLE defaults can silently resolve to zero or stale values in the modal even while the tracker displays the correct season-level defaults
+- This is not just future drift risk — it is a live accounting mismatch across surfaces
+
+### Goal
+
+Make exception default-amount ownership explicit and shared so the tracker and modal derive exception totals from the same normalized cap-settings contract.
+
+### Success Criteria
+
+- MLE / TPMLE / BAE / Room defaults come from one consistent normalized source
+- `ExceptionTracker.tsx` and `ManageExceptionsModal.tsx` no longer interpret season cap settings differently
+- Exception defaults are easier to reason about and less vulnerable to stale key-name drift
+
+---
+
+## CS-4B — Align Room Exception Display Eligibility with Canonical Under-Cap Logic
+
+### Problem
+
+The Room Exception edit path uses `canUseRoomException(...)` to determine whether the room exception is actually available, but the tracker display path does not appear to use that same eligibility contract.
+
+### Why It Matters
+
+- One surface can disable the Room Exception as unavailable while another still displays room-exception amounts from configured state/defaults
+- That creates display/edit disagreement inside the same feature layer
+- The Room Exception is especially sensitive because it depends on under-cap status, not just stored exception values
+
+### Goal
+
+Make Room Exception display and edit eligibility follow the same underlying rule path.
+
+### Success Criteria
+
+- Room Exception display and modal availability are tied to the same eligibility logic
+- The UI cannot present room exception state in a misleading way across adjacent surfaces
+- The room exception path becomes structurally consistent with the rest of the exception layer
+
+---
+
+## CS-4C — Route Hard-Cap Display Through the Canonical Hard-Cap Resolver
+
+### Problem
+
+The repo already has a shared hard-cap detection system in `hardCapStatus.ts`, but `ExceptionTracker.tsx` still reconstructs hard-cap status and reasons locally from:
+
+- `hardCapped`
+- MLE / BAE / TPMLE usage
+- locally synthesized reasoning text
+
+### Why It Matters
+
+- The Cap Sheet UI can diverge from canonical hard-cap status truth
+- Structured hard-cap reasons already present in canonical state can be ignored or simplified
+- The UI duplicates status detection instead of consuming the shared hard-cap owner
+- Ceiling / reason / source behavior can drift between the canonical resolver and the display layer
+
+### Goal
+
+Make the Cap Sheet hard-cap presentation consume the canonical hard-cap resolver rather than rebuilding hard-cap status locally.
+
+### Success Criteria
+
+- `ExceptionTracker.tsx` no longer owns duplicate hard-cap detection logic
+- Hard-cap status, reason, and level come from the shared resolver path
+- Cap Sheet hard-cap display is structurally aligned with the repo’s canonical hard-cap model
+
+---
+
+## CS-4D — Reduce Legacy / Compatibility Drift in TPE and Exception Presentation Reads
+
+### Problem
+
+TPE reads are mostly centralized, but they still depend on compatibility fallback from legacy `tradeExceptions` to canonical `exceptions.tpe`. Exception reads also still support legacy-style fallback patterns in tracker normalization.
+
+### Why It Matters
+
+- The current TPE path is acceptable, but still carries compatibility complexity that could become confusing later
+- Exception presentation reads are partly canonical and partly legacy-tolerant, which can blur ownership boundaries
+- Even when this is intentional compatibility support, the boundary between canonical reads and legacy reads needs to stay clear
+
+### Goal
+
+Tighten and clarify the presentation-read boundary so compatibility handling remains bounded and cannot quietly become a shadow ownership path.
+
+### Success Criteria
+
+- TPE display continues to use the normalized canonical read helper
+- legacy fallback behavior is clearly bounded and not mistaken for a second active ownership path
+- exception / TPE presentation reads are easier to classify as canonical, compatibility-only, or drift-risk
+
+---
+
+## Step 4 Summary
+
+This step focuses on:
+
+- unifying exception default accounting across tracker and modal surfaces
+- aligning Room Exception display with canonical eligibility logic
+- routing hard-cap display through the canonical hard-cap resolver
+- reducing legacy / compatibility drift in TPE and exception presentation reads
+
+This is an **exception / TPE / hard-cap ownership-and-accounting step**, not a broad Cap Sheet rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---

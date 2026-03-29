@@ -773,3 +773,404 @@ So the correct Step 3 conclusion is:
 **The Full Cap Table has a trustworthy canonical totals backbone, but the custom multi-year row logic still creates future-year display drift risk.**
 
 ---
+
+# STEP 4 — Exceptions / TPE / Hard-Cap Display and Accounting
+
+## Scope
+
+Cap Sheet — Step 4: Exceptions / TPE / Hard-Cap Display and Accounting
+
+**Date:** 2026-03-29  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the Cap Sheet exception / TPE / hard-cap layer is displayed and accounted for correctly.
+
+Main questions:
+
+- whether MLE / TPMLE / BAE / Room exception display is based on correct underlying state
+- whether TPE display is based on the right normalized source
+- whether hard-cap status and hard-cap reasons are displayed correctly
+- whether any of these surfaces are using stale, duplicate, or misleading logic
+- whether exception / TPE / hard-cap ownership is clean or drift-prone
+
+---
+
+## Executive Verdict
+
+**FAIL**
+
+This layer contains one clean surface and two real problems:
+
+- TPE display is mostly clean and based on the right normalized read helper
+- exception display / accounting has a concrete state-key mismatch across UI surfaces
+- hard-cap display bypasses the canonical hard-cap resolver and can show simplified or misleading reasons
+
+So this is not merely a general drift-risk review result. There is at least one direct accounting mismatch in live code, plus a duplicated hard-cap status path.
+
+The correct conclusion is:
+
+**The exception / TPE / hard-cap layer is not clean enough to trust as-is. TPE normalization is solid, but exception defaults and hard-cap display ownership are currently split across stale / duplicate logic paths.**
+
+---
+
+## Exception / TPE / Hard-Cap Ownership and Display Map
+
+### 1. Exception Presentation Surface
+
+`ExceptionTracker.tsx` is the adjacent presentation surface for:
+
+- MLE
+- TPMLE
+- BAE
+- Room exception
+- TPEs
+- hard-cap state
+
+It explicitly states that it owns exception / TPE / hard-cap presentation for the Cap Sheet surface, and that it does **not** compute or redefine canonical cap totals.
+
+This is the correct architectural boundary.
+
+Inside `ExceptionTracker.tsx`, exception cards are built from:
+
+- `normalizeExceptionForTracker(...)`
+- `getCapSettingsForYear(currentYear)`
+
+The tracker reads canonical `teamCapSheet.exceptions[...]` first, falls back to legacy root keys where needed, and uses cap-settings defaults for display amounts.
+
+So the exception tracker is intended to be the main read/display owner for exception cards.
+
+---
+
+### 2. TPE Read / Display Surface
+
+TPE display is driven by:
+
+- `getTeamTpeList(teamCapSheet)` from `normalizeTeamTpe.ts`
+- `CompactTradeExceptionRow` in `ExceptionTracker.tsx`
+
+This is the cleanest part of the layer.
+
+`getTeamTpeList(...)`:
+
+- prefers canonical `team.exceptions.tpe`
+- falls back to legacy `team.tradeExceptions`
+- normalizes UI field aliases through `normalizeTpeFields(...)`
+
+That means downstream TPE consumers can read:
+
+- `amount`
+- `remaining`
+- `expiresOn` / `expirationDate`
+- `createdFrom` / `name`
+
+without having to know which persisted schema the data originally came from.
+
+This is a clean normalized read path.
+
+---
+
+### 3. Exception Editing Surface
+
+`ManageExceptionsModal.tsx` is the manual exception edit / save surface.
+
+It uses:
+
+- `getCapSettingsForYear(currentYear)`
+- `canUseRoomException(teamCapSheet, currentYear)`
+
+The modal allows editing:
+
+- MLE
+- TPMLE
+- BAE
+- Room exception
+
+and saves canonical exception entries under `teamCapSheet.exceptions[...]`.
+
+This is the main exception-write / edit surface.
+
+However, its default-amount logic does **not** match the normalized cap-settings keys used elsewhere.
+
+This is one of the main failure findings in Step 4.
+
+---
+
+### 4. Canonical Hard-Cap Detection Surface
+
+The repo already contains a canonical shared hard-cap resolver in:
+
+- `getHardCapStatus(...)`
+- `resolveHardCapCeiling(...)`
+
+inside `hardCapStatus.ts`.
+
+That resolver owns:
+
+- structured hard-cap flag detection
+- legacy/ambiguous hard-cap flag interpretation
+- hard-cap source labeling
+- ceiling selection and fail-closed fallback behavior
+
+So the project does already have a real canonical hard-cap status owner.
+
+However, the Cap Sheet exception tracker UI does **not** consume that resolver.
+
+This is the second major failure finding in Step 4.
+
+---
+
+## Detailed Findings
+
+### A. MLE / TPMLE / BAE / Room Exception Display
+
+#### What is correct
+
+`ExceptionTracker.tsx` reads exception state through `normalizeExceptionForTracker(...)`.
+
+That helper:
+
+- prefers canonical `teamCapSheet.exceptions[canonicalKey]`
+- falls back to legacy top-level keys
+- computes `remainingAmount`
+- uses `getCapSettingsForYear(...)` default totals when needed
+
+For the tracker surface itself, that is a reasonable read/display strategy.
+
+The defaults used by the tracker come from the normalized cap-settings contract:
+
+- `fullMLE`
+- `taxpayerMLE`
+- `bae`
+- `roomMLE` / `room`
+
+So the tracker exception cards are at least aligned to the modern cap-settings provider contract.
+
+---
+
+#### What is wrong
+
+`ManageExceptionsModal.tsx` uses a different default-amount contract.
+
+Its `getDefaultTotalAmount(...)` reads:
+
+- `nonTaxMLE` or `mle`
+- `taxMLE` or `tpmle`
+- `bae`
+- `roomMLE` or `room`
+
+But `getCapSettingsForYear(...)` returns normalized settings shaped as:
+
+- `fullMLE`
+- `taxpayerMLE`
+- `bae`
+- `roomMLE`
+
+That means the modal’s default logic for:
+
+- MLE
+- TPMLE
+
+can resolve to zero or stale values even while the tracker is using the correct normalized cap-settings defaults.
+
+This is a real cross-surface accounting mismatch.
+
+It means the display/edit layer is not using one clean shared exception-default contract.
+
+---
+
+#### Additional room-exception drift seam
+
+`ManageExceptionsModal.tsx` uses `canUseRoomException(teamCapSheet, currentYear)` to determine eligibility and can disable the Room Exception UI when the team is not under the cap.
+
+But `ExceptionTracker.tsx` does **not** appear to use that same eligibility path for display.
+
+Instead, it simply renders Room exception remaining amount from exception state/defaults.
+
+So the edit path and the display path are not using the same room-eligibility logic.
+
+This is another smaller but real seam inside the exception layer.
+
+---
+
+### B. TPE Display
+
+This is the strongest part of the Step 4 layer.
+
+`getTeamTpeList(...)` in `normalizeTeamTpe.ts` cleanly handles:
+
+- canonical `exceptions.tpe`
+- legacy `tradeExceptions`
+- field normalization for:
+  - `amount` / `totalAmount`
+  - `remaining` / `remainingAmount`
+  - `expiresOn` / `expirationDate`
+  - `createdFrom` / `name`
+
+Then `ExceptionTracker.tsx` renders the compact TPE list from that normalized read helper.
+
+This means TPE display is based on the correct normalized source.
+
+The only remaining caution is that legacy fallback still exists, which means read-side compatibility complexity remains in the system.
+
+But that looks like intentional backward-compatible read support rather than a hidden duplicate display owner.
+
+So this surface is the closest thing to a PASS in Step 4.
+
+---
+
+### C. Hard-Cap Status and Reason Display
+
+This is the other major failure finding.
+
+#### Canonical hard-cap owner exists
+
+`hardCapStatus.ts` already provides a real shared hard-cap detection path through:
+
+- `getHardCapStatus(...)`
+- `resolveHardCapCeiling(...)`
+
+That code supports:
+
+- structured `hardCapFirstApron.active`
+- structured `hardCapSecondApron.active`
+- `hardCapType`
+- `hardCapLevel`
+- `hardCapTriggered`
+- legacy / ambiguous `hardCapped`
+- source labeling
+- fail-closed ceiling selection
+
+So the repo already has a canonical shared hard-cap interpretation layer.
+
+---
+
+#### ExceptionTracker does not use it
+
+`ExceptionTracker.tsx` does **not** call `getHardCapStatus(...)`.
+
+Instead, it reconstructs hard-cap display locally by:
+
+- reading `hardCapped`
+- computing `usedNTPMLE`
+- computing `usedBAE`
+- computing `usedTPMLE`
+- mutating displayed exception availability locally
+- synthesizing a local `hardCapReason`
+- passing `hardCapped || (usedNTPMLE || usedBAE ? 1 : 0)` into `HardCapCard`
+
+This is a duplicate hard-cap logic path.
+
+---
+
+#### Why this matters
+
+Because the UI hard-cap display can now diverge from canonical hard-cap truth.
+
+Specifically, it can:
+
+- ignore structured hard-cap reasons already present in canonical state
+- collapse different hard-cap causes into simplified generic text
+- bypass the canonical hard-cap source-labeling logic
+- bypass the shared ceiling/fail-closed interpretation contract
+
+So even though the repo already has a shared hard-cap status owner, the Cap Sheet tracker UI is not actually using it.
+
+That is a real ownership failure, not just a stylistic issue.
+
+---
+
+## Stale, Duplicate, or Misleading Logic
+
+### 1. Exception modal and tracker use different cap-settings contracts
+
+This is the clearest concrete bug in Step 4.
+
+- `ExceptionTracker.tsx` uses normalized cap-settings keys like `fullMLE` and `taxpayerMLE`
+- `ManageExceptionsModal.tsx` still looks for older-style keys like `nonTaxMLE`, `mle`, `taxMLE`, and `tpmle`
+
+This means different UI surfaces can derive different default exception totals from the same year settings.
+
+That is stale / duplicate accounting logic.
+
+---
+
+### 2. Hard-cap display duplicates canonical hard-cap status detection
+
+The repo already has `getHardCapStatus(...)` as the shared hard-cap resolver.
+
+But `ExceptionTracker.tsx` reconstructs hard-cap display logic locally.
+
+That is duplicate status detection and duplicate reason derivation.
+
+This is one of the main reasons the step is FAIL.
+
+---
+
+### 3. Room-exception eligibility is split between edit path and display path
+
+The modal uses `canUseRoomException(...)` for eligibility.
+
+The tracker display does not appear to use that same eligibility path.
+
+So Room exception can be edit-restricted in one surface while still being displayed through a different state/default path in another.
+
+This is drift-prone display ownership.
+
+---
+
+### 4. TPE reads are compatibility-heavy but still structurally acceptable
+
+TPE display still carries dual-source compatibility:
+
+- canonical `exceptions.tpe`
+- legacy `tradeExceptions`
+
+That is a real complexity cost, but it is clearly centralized inside `normalizeTeamTpe.ts`.
+
+So it is better classified as bounded compatibility debt than as an active ownership failure.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: FAIL
+
+### Why This Is Not PASS
+
+- exception default accounting is not using one clean shared cap-settings contract across read/edit surfaces
+- hard-cap display bypasses the canonical hard-cap resolver
+- room-exception eligibility logic is split across surfaces
+
+These are real correctness / ownership issues, not just theoretical drift concerns.
+
+---
+
+### Why This Is Not Only RISK
+
+This is stronger than a generic “could drift later” result because one live mismatch already exists:
+
+- the exception modal is using key names that do not match the normalized cap-settings provider contract
+
+So the layer already contains at least one concrete accounting seam today.
+
+That justifies FAIL.
+
+---
+
+## Final Conclusion
+
+The exception / TPE / hard-cap layer is mixed:
+
+- **TPE normalization and display are mostly solid**
+- **exception accounting is not fully unified across surfaces**
+- **hard-cap display ownership is duplicated and bypasses the canonical resolver**
+
+So the correct Step 4 conclusion is:
+
+**The exception / TPE / hard-cap layer is not clean enough to trust as-is. TPE normalization is solid, but exception defaults and hard-cap display ownership are currently split across stale / duplicate logic paths.**
+
+---
