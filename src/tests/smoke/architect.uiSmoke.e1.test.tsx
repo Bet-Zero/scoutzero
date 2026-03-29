@@ -308,7 +308,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     );
 
     expect(screen.getByText(/Cap Sheet/i)).toBeInTheDocument();
-    expect(screen.getByText(/Total Cap Hit/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Total Cap Hit$/i)).toBeInTheDocument();
   });
 
   it('renders Free Agency surface without crash', () => {

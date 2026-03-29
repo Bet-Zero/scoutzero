@@ -301,9 +301,8 @@ const CapSheet = ({
             They may borrow canonical thresholds for display, but they do not own totals truth. */}
         <div className="px-4 py-2 border-b border-white/5 bg-white/[0.03]">
           <p className="text-[10px] text-white/40 leading-relaxed">
-            Supporting detail view: player rows use shared contract utilities
-            for current-year detail, while canonical totals ownership stays with
-            the summary tiles and totals breakdown surfaces.
+            Player rows show player salaries only. Total Cap Hit also includes
+            dead money, cap holds, and incomplete roster charges when present.
           </p>
         </div>
 
@@ -389,82 +388,22 @@ const CapSheet = ({
         {/* Supporting detail, control rows, and canonical totals breakdown stay
             in one frame visually, but remain separated by ownership below. */}
         <div className="bg-white/[0.02] border-t border-white/5">
-          {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
-              canonical capHoldsTotal without becoming a totals owner. */}
-          {displayedCapHolds.length > 0 && (
-            <section
-              aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
-              className="border-b border-white/5"
-            >
-              <button
-                onClick={() => setShowCapHolds(!showCapHolds)}
-                className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
-              >
-                <div className="flex items-center gap-2">
-                  <span>{showCapHolds ? 'Hide' : 'Show'} Cap Holds</span>
-                  <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">
-                    {displayedCapHolds.length}
-                  </span>
-                </div>
-                <span className="text-xs opacity-50">
-                  {showCapHolds ? '−' : '+'}
-                </span>
-              </button>
-
-              {showCapHolds && (
-                <div className="bg-black/20 border-t border-white/5">
-                  <div className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-white/30">
-                    <div>Player</div>
-                    <div>Amount</div>
-                    <div>Reason</div>
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {displayedCapHolds.map((h) => (
-                      <div
-                        key={`${h.playerId}-${h.season}-${h.type}`}
-                        className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
-                      >
-                        <div className="text-xs text-white/60">
-                          {h.playerName || h.playerId}
-                        </div>
-                        <div className="text-xs text-white/40 tabular-nums">
-                          ${Number(h.amount || 0).toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-white/30">
-                          {h.reason || h.type || ''}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* CONTROL SURFACE: These actions mutate canonical inputs, but do not
-              own or redefine current-year totals display. */}
-          <div className="border-b border-white/5 bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-4">
-            <button
-              data-testid="cap-sheet-manage-exceptions-button"
-              onClick={() => setShowExceptionsModal(true)}
-              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
-            >
-              <span className="opacity-50">📋</span> Manage Exceptions
-            </button>
-            <button
-              data-testid="cap-sheet-manage-dead-money-button"
-              onClick={() => setShowDeadMoneyModal(true)}
-              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
-            >
-              <span className="opacity-50">⚙️</span> Manage Dead Money
-            </button>
-          </div>
-
           {/* CANONICAL TOTALS CONSUMER SURFACE: These breakdown rows and the
               footer consume canonicalTotals directly and define the totals view. */}
           <section
             aria-label={CAP_SHEET_SURFACE_LABELS.canonicalTotalsBreakdown}
+            className="border-b border-white/5"
           >
+            <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03] space-y-1">
+              <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+                Total Cap Hit Breakdown
+              </p>
+              <p className="text-[10px] text-white/40 leading-relaxed">
+                Player salaries from the table above plus non-player cap
+                allocations roll into the total below.
+              </p>
+            </div>
+
             <div className="border-b border-white/5 bg-white/[0.01] px-4 py-2 space-y-1">
               <div className="flex items-center justify-between text-[10px] text-white/50">
                 <span>Player Salaries</span>
@@ -523,6 +462,88 @@ const CapSheet = ({
               </span>
             </div>
           </section>
+
+          {/* SUPPORTING DETAIL SURFACE: Cap holds detail explains the
+              canonical capHoldsTotal without becoming a totals owner. */}
+          {displayedCapHolds.length > 0 && (
+            <section
+              aria-label={CAP_SHEET_SURFACE_LABELS.capHoldsDetail}
+              className="border-b border-white/5"
+            >
+              <button
+                onClick={() => setShowCapHolds(!showCapHolds)}
+                className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-medium text-white/40 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <div className="flex flex-col items-start gap-1 text-left">
+                  <div className="flex items-center gap-2">
+                    <span>
+                      {showCapHolds ? 'Hide' : 'Show'} Cap Hold Details
+                    </span>
+                    <span className="bg-white/10 px-1.5 py-0.5 rounded text-white/60">
+                      {displayedCapHolds.length}
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-white/30">
+                    Active cap holds are included in Total Cap Hit.
+                  </span>
+                </div>
+                <span className="text-xs opacity-50">
+                  {showCapHolds ? '−' : '+'}
+                </span>
+              </button>
+
+              {showCapHolds && (
+                <div className="bg-black/20 border-t border-white/5">
+                  <div className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider font-semibold text-white/30">
+                    <div>Player</div>
+                    <div>Amount</div>
+                    <div>Reason</div>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {displayedCapHolds.map((h) => (
+                      <div
+                        key={`${h.playerId}-${h.season}-${h.type}`}
+                        className="grid grid-cols-[2fr,1.2fr,3fr] gap-2 px-4 py-2 items-center hover:bg-white/[0.02]"
+                      >
+                        <div className="text-xs text-white/60">
+                          {h.playerName || h.playerId}
+                        </div>
+                        <div className="text-xs text-white/40 tabular-nums">
+                          ${Number(h.amount || 0).toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-white/30">
+                          {h.reason || h.type || ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* CONTROL SURFACE: These actions mutate canonical inputs, but do not
+              own or redefine current-year totals display. */}
+          <div
+            data-testid="cap-sheet-control-surface"
+            className="bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-4"
+          >
+            <button
+              data-testid="cap-sheet-manage-exceptions-button"
+              onClick={() => setShowExceptionsModal(true)}
+              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <span className="opacity-50">📋</span> Manage Exceptions
+            </button>
+            <button
+              data-testid="cap-sheet-manage-dead-money-button"
+              onClick={() => setShowDeadMoneyModal(true)}
+              className="text-[10px] font-medium text-white/40 hover:text-white transition-colors flex items-center gap-1"
+            >
+              <span className="opacity-50">⚙️</span> Manage Dead Money
+            </button>
+          </div>
+
         </div>
       </section>
 

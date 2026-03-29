@@ -48,7 +48,7 @@ function expectBefore(first: Element, second: Element) {
 }
 
 function readVisibleTotalCapHit(): number {
-  const label = screen.getByText(/Total Cap Hit/i);
+  const label = screen.getByText(/^Total Cap Hit$/i);
   const row = label.parentElement;
   const values = row ? Array.from(row.querySelectorAll('span')) : [];
   const rawValue = values[values.length - 1]?.textContent;
@@ -120,6 +120,44 @@ function buildTeamWithCapHoldFixture(): TeamLike {
         reason: 'Bird rights cap hold',
       },
     ],
+  };
+}
+
+function buildTeamWithMixedAllocationFixture(): TeamLike {
+  const basePlayers = buildTeamFixture().players.slice(0, 12);
+
+  return {
+    teamCode: 'LAL',
+    teamName: 'Los Angeles Lakers',
+    roster: basePlayers.map((player) => String(player.id)),
+    players: basePlayers,
+    deadCap: [
+      {
+        playerId: 'waived_fixture_player',
+        playerName: 'Waived Stretch Veteran',
+        amountByYear: [
+          {
+            season: toSeasonCode(CURRENT_YEAR),
+            amount: 3_250_000,
+            isStretched: true,
+          },
+        ],
+      },
+    ],
+    capHolds: [
+      {
+        playerId: 'unsigned_hold_player',
+        playerName: 'Unsigned Hold Wing',
+        amount: 4_500_000,
+        season: toSeasonCode(CURRENT_YEAR),
+        type: 'Bird',
+        active: true,
+        isSigned: false,
+        reason: 'Bird rights cap hold',
+      },
+    ],
+    exceptions: {},
+    totals: {},
   };
 }
 
@@ -414,15 +452,27 @@ describe('Cap Sheet UI integration flows', () => {
     const breakdownSurface = within(rosterSurface).getByRole('region', {
       name: 'Current-year canonical totals breakdown surface',
     });
+    const controlSurface = within(rosterSurface).getByTestId(
+      'cap-sheet-control-surface'
+    );
 
     expect(summarySurface).toBeInTheDocument();
     expect(
-      within(rosterSurface).getByText(/Supporting detail view:/i)
+      within(rosterSurface).getByText(
+        /Player rows show player salaries only\./i
+      )
     ).toBeInTheDocument();
     expectBefore(summarySurface, rosterSurface);
+    expect(
+      within(breakdownSurface).getByText('Total Cap Hit Breakdown')
+    ).toBeInTheDocument();
+    expectBefore(breakdownSurface, capHoldsSurface);
+    expectBefore(breakdownSurface, controlSurface);
 
     fireEvent.click(
-      within(capHoldsSurface).getByRole('button', { name: /show cap holds/i })
+      within(capHoldsSurface).getByRole('button', {
+        name: /show cap hold details/i,
+      })
     );
 
     expect(
@@ -431,11 +481,17 @@ describe('Cap Sheet UI integration flows', () => {
     expect(
       within(capHoldsSurface).getByText('Bird rights cap hold')
     ).toBeInTheDocument();
-    expect(within(breakdownSurface).getByText(/Total Cap Hit/i)).toBeInTheDocument();
+    expect(
+      within(capHoldsSurface).getByText(
+        /Active cap holds are included in Total Cap Hit\./i
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(breakdownSurface).getByText(/^Total Cap Hit$/i)
+    ).toBeInTheDocument();
     expect(
       within(breakdownSurface).queryByText('Unsigned Hold Wing')
     ).not.toBeInTheDocument();
-    expectBefore(capHoldsSurface, breakdownSurface);
 
     const adjacentSurface = screen.getByRole('region', {
       name: 'Adjacent exception presentation surface',
@@ -447,8 +503,76 @@ describe('Cap Sheet UI integration flows', () => {
       })
     ).toBeInTheDocument();
     expect(
-      within(adjacentSurface).queryByText(/Total Cap Hit/i)
+      within(adjacentSurface).queryByText(/^Total Cap Hit$/i)
     ).not.toBeInTheDocument();
+  });
+
+  it('makes non-player cap allocations visibly part of Total Cap Hit when present', () => {
+    const teamCapSheet = buildTeamWithMixedAllocationFixture();
+    const totals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR);
+
+    render(
+      <CapSheet
+        teamCapSheet={teamCapSheet as Parameters<typeof CapSheet>[0]['teamCapSheet']}
+        currentYear={CURRENT_YEAR}
+        onSelectPlayer={() => {}}
+      />
+    );
+
+    const rosterSurface = screen.getByRole('region', {
+      name: 'Current-year roster detail surface',
+    });
+    const breakdownSurface = within(rosterSurface).getByRole('region', {
+      name: 'Current-year canonical totals breakdown surface',
+    });
+    const capHoldsSurface = within(rosterSurface).getByRole('region', {
+      name: 'Current-year cap holds detail surface',
+    });
+    const controlSurface = within(rosterSurface).getByTestId(
+      'cap-sheet-control-surface'
+    );
+
+    expect(
+      within(rosterSurface).getByText(
+        'Player rows show player salaries only. Total Cap Hit also includes dead money, cap holds, and incomplete roster charges when present.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(breakdownSurface).getByText('Total Cap Hit Breakdown')
+    ).toBeInTheDocument();
+    expect(
+      within(breakdownSurface).getByText(
+        /Player salaries from the table above plus non-player cap allocations roll into the total below\./i
+      )
+    ).toBeInTheDocument();
+    expect(within(breakdownSurface).getByText('Dead Money')).toBeInTheDocument();
+    expect(within(breakdownSurface).getByText('Cap Holds')).toBeInTheDocument();
+    expect(
+      within(breakdownSurface).getByTestId('incomplete-roster-charge-row')
+    ).toBeInTheDocument();
+    expectBefore(breakdownSurface, capHoldsSurface);
+    expectBefore(breakdownSurface, controlSurface);
+    expect(readBreakdownValue('Player Salaries')).toBe(totals.playersTotal);
+    expect(readVisibleTotalCapHit()).toBe(totals.totalCapAllocations);
+    expect(readVisibleTotalCapHit()).toBeGreaterThan(
+      readBreakdownValue('Player Salaries')
+    );
+
+    expect(
+      within(capHoldsSurface).getByText(
+        /Active cap holds are included in Total Cap Hit\./i
+      )
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(capHoldsSurface).getByRole('button', {
+        name: /show cap hold details/i,
+      })
+    );
+
+    expect(
+      within(capHoldsSurface).getByText('Unsigned Hold Wing')
+    ).toBeInTheDocument();
   });
 
   it('keeps veteran-minimum and two-way row cap hits aligned with canonical player salaries', () => {

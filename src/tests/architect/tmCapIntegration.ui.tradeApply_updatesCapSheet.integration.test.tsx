@@ -207,7 +207,7 @@ function parseCurrency(value: string | null | undefined): number {
 }
 
 function readVisibleTotalCapHit(): number {
-  const label = screen.getByText(/Total Cap Hit/i);
+  const label = screen.getByText(/^Total Cap Hit$/i);
   const row = label.parentElement;
   const values = row ? Array.from(row.querySelectorAll('span')) : [];
   const rawValue = values[values.length - 1]?.textContent;
