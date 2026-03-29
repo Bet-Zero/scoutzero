@@ -220,43 +220,41 @@ describe('Gate 4: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
   const content = readFileContent(EXCEPTION_TRACKER_PATH);
 
   it('reads from teamCapSheet.exceptions (canonical) for MLE/TPMLE/BAE/ROOM', () => {
-    // normalizeExceptionForTracker should check canonical first
-    // Pattern: teamCapSheet?.exceptions?.[canonicalKey]
     const readsCanonicalExceptions =
       /teamCapSheet\s*\?\s*\.\s*exceptions\s*\?\s*\.\s*\[/.test(content);
     expect(readsCanonicalExceptions).toBe(true);
   });
 
-  it('normalizeExceptionForTracker function exists with canonical priority', () => {
-    // The normalizer should read canonicalEntry from teamCapSheet.exceptions
-    const hasNormalizer = content.includes('normalizeExceptionForTracker');
-    expect(hasNormalizer).toBe(true);
-
-    // Should have canonical entry lookup: teamCapSheet?.exceptions?.[canonicalKey]
-    const canonicalEntryPattern =
-      /const\s+canonicalEntry\s*=\s*teamCapSheet\s*\?\s*\.\s*exceptions\s*\?\s*\.\s*\[\s*canonicalKey/.test(
-        content
-      );
-    expect(canonicalEntryPattern).toBe(true);
+  it('keeps canonical, compatibility, and default exception stages as separate helpers', () => {
+    expect(content).toContain('getCanonicalExceptionEntry');
+    expect(content).toContain('getCompatibilityExceptionEntry');
+    expect(content).toContain('resolveExceptionTrackerEntry');
+    expect(content).toContain('normalizeResolvedExceptionForTracker');
+    expect(content).not.toContain('normalizeExceptionForTracker');
   });
 
-  it('has legacy fallback read (read-only fallback is ok)', () => {
-    // Pattern: legacyEntry = teamCapSheet?.[legacyKey]
-    // TS authority may cast through Record<string, unknown> before bracket access.
+  it('keeps legacy fallback as a compatibility-only top-level read helper', () => {
     const hasLegacyFallback =
-      /const\s+legacyEntry\s*=\s*(?:\(\s*teamCapSheet\s+as\s+Record<string,\s*unknown>\s*\)|teamCapSheet)\s*\?\s*\.\s*\[\s*legacyKey/.test(
+      /const\s+legacyEntry\s*=\s*\(\s*teamCapSheet\s+as\s+Record<string,\s*unknown>\s*\)\s*\?\s*\.\s*\[\s*legacyKey/.test(
         content
       );
     expect(hasLegacyFallback).toBe(true);
   });
 
-  it('uses canonical-then-legacy source selection', () => {
-    // Pattern: sourceEntry = hasCanonicalEntry ? canonicalEntry : legacyEntry
-    const hasSourceSelection =
-      /sourceEntry\s*=\s*hasCanonicalEntry\s*\?\s*canonicalEntry\s*:\s*legacyEntry/.test(
-        content
-      );
-    expect(hasSourceSelection).toBe(true);
+  it('resolves exception tracker sources explicitly before numeric normalization', () => {
+    expect(content).toContain("source: 'canonical'");
+    expect(content).toContain("source: 'compatibility'");
+    expect(content).toContain("source: 'default'");
+  });
+
+  it('uses getTeamTpeList(teamCapSheet) for TPE presentation reads', () => {
+    expect(content).toMatch(
+      /const\s+tradeExceptions\s*=\s*getTeamTpeList\s*\(\s*teamCapSheet\s*\)/
+    );
+  });
+
+  it('does NOT read teamCapSheet.tradeExceptions directly inside ExceptionTracker', () => {
+    expect(content).not.toMatch(/teamCapSheet\s*\??\.\s*tradeExceptions/);
   });
 
   it('uses the shared normalized exception default helper from capSettingsProvider', () => {

@@ -17,6 +17,15 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () 
     firstApron: 150_000_000,
     secondApron: 175_000_000,
   }),
+  getExceptionDefaultAmountFromCapSettings: (type, capSettings) =>
+    (
+      {
+        mle: capSettings?.fullMLE ?? 0,
+        tpmle: capSettings?.taxpayerMLE ?? 0,
+        bae: capSettings?.bae ?? 0,
+        room: capSettings?.roomMLE ?? 0,
+      }
+    )[type] ?? 0,
 }));
 
 describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
@@ -33,6 +42,26 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
 
     expect(screen.getByText('$5,000,000')).toBeInTheDocument();
     expect(screen.getByText(/from Trade vs BOS/)).toBeInTheDocument();
+  });
+
+  it('prefers canonical exceptions.tpe over conflicting legacy tradeExceptions', () => {
+    const sheet = {
+      exceptions: {
+        tpe: [
+          { amount: 5_000_000, createdFrom: 'Trade vs BOS', expires: '2026-07' },
+        ],
+      },
+      tradeExceptions: [
+        { amount: 9_000_000, createdFrom: 'Legacy Trade vs LAL', expires: '2026-08' },
+      ],
+    };
+
+    render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
+
+    expect(screen.getByText('$5,000,000')).toBeInTheDocument();
+    expect(screen.getByText(/from Trade vs BOS/)).toBeInTheDocument();
+    expect(screen.queryByText('$9,000,000')).not.toBeInTheDocument();
+    expect(screen.queryByText(/from Legacy Trade vs LAL/)).not.toBeInTheDocument();
   });
 
   it('falls back to legacy tradeExceptions when exceptions.tpe is empty', () => {

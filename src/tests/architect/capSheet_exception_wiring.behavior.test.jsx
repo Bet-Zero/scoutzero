@@ -242,6 +242,95 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(screen.getAllByText('$8,641,976').length).toBeGreaterThan(0);
   });
 
+  it('prefers canonical exception entries over conflicting legacy top-level fallback entries', () => {
+    render(
+      <ExceptionTracker
+        teamCapSheet={{
+          exceptions: {
+            tpmle: {
+              enabled: true,
+              totalAmount: 5_000_000,
+              usedAmount: 1_000_000,
+              remainingAmount: 4_000_000,
+            },
+          },
+          tpMle: {
+            amount: 99_000_000,
+            used: 0,
+            remaining: 99_000_000,
+          },
+        }}
+        currentYear={2026}
+      />
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+    const tpMleCard = within(trackerSection).getByText('TP-MLE').closest('div.relative');
+
+    expect(tpMleCard).not.toBeNull();
+    expect(within(tpMleCard).getByText('$4,000,000')).toBeInTheDocument();
+    expect(within(tpMleCard).queryByText('$99,000,000')).not.toBeInTheDocument();
+  });
+
+  it('renders legacy-only top-level exception data when canonical exception entry is absent', () => {
+    render(
+      <ExceptionTracker
+        teamCapSheet={{
+          bae: {
+            amount: 4_700_000,
+            used: 1_000_000,
+            remaining: 3_700_000,
+          },
+        }}
+        currentYear={2026}
+      />
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+    const baeCard = within(trackerSection).getByText('BAE').closest('div.relative');
+
+    expect(baeCard).not.toBeNull();
+    expect(within(baeCard).getByText('$3,700,000')).toBeInTheDocument();
+    expect(within(baeCard).queryByText('N/A')).not.toBeInTheDocument();
+  });
+
+  it('does not let legacy top-level fallback override a canonical disabled exception entry', () => {
+    render(
+      <ExceptionTracker
+        teamCapSheet={{
+          exceptions: {
+            mle: {
+              enabled: false,
+              totalAmount: 12_800_000,
+              usedAmount: 0,
+              remainingAmount: 12_800_000,
+            },
+          },
+          mle: {
+            amount: 99_000_000,
+            used: 0,
+            remaining: 99_000_000,
+          },
+        }}
+        currentYear={2026}
+      />
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+    const mleCard = within(trackerSection).getByText('NT-MLE').closest('div.relative');
+
+    expect(mleCard).not.toBeNull();
+    expect(within(mleCard).getByText('$0')).toBeInTheDocument();
+    expect(within(mleCard).getByText('N/A')).toBeInTheDocument();
+    expect(within(mleCard).queryByText('$99,000,000')).not.toBeInTheDocument();
+  });
+
   it('keeps ROOM unavailable across tracker and modal when under-cap eligibility is false and only defaults exist', () => {
     vi.mocked(canUseRoomException).mockReturnValue({
       eligible: false,

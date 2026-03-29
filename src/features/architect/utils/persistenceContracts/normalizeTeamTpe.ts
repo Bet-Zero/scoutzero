@@ -285,6 +285,60 @@ function normalizeTpeFields<T>(tpe: T): T {
   return normalized as T;
 }
 
+type TeamTpeReadSource = 'canonical' | 'compatibility' | 'none';
+
+interface ResolvedTeamTpeRead {
+  source: TeamTpeReadSource;
+  rawList: unknown[];
+}
+
+function getCanonicalTeamTpeList(
+  team: TeamTpeLike | null | undefined
+): unknown[] | null {
+  if (Array.isArray(team?.exceptions?.tpe) && team.exceptions.tpe.length > 0) {
+    return team.exceptions.tpe as unknown[];
+  }
+
+  return null;
+}
+
+function getLegacyTeamTpeFallbackList(
+  team: TeamTpeLike | null | undefined
+): unknown[] | null {
+  if (Array.isArray(team?.tradeExceptions)) {
+    return team.tradeExceptions as unknown[];
+  }
+
+  return null;
+}
+
+function resolveTeamTpeRead(
+  team: TeamTpeLike | null | undefined
+): ResolvedTeamTpeRead {
+  if (!team || typeof team !== 'object') {
+    return { source: 'none', rawList: [] };
+  }
+
+  const canonicalTpeList = getCanonicalTeamTpeList(team);
+  if (canonicalTpeList) {
+    return {
+      source: 'canonical',
+      rawList: canonicalTpeList,
+    };
+  }
+
+  const legacyTpeList = getLegacyTeamTpeFallbackList(team);
+  if (legacyTpeList) {
+    recordLegacyTpeFallback(team);
+    return {
+      source: 'compatibility',
+      rawList: legacyTpeList,
+    };
+  }
+
+  return { source: 'none', rawList: [] };
+}
+
 /**
  * Read helper for getting team TPE list.
  * Prefers canonical location, falls back to legacy for old worlds.
@@ -300,25 +354,14 @@ function normalizeTpeFields<T>(tpe: T): T {
  * @returns Array of TPE objects with normalized fields (may be empty)
  */
 export function getTeamTpeList(team: TeamTpeLike | null | undefined): TradeExceptionLike[] {
-  if (!team || typeof team !== 'object') {
-    return [];
-  }
+  const resolvedRead = resolveTeamTpeRead(team);
 
-  let rawList: unknown[];
-
-  // Prefer canonical location
-  if (Array.isArray(team.exceptions?.tpe) && team.exceptions.tpe.length > 0) {
-    rawList = team.exceptions.tpe as unknown[];
-  }
-  // Fallback to legacy location for old worlds
-  else if (Array.isArray(team.tradeExceptions)) {
-    // Phase 66: Record telemetry for legacy fallback
-    recordLegacyTpeFallback(team);
-    rawList = team.tradeExceptions;
-  } else {
+  if (resolvedRead.source === 'none') {
     return [];
   }
 
   // Phase 68: Normalize field names for all consumers
-  return rawList.map((tpe) => normalizeTpeFields(tpe as TradeExceptionLike));
+  return resolvedRead.rawList.map((tpe) =>
+    normalizeTpeFields(tpe as TradeExceptionLike)
+  );
 }

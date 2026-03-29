@@ -61,7 +61,7 @@ const ALLOWLISTED_FILES = [
 /**
  * Directories to scan (relative to SRC_ROOT)
  */
-const SCAN_DIRECTORIES = ['hooks', 'tradeMachine', 'utils', 'GMDashboard'];
+const SCAN_DIRECTORIES = ['hooks', 'tradeMachine', 'utils', 'GMDashboard', 'capSheet'];
 
 /**
  * Patterns that indicate direct .tradeExceptions reads
