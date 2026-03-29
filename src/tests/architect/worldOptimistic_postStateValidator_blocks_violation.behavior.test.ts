@@ -160,12 +160,19 @@ describe('world optimistic post-state validator gate', () => {
     });
   });
 
-  it('blocks optimistic update when post-state validator detects non-finite totals', () => {
+  it('writes the invalid preview audit event before any local commit and blocks world persistence', async () => {
     const { result } = renderActionsHarness();
     const beforeSnapshot = result.current.teamCapSheet;
+    let mutationResult = true;
 
-    act(() => {
-      result.current.actions.handleSetDeadCap([
+    expect(
+      readLocalCapAuditEvents({
+        storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+      })
+    ).toHaveLength(0);
+
+    await act(async () => {
+      mutationResult = await result.current.actions.handleSetDeadCap([
         {
           id: 'dead_cap_invalid',
           amountByYear: [{ season: '2025-26', amount: Number.NaN }],
@@ -173,6 +180,7 @@ describe('world optimistic post-state validator gate', () => {
       ]);
     });
 
+    expect(mutationResult).toBe(false);
     expect(result.current.teamCapSheet).toBe(beforeSnapshot);
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
     expect(toastMocks.error).toHaveBeenCalled();
@@ -180,10 +188,9 @@ describe('world optimistic post-state validator gate', () => {
     const previewEvents = readLocalCapAuditEvents({
       storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
     });
-    expect(previewEvents.length).toBeGreaterThan(0);
-    expect(previewEvents[previewEvents.length - 1].valid).toBe(false);
-    expect(previewEvents[previewEvents.length - 1].mutationType).toBe(
-      'setDeadCap'
-    );
+    expect(previewEvents).toHaveLength(1);
+    expect(previewEvents[0].preview).toBe(true);
+    expect(previewEvents[0].valid).toBe(false);
+    expect(previewEvents[0].mutationType).toBe('setDeadCap');
   });
 });

@@ -924,6 +924,117 @@ export function useArchitectActions({
     [setSelectedPlayer]
   );
 
+  type PreparedCapAuditedMutationLifecycle = {
+    operationId: string;
+    storageKey: string;
+    beforeTeamSnapshot: CapSheet;
+    afterTeamSnapshot: CapSheet;
+    beforeTeamsByCode: TeamsByCode;
+    afterTeamsByCode: TeamsByCode;
+    previewAuditEvaluation: ReturnType<typeof buildCapAuditEvaluation>;
+    applyLocalPreview: () => void;
+    linkPersistSuccess: (result: PersistMutationResult) => void;
+    rollbackPersistFailure: () => void;
+  };
+
+  const prepareCapAuditedTeamMutationLifecycle = useCallback(
+    (params: {
+      mutationType: string;
+      playerIds?: string[];
+      computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+    }): PreparedCapAuditedMutationLifecycle => {
+      const {
+        mutationType,
+        playerIds = [],
+        computeNextTeam,
+      } = params;
+      const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
+      const afterTeamSnapshot = safeCloneForAudit(
+        computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
+      );
+      const operationId = generateLocalOperationId();
+      const occurredAt = new Date().toISOString();
+      const beforeTeamsByCode: TeamsByCode = {
+        [teamCode]: beforeTeamSnapshot,
+      };
+      const afterTeamsByCode: TeamsByCode = {
+        [teamCode]: afterTeamSnapshot,
+      };
+      const previewAuditEvaluation = buildCapAuditEvaluation({
+        operationId,
+        occurredAt,
+        mutationType,
+        worldId,
+        year: currentYear,
+        teamCodes: [teamCode],
+        playerIds: playerIds.filter(Boolean).map(String),
+        beforeTeamsByCode,
+        afterTeamsByCode,
+        preview: !!worldId,
+        authoritativeEventLinked: worldId ? false : undefined,
+      });
+      const storageKey = worldId
+        ? WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY
+        : BASE_CAP_AUDIT_STORAGE_KEY;
+
+      return {
+        operationId,
+        storageKey,
+        beforeTeamSnapshot,
+        afterTeamSnapshot,
+        beforeTeamsByCode,
+        afterTeamsByCode,
+        previewAuditEvaluation,
+        applyLocalPreview: () => {
+          setTeamCapSheetSafe(afterTeamSnapshot);
+        },
+        linkPersistSuccess: (result) => {
+          const authoritativeOperationId = String(
+            result?.event?.operationId || operationId
+          );
+          updateLocalCapAuditEvent(
+            operationId,
+            {
+              authoritativeEventLinked: true,
+              authoritativeOperationId,
+              persistFailed: false,
+            },
+            {
+              storageKey,
+            }
+          );
+        },
+        rollbackPersistFailure: () => {
+          setTeamCapSheetSafe(beforeTeamSnapshot);
+          const didUpdatePreview = updateLocalCapAuditEvent(
+            operationId,
+            {
+              persistFailed: true,
+              authoritativeEventLinked: false,
+            },
+            {
+              storageKey,
+            }
+          );
+
+          if (!didUpdatePreview) {
+            appendLocalCapAuditEvent(
+              {
+                ...previewAuditEvaluation.event,
+                persistFailed: true,
+                authoritativeEventLinked: false,
+              },
+              {
+                storageKey,
+              }
+            );
+          }
+        },
+      };
+    },
+    [currentYear, setTeamCapSheetSafe, teamCapSheet, teamCode, worldId]
+  );
+
   // === Persistence Helper ===
   type PersistMutationOptions = {
     operationId?: string;
@@ -1237,109 +1348,55 @@ export function useArchitectActions({
           return { applied: false, operationId: null, persistPromise: null };
         }
 
-        const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
-        const afterTeamSnapshot = safeCloneForAudit(
-          computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
-        );
-        const operationId = generateLocalOperationId();
-        const occurredAt = new Date().toISOString();
-        const beforeTeamsByCode: TeamsByCode = {
-          [teamCode]: beforeTeamSnapshot,
-        };
-        const afterTeamsByCode: TeamsByCode = {
-          [teamCode]: afterTeamSnapshot,
-        };
-
-        const previewEvent = buildCapAuditEvaluation({
-          operationId,
-          occurredAt,
+        const lifecycle = prepareCapAuditedTeamMutationLifecycle({
           mutationType,
-          worldId,
-          year: currentYear,
-          teamCodes: [teamCode],
-          playerIds: playerIds.filter(Boolean).map(String),
-          beforeTeamsByCode,
-          afterTeamsByCode,
-          preview: !!worldId,
-          authoritativeEventLinked: worldId ? false : undefined,
+          playerIds,
+          computeNextTeam,
         });
 
-        const storageKey = worldId
-          ? WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY
-          : BASE_CAP_AUDIT_STORAGE_KEY;
-        appendLocalCapAuditEvent(previewEvent.event, { storageKey });
+        appendLocalCapAuditEvent(lifecycle.previewAuditEvaluation.event, {
+          storageKey: lifecycle.storageKey,
+        });
 
-        if (!previewEvent.validation.valid) {
+        if (!lifecycle.previewAuditEvaluation.validation.valid) {
           reportMutationError(
-            getFirstViolationMessage(previewEvent.validation, invalidMessage),
+            getFirstViolationMessage(
+              lifecycle.previewAuditEvaluation.validation,
+              invalidMessage
+            ),
             {
               mutationType,
-              operationId,
-              violations: previewEvent.validation.violations,
+              operationId: lifecycle.operationId,
+              violations: lifecycle.previewAuditEvaluation.validation.violations,
             }
           );
-          return { applied: false, operationId, persistPromise: null };
+          return {
+            applied: false,
+            operationId: lifecycle.operationId,
+            persistPromise: null,
+          };
         }
 
-        setTeamCapSheetSafe(afterTeamSnapshot);
+        lifecycle.applyLocalPreview();
 
         if (!worldId) {
           return {
             applied: true,
-            operationId,
+            operationId: lifecycle.operationId,
             persistPromise: Promise.resolve(true),
           };
         }
 
         const persistPromise = persistMutation(mutationType, persistPayload, {
-          operationId,
-          onSuccess: (result) => {
-            const authoritativeOperationId = String(
-              result?.event?.operationId || operationId
-            );
-            updateLocalCapAuditEvent(
-              operationId,
-              {
-                authoritativeEventLinked: true,
-                authoritativeOperationId,
-                persistFailed: false,
-              },
-              {
-                storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
-              }
-            );
-          },
+          operationId: lifecycle.operationId,
+          onSuccess: lifecycle.linkPersistSuccess,
           onFailure: (message) => {
-            setTeamCapSheetSafe(beforeTeamSnapshot);
-            const didUpdatePreview = updateLocalCapAuditEvent(
-              operationId,
-              {
-                persistFailed: true,
-                authoritativeEventLinked: false,
-              },
-              {
-                storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
-              }
-            );
-
-            if (!didUpdatePreview) {
-              appendLocalCapAuditEvent(
-                {
-                  ...previewEvent.event,
-                  persistFailed: true,
-                  authoritativeEventLinked: false,
-                },
-                {
-                  storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
-                }
-              );
-            }
-
+            lifecycle.rollbackPersistFailure();
             reportMutationError(
               message || `Failed to persist ${mutationType} mutation.`,
               {
                 mutationType,
-                operationId,
+                operationId: lifecycle.operationId,
               }
             );
           },
@@ -1363,7 +1420,7 @@ export function useArchitectActions({
 
         return {
           applied: true,
-          operationId,
+          operationId: lifecycle.operationId,
           persistPromise: persistCompletionPromise,
         };
       } finally {
@@ -1375,11 +1432,10 @@ export function useArchitectActions({
     [
       currentYear,
       persistMutation,
+      prepareCapAuditedTeamMutationLifecycle,
       reportMutationError,
-      setTeamCapSheet,
       syncTeamFromMutationResult,
       teamCapSheet,
-      teamCode,
       worldId,
     ]
   );

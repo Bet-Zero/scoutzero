@@ -61,7 +61,7 @@ Progress and execution status for the Cap Sheet review series.
 | ID    | Title                                                                                                    | Status | Notes |
 | ----- | -------------------------------------------------------------------------------------------------------- | ------ | ----- |
 | CS-5A | Lock Dead Money and Exception Edits to One Audited Mutation Path                                         | IN_PROGRESS | Structural hardening and guardrails landed in live code; requested validation is not fully clean because unrelated red suites remain outside the CS-5A change set. |
-| CS-5B | Tighten Alignment Between Local Preview Apply, Audit Generation, Final Validation, and World Persistence | TODO   |       |
+| CS-5B | Tighten Alignment Between Local Preview Apply, Audit Generation, Final Validation, and World Persistence | DONE   | `applyCapAuditedTeamMutation(...)` now consumes one prepared lifecycle contract for preview snapshots, cap-audit evaluation, local apply, persistence linkage, and rollback; focused guardrails pin invalid preview blocking, authoritative event linkage, and persist-failure rollback. Requested validation still reports unrelated red suites outside the CS-5B touch set. |
 | CS-5C | Fence Weaker Local-Only Cap Sheet Mutation Paths Away from Authoritative Edit Flows                      | TODO   |       |
 | CS-5D | Add Focused Guardrails for UI-to-Validation-to-Persistence Mutation Truth                                | TODO   |       |
 

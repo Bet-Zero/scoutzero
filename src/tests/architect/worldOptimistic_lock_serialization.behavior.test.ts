@@ -226,6 +226,7 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
         storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
       });
       expect(previewEvents[0]?.authoritativeEventLinked).toBe(true);
+      expect(previewEvents[0]?.authoritativeOperationId).toBe('auth_op_1');
     });
 
     act(() => {
@@ -240,6 +241,44 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
     await waitFor(() => {
       expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('rolls back the optimistic local preview and marks the preview audit event when persistence fails', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValueOnce({
+      success: false,
+      error: 'Simulated world save failure',
+    });
+
+    const { result } = renderActionsHarness('world_1');
+    const beforeSnapshot = result.current.teamCapSheet;
+
+    let saveResult = true;
+
+    await act(async () => {
+      saveResult = await result.current.actions.handleSetExceptions({
+        mle: {
+          type: 'non-taxpayer',
+          remainingAmount: 7_500_000,
+        },
+      });
+    });
+
+    expect(saveResult).toBe(false);
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(1);
+    expect(result.current.teamCapSheet).toEqual(beforeSnapshot);
+    expect(result.current.teamCapSheet.exceptions).toEqual({});
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      expect.stringContaining('Simulated world save failure')
+    );
+    expect(isOptimisticLockHeld(LOCK_SCOPE_KEY)).toBe(false);
+
+    const previewEvents = readLocalCapAuditEvents({
+      storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+    });
+    expect(previewEvents).toHaveLength(1);
+    expect(previewEvents[0]?.mutationType).toBe('setExceptions');
+    expect(previewEvents[0]?.persistFailed).toBe(true);
+    expect(previewEvents[0]?.authoritativeEventLinked).toBe(false);
   });
 
   it('keeps base-mode no-write behavior for optimistic handlers', () => {

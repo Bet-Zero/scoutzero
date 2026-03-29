@@ -502,6 +502,16 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     'const runManualCapSheetLedgerMutation = useCallback(',
     '// === Dead Money Actions (Phase 24) ==='
   );
+  const preparedLifecycleHelperRegion = readRegion(
+    actionsContent,
+    'const prepareCapAuditedTeamMutationLifecycle = useCallback(',
+    '// === Persistence Helper ==='
+  );
+  const applyCapAuditedTeamMutationRegion = readRegion(
+    actionsContent,
+    'const applyCapAuditedTeamMutation = useCallback(',
+    'const finalizeCapMutationResult = useCallback('
+  );
   const handleSetDeadCapRegion = readRegion(
     actionsContent,
     'const handleSetDeadCap = useCallback(',
@@ -569,10 +579,14 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   it('handleSetDeadCap and handleSetExceptions delegate through the shared manual ledger helper', () => {
     expect(handleSetDeadCapRegion).toMatch(/runManualCapSheetLedgerMutation\(\{/);
     expect(handleSetDeadCapRegion).not.toMatch(/applyCapAuditedTeamMutation/);
+    expect(handleSetDeadCapRegion).not.toMatch(/appendLocalCapAuditEvent/);
+    expect(handleSetDeadCapRegion).not.toMatch(/persistMutation/);
     expect(handleSetExceptionsRegion).toMatch(
       /runManualCapSheetLedgerMutation\(\{/
     );
     expect(handleSetExceptionsRegion).not.toMatch(/applyCapAuditedTeamMutation/);
+    expect(handleSetExceptionsRegion).not.toMatch(/appendLocalCapAuditEvent/);
+    expect(handleSetExceptionsRegion).not.toMatch(/persistMutation/);
   });
 
   it('shared manual ledger helper remains the only audited mutation bridge for dead cap and exceptions', () => {
@@ -583,5 +597,38 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(manualLedgerHelperRegion).toMatch(/mutationType:\s*'setDeadCap'/);
     expect(manualLedgerHelperRegion).toMatch(/mutationType:\s*'setExceptions'/);
     expect(manualLedgerHelperRegion).toMatch(/applyCapAuditedTeamMutation\(/);
+    expect(manualLedgerHelperRegion).not.toMatch(/appendLocalCapAuditEvent/);
+    expect(manualLedgerHelperRegion).not.toMatch(/updateLocalCapAuditEvent/);
+    expect(manualLedgerHelperRegion).not.toMatch(/persistMutation/);
+    expect(manualLedgerHelperRegion).not.toMatch(/validatePostStateCapLegality/);
+  });
+
+  it('applyCapAuditedTeamMutation consumes one prepared lifecycle contract for preview, validation, local apply, and persist callbacks', () => {
+    expect(actionsContent).toMatch(
+      /type\s+PreparedCapAuditedMutationLifecycle\s*=\s*\{/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /const\s+prepareCapAuditedTeamMutationLifecycle\s*=\s*useCallback/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(/buildCapAuditEvaluation\(/);
+    expect(preparedLifecycleHelperRegion).toMatch(/applyLocalPreview:\s*\(\)\s*=>/);
+    expect(preparedLifecycleHelperRegion).toMatch(/linkPersistSuccess:\s*\(result\)\s*=>/);
+    expect(preparedLifecycleHelperRegion).toMatch(/rollbackPersistFailure:\s*\(\)\s*=>/);
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /prepareCapAuditedTeamMutationLifecycle\(\{/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /appendLocalCapAuditEvent\(lifecycle\.previewAuditEvaluation\.event/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(/lifecycle\.applyLocalPreview\(\)/);
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /onSuccess:\s*lifecycle\.linkPersistSuccess/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /lifecycle\.rollbackPersistFailure\(\)/
+    );
+    expect(applyCapAuditedTeamMutationRegion).not.toMatch(
+      /buildCapAuditEvaluation\(/ 
+    );
   });
 });
