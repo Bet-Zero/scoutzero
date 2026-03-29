@@ -16,6 +16,7 @@ import type {
 } from '@/features/architect/types';
 import {
   getContractYearSlice,
+  getPlayerCapSheetAmountsForYear,
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
@@ -78,6 +79,9 @@ const formatQOText = (amount: NumericLike) => {
   return `QO $${(Number(amount) / 1_000_000).toFixed(1)}M`;
 };
 
+const formatCapSheetMoney = (amount: NumericLike) =>
+  `$${Number(amount ?? 0).toLocaleString()}`;
+
 const formatSeasonLabel = (year: number) =>
   `${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
@@ -90,6 +94,38 @@ const getExtensionEligibleYear = (rulesProfile: RulesProfileLike) => {
   const d = new Date(eligibleDate);
   if (Number.isNaN(d.getTime())) return null;
   return d.getFullYear();
+};
+
+type ContractAmountDisplayProps = {
+  capHit: number;
+  baseSalary: number;
+  hasCapHitAdjustment: boolean;
+  primaryClassName: string;
+  secondaryClassName: string;
+};
+
+const ContractAmountDisplay = ({
+  capHit,
+  baseSalary,
+  hasCapHitAdjustment,
+  primaryClassName,
+  secondaryClassName,
+}: ContractAmountDisplayProps) => {
+  if (!hasCapHitAdjustment) {
+    return <span className={primaryClassName}>{formatCapSheetMoney(capHit)}</span>;
+  }
+
+  return (
+    <span
+      className="flex flex-col items-center leading-tight"
+      title={`Cap hit counts as ${formatCapSheetMoney(capHit)}; base salary is ${formatCapSheetMoney(baseSalary)}.`}
+    >
+      <span className={primaryClassName}>{formatCapSheetMoney(capHit)}</span>
+      <span className={secondaryClassName}>
+        Base {formatCapSheetMoney(baseSalary)}
+      </span>
+    </span>
+  );
 };
 
 const CapSheetFull = ({
@@ -201,7 +237,11 @@ const CapSheetFull = ({
 
                     {/* Years */}
                     {allYears.map((year) => {
-                      const entry = getContractYearSlice(player, year);
+                      const rowAmounts = getPlayerCapSheetAmountsForYear(
+                        player,
+                        year
+                      );
+                      const entry = rowAmounts.contractSlice;
                       const freeAgency =
                         player.futureContract?.freeAgency ||
                         player.contract?.freeAgency ||
@@ -228,7 +268,6 @@ const CapSheetFull = ({
                         fallbackFaType;
                       const derivedFaType = normalizeFAType(derivedFaTypeRaw);
                       const isExtension = entry?.isExtensionSeason;
-                      const salaryValue = entry?.salary ?? entry?.capHit ?? 0;
                       const faLabel = derivedFaType || 'FA';
                       const isExtensionEligibleYear =
                         extensionEligibleYear && extensionEligibleYear === year;
@@ -323,15 +362,21 @@ const CapSheetFull = ({
                             className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[36px] transition-colors cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
                             title={`Click to manage ${isPO ? 'Player' : 'Team'} Option`}
                           >
-                            <span
-                              className={`text-xs font-medium tabular-nums tracking-tight ${
+                            <ContractAmountDisplay
+                              capHit={rowAmounts.capHit}
+                              baseSalary={rowAmounts.baseSalary}
+                              hasCapHitAdjustment={rowAmounts.hasCapHitAdjustment}
+                              primaryClassName={`text-xs font-medium tabular-nums tracking-tight ${
                                 isExtension
                                   ? 'text-cyan-200/90'
                                   : 'text-white/70'
                               }`}
-                            >
-                              ${salaryValue.toLocaleString()}
-                            </span>
+                              secondaryClassName={`text-[8px] uppercase tracking-wider tabular-nums ${
+                                isExtension
+                                  ? 'text-cyan-100/60'
+                                  : 'text-white/45'
+                              }`}
+                            />
                           </div>
                         );
                       }
@@ -355,13 +400,17 @@ const CapSheetFull = ({
                               {formatExtLabel(year)}
                             </span>
                           )}
-                          <span
-                            className={`text-xs font-medium tabular-nums tracking-tight ${
+                          <ContractAmountDisplay
+                            capHit={rowAmounts.capHit}
+                            baseSalary={rowAmounts.baseSalary}
+                            hasCapHitAdjustment={rowAmounts.hasCapHitAdjustment}
+                            primaryClassName={`text-xs font-medium tabular-nums tracking-tight ${
                               isExtension ? 'text-cyan-200/90' : 'text-white/60'
                             }`}
-                          >
-                            ${salaryValue.toLocaleString()}
-                          </span>
+                            secondaryClassName={`text-[8px] uppercase tracking-wider tabular-nums ${
+                              isExtension ? 'text-cyan-100/60' : 'text-white/40'
+                            }`}
+                          />
                         </div>
                       );
                     })}

@@ -34,11 +34,11 @@ Progress and execution status for the Cap Sheet review series.
 
 | ID    | Title                                                                                                                        | Status | Notes |
 |-------|------------------------------------------------------------------------------------------------------------------------------|--------|-------|
-| CS-3A | Align Multi-Year Player Row Values with Canonical Future-Year Cap-Hit Rules                                                  | TODO   |       |
+| CS-3A | Align Multi-Year Player Row Values with Canonical Future-Year Cap-Hit Rules                                                  | IN_PROGRESS | Multi-year player-year cells now use shared `getPlayerCapSheetAmountsForYear(...)`, canonical `getPlayerCapHitForYear(...)` delegates to that same helper, and focused UI/source-scan guardrails pin veteran-min, two-way, and cap-hit-vs-base-salary parity. Required `typecheck` and `build` passed; required `test:diff` still fails in unrelated pre-existing Architect suites, so execution remains in progress pending clean repo-level validation. |
 | CS-3B | Fix Future-Only Player Visibility Risk in the Multi-Year Table                                                               | TODO   |       |
 | CS-3C | Clarify the Relationship Between Multi-Year Player Rows, Cap Holds Table, and Canonical Yearly Totals                        | TODO   |       |
 | CS-3D | Add Guardrails for Multi-Year Row-to-Total Parity and Future-Year Population Truth                                           | TODO   |       |
 
-**STEP STATUS: TODO**
+**STEP STATUS: IN_PROGRESS**
 
 ---

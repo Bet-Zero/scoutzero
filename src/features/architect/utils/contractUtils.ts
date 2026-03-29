@@ -299,21 +299,43 @@ export function getContractYearSlice(
   };
 }
 
+interface PlayerCapSheetAmountsForYear {
+  contractSlice: ReturnType<typeof getContractYearSlice>;
+  capHit: number;
+  baseSalary: number;
+  hasCapHitAdjustment: boolean;
+}
+
+export function getPlayerCapSheetAmountsForYear(
+  player: ContractUtilsPlayer | null | undefined,
+  endYear: number
+): PlayerCapSheetAmountsForYear {
+  const contractSlice = getContractYearSlice(player, endYear);
+  const baseSalary = Number(
+    contractSlice?.salary ?? contractSlice?.capHit ?? 0
+  ) || 0;
+
+  let capHit = Number(contractSlice?.capHit ?? contractSlice?.salary ?? 0) || 0;
+
+  if (player && isTwoWayContract(player)) {
+    capHit = 0;
+  } else if (player?.isMinimum && Number(player.yearsOfService) >= 3) {
+    capHit = getMinimumCapHit(Number(player.yearsOfService));
+  }
+
+  return {
+    contractSlice,
+    capHit,
+    baseSalary,
+    hasCapHitAdjustment: Math.abs(capHit - baseSalary) > 0.5,
+  };
+}
+
 export function getPlayerCapHitForYear(
   player: ContractUtilsPlayer | null | undefined,
   endYear: number
 ): number {
-  if (!player) return 0;
-  if (isTwoWayContract(player)) return 0;
-
-  const slice = getContractYearSlice(player, endYear);
-  const salary = Number(slice?.capHit ?? slice?.salary ?? 0) || 0;
-
-  if (player.isMinimum && Number(player.yearsOfService) >= 3) {
-    return getMinimumCapHit(Number(player.yearsOfService));
-  }
-
-  return salary;
+  return getPlayerCapSheetAmountsForYear(player, endYear).capHit;
 }
 
 // 3. Create max contract based on years of service

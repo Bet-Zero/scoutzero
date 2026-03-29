@@ -32,6 +32,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { calculateTeamCapHit } from '@/features/architect/utils/capHelpers';
+import { getPlayerCapSheetAmountsForYear } from '@/features/architect/utils/contractUtils';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,6 +113,13 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     expect(hasLocalReduceForTotals).toBe(false);
   });
 
+  it('TEST 2B: CapSheetFull uses shared row cap-sheet amounts instead of raw salary fallback cells', () => {
+    expect(capSheetFullSource).toContain('getPlayerCapSheetAmountsForYear');
+    expect(capSheetFullSource).not.toContain(
+      'const salaryValue = entry?.salary ?? entry?.capHit ?? 0;'
+    );
+  });
+
   it('TEST 3: computeTeamCapTotals declares explicit included/excluded ownership lists', () => {
     expect(computeTotalsSource).toContain('INCLUDED IN CANONICAL TOTALS');
     expect(computeTotalsSource).toContain('EXCLUDED FROM CANONICAL TOTALS');
@@ -131,9 +139,10 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
     expect(capHelpersSource).toContain(
       'calculateTeamCapHit(...) keeps a historical generic name'
     );
-    expect(capHelpersSource).toMatch(
-      /not a Cap Sheet\s+totals authority\./
+    expect(capHelpersSource).toContain(
+      'intentionally player-only validation/projection math and not a Cap Sheet'
     );
+    expect(capHelpersSource).toContain('totals authority.');
     expect(capHelpersSource).toContain(
       'For full Cap Sheet allocations, use computeTeamCapTotals(...).'
     );
@@ -360,5 +369,71 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
 
   it('TEST 15: computeTeamCapTotals.js is absent after shim retirement', () => {
     expect(fs.existsSync(COMPUTE_TOTALS_SHIM_PATH)).toBe(false);
+  });
+
+  it('TEST 16: shared row-amount helper keeps future cap-hit rules aligned with totals semantics', () => {
+    const veteranMinimumPlayer = {
+      player_id: 'vet-min-1',
+      displayName: 'Veteran Minimum Wing',
+      isMinimum: true,
+      yearsOfService: 4,
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 2_390_000, capHit: 2_390_000 },
+        ],
+      },
+    };
+    const adjustedStandardPlayer = {
+      player_id: 'adjusted-standard-1',
+      displayName: 'Adjusted Standard',
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 8_000_000, capHit: 9_000_000 },
+        ],
+      },
+    };
+    const twoWayPlayer = {
+      player_id: 'two-way-1',
+      displayName: 'Two-Way Prospect',
+      contractType: 'two-way',
+      contract: {
+        contractType: 'Two-Way',
+        salariesByYear: [
+          { season: '2025-26', salary: 700_000, capHit: 700_000 },
+        ],
+      },
+    };
+
+    expect(getPlayerCapSheetAmountsForYear(veteranMinimumPlayer, YEAR)).toEqual({
+      contractSlice: expect.objectContaining({
+        salary: 2_390_000,
+        capHit: 2_390_000,
+      }),
+      capHit: 2_092_400,
+      baseSalary: 2_390_000,
+      hasCapHitAdjustment: true,
+    });
+
+    expect(getPlayerCapSheetAmountsForYear(adjustedStandardPlayer, YEAR)).toEqual({
+      contractSlice: expect.objectContaining({
+        salary: 8_000_000,
+        capHit: 9_000_000,
+      }),
+      capHit: 9_000_000,
+      baseSalary: 8_000_000,
+      hasCapHitAdjustment: true,
+    });
+
+    expect(getPlayerCapSheetAmountsForYear(twoWayPlayer, YEAR)).toEqual({
+      contractSlice: expect.objectContaining({
+        salary: 700_000,
+        capHit: 700_000,
+      }),
+      capHit: 0,
+      baseSalary: 700_000,
+      hasCapHitAdjustment: true,
+    });
   });
 });

@@ -63,6 +63,17 @@ function readBreakdownValue(labelText: string): number {
   return parseCurrency(rawValue);
 }
 
+function getFutureYearCell(
+  row: Element | null,
+  yearOffsetFromCurrent: number
+): HTMLElement {
+  expect(row).not.toBeNull();
+  const cells = Array.from((row as HTMLElement).children);
+  const targetCell = cells[yearOffsetFromCurrent + 1] as HTMLElement | undefined;
+  expect(targetCell).toBeDefined();
+  return targetCell as HTMLElement;
+}
+
 function makePlayer(index: number): Record<string, unknown> {
   const id = `base_player_${index + 1}`;
   return {
@@ -210,6 +221,107 @@ function buildTeamWithVeteranMinimumAndTwoWayFixture(): TeamLike {
               season: toSeasonCode(CURRENT_YEAR),
               salary: 500_000,
               capHit: 500_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+    ],
+    deadCap: [],
+    capHolds: [],
+    exceptions: {},
+    totals: {},
+  };
+}
+
+function buildTeamWithFutureYearCapHitAdjustmentsFixture(): TeamLike {
+  const basePlayers = Array.from({ length: 12 }, (_, index) => makePlayer(index));
+  const veteranMinimumId = 'future_vet_minimum_standard';
+  const adjustedStandardId = 'future_standard_cap_hit_adjusted';
+  const twoWayId = 'future_two_way_non_zero';
+  const futureYear = CURRENT_YEAR + 1;
+
+  return {
+    teamCode: 'LAL',
+    teamName: 'Los Angeles Lakers',
+    roster: [
+      ...basePlayers.map((player) => String(player.id)),
+      veteranMinimumId,
+      adjustedStandardId,
+      twoWayId,
+    ],
+    players: [
+      ...basePlayers,
+      {
+        id: veteranMinimumId,
+        player_id: veteranMinimumId,
+        name: 'future_vet_minimum_standard',
+        displayName: 'Future Veteran Minimum Wing',
+        position: 'F',
+        isMinimum: true,
+        yearsOfService: 4,
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 2_200_000,
+              capHit: 2_200_000,
+              guaranteed: true,
+            },
+            {
+              season: toSeasonCode(futureYear),
+              salary: 2_390_000,
+              capHit: 2_390_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+      {
+        id: adjustedStandardId,
+        player_id: adjustedStandardId,
+        name: 'future_standard_cap_hit_adjusted',
+        displayName: 'Future Cap-Hit Forward',
+        position: 'F',
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 7_500_000,
+              capHit: 7_500_000,
+              guaranteed: true,
+            },
+            {
+              season: toSeasonCode(futureYear),
+              salary: 8_000_000,
+              capHit: 9_000_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+      {
+        id: twoWayId,
+        player_id: twoWayId,
+        name: 'future_two_way_non_zero',
+        displayName: 'Future Two-Way Guard',
+        position: 'G',
+        contractType: 'two-way',
+        contract: {
+          contractType: 'Two-Way',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 500_000,
+              capHit: 500_000,
+              guaranteed: true,
+            },
+            {
+              season: toSeasonCode(futureYear),
+              salary: 700_000,
+              capHit: 700_000,
               guaranteed: true,
             },
           ],
@@ -619,5 +731,70 @@ describe('Cap Sheet UI integration flows', () => {
     expect(totals.totalCapAllocations).toBe(15_092_400);
     expect(readBreakdownValue('Player Salaries')).toBe(totals.playersTotal);
     expect(readVisibleTotalCapHit()).toBe(totals.totalCapAllocations);
+  });
+
+  it('keeps future-year multi-year row values aligned with canonical cap hits', () => {
+    const teamCapSheet = buildTeamWithFutureYearCapHitAdjustmentsFixture();
+    const futureYear = CURRENT_YEAR + 1;
+    const totals = computeTeamCapTotals(teamCapSheet, futureYear);
+
+    render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet as Parameters<typeof CapSheetFull>[0]['teamCapSheet']}
+        currentYear={CURRENT_YEAR}
+        onSelectPlayer={() => {}}
+        onActionClick={() => {}}
+      />
+    );
+
+    const veteranRow = screen
+      .getByRole('button', { name: 'Future Veteran Minimum Wing' })
+      .closest('div.grid');
+    const veteranFutureCell = getFutureYearCell(veteranRow, 1);
+    expect(
+      within(veteranFutureCell).getByText('$2,092,400')
+    ).toBeInTheDocument();
+    expect(
+      within(veteranFutureCell).queryByText('$2,390,000')
+    ).not.toBeInTheDocument();
+    expect(
+      within(veteranFutureCell).getByText('Base $2,390,000')
+    ).toBeInTheDocument();
+
+    const adjustedRow = screen
+      .getByRole('button', { name: 'Future Cap-Hit Forward' })
+      .closest('div.grid');
+    const adjustedFutureCell = getFutureYearCell(adjustedRow, 1);
+    expect(
+      within(adjustedFutureCell).getByText('$9,000,000')
+    ).toBeInTheDocument();
+    expect(
+      within(adjustedFutureCell).queryByText('$8,000,000')
+    ).not.toBeInTheDocument();
+    expect(
+      within(adjustedFutureCell).getByText('Base $8,000,000')
+    ).toBeInTheDocument();
+
+    const twoWayRow = screen
+      .getByRole('button', { name: 'Future Two-Way Guard' })
+      .closest('div.grid');
+    const twoWayFutureCell = getFutureYearCell(twoWayRow, 1);
+    expect(within(twoWayFutureCell).getByText('$0')).toBeInTheDocument();
+    expect(
+      within(twoWayFutureCell).queryByText('$700,000')
+    ).not.toBeInTheDocument();
+    expect(
+      within(twoWayFutureCell).getByText('Base $700,000')
+    ).toBeInTheDocument();
+
+    const totalRow = screen.getByText('Total Cap').closest('div.grid');
+    expect(totalRow).not.toBeNull();
+    expect(
+      within(totalRow as HTMLElement).getByText(
+        `$${totals.totalCapAllocations.toLocaleString()}`
+      )
+    ).toBeInTheDocument();
+    expect(totals.playersTotal).toBe(23_092_400);
+    expect(totals.totalCapAllocations).toBe(23_092_400);
   });
 });
