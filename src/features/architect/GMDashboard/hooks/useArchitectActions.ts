@@ -14,7 +14,6 @@
  */
 import { useCallback, useMemo } from 'react';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
-import capProjections from '@/features/architect/utils/capProjections';
 import {
   applyWorldMutation,
   computeWorldMutation,
@@ -339,6 +338,18 @@ interface MutationActionResult {
   message?: string;
 }
 
+interface CapSheetDevTools {
+  injectFixtures: () => MutationActionResult;
+  clearFixtures: () => MutationActionResult;
+  hasInjectedFixtures: boolean;
+}
+
+interface TeamHistoryDevTools {
+  injectFixtures: () => MutationActionResult;
+  clearFixtures: () => MutationActionResult;
+  hasInjectedFixtures: boolean;
+}
+
 type PersistMutationResult = ArchitectMutationResult & {
   skipped?: boolean;
   changedTeams?: ArchitectMutationTeamUpdate[];
@@ -439,10 +450,6 @@ export interface UseArchitectActionsReturn {
     actionType: CapSheetActionType,
     year?: number
   ) => void;
-  handleSaveContract: (
-    player: ArchitectPlayer,
-    contractData: SigningDetails
-  ) => Promise<MutationActionResult>;
   handleExtendContract: (
     player: ArchitectPlayer,
     extensionContract: SigningDetails
@@ -460,8 +467,6 @@ export interface UseArchitectActionsReturn {
     player: ArchitectPlayer,
     overrideMetadata?: OverrideMetadata | null
   ) => Promise<MutationActionResult>;
-  handleUpdateRoster: (updatedCapSheet: CapSheet) => void;
-  handleResetCapSheet: () => void;
 
   // RFA Offer Sheet Actions (Phase 16)
   handleStoreOfferSheet: (
@@ -489,20 +494,10 @@ export interface UseArchitectActionsReturn {
     exceptions: NonNullable<CapSheet['exceptions']>
   ) => Promise<boolean>;
 
-  // DEV-only Cap Sheet fixtures (CAP_SHEET_FIXPACK_E1)
-  handleInjectCapSheetFixtures: () => MutationActionResult;
-  handleClearCapSheetFixtures: () => MutationActionResult;
-  hasInjectedCapSheetFixtures: boolean;
-
-  // DEV-only Team History fixtures (TEAM_HISTORY_FIXPACK_E1)
-  handleInjectTeamHistoryFixtures: () => MutationActionResult;
-  handleClearTeamHistoryFixtures: () => MutationActionResult;
-  hasInjectedTeamHistoryFixtures: boolean;
+  // DEV-only tool surfaces
+  capSheetDevTools: CapSheetDevTools;
+  teamHistoryDevTools: TeamHistoryDevTools;
 }
-
-// ==== Season helpers ====
-// Phase 3.1: Use canonical toSeasonKey from seasonFormat
-import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
 // Helper to ensure contract has proper structure
 export const ensureContractStructure = (
@@ -902,8 +897,6 @@ export function useArchitectActions({
     setFreeAgents,
     startSave,
     finishSave,
-    setOffseasonRun,
-    setOffseasonSummary,
     refreshWorldRosterIndex,
   } = state;
 
@@ -2592,7 +2585,7 @@ export function useArchitectActions({
     [teamCapSheet]
   );
 
-  const handleInjectCapSheetFixtures = useCallback((): MutationActionResult => {
+  const injectCapSheetDevFixtures = useCallback((): MutationActionResult => {
     if (!teamCapSheet) {
       return {
         success: false,
@@ -2605,7 +2598,7 @@ export function useArchitectActions({
     return { success: true };
   }, [currentYear, setTeamCapSheet, teamCapSheet]);
 
-  const handleClearCapSheetFixtures = useCallback((): MutationActionResult => {
+  const clearCapSheetDevFixtures = useCallback((): MutationActionResult => {
     if (!teamCapSheet) {
       return {
         success: false,
@@ -2618,12 +2611,25 @@ export function useArchitectActions({
     return { success: true };
   }, [setTeamCapSheet, teamCapSheet]);
 
+  const capSheetDevTools = useMemo<CapSheetDevTools>(
+    () => ({
+      injectFixtures: injectCapSheetDevFixtures,
+      clearFixtures: clearCapSheetDevFixtures,
+      hasInjectedFixtures: hasInjectedCapSheetFixtures,
+    }),
+    [
+      clearCapSheetDevFixtures,
+      hasInjectedCapSheetFixtures,
+      injectCapSheetDevFixtures,
+    ]
+  );
+
   const hasInjectedTeamHistoryFixtures = useMemo(
     () => hasInjectedTeamHistoryFixturesInTeam(teamCapSheet ?? null),
     [teamCapSheet]
   );
 
-  const handleInjectTeamHistoryFixtures =
+  const injectTeamHistoryDevFixtures =
     useCallback((): MutationActionResult => {
       if (!teamCapSheet) {
         return {
@@ -2640,7 +2646,7 @@ export function useArchitectActions({
       return { success: true };
     }, [setTeamCapSheet, teamCapSheet]);
 
-  const handleClearTeamHistoryFixtures =
+  const clearTeamHistoryDevFixtures =
     useCallback((): MutationActionResult => {
       if (!teamCapSheet) {
         return {
@@ -2656,6 +2662,19 @@ export function useArchitectActions({
       setTeamCapSheetSafe(nextTeam as CapSheet);
       return { success: true };
     }, [setTeamCapSheet, teamCapSheet]);
+
+  const teamHistoryDevTools = useMemo<TeamHistoryDevTools>(
+    () => ({
+      injectFixtures: injectTeamHistoryDevFixtures,
+      clearFixtures: clearTeamHistoryDevFixtures,
+      hasInjectedFixtures: hasInjectedTeamHistoryFixtures,
+    }),
+    [
+      clearTeamHistoryDevFixtures,
+      hasInjectedTeamHistoryFixtures,
+      injectTeamHistoryDevFixtures,
+    ]
+  );
 
   const handleEditContract = useCallback(
     (player: ArchitectPlayer): void => {
@@ -2890,89 +2909,6 @@ export function useArchitectActions({
       setSelectedRulesYear,
       openContractModal,
     ]
-  );
-
-  // handleSaveContract - directly updates teamCapSheet
-  // NOTE: This handler is for editing existing contracts in the UI. It updates local state only.
-  // Actual persistence occurs when a specific action (sign, extend, etc.) is performed via the
-  // EditContractModal actions. This keeps the editor as a preview until the user commits an action.
-  const handleSaveContract = useCallback(
-    async (
-      player: ArchitectPlayer,
-      contractData: SigningDetails
-    ): Promise<MutationActionResult> => {
-      const playerId = player.id || player.player_id || player.name;
-      const startYear = currentYear + 1;
-
-      setTeamCapSheet(
-        ((prev) => {
-          const previousTeam = prev as CapSheet | null;
-          if (!previousTeam) {
-            return previousTeam;
-          }
-
-          // Build new contract salaries
-          const salaries: SalaryByYear[] = [];
-          const providedSalaries: SalaryByYear[] = (
-            contractData.salariesByYear || []
-          ).slice(
-            0,
-            contractData.salariesByYear?.length || 0
-          );
-          const hasProvidedSalaries = providedSalaries.length > 0;
-
-          if (hasProvidedSalaries) {
-            providedSalaries.forEach((s, i) => {
-              const endYear = startYear + i;
-              salaries.push({
-                season: toSeasonCode(endYear),
-                salary: Math.round(Number(s.salary ?? s.capHit ?? 0)),
-                capHit: Math.round(Number(s.capHit ?? s.salary ?? 0)),
-                guaranteed: s.guaranteed ?? true,
-                option: s.option || undefined,
-              });
-            });
-          }
-
-          // Update player's contract in players array
-          const updatedPlayers = (previousTeam.players || []).map((p) => {
-            if (
-              p.id === playerId ||
-              p.player_id === playerId ||
-              p.name === playerId
-            ) {
-              return {
-                ...p,
-                contract: {
-                  ...(p.contract || {}),
-                  salariesByYear: salaries,
-                  contractType: contractData.contractType || 'Signed FA',
-                  isExtension: !!contractData.isExtension,
-                  isRookieScale: !!contractData.isRookieScale,
-                  signingTeam: teamCode,
-                },
-                freeAgentYear: null,
-                futureContract: null,
-              };
-            }
-            return p;
-          });
-
-          // Remove cap hold if any
-          const updatedCapHolds = (previousTeam.capHolds || []).filter(
-            (h) => h.playerId !== playerId && h.playerName !== player.name
-          );
-
-          return {
-            ...previousTeam,
-            players: updatedPlayers,
-            capHolds: updatedCapHolds,
-          } as UseArchitectStateReturn['teamCapSheet'];
-        }) as Parameters<typeof setTeamCapSheet>[0]
-      );
-      return { success: true };
-    },
-    [currentYear, teamCode, setTeamCapSheet]
   );
 
   // handleExtendContract - directly updates teamCapSheet
@@ -3429,45 +3365,6 @@ export function useArchitectActions({
     [confirmAndRenounceRights]
   );
 
-  const handleUpdateRoster = useCallback(
-    (updatedCapSheet: CapSheet): void => {
-      setTeamCapSheetSafe(updatedCapSheet);
-    },
-    [setTeamCapSheet]
-  );
-
-  const handleResetCapSheet = useCallback((): void => {
-    const confirmReset = window.confirm(
-      'Are you sure you want to clear all contracts and reset the cap sheet?'
-    );
-    if (!confirmReset) return;
-
-    const seasonKey = toSeasonKey(currentYear);
-
-    const resetSheet: CapSheet = {
-      ...(teamCapSheet as CapSheet),
-      activeContracts: [],
-      waivedContracts: [],
-      tradeExceptions: [],
-      exceptionHistory: [],
-      mleHistory: [],
-      pickLog: [],
-      historyTimeline: [],
-      currentPicks: {},
-      amount: capProjections[seasonKey]?.fullMLE || 0,
-    };
-
-    setTeamCapSheetSafe(resetSheet);
-    setOffseasonRun(false);
-    setOffseasonSummary(null);
-  }, [
-    teamCapSheet,
-    currentYear,
-    setTeamCapSheet,
-    setOffseasonRun,
-    setOffseasonSummary,
-  ]);
-
   return {
     // Contract/Player actions
     handleSign,
@@ -3476,13 +3373,10 @@ export function useArchitectActions({
     getOfferSheetPreflight,
     handleEditContract,
     handleCapSheetAction,
-    handleSaveContract,
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
     handleRenounceRights,
-    handleUpdateRoster,
-    handleResetCapSheet,
 
     // Phase 16: Offer Sheet Actions
     handleStoreOfferSheet,
@@ -3499,14 +3393,8 @@ export function useArchitectActions({
     // Phase 27: Exception Management
     handleSetExceptions,
 
-    // CAP_SHEET_FIXPACK_E1: DEV fixture controls
-    handleInjectCapSheetFixtures,
-    handleClearCapSheetFixtures,
-    hasInjectedCapSheetFixtures,
-
-    // TEAM_HISTORY_FIXPACK_E1: DEV fixture controls
-    handleInjectTeamHistoryFixtures,
-    handleClearTeamHistoryFixtures,
-    hasInjectedTeamHistoryFixtures,
+    // DEV-only tool surfaces
+    capSheetDevTools,
+    teamHistoryDevTools,
   };
 }

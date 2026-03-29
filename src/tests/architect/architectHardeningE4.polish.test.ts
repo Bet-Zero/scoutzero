@@ -310,4 +310,38 @@ describe('Architect TypeScript hardening E4 regression', () => {
     expect(result.current.teamCapSheet.deadCap).toEqual(DEAD_CAP_PAYLOAD);
     expect(auditLogMocks.appendLocalCapAuditEvent).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps DEV fixture tools fenced behind nested local-only namespaces', () => {
+    const { result } = renderActionsHarness();
+
+    expect(result.current.actions.capSheetDevTools).toEqual(
+      expect.objectContaining({
+        injectFixtures: expect.any(Function),
+        clearFixtures: expect.any(Function),
+        hasInjectedFixtures: false,
+      })
+    );
+    expect(result.current.actions.teamHistoryDevTools).toEqual(
+      expect.objectContaining({
+        injectFixtures: expect.any(Function),
+        clearFixtures: expect.any(Function),
+        hasInjectedFixtures: false,
+      })
+    );
+
+    let capSheetFixtureResult: { success: boolean; message?: string } | null = null;
+    let teamHistoryFixtureResult: { success: boolean; message?: string } | null = null;
+
+    act(() => {
+      capSheetFixtureResult = result.current.actions.capSheetDevTools.injectFixtures();
+      teamHistoryFixtureResult =
+        result.current.actions.teamHistoryDevTools.injectFixtures();
+    });
+
+    expect(capSheetFixtureResult).toEqual({ success: true });
+    expect(teamHistoryFixtureResult).toEqual({ success: true });
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+    expect(auditLogMocks.appendLocalCapAuditEvent).not.toHaveBeenCalled();
+    expect(auditLogMocks.updateLocalCapAuditEvent).not.toHaveBeenCalled();
+  });
 });

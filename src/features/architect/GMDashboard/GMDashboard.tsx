@@ -208,8 +208,6 @@ const GMDashboard = () => {
     actions.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'];
   const modalOnStoreOfferSheet =
     actions.handleStoreOfferSheet as EditContractModalProps['onStoreOfferSheet'];
-  const modalOnSaveContract =
-    actions.handleSaveContract as EditContractModalProps['onSaveContract'];
   const modalOnExtend = actions.handleExtendContract as EditContractModalProps['onExtend'];
   const modalOnWaive: NonNullable<EditContractModalProps['onWaive']> = (
     player,
@@ -402,9 +400,11 @@ const GMDashboard = () => {
             onSelectPlayer={actions.handleEditContract as (player: unknown) => void}
             manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
             playersMap={playersMap}
-            onInjectCapSheetFixtures={actions.handleInjectCapSheetFixtures}
-            onClearCapSheetFixtures={actions.handleClearCapSheetFixtures}
-            hasInjectedCapSheetFixtures={actions.hasInjectedCapSheetFixtures}
+            onInjectCapSheetFixtures={actions.capSheetDevTools.injectFixtures}
+            onClearCapSheetFixtures={actions.capSheetDevTools.clearFixtures}
+            hasInjectedCapSheetFixtures={
+              actions.capSheetDevTools.hasInjectedFixtures
+            }
           />
         )}
 
@@ -483,11 +483,11 @@ const GMDashboard = () => {
             teamCapSheet={teamCapSheet}
             worldId={worldId}
             onInjectTeamHistoryFixtures={
-              actions.handleInjectTeamHistoryFixtures
+              actions.teamHistoryDevTools.injectFixtures
             }
-            onClearTeamHistoryFixtures={actions.handleClearTeamHistoryFixtures}
+            onClearTeamHistoryFixtures={actions.teamHistoryDevTools.clearFixtures}
             hasInjectedTeamHistoryFixtures={
-              actions.hasInjectedTeamHistoryFixtures
+              actions.teamHistoryDevTools.hasInjectedFixtures
             }
           />
         )}
@@ -579,7 +579,6 @@ const GMDashboard = () => {
             worldId ? modalGetOfferSheetPreflight : null
           }
           onStoreOfferSheet={worldId ? modalOnStoreOfferSheet : null}
-          onSaveContract={modalOnSaveContract}
           onExtend={modalOnExtend}
           onWaive={modalOnWaive}
           onOptionDecision={modalOnOptionDecision}

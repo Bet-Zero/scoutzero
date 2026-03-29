@@ -89,7 +89,7 @@ describe('mergeWorldPlayerOverride — state slice merge contract', () => {
 
 // ---------------------------------------------------------------------------
 // 2. ensureContractStructure — action contract: salary array normalization
-//    Tests the exported helper used by handleSign / handleSaveContract.
+//    Tests the exported helper used by handleSign and other signing flows.
 // ---------------------------------------------------------------------------
 describe('ensureContractStructure — action contract normalization', () => {
   it('returns contract unchanged when salariesByYear is already present', () => {

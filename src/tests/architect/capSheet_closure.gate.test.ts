@@ -50,6 +50,11 @@ const MANAGE_DEAD_MONEY_MODAL_PATH = path.resolve(
   '../../features/architect/capSheet/modals/ManageDeadMoneyModal.tsx'
 );
 
+const EDIT_CONTRACT_MODAL_PATH = path.resolve(
+  __dirname,
+  '../../shared/components/EditContractModal.tsx'
+);
+
 const CAP_SHEET_SECTION_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/sections/CapSheetSection.tsx'
@@ -492,6 +497,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   const capSheetSectionContent = readFileContent(CAP_SHEET_SECTION_PATH);
   const gmDashboardContent = readFileContent(GM_DASHBOARD_PATH);
   const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const editContractModalContent = readFileContent(EDIT_CONTRACT_MODAL_PATH);
   const gmDashboardCapRegion = readRegion(
     gmDashboardContent,
     "{activeTab === 'cap' && (",
@@ -574,6 +580,54 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(gmDashboardCapRegion).not.toMatch(/applyWorldMutation/);
     expect(gmDashboardCapRegion).not.toMatch(/applyCapAuditedTeamMutation/);
     expect(gmDashboardCapRegion).not.toMatch(/setTeamCapSheet/);
+  });
+
+  it('removes raw local-only contract-editor and reset mutators from the public action surface', () => {
+    expect(actionsContent).not.toMatch(/handleSaveContract/);
+    expect(actionsContent).not.toMatch(/handleUpdateRoster/);
+    expect(actionsContent).not.toMatch(/handleResetCapSheet/);
+  });
+
+  it('fences DEV-only fixture utilities behind explicit nested dev tool surfaces', () => {
+    expect(actionsContent).toMatch(/interface\s+CapSheetDevTools/);
+    expect(actionsContent).toMatch(/interface\s+TeamHistoryDevTools/);
+    expect(actionsContent).toMatch(/capSheetDevTools:\s*CapSheetDevTools/);
+    expect(actionsContent).toMatch(/teamHistoryDevTools:\s*TeamHistoryDevTools/);
+    expect(actionsContent).toMatch(/const\s+capSheetDevTools\s*=\s*useMemo/);
+    expect(actionsContent).toMatch(/const\s+teamHistoryDevTools\s*=\s*useMemo/);
+    expect(actionsContent).not.toMatch(/handleInjectCapSheetFixtures\s*:/);
+    expect(actionsContent).not.toMatch(/handleClearCapSheetFixtures\s*:/);
+    expect(actionsContent).not.toMatch(/handleInjectTeamHistoryFixtures\s*:/);
+    expect(actionsContent).not.toMatch(/handleClearTeamHistoryFixtures\s*:/);
+  });
+
+  it('keeps fixture wiring on explicit dev-tool namespaces and removes contract-modal local-save fallback wiring', () => {
+    expect(gmDashboardContent).toMatch(
+      /onInjectCapSheetFixtures=\{actions\.capSheetDevTools\.injectFixtures\}/
+    );
+    expect(gmDashboardContent).toMatch(
+      /onClearCapSheetFixtures=\{actions\.capSheetDevTools\.clearFixtures\}/
+    );
+    expect(gmDashboardContent).toMatch(
+      /hasInjectedCapSheetFixtures=\{\s*actions\.capSheetDevTools\.hasInjectedFixtures\s*\}/
+    );
+    expect(gmDashboardContent).toMatch(
+      /actions\.teamHistoryDevTools\.injectFixtures/
+    );
+    expect(gmDashboardContent).toMatch(
+      /actions\.teamHistoryDevTools\.clearFixtures/
+    );
+    expect(gmDashboardContent).toMatch(
+      /actions\.teamHistoryDevTools\.hasInjectedFixtures/
+    );
+    expect(gmDashboardContent).not.toMatch(/onSaveContract=/);
+    expect(editContractModalContent).not.toMatch(/onSaveContract/);
+    expect(editContractModalContent).toMatch(
+      /case 'signNew':[\s\S]*onSignFreeAgent\s*\|\|\s*onSave/
+    );
+    expect(editContractModalContent).toMatch(
+      /case 'resign':[\s\S]*onResign\s*\|\|\s*onSave/
+    );
   });
 
   it('handleSetDeadCap and handleSetExceptions delegate through the shared manual ledger helper', () => {
