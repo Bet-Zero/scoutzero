@@ -259,9 +259,17 @@ describe('Gate 4: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
     expect(helperCallCount).toBeGreaterThanOrEqual(4);
   });
 
+  it('consumes canUseRoomException for room availability without importing computeTeamCapTotals directly', () => {
+    expect(content).toContain('canUseRoomException');
+    expect(content).toMatch(/canUseRoomException\s*\(\s*teamCapSheet\s*,\s*currentYear/);
+  });
+
   it('does NOT import or call computeTeamCapTotals', () => {
     const importsComputeTeamCapTotals =
-      /import[\s\S]*computeTeamCapTotals[\s\S]*from/.test(content);
+      /(?:^|\n)\s*import\s*\{[^}]*\bcomputeTeamCapTotals\b[^}]*\}\s*from/m.test(
+        content
+      ) ||
+      /import\s+computeTeamCapTotals\s+from/.test(content);
     expect(importsComputeTeamCapTotals).toBe(false);
     expect(/computeTeamCapTotals\s*\(/.test(content)).toBe(false);
   });

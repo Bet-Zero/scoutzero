@@ -16,6 +16,7 @@ import {
   getCapSettingsForYear,
   getExceptionDefaultAmountFromCapSettings,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 const hoistedMocks = vi.hoisted(() => ({
   tpeList: [],
@@ -76,6 +77,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     vi
       .mocked(getCapSettingsForYear)
       .mockReturnValue(hoistedMocks.buildCapSettings());
+    vi.mocked(canUseRoomException).mockReturnValue({ eligible: true });
   });
 
   afterEach(() => {
@@ -238,6 +240,114 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       expect(screen.queryByText('$9,765,432')).not.toBeInTheDocument();
     });
     expect(screen.getAllByText('$8,641,976').length).toBeGreaterThan(0);
+  });
+
+  it('keeps ROOM unavailable across tracker and modal when under-cap eligibility is false and only defaults exist', () => {
+    vi.mocked(canUseRoomException).mockReturnValue({
+      eligible: false,
+      reason: 'Over cap',
+    });
+    vi.mocked(getCapSettingsForYear).mockReturnValue(
+      hoistedMocks.buildCapSettings({
+        roomMLE: 4_444_444,
+      })
+    );
+
+    render(
+      <>
+        <ExceptionTracker
+          teamCapSheet={{ hardCapped: 0, exceptions: {} }}
+          currentYear={2026}
+        />
+        <ManageExceptionsModal
+          isOpen
+          onClose={() => {}}
+          onSave={vi.fn()}
+          currentYear={2026}
+          teamCapSheet={{ exceptions: {} }}
+        />
+      </>
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+    const roomCard = within(trackerSection).getByText('ROOM').closest('div.relative');
+    expect(roomCard).not.toBeNull();
+    expect(within(roomCard).getByText('$0')).toBeInTheDocument();
+    expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
+    expect(within(trackerSection).queryByText('$4,444,444')).not.toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    const roomRow = within(table)
+      .getAllByRole('row')
+      .find((row) => within(row).queryByText('Room Exception'));
+    expect(roomRow).toBeDefined();
+    expect(roomRow).toHaveTextContent(
+      'Only available to teams under the salary cap'
+    );
+    expect(within(roomRow).getByRole('checkbox')).toBeDisabled();
+  });
+
+  it('keeps ROOM unavailable across tracker and modal when stored room data exists but eligibility is false', () => {
+    vi.mocked(canUseRoomException).mockReturnValue({
+      eligible: false,
+      reason: 'Over cap',
+    });
+
+    render(
+      <>
+        <ExceptionTracker
+          teamCapSheet={{
+            hardCapped: 0,
+            exceptions: {
+              room: {
+                enabled: true,
+                totalAmount: 7_900_000,
+                usedAmount: 2_000_000,
+                remainingAmount: 5_900_000,
+              },
+            },
+          }}
+          currentYear={2026}
+        />
+        <ManageExceptionsModal
+          isOpen
+          onClose={() => {}}
+          onSave={vi.fn()}
+          currentYear={2026}
+          teamCapSheet={{
+            exceptions: {
+              room: {
+                enabled: true,
+                totalAmount: 7_900_000,
+                usedAmount: 2_000_000,
+                seasonKey: '2025-26',
+              },
+            },
+          }}
+        />
+      </>
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+    const roomCard = within(trackerSection).getByText('ROOM').closest('div.relative');
+    expect(roomCard).not.toBeNull();
+    expect(within(roomCard).getByText('$0')).toBeInTheDocument();
+    expect(within(roomCard).getByText('N/A')).toBeInTheDocument();
+    expect(within(trackerSection).queryByText('$5,900,000')).not.toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    const roomRow = within(table)
+      .getAllByRole('row')
+      .find((row) => within(row).queryByText('Room Exception'));
+    expect(roomRow).toBeDefined();
+    expect(roomRow).toHaveTextContent(
+      'Only available to teams under the salary cap'
+    );
+    expect(within(roomRow).getByRole('checkbox')).toBeDisabled();
   });
 
   it('does not render or persist unsupported DPE exception key', async () => {

@@ -48,7 +48,7 @@ Progress and execution status for the Cap Sheet review series.
 | ID    | Title                                                                                       | Status | Notes |
 |-------|---------------------------------------------------------------------------------------------|--------|-------|
 | CS-4A | Unify Exception Default-Amount Ownership Across Tracker and Modal Surfaces                  | DONE   | `ExceptionTracker.tsx` and `ManageExceptionsModal.tsx` now resolve MLE / TPMLE / BAE / Room defaults through one shared normalized helper in `capSettingsProvider.ts`, and focused guardrails pin both surface parity and the removal of legacy modal key fallback. |
-| CS-4B | Align Room Exception Display Eligibility with Canonical Under-Cap Logic                     | TODO   |       |
+| CS-4B | Align Room Exception Display Eligibility with Canonical Under-Cap Logic                     | DONE   | `ExceptionTracker.tsx` now consumes `canUseRoomException(...)` for Room-card availability, so the tracker and `ManageExceptionsModal.tsx` follow the same under-cap eligibility truth. Focused UI and source-scan guardrails now pin both the default-fallback and stored-state disagreement cases. |
 | CS-4C | Route Hard-Cap Display Through the Canonical Hard-Cap Resolver                              | TODO   |       |
 | CS-4D | Reduce Legacy / Compatibility Drift in TPE and Exception Presentation Reads                 | TODO   |       |
 

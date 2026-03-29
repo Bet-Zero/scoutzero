@@ -18,11 +18,12 @@ import {
   getCapSettingsForYear,
   getExceptionDefaultAmountFromCapSettings,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
 type NumericLike = number | string | null | undefined;
 type UnknownRecord = Record<string, unknown>;
-type TeamCapSheetLike = {
+type TeamCapSheetLike = NonNullable<Parameters<typeof canUseRoomException>[0]> & {
   hardCapped?: NumericLike | boolean;
   exceptions?: (UnknownRecord & { tpe?: unknown }) | null;
 };
@@ -238,6 +239,12 @@ const ExceptionTracker = ({
   // Use centralized cap settings provider for consistent cap/apron values
   // currentYear is the END year (e.g., 2025 for "2024-25" season)
   const capData = getCapSettingsForYear(currentYear);
+  const roomExceptionEligibility = React.useMemo(() => {
+    if (!teamCapSheet || !currentYear) {
+      return { eligible: false, reason: 'Missing team data' };
+    }
+    return canUseRoomException(teamCapSheet, currentYear);
+  }, [teamCapSheet, currentYear]);
 
   const mleException = normalizeExceptionForTracker(
     teamCapSheet,
@@ -273,12 +280,16 @@ const ExceptionTracker = ({
   let mleRemaining = mleException.enabled ? mleException.remainingAmount : 0;
   let tpRemaining = tpMleException.enabled ? tpMleException.remainingAmount : 0;
   let baeRemaining = baeException.enabled ? baeException.remainingAmount : 0;
-  let roomRemaining = roomException.enabled ? roomException.remainingAmount : 0;
+  let roomRemaining =
+    roomException.enabled && roomExceptionEligibility.eligible
+      ? roomException.remainingAmount
+      : 0;
 
   let mleStatus = mleException.enabled ? null : 'N/A';
   let tpStatus = tpMleException.enabled ? null : 'N/A';
   let baeStatus = baeException.enabled ? null : 'N/A';
-  let roomStatus = roomException.enabled ? null : 'N/A';
+  let roomStatus =
+    roomException.enabled && roomExceptionEligibility.eligible ? null : 'N/A';
   let hardCapReason = null;
 
   // 1. Check for Hard Cap triggers (NTPMLE or BAE used)
