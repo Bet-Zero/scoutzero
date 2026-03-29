@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import React from 'react';
 
 // Mock usePlayerRulesProfiles hook to avoid complex dependencies
@@ -28,6 +28,22 @@ vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
 
 import CapSheet from '@/features/architect/capSheet/CapSheet/CapSheet';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+
+function parseCurrency(value) {
+  if (!value) return 0;
+  const parsed = Number(String(value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function readCurrencyForLabel(labelText) {
+  const label = screen.getByText(labelText);
+  const container = label.parentElement;
+  const lastChild = container
+    ? Array.from(container.children)[container.children.length - 1]
+    : null;
+
+  return parseCurrency(lastChild?.textContent);
+}
 
 describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
   const mockTeamCapSheet = {
@@ -48,6 +64,22 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     deadCap: [],
   };
 
+  const mockTeamCapSheetWithCapHoldDetail = {
+    ...mockTeamCapSheet,
+    capHolds: [
+      {
+        playerId: 'hold_1',
+        playerName: 'Unsigned Wing Hold',
+        amount: 1_500_000,
+        season: '2024-25',
+        type: 'Bird',
+        active: true,
+        isSigned: false,
+        reason: 'Bird rights cap hold',
+      },
+    ],
+  };
+
   const baseTotals = {
     yearKey: 2025,
     playersTotal: 5_000_000,
@@ -56,10 +88,12 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     incompleteChargesTotal: 0,
     totalCapAllocations: 5_000_000,
     salaryCap: 140_000_000,
+    luxuryTax: 170_000_000,
     firstApron: 178_000_000,
     secondApron: 189_000_000,
     deltas: {
       vsCap: -135_000_000,
+      vsLuxuryTax: -165_000_000,
       vsFirstApron: -173_000_000,
       vsSecondApron: -184_000_000,
     },
@@ -256,5 +290,56 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     );
 
     expect(screen.getByText('Cap Holds')).toBeTruthy();
+  });
+
+  it('RC7: summary, breakdown, and footer stay canonicalTotals-driven even when rows/detail surfaces differ', () => {
+    computeTeamCapTotals.mockReturnValue({
+      ...baseTotals,
+      playersTotal: 9_876_543,
+      deadMoneyTotal: 4_321_000,
+      capHoldsTotal: 7_654_321,
+      incompleteChargesTotal: 1_119_563,
+      totalCapAllocations: 22_971_427,
+      deltas: {
+        vsCap: -117_028_573,
+        vsLuxuryTax: -147_028_573,
+        vsFirstApron: -155_028_573,
+        vsSecondApron: -166_028_573,
+      },
+      _meta: {
+        ...baseTotals._meta,
+        incompleteRosterCharge: {
+          standardRosterCount: 13,
+          minRoster: 14,
+          missingSlots: 1,
+          chargePerSlot: 1_119_563,
+        },
+      },
+    });
+
+    render(
+      <CapSheet
+        teamCapSheet={mockTeamCapSheetWithCapHoldDetail}
+        currentYear={2025}
+        onSelectPlayer={() => {}}
+      />
+    );
+
+    expect(screen.getByText('$5,000,000')).toBeTruthy();
+    expect(readCurrencyForLabel('TOTAL CAP ALLOCATIONS')).toBe(22_971_427);
+    expect(readCurrencyForLabel('Player Salaries')).toBe(9_876_543);
+    expect(readCurrencyForLabel('Dead Money')).toBe(4_321_000);
+    expect(readCurrencyForLabel('Cap Holds')).toBe(7_654_321);
+    expect(readCurrencyForLabel(/^Total Cap Hit$/i)).toBe(22_971_427);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /show cap hold details/i })
+    );
+
+    expect(screen.getByText('Unsigned Wing Hold')).toBeTruthy();
+    expect(screen.getByText('Bird rights cap hold')).toBeTruthy();
+    expect(screen.getByText('$1,500,000')).toBeTruthy();
+    expect(readCurrencyForLabel('Cap Holds')).toBe(7_654_321);
+    expect(readCurrencyForLabel('Cap Holds')).not.toBe(1_500_000);
   });
 });

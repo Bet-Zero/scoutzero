@@ -24,8 +24,8 @@ Progress and execution status for the Cap Sheet review series.
 | CS-2A | Align Row-Level Cap Hit Display with Canonical Player Salary Math     | DONE   | Current-year row `Cap Hit` now uses shared `getPlayerCapHitForYear(...)`, canonical `playersTotal` sums the same helper, and focused UI/source-scan/SSOT guardrails cover veteran-min and two-way alignment. Required `typecheck` and `build` passed; `test:diff` still reports unrelated pre-existing Architect failures outside CS-2A scope. |
 | CS-2B | Clarify Which Current-Year Display Elements Are Canonical Totals Consumers vs Adjacent Detail Views | DONE | Current-year Cap Sheet now labels canonical totals summary, roster detail, cap-holds detail, canonical totals breakdown, and adjacent exception presentation surfaces directly in code via section wrappers, comments, and focused hierarchy guardrails. Required `typecheck` and `build` passed; `test:diff` still reports unrelated pre-existing Architect failures outside CS-2B scope. |
 | CS-2C | Reduce Partial-Truth Risk in the Current-Year Cap Sheet Layout        | DONE   | Current-year Cap Sheet now states that player rows are only part of the picture, moves the canonical totals breakdown directly beneath the roster table, tightens cap-holds detail copy, and adds focused layout guardrails so `Total Cap Hit` reads as broader than the visible player rows. |
-| CS-2D | Guard the Current-Year Display Against Future Local Recalculation Drift | TODO |       |
+| CS-2D | Guard the Current-Year Display Against Future Local Recalculation Drift | DONE | Added focused current-year drift guardrails that pin a single `canonicalTotals` owner in `CapSheet.tsx`, force summary/breakdown/footer consumers to follow sentinel canonical totals even when row/detail amounts differ, and keep the summary tile and footer aligned across trade-apply rerenders. Required `typecheck` and `build` passed; `test:diff` surfaced unrelated pre-existing Architect failures before it was stopped on repo time budget. |
 
-**STEP STATUS: IN_PROGRESS**
+**STEP STATUS: DONE**
 
 ---

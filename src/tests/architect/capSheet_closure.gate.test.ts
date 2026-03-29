@@ -115,11 +115,21 @@ describe('Gate 1: Cap % Denominator SSOT (E1/E2)', () => {
   });
 });
 
-// === GATE 2: DPE not exposed in Cap Sheet Exceptions UI ===
+// === GATE 2: Cap Sheet canonical totals consumer structure ===
 
 describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
   const capSheetContent = readFileContent(CAP_SHEET_PATH);
   const capSummaryTilesContent = readFileContent(CAP_SUMMARY_TILES_PATH);
+
+  it('CapSheet computes canonicalTotals exactly once from computeTeamCapTotals at runtime', () => {
+    const runtimeComputeCalls =
+      capSheetContent.match(/computeTeamCapTotals\s*\(/g) || [];
+
+    expect(runtimeComputeCalls).toHaveLength(1);
+    expect(capSheetContent).toMatch(
+      /const\s+canonicalTotals\s*=\s*React\.useMemo\s*\(\s*\(\)\s*=>\s*computeTeamCapTotals\s*\(/
+    );
+  });
 
   it('CapSheet passes parent-computed canonicalTotals into CapSummaryTiles', () => {
     const passesCanonicalTotals =
@@ -129,10 +139,32 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     expect(passesCanonicalTotals).toBe(true);
   });
 
+  it('CapSheet keeps current-year breakdown and footer as direct canonicalTotals reads', () => {
+    const canonicalTotalsFields = [
+      'playersTotal',
+      'deadMoneyTotal',
+      'capHoldsTotal',
+      'incompleteChargesTotal',
+      'totalCapAllocations',
+    ];
+
+    for (const field of canonicalTotalsFields) {
+      expect(capSheetContent).toMatch(
+        new RegExp(`canonicalTotals\\.${field}`)
+      );
+    }
+  });
+
   it('CapSummaryTiles accepts canonicalTotals and does NOT call computeTeamCapTotals locally', () => {
     expect(capSummaryTilesContent).toContain('canonicalTotals');
     expect(/computeTeamCapTotals\s*\(/.test(capSummaryTilesContent)).toBe(
       false
+    );
+  });
+
+  it('CapSummaryTiles does NOT read teamCapSheet.totals as a competing totals source', () => {
+    expect(capSummaryTilesContent).not.toMatch(
+      /teamCapSheet\s*\??\.\s*totals/
     );
   });
 });

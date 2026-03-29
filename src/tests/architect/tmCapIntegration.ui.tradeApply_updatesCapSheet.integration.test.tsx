@@ -214,6 +214,14 @@ function readVisibleTotalCapHit(): number {
   return parseCurrency(rawValue);
 }
 
+function readSummaryTileValue(labelText: string): number {
+  const label = screen.getByText(labelText);
+  const tile = label.parentElement;
+  const values = tile ? Array.from(tile.querySelectorAll('div')) : [];
+  const rawValue = values[values.length - 1]?.textContent;
+  return parseCurrency(rawValue);
+}
+
 describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -298,6 +306,9 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
     expect(screen.queryByText('bos_out_10m')).not.toBeInTheDocument();
 
     const beforeTotal = readVisibleTotalCapHit();
+    const beforeSummaryTotal = readSummaryTileValue('TOTAL CAP ALLOCATIONS');
+
+    expect(beforeSummaryTotal).toBe(beforeTotal);
 
     rerender(
       <CapSheetSection
@@ -315,6 +326,9 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
     });
 
     const afterTotal = readVisibleTotalCapHit();
+    const afterSummaryTotal = readSummaryTileValue('TOTAL CAP ALLOCATIONS');
+
+    expect(afterSummaryTotal).toBe(afterTotal);
     expect(afterTotal).not.toBe(beforeTotal);
     expect(afterTotal).toBeLessThan(beforeTotal);
   });
