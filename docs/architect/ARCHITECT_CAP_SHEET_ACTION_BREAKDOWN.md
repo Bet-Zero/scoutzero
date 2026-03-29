@@ -559,3 +559,143 @@ This is an **exception / TPE / hard-cap ownership-and-accounting step**, not a b
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 5 — ACTION BREAKDOWN
+
+## Cap Sheet Mutation Paths, Save/Persist, and Final Validation
+
+---
+
+## CS-5A — Lock Dead Money and Exception Edits to One Audited Mutation Path
+
+### Problem
+
+The current manual Cap Sheet edit flows for:
+
+- dead money
+- exceptions
+
+do appear to converge on `applyCapAuditedTeamMutation(...)`, but that authoritative path is still mostly enforced by live wiring rather than by a clearly hardened mutation contract.
+
+### Why It Matters
+
+- These two mutation types are strong specifically because they share one audited helper path
+- If future contributors add direct local update logic or alternate save routes, the Cap Sheet can quietly split into stronger and weaker mutation flows
+- Manual Cap Sheet edits should not depend on “current wiring happens to be good” — they should be structurally hard to bypass
+
+### Goal
+
+Make it clearer and harder to accidentally bypass the single audited mutation path for manual dead money and exception edits.
+
+### Success Criteria
+
+- Dead money and exceptions continue to flow through one clear authoritative helper path
+- Alternate local save behavior for those two mutation types is easier to identify or block
+- The authoritative path is more explicit to future contributors
+
+---
+
+## CS-5B — Tighten Alignment Between Local Preview Apply, Audit Generation, Final Validation, and World Persistence
+
+### Problem
+
+For dead money and exceptions, the current path is coherent, but it still uses a local `computeNextTeam(...)` preview path before handing world-mode persistence to `applyWorldMutation(...)`.
+
+### Why It Matters
+
+- A path can look authoritative while still drifting if preview-state assumptions and persisted-state assumptions diverge over time
+- Audit generation, local optimistic apply, rollback, and final authoritative persistence all need to stay aligned as one mutation lifecycle
+- This layer is only trustworthy if the preview path and world path continue to describe the same final-state contract
+
+### Goal
+
+Strengthen and clarify the mutation lifecycle so preview apply, cap audit generation, final validation, persistence, and rollback remain aligned.
+
+### Success Criteria
+
+- Dead money and exception mutations are easier to trace as one full lifecycle
+- Preview/local apply cannot quietly drift from authoritative world persistence behavior
+- Rollback and success-link behavior remain clearly tied to the same mutation contract
+
+---
+
+## CS-5C — Fence Weaker Local-Only Cap Sheet Mutation Paths Away from Authoritative Edit Flows
+
+### Problem
+
+The broader Cap Sheet action layer still contains nearby local-only mutation paths such as:
+
+- local contract editor updates
+- direct roster updates
+- reset-style local state mutations
+
+even though dead money and exceptions already use the stronger audited helper path.
+
+### Why It Matters
+
+- The dead money / exceptions path may be strong, but the wider Cap Sheet mutation story is still mixed
+- Future contributors can mistake local-only editor or utility paths for acceptable mutation models for authoritative Cap Sheet changes
+- This weakens the broader “one correct mutation flow” story around the Cap Sheet feature
+
+### Goal
+
+Classify, fence, or narrow weaker local-only Cap Sheet mutation paths so they do not blur the authoritative mutation model used by dead money and exceptions.
+
+### Success Criteria
+
+- It is clearer which Cap Sheet mutations are authoritative versus local-only/editor-only
+- Weaker local-only paths are less likely to be copied into real save/persist flows
+- The authoritative mutation model stands out more clearly from adjacent local-only utilities
+
+---
+
+## CS-5D — Add Focused Guardrails for UI-to-Validation-to-Persistence Mutation Truth
+
+### Problem
+
+The dead money and exceptions flows are strong today, but that strength depends on multiple connected layers continuing to work together:
+
+- modal payload construction
+- dashboard/action wiring
+- audited helper path
+- post-state validation
+- persistence handoff
+- rollback on failure
+
+### Why It Matters
+
+- Mutation truth can regress without obvious UI breakage
+- A future change could preserve the visible save flow while quietly bypassing audit generation, final validation, or rollback behavior
+- This step needs durable protection, not just a good current code read
+
+### Goal
+
+Add focused guardrails that prove manual Cap Sheet edits continue to follow the intended authoritative path from UI handoff through final validation and persistence behavior.
+
+### Success Criteria
+
+- Regressions in dead money / exception mutation routing are easier to catch
+- The audited helper, validator call, and persistence handoff remain pinned
+- The Cap Sheet mutation flow is protected as a system, not just as isolated handlers
+
+---
+
+## Step 5 Summary
+
+This step focuses on:
+
+- locking dead money and exception edits to one audited mutation path
+- tightening alignment between local preview apply, audit generation, validation, and persistence
+- fencing weaker local-only Cap Sheet mutation paths away from authoritative edit flows
+- adding focused guardrails for end-to-end mutation truth
+
+This is a **mutation-path and final-validation integrity step**, not a broad Cap Sheet rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---

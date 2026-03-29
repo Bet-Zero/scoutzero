@@ -190,8 +190,8 @@ describe('Phase 83: Entrypoint Signature Verification', () => {
     );
     const content = fs.readFileSync(managerPath, 'utf-8');
     
-    // Verify it takes worldId as first parameter
-    expect(content).toContain('advanceSeasonInWorld(worldId');
+    // Verify it takes worldId as first parameter (signature may be multi-line)
+    expect(content).toMatch(/advanceSeasonInWorld\(\s*worldId/);
   });
 });
 

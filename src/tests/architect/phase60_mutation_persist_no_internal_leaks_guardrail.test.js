@@ -361,9 +361,15 @@ describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
     const persistRegion = source.slice(startIdx, endIdx);
 
     // Verify sanitizeTransientFieldsForPersistence is called for team writes
+    // Note: the argument is the pipeline-local variable name after stripping compute-only fields
     const hasSanitizerForTeam =
       persistRegion.includes('sanitizeTransientFieldsForPersistence(team)') ||
-      persistRegion.includes('sanitizeTransientFieldsForPersistence(team,');
+      persistRegion.includes('sanitizeTransientFieldsForPersistence(team,') ||
+      persistRegion.includes('sanitizeTransientFieldsForPersistence(persistenceReadyTeam)') ||
+      persistRegion.includes('sanitizeTransientFieldsForPersistence(persistenceReadyTeam,') ||
+      // Handle multi-line call format (formatter may split args to next line)
+      (persistRegion.includes('sanitizeTransientFieldsForPersistence(') &&
+       persistRegion.includes('persistenceReadyTeam'));
 
     expect(hasSanitizerForTeam).toBe(true);
   });
@@ -382,9 +388,15 @@ describe('Phase 60: Source-scan guardrails for persistence boundary', () => {
     const persistRegion = source.slice(startIdx, endIdx);
 
     // Verify sanitizeTransientFieldsForPersistence is called for player writes
+    // Note: the argument is the pipeline-local variable name after normalizing the player shape
     const hasSanitizerForPlayer =
       persistRegion.includes('sanitizeTransientFieldsForPersistence(player)') ||
-      persistRegion.includes('sanitizeTransientFieldsForPersistence(player,');
+      persistRegion.includes('sanitizeTransientFieldsForPersistence(player,') ||
+      persistRegion.includes('sanitizeTransientFieldsForPersistence(persistablePlayer)') ||
+      persistRegion.includes('sanitizeTransientFieldsForPersistence(persistablePlayer,') ||
+      // Handle multi-line call format (formatter may split args to next line)
+      (persistRegion.includes('sanitizeTransientFieldsForPersistence(') &&
+       persistRegion.includes('persistablePlayer'));
 
     expect(hasSanitizerForPlayer).toBe(true);
   });

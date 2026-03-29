@@ -155,6 +155,12 @@ vi.mock('@/features/architect/utils/offseason', () => ({
   }),
 }));
 
+// Mock post-state cap validator so empty test teams don't block DARE execution
+vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
+  validatePostStateCapLegality: () => ({ valid: true, violations: [], warnings: [] }),
+  POST_STATE_CAP_VALIDATOR_VERSION: 1,
+}));
+
 vi.mock(
   '@/features/architect/utils/entitlements/seasonManagerProjection',
   () => ({

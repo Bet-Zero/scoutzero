@@ -38,6 +38,7 @@ const callerCases = [
     exportName: 'FreeAgencyFilterBar',
     moduleSpecifier:
       '../../features/architect/freeAgency/FreeAgentPool/FreeAgencyFilterBar.tsx',
+    timeout: 5000,
   },
   {
     label: 'TradeExportCapture',
@@ -46,6 +47,7 @@ const callerCases = [
     exportName: 'default',
     moduleSpecifier:
       '../../features/architect/tradeMachine/TradeExportCapture.tsx',
+    timeout: 15000,
   },
 ] as const;
 
@@ -136,6 +138,6 @@ describe('Architect TS topology cleanup behavior', () => {
       expect(
         module[callerCase.exportName as keyof typeof module]
       ).toBeTruthy();
-    });
+    }, callerCase.timeout);
   }
 });

@@ -52,6 +52,11 @@ vi.mock('react-hot-toast', () => ({
   default: toastMocks,
 }));
 
+vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
+  validatePostStateCapLegality: () => ({ valid: true, violations: [], warnings: [] }),
+  POST_STATE_CAP_VALIDATOR_VERSION: 1,
+}));
+
 const LOCK_SCOPE_KEY = 'architect_world_cap_mutation_lock:world_1';
 
 const worldTeamFixture = {

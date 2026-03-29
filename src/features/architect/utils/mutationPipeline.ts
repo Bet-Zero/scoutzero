@@ -2228,7 +2228,7 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
     toOptionalIdString(playerRecord.playerId) ?? bioPlayerId;
   const name = toOptionalTrimmedString(playerRecord.name);
   const displayName =
-    toOptionalTrimmedString(playerRecord.displayName) ?? bioDisplayName;
+    toOptionalTrimmedString(playerRecord.displayName) ?? name ?? bioDisplayName;
   const playerName = toOptionalTrimmedString(playerRecord.playerName);
   const teamCode = toOptionalTrimmedString(playerRecord.teamCode);
   const teamName = toOptionalTrimmedString(playerRecord.teamName);

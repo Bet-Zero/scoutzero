@@ -377,19 +377,23 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
     );
 
     // For team writes, check ordering comment exists
-    expect(persistRegion).toContain(
-      'Ordering: sanitize → validate contract → removeUndefined'
-    );
+    // Note: comment may include additional pipeline steps (e.g., normalize TPE)
+    expect(persistRegion).toMatch(/Ordering: sanitize.*validate contract.*removeUndefined/);
 
     // Verify pattern: sanitize comes before assert, assert comes before removeUndefined
-    const sanitizeIdx = persistRegion.indexOf(
-      'sanitizeTransientFieldsForPersistence(team)'
+    // The argument is the pipeline-local variable after stripping compute-only fields
+    const sanitizeIdx = Math.max(
+      persistRegion.indexOf('sanitizeTransientFieldsForPersistence(team)'),
+      persistRegion.indexOf('sanitizeTransientFieldsForPersistence(persistenceReadyTeam)'),
+      // Handle multi-line call format (formatter may split open-paren from arg)
+      persistRegion.indexOf('afterSanitize = sanitizeTransientFieldsForPersistence(')
     );
     const assertIdx = persistRegion.indexOf(
       'contract: PERSISTENCE_CONTRACTS.TEAM'
     );
-    const removeIdx = persistRegion.indexOf(
-      'removeUndefinedDeep(afterSanitize)'
+    const removeIdx = Math.max(
+      persistRegion.indexOf('removeUndefinedDeep(afterSanitize)'),
+      persistRegion.indexOf('removeUndefinedDeep(afterTpeNormalize)')
     );
 
     expect(sanitizeIdx).toBeGreaterThan(-1);

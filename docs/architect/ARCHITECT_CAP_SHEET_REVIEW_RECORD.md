@@ -1174,3 +1174,367 @@ So the correct Step 4 conclusion is:
 **The exception / TPE / hard-cap layer is not clean enough to trust as-is. TPE normalization is solid, but exception defaults and hard-cap display ownership are currently split across stale / duplicate logic paths.**
 
 ---
+
+# STEP 5 — Cap Sheet Mutation Paths, Save/Persist, and Final Validation
+
+## Scope
+
+Cap Sheet — Step 5: Cap Sheet Mutation Paths, Save/Persist, and Final Validation
+
+**Date:** 2026-03-29  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether manual Cap Sheet edits follow the correct authoritative mutation path.
+
+Main questions:
+
+- the exact path for dead money and exceptions edits from UI → compute → validation → persistence
+- whether local update, audit generation, final validation, and persistence are aligned
+- whether the Cap Sheet mutation layer has one clear authoritative flow
+- whether post-state validation is correctly protecting these mutations
+- whether any alternate or weaker paths still exist
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+For the two manual Cap Sheet edit flows in scope here — **dead money** and **exceptions** — the mutation path is actually strong and mostly well-disciplined.
+
+Those two paths currently have:
+
+- one UI entry path
+- one centralized action-hook handler path
+- one shared audited mutation helper
+- post-state validation before local apply
+- authoritative world mutation + final validation before persistence
+
+So this is not a broken or chaotic mutation layer.
+
+However, this step is not a PASS because the broader Cap Sheet mutation area still contains nearby **weaker local-only mutation paths** elsewhere in the same action hook. That means dead money and exceptions are on a strong audited path, but the wider Cap Sheet mutation story is still not fully single-flow clean.
+
+So the correct conclusion is:
+
+**Dead money and exceptions edits follow a real authoritative audited path, but the broader Cap Sheet mutation surface still contains nearby weaker local-only paths, so overall mutation truth is strong-but-not-fully-clean.**
+
+---
+
+## Exact Cap Sheet Mutation-Path Diagram
+
+### 1. Dead Money Edit Path
+
+The dead money flow starts in `ManageDeadMoneyModal.tsx`.
+
+Inside the modal:
+
+- the UI edits flattened rows
+- `handleSave()` reconstructs canonical `deadCap`
+- the modal calls `onSave(canonicalDeadCap)`
+
+That means the modal is acting as a payload-building/edit surface, not as the mutation authority.
+
+From there the path is:
+
+- `ManageDeadMoneyModal.tsx`
+- `CapSheet.tsx` → `onSave={(deadCap) => onSetDeadCap?.(deadCap)}`
+- `CapSheetSection.tsx` → forwards `onSetDeadCap`
+- `GMDashboard.tsx` → wires `onSetDeadCap={actions.handleSetDeadCap}`
+- `useArchitectActions.ts` → `handleSetDeadCap(...)`
+- `useArchitectActions.ts` → `applyCapAuditedTeamMutation(...)`
+
+So for dead money, there is one clean UI → handler → audited helper chain.
+
+---
+
+### 2. Exception Edit Path
+
+The exceptions flow is parallel.
+
+Inside `ManageExceptionsModal.tsx`:
+
+- the UI edits canonical exception entries
+- `handleSave()` builds the canonical `exceptions` object
+- the modal calls `onSave(exceptions)`
+
+Then the path is:
+
+- `ManageExceptionsModal.tsx`
+- `CapSheet.tsx` → `onSave={(exceptions) => onSetExceptions?.(exceptions)}`
+- `CapSheetSection.tsx` → forwards `onSetExceptions`
+- `GMDashboard.tsx` → wires `onSetExceptions={actions.handleSetExceptions}`
+- `useArchitectActions.ts` → `handleSetExceptions(...)`
+- `useArchitectActions.ts` → `applyCapAuditedTeamMutation(...)`
+
+So exceptions also converge into the same audited helper rather than taking a second custom save path.
+
+---
+
+## Source-of-Truth and Final-Validation Map
+
+### 1. UI Surfaces Are Payload Builders, Not Mutation Owners
+
+The modals are clearly edit/payload surfaces:
+
+- `ManageDeadMoneyModal.tsx` reconstructs canonical `deadCap`
+- `ManageExceptionsModal.tsx` reconstructs canonical `exceptions`
+
+They do not own persistence, legality, or authoritative mutation sequencing.
+
+That is correct.
+
+---
+
+### 2. Central Mutation Owner for These Flows
+
+For the two manual Cap Sheet mutations in scope, the real local mutation owner is:
+
+- `handleSetDeadCap(...)`
+- `handleSetExceptions(...)`
+
+inside `useArchitectActions.ts`, both of which flow through:
+
+- `applyCapAuditedTeamMutation(...)`
+
+This helper is the true convergence point for:
+
+- before/after snapshot construction
+- preview cap-audit event generation
+- post-state validation
+- local optimistic apply
+- authoritative persistence handoff
+- local rollback on persistence failure
+
+This is the strongest architectural finding in Step 5.
+
+---
+
+### 3. Final Validation Owner
+
+The final validation owner is:
+
+- `validatePostStateCapLegality(...)` in `postStateCapValidator.ts`
+
+That validator explicitly owns late-stage post-state legality and artifact checks.
+
+Its coverage includes:
+
+- totals sanity checks
+- hard-cap recheck
+- roster recheck
+- contract-row validity
+- dead-cap validity
+- exception validity
+- cap-hold validity
+
+So dead money and exceptions are not just “saved and hoped for.” They are run through the shared post-state legality layer before they are allowed to persist as authoritative results.
+
+---
+
+### 4. World Persistence Owner
+
+In world mode, `applyCapAuditedTeamMutation(...)` hands persistence to:
+
+- `persistMutation(...)`
+- which calls `applyWorldMutation(...)`
+
+The cap-audit closure gate also explicitly pins that:
+
+- `useArchitectActions.ts` must call `validatePostStateCapLegality(...)`
+- `mutationPipeline.ts` must also call `validatePostStateCapLegality(...)`
+
+So the design is not “preview validation only.” The authoritative mutation path is also expected to run through the same final-state validation family before commit.
+
+This is a strong defense-in-depth pattern rather than a suspicious duplicate path.
+
+---
+
+## Whether Local Update, Audit Generation, Final Validation, and Persistence Are Aligned
+
+### Result: Mostly Yes
+
+For both `setDeadCap` and `setExceptions`, the same shared helper performs the following sequence:
+
+1. clone the current team snapshot
+2. compute the proposed next team snapshot with `computeNextTeam(...)`
+3. generate a cap-audit evaluation through `buildCapAuditEvaluation(...)`
+4. run `validatePostStateCapLegality(...)`
+5. block invalid mutations before local apply
+6. apply the proposed team state locally if valid
+7. persist through `persistMutation(...)` in world mode
+8. revert local state if persistence fails
+
+That is a coherent mutation contract.
+
+---
+
+### Important Implementation Nuance
+
+For these two flows, the local preview stage does **not** use `computeWorldMutation(...)`.
+
+Instead, the helper computes the next team directly with simple field replacement:
+
+- `deadCap`
+- `exceptions`
+
+This is acceptable here because:
+
+- these are straightforward full-field mutation shapes
+- the proposed after-state still goes through the shared post-state validator
+- world-mode persistence still goes through `applyWorldMutation(...)`
+
+So there is no obvious preview/persist mismatch for the dead-money and exceptions flows themselves.
+
+---
+
+## Whether the Cap Sheet Mutation Layer Has One Clear Authoritative Flow
+
+### For Dead Money and Exceptions
+
+Yes, mostly.
+
+For these two edit surfaces, the flow is clear:
+
+- modal
+- Cap Sheet handoff
+- section/dashboard wiring
+- centralized handler
+- `applyCapAuditedTeamMutation(...)`
+- final validation
+- persistence handoff
+
+That is a real authoritative path.
+
+---
+
+### For the Broader Cap Sheet Mutation Area
+
+Not fully.
+
+The broader `useArchitectActions.ts` file still contains weaker local-only paths nearby, for example:
+
+- `handleSaveContract(...)` explicitly updates local state only and acts as an editor/preview path
+- `handleUpdateRoster(...)` directly updates local team state
+- `handleResetCapSheet(...)` directly resets local team state
+
+Those are not the dead money / exceptions modal flows, but they do matter for this step because they weaken the broader claim that the entire Cap Sheet mutation surface already converges on one audited authoritative flow.
+
+That is the main reason this step stays at **RISK** instead of PASS.
+
+---
+
+## Whether Post-State Validation Is Correctly Protecting These Mutations
+
+### Yes
+
+The shared helper runs `buildCapAuditEvaluation(...)`, which invokes `validatePostStateCapLegality(...)` before the mutation is allowed to stand locally.
+
+If validation fails:
+
+- the mutation is blocked
+- the error is reported
+- no valid local state transition is committed
+
+That is the correct control point for these mutations.
+
+---
+
+### And Yes Again in World Mode
+
+The cap-audit closure gate explicitly pins validator invocation in both:
+
+- `useArchitectActions.ts`
+- `mutationPipeline.ts`
+
+So there is clear evidence that the project intends these authoritative paths to run through the shared post-state validator contract both for preview/base-mode evaluation and for world-mutation persistence.
+
+This is a meaningful strength.
+
+---
+
+## Any Preview / Persist / Path Mismatches or Alternate Paths
+
+### 1. No Alternate Dead Money Save Path Found
+
+For the current Cap Sheet dead money UI, the path appears singular:
+
+- modal
+- `CapSheet`
+- `CapSheetSection`
+- `GMDashboard`
+- `useArchitectActions`
+- `applyCapAuditedTeamMutation(...)`
+
+No competing dead-money mutation path was found in the active current Cap Sheet surface.
+
+---
+
+### 2. No Alternate Exceptions Save Path Found
+
+The same is true for exceptions.
+
+The current Cap Sheet exception UI also appears to use one singular save path into the same audited helper.
+
+---
+
+### 3. Nearby Weaker Local-Only Paths Still Exist
+
+Even though dead money and exceptions are cleanly routed, the action hook still contains weaker Cap Sheet-related mutation paths outside this exact flow.
+
+That includes:
+
+- local-only contract editor updates
+- direct roster updates
+- direct reset behavior
+
+So the dead money / exceptions mutation truth is stronger than the overall Cap Sheet mutation landscape.
+
+This is the main remaining structural risk.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why This Is Not FAIL
+
+- dead money and exceptions both use one centralized handler path
+- both flow through the same audited mutation helper
+- both use post-state validation before apply
+- both use authoritative world persistence handoff in world mode
+- both support rollback when persistence fails
+
+That is a strong mutation design for the actual flows reviewed here.
+
+---
+
+### Why This Is Not PASS
+
+- the broader Cap Sheet mutation area still includes nearby local-only mutation paths
+- not all Cap Sheet-related mutations converge on the same audited helper
+- that weakens the broader “one authoritative Cap Sheet mutation flow” story even though the dead-money and exceptions paths themselves are strong
+
+---
+
+## Final Conclusion
+
+For the two Cap Sheet edit flows in scope — **manual dead money** and **manual exceptions** — the mutation system is substantially better than average:
+
+- the UI builds canonical payloads
+- dashboard wiring is clean
+- mutation ownership is centralized in `useArchitectActions.ts`
+- `applyCapAuditedTeamMutation(...)` owns the preview audit + final validation + persistence handoff
+- the shared post-state validator is a real late-stage protection layer
+
+However, the broader Cap Sheet mutation area still contains other weaker local-only mutation paths nearby, which means the feature is not yet fully clean enough to claim one total authoritative mutation flow across the entire Cap Sheet surface.
+
+So the correct Step 5 conclusion is:
+
+**Dead money and exceptions edits follow a real authoritative audited path, but the broader Cap Sheet mutation surface still contains nearby weaker local-only paths, so overall mutation truth is strong-but-not-fully-clean.**
+
+---

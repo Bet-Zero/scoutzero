@@ -48,6 +48,7 @@ import {
   computeTeamCapTotals,
   canUseRoomException,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/computeProfile';
 import {
@@ -1855,7 +1856,7 @@ function buildRuleContextTeamState(
   }
 
   const totals = team.totals || {};
-  const tradeExceptions = (team.tradeExceptions || [])
+  const tradeExceptions = getTeamTpeList(team)
     .map((tradeException) => {
       const id =
         tradeException && typeof tradeException.id === 'string'
