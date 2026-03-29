@@ -40,28 +40,23 @@ interface AmountByYearArrayEntry {
   amount?: unknown;
 }
 
-interface DeadCapItemLike {
+interface DeadCapItemLike extends UnknownRecord {
   amountByYear?: AmountByYearArrayEntry[] | UnknownRecord | null;
 }
 
-interface LegacyDeadMoneyItemLike {
+interface LegacyDeadMoneyItemLike extends UnknownRecord {
   amountByYear?: AmountByYearArrayEntry[] | UnknownRecord | null;
   deadMoneyByYear?: UnknownRecord | null;
 }
 
-interface TeamPlayerLike {
-  contract?: {
-    contractType?: string | null;
-  } | null;
-  [key: string]: unknown;
-}
+type TeamPlayerLike = UnknownRecord;
 
 interface TeamCapSheetLike {
-  players?: TeamPlayerLike[] | null;
+  players?: unknown[] | null;
   capHolds?: unknown[] | null;
-  deadCap?: DeadCapItemLike[] | null;
-  waivedContracts?: LegacyDeadMoneyItemLike[] | null;
-  stretchHistory?: LegacyDeadMoneyItemLike[] | null;
+  deadCap?: unknown[] | null;
+  waivedContracts?: unknown[] | null;
+  stretchHistory?: unknown[] | null;
   deadMoney?: UnknownRecord | null;
   [key: string]: unknown;
 }
@@ -107,6 +102,28 @@ interface TeamCapTotals {
   _meta: TeamCapTotalsMeta;
 }
 
+interface CanonicalTeamTotalsSnapshot extends TeamCapTotals {
+  teamSalary: number;
+  totalSalary: number;
+  capHit: number;
+  currentCapHit: number;
+  luxuryTaxLine: number;
+  taxablePayroll: number;
+  capSpace: number;
+  capRoom: number;
+  effectiveCap: number;
+  firstApronRoom: number;
+  isFirstApron: boolean;
+  secondApronRoom: number;
+  isSecondApron: boolean;
+  isOverTax: boolean;
+  isHardCapped: boolean;
+  hardCapLevel: string | null;
+  hardCapDetail?: string;
+  hardCapReason?: string | null;
+  hardCapRoom?: number | null;
+}
+
 interface RoomExceptionEligibility {
   eligible: boolean;
   reason?: string;
@@ -136,10 +153,119 @@ const num = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-function countStandardRoster(players?: TeamPlayerLike[] | null): number {
+const asRecord = (value: unknown): UnknownRecord | null => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as UnknownRecord;
+  }
+  return null;
+};
+
+const toOptionalNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const toOptionalString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+};
+
+function normalizeHardCapLevel(value: unknown): string | null {
+  if (value === 2) return 'secondApron';
+  if (value === 1) return 'firstApron';
+  if (value === true) return 'firstApron';
+  if (value === false || value == null) return null;
+
+  const normalized = String(value).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (!normalized) {
+    return null;
+  }
+  if (
+    normalized === 'secondapron' ||
+    normalized === 'second' ||
+    normalized === '2'
+  ) {
+    return 'secondApron';
+  }
+  if (
+    normalized === 'firstapron' ||
+    normalized === 'first' ||
+    normalized === '1' ||
+    normalized === 'true'
+  ) {
+    return 'firstApron';
+  }
+
+  return null;
+}
+
+function resolveHardCapOverlay(
+  teamCapSheet: TeamCapSheetLike | null | undefined,
+  totals: TeamCapTotals
+): Pick<
+  CanonicalTeamTotalsSnapshot,
+  'isHardCapped' | 'hardCapLevel' | 'hardCapDetail' | 'hardCapReason' | 'hardCapRoom'
+> {
+  const teamRecord = asRecord(teamCapSheet);
+  const existingTotals = asRecord(teamRecord?.totals);
+
+  const hardCapLevel =
+    normalizeHardCapLevel(teamRecord?.hardCapLevel) ??
+    normalizeHardCapLevel(existingTotals?.hardCapLevel) ??
+    normalizeHardCapLevel(teamRecord?.hardCapped) ??
+    normalizeHardCapLevel(existingTotals?.hardCapped) ??
+    normalizeHardCapLevel(existingTotals?.hardCapTriggered);
+
+  const isHardCapped =
+    existingTotals?.isHardCapped === true || hardCapLevel !== null;
+
+  const hardCapDetail =
+    toOptionalString(existingTotals?.hardCapDetail) ??
+    toOptionalString(teamRecord?.hardCapDetail) ??
+    toOptionalString(teamRecord?.hardCapReason) ??
+    undefined;
+
+  const hardCapReason =
+    toOptionalString(teamRecord?.hardCapReason) ??
+    toOptionalString(existingTotals?.hardCapReason) ??
+    hardCapDetail ??
+    null;
+
+  let hardCapRoom =
+    toOptionalNumber(existingTotals?.hardCapRoom) ??
+    toOptionalNumber(teamRecord?.hardCapRoom);
+
+  if (isHardCapped && hardCapLevel) {
+    const hardCapCeiling =
+      hardCapLevel === 'secondApron' ? totals.secondApron : totals.firstApron;
+    hardCapRoom = hardCapCeiling - totals.totalCapAllocations;
+  }
+
+  return {
+    isHardCapped,
+    hardCapLevel,
+    ...(hardCapDetail ? { hardCapDetail } : {}),
+    ...(hardCapReason !== null ? { hardCapReason } : {}),
+    ...(hardCapRoom !== null ? { hardCapRoom } : {}),
+  };
+}
+
+function countStandardRoster(players?: unknown[] | null): number {
   if (!Array.isArray(players) || players.length === 0) return 0;
 
-  return players.filter((player) => !isTwoWayContract(player)).length;
+  return players.filter(
+    (player) => !isTwoWayContract((asRecord(player) || {}) as TeamPlayerLike)
+  ).length;
 }
 
 function getAmountByYearMapValue(
@@ -214,7 +340,7 @@ function resolveLegacyDeadCapAmountByYearMapForYear(
  * - top-level legacy ledgers are handled later by a separate fallback helper
  */
 function resolveDeadCapFieldForYear(
-  deadCap: DeadCapItemLike[] | null | undefined,
+  deadCap: unknown[] | null | undefined,
   endYear: number
 ): DeadMoneyResolution {
   if (!Array.isArray(deadCap) || deadCap.length === 0) {
@@ -229,19 +355,23 @@ function resolveDeadCapFieldForYear(
   let total = 0;
 
   for (const item of deadCap) {
+    const itemRecord = asRecord(item) as DeadCapItemLike | null;
     let itemResolution: DeadMoneyResolution = {
       hasCoverage: false,
       total: 0,
     };
 
-    if (Array.isArray(item?.amountByYear)) {
+    if (Array.isArray(itemRecord?.amountByYear)) {
       itemResolution = resolveCanonicalDeadCapAmountByYearArrayForYear(
-        item.amountByYear,
+        itemRecord.amountByYear,
         endYear
       );
-    } else if (item?.amountByYear && typeof item.amountByYear === 'object') {
+    } else if (
+      itemRecord?.amountByYear &&
+      typeof itemRecord.amountByYear === 'object'
+    ) {
       itemResolution = resolveLegacyDeadCapAmountByYearMapForYear(
-        item.amountByYear as UnknownRecord,
+        itemRecord.amountByYear as UnknownRecord,
         endYear,
         yearString
       );
@@ -260,24 +390,26 @@ function resolveDeadCapFieldForYear(
 }
 
 function getLegacyDeadMoneyArrayEntryAmountForYear(
-  entry: LegacyDeadMoneyItemLike,
+  entry: unknown,
   endYear: number,
   yearString: string
 ): number {
-  if (entry?.amountByYear) {
-    if (Array.isArray(entry.amountByYear)) {
-      const match = entry.amountByYear.find(
+  const entryRecord = asRecord(entry) as LegacyDeadMoneyItemLike | null;
+
+  if (entryRecord?.amountByYear) {
+    if (Array.isArray(entryRecord.amountByYear)) {
+      const match = entryRecord.amountByYear.find(
         (amountEntry) => toEndYear(amountEntry.season) === endYear
       );
       return num(match?.amount ?? 0);
     }
 
-    const amountByYear = entry.amountByYear as UnknownRecord;
+    const amountByYear = entryRecord.amountByYear as UnknownRecord;
     return num(amountByYear[String(endYear)] ?? amountByYear[yearString] ?? 0);
   }
 
-  if (entry?.deadMoneyByYear) {
-    const deadMoneyByYear = entry.deadMoneyByYear as UnknownRecord;
+  if (entryRecord?.deadMoneyByYear) {
+    const deadMoneyByYear = entryRecord.deadMoneyByYear as UnknownRecord;
     return num(deadMoneyByYear[String(endYear)] ?? deadMoneyByYear[yearString] ?? 0);
   }
 
@@ -299,12 +431,12 @@ function computeLegacyDeadMoneyCompatibilityTotalForYear(
   endYear: number
 ): number {
   const yearString = String(endYear);
-  const legacyEntries: LegacyDeadMoneyItemLike[] = [
+  const legacyEntries = [
     ...(teamCapSheet.waivedContracts || []),
     ...(teamCapSheet.stretchHistory || []),
   ];
 
-  const legacyArraysTotal = legacyEntries.reduce(
+  const legacyArraysTotal = legacyEntries.reduce<number>(
     (sum, entry) =>
       sum + getLegacyDeadMoneyArrayEntryAmountForYear(entry, endYear, yearString),
     0
@@ -337,13 +469,15 @@ function computeDeadMoneyForYear(
 }
 
 function computePlayersTotal(
-  players: TeamPlayerLike[] | null | undefined,
+  players: unknown[] | null | undefined,
   endYear: number
 ): number {
   if (!Array.isArray(players)) return 0;
 
-  return players.reduce(
-    (sum, player) => sum + num(getPlayerCapHitForYear(player, endYear)),
+  return players.reduce<number>(
+    (sum, player) =>
+      sum +
+      num(getPlayerCapHitForYear((asRecord(player) || {}) as TeamPlayerLike, endYear)),
     0
   );
 }
@@ -441,6 +575,66 @@ export function computeTeamCapTotals(
             }
           : null,
     },
+  };
+}
+
+export function createCanonicalTeamTotalsSnapshot(
+  teamCapSheet: TeamCapSheetLike | null | undefined,
+  selectedYear: number,
+  options: CapTotalsOptions = {}
+): CanonicalTeamTotalsSnapshot {
+  const canonicalTotals = computeTeamCapTotals(teamCapSheet, selectedYear, options);
+  const totalCapAllocations = canonicalTotals.totalCapAllocations;
+  const hardCapOverlay = resolveHardCapOverlay(teamCapSheet, canonicalTotals);
+  const existingTotals = asRecord(teamCapSheet?.totals) || {};
+
+  return {
+    ...existingTotals,
+    ...canonicalTotals,
+    teamSalary: totalCapAllocations,
+    totalSalary: totalCapAllocations,
+    capHit: totalCapAllocations,
+    currentCapHit: totalCapAllocations,
+    luxuryTaxLine: canonicalTotals.luxuryTax,
+    taxablePayroll: totalCapAllocations,
+    capSpace: canonicalTotals.salaryCap - totalCapAllocations,
+    capRoom: canonicalTotals.salaryCap - totalCapAllocations,
+    effectiveCap: canonicalTotals.salaryCap,
+    firstApronRoom: canonicalTotals.firstApron - totalCapAllocations,
+    isFirstApron: totalCapAllocations >= canonicalTotals.firstApron,
+    secondApronRoom: canonicalTotals.secondApron - totalCapAllocations,
+    isSecondApron: totalCapAllocations > canonicalTotals.secondApron,
+    isOverTax: totalCapAllocations > canonicalTotals.luxuryTax,
+    isHardCapped: hardCapOverlay.isHardCapped,
+    hardCapLevel: hardCapOverlay.hardCapLevel,
+    ...(hardCapOverlay.hardCapDetail
+      ? { hardCapDetail: hardCapOverlay.hardCapDetail }
+      : {}),
+    ...(hardCapOverlay.hardCapReason !== undefined
+      ? { hardCapReason: hardCapOverlay.hardCapReason }
+      : {}),
+    ...(hardCapOverlay.hardCapRoom !== undefined
+      ? { hardCapRoom: hardCapOverlay.hardCapRoom }
+      : {}),
+  };
+}
+
+export function synchronizeTeamTotalsSnapshot<T extends TeamCapSheetLike>(
+  teamCapSheet: T | null | undefined,
+  selectedYear: number | null | undefined,
+  options: CapTotalsOptions = {}
+): T | null | undefined {
+  if (!teamCapSheet || !Number.isFinite(selectedYear)) {
+    return teamCapSheet;
+  }
+
+  return {
+    ...teamCapSheet,
+    totals: createCanonicalTeamTotalsSnapshot(
+      teamCapSheet,
+      Number(selectedYear),
+      options
+    ),
   };
 }
 

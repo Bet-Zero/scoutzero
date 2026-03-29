@@ -118,14 +118,59 @@ describe('Sign and Trade Mutation', () => {
     ],
   };
 
+  const FILLER_SALARY = 2_000_000;
+
+  const makeRosterFiller = (teamCode, index) => ({
+    id: `${teamCode.toLowerCase()}_filler_${index}`,
+    player_id: `${teamCode.toLowerCase()}_filler_${index}`,
+    name: `Filler ${teamCode} ${index}`,
+    displayName: `Filler ${teamCode} ${index}`,
+    teamCode,
+    contract: {
+      contractType: 'Standard',
+      salariesByYear: [
+        {
+          season: '2025-26',
+          salary: FILLER_SALARY,
+          capHit: FILLER_SALARY,
+          guaranteed: true,
+        },
+      ],
+    },
+  });
+
+  const sourceFillers = Array.from({ length: 14 }, (_, index) =>
+    makeRosterFiller(sourceTeamCode, index + 1)
+  );
+  const destFillers = Array.from({ length: 13 }, (_, index) =>
+    makeRosterFiller(destTeamCode, index + 1)
+  );
+
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Default successful mocks
     getTeam.mockImplementation((wid, code) => {
       if (code === sourceTeamCode)
-        return Promise.resolve({ ...mockSourceTeam });
-      if (code === destTeamCode) return Promise.resolve({ ...mockDestTeam });
+        return Promise.resolve({
+          ...mockSourceTeam,
+          roster: sourceFillers.map((player) => player.player_id),
+          players: sourceFillers.map((player) => ({ ...player })),
+          totals: {
+            totalSalary: sourceFillers.length * FILLER_SALARY,
+            capHit: sourceFillers.length * FILLER_SALARY,
+          },
+        });
+      if (code === destTeamCode)
+        return Promise.resolve({
+          ...mockDestTeam,
+          roster: destFillers.map((player) => player.player_id),
+          players: destFillers.map((player) => ({ ...player })),
+          totals: {
+            totalSalary: destFillers.length * FILLER_SALARY,
+            capHit: destFillers.length * FILLER_SALARY,
+          },
+        });
       return Promise.resolve(null);
     });
     getPlayer.mockResolvedValue({ ...mockPlayer });

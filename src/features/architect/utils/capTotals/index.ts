@@ -11,6 +11,8 @@
 
 export {
   computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
+  synchronizeTeamTotalsSnapshot,
   warnOnTotalsDivergence,
   resetWarnedKeys,
   canUseRoomException,

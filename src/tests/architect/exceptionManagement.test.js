@@ -21,7 +21,7 @@ import { computeWorldMutation } from '@/features/architect/utils/mutationPipelin
  * Verifies:
  * 1. Schema validation rules (object structure, enabled boolean, amounts, seasonKey).
  * 2. Mutation pipeline support for 'setExceptions'.
- * 3. Persistence contract (full replacement semantics).
+ * 3. Persistence contract (editable-bucket replacement + untouched-bucket preservation).
  */
 describe('Exception Management (setExceptions)', () => {
   describe('Validation (validateExceptions)', () => {
@@ -191,8 +191,8 @@ describe('Exception Management (setExceptions)', () => {
   });
 
   describe('Pipeline (computeSetExceptionsResult)', () => {
-    // Test 11: Full replacement semantics (old exceptions removed)
-    it('should replace the exceptions object on the team (full replacement)', () => {
+    // Test 11: Editable bucket replacement preserves non-editable exception state
+    it('replaces only editable exception buckets while preserving TPE and other untouched buckets', () => {
       const currentState = {
         team: {
           teamCode: 'LAL',
@@ -209,6 +209,19 @@ describe('Exception Management (setExceptions)', () => {
               usedAmount: 0,
               seasonKey: '2024-25',
             },
+            dpe: {
+              enabled: true,
+              totalAmount: 3_500_000,
+              usedAmount: 0,
+              seasonKey: '2024-25',
+            },
+            tpe: [
+              {
+                id: 'tpe_keep',
+                totalAmount: 4_200_000,
+                remainingAmount: 4_200_000,
+              },
+            ],
           },
         },
       };
@@ -220,7 +233,7 @@ describe('Exception Management (setExceptions)', () => {
           usedAmount: 5000000,
           seasonKey: '2025-26',
         },
-        // Note: bae is NOT included - should be removed
+        // Note: bae is NOT included - editable omission should clear it
       };
 
       const result = computeWorldMutation({
@@ -236,15 +249,22 @@ describe('Exception Management (setExceptions)', () => {
 
       expect(result.success).toBe(true);
       expect(result.teamUpdates).toHaveLength(1);
-      expect(result.teamUpdates[0].team.exceptions).toEqual(newExceptions);
-      // Ensure bae is removed (full replacement, not merge)
+      expect(result.teamUpdates[0].team.exceptions.mle).toEqual(
+        newExceptions.mle
+      );
       expect(result.teamUpdates[0].team.exceptions.bae).toBeUndefined();
+      expect(result.teamUpdates[0].team.exceptions.dpe).toEqual(
+        currentState.team.exceptions.dpe
+      );
+      expect(result.teamUpdates[0].team.exceptions.tpe).toEqual(
+        currentState.team.exceptions.tpe
+      );
       expect(result.teamUpdates[0].team.exceptions.mle.seasonKey).toBe(
         '2025-26'
       );
     });
 
-    // Test 12: Persistence contract (returns teamUpdates with exceptions)
+    // Test 12: Persistence contract (returns teamUpdates including updated team exceptions field)
     it('should return teamUpdates including updated team exceptions field', () => {
       const newExceptions = {
         mle: {
@@ -272,8 +292,8 @@ describe('Exception Management (setExceptions)', () => {
       expect(result.teamUpdates[0].team.exceptions).toEqual(newExceptions);
     });
 
-    // Test 13: Empty object is valid (clearing all exceptions)
-    it('should accept empty object as exceptions (clearing all)', () => {
+    // Test 13: Empty object clears editable keys but preserves untouched buckets
+    it('should accept empty object as exceptions and preserve non-editable buckets', () => {
       const result = computeWorldMutation({
         mutationType: 'setExceptions',
         payload: {
@@ -290,6 +310,7 @@ describe('Exception Management (setExceptions)', () => {
                 usedAmount: 0,
                 seasonKey: '2025-26',
               },
+              tpe: [{ id: 'keep_tpe', totalAmount: 2_000_000 }],
             },
           },
         },
@@ -298,7 +319,9 @@ describe('Exception Management (setExceptions)', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.teamUpdates[0].team.exceptions).toEqual({});
+      expect(result.teamUpdates[0].team.exceptions).toEqual({
+        tpe: [{ id: 'keep_tpe', totalAmount: 2_000_000 }],
+      });
     });
 
     // Test 14: Mutation fails if exceptions payload is array (not object)
@@ -366,6 +389,48 @@ describe('Exception Management (setExceptions)', () => {
       expect(result.teamUpdates[0].team.exceptions.tpmle.enabled).toBe(true);
       expect(result.teamUpdates[0].team.exceptions.bae.enabled).toBe(false);
       expect(result.teamUpdates[0].team.exceptions.room.enabled).toBe(true);
+    });
+
+    it('recomputes canonical totals after setExceptions updates', () => {
+      const result = computeWorldMutation({
+        mutationType: 'setExceptions',
+        payload: {
+          teamCode: 'NYK',
+          exceptions: {
+            mle: {
+              enabled: true,
+              totalAmount: 7_500_000,
+              usedAmount: 1_000_000,
+              seasonKey: '2025-26',
+            },
+          },
+        },
+        currentState: {
+          team: {
+            teamCode: 'NYK',
+            players: [],
+            roster: [],
+            capHolds: [],
+            deadCap: [],
+            exceptions: { tpe: [] },
+            totals: { capHit: 999 },
+          },
+        },
+        seasonId: '2025-26',
+        timestamp: Date.now(),
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.teamUpdates[0].team.totals.yearKey).toBe(2026);
+      expect(typeof result.teamUpdates[0].team.totals.totalCapAllocations).toBe(
+        'number'
+      );
+      expect(result.teamUpdates[0].team.totals.capHit).toBe(
+        result.teamUpdates[0].team.totals.totalCapAllocations
+      );
+      expect(result.teamUpdates[0].team.totals.totalSalary).toBe(
+        result.teamUpdates[0].team.totals.totalCapAllocations
+      );
     });
   });
 

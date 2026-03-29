@@ -17,12 +17,14 @@
  */
 
 import { getTeam } from '@/features/architect/utils/teamLoader';
+import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   loadTeamCapSheet,
   type HydratedBaseTeamCapSheet,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { TeamSlugToCode, TeamCodeMap } from '@/constants/teamList';
 import type { TeamTotals } from '@/features/architect/types';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
 // ==== Type Definitions ====
 
@@ -79,6 +81,35 @@ export function resolveTeamCode(teamId: string | null | undefined): string | nul
   return null;
 }
 
+function deriveLoadedTeamTotalsYear(
+  teamData: LoadedWorldTeamCapSheet | null | undefined
+): number | null {
+  const seasonYear =
+    typeof teamData?.season === 'string' ? toEndYear(teamData.season) : null;
+  if (typeof seasonYear === 'number' && Number.isFinite(seasonYear)) {
+    return seasonYear;
+  }
+
+  const yearKey = Number(teamData?.totals?.yearKey);
+  return Number.isFinite(yearKey) ? yearKey : null;
+}
+
+function synchronizeLoadedTeamTotals(
+  teamData: LoadedWorldTeamCapSheet | null
+): LoadedWorldTeamCapSheet | null {
+  if (!teamData) {
+    return teamData;
+  }
+
+  const year = deriveLoadedTeamTotalsYear(teamData);
+  return (
+    synchronizeTeamTotalsSnapshot(
+      teamData,
+      year
+    ) as LoadedWorldTeamCapSheet | null
+  );
+}
+
 /**
  * Load team data with world awareness
  *
@@ -104,14 +135,14 @@ export async function loadWorldTeamData(
   try {
     // If no worldId, use base-only loading (same as before)
     if (!worldId) {
-      return await loadTeamCapSheet(teamId);
+      return synchronizeLoadedTeamTotals(await loadTeamCapSheet(teamId));
     }
 
     // World-aware loading via teamLoader
     // teamLoader.getTeam handles the fallback chain:
     // world snapshot → parent world → base team
     const teamData = await getTeam(worldId, teamCode);
-    return teamData as LoadedWorldTeamCapSheet;
+    return synchronizeLoadedTeamTotals(teamData as LoadedWorldTeamCapSheet);
   } catch (error) {
     console.error('Error loading world team data:', error);
     return null;

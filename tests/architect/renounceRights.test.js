@@ -442,7 +442,7 @@ describe('Renounce Rights Mutation', () => {
         teamCode,
         teamName: 'Los Angeles Lakers',
         season: '2025-26',
-        roster: [],
+        roster: [playerId],
         players: [
           {
             player_id: playerId,
@@ -473,8 +473,9 @@ describe('Renounce Rights Mutation', () => {
         source: { type: 'base', provider: 'spotrac' },
       };
 
-      // Disable roster padding since this test focuses on cap hold/renounce persistence
-      seedTeamSnapshot(worldId, teamCode, teamSnapshot, { padRoster: false });
+      // Keep the snapshot post-state legal so the shared roster validator
+      // exercises the renounce mutation instead of failing on fixture shape.
+      seedTeamSnapshot(worldId, teamCode, teamSnapshot);
 
       // Apply the renounce mutation
       const result = await applyWorldMutation({
@@ -530,7 +531,7 @@ describe('Renounce Rights Mutation', () => {
         teamCode,
         teamName: 'Boston Celtics',
         season: '2025-26',
-        roster: [],
+        roster: [playerId],
         players: [
           {
             player_id: playerId,
@@ -561,10 +562,9 @@ describe('Renounce Rights Mutation', () => {
         source: { type: 'base' },
       };
 
-      // Disable roster padding since this test focuses on cap hold/renounce persistence
-      seedTeamSnapshot(worldId, teamCode, initialSnapshot, {
-        padRoster: false,
-      });
+      // Keep the snapshot post-state legal so the shared roster validator
+      // exercises the renounce mutation instead of failing on fixture shape.
+      seedTeamSnapshot(worldId, teamCode, initialSnapshot);
 
       // Apply renounce mutation
       await applyWorldMutation({

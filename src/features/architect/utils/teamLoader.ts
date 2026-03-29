@@ -11,6 +11,8 @@
 import { getDoc, getDocs } from 'firebase/firestore';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import {
   baseTeamRef,
   basePlayerRef,
@@ -49,6 +51,23 @@ interface TeamLike extends UnknownRecord {
   season?: string;
   teamCode?: string;
   teamName?: string;
+  totals?: UnknownRecord | null;
+}
+
+function deriveTeamTotalsYear(team: TeamLike | null | undefined): number | null {
+  const seasonYear =
+    typeof team?.season === 'string' ? toEndYear(team.season) : null;
+  if (typeof seasonYear === 'number' && Number.isFinite(seasonYear)) {
+    return seasonYear;
+  }
+
+  const yearKey = Number(team?.totals?.yearKey);
+  return Number.isFinite(yearKey) ? yearKey : null;
+}
+
+function synchronizeLoadedTeam(team: TeamLike): TeamLike {
+  const year = deriveTeamTotalsYear(team);
+  return (synchronizeTeamTotalsSnapshot(team, year) as TeamLike) || team;
 }
 
 /**
@@ -84,7 +103,9 @@ export async function getTeam(
   if (worldSnapshotSnap.exists()) {
     const snapshotData = worldSnapshotSnap.data() as TeamLike;
     // Hydrate roster from base players if needed
-    return await hydrateTeamFromSnapshot(snapshotData, teamCode);
+    return synchronizeLoadedTeam(
+      await hydrateTeamFromSnapshot(snapshotData, teamCode)
+    );
   }
 
   // Try parent world (recursive)
@@ -93,7 +114,7 @@ export async function getTeam(
     if (worldMeta.parentWorldId) {
       const parentTeam = await getTeam(worldMeta.parentWorldId, teamCode);
       if (parentTeam) {
-        return parentTeam;
+        return synchronizeLoadedTeam(parentTeam);
       }
     }
   } catch (error) {
@@ -102,7 +123,7 @@ export async function getTeam(
   }
 
   // Fall back to base
-  return await getBaseTeam(teamCode);
+  return synchronizeLoadedTeam(await getBaseTeam(teamCode));
 }
 
 /**
@@ -119,7 +140,9 @@ async function getBaseTeam(teamCode: string): Promise<TeamLike> {
   }
 
   const baseDoc = baseTeamSnap.data() as TeamLike;
-  return (await hydrateBaseTeam(teamCode, baseDoc)) as TeamLike;
+  return synchronizeLoadedTeam(
+    (await hydrateBaseTeam(teamCode, baseDoc)) as TeamLike
+  );
 }
 
 /**
@@ -138,11 +161,13 @@ async function hydrateTeamFromSnapshot(
 
   // If snapshot already has hydrated roster, return as-is
   if (snapshotPlayers && snapshotPlayers.length && snapshotPlayers.length > 0) {
-    return snapshotData;
+    return synchronizeLoadedTeam(snapshotData);
   }
 
   // Otherwise, hydrate from base players
-  return (await hydrateBaseTeam(teamCode, snapshotData)) as TeamLike;
+  return synchronizeLoadedTeam(
+    (await hydrateBaseTeam(teamCode, snapshotData)) as TeamLike
+  );
 }
 
 /**

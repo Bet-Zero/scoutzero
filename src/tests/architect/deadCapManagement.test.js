@@ -126,6 +126,44 @@ describe('Dead Money Management (setDeadCap)', () => {
            expect(result.success).toBe(false);
            expect(result.error).toContain('Invalid deadCap payload');
       });
+
+      it('recomputes canonical totals after dead cap changes', () => {
+          const result = computeWorldMutation({
+              mutationType: 'setDeadCap',
+              payload: {
+                  teamCode: 'LAL',
+                  deadCap: [
+                      {
+                          reason: 'Stretch Waive',
+                          amountByYear: [{ season: '2025-26', amount: 3_000_000 }]
+                      }
+                  ]
+              },
+              currentState: {
+                  team: {
+                      teamCode: 'LAL',
+                      players: [],
+                      roster: [],
+                      capHolds: [],
+                      deadCap: [],
+                      exceptions: { tpe: [] },
+                      totals: { capHit: 123 }
+                  }
+              },
+              seasonId: '2025-26',
+              timestamp: Date.now()
+          });
+
+          expect(result.success).toBe(true);
+          expect(result.teamUpdates[0].team.totals.yearKey).toBe(2026);
+          expect(typeof result.teamUpdates[0].team.totals.totalCapAllocations).toBe('number');
+          expect(result.teamUpdates[0].team.totals.capHit).toBe(
+              result.teamUpdates[0].team.totals.totalCapAllocations
+          );
+          expect(result.teamUpdates[0].team.totals.totalSalary).toBe(
+              result.teamUpdates[0].team.totals.totalCapAllocations
+          );
+      });
   });
 
 });

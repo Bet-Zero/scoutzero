@@ -26,6 +26,37 @@ const mutationMocks = vi.hoisted(() => ({
   preflightSignAndTradeMutation: vi.fn(),
 }));
 
+const capTotalsMocks = vi.hoisted(() => ({
+  computeTeamCapTotals: vi.fn(() => ({
+    totalCapAllocations: 150000000,
+    salaryCap: 141000000,
+    playersTotal: 100000000,
+    capHoldsTotal: 50000000,
+    deadMoneyTotal: 0,
+    incompleteChargesTotal: 0,
+    capSpace: -9000000,
+    yearKey: 2026,
+    _meta: {},
+  })),
+  synchronizeTeamTotalsSnapshot: vi.fn((team: any, selectedYear: number) => {
+    if (!team || !Number.isFinite(selectedYear)) {
+      return team;
+    }
+
+    return {
+      ...team,
+      totals: {
+        ...(team?.totals || {}),
+        ...capTotalsMocks.computeTeamCapTotals(team, Number(selectedYear)),
+        capHit: 150000000,
+        totalSalary: 150000000,
+        teamSalary: 150000000,
+        currentCapHit: 150000000,
+      },
+    };
+  }),
+}));
+
 vi.mock('react-hot-toast', () => ({
   default: toastMocks,
 }));
@@ -61,16 +92,8 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
-  computeTeamCapTotals: vi.fn(() => ({
-    totalCapAllocations: 150000000,
-    salaryCap: 141000000,
-    playersTotal: 100000000,
-    capHoldsTotal: 50000000,
-    deadMoneyTotal: 0,
-    incompleteChargesTotal: 0,
-    capSpace: -9000000,
-    _meta: {},
-  })),
+  computeTeamCapTotals: capTotalsMocks.computeTeamCapTotals,
+  synchronizeTeamTotalsSnapshot: capTotalsMocks.synchronizeTeamTotalsSnapshot,
 }));
 
 const baseTeamFixture = {

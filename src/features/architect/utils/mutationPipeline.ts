@@ -85,6 +85,7 @@ import { applyTradeExceptionLifecycle } from '@/features/architect/utils/tradeMa
 
 // Phase 72: SSOT for team cap totals computation
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 // Phase 61: Persistence contract enforcement (allowlist-based)
 // Phase 64: Added normalizeTeamTpeSchema for TPE canonicalization
@@ -6519,11 +6520,52 @@ function computeRenounceResult({
   };
 }
 
+const MANUAL_EXCEPTION_MUTATION_KEYS = [
+  'mle',
+  'tpmle',
+  'taxpayerMle',
+  'tpMle',
+  'miniMle',
+  'bae',
+  'biAnnual',
+  'room',
+  'roomMLE',
+  'roommle',
+  'rmle',
+] as const;
+
+function mergeManualExceptionSnapshot(
+  existingExceptions: Record<string, unknown> | null | undefined,
+  editedExceptions: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+  const merged = {
+    ...((existingExceptions &&
+      typeof existingExceptions === 'object' &&
+      !Array.isArray(existingExceptions)
+      ? existingExceptions
+      : {}) as Record<string, unknown>),
+  };
+
+  for (const key of MANUAL_EXCEPTION_MUTATION_KEYS) {
+    delete merged[key];
+  }
+
+  if (
+    editedExceptions &&
+    typeof editedExceptions === 'object' &&
+    !Array.isArray(editedExceptions)
+  ) {
+    Object.assign(merged, editedExceptions);
+  }
+
+  return merged;
+}
+
 /**
  * Compute set exceptions result (Phase 27)
  *
- * Replaces the team.exceptions object with the payload exceptions (full replacement).
- * This is the simplest and most audit-grade approach.
+ * Replaces only the editable exception subset while preserving untouched
+ * non-editable buckets such as canonical TPE storage.
  */
 function computeSetExceptionsResult({
   payload,
@@ -6547,10 +6589,12 @@ function computeSetExceptionsResult({
     }
   }
 
-  // Full replacement: update exceptions field on team
   const updatedTeam = {
     ...team,
-    exceptions: payload.exceptions || {},
+    exceptions: mergeManualExceptionSnapshot(
+      (team?.exceptions as Record<string, unknown> | null | undefined) || null,
+      (payload.exceptions as Record<string, unknown> | null | undefined) || null
+    ),
   };
 
   // Update source metadata
@@ -6559,6 +6603,10 @@ function computeSetExceptionsResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
+  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   return {
     success: true,
@@ -6754,9 +6802,17 @@ async function persistWorldMutation({
         `architect_worlds/${worldId}/teams/${teamCode}`
       );
       const persistenceReadyTeam = stripComputeOnlyTeamFieldsForPersistence(team);
+      const canonicalYear = toEndYear(seasonId);
+      const totalsAlignedTeam =
+        Number.isFinite(canonicalYear)
+          ? synchronizeTeamTotalsSnapshot(
+              persistenceReadyTeam,
+              canonicalYear
+            ) || persistenceReadyTeam
+          : persistenceReadyTeam;
       // Phase 60: Sanitize transient fields first
       const afterSanitize = sanitizeTransientFieldsForPersistence(
-        persistenceReadyTeam
+        totalsAlignedTeam
       );
       // Phase 64: Normalize TPE schema (tradeExceptions → exceptions.tpe)
       // This ensures legacy tradeExceptions[] is merged into canonical exceptions.tpe[]
@@ -7867,6 +7923,15 @@ function computeSetDeadCapResult({
     // Add logic to clean up legacy fields if we want to force migration?
     // For now, let's keep it simple: new schema takes precedence in computation anyway.
   };
+  updatedTeam.source = {
+    ...getTeamSourceRecord(updatedTeam.source),
+    type: 'world-snapshot',
+    lastModifiedAt: new Date(timestamp).toISOString(),
+  };
+  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   return {
     success: true,

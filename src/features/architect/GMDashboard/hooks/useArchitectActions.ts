@@ -31,6 +31,7 @@ import {
   type NormalizedMutationSalaryRow,
 } from '@/features/architect/utils/mutationPipeline';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   loadWorldTeamData,
   resolveTeamCode,
@@ -377,6 +378,47 @@ interface OfferSheet {
   dedupKey?: string;
   playerId?: string;
   seasonKey?: string;
+}
+
+const MANUAL_EXCEPTION_MUTATION_KEYS = [
+  'mle',
+  'tpmle',
+  'taxpayerMle',
+  'tpMle',
+  'miniMle',
+  'bae',
+  'biAnnual',
+  'room',
+  'roomMLE',
+  'roommle',
+  'rmle',
+] as const;
+
+function mergeManualExceptionSnapshot(
+  existingExceptions: Record<string, unknown> | null | undefined,
+  editedExceptions: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+  const merged = {
+    ...((existingExceptions &&
+      typeof existingExceptions === 'object' &&
+      !Array.isArray(existingExceptions)
+      ? existingExceptions
+      : {}) as Record<string, unknown>),
+  };
+
+  for (const key of MANUAL_EXCEPTION_MUTATION_KEYS) {
+    delete merged[key];
+  }
+
+  if (
+    editedExceptions &&
+    typeof editedExceptions === 'object' &&
+    !Array.isArray(editedExceptions)
+  ) {
+    Object.assign(merged, editedExceptions);
+  }
+
+  return merged;
 }
 
 import type {
@@ -2554,10 +2596,14 @@ export function useArchitectActions({
               playerIds: [],
               invalidMessage:
                 'Dead cap update blocked by post-state cap validation.',
-              computeNextTeam: (beforeTeam: CapSheet) => ({
-                ...beforeTeam,
-                deadCap: params.deadCap,
-              }),
+              computeNextTeam: (beforeTeam: CapSheet) =>
+                (synchronizeTeamTotalsSnapshot(
+                  {
+                    ...beforeTeam,
+                    deadCap: params.deadCap,
+                  },
+                  currentYear
+                ) as CapSheet),
               persistPayload: {
                 teamCode,
                 deadCap: params.deadCap,
@@ -2568,10 +2614,17 @@ export function useArchitectActions({
               playerIds: [],
               invalidMessage:
                 'Exception update blocked by post-state cap validation.',
-              computeNextTeam: (beforeTeam: CapSheet) => ({
-                ...beforeTeam,
-                exceptions: params.exceptions,
-              }),
+              computeNextTeam: (beforeTeam: CapSheet) =>
+                (synchronizeTeamTotalsSnapshot(
+                  {
+                    ...beforeTeam,
+                    exceptions: mergeManualExceptionSnapshot(
+                      beforeTeam.exceptions as Record<string, unknown> | null,
+                      params.exceptions as Record<string, unknown> | null
+                    ) as NonNullable<CapSheet['exceptions']>,
+                  },
+                  currentYear
+                ) as CapSheet),
               persistPayload: {
                 teamCode,
                 exceptions: params.exceptions,
@@ -2583,7 +2636,7 @@ export function useArchitectActions({
       }
       return mutationResult.persistPromise || Promise.resolve(true);
     },
-    [applyCapAuditedTeamMutation, teamCode]
+    [applyCapAuditedTeamMutation, currentYear, teamCode]
   );
 
   // === Dead Money Actions (Phase 24) ===

@@ -87,13 +87,16 @@ function makeTotals(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function renderActionsHarness(worldId: string | null) {
+function renderActionsHarness(
+  worldId: string | null,
+  initialTeam: any = worldTeamFixture
+) {
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
   const finishSave = vi.fn();
 
   const { result } = renderHook(() => {
-    const [teamCapSheet, setTeamCapSheet] = useState<any>(worldTeamFixture);
+    const [teamCapSheet, setTeamCapSheet] = useState<any>(initialTeam);
     const [selectedRulesYear, setSelectedRulesYear] = useState<number>(2026);
     const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
     const [freeAgents, setFreeAgents] = useState<any[]>([]);
@@ -188,6 +191,10 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
     expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(1);
     expect(isOptimisticLockHeld(LOCK_SCOPE_KEY)).toBe(true);
     expect((result.current.teamCapSheet.deadCap || []).length).toBe(1);
+    expect(result.current.teamCapSheet.totals?.yearKey).toBe(2026);
+    expect(result.current.teamCapSheet.totals?.capHit).toBe(
+      result.current.teamCapSheet.totals?.totalCapAllocations
+    );
 
     act(() => {
       result.current.actions.handleSetExceptions({
@@ -252,6 +259,80 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
 
     await waitFor(() => {
       expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('preserves non-editable exception buckets and recomputed totals in the optimistic setExceptions preview', async () => {
+    let resolvePersist:
+      | ((value: { success: boolean; event: { operationId: string } }) => void)
+      | null = null;
+
+    mutationMocks.applyWorldMutation.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePersist = resolve as (
+            value: { success: boolean; event: { operationId: string } }
+          ) => void;
+        })
+    );
+
+    const initialTeam = {
+      ...worldTeamFixture,
+      exceptions: {
+        tpe: [{ id: 'tpe_keep', totalAmount: 3_200_000 }],
+        dpe: {
+          enabled: true,
+          totalAmount: 4_000_000,
+          usedAmount: 0,
+          seasonKey: '2025-26',
+        },
+        bae: {
+          enabled: true,
+          totalAmount: 2_500_000,
+          usedAmount: 500_000,
+          seasonKey: '2025-26',
+        },
+      },
+    };
+
+    const { result } = renderActionsHarness('world_1', initialTeam);
+
+    act(() => {
+      result.current.actions.handleSetExceptions({
+        mle: {
+          enabled: true,
+          totalAmount: 9_000_000,
+          usedAmount: 1_500_000,
+          seasonKey: '2025-26',
+        },
+      });
+    });
+
+    expect(result.current.teamCapSheet.exceptions).toMatchObject({
+      mle: {
+        enabled: true,
+        totalAmount: 9_000_000,
+        usedAmount: 1_500_000,
+        seasonKey: '2025-26',
+      },
+      dpe: initialTeam.exceptions.dpe,
+      tpe: initialTeam.exceptions.tpe,
+    });
+    expect(result.current.teamCapSheet.exceptions?.bae).toBeUndefined();
+    expect(result.current.teamCapSheet.totals?.yearKey).toBe(2026);
+    expect(result.current.teamCapSheet.totals?.capHit).toBe(
+      result.current.teamCapSheet.totals?.totalCapAllocations
+    );
+
+    act(() => {
+      resolvePersist?.({
+        success: true,
+        event: { operationId: 'auth_set_exceptions_1' },
+      });
+    });
+
+    await waitFor(() => {
+      expect(isOptimisticLockHeld(LOCK_SCOPE_KEY)).toBe(false);
     });
   });
 

@@ -87,6 +87,39 @@ describe('Team Loader', () => {
       expect(team.players.map((p) => p.player_id)).toEqual(['lebron_james']);
     });
 
+    it('canonicalizes stale stored totals when loading a world snapshot', async () => {
+      const worldId = 'world_totals_sync';
+      seedWorldMetadata(worldId, createMockWorld({ worldId }));
+
+      const snapshotWithStaleTotals = createMockTeam({
+        teamCode: 'LAL',
+        season: '2025-26',
+        roster: ['lebron_james'],
+        players: [
+          createMockPlayer({
+            playerId: 'lebron_james',
+            displayName: 'LeBron James',
+          }),
+        ],
+        totals: {
+          yearKey: 2024,
+          capHit: 999,
+          totalSalary: 999,
+        },
+      });
+
+      seedTeamSnapshot(worldId, 'LAL', snapshotWithStaleTotals, {
+        padRoster: false,
+      });
+
+      const team = await getTeam(worldId, 'LAL');
+
+      expect(team.totals.yearKey).toBe(2026);
+      expect(team.totals.capHit).toBe(team.totals.totalCapAllocations);
+      expect(team.totals.totalSalary).toBe(team.totals.totalCapAllocations);
+      expect(team.totals.capHit).not.toBe(999);
+    });
+
     it('falls back to parent world snapshot', async () => {
       // Create parent world with snapshot
       const parentWorldId = 'world_parent';
