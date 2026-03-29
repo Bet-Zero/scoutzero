@@ -63,6 +63,22 @@ function readBreakdownValue(labelText: string): number {
   return parseCurrency(rawValue);
 }
 
+function readPrimaryMultiYearCellAmount(
+  cell: HTMLElement | null | undefined
+): number {
+  if (!cell) return 0;
+
+  const primaryAmount = Array.from(cell.querySelectorAll('span'))
+    .map((span) => span.textContent?.trim() ?? '')
+    .find((text) => /^\$[\d,]+(?:\.\d+)?$/.test(text));
+
+  if (primaryAmount) {
+    return parseCurrency(primaryAmount);
+  }
+
+  return parseCurrency(cell.textContent?.trim());
+}
+
 function getFutureYearCell(
   row: Element | null,
   yearOffsetFromCurrent: number
@@ -72,6 +88,18 @@ function getFutureYearCell(
   const targetCell = cells[yearOffsetFromCurrent + 1] as HTMLElement | undefined;
   expect(targetCell).toBeDefined();
   return targetCell as HTMLElement;
+}
+
+function sumVisiblePlayerBodyColumnAmounts(
+  yearOffsetFromCurrent: number
+): number {
+  return screen
+    .getAllByTestId('cap-sheet-full-player-row-button')
+    .reduce((sum, button) => {
+      const row = button.closest('div.grid');
+      const cell = getFutureYearCell(row, yearOffsetFromCurrent);
+      return sum + readPrimaryMultiYearCellAmount(cell);
+    }, 0);
 }
 
 function makePlayer(index: number): Record<string, unknown> {
@@ -390,6 +418,138 @@ function buildTeamWithMultiYearHierarchyFixture(): TeamLike {
         reason: 'Future Bird rights cap hold',
       },
     ],
+  };
+}
+
+function buildTeamWithMultiYearBodyParityFixture(): TeamLike {
+  const basePlayers = buildTeamFixture().players.slice(0, 12);
+  const futureYear = CURRENT_YEAR + 1;
+  const veteranMinimumId = 'mixed_future_vet_minimum_standard';
+  const adjustedStandardId = 'mixed_future_standard_cap_hit_adjusted';
+  const twoWayId = 'mixed_future_two_way_non_zero';
+  const futureOnlyId = 'mixed_future_only_visible_player';
+
+  return {
+    teamCode: 'LAL',
+    teamName: 'Los Angeles Lakers',
+    roster: [
+      ...basePlayers.map((player) => String(player.id)),
+      veteranMinimumId,
+      adjustedStandardId,
+      twoWayId,
+      futureOnlyId,
+    ],
+    players: [
+      ...basePlayers,
+      {
+        id: veteranMinimumId,
+        player_id: veteranMinimumId,
+        name: 'mixed_future_vet_minimum_standard',
+        displayName: 'Mixed Future Veteran Minimum Wing',
+        position: 'F',
+        isMinimum: true,
+        yearsOfService: 4,
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 2_200_000,
+              capHit: 2_200_000,
+              guaranteed: true,
+            },
+            {
+              season: toSeasonCode(futureYear),
+              salary: 2_390_000,
+              capHit: 2_390_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+      {
+        id: adjustedStandardId,
+        player_id: adjustedStandardId,
+        name: 'mixed_future_standard_cap_hit_adjusted',
+        displayName: 'Mixed Future Cap-Hit Forward',
+        position: 'F',
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 7_500_000,
+              capHit: 7_500_000,
+              guaranteed: true,
+            },
+            {
+              season: toSeasonCode(futureYear),
+              salary: 8_000_000,
+              capHit: 9_000_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+      {
+        id: twoWayId,
+        player_id: twoWayId,
+        name: 'mixed_future_two_way_non_zero',
+        displayName: 'Mixed Future Two-Way Guard',
+        position: 'G',
+        contractType: 'two-way',
+        contract: {
+          contractType: 'Two-Way',
+          salariesByYear: [
+            {
+              season: toSeasonCode(CURRENT_YEAR),
+              salary: 500_000,
+              capHit: 500_000,
+              guaranteed: true,
+            },
+            {
+              season: toSeasonCode(futureYear),
+              salary: 700_000,
+              capHit: 700_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+      {
+        id: futureOnlyId,
+        player_id: futureOnlyId,
+        name: 'mixed_future_only_visible_player',
+        displayName: 'Mixed Future Only Stretch Big',
+        position: 'C',
+        contract: {
+          contractType: 'Standard',
+          salariesByYear: [
+            {
+              season: toSeasonCode(futureYear),
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+          ],
+        },
+      },
+    ],
+    deadCap: [],
+    capHolds: [
+      {
+        playerId: 'mixed_future_hold_player',
+        playerName: 'Mixed Future Hold Wing',
+        amount: 4_250_000,
+        season: toSeasonCode(futureYear),
+        type: 'Bird',
+        active: true,
+        isSigned: false,
+        reason: 'Future Bird rights cap hold',
+      },
+    ],
+    exceptions: {},
+    totals: {},
   };
 }
 
@@ -990,5 +1150,77 @@ describe('Cap Sheet UI integration flows', () => {
     expect(totals.playersTotal).toBe(20_000_000);
     expect(totals.capHoldsTotal).toBe(4_250_000);
     expect(totals.totalCapAllocations).toBe(24_250_000);
+  });
+
+  it('keeps the visible future-year player body, canonical total row, and cap-hold detail in coherent lockstep', () => {
+    const teamCapSheet = buildTeamWithMultiYearBodyParityFixture();
+    const futureYear = CURRENT_YEAR + 1;
+    const totals = computeTeamCapTotals(teamCapSheet, futureYear);
+
+    render(
+      <CapSheetFull
+        teamCapSheet={teamCapSheet as Parameters<typeof CapSheetFull>[0]['teamCapSheet']}
+        currentYear={CURRENT_YEAR}
+        onSelectPlayer={() => {}}
+        onActionClick={() => {}}
+      />
+    );
+
+    const primarySurface = screen.getByRole('region', {
+      name: 'Primary multi-year cap sheet surface',
+    });
+    const playerDetailSurface = within(primarySurface).getByRole('region', {
+      name: 'Multi-year player detail surface',
+    });
+    const canonicalTotalsSurface = within(primarySurface).getByRole('region', {
+      name: 'Multi-year canonical yearly totals surface',
+    });
+    const capHoldsSurface = screen.getByRole('region', {
+      name: 'Multi-year cap holds detail surface',
+    });
+
+    expect(
+      within(playerDetailSurface).getByRole('button', {
+        name: 'Mixed Future Only Stretch Big',
+      })
+    ).toBeInTheDocument();
+
+    const playerBodyFutureYearSum = sumVisiblePlayerBodyColumnAmounts(1);
+    expect(playerBodyFutureYearSum).toBe(totals.playersTotal);
+
+    const totalRow = within(canonicalTotalsSurface)
+      .getByText(/^Total Cap$/i)
+      .closest('div.grid');
+    expect(totalRow).not.toBeNull();
+
+    const futureTotalCell = getFutureYearCell(totalRow, 1);
+    const displayedFutureTotal = readPrimaryMultiYearCellAmount(futureTotalCell);
+
+    expect(displayedFutureTotal).toBe(totals.totalCapAllocations);
+    expect(displayedFutureTotal).toBeGreaterThan(playerBodyFutureYearSum);
+    expect(displayedFutureTotal - playerBodyFutureYearSum).toBe(
+      totals.capHoldsTotal
+    );
+
+    expect(totals.playersTotal).toBe(29_092_400);
+    expect(totals.deadMoneyTotal).toBe(0);
+    expect(totals.incompleteChargesTotal).toBe(0);
+    expect(totals.capHoldsTotal).toBe(4_250_000);
+    expect(totals.totalCapAllocations).toBe(33_342_400);
+
+    fireEvent.click(screen.getByTestId('cap-sheet-full-cap-holds-toggle'));
+
+    expect(
+      within(capHoldsSurface).getByText('Mixed Future Hold Wing')
+    ).toBeInTheDocument();
+    expect(
+      within(capHoldsSurface).getByText('$4,250,000')
+    ).toBeInTheDocument();
+    expect(
+      within(playerDetailSurface).queryByText('Mixed Future Hold Wing')
+    ).not.toBeInTheDocument();
+    expect(
+      within(canonicalTotalsSurface).queryByText('Mixed Future Hold Wing')
+    ).not.toBeInTheDocument();
   });
 });

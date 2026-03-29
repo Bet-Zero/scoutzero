@@ -27,6 +27,7 @@
  *    14. computeTeamCapTotals uses team.players (not team.roster) for salary computation
  *    15. CapSheetFull visible body is not filtered only by current-year slices
  *    16. Future-only contract rows still carry future-year canonical cap truth
+ *    18. Mixed future-year player-body semantics still sum to canonical playersTotal while non-player allocations stay separate
  */
 
 import { describe, it, expect } from 'vitest';
@@ -71,6 +72,7 @@ const COMPUTE_TOTALS_SHIM_PATH = path.resolve(
 );
 
 const YEAR = 2026; // 2025-26 season
+const FUTURE_YEAR = YEAR + 1; // 2026-27 season
 
 // Helper: create players to fill or partially fill a roster
 function createPlayers(count, salary = 5_000_000) {
@@ -81,6 +83,32 @@ function createPlayers(count, salary = 5_000_000) {
       contractType: 'Standard',
       salariesByYear: [
         { season: '2025-26', salary, capHit: salary },
+      ],
+    },
+  }));
+}
+
+function createMultiYearPlayers(
+  count,
+  currentYearSalary = 1_000_000,
+  futureYearSalary = currentYearSalary
+) {
+  return Array.from({ length: count }, (_, i) => ({
+    player_id: `multi-year-player-${i}`,
+    displayName: `Multi-Year Player ${i}`,
+    contract: {
+      contractType: 'Standard',
+      salariesByYear: [
+        {
+          season: '2025-26',
+          salary: currentYearSalary,
+          capHit: currentYearSalary,
+        },
+        {
+          season: '2026-27',
+          salary: futureYearSalary,
+          capHit: futureYearSalary,
+        },
       ],
     },
   }));
@@ -511,5 +539,93 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     });
     expect(futureYearTotals.playersTotal).toBe(6_000_000);
     expect(futureYearTotals.totalCapAllocations).toBe(6_000_000);
+  });
+
+  it('TEST 18: mixed future-year player-body semantics still sum to canonical playersTotal while cap holds stay outside body math', () => {
+    const basePlayers = createMultiYearPlayers(12, 1_000_000, 1_000_000);
+    const veteranMinimumPlayer = {
+      player_id: 'mixed-future-vet-min',
+      displayName: 'Mixed Future Veteran Minimum Wing',
+      isMinimum: true,
+      yearsOfService: 4,
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 2_200_000, capHit: 2_200_000 },
+          { season: '2026-27', salary: 2_390_000, capHit: 2_390_000 },
+        ],
+      },
+    };
+    const adjustedStandardPlayer = {
+      player_id: 'mixed-future-adjusted-standard',
+      displayName: 'Mixed Future Cap-Hit Forward',
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2025-26', salary: 7_500_000, capHit: 7_500_000 },
+          { season: '2026-27', salary: 8_000_000, capHit: 9_000_000 },
+        ],
+      },
+    };
+    const twoWayPlayer = {
+      player_id: 'mixed-future-two-way',
+      displayName: 'Mixed Future Two-Way Guard',
+      contractType: 'two-way',
+      contract: {
+        contractType: 'Two-Way',
+        salariesByYear: [
+          { season: '2025-26', salary: 500_000, capHit: 500_000 },
+          { season: '2026-27', salary: 700_000, capHit: 700_000 },
+        ],
+      },
+    };
+    const futureOnlyPlayer = {
+      player_id: 'mixed-future-only',
+      displayName: 'Mixed Future Only Stretch Big',
+      contract: {
+        contractType: 'Standard',
+        salariesByYear: [
+          { season: '2026-27', salary: 6_000_000, capHit: 6_000_000 },
+        ],
+      },
+    };
+    const team = {
+      players: [
+        ...basePlayers,
+        veteranMinimumPlayer,
+        adjustedStandardPlayer,
+        twoWayPlayer,
+        futureOnlyPlayer,
+      ],
+      deadCap: [],
+      capHolds: [
+        {
+          playerId: 'mixed-future-hold',
+          playerName: 'Mixed Future Hold Wing',
+          amount: 4_250_000,
+          season: '2026-27',
+          type: 'bird',
+          active: true,
+          isSigned: false,
+        },
+      ],
+    };
+
+    const bodyPlayersTotal = team.players.reduce(
+      (sum, player) =>
+        sum + getPlayerCapSheetAmountsForYear(player, FUTURE_YEAR).capHit,
+      0
+    );
+    const totals = computeTeamCapTotals(team, FUTURE_YEAR);
+
+    expect(bodyPlayersTotal).toBe(29_092_400);
+    expect(totals.playersTotal).toBe(bodyPlayersTotal);
+    expect(totals.deadMoneyTotal).toBe(0);
+    expect(totals.incompleteChargesTotal).toBe(0);
+    expect(totals.capHoldsTotal).toBe(4_250_000);
+    expect(totals.totalCapAllocations).toBe(33_342_400);
+    expect(totals.totalCapAllocations - totals.playersTotal).toBe(
+      totals.capHoldsTotal
+    );
   });
 });
