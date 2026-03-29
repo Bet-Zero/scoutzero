@@ -107,7 +107,7 @@ const FreeAgentPool = ({
     setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
   };
 
-  const handleSaveFromModal = async (
+  const handleSignFreeAgentFromModal = async (
     playerObj: FreeAgentListItem,
     values: FreeAgentContractFormValues
   ) => {
@@ -240,7 +240,9 @@ const FreeAgentPool = ({
           }
           isOpen={!!contractPlayer}
           onClose={() => setContractPlayer(null)}
-          onSave={handleSaveFromModal as EditContractModalProps['onSave']}
+          onSignFreeAgent={
+            handleSignFreeAgentFromModal as EditContractModalProps['onSignFreeAgent']
+          }
           onSignAndTrade={
             onSignAndTrade as EditContractModalProps['onSignAndTrade']
           }

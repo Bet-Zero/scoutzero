@@ -635,7 +635,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(actionsContent).not.toMatch(/handleClearTeamHistoryFixtures\s*:/);
   });
 
-  it('keeps fixture wiring on explicit dev-tool namespaces and removes contract-modal local-save fallback wiring', () => {
+  it('keeps fixture wiring on explicit dev-tool namespaces and removes generic contract-modal save fallback wiring', () => {
     expect(gmDashboardContent).toMatch(
       /onInjectCapSheetFixtures=\{actions\.capSheetDevTools\.injectFixtures\}/
     );
@@ -656,12 +656,15 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     );
     expect(gmDashboardContent).not.toMatch(/onSaveContract=/);
     expect(editContractModalContent).not.toMatch(/onSaveContract/);
+    expect(editContractModalContent).not.toMatch(/onSave\?:\s*SigningActionCallback/);
     expect(editContractModalContent).toMatch(
-      /case 'signNew':[\s\S]*onSignFreeAgent\s*\|\|\s*onSave/
+      /case 'signNew':[\s\S]*actionResult = await onSignFreeAgent\?\./
     );
     expect(editContractModalContent).toMatch(
-      /case 'resign':[\s\S]*onResign\s*\|\|\s*onSave/
+      /case 'resign':[\s\S]*actionResult = await onResign\?\./
     );
+    expect(editContractModalContent).not.toMatch(/onSignFreeAgent\s*\|\|\s*onSave/);
+    expect(editContractModalContent).not.toMatch(/onResign\s*\|\|\s*onSave/);
   });
 
   it('handleSetDeadCap and handleSetExceptions delegate through the shared manual ledger helper', () => {

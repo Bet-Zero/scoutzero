@@ -40,6 +40,19 @@ import {
 } from '@/features/architect/utils/seasonFormat';
 
 type EditContractModalProps = Parameters<typeof EditContractModal>[0];
+type EditContractArchitectActionCallbacks = Pick<
+  EditContractModalProps,
+  | 'onSignFreeAgent'
+  | 'onResign'
+  | 'onSignAndTrade'
+  | 'getSignAndTradePreflight'
+  | 'getOfferSheetPreflight'
+  | 'onStoreOfferSheet'
+  | 'onExtend'
+  | 'onWaive'
+  | 'onOptionDecision'
+  | 'onRenounce'
+>;
 type FreeAgencySectionProps = Parameters<typeof FreeAgencySection>[0];
 type CapSheetSectionProps = Parameters<typeof CapSheetSection>[0];
 type CapTableSectionProps = Parameters<typeof CapTableSection>[0];
@@ -221,18 +234,6 @@ const GMDashboard = () => {
 
   const modalPlayer = selectedPlayer as EditContractModalProps['player'];
   const modalTeamCapSheet = teamCapSheet as EditContractModalProps['teamCapSheet'];
-  const modalOnSignFreeAgent =
-    actions.handleSign as EditContractModalProps['onSignFreeAgent'];
-  const modalOnResign = actions.handleSign as EditContractModalProps['onResign'];
-  const modalOnSignAndTrade =
-    actions.handleSignAndTrade as EditContractModalProps['onSignAndTrade'];
-  const modalGetSignAndTradePreflight =
-    actions.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'];
-  const modalGetOfferSheetPreflight =
-    actions.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'];
-  const modalOnStoreOfferSheet =
-    actions.handleStoreOfferSheet as EditContractModalProps['onStoreOfferSheet'];
-  const modalOnExtend = actions.handleExtendContract as EditContractModalProps['onExtend'];
   const modalOnWaive: NonNullable<EditContractModalProps['onWaive']> = (
     player,
     payload
@@ -263,6 +264,27 @@ const GMDashboard = () => {
         toOverrideMetadata(overrideMetadata)
       )
     );
+  const modalActionCallbacks: EditContractArchitectActionCallbacks = {
+    onSignFreeAgent:
+      actions.handleSign as EditContractModalProps['onSignFreeAgent'],
+    onResign: actions.handleSign as EditContractModalProps['onResign'],
+    onSignAndTrade: worldId
+      ? (actions.handleSignAndTrade as EditContractModalProps['onSignAndTrade'])
+      : null,
+    getSignAndTradePreflight: worldId
+      ? (actions.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'])
+      : null,
+    getOfferSheetPreflight: worldId
+      ? (actions.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'])
+      : null,
+    onStoreOfferSheet: worldId
+      ? (actions.handleStoreOfferSheet as EditContractModalProps['onStoreOfferSheet'])
+      : null,
+    onExtend: actions.handleExtendContract as EditContractModalProps['onExtend'],
+    onWaive: modalOnWaive,
+    onOptionDecision: modalOnOptionDecision,
+    onRenounce: modalOnRenounce,
+  };
 
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
   if (!teamCapSheet) return <p>No team data</p>;
@@ -602,20 +624,7 @@ const GMDashboard = () => {
           capProjections={capProjections}
           teamCapSheet={modalTeamCapSheet}
           currentYear={currentYear}
-          onSignFreeAgent={modalOnSignFreeAgent}
-          onResign={modalOnResign}
-          onSignAndTrade={worldId ? modalOnSignAndTrade : null}
-          getSignAndTradePreflight={
-            worldId ? modalGetSignAndTradePreflight : null
-          }
-          getOfferSheetPreflight={
-            worldId ? modalGetOfferSheetPreflight : null
-          }
-          onStoreOfferSheet={worldId ? modalOnStoreOfferSheet : null}
-          onExtend={modalOnExtend}
-          onWaive={modalOnWaive}
-          onOptionDecision={modalOnOptionDecision}
-          onRenounce={modalOnRenounce}
+          {...modalActionCallbacks}
           playersMap={playersMap}
           playerRulesProfile={selectedPlayerRulesProfile}
           rulesLeagueContext={selectedRulesLeagueContext}

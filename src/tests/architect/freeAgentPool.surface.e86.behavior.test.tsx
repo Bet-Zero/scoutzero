@@ -24,8 +24,9 @@ import {
 import '@testing-library/jest-dom/vitest';
 import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool';
 
-const { mockGetPlayerProfileUrl } = vi.hoisted(() => ({
+const { mockGetPlayerProfileUrl, mockEditContractModalProps } = vi.hoisted(() => ({
   mockGetPlayerProfileUrl: vi.fn(() => '#player-profile'),
+  mockEditContractModalProps: vi.fn(),
 }));
 
 vi.mock('@/shared/utils/routing/playerRouteUtils', () => ({
@@ -41,12 +42,28 @@ type MockEditContractModalProps = {
     };
   };
   onClose?: () => void;
+  onSignFreeAgent?: unknown;
+  onSave?: unknown;
 };
 
 vi.mock('@/shared/components/EditContractModal', () => ({
   __esModule: true,
-  default: ({ isOpen, player, onClose }: MockEditContractModalProps) => {
+  default: ({
+    isOpen,
+    player,
+    onClose,
+    onSignFreeAgent,
+    onSave,
+  }: MockEditContractModalProps) => {
     if (!isOpen) return null;
+
+    mockEditContractModalProps({
+      isOpen,
+      player,
+      onClose,
+      onSignFreeAgent,
+      onSave,
+    });
 
     return (
       <div data-testid="mock-edit-contract-modal">
@@ -96,19 +113,28 @@ const playersMap = {
   [PLAYER.name]: PLAYER,
 };
 
-const renderPool = () =>
+const renderPool = (
+  overrides: Partial<React.ComponentProps<typeof FreeAgentPool>> = {}
+) => {
+  const onSign =
+    overrides.onSign || vi.fn().mockResolvedValue({ success: true });
+
   render(
     <FreeAgentPool
       freeAgents={[FREE_AGENT]}
       currentYear={2026}
-      onSign={vi.fn().mockResolvedValue({ success: true })}
+      onSign={onSign}
       onSignAndTrade={vi.fn()}
       onStoreOfferSheet={vi.fn()}
       playersMap={playersMap}
       playersById={playersMap}
       worldId={null}
+      {...overrides}
     />
   );
+
+  return { onSign };
+};
 
 describe('FreeAgentPool surface E86 behavior', () => {
   beforeEach(() => {
@@ -167,6 +193,19 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
       /test player/i
     );
+  });
+
+  it('passes explicit free-agent signing callbacks into EditContractModal without onSave fallback props', () => {
+    const onSign = vi.fn().mockResolvedValue({ success: true });
+    renderPool({ onSign });
+
+    fireEvent.click(screen.getByRole('button', { name: /test player/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
+
+    const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+    expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
+    expect(modalProps?.onSave).toBeUndefined();
+    expect(modalProps?.onSignFreeAgent).not.toBe(onSign);
   });
 
   it('preserves row menu toggle semantics, menu item ordering, and outside-click close behavior', () => {

@@ -47,6 +47,7 @@ const {
   mockCloseOffseasonModal,
   mockSetShowOffseasonModal,
   mockSetActiveTab,
+  mockEditContractModalProps,
 } = vi.hoisted(() => ({
   mockListUserWorlds: vi.fn(),
   mockCreateWorld: vi.fn(),
@@ -67,6 +68,7 @@ const {
   mockCloseOffseasonModal: vi.fn(),
   mockSetShowOffseasonModal: vi.fn(),
   mockSetActiveTab: vi.fn(),
+  mockEditContractModalProps: vi.fn(),
 }));
 
 const dashboardRouteFixtures = vi.hoisted(() => ({
@@ -148,6 +150,17 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     actionContext,
     playerRulesProfile,
     rulesLeagueContext,
+    onSignFreeAgent,
+    onResign,
+    onSignAndTrade,
+    getSignAndTradePreflight,
+    getOfferSheetPreflight,
+    onStoreOfferSheet,
+    onExtend,
+    onWaive,
+    onOptionDecision,
+    onRenounce,
+    onSave,
   }: {
     isOpen?: boolean;
     player?: { displayName?: string; name?: string };
@@ -158,8 +171,40 @@ vi.mock('@/shared/components/EditContractModal', () => ({
       contractSummary?: { freeAgencyType?: string | null; freeAgencyYear?: number | null };
     } | null;
     rulesLeagueContext?: { currentYear?: number | null } | null;
+    onSignFreeAgent?: unknown;
+    onResign?: unknown;
+    onSignAndTrade?: unknown;
+    getSignAndTradePreflight?: unknown;
+    getOfferSheetPreflight?: unknown;
+    onStoreOfferSheet?: unknown;
+    onExtend?: unknown;
+    onWaive?: unknown;
+    onOptionDecision?: unknown;
+    onRenounce?: unknown;
+    onSave?: unknown;
   }) => {
     if (!isOpen) return null;
+
+    mockEditContractModalProps({
+      isOpen,
+      player,
+      onClose,
+      targetYear,
+      actionContext,
+      playerRulesProfile,
+      rulesLeagueContext,
+      onSignFreeAgent,
+      onResign,
+      onSignAndTrade,
+      getSignAndTradePreflight,
+      getOfferSheetPreflight,
+      onStoreOfferSheet,
+      onExtend,
+      onWaive,
+      onOptionDecision,
+      onRenounce,
+      onSave,
+    });
 
     return (
       <div data-testid="mock-edit-contract-modal">
@@ -997,6 +1042,8 @@ describe('E109 dashboard/world boundary behavior', () => {
     });
 
     it('passes selected player, modal context, and rules-year profile context into the contract modal', async () => {
+      const dashboardActions = buildDashboardActions();
+      mockUseArchitectActions.mockReturnValue(dashboardActions);
       mockUseArchitectState.mockReturnValue(
         buildDashboardState({
           activeTab: 'cap',
@@ -1043,6 +1090,22 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(
         screen.getByTestId('mock-edit-contract-modal-rules-year')
       ).toHaveTextContent('2028');
+      const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+      expect(modalProps).toEqual(
+        expect.objectContaining({
+          onSignFreeAgent: dashboardActions.handleSign,
+          onResign: dashboardActions.handleSign,
+          onSignAndTrade: dashboardActions.handleSignAndTrade,
+          getSignAndTradePreflight: dashboardActions.getSignAndTradePreflight,
+          getOfferSheetPreflight: dashboardActions.getOfferSheetPreflight,
+          onStoreOfferSheet: dashboardActions.handleStoreOfferSheet,
+          onExtend: dashboardActions.handleExtendContract,
+          onWaive: expect.any(Function),
+          onOptionDecision: expect.any(Function),
+          onRenounce: expect.any(Function),
+        })
+      );
+      expect(modalProps?.onSave).toBeUndefined();
 
       fireEvent.click(screen.getByRole('button', { name: 'Close Contract Modal' }));
       expect(mockCloseContractModal).toHaveBeenCalledTimes(1);

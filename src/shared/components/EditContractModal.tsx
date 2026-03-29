@@ -300,7 +300,6 @@ type EditContractModalProps = {
   player?: PlayerLike | null;
   isOpen?: boolean;
   onClose: () => void;
-  onSave?: SigningActionCallback | null;
   onSignFreeAgent?: SigningActionCallback | null;
   onResign?: SigningActionCallback | null;
   onWaive?: WaiveCallback | null;
@@ -733,7 +732,6 @@ const EditContractModal = ({
   player,
   isOpen,
   onClose,
-  onSave,
   onSignFreeAgent,
   onResign,
   onWaive,
@@ -1625,10 +1623,7 @@ const EditContractModal = ({
             );
             break;
           case 'signNew':
-            actionResult = await (
-              onSignFreeAgent ||
-              onSave
-            )?.(
+            actionResult = await onSignFreeAgent?.(
               player,
               buildCanonicalSigningPayload({
                 ...(overrideMetadata || {}),
@@ -1636,7 +1631,7 @@ const EditContractModal = ({
             );
             break;
           case 'resign':
-            actionResult = await (onResign || onSave)?.(
+            actionResult = await onResign?.(
               player,
               buildCanonicalSigningPayload({
                 ...(overrideMetadata || {}),
