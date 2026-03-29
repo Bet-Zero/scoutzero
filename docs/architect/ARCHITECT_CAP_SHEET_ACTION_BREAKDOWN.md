@@ -132,3 +132,145 @@ This is a **source-of-truth and totals-cleanliness step**, not a broad Cap Sheet
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 2 — ACTION BREAKDOWN
+
+## Cap Sheet Display Truth
+
+---
+
+## CS-2A — Align Row-Level Cap Hit Display with Canonical Player Salary Math
+
+### Problem
+
+The current-year Cap Sheet row display still applies local `Cap Hit` rules in `CapSheet.tsx`, including veteran-min treatment, while canonical aggregate player salary totals come from `computeTeamCapTotals(...)`.
+
+### Why It Matters
+
+- The screen can show one truth at the row level and another truth in aggregate totals
+- Even if most current data happens to line up, the code still preserves a row-to-total drift seam
+- This weakens trust in the current-year Cap Sheet as a fully coherent display surface
+
+### Goal
+
+Make row-level `Cap Hit` display and canonical aggregate player salary truth use clearly aligned rules.
+
+### Success Criteria
+
+- Row-level cap-hit display no longer depends on local-only math that can diverge from canonical totals
+- Veteran-min and other cap-hit rules are either centralized or clearly shared
+- The player table and aggregate player salary truth cannot silently disagree on cap-counting logic
+
+---
+
+## CS-2B — Clarify Which Current-Year Display Elements Are Canonical Totals Consumers vs Adjacent Detail Views
+
+### Problem
+
+The current-year Cap Sheet mixes:
+
+- canonical totals consumers
+- adjacent detail views
+- separate presentation sections
+
+without making that display structure fully explicit.
+
+### Why It Matters
+
+- Future contributors could mistake detail views for alternate truth surfaces
+- UI layers can quietly drift when some values are canonical totals and others are parallel detail renderings
+- The display surface should make it obvious what is a totals-driven summary versus what is a supporting breakdown/detail list
+
+### Goal
+
+Make the current-year display hierarchy clearer so a contributor can tell which sections are:
+
+- direct canonical totals consumers
+- supporting detail views
+- adjacent presentation surfaces
+
+### Success Criteria
+
+- The current-year Cap Sheet reads as one coherent display system
+- Canonical totals consumers are clearly identifiable
+- Detail surfaces do not read like shadow owners of totals truth
+
+---
+
+## CS-2C — Reduce Partial-Truth Risk in the Current-Year Cap Sheet Layout
+
+### Problem
+
+The player table shows only player contract rows, while total cap allocations also include:
+
+- dead money
+- cap holds
+- incomplete roster charges
+
+Those additional categories live lower on the screen in the breakdown section.
+
+### Why It Matters
+
+- A user scanning only the table can walk away with an incomplete understanding of the real total cap hit
+- The screen is technically truthful, but still risks being only partially legible as a full cap-allocation surface
+- Layout clarity matters when the goal is trustworthy display truth
+
+### Goal
+
+Tighten the current-year Cap Sheet so the relationship between:
+
+- player rows
+- breakdown categories
+- total cap hit
+
+is more immediately understandable.
+
+### Success Criteria
+
+- The user can quickly understand that total cap hit is broader than just the visible player rows
+- The layout more clearly signals how lower breakdown categories contribute to the total
+- Partial-truth risk from the visual structure is reduced
+
+---
+
+## CS-2D — Guard the Current-Year Display Against Future Local Recalculation Drift
+
+### Problem
+
+The current-year display is mostly grounded in canonical totals, but local display helpers and per-row rendering logic still create opportunities for future drift.
+
+### Why It Matters
+
+- Even a mostly clean display layer can regress if future changes reintroduce local calculations
+- Row display logic, summary tiles, and breakdown sections need guardrails to stay aligned
+- Without focused protection, the display could slowly drift back toward mixed ownership
+
+### Goal
+
+Add or strengthen focused guardrails so the current-year Cap Sheet remains a canonical-totals-driven display surface.
+
+### Success Criteria
+
+- Future local recalculation drift is easier to detect
+- Summary, breakdown, and row display relationships are protected by focused tests/guardrails
+- The current-year Cap Sheet stays structurally clean over time
+
+---
+
+## Step 2 Summary
+
+This step focuses on:
+
+- aligning row-level display rules with canonical totals truth
+- clarifying which current-year UI sections are totals consumers versus detail views
+- reducing the layout’s partial-truth risk
+- guarding the display layer against future local recalculation drift
+
+This is a **display-truth and UI-alignment step**, not a broad Cap Sheet rewrite.
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution

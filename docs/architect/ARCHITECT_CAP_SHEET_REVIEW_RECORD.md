@@ -269,3 +269,270 @@ The main unresolved concern is whether two-way contracts are treated consistentl
 So the correct Step 1 conclusion is:
 
 **Mostly consolidated, but not yet clean enough to declare fully trustworthy single-source-of-truth totals without follow-up work.**
+
+---
+
+# STEP 2 — Cap Sheet Display Truth
+
+## Scope
+
+Cap Sheet — Step 2: Cap Sheet Display Truth
+
+**Date:** 2026-03-28  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the current-year Cap Sheet UI accurately reflects canonical cap truth.
+
+Main questions:
+
+- whether the current-year Cap Sheet UI is using canonical totals consistently
+- whether summary tiles, player rows, cap holds, dead money, incomplete charges, and total cap hit all align
+- whether any displayed values are computed separately from the canonical totals source
+- whether the current-year Cap Sheet could show misleading or partial truth
+- whether the display layer is structurally clean or still has drift risk
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+The current-year Cap Sheet is mostly wired to canonical truth correctly, but it is not clean enough for a PASS yet.
+
+The main totals surfaces are strong:
+
+- `CapSheet.tsx` computes canonical totals once
+- `CapSummaryTiles.tsx` consumes those totals
+- the lower breakdown rows and total cap hit footer also use the same canonical totals object
+
+However, the row display layer still contains at least one meaningful local-display rule that can drift from canonical totals:
+
+- row-level `Cap Hit` display applies veteran-min cap-hit logic locally through `getCapHit(...)`
+- canonical `playersTotal` in `computeTeamCapTotals(...)` still sums contract-year `capHit` / `salary` directly
+
+That means the screen is largely coherent, but not yet fully guaranteed to be row-to-total airtight in every data shape.
+
+---
+
+## Current-Year Cap Sheet UI Truth Map
+
+### 1. Section Entrypoint
+
+`CapSheetSection.tsx` is the current-year display entrypoint.
+
+It renders:
+
+- `CapSheet`
+- `ExceptionTracker`
+
+This means the main cap-allocation display truth lives in `CapSheet`, while exception / TPE / hard-cap presentation lives in a separate adjacent surface.
+
+---
+
+### 2. Main Current-Year Cap Sheet Surface
+
+Inside `CapSheet.tsx`, the file computes `canonicalTotals` once with `computeTeamCapTotals(...)` inside `useMemo`.
+
+That canonical totals object is then used for:
+
+- `CapSummaryTiles`
+- the cap breakdown rows
+- the total cap hit footer
+- the denominator for cap-percentage display
+
+This is the main canonical display surface for current-year cap allocations.
+
+---
+
+### 3. Summary Strip Surface
+
+`CapSummaryTiles.tsx` does not recompute totals independently.
+
+It consumes `canonicalTotals` from `CapSheet` and derives:
+
+- total cap allocations
+- cap space
+- luxury tax space
+- first apron space
+- second apron space
+
+from the canonical totals fields and deltas.
+
+This is clean consumer behavior rather than parallel totals ownership.
+
+---
+
+### 4. Cap Holds Surface
+
+`CapSheet.tsx` renders the cap-holds detail list using `getActiveUnsignedCapHoldsByEndYear(...)`.
+
+This is a sibling utility path to the canonical totals engine, which uses `getActiveUnsignedCapHoldsTotalByEndYear(...)` inside `computeTeamCapTotals(...)`.
+
+So the cap-holds detail list is not literally reusing the precomputed total field, but it is still tied to the same underlying cap-holds utility family.
+
+---
+
+### 5. Exception / TPE / Hard-Cap Surface
+
+`ExceptionTracker.tsx` is intentionally separate from canonical totals ownership.
+
+It explicitly says it:
+
+- owns exception, TPE, and hard-cap presentation
+- does **not** compute or redefine canonical cap totals
+
+This means the Cap Sheet tab includes multiple cap-related surfaces, but their ownership boundary is intentionally separated rather than silently duplicated.
+
+---
+
+## Alignment Analysis Between Displayed Values and Canonical Totals
+
+### Summary Tiles
+
+The summary strip is aligned with canonical truth.
+
+`CapSummaryTiles.tsx` destructures canonical totals directly and derives display-space values from canonical deltas rather than recomputing total allocations locally.
+
+This is clean.
+
+---
+
+### Lower Breakdown Rows and Footer
+
+The lower Cap Sheet breakdown is aligned with canonical truth.
+
+`CapSheet.tsx` uses `canonicalTotals` directly for:
+
+- Player Salaries
+- Dead Money
+- Cap Holds
+- Incomplete Roster Charge
+- Total Cap Hit
+
+So the aggregate display layer is properly grounded in the canonical totals engine.
+
+---
+
+### Cap Holds Detail List
+
+The cap-holds detail list appears reasonably aligned with canonical truth, but through a sibling utility path rather than the exact same precomputed field.
+
+This is acceptable as long as both utilities remain behaviorally aligned.
+
+No obvious independent total-row calculation is being maintained here.
+
+---
+
+### Player Row Display
+
+This is the main remaining risk surface.
+
+Each player row computes:
+
+- `salary` from `getContractYearSlice(...)`
+- `capHit` from local `getCapHit(...)`
+
+The local `getCapHit(...)` helper applies row-level rules:
+
+- two-way contracts return zero
+- veteran minimum players with 3+ years can get `getMinimumCapHit(...)`
+
+That means row-level displayed cap hit is not just “whatever canonical totals used.”
+
+By contrast, canonical `playersTotal` in `computeTeamCapTotals.ts` uses `computePlayersTotal(...)`, which:
+
+- excludes two-ways
+- then sums season slice `capHit` or `salary` directly
+
+So the screen still contains a row-level local cap-hit rule surface that is not obviously shared with canonical totals math.
+
+This is the main reason the step stays at RISK.
+
+---
+
+## Any Misleading, Duplicated, or Partial Display Surfaces
+
+### Not Broadly Misleading
+
+The current-year Cap Sheet is not broadly misleading.
+
+The major aggregate totals are clearly anchored to canonical totals.
+
+There is no obvious second aggregate totals system hidden inside the current-year display layer.
+
+---
+
+### Somewhat Partial by Layout
+
+The table only shows players who have a contract slice for the selected year.
+
+But total cap allocations also include:
+
+- dead money
+- cap holds
+- incomplete roster charges
+
+Those live below the player table in the breakdown section.
+
+So a user who only scans the player rows does **not** see the entire composition of total cap hit without also reading the lower breakdown area.
+
+This is more of a presentation limitation than a source-of-truth bug.
+
+---
+
+### Remaining Row-to-Total Drift Seam
+
+The real remaining drift seam is narrower:
+
+- row-level `Cap Hit` uses local display math
+- aggregate `playersTotal` uses canonical totals math
+
+Specifically, veteran-min cap-hit handling is still a local display rule in `CapSheet.tsx` rather than an obviously shared canonical rule.
+
+That means row display and aggregate totals could diverge in certain data conditions.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why This Is Not FAIL
+
+- `CapSheet.tsx` computes canonical totals once and reuses them
+- `CapSummaryTiles.tsx` consumes canonical totals
+- the lower breakdown rows use canonical totals
+- the footer total uses canonical totals
+- `ExceptionTracker.tsx` explicitly fences itself away from canonical totals ownership
+
+So the current-year Cap Sheet is mostly grounded in one real truth source.
+
+---
+
+### Why This Is Not PASS
+
+- row-level `Cap Hit` still contains local display logic not obviously shared with canonical totals
+- veteran-min cap-hit treatment is the clearest remaining row-to-total drift seam
+- the player table itself shows only part of total cap allocations, with other categories living in a lower breakdown section
+
+So the screen is mostly coherent, but not yet fully display-truth-clean.
+
+---
+
+## Final Conclusion
+
+The current-year Cap Sheet display is mostly truthful and mostly clean.
+
+The important aggregate numbers are grounded in the canonical totals engine.
+
+However, Step 2 remains **RISK** because the row-display layer is not yet fully guaranteed to use the exact same rule set as canonical aggregate totals, especially around veteran-min cap-hit treatment.
+
+So the correct conclusion is:
+
+**Current-year Cap Sheet display truth is mostly aligned, but still has a meaningful row-to-total drift seam that should be tightened before this surface can be considered fully clean.**
+
+---
