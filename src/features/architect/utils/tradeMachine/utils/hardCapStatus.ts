@@ -106,6 +106,15 @@ function toFiniteNumber(value: unknown): number {
   return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
+function toOptionalString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 function normalizeHardCapType(value: unknown): CanonicalHardCapType | null {
   if (
     value === null ||
@@ -208,6 +217,26 @@ function toRecord(value: unknown): Record<string, unknown> | null {
   }
 
   return value as Record<string, unknown>;
+}
+
+function getExplicitHardCapReason(
+  team: HardCapStatusTeamLike,
+  teamLike: HardCapStatusTeamData
+): string | null {
+  const teamTotals = toRecord(team?.totals);
+  const nestedTotals = toRecord(teamLike?.totals);
+
+  return (
+    toOptionalString(team?.hardCapReason) ||
+    toOptionalString(teamLike?.hardCapReason) ||
+    toOptionalString(team?.hardCapDetail) ||
+    toOptionalString(teamLike?.hardCapDetail) ||
+    toOptionalString(teamTotals?.hardCapReason) ||
+    toOptionalString(teamTotals?.hardCapDetail) ||
+    toOptionalString(nestedTotals?.hardCapReason) ||
+    toOptionalString(nestedTotals?.hardCapDetail) ||
+    null
+  );
 }
 
 function getUsageSourceLabel(
@@ -501,6 +530,7 @@ export function getHardCapStatus(
   }
 
   const teamLike = team.team || {};
+  const explicitReason = getExplicitHardCapReason(team, teamLike);
   const hardCapSecondApron =
     teamLike?.hardCapSecondApron || team.hardCapSecondApron;
   const hardCapFirstApron = teamLike?.hardCapFirstApron || team.hardCapFirstApron;
@@ -509,7 +539,10 @@ export function getHardCapStatus(
     return buildStatus({
       isHardCapped: true,
       hardCapType: HARD_CAP_TYPES.SECOND_APRON,
-      reason: hardCapSecondApron.reason || 'Second apron hard cap active',
+      reason:
+        explicitReason ||
+        hardCapSecondApron.reason ||
+        'Second apron hard cap active',
       source: 'team.team.hardCapSecondApron.active === true',
       capSettings,
     });
@@ -519,7 +552,10 @@ export function getHardCapStatus(
     return buildStatus({
       isHardCapped: true,
       hardCapType: HARD_CAP_TYPES.FIRST_APRON,
-      reason: hardCapFirstApron.reason || 'First apron hard cap active',
+      reason:
+        explicitReason ||
+        hardCapFirstApron.reason ||
+        'First apron hard cap active',
       source: 'team.team.hardCapFirstApron.active === true',
       capSettings,
     });
@@ -560,7 +596,7 @@ export function getHardCapStatus(
       return buildStatus({
         isHardCapped: true,
         hardCapType: HARD_CAP_TYPES.SECOND_APRON,
-        reason: 'Hard cap triggered at Second Apron',
+        reason: explicitReason || 'Hard cap triggered at Second Apron',
         source: sourceLabel,
         capSettings,
       });
@@ -570,7 +606,7 @@ export function getHardCapStatus(
       return buildStatus({
         isHardCapped: true,
         hardCapType: HARD_CAP_TYPES.FIRST_APRON,
-        reason: 'Hard cap triggered at First Apron',
+        reason: explicitReason || 'Hard cap triggered at First Apron',
         source: sourceLabel,
         capSettings,
       });
@@ -586,6 +622,7 @@ export function getHardCapStatus(
       isHardCapped: true,
       hardCapType: HARD_CAP_TYPES.UNKNOWN,
       reason:
+        explicitReason ||
         'Hard cap indicated by legacy/ambiguous value. Applying fail-closed ceiling.',
       source: unknownSource,
       capSettings,

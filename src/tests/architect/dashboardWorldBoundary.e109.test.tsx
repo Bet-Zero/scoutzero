@@ -147,6 +147,7 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     player,
     onClose,
     targetYear,
+    actionYear,
     actionContext,
     playerRulesProfile,
     rulesLeagueContext,
@@ -166,6 +167,7 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     player?: { displayName?: string; name?: string };
     onClose?: () => void;
     targetYear?: number | null;
+    actionYear?: number | null;
     actionContext?: string | null;
     playerRulesProfile?: {
       contractSummary?: { freeAgencyType?: string | null; freeAgencyYear?: number | null };
@@ -190,6 +192,7 @@ vi.mock('@/shared/components/EditContractModal', () => ({
       player,
       onClose,
       targetYear,
+      actionYear,
       actionContext,
       playerRulesProfile,
       rulesLeagueContext,
@@ -213,6 +216,9 @@ vi.mock('@/shared/components/EditContractModal', () => ({
         </div>
         <div data-testid="mock-edit-contract-modal-target-year">
           {targetYear == null ? '' : String(targetYear)}
+        </div>
+        <div data-testid="mock-edit-contract-modal-action-year">
+          {actionYear == null ? '' : String(actionYear)}
         </div>
         <div data-testid="mock-edit-contract-modal-action-context">
           {actionContext || ''}
@@ -1082,6 +1088,9 @@ describe('E109 dashboard/world boundary behavior', () => {
         screen.getByTestId('mock-edit-contract-modal-target-year')
       ).toHaveTextContent('2028');
       expect(
+        screen.getByTestId('mock-edit-contract-modal-action-year')
+      ).toHaveTextContent('2028');
+      expect(
         screen.getByTestId('mock-edit-contract-modal-action-context')
       ).toHaveTextContent('freeAgent');
       expect(
@@ -1093,6 +1102,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
       expect(modalProps).toEqual(
         expect.objectContaining({
+          actionYear: 2028,
           onSignFreeAgent: dashboardActions.handleSign,
           onResign: dashboardActions.handleSign,
           onSignAndTrade: dashboardActions.handleSignAndTrade,
@@ -1156,6 +1166,9 @@ describe('E109 dashboard/world boundary behavior', () => {
         screen.getByTestId('mock-edit-contract-modal-target-year')
       ).toHaveTextContent('2028');
       expect(
+        screen.getByTestId('mock-edit-contract-modal-action-year')
+      ).toHaveTextContent('2028');
+      expect(
         screen.getByTestId('mock-edit-contract-modal-rules-year')
       ).toHaveTextContent('2029');
       expect(
@@ -1168,6 +1181,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
       expect(modalProps).toEqual(
         expect.objectContaining({
+          actionYear: 2028,
           targetYear: 2028,
           rulesLeagueContext: { currentYear: 2029 },
         })
@@ -1300,7 +1314,8 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(dashboardActions.handleOptionDecision).toHaveBeenCalledWith(
         selectedPlayer,
         false,
-        overrideMetadata
+        overrideMetadata,
+        null
       );
       expect(dashboardActions.handleRenounceRights).toHaveBeenCalledWith(
         selectedPlayer,

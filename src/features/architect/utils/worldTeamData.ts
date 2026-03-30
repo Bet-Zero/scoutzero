@@ -44,6 +44,8 @@ export type LoadedWorldTeamCapSheet = Pick<
   | 'bae'
   | 'tradeExceptions'
   | 'hardCapLevel'
+  | 'hardCapReason'
+  | 'hardCapTriggeredBy'
   | 'hardCapped'
   | 'baseline'
 > & {

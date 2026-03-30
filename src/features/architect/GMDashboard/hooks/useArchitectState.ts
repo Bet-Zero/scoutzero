@@ -266,6 +266,9 @@ export type ArchitectDashboardCapSheet = DashboardBaseTeamCapSheet & {
   incomingOfferSheets?: OfferSheetLike[] | null;
   activeContracts?: LoadedWorldTeamData['activeContracts'] | null;
   tradeExceptions?: LoadedWorldTeamData['tradeExceptions'] | null;
+  hardCapLevel?: LoadedWorldTeamData['hardCapLevel'] | null;
+  hardCapReason?: LoadedWorldTeamData['hardCapReason'] | null;
+  hardCapTriggeredBy?: LoadedWorldTeamData['hardCapTriggeredBy'] | null;
   hardCapped?: LoadedWorldTeamData['hardCapped'] | null;
   amount?: number;
 };

@@ -80,8 +80,16 @@ interface LooseBaseTeamDoc extends UnknownRecord {
   incomingOfferSheets?: unknown[] | null;
   exceptions?: LooseExceptionData | null;
   hardCapLevel?: string | null;
+  hardCapReason?: string | null;
+  hardCapTriggeredBy?: string | null;
   deadCap?: unknown[] | null;
-  totals?: (UnknownRecord & { hardCapLevel?: string | null }) | null;
+  totals?: (
+    UnknownRecord & {
+      hardCapLevel?: string | null;
+      hardCapReason?: string | null;
+      hardCapDetail?: string | null;
+    }
+  ) | null;
 }
 
 interface LooseBirdRights extends UnknownRecord {
@@ -249,6 +257,8 @@ export type HydratedBaseTeamCapSheet = {
   bae: HydratedBaseTeamSimpleException | null;
   tradeExceptions: HydratedBaseTeamTradeException[];
   hardCapLevel: string | null;
+  hardCapReason: string | null;
+  hardCapTriggeredBy: string | null;
   hardCapped: boolean;
   deadCap: NonNullable<LooseBaseTeamDoc['deadCap']>;
   baseline: LooseBaseTeamDoc;
@@ -326,6 +336,12 @@ export const hydrateBaseTeam = async (
   const teamMeta = TeamCodeMap[teamCode] || null;
   const hardCapLevel =
     baseDoc.hardCapLevel || baseDoc.totals?.hardCapLevel || null;
+  const hardCapReason =
+    baseDoc.hardCapReason ||
+    baseDoc.totals?.hardCapReason ||
+    baseDoc.totals?.hardCapDetail ||
+    null;
+  const hardCapTriggeredBy = baseDoc.hardCapTriggeredBy || null;
   const hardCapped =
     hardCapLevel != null &&
     String(hardCapLevel).toLowerCase() !== 'none' &&
@@ -364,6 +380,8 @@ export const hydrateBaseTeam = async (
     bae: toSimpleException(exceptionData.bae),
     tradeExceptions,
     hardCapLevel,
+    hardCapReason,
+    hardCapTriggeredBy,
     hardCapped,
     deadCap: baseDoc.deadCap || [],
     baseline: baseDoc,

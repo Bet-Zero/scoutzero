@@ -5897,12 +5897,10 @@ function computeSigningResult({
   });
 
   if (signingMechanism === 'FULL_MLE' && consumedExceptionKey) {
-    updatedTeam.totals = {
-      ...(updatedTeam.totals || {}),
-      isHardCapped: true,
-      hardCapLevel: 'firstApron',
-      hardCapDetail: 'Triggered by Non-Taxpayer MLE',
-    };
+    updatedTeam.hardCapped = 1;
+    updatedTeam.hardCapLevel = 'firstApron';
+    updatedTeam.hardCapReason = 'Triggered by Non-Taxpayer MLE';
+    updatedTeam.hardCapTriggeredBy = 'fullMLE';
   }
   // Phase 74: Room Exception usage tracking
   // Room Exception does NOT trigger hard cap (only Full MLE does).
@@ -5932,7 +5930,10 @@ function computeSigningResult({
   };
 
   // Recalculate totals
-  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
+  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   const teamUpdates: ArchitectMutationTeamUpdate[] = [
     { teamCode, team: updatedTeam },

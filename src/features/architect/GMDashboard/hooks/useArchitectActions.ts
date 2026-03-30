@@ -13,7 +13,10 @@
  *  - Plan: plans/cap-sheet-contract-rules-phase-7-2/plan.md
  */
 import { useCallback, useMemo } from 'react';
-import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 import {
   applyWorldMutation,
   computeWorldMutation,
@@ -504,7 +507,8 @@ export interface UseArchitectActionsReturn {
   handleOptionDecision: (
     player: ArchitectPlayer,
     accepted: boolean,
-    overrideMetadata?: OverrideMetadata | null
+    overrideMetadata?: OverrideMetadata | null,
+    targetYearOverride?: number | null
   ) => Promise<MutationActionResult>;
   handleRenounceRights: (
     player: ArchitectPlayer,
@@ -613,6 +617,60 @@ export const deriveSigningMechanism = (
   }
   return normalized;
 };
+
+function resolveSeasonEndYear(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = toEndYear(value);
+    return typeof parsed === 'number' && Number.isFinite(parsed)
+      ? parsed
+      : null;
+  }
+
+  return null;
+}
+
+function deriveContractActionYear(
+  contract: Partial<LocalContract> | null | undefined,
+  fallbackYear: number
+): number {
+  const salaryRows = Array.isArray(contract?.salariesByYear)
+    ? contract.salariesByYear
+    : [];
+  const firstSeasonValue = salaryRows.find((row) => row?.season != null)?.season;
+  const fromSeasonRow = resolveSeasonEndYear(firstSeasonValue);
+
+  if (fromSeasonRow !== null) {
+    return fromSeasonRow;
+  }
+
+  const fromStartYear = resolveSeasonEndYear(
+    contract?.startYear ?? contract?.year
+  );
+  return fromStartYear ?? fallbackYear;
+}
+
+function buildActionSeasonContext(
+  contract: Partial<LocalContract> | null | undefined,
+  fallbackYear: number
+) {
+  const actionYear = deriveContractActionYear(contract, fallbackYear);
+  return {
+    actionYear,
+    seasonId: toSeasonCode(actionYear),
+  };
+}
+
+function buildYearSeasonContext(year: unknown, fallbackYear: number) {
+  const actionYear = resolveSeasonEndYear(year) ?? fallbackYear;
+  return {
+    actionYear,
+    seasonId: toSeasonCode(actionYear),
+  };
+}
 
 type RenounceActionTarget =
   | PlayerRulesProfileInput
@@ -1003,11 +1061,13 @@ export function useArchitectActions({
       mutationType: string;
       playerIds?: string[];
       computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
+      yearOverride?: number;
     }): PreparedCapAuditedMutationLifecycle => {
       const {
         mutationType,
         playerIds = [],
         computeNextTeam,
+        yearOverride = currentYear,
       } = params;
       const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
       const afterTeamSnapshot = safeCloneForAudit(
@@ -1026,7 +1086,7 @@ export function useArchitectActions({
         occurredAt,
         mutationType,
         worldId,
-        year: currentYear,
+        year: yearOverride,
         teamCodes: [teamCode],
         playerIds: playerIds.filter(Boolean).map(String),
         beforeTeamsByCode,
@@ -1099,6 +1159,7 @@ export function useArchitectActions({
   // === Persistence Helper ===
   type PersistMutationOptions = {
     operationId?: string;
+    seasonIdOverride?: string;
     onSuccess?: (result: PersistMutationResult) => void;
     onFailure?: (message: string, result?: PersistMutationResult) => void;
   };
@@ -1180,10 +1241,11 @@ export function useArchitectActions({
 
       try {
         console.log(`💾 Saving ${mutationType}...`);
+        const effectiveSeasonId = options.seasonIdOverride || seasonId;
         const result = (await applyWorldMutation({
           userId,
           worldId,
-          seasonId,
+          seasonId: effectiveSeasonId,
           mutationType,
           payload,
           operationId: options.operationId,
@@ -1282,6 +1344,7 @@ export function useArchitectActions({
       payload: ArchitectMutationPayload,
       options: {
         worldRequiredMessage?: string;
+        seasonIdOverride?: string;
       } = {}
     ): Promise<PersistMutationResult> => {
       if (!worldId) {
@@ -1303,7 +1366,7 @@ export function useArchitectActions({
         const rawResult = (await applyWorldMutation({
           userId,
           worldId,
-          seasonId,
+          seasonId: options.seasonIdOverride || seasonId,
           mutationType,
           payload,
         })) as PersistMutationResult;
@@ -1349,12 +1412,12 @@ export function useArchitectActions({
     [
       finishSave,
       reportMutationError,
-      seasonId,
       startSave,
       syncTeamFromMutationResult,
       userId,
       worldId,
       evaluateMutationTruth,
+      seasonId,
     ]
   );
 
@@ -1365,6 +1428,8 @@ export function useArchitectActions({
       computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
       persistPayload?: ArchitectMutationPayload;
       invalidMessage: string;
+      seasonIdOverride?: string;
+      yearOverride?: number;
     }): {
       applied: boolean;
       operationId: string | null;
@@ -1376,6 +1441,8 @@ export function useArchitectActions({
         computeNextTeam,
         persistPayload = {},
         invalidMessage,
+        seasonIdOverride,
+        yearOverride = currentYear,
       } = params;
 
       const lockScopeKey = worldId
@@ -1413,6 +1480,7 @@ export function useArchitectActions({
           mutationType,
           playerIds,
           computeNextTeam,
+          yearOverride,
         });
 
         appendLocalCapAuditEvent(lifecycle.previewAuditEvaluation.event, {
@@ -1450,6 +1518,7 @@ export function useArchitectActions({
 
         const persistPromise = persistMutation(mutationType, persistPayload, {
           operationId: lifecycle.operationId,
+          seasonIdOverride,
           onSuccess: lifecycle.linkPersistSuccess,
           onFailure: (message) => {
             lifecycle.rollbackPersistFailure();
@@ -1847,6 +1916,10 @@ export function useArchitectActions({
         };
       }
 
+      const actionSeasonContext = buildActionSeasonContext(
+        contract as LocalContract,
+        currentYear
+      );
       const architectContract = ensureContractStructure(
         contract as LocalContract,
         {
@@ -1857,7 +1930,7 @@ export function useArchitectActions({
           isExtension: !!contract.isExtension,
           isRookieScale: !!contract.isRookieScale,
           signingTeam: teamCode,
-          startYear: currentYear,
+          startYear: actionSeasonContext.actionYear,
         }
       );
 
@@ -1889,6 +1962,7 @@ export function useArchitectActions({
           signingPayload,
           {
             worldRequiredMessage: 'Signing requires an active world to commit.',
+            seasonIdOverride: actionSeasonContext.seasonId,
           }
         );
 
@@ -1936,7 +2010,7 @@ export function useArchitectActions({
         player: canonicalPlayer,
         contract: architectContract,
         signedUsing,
-        year: currentYear,
+        year: actionSeasonContext.actionYear,
       });
 
       if (!validation.valid) {
@@ -1959,7 +2033,7 @@ export function useArchitectActions({
           player: canonicalPlayer as FreeAgentComputeState['player'],
           teamCode,
         } satisfies FreeAgentComputeState,
-        seasonId,
+        seasonId: actionSeasonContext.seasonId,
         timestamp: Date.now(),
         worldId: null,
       }) as ComputeMutationResult;
@@ -1998,7 +2072,7 @@ export function useArchitectActions({
         occurredAt,
         mutationType: 'signFreeAgent',
         worldId: null,
-        year: currentYear,
+        year: actionSeasonContext.actionYear,
         teamCodes: [teamCode],
         playerIds: [String(idToSign)],
         beforeTeamsByCode: {
@@ -2041,7 +2115,6 @@ export function useArchitectActions({
       playersMap,
       reportMutationError,
       runAuthoritativeFAMutation,
-      seasonId,
       setFreeAgents,
       setTeamCapSheet,
       teamCapSheet,
@@ -2115,6 +2188,10 @@ export function useArchitectActions({
         };
       }
 
+      const actionSeasonContext = buildActionSeasonContext(
+        contract as LocalContract,
+        currentYear
+      );
       const architectContract = ensureContractStructure(
         contract as LocalContract,
         {
@@ -2122,7 +2199,7 @@ export function useArchitectActions({
           isExtension: false,
           isRookieScale: !!contract.isRookieScale,
           signingTeam: teamCode,
-          startYear: currentYear,
+          startYear: actionSeasonContext.actionYear,
         }
       );
 
@@ -2155,6 +2232,7 @@ export function useArchitectActions({
         {
           worldRequiredMessage:
             'Sign-and-trade requires an active world to commit.',
+          seasonIdOverride: actionSeasonContext.seasonId,
         }
       );
 
@@ -2224,6 +2302,10 @@ export function useArchitectActions({
         };
       }
 
+      const actionSeasonContext = buildActionSeasonContext(
+        contract as LocalContract,
+        currentYear
+      );
       const architectContract = ensureContractStructure(
         contract as LocalContract,
         {
@@ -2231,7 +2313,7 @@ export function useArchitectActions({
           isExtension: false,
           isRookieScale: !!contract.isRookieScale,
           signingTeam: teamCode,
-          startYear: currentYear,
+          startYear: actionSeasonContext.actionYear,
         }
       );
 
@@ -2247,7 +2329,7 @@ export function useArchitectActions({
       try {
         return await preflightSignAndTradeMutation({
           worldId,
-          seasonId,
+          seasonId: actionSeasonContext.seasonId,
           payload: {
             teamCode,
             destinationTeamCode: canonicalDestinationTeamCode,
@@ -2270,7 +2352,7 @@ export function useArchitectActions({
         };
       }
     },
-    [currentYear, seasonId, teamCode, worldId]
+    [currentYear, teamCode, worldId]
   );
 
   const getOfferSheetPreflight = useCallback(
@@ -2297,6 +2379,10 @@ export function useArchitectActions({
         };
       }
 
+      const actionSeasonContext = buildActionSeasonContext(
+        contract as LocalContract,
+        currentYear
+      );
       const architectContract = ensureContractStructure(
         contract as LocalContract,
         {
@@ -2307,7 +2393,7 @@ export function useArchitectActions({
           rfaOfferSheetOnly: true,
           rfaOfferSheetStatus: 'PENDING_MATCH',
           signingTeam: teamCode,
-          startYear: currentYear,
+          startYear: actionSeasonContext.actionYear,
         }
       );
 
@@ -2323,7 +2409,7 @@ export function useArchitectActions({
       try {
         return await preflightOfferSheetMutation({
           worldId,
-          seasonId,
+          seasonId: actionSeasonContext.seasonId,
           offeringTeamCode: teamCode,
           playerId,
           contract: architectContract,
@@ -2341,7 +2427,7 @@ export function useArchitectActions({
         };
       }
     },
-    [currentYear, seasonId, teamCode, worldId]
+    [currentYear, teamCode, worldId]
   );
 
   // === RFA Offer Sheet Actions ===
@@ -2375,13 +2461,17 @@ export function useArchitectActions({
         };
       }
 
+      const actionSeasonContext = buildActionSeasonContext(
+        contract as LocalContract,
+        currentYear
+      );
       const offerContract = ensureContractStructure(contract as LocalContract, {
         contractType: 'Offer Sheet',
         signingTeam: teamCode,
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
         rfaOfferSheetStatus: 'PENDING_MATCH',
-        startYear: currentYear,
+        startYear: actionSeasonContext.actionYear,
       });
 
       if (!offerContract) {
@@ -2411,6 +2501,7 @@ export function useArchitectActions({
         {
           worldRequiredMessage:
             'Offer sheet actions require an active world to commit.',
+          seasonIdOverride: actionSeasonContext.seasonId,
         }
       );
 
@@ -3240,10 +3331,15 @@ export function useArchitectActions({
     async (
       player: ArchitectPlayer,
       accepted: boolean,
-      overrideMetadata?: OverrideMetadata | null
+      overrideMetadata?: OverrideMetadata | null,
+      targetYearOverride?: number | null
     ): Promise<MutationActionResult> => {
       const playerId = player.id || player.player_id || player.name;
-      const targetYear = currentYear + 1;
+      const yearSeasonContext = buildYearSeasonContext(
+        targetYearOverride,
+        currentYear + 1
+      );
+      const targetYear = yearSeasonContext.actionYear;
       if (!playerId) {
         console.error('Option decision missing playerId', { player });
         toast.error('Cannot save: Player ID missing');
@@ -3254,6 +3350,8 @@ export function useArchitectActions({
         mutationType: 'optionDecision',
         playerIds: [String(playerId)],
         invalidMessage: 'Option decision blocked by post-state cap validation.',
+        seasonIdOverride: yearSeasonContext.seasonId,
+        yearOverride: yearSeasonContext.actionYear,
         computeNextTeam: (beforeTeam) => {
           let newCapHold: CapHold | null = null;
 

@@ -210,6 +210,7 @@ type SigningPayloadLike = {
   contractType: string;
   salaries: number[];
   raisePct?: number;
+  startYear?: number;
   contractYears: number;
   salariesByYear: Array<{
     season: string;
@@ -251,6 +252,7 @@ type OptionDecisionCallback = (
   player: PlayerLike,
   accept: boolean,
   overrideMetadata?: OverrideMetadataLike | null,
+  targetYear?: number | null,
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 type SignAndTradeCallback = (
@@ -312,6 +314,7 @@ type EditContractModalProps = {
   onStoreOfferSheet?: SigningActionCallback | null;
   initialAction?: string | null;
   targetYear?: number | null;
+  actionYear?: number | null;
   actionContext?: ActionSetKey | null;
   teamCapSheet?: TeamCapSheetLike;
   currentYear?: number | null;
@@ -744,6 +747,7 @@ const EditContractModal = ({
   onStoreOfferSheet = null, // Phase 16
   initialAction = null,
   targetYear = null,
+  actionYear: actionYearProp = null,
   actionContext = null, // 'option' | 'freeAgent' | null - from clicked cell
   teamCapSheet = null,
   currentYear: currentYearProp = null,
@@ -786,6 +790,8 @@ const EditContractModal = ({
   const [extMax, setExtMax] = useState<ExtMaxState | null>(null);
   const normalizedTargetYear =
     typeof targetYear === 'number' ? targetYear : null;
+  const normalizedActionYear =
+    typeof actionYearProp === 'number' ? actionYearProp : null;
   const normalizedActionContext: ActionSetKey | null =
     actionContext === 'option' ||
     actionContext === 'freeAgent' ||
@@ -800,13 +806,22 @@ const EditContractModal = ({
   const simulationDate = rulesLeagueContext?.simulationDate;
   const simDate = simulationDate instanceof Date ? simulationDate : today;
   const CURRENT_YEAR =
-    currentYearProp ||
-    rulesLeagueContext?.currentYear ||
+    (typeof currentYearProp === 'number' ? currentYearProp : null) ||
+    (typeof rulesLeagueContext?.currentYear === 'number'
+      ? rulesLeagueContext.currentYear
+      : null) ||
     simDate.getFullYear() + (simDate.getMonth() >= 6 ? 1 : 0);
+  const ACTION_YEAR =
+    normalizedActionYear ??
+    normalizedTargetYear ??
+    (typeof rulesLeagueContext?.currentYear === 'number'
+      ? rulesLeagueContext.currentYear
+      : null) ??
+    CURRENT_YEAR;
 
   const capSettings = useMemo(
-    () => getCapSettings(CURRENT_YEAR),
-    [CURRENT_YEAR]
+    () => getCapSettings(ACTION_YEAR),
+    [ACTION_YEAR]
   );
 
   const isSigningAction =
@@ -942,7 +957,7 @@ const EditContractModal = ({
       const salariesByYear = salaries.map((value, index) => {
         const amount = Math.round(Number(value) || 0);
         return {
-          season: toSeasonCode(CURRENT_YEAR + index),
+          season: toSeasonCode(ACTION_YEAR + index),
           salary: amount,
           capHit: amount,
           guaranteed: true,
@@ -969,12 +984,13 @@ const EditContractModal = ({
         firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
         exceptionType: selectedException,
         signedUsing,
+        startYear: ACTION_YEAR,
         guardrails: signingGuardrails,
         raisePct: extension.raisePct ?? signingGuardrails?.raisePct ?? 0.05,
         ...overrides,
       };
     },
-    [CURRENT_YEAR, extension, selectedException, signingGuardrails]
+    [ACTION_YEAR, extension, selectedException, signingGuardrails]
   );
   const signAndTradePreflightPayload = useMemo(
     () =>
@@ -1011,7 +1027,7 @@ const EditContractModal = ({
     action: validationAuthority === 'advisory-modal' ? selectedAction : null,
     contractData: contractDataForValidation,
     teamCapSheet,
-    currentYear: CURRENT_YEAR,
+    currentYear: isSigningAction ? ACTION_YEAR : CURRENT_YEAR,
     targetYear: normalizedTargetYear,
     rulesProfile: playerRulesProfile,
   });
@@ -1612,14 +1628,16 @@ const EditContractModal = ({
             actionResult = await onOptionDecision?.(
               player,
               true,
-              overrideMetadata
+              overrideMetadata,
+              normalizedTargetYear
             );
             break;
           case 'decline':
             actionResult = await onOptionDecision?.(
               player,
               false,
-              overrideMetadata
+              overrideMetadata,
+              normalizedTargetYear
             );
             break;
           case 'signNew':

@@ -246,12 +246,13 @@ const GMDashboard = () => {
     );
   const modalOnOptionDecision: NonNullable<
     EditContractModalProps['onOptionDecision']
-  > = (player, accepted, overrideMetadata) =>
+  > = (player, accepted, overrideMetadata, targetYearOverride) =>
     toModalActionResult(
       actions.handleOptionDecision(
         player as Parameters<typeof actions.handleOptionDecision>[0],
         accepted,
-        toOverrideMetadata(overrideMetadata)
+        toOverrideMetadata(overrideMetadata),
+        typeof targetYearOverride === 'number' ? targetYearOverride : null
       )
     );
   const modalOnRenounce: NonNullable<EditContractModalProps['onRenounce']> = (
@@ -620,6 +621,7 @@ const GMDashboard = () => {
           player={modalPlayer}
           initialAction={initialAction}
           targetYear={targetYear}
+          actionYear={targetYear ?? currentYear}
           actionContext={actionContext}
           capProjections={capProjections}
           teamCapSheet={modalTeamCapSheet}
