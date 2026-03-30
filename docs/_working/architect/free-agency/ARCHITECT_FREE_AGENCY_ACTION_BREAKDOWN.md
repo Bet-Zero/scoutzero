@@ -145,3 +145,5 @@ This is an **ownership-boundary and action-source-of-truth step**, not a broad F
 
 - Substeps defined
 - Ready for bootstrap + execution
+
+---

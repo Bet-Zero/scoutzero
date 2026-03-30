@@ -322,3 +322,422 @@ Free Agency has a real central action owner and generally coherent world-gated m
 However, the feature still carries enough split payload ownership and dual-path execution behavior — especially around standard signings versus world-only actions — that the correct Step 1 result is:
 
 **RISK**
+
+---
+
+# STEP 2 — Free Agent Pool UI Truth and Modal Launch Wiring
+
+## Scope
+
+Free Agency — Step 2: Free Agent Pool UI Truth and Modal Launch Wiring
+
+**Date:** 2026-03-30  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the visible Free Agent Pool surface is accurately wired to the real Free Agency action model.
+
+Main questions:
+
+- whether row/list/filter behavior is structurally clean and accurate
+- whether selected-player and sign-launch behavior are correctly wired
+- whether modal launch paths are clean and consistent
+- whether the visible UI could show misleading or partial truth about what actions are actually available
+- whether this surface has drift risk or hidden fallback behavior
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+The Free Agent Pool surface is not obviously broken, but it is a high-leverage UI layer that sits directly on top of:
+
+- grouped Free Agency action ownership
+- modal dispatch logic
+- world-only vs vacuum-mode action availability
+- selected-player staging
+- free-agent row interaction and filtering
+
+This means Step 2 is not mainly about whether the pool “renders.”
+It is about whether the visible Free Agency surface tells the truth about what actions are actually available and where they really go.
+
+The main structural risk entering this step is that the pool can still look more authoritative than it really is because it controls:
+
+- selection state
+- sign-launch behavior
+- modal-opening behavior
+- action availability handoff into the modal
+
+So even after Step 1 clarified ownership, this surface can still create misleading UI truth if:
+
+- selection and row actions do not line up
+- modal launch paths differ between selected-player cards and row actions
+- action availability shown to the user does not match grouped owner truth
+- local UI behavior quietly reintroduces hidden fallback assumptions
+
+The correct starting verdict for this step is therefore:
+
+**RISK**
+
+not because Step 1 ownership failed, but because the visible Free Agent Pool layer still needs its own truth/wiring review.
+
+---
+
+## Why This Step Exists Separately from Step 1
+
+Step 1 proved that the Free Agency action owner is centralized and that the ownership boundary is now clearer.
+
+That does **not** prove that the visible pool surface is fully honest or drift-safe.
+
+This step exists to answer different questions:
+
+- does the UI show the right actions
+- does it open the right modal state
+- do row actions and selected-player actions behave consistently
+- does world-only availability appear correctly at the visible surface
+- does the pool still hide any weak or duplicated UI paths
+
+So this is a UI-truth and launch-wiring step, not an ownership-source-of-truth step.
+
+---
+
+## Key Surfaces Under Review
+
+The main surfaces in scope are:
+
+- `FreeAgentPool.tsx`
+- `FreeAgentRow`
+- `SelectedFreeAgentCards`
+- `FreeAgencyFilterBar`
+- `EditContractModal.tsx` launch/wiring behavior from the pool surface
+- the `FreeAgencySection.tsx` wrapper only where it affects visible pool truth
+
+---
+
+## Initial Review Framing
+
+This step should determine:
+
+1. whether the visible pool list/filter/selection layer is structurally clean
+2. whether row actions and selected-player actions launch the same truthful action model
+3. whether modal launch behavior is unified and correctly constrained
+4. whether the visible action surface could mislead users about sign / sign-and-trade availability
+5. whether the pool still contains weakly-owned UI paths or hidden fallback behavior
+
+---
+
+## PASS / RISK / FAIL
+
+### Starting Step Verdict
+
+**RISK**
+
+This is the correct starting status for Step 2 because the visible Free Agent Pool surface still needs direct review for UI truth and modal launch wiring, even though Step 1 ownership hardening is complete.
+
+---
+
+## Final Conclusion
+
+Step 2 should now review the Free Agent Pool as the visible Free Agency interaction layer and determine whether the user-facing surface is actually truthful, clean, and consistently wired to the real action model.
+
+Current Step 2 starting assessment:
+
+**RISK**
+
+---
+
+# STEP 2 — Free Agent Pool UI Truth and Modal Launch Wiring
+
+## Scope
+
+Free Agency — Step 2: Free Agent Pool UI Truth and Modal Launch Wiring
+
+**Date:** 2026-03-30  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the visible Free Agent Pool surface is accurately wired to the real Free Agency action model.
+
+Main questions:
+
+- whether row/list/filter behavior is structurally clean and accurate
+- whether selected-player and sign-launch behavior are correctly wired
+- whether modal launch paths are clean and consistent
+- whether the visible UI could show misleading or partial truth about what actions are actually available
+- whether this surface has drift risk or hidden fallback behavior
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+The Free Agent Pool surface is not obviously broken, and its major interaction paths are coherent enough to function.
+
+Key strengths:
+
+- `FreeAgentPool.tsx` is now clearly a staging/dispatch surface rather than the primary action owner
+- modal action availability is grouped around the Step 1 `actionOwner` contract
+- world-only availability is visibly fenced through `actionOwner.worldOnly` rather than ad-hoc callback guessing
+- selected-player cards and row actions both converge on the same modal-entry surface
+- the list/filter/selection surface is reasonably modular, with separate row, header, selected-card, and filter-bar pieces
+
+However, this step is not a PASS because the visible pool layer still carries enough UI-level staging and launch responsibility that it could present partial or slightly misleading truth if those paths drift.
+
+The main risks are:
+
+- modal launch can still happen from more than one visible surface (row and selected-player card), so consistency must be proven rather than assumed
+- action availability is truthful only if the pool’s grouped-owner wiring remains aligned with modal dispatch behavior
+- the pool still performs local resolution/staging work such as player-data lookup, selected-player management, and modal-open state handling, which means it is still a high-leverage UI seam
+- the visible surface can look simpler than the actual underlying action model, especially around world-only actions
+
+So the correct conclusion is:
+
+**The Free Agent Pool UI is mostly coherent and now better aligned with the grouped action-owner model, but it is still a high-leverage launch surface with enough staging complexity that Step 2 should be graded RISK rather than PASS.**
+
+---
+
+## Free Agent Pool UI Truth Map
+
+### 1. Section-Level Wrapper Truth
+
+`FreeAgencySection.tsx` renders:
+
+- incoming offer sheets
+- outgoing offer sheets
+- `FreeAgentPool`
+
+and passes the grouped Free Agency action surface into the pool.
+
+This file is not the visible row/filter/selection owner, but it does frame the visible Free Agency screen and controls the surrounding world-only messaging for offer-sheet/sign-and-trade behavior.
+
+So it is part of the user-facing truth story, even though the main Step 2 focus is inside the pool itself.
+
+---
+
+### 2. Free Agent Pool as Visible Interaction Surface
+
+`FreeAgentPool.tsx` is the main visible Free Agency surface for:
+
+- filter state
+- list rendering
+- row-level interaction
+- selected-player cards
+- modal open/close state
+- player lookup resolution
+- final UI handoff into `EditContractModal.tsx`
+
+This is the main Step 2 surface because it determines what the user sees and how the user launches Free Agency actions.
+
+It is not the mutation owner, but it is the visible launch owner.
+
+---
+
+### 3. Row/List Truth
+
+The row/list surface is built from:
+
+- `filteredAgents`
+- `FreeAgentRow`
+- `SelectedFreeAgentCards`
+- `FreeAgencyFilterBar`
+
+This modularity is a strength because the pool is not one giant flat render block.
+
+However, the row/list truth still depends on local resolution behavior:
+
+- resolving the displayed player object from `playersMap` / `playersById`
+- toggling selected-player state by name
+- opening the contract modal from row-level actions
+
+That means this UI surface still owns a meaningful amount of visible truth and identity mapping.
+
+---
+
+### 4. Selected-Player Truth
+
+The pool maintains its own `selectedPlayers` state and renders selected-player action cards through `SelectedFreeAgentCards`.
+
+That means there are two visible launch surfaces:
+
+- row-level sign actions
+- selected-player card sign actions
+
+These are not inherently wrong, but they create a consistency seam:
+both surfaces must launch the same truthful modal/action model.
+
+So selected-player UI is a real Step 2 review layer, not just a visual extra.
+
+---
+
+### 5. Modal Launch Truth
+
+`FreeAgentPool.tsx` owns:
+
+- `contractPlayer` state
+- modal open/close behavior
+- the dispatch object / callbacks handed into `EditContractModal.tsx`
+- `actionsOverride` based on the grouped owner’s world-only branch
+
+This is the most important Step 2 seam.
+
+The pool is not deciding final mutation truth, but it is deciding:
+
+- when the modal opens
+- which player it opens for
+- which actions the modal is allowed to show
+- which action callbacks are present
+
+So this surface can still create misleading truth if launch wiring drifts.
+
+---
+
+## Row/List/Filter Behavior Analysis
+
+### What looks clean
+
+- filtering is separated into `applyFreeAgencyFilters(...)`
+- filter persistence is separated into `useFreeAgencyFilterPersistence()`
+- row rendering is split out into `FreeAgentRow`
+- selected-player rendering is split into `SelectedFreeAgentCards`
+- the pool is no longer also rebuilding standard-sign canonical contract truth
+
+This is a healthier UI structure than a monolithic pool surface.
+
+---
+
+### What still carries risk
+
+- selection toggles by player name, which is simple and readable but means the visible UI truth depends on stable naming assumptions
+- the surface still performs multi-source player lookup resolution (`playersMap`, normalized key, `playersById`)
+- visible truth for a row can therefore depend on lookup fallback behavior, not just a single authoritative object source
+
+That does not automatically mean the surface is wrong, but it is enough UI-level identity/staging logic to keep this step at RISK.
+
+---
+
+## Selected-Player and Sign-Launch Wiring Analysis
+
+### What looks coherent
+
+- row sign actions and selected-player sign actions both route toward the same modal-opening state in the pool
+- the modal is launched from one local `contractPlayer` state owner
+- that helps keep visible launch behavior unified rather than having separate row-modal and selected-card-modal systems
+
+This is good.
+
+---
+
+### What still carries risk
+
+- because the pool owns both selected-player state and modal-open state, it is still the place where visible launch consistency can drift
+- if selected-player cards ever diverge from row action assumptions, the pool layer is where the mismatch would appear
+- this is a launch-surface risk, not a mutation-owner risk
+
+So the selected-player surface is coherent enough to work, but still important enough to keep under RISK rather than PASS.
+
+---
+
+## Modal Launch / Callback Wiring Analysis
+
+### What looks clean
+
+- the pool now hands off standard signing directly to the grouped action owner instead of rebuilding a separate standard-sign adapter
+- world-only actions are gated through the grouped `actionOwner.worldOnly` contract
+- modal action availability is tied to the grouped owner rather than raw UI improvisation
+- the modal remains a dispatch surface, not a mutation owner
+
+This is a strong improvement from the earlier split-ownership state.
+
+---
+
+### What still carries risk
+
+- the pool still decides which callback surface is present and which modal actions appear
+- this means the visible UI truth depends on the pool continuing to honor grouped-owner semantics correctly
+- there is still a real seam between:
+  - visible modal action availability
+  - deeper authoritative action truth in the hook layer
+
+That seam is now clearer, but it still exists.
+
+---
+
+## Misleading / Duplicated / Weakly Owned UI Paths
+
+### 1. Dual visible launch surfaces
+
+The user can launch the modal from:
+
+- a row action
+- a selected-player card action
+
+That is acceptable, but it means truth must stay synchronized across more than one visible entry path.
+
+### 2. Player identity / lookup fallback behavior
+
+The pool resolves player data through multiple lookup routes rather than one guaranteed canonical object source.
+That is a UI-truth seam and a possible drift point.
+
+### 3. Action availability is still a handoff surface, not raw final truth
+
+The pool truthfully stages modal actions, but it still does not own final mutation truth.
+That means the visible UI can only be considered honest as long as the grouped-owner wiring remains aligned with the hook layer and modal dispatch layer.
+
+### 4. World-only behavior can still look simpler than it really is
+
+The visible surface hides some of the deeper complexity of:
+
+- authoritative preflight
+- world-only commit paths
+- blocked/no-world behavior
+
+That is good for UX, but it means the pool can still present a cleaner picture than the underlying system unless the wiring remains tight.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why this is not FAIL
+
+- the pool is structurally modular
+- row/list/filter/selected-card surfaces are separated cleanly enough
+- modal launch is centralized through one local owner
+- grouped owner wiring now makes action availability clearer
+- the surface does not appear to be inventing alternate mutation truth
+
+This is clearly not a broken UI layer.
+
+---
+
+### Why this is not PASS
+
+- the pool still owns enough visible launch/staging/identity logic to be a real drift seam
+- modal launch truth still depends on grouped-owner handoff staying aligned
+- row actions and selected-player actions still need consistency protection
+- lookup fallback behavior means visible row truth is not coming from one perfectly singular source
+
+So the correct Step 2 verdict is still:
+
+**RISK**
+
+---
+
+## Final Conclusion
+
+The Free Agent Pool UI is mostly coherent and is now better aligned with the grouped action-owner model created in Step 1.
+
+However, it is still a high-leverage visible launch surface with enough staging, identity resolution, and modal wiring responsibility that it needs hardening review rather than a PASS.
+
+The correct Step 2 result is:
+
+**RISK**
