@@ -22,7 +22,7 @@ Progress and execution status for the Free Agency review series.
 | ID    | Title                                                                                         | Status | Notes |
 |-------|-----------------------------------------------------------------------------------------------|--------|-------|
 | FA-2A | Align Row Actions, Selected-Player Actions, and Modal Launch into One Clearly Shared UI Truth Path | DONE | `FreeAgentPool.tsx` now owns one explicit `openContractModal` launch callback plus one `contractModalTarget` state, both visible entry surfaces feed that same launch path, and focused runtime/static guardrails pin the shared modal-launch contract. |
-| FA-2B | Tighten the Boundary Between Visible Modal Action Availability and Real Free Agency Action Truth | TODO |       |
+| FA-2B | Tighten the Boundary Between Visible Modal Action Availability and Real Free Agency Action Truth | DONE | `useArchitectActions.ts` now publishes `freeAgentModalAvailability` as the grouped-owner source of truth for modal-visible actions, labels, and Offer Sheet toggle visibility; `FreeAgentPool.tsx` passes that owner contract straight into `EditContractModal.tsx`, and focused runtime/static guardrails now pin the owner-to-modal availability projection. |
 | FA-2C | Reduce Identity / Lookup Fallback Drift in the Visible Pool Surface                           | TODO |       |
 | FA-2D | Add Focused Guardrails for Free Agent Pool UI Truth and Modal Launch Wiring                   | TODO |       |
 

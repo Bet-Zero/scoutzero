@@ -249,6 +249,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         declineOfferSheet: result.current.actions.handleDeclineOfferSheet,
         finalizeOfferSheet: result.current.actions.handleFinalizeOfferSheet,
       },
+      freeAgentModalAvailability: {
+        visibleActions: ['signNew', 'signAndTrade'],
+        actionLabelsOverride: {
+          signNew: 'Sign Free Agent',
+        },
+        showOfferSheetToggle: true,
+      },
     });
   });
 
@@ -260,6 +267,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         signFreeAgent: result.current.actions.handleSign,
       },
       worldOnly: null,
+      freeAgentModalAvailability: {
+        visibleActions: ['signNew'],
+        actionLabelsOverride: {
+          signNew: 'Sign Free Agent',
+        },
+        showOfferSheetToggle: false,
+      },
     });
   });
 

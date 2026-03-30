@@ -79,13 +79,46 @@ const buildWorldOnlyActionOwner = (overrides = {}) => ({
   ...overrides,
 });
 
-const buildActionOwner = ({ dualPathSigning = {}, worldOnly = {} } = {}) => ({
-  dualPathSigning: {
-    signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
-    ...dualPathSigning,
+const buildFreeAgentModalAvailability = ({
+  worldOnlyActionOwner,
+  overrides = {},
+} = {}) => ({
+  visibleActions:
+    worldOnlyActionOwner?.signAndTrade &&
+    worldOnlyActionOwner?.getSignAndTradePreflight
+      ? ['signNew', 'signAndTrade']
+      : ['signNew'],
+  actionLabelsOverride: {
+    signNew: 'Sign Free Agent',
   },
-  worldOnly: worldOnly ? buildWorldOnlyActionOwner(worldOnly) : null,
+  showOfferSheetToggle: Boolean(
+    worldOnlyActionOwner?.storeOfferSheet &&
+      worldOnlyActionOwner?.getOfferSheetPreflight
+  ),
+  ...overrides,
 });
+
+const buildActionOwner = ({
+  dualPathSigning = {},
+  worldOnly = {},
+  freeAgentModalAvailability = {},
+} = {}) => {
+  const resolvedWorldOnlyActionOwner = worldOnly
+    ? buildWorldOnlyActionOwner(worldOnly)
+    : null;
+
+  return {
+    dualPathSigning: {
+      signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
+      ...dualPathSigning,
+    },
+    worldOnly: resolvedWorldOnlyActionOwner,
+    freeAgentModalAvailability: buildFreeAgentModalAvailability({
+      worldOnlyActionOwner: resolvedWorldOnlyActionOwner,
+      overrides: freeAgentModalAvailability,
+    }),
+  };
+};
 
 const openFreeAgencySigningModal = async () => {
   fireEvent.click(screen.getByRole('button', { name: '•••' }));
@@ -171,6 +204,41 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     const actionOwner = buildActionOwner({
       dualPathSigning: { signFreeAgent },
       worldOnly: null,
+    });
+
+    render(
+      <FreeAgentPool
+        freeAgents={[FREE_AGENT]}
+        currentYear={2026}
+        actionOwner={actionOwner}
+        playersMap={playersMap}
+      />
+    );
+
+    await openFreeAgencySigningModal();
+
+    fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
+    expect(
+      screen.queryByRole('checkbox', { name: /Offer Sheet/i })
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Confirm Action/i }));
+
+    await waitFor(() => {
+      expect(signFreeAgent).toHaveBeenCalledTimes(1);
+    });
+    expect(storeOfferSheet).not.toHaveBeenCalled();
+  });
+
+  it('keeps the Offer Sheet toggle hidden when grouped-owner modal availability suppresses it', async () => {
+    const signFreeAgent = vi.fn().mockResolvedValue({ success: true });
+    const storeOfferSheet = vi.fn().mockResolvedValue({ success: true });
+    const actionOwner = buildActionOwner({
+      dualPathSigning: { signFreeAgent },
+      worldOnly: { storeOfferSheet },
+      freeAgentModalAvailability: {
+        showOfferSheetToggle: false,
+      },
     });
 
     render(

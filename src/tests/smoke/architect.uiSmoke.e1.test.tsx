@@ -376,6 +376,13 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
             declineOfferSheet,
             finalizeOfferSheet,
           },
+          freeAgentModalAvailability: {
+            visibleActions: ['signNew', 'signAndTrade'],
+            actionLabelsOverride: {
+              signNew: 'Sign Free Agent',
+            },
+            showOfferSheetToggle: true,
+          },
         }}
         playersMap={{}}
         outgoingOfferSheets={[

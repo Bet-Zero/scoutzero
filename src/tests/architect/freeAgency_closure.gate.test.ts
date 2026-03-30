@@ -110,24 +110,45 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
     expect(content).toMatch(
       /export\s+interface\s+FreeAgencyWorldOnlyActionOwner/
     );
+    expect(content).toMatch(
+      /export\s+interface\s+FreeAgentModalAvailability/
+    );
     expect(content).toMatch(/export\s+interface\s+FreeAgencyActionOwner/);
   });
 
-  it('builds the grouped owner from a dedicated world-only owner split', () => {
+  it('builds the grouped owner from a dedicated world-only owner split plus explicit modal-availability truth', () => {
     expect(content).toMatch(
       /const\s+freeAgencyWorldOnlyActionOwner\s*=\s*useMemo<FreeAgencyWorldOnlyActionOwner\s*\|\s*null>/
+    );
+    expect(content).toMatch(
+      /const\s+freeAgentModalAvailability\s*=\s*useMemo<FreeAgentModalAvailability>/
     );
     expect(content).toMatch(
       /const\s+freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>/
     );
   });
 
-  it('maps standard signing into dualPathSigning and fences world-only callbacks behind the world-only owner', () => {
+  it('maps standard signing into dualPathSigning, fences world-only callbacks behind the world-only owner, and derives visible modal availability from handler completeness', () => {
     expect(content).toMatch(
       /dualPathSigning:\s*\{\s*signFreeAgent:\s*handleSign/
     );
     expect(content).toMatch(/worldOnly:\s*freeAgencyWorldOnlyActionOwner/);
+    expect(content).toMatch(
+      /const\s+freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>[\s\S]*freeAgentModalAvailability,/
+    );
     expect(content).toMatch(/worldId[\s\S]*\?\s*\{[\s\S]*signAndTrade:\s*handleSignAndTrade/);
+    expect(content).toMatch(
+      /const\s+hasWorldOnlySignAndTradeAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyActionOwner\?\.signAndTrade[\s\S]*freeAgencyWorldOnlyActionOwner\.getSignAndTradePreflight/
+    );
+    expect(content).toMatch(
+      /const\s+hasWorldOnlyOfferSheetAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyActionOwner\?\.storeOfferSheet[\s\S]*freeAgencyWorldOnlyActionOwner\.getOfferSheetPreflight/
+    );
+    expect(content).toMatch(
+      /visibleActions:\s*hasWorldOnlySignAndTradeAvailability\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
+    );
+    expect(content).toMatch(
+      /showOfferSheetToggle:\s*hasWorldOnlyOfferSheetAvailability/
+    );
     expect(content).toMatch(/storeOfferSheet:\s*handleStoreOfferSheet/);
     expect(content).toMatch(/matchOfferSheet:\s*handleMatchOfferSheet/);
     expect(content).toMatch(/declineOfferSheet:\s*handleDeclineOfferSheet/);
@@ -296,6 +317,9 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
 
   it('reads world-only availability from the grouped owner instead of reconstructing it from worldId', () => {
     expect(content).toMatch(
+      /const\s+freeAgentModalAvailability\s*=\s*actionOwner\.freeAgentModalAvailability/
+    );
+    expect(content).toMatch(
       /const\s+dualPathSigningOwner\s*=\s*actionOwner\.dualPathSigning/
     );
     expect(content).toMatch(
@@ -313,7 +337,16 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
     expect(modalDispatchRegion).toMatch(
       /worldOnlyActionOwner\s*\?\s*worldOnlyActionOwner\.storeOfferSheet/
     );
-    expect(modalDispatchRegion).toMatch(
+    expect(content).toMatch(
+      /actionsOverride:\s*freeAgentModalAvailability\.visibleActions/
+    );
+    expect(content).toMatch(
+      /actionLabelsOverride:\s*freeAgentModalAvailability\.actionLabelsOverride/
+    );
+    expect(content).toMatch(
+      /showOfferSheetToggle:\s*freeAgentModalAvailability\.showOfferSheetToggle/
+    );
+    expect(content).not.toMatch(
       /actionsOverride:\s*worldOnlyActionOwner\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
     );
     expect(content).not.toMatch(/worldId\s*=\s*null/);

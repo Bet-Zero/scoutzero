@@ -327,6 +327,7 @@ type EditContractModalProps = {
   rulesLeagueContext?: RulesLeagueContextLike;
   actionsOverride?: string[] | null;
   actionLabelsOverride?: Partial<Record<ContractActionKey, string>>;
+  showOfferSheetToggle?: boolean | null;
   onAuditLog?: AuditLogCallback | null;
   capProjections?: CapProjectionOverrides | null;
   playersMap?: Record<string, PlayerLike> | null;
@@ -773,6 +774,7 @@ const EditContractModal = ({
   rulesLeagueContext = null,
   actionsOverride = null,
   actionLabelsOverride = {},
+  showOfferSheetToggle = null,
   onAuditLog = null, // Callback to record override audit entries
 }: EditContractModalProps) => {
   const [selectedAction, setSelectedAction] =
@@ -816,6 +818,10 @@ const EditContractModal = ({
     actionContext === 'underContract'
       ? actionContext
       : null;
+  const resolvedShowOfferSheetToggle =
+    typeof showOfferSheetToggle === 'boolean'
+      ? showOfferSheetToggle
+      : Boolean(onStoreOfferSheet && getOfferSheetPreflight);
 
   const today = new Date();
   // CURRENT_YEAR = the END year of the current NBA season
@@ -906,6 +912,12 @@ const EditContractModal = ({
 
     setSelectedException('None');
   }, [availableSigningExceptions, isSigningAction, selectedException]);
+
+  useEffect(() => {
+    if (!resolvedShowOfferSheetToggle && isOfferSheet) {
+      setIsOfferSheet(false);
+    }
+  }, [isOfferSheet, resolvedShowOfferSheetToggle]);
 
   const remainingGuaranteedForBuyout = useMemo(() => {
     const salaries = player?.contract?.salariesByYear || [];
@@ -2116,7 +2128,7 @@ const EditContractModal = ({
 
                   {/* Phase 16: Offer Sheet Toggle */}
                   {['signNew'].includes(selectedAction) &&
-                    onStoreOfferSheet && (
+                    resolvedShowOfferSheetToggle && (
                       <label className="flex items-center gap-1.5 cursor-pointer ml-2 bg-black px-2 py-1 rounded border border-white/20 select-none">
                         <input
                           type="checkbox"

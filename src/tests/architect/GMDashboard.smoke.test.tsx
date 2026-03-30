@@ -121,6 +121,13 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
           declineOfferSheet,
           finalizeOfferSheet,
         },
+        freeAgentModalAvailability: {
+          visibleActions: ['signNew', 'signAndTrade'],
+          actionLabelsOverride: {
+            signNew: 'Sign Free Agent',
+          },
+          showOfferSheetToggle: true,
+        },
       },
       applyTradeToCapSheet: vi.fn(),
       handleCapTableModalAction: vi.fn(),

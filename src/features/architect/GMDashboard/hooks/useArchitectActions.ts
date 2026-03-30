@@ -481,6 +481,14 @@ export interface FreeAgencyDualPathSigningOwner {
   ) => Promise<MutationActionResult>;
 }
 
+export type FreeAgentModalVisibleAction = 'signNew' | 'signAndTrade';
+
+export interface FreeAgentModalAvailability {
+  visibleActions: FreeAgentModalVisibleAction[];
+  actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+  showOfferSheetToggle: boolean;
+}
+
 export interface FreeAgencyWorldOnlyActionOwner {
   signAndTrade: (
     playerObj: ArchitectPlayer,
@@ -508,6 +516,7 @@ export interface FreeAgencyWorldOnlyActionOwner {
 export interface FreeAgencyActionOwner {
   dualPathSigning: FreeAgencyDualPathSigningOwner;
   worldOnly: FreeAgencyWorldOnlyActionOwner | null;
+  freeAgentModalAvailability: FreeAgentModalAvailability;
 }
 
 /** Return type of the useArchitectActions hook */
@@ -3721,14 +3730,40 @@ export function useArchitectActions({
       ]
     );
 
+  const hasWorldOnlySignAndTradeAvailability = Boolean(
+    freeAgencyWorldOnlyActionOwner?.signAndTrade &&
+      freeAgencyWorldOnlyActionOwner.getSignAndTradePreflight
+  );
+  const hasWorldOnlyOfferSheetAvailability = Boolean(
+    freeAgencyWorldOnlyActionOwner?.storeOfferSheet &&
+      freeAgencyWorldOnlyActionOwner.getOfferSheetPreflight
+  );
+
+  const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
+    () => ({
+      visibleActions: hasWorldOnlySignAndTradeAvailability
+        ? ['signNew', 'signAndTrade']
+        : ['signNew'],
+      actionLabelsOverride: {
+        signNew: 'Sign Free Agent',
+      },
+      showOfferSheetToggle: hasWorldOnlyOfferSheetAvailability,
+    }),
+    [
+      hasWorldOnlyOfferSheetAvailability,
+      hasWorldOnlySignAndTradeAvailability,
+    ]
+  );
+
   const freeAgencyActionOwner = useMemo<FreeAgencyActionOwner>(
     () => ({
       dualPathSigning: {
         signFreeAgent: handleSign,
       },
       worldOnly: freeAgencyWorldOnlyActionOwner,
+      freeAgentModalAvailability,
     }),
-    [freeAgencyWorldOnlyActionOwner, handleSign]
+    [freeAgentModalAvailability, freeAgencyWorldOnlyActionOwner, handleSign]
   );
 
   return {

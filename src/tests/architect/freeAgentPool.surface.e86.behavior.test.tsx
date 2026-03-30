@@ -23,6 +23,7 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool';
+import type { FreeAgentModalVisibleAction } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
 const { mockGetPlayerProfileUrl, mockEditContractModalProps } = vi.hoisted(() => ({
   mockGetPlayerProfileUrl: vi.fn(() => '#player-profile'),
@@ -48,6 +49,8 @@ type MockEditContractModalProps = {
   getOfferSheetPreflight?: unknown;
   onStoreOfferSheet?: unknown;
   actionsOverride?: unknown;
+  actionLabelsOverride?: unknown;
+  showOfferSheetToggle?: unknown;
   onSave?: unknown;
 };
 
@@ -63,6 +66,8 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     getOfferSheetPreflight,
     onStoreOfferSheet,
     actionsOverride,
+    actionLabelsOverride,
+    showOfferSheetToggle,
     onSave,
   }: MockEditContractModalProps) => {
     if (!isOpen) return null;
@@ -77,6 +82,8 @@ vi.mock('@/shared/components/EditContractModal', () => ({
       getOfferSheetPreflight,
       onStoreOfferSheet,
       actionsOverride,
+      actionLabelsOverride,
+      showOfferSheetToggle,
       onSave,
     });
 
@@ -141,21 +148,65 @@ const buildWorldOnlyActionOwner = (
   ...overrides,
 });
 
+const buildFreeAgentModalAvailability = ({
+  worldOnlyActionOwner,
+  overrides = {},
+}: {
+  worldOnlyActionOwner: ReturnType<typeof buildWorldOnlyActionOwner> | null;
+  overrides?: Partial<{
+    visibleActions: FreeAgentModalVisibleAction[];
+    actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+    showOfferSheetToggle: boolean;
+  }>;
+}): {
+  visibleActions: FreeAgentModalVisibleAction[];
+  actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+  showOfferSheetToggle: boolean;
+} => ({
+  visibleActions:
+    worldOnlyActionOwner?.signAndTrade &&
+    worldOnlyActionOwner?.getSignAndTradePreflight
+      ? ['signNew', 'signAndTrade']
+      : ['signNew'],
+  actionLabelsOverride: {
+    signNew: 'Sign Free Agent',
+  },
+  showOfferSheetToggle: Boolean(
+    worldOnlyActionOwner?.storeOfferSheet &&
+      worldOnlyActionOwner?.getOfferSheetPreflight
+  ),
+  ...overrides,
+});
+
 const buildActionOwner = ({
   dualPathSigning,
   worldOnly = null,
+  freeAgentModalAvailability,
 }: {
   dualPathSigning?: Partial<Record<string, unknown>>;
   worldOnly?: Partial<Record<string, unknown>> | null;
-} = {}) => ({
-  dualPathSigning: {
-    signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
-    ...dualPathSigning,
-  },
-  worldOnly: worldOnly
+  freeAgentModalAvailability?: Partial<{
+    visibleActions: FreeAgentModalVisibleAction[];
+    actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
+    showOfferSheetToggle: boolean;
+  }>;
+} = {}): React.ComponentProps<typeof FreeAgentPool>['actionOwner'] => {
+  const resolvedWorldOnlyActionOwner = worldOnly
     ? buildWorldOnlyActionOwner(worldOnly)
-    : null,
-});
+    : null;
+
+  return {
+    dualPathSigning: {
+      signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
+      ...dualPathSigning,
+    },
+    worldOnly: resolvedWorldOnlyActionOwner,
+    freeAgentModalAvailability: buildFreeAgentModalAvailability({
+      worldOnlyActionOwner: resolvedWorldOnlyActionOwner,
+      overrides: freeAgentModalAvailability,
+    }),
+  };
+};
 
 const renderPool = (
   overrides: Partial<React.ComponentProps<typeof FreeAgentPool>> = {}
@@ -266,7 +317,15 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(modalProps?.getSignAndTradePreflight).toBeUndefined();
     expect(modalProps?.getOfferSheetPreflight).toBeUndefined();
     expect(modalProps?.onStoreOfferSheet).toBeUndefined();
-    expect(modalProps?.actionsOverride).toEqual(['signNew']);
+    expect(modalProps?.actionsOverride).toEqual(
+      actionOwner.freeAgentModalAvailability.visibleActions
+    );
+    expect(modalProps?.actionLabelsOverride).toEqual(
+      actionOwner.freeAgentModalAvailability.actionLabelsOverride
+    );
+    expect(modalProps?.showOfferSheetToggle).toBe(
+      actionOwner.freeAgentModalAvailability.showOfferSheetToggle
+    );
   });
 
   it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing on the authoritative owner', () => {
@@ -290,7 +349,42 @@ describe('FreeAgentPool surface E86 behavior', () => {
       actionOwner.worldOnly?.getOfferSheetPreflight
     );
     expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.worldOnly?.storeOfferSheet);
-    expect(modalProps?.actionsOverride).toEqual(['signNew', 'signAndTrade']);
+    expect(modalProps?.actionsOverride).toEqual(
+      actionOwner.freeAgentModalAvailability.visibleActions
+    );
+    expect(modalProps?.actionLabelsOverride).toEqual(
+      actionOwner.freeAgentModalAvailability.actionLabelsOverride
+    );
+    expect(modalProps?.showOfferSheetToggle).toBe(
+      actionOwner.freeAgentModalAvailability.showOfferSheetToggle
+    );
+  });
+
+  it('projects visible modal action availability from the grouped owner instead of local world-only inference', () => {
+    const actionOwner = buildActionOwner({
+      worldOnly: {},
+      freeAgentModalAvailability: {
+        visibleActions: ['signNew'],
+        showOfferSheetToggle: false,
+      },
+    });
+    renderPool({ actionOwner });
+
+    openFromSelectedCard();
+
+    const modalProps = getLatestModalProps();
+    expect(modalProps?.onSignAndTrade).toBe(actionOwner.worldOnly?.signAndTrade);
+    expect(modalProps?.getOfferSheetPreflight).toBe(
+      actionOwner.worldOnly?.getOfferSheetPreflight
+    );
+    expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.worldOnly?.storeOfferSheet);
+    expect(modalProps?.actionsOverride).toEqual(
+      actionOwner.freeAgentModalAvailability.visibleActions
+    );
+    expect(modalProps?.actionLabelsOverride).toEqual(
+      actionOwner.freeAgentModalAvailability.actionLabelsOverride
+    );
+    expect(modalProps?.showOfferSheetToggle).toBe(false);
   });
 
   it('opens the same shared modal-launch state from selected-card and row-menu entry surfaces', () => {

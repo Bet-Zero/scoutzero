@@ -506,6 +506,15 @@ function buildDashboardActions(
             finalizeOfferSheet,
           }
         : null,
+      freeAgentModalAvailability: {
+        visibleActions: freeAgencyWorldId
+          ? ['signNew', 'signAndTrade']
+          : ['signNew'],
+        actionLabelsOverride: {
+          signNew: 'Sign Free Agent',
+        },
+        showOfferSheetToggle: Boolean(freeAgencyWorldId),
+      },
     },
     handleExtendContract: vi.fn(),
     handleWaiveContract: vi.fn(),

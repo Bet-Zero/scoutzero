@@ -152,6 +152,7 @@ const FreeAgentPool = ({
     () => new Set(selectedPlayers.map((player) => player.name)),
     [selectedPlayers]
   );
+  const freeAgentModalAvailability = actionOwner.freeAgentModalAvailability;
   const dualPathSigningOwner = actionOwner.dualPathSigning;
   const worldOnlyActionOwner = actionOwner.worldOnly;
 
@@ -172,7 +173,6 @@ const FreeAgentPool = ({
       onStoreOfferSheet: (worldOnlyActionOwner
         ? worldOnlyActionOwner.storeOfferSheet
         : undefined) as EditContractModalProps['onStoreOfferSheet'],
-      actionsOverride: worldOnlyActionOwner ? ['signNew', 'signAndTrade'] : ['signNew'],
     }),
     [dualPathSigningOwner, worldOnlyActionOwner]
   );
@@ -190,10 +190,16 @@ const FreeAgentPool = ({
         freeAgencyModalDispatch.getSignAndTradePreflight,
       getOfferSheetPreflight: freeAgencyModalDispatch.getOfferSheetPreflight,
       onStoreOfferSheet: freeAgencyModalDispatch.onStoreOfferSheet,
-      actionsOverride: freeAgencyModalDispatch.actionsOverride,
-      actionLabelsOverride: { signNew: 'Sign Free Agent' },
+      actionsOverride: freeAgentModalAvailability.visibleActions,
+      actionLabelsOverride: freeAgentModalAvailability.actionLabelsOverride,
+      showOfferSheetToggle: freeAgentModalAvailability.showOfferSheetToggle,
     } satisfies EditContractModalProps;
-  }, [closeContractModal, contractModalTarget, freeAgencyModalDispatch]);
+  }, [
+    closeContractModal,
+    contractModalTarget,
+    freeAgentModalAvailability,
+    freeAgencyModalDispatch,
+  ]);
 
   return (
     <div className="text-white">
