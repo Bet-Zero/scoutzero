@@ -87,12 +87,46 @@ type HardCapStatusOptions = {
 type CanonicalHardCapType = HardCapTypeCanonical;
 type LegacyHardCapType = HardCapTypeLegacy;
 type HardCapCeilingType = HardCapStatusResult['hardCapCeilingType'];
+type SigningHardCapTriggerMetadata = {
+  hardCapLevel: 'firstApron';
+  hardCapReason: string;
+  hardCapTriggeredBy: 'fullMLE' | 'bae';
+};
 
 export const HARD_CAP_TYPES = Object.freeze({
   FIRST_APRON: 'FIRST_APRON',
   SECOND_APRON: 'SECOND_APRON',
   UNKNOWN: 'UNKNOWN',
 } as const);
+
+const FIRST_APRON_SIGNING_TRIGGER_METADATA = Object.freeze({
+  FULL_MLE: {
+    hardCapLevel: 'firstApron',
+    hardCapReason: 'Triggered by Non-Taxpayer MLE',
+    hardCapTriggeredBy: 'fullMLE',
+  },
+  BAE: {
+    hardCapLevel: 'firstApron',
+    hardCapReason: 'Triggered by Bi-Annual Exception',
+    hardCapTriggeredBy: 'bae',
+  },
+} as const satisfies Record<string, SigningHardCapTriggerMetadata>);
+
+export function getSigningHardCapTriggerMetadata(
+  mechanism: unknown
+): SigningHardCapTriggerMetadata | null {
+  if (typeof mechanism !== 'string') {
+    return null;
+  }
+
+  const normalizedMechanism = mechanism.trim().toUpperCase();
+  const triggerMetadataByMechanism =
+    FIRST_APRON_SIGNING_TRIGGER_METADATA as Record<
+      string,
+      SigningHardCapTriggerMetadata
+    >;
+  return triggerMetadataByMechanism[normalizedMechanism] ?? null;
+}
 
 const LEGACY_HARD_CAP_TYPES: Record<CanonicalHardCapType, LegacyHardCapType> =
   Object.freeze({

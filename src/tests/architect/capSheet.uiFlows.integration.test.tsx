@@ -1016,6 +1016,52 @@ describe('Cap Sheet UI integration flows', () => {
     ).toBeInTheDocument();
   });
 
+  it('disables future-year exception editing and closes an open exceptions modal outside the current season', async () => {
+    const teamCapSheet = buildTeamWithFutureYearHardCapBoundaryFixture();
+
+    render(
+      <CapSheetSection
+        teamCapSheet={
+          teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
+        }
+        currentYear={CURRENT_YEAR}
+        onOpenPlayerContractModal={() => {}}
+        manualCapSheetMutationAuthority={{
+          handleSetDeadCap: async () => true,
+          handleSetExceptions: async () => true,
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('cap-sheet-manage-exceptions-button'));
+    expect(
+      await screen.findByTestId('manage-exceptions-modal')
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '2026-27' }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('manage-exceptions-modal')
+      ).not.toBeInTheDocument();
+    });
+
+    const futureYearExceptionsButton = screen.getByTestId(
+      'cap-sheet-manage-exceptions-button'
+    );
+    expect(futureYearExceptionsButton).toBeDisabled();
+    expect(
+      screen.getByTestId('cap-sheet-future-year-exception-edit-boundary')
+    ).toHaveTextContent(
+      'Exception editing is only available for the current season.'
+    );
+
+    fireEvent.click(futureYearExceptionsButton);
+    expect(
+      screen.queryByTestId('manage-exceptions-modal')
+    ).not.toBeInTheDocument();
+  });
+
   it('makes non-player cap allocations visibly part of Total Cap Hit when present', () => {
     const teamCapSheet = buildTeamWithMixedAllocationFixture();
     const totals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR);

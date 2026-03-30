@@ -1,6 +1,6 @@
 /**
  * FILE: src/tests/architect/capSheetCloseoutBlockersRemediation2.hardCapOwnership.test.ts
- * PURPOSE: Focused closeout blocker proof for Full-MLE hard-cap ownership coherence.
+ * PURPOSE: Focused closeout blocker proof for first-apron hard-cap ownership coherence.
  * OWNERSHIP: Feature: architect/cap-sheet
  *
  * @vitest-environment node
@@ -70,6 +70,18 @@ const TEAM_FIXTURE = {
   totals: {},
 };
 
+const BAE_TEAM_FIXTURE = {
+  ...TEAM_FIXTURE,
+  exceptions: {
+    bae: {
+      totalAmount: 5_135_000,
+      usedAmount: 0,
+      remainingAmount: 5_135_000,
+    },
+  },
+  totals: {},
+};
+
 const PLAYER_FIXTURE = {
   id: 'player_1',
   player_id: 'player_1',
@@ -115,6 +127,24 @@ const SIGNING_PAYLOAD: ArchitectMutationPayload = {
       },
     ],
     totalValue: 12_000_000,
+  },
+};
+
+const BAE_SIGNING_PAYLOAD: ArchitectMutationPayload = {
+  teamCode: 'LAL',
+  playerId: 'player_1',
+  signedUsing: 'BAE',
+  contract: {
+    contractType: 'Signed FA',
+    salariesByYear: [
+      {
+        season: '2025-26',
+        salary: 4_500_000,
+        capHit: 4_500_000,
+        guaranteed: true,
+      },
+    ],
+    totalValue: 4_500_000,
   },
 };
 
@@ -199,6 +229,92 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     expect(validation.valid).toBe(true);
     expect(
       validation.violations.some((violation) => violation.code === 'HARD_CAP_EXCEEDED')
+    ).toBe(false);
+  });
+
+  it('keeps BAE hard-cap truth aligned across compute, totals, validation, and display', () => {
+    const beforeTeam = synchronizeTeamTotalsSnapshot(BAE_TEAM_FIXTURE, 2026);
+    const result = computeWorldMutation({
+      mutationType: 'signFreeAgent',
+      payload: BAE_SIGNING_PAYLOAD,
+      currentState: {
+        team: beforeTeam,
+        player: PLAYER_FIXTURE,
+        teamCode: 'LAL',
+      },
+      seasonId: '2025-26',
+      timestamp: Date.parse('2026-03-29T12:02:00.000Z'),
+      worldId: 'world_closeout',
+    });
+
+    expect(result.success).toBe(true);
+    const updatedTeam = result.teamUpdates?.[0]?.team;
+    expect(updatedTeam).toBeTruthy();
+    if (!updatedTeam) {
+      throw new Error('Expected updated team after BAE signFreeAgent mutation');
+    }
+
+    expect(updatedTeam).toEqual(
+      expect.objectContaining({
+        hardCapped: 1,
+        hardCapLevel: 'firstApron',
+        hardCapReason: 'Triggered by Bi-Annual Exception',
+        hardCapTriggeredBy: 'bae',
+      })
+    );
+    expect(updatedTeam?.totals).toEqual(
+      expect.objectContaining({
+        isHardCapped: true,
+        hardCapLevel: 'firstApron',
+        hardCapDetail: 'Triggered by Bi-Annual Exception',
+        hardCapReason: 'Triggered by Bi-Annual Exception',
+      })
+    );
+
+    expect(buildTotalsByTeam({ LAL: updatedTeam }, 2026).LAL).toEqual(
+      expect.objectContaining({
+        isHardCapped: true,
+        hardCapLevel: 'firstApron',
+        hardCapReason: 'Triggered by Bi-Annual Exception',
+      })
+    );
+
+    const displayStatus = getHardCapStatus(updatedTeam, {
+      capSettings: CAP_SETTINGS,
+    });
+    expect(displayStatus).toEqual(
+      expect.objectContaining({
+        isHardCapped: true,
+        hardCapType: 'FIRST_APRON',
+        reason: 'Triggered by Bi-Annual Exception',
+        source: 'team.hardCapLevel',
+      })
+    );
+
+    const validation = validatePostStateCapLegality({
+      operationId: 'op_bae_hard_cap',
+      mutationType: 'signFreeAgent',
+      worldId: 'world_closeout',
+      year: 2026,
+      afterTeamsByCode: {
+        LAL: updatedTeam,
+      },
+      beforeTotalsByTeam: {
+        LAL: beforeTeam.totals || {},
+      },
+      afterTotalsByTeam: {
+        LAL: updatedTeam?.totals || {},
+      },
+      rulesContext: {
+        capSettings: CAP_SETTINGS,
+      },
+    });
+
+    expect(validation.valid).toBe(true);
+    expect(
+      validation.violations.some(
+        (violation) => violation.code === 'HARD_CAP_EXCEEDED'
+      )
     ).toBe(false);
   });
 
@@ -341,6 +457,54 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       capSettings: CAP_SETTINGS,
     });
     expect(displayStatus.reason).toBe('Triggered by Non-Taxpayer MLE');
+    expect(displayStatus.isHardCapped).toBe(true);
+  });
+
+  it('preserves BAE hard-cap owner metadata through hydration for reload/display parity', async () => {
+    const hydratedTeam = await hydrateBaseTeam('LAL', {
+      teamName: 'Los Angeles Lakers',
+      season: '2025-26',
+      abbreviation: 'LAL',
+      roster: [],
+      capHolds: [],
+      draftPicks: [],
+      draftPicksInventory: [],
+      draftPicksObligations: [],
+      draftPicksContested: [],
+      entitlementIds: [],
+      offerSheets: [],
+      incomingOfferSheets: [],
+      deadCap: [],
+      exceptions: {
+        bae: {
+          totalAmount: 5_135_000,
+          usedAmount: 4_500_000,
+          remainingAmount: 635_000,
+        },
+      },
+      hardCapLevel: 'firstApron',
+      hardCapReason: 'Triggered by Bi-Annual Exception',
+      hardCapTriggeredBy: 'bae',
+      totals: {
+        isHardCapped: true,
+        hardCapLevel: 'firstApron',
+        hardCapDetail: 'Triggered by Bi-Annual Exception',
+      },
+    });
+
+    expect(hydratedTeam).toEqual(
+      expect.objectContaining({
+        hardCapLevel: 'firstApron',
+        hardCapReason: 'Triggered by Bi-Annual Exception',
+        hardCapTriggeredBy: 'bae',
+      })
+    );
+
+    const displayStatus = getHardCapStatus(hydratedTeam, {
+      capSettings: CAP_SETTINGS,
+    });
+    expect(displayStatus.reason).toBe('Triggered by Bi-Annual Exception');
+    expect(displayStatus.source).toBe('team.hardCapLevel');
     expect(displayStatus.isHardCapped).toBe(true);
   });
 });

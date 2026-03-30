@@ -224,6 +224,7 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
 describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
   const capSheetSectionContent = readFileContent(CAP_SHEET_SECTION_PATH);
   const capSummaryTilesContent = readFileContent(CAP_SUMMARY_TILES_PATH);
+  const capSheetContent = readFileContent(CAP_SHEET_PATH);
   const exceptionTrackerContent = readFileContent(EXCEPTION_TRACKER_PATH);
 
   it('CapSheetSection owns selectedYear and passes one shared value to CapSheet and ExceptionTracker', () => {
@@ -256,6 +257,21 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
       'const isViewingCurrentYear = selectedYear === currentYear;'
     );
     expect(exceptionTrackerContent).toContain('Current-Season Only');
+  });
+
+  it('CapSheet fences exception editing to the current season and passes real currentYear into ManageExceptionsModal', () => {
+    expect(capSheetContent).toContain(
+      'const isViewingCurrentYear = selectedYear === currentYear;'
+    );
+    expect(capSheetContent).toContain(
+      'cap-sheet-future-year-exception-edit-boundary'
+    );
+    expect(capSheetContent).toMatch(
+      /<ManageExceptionsModal[\s\S]*currentYear=\{currentYear\}/
+    );
+    expect(capSheetContent).not.toMatch(
+      /<ManageExceptionsModal[\s\S]*currentYear=\{selectedYear\}/
+    );
   });
 });
 
@@ -690,12 +706,13 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   });
 
   it('CapSheet disables manual edit controls when audited authority is unavailable', () => {
-    const disabledMatches =
-      capSheetContent.match(/disabled=\{!hasManualCapSheetMutationAuthority\}/g) ||
-      [];
-    expect(disabledMatches).toHaveLength(2);
+    expect(capSheetContent).toContain('const canManageExceptions =');
+    expect(capSheetContent).toMatch(/disabled=\{!canManageExceptions\}/);
     expect(capSheetContent).toMatch(
-      /if\s*\(!hasManualCapSheetMutationAuthority\)\s*return;\s*setShowExceptionsModal\(true\);/
+      /disabled=\{!hasManualCapSheetMutationAuthority\}/
+    );
+    expect(capSheetContent).toMatch(
+      /if\s*\(!canManageExceptions\)\s*return;\s*setShowExceptionsModal\(true\);/
     );
     expect(capSheetContent).toMatch(
       /if\s*\(!hasManualCapSheetMutationAuthority\)\s*return;\s*setShowDeadMoneyModal\(true\);/

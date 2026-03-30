@@ -283,8 +283,9 @@ const ManageExceptionsModal = ({
             <p>
               <strong>Exception Management:</strong> Configure which exceptions
               are available for the team and track their usage. Changes here
-              will update the team's exception state for the current season (
-              {seasonKey}).
+              will update the team's live current-season exception state (
+              {seasonKey}). Future-year Cap Sheet views are read-only for
+              exception editing.
             </p>
           </div>
 

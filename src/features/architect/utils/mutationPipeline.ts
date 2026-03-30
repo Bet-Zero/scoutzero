@@ -105,6 +105,7 @@ import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import { getSigningHardCapTriggerMetadata } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type {
   NormalizedTeamPick,
@@ -5940,14 +5941,16 @@ function computeSigningResult({
     timestamp,
   });
 
-  if (signingMechanism === 'FULL_MLE' && consumedExceptionKey) {
+  const signingHardCapTrigger =
+    consumedExceptionKey && getSigningHardCapTriggerMetadata(signingMechanism);
+  if (signingHardCapTrigger) {
     updatedTeam.hardCapped = 1;
-    updatedTeam.hardCapLevel = 'firstApron';
-    updatedTeam.hardCapReason = 'Triggered by Non-Taxpayer MLE';
-    updatedTeam.hardCapTriggeredBy = 'fullMLE';
+    updatedTeam.hardCapLevel = signingHardCapTrigger.hardCapLevel;
+    updatedTeam.hardCapReason = signingHardCapTrigger.hardCapReason;
+    updatedTeam.hardCapTriggeredBy = signingHardCapTrigger.hardCapTriggeredBy;
   }
   // Phase 74: Room Exception usage tracking
-  // Room Exception does NOT trigger hard cap (only Full MLE does).
+  // Room Exception does NOT trigger hard cap.
 
   // Remove cap hold if player had one
   if (updatedTeam.capHolds) {

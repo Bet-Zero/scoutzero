@@ -159,12 +159,21 @@ const CapSheet = ({
   const selectedYear = hasControlledSelectedYear
     ? Number(controlledSelectedYear)
     : internalSelectedYear;
+  const isViewingCurrentYear = selectedYear === currentYear;
+  const canManageExceptions =
+    hasManualCapSheetMutationAuthority && isViewingCurrentYear;
 
   useEffect(() => {
     if (!hasControlledSelectedYear) {
       setInternalSelectedYear(currentYear);
     }
   }, [currentYear, hasControlledSelectedYear]);
+
+  useEffect(() => {
+    if (showExceptionsModal && !isViewingCurrentYear) {
+      setShowExceptionsModal(false);
+    }
+  }, [isViewingCurrentYear, showExceptionsModal]);
 
   const handleSelectYear = React.useCallback(
     (year: number) => {
@@ -633,40 +642,59 @@ const CapSheet = ({
               own or redefine current-year totals display. */}
           <div
             data-testid="cap-sheet-control-surface"
-            className="bg-white/[0.015] px-4 py-2 flex items-center justify-end gap-4"
+            className="bg-white/[0.015] px-4 py-2 flex items-center justify-between gap-4"
           >
-            <button
-              data-testid="cap-sheet-manage-exceptions-button"
-              type="button"
-              disabled={!hasManualCapSheetMutationAuthority}
-              onClick={() => {
-                if (!hasManualCapSheetMutationAuthority) return;
-                setShowExceptionsModal(true);
-              }}
-              className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
-                hasManualCapSheetMutationAuthority
-                  ? 'text-white/40 hover:text-white'
-                  : 'text-white/20 cursor-not-allowed'
-              }`}
-            >
-              <span className="opacity-50">📋</span> Manage Exceptions
-            </button>
-            <button
-              data-testid="cap-sheet-manage-dead-money-button"
-              type="button"
-              disabled={!hasManualCapSheetMutationAuthority}
-              onClick={() => {
-                if (!hasManualCapSheetMutationAuthority) return;
-                setShowDeadMoneyModal(true);
-              }}
-              className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
-                hasManualCapSheetMutationAuthority
-                  ? 'text-white/40 hover:text-white'
-                  : 'text-white/20 cursor-not-allowed'
-              }`}
-            >
-              <span className="opacity-50">⚙️</span> Manage Dead Money
-            </button>
+            <div className="min-h-[1rem]">
+              {!isViewingCurrentYear && hasManualCapSheetMutationAuthority && (
+                <span
+                  data-testid="cap-sheet-future-year-exception-edit-boundary"
+                  className="text-[10px] text-amber-300/80"
+                >
+                  Exception editing is only available for the current season.
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-4">
+              <button
+                data-testid="cap-sheet-manage-exceptions-button"
+                type="button"
+                disabled={!canManageExceptions}
+                title={
+                  !hasManualCapSheetMutationAuthority
+                    ? undefined
+                    : !isViewingCurrentYear
+                      ? 'Exception editing is only available for the current season.'
+                      : undefined
+                }
+                onClick={() => {
+                  if (!canManageExceptions) return;
+                  setShowExceptionsModal(true);
+                }}
+                className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
+                  canManageExceptions
+                    ? 'text-white/40 hover:text-white'
+                    : 'text-white/20 cursor-not-allowed'
+                }`}
+              >
+                <span className="opacity-50">📋</span> Manage Exceptions
+              </button>
+              <button
+                data-testid="cap-sheet-manage-dead-money-button"
+                type="button"
+                disabled={!hasManualCapSheetMutationAuthority}
+                onClick={() => {
+                  if (!hasManualCapSheetMutationAuthority) return;
+                  setShowDeadMoneyModal(true);
+                }}
+                className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
+                  hasManualCapSheetMutationAuthority
+                    ? 'text-white/40 hover:text-white'
+                    : 'text-white/20 cursor-not-allowed'
+                }`}
+              >
+                <span className="opacity-50">⚙️</span> Manage Dead Money
+              </button>
+            </div>
           </div>
 
         </div>
@@ -687,7 +715,7 @@ const CapSheet = ({
           isOpen={showExceptionsModal}
           onClose={() => setShowExceptionsModal(false)}
           teamCapSheet={teamCapSheet}
-          currentYear={selectedYear}
+          currentYear={currentYear}
           onSave={handleSaveExceptionsEdit}
         />
       )}

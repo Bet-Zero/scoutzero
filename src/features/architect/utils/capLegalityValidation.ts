@@ -51,6 +51,7 @@ import {
 import {
   getHardCapStatus as getSharedHardCapStatus,
   HARD_CAP_TYPES,
+  getSigningHardCapTriggerMetadata,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
@@ -3795,25 +3796,46 @@ export function validateSigning({
   // 2. Hard cap check
   if (rules) {
     const hardCapStatus = getValidationHardCapStatus(team, rules);
-
-    if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
-      const currentCapHit = toFiniteNumber(
-        computeCanonicalMutationTeamCapTotals(team, year).totalCapAllocations,
-        0
-      );
-      const contractValue = toFiniteNumber(
+    const signingHardCapTrigger = getSigningHardCapTriggerMetadata(
+      signingMechanism
+    );
+    const currentHardCapCapHit = toFiniteNumber(
+      computeCanonicalMutationTeamCapTotals(team, year).totalCapAllocations,
+      0
+    );
+    const hardCapContractValue = toFiniteNumber(
+      contract?.salariesByYear?.[0]?.capHit ??
         contract?.salariesByYear?.[0]?.salary,
-        0
-      );
-      const projectedCapHit = currentCapHit + contractValue;
+      0
+    );
+    const projectedHardCapHit =
+      currentHardCapCapHit + hardCapContractValue;
 
-      if (projectedCapHit > hardCapStatus.ceiling) {
-        violations.push({
-          rule: 'hard_cap',
-          message: `Signing would exceed ${hardCapStatus.hardCapLevel === 'secondApron' ? 'second apron' : 'first apron'} hard cap ceiling`,
-          severity: 'error',
-        });
-      }
+    let enforcedHardCapCeiling =
+      hardCapStatus.isHardCapped && hardCapStatus.ceiling
+        ? hardCapStatus.ceiling
+        : null;
+    let enforcedHardCapLevel = hardCapStatus.hardCapLevel;
+
+    const triggerCeiling = toFiniteNumber(rules.cap.firstApron, 0);
+    if (
+      signingHardCapTrigger &&
+      triggerCeiling > 0 &&
+      (enforcedHardCapCeiling === null || triggerCeiling < enforcedHardCapCeiling)
+    ) {
+      enforcedHardCapCeiling = triggerCeiling;
+      enforcedHardCapLevel = signingHardCapTrigger.hardCapLevel;
+    }
+
+    if (
+      enforcedHardCapCeiling !== null &&
+      projectedHardCapHit > enforcedHardCapCeiling
+    ) {
+      violations.push({
+        rule: 'hard_cap',
+        message: `Signing would exceed ${enforcedHardCapLevel === 'secondApron' ? 'second apron' : 'first apron'} hard cap ceiling`,
+        severity: 'error',
+      });
     }
 
     // 3. MLE triggers hard cap warning

@@ -253,6 +253,51 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
     });
   });
 
+  describe('Projected first-apron hard-cap ownership for triggering exceptions', () => {
+    function createTriggeringContract() {
+      return {
+        contractType: 'Standard',
+        salariesByYear: [
+          {
+            season: '2024-25',
+            salary: 1_200_000,
+            capHit: 2_000_000,
+          },
+        ],
+      };
+    }
+
+    it('blocks BAE when the signing itself would create and exceed the first-apron hard cap', () => {
+      const team = createTeamWithCapHit(FIRST_APRON - 1_500_000);
+      const result = validateSigning({
+        team,
+        player: { player_id: 'p1', yearsOfService: 0, bio: { experience: 0 } },
+        contract: createTriggeringContract(),
+        signedUsing: 'BAE',
+        year: YEAR,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'hard_cap')).toBe(true);
+      expect(result.violations.some(v => v.rule === 'exception_blocked')).toBe(false);
+    });
+
+    it('blocks Full MLE when the signing itself would create and exceed the first-apron hard cap', () => {
+      const team = createTeamWithCapHit(FIRST_APRON - 1_500_000);
+      const result = validateSigning({
+        team,
+        player: { player_id: 'p1', yearsOfService: 0, bio: { experience: 0 } },
+        contract: createTriggeringContract(),
+        signedUsing: 'Full MLE',
+        year: YEAR,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.violations.some(v => v.rule === 'hard_cap')).toBe(true);
+      expect(result.violations.some(v => v.rule === 'exception_blocked')).toBe(false);
+    });
+  });
+
   describe('Override Policy Integration', () => {
     it('exception_blocked violations cannot be overridden', () => {
       const team = createTeamWithCapHit(SECOND_APRON + 1_000_000);
