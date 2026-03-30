@@ -13,3 +13,11 @@ Underlying problem backlog for the Free Agency review series.
 | FA-1-3 | FA-1C, FA-1D | HIGH | Step 1 ownership durability is now closed in live code. The grouped Free Agency owner remains the public UI contract for dashboard/section/pool wiring, world-only flows are pinned fail-closed in base mode, canonical authoritative mutation routing is guarded for sign-and-trade and the full offer-sheet lifecycle, and pool modal action availability is pinned to `actionOwner.worldOnly` rather than alternate local gating. | RESOLVED |
 
 ---
+
+## STEP 2 — Free Agent Pool UI Truth and Modal Launch Wiring
+
+| Issue ID | Related Step(s) | Severity | Description | Status |
+|----------|------------------|----------|-------------|--------|
+| FA-2-1 | FA-2A | MEDIUM | Row actions and selected-player card actions both converge on modal launch today, but the shared modal-launch truth path is still not structurally explicit. The pool owns both `selectedPlayers` state and `contractPlayer`/modal-open state, and both visible surfaces route through it — but there is no enforced contract guaranteeing they always produce identical modal entry behavior. The consistency is currently true in practice, not enforced by structure. | OPEN |
+| FA-2-2 | FA-2B | MEDIUM | Visible modal action availability is a real UI handoff seam. The pool controls `actionsOverride` and which callbacks are passed into `EditContractModal.tsx` based on grouped-owner wiring. This is correct today, but it is still a surface where the visible action menu can drift from deeper grouped-owner truth — the pool is deciding what appears available to the user, not the action layer directly. If that handoff wiring loosens, the UI can show actions that do not reflect actual authoritative availability. | OPEN |
+| FA-2-3 | FA-2C, FA-2D | MEDIUM | Visible row and player-card truth depends on multi-source identity resolution and name-based selection toggling rather than a single authoritative player object. The pool resolves displayed player data through a fallback chain (`playersMap`, normalized key, `playersById`), and selected-player state is keyed by name. This means the visible pool surface can present partial or subtly mismatched player identity depending on which lookup path resolves, and these seams are not yet protected by focused guardrails. | OPEN |

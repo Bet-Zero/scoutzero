@@ -16,3 +16,16 @@ Progress and execution status for the Free Agency review series.
 **STEP 1 STATUS: DONE**
 
 ---
+
+## STEP 2 — Free Agent Pool UI Truth and Modal Launch Wiring
+
+| ID    | Title                                                                                         | Status | Notes |
+|-------|-----------------------------------------------------------------------------------------------|--------|-------|
+| FA-2A | Align Row Actions, Selected-Player Actions, and Modal Launch into One Clearly Shared UI Truth Path | TODO |       |
+| FA-2B | Tighten the Boundary Between Visible Modal Action Availability and Real Free Agency Action Truth | TODO |       |
+| FA-2C | Reduce Identity / Lookup Fallback Drift in the Visible Pool Surface                           | TODO |       |
+| FA-2D | Add Focused Guardrails for Free Agent Pool UI Truth and Modal Launch Wiring                   | TODO |       |
+
+**STEP 2 STATUS: TODO**
+
+---
