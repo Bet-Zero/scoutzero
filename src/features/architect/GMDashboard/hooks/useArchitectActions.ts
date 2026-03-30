@@ -474,11 +474,14 @@ export interface UseArchitectActionsParams {
   seasonId: string;
 }
 
-export interface FreeAgencyActionOwner {
+export interface FreeAgencyDualPathSigningOwner {
   signFreeAgent: (
     playerObj: ArchitectPlayer,
     contract: SigningDetails
   ) => Promise<MutationActionResult>;
+}
+
+export interface FreeAgencyWorldOnlyActionOwner {
   signAndTrade: (
     playerObj: ArchitectPlayer,
     contract: SigningDetails,
@@ -500,6 +503,11 @@ export interface FreeAgencyActionOwner {
   matchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
   declineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
   finalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
+}
+
+export interface FreeAgencyActionOwner {
+  dualPathSigning: FreeAgencyDualPathSigningOwner;
+  worldOnly: FreeAgencyWorldOnlyActionOwner | null;
 }
 
 /** Return type of the useArchitectActions hook */
@@ -3687,27 +3695,40 @@ export function useArchitectActions({
     [confirmAndRenounceRights]
   );
 
+  const freeAgencyWorldOnlyActionOwner =
+    useMemo<FreeAgencyWorldOnlyActionOwner | null>(
+      () =>
+        worldId
+          ? {
+              signAndTrade: handleSignAndTrade,
+              getSignAndTradePreflight,
+              getOfferSheetPreflight,
+              storeOfferSheet: handleStoreOfferSheet,
+              matchOfferSheet: handleMatchOfferSheet,
+              declineOfferSheet: handleDeclineOfferSheet,
+              finalizeOfferSheet: handleFinalizeOfferSheet,
+            }
+          : null,
+      [
+        getOfferSheetPreflight,
+        getSignAndTradePreflight,
+        handleDeclineOfferSheet,
+        handleFinalizeOfferSheet,
+        handleMatchOfferSheet,
+        handleSignAndTrade,
+        handleStoreOfferSheet,
+        worldId,
+      ]
+    );
+
   const freeAgencyActionOwner = useMemo<FreeAgencyActionOwner>(
     () => ({
-      signFreeAgent: handleSign,
-      signAndTrade: handleSignAndTrade,
-      getSignAndTradePreflight,
-      getOfferSheetPreflight,
-      storeOfferSheet: handleStoreOfferSheet,
-      matchOfferSheet: handleMatchOfferSheet,
-      declineOfferSheet: handleDeclineOfferSheet,
-      finalizeOfferSheet: handleFinalizeOfferSheet,
+      dualPathSigning: {
+        signFreeAgent: handleSign,
+      },
+      worldOnly: freeAgencyWorldOnlyActionOwner,
     }),
-    [
-      getOfferSheetPreflight,
-      getSignAndTradePreflight,
-      handleDeclineOfferSheet,
-      handleFinalizeOfferSheet,
-      handleMatchOfferSheet,
-      handleSign,
-      handleSignAndTrade,
-      handleStoreOfferSheet,
-    ]
+    [freeAgencyWorldOnlyActionOwner, handleSign]
   );
 
   return {

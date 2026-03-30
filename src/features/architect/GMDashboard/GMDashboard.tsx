@@ -251,22 +251,25 @@ const GMDashboard = () => {
         toOverrideMetadata(overrideMetadata)
       )
     );
+  const freeAgencyWorldOnlyOwner = freeAgencyActionOwner.worldOnly;
   const modalActionCallbacks: EditContractArchitectActionCallbacks = {
     onSignFreeAgent:
-      freeAgencyActionOwner.signFreeAgent as EditContractModalProps['onSignFreeAgent'],
+      freeAgencyActionOwner.dualPathSigning
+        .signFreeAgent as EditContractModalProps['onSignFreeAgent'],
     onResign:
-      freeAgencyActionOwner.signFreeAgent as EditContractModalProps['onResign'],
-    onSignAndTrade: worldId
-      ? (freeAgencyActionOwner.signAndTrade as EditContractModalProps['onSignAndTrade'])
+      freeAgencyActionOwner.dualPathSigning
+        .signFreeAgent as EditContractModalProps['onResign'],
+    onSignAndTrade: freeAgencyWorldOnlyOwner
+      ? (freeAgencyWorldOnlyOwner.signAndTrade as EditContractModalProps['onSignAndTrade'])
       : null,
-    getSignAndTradePreflight: worldId
-      ? (freeAgencyActionOwner.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'])
+    getSignAndTradePreflight: freeAgencyWorldOnlyOwner
+      ? (freeAgencyWorldOnlyOwner.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'])
       : null,
-    getOfferSheetPreflight: worldId
-      ? (freeAgencyActionOwner.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'])
+    getOfferSheetPreflight: freeAgencyWorldOnlyOwner
+      ? (freeAgencyWorldOnlyOwner.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'])
       : null,
-    onStoreOfferSheet: worldId
-      ? (freeAgencyActionOwner.storeOfferSheet as EditContractModalProps['onStoreOfferSheet'])
+    onStoreOfferSheet: freeAgencyWorldOnlyOwner
+      ? (freeAgencyWorldOnlyOwner.storeOfferSheet as EditContractModalProps['onStoreOfferSheet'])
       : null,
     onExtend: actions.handleExtendContract as EditContractModalProps['onExtend'],
     onWaive: modalOnWaive,
@@ -485,7 +488,6 @@ const GMDashboard = () => {
             playersMap={playersMap}
             outgoingOfferSheets={teamCapSheet?.offerSheets || []}
             incomingOfferSheets={teamCapSheet?.incomingOfferSheets || []}
-            worldId={worldId}
           />
         )}
 

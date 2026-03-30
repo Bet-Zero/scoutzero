@@ -236,15 +236,30 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
     expect(result.current.actions.freeAgencyActionOwner).toEqual({
-      signFreeAgent: result.current.actions.handleSign,
-      signAndTrade: result.current.actions.handleSignAndTrade,
-      getSignAndTradePreflight:
-        result.current.actions.getSignAndTradePreflight,
-      getOfferSheetPreflight: result.current.actions.getOfferSheetPreflight,
-      storeOfferSheet: result.current.actions.handleStoreOfferSheet,
-      matchOfferSheet: result.current.actions.handleMatchOfferSheet,
-      declineOfferSheet: result.current.actions.handleDeclineOfferSheet,
-      finalizeOfferSheet: result.current.actions.handleFinalizeOfferSheet,
+      dualPathSigning: {
+        signFreeAgent: result.current.actions.handleSign,
+      },
+      worldOnly: {
+        signAndTrade: result.current.actions.handleSignAndTrade,
+        getSignAndTradePreflight:
+          result.current.actions.getSignAndTradePreflight,
+        getOfferSheetPreflight: result.current.actions.getOfferSheetPreflight,
+        storeOfferSheet: result.current.actions.handleStoreOfferSheet,
+        matchOfferSheet: result.current.actions.handleMatchOfferSheet,
+        declineOfferSheet: result.current.actions.handleDeclineOfferSheet,
+        finalizeOfferSheet: result.current.actions.handleFinalizeOfferSheet,
+      },
+    });
+  });
+
+  it('keeps standard signing available in vacuum mode while withholding the world-only grouped owner', () => {
+    const { result } = renderActionsHarness({ worldId: null });
+
+    expect(result.current.actions.freeAgencyActionOwner).toEqual({
+      dualPathSigning: {
+        signFreeAgent: result.current.actions.handleSign,
+      },
+      worldOnly: null,
     });
   });
 

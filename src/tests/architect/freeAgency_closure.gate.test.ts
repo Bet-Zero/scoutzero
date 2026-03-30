@@ -6,9 +6,10 @@
  * HISTORY:
  *  - 2026-03-01: Created for TM_FREE_AGENCY_E2 world-mode offer-sheet wiring permanence.
  *  - 2026-03-30: Reworked for FA-1A to pin the explicit Free Agency action-owner boundary.
+ *  - 2026-03-30: Reworked for FA-1C to pin the explicit dual-path vs world-only owner split.
  *
  * GATES:
- *  1. useArchitectActions publishes one explicit Free Agency action owner
+ *  1. useArchitectActions publishes one explicit dual-path vs world-only Free Agency owner
  *  2. GMDashboard and FreeAgencySection hand off grouped Free Agency authority
  *  3. FreeAgentPool remains a staging / dispatch surface, not a mutation owner
  *  4. EditContractModal remains a callback dispatcher for Free Agency actions
@@ -72,23 +73,39 @@ const readRegion = (content: string, start: string, end: string): string => {
   return content.slice(startIndex, endIndex);
 };
 
-describe('Gate 1: useArchitectActions publishes one explicit Free Agency owner (FA-1A)', () => {
+describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-only owner (FA-1C)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
 
-  it('defines and builds a FreeAgencyActionOwner surface', () => {
+  it('defines explicit dual-path and world-only owner types before the grouped action owner', () => {
+    expect(content).toMatch(
+      /export\s+interface\s+FreeAgencyDualPathSigningOwner/
+    );
+    expect(content).toMatch(
+      /export\s+interface\s+FreeAgencyWorldOnlyActionOwner/
+    );
     expect(content).toMatch(/export\s+interface\s+FreeAgencyActionOwner/);
+  });
+
+  it('builds the grouped owner from a dedicated world-only owner split', () => {
+    expect(content).toMatch(
+      /const\s+freeAgencyWorldOnlyActionOwner\s*=\s*useMemo<FreeAgencyWorldOnlyActionOwner\s*\|\s*null>/
+    );
     expect(content).toMatch(
       /const\s+freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>/
     );
   });
 
-  it('maps grouped owner callbacks directly to the authoritative Free Agency handlers', () => {
-    expect(content).toMatch(/signFreeAgent:\s*handleSign/);
-    expect(content).toMatch(/signAndTrade:\s*handleSignAndTrade/);
+  it('maps standard signing into dualPathSigning and fences world-only callbacks behind the world-only owner', () => {
+    expect(content).toMatch(
+      /dualPathSigning:\s*\{\s*signFreeAgent:\s*handleSign/
+    );
+    expect(content).toMatch(/worldOnly:\s*freeAgencyWorldOnlyActionOwner/);
+    expect(content).toMatch(/worldId[\s\S]*\?\s*\{[\s\S]*signAndTrade:\s*handleSignAndTrade/);
     expect(content).toMatch(/storeOfferSheet:\s*handleStoreOfferSheet/);
     expect(content).toMatch(/matchOfferSheet:\s*handleMatchOfferSheet/);
     expect(content).toMatch(/declineOfferSheet:\s*handleDeclineOfferSheet/);
     expect(content).toMatch(/finalizeOfferSheet:\s*handleFinalizeOfferSheet/);
+    expect(content).toMatch(/\}\s*:\s*null/);
   });
 
   it('returns the grouped owner while keeping flat Free Agency handlers for compatibility', () => {
@@ -111,6 +128,9 @@ describe('Gate 2: dashboard and section hand off grouped Free Agency authority (
   it('GMDashboard reads one grouped owner from useArchitectActions and passes it into FreeAgencySection', () => {
     expect(gmDashboardContent).toMatch(
       /const\s+freeAgencyActionOwner\s*=\s*actions\.freeAgencyActionOwner/
+    );
+    expect(gmDashboardContent).toMatch(
+      /const\s+freeAgencyWorldOnlyOwner\s*=\s*freeAgencyActionOwner\.worldOnly/
     );
     expect(gmDashboardFreeAgencyRegion).toMatch(
       /<FreeAgencySection[\s\S]*actionOwner=\{freeAgencyActionOwner\}/
@@ -137,6 +157,12 @@ describe('Gate 2: dashboard and section hand off grouped Free Agency authority (
 
   it('FreeAgencySection stays a thin wiring surface over the grouped owner', () => {
     expect(freeAgencySectionContent).toMatch(
+      /const\s+worldOnlyActionOwner\s*=\s*actionOwner\.worldOnly/
+    );
+    expect(freeAgencySectionContent).toMatch(
+      /const\s+hasWorldOnlyActions\s*=\s*Boolean\(worldOnlyActionOwner\)/
+    );
+    expect(freeAgencySectionContent).toMatch(
       /const\s+handleMatchOfferSheet\s*=/
     );
     expect(freeAgencySectionContent).toMatch(
@@ -146,13 +172,13 @@ describe('Gate 2: dashboard and section hand off grouped Free Agency authority (
       /const\s+handleFinalizeOfferSheet\s*=/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleMatchOfferSheet[\s\S]*actionOwner\.matchOfferSheet/
+      /handleMatchOfferSheet[\s\S]*worldOnlyActionOwner\?\.matchOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleDeclineOfferSheet[\s\S]*actionOwner\.declineOfferSheet/
+      /handleDeclineOfferSheet[\s\S]*worldOnlyActionOwner\?\.declineOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleFinalizeOfferSheet[\s\S]*actionOwner\.finalizeOfferSheet/
+      /handleFinalizeOfferSheet[\s\S]*worldOnlyActionOwner\?\.finalizeOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
       /onMatch=\{handleMatchOfferSheet\}/
@@ -166,10 +192,11 @@ describe('Gate 2: dashboard and section hand off grouped Free Agency authority (
     expect(freeAgencySectionContent).toMatch(
       /<FreeAgentPool[\s\S]*actionOwner=\{actionOwner/
     );
+    expect(freeAgencySectionContent).not.toMatch(/worldId,/);
   });
 });
 
-describe('Gate 3: FreeAgentPool stays staging / dispatch only (FA-1A)', () => {
+describe('Gate 3: FreeAgentPool stays staging / dispatch only with explicit dual-path vs world-only routing (FA-1C)', () => {
   const content = readFileContent(FREE_AGENT_POOL_PATH);
   const modalDispatchRegion = readRegion(
     content,
@@ -179,21 +206,33 @@ describe('Gate 3: FreeAgentPool stays staging / dispatch only (FA-1A)', () => {
 
   it('passes standard signing directly from the grouped owner into the modal dispatch object', () => {
     expect(modalDispatchRegion).toMatch(
-      /onSignFreeAgent:\s*actionOwner\.signFreeAgent/
+      /onSignFreeAgent:\s*dualPathSigningOwner\s*\.signFreeAgent/
     );
   });
 
-  it('builds one world-gated modal dispatch object from the grouped owner', () => {
-    expect(modalDispatchRegion).toMatch(/worldId\s*\?\s*actionOwner\.signAndTrade/);
-    expect(modalDispatchRegion).toMatch(
-      /worldId\s*\?\s*actionOwner\.getSignAndTradePreflight/
+  it('reads world-only availability from the grouped owner instead of reconstructing it from worldId', () => {
+    expect(content).toMatch(
+      /const\s+dualPathSigningOwner\s*=\s*actionOwner\.dualPathSigning/
+    );
+    expect(content).toMatch(
+      /const\s+worldOnlyActionOwner\s*=\s*actionOwner\.worldOnly/
     );
     expect(modalDispatchRegion).toMatch(
-      /worldId\s*\?\s*actionOwner\.getOfferSheetPreflight/
+      /worldOnlyActionOwner\s*\?\s*worldOnlyActionOwner\.signAndTrade/
     );
     expect(modalDispatchRegion).toMatch(
-      /worldId\s*\?\s*actionOwner\.storeOfferSheet/
+      /worldOnlyActionOwner\s*\?\s*worldOnlyActionOwner\.getSignAndTradePreflight/
     );
+    expect(modalDispatchRegion).toMatch(
+      /worldOnlyActionOwner\s*\?\s*worldOnlyActionOwner\.getOfferSheetPreflight/
+    );
+    expect(modalDispatchRegion).toMatch(
+      /worldOnlyActionOwner\s*\?\s*worldOnlyActionOwner\.storeOfferSheet/
+    );
+    expect(modalDispatchRegion).toMatch(
+      /actionsOverride:\s*worldOnlyActionOwner\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
+    );
+    expect(content).not.toMatch(/worldId\s*=\s*null/);
   });
 
   it('does not keep a local standard-signing payload adapter or salary-row builder', () => {

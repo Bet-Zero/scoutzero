@@ -66,14 +66,18 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
       handleDeclineOfferSheet: declineOfferSheet,
       handleFinalizeOfferSheet: finalizeOfferSheet,
       freeAgencyActionOwner: {
-        signFreeAgent,
-        signAndTrade,
-        getSignAndTradePreflight,
-        getOfferSheetPreflight,
-        storeOfferSheet,
-        matchOfferSheet,
-        declineOfferSheet,
-        finalizeOfferSheet,
+        dualPathSigning: {
+          signFreeAgent,
+        },
+        worldOnly: {
+          signAndTrade,
+          getSignAndTradePreflight,
+          getOfferSheetPreflight,
+          storeOfferSheet,
+          matchOfferSheet,
+          declineOfferSheet,
+          finalizeOfferSheet,
+        },
       },
       handleCapSheetAction: vi.fn(),
       handleExtendContract: vi.fn(async () => ({ success: true })),
@@ -360,14 +364,18 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         ]}
         currentYear={CURRENT_YEAR}
         actionOwner={{
-          signFreeAgent,
-          signAndTrade,
-          getSignAndTradePreflight,
-          getOfferSheetPreflight,
-          storeOfferSheet,
-          matchOfferSheet,
-          declineOfferSheet,
-          finalizeOfferSheet,
+          dualPathSigning: {
+            signFreeAgent,
+          },
+          worldOnly: {
+            signAndTrade,
+            getSignAndTradePreflight,
+            getOfferSheetPreflight,
+            storeOfferSheet,
+            matchOfferSheet,
+            declineOfferSheet,
+            finalizeOfferSheet,
+          },
         }}
         playersMap={{}}
         outgoingOfferSheets={[
@@ -394,7 +402,6 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
             createdAt: '2026-03-04T00:00:00.000Z',
           },
         ]}
-        worldId="world_smoke_lal"
       />
     );
 

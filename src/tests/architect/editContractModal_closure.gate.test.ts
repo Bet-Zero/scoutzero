@@ -238,9 +238,11 @@ describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
 describe('Gate 6: Callback Compatibility Contract - FreeAgentPool (E1)', () => {
   const content = readFileContent(FREE_AGENT_POOL_PATH);
 
-  it('passes standard signing straight from actionOwner into the modal surface', () => {
+  it('passes standard signing straight from the dual-path owner into the modal surface', () => {
     const passesThroughActionOwner =
-      /onSignFreeAgent\s*:\s*actionOwner\.signFreeAgent/.test(content);
+      /onSignFreeAgent\s*:\s*dualPathSigningOwner\s*\.signFreeAgent/.test(
+        content
+      );
     expect(passesThroughActionOwner).toBe(true);
   });
 

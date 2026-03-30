@@ -20,6 +20,10 @@ import type {
   OfferSheetListProps,
 } from '../offerSheetTypes';
 
+type FreeAgencyWorldOnlyActionOwner = NonNullable<
+  FreeAgencySectionProps['actionOwner']['worldOnly']
+>;
+
 const FreeAgencySection = ({
   freeAgents,
   currentYear,
@@ -27,13 +31,15 @@ const FreeAgencySection = ({
   playersMap,
   outgoingOfferSheets,
   incomingOfferSheets,
-  worldId,
 }: FreeAgencySectionProps) => {
+  const worldOnlyActionOwner = actionOwner.worldOnly;
+  const hasWorldOnlyActions = Boolean(worldOnlyActionOwner);
+
   const handleMatchOfferSheet = (
     offeringTeamCode: string | number | null | undefined,
     offerSheetId: string | number | null | undefined
   ) =>
-    actionOwner.matchOfferSheet(
+    worldOnlyActionOwner?.matchOfferSheet(
       String(offeringTeamCode || ''),
       String(offerSheetId || '')
     );
@@ -42,7 +48,7 @@ const FreeAgencySection = ({
     offeringTeamCode: string | number | null | undefined,
     offerSheetId: string | number | null | undefined
   ) =>
-    actionOwner.declineOfferSheet(
+    worldOnlyActionOwner?.declineOfferSheet(
       String(offeringTeamCode || ''),
       String(offerSheetId || '')
     );
@@ -50,8 +56,8 @@ const FreeAgencySection = ({
   const handleFinalizeOfferSheet = (
     offerSheet: Parameters<NonNullable<OfferSheetListProps['onFinalize']>>[0]
   ) =>
-    actionOwner.finalizeOfferSheet(
-      offerSheet as Parameters<typeof actionOwner.finalizeOfferSheet>[0]
+    worldOnlyActionOwner?.finalizeOfferSheet(
+      offerSheet as Parameters<FreeAgencyWorldOnlyActionOwner['finalizeOfferSheet']>[0]
     );
 
   return (
@@ -60,7 +66,7 @@ const FreeAgencySection = ({
         Offer-sheet actions are persist-only world mutations.
         In vacuum mode these controls are explicitly gated to avoid silent no-ops.
       */}
-      {!worldId && (
+      {!hasWorldOnlyActions && (
         <p className="text-xs text-amber-400 mb-2">
           Offer sheets and sign-and-trade require an active world to commit.
         </p>
@@ -74,7 +80,7 @@ const FreeAgencySection = ({
         onMatch={handleMatchOfferSheet}
         onDecline={handleDeclineOfferSheet}
         onFinalize={handleFinalizeOfferSheet}
-        actionsDisabled={!worldId}
+        actionsDisabled={!hasWorldOnlyActions}
         actionsDisabledReason="Requires an active world to commit."
       />
 
@@ -84,7 +90,7 @@ const FreeAgencySection = ({
         offerSheets={outgoingOfferSheets}
         isIncoming={false}
         onFinalize={handleFinalizeOfferSheet}
-        actionsDisabled={!worldId}
+        actionsDisabled={!hasWorldOnlyActions}
         actionsDisabledReason="Requires an active world to commit."
       />
 
@@ -93,7 +99,6 @@ const FreeAgencySection = ({
         currentYear={currentYear}
         actionOwner={actionOwner as FreeAgentPoolProps['actionOwner']}
         playersMap={playersMap as FreeAgentPoolProps['playersMap']}
-        worldId={worldId}
       />
     </div>
   );

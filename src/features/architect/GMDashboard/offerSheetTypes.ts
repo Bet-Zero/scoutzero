@@ -51,5 +51,4 @@ export interface FreeAgencySectionProps {
   playersMap?: Record<string, unknown>;
   outgoingOfferSheets?: OfferSheetLike[] | null;
   incomingOfferSheets?: OfferSheetLike[] | null;
-  worldId?: string | null;
 }

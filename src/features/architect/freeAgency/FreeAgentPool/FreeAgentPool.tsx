@@ -73,7 +73,6 @@ const FreeAgentPool = ({
   actionOwner,
   playersMap = {},
   playersById = {},
-  worldId = null,
 }: FreeAgentPoolProps) => {
   const [selectedPlayers, setSelectedPlayers] = useState<FreeAgentListItem[]>(
     []
@@ -130,26 +129,29 @@ const FreeAgentPool = ({
     () => new Set(selectedPlayers.map((player) => player.name)),
     [selectedPlayers]
   );
+  const dualPathSigningOwner = actionOwner.dualPathSigning;
+  const worldOnlyActionOwner = actionOwner.worldOnly;
 
   const freeAgencyModalDispatch = useMemo(
     () => ({
       onSignFreeAgent:
-        actionOwner.signFreeAgent as EditContractModalProps['onSignFreeAgent'],
-      onSignAndTrade: (worldId
-        ? actionOwner.signAndTrade
+        dualPathSigningOwner
+          .signFreeAgent as EditContractModalProps['onSignFreeAgent'],
+      onSignAndTrade: (worldOnlyActionOwner
+        ? worldOnlyActionOwner.signAndTrade
         : undefined) as EditContractModalProps['onSignAndTrade'],
-      getSignAndTradePreflight: (worldId
-        ? actionOwner.getSignAndTradePreflight
+      getSignAndTradePreflight: (worldOnlyActionOwner
+        ? worldOnlyActionOwner.getSignAndTradePreflight
         : undefined) as EditContractModalProps['getSignAndTradePreflight'],
-      getOfferSheetPreflight: (worldId
-        ? actionOwner.getOfferSheetPreflight
+      getOfferSheetPreflight: (worldOnlyActionOwner
+        ? worldOnlyActionOwner.getOfferSheetPreflight
         : undefined) as EditContractModalProps['getOfferSheetPreflight'],
-      onStoreOfferSheet: (worldId
-        ? actionOwner.storeOfferSheet
+      onStoreOfferSheet: (worldOnlyActionOwner
+        ? worldOnlyActionOwner.storeOfferSheet
         : undefined) as EditContractModalProps['onStoreOfferSheet'],
-      actionsOverride: worldId ? ['signNew', 'signAndTrade'] : ['signNew'],
+      actionsOverride: worldOnlyActionOwner ? ['signNew', 'signAndTrade'] : ['signNew'],
     }),
-    [actionOwner, worldId]
+    [dualPathSigningOwner, worldOnlyActionOwner]
   );
 
   return (

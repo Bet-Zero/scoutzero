@@ -746,18 +746,18 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     );
   });
 
-  it('GMDashboard modal callback surface keeps world-only SAT and offer-sheet callbacks behind worldId guards', () => {
+  it('GMDashboard modal callback surface keeps world-only SAT and offer-sheet callbacks behind the grouped world-only owner', () => {
     expect(modalActionCallbacksRegion).toMatch(
-      /onSignAndTrade:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.signAndTrade[\s\S]*:\s*null/
+      /onSignAndTrade:\s*freeAgencyWorldOnlyOwner[\s\S]*\?\s*\(freeAgencyWorldOnlyOwner\.signAndTrade[\s\S]*:\s*null/
     );
     expect(modalActionCallbacksRegion).toMatch(
-      /getSignAndTradePreflight:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.getSignAndTradePreflight[\s\S]*:\s*null/
+      /getSignAndTradePreflight:\s*freeAgencyWorldOnlyOwner[\s\S]*\?\s*\(freeAgencyWorldOnlyOwner\.getSignAndTradePreflight[\s\S]*:\s*null/
     );
     expect(modalActionCallbacksRegion).toMatch(
-      /getOfferSheetPreflight:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.getOfferSheetPreflight[\s\S]*:\s*null/
+      /getOfferSheetPreflight:\s*freeAgencyWorldOnlyOwner[\s\S]*\?\s*\(freeAgencyWorldOnlyOwner\.getOfferSheetPreflight[\s\S]*:\s*null/
     );
     expect(modalActionCallbacksRegion).toMatch(
-      /onStoreOfferSheet:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.storeOfferSheet[\s\S]*:\s*null/
+      /onStoreOfferSheet:\s*freeAgencyWorldOnlyOwner[\s\S]*\?\s*\(freeAgencyWorldOnlyOwner\.storeOfferSheet[\s\S]*:\s*null/
     );
   });
 

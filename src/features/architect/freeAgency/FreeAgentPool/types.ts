@@ -68,7 +68,6 @@ export interface FreeAgentPoolProps {
   actionOwner: FreeAgencyActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
   playersById?: Record<string, FreeAgentLookupPlayer>;
-  worldId?: string | null;
 }
 
 export interface FreeAgentRowProps {

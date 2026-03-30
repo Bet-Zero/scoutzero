@@ -125,10 +125,9 @@ const playersMap = {
   [PLAYER.name]: PLAYER,
 };
 
-const buildActionOwner = (
+const buildWorldOnlyActionOwner = (
   overrides: Partial<Record<string, unknown>> = {}
 ) => ({
-  signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
   signAndTrade: vi.fn().mockResolvedValue({ success: true }),
   getSignAndTradePreflight: vi.fn(),
   getOfferSheetPreflight: vi.fn(),
@@ -137,6 +136,22 @@ const buildActionOwner = (
   declineOfferSheet: vi.fn(),
   finalizeOfferSheet: vi.fn(),
   ...overrides,
+});
+
+const buildActionOwner = ({
+  dualPathSigning,
+  worldOnly = null,
+}: {
+  dualPathSigning?: Partial<Record<string, unknown>>;
+  worldOnly?: Partial<Record<string, unknown>> | null;
+} = {}) => ({
+  dualPathSigning: {
+    signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
+    ...dualPathSigning,
+  },
+  worldOnly: worldOnly
+    ? buildWorldOnlyActionOwner(worldOnly)
+    : null,
 });
 
 const renderPool = (
@@ -152,7 +167,6 @@ const renderPool = (
       actionOwner={actionOwner}
       playersMap={playersMap}
       playersById={playersMap}
-      worldId={null}
       {...overrides}
     />
   );
@@ -229,7 +243,9 @@ describe('FreeAgentPool surface E86 behavior', () => {
     const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
     expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
     expect(modalProps?.onSave).toBeUndefined();
-    expect(modalProps?.onSignFreeAgent).toBe(actionOwner.signFreeAgent);
+    expect(modalProps?.onSignFreeAgent).toBe(
+      actionOwner.dualPathSigning.signFreeAgent
+    );
     expect(modalProps?.onSignAndTrade).toBeUndefined();
     expect(modalProps?.getSignAndTradePreflight).toBeUndefined();
     expect(modalProps?.getOfferSheetPreflight).toBeUndefined();
@@ -237,26 +253,27 @@ describe('FreeAgentPool surface E86 behavior', () => {
   });
 
   it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing on the authoritative owner', () => {
-    const actionOwner = buildActionOwner();
-    renderPool({
-      actionOwner,
-      worldId: 'world_alpha',
+    const actionOwner = buildActionOwner({
+      worldOnly: {},
     });
+    renderPool({ actionOwner });
 
     fireEvent.click(screen.getByRole('button', { name: /test player/i }));
     fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
 
     const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
     expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
-    expect(modalProps?.onSignFreeAgent).toBe(actionOwner.signFreeAgent);
-    expect(modalProps?.onSignAndTrade).toBe(actionOwner.signAndTrade);
+    expect(modalProps?.onSignFreeAgent).toBe(
+      actionOwner.dualPathSigning.signFreeAgent
+    );
+    expect(modalProps?.onSignAndTrade).toBe(actionOwner.worldOnly?.signAndTrade);
     expect(modalProps?.getSignAndTradePreflight).toBe(
-      actionOwner.getSignAndTradePreflight
+      actionOwner.worldOnly?.getSignAndTradePreflight
     );
     expect(modalProps?.getOfferSheetPreflight).toBe(
-      actionOwner.getOfferSheetPreflight
+      actionOwner.worldOnly?.getOfferSheetPreflight
     );
-    expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.storeOfferSheet);
+    expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.worldOnly?.storeOfferSheet);
   });
 
   it('preserves row menu toggle semantics, menu item ordering, and outside-click close behavior', () => {

@@ -455,7 +455,13 @@ function buildDashboardState(
   };
 }
 
-function buildDashboardActions(overrides: Partial<Record<string, unknown>> = {}) {
+function buildDashboardActions(
+  overrides: Partial<Record<string, unknown>> & { worldId?: string | null } = {}
+) {
+  const {
+    worldId: freeAgencyWorldId = 'world_alpha',
+    ...actionOverrides
+  } = overrides;
   const signFreeAgent = vi.fn();
   const signAndTrade = vi.fn();
   const getSignAndTradePreflight = vi.fn();
@@ -486,14 +492,20 @@ function buildDashboardActions(overrides: Partial<Record<string, unknown>> = {})
     handleDeclineOfferSheet: declineOfferSheet,
     handleFinalizeOfferSheet: finalizeOfferSheet,
     freeAgencyActionOwner: {
-      signFreeAgent,
-      signAndTrade,
-      getSignAndTradePreflight,
-      getOfferSheetPreflight,
-      storeOfferSheet,
-      matchOfferSheet,
-      declineOfferSheet,
-      finalizeOfferSheet,
+      dualPathSigning: {
+        signFreeAgent,
+      },
+      worldOnly: freeAgencyWorldId
+        ? {
+            signAndTrade,
+            getSignAndTradePreflight,
+            getOfferSheetPreflight,
+            storeOfferSheet,
+            matchOfferSheet,
+            declineOfferSheet,
+            finalizeOfferSheet,
+          }
+        : null,
     },
     handleExtendContract: vi.fn(),
     handleWaiveContract: vi.fn(),
@@ -504,7 +516,7 @@ function buildDashboardActions(overrides: Partial<Record<string, unknown>> = {})
       clearFixtures: vi.fn(),
       hasInjectedFixtures: false,
     },
-    ...overrides,
+    ...actionOverrides,
   };
 }
 
@@ -1127,14 +1139,20 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(modalProps).toEqual(
         expect.objectContaining({
           actionYear: 2028,
-          onSignFreeAgent: dashboardActions.freeAgencyActionOwner.signFreeAgent,
-          onResign: dashboardActions.freeAgencyActionOwner.signFreeAgent,
-          onSignAndTrade: dashboardActions.freeAgencyActionOwner.signAndTrade,
+          onSignFreeAgent:
+            dashboardActions.freeAgencyActionOwner.dualPathSigning.signFreeAgent,
+          onResign:
+            dashboardActions.freeAgencyActionOwner.dualPathSigning.signFreeAgent,
+          onSignAndTrade:
+            dashboardActions.freeAgencyActionOwner.worldOnly?.signAndTrade,
           getSignAndTradePreflight:
-            dashboardActions.freeAgencyActionOwner.getSignAndTradePreflight,
+            dashboardActions.freeAgencyActionOwner.worldOnly
+              ?.getSignAndTradePreflight,
           getOfferSheetPreflight:
-            dashboardActions.freeAgencyActionOwner.getOfferSheetPreflight,
-          onStoreOfferSheet: dashboardActions.freeAgencyActionOwner.storeOfferSheet,
+            dashboardActions.freeAgencyActionOwner.worldOnly
+              ?.getOfferSheetPreflight,
+          onStoreOfferSheet:
+            dashboardActions.freeAgencyActionOwner.worldOnly?.storeOfferSheet,
           onExtend: dashboardActions.handleExtendContract,
           onWaive: expect.any(Function),
           onOptionDecision: expect.any(Function),
@@ -1215,7 +1233,7 @@ describe('E109 dashboard/world boundary behavior', () => {
     });
 
     it('withholds world-only modal callbacks when no world is selected while keeping local Architect callbacks', async () => {
-      const dashboardActions = buildDashboardActions();
+      const dashboardActions = buildDashboardActions({ worldId: null });
 
       mockUseArchitectActions.mockReturnValue(dashboardActions);
       mockUseArchitectState.mockReturnValue(
@@ -1250,8 +1268,10 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       expect(modalProps).toEqual(
         expect.objectContaining({
-          onSignFreeAgent: dashboardActions.freeAgencyActionOwner.signFreeAgent,
-          onResign: dashboardActions.freeAgencyActionOwner.signFreeAgent,
+          onSignFreeAgent:
+            dashboardActions.freeAgencyActionOwner.dualPathSigning.signFreeAgent,
+          onResign:
+            dashboardActions.freeAgencyActionOwner.dualPathSigning.signFreeAgent,
           onExtend: dashboardActions.handleExtendContract,
           onWaive: expect.any(Function),
           onOptionDecision: expect.any(Function),
@@ -1283,7 +1303,6 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(freeAgencyProps).toEqual(
         expect.objectContaining({
           actionOwner: dashboardActions.freeAgencyActionOwner,
-          worldId: 'world_alpha',
           currentYear: 2026,
         })
       );

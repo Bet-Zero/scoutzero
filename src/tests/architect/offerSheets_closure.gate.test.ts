@@ -507,10 +507,16 @@ describe('Gate 9: UI wiring + world gating exists (E1)', () => {
     expect(hasActionsDisabled).toBe(true);
   });
 
-  it('FreeAgencySection passes actionsDisabled based on worldId', () => {
-    const passesWorldGating = /actionsDisabled\s*=\s*\{\s*!worldId\s*\}/.test(
-      freeAgencySectionContent
-    );
+  it('FreeAgencySection derives actionsDisabled from the grouped world-only owner split', () => {
+    const derivesWorldOnlyAvailability =
+      /const\s+worldOnlyActionOwner\s*=\s*actionOwner\.worldOnly[\s\S]*const\s+hasWorldOnlyActions\s*=\s*Boolean\(worldOnlyActionOwner\)/.test(
+        freeAgencySectionContent
+      );
+    const passesWorldGating =
+      /actionsDisabled\s*=\s*\{\s*!hasWorldOnlyActions\s*\}/.test(
+        freeAgencySectionContent
+      );
+    expect(derivesWorldOnlyAvailability).toBe(true);
     expect(passesWorldGating).toBe(true);
   });
 });

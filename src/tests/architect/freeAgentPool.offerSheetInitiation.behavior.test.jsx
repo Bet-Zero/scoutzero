@@ -58,8 +58,7 @@ const playersMap = {
   [PLAYER.name]: PLAYER,
 };
 
-const buildActionOwner = (overrides = {}) => ({
-  signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
+const buildWorldOnlyActionOwner = (overrides = {}) => ({
   signAndTrade: vi.fn().mockResolvedValue({ success: true }),
   getSignAndTradePreflight: vi.fn().mockResolvedValue({
     status: 'legal',
@@ -78,6 +77,14 @@ const buildActionOwner = (overrides = {}) => ({
   declineOfferSheet: vi.fn(),
   finalizeOfferSheet: vi.fn(),
   ...overrides,
+});
+
+const buildActionOwner = ({ dualPathSigning = {}, worldOnly = {} } = {}) => ({
+  dualPathSigning: {
+    signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
+    ...dualPathSigning,
+  },
+  worldOnly: worldOnly ? buildWorldOnlyActionOwner(worldOnly) : null,
 });
 
 const openFreeAgencySigningModal = async () => {
@@ -112,8 +119,8 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       })
       .mockResolvedValueOnce({ success: true });
     const actionOwner = buildActionOwner({
-      signFreeAgent,
-      storeOfferSheet,
+      dualPathSigning: { signFreeAgent },
+      worldOnly: { storeOfferSheet },
     });
 
     render(
@@ -122,7 +129,6 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
         currentYear={2026}
         actionOwner={actionOwner}
         playersMap={playersMap}
-        worldId="world_1"
       />
     );
 
@@ -163,8 +169,8 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     const signFreeAgent = vi.fn().mockResolvedValue({ success: true });
     const storeOfferSheet = vi.fn();
     const actionOwner = buildActionOwner({
-      signFreeAgent,
-      storeOfferSheet,
+      dualPathSigning: { signFreeAgent },
+      worldOnly: null,
     });
 
     render(
@@ -173,7 +179,6 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
         currentYear={2026}
         actionOwner={actionOwner}
         playersMap={playersMap}
-        worldId={null}
       />
     );
 
