@@ -11,8 +11,8 @@ Progress and execution status for the Free Agency review series.
 | FA-1A | Clarify the Primary Free Agency Action Owner Across UI Wiring, Modal Dispatch, and Mutation Execution | DONE | Grouped `freeAgencyActionOwner` now flows from `useArchitectActions.ts` through dashboard wiring into pool/modal dispatch surfaces, with focused ownership guardrails added. |
 | FA-1B | Tighten the Ownership Boundary Between UI Payload Construction and Authoritative Signing Truth | DONE | FreeAgentPool now stages and dispatches only, EditContractModal uses staging/dispatch naming, and `useArchitectActions.ts` owns authoritative signing preparation across sign, sign-and-trade, and offer-sheet flows with focused guardrails. |
 | FA-1C | Clarify and Fence the Dual-Path Ownership Model for World Mode vs Vacuum Mode                 | DONE | `freeAgencyActionOwner` now exposes explicit `dualPathSigning` vs `worldOnly` ownership, dashboard/pool wiring consumes `actionOwner.worldOnly` instead of raw `worldId`, and focused guardrails pin the split. |
-| FA-1D | Add Guardrails for Free Agency Ownership Boundaries and Alternate Paths                       | TODO |       |
+| FA-1D | Add Guardrails for Free Agency Ownership Boundaries and Alternate Paths                       | DONE | Focused guardrails now pin grouped `actionOwner` prop contracts, world-only fail-closed behavior, canonical authoritative mutation routing, and FreeAgentPool modal action availability derived from `actionOwner.worldOnly`. |
 
-**STEP STATUS: IN_PROGRESS**
+**STEP 1 STATUS: DONE**
 
 ---

@@ -819,6 +819,29 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     );
   });
 
+  it('keeps match, decline, and finalize offer-sheet handlers fail-closed in base mode', async () => {
+    const { result } = renderActionsHarness({ worldId: null });
+
+    act(() => {
+      result.current.actions.handleMatchOfferSheet('BOS', 'offer_1');
+      result.current.actions.handleDeclineOfferSheet('BOS', 'offer_1');
+      result.current.actions.handleFinalizeOfferSheet({
+        id: 'offer_1',
+        status: 'MATCHED',
+        homeTeamCode: 'LAL',
+        offeringTeamCode: 'BOS',
+      } as any);
+    });
+
+    await waitFor(() => {
+      expect(toastMocks.error).toHaveBeenCalledTimes(3);
+    });
+    for (const [message] of toastMocks.error.mock.calls) {
+      expect(String(message || '')).toContain('active world');
+    }
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+  });
+
   it('surfaces clear error when finalize is invoked without offer sheet args', async () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
@@ -970,6 +993,26 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       source: 'authoritative-preflight',
     });
     expect(mutationMocks.preflightSignAndTradeMutation).not.toHaveBeenCalled();
+  });
+
+  it('returns a conservative blocked offer-sheet preflight result in base mode', async () => {
+    const { result } = renderActionsHarness({ worldId: null });
+
+    let preflightResult: any;
+    await act(async () => {
+      preflightResult = await result.current.actions.getOfferSheetPreflight(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(preflightResult).toEqual({
+      status: 'blocked',
+      reasons: ['Offer sheet requires an active world to commit.'],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    expect(mutationMocks.preflightOfferSheetMutation).not.toHaveBeenCalled();
   });
 
   it('canonicalizes SAT preflight inputs and ignores conflicting prebuilt signing rows', async () => {

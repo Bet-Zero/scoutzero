@@ -47,6 +47,7 @@ type MockEditContractModalProps = {
   getSignAndTradePreflight?: unknown;
   getOfferSheetPreflight?: unknown;
   onStoreOfferSheet?: unknown;
+  actionsOverride?: unknown;
   onSave?: unknown;
 };
 
@@ -61,6 +62,7 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     getSignAndTradePreflight,
     getOfferSheetPreflight,
     onStoreOfferSheet,
+    actionsOverride,
     onSave,
   }: MockEditContractModalProps) => {
     if (!isOpen) return null;
@@ -74,6 +76,7 @@ vi.mock('@/shared/components/EditContractModal', () => ({
       getSignAndTradePreflight,
       getOfferSheetPreflight,
       onStoreOfferSheet,
+      actionsOverride,
       onSave,
     });
 
@@ -250,6 +253,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(modalProps?.getSignAndTradePreflight).toBeUndefined();
     expect(modalProps?.getOfferSheetPreflight).toBeUndefined();
     expect(modalProps?.onStoreOfferSheet).toBeUndefined();
+    expect(modalProps?.actionsOverride).toEqual(['signNew']);
   });
 
   it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing on the authoritative owner', () => {
@@ -274,6 +278,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
       actionOwner.worldOnly?.getOfferSheetPreflight
     );
     expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.worldOnly?.storeOfferSheet);
+    expect(modalProps?.actionsOverride).toEqual(['signNew', 'signAndTrade']);
   });
 
   it('preserves row menu toggle semantics, menu item ordering, and outside-click close behavior', () => {

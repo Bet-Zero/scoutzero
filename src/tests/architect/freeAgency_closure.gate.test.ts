@@ -7,14 +7,16 @@
  *  - 2026-03-01: Created for TM_FREE_AGENCY_E2 world-mode offer-sheet wiring permanence.
  *  - 2026-03-30: Reworked for FA-1A to pin the explicit Free Agency action-owner boundary.
  *  - 2026-03-30: Reworked for FA-1C to pin the explicit dual-path vs world-only owner split.
+ *  - 2026-03-30: Hardened for FA-1D to pin grouped-owner permanence and world-only fail-closed routes.
  *
  * GATES:
  *  1. useArchitectActions publishes one explicit dual-path vs world-only Free Agency owner
- *  2. GMDashboard and FreeAgencySection hand off grouped Free Agency authority
- *  3. FreeAgentPool remains a staging / dispatch surface, not a mutation owner
- *  4. EditContractModal remains a callback dispatcher for Free Agency actions
- *  5. The authoritative hook path still owns store-offer-sheet mutation and sync
- *  6. ActiveTab union still includes runtime fa/cap/capfull keys
+ *  2. Free Agency UI prop contracts stay grouped behind actionOwner
+ *  3. GMDashboard and FreeAgencySection hand off grouped Free Agency authority
+ *  4. FreeAgentPool remains a staging / dispatch surface, not a mutation owner
+ *  5. EditContractModal remains a callback dispatcher for Free Agency actions
+ *  6. The authoritative hook path keeps world-only routes fail-closed and canonical
+ *  7. ActiveTab union still includes runtime fa/cap/capfull keys
  *
  * @vitest-environment node
  */
@@ -28,9 +30,19 @@ const FREE_AGENT_POOL_PATH = path.resolve(
   '../../features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx'
 );
 
+const FREE_AGENT_POOL_TYPES_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/freeAgency/FreeAgentPool/types.ts'
+);
+
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
+);
+
+const OFFER_SHEET_TYPES_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/GMDashboard/offerSheetTypes.ts'
 );
 
 const FREE_AGENCY_SECTION_PATH = path.resolve(
@@ -116,7 +128,59 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
   });
 });
 
-describe('Gate 2: dashboard and section hand off grouped Free Agency authority (FA-1A)', () => {
+describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner (FA-1D)', () => {
+  const offerSheetTypesContent = readFileContent(OFFER_SHEET_TYPES_PATH);
+  const freeAgentPoolTypesContent = readFileContent(FREE_AGENT_POOL_TYPES_PATH);
+  const freeAgencySectionPropsRegion = readRegion(
+    offerSheetTypesContent,
+    'export interface FreeAgencySectionProps {',
+    '}'
+  );
+  const freeAgentPoolPropsRegion = readRegion(
+    freeAgentPoolTypesContent,
+    'export interface FreeAgentPoolProps {',
+    '}'
+  );
+
+  it('imports FreeAgencyActionOwner from the authoritative action hook in both UI prop surfaces', () => {
+    expect(offerSheetTypesContent).toMatch(
+      /import\s+type\s+\{\s*FreeAgencyActionOwner\s*\}\s+from\s+['"].\/hooks\/useArchitectActions['"]/
+    );
+    expect(freeAgentPoolTypesContent).toMatch(
+      /import\s+type\s+\{\s*FreeAgencyActionOwner\s*\}\s+from\s+['"]@\/features\/architect\/GMDashboard\/hooks\/useArchitectActions['"]/
+    );
+  });
+
+  it('keeps FreeAgencySectionProps and FreeAgentPoolProps grouped behind actionOwner', () => {
+    expect(freeAgencySectionPropsRegion).toMatch(
+      /actionOwner:\s*FreeAgencyActionOwner;/
+    );
+    expect(freeAgentPoolPropsRegion).toMatch(
+      /actionOwner:\s*FreeAgencyActionOwner;/
+    );
+  });
+
+  it('does not re-expand grouped Free Agency handler props on the public section or pool contracts', () => {
+    const forbiddenPatterns = [
+      /onSign\??:/,
+      /onSignAndTrade\??:/,
+      /getSignAndTradePreflight\??:/,
+      /getOfferSheetPreflight\??:/,
+      /onStoreOfferSheet\??:/,
+      /onMatch\??:/,
+      /onDecline\??:/,
+      /onFinalize\??:/,
+      /worldId\??:/,
+    ];
+
+    for (const forbidden of forbiddenPatterns) {
+      expect(freeAgencySectionPropsRegion).not.toMatch(forbidden);
+      expect(freeAgentPoolPropsRegion).not.toMatch(forbidden);
+    }
+  });
+});
+
+describe('Gate 3: dashboard and section hand off grouped Free Agency authority (FA-1A)', () => {
   const gmDashboardContent = readFileContent(GMDASHBOARD_PATH);
   const freeAgencySectionContent = readFileContent(FREE_AGENCY_SECTION_PATH);
   const gmDashboardFreeAgencyRegion = readRegion(
@@ -196,7 +260,7 @@ describe('Gate 2: dashboard and section hand off grouped Free Agency authority (
   });
 });
 
-describe('Gate 3: FreeAgentPool stays staging / dispatch only with explicit dual-path vs world-only routing (FA-1C)', () => {
+describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual-path vs world-only routing (FA-1C)', () => {
   const content = readFileContent(FREE_AGENT_POOL_PATH);
   const modalDispatchRegion = readRegion(
     content,
@@ -257,7 +321,7 @@ describe('Gate 3: FreeAgentPool stays staging / dispatch only with explicit dual
   });
 });
 
-describe('Gate 4: EditContractModal remains a callback dispatcher for Free Agency actions (FA-1A)', () => {
+describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agency actions (FA-1A)', () => {
   const content = readFileContent(EDIT_CONTRACT_MODAL_PATH);
   const dispatchRegion = readRegion(
     content,
@@ -301,8 +365,43 @@ describe('Gate 4: EditContractModal remains a callback dispatcher for Free Agenc
   });
 });
 
-describe('Gate 5: authoritative hook path still owns world mutation and sync (FA-1A)', () => {
+describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fail-closed and canonical (FA-1D)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const handleSignAndTradeRegion = readRegion(
+    content,
+    'const handleSignAndTrade = useCallback(',
+    'const getSignAndTradePreflight = useCallback('
+  );
+  const getSignAndTradePreflightRegion = readRegion(
+    content,
+    'const getSignAndTradePreflight = useCallback(',
+    'const getOfferSheetPreflight = useCallback('
+  );
+  const getOfferSheetPreflightRegion = readRegion(
+    content,
+    'const getOfferSheetPreflight = useCallback(',
+    '// === RFA Offer Sheet Actions ==='
+  );
+  const handleStoreOfferSheetRegion = readRegion(
+    content,
+    'const handleStoreOfferSheet = useCallback(',
+    'const handleMatchOfferSheet = useCallback('
+  );
+  const handleMatchOfferSheetRegion = readRegion(
+    content,
+    'const handleMatchOfferSheet = useCallback(',
+    'const handleDeclineOfferSheet = useCallback('
+  );
+  const handleDeclineOfferSheetRegion = readRegion(
+    content,
+    'const handleDeclineOfferSheet = useCallback(',
+    'const handleFinalizeOfferSheet = useCallback('
+  );
+  const handleFinalizeOfferSheetRegion = readRegion(
+    content,
+    'const handleFinalizeOfferSheet = useCallback(',
+    'const runManualCapSheetLedgerMutation = useCallback('
+  );
 
   it('routes Free Agency signing and signing-preflight paths through one authoritative preparation helper', () => {
     expect(content).toMatch(
@@ -325,13 +424,71 @@ describe('Gate 5: authoritative hook path still owns world mutation and sync (FA
     );
   });
 
-  it('stores offer sheets through runAuthoritativeFAMutation with the canonical mutation key', () => {
-    expect(content).toMatch(
-      /const\s+handleStoreOfferSheet\s*=\s*useCallback/
+  it('keeps all world-only Free Agency paths fail-closed when no active world is present', () => {
+    expect(handleSignAndTradeRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*return\s*\{\s*success\s*:\s*false,\s*message\s*:\s*'Sign-and-trade requires an active world to commit\.'/
     );
-    expect(content).toMatch(
-      /handleStoreOfferSheet[\s\S]{0,2600}runAuthoritativeFAMutation\s*\(\s*['"]storeOfferSheet['"]/
+    expect(getSignAndTradePreflightRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*status:\s*'blocked'[\s\S]*reasons:\s*\['Sign-and-trade requires an active world to commit\.'\]/
     );
+    expect(getOfferSheetPreflightRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*status:\s*'blocked'[\s\S]*reasons:\s*\['Offer sheet requires an active world to commit\.'\]/
+    );
+    expect(handleStoreOfferSheetRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*return\s*\{\s*success\s*:\s*false,\s*message\s*:\s*'Offer sheet actions require an active world to commit\.'/
+    );
+    expect(handleMatchOfferSheetRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*'Offer sheet actions require an active world to commit\.'/
+    );
+    expect(handleDeclineOfferSheetRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*'Offer sheet actions require an active world to commit\.'/
+    );
+    expect(handleFinalizeOfferSheetRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*'Offer sheet actions require an active world to commit\.'/
+    );
+  });
+
+  it('routes world-only Free Agency execution through canonical authoritative mutation keys', () => {
+    expect(handleSignAndTradeRegion).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*'signAndTrade'/
+    );
+    expect(handleStoreOfferSheetRegion).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*'storeOfferSheet'/
+    );
+    expect(handleMatchOfferSheetRegion).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*'matchOfferSheet'/
+    );
+    expect(handleDeclineOfferSheetRegion).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*'declineOfferSheet'/
+    );
+    expect(handleFinalizeOfferSheetRegion).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*'finalizeMatchedOfferSheet'/
+    );
+    expect(handleFinalizeOfferSheetRegion).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*'finalizeDeclinedOfferSheet'/
+    );
+  });
+
+  it('does not grow local compute or local state-write fallback inside world-only handlers', () => {
+    const worldOnlyMutationRegions = [
+      handleSignAndTradeRegion,
+      handleStoreOfferSheetRegion,
+      handleMatchOfferSheetRegion,
+      handleDeclineOfferSheetRegion,
+      handleFinalizeOfferSheetRegion,
+    ];
+    const forbiddenPatterns = [
+      /computeWorldMutation/,
+      /applyCapAuditedTeamMutation/,
+      /setTeamCapSheet/,
+      /setFreeAgents/,
+    ];
+
+    for (const region of worldOnlyMutationRegions) {
+      for (const forbidden of forbiddenPatterns) {
+        expect(region).not.toMatch(forbidden);
+      }
+    }
   });
 
   it('keeps authoritative team sync inside useArchitectActions after successful world mutations', () => {
@@ -347,7 +504,7 @@ describe('Gate 5: authoritative hook path still owns world mutation and sync (FA
   });
 });
 
-describe('Gate 6: ActiveTab includes fa/cap/capfull runtime keys (E1 cleanup)', () => {
+describe('Gate 7: ActiveTab includes fa/cap/capfull runtime keys (E1 cleanup)', () => {
   const content = readFileContent(USE_ARCHITECT_STATE_PATH);
 
   it('defines ActiveTab union type', () => {
