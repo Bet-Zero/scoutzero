@@ -110,7 +110,16 @@ describe('Cap Sheet display-core E88 compatibility', () => {
   it('renders CapSummaryTiles in the existing visible order with canonical hard-cap compatibility intact', () => {
     const { container } = render(
       <CapSummaryTiles
-        teamCapSheet={{ mle: { used: 1 } }}
+        teamCapSheet={{
+          exceptions: {
+            mle: {
+              enabled: true,
+              totalAmount: 12_800_000,
+              usedAmount: 1,
+              remainingAmount: 12_799_999,
+            },
+          },
+        }}
         currentYear={2026}
         selectedYear={2026}
         canonicalTotals={SUMMARY_TOTALS}
@@ -162,7 +171,16 @@ describe('Cap Sheet display-core E88 compatibility', () => {
   it('suppresses current-year hard-cap copy when the summary is switched to a future year', () => {
     const { container } = render(
       <CapSummaryTiles
-        teamCapSheet={{ mle: { used: 1 } }}
+        teamCapSheet={{
+          exceptions: {
+            mle: {
+              enabled: true,
+              totalAmount: 12_800_000,
+              usedAmount: 1,
+              remainingAmount: 12_799_999,
+            },
+          },
+        }}
         currentYear={2026}
         selectedYear={2027}
         canonicalTotals={{

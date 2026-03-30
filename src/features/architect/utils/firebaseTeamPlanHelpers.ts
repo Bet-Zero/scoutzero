@@ -32,9 +32,9 @@ import {
   TeamCodeMap,
 } from '@/constants/teamList';
 import {
-  buildDerivedExceptionCompatibilityAliases,
-  normalizeCanonicalTeamExceptions,
+  normalizeTeamExceptionOwnership,
 } from '@/features/architect/utils/exceptions/exceptionOwnership';
+import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import type { TeamTotals } from '@/features/architect/types';
 
 type UnknownRecord = Record<string, unknown>;
@@ -90,6 +90,7 @@ interface LooseBaseTeamDoc extends UnknownRecord {
   offerSheets?: unknown[] | null;
   incomingOfferSheets?: unknown[] | null;
   exceptions?: LooseExceptionData | null;
+  tradeExceptions?: LooseTradeException[] | null;
   hardCapLevel?: string | null;
   hardCapReason?: string | null;
   hardCapTriggeredBy?: string | null;
@@ -229,20 +230,10 @@ type HydratedBaseTeamActiveContract = {
   yearsOfService: number | null;
 };
 
-type HydratedBaseTeamSimpleException = {
-  amount: number;
-  used: number;
-  remaining: number;
-};
-
-type HydratedBaseTeamTradeException = {
-  id?: string;
-  name?: string | null;
-  amount: number;
-  used: number;
-  createdFrom: string | null;
-  expires: string | null;
-};
+type HydratedBaseTeamExceptions = Pick<
+  LooseExceptionData,
+  'mle' | 'tpmle' | 'bae' | 'room' | 'dpe' | 'tpe'
+>;
 
 export type HydratedBaseTeamCapSheet = {
   id: string;
@@ -262,11 +253,7 @@ export type HydratedBaseTeamCapSheet = {
   entitlementIds: NonNullable<LooseBaseTeamDoc['entitlementIds']>;
   offerSheets: NonNullable<LooseBaseTeamDoc['offerSheets']>;
   incomingOfferSheets: NonNullable<LooseBaseTeamDoc['incomingOfferSheets']>;
-  exceptions: LooseExceptionData;
-  mle: HydratedBaseTeamSimpleException | null;
-  tpMle: HydratedBaseTeamSimpleException | null;
-  bae: HydratedBaseTeamSimpleException | null;
-  tradeExceptions: HydratedBaseTeamTradeException[];
+  exceptions: HydratedBaseTeamExceptions;
   hardCapLevel: string | null;
   hardCapReason: string | null;
   hardCapTriggeredBy: string | null;
@@ -280,8 +267,13 @@ export const hydrateBaseTeam = async (
   teamCode: string,
   baseDoc: LooseBaseTeamDoc
 ): Promise<HydratedBaseTeamCapSheet> => {
+  const normalizedBaseDoc = normalizeTeamExceptionOwnership(
+    normalizeTeamTpeSchema(baseDoc)
+  ) as LooseBaseTeamDoc & {
+    exceptions?: HydratedBaseTeamExceptions | null;
+  };
   const players: HydratedBaseTeamPlayer[] = [];
-  for (const rawPlayerId of baseDoc.roster || []) {
+  for (const rawPlayerId of normalizedBaseDoc.roster || []) {
     const playerId = String(rawPlayerId || '').trim();
     if (!playerId) {
       continue;
@@ -322,74 +314,61 @@ export const hydrateBaseTeam = async (
       };
     });
 
-  const exceptionData = normalizeCanonicalTeamExceptions(
-    baseDoc as Record<string, unknown>
-  ) as LooseExceptionData;
-  const derivedExceptionAliases = buildDerivedExceptionCompatibilityAliases({
-    exceptions: exceptionData,
-  });
-  const tradeExceptions: HydratedBaseTeamTradeException[] =
-    exceptionData.tpe?.map((tpe) => ({
-      id: tpe.id,
-      name: tpe.label || tpe.id,
-      amount: tpe.remainingAmount ?? tpe.totalAmount ?? 0,
-      used: tpe.usedAmount ?? 0,
-      createdFrom: tpe.createdFrom ?? null,
-      expires: tpe.expiresOn ?? tpe.expires ?? null,
-    })) || [];
+  const exceptionData =
+    (normalizedBaseDoc.exceptions as HydratedBaseTeamExceptions | null) || {};
 
   const teamMeta = TeamCodeMap[teamCode] || null;
   const hardCapLevel =
-    baseDoc.hardCapLevel || baseDoc.totals?.hardCapLevel || null;
-  const hardCapReason =
-    baseDoc.hardCapReason ||
-    baseDoc.totals?.hardCapReason ||
-    baseDoc.totals?.hardCapDetail ||
+    normalizedBaseDoc.hardCapLevel ||
+    normalizedBaseDoc.totals?.hardCapLevel ||
     null;
-  const hardCapTriggeredBy = baseDoc.hardCapTriggeredBy || null;
+  const hardCapReason =
+    normalizedBaseDoc.hardCapReason ||
+    normalizedBaseDoc.totals?.hardCapReason ||
+    normalizedBaseDoc.totals?.hardCapDetail ||
+    null;
+  const hardCapTriggeredBy = normalizedBaseDoc.hardCapTriggeredBy || null;
   const hardCapped =
     hardCapLevel != null &&
     String(hardCapLevel).toLowerCase() !== 'none' &&
     String(hardCapLevel).toLowerCase() !== 'false';
-  const totals = (baseDoc.totals || {}) as TeamTotals;
+  const totals = (normalizedBaseDoc.totals || {}) as TeamTotals;
 
   // Return team in new schema format - no conversion needed
   return {
     id: teamMeta?.id || teamCode.toLowerCase(),
     teamCode,
-    teamName: baseDoc.teamName,
-    season: baseDoc.season,
-    abbreviation: baseDoc.abbreviation || teamCode,
+    teamName: normalizedBaseDoc.teamName,
+    season: normalizedBaseDoc.season,
+    abbreviation: normalizedBaseDoc.abbreviation || teamCode,
     players,
     roster: players,
     activeContracts,
-    capHolds: baseDoc.capHolds || [],
-    draftPicks: baseDoc.draftPicks || [],
+    capHolds: normalizedBaseDoc.capHolds || [],
+    draftPicks: normalizedBaseDoc.draftPicks || [],
     // Draft pick ledger views (from pipeline - see PIPELINE_DRAFT_PICKS_LEDGER__EXECUTION__2026-01-08.md)
     // draftPicksInventory: Picks the team currently owns
     draftPicksInventory:
-      baseDoc.draftPicksInventory || baseDoc.draftPicks || [],
+      normalizedBaseDoc.draftPicksInventory ||
+      normalizedBaseDoc.draftPicks ||
+      [],
     // draftPicksObligations: Picks the team owes / has traded away (used for Stepien validation)
-    draftPicksObligations: baseDoc.draftPicksObligations || [],
+    draftPicksObligations: normalizedBaseDoc.draftPicksObligations || [],
     // draftPicksContested: Swaps and conditional picks involving the team
-    draftPicksContested: baseDoc.draftPicksContested || [],
+    draftPicksContested: normalizedBaseDoc.draftPicksContested || [],
     // draftAssets: Canonical Trade Machine source (see RETURN_PACKAGE_DRAFT_PICKS_TRADE_ASSETS.md)
     // Contains tradeable assets with assetType (outright_pick, conditional_right, swap_right)
-    draftAssets: baseDoc.draftAssets || null,
-    entitlementIds: baseDoc.entitlementIds || [],
-    offerSheets: baseDoc.offerSheets || [],
-    incomingOfferSheets: baseDoc.incomingOfferSheets || [],
+    draftAssets: normalizedBaseDoc.draftAssets || null,
+    entitlementIds: normalizedBaseDoc.entitlementIds || [],
+    offerSheets: normalizedBaseDoc.offerSheets || [],
+    incomingOfferSheets: normalizedBaseDoc.incomingOfferSheets || [],
     exceptions: exceptionData,
-    mle: derivedExceptionAliases.mle ?? null,
-    tpMle: derivedExceptionAliases.tpMle ?? null,
-    bae: derivedExceptionAliases.bae ?? null,
-    tradeExceptions,
     hardCapLevel,
     hardCapReason,
     hardCapTriggeredBy,
     hardCapped,
-    deadCap: baseDoc.deadCap || [],
-    baseline: baseDoc,
+    deadCap: normalizedBaseDoc.deadCap || [],
+    baseline: normalizedBaseDoc,
     totals,
   };
 };

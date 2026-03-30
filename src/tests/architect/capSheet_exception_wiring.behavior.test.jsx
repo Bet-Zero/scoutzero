@@ -205,10 +205,13 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const ExceptionSaveHarness = () => {
       const [teamCapSheet, setTeamCapSheet] = React.useState({
         hardCapped: 0,
-        exceptions: {},
-        mle: {
-          amount: 9_876_543,
-          used: 111_111,
+        exceptions: {
+          mle: {
+            enabled: true,
+            totalAmount: 9_876_543,
+            usedAmount: 111_111,
+            remainingAmount: 9_765_432,
+          },
         },
       });
 
@@ -288,15 +291,15 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(within(tpMleCard).queryByText('$99,000,000')).not.toBeInTheDocument();
   });
 
-  it('normalizes legacy top-level tpMle ownership into the canonical TPMLE row across tracker and modal', () => {
+  it('treats legacy top-level tpMle data as unavailable until it is canonicalized into team.exceptions', () => {
     render(
       <>
         <ExceptionTracker
           teamCapSheet={{
             tpMle: {
-              amount: 5_000_000,
-              used: 1_000_000,
-              remaining: 4_000_000,
+              amount: 99_000_000,
+              used: 11_000_000,
+              remaining: 88_000_000,
             },
           }}
           currentYear={2026}
@@ -308,9 +311,9 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
           currentYear={2026}
           teamCapSheet={{
             tpMle: {
-              amount: 5_000_000,
-              used: 1_000_000,
-              remaining: 4_000_000,
+              amount: 99_000_000,
+              used: 11_000_000,
+              remaining: 88_000_000,
             },
           }}
         />
@@ -324,8 +327,9 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       .getByText('TP-MLE')
       .closest('div.relative');
     expect(tpMleCard).not.toBeNull();
-    expect(within(tpMleCard).getByText('$4,000,000')).toBeInTheDocument();
-    expect(within(tpMleCard).queryByText('N/A')).not.toBeInTheDocument();
+    expect(within(tpMleCard).getByText('$0')).toBeInTheDocument();
+    expect(within(tpMleCard).getByText('N/A')).toBeInTheDocument();
+    expect(within(tpMleCard).queryByText('$88,000,000')).not.toBeInTheDocument();
 
     const table = screen.getByRole('table');
     const taxpayerRow = within(table)
@@ -333,11 +337,11 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       .find((row) => within(row).queryByText('Taxpayer MLE'));
     expect(taxpayerRow).toBeDefined();
     expect(within(taxpayerRow).getByDisplayValue('5000000')).toBeInTheDocument();
-    expect(within(taxpayerRow).getByDisplayValue('1000000')).toBeInTheDocument();
-    expect(within(taxpayerRow).getByRole('checkbox')).toBeChecked();
+    expect(within(taxpayerRow).getByDisplayValue('0')).toBeInTheDocument();
+    expect(within(taxpayerRow).getByRole('checkbox')).not.toBeChecked();
   });
 
-  it('renders legacy-only top-level exception data when canonical exception entry is absent', () => {
+  it('does not render legacy-only top-level exception data when the canonical exception entry is absent', () => {
     render(
       <ExceptionTracker
         teamCapSheet={{
@@ -357,8 +361,9 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const baeCard = within(trackerSection).getByText('BAE').closest('div.relative');
 
     expect(baeCard).not.toBeNull();
-    expect(within(baeCard).getByText('$3,700,000')).toBeInTheDocument();
-    expect(within(baeCard).queryByText('N/A')).not.toBeInTheDocument();
+    expect(within(baeCard).getByText('$0')).toBeInTheDocument();
+    expect(within(baeCard).getByText('N/A')).toBeInTheDocument();
+    expect(within(baeCard).queryByText('$3,700,000')).not.toBeInTheDocument();
   });
 
   it('does not let legacy top-level fallback override a canonical disabled exception entry', () => {
@@ -554,7 +559,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses the shared resolver for legacy MLE hard-cap compatibility instead of tracker-local copy', () => {
+  it('does not infer hard-cap usage from legacy top-level MLE compatibility state', () => {
     render(
       <ExceptionTracker
         teamCapSheet={{
@@ -571,16 +576,15 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       'Cap sheet adjacent exception presentation surface'
     );
 
-    expect(within(trackerSection).getByText('Hard Capped')).toBeInTheDocument();
-    expect(within(trackerSection).getByText('1st Apron')).toBeInTheDocument();
-    expect(
-      within(trackerSection).getByText(
-        'Hard cap triggered at First Apron via Non-Taxpayer MLE usage.'
-      )
-    ).toBeInTheDocument();
+    expect(within(trackerSection).getByText('No Hard Cap Active')).toBeInTheDocument();
     expect(
       within(trackerSection).queryByText(
         'Hard capped at 1st Apron due to usage of Non-Taxpayer MLE or BAE.'
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      within(trackerSection).queryByText(
+        'Hard cap triggered at First Apron via Non-Taxpayer MLE usage.'
       )
     ).not.toBeInTheDocument();
   });

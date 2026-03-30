@@ -22,6 +22,8 @@ import {
   loadTeamCapSheet,
   type HydratedBaseTeamCapSheet,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { normalizeTeamExceptionOwnership } from '@/features/architect/utils/exceptions/exceptionOwnership';
+import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import { TeamSlugToCode, TeamCodeMap } from '@/constants/teamList';
 import type { TeamTotals } from '@/features/architect/types';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -39,10 +41,6 @@ export type LoadedWorldTeamCapSheet = Pick<
   | 'activeContracts'
   | 'draftAssets'
   | 'entitlementIds'
-  | 'mle'
-  | 'tpMle'
-  | 'bae'
-  | 'tradeExceptions'
   | 'hardCapLevel'
   | 'hardCapReason'
   | 'hardCapTriggeredBy'
@@ -96,6 +94,18 @@ function deriveLoadedTeamTotalsYear(
   return Number.isFinite(yearKey) ? yearKey : null;
 }
 
+function normalizeLoadedTeamExceptionOwners(
+  teamData: LoadedWorldTeamCapSheet | null
+): LoadedWorldTeamCapSheet | null {
+  if (!teamData) {
+    return teamData;
+  }
+
+  return normalizeTeamExceptionOwnership(
+    normalizeTeamTpeSchema(teamData)
+  ) as LoadedWorldTeamCapSheet;
+}
+
 function synchronizeLoadedTeamTotals(
   teamData: LoadedWorldTeamCapSheet | null
 ): LoadedWorldTeamCapSheet | null {
@@ -103,10 +113,11 @@ function synchronizeLoadedTeamTotals(
     return teamData;
   }
 
-  const year = deriveLoadedTeamTotalsYear(teamData);
-  return (
+  const normalizedTeamData = normalizeLoadedTeamExceptionOwners(teamData);
+  const year = deriveLoadedTeamTotalsYear(normalizedTeamData);
+  return normalizeLoadedTeamExceptionOwners(
     synchronizeTeamTotalsSnapshot(
-      teamData,
+      normalizedTeamData,
       year
     ) as LoadedWorldTeamCapSheet | null
   );

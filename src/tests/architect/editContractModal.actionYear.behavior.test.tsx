@@ -20,6 +20,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import EditContractModal from '@/shared/components/EditContractModal';
@@ -75,59 +76,98 @@ vi.mock('@/features/architect/utils/capHelpers', () => ({
   calculateTeamCapHit: () => 0,
 }));
 
-vi.mock('@/features/architect/utils/contractUtils', () => ({
-  generateExtensionContract: ({
-    firstYearSalary,
-    years,
-    raisePct,
-    startYear,
-  }: {
-    firstYearSalary: number;
-    years: number;
-    raisePct: number;
-    startYear: number;
-  }) => ({
-    firstYearSalary,
-    years,
-    raisePct,
-    startYear,
-  }),
-  getContractYearsForDisplay: (player: {
-    contract?: { salariesByYear?: Array<Record<string, unknown>> | null } | null;
-  }) =>
-    (player?.contract?.salariesByYear || []).map((row) => {
-      const season = String(row.season || '');
-      const year = /^\d{4}-\d{2}$/.test(season)
-        ? 2000 + parseInt(season.split('-')[1], 10)
-        : parseInt(season, 10);
-      return {
-        season,
-        year,
-        salary: Number(row.salary) || 0,
-        option: row.option || null,
-        isExtension: Boolean(row.isExtension),
-        guaranteed: row.guaranteed,
-      };
-    }),
-  getContractYearSlice: (
-    contract: {
-      salariesByYear?: Array<Record<string, unknown>> | null;
-    } | null | undefined,
-    year: number
-  ) =>
-    (contract?.salariesByYear || []).find((row) => {
-      const season = String(row.season || '');
-      if (/^\d{4}-\d{2}$/.test(season)) {
-        return 2000 + parseInt(season.split('-')[1], 10) === year;
-      }
-      return parseInt(season, 10) === year;
-    }) || null,
-}));
+vi.mock(
+  '@/features/architect/utils/contractUtils',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/contractUtils')
+      >();
 
-vi.mock('@/features/architect/utils/seasonFormat', () => ({
-  toSeasonCode: (endYear: number) =>
-    `${endYear - 1}-${String(endYear).slice(-2)}`,
-}));
+    return {
+      ...actual,
+      generateExtensionContract: ({
+        firstYearSalary,
+        years,
+        raisePct,
+        startYear,
+      }: {
+        firstYearSalary: number;
+        years: number;
+        raisePct: number;
+        startYear: number;
+      }) => ({
+        firstYearSalary,
+        years,
+        raisePct,
+        startYear,
+      }),
+      getContractYearsForDisplay: (player: {
+        contract?: {
+          salariesByYear?: Array<Record<string, unknown>> | null;
+        } | null;
+      }) =>
+        (player?.contract?.salariesByYear || []).map((row) => {
+          const season = String(row.season || '');
+          const year = /^\d{4}-\d{2}$/.test(season)
+            ? 2000 + parseInt(season.split('-')[1], 10)
+            : parseInt(season, 10);
+          return {
+            season,
+            year,
+            salary: Number(row.salary) || 0,
+            option: row.option || null,
+            isExtension: Boolean(row.isExtension),
+            guaranteed: row.guaranteed,
+          };
+        }),
+      getContractYearSlice: (
+        contract: {
+          salariesByYear?: Array<Record<string, unknown>> | null;
+        } | null | undefined,
+        year: number
+      ) =>
+        (contract?.salariesByYear || []).find((row) => {
+          const season = String(row.season || '');
+          if (/^\d{4}-\d{2}$/.test(season)) {
+            return 2000 + parseInt(season.split('-')[1], 10) === year;
+          }
+          return parseInt(season, 10) === year;
+        }) || null,
+      getPlayerCapHitForYear: (
+        player: {
+          contract?: {
+            salariesByYear?: Array<Record<string, unknown>> | null;
+          } | null;
+        } | null | undefined,
+        year: number
+      ) => {
+        const contractSlice =
+          (player?.contract?.salariesByYear || []).find((row) => {
+            const season = String(row.season || '');
+            if (/^\d{4}-\d{2}$/.test(season)) {
+              return 2000 + parseInt(season.split('-')[1], 10) === year;
+            }
+            return parseInt(season, 10) === year;
+          }) || null;
+        return Number(contractSlice?.capHit ?? contractSlice?.salary ?? 0) || 0;
+      },
+    };
+  }
+);
+
+vi.mock('@/features/architect/utils/seasonFormat', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/features/architect/utils/seasonFormat')
+    >();
+
+  return {
+    ...actual,
+    toSeasonCode: (endYear: number) =>
+      `${endYear - 1}-${String(endYear).slice(-2)}`,
+  };
+});
 
 vi.mock('@/features/architect/utils/salaryEngine', () => ({
   buildMinimalRuleContext: () => ({
@@ -214,6 +254,85 @@ afterEach(() => {
 });
 
 describe('EditContractModal future-year action-year routing', () => {
+  it('offers only canonical enabled signing exceptions and resets stale selections to None', async () => {
+    const renderModal = (teamCapSheet: Record<string, unknown>) =>
+      render(
+        <EditContractModal
+          isOpen
+          onClose={vi.fn()}
+          player={FUTURE_FA_PLAYER}
+          teamCapSheet={teamCapSheet}
+          currentYear={2026}
+          targetYear={2028}
+          actionYear={2028}
+          actionContext="freeAgent"
+          initialAction="signNew"
+          actionsOverride={['signNew']}
+          onSignFreeAgent={vi.fn().mockResolvedValue({ success: true })}
+        />
+      );
+
+    const canonicalTeamCapSheet = {
+      ...TEAM_CAP_SHEET,
+      exceptions: {
+        mle: {
+          enabled: true,
+          totalAmount: 12_900_000,
+          usedAmount: 0,
+          remainingAmount: 12_900_000,
+        },
+        tpmle: {
+          enabled: false,
+          totalAmount: 5_685_000,
+          usedAmount: 0,
+          remainingAmount: 5_685_000,
+        },
+      },
+    };
+
+    const { rerender } = renderModal(canonicalTeamCapSheet);
+
+    const getExceptionSelect = () =>
+      screen.getAllByRole('combobox')[1] as HTMLSelectElement;
+
+    const initialExceptionSelect = getExceptionSelect();
+    const initialOptions = within(initialExceptionSelect)
+      .getAllByRole('option')
+      .map((option) => option.textContent?.trim());
+
+    expect(initialOptions).toEqual(['Cap Space / Rights', 'Full MLE', 'Minimum']);
+
+    fireEvent.change(initialExceptionSelect, {
+      target: { value: 'Full MLE' },
+    });
+    expect(getExceptionSelect().value).toBe('Full MLE');
+
+    rerender(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={FUTURE_FA_PLAYER}
+        teamCapSheet={{ ...TEAM_CAP_SHEET, exceptions: {} }}
+        currentYear={2026}
+        targetYear={2028}
+        actionYear={2028}
+        actionContext="freeAgent"
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onSignFreeAgent={vi.fn().mockResolvedValue({ success: true })}
+      />
+    );
+
+    await waitFor(() => {
+      expect(getExceptionSelect().value).toBe('None');
+    });
+
+    const resetOptions = within(getExceptionSelect())
+      .getAllByRole('option')
+      .map((option) => option.textContent?.trim());
+    expect(resetOptions).toEqual(['Cap Space / Rights', 'Minimum']);
+  });
+
   it('builds sign payload seasons from the clicked action year instead of dashboard current year', async () => {
     const onClose = vi.fn();
     const onSignFreeAgent = vi.fn().mockResolvedValue({ success: true });

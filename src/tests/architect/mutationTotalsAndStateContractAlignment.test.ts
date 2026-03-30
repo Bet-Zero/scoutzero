@@ -214,19 +214,12 @@ describe('mutation totals and state contract alignment', () => {
       incomingOfferSheets: [],
       exceptions: {
         tpmle: {
+          enabled: true,
           totalAmount: 5_685_000,
           usedAmount: 1_000_000,
           remainingAmount: 4_685_000,
         },
       },
-      mle: null,
-      tpMle: {
-        amount: 5_685_000,
-        used: 1_000_000,
-        remaining: 4_685_000,
-      },
-      bae: null,
-      tradeExceptions: [],
       hardCapLevel: 'firstApron',
       hardCapped: true,
       deadCap: [],
@@ -262,7 +255,11 @@ describe('mutation totals and state contract alignment', () => {
     expect(result.current.teamCapSheet?.exceptions?.tpmle?.remainingAmount).toBe(
       4_685_000
     );
-    expect(result.current.teamCapSheet?.tpMle?.remaining).toBe(4_685_000);
+    expect(
+      result.current.teamCapSheet
+        ? 'tpMle' in result.current.teamCapSheet
+        : false
+    ).toBe(false);
   });
 
   it('preserves the minimal hard-cap overlay on computed totals for sign-and-trade trade results', () => {

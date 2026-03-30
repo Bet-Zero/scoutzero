@@ -239,13 +239,11 @@ type ArchitectExceptionEntryLike = {
 
 type ArchitectExceptionsLike = {
   mle?: ArchitectExceptionEntryLike | null;
-  taxpayerMle?: ArchitectExceptionEntryLike | null;
   room?: ArchitectExceptionEntryLike | null;
   bae?: ArchitectExceptionEntryLike | null;
   dpe?: ArchitectExceptionEntryLike | null;
   tpe?: Exceptions['tpe'];
   tpmle?: ArchitectExceptionEntryLike | null;
-  tpMle?: ArchitectExceptionEntryLike | null;
 };
 
 /** Cap sheet structure */
@@ -265,7 +263,6 @@ export type ArchitectDashboardCapSheet = DashboardBaseTeamCapSheet & {
   offerSheets?: OfferSheetLike[] | null;
   incomingOfferSheets?: OfferSheetLike[] | null;
   activeContracts?: LoadedWorldTeamData['activeContracts'] | null;
-  tradeExceptions?: LoadedWorldTeamData['tradeExceptions'] | null;
   hardCapLevel?: LoadedWorldTeamData['hardCapLevel'] | null;
   hardCapReason?: LoadedWorldTeamData['hardCapReason'] | null;
   hardCapTriggeredBy?: LoadedWorldTeamData['hardCapTriggeredBy'] | null;

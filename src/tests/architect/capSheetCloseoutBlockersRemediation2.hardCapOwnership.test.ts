@@ -99,6 +99,17 @@ const DISABLED_MLE_TEAM_FIXTURE = {
   totals: {},
 };
 
+const LEGACY_ALIAS_ONLY_MLE_TEAM_FIXTURE = {
+  ...TEAM_FIXTURE,
+  exceptions: {},
+  mle: {
+    amount: 12_900_000,
+    used: 0,
+    remaining: 12_900_000,
+  },
+  totals: {},
+};
+
 const PLAYER_FIXTURE = {
   id: 'player_1',
   player_id: 'player_1',
@@ -201,6 +212,43 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     ).toBe(true);
   });
 
+  it('blocks alias-only top-level Full-MLE ownership in both validation and mutation', () => {
+    const validationResult = validateSigning({
+      team: LEGACY_ALIAS_ONLY_MLE_TEAM_FIXTURE,
+      player: PLAYER_FIXTURE,
+      contract: SIGNING_PAYLOAD.contract,
+      signedUsing: 'Full MLE',
+      year: 2026,
+    });
+
+    expect(validationResult.valid).toBe(false);
+    expect(
+      validationResult.violations.some((violation) =>
+        String(violation.message).includes('no canonical MLE owner exists')
+      )
+    ).toBe(true);
+
+    const beforeTeam = synchronizeTeamTotalsSnapshot(
+      LEGACY_ALIAS_ONLY_MLE_TEAM_FIXTURE,
+      2026
+    );
+    const result = computeWorldMutation({
+      mutationType: 'signFreeAgent',
+      payload: SIGNING_PAYLOAD,
+      currentState: {
+        team: beforeTeam,
+        player: PLAYER_FIXTURE,
+        teamCode: 'LAL',
+      },
+      seasonId: '2025-26',
+      timestamp: Date.parse('2026-03-29T11:59:00.000Z'),
+      worldId: 'world_closeout',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('canonical MLE owner is missing');
+  });
+
   it('blocks TPMLE signing when only the full MLE owner exists', () => {
     const beforeTeam = synchronizeTeamTotalsSnapshot(TEAM_FIXTURE, 2026);
     const result = computeWorldMutation({
@@ -258,6 +306,13 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         hardCapReason: 'Triggered by Non-Taxpayer MLE',
       })
     );
+    expect(updatedTeam.exceptions?.mle).toEqual(
+      expect.objectContaining({
+        usedAmount: 12_000_000,
+        remainingAmount: 900_000,
+      })
+    );
+    expect((updatedTeam as Record<string, unknown>).mle).toBeUndefined();
 
     expect(buildTotalsByTeam({ LAL: updatedTeam }, 2026).LAL).toEqual(
       expect.objectContaining({
@@ -339,6 +394,12 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         hardCapLevel: 'firstApron',
         hardCapDetail: 'Triggered by Bi-Annual Exception',
         hardCapReason: 'Triggered by Bi-Annual Exception',
+      })
+    );
+    expect(updatedTeam.exceptions?.bae).toEqual(
+      expect.objectContaining({
+        usedAmount: 4_500_000,
+        remainingAmount: 635_000,
       })
     );
 

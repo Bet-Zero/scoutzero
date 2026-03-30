@@ -2031,9 +2031,13 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   const deadCap = normalizeObjectArray<ArchitectMutationDeadCapEntry>(
     teamRecord.deadCap
   );
-  const normalizedExceptions = normalizeCanonicalTeamExceptions(
-    teamRecord as Record<string, unknown>
-  );
+  const normalizedExceptions = normalizeCanonicalTeamExceptions({
+    exceptions:
+      (toOptionalObject<Record<string, unknown>>(teamRecord.exceptions) as
+        | Record<string, unknown>
+        | null
+        | undefined) || null,
+  });
   // Load-bearing broad bag: this file reads dynamic exception buckets during
   // signing logic and persists the object back out on team snapshot writes.
   const exceptions =
@@ -5817,9 +5821,11 @@ function consumeSigningExceptionUsage({
     return { consumedExceptionKey: null, error: null };
   }
 
-  updatedTeam.exceptions = normalizeCanonicalTeamExceptions(
-    updatedTeam as Record<string, unknown>
-  ) as ArchitectMutationExceptions;
+  updatedTeam.exceptions = normalizeCanonicalTeamExceptions({
+    exceptions:
+      (updatedTeam.exceptions as Record<string, unknown> | null | undefined) ||
+      null,
+  }) as ArchitectMutationExceptions;
 
   const availability = getCanonicalExceptionAvailability(updatedTeam, exceptionKey);
   if (!availability.present) {
@@ -5900,9 +5906,11 @@ function computeSigningResult({
   );
 
   const updatedTeam = { ...team };
-  updatedTeam.exceptions = normalizeCanonicalTeamExceptions(
-    updatedTeam as Record<string, unknown>
-  ) as ArchitectMutationExceptions;
+  updatedTeam.exceptions = normalizeCanonicalTeamExceptions({
+    exceptions:
+      (updatedTeam.exceptions as Record<string, unknown> | null | undefined) ||
+      null,
+  }) as ArchitectMutationExceptions;
 
   // Add player to roster if not already present
   const playerId = String(payload.playerId || player.player_id || player.id || '').trim();
@@ -6679,7 +6687,6 @@ function computeSetExceptionsResult({
   const updatedTeam = {
     ...team,
     exceptions: normalizeCanonicalTeamExceptions({
-      ...team,
       exceptions: mergeManualExceptionSnapshot(
         (team?.exceptions as Record<string, unknown> | null | undefined) || null,
         (payload.exceptions as Record<string, unknown> | null | undefined) ||

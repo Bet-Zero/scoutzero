@@ -4,9 +4,9 @@
  * OWNERSHIP: Feature: architect/cap-sheet
  *
  * NOTE:
- * - team.exceptions is the only authoritative non-TPE owner path.
- * - Legacy nested aliases and top-level compatibility blobs are accepted as
- *   read inputs, then normalized into canonical nested owners.
+ * - team.exceptions is the only authoritative non-TPE owner path at runtime.
+ * - Legacy nested aliases and top-level compatibility blobs are accepted only
+ *   at normalization boundaries, then rewritten into canonical nested owners.
  * - Missing state stays unavailable; existing legacy state normalizes to
  *   enabled unless it explicitly marks itself unavailable.
  */
@@ -204,7 +204,7 @@ const normalizeLegacyExceptionValue = (
   };
 };
 
-const readCanonicalExceptionSource = (
+const readLegacyExceptionSource = (
   team: TeamExceptionOwnerLike,
   key: CanonicalNonTpeExceptionKey
 ): unknown => {
@@ -220,6 +220,23 @@ const readCanonicalExceptionSource = (
 
   for (const topLevelKey of topLevelKeys) {
     const normalized = normalizeLegacyExceptionValue(team[topLevelKey]);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+};
+
+const readAuthoritativeCanonicalExceptionSource = (
+  team: TeamExceptionOwnerLike | null | undefined,
+  key: CanonicalNonTpeExceptionKey
+): unknown => {
+  const exceptions = isRecord(team?.exceptions) ? team.exceptions : null;
+  const { nestedKeys } = NON_TPE_EXCEPTION_SOURCES[key];
+
+  for (const nestedKey of nestedKeys) {
+    const normalized = normalizeLegacyExceptionValue(exceptions?.[nestedKey]);
     if (normalized) {
       return normalized;
     }
@@ -261,7 +278,7 @@ export function normalizeCanonicalTeamExceptions(
   }
 
   for (const key of CANONICAL_KEYS) {
-    const normalizedEntry = readCanonicalExceptionSource(team, key);
+    const normalizedEntry = readLegacyExceptionSource(team, key);
     if (normalizedEntry) {
       normalized[key] = normalizedEntry;
     }
@@ -274,8 +291,9 @@ export function getCanonicalExceptionEntry(
   team: TeamExceptionOwnerLike | null | undefined,
   key: CanonicalNonTpeExceptionKey
 ): CanonicalNonTpeExceptionState | null {
-  const normalizedExceptions = normalizeCanonicalTeamExceptions(team);
-  return normalizeLegacyExceptionValue(normalizedExceptions[key]);
+  return normalizeLegacyExceptionValue(
+    readAuthoritativeCanonicalExceptionSource(team, key)
+  );
 }
 
 export function getCanonicalExceptionAvailability(
@@ -334,13 +352,10 @@ export function normalizeTeamExceptionOwnership<
     ...team,
     exceptions: normalizeCanonicalTeamExceptions(team),
   } as UnknownRecord;
-  const aliases = buildDerivedExceptionCompatibilityAliases(normalizedTeam);
 
-  delete normalizedTeam.taxpayerMle;
-  delete normalizedTeam.room;
-  normalizedTeam.mle = aliases.mle ?? null;
-  normalizedTeam.tpMle = aliases.tpMle ?? null;
-  normalizedTeam.bae = aliases.bae ?? null;
+  for (const aliasKey of EXCEPTION_ALIAS_KEYS) {
+    delete normalizedTeam[aliasKey];
+  }
 
   return normalizedTeam as TTeam;
 }

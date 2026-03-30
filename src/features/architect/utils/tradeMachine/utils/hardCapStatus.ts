@@ -6,6 +6,7 @@
  * Trade-time callers should not replicate status detection, and later final-state layers should
  * not replicate ceiling fallback policy.
  */
+import { getCanonicalExceptionEntry } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import type {
   HardCapStatusResult,
   HardCapTypeCanonical,
@@ -354,10 +355,14 @@ function getCompatibilityHardCapUsage(
   teamLike: HardCapStatusTeamData
 ): { source: string; reason: string } | null {
   const mleSource =
-    getUsageSourceLabel('team.team.exceptions.mle', teamLike?.exceptions?.mle) ||
-    getUsageSourceLabel('team.exceptions.mle', team.exceptions?.mle) ||
-    getUsageSourceLabel('team.team.mle', teamLike?.mle) ||
-    getUsageSourceLabel('team.mle', team.mle) ||
+    getUsageSourceLabel(
+      'team.team.exceptions.mle',
+      getCanonicalExceptionEntry(teamLike, 'mle')
+    ) ||
+    getUsageSourceLabel(
+      'team.exceptions.mle',
+      getCanonicalExceptionEntry(team, 'mle')
+    ) ||
     getBucketUsageSourceLabel(
       'team.team.faExceptionBuckets',
       teamLike?.faExceptionBuckets,
@@ -369,10 +374,14 @@ function getCompatibilityHardCapUsage(
     ]);
 
   const baeSource =
-    getUsageSourceLabel('team.team.exceptions.bae', teamLike?.exceptions?.bae) ||
-    getUsageSourceLabel('team.exceptions.bae', team.exceptions?.bae) ||
-    getUsageSourceLabel('team.team.bae', teamLike?.bae) ||
-    getUsageSourceLabel('team.bae', team.bae) ||
+    getUsageSourceLabel(
+      'team.team.exceptions.bae',
+      getCanonicalExceptionEntry(teamLike, 'bae')
+    ) ||
+    getUsageSourceLabel(
+      'team.exceptions.bae',
+      getCanonicalExceptionEntry(team, 'bae')
+    ) ||
     getBucketUsageSourceLabel(
       'team.team.faExceptionBuckets',
       teamLike?.faExceptionBuckets,

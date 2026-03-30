@@ -172,10 +172,6 @@ const expectedHydratedTeamKeys = [
   'offerSheets',
   'incomingOfferSheets',
   'exceptions',
-  'mle',
-  'tpMle',
-  'bae',
-  'tradeExceptions',
   'hardCapLevel',
   'hardCapReason',
   'hardCapTriggeredBy',
@@ -249,7 +245,7 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
     expect(typeof prepared.updatedAt).toBe('string');
   });
 
-  it('preserves hydrated team shape, nested key order, fallback behavior, and sequential player hydration', async () => {
+  it('hydrates canonical exception ownership shape, fallback behavior, and sequential player hydration', async () => {
     const baseDoc = {
       teamName: 'Los Angeles Lakers',
       season: '2025-26',
@@ -263,16 +259,25 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
       entitlementIds: ['ent-1'],
       offerSheets: [{ id: 'offer-1' }],
       incomingOfferSheets: [{ id: 'incoming-1' }],
+      tpMle: {
+        totalAmount: 5_200_000,
+        usedAmount: 1_000_000,
+        remainingAmount: 4_200_000,
+      },
+      tradeExceptions: [
+        {
+          id: 'legacy-tpe-1',
+          amount: 1_250_000,
+          remaining: 1_000_000,
+          createdFrom: 'legacy-trade-1',
+          expires: '2026-08-01',
+        },
+      ],
       exceptions: {
         mle: {
           totalAmount: 12_800_000,
           usedAmount: 3_000_000,
           remainingAmount: 9_800_000,
-        },
-        tpMle: {
-          totalAmount: 5_200_000,
-          usedAmount: 1_000_000,
-          remainingAmount: 4_200_000,
         },
         bae: {
           totalAmount: 4_700_000,
@@ -357,7 +362,7 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
     expect(hydratedTeam.teamCode).toBe('LAL');
     expect(hydratedTeam.id).toBe('lakers');
     expect(hydratedTeam.roster).toBe(hydratedTeam.players);
-    expect(hydratedTeam.baseline).toBe(baseDoc);
+    expect(hydratedTeam.baseline).not.toBe(baseDoc);
     expect(hydratedTeam.hardCapLevel).toBe('firstApron');
     expect(hydratedTeam.hardCapped).toBe(true);
     expect(hydratedTeam.exceptions).toEqual(
@@ -371,10 +376,27 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
         bae: expect.objectContaining({
           remainingAmount: 4_700_000,
         }),
+        tpe: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'legacy-tpe-1',
+            amount: 1_250_000,
+            remaining: 1_000_000,
+          }),
+          expect.objectContaining({
+            id: 'tpe-1',
+            remainingAmount: 1_500_000,
+          }),
+        ]),
       })
     );
     expect(hydratedTeam.exceptions.taxpayerMle).toBeUndefined();
     expect(hydratedTeam.exceptions.tpMle).toBeUndefined();
+    expect(hydratedTeam.exceptions.biAnnual).toBeUndefined();
+    expect(hydratedTeam.mle).toBeUndefined();
+    expect(hydratedTeam.tpMle).toBeUndefined();
+    expect(hydratedTeam.bae).toBeUndefined();
+    expect(hydratedTeam.tradeExceptions).toBeUndefined();
+    expect(hydratedTeam.baseline.tradeExceptions).toBeUndefined();
     expect(hydratedTeam.players.map((player: { id: string }) => player.id)).toEqual([
       'alpha',
       'missing',
@@ -425,29 +447,6 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
       'isMinimum',
       'yearsOfService',
     ]);
-    expect(Object.keys(hydratedTeam.mle)).toEqual(['amount', 'used', 'remaining']);
-    expect(Object.keys(hydratedTeam.tpMle)).toEqual([
-      'amount',
-      'used',
-      'remaining',
-    ]);
-    expect(Object.keys(hydratedTeam.bae)).toEqual(['amount', 'used', 'remaining']);
-    expect(Object.keys(hydratedTeam.tradeExceptions[0])).toEqual([
-      'id',
-      'name',
-      'amount',
-      'used',
-      'createdFrom',
-      'expires',
-    ]);
-    expect(hydratedTeam.tradeExceptions[0]).toEqual({
-      id: 'tpe-1',
-      name: 'TPE One',
-      amount: 1_500_000,
-      used: 500_000,
-      createdFrom: 'trade-1',
-      expires: '2026-07-01',
-    });
     expect(hydratedTeam.draftPicksInventory).toEqual(baseDoc.draftPicks);
     expect(hydratedTeam.draftPicksObligations).toEqual(baseDoc.draftPicksObligations);
     expect(hydratedTeam.draftPicksContested).toEqual(baseDoc.draftPicksContested);
