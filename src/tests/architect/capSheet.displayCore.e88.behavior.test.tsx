@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import CapSummaryTiles from '@/features/architect/capSheet/CapSheet/CapSummaryTiles';
 import { CapTableSection } from '@/features/architect/GMDashboard/sections/CapTableSection';
@@ -111,6 +111,7 @@ describe('Cap Sheet display-core E88 compatibility', () => {
     const { container } = render(
       <CapSummaryTiles
         teamCapSheet={{ mle: { used: 1 } }}
+        currentYear={2026}
         selectedYear={2026}
         canonicalTotals={SUMMARY_TOTALS}
       />
@@ -146,6 +147,7 @@ describe('Cap Sheet display-core E88 compatibility', () => {
             reason: 'Structured second-apron tile reason',
           },
         }}
+        currentYear={2026}
         selectedYear={2026}
         canonicalTotals={SUMMARY_TOTALS}
       />
@@ -155,6 +157,29 @@ describe('Cap Sheet display-core E88 compatibility', () => {
     expect(
       screen.getByText('Structured second-apron tile reason')
     ).toBeInTheDocument();
+  });
+
+  it('suppresses current-year hard-cap copy when the summary is switched to a future year', () => {
+    const { container } = render(
+      <CapSummaryTiles
+        teamCapSheet={{ mle: { used: 1 } }}
+        currentYear={2026}
+        selectedYear={2027}
+        canonicalTotals={{
+          ...SUMMARY_TOTALS,
+          yearKey: 2027,
+        }}
+      />
+    );
+
+    expect(
+      within(container).queryByText('Hard Capped at 1st Apron')
+    ).not.toBeInTheDocument();
+    expect(
+      within(container).queryByText(
+        'Hard cap triggered at First Apron via Non-Taxpayer MLE usage.'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('keeps CapTableSection as a pass-through shell for CapSheetFull callbacks and rules-profile rendering', () => {

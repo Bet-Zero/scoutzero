@@ -33,6 +33,9 @@ type TeamLike = {
   capHolds: unknown[];
   exceptions: Record<string, unknown>;
   totals: Record<string, unknown>;
+  hardCapLevel?: string;
+  hardCapReason?: string;
+  hardCapTriggeredBy?: string;
 };
 type ManualCapSheetMutationAuthority = NonNullable<
   Parameters<typeof CapSheet>[0]['manualCapSheetMutationAuthority']
@@ -401,6 +404,30 @@ function buildTeamWithFutureOnlyVisiblePlayerFixture(): TeamLike {
         },
       },
     ],
+  };
+}
+
+function buildTeamWithFutureYearHardCapBoundaryFixture(): TeamLike {
+  return {
+    ...buildTeamWithFutureYearCapHitAdjustmentsFixture(),
+    exceptions: {
+      mle: {
+        type: 'non-taxpayer',
+        totalAmount: 12_900_000,
+        usedAmount: 12_000_000,
+        remainingAmount: 900_000,
+        seasonKey: toSeasonCode(CURRENT_YEAR),
+      },
+    },
+    hardCapLevel: 'firstApron',
+    hardCapReason: 'Triggered by Non-Taxpayer MLE',
+    hardCapTriggeredBy: 'fullMLE',
+    totals: {
+      isHardCapped: true,
+      hardCapLevel: 'firstApron',
+      hardCapReason: 'Triggered by Non-Taxpayer MLE',
+      hardCapDetail: 'Triggered by Non-Taxpayer MLE',
+    },
   };
 }
 
@@ -931,6 +958,62 @@ describe('Cap Sheet UI integration flows', () => {
     expect(
       within(adjacentSurface).queryByText(/^Total Cap Hit$/i)
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps future-year cap totals visible while fencing hard-cap and exception truth to the current season', async () => {
+    const teamCapSheet = buildTeamWithFutureYearHardCapBoundaryFixture();
+    const futureYearTotals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR + 1);
+
+    render(
+      <CapSheetSection
+        teamCapSheet={
+          teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
+        }
+        currentYear={CURRENT_YEAR}
+        onOpenPlayerContractModal={() => {}}
+        manualCapSheetMutationAuthority={{
+          handleSetDeadCap: async () => true,
+          handleSetExceptions: async () => true,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Hard Capped at 1st Apron')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cap-sheet-future-year-boundary-panel')
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '2026-27' }));
+
+    await waitFor(() => {
+      expect(readVisibleTotalCapHit()).toBe(futureYearTotals.totalCapAllocations);
+    });
+
+    expect(
+      screen.queryByText('Hard Capped at 1st Apron')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Triggered by Non-Taxpayer MLE')
+    ).not.toBeInTheDocument();
+
+    const adjacentSurface = screen.getByRole('region', {
+      name: 'Adjacent exception presentation surface',
+    });
+    expect(
+      within(adjacentSurface).getByTestId(
+        'cap-sheet-future-year-boundary-panel'
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(adjacentSurface).getByText(
+        /hard-cap, exception, and TPE state is only authoritative for 2025-26/i
+      )
+    ).toBeInTheDocument();
+    expect(
+      within(adjacentSurface).getByText(
+        /This tab can show 2026-27 totals/i
+      )
+    ).toBeInTheDocument();
   });
 
   it('makes non-player cap allocations visibly part of Total Cap Hit when present', () => {

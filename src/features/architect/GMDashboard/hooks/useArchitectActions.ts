@@ -856,7 +856,9 @@ function buildTotalsByTeam(
 ): CapAuditEventV1Like['beforeTotalsByTeam'] {
   const totalsByTeam: CapAuditEventV1Like['beforeTotalsByTeam'] = {};
   for (const [teamCode, team] of Object.entries(teamsByCode || {})) {
-    totalsByTeam[teamCode] = computeTeamCapTotals(team, year);
+    const canonicalTeam = synchronizeTeamTotalsSnapshot(team as any, year);
+    totalsByTeam[teamCode] =
+      canonicalTeam?.totals || computeTeamCapTotals(team, year);
   }
   return totalsByTeam;
 }

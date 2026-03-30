@@ -11,7 +11,7 @@
  *  - Plan: plans/player-rules-architect/plan.md
  *  - Latest Chunk: plans/player-rules-architect/chunks/chunk_01.md
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -124,6 +124,8 @@ export type ManualCapSheetMutationAuthority = {
 type CapSheetProps = {
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear: number;
+  selectedYear?: number | null;
+  onSelectedYearChange?: ((year: number) => void) | null;
   onOpenPlayerContractModal?: ((player: CapSheetPlayerLike) => void) | null;
   // Legacy alias kept temporarily so older tests/helpers do not silently break.
   onSelectPlayer?: ((player: CapSheetPlayerLike) => void) | null;
@@ -139,11 +141,13 @@ const CAP_SHEET_SURFACE_LABELS = {
 const CapSheet = ({
   teamCapSheet,
   currentYear,
+  selectedYear: controlledSelectedYear = null,
+  onSelectedYearChange = null,
   onOpenPlayerContractModal,
   onSelectPlayer,
   manualCapSheetMutationAuthority,
 }: CapSheetProps) => {
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [internalSelectedYear, setInternalSelectedYear] = useState(currentYear);
   const [showCapHolds, setShowCapHolds] = useState(false);
   const [showDeadMoneyModal, setShowDeadMoneyModal] = useState(false);
   const [showExceptionsModal, setShowExceptionsModal] = useState(false);
@@ -151,6 +155,26 @@ const CapSheet = ({
     !!manualCapSheetMutationAuthority;
   const openPlayerContractModal =
     onOpenPlayerContractModal ?? onSelectPlayer ?? null;
+  const hasControlledSelectedYear = Number.isFinite(controlledSelectedYear);
+  const selectedYear = hasControlledSelectedYear
+    ? Number(controlledSelectedYear)
+    : internalSelectedYear;
+
+  useEffect(() => {
+    if (!hasControlledSelectedYear) {
+      setInternalSelectedYear(currentYear);
+    }
+  }, [currentYear, hasControlledSelectedYear]);
+
+  const handleSelectYear = React.useCallback(
+    (year: number) => {
+      if (!hasControlledSelectedYear) {
+        setInternalSelectedYear(year);
+      }
+      onSelectedYearChange?.(year);
+    },
+    [hasControlledSelectedYear, onSelectedYearChange]
+  );
 
   const { getProfile } = usePlayerRulesProfiles({
     players: teamCapSheet?.players || [],
@@ -353,7 +377,7 @@ const CapSheet = ({
           {allYears.map((year) => (
             <button
               key={year}
-              onClick={() => setSelectedYear(year)}
+              onClick={() => handleSelectYear(year)}
               className={`px-3 py-1 rounded text-[10px] font-medium transition-all duration-200 ${
                 year === selectedYear
                   ? 'bg-white text-black shadow-sm'
@@ -370,6 +394,7 @@ const CapSheet = ({
       <div data-surface-role="canonical-totals-summary">
         <CapSummaryTiles
           teamCapSheet={teamCapSheet}
+          currentYear={currentYear}
           selectedYear={selectedYear}
           canonicalTotals={canonicalTotals}
         />

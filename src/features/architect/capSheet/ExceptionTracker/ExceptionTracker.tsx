@@ -51,6 +51,7 @@ type TeamTpeLike = ReturnType<typeof getTeamTpeList>[number];
 type ExceptionTrackerProps = {
   teamCapSheet: TeamCapSheetLike;
   currentYear: number;
+  selectedYear?: number | null;
 };
 
 const toNonNegativeNumber = (value: unknown, fallback = 0): number => {
@@ -58,6 +59,9 @@ const toNonNegativeNumber = (value: unknown, fallback = 0): number => {
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(0, parsed);
 };
+
+const formatSeasonLabel = (endYear: number) =>
+  `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
 
 const EXCEPTION_TRACKER_READ_CONFIG: Record<
   ExceptionTrackerKey,
@@ -314,7 +318,38 @@ const CompactTradeExceptionRow = ({ tpe }: CompactTradeExceptionRowProps) => {
 const ExceptionTracker = ({
   teamCapSheet,
   currentYear,
+  selectedYear = currentYear,
 }: ExceptionTrackerProps) => {
+  const isViewingCurrentYear = selectedYear === currentYear;
+
+  if (!isViewingCurrentYear) {
+    return (
+      <section
+        aria-label="Cap sheet adjacent exception presentation surface"
+        className="mt-4"
+      >
+        <div
+          data-testid="cap-sheet-future-year-boundary-panel"
+          className="rounded-md border border-amber-400/20 bg-amber-500/5 px-4 py-4 text-amber-100"
+        >
+          <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
+            Current-Season Only
+          </div>
+          <h3 className="mt-2 text-sm font-semibold text-amber-100">
+            Hard-cap, exception, and trade-exception truth stays on the
+            current season.
+          </h3>
+          <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
+            This tab can show {formatSeasonLabel(selectedYear)} totals, but
+            hard-cap, exception, and TPE state is only authoritative for{' '}
+            {formatSeasonLabel(currentYear)}. Switch back to the current season
+            to view the live hard-cap and exception surface.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   const tradeExceptions = getTeamTpeList(teamCapSheet);
 
   // Use centralized cap settings provider for consistent cap/apron values

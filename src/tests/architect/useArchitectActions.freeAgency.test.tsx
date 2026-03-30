@@ -90,6 +90,27 @@ const baseTeamFixture = {
   },
 };
 
+function createStandardRosterPlayer(index: number) {
+  const playerId = `roster_player_${index + 1}`;
+  return {
+    id: playerId,
+    player_id: playerId,
+    name: `Roster Player ${index + 1}`,
+    displayName: `Roster Player ${index + 1}`,
+    contract: {
+      contractType: 'Standard',
+      salariesByYear: [
+        {
+          season: '2025-26',
+          salary: 1_000_000,
+          capHit: 1_000_000,
+          guaranteed: true,
+        },
+      ],
+    },
+  };
+}
+
 function renderActionsHarness({
   worldId,
   userId = 'user_1',
@@ -211,7 +232,12 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       totals: {
         isHardCapped: true,
         hardCapLevel: 'firstApron',
+        hardCapReason: 'Triggered by Non-Taxpayer MLE',
+        hardCapDetail: 'Triggered by Non-Taxpayer MLE',
       },
+      hardCapLevel: 'firstApron',
+      hardCapReason: 'Triggered by Non-Taxpayer MLE',
+      hardCapTriggeredBy: 'fullMLE',
     };
 
     mutationMocks.applyWorldMutation.mockResolvedValue({
@@ -244,6 +270,12 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     await waitFor(() => {
       expect(result.current.teamCapSheet.capHolds).toHaveLength(0);
       expect(result.current.teamCapSheet.totals?.isHardCapped).toBe(true);
+      expect(result.current.teamCapSheet.totals?.hardCapReason).toBe(
+        'Triggered by Non-Taxpayer MLE'
+      );
+      expect(result.current.teamCapSheet.hardCapReason).toBe(
+        'Triggered by Non-Taxpayer MLE'
+      );
       expect(result.current.teamCapSheet.exceptions?.mle?.usedAmount).toBe(
         12_000_000
       );
@@ -369,8 +401,13 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
   it('renounce removes cap hold, updates totals, and requires persisted world writes', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const rosterPlayers = Array.from({ length: 14 }, (_, index) =>
+      createStandardRosterPlayer(index)
+    );
     const initialTeam = {
       ...baseTeamFixture,
+      roster: rosterPlayers.map((player) => player.id),
+      players: rosterPlayers,
       capHolds: [
         {
           playerId: 'player_1',

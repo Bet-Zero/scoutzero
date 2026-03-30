@@ -2960,9 +2960,47 @@ export function buildTotalsByTeam(
 ): PostStateTotalsByTeam {
   const totalsByTeam: PostStateTotalsByTeam = {};
   for (const [teamCode, team] of Object.entries(teamsByCode)) {
-    totalsByTeam[teamCode] = computeTeamCapTotals(team, year);
+    const canonicalTeam =
+      synchronizeTeamTotalsSnapshot(team, year) || team;
+    totalsByTeam[teamCode] =
+      canonicalTeam?.totals || computeTeamCapTotals(team, year);
   }
   return totalsByTeam;
+}
+
+function canonicalizeTeamUpdatesWithCanonicalTotals(
+  teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
+  seasonId: string
+): ArchitectMutationTeamUpdate[] {
+  const canonicalYear = toEndYear(seasonId);
+
+  if (!Array.isArray(teamUpdates) || !Number.isFinite(canonicalYear)) {
+    return Array.isArray(teamUpdates) ? teamUpdates : [];
+  }
+
+  return teamUpdates.map((update) => ({
+    ...update,
+    team:
+      synchronizeTeamTotalsSnapshot(update?.team, canonicalYear) ||
+      update?.team,
+  }));
+}
+
+function canonicalizeComputeResultTeamUpdates<T extends ComputeResultLike>(
+  result: T,
+  seasonId: string
+): T {
+  if (!Array.isArray(result?.teamUpdates) || result.teamUpdates.length === 0) {
+    return result;
+  }
+
+  return {
+    ...result,
+    teamUpdates: canonicalizeTeamUpdatesWithCanonicalTotals(
+      result.teamUpdates,
+      seasonId
+    ),
+  };
 }
 
 function collectMutationPlayerIds(
@@ -4053,10 +4091,13 @@ export async function applyWorldMutation({
     );
     writesSummary.worldStatsUpdated = true;
 
+    const canonicalChangedTeams =
+      canonicalizeTeamUpdatesWithCanonicalTotals(teamUpdates, seasonId);
+
     // Return success result
     return {
       success: true,
-      changedTeams: teamUpdates,
+      changedTeams: canonicalChangedTeams,
       changedPlayers: playerUpdates,
       worldPatch: persistResult.worldPatch,
       event: persistResult.event,
@@ -5115,167 +5156,170 @@ export function computeWorldMutation({
     mutationType,
     currentStateInput
   );
-
-  switch (mutationType) {
-    case 'executeTrade': {
-      // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
-      const tradeApplyPreparation = buildTradeApplyPreparation({
-        payload: payload as TradeContextPayload,
-        currentState:
-          toTradeStateSlice(currentState) as TradeContextCurrentState,
-        seasonId,
-        timestamp,
-        asOfDate,
-      });
-
-      // Step 2: Call pure computeTradeResult with prepared snapshot/context
-      const result = computeTradeResult({
-        payload,
-        currentState,
-        seasonId,
-        timestamp,
-        historyContext: { worldId, mutationType },
-        postTradeSnapshot: tradeApplyPreparation.postTradeSnapshot,
-        validatedContext: tradeApplyPreparation.validatedContext,
-      });
-
-      return withDefaultPlayerDeletes(result);
-    }
-
-    case 'signFreeAgent':
-      return withDefaultPlayerDeletes(
-        computeSigningResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'waivePlayer':
-      return withDefaultPlayerDeletes(
-        computeWaiveResult({ payload, currentState, seasonId, timestamp })
-      );
-
-    case 'extendPlayer':
-      return withDefaultPlayerDeletes(
-        computeExtensionResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'storeOfferSheet':
-      return withDefaultPlayerDeletes(
-        computeStoreOfferSheetResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'matchOfferSheet':
-      return withDefaultPlayerDeletes(
-        computeMatchOfferSheetResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'declineOfferSheet':
-      return withDefaultPlayerDeletes(
-        computeDeclineOfferSheetResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'finalizeMatchedOfferSheet':
-      return withDefaultPlayerDeletes(
-        computeFinalizeMatchedOfferSheetResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'finalizeDeclinedOfferSheet':
-      return withDefaultPlayerDeletes(
-        computeFinalizeDeclinedOfferSheetResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'optionDecision':
-      return withDefaultPlayerDeletes(
-        computeOptionResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'renounceRights':
-      return withDefaultPlayerDeletes(
-        computeRenounceResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
-
-    case 'signAndTrade':
-      return withDefaultPlayerDeletes(
-        computeSignAndTradeResult({
-          payload,
-          currentState,
+  const result = (() => {
+    switch (mutationType) {
+      case 'executeTrade': {
+        // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
+        const tradeApplyPreparation = buildTradeApplyPreparation({
+          payload: payload as TradeContextPayload,
+          currentState:
+            toTradeStateSlice(currentState) as TradeContextCurrentState,
           seasonId,
           timestamp,
           asOfDate,
-          worldId,
+        });
+
+        // Step 2: Call pure computeTradeResult with prepared snapshot/context
+        const tradeResult = computeTradeResult({
+          payload,
+          currentState,
+          seasonId,
+          timestamp,
           historyContext: { worldId, mutationType },
-        })
-      );
+          postTradeSnapshot: tradeApplyPreparation.postTradeSnapshot,
+          validatedContext: tradeApplyPreparation.validatedContext,
+        });
 
-    case 'setDeadCap':
-      return withDefaultPlayerDeletes(
-        computeSetDeadCapResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
+        return withDefaultPlayerDeletes(tradeResult);
+      }
 
-    case 'setExceptions':
-      return withDefaultPlayerDeletes(
-        computeSetExceptionsResult({
-          payload,
-          currentState,
-          seasonId,
-          timestamp,
-        })
-      );
+      case 'signFreeAgent':
+        return withDefaultPlayerDeletes(
+          computeSigningResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
 
-    default:
-      return withDefaultPlayerDeletes({
-        success: false,
-        error: `Unknown mutation type: ${mutationType}`,
-      });
-  }
+      case 'waivePlayer':
+        return withDefaultPlayerDeletes(
+          computeWaiveResult({ payload, currentState, seasonId, timestamp })
+        );
+
+      case 'extendPlayer':
+        return withDefaultPlayerDeletes(
+          computeExtensionResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'storeOfferSheet':
+        return withDefaultPlayerDeletes(
+          computeStoreOfferSheetResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'matchOfferSheet':
+        return withDefaultPlayerDeletes(
+          computeMatchOfferSheetResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'declineOfferSheet':
+        return withDefaultPlayerDeletes(
+          computeDeclineOfferSheetResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'finalizeMatchedOfferSheet':
+        return withDefaultPlayerDeletes(
+          computeFinalizeMatchedOfferSheetResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'finalizeDeclinedOfferSheet':
+        return withDefaultPlayerDeletes(
+          computeFinalizeDeclinedOfferSheetResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'optionDecision':
+        return withDefaultPlayerDeletes(
+          computeOptionResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'renounceRights':
+        return withDefaultPlayerDeletes(
+          computeRenounceResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'signAndTrade':
+        return withDefaultPlayerDeletes(
+          computeSignAndTradeResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+            asOfDate,
+            worldId,
+            historyContext: { worldId, mutationType },
+          })
+        );
+
+      case 'setDeadCap':
+        return withDefaultPlayerDeletes(
+          computeSetDeadCapResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      case 'setExceptions':
+        return withDefaultPlayerDeletes(
+          computeSetExceptionsResult({
+            payload,
+            currentState,
+            seasonId,
+            timestamp,
+          })
+        );
+
+      default:
+        return withDefaultPlayerDeletes({
+          success: false,
+          error: `Unknown mutation type: ${mutationType}`,
+        });
+    }
+  })();
+
+  return canonicalizeComputeResultTeamUpdates(result, seasonId);
 }
 
 /**
@@ -6112,7 +6156,10 @@ function computeWaiveResult({
   };
 
   // Recalculate totals
-  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
+  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   return {
     success: true,
@@ -6412,7 +6459,10 @@ function computeOptionResult({
   };
 
   // Recalculate totals
-  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
+  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   return {
     success: true,
@@ -6504,7 +6554,10 @@ function computeRenounceResult({
   };
 
   // Recalculate totals (cap holds affect cap space)
-  updatedTeam.totals = computeTeamCapTotals(updatedTeam, toEndYear(seasonId));
+  updatedTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   return {
     success: true,
@@ -7494,7 +7547,10 @@ function computeFinalizeMatchedOfferSheetResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
+  updatedHomeTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedHomeTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   const updatedOfferingTeam = { ...offeringTeam };
   updatedOfferingTeam.offerSheets = removeOfferSheetEntries(
@@ -7668,7 +7724,10 @@ function computeFinalizeDeclinedOfferSheetResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedOfferingTeam.totals = computeTeamCapTotals(updatedOfferingTeam, toEndYear(seasonId));
+  updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedOfferingTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   const updatedHomeTeam = { ...homeTeam };
   updatedHomeTeam.incomingOfferSheets = removeOfferSheetEntries(
@@ -7692,7 +7751,10 @@ function computeFinalizeDeclinedOfferSheetResult({
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
-  updatedHomeTeam.totals = computeTeamCapTotals(updatedHomeTeam, toEndYear(seasonId));
+  updatedHomeTeam.totals = synchronizeTeamTotalsSnapshot(
+    updatedHomeTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   const teamUpdates = [
     { teamCode: offeringTeam.teamCode, team: updatedOfferingTeam },

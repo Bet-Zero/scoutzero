@@ -8,11 +8,13 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  buildTotalsByTeam,
   computeWorldMutation,
   type ArchitectMutationPayload,
 } from '@/features/architect/utils/mutationPipeline';
 import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import { validateExceptionEligibility } from '@/features/architect/utils/capLegalityValidation';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 
@@ -78,6 +80,26 @@ const PLAYER_FIXTURE = {
   },
 };
 
+function createStandardPlayer(playerId: string, salary: number) {
+  return {
+    id: playerId,
+    player_id: playerId,
+    name: playerId,
+    displayName: playerId,
+    contract: {
+      contractType: 'Standard',
+      salariesByYear: [
+        {
+          season: '2025-26',
+          salary,
+          capHit: salary,
+          guaranteed: true,
+        },
+      ],
+    },
+  };
+}
+
 const SIGNING_PAYLOAD: ArchitectMutationPayload = {
   teamCode: 'LAL',
   playerId: 'player_1',
@@ -115,6 +137,9 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     expect(result.success).toBe(true);
     const updatedTeam = result.teamUpdates?.[0]?.team;
     expect(updatedTeam).toBeTruthy();
+    if (!updatedTeam) {
+      throw new Error('Expected updated team after signFreeAgent mutation');
+    }
 
     expect(updatedTeam).toEqual(
       expect.objectContaining({
@@ -129,6 +154,14 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         isHardCapped: true,
         hardCapLevel: 'firstApron',
         hardCapDetail: 'Triggered by Non-Taxpayer MLE',
+        hardCapReason: 'Triggered by Non-Taxpayer MLE',
+      })
+    );
+
+    expect(buildTotalsByTeam({ LAL: updatedTeam }, 2026).LAL).toEqual(
+      expect.objectContaining({
+        isHardCapped: true,
+        hardCapLevel: 'firstApron',
         hardCapReason: 'Triggered by Non-Taxpayer MLE',
       })
     );
@@ -167,6 +200,100 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     expect(
       validation.violations.some((violation) => violation.code === 'HARD_CAP_EXCEEDED')
     ).toBe(false);
+  });
+
+  it('preserves hard-cap overlay fields when a non-trade mutation recalculates team totals', () => {
+    const beforeTeam = synchronizeTeamTotalsSnapshot(
+      {
+        ...TEAM_FIXTURE,
+        hardCapLevel: 'firstApron',
+        hardCapReason: 'Triggered by Non-Taxpayer MLE',
+        hardCapTriggeredBy: 'fullMLE',
+      },
+      2026
+    );
+    const result = computeWorldMutation({
+      mutationType: 'renounceRights',
+      payload: {
+        teamCode: 'LAL',
+        playerId: 'player_1',
+      },
+      currentState: {
+        team: beforeTeam,
+        player: PLAYER_FIXTURE,
+        teamCode: 'LAL',
+      },
+      seasonId: '2025-26',
+      timestamp: Date.parse('2026-03-29T12:05:00.000Z'),
+      worldId: 'world_closeout',
+    });
+
+    expect(result.success).toBe(true);
+
+    const updatedTeam = result.teamUpdates?.[0]?.team;
+    expect(updatedTeam?.capHolds).toHaveLength(0);
+    expect(updatedTeam?.totals).toEqual(
+      expect.objectContaining({
+        isHardCapped: true,
+        hardCapLevel: 'firstApron',
+        hardCapReason: 'Triggered by Non-Taxpayer MLE',
+      })
+    );
+  });
+
+  it('validation reads the shared hard-cap owner instead of a totals-only local resolver', () => {
+    const validationResult = validateExceptionEligibility({
+      team: {
+        ...TEAM_FIXTURE,
+        hardCapLevel: 'firstApron',
+        hardCapReason: 'Triggered by Non-Taxpayer MLE',
+        hardCapTriggeredBy: 'fullMLE',
+        totals: {},
+      },
+      signedUsing: 'BAE',
+      year: 2026,
+    });
+
+    expect(validationResult.blocked).toBe(true);
+    expect(validationResult.reason).toBe(
+      'BAE unavailable when hard-capped at first apron'
+    );
+  });
+
+  it('validation uses canonical cap-sheet totals when apron checks depend on non-player allocations', () => {
+    const playerSalaries = Array.from({ length: 13 }, (_, index) =>
+      createStandardPlayer(`apron_player_${index + 1}`, 15_200_000)
+    );
+
+    const validationResult = validateExceptionEligibility({
+      team: {
+        teamCode: 'LAL',
+        teamName: 'Los Angeles Lakers',
+        roster: playerSalaries.map((player) => player.id),
+        players: playerSalaries,
+        capHolds: [
+          {
+            playerId: 'hold_1',
+            playerName: 'Second Apron Hold',
+            amount: 12_000_000,
+            type: 'FA Cap Hold',
+            season: '2025-26',
+            isSigned: false,
+            active: true,
+          },
+        ],
+        deadCap: [],
+        exceptions: {},
+        totals: {},
+      },
+      signedUsing: 'TPMLE',
+      year: 2026,
+    });
+
+    expect(validationResult.blocked).toBe(true);
+    expect(validationResult.reason).toBe(
+      'Second apron teams cannot use exceptions'
+    );
   });
 
   it('preserves Full-MLE hard-cap owner metadata through hydration for reload/display parity', async () => {

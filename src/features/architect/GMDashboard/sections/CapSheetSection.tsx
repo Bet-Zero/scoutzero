@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import CapSheet from '@/features/architect/capSheet/CapSheet';
 import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker';
 import { DEV_CAP_SHEET_FIXTURE_FLAG } from '@/features/architect/capSheet/devCapSheetFixtures';
@@ -27,6 +28,12 @@ const CapSheetSection = ({
   onClearCapSheetFixtures = null,
   hasInjectedCapSheetFixtures = false,
 }: CapSheetSectionProps) => {
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+
+  useEffect(() => {
+    setSelectedYear(currentYear);
+  }, [currentYear]);
+
   if (!teamCapSheet?.players) {
     return <div className="text-white/80 mt-4">Loading cap sheet...</div>;
   }
@@ -44,6 +51,8 @@ const CapSheetSection = ({
         <CapSheet
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
+          selectedYear={selectedYear}
+          onSelectedYearChange={setSelectedYear}
           onOpenPlayerContractModal={onOpenPlayerContractModal}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
         />
@@ -93,7 +102,11 @@ const CapSheetSection = ({
       <section aria-label="Adjacent exception presentation surface">
         {/* ADJACENT PRESENTATION SURFACE: Keep exception/TPE/hard-cap display
             separate from the primary current-year totals ownership. */}
-        <ExceptionTracker teamCapSheet={teamCapSheet} currentYear={currentYear} />
+        <ExceptionTracker
+          teamCapSheet={teamCapSheet}
+          currentYear={currentYear}
+          selectedYear={selectedYear}
+        />
       </section>
     </>
   );

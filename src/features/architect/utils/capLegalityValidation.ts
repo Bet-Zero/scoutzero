@@ -48,6 +48,10 @@ import {
   computeTeamCapTotals,
   canUseRoomException,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  getHardCapStatus as getSharedHardCapStatus,
+  HARD_CAP_TYPES,
+} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { getYearsOfService } from '@/features/architect/utils/playerRulesProfile/minimumSalaryRules';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/computeProfile';
@@ -724,37 +728,37 @@ function countTwoWayContracts(players: MutationPlayer[] | null | undefined) {
   }).length;
 }
 
-/**
- * Check if team is hard-capped
- * @param {Object} team - Team data
- * @returns {{isHardCapped: boolean, hardCapLevel: string|null, ceiling: number|null}}
- */
-function getHardCapStatus(team: MutationTeam, capRules: CapRulesProfile) {
-  const totals = team.totals || {};
-  const { firstApron, secondApron } = capRules.cap;
-
-  // Check explicit hard cap flags
-  if (totals.isHardCapped) {
-    const level = totals.hardCapLevel || 'firstApron';
-    const ceiling = level === 'secondApron' ? secondApron : firstApron;
-    return { isHardCapped: true, hardCapLevel: level, ceiling };
+function getValidationHardCapLevel(
+  hardCapType: ReturnType<typeof getSharedHardCapStatus>['hardCapType']
+): 'firstApron' | 'secondApron' | null {
+  if (hardCapType === HARD_CAP_TYPES.SECOND_APRON) {
+    return 'secondApron';
   }
+  if (
+    hardCapType === HARD_CAP_TYPES.FIRST_APRON ||
+    hardCapType === HARD_CAP_TYPES.UNKNOWN
+  ) {
+    return 'firstApron';
+  }
+  return null;
+}
 
-  // Check if team is at/above second apron (auto hard-capped)
-  const currentCapHit = toFiniteNumber(
-    totals.capHit ?? totals.totalSalary,
-    0
+function getValidationHardCapStatus(
+  team: MutationTeam,
+  capRules: CapRulesProfile
+) {
+  const sharedStatus = getSharedHardCapStatus(
+    team as Parameters<typeof getSharedHardCapStatus>[0],
+    {
+      capSettings: capRules.cap as unknown as Record<string, unknown>,
+    }
   );
-  // Phase 38: Strict > for Second Apron hard-cap status
-  if (currentCapHit > secondApron) {
-    return {
-      isHardCapped: true,
-      hardCapLevel: 'secondApron',
-      ceiling: secondApron,
-    };
-  }
 
-  return { isHardCapped: false, hardCapLevel: null, ceiling: null };
+  return {
+    isHardCapped: sharedStatus.isHardCapped,
+    hardCapLevel: getValidationHardCapLevel(sharedStatus.hardCapType),
+    ceiling: sharedStatus.hardCapCeiling,
+  };
 }
 
 /**
@@ -2711,9 +2715,9 @@ export function validateExceptionEligibility({
     return { blocked: false, reason: null, violation: null };
   }
 
-  const totals = team.totals || {};
+  const canonicalTotals = computeCanonicalMutationTeamCapTotals(team, year);
   const currentCapHit = toFiniteNumber(
-    totals.capHit ?? totals.totalSalary ?? totals.totalCapAllocations,
+    canonicalTotals.totalCapAllocations,
     0
   );
   const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
@@ -2725,7 +2729,7 @@ export function validateExceptionEligibility({
   const isAboveFirstApron = currentCapHit >= rules.cap.firstApron;
 
   // Check hard cap status
-  const hardCapStatus = getHardCapStatus(team, rules);
+  const hardCapStatus = getValidationHardCapStatus(team, rules);
 
   // RULE 0: Phase 75 - Room Exception requires team to be under the salary cap (SSOT gating)
   const isRoomMLEVariant =
@@ -3787,12 +3791,13 @@ export function validateSigning({
 
   // 2. Hard cap check
   if (rules) {
-    const hardCapStatus = getHardCapStatus(team, rules);
+    const hardCapStatus = getValidationHardCapStatus(team, rules);
 
     if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
-      const currentCapHit =
-        toFiniteNumber(team.totals?.capHit, 0) ||
-        calculateValidationPlayerOnlyTeamCapHit(players, year);
+      const currentCapHit = toFiniteNumber(
+        computeCanonicalMutationTeamCapTotals(team, year).totalCapAllocations,
+        0
+      );
       const contractValue = toFiniteNumber(
         contract?.salariesByYear?.[0]?.salary,
         0
@@ -4065,7 +4070,7 @@ export function validateExtension({
     const extStartRules = getCapRulesForYear(extStartYear ?? year);
 
     if (extStartRules) {
-      const hardCapStatus = getHardCapStatus(team, extStartRules);
+      const hardCapStatus = getValidationHardCapStatus(team, extStartRules);
 
       if (hardCapStatus.isHardCapped) {
         warnings.push({
@@ -4201,7 +4206,7 @@ export function validateOptionDecision({
     const rules = getCapRulesForYear(resolvedTargetYear);
 
     if (rules) {
-      const hardCapStatus = getHardCapStatus(baselineTeam, rules);
+      const hardCapStatus = getValidationHardCapStatus(baselineTeam, rules);
 
       if (hardCapStatus.isHardCapped && hardCapStatus.ceiling) {
         // 00. CHECK DATA CONFIDENCE for target year

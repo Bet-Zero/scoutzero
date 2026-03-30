@@ -70,6 +70,16 @@ const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
 );
 
+const MUTATION_PIPELINE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/mutationPipeline.ts'
+);
+
+const CAP_LEGALITY_VALIDATION_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/capLegalityValidation.ts'
+);
+
 // === HELPER FUNCTIONS ===
 
 /**
@@ -164,6 +174,12 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     expect(passesCanonicalTotals).toBe(true);
   });
 
+  it('CapSheet passes currentYear into CapSummaryTiles so hard-cap truth can be year-gated', () => {
+    expect(capSheetContent).toMatch(
+      /<CapSummaryTiles[\s\S]*currentYear=\{currentYear\}/
+    );
+  });
+
   it('CapSheet keeps current-year breakdown and footer as direct canonicalTotals reads', () => {
     const canonicalTotalsFields = [
       'playersTotal',
@@ -197,8 +213,49 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     expect(capSummaryTilesContent).toContain('getHardCapStatus');
     expect(capSummaryTilesContent).toContain('hardCapCeilingType');
     expect(capSummaryTilesContent).toContain('hardCapCeilingLabel');
+    expect(capSummaryTilesContent).toContain(
+      'const showCurrentYearHardCapTruth = selectedYear === currentYear;'
+    );
     expect(capSummaryTilesContent).not.toContain('isHardCappedAtFirstApron');
     expect(capSummaryTilesContent).not.toContain('getFirstApronHardCapReason');
+  });
+});
+
+describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
+  const capSheetSectionContent = readFileContent(CAP_SHEET_SECTION_PATH);
+  const capSummaryTilesContent = readFileContent(CAP_SUMMARY_TILES_PATH);
+  const exceptionTrackerContent = readFileContent(EXCEPTION_TRACKER_PATH);
+
+  it('CapSheetSection owns selectedYear and passes one shared value to CapSheet and ExceptionTracker', () => {
+    expect(capSheetSectionContent).toMatch(
+      /const\s+\[selectedYear,\s*setSelectedYear\]\s*=\s*useState\(currentYear\)/
+    );
+    expect(capSheetSectionContent).toMatch(
+      /<CapSheet[\s\S]*selectedYear=\{selectedYear\}[\s\S]*onSelectedYearChange=\{setSelectedYear\}/
+    );
+    expect(capSheetSectionContent).toMatch(
+      /<ExceptionTracker[\s\S]*selectedYear=\{selectedYear\}/
+    );
+  });
+
+  it('CapSummaryTiles explicitly fences hard-cap truth to the current season', () => {
+    expect(capSummaryTilesContent).toContain(
+      'const showCurrentYearHardCapTruth = selectedYear === currentYear;'
+    );
+    expect(capSummaryTilesContent).toMatch(
+      /showCurrentYearHardCapTruth\s*&&[\s\S]*hardCapStatus\.isHardCapped/
+    );
+  });
+
+  it('ExceptionTracker renders an explicit future-year boundary panel instead of mixed-year hard-cap or exception truth', () => {
+    expect(exceptionTrackerContent).toContain(
+      'cap-sheet-future-year-boundary-panel'
+    );
+    expect(exceptionTrackerContent).toContain('selectedYear = currentYear');
+    expect(exceptionTrackerContent).toContain(
+      'const isViewingCurrentYear = selectedYear === currentYear;'
+    );
+    expect(exceptionTrackerContent).toContain('Current-Season Only');
   });
 });
 
@@ -489,6 +546,59 @@ describe('Gate 7: World Failure Toast Dedupe (E2)', () => {
         content
       );
     expect(hasDedupeComment).toBe(true);
+  });
+});
+
+describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
+  const mutationPipelineContent = readFileContent(MUTATION_PIPELINE_PATH);
+  const capLegalityValidationContent = readFileContent(
+    CAP_LEGALITY_VALIDATION_PATH
+  );
+  const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+
+  it('mutationPipeline canonicalizes team updates before compute return and world changedTeams return', () => {
+    expect(mutationPipelineContent).toContain(
+      'canonicalizeTeamUpdatesWithCanonicalTotals'
+    );
+    expect(mutationPipelineContent).toContain(
+      'return canonicalizeComputeResultTeamUpdates(result, seasonId);'
+    );
+    expect(mutationPipelineContent).toContain(
+      'const canonicalChangedTeams ='
+    );
+    expect(mutationPipelineContent).toContain(
+      'changedTeams: canonicalChangedTeams'
+    );
+  });
+
+  it('mutationPipeline no longer writes raw computeTeamCapTotals snapshots directly onto team.totals', () => {
+    expect(mutationPipelineContent).not.toContain(
+      'team.totals = computeTeamCapTotals('
+    );
+  });
+
+  it('capLegalityValidation no longer keeps a file-local getHardCapStatus competitor', () => {
+    expect(capLegalityValidationContent).not.toContain(
+      'function getHardCapStatus('
+    );
+    expect(capLegalityValidationContent).toContain(
+      'getHardCapStatus as getSharedHardCapStatus'
+    );
+    expect(capLegalityValidationContent).toContain(
+      'function getValidationHardCapStatus('
+    );
+  });
+
+  it('validation and local audit totals both read canonicalized totals snapshots', () => {
+    expect(capLegalityValidationContent).toContain(
+      'computeCanonicalMutationTeamCapTotals'
+    );
+    expect(actionsContent).toContain(
+      'const canonicalTeam = synchronizeTeamTotalsSnapshot(team as any, year);'
+    );
+    expect(actionsContent).toContain(
+      'canonicalTeam?.totals || computeTeamCapTotals(team, year)'
+    );
   });
 });
 

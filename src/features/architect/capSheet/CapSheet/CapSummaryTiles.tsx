@@ -21,13 +21,15 @@ import type { computeTeamCapTotals } from '@/features/architect/utils/capTotals/
 
 type CapSummaryTilesProps = {
   teamCapSheet: NonNullable<Parameters<typeof getHardCapStatus>[0]>;
+  currentYear: number;
   selectedYear: number;
   canonicalTotals: ReturnType<typeof computeTeamCapTotals>;
 };
 
 const CapSummaryTiles = ({
   teamCapSheet,
-  selectedYear: _selectedYear,
+  currentYear,
+  selectedYear,
   canonicalTotals,
 }: CapSummaryTilesProps) => {
   // =========================================================================
@@ -50,10 +52,13 @@ const CapSummaryTiles = ({
       secondApron,
     },
   });
+  const showCurrentYearHardCapTruth = selectedYear === currentYear;
   const isFirstApronHardCapped =
+    showCurrentYearHardCapTruth &&
     hardCapStatus.isHardCapped &&
     hardCapStatus.hardCapCeilingType === HARD_CAP_TYPES.FIRST_APRON;
   const isSecondApronHardCapped =
+    showCurrentYearHardCapTruth &&
     hardCapStatus.isHardCapped &&
     hardCapStatus.hardCapCeilingType === HARD_CAP_TYPES.SECOND_APRON;
   const hardCapHeading = hardCapStatus.hardCapCeilingLabel
