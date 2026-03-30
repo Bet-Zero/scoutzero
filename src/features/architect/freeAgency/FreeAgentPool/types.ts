@@ -57,6 +57,11 @@ export interface FreeAgentLookupPlayer extends FreeAgentListItem {
 
 export interface ResolvedFreeAgentPlayer extends FreeAgentLookupPlayer {}
 
+export interface FreeAgentModalLaunchTarget {
+  freeAgent: FreeAgentListItem;
+  resolvedPlayer: ResolvedFreeAgentPlayer;
+}
+
 export interface FreeAgentActionResult extends LooseRecord {
   success?: boolean;
   message?: string;
@@ -79,11 +84,11 @@ export interface FreeAgentRowProps {
   setOpenMenu:
     | Dispatch<SetStateAction<string | null | undefined>>
     | ((value: string | null | undefined) => void);
-  onSign?: (player: FreeAgentListItem) => void;
+  onOpenContractModal?: (player: FreeAgentListItem) => void;
 }
 
 export interface FreeAgentCardProps {
   player: FreeAgentListItem;
-  onSign: (player: FreeAgentListItem) => void;
+  onOpenContractModal: (player: FreeAgentListItem) => void;
   onRemove: (player: FreeAgentListItem) => void;
 }

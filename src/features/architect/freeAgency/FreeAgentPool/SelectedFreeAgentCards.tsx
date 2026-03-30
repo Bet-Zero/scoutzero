@@ -9,13 +9,13 @@ import type { FreeAgentListItem } from './types';
 
 interface SelectedFreeAgentCardsProps {
   selectedPlayers: FreeAgentListItem[];
-  onSign: (player: FreeAgentListItem) => void;
+  onOpenContractModal: (player: FreeAgentListItem) => void;
   onRemove: (player: FreeAgentListItem) => void;
 }
 
 export const SelectedFreeAgentCards = ({
   selectedPlayers,
-  onSign,
+  onOpenContractModal,
   onRemove,
 }: SelectedFreeAgentCardsProps) => {
   if (selectedPlayers.length === 0) return null;
@@ -26,7 +26,7 @@ export const SelectedFreeAgentCards = ({
         <FreeAgentCard
           key={player.name}
           player={player}
-          onSign={() => onSign(player)}
+          onOpenContractModal={onOpenContractModal}
           onRemove={onRemove}
         />
       ))}

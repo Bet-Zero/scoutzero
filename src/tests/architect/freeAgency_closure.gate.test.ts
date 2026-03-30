@@ -35,6 +35,21 @@ const FREE_AGENT_POOL_TYPES_PATH = path.resolve(
   '../../features/architect/freeAgency/FreeAgentPool/types.ts'
 );
 
+const FREE_AGENT_ROW_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/freeAgency/FreeAgentPool/FreeAgentRow.tsx'
+);
+
+const SELECTED_FREE_AGENT_CARDS_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/freeAgency/FreeAgentPool/SelectedFreeAgentCards.tsx'
+);
+
+const FREE_AGENT_CARD_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/freeAgency/FreeAgentPool/FreeAgentCard.tsx'
+);
+
 const USE_ARCHITECT_ACTIONS_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/hooks/useArchitectActions.ts'
@@ -262,10 +277,15 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
 
 describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual-path vs world-only routing (FA-1C)', () => {
   const content = readFileContent(FREE_AGENT_POOL_PATH);
+  const freeAgentRowContent = readFileContent(FREE_AGENT_ROW_PATH);
+  const selectedFreeAgentCardsContent = readFileContent(
+    SELECTED_FREE_AGENT_CARDS_PATH
+  );
+  const freeAgentCardContent = readFileContent(FREE_AGENT_CARD_PATH);
   const modalDispatchRegion = readRegion(
     content,
     'const freeAgencyModalDispatch = useMemo(',
-    '  return ('
+    '  const editContractModalProps = useMemo('
   );
 
   it('passes standard signing directly from the grouped owner into the modal dispatch object', () => {
@@ -318,6 +338,27 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
     for (const forbidden of forbiddenPatterns) {
       expect(content).not.toMatch(forbidden);
     }
+  });
+
+  it('defines one shared contract-modal launch callback and passes it to both visible pool entry surfaces', () => {
+    expect(content).toMatch(
+      /const\s+openContractModal\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /setContractModalTarget\s*\(\s*buildFreeAgentModalLaunchTarget/
+    );
+    expect(content).toMatch(
+      /<SelectedFreeAgentCards[\s\S]*onOpenContractModal=\{openContractModal\}/
+    );
+    expect(content).toMatch(
+      /<FreeAgentRow[\s\S]*onOpenContractModal=\{openContractModal\}/
+    );
+  });
+
+  it('keeps row and selected-card entry surfaces free of modal ownership', () => {
+    expect(freeAgentRowContent).not.toMatch(/EditContractModal/);
+    expect(selectedFreeAgentCardsContent).not.toMatch(/EditContractModal/);
+    expect(freeAgentCardContent).not.toMatch(/EditContractModal/);
   });
 });
 

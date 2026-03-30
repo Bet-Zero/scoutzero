@@ -14,7 +14,11 @@ import React from 'react';
 import { TeamCodeMap } from '@/constants/teamList';
 import type { FreeAgentCardProps } from './types';
 
-const FreeAgentCard = ({ player, onSign, onRemove }: FreeAgentCardProps) => {
+const FreeAgentCard = ({
+  player,
+  onOpenContractModal,
+  onRemove,
+}: FreeAgentCardProps) => {
   // Logic from FreeAgentRow to format name/headshot
   const formattedName =
     player.bio?.displayName || player.displayName || player.name || '';
@@ -116,7 +120,7 @@ const FreeAgentCard = ({ player, onSign, onRemove }: FreeAgentCardProps) => {
         </div>
 
         <button
-          onClick={() => onSign(player)}
+          onClick={() => onOpenContractModal(player)}
           className="w-full mt-auto bg-green-600 hover:bg-green-500 text-white text-xs font-bold uppercase tracking-wider py-2 rounded transition-colors"
         >
           Sign Player

@@ -177,6 +177,21 @@ const renderPool = (
   return { actionOwner };
 };
 
+const openFromSelectedCard = () => {
+  fireEvent.click(screen.getByRole('button', { name: /test player/i }));
+  fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
+};
+
+const openFromRowMenu = () => {
+  fireEvent.click(screen.getByRole('button', { name: '•••' }));
+  fireEvent.click(
+    screen.getByText(/Sign Free Agent/i, { selector: 'button' })
+  );
+};
+
+const getLatestModalProps = () =>
+  mockEditContractModalProps.mock.calls.at(-1)?.[0] as MockEditContractModalProps;
+
 describe('FreeAgentPool surface E86 behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -227,8 +242,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
   it('preserves selected-card sign wiring into EditContractModal', () => {
     renderPool();
 
-    fireEvent.click(screen.getByRole('button', { name: /test player/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
+    openFromSelectedCard();
 
     expect(screen.getByTestId('mock-edit-contract-modal')).toBeInTheDocument();
     expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
@@ -240,10 +254,9 @@ describe('FreeAgentPool surface E86 behavior', () => {
     const actionOwner = buildActionOwner();
     renderPool({ actionOwner });
 
-    fireEvent.click(screen.getByRole('button', { name: /test player/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
+    openFromSelectedCard();
 
-    const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+    const modalProps = getLatestModalProps();
     expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
     expect(modalProps?.onSave).toBeUndefined();
     expect(modalProps?.onSignFreeAgent).toBe(
@@ -262,10 +275,9 @@ describe('FreeAgentPool surface E86 behavior', () => {
     });
     renderPool({ actionOwner });
 
-    fireEvent.click(screen.getByRole('button', { name: /test player/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
+    openFromSelectedCard();
 
-    const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+    const modalProps = getLatestModalProps();
     expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
     expect(modalProps?.onSignFreeAgent).toBe(
       actionOwner.dualPathSigning.signFreeAgent
@@ -279,6 +291,40 @@ describe('FreeAgentPool surface E86 behavior', () => {
     );
     expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.worldOnly?.storeOfferSheet);
     expect(modalProps?.actionsOverride).toEqual(['signNew', 'signAndTrade']);
+  });
+
+  it('opens the same shared modal-launch state from selected-card and row-menu entry surfaces', () => {
+    const actionOwner = buildActionOwner({
+      worldOnly: {},
+    });
+    renderPool({ actionOwner });
+
+    openFromSelectedCard();
+
+    const selectedCardModalProps = getLatestModalProps();
+
+    fireEvent.click(screen.getByRole('button', { name: /Close Modal/i }));
+
+    openFromRowMenu();
+
+    const rowMenuModalProps = getLatestModalProps();
+
+    expect(rowMenuModalProps).toEqual(
+      expect.objectContaining({
+        player: selectedCardModalProps.player,
+        onClose: selectedCardModalProps.onClose,
+        onSignFreeAgent: selectedCardModalProps.onSignFreeAgent,
+        onSignAndTrade: selectedCardModalProps.onSignAndTrade,
+        getSignAndTradePreflight:
+          selectedCardModalProps.getSignAndTradePreflight,
+        getOfferSheetPreflight: selectedCardModalProps.getOfferSheetPreflight,
+        onStoreOfferSheet: selectedCardModalProps.onStoreOfferSheet,
+        actionsOverride: selectedCardModalProps.actionsOverride,
+      })
+    );
+    expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
+      /test player/i
+    );
   });
 
   it('preserves row menu toggle semantics, menu item ordering, and outside-click close behavior', () => {

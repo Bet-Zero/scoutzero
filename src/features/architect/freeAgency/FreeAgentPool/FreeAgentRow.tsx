@@ -23,7 +23,7 @@ const FreeAgentRow = ({
   isSelected = false,
   openMenu,
   setOpenMenu,
-  onSign,
+  onOpenContractModal,
 }: FreeAgentRowProps) => {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -221,8 +221,7 @@ const FreeAgentRow = ({
           >
             <button
               onClick={() => {
-                onSign?.(askInfo);
-                setOpenMenu(null);
+                onOpenContractModal?.(askInfo);
               }}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >

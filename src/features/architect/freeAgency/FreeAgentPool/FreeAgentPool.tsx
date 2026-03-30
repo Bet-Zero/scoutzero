@@ -10,7 +10,7 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import EditContractModal from '@/shared/components/EditContractModal';
 import { applyFreeAgencyFilters } from '@/shared/utils/filtering/freeAgencyFilterUtils';
 import { useFreeAgencyFilterPersistence } from '@/features/architect/freeAgency/useFreeAgencyFilterPersistence';
@@ -22,6 +22,7 @@ import type {
   FreeAgentActionResult,
   FreeAgentListItem,
   FreeAgentLookupPlayer,
+  FreeAgentModalLaunchTarget,
   FreeAgentPoolProps,
   ResolvedFreeAgentPlayer,
 } from './types';
@@ -68,6 +69,15 @@ const resolvePlayerData = (
 const getFreeAgentSelectionKey = (player: FreeAgentListItem) =>
   String(player.id || player.player_id || player.name || '');
 
+const buildFreeAgentModalLaunchTarget = (
+  freeAgent: FreeAgentListItem,
+  playersMap: Record<string, FreeAgentLookupPlayer>,
+  playersById: Record<string, FreeAgentLookupPlayer>
+): FreeAgentModalLaunchTarget => ({
+  freeAgent,
+  resolvedPlayer: resolvePlayerData(freeAgent, playersMap, playersById),
+});
+
 const FreeAgentPool = ({
   freeAgents,
   actionOwner,
@@ -81,9 +91,8 @@ const FreeAgentPool = ({
     Record<string, FreeAgentActionResult | null>
   >({});
   const [openMenu, setOpenMenu] = useState<string | null | undefined>(null);
-  const [contractPlayer, setContractPlayer] = useState<FreeAgentListItem | null>(
-    null
-  );
+  const [contractModalTarget, setContractModalTarget] =
+    useState<FreeAgentModalLaunchTarget | null>(null);
   const { filterState, updateFilterState, clearFilters } =
     useFreeAgencyFilterPersistence();
 
@@ -113,6 +122,20 @@ const FreeAgentPool = ({
   const handleRemove = (player: FreeAgentListItem) => {
     setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
   };
+
+  const closeContractModal = useCallback(() => {
+    setContractModalTarget(null);
+  }, []);
+
+  const openContractModal = useCallback(
+    (freeAgent: FreeAgentListItem) => {
+      setOpenMenu(null);
+      setContractModalTarget(
+        buildFreeAgentModalLaunchTarget(freeAgent, playersMap, playersById)
+      );
+    },
+    [playersMap, playersById]
+  );
 
   const allAgents = freeAgents || [];
 
@@ -154,6 +177,24 @@ const FreeAgentPool = ({
     [dualPathSigningOwner, worldOnlyActionOwner]
   );
 
+  const editContractModalProps = useMemo(() => {
+    if (!contractModalTarget) return null;
+
+    return {
+      player: contractModalTarget.resolvedPlayer,
+      isOpen: true,
+      onClose: closeContractModal,
+      onSignFreeAgent: freeAgencyModalDispatch.onSignFreeAgent,
+      onSignAndTrade: freeAgencyModalDispatch.onSignAndTrade,
+      getSignAndTradePreflight:
+        freeAgencyModalDispatch.getSignAndTradePreflight,
+      getOfferSheetPreflight: freeAgencyModalDispatch.getOfferSheetPreflight,
+      onStoreOfferSheet: freeAgencyModalDispatch.onStoreOfferSheet,
+      actionsOverride: freeAgencyModalDispatch.actionsOverride,
+      actionLabelsOverride: { signNew: 'Sign Free Agent' },
+    } satisfies EditContractModalProps;
+  }, [closeContractModal, contractModalTarget, freeAgencyModalDispatch]);
+
   return (
     <div className="text-white">
       <h2 className="text-xl font-semibold mb-2">Free Agent Pool</h2>
@@ -169,7 +210,7 @@ const FreeAgentPool = ({
 
       <SelectedFreeAgentCards
         selectedPlayers={selectedPlayers}
-        onSign={setContractPlayer}
+        onOpenContractModal={openContractModal}
         onRemove={handleRemove}
       />
 
@@ -193,7 +234,7 @@ const FreeAgentPool = ({
                   isSelected={selectedNames.has(freeAgent.name || '')}
                   openMenu={openMenu}
                   setOpenMenu={setOpenMenu}
-                  onSign={() => setContractPlayer(freeAgent)}
+                  onOpenContractModal={openContractModal}
                 />
               </li>
             );
@@ -201,27 +242,9 @@ const FreeAgentPool = ({
         )}
       </ul>
 
-      {contractPlayer && (
-        <EditContractModal
-          player={
-            playersMap[contractPlayer.name as string] ||
-            playersMap[normalizeLookupKey(contractPlayer.name)] || {
-              name: contractPlayer.name,
-            }
-          }
-          isOpen={!!contractPlayer}
-          onClose={() => setContractPlayer(null)}
-          onSignFreeAgent={freeAgencyModalDispatch.onSignFreeAgent}
-          onSignAndTrade={freeAgencyModalDispatch.onSignAndTrade}
-          getSignAndTradePreflight={
-            freeAgencyModalDispatch.getSignAndTradePreflight
-          }
-          getOfferSheetPreflight={freeAgencyModalDispatch.getOfferSheetPreflight}
-          onStoreOfferSheet={freeAgencyModalDispatch.onStoreOfferSheet}
-          actionsOverride={freeAgencyModalDispatch.actionsOverride}
-          actionLabelsOverride={{ signNew: 'Sign Free Agent' }}
-        />
-      )}
+      {editContractModalProps ? (
+        <EditContractModal {...editContractModalProps} />
+      ) : null}
     </div>
   );
 };
