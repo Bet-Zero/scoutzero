@@ -17,7 +17,7 @@
  * A) Source-scan / wiring guardrails:
  *    1. mutationPipeline.ts imports computeTeamCapTotals from capTotals
  *    2. tradeContext.ts imports computeTeamCapTotals from capTotals
- *    3-7. Each compute function calls computeTeamCapTotals:
+ *    3-7. Each compute function recomputes totals through the canonical totals bridge:
  *         - computeSigningResult
  *         - computeWaiveResult
  *         - computeOptionResult
@@ -176,7 +176,7 @@ describe('Phase 79: Source Scan Guardrails', () => {
   });
 
   describe('SSOT Usage in Compute Functions', () => {
-    it('TEST 3: computeSigningResult calls computeTeamCapTotals', () => {
+    it('TEST 3: computeSigningResult uses the canonical totals bridge', () => {
       const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
@@ -186,10 +186,12 @@ describe('Phase 79: Source Scan Guardrails', () => {
       );
 
       expect(signingFunctionMatch).not.toBeNull();
-      expect(signingFunctionMatch[0]).toContain('computeTeamCapTotals');
+      expect(signingFunctionMatch[0]).toMatch(
+        /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
+      );
     });
 
-    it('TEST 4: computeWaiveResult calls computeTeamCapTotals', () => {
+    it('TEST 4: computeWaiveResult uses the canonical totals bridge', () => {
       const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
@@ -198,10 +200,12 @@ describe('Phase 79: Source Scan Guardrails', () => {
       );
 
       expect(waiveFunctionMatch).not.toBeNull();
-      expect(waiveFunctionMatch[0]).toContain('computeTeamCapTotals');
+      expect(waiveFunctionMatch[0]).toMatch(
+        /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
+      );
     });
 
-    it('TEST 5: computeOptionResult calls computeTeamCapTotals', () => {
+    it('TEST 5: computeOptionResult uses the canonical totals bridge', () => {
       const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
@@ -210,10 +214,12 @@ describe('Phase 79: Source Scan Guardrails', () => {
       );
 
       expect(optionFunctionMatch).not.toBeNull();
-      expect(optionFunctionMatch[0]).toContain('computeTeamCapTotals');
+      expect(optionFunctionMatch[0]).toMatch(
+        /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
+      );
     });
 
-    it('TEST 6: computeRenounceResult calls computeTeamCapTotals', () => {
+    it('TEST 6: computeRenounceResult uses the canonical totals bridge', () => {
       const content = fs.readFileSync(MUTATION_PIPELINE_PATH, 'utf8');
       const codeOnly = stripComments(content);
 
@@ -222,7 +228,9 @@ describe('Phase 79: Source Scan Guardrails', () => {
       );
 
       expect(renounceFunctionMatch).not.toBeNull();
-      expect(renounceFunctionMatch[0]).toContain('computeTeamCapTotals');
+      expect(renounceFunctionMatch[0]).toMatch(
+        /computeTeamCapTotals|synchronizeTeamTotalsSnapshot/
+      );
     });
 
     it('TEST 7: buildPostTradeTeamsSnapshot calls computeTeamCapTotals (trade context)', () => {

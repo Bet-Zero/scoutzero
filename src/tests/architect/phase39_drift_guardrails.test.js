@@ -28,6 +28,23 @@ vi.mock('../../features/architect/utils/hardCapUtils', () => ({
   }),
 }));
 
+vi.mock(
+  '../../features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      computeTeamCapTotals: vi.fn((team) => ({
+        totalCapAllocations:
+          team?.totals?.capHit ??
+          team?.totals?.totalSalary ??
+          team?.totals?.totalCapAllocations ??
+          0,
+      })),
+    };
+  }
+);
+
 describe('Phase 39: Second Apron Exact Boundary Guardrails', () => {
   const SECOND_APRON = 190_000_000;
 

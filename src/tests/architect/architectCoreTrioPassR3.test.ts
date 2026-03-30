@@ -103,6 +103,45 @@ vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mocks.computeTeamCapTotals,
 }));
 
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/capTotals/computeTeamCapTotals')
+      >();
+
+    return {
+      ...actual,
+      computeTeamCapTotals: mocks.computeTeamCapTotals,
+      synchronizeTeamTotalsSnapshot: vi.fn(
+        (team: Record<string, unknown>, year: number) => ({
+          ...team,
+          totals: mocks.computeTeamCapTotals(team, year),
+        })
+      ),
+      canUseRoomException: vi.fn((team: Record<string, unknown>, year: number) => {
+        const totals = mocks.computeTeamCapTotals(team, year);
+        const delta =
+          Number(totals?.totalCapAllocations ?? 0) -
+          Number(totals?.salaryCap ?? 141_000_000);
+        return {
+          eligible: delta < 0,
+          reason:
+            delta < 0
+              ? undefined
+              : 'Room Exception requires team to be under the salary cap',
+          totals: {
+            totalCapAllocations: Number(totals?.totalCapAllocations ?? 0),
+            salaryCap: Number(totals?.salaryCap ?? 141_000_000),
+            delta,
+          },
+        };
+      }),
+    };
+  }
+);
+
 vi.mock('@/features/architect/utils/offseason', () => ({
   resolveOffseasonTransition: mocks.resolveOffseasonTransition,
 }));
@@ -196,12 +235,23 @@ describe('Architect core trio pass R3 proof', () => {
           : 0,
         incompleteChargesTotal: 0,
         totalCapAllocations: 120_000_000,
+        teamSalary: 120_000_000,
         totalSalary: 120_000_000,
         capHit: 120_000_000,
+        currentCapHit: 120_000_000,
         salaryCap: 141_000_000,
         luxuryTax: 170_000_000,
         firstApron: 178_000_000,
         secondApron: 188_000_000,
+        deltas: {
+          vsCap: -21_000_000,
+          vsLuxuryTax: -50_000_000,
+          vsFirstApron: -58_000_000,
+          vsSecondApron: -68_000_000,
+        },
+        _meta: {
+          source: 'test',
+        },
       })
     );
 

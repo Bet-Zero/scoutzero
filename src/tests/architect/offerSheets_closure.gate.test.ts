@@ -363,9 +363,9 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
     expect(normalizesContract).toBe(true);
   });
 
-  it('calls computeTeamCapTotals for home team', () => {
+  it('recomputes home team totals through the canonical totals bridge', () => {
     const recomputesTotals =
-      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,4500}updatedHomeTeam\.totals\s*=\s*computeTeamCapTotals/.test(
+      /computeFinalizeMatchedOfferSheetResult[\s\S]{0,4500}updatedHomeTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
         content
       );
     expect(recomputesTotals).toBe(true);
@@ -407,9 +407,9 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
     expect(addsToOffering).toBe(true);
   });
 
-  it('calls computeTeamCapTotals for offering team', () => {
+  it('recomputes offering team totals through the canonical totals bridge', () => {
     const recomputesOfferingTotals =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,6000}updatedOfferingTeam\.totals\s*=\s*computeTeamCapTotals/.test(
+      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,6000}updatedOfferingTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
         content
       );
     expect(recomputesOfferingTotals).toBe(true);
@@ -423,9 +423,9 @@ describe('Gate 7: Finalize declined recomputes BOTH totals (E1)', () => {
     expect(removesFromHome).toBe(true);
   });
 
-  it('calls computeTeamCapTotals for home team', () => {
+  it('recomputes home team totals through the canonical totals bridge', () => {
     const recomputesHomeTotals =
-      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,8000}updatedHomeTeam\.totals\s*=\s*computeTeamCapTotals/.test(
+      /computeFinalizeDeclinedOfferSheetResult[\s\S]{0,8000}updatedHomeTeam\.totals\s*=\s*(?:computeTeamCapTotals|synchronizeTeamTotalsSnapshot)/.test(
         content
       );
     expect(recomputesHomeTotals).toBe(true);

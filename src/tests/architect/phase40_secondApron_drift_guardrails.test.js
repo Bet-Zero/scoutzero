@@ -53,9 +53,22 @@ vi.mock('../../features/architect/utils/capRulesProfile', () => ({
 // Mock capTotals/computeTeamCapTotals - this is used by validateSigning if not fully mocked/isolated,
 // but validateSigning might assume inputs are passed in.
 // Actually validateSigning imports computeTeamCapTotals.
-vi.mock('../../features/architect/utils/capTotals/computeTeamCapTotals', () => ({
-  computeTeamCapTotals: vi.fn(),
-}));
+vi.mock(
+  '../../features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      computeTeamCapTotals: vi.fn((team) => ({
+        totalCapAllocations:
+          team?.totals?.capHit ??
+          team?.totals?.totalSalary ??
+          team?.totals?.totalCapAllocations ??
+          0,
+      })),
+    };
+  }
+);
 
 // Mock playerRulesProfile
 vi.mock('../../features/architect/utils/playerRulesProfile/computeProfile', () => ({

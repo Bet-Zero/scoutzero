@@ -1,10 +1,27 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   validateSigning,
   HARD_BLOCK_RULES,
   getOverridePolicy,
 } from '@/features/architect/utils/capLegalityValidation';
 import capProjections from '@/features/architect/utils/capProjections';
+
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      computeTeamCapTotals: vi.fn((team) => ({
+        totalCapAllocations:
+          team?.totals?.capHit ??
+          team?.totals?.totalSalary ??
+          team?.totals?.totalCapAllocations ??
+          0,
+      })),
+    };
+  }
+);
 
 describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
   const YEAR = 2025; // 2024-25 season

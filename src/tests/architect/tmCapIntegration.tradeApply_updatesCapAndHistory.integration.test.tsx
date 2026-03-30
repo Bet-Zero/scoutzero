@@ -215,12 +215,6 @@ describe('TM_CAP_INTEGRATION_E1 AC1: executeTrade updates cap and history payloa
     expect(lalChangedTeam).toBeDefined();
     expect(bosChangedTeam).toBeDefined();
 
-    const lalCapHit = Number(lalChangedTeam?.totals?.capHit ?? 0);
-    const bosCapHit = Number(bosChangedTeam?.totals?.capHit ?? 0);
-
-    expect(lalCapHit).toBeLessThan(18_000_000);
-    expect(bosCapHit).toBeGreaterThan(10_000_000);
-
     const setCalls = firestoreMocks.batchSet.mock.calls;
     const eventWrite = setCalls.find(([ref]) =>
       String(ref).includes(`architect_worlds/${WORLD_ID}/events/`)
@@ -229,6 +223,26 @@ describe('TM_CAP_INTEGRATION_E1 AC1: executeTrade updates cap and history payloa
     expect(eventWrite).toBeDefined();
 
     const eventPayload = eventWrite?.[1] as Record<string, any>;
+    const lalCapHit = Number(lalChangedTeam?.totals?.capHit ?? 0);
+    const bosCapHit = Number(bosChangedTeam?.totals?.capHit ?? 0);
+    const beforeLal = Number(
+      eventPayload?.beforeTotalsByTeam?.LAL?.totalCapAllocations ?? 0
+    );
+    const afterLal = Number(
+      eventPayload?.afterTotalsByTeam?.LAL?.totalCapAllocations ?? 0
+    );
+    const beforeBos = Number(
+      eventPayload?.beforeTotalsByTeam?.BOS?.totalCapAllocations ?? 0
+    );
+    const afterBos = Number(
+      eventPayload?.afterTotalsByTeam?.BOS?.totalCapAllocations ?? 0
+    );
+
+    expect(lalCapHit).toBe(afterLal);
+    expect(bosCapHit).toBe(afterBos);
+    expect(afterLal).toBeLessThan(beforeLal);
+    expect(afterBos).toBeGreaterThan(beforeBos);
+
     expect(eventPayload?.mutationType).toBe('executeTrade');
     expect(eventPayload?.teamCodes).toEqual(
       expect.arrayContaining(['LAL', 'BOS'])

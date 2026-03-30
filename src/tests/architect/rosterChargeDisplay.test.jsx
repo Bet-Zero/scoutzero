@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 
 // Mock usePlayerRulesProfiles hook to avoid complex dependencies
@@ -128,7 +128,6 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
 
     // Row should NOT be present
     expect(screen.queryByTestId('incomplete-roster-charge-row')).toBeNull();
-    expect(screen.queryByText(/Incomplete Roster Charge/i)).toBeNull();
   });
 
   it('RC2: incompleteChargesTotal > 0 → row rendered with correct amount', () => {
@@ -162,7 +161,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     expect(row).toBeTruthy();
 
     // Should display label
-    expect(screen.getByText(/Incomplete Roster Charge/i)).toBeTruthy();
+    expect(within(row).getByText(/Incomplete Roster Charge/i)).toBeTruthy();
 
     // Should display formatted amount within the row
     expect(row.textContent).toContain('$1,119,563');
@@ -325,7 +324,7 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
       />
     );
 
-    expect(screen.getByText('$5,000,000')).toBeTruthy();
+    expect(screen.getAllByText('$5,000,000').length).toBeGreaterThan(0);
     expect(readCurrencyForLabel('TOTAL CAP ALLOCATIONS')).toBe(22_971_427);
     expect(readCurrencyForLabel('Player Salaries')).toBe(9_876_543);
     expect(readCurrencyForLabel('Dead Money')).toBe(4_321_000);

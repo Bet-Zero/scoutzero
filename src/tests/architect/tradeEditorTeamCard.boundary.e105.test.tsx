@@ -211,6 +211,29 @@ vi.mock('@/config/validationFlags.js', () => ({
 vi.mock('@/features/architect/utils/tradeMachine/utils/seasonUtils', () => ({
   getCapHitForSeason: (player: Record<string, any>) =>
     Number(player.capHit ?? player.salary ?? 0),
+  normalizeYearInput: (input: string | number | null | undefined) => {
+    if (!input) return null;
+    if (typeof input === 'number') {
+      return {
+        endYear: input,
+        seasonString: `${input - 1}-${String(input).slice(-2)}`,
+      };
+    }
+    if (typeof input === 'string' && input.includes('-')) {
+      const [startYear] = input.split('-');
+      const numericStartYear = Number(startYear);
+      return {
+        endYear: numericStartYear + 1,
+        seasonString: input,
+      };
+    }
+    const numericYear = Number(input);
+    if (!Number.isFinite(numericYear)) return null;
+    return {
+      endYear: numericYear,
+      seasonString: `${numericYear - 1}-${String(numericYear).slice(-2)}`,
+    };
+  },
 }));
 
 vi.mock('@/features/architect/utils/seasonUtils', () => ({

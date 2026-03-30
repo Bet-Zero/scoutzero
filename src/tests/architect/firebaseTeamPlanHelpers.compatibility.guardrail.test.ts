@@ -177,6 +177,8 @@ const expectedHydratedTeamKeys = [
   'bae',
   'tradeExceptions',
   'hardCapLevel',
+  'hardCapReason',
+  'hardCapTriggeredBy',
   'hardCapped',
   'deadCap',
   'baseline',

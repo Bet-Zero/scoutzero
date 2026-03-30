@@ -2731,32 +2731,10 @@ export function validateExceptionEligibility({
   // Check hard cap status
   const hardCapStatus = getValidationHardCapStatus(team, rules);
 
-  // RULE 0: Phase 75 - Room Exception requires team to be under the salary cap (SSOT gating)
   const isRoomMLEVariant =
     normalizedException === 'room' ||
     normalizedException === 'roommle' ||
     normalizedException === 'rmle';
-  if (isRoomMLEVariant) {
-    const roomEligibility = canUseRoomException(
-      team as Parameters<typeof canUseRoomException>[0],
-      year
-    );
-    if (!roomEligibility.eligible) {
-      return {
-        blocked: true,
-        reason:
-          roomEligibility.reason ||
-          'Room Exception requires team to be under the salary cap',
-        violation: {
-          rule: 'ROOM_REQUIRES_UNDER_CAP',
-          message:
-            roomEligibility.reason ||
-            'Room Exception requires team to be under the salary cap',
-          severity: 'error',
-        },
-      };
-    }
-  }
 
   // RULE 1: Second Apron teams cannot use any exceptions
   if (isAboveSecondApron) {
@@ -2855,6 +2833,31 @@ export function validateExceptionEligibility({
         violation: {
           rule: 'exception_blocked',
           message: `Cannot use Room Exception - team is above first apron. Room Exception is only available to under-cap teams.`,
+          severity: 'error',
+        },
+      };
+    }
+  }
+
+  // RULE 4: Phase 75 - Room Exception requires team to be under the salary cap
+  // Only evaluate this after the apron ownership checks above so room-specific
+  // apron blocks keep returning exception_blocked on the closeout surface.
+  if (isRoomMLEVariant) {
+    const roomEligibility = canUseRoomException(
+      team as Parameters<typeof canUseRoomException>[0],
+      year
+    );
+    if (!roomEligibility.eligible) {
+      return {
+        blocked: true,
+        reason:
+          roomEligibility.reason ||
+          'Room Exception requires team to be under the salary cap',
+        violation: {
+          rule: 'ROOM_REQUIRES_UNDER_CAP',
+          message:
+            roomEligibility.reason ||
+            'Room Exception requires team to be under the salary cap',
           severity: 'error',
         },
       };

@@ -62,6 +62,19 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
     );
     return entry || null;
   }),
+  getPlayerCapHitForYear: vi.fn((player, year) => {
+    const seasonKey = `${year - 1}-${String(year).slice(-2)}`;
+    const entry = player?.contract?.salariesByYear?.find(
+      (e) => e.season === seasonKey
+    );
+    return entry?.capHit ?? entry?.salary ?? 0;
+  }),
+  isTwoWayContract: vi.fn(
+    (player) =>
+      String(player?.contract?.contractType || '')
+        .trim()
+        .toLowerCase() === 'two-way'
+  ),
 }));
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({

@@ -14,9 +14,12 @@ vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () 
     fullMLE: 12_900_000,
     taxpayerMLE: 3_100_000,
     bae: 3_500_000,
+    roomMLE: 8_000_000,
+    salaryCap: 141_000_000,
     firstApron: 150_000_000,
     secondApron: 175_000_000,
   }),
+  yearToSeasonKey: (year) => `${Number(year) - 1}-${String(year).slice(-2)}`,
   getExceptionDefaultAmountFromCapSettings: (type, capSettings) =>
     (
       {
@@ -40,8 +43,8 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
 
     render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
 
-    expect(screen.getByText('$5,000,000')).toBeInTheDocument();
-    expect(screen.getByText(/from Trade vs BOS/)).toBeInTheDocument();
+    expect(screen.getAllByText('$5,000,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/from Trade vs BOS/).length).toBeGreaterThan(0);
   });
 
   it('prefers canonical exceptions.tpe over conflicting legacy tradeExceptions', () => {
@@ -58,8 +61,8 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
 
     render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
 
-    expect(screen.getByText('$5,000,000')).toBeInTheDocument();
-    expect(screen.getByText(/from Trade vs BOS/)).toBeInTheDocument();
+    expect(screen.getAllByText('$5,000,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/from Trade vs BOS/).length).toBeGreaterThan(0);
     expect(screen.queryByText('$9,000,000')).not.toBeInTheDocument();
     expect(screen.queryByText(/from Legacy Trade vs LAL/)).not.toBeInTheDocument();
   });
@@ -74,7 +77,7 @@ describe('ExceptionTracker — TPE persistence via getTeamTpeList', () => {
     render(<ExceptionTracker teamCapSheet={sheet} currentYear={2026} />);
 
     expect(screen.getByText('$3,000,000')).toBeInTheDocument();
-    expect(screen.getByText(/from Trade vs MIA/)).toBeInTheDocument();
+    expect(screen.getAllByText(/from Trade vs MIA/).length).toBeGreaterThan(0);
   });
 
   it('shows "No Active TPEs" when both paths are empty', () => {

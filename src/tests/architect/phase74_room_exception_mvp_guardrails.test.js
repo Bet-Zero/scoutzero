@@ -19,7 +19,7 @@
  * 6. Reload proof: mutation → persist → reload → assert usage remains correct
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -32,6 +32,23 @@ import {
 } from '@/features/architect/utils/capLegalityValidation';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import capProjections from '@/features/architect/utils/capProjections';
+
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      computeTeamCapTotals: vi.fn((team) => ({
+        totalCapAllocations:
+          team?.totals?.capHit ??
+          team?.totals?.totalSalary ??
+          team?.totals?.totalCapAllocations ??
+          0,
+      })),
+    };
+  }
+);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
