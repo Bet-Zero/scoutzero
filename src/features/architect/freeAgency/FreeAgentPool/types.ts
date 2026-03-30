@@ -57,10 +57,14 @@ export interface FreeAgentLookupPlayer extends FreeAgentListItem {
 
 export interface ResolvedFreeAgentPlayer extends FreeAgentLookupPlayer {}
 
-export interface FreeAgentModalLaunchTarget {
+export interface FreeAgentSurfaceEntry {
   freeAgent: FreeAgentListItem;
-  resolvedPlayer: ResolvedFreeAgentPlayer;
+  surfacePlayer: ResolvedFreeAgentPlayer;
+  playerId: string | null;
+  selectionKey: string;
 }
+
+export type FreeAgentModalLaunchTarget = FreeAgentSurfaceEntry;
 
 export interface FreeAgentActionResult extends LooseRecord {
   success?: boolean;
@@ -72,23 +76,21 @@ export interface FreeAgentPoolProps {
   currentYear: number;
   actionOwner: FreeAgencyActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
-  playersById?: Record<string, FreeAgentLookupPlayer>;
 }
 
 export interface FreeAgentRowProps {
-  player?: ResolvedFreeAgentPlayer;
-  askInfo?: FreeAgentListItem;
-  onSelect?: () => void;
+  entry: FreeAgentSurfaceEntry;
+  onSelect?: (entry: FreeAgentSurfaceEntry) => void;
   isSelected?: boolean;
-  openMenu?: string | null | undefined;
-  setOpenMenu:
+  openMenuSelectionKey?: string | null | undefined;
+  setOpenMenuSelectionKey:
     | Dispatch<SetStateAction<string | null | undefined>>
     | ((value: string | null | undefined) => void);
-  onOpenContractModal?: (player: FreeAgentListItem) => void;
+  onOpenContractModal?: (entry: FreeAgentSurfaceEntry) => void;
 }
 
 export interface FreeAgentCardProps {
-  player: FreeAgentListItem;
-  onOpenContractModal: (player: FreeAgentListItem) => void;
-  onRemove: (player: FreeAgentListItem) => void;
+  entry: FreeAgentSurfaceEntry;
+  onOpenContractModal: (entry: FreeAgentSurfaceEntry) => void;
+  onRemove: (selectionKey: string) => void;
 }

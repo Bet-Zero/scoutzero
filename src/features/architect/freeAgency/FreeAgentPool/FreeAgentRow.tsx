@@ -17,19 +17,19 @@ import { TeamCodeMap } from '@/constants/teamList';
 import type { FreeAgentRowProps } from './types';
 
 const FreeAgentRow = ({
-  player = {},
-  askInfo = {},
+  entry,
   onSelect,
   isSelected = false,
-  openMenu,
-  setOpenMenu,
+  openMenuSelectionKey,
+  setOpenMenuSelectionKey,
   onOpenContractModal,
 }: FreeAgentRowProps) => {
+  const { surfacePlayer: player, freeAgent } = entry;
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    if (openMenu === askInfo.name) {
+    if (openMenuSelectionKey === entry.selectionKey) {
       const handleClick = (e: MouseEvent) => {
         const target = e.target as Node | null;
         if (
@@ -39,20 +39,20 @@ const FreeAgentRow = ({
           buttonRef.current &&
           !buttonRef.current.contains(target)
         ) {
-          setOpenMenu(null);
+          setOpenMenuSelectionKey(null);
         }
       };
       document.addEventListener('mousedown', handleClick);
       return () => document.removeEventListener('mousedown', handleClick);
     }
     return undefined;
-  }, [openMenu, askInfo.name, setOpenMenu]);
+  }, [entry.selectionKey, openMenuSelectionKey, setOpenMenuSelectionKey]);
   // Use displayName from player data - the authoritative source
   const formattedName =
     player.bio?.displayName ||
     player.displayName ||
     player.name ||
-    askInfo.name ||
+    freeAgent.name ||
     '';
   const nameParts = formattedName.split(' ');
   const firstName = nameParts[0] || '';
@@ -71,16 +71,16 @@ const FreeAgentRow = ({
   };
 
   const height =
-    formatHeight(player.bio?.height) || player.height || askInfo.height || '—';
-  const weight = player.bio?.weight || player.weight || askInfo.weight || '—';
+    formatHeight(player.bio?.height) || player.height || freeAgent.height || '—';
+  const weight = player.bio?.weight || player.weight || freeAgent.weight || '—';
   const prevSalaryValue =
-    askInfo.previousSalary ?? player.previousSalary ?? null;
+    freeAgent.previousSalary ?? player.previousSalary ?? null;
   const prevSalary =
     prevSalaryValue != null ? `$${prevSalaryValue.toLocaleString()}` : 'N/A';
 
   const faType =
-    askInfo.freeAgentType ||
-    askInfo.fa_type ||
+    freeAgent.freeAgentType ||
+    freeAgent.fa_type ||
     player.bio?.display?.freeAgentType ||
     player.freeAgentType ||
     player.fa_type ||
@@ -97,13 +97,13 @@ const FreeAgentRow = ({
   // Display the previous year's salary in place of the asking price
   const asking = prevSalary;
 
-  const rights = askInfo.birdRights;
+  const rights = freeAgent.birdRights;
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onSelect}
+      onClick={() => onSelect?.(entry)}
       className={`w-full h-[45px] rounded-sm flex items-center border border-black mb-[3px] pr-2 overflow-visible hover:bg-neutral-700 cursor-pointer focus:outline-none ${
         isSelected ? 'bg-neutral-700 ring-1 ring-lakers' : 'bg-neutral-800'
       }`}
@@ -138,7 +138,7 @@ const FreeAgentRow = ({
               player.bio?.playerId ||
               player.id ||
               player.player_id ||
-              (player.name || askInfo.name || '')
+              (player.name || freeAgent.name || '')
                 .toLowerCase()
                 .replace(/['.]/g, '')
                 .replace(/\s+/g, '_')
@@ -204,24 +204,24 @@ const FreeAgentRow = ({
           ref={buttonRef}
           onClick={(e) => {
             e.stopPropagation();
-            setOpenMenu(
-              openMenu === askInfo.name
+            setOpenMenuSelectionKey(
+              openMenuSelectionKey === entry.selectionKey
                 ? null
-                : (askInfo.name as string | null | undefined)
+                : entry.selectionKey
             );
           }}
           className="text-xs text-blue-400 hover:underline"
         >
           •••
         </button>
-        {openMenu === askInfo.name && (
+        {openMenuSelectionKey === entry.selectionKey && (
           <div
             ref={menuRef}
             className="absolute right-0 top-5 bg-[#222] border border-white/20 rounded z-20 text-xs min-w-[8rem]"
           >
             <button
               onClick={() => {
-                onOpenContractModal?.(askInfo);
+                onOpenContractModal?.(entry);
               }}
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >

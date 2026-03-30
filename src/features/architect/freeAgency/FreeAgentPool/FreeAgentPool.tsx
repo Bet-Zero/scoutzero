@@ -24,6 +24,7 @@ import type {
   FreeAgentLookupPlayer,
   FreeAgentModalLaunchTarget,
   FreeAgentPoolProps,
+  FreeAgentSurfaceEntry,
   ResolvedFreeAgentPlayer,
 } from './types';
 
@@ -38,106 +39,175 @@ const normalizeLookupKey = (name?: string) => {
     .toLowerCase();
 };
 
-const resolvePlayerData = (
-  freeAgent: FreeAgentListItem,
-  playersMap: Record<string, FreeAgentLookupPlayer>,
-  playersById: Record<string, FreeAgentLookupPlayer>
-): ResolvedFreeAgentPlayer => {
-  const playerId = freeAgent.id || freeAgent.player_id;
-
-  let playerData =
-    (playerId && playersById?.[playerId as string]) ||
-    playersMap?.[freeAgent.name as string] ||
-    playersMap?.[normalizeLookupKey(freeAgent.name)] || {
-      name: freeAgent.name,
-    };
-
-  if (freeAgent.name && freeAgent.name !== 'Player Not Found') {
-    playerData = {
-      ...playerData,
-      name: freeAgent.name,
-      bio: {
-        ...(playerData.bio || {}),
-        displayName: freeAgent.name,
-      },
-    };
-  }
-
-  return playerData;
+const getStablePlayerId = (
+  player?: Partial<FreeAgentListItem | FreeAgentLookupPlayer> | null
+) => {
+  const playerId = player?.id || player?.player_id || player?.bio?.playerId;
+  if (typeof playerId !== 'string') return null;
+  const normalizedPlayerId = playerId.trim();
+  return normalizedPlayerId || null;
 };
 
-const getFreeAgentSelectionKey = (player: FreeAgentListItem) =>
-  String(player.id || player.player_id || player.name || '');
+const resolveLookupPlayer = (
+  freeAgent: FreeAgentListItem,
+  playersMap: Record<string, FreeAgentLookupPlayer>
+) => {
+  const playerId = getStablePlayerId(freeAgent);
+  const freeAgentName = freeAgent.name?.trim() || '';
+  const normalizedFreeAgentName = normalizeLookupKey(freeAgentName);
+
+  return (
+    (playerId ? playersMap?.[playerId] : null) ||
+    (freeAgentName ? playersMap?.[freeAgentName] : null) ||
+    (normalizedFreeAgentName ? playersMap?.[normalizedFreeAgentName] : null) ||
+    null
+  );
+};
+
+const buildFreeAgentSurfaceEntry = (
+  freeAgent: FreeAgentListItem,
+  playersMap: Record<string, FreeAgentLookupPlayer>
+): FreeAgentSurfaceEntry => {
+  const matchedPlayer = resolveLookupPlayer(freeAgent, playersMap) || {};
+  const playerId = getStablePlayerId(freeAgent) || getStablePlayerId(matchedPlayer);
+  const preferredDisplayName =
+    (freeAgent.name && freeAgent.name !== 'Player Not Found'
+      ? freeAgent.name
+      : freeAgent.displayName) ||
+    matchedPlayer.bio?.displayName ||
+    matchedPlayer.displayName ||
+    matchedPlayer.name ||
+    '';
+  const fallbackSelectionLabel =
+    preferredDisplayName ||
+    freeAgent.name ||
+    freeAgent.displayName ||
+    matchedPlayer.name ||
+    'unknown-free-agent';
+
+  const surfacePlayer: ResolvedFreeAgentPlayer = {
+    ...matchedPlayer,
+    ...freeAgent,
+    id: playerId || matchedPlayer.id || freeAgent.id || undefined,
+    player_id: playerId || matchedPlayer.player_id || freeAgent.player_id || undefined,
+    name: preferredDisplayName || matchedPlayer.name || freeAgent.name || '',
+    displayName:
+      freeAgent.displayName ||
+      matchedPlayer.displayName ||
+      preferredDisplayName ||
+      matchedPlayer.name ||
+      '',
+    bio: {
+      ...(matchedPlayer.bio || {}),
+      ...(freeAgent.bio || {}),
+      playerId:
+        playerId ||
+        matchedPlayer.bio?.playerId ||
+        freeAgent.bio?.playerId ||
+        undefined,
+      displayName:
+        preferredDisplayName ||
+        matchedPlayer.bio?.displayName ||
+        freeAgent.bio?.displayName ||
+        '',
+    },
+  };
+
+  return {
+    freeAgent,
+    surfacePlayer,
+    playerId,
+    selectionKey:
+      playerId || normalizeLookupKey(fallbackSelectionLabel) || 'unknown-free-agent',
+  };
+};
 
 const buildFreeAgentModalLaunchTarget = (
-  freeAgent: FreeAgentListItem,
-  playersMap: Record<string, FreeAgentLookupPlayer>,
-  playersById: Record<string, FreeAgentLookupPlayer>
-): FreeAgentModalLaunchTarget => ({
-  freeAgent,
-  resolvedPlayer: resolvePlayerData(freeAgent, playersMap, playersById),
-});
+  entry: FreeAgentSurfaceEntry
+): FreeAgentModalLaunchTarget => entry;
 
 const FreeAgentPool = ({
   freeAgents,
   actionOwner,
   playersMap = {},
-  playersById = {},
 }: FreeAgentPoolProps) => {
-  const [selectedPlayers, setSelectedPlayers] = useState<FreeAgentListItem[]>(
-    []
-  );
+  const [selectedPlayerKeys, setSelectedPlayerKeys] = useState<string[]>([]);
   const [, setSignResults] = useState<
     Record<string, FreeAgentActionResult | null>
   >({});
-  const [openMenu, setOpenMenu] = useState<string | null | undefined>(null);
+  const [openMenuSelectionKey, setOpenMenuSelectionKey] = useState<
+    string | null | undefined
+  >(null);
   const [contractModalTarget, setContractModalTarget] =
     useState<FreeAgentModalLaunchTarget | null>(null);
   const { filterState, updateFilterState, clearFilters } =
     useFreeAgencyFilterPersistence();
 
-  useEffect(() => {
-    const availableSelectionKeys = new Set(
-      (freeAgents || []).map((player) => getFreeAgentSelectionKey(player))
-    );
+  const allAgents = freeAgents || [];
 
-    setSelectedPlayers((prev) =>
-      prev.filter((player) =>
-        availableSelectionKeys.has(getFreeAgentSelectionKey(player))
-      )
-    );
-  }, [freeAgents]);
+  const allEntries = useMemo(
+    () =>
+      allAgents.map((freeAgent) =>
+        buildFreeAgentSurfaceEntry(freeAgent, playersMap)
+      ),
+    [allAgents, playersMap]
+  );
 
-  const handleSelect = (player: FreeAgentListItem) => {
-    setSelectedPlayers((prev) => {
-      const exists = prev.some((p) => p.name === player.name);
-      if (exists) {
-        return prev.filter((p) => p.name !== player.name);
-      }
-      return [...prev, player];
+  const entriesBySelectionKey = useMemo(() => {
+    const entryMap = new Map<string, FreeAgentSurfaceEntry>();
+    allEntries.forEach((entry) => {
+      entryMap.set(entry.selectionKey, entry);
     });
-    setSignResults((prev) => ({ ...prev, [player.name as string]: null }));
-  };
+    return entryMap;
+  }, [allEntries]);
 
-  const handleRemove = (player: FreeAgentListItem) => {
-    setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
-  };
+  const entriesByFreeAgent = useMemo(() => {
+    const entryMap = new Map<FreeAgentListItem, FreeAgentSurfaceEntry>();
+    allEntries.forEach((entry) => {
+      entryMap.set(entry.freeAgent, entry);
+    });
+    return entryMap;
+  }, [allEntries]);
+
+  useEffect(() => {
+    const availableSelectionKeys = new Set(allEntries.map((entry) => entry.selectionKey));
+
+    setSelectedPlayerKeys((prev) =>
+      prev.filter((selectionKey) => availableSelectionKeys.has(selectionKey))
+    );
+    setOpenMenuSelectionKey((prev) =>
+      prev && availableSelectionKeys.has(prev) ? prev : null
+    );
+  }, [allEntries]);
+
+  const handleSelect = useCallback((entry: FreeAgentSurfaceEntry) => {
+    setSelectedPlayerKeys((prev) => {
+      const exists = prev.includes(entry.selectionKey);
+      if (exists) {
+        return prev.filter((selectionKey) => selectionKey !== entry.selectionKey);
+      }
+      return [...prev, entry.selectionKey];
+    });
+    setSignResults((prev) => ({ ...prev, [entry.selectionKey]: null }));
+  }, []);
+
+  const handleRemove = useCallback((selectionKey: string) => {
+    setSelectedPlayerKeys((prev) =>
+      prev.filter((currentSelectionKey) => currentSelectionKey !== selectionKey)
+    );
+  }, []);
 
   const closeContractModal = useCallback(() => {
     setContractModalTarget(null);
   }, []);
 
   const openContractModal = useCallback(
-    (freeAgent: FreeAgentListItem) => {
-      setOpenMenu(null);
-      setContractModalTarget(
-        buildFreeAgentModalLaunchTarget(freeAgent, playersMap, playersById)
-      );
+    (entry: FreeAgentSurfaceEntry) => {
+      setOpenMenuSelectionKey(null);
+      setContractModalTarget(buildFreeAgentModalLaunchTarget(entry));
     },
-    [playersMap, playersById]
+    []
   );
-
-  const allAgents = freeAgents || [];
 
   const filteredAgents = useMemo(
     () =>
@@ -148,9 +218,38 @@ const FreeAgentPool = ({
     [allAgents, filterState]
   );
 
-  const selectedNames = useMemo(
-    () => new Set(selectedPlayers.map((player) => player.name)),
-    [selectedPlayers]
+  const filteredEntries = useMemo(
+    () =>
+      filteredAgents.map(
+        (freeAgent) =>
+          entriesByFreeAgent.get(freeAgent) ||
+          buildFreeAgentSurfaceEntry(freeAgent, playersMap)
+      ),
+    [entriesByFreeAgent, filteredAgents, playersMap]
+  );
+
+  const selectedEntries = useMemo(
+    () =>
+      selectedPlayerKeys
+        .map((selectionKey) => entriesBySelectionKey.get(selectionKey))
+        .filter(
+          (entry): entry is FreeAgentSurfaceEntry => entry != null
+        ),
+    [entriesBySelectionKey, selectedPlayerKeys]
+  );
+
+  const selectedPlayerKeysSet = useMemo(
+    () => new Set(selectedPlayerKeys),
+    [selectedPlayerKeys]
+  );
+
+  const activeContractModalTarget = useMemo(
+    () =>
+      contractModalTarget
+        ? entriesBySelectionKey.get(contractModalTarget.selectionKey) ||
+          contractModalTarget
+        : null,
+    [contractModalTarget, entriesBySelectionKey]
   );
   const freeAgentModalAvailability = actionOwner.freeAgentModalAvailability;
   const dualPathSigningOwner = actionOwner.dualPathSigning;
@@ -178,10 +277,10 @@ const FreeAgentPool = ({
   );
 
   const editContractModalProps = useMemo(() => {
-    if (!contractModalTarget) return null;
+    if (!activeContractModalTarget) return null;
 
     return {
-      player: contractModalTarget.resolvedPlayer,
+      player: activeContractModalTarget.surfacePlayer,
       isOpen: true,
       onClose: closeContractModal,
       onSignFreeAgent: freeAgencyModalDispatch.onSignFreeAgent,
@@ -195,8 +294,8 @@ const FreeAgentPool = ({
       showOfferSheetToggle: freeAgentModalAvailability.showOfferSheetToggle,
     } satisfies EditContractModalProps;
   }, [
+    activeContractModalTarget,
     closeContractModal,
-    contractModalTarget,
     freeAgentModalAvailability,
     freeAgencyModalDispatch,
   ]);
@@ -215,31 +314,24 @@ const FreeAgentPool = ({
       <FreeAgentPoolHeader />
 
       <SelectedFreeAgentCards
-        selectedPlayers={selectedPlayers}
+        selectedEntries={selectedEntries}
         onOpenContractModal={openContractModal}
         onRemove={handleRemove}
       />
 
       <ul className="space-y-[3px] mb-4 px-6">
-        {filteredAgents.length === 0 ? (
+        {filteredEntries.length === 0 ? (
           <li className="text-center text-sm text-white/60 py-4">No matches</li>
         ) : (
-          filteredAgents.map((freeAgent) => {
-            const playerData = resolvePlayerData(
-              freeAgent,
-              playersMap,
-              playersById
-            );
-
+          filteredEntries.map((entry) => {
             return (
-              <li key={freeAgent.id || freeAgent.player_id || freeAgent.name}>
+              <li key={entry.selectionKey}>
                 <FreeAgentRow
-                  player={playerData}
-                  askInfo={freeAgent}
-                  onSelect={() => handleSelect(freeAgent)}
-                  isSelected={selectedNames.has(freeAgent.name || '')}
-                  openMenu={openMenu}
-                  setOpenMenu={setOpenMenu}
+                  entry={entry}
+                  onSelect={handleSelect}
+                  isSelected={selectedPlayerKeysSet.has(entry.selectionKey)}
+                  openMenuSelectionKey={openMenuSelectionKey}
+                  setOpenMenuSelectionKey={setOpenMenuSelectionKey}
                   onOpenContractModal={openContractModal}
                 />
               </li>

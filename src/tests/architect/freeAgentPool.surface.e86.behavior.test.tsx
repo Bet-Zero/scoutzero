@@ -37,8 +37,12 @@ vi.mock('@/shared/utils/routing/playerRouteUtils', () => ({
 type MockEditContractModalProps = {
   isOpen?: boolean;
   player?: {
+    id?: string;
+    player_id?: string;
+    displayName?: string;
     name?: string;
     bio?: {
+      playerId?: string;
       displayName?: string;
     };
   };
@@ -211,25 +215,23 @@ const buildActionOwner = ({
 const renderPool = (
   overrides: Partial<React.ComponentProps<typeof FreeAgentPool>> = {}
 ) => {
-  const actionOwner =
-    overrides.actionOwner || buildActionOwner();
+  const actionOwner = overrides.actionOwner || buildActionOwner();
 
-  render(
+  const renderResult = render(
     <FreeAgentPool
       freeAgents={[FREE_AGENT]}
       currentYear={2026}
       actionOwner={actionOwner}
       playersMap={playersMap}
-      playersById={playersMap}
       {...overrides}
     />
   );
 
-  return { actionOwner };
+  return { actionOwner, ...renderResult };
 };
 
-const openFromSelectedCard = () => {
-  fireEvent.click(screen.getByRole('button', { name: /test player/i }));
+const openFromSelectedCard = (playerName: RegExp = /test player/i) => {
+  fireEvent.click(screen.getByRole('button', { name: playerName }));
   fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
 };
 
@@ -242,6 +244,11 @@ const openFromRowMenu = () => {
 
 const getLatestModalProps = () =>
   mockEditContractModalProps.mock.calls.at(-1)?.[0] as MockEditContractModalProps;
+
+const getPoolRowButtons = (container: HTMLElement) =>
+  Array.from(
+    container.querySelectorAll('ul li > div[role="button"]')
+  ) as HTMLDivElement[];
 
 describe('FreeAgentPool surface E86 behavior', () => {
   beforeEach(() => {
@@ -418,6 +425,152 @@ describe('FreeAgentPool surface E86 behavior', () => {
     );
     expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
       /test player/i
+    );
+  });
+
+  it('keeps duplicate-name free agents independently selectable and removable by stable selection key', () => {
+    const duplicateNamePlayersMap = {
+      player_1: {
+        ...PLAYER,
+        id: 'player_1',
+        player_id: 'player_1',
+        name: 'Same Player',
+        displayName: 'Same Player',
+        bio: {
+          ...PLAYER.bio,
+          playerId: 'player_1',
+          displayName: 'Same Player',
+        },
+      },
+      player_2: {
+        ...PLAYER,
+        id: 'player_2',
+        player_id: 'player_2',
+        name: 'Same Player',
+        displayName: 'Same Player',
+        bio: {
+          ...PLAYER.bio,
+          playerId: 'player_2',
+          displayName: 'Same Player',
+        },
+      },
+      'Same Player': {
+        ...PLAYER,
+        id: 'player_2',
+        player_id: 'player_2',
+        name: 'Same Player',
+        displayName: 'Same Player',
+        bio: {
+          ...PLAYER.bio,
+          playerId: 'player_2',
+          displayName: 'Same Player',
+        },
+      },
+    };
+    const duplicateNameFreeAgents = [
+      {
+        ...FREE_AGENT,
+        id: 'player_1',
+        player_id: 'player_1',
+        name: 'Same Player',
+      },
+      {
+        ...FREE_AGENT,
+        id: 'player_2',
+        player_id: 'player_2',
+        name: 'Same Player',
+      },
+    ];
+    const { container } = renderPool({
+      freeAgents: duplicateNameFreeAgents,
+      playersMap: duplicateNamePlayersMap,
+    });
+
+    const rowButtons = getPoolRowButtons(container);
+    expect(rowButtons).toHaveLength(2);
+
+    fireEvent.click(rowButtons[0]);
+    fireEvent.click(rowButtons[1]);
+
+    expect(screen.getAllByRole('button', { name: /Sign Player/i })).toHaveLength(2);
+
+    fireEvent.click(screen.getAllByRole('button', { name: '✕' })[0]);
+
+    expect(screen.getAllByRole('button', { name: /Sign Player/i })).toHaveLength(1);
+  });
+
+  it('prefers stable id lookup over conflicting name fallback while keeping visible identity aligned across row, selected-card, and modal launch', () => {
+    const stableIdPlayer = {
+      ...PLAYER,
+      id: 'player_1',
+      player_id: 'player_1',
+      name: 'Canonical Player',
+      displayName: 'Canonical Player',
+      teamCode: 'ATL',
+      bio: {
+        ...PLAYER.bio,
+        playerId: 'player_1',
+        displayName: 'Canonical Player',
+      },
+    };
+    const conflictingNamePlayer = {
+      ...PLAYER,
+      id: 'wrong_player',
+      player_id: 'wrong_player',
+      name: 'Conflicting Player',
+      displayName: 'Conflicting Player',
+      teamCode: 'BOS',
+      bio: {
+        ...PLAYER.bio,
+        playerId: 'wrong_player',
+        displayName: 'Conflicting Player',
+      },
+    };
+    const conflictingFreeAgent = {
+      ...FREE_AGENT,
+      id: 'player_1',
+      player_id: 'player_1',
+      name: 'Alias Name',
+    };
+    const conflictingPlayersMap = {
+      player_1: stableIdPlayer,
+      'Alias Name': conflictingNamePlayer,
+      aliasname: conflictingNamePlayer,
+    };
+    const actionOwner = buildActionOwner({
+      worldOnly: {},
+    });
+    renderPool({
+      actionOwner,
+      freeAgents: [conflictingFreeAgent],
+      playersMap: conflictingPlayersMap,
+    });
+
+    expect(screen.getByRole('button', { name: /alias name/i })).toBeInTheDocument();
+
+    openFromSelectedCard(/alias name/i);
+
+    const selectedCardModalProps = getLatestModalProps();
+    expect(selectedCardModalProps?.player).toEqual(
+      expect.objectContaining({
+        id: 'player_1',
+        player_id: 'player_1',
+        name: 'Alias Name',
+        bio: expect.objectContaining({
+          playerId: 'player_1',
+          displayName: 'Alias Name',
+        }),
+      })
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Close Modal/i }));
+
+    openFromRowMenu();
+
+    const rowMenuModalProps = getLatestModalProps();
+    expect(rowMenuModalProps?.player).toEqual(selectedCardModalProps?.player);
+    expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
+      /alias name/i
     );
   });
 

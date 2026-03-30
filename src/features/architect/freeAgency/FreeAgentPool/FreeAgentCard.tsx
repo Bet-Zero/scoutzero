@@ -15,10 +15,11 @@ import { TeamCodeMap } from '@/constants/teamList';
 import type { FreeAgentCardProps } from './types';
 
 const FreeAgentCard = ({
-  player,
+  entry,
   onOpenContractModal,
   onRemove,
 }: FreeAgentCardProps) => {
+  const { surfacePlayer: player } = entry;
   // Logic from FreeAgentRow to format name/headshot
   const formattedName =
     player.bio?.displayName || player.displayName || player.name || '';
@@ -53,7 +54,7 @@ const FreeAgentCard = ({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onRemove(player);
+          onRemove(entry.selectionKey);
         }}
         className="absolute top-1 right-1 z-10 w-6 h-6 rounded-full bg-black/50 hover:bg-red-500/80 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
       >
@@ -120,7 +121,7 @@ const FreeAgentCard = ({
         </div>
 
         <button
-          onClick={() => onOpenContractModal(player)}
+          onClick={() => onOpenContractModal(entry)}
           className="w-full mt-auto bg-green-600 hover:bg-green-500 text-white text-xs font-bold uppercase tracking-wider py-2 rounded transition-colors"
         >
           Sign Player

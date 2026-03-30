@@ -206,6 +206,7 @@ describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner 
       /onMatch\??:/,
       /onDecline\??:/,
       /onFinalize\??:/,
+      /playersById\??:/,
       /worldId\??:/,
     ];
 
@@ -298,6 +299,7 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
 
 describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual-path vs world-only routing (FA-1C)', () => {
   const content = readFileContent(FREE_AGENT_POOL_PATH);
+  const freeAgentPoolTypesContent = readFileContent(FREE_AGENT_POOL_TYPES_PATH);
   const freeAgentRowContent = readFileContent(FREE_AGENT_ROW_PATH);
   const selectedFreeAgentCardsContent = readFileContent(
     SELECTED_FREE_AGENT_CARDS_PATH
@@ -313,6 +315,20 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
     expect(modalDispatchRegion).toMatch(
       /onSignFreeAgent:\s*dualPathSigningOwner\s*\.signFreeAgent/
     );
+  });
+
+  it('builds one shared surface-entry identity model for row display, selection, and modal staging', () => {
+    expect(freeAgentPoolTypesContent).toMatch(
+      /export\s+interface\s+FreeAgentSurfaceEntry/
+    );
+    expect(freeAgentPoolTypesContent).toMatch(
+      /surfacePlayer:\s*ResolvedFreeAgentPlayer;/
+    );
+    expect(freeAgentPoolTypesContent).toMatch(/selectionKey:\s*string;/);
+    expect(freeAgentPoolTypesContent).not.toMatch(/playersById\??:/);
+    expect(content).toMatch(/const\s+buildFreeAgentSurfaceEntry\s*=\s*\(/);
+    expect(content).toMatch(/const\s+entriesBySelectionKey\s*=\s*useMemo/);
+    expect(content).toMatch(/const\s+selectedEntries\s*=\s*useMemo/);
   });
 
   it('reads world-only availability from the grouped owner instead of reconstructing it from worldId', () => {
@@ -378,14 +394,50 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
       /const\s+openContractModal\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /setContractModalTarget\s*\(\s*buildFreeAgentModalLaunchTarget/
+      /setContractModalTarget\s*\(\s*buildFreeAgentModalLaunchTarget\(entry\)\s*\)/
     );
     expect(content).toMatch(
-      /<SelectedFreeAgentCards[\s\S]*onOpenContractModal=\{openContractModal\}/
+      /<SelectedFreeAgentCards[\s\S]*selectedEntries=\{selectedEntries\}[\s\S]*onOpenContractModal=\{openContractModal\}/
     );
     expect(content).toMatch(
-      /<FreeAgentRow[\s\S]*onOpenContractModal=\{openContractModal\}/
+      /<FreeAgentRow[\s\S]*entry=\{entry\}[\s\S]*onOpenContractModal=\{openContractModal\}/
     );
+  });
+
+  it('tracks selection and row-menu visibility by stable selection keys instead of player names', () => {
+    expect(content).toMatch(
+      /const\s+\[selectedPlayerKeys,\s*setSelectedPlayerKeys\]\s*=\s*useState<string\[\]>\(\[\]\)/
+    );
+    expect(content).toMatch(
+      /const\s+\[openMenuSelectionKey,\s*setOpenMenuSelectionKey\]\s*=\s*useState/
+    );
+    expect(content).toMatch(/prev\.includes\(entry\.selectionKey\)/);
+    expect(content).toMatch(/selectedPlayerKeysSet\.has\(entry\.selectionKey\)/);
+    expect(content).not.toMatch(/selectedPlayers/);
+    expect(content).not.toMatch(/p\.name\s*===\s*player\.name/);
+    expect(content).not.toMatch(/player\.name\s+as\s+string/);
+  });
+
+  it('keeps child entry surfaces on the shared entry path instead of mixed raw player props', () => {
+    expect(freeAgentPoolTypesContent).toMatch(
+      /export\s+interface\s+FreeAgentRowProps\s*\{[\s\S]*entry:\s*FreeAgentSurfaceEntry;/
+    );
+    expect(freeAgentPoolTypesContent).toMatch(
+      /export\s+interface\s+FreeAgentCardProps\s*\{[\s\S]*entry:\s*FreeAgentSurfaceEntry;/
+    );
+    expect(freeAgentRowContent).toMatch(
+      /const\s+\{\s*surfacePlayer:\s*player,\s*freeAgent\s*\}\s*=\s*entry/
+    );
+    expect(freeAgentRowContent).toMatch(
+      /openMenuSelectionKey\s*===\s*entry\.selectionKey/
+    );
+    expect(selectedFreeAgentCardsContent).toMatch(
+      /selectedEntries:\s*FreeAgentSurfaceEntry\[\];/
+    );
+    expect(freeAgentCardContent).toMatch(
+      /const\s+\{\s*surfacePlayer:\s*player\s*\}\s*=\s*entry/
+    );
+    expect(freeAgentCardContent).toMatch(/onRemove\(entry\.selectionKey\)/);
   });
 
   it('keeps row and selected-card entry surfaces free of modal ownership', () => {

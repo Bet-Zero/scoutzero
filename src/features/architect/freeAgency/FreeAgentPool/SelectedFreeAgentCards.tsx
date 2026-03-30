@@ -5,27 +5,27 @@
  */
 import React from 'react';
 import FreeAgentCard from './FreeAgentCard';
-import type { FreeAgentListItem } from './types';
+import type { FreeAgentSurfaceEntry } from './types';
 
 interface SelectedFreeAgentCardsProps {
-  selectedPlayers: FreeAgentListItem[];
-  onOpenContractModal: (player: FreeAgentListItem) => void;
-  onRemove: (player: FreeAgentListItem) => void;
+  selectedEntries: FreeAgentSurfaceEntry[];
+  onOpenContractModal: (entry: FreeAgentSurfaceEntry) => void;
+  onRemove: (selectionKey: string) => void;
 }
 
 export const SelectedFreeAgentCards = ({
-  selectedPlayers,
+  selectedEntries,
   onOpenContractModal,
   onRemove,
 }: SelectedFreeAgentCardsProps) => {
-  if (selectedPlayers.length === 0) return null;
+  if (selectedEntries.length === 0) return null;
 
   return (
     <div className="bg-[#1a1a1a] p-4 rounded border border-white/10 mb-3 flex flex-wrap gap-4">
-      {selectedPlayers.map((player) => (
+      {selectedEntries.map((entry) => (
         <FreeAgentCard
-          key={player.name}
-          player={player}
+          key={entry.selectionKey}
+          entry={entry}
           onOpenContractModal={onOpenContractModal}
           onRemove={onRemove}
         />
