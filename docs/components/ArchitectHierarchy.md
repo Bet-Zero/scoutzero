@@ -234,6 +234,7 @@ utils/
     historyHelpers.ts
   exceptions/
     exceptionLifecycle.ts
+    exceptionOwnership.ts
     index.ts
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.ts
@@ -364,5 +365,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-03-28T04:27:26.754Z*
+*Generated on: 2026-03-30T12:52:47.651Z*
 *Auto-updated by: npm run docs*

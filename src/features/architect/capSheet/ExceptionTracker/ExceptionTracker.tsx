@@ -14,15 +14,13 @@
  */
 import React from 'react';
 import { BadgeAlert, ShieldAlert } from 'lucide-react';
-import {
-  getCapSettingsForYear,
-  getExceptionDefaultAmountFromCapSettings,
-} from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import {
   getHardCapStatus,
   HARD_CAP_TYPES,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { getCanonicalExceptionAvailability } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 
 type UnknownRecord = Record<string, unknown>;
@@ -30,156 +28,15 @@ type TeamCapSheetLike = NonNullable<Parameters<typeof canUseRoomException>[0]> &
   NonNullable<Parameters<typeof getHardCapStatus>[0]> & {
     exceptions?: (UnknownRecord & { tpe?: unknown }) | null;
   };
-type ExceptionTrackerKey = 'mle' | 'tpmle' | 'bae' | 'room';
-type ExceptionReadConfig = {
-  canonicalKey: ExceptionTrackerKey;
-  legacyKey: string;
-  defaultAmountKey: ExceptionTrackerKey;
-};
-type ResolvedExceptionTrackerEntry = {
-  source: 'canonical' | 'compatibility' | 'default';
-  entry: UnknownRecord;
-};
-type NormalizedExceptionLike = {
-  enabled: boolean;
-  totalAmount: number;
-  usedAmount: number;
-  remainingAmount: number;
-};
 type TeamTpeLike = ReturnType<typeof getTeamTpeList>[number];
 
+const formatSeasonLabel = (endYear: number) =>
+  `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
 type ExceptionTrackerProps = {
   teamCapSheet: TeamCapSheetLike;
   currentYear: number;
   selectedYear?: number | null;
 };
-
-const toNonNegativeNumber = (value: unknown, fallback = 0): number => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.max(0, parsed);
-};
-
-const formatSeasonLabel = (endYear: number) =>
-  `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
-
-const EXCEPTION_TRACKER_READ_CONFIG: Record<
-  ExceptionTrackerKey,
-  ExceptionReadConfig
-> = {
-  mle: {
-    canonicalKey: 'mle',
-    legacyKey: 'mle',
-    defaultAmountKey: 'mle',
-  },
-  tpmle: {
-    canonicalKey: 'tpmle',
-    legacyKey: 'tpMle',
-    defaultAmountKey: 'tpmle',
-  },
-  bae: {
-    canonicalKey: 'bae',
-    legacyKey: 'bae',
-    defaultAmountKey: 'bae',
-  },
-  room: {
-    canonicalKey: 'room',
-    legacyKey: 'room',
-    defaultAmountKey: 'room',
-  },
-};
-
-const isExceptionEntry = (value: unknown): value is UnknownRecord =>
-  !!value && typeof value === 'object' && !Array.isArray(value);
-
-const getCanonicalExceptionEntry = (
-  teamCapSheet: TeamCapSheetLike,
-  canonicalKey: string
-): UnknownRecord | null => {
-  const canonicalEntry = teamCapSheet?.exceptions?.[canonicalKey];
-  return isExceptionEntry(canonicalEntry) ? canonicalEntry : null;
-};
-
-const getCompatibilityExceptionEntry = (
-  teamCapSheet: TeamCapSheetLike,
-  legacyKey: string
-): UnknownRecord | null => {
-  const legacyEntry = (teamCapSheet as Record<string, unknown>)?.[legacyKey];
-  return isExceptionEntry(legacyEntry) ? legacyEntry : null;
-};
-
-const resolveExceptionTrackerEntry = (
-  teamCapSheet: TeamCapSheetLike,
-  config: ExceptionReadConfig
-): ResolvedExceptionTrackerEntry => {
-  const canonicalEntry = getCanonicalExceptionEntry(
-    teamCapSheet,
-    config.canonicalKey
-  );
-  if (canonicalEntry) {
-    return {
-      source: 'canonical',
-      entry: canonicalEntry,
-    };
-  }
-
-  const compatibilityEntry = getCompatibilityExceptionEntry(
-    teamCapSheet,
-    config.legacyKey
-  );
-  if (compatibilityEntry) {
-    return {
-      source: 'compatibility',
-      entry: compatibilityEntry,
-    };
-  }
-
-  return {
-    source: 'default',
-    entry: {},
-  };
-};
-
-const normalizeResolvedExceptionForTracker = (
-  resolvedEntry: ResolvedExceptionTrackerEntry,
-  defaultTotalAmount: unknown
-): NormalizedExceptionLike => {
-  const sourceEntry = resolvedEntry.entry;
-
-  const totalAmount = toNonNegativeNumber(
-    sourceEntry.totalAmount ?? sourceEntry.amount,
-    toNonNegativeNumber(defaultTotalAmount, 0)
-  );
-  const usedAmount = toNonNegativeNumber(
-    sourceEntry.usedAmount ?? sourceEntry.used,
-    0
-  );
-
-  const remainingFromEntry = sourceEntry.remaining ?? sourceEntry.remainingAmount;
-  const hasRemainingFromEntry =
-    remainingFromEntry !== undefined && remainingFromEntry !== null;
-  const computedRemaining = Math.max(0, totalAmount - usedAmount);
-  const remainingAmount = hasRemainingFromEntry
-    ? toNonNegativeNumber(remainingFromEntry, computedRemaining)
-    : computedRemaining;
-
-  return {
-    enabled: resolvedEntry.source === 'canonical' ? sourceEntry.enabled !== false : true,
-    totalAmount,
-    usedAmount,
-    remainingAmount,
-  };
-};
-
-const getExceptionStateForTracker = (
-  teamCapSheet: TeamCapSheetLike,
-  config: ExceptionReadConfig,
-  defaultTotalAmount: unknown
-): NormalizedExceptionLike =>
-  normalizeResolvedExceptionForTracker(
-    resolveExceptionTrackerEntry(teamCapSheet, config),
-    defaultTotalAmount
-  );
 
 type ExceptionCardProps = {
   label: string;
@@ -365,38 +222,10 @@ const ExceptionTracker = ({
     return canUseRoomException(teamCapSheet, currentYear);
   }, [teamCapSheet, currentYear]);
 
-  const mleException = getExceptionStateForTracker(
-    teamCapSheet,
-    EXCEPTION_TRACKER_READ_CONFIG.mle,
-    getExceptionDefaultAmountFromCapSettings(
-      EXCEPTION_TRACKER_READ_CONFIG.mle.defaultAmountKey,
-      capData
-    )
-  );
-  const tpMleException = getExceptionStateForTracker(
-    teamCapSheet,
-    EXCEPTION_TRACKER_READ_CONFIG.tpmle,
-    getExceptionDefaultAmountFromCapSettings(
-      EXCEPTION_TRACKER_READ_CONFIG.tpmle.defaultAmountKey,
-      capData
-    )
-  );
-  const baeException = getExceptionStateForTracker(
-    teamCapSheet,
-    EXCEPTION_TRACKER_READ_CONFIG.bae,
-    getExceptionDefaultAmountFromCapSettings(
-      EXCEPTION_TRACKER_READ_CONFIG.bae.defaultAmountKey,
-      capData
-    )
-  );
-  const roomException = getExceptionStateForTracker(
-    teamCapSheet,
-    EXCEPTION_TRACKER_READ_CONFIG.room,
-    getExceptionDefaultAmountFromCapSettings(
-      EXCEPTION_TRACKER_READ_CONFIG.room.defaultAmountKey,
-      capData
-    )
-  );
+  const mleException = getCanonicalExceptionAvailability(teamCapSheet, 'mle');
+  const tpMleException = getCanonicalExceptionAvailability(teamCapSheet, 'tpmle');
+  const baeException = getCanonicalExceptionAvailability(teamCapSheet, 'bae');
+  const roomException = getCanonicalExceptionAvailability(teamCapSheet, 'room');
 
   // --- Logic for Availability & Hard Cap ---
 

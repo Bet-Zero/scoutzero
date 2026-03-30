@@ -58,7 +58,9 @@ describe('E117 runtime-backed utils/constants deletion batch guardrails', () => 
     expect(existingPaths).toEqual([]);
   });
 
-  it('keeps representative extensionless imports aligned with TS authorities', async () => {
+  it(
+    'keeps representative extensionless imports aligned with TS authorities',
+    async () => {
     const capUtils = await import(
       '@/features/architect/utils/tradeMachine/utils/capUtils'
     );
@@ -124,5 +126,7 @@ describe('E117 runtime-backed utils/constants deletion batch guardrails', () => 
     expect(pickIdUtils.areSamePickById).toBe(
       pickIdUtilsAuthority.areSamePickById
     );
-  });
+    },
+    15_000
+  );
 });

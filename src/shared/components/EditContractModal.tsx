@@ -40,6 +40,7 @@ import {
 import useCapValidation, {
   buildSigningGuardrails,
 } from '@/features/architect/hooks/useCapValidation';
+import { validateExceptionEligibility } from '@/features/architect/utils/capLegalityValidation';
 import type {
   ArchitectMutationResult,
   SignAndTradePreflightResult,
@@ -48,6 +49,10 @@ import type {
 import type { PlayerRulesProfileLeagueContext } from '@/features/architect/types';
 import ValidationWarnings from '@/features/architect/shared/ValidationWarnings';
 import TeamSelectDropdown from '@/shared/components/TeamSelectDropdown';
+import {
+  getCanonicalExceptionAvailability,
+  getCanonicalExceptionKeyForSigningMechanism,
+} from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
 type UseCapValidationParams = Parameters<typeof useCapValidation>[0];
@@ -343,6 +348,11 @@ type ValidationStateLike = {
 type NormalizedContractActionResult = {
   success: boolean;
   message: string;
+};
+
+type SigningExceptionOption = {
+  value: string;
+  label: string;
 };
 
 const DEFAULT_VALIDATION_STATE: ValidationStateLike = {
@@ -727,6 +737,14 @@ const ACTION_TEST_IDS: Partial<Record<ContractActionKey, string>> = {
 const CONTRACT_ACTION_KEYS = Object.freeze(
   Object.keys(ACTION_LABELS)
 ) as readonly ContractActionKey[];
+const SIGNING_EXCEPTION_OPTIONS: readonly SigningExceptionOption[] = [
+  { value: 'None', label: 'Cap Space / Rights' },
+  { value: 'Full MLE', label: 'Full MLE' },
+  { value: 'Taxpayer MLE', label: 'Taxpayer MLE' },
+  { value: 'Room MLE', label: 'Room MLE' },
+  { value: 'BAE', label: 'Bi-Annual' },
+  { value: 'Minimum', label: 'Minimum' },
+] as const;
 
 const isContractActionKey = (value: string): value is ContractActionKey =>
   CONTRACT_ACTION_KEYS.includes(value as ContractActionKey);
@@ -835,11 +853,59 @@ const EditContractModal = ({
       selectedException
     );
   }, [isSigningAction, playerRulesProfile, capSettings, selectedException]);
+  const availableSigningExceptions = useMemo<SigningExceptionOption[]>(() => {
+    return SIGNING_EXCEPTION_OPTIONS.filter((option) => {
+      if (option.value === 'None' || option.value === 'Minimum') {
+        return true;
+      }
+
+      if (!teamCapSheet) {
+        return false;
+      }
+
+      const exceptionKey = getCanonicalExceptionKeyForSigningMechanism(
+        option.value
+      );
+      if (!exceptionKey) {
+        return false;
+      }
+
+      const availability = getCanonicalExceptionAvailability(
+        teamCapSheet,
+        exceptionKey
+      );
+      if (!availability.present || !availability.enabled || !availability.usable) {
+        return false;
+      }
+
+      return !validateExceptionEligibility({
+        team: teamCapSheet as Parameters<typeof validateExceptionEligibility>[0]['team'],
+        signedUsing: option.value,
+        year: ACTION_YEAR,
+      }).blocked;
+    });
+  }, [ACTION_YEAR, teamCapSheet]);
 
   const contractYears = useMemo<ContractYearLike[]>(
     () => getContractYearsForDisplay(player),
     [player]
   );
+
+  useEffect(() => {
+    if (!isSigningAction) {
+      return;
+    }
+
+    if (
+      availableSigningExceptions.some(
+        (option) => option.value === selectedException
+      )
+    ) {
+      return;
+    }
+
+    setSelectedException('None');
+  }, [availableSigningExceptions, isSigningAction, selectedException]);
 
   const remainingGuaranteedForBuyout = useMemo(() => {
     const salaries = player?.contract?.salariesByYear || [];
@@ -2014,12 +2080,11 @@ const EditContractModal = ({
                       onChange={(e) => setSelectedException(e.target.value)}
                       className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
                     >
-                      <option value="None">Cap Space / Rights</option>
-                      <option value="Full MLE">Full MLE</option>
-                      <option value="Taxpayer MLE">Taxpayer MLE</option>
-                      <option value="Room MLE">Room MLE</option>
-                      <option value="BAE">Bi-Annual</option>
-                      <option value="Minimum">Minimum</option>
+                      {availableSigningExceptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   )}
 

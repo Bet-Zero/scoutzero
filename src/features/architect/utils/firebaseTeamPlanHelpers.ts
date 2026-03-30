@@ -31,6 +31,10 @@ import {
   TeamSlugToCode,
   TeamCodeMap,
 } from '@/constants/teamList';
+import {
+  buildDerivedExceptionCompatibilityAliases,
+  normalizeCanonicalTeamExceptions,
+} from '@/features/architect/utils/exceptions/exceptionOwnership';
 import type { TeamTotals } from '@/features/architect/types';
 
 type UnknownRecord = Record<string, unknown>;
@@ -56,10 +60,17 @@ interface LooseTradeException extends LooseExceptionValue {
 
 interface LooseExceptionData extends UnknownRecord {
   mle?: LooseExceptionValue | null;
+  tpmle?: LooseExceptionValue | null;
   taxpayerMle?: LooseExceptionValue | null;
   tpMle?: LooseExceptionValue | null;
+  nonTaxpayerMle?: LooseExceptionValue | null;
+  fullMLE?: LooseExceptionValue | null;
   bae?: LooseExceptionValue | null;
+  biAnnual?: LooseExceptionValue | null;
   room?: LooseExceptionValue | null;
+  roomMLE?: LooseExceptionValue | null;
+  roommle?: LooseExceptionValue | null;
+  rmle?: LooseExceptionValue | null;
   dpe?: LooseExceptionValue | null;
   tpe?: LooseTradeException[] | null;
 }
@@ -311,7 +322,12 @@ export const hydrateBaseTeam = async (
       };
     });
 
-  const exceptionData: LooseExceptionData = baseDoc.exceptions || {};
+  const exceptionData = normalizeCanonicalTeamExceptions(
+    baseDoc as Record<string, unknown>
+  ) as LooseExceptionData;
+  const derivedExceptionAliases = buildDerivedExceptionCompatibilityAliases({
+    exceptions: exceptionData,
+  });
   const tradeExceptions: HydratedBaseTeamTradeException[] =
     exceptionData.tpe?.map((tpe) => ({
       id: tpe.id,
@@ -321,17 +337,6 @@ export const hydrateBaseTeam = async (
       createdFrom: tpe.createdFrom ?? null,
       expires: tpe.expiresOn ?? tpe.expires ?? null,
     })) || [];
-
-  const toSimpleException = (
-    value?: LooseExceptionValue | null
-  ): HydratedBaseTeamSimpleException | null =>
-    value
-      ? {
-          amount: value.totalAmount ?? 0,
-          used: value.usedAmount ?? 0,
-          remaining: value.remainingAmount ?? value.totalAmount ?? 0,
-        }
-      : null;
 
   const teamMeta = TeamCodeMap[teamCode] || null;
   const hardCapLevel =
@@ -375,9 +380,9 @@ export const hydrateBaseTeam = async (
     offerSheets: baseDoc.offerSheets || [],
     incomingOfferSheets: baseDoc.incomingOfferSheets || [],
     exceptions: exceptionData,
-    mle: toSimpleException(exceptionData.mle),
-    tpMle: toSimpleException(exceptionData.taxpayerMle || exceptionData.tpMle),
-    bae: toSimpleException(exceptionData.bae),
+    mle: derivedExceptionAliases.mle ?? null,
+    tpMle: derivedExceptionAliases.tpMle ?? null,
+    bae: derivedExceptionAliases.bae ?? null,
     tradeExceptions,
     hardCapLevel,
     hardCapReason,

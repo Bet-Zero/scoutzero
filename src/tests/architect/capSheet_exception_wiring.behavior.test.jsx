@@ -132,7 +132,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
   });
 
-  it('shares the same normalized season defaults across tracker and modal surfaces', () => {
+  it('keeps missing exception ownership unavailable in tracker while the modal seeds canonical season defaults for editing', () => {
     vi.mocked(getCapSettingsForYear).mockReturnValue(
       hoistedMocks.buildCapSettings({
         fullMLE: 11_111_111,
@@ -161,10 +161,21 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     const trackerSection = screen.getByLabelText(
       'Cap sheet adjacent exception presentation surface'
     );
-    expect(within(trackerSection).getByText('$11,111,111')).toBeInTheDocument();
-    expect(within(trackerSection).getByText('$2,222,222')).toBeInTheDocument();
-    expect(within(trackerSection).getByText('$3,333,333')).toBeInTheDocument();
-    expect(within(trackerSection).getByText('$4,444,444')).toBeInTheDocument();
+    const ntMleCard = within(trackerSection)
+      .getByText('NT-MLE')
+      .closest('div.relative');
+    const tpMleCard = within(trackerSection)
+      .getByText('TP-MLE')
+      .closest('div.relative');
+
+    expect(ntMleCard).not.toBeNull();
+    expect(tpMleCard).not.toBeNull();
+    expect(within(ntMleCard).getByText('$0')).toBeInTheDocument();
+    expect(within(ntMleCard).getByText('N/A')).toBeInTheDocument();
+    expect(within(tpMleCard).getByText('$0')).toBeInTheDocument();
+    expect(within(tpMleCard).getByText('N/A')).toBeInTheDocument();
+    expect(within(trackerSection).queryByText('$11,111,111')).not.toBeInTheDocument();
+    expect(within(trackerSection).queryByText('$2,222,222')).not.toBeInTheDocument();
 
     const table = screen.getByRole('table');
     const findExceptionRow = (label) =>
@@ -231,15 +242,18 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     };
 
     render(<ExceptionSaveHarness />);
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
 
-    expect(screen.getByText('$9,765,432')).toBeInTheDocument();
+    expect(within(trackerSection).getByText('$9,765,432')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
 
     await waitFor(() => {
-      expect(screen.queryByText('$9,765,432')).not.toBeInTheDocument();
+      expect(within(trackerSection).queryByText('$9,765,432')).not.toBeInTheDocument();
     });
-    expect(screen.getAllByText('$8,641,976').length).toBeGreaterThan(0);
+    expect(within(trackerSection).getByText('$8,641,976')).toBeInTheDocument();
   });
 
   it('prefers canonical exception entries over conflicting legacy top-level fallback entries', () => {
@@ -272,6 +286,55 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(tpMleCard).not.toBeNull();
     expect(within(tpMleCard).getByText('$4,000,000')).toBeInTheDocument();
     expect(within(tpMleCard).queryByText('$99,000,000')).not.toBeInTheDocument();
+  });
+
+  it('normalizes legacy top-level tpMle ownership into the canonical TPMLE row across tracker and modal', () => {
+    render(
+      <>
+        <ExceptionTracker
+          teamCapSheet={{
+            tpMle: {
+              amount: 5_000_000,
+              used: 1_000_000,
+              remaining: 4_000_000,
+            },
+          }}
+          currentYear={2026}
+        />
+        <ManageExceptionsModal
+          isOpen
+          onClose={() => {}}
+          onSave={vi.fn()}
+          currentYear={2026}
+          teamCapSheet={{
+            tpMle: {
+              amount: 5_000_000,
+              used: 1_000_000,
+              remaining: 4_000_000,
+            },
+          }}
+        />
+      </>
+    );
+
+    const trackerSection = screen.getByLabelText(
+      'Cap sheet adjacent exception presentation surface'
+    );
+    const tpMleCard = within(trackerSection)
+      .getByText('TP-MLE')
+      .closest('div.relative');
+    expect(tpMleCard).not.toBeNull();
+    expect(within(tpMleCard).getByText('$4,000,000')).toBeInTheDocument();
+    expect(within(tpMleCard).queryByText('N/A')).not.toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    const taxpayerRow = within(table)
+      .getAllByRole('row')
+      .find((row) => within(row).queryByText('Taxpayer MLE'));
+    expect(taxpayerRow).toBeDefined();
+    expect(within(taxpayerRow).getByDisplayValue('5000000')).toBeInTheDocument();
+    expect(within(taxpayerRow).getByDisplayValue('1000000')).toBeInTheDocument();
+    expect(within(taxpayerRow).getByRole('checkbox')).toBeChecked();
   });
 
   it('renders legacy-only top-level exception data when canonical exception entry is absent', () => {

@@ -360,6 +360,21 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
     expect(hydratedTeam.baseline).toBe(baseDoc);
     expect(hydratedTeam.hardCapLevel).toBe('firstApron');
     expect(hydratedTeam.hardCapped).toBe(true);
+    expect(hydratedTeam.exceptions).toEqual(
+      expect.objectContaining({
+        mle: expect.objectContaining({
+          remainingAmount: 9_800_000,
+        }),
+        tpmle: expect.objectContaining({
+          remainingAmount: 4_200_000,
+        }),
+        bae: expect.objectContaining({
+          remainingAmount: 4_700_000,
+        }),
+      })
+    );
+    expect(hydratedTeam.exceptions.taxpayerMle).toBeUndefined();
+    expect(hydratedTeam.exceptions.tpMle).toBeUndefined();
     expect(hydratedTeam.players.map((player: { id: string }) => player.id)).toEqual([
       'alpha',
       'missing',

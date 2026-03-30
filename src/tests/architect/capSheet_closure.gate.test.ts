@@ -318,31 +318,22 @@ describe('Gate 4: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
   const content = readFileContent(EXCEPTION_TRACKER_PATH);
 
   it('reads from teamCapSheet.exceptions (canonical) for MLE/TPMLE/BAE/ROOM', () => {
-    const readsCanonicalExceptions =
-      /teamCapSheet\s*\?\s*\.\s*exceptions\s*\?\s*\.\s*\[/.test(content);
-    expect(readsCanonicalExceptions).toBe(true);
+    expect(content).toContain('getCanonicalExceptionAvailability');
   });
 
-  it('keeps canonical, compatibility, and default exception stages as separate helpers', () => {
-    expect(content).toContain('getCanonicalExceptionEntry');
-    expect(content).toContain('getCompatibilityExceptionEntry');
-    expect(content).toContain('resolveExceptionTrackerEntry');
-    expect(content).toContain('normalizeResolvedExceptionForTracker');
-    expect(content).not.toContain('normalizeExceptionForTracker');
+  it('routes tracker exception reads through the shared canonical ownership helper instead of tracker-local fallback stages', () => {
+    expect(content).toContain("getCanonicalExceptionAvailability(teamCapSheet, 'mle')");
+    expect(content).toContain("getCanonicalExceptionAvailability(teamCapSheet, 'tpmle')");
+    expect(content).toContain("getCanonicalExceptionAvailability(teamCapSheet, 'bae')");
+    expect(content).toContain("getCanonicalExceptionAvailability(teamCapSheet, 'room')");
+    expect(content).not.toContain('resolveExceptionTrackerEntry');
+    expect(content).not.toContain('normalizeResolvedExceptionForTracker');
   });
 
-  it('keeps legacy fallback as a compatibility-only top-level read helper', () => {
-    const hasLegacyFallback =
-      /const\s+legacyEntry\s*=\s*\(\s*teamCapSheet\s+as\s+Record<string,\s*unknown>\s*\)\s*\?\s*\.\s*\[\s*legacyKey/.test(
-        content
-      );
-    expect(hasLegacyFallback).toBe(true);
-  });
-
-  it('resolves exception tracker sources explicitly before numeric normalization', () => {
-    expect(content).toContain("source: 'canonical'");
-    expect(content).toContain("source: 'compatibility'");
-    expect(content).toContain("source: 'default'");
+  it('does not keep tracker-local compatibility ownership readers after the shared helper migration', () => {
+    expect(content).not.toContain('getCompatibilityExceptionEntry');
+    expect(content).not.toContain('getCanonicalExceptionEntry =');
+    expect(content).not.toContain("source: 'default'");
   });
 
   it('uses getTeamTpeList(teamCapSheet) for TPE presentation reads', () => {
@@ -355,12 +346,8 @@ describe('Gate 4: ExceptionTracker Canonical Exceptions Read-First (E1)', () => 
     expect(content).not.toMatch(/teamCapSheet\s*\??\.\s*tradeExceptions/);
   });
 
-  it('uses the shared normalized exception default helper from capSettingsProvider', () => {
-    expect(content).toContain('getExceptionDefaultAmountFromCapSettings');
-
-    const helperCallCount =
-      content.match(/getExceptionDefaultAmountFromCapSettings\s*\(/g)?.length || 0;
-    expect(helperCallCount).toBeGreaterThanOrEqual(4);
+  it('does not advertise default exception amounts when canonical ownership is missing', () => {
+    expect(content).not.toContain('getExceptionDefaultAmountFromCapSettings');
   });
 
   it('consumes canUseRoomException for room availability without importing computeTeamCapTotals directly', () => {

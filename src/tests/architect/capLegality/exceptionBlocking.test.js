@@ -35,11 +35,16 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
    * Creates a mock team with the specified cap hit.
    */
   function createTeamWithCapHit(capHit, options = {}) {
-    const { isHardCapped = false, hardCapLevel = null } = options;
+    const {
+      isHardCapped = false,
+      hardCapLevel = null,
+      exceptions = {},
+    } = options;
     return {
       teamCode: 'TST',
       players: [],
       capHolds: [],
+      exceptions,
       totals: {
         capHit,
         totalSalary: capHit,
@@ -57,6 +62,16 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
     return {
       contractType: 'Standard',
       salariesByYear: [{ season: '2024-25', salary }],
+    };
+  }
+
+  function createEnabledException(amount = 20_000_000) {
+    return {
+      enabled: true,
+      available: true,
+      amount,
+      maxAmount: amount,
+      remainingAmount: amount,
     };
   }
 
@@ -162,7 +177,11 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
 
     it('Case G: Team above first apron CAN use Taxpayer MLE (not blocked)', () => {
       // Team is between first and second apron
-      const team = createTeamWithCapHit(FIRST_APRON + 1_000_000);
+      const team = createTeamWithCapHit(FIRST_APRON + 1_000_000, {
+        exceptions: {
+          tpmle: createEnabledException(),
+        },
+      });
       const result = validateSigning({
         team,
         player: { player_id: 'p1' },
@@ -197,7 +216,11 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
 
   describe('Allowed Exception Usage', () => {
     it('Case I: Team below first apron CAN use MLE (no block)', () => {
-      const team = createTeamWithCapHit(FIRST_APRON - 5_000_000);
+      const team = createTeamWithCapHit(FIRST_APRON - 5_000_000, {
+        exceptions: {
+          mle: createEnabledException(),
+        },
+      });
       const result = validateSigning({
         team,
         player: { player_id: 'p1' },
@@ -211,7 +234,11 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
     });
 
     it('Case J: Team below first apron CAN use BAE (no block)', () => {
-      const team = createTeamWithCapHit(FIRST_APRON - 10_000_000);
+      const team = createTeamWithCapHit(FIRST_APRON - 10_000_000, {
+        exceptions: {
+          bae: createEnabledException(),
+        },
+      });
       const result = validateSigning({
         team,
         player: { player_id: 'p1' },
@@ -268,7 +295,11 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
     }
 
     it('blocks BAE when the signing itself would create and exceed the first-apron hard cap', () => {
-      const team = createTeamWithCapHit(FIRST_APRON - 1_500_000);
+      const team = createTeamWithCapHit(FIRST_APRON - 1_500_000, {
+        exceptions: {
+          bae: createEnabledException(),
+        },
+      });
       const result = validateSigning({
         team,
         player: { player_id: 'p1', yearsOfService: 0, bio: { experience: 0 } },
@@ -283,7 +314,11 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
     });
 
     it('blocks Full MLE when the signing itself would create and exceed the first-apron hard cap', () => {
-      const team = createTeamWithCapHit(FIRST_APRON - 1_500_000);
+      const team = createTeamWithCapHit(FIRST_APRON - 1_500_000, {
+        exceptions: {
+          mle: createEnabledException(),
+        },
+      });
       const result = validateSigning({
         team,
         player: { player_id: 'p1', yearsOfService: 0, bio: { experience: 0 } },

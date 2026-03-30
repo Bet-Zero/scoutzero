@@ -18,6 +18,7 @@ import {
   getExceptionDefaultAmountFromCapSettings,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { getCanonicalExceptionEntry } from '@/features/architect/utils/exceptions/exceptionOwnership';
 
 /**
  * Exception types supported for manual management.
@@ -43,7 +44,7 @@ type EditableException = {
   notes: string;
 };
 type ExceptionsState = Partial<Record<ExceptionType, EditableException>>;
-type TeamCapSheetLike = {
+type TeamCapSheetLike = Record<string, unknown> & {
   exceptions?: Record<string, unknown> | null;
 };
 type ManualExceptionEntry = {
@@ -139,22 +140,18 @@ const ManageExceptionsModal = ({
     if (isOpen && teamCapSheet) {
       setSaveError('');
       setIsSaving(false);
-      const existingExceptions = teamCapSheet.exceptions || {};
-
       // Build initial state for each exception type
       const initialState: ExceptionsState = {};
       EXCEPTION_TYPES.forEach((type) => {
-        const existing = existingExceptions[type] as
-          | Partial<EditableException>
-          | undefined;
-        if (existing && typeof existing === 'object') {
+        const existing = getCanonicalExceptionEntry(teamCapSheet, type);
+        if (existing) {
           initialState[type] = {
-            enabled: existing.enabled ?? true,
+            enabled: existing.enabled,
             totalAmount:
               existing.totalAmount ??
               getExceptionDefaultAmountFromCapSettings(type, capSettings) ??
               0,
-            usedAmount: existing.usedAmount ?? 0,
+            usedAmount: existing.usedAmount,
             seasonKey: existing.seasonKey ?? seasonKey,
             notes: existing.notes ?? '',
           };

@@ -250,7 +250,13 @@ describe('Exception Management (setExceptions)', () => {
       expect(result.success).toBe(true);
       expect(result.teamUpdates).toHaveLength(1);
       expect(result.teamUpdates[0].team.exceptions.mle).toEqual(
-        newExceptions.mle
+        expect.objectContaining({
+          ...newExceptions.mle,
+          available: true,
+          maxAmount: 12500000,
+          amount: 12500000,
+          remainingAmount: 7500000,
+        })
       );
       expect(result.teamUpdates[0].team.exceptions.bae).toBeUndefined();
       expect(result.teamUpdates[0].team.exceptions.dpe).toEqual(
@@ -289,7 +295,15 @@ describe('Exception Management (setExceptions)', () => {
       expect(result.success).toBe(true);
       expect(result.teamUpdates).toHaveLength(1);
       expect(result.teamUpdates[0].teamCode).toBe('BOS');
-      expect(result.teamUpdates[0].team.exceptions).toEqual(newExceptions);
+      expect(result.teamUpdates[0].team.exceptions).toEqual({
+        mle: expect.objectContaining({
+          ...newExceptions.mle,
+          available: true,
+          maxAmount: 12500000,
+          amount: 12500000,
+          remainingAmount: 12500000,
+        }),
+      });
     });
 
     // Test 13: Empty object clears editable keys but preserves untouched buckets

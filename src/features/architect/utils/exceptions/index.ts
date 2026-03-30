@@ -17,3 +17,17 @@ export {
   validateNonTpeExceptionsForYear,
   NON_TPE_EXCEPTION_TYPES,
 } from './exceptionLifecycle';
+export {
+  CANONICAL_NON_TPE_EXCEPTION_KEYS,
+  buildDerivedExceptionCompatibilityAliases,
+  getCanonicalExceptionAvailability,
+  getCanonicalExceptionEntry,
+  getCanonicalExceptionKeyForSigningMechanism,
+  normalizeCanonicalTeamExceptions,
+  normalizeTeamExceptionOwnership,
+} from './exceptionOwnership';
+export type {
+  CanonicalNonTpeExceptionAvailability,
+  CanonicalNonTpeExceptionKey,
+  CanonicalNonTpeExceptionState,
+} from './exceptionOwnership';

@@ -295,6 +295,89 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(refreshWorldRosterIndex).toHaveBeenCalled();
   });
 
+  it('blocks exception-backed signing in vacuum mode when canonical exception validation fails', async () => {
+    validationMocks.validateSigning.mockReturnValue({
+      valid: false,
+      violations: [
+        {
+          message:
+            'Cannot use Full MLE - no canonical MLE owner exists for this team.',
+        },
+      ],
+      warnings: [],
+    });
+
+    const { result } = renderActionsHarness({
+      worldId: null,
+      initialTeam: {
+        ...baseTeamFixture,
+        exceptions: {},
+      },
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual(
+      expect.objectContaining({
+        success: false,
+      })
+    );
+    expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      expect.stringContaining('no canonical MLE owner exists')
+    );
+  });
+
+  it('surfaces authoritative world-mode mutation failure when TPMLE ownership is missing', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: false,
+      error:
+        'Cannot use TPMLE - canonical TPMLE owner is missing.',
+    });
+
+    const { result } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam: {
+        ...baseTeamFixture,
+        exceptions: {
+          mle: {
+            type: 'non-taxpayer',
+            usedAmount: 0,
+            remainingAmount: 12_900_000,
+          },
+        },
+      },
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        {
+          ...contractFixture,
+          totalValue: 5_000_000,
+          signedUsing: 'Taxpayer MLE',
+        } as any
+      );
+    });
+
+    expect(actionResult).toEqual(
+      expect.objectContaining({
+        success: false,
+      })
+    );
+    expect(toastMocks.success).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      expect.stringContaining('canonical TPMLE owner is missing')
+    );
+  });
+
   it('fails closed (no success toast) when world mutation reports missing persistence truth', async () => {
     mutationMocks.applyWorldMutation.mockResolvedValue({
       success: true,

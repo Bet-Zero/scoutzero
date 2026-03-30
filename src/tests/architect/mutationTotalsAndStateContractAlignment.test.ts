@@ -193,7 +193,7 @@ describe('mutation totals and state contract alignment', () => {
     expect(typeof updatedTeam?.totals?.salaryCap).toBe('number');
   });
 
-  it('loads dashboard state from real loaded totals data and live exception alias fields', async () => {
+  it('loads dashboard state from real loaded totals data and canonical exception ownership', async () => {
     stateMocks.loadWorldTeamData.mockResolvedValue({
       id: 'lal',
       teamCode: 'LAL',
@@ -213,7 +213,7 @@ describe('mutation totals and state contract alignment', () => {
       offerSheets: [],
       incomingOfferSheets: [],
       exceptions: {
-        taxpayerMle: {
+        tpmle: {
           totalAmount: 5_685_000,
           usedAmount: 1_000_000,
           remainingAmount: 4_685_000,
@@ -259,9 +259,9 @@ describe('mutation totals and state contract alignment', () => {
       'firstApron'
     );
     expect(result.current.teamCapSheet?.hardCapped).toBe(true);
-    expect(
-      result.current.teamCapSheet?.exceptions?.taxpayerMle?.remainingAmount
-    ).toBe(4_685_000);
+    expect(result.current.teamCapSheet?.exceptions?.tpmle?.remainingAmount).toBe(
+      4_685_000
+    );
     expect(result.current.teamCapSheet?.tpMle?.remaining).toBe(4_685_000);
   });
 

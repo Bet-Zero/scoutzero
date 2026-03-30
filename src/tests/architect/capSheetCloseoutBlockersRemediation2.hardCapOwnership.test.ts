@@ -14,7 +14,10 @@ import {
 } from '@/features/architect/utils/mutationPipeline';
 import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
-import { validateExceptionEligibility } from '@/features/architect/utils/capLegalityValidation';
+import {
+  validateExceptionEligibility,
+  validateSigning,
+} from '@/features/architect/utils/capLegalityValidation';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 
@@ -77,6 +80,20 @@ const BAE_TEAM_FIXTURE = {
       totalAmount: 5_135_000,
       usedAmount: 0,
       remainingAmount: 5_135_000,
+    },
+  },
+  totals: {},
+};
+
+const DISABLED_MLE_TEAM_FIXTURE = {
+  ...TEAM_FIXTURE,
+  exceptions: {
+    mle: {
+      type: 'non-taxpayer',
+      enabled: false,
+      totalAmount: 12_900_000,
+      usedAmount: 0,
+      remainingAmount: 12_900_000,
     },
   },
   totals: {},
@@ -148,7 +165,61 @@ const BAE_SIGNING_PAYLOAD: ArchitectMutationPayload = {
   },
 };
 
+const TPMLE_SIGNING_PAYLOAD: ArchitectMutationPayload = {
+  teamCode: 'LAL',
+  playerId: 'player_1',
+  signedUsing: 'Taxpayer MLE',
+  contract: {
+    contractType: 'Signed FA',
+    salariesByYear: [
+      {
+        season: '2025-26',
+        salary: 5_000_000,
+        capHit: 5_000_000,
+        guaranteed: true,
+      },
+    ],
+    totalValue: 5_000_000,
+  },
+};
+
 describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
+  it('blocks exception-backed validation when the canonical exception owner is disabled', () => {
+    const validationResult = validateSigning({
+      team: DISABLED_MLE_TEAM_FIXTURE,
+      player: PLAYER_FIXTURE,
+      contract: SIGNING_PAYLOAD.contract,
+      signedUsing: 'Full MLE',
+      year: 2026,
+    });
+
+    expect(validationResult.valid).toBe(false);
+    expect(
+      validationResult.violations.some((violation) =>
+        String(violation.message).includes('canonical MLE owner is disabled')
+      )
+    ).toBe(true);
+  });
+
+  it('blocks TPMLE signing when only the full MLE owner exists', () => {
+    const beforeTeam = synchronizeTeamTotalsSnapshot(TEAM_FIXTURE, 2026);
+    const result = computeWorldMutation({
+      mutationType: 'signFreeAgent',
+      payload: TPMLE_SIGNING_PAYLOAD,
+      currentState: {
+        team: beforeTeam,
+        player: PLAYER_FIXTURE,
+        teamCode: 'LAL',
+      },
+      seasonId: '2025-26',
+      timestamp: Date.parse('2026-03-29T12:01:00.000Z'),
+      worldId: 'world_closeout',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('canonical TPMLE owner is missing');
+  });
+
   it('keeps Full-MLE hard-cap truth aligned across compute, totals, validation, and display', () => {
     const beforeTeam = synchronizeTeamTotalsSnapshot(TEAM_FIXTURE, 2026);
     const result = computeWorldMutation({

@@ -12,6 +12,7 @@ import { getDoc, getDocs } from 'firebase/firestore';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { normalizeTeamExceptionOwnership } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import {
   baseTeamRef,
@@ -66,8 +67,12 @@ function deriveTeamTotalsYear(team: TeamLike | null | undefined): number | null 
 }
 
 function synchronizeLoadedTeam(team: TeamLike): TeamLike {
+  const normalizedTeam = normalizeTeamExceptionOwnership(team) as TeamLike;
   const year = deriveTeamTotalsYear(team);
-  return (synchronizeTeamTotalsSnapshot(team, year) as TeamLike) || team;
+  return (
+    (synchronizeTeamTotalsSnapshot(normalizedTeam, year) as TeamLike) ||
+    normalizedTeam
+  );
 }
 
 /**

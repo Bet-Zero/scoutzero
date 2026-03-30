@@ -69,6 +69,10 @@ import {
   normalizeTeamRef,
   normalizePlayerTeamRef,
 } from '@/features/architect/utils/contractNormalization';
+import {
+  getCanonicalExceptionAvailability,
+  getCanonicalExceptionKeyForSigningMechanism,
+} from '@/features/architect/utils/exceptions/exceptionOwnership';
 import type { BuildRuleContextInput } from '@/features/architect/utils/buildRuleContext';
 import {
   getCapHoldForPlayer,
@@ -1896,7 +1900,13 @@ function buildRuleContextTeamState(
       >[number] => Boolean(tradeException)
     );
 
-  const exceptions = team.exceptions;
+  const fullMleAvailability = getCanonicalExceptionAvailability(team, 'mle');
+  const taxpayerMleAvailability = getCanonicalExceptionAvailability(
+    team,
+    'tpmle'
+  );
+  const roomMleAvailability = getCanonicalExceptionAvailability(team, 'room');
+  const baeAvailability = getCanonicalExceptionAvailability(team, 'bae');
 
   return {
     teamId: typeof team.id === 'string' ? team.id : undefined,
@@ -1916,64 +1926,86 @@ function buildRuleContextTeamState(
       ),
     },
     exceptions: {
-      ...(exceptions?.mle
-        ? {
-            fullMLE: {
-              available: exceptions.mle.available !== false,
-              remaining: toFiniteNumber(
-                exceptions.mle.remainingAmount ??
-                  exceptions.mle.amount ??
-                  exceptions.mle.totalAmount,
-                0
-              ),
-            },
-          }
-        : {}),
-      ...(exceptions?.taxpayerMle || exceptions?.tpmle
-        ? {
-            taxpayerMLE: {
-              available:
-                (exceptions?.taxpayerMle || exceptions?.tpmle)?.available !==
-                false,
-              remaining: toFiniteNumber(
-                (exceptions?.taxpayerMle || exceptions?.tpmle)
-                  ?.remainingAmount ??
-                  (exceptions?.taxpayerMle || exceptions?.tpmle)?.amount ??
-                  (exceptions?.taxpayerMle || exceptions?.tpmle)?.totalAmount,
-                0
-              ),
-            },
-          }
-        : {}),
-      ...(exceptions?.room
-        ? {
-            roomMLE: {
-              available: exceptions.room.available !== false,
-              remaining: toFiniteNumber(
-                exceptions.room.remainingAmount ??
-                  exceptions.room.amount ??
-                  exceptions.room.totalAmount,
-                0
-              ),
-            },
-          }
-        : {}),
-      ...(exceptions?.bae
-        ? {
-            bae: {
-              available: exceptions.bae.available !== false,
-              remaining: toFiniteNumber(
-                exceptions.bae.remainingAmount ??
-                  exceptions.bae.amount ??
-                  exceptions.bae.totalAmount,
-                0
-              ),
-            },
-          }
-        : {}),
+      fullMLE: {
+        available: fullMleAvailability.usable,
+        remaining: fullMleAvailability.remainingAmount,
+      },
+      taxpayerMLE: {
+        available: taxpayerMleAvailability.usable,
+        remaining: taxpayerMleAvailability.remainingAmount,
+      },
+      roomMLE: {
+        available: roomMleAvailability.usable,
+        remaining: roomMleAvailability.remainingAmount,
+      },
+      bae: {
+        available: baeAvailability.usable,
+        remaining: baeAvailability.remainingAmount,
+      },
       ...(tradeExceptions.length > 0 ? { tradeExceptions } : {}),
     },
   };
+}
+
+function validateCanonicalSigningExceptionAvailability({
+  team,
+  contract,
+  signedUsing,
+}: {
+  team: MutationTeam;
+  contract: MutationContract | null | undefined;
+  signedUsing: string | null | undefined;
+}) {
+  const signingMechanism = resolveSigningMechanism(contract, signedUsing);
+  const exceptionKey =
+    getCanonicalExceptionKeyForSigningMechanism(signingMechanism);
+
+  if (!exceptionKey) {
+    return { blocked: false, reason: null, violation: null };
+  }
+
+  const availability = getCanonicalExceptionAvailability(team, exceptionKey);
+  const displayName = String(
+    signedUsing || contract?.exceptionType || signingMechanism
+  );
+
+  if (!availability.present) {
+    return {
+      blocked: true,
+      reason: `${displayName} is not present for this team`,
+      violation: {
+        rule: 'exception_blocked',
+        message: `Cannot use ${displayName} - no canonical ${exceptionKey.toUpperCase()} owner exists for this team.`,
+        severity: 'error',
+      },
+    };
+  }
+
+  if (!availability.enabled) {
+    return {
+      blocked: true,
+      reason: `${displayName} is disabled for this team`,
+      violation: {
+        rule: 'exception_blocked',
+        message: `Cannot use ${displayName} - the canonical ${exceptionKey.toUpperCase()} owner is disabled for this team.`,
+        severity: 'error',
+      },
+    };
+  }
+
+  if (!availability.usable) {
+    return {
+      blocked: true,
+      reason: `${displayName} has no remaining amount`,
+      violation: {
+        rule: 'exception_blocked',
+        message: `Cannot use ${displayName} - the canonical ${exceptionKey.toUpperCase()} owner has no remaining amount.`,
+        severity: 'error',
+      },
+    };
+  }
+
+  return { blocked: false, reason: null, violation: null };
 }
 
 function buildSigningRuleContextInput({
@@ -2915,7 +2947,17 @@ export function validateSigning({
     warnings.push(confidenceCheck.warning);
   }
 
-  // 0. CHECK EXCEPTION ELIGIBILITY (G0-2: Post-apron exception blocking)
+  // 0. CHECK CANONICAL EXCEPTION OWNER AVAILABILITY
+  const exceptionOwnerCheck = validateCanonicalSigningExceptionAvailability({
+    team,
+    contract,
+    signedUsing,
+  });
+  if (exceptionOwnerCheck.blocked && exceptionOwnerCheck.violation) {
+    violations.push(exceptionOwnerCheck.violation);
+  }
+
+  // 0.1. CHECK EXCEPTION ELIGIBILITY (G0-2: Post-apron exception blocking)
   // This is a HARD BLOCK - if an exception is blocked by apron status, the signing cannot proceed.
   const exceptionCheck = validateExceptionEligibility({
     team,

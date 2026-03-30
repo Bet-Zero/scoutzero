@@ -82,6 +82,11 @@ import {
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { appendExceptionHistory } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import { applyTradeExceptionLifecycle } from '@/features/architect/utils/tradeMachine/utils/tradeExceptionLifecycle';
+import {
+  getCanonicalExceptionAvailability,
+  getCanonicalExceptionKeyForSigningMechanism,
+  normalizeCanonicalTeamExceptions,
+} from '@/features/architect/utils/exceptions/exceptionOwnership';
 
 // Phase 72: SSOT for team cap totals computation
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
@@ -2026,11 +2031,15 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   const deadCap = normalizeObjectArray<ArchitectMutationDeadCapEntry>(
     teamRecord.deadCap
   );
+  const normalizedExceptions = normalizeCanonicalTeamExceptions(
+    teamRecord as Record<string, unknown>
+  );
   // Load-bearing broad bag: this file reads dynamic exception buckets during
   // signing logic and persists the object back out on team snapshot writes.
-  const exceptions = toOptionalObject<ArchitectMutationExceptions>(
-    teamRecord.exceptions
-  );
+  const exceptions =
+    Object.keys(normalizedExceptions).length > 0
+      ? (normalizedExceptions as ArchitectMutationExceptions)
+      : undefined;
   const cashLedger = toOptionalObject<ArchitectMutationCashLedger>(
     teamRecord.cashLedger
   );
@@ -5639,9 +5648,6 @@ function computeTradeResult({
   };
 }
 
-/**
- * Compute free agent signing result
- */
 function resolveSigningMechanismForPipeline(
   contract: ArchitectMutationContract | null | undefined,
   signedUsing: string | null | undefined
@@ -5650,6 +5656,7 @@ function resolveSigningMechanismForPipeline(
   if (!source) {
     return 'UNKNOWN';
   }
+
   const normalized = String(source)
     .toLowerCase()
     .replace(/[^a-z]/g, '');
@@ -5694,35 +5701,8 @@ function resolveSigningMechanismForPipeline(
   ) {
     return 'TEN_DAY';
   }
+
   return 'UNKNOWN';
-}
-
-function getExceptionCandidatesForMechanism(mechanism: string) {
-  switch (mechanism) {
-    case 'FULL_MLE':
-      return ['mle', 'nonTaxpayerMle', 'fullMLE'];
-    case 'TPMLE':
-      return ['tpmle', 'taxpayerMle', 'tpMle', 'miniMle', 'mle'];
-    case 'ROOM_MLE':
-      return ['room', 'roomMLE', 'roommle', 'rmle'];
-    case 'BAE':
-      return ['bae', 'biAnnual'];
-    default:
-      return [];
-  }
-}
-
-function resolveTeamExceptionKey(
-  teamExceptions: ArchitectMutationExceptions | null | undefined,
-  mechanism: string
-) {
-  const candidates = getExceptionCandidatesForMechanism(mechanism);
-  for (const candidate of candidates) {
-    if (teamExceptions?.[candidate] != null) {
-      return candidate;
-    }
-  }
-  return null;
 }
 
 function toFiniteAmount(value: unknown, fallback = 0) {
@@ -5733,6 +5713,30 @@ function toFiniteAmount(value: unknown, fallback = 0) {
 function toFiniteIntegerOrNull(value: unknown) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? Math.trunc(numeric) : null;
+}
+
+function sumContractValueFromRows(
+  contract:
+    | ArchitectMutationContract
+    | {
+        salariesByYear?: Array<{
+          salary?: number | string | null;
+          capHit?: number | string | null;
+        }> | null;
+      }
+    | null
+    | undefined
+) {
+  if (!Array.isArray(contract?.salariesByYear)) {
+    return 0;
+  }
+
+  return contract.salariesByYear.reduce(
+    (total, row) =>
+      total +
+      toFiniteAmount(row?.salary ?? row?.capHit, 0),
+    0
+  );
 }
 
 function toCapHoldComputationPlayer(
@@ -5808,53 +5812,63 @@ function consumeSigningExceptionUsage({
   // exceptionType === 'room'
   // updatedTeam.exceptions.room
   // updatedTeam.exceptions.room.usedAmount
-  if (!updatedTeam?.exceptions || contractValue <= 0) {
-    return null;
-  }
-
-  const exceptionKey = resolveTeamExceptionKey(
-    updatedTeam.exceptions,
-    mechanism
-  );
+  const exceptionKey = getCanonicalExceptionKeyForSigningMechanism(mechanism);
   if (!exceptionKey) {
-    return null;
+    return { consumedExceptionKey: null, error: null };
   }
 
-  const currentState = updatedTeam.exceptions?.[exceptionKey];
-  const normalizedState: ArchitectMutationExceptionEntry =
-    currentState && typeof currentState === 'object'
-      ? { ...(currentState as ArchitectMutationExceptionEntry) }
-      : {
-          enabled: true,
-          maxAmount: toFiniteAmount(currentState, 0),
-          totalAmount: toFiniteAmount(currentState, 0),
-          usedAmount: 0,
-          remainingAmount: toFiniteAmount(currentState, 0),
-        };
+  updatedTeam.exceptions = normalizeCanonicalTeamExceptions(
+    updatedTeam as Record<string, unknown>
+  ) as ArchitectMutationExceptions;
 
-  const maxAmount = toFiniteAmount(
-    normalizedState.maxAmount ??
-      normalizedState.totalAmount ??
-      normalizedState.amount,
-    toFiniteAmount(currentState, 0)
-  );
-  const usedAmount = toFiniteAmount(normalizedState.usedAmount, 0);
-  const remainingAmount =
-    normalizedState.remainingAmount != null
-      ? toFiniteAmount(normalizedState.remainingAmount, 0)
-      : Math.max(0, maxAmount - usedAmount);
+  const availability = getCanonicalExceptionAvailability(updatedTeam, exceptionKey);
+  if (!availability.present) {
+    return {
+      consumedExceptionKey: null,
+      error: `Cannot use ${mechanism} - canonical ${exceptionKey.toUpperCase()} owner is missing.`,
+    };
+  }
+  if (!availability.enabled) {
+    return {
+      consumedExceptionKey: null,
+      error: `Cannot use ${mechanism} - canonical ${exceptionKey.toUpperCase()} owner is disabled.`,
+    };
+  }
+  if (!availability.usable) {
+    return {
+      consumedExceptionKey: null,
+      error: `Cannot use ${mechanism} - canonical ${exceptionKey.toUpperCase()} owner has no remaining amount.`,
+    };
+  }
 
-  normalizedState.enabled = normalizedState.enabled !== false;
-  if (normalizedState.maxAmount == null && maxAmount > 0) {
-    normalizedState.maxAmount = maxAmount;
+  if (contractValue <= 0) {
+    return {
+      consumedExceptionKey: null,
+      error: `Cannot use ${mechanism} - signing contract value is missing or zero, so canonical exception usage cannot be consumed.`,
+    };
   }
-  if (normalizedState.totalAmount == null && maxAmount > 0) {
-    normalizedState.totalAmount = maxAmount;
-  }
-  normalizedState.usedAmount = usedAmount + contractValue;
+
+  const currentState = availability.entry;
+  const normalizedState: ArchitectMutationExceptionEntry = currentState
+    ? { ...(currentState as ArchitectMutationExceptionEntry) }
+    : {
+        enabled: true,
+        maxAmount: 0,
+        totalAmount: 0,
+        amount: 0,
+        usedAmount: 0,
+        remainingAmount: 0,
+      };
+
+  normalizedState.enabled = true;
+  normalizedState.available = true;
+  normalizedState.maxAmount = availability.totalAmount;
+  normalizedState.totalAmount = availability.totalAmount;
+  normalizedState.amount = availability.totalAmount;
+  normalizedState.usedAmount = availability.usedAmount + contractValue;
   normalizedState.remainingAmount = Math.max(
     0,
-    remainingAmount - contractValue
+    availability.remainingAmount - contractValue
   );
   normalizedState.lastUsedAt = new Date(timestamp).toISOString();
 
@@ -5862,7 +5876,10 @@ function consumeSigningExceptionUsage({
     ...updatedTeam.exceptions,
     [exceptionKey]: normalizedState,
   };
-  return exceptionKey;
+  return {
+    consumedExceptionKey: exceptionKey,
+    error: null,
+  };
 }
 
 function computeSigningResult({
@@ -5883,6 +5900,9 @@ function computeSigningResult({
   );
 
   const updatedTeam = { ...team };
+  updatedTeam.exceptions = normalizeCanonicalTeamExceptions(
+    updatedTeam as Record<string, unknown>
+  ) as ArchitectMutationExceptions;
 
   // Add player to roster if not already present
   const playerId = String(payload.playerId || player.player_id || player.id || '').trim();
@@ -5932,14 +5952,24 @@ function computeSigningResult({
   // Update exceptions if signing consumed one
   const contractValue = toFiniteAmount(
     contract?.totalValue,
-    toFiniteAmount(normalizedContract?.totalValue, 0)
+    toFiniteAmount(
+      normalizedContract?.totalValue,
+      sumContractValueFromRows(normalizedContract || contract)
+    )
   );
-  const consumedExceptionKey = consumeSigningExceptionUsage({
+  const exceptionConsumption = consumeSigningExceptionUsage({
     updatedTeam,
     mechanism: signingMechanism,
     contractValue,
     timestamp,
   });
+  if (exceptionConsumption.error) {
+    return {
+      success: false,
+      error: exceptionConsumption.error,
+    };
+  }
+  const consumedExceptionKey = exceptionConsumption.consumedExceptionKey;
 
   const signingHardCapTrigger =
     consumedExceptionKey && getSigningHardCapTriggerMetadata(signingMechanism);
@@ -6648,10 +6678,14 @@ function computeSetExceptionsResult({
 
   const updatedTeam = {
     ...team,
-    exceptions: mergeManualExceptionSnapshot(
-      (team?.exceptions as Record<string, unknown> | null | undefined) || null,
-      (payload.exceptions as Record<string, unknown> | null | undefined) || null
-    ),
+    exceptions: normalizeCanonicalTeamExceptions({
+      ...team,
+      exceptions: mergeManualExceptionSnapshot(
+        (team?.exceptions as Record<string, unknown> | null | undefined) || null,
+        (payload.exceptions as Record<string, unknown> | null | undefined) ||
+          null
+      ),
+    }) as ArchitectMutationExceptions,
   };
 
   // Update source metadata
