@@ -72,6 +72,29 @@ const contractFixture = {
   signedUsing: 'Full MLE',
 };
 
+const buildStagedScalarSigningFixture = (
+  overrides: Record<string, unknown> = {}
+) => ({
+  years: 2,
+  salaries: [12_000_000, 12_600_000],
+  startYear: 2026,
+  contractType: 'Staged Modal Contract',
+  exceptionType: 'Full MLE',
+  signedUsing: 'Full MLE',
+  contractYears: 1,
+  totalValue: 1,
+  firstYearGuaranteed: false,
+  salariesByYear: [
+    {
+      season: '1999-00',
+      salary: 1,
+      capHit: 1,
+      guaranteed: false,
+    },
+  ],
+  ...overrides,
+});
+
 const baseTeamFixture = {
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
@@ -311,6 +334,74 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(refreshWorldRosterIndex).toHaveBeenCalled();
   });
 
+  it('derives standard-sign mutation contract truth from staged scalar inputs before dispatch', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sign_scalar_1' },
+    });
+
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    await act(async () => {
+      await result.current.actions.handleSign(
+        playerFixture as any,
+        buildStagedScalarSigningFixture() as any
+      );
+    });
+
+    const worldMutationArgs =
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+    const dispatchedContract = worldMutationArgs?.payload?.contract;
+
+    expect(worldMutationArgs).toEqual(
+      expect.objectContaining({
+        mutationType: 'signFreeAgent',
+        worldId: 'world_1',
+        payload: expect.objectContaining({
+          signedUsing: 'Full MLE',
+        }),
+      })
+    );
+    expect(dispatchedContract).toEqual(
+      expect.objectContaining({
+        contractType: 'Staged Modal Contract',
+        signingTeam: 'LAL',
+        startYear: 2026,
+        signAndTrade: false,
+        contractYears: 2,
+        totalValue: 24_600_000,
+        firstYearGuaranteed: true,
+      })
+    );
+    expect(dispatchedContract?.salariesByYear).toEqual([
+      expect.objectContaining({
+        season: '2025-26',
+        salary: 12_000_000,
+        capHit: 12_000_000,
+        guaranteedAmount: 12_000_000,
+        optionType: null,
+        optionUsed: null,
+      }),
+      expect.objectContaining({
+        season: '2026-27',
+        salary: 12_600_000,
+        capHit: 12_600_000,
+        guaranteedAmount: 12_600_000,
+        optionType: null,
+        optionUsed: null,
+      }),
+    ]);
+  });
+
   it('blocks exception-backed signing in vacuum mode when canonical exception validation fails', async () => {
     validationMocks.validateSigning.mockReturnValue({
       valid: false,
@@ -450,7 +541,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
-  it('normalizes sign-and-trade destination to canonical teamCode before dispatch', async () => {
+  it('normalizes sign-and-trade destination to canonical teamCode and keeps final contract truth in the action layer', async () => {
     worldTeamDataMocks.resolveTeamCode.mockImplementation((teamId: string) => {
       if (teamId === 'celtics') return 'BOS';
       return String(teamId || '').toUpperCase();
@@ -475,13 +566,20 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     await act(async () => {
       actionResult = await result.current.actions.handleSignAndTrade(
         playerFixture as any,
-        contractFixture as any,
+        buildStagedScalarSigningFixture({
+          startYear: 2028,
+          contractType: 'Conflicting SAT Type',
+        }) as any,
         'celtics'
       );
     });
 
+    const worldMutationArgs =
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+    const dispatchedContract = worldMutationArgs?.payload?.contract;
+
     expect(actionResult).toEqual({ success: true });
-    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
+    expect(worldMutationArgs).toEqual(
       expect.objectContaining({
         mutationType: 'signAndTrade',
         payload: expect.objectContaining({
@@ -489,13 +587,29 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         }),
       })
     );
-    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalledWith(
+    expect(dispatchedContract).toEqual(
       expect.objectContaining({
-        payload: expect.objectContaining({
-          destinationTeamCode: 'celtics',
-        }),
+        contractType: 'Sign & Trade',
+        signingTeam: 'LAL',
+        startYear: 2028,
+        signAndTrade: true,
+        contractYears: 2,
+        totalValue: 24_600_000,
+        firstYearGuaranteed: true,
       })
     );
+    expect(dispatchedContract?.salariesByYear).toEqual([
+      expect.objectContaining({
+        season: '2027-28',
+        salary: 12_000_000,
+        capHit: 12_000_000,
+      }),
+      expect.objectContaining({
+        season: '2028-29',
+        salary: 12_600_000,
+        capHit: 12_600_000,
+      }),
+    ]);
   });
 
   it('renounce removes cap hold, updates totals, and requires persisted world writes', async () => {
@@ -609,7 +723,12 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     await act(async () => {
       actionResult = await result.current.actions.handleStoreOfferSheet(
         playerFixture as any,
-        contractFixture as any
+        buildStagedScalarSigningFixture({
+          salaries: [12_000_000, 12_960_000],
+          exceptionType: 'Minimum',
+          signedUsing: null,
+          contractType: 'Conflicting Offer Sheet Type',
+        }) as any
       );
     });
 
@@ -620,22 +739,45 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       expect(result.current.teamCapSheet.offerSheets[0].id).toBe('os_1');
     });
 
-    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
+    const worldMutationArgs =
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+    const dispatchedContract = worldMutationArgs?.payload?.contract;
+
+    expect(worldMutationArgs).toEqual(
       expect.objectContaining({
         mutationType: 'storeOfferSheet',
         worldId: 'world_1',
         payload: expect.objectContaining({
           teamCode: 'LAL',
           playerId: 'player_1',
-          contract: expect.objectContaining({
-            contractType: 'Offer Sheet',
-            rfaOfferSheet: true,
-            rfaOfferSheetOnly: true,
-            rfaOfferSheetStatus: 'PENDING_MATCH',
-          }),
         }),
       })
     );
+    expect(dispatchedContract).toEqual(
+      expect.objectContaining({
+        contractType: 'Offer Sheet',
+        signingTeam: 'LAL',
+        startYear: 2026,
+        signAndTrade: false,
+        contractYears: 2,
+        totalValue: 24_960_000,
+        rfaOfferSheet: true,
+        rfaOfferSheetOnly: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+      })
+    );
+    expect(dispatchedContract?.salariesByYear).toEqual([
+      expect.objectContaining({
+        season: '2025-26',
+        salary: 12_000_000,
+        capHit: 12_000_000,
+      }),
+      expect.objectContaining({
+        season: '2026-27',
+        salary: 12_960_000,
+        capHit: 12_960_000,
+      }),
+    ]);
     expect(refreshWorldRosterIndex).toHaveBeenCalled();
   });
 
@@ -815,17 +957,16 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(mutationMocks.preflightSignAndTradeMutation).not.toHaveBeenCalled();
   });
 
-  it('canonicalizes SAT preflight inputs and delegates to the authoritative preflight helper', async () => {
+  it('canonicalizes SAT preflight inputs and ignores conflicting prebuilt signing rows', async () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
     await act(async () => {
       await result.current.actions.getSignAndTradePreflight(
         playerFixture as any,
-        {
-          years: 2,
-          salaries: [12_000_000, 12_600_000],
-          exceptionType: 'Full MLE',
-        } as any,
+        buildStagedScalarSigningFixture({
+          startYear: 2028,
+          contractType: 'Conflicting SAT Preflight Type',
+        }) as any,
         'bos'
       );
     });
@@ -833,7 +974,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(mutationMocks.preflightSignAndTradeMutation).toHaveBeenCalledWith(
       expect.objectContaining({
         worldId: 'world_1',
-        seasonId: '2025-26',
+        seasonId: '2027-28',
         payload: expect.objectContaining({
           teamCode: 'LAL',
           destinationTeamCode: 'BOS',
@@ -843,14 +984,18 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           contract: expect.objectContaining({
             contractType: 'Sign & Trade',
             signingTeam: 'LAL',
+            startYear: 2028,
+            contractYears: 2,
+            totalValue: 24_600_000,
+            firstYearGuaranteed: true,
             salariesByYear: [
               expect.objectContaining({
-                season: '2025-26',
+                season: '2027-28',
                 salary: 12_000_000,
                 capHit: 12_000_000,
               }),
               expect.objectContaining({
-                season: '2026-27',
+                season: '2028-29',
                 salary: 12_600_000,
                 capHit: 12_600_000,
               }),
@@ -861,15 +1006,19 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     );
   });
 
-  it('canonicalizes offer-sheet preflight inputs and delegates to the authoritative preflight helper', async () => {
+  it('canonicalizes offer-sheet preflight inputs and ignores conflicting prebuilt signing rows', async () => {
     const { result } = renderActionsHarness({ worldId: 'world_1' });
 
     await act(async () => {
-      await result.current.actions.getOfferSheetPreflight(playerFixture as any, {
-        years: 2,
-        salaries: [12_000_000, 12_960_000],
-        exceptionType: 'Minimum',
-      } as any);
+      await result.current.actions.getOfferSheetPreflight(
+        playerFixture as any,
+        buildStagedScalarSigningFixture({
+          salaries: [12_000_000, 12_960_000],
+          exceptionType: 'Minimum',
+          signedUsing: null,
+          contractType: 'Conflicting Offer Sheet Preflight Type',
+        }) as any
+      );
     });
 
     expect(mutationMocks.preflightOfferSheetMutation).toHaveBeenCalledWith({
@@ -880,6 +1029,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       contract: expect.objectContaining({
         contractType: 'Offer Sheet',
         signingTeam: 'LAL',
+        startYear: 2026,
+        contractYears: 2,
+        totalValue: 24_960_000,
+        firstYearGuaranteed: true,
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
         rfaOfferSheetStatus: 'PENDING_MATCH',

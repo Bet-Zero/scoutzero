@@ -210,7 +210,7 @@ type ActionResultLike =
   | null
   | undefined;
 
-type SigningPayloadLike = {
+type StagedSigningPayloadLike = {
   years: number;
   contractType: string;
   salaries: number[];
@@ -250,7 +250,7 @@ type WaivePayloadLike = {
 
 type SigningActionCallback = (
   player: PlayerLike,
-  payload: SigningPayloadLike,
+  payload: StagedSigningPayloadLike,
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 type OptionDecisionCallback = (
@@ -262,13 +262,13 @@ type OptionDecisionCallback = (
 
 type SignAndTradeCallback = (
   player: PlayerLike,
-  payload: SigningPayloadLike,
+  payload: StagedSigningPayloadLike,
   destTeamCode: string,
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 type SignAndTradePreflightCallback = (
   player: PlayerLike,
-  payload: SigningPayloadLike,
+  payload: StagedSigningPayloadLike,
   destTeamCode: string,
 ) =>
   | Promise<SignAndTradePreflightResult | null | undefined>
@@ -278,7 +278,7 @@ type SignAndTradePreflightCallback = (
 
 type GetOfferSheetPreflightCallback = (
   player: PlayerLike,
-  payload: SigningPayloadLike,
+  payload: StagedSigningPayloadLike,
 ) =>
   | Promise<OfferSheetPreflightResult | null | undefined>
   | OfferSheetPreflightResult
@@ -1012,8 +1012,8 @@ const EditContractModal = ({
     !onSignAndTrade || !getSignAndTradePreflight
       ? 'Sign-and-trade requires an active world to commit.'
       : null;
-  const buildCanonicalSigningPayload = useCallback(
-    (overrides: Partial<SigningPayloadLike> = {}): SigningPayloadLike => {
+  const buildSigningDispatchPayload = useCallback(
+    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
       const years = extension.years || extension.salaries?.length || 0;
       const salaries = (extension.salaries || []).slice(0, years);
       const totalValue = salaries.reduce(
@@ -1064,18 +1064,18 @@ const EditContractModal = ({
         ...contractDataForValidation,
         signAndTrade: true,
         contractType: 'Sign & Trade',
-      }) as SigningPayloadLike,
+      }) as StagedSigningPayloadLike,
     [contractDataForValidation]
   );
   const offerSheetPreflightPayload = useMemo(
     () =>
-      buildCanonicalSigningPayload({
+      buildSigningDispatchPayload({
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
         rfaOfferSheetStatus: 'PENDING_MATCH',
         contractType: 'Offer Sheet',
       }),
-    [buildCanonicalSigningPayload]
+    [buildSigningDispatchPayload]
   );
   const validationAuthority: ValidationAuthority =
     selectedAction === 'signAndTrade' ||
@@ -1642,7 +1642,7 @@ const EditContractModal = ({
       if (isOfferSheet && selectedAction === 'signNew') {
         return onStoreOfferSheet?.(
           player,
-          buildCanonicalSigningPayload({
+          buildSigningDispatchPayload({
             contractType: 'Offer Sheet',
             rfaOfferSheet: true,
             rfaOfferSheetOnly: true,
@@ -1656,14 +1656,14 @@ const EditContractModal = ({
         case 'signNew':
           return onSignFreeAgent?.(
             player,
-            buildCanonicalSigningPayload({
+            buildSigningDispatchPayload({
               ...(overrideMetadata || {}),
             })
           );
         case 'resign':
           return onResign?.(
             player,
-            buildCanonicalSigningPayload({
+            buildSigningDispatchPayload({
               ...(overrideMetadata || {}),
             })
           );
@@ -1677,7 +1677,7 @@ const EditContractModal = ({
 
           return onSignAndTrade?.(
             player,
-            buildCanonicalSigningPayload({
+            buildSigningDispatchPayload({
               signAndTrade: true,
               contractType: 'Sign & Trade',
               ...(overrideMetadata || {}),
@@ -1689,7 +1689,7 @@ const EditContractModal = ({
       }
     },
     [
-      buildCanonicalSigningPayload,
+      buildSigningDispatchPayload,
       isOfferSheet,
       onResign,
       onSignAndTrade,

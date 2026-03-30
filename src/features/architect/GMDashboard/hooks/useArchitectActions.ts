@@ -135,6 +135,12 @@ type LocalContract = ArchitectMutationContract &
   > & {
   salariesByYear?: SalaryByYear[];
   salaries?: LocalContractLegacySalaryInput[];
+  guaranteed?: boolean | null;
+  isMinimum?: boolean | null;
+  signAndTrade?: boolean | null;
+  yearsOfService?: number | string | null;
+  averageAnnualValue?: number | null;
+  base?: number | null;
   birdRights?: LocalBirdRights;
   freeAgency?:
     | { year?: number | string | null; type?: string | null }
@@ -621,7 +627,10 @@ export const ensureContractStructure = (
         salary,
         capHit: salary,
         guaranteed: true,
+        guaranteedAmount: salary,
         option: null,
+        optionType: null,
+        optionUsed: null,
       };
     });
 
@@ -646,6 +655,70 @@ export const deriveSigningMechanism = (
     return null;
   }
   return normalized;
+};
+
+const MINIMUM_SIGNING_HEURISTIC = 2_200_000;
+
+function hasStagedScalarSigningSalaries(
+  contract: SigningDetails | LocalContract | null | undefined
+): contract is SigningDetails & { salaries: LocalContractLegacySalaryInput[] } {
+  return Array.isArray(contract?.salaries) && contract.salaries.length > 0;
+}
+
+function stripPrebuiltSigningRowsForAuthority(
+  contract: SigningDetails | null | undefined
+): LocalContract | null {
+  if (!contract) {
+    return null;
+  }
+
+  if (!hasStagedScalarSigningSalaries(contract)) {
+    return contract as LocalContract;
+  }
+
+  const { salariesByYear: _ignoredPrebuiltRows, ...stagedContract } =
+    contract as LocalContract;
+  return stagedContract;
+}
+
+function normalizeFiniteNumber(value: unknown): number | null {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : null;
+}
+
+function deriveSigningYearsOfService(
+  playerObj: ArchitectPlayer,
+  contract: SigningDetails | null | undefined
+): number | null {
+  const candidates = [
+    contract?.yearsOfService,
+    playerObj.yearsOfService,
+    playerObj.yearsPro,
+    playerObj.experience,
+    playerObj.years_of_service,
+    playerObj.bio?.experience,
+    playerObj.bio?.yearsExperience,
+    playerObj.bio?.['Years Pro'],
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeFiniteNumber(candidate);
+    if (normalized !== null) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+type AuthoritativeSigningPreparationOverrides = Partial<LocalContract> & {
+  contractType: string;
+};
+
+type PreparedAuthoritativeSigningDetails = {
+  actionSeasonContext: ReturnType<typeof buildActionSeasonContext>;
+  architectContract: LocalContract | null;
+  signedUsing: string | null;
 };
 
 function resolveSeasonEndYear(value: unknown): number | null {
@@ -1626,6 +1699,84 @@ export function useArchitectActions({
 
   // === Trade Actions ===
 
+  const prepareAuthoritativeSigningDetails = useCallback(
+    (
+      playerObj: ArchitectPlayer,
+      contract: SigningDetails,
+      overrides: AuthoritativeSigningPreparationOverrides
+    ): PreparedAuthoritativeSigningDetails => {
+      const contractForAuthority =
+        stripPrebuiltSigningRowsForAuthority(contract) || (contract as LocalContract);
+      const actionSeasonContext = buildActionSeasonContext(
+        contractForAuthority,
+        currentYear
+      );
+      const signedUsing = deriveSigningMechanism(contract);
+      const normalizedExceptionType =
+        typeof contract.exceptionType === 'string'
+          ? contract.exceptionType.trim()
+          : '';
+      const preparedContract = ensureContractStructure(contractForAuthority, {
+        ...overrides,
+        contractType: overrides.contractType,
+        signingTeam: teamCode,
+        startYear: actionSeasonContext.actionYear,
+        signedUsing,
+        exceptionType: normalizedExceptionType || signedUsing || undefined,
+      });
+
+      if (!preparedContract) {
+        return {
+          actionSeasonContext,
+          architectContract: null,
+          signedUsing,
+        };
+      }
+
+      const salaryRows = Array.isArray(preparedContract.salariesByYear)
+        ? preparedContract.salariesByYear
+        : [];
+      const baseSalary = Number(salaryRows[0]?.salary) || 0;
+      const contractYears =
+        salaryRows.length ||
+        Math.max(
+          1,
+          Number(preparedContract.contractYears ?? preparedContract.years) || 1
+        );
+      const totalValue = salaryRows.reduce(
+        (sum, row) => sum + (Number(row?.salary) || 0),
+        0
+      );
+      const yearsOfService = deriveSigningYearsOfService(playerObj, contract);
+
+      return {
+        actionSeasonContext,
+        signedUsing,
+        architectContract: {
+          ...preparedContract,
+          years: contractYears,
+          contractYears,
+          totalValue,
+          averageAnnualValue:
+            contractYears > 0 ? Math.round(totalValue / contractYears) : 0,
+          base: baseSalary,
+          firstYearGuaranteed: salaryRows[0]?.guaranteed !== false,
+          guaranteed:
+            preparedContract.guaranteed ??
+            salaryRows.every((row) => row?.guaranteed !== false),
+          signedUsing,
+          exceptionType: normalizedExceptionType || signedUsing || undefined,
+          yearsOfService: yearsOfService ?? undefined,
+          isMinimum:
+            signedUsing?.toLowerCase() === 'minimum' ||
+            preparedContract.isMinimum === true ||
+            baseSalary <= MINIMUM_SIGNING_HEURISTIC,
+        },
+      };
+    },
+    [currentYear, teamCode]
+  );
+
   const applyTradeToCapSheet = useCallback(
     async (tradeData: TradeDataItem[]): Promise<void> => {
       if (!tradeData || !Array.isArray(tradeData)) return;
@@ -1948,23 +2099,16 @@ export function useArchitectActions({
         };
       }
 
-      const actionSeasonContext = buildActionSeasonContext(
-        contract as LocalContract,
-        currentYear
-      );
-      const architectContract = ensureContractStructure(
-        contract as LocalContract,
-        {
+      const { actionSeasonContext, architectContract, signedUsing } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
           contractType:
             typeof contract.contractType === 'string'
               ? contract.contractType
               : 'Signed FA',
           isExtension: !!contract.isExtension,
           isRookieScale: !!contract.isRookieScale,
-          signingTeam: teamCode,
-          startYear: actionSeasonContext.actionYear,
-        }
-      );
+          signAndTrade: false,
+        });
 
       if (!architectContract) {
         reportMutationError(
@@ -1980,7 +2124,6 @@ export function useArchitectActions({
         };
       }
 
-      const signedUsing = deriveSigningMechanism(contract);
       const signingPayload: ArchitectMutationPayload = {
         teamCode,
         playerId: idToSign,
@@ -2143,8 +2286,8 @@ export function useArchitectActions({
       return { success: true };
     },
     [
-      currentYear,
       playersMap,
+      prepareAuthoritativeSigningDetails,
       reportMutationError,
       runAuthoritativeFAMutation,
       setFreeAgents,
@@ -2220,20 +2363,13 @@ export function useArchitectActions({
         };
       }
 
-      const actionSeasonContext = buildActionSeasonContext(
-        contract as LocalContract,
-        currentYear
-      );
-      const architectContract = ensureContractStructure(
-        contract as LocalContract,
-        {
+      const { actionSeasonContext, architectContract, signedUsing } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
           contractType: 'Sign & Trade',
           isExtension: false,
           isRookieScale: !!contract.isRookieScale,
-          signingTeam: teamCode,
-          startYear: actionSeasonContext.actionYear,
-        }
-      );
+          signAndTrade: true,
+        });
 
       if (!architectContract) {
         reportMutationError(
@@ -2250,7 +2386,6 @@ export function useArchitectActions({
         };
       }
 
-      const signedUsing = deriveSigningMechanism(contract);
       const result = await runAuthoritativeFAMutation(
         'signAndTrade',
         {
@@ -2278,7 +2413,7 @@ export function useArchitectActions({
       return { success: true };
     },
     [
-      currentYear,
+      prepareAuthoritativeSigningDetails,
       reportMutationError,
       runAuthoritativeFAMutation,
       teamCode,
@@ -2334,20 +2469,13 @@ export function useArchitectActions({
         };
       }
 
-      const actionSeasonContext = buildActionSeasonContext(
-        contract as LocalContract,
-        currentYear
-      );
-      const architectContract = ensureContractStructure(
-        contract as LocalContract,
-        {
+      const { actionSeasonContext, architectContract, signedUsing } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
           contractType: 'Sign & Trade',
           isExtension: false,
           isRookieScale: !!contract.isRookieScale,
-          signingTeam: teamCode,
-          startYear: actionSeasonContext.actionYear,
-        }
-      );
+          signAndTrade: true,
+        });
 
       if (!architectContract) {
         return {
@@ -2367,7 +2495,7 @@ export function useArchitectActions({
             destinationTeamCode: canonicalDestinationTeamCode,
             playerId,
             contract: architectContract,
-            signedUsing: deriveSigningMechanism(contract),
+            signedUsing,
             signAndTrade: true,
           },
         });
@@ -2384,7 +2512,7 @@ export function useArchitectActions({
         };
       }
     },
-    [currentYear, teamCode, worldId]
+    [prepareAuthoritativeSigningDetails, teamCode, worldId]
   );
 
   const getOfferSheetPreflight = useCallback(
@@ -2411,23 +2539,16 @@ export function useArchitectActions({
         };
       }
 
-      const actionSeasonContext = buildActionSeasonContext(
-        contract as LocalContract,
-        currentYear
-      );
-      const architectContract = ensureContractStructure(
-        contract as LocalContract,
-        {
+      const { actionSeasonContext, architectContract } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
           contractType: 'Offer Sheet',
           isExtension: false,
           isRookieScale: !!contract.isRookieScale,
+          signAndTrade: false,
           rfaOfferSheet: true,
           rfaOfferSheetOnly: true,
           rfaOfferSheetStatus: 'PENDING_MATCH',
-          signingTeam: teamCode,
-          startYear: actionSeasonContext.actionYear,
-        }
-      );
+        });
 
       if (!architectContract) {
         return {
@@ -2459,7 +2580,7 @@ export function useArchitectActions({
         };
       }
     },
-    [currentYear, teamCode, worldId]
+    [prepareAuthoritativeSigningDetails, teamCode, worldId]
   );
 
   // === RFA Offer Sheet Actions ===
@@ -2493,18 +2614,16 @@ export function useArchitectActions({
         };
       }
 
-      const actionSeasonContext = buildActionSeasonContext(
-        contract as LocalContract,
-        currentYear
-      );
-      const offerContract = ensureContractStructure(contract as LocalContract, {
-        contractType: 'Offer Sheet',
-        signingTeam: teamCode,
-        rfaOfferSheet: true,
-        rfaOfferSheetOnly: true,
-        rfaOfferSheetStatus: 'PENDING_MATCH',
-        startYear: actionSeasonContext.actionYear,
-      });
+      const { actionSeasonContext, architectContract: offerContract, signedUsing } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
+          contractType: 'Offer Sheet',
+          isExtension: false,
+          isRookieScale: !!contract.isRookieScale,
+          signAndTrade: false,
+          rfaOfferSheet: true,
+          rfaOfferSheetOnly: true,
+          rfaOfferSheetStatus: 'PENDING_MATCH',
+        });
 
       if (!offerContract) {
         reportMutationError(
@@ -2520,7 +2639,6 @@ export function useArchitectActions({
         };
       }
 
-      const signedUsing = deriveSigningMechanism(contract);
       const result = await runAuthoritativeFAMutation(
         'storeOfferSheet',
         {
@@ -2546,7 +2664,13 @@ export function useArchitectActions({
 
       return { success: true };
     },
-    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
+    [
+      prepareAuthoritativeSigningDetails,
+      reportMutationError,
+      runAuthoritativeFAMutation,
+      teamCode,
+      worldId,
+    ]
   );
 
   const handleMatchOfferSheet = useCallback(

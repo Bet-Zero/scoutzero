@@ -30,14 +30,20 @@ describe('Architect final type hardening polish regression', () => {
         salary: 12_000_000,
         capHit: 12_000_000,
         guaranteed: true,
+        guaranteedAmount: 12_000_000,
         option: null,
+        optionType: null,
+        optionUsed: null,
       },
       {
         season: '2026-27',
         salary: 13_500_000,
         capHit: 13_500_000,
         guaranteed: true,
+        guaranteedAmount: 13_500_000,
         option: null,
+        optionType: null,
+        optionUsed: null,
       },
     ]);
   });

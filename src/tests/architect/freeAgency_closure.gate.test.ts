@@ -171,21 +171,16 @@ describe('Gate 2: dashboard and section hand off grouped Free Agency authority (
 
 describe('Gate 3: FreeAgentPool stays staging / dispatch only (FA-1A)', () => {
   const content = readFileContent(FREE_AGENT_POOL_PATH);
-  const stagingRegion = readRegion(
-    content,
-    'const dispatchStandardSigningToActionOwner = useCallback(',
-    '  const allAgents = freeAgents || [];'
-  );
   const modalDispatchRegion = readRegion(
     content,
     'const freeAgencyModalDispatch = useMemo(',
     '  return ('
   );
 
-  it('keeps standard signing inside a named staging adapter that dispatches into the grouped owner', () => {
-    expect(stagingRegion).toMatch(/actionOwner\.signFreeAgent/);
-    expect(stagingRegion).not.toMatch(/applyWorldMutation/);
-    expect(stagingRegion).not.toMatch(/computeWorldMutation/);
+  it('passes standard signing directly from the grouped owner into the modal dispatch object', () => {
+    expect(modalDispatchRegion).toMatch(
+      /onSignFreeAgent:\s*actionOwner\.signFreeAgent/
+    );
   });
 
   it('builds one world-gated modal dispatch object from the grouped owner', () => {
@@ -199,6 +194,13 @@ describe('Gate 3: FreeAgentPool stays staging / dispatch only (FA-1A)', () => {
     expect(modalDispatchRegion).toMatch(
       /worldId\s*\?\s*actionOwner\.storeOfferSheet/
     );
+  });
+
+  it('does not keep a local standard-signing payload adapter or salary-row builder', () => {
+    expect(content).not.toMatch(/dispatchStandardSigningToActionOwner/);
+    expect(content).not.toMatch(/salariesByYear\.push/);
+    expect(content).not.toMatch(/toSeasonCode/);
+    expect(content).not.toMatch(/yearsLeft:/);
   });
 
   it('does not import or run mutation-layer executors directly', () => {
@@ -228,6 +230,8 @@ describe('Gate 4: EditContractModal remains a callback dispatcher for Free Agenc
     expect(content).toMatch(
       /const\s+dispatchSelectedFreeAgencyAction\s*=\s*useCallback/
     );
+    expect(content).toMatch(/const\s+buildSigningDispatchPayload\s*=\s*useCallback/);
+    expect(content).not.toMatch(/buildCanonicalSigningPayload/);
     expect(dispatchRegion).toMatch(/onStoreOfferSheet\?\./);
     expect(dispatchRegion).toMatch(/onSignFreeAgent\?\./);
     expect(dispatchRegion).toMatch(/onResign\?\./);
@@ -260,6 +264,27 @@ describe('Gate 4: EditContractModal remains a callback dispatcher for Free Agenc
 
 describe('Gate 5: authoritative hook path still owns world mutation and sync (FA-1A)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+
+  it('routes Free Agency signing and signing-preflight paths through one authoritative preparation helper', () => {
+    expect(content).toMatch(
+      /const\s+prepareAuthoritativeSigningDetails\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /handleSign[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+    );
+    expect(content).toMatch(
+      /handleSignAndTrade[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+    );
+    expect(content).toMatch(
+      /getSignAndTradePreflight[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+    );
+    expect(content).toMatch(
+      /getOfferSheetPreflight[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+    );
+    expect(content).toMatch(
+      /handleStoreOfferSheet[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+    );
+  });
 
   it('stores offer sheets through runAuthoritativeFAMutation with the canonical mutation key', () => {
     expect(content).toMatch(

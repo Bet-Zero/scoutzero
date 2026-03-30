@@ -238,18 +238,15 @@ describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
 describe('Gate 6: Callback Compatibility Contract - FreeAgentPool (E1)', () => {
   const content = readFileContent(FREE_AGENT_POOL_PATH);
 
-  it('handleSaveFromModal returns { success: true } on success path', () => {
-    // Pattern: return { success: true }
-    const returnsSuccessTrue = /return\s*\{\s*success\s*:\s*true\s*\}/.test(
-      content
-    );
-    expect(returnsSuccessTrue).toBe(true);
+  it('passes standard signing straight from actionOwner into the modal surface', () => {
+    const passesThroughActionOwner =
+      /onSignFreeAgent\s*:\s*actionOwner\.signFreeAgent/.test(content);
+    expect(passesThroughActionOwner).toBe(true);
   });
 
-  it('checks result?.success === false for failure handling', () => {
-    // Pattern: result?.success === false
-    const checksSuccessFalse = /result\?\.success\s*===\s*false/.test(content);
-    expect(checksSuccessFalse).toBe(true);
+  it('does not keep the retired handleSaveFromModal compatibility adapter', () => {
+    const keepsRetiredAdapter = /handleSaveFromModal/.test(content);
+    expect(keepsRetiredAdapter).toBe(false);
   });
 });
 

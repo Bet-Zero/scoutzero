@@ -219,7 +219,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     );
   });
 
-  it('passes explicit free-agent signing callbacks into EditContractModal without onSave fallback props', () => {
+  it('passes grouped-owner standard signing directly into EditContractModal without onSave fallback props', () => {
     const actionOwner = buildActionOwner();
     renderPool({ actionOwner });
 
@@ -229,14 +229,14 @@ describe('FreeAgentPool surface E86 behavior', () => {
     const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
     expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
     expect(modalProps?.onSave).toBeUndefined();
-    expect(modalProps?.onSignFreeAgent).not.toBe(actionOwner.signFreeAgent);
+    expect(modalProps?.onSignFreeAgent).toBe(actionOwner.signFreeAgent);
     expect(modalProps?.onSignAndTrade).toBeUndefined();
     expect(modalProps?.getSignAndTradePreflight).toBeUndefined();
     expect(modalProps?.getOfferSheetPreflight).toBeUndefined();
     expect(modalProps?.onStoreOfferSheet).toBeUndefined();
   });
 
-  it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing staged locally', () => {
+  it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing on the authoritative owner', () => {
     const actionOwner = buildActionOwner();
     renderPool({
       actionOwner,
@@ -248,7 +248,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
 
     const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
     expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
-    expect(modalProps?.onSignFreeAgent).not.toBe(actionOwner.signFreeAgent);
+    expect(modalProps?.onSignFreeAgent).toBe(actionOwner.signFreeAgent);
     expect(modalProps?.onSignAndTrade).toBe(actionOwner.signAndTrade);
     expect(modalProps?.getSignAndTradePreflight).toBe(
       actionOwner.getSignAndTradePreflight

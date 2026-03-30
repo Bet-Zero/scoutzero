@@ -10,8 +10,7 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
-import React, { useCallback, useMemo, useState } from 'react';
-import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import React, { useEffect, useMemo, useState } from 'react';
 import EditContractModal from '@/shared/components/EditContractModal';
 import { applyFreeAgencyFilters } from '@/shared/utils/filtering/freeAgencyFilterUtils';
 import { useFreeAgencyFilterPersistence } from '@/features/architect/freeAgency/useFreeAgencyFilterPersistence';
@@ -21,7 +20,6 @@ import { SelectedFreeAgentCards } from './SelectedFreeAgentCards';
 import { FreeAgencyFilterBar } from './FreeAgencyFilterBar';
 import type {
   FreeAgentActionResult,
-  FreeAgentContractFormValues,
   FreeAgentListItem,
   FreeAgentLookupPlayer,
   FreeAgentPoolProps,
@@ -67,9 +65,11 @@ const resolvePlayerData = (
   return playerData;
 };
 
+const getFreeAgentSelectionKey = (player: FreeAgentListItem) =>
+  String(player.id || player.player_id || player.name || '');
+
 const FreeAgentPool = ({
   freeAgents,
-  currentYear,
   actionOwner,
   playersMap = {},
   playersById = {},
@@ -88,6 +88,18 @@ const FreeAgentPool = ({
   const { filterState, updateFilterState, clearFilters } =
     useFreeAgencyFilterPersistence();
 
+  useEffect(() => {
+    const availableSelectionKeys = new Set(
+      (freeAgents || []).map((player) => getFreeAgentSelectionKey(player))
+    );
+
+    setSelectedPlayers((prev) =>
+      prev.filter((player) =>
+        availableSelectionKeys.has(getFreeAgentSelectionKey(player))
+      )
+    );
+  }, [freeAgents]);
+
   const handleSelect = (player: FreeAgentListItem) => {
     setSelectedPlayers((prev) => {
       const exists = prev.some((p) => p.name === player.name);
@@ -102,73 +114,6 @@ const FreeAgentPool = ({
   const handleRemove = (player: FreeAgentListItem) => {
     setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
   };
-
-  const dispatchStandardSigningToActionOwner = useCallback(
-    async (playerObj: FreeAgentListItem, values: FreeAgentContractFormValues) => {
-      const salariesByYear = [];
-      for (let i = 0; i < values.years; i++) {
-        const endYear = currentYear + i;
-        const season = toSeasonCode(endYear);
-        const salary = values.salaries[i] || 0;
-
-        salariesByYear.push({
-          season,
-          salary,
-          capHit: salary,
-          guaranteed: true,
-          guaranteedAmount: salary,
-          option: null as any,
-          optionUsed: null as any,
-          tradeBonus: null as any,
-        });
-      }
-
-      const totalValue = salariesByYear.reduce(
-        (sum, y) => sum + (y.salary || 0),
-        0
-      );
-      const selectedException = String(values.exceptionType || '').trim();
-      const normalizedExceptionType =
-        selectedException ||
-        (typeof values.exceptionType === 'string'
-          ? values.exceptionType
-          : '');
-      const signedUsing =
-        typeof values.signedUsing === 'string' && values.signedUsing.trim()
-          ? values.signedUsing.trim()
-          : selectedException && selectedException.toLowerCase() !== 'none'
-            ? selectedException
-            : null;
-
-      const contract = {
-        ...values,
-        salariesByYear,
-        totalValue,
-        yearsLeft: values.years,
-        options: values.options || {},
-        signAndTrade: false,
-        guaranteed: true,
-        isMinimum: (values.salaries[0] || 0) <= 2200000,
-        yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
-        signedUsing,
-        exceptionType: normalizedExceptionType,
-      };
-
-      const result = (await actionOwner.signFreeAgent(
-        playerObj as Parameters<typeof actionOwner.signFreeAgent>[0],
-        contract
-      )) as FreeAgentActionResult | undefined;
-      if (result?.success === false) {
-        return result;
-      }
-
-      setSelectedPlayers((prev) =>
-        prev.filter((p) => p.name !== playerObj.name)
-      );
-      return { success: true };
-    },
-    [actionOwner, currentYear]
-  );
 
   const allAgents = freeAgents || [];
 
@@ -189,7 +134,7 @@ const FreeAgentPool = ({
   const freeAgencyModalDispatch = useMemo(
     () => ({
       onSignFreeAgent:
-        dispatchStandardSigningToActionOwner as EditContractModalProps['onSignFreeAgent'],
+        actionOwner.signFreeAgent as EditContractModalProps['onSignFreeAgent'],
       onSignAndTrade: (worldId
         ? actionOwner.signAndTrade
         : undefined) as EditContractModalProps['onSignAndTrade'],
@@ -204,7 +149,7 @@ const FreeAgentPool = ({
         : undefined) as EditContractModalProps['onStoreOfferSheet'],
       actionsOverride: worldId ? ['signNew', 'signAndTrade'] : ['signNew'],
     }),
-    [actionOwner, dispatchStandardSigningToActionOwner, worldId]
+    [actionOwner, worldId]
   );
 
   return (

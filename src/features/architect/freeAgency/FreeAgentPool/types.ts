@@ -57,14 +57,6 @@ export interface FreeAgentLookupPlayer extends FreeAgentListItem {
 
 export interface ResolvedFreeAgentPlayer extends FreeAgentLookupPlayer {}
 
-export interface FreeAgentContractFormValues extends LooseRecord {
-  years: number;
-  salaries: Array<number | undefined>;
-  options?: Record<string, unknown>;
-  exceptionType?: unknown;
-  signedUsing?: unknown;
-}
-
 export interface FreeAgentActionResult extends LooseRecord {
   success?: boolean;
   message?: string;
