@@ -1635,6 +1635,72 @@ const EditContractModal = ({
     toSalaryInputs,
   ]);
 
+  const dispatchSelectedFreeAgencyAction = useCallback(
+    async (
+      overrideMetadata: OverrideMetadataLike | null
+    ): Promise<ActionResultLike> => {
+      if (isOfferSheet && selectedAction === 'signNew') {
+        return onStoreOfferSheet?.(
+          player,
+          buildCanonicalSigningPayload({
+            contractType: 'Offer Sheet',
+            rfaOfferSheet: true,
+            rfaOfferSheetOnly: true,
+            rfaOfferSheetStatus: 'PENDING_MATCH',
+            ...(overrideMetadata || {}),
+          })
+        );
+      }
+
+      switch (selectedAction) {
+        case 'signNew':
+          return onSignFreeAgent?.(
+            player,
+            buildCanonicalSigningPayload({
+              ...(overrideMetadata || {}),
+            })
+          );
+        case 'resign':
+          return onResign?.(
+            player,
+            buildCanonicalSigningPayload({
+              ...(overrideMetadata || {}),
+            })
+          );
+        case 'signAndTrade':
+          if (!resolvedDestinationTeamCode) {
+            return {
+              success: false,
+              message: 'Destination team is required for sign-and-trade.',
+            };
+          }
+
+          return onSignAndTrade?.(
+            player,
+            buildCanonicalSigningPayload({
+              signAndTrade: true,
+              contractType: 'Sign & Trade',
+              ...(overrideMetadata || {}),
+            }),
+            resolvedDestinationTeamCode
+          );
+        default:
+          return undefined;
+      }
+    },
+    [
+      buildCanonicalSigningPayload,
+      isOfferSheet,
+      onResign,
+      onSignAndTrade,
+      onSignFreeAgent,
+      onStoreOfferSheet,
+      player,
+      resolvedDestinationTeamCode,
+      selectedAction,
+    ]
+  );
+
   const handleConfirm = async () => {
     if (isSubmitting) return;
     setSaveError('');
@@ -1676,18 +1742,12 @@ const EditContractModal = ({
     try {
       let actionResult: ActionResultLike;
 
-      // Phase 16: MVP Offer Sheet toggle Logic
-      if (isOfferSheet && selectedAction === 'signNew') {
-        actionResult = await onStoreOfferSheet?.(
-          player,
-          buildCanonicalSigningPayload({
-            contractType: 'Offer Sheet',
-            rfaOfferSheet: true,
-            rfaOfferSheetOnly: true,
-            rfaOfferSheetStatus: 'PENDING_MATCH',
-            ...(overrideMetadata || {}),
-          })
-        );
+      if (
+        selectedAction === 'signNew' ||
+        selectedAction === 'resign' ||
+        selectedAction === 'signAndTrade'
+      ) {
+        actionResult = await dispatchSelectedFreeAgencyAction(overrideMetadata);
       } else {
         switch (selectedAction) {
           case 'accept':
@@ -1704,40 +1764,6 @@ const EditContractModal = ({
               false,
               overrideMetadata,
               normalizedTargetYear
-            );
-            break;
-          case 'signNew':
-            actionResult = await onSignFreeAgent?.(
-              player,
-              buildCanonicalSigningPayload({
-                ...(overrideMetadata || {}),
-              })
-            );
-            break;
-          case 'resign':
-            actionResult = await onResign?.(
-              player,
-              buildCanonicalSigningPayload({
-                ...(overrideMetadata || {}),
-              })
-            );
-            break;
-          case 'signAndTrade':
-            if (!resolvedDestinationTeamCode) {
-              actionResult = {
-                success: false,
-                message: 'Destination team is required for sign-and-trade.',
-              };
-              break;
-            }
-            actionResult = await onSignAndTrade?.(
-              player,
-              buildCanonicalSigningPayload({
-                signAndTrade: true,
-                contractType: 'Sign & Trade',
-                ...(overrideMetadata || {}),
-              }),
-              resolvedDestinationTeamCode
             );
             break;
           case 'renounce':

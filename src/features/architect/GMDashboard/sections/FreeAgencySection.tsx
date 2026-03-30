@@ -15,74 +15,88 @@ import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool';
 import OfferSheetList from '@/features/architect/GMDashboard/components/OfferSheetList';
 import type { FreeAgentPoolProps } from '@/features/architect/freeAgency/FreeAgentPool/types';
 
-import type { FreeAgencySectionProps } from '../offerSheetTypes';
+import type {
+  FreeAgencySectionProps,
+  OfferSheetListProps,
+} from '../offerSheetTypes';
 
 const FreeAgencySection = ({
   freeAgents,
-  teamCapSheet,
   currentYear,
-  onSign,
-  onSignAndTrade,
-  getSignAndTradePreflight,
-  getOfferSheetPreflight,
-  onStoreOfferSheet,
+  actionOwner,
   playersMap,
   outgoingOfferSheets,
   incomingOfferSheets,
-  onMatch,
-  onDecline,
-  onFinalize,
   worldId,
-}: FreeAgencySectionProps) => (
-  <div>
-    {/*
-      Offer-sheet actions are persist-only world mutations.
-      In vacuum mode these controls are explicitly gated to avoid silent no-ops.
-    */}
-    {!worldId && (
-      <p className="text-xs text-amber-400 mb-2">
-        Offer sheets and sign-and-trade require an active world to commit.
-      </p>
-    )}
+}: FreeAgencySectionProps) => {
+  const handleMatchOfferSheet = (
+    offeringTeamCode: string | number | null | undefined,
+    offerSheetId: string | number | null | undefined
+  ) =>
+    actionOwner.matchOfferSheet(
+      String(offeringTeamCode || ''),
+      String(offerSheetId || '')
+    );
 
-    {/* Incoming Offers (Home Team View) */}
-    <OfferSheetList
-      title="Incoming Offer Sheets (Action Required)"
-      offerSheets={incomingOfferSheets}
-      isIncoming={true}
-      onMatch={onMatch}
-      onDecline={onDecline}
-      onFinalize={onFinalize}
-      actionsDisabled={!worldId}
-      actionsDisabledReason="Requires an active world to commit."
-    />
+  const handleDeclineOfferSheet = (
+    offeringTeamCode: string | number | null | undefined,
+    offerSheetId: string | number | null | undefined
+  ) =>
+    actionOwner.declineOfferSheet(
+      String(offeringTeamCode || ''),
+      String(offerSheetId || '')
+    );
 
-    {/* Outgoing Offers (Offering Team View) */}
-    <OfferSheetList
-      title="My Pending Offer Sheets"
-      offerSheets={outgoingOfferSheets}
-      isIncoming={false}
-      onFinalize={onFinalize}
-      actionsDisabled={!worldId}
-      actionsDisabledReason="Requires an active world to commit."
-    />
+  const handleFinalizeOfferSheet = (
+    offerSheet: Parameters<NonNullable<OfferSheetListProps['onFinalize']>>[0]
+  ) =>
+    actionOwner.finalizeOfferSheet(
+      offerSheet as Parameters<typeof actionOwner.finalizeOfferSheet>[0]
+    );
 
-    <FreeAgentPool
-      freeAgents={freeAgents as FreeAgentPoolProps['freeAgents']}
-      currentYear={currentYear}
-      onSign={onSign as FreeAgentPoolProps['onSign']}
-      onSignAndTrade={onSignAndTrade as FreeAgentPoolProps['onSignAndTrade']}
-      getSignAndTradePreflight={
-        getSignAndTradePreflight as FreeAgentPoolProps['getSignAndTradePreflight']
-      }
-      getOfferSheetPreflight={
-        getOfferSheetPreflight as FreeAgentPoolProps['getOfferSheetPreflight']
-      }
-      onStoreOfferSheet={onStoreOfferSheet as FreeAgentPoolProps['onStoreOfferSheet']}
-      playersMap={playersMap as FreeAgentPoolProps['playersMap']}
-      worldId={worldId}
-    />
-  </div>
-);
+  return (
+    <div>
+      {/*
+        Offer-sheet actions are persist-only world mutations.
+        In vacuum mode these controls are explicitly gated to avoid silent no-ops.
+      */}
+      {!worldId && (
+        <p className="text-xs text-amber-400 mb-2">
+          Offer sheets and sign-and-trade require an active world to commit.
+        </p>
+      )}
+
+      {/* Incoming Offers (Home Team View) */}
+      <OfferSheetList
+        title="Incoming Offer Sheets (Action Required)"
+        offerSheets={incomingOfferSheets}
+        isIncoming={true}
+        onMatch={handleMatchOfferSheet}
+        onDecline={handleDeclineOfferSheet}
+        onFinalize={handleFinalizeOfferSheet}
+        actionsDisabled={!worldId}
+        actionsDisabledReason="Requires an active world to commit."
+      />
+
+      {/* Outgoing Offers (Offering Team View) */}
+      <OfferSheetList
+        title="My Pending Offer Sheets"
+        offerSheets={outgoingOfferSheets}
+        isIncoming={false}
+        onFinalize={handleFinalizeOfferSheet}
+        actionsDisabled={!worldId}
+        actionsDisabledReason="Requires an active world to commit."
+      />
+
+      <FreeAgentPool
+        freeAgents={freeAgents as FreeAgentPoolProps['freeAgents']}
+        currentYear={currentYear}
+        actionOwner={actionOwner as FreeAgentPoolProps['actionOwner']}
+        playersMap={playersMap as FreeAgentPoolProps['playersMap']}
+        worldId={worldId}
+      />
+    </div>
+  );
+};
 
 export { FreeAgencySection };

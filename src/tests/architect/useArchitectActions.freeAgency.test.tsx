@@ -209,6 +209,22 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(baseTeamFixture);
   });
 
+  it('publishes a grouped Free Agency action owner that points at the authoritative handlers', () => {
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    expect(result.current.actions.freeAgencyActionOwner).toEqual({
+      signFreeAgent: result.current.actions.handleSign,
+      signAndTrade: result.current.actions.handleSignAndTrade,
+      getSignAndTradePreflight:
+        result.current.actions.getSignAndTradePreflight,
+      getOfferSheetPreflight: result.current.actions.getOfferSheetPreflight,
+      storeOfferSheet: result.current.actions.handleStoreOfferSheet,
+      matchOfferSheet: result.current.actions.handleMatchOfferSheet,
+      declineOfferSheet: result.current.actions.handleDeclineOfferSheet,
+      finalizeOfferSheet: result.current.actions.handleFinalizeOfferSheet,
+    });
+  });
+
   it('applies canonical changedTeams snapshot immediately after world-mode sign', async () => {
     const updatedTeam = {
       ...baseTeamFixture,

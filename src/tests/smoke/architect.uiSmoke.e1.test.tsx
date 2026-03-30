@@ -37,35 +37,56 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectState', () => ({
 }));
 
 vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
-  useArchitectActions: () => ({
-    handleEditContract: vi.fn(),
-    handleSetDeadCap: vi.fn(async () => true),
-    handleSetExceptions: vi.fn(async () => true),
-    capSheetDevTools: {
-      injectFixtures: vi.fn(),
-      clearFixtures: vi.fn(),
-      hasInjectedFixtures: false,
-    },
-    applyTradeToCapSheet: vi.fn(async () => {}),
-    handleSign: vi.fn(async () => ({ success: true })),
-    handleSignAndTrade: vi.fn(async () => ({ success: true })),
-    getSignAndTradePreflight: vi.fn(),
-    getOfferSheetPreflight: vi.fn(),
-    handleStoreOfferSheet: vi.fn(async () => ({ success: true })),
-    handleMatchOfferSheet: vi.fn(async () => ({ success: true })),
-    handleDeclineOfferSheet: vi.fn(async () => ({ success: true })),
-    handleFinalizeOfferSheet: vi.fn(async () => ({ success: true })),
-    handleCapSheetAction: vi.fn(),
-    handleExtendContract: vi.fn(async () => ({ success: true })),
-    handleWaiveContract: vi.fn(async () => ({ success: true })),
-    handleOptionDecision: vi.fn(async () => ({ success: true })),
-    handleRenounceRights: vi.fn(async () => ({ success: true })),
-    teamHistoryDevTools: {
-      injectFixtures: vi.fn(),
-      clearFixtures: vi.fn(),
-      hasInjectedFixtures: false,
-    },
-  }),
+  useArchitectActions: () => {
+    const signFreeAgent = vi.fn(async () => ({ success: true }));
+    const signAndTrade = vi.fn(async () => ({ success: true }));
+    const getSignAndTradePreflight = vi.fn();
+    const getOfferSheetPreflight = vi.fn();
+    const storeOfferSheet = vi.fn(async () => ({ success: true }));
+    const matchOfferSheet = vi.fn(async () => ({ success: true }));
+    const declineOfferSheet = vi.fn(async () => ({ success: true }));
+    const finalizeOfferSheet = vi.fn(async () => ({ success: true }));
+
+    return {
+      handleEditContract: vi.fn(),
+      handleSetDeadCap: vi.fn(async () => true),
+      handleSetExceptions: vi.fn(async () => true),
+      capSheetDevTools: {
+        injectFixtures: vi.fn(),
+        clearFixtures: vi.fn(),
+        hasInjectedFixtures: false,
+      },
+      applyTradeToCapSheet: vi.fn(async () => {}),
+      handleSign: signFreeAgent,
+      handleSignAndTrade: signAndTrade,
+      getSignAndTradePreflight,
+      getOfferSheetPreflight,
+      handleStoreOfferSheet: storeOfferSheet,
+      handleMatchOfferSheet: matchOfferSheet,
+      handleDeclineOfferSheet: declineOfferSheet,
+      handleFinalizeOfferSheet: finalizeOfferSheet,
+      freeAgencyActionOwner: {
+        signFreeAgent,
+        signAndTrade,
+        getSignAndTradePreflight,
+        getOfferSheetPreflight,
+        storeOfferSheet,
+        matchOfferSheet,
+        declineOfferSheet,
+        finalizeOfferSheet,
+      },
+      handleCapSheetAction: vi.fn(),
+      handleExtendContract: vi.fn(async () => ({ success: true })),
+      handleWaiveContract: vi.fn(async () => ({ success: true })),
+      handleOptionDecision: vi.fn(async () => ({ success: true })),
+      handleRenounceRights: vi.fn(async () => ({ success: true })),
+      teamHistoryDevTools: {
+        injectFixtures: vi.fn(),
+        clearFixtures: vi.fn(),
+        hasInjectedFixtures: false,
+      },
+    };
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/hooks/useArchitectModals', () => ({
@@ -319,7 +340,14 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
   });
 
   it('renders Free Agency surface without crash', () => {
-    const teamCapSheet = buildTeamFixture();
+    const signFreeAgent = vi.fn(async () => ({ success: true }));
+    const signAndTrade = vi.fn(async () => ({ success: true }));
+    const getSignAndTradePreflight = vi.fn();
+    const getOfferSheetPreflight = vi.fn();
+    const storeOfferSheet = vi.fn(async () => ({ success: true }));
+    const matchOfferSheet = vi.fn(async () => ({ success: true }));
+    const declineOfferSheet = vi.fn(async () => ({ success: true }));
+    const finalizeOfferSheet = vi.fn(async () => ({ success: true }));
 
     render(
       <FreeAgencySection
@@ -330,11 +358,17 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
             name: 'Smoke Fixture Free Agent',
           },
         ]}
-        teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
-        onSign={vi.fn(async () => ({ success: true }))}
-        onSignAndTrade={vi.fn(async () => ({ success: true }))}
-        onStoreOfferSheet={vi.fn(async () => ({ success: true }))}
+        actionOwner={{
+          signFreeAgent,
+          signAndTrade,
+          getSignAndTradePreflight,
+          getOfferSheetPreflight,
+          storeOfferSheet,
+          matchOfferSheet,
+          declineOfferSheet,
+          finalizeOfferSheet,
+        }}
         playersMap={{}}
         outgoingOfferSheets={[
           {
@@ -360,9 +394,6 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
             createdAt: '2026-03-04T00:00:00.000Z',
           },
         ]}
-        onMatch={vi.fn(async () => ({ success: true }))}
-        onDecline={vi.fn(async () => ({ success: true }))}
-        onFinalize={vi.fn(async () => ({ success: true }))}
         worldId="world_smoke_lal"
       />
     );

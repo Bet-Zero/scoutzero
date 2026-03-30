@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx
- * PURPOSE: Authoritative Architect Free Agent Pool surface with selection and contract modal wiring.
+ * PURPOSE: Architect Free Agent Pool interaction surface with selection, staging, and contract modal dispatch wiring.
  * OWNERSHIP: Feature: architect/freeAgency
  *
  * HISTORY:
@@ -10,7 +10,7 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import EditContractModal from '@/shared/components/EditContractModal';
 import { applyFreeAgencyFilters } from '@/shared/utils/filtering/freeAgencyFilterUtils';
@@ -70,11 +70,7 @@ const resolvePlayerData = (
 const FreeAgentPool = ({
   freeAgents,
   currentYear,
-  onSign,
-  onSignAndTrade,
-  getSignAndTradePreflight = null,
-  getOfferSheetPreflight = null,
-  onStoreOfferSheet = null,
+  actionOwner,
   playersMap = {},
   playersById = {},
   worldId = null,
@@ -107,65 +103,72 @@ const FreeAgentPool = ({
     setSelectedPlayers((prev) => prev.filter((p) => p.name !== player.name));
   };
 
-  const handleSignFreeAgentFromModal = async (
-    playerObj: FreeAgentListItem,
-    values: FreeAgentContractFormValues
-  ) => {
-    const salariesByYear = [];
-    for (let i = 0; i < values.years; i++) {
-      const endYear = currentYear + i;
-      const season = toSeasonCode(endYear);
-      const salary = values.salaries[i] || 0;
+  const dispatchStandardSigningToActionOwner = useCallback(
+    async (playerObj: FreeAgentListItem, values: FreeAgentContractFormValues) => {
+      const salariesByYear = [];
+      for (let i = 0; i < values.years; i++) {
+        const endYear = currentYear + i;
+        const season = toSeasonCode(endYear);
+        const salary = values.salaries[i] || 0;
 
-      salariesByYear.push({
-        season,
-        salary,
-        capHit: salary,
+        salariesByYear.push({
+          season,
+          salary,
+          capHit: salary,
+          guaranteed: true,
+          guaranteedAmount: salary,
+          option: null as any,
+          optionUsed: null as any,
+          tradeBonus: null as any,
+        });
+      }
+
+      const totalValue = salariesByYear.reduce(
+        (sum, y) => sum + (y.salary || 0),
+        0
+      );
+      const selectedException = String(values.exceptionType || '').trim();
+      const normalizedExceptionType =
+        selectedException ||
+        (typeof values.exceptionType === 'string'
+          ? values.exceptionType
+          : '');
+      const signedUsing =
+        typeof values.signedUsing === 'string' && values.signedUsing.trim()
+          ? values.signedUsing.trim()
+          : selectedException && selectedException.toLowerCase() !== 'none'
+            ? selectedException
+            : null;
+
+      const contract = {
+        ...values,
+        salariesByYear,
+        totalValue,
+        yearsLeft: values.years,
+        options: values.options || {},
+        signAndTrade: false,
         guaranteed: true,
-        guaranteedAmount: salary,
-        option: null as any,
-        optionUsed: null as any,
-        tradeBonus: null as any,
-      });
-    }
+        isMinimum: (values.salaries[0] || 0) <= 2200000,
+        yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
+        signedUsing,
+        exceptionType: normalizedExceptionType,
+      };
 
-    const totalValue = salariesByYear.reduce(
-      (sum, y) => sum + (y.salary || 0),
-      0
-    );
-    const selectedException = String(values.exceptionType || '').trim();
-    const signedUsing =
-      typeof values.signedUsing === 'string' && values.signedUsing.trim()
-        ? values.signedUsing.trim()
-        : selectedException && selectedException.toLowerCase() !== 'none'
-          ? selectedException
-          : null;
+      const result = (await actionOwner.signFreeAgent(
+        playerObj as Parameters<typeof actionOwner.signFreeAgent>[0],
+        contract
+      )) as FreeAgentActionResult | undefined;
+      if (result?.success === false) {
+        return result;
+      }
 
-    const contract = {
-      ...values,
-      salariesByYear,
-      totalValue,
-      yearsLeft: values.years,
-      options: values.options || {},
-      signAndTrade: false,
-      guaranteed: true,
-      isMinimum: (values.salaries[0] || 0) <= 2200000,
-      yearsOfService: playerObj.yearsOfService || playerObj.yearsPro || 0,
-      signedUsing,
-      exceptionType: selectedException || values.exceptionType,
-    };
-
-    const result = (await onSign(
-      playerObj,
-      contract
-    )) as FreeAgentActionResult | undefined;
-    if (result?.success === false) {
-      return result;
-    }
-
-    setSelectedPlayers((prev) => prev.filter((p) => p.name !== playerObj.name));
-    return { success: true };
-  };
+      setSelectedPlayers((prev) =>
+        prev.filter((p) => p.name !== playerObj.name)
+      );
+      return { success: true };
+    },
+    [actionOwner, currentYear]
+  );
 
   const allAgents = freeAgents || [];
 
@@ -181,6 +184,27 @@ const FreeAgentPool = ({
   const selectedNames = useMemo(
     () => new Set(selectedPlayers.map((player) => player.name)),
     [selectedPlayers]
+  );
+
+  const freeAgencyModalDispatch = useMemo(
+    () => ({
+      onSignFreeAgent:
+        dispatchStandardSigningToActionOwner as EditContractModalProps['onSignFreeAgent'],
+      onSignAndTrade: (worldId
+        ? actionOwner.signAndTrade
+        : undefined) as EditContractModalProps['onSignAndTrade'],
+      getSignAndTradePreflight: (worldId
+        ? actionOwner.getSignAndTradePreflight
+        : undefined) as EditContractModalProps['getSignAndTradePreflight'],
+      getOfferSheetPreflight: (worldId
+        ? actionOwner.getOfferSheetPreflight
+        : undefined) as EditContractModalProps['getOfferSheetPreflight'],
+      onStoreOfferSheet: (worldId
+        ? actionOwner.storeOfferSheet
+        : undefined) as EditContractModalProps['onStoreOfferSheet'],
+      actionsOverride: worldId ? ['signNew', 'signAndTrade'] : ['signNew'],
+    }),
+    [actionOwner, dispatchStandardSigningToActionOwner, worldId]
   );
 
   return (
@@ -240,26 +264,14 @@ const FreeAgentPool = ({
           }
           isOpen={!!contractPlayer}
           onClose={() => setContractPlayer(null)}
-          onSignFreeAgent={
-            handleSignFreeAgentFromModal as EditContractModalProps['onSignFreeAgent']
-          }
-          onSignAndTrade={
-            onSignAndTrade as EditContractModalProps['onSignAndTrade']
-          }
+          onSignFreeAgent={freeAgencyModalDispatch.onSignFreeAgent}
+          onSignAndTrade={freeAgencyModalDispatch.onSignAndTrade}
           getSignAndTradePreflight={
-            (worldId
-              ? getSignAndTradePreflight
-              : undefined) as EditContractModalProps['getSignAndTradePreflight']
+            freeAgencyModalDispatch.getSignAndTradePreflight
           }
-          getOfferSheetPreflight={
-            (worldId
-              ? getOfferSheetPreflight
-              : undefined) as EditContractModalProps['getOfferSheetPreflight']
-          }
-          onStoreOfferSheet={
-            (worldId ? onStoreOfferSheet : undefined) as EditContractModalProps['onStoreOfferSheet']
-          }
-          actionsOverride={worldId ? ['signNew', 'signAndTrade'] : ['signNew']}
+          getOfferSheetPreflight={freeAgencyModalDispatch.getOfferSheetPreflight}
+          onStoreOfferSheet={freeAgencyModalDispatch.onStoreOfferSheet}
+          actionsOverride={freeAgencyModalDispatch.actionsOverride}
           actionLabelsOverride={{ signNew: 'Sign Free Agent' }}
         />
       )}

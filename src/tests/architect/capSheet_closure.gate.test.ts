@@ -748,16 +748,16 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
 
   it('GMDashboard modal callback surface keeps world-only SAT and offer-sheet callbacks behind worldId guards', () => {
     expect(modalActionCallbacksRegion).toMatch(
-      /onSignAndTrade:\s*worldId[\s\S]*\?\s*\(actions\.handleSignAndTrade[\s\S]*:\s*null/
+      /onSignAndTrade:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.signAndTrade[\s\S]*:\s*null/
     );
     expect(modalActionCallbacksRegion).toMatch(
-      /getSignAndTradePreflight:\s*worldId[\s\S]*\?\s*\(actions\.getSignAndTradePreflight[\s\S]*:\s*null/
+      /getSignAndTradePreflight:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.getSignAndTradePreflight[\s\S]*:\s*null/
     );
     expect(modalActionCallbacksRegion).toMatch(
-      /getOfferSheetPreflight:\s*worldId[\s\S]*\?\s*\(actions\.getOfferSheetPreflight[\s\S]*:\s*null/
+      /getOfferSheetPreflight:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.getOfferSheetPreflight[\s\S]*:\s*null/
     );
     expect(modalActionCallbacksRegion).toMatch(
-      /onStoreOfferSheet:\s*worldId[\s\S]*\?\s*\(actions\.handleStoreOfferSheet[\s\S]*:\s*null/
+      /onStoreOfferSheet:\s*worldId[\s\S]*\?\s*\(freeAgencyActionOwner\.storeOfferSheet[\s\S]*:\s*null/
     );
   });
 
@@ -830,10 +830,16 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(editContractModalContent).not.toMatch(/onSaveContract/);
     expect(editContractModalContent).not.toMatch(/onSave\?:\s*SigningActionCallback/);
     expect(editContractModalContent).toMatch(
-      /case 'signNew':[\s\S]*actionResult = await onSignFreeAgent\?\./
+      /const\s+dispatchSelectedFreeAgencyAction\s*=\s*useCallback/
     );
     expect(editContractModalContent).toMatch(
-      /case 'resign':[\s\S]*actionResult = await onResign\?\./
+      /dispatchSelectedFreeAgencyAction[\s\S]*onSignFreeAgent\?\./
+    );
+    expect(editContractModalContent).toMatch(
+      /dispatchSelectedFreeAgencyAction[\s\S]*onResign\?\./
+    );
+    expect(editContractModalContent).toMatch(
+      /actionResult\s*=\s*await\s+dispatchSelectedFreeAgencyAction\(overrideMetadata\)/
     );
     expect(editContractModalContent).not.toMatch(/onSignFreeAgent\s*\|\|\s*onSave/);
     expect(editContractModalContent).not.toMatch(/onResign\s*\|\|\s*onSave/);

@@ -11,9 +11,9 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import type { Dispatch, SetStateAction } from 'react';
+import type { FreeAgencyActionOwner } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
 type LooseRecord = Record<string, unknown>;
-type LooseCallback = (...args: unknown[]) => unknown;
 
 export interface FreeAgentPlayerBio extends LooseRecord {
   playerId?: string | null;
@@ -73,17 +73,7 @@ export interface FreeAgentActionResult extends LooseRecord {
 export interface FreeAgentPoolProps {
   freeAgents?: FreeAgentListItem[] | null;
   currentYear: number;
-  onSign: (
-    player: FreeAgentListItem,
-    contract: Record<string, unknown>
-  ) =>
-    | Promise<FreeAgentActionResult | void>
-    | FreeAgentActionResult
-    | void;
-  onSignAndTrade?: LooseCallback | null;
-  getSignAndTradePreflight?: LooseCallback | null;
-  getOfferSheetPreflight?: LooseCallback | null;
-  onStoreOfferSheet?: LooseCallback | null;
+  actionOwner: FreeAgencyActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
   playersById?: Record<string, FreeAgentLookupPlayer>;
   worldId?: string | null;

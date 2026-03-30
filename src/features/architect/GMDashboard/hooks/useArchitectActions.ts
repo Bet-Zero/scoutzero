@@ -468,8 +468,38 @@ export interface UseArchitectActionsParams {
   seasonId: string;
 }
 
+export interface FreeAgencyActionOwner {
+  signFreeAgent: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => Promise<MutationActionResult>;
+  signAndTrade: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails,
+    destinationTeamCode: string
+  ) => Promise<MutationActionResult>;
+  getSignAndTradePreflight: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails,
+    destinationTeamCode: string
+  ) => Promise<SignAndTradePreflightResult>;
+  getOfferSheetPreflight: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => Promise<OfferSheetPreflightResult>;
+  storeOfferSheet: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => Promise<MutationActionResult>;
+  matchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
+  declineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
+  finalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
+}
+
 /** Return type of the useArchitectActions hook */
 export interface UseArchitectActionsReturn {
+  freeAgencyActionOwner: FreeAgencyActionOwner;
+
   // Contract/Player actions
   handleSign: (
     playerObj: ArchitectPlayer,
@@ -3533,7 +3563,32 @@ export function useArchitectActions({
     [confirmAndRenounceRights]
   );
 
+  const freeAgencyActionOwner = useMemo<FreeAgencyActionOwner>(
+    () => ({
+      signFreeAgent: handleSign,
+      signAndTrade: handleSignAndTrade,
+      getSignAndTradePreflight,
+      getOfferSheetPreflight,
+      storeOfferSheet: handleStoreOfferSheet,
+      matchOfferSheet: handleMatchOfferSheet,
+      declineOfferSheet: handleDeclineOfferSheet,
+      finalizeOfferSheet: handleFinalizeOfferSheet,
+    }),
+    [
+      getOfferSheetPreflight,
+      getSignAndTradePreflight,
+      handleDeclineOfferSheet,
+      handleFinalizeOfferSheet,
+      handleMatchOfferSheet,
+      handleSign,
+      handleSignAndTrade,
+      handleStoreOfferSheet,
+    ]
+  );
+
   return {
+    freeAgencyActionOwner,
+
     // Contract/Player actions
     handleSign,
     handleSignAndTrade,

@@ -10,9 +10,9 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENCY_OFFER_SHEET_SURFACE_E91_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
+import type { FreeAgencyActionOwner } from './hooks/useArchitectActions';
 
 type LooseRecord = Record<string, unknown>;
-type LooseCallback = (...args: unknown[]) => unknown;
 
 export type OfferSheetStatus = string;
 
@@ -46,18 +46,10 @@ export interface OfferSheetListProps {
 
 export interface FreeAgencySectionProps {
   freeAgents?: unknown[] | null;
-  teamCapSheet?: unknown;
   currentYear: number;
-  onSign: LooseCallback;
-  onSignAndTrade?: LooseCallback;
-  getSignAndTradePreflight?: LooseCallback;
-  getOfferSheetPreflight?: LooseCallback;
-  onStoreOfferSheet?: LooseCallback;
+  actionOwner: FreeAgencyActionOwner;
   playersMap?: Record<string, unknown>;
   outgoingOfferSheets?: OfferSheetLike[] | null;
   incomingOfferSheets?: OfferSheetLike[] | null;
-  onMatch?: OfferSheetListProps['onMatch'];
-  onDecline?: OfferSheetListProps['onDecline'];
-  onFinalize?: OfferSheetListProps['onFinalize'];
   worldId?: string | null;
 }

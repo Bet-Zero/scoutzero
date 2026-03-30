@@ -215,22 +215,8 @@ const GMDashboard = () => {
     ]
   );
 
-  const freeAgencyOnSign =
-    actions.handleSign as FreeAgencySectionProps['onSign'];
-  const freeAgencyOnSignAndTrade =
-    actions.handleSignAndTrade as FreeAgencySectionProps['onSignAndTrade'];
-  const freeAgencyGetSignAndTradePreflight =
-    actions.getSignAndTradePreflight as FreeAgencySectionProps['getSignAndTradePreflight'];
-  const freeAgencyGetOfferSheetPreflight =
-    actions.getOfferSheetPreflight as FreeAgencySectionProps['getOfferSheetPreflight'];
-  const freeAgencyOnStoreOfferSheet =
-    actions.handleStoreOfferSheet as FreeAgencySectionProps['onStoreOfferSheet'];
-  const freeAgencyOnMatch =
-    actions.handleMatchOfferSheet as FreeAgencySectionProps['onMatch'];
-  const freeAgencyOnDecline =
-    actions.handleDeclineOfferSheet as FreeAgencySectionProps['onDecline'];
-  const freeAgencyOnFinalize =
-    actions.handleFinalizeOfferSheet as FreeAgencySectionProps['onFinalize'];
+  const freeAgencyActionOwner =
+    actions.freeAgencyActionOwner as FreeAgencySectionProps['actionOwner'];
 
   const modalPlayer = selectedPlayer as EditContractModalProps['player'];
   const modalTeamCapSheet = teamCapSheet as EditContractModalProps['teamCapSheet'];
@@ -267,19 +253,20 @@ const GMDashboard = () => {
     );
   const modalActionCallbacks: EditContractArchitectActionCallbacks = {
     onSignFreeAgent:
-      actions.handleSign as EditContractModalProps['onSignFreeAgent'],
-    onResign: actions.handleSign as EditContractModalProps['onResign'],
+      freeAgencyActionOwner.signFreeAgent as EditContractModalProps['onSignFreeAgent'],
+    onResign:
+      freeAgencyActionOwner.signFreeAgent as EditContractModalProps['onResign'],
     onSignAndTrade: worldId
-      ? (actions.handleSignAndTrade as EditContractModalProps['onSignAndTrade'])
+      ? (freeAgencyActionOwner.signAndTrade as EditContractModalProps['onSignAndTrade'])
       : null,
     getSignAndTradePreflight: worldId
-      ? (actions.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'])
+      ? (freeAgencyActionOwner.getSignAndTradePreflight as EditContractModalProps['getSignAndTradePreflight'])
       : null,
     getOfferSheetPreflight: worldId
-      ? (actions.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'])
+      ? (freeAgencyActionOwner.getOfferSheetPreflight as EditContractModalProps['getOfferSheetPreflight'])
       : null,
     onStoreOfferSheet: worldId
-      ? (actions.handleStoreOfferSheet as EditContractModalProps['onStoreOfferSheet'])
+      ? (freeAgencyActionOwner.storeOfferSheet as EditContractModalProps['onStoreOfferSheet'])
       : null,
     onExtend: actions.handleExtendContract as EditContractModalProps['onExtend'],
     onWaive: modalOnWaive,
@@ -493,25 +480,11 @@ const GMDashboard = () => {
         {activeTab === 'fa' && (
           <FreeAgencySection
             freeAgents={freeAgents}
-            teamCapSheet={teamCapSheet}
             currentYear={currentYear}
-            onSign={freeAgencyOnSign}
-            onSignAndTrade={worldId ? freeAgencyOnSignAndTrade : undefined}
-            getSignAndTradePreflight={
-              worldId ? freeAgencyGetSignAndTradePreflight : undefined
-            }
-            getOfferSheetPreflight={
-              worldId ? freeAgencyGetOfferSheetPreflight : undefined
-            }
-            onStoreOfferSheet={
-              worldId ? freeAgencyOnStoreOfferSheet : undefined
-            }
+            actionOwner={freeAgencyActionOwner}
             playersMap={playersMap}
             outgoingOfferSheets={teamCapSheet?.offerSheets || []}
             incomingOfferSheets={teamCapSheet?.incomingOfferSheets || []}
-            onMatch={freeAgencyOnMatch}
-            onDecline={freeAgencyOnDecline}
-            onFinalize={freeAgencyOnFinalize}
             worldId={worldId}
           />
         )}

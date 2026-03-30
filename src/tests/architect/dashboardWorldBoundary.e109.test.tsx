@@ -48,6 +48,7 @@ const {
   mockSetShowOffseasonModal,
   mockSetActiveTab,
   mockEditContractModalProps,
+  mockFreeAgencySectionProps,
 } = vi.hoisted(() => ({
   mockListUserWorlds: vi.fn(),
   mockCreateWorld: vi.fn(),
@@ -69,6 +70,7 @@ const {
   mockSetShowOffseasonModal: vi.fn(),
   mockSetActiveTab: vi.fn(),
   mockEditContractModalProps: vi.fn(),
+  mockFreeAgencySectionProps: vi.fn(),
 }));
 
 const dashboardRouteFixtures = vi.hoisted(() => ({
@@ -316,9 +318,12 @@ vi.mock('@/features/architect/GMDashboard/sections/TradeSection', () => ({
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/FreeAgencySection', () => ({
-  FreeAgencySection: () => (
-    <div data-testid="mock-free-agency-section">FreeAgencySection</div>
-  ),
+  FreeAgencySection: (props: Record<string, unknown>) => {
+    mockFreeAgencySectionProps(props);
+    return (
+      <div data-testid="mock-free-agency-section">FreeAgencySection</div>
+    );
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/OffseasonSection', () => ({
@@ -451,6 +456,15 @@ function buildDashboardState(
 }
 
 function buildDashboardActions(overrides: Partial<Record<string, unknown>> = {}) {
+  const signFreeAgent = vi.fn();
+  const signAndTrade = vi.fn();
+  const getSignAndTradePreflight = vi.fn();
+  const getOfferSheetPreflight = vi.fn();
+  const storeOfferSheet = vi.fn();
+  const matchOfferSheet = vi.fn();
+  const declineOfferSheet = vi.fn();
+  const finalizeOfferSheet = vi.fn();
+
   return {
     handleEditContract: vi.fn(),
     handleCapTableModalAction: vi.fn(),
@@ -463,14 +477,24 @@ function buildDashboardActions(overrides: Partial<Record<string, unknown>> = {})
       hasInjectedFixtures: false,
     },
     applyTradeToCapSheet: vi.fn(),
-    handleSign: vi.fn(),
-    handleSignAndTrade: vi.fn(),
-    getSignAndTradePreflight: vi.fn(),
-    getOfferSheetPreflight: vi.fn(),
-    handleStoreOfferSheet: vi.fn(),
-    handleMatchOfferSheet: vi.fn(),
-    handleDeclineOfferSheet: vi.fn(),
-    handleFinalizeOfferSheet: vi.fn(),
+    handleSign: signFreeAgent,
+    handleSignAndTrade: signAndTrade,
+    getSignAndTradePreflight,
+    getOfferSheetPreflight,
+    handleStoreOfferSheet: storeOfferSheet,
+    handleMatchOfferSheet: matchOfferSheet,
+    handleDeclineOfferSheet: declineOfferSheet,
+    handleFinalizeOfferSheet: finalizeOfferSheet,
+    freeAgencyActionOwner: {
+      signFreeAgent,
+      signAndTrade,
+      getSignAndTradePreflight,
+      getOfferSheetPreflight,
+      storeOfferSheet,
+      matchOfferSheet,
+      declineOfferSheet,
+      finalizeOfferSheet,
+    },
     handleExtendContract: vi.fn(),
     handleWaiveContract: vi.fn(),
     handleOptionDecision: vi.fn(),
@@ -1103,12 +1127,14 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(modalProps).toEqual(
         expect.objectContaining({
           actionYear: 2028,
-          onSignFreeAgent: dashboardActions.handleSign,
-          onResign: dashboardActions.handleSign,
-          onSignAndTrade: dashboardActions.handleSignAndTrade,
-          getSignAndTradePreflight: dashboardActions.getSignAndTradePreflight,
-          getOfferSheetPreflight: dashboardActions.getOfferSheetPreflight,
-          onStoreOfferSheet: dashboardActions.handleStoreOfferSheet,
+          onSignFreeAgent: dashboardActions.freeAgencyActionOwner.signFreeAgent,
+          onResign: dashboardActions.freeAgencyActionOwner.signFreeAgent,
+          onSignAndTrade: dashboardActions.freeAgencyActionOwner.signAndTrade,
+          getSignAndTradePreflight:
+            dashboardActions.freeAgencyActionOwner.getSignAndTradePreflight,
+          getOfferSheetPreflight:
+            dashboardActions.freeAgencyActionOwner.getOfferSheetPreflight,
+          onStoreOfferSheet: dashboardActions.freeAgencyActionOwner.storeOfferSheet,
           onExtend: dashboardActions.handleExtendContract,
           onWaive: expect.any(Function),
           onOptionDecision: expect.any(Function),
@@ -1224,8 +1250,8 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       expect(modalProps).toEqual(
         expect.objectContaining({
-          onSignFreeAgent: dashboardActions.handleSign,
-          onResign: dashboardActions.handleSign,
+          onSignFreeAgent: dashboardActions.freeAgencyActionOwner.signFreeAgent,
+          onResign: dashboardActions.freeAgencyActionOwner.signFreeAgent,
           onExtend: dashboardActions.handleExtendContract,
           onWaive: expect.any(Function),
           onOptionDecision: expect.any(Function),
@@ -1236,6 +1262,39 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(modalProps?.getSignAndTradePreflight).toBeNull();
       expect(modalProps?.getOfferSheetPreflight).toBeNull();
       expect(modalProps?.onStoreOfferSheet).toBeNull();
+    });
+
+    it('passes one grouped Free Agency owner into the Free Agency section instead of split mutation callbacks', async () => {
+      const dashboardActions = buildDashboardActions();
+
+      mockUseArchitectActions.mockReturnValue(dashboardActions);
+      mockUseArchitectState.mockReturnValue(
+        buildDashboardState({
+          activeTab: 'fa',
+          freeAgents: [{ id: 'fa_1', name: 'Free Agent Fixture' }],
+        })
+      );
+
+      render(<GMDashboard />);
+
+      await screen.findByTestId('mock-free-agency-section');
+      const freeAgencyProps = mockFreeAgencySectionProps.mock.calls.at(-1)?.[0];
+
+      expect(freeAgencyProps).toEqual(
+        expect.objectContaining({
+          actionOwner: dashboardActions.freeAgencyActionOwner,
+          worldId: 'world_alpha',
+          currentYear: 2026,
+        })
+      );
+      expect(freeAgencyProps?.onSign).toBeUndefined();
+      expect(freeAgencyProps?.onSignAndTrade).toBeUndefined();
+      expect(freeAgencyProps?.getSignAndTradePreflight).toBeUndefined();
+      expect(freeAgencyProps?.getOfferSheetPreflight).toBeUndefined();
+      expect(freeAgencyProps?.onStoreOfferSheet).toBeUndefined();
+      expect(freeAgencyProps?.onMatch).toBeUndefined();
+      expect(freeAgencyProps?.onDecline).toBeUndefined();
+      expect(freeAgencyProps?.onFinalize).toBeUndefined();
     });
 
     it('keeps wrapped modal mutation callbacks as thin adapters into shared Architect action handlers', async () => {

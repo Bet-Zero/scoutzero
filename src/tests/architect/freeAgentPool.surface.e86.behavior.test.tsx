@@ -43,6 +43,10 @@ type MockEditContractModalProps = {
   };
   onClose?: () => void;
   onSignFreeAgent?: unknown;
+  onSignAndTrade?: unknown;
+  getSignAndTradePreflight?: unknown;
+  getOfferSheetPreflight?: unknown;
+  onStoreOfferSheet?: unknown;
   onSave?: unknown;
 };
 
@@ -53,6 +57,10 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     player,
     onClose,
     onSignFreeAgent,
+    onSignAndTrade,
+    getSignAndTradePreflight,
+    getOfferSheetPreflight,
+    onStoreOfferSheet,
     onSave,
   }: MockEditContractModalProps) => {
     if (!isOpen) return null;
@@ -62,6 +70,10 @@ vi.mock('@/shared/components/EditContractModal', () => ({
       player,
       onClose,
       onSignFreeAgent,
+      onSignAndTrade,
+      getSignAndTradePreflight,
+      getOfferSheetPreflight,
+      onStoreOfferSheet,
       onSave,
     });
 
@@ -113,19 +125,31 @@ const playersMap = {
   [PLAYER.name]: PLAYER,
 };
 
+const buildActionOwner = (
+  overrides: Partial<Record<string, unknown>> = {}
+) => ({
+  signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
+  signAndTrade: vi.fn().mockResolvedValue({ success: true }),
+  getSignAndTradePreflight: vi.fn(),
+  getOfferSheetPreflight: vi.fn(),
+  storeOfferSheet: vi.fn().mockResolvedValue({ success: true }),
+  matchOfferSheet: vi.fn(),
+  declineOfferSheet: vi.fn(),
+  finalizeOfferSheet: vi.fn(),
+  ...overrides,
+});
+
 const renderPool = (
   overrides: Partial<React.ComponentProps<typeof FreeAgentPool>> = {}
 ) => {
-  const onSign =
-    overrides.onSign || vi.fn().mockResolvedValue({ success: true });
+  const actionOwner =
+    overrides.actionOwner || buildActionOwner();
 
   render(
     <FreeAgentPool
       freeAgents={[FREE_AGENT]}
       currentYear={2026}
-      onSign={onSign}
-      onSignAndTrade={vi.fn()}
-      onStoreOfferSheet={vi.fn()}
+      actionOwner={actionOwner}
       playersMap={playersMap}
       playersById={playersMap}
       worldId={null}
@@ -133,7 +157,7 @@ const renderPool = (
     />
   );
 
-  return { onSign };
+  return { actionOwner };
 };
 
 describe('FreeAgentPool surface E86 behavior', () => {
@@ -196,8 +220,8 @@ describe('FreeAgentPool surface E86 behavior', () => {
   });
 
   it('passes explicit free-agent signing callbacks into EditContractModal without onSave fallback props', () => {
-    const onSign = vi.fn().mockResolvedValue({ success: true });
-    renderPool({ onSign });
+    const actionOwner = buildActionOwner();
+    renderPool({ actionOwner });
 
     fireEvent.click(screen.getByRole('button', { name: /test player/i }));
     fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
@@ -205,7 +229,34 @@ describe('FreeAgentPool surface E86 behavior', () => {
     const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
     expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
     expect(modalProps?.onSave).toBeUndefined();
-    expect(modalProps?.onSignFreeAgent).not.toBe(onSign);
+    expect(modalProps?.onSignFreeAgent).not.toBe(actionOwner.signFreeAgent);
+    expect(modalProps?.onSignAndTrade).toBeUndefined();
+    expect(modalProps?.getSignAndTradePreflight).toBeUndefined();
+    expect(modalProps?.getOfferSheetPreflight).toBeUndefined();
+    expect(modalProps?.onStoreOfferSheet).toBeUndefined();
+  });
+
+  it('threads grouped owner world-mode callbacks into EditContractModal while keeping standard signing staged locally', () => {
+    const actionOwner = buildActionOwner();
+    renderPool({
+      actionOwner,
+      worldId: 'world_alpha',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /test player/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
+
+    const modalProps = mockEditContractModalProps.mock.calls.at(-1)?.[0];
+    expect(modalProps?.onSignFreeAgent).toEqual(expect.any(Function));
+    expect(modalProps?.onSignFreeAgent).not.toBe(actionOwner.signFreeAgent);
+    expect(modalProps?.onSignAndTrade).toBe(actionOwner.signAndTrade);
+    expect(modalProps?.getSignAndTradePreflight).toBe(
+      actionOwner.getSignAndTradePreflight
+    );
+    expect(modalProps?.getOfferSheetPreflight).toBe(
+      actionOwner.getOfferSheetPreflight
+    );
+    expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.storeOfferSheet);
   });
 
   it('preserves row menu toggle semantics, menu item ordering, and outside-click close behavior', () => {

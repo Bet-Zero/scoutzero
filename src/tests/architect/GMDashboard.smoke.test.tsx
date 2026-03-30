@@ -72,36 +72,57 @@ vi.mock('@/features/architect/GMDashboard/sections/HistorySection', () => ({
 
 // Mock other hooks used by GMDashboard
 vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
-  useArchitectActions: () => ({
-    handleEditContract: vi.fn(),
-    handleSign: vi.fn(),
-    handleSignAndTrade: vi.fn(),
-    getSignAndTradePreflight: vi.fn(),
-    getOfferSheetPreflight: vi.fn(),
-    capSheetDevTools: {
-      injectFixtures: vi.fn(),
-      clearFixtures: vi.fn(),
-      hasInjectedFixtures: false,
-    },
-    teamHistoryDevTools: {
-      injectFixtures: vi.fn(),
-      clearFixtures: vi.fn(),
-      hasInjectedFixtures: false,
-    },
-    handleExtendContract: vi.fn(),
-    handleWaiveContract: vi.fn(),
-    handleOptionDecision: vi.fn(),
-    handleRenounceRights: vi.fn(),
-    handleSetDeadCap: vi.fn(),
-    handleSetExceptions: vi.fn(),
-    handleStoreOfferSheet: vi.fn(),
-    handleMatchOfferSheet: vi.fn(),
-    handleDeclineOfferSheet: vi.fn(),
-    handleFinalizeOfferSheet: vi.fn(),
-    applyTradeToCapSheet: vi.fn(),
-    handleCapTableModalAction: vi.fn(),
-    handleCapHoldRenounce: vi.fn(),
-  }),
+  useArchitectActions: () => {
+    const signFreeAgent = vi.fn();
+    const signAndTrade = vi.fn();
+    const getSignAndTradePreflight = vi.fn();
+    const getOfferSheetPreflight = vi.fn();
+    const storeOfferSheet = vi.fn();
+    const matchOfferSheet = vi.fn();
+    const declineOfferSheet = vi.fn();
+    const finalizeOfferSheet = vi.fn();
+
+    return {
+      handleEditContract: vi.fn(),
+      handleSign: signFreeAgent,
+      handleSignAndTrade: signAndTrade,
+      getSignAndTradePreflight,
+      getOfferSheetPreflight,
+      capSheetDevTools: {
+        injectFixtures: vi.fn(),
+        clearFixtures: vi.fn(),
+        hasInjectedFixtures: false,
+      },
+      teamHistoryDevTools: {
+        injectFixtures: vi.fn(),
+        clearFixtures: vi.fn(),
+        hasInjectedFixtures: false,
+      },
+      handleExtendContract: vi.fn(),
+      handleWaiveContract: vi.fn(),
+      handleOptionDecision: vi.fn(),
+      handleRenounceRights: vi.fn(),
+      handleSetDeadCap: vi.fn(),
+      handleSetExceptions: vi.fn(),
+      handleStoreOfferSheet: storeOfferSheet,
+      handleMatchOfferSheet: matchOfferSheet,
+      handleDeclineOfferSheet: declineOfferSheet,
+      handleFinalizeOfferSheet: finalizeOfferSheet,
+      freeAgencyActionOwner: {
+        signFreeAgent,
+        signAndTrade,
+        getSignAndTradePreflight,
+        getOfferSheetPreflight,
+        storeOfferSheet,
+        matchOfferSheet,
+        declineOfferSheet,
+        finalizeOfferSheet,
+      },
+      applyTradeToCapSheet: vi.fn(),
+      handleCapTableModalAction: vi.fn(),
+      handleCapHoldRenounce: vi.fn(),
+    };
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/hooks/useArchitectModals', () => ({

@@ -58,6 +58,28 @@ const playersMap = {
   [PLAYER.name]: PLAYER,
 };
 
+const buildActionOwner = (overrides = {}) => ({
+  signFreeAgent: vi.fn().mockResolvedValue({ success: true }),
+  signAndTrade: vi.fn().mockResolvedValue({ success: true }),
+  getSignAndTradePreflight: vi.fn().mockResolvedValue({
+    status: 'legal',
+    reasons: [],
+    warnings: [],
+    source: 'authoritative-preflight',
+  }),
+  getOfferSheetPreflight: vi.fn().mockResolvedValue({
+    status: 'legal',
+    reasons: [],
+    warnings: [],
+    source: 'authoritative-preflight',
+  }),
+  storeOfferSheet: vi.fn().mockResolvedValue({ success: true }),
+  matchOfferSheet: vi.fn(),
+  declineOfferSheet: vi.fn(),
+  finalizeOfferSheet: vi.fn(),
+  ...overrides,
+});
+
 const openFreeAgencySigningModal = async () => {
   fireEvent.click(screen.getByRole('button', { name: '•••' }));
   const signMenuButton = screen
@@ -81,22 +103,24 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
   });
 
   it('world mode exposes offer-sheet toggle and keeps modal open on failed store until success', async () => {
-    const onSign = vi.fn().mockResolvedValue({ success: true });
-    const onStoreOfferSheet = vi
+    const signFreeAgent = vi.fn().mockResolvedValue({ success: true });
+    const storeOfferSheet = vi
       .fn()
       .mockResolvedValueOnce({
         success: false,
         message: 'Offer sheet validation failed.',
       })
       .mockResolvedValueOnce({ success: true });
+    const actionOwner = buildActionOwner({
+      signFreeAgent,
+      storeOfferSheet,
+    });
 
     render(
       <FreeAgentPool
         freeAgents={[FREE_AGENT]}
         currentYear={2026}
-        onSign={onSign}
-        onSignAndTrade={vi.fn()}
-        onStoreOfferSheet={onStoreOfferSheet}
+        actionOwner={actionOwner}
         playersMap={playersMap}
         worldId="world_1"
       />
@@ -113,9 +137,9 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: /Confirm Action/i }));
 
     await waitFor(() => {
-      expect(onStoreOfferSheet).toHaveBeenCalledTimes(1);
+      expect(storeOfferSheet).toHaveBeenCalledTimes(1);
     });
-    expect(onSign).not.toHaveBeenCalled();
+    expect(signFreeAgent).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(
       /offer sheet validation failed/i
     );
@@ -126,7 +150,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: /Confirm Action/i }));
 
     await waitFor(() => {
-      expect(onStoreOfferSheet).toHaveBeenCalledTimes(2);
+      expect(storeOfferSheet).toHaveBeenCalledTimes(2);
     });
     await waitFor(() => {
       expect(
@@ -136,16 +160,18 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
   });
 
   it('base mode hides offer-sheet initiation and signs directly without store calls', async () => {
-    const onSign = vi.fn().mockResolvedValue({ success: true });
-    const onStoreOfferSheet = vi.fn();
+    const signFreeAgent = vi.fn().mockResolvedValue({ success: true });
+    const storeOfferSheet = vi.fn();
+    const actionOwner = buildActionOwner({
+      signFreeAgent,
+      storeOfferSheet,
+    });
 
     render(
       <FreeAgentPool
         freeAgents={[FREE_AGENT]}
         currentYear={2026}
-        onSign={onSign}
-        onSignAndTrade={vi.fn()}
-        onStoreOfferSheet={onStoreOfferSheet}
+        actionOwner={actionOwner}
         playersMap={playersMap}
         worldId={null}
       />
@@ -161,8 +187,8 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: /Confirm Action/i }));
 
     await waitFor(() => {
-      expect(onSign).toHaveBeenCalledTimes(1);
+      expect(signFreeAgent).toHaveBeenCalledTimes(1);
     });
-    expect(onStoreOfferSheet).not.toHaveBeenCalled();
+    expect(storeOfferSheet).not.toHaveBeenCalled();
   });
 });
