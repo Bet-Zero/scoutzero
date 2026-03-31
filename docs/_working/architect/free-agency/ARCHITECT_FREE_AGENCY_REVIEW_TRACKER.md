@@ -68,3 +68,16 @@ Progress and execution status for the Free Agency review series.
 **STEP 5 STATUS: DONE**
 
 ---
+
+## STEP 6 — Free Agency Incoming and Outgoing Offer-Sheet Lifecycle
+
+| ID    | Title                                                                 | Status | Notes |
+|-------|-----------------------------------------------------------------------|--------|-------|
+| FA-6A | Tighten Incoming vs Outgoing Offer-Sheet Surface Truth               | TODO   |       |
+| FA-6B | Align Match / Decline / Finalize Routing with Team-Role Truth        | TODO   |       |
+| FA-6C | Clarify and Harden Final Lifecycle-State, Sync, and Reload Truth     | TODO   |       |
+| FA-6D | Add Focused Guardrails for Offer-Sheet Lifecycle Role and Final-State Truth | TODO |       |
+
+**STEP 6 STATUS: TODO**
+
+---
