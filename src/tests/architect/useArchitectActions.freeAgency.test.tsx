@@ -363,7 +363,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(refreshWorldRosterIndex).toHaveBeenCalled();
   });
 
-  it('derives standard-sign mutation contract truth from staged scalar inputs before dispatch', async () => {
+  it('ignores conflicting modal-finalized standard-sign fields and dispatches one canonical mutation contract', async () => {
     mutationMocks.applyWorldMutation.mockResolvedValue({
       success: true,
       changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
@@ -411,6 +411,9 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         firstYearGuaranteed: true,
       })
     );
+    expect(dispatchedContract?.totalValue).toBe(24_600_000);
+    expect(dispatchedContract?.averageAnnualValue).toBe(12_300_000);
+    expect(dispatchedContract?.base).toBe(12_000_000);
     expect(dispatchedContract?.salariesByYear).toEqual([
       expect.objectContaining({
         season: '2025-26',
@@ -429,6 +432,52 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         optionUsed: null,
       }),
     ]);
+  });
+
+  it('reuses the same prepared standard-sign contract for vacuum legality validation and mutation compute', async () => {
+    mutationMocks.computeWorldMutation.mockReturnValue({
+      success: false,
+      error: 'stop after capturing prepared standard-sign payload',
+    });
+
+    const { result } = renderActionsHarness({ worldId: null });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        buildStagedScalarSigningFixture() as any
+      );
+    });
+
+    const validationArgs = validationMocks.validateSigning.mock.calls.at(-1)?.[0] as any;
+    const computeArgs = mutationMocks.computeWorldMutation.mock.calls.at(-1)?.[0] as any;
+
+    expect(actionResult).toEqual(
+      expect.objectContaining({
+        success: false,
+      })
+    );
+    expect(validationArgs.contract).toBe(computeArgs.payload.contract);
+    expect(validationArgs.signedUsing).toBe(computeArgs.payload.signedUsing);
+    expect(computeArgs).toEqual(
+      expect.objectContaining({
+        mutationType: 'signFreeAgent',
+        seasonId: '2025-26',
+        payload: expect.objectContaining({
+          playerId: 'player_1',
+          signedUsing: 'Full MLE',
+          contract: expect.objectContaining({
+            contractType: 'Staged Modal Contract',
+            signingTeam: 'LAL',
+            startYear: 2026,
+            contractYears: 2,
+            totalValue: 24_600_000,
+            firstYearGuaranteed: true,
+          }),
+        }),
+      })
+    );
   });
 
   it('blocks exception-backed signing in vacuum mode when canonical exception validation fails', async () => {

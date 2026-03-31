@@ -9,6 +9,7 @@
  *  - 2026-03-30: Reworked for FA-1C to pin the explicit dual-path vs world-only owner split.
  *  - 2026-03-30: Hardened for FA-1D to pin grouped-owner permanence and world-only fail-closed routes.
  *  - 2026-03-30: Hardened for FA-2D to keep Step 2 UI-truth seams closed.
+ *  - 2026-03-30: Hardened for FA-3A / FA-3B standard-sign payload and legality alignment.
  *
  * GATES:
  *  1. useArchitectActions publishes one explicit dual-path vs world-only Free Agency owner
@@ -16,8 +17,8 @@
  *  3. GMDashboard and FreeAgencySection hand off grouped Free Agency authority
  *  4. FreeAgentPool remains a staging / dispatch surface, not a mutation owner
  *  4B. Step 2 UI truth keeps shared launch, owner-projected availability, and shared-entry identity
- *  5. EditContractModal remains a callback dispatcher for Free Agency actions
- *  6. The authoritative hook path keeps world-only routes fail-closed and canonical
+ *  5. EditContractModal remains a callback dispatcher and stages lean standard-sign payloads
+ *  6. The authoritative hook path keeps world-only routes fail-closed, canonical, and standard-sign aligned
  *  7. ActiveTab union still includes runtime fa/cap/capfull keys
  *
  * @vitest-environment node
@@ -521,17 +522,39 @@ describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agenc
     'const dispatchSelectedFreeAgencyAction = useCallback(',
     '  const handleConfirm = async () => {'
   );
+  const standardSigningDispatchRegion = readRegion(
+    content,
+    'const buildSigningDispatchPayload = useCallback(',
+    '  const buildCanonicalSigningDispatchPayload = useCallback('
+  );
 
   it('extracts Free Agency confirm handling into one dispatch helper', () => {
     expect(content).toMatch(
       /const\s+dispatchSelectedFreeAgencyAction\s*=\s*useCallback/
     );
     expect(content).toMatch(/const\s+buildSigningDispatchPayload\s*=\s*useCallback/);
+    expect(content).toMatch(
+      /const\s+buildCanonicalSigningDispatchPayload\s*=\s*useCallback/
+    );
     expect(content).not.toMatch(/buildCanonicalSigningPayload/);
     expect(dispatchRegion).toMatch(/onStoreOfferSheet\?\./);
     expect(dispatchRegion).toMatch(/onSignFreeAgent\?\./);
     expect(dispatchRegion).toMatch(/onResign\?\./);
     expect(dispatchRegion).toMatch(/onSignAndTrade\?\./);
+  });
+
+  it('keeps standard signNew and resign dispatch lean instead of finalizing canonical rows or totals in the modal', () => {
+    const forbiddenPatterns = [
+      /salariesByYear/,
+      /base:/,
+      /totalValue/,
+      /averageAnnualValue/,
+      /firstYearGuaranteed/,
+    ];
+
+    for (const forbidden of forbiddenPatterns) {
+      expect(standardSigningDispatchRegion).not.toMatch(forbidden);
+    }
   });
 
   it('delegates signNew, resign, and signAndTrade confirm paths through the dispatch helper', () => {
@@ -560,6 +583,11 @@ describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agenc
 
 describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fail-closed and canonical (FA-1D)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const handleSignRegion = readRegion(
+    content,
+    'const handleSign = useCallback(',
+    'const handleSignAndTrade = useCallback('
+  );
   const handleSignAndTradeRegion = readRegion(
     content,
     'const handleSignAndTrade = useCallback(',
@@ -601,7 +629,19 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /const\s+prepareAuthoritativeSigningDetails\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /handleSign[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+      /const\s+prepareStandardSigningMutationPayload\s*=\s*useCallback/
+    );
+    expect(handleSignRegion).toMatch(
+      /prepareStandardSigningMutationPayload/
+    );
+    expect(handleSignRegion).toMatch(
+      /validateSigning\(\{\s*[\s\S]*contract:\s*standardSigningPayload\.contract,\s*[\s\S]*signedUsing:\s*standardSigningPayload\.signedUsing/
+    );
+    expect(handleSignRegion).toMatch(
+      /computeWorldMutation\(\{\s*[\s\S]*payload:\s*standardSigningPayload/
+    );
+    expect(content).toMatch(
+      /handleSign[\s\S]{0,3200}prepareStandardSigningMutationPayload/
     );
     expect(content).toMatch(
       /handleSignAndTrade[\s\S]{0,3200}prepareAuthoritativeSigningDetails/

@@ -34,8 +34,8 @@ Progress and execution status for the Free Agency review series.
 
 | ID    | Title                                                                 | Status | Notes |
 |-------|-----------------------------------------------------------------------|--------|-------|
-| FA-3A | Centralize and Clarify Standard Signing Payload Finalization          | TODO   |       |
-| FA-3B | Align Standard Signing Legality Validation with Final Mutation Truth  | TODO   |       |
+| FA-3A | Centralize and Clarify Standard Signing Payload Finalization          | DONE   | `EditContractModal.tsx` now stages lean standard-sign payloads while `useArchitectActions.ts` owns one dedicated standard-sign preparation seam that finalizes canonical salary rows, action year, totals, mechanism, and mutation payload truth. |
+| FA-3B | Align Standard Signing Legality Validation with Final Mutation Truth  | DONE   | `handleSign` now validates and mutates from the same prepared standard-sign package, and focused runtime/closure guardrails now pin that legality/mutation alignment plus the absence of modal-finalized standard-sign truth. |
 | FA-3C | Fence the Standard Signing World-Mode vs Vacuum-Mode Dual Path        | TODO   |       |
 | FA-3D | Protect Final-State, Persistence, and Reload Truth for Standard Signings | TODO |       |
 

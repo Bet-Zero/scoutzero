@@ -333,7 +333,7 @@ describe('EditContractModal future-year action-year routing', () => {
     expect(resetOptions).toEqual(['Cap Space / Rights', 'Minimum']);
   });
 
-  it('builds sign payload seasons from the clicked action year instead of dashboard current year', async () => {
+  it('stages standard-sign payloads from the clicked action year without modal-finalized rows or totals', async () => {
     const onClose = vi.fn();
     const onSignFreeAgent = vi.fn().mockResolvedValue({ success: true });
 
@@ -362,17 +362,27 @@ describe('EditContractModal future-year action-year routing', () => {
       expect(onSignFreeAgent).toHaveBeenCalledTimes(1);
     });
 
+    const stagedPayload = onSignFreeAgent.mock.calls.at(-1)?.[1] as Record<
+      string,
+      unknown
+    >;
+
     expect(onSignFreeAgent).toHaveBeenCalledWith(
       FUTURE_FA_PLAYER,
       expect.objectContaining({
         startYear: 2028,
-        salariesByYear: expect.arrayContaining([
-          expect.objectContaining({
-            season: '2027-28',
-          }),
-        ]),
+        years: expect.any(Number),
+        salaries: expect.any(Array),
       })
     );
+    expect(Array.isArray(stagedPayload.salaries)).toBe(true);
+    expect(stagedPayload.salaries).toHaveLength(Number(stagedPayload.years));
+    expect((stagedPayload.salaries as number[])[0]).toBeGreaterThan(0);
+    expect(stagedPayload).not.toHaveProperty('salariesByYear');
+    expect(stagedPayload).not.toHaveProperty('base');
+    expect(stagedPayload).not.toHaveProperty('totalValue');
+    expect(stagedPayload).not.toHaveProperty('averageAnnualValue');
+    expect(stagedPayload).not.toHaveProperty('firstYearGuaranteed');
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

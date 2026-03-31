@@ -738,6 +738,18 @@ type PreparedAuthoritativeSigningDetails = {
   signedUsing: string | null;
 };
 
+type StandardSigningMutationPayload = ArchitectMutationPayload & {
+  teamCode: string;
+  playerId: string;
+  contract: LocalContract;
+  signedUsing: string | null;
+};
+
+type PreparedStandardSigningDetails = {
+  actionSeasonContext: ReturnType<typeof buildActionSeasonContext>;
+  standardSigningPayload: StandardSigningMutationPayload | null;
+};
+
 function resolveSeasonEndYear(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -1794,6 +1806,43 @@ export function useArchitectActions({
     [currentYear, teamCode]
   );
 
+  const prepareStandardSigningMutationPayload = useCallback(
+    (
+      playerObj: ArchitectPlayer,
+      playerId: string,
+      contract: SigningDetails
+    ): PreparedStandardSigningDetails => {
+      const { actionSeasonContext, architectContract, signedUsing } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
+          contractType:
+            typeof contract.contractType === 'string'
+              ? contract.contractType
+              : 'Signed FA',
+          isExtension: !!contract.isExtension,
+          isRookieScale: !!contract.isRookieScale,
+          signAndTrade: false,
+        });
+
+      if (!architectContract) {
+        return {
+          actionSeasonContext,
+          standardSigningPayload: null,
+        };
+      }
+
+      return {
+        actionSeasonContext,
+        standardSigningPayload: {
+          teamCode,
+          playerId,
+          contract: architectContract,
+          signedUsing,
+        },
+      };
+    },
+    [prepareAuthoritativeSigningDetails, teamCode]
+  );
+
   const applyTradeToCapSheet = useCallback(
     async (tradeData: TradeDataItem[]): Promise<void> => {
       if (!tradeData || !Array.isArray(tradeData)) return;
@@ -2116,22 +2165,19 @@ export function useArchitectActions({
         };
       }
 
-      const { actionSeasonContext, architectContract, signedUsing } =
-        prepareAuthoritativeSigningDetails(playerObj, contract, {
-          contractType:
-            typeof contract.contractType === 'string'
-              ? contract.contractType
-              : 'Signed FA',
-          isExtension: !!contract.isExtension,
-          isRookieScale: !!contract.isRookieScale,
-          signAndTrade: false,
-        });
+      const normalizedPlayerId = String(idToSign).trim();
+      const { actionSeasonContext, standardSigningPayload } =
+        prepareStandardSigningMutationPayload(
+          playerObj,
+          normalizedPlayerId,
+          contract
+        );
 
-      if (!architectContract) {
+      if (!standardSigningPayload?.contract) {
         reportMutationError(
           'Cannot sign player: contract payload is missing salaries.',
           {
-            playerId: idToSign,
+            playerId: normalizedPlayerId,
             contract,
           }
         );
@@ -2141,17 +2187,10 @@ export function useArchitectActions({
         };
       }
 
-      const signingPayload: ArchitectMutationPayload = {
-        teamCode,
-        playerId: idToSign,
-        contract: architectContract,
-        signedUsing,
-      };
-
       if (worldId) {
         const result = await runAuthoritativeFAMutation(
           'signFreeAgent',
-          signingPayload,
+          standardSigningPayload,
           {
             worldRequiredMessage: 'Signing requires an active world to commit.',
             seasonIdOverride: actionSeasonContext.seasonId,
@@ -2200,8 +2239,8 @@ export function useArchitectActions({
       const validation = validateSigning({
         team: teamCapSheet,
         player: canonicalPlayer,
-        contract: architectContract,
-        signedUsing,
+        contract: standardSigningPayload.contract,
+        signedUsing: standardSigningPayload.signedUsing,
         year: actionSeasonContext.actionYear,
       });
 
@@ -2219,7 +2258,7 @@ export function useArchitectActions({
 
       const computeResult = computeWorldMutation({
         mutationType: 'signFreeAgent',
-        payload: signingPayload,
+        payload: standardSigningPayload,
         currentState: {
           team: teamCapSheet as FreeAgentComputeState['team'],
           player: canonicalPlayer as FreeAgentComputeState['player'],

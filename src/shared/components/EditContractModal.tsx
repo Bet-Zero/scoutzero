@@ -216,8 +216,8 @@ type StagedSigningPayloadLike = {
   salaries: number[];
   raisePct?: number;
   startYear?: number;
-  contractYears: number;
-  salariesByYear: Array<{
+  contractYears?: number;
+  salariesByYear?: Array<{
     season: string;
     salary: number;
     capHit: number;
@@ -226,10 +226,10 @@ type StagedSigningPayloadLike = {
     optionType: string | null;
     optionUsed: boolean | null;
   }>;
-  base: number;
-  totalValue: number;
-  averageAnnualValue: number;
-  firstYearGuaranteed: boolean;
+  base?: number;
+  totalValue?: number;
+  averageAnnualValue?: number;
+  firstYearGuaranteed?: boolean;
   exceptionType: string;
   signedUsing: string | null;
   guardrails: SigningGuardrailsLike;
@@ -1028,23 +1028,6 @@ const EditContractModal = ({
     (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
       const years = extension.years || extension.salaries?.length || 0;
       const salaries = (extension.salaries || []).slice(0, years);
-      const totalValue = salaries.reduce(
-        (sum, value) => sum + Math.round(Number(value) || 0),
-        0
-      );
-      const salariesByYear = salaries.map((value, index) => {
-        const amount = Math.round(Number(value) || 0);
-        return {
-          season: toSeasonCode(ACTION_YEAR + index),
-          salary: amount,
-          capHit: amount,
-          guaranteed: true,
-          option: null,
-          optionType: null,
-          optionUsed: null,
-        };
-      });
-
       const signedUsing =
         selectedException && selectedException !== 'None'
           ? selectedException
@@ -1053,13 +1036,7 @@ const EditContractModal = ({
       return {
         ...extension,
         years,
-        contractYears: years,
         salaries,
-        salariesByYear,
-        base: salaries[0] || 0,
-        totalValue,
-        averageAnnualValue: years > 0 ? Math.round(totalValue / years) : 0,
-        firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
         exceptionType: selectedException,
         signedUsing,
         startYear: ACTION_YEAR,
@@ -1070,24 +1047,54 @@ const EditContractModal = ({
     },
     [ACTION_YEAR, extension, selectedException, signingGuardrails]
   );
+  const buildCanonicalSigningDispatchPayload = useCallback(
+    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
+      const stagedPayload = buildSigningDispatchPayload(overrides);
+      const salaries = (stagedPayload.salaries || []).map((value) =>
+        Math.round(Number(value) || 0)
+      );
+      const totalValue = salaries.reduce((sum, value) => sum + value, 0);
+      const salariesByYear = salaries.map((value, index) => ({
+        season: toSeasonCode(ACTION_YEAR + index),
+        salary: value,
+        capHit: value,
+        guaranteed: true,
+        option: null,
+        optionType: null,
+        optionUsed: null,
+      }));
+
+      return {
+        ...stagedPayload,
+        contractYears: stagedPayload.contractYears ?? stagedPayload.years,
+        salariesByYear,
+        base: salaries[0] || 0,
+        totalValue,
+        averageAnnualValue:
+          stagedPayload.years > 0 ? Math.round(totalValue / stagedPayload.years) : 0,
+        firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
+      };
+    },
+    [ACTION_YEAR, buildSigningDispatchPayload]
+  );
   const signAndTradePreflightPayload = useMemo(
     () =>
-      ({
+      buildCanonicalSigningDispatchPayload({
         ...contractDataForValidation,
         signAndTrade: true,
         contractType: 'Sign & Trade',
-      }) as StagedSigningPayloadLike,
-    [contractDataForValidation]
+      }),
+    [buildCanonicalSigningDispatchPayload, contractDataForValidation]
   );
   const offerSheetPreflightPayload = useMemo(
     () =>
-      buildSigningDispatchPayload({
+      buildCanonicalSigningDispatchPayload({
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
         rfaOfferSheetStatus: 'PENDING_MATCH',
         contractType: 'Offer Sheet',
       }),
-    [buildSigningDispatchPayload]
+    [buildCanonicalSigningDispatchPayload]
   );
   const validationAuthority: ValidationAuthority =
     selectedAction === 'signAndTrade' ||
@@ -1654,7 +1661,7 @@ const EditContractModal = ({
       if (isOfferSheet && selectedAction === 'signNew') {
         return onStoreOfferSheet?.(
           player,
-          buildSigningDispatchPayload({
+          buildCanonicalSigningDispatchPayload({
             contractType: 'Offer Sheet',
             rfaOfferSheet: true,
             rfaOfferSheetOnly: true,
@@ -1689,7 +1696,7 @@ const EditContractModal = ({
 
           return onSignAndTrade?.(
             player,
-            buildSigningDispatchPayload({
+            buildCanonicalSigningDispatchPayload({
               signAndTrade: true,
               contractType: 'Sign & Trade',
               ...(overrideMetadata || {}),
@@ -1701,6 +1708,7 @@ const EditContractModal = ({
       }
     },
     [
+      buildCanonicalSigningDispatchPayload,
       buildSigningDispatchPayload,
       isOfferSheet,
       onResign,
