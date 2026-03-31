@@ -52,6 +52,19 @@ Progress and execution status for the Free Agency review series.
 | FA-4C | Clarify and Harden Final Commit, Sync, and Reload Truth for Sign-and-Trade              | DONE   | `useArchitectActions.ts` now routes SAT commit through one explicit world-mode executor that resolves committed active-team truth from `changedTeams` first and `loadWorldTeamData(...)` second, fails closed when no committed snapshot can be resolved, and refreshes the world roster index only after committed-state resolution. |
 | FA-4D | Add Focused Guardrails for Sign-and-Trade Preflight, Commit, and Final-State Truth      | DONE   | Focused runtime and closure guardrails now pin SAT changedTeams application, reload fallback, fail-closed missing committed snapshot behavior, roster-index refresh ordering, and explicit SAT final-state routing outside generic `runAuthoritativeFAMutation(...)`. |
 
-**STEP STATUS: DONE**
+**STEP 4 STATUS: DONE**
+
+---
+
+## STEP 5 — Free Agency Offer-Sheet Creation Flow
+
+| ID    | Title                                                                                                                         | Status | Notes |
+|-------|-------------------------------------------------------------------------------------------------------------------------------|--------|-------|
+| FA-5A | Tighten Offer-Sheet Initiation Truth Across Pool, Modal, and World-Only Availability                                         | TODO   |       |
+| FA-5B | Align Authoritative Offer-Sheet Preflight with Store-Time Payload Truth                                                      | TODO   |       |
+| FA-5C | Clarify and Harden Pending-State, Sync, and Reload Truth for Created Offer Sheets                                            | TODO   |       |
+| FA-5D | Add Focused Guardrails for Offer-Sheet Preflight, Store, and Pending-State Truth                                             | TODO   |       |
+
+**STEP 5 STATUS: TODO**
 
 ---
