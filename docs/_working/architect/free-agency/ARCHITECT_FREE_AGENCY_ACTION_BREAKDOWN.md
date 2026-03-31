@@ -477,3 +477,164 @@ Validation can also stay tiered:
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 5 — ACTION BREAKDOWN
+
+## Free Agency Offer-Sheet Creation Flow
+
+---
+
+## FA-5A — Tighten Offer-Sheet Initiation Truth Across Pool, Modal, and World-Only Availability
+
+### Problem
+
+Outgoing offer-sheet creation is world-only, but its visible initiation still depends on several surfaces staying aligned:
+
+- section-level world gating
+- pool-level modal launch wiring
+- modal-visible Offer Sheet toggle availability
+- `signNew` branch selection plus offer-sheet staging
+
+That means the creation path is coherent today, but still a multi-layer initiation seam.
+
+### Why It Matters
+
+- A contributor can accidentally make the Offer Sheet toggle appear in the wrong context
+- The visible UI can suggest offer-sheet creation is available while owner-level world truth says otherwise
+- Offer-sheet creation is not supposed to have a vacuum-mode fallback, so initiation drift matters more here
+
+### Goal
+
+Make outgoing offer-sheet initiation easier to trace and less likely to drift across section, pool, and modal surfaces.
+
+### Success Criteria
+
+- Offer-sheet creation is more clearly offered only in the correct world-backed contexts
+- Modal launch and Offer Sheet toggle truth read more clearly as one world-only action path
+- Contributors are less likely to introduce a misleading visible initiation seam
+
+---
+
+## FA-5B — Align Authoritative Offer-Sheet Preflight with Store-Time Payload Truth
+
+### Problem
+
+Outgoing offer-sheet creation currently uses authoritative preflight and authoritative store, and both share the same signing-preparation seam.
+
+That is strong, but they are still two separate evaluations of the same creation path.
+
+### Why It Matters
+
+- Preflight can approve one offer-sheet story while store later evaluates or commits a slightly different one
+- Contract markers like `rfaOfferSheet`, `rfaOfferSheetOnly`, `rfaOfferSheetStatus`, signing mechanism truth, or action-season context can drift if the shared seam weakens
+- Offer-sheet creation is too sensitive to rely on “probably still aligned”
+
+### Goal
+
+Make preflight and store easier to verify as one coherent offer-sheet creation system.
+
+### Success Criteria
+
+- The prepared offer-sheet payload truth is easier to identify and compare across preflight and store
+- Offer-sheet contract markers, action-season context, and signing mechanism truth are less likely to drift between preflight and store
+- Contributors are less likely to evolve one path without the other
+
+---
+
+## FA-5C — Clarify and Harden Pending-State, Sync, and Reload Truth for Created Offer Sheets
+
+### Problem
+
+An outgoing offer sheet is not complete when store succeeds.
+
+It still has to end correctly in:
+
+- persisted pending offer-sheet truth
+- synced local/dashboard state
+- outgoing pending-offer list visibility
+- reloaded/hydrated world truth after creation
+
+Right now, outgoing offer-sheet storage still appears more indirect than ideal because it runs through the more generic authoritative mutation helper path.
+
+### Why It Matters
+
+- Offer-sheet creation can look correct at store time but still land in the wrong pending visible state
+- Pending-state truth can drift away from what authoritative preflight implied
+- Created offer sheets are stateful objects, so hidden final-state assumptions matter more than in a one-shot action
+
+### Goal
+
+Make outgoing offer-sheet pending-state, sync, and reload truth easier to trace and less dependent on indirect generic handling.
+
+### Success Criteria
+
+- Final created/reloaded pending-state truth is easier to follow
+- Contributors are less likely to introduce a preflight/store/pending-state mismatch without detection
+- Visible pending-offer-sheet truth is more directly tied to committed creation results
+
+---
+
+## FA-5D — Add Focused Guardrails for Offer-Sheet Preflight, Store, and Pending-State Truth
+
+### Problem
+
+Even if outgoing offer-sheet creation is coherent today, its correctness still depends on several boundaries continuing to hold:
+
+- world-only initiation staying world-only
+- authoritative preflight staying authoritative
+- preflight and store staying aligned
+- pending created-state and reload truth staying faithful to stored offer-sheet results
+
+These are high-value seams and still vulnerable to future drift.
+
+### Why It Matters
+
+- A contributor can accidentally reopen a weaker or alternate offer-sheet creation path
+- Preflight/store drift is easy to miss without focused protection
+- Generic sync helpers can hide offer-sheet-specific regressions unless something explicitly guards them
+
+### Goal
+
+Add focused protection so offer-sheet creation truth stays durable instead of just currently coherent.
+
+### Success Criteria
+
+- Offer-sheet creation regressions are easier to detect
+- Preflight, store, and pending-state seams are better protected
+- The feature is guarded as a world-only pending-state creation system, not just a modal toggle branch
+
+---
+
+## Step 5 Summary
+
+This step focuses on:
+
+- tightening outgoing offer-sheet initiation truth across section, pool, and modal surfaces
+- aligning authoritative preflight with store-time offer-sheet payload truth
+- clarifying and hardening pending-state, sync, and reload truth for created offer sheets
+- adding focused guardrails for offer-sheet preflight, store, and pending-state durability
+
+This is an **offer-sheet creation correctness and coherence step**, not a broad Free Agency rewrite.
+
+---
+
+## Efficiency Note
+
+Execution may batch naturally where the live code shows one shared seam:
+
+- **FA-5A + FA-5B** may be executed together if visible initiation truth and authoritative preflight/store payload truth are owned by the same launch/preparation seam
+- **FA-5C + FA-5D** may be executed together if pending-state/sync/reload truth and guardrail hardening share the same authoritative mutation/sync seam
+
+Validation can stay tiered:
+
+- use targeted offer-sheet creation tests plus `typecheck` / `test:diff` / `build` for substeps
+- reserve broader suite escalation for step-close, blocker follow-up, or whole-feature closeout where needed
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---

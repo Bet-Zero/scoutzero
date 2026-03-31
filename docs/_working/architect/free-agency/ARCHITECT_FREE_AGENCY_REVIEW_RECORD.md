@@ -1165,3 +1165,311 @@ However, it still carries enough preflight/commit/final-state drift sensitivity 
 **RISK**
 
 ---
+
+# STEP 5 — Free Agency Offer-Sheet Creation Flow
+
+## Scope
+
+Free Agency — Step 5: Offer-Sheet Creation Flow
+
+**Date:** 2026-03-30  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the outgoing offer-sheet creation path in Free Agency is correct from UI initiation through authoritative preflight, storage, and pending-state truth.
+
+Main questions:
+
+- how offer sheets are initiated from the UI
+- whether authoritative preflight is correctly wired and trusted
+- whether storage/persistence of pending outgoing offer sheets is correct
+- whether team/player/world truth remains coherent after offer-sheet creation
+- whether any duplicate or alternate offer-sheet creation paths still exist
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+Outgoing offer-sheet creation is structurally coherent.
+
+The path has several important strengths:
+
+- it is explicitly world-only at section, pool, modal, and action-hook level
+- the modal uses authoritative preflight for offer-sheet creation rather than advisory-only modal checks
+- `useArchitectActions.ts` owns both offer-sheet preflight and offer-sheet storage
+- both preflight and store use the same hook-level signing-preparation seam
+- there is an explicit pending-state surface through the outgoing `OfferSheetList`
+
+Those are real strengths, and they are enough to avoid a FAIL.
+
+However, Step 5 still starts at **RISK** because offer-sheet creation is not yet clean enough to grade PASS.
+
+The main structural concern is **drift sensitivity** between:
+
+- what authoritative preflight approves
+- what store actually commits
+- what pending created-state ultimately shows after creation
+
+Even though preflight and store currently share the same signing-preparation helper, they are still two separate evaluations rather than one carried authoritative offer-sheet transaction definition.
+
+There is also a second risk:
+
+- outgoing offer-sheet creation still commits through the generic `runAuthoritativeFAMutation('storeOfferSheet', ...)` path, so final created/pending-state truth is still somewhat indirect compared with the newer explicit standard-signing and sign-and-trade execution seams
+
+So the correct Step 5 verdict is:
+
+**RISK**
+
+---
+
+## Offer-Sheet Creation Flow Map
+
+### 1. Section-Level World Gating and Pending-State Surface
+
+`FreeAgencySection.tsx` makes the world-only boundary explicit.
+
+It:
+
+- warns that offer sheets and sign-and-trade require an active world
+- disables offer-sheet action surfaces when world-only actions are unavailable
+- renders a dedicated outgoing pending-state surface through `OfferSheetList` under **“My Pending Offer Sheets”**
+
+This is part of the offer-sheet creation truth story because it correctly frames both:
+
+- where creation is allowed
+- where created pending-state is later shown
+
+---
+
+### 2. Pool Launch Truth
+
+`FreeAgentPool.tsx` launches `EditContractModal.tsx` and passes offer-sheet capabilities into it through owner-derived modal props.
+
+The pool provides:
+
+- `getOfferSheetPreflight`
+- `onStoreOfferSheet`
+- `showOfferSheetToggle`
+- modal-visible actions
+
+The pool itself does not create offer sheets.
+It remains a launch/staging surface.
+
+---
+
+### 3. Modal Initiation Truth
+
+`EditContractModal.tsx` handles outgoing offer-sheet creation as a branch of:
+
+- `selectedAction === 'signNew'`
+- `isOfferSheet === true`
+
+Within that path, the modal:
+
+- shows the Offer Sheet toggle only when offer-sheet capability is available
+- builds a canonical offer-sheet preflight payload
+- runs `getOfferSheetPreflight(...)`
+- switches validation authority to authoritative-preflight
+- dispatches `onStoreOfferSheet(...)` on confirm with offer-sheet markers such as:
+  - `rfaOfferSheet`
+  - `rfaOfferSheetOnly`
+  - `rfaOfferSheetStatus: 'PENDING_MATCH'`
+
+This is a strong part of the current system because the modal treats offer-sheet creation as an authoritative world-backed action.
+
+---
+
+### 4. Authoritative Preflight Owner
+
+`useArchitectActions.ts` owns `getOfferSheetPreflight(...)`.
+
+It:
+
+- fails closed if no `worldId`
+- blocks if player ID is missing
+- prepares the signing contract through `prepareAuthoritativeSigningDetails(...)` with offer-sheet-specific overrides
+- calls `preflightOfferSheetMutation(...)` using:
+  - `offeringTeamCode`
+  - player ID
+  - prepared contract
+  - action-season-derived `seasonId`
+
+This is the real preflight owner.
+
+---
+
+### 5. Authoritative Store Owner
+
+`useArchitectActions.ts` also owns `handleStoreOfferSheet(...)`.
+
+It:
+
+- fails closed if no `worldId`
+- blocks if player ID is missing
+- uses the same `prepareAuthoritativeSigningDetails(...)` helper with the same offer-sheet markers
+- stores through `runAuthoritativeFAMutation('storeOfferSheet', ...)` with:
+  - `teamCode`
+  - player ID
+  - prepared contract
+  - `signedUsing`
+  - `seasonIdOverride` from the same action-season context
+
+This is the real storage owner.
+
+---
+
+## What Looks Strong
+
+### World-only offer-sheet creation is real
+
+Offer-sheet creation is not just “supposed to be” world-only.
+It is enforced as world-only in:
+
+- section-level UI messaging and disabled state
+- modal preflight availability
+- hook-level preflight
+- hook-level storage
+
+That is correct.
+
+---
+
+### Authoritative preflight is correctly chosen
+
+The modal does not rely on local advisory-only validation for offer-sheet creation.
+It correctly switches to authoritative-preflight validation.
+
+That is the right design for a world-backed pending-state action.
+
+---
+
+### Preflight and store share the same preparation seam
+
+Both `getOfferSheetPreflight(...)` and `handleStoreOfferSheet(...)` use `prepareAuthoritativeSigningDetails(...)` with the same offer-sheet-specific overrides:
+
+- `contractType: 'Offer Sheet'`
+- `rfaOfferSheet: true`
+- `rfaOfferSheetOnly: true`
+- `rfaOfferSheetStatus: 'PENDING_MATCH'`
+
+This is the strongest sign of coherence in the current design.
+
+---
+
+### Pending-state surface exists explicitly
+
+Outgoing pending offer sheets are not implied or hidden.
+They are surfaced directly through the outgoing `OfferSheetList`.
+
+That gives the feature an explicit created-state surface after successful storage.
+
+---
+
+## Main Risks
+
+### 1. Preflight and store are aligned, but still separate
+
+This is the biggest reason Step 5 remains RISK instead of PASS.
+
+Preflight and store share the same signing-preparation helper, but they are still two separate evaluations:
+
+- `preflightOfferSheetMutation(...)`
+- `runAuthoritativeFAMutation('storeOfferSheet', ...)`
+
+That means the current system is coherent, but still structurally able to drift if one path evolves later.
+
+---
+
+### 2. Final created-state truth is still somewhat hidden behind the generic authoritative mutation helper
+
+Offer-sheet creation still stores through the generic authoritative mutation helper path.
+
+That may be correct, but it makes the final created/pending-state truth less explicit than the newer standard-signing and sign-and-trade seams now are.
+
+So storage/persistence truth remains somewhat indirect.
+
+---
+
+### 3. UI initiation still lives inside the broader `signNew` modal branch
+
+Offer-sheet creation is initiated through `signNew` plus the Offer Sheet toggle.
+
+That is workable, but it keeps outgoing offer-sheet creation embedded inside a broader signing modal branch rather than isolated as its own distinct initiation flow.
+
+This is not necessarily wrong, but it is still a staging seam.
+
+---
+
+## Duplicate / Alternate Path Analysis
+
+### Vacuum/base-mode fallback path
+
+No vacuum/base-mode offer-sheet creation path was found.
+
+That is correct.
+
+---
+
+### Competing storage owner
+
+No competing offer-sheet creation/storage owner was found.
+
+The section wires.
+The pool launches.
+The modal stages and dispatches.
+The hook stores.
+
+That ownership story is clean.
+
+---
+
+### Weak UI-side mutation path
+
+No obvious local UI-side offer-sheet storage path was found.
+
+The remaining weakness is not a local mutation path.
+The remaining weakness is preflight/store/final-state drift sensitivity within the authoritative world-only creation system.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why this is not FAIL
+
+- world-only gating is explicit and enforced
+- authoritative preflight is correctly wired
+- preflight and store share the same preparation seam
+- no vacuum fallback or competing storage owner was found
+
+The system is too coherent to justify FAIL.
+
+---
+
+### Why this is not PASS
+
+- preflight and store are still separate evaluations rather than one carried authoritative creation definition
+- final persisted/pending-state truth still depends on the generic authoritative mutation helper path
+- outgoing offer-sheet initiation still lives inside a broader `signNew` modal branch and remains somewhat staging-sensitive
+
+So the correct Step 5 result remains:
+
+**RISK**
+
+---
+
+## Final Conclusion
+
+Outgoing offer-sheet creation is structurally coherent and correctly world-only, with shared hook-level preparation across preflight and store.
+
+However, it still carries enough preflight/store/final-state drift sensitivity that the correct Step 5 verdict is:
+
+**RISK**
+
+---
