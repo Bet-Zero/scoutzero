@@ -36,9 +36,9 @@ Progress and execution status for the Free Agency review series.
 |-------|-----------------------------------------------------------------------|--------|-------|
 | FA-3A | Centralize and Clarify Standard Signing Payload Finalization          | DONE   | `EditContractModal.tsx` now stages lean standard-sign payloads while `useArchitectActions.ts` owns one dedicated standard-sign preparation seam that finalizes canonical salary rows, action year, totals, mechanism, and mutation payload truth. |
 | FA-3B | Align Standard Signing Legality Validation with Final Mutation Truth  | DONE   | `handleSign` now validates and mutates from the same prepared standard-sign package, and focused runtime/closure guardrails now pin that legality/mutation alignment plus the absence of modal-finalized standard-sign truth. |
-| FA-3C | Fence the Standard Signing World-Mode vs Vacuum-Mode Dual Path        | TODO   |       |
-| FA-3D | Protect Final-State, Persistence, and Reload Truth for Standard Signings | TODO |       |
+| FA-3C | Fence the Standard Signing World-Mode vs Vacuum-Mode Dual Path        | DONE   | `handleSign` now routes through explicit `executeWorldModeStandardSigning(...)` and `executeVacuumModeStandardSigning(...)` hook-local executors that both consume the same prepared standard-sign payload and return one normalized committed-state shape, with focused cross-mode and closure guardrails pinning parity. |
+| FA-3D | Protect Final-State, Persistence, and Reload Truth for Standard Signings | DONE | Standard signing now applies one shared committed-state applier only after world `changedTeams` or reload resolves the committed team snapshot; world mode fails closed when no snapshot can be resolved, refreshes roster index only after that resolution, and focused reload/fail-closed guardrails now pin persistence/reload truth. |
 
-**STEP 3 STATUS: TODO**
+**STEP 3 STATUS: DONE**
 
 ---

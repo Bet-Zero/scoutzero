@@ -588,6 +588,21 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     'const handleSign = useCallback(',
     'const handleSignAndTrade = useCallback('
   );
+  const applyCommittedStandardSigningStateRegion = readRegion(
+    content,
+    'const applyCommittedStandardSigningState = useCallback(',
+    'const executeWorldModeStandardSigning = useCallback('
+  );
+  const executeWorldModeStandardSigningRegion = readRegion(
+    content,
+    'const executeWorldModeStandardSigning = useCallback(',
+    'const executeVacuumModeStandardSigning = useCallback('
+  );
+  const executeVacuumModeStandardSigningRegion = readRegion(
+    content,
+    'const executeVacuumModeStandardSigning = useCallback(',
+    'const applyCapAuditedTeamMutation = useCallback('
+  );
   const handleSignAndTradeRegion = readRegion(
     content,
     'const handleSignAndTrade = useCallback(',
@@ -631,15 +646,27 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(content).toMatch(
       /const\s+prepareStandardSigningMutationPayload\s*=\s*useCallback/
     );
+    expect(content).toMatch(
+      /const\s+applyCommittedStandardSigningState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+executeWorldModeStandardSigning\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+executeVacuumModeStandardSigning\s*=\s*useCallback/
+    );
     expect(handleSignRegion).toMatch(
       /prepareStandardSigningMutationPayload/
     );
-    expect(handleSignRegion).toMatch(
+    expect(executeVacuumModeStandardSigningRegion).toMatch(
       /validateSigning\(\{\s*[\s\S]*contract:\s*standardSigningPayload\.contract,\s*[\s\S]*signedUsing:\s*standardSigningPayload\.signedUsing/
     );
-    expect(handleSignRegion).toMatch(
+    expect(executeVacuumModeStandardSigningRegion).toMatch(
       /computeWorldMutation\(\{\s*[\s\S]*payload:\s*standardSigningPayload/
     );
+    expect(handleSignRegion).toMatch(/executeWorldModeStandardSigning/);
+    expect(handleSignRegion).toMatch(/executeVacuumModeStandardSigning/);
+    expect(handleSignRegion).toMatch(/applyCommittedStandardSigningState/);
     expect(content).toMatch(
       /handleSign[\s\S]{0,3200}prepareStandardSigningMutationPayload/
     );
@@ -654,6 +681,34 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(content).toMatch(
       /handleStoreOfferSheet[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+    );
+  });
+
+  it('keeps standard-sign world and vacuum execution on explicit hook-local executors plus one shared final-state applier', () => {
+    expect(applyCommittedStandardSigningStateRegion).toMatch(
+      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+    );
+    expect(applyCommittedStandardSigningStateRegion).toMatch(
+      /setFreeAgents\s*\(\s*\(prev\)\s*=>/
+    );
+    expect(executeWorldModeStandardSigningRegion).toMatch(
+      /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'signFreeAgent'/
+    );
+    expect(executeWorldModeStandardSigningRegion).toMatch(
+      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(executeWorldModeStandardSigningRegion).toMatch(
+      /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+    );
+    expect(executeWorldModeStandardSigningRegion).toMatch(
+      /await\s+refreshWorldRosterIndex\s*\(\s*\)/
+    );
+    expect(executeVacuumModeStandardSigningRegion).toMatch(/validateSigning/);
+    expect(executeVacuumModeStandardSigningRegion).toMatch(
+      /computeWorldMutation/
+    );
+    expect(executeVacuumModeStandardSigningRegion).toMatch(
+      /buildCapAuditEvaluation/
     );
   });
 
@@ -682,6 +737,9 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   });
 
   it('routes world-only Free Agency execution through canonical authoritative mutation keys', () => {
+    expect(handleSignRegion).not.toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*'signFreeAgent'/
+    );
     expect(handleSignAndTradeRegion).toMatch(
       /runAuthoritativeFAMutation\s*\(\s*'signAndTrade'/
     );

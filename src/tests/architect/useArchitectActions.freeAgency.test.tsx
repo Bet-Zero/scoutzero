@@ -113,6 +113,75 @@ const baseTeamFixture = {
   },
 };
 
+function buildSignedTeamFixture(
+  baseTeam: any = baseTeamFixture,
+  overrides: Record<string, unknown> = {}
+) {
+  return {
+    ...baseTeam,
+    roster: ['player_1'],
+    players: [
+      {
+        ...playerFixture,
+        contract: {
+          salariesByYear: contractFixture.salariesByYear,
+        },
+      },
+    ],
+    capHolds: [],
+    exceptions: {
+      mle: {
+        type: 'non-taxpayer',
+        usedAmount: 12_000_000,
+        remainingAmount: 900_000,
+      },
+    },
+    totals: {
+      isHardCapped: true,
+      hardCapLevel: 'firstApron',
+      hardCapReason: 'Triggered by Non-Taxpayer MLE',
+      hardCapDetail: 'Triggered by Non-Taxpayer MLE',
+    },
+    hardCapLevel: 'firstApron',
+    hardCapReason: 'Triggered by Non-Taxpayer MLE',
+    hardCapTriggeredBy: 'fullMLE',
+    ...overrides,
+  };
+}
+
+function summarizeStandardSignPostState(current: {
+  teamCapSheet: any;
+  freeAgents: any[];
+}) {
+  return {
+    roster: [...(current.teamCapSheet?.roster || [])],
+    playerIds: (current.teamCapSheet?.players || [])
+      .map((player: any) => String(player?.id || player?.player_id || ''))
+      .filter(Boolean)
+      .sort(),
+    capHoldPlayerIds: (current.teamCapSheet?.capHolds || [])
+      .map((hold: any) => String(hold?.playerId || ''))
+      .filter(Boolean)
+      .sort(),
+    mleUsedAmount: current.teamCapSheet?.exceptions?.mle?.usedAmount ?? null,
+    mleRemainingAmount:
+      current.teamCapSheet?.exceptions?.mle?.remainingAmount ?? null,
+    hardCapLevel:
+      current.teamCapSheet?.hardCapLevel ||
+      current.teamCapSheet?.totals?.hardCapLevel ||
+      null,
+    hardCapReason:
+      current.teamCapSheet?.hardCapReason ||
+      current.teamCapSheet?.totals?.hardCapReason ||
+      null,
+    hardCapTriggeredBy: current.teamCapSheet?.hardCapTriggeredBy || null,
+    freeAgentIds: (current.freeAgents || [])
+      .map((player: any) => String(player?.id || player?.player_id || player?.name || ''))
+      .filter(Boolean)
+      .sort(),
+  };
+}
+
 function createStandardRosterPlayer(index: number) {
   const playerId = `roster_player_${index + 1}`;
   return {
@@ -278,35 +347,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   });
 
   it('applies canonical changedTeams snapshot immediately after world-mode sign', async () => {
-    const updatedTeam = {
-      ...baseTeamFixture,
-      roster: ['player_1'],
-      players: [
-        {
-          ...playerFixture,
-          contract: {
-            salariesByYear: contractFixture.salariesByYear,
-          },
-        },
-      ],
-      capHolds: [],
-      exceptions: {
-        mle: {
-          type: 'non-taxpayer',
-          usedAmount: 12_000_000,
-          remainingAmount: 900_000,
-        },
-      },
-      totals: {
-        isHardCapped: true,
-        hardCapLevel: 'firstApron',
-        hardCapReason: 'Triggered by Non-Taxpayer MLE',
-        hardCapDetail: 'Triggered by Non-Taxpayer MLE',
-      },
-      hardCapLevel: 'firstApron',
-      hardCapReason: 'Triggered by Non-Taxpayer MLE',
-      hardCapTriggeredBy: 'fullMLE',
-    };
+    const updatedTeam = buildSignedTeamFixture();
 
     mutationMocks.applyWorldMutation.mockResolvedValue({
       success: true,
@@ -361,6 +402,171 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(actionResult).toEqual({ success: true });
     expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
     expect(refreshWorldRosterIndex).toHaveBeenCalled();
+  });
+
+  it('keeps world-mode and vacuum-mode standard-sign post-state truth coherent', async () => {
+    const rosterPlayers = Array.from({ length: 13 }, (_, index) =>
+      createStandardRosterPlayer(index)
+    );
+    const signableBaseTeam = {
+      ...baseTeamFixture,
+      roster: rosterPlayers.map((player) => player.id),
+      players: rosterPlayers,
+      capHolds: [{ playerId: 'player_1', amount: 9_000_000 }],
+    };
+    const updatedTeam = buildSignedTeamFixture(signableBaseTeam, {
+      roster: [...signableBaseTeam.roster, 'player_1'],
+      players: [
+        ...signableBaseTeam.players,
+        {
+          ...playerFixture,
+          contract: {
+            salariesByYear: contractFixture.salariesByYear,
+          },
+        },
+      ],
+    });
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: updatedTeam }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sign_world_coherence' },
+    });
+
+    const { result: worldResult, refreshWorldRosterIndex: worldRefresh } =
+      renderActionsHarness({
+        worldId: 'world_1',
+        initialTeam: signableBaseTeam,
+      });
+
+    await act(async () => {
+      await worldResult.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    mutationMocks.computeWorldMutation.mockReturnValue({
+      success: true,
+      teamUpdates: [{ teamCode: 'LAL', team: updatedTeam }],
+    });
+
+    const { result: vacuumResult, refreshWorldRosterIndex: vacuumRefresh } =
+      renderActionsHarness({
+        worldId: null,
+        initialTeam: signableBaseTeam,
+      });
+
+    await act(async () => {
+      await vacuumResult.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(summarizeStandardSignPostState(worldResult.current)).toEqual(
+      summarizeStandardSignPostState(vacuumResult.current)
+    );
+    expect(worldRefresh).toHaveBeenCalledTimes(1);
+    expect(vacuumRefresh).not.toHaveBeenCalled();
+  });
+
+  it('reloads committed world signing truth when changedTeams does not include the active team', async () => {
+    const reloadedTeam = buildSignedTeamFixture({
+      source: {
+        type: 'world-snapshot',
+        lastModifiedAt: '2026-03-31T00:00:00.000Z',
+      },
+    });
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'BOS', team: { teamCode: 'BOS' } }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sign_reload_fallback' },
+    });
+    worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(reloadedTeam);
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(worldTeamDataMocks.loadWorldTeamData).toHaveBeenCalledWith(
+      'world_1',
+      'LAL'
+    );
+    expect(result.current.teamCapSheet).toEqual(reloadedTeam);
+    expect(result.current.freeAgents).toEqual([]);
+    expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when world signing persists but no committed team snapshot can be resolved', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sign_missing_snapshot' },
+    });
+    worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(null);
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+    const beforeTeamSnapshot = result.current.teamCapSheet;
+    const beforeFreeAgents = result.current.freeAgents;
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual({
+      success: false,
+      message:
+        'Signing saved but the committed team snapshot could not be reloaded.',
+    });
+    expect(result.current.teamCapSheet).toBe(beforeTeamSnapshot);
+    expect(result.current.freeAgents).toBe(beforeFreeAgents);
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(toastMocks.success).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      'Signing saved but the committed team snapshot could not be reloaded.'
+    );
   });
 
   it('ignores conflicting modal-finalized standard-sign fields and dispatches one canonical mutation contract', async () => {

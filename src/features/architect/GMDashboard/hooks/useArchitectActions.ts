@@ -750,6 +750,19 @@ type PreparedStandardSigningDetails = {
   standardSigningPayload: StandardSigningMutationPayload | null;
 };
 
+type StandardSigningCommittedStateSource = 'compute' | 'changedTeams' | 'reload';
+
+type StandardSigningExecutionResult =
+  | {
+      success: true;
+      committedTeam: CapSheet;
+      committedTeamSource: StandardSigningCommittedStateSource;
+    }
+  | {
+      success: false;
+      message: string;
+    };
+
 function resolveSeasonEndYear(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -1099,6 +1112,24 @@ function findUpdatedTeamSnapshot(
     (update) => update?.teamCode === targetTeamCode && update?.team
   );
   return (matchingUpdate?.team as CapSheet | null | undefined) || null;
+}
+
+function filterSignedPlayerFromFreeAgents<
+  T extends {
+    name?: unknown;
+    id?: unknown;
+    player_id?: unknown;
+  },
+>(
+  freeAgents: T[],
+  playerObj: ArchitectPlayer
+): T[] {
+  return freeAgents.filter(
+    (player) =>
+      player.name !== playerObj.name &&
+      player.id !== playerObj.id &&
+      player.player_id !== playerObj.player_id
+  );
 }
 
 /**
@@ -1553,6 +1584,275 @@ export function useArchitectActions({
       evaluateMutationTruth,
       seasonId,
     ]
+  );
+
+  const applyCommittedStandardSigningState = useCallback(
+    (
+      playerObj: ArchitectPlayer,
+      committedTeam: CapSheet
+    ): void => {
+      setTeamCapSheetSafe(committedTeam);
+      setFreeAgents((prev) =>
+        filterSignedPlayerFromFreeAgents(prev, playerObj)
+      );
+    },
+    [setFreeAgents, setTeamCapSheetSafe]
+  );
+
+  const executeWorldModeStandardSigning = useCallback(
+    async (
+      playerObj: ArchitectPlayer,
+      actionSeasonContext: ReturnType<typeof buildActionSeasonContext>,
+      standardSigningPayload: StandardSigningMutationPayload
+    ): Promise<StandardSigningExecutionResult> => {
+      if (!worldId) {
+        const message = 'Signing requires an active world to commit.';
+        reportMutationError(message, {
+          mutationType: 'signFreeAgent',
+          payload: standardSigningPayload,
+        });
+        return { success: false, message };
+      }
+
+      if (!userId) {
+        const message = 'Cannot save changes: missing user identity.';
+        reportMutationError(message, {
+          mutationType: 'signFreeAgent',
+          payload: standardSigningPayload,
+        });
+        return { success: false, message };
+      }
+
+      startSave();
+      try {
+        const rawResult = (await applyWorldMutation({
+          userId,
+          worldId,
+          seasonId: actionSeasonContext.seasonId,
+          mutationType: 'signFreeAgent',
+          payload: standardSigningPayload,
+        })) as PersistMutationResult;
+
+        const truth = evaluateMutationTruth('signFreeAgent', rawResult, {
+          requireWorldPersistence: true,
+        });
+        const result: PersistMutationResult = {
+          ...rawResult,
+          success: truth.ok,
+          error: truth.ok
+            ? rawResult?.error
+            : truth.message || 'Failed to save signing. Please try again.',
+          appliedToLocalState: truth.appliedToLocalState,
+          persistedToWorld: truth.persistedToWorld,
+        };
+
+        if (!result.success) {
+          const message = String(
+            result.error || 'Failed to save signing. Please try again.'
+          );
+          reportMutationError(message, {
+            mutationType: 'signFreeAgent',
+            payload: standardSigningPayload,
+            result: rawResult,
+          });
+          finishSave(message);
+          return { success: false, message };
+        }
+
+        const changedTeam = findUpdatedTeamSnapshot(result.changedTeams, teamCode);
+        const reloadedTeam = changedTeam
+          ? null
+          : ((await loadWorldTeamData(worldId, teamCode)) as CapSheet | null);
+        const committedTeam = changedTeam || reloadedTeam;
+
+        if (!committedTeam) {
+          const message =
+            'Signing saved but the committed team snapshot could not be reloaded.';
+          reportMutationError(message, {
+            mutationType: 'signFreeAgent',
+            payload: standardSigningPayload,
+            playerId:
+              standardSigningPayload.playerId ||
+              playerObj.id ||
+              playerObj.player_id,
+            result,
+          });
+          finishSave(message);
+          return { success: false, message };
+        }
+
+        try {
+          await refreshWorldRosterIndex();
+        } catch (error) {
+          console.warn(
+            '[Architect][FreeAgency] Failed to refresh roster index after signFreeAgent:',
+            error
+          );
+        }
+
+        toast.success('Saved changes');
+        finishSave();
+        return {
+          success: true,
+          committedTeam,
+          committedTeamSource: changedTeam ? 'changedTeams' : 'reload',
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to save signing. Please try again.';
+        reportMutationError(message, {
+          mutationType: 'signFreeAgent',
+          payload: standardSigningPayload,
+          error,
+        });
+        finishSave(message);
+        return { success: false, message };
+      }
+    },
+    [
+      applyWorldMutation,
+      evaluateMutationTruth,
+      finishSave,
+      loadWorldTeamData,
+      refreshWorldRosterIndex,
+      reportMutationError,
+      startSave,
+      teamCode,
+      userId,
+      worldId,
+    ]
+  );
+
+  const executeVacuumModeStandardSigning = useCallback(
+    async (
+      playerObj: ArchitectPlayer,
+      actionSeasonContext: ReturnType<typeof buildActionSeasonContext>,
+      standardSigningPayload: StandardSigningMutationPayload
+    ): Promise<StandardSigningExecutionResult> => {
+      const idToSign = playerObj.id || playerObj.player_id;
+
+      if (!teamCapSheet) {
+        reportMutationError(
+          'Cannot sign player in vacuum mode: team state is not loaded.',
+          {
+            playerId: idToSign,
+          }
+        );
+        return {
+          success: false,
+          message: 'Cannot sign player: team state is not loaded.',
+        };
+      }
+
+      const canonicalPlayer =
+        playersMap[playerObj.name || ''] ||
+        playersMap[playerObj.player_id || ''] ||
+        playersMap[playerObj.id || ''] ||
+        playerObj;
+
+      const validation = validateSigning({
+        team: teamCapSheet,
+        player: canonicalPlayer,
+        contract: standardSigningPayload.contract,
+        signedUsing: standardSigningPayload.signedUsing,
+        year: actionSeasonContext.actionYear,
+      });
+
+      if (!validation.valid) {
+        const firstViolation = validation.violations?.[0];
+        const message =
+          firstViolation?.message ||
+          'Signing failed cap validation in vacuum mode.';
+        reportMutationError(message, {
+          playerId: idToSign,
+          violations: validation.violations,
+        });
+        return { success: false, message };
+      }
+
+      const computeResult = computeWorldMutation({
+        mutationType: 'signFreeAgent',
+        payload: standardSigningPayload,
+        currentState: {
+          team: teamCapSheet as FreeAgentComputeState['team'],
+          player: canonicalPlayer as FreeAgentComputeState['player'],
+          teamCode,
+        } satisfies FreeAgentComputeState,
+        seasonId: actionSeasonContext.seasonId,
+        timestamp: Date.now(),
+        worldId: null,
+      }) as ComputeMutationResult;
+
+      if (!computeResult.success) {
+        const message = String(
+          computeResult.error ||
+            'Unable to apply signing in vacuum mode with canonical compute.'
+        );
+        reportMutationError(message, {
+          playerId: idToSign,
+          computeResult,
+        });
+        return { success: false, message };
+      }
+
+      const updatedTeam = findUpdatedTeamSnapshot(
+        computeResult.teamUpdates,
+        teamCode
+      );
+
+      if (!updatedTeam) {
+        const message =
+          'Signing compute succeeded but no updated team snapshot was returned.';
+        reportMutationError(message, {
+          playerId: idToSign,
+          computeResult,
+        });
+        return { success: false, message };
+      }
+
+      const operationId = generateLocalOperationId();
+      const occurredAt = new Date().toISOString();
+      const baseAudit = buildCapAuditEvaluation({
+        operationId,
+        occurredAt,
+        mutationType: 'signFreeAgent',
+        worldId: null,
+        year: actionSeasonContext.actionYear,
+        teamCodes: [teamCode],
+        playerIds: [String(idToSign)],
+        beforeTeamsByCode: {
+          [teamCode]: safeCloneForAudit(teamCapSheet as CapSheet),
+        },
+        afterTeamsByCode: {
+          [teamCode]: safeCloneForAudit(updatedTeam as CapSheet),
+        },
+      });
+      appendLocalCapAuditEvent(baseAudit.event, {
+        storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
+      });
+
+      if (!baseAudit.validation.valid) {
+        const message = getFirstViolationMessage(
+          baseAudit.validation,
+          'Signing blocked by post-state cap validation in vacuum mode.'
+        );
+        reportMutationError(message, {
+          playerId: idToSign,
+          operationId,
+          violations: baseAudit.validation.violations,
+        });
+        return { success: false, message };
+      }
+
+      return {
+        success: true,
+        committedTeam: updatedTeam as CapSheet,
+        committedTeamSource: 'compute',
+      };
+    },
+    [playersMap, reportMutationError, teamCapSheet, teamCode]
   );
 
   const applyCapAuditedTeamMutation = useCallback(
@@ -2187,169 +2487,36 @@ export function useArchitectActions({
         };
       }
 
-      if (worldId) {
-        const result = await runAuthoritativeFAMutation(
-          'signFreeAgent',
-          standardSigningPayload,
-          {
-            worldRequiredMessage: 'Signing requires an active world to commit.',
-            seasonIdOverride: actionSeasonContext.seasonId,
-          }
-        );
-
-        if (!result?.success) {
-          return {
-            success: false,
-            message: String(
-              result?.error || 'Failed to save signing. Please try again.'
-            ),
-          };
-        }
-
-        setFreeAgents((prev) =>
-          prev.filter(
-            (p) =>
-              p.name !== playerObj.name &&
-              p.id !== playerObj.id &&
-              p.player_id !== playerObj.player_id
+      const executionResult = worldId
+        ? await executeWorldModeStandardSigning(
+            playerObj,
+            actionSeasonContext,
+            standardSigningPayload
           )
-        );
-        return { success: true };
-      }
+        : await executeVacuumModeStandardSigning(
+            playerObj,
+            actionSeasonContext,
+            standardSigningPayload
+          );
 
-      if (!teamCapSheet) {
-        reportMutationError(
-          'Cannot sign player in vacuum mode: team state is not loaded.',
-          {
-            playerId: idToSign,
-          }
-        );
+      if (executionResult.success !== true) {
         return {
           success: false,
-          message: 'Cannot sign player: team state is not loaded.',
+          message: executionResult.message,
         };
       }
 
-      const canonicalPlayer =
-        playersMap[playerObj.name || ''] ||
-        playersMap[playerObj.player_id || ''] ||
-        playersMap[playerObj.id || ''] ||
-        playerObj;
-
-      const validation = validateSigning({
-        team: teamCapSheet,
-        player: canonicalPlayer,
-        contract: standardSigningPayload.contract,
-        signedUsing: standardSigningPayload.signedUsing,
-        year: actionSeasonContext.actionYear,
-      });
-
-      if (!validation.valid) {
-        const firstViolation = validation.violations?.[0];
-        const message =
-          firstViolation?.message ||
-          'Signing failed cap validation in vacuum mode.';
-        reportMutationError(message, {
-          playerId: idToSign,
-          violations: validation.violations,
-        });
-        return { success: false, message };
-      }
-
-      const computeResult = computeWorldMutation({
-        mutationType: 'signFreeAgent',
-        payload: standardSigningPayload,
-        currentState: {
-          team: teamCapSheet as FreeAgentComputeState['team'],
-          player: canonicalPlayer as FreeAgentComputeState['player'],
-          teamCode,
-        } satisfies FreeAgentComputeState,
-        seasonId: actionSeasonContext.seasonId,
-        timestamp: Date.now(),
-        worldId: null,
-      }) as ComputeMutationResult;
-
-      if (!computeResult.success) {
-        const message = String(
-          computeResult.error ||
-            'Unable to apply signing in vacuum mode with canonical compute.'
-        );
-        reportMutationError(message, {
-          playerId: idToSign,
-          computeResult,
-        });
-        return { success: false, message };
-      }
-
-      const updatedTeam = findUpdatedTeamSnapshot(
-        computeResult.teamUpdates,
-        teamCode
-      );
-
-      if (!updatedTeam) {
-        const message =
-          'Signing compute succeeded but no updated team snapshot was returned.';
-        reportMutationError(message, {
-          playerId: idToSign,
-          computeResult,
-        });
-        return { success: false, message };
-      }
-
-      const operationId = generateLocalOperationId();
-      const occurredAt = new Date().toISOString();
-      const baseAudit = buildCapAuditEvaluation({
-        operationId,
-        occurredAt,
-        mutationType: 'signFreeAgent',
-        worldId: null,
-        year: actionSeasonContext.actionYear,
-        teamCodes: [teamCode],
-        playerIds: [String(idToSign)],
-        beforeTeamsByCode: {
-          [teamCode]: safeCloneForAudit(teamCapSheet as CapSheet),
-        },
-        afterTeamsByCode: {
-          [teamCode]: safeCloneForAudit(updatedTeam as CapSheet),
-        },
-      });
-      appendLocalCapAuditEvent(baseAudit.event, {
-        storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
-      });
-
-      if (!baseAudit.validation.valid) {
-        const message = getFirstViolationMessage(
-          baseAudit.validation,
-          'Signing blocked by post-state cap validation in vacuum mode.'
-        );
-        reportMutationError(message, {
-          playerId: idToSign,
-          operationId,
-          violations: baseAudit.validation.violations,
-        });
-        return { success: false, message };
-      }
-
-      setTeamCapSheetSafe(updatedTeam as CapSheet);
-      setFreeAgents((prev) =>
-        prev.filter(
-          (p) =>
-            p.name !== playerObj.name &&
-            p.id !== playerObj.id &&
-            p.player_id !== playerObj.player_id
-        )
+      applyCommittedStandardSigningState(
+        playerObj,
+        executionResult.committedTeam
       );
       return { success: true };
     },
     [
-      playersMap,
-      prepareAuthoritativeSigningDetails,
+      applyCommittedStandardSigningState,
+      executeVacuumModeStandardSigning,
+      executeWorldModeStandardSigning,
       reportMutationError,
-      runAuthoritativeFAMutation,
-      setFreeAgents,
-      setTeamCapSheet,
-      teamCapSheet,
-      teamCode,
       worldId,
     ]
   );
