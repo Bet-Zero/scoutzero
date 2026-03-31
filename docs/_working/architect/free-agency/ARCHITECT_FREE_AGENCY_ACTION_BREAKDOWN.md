@@ -317,3 +317,163 @@ Validation can also be tiered:
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 4 — ACTION BREAKDOWN
+
+## Free Agency Sign-and-Trade Initiation, Preflight, and Commit Truth
+
+---
+
+## FA-4A — Tighten Sign-and-Trade Initiation Truth Across Pool, Modal, and World-Only Availability
+
+### Problem
+
+Sign-and-trade is a world-only Free Agency action, but its visible initiation still depends on several surfaces staying aligned:
+
+- section-level world gating
+- pool-level modal launch
+- modal-visible action availability
+- destination-team entry requirements
+
+That means the initiation path is coherent today, but it is still a multi-layer staging seam.
+
+### Why It Matters
+
+- A contributor can accidentally make sign-and-trade appear available in the wrong context
+- The modal can look authoritative while still being launched from a partially misleading visible state
+- World-only action truth is especially sensitive because sign-and-trade is not supposed to have a vacuum-mode fallback
+
+### Goal
+
+Make sign-and-trade initiation easier to trace and less likely to drift across section, pool, and modal surfaces.
+
+### Success Criteria
+
+- Sign-and-trade is more clearly offered only in the correct world-backed contexts
+- Modal launch and destination-team initiation read more clearly as one truthful world-only action path
+- Contributors are less likely to introduce a misleading visible initiation seam
+
+---
+
+## FA-4B — Align Authoritative Preflight with Commit-Time Sign-and-Trade Payload Truth
+
+### Problem
+
+Sign-and-trade currently uses authoritative preflight and authoritative commit, and both share the same contract-preparation seam.
+
+That is strong, but they are still two separate evaluations of the same transaction.
+
+### Why It Matters
+
+- Preflight can approve one transaction story while commit later evaluates or executes a slightly different one
+- Destination-team handling, signing mechanism truth, or action-season context can drift if the shared seam weakens
+- Sign-and-trade is too consequential to rely on “probably still aligned”
+
+### Goal
+
+Make preflight and commit easier to verify as one coherent sign-and-trade transaction system.
+
+### Success Criteria
+
+- The prepared sign-and-trade payload truth is easier to identify and compare across preflight and commit
+- Destination-team routing, action-season context, and signing mechanism truth are less likely to drift between preflight and commit
+- Contributors are less likely to evolve one path without the other
+
+---
+
+## FA-4C — Clarify and Harden Final Commit, Sync, and Reload Truth for Sign-and-Trade
+
+### Problem
+
+A sign-and-trade is not complete when commit succeeds.
+It still has to end correctly in:
+
+- committed mutation truth
+- synced local/dashboard team state
+- persisted world state
+- reloaded/hydrated post-transaction truth
+
+Right now, sign-and-trade final-state handling still appears more indirect than ideal because it relies on the more generic authoritative mutation/sync path.
+
+### Why It Matters
+
+- A transaction can look correct at commit time but still land in the wrong visible final state
+- Final-state truth can drift away from what preflight implied
+- Sign-and-trade is a multi-team action, so hidden final-state assumptions are riskier here than in simpler flows
+
+### Goal
+
+Make sign-and-trade final commit, sync, and reload truth easier to trace and less dependent on indirect generic handling.
+
+### Success Criteria
+
+- Final committed/reloaded sign-and-trade truth is easier to follow
+- Contributors are less likely to introduce a preflight/commit/final-state mismatch without detection
+- Visible post-transaction truth is more directly tied to committed sign-and-trade results
+
+---
+
+## FA-4D — Add Focused Guardrails for Sign-and-Trade Preflight, Commit, and Final-State Truth
+
+### Problem
+
+Even if sign-and-trade is coherent today, its correctness still depends on several boundaries continuing to hold:
+
+- world-only initiation staying world-only
+- authoritative preflight staying authoritative
+- preflight and commit staying aligned
+- final commit/reload truth staying faithful to the transaction
+
+Those are high-value seams, and they are still vulnerable to future drift.
+
+### Why It Matters
+
+- A contributor can accidentally reopen a weaker or alternate sign-and-trade path
+- Preflight/commit drift is easy to miss without focused protection
+- Generic sync helpers can hide sign-and-trade-specific regressions unless something explicitly guards them
+
+### Goal
+
+Add focused protection so sign-and-trade truth stays durable instead of just currently coherent.
+
+### Success Criteria
+
+- Sign-and-trade regressions are easier to detect
+- Preflight, commit, and final-state seams are better protected
+- The feature is guarded as a world-only transaction system, not just a modal action branch
+
+---
+
+## Step 4 Summary
+
+This step focuses on:
+
+- tightening sign-and-trade initiation truth across section, pool, and modal surfaces
+- aligning authoritative preflight with commit-time sign-and-trade payload truth
+- clarifying and hardening final commit, sync, and reload truth
+- adding focused guardrails for sign-and-trade preflight, commit, and final-state durability
+
+This is a **sign-and-trade correctness and coherence step**, not a broad Free Agency rewrite.
+
+---
+
+## Efficiency Note
+
+Execution may batch naturally where the live code shows one shared seam:
+
+- **FA-4A + FA-4B** may be executed together if visible initiation truth and authoritative preflight/commit payload truth are owned by the same launch/preparation seam
+- **FA-4C + FA-4D** may be executed together if final commit/sync/reload truth and guardrail hardening share the same authoritative mutation/sync seam
+
+Validation can also stay tiered:
+
+- use targeted sign-and-trade tests plus `typecheck` / `test:diff` / `build` for substeps
+- reserve broader suite escalation for step-close, blocker follow-up, or whole-feature closeout where needed
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---

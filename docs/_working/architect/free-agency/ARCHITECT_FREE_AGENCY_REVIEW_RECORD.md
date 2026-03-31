@@ -869,3 +869,299 @@ Current Step 3 starting assessment:
 **RISK**
 
 ---
+
+# STEP 4 — Free Agency Sign-and-Trade Initiation, Preflight, and Commit Truth
+
+## Scope
+
+Free Agency — Step 4: Sign-and-Trade Initiation, Preflight, and Commit Truth
+
+**Date:** 2026-03-30  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the Free Agency sign-and-trade path is correct from visible initiation through authoritative preflight and final committed truth.
+
+Main questions:
+
+- whether sign-and-trade is offered only in the correct contexts
+- whether preflight is authoritative and correctly wired
+- whether destination-team handling and payload structure are correct
+- whether commit-time mutation truth matches preflight truth
+- whether final saved/reloaded state reflects sign-and-trade correctly
+- whether any duplicate, fallback, or weaker sign-and-trade paths still exist
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+Sign-and-trade is not loosely wired.
+
+The path is structurally coherent in several important ways:
+
+- world-only availability is explicit in the dashboard/pool/modal surface
+- modal-side sign-and-trade validation correctly defers to authoritative preflight rather than advisory-only modal checks
+- destination-team handling is enforced in both preflight and commit
+- preflight and commit both use the same shared sign-and-trade contract-preparation seam in `useArchitectActions.ts`
+- no vacuum/base-mode fallback path was found for sign-and-trade
+
+Those are meaningful strengths.
+
+However, this step is still not a PASS because sign-and-trade remains a high-risk multi-layer world-only action whose correctness still depends on several aligned but separately executed stages:
+
+- initiation truth in the visible modal layer
+- authoritative preflight
+- authoritative commit
+- generic world-mutation synchronization
+- final committed/reloaded team truth
+
+The main structural risk is not obvious fragmentation.
+The main structural risk is **drift sensitivity** between:
+
+- what preflight approves
+- what commit actually executes
+- what final synced/reloaded state ultimately shows
+
+Even though preflight and commit currently share the same contract-preparation helper, they are still two separate evaluations of the transaction rather than one carried authoritative preflight artifact.
+
+That means the current sign-and-trade system is coherent enough to avoid a FAIL, but still sensitive enough that the correct Step 4 verdict is:
+
+**RISK**
+
+---
+
+## Sign-and-Trade System Map
+
+### 1. Section-Level World Gating
+
+`FreeAgencySection.tsx` makes the world-only boundary explicit.
+
+It:
+
+- warns that offer sheets and sign-and-trade require an active world
+- disables offer-sheet action surfaces when world-only actions are unavailable
+- passes the grouped `actionOwner` into `FreeAgentPool`
+
+This is part of the sign-and-trade truth story because it frames visible availability correctly at the section level.
+
+---
+
+### 2. Pool/Modal Launch Truth
+
+`FreeAgentPool.tsx` launches `EditContractModal.tsx` and passes sign-and-trade capability through the grouped action-owner contract.
+
+The visible surface does not invent its own sign-and-trade owner.
+Instead, it depends on the grouped owner’s published world-only action set.
+
+That is a good ownership boundary.
+
+---
+
+### 3. Modal Initiation Truth
+
+`EditContractModal.tsx` handles sign-and-trade as a distinct authoritative-preflight path.
+
+It:
+
+- requires destination team selection
+- builds a canonical sign-and-trade payload for preflight
+- runs `getSignAndTradePreflight(...)`
+- blocks confirm if destination team is missing
+- blocks confirm if authoritative preflight is incomplete or blocked
+- dispatches `onSignAndTrade(...)` only through the world-only action surface
+
+This is a strong part of the design because sign-and-trade is treated as an authoritative action at modal time, not just a regular local contract action.
+
+---
+
+### 4. Authoritative Preflight Owner
+
+`useArchitectActions.ts` owns `getSignAndTradePreflight(...)`.
+
+It:
+
+- fails closed if no `worldId`
+- normalizes destination team code
+- blocks same-team destination
+- blocks missing player ID
+- prepares the sign-and-trade contract through `prepareAuthoritativeSigningDetails(...)`
+- calls `preflightSignAndTradeMutation(...)` with prepared contract truth, team routing, player ID, and signing mechanism truth
+
+This means the hook is the real preflight owner.
+
+---
+
+### 5. Authoritative Commit Owner
+
+`useArchitectActions.ts` also owns `handleSignAndTrade(...)`.
+
+It uses the same key assumptions as preflight:
+
+- world required
+- destination required
+- same-team destination blocked
+- player ID required
+- shared `prepareAuthoritativeSigningDetails(...)`
+- canonical destination team code
+- action-season-derived `seasonId`
+
+Then it commits through `runAuthoritativeFAMutation('signAndTrade', ...)`.
+
+This is the real commit owner.
+
+---
+
+## What Looks Strong
+
+### World-only gating is real
+
+The path does not merely “look” world-only.
+It is world-only in both visible UI availability and authoritative action logic.
+
+That is correct and important for sign-and-trade.
+
+---
+
+### Destination-team truth is consistent
+
+Both preflight and commit:
+
+- require destination team
+- canonicalize destination team code
+- reject same-team routing
+
+This reduces one of the most common transaction-shape drift risks.
+
+---
+
+### Contract preparation is shared
+
+The strongest technical point in the current design is that both preflight and commit share the same `prepareAuthoritativeSigningDetails(...)` helper with sign-and-trade-specific overrides.
+
+That means:
+
+- contract structure
+- action-year/season context
+- signing mechanism normalization
+- sign-and-trade flags
+
+are not being independently rebuilt in different layers.
+
+---
+
+### Modal validation authority is correctly chosen
+
+For sign-and-trade, the modal does not rely on advisory-only modal guardrails.
+It switches to authoritative-preflight truth.
+
+That is the correct validation model for this kind of action.
+
+---
+
+## Main Risks
+
+### 1. Preflight and commit are aligned, but still separate
+
+The current system is coherent, but preflight and commit are still two separate executions:
+
+- `preflightSignAndTradeMutation(...)`
+- `runAuthoritativeFAMutation('signAndTrade', ...)`
+
+They share contract preparation, which is good, but there is no single carried authoritative transaction artifact that proves the exact preflighted transaction is what commit executes.
+
+This is the biggest reason the step remains RISK rather than PASS.
+
+---
+
+### 2. Final-state truth is still somewhat hidden behind the generic authoritative helper
+
+Standard signing was recently made more explicit around post-commit local/final-state handling.
+
+Sign-and-trade still commits through the more generic `runAuthoritativeFAMutation(...)` path and then relies on the generic sync flow.
+
+That may be correct, but the sign-and-trade final-state contract is less explicit than the standard-sign seam now is.
+
+So final committed/reloaded truth remains more indirect than ideal.
+
+---
+
+### 3. Shared modal complexity still matters
+
+`EditContractModal.tsx` is handling sign-and-trade correctly, but sign-and-trade still lives as one branch inside a large shared contract modal.
+
+That is not inherently wrong, but it does keep sign-and-trade exposed to future modal-level drift unless the path stays well guarded.
+
+---
+
+## Weak / Alternate / Duplicate Path Analysis
+
+### Vacuum/base-mode fallback path
+
+No vacuum/base-mode sign-and-trade fallback path was found.
+
+That is correct.
+
+---
+
+### Duplicate mutation owner
+
+No competing commit owner was found.
+
+The modal dispatches.
+The pool stages and launches.
+The hook commits.
+
+That ownership boundary is clean.
+
+---
+
+### Weak local interpretation path
+
+No obvious local UI-side sign-and-trade mutation path was found.
+The main remaining weakness is not local mutation.
+It is preflight/commit/final-state drift sensitivity within the authoritative world-only system.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why this is not FAIL
+
+- world-only gating is explicit and enforced
+- destination-team handling is coherent
+- preflight and commit share the same prepared contract seam
+- no alternate vacuum path was found
+- no competing mutation owner was found
+
+The system is too organized and too intentional to justify FAIL.
+
+---
+
+### Why this is not PASS
+
+- preflight and commit are still separate evaluations rather than one carried authoritative transaction artifact
+- final-state/reload truth is still somewhat hidden behind the generic authoritative mutation helper
+- the path remains sensitive to future drift across initiation, preflight, commit, and post-commit sync layers
+
+So the correct Step 4 result remains:
+
+**RISK**
+
+---
+
+## Final Conclusion
+
+Free Agency sign-and-trade is structurally coherent and correctly world-only, with shared contract preparation across preflight and commit.
+
+However, it still carries enough preflight/commit/final-state drift sensitivity that the correct Step 4 verdict is:
+
+**RISK**
+
+---
