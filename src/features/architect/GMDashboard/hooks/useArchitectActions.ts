@@ -788,13 +788,26 @@ type PreparedSignAndTradeTransactionDefinition =
     }
   | SignAndTradeTransactionPreparationFailure;
 
-type StandardSigningCommittedStateSource = 'compute' | 'changedTeams' | 'reload';
+type WorldCommittedTeamSource = 'changedTeams' | 'reload';
+
+type StandardSigningCommittedStateSource = 'compute' | WorldCommittedTeamSource;
 
 type StandardSigningExecutionResult =
   | {
       success: true;
       committedTeam: CapSheet;
       committedTeamSource: StandardSigningCommittedStateSource;
+    }
+  | {
+      success: false;
+      message: string;
+    };
+
+type SignAndTradeExecutionResult =
+  | {
+      success: true;
+      committedTeam: CapSheet;
+      committedTeamSource: WorldCommittedTeamSource;
     }
   | {
       success: false;
@@ -2672,6 +2685,133 @@ export function useArchitectActions({
     ]
   );
 
+  const applyCommittedSignAndTradeState = useCallback(
+    (committedTeam: CapSheet): void => {
+      setTeamCapSheetSafe(committedTeam);
+    },
+    [setTeamCapSheetSafe]
+  );
+
+  const executeWorldModeSignAndTrade = useCallback(
+    async (
+      actionSeasonContext: ReturnType<typeof buildActionSeasonContext>,
+      mutationPayload: SignAndTradeMutationPayload
+    ): Promise<SignAndTradeExecutionResult> => {
+      if (!worldId) {
+        const message = 'Sign-and-trade requires an active world to commit.';
+        reportMutationError(message, {
+          mutationType: 'signAndTrade',
+          payload: mutationPayload,
+        });
+        return { success: false, message };
+      }
+
+      if (!userId) {
+        const message = 'Cannot save changes: missing user identity.';
+        reportMutationError(message, {
+          mutationType: 'signAndTrade',
+          payload: mutationPayload,
+        });
+        return { success: false, message };
+      }
+
+      startSave();
+      try {
+        const rawResult = (await applyWorldMutation({
+          userId,
+          worldId,
+          seasonId: actionSeasonContext.seasonId,
+          mutationType: 'signAndTrade',
+          payload: mutationPayload,
+        })) as PersistMutationResult;
+
+        const truth = evaluateMutationTruth('signAndTrade', rawResult, {
+          requireWorldPersistence: true,
+        });
+        const result: PersistMutationResult = {
+          ...rawResult,
+          success: truth.ok,
+          error: truth.ok
+            ? rawResult?.error
+            : truth.message || 'Failed to save sign-and-trade.',
+          appliedToLocalState: truth.appliedToLocalState,
+          persistedToWorld: truth.persistedToWorld,
+        };
+
+        if (!result.success) {
+          const message = String(
+            result.error || 'Failed to save sign-and-trade.'
+          );
+          reportMutationError(message, {
+            mutationType: 'signAndTrade',
+            payload: mutationPayload,
+            result: rawResult,
+          });
+          finishSave(message);
+          return { success: false, message };
+        }
+
+        const changedTeam = findUpdatedTeamSnapshot(result.changedTeams, teamCode);
+        const reloadedTeam = changedTeam
+          ? null
+          : ((await loadWorldTeamData(worldId, teamCode)) as CapSheet | null);
+        const committedTeam = changedTeam || reloadedTeam;
+
+        if (!committedTeam) {
+          const message =
+            'Sign-and-trade saved but the committed team snapshot could not be reloaded.';
+          reportMutationError(message, {
+            mutationType: 'signAndTrade',
+            payload: mutationPayload,
+            playerId: mutationPayload.playerId,
+            result,
+          });
+          finishSave(message);
+          return { success: false, message };
+        }
+
+        try {
+          await refreshWorldRosterIndex();
+        } catch (error) {
+          console.warn(
+            '[Architect][FreeAgency] Failed to refresh roster index after signAndTrade:',
+            error
+          );
+        }
+
+        toast.success('Saved changes');
+        finishSave();
+        return {
+          success: true,
+          committedTeam,
+          committedTeamSource: changedTeam ? 'changedTeams' : 'reload',
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to save sign-and-trade.';
+        reportMutationError(message, {
+          mutationType: 'signAndTrade',
+          payload: mutationPayload,
+          error,
+        });
+        finishSave(message);
+        return { success: false, message };
+      }
+    },
+    [
+      evaluateMutationTruth,
+      finishSave,
+      refreshWorldRosterIndex,
+      reportMutationError,
+      startSave,
+      teamCode,
+      userId,
+      worldId,
+    ]
+  );
+
   const handleSignAndTrade = useCallback(
     async (
       playerObj: ArchitectPlayer,
@@ -2695,29 +2835,26 @@ export function useArchitectActions({
         };
       }
 
-      const result = await runAuthoritativeFAMutation(
-        'signAndTrade',
+      const result = await executeWorldModeSignAndTrade(
+        transactionDefinition.actionSeasonContext,
         transactionDefinition.mutationPayload,
-        {
-          worldRequiredMessage:
-            'Sign-and-trade requires an active world to commit.',
-          seasonIdOverride: transactionDefinition.actionSeasonContext.seasonId,
-        }
       );
 
-      if (!result?.success) {
+      if (result.success !== true) {
         return {
           success: false,
-          message: String(result?.error || 'Failed to save sign-and-trade.'),
+          message: result.message,
         };
       }
 
+      applyCommittedSignAndTradeState(result.committedTeam);
       return { success: true };
     },
     [
+      applyCommittedSignAndTradeState,
+      executeWorldModeSignAndTrade,
       prepareSignAndTradeTransactionDefinition,
       reportMutationError,
-      runAuthoritativeFAMutation,
     ]
   );
 

@@ -49,9 +49,9 @@ Progress and execution status for the Free Agency review series.
 | ----- | --------------------------------------------------------------------------------------- | ------ | ----- |
 | FA-4A | Tighten Sign-and-Trade Initiation Truth Across Pool, Modal, and World-Only Availability | DONE   | `useArchitectActions.ts` now publishes one explicit `signAndTradeInitiation` descriptor inside `freeAgentModalAvailability`, `FreeAgentPool.tsx` launches SAT from that one owner-level descriptor, and `EditContractModal.tsx` stages destination-team routing through that same world-only initiation path. |
 | FA-4B | Align Authoritative Preflight with Commit-Time Sign-and-Trade Payload Truth             | DONE   | SAT preflight and SAT commit now share one hook-local `prepareSignAndTradeTransactionDefinition(...)` seam in `useArchitectActions.ts`, while `EditContractModal.tsx` stages one lean SAT payload object that both preflight and confirm reuse before authoritative finalization in the hook. |
-| FA-4C | Clarify and Harden Final Commit, Sync, and Reload Truth for Sign-and-Trade              | TODO   |       |
-| FA-4D | Add Focused Guardrails for Sign-and-Trade Preflight, Commit, and Final-State Truth      | TODO   |       |
+| FA-4C | Clarify and Harden Final Commit, Sync, and Reload Truth for Sign-and-Trade              | DONE   | `useArchitectActions.ts` now routes SAT commit through one explicit world-mode executor that resolves committed active-team truth from `changedTeams` first and `loadWorldTeamData(...)` second, fails closed when no committed snapshot can be resolved, and refreshes the world roster index only after committed-state resolution. |
+| FA-4D | Add Focused Guardrails for Sign-and-Trade Preflight, Commit, and Final-State Truth      | DONE   | Focused runtime and closure guardrails now pin SAT changedTeams application, reload fallback, fail-closed missing committed snapshot behavior, roster-index refresh ordering, and explicit SAT final-state routing outside generic `runAuthoritativeFAMutation(...)`. |
 
-**STEP STATUS: IN_PROGRESS**
+**STEP STATUS: DONE**
 
 ---

@@ -149,6 +149,23 @@ function buildSignedTeamFixture(
   };
 }
 
+function buildSignAndTradeCommittedSourceTeamFixture(
+  baseTeam: any = baseTeamFixture,
+  overrides: Record<string, unknown> = {}
+) {
+  return {
+    ...baseTeam,
+    roster: [],
+    players: [],
+    capHolds: [],
+    totals: {
+      ...(baseTeam?.totals || {}),
+      isHardCapped: false,
+    },
+    ...overrides,
+  };
+}
+
 function summarizeStandardSignPostState(current: {
   teamCapSheet: any;
   freeAgents: any[];
@@ -951,6 +968,151 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(commitArgs?.seasonId).toBe('2027-28');
     expect(commitArgs?.mutationType).toBe('signAndTrade');
     expect(commitArgs?.payload).toEqual(preflightArgs?.payload);
+  });
+
+  it('applies the active-team changedTeams snapshot immediately after successful sign-and-trade commit', async () => {
+    const committedSourceTeam = buildSignAndTradeCommittedSourceTeamFixture(
+      baseTeamFixture,
+      {
+        totals: {
+          isHardCapped: false,
+          totalCapAllocations: 108_000_000,
+        },
+      }
+    );
+
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [
+        { teamCode: 'LAL', team: committedSourceTeam },
+        { teamCode: 'BOS', team: { teamCode: 'BOS', roster: ['player_1'] } },
+      ],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 2,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sat_changed_team_sync' },
+    });
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSignAndTrade(
+        playerFixture as any,
+        buildStagedScalarSigningFixture() as any,
+        'BOS'
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
+    expect(result.current.teamCapSheet).toEqual(committedSourceTeam);
+    expect(result.current.teamCapSheet.capHolds).toEqual([]);
+    expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+    expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
+  });
+
+  it('reloads the active team when sign-and-trade changedTeams does not include the current team', async () => {
+    const reloadedSourceTeam = buildSignAndTradeCommittedSourceTeamFixture(
+      baseTeamFixture,
+      {
+        source: {
+          type: 'world-snapshot',
+          lastModifiedAt: '2026-03-31T00:00:00.000Z',
+        },
+      }
+    );
+
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'BOS', team: { teamCode: 'BOS' } }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 2,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sat_reload_fallback' },
+    });
+    worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(reloadedSourceTeam);
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSignAndTrade(
+        playerFixture as any,
+        buildStagedScalarSigningFixture() as any,
+        'BOS'
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(worldTeamDataMocks.loadWorldTeamData).toHaveBeenCalledWith(
+      'world_1',
+      'LAL'
+    );
+    expect(result.current.teamCapSheet).toEqual(reloadedSourceTeam);
+    expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when sign-and-trade persists but no committed active-team snapshot can be resolved', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'BOS', team: { teamCode: 'BOS' } }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 2,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sat_missing_snapshot' },
+    });
+    worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(null);
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+    const beforeTeamSnapshot = result.current.teamCapSheet;
+    const beforeFreeAgents = result.current.freeAgents;
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSignAndTrade(
+        playerFixture as any,
+        buildStagedScalarSigningFixture() as any,
+        'BOS'
+      );
+    });
+
+    expect(actionResult).toEqual({
+      success: false,
+      message:
+        'Sign-and-trade saved but the committed team snapshot could not be reloaded.',
+    });
+    expect(result.current.teamCapSheet).toBe(beforeTeamSnapshot);
+    expect(result.current.freeAgents).toBe(beforeFreeAgents);
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(toastMocks.success).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      'Sign-and-trade saved but the committed team snapshot could not be reloaded.'
+    );
   });
 
   it('renounce removes cap hold, updates totals, and requires persisted world writes', async () => {

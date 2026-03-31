@@ -603,6 +603,16 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   const handleSignRegion = readRegion(
     content,
     'const handleSign = useCallback(',
+    'const applyCommittedSignAndTradeState = useCallback('
+  );
+  const applyCommittedSignAndTradeStateRegion = readRegion(
+    content,
+    'const applyCommittedSignAndTradeState = useCallback(',
+    'const executeWorldModeSignAndTrade = useCallback('
+  );
+  const executeWorldModeSignAndTradeRegion = readRegion(
+    content,
+    'const executeWorldModeSignAndTrade = useCallback(',
     'const handleSignAndTrade = useCallback('
   );
   const applyCommittedStandardSigningStateRegion = readRegion(
@@ -675,7 +685,13 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /const\s+applyCommittedStandardSigningState\s*=\s*useCallback/
     );
     expect(content).toMatch(
+      /const\s+applyCommittedSignAndTradeState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
       /const\s+executeWorldModeStandardSigning\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+executeWorldModeSignAndTrade\s*=\s*useCallback/
     );
     expect(content).toMatch(
       /const\s+executeVacuumModeStandardSigning\s*=\s*useCallback/
@@ -692,11 +708,13 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(handleSignRegion).toMatch(/executeWorldModeStandardSigning/);
     expect(handleSignRegion).toMatch(/executeVacuumModeStandardSigning/);
     expect(handleSignRegion).toMatch(/applyCommittedStandardSigningState/);
+    expect(handleSignAndTradeRegion).toMatch(
+      /prepareSignAndTradeTransactionDefinition/
+    );
+    expect(handleSignAndTradeRegion).toMatch(/executeWorldModeSignAndTrade/);
+    expect(handleSignAndTradeRegion).toMatch(/applyCommittedSignAndTradeState/);
     expect(content).toMatch(
       /handleSign[\s\S]{0,3200}prepareStandardSigningMutationPayload/
-    );
-    expect(content).toMatch(
-      /handleSignAndTrade[\s\S]{0,2400}prepareSignAndTradeTransactionDefinition/
     );
     expect(content).toMatch(
       /getSignAndTradePreflight[\s\S]{0,2400}prepareSignAndTradeTransactionDefinition/
@@ -734,6 +752,22 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(executeVacuumModeStandardSigningRegion).toMatch(
       /buildCapAuditEvaluation/
+    );
+    expect(applyCommittedSignAndTradeStateRegion).toMatch(
+      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+    );
+    expect(applyCommittedSignAndTradeStateRegion).not.toMatch(/setFreeAgents/);
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'signAndTrade'/
+    );
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+    );
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /await\s+refreshWorldRosterIndex\s*\(\s*\)/
     );
   });
 
@@ -780,8 +814,11 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(handleSignRegion).not.toMatch(
       /runAuthoritativeFAMutation\s*\(\s*'signFreeAgent'/
     );
-    expect(handleSignAndTradeRegion).toMatch(
+    expect(handleSignAndTradeRegion).not.toMatch(
       /runAuthoritativeFAMutation\s*\(\s*'signAndTrade'/
+    );
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'signAndTrade'/
     );
     expect(handleStoreOfferSheetRegion).toMatch(
       /runAuthoritativeFAMutation\s*\(\s*'storeOfferSheet'/
@@ -831,6 +868,13 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(content).toMatch(
       /runAuthoritativeFAMutation[\s\S]{0,2200}await\s+syncTeamFromMutationResult\s*\(\s*mutationType\s*,\s*result\s*\)/
+    );
+    expect(handleSignAndTradeRegion).not.toMatch(/runAuthoritativeFAMutation/);
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /const\s+changedTeam\s*=\s*findUpdatedTeamSnapshot/
+    );
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /const\s+reloadedTeam\s*=\s*changedTeam[\s\S]*loadWorldTeamData/
     );
   });
 });
