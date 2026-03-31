@@ -230,8 +230,10 @@ describe('EditContractModal SAT preflight behavior', () => {
         initialAction="signAndTrade"
         actionContext="freeAgent"
         actionsOverride={['signAndTrade']}
-        onSignAndTrade={onSignAndTrade}
-        getSignAndTradePreflight={getSignAndTradePreflight}
+        signAndTradeInitiation={{
+          onSignAndTrade,
+          getSignAndTradePreflight,
+        }}
       />
     );
 
@@ -250,6 +252,21 @@ describe('EditContractModal SAT preflight behavior', () => {
         'BOS'
       );
     });
+    const stagedPreflightPayload =
+      getSignAndTradePreflight.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    expect(stagedPreflightPayload).toEqual(
+      expect.objectContaining({
+        signAndTrade: true,
+        contractType: 'Sign & Trade',
+        years: 3,
+        salaries: [12_000_000, 12_000_000, 12_000_000],
+        startYear: 2026,
+      })
+    );
+    expect(stagedPreflightPayload.salariesByYear).toBeUndefined();
+    expect(stagedPreflightPayload.totalValue).toBeUndefined();
+    expect(stagedPreflightPayload.averageAnnualValue).toBeUndefined();
+    expect(stagedPreflightPayload.firstYearGuaranteed).toBeUndefined();
 
     expect(confirmButton).toBeDisabled();
     expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
@@ -289,6 +306,9 @@ describe('EditContractModal SAT preflight behavior', () => {
         'BOS'
       );
     });
+    const stagedCommitPayload =
+      onSignAndTrade.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    expect(stagedCommitPayload).toBe(stagedPreflightPayload);
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
@@ -322,8 +342,10 @@ describe('EditContractModal SAT preflight behavior', () => {
         initialAction="signAndTrade"
         actionContext="freeAgent"
         actionsOverride={['signAndTrade']}
-        onSignAndTrade={onSignAndTrade}
-        getSignAndTradePreflight={getSignAndTradePreflight}
+        signAndTradeInitiation={{
+          onSignAndTrade,
+          getSignAndTradePreflight,
+        }}
       />
     );
 

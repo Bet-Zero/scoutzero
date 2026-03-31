@@ -127,6 +127,10 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
             signNew: 'Sign Free Agent',
           },
           showOfferSheetToggle: true,
+          signAndTradeInitiation: {
+            onSignAndTrade: signAndTrade,
+            getSignAndTradePreflight,
+          },
         },
       },
       applyTradeToCapSheet: vi.fn(),

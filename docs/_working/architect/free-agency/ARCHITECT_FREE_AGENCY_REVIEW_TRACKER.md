@@ -47,11 +47,11 @@ Progress and execution status for the Free Agency review series.
 
 | ID    | Title                                                                                   | Status | Notes |
 | ----- | --------------------------------------------------------------------------------------- | ------ | ----- |
-| FA-4A | Tighten Sign-and-Trade Initiation Truth Across Pool, Modal, and World-Only Availability | TODO   |       |
-| FA-4B | Align Authoritative Preflight with Commit-Time Sign-and-Trade Payload Truth             | TODO   |       |
+| FA-4A | Tighten Sign-and-Trade Initiation Truth Across Pool, Modal, and World-Only Availability | DONE   | `useArchitectActions.ts` now publishes one explicit `signAndTradeInitiation` descriptor inside `freeAgentModalAvailability`, `FreeAgentPool.tsx` launches SAT from that one owner-level descriptor, and `EditContractModal.tsx` stages destination-team routing through that same world-only initiation path. |
+| FA-4B | Align Authoritative Preflight with Commit-Time Sign-and-Trade Payload Truth             | DONE   | SAT preflight and SAT commit now share one hook-local `prepareSignAndTradeTransactionDefinition(...)` seam in `useArchitectActions.ts`, while `EditContractModal.tsx` stages one lean SAT payload object that both preflight and confirm reuse before authoritative finalization in the hook. |
 | FA-4C | Clarify and Harden Final Commit, Sync, and Reload Truth for Sign-and-Trade              | TODO   |       |
 | FA-4D | Add Focused Guardrails for Sign-and-Trade Preflight, Commit, and Final-State Truth      | TODO   |       |
 
-**STEP STATUS: TODO**
+**STEP STATUS: IN_PROGRESS**
 
 ---

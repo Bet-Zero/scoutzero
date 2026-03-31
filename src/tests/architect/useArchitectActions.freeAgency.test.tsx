@@ -324,6 +324,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           signNew: 'Sign Free Agent',
         },
         showOfferSheetToggle: true,
+        signAndTradeInitiation: {
+          onSignAndTrade: result.current.actions.handleSignAndTrade,
+          getSignAndTradePreflight:
+            result.current.actions.getSignAndTradePreflight,
+        },
       },
     });
   });
@@ -342,6 +347,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           signNew: 'Sign Free Agent',
         },
         showOfferSheetToggle: false,
+        signAndTradeInitiation: null,
       },
     });
   });
@@ -894,6 +900,57 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         capHit: 12_600_000,
       }),
     ]);
+  });
+
+  it('uses the same prepared SAT transaction payload for authoritative preflight and commit', async () => {
+    worldTeamDataMocks.resolveTeamCode.mockImplementation((teamId: string) => {
+      if (teamId === 'celtics') return 'BOS';
+      return String(teamId || '').toUpperCase();
+    });
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sat_shared_definition' },
+    });
+
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+    const stagedContract = buildStagedScalarSigningFixture({
+      startYear: 2028,
+      contractType: 'Conflicting SAT Type',
+    });
+
+    await act(async () => {
+      await result.current.actions.getSignAndTradePreflight(
+        playerFixture as any,
+        stagedContract as any,
+        'celtics'
+      );
+    });
+
+    await act(async () => {
+      await result.current.actions.handleSignAndTrade(
+        playerFixture as any,
+        stagedContract as any,
+        'celtics'
+      );
+    });
+
+    const preflightArgs =
+      mutationMocks.preflightSignAndTradeMutation.mock.calls.at(-1)?.[0] as any;
+    const commitArgs = mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0] as any;
+
+    expect(preflightArgs?.seasonId).toBe('2027-28');
+    expect(commitArgs?.seasonId).toBe('2027-28');
+    expect(commitArgs?.mutationType).toBe('signAndTrade');
+    expect(commitArgs?.payload).toEqual(preflightArgs?.payload);
   });
 
   it('renounce removes cap hold, updates totals, and requires persisted world writes', async () => {

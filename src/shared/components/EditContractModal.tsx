@@ -276,6 +276,11 @@ type SignAndTradePreflightCallback = (
   | null
   | undefined;
 
+type SignAndTradeInitiation = {
+  onSignAndTrade: SignAndTradeCallback;
+  getSignAndTradePreflight: SignAndTradePreflightCallback;
+};
+
 type GetOfferSheetPreflightCallback = (
   player: PlayerLike,
   payload: StagedSigningPayloadLike,
@@ -312,6 +317,7 @@ type EditContractModalProps = {
   onWaive?: WaiveCallback | null;
   onOptionDecision?: OptionDecisionCallback | null;
   onExtend?: ExtendCallback | null;
+  signAndTradeInitiation?: SignAndTradeInitiation | null;
   onSignAndTrade?: SignAndTradeCallback | null;
   getSignAndTradePreflight?: SignAndTradePreflightCallback | null;
   getOfferSheetPreflight?: GetOfferSheetPreflightCallback | null;
@@ -759,6 +765,7 @@ const EditContractModal = ({
   onWaive,
   onOptionDecision,
   onExtend,
+  signAndTradeInitiation = null,
   onSignAndTrade,
   getSignAndTradePreflight = null,
   getOfferSheetPreflight = null,
@@ -1020,8 +1027,25 @@ const EditContractModal = ({
     }),
     [extension, signingGuardrails, selectedException]
   );
+  const resolvedSignAndTradeInitiation = useMemo<SignAndTradeInitiation | null>(() => {
+    if (
+      signAndTradeInitiation?.onSignAndTrade &&
+      signAndTradeInitiation?.getSignAndTradePreflight
+    ) {
+      return signAndTradeInitiation;
+    }
+
+    if (onSignAndTrade && getSignAndTradePreflight) {
+      return {
+        onSignAndTrade,
+        getSignAndTradePreflight,
+      };
+    }
+
+    return null;
+  }, [getSignAndTradePreflight, onSignAndTrade, signAndTradeInitiation]);
   const signAndTradeActionDisabledReason =
-    !onSignAndTrade || !getSignAndTradePreflight
+    !resolvedSignAndTradeInitiation
       ? 'Sign-and-trade requires an active world to commit.'
       : null;
   const buildSigningDispatchPayload = useCallback(
@@ -1077,14 +1101,13 @@ const EditContractModal = ({
     },
     [ACTION_YEAR, buildSigningDispatchPayload]
   );
-  const signAndTradePreflightPayload = useMemo(
+  const signAndTradeDispatchPayload = useMemo(
     () =>
-      buildCanonicalSigningDispatchPayload({
-        ...contractDataForValidation,
+      buildSigningDispatchPayload({
         signAndTrade: true,
         contractType: 'Sign & Trade',
       }),
-    [buildCanonicalSigningDispatchPayload, contractDataForValidation]
+    [buildSigningDispatchPayload]
   );
   const offerSheetPreflightPayload = useMemo(
     () =>
@@ -1223,9 +1246,9 @@ const EditContractModal = ({
     );
 
     void Promise.resolve(
-      getSignAndTradePreflight?.(
+      resolvedSignAndTradeInitiation?.getSignAndTradePreflight?.(
         player,
-        signAndTradePreflightPayload,
+        signAndTradeDispatchPayload,
         resolvedDestinationTeamCode
       )
     )
@@ -1250,13 +1273,13 @@ const EditContractModal = ({
         );
       });
   }, [
-    getSignAndTradePreflight,
     isOpen,
     player,
+    resolvedSignAndTradeInitiation,
     resolvedDestinationTeamCode,
     selectedAction,
     signAndTradeActionDisabledReason,
-    signAndTradePreflightPayload,
+    signAndTradeDispatchPayload,
   ]);
 
   useEffect(() => {
@@ -1694,13 +1717,14 @@ const EditContractModal = ({
             };
           }
 
-          return onSignAndTrade?.(
+          return resolvedSignAndTradeInitiation?.onSignAndTrade?.(
             player,
-            buildCanonicalSigningDispatchPayload({
-              signAndTrade: true,
-              contractType: 'Sign & Trade',
-              ...(overrideMetadata || {}),
-            }),
+            overrideMetadata
+              ? {
+                  ...signAndTradeDispatchPayload,
+                  ...overrideMetadata,
+                }
+              : signAndTradeDispatchPayload,
             resolvedDestinationTeamCode
           );
         default:
@@ -1712,12 +1736,13 @@ const EditContractModal = ({
       buildSigningDispatchPayload,
       isOfferSheet,
       onResign,
-      onSignAndTrade,
       onSignFreeAgent,
       onStoreOfferSheet,
       player,
+      resolvedSignAndTradeInitiation,
       resolvedDestinationTeamCode,
       selectedAction,
+      signAndTradeDispatchPayload,
     ]
   );
 

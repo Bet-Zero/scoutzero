@@ -82,21 +82,29 @@ const buildWorldOnlyActionOwner = (overrides = {}) => ({
 const buildFreeAgentModalAvailability = ({
   worldOnlyActionOwner,
   overrides = {},
-} = {}) => ({
-  visibleActions:
+} = {}) => {
+  const signAndTradeInitiation =
     worldOnlyActionOwner?.signAndTrade &&
     worldOnlyActionOwner?.getSignAndTradePreflight
-      ? ['signNew', 'signAndTrade']
-      : ['signNew'],
-  actionLabelsOverride: {
-    signNew: 'Sign Free Agent',
-  },
-  showOfferSheetToggle: Boolean(
-    worldOnlyActionOwner?.storeOfferSheet &&
-      worldOnlyActionOwner?.getOfferSheetPreflight
-  ),
-  ...overrides,
-});
+      ? {
+          onSignAndTrade: worldOnlyActionOwner.signAndTrade,
+          getSignAndTradePreflight: worldOnlyActionOwner.getSignAndTradePreflight,
+        }
+      : null;
+
+  return {
+    visibleActions: signAndTradeInitiation ? ['signNew', 'signAndTrade'] : ['signNew'],
+    actionLabelsOverride: {
+      signNew: 'Sign Free Agent',
+    },
+    showOfferSheetToggle: Boolean(
+      worldOnlyActionOwner?.storeOfferSheet &&
+        worldOnlyActionOwner?.getOfferSheetPreflight
+    ),
+    signAndTradeInitiation,
+    ...overrides,
+  };
+};
 
 const buildActionOwner = ({
   dualPathSigning = {},

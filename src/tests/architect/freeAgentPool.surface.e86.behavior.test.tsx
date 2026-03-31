@@ -23,7 +23,10 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool';
-import type { FreeAgentModalVisibleAction } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import type {
+  FreeAgentModalVisibleAction,
+  FreeAgentSignAndTradeInitiation,
+} from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
 const { mockGetPlayerProfileUrl, mockEditContractModalProps } = vi.hoisted(() => ({
   mockGetPlayerProfileUrl: vi.fn(() => '#player-profile'),
@@ -48,6 +51,7 @@ type MockEditContractModalProps = {
   };
   onClose?: () => void;
   onSignFreeAgent?: unknown;
+  signAndTradeInitiation?: FreeAgentSignAndTradeInitiation | null;
   onSignAndTrade?: unknown;
   getSignAndTradePreflight?: unknown;
   getOfferSheetPreflight?: unknown;
@@ -65,6 +69,7 @@ vi.mock('@/shared/components/EditContractModal', () => ({
     player,
     onClose,
     onSignFreeAgent,
+    signAndTradeInitiation,
     onSignAndTrade,
     getSignAndTradePreflight,
     getOfferSheetPreflight,
@@ -81,6 +86,7 @@ vi.mock('@/shared/components/EditContractModal', () => ({
       player,
       onClose,
       onSignFreeAgent,
+      signAndTradeInitiation,
       onSignAndTrade,
       getSignAndTradePreflight,
       getOfferSheetPreflight,
@@ -161,26 +167,36 @@ const buildFreeAgentModalAvailability = ({
     visibleActions: FreeAgentModalVisibleAction[];
     actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
     showOfferSheetToggle: boolean;
+    signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
   }>;
 }): {
   visibleActions: FreeAgentModalVisibleAction[];
   actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
   showOfferSheetToggle: boolean;
-} => ({
-  visibleActions:
+  signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+} => {
+  const signAndTradeInitiation =
     worldOnlyActionOwner?.signAndTrade &&
     worldOnlyActionOwner?.getSignAndTradePreflight
-      ? ['signNew', 'signAndTrade']
-      : ['signNew'],
-  actionLabelsOverride: {
-    signNew: 'Sign Free Agent',
-  },
-  showOfferSheetToggle: Boolean(
-    worldOnlyActionOwner?.storeOfferSheet &&
-      worldOnlyActionOwner?.getOfferSheetPreflight
-  ),
-  ...overrides,
-});
+      ? {
+          onSignAndTrade: worldOnlyActionOwner.signAndTrade,
+          getSignAndTradePreflight: worldOnlyActionOwner.getSignAndTradePreflight,
+        }
+      : null;
+
+  return {
+    visibleActions: signAndTradeInitiation ? ['signNew', 'signAndTrade'] : ['signNew'],
+    actionLabelsOverride: {
+      signNew: 'Sign Free Agent',
+    },
+    showOfferSheetToggle: Boolean(
+      worldOnlyActionOwner?.storeOfferSheet &&
+        worldOnlyActionOwner?.getOfferSheetPreflight
+    ),
+    signAndTradeInitiation,
+    ...overrides,
+  };
+};
 
 const buildActionOwner = ({
   dualPathSigning,
@@ -193,6 +209,7 @@ const buildActionOwner = ({
     visibleActions: FreeAgentModalVisibleAction[];
     actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
     showOfferSheetToggle: boolean;
+    signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
   }>;
 } = {}): React.ComponentProps<typeof FreeAgentPool>['actionOwner'] => {
   const resolvedWorldOnlyActionOwner = worldOnly
@@ -320,6 +337,9 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(modalProps?.onSignFreeAgent).toBe(
       actionOwner.dualPathSigning.signFreeAgent
     );
+    expect(modalProps?.signAndTradeInitiation).toBe(
+      actionOwner.freeAgentModalAvailability.signAndTradeInitiation
+    );
     expect(modalProps?.onSignAndTrade).toBeUndefined();
     expect(modalProps?.getSignAndTradePreflight).toBeUndefined();
     expect(modalProps?.getOfferSheetPreflight).toBeUndefined();
@@ -348,9 +368,8 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(modalProps?.onSignFreeAgent).toBe(
       actionOwner.dualPathSigning.signFreeAgent
     );
-    expect(modalProps?.onSignAndTrade).toBe(actionOwner.worldOnly?.signAndTrade);
-    expect(modalProps?.getSignAndTradePreflight).toBe(
-      actionOwner.worldOnly?.getSignAndTradePreflight
+    expect(modalProps?.signAndTradeInitiation).toBe(
+      actionOwner.freeAgentModalAvailability.signAndTradeInitiation
     );
     expect(modalProps?.getOfferSheetPreflight).toBe(
       actionOwner.worldOnly?.getOfferSheetPreflight
@@ -373,6 +392,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
       freeAgentModalAvailability: {
         visibleActions: ['signNew'],
         showOfferSheetToggle: false,
+        signAndTradeInitiation: null,
       },
     });
     renderPool({ actionOwner });
@@ -380,7 +400,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     openFromSelectedCard();
 
     const modalProps = getLatestModalProps();
-    expect(modalProps?.onSignAndTrade).toBe(actionOwner.worldOnly?.signAndTrade);
+    expect(modalProps?.signAndTradeInitiation).toBeNull();
     expect(modalProps?.getOfferSheetPreflight).toBe(
       actionOwner.worldOnly?.getOfferSheetPreflight
     );
@@ -415,9 +435,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
         player: selectedCardModalProps.player,
         onClose: selectedCardModalProps.onClose,
         onSignFreeAgent: selectedCardModalProps.onSignFreeAgent,
-        onSignAndTrade: selectedCardModalProps.onSignAndTrade,
-        getSignAndTradePreflight:
-          selectedCardModalProps.getSignAndTradePreflight,
+        signAndTradeInitiation: selectedCardModalProps.signAndTradeInitiation,
         getOfferSheetPreflight: selectedCardModalProps.getOfferSheetPreflight,
         onStoreOfferSheet: selectedCardModalProps.onStoreOfferSheet,
         actionsOverride: selectedCardModalProps.actionsOverride,
@@ -642,6 +660,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
           signNew: 'Sign Free Agent (Authoritative)',
         },
         showOfferSheetToggle: false,
+        signAndTradeInitiation: null,
       },
     });
     renderPool({
@@ -670,9 +689,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
       expect.objectContaining({
         onClose: expect.any(Function),
         onSignFreeAgent: actionOwner.dualPathSigning.signFreeAgent,
-        onSignAndTrade: actionOwner.worldOnly?.signAndTrade,
-        getSignAndTradePreflight:
-          actionOwner.worldOnly?.getSignAndTradePreflight,
+        signAndTradeInitiation: null,
         getOfferSheetPreflight:
           actionOwner.worldOnly?.getOfferSheetPreflight,
         onStoreOfferSheet: actionOwner.worldOnly?.storeOfferSheet,
@@ -694,9 +711,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
         player: selectedCardModalProps?.player,
         onClose: selectedCardModalProps?.onClose,
         onSignFreeAgent: selectedCardModalProps?.onSignFreeAgent,
-        onSignAndTrade: selectedCardModalProps?.onSignAndTrade,
-        getSignAndTradePreflight:
-          selectedCardModalProps?.getSignAndTradePreflight,
+        signAndTradeInitiation: selectedCardModalProps?.signAndTradeInitiation,
         getOfferSheetPreflight:
           selectedCardModalProps?.getOfferSheetPreflight,
         onStoreOfferSheet: selectedCardModalProps?.onStoreOfferSheet,

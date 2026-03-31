@@ -382,6 +382,10 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
               signNew: 'Sign Free Agent',
             },
             showOfferSheetToggle: true,
+            signAndTradeInitiation: {
+              onSignAndTrade: signAndTrade,
+              getSignAndTradePreflight,
+            },
           },
         }}
         playersMap={{}}

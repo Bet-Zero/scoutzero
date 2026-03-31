@@ -514,6 +514,12 @@ function buildDashboardActions(
           signNew: 'Sign Free Agent',
         },
         showOfferSheetToggle: Boolean(freeAgencyWorldId),
+        signAndTradeInitiation: freeAgencyWorldId
+          ? {
+              onSignAndTrade: signAndTrade,
+              getSignAndTradePreflight,
+            }
+          : null,
       },
     },
     handleExtendContract: vi.fn(),

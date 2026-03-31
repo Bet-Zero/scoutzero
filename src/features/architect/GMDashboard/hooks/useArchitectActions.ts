@@ -487,6 +487,7 @@ export interface FreeAgentModalAvailability {
   visibleActions: FreeAgentModalVisibleAction[];
   actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
   showOfferSheetToggle: boolean;
+  signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
 }
 
 export interface FreeAgencyWorldOnlyActionOwner {
@@ -511,6 +512,19 @@ export interface FreeAgencyWorldOnlyActionOwner {
   matchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
   declineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
   finalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
+}
+
+export interface FreeAgentSignAndTradeInitiation {
+  onSignAndTrade: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails,
+    destinationTeamCode: string
+  ) => Promise<MutationActionResult>;
+  getSignAndTradePreflight: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails,
+    destinationTeamCode: string
+  ) => Promise<SignAndTradePreflightResult>;
 }
 
 export interface FreeAgencyActionOwner {
@@ -750,6 +764,30 @@ type PreparedStandardSigningDetails = {
   standardSigningPayload: StandardSigningMutationPayload | null;
 };
 
+type SignAndTradeMutationPayload = ArchitectMutationPayload & {
+  teamCode: string;
+  destinationTeamCode: string;
+  playerId: string;
+  contract: LocalContract;
+  signedUsing: string | null;
+  signAndTrade: true;
+};
+
+type SignAndTradeTransactionPreparationFailure = {
+  ok: false;
+  message: string;
+  preflightResult: SignAndTradePreflightResult;
+  logContext?: Record<string, unknown>;
+};
+
+type PreparedSignAndTradeTransactionDefinition =
+  | {
+      ok: true;
+      actionSeasonContext: ReturnType<typeof buildActionSeasonContext>;
+      mutationPayload: SignAndTradeMutationPayload;
+    }
+  | SignAndTradeTransactionPreparationFailure;
+
 type StandardSigningCommittedStateSource = 'compute' | 'changedTeams' | 'reload';
 
 type StandardSigningExecutionResult =
@@ -762,6 +800,12 @@ type StandardSigningExecutionResult =
       success: false;
       message: string;
     };
+
+function isSignAndTradeTransactionPreparationFailure(
+  value: PreparedSignAndTradeTransactionDefinition
+): value is SignAndTradeTransactionPreparationFailure {
+  return value.ok === false;
+}
 
 function resolveSeasonEndYear(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -806,6 +850,29 @@ function buildActionSeasonContext(
   return {
     actionYear,
     seasonId: toSeasonCode(actionYear),
+  };
+}
+
+function buildBlockedSignAndTradePreflightResult(
+  message: string
+): SignAndTradePreflightResult {
+  return {
+    status: 'blocked',
+    reasons: [message],
+    warnings: [],
+    source: 'authoritative-preflight',
+  };
+}
+
+function buildSignAndTradeTransactionPreparationFailure(
+  message: string,
+  logContext?: Record<string, unknown>
+): SignAndTradeTransactionPreparationFailure {
+  return {
+    ok: false,
+    message,
+    preflightResult: buildBlockedSignAndTradePreflightResult(message),
+    logContext,
   };
 }
 
@@ -2143,6 +2210,90 @@ export function useArchitectActions({
     [prepareAuthoritativeSigningDetails, teamCode]
   );
 
+  const prepareSignAndTradeTransactionDefinition = useCallback(
+    (
+      playerObj: ArchitectPlayer,
+      contract: SigningDetails,
+      destinationTeamCode: string
+    ): PreparedSignAndTradeTransactionDefinition => {
+      if (!worldId) {
+        return buildSignAndTradeTransactionPreparationFailure(
+          'Sign-and-trade requires an active world to commit.',
+          {
+            playerObj,
+            destinationTeamCode,
+          }
+        );
+      }
+
+      const canonicalDestinationTeamCode = destinationTeamCode
+        ? resolveTeamCode(destinationTeamCode) || destinationTeamCode
+        : '';
+      if (!canonicalDestinationTeamCode) {
+        return buildSignAndTradeTransactionPreparationFailure(
+          'Destination team is required for sign-and-trade.',
+          {
+            playerObj,
+            destinationTeamCode,
+          }
+        );
+      }
+
+      if (canonicalDestinationTeamCode === teamCode) {
+        return buildSignAndTradeTransactionPreparationFailure(
+          'Destination team must be different from the current team for sign-and-trade.',
+          {
+            playerObj,
+            destinationTeamCode,
+            canonicalDestinationTeamCode,
+          }
+        );
+      }
+
+      const playerId = String(playerObj.id || playerObj.player_id || '').trim();
+      if (!playerId) {
+        return buildSignAndTradeTransactionPreparationFailure(
+          'Cannot complete sign-and-trade: missing player ID.',
+          {
+            playerObj,
+          }
+        );
+      }
+
+      const { actionSeasonContext, architectContract, signedUsing } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
+          contractType: 'Sign & Trade',
+          isExtension: false,
+          isRookieScale: !!contract.isRookieScale,
+          signAndTrade: true,
+        });
+
+      if (!architectContract) {
+        return buildSignAndTradeTransactionPreparationFailure(
+          'Cannot complete sign-and-trade: contract payload is invalid.',
+          {
+            playerId,
+            contract,
+          }
+        );
+      }
+
+      return {
+        ok: true,
+        actionSeasonContext,
+        mutationPayload: {
+          teamCode,
+          destinationTeamCode: canonicalDestinationTeamCode,
+          playerId,
+          contract: architectContract,
+          signedUsing,
+          signAndTrade: true,
+        },
+      };
+    },
+    [prepareAuthoritativeSigningDetails, teamCode, worldId]
+  );
+
   const applyTradeToCapSheet = useCallback(
     async (tradeData: TradeDataItem[]): Promise<void> => {
       if (!tradeData || !Array.isArray(tradeData)) return;
@@ -2527,102 +2678,30 @@ export function useArchitectActions({
       contract: SigningDetails,
       destinationTeamCode: string
     ): Promise<MutationActionResult> => {
-      if (!worldId) {
+      const transactionDefinition = prepareSignAndTradeTransactionDefinition(
+        playerObj,
+        contract,
+        destinationTeamCode
+      );
+
+      if (isSignAndTradeTransactionPreparationFailure(transactionDefinition)) {
         reportMutationError(
-          'Sign-and-trade requires an active world to commit.',
-          {
-            playerObj,
-            destinationTeamCode,
-          }
+          transactionDefinition.message,
+          transactionDefinition.logContext
         );
         return {
           success: false,
-          message: 'Sign-and-trade requires an active world to commit.',
-        };
-      }
-
-      const canonicalDestinationTeamCode = destinationTeamCode
-        ? resolveTeamCode(destinationTeamCode) || destinationTeamCode
-        : '';
-      if (!canonicalDestinationTeamCode) {
-        reportMutationError(
-          'Cannot complete sign-and-trade: destination team is required.',
-          {
-            playerObj,
-            destinationTeamCode,
-          }
-        );
-        return {
-          success: false,
-          message: 'Destination team is required for sign-and-trade.',
-        };
-      }
-
-      if (canonicalDestinationTeamCode === teamCode) {
-        const message =
-          'Destination team must be different from the current team for sign-and-trade.';
-        reportMutationError(message, {
-          playerObj,
-          destinationTeamCode,
-          canonicalDestinationTeamCode,
-        });
-        return {
-          success: false,
-          message,
-        };
-      }
-
-      const playerId = playerObj.id || playerObj.player_id;
-      if (!playerId) {
-        reportMutationError(
-          'Cannot complete sign-and-trade: missing player ID.',
-          {
-            playerObj,
-          }
-        );
-        return {
-          success: false,
-          message: 'Cannot complete sign-and-trade: missing player ID.',
-        };
-      }
-
-      const { actionSeasonContext, architectContract, signedUsing } =
-        prepareAuthoritativeSigningDetails(playerObj, contract, {
-          contractType: 'Sign & Trade',
-          isExtension: false,
-          isRookieScale: !!contract.isRookieScale,
-          signAndTrade: true,
-        });
-
-      if (!architectContract) {
-        reportMutationError(
-          'Cannot complete sign-and-trade: contract payload is invalid.',
-          {
-            playerId,
-            contract,
-          }
-        );
-        return {
-          success: false,
-          message:
-            'Cannot complete sign-and-trade: contract payload is invalid.',
+          message: transactionDefinition.message,
         };
       }
 
       const result = await runAuthoritativeFAMutation(
         'signAndTrade',
-        {
-          teamCode,
-          destinationTeamCode: canonicalDestinationTeamCode,
-          playerId,
-          contract: architectContract,
-          signedUsing,
-          signAndTrade: true,
-        },
+        transactionDefinition.mutationPayload,
         {
           worldRequiredMessage:
             'Sign-and-trade requires an active world to commit.',
-          seasonIdOverride: actionSeasonContext.seasonId,
+          seasonIdOverride: transactionDefinition.actionSeasonContext.seasonId,
         }
       );
 
@@ -2636,11 +2715,9 @@ export function useArchitectActions({
       return { success: true };
     },
     [
-      prepareAuthoritativeSigningDetails,
+      prepareSignAndTradeTransactionDefinition,
       reportMutationError,
       runAuthoritativeFAMutation,
-      teamCode,
-      worldId,
     ]
   );
 
@@ -2650,77 +2727,28 @@ export function useArchitectActions({
       contract: SigningDetails,
       destinationTeamCode: string
     ): Promise<SignAndTradePreflightResult> => {
-      if (!worldId) {
-        return {
-          status: 'blocked',
-          reasons: ['Sign-and-trade requires an active world to commit.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
-      }
+      const transactionDefinition = prepareSignAndTradeTransactionDefinition(
+        playerObj,
+        contract,
+        destinationTeamCode
+      );
 
-      const canonicalDestinationTeamCode = destinationTeamCode
-        ? resolveTeamCode(destinationTeamCode) || destinationTeamCode
-        : '';
-      if (!canonicalDestinationTeamCode) {
-        return {
-          status: 'blocked',
-          reasons: ['Destination team is required for sign-and-trade.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
-      }
-
-      if (canonicalDestinationTeamCode === teamCode) {
-        return {
-          status: 'blocked',
-          reasons: [
-            'Destination team must be different from the current team for sign-and-trade.',
-          ],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
-      }
-
-      const playerId = playerObj.id || playerObj.player_id;
-      if (!playerId) {
-        return {
-          status: 'blocked',
-          reasons: ['Cannot complete sign-and-trade: missing player ID.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
-      }
-
-      const { actionSeasonContext, architectContract, signedUsing } =
-        prepareAuthoritativeSigningDetails(playerObj, contract, {
-          contractType: 'Sign & Trade',
-          isExtension: false,
-          isRookieScale: !!contract.isRookieScale,
-          signAndTrade: true,
-        });
-
-      if (!architectContract) {
-        return {
-          status: 'blocked',
-          reasons: ['Cannot complete sign-and-trade: contract payload is invalid.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
+      if (isSignAndTradeTransactionPreparationFailure(transactionDefinition)) {
+        return transactionDefinition.preflightResult;
       }
 
       try {
+        const activeWorldId = worldId;
+        if (!activeWorldId) {
+          return buildBlockedSignAndTradePreflightResult(
+            'Sign-and-trade requires an active world to preview.'
+          );
+        }
+
         return await preflightSignAndTradeMutation({
-          worldId,
-          seasonId: actionSeasonContext.seasonId,
-          payload: {
-            teamCode,
-            destinationTeamCode: canonicalDestinationTeamCode,
-            playerId,
-            contract: architectContract,
-            signedUsing,
-            signAndTrade: true,
-          },
+          worldId: activeWorldId,
+          seasonId: transactionDefinition.actionSeasonContext.seasonId,
+          payload: transactionDefinition.mutationPayload,
         });
       } catch (error) {
         return {
@@ -2735,7 +2763,7 @@ export function useArchitectActions({
         };
       }
     },
-    [prepareAuthoritativeSigningDetails, teamCode, worldId]
+    [prepareSignAndTradeTransactionDefinition, worldId]
   );
 
   const getOfferSheetPreflight = useCallback(
@@ -3941,23 +3969,35 @@ export function useArchitectActions({
       freeAgencyWorldOnlyActionOwner.getSignAndTradePreflight
   );
   const hasWorldOnlyOfferSheetAvailability = Boolean(
-    freeAgencyWorldOnlyActionOwner?.storeOfferSheet &&
+      freeAgencyWorldOnlyActionOwner?.storeOfferSheet &&
       freeAgencyWorldOnlyActionOwner.getOfferSheetPreflight
+  );
+  const signAndTradeInitiation = useMemo<FreeAgentSignAndTradeInitiation | null>(
+    () =>
+      hasWorldOnlySignAndTradeAvailability && freeAgencyWorldOnlyActionOwner
+        ? {
+            onSignAndTrade: freeAgencyWorldOnlyActionOwner.signAndTrade,
+            getSignAndTradePreflight:
+              freeAgencyWorldOnlyActionOwner.getSignAndTradePreflight,
+          }
+        : null,
+    [freeAgencyWorldOnlyActionOwner, hasWorldOnlySignAndTradeAvailability]
   );
 
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
     () => ({
-      visibleActions: hasWorldOnlySignAndTradeAvailability
+      visibleActions: signAndTradeInitiation
         ? ['signNew', 'signAndTrade']
         : ['signNew'],
       actionLabelsOverride: {
         signNew: 'Sign Free Agent',
       },
       showOfferSheetToggle: hasWorldOnlyOfferSheetAvailability,
+      signAndTradeInitiation,
     }),
     [
       hasWorldOnlyOfferSheetAvailability,
-      hasWorldOnlySignAndTradeAvailability,
+      signAndTradeInitiation,
     ]
   );
 

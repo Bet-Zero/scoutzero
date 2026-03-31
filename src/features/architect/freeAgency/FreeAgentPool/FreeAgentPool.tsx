@@ -254,27 +254,7 @@ const FreeAgentPool = ({
   const freeAgentModalAvailability = actionOwner.freeAgentModalAvailability;
   const dualPathSigningOwner = actionOwner.dualPathSigning;
   const worldOnlyActionOwner = actionOwner.worldOnly;
-
-  const freeAgencyModalDispatch = useMemo(
-    () => ({
-      onSignFreeAgent:
-        dualPathSigningOwner
-          .signFreeAgent as EditContractModalProps['onSignFreeAgent'],
-      onSignAndTrade: (worldOnlyActionOwner
-        ? worldOnlyActionOwner.signAndTrade
-        : undefined) as EditContractModalProps['onSignAndTrade'],
-      getSignAndTradePreflight: (worldOnlyActionOwner
-        ? worldOnlyActionOwner.getSignAndTradePreflight
-        : undefined) as EditContractModalProps['getSignAndTradePreflight'],
-      getOfferSheetPreflight: (worldOnlyActionOwner
-        ? worldOnlyActionOwner.getOfferSheetPreflight
-        : undefined) as EditContractModalProps['getOfferSheetPreflight'],
-      onStoreOfferSheet: (worldOnlyActionOwner
-        ? worldOnlyActionOwner.storeOfferSheet
-        : undefined) as EditContractModalProps['onStoreOfferSheet'],
-    }),
-    [dualPathSigningOwner, worldOnlyActionOwner]
-  );
+  const signAndTradeInitiation = freeAgentModalAvailability.signAndTradeInitiation;
 
   const editContractModalProps = useMemo(() => {
     if (!activeContractModalTarget) return null;
@@ -283,12 +263,17 @@ const FreeAgentPool = ({
       player: activeContractModalTarget.surfacePlayer,
       isOpen: true,
       onClose: closeContractModal,
-      onSignFreeAgent: freeAgencyModalDispatch.onSignFreeAgent,
-      onSignAndTrade: freeAgencyModalDispatch.onSignAndTrade,
-      getSignAndTradePreflight:
-        freeAgencyModalDispatch.getSignAndTradePreflight,
-      getOfferSheetPreflight: freeAgencyModalDispatch.getOfferSheetPreflight,
-      onStoreOfferSheet: freeAgencyModalDispatch.onStoreOfferSheet,
+      onSignFreeAgent:
+        dualPathSigningOwner
+          .signFreeAgent as EditContractModalProps['onSignFreeAgent'],
+      signAndTradeInitiation:
+        signAndTradeInitiation as EditContractModalProps['signAndTradeInitiation'],
+      getOfferSheetPreflight: (worldOnlyActionOwner
+        ? worldOnlyActionOwner.getOfferSheetPreflight
+        : undefined) as EditContractModalProps['getOfferSheetPreflight'],
+      onStoreOfferSheet: (worldOnlyActionOwner
+        ? worldOnlyActionOwner.storeOfferSheet
+        : undefined) as EditContractModalProps['onStoreOfferSheet'],
       actionsOverride: freeAgentModalAvailability.visibleActions,
       actionLabelsOverride: freeAgentModalAvailability.actionLabelsOverride,
       showOfferSheetToggle: freeAgentModalAvailability.showOfferSheetToggle,
@@ -296,8 +281,10 @@ const FreeAgentPool = ({
   }, [
     activeContractModalTarget,
     closeContractModal,
+    dualPathSigningOwner,
     freeAgentModalAvailability,
-    freeAgencyModalDispatch,
+    signAndTradeInitiation,
+    worldOnlyActionOwner,
   ]);
 
   return (
