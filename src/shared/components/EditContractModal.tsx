@@ -290,6 +290,11 @@ type GetOfferSheetPreflightCallback = (
   | null
   | undefined;
 
+type OfferSheetInitiation = {
+  getOfferSheetPreflight: GetOfferSheetPreflightCallback;
+  onStoreOfferSheet: SigningActionCallback;
+};
+
 type ExtendCallback = (
   player: PlayerLike,
   payload: ExtensionPayloadLike,
@@ -825,10 +830,20 @@ const EditContractModal = ({
     actionContext === 'underContract'
       ? actionContext
       : null;
+  const resolvedOfferSheetInitiation = useMemo<OfferSheetInitiation | null>(() => {
+    if (getOfferSheetPreflight && onStoreOfferSheet) {
+      return {
+        getOfferSheetPreflight,
+        onStoreOfferSheet,
+      };
+    }
+
+    return null;
+  }, [getOfferSheetPreflight, onStoreOfferSheet]);
   const resolvedShowOfferSheetToggle =
     typeof showOfferSheetToggle === 'boolean'
-      ? showOfferSheetToggle
-      : Boolean(onStoreOfferSheet && getOfferSheetPreflight);
+      ? showOfferSheetToggle && Boolean(resolvedOfferSheetInitiation)
+      : Boolean(resolvedOfferSheetInitiation);
 
   const today = new Date();
   // CURRENT_YEAR = the END year of the current NBA season
@@ -1109,15 +1124,21 @@ const EditContractModal = ({
       }),
     [buildSigningDispatchPayload]
   );
-  const offerSheetPreflightPayload = useMemo(
-    () =>
+  const buildOfferSheetDispatchPayload = useCallback(
+    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike =>
       buildCanonicalSigningDispatchPayload({
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
         rfaOfferSheetStatus: 'PENDING_MATCH',
         contractType: 'Offer Sheet',
+        ...overrides,
       }),
     [buildCanonicalSigningDispatchPayload]
+  );
+  const offerSheetDispatchPayload = useMemo(
+    () =>
+      buildOfferSheetDispatchPayload(),
+    [buildOfferSheetDispatchPayload]
   );
   const validationAuthority: ValidationAuthority =
     selectedAction === 'signAndTrade' ||
@@ -1300,7 +1321,7 @@ const EditContractModal = ({
       return;
     }
 
-    if (!getOfferSheetPreflight) {
+    if (!resolvedOfferSheetInitiation) {
       setOfferSheetPreflight(
         buildOfferSheetPreflightResult('blocked', [
           'Offer sheet preflight unavailable (no world context).',
@@ -1316,7 +1337,10 @@ const EditContractModal = ({
     );
 
     void Promise.resolve(
-      getOfferSheetPreflight(player, offerSheetPreflightPayload)
+      resolvedOfferSheetInitiation.getOfferSheetPreflight(
+        player,
+        offerSheetDispatchPayload
+      )
     )
       .then((result) => {
         if (latestOfferSheetPreflightRequestId.current !== requestId) {
@@ -1339,11 +1363,11 @@ const EditContractModal = ({
         );
       });
   }, [
-    getOfferSheetPreflight,
     isOpen,
     isOfferSheet,
-    offerSheetPreflightPayload,
+    offerSheetDispatchPayload,
     player,
+    resolvedOfferSheetInitiation,
     selectedAction,
   ]);
 
@@ -1682,13 +1706,9 @@ const EditContractModal = ({
       overrideMetadata: OverrideMetadataLike | null
     ): Promise<ActionResultLike> => {
       if (isOfferSheet && selectedAction === 'signNew') {
-        return onStoreOfferSheet?.(
+        return resolvedOfferSheetInitiation?.onStoreOfferSheet?.(
           player,
-          buildCanonicalSigningDispatchPayload({
-            contractType: 'Offer Sheet',
-            rfaOfferSheet: true,
-            rfaOfferSheetOnly: true,
-            rfaOfferSheetStatus: 'PENDING_MATCH',
+          buildOfferSheetDispatchPayload({
             ...(overrideMetadata || {}),
           })
         );
@@ -1732,13 +1752,13 @@ const EditContractModal = ({
       }
     },
     [
-      buildCanonicalSigningDispatchPayload,
+      buildOfferSheetDispatchPayload,
       buildSigningDispatchPayload,
       isOfferSheet,
       onResign,
       onSignFreeAgent,
-      onStoreOfferSheet,
       player,
+      resolvedOfferSheetInitiation,
       resolvedSignAndTradeInitiation,
       resolvedDestinationTeamCode,
       selectedAction,

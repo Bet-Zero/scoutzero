@@ -428,4 +428,58 @@ describe('EditContractModal future-year action-year routing', () => {
       );
     });
   });
+
+  it('stores future-year offer sheets from the same clicked action-year payload seam', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    const onStoreOfferSheet = vi.fn().mockResolvedValue({ success: true });
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={FUTURE_RFA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        targetYear={2028}
+        actionYear={2028}
+        actionContext="freeAgent"
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        getOfferSheetPreflight={getOfferSheetPreflight}
+        onStoreOfferSheet={onStoreOfferSheet}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    await waitFor(() => {
+      expect(getOfferSheetPreflight).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTestId('edit-contract-confirm-action-button'));
+
+    await waitFor(() => {
+      expect(onStoreOfferSheet).toHaveBeenCalledWith(
+        FUTURE_RFA_PLAYER,
+        expect.objectContaining({
+          startYear: 2028,
+          contractType: 'Offer Sheet',
+          salariesByYear: expect.arrayContaining([
+            expect.objectContaining({
+              season: '2027-28',
+            }),
+          ]),
+        })
+      );
+    });
+
+    expect(onStoreOfferSheet.mock.calls[0][1]).toEqual(
+      getOfferSheetPreflight.mock.calls[0][1]
+    );
+  });
 });

@@ -91,17 +91,23 @@ const buildFreeAgentModalAvailability = ({
           getSignAndTradePreflight: worldOnlyActionOwner.getSignAndTradePreflight,
         }
       : null;
+  const offerSheetInitiation =
+    worldOnlyActionOwner?.storeOfferSheet &&
+    worldOnlyActionOwner?.getOfferSheetPreflight
+      ? {
+          getOfferSheetPreflight: worldOnlyActionOwner.getOfferSheetPreflight,
+          storeOfferSheet: worldOnlyActionOwner.storeOfferSheet,
+        }
+      : null;
 
   return {
     visibleActions: signAndTradeInitiation ? ['signNew', 'signAndTrade'] : ['signNew'],
     actionLabelsOverride: {
       signNew: 'Sign Free Agent',
     },
-    showOfferSheetToggle: Boolean(
-      worldOnlyActionOwner?.storeOfferSheet &&
-        worldOnlyActionOwner?.getOfferSheetPreflight
-    ),
+    showOfferSheetToggle: Boolean(offerSheetInitiation),
     signAndTradeInitiation,
+    offerSheetInitiation,
     ...overrides,
   };
 };
@@ -216,7 +222,15 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     });
     fireEvent.click(offerSheetToggle);
 
-    fireEvent.click(screen.getByRole('button', { name: /Confirm Action/i }));
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
+    await waitFor(() => {
+      expect(confirmButton).toBeEnabled();
+      expect(confirmButton).toHaveTextContent(/Confirm Action/i);
+    });
+
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(storeOfferSheet).toHaveBeenCalledTimes(1);
@@ -225,11 +239,12 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       /offer sheet validation failed/i
     );
-    expect(
-      screen.getByRole('button', { name: /Confirm Action/i })
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(confirmButton).toBeEnabled();
+      expect(confirmButton).toHaveTextContent(/Confirm Action/i);
+    });
 
-    fireEvent.click(screen.getByRole('button', { name: /Confirm Action/i }));
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(storeOfferSheet).toHaveBeenCalledTimes(2);
@@ -281,6 +296,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       worldOnly: { storeOfferSheet },
       freeAgentModalAvailability: {
         showOfferSheetToggle: false,
+        offerSheetInitiation: null,
       },
     });
 
@@ -332,6 +348,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
     const actionOwner = buildActionOwner({
       freeAgentModalAvailability: {
         showOfferSheetToggle: false,
+        offerSheetInitiation: null,
       },
     });
 

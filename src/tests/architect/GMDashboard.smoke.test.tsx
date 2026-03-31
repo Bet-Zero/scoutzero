@@ -131,6 +131,10 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
             onSignAndTrade: signAndTrade,
             getSignAndTradePreflight,
           },
+          offerSheetInitiation: {
+            getOfferSheetPreflight,
+            storeOfferSheet,
+          },
         },
       },
       applyTradeToCapSheet: vi.fn(),

@@ -423,7 +423,7 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
     expect(getOfferSheetPreflight).not.toHaveBeenCalled();
   });
 
-  it('blocks immediately when getOfferSheetPreflight is null (no world context)', async () => {
+  it('hides the offer-sheet toggle when the initiation seam is incomplete', async () => {
     render(
       <EditContractModal
         isOpen
@@ -435,18 +435,13 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
         actionsOverride={['signNew']}
         onStoreOfferSheet={vi.fn()}
         getOfferSheetPreflight={null}
+        showOfferSheetToggle={true}
       />
     );
 
-    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
-    fireEvent.click(screen.getByRole('checkbox'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
-        'Offer sheet preflight unavailable (no world context).'
-      );
-    });
-    expect(confirmButton).toBeDisabled();
+    expect(
+      screen.queryByRole('checkbox', { name: /Offer Sheet/i })
+    ).not.toBeInTheDocument();
   });
 
   it('returns incomplete immediately when player is null and never calls preflight', async () => {
@@ -506,6 +501,46 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
         })
       );
     });
+  });
+
+  it('reuses the same staged offer-sheet payload for preflight and confirm-time store dispatch', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    const onStoreOfferSheet = vi.fn().mockResolvedValue({ success: true });
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={() => {}}
+        player={RFA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onStoreOfferSheet={onStoreOfferSheet}
+        getOfferSheetPreflight={getOfferSheetPreflight}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('checkbox'));
+
+    await waitFor(() => {
+      expect(getOfferSheetPreflight).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTestId('edit-contract-confirm-action-button'));
+
+    await waitFor(() => {
+      expect(onStoreOfferSheet).toHaveBeenCalledTimes(1);
+    });
+
+    expect(onStoreOfferSheet.mock.calls[0][1]).toEqual(
+      getOfferSheetPreflight.mock.calls[0][1]
+    );
   });
 
   it('renders only authoritative offer-sheet output when local signNew warnings would otherwise fire', async () => {

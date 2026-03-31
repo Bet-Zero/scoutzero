@@ -346,6 +346,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
           getSignAndTradePreflight:
             result.current.actions.getSignAndTradePreflight,
         },
+        offerSheetInitiation: {
+          getOfferSheetPreflight: result.current.actions.getOfferSheetPreflight,
+          storeOfferSheet: result.current.actions.handleStoreOfferSheet,
+        },
       },
     });
   });
@@ -365,6 +369,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         },
         showOfferSheetToggle: false,
         signAndTradeInitiation: null,
+        offerSheetInitiation: null,
       },
     });
   });

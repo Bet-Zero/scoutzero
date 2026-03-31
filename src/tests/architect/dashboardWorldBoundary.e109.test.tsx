@@ -520,6 +520,12 @@ function buildDashboardActions(
               getSignAndTradePreflight,
             }
           : null,
+        offerSheetInitiation: freeAgencyWorldId
+          ? {
+              getOfferSheetPreflight,
+              storeOfferSheet,
+            }
+          : null,
       },
     },
     handleExtendContract: vi.fn(),

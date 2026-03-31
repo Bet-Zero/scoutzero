@@ -247,4 +247,67 @@ describe('useArchitectActions future-year action-year coherence', () => {
       })
     );
   });
+
+  it('uses the contract first season as the authoritative seasonId for future-year offer-sheet store', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: BASE_TEAM }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_future_offer_sheet' },
+    });
+
+    const { result } = renderActionsHarness();
+
+    await act(async () => {
+      await result.current.actions.handleStoreOfferSheet(PLAYER_FIXTURE as any, {
+        contractType: 'Offer Sheet',
+        rfaOfferSheet: true,
+        rfaOfferSheetOnly: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
+        salariesByYear: [
+          {
+            season: '2027-28',
+            salary: 21_000_000,
+            capHit: 21_000_000,
+            guaranteed: true,
+          },
+          {
+            season: '2028-29',
+            salary: 22_680_000,
+            capHit: 22_680_000,
+            guaranteed: true,
+          },
+        ],
+      } as any);
+    });
+
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationType: 'storeOfferSheet',
+        seasonId: '2027-28',
+        payload: expect.objectContaining({
+          playerId: 'future_player_1',
+          contract: expect.objectContaining({
+            contractType: 'Offer Sheet',
+            rfaOfferSheet: true,
+            rfaOfferSheetOnly: true,
+            rfaOfferSheetStatus: 'PENDING_MATCH',
+            salariesByYear: expect.arrayContaining([
+              expect.objectContaining({
+                season: '2027-28',
+              }),
+            ]),
+          }),
+        }),
+      })
+    );
+  });
 });

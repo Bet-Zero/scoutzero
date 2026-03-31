@@ -24,6 +24,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import FreeAgentPool from '@/features/architect/freeAgency/FreeAgentPool';
 import type {
+  FreeAgentOfferSheetInitiation,
   FreeAgentModalVisibleAction,
   FreeAgentSignAndTradeInitiation,
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
@@ -168,12 +169,14 @@ const buildFreeAgentModalAvailability = ({
     actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
     showOfferSheetToggle: boolean;
     signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+    offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
   }>;
 }): {
   visibleActions: FreeAgentModalVisibleAction[];
   actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
   showOfferSheetToggle: boolean;
   signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+  offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
 } => {
   const signAndTradeInitiation =
     worldOnlyActionOwner?.signAndTrade &&
@@ -183,17 +186,23 @@ const buildFreeAgentModalAvailability = ({
           getSignAndTradePreflight: worldOnlyActionOwner.getSignAndTradePreflight,
         }
       : null;
+  const offerSheetInitiation =
+    worldOnlyActionOwner?.storeOfferSheet &&
+    worldOnlyActionOwner?.getOfferSheetPreflight
+      ? {
+          getOfferSheetPreflight: worldOnlyActionOwner.getOfferSheetPreflight,
+          storeOfferSheet: worldOnlyActionOwner.storeOfferSheet,
+        }
+      : null;
 
   return {
     visibleActions: signAndTradeInitiation ? ['signNew', 'signAndTrade'] : ['signNew'],
     actionLabelsOverride: {
       signNew: 'Sign Free Agent',
     },
-    showOfferSheetToggle: Boolean(
-      worldOnlyActionOwner?.storeOfferSheet &&
-        worldOnlyActionOwner?.getOfferSheetPreflight
-    ),
+    showOfferSheetToggle: Boolean(offerSheetInitiation),
     signAndTradeInitiation,
+    offerSheetInitiation,
     ...overrides,
   };
 };
@@ -210,6 +219,7 @@ const buildActionOwner = ({
     actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
     showOfferSheetToggle: boolean;
     signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+    offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
   }>;
 } = {}): React.ComponentProps<typeof FreeAgentPool>['actionOwner'] => {
   const resolvedWorldOnlyActionOwner = worldOnly
@@ -372,9 +382,12 @@ describe('FreeAgentPool surface E86 behavior', () => {
       actionOwner.freeAgentModalAvailability.signAndTradeInitiation
     );
     expect(modalProps?.getOfferSheetPreflight).toBe(
-      actionOwner.worldOnly?.getOfferSheetPreflight
+      actionOwner.freeAgentModalAvailability.offerSheetInitiation
+        ?.getOfferSheetPreflight
     );
-    expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.worldOnly?.storeOfferSheet);
+    expect(modalProps?.onStoreOfferSheet).toBe(
+      actionOwner.freeAgentModalAvailability.offerSheetInitiation?.storeOfferSheet
+    );
     expect(modalProps?.actionsOverride).toEqual(
       actionOwner.freeAgentModalAvailability.visibleActions
     );
@@ -393,6 +406,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
         visibleActions: ['signNew'],
         showOfferSheetToggle: false,
         signAndTradeInitiation: null,
+        offerSheetInitiation: null,
       },
     });
     renderPool({ actionOwner });
@@ -401,10 +415,8 @@ describe('FreeAgentPool surface E86 behavior', () => {
 
     const modalProps = getLatestModalProps();
     expect(modalProps?.signAndTradeInitiation).toBeNull();
-    expect(modalProps?.getOfferSheetPreflight).toBe(
-      actionOwner.worldOnly?.getOfferSheetPreflight
-    );
-    expect(modalProps?.onStoreOfferSheet).toBe(actionOwner.worldOnly?.storeOfferSheet);
+    expect(modalProps?.getOfferSheetPreflight).toBeUndefined();
+    expect(modalProps?.onStoreOfferSheet).toBeUndefined();
     expect(modalProps?.actionsOverride).toEqual(
       actionOwner.freeAgentModalAvailability.visibleActions
     );
@@ -661,6 +673,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
         },
         showOfferSheetToggle: false,
         signAndTradeInitiation: null,
+        offerSheetInitiation: null,
       },
     });
     renderPool({
@@ -690,9 +703,8 @@ describe('FreeAgentPool surface E86 behavior', () => {
         onClose: expect.any(Function),
         onSignFreeAgent: actionOwner.dualPathSigning.signFreeAgent,
         signAndTradeInitiation: null,
-        getOfferSheetPreflight:
-          actionOwner.worldOnly?.getOfferSheetPreflight,
-        onStoreOfferSheet: actionOwner.worldOnly?.storeOfferSheet,
+        getOfferSheetPreflight: undefined,
+        onStoreOfferSheet: undefined,
         actionsOverride: ['signNew'],
         actionLabelsOverride: {
           signNew: 'Sign Free Agent (Authoritative)',

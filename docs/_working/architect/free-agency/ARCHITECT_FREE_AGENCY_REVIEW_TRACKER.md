@@ -60,11 +60,11 @@ Progress and execution status for the Free Agency review series.
 
 | ID    | Title                                                                                                                         | Status | Notes |
 |-------|-------------------------------------------------------------------------------------------------------------------------------|--------|-------|
-| FA-5A | Tighten Offer-Sheet Initiation Truth Across Pool, Modal, and World-Only Availability                                         | TODO   |       |
-| FA-5B | Align Authoritative Offer-Sheet Preflight with Store-Time Payload Truth                                                      | TODO   |       |
+| FA-5A | Tighten Offer-Sheet Initiation Truth Across Pool, Modal, and World-Only Availability                                         | DONE   | Grouped owner now publishes explicit `offerSheetInitiation`; pool/modal staging derive visible world-only offer-sheet initiation from that one seam. |
+| FA-5B | Align Authoritative Offer-Sheet Preflight with Store-Time Payload Truth                                                      | DONE   | `prepareOfferSheetCreationDefinition(...)` now feeds both authoritative preflight and store with one canonical creation-definition path. |
 | FA-5C | Clarify and Harden Pending-State, Sync, and Reload Truth for Created Offer Sheets                                            | TODO   |       |
 | FA-5D | Add Focused Guardrails for Offer-Sheet Preflight, Store, and Pending-State Truth                                             | TODO   |       |
 
-**STEP 5 STATUS: TODO**
+**STEP 5 STATUS: IN_PROGRESS**
 
 ---

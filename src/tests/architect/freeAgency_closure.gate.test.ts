@@ -153,11 +153,15 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
       /const\s+signAndTradeInitiation\s*=\s*useMemo<FreeAgentSignAndTradeInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlySignAndTradeAvailability(?:\s*&&\s*freeAgencyWorldOnlyActionOwner)?[\s\S]*\?\s*\{[\s\S]*onSignAndTrade:\s*freeAgencyWorldOnlyActionOwner\.signAndTrade[\s\S]*getSignAndTradePreflight:\s*freeAgencyWorldOnlyActionOwner\.getSignAndTradePreflight[\s\S]*\}\s*:\s*null/
     );
     expect(content).toMatch(
+      /const\s+offerSheetInitiation\s*=\s*useMemo<FreeAgentOfferSheetInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlyOfferSheetAvailability(?:\s*&&\s*freeAgencyWorldOnlyActionOwner)?[\s\S]*\?\s*\{[\s\S]*getOfferSheetPreflight:\s*freeAgencyWorldOnlyActionOwner\.getOfferSheetPreflight[\s\S]*storeOfferSheet:\s*freeAgencyWorldOnlyActionOwner\.storeOfferSheet[\s\S]*\}\s*:\s*null/
+    );
+    expect(content).toMatch(
       /visibleActions:\s*signAndTradeInitiation\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
     );
     expect(content).toMatch(
-      /showOfferSheetToggle:\s*hasWorldOnlyOfferSheetAvailability/
+      /showOfferSheetToggle:\s*Boolean\(offerSheetInitiation\)/
     );
+    expect(content).toMatch(/offerSheetInitiation,\s*\}\)/);
     expect(content).toMatch(/storeOfferSheet:\s*handleStoreOfferSheet/);
     expect(content).toMatch(/matchOfferSheet:\s*handleMatchOfferSheet/);
     expect(content).toMatch(/declineOfferSheet:\s*handleDeclineOfferSheet/);
@@ -347,20 +351,20 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
     expect(content).toMatch(
       /const\s+dualPathSigningOwner\s*=\s*actionOwner\.dualPathSigning/
     );
-    expect(content).toMatch(
-      /const\s+worldOnlyActionOwner\s*=\s*actionOwner\.worldOnly/
-    );
     expect(modalDispatchRegion).toMatch(
       /const\s+signAndTradeInitiation\s*=\s*freeAgentModalAvailability\.signAndTradeInitiation/
+    );
+    expect(modalDispatchRegion).toMatch(
+      /const\s+offerSheetInitiation\s*=\s*freeAgentModalAvailability\.offerSheetInitiation/
     );
     expect(modalDispatchRegion).toMatch(
       /signAndTradeInitiation:\s*signAndTradeInitiation\s+as\s+EditContractModalProps\['signAndTradeInitiation'\]/
     );
     expect(modalDispatchRegion).toMatch(
-      /worldOnlyActionOwner\s*\?\s*worldOnlyActionOwner\.getOfferSheetPreflight/
+      /offerSheetInitiation\s*\?\s*offerSheetInitiation\.getOfferSheetPreflight/
     );
     expect(modalDispatchRegion).toMatch(
-      /worldOnlyActionOwner\s*\?\s*worldOnlyActionOwner\.storeOfferSheet/
+      /offerSheetInitiation\s*\?\s*offerSheetInitiation\.storeOfferSheet/
     );
     expect(content).toMatch(
       /actionsOverride:\s*freeAgentModalAvailability\.visibleActions/
@@ -370,6 +374,12 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
     );
     expect(content).toMatch(
       /showOfferSheetToggle:\s*freeAgentModalAvailability\.showOfferSheetToggle/
+    );
+    expect(content).toMatch(
+      /getOfferSheetPreflight:\s*\(offerSheetInitiation[\s\S]*offerSheetInitiation\.getOfferSheetPreflight/
+    );
+    expect(content).toMatch(
+      /onStoreOfferSheet:\s*\(offerSheetInitiation[\s\S]*offerSheetInitiation\.storeOfferSheet/
     );
     expect(content).not.toMatch(
       /actionsOverride:\s*worldOnlyActionOwner\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
@@ -533,6 +543,11 @@ describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agenc
     'const buildSigningDispatchPayload = useCallback(',
     '  const buildCanonicalSigningDispatchPayload = useCallback('
   );
+  const canonicalSigningDispatchRegion = readRegion(
+    content,
+    '  const buildCanonicalSigningDispatchPayload = useCallback(',
+    '  const buildOfferSheetDispatchPayload = useCallback('
+  );
 
   it('extracts Free Agency confirm handling into one dispatch helper', () => {
     expect(content).toMatch(
@@ -543,13 +558,19 @@ describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agenc
       /const\s+buildCanonicalSigningDispatchPayload\s*=\s*useCallback/
     );
     expect(content).toMatch(
+      /const\s+resolvedOfferSheetInitiation\s*=\s*useMemo<OfferSheetInitiation\s*\|\s*null>/
+    );
+    expect(content).toMatch(
+      /const\s+buildOfferSheetDispatchPayload\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
       /const\s+resolvedSignAndTradeInitiation\s*=\s*useMemo<SignAndTradeInitiation\s*\|\s*null>/
     );
     expect(content).toMatch(
       /const\s+signAndTradeDispatchPayload\s*=\s*useMemo/
     );
     expect(content).not.toMatch(/buildCanonicalSigningPayload/);
-    expect(dispatchRegion).toMatch(/onStoreOfferSheet\?\./);
+    expect(dispatchRegion).toMatch(/resolvedOfferSheetInitiation\?\.onStoreOfferSheet\?\./);
     expect(dispatchRegion).toMatch(/onSignFreeAgent\?\./);
     expect(dispatchRegion).toMatch(/onResign\?\./);
     expect(dispatchRegion).toMatch(
@@ -569,6 +590,9 @@ describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agenc
     for (const forbidden of forbiddenPatterns) {
       expect(standardSigningDispatchRegion).not.toMatch(forbidden);
     }
+    expect(canonicalSigningDispatchRegion).not.toMatch(
+      /rfaOfferSheetStatus:\s*'PENDING_MATCH'/
+    );
   });
 
   it('delegates signNew, resign, and signAndTrade confirm paths through the dispatch helper', () => {
@@ -630,6 +654,11 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     'const executeVacuumModeStandardSigning = useCallback(',
     'const applyCapAuditedTeamMutation = useCallback('
   );
+  const prepareOfferSheetCreationDefinitionRegion = readRegion(
+    content,
+    'const prepareOfferSheetCreationDefinition = useCallback(',
+    'const prepareSignAndTradeTransactionDefinition = useCallback('
+  );
   const prepareSignAndTradeTransactionDefinitionRegion = readRegion(
     content,
     'const prepareSignAndTradeTransactionDefinition = useCallback(',
@@ -679,6 +708,9 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /const\s+prepareStandardSigningMutationPayload\s*=\s*useCallback/
     );
     expect(content).toMatch(
+      /const\s+prepareOfferSheetCreationDefinition\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
       /const\s+prepareSignAndTradeTransactionDefinition\s*=\s*useCallback/
     );
     expect(content).toMatch(
@@ -720,10 +752,16 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /getSignAndTradePreflight[\s\S]{0,2400}prepareSignAndTradeTransactionDefinition/
     );
     expect(content).toMatch(
-      /getOfferSheetPreflight[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+      /getOfferSheetPreflight[\s\S]{0,2200}prepareOfferSheetCreationDefinition/
     );
     expect(content).toMatch(
-      /handleStoreOfferSheet[\s\S]{0,3200}prepareAuthoritativeSigningDetails/
+      /handleStoreOfferSheet[\s\S]{0,2200}prepareOfferSheetCreationDefinition/
+    );
+    expect(prepareOfferSheetCreationDefinitionRegion).toMatch(
+      /prepareAuthoritativeSigningDetails/
+    );
+    expect(prepareOfferSheetCreationDefinitionRegion).toMatch(
+      /rfaOfferSheetStatus:\s*'PENDING_MATCH'/
     );
   });
 
@@ -794,7 +832,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /prepareSignAndTradeTransactionDefinition/
     );
     expect(getOfferSheetPreflightRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*status:\s*'blocked'[\s\S]*reasons:\s*\['Offer sheet requires an active world to commit\.'\]/
+      /if\s*\(!worldId\)[\s\S]*buildOfferSheetPreflightResult\s*\(\s*'blocked'\s*,\s*'Offer sheet requires an active world to commit\.'\s*\)/
     );
     expect(handleStoreOfferSheetRegion).toMatch(
       /if\s*\(!worldId\)[\s\S]*return\s*\{\s*success\s*:\s*false,\s*message\s*:\s*'Offer sheet actions require an active world to commit\.'/

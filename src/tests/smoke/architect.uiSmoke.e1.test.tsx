@@ -386,6 +386,10 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
               onSignAndTrade: signAndTrade,
               getSignAndTradePreflight,
             },
+            offerSheetInitiation: {
+              getOfferSheetPreflight,
+              storeOfferSheet,
+            },
           },
         }}
         playersMap={{}}

@@ -483,11 +483,23 @@ export interface FreeAgencyDualPathSigningOwner {
 
 export type FreeAgentModalVisibleAction = 'signNew' | 'signAndTrade';
 
+export interface FreeAgentOfferSheetInitiation {
+  getOfferSheetPreflight: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => Promise<OfferSheetPreflightResult>;
+  storeOfferSheet: (
+    playerObj: ArchitectPlayer,
+    contract: SigningDetails
+  ) => Promise<MutationActionResult>;
+}
+
 export interface FreeAgentModalAvailability {
   visibleActions: FreeAgentModalVisibleAction[];
   actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
   showOfferSheetToggle: boolean;
   signAndTradeInitiation: FreeAgentSignAndTradeInitiation | null;
+  offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
 }
 
 export interface FreeAgencyWorldOnlyActionOwner {
@@ -788,6 +800,33 @@ type PreparedSignAndTradeTransactionDefinition =
     }
   | SignAndTradeTransactionPreparationFailure;
 
+type OfferSheetCreationDefinitionFailure = {
+  ok: false;
+  storeMessage: string;
+  preflightResult: OfferSheetPreflightResult;
+  logContext?: Record<string, unknown>;
+};
+
+type OfferSheetMutationPayload = ArchitectMutationPayload & {
+  teamCode: string;
+  playerId: string;
+  contract: LocalContract;
+  signedUsing: string | null;
+};
+
+type PreparedOfferSheetCreationDefinition =
+  | {
+      ok: true;
+      actionSeasonContext: ReturnType<typeof buildActionSeasonContext>;
+      preflightPayload: {
+        offeringTeamCode: string;
+        playerId: string;
+        contract: LocalContract;
+      };
+      mutationPayload: OfferSheetMutationPayload;
+    }
+  | OfferSheetCreationDefinitionFailure;
+
 type WorldCommittedTeamSource = 'changedTeams' | 'reload';
 
 type StandardSigningCommittedStateSource = 'compute' | WorldCommittedTeamSource;
@@ -817,6 +856,12 @@ type SignAndTradeExecutionResult =
 function isSignAndTradeTransactionPreparationFailure(
   value: PreparedSignAndTradeTransactionDefinition
 ): value is SignAndTradeTransactionPreparationFailure {
+  return value.ok === false;
+}
+
+function isOfferSheetCreationDefinitionFailure(
+  value: PreparedOfferSheetCreationDefinition
+): value is OfferSheetCreationDefinitionFailure {
   return value.ok === false;
 }
 
@@ -877,6 +922,18 @@ function buildBlockedSignAndTradePreflightResult(
   };
 }
 
+function buildOfferSheetPreflightResult(
+  status: OfferSheetPreflightResult['status'],
+  message: string
+): OfferSheetPreflightResult {
+  return {
+    status,
+    reasons: [message],
+    warnings: [],
+    source: 'authoritative-preflight',
+  };
+}
+
 function buildSignAndTradeTransactionPreparationFailure(
   message: string,
   logContext?: Record<string, unknown>
@@ -885,6 +942,23 @@ function buildSignAndTradeTransactionPreparationFailure(
     ok: false,
     message,
     preflightResult: buildBlockedSignAndTradePreflightResult(message),
+    logContext,
+  };
+}
+
+function buildOfferSheetCreationDefinitionFailure(
+  preflightStatus: OfferSheetPreflightResult['status'],
+  preflightMessage: string,
+  storeMessage: string,
+  logContext?: Record<string, unknown>
+): OfferSheetCreationDefinitionFailure {
+  return {
+    ok: false,
+    storeMessage,
+    preflightResult: buildOfferSheetPreflightResult(
+      preflightStatus,
+      preflightMessage
+    ),
     logContext,
   };
 }
@@ -2223,6 +2297,65 @@ export function useArchitectActions({
     [prepareAuthoritativeSigningDetails, teamCode]
   );
 
+  const prepareOfferSheetCreationDefinition = useCallback(
+    (
+      playerObj: ArchitectPlayer,
+      contract: SigningDetails
+    ): PreparedOfferSheetCreationDefinition => {
+      const playerId = String(playerObj.id || playerObj.player_id || '').trim();
+      if (!playerId) {
+        return buildOfferSheetCreationDefinitionFailure(
+          'incomplete',
+          'Authoritative offer sheet preflight is missing player context.',
+          'Cannot store offer sheet: missing player ID.',
+          {
+            playerObj,
+          }
+        );
+      }
+
+      const { actionSeasonContext, architectContract, signedUsing } =
+        prepareAuthoritativeSigningDetails(playerObj, contract, {
+          contractType: 'Offer Sheet',
+          isExtension: false,
+          isRookieScale: !!contract.isRookieScale,
+          signAndTrade: false,
+          rfaOfferSheet: true,
+          rfaOfferSheetOnly: true,
+          rfaOfferSheetStatus: 'PENDING_MATCH',
+        });
+
+      if (!architectContract) {
+        return buildOfferSheetCreationDefinitionFailure(
+          'blocked',
+          'Cannot complete offer sheet: contract payload is invalid.',
+          'Cannot store offer sheet: contract payload is invalid.',
+          {
+            playerId,
+            contract,
+          }
+        );
+      }
+
+      return {
+        ok: true,
+        actionSeasonContext,
+        preflightPayload: {
+          offeringTeamCode: teamCode,
+          playerId,
+          contract: architectContract,
+        },
+        mutationPayload: {
+          teamCode,
+          playerId,
+          contract: architectContract,
+          signedUsing,
+        },
+      };
+    },
+    [prepareAuthoritativeSigningDetails, teamCode]
+  );
+
   const prepareSignAndTradeTransactionDefinition = useCallback(
     (
       playerObj: ArchitectPlayer,
@@ -2909,51 +3042,25 @@ export function useArchitectActions({
       contract: SigningDetails
     ): Promise<OfferSheetPreflightResult> => {
       if (!worldId) {
-        return {
-          status: 'blocked',
-          reasons: ['Offer sheet requires an active world to commit.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
+        return buildOfferSheetPreflightResult(
+          'blocked',
+          'Offer sheet requires an active world to commit.'
+        );
       }
 
-      const playerId = playerObj.id || playerObj.player_id;
-      if (!playerId) {
-        return {
-          status: 'incomplete',
-          reasons: ['Authoritative offer sheet preflight is missing player context.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
-      }
-
-      const { actionSeasonContext, architectContract } =
-        prepareAuthoritativeSigningDetails(playerObj, contract, {
-          contractType: 'Offer Sheet',
-          isExtension: false,
-          isRookieScale: !!contract.isRookieScale,
-          signAndTrade: false,
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true,
-          rfaOfferSheetStatus: 'PENDING_MATCH',
-        });
-
-      if (!architectContract) {
-        return {
-          status: 'blocked',
-          reasons: ['Cannot complete offer sheet: contract payload is invalid.'],
-          warnings: [],
-          source: 'authoritative-preflight',
-        };
+      const creationDefinition = prepareOfferSheetCreationDefinition(
+        playerObj,
+        contract
+      );
+      if (isOfferSheetCreationDefinitionFailure(creationDefinition)) {
+        return creationDefinition.preflightResult;
       }
 
       try {
         return await preflightOfferSheetMutation({
           worldId,
-          seasonId: actionSeasonContext.seasonId,
-          offeringTeamCode: teamCode,
-          playerId,
-          contract: architectContract,
+          seasonId: creationDefinition.actionSeasonContext.seasonId,
+          ...creationDefinition.preflightPayload,
         });
       } catch (error) {
         return {
@@ -2968,7 +3075,7 @@ export function useArchitectActions({
         };
       }
     },
-    [prepareAuthoritativeSigningDetails, teamCode, worldId]
+    [prepareOfferSheetCreationDefinition, worldId]
   );
 
   // === RFA Offer Sheet Actions ===
@@ -2991,55 +3098,31 @@ export function useArchitectActions({
         };
       }
 
-      const playerId = playerObj.id || playerObj.player_id;
-      if (!playerId) {
-        reportMutationError('Cannot store offer sheet: missing player ID.', {
-          playerObj,
-        });
-        return {
-          success: false,
-          message: 'Cannot store offer sheet: missing player ID.',
-        };
-      }
-
-      const { actionSeasonContext, architectContract: offerContract, signedUsing } =
-        prepareAuthoritativeSigningDetails(playerObj, contract, {
-          contractType: 'Offer Sheet',
-          isExtension: false,
-          isRookieScale: !!contract.isRookieScale,
-          signAndTrade: false,
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true,
-          rfaOfferSheetStatus: 'PENDING_MATCH',
-        });
-
-      if (!offerContract) {
+      const creationDefinition = prepareOfferSheetCreationDefinition(
+        playerObj,
+        contract
+      );
+      if (isOfferSheetCreationDefinitionFailure(creationDefinition)) {
         reportMutationError(
-          'Cannot store offer sheet: contract payload is invalid.',
-          {
-            playerId,
-            contract,
-          }
+          creationDefinition.storeMessage,
+          creationDefinition.logContext
         );
         return {
           success: false,
-          message: 'Cannot store offer sheet: contract payload is invalid.',
+          message: creationDefinition.storeMessage,
         };
       }
 
       const result = await runAuthoritativeFAMutation(
         'storeOfferSheet',
         {
-          teamCode,
-          playerId,
+          ...creationDefinition.mutationPayload,
           worldId,
-          contract: offerContract,
-          signedUsing,
         },
         {
           worldRequiredMessage:
             'Offer sheet actions require an active world to commit.',
-          seasonIdOverride: actionSeasonContext.seasonId,
+          seasonIdOverride: creationDefinition.actionSeasonContext.seasonId,
         }
       );
 
@@ -3053,10 +3136,9 @@ export function useArchitectActions({
       return { success: true };
     },
     [
-      prepareAuthoritativeSigningDetails,
+      prepareOfferSheetCreationDefinition,
       reportMutationError,
       runAuthoritativeFAMutation,
-      teamCode,
       worldId,
     ]
   );
@@ -4120,6 +4202,17 @@ export function useArchitectActions({
         : null,
     [freeAgencyWorldOnlyActionOwner, hasWorldOnlySignAndTradeAvailability]
   );
+  const offerSheetInitiation = useMemo<FreeAgentOfferSheetInitiation | null>(
+    () =>
+      hasWorldOnlyOfferSheetAvailability && freeAgencyWorldOnlyActionOwner
+        ? {
+            getOfferSheetPreflight:
+              freeAgencyWorldOnlyActionOwner.getOfferSheetPreflight,
+            storeOfferSheet: freeAgencyWorldOnlyActionOwner.storeOfferSheet,
+          }
+        : null,
+    [freeAgencyWorldOnlyActionOwner, hasWorldOnlyOfferSheetAvailability]
+  );
 
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
     () => ({
@@ -4129,11 +4222,12 @@ export function useArchitectActions({
       actionLabelsOverride: {
         signNew: 'Sign Free Agent',
       },
-      showOfferSheetToggle: hasWorldOnlyOfferSheetAvailability,
+      showOfferSheetToggle: Boolean(offerSheetInitiation),
       signAndTradeInitiation,
+      offerSheetInitiation,
     }),
     [
-      hasWorldOnlyOfferSheetAvailability,
+      offerSheetInitiation,
       signAndTradeInitiation,
     ]
   );
