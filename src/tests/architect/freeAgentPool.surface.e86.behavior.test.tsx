@@ -428,6 +428,103 @@ describe('FreeAgentPool surface E86 behavior', () => {
     );
   });
 
+  it('keeps duplicate-name row menus independent by stable selection key instead of player name', () => {
+    const duplicateNamePlayersMap = {
+      player_1: {
+        ...PLAYER,
+        id: 'player_1',
+        player_id: 'player_1',
+        name: 'Same Player',
+        displayName: 'Same Player',
+        bio: {
+          ...PLAYER.bio,
+          playerId: 'player_1',
+          displayName: 'Same Player',
+        },
+      },
+      player_2: {
+        ...PLAYER,
+        id: 'player_2',
+        player_id: 'player_2',
+        name: 'Same Player',
+        displayName: 'Same Player',
+        bio: {
+          ...PLAYER.bio,
+          playerId: 'player_2',
+          displayName: 'Same Player',
+        },
+      },
+      'Same Player': {
+        ...PLAYER,
+        id: 'player_2',
+        player_id: 'player_2',
+        name: 'Same Player',
+        displayName: 'Same Player',
+        bio: {
+          ...PLAYER.bio,
+          playerId: 'player_2',
+          displayName: 'Same Player',
+        },
+      },
+    };
+    const duplicateNameFreeAgents = [
+      {
+        ...FREE_AGENT,
+        id: 'player_1',
+        player_id: 'player_1',
+        name: 'Same Player',
+      },
+      {
+        ...FREE_AGENT,
+        id: 'player_2',
+        player_id: 'player_2',
+        name: 'Same Player',
+      },
+    ];
+    const { container } = renderPool({
+      freeAgents: duplicateNameFreeAgents,
+      playersMap: duplicateNamePlayersMap,
+    });
+
+    const rowButtons = getPoolRowButtons(container);
+    const menuToggles = screen.getAllByRole('button', { name: '•••' });
+
+    expect(rowButtons).toHaveLength(2);
+    expect(menuToggles).toHaveLength(2);
+
+    fireEvent.click(menuToggles[0]);
+
+    expect(
+      within(rowButtons[0]).getByText(/Sign Free Agent/i, {
+        selector: 'button',
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(rowButtons[1]).queryByText(/Sign Free Agent/i, {
+        selector: 'button',
+      })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Sign Free Agent/i, { selector: 'button' })
+    ).toHaveLength(1);
+
+    fireEvent.click(menuToggles[1]);
+
+    expect(
+      within(rowButtons[0]).queryByText(/Sign Free Agent/i, {
+        selector: 'button',
+      })
+    ).not.toBeInTheDocument();
+    expect(
+      within(rowButtons[1]).getByText(/Sign Free Agent/i, {
+        selector: 'button',
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Sign Free Agent/i, { selector: 'button' })
+    ).toHaveLength(1);
+  });
+
   it('keeps duplicate-name free agents independently selectable and removable by stable selection key', () => {
     const duplicateNamePlayersMap = {
       player_1: {
@@ -499,7 +596,7 @@ describe('FreeAgentPool surface E86 behavior', () => {
     expect(screen.getAllByRole('button', { name: /Sign Player/i })).toHaveLength(1);
   });
 
-  it('prefers stable id lookup over conflicting name fallback while keeping visible identity aligned across row, selected-card, and modal launch', () => {
+  it('keeps Step 2 UI truth aligned across selected-card and row-menu launch when stable id lookup overrides conflicting name fallback and grouped-owner availability is narrowed', () => {
     const stableIdPlayer = {
       ...PLAYER,
       id: 'player_1',
@@ -539,6 +636,13 @@ describe('FreeAgentPool surface E86 behavior', () => {
     };
     const actionOwner = buildActionOwner({
       worldOnly: {},
+      freeAgentModalAvailability: {
+        visibleActions: ['signNew'],
+        actionLabelsOverride: {
+          signNew: 'Sign Free Agent (Authoritative)',
+        },
+        showOfferSheetToggle: false,
+      },
     });
     renderPool({
       actionOwner,
@@ -562,13 +666,45 @@ describe('FreeAgentPool surface E86 behavior', () => {
         }),
       })
     );
+    expect(selectedCardModalProps).toEqual(
+      expect.objectContaining({
+        onClose: expect.any(Function),
+        onSignFreeAgent: actionOwner.dualPathSigning.signFreeAgent,
+        onSignAndTrade: actionOwner.worldOnly?.signAndTrade,
+        getSignAndTradePreflight:
+          actionOwner.worldOnly?.getSignAndTradePreflight,
+        getOfferSheetPreflight:
+          actionOwner.worldOnly?.getOfferSheetPreflight,
+        onStoreOfferSheet: actionOwner.worldOnly?.storeOfferSheet,
+        actionsOverride: ['signNew'],
+        actionLabelsOverride: {
+          signNew: 'Sign Free Agent (Authoritative)',
+        },
+        showOfferSheetToggle: false,
+      })
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /Close Modal/i }));
 
     openFromRowMenu();
 
     const rowMenuModalProps = getLatestModalProps();
-    expect(rowMenuModalProps?.player).toEqual(selectedCardModalProps?.player);
+    expect(rowMenuModalProps).toEqual(
+      expect.objectContaining({
+        player: selectedCardModalProps?.player,
+        onClose: selectedCardModalProps?.onClose,
+        onSignFreeAgent: selectedCardModalProps?.onSignFreeAgent,
+        onSignAndTrade: selectedCardModalProps?.onSignAndTrade,
+        getSignAndTradePreflight:
+          selectedCardModalProps?.getSignAndTradePreflight,
+        getOfferSheetPreflight:
+          selectedCardModalProps?.getOfferSheetPreflight,
+        onStoreOfferSheet: selectedCardModalProps?.onStoreOfferSheet,
+        actionsOverride: selectedCardModalProps?.actionsOverride,
+        actionLabelsOverride: selectedCardModalProps?.actionLabelsOverride,
+        showOfferSheetToggle: selectedCardModalProps?.showOfferSheetToggle,
+      })
+    );
     expect(screen.getByTestId('mock-edit-contract-modal-player')).toHaveTextContent(
       /alias name/i
     );

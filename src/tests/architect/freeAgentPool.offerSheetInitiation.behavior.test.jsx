@@ -120,7 +120,7 @@ const buildActionOwner = ({
   };
 };
 
-const openFreeAgencySigningModal = async () => {
+const openFreeAgencySigningModalFromRowMenu = async () => {
   fireEvent.click(screen.getByRole('button', { name: '•••' }));
   const signMenuButton = screen
     .getAllByRole('button', { name: /Sign Free Agent/i })
@@ -130,6 +130,41 @@ const openFreeAgencySigningModal = async () => {
   }
   fireEvent.click(signMenuButton);
   await screen.findByText(/Available Actions/i);
+};
+
+const openFreeAgencySigningModalFromSelectedCard = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /Test Player/i }));
+  fireEvent.click(screen.getByRole('button', { name: /Sign Player/i }));
+  await screen.findByText(/Available Actions/i);
+};
+
+const closeSigningModal = async () => {
+  fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
+  await waitFor(() => {
+    expect(screen.queryByText(/Available Actions/i)).not.toBeInTheDocument();
+  });
+};
+
+const expectWorldModeActionsAndOfferSheetToggle = () => {
+  expect(screen.getByLabelText(/Sign Free Agent/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/Sign & Trade/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
+
+  expect(
+    screen.getByRole('checkbox', { name: /Offer Sheet/i })
+  ).toBeInTheDocument();
+};
+
+const expectOfferSheetSuppressedByOwnerProjection = () => {
+  expect(screen.getByLabelText(/Sign Free Agent/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/Sign & Trade/i)).toBeInTheDocument();
+
+  fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
+
+  expect(
+    screen.queryByRole('checkbox', { name: /Offer Sheet/i })
+  ).not.toBeInTheDocument();
 };
 
 describe('FreeAgentPool offer-sheet initiation wiring', () => {
@@ -165,7 +200,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       />
     );
 
-    await openFreeAgencySigningModal();
+    await openFreeAgencySigningModalFromRowMenu();
 
     fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
     const offerSheetToggle = screen.getByRole('checkbox', {
@@ -215,7 +250,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       />
     );
 
-    await openFreeAgencySigningModal();
+    await openFreeAgencySigningModalFromRowMenu();
 
     fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
     expect(
@@ -250,7 +285,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       />
     );
 
-    await openFreeAgencySigningModal();
+    await openFreeAgencySigningModalFromRowMenu();
 
     fireEvent.click(screen.getByLabelText(/Sign Free Agent/i));
     expect(
@@ -263,5 +298,49 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       expect(signFreeAgent).toHaveBeenCalledTimes(1);
     });
     expect(storeOfferSheet).not.toHaveBeenCalled();
+  });
+
+  it('keeps real modal action visibility and Offer Sheet toggle behavior aligned across row-menu and selected-card launch surfaces in world mode', async () => {
+    const actionOwner = buildActionOwner();
+
+    render(
+      <FreeAgentPool
+        freeAgents={[FREE_AGENT]}
+        currentYear={2026}
+        actionOwner={actionOwner}
+        playersMap={playersMap}
+      />
+    );
+
+    await openFreeAgencySigningModalFromSelectedCard();
+    expectWorldModeActionsAndOfferSheetToggle();
+    await closeSigningModal();
+
+    await openFreeAgencySigningModalFromRowMenu();
+    expectWorldModeActionsAndOfferSheetToggle();
+  });
+
+  it('keeps real modal Offer Sheet suppression aligned across row-menu and selected-card launch surfaces when grouped-owner availability hides it', async () => {
+    const actionOwner = buildActionOwner({
+      freeAgentModalAvailability: {
+        showOfferSheetToggle: false,
+      },
+    });
+
+    render(
+      <FreeAgentPool
+        freeAgents={[FREE_AGENT]}
+        currentYear={2026}
+        actionOwner={actionOwner}
+        playersMap={playersMap}
+      />
+    );
+
+    await openFreeAgencySigningModalFromSelectedCard();
+    expectOfferSheetSuppressedByOwnerProjection();
+    await closeSigningModal();
+
+    await openFreeAgencySigningModalFromRowMenu();
+    expectOfferSheetSuppressedByOwnerProjection();
   });
 });

@@ -8,12 +8,14 @@
  *  - 2026-03-30: Reworked for FA-1A to pin the explicit Free Agency action-owner boundary.
  *  - 2026-03-30: Reworked for FA-1C to pin the explicit dual-path vs world-only owner split.
  *  - 2026-03-30: Hardened for FA-1D to pin grouped-owner permanence and world-only fail-closed routes.
+ *  - 2026-03-30: Hardened for FA-2D to keep Step 2 UI-truth seams closed.
  *
  * GATES:
  *  1. useArchitectActions publishes one explicit dual-path vs world-only Free Agency owner
  *  2. Free Agency UI prop contracts stay grouped behind actionOwner
  *  3. GMDashboard and FreeAgencySection hand off grouped Free Agency authority
  *  4. FreeAgentPool remains a staging / dispatch surface, not a mutation owner
+ *  4B. Step 2 UI truth keeps shared launch, owner-projected availability, and shared-entry identity
  *  5. EditContractModal remains a callback dispatcher for Free Agency actions
  *  6. The authoritative hook path keeps world-only routes fail-closed and canonical
  *  7. ActiveTab union still includes runtime fa/cap/capfull keys
@@ -444,6 +446,71 @@ describe('Gate 4: FreeAgentPool stays staging / dispatch only with explicit dual
     expect(freeAgentRowContent).not.toMatch(/EditContractModal/);
     expect(selectedFreeAgentCardsContent).not.toMatch(/EditContractModal/);
     expect(freeAgentCardContent).not.toMatch(/EditContractModal/);
+  });
+});
+
+describe('Gate 4B: Step 2 UI truth keeps shared launch, owner-projected availability, and shared-entry identity durable (FA-2D)', () => {
+  const freeAgentPoolContent = readFileContent(FREE_AGENT_POOL_PATH);
+  const freeAgentPoolTypesContent = readFileContent(FREE_AGENT_POOL_TYPES_PATH);
+  const freeAgentRowContent = readFileContent(FREE_AGENT_ROW_PATH);
+  const selectedFreeAgentCardsContent = readFileContent(
+    SELECTED_FREE_AGENT_CARDS_PATH
+  );
+  const freeAgentCardContent = readFileContent(FREE_AGENT_CARD_PATH);
+
+  it('keeps the legacy Step 2 seams removed from the pool surface', () => {
+    expect(freeAgentPoolContent).not.toMatch(/resolvePlayerData/);
+    expect(freeAgentPoolContent).not.toMatch(
+      /\[selectedPlayers,\s*setSelectedPlayers\]/
+    );
+    expect(freeAgentPoolContent).not.toMatch(
+      /\[openMenuPlayerName,\s*setOpenMenuPlayerName\]/
+    );
+    expect(freeAgentPoolContent).not.toMatch(/playersById/);
+    expect(freeAgentRowContent).not.toMatch(/openMenuPlayerName/);
+  });
+
+  it('keeps one shared launch callback and one shared staged modal identity path across both entry surfaces', () => {
+    const sharedLaunchCallbackMatches =
+      freeAgentPoolContent.match(/const\s+openContractModal\s*=\s*useCallback/g) ||
+      [];
+    const sharedLaunchPropMatches =
+      freeAgentPoolContent.match(/onOpenContractModal=\{openContractModal\}/g) ||
+      [];
+    const stagedModalTargetMatches =
+      freeAgentPoolContent.match(/buildFreeAgentModalLaunchTarget\(entry\)/g) ||
+      [];
+
+    expect(sharedLaunchCallbackMatches).toHaveLength(1);
+    expect(sharedLaunchPropMatches).toHaveLength(2);
+    expect(stagedModalTargetMatches).toHaveLength(1);
+    expect(freeAgentPoolTypesContent).toMatch(
+      /export\s+type\s+FreeAgentModalLaunchTarget\s*=\s*FreeAgentSurfaceEntry;/
+    );
+    expect(freeAgentPoolContent).toMatch(
+      /player:\s*activeContractModalTarget\.surfacePlayer/
+    );
+  });
+
+  it('keeps Step 2 UI truth routed only through grouped-owner availability and the shared entry contract', () => {
+    expect(freeAgentPoolContent).toMatch(
+      /const\s+freeAgentModalAvailability\s*=\s*actionOwner\.freeAgentModalAvailability/
+    );
+    expect(freeAgentPoolContent).toMatch(
+      /actionsOverride:\s*freeAgentModalAvailability\.visibleActions/
+    );
+    expect(freeAgentPoolContent).toMatch(
+      /showOfferSheetToggle:\s*freeAgentModalAvailability\.showOfferSheetToggle/
+    );
+    expect(freeAgentPoolTypesContent).toMatch(
+      /export\s+interface\s+FreeAgentRowProps\s*\{[\s\S]*entry:\s*FreeAgentSurfaceEntry;/
+    );
+    expect(selectedFreeAgentCardsContent).toMatch(
+      /selectedEntries:\s*FreeAgentSurfaceEntry\[\];/
+    );
+    expect(freeAgentCardContent).toMatch(
+      /const\s+\{\s*surfacePlayer:\s*player\s*\}\s*=\s*entry/
+    );
   });
 });
 
