@@ -741,3 +741,131 @@ However, it is still a high-leverage visible launch surface with enough staging,
 The correct Step 2 result is:
 
 **RISK**
+
+---
+
+# STEP 3 — Free Agency Standard Signing Flow
+
+## Scope
+
+Free Agency — Step 3: Standard Signing Flow
+
+**Date:** 2026-03-30  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the standard Free Agency signing flow is correct from modal input to final team state.
+
+Main questions:
+
+- how standard signing payloads are built and finalized
+- whether salary years, action year, total value, signing mechanism, and exception usage are constructed correctly
+- whether legality validation and authoritative mutation truth are aligned
+- whether world-mode and vacuum-mode standard signing remain coherent rather than silently diverging
+- whether final saved/reloaded team state reflects standard signings correctly
+- whether any duplicate, fallback, or weaker standard-signing paths still exist
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+Standard signing is the most important Free Agency action path and also the one major Free Agency flow that still intentionally supports both:
+
+- world-mode authoritative execution
+- vacuum/base-mode local compute execution
+
+That immediately makes this step more than a simple signing correctness check.
+
+This step is not just asking whether a player can be signed.
+It is asking whether the entire signing system stays coherent across:
+
+- modal input
+- staged payload data
+- action-year handling
+- signing mechanism / exception usage
+- legality validation
+- mutation execution
+- persistence / reload
+- world-mode vs vacuum-mode behavior
+
+The main reason this step starts at **RISK** is that standard signing still carries the most meaningful dual-path execution model in the Free Agency feature.
+
+Even after Step 1 ownership hardening and Step 2 UI-truth hardening, there are still real areas that need direct review:
+
+- whether the standard-sign payload is truly finalized in one place
+- whether action year and salary rows stay correct across both execution modes
+- whether exception/signing-mechanism truth stays aligned with legality validation
+- whether world and vacuum execution continue to tell the same signing story
+- whether post-sign state is equally trustworthy in local and world-backed paths
+
+So the correct starting assessment for Step 3 is:
+
+**RISK**
+
+not because standard signing is assumed broken, but because it is a high-complexity path with enough moving parts and dual-path execution that correctness must be proven directly.
+
+---
+
+## Why This Step Exists Separately
+
+Step 1 proved that Free Agency action ownership is centralized and now better fenced.
+Step 2 proved that the visible pool/modal launch layer is cleaner and more durable.
+
+That still does **not** prove standard signing is fully correct.
+
+This step exists to answer a different question:
+
+> Does the real standard signing system remain internally coherent from input to final state across both world-mode and vacuum-mode execution?
+
+That is a deeper correctness question than ownership or launch wiring alone.
+
+---
+
+## Key Surfaces Under Review
+
+The main surfaces in scope are:
+
+- `FreeAgentPool.tsx`
+- `EditContractModal.tsx`
+- `useArchitectActions.ts`
+- any helper paths used by standard signing legality, contract normalization, action-year derivation, mutation execution, and final-state update
+
+---
+
+## Initial Review Framing
+
+This step should determine:
+
+1. where standard signing payload truth is finalized
+2. whether salary/year/mechanism details are consistently derived
+3. whether legality validation and mutation truth are aligned
+4. whether world-mode and vacuum-mode standard signing stay behaviorally coherent
+5. whether final saved/reloaded team state reflects standard signings correctly
+6. whether any weaker or duplicate signing paths still remain
+
+---
+
+## PASS / RISK / FAIL
+
+### Starting Step Verdict
+
+**RISK**
+
+This is the correct starting status for Step 3 because standard signing is the most execution-heavy and dual-path-sensitive Free Agency flow, and it still needs direct correctness review.
+
+---
+
+## Final Conclusion
+
+Step 3 should now review the standard Free Agency signing system as a full correctness path from modal input through legality, mutation, and final team state.
+
+Current Step 3 starting assessment:
+
+**RISK**
+
+---

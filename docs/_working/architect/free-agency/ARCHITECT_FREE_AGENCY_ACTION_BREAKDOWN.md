@@ -147,3 +147,173 @@ This is an **ownership-boundary and action-source-of-truth step**, not a broad F
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 3 — ACTION BREAKDOWN
+
+## Free Agency Standard Signing Flow
+
+---
+
+## FA-3A — Centralize and Clarify Standard Signing Payload Finalization
+
+### Problem
+
+Standard signing still passes through several payload-shaping layers:
+
+- modal input staging
+- pool/modal dispatch handoff
+- action-layer preparation/finalization
+
+Even after earlier ownership cleanup, this path is still a high-risk seam because the final signing payload must remain correct for:
+
+- salary rows
+- action year
+- total value
+- signing mechanism / exception usage
+- contract metadata
+
+### Why It Matters
+
+- Standard signing is the most common and most foundational Free Agency action
+- If payload truth is even slightly split or re-derived inconsistently, the rest of the signing system can look correct while still encoding the wrong contract truth
+- Contributors can quietly reintroduce duplicated signing-shape logic if the finalization boundary is not explicit enough
+
+### Goal
+
+Make standard signing payload finalization easier to trace and harder to duplicate or drift.
+
+### Success Criteria
+
+- The final standard-sign payload owner is easier to identify
+- Salary years, action year, total value, and signing mechanism are finalized through one clearly authoritative path
+- Contributors are less likely to spread signing-shape truth back into UI staging surfaces
+
+---
+
+## FA-3B — Align Standard Signing Legality Validation with Final Mutation Truth
+
+### Problem
+
+Standard signing must remain coherent not just at the payload layer, but at the legality layer:
+
+- signing mechanism / exception usage
+- cap legality
+- action-year interpretation
+- mutation-time contract truth
+
+If legality validation and final mutation truth are not using the same assumptions, the feature can approve one signing story and commit another.
+
+### Why It Matters
+
+- Standard signing is the path most likely to expose cap-rule drift early
+- A feature can appear correct in UI and still be wrong if legality checks and mutation truth do not fully agree
+- Exception-backed signings are especially vulnerable to this kind of subtle split
+
+### Goal
+
+Make legality validation and final mutation truth easier to verify as one coherent standard-signing system.
+
+### Success Criteria
+
+- Validation assumptions and committed signing truth are easier to compare directly
+- Signing mechanism / exception usage is less likely to drift between legality and mutation paths
+- Contributors are less likely to add local validation logic that does not match final action truth
+
+---
+
+## FA-3C — Fence the Standard Signing World-Mode vs Vacuum-Mode Dual Path
+
+### Problem
+
+Standard signing is the one major Free Agency action that still intentionally supports both:
+
+- world-mode authoritative execution
+- vacuum/base-mode local compute execution
+
+That makes it the biggest dual-path correctness seam in the feature.
+
+### Why It Matters
+
+- The same signing action can quietly diverge across execution modes
+- A contributor can fix or extend one signing path and leave the other behind
+- Step 1 clarified that this dual-path model exists; Step 3 must determine whether it is still behaviorally coherent
+
+### Goal
+
+Make the world-mode vs vacuum-mode standard-signing boundary easier to trace and less likely to silently diverge.
+
+### Success Criteria
+
+- It is easier to compare the two standard-signing execution paths
+- Their action-year, legality, and payload assumptions are easier to verify as aligned
+- Contributors are less likely to accidentally evolve one path without the other
+
+---
+
+## FA-3D — Protect Final-State, Persistence, and Reload Truth for Standard Signings
+
+### Problem
+
+A standard signing is not complete when it is merely accepted by the action layer.
+
+It still has to end correctly in:
+
+- team state
+- free-agent pool removal/update
+- saved world state where applicable
+- reloaded/hydrated state
+- visible post-sign truth
+
+That full final-state path still needs explicit protection.
+
+### Why It Matters
+
+- A signing flow can look correct at mutation time and still land in the wrong final visible state
+- World-mode and vacuum-mode can appear aligned while persistence/reload behavior still differs
+- Standard signing is too central to leave this to assumption
+
+### Goal
+
+Make final-state truth for standard signings more durable across mutation, persistence, reload, and visible post-sign surfaces.
+
+### Success Criteria
+
+- Final-state and post-reload standard-sign truth is easier to trace
+- World-mode and vacuum-mode end states are easier to compare
+- Contributors are less likely to introduce a mutation/persist/reload mismatch without detection
+
+---
+
+## Step 3 Summary
+
+This step focuses on:
+
+- centralizing and clarifying standard signing payload finalization
+- aligning legality validation with final mutation truth
+- fencing the world-mode vs vacuum-mode standard-signing dual path
+- protecting final-state, persistence, and reload truth for standard signings
+
+This is a **standard-signing correctness and coherence step**, not a broad Free Agency rewrite.
+
+---
+
+## Efficiency Note
+
+Execution may batch naturally where the live code shows one shared seam:
+
+- **FA-3A + FA-3B** may be executed together if payload finalization and legality alignment are owned by the same signing-preparation path
+- **FA-3C + FA-3D** may be executed together if world/vacuum coherence and final-state persistence/reload truth share the same mutation/persist seam
+
+Validation can also be tiered:
+
+- use targeted tests plus `typecheck` / `test:diff` / `build` for substeps
+- reserve broader suite escalation for step-close, blocker follow-up, or whole-feature closeout where possible
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---
