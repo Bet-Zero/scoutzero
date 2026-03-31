@@ -1473,3 +1473,321 @@ However, it still carries enough preflight/store/final-state drift sensitivity t
 **RISK**
 
 ---
+
+# STEP 6 — Free Agency Incoming and Outgoing Offer-Sheet Lifecycle
+
+## Scope
+
+Free Agency — Step 6: Incoming and Outgoing Offer-Sheet Lifecycle
+
+**Date:** 2026-03-30  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine whether the full offer-sheet lifecycle after creation is correct, including both incoming and outgoing offer-sheet action handling.
+
+Main questions:
+
+- whether incoming and outgoing offer-sheet surfaces are correctly separated
+- whether match / decline / finalize actions are correctly gated and routed
+- whether team-role correctness is maintained across those actions
+- whether final saved/reloaded state after offer-sheet actions is correct
+- whether any lifecycle stage has duplicate or weak ownership
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+The offer-sheet lifecycle is not loosely wired.
+
+The current lifecycle has several meaningful strengths:
+
+- incoming and outgoing offer-sheet surfaces are explicitly separated
+- the visible action matrix is role-aware and status-aware
+- match / decline / finalize are routed through `useArchitectActions.ts`
+- lifecycle handlers are world-only and fail closed without an active world
+- finalize routing includes explicit team/status checks rather than acting as a generic catch-all
+
+Those strengths are enough to avoid a FAIL.
+
+However, Step 6 still starts at **RISK** because lifecycle truth is not yet explicit enough to justify PASS.
+
+The main structural concern is **distributed lifecycle truth** across multiple layers:
+
+- UI role logic in `OfferSheetList.tsx`
+- section-level incoming/outgoing routing in `FreeAgencySection.tsx`
+- hook-level match / decline handlers
+- hook-level finalize branching based on status and team role
+- generic post-mutation save/sync behavior
+
+This means the lifecycle is coherent today, but still sensitive to future drift between:
+
+- which team role is allowed to act
+- which visible controls appear
+- which finalize branch runs
+- what final saved/reloaded state is treated as authoritative after each lifecycle step
+
+There is also a second risk:
+
+- final saved/reloaded state after match / decline / finalize still appears too implicit, because lifecycle actions are routed through authoritative mutation handlers but do not yet read as one explicit hook-local lifecycle-state executor the way some newer standard-signing and sign-and-trade seams now do
+
+So the correct Step 6 verdict is:
+
+**RISK**
+
+---
+
+## Offer-Sheet Lifecycle Map
+
+### 1. Section-Level Incoming / Outgoing Separation
+
+`FreeAgencySection.tsx` renders two distinct offer-sheet surfaces:
+
+- **Incoming Offer Sheets (Action Required)** with `isIncoming={true}`
+- **My Pending Offer Sheets** with `isIncoming={false}`
+
+The section wires:
+
+- incoming offer sheets to `onMatch`, `onDecline`, and `onFinalize`
+- outgoing offer sheets to `onFinalize` only
+
+This is the first major lifecycle role boundary, and it is clear.
+
+---
+
+### 2. Visible Action Matrix
+
+`OfferSheetList.tsx` enforces a role-aware and status-aware action model.
+
+For **incoming** offer sheets:
+
+- `PENDING_MATCH` → Match / Decline
+- `MATCHED` → Finalize Match
+
+For **outgoing** offer sheets:
+
+- `DECLINED` → Finalize Signing
+- `MATCHED` → informational “Matched by Home Team”
+- `PENDING_MATCH` → informational “Waiting for home team...”
+
+This means visible lifecycle actions are not generic.
+They are tailored to team role and status.
+
+---
+
+### 3. Section-Level Routing Layer
+
+`FreeAgencySection.tsx` wraps and forwards lifecycle handlers into the list surface:
+
+- `handleMatchOfferSheet(...)`
+- `handleDeclineOfferSheet(...)`
+- `handleFinalizeOfferSheet(...)`
+
+These are intentionally thin world-only forwards into the action owner.
+
+That is a good ownership boundary for the section layer.
+
+---
+
+### 4. Authoritative Lifecycle Owner
+
+`useArchitectActions.ts` owns the actual lifecycle handlers:
+
+- `handleMatchOfferSheet(...)`
+- `handleDeclineOfferSheet(...)`
+- `handleFinalizeOfferSheet(...)`
+
+These handlers:
+
+- fail closed if no active world exists
+- fail closed on missing required identifiers
+- route into authoritative mutation flows
+- do not provide local vacuum-mode lifecycle fallbacks
+
+This is the real lifecycle owner.
+
+---
+
+### 5. Finalize Branching
+
+`handleFinalizeOfferSheet(...)` is the key role-sensitive lifecycle branch.
+
+It:
+
+- finalizes a matched offer sheet only when:
+  - `status === 'MATCHED'`
+  - `homeTeamCode === teamCode`
+- finalizes a declined offer sheet only when:
+  - `status === 'DECLINED'`
+  - `offeringTeamCode === teamCode`
+- otherwise fails with a status/team mismatch error
+
+This is important because finalize is not treated as a generic finalization action.
+It is already role-aware and outcome-aware.
+
+---
+
+## What Looks Strong
+
+### Incoming and outgoing surfaces are clearly separated
+
+The current UI does not blur together home-team and offering-team lifecycle surfaces.
+
+Incoming and outgoing offer sheets are rendered separately with different action possibilities.
+
+That is correct.
+
+---
+
+### Visible actions are role-aware and status-aware
+
+The `OfferSheetList.tsx` action matrix is meaningfully tailored to:
+
+- incoming vs outgoing
+- pending vs matched vs declined
+
+That makes the visible lifecycle easier to understand and harder to misuse than a generic action table would be.
+
+---
+
+### Lifecycle handlers are centrally owned
+
+The section routes.
+The list renders.
+The hook mutates.
+
+That ownership story is clean.
+
+---
+
+### World-only lifecycle enforcement is real
+
+The lifecycle actions do not silently fall back to local no-world behavior.
+
+That is correct for offer-sheet actions.
+
+---
+
+### Finalize logic already checks team role and status
+
+The finalize path is not loose.
+It explicitly distinguishes:
+
+- home-team finalize after match
+- offering-team finalize after decline
+
+That is a strong part of the current design.
+
+---
+
+## Main Risks
+
+### 1. Lifecycle truth is still distributed across several layers
+
+This is the biggest reason Step 6 remains RISK.
+
+Lifecycle truth currently lives across:
+
+- `FreeAgencySection.tsx`
+- `OfferSheetList.tsx`
+- `useArchitectActions.ts`
+
+That is coherent today, but still a multi-layer truth model.
+
+A contributor could alter one layer without fully updating the others.
+
+---
+
+### 2. Final saved/reloaded lifecycle truth is still too implicit
+
+The lifecycle handlers route into authoritative mutation paths, which is good.
+
+But final saved/reloaded state after match / decline / finalize still does not read as one explicit lifecycle-state execution seam.
+
+That means the lifecycle may be correct in practice while still being harder than ideal to trace and protect.
+
+---
+
+### 3. Team-role correctness is maintained, but still partly duplicated across layers
+
+Role correctness currently depends on:
+
+- list-level action visibility
+- section-level incoming/outgoing routing
+- hook-level finalize branching
+
+That is not wrong, but it is still a distributed role-truth system.
+
+This increases long-term drift risk.
+
+---
+
+## Duplicate / Weak Ownership Analysis
+
+### Vacuum/base-mode fallback path
+
+No vacuum/base-mode lifecycle mutation path was found.
+
+That is correct.
+
+---
+
+### Competing mutation owner
+
+No competing lifecycle mutation owner was found.
+
+The lifecycle owner remains `useArchitectActions.ts`.
+
+---
+
+### Weakness is not duplicate ownership
+
+The main weakness is not duplicate mutation ownership.
+
+The main weakness is that lifecycle truth is still somewhat **distributed and indirectly finalized** after authoritative mutation.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why this is not FAIL
+
+- incoming/outgoing surfaces are clearly separated
+- match / decline / finalize are role-aware in both UI and hook logic
+- handlers are world-only and authoritative
+- no duplicate lifecycle mutation owner or vacuum fallback was found
+
+The lifecycle is too coherent to justify FAIL.
+
+---
+
+### Why this is not PASS
+
+- lifecycle execution is still spread across multiple imperative handlers without a more explicit unified lifecycle-state seam
+- final saved/reloaded truth after lifecycle actions is still not explicit enough
+- team-role correctness is maintained, but still distributed across multiple layers in a way that can drift later
+
+So the correct Step 6 result remains:
+
+**RISK**
+
+---
+
+## Final Conclusion
+
+The offer-sheet lifecycle is role-aware, world-only, and centrally owned enough to avoid FAIL.
+
+However, final lifecycle-state truth is still too distributed and indirect to justify PASS.
+
+The correct Step 6 verdict is:
+
+**RISK**
+
+---

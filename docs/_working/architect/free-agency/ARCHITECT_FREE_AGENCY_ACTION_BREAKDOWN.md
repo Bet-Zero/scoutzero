@@ -638,3 +638,177 @@ Validation can stay tiered:
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 6 — ACTION BREAKDOWN
+
+## Free Agency Incoming and Outgoing Offer-Sheet Lifecycle
+
+---
+
+## FA-6A — Tighten Incoming vs Outgoing Offer-Sheet Surface Truth
+
+### Problem
+
+The offer-sheet lifecycle is currently shown through two separate visible surfaces:
+
+- incoming offer sheets
+- outgoing offer sheets
+
+That separation is correct today, but the lifecycle still depends on several layers staying aligned:
+
+- section-level incoming/outgoing routing
+- list-level role-aware action visibility
+- lifecycle handler injection
+- disabled-state / world-only gating
+
+### Why It Matters
+
+- A contributor can accidentally blur home-team and offering-team responsibilities
+- The UI can become misleading even if the hook-level actions are still technically correct
+- Offer-sheet lifecycle actions are role-sensitive, so visible surface drift matters more than in simpler flows
+
+### Goal
+
+Make incoming vs outgoing lifecycle truth easier to trace and less likely to drift across section and list surfaces.
+
+### Success Criteria
+
+- Incoming and outgoing offer-sheet surfaces are more clearly tied to the correct team roles
+- Visible lifecycle actions are less likely to drift from hook-owned role truth
+- Contributors are less likely to introduce misleading surface behavior
+
+---
+
+## FA-6B — Align Match / Decline / Finalize Routing with Team-Role Truth
+
+### Problem
+
+The lifecycle currently uses separate handlers for:
+
+- match
+- decline
+- finalize
+
+That is workable, but role correctness is still partly distributed between:
+
+- list visibility
+- section routing
+- hook-level branching
+- finalize status/team checks
+
+### Why It Matters
+
+- Match / decline / finalize can quietly evolve unevenly
+- Team-role truth can be preserved in one layer but weakened in another
+- Finalize is especially sensitive because it is outcome-aware and role-aware
+
+### Goal
+
+Make lifecycle routing easier to verify as one coherent role-aware offer-sheet action system.
+
+### Success Criteria
+
+- Match / decline / finalize routing is easier to compare directly
+- Team-role assumptions are less likely to drift across layers
+- Contributors are less likely to evolve one lifecycle action path without the others
+
+---
+
+## FA-6C — Clarify and Harden Final Lifecycle-State, Sync, and Reload Truth
+
+### Problem
+
+Offer-sheet lifecycle actions are not complete when the handler fires.
+
+They still have to end correctly in:
+
+- committed mutation truth
+- local/dashboard state
+- persisted world truth
+- reloaded/hydrated offer-sheet truth
+- visible lifecycle-state surfaces after match / decline / finalize
+
+Right now, that final lifecycle-state truth still appears more indirect than ideal because it depends on the broader authoritative mutation/sync path.
+
+### Why It Matters
+
+- A lifecycle action can look correct at handler time but still land in the wrong post-action state
+- Final saved/reloaded truth can drift away from what the lifecycle action logically implied
+- Lifecycle actions are state transitions, so post-action truth matters just as much as action routing
+
+### Goal
+
+Make final lifecycle-state, sync, and reload truth easier to trace and less dependent on indirect generic handling.
+
+### Success Criteria
+
+- Post-action lifecycle truth is easier to follow
+- Contributors are less likely to introduce a routing/final-state mismatch without detection
+- Visible incoming/outgoing offer-sheet truth is more directly tied to committed lifecycle results
+
+---
+
+## FA-6D — Add Focused Guardrails for Offer-Sheet Lifecycle Role and Final-State Truth
+
+### Problem
+
+Even if the lifecycle is coherent today, its correctness still depends on several boundaries continuing to hold:
+
+- incoming/outgoing surfaces staying role-correct
+- match / decline / finalize staying role-aware
+- finalize staying aligned with outcome/team-role truth
+- final lifecycle-state and reload truth staying faithful to committed results
+
+These are high-value seams and still vulnerable to future drift.
+
+### Why It Matters
+
+- A contributor can accidentally reopen a weaker or alternate lifecycle path
+- Role-truth drift is easy to miss without focused protection
+- Generic mutation helpers can hide lifecycle-specific regressions unless something explicitly guards them
+
+### Goal
+
+Add focused protection so offer-sheet lifecycle truth stays durable instead of just currently coherent.
+
+### Success Criteria
+
+- Lifecycle regressions are easier to detect
+- Role-aware routing and final-state seams are better protected
+- The feature is guarded as a team-role-sensitive lifecycle system, not just a few list buttons and handler calls
+
+---
+
+## Step 6 Summary
+
+This step focuses on:
+
+- tightening incoming vs outgoing offer-sheet surface truth
+- aligning match / decline / finalize routing with team-role truth
+- clarifying and hardening final lifecycle-state, sync, and reload truth
+- adding focused guardrails for offer-sheet lifecycle role and final-state durability
+
+This is an **offer-sheet lifecycle correctness and coherence step**, not a broad Free Agency rewrite.
+
+---
+
+## Efficiency Note
+
+Execution may batch naturally where the live code shows one shared seam:
+
+- **FA-6A + FA-6B** may be executed together if visible incoming/outgoing separation and role-aware lifecycle routing are owned by the same section/list/action seam
+- **FA-6C + FA-6D** may be executed together if lifecycle final-state/sync/reload truth and guardrail hardening share the same authoritative mutation/sync seam
+
+Validation can stay tiered:
+
+- use targeted lifecycle tests plus `typecheck` / `test:diff` / `build` for substeps
+- reserve broader suite escalation for step-close, blocker follow-up, or whole-feature closeout where needed
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---
