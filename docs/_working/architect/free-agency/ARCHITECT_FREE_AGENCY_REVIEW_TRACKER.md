@@ -29,3 +29,16 @@ Progress and execution status for the Free Agency review series.
 **STEP 2 STATUS: DONE**
 
 ---
+
+## STEP 3 — Free Agency Standard Signing Flow
+
+| ID    | Title                                                                 | Status | Notes |
+|-------|-----------------------------------------------------------------------|--------|-------|
+| FA-3A | Centralize and Clarify Standard Signing Payload Finalization          | TODO   |       |
+| FA-3B | Align Standard Signing Legality Validation with Final Mutation Truth  | TODO   |       |
+| FA-3C | Fence the Standard Signing World-Mode vs Vacuum-Mode Dual Path        | TODO   |       |
+| FA-3D | Protect Final-State, Persistence, and Reload Truth for Standard Signings | TODO |       |
+
+**STEP 3 STATUS: TODO**
+
+---
