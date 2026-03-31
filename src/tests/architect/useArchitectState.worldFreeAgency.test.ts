@@ -62,6 +62,28 @@ const teamFixture = {
   teamName: 'Los Angeles Lakers',
   roster: ['player_a'],
   players: [],
+  offerSheets: [
+    {
+      id: 'os_outgoing_1',
+      playerId: 'player_b',
+      playerName: 'World Released Player',
+      offeringTeamCode: 'LAL',
+      homeTeamCode: 'BOS',
+      seasonKey: '2027-28',
+      status: 'PENDING_MATCH',
+    },
+  ],
+  incomingOfferSheets: [
+    {
+      id: 'os_incoming_1',
+      playerId: 'player_z',
+      playerName: 'Incoming Offer Player',
+      offeringTeamCode: 'BOS',
+      homeTeamCode: 'LAL',
+      seasonKey: '2027-28',
+      status: 'PENDING_MATCH',
+    },
+  ],
   capHolds: [],
   exceptions: {},
   totals: {},
@@ -177,5 +199,51 @@ describe('useArchitectState world-aware free agency pool', () => {
       expect(playerIds).toContain('player_b');
       expect(playerIds).toContain('player_c');
     });
+  });
+
+  it('preserves hydrated offer-sheet arrays through world load and roster-index refresh', async () => {
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setWorldId('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.teamCapSheet?.offerSheets).toEqual(
+        teamFixture.offerSheets
+      );
+      expect(result.current.teamCapSheet?.incomingOfferSheets).toEqual(
+        teamFixture.incomingOfferSheets
+      );
+    });
+
+    await act(async () => {
+      await result.current.refreshWorldRosterIndex();
+    });
+
+    expect(result.current.teamCapSheet?.offerSheets).toEqual(
+      teamFixture.offerSheets
+    );
+    expect(result.current.teamCapSheet?.incomingOfferSheets).toEqual(
+      teamFixture.incomingOfferSheets
+    );
   });
 });

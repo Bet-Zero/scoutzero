@@ -679,6 +679,21 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     'const getOfferSheetPreflight = useCallback(',
     '// === RFA Offer Sheet Actions ==='
   );
+  const resolveCommittedOfferSheetStateRegion = readRegion(
+    content,
+    'const resolveCommittedOfferSheetState = useCallback(',
+    'const applyCommittedOfferSheetState = useCallback('
+  );
+  const applyCommittedOfferSheetStateRegion = readRegion(
+    content,
+    'const applyCommittedOfferSheetState = useCallback(',
+    'const executeWorldModeOfferSheetStore = useCallback('
+  );
+  const executeWorldModeOfferSheetStoreRegion = readRegion(
+    content,
+    'const executeWorldModeOfferSheetStore = useCallback(',
+    'const applyCommittedStandardSigningState = useCallback('
+  );
   const handleStoreOfferSheetRegion = readRegion(
     content,
     'const handleStoreOfferSheet = useCallback(',
@@ -712,6 +727,15 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(content).toMatch(
       /const\s+prepareSignAndTradeTransactionDefinition\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+resolveCommittedOfferSheetState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+applyCommittedOfferSheetState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+executeWorldModeOfferSheetStore\s*=\s*useCallback/
     );
     expect(content).toMatch(
       /const\s+applyCommittedStandardSigningState\s*=\s*useCallback/
@@ -763,9 +787,36 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(prepareOfferSheetCreationDefinitionRegion).toMatch(
       /rfaOfferSheetStatus:\s*'PENDING_MATCH'/
     );
+    expect(handleStoreOfferSheetRegion).toMatch(/executeWorldModeOfferSheetStore/);
+    expect(handleStoreOfferSheetRegion).toMatch(/applyCommittedOfferSheetState/);
   });
 
   it('keeps standard-sign world and vacuum execution on explicit hook-local executors plus one shared final-state applier', () => {
+    expect(applyCommittedOfferSheetStateRegion).toMatch(
+      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+    );
+    expect(applyCommittedOfferSheetStateRegion).not.toMatch(/setFreeAgents/);
+    expect(resolveCommittedOfferSheetStateRegion).toMatch(
+      /buildCommittedOfferSheetIdentity/
+    );
+    expect(resolveCommittedOfferSheetStateRegion).toMatch(
+      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(resolveCommittedOfferSheetStateRegion).toMatch(
+      /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+    );
+    expect(resolveCommittedOfferSheetStateRegion).toMatch(
+      /matchesCommittedOfferSheetIdentity/
+    );
+    expect(executeWorldModeOfferSheetStoreRegion).toMatch(
+      /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'storeOfferSheet'/
+    );
+    expect(executeWorldModeOfferSheetStoreRegion).toMatch(
+      /await\s+resolveCommittedOfferSheetState/
+    );
+    expect(executeWorldModeOfferSheetStoreRegion).not.toMatch(
+      /refreshWorldRosterIndex/
+    );
     expect(applyCommittedStandardSigningStateRegion).toMatch(
       /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
     );
@@ -858,8 +909,11 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(executeWorldModeSignAndTradeRegion).toMatch(
       /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'signAndTrade'/
     );
-    expect(handleStoreOfferSheetRegion).toMatch(
+    expect(handleStoreOfferSheetRegion).not.toMatch(
       /runAuthoritativeFAMutation\s*\(\s*'storeOfferSheet'/
+    );
+    expect(executeWorldModeOfferSheetStoreRegion).toMatch(
+      /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'storeOfferSheet'/
     );
     expect(handleMatchOfferSheetRegion).toMatch(
       /runAuthoritativeFAMutation\s*\(\s*'matchOfferSheet'/
@@ -878,6 +932,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   it('does not grow local compute or local state-write fallback inside world-only handlers', () => {
     const worldOnlyMutationRegions = [
       handleSignAndTradeRegion,
+      executeWorldModeOfferSheetStoreRegion,
       handleStoreOfferSheetRegion,
       handleMatchOfferSheetRegion,
       handleDeclineOfferSheetRegion,
@@ -908,11 +963,18 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /runAuthoritativeFAMutation[\s\S]{0,2200}await\s+syncTeamFromMutationResult\s*\(\s*mutationType\s*,\s*result\s*\)/
     );
     expect(handleSignAndTradeRegion).not.toMatch(/runAuthoritativeFAMutation/);
+    expect(handleStoreOfferSheetRegion).not.toMatch(/runAuthoritativeFAMutation/);
+    expect(executeWorldModeOfferSheetStoreRegion).toMatch(
+      /await\s+resolveCommittedOfferSheetState/
+    );
     expect(executeWorldModeSignAndTradeRegion).toMatch(
       /const\s+changedTeam\s*=\s*findUpdatedTeamSnapshot/
     );
     expect(executeWorldModeSignAndTradeRegion).toMatch(
       /const\s+reloadedTeam\s*=\s*changedTeam[\s\S]*loadWorldTeamData/
+    );
+    expect(resolveCommittedOfferSheetStateRegion).toMatch(
+      /const\s+committedOfferSheet\s*=\s*\(\s*committedTeam\.offerSheets\s*\|\|\s*\[\]\s*\)\.find/
     );
   });
 });

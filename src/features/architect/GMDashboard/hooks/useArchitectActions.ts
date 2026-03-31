@@ -389,6 +389,50 @@ interface OfferSheet {
   seasonKey?: string;
 }
 
+interface OfferSheetMutationMetadata {
+  type?: string | null;
+  teamCode?: string | null;
+  playerId?: string | null;
+  offerSheetId?: string | null;
+  dedupKey?: string | null;
+}
+
+interface OfferSheetCommittedIdentity {
+  dedupKey: string | null;
+  offerSheetId: string | null;
+  playerId: string;
+  seasonKey: string;
+  offeringTeamCode: string;
+  status: 'PENDING_MATCH';
+}
+
+interface OfferSheetCommittedState {
+  committedTeam: CapSheet;
+  committedTeamSource: 'changedTeams' | 'reload';
+  committedOfferSheet: OfferSheet;
+  committedOfferSheetIdentity: OfferSheetCommittedIdentity;
+}
+
+type OfferSheetCommittedStateResolution =
+  | {
+      ok: true;
+      value: OfferSheetCommittedState;
+    }
+  | {
+      ok: false;
+      message: string;
+      logContext: Record<string, unknown>;
+    };
+
+type OfferSheetStoreExecutionResult =
+  | ({
+      success: true;
+    } & OfferSheetCommittedState)
+  | {
+      success: false;
+      message: string;
+    };
+
 const MANUAL_EXCEPTION_MUTATION_KEYS = [
   'mle',
   'tpmle',
@@ -1268,6 +1312,56 @@ function findUpdatedTeamSnapshot(
   return (matchingUpdate?.team as CapSheet | null | undefined) || null;
 }
 
+function toTrimmedStringOrNull(value: unknown): string | null {
+  const normalized = String(value || '').trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function buildCommittedOfferSheetIdentity(params: {
+  result: PersistMutationResult;
+  playerId: string;
+  seasonKey: string;
+  offeringTeamCode: string;
+}): OfferSheetCommittedIdentity {
+  const metadata = (params.result.metadata || null) as OfferSheetMutationMetadata | null;
+
+  return {
+    dedupKey: toTrimmedStringOrNull(metadata?.dedupKey),
+    offerSheetId: toTrimmedStringOrNull(metadata?.offerSheetId),
+    playerId: params.playerId,
+    seasonKey: params.seasonKey,
+    offeringTeamCode: params.offeringTeamCode,
+    status: 'PENDING_MATCH',
+  };
+}
+
+function matchesCommittedOfferSheetIdentity(
+  offerSheet: OfferSheet | null | undefined,
+  identity: OfferSheetCommittedIdentity
+): boolean {
+  if (!offerSheet) {
+    return false;
+  }
+
+  const entryDedupKey = toTrimmedStringOrNull(offerSheet.dedupKey);
+  if (identity.dedupKey && entryDedupKey === identity.dedupKey) {
+    return true;
+  }
+
+  const entryOfferSheetId = toTrimmedStringOrNull(offerSheet.id);
+  if (identity.offerSheetId && entryOfferSheetId === identity.offerSheetId) {
+    return true;
+  }
+
+  return (
+    toTrimmedStringOrNull(offerSheet.playerId) === identity.playerId &&
+    toTrimmedStringOrNull(offerSheet.seasonKey) === identity.seasonKey &&
+    toTrimmedStringOrNull(offerSheet.offeringTeamCode) ===
+      identity.offeringTeamCode &&
+    String(offerSheet.status || '').trim() === identity.status
+  );
+}
+
 function filterSignedPlayerFromFreeAgents<
   T extends {
     name?: unknown;
@@ -1737,6 +1831,193 @@ export function useArchitectActions({
       worldId,
       evaluateMutationTruth,
       seasonId,
+    ]
+  );
+
+  const resolveCommittedOfferSheetState = useCallback(
+    async (
+      result: PersistMutationResult,
+      params: {
+        playerId: string;
+        seasonKey: string;
+        offeringTeamCode: string;
+      }
+    ): Promise<OfferSheetCommittedStateResolution> => {
+      const committedOfferSheetIdentity = buildCommittedOfferSheetIdentity({
+        result,
+        playerId: params.playerId,
+        seasonKey: params.seasonKey,
+        offeringTeamCode: params.offeringTeamCode,
+      });
+      const changedTeam = findUpdatedTeamSnapshot(result.changedTeams, teamCode);
+      const committedTeamSource: OfferSheetCommittedState['committedTeamSource'] =
+        changedTeam ? 'changedTeams' : 'reload';
+      const reloadedTeam = changedTeam
+        ? null
+        : ((await loadWorldTeamData(worldId, teamCode)) as CapSheet | null);
+      const committedTeam = changedTeam || reloadedTeam;
+
+      if (!committedTeam) {
+        return {
+          ok: false,
+          message:
+            'Offer sheet saved but the committed team snapshot could not be reloaded.',
+          logContext: {
+            result,
+            committedOfferSheetIdentity,
+          },
+        };
+      }
+
+      const committedOfferSheet =
+        (committedTeam.offerSheets || []).find((offerSheet) =>
+          matchesCommittedOfferSheetIdentity(
+            offerSheet as OfferSheet,
+            committedOfferSheetIdentity
+          )
+        ) || null;
+
+      if (!committedOfferSheet) {
+        return {
+          ok: false,
+          message:
+            'Offer sheet saved but the committed pending offer sheet could not be verified in the active team snapshot.',
+          logContext: {
+            result,
+            committedOfferSheetIdentity,
+            committedTeamSource,
+            offerSheets: committedTeam.offerSheets || [],
+          },
+        };
+      }
+
+      return {
+        ok: true,
+        value: {
+          committedTeam,
+          committedTeamSource,
+          committedOfferSheet: committedOfferSheet as OfferSheet,
+          committedOfferSheetIdentity,
+        },
+      };
+    },
+    [loadWorldTeamData, teamCode, worldId]
+  );
+
+  const applyCommittedOfferSheetState = useCallback(
+    (committedTeam: CapSheet): void => {
+      setTeamCapSheetSafe(committedTeam);
+    },
+    [setTeamCapSheetSafe]
+  );
+
+  const executeWorldModeOfferSheetStore = useCallback(
+    async (
+      actionSeasonContext: ReturnType<typeof buildActionSeasonContext>,
+      mutationPayload: OfferSheetMutationPayload
+    ): Promise<OfferSheetStoreExecutionResult> => {
+      if (!worldId) {
+        const message = 'Offer sheet actions require an active world to commit.';
+        reportMutationError(message, {
+          mutationType: 'storeOfferSheet',
+          payload: mutationPayload,
+        });
+        return { success: false, message };
+      }
+
+      if (!userId) {
+        const message = 'Cannot save changes: missing user identity.';
+        reportMutationError(message, {
+          mutationType: 'storeOfferSheet',
+          payload: mutationPayload,
+        });
+        return { success: false, message };
+      }
+
+      startSave();
+      try {
+        const rawResult = (await applyWorldMutation({
+          userId,
+          worldId,
+          seasonId: actionSeasonContext.seasonId,
+          mutationType: 'storeOfferSheet',
+          payload: mutationPayload,
+        })) as PersistMutationResult;
+
+        const truth = evaluateMutationTruth('storeOfferSheet', rawResult, {
+          requireWorldPersistence: true,
+        });
+        const result: PersistMutationResult = {
+          ...rawResult,
+          success: truth.ok,
+          error: truth.ok
+            ? rawResult?.error
+            : truth.message || 'Failed to store offer sheet.',
+          appliedToLocalState: truth.appliedToLocalState,
+          persistedToWorld: truth.persistedToWorld,
+        };
+
+        if (!result.success) {
+          const message = String(result.error || 'Failed to store offer sheet.');
+          reportMutationError(message, {
+            mutationType: 'storeOfferSheet',
+            payload: mutationPayload,
+            result: rawResult,
+          });
+          finishSave(message);
+          return { success: false, message };
+        }
+
+        const committedState = await resolveCommittedOfferSheetState(result, {
+          playerId: mutationPayload.playerId,
+          seasonKey: actionSeasonContext.seasonId,
+          offeringTeamCode: mutationPayload.teamCode,
+        });
+
+        if (committedState.ok !== true) {
+          const failedCommittedState = committedState;
+
+          reportMutationError(failedCommittedState.message, {
+            mutationType: 'storeOfferSheet',
+            payload: mutationPayload,
+            ...failedCommittedState.logContext,
+          });
+          finishSave(failedCommittedState.message);
+          return {
+            success: false,
+            message: failedCommittedState.message,
+          };
+        }
+
+        toast.success('Saved changes');
+        finishSave();
+        return {
+          success: true,
+          ...committedState.value,
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to store offer sheet.';
+        reportMutationError(message, {
+          mutationType: 'storeOfferSheet',
+          payload: mutationPayload,
+          error,
+        });
+        finishSave(message);
+        return { success: false, message };
+      }
+    },
+    [
+      applyWorldMutation,
+      evaluateMutationTruth,
+      finishSave,
+      reportMutationError,
+      resolveCommittedOfferSheetState,
+      startSave,
+      userId,
+      worldId,
     ]
   );
 
@@ -3113,33 +3394,26 @@ export function useArchitectActions({
         };
       }
 
-      const result = await runAuthoritativeFAMutation(
-        'storeOfferSheet',
-        {
-          ...creationDefinition.mutationPayload,
-          worldId,
-        },
-        {
-          worldRequiredMessage:
-            'Offer sheet actions require an active world to commit.',
-          seasonIdOverride: creationDefinition.actionSeasonContext.seasonId,
-        }
+      const result = await executeWorldModeOfferSheetStore(
+        creationDefinition.actionSeasonContext,
+        creationDefinition.mutationPayload
       );
 
-      if (!result?.success) {
+      if (result.success !== true) {
         return {
           success: false,
-          message: String(result?.error || 'Failed to store offer sheet.'),
+          message: result.message,
         };
       }
 
+      applyCommittedOfferSheetState(result.committedTeam);
       return { success: true };
     },
     [
+      applyCommittedOfferSheetState,
+      executeWorldModeOfferSheetStore,
       prepareOfferSheetCreationDefinition,
       reportMutationError,
-      runAuthoritativeFAMutation,
-      worldId,
     ]
   );
 

@@ -543,34 +543,55 @@ describe('Gate 10: E113 deleted JSX shims remain absent while authorities stay i
   });
 });
 
-// === GATE 11: Current Team Sync Reads changedTeams ===
+// === GATE 11: Offer-Sheet Created-State Sync Stays Explicit ===
 
-describe('Gate 11: Current team sync reads changedTeams (E1)', () => {
+describe('Gate 11: offer-sheet created-state sync stays explicit (FA-5C/5D)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
 
-  it('syncTeamFromMutationResult helper is defined', () => {
+  it('keeps the generic changedTeams sync helper for non-offer-sheet mutations', () => {
     const hasSyncHelper =
       /const\s+syncTeamFromMutationResult\s*=\s*useCallback/.test(content);
     expect(hasSyncHelper).toBe(true);
+    expect(content).toMatch(
+      /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(content).toMatch(
+      /setTeamCapSheetSafe\s*\(\s*currentTeam\s*\)/
+    );
   });
 
-  it('reads changedTeams from result', () => {
-    const readsChangedTeams =
-      /result\?\.changedTeams|result\.changedTeams/.test(content);
-    expect(readsChangedTeams).toBe(true);
+  it('defines dedicated offer-sheet committed-state helpers in useArchitectActions', () => {
+    expect(content).toMatch(
+      /const\s+resolveCommittedOfferSheetState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+applyCommittedOfferSheetState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+executeWorldModeOfferSheetStore\s*=\s*useCallback/
+    );
   });
 
-  it('finds current team update by teamCode', () => {
-    const findsCurrentTeam =
-      /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/.test(
-        content
-      );
-    expect(findsCurrentTeam).toBe(true);
+  it('routes handleStoreOfferSheet through the explicit offer-sheet store executor instead of generic mutation sync', () => {
+    expect(content).toMatch(
+      /handleStoreOfferSheet[\s\S]{0,2200}executeWorldModeOfferSheetStore/
+    );
+    expect(content).toMatch(
+      /handleStoreOfferSheet[\s\S]{0,2800}applyCommittedOfferSheetState/
+    );
+    expect(content).not.toMatch(
+      /handleStoreOfferSheet[\s\S]{0,2200}runAuthoritativeFAMutation\s*\(\s*'storeOfferSheet'/
+    );
   });
 
-  it('calls setTeamCapSheet with current team data', () => {
-    const callsSetTeamCapSheet =
-      /setTeamCapSheetSafe\s*\(\s*currentTeam\s*\)/.test(content);
-    expect(callsSetTeamCapSheet).toBe(true);
+  it('verifies committed pending offer-sheet identity against the resolved active-team snapshot', () => {
+    expect(content).toMatch(/buildCommittedOfferSheetIdentity/);
+    expect(content).toMatch(/matchesCommittedOfferSheetIdentity/);
+    expect(content).toMatch(
+      /resolveCommittedOfferSheetState[\s\S]{0,2200}committedTeam\.offerSheets/
+    );
+    expect(content).toMatch(
+      /Offer sheet saved but the committed pending offer sheet could not be verified in the active team snapshot\./
+    );
   });
 });

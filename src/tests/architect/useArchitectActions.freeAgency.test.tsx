@@ -166,6 +166,24 @@ function buildSignAndTradeCommittedSourceTeamFixture(
   };
 }
 
+function buildPendingOfferSheetFixture(
+  overrides: Record<string, unknown> = {}
+) {
+  return {
+    id: 'os_1',
+    dedupKey: 'os:world_1:LAL:player_1:2025-26',
+    playerId: 'player_1',
+    playerName: 'Test Player',
+    offeringTeamCode: 'LAL',
+    homeTeamCode: 'BOS',
+    seasonKey: '2025-26',
+    status: 'PENDING_MATCH',
+    contractYears: 4,
+    totalValue: 12_000_000,
+    ...overrides,
+  };
+}
+
 function summarizeStandardSignPostState(current: {
   teamCapSheet: any;
   freeAgents: any[];
@@ -1202,18 +1220,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
   it('stores an offer sheet in world mode and syncs the outgoing list from changedTeams', async () => {
     const updatedTeam = {
       ...baseTeamFixture,
-      offerSheets: [
-        {
-          id: 'os_1',
-          playerId: 'player_1',
-          playerName: 'Test Player',
-          offeringTeamCode: 'LAL',
-          homeTeamCode: 'BOS',
-          status: 'PENDING_MATCH',
-          contractYears: 4,
-          totalValue: 12_000_000,
-        },
-      ],
+      offerSheets: [buildPendingOfferSheetFixture()],
       incomingOfferSheets: [],
     };
 
@@ -1286,7 +1293,184 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         capHit: 12_960_000,
       }),
     ]);
-    expect(refreshWorldRosterIndex).toHaveBeenCalled();
+    expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
+  });
+
+  it('reloads committed offer-sheet truth when changedTeams does not include the active team', async () => {
+    const reloadedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [buildPendingOfferSheetFixture({ id: 'os_reload' })],
+      incomingOfferSheets: [],
+      source: {
+        type: 'world-snapshot',
+        lastModifiedAt: '2026-03-31T00:00:00.000Z',
+      },
+    };
+
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'BOS', team: { teamCode: 'BOS' } }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 2,
+        playersPatched: 0,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      metadata: {
+        type: 'storeOfferSheet',
+        offerSheetId: 'os_reload',
+        dedupKey: 'os:world_1:LAL:player_1:2025-26',
+      },
+      event: { eventId: 'evt_store_offer_sheet_reload_fallback' },
+    });
+    worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(reloadedTeam);
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleStoreOfferSheet(
+        playerFixture as any,
+        buildStagedScalarSigningFixture({
+          salaries: [12_000_000, 12_960_000],
+          exceptionType: 'Minimum',
+          signedUsing: null,
+        }) as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(worldTeamDataMocks.loadWorldTeamData).toHaveBeenCalledWith(
+      'world_1',
+      'LAL'
+    );
+    expect(result.current.teamCapSheet).toEqual(reloadedTeam);
+    expect(result.current.teamCapSheet.offerSheets).toEqual(
+      reloadedTeam.offerSheets
+    );
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when offer-sheet persistence succeeds but no committed team snapshot can be resolved', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'BOS', team: { teamCode: 'BOS' } }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 2,
+        playersPatched: 0,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      metadata: {
+        type: 'storeOfferSheet',
+        offerSheetId: 'os_missing_snapshot',
+        dedupKey: 'os:world_1:LAL:player_1:2025-26',
+      },
+      event: { eventId: 'evt_store_offer_sheet_missing_snapshot' },
+    });
+    worldTeamDataMocks.loadWorldTeamData.mockResolvedValue(null);
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+    const beforeTeamSnapshot = result.current.teamCapSheet;
+    const beforeFreeAgents = result.current.freeAgents;
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleStoreOfferSheet(
+        playerFixture as any,
+        buildStagedScalarSigningFixture() as any
+      );
+    });
+
+    expect(actionResult).toEqual({
+      success: false,
+      message:
+        'Offer sheet saved but the committed team snapshot could not be reloaded.',
+    });
+    expect(result.current.teamCapSheet).toBe(beforeTeamSnapshot);
+    expect(result.current.freeAgents).toBe(beforeFreeAgents);
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(toastMocks.success).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      'Offer sheet saved but the committed team snapshot could not be reloaded.'
+    );
+  });
+
+  it('fails closed when the active-team snapshot does not contain the committed pending offer sheet', async () => {
+    const changedTeamWithoutCommittedOfferSheet = {
+      ...baseTeamFixture,
+      offerSheets: [
+        buildPendingOfferSheetFixture({
+          id: 'os_other',
+          playerId: 'other_player',
+          dedupKey: 'os:world_1:LAL:other_player:2025-26',
+        }),
+      ],
+      incomingOfferSheets: [],
+    };
+
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [
+        {
+          teamCode: 'LAL',
+          team: changedTeamWithoutCommittedOfferSheet,
+        },
+      ],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 0,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      metadata: {
+        type: 'storeOfferSheet',
+        offerSheetId: 'os_committed',
+        dedupKey: 'os:world_1:LAL:player_1:2025-26',
+      },
+      event: { eventId: 'evt_store_offer_sheet_missing_identity' },
+    });
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+    });
+    const beforeTeamSnapshot = result.current.teamCapSheet;
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleStoreOfferSheet(
+        playerFixture as any,
+        buildStagedScalarSigningFixture() as any
+      );
+    });
+
+    expect(actionResult).toEqual({
+      success: false,
+      message:
+        'Offer sheet saved but the committed pending offer sheet could not be verified in the active team snapshot.',
+    });
+    expect(result.current.teamCapSheet).toBe(beforeTeamSnapshot);
+    expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(toastMocks.success).not.toHaveBeenCalled();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      'Offer sheet saved but the committed pending offer sheet could not be verified in the active team snapshot.'
+    );
   });
 
   it('blocks offer-sheet storage in base mode (no authoritative write)', async () => {
