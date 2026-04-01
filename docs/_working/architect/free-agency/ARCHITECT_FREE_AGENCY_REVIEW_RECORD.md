@@ -1791,3 +1791,309 @@ The correct Step 6 verdict is:
 **RISK**
 
 ---
+
+# STEP 7 — Free Agency World-Mode Gating vs Vacuum-Mode Behavior
+
+## Scope
+
+Free Agency — Step 7: World-Mode Gating vs Vacuum-Mode Behavior
+
+**Date:** 2026-03-30  
+**Source:** Direct live-code inspection
+
+---
+
+## Purpose of this Step
+
+Determine how Free Agency behaves differently in active-world mode versus vacuum/base mode.
+
+Main questions:
+
+- which Free Agency actions are world-only
+- which Free Agency actions are allowed in vacuum/base mode
+- whether the UI truth matches the actual mutation/action truth
+- whether any action can silently no-op or behave inconsistently across world vs vacuum modes
+- whether the world/vacuum boundary is structurally clean
+
+---
+
+## Executive Verdict
+
+**RISK**
+
+The world/vacuum boundary is mostly coherent.
+
+The current system has several meaningful strengths:
+
+- `FreeAgencySection.tsx` explicitly tells the user that offer sheets and sign-and-trade require an active world
+- world-only offer-sheet surfaces are visibly disabled when no world is active
+- `useArchitectActions.ts` publishes a grouped Free Agency owner structure that separates:
+  - dual-path standard signing
+  - world-only sign-and-trade and offer-sheet actions
+  - owner-derived modal availability truth
+- standard signing intentionally supports both:
+  - authoritative world-mode execution
+  - vacuum/base-mode local compute execution
+- world-only actions fail closed when no active world exists rather than silently pretending to work
+
+Those strengths are enough to avoid a FAIL.
+
+However, Step 7 still starts at **RISK** because the world/vacuum boundary is not yet explicit enough to justify PASS.
+
+The main structural concern is **distributed mode truth** across several layers:
+
+- section-level user-facing world-only messaging
+- grouped owner shape in `useArchitectActions.ts`
+- modal-availability contracts
+- per-handler world guards
+- standard-signing dual-path execution helpers
+
+This means the boundary is coherent today, but still sensitive to future drift between:
+
+- what the UI tells the user
+- what the modal offers
+- what the grouped owner publishes
+- what handler logic actually allows
+
+There is also a second risk:
+
+- the full Free Agency world/vacuum behavior map still has to be inferred from `useArchitectActions.ts` rather than being represented as one explicit mode-policy seam
+
+So the correct Step 7 verdict is:
+
+**RISK**
+
+---
+
+## World-Mode vs Vacuum-Mode Behavior Map
+
+### 1. User-Facing World-Only Gating
+
+`FreeAgencySection.tsx` provides the main user-facing explanation of world-only behavior.
+
+It:
+
+- warns that offer sheets and sign-and-trade require an active world
+- disables offer-sheet action surfaces when world-only actions are unavailable
+
+This is a truthful and useful user-facing boundary.
+
+---
+
+### 2. Dual-Path Standard Signing
+
+Standard signing is the clearest intentionally dual-path Free Agency action.
+
+`useArchitectActions.ts` allows standard signing in both modes through `handleSign(...)`.
+
+That path splits into:
+
+- world-mode authoritative execution
+- vacuum/base-mode local compute execution
+
+This is not accidental drift.
+It is the intended design.
+
+---
+
+### 3. World-Only Sign-and-Trade
+
+Sign-and-trade is world-only.
+
+The relevant world-only surfaces include:
+
+- `getSignAndTradePreflight(...)`
+- `handleSignAndTrade(...)`
+
+These actions fail closed without `worldId`.
+
+The modal and section surfaces also respect that boundary.
+
+---
+
+### 4. World-Only Offer-Sheet Creation
+
+Offer-sheet creation is world-only.
+
+The relevant world-only surfaces include:
+
+- `getOfferSheetPreflight(...)`
+- `handleStoreOfferSheet(...)`
+
+The UI, modal, and hook all agree that outgoing offer-sheet creation requires an active world.
+
+---
+
+### 5. World-Only Offer-Sheet Lifecycle
+
+Offer-sheet lifecycle actions are also world-only.
+
+These include:
+
+- `handleMatchOfferSheet(...)`
+- `handleDeclineOfferSheet(...)`
+- `handleFinalizeOfferSheet(...)`
+
+These actions fail closed without `worldId`.
+
+This is the correct model for those stateful lifecycle actions.
+
+---
+
+## What Looks Strong
+
+### UI gating broadly matches mutation truth
+
+The section-level message about offer sheets and sign-and-trade requiring an active world matches the actual mutation/action truth inside `useArchitectActions.ts`.
+
+That is important.
+
+---
+
+### Standard signing is intentionally, explicitly dual-path
+
+Standard signing is not ambiguously half-world-only and half-local.
+It is clearly designed to work in both world mode and vacuum/base mode.
+
+That makes this one of the strongest parts of the boundary.
+
+---
+
+### World-only actions fail closed
+
+For sign-and-trade and all offer-sheet actions, the hook-level handlers do not silently no-op in vacuum mode.
+
+They fail closed.
+
+That is the correct behavior.
+
+---
+
+### Modal-visible action truth is owner-derived
+
+`useArchitectActions.ts` publishes owner-derived modal availability.
+
+That means the modal is not freely inventing world/vacuum behavior.
+It is consuming grouped owner truth.
+
+---
+
+## Main Risks
+
+### 1. The full world/vacuum map still has to be inferred from the hook
+
+This is the biggest reason Step 7 remains RISK.
+
+The section-level message only explains part of the system.
+
+To understand the full behavior map, a contributor still has to inspect:
+
+- grouped owner shape
+- modal-availability contracts
+- standard-sign dual-path logic
+- sign-and-trade guards
+- offer-sheet creation guards
+- offer-sheet lifecycle guards
+
+inside `useArchitectActions.ts`.
+
+That is coherent, but still too implicit.
+
+---
+
+### 2. The world-only vs dual-path split is explicit, but not centralized enough
+
+The system currently represents mode truth through:
+
+- one grouped owner shape
+- several modal-availability fields
+- multiple per-handler guard clauses
+- distinct execution helpers for standard signing
+
+That is workable, but still a multi-layer truth model rather than one explicit mode-policy seam.
+
+---
+
+### 3. UI truth is good, but still incomplete as a full behavior model
+
+`FreeAgencySection.tsx` correctly calls out offer sheets and sign-and-trade as world-only.
+
+That is accurate.
+
+But it does not itself make the full Free Agency world/vacuum behavior map explicit, especially for:
+
+- standard signing as a true dual-path action
+- which exact handlers are world-only
+- how grouped owner publication relates to mode behavior
+
+That increases future drift risk.
+
+---
+
+## Duplicate / Weak Boundary Analysis
+
+### Silent no-op path
+
+No obvious Free Agency action was found that appears active in vacuum mode but then silently does nothing.
+
+That is good.
+
+---
+
+### Competing owner path
+
+No competing Free Agency behavior owner was found.
+
+The section and modal surfaces gate and dispatch.
+`useArchitectActions.ts` still owns the real behavior.
+
+That ownership story is clean.
+
+---
+
+### Weakness is structural clarity, not current correctness
+
+The main weakness is not that the world/vacuum boundary is currently wrong.
+
+The main weakness is that it is still too distributed and not explicit enough as one readable policy seam.
+
+---
+
+## PASS / RISK / FAIL
+
+### Result: RISK
+
+### Why this is not FAIL
+
+- world-only actions are actually enforced as world-only
+- standard signing is intentionally and explicitly dual-path
+- UI gating broadly matches mutation truth
+- no silent no-op or duplicate owner was found
+
+The boundary is too coherent to justify FAIL.
+
+---
+
+### Why this is not PASS
+
+- the full world/vacuum map is still too distributed across UI gating, grouped owner shape, modal availability, and per-handler logic
+- contributors still have to infer too much by reading multiple layers rather than one explicit mode-policy seam
+- the current design is coherent but still more drift-sensitive than ideal
+
+So the correct Step 7 result remains:
+
+**RISK**
+
+---
+
+## Final Conclusion
+
+Free Agency world-mode vs vacuum-mode behavior is mostly truthful and correctly enforced.
+
+However, the boundary is still too distributed across UI gating, grouped owner shape, modal availability, and handler-level logic to justify PASS.
+
+The correct Step 7 verdict is:
+
+**RISK**
+
+---

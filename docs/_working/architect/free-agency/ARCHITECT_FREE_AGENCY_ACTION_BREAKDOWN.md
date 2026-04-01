@@ -812,3 +812,170 @@ Validation can stay tiered:
 - Ready for bootstrap + execution
 
 ---
+
+# STEP 7 — ACTION BREAKDOWN
+
+## Free Agency World-Mode Gating vs Vacuum-Mode Behavior
+
+---
+
+## FA-7A — Make the World-Only vs Dual-Path Free Agency Action Map More Explicit
+
+### Problem
+
+Free Agency currently has two different behavior classes:
+
+- actions allowed in both world mode and vacuum/base mode
+- actions allowed only when an active world exists
+
+That split is real, but it is still represented indirectly through:
+
+- grouped owner shape
+- modal-availability fields
+- per-handler world guards
+- section-level user-facing gating
+
+### Why It Matters
+
+- A contributor can easily misunderstand which actions are intentionally dual-path versus world-only
+- The behavior map is currently coherent, but still too easy to infer incorrectly
+- Mode-policy drift is especially dangerous in Free Agency because some actions are local-safe while others are persistence-dependent
+
+### Goal
+
+Make the Free Agency world-only vs dual-path action map easier to trace and less likely to drift across owner publication, UI gating, and handler logic.
+
+### Success Criteria
+
+- It is easier to identify which actions are truly dual-path and which are truly world-only
+- Contributors are less likely to evolve one action’s mode behavior without updating the broader boundary
+- The system reads more clearly as one explicit mode-policy model rather than several implied ones
+
+---
+
+## FA-7B — Align UI Gating Truth with Actual Mutation / Action Truth
+
+### Problem
+
+The user-facing world-only message in `FreeAgencySection.tsx` is accurate, and modal-visible action truth is owner-derived, but the full behavior model is still spread across UI and hook layers.
+
+That means UI truth and mutation truth are aligned today, but not yet protected as one clearly unified contract.
+
+### Why It Matters
+
+- A contributor can accidentally make the UI more or less permissive than the actual handler logic
+- The section can remain “correct enough” while deeper handler truth evolves differently
+- Users should not have to rely on trial and error to learn which actions require a world
+
+### Goal
+
+Make UI gating truth easier to verify directly against actual Free Agency action truth.
+
+### Success Criteria
+
+- User-facing gating and modal-visible action availability are less likely to drift from handler-level mode truth
+- Contributors are less likely to introduce misleading no-world UI behavior
+- The visible boundary reads more clearly as a direct projection of actual action capability
+
+---
+
+## FA-7C — Harden Dual-Path Standard Signing vs World-Only Action Behavior
+
+### Problem
+
+Standard signing intentionally supports both:
+
+- world-mode authoritative execution
+- vacuum/base-mode local execution
+
+Other major Free Agency actions are intentionally world-only.
+
+That split is correct, but it still relies on a mix of:
+
+- grouped owner publication
+- handler-level branching
+- separate helper paths for world and vacuum execution
+
+### Why It Matters
+
+- Standard signing can drift away from the broader world/vacuum contract if its dual-path behavior evolves independently
+- World-only actions can accidentally gain weak local behavior if their guards are not structurally strong enough
+- The dual-path vs world-only boundary is one of the most important behavioral rules in the feature
+
+### Goal
+
+Make the distinction between intentional dual-path behavior and intentional world-only behavior easier to trace and harder to weaken.
+
+### Success Criteria
+
+- Standard signing’s dual-path status is more clearly protected
+- World-only actions are less likely to grow inconsistent local behavior
+- Contributors are less likely to blur the world-only vs dual-path boundary
+
+---
+
+## FA-7D — Add Focused Guardrails for World/Vacuum Boundary Truth
+
+### Problem
+
+Even if the world/vacuum boundary is coherent today, its correctness still depends on several conditions continuing to hold:
+
+- world-only actions staying truly world-only
+- dual-path actions staying intentionally dual-path
+- UI gating staying aligned with actual action capability
+- no-world behavior failing closed where appropriate
+- no action silently no-oping or partially working in the wrong mode
+
+These are high-value seams and still vulnerable to future drift.
+
+### Why It Matters
+
+- A contributor can accidentally weaken or blur the boundary without noticing
+- Mode-policy regressions are easy to miss if they only show up in one layer
+- Guardrails are especially important when the behavior model is split across UI, owner shape, and handlers
+
+### Goal
+
+Add focused protection so world/vacuum behavior truth stays durable instead of just currently coherent.
+
+### Success Criteria
+
+- World-only vs dual-path regressions are easier to detect
+- UI gating and handler truth are better protected as one boundary
+- The feature is guarded as a clear mode-policy system rather than a collection of separate guards
+
+---
+
+## Step 7 Summary
+
+This step focuses on:
+
+- making the world-only vs dual-path Free Agency action map more explicit
+- aligning UI gating truth with actual mutation/action truth
+- hardening dual-path standard signing vs world-only action behavior
+- adding focused guardrails for world/vacuum boundary durability
+
+This is a **world/vacuum boundary correctness and coherence step**, not a broad Free Agency rewrite.
+
+---
+
+## Efficiency Note
+
+Execution may batch naturally where the live code shows one shared seam:
+
+- **FA-7A + FA-7B** may be executed together if the action-map publication and UI gating truth are owned by the same owner/availability seam
+- **FA-7C + FA-7D** may be executed together if dual-path/world-only behavior hardening and guardrail coverage share the same handler/policy seam
+
+Validation can stay tiered:
+
+- use targeted world/vacuum behavior tests plus `typecheck` / `test:diff` / `build` for substeps
+- reserve broader suite escalation for step-close, blocker follow-up, or whole-feature closeout where needed
+
+---
+
+## Status
+
+- Substeps defined
+- Ready for bootstrap + execution
+
+---
