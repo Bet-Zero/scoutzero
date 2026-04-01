@@ -389,6 +389,39 @@ interface OfferSheet {
   seasonKey?: string;
 }
 
+type OfferSheetResolutionAction = 'match' | 'decline';
+type OfferSheetResolutionMutationType =
+  | 'matchOfferSheet'
+  | 'declineOfferSheet';
+type OfferSheetFinalizeMutationRoute =
+  | {
+      ok: true;
+      mutationType: 'finalizeMatchedOfferSheet';
+      payload: {
+        teamCode: string;
+        offeringTeamCode?: string;
+        offerSheetId: string;
+      };
+    }
+  | {
+      ok: true;
+      mutationType: 'finalizeDeclinedOfferSheet';
+      payload: {
+        teamCode: string;
+        offeringTeamCode: string;
+        homeTeamCode?: string;
+        offerSheetId: string;
+        dedupKey?: string;
+        playerId?: string;
+        seasonKey?: string;
+      };
+    }
+  | {
+      ok: false;
+      message: string;
+      logContext?: Record<string, unknown>;
+    };
+
 interface OfferSheetMutationMetadata {
   type?: string | null;
   teamCode?: string | null;
@@ -432,6 +465,9 @@ type OfferSheetStoreExecutionResult =
       success: false;
       message: string;
     };
+
+const OFFER_SHEET_WORLD_REQUIRED_MESSAGE =
+  'Offer sheet actions require an active world to commit.';
 
 const MANUAL_EXCEPTION_MUTATION_KEYS = [
   'mle',
@@ -3417,38 +3453,47 @@ export function useArchitectActions({
     ]
   );
 
-  const handleMatchOfferSheet = useCallback(
-    (offeringTeamCode: string, offerSheetId: string): void => {
+  const runOfferSheetResolutionAction = useCallback(
+    (
+      action: OfferSheetResolutionAction,
+      offeringTeamCode: string,
+      offerSheetId: string
+    ): void => {
+      const mutationType: OfferSheetResolutionMutationType =
+        action === 'match' ? 'matchOfferSheet' : 'declineOfferSheet';
+      const actionLabel = action === 'match' ? 'match' : 'decline';
+
       void (async () => {
         if (!worldId) {
-          reportMutationError(
-            'Offer sheet actions require an active world to commit.',
-            { offeringTeamCode, offerSheetId }
-          );
+          reportMutationError(OFFER_SHEET_WORLD_REQUIRED_MESSAGE, {
+            offeringTeamCode,
+            offerSheetId,
+            action,
+          });
           return;
         }
 
         if (!offeringTeamCode || !offerSheetId) {
           reportMutationError(
-            'Cannot match offer sheet: missing offering team or offer sheet ID.',
+            `Cannot ${actionLabel} offer sheet: missing offering team or offer sheet ID.`,
             {
               offeringTeamCode,
               offerSheetId,
+              action,
             }
           );
           return;
         }
 
         await runAuthoritativeFAMutation(
-          'matchOfferSheet',
+          mutationType,
           {
             teamCode,
             offeringTeamCode,
             offerSheetId,
           },
           {
-            worldRequiredMessage:
-              'Offer sheet actions require an active world to commit.',
+            worldRequiredMessage: OFFER_SHEET_WORLD_REQUIRED_MESSAGE,
           }
         );
       })();
@@ -3456,126 +3501,124 @@ export function useArchitectActions({
     [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
   );
 
+  const resolveOfferSheetFinalizeMutationRoute = useCallback(
+    (
+      offerSheet: OfferSheet | null | undefined
+    ): OfferSheetFinalizeMutationRoute => {
+      if (!offerSheet) {
+        return {
+          ok: false,
+          message: 'Cannot finalize offer sheet: offer sheet data is missing.',
+        };
+      }
+
+      if (!offerSheet.id) {
+        return {
+          ok: false,
+          message: 'Cannot finalize offer sheet: missing offer sheet ID.',
+          logContext: {
+            offerSheet,
+          },
+        };
+      }
+
+      if (
+        offerSheet.status === 'MATCHED' &&
+        offerSheet.homeTeamCode === teamCode
+      ) {
+        return {
+          ok: true,
+          mutationType: 'finalizeMatchedOfferSheet',
+          payload: {
+            teamCode,
+            offeringTeamCode: offerSheet.offeringTeamCode,
+            offerSheetId: offerSheet.id,
+          },
+        };
+      }
+
+      if (
+        offerSheet.status === 'DECLINED' &&
+        offerSheet.offeringTeamCode === teamCode
+      ) {
+        return {
+          ok: true,
+          mutationType: 'finalizeDeclinedOfferSheet',
+          payload: {
+            teamCode,
+            offeringTeamCode: teamCode,
+            homeTeamCode: offerSheet.homeTeamCode,
+            offerSheetId: offerSheet.id,
+            dedupKey: offerSheet.dedupKey,
+            playerId: offerSheet.playerId,
+            seasonKey: offerSheet.seasonKey,
+          },
+        };
+      }
+
+      return {
+        ok: false,
+        message: `Cannot finalize offer sheet: status/team mismatch (status=${offerSheet.status || 'unknown'}).`,
+        logContext: {
+          offerSheet,
+        },
+      };
+    },
+    [teamCode]
+  );
+
+  const handleMatchOfferSheet = useCallback(
+    (offeringTeamCode: string, offerSheetId: string): void => {
+      runOfferSheetResolutionAction('match', offeringTeamCode, offerSheetId);
+    },
+    [runOfferSheetResolutionAction]
+  );
+
   const handleDeclineOfferSheet = useCallback(
     (offeringTeamCode: string, offerSheetId: string): void => {
-      void (async () => {
-        if (!worldId) {
-          reportMutationError(
-            'Offer sheet actions require an active world to commit.',
-            { offeringTeamCode, offerSheetId }
-          );
-          return;
-        }
-
-        if (!offeringTeamCode || !offerSheetId) {
-          reportMutationError(
-            'Cannot decline offer sheet: missing offering team or offer sheet ID.',
-            {
-              offeringTeamCode,
-              offerSheetId,
-            }
-          );
-          return;
-        }
-
-        await runAuthoritativeFAMutation(
-          'declineOfferSheet',
-          {
-            teamCode,
-            offeringTeamCode,
-            offerSheetId,
-          },
-          {
-            worldRequiredMessage:
-              'Offer sheet actions require an active world to commit.',
-          }
-        );
-      })();
+      runOfferSheetResolutionAction(
+        'decline',
+        offeringTeamCode,
+        offerSheetId
+      );
     },
-    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
+    [runOfferSheetResolutionAction]
   );
 
   const handleFinalizeOfferSheet = useCallback(
     (offerSheet: OfferSheet | null | undefined): void => {
       void (async () => {
         if (!worldId) {
-          reportMutationError(
-            'Offer sheet actions require an active world to commit.',
-            {
-              offerSheet,
-            }
-          );
-          return;
-        }
-
-        if (!offerSheet) {
-          reportMutationError(
-            'Cannot finalize offer sheet: offer sheet data is missing.'
-          );
-          return;
-        }
-
-        if (!offerSheet.id) {
-          reportMutationError(
-            'Cannot finalize offer sheet: missing offer sheet ID.',
-            {
-              offerSheet,
-            }
-          );
-          return;
-        }
-
-        if (
-          offerSheet.status === 'MATCHED' &&
-          offerSheet.homeTeamCode === teamCode
-        ) {
-          await runAuthoritativeFAMutation(
-            'finalizeMatchedOfferSheet',
-            {
-              teamCode,
-              offeringTeamCode: offerSheet.offeringTeamCode,
-              offerSheetId: offerSheet.id,
-            },
-            {
-              worldRequiredMessage:
-                'Offer sheet actions require an active world to commit.',
-            }
-          );
-          return;
-        }
-
-        if (
-          offerSheet.status === 'DECLINED' &&
-          offerSheet.offeringTeamCode === teamCode
-        ) {
-          await runAuthoritativeFAMutation(
-            'finalizeDeclinedOfferSheet',
-            {
-              teamCode,
-              offeringTeamCode: teamCode,
-              homeTeamCode: offerSheet.homeTeamCode,
-              offerSheetId: offerSheet.id,
-              dedupKey: offerSheet.dedupKey,
-              playerId: offerSheet.playerId,
-              seasonKey: offerSheet.seasonKey,
-            },
-            {
-              worldRequiredMessage:
-                'Offer sheet actions require an active world to commit.',
-            }
-          );
-          return;
-        }
-
-        reportMutationError(
-          `Cannot finalize offer sheet: status/team mismatch (status=${offerSheet.status || 'unknown'}).`,
-          {
+          reportMutationError(OFFER_SHEET_WORLD_REQUIRED_MESSAGE, {
             offerSheet,
+          });
+          return;
+        }
+
+        const finalizeRoute = resolveOfferSheetFinalizeMutationRoute(offerSheet);
+        if ('message' in finalizeRoute) {
+          reportMutationError(
+            finalizeRoute.message,
+            finalizeRoute.logContext
+          );
+          return;
+        }
+
+        await runAuthoritativeFAMutation(
+          finalizeRoute.mutationType,
+          finalizeRoute.payload,
+          {
+            worldRequiredMessage: OFFER_SHEET_WORLD_REQUIRED_MESSAGE,
           }
         );
       })();
     },
-    [reportMutationError, runAuthoritativeFAMutation, teamCode, worldId]
+    [
+      reportMutationError,
+      resolveOfferSheetFinalizeMutationRoute,
+      runAuthoritativeFAMutation,
+      worldId,
+    ]
   );
 
   const runManualCapSheetLedgerMutation = useCallback(

@@ -15,31 +15,38 @@ import type { FreeAgencyActionOwner } from './hooks/useArchitectActions';
 type LooseRecord = Record<string, unknown>;
 
 export type OfferSheetStatus = string;
+export type OfferSheetSurfaceRole = 'incoming' | 'outgoing';
+export type OfferSheetLifecycleAction =
+  | 'match'
+  | 'decline'
+  | 'finalizeMatched'
+  | 'finalizeDeclined';
 
 export interface OfferSheetLike extends LooseRecord {
   id?: string | number | null;
   playerName?: string;
   offeringTeamCode?: string;
   homeTeamCode?: string;
+  dedupKey?: string;
+  playerId?: string;
+  seasonKey?: string;
   contractYears?: number | string | null;
   totalValue?: number | string | null;
   status: OfferSheetStatus;
   createdAt?: string | number | Date | null;
 }
 
+export interface OfferSheetLifecycleActionEvent {
+  action: OfferSheetLifecycleAction;
+  offerSheet: OfferSheetLike;
+  surfaceRole: OfferSheetSurfaceRole;
+}
+
 export interface OfferSheetListProps {
   offerSheets?: OfferSheetLike[] | null;
   title?: string;
-  isIncoming?: boolean;
-  onMatch?: (
-    offeringTeamCode: OfferSheetLike['offeringTeamCode'],
-    id: OfferSheetLike['id']
-  ) => unknown;
-  onDecline?: (
-    offeringTeamCode: OfferSheetLike['offeringTeamCode'],
-    id: OfferSheetLike['id']
-  ) => unknown;
-  onFinalize?: (offerSheet: OfferSheetLike) => unknown;
+  surfaceRole: OfferSheetSurfaceRole;
+  onLifecycleAction?: (event: OfferSheetLifecycleActionEvent) => unknown;
   actionsDisabled?: boolean;
   actionsDisabledReason?: string;
 }

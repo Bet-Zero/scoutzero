@@ -17,12 +17,19 @@ import type { FreeAgentPoolProps } from '@/features/architect/freeAgency/FreeAge
 
 import type {
   FreeAgencySectionProps,
+  OfferSheetLifecycleActionEvent,
   OfferSheetListProps,
 } from '../offerSheetTypes';
 
 type FreeAgencyWorldOnlyActionOwner = NonNullable<
   FreeAgencySectionProps['actionOwner']['worldOnly']
 >;
+type OfferSheetLifecycleActionHandler = NonNullable<
+  OfferSheetListProps['onLifecycleAction']
+>;
+type OfferSheetFinalizeArg = Parameters<
+  FreeAgencyWorldOnlyActionOwner['finalizeOfferSheet']
+>[0];
 
 const FreeAgencySection = ({
   freeAgents,
@@ -34,31 +41,45 @@ const FreeAgencySection = ({
 }: FreeAgencySectionProps) => {
   const worldOnlyActionOwner = actionOwner.worldOnly;
   const hasWorldOnlyActions = Boolean(worldOnlyActionOwner);
+  const incomingOfferSheetSurface = {
+    title: 'Incoming Offer Sheets (Action Required)',
+    offerSheets: incomingOfferSheets,
+    surfaceRole: 'incoming' as const,
+  };
+  const outgoingOfferSheetSurface = {
+    title: 'My Pending Offer Sheets',
+    offerSheets: outgoingOfferSheets,
+    surfaceRole: 'outgoing' as const,
+  };
 
-  const handleMatchOfferSheet = (
-    offeringTeamCode: string | number | null | undefined,
-    offerSheetId: string | number | null | undefined
-  ) =>
-    worldOnlyActionOwner?.matchOfferSheet(
-      String(offeringTeamCode || ''),
-      String(offerSheetId || '')
-    );
-
-  const handleDeclineOfferSheet = (
-    offeringTeamCode: string | number | null | undefined,
-    offerSheetId: string | number | null | undefined
-  ) =>
-    worldOnlyActionOwner?.declineOfferSheet(
-      String(offeringTeamCode || ''),
-      String(offerSheetId || '')
-    );
-
-  const handleFinalizeOfferSheet = (
-    offerSheet: Parameters<NonNullable<OfferSheetListProps['onFinalize']>>[0]
-  ) =>
-    worldOnlyActionOwner?.finalizeOfferSheet(
-      offerSheet as Parameters<FreeAgencyWorldOnlyActionOwner['finalizeOfferSheet']>[0]
-    );
+  const handleOfferSheetLifecycleAction: OfferSheetLifecycleActionHandler = ({
+    action,
+    offerSheet,
+    surfaceRole,
+  }: OfferSheetLifecycleActionEvent) => {
+    switch (`${surfaceRole}:${action}`) {
+      case 'incoming:match':
+        worldOnlyActionOwner?.matchOfferSheet(
+          String(offerSheet.offeringTeamCode || ''),
+          String(offerSheet.id || '')
+        );
+        return;
+      case 'incoming:decline':
+        worldOnlyActionOwner?.declineOfferSheet(
+          String(offerSheet.offeringTeamCode || ''),
+          String(offerSheet.id || '')
+        );
+        return;
+      case 'incoming:finalizeMatched':
+      case 'outgoing:finalizeDeclined':
+        worldOnlyActionOwner?.finalizeOfferSheet(
+          offerSheet as OfferSheetFinalizeArg
+        );
+        return;
+      default:
+        return;
+    }
+  };
 
   return (
     <div>
@@ -74,22 +95,16 @@ const FreeAgencySection = ({
 
       {/* Incoming Offers (Home Team View) */}
       <OfferSheetList
-        title="Incoming Offer Sheets (Action Required)"
-        offerSheets={incomingOfferSheets}
-        isIncoming={true}
-        onMatch={handleMatchOfferSheet}
-        onDecline={handleDeclineOfferSheet}
-        onFinalize={handleFinalizeOfferSheet}
+        {...incomingOfferSheetSurface}
+        onLifecycleAction={handleOfferSheetLifecycleAction}
         actionsDisabled={!hasWorldOnlyActions}
         actionsDisabledReason="Requires an active world to commit."
       />
 
       {/* Outgoing Offers (Offering Team View) */}
       <OfferSheetList
-        title="My Pending Offer Sheets"
-        offerSheets={outgoingOfferSheets}
-        isIncoming={false}
-        onFinalize={handleFinalizeOfferSheet}
+        {...outgoingOfferSheetSurface}
+        onLifecycleAction={handleOfferSheetLifecycleAction}
         actionsDisabled={!hasWorldOnlyActions}
         actionsDisabledReason="Requires an active world to commit."
       />

@@ -1496,6 +1496,147 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     );
   });
 
+  it('routes match offer-sheet actions through the canonical match mutation', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+    });
+
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    act(() => {
+      result.current.actions.handleMatchOfferSheet('BOS', 'offer_match_1');
+    });
+
+    await waitFor(() => {
+      expect(mutationMocks.applyWorldMutation).toHaveBeenCalled();
+    });
+
+    expect(
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0]
+    ).toEqual(
+      expect.objectContaining({
+        mutationType: 'matchOfferSheet',
+        worldId: 'world_1',
+        payload: expect.objectContaining({
+          teamCode: 'LAL',
+          offeringTeamCode: 'BOS',
+          offerSheetId: 'offer_match_1',
+        }),
+      })
+    );
+  });
+
+  it('routes decline offer-sheet actions through the canonical decline mutation', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+    });
+
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    act(() => {
+      result.current.actions.handleDeclineOfferSheet('BOS', 'offer_decline_1');
+    });
+
+    await waitFor(() => {
+      expect(mutationMocks.applyWorldMutation).toHaveBeenCalled();
+    });
+
+    expect(
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0]
+    ).toEqual(
+      expect.objectContaining({
+        mutationType: 'declineOfferSheet',
+        worldId: 'world_1',
+        payload: expect.objectContaining({
+          teamCode: 'LAL',
+          offeringTeamCode: 'BOS',
+          offerSheetId: 'offer_decline_1',
+        }),
+      })
+    );
+  });
+
+  it('routes incoming matched finalize actions through finalizeMatchedOfferSheet', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+    });
+
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    act(() => {
+      result.current.actions.handleFinalizeOfferSheet({
+        id: 'offer_finalize_matched_1',
+        status: 'MATCHED',
+        homeTeamCode: 'LAL',
+        offeringTeamCode: 'BOS',
+      } as any);
+    });
+
+    await waitFor(() => {
+      expect(mutationMocks.applyWorldMutation).toHaveBeenCalled();
+    });
+
+    expect(
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0]
+    ).toEqual(
+      expect.objectContaining({
+        mutationType: 'finalizeMatchedOfferSheet',
+        worldId: 'world_1',
+        payload: expect.objectContaining({
+          teamCode: 'LAL',
+          offeringTeamCode: 'BOS',
+          offerSheetId: 'offer_finalize_matched_1',
+        }),
+      })
+    );
+  });
+
+  it('routes outgoing declined finalize actions through finalizeDeclinedOfferSheet', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: baseTeamFixture }],
+    });
+
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    act(() => {
+      result.current.actions.handleFinalizeOfferSheet({
+        id: 'offer_finalize_declined_1',
+        status: 'DECLINED',
+        homeTeamCode: 'BOS',
+        offeringTeamCode: 'LAL',
+        dedupKey: 'os:world_1:LAL:player_1:2025-26',
+        playerId: 'player_1',
+        seasonKey: '2025-26',
+      } as any);
+    });
+
+    await waitFor(() => {
+      expect(mutationMocks.applyWorldMutation).toHaveBeenCalled();
+    });
+
+    expect(
+      mutationMocks.applyWorldMutation.mock.calls.at(-1)?.[0]
+    ).toEqual(
+      expect.objectContaining({
+        mutationType: 'finalizeDeclinedOfferSheet',
+        worldId: 'world_1',
+        payload: expect.objectContaining({
+          teamCode: 'LAL',
+          offeringTeamCode: 'LAL',
+          homeTeamCode: 'BOS',
+          offerSheetId: 'offer_finalize_declined_1',
+          dedupKey: 'os:world_1:LAL:player_1:2025-26',
+          playerId: 'player_1',
+          seasonKey: '2025-26',
+        }),
+      })
+    );
+  });
+
   it('keeps match, decline, and finalize offer-sheet handlers fail-closed in base mode', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
@@ -1516,6 +1657,26 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     for (const [message] of toastMocks.error.mock.calls) {
       expect(String(message || '')).toContain('active world');
     }
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when finalize role/status truth does not align with the active team', async () => {
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    act(() => {
+      result.current.actions.handleFinalizeOfferSheet({
+        id: 'offer_mismatch_1',
+        status: 'MATCHED',
+        homeTeamCode: 'BOS',
+        offeringTeamCode: 'NYK',
+      } as any);
+    });
+
+    await waitFor(() => {
+      expect(toastMocks.error).toHaveBeenCalledWith(
+        expect.stringContaining('status/team mismatch')
+      );
+    });
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 

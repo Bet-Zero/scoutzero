@@ -483,21 +483,47 @@ describe('Gate 9: UI wiring + world gating exists (E1)', () => {
   const offerSheetListContent = readFileContent(OFFER_SHEET_LIST_PATH);
   const freeAgencySectionContent = readFileContent(FREE_AGENCY_SECTION_PATH);
 
-  it('OfferSheetList calls onMatch handler', () => {
-    const callsOnMatch = /onMatch\s*\?\.\s*\(/.test(offerSheetListContent);
-    expect(callsOnMatch).toBe(true);
-  });
-
-  it('OfferSheetList calls onDecline handler', () => {
-    const callsOnDecline = /onDecline\s*\?\.\s*\(/.test(offerSheetListContent);
-    expect(callsOnDecline).toBe(true);
-  });
-
-  it('OfferSheetList calls onFinalize handler', () => {
-    const callsOnFinalize = /onFinalize\s*\?\.\s*\(/.test(
-      offerSheetListContent
+  it('OfferSheetList defines one role-aware lifecycle surface decision table', () => {
+    expect(offerSheetListContent).toMatch(
+      /function\s+getOfferSheetLifecycleSurfaceState/
     );
-    expect(callsOnFinalize).toBe(true);
+    expect(offerSheetListContent).toMatch(
+      /case\s+'incoming:PENDING_MATCH'[\s\S]*actions:\s*\['match',\s*'decline'\]/
+    );
+    expect(offerSheetListContent).toMatch(
+      /case\s+'incoming:MATCHED'[\s\S]*actions:\s*\['finalizeMatched'\]/
+    );
+    expect(offerSheetListContent).toMatch(
+      /case\s+'outgoing:DECLINED'[\s\S]*actions:\s*\['finalizeDeclined'\]/
+    );
+    expect(offerSheetListContent).toMatch(
+      /case\s+'outgoing:MATCHED'[\s\S]*Matched by Home Team/
+    );
+    expect(offerSheetListContent).toMatch(
+      /case\s+'outgoing:PENDING_MATCH'[\s\S]*Waiting for home team/
+    );
+  });
+
+  it('OfferSheetList emits one unified lifecycle callback with explicit role truth', () => {
+    expect(offerSheetListContent).toMatch(/surfaceRole,\s*\n?\s*onLifecycleAction,/);
+    expect(offerSheetListContent).toMatch(
+      /onLifecycleAction\?\.\(\{\s*[\s\S]*action,\s*[\s\S]*offerSheet:\s*os,\s*[\s\S]*surfaceRole,\s*[\s\S]*\}\)/
+    );
+    expect(offerSheetListContent).not.toMatch(/onMatch\s*\?\.\s*\(/);
+    expect(offerSheetListContent).not.toMatch(/onDecline\s*\?\.\s*\(/);
+    expect(offerSheetListContent).not.toMatch(/onFinalize\s*\?\.\s*\(/);
+  });
+
+  it('OfferSheetList derives counterparty display from explicit surfaceRole', () => {
+    expect(offerSheetListContent).toMatch(
+      /function\s+getOfferSheetCounterpartyLabel/
+    );
+    expect(offerSheetListContent).toMatch(
+      /function\s+getOfferSheetCounterpartyCode/
+    );
+    expect(offerSheetListContent).toMatch(
+      /surfaceRole\s*===\s*'incoming'\s*\?\s*'Offering Team'\s*:\s*'Target Team'/
+    );
   });
 
   it('OfferSheetList has actionsDisabled prop for world gating', () => {
@@ -516,8 +542,13 @@ describe('Gate 9: UI wiring + world gating exists (E1)', () => {
       /actionsDisabled\s*=\s*\{\s*!hasWorldOnlyActions\s*\}/.test(
         freeAgencySectionContent
       );
+    const passesUnifiedLifecycleHandler =
+      /onLifecycleAction=\{handleOfferSheetLifecycleAction\}/.test(
+        freeAgencySectionContent
+      );
     expect(derivesWorldOnlyAvailability).toBe(true);
     expect(passesWorldGating).toBe(true);
+    expect(passesUnifiedLifecycleHandler).toBe(true);
   });
 });
 
@@ -592,6 +623,54 @@ describe('Gate 11: offer-sheet created-state sync stays explicit (FA-5C/5D)', ()
     );
     expect(content).toMatch(
       /Offer sheet saved but the committed pending offer sheet could not be verified in the active team snapshot\./
+    );
+  });
+});
+
+// === GATE 12: Offer-Sheet Lifecycle Routing Stays Role-Aware ===
+
+describe('Gate 12: offer-sheet lifecycle routing stays role-aware (FA-6A/6B)', () => {
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+
+  it('defines shared lifecycle routing helpers for match/decline and finalize resolution', () => {
+    expect(content).toMatch(
+      /const\s+runOfferSheetResolutionAction\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+resolveOfferSheetFinalizeMutationRoute\s*=\s*useCallback/
+    );
+  });
+
+  it('routes match and decline through one shared resolution helper', () => {
+    expect(content).toMatch(
+      /const\s+mutationType:\s*OfferSheetResolutionMutationType\s*=\s*action\s*===\s*'match'\s*\?\s*'matchOfferSheet'\s*:\s*'declineOfferSheet'/
+    );
+    expect(content).toMatch(
+      /handleMatchOfferSheet[\s\S]{0,600}runOfferSheetResolutionAction\s*\(\s*'match'/
+    );
+    expect(content).toMatch(
+      /handleDeclineOfferSheet[\s\S]{0,600}runOfferSheetResolutionAction\s*\(\s*'decline'/
+    );
+    expect(content).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*mutationType/
+    );
+  });
+
+  it('resolves finalize routing from status plus acting-team role before dispatch', () => {
+    expect(content).toMatch(
+      /offerSheet\.status\s*===\s*'MATCHED'[\s\S]*offerSheet\.homeTeamCode\s*===\s*teamCode[\s\S]*mutationType:\s*'finalizeMatchedOfferSheet'/
+    );
+    expect(content).toMatch(
+      /offerSheet\.status\s*===\s*'DECLINED'[\s\S]*offerSheet\.offeringTeamCode\s*===\s*teamCode[\s\S]*mutationType:\s*'finalizeDeclinedOfferSheet'/
+    );
+    expect(content).toMatch(
+      /handleFinalizeOfferSheet[\s\S]{0,1200}resolveOfferSheetFinalizeMutationRoute/
+    );
+    expect(content).toMatch(
+      /handleFinalizeOfferSheet[\s\S]{0,1800}runAuthoritativeFAMutation\s*\(\s*finalizeRoute\.mutationType/
+    );
+    expect(content).toMatch(
+      /Cannot finalize offer sheet: status\/team mismatch/
     );
   });
 });

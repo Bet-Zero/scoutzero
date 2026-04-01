@@ -73,11 +73,11 @@ Progress and execution status for the Free Agency review series.
 
 | ID    | Title                                                                 | Status | Notes |
 |-------|-----------------------------------------------------------------------|--------|-------|
-| FA-6A | Tighten Incoming vs Outgoing Offer-Sheet Surface Truth               | TODO   |       |
-| FA-6B | Align Match / Decline / Finalize Routing with Team-Role Truth        | TODO   |       |
+| FA-6A | Tighten Incoming vs Outgoing Offer-Sheet Surface Truth               | DONE   | `OfferSheetList.tsx` now exposes explicit `surfaceRole` + unified lifecycle callback truth, and `FreeAgencySection.tsx` wires incoming/outgoing offer-sheet surfaces through one role-aware lifecycle adapter. |
+| FA-6B | Align Match / Decline / Finalize Routing with Team-Role Truth        | DONE   | `useArchitectActions.ts` now routes match/decline through one shared resolution helper and resolves finalize mutation routing through one explicit status/team-role seam, with focused behavior and closure guardrails updated. |
 | FA-6C | Clarify and Harden Final Lifecycle-State, Sync, and Reload Truth     | TODO   |       |
 | FA-6D | Add Focused Guardrails for Offer-Sheet Lifecycle Role and Final-State Truth | TODO |       |
 
-**STEP 6 STATUS: TODO**
+**STEP 6 STATUS: IN_PROGRESS**
 
 ---

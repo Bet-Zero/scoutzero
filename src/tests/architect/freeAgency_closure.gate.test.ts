@@ -228,6 +228,26 @@ describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner 
       expect(freeAgentPoolPropsRegion).not.toMatch(forbidden);
     }
   });
+
+  it('keeps the offer-sheet list contract role-aware with one unified lifecycle callback', () => {
+    expect(offerSheetTypesContent).toMatch(
+      /export\s+type\s+OfferSheetSurfaceRole\s*=\s*'incoming'\s*\|\s*'outgoing'/
+    );
+    expect(offerSheetTypesContent).toMatch(
+      /export\s+type\s+OfferSheetLifecycleAction\s*=\s*[\s\S]*'match'[\s\S]*'decline'[\s\S]*'finalizeMatched'[\s\S]*'finalizeDeclined'/
+    );
+    expect(offerSheetTypesContent).toMatch(
+      /export\s+interface\s+OfferSheetLifecycleActionEvent\s*\{/
+    );
+    expect(offerSheetTypesContent).toMatch(/surfaceRole:\s*OfferSheetSurfaceRole;/);
+    expect(offerSheetTypesContent).toMatch(
+      /onLifecycleAction\?:\s*\(event:\s*OfferSheetLifecycleActionEvent\)\s*=>\s*unknown;/
+    );
+    expect(offerSheetTypesContent).not.toMatch(/isIncoming\??:/);
+    expect(offerSheetTypesContent).not.toMatch(/onMatch\??:/);
+    expect(offerSheetTypesContent).not.toMatch(/onDecline\??:/);
+    expect(offerSheetTypesContent).not.toMatch(/onFinalize\??:/);
+  });
 });
 
 describe('Gate 3: dashboard and section hand off grouped Free Agency authority (FA-1A)', () => {
@@ -277,35 +297,35 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
       /const\s+hasWorldOnlyActions\s*=\s*Boolean\(worldOnlyActionOwner\)/
     );
     expect(freeAgencySectionContent).toMatch(
-      /const\s+handleMatchOfferSheet\s*=/
+      /const\s+incomingOfferSheetSurface\s*=\s*\{[\s\S]*surfaceRole:\s*'incoming'/
     );
     expect(freeAgencySectionContent).toMatch(
-      /const\s+handleDeclineOfferSheet\s*=/
+      /const\s+outgoingOfferSheetSurface\s*=\s*\{[\s\S]*surfaceRole:\s*'outgoing'/
     );
     expect(freeAgencySectionContent).toMatch(
-      /const\s+handleFinalizeOfferSheet\s*=/
+      /const\s+handleOfferSheetLifecycleAction\s*:/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleMatchOfferSheet[\s\S]*worldOnlyActionOwner\?\.matchOfferSheet/
+      /handleOfferSheetLifecycleAction[\s\S]*worldOnlyActionOwner\?\.matchOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleDeclineOfferSheet[\s\S]*worldOnlyActionOwner\?\.declineOfferSheet/
+      /handleOfferSheetLifecycleAction[\s\S]*worldOnlyActionOwner\?\.declineOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleFinalizeOfferSheet[\s\S]*worldOnlyActionOwner\?\.finalizeOfferSheet/
+      /handleOfferSheetLifecycleAction[\s\S]*worldOnlyActionOwner\?\.finalizeOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
-      /onMatch=\{handleMatchOfferSheet\}/
+      /<OfferSheetList[\s\S]*\{\.\.\.incomingOfferSheetSurface\}[\s\S]*onLifecycleAction=\{handleOfferSheetLifecycleAction\}/
     );
     expect(freeAgencySectionContent).toMatch(
-      /onDecline=\{handleDeclineOfferSheet\}/
-    );
-    expect(freeAgencySectionContent).toMatch(
-      /onFinalize=\{handleFinalizeOfferSheet\}/
+      /<OfferSheetList[\s\S]*\{\.\.\.outgoingOfferSheetSurface\}[\s\S]*onLifecycleAction=\{handleOfferSheetLifecycleAction\}/
     );
     expect(freeAgencySectionContent).toMatch(
       /<FreeAgentPool[\s\S]*actionOwner=\{actionOwner/
     );
+    expect(freeAgencySectionContent).not.toMatch(/onMatch=/);
+    expect(freeAgencySectionContent).not.toMatch(/onDecline=/);
+    expect(freeAgencySectionContent).not.toMatch(/onFinalize=/);
     expect(freeAgencySectionContent).not.toMatch(/worldId,/);
   });
 });
@@ -697,6 +717,16 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   const handleStoreOfferSheetRegion = readRegion(
     content,
     'const handleStoreOfferSheet = useCallback(',
+    'const runOfferSheetResolutionAction = useCallback('
+  );
+  const runOfferSheetResolutionActionRegion = readRegion(
+    content,
+    'const runOfferSheetResolutionAction = useCallback(',
+    'const resolveOfferSheetFinalizeMutationRoute = useCallback('
+  );
+  const resolveOfferSheetFinalizeMutationRouteRegion = readRegion(
+    content,
+    'const resolveOfferSheetFinalizeMutationRoute = useCallback(',
     'const handleMatchOfferSheet = useCallback('
   );
   const handleMatchOfferSheetRegion = readRegion(
@@ -724,6 +754,12 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(content).toMatch(
       /const\s+prepareOfferSheetCreationDefinition\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+runOfferSheetResolutionAction\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+resolveOfferSheetFinalizeMutationRoute\s*=\s*useCallback/
     );
     expect(content).toMatch(
       /const\s+prepareSignAndTradeTransactionDefinition\s*=\s*useCallback/
@@ -789,6 +825,15 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(handleStoreOfferSheetRegion).toMatch(/executeWorldModeOfferSheetStore/);
     expect(handleStoreOfferSheetRegion).toMatch(/applyCommittedOfferSheetState/);
+    expect(handleMatchOfferSheetRegion).toMatch(
+      /runOfferSheetResolutionAction\s*\(\s*'match'/
+    );
+    expect(handleDeclineOfferSheetRegion).toMatch(
+      /runOfferSheetResolutionAction\s*\(\s*'decline'/
+    );
+    expect(handleFinalizeOfferSheetRegion).toMatch(
+      /resolveOfferSheetFinalizeMutationRoute/
+    );
   });
 
   it('keeps standard-sign world and vacuum execution on explicit hook-local executors plus one shared final-state applier', () => {
@@ -888,14 +933,11 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(handleStoreOfferSheetRegion).toMatch(
       /if\s*\(!worldId\)[\s\S]*return\s*\{\s*success\s*:\s*false,\s*message\s*:\s*'Offer sheet actions require an active world to commit\.'/
     );
-    expect(handleMatchOfferSheetRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*'Offer sheet actions require an active world to commit\.'/
-    );
-    expect(handleDeclineOfferSheetRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*'Offer sheet actions require an active world to commit\.'/
+    expect(runOfferSheetResolutionActionRegion).toMatch(
+      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*OFFER_SHEET_WORLD_REQUIRED_MESSAGE/
     );
     expect(handleFinalizeOfferSheetRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*'Offer sheet actions require an active world to commit\.'/
+      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*OFFER_SHEET_WORLD_REQUIRED_MESSAGE/
     );
   });
 
@@ -915,17 +957,20 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(executeWorldModeOfferSheetStoreRegion).toMatch(
       /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'storeOfferSheet'/
     );
-    expect(handleMatchOfferSheetRegion).toMatch(
-      /runAuthoritativeFAMutation\s*\(\s*'matchOfferSheet'/
+    expect(runOfferSheetResolutionActionRegion).toMatch(
+      /const\s+mutationType:\s*OfferSheetResolutionMutationType\s*=\s*action\s*===\s*'match'\s*\?\s*'matchOfferSheet'\s*:\s*'declineOfferSheet'/
     );
-    expect(handleDeclineOfferSheetRegion).toMatch(
-      /runAuthoritativeFAMutation\s*\(\s*'declineOfferSheet'/
+    expect(runOfferSheetResolutionActionRegion).toMatch(
+      /runAuthoritativeFAMutation\s*\(\s*mutationType/
+    );
+    expect(resolveOfferSheetFinalizeMutationRouteRegion).toMatch(
+      /mutationType:\s*'finalizeMatchedOfferSheet'/
+    );
+    expect(resolveOfferSheetFinalizeMutationRouteRegion).toMatch(
+      /mutationType:\s*'finalizeDeclinedOfferSheet'/
     );
     expect(handleFinalizeOfferSheetRegion).toMatch(
-      /runAuthoritativeFAMutation\s*\(\s*'finalizeMatchedOfferSheet'/
-    );
-    expect(handleFinalizeOfferSheetRegion).toMatch(
-      /runAuthoritativeFAMutation\s*\(\s*'finalizeDeclinedOfferSheet'/
+      /runAuthoritativeFAMutation\s*\(\s*finalizeRoute\.mutationType/
     );
   });
 
@@ -934,6 +979,8 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       handleSignAndTradeRegion,
       executeWorldModeOfferSheetStoreRegion,
       handleStoreOfferSheetRegion,
+      runOfferSheetResolutionActionRegion,
+      resolveOfferSheetFinalizeMutationRouteRegion,
       handleMatchOfferSheetRegion,
       handleDeclineOfferSheetRegion,
       handleFinalizeOfferSheetRegion,
