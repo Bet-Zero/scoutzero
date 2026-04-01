@@ -34,7 +34,7 @@ Use only these commands unless the user explicitly requests something else.
 
 | Command                  | What it does                           | When to use                                    |
 | ------------------------ | -------------------------------------- | ---------------------------------------------- |
-| `npm run test:diff`      | Run tests impacted by current git diff | **Preferred default** when unsure what to run  |
+| `npm run test:diff`      | Auto-select the narrowest safe test scope from the current git diff | **Preferred default** when unsure what to run  |
 | `npm run test:fast`      | Fast smoke tests only (`tests/smoke`)  | Very small changes / quick sanity              |
 | `npm run test:cap-sheet-boundary` | Focused Cap Sheet mutation-boundary guardrails | Narrow Cap Sheet action-layer / mutation-boundary changes |
 | `npm run test:trade`     | Trade-only tests (`tests/trade`)       | Trade Machine changes                          |
@@ -68,6 +68,12 @@ npm run test:diff -- --reporter=dot
 ### Default behavior
 
 **Default validation command:** `npm run test:diff`
+
+`test:diff` now prefers this order:
+- inferred targeted `test:node` / `test:ui` file runs for narrow, well-matched changes
+- explicit scoped suites when a known slice is mapped
+- broader feature suites when inference is weak
+- full suite only for shared/config/script triggers
 
 After changes, run **one** of the following by default:
 

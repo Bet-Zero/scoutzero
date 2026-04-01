@@ -1,6 +1,6 @@
 # VALIDATION TIERS — Master Policy
 
-**Last Updated**: 2026-02-13  
+**Last Updated**: 2026-04-01  
 **Status**: Active  
 **Owner**: Repo-wide (Architect-focused, applicable to all features)
 
@@ -113,35 +113,48 @@ This document defines the **tiered validation system** for ScoutZero/HoopZero. T
 ## Diff-Based Test Runner
 
 **Command**: `npm run test:diff`  
-**Purpose**: Automatically select the appropriate tier based on changed files
+**Purpose**: Automatically select the narrowest safe validation scope based on changed files
 
 **How it works**:
 
 1. Reads changed files from git:
    - `git diff --name-only origin/main...HEAD`
    - Fallback: `git diff --name-only --cached`
-2. Maps paths to test commands using the trigger rules above
-3. Executes the appropriate tier
+   - Optional diagnostics: `--files <comma-separated-paths>` overrides git diff
+   - Optional diagnostics: `--dry-run` prints the selected commands without running them
+2. Ignores support-only markdown / return-package changes when selecting execution scope
+3. Tries explicit narrow slices where the repo has a known audited boundary
+4. Checks for Tier 3 triggers next (shared code, config, scripts, schemas)
+5. Tries inferred related test files and splits them across `test:node` / `test:ui`
+6. Falls back to feature suites only when targeted inference is weak
+7. Executes the selected command plan
 
 **Mapping Rules**:
 
 - **Tier 3 (Full)** if any file matches Tier 3 triggers (see above)
-- **Tier 2 (Architect)** if any file under:
+- **Tier 2 (Targeted)** if changed executable files have strong related test matches
+  - Runs explicit test-file lists via `npm run test:node -- ...` and/or `npm run test:ui -- ...`
+  - This is now the preferred path for narrow changes inside larger domains
+- **Tier 2 (Explicit Slice)** if all executable changes stay inside a mapped audited seam
+  - Current explicit examples:
+    - Cap Sheet mutation-boundary/dashboard action slice
+    - Free Agency world/vacuum publication and gating slice
+- **Tier 2 (Architect)** if inference is weak and any file under:
   - `src/features/architect/**`
   - `src/tests/architect/**`
   - `tests/architect/**`
   - `src/tests/tradeMachine/**`
-- **Tier 2 (Trade)** if any file under:
+- **Tier 2 (Trade)** if inference is weak and any file under:
   - `src/features/trade/**`
   - `src/tests/trade/**`
   - `tests/trade/**`
-- **Tier 2 (Roster)** if any file under:
+- **Tier 2 (Roster)** if inference is weak and any file under:
   - `src/features/roster/**`
   - `src/tests/roster/**`
-- **Tier 2 (Scouting)** if any file under:
+- **Tier 2 (Scouting)** if inference is weak and any file under:
   - `src/features/scouting/**`
   - `src/tests/scouting/**`
-- **Tier 1 (Fast)** — default fallback for all other changes
+- **Tier 1 (Fast)** — default fallback for all other changes or support-only changes
 
 ---
 
@@ -408,6 +421,8 @@ The test suite is now split into two environments to avoid loading jsdom/React f
 1. Create feature directory: `src/tests/<feature>/`
 2. Add feature-specific command to `package.json`: `"test:<feature>": "vitest run src/tests/<feature>"`
 3. Update mapping rules in `scripts/run-tests-by-diff.mjs`
+   - prefer improving inferred token/path matching first
+   - add an explicit slice only when the boundary is stable and audited
 4. Update this doc with the new tier 2 command
 
 ### Adjusting Tier 3 Triggers
