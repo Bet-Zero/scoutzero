@@ -81,3 +81,16 @@ Progress and execution status for the Free Agency review series.
 **STEP 6 STATUS: DONE**
 
 ---
+
+## STEP 7 — Free Agency World-Mode Gating vs Vacuum-Mode Behavior
+
+| ID    | Title                                                                 | Status | Notes |
+|-------|-----------------------------------------------------------------------|--------|-------|
+| FA-7A | Make the World-Only vs Dual-Path Free Agency Action Map More Explicit | TODO   |       |
+| FA-7B | Align UI Gating Truth with Actual Mutation / Action Truth             | TODO   |       |
+| FA-7C | Harden Dual-Path Standard Signing vs World-Only Action Behavior       | TODO   |       |
+| FA-7D | Add Focused Guardrails for World/Vacuum Boundary Truth                | TODO   |       |
+
+**STEP 7 STATUS: TODO**
+
+---
