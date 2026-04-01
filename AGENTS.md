@@ -70,6 +70,7 @@ npm run test:diff -- --reporter=dot
 **Default validation command:** `npm run test:diff`
 
 `test:diff` now prefers this order:
+
 - inferred targeted `test:node` / `test:ui` file runs for narrow, well-matched changes
 - explicit scoped suites when a known slice is mapped
 - broader feature suites when inference is weak
