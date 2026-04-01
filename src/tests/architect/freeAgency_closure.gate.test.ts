@@ -106,9 +106,15 @@ const readRegion = (content: string, start: string, end: string): string => {
 describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-only owner (FA-1C)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
 
-  it('defines explicit dual-path and world-only owner types before the grouped action owner', () => {
+  it('defines explicit dual-path, focused world-only slices, and grouped availability types before the grouped action owner', () => {
     expect(content).toMatch(
       /export\s+interface\s+FreeAgencyDualPathSigningOwner/
+    );
+    expect(content).toMatch(
+      /export\s+interface\s+FreeAgencyWorldOnlyModalActionOwner/
+    );
+    expect(content).toMatch(
+      /export\s+interface\s+FreeAgencyOfferSheetLifecycleActionOwner/
     );
     expect(content).toMatch(
       /export\s+interface\s+FreeAgencyWorldOnlyActionOwner/
@@ -116,15 +122,30 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
     expect(content).toMatch(
       /export\s+interface\s+FreeAgentModalAvailability/
     );
+    expect(content).toMatch(
+      /export\s+interface\s+FreeAgencyOfferSheetSectionAvailability/
+    );
     expect(content).toMatch(/export\s+interface\s+FreeAgencyActionOwner/);
   });
 
-  it('builds the grouped owner from a dedicated world-only owner split plus explicit modal-availability truth', () => {
+  it('builds the grouped owner from explicit modal and lifecycle world-only slices plus published availability contracts', () => {
+    expect(content).toMatch(
+      /const\s+dualPathSigning\s*=\s*useMemo<FreeAgencyDualPathSigningOwner>/
+    );
+    expect(content).toMatch(
+      /const\s+freeAgencyWorldOnlyModalActionOwner\s*=\s*useMemo<FreeAgencyWorldOnlyModalActionOwner\s*\|\s*null>/
+    );
+    expect(content).toMatch(
+      /const\s+freeAgencyOfferSheetLifecycleActionOwner\s*=\s*useMemo<FreeAgencyOfferSheetLifecycleActionOwner\s*\|\s*null>/
+    );
     expect(content).toMatch(
       /const\s+freeAgencyWorldOnlyActionOwner\s*=\s*useMemo<FreeAgencyWorldOnlyActionOwner\s*\|\s*null>/
     );
     expect(content).toMatch(
       /const\s+freeAgentModalAvailability\s*=\s*useMemo<FreeAgentModalAvailability>/
+    );
+    expect(content).toMatch(
+      /const\s+offerSheetSectionAvailability\s*=\s*useMemo<FreeAgencyOfferSheetSectionAvailability>/
     );
     expect(content).toMatch(
       /const\s+signAndTradeInitiation\s*=\s*useMemo<FreeAgentSignAndTradeInitiation\s*\|\s*null>/
@@ -134,26 +155,32 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
     );
   });
 
-  it('maps standard signing into dualPathSigning, fences world-only callbacks behind the world-only owner, and derives visible modal availability from handler completeness', () => {
+  it('maps standard signing into dualPathSigning, composes the compatibility world-only aggregate, and derives modal vs section availability from the focused slices', () => {
+    expect(content).toMatch(/signFreeAgent:\s*handleSign/);
     expect(content).toMatch(
-      /dualPathSigning:\s*\{\s*signFreeAgent:\s*handleSign/
+      /freeAgencyWorldOnlyModalActionOwner[\s\S]*\?\s*\{[\s\S]*signAndTrade:\s*handleSignAndTrade[\s\S]*storeOfferSheet:\s*handleStoreOfferSheet/
+    );
+    expect(content).toMatch(
+      /freeAgencyOfferSheetLifecycleActionOwner[\s\S]*\?\s*\{[\s\S]*matchOfferSheet:\s*handleMatchOfferSheet[\s\S]*declineOfferSheet:\s*handleDeclineOfferSheet[\s\S]*finalizeOfferSheet:\s*handleFinalizeOfferSheet/
+    );
+    expect(content).toMatch(
+      /freeAgencyWorldOnlyActionOwner[\s\S]*freeAgencyWorldOnlyModalActionOwner[\s\S]*freeAgencyOfferSheetLifecycleActionOwner[\s\S]*\.\.\.freeAgencyWorldOnlyModalActionOwner[\s\S]*\.\.\.freeAgencyOfferSheetLifecycleActionOwner/
     );
     expect(content).toMatch(/worldOnly:\s*freeAgencyWorldOnlyActionOwner/);
     expect(content).toMatch(
       /const\s+freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>[\s\S]*freeAgentModalAvailability,/
     );
-    expect(content).toMatch(/worldId[\s\S]*\?\s*\{[\s\S]*signAndTrade:\s*handleSignAndTrade/);
     expect(content).toMatch(
-      /const\s+hasWorldOnlySignAndTradeAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyActionOwner\?\.signAndTrade[\s\S]*freeAgencyWorldOnlyActionOwner\.getSignAndTradePreflight/
+      /const\s+hasWorldOnlySignAndTradeAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyModalActionOwner\?\.signAndTrade[\s\S]*freeAgencyWorldOnlyModalActionOwner\.getSignAndTradePreflight/
     );
     expect(content).toMatch(
-      /const\s+hasWorldOnlyOfferSheetAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyActionOwner\?\.storeOfferSheet[\s\S]*freeAgencyWorldOnlyActionOwner\.getOfferSheetPreflight/
+      /const\s+hasWorldOnlyOfferSheetAvailability\s*=\s*Boolean\([\s\S]*freeAgencyWorldOnlyModalActionOwner\?\.storeOfferSheet[\s\S]*freeAgencyWorldOnlyModalActionOwner\.getOfferSheetPreflight/
     );
     expect(content).toMatch(
-      /const\s+signAndTradeInitiation\s*=\s*useMemo<FreeAgentSignAndTradeInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlySignAndTradeAvailability(?:\s*&&\s*freeAgencyWorldOnlyActionOwner)?[\s\S]*\?\s*\{[\s\S]*onSignAndTrade:\s*freeAgencyWorldOnlyActionOwner\.signAndTrade[\s\S]*getSignAndTradePreflight:\s*freeAgencyWorldOnlyActionOwner\.getSignAndTradePreflight[\s\S]*\}\s*:\s*null/
+      /const\s+signAndTradeInitiation\s*=\s*useMemo<FreeAgentSignAndTradeInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlySignAndTradeAvailability[\s\S]*freeAgencyWorldOnlyModalActionOwner[\s\S]*\?\s*\{[\s\S]*onSignAndTrade:\s*freeAgencyWorldOnlyModalActionOwner\.signAndTrade[\s\S]*getSignAndTradePreflight:\s*freeAgencyWorldOnlyModalActionOwner\.getSignAndTradePreflight[\s\S]*\}\s*:\s*null/
     );
     expect(content).toMatch(
-      /const\s+offerSheetInitiation\s*=\s*useMemo<FreeAgentOfferSheetInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlyOfferSheetAvailability(?:\s*&&\s*freeAgencyWorldOnlyActionOwner)?[\s\S]*\?\s*\{[\s\S]*getOfferSheetPreflight:\s*freeAgencyWorldOnlyActionOwner\.getOfferSheetPreflight[\s\S]*storeOfferSheet:\s*freeAgencyWorldOnlyActionOwner\.storeOfferSheet[\s\S]*\}\s*:\s*null/
+      /const\s+offerSheetInitiation\s*=\s*useMemo<FreeAgentOfferSheetInitiation\s*\|\s*null>\([\s\S]*hasWorldOnlyOfferSheetAvailability[\s\S]*freeAgencyWorldOnlyModalActionOwner[\s\S]*\?\s*\{[\s\S]*getOfferSheetPreflight:\s*freeAgencyWorldOnlyModalActionOwner\.getOfferSheetPreflight[\s\S]*storeOfferSheet:\s*freeAgencyWorldOnlyModalActionOwner\.storeOfferSheet[\s\S]*\}\s*:\s*null/
     );
     expect(content).toMatch(
       /visibleActions:\s*signAndTradeInitiation\s*\?\s*\['signNew',\s*'signAndTrade'\]\s*:\s*\['signNew'\]/
@@ -161,12 +188,12 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
     expect(content).toMatch(
       /showOfferSheetToggle:\s*Boolean\(offerSheetInitiation\)/
     );
-    expect(content).toMatch(/offerSheetInitiation,\s*\}\)/);
-    expect(content).toMatch(/storeOfferSheet:\s*handleStoreOfferSheet/);
-    expect(content).toMatch(/matchOfferSheet:\s*handleMatchOfferSheet/);
-    expect(content).toMatch(/declineOfferSheet:\s*handleDeclineOfferSheet/);
-    expect(content).toMatch(/finalizeOfferSheet:\s*handleFinalizeOfferSheet/);
-    expect(content).toMatch(/\}\s*:\s*null/);
+    expect(content).toMatch(
+      /const\s+offerSheetSectionAvailability\s*=\s*useMemo<FreeAgencyOfferSheetSectionAvailability>\([\s\S]*lifecycleActionOwner:\s*freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabled:\s*!freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabledReason:\s*freeAgencyOfferSheetLifecycleActionOwner[\s\S]*\?\s*null[\s\S]*:\s*'Offer-sheet lifecycle actions require an active world to commit\.'/
+    );
+    expect(content).toMatch(
+      /freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>[\s\S]*dualPathSigning,[\s\S]*worldOnly:\s*freeAgencyWorldOnlyActionOwner,[\s\S]*freeAgentModalAvailability,[\s\S]*offerSheetSectionAvailability/
+    );
   });
 
   it('returns the grouped owner while keeping flat Free Agency handlers for compatibility', () => {
@@ -291,10 +318,10 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
 
   it('FreeAgencySection stays a thin wiring surface over the grouped owner', () => {
     expect(freeAgencySectionContent).toMatch(
-      /const\s+worldOnlyActionOwner\s*=\s*actionOwner\.worldOnly/
+      /const\s+offerSheetSectionAvailability\s*=\s*actionOwner\.offerSheetSectionAvailability/
     );
     expect(freeAgencySectionContent).toMatch(
-      /const\s+hasWorldOnlyActions\s*=\s*Boolean\(worldOnlyActionOwner\)/
+      /const\s+offerSheetLifecycleActionOwner[\s\S]*offerSheetSectionAvailability\.lifecycleActionOwner/
     );
     expect(freeAgencySectionContent).toMatch(
       /const\s+incomingOfferSheetSurface\s*=\s*\{[\s\S]*surfaceRole:\s*'incoming'/
@@ -306,19 +333,25 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
       /const\s+handleOfferSheetLifecycleAction\s*:/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleOfferSheetLifecycleAction[\s\S]*worldOnlyActionOwner\?\.matchOfferSheet/
+      /handleOfferSheetLifecycleAction[\s\S]*offerSheetLifecycleActionOwner\?\.matchOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleOfferSheetLifecycleAction[\s\S]*worldOnlyActionOwner\?\.declineOfferSheet/
+      /handleOfferSheetLifecycleAction[\s\S]*offerSheetLifecycleActionOwner\?\.declineOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
-      /handleOfferSheetLifecycleAction[\s\S]*worldOnlyActionOwner\?\.finalizeOfferSheet/
+      /handleOfferSheetLifecycleAction[\s\S]*offerSheetLifecycleActionOwner\?\.finalizeOfferSheet/
     );
     expect(freeAgencySectionContent).toMatch(
       /<OfferSheetList[\s\S]*\{\.\.\.incomingOfferSheetSurface\}[\s\S]*onLifecycleAction=\{handleOfferSheetLifecycleAction\}/
     );
     expect(freeAgencySectionContent).toMatch(
       /<OfferSheetList[\s\S]*\{\.\.\.outgoingOfferSheetSurface\}[\s\S]*onLifecycleAction=\{handleOfferSheetLifecycleAction\}/
+    );
+    expect(freeAgencySectionContent).toMatch(
+      /actionsDisabled=\{offerSheetSectionAvailability\.actionsDisabled\}/
+    );
+    expect(freeAgencySectionContent).toMatch(
+      /actionsDisabledReason=\{[\s\S]*offerSheetSectionAvailability\.actionsDisabledReason/
     );
     expect(freeAgencySectionContent).toMatch(
       /<FreeAgentPool[\s\S]*actionOwner=\{actionOwner/

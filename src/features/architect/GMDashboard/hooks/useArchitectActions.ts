@@ -654,7 +654,7 @@ export interface FreeAgentModalAvailability {
   offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
 }
 
-export interface FreeAgencyWorldOnlyActionOwner {
+export interface FreeAgencyWorldOnlyModalActionOwner {
   signAndTrade: (
     playerObj: ArchitectPlayer,
     contract: SigningDetails,
@@ -673,10 +673,17 @@ export interface FreeAgencyWorldOnlyActionOwner {
     playerObj: ArchitectPlayer,
     contract: SigningDetails
   ) => Promise<MutationActionResult>;
+}
+
+export interface FreeAgencyOfferSheetLifecycleActionOwner {
   matchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
   declineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
   finalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
 }
+
+export interface FreeAgencyWorldOnlyActionOwner
+  extends FreeAgencyWorldOnlyModalActionOwner,
+    FreeAgencyOfferSheetLifecycleActionOwner {}
 
 export interface FreeAgentSignAndTradeInitiation {
   onSignAndTrade: (
@@ -691,10 +698,17 @@ export interface FreeAgentSignAndTradeInitiation {
   ) => Promise<SignAndTradePreflightResult>;
 }
 
+export interface FreeAgencyOfferSheetSectionAvailability {
+  lifecycleActionOwner: FreeAgencyOfferSheetLifecycleActionOwner | null;
+  actionsDisabled: boolean;
+  actionsDisabledReason: string | null;
+}
+
 export interface FreeAgencyActionOwner {
   dualPathSigning: FreeAgencyDualPathSigningOwner;
   worldOnly: FreeAgencyWorldOnlyActionOwner | null;
   freeAgentModalAvailability: FreeAgentModalAvailability;
+  offerSheetSectionAvailability: FreeAgencyOfferSheetSectionAvailability;
 }
 
 /** Return type of the useArchitectActions hook */
@@ -4882,8 +4896,15 @@ export function useArchitectActions({
     [confirmAndRenounceRights]
   );
 
-  const freeAgencyWorldOnlyActionOwner =
-    useMemo<FreeAgencyWorldOnlyActionOwner | null>(
+  const dualPathSigning = useMemo<FreeAgencyDualPathSigningOwner>(
+    () => ({
+      signFreeAgent: handleSign,
+    }),
+    [handleSign]
+  );
+
+  const freeAgencyWorldOnlyModalActionOwner =
+    useMemo<FreeAgencyWorldOnlyModalActionOwner | null>(
       () =>
         worldId
           ? {
@@ -4891,52 +4912,88 @@ export function useArchitectActions({
               getSignAndTradePreflight,
               getOfferSheetPreflight,
               storeOfferSheet: handleStoreOfferSheet,
-              matchOfferSheet: handleMatchOfferSheet,
-              declineOfferSheet: handleDeclineOfferSheet,
-              finalizeOfferSheet: handleFinalizeOfferSheet,
             }
           : null,
       [
         getOfferSheetPreflight,
         getSignAndTradePreflight,
-        handleDeclineOfferSheet,
-        handleFinalizeOfferSheet,
-        handleMatchOfferSheet,
         handleSignAndTrade,
         handleStoreOfferSheet,
         worldId,
       ]
     );
 
+  const freeAgencyOfferSheetLifecycleActionOwner =
+    useMemo<FreeAgencyOfferSheetLifecycleActionOwner | null>(
+      () =>
+        worldId
+          ? {
+              matchOfferSheet: handleMatchOfferSheet,
+              declineOfferSheet: handleDeclineOfferSheet,
+              finalizeOfferSheet: handleFinalizeOfferSheet,
+            }
+          : null,
+      [
+        handleDeclineOfferSheet,
+        handleFinalizeOfferSheet,
+        handleMatchOfferSheet,
+        worldId,
+      ]
+    );
+
+  const freeAgencyWorldOnlyActionOwner =
+    useMemo<FreeAgencyWorldOnlyActionOwner | null>(
+      () =>
+        freeAgencyWorldOnlyModalActionOwner &&
+        freeAgencyOfferSheetLifecycleActionOwner
+          ? {
+              ...freeAgencyWorldOnlyModalActionOwner,
+              ...freeAgencyOfferSheetLifecycleActionOwner,
+            }
+          : null,
+      [
+        freeAgencyOfferSheetLifecycleActionOwner,
+        freeAgencyWorldOnlyModalActionOwner,
+      ]
+    );
+
   const hasWorldOnlySignAndTradeAvailability = Boolean(
-    freeAgencyWorldOnlyActionOwner?.signAndTrade &&
-      freeAgencyWorldOnlyActionOwner.getSignAndTradePreflight
+    freeAgencyWorldOnlyModalActionOwner?.signAndTrade &&
+      freeAgencyWorldOnlyModalActionOwner.getSignAndTradePreflight
   );
   const hasWorldOnlyOfferSheetAvailability = Boolean(
-      freeAgencyWorldOnlyActionOwner?.storeOfferSheet &&
-      freeAgencyWorldOnlyActionOwner.getOfferSheetPreflight
+    freeAgencyWorldOnlyModalActionOwner?.storeOfferSheet &&
+      freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight
   );
   const signAndTradeInitiation = useMemo<FreeAgentSignAndTradeInitiation | null>(
     () =>
-      hasWorldOnlySignAndTradeAvailability && freeAgencyWorldOnlyActionOwner
+      hasWorldOnlySignAndTradeAvailability &&
+      freeAgencyWorldOnlyModalActionOwner
         ? {
-            onSignAndTrade: freeAgencyWorldOnlyActionOwner.signAndTrade,
+            onSignAndTrade: freeAgencyWorldOnlyModalActionOwner.signAndTrade,
             getSignAndTradePreflight:
-              freeAgencyWorldOnlyActionOwner.getSignAndTradePreflight,
+              freeAgencyWorldOnlyModalActionOwner.getSignAndTradePreflight,
           }
         : null,
-    [freeAgencyWorldOnlyActionOwner, hasWorldOnlySignAndTradeAvailability]
+    [
+      freeAgencyWorldOnlyModalActionOwner,
+      hasWorldOnlySignAndTradeAvailability,
+    ]
   );
   const offerSheetInitiation = useMemo<FreeAgentOfferSheetInitiation | null>(
     () =>
-      hasWorldOnlyOfferSheetAvailability && freeAgencyWorldOnlyActionOwner
+      hasWorldOnlyOfferSheetAvailability &&
+      freeAgencyWorldOnlyModalActionOwner
         ? {
             getOfferSheetPreflight:
-              freeAgencyWorldOnlyActionOwner.getOfferSheetPreflight,
-            storeOfferSheet: freeAgencyWorldOnlyActionOwner.storeOfferSheet,
+              freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight,
+            storeOfferSheet: freeAgencyWorldOnlyModalActionOwner.storeOfferSheet,
           }
         : null,
-    [freeAgencyWorldOnlyActionOwner, hasWorldOnlyOfferSheetAvailability]
+    [
+      freeAgencyWorldOnlyModalActionOwner,
+      hasWorldOnlyOfferSheetAvailability,
+    ]
   );
 
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
@@ -4957,15 +5014,31 @@ export function useArchitectActions({
     ]
   );
 
+  const offerSheetSectionAvailability =
+    useMemo<FreeAgencyOfferSheetSectionAvailability>(
+      () => ({
+        lifecycleActionOwner: freeAgencyOfferSheetLifecycleActionOwner,
+        actionsDisabled: !freeAgencyOfferSheetLifecycleActionOwner,
+        actionsDisabledReason: freeAgencyOfferSheetLifecycleActionOwner
+          ? null
+          : 'Offer-sheet lifecycle actions require an active world to commit.',
+      }),
+      [freeAgencyOfferSheetLifecycleActionOwner]
+    );
+
   const freeAgencyActionOwner = useMemo<FreeAgencyActionOwner>(
     () => ({
-      dualPathSigning: {
-        signFreeAgent: handleSign,
-      },
+      dualPathSigning,
       worldOnly: freeAgencyWorldOnlyActionOwner,
       freeAgentModalAvailability,
+      offerSheetSectionAvailability,
     }),
-    [freeAgentModalAvailability, freeAgencyWorldOnlyActionOwner, handleSign]
+    [
+      dualPathSigning,
+      freeAgentModalAvailability,
+      freeAgencyWorldOnlyActionOwner,
+      offerSheetSectionAvailability,
+    ]
   );
 
   return {

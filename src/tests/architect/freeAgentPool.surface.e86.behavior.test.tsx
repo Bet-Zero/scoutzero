@@ -236,6 +236,19 @@ const buildActionOwner = ({
       worldOnlyActionOwner: resolvedWorldOnlyActionOwner,
       overrides: freeAgentModalAvailability,
     }),
+    offerSheetSectionAvailability: {
+      lifecycleActionOwner: resolvedWorldOnlyActionOwner
+        ? {
+            matchOfferSheet: resolvedWorldOnlyActionOwner.matchOfferSheet,
+            declineOfferSheet: resolvedWorldOnlyActionOwner.declineOfferSheet,
+            finalizeOfferSheet: resolvedWorldOnlyActionOwner.finalizeOfferSheet,
+          }
+        : null,
+      actionsDisabled: !resolvedWorldOnlyActionOwner,
+      actionsDisabledReason: resolvedWorldOnlyActionOwner
+        ? null
+        : 'Offer-sheet lifecycle actions require an active world to commit.',
+    },
   };
 };
 

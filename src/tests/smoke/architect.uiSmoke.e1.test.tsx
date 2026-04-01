@@ -78,6 +78,30 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
           declineOfferSheet,
           finalizeOfferSheet,
         },
+        freeAgentModalAvailability: {
+          visibleActions: ['signNew', 'signAndTrade'],
+          actionLabelsOverride: {
+            signNew: 'Sign Free Agent',
+          },
+          showOfferSheetToggle: true,
+          signAndTradeInitiation: {
+            onSignAndTrade: signAndTrade,
+            getSignAndTradePreflight,
+          },
+          offerSheetInitiation: {
+            getOfferSheetPreflight,
+            storeOfferSheet,
+          },
+        },
+        offerSheetSectionAvailability: {
+          lifecycleActionOwner: {
+            matchOfferSheet,
+            declineOfferSheet,
+            finalizeOfferSheet,
+          },
+          actionsDisabled: false,
+          actionsDisabledReason: null,
+        },
       },
       handleCapSheetAction: vi.fn(),
       handleExtendContract: vi.fn(async () => ({ success: true })),
@@ -390,6 +414,15 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
               getOfferSheetPreflight,
               storeOfferSheet,
             },
+          },
+          offerSheetSectionAvailability: {
+            lifecycleActionOwner: {
+              matchOfferSheet,
+              declineOfferSheet,
+              finalizeOfferSheet,
+            },
+            actionsDisabled: false,
+            actionsDisabledReason: null,
           },
         }}
         playersMap={{}}

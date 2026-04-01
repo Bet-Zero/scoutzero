@@ -86,11 +86,11 @@ Progress and execution status for the Free Agency review series.
 
 | ID    | Title                                                                 | Status | Notes |
 |-------|-----------------------------------------------------------------------|--------|-------|
-| FA-7A | Make the World-Only vs Dual-Path Free Agency Action Map More Explicit | TODO   |       |
-| FA-7B | Align UI Gating Truth with Actual Mutation / Action Truth             | TODO   |       |
+| FA-7A | Make the World-Only vs Dual-Path Free Agency Action Map More Explicit | DONE   | `useArchitectActions.ts` now publishes explicit modal world-only vs lifecycle world-only slices before composing the compatibility aggregate owner, making the Free Agency mode-policy seam easier to trace. |
+| FA-7B | Align UI Gating Truth with Actual Mutation / Action Truth             | DONE   | `FreeAgencySection.tsx` now consumes hook-published `offerSheetSectionAvailability` instead of coercing `actionOwner.worldOnly`, and focused behavior/closure tests pin that alignment against drift. |
 | FA-7C | Harden Dual-Path Standard Signing vs World-Only Action Behavior       | TODO   |       |
 | FA-7D | Add Focused Guardrails for World/Vacuum Boundary Truth                | TODO   |       |
 
-**STEP 7 STATUS: TODO**
+**STEP 7 STATUS: IN_PROGRESS**
 
 ---

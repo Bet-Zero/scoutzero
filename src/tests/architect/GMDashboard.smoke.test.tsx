@@ -136,6 +136,15 @@ vi.mock('@/features/architect/GMDashboard/hooks/useArchitectActions', () => ({
             storeOfferSheet,
           },
         },
+        offerSheetSectionAvailability: {
+          lifecycleActionOwner: {
+            matchOfferSheet,
+            declineOfferSheet,
+            finalizeOfferSheet,
+          },
+          actionsDisabled: false,
+          actionsDisabledReason: null,
+        },
       },
       applyTradeToCapSheet: vi.fn(),
       handleCapTableModalAction: vi.fn(),

@@ -258,6 +258,15 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
               storeOfferSheet: vi.fn(),
             },
           },
+          offerSheetSectionAvailability: {
+            lifecycleActionOwner: {
+              matchOfferSheet,
+              declineOfferSheet,
+              finalizeOfferSheet,
+            },
+            actionsDisabled: false,
+            actionsDisabledReason: null,
+          },
         }}
         playersMap={{}}
         incomingOfferSheets={[
@@ -284,5 +293,72 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
       2,
       outgoingDeclinedOfferSheet
     );
+  });
+
+  it('uses published offer-sheet section availability for lifecycle gating instead of coarse worldOnly presence', () => {
+    const matchOfferSheet = vi.fn();
+
+    render(
+      <FreeAgencySection
+        freeAgents={[]}
+        currentYear={2026}
+        actionOwner={{
+          dualPathSigning: {
+            signFreeAgent: vi.fn(),
+          },
+          worldOnly: {
+            signAndTrade: vi.fn(),
+            getSignAndTradePreflight: vi.fn(),
+            getOfferSheetPreflight: vi.fn(),
+            storeOfferSheet: vi.fn(),
+            matchOfferSheet,
+            declineOfferSheet: vi.fn(),
+            finalizeOfferSheet: vi.fn(),
+          },
+          freeAgentModalAvailability: {
+            visibleActions: ['signNew', 'signAndTrade'],
+            actionLabelsOverride: {
+              signNew: 'Sign Free Agent',
+            },
+            showOfferSheetToggle: true,
+            signAndTradeInitiation: {
+              onSignAndTrade: vi.fn(),
+              getSignAndTradePreflight: vi.fn(),
+            },
+            offerSheetInitiation: {
+              getOfferSheetPreflight: vi.fn(),
+              storeOfferSheet: vi.fn(),
+            },
+          },
+          offerSheetSectionAvailability: {
+            lifecycleActionOwner: null,
+            actionsDisabled: true,
+            actionsDisabledReason:
+              'Offer-sheet lifecycle actions require an active world to commit.',
+          },
+        }}
+        playersMap={{}}
+        incomingOfferSheets={[
+          {
+            ...baseOfferSheet,
+            id: 'os_disabled',
+            status: 'PENDING_MATCH',
+            offeringTeamCode: 'NYK',
+          },
+        ]}
+        outgoingOfferSheets={[]}
+      />
+    );
+
+    expect(
+      screen.getAllByText(
+        /Offer-sheet lifecycle actions require an active world to commit\./i
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /^Match$/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Match$/i }));
+
+    expect(matchOfferSheet).not.toHaveBeenCalled();
   });
 });

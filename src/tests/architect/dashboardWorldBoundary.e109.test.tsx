@@ -470,6 +470,17 @@ function buildDashboardActions(
   const matchOfferSheet = vi.fn();
   const declineOfferSheet = vi.fn();
   const finalizeOfferSheet = vi.fn();
+  const freeAgencyWorldOnlyOwner = freeAgencyWorldId
+    ? {
+        signAndTrade,
+        getSignAndTradePreflight,
+        getOfferSheetPreflight,
+        storeOfferSheet,
+        matchOfferSheet,
+        declineOfferSheet,
+        finalizeOfferSheet,
+      }
+    : null;
 
   return {
     handleEditContract: vi.fn(),
@@ -495,17 +506,7 @@ function buildDashboardActions(
       dualPathSigning: {
         signFreeAgent,
       },
-      worldOnly: freeAgencyWorldId
-        ? {
-            signAndTrade,
-            getSignAndTradePreflight,
-            getOfferSheetPreflight,
-            storeOfferSheet,
-            matchOfferSheet,
-            declineOfferSheet,
-            finalizeOfferSheet,
-          }
-        : null,
+      worldOnly: freeAgencyWorldOnlyOwner,
       freeAgentModalAvailability: {
         visibleActions: freeAgencyWorldId
           ? ['signNew', 'signAndTrade']
@@ -526,6 +527,19 @@ function buildDashboardActions(
               storeOfferSheet,
             }
           : null,
+      },
+      offerSheetSectionAvailability: {
+        lifecycleActionOwner: freeAgencyWorldOnlyOwner
+          ? {
+              matchOfferSheet: freeAgencyWorldOnlyOwner.matchOfferSheet,
+              declineOfferSheet: freeAgencyWorldOnlyOwner.declineOfferSheet,
+              finalizeOfferSheet: freeAgencyWorldOnlyOwner.finalizeOfferSheet,
+            }
+          : null,
+        actionsDisabled: !freeAgencyWorldOnlyOwner,
+        actionsDisabledReason: freeAgencyWorldOnlyOwner
+          ? null
+          : 'Offer-sheet lifecycle actions require an active world to commit.',
       },
     },
     handleExtendContract: vi.fn(),

@@ -535,21 +535,26 @@ describe('Gate 9: UI wiring + world gating exists (E1)', () => {
     expect(hasActionsDisabled).toBe(true);
   });
 
-  it('FreeAgencySection derives actionsDisabled from the grouped world-only owner split', () => {
-    const derivesWorldOnlyAvailability =
-      /const\s+worldOnlyActionOwner\s*=\s*actionOwner\.worldOnly[\s\S]*const\s+hasWorldOnlyActions\s*=\s*Boolean\(worldOnlyActionOwner\)/.test(
+  it('FreeAgencySection derives actionsDisabled from the published offer-sheet section availability contract', () => {
+    const derivesSectionAvailability =
+      /const\s+offerSheetSectionAvailability\s*=\s*actionOwner\.offerSheetSectionAvailability[\s\S]*const\s+offerSheetLifecycleActionOwner[\s\S]*offerSheetSectionAvailability\.lifecycleActionOwner/.test(
         freeAgencySectionContent
       );
-    const passesWorldGating =
-      /actionsDisabled\s*=\s*\{\s*!hasWorldOnlyActions\s*\}/.test(
+    const passesPublishedGating =
+      /actionsDisabled\s*=\s*\{\s*offerSheetSectionAvailability\.actionsDisabled\s*\}/.test(
+        freeAgencySectionContent
+      );
+    const passesPublishedReason =
+      /actionsDisabledReason\s*=\s*\{[\s\S]*offerSheetSectionAvailability\.actionsDisabledReason/.test(
         freeAgencySectionContent
       );
     const passesUnifiedLifecycleHandler =
       /onLifecycleAction=\{handleOfferSheetLifecycleAction\}/.test(
         freeAgencySectionContent
       );
-    expect(derivesWorldOnlyAvailability).toBe(true);
-    expect(passesWorldGating).toBe(true);
+    expect(derivesSectionAvailability).toBe(true);
+    expect(passesPublishedGating).toBe(true);
+    expect(passesPublishedReason).toBe(true);
     expect(passesUnifiedLifecycleHandler).toBe(true);
   });
 });
