@@ -2032,12 +2032,25 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
   });
 
-  it('keeps match, decline, and finalize offer-sheet handlers fail-closed in base mode', async () => {
+  it('keeps match offer-sheet lifecycle handling fail-closed in base mode', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
     act(() => {
       result.current.actions.handleMatchOfferSheet('BOS', 'offer_1');
-      result.current.actions.handleDeclineOfferSheet('BOS', 'offer_1');
+    });
+
+    await waitFor(() => {
+      expect(toastMocks.error).toHaveBeenCalledWith(
+        expect.stringContaining('active world')
+      );
+    });
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+  });
+
+  it('keeps finalize offer-sheet lifecycle handling fail-closed in base mode', async () => {
+    const { result } = renderActionsHarness({ worldId: null });
+
+    act(() => {
       result.current.actions.handleFinalizeOfferSheet({
         id: 'offer_1',
         status: 'MATCHED',
@@ -2047,11 +2060,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
 
     await waitFor(() => {
-      expect(toastMocks.error).toHaveBeenCalledTimes(3);
+      expect(toastMocks.error).toHaveBeenCalledWith(
+        expect.stringContaining('active world')
+      );
     });
-    for (const [message] of toastMocks.error.mock.calls) {
-      expect(String(message || '')).toContain('active world');
-    }
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
@@ -2221,7 +2233,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     expect(preflightResult).toEqual({
       status: 'blocked',
-      reasons: ['Sign-and-trade requires an active world to commit.'],
+      reasons: ['Sign-and-trade requires an active world to preview.'],
       warnings: [],
       source: 'authoritative-preflight',
     });

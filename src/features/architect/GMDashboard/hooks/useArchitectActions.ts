@@ -534,8 +534,6 @@ type OfferSheetLifecycleExecutionResult =
       message: string;
     };
 
-const OFFER_SHEET_WORLD_REQUIRED_MESSAGE =
-  'Offer sheet actions require an active world to commit.';
 const OFFER_SHEET_LIFECYCLE_RELOAD_FAILURE_MESSAGE =
   'Offer sheet lifecycle action saved but the committed team snapshot could not be reloaded.';
 const OFFER_SHEET_LIFECYCLE_VERIFICATION_FAILURE_MESSAGE =
@@ -1019,6 +1017,56 @@ type SignAndTradeExecutionResult =
       message: string;
     };
 
+type StandardSigningExecutionRoute = {
+  mode: 'world' | 'vacuum';
+  execute: (
+    playerObj: ArchitectPlayer,
+    actionSeasonContext: ReturnType<typeof buildActionSeasonContext>,
+    standardSigningPayload: StandardSigningMutationPayload
+  ) => Promise<StandardSigningExecutionResult>;
+};
+
+type FreeAgencyWorldOnlyActionKind =
+  | 'signAndTrade'
+  | 'offerSheetCreation'
+  | 'offerSheetLifecycle';
+
+type FreeAgencyWorldOnlyActionPhase = 'commit' | 'preview';
+
+type FreeAgencyWorldOnlyRequirement = {
+  message: string;
+};
+
+type FreeAgencyWorldOnlyRequirementTable = Record<
+  FreeAgencyWorldOnlyActionKind,
+  Partial<Record<FreeAgencyWorldOnlyActionPhase, FreeAgencyWorldOnlyRequirement>>
+>;
+
+const FREE_AGENCY_WORLD_ONLY_REQUIREMENTS: FreeAgencyWorldOnlyRequirementTable =
+  {
+    signAndTrade: {
+      commit: {
+        message: 'Sign-and-trade requires an active world to commit.',
+      },
+      preview: {
+        message: 'Sign-and-trade requires an active world to preview.',
+      },
+    },
+    offerSheetCreation: {
+      commit: {
+        message: 'Offer sheet actions require an active world to commit.',
+      },
+      preview: {
+        message: 'Offer sheet requires an active world to commit.',
+      },
+    },
+    offerSheetLifecycle: {
+      commit: {
+        message: 'Offer sheet actions require an active world to commit.',
+      },
+    },
+  };
+
 function isSignAndTradeTransactionPreparationFailure(
   value: PreparedSignAndTradeTransactionDefinition
 ): value is SignAndTradeTransactionPreparationFailure {
@@ -1136,6 +1184,24 @@ function buildYearSeasonContext(year: unknown, fallbackYear: number) {
     seasonId: toSeasonCode(actionYear),
   };
 }
+
+function getFreeAgencyWorldOnlyRequirement(
+  kind: FreeAgencyWorldOnlyActionKind,
+  phase: FreeAgencyWorldOnlyActionPhase
+): FreeAgencyWorldOnlyRequirement {
+  const requirement = FREE_AGENCY_WORLD_ONLY_REQUIREMENTS[kind]?.[phase];
+  if (!requirement) {
+    throw new Error(
+      `Missing Free Agency world-only requirement for ${kind}:${phase}`
+    );
+  }
+  return requirement;
+}
+
+const OFFER_SHEET_WORLD_REQUIRED_MESSAGE = getFreeAgencyWorldOnlyRequirement(
+  'offerSheetLifecycle',
+  'commit'
+).message;
 
 type RenounceActionTarget =
   | PlayerRulesProfileInput
@@ -1925,6 +1991,47 @@ export function useArchitectActions({
     [teamCode, worldId]
   );
 
+  const getFreeAgencyWorldOnlyMessage = useCallback(
+    (
+      kind: FreeAgencyWorldOnlyActionKind,
+      phase: FreeAgencyWorldOnlyActionPhase
+    ): string => getFreeAgencyWorldOnlyRequirement(kind, phase).message,
+    []
+  );
+
+  const requireActiveWorldForFreeAgencyWorldOnlyCommit = useCallback(
+    (
+      kind: FreeAgencyWorldOnlyActionKind,
+      details?: Record<string, unknown>
+    ): string | null => {
+      if (worldId) {
+        return null;
+      }
+
+      const message = getFreeAgencyWorldOnlyMessage(kind, 'commit');
+      reportMutationError(message, details);
+      return message;
+    },
+    [getFreeAgencyWorldOnlyMessage, reportMutationError, worldId]
+  );
+
+  const buildBlockedWorldOnlySignAndTradePreflightResult = useCallback(
+    (): SignAndTradePreflightResult =>
+      buildBlockedSignAndTradePreflightResult(
+        getFreeAgencyWorldOnlyMessage('signAndTrade', 'preview')
+      ),
+    [getFreeAgencyWorldOnlyMessage]
+  );
+
+  const buildBlockedWorldOnlyOfferSheetPreflightResult = useCallback(
+    (): OfferSheetPreflightResult =>
+      buildOfferSheetPreflightResult(
+        'blocked',
+        getFreeAgencyWorldOnlyMessage('offerSheetCreation', 'preview')
+      ),
+    [getFreeAgencyWorldOnlyMessage]
+  );
+
   const syncTeamFromMutationResult = useCallback(
     async (
       mutationType: string,
@@ -2119,7 +2226,10 @@ export function useArchitectActions({
       mutationPayload: OfferSheetMutationPayload
     ): Promise<OfferSheetStoreExecutionResult> => {
       if (!worldId) {
-        const message = 'Offer sheet actions require an active world to commit.';
+        const message = getFreeAgencyWorldOnlyMessage(
+          'offerSheetCreation',
+          'commit'
+        );
         reportMutationError(message, {
           mutationType: 'storeOfferSheet',
           payload: mutationPayload,
@@ -2215,6 +2325,7 @@ export function useArchitectActions({
       applyWorldMutation,
       evaluateMutationTruth,
       finishSave,
+      getFreeAgencyWorldOnlyMessage,
       reportMutationError,
       resolveCommittedOfferSheetState,
       startSave,
@@ -2328,14 +2439,18 @@ export function useArchitectActions({
       expectation: OfferSheetLifecycleCommittedStateExpectation
     ): Promise<OfferSheetLifecycleExecutionResult> => {
       if (!worldId) {
-        reportMutationError(OFFER_SHEET_WORLD_REQUIRED_MESSAGE, {
+        const message = getFreeAgencyWorldOnlyMessage(
+          'offerSheetLifecycle',
+          'commit'
+        );
+        reportMutationError(message, {
           mutationType,
           payload: mutationPayload,
           expectation,
         });
         return {
           success: false,
-          message: OFFER_SHEET_WORLD_REQUIRED_MESSAGE,
+          message,
         };
       }
 
@@ -2433,6 +2548,7 @@ export function useArchitectActions({
       applyCommittedOfferSheetLifecycleState,
       evaluateMutationTruth,
       finishSave,
+      getFreeAgencyWorldOnlyMessage,
       reportMutationError,
       resolveCommittedOfferSheetLifecycleState,
       seasonId,
@@ -2710,6 +2826,25 @@ export function useArchitectActions({
     },
     [playersMap, reportMutationError, teamCapSheet, teamCode]
   );
+
+  const resolveStandardSigningExecutionRoute =
+    useCallback<() => StandardSigningExecutionRoute>(
+      () =>
+        worldId
+          ? {
+              mode: 'world',
+              execute: executeWorldModeStandardSigning,
+            }
+          : {
+              mode: 'vacuum',
+              execute: executeVacuumModeStandardSigning,
+            },
+      [
+        executeVacuumModeStandardSigning,
+        executeWorldModeStandardSigning,
+        worldId,
+      ]
+    );
 
   const applyCapAuditedTeamMutation = useCallback(
     (params: {
@@ -3064,16 +3199,6 @@ export function useArchitectActions({
       contract: SigningDetails,
       destinationTeamCode: string
     ): PreparedSignAndTradeTransactionDefinition => {
-      if (!worldId) {
-        return buildSignAndTradeTransactionPreparationFailure(
-          'Sign-and-trade requires an active world to commit.',
-          {
-            playerObj,
-            destinationTeamCode,
-          }
-        );
-      }
-
       const canonicalDestinationTeamCode = destinationTeamCode
         ? resolveTeamCode(destinationTeamCode) || destinationTeamCode
         : '';
@@ -3139,7 +3264,7 @@ export function useArchitectActions({
         },
       };
     },
-    [prepareAuthoritativeSigningDetails, teamCode, worldId]
+    [prepareAuthoritativeSigningDetails, teamCode]
   );
 
   const applyTradeToCapSheet = useCallback(
@@ -3486,17 +3611,13 @@ export function useArchitectActions({
         };
       }
 
-      const executionResult = worldId
-        ? await executeWorldModeStandardSigning(
-            playerObj,
-            actionSeasonContext,
-            standardSigningPayload
-          )
-        : await executeVacuumModeStandardSigning(
-            playerObj,
-            actionSeasonContext,
-            standardSigningPayload
-          );
+      const standardSigningExecutionRoute =
+        resolveStandardSigningExecutionRoute();
+      const executionResult = await standardSigningExecutionRoute.execute(
+        playerObj,
+        actionSeasonContext,
+        standardSigningPayload
+      );
 
       if (executionResult.success !== true) {
         return {
@@ -3513,10 +3634,8 @@ export function useArchitectActions({
     },
     [
       applyCommittedStandardSigningState,
-      executeVacuumModeStandardSigning,
-      executeWorldModeStandardSigning,
       reportMutationError,
-      worldId,
+      resolveStandardSigningExecutionRoute,
     ]
   );
 
@@ -3533,7 +3652,10 @@ export function useArchitectActions({
       mutationPayload: SignAndTradeMutationPayload
     ): Promise<SignAndTradeExecutionResult> => {
       if (!worldId) {
-        const message = 'Sign-and-trade requires an active world to commit.';
+        const message = getFreeAgencyWorldOnlyMessage(
+          'signAndTrade',
+          'commit'
+        );
         reportMutationError(message, {
           mutationType: 'signAndTrade',
           payload: mutationPayload,
@@ -3638,6 +3760,7 @@ export function useArchitectActions({
     [
       evaluateMutationTruth,
       finishSave,
+      getFreeAgencyWorldOnlyMessage,
       refreshWorldRosterIndex,
       reportMutationError,
       startSave,
@@ -3653,6 +3776,20 @@ export function useArchitectActions({
       contract: SigningDetails,
       destinationTeamCode: string
     ): Promise<MutationActionResult> => {
+      const worldRequiredMessage = requireActiveWorldForFreeAgencyWorldOnlyCommit(
+        'signAndTrade',
+        {
+          playerObj,
+          destinationTeamCode,
+        }
+      );
+      if (worldRequiredMessage) {
+        return {
+          success: false,
+          message: worldRequiredMessage,
+        };
+      }
+
       const transactionDefinition = prepareSignAndTradeTransactionDefinition(
         playerObj,
         contract,
@@ -3689,6 +3826,7 @@ export function useArchitectActions({
       applyCommittedSignAndTradeState,
       executeWorldModeSignAndTrade,
       prepareSignAndTradeTransactionDefinition,
+      requireActiveWorldForFreeAgencyWorldOnlyCommit,
       reportMutationError,
     ]
   );
@@ -3699,6 +3837,10 @@ export function useArchitectActions({
       contract: SigningDetails,
       destinationTeamCode: string
     ): Promise<SignAndTradePreflightResult> => {
+      if (!worldId) {
+        return buildBlockedWorldOnlySignAndTradePreflightResult();
+      }
+
       const transactionDefinition = prepareSignAndTradeTransactionDefinition(
         playerObj,
         contract,
@@ -3710,15 +3852,8 @@ export function useArchitectActions({
       }
 
       try {
-        const activeWorldId = worldId;
-        if (!activeWorldId) {
-          return buildBlockedSignAndTradePreflightResult(
-            'Sign-and-trade requires an active world to preview.'
-          );
-        }
-
         return await preflightSignAndTradeMutation({
-          worldId: activeWorldId,
+          worldId,
           seasonId: transactionDefinition.actionSeasonContext.seasonId,
           payload: transactionDefinition.mutationPayload,
         });
@@ -3735,7 +3870,11 @@ export function useArchitectActions({
         };
       }
     },
-    [prepareSignAndTradeTransactionDefinition, worldId]
+    [
+      buildBlockedWorldOnlySignAndTradePreflightResult,
+      prepareSignAndTradeTransactionDefinition,
+      worldId,
+    ]
   );
 
   const getOfferSheetPreflight = useCallback(
@@ -3744,10 +3883,7 @@ export function useArchitectActions({
       contract: SigningDetails
     ): Promise<OfferSheetPreflightResult> => {
       if (!worldId) {
-        return buildOfferSheetPreflightResult(
-          'blocked',
-          'Offer sheet requires an active world to commit.'
-        );
+        return buildBlockedWorldOnlyOfferSheetPreflightResult();
       }
 
       const creationDefinition = prepareOfferSheetCreationDefinition(
@@ -3777,7 +3913,11 @@ export function useArchitectActions({
         };
       }
     },
-    [prepareOfferSheetCreationDefinition, worldId]
+    [
+      buildBlockedWorldOnlyOfferSheetPreflightResult,
+      prepareOfferSheetCreationDefinition,
+      worldId,
+    ]
   );
 
   // === RFA Offer Sheet Actions ===
@@ -3787,16 +3927,16 @@ export function useArchitectActions({
       playerObj: ArchitectPlayer,
       contract: SigningDetails
     ): Promise<MutationActionResult> => {
-      if (!worldId) {
-        reportMutationError(
-          'Offer sheet actions require an active world to commit.',
-          {
-            playerObj,
-          }
-        );
+      const worldRequiredMessage = requireActiveWorldForFreeAgencyWorldOnlyCommit(
+        'offerSheetCreation',
+        {
+          playerObj,
+        }
+      );
+      if (worldRequiredMessage) {
         return {
           success: false,
-          message: 'Offer sheet actions require an active world to commit.',
+          message: worldRequiredMessage,
         };
       }
 
@@ -3834,6 +3974,7 @@ export function useArchitectActions({
       applyCommittedOfferSheetState,
       executeWorldModeOfferSheetStore,
       prepareOfferSheetCreationDefinition,
+      requireActiveWorldForFreeAgencyWorldOnlyCommit,
       reportMutationError,
     ]
   );
@@ -3849,12 +3990,16 @@ export function useArchitectActions({
       const actionLabel = action === 'match' ? 'match' : 'decline';
 
       void (async () => {
-        if (!worldId) {
-          reportMutationError(OFFER_SHEET_WORLD_REQUIRED_MESSAGE, {
-            offeringTeamCode,
-            offerSheetId,
-            action,
-          });
+        const worldRequiredMessage =
+          requireActiveWorldForFreeAgencyWorldOnlyCommit(
+            'offerSheetLifecycle',
+            {
+              offeringTeamCode,
+              offerSheetId,
+              action,
+            }
+          );
+        if (worldRequiredMessage) {
           return;
         }
 
@@ -3894,9 +4039,9 @@ export function useArchitectActions({
     },
     [
       executeWorldModeOfferSheetLifecycleMutation,
+      requireActiveWorldForFreeAgencyWorldOnlyCommit,
       reportMutationError,
       teamCode,
-      worldId,
     ]
   );
 
@@ -3987,10 +4132,14 @@ export function useArchitectActions({
   const handleFinalizeOfferSheet = useCallback(
     (offerSheet: OfferSheet | null | undefined): void => {
       void (async () => {
-        if (!worldId) {
-          reportMutationError(OFFER_SHEET_WORLD_REQUIRED_MESSAGE, {
-            offerSheet,
-          });
+        const worldRequiredMessage =
+          requireActiveWorldForFreeAgencyWorldOnlyCommit(
+            'offerSheetLifecycle',
+            {
+              offerSheet,
+            }
+          );
+        if (worldRequiredMessage) {
           return;
         }
 
@@ -4036,9 +4185,9 @@ export function useArchitectActions({
     },
     [
       executeWorldModeOfferSheetLifecycleMutation,
+      requireActiveWorldForFreeAgencyWorldOnlyCommit,
       reportMutationError,
       resolveOfferSheetFinalizeMutationRoute,
-      worldId,
       teamCode,
     ]
   );

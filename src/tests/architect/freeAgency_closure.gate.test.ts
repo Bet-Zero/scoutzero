@@ -795,6 +795,33 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
 
   it('routes Free Agency signing and signing-preflight paths through one authoritative preparation helper', () => {
     expect(content).toMatch(
+      /type\s+FreeAgencyWorldOnlyActionKind\s*=\s*[\s\S]*'signAndTrade'[\s\S]*'offerSheetCreation'[\s\S]*'offerSheetLifecycle'/
+    );
+    expect(content).toMatch(
+      /type\s+FreeAgencyWorldOnlyActionPhase\s*=\s*'commit'\s*\|\s*'preview'/
+    );
+    expect(content).toMatch(
+      /const\s+FREE_AGENCY_WORLD_ONLY_REQUIREMENTS:\s*FreeAgencyWorldOnlyRequirementTable\s*=/
+    );
+    expect(content).toMatch(
+      /function\s+getFreeAgencyWorldOnlyRequirement\s*\(/
+    );
+    expect(content).toMatch(
+      /const\s+getFreeAgencyWorldOnlyMessage\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+requireActiveWorldForFreeAgencyWorldOnlyCommit\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+buildBlockedWorldOnlySignAndTradePreflightResult\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+buildBlockedWorldOnlyOfferSheetPreflightResult\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+resolveStandardSigningExecutionRoute\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
       /const\s+prepareAuthoritativeSigningDetails\s*=\s*useCallback/
     );
     expect(content).toMatch(
@@ -854,8 +881,9 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(executeVacuumModeStandardSigningRegion).toMatch(
       /computeWorldMutation\(\{\s*[\s\S]*payload:\s*standardSigningPayload/
     );
-    expect(handleSignRegion).toMatch(/executeWorldModeStandardSigning/);
-    expect(handleSignRegion).toMatch(/executeVacuumModeStandardSigning/);
+    expect(handleSignRegion).toMatch(/resolveStandardSigningExecutionRoute/);
+    expect(handleSignRegion).toMatch(/standardSigningExecutionRoute\.execute/);
+    expect(handleSignRegion).not.toMatch(/worldId\s*\?/);
     expect(handleSignRegion).toMatch(/applyCommittedStandardSigningState/);
     expect(handleSignAndTradeRegion).toMatch(
       /prepareSignAndTradeTransactionDefinition/
@@ -1002,8 +1030,17 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   });
 
   it('keeps all world-only Free Agency paths fail-closed when no active world is present', () => {
-    expect(prepareSignAndTradeTransactionDefinitionRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*Sign-and-trade requires an active world to commit\./
+    expect(content).toMatch(
+      /signAndTrade:\s*\{[\s\S]*commit:\s*\{[\s\S]*Sign-and-trade requires an active world to commit\.[\s\S]*preview:\s*\{[\s\S]*Sign-and-trade requires an active world to preview\./
+    );
+    expect(content).toMatch(
+      /offerSheetCreation:\s*\{[\s\S]*commit:\s*\{[\s\S]*Offer sheet actions require an active world to commit\.[\s\S]*preview:\s*\{[\s\S]*Offer sheet requires an active world to commit\./
+    );
+    expect(content).toMatch(
+      /offerSheetLifecycle:\s*\{[\s\S]*commit:\s*\{[\s\S]*Offer sheet actions require an active world to commit\./
+    );
+    expect(prepareSignAndTradeTransactionDefinitionRegion).not.toMatch(
+      /if\s*\(!worldId\)/
     );
     expect(prepareSignAndTradeTransactionDefinitionRegion).toMatch(
       /Destination team is required for sign-and-trade\./
@@ -1018,22 +1055,31 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /Cannot complete sign-and-trade: contract payload is invalid\./
     );
     expect(handleSignAndTradeRegion).toMatch(
-      /prepareSignAndTradeTransactionDefinition/
+      /requireActiveWorldForFreeAgencyWorldOnlyCommit\s*\(\s*'signAndTrade'/
     );
     expect(getSignAndTradePreflightRegion).toMatch(
-      /prepareSignAndTradeTransactionDefinition/
+      /buildBlockedWorldOnlySignAndTradePreflightResult/
     );
     expect(getOfferSheetPreflightRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*buildOfferSheetPreflightResult\s*\(\s*'blocked'\s*,\s*'Offer sheet requires an active world to commit\.'\s*\)/
+      /buildBlockedWorldOnlyOfferSheetPreflightResult/
     );
     expect(handleStoreOfferSheetRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*return\s*\{\s*success\s*:\s*false,\s*message\s*:\s*'Offer sheet actions require an active world to commit\.'/
+      /requireActiveWorldForFreeAgencyWorldOnlyCommit\s*\(\s*'offerSheetCreation'/
     );
     expect(runOfferSheetResolutionActionRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*OFFER_SHEET_WORLD_REQUIRED_MESSAGE/
+      /requireActiveWorldForFreeAgencyWorldOnlyCommit\s*\(\s*'offerSheetLifecycle'/
     );
     expect(handleFinalizeOfferSheetRegion).toMatch(
-      /if\s*\(!worldId\)[\s\S]*reportMutationError\(\s*OFFER_SHEET_WORLD_REQUIRED_MESSAGE/
+      /requireActiveWorldForFreeAgencyWorldOnlyCommit\s*\(\s*'offerSheetLifecycle'/
+    );
+    expect(executeWorldModeSignAndTradeRegion).toMatch(
+      /getFreeAgencyWorldOnlyMessage\s*\(\s*'signAndTrade'\s*,\s*'commit'\s*\)/
+    );
+    expect(executeWorldModeOfferSheetStoreRegion).toMatch(
+      /getFreeAgencyWorldOnlyMessage\s*\(\s*'offerSheetCreation'\s*,\s*'commit'\s*\)/
+    );
+    expect(executeWorldModeOfferSheetLifecycleMutationRegion).toMatch(
+      /getFreeAgencyWorldOnlyMessage\s*\(\s*'offerSheetLifecycle'\s*,\s*'commit'\s*\)/
     );
   });
 
