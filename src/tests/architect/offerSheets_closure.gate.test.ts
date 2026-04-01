@@ -18,6 +18,8 @@
  *  9. UI wiring + world gating exists
  *  10. E113 deleted JSX shims remain absent while authorities stay intact
  *  11. Current team sync reads changedTeams
+ *  12. Lifecycle routing stays role-aware
+ *  13. Lifecycle final-state sync stays explicit
  *
  * @vitest-environment node
  */
@@ -652,7 +654,13 @@ describe('Gate 12: offer-sheet lifecycle routing stays role-aware (FA-6A/6B)', (
       /handleDeclineOfferSheet[\s\S]{0,600}runOfferSheetResolutionAction\s*\(\s*'decline'/
     );
     expect(content).toMatch(
-      /runAuthoritativeFAMutation\s*\(\s*mutationType/
+      /runOfferSheetResolutionAction[\s\S]{0,1600}activeTeamArrayKey:\s*'incomingOfferSheets'[\s\S]{0,800}presence:\s*'present'/
+    );
+    expect(content).toMatch(
+      /runOfferSheetResolutionAction[\s\S]{0,2200}status:\s*action\s*===\s*'match'\s*\?\s*'MATCHED'\s*:\s*'DECLINED'/
+    );
+    expect(content).toMatch(
+      /executeWorldModeOfferSheetLifecycleMutation\s*\(\s*mutationType/
     );
   });
 
@@ -667,10 +675,82 @@ describe('Gate 12: offer-sheet lifecycle routing stays role-aware (FA-6A/6B)', (
       /handleFinalizeOfferSheet[\s\S]{0,1200}resolveOfferSheetFinalizeMutationRoute/
     );
     expect(content).toMatch(
-      /handleFinalizeOfferSheet[\s\S]{0,1800}runAuthoritativeFAMutation\s*\(\s*finalizeRoute\.mutationType/
+      /handleFinalizeOfferSheet[\s\S]{0,2200}finalizeRoute\.mutationType\s*===\s*'finalizeMatchedOfferSheet'[\s\S]*activeTeamArrayKey:\s*'incomingOfferSheets'[\s\S]*presence:\s*'absent'/
+    );
+    expect(content).toMatch(
+      /handleFinalizeOfferSheet[\s\S]{0,2800}activeTeamArrayKey:\s*'offerSheets'[\s\S]*presence:\s*'absent'/
+    );
+    expect(content).toMatch(
+      /handleFinalizeOfferSheet[\s\S]{0,3200}executeWorldModeOfferSheetLifecycleMutation\s*\(\s*finalizeRoute\.mutationType/
     );
     expect(content).toMatch(
       /Cannot finalize offer sheet: status\/team mismatch/
+    );
+  });
+});
+
+describe('Gate 13: offer-sheet lifecycle final-state sync stays explicit (FA-6C/6D)', () => {
+  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+
+  it('defines dedicated lifecycle committed-state helpers in useArchitectActions', () => {
+    expect(content).toMatch(
+      /const\s+resolveCommittedOfferSheetLifecycleState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+applyCommittedOfferSheetLifecycleState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+executeWorldModeOfferSheetLifecycleMutation\s*=\s*useCallback/
+    );
+    expect(content).toMatch(/buildCommittedOfferSheetLifecycleIdentity/);
+    expect(content).toMatch(/matchesCommittedOfferSheetLifecycleIdentity/);
+  });
+
+  it('verifies present lifecycle truth against incomingOfferSheets for match and decline', () => {
+    expect(content).toMatch(
+      /runOfferSheetResolutionAction[\s\S]{0,2200}activeTeamArrayKey:\s*'incomingOfferSheets'/
+    );
+    expect(content).toMatch(
+      /runOfferSheetResolutionAction[\s\S]{0,2200}presence:\s*'present'/
+    );
+    expect(content).toMatch(
+      /runOfferSheetResolutionAction[\s\S]{0,2200}status:\s*action\s*===\s*'match'\s*\?\s*'MATCHED'\s*:\s*'DECLINED'/
+    );
+  });
+
+  it('verifies absent lifecycle truth against the correct visible array for finalize actions', () => {
+    expect(content).toMatch(
+      /handleFinalizeOfferSheet[\s\S]{0,2400}mutationType\s*===\s*'finalizeMatchedOfferSheet'[\s\S]*activeTeamArrayKey:\s*'incomingOfferSheets'[\s\S]*presence:\s*'absent'/
+    );
+    expect(content).toMatch(
+      /handleFinalizeOfferSheet[\s\S]{0,3200}activeTeamArrayKey:\s*'offerSheets'[\s\S]*presence:\s*'absent'/
+    );
+  });
+
+  it('resolves changedTeams first, reloads second, and keeps roster-index refresh out of the lifecycle seam', () => {
+    expect(content).toMatch(
+      /resolveCommittedOfferSheetLifecycleState[\s\S]{0,2200}findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(content).toMatch(
+      /resolveCommittedOfferSheetLifecycleState[\s\S]{0,2200}loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+    );
+    expect(content).toMatch(
+      /executeWorldModeOfferSheetLifecycleMutation[\s\S]{0,2600}await\s+resolveCommittedOfferSheetLifecycleState/
+    );
+    expect(content).not.toMatch(
+      /executeWorldModeOfferSheetLifecycleMutation[\s\S]{0,3200}refreshWorldRosterIndex/
+    );
+  });
+
+  it('keeps lifecycle final-state handling off the generic authoritative mutation sync helper', () => {
+    expect(content).not.toMatch(
+      /runOfferSheetResolutionAction[\s\S]{0,2600}runAuthoritativeFAMutation/
+    );
+    expect(content).not.toMatch(
+      /handleFinalizeOfferSheet[\s\S]{0,3200}runAuthoritativeFAMutation/
+    );
+    expect(content).toMatch(
+      /runAuthoritativeFAMutation[\s\S]{0,2200}await\s+syncTeamFromMutationResult\s*\(\s*mutationType\s*,\s*result\s*\)/
     );
   });
 });

@@ -712,6 +712,21 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   const executeWorldModeOfferSheetStoreRegion = readRegion(
     content,
     'const executeWorldModeOfferSheetStore = useCallback(',
+    'const resolveCommittedOfferSheetLifecycleState = useCallback('
+  );
+  const resolveCommittedOfferSheetLifecycleStateRegion = readRegion(
+    content,
+    'const resolveCommittedOfferSheetLifecycleState = useCallback(',
+    'const applyCommittedOfferSheetLifecycleState = useCallback('
+  );
+  const applyCommittedOfferSheetLifecycleStateRegion = readRegion(
+    content,
+    'const applyCommittedOfferSheetLifecycleState = useCallback(',
+    'const executeWorldModeOfferSheetLifecycleMutation = useCallback('
+  );
+  const executeWorldModeOfferSheetLifecycleMutationRegion = readRegion(
+    content,
+    'const executeWorldModeOfferSheetLifecycleMutation = useCallback(',
     'const applyCommittedStandardSigningState = useCallback('
   );
   const handleStoreOfferSheetRegion = readRegion(
@@ -772,6 +787,15 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(content).toMatch(
       /const\s+executeWorldModeOfferSheetStore\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+resolveCommittedOfferSheetLifecycleState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+applyCommittedOfferSheetLifecycleState\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+executeWorldModeOfferSheetLifecycleMutation\s*=\s*useCallback/
     );
     expect(content).toMatch(
       /const\s+applyCommittedStandardSigningState\s*=\s*useCallback/
@@ -860,6 +884,45 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /await\s+resolveCommittedOfferSheetState/
     );
     expect(executeWorldModeOfferSheetStoreRegion).not.toMatch(
+      /refreshWorldRosterIndex/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /buildCommittedOfferSheetLifecycleIdentity/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /matchesCommittedOfferSheetLifecycleIdentity/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /expectation\.activeTeamArrayKey\s*===\s*'incomingOfferSheets'/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /expectation\.presence\s*===\s*'present'/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /expectation\.presence\s*===\s*'absent'/
+    );
+    expect(applyCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+    );
+    expect(applyCommittedOfferSheetLifecycleStateRegion).not.toMatch(
+      /setFreeAgents/
+    );
+    expect(executeWorldModeOfferSheetLifecycleMutationRegion).toMatch(
+      /applyWorldMutation\(\{\s*[\s\S]*mutationType,\s*[\s\S]*payload:\s*mutationPayload/
+    );
+    expect(executeWorldModeOfferSheetLifecycleMutationRegion).toMatch(
+      /await\s+resolveCommittedOfferSheetLifecycleState/
+    );
+    expect(executeWorldModeOfferSheetLifecycleMutationRegion).toMatch(
+      /applyCommittedOfferSheetLifecycleState/
+    );
+    expect(executeWorldModeOfferSheetLifecycleMutationRegion).not.toMatch(
       /refreshWorldRosterIndex/
     );
     expect(applyCommittedStandardSigningStateRegion).toMatch(
@@ -961,7 +1024,16 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /const\s+mutationType:\s*OfferSheetResolutionMutationType\s*=\s*action\s*===\s*'match'\s*\?\s*'matchOfferSheet'\s*:\s*'declineOfferSheet'/
     );
     expect(runOfferSheetResolutionActionRegion).toMatch(
-      /runAuthoritativeFAMutation\s*\(\s*mutationType/
+      /activeTeamArrayKey:\s*'incomingOfferSheets'/
+    );
+    expect(runOfferSheetResolutionActionRegion).toMatch(
+      /presence:\s*'present'/
+    );
+    expect(runOfferSheetResolutionActionRegion).toMatch(
+      /status:\s*action\s*===\s*'match'\s*\?\s*'MATCHED'\s*:\s*'DECLINED'/
+    );
+    expect(runOfferSheetResolutionActionRegion).toMatch(
+      /executeWorldModeOfferSheetLifecycleMutation\s*\(\s*mutationType/
     );
     expect(resolveOfferSheetFinalizeMutationRouteRegion).toMatch(
       /mutationType:\s*'finalizeMatchedOfferSheet'/
@@ -970,7 +1042,13 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /mutationType:\s*'finalizeDeclinedOfferSheet'/
     );
     expect(handleFinalizeOfferSheetRegion).toMatch(
-      /runAuthoritativeFAMutation\s*\(\s*finalizeRoute\.mutationType/
+      /finalizeRoute\.mutationType\s*===\s*'finalizeMatchedOfferSheet'[\s\S]*activeTeamArrayKey:\s*'incomingOfferSheets'[\s\S]*presence:\s*'absent'/
+    );
+    expect(handleFinalizeOfferSheetRegion).toMatch(
+      /activeTeamArrayKey:\s*'offerSheets'[\s\S]*presence:\s*'absent'/
+    );
+    expect(handleFinalizeOfferSheetRegion).toMatch(
+      /executeWorldModeOfferSheetLifecycleMutation\s*\(\s*finalizeRoute\.mutationType/
     );
   });
 
@@ -978,6 +1056,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     const worldOnlyMutationRegions = [
       handleSignAndTradeRegion,
       executeWorldModeOfferSheetStoreRegion,
+      executeWorldModeOfferSheetLifecycleMutationRegion,
       handleStoreOfferSheetRegion,
       runOfferSheetResolutionActionRegion,
       resolveOfferSheetFinalizeMutationRouteRegion,
@@ -999,7 +1078,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     }
   });
 
-  it('keeps authoritative team sync inside useArchitectActions after successful world mutations', () => {
+  it('keeps generic team sync for unrelated mutations while offer-sheet lifecycle sync stays explicit', () => {
     expect(content).toMatch(
       /const\s+syncTeamFromMutationResult\s*=\s*useCallback/
     );
@@ -1014,6 +1093,18 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(executeWorldModeOfferSheetStoreRegion).toMatch(
       /await\s+resolveCommittedOfferSheetState/
     );
+    expect(runOfferSheetResolutionActionRegion).not.toMatch(
+      /runAuthoritativeFAMutation/
+    );
+    expect(handleFinalizeOfferSheetRegion).not.toMatch(
+      /runAuthoritativeFAMutation/
+    );
+    expect(executeWorldModeOfferSheetLifecycleMutationRegion).toMatch(
+      /await\s+resolveCommittedOfferSheetLifecycleState/
+    );
+    expect(executeWorldModeOfferSheetLifecycleMutationRegion).not.toMatch(
+      /refreshWorldRosterIndex/
+    );
     expect(executeWorldModeSignAndTradeRegion).toMatch(
       /const\s+changedTeam\s*=\s*findUpdatedTeamSnapshot/
     );
@@ -1022,6 +1113,9 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(resolveCommittedOfferSheetStateRegion).toMatch(
       /const\s+committedOfferSheet\s*=\s*\(\s*committedTeam\.offerSheets\s*\|\|\s*\[\]\s*\)\.find/
+    );
+    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
+      /const\s+committedOfferSheetEntries\s*=/
     );
   });
 });

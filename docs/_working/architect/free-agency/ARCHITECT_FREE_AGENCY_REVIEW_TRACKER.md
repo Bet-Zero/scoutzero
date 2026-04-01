@@ -75,9 +75,9 @@ Progress and execution status for the Free Agency review series.
 |-------|-----------------------------------------------------------------------|--------|-------|
 | FA-6A | Tighten Incoming vs Outgoing Offer-Sheet Surface Truth               | DONE   | `OfferSheetList.tsx` now exposes explicit `surfaceRole` + unified lifecycle callback truth, and `FreeAgencySection.tsx` wires incoming/outgoing offer-sheet surfaces through one role-aware lifecycle adapter. |
 | FA-6B | Align Match / Decline / Finalize Routing with Team-Role Truth        | DONE   | `useArchitectActions.ts` now routes match/decline through one shared resolution helper and resolves finalize mutation routing through one explicit status/team-role seam, with focused behavior and closure guardrails updated. |
-| FA-6C | Clarify and Harden Final Lifecycle-State, Sync, and Reload Truth     | TODO   |       |
-| FA-6D | Add Focused Guardrails for Offer-Sheet Lifecycle Role and Final-State Truth | TODO |       |
+| FA-6C | Clarify and Harden Final Lifecycle-State, Sync, and Reload Truth     | DONE   | `useArchitectActions.ts` now routes match/decline/finalize through one explicit lifecycle committed-state executor that verifies active-team incoming/outgoing offer-sheet truth from `changedTeams` first and `loadWorldTeamData(...)` second before local dashboard sync. |
+| FA-6D | Add Focused Guardrails for Offer-Sheet Lifecycle Role and Final-State Truth | DONE | Focused behavior tests and closure gates now pin lifecycle presence/absence verification, reload fallback, fail-closed committed-state mismatches, and protection against regression back to the generic offer-sheet lifecycle sync path. |
 
-**STEP 6 STATUS: IN_PROGRESS**
+**STEP 6 STATUS: DONE**
 
 ---
