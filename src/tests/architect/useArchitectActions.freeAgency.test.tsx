@@ -1700,7 +1700,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       })
     );
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
-    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
   });
 
   it('syncs finalized outgoing offer-sheet truth from changedTeams after declined finalization', async () => {
@@ -1763,7 +1763,63 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       })
     );
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
-    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps finalized lifecycle success when roster-index republish warns', async () => {
+    const initialTeam = buildOutgoingOfferSheetLifecycleTeamFixture(
+      'DECLINED',
+      {
+        id: 'offer_finalize_refresh_warn_1',
+      }
+    );
+    const finalizedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [],
+      incomingOfferSheets: [],
+    };
+    const refreshError = new Error('refresh unavailable');
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: finalizedTeam }],
+      changedPlayers: [],
+      metadata: {
+        type: 'finalizeDeclinedOfferSheet',
+        offerSheetId: 'offer_finalize_refresh_warn_1',
+        dedupKey: 'os:world_1:LAL:player_1:2025-26',
+        playerId: 'player_1',
+        offeringTeam: 'LAL',
+        homeTeam: 'BOS',
+      },
+    });
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam,
+    });
+    refreshWorldRosterIndex.mockRejectedValue(refreshError);
+
+    try {
+      act(() => {
+        result.current.actions.handleFinalizeOfferSheet({
+          ...initialTeam.offerSheets[0],
+        } as any);
+      });
+
+      await waitFor(() => {
+        expect(result.current.teamCapSheet.offerSheets).toEqual([]);
+      });
+
+      expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+      expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[Architect][FreeAgency] Failed to refresh roster index after finalizeDeclinedOfferSheet:',
+        refreshError
+      );
+    } finally {
+      consoleWarnSpy.mockRestore();
+    }
   });
 
   it('reloads committed incoming lifecycle truth when changedTeams omits the active team after match', async () => {
@@ -1871,7 +1927,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       'world_1',
       'LAL'
     );
-    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
   });
 
   it('fails closed when lifecycle persistence succeeds but no committed active-team snapshot can be resolved', async () => {

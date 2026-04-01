@@ -2432,6 +2432,27 @@ export function useArchitectActions({
     [setTeamCapSheetSafe]
   );
 
+  const republishWorldRosterIndexAfterOfferSheetLifecycle = useCallback(
+    async (mutationType: OfferSheetLifecycleMutationType): Promise<void> => {
+      if (
+        mutationType !== 'finalizeMatchedOfferSheet' &&
+        mutationType !== 'finalizeDeclinedOfferSheet'
+      ) {
+        return;
+      }
+
+      try {
+        await refreshWorldRosterIndex();
+      } catch (error) {
+        console.warn(
+          `[Architect][FreeAgency] Failed to refresh roster index after ${mutationType}:`,
+          error
+        );
+      }
+    },
+    [refreshWorldRosterIndex]
+  );
+
   const executeWorldModeOfferSheetLifecycleMutation = useCallback(
     async (
       mutationType: OfferSheetLifecycleMutationType,
@@ -2523,6 +2544,7 @@ export function useArchitectActions({
         applyCommittedOfferSheetLifecycleState(
           committedState.value.committedTeam
         );
+        await republishWorldRosterIndexAfterOfferSheetLifecycle(mutationType);
         toast.success('Saved changes');
         finishSave();
         return {
@@ -2549,6 +2571,7 @@ export function useArchitectActions({
       evaluateMutationTruth,
       finishSave,
       getFreeAgencyWorldOnlyMessage,
+      republishWorldRosterIndexAfterOfferSheetLifecycle,
       reportMutationError,
       resolveCommittedOfferSheetLifecycleState,
       seasonId,
