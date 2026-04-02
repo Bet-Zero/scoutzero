@@ -505,11 +505,45 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       />
     );
 
+    expect(screen.getByTestId('offseason-world-surface')).toBeInTheDocument();
+    expect(screen.getByTestId('offseason-preview-surface')).toBeInTheDocument();
     expect(screen.getByText('World Season Advancement')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Advance Season' })
     ).toBeInTheDocument();
     expect(screen.getByTestId('offseason-preview-banner')).toBeInTheDocument();
+  });
+
+  it('drives the season advance modal from world season instead of the dashboard viewing year', async () => {
+    const teamCapSheet = buildTeamFixture();
+    getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
+
+    render(
+      <OffseasonSection
+        teamCapSheet={teamCapSheet}
+        setTeamCapSheet={vi.fn()}
+        currentYear={2028}
+        setCurrentYear={vi.fn()}
+        capProjections={{}}
+        setLastCapSheet={vi.fn()}
+        offseasonRun={false}
+        setOffseasonRun={vi.fn()}
+        setOffseasonSummary={vi.fn()}
+        setShowOffseasonModal={vi.fn()}
+        playersMap={{}}
+        worldId="world_smoke_lal"
+        teamCode="LAL"
+        onReloadWorldData={vi.fn()}
+      />
+    );
+
+    await screen.findByText('World Season: 2025-26');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Advance to 2026-27' })
+    ).toBeInTheDocument();
   });
 
   it('does not emit function-component defaultProps deprecation warnings', () => {

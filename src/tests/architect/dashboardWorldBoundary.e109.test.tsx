@@ -902,10 +902,10 @@ describe('E109 dashboard/world boundary behavior', () => {
           isOpen={true}
           onClose={vi.fn()}
           teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
-          currentYear={2026}
+          authoritativeSeasonEndYear={2026}
           worldId={null}
           teamCode="LAL"
-          onAdvanceComplete={vi.fn()}
+          onWorldAdvanceComplete={vi.fn()}
         />
       );
 
@@ -944,7 +944,7 @@ describe('E109 dashboard/world boundary behavior', () => {
     });
 
     it('preserves option-decision wizard flow, processing state, and success callback wiring', async () => {
-      const onAdvanceComplete = vi.fn();
+      const onWorldAdvanceComplete = vi.fn();
       let resolveAdvance: (value: Record<string, unknown>) => void = () => {};
       mockAdvanceSeasonInWorld.mockReturnValue(
         new Promise((resolve) => {
@@ -957,10 +957,10 @@ describe('E109 dashboard/world boundary behavior', () => {
           isOpen={true}
           onClose={vi.fn()}
           teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
-          currentYear={2026}
+          authoritativeSeasonEndYear={2026}
           worldId="world_alpha"
           teamCode="LAL"
-          onAdvanceComplete={onAdvanceComplete}
+          onWorldAdvanceComplete={onWorldAdvanceComplete}
         />
       );
 
@@ -1002,7 +1002,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         });
       });
       await screen.findByText('Season Advanced Successfully!');
-      expect(onAdvanceComplete).toHaveBeenCalledWith(
+      expect(onWorldAdvanceComplete).toHaveBeenCalledWith(
         expect.objectContaining({
           success: true,
           toSeason: '2026-27',
@@ -1020,10 +1020,10 @@ describe('E109 dashboard/world boundary behavior', () => {
           isOpen={true}
           onClose={vi.fn()}
           teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
-          currentYear={2026}
+          authoritativeSeasonEndYear={2026}
           worldId="world_alpha"
           teamCode="LAL"
-          onAdvanceComplete={vi.fn()}
+          onWorldAdvanceComplete={vi.fn()}
         />
       );
 

@@ -79,7 +79,7 @@ const renderDraftPositionsInput = (
   render(
     <DraftPositionsInput
       worldId="world_1"
-      currentYear={2026}
+      defaultDraftYear={2026}
       worldSeason="2025-26"
       {...overrides}
     />
@@ -294,7 +294,7 @@ describe('GM world-support family E103 behavior', () => {
   });
 
   it('preserves DraftPositionsInput empty-world placeholder copy', () => {
-    render(<DraftPositionsInput worldId={null} currentYear={2026} />);
+    render(<DraftPositionsInput worldId={null} defaultDraftYear={2026} />);
 
     expect(
       screen.getByText('Select a world to enter draft positions.')
@@ -360,7 +360,7 @@ describe('GM world-support family E103 behavior', () => {
     ]);
   });
 
-  it('re-syncs DraftPositionsInput selected year when currentYear changes', async () => {
+  it('re-syncs DraftPositionsInput selected year when defaultDraftYear changes', async () => {
     const { rerender } = renderDraftPositionsInput();
 
     await waitFor(() => {
@@ -370,7 +370,7 @@ describe('GM world-support family E103 behavior', () => {
     rerender(
       <DraftPositionsInput
         worldId="world_1"
-        currentYear={2028}
+        defaultDraftYear={2028}
         worldSeason="2027-28"
       />
     );

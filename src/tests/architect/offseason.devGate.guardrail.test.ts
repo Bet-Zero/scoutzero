@@ -27,6 +27,11 @@ const optionManagerPath = path.resolve(
   'src/features/architect/offseason/OffseasonTab/OptionManager.tsx'
 );
 
+const seasonAdvanceModalPath = path.resolve(
+  process.cwd(),
+  'src/features/architect/GMDashboard/components/SeasonAdvanceModal.tsx'
+);
+
 const offseasonTabShimPath = path.resolve(
   process.cwd(),
   'src/features/architect/offseason/OffseasonTab/OffseasonTab.jsx'
@@ -51,8 +56,9 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       );
     });
 
-    it('renders OffseasonTab only when showDevPreview is true', () => {
-      expect(source).toContain('{showDevPreview && (');
+    it('routes preview rendering through the explicit DEV preview surface gate', () => {
+      expect(source).toContain('showDevPreview={showDevPreview}');
+      expect(source).toContain('if (!showDevPreview) {');
     });
 
     it('exports the DEV flag constant for test discoverability', () => {
@@ -64,6 +70,20 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     it('includes preview-only warning banner', () => {
       expect(source).toContain(
         'Preview only — does not persist. Changes will be lost on refresh.'
+      );
+    });
+
+    it('publishes separate world-backed and preview-only surfaces', () => {
+      expect(source).toContain('data-testid="offseason-world-surface"');
+      expect(source).toContain('data-testid="offseason-preview-surface"');
+    });
+
+    it('passes world-derived year props into the world-backed controls', () => {
+      expect(source).toContain(
+        'defaultDraftYear={worldDraftYear ?? viewingYear}'
+      );
+      expect(source).toContain(
+        'authoritativeSeasonEndYear={worldSeasonEndYear ?? viewingYear}'
       );
     });
 
@@ -93,6 +113,30 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('labels the advance button as preview', () => {
       expect(source).toContain('Preview Advance to');
+    });
+
+    it('keeps OffseasonTab on the preview-only runner', () => {
+      expect(source).toContain(
+        "import { runOffseason } from '@/features/architect/utils/runOffseason';"
+      );
+      expect(source).not.toContain('advanceSeasonInWorld');
+      expect(source).not.toContain('seasonManager');
+    });
+  });
+
+  describe('SeasonAdvanceModal — world authority seam', () => {
+    const source = fs.readFileSync(seasonAdvanceModalPath, 'utf-8');
+
+    it('keeps SeasonAdvanceModal on the world-backed advance authority', () => {
+      expect(source).toContain('advanceSeasonInWorld');
+      expect(source).not.toContain('runOffseason');
+    });
+
+    it('publishes the world authority prop names', () => {
+      expect(source).toContain('authoritativeSeasonEndYear: number;');
+      expect(source).toContain(
+        'onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;'
+      );
     });
   });
 

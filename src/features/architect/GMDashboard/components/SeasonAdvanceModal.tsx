@@ -121,10 +121,10 @@ type SeasonAdvanceModalProps = {
   isOpen: boolean;
   onClose: () => void;
   teamCapSheet?: SeasonAdvanceModalTeamCapSheet | null;
-  currentYear: number;
+  authoritativeSeasonEndYear: number;
   worldId?: string | null;
   teamCode?: string | null;
-  onAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;
+  onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;
 };
 
 type SeasonAdvanceModalComponent = ((
@@ -262,10 +262,10 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   isOpen,
   onClose,
   teamCapSheet = null,
-  currentYear,
+  authoritativeSeasonEndYear,
   worldId = null,
   teamCode = null,
-  onAdvanceComplete = null,
+  onWorldAdvanceComplete = null,
 }: SeasonAdvanceModalProps) => {
   void teamCode;
 
@@ -277,8 +277,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   const [error, setError] = useState('');
   const [result, setResult] = useState<SeasonAdvanceResult | null>(null);
 
-  const toYear = currentYear + 1;
-  const fromSeason = toSeasonCode(currentYear);
+  const toYear = authoritativeSeasonEndYear + 1;
+  const fromSeason = toSeasonCode(authoritativeSeasonEndYear);
   const toSeason = toSeasonCode(toYear);
 
   const playersWithOptions = useMemo(
@@ -287,8 +287,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   );
 
   const expiringContracts = useMemo(
-    () => findExpiringContracts(teamCapSheet, currentYear),
-    [teamCapSheet, currentYear]
+    () => findExpiringContracts(teamCapSheet, authoritativeSeasonEndYear),
+    [teamCapSheet, authoritativeSeasonEndYear]
   );
 
   const expiringCapHolds = useMemo(
@@ -443,8 +443,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
       setResult(modalResult);
       setCurrentStep(WIZARD_STEPS.COMPLETE);
 
-      if (onAdvanceComplete) {
-        onAdvanceComplete(modalResult);
+      if (onWorldAdvanceComplete) {
+        onWorldAdvanceComplete(modalResult);
       }
     } catch (err) {
       console.error('Season advance failed:', err);
@@ -453,7 +453,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [worldId, optionDecisions, onAdvanceComplete, toSeason]);
+  }, [worldId, optionDecisions, onWorldAdvanceComplete, toSeason]);
 
   const renderSummaryStep = () => (
     <div className="space-y-4">
@@ -815,10 +815,10 @@ SeasonAdvanceModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   teamCapSheet: PropTypes.object,
-  currentYear: PropTypes.number.isRequired,
+  authoritativeSeasonEndYear: PropTypes.number.isRequired,
   worldId: PropTypes.string,
   teamCode: PropTypes.string,
-  onAdvanceComplete: PropTypes.func,
+  onWorldAdvanceComplete: PropTypes.func,
 };
 
 export default SeasonAdvanceModal;

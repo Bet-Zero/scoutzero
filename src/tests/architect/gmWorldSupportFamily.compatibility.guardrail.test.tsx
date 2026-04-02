@@ -112,7 +112,7 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     );
     expect(draftPositionsInputSource).toContain('worldId: PropTypes.string');
     expect(draftPositionsInputSource).toContain(
-      'currentYear: PropTypes.number.isRequired'
+      'defaultDraftYear: PropTypes.number.isRequired'
     );
     expect(draftPositionsInputSource).toContain(
       'worldSeason: PropTypes.string'

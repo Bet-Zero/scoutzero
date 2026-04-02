@@ -20,7 +20,7 @@ import {
 
 type DraftPositionsInputProps = {
   worldId?: string | null;
-  currentYear: number;
+  defaultDraftYear: number;
   worldSeason?: string | null;
 };
 
@@ -86,11 +86,11 @@ const SAMPLE_POSITIONS_TEMPLATE: DraftPositionsMap = {
 
 export function DraftPositionsInput({
   worldId = null,
-  currentYear,
+  defaultDraftYear,
   worldSeason = null,
 }: DraftPositionsInputProps) {
   const [selectedYear, setSelectedYear] = useState(
-    currentYear || new Date().getFullYear()
+    defaultDraftYear || new Date().getFullYear()
   );
   const [jsonText, setJsonText] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -100,15 +100,15 @@ export function DraftPositionsInput({
   const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
-    if (currentYear) {
-      setSelectedYear(currentYear);
+    if (defaultDraftYear) {
+      setSelectedYear(defaultDraftYear);
     }
-  }, [currentYear]);
+  }, [defaultDraftYear]);
 
   const availableYears = useMemo(() => {
-    const startYear = currentYear || new Date().getFullYear();
+    const startYear = defaultDraftYear || new Date().getFullYear();
     return Array.from({ length: 8 }, (_, index) => startYear + index);
-  }, [currentYear]);
+  }, [defaultDraftYear]);
 
   useEffect(() => {
     async function loadPositions() {
@@ -259,7 +259,7 @@ export function DraftPositionsInput({
           </p>
           {worldSeason && (
             <p className="text-xs text-purple-400 mt-1">
-              World Season: {worldSeason} — Default draft year: {currentYear}
+              World Season: {worldSeason} — Default draft year: {defaultDraftYear}
             </p>
           )}
         </div>
@@ -384,7 +384,7 @@ export function DraftPositionsInput({
 
 DraftPositionsInput.propTypes = {
   worldId: PropTypes.string,
-  currentYear: PropTypes.number.isRequired,
+  defaultDraftYear: PropTypes.number.isRequired,
   worldSeason: PropTypes.string,
 };
 

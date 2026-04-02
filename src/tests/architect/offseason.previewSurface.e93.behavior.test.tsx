@@ -210,8 +210,7 @@ describe('Offseason preview surface E93 behavior', () => {
     });
   });
 
-  it('preserves confirmation transition, preview button text, deep-cloned snapshotting, and success-path setter order', async () => {
-    const callOrder: string[] = [];
+  it('preserves confirmation transition, preview button text, deep-cloned snapshotting, and preview completion payload', async () => {
     const teamCapSheet = buildTeam([
       makeOptionPlayer({
         playerId: 'alpha-id',
@@ -237,20 +236,7 @@ describe('Offseason preview surface E93 behavior', () => {
       transitionedExceptions: [],
       hardCapCleared: false,
     };
-    const setTeamCapSheet = vi.fn((_: OffseasonTeamCapSheet) =>
-      callOrder.push('setTeamCapSheet')
-    );
-    const setCurrentYear = vi.fn((_: number) => callOrder.push('setCurrentYear'));
-    const setLastCapSheet = vi.fn((_: OffseasonTeamCapSheet) =>
-      callOrder.push('setLastCapSheet')
-    );
-    const setOffseasonRun = vi.fn((_: boolean) => callOrder.push('setOffseasonRun'));
-    const setOffseasonSummary = vi.fn((_: unknown) =>
-      callOrder.push('setOffseasonSummary')
-    );
-    const setShowOffseasonModal = vi.fn((_: boolean) =>
-      callOrder.push('setShowOffseasonModal')
-    );
+    const onPreviewAdvanceComplete = vi.fn();
     const capProjections = { maxCap: 155_000_000 };
 
     mockRunOffseason.mockReturnValue({
@@ -261,15 +247,10 @@ describe('Offseason preview surface E93 behavior', () => {
     render(
       <OffseasonTab
         teamCapSheet={teamCapSheet}
-        setTeamCapSheet={setTeamCapSheet}
         currentYear={CURRENT_YEAR}
-        setCurrentYear={setCurrentYear}
         capProjections={capProjections}
-        setLastCapSheet={setLastCapSheet}
         offseasonRun={false}
-        setOffseasonRun={setOffseasonRun}
-        setOffseasonSummary={setOffseasonSummary}
-        setShowOffseasonModal={setShowOffseasonModal}
+        onPreviewAdvanceComplete={onPreviewAdvanceComplete}
         playersMap={{}}
       />
     );
@@ -301,25 +282,20 @@ describe('Offseason preview surface E93 behavior', () => {
       }
     );
 
-    expect(callOrder).toEqual([
-      'setLastCapSheet',
-      'setTeamCapSheet',
-      'setCurrentYear',
-      'setOffseasonSummary',
-      'setShowOffseasonModal',
-      'setOffseasonRun',
-    ]);
-    expect(setTeamCapSheet).toHaveBeenCalledWith(updatedCapSheet);
-    expect(setCurrentYear).toHaveBeenCalledWith(2027);
-    expect(setOffseasonSummary).toHaveBeenCalledWith(summary);
-    expect(setShowOffseasonModal).toHaveBeenCalledWith(true);
-    expect(setOffseasonRun).toHaveBeenCalledWith(true);
-
-    expect(setLastCapSheet).toHaveBeenCalledTimes(1);
-    const lastCapSheetSnapshot = setLastCapSheet.mock.calls[0]?.[0] as typeof teamCapSheet;
-    expect(lastCapSheetSnapshot).toEqual(teamCapSheet);
-    expect(lastCapSheetSnapshot).not.toBe(teamCapSheet);
-    expect(lastCapSheetSnapshot.players).not.toBe(teamCapSheet.players);
+    expect(onPreviewAdvanceComplete).toHaveBeenCalledTimes(1);
+    const previewResult =
+      onPreviewAdvanceComplete.mock.calls[0]?.[0] as {
+        previousCapSheet: typeof teamCapSheet;
+        updatedCapSheet: typeof updatedCapSheet;
+        nextYear: number;
+        summary: typeof summary;
+      };
+    expect(previewResult.updatedCapSheet).toBe(updatedCapSheet);
+    expect(previewResult.nextYear).toBe(2027);
+    expect(previewResult.summary).toBe(summary);
+    expect(previewResult.previousCapSheet).toEqual(teamCapSheet);
+    expect(previewResult.previousCapSheet).not.toBe(teamCapSheet);
+    expect(previewResult.previousCapSheet.players).not.toBe(teamCapSheet.players);
   });
 
   it('preserves preview completion messaging after a successful advance', async () => {
@@ -350,22 +326,18 @@ describe('Offseason preview surface E93 behavior', () => {
         useState<OffseasonTeamCapSheet>(teamCapSheet);
       const [currentYear, setCurrentYear] = useState(CURRENT_YEAR);
       const [offseasonRun, setOffseasonRun] = useState(false);
-      const [, setLastCapSheet] = useState<unknown>(null);
-      const [, setOffseasonSummary] = useState<unknown>(null);
-      const [, setShowOffseasonModal] = useState(false);
 
       return (
         <OffseasonTab
           teamCapSheet={nextTeamCapSheet}
-          setTeamCapSheet={setNextTeamCapSheet}
           currentYear={currentYear}
-          setCurrentYear={setCurrentYear}
           capProjections={{}}
-          setLastCapSheet={setLastCapSheet}
           offseasonRun={offseasonRun}
-          setOffseasonRun={setOffseasonRun}
-          setOffseasonSummary={setOffseasonSummary}
-          setShowOffseasonModal={setShowOffseasonModal}
+          onPreviewAdvanceComplete={({ updatedCapSheet, nextYear }) => {
+            setNextTeamCapSheet(updatedCapSheet);
+            setCurrentYear(nextYear);
+            setOffseasonRun(true);
+          }}
           playersMap={{}}
         />
       );
@@ -408,15 +380,10 @@ describe('Offseason preview surface E93 behavior', () => {
               salary: 12_500_000,
             }),
           ])}
-          setTeamCapSheet={vi.fn()}
           currentYear={CURRENT_YEAR}
-          setCurrentYear={vi.fn()}
           capProjections={{}}
-          setLastCapSheet={vi.fn()}
           offseasonRun={false}
-          setOffseasonRun={vi.fn()}
-          setOffseasonSummary={vi.fn()}
-          setShowOffseasonModal={vi.fn()}
+          onPreviewAdvanceComplete={vi.fn()}
           playersMap={{}}
         />
       );
@@ -467,15 +434,10 @@ describe('Offseason preview surface E93 behavior', () => {
               salary: 12_500_000,
             }),
           ])}
-          setTeamCapSheet={vi.fn()}
           currentYear={CURRENT_YEAR}
-          setCurrentYear={vi.fn()}
           capProjections={{}}
-          setLastCapSheet={vi.fn()}
           offseasonRun={false}
-          setOffseasonRun={vi.fn()}
-          setOffseasonSummary={vi.fn()}
-          setShowOffseasonModal={vi.fn()}
+          onPreviewAdvanceComplete={vi.fn()}
           playersMap={{}}
         />
       );

@@ -17,21 +17,17 @@ import React, { useState } from 'react';
 import OptionManager from './OptionManager';
 import { runOffseason } from '@/features/architect/utils/runOffseason';
 import type {
+  OffseasonPreviewAdvanceResult,
   OffseasonOptionDecisionMap,
   OffseasonTabProps,
 } from './types';
 
 const OffseasonTab = ({
   teamCapSheet,
-  setTeamCapSheet,
   currentYear,
-  setCurrentYear,
   capProjections = null,
-  setLastCapSheet,
   offseasonRun = false,
-  setOffseasonRun,
-  setOffseasonSummary,
-  setShowOffseasonModal,
+  onPreviewAdvanceComplete,
   playersMap = {},
 }: OffseasonTabProps) => {
   const [optionsConfirmed, setOptionsConfirmed] = useState(false);
@@ -49,18 +45,20 @@ const OffseasonTab = ({
     setIsLoading(true);
     setError('');
     try {
-      setLastCapSheet(JSON.parse(JSON.stringify(teamCapSheet)));
+      const previousCapSheet = JSON.parse(JSON.stringify(teamCapSheet));
       const { updatedCapSheet, summary } = runOffseason(
         teamCapSheet,
         currentYear,
         capProjections,
         optionDecisions || {}
       );
-      setTeamCapSheet(updatedCapSheet);
-      setCurrentYear(currentYear + 1);
-      setOffseasonSummary(summary);
-      setShowOffseasonModal(true);
-      setOffseasonRun(true);
+      const previewResult: OffseasonPreviewAdvanceResult = {
+        previousCapSheet,
+        updatedCapSheet,
+        nextYear: currentYear + 1,
+        summary,
+      };
+      onPreviewAdvanceComplete(previewResult);
     } catch (err: any) {
       console.error('Failed to advance offseason', err);
       setError(err?.message || 'Failed to advance offseason');

@@ -65,17 +65,21 @@ export type OffseasonOptionRow = {
   season: string;
 };
 
+export type OffseasonPreviewAdvanceResult = {
+  previousCapSheet: OffseasonTeamCapSheet;
+  updatedCapSheet: OffseasonTeamCapSheet;
+  nextYear: number;
+  summary: OffseasonSummary;
+};
+
 export type OffseasonTabProps = {
   teamCapSheet: OffseasonTeamCapSheet;
-  setTeamCapSheet: (nextTeamCapSheet: OffseasonTeamCapSheet) => void;
   currentYear: number;
-  setCurrentYear: (nextYear: number) => void;
   capProjections?: Record<string, unknown> | null;
-  setLastCapSheet: (previousCapSheet: OffseasonTeamCapSheet) => void;
   offseasonRun?: boolean;
-  setOffseasonRun: (nextValue: boolean) => void;
-  setOffseasonSummary: (summary: OffseasonSummary) => void;
-  setShowOffseasonModal: (nextValue: boolean) => void;
+  onPreviewAdvanceComplete: (
+    result: OffseasonPreviewAdvanceResult
+  ) => void;
   playersMap?: Record<string, unknown>;
 };
 
