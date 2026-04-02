@@ -12,3 +12,16 @@
 | OS-1D | Add Focused Guardrails for Offseason Ownership Boundaries                | DONE   | Focused modal, wrapper, and source guardrails now pin the normalized world aftermath contract and reject wrapper-side summary synthesis drift. |
 
 **STEP 1 STATUS: DONE**
+
+---
+
+## STEP 2 — Season Advance Modal UI Truth and Wizard Wiring
+
+| ID    | Title                                                               | Status | Notes |
+|-------|---------------------------------------------------------------------|--------|-------|
+| OS-2A | Make the Season Advance Wizard Flow More Explicit and Durable       | TODO   |       |
+| OS-2B | Tighten Option-Decision Staging and Validation Truth               | TODO   |       |
+| OS-2C | Align Modal Result Truth with Actual World-Advance Truth           | TODO   |       |
+| OS-2D | Add Focused Guardrails for SeasonAdvanceModal UI Truth             | TODO   |       |
+
+**STEP 2 STATUS: TODO**
