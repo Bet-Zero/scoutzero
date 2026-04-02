@@ -51,3 +51,16 @@
 | OS-4D | Add Focused Guardrails for Draft Positions Input / Persistence Truth  | DONE   | Focused UI/node guardrails now pin the renamed year-truth prop surface, future-year warning copy, wrapper handoff after season advance, and season-manager consumption of the world-derived draft year even when future-year positions are also saved. |
 
 **STEP 4 STATUS: DONE**
+
+---
+
+## STEP 5 — Offseason World-Mode vs DEV Preview / Local Behavior
+
+| ID    | Title                                                                  | Status | Notes |
+|-------|------------------------------------------------------------------------|--------|-------|
+| OS-5A | Make the World vs Preview Execution Boundary More Explicit             | TODO   |       |
+| OS-5B | Tighten Preview-Only UI Truth So It Cannot Masquerade as Persistence Truth | TODO |    |
+| OS-5C | Tighten DEV Gate Durability for the Preview Path                       | TODO   |       |
+| OS-5D | Add Focused Guardrails for World-vs-Preview Behavior Truth             | TODO   |       |
+
+**STEP 5 STATUS: TODO**
