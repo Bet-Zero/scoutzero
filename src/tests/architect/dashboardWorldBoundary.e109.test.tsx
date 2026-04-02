@@ -1194,6 +1194,124 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
     });
 
+    it('normalizes successful advance results with fallback season and summary truth', async () => {
+      const onWorldAdvanceComplete = vi.fn();
+      mockAdvanceSeasonInWorld.mockResolvedValueOnce({
+        success: true,
+      });
+
+      render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={onWorldAdvanceComplete}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+
+      await screen.findByText('Season Advanced Successfully!');
+
+      expect(mockAdvanceSeasonInWorld).toHaveBeenCalledTimes(1);
+      expect(onWorldAdvanceComplete).toHaveBeenCalledTimes(1);
+      expect(onWorldAdvanceComplete).toHaveBeenCalledWith({
+        success: true,
+        toSeason: '2026-27',
+        updatedTeams: [],
+        summary: undefined,
+        worldAdvanceAftermath: {
+          nextWorldSeason: '2026-27',
+          nextViewingYear: 2027,
+          offseasonSummary: {
+            declinedOptions: [],
+            expiredContracts: [],
+            expiredTPEs: [],
+            exercisedOptions: [],
+            stepienUpdates: [],
+          },
+        },
+      });
+    });
+
+    it('returns to confirmation with a surfaced error when authoritative advance resolves unsuccessfully', async () => {
+      const onWorldAdvanceComplete = vi.fn();
+      mockAdvanceSeasonInWorld.mockResolvedValueOnce({
+        success: false,
+        error: 'World advance rejected',
+      });
+
+      render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={onWorldAdvanceComplete}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('heading', { name: 'Confirm Season Advance' })
+        ).toBeInTheDocument();
+      });
+      expect(screen.getByText('World advance rejected')).toBeInTheDocument();
+      expect(mockAdvanceSeasonInWorld).toHaveBeenCalledTimes(1);
+      expect(onWorldAdvanceComplete).not.toHaveBeenCalled();
+    });
+
+    it('keeps final advancement blocked if world context disappears before confirmation submit', () => {
+      const { rerender } = render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      rerender(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId={null}
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      expect(
+        screen.getByRole('heading', { name: 'Confirm Season Advance' })
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Advance Season' })).toBeDisabled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+      expect(mockAdvanceSeasonInWorld).not.toHaveBeenCalled();
+    });
+
     it('preserves option-decision wizard flow, processing state, and normalized success callback wiring', async () => {
       const onWorldAdvanceComplete = vi.fn();
       let resolveAdvance: (value: Record<string, unknown>) => void = () => {};
@@ -1279,11 +1397,12 @@ describe('E109 dashboard/world boundary behavior', () => {
           },
         });
       });
+      expect(mockAdvanceSeasonInWorld).toHaveBeenCalledTimes(1);
       await screen.findByText('Season Advanced Successfully!');
+      expect(onWorldAdvanceComplete).toHaveBeenCalledTimes(1);
       expect(onWorldAdvanceComplete).toHaveBeenCalledWith(
         {
           success: true,
-          error: undefined,
           toSeason: '2026-27',
           updatedTeams: ['LAL'],
           summary: {

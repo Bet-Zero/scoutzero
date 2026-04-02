@@ -43,8 +43,8 @@ type PreAdvanceWizardStep = {
   label: string;
 };
 type AdvanceSeasonInWorld = typeof import('@/features/architect/utils/seasonManager').advanceSeasonInWorld;
-type AdvanceSeasonResult = Awaited<ReturnType<AdvanceSeasonInWorld>>;
-type SeasonAdvanceSummary = AdvanceSeasonResult extends {
+type SeasonAdvanceExecutorResult = Awaited<ReturnType<AdvanceSeasonInWorld>>;
+type SeasonAdvanceSummary = SeasonAdvanceExecutorResult extends {
   summary?: infer Summary;
 }
   ? Summary
@@ -55,14 +55,20 @@ export type WorldAdvanceAftermath = {
   offseasonSummary: DashboardOffseasonSummary;
 };
 
-export type SeasonAdvanceResult = {
+export type SeasonAdvanceSuccessResult = {
+  success: true;
+  toSeason: string;
+  updatedTeams: string[];
   summary?: SeasonAdvanceSummary;
-  updatedTeams?: string[];
-  toSeason?: string;
-  error?: string;
-  success?: boolean;
-  worldAdvanceAftermath?: WorldAdvanceAftermath;
+  worldAdvanceAftermath: WorldAdvanceAftermath;
 };
+export type SeasonAdvanceFailureResult = {
+  success: false;
+  error: string;
+};
+export type SeasonAdvanceResult =
+  | SeasonAdvanceSuccessResult
+  | SeasonAdvanceFailureResult;
 type SeasonAdvanceModalTeamCapSheet = TeamCapSheetLike & TeamTpeLike;
 
 type SalaryByYearLike = {
@@ -134,6 +140,16 @@ type StagedOptionDecision = Omit<OffseasonOptionDecision, 'decision'> & {
 type StagedOptionDecisionMap = Record<string, StagedOptionDecision>;
 type OrderedStagedOptionDecision = StagedOptionDecision & {
   playerId: string;
+};
+type BuildWorldAdvanceAftermathParams = {
+  normalizedToSeason: string;
+  fallbackViewingYear: number;
+  summary?: SeasonAdvanceSummary;
+};
+type BuildSeasonAdvanceSuccessResultParams = {
+  advanceResult: SeasonAdvanceExecutorResult;
+  fallbackToSeason: string;
+  fallbackViewingYear: number;
 };
 
 type SeasonAdvanceModalProps = {
@@ -422,7 +438,7 @@ function findExpiringTPEs(
   }));
 }
 
-function toDashboardOffseasonSummary(
+function buildDashboardOffseasonSummary(
   summary: SeasonAdvanceSummary | undefined
 ): DashboardOffseasonSummary {
   return {
@@ -448,6 +464,61 @@ function toDashboardOffseasonSummary(
   };
 }
 
+function buildWorldAdvanceAftermath({
+  normalizedToSeason,
+  fallbackViewingYear,
+  summary,
+}: BuildWorldAdvanceAftermathParams): WorldAdvanceAftermath {
+  return {
+    nextWorldSeason: normalizedToSeason,
+    nextViewingYear: toEndYear(normalizedToSeason) ?? fallbackViewingYear,
+    offseasonSummary: buildDashboardOffseasonSummary(summary),
+  };
+}
+
+function buildSeasonAdvanceSuccessResult({
+  advanceResult,
+  fallbackToSeason,
+  fallbackViewingYear,
+}: BuildSeasonAdvanceSuccessResultParams): SeasonAdvanceSuccessResult {
+  const normalizedToSeason =
+    typeof advanceResult.toSeason === 'string'
+      ? advanceResult.toSeason
+      : fallbackToSeason;
+  const normalizedSummary = advanceResult.summary as
+    | SeasonAdvanceSummary
+    | undefined;
+
+  return {
+    success: true,
+    toSeason: normalizedToSeason,
+    updatedTeams: Array.isArray(advanceResult.updatedTeams)
+      ? advanceResult.updatedTeams
+      : [],
+    summary: normalizedSummary,
+    worldAdvanceAftermath: buildWorldAdvanceAftermath({
+      normalizedToSeason,
+      fallbackViewingYear,
+      summary: normalizedSummary,
+    }),
+  };
+}
+
+function getSeasonAdvanceFailureMessage(
+  failure: { error?: unknown } | unknown
+): string {
+  if (
+    failure &&
+    typeof failure === 'object' &&
+    'error' in failure &&
+    typeof failure.error === 'string'
+  ) {
+    return failure.error;
+  }
+
+  return failure instanceof Error ? failure.message : 'Season advance failed';
+}
+
 export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   isOpen,
   onClose,
@@ -466,7 +537,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     useState<StagedOptionDecisionMap>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<SeasonAdvanceResult | null>(null);
+  const [result, setResult] = useState<SeasonAdvanceSuccessResult | null>(null);
 
   const toYear = authoritativeSeasonEndYear + 1;
   const fromSeason = toSeasonCode(authoritativeSeasonEndYear);
@@ -575,6 +646,12 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     setCurrentStep(wizardNavigation.previousStep);
   }, [wizardNavigation.previousStep]);
 
+  const handleAdvanceFailure = useCallback((failure: { error?: unknown } | unknown) => {
+    setResult(null);
+    setError(getSeasonAdvanceFailureMessage(failure));
+    setCurrentStep(WIZARD_STEPS.CONFIRMATION);
+  }, []);
+
   const handleAdvanceSeason = useCallback(async () => {
     if (!worldId) {
       setError(
@@ -611,35 +688,15 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
       });
 
       if (!advanceResult.success) {
-        throw new Error(advanceResult.error || 'Season advance failed');
+        handleAdvanceFailure(advanceResult);
+        return;
       }
 
-      const normalizedToSeason =
-        typeof advanceResult.toSeason === 'string'
-          ? advanceResult.toSeason
-          : toSeason;
-      const normalizedSummary = advanceResult.summary as
-        | SeasonAdvanceSummary
-        | undefined;
-      const worldAdvanceAftermath: WorldAdvanceAftermath = {
-        nextWorldSeason: normalizedToSeason,
-        nextViewingYear: toEndYear(normalizedToSeason) ?? toYear,
-        offseasonSummary: toDashboardOffseasonSummary(normalizedSummary),
-      };
-
-      const modalResult: SeasonAdvanceResult = {
-        success: advanceResult.success,
-        error:
-          typeof advanceResult.error === 'string'
-            ? advanceResult.error
-            : undefined,
-        toSeason: normalizedToSeason,
-        updatedTeams: Array.isArray(advanceResult.updatedTeams)
-          ? advanceResult.updatedTeams
-          : [],
-        summary: normalizedSummary,
-        worldAdvanceAftermath,
-      };
+      const modalResult = buildSeasonAdvanceSuccessResult({
+        advanceResult,
+        fallbackToSeason: toSeason,
+        fallbackViewingYear: toYear,
+      });
 
       setResult(modalResult);
       setCurrentStep(WIZARD_STEPS.COMPLETE);
@@ -649,13 +706,13 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
       }
     } catch (err) {
       console.error('Season advance failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to advance season');
-      setCurrentStep(WIZARD_STEPS.CONFIRMATION);
+      handleAdvanceFailure(err);
     } finally {
       setIsProcessing(false);
     }
   }, [
     hasOptions,
+    handleAdvanceFailure,
     onWorldAdvanceComplete,
     playersWithOptions,
     stagedOptionDecisions,
@@ -914,7 +971,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
         Season Advanced Successfully!
       </h3>
       <p className="text-sm text-white/70">
-        You are now in the <strong>{toSeason}</strong> season.
+        You are now in the <strong>{result?.toSeason ?? toSeason}</strong>{' '}
+        season.
       </p>
       {result?.updatedTeams?.length ? (
         <p className="text-xs text-white/50">

@@ -88,7 +88,11 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     });
 
     it('applies world-backed aftermath from the normalized callback payload', () => {
-      expect(source).toContain('if (!result.success || !result.worldAdvanceAftermath) {');
+      expect(source).toContain('function getWorldAdvanceAftermath(');
+      expect(source).toContain(
+        'const worldAdvanceAftermath = getWorldAdvanceAftermath(result);'
+      );
+      expect(source).toContain('if (!worldAdvanceAftermath) {');
       expect(source).toContain(
         'setCurrentYear(worldAdvanceAftermath.nextViewingYear);'
       );
@@ -157,8 +161,13 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;'
       );
-      expect(source).toContain('worldAdvanceAftermath?: WorldAdvanceAftermath;');
-      expect(source).toContain('worldAdvanceAftermath: WorldAdvanceAftermath = {');
+      expect(source).toContain('export type SeasonAdvanceSuccessResult = {');
+      expect(source).toContain('worldAdvanceAftermath: WorldAdvanceAftermath;');
+      expect(source).toContain('export type SeasonAdvanceFailureResult = {');
+      expect(source).toContain('error: string;');
+      expect(source).toContain(
+        'function buildWorldAdvanceAftermath({'
+      );
     });
 
     it('keeps wizard flow and option staging on explicit modal-local helpers', () => {
@@ -168,6 +177,17 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain('stagedOptionDecisions');
       expect(source).toContain('buildAdvanceOptionDecisions');
       expect(source).toContain('season-advance-progress');
+    });
+
+    it('keeps result normalization on explicit modal-local helpers', () => {
+      expect(source).toContain('buildDashboardOffseasonSummary');
+      expect(source).toContain('buildWorldAdvanceAftermath');
+      expect(source).toContain('buildSeasonAdvanceSuccessResult');
+      expect(source).toContain('getSeasonAdvanceFailureMessage');
+      expect(source).toContain(
+        'const modalResult = buildSeasonAdvanceSuccessResult({'
+      );
+      expect(source).toContain('handleAdvanceFailure(advanceResult);');
     });
   });
 

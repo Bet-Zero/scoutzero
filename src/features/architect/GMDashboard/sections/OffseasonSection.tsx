@@ -21,6 +21,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import SeasonAdvanceModal, {
   type SeasonAdvanceResult,
+  type WorldAdvanceAftermath,
 } from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
 import DraftPositionsInput from '@/features/architect/GMDashboard/components/DraftPositionsInput';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
@@ -71,6 +72,23 @@ type DevPreviewOffseasonSurfaceProps = {
   playersMap?: Record<string, unknown>;
   onPreviewAdvanceComplete: (result: OffseasonPreviewAdvanceResult) => void;
 };
+
+function getWorldAdvanceAftermath(
+  result: SeasonAdvanceResult
+): WorldAdvanceAftermath | null {
+  if (!result.success) {
+    return null;
+  }
+
+  if (
+    !('worldAdvanceAftermath' in result) ||
+    !result.worldAdvanceAftermath
+  ) {
+    return null;
+  }
+
+  return result.worldAdvanceAftermath;
+}
 
 function WorldBackedOffseasonSurface({
   worldId,
@@ -232,11 +250,12 @@ const OffseasonSection = ({
 
   const handleWorldAdvanceComplete = useCallback(
     (result: SeasonAdvanceResult) => {
-      if (!result.success || !result.worldAdvanceAftermath) {
+      const worldAdvanceAftermath = getWorldAdvanceAftermath(result);
+
+      if (!worldAdvanceAftermath) {
         return;
       }
 
-      const { worldAdvanceAftermath } = result;
       setCurrentYear(worldAdvanceAftermath.nextViewingYear);
       setWorldSeason(worldAdvanceAftermath.nextWorldSeason);
       setOffseasonRun(true);
