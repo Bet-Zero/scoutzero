@@ -19,6 +19,11 @@ import {
 } from '@/features/architect/utils/tpeLifecycle';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import type {
+  SeasonAdvanceRequest,
+  SeasonAdvanceResult as ExecutorSeasonAdvanceResult,
+  SeasonAdvanceSummary as ExecutorSeasonAdvanceSummary,
+} from '@/features/architect/utils/seasonManager';
+import type {
   OffseasonAppliedChangesSummary,
   OffseasonOptionDecision,
 } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
@@ -42,13 +47,8 @@ type PreAdvanceWizardStep = {
   value: PreAdvanceWizardStepValue;
   label: string;
 };
-type AdvanceSeasonInWorld = typeof import('@/features/architect/utils/seasonManager').advanceSeasonInWorld;
-type SeasonAdvanceExecutorResult = Awaited<ReturnType<AdvanceSeasonInWorld>>;
-type SeasonAdvanceSummary = SeasonAdvanceExecutorResult extends {
-  summary?: infer Summary;
-}
-  ? Summary
-  : never;
+type SeasonAdvanceExecutorResult = ExecutorSeasonAdvanceResult;
+type SeasonAdvanceSummary = ExecutorSeasonAdvanceSummary;
 export type WorldAdvanceAftermath = {
   nextWorldSeason: string;
   nextViewingYear: number;
@@ -147,7 +147,7 @@ type BuildWorldAdvanceAftermathParams = {
   summary?: SeasonAdvanceSummary;
 };
 type BuildSeasonAdvanceSuccessResultParams = {
-  advanceResult: SeasonAdvanceExecutorResult;
+  advanceResult: Extract<SeasonAdvanceExecutorResult, { success: true }>;
   fallbackToSeason: string;
   fallbackViewingYear: number;
 };
@@ -156,7 +156,7 @@ type SeasonAdvanceModalProps = {
   isOpen: boolean;
   onClose: () => void;
   teamCapSheet?: SeasonAdvanceModalTeamCapSheet | null;
-  authoritativeSeasonEndYear: number;
+  authoritativeWorldSeason: string;
   worldId?: string | null;
   teamCode?: string | null;
   onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;
@@ -523,7 +523,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   isOpen,
   onClose,
   teamCapSheet = null,
-  authoritativeSeasonEndYear,
+  authoritativeWorldSeason,
   worldId = null,
   teamCode = null,
   onWorldAdvanceComplete = null,
@@ -539,8 +539,9 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   const [error, setError] = useState('');
   const [result, setResult] = useState<SeasonAdvanceSuccessResult | null>(null);
 
+  const authoritativeSeasonEndYear = toEndYear(authoritativeWorldSeason) ?? 0;
+  const fromSeason = authoritativeWorldSeason;
   const toYear = authoritativeSeasonEndYear + 1;
-  const fromSeason = toSeasonCode(authoritativeSeasonEndYear);
   const toSeason = toSeasonCode(toYear);
 
   const playersWithOptions = useMemo(
@@ -673,19 +674,22 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     setCurrentStep(WIZARD_STEPS.PROCESSING);
 
     try {
-      const { advanceSeasonInWorld } = (await import(
+      const seasonManagerModule = await import(
         '@/features/architect/utils/seasonManager'
-      )) as {
-        advanceSeasonInWorld: AdvanceSeasonInWorld;
-      };
-
-      const advanceResult = await advanceSeasonInWorld(worldId, {
+      );
+      const seasonAdvanceRequest: SeasonAdvanceRequest = {
+        fromSeason,
+        toSeason,
         optionDecisions: buildAdvanceOptionDecisions(
           playersWithOptions,
           stagedOptionDecisions,
           toSeason
         ),
-      });
+      };
+      const advanceResult = await seasonManagerModule.advanceSeasonInWorld(
+        worldId,
+        seasonAdvanceRequest
+      );
 
       if (!advanceResult.success) {
         handleAdvanceFailure(advanceResult);
@@ -717,6 +721,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     playersWithOptions,
     stagedOptionDecisions,
     stagedOptionValidationError,
+    fromSeason,
     toSeason,
     worldId,
   ]);
@@ -1128,7 +1133,7 @@ SeasonAdvanceModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   teamCapSheet: PropTypes.object,
-  authoritativeSeasonEndYear: PropTypes.number.isRequired,
+  authoritativeWorldSeason: PropTypes.string.isRequired,
   worldId: PropTypes.string,
   teamCode: PropTypes.string,
   onWorldAdvanceComplete: PropTypes.func,

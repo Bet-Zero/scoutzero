@@ -151,6 +151,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
 
     render(<OffseasonSection {...props} />);
 
+    await screen.findByText('World Season: 2025-26');
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Emit successful advance' })
@@ -176,6 +177,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
 
     render(<OffseasonSection {...props} />);
 
+    await screen.findByText('World Season: 2025-26');
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Emit failed advance' })

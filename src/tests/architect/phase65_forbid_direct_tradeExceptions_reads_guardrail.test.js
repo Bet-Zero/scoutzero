@@ -367,10 +367,19 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
     const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.ts');
     const content = fs.readFileSync(seasonManagerPath, 'utf-8');
 
-    // Check for the pattern: normalizeTeamTpeSchema followed by batch.set
-    // The exact implementation uses: const normalizedTeam = normalizeTeamTpeSchema(updatedTeam); batch.set(snapshotRef, normalizedTeam);
-    expect(content).toContain('normalizeTeamTpeSchema(updatedTeam)');
-    expect(content).toContain('batch.set(snapshotRef, normalizedTeam)');
+    const normalizeCall = 'normalizeTeamTpeSchema(afterSanitize)';
+    const safeTeamAssignment = 'const safeTeam = removeUndefinedDeep(normalizedTeam)';
+    const batchSetCall = 'batch.set(snapshotRef, safeTeam)';
+
+    expect(content).toContain(normalizeCall);
+    expect(content).toContain(safeTeamAssignment);
+    expect(content).toContain(batchSetCall);
+    expect(content.indexOf(normalizeCall)).toBeLessThan(
+      content.indexOf(safeTeamAssignment)
+    );
+    expect(content.indexOf(safeTeamAssignment)).toBeLessThan(
+      content.indexOf(batchSetCall)
+    );
   });
 });
 

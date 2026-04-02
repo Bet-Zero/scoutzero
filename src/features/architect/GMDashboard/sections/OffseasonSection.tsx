@@ -59,6 +59,7 @@ type WorldBackedOffseasonSurfaceProps = {
   hasSeasonMismatch: boolean;
   worldDraftYear: number | null;
   viewingYear: number;
+  canAdvanceSeason: boolean;
   onOpenAdvanceModal: () => void;
 };
 
@@ -98,6 +99,7 @@ function WorldBackedOffseasonSurface({
   hasSeasonMismatch,
   worldDraftYear,
   viewingYear,
+  canAdvanceSeason,
   onOpenAdvanceModal,
 }: WorldBackedOffseasonSurfaceProps) {
   if (!worldId) {
@@ -129,11 +131,17 @@ function WorldBackedOffseasonSurface({
             {worldSeasonLoading && (
               <div className="mt-2 text-xs text-white/40">Loading world season...</div>
             )}
+            {!worldSeasonLoading && !worldSeason && (
+              <div className="mt-2 text-xs text-yellow-300">
+                World season unavailable. Season advance stays disabled until metadata loads.
+              </div>
+            )}
           </div>
           <button
             type="button"
             onClick={onOpenAdvanceModal}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors"
+            disabled={!canAdvanceSeason}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900/40 disabled:text-white/40 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
           >
             Advance Season
           </button>
@@ -302,6 +310,9 @@ const OffseasonSection = ({
 
   const worldSeasonEndYear = worldSeason ? toEndYear(worldSeason) : null;
   const worldDraftYear = worldSeasonEndYear;
+  const canAdvanceWorldSeason = Boolean(
+    worldId && worldSeason && !worldSeasonLoading
+  );
 
   const viewingSeason = toSeasonCode(viewingYear);
 
@@ -317,7 +328,13 @@ const OffseasonSection = ({
         hasSeasonMismatch={Boolean(hasSeasonMismatch)}
         worldDraftYear={worldDraftYear}
         viewingYear={viewingYear}
-        onOpenAdvanceModal={() => setShowAdvanceModal(true)}
+        canAdvanceSeason={canAdvanceWorldSeason}
+        onOpenAdvanceModal={() => {
+          if (!canAdvanceWorldSeason) {
+            return;
+          }
+          setShowAdvanceModal(true);
+        }}
       />
 
       <DevPreviewOffseasonSurface
@@ -331,15 +348,17 @@ const OffseasonSection = ({
         onPreviewAdvanceComplete={handlePreviewAdvanceComplete}
       />
 
-      <SeasonAdvanceModal
-        isOpen={showAdvanceModal}
-        onClose={() => setShowAdvanceModal(false)}
-        teamCapSheet={teamCapSheet}
-        authoritativeSeasonEndYear={worldSeasonEndYear ?? viewingYear}
-        worldId={worldId}
-        teamCode={teamCode}
-        onWorldAdvanceComplete={handleWorldAdvanceComplete}
-      />
+      {worldSeason ? (
+        <SeasonAdvanceModal
+          isOpen={showAdvanceModal}
+          onClose={() => setShowAdvanceModal(false)}
+          teamCapSheet={teamCapSheet}
+          authoritativeWorldSeason={worldSeason}
+          worldId={worldId}
+          teamCode={teamCode}
+          onWorldAdvanceComplete={handleWorldAdvanceComplete}
+        />
+      ) : null}
     </div>
   );
 };

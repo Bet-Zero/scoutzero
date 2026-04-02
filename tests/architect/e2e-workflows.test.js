@@ -20,7 +20,7 @@ import {
 import { getTeam } from '@/features/architect/utils/teamLoader';
 import { signFreeAgent } from '@/features/architect/utils/tradeManager';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
-import { advanceSeason } from '@/features/architect/utils/seasonManager';
+import { advanceSeasonLegacy as advanceSeason } from '@/features/architect/utils/seasonManagerLegacy';
 import {
   seedBaseData,
   createMockCapProjections,

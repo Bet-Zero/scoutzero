@@ -1,17 +1,16 @@
 /**
  * Season Manager Tests
  *
- * Comprehensive unit tests for seasonManager.js covering advanceSeason,
- * processSeasonTransition, contract expirations, options, empty roster charges, and cap holds.
+ * Comprehensive unit tests for legacy and authoritative season managers.
  *
  * @file tests/architect/seasonManager.test.js
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  advanceSeason,
-  processSeasonTransition,
-} from '@/features/architect/utils/seasonManager';
+  advanceSeasonLegacy as advanceSeason,
+  processSeasonTransitionLegacy as processSeasonTransition,
+} from '@/features/architect/utils/seasonManagerLegacy';
 import {
   seedBaseData,
   seedWorldMetadata,
@@ -451,6 +450,30 @@ describe('Season Manager', () => {
       const result = await advanceSeasonInWorld(null);
       expect(result.success).toBe(false);
       expect(result.error).toBe('worldId is required');
+    });
+
+    it('fails closed when caller fromSeason disagrees with world metadata', async () => {
+      const result = await advanceSeasonInWorld(worldId, {
+        fromSeason: '2024-25',
+        optionDecisions: {},
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Season mismatch');
+      expect(result.worldSeason).toBe('2025-26');
+      expect(result.attemptedFromSeason).toBe('2024-25');
+    });
+
+    it('fails closed when caller toSeason disagrees with the next world season', async () => {
+      const result = await advanceSeasonInWorld(worldId, {
+        toSeason: '2027-28',
+        optionDecisions: {},
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Season mismatch');
+      expect(result.worldSeason).toBe('2025-26');
+      expect(result.attemptedToSeason).toBe('2027-28');
     });
 
     it('advances season with no options', async () => {

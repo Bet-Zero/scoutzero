@@ -551,6 +551,44 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps world-backed season advance disabled until world metadata supplies the current season', async () => {
+    const teamCapSheet = buildTeamFixture();
+    getWorldMetadataMock.mockResolvedValue({ currentSeason: null });
+
+    render(
+      <OffseasonSection
+        teamCapSheet={teamCapSheet}
+        setTeamCapSheet={vi.fn()}
+        currentYear={2028}
+        setCurrentYear={vi.fn()}
+        capProjections={{}}
+        setLastCapSheet={vi.fn()}
+        offseasonRun={false}
+        setOffseasonRun={vi.fn()}
+        setOffseasonSummary={vi.fn()}
+        setShowOffseasonModal={vi.fn()}
+        playersMap={{}}
+        worldId="world_smoke_lal"
+        teamCode="LAL"
+        onReloadWorldData={vi.fn()}
+      />
+    );
+
+    await screen.findByText(
+      'World season unavailable. Season advance stays disabled until metadata loads.'
+    );
+
+    const advanceButton = screen.getByRole('button', { name: 'Advance Season' });
+    expect(advanceButton).toBeDisabled();
+
+    fireEvent.click(advanceButton);
+
+    expect(
+      screen.queryByRole('heading', { name: 'Advance to 2028-29' })
+    ).not.toBeInTheDocument();
+    expect(advanceSeasonInWorldMock).not.toHaveBeenCalled();
+  });
+
   it('applies world-backed aftermath from the normalized advance result instead of wrapper-authored fallbacks', async () => {
     const teamCapSheet = buildTeamFixture();
     const setCurrentYear = vi.fn();
@@ -627,6 +665,8 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
 
     await waitFor(() => {
       expect(advanceSeasonInWorldMock).toHaveBeenCalledWith('world_smoke_lal', {
+        fromSeason: '2025-26',
+        toSeason: '2026-27',
         optionDecisions: {},
       });
     });

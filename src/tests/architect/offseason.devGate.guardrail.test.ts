@@ -78,12 +78,18 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain('data-testid="offseason-preview-surface"');
     });
 
-    it('passes world-derived year props into the world-backed controls', () => {
+    it('passes world-derived season truth into the world-backed controls', () => {
       expect(source).toContain(
         'defaultDraftYear={worldDraftYear ?? viewingYear}'
       );
       expect(source).toContain(
-        'authoritativeSeasonEndYear={worldSeasonEndYear ?? viewingYear}'
+        'const canAdvanceWorldSeason = Boolean('
+      );
+      expect(source).toContain(
+        'authoritativeWorldSeason={worldSeason}'
+      );
+      expect(source).toContain(
+        'canAdvanceSeason={canAdvanceWorldSeason}'
       );
     });
 
@@ -157,7 +163,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     });
 
     it('publishes the world authority prop names', () => {
-      expect(source).toContain('authoritativeSeasonEndYear: number;');
+      expect(source).toContain('authoritativeWorldSeason: string;');
       expect(source).toContain(
         'onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;'
       );

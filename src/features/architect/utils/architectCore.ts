@@ -37,7 +37,7 @@ export {
 } from './tradeManager';
 
 // Season Advancement
-export { advanceSeason, processSeasonTransition } from './seasonManager';
+export { advanceSeasonInWorld } from './seasonManager';
 
 // Trade Input Builder
 export {

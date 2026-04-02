@@ -32,8 +32,8 @@
 
 | ID    | Title                                                                | Status | Notes |
 |-------|----------------------------------------------------------------------|--------|-------|
-| OS-3A | Remove or Fence the Legacy Parallel Season-Advance Path              | TODO   |       |
-| OS-3B | Tighten Payload / Season / Summary Truth Through the Authoritative Path | TODO |       |
+| OS-3A | Remove or Fence the Legacy Parallel Season-Advance Path              | DONE   |       |
+| OS-3B | Tighten Payload / Season / Summary Truth Through the Authoritative Path | DONE |       |
 | OS-3C | Tighten Final Saved / Reloaded World State Truth                     | TODO   |       |
 | OS-3D | Add Focused Guardrails for the World-Backed Season-Advance Seam      | TODO   |       |
 
