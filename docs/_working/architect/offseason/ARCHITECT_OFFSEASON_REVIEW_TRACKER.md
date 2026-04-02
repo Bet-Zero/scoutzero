@@ -38,3 +38,16 @@
 | OS-3D | Add Focused Guardrails for the World-Backed Season-Advance Seam      | DONE   | Focused node/UI guardrails now pin the committed-state return contract, production reload handoff, and committed aftermath application so post-success drift cannot reopen silently. |
 
 **STEP 3 STATUS: DONE**
+
+---
+
+## STEP 4 — Draft Positions Input and Persistence Truth
+
+| ID    | Title                                                                  | Status | Notes |
+|-------|------------------------------------------------------------------------|--------|-------|
+| OS-4A | Make Draft Positions Persistence Ownership More Explicit               | TODO   |       |
+| OS-4B | Fix Reset / Clear Truth So the UI Does Not Mislead the User           | TODO   |       |
+| OS-4C | Tighten Saved-Year / Used-Year Truth Through the World-Backed Flow    | TODO   |       |
+| OS-4D | Add Focused Guardrails for Draft Positions Input / Persistence Truth  | TODO   |       |
+
+**STEP 4 STATUS: TODO**
