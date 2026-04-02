@@ -19,9 +19,9 @@
 
 | ID    | Title                                                               | Status | Notes |
 |-------|---------------------------------------------------------------------|--------|-------|
-| OS-2A | Make the Season Advance Wizard Flow More Explicit and Durable       | TODO   |       |
-| OS-2B | Tighten Option-Decision Staging and Validation Truth               | TODO   |       |
+| OS-2A | Make the Season Advance Wizard Flow More Explicit and Durable       | DONE   | SeasonAdvanceModal now derives its pre-advance flow from one explicit ordered step model, renders a progress strip from that same model, and uses flow-derived navigation instead of scattered step assumptions. |
+| OS-2B | Tighten Option-Decision Staging and Validation Truth               | DONE   | Option decisions are now explicitly staged as modal-local UI truth, reconciled instead of reset on rerender, revalidated before final dispatch, and summarized in confirmation from the ordered staged state. |
 | OS-2C | Align Modal Result Truth with Actual World-Advance Truth           | TODO   |       |
 | OS-2D | Add Focused Guardrails for SeasonAdvanceModal UI Truth             | TODO   |       |
 
-**STEP 2 STATUS: TODO**
+**STEP 2 STATUS: IN_PROGRESS**

@@ -34,6 +34,14 @@ const WIZARD_STEPS = {
 } as const;
 
 type WizardStepValue = (typeof WIZARD_STEPS)[keyof typeof WIZARD_STEPS];
+type PreAdvanceWizardStepValue =
+  | typeof WIZARD_STEPS.SUMMARY
+  | typeof WIZARD_STEPS.OPTIONS
+  | typeof WIZARD_STEPS.CONFIRMATION;
+type PreAdvanceWizardStep = {
+  value: PreAdvanceWizardStepValue;
+  label: string;
+};
 type AdvanceSeasonInWorld = typeof import('@/features/architect/utils/seasonManager').advanceSeasonInWorld;
 type AdvanceSeasonResult = Awaited<ReturnType<AdvanceSeasonInWorld>>;
 type SeasonAdvanceSummary = AdvanceSeasonResult extends {
@@ -118,12 +126,15 @@ type ExpiringTpePreviewLike = {
   source?: string | null;
 };
 
-type PendingOptionDecision = Omit<OffseasonOptionDecision, 'decision'> & {
+type StagedOptionDecision = Omit<OffseasonOptionDecision, 'decision'> & {
   decision?: OffseasonOptionDecision['decision'] | null;
   playerName?: string | null;
 };
 
-type OptionDecisionMap = Record<string, PendingOptionDecision>;
+type StagedOptionDecisionMap = Record<string, StagedOptionDecision>;
+type OrderedStagedOptionDecision = StagedOptionDecision & {
+  playerId: string;
+};
 
 type SeasonAdvanceModalProps = {
   isOpen: boolean;
@@ -140,6 +151,151 @@ type SeasonAdvanceModalComponent = ((
 ) => JSX.Element | null) & {
   propTypes?: Record<string, unknown>;
 };
+
+const PRE_ADVANCE_STEP_LABELS: Record<PreAdvanceWizardStepValue, string> = {
+  [WIZARD_STEPS.SUMMARY]: 'Review',
+  [WIZARD_STEPS.OPTIONS]: 'Options',
+  [WIZARD_STEPS.CONFIRMATION]: 'Confirm',
+};
+
+function buildPreAdvanceWizardSteps(
+  hasOptions: boolean
+): PreAdvanceWizardStep[] {
+  return [
+    {
+      value: WIZARD_STEPS.SUMMARY,
+      label: PRE_ADVANCE_STEP_LABELS[WIZARD_STEPS.SUMMARY],
+    },
+    ...(hasOptions
+      ? [
+          {
+            value: WIZARD_STEPS.OPTIONS,
+            label: PRE_ADVANCE_STEP_LABELS[WIZARD_STEPS.OPTIONS],
+          },
+        ]
+      : []),
+    {
+      value: WIZARD_STEPS.CONFIRMATION,
+      label: PRE_ADVANCE_STEP_LABELS[WIZARD_STEPS.CONFIRMATION],
+    },
+  ];
+}
+
+function getWizardNavigationState(
+  currentStep: WizardStepValue,
+  preAdvanceSteps: PreAdvanceWizardStep[]
+): {
+  currentIndex: number;
+  isPreAdvanceStep: boolean;
+  previousStep: PreAdvanceWizardStepValue | null;
+  nextStep: PreAdvanceWizardStepValue | null;
+} {
+  const currentIndex = preAdvanceSteps.findIndex(
+    (step) => step.value === currentStep
+  );
+  const isPreAdvanceStep = currentIndex !== -1;
+
+  return {
+    currentIndex,
+    isPreAdvanceStep,
+    previousStep:
+      currentIndex > 0 ? preAdvanceSteps[currentIndex - 1].value : null,
+    nextStep:
+      currentIndex >= 0 && currentIndex < preAdvanceSteps.length - 1
+        ? preAdvanceSteps[currentIndex + 1].value
+        : null,
+  };
+}
+
+function reconcileStagedOptionDecisions(
+  previous: StagedOptionDecisionMap,
+  playersWithOptions: PlayerOptionPreviewLike[]
+): StagedOptionDecisionMap {
+  if (playersWithOptions.length === 0) {
+    return {};
+  }
+
+  const next: StagedOptionDecisionMap = {};
+
+  for (const player of playersWithOptions) {
+    const previousDecision = previous[player.playerId];
+    next[player.playerId] = {
+      decision: previousDecision?.decision ?? null,
+      optionType: player.optionType,
+      season: player.season,
+      playerName: player.playerName,
+    };
+  }
+
+  return next;
+}
+
+function buildOrderedStagedOptionDecisions(
+  playersWithOptions: PlayerOptionPreviewLike[],
+  stagedOptionDecisions: StagedOptionDecisionMap
+): OrderedStagedOptionDecision[] {
+  return playersWithOptions.map((player) => {
+    const stagedDecision = stagedOptionDecisions[player.playerId];
+
+    return {
+      playerId: player.playerId,
+      decision: stagedDecision?.decision ?? null,
+      optionType: stagedDecision?.optionType ?? player.optionType,
+      season: stagedDecision?.season ?? player.season,
+      playerName: stagedDecision?.playerName ?? player.playerName,
+    };
+  });
+}
+
+function getStagedOptionValidationError(
+  hasOptions: boolean,
+  orderedStagedOptionDecisions: OrderedStagedOptionDecision[]
+): string | null {
+  if (!hasOptions) {
+    return null;
+  }
+
+  const hasUndecidedOptions = orderedStagedOptionDecisions.some(
+    (decision) => !decision.decision
+  );
+
+  if (!hasUndecidedOptions) {
+    return null;
+  }
+
+  return 'Please make a decision for all player/team options before proceeding.';
+}
+
+function buildAdvanceOptionDecisions(
+  playersWithOptions: PlayerOptionPreviewLike[],
+  stagedOptionDecisions: StagedOptionDecisionMap,
+  fallbackSeason: string
+): Record<string, OffseasonOptionDecision> {
+  const decisions: Record<string, OffseasonOptionDecision> = {};
+
+  for (const player of playersWithOptions) {
+    const stagedDecision = stagedOptionDecisions[player.playerId];
+    if (!stagedDecision?.decision) {
+      continue;
+    }
+
+    const normalizedType = String(
+      stagedDecision.optionType || player.optionType || ''
+    )
+      .toLowerCase()
+      .includes('player')
+      ? 'player'
+      : 'team';
+
+    decisions[player.playerId] = {
+      decision: stagedDecision.decision,
+      optionType: normalizedType,
+      season: stagedDecision.season || player.season || fallbackSeason,
+    };
+  }
+
+  return decisions;
+}
 
 function findPlayersWithOptions(
   teamCapSheet: SeasonAdvanceModalTeamCapSheet | null | undefined,
@@ -306,7 +462,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   const [currentStep, setCurrentStep] = useState<WizardStepValue>(
     WIZARD_STEPS.SUMMARY
   );
-  const [optionDecisions, setOptionDecisions] = useState<OptionDecisionMap>({});
+  const [stagedOptionDecisions, setStagedOptionDecisions] =
+    useState<StagedOptionDecisionMap>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<SeasonAdvanceResult | null>(null);
@@ -336,32 +493,44 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   );
 
   const hasOptions = playersWithOptions.length > 0;
-  const allOptionsDecided = useMemo(() => {
-    if (!hasOptions) return true;
-    return playersWithOptions.every(
-      (player) => optionDecisions[player.playerId]?.decision
-    );
-  }, [hasOptions, playersWithOptions, optionDecisions]);
+  const preAdvanceSteps = useMemo(
+    () => buildPreAdvanceWizardSteps(hasOptions),
+    [hasOptions]
+  );
+  const wizardNavigation = useMemo(
+    () => getWizardNavigationState(currentStep, preAdvanceSteps),
+    [currentStep, preAdvanceSteps]
+  );
+  const orderedStagedOptionDecisions = useMemo(
+    () =>
+      buildOrderedStagedOptionDecisions(
+        playersWithOptions,
+        stagedOptionDecisions
+      ),
+    [playersWithOptions, stagedOptionDecisions]
+  );
+  const stagedOptionValidationError = useMemo(
+    () =>
+      getStagedOptionValidationError(
+        hasOptions,
+        orderedStagedOptionDecisions
+      ),
+    [hasOptions, orderedStagedOptionDecisions]
+  );
 
   useEffect(() => {
-    if (isOpen && hasOptions) {
-      const initial: OptionDecisionMap = {};
-      for (const player of playersWithOptions) {
-        initial[player.playerId] = {
-          decision: null,
-          optionType: player.optionType,
-          season: player.season,
-          playerName: player.playerName,
-        };
-      }
-      setOptionDecisions(initial);
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen, hasOptions, playersWithOptions]);
+    setStagedOptionDecisions((previous) =>
+      reconcileStagedOptionDecisions(previous, playersWithOptions)
+    );
+  }, [isOpen, playersWithOptions]);
 
   useEffect(() => {
     if (!isOpen) {
       setCurrentStep(WIZARD_STEPS.SUMMARY);
-      setOptionDecisions({});
+      setStagedOptionDecisions({});
       setError('');
       setResult(null);
       setIsProcessing(false);
@@ -370,7 +539,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
 
   const handleOptionChange = useCallback(
     (playerId: string, decision: 'exercise' | 'decline') => {
-      setOptionDecisions((previous) => ({
+      setStagedOptionDecisions((previous) => ({
         ...previous,
         [playerId]: {
           ...previous[playerId],
@@ -384,42 +553,41 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   const handleNext = useCallback(() => {
     setError('');
 
-    if (currentStep === WIZARD_STEPS.SUMMARY) {
-      if (hasOptions) {
-        setCurrentStep(WIZARD_STEPS.OPTIONS);
-      } else {
-        setCurrentStep(WIZARD_STEPS.CONFIRMATION);
-      }
-    } else if (currentStep === WIZARD_STEPS.OPTIONS) {
-      if (!allOptionsDecided) {
-        setError(
-          'Please make a decision for all player/team options before proceeding.'
-        );
-        return;
-      }
-      setCurrentStep(WIZARD_STEPS.CONFIRMATION);
+    if (currentStep === WIZARD_STEPS.OPTIONS && stagedOptionValidationError) {
+      setError(stagedOptionValidationError);
+      return;
     }
-  }, [currentStep, hasOptions, allOptionsDecided]);
+
+    if (!wizardNavigation.nextStep) {
+      return;
+    }
+
+    setCurrentStep(wizardNavigation.nextStep);
+  }, [currentStep, stagedOptionValidationError, wizardNavigation.nextStep]);
 
   const handleBack = useCallback(() => {
     setError('');
 
-    if (currentStep === WIZARD_STEPS.OPTIONS) {
-      setCurrentStep(WIZARD_STEPS.SUMMARY);
-    } else if (currentStep === WIZARD_STEPS.CONFIRMATION) {
-      if (hasOptions) {
-        setCurrentStep(WIZARD_STEPS.OPTIONS);
-      } else {
-        setCurrentStep(WIZARD_STEPS.SUMMARY);
-      }
+    if (!wizardNavigation.previousStep) {
+      return;
     }
-  }, [currentStep, hasOptions]);
+
+    setCurrentStep(wizardNavigation.previousStep);
+  }, [wizardNavigation.previousStep]);
 
   const handleAdvanceSeason = useCallback(async () => {
     if (!worldId) {
       setError(
         'No world selected. Please select a world before advancing seasons.'
       );
+      return;
+    }
+
+    if (stagedOptionValidationError) {
+      setError(stagedOptionValidationError);
+      if (hasOptions) {
+        setCurrentStep(WIZARD_STEPS.OPTIONS);
+      }
       return;
     }
 
@@ -434,24 +602,12 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
         advanceSeasonInWorld: AdvanceSeasonInWorld;
       };
 
-      const decisions: Record<string, OffseasonOptionDecision> = {};
-      for (const [playerId, data] of Object.entries(optionDecisions)) {
-        if (data.decision) {
-          const normalizedType = String(data.optionType || '')
-            .toLowerCase()
-            .includes('player')
-            ? 'player'
-            : 'team';
-          decisions[playerId] = {
-            decision: data.decision,
-            optionType: normalizedType,
-            season: data.season || toSeason,
-          };
-        }
-      }
-
       const advanceResult = await advanceSeasonInWorld(worldId, {
-        optionDecisions: decisions,
+        optionDecisions: buildAdvanceOptionDecisions(
+          playersWithOptions,
+          stagedOptionDecisions,
+          toSeason
+        ),
       });
 
       if (!advanceResult.success) {
@@ -498,7 +654,15 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [worldId, optionDecisions, onWorldAdvanceComplete, toSeason]);
+  }, [
+    hasOptions,
+    onWorldAdvanceComplete,
+    playersWithOptions,
+    stagedOptionDecisions,
+    stagedOptionValidationError,
+    toSeason,
+    worldId,
+  ]);
 
   const renderSummaryStep = () => (
     <div className="space-y-4">
@@ -640,7 +804,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
                   type="radio"
                   name={`option-${player.playerId}`}
                   checked={
-                    optionDecisions[player.playerId]?.decision === 'exercise'
+                    stagedOptionDecisions[player.playerId]?.decision ===
+                    'exercise'
                   }
                   onChange={() =>
                     handleOptionChange(player.playerId, 'exercise')
@@ -654,7 +819,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
                   type="radio"
                   name={`option-${player.playerId}`}
                   checked={
-                    optionDecisions[player.playerId]?.decision === 'decline'
+                    stagedOptionDecisions[player.playerId]?.decision ===
+                    'decline'
                   }
                   onChange={() =>
                     handleOptionChange(player.playerId, 'decline')
@@ -665,7 +831,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
               </label>
             </div>
 
-            {!optionDecisions[player.playerId]?.decision && (
+            {!stagedOptionDecisions[player.playerId]?.decision && (
               <p className="text-xs text-yellow-400 mt-1">Decision required</p>
             )}
           </div>
@@ -675,11 +841,11 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   );
 
   const renderConfirmationStep = () => {
-    const exercised = Object.entries(optionDecisions).filter(
-      ([, data]) => data.decision === 'exercise'
+    const exercised = orderedStagedOptionDecisions.filter(
+      (data) => data.decision === 'exercise'
     );
-    const declined = Object.entries(optionDecisions).filter(
-      ([, data]) => data.decision === 'decline'
+    const declined = orderedStagedOptionDecisions.filter(
+      (data) => data.decision === 'decline'
     );
 
     return (
@@ -700,8 +866,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
                 Options to Exercise ({exercised.length})
               </h4>
               <ul className="text-xs text-white/60">
-                {exercised.map(([, data]) => (
-                  <li key={String(data.playerName)}>{data.playerName}</li>
+                {exercised.map((data) => (
+                  <li key={data.playerId}>{data.playerName}</li>
                 ))}
               </ul>
             </div>
@@ -713,8 +879,8 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
                 Options to Decline ({declined.length})
               </h4>
               <ul className="text-xs text-white/60">
-                {declined.map(([, data]) => (
-                  <li key={String(data.playerName)}>
+                {declined.map((data) => (
+                  <li key={data.playerId}>
                     {data.playerName} → Free Agent
                   </li>
                 ))}
@@ -760,13 +926,10 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
 
   if (!isOpen) return null;
 
-  const canProceed = currentStep !== WIZARD_STEPS.OPTIONS || allOptionsDecided;
-  const showBackButton =
-    currentStep === WIZARD_STEPS.OPTIONS ||
-    currentStep === WIZARD_STEPS.CONFIRMATION;
-  const showNextButton =
-    currentStep === WIZARD_STEPS.SUMMARY ||
-    currentStep === WIZARD_STEPS.OPTIONS;
+  const canProceed =
+    currentStep !== WIZARD_STEPS.OPTIONS || stagedOptionValidationError === null;
+  const showBackButton = Boolean(wizardNavigation.previousStep);
+  const showNextButton = Boolean(wizardNavigation.nextStep);
   const showAdvanceButton = currentStep === WIZARD_STEPS.CONFIRMATION;
   const showCloseButton = currentStep === WIZARD_STEPS.COMPLETE;
 
@@ -792,6 +955,53 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
         </div>
 
         <div className="p-4 overflow-y-auto flex-1">
+          {wizardNavigation.isPreAdvanceStep && (
+            <ol
+              aria-label="Season advance progress"
+              data-testid="season-advance-progress"
+              className="mb-4 flex items-center gap-2 text-xs text-white/60"
+            >
+              {preAdvanceSteps.map((step, index) => {
+                const isActive = wizardNavigation.currentIndex === index;
+                const isComplete = wizardNavigation.currentIndex > index;
+
+                return (
+                  <li
+                    key={step.value}
+                    aria-current={isActive ? 'step' : undefined}
+                    data-state={
+                      isActive
+                        ? 'current'
+                        : isComplete
+                          ? 'complete'
+                          : 'upcoming'
+                    }
+                    data-testid={`season-advance-progress-${step.value}`}
+                    className="flex items-center gap-2"
+                  >
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
+                        isActive
+                          ? 'border-blue-500 bg-blue-500/20 text-blue-300'
+                          : isComplete
+                            ? 'border-green-500 bg-green-500/20 text-green-300'
+                            : 'border-white/20 bg-white/5 text-white/50'
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className={isActive ? 'text-white' : undefined}>
+                      {step.label}
+                    </span>
+                    {index < preAdvanceSteps.length - 1 && (
+                      <span className="text-white/20">/</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
           {error && (
             <div className="bg-red-500/20 border border-red-500/50 rounded p-3 mb-4">
               <p className="text-sm text-red-400">{error}</p>

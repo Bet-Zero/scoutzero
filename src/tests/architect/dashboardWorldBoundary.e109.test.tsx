@@ -377,7 +377,41 @@ function makeWorld(worldId: string, worldName: string): WorldLike {
   return { worldId, worldName };
 }
 
-function buildSeasonAdvanceTeamCapSheet(): TeamCapSheetLike {
+function buildSeasonAdvanceOptionPlayer({
+  playerId = 'option_1',
+  name = 'Option Player',
+  displayName = name,
+  option = 'Player Option',
+  salary = 12_500_000,
+}: {
+  playerId?: string;
+  name?: string;
+  displayName?: string;
+  option?: string;
+  salary?: number;
+} = {}) {
+  return {
+    player_id: playerId,
+    name,
+    displayName,
+    contract: {
+      salariesByYear: [
+        {
+          season: '2026-27',
+          option,
+          salary,
+          capHit: salary,
+        },
+      ],
+    },
+  };
+}
+
+function buildSeasonAdvanceTeamCapSheet({
+  optionPlayers = [buildSeasonAdvanceOptionPlayer()],
+}: {
+  optionPlayers?: Array<Record<string, unknown>>;
+} = {}): TeamCapSheetLike {
   return {
     players: [
       {
@@ -394,21 +428,7 @@ function buildSeasonAdvanceTeamCapSheet(): TeamCapSheetLike {
           ],
         },
       },
-      {
-        player_id: 'option_1',
-        name: 'Option Player',
-        displayName: 'Option Player',
-        contract: {
-          salariesByYear: [
-            {
-              season: '2026-27',
-              option: 'Player Option',
-              salary: 12_500_000,
-              capHit: 12_500_000,
-            },
-          ],
-        },
-      },
+      ...optionPlayers,
     ],
     capHolds: [
       {
@@ -941,6 +961,237 @@ describe('E109 dashboard/world boundary behavior', () => {
         )
       ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    });
+
+    it('renders the explicit progress-strip order when options are required', () => {
+      render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      const reviewStep = screen.getByTestId('season-advance-progress-summary');
+      const optionsStep = screen.getByTestId('season-advance-progress-options');
+      const confirmStep = screen.getByTestId(
+        'season-advance-progress-confirmation'
+      );
+
+      expect(
+        reviewStep.compareDocumentPosition(optionsStep) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(
+        optionsStep.compareDocumentPosition(confirmStep) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(reviewStep).toHaveAttribute('data-state', 'current');
+      expect(optionsStep).toHaveAttribute('data-state', 'upcoming');
+      expect(confirmStep).toHaveAttribute('data-state', 'upcoming');
+    });
+
+    it('skips the options step when no decisions are required and backs from confirmation to summary', () => {
+      render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet({
+            optionPlayers: [],
+          })}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      expect(
+        screen.queryByTestId('season-advance-progress-options')
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(
+        screen.getByRole('heading', { name: 'Confirm Season Advance' })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Option Decisions for 2026-27' })
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      expect(
+        screen.getByRole('heading', { name: 'Advance to 2026-27' })
+      ).toBeInTheDocument();
+    });
+
+    it('preserves staged decisions when returning from confirmation to the options step', () => {
+      render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      expect(
+        screen.getByRole('heading', { name: 'Option Decisions for 2026-27' })
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('Exercise')).toBeChecked();
+    });
+
+    it('updates confirmation truth when a staged decision changes', () => {
+      render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(screen.getByText('Options to Exercise (1)')).toBeInTheDocument();
+      expect(screen.getByText('Option Player')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      fireEvent.click(screen.getByLabelText('Decline'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(
+        screen.queryByText('Options to Exercise (1)')
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Options to Decline (1)')).toBeInTheDocument();
+      expect(screen.getByText('Option Player → Free Agent')).toBeInTheDocument();
+    });
+
+    it('does not dispatch season advancement before final confirmation', () => {
+      render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      expect(
+        screen.getByRole('heading', { name: 'Confirm Season Advance' })
+      ).toBeInTheDocument();
+      expect(mockAdvanceSeasonInWorld).not.toHaveBeenCalled();
+    });
+
+    it('blocks final advancement and returns to options if staged decisions become incomplete', async () => {
+      const { rerender } = render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      rerender(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet({
+            optionPlayers: [
+              buildSeasonAdvanceOptionPlayer(),
+              buildSeasonAdvanceOptionPlayer({
+                playerId: 'option_2',
+                name: 'Option Two',
+                displayName: 'Option Two',
+                option: 'Team Option',
+                salary: 9_000_000,
+              }),
+            ],
+          })}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('heading', { name: 'Option Decisions for 2026-27' })
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByText(
+          'Please make a decision for all player/team options before proceeding.'
+        )
+      ).toBeInTheDocument();
+      expect(mockAdvanceSeasonInWorld).not.toHaveBeenCalled();
+    });
+
+    it('preserves staged decisions when rerendered with the same option players', () => {
+      const { rerender } = render(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByLabelText('Exercise'));
+
+      rerender(
+        <SeasonAdvanceModal
+          isOpen={true}
+          onClose={vi.fn()}
+          teamCapSheet={buildSeasonAdvanceTeamCapSheet()}
+          authoritativeSeasonEndYear={2026}
+          worldId="world_alpha"
+          teamCode="LAL"
+          onWorldAdvanceComplete={vi.fn()}
+        />
+      );
+
+      expect(screen.getByLabelText('Exercise')).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
     });
 
     it('preserves option-decision wizard flow, processing state, and normalized success callback wiring', async () => {

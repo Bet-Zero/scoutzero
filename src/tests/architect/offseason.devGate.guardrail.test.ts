@@ -160,6 +160,15 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain('worldAdvanceAftermath?: WorldAdvanceAftermath;');
       expect(source).toContain('worldAdvanceAftermath: WorldAdvanceAftermath = {');
     });
+
+    it('keeps wizard flow and option staging on explicit modal-local helpers', () => {
+      expect(source).toContain('buildPreAdvanceWizardSteps');
+      expect(source).toContain('getWizardNavigationState');
+      expect(source).toContain('reconcileStagedOptionDecisions');
+      expect(source).toContain('stagedOptionDecisions');
+      expect(source).toContain('buildAdvanceOptionDecisions');
+      expect(source).toContain('season-advance-progress');
+    });
   });
 
   describe('Offseason preview authorities after shim retirement', () => {
