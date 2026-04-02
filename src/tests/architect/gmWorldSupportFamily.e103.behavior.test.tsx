@@ -22,21 +22,20 @@ import DraftPositionsInput from '@/features/architect/GMDashboard/components/Dra
 
 const {
   mockUpdateWorldMetadata,
-  mockGetDraftPositions,
-  mockSaveDraftPositions,
+  mockLoadCommittedDraftPositions,
+  mockSaveCommittedDraftPositions,
+  mockClearCommittedDraftPositions,
   mockValidateDraftPositionsMap,
 } = vi.hoisted(() => ({
   mockUpdateWorldMetadata: vi.fn(),
-  mockGetDraftPositions: vi.fn(),
-  mockSaveDraftPositions: vi.fn(),
+  mockLoadCommittedDraftPositions: vi.fn(),
+  mockSaveCommittedDraftPositions: vi.fn(),
+  mockClearCommittedDraftPositions: vi.fn(),
   mockValidateDraftPositionsMap: vi.fn(),
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldMetadata: mockUpdateWorldMetadata,
-  getDraftPositions: mockGetDraftPositions,
-  saveDraftPositions: mockSaveDraftPositions,
-  validateDraftPositionsMap: mockValidateDraftPositionsMap,
 }));
 
 const FIXED_SYSTEM_TIME = new Date('2026-03-15T12:00:00.000Z');
@@ -78,6 +77,12 @@ const renderDraftPositionsInput = (
 ) =>
   render(
     <DraftPositionsInput
+      persistenceAuthority={{
+        loadCommittedDraftPositions: mockLoadCommittedDraftPositions,
+        saveCommittedDraftPositions: mockSaveCommittedDraftPositions,
+        clearCommittedDraftPositions: mockClearCommittedDraftPositions,
+      }}
+      validateDraftPositionsMap={mockValidateDraftPositionsMap}
       worldId="world_1"
       defaultDraftYear={2026}
       worldSeason="2025-26"
@@ -93,8 +98,13 @@ describe('GM world-support family E103 behavior', () => {
     vi.spyOn(Date.prototype, 'toLocaleString').mockReturnValue('MOCKED_LOCALE');
 
     mockUpdateWorldMetadata.mockResolvedValue(undefined);
-    mockGetDraftPositions.mockResolvedValue(null);
-    mockSaveDraftPositions.mockResolvedValue({ success: true });
+    mockLoadCommittedDraftPositions.mockResolvedValue(null);
+    mockSaveCommittedDraftPositions.mockResolvedValue({
+      positionsMap: { ATL: 1, BOS: 2 },
+      method: 'manual',
+      updatedAtIso: '2026-03-15T12:00:00.000Z',
+    });
+    mockClearCommittedDraftPositions.mockResolvedValue(undefined);
     mockValidateDraftPositionsMap.mockReturnValue({
       valid: true,
       errors: [],
@@ -294,7 +304,18 @@ describe('GM world-support family E103 behavior', () => {
   });
 
   it('preserves DraftPositionsInput empty-world placeholder copy', () => {
-    render(<DraftPositionsInput worldId={null} defaultDraftYear={2026} />);
+    render(
+      <DraftPositionsInput
+        persistenceAuthority={{
+          loadCommittedDraftPositions: mockLoadCommittedDraftPositions,
+          saveCommittedDraftPositions: mockSaveCommittedDraftPositions,
+          clearCommittedDraftPositions: mockClearCommittedDraftPositions,
+        }}
+        validateDraftPositionsMap={mockValidateDraftPositionsMap}
+        worldId={null}
+        defaultDraftYear={2026}
+      />
+    );
 
     expect(
       screen.getByText('Select a world to enter draft positions.')
@@ -302,7 +323,7 @@ describe('GM world-support family E103 behavior', () => {
   });
 
   it('preserves DraftPositionsInput load flow, field ordering, helper copy, button ordering, and year options', async () => {
-    mockGetDraftPositions.mockResolvedValueOnce({
+    mockLoadCommittedDraftPositions.mockResolvedValueOnce({
       positionsMap: { ATL: 1, BOS: 2 },
       method: 'manual',
       updatedAtIso: '2026-03-10T08:30:00.000Z',
@@ -311,7 +332,7 @@ describe('GM world-support family E103 behavior', () => {
     renderDraftPositionsInput();
 
     await waitFor(() => {
-      expect(mockGetDraftPositions).toHaveBeenCalledWith('world_1', 2026);
+      expect(mockLoadCommittedDraftPositions).toHaveBeenCalledWith(2026);
     });
 
     expect(
@@ -336,14 +357,19 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
       'Validate',
       'Save',
-      'Reset to Template',
+      'Reset Editor',
+      'Clear Saved Positions',
     ]);
 
     expect(screen.getByRole('textbox')).toHaveValue(`{\n  "ATL": 1,\n  "BOS": 2\n}`);
     expect(screen.getByText('Last saved: MOCKED_LOCALE (manual)')).toBeInTheDocument();
     expect(screen.getByText(/How it works:/)).toBeInTheDocument();
     expect(screen.getByText(/When you advance the season:/)).toBeInTheDocument();
+    expect(screen.getByText(/Editor vs saved state:/)).toBeInTheDocument();
     expect(screen.getByText(/NO-OP guarantee:/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Clear Saved Positions' })
+    ).toBeEnabled();
 
     const yearOptions = screen
       .getAllByRole('option')
@@ -364,11 +390,17 @@ describe('GM world-support family E103 behavior', () => {
     const { rerender } = renderDraftPositionsInput();
 
     await waitFor(() => {
-      expect(mockGetDraftPositions).toHaveBeenCalledWith('world_1', 2026);
+      expect(mockLoadCommittedDraftPositions).toHaveBeenCalledWith(2026);
     });
 
     rerender(
       <DraftPositionsInput
+        persistenceAuthority={{
+          loadCommittedDraftPositions: mockLoadCommittedDraftPositions,
+          saveCommittedDraftPositions: mockSaveCommittedDraftPositions,
+          clearCommittedDraftPositions: mockClearCommittedDraftPositions,
+        }}
+        validateDraftPositionsMap={mockValidateDraftPositionsMap}
         worldId="world_1"
         defaultDraftYear={2028}
         worldSeason="2027-28"
@@ -376,14 +408,14 @@ describe('GM world-support family E103 behavior', () => {
     );
 
     await waitFor(() => {
-      expect(mockGetDraftPositions).toHaveBeenCalledWith('world_1', 2028);
+      expect(mockLoadCommittedDraftPositions).toHaveBeenCalledWith(2028);
     });
     expect(screen.getByDisplayValue('2028')).toBeInTheDocument();
   });
 
   it('preserves DraftPositionsInput template fallback and load-error messaging', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockGetDraftPositions.mockRejectedValueOnce(new Error('load failed'));
+    mockLoadCommittedDraftPositions.mockRejectedValueOnce(new Error('load failed'));
 
     renderDraftPositionsInput();
 
@@ -394,6 +426,24 @@ describe('GM world-support family E103 behavior', () => {
     });
     expect(consoleError).toHaveBeenCalled();
     expect(screen.getByRole('textbox')).toHaveValue(EXPECTED_TEMPLATE);
+  });
+
+  it('shows explicit no-saved-state copy when no committed draft positions exist for the selected year', async () => {
+    renderDraftPositionsInput();
+
+    await waitFor(() => {
+      expect(mockLoadCommittedDraftPositions).toHaveBeenCalledWith(2026);
+    });
+
+    expect(screen.getByRole('textbox')).toHaveValue(EXPECTED_TEMPLATE);
+    expect(
+      screen.getByText(
+        'No saved draft positions for 2026. Editor is showing the template.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Clear Saved Positions' })
+    ).toBeDisabled();
   });
 
   it('preserves DraftPositionsInput empty-json and parse-failure validation behavior', async () => {
@@ -435,15 +485,31 @@ describe('GM world-support family E103 behavior', () => {
     expect(
       screen.getByText('Invalid team code: "phi" (must be 3 uppercase letters)')
     ).toBeInTheDocument();
-    expect(mockSaveDraftPositions).not.toHaveBeenCalled();
+    expect(mockSaveCommittedDraftPositions).not.toHaveBeenCalled();
   });
 
-  it('preserves DraftPositionsInput successful save payload and success copy', async () => {
+  it('preserves DraftPositionsInput validation, save, reset, and clear messaging truth', async () => {
+    mockLoadCommittedDraftPositions.mockResolvedValueOnce({
+      positionsMap: { ATL: 1, BOS: 2 },
+      method: 'manual',
+      updatedAtIso: '2026-03-10T08:30:00.000Z',
+    });
+    mockSaveCommittedDraftPositions.mockResolvedValueOnce({
+      positionsMap: { ATL: 1, BOS: 2 },
+      method: 'imported',
+      updatedAtIso: '2026-03-11T09:45:00.000Z',
+    });
+
     renderDraftPositionsInput();
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toHaveValue(EXPECTED_TEMPLATE);
+      expect(screen.getByRole('textbox')).toHaveValue(`{\n  "ATL": 1,\n  "BOS": 2\n}`);
     });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    expect(
+      screen.getByText('Editor JSON is valid but not yet saved.')
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: '{"ATL": 1, "BOS": 2}' },
@@ -451,24 +517,53 @@ describe('GM world-support family E103 behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
-      expect(mockSaveDraftPositions).toHaveBeenCalledWith(
-        'world_1',
+      expect(mockSaveCommittedDraftPositions).toHaveBeenCalledWith(
         2026,
-        { ATL: 1, BOS: 2 },
-        { method: 'manual' }
+        { ATL: 1, BOS: 2 }
       );
     });
     expect(
-      screen.getByText('✅ Saved draft positions for 2026!')
+      screen.getByText(
+        '✅ Saved draft positions for 2026. Editor refreshed from committed world data.'
+      )
     ).toBeInTheDocument();
-    expect(screen.getByText('Last saved: MOCKED_LOCALE (manual)')).toBeInTheDocument();
+    expect(
+      screen.getByText('Last saved: MOCKED_LOCALE (imported)')
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '{"ATL": 9}' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Editor' }));
+    expect(
+      screen.getByText(
+        'Editor reset to the last saved draft positions. Saved positions were not cleared.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveValue(`{\n  "ATL": 1,\n  "BOS": 2\n}`);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Saved Positions' }));
+    await waitFor(() => {
+      expect(mockClearCommittedDraftPositions).toHaveBeenCalledWith(2026);
+    });
+    expect(
+      screen.getByText(
+        '✅ Cleared saved draft positions for 2026. The editor is now showing the template.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveValue(EXPECTED_TEMPLATE);
+    expect(
+      screen.getByText(
+        'No saved draft positions for 2026. Editor is showing the template.'
+      )
+    ).toBeInTheDocument();
   });
 
-  it('preserves DraftPositionsInput save-error messaging and reset behavior', async () => {
-    mockSaveDraftPositions.mockResolvedValueOnce({
-      success: false,
-      errors: ['Duplicate position 1'],
-    });
+  it('preserves DraftPositionsInput save-error messaging and template-only reset behavior', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockSaveCommittedDraftPositions.mockRejectedValueOnce(
+      new Error('Duplicate position 1')
+    );
 
     renderDraftPositionsInput();
 
@@ -485,11 +580,15 @@ describe('GM world-support family E103 behavior', () => {
       expect(screen.getByText('Error: Duplicate position 1')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reset to Template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Editor' }));
 
     expect(screen.getByRole('textbox')).toHaveValue(EXPECTED_TEMPLATE);
     expect(
-      screen.queryByText('Error: Duplicate position 1')
-    ).not.toBeInTheDocument();
+      screen.getByText(
+        'Editor reset to the template. No saved positions were cleared.'
+      )
+    ).toBeInTheDocument();
+    expect(mockClearCommittedDraftPositions).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalled();
   });
 });

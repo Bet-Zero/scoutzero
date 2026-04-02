@@ -12,39 +12,44 @@ import {
   type ChangeEvent,
 } from 'react';
 import PropTypes from 'prop-types';
-import {
-  getDraftPositions,
-  saveDraftPositions,
-  validateDraftPositionsMap,
-} from '@/features/architect/utils/worldManager';
 
 type DraftPositionsInputProps = {
+  persistenceAuthority: DraftPositionsPersistenceAuthority;
+  validateDraftPositionsMap: (
+    positionsMap: Record<string, unknown>
+  ) => DraftPositionsValidationResult;
   worldId?: string | null;
   defaultDraftYear: number;
   worldSeason?: string | null;
 };
 
-type DraftPositionsMap = Record<string, number>;
+export type DraftPositionsMap = Record<string, number>;
 
-type DraftPositionsValidationResult = {
+export type DraftPositionsValidationResult = {
   valid: boolean;
   errors: string[];
 };
 
-type DraftPositionsLoadResult = {
-  positionsMap?: DraftPositionsMap;
+export type DraftPositionsCommittedState = {
+  positionsMap: DraftPositionsMap;
   method?: string;
   updatedAtIso?: string;
 } | null;
 
-type DraftPositionsSaveResult = {
-  success: boolean;
-  errors?: string[];
+export type DraftPositionsPersistenceAuthority = {
+  loadCommittedDraftPositions: (
+    draftYear: number
+  ) => Promise<DraftPositionsCommittedState>;
+  saveCommittedDraftPositions: (
+    draftYear: number,
+    positionsMap: DraftPositionsMap
+  ) => Promise<DraftPositionsCommittedState>;
+  clearCommittedDraftPositions: (draftYear: number) => Promise<void>;
 };
 
-type LastSavedState = {
-  method?: string;
-  updatedAtIso?: string;
+type DraftPositionsStatusMessage = {
+  tone: 'success' | 'warning' | 'info';
+  text: string;
 } | null;
 
 type ErrorLike = {
@@ -84,7 +89,34 @@ const SAMPLE_POSITIONS_TEMPLATE: DraftPositionsMap = {
   WAS: 30,
 };
 
+const SAMPLE_POSITIONS_TEMPLATE_TEXT = JSON.stringify(
+  SAMPLE_POSITIONS_TEMPLATE,
+  null,
+  2
+);
+
+const STATUS_STYLES = {
+  success: {
+    container: 'bg-green-500/10 border border-green-500/30',
+    text: 'text-green-400',
+  },
+  warning: {
+    container: 'bg-yellow-500/10 border border-yellow-500/30',
+    text: 'text-yellow-400',
+  },
+  info: {
+    container: 'bg-blue-500/10 border border-blue-500/30',
+    text: 'text-blue-300',
+  },
+} as const;
+
+function formatPositionsMap(positionsMap: DraftPositionsMap) {
+  return JSON.stringify(positionsMap, null, 2);
+}
+
 export function DraftPositionsInput({
+  persistenceAuthority,
+  validateDraftPositionsMap,
   worldId = null,
   defaultDraftYear,
   worldSeason = null,
@@ -94,10 +126,12 @@ export function DraftPositionsInput({
   );
   const [jsonText, setJsonText] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [lastSaved, setLastSaved] = useState<LastSavedState>(null);
+  const [committedDraftPositions, setCommittedDraftPositions] =
+    useState<DraftPositionsCommittedState>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState('');
+  const [statusMessage, setStatusMessage] =
+    useState<DraftPositionsStatusMessage>(null);
 
   useEffect(() => {
     if (defaultDraftYear) {
@@ -110,123 +144,211 @@ export function DraftPositionsInput({
     return Array.from({ length: 8 }, (_, index) => startYear + index);
   }, [defaultDraftYear]);
 
+  const restoreEditorFromCommittedState = useCallback(
+    (draftPositions: DraftPositionsCommittedState) => {
+      if (draftPositions?.positionsMap) {
+        setJsonText(formatPositionsMap(draftPositions.positionsMap));
+        return;
+      }
+
+      setJsonText(SAMPLE_POSITIONS_TEMPLATE_TEXT);
+    },
+    []
+  );
+
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadPositions() {
       if (!worldId || !selectedYear) return;
 
       setIsLoading(true);
-      setSaveMessage('');
+      setStatusMessage(null);
       setValidationErrors([]);
+      setCommittedDraftPositions(null);
 
       try {
-        const data = (await getDraftPositions(
-          worldId,
+        const data = await persistenceAuthority.loadCommittedDraftPositions(
           selectedYear
-        )) as DraftPositionsLoadResult;
+        );
 
-        if (data?.positionsMap) {
-          setJsonText(JSON.stringify(data.positionsMap, null, 2));
-          setLastSaved({
-            method: data.method,
-            updatedAtIso: data.updatedAtIso,
-          });
-        } else {
-          setJsonText(JSON.stringify(SAMPLE_POSITIONS_TEMPLATE, null, 2));
-          setLastSaved(null);
+        if (isCancelled) {
+          return;
         }
+
+        setCommittedDraftPositions(data);
+        restoreEditorFromCommittedState(data);
       } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
         const errorLike = error as ErrorLike;
         console.error('Failed to load draft positions:', error);
-        setSaveMessage(`Error loading: ${errorLike.message}`);
-        setJsonText(JSON.stringify(SAMPLE_POSITIONS_TEMPLATE, null, 2));
-        setLastSaved(null);
+        setStatusMessage({
+          tone: 'warning',
+          text: `Error loading: ${errorLike.message}`,
+        });
+        setCommittedDraftPositions(null);
+        setJsonText(SAMPLE_POSITIONS_TEMPLATE_TEXT);
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     void loadPositions();
-  }, [worldId, selectedYear]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    persistenceAuthority,
+    restoreEditorFromCommittedState,
+    selectedYear,
+    worldId,
+  ]);
+
+  const parseAndValidateEditorJson = useCallback(
+    (announceValidEditorState: boolean) => {
+      setValidationErrors([]);
+      setStatusMessage(null);
+
+      if (!jsonText.trim()) {
+        setValidationErrors(['JSON is empty']);
+        return null;
+      }
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(jsonText);
+      } catch (error) {
+        const errorLike = error as ErrorLike;
+        setValidationErrors([`Invalid JSON: ${errorLike.message}`]);
+        return null;
+      }
+
+      const validation = validateDraftPositionsMap(
+        parsed as Record<string, unknown>
+      );
+      if (!validation.valid) {
+        setValidationErrors(validation.errors);
+        return null;
+      }
+
+      if (announceValidEditorState) {
+        setStatusMessage({
+          tone: 'info',
+          text: 'Editor JSON is valid but not yet saved.',
+        });
+      }
+
+      return parsed as DraftPositionsMap;
+    },
+    [jsonText, validateDraftPositionsMap]
+  );
 
   const handleValidate = useCallback(() => {
-    setValidationErrors([]);
-    setSaveMessage('');
-
-    if (!jsonText.trim()) {
-      setValidationErrors(['JSON is empty']);
-      return false;
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch (error) {
-      const errorLike = error as ErrorLike;
-      setValidationErrors([`Invalid JSON: ${errorLike.message}`]);
-      return false;
-    }
-
-    const validation = validateDraftPositionsMap(
-      parsed as Record<string, unknown>
-    ) as DraftPositionsValidationResult;
-    if (!validation.valid) {
-      setValidationErrors(validation.errors);
-      return false;
-    }
-
-    setSaveMessage('✅ JSON is valid!');
-    return true;
-  }, [jsonText]);
+    return parseAndValidateEditorJson(true) !== null;
+  }, [parseAndValidateEditorJson]);
 
   const handleSave = useCallback(async () => {
     if (!worldId) {
-      setSaveMessage('Error: No world selected');
+      setStatusMessage({
+        tone: 'warning',
+        text: 'Error: No world selected',
+      });
       return;
     }
 
-    if (!handleValidate()) {
+    const positionsMap = parseAndValidateEditorJson(false);
+    if (!positionsMap) {
       return;
     }
 
     setIsSaving(true);
-    setSaveMessage('');
+    setStatusMessage(null);
 
     try {
-      const positionsMap = JSON.parse(jsonText) as DraftPositionsMap;
-      const result = (await saveDraftPositions(
-        worldId,
-        selectedYear,
-        positionsMap,
-        {
-          method: 'manual',
-        }
-      )) as DraftPositionsSaveResult;
+      const committedDraftPositionsResult =
+        await persistenceAuthority.saveCommittedDraftPositions(
+          selectedYear,
+          positionsMap
+        );
 
-      if (result.success) {
-        setLastSaved({
-          method: 'manual',
-          updatedAtIso: new Date().toISOString(),
-        });
-        setSaveMessage(`✅ Saved draft positions for ${selectedYear}!`);
-      } else {
-        setSaveMessage(
-          `Error: ${result.errors?.join(', ') || 'Unknown error'}`
+      if (!committedDraftPositionsResult?.positionsMap) {
+        throw new Error(
+          `Committed draft positions were unavailable after save for ${selectedYear}`
         );
       }
+
+      setCommittedDraftPositions(committedDraftPositionsResult);
+      restoreEditorFromCommittedState(committedDraftPositionsResult);
+      setStatusMessage({
+        tone: 'success',
+        text: `✅ Saved draft positions for ${selectedYear}. Editor refreshed from committed world data.`,
+      });
     } catch (error) {
       const errorLike = error as ErrorLike;
       console.error('Failed to save draft positions:', error);
-      setSaveMessage(`Error: ${errorLike.message}`);
+      setStatusMessage({
+        tone: 'warning',
+        text: `Error: ${errorLike.message}`,
+      });
     } finally {
       setIsSaving(false);
     }
-  }, [worldId, selectedYear, jsonText, handleValidate]);
+  }, [
+    parseAndValidateEditorJson,
+    persistenceAuthority,
+    restoreEditorFromCommittedState,
+    selectedYear,
+    worldId,
+  ]);
 
-  const handleReset = useCallback(() => {
-    setJsonText(JSON.stringify(SAMPLE_POSITIONS_TEMPLATE, null, 2));
+  const handleResetEditor = useCallback(() => {
+    restoreEditorFromCommittedState(committedDraftPositions);
     setValidationErrors([]);
-    setSaveMessage('');
-  }, []);
+    setStatusMessage({
+      tone: 'info',
+      text: committedDraftPositions?.positionsMap
+        ? 'Editor reset to the last saved draft positions. Saved positions were not cleared.'
+        : 'Editor reset to the template. No saved positions were cleared.',
+    });
+  }, [committedDraftPositions, restoreEditorFromCommittedState]);
+
+  const handleClearSavedPositions = useCallback(async () => {
+    if (!worldId) {
+      setStatusMessage({
+        tone: 'warning',
+        text: 'Error: No world selected',
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    setValidationErrors([]);
+    setStatusMessage(null);
+
+    try {
+      await persistenceAuthority.clearCommittedDraftPositions(selectedYear);
+      setCommittedDraftPositions(null);
+      setJsonText(SAMPLE_POSITIONS_TEMPLATE_TEXT);
+      setStatusMessage({
+        tone: 'success',
+        text: `✅ Cleared saved draft positions for ${selectedYear}. The editor is now showing the template.`,
+      });
+    } catch (error) {
+      const errorLike = error as ErrorLike;
+      console.error('Failed to clear draft positions:', error);
+      setStatusMessage({
+        tone: 'warning',
+        text: `Error: ${errorLike.message}`,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [persistenceAuthority, selectedYear, worldId]);
 
   const handleYearChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedYear(parseInt(event.target.value, 10));
@@ -290,7 +412,7 @@ export function DraftPositionsInput({
         <textarea
           value={jsonText}
           onChange={handleJsonChange}
-          disabled={isLoading}
+          disabled={isLoading || isSaving}
           className="w-full h-64 bg-[#0d0d0d] border border-white/20 rounded px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-blue-500 resize-y"
           placeholder='{"ATL": 1, "BOS": 2, ...}'
         />
@@ -309,32 +431,34 @@ export function DraftPositionsInput({
         </div>
       )}
 
-      {saveMessage && !validationErrors.length && (
+      {statusMessage && !validationErrors.length && (
         <div
           className={`mb-4 p-3 rounded ${
-            saveMessage.startsWith('✅')
-              ? 'bg-green-500/10 border border-green-500/30'
-              : 'bg-yellow-500/10 border border-yellow-500/30'
+            STATUS_STYLES[statusMessage.tone].container
           }`}
         >
-          <p
-            className={`text-sm ${
-              saveMessage.startsWith('✅')
-                ? 'text-green-400'
-                : 'text-yellow-400'
-            }`}
-          >
-            {saveMessage}
+          <p className={`text-sm ${STATUS_STYLES[statusMessage.tone].text}`}>
+            {statusMessage.text}
           </p>
         </div>
       )}
 
-      {lastSaved && (
-        <div className="mb-4 text-xs text-white/40">
-          Last saved: {new Date(lastSaved.updatedAtIso as string).toLocaleString()} (
-          {lastSaved.method})
-        </div>
-      )}
+      <div className="mb-4 text-xs text-white/40">
+        {committedDraftPositions?.positionsMap ? (
+          <>
+            Last saved:{' '}
+            {committedDraftPositions.updatedAtIso
+              ? new Date(committedDraftPositions.updatedAtIso).toLocaleString()
+              : 'Unknown time'}{' '}
+            ({committedDraftPositions.method || 'unknown'})
+          </>
+        ) : (
+          <>
+            No saved draft positions for {selectedYear}. Editor is showing the
+            template.
+          </>
+        )}
+      </div>
 
       <div className="flex gap-3">
         <button
@@ -355,11 +479,19 @@ export function DraftPositionsInput({
         </button>
         <button
           type="button"
-          onClick={handleReset}
+          onClick={handleResetEditor}
           disabled={isLoading || isSaving}
           className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 rounded text-sm transition-colors disabled:opacity-50"
         >
-          Reset to Template
+          Reset Editor
+        </button>
+        <button
+          type="button"
+          onClick={handleClearSavedPositions}
+          disabled={isLoading || isSaving || !committedDraftPositions}
+          className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded text-sm transition-colors disabled:opacity-50"
+        >
+          Clear Saved Positions
         </button>
       </div>
 
@@ -369,9 +501,14 @@ export function DraftPositionsInput({
           team codes (ATL, BOS, etc.) to pick positions (1-60).
         </p>
         <p className="mb-2">
-          <strong>When you advance the season:</strong> If draft positions exist
-          for the current draft year, swaps and protected picks will
-          auto-resolve based on these positions.
+          <strong>When you advance the season:</strong> If saved draft positions
+          exist for the current draft year, swaps and protected picks will
+          auto-resolve based on the committed positions for that year.
+        </p>
+        <p className="mb-2">
+          <strong>Editor vs saved state:</strong> Reset Editor only changes the
+          local JSON editor. Clear Saved Positions removes the committed record
+          for the selected draft year.
         </p>
         <p>
           <strong>NO-OP guarantee:</strong> If no positions are saved, season
@@ -383,6 +520,12 @@ export function DraftPositionsInput({
 }
 
 DraftPositionsInput.propTypes = {
+  persistenceAuthority: PropTypes.shape({
+    loadCommittedDraftPositions: PropTypes.func.isRequired,
+    saveCommittedDraftPositions: PropTypes.func.isRequired,
+    clearCommittedDraftPositions: PropTypes.func.isRequired,
+  }).isRequired,
+  validateDraftPositionsMap: PropTypes.func.isRequired,
   worldId: PropTypes.string,
   defaultDraftYear: PropTypes.number.isRequired,
   worldSeason: PropTypes.string,

@@ -18,14 +18,24 @@
  *  - Latest Chunk: N/A
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import SeasonAdvanceModal, {
   type SeasonAdvanceResult,
   type WorldAdvanceAftermath,
 } from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
-import DraftPositionsInput from '@/features/architect/GMDashboard/components/DraftPositionsInput';
+import DraftPositionsInput, {
+  type DraftPositionsCommittedState,
+  type DraftPositionsPersistenceAuthority,
+  type DraftPositionsValidationResult,
+} from '@/features/architect/GMDashboard/components/DraftPositionsInput';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
-import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import {
+  clearDraftPositions,
+  getDraftPositions,
+  getWorldMetadata,
+  saveDraftPositions,
+  validateDraftPositionsMap,
+} from '@/features/architect/utils/worldManager';
 
 // OFFSEASON_E1: DEV-only flag for single-team offseason preview (non-persisting).
 // Import kept for DEV preview; rendering is gated by showDevPreview below.
@@ -60,6 +70,10 @@ type WorldBackedOffseasonSurfaceProps = {
   worldDraftYear: number | null;
   viewingYear: number;
   canAdvanceSeason: boolean;
+  draftPositionsPersistenceAuthority: DraftPositionsPersistenceAuthority;
+  validateDraftPositionsMap: (
+    positionsMap: Record<string, unknown>
+  ) => DraftPositionsValidationResult;
   onOpenAdvanceModal: () => void;
 };
 
@@ -102,6 +116,16 @@ function getWorldAdvanceAftermath(
   return worldAdvanceAftermath;
 }
 
+function normalizeCommittedDraftPositions(
+  draftPositions: DraftPositionsCommittedState | null | undefined
+) {
+  if (!draftPositions?.positionsMap) {
+    return null;
+  }
+
+  return draftPositions;
+}
+
 function WorldBackedOffseasonSurface({
   worldId,
   worldSeason,
@@ -111,6 +135,8 @@ function WorldBackedOffseasonSurface({
   worldDraftYear,
   viewingYear,
   canAdvanceSeason,
+  draftPositionsPersistenceAuthority,
+  validateDraftPositionsMap,
   onOpenAdvanceModal,
 }: WorldBackedOffseasonSurfaceProps) {
   if (!worldId) {
@@ -161,6 +187,8 @@ function WorldBackedOffseasonSurface({
 
       <div className="mb-6">
         <DraftPositionsInput
+          persistenceAuthority={draftPositionsPersistenceAuthority}
+          validateDraftPositionsMap={validateDraftPositionsMap}
           worldId={worldId}
           defaultDraftYear={worldDraftYear ?? viewingYear}
           worldSeason={worldSeason}
@@ -334,6 +362,77 @@ const OffseasonSection = ({
   const canAdvanceWorldSeason = Boolean(
     worldId && worldSeason && !worldSeasonLoading
   );
+  const draftPositionsPersistenceAuthority =
+    useMemo<DraftPositionsPersistenceAuthority>(() => ({
+      async loadCommittedDraftPositions(draftYear) {
+        if (!worldId) {
+          return null;
+        }
+
+        const committedDraftPositions = normalizeCommittedDraftPositions(
+          (await getDraftPositions(
+            worldId,
+            draftYear
+          )) as DraftPositionsCommittedState
+        );
+
+        return committedDraftPositions;
+      },
+      async saveCommittedDraftPositions(draftYear, positionsMap) {
+        if (!worldId) {
+          throw new Error('worldId is required');
+        }
+
+        const saveResult = await saveDraftPositions(
+          worldId,
+          draftYear,
+          positionsMap,
+          {
+            method: 'manual',
+          }
+        );
+
+        if (!saveResult.success) {
+          throw new Error(
+            saveResult.errors?.join(', ') || 'Failed to save draft positions'
+          );
+        }
+
+        const committedDraftPositions = normalizeCommittedDraftPositions(
+          (await getDraftPositions(
+            worldId,
+            draftYear
+          )) as DraftPositionsCommittedState
+        );
+
+        if (!committedDraftPositions) {
+          throw new Error(
+            `Committed draft positions were unavailable after save for ${draftYear}`
+          );
+        }
+
+        return committedDraftPositions;
+      },
+      async clearCommittedDraftPositions(draftYear) {
+        if (!worldId) {
+          throw new Error('worldId is required');
+        }
+
+        const clearResult = await clearDraftPositions(worldId, draftYear);
+        if (!clearResult.success) {
+          throw new Error(
+            clearResult.errors?.join(', ') || 'Failed to clear draft positions'
+          );
+        }
+      },
+    }), [worldId]);
+  const draftPositionsValidationAuthority = useCallback(
+    (positionsMap: Record<string, unknown>) =>
+      validateDraftPositionsMap(
+        positionsMap
+      ) as DraftPositionsValidationResult,
+    []
+  );
 
   const viewingSeason = toSeasonCode(viewingYear);
 
@@ -350,6 +449,8 @@ const OffseasonSection = ({
         worldDraftYear={worldDraftYear}
         viewingYear={viewingYear}
         canAdvanceSeason={canAdvanceWorldSeason}
+        draftPositionsPersistenceAuthority={draftPositionsPersistenceAuthority}
+        validateDraftPositionsMap={draftPositionsValidationAuthority}
         onOpenAdvanceModal={() => {
           if (!canAdvanceWorldSeason) {
             return;

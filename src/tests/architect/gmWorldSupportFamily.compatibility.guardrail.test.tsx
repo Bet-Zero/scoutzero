@@ -107,8 +107,26 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     expect(draftPositionsInputSource).toContain(
       'export function DraftPositionsInput'
     );
+    expect(draftPositionsInputSource).not.toContain(
+      "from '@/features/architect/utils/worldManager'"
+    );
     expect(draftPositionsInputSource).toContain(
       'DraftPositionsInput.propTypes = {'
+    );
+    expect(draftPositionsInputSource).toContain(
+      'persistenceAuthority: PropTypes.shape({'
+    );
+    expect(draftPositionsInputSource).toContain(
+      'loadCommittedDraftPositions: PropTypes.func.isRequired'
+    );
+    expect(draftPositionsInputSource).toContain(
+      'saveCommittedDraftPositions: PropTypes.func.isRequired'
+    );
+    expect(draftPositionsInputSource).toContain(
+      'clearCommittedDraftPositions: PropTypes.func.isRequired'
+    );
+    expect(draftPositionsInputSource).toContain(
+      'validateDraftPositionsMap: PropTypes.func.isRequired'
     );
     expect(draftPositionsInputSource).toContain('worldId: PropTypes.string');
     expect(draftPositionsInputSource).toContain(

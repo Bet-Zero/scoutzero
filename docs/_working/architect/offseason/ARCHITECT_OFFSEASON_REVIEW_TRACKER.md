@@ -45,9 +45,9 @@
 
 | ID    | Title                                                                  | Status | Notes |
 |-------|------------------------------------------------------------------------|--------|-------|
-| OS-4A | Make Draft Positions Persistence Ownership More Explicit               | TODO   |       |
-| OS-4B | Fix Reset / Clear Truth So the UI Does Not Mislead the User           | TODO   |       |
+| OS-4A | Make Draft Positions Persistence Ownership More Explicit               | DONE   | OffseasonSection now hands DraftPositionsInput one explicit world-backed persistence authority plus a separate validator, and save success round-trips committed metadata back into the editor instead of synthesizing last-saved UI state locally. |
+| OS-4B | Fix Reset / Clear Truth So the UI Does Not Mislead the User           | DONE   | DraftPositionsInput now separates Reset Editor from Clear Saved Positions, routes persisted clear through worldManager.clearDraftPositions(...), and keeps reset messaging explicit that saved state was not cleared. |
 | OS-4C | Tighten Saved-Year / Used-Year Truth Through the World-Backed Flow    | TODO   |       |
 | OS-4D | Add Focused Guardrails for Draft Positions Input / Persistence Truth  | TODO   |       |
 
-**STEP 4 STATUS: TODO**
+**STEP 4 STATUS: IN_PROGRESS**

@@ -25,17 +25,37 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { OffseasonSection } from '@/features/architect/GMDashboard/sections/OffseasonSection';
 
-const { mockGetWorldMetadata } = vi.hoisted(() => ({
+const {
+  mockGetWorldMetadata,
+  mockGetDraftPositions,
+  mockSaveDraftPositions,
+  mockClearDraftPositions,
+  mockValidateDraftPositionsMap,
+  mockDraftPositionsInput,
+} = vi.hoisted(() => ({
   mockGetWorldMetadata: vi.fn(),
+  mockGetDraftPositions: vi.fn(),
+  mockSaveDraftPositions: vi.fn(),
+  mockClearDraftPositions: vi.fn(),
+  mockValidateDraftPositionsMap: vi.fn(),
+  mockDraftPositionsInput: vi.fn(),
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   getWorldMetadata: (...args: unknown[]) => mockGetWorldMetadata(...args),
+  getDraftPositions: (...args: unknown[]) => mockGetDraftPositions(...args),
+  saveDraftPositions: (...args: unknown[]) => mockSaveDraftPositions(...args),
+  clearDraftPositions: (...args: unknown[]) => mockClearDraftPositions(...args),
+  validateDraftPositionsMap: (...args: unknown[]) =>
+    mockValidateDraftPositionsMap(...args),
 }));
 
 vi.mock('@/features/architect/GMDashboard/components/DraftPositionsInput', () => ({
   __esModule: true,
-  default: () => <div data-testid="mock-draft-positions-input" />,
+  default: (props: unknown) => {
+    mockDraftPositionsInput(props);
+    return <div data-testid="mock-draft-positions-input" />;
+  },
 }));
 
 vi.mock('@/features/architect/offseason/OffseasonTab', () => ({
@@ -149,11 +169,100 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     mockGetWorldMetadata.mockResolvedValue({
       currentSeason: '2025-26',
     });
+    mockGetDraftPositions.mockResolvedValue({
+      positionsMap: { ATL: 1, BOS: 2 },
+      method: 'manual',
+      updatedAtIso: '2026-03-10T08:30:00.000Z',
+    });
+    mockSaveDraftPositions.mockResolvedValue({ success: true });
+    mockClearDraftPositions.mockResolvedValue({ success: true });
+    mockValidateDraftPositionsMap.mockReturnValue({
+      valid: true,
+      errors: [],
+    });
   });
 
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+  });
+
+  it('passes one world-backed draft positions authority seam and separate validation callback', async () => {
+    const props = buildOffseasonSectionProps();
+
+    render(<OffseasonSection {...props} />);
+
+    await screen.findByText('World Season: 2025-26');
+    expect(mockDraftPositionsInput).toHaveBeenCalled();
+
+    const draftPositionsInputProps = mockDraftPositionsInput.mock.lastCall?.[0] as {
+      persistenceAuthority: {
+        loadCommittedDraftPositions: (draftYear: number) => Promise<unknown>;
+        saveCommittedDraftPositions: (
+          draftYear: number,
+          positionsMap: Record<string, number>
+        ) => Promise<unknown>;
+        clearCommittedDraftPositions: (draftYear: number) => Promise<void>;
+      };
+      validateDraftPositionsMap: (
+        positionsMap: Record<string, unknown>
+      ) => { valid: boolean; errors: string[] };
+      defaultDraftYear: number;
+      worldId: string;
+      worldSeason: string;
+    };
+
+    expect(draftPositionsInputProps.worldId).toBe('world_alpha');
+    expect(draftPositionsInputProps.worldSeason).toBe('2025-26');
+    expect(draftPositionsInputProps.defaultDraftYear).toBe(2026);
+
+    await expect(
+      draftPositionsInputProps.persistenceAuthority.loadCommittedDraftPositions(
+        2026
+      )
+    ).resolves.toEqual({
+      positionsMap: { ATL: 1, BOS: 2 },
+      method: 'manual',
+      updatedAtIso: '2026-03-10T08:30:00.000Z',
+    });
+    expect(mockGetDraftPositions).toHaveBeenCalledWith('world_alpha', 2026);
+
+    mockGetDraftPositions.mockResolvedValueOnce({
+      positionsMap: { ATL: 7, BOS: 8 },
+      method: 'manual',
+      updatedAtIso: '2026-03-11T09:00:00.000Z',
+    });
+    await expect(
+      draftPositionsInputProps.persistenceAuthority.saveCommittedDraftPositions(
+        2026,
+        { ATL: 7, BOS: 8 }
+      )
+    ).resolves.toEqual({
+      positionsMap: { ATL: 7, BOS: 8 },
+      method: 'manual',
+      updatedAtIso: '2026-03-11T09:00:00.000Z',
+    });
+    expect(mockSaveDraftPositions).toHaveBeenCalledWith(
+      'world_alpha',
+      2026,
+      { ATL: 7, BOS: 8 },
+      { method: 'manual' }
+    );
+
+    await expect(
+      draftPositionsInputProps.persistenceAuthority.clearCommittedDraftPositions(
+        2026
+      )
+    ).resolves.toBeUndefined();
+    expect(mockClearDraftPositions).toHaveBeenCalledWith('world_alpha', 2026);
+
+    expect(
+      draftPositionsInputProps.validateDraftPositionsMap({ PHI: 5 })
+    ).toEqual({
+      valid: true,
+      errors: [],
+    });
+    expect(mockValidateDraftPositionsMap).toHaveBeenCalledWith({ PHI: 5 });
   });
 
   it('applies wrapper aftermath only from the normalized success result payload', async () => {
