@@ -499,8 +499,6 @@ const GMDashboard = () => {
             currentYear={currentYear}
             setCurrentYear={setCurrentYear}
             capProjections={capProjections}
-            setLastCapSheet={setLastCapSheet}
-            offseasonRun={offseasonRun}
             setOffseasonRun={setOffseasonRun}
             setOffseasonSummary={setOffseasonSummary}
             setShowOffseasonModal={setShowOffseasonModal}

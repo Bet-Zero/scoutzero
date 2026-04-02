@@ -16,49 +16,87 @@
 import React, { useState } from 'react';
 import OptionManager from './OptionManager';
 import { runOffseason } from '@/features/architect/utils/runOffseason';
+import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import type {
-  OffseasonPreviewAdvanceResult,
   OffseasonOptionDecisionMap,
+  OffseasonSummary,
   OffseasonTabProps,
 } from './types';
+
+type PreviewAftermath = {
+  projectedSeasonCode: string;
+  previewSummary: OffseasonSummary;
+};
+
+type SummarySectionProps = {
+  title: string;
+  items: string[];
+};
+
+function SummarySection({ title, items }: SummarySectionProps) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <h5 className="font-medium text-white">{title}</h5>
+      <ul className="mt-1 list-disc pl-5 text-sm text-white/70">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 const OffseasonTab = ({
   teamCapSheet,
   currentYear,
   capProjections = null,
-  offseasonRun = false,
-  onPreviewAdvanceComplete,
   playersMap = {},
 }: OffseasonTabProps) => {
   const [optionsConfirmed, setOptionsConfirmed] = useState(false);
   const [optionDecisions, setOptionDecisions] =
     useState<OffseasonOptionDecisionMap | null>(null);
+  const [previewAftermath, setPreviewAftermath] =
+    useState<PreviewAftermath | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleDecisionsReady = (decisions: OffseasonOptionDecisionMap) => {
     setOptionDecisions(decisions);
     setOptionsConfirmed(true);
+    setPreviewAftermath(null);
+    setError('');
+  };
+
+  const resetPreviewAftermath = () => {
+    setPreviewAftermath(null);
+    setError('');
+  };
+
+  const handleEditDecisions = () => {
+    resetPreviewAftermath();
+    setOptionsConfirmed(false);
   };
 
   const handleAdvanceYear = async () => {
     setIsLoading(true);
     setError('');
     try {
-      const previousCapSheet = JSON.parse(JSON.stringify(teamCapSheet));
-      const { updatedCapSheet, summary } = runOffseason(
+      const { summary } = runOffseason(
         teamCapSheet,
         currentYear,
         capProjections,
         optionDecisions || {}
       );
-      const previewResult: OffseasonPreviewAdvanceResult = {
-        previousCapSheet,
-        updatedCapSheet,
-        nextYear: currentYear + 1,
-        summary,
-      };
-      onPreviewAdvanceComplete(previewResult);
+      const projectedSeasonYear = currentYear + 1;
+
+      setPreviewAftermath({
+        projectedSeasonCode: toSeasonCode(projectedSeasonYear),
+        previewSummary: summary,
+      });
     } catch (err: any) {
       console.error('Failed to advance offseason', err);
       setError(err?.message || 'Failed to advance offseason');
@@ -73,7 +111,7 @@ const OffseasonTab = ({
       {error && <p className="text-red-500 mb-2">{error}</p>}
       {isLoading && <p className="text-sm mb-2">Processing...</p>}
 
-      {!optionsConfirmed && !offseasonRun && (
+      {!optionsConfirmed && !previewAftermath && (
         <OptionManager
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
@@ -82,12 +120,17 @@ const OffseasonTab = ({
         />
       )}
 
-      {optionsConfirmed && !offseasonRun && (
+      {optionsConfirmed && !previewAftermath && (
         <div className="mt-5">
           <h4 className="font-semibold mb-2">
             All option decisions confirmed.
           </h4>
+          <p className="mb-3 text-sm text-white/60">
+            This preview stays local to this DEV surface. It will not update the
+            world, dashboard year, or shared offseason summary.
+          </p>
           <button
+            type="button"
             onClick={handleAdvanceYear}
             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
           >
@@ -96,12 +139,81 @@ const OffseasonTab = ({
         </div>
       )}
 
-      {offseasonRun && (
-        <div className="mt-5">
+      {previewAftermath && (
+        <div
+          data-testid="offseason-preview-aftermath"
+          className="mt-5 rounded border border-yellow-500/40 bg-yellow-900/10 p-4"
+        >
           <strong>Preview computed — not saved</strong>
-          <p>
-            Preview shows projected state for {currentYear + 1} season. Use World Season Advance to persist.
+          <p
+            data-testid="offseason-preview-aftermath-copy"
+            className="mt-2 text-sm text-yellow-100"
+          >
+            Preview shows projected state for the{' '}
+            {previewAftermath.projectedSeasonCode} season only. No world state,
+            dashboard year, or shared offseason summary was updated. Use World
+            Season Advance to persist real changes.
           </p>
+
+          <div className="mt-4 space-y-3">
+            <SummarySection
+              title="Projected Exercised Options"
+              items={previewAftermath.previewSummary.exercisedOptions.map(
+                (option) => option.playerName
+              )}
+            />
+            <SummarySection
+              title="Projected Declined Options"
+              items={previewAftermath.previewSummary.declinedOptions.map(
+                (option) => option.playerName
+              )}
+            />
+            <SummarySection
+              title="Projected Expired Contracts"
+              items={previewAftermath.previewSummary.expiredContracts.map(
+                (contract) => contract.playerName
+              )}
+            />
+            <SummarySection
+              title="Projected Expired Trade Exceptions"
+              items={previewAftermath.previewSummary.expiredTPEs.map((tpe) => {
+                const amount = Number(tpe.amount || 0).toLocaleString();
+                return `$${amount} from ${tpe.source || 'Trade Exception'}`;
+              })}
+            />
+            <SummarySection
+              title="Projected Exception Transitions"
+              items={previewAftermath.previewSummary.transitionedExceptions}
+            />
+            {previewAftermath.previewSummary.capHoldsCreated > 0 && (
+              <p className="text-sm text-white/70">
+                Projected cap holds created:{' '}
+                {previewAftermath.previewSummary.capHoldsCreated}
+              </p>
+            )}
+            {previewAftermath.previewSummary.hardCapCleared && (
+              <p className="text-sm text-white/70">
+                Hard cap would be cleared in this projected season.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={resetPreviewAftermath}
+              className="rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
+            >
+              Reset Preview
+            </button>
+            <button
+              type="button"
+              onClick={handleEditDecisions}
+              className="rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
+            >
+              Edit Decisions
+            </button>
+          </div>
         </div>
       )}
     </div>

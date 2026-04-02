@@ -58,9 +58,9 @@
 
 | ID    | Title                                                                  | Status | Notes |
 |-------|------------------------------------------------------------------------|--------|-------|
-| OS-5A | Make the World vs Preview Execution Boundary More Explicit             | TODO   |       |
-| OS-5B | Tighten Preview-Only UI Truth So It Cannot Masquerade as Persistence Truth | TODO |    |
+| OS-5A | Make the World vs Preview Execution Boundary More Explicit             | DONE   |       |
+| OS-5B | Tighten Preview-Only UI Truth So It Cannot Masquerade as Persistence Truth | DONE |    |
 | OS-5C | Tighten DEV Gate Durability for the Preview Path                       | TODO   |       |
 | OS-5D | Add Focused Guardrails for World-vs-Preview Behavior Truth             | TODO   |       |
 
-**STEP 5 STATUS: TODO**
+**STEP 5 STATUS: IN_PROGRESS**

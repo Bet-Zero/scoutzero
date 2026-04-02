@@ -12,7 +12,7 @@
  *
  * @vitest-environment jsdom
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanup,
@@ -93,6 +93,30 @@ const makeNonOptionPlayer = (playerId: string, name: string) => ({
     ],
   },
 });
+
+function renderPreviewSurface({
+  teamCapSheet = buildTeam([
+    makeOptionPlayer({
+      playerId: 'alpha-id',
+      name: 'Alpha One',
+      option: 'Player Option',
+      salary: 12_500_000,
+    }),
+  ]),
+  capProjections = {},
+}: {
+  teamCapSheet?: OffseasonTeamCapSheet;
+  capProjections?: Record<string, unknown>;
+} = {}) {
+  return render(
+    <OffseasonTab
+      teamCapSheet={teamCapSheet}
+      currentYear={CURRENT_YEAR}
+      capProjections={capProjections}
+      playersMap={{}}
+    />
+  );
+}
 
 describe('Offseason preview surface E93 behavior', () => {
   beforeEach(() => {
@@ -210,7 +234,7 @@ describe('Offseason preview surface E93 behavior', () => {
     });
   });
 
-  it('preserves confirmation transition, preview button text, deep-cloned snapshotting, and preview completion payload', async () => {
+  it('keeps preview completion local to OffseasonTab and surfaces explicit non-persisting aftermath copy', async () => {
     const teamCapSheet = buildTeam([
       makeOptionPlayer({
         playerId: 'alpha-id',
@@ -219,46 +243,57 @@ describe('Offseason preview surface E93 behavior', () => {
         salary: 12_500_000,
       }),
     ]);
-    const updatedCapSheet = buildTeam([
-      makeOptionPlayer({
-        playerId: 'alpha-id',
-        name: 'Alpha One',
-        option: 'Player Option',
-        salary: 13_000_000,
-      }),
-    ]);
-    const summary = {
-      exercisedOptions: [],
-      declinedOptions: [],
-      expiredContracts: [],
-      expiredTPEs: [],
-      capHoldsCreated: 0,
-      transitionedExceptions: [],
-      hardCapCleared: false,
-    };
-    const onPreviewAdvanceComplete = vi.fn();
     const capProjections = { maxCap: 155_000_000 };
 
     mockRunOffseason.mockReturnValue({
-      updatedCapSheet,
-      summary,
+      updatedCapSheet: buildTeam([]),
+      summary: {
+        exercisedOptions: [
+          {
+            playerId: 'alpha-id',
+            playerName: 'Alpha One',
+            optionType: 'player',
+            salary: 12_500_000,
+          },
+        ],
+        declinedOptions: [
+          {
+            playerId: 'beta-id',
+            playerName: 'Beta Two',
+            optionType: 'team',
+            salary: 5_000_000,
+          },
+        ],
+        expiredContracts: [
+          {
+            playerId: 'gamma-id',
+            playerName: 'Gamma Three',
+            lastSalary: 4_000_000,
+          },
+        ],
+        expiredTPEs: [
+          {
+            amount: 3_500_000,
+            source: 'Existing Trade',
+          },
+        ],
+        capHoldsCreated: 2,
+        transitionedExceptions: ['room'],
+        hardCapCleared: true,
+      },
     });
 
-    render(
-      <OffseasonTab
-        teamCapSheet={teamCapSheet}
-        currentYear={CURRENT_YEAR}
-        capProjections={capProjections}
-        offseasonRun={false}
-        onPreviewAdvanceComplete={onPreviewAdvanceComplete}
-        playersMap={{}}
-      />
-    );
+    renderPreviewSurface({ teamCapSheet, capProjections });
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Decisions' }));
 
     expect(
       screen.getByRole('heading', { name: 'All option decisions confirmed.' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'This preview stays local to this DEV surface. It will not update the world, dashboard year, or shared offseason summary.'
+      )
     ).toBeInTheDocument();
 
     fireEvent.click(
@@ -282,34 +317,36 @@ describe('Offseason preview surface E93 behavior', () => {
       }
     );
 
-    expect(onPreviewAdvanceComplete).toHaveBeenCalledTimes(1);
-    const previewResult =
-      onPreviewAdvanceComplete.mock.calls[0]?.[0] as {
-        previousCapSheet: typeof teamCapSheet;
-        updatedCapSheet: typeof updatedCapSheet;
-        nextYear: number;
-        summary: typeof summary;
-      };
-    expect(previewResult.updatedCapSheet).toBe(updatedCapSheet);
-    expect(previewResult.nextYear).toBe(2027);
-    expect(previewResult.summary).toBe(summary);
-    expect(previewResult.previousCapSheet).toEqual(teamCapSheet);
-    expect(previewResult.previousCapSheet).not.toBe(teamCapSheet);
-    expect(previewResult.previousCapSheet.players).not.toBe(teamCapSheet.players);
+    expect(
+      await screen.findByTestId('offseason-preview-aftermath')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Preview computed — not saved')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('offseason-preview-aftermath-copy')
+    ).toHaveTextContent(
+      'Preview shows projected state for the 2026-27 season only. No world state, dashboard year, or shared offseason summary was updated. Use World Season Advance to persist real changes.'
+    );
+    expect(screen.getByText('Projected Exercised Options')).toBeInTheDocument();
+    expect(screen.getByText('Alpha One')).toBeInTheDocument();
+    expect(screen.getByText('Projected Declined Options')).toBeInTheDocument();
+    expect(screen.getByText('Beta Two')).toBeInTheDocument();
+    expect(screen.getByText('Projected Expired Contracts')).toBeInTheDocument();
+    expect(screen.getByText('Gamma Three')).toBeInTheDocument();
+    expect(
+      screen.getByText('Projected Expired Trade Exceptions')
+    ).toBeInTheDocument();
+    expect(screen.getByText('$3,500,000 from Existing Trade')).toBeInTheDocument();
+    expect(screen.getByText('Projected Exception Transitions')).toBeInTheDocument();
+    expect(screen.getByText('room')).toBeInTheDocument();
+    expect(screen.getByText('Projected cap holds created: 2')).toBeInTheDocument();
+    expect(
+      screen.getByText('Hard cap would be cleared in this projected season.')
+    ).toBeInTheDocument();
   });
 
-  it('preserves preview completion messaging after a successful advance', async () => {
-    const teamCapSheet = buildTeam([
-      makeOptionPlayer({
-        playerId: 'alpha-id',
-        name: 'Alpha One',
-        option: 'Player Option',
-        salary: 12_500_000,
-      }),
-    ]);
-
+  it('keeps reset and edit paths local after a computed preview', async () => {
     mockRunOffseason.mockReturnValue({
-      updatedCapSheet: teamCapSheet,
+      updatedCapSheet: buildTeam([]),
       summary: {
         exercisedOptions: [],
         declinedOptions: [],
@@ -321,29 +358,7 @@ describe('Offseason preview surface E93 behavior', () => {
       },
     });
 
-    const OffseasonHarness = () => {
-      const [nextTeamCapSheet, setNextTeamCapSheet] =
-        useState<OffseasonTeamCapSheet>(teamCapSheet);
-      const [currentYear, setCurrentYear] = useState(CURRENT_YEAR);
-      const [offseasonRun, setOffseasonRun] = useState(false);
-
-      return (
-        <OffseasonTab
-          teamCapSheet={nextTeamCapSheet}
-          currentYear={currentYear}
-          capProjections={{}}
-          offseasonRun={offseasonRun}
-          onPreviewAdvanceComplete={({ updatedCapSheet, nextYear }) => {
-            setNextTeamCapSheet(updatedCapSheet);
-            setCurrentYear(nextYear);
-            setOffseasonRun(true);
-          }}
-          playersMap={{}}
-        />
-      );
-    };
-
-    render(<OffseasonHarness />);
+    renderPreviewSurface();
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm Decisions' }));
     fireEvent.click(
@@ -351,12 +366,36 @@ describe('Offseason preview surface E93 behavior', () => {
     );
 
     expect(
-      await screen.findByText('Preview computed — not saved')
+      await screen.findByTestId('offseason-preview-aftermath')
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset Preview' }));
+
+    expect(
+      screen.queryByTestId('offseason-preview-aftermath')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Preview Advance to 2027' })
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Preview Advance to 2027' })
+    );
+    expect(mockRunOffseason).toHaveBeenCalledTimes(2);
+
+    expect(
+      await screen.findByTestId('offseason-preview-aftermath')
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Decisions' }));
+
+    expect(
+      screen.queryByTestId('offseason-preview-aftermath')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Pending Contract Options – 2027' })
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Preview shows projected state for 2028 season. Use World Season Advance to persist.'
-      )
+      screen.getByRole('button', { name: 'Confirm Decisions' })
     ).toBeInTheDocument();
   });
 
@@ -370,23 +409,7 @@ describe('Offseason preview surface E93 behavior', () => {
         throw new Error('Engine exploded');
       });
 
-      render(
-        <OffseasonTab
-          teamCapSheet={buildTeam([
-            makeOptionPlayer({
-              playerId: 'alpha-id',
-              name: 'Alpha One',
-              option: 'Player Option',
-              salary: 12_500_000,
-            }),
-          ])}
-          currentYear={CURRENT_YEAR}
-          capProjections={{}}
-          offseasonRun={false}
-          onPreviewAdvanceComplete={vi.fn()}
-          playersMap={{}}
-        />
-      );
+      renderPreviewSurface();
 
       fireEvent.click(screen.getByRole('button', { name: 'Confirm Decisions' }));
       const previewButton = screen.getByRole('button', {
@@ -424,23 +447,7 @@ describe('Offseason preview surface E93 behavior', () => {
         throw {};
       });
 
-      render(
-        <OffseasonTab
-          teamCapSheet={buildTeam([
-            makeOptionPlayer({
-              playerId: 'alpha-id',
-              name: 'Alpha One',
-              option: 'Player Option',
-              salary: 12_500_000,
-            }),
-          ])}
-          currentYear={CURRENT_YEAR}
-          capProjections={{}}
-          offseasonRun={false}
-          onPreviewAdvanceComplete={vi.fn()}
-          playersMap={{}}
-        />
-      );
+      renderPreviewSurface();
 
       fireEvent.click(screen.getByRole('button', { name: 'Confirm Decisions' }));
       fireEvent.click(

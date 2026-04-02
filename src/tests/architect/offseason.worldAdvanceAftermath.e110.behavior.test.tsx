@@ -149,8 +149,6 @@ function buildOffseasonSectionProps() {
     currentYear: 2026,
     setCurrentYear: vi.fn(),
     capProjections: {},
-    setLastCapSheet: vi.fn(),
-    offseasonRun: false,
     setOffseasonRun: vi.fn(),
     setOffseasonSummary: vi.fn(),
     setShowOffseasonModal: vi.fn(),

@@ -97,28 +97,27 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     });
 
     it('applies world-backed aftermath from the normalized callback payload', () => {
-      expect(source).toContain('function getWorldAdvanceAftermath(');
+      expect(source).toContain('function getCommittedWorldAdvanceAftermath(');
+      expect(source).toContain('function applyCommittedWorldAdvanceAftermath(');
       expect(source).toContain(
-        'const worldAdvanceAftermath = getWorldAdvanceAftermath(result);'
-      );
-      expect(source).toContain('if (!worldAdvanceAftermath) {');
-      expect(source).toContain(
-        'if (setTeamCapSheet && worldAdvanceAftermath.committedTeamCapSheet) {'
+        'const committedWorldAdvanceAftermath ='
       );
       expect(source).toContain(
-        'setTeamCapSheet(worldAdvanceAftermath.committedTeamCapSheet);'
+        'getCommittedWorldAdvanceAftermath(result);'
       );
       expect(source).toContain(
-        'setCurrentYear(worldAdvanceAftermath.nextViewingYear);'
-      );
-      expect(source).toContain(
-        'setWorldSeason(worldAdvanceAftermath.nextWorldSeason);'
-      );
-      expect(source).toContain(
-        'setOffseasonSummary(worldAdvanceAftermath.offseasonSummary);'
+        'applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {'
       );
       expect(source).toContain('await onReloadWorldData();');
       expect(source).not.toContain('setOffseasonSummary({');
+    });
+
+    it('keeps preview aftermath out of wrapper-level dashboard state application', () => {
+      expect(source).not.toContain('onPreviewAdvanceComplete');
+      expect(source).not.toContain('setLastCapSheet');
+      expect(source).not.toContain('updatedCapSheet');
+      expect(source).not.toContain('nextYear');
+      expect(source).not.toContain('summary,');
     });
 
     it('does not synthesize unsupported world summary defaults in the wrapper', () => {
@@ -147,12 +146,30 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain('Preview computed — not saved');
     });
 
+    it('keeps preview aftermath on local preview-only wording', () => {
+      expect(source).toContain('This preview stays local to this DEV surface.');
+      expect(source).toContain('No world state,');
+      expect(source).toContain(
+        'dashboard year, or shared offseason summary was updated.'
+      );
+      expect(source).toContain('data-testid="offseason-preview-aftermath"');
+      expect(source).toContain('data-testid="offseason-preview-aftermath-copy"');
+    });
+
     it('directs users to World Season Advance for persistence', () => {
-      expect(source).toContain('Use World Season Advance to persist');
+      expect(source).toContain('Use World');
+      expect(source).toContain('Season Advance to persist real changes.');
     });
 
     it('labels the advance button as preview', () => {
       expect(source).toContain('Preview Advance to');
+    });
+
+    it('keeps reset and edit controls inside the preview surface', () => {
+      expect(source).toContain('Reset Preview');
+      expect(source).toContain('Edit Decisions');
+      expect(source).toContain('setPreviewAftermath(null);');
+      expect(source).toContain('setOptionsConfirmed(false);');
     });
 
     it('keeps OffseasonTab on the preview-only runner', () => {
@@ -161,6 +178,8 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       );
       expect(source).not.toContain('advanceSeasonInWorld');
       expect(source).not.toContain('seasonManager');
+      expect(source).not.toContain('onPreviewAdvanceComplete');
+      expect(source).not.toContain('offseasonRun');
     });
   });
 

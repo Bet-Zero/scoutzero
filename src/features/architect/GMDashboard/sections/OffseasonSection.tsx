@@ -43,7 +43,6 @@ import {
 // OFFSEASON_E1: DEV-only flag for single-team offseason preview (non-persisting).
 // Import kept for DEV preview; rendering is gated by showDevPreview below.
 import OffseasonTab from '@/features/architect/offseason/OffseasonTab';
-import type { OffseasonPreviewAdvanceResult } from '@/features/architect/offseason/OffseasonTab/types';
 
 type LooseRecord = Record<string, unknown>;
 
@@ -53,8 +52,6 @@ type OffseasonSectionProps = {
   currentYear: number;
   setCurrentYear: (...args: any[]) => any;
   capProjections: Record<string, unknown> | null | undefined;
-  setLastCapSheet?: (...args: any[]) => any;
-  offseasonRun?: boolean;
   setOffseasonRun: (...args: any[]) => any;
   setOffseasonSummary: (...args: any[]) => any;
   setShowOffseasonModal: (...args: any[]) => any;
@@ -86,12 +83,10 @@ type DevPreviewOffseasonSurfaceProps = {
   teamCapSheet: LooseRecord | null | undefined;
   viewingYear: number;
   capProjections: Record<string, unknown> | null | undefined;
-  offseasonRun?: boolean;
   playersMap?: Record<string, unknown>;
-  onPreviewAdvanceComplete: (result: OffseasonPreviewAdvanceResult) => void;
 };
 
-function getWorldAdvanceAftermath(
+function getCommittedWorldAdvanceAftermath(
   result: SeasonAdvanceResult
 ): WorldAdvanceAftermath | null {
   if (!result.success) {
@@ -117,6 +112,35 @@ function getWorldAdvanceAftermath(
   }
 
   return worldAdvanceAftermath;
+}
+
+function applyCommittedWorldAdvanceAftermath(
+  committedWorldAdvanceAftermath: WorldAdvanceAftermath,
+  callbacks: {
+    setTeamCapSheet?: (...args: any[]) => any;
+    setCurrentYear: (...args: any[]) => any;
+    setWorldSeason: React.Dispatch<React.SetStateAction<string | null>>;
+    setOffseasonRun: (...args: any[]) => any;
+    setOffseasonSummary: (...args: any[]) => any;
+    setShowOffseasonModal: (...args: any[]) => any;
+  }
+) {
+  if (
+    callbacks.setTeamCapSheet &&
+    committedWorldAdvanceAftermath.committedTeamCapSheet
+  ) {
+    callbacks.setTeamCapSheet(
+      committedWorldAdvanceAftermath.committedTeamCapSheet
+    );
+  }
+
+  callbacks.setCurrentYear(committedWorldAdvanceAftermath.nextViewingYear);
+  callbacks.setWorldSeason(committedWorldAdvanceAftermath.nextWorldSeason);
+  callbacks.setOffseasonRun(true);
+  callbacks.setOffseasonSummary(
+    committedWorldAdvanceAftermath.offseasonSummary
+  );
+  callbacks.setShowOffseasonModal(true);
 }
 
 function normalizeCommittedDraftPositions(
@@ -207,9 +231,7 @@ function DevPreviewOffseasonSurface({
   teamCapSheet,
   viewingYear,
   capProjections,
-  offseasonRun,
   playersMap,
-  onPreviewAdvanceComplete,
 }: DevPreviewOffseasonSurfaceProps) {
   if (!showDevPreview) {
     return null;
@@ -237,8 +259,6 @@ function DevPreviewOffseasonSurface({
         teamCapSheet={teamCapSheet as Record<string, unknown>}
         currentYear={viewingYear}
         capProjections={capProjections}
-        offseasonRun={offseasonRun}
-        onPreviewAdvanceComplete={onPreviewAdvanceComplete}
         playersMap={playersMap}
       />
     </section>
@@ -253,8 +273,6 @@ const OffseasonSection = ({
   currentYear: viewingYear,
   setCurrentYear,
   capProjections,
-  setLastCapSheet,
-  offseasonRun,
   setOffseasonRun,
   setOffseasonSummary,
   setShowOffseasonModal,
@@ -298,22 +316,24 @@ const OffseasonSection = ({
     loadWorldSeason();
   }, [worldId]);
 
-  const handleWorldAdvanceComplete = useCallback(
+  const handleCommittedWorldAdvanceComplete = useCallback(
     async (result: SeasonAdvanceResult) => {
-      const worldAdvanceAftermath = getWorldAdvanceAftermath(result);
+      const committedWorldAdvanceAftermath =
+        getCommittedWorldAdvanceAftermath(result);
 
-      if (!worldAdvanceAftermath) {
+      if (!committedWorldAdvanceAftermath) {
         return;
       }
 
-      if (setTeamCapSheet && worldAdvanceAftermath.committedTeamCapSheet) {
-        setTeamCapSheet(worldAdvanceAftermath.committedTeamCapSheet);
-      }
-      setCurrentYear(worldAdvanceAftermath.nextViewingYear);
-      setWorldSeason(worldAdvanceAftermath.nextWorldSeason);
-      setOffseasonRun(true);
-      setOffseasonSummary(worldAdvanceAftermath.offseasonSummary);
-      setShowOffseasonModal(true);
+      applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {
+        setTeamCapSheet,
+        setCurrentYear,
+        setWorldSeason,
+        setOffseasonRun,
+        setOffseasonSummary,
+        setShowOffseasonModal,
+      });
+
       if (onReloadWorldData) {
         try {
           await onReloadWorldData();
@@ -329,34 +349,6 @@ const OffseasonSection = ({
       setOffseasonSummary,
       setShowOffseasonModal,
       onReloadWorldData,
-    ]
-  );
-
-  const handlePreviewAdvanceComplete = useCallback(
-    ({
-      previousCapSheet,
-      updatedCapSheet,
-      nextYear,
-      summary,
-    }: OffseasonPreviewAdvanceResult) => {
-      if (setLastCapSheet) {
-        setLastCapSheet(previousCapSheet);
-      }
-      if (setTeamCapSheet) {
-        setTeamCapSheet(updatedCapSheet);
-      }
-      setCurrentYear(nextYear);
-      setOffseasonSummary(summary);
-      setShowOffseasonModal(true);
-      setOffseasonRun(true);
-    },
-    [
-      setLastCapSheet,
-      setTeamCapSheet,
-      setCurrentYear,
-      setOffseasonSummary,
-      setShowOffseasonModal,
-      setOffseasonRun,
     ]
   );
 
@@ -469,9 +461,7 @@ const OffseasonSection = ({
         teamCapSheet={teamCapSheet}
         viewingYear={viewingYear}
         capProjections={capProjections}
-        offseasonRun={offseasonRun}
         playersMap={playersMap}
-        onPreviewAdvanceComplete={handlePreviewAdvanceComplete}
       />
 
       {worldSeason ? (
@@ -482,7 +472,7 @@ const OffseasonSection = ({
           authoritativeWorldSeason={worldSeason}
           worldId={worldId}
           teamCode={teamCode}
-          onWorldAdvanceComplete={handleWorldAdvanceComplete}
+          onWorldAdvanceComplete={handleCommittedWorldAdvanceComplete}
         />
       ) : null}
     </div>
