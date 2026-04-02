@@ -46,19 +46,26 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
   describe('OffseasonSection — DEV + localStorage gate', () => {
     const source = fs.readFileSync(offseasonSectionPath, 'utf-8');
 
-    it('gates OffseasonTab behind import.meta.env.DEV', () => {
-      expect(source).toContain('import.meta.env.DEV');
+    it('defines a named preview access helper instead of an inline gate boolean', () => {
+      expect(source).toContain('type DevPreviewAccessState = {');
+      expect(source).toContain('function getDevPreviewAccessState(): DevPreviewAccessState {');
+      expect(source).toContain('const previewAccess = getDevPreviewAccessState();');
     });
 
-    it('gates OffseasonTab behind hz.dev.offseasonPreview localStorage flag', () => {
+    it('keeps preview access behind both DEV and hz.dev.offseasonPreview intent', () => {
+      expect(source).toContain('const isDevEnvironment = Boolean(import.meta.env.DEV);');
+      expect(source).toContain('const hasPreviewIntent =');
       expect(source).toContain(
         "window.localStorage?.getItem(DEV_OFFSEASON_PREVIEW_FLAG) === 'true'"
       );
+      expect(source).toContain(
+        'canRenderPreview: isDevEnvironment && hasPreviewIntent,'
+      );
     });
 
-    it('routes preview rendering through the explicit DEV preview surface gate', () => {
-      expect(source).toContain('showDevPreview={showDevPreview}');
-      expect(source).toContain('if (!showDevPreview) {');
+    it('routes preview rendering through the explicit preview access contract', () => {
+      expect(source).toContain('previewAccess={previewAccess}');
+      expect(source).toContain('if (!previewAccess.canRenderPreview) {');
     });
 
     it('exports the DEV flag constant for test discoverability', () => {
@@ -76,6 +83,8 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     it('publishes separate world-backed and preview-only surfaces', () => {
       expect(source).toContain('data-testid="offseason-world-surface"');
       expect(source).toContain('data-testid="offseason-preview-surface"');
+      expect(source).toContain('function DevPreviewOffseasonSurface({');
+      expect(source).toContain('function WorldBackedOffseasonSurface({');
     });
 
     it('passes world-derived season truth into the world-backed controls', () => {
@@ -127,10 +136,9 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     });
 
     it('does NOT render OffseasonTab unconditionally', () => {
-      // Count occurrences of <OffseasonTab — should only appear inside showDevPreview gate
+      // Count occurrences of <OffseasonTab — should only appear inside the preview access gate
       const unconditionalPattern = /^\s*<OffseasonTab/gm;
       const matches = source.match(unconditionalPattern) || [];
-      // Exactly one occurrence (inside the gated block)
       expect(matches.length).toBe(1);
     });
   });

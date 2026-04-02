@@ -78,12 +78,18 @@ type WorldBackedOffseasonSurfaceProps = {
 };
 
 type DevPreviewOffseasonSurfaceProps = {
-  showDevPreview: boolean;
+  previewAccess: DevPreviewAccessState;
   worldId?: string | null;
   teamCapSheet: LooseRecord | null | undefined;
   viewingYear: number;
   capProjections: Record<string, unknown> | null | undefined;
   playersMap?: Record<string, unknown>;
+};
+
+type DevPreviewAccessState = {
+  isDevEnvironment: boolean;
+  hasPreviewIntent: boolean;
+  canRenderPreview: boolean;
 };
 
 function getCommittedWorldAdvanceAftermath(
@@ -151,6 +157,19 @@ function normalizeCommittedDraftPositions(
   }
 
   return draftPositions;
+}
+
+function getDevPreviewAccessState(): DevPreviewAccessState {
+  const isDevEnvironment = Boolean(import.meta.env.DEV);
+  const hasPreviewIntent =
+    typeof window !== 'undefined' &&
+    window.localStorage?.getItem(DEV_OFFSEASON_PREVIEW_FLAG) === 'true';
+
+  return {
+    isDevEnvironment,
+    hasPreviewIntent,
+    canRenderPreview: isDevEnvironment && hasPreviewIntent,
+  };
 }
 
 function WorldBackedOffseasonSurface({
@@ -226,14 +245,14 @@ function WorldBackedOffseasonSurface({
 }
 
 function DevPreviewOffseasonSurface({
-  showDevPreview,
+  previewAccess,
   worldId,
   teamCapSheet,
   viewingYear,
   capProjections,
   playersMap,
 }: DevPreviewOffseasonSurfaceProps) {
-  if (!showDevPreview) {
+  if (!previewAccess.canRenderPreview) {
     return null;
   }
 
@@ -282,12 +301,7 @@ const OffseasonSection = ({
   onReloadWorldData,
 }: OffseasonSectionProps) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
-
-  // OFFSEASON_E1: Single-team preview only visible in DEV with localStorage flag
-  const showDevPreview =
-    import.meta.env.DEV &&
-    typeof window !== 'undefined' &&
-    window.localStorage?.getItem(DEV_OFFSEASON_PREVIEW_FLAG) === 'true';
+  const previewAccess = getDevPreviewAccessState();
 
   // Phase 5 PATCH: Track world's actual current season (single source of truth)
   const [worldSeason, setWorldSeason] = useState<string | null>(null);
@@ -456,7 +470,7 @@ const OffseasonSection = ({
       />
 
       <DevPreviewOffseasonSurface
-        showDevPreview={showDevPreview}
+        previewAccess={previewAccess}
         worldId={worldId}
         teamCapSheet={teamCapSheet}
         viewingYear={viewingYear}

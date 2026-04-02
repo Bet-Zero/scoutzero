@@ -23,7 +23,10 @@ import {
   waitFor,
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { OffseasonSection } from '@/features/architect/GMDashboard/sections/OffseasonSection';
+import {
+  DEV_OFFSEASON_PREVIEW_FLAG,
+  OffseasonSection,
+} from '@/features/architect/GMDashboard/sections/OffseasonSection';
 
 const {
   mockGetWorldMetadata,
@@ -159,10 +162,36 @@ function buildOffseasonSectionProps() {
   };
 }
 
+async function renderOffseasonSectionWithGate({
+  isDevEnvironment = true,
+  previewFlagValue,
+}: {
+  isDevEnvironment?: boolean;
+  previewFlagValue?: string | null;
+} = {}) {
+  vi.stubEnv('DEV', isDevEnvironment);
+  window.localStorage.clear();
+
+  if (previewFlagValue != null) {
+    window.localStorage.setItem(
+      DEV_OFFSEASON_PREVIEW_FLAG,
+      previewFlagValue
+    );
+  }
+
+  const props = buildOffseasonSectionProps();
+  render(<OffseasonSection {...props} />);
+
+  await screen.findByText('World Season: 2025-26');
+
+  return props;
+}
+
 describe('OffseasonSection world-advance aftermath behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     cleanup();
+    vi.stubEnv('DEV', true);
     window.localStorage.clear();
     mockGetWorldMetadata.mockResolvedValue({
       currentSeason: '2025-26',
@@ -182,15 +211,64 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
 
   afterEach(() => {
     cleanup();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
+  it('renders preview only when DEV mode and explicit local preview intent are both present', async () => {
+    await renderOffseasonSectionWithGate({
+      isDevEnvironment: true,
+      previewFlagValue: 'true',
+    });
+
+    expect(screen.getByTestId('offseason-world-surface')).toBeInTheDocument();
+    expect(screen.getByTestId('offseason-preview-surface')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-offseason-tab')).toBeInTheDocument();
+    expect(screen.getByTestId('offseason-preview-banner')).toHaveTextContent(
+      'Preview only — does not persist. Changes will be lost on refresh.'
+    );
+  });
+
+  it('keeps preview hidden when local preview intent is absent in DEV', async () => {
+    await renderOffseasonSectionWithGate({
+      isDevEnvironment: true,
+    });
+
+    expect(screen.getByTestId('offseason-world-surface')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('offseason-preview-surface')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-offseason-tab')).not.toBeInTheDocument();
+  });
+
+  it('keeps preview hidden when the preview flag is not true in DEV', async () => {
+    await renderOffseasonSectionWithGate({
+      isDevEnvironment: true,
+      previewFlagValue: 'false',
+    });
+
+    expect(screen.getByTestId('offseason-world-surface')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('offseason-preview-surface')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-offseason-tab')).not.toBeInTheDocument();
+  });
+
+  it('keeps preview hidden outside DEV even when the preview flag is true', async () => {
+    await renderOffseasonSectionWithGate({
+      isDevEnvironment: false,
+      previewFlagValue: 'true',
+    });
+
+    expect(screen.getByTestId('offseason-world-surface')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('offseason-preview-surface')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-offseason-tab')).not.toBeInTheDocument();
+  });
+
   it('passes one world-backed draft positions authority seam and separate validation callback', async () => {
-    const props = buildOffseasonSectionProps();
-
-    render(<OffseasonSection {...props} />);
-
-    await screen.findByText('World Season: 2025-26');
+    const props = await renderOffseasonSectionWithGate();
     expect(mockDraftPositionsInput).toHaveBeenCalled();
 
     const draftPositionsInputProps = mockDraftPositionsInput.mock.lastCall?.[0] as {
@@ -264,11 +342,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
   });
 
   it('applies wrapper aftermath only from the normalized success result payload', async () => {
-    const props = buildOffseasonSectionProps();
-
-    render(<OffseasonSection {...props} />);
-
-    await screen.findByText('World Season: 2025-26');
+    const props = await renderOffseasonSectionWithGate();
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Emit successful advance' })
@@ -309,11 +383,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
   });
 
   it('ignores failure and malformed success callbacks that lack normalized aftermath truth', async () => {
-    const props = buildOffseasonSectionProps();
-
-    render(<OffseasonSection {...props} />);
-
-    await screen.findByText('World Season: 2025-26');
+    const props = await renderOffseasonSectionWithGate();
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Emit failed advance' })

@@ -60,7 +60,7 @@
 |-------|------------------------------------------------------------------------|--------|-------|
 | OS-5A | Make the World vs Preview Execution Boundary More Explicit             | DONE   |       |
 | OS-5B | Tighten Preview-Only UI Truth So It Cannot Masquerade as Persistence Truth | DONE |    |
-| OS-5C | Tighten DEV Gate Durability for the Preview Path                       | TODO   |       |
-| OS-5D | Add Focused Guardrails for World-vs-Preview Behavior Truth             | TODO   |       |
+| OS-5C | Tighten DEV Gate Durability for the Preview Path                       | DONE   | OffseasonSection now resolves preview visibility through one explicit DEV-plus-local-intent access contract instead of an inline boolean gate. |
+| OS-5D | Add Focused Guardrails for World-vs-Preview Behavior Truth             | DONE   | Focused source and UI tests now pin the preview access contract, the DEV/flag gate matrix, and the separation between preview visibility and world-backed authority. |
 
-**STEP 5 STATUS: IN_PROGRESS**
+**STEP 5 STATUS: DONE**
