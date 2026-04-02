@@ -39,6 +39,13 @@ vi.mock('@/features/architect/utils/seasonFormat', () => ({
   toEndYear: (season: string) => Number(season.split('-')[0]) + 1,
   getDraftYearForSeasonAdvance: (season: string) =>
     Number(season.split('-')[0]) + 1,
+  getSeasonAdvanceDraftContext: (season: string) => ({
+    authoritativeSeason: season,
+    nextUsedDraftYear: Number(season.split('-')[0]) + 1,
+    nextSeason: `${Number(season.split('-')[0]) + 1}-${String(
+      Number(season.split('-')[0]) + 2
+    ).slice(2)}`,
+  }),
   toSeasonCode: (year: number) => `${year - 1}-${String(year).slice(2)}`,
 }));
 
@@ -201,6 +208,10 @@ describe('Season Advance Post-State Validator Fail-Close', () => {
         (violation: { code?: string }) => violation.code === 'TOTALS_NON_FINITE'
       )
     ).toBe(true);
+    expect(mocks.getDraftPositionsMap).toHaveBeenCalledWith(
+      'world_fail_close',
+      2026
+    );
     expect(mocks.batchCommit).not.toHaveBeenCalled();
   });
 });

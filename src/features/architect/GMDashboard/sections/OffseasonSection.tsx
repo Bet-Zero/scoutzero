@@ -29,7 +29,8 @@ import DraftPositionsInput, {
   type DraftPositionsValidationResult,
 } from '@/features/architect/GMDashboard/components/DraftPositionsInput';
 import {
-  getDraftYearForSeasonAdvance,
+  getSeasonAdvanceDraftContext,
+  type SeasonAdvanceDraftContext,
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
 import {
@@ -43,6 +44,10 @@ import {
 // OFFSEASON_E1: DEV-only flag for single-team offseason preview (non-persisting).
 // Import kept for DEV preview; rendering is gated by showDevPreview below.
 import OffseasonTab from '@/features/architect/offseason/OffseasonTab';
+import {
+  NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
+  type OffseasonPreviewAuthority,
+} from '@/features/architect/offseason/OffseasonTab/types';
 
 type LooseRecord = Record<string, unknown>;
 
@@ -63,12 +68,10 @@ type OffseasonSectionProps = {
 
 type WorldBackedOffseasonSurfaceProps = {
   worldId: string;
-  worldSeason: string | null;
   worldSeasonLoading: boolean;
   viewingSeason: string;
   hasSeasonMismatch: boolean;
-  nextAdvanceDraftYear: number | null;
-  viewingYear: number;
+  seasonAdvanceDraftContext: SeasonAdvanceDraftContext | null;
   canAdvanceSeason: boolean;
   draftPositionsPersistenceAuthority: DraftPositionsPersistenceAuthority;
   validateDraftPositionsMap: (
@@ -78,7 +81,7 @@ type WorldBackedOffseasonSurfaceProps = {
 };
 
 type DevPreviewOffseasonSurfaceProps = {
-  previewAccess: DevPreviewAccessState;
+  previewAuthority: OffseasonPreviewAuthority;
   worldId?: string | null;
   teamCapSheet: LooseRecord | null | undefined;
   viewingYear: number;
@@ -86,11 +89,19 @@ type DevPreviewOffseasonSurfaceProps = {
   playersMap?: Record<string, unknown>;
 };
 
-type DevPreviewAccessState = {
-  isDevEnvironment: boolean;
-  hasPreviewIntent: boolean;
-  canRenderPreview: boolean;
-};
+type DevPreviewSurfaceAccess =
+  | {
+      kind: 'hidden';
+      isDevEnvironment: boolean;
+      hasPreviewIntent: boolean;
+      previewAuthority: null;
+    }
+  | {
+      kind: 'preview';
+      isDevEnvironment: true;
+      hasPreviewIntent: true;
+      previewAuthority: OffseasonPreviewAuthority;
+    };
 
 function getCommittedWorldAdvanceAftermath(
   result: SeasonAdvanceResult
@@ -159,27 +170,35 @@ function normalizeCommittedDraftPositions(
   return draftPositions;
 }
 
-function getDevPreviewAccessState(): DevPreviewAccessState {
+function resolveDevPreviewSurfaceAccess(): DevPreviewSurfaceAccess {
   const isDevEnvironment = Boolean(import.meta.env.DEV);
   const hasPreviewIntent =
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_OFFSEASON_PREVIEW_FLAG) === 'true';
 
+  if (!isDevEnvironment || !hasPreviewIntent) {
+    return {
+      kind: 'hidden',
+      isDevEnvironment,
+      hasPreviewIntent,
+      previewAuthority: null,
+    };
+  }
+
   return {
-    isDevEnvironment,
-    hasPreviewIntent,
-    canRenderPreview: isDevEnvironment && hasPreviewIntent,
+    kind: 'preview',
+    isDevEnvironment: true,
+    hasPreviewIntent: true,
+    previewAuthority: NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
   };
 }
 
 function WorldBackedOffseasonSurface({
   worldId,
-  worldSeason,
   worldSeasonLoading,
   viewingSeason,
   hasSeasonMismatch,
-  nextAdvanceDraftYear,
-  viewingYear,
+  seasonAdvanceDraftContext,
   canAdvanceSeason,
   draftPositionsPersistenceAuthority,
   validateDraftPositionsMap,
@@ -188,6 +207,9 @@ function WorldBackedOffseasonSurface({
   if (!worldId) {
     return null;
   }
+
+  const authoritativeWorldSeason =
+    seasonAdvanceDraftContext?.authoritativeSeason ?? null;
 
   return (
     <section data-testid="offseason-world-surface">
@@ -199,10 +221,10 @@ function WorldBackedOffseasonSurface({
               Advance the entire world to the next season. This will process all 30 teams,
               expiring contracts, and option decisions.
             </p>
-            {worldSeason && (
+            {authoritativeWorldSeason && (
               <div className="mt-2 flex items-center gap-2">
                 <span className="text-sm font-medium text-purple-400">
-                  World Season: {worldSeason}
+                  World Season: {authoritativeWorldSeason}
                 </span>
                 {hasSeasonMismatch && (
                   <span className="text-xs text-yellow-400">
@@ -214,7 +236,7 @@ function WorldBackedOffseasonSurface({
             {worldSeasonLoading && (
               <div className="mt-2 text-xs text-white/40">Loading world season...</div>
             )}
-            {!worldSeasonLoading && !worldSeason && (
+            {!worldSeasonLoading && !authoritativeWorldSeason && (
               <div className="mt-2 text-xs text-yellow-300">
                 World season unavailable. Season advance stays disabled until metadata loads.
               </div>
@@ -236,8 +258,7 @@ function WorldBackedOffseasonSurface({
           persistenceAuthority={draftPositionsPersistenceAuthority}
           validateDraftPositionsMap={validateDraftPositionsMap}
           worldId={worldId}
-          nextAdvanceDraftYear={nextAdvanceDraftYear ?? viewingYear}
-          worldSeason={worldSeason}
+          seasonAdvanceDraftContext={seasonAdvanceDraftContext}
         />
       </div>
     </section>
@@ -245,17 +266,13 @@ function WorldBackedOffseasonSurface({
 }
 
 function DevPreviewOffseasonSurface({
-  previewAccess,
+  previewAuthority,
   worldId,
   teamCapSheet,
   viewingYear,
   capProjections,
   playersMap,
 }: DevPreviewOffseasonSurfaceProps) {
-  if (!previewAccess.canRenderPreview) {
-    return null;
-  }
-
   return (
     <section data-testid="offseason-preview-surface">
       {worldId && (
@@ -277,6 +294,7 @@ function DevPreviewOffseasonSurface({
       <OffseasonTab
         teamCapSheet={teamCapSheet as Record<string, unknown>}
         currentYear={viewingYear}
+        previewAuthority={previewAuthority}
         capProjections={capProjections}
         playersMap={playersMap}
       />
@@ -301,7 +319,7 @@ const OffseasonSection = ({
   onReloadWorldData,
 }: OffseasonSectionProps) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
-  const previewAccess = getDevPreviewAccessState();
+  const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();
 
   // Phase 5 PATCH: Track world's actual current season (single source of truth)
   const [worldSeason, setWorldSeason] = useState<string | null>(null);
@@ -366,11 +384,9 @@ const OffseasonSection = ({
     ]
   );
 
-  const nextAdvanceDraftYear = worldSeason
-    ? getDraftYearForSeasonAdvance(worldSeason)
-    : null;
+  const seasonAdvanceDraftContext = getSeasonAdvanceDraftContext(worldSeason);
   const canAdvanceWorldSeason = Boolean(
-    worldId && worldSeason && !worldSeasonLoading
+    worldId && seasonAdvanceDraftContext && !worldSeasonLoading
   );
   const draftPositionsPersistenceAuthority =
     useMemo<DraftPositionsPersistenceAuthority>(() => ({
@@ -446,18 +462,18 @@ const OffseasonSection = ({
 
   const viewingSeason = toSeasonCode(viewingYear);
 
-  const hasSeasonMismatch = worldSeason && worldSeason !== viewingSeason;
+  const hasSeasonMismatch =
+    seasonAdvanceDraftContext?.authoritativeSeason &&
+    seasonAdvanceDraftContext.authoritativeSeason !== viewingSeason;
 
   return (
     <div>
       <WorldBackedOffseasonSurface
         worldId={worldId ?? ''}
-        worldSeason={worldSeason}
         worldSeasonLoading={worldSeasonLoading}
         viewingSeason={viewingSeason}
         hasSeasonMismatch={Boolean(hasSeasonMismatch)}
-        nextAdvanceDraftYear={nextAdvanceDraftYear}
-        viewingYear={viewingYear}
+        seasonAdvanceDraftContext={seasonAdvanceDraftContext}
         canAdvanceSeason={canAdvanceWorldSeason}
         draftPositionsPersistenceAuthority={draftPositionsPersistenceAuthority}
         validateDraftPositionsMap={draftPositionsValidationAuthority}
@@ -469,21 +485,25 @@ const OffseasonSection = ({
         }}
       />
 
-      <DevPreviewOffseasonSurface
-        previewAccess={previewAccess}
-        worldId={worldId}
-        teamCapSheet={teamCapSheet}
-        viewingYear={viewingYear}
-        capProjections={capProjections}
-        playersMap={playersMap}
-      />
+      {devPreviewSurfaceAccess.kind === 'preview' ? (
+        <DevPreviewOffseasonSurface
+          previewAuthority={devPreviewSurfaceAccess.previewAuthority}
+          worldId={worldId}
+          teamCapSheet={teamCapSheet}
+          viewingYear={viewingYear}
+          capProjections={capProjections}
+          playersMap={playersMap}
+        />
+      ) : null}
 
-      {worldSeason ? (
+      {seasonAdvanceDraftContext ? (
         <SeasonAdvanceModal
           isOpen={showAdvanceModal}
           onClose={() => setShowAdvanceModal(false)}
           teamCapSheet={teamCapSheet}
-          authoritativeWorldSeason={worldSeason}
+          authoritativeWorldSeason={
+            seasonAdvanceDraftContext.authoritativeSeason
+          }
           worldId={worldId}
           teamCode={teamCode}
           onWorldAdvanceComplete={handleCommittedWorldAdvanceComplete}

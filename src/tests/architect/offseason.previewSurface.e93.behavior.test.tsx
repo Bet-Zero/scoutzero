@@ -25,7 +25,10 @@ import {
 import '@testing-library/jest-dom/vitest';
 import OffseasonTab from '@/features/architect/offseason/OffseasonTab/OffseasonTab';
 import OptionManager from '@/features/architect/offseason/OffseasonTab/OptionManager';
-import type { OffseasonTeamCapSheet } from '@/features/architect/offseason/OffseasonTab/types';
+import {
+  NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
+  type OffseasonTeamCapSheet,
+} from '@/features/architect/offseason/OffseasonTab/types';
 
 const { mockRunOffseason } = vi.hoisted(() => ({
   mockRunOffseason: vi.fn(),
@@ -112,6 +115,7 @@ function renderPreviewSurface({
     <OffseasonTab
       teamCapSheet={teamCapSheet}
       currentYear={CURRENT_YEAR}
+      previewAuthority={NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY}
       capProjections={capProjections}
       playersMap={{}}
     />

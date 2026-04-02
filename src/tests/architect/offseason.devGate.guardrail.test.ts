@@ -46,10 +46,12 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
   describe('OffseasonSection — DEV + localStorage gate', () => {
     const source = fs.readFileSync(offseasonSectionPath, 'utf-8');
 
-    it('defines a named preview access helper instead of an inline gate boolean', () => {
-      expect(source).toContain('type DevPreviewAccessState = {');
-      expect(source).toContain('function getDevPreviewAccessState(): DevPreviewAccessState {');
-      expect(source).toContain('const previewAccess = getDevPreviewAccessState();');
+    it('defines a wrapper-owned preview surface resolver instead of an inline gate boolean', () => {
+      expect(source).toContain("type DevPreviewSurfaceAccess =");
+      expect(source).toContain('function resolveDevPreviewSurfaceAccess(): DevPreviewSurfaceAccess {');
+      expect(source).toContain(
+        'const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();'
+      );
     });
 
     it('keeps preview access behind both DEV and hz.dev.offseasonPreview intent', () => {
@@ -59,13 +61,24 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
         "window.localStorage?.getItem(DEV_OFFSEASON_PREVIEW_FLAG) === 'true'"
       );
       expect(source).toContain(
-        'canRenderPreview: isDevEnvironment && hasPreviewIntent,'
+        "kind: 'hidden'"
+      );
+      expect(source).toContain(
+        "kind: 'preview'"
+      );
+      expect(source).toContain(
+        'previewAuthority: NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,'
       );
     });
 
     it('routes preview rendering through the explicit preview access contract', () => {
-      expect(source).toContain('previewAccess={previewAccess}');
-      expect(source).toContain('if (!previewAccess.canRenderPreview) {');
+      expect(source).toContain(
+        "{devPreviewSurfaceAccess.kind === 'preview' ? ("
+      );
+      expect(source).toContain(
+        'previewAuthority={devPreviewSurfaceAccess.previewAuthority}'
+      );
+      expect(source).not.toContain('if (!previewAccess.canRenderPreview) {');
     });
 
     it('exports the DEV flag constant for test discoverability', () => {
@@ -89,20 +102,21 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('passes world-derived season truth into the world-backed controls', () => {
       expect(source).toContain(
-        'nextAdvanceDraftYear={nextAdvanceDraftYear ?? viewingYear}'
+        'seasonAdvanceDraftContext={seasonAdvanceDraftContext}'
       );
       expect(source).toContain(
-        'getDraftYearForSeasonAdvance(worldSeason)'
+        'const seasonAdvanceDraftContext = getSeasonAdvanceDraftContext(worldSeason);'
       );
       expect(source).toContain(
         'const canAdvanceWorldSeason = Boolean('
       );
       expect(source).toContain(
-        'authoritativeWorldSeason={worldSeason}'
+        'seasonAdvanceDraftContext.authoritativeSeason'
       );
       expect(source).toContain(
         'canAdvanceSeason={canAdvanceWorldSeason}'
       );
+      expect(source).not.toContain('nextAdvanceDraftYear={nextAdvanceDraftYear ?? viewingYear}');
     });
 
     it('applies world-backed aftermath from the normalized callback payload', () => {
@@ -183,6 +197,12 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     it('keeps OffseasonTab on the preview-only runner', () => {
       expect(source).toContain(
         "import { runOffseason } from '@/features/architect/utils/runOffseason';"
+      );
+      expect(source).toContain(
+        'previewAuthority === NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY'
+      );
+      expect(source).toContain(
+        'data-testid="offseason-preview-authority-required"'
       );
       expect(source).not.toContain('advanceSeasonInWorld');
       expect(source).not.toContain('seasonManager');

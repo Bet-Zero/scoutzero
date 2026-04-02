@@ -22,6 +22,7 @@ import type {
   OffseasonSummary,
   OffseasonTabProps,
 } from './types';
+import { NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY } from './types';
 
 type PreviewAftermath = {
   projectedSeasonCode: string;
@@ -53,9 +54,12 @@ function SummarySection({ title, items }: SummarySectionProps) {
 const OffseasonTab = ({
   teamCapSheet,
   currentYear,
+  previewAuthority,
   capProjections = null,
   playersMap = {},
 }: OffseasonTabProps) => {
+  const hasExplicitNonAuthoritativePreviewAuthority =
+    previewAuthority === NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY;
   const [optionsConfirmed, setOptionsConfirmed] = useState(false);
   const [optionDecisions, setOptionDecisions] =
     useState<OffseasonOptionDecisionMap | null>(null);
@@ -63,6 +67,18 @@ const OffseasonTab = ({
     useState<PreviewAftermath | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  if (!hasExplicitNonAuthoritativePreviewAuthority) {
+    return (
+      <div
+        data-testid="offseason-preview-authority-required"
+        className="rounded border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200"
+      >
+        Offseason preview requires the explicit non-authoritative DEV preview
+        authority.
+      </div>
+    );
+  }
 
   const handleDecisionsReady = (decisions: OffseasonOptionDecisionMap) => {
     setOptionDecisions(decisions);

@@ -16,6 +16,21 @@ import type { OffseasonTransitionResult } from '@/features/architect/utils/offse
 export type OffseasonSummary =
   OffseasonTransitionResult['appliedChangesSummary'];
 
+export type OffseasonPreviewAuthority = {
+  kind: 'dev-local-preview';
+  isAuthoritative: false;
+  persistsToWorld: false;
+  mutatesDashboardState: false;
+};
+
+export const NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY =
+  Object.freeze({
+    kind: 'dev-local-preview',
+    isAuthoritative: false,
+    persistsToWorld: false,
+    mutatesDashboardState: false,
+  }) as OffseasonPreviewAuthority;
+
 export type OffseasonContractYearSlice = {
   season?: string | number | null;
   salary?: number | null;
@@ -68,6 +83,7 @@ export type OffseasonOptionRow = {
 export type OffseasonTabProps = {
   teamCapSheet: OffseasonTeamCapSheet;
   currentYear: number;
+  previewAuthority: OffseasonPreviewAuthority;
   capProjections?: Record<string, unknown> | null;
   playersMap?: Record<string, unknown>;
 };

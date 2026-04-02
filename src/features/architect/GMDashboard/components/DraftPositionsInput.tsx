@@ -12,6 +12,7 @@ import {
   type ChangeEvent,
 } from 'react';
 import PropTypes from 'prop-types';
+import type { SeasonAdvanceDraftContext } from '@/features/architect/utils/seasonFormat';
 
 type DraftPositionsInputProps = {
   persistenceAuthority: DraftPositionsPersistenceAuthority;
@@ -19,8 +20,7 @@ type DraftPositionsInputProps = {
     positionsMap: Record<string, unknown>
   ) => DraftPositionsValidationResult;
   worldId?: string | null;
-  nextAdvanceDraftYear: number;
-  worldSeason?: string | null;
+  seasonAdvanceDraftContext?: SeasonAdvanceDraftContext | null;
 };
 
 export type DraftPositionsMap = Record<string, number>;
@@ -118,10 +118,15 @@ export function DraftPositionsInput({
   persistenceAuthority,
   validateDraftPositionsMap,
   worldId = null,
-  nextAdvanceDraftYear,
-  worldSeason = null,
+  seasonAdvanceDraftContext = null,
 }: DraftPositionsInputProps) {
-  const [selectedYear, setSelectedYear] = useState(nextAdvanceDraftYear);
+  const nextUsedDraftYear =
+    seasonAdvanceDraftContext?.nextUsedDraftYear ?? null;
+  const authoritativeSeason =
+    seasonAdvanceDraftContext?.authoritativeSeason ?? null;
+  const nextSeason = seasonAdvanceDraftContext?.nextSeason ?? null;
+  const [selectedSavedDraftYear, setSelectedSavedDraftYear] =
+    useState<number | null>(nextUsedDraftYear);
   const [jsonText, setJsonText] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [committedDraftPositions, setCommittedDraftPositions] =
@@ -132,14 +137,20 @@ export function DraftPositionsInput({
     useState<DraftPositionsStatusMessage>(null);
 
   useEffect(() => {
-    setSelectedYear(nextAdvanceDraftYear);
-  }, [nextAdvanceDraftYear]);
+    setSelectedSavedDraftYear(nextUsedDraftYear);
+  }, [nextUsedDraftYear]);
 
-  const availableYears = useMemo(() => {
-    return Array.from({ length: 8 }, (_, index) => nextAdvanceDraftYear + index);
-  }, [nextAdvanceDraftYear]);
+  const availableSavedDraftYears = useMemo(() => {
+    if (!nextUsedDraftYear) {
+      return [];
+    }
 
-  const isEditingNextAdvanceYear = selectedYear === nextAdvanceDraftYear;
+    return Array.from({ length: 8 }, (_, index) => nextUsedDraftYear + index);
+  }, [nextUsedDraftYear]);
+
+  const isEditingNextUsedDraftYear =
+    selectedSavedDraftYear != null &&
+    selectedSavedDraftYear === nextUsedDraftYear;
 
   const restoreEditorFromCommittedState = useCallback(
     (draftPositions: DraftPositionsCommittedState) => {
@@ -157,7 +168,9 @@ export function DraftPositionsInput({
     let isCancelled = false;
 
     async function loadPositions() {
-      if (!worldId || !selectedYear) return;
+      if (!worldId || !selectedSavedDraftYear) {
+        return;
+      }
 
       setIsLoading(true);
       setStatusMessage(null);
@@ -166,7 +179,7 @@ export function DraftPositionsInput({
 
       try {
         const data = await persistenceAuthority.loadCommittedDraftPositions(
-          selectedYear
+          selectedSavedDraftYear
         );
 
         if (isCancelled) {
@@ -202,7 +215,7 @@ export function DraftPositionsInput({
   }, [
     persistenceAuthority,
     restoreEditorFromCommittedState,
-    selectedYear,
+    selectedSavedDraftYear,
     worldId,
   ]);
 
@@ -258,6 +271,14 @@ export function DraftPositionsInput({
       return;
     }
 
+    if (!selectedSavedDraftYear) {
+      setStatusMessage({
+        tone: 'warning',
+        text: 'Error: World season must load before draft positions can be saved.',
+      });
+      return;
+    }
+
     const positionsMap = parseAndValidateEditorJson(false);
     if (!positionsMap) {
       return;
@@ -269,13 +290,13 @@ export function DraftPositionsInput({
     try {
       const committedDraftPositionsResult =
         await persistenceAuthority.saveCommittedDraftPositions(
-          selectedYear,
+          selectedSavedDraftYear,
           positionsMap
         );
 
       if (!committedDraftPositionsResult?.positionsMap) {
         throw new Error(
-          `Committed draft positions were unavailable after save for ${selectedYear}`
+          `Committed draft positions were unavailable after save for ${selectedSavedDraftYear}`
         );
       }
 
@@ -283,7 +304,7 @@ export function DraftPositionsInput({
       restoreEditorFromCommittedState(committedDraftPositionsResult);
       setStatusMessage({
         tone: 'success',
-        text: `✅ Saved draft positions for ${selectedYear}. Editor refreshed from committed world data.`,
+        text: `✅ Saved draft positions for ${selectedSavedDraftYear}. Editor refreshed from committed world data.`,
       });
     } catch (error) {
       const errorLike = error as ErrorLike;
@@ -299,7 +320,7 @@ export function DraftPositionsInput({
     parseAndValidateEditorJson,
     persistenceAuthority,
     restoreEditorFromCommittedState,
-    selectedYear,
+    selectedSavedDraftYear,
     worldId,
   ]);
 
@@ -323,17 +344,27 @@ export function DraftPositionsInput({
       return;
     }
 
+    if (!selectedSavedDraftYear) {
+      setStatusMessage({
+        tone: 'warning',
+        text: 'Error: World season must load before saved draft positions can be cleared.',
+      });
+      return;
+    }
+
     setIsSaving(true);
     setValidationErrors([]);
     setStatusMessage(null);
 
     try {
-      await persistenceAuthority.clearCommittedDraftPositions(selectedYear);
+      await persistenceAuthority.clearCommittedDraftPositions(
+        selectedSavedDraftYear
+      );
       setCommittedDraftPositions(null);
       setJsonText(SAMPLE_POSITIONS_TEMPLATE_TEXT);
       setStatusMessage({
         tone: 'success',
-        text: `✅ Cleared saved draft positions for ${selectedYear}. The editor is now showing the template.`,
+        text: `✅ Cleared saved draft positions for ${selectedSavedDraftYear}. The editor is now showing the template.`,
       });
     } catch (error) {
       const errorLike = error as ErrorLike;
@@ -345,10 +376,10 @@ export function DraftPositionsInput({
     } finally {
       setIsSaving(false);
     }
-  }, [persistenceAuthority, selectedYear, worldId]);
+  }, [persistenceAuthority, selectedSavedDraftYear, worldId]);
 
   const handleYearChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedYear(parseInt(event.target.value, 10));
+    setSelectedSavedDraftYear(parseInt(event.target.value, 10));
   };
 
   const handleJsonChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -365,6 +396,30 @@ export function DraftPositionsInput({
     );
   }
 
+  if (!seasonAdvanceDraftContext) {
+    return (
+      <div
+        data-testid="draft-positions-input-locked"
+        className="p-4 bg-[#1a1a1a] rounded-lg border border-white/10"
+      >
+        <h3 className="text-lg font-semibold text-white">
+          Draft Positions Input
+        </h3>
+        <p className="text-sm text-white/60 mt-1">
+          Enter real draft positions to auto-resolve pick swaps and conveyance
+          during season advance.
+        </p>
+        <p className="text-xs text-yellow-300 mt-3">
+          World season unavailable. Saved draft positions stay locked until the
+          authoritative world season loads.
+        </p>
+        <p className="text-xs text-white/40 mt-2">
+          No next-used draft year is assumed while world metadata is missing.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 bg-[#1a1a1a] rounded-lg border border-white/10">
       <div className="flex items-center justify-between mb-4">
@@ -376,17 +431,12 @@ export function DraftPositionsInput({
             Enter real draft positions to auto-resolve pick swaps and conveyance
             during season advance.
           </p>
-          {worldSeason && (
-            <>
-              <p className="text-xs text-purple-400 mt-1">
-                World Season: {worldSeason}
-              </p>
-              <p className="text-xs text-blue-300 mt-1">
-                Next season advance uses saved draft positions for{' '}
-                {nextAdvanceDraftYear}.
-              </p>
-            </>
-          )}
+          <p className="text-xs text-purple-400 mt-1">
+            World Season: {authoritativeSeason}
+          </p>
+          <p className="text-xs text-blue-300 mt-1">
+            Next-used Draft Year: {nextUsedDraftYear}
+          </p>
         </div>
       </div>
 
@@ -395,22 +445,23 @@ export function DraftPositionsInput({
           Saved Draft Positions Year
         </label>
         <select
-          value={selectedYear}
+          value={selectedSavedDraftYear ?? ''}
           onChange={handleYearChange}
           className="w-32 bg-[#0d0d0d] border border-white/20 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
         >
-          {availableYears.map((year) => (
+          {availableSavedDraftYears.map((year) => (
             <option key={year} value={year}>
               {year}
             </option>
           ))}
         </select>
-        {!isEditingNextAdvanceYear && (
+        {!isEditingNextUsedDraftYear && selectedSavedDraftYear != null && (
           <div className="mt-3 rounded border border-yellow-500/30 bg-yellow-500/10 p-3">
             <p className="text-xs text-yellow-300">
-              You are editing saved draft positions for {selectedYear}. The next
-              season advance will still use {nextAdvanceDraftYear} unless the
-              world season changes first.
+              You are editing saved draft positions for{' '}
+              {selectedSavedDraftYear}. The next season advance will still use{' '}
+              {nextUsedDraftYear} from world season {authoritativeSeason}
+              {' '}unless the world season changes first.
             </p>
           </div>
         )}
@@ -466,8 +517,8 @@ export function DraftPositionsInput({
           </>
         ) : (
           <>
-            No saved draft positions for {selectedYear}. Editor is showing the
-            template.
+            No saved draft positions for {selectedSavedDraftYear}. Editor is
+            showing the template.
           </>
         )}
       </div>
@@ -514,13 +565,13 @@ export function DraftPositionsInput({
         </p>
         <p className="mb-2">
           <strong>When you advance the season:</strong> Advancing from{' '}
-          {worldSeason || 'the current world season'} will use the committed
-          draft positions saved for {nextAdvanceDraftYear}.
+          {authoritativeSeason} to {nextSeason} will use the committed draft
+          positions saved for {nextUsedDraftYear}.
         </p>
         <p className="mb-2">
           <strong>If you save another year:</strong> Saving draft positions for
-          a different year stores future data only. It does not change the next
-          season advance year.
+          a different year stores future data only. It does not change the
+          next-used draft year derived from the current world season.
         </p>
         <p className="mb-2">
           <strong>Editor vs saved state:</strong> Reset Editor only changes the
@@ -544,8 +595,11 @@ DraftPositionsInput.propTypes = {
   }).isRequired,
   validateDraftPositionsMap: PropTypes.func.isRequired,
   worldId: PropTypes.string,
-  nextAdvanceDraftYear: PropTypes.number.isRequired,
-  worldSeason: PropTypes.string,
+  seasonAdvanceDraftContext: PropTypes.shape({
+    authoritativeSeason: PropTypes.string.isRequired,
+    nextUsedDraftYear: PropTypes.number.isRequired,
+    nextSeason: PropTypes.string.isRequired,
+  }),
 };
 
 export default DraftPositionsInput;

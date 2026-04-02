@@ -34,7 +34,7 @@ import {
   getDraftPositionsMap,
 } from '@/features/architect/utils/worldManager';
 import {
-  getDraftYearForSeasonAdvance,
+  getSeasonAdvanceDraftContext,
   toEndYear,
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
@@ -448,15 +448,15 @@ export async function advanceSeasonInWorld(
       };
     }
 
-    const nextAdvanceDraftYear = getDraftYearForSeasonAdvance(worldCurrentSeason);
-    if (!Number.isFinite(nextAdvanceDraftYear)) {
+    const seasonAdvanceDraftContext =
+      getSeasonAdvanceDraftContext(worldCurrentSeason);
+    if (!seasonAdvanceDraftContext) {
       throw new Error(
         `Could not resolve draft year for world season "${worldCurrentSeason}"`
       );
     }
 
-    const expectedToYear = nextAdvanceDraftYear + 1;
-    const expectedToSeason = toSeasonCode(expectedToYear);
+    const expectedToSeason = seasonAdvanceDraftContext.nextSeason;
     if (options.toSeason && options.toSeason !== expectedToSeason) {
       return {
         success: false,
@@ -467,17 +467,11 @@ export async function advanceSeasonInWorld(
     }
 
     // Always use world's current season as the source of truth
-    const fromSeason = worldCurrentSeason;
-    const draftYear = getDraftYearForSeasonAdvance(fromSeason);
-    if (!Number.isFinite(draftYear)) {
-      throw new Error(
-        `Could not resolve draft year for season advance from "${fromSeason}"`
-      );
-    }
-
+    const fromSeason = seasonAdvanceDraftContext.authoritativeSeason;
+    const draftYear = seasonAdvanceDraftContext.nextUsedDraftYear;
     const fromYear = draftYear;
     const toYear = fromYear + 1;
-    const toSeason = toSeasonCode(toYear);
+    const toSeason = seasonAdvanceDraftContext.nextSeason;
 
     // ===========================================================================
     // PHASE 5: Load draft positions for the draft year being advanced past

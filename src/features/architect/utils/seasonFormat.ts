@@ -10,6 +10,12 @@
 type SeasonValue = any;
 type CapProjectionsLike = Record<string, unknown> | null | undefined;
 
+export type SeasonAdvanceDraftContext = {
+  authoritativeSeason: string;
+  nextUsedDraftYear: number;
+  nextSeason: string;
+};
+
 export function toSeasonCode(endYear: SeasonValue) {
   const numericEndYear = endYear as any;
 
@@ -34,7 +40,23 @@ export function toEndYear(seasonCode: SeasonValue) {
 }
 
 export function getDraftYearForSeasonAdvance(seasonCode: SeasonValue) {
-  return toEndYear(seasonCode);
+  return getSeasonAdvanceDraftContext(seasonCode)?.nextUsedDraftYear ?? null;
+}
+
+export function getSeasonAdvanceDraftContext(
+  seasonCode: SeasonValue
+): SeasonAdvanceDraftContext | null {
+  const endYear = toEndYear(seasonCode);
+
+  if (!Number.isFinite(endYear) || endYear < 1900) {
+    return null;
+  }
+
+  return {
+    authoritativeSeason: toSeasonCode(endYear),
+    nextUsedDraftYear: endYear,
+    nextSeason: toSeasonCode(endYear + 1),
+  };
 }
 
 export function parseSeason(seasonOrYear: SeasonValue) {

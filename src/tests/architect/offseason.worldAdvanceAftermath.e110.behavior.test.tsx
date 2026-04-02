@@ -27,6 +27,7 @@ import {
   DEV_OFFSEASON_PREVIEW_FLAG,
   OffseasonSection,
 } from '@/features/architect/GMDashboard/sections/OffseasonSection';
+import { NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY } from '@/features/architect/offseason/OffseasonTab/types';
 
 const {
   mockGetWorldMetadata,
@@ -35,6 +36,7 @@ const {
   mockClearDraftPositions,
   mockValidateDraftPositionsMap,
   mockDraftPositionsInput,
+  mockOffseasonTab,
 } = vi.hoisted(() => ({
   mockGetWorldMetadata: vi.fn(),
   mockGetDraftPositions: vi.fn(),
@@ -42,6 +44,7 @@ const {
   mockClearDraftPositions: vi.fn(),
   mockValidateDraftPositionsMap: vi.fn(),
   mockDraftPositionsInput: vi.fn(),
+  mockOffseasonTab: vi.fn(),
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
@@ -63,7 +66,10 @@ vi.mock('@/features/architect/GMDashboard/components/DraftPositionsInput', () =>
 
 vi.mock('@/features/architect/offseason/OffseasonTab', () => ({
   __esModule: true,
-  default: () => <div data-testid="mock-offseason-tab" />,
+  default: (props: unknown) => {
+    mockOffseasonTab(props);
+    return <div data-testid="mock-offseason-tab" />;
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/components/SeasonAdvanceModal', () => ({
@@ -227,6 +233,9 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     expect(screen.getByTestId('offseason-preview-banner')).toHaveTextContent(
       'Preview only — does not persist. Changes will be lost on refresh.'
     );
+    expect(mockOffseasonTab.mock.lastCall?.[0]).toMatchObject({
+      previewAuthority: NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
+    });
   });
 
   it('keeps preview hidden when local preview intent is absent in DEV', async () => {
@@ -283,14 +292,20 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
       validateDraftPositionsMap: (
         positionsMap: Record<string, unknown>
       ) => { valid: boolean; errors: string[] };
-      nextAdvanceDraftYear: number;
+      seasonAdvanceDraftContext: {
+        authoritativeSeason: string;
+        nextUsedDraftYear: number;
+        nextSeason: string;
+      } | null;
       worldId: string;
-      worldSeason: string;
     };
 
     expect(draftPositionsInputProps.worldId).toBe('world_alpha');
-    expect(draftPositionsInputProps.worldSeason).toBe('2025-26');
-    expect(draftPositionsInputProps.nextAdvanceDraftYear).toBe(2026);
+    expect(draftPositionsInputProps.seasonAdvanceDraftContext).toEqual({
+      authoritativeSeason: '2025-26',
+      nextUsedDraftYear: 2026,
+      nextSeason: '2026-27',
+    });
 
     await expect(
       draftPositionsInputProps.persistenceAuthority.loadCommittedDraftPositions(
@@ -354,12 +369,18 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     await waitFor(() => {
       const latestDraftPositionsInputProps = mockDraftPositionsInput.mock
         .lastCall?.[0] as {
-        worldSeason: string;
-        nextAdvanceDraftYear: number;
+        seasonAdvanceDraftContext: {
+          authoritativeSeason: string;
+          nextUsedDraftYear: number;
+          nextSeason: string;
+        } | null;
       };
 
-      expect(latestDraftPositionsInputProps.worldSeason).toBe('2026-27');
-      expect(latestDraftPositionsInputProps.nextAdvanceDraftYear).toBe(2027);
+      expect(latestDraftPositionsInputProps.seasonAdvanceDraftContext).toEqual({
+        authoritativeSeason: '2026-27',
+        nextUsedDraftYear: 2027,
+        nextSeason: '2027-28',
+      });
     });
     expect(props.setTeamCapSheet).toHaveBeenCalledWith({
       teamCode: 'LAL',
@@ -404,5 +425,25 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     expect(props.setOffseasonSummary).not.toHaveBeenCalled();
     expect(props.setShowOffseasonModal).not.toHaveBeenCalled();
     expect(props.onReloadWorldData).not.toHaveBeenCalled();
+  });
+
+  it('does not synthesize a draft context fallback when world season is unavailable', async () => {
+    mockGetWorldMetadata.mockResolvedValueOnce({});
+
+    const props = buildOffseasonSectionProps();
+    render(<OffseasonSection {...props} />);
+
+    await screen.findByText(
+      'World season unavailable. Season advance stays disabled until metadata loads.'
+    );
+
+    const draftPositionsInputProps = mockDraftPositionsInput.mock.lastCall?.[0] as {
+      seasonAdvanceDraftContext: null;
+    };
+
+    expect(draftPositionsInputProps.seasonAdvanceDraftContext).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Advance Season' })
+    ).toBeDisabled();
   });
 });

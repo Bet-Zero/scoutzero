@@ -19,6 +19,7 @@ import '@testing-library/jest-dom/vitest';
 import { DeleteWorldModal } from '@/features/architect/GMDashboard/components/DeleteWorldModal';
 import { WorldTimeControls } from '@/features/architect/GMDashboard/components/WorldTimeControls';
 import DraftPositionsInput from '@/features/architect/GMDashboard/components/DraftPositionsInput';
+import { getSeasonAdvanceDraftContext } from '@/features/architect/utils/seasonFormat';
 
 const {
   mockUpdateWorldMetadata,
@@ -84,8 +85,7 @@ const renderDraftPositionsInput = (
       }}
       validateDraftPositionsMap={mockValidateDraftPositionsMap}
       worldId="world_1"
-      nextAdvanceDraftYear={2026}
-      worldSeason="2025-26"
+      seasonAdvanceDraftContext={getSeasonAdvanceDraftContext('2025-26')}
       {...overrides}
     />
   );
@@ -313,7 +313,7 @@ describe('GM world-support family E103 behavior', () => {
         }}
         validateDraftPositionsMap={mockValidateDraftPositionsMap}
         worldId={null}
-        nextAdvanceDraftYear={2026}
+        seasonAdvanceDraftContext={getSeasonAdvanceDraftContext('2025-26')}
       />
     );
 
@@ -345,7 +345,7 @@ describe('GM world-support family E103 behavior', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('World Season: 2025-26')).toBeInTheDocument();
     expect(
-      screen.getByText('Next season advance uses saved draft positions for 2026.')
+      screen.getByText('Next-used Draft Year: 2026')
     ).toBeInTheDocument();
 
     const draftYearLabel = screen.getByText('Saved Draft Positions Year');
@@ -367,12 +367,12 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getByText(/How it works:/)).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Advancing from 2025-26 will use the committed draft positions saved for 2026.'
+        'Advancing from 2025-26 to 2026-27 will use the committed draft positions saved for 2026.'
       )
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Saving draft positions for a different year stores future data only. It does not change the next season advance year.'
+        'Saving draft positions for a different year stores future data only. It does not change the next-used draft year derived from the current world season.'
       )
     ).toBeInTheDocument();
     expect(screen.getByText(/Editor vs saved state:/)).toBeInTheDocument();
@@ -396,7 +396,7 @@ describe('GM world-support family E103 behavior', () => {
     ]);
   });
 
-  it('re-syncs DraftPositionsInput selected year when nextAdvanceDraftYear changes', async () => {
+  it('re-syncs DraftPositionsInput selected saved year when next-used draft year changes', async () => {
     const { rerender } = renderDraftPositionsInput();
 
     await waitFor(() => {
@@ -412,8 +412,7 @@ describe('GM world-support family E103 behavior', () => {
         }}
         validateDraftPositionsMap={mockValidateDraftPositionsMap}
         worldId="world_1"
-        nextAdvanceDraftYear={2028}
-        worldSeason="2027-28"
+        seasonAdvanceDraftContext={getSeasonAdvanceDraftContext('2027-28')}
       />
     );
 
@@ -445,10 +444,10 @@ describe('GM world-support family E103 behavior', () => {
     });
 
     expect(
-      screen.getByText(
-        'You are editing saved draft positions for 2028. The next season advance will still use 2026 unless the world season changes first.'
-      )
-    ).toBeInTheDocument();
+      screen.getByText(/You are editing saved draft positions for/i)
+    ).toHaveTextContent(
+      'You are editing saved draft positions for 2028. The next season advance will still use 2026 from world season 2025-26 unless the world season changes first.'
+    );
 
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: '{"ATL": 9}' },
@@ -466,8 +465,29 @@ describe('GM world-support family E103 behavior', () => {
       screen.getByText('✅ Saved draft positions for 2028. Editor refreshed from committed world data.')
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Next season advance uses saved draft positions for 2026.')
+      screen.getByText('Next-used Draft Year: 2026')
     ).toBeInTheDocument();
+  });
+
+  it('locks DraftPositionsInput when authoritative world season truth is unavailable', () => {
+    renderDraftPositionsInput({
+      seasonAdvanceDraftContext: null,
+    });
+
+    expect(
+      screen.getByTestId('draft-positions-input-locked')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'World season unavailable. Saved draft positions stay locked until the authoritative world season loads.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No next-used draft year is assumed while world metadata is missing.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('preserves DraftPositionsInput template fallback and load-error messaging', async () => {
