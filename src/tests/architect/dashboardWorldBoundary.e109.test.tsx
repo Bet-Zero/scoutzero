@@ -943,7 +943,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     });
 
-    it('preserves option-decision wizard flow, processing state, and success callback wiring', async () => {
+    it('preserves option-decision wizard flow, processing state, and normalized success callback wiring', async () => {
       const onWorldAdvanceComplete = vi.fn();
       let resolveAdvance: (value: Record<string, unknown>) => void = () => {};
       mockAdvanceSeasonInWorld.mockReturnValue(
@@ -985,9 +985,36 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       resolveAdvance({
         success: true,
-        toSeason: '2026-27',
         updatedTeams: ['LAL'],
-        summary: {},
+        summary: {
+          declinedOptions: [{ playerId: 'option_1', playerName: 'Option One' }],
+          expiredContracts: [
+            { playerId: 'expire_1', playerName: 'Expire One' },
+          ],
+          expiredTPEs: [
+            {
+              amount: 3_500_000,
+              source: 'Existing Trade',
+              teamCode: 'LAL',
+            },
+          ],
+          exercisedOptions: [
+            {
+              playerId: 'option_1',
+              playerName: 'Option One',
+              optionType: 'player',
+              salary: 12_500_000,
+            },
+          ],
+          stepienUpdates: [
+            {
+              pickId: 'pick_1',
+              year: 2027,
+              status: 'retained',
+              reason: 'No Stepien violation',
+            },
+          ],
+        },
       });
 
       await waitFor(() => {
@@ -1003,10 +1030,74 @@ describe('E109 dashboard/world boundary behavior', () => {
       });
       await screen.findByText('Season Advanced Successfully!');
       expect(onWorldAdvanceComplete).toHaveBeenCalledWith(
-        expect.objectContaining({
+        {
           success: true,
+          error: undefined,
           toSeason: '2026-27',
-        })
+          updatedTeams: ['LAL'],
+          summary: {
+            declinedOptions: [
+              { playerId: 'option_1', playerName: 'Option One' },
+            ],
+            expiredContracts: [
+              { playerId: 'expire_1', playerName: 'Expire One' },
+            ],
+            expiredTPEs: [
+              {
+                amount: 3_500_000,
+                source: 'Existing Trade',
+                teamCode: 'LAL',
+              },
+            ],
+            exercisedOptions: [
+              {
+                playerId: 'option_1',
+                playerName: 'Option One',
+                optionType: 'player',
+                salary: 12_500_000,
+              },
+            ],
+            stepienUpdates: [
+              {
+                pickId: 'pick_1',
+                year: 2027,
+                status: 'retained',
+                reason: 'No Stepien violation',
+              },
+            ],
+          },
+          worldAdvanceAftermath: {
+            nextWorldSeason: '2026-27',
+            nextViewingYear: 2027,
+            offseasonSummary: {
+              declinedOptions: ['Option One'],
+              expiredContracts: ['Expire One'],
+              expiredTPEs: [
+                {
+                  amount: 3_500_000,
+                  source: 'Existing Trade',
+                  teamCode: 'LAL',
+                },
+              ],
+              exercisedOptions: [
+                {
+                  playerId: 'option_1',
+                  playerName: 'Option One',
+                  optionType: 'player',
+                  salary: 12_500_000,
+                },
+              ],
+              stepienUpdates: [
+                {
+                  pickId: 'pick_1',
+                  year: 2027,
+                  status: 'retained',
+                  reason: 'No Stepien violation',
+                },
+              ],
+            },
+          },
+        }
       );
     });
 

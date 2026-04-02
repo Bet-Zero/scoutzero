@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, cleanup } from '@testing-library/react';
+import { fireEvent, render, screen, cleanup, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import GMDashboard from '@/features/architect/GMDashboard/GMDashboard';
 import { TradeSection } from '@/features/architect/GMDashboard/sections/TradeSection';
@@ -15,6 +15,7 @@ import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 const useArchitectStateMock = vi.fn();
 const useTradeMachineMock = vi.fn();
 const getWorldMetadataMock = vi.fn();
+const advanceSeasonInWorldMock = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useParams: () => ({ teamId: 'LAL' }),
@@ -158,6 +159,10 @@ vi.mock('@/features/architect/utils/worldManager', async () => {
     getDraftPositions: vi.fn(async () => ({})),
   };
 });
+
+vi.mock('@/features/architect/utils/seasonManager', () => ({
+  advanceSeasonInWorld: (...args: unknown[]) => advanceSeasonInWorldMock(...args),
+}));
 
 const CURRENT_YEAR = 2026;
 
@@ -544,6 +549,121 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     expect(
       await screen.findByRole('heading', { name: 'Advance to 2026-27' })
     ).toBeInTheDocument();
+  });
+
+  it('applies world-backed aftermath from the normalized advance result instead of wrapper-authored fallbacks', async () => {
+    const teamCapSheet = buildTeamFixture();
+    const setCurrentYear = vi.fn();
+    const setOffseasonRun = vi.fn();
+    const setOffseasonSummary = vi.fn();
+    const setShowOffseasonModal = vi.fn();
+    const onReloadWorldData = vi.fn();
+
+    getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
+    advanceSeasonInWorldMock.mockResolvedValue({
+      success: true,
+      updatedTeams: ['LAL'],
+      summary: {
+        declinedOptions: [
+          { playerId: 'decline_1', playerName: 'Declined Option Player' },
+        ],
+        expiredContracts: [
+          { playerId: 'expire_1', playerName: 'Expiring Contract Player' },
+        ],
+        expiredTPEs: [
+          {
+            amount: 4_200_000,
+            source: 'Trade Exception A',
+            teamCode: 'LAL',
+          },
+        ],
+        exercisedOptions: [
+          {
+            playerId: 'exercise_1',
+            playerName: 'Exercised Option Player',
+            optionType: 'team',
+            salary: 8_500_000,
+          },
+        ],
+        stepienUpdates: [
+          {
+            pickId: 'pick_2027',
+            year: 2027,
+            status: 'retained',
+            reason: 'No Stepien violation',
+          },
+        ],
+      },
+    });
+
+    render(
+      <OffseasonSection
+        teamCapSheet={teamCapSheet}
+        setTeamCapSheet={vi.fn()}
+        currentYear={2028}
+        setCurrentYear={setCurrentYear}
+        capProjections={{}}
+        setLastCapSheet={vi.fn()}
+        offseasonRun={false}
+        setOffseasonRun={setOffseasonRun}
+        setOffseasonSummary={setOffseasonSummary}
+        setShowOffseasonModal={setShowOffseasonModal}
+        playersMap={{}}
+        worldId="world_smoke_lal"
+        teamCode="LAL"
+        onReloadWorldData={onReloadWorldData}
+      />
+    );
+
+    await screen.findByText('World Season: 2025-26');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Next' })
+    );
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Advance Season' }).at(-1) as Element
+    );
+
+    await waitFor(() => {
+      expect(advanceSeasonInWorldMock).toHaveBeenCalledWith('world_smoke_lal', {
+        optionDecisions: {},
+      });
+    });
+
+    await waitFor(() => {
+      expect(setCurrentYear).toHaveBeenCalledWith(2027);
+      expect(setOffseasonRun).toHaveBeenCalledWith(true);
+      expect(setOffseasonSummary).toHaveBeenCalledWith({
+        declinedOptions: ['Declined Option Player'],
+        expiredContracts: ['Expiring Contract Player'],
+        expiredTPEs: [
+          {
+            amount: 4_200_000,
+            source: 'Trade Exception A',
+            teamCode: 'LAL',
+          },
+        ],
+        exercisedOptions: [
+          {
+            playerId: 'exercise_1',
+            playerName: 'Exercised Option Player',
+            optionType: 'team',
+            salary: 8_500_000,
+          },
+        ],
+        stepienUpdates: [
+          {
+            pickId: 'pick_2027',
+            year: 2027,
+            status: 'retained',
+            reason: 'No Stepien violation',
+          },
+        ],
+      });
+      expect(setShowOffseasonModal).toHaveBeenCalledWith(true);
+      expect(onReloadWorldData).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('does not emit function-component defaultProps deprecation warnings', () => {

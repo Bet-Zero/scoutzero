@@ -23,6 +23,7 @@ import type {
   OffseasonOptionDecision,
 } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
 import type { TeamTpeLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
+import type { DashboardOffseasonSummary } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 
 const WIZARD_STEPS = {
   SUMMARY: 'summary',
@@ -40,12 +41,19 @@ type SeasonAdvanceSummary = AdvanceSeasonResult extends {
 }
   ? Summary
   : never;
-type SeasonAdvanceResult = {
+export type WorldAdvanceAftermath = {
+  nextWorldSeason: string;
+  nextViewingYear: number;
+  offseasonSummary: DashboardOffseasonSummary;
+};
+
+export type SeasonAdvanceResult = {
   summary?: SeasonAdvanceSummary;
   updatedTeams?: string[];
   toSeason?: string;
   error?: string;
   success?: boolean;
+  worldAdvanceAftermath?: WorldAdvanceAftermath;
 };
 type SeasonAdvanceModalTeamCapSheet = TeamCapSheetLike & TeamTpeLike;
 
@@ -258,6 +266,32 @@ function findExpiringTPEs(
   }));
 }
 
+function toDashboardOffseasonSummary(
+  summary: SeasonAdvanceSummary | undefined
+): DashboardOffseasonSummary {
+  return {
+    declinedOptions: Array.isArray(summary?.declinedOptions)
+      ? summary.declinedOptions.map((option) => option.playerName)
+      : [],
+    expiredContracts: Array.isArray(summary?.expiredContracts)
+      ? summary.expiredContracts.map((contract) => contract.playerName)
+      : [],
+    expiredTPEs: Array.isArray(summary?.expiredTPEs)
+      ? summary.expiredTPEs.map((tpe) => ({
+          ...tpe,
+          source:
+            typeof tpe.source === 'string' ? tpe.source : null,
+        }))
+      : [],
+    exercisedOptions: Array.isArray(summary?.exercisedOptions)
+      ? summary.exercisedOptions
+      : [],
+    stepienUpdates: Array.isArray(summary?.stepienUpdates)
+      ? summary.stepienUpdates
+      : [],
+  };
+}
+
 export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   isOpen,
   onClose,
@@ -424,20 +458,31 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
         throw new Error(advanceResult.error || 'Season advance failed');
       }
 
+      const normalizedToSeason =
+        typeof advanceResult.toSeason === 'string'
+          ? advanceResult.toSeason
+          : toSeason;
+      const normalizedSummary = advanceResult.summary as
+        | SeasonAdvanceSummary
+        | undefined;
+      const worldAdvanceAftermath: WorldAdvanceAftermath = {
+        nextWorldSeason: normalizedToSeason,
+        nextViewingYear: toEndYear(normalizedToSeason) ?? toYear,
+        offseasonSummary: toDashboardOffseasonSummary(normalizedSummary),
+      };
+
       const modalResult: SeasonAdvanceResult = {
         success: advanceResult.success,
         error:
           typeof advanceResult.error === 'string'
             ? advanceResult.error
             : undefined,
-        toSeason:
-          typeof advanceResult.toSeason === 'string'
-            ? advanceResult.toSeason
-            : undefined,
+        toSeason: normalizedToSeason,
         updatedTeams: Array.isArray(advanceResult.updatedTeams)
           ? advanceResult.updatedTeams
           : [],
-        summary: advanceResult.summary as SeasonAdvanceSummary | undefined,
+        summary: normalizedSummary,
+        worldAdvanceAftermath,
       };
 
       setResult(modalResult);

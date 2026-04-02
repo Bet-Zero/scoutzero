@@ -87,6 +87,26 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       );
     });
 
+    it('applies world-backed aftermath from the normalized callback payload', () => {
+      expect(source).toContain('if (!result.success || !result.worldAdvanceAftermath) {');
+      expect(source).toContain(
+        'setCurrentYear(worldAdvanceAftermath.nextViewingYear);'
+      );
+      expect(source).toContain(
+        'setWorldSeason(worldAdvanceAftermath.nextWorldSeason);'
+      );
+      expect(source).toContain(
+        'setOffseasonSummary(worldAdvanceAftermath.offseasonSummary);'
+      );
+      expect(source).not.toContain('setOffseasonSummary({');
+    });
+
+    it('does not synthesize unsupported world summary defaults in the wrapper', () => {
+      expect(source).not.toContain('resetMLE: true');
+      expect(source).not.toContain('expiredTPEs: []');
+      expect(source).not.toContain('waivedDeadCap: []');
+    });
+
     it('does NOT render OffseasonTab unconditionally', () => {
       // Count occurrences of <OffseasonTab — should only appear inside showDevPreview gate
       const unconditionalPattern = /^\s*<OffseasonTab/gm;
@@ -137,6 +157,8 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;'
       );
+      expect(source).toContain('worldAdvanceAftermath?: WorldAdvanceAftermath;');
+      expect(source).toContain('worldAdvanceAftermath: WorldAdvanceAftermath = {');
     });
   });
 

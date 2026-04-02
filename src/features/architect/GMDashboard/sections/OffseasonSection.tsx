@@ -19,7 +19,9 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import SeasonAdvanceModal from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
+import SeasonAdvanceModal, {
+  type SeasonAdvanceResult,
+} from '@/features/architect/GMDashboard/components/SeasonAdvanceModal';
 import DraftPositionsInput from '@/features/architect/GMDashboard/components/DraftPositionsInput';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
@@ -46,12 +48,6 @@ type OffseasonSectionProps = {
   worldId?: string | null;
   teamCode?: string | null;
   onReloadWorldData?: (() => void) | null;
-};
-
-type WorldAdvanceResult = {
-  success?: boolean;
-  toSeason?: string;
-  summary?: Record<string, unknown>;
 };
 
 type WorldBackedOffseasonSurfaceProps = {
@@ -234,31 +230,28 @@ const OffseasonSection = ({
     loadWorldSeason();
   }, [worldId]);
 
-  const handleWorldAdvanceComplete = useCallback((result: WorldAdvanceResult) => {
-    // Update local state after successful season advance
-    if (result.success) {
-      const toYear = toEndYear(result.toSeason) ?? viewingYear;
-      setCurrentYear(toYear);
-      setWorldSeason(result.toSeason as string);
-      setOffseasonRun(true);
-      const summary = result.summary as Record<string, unknown> | undefined;
-      setOffseasonSummary({
-        declinedOptions: (Array.isArray(summary?.declinedOptions) ? summary.declinedOptions : []).map((o: any) => o.playerName),
-        expiredContracts: (Array.isArray(summary?.expiredContracts) ? summary.expiredContracts : []).map((c: any) => c.playerName),
-        expiredTPEs: [],
-        waivedDeadCap: [],
-        resetMLE: true,
-        exercisedOptions: Array.isArray(summary?.exercisedOptions) ? summary.exercisedOptions : [],
-        stepienUpdates: Array.isArray(summary?.stepienUpdates) ? summary.stepienUpdates : [],
-      });
-      setShowOffseasonModal(true);
-
-      // Trigger data reload if callback provided
-      if (onReloadWorldData) {
-        onReloadWorldData();
+  const handleWorldAdvanceComplete = useCallback(
+    (result: SeasonAdvanceResult) => {
+      if (!result.success || !result.worldAdvanceAftermath) {
+        return;
       }
-    }
-  }, [viewingYear, setCurrentYear, setOffseasonRun, setOffseasonSummary, setShowOffseasonModal, onReloadWorldData]);
+
+      const { worldAdvanceAftermath } = result;
+      setCurrentYear(worldAdvanceAftermath.nextViewingYear);
+      setWorldSeason(worldAdvanceAftermath.nextWorldSeason);
+      setOffseasonRun(true);
+      setOffseasonSummary(worldAdvanceAftermath.offseasonSummary);
+      setShowOffseasonModal(true);
+      onReloadWorldData?.();
+    },
+    [
+      setCurrentYear,
+      setOffseasonRun,
+      setOffseasonSummary,
+      setShowOffseasonModal,
+      onReloadWorldData,
+    ]
+  );
 
   const handlePreviewAdvanceComplete = useCallback(
     ({
