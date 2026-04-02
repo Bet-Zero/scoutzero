@@ -37,6 +37,8 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({
   toEndYear: (season: string) => Number(season.split('-')[0]) + 1,
+  getDraftYearForSeasonAdvance: (season: string) =>
+    Number(season.split('-')[0]) + 1,
   toSeasonCode: (year: number) => `${year - 1}-${String(year).slice(2)}`,
 }));
 

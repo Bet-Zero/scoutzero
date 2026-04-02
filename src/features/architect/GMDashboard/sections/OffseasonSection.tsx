@@ -28,7 +28,10 @@ import DraftPositionsInput, {
   type DraftPositionsPersistenceAuthority,
   type DraftPositionsValidationResult,
 } from '@/features/architect/GMDashboard/components/DraftPositionsInput';
-import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import {
+  getDraftYearForSeasonAdvance,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 import {
   clearDraftPositions,
   getDraftPositions,
@@ -67,7 +70,7 @@ type WorldBackedOffseasonSurfaceProps = {
   worldSeasonLoading: boolean;
   viewingSeason: string;
   hasSeasonMismatch: boolean;
-  worldDraftYear: number | null;
+  nextAdvanceDraftYear: number | null;
   viewingYear: number;
   canAdvanceSeason: boolean;
   draftPositionsPersistenceAuthority: DraftPositionsPersistenceAuthority;
@@ -132,7 +135,7 @@ function WorldBackedOffseasonSurface({
   worldSeasonLoading,
   viewingSeason,
   hasSeasonMismatch,
-  worldDraftYear,
+  nextAdvanceDraftYear,
   viewingYear,
   canAdvanceSeason,
   draftPositionsPersistenceAuthority,
@@ -190,7 +193,7 @@ function WorldBackedOffseasonSurface({
           persistenceAuthority={draftPositionsPersistenceAuthority}
           validateDraftPositionsMap={validateDraftPositionsMap}
           worldId={worldId}
-          defaultDraftYear={worldDraftYear ?? viewingYear}
+          nextAdvanceDraftYear={nextAdvanceDraftYear ?? viewingYear}
           worldSeason={worldSeason}
         />
       </div>
@@ -357,8 +360,9 @@ const OffseasonSection = ({
     ]
   );
 
-  const worldSeasonEndYear = worldSeason ? toEndYear(worldSeason) : null;
-  const worldDraftYear = worldSeasonEndYear;
+  const nextAdvanceDraftYear = worldSeason
+    ? getDraftYearForSeasonAdvance(worldSeason)
+    : null;
   const canAdvanceWorldSeason = Boolean(
     worldId && worldSeason && !worldSeasonLoading
   );
@@ -446,7 +450,7 @@ const OffseasonSection = ({
         worldSeasonLoading={worldSeasonLoading}
         viewingSeason={viewingSeason}
         hasSeasonMismatch={Boolean(hasSeasonMismatch)}
-        worldDraftYear={worldDraftYear}
+        nextAdvanceDraftYear={nextAdvanceDraftYear}
         viewingYear={viewingYear}
         canAdvanceSeason={canAdvanceWorldSeason}
         draftPositionsPersistenceAuthority={draftPositionsPersistenceAuthority}

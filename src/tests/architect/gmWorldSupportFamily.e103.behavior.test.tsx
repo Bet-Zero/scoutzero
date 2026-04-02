@@ -84,7 +84,7 @@ const renderDraftPositionsInput = (
       }}
       validateDraftPositionsMap={mockValidateDraftPositionsMap}
       worldId="world_1"
-      defaultDraftYear={2026}
+      nextAdvanceDraftYear={2026}
       worldSeason="2025-26"
       {...overrides}
     />
@@ -313,7 +313,7 @@ describe('GM world-support family E103 behavior', () => {
         }}
         validateDraftPositionsMap={mockValidateDraftPositionsMap}
         worldId={null}
-        defaultDraftYear={2026}
+        nextAdvanceDraftYear={2026}
       />
     );
 
@@ -343,11 +343,12 @@ describe('GM world-support family E103 behavior', () => {
         'Enter real draft positions to auto-resolve pick swaps and conveyance during season advance.'
       )
     ).toBeInTheDocument();
+    expect(screen.getByText('World Season: 2025-26')).toBeInTheDocument();
     expect(
-      screen.getByText('World Season: 2025-26 — Default draft year: 2026')
+      screen.getByText('Next season advance uses saved draft positions for 2026.')
     ).toBeInTheDocument();
 
-    const draftYearLabel = screen.getByText('Draft Year');
+    const draftYearLabel = screen.getByText('Saved Draft Positions Year');
     const positionsJsonLabel = screen.getByText(/Positions JSON/);
     expect(
       draftYearLabel.compareDocumentPosition(positionsJsonLabel) &
@@ -364,7 +365,16 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getByRole('textbox')).toHaveValue(`{\n  "ATL": 1,\n  "BOS": 2\n}`);
     expect(screen.getByText('Last saved: MOCKED_LOCALE (manual)')).toBeInTheDocument();
     expect(screen.getByText(/How it works:/)).toBeInTheDocument();
-    expect(screen.getByText(/When you advance the season:/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Advancing from 2025-26 will use the committed draft positions saved for 2026.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Saving draft positions for a different year stores future data only. It does not change the next season advance year.'
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText(/Editor vs saved state:/)).toBeInTheDocument();
     expect(screen.getByText(/NO-OP guarantee:/)).toBeInTheDocument();
     expect(
@@ -386,7 +396,7 @@ describe('GM world-support family E103 behavior', () => {
     ]);
   });
 
-  it('re-syncs DraftPositionsInput selected year when defaultDraftYear changes', async () => {
+  it('re-syncs DraftPositionsInput selected year when nextAdvanceDraftYear changes', async () => {
     const { rerender } = renderDraftPositionsInput();
 
     await waitFor(() => {
@@ -402,7 +412,7 @@ describe('GM world-support family E103 behavior', () => {
         }}
         validateDraftPositionsMap={mockValidateDraftPositionsMap}
         worldId="world_1"
-        defaultDraftYear={2028}
+        nextAdvanceDraftYear={2028}
         worldSeason="2027-28"
       />
     );
@@ -411,6 +421,53 @@ describe('GM world-support family E103 behavior', () => {
       expect(mockLoadCommittedDraftPositions).toHaveBeenCalledWith(2028);
     });
     expect(screen.getByDisplayValue('2028')).toBeInTheDocument();
+  });
+
+  it('keeps selected saved year distinct from the next-used draft year', async () => {
+    mockSaveCommittedDraftPositions.mockResolvedValueOnce({
+      positionsMap: { ATL: 9 },
+      method: 'manual',
+      updatedAtIso: '2026-03-12T09:00:00.000Z',
+    });
+
+    renderDraftPositionsInput();
+
+    await waitFor(() => {
+      expect(mockLoadCommittedDraftPositions).toHaveBeenCalledWith(2026);
+    });
+
+    fireEvent.change(screen.getByRole('combobox'), {
+      target: { value: '2028' },
+    });
+
+    await waitFor(() => {
+      expect(mockLoadCommittedDraftPositions).toHaveBeenCalledWith(2028);
+    });
+
+    expect(
+      screen.getByText(
+        'You are editing saved draft positions for 2028. The next season advance will still use 2026 unless the world season changes first.'
+      )
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: '{"ATL": 9}' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockSaveCommittedDraftPositions).toHaveBeenCalledWith(
+        2028,
+        { ATL: 9 }
+      );
+    });
+
+    expect(
+      screen.getByText('✅ Saved draft positions for 2028. Editor refreshed from committed world data.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Next season advance uses saved draft positions for 2026.')
+    ).toBeInTheDocument();
   });
 
   it('preserves DraftPositionsInput template fallback and load-error messaging', async () => {

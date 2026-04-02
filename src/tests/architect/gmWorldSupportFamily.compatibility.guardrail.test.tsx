@@ -130,10 +130,13 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     );
     expect(draftPositionsInputSource).toContain('worldId: PropTypes.string');
     expect(draftPositionsInputSource).toContain(
-      'defaultDraftYear: PropTypes.number.isRequired'
+      'nextAdvanceDraftYear: PropTypes.number.isRequired'
     );
     expect(draftPositionsInputSource).toContain(
       'worldSeason: PropTypes.string'
+    );
+    expect(draftPositionsInputSource).toContain(
+      'Next season advance uses saved draft positions for'
     );
     expect(draftPositionsInputSource).toContain(
       'export default DraftPositionsInput;'

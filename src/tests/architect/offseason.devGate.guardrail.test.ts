@@ -80,7 +80,10 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('passes world-derived season truth into the world-backed controls', () => {
       expect(source).toContain(
-        'defaultDraftYear={worldDraftYear ?? viewingYear}'
+        'nextAdvanceDraftYear={nextAdvanceDraftYear ?? viewingYear}'
+      );
+      expect(source).toContain(
+        'getDraftYearForSeasonAdvance(worldSeason)'
       );
       expect(source).toContain(
         'const canAdvanceWorldSeason = Boolean('

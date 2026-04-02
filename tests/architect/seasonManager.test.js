@@ -695,6 +695,68 @@ describe('Season Manager', () => {
       expect(expiringEntry).toBeDefined();
     });
 
+    it('uses the world-derived draft year even when future-year positions are also saved', async () => {
+      seedWorldMetadata(
+        worldId,
+        createMockWorld({
+          worldId,
+          userId,
+          currentSeason: '2025-26',
+          draftPositionsByYear: {
+            2026: {
+              positionsMap: { LAL: 2 },
+              method: 'manual',
+              updatedAtIso: '2026-03-10T08:30:00.000Z',
+            },
+            2027: {
+              positionsMap: { LAL: 7 },
+              method: 'manual',
+              updatedAtIso: '2027-03-10T08:30:00.000Z',
+            },
+          },
+        })
+      );
+
+      const teamWithProtectedPick = createMockTeam({
+        teamCode: 'MIA',
+        season: '2025-26',
+        roster: [],
+        players: [],
+        draftPicks: [
+          {
+            id: 'lal_2026_1',
+            year: 2026,
+            round: 1,
+            originalTeam: 'LAL',
+            owner: 'MIA',
+            protection: 'Top 3',
+            conveyance: {
+              originalYear: 2026,
+              currentYear: 2026,
+              finalYear: 2027,
+              conditions: {
+                protection: 'Top 3',
+              },
+            },
+          },
+        ],
+      });
+      seedTeamSnapshot(worldId, 'MIA', teamWithProtectedPick);
+
+      const result = await advanceSeasonInWorld(worldId);
+
+      expect(result.success).toBe(true);
+
+      const updatedTeam = getMockData(`architect_worlds/${worldId}/teams/MIA`);
+      const protectedPick = updatedTeam.draftPicks.find(
+        (pick) => pick.id === 'lal_2026_1'
+      );
+
+      expect(protectedPick.status).toBe('rolled');
+      expect(protectedPick.year).toBe(2027);
+      expect(protectedPick.conveyanceResult.outcome).toBe('rolled');
+    });
+
     // Stepien recalculation tests
     it('marks pick as stepienBlocked when adjacent years are traded', async () => {
       // Create team that has traded 2026 and 2028 firsts, keeping 2027

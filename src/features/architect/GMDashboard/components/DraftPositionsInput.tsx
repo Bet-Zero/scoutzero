@@ -19,7 +19,7 @@ type DraftPositionsInputProps = {
     positionsMap: Record<string, unknown>
   ) => DraftPositionsValidationResult;
   worldId?: string | null;
-  defaultDraftYear: number;
+  nextAdvanceDraftYear: number;
   worldSeason?: string | null;
 };
 
@@ -118,12 +118,10 @@ export function DraftPositionsInput({
   persistenceAuthority,
   validateDraftPositionsMap,
   worldId = null,
-  defaultDraftYear,
+  nextAdvanceDraftYear,
   worldSeason = null,
 }: DraftPositionsInputProps) {
-  const [selectedYear, setSelectedYear] = useState(
-    defaultDraftYear || new Date().getFullYear()
-  );
+  const [selectedYear, setSelectedYear] = useState(nextAdvanceDraftYear);
   const [jsonText, setJsonText] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [committedDraftPositions, setCommittedDraftPositions] =
@@ -134,15 +132,14 @@ export function DraftPositionsInput({
     useState<DraftPositionsStatusMessage>(null);
 
   useEffect(() => {
-    if (defaultDraftYear) {
-      setSelectedYear(defaultDraftYear);
-    }
-  }, [defaultDraftYear]);
+    setSelectedYear(nextAdvanceDraftYear);
+  }, [nextAdvanceDraftYear]);
 
   const availableYears = useMemo(() => {
-    const startYear = defaultDraftYear || new Date().getFullYear();
-    return Array.from({ length: 8 }, (_, index) => startYear + index);
-  }, [defaultDraftYear]);
+    return Array.from({ length: 8 }, (_, index) => nextAdvanceDraftYear + index);
+  }, [nextAdvanceDraftYear]);
+
+  const isEditingNextAdvanceYear = selectedYear === nextAdvanceDraftYear;
 
   const restoreEditorFromCommittedState = useCallback(
     (draftPositions: DraftPositionsCommittedState) => {
@@ -380,16 +377,22 @@ export function DraftPositionsInput({
             during season advance.
           </p>
           {worldSeason && (
-            <p className="text-xs text-purple-400 mt-1">
-              World Season: {worldSeason} — Default draft year: {defaultDraftYear}
-            </p>
+            <>
+              <p className="text-xs text-purple-400 mt-1">
+                World Season: {worldSeason}
+              </p>
+              <p className="text-xs text-blue-300 mt-1">
+                Next season advance uses saved draft positions for{' '}
+                {nextAdvanceDraftYear}.
+              </p>
+            </>
           )}
         </div>
       </div>
 
       <div className="mb-4">
         <label className="block text-sm font-medium text-white/70 mb-1">
-          Draft Year
+          Saved Draft Positions Year
         </label>
         <select
           value={selectedYear}
@@ -402,6 +405,15 @@ export function DraftPositionsInput({
             </option>
           ))}
         </select>
+        {!isEditingNextAdvanceYear && (
+          <div className="mt-3 rounded border border-yellow-500/30 bg-yellow-500/10 p-3">
+            <p className="text-xs text-yellow-300">
+              You are editing saved draft positions for {selectedYear}. The next
+              season advance will still use {nextAdvanceDraftYear} unless the
+              world season changes first.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mb-4">
@@ -501,9 +513,14 @@ export function DraftPositionsInput({
           team codes (ATL, BOS, etc.) to pick positions (1-60).
         </p>
         <p className="mb-2">
-          <strong>When you advance the season:</strong> If saved draft positions
-          exist for the current draft year, swaps and protected picks will
-          auto-resolve based on the committed positions for that year.
+          <strong>When you advance the season:</strong> Advancing from{' '}
+          {worldSeason || 'the current world season'} will use the committed
+          draft positions saved for {nextAdvanceDraftYear}.
+        </p>
+        <p className="mb-2">
+          <strong>If you save another year:</strong> Saving draft positions for
+          a different year stores future data only. It does not change the next
+          season advance year.
         </p>
         <p className="mb-2">
           <strong>Editor vs saved state:</strong> Reset Editor only changes the
@@ -527,7 +544,7 @@ DraftPositionsInput.propTypes = {
   }).isRequired,
   validateDraftPositionsMap: PropTypes.func.isRequired,
   worldId: PropTypes.string,
-  defaultDraftYear: PropTypes.number.isRequired,
+  nextAdvanceDraftYear: PropTypes.number.isRequired,
   worldSeason: PropTypes.string,
 };
 

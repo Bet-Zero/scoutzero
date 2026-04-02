@@ -33,6 +33,10 @@ export function toEndYear(seasonCode: SeasonValue) {
   return Number.isFinite(n) ? n : null;
 }
 
+export function getDraftYearForSeasonAdvance(seasonCode: SeasonValue) {
+  return toEndYear(seasonCode);
+}
+
 export function parseSeason(seasonOrYear: SeasonValue) {
   if (
     typeof seasonOrYear === 'string' &&

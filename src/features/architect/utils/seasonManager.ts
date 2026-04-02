@@ -34,6 +34,7 @@ import {
   getDraftPositionsMap,
 } from '@/features/architect/utils/worldManager';
 import {
+  getDraftYearForSeasonAdvance,
   toEndYear,
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
@@ -447,7 +448,14 @@ export async function advanceSeasonInWorld(
       };
     }
 
-    const expectedToYear = resolveSeasonEndYear(worldCurrentSeason) + 1;
+    const nextAdvanceDraftYear = getDraftYearForSeasonAdvance(worldCurrentSeason);
+    if (!Number.isFinite(nextAdvanceDraftYear)) {
+      throw new Error(
+        `Could not resolve draft year for world season "${worldCurrentSeason}"`
+      );
+    }
+
+    const expectedToYear = nextAdvanceDraftYear + 1;
     const expectedToSeason = toSeasonCode(expectedToYear);
     if (options.toSeason && options.toSeason !== expectedToSeason) {
       return {
@@ -460,7 +468,14 @@ export async function advanceSeasonInWorld(
 
     // Always use world's current season as the source of truth
     const fromSeason = worldCurrentSeason;
-    const fromYear = resolveSeasonEndYear(fromSeason);
+    const draftYear = getDraftYearForSeasonAdvance(fromSeason);
+    if (!Number.isFinite(draftYear)) {
+      throw new Error(
+        `Could not resolve draft year for season advance from "${fromSeason}"`
+      );
+    }
+
+    const fromYear = draftYear;
     const toYear = fromYear + 1;
     const toSeason = toSeasonCode(toYear);
 
@@ -469,7 +484,6 @@ export async function advanceSeasonInWorld(
     // ===========================================================================
     // When advancing from 2025-26 to 2026-27, we're passing the 2026 draft.
     // Load positions for fromYear (the draft that just happened).
-    const draftYear = fromYear;
     const positionsMap = await getDraftPositionsMap(worldId, draftYear);
 
     // Load all teams in the world

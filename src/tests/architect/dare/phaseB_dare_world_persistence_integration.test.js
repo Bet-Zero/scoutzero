@@ -87,6 +87,7 @@ vi.mock('@/features/architect/utils/capTotals', () => ({
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({
   toEndYear: (s) => parseInt(s.split('-')[0]) + 1,
+  getDraftYearForSeasonAdvance: (s) => parseInt(s.split('-')[0]) + 1,
   toSeasonCode: (y) => `${y - 1}-${y.toString().slice(2)}`,
   toSeasonKey: (s) => parseInt(s.split('-')[0]) + 1,
 }));

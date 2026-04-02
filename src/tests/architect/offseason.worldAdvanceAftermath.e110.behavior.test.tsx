@@ -207,14 +207,14 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
       validateDraftPositionsMap: (
         positionsMap: Record<string, unknown>
       ) => { valid: boolean; errors: string[] };
-      defaultDraftYear: number;
+      nextAdvanceDraftYear: number;
       worldId: string;
       worldSeason: string;
     };
 
     expect(draftPositionsInputProps.worldId).toBe('world_alpha');
     expect(draftPositionsInputProps.worldSeason).toBe('2025-26');
-    expect(draftPositionsInputProps.defaultDraftYear).toBe(2026);
+    expect(draftPositionsInputProps.nextAdvanceDraftYear).toBe(2026);
 
     await expect(
       draftPositionsInputProps.persistenceAuthority.loadCommittedDraftPositions(
@@ -278,6 +278,16 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
 
     await waitFor(() => {
       expect(props.setCurrentYear).toHaveBeenCalledWith(2027);
+    });
+    await waitFor(() => {
+      const latestDraftPositionsInputProps = mockDraftPositionsInput.mock
+        .lastCall?.[0] as {
+        worldSeason: string;
+        nextAdvanceDraftYear: number;
+      };
+
+      expect(latestDraftPositionsInputProps.worldSeason).toBe('2026-27');
+      expect(latestDraftPositionsInputProps.nextAdvanceDraftYear).toBe(2027);
     });
     expect(props.setTeamCapSheet).toHaveBeenCalledWith({
       teamCode: 'LAL',
