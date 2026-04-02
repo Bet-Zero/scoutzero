@@ -48,7 +48,7 @@ type OffseasonSectionProps = {
   playersMap?: Record<string, unknown>;
   worldId?: string | null;
   teamCode?: string | null;
-  onReloadWorldData?: (() => void) | null;
+  onReloadWorldData?: (() => Promise<void>) | null;
 };
 
 type WorldBackedOffseasonSurfaceProps = {
@@ -88,7 +88,18 @@ function getWorldAdvanceAftermath(
     return null;
   }
 
-  return result.worldAdvanceAftermath;
+  const { worldAdvanceAftermath } = result;
+  if (
+    typeof worldAdvanceAftermath.nextWorldSeason !== 'string' ||
+    typeof worldAdvanceAftermath.nextViewingYear !== 'number' ||
+    !worldAdvanceAftermath.offseasonSummary ||
+    typeof worldAdvanceAftermath.offseasonSummary !== 'object' ||
+    !('committedTeamCapSheet' in worldAdvanceAftermath)
+  ) {
+    return null;
+  }
+
+  return worldAdvanceAftermath;
 }
 
 function WorldBackedOffseasonSurface({
@@ -257,21 +268,31 @@ const OffseasonSection = ({
   }, [worldId]);
 
   const handleWorldAdvanceComplete = useCallback(
-    (result: SeasonAdvanceResult) => {
+    async (result: SeasonAdvanceResult) => {
       const worldAdvanceAftermath = getWorldAdvanceAftermath(result);
 
       if (!worldAdvanceAftermath) {
         return;
       }
 
+      if (setTeamCapSheet && worldAdvanceAftermath.committedTeamCapSheet) {
+        setTeamCapSheet(worldAdvanceAftermath.committedTeamCapSheet);
+      }
       setCurrentYear(worldAdvanceAftermath.nextViewingYear);
       setWorldSeason(worldAdvanceAftermath.nextWorldSeason);
       setOffseasonRun(true);
       setOffseasonSummary(worldAdvanceAftermath.offseasonSummary);
       setShowOffseasonModal(true);
-      onReloadWorldData?.();
+      if (onReloadWorldData) {
+        try {
+          await onReloadWorldData();
+        } catch (error) {
+          console.error('Failed to reload world data after season advance:', error);
+        }
+      }
     },
     [
+      setTeamCapSheet,
       setCurrentYear,
       setOffseasonRun,
       setOffseasonSummary,

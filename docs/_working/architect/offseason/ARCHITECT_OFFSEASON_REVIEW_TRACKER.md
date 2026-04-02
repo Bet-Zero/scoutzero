@@ -34,7 +34,7 @@
 |-------|----------------------------------------------------------------------|--------|-------|
 | OS-3A | Remove or Fence the Legacy Parallel Season-Advance Path              | DONE   |       |
 | OS-3B | Tighten Payload / Season / Summary Truth Through the Authoritative Path | DONE |       |
-| OS-3C | Tighten Final Saved / Reloaded World State Truth                     | TODO   |       |
-| OS-3D | Add Focused Guardrails for the World-Backed Season-Advance Seam      | TODO   |       |
+| OS-3C | Tighten Final Saved / Reloaded World State Truth                     | DONE   | Season advancement now returns explicit committed post-success state, the wrapper applies committed team/season truth first, and production reload wiring reconciles against the reloaded active world team after success. |
+| OS-3D | Add Focused Guardrails for the World-Backed Season-Advance Seam      | DONE   | Focused node/UI guardrails now pin the committed-state return contract, production reload handoff, and committed aftermath application so post-success drift cannot reopen silently. |
 
-**STEP 3 STATUS: TODO**
+**STEP 3 STATUS: DONE**

@@ -623,12 +623,31 @@ describe('Season Manager', () => {
     });
 
     it('updates world metadata season', async () => {
-      const result = await advanceSeasonInWorld(worldId);
+      const result = await advanceSeasonInWorld(worldId, {
+        focusTeamCode: 'LAL',
+      });
 
       expect(result.success).toBe(true);
-      
+
       const metadata = getMockWorldMetadata(worldId);
       expect(metadata.currentSeason).toBe('2026-27');
+      expect(result.committedState.metadata).toEqual({
+        currentSeason: '2026-27',
+        currentYear: 2027,
+        lastModifiedTeams: result.updatedTeams,
+      });
+      expect(result.committedState.focusTeamCode).toBe('LAL');
+      expect(result.committedState.focusTeamSnapshot).toEqual(
+        getMockData(`architect_worlds/${worldId}/teams/LAL`)
+      );
+
+      const persistedEvent = getMockData(
+        `architect_worlds/${worldId}/events/${result.committedState.event.eventId}`
+      );
+      expect(result.committedState.event.eventId).toContain('seasonAdvance_');
+      expect(result.committedState.event.occurredAt).toBeDefined();
+      expect(persistedEvent.seasonId).toBe('2026-27');
+      expect(persistedEvent.metadata.toSeason).toBe('2026-27');
     });
 
     it('tracks expired contracts in summary', async () => {

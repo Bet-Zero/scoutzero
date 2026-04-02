@@ -49,6 +49,7 @@ const {
   mockSetActiveTab,
   mockEditContractModalProps,
   mockFreeAgencySectionProps,
+  mockOffseasonSectionProps,
 } = vi.hoisted(() => ({
   mockListUserWorlds: vi.fn(),
   mockCreateWorld: vi.fn(),
@@ -71,6 +72,7 @@ const {
   mockSetActiveTab: vi.fn(),
   mockEditContractModalProps: vi.fn(),
   mockFreeAgencySectionProps: vi.fn(),
+  mockOffseasonSectionProps: vi.fn(),
 }));
 
 const dashboardRouteFixtures = vi.hoisted(() => ({
@@ -331,20 +333,32 @@ vi.mock('@/features/architect/GMDashboard/sections/OffseasonSection', () => ({
     currentYear,
     worldId,
     teamCode,
+    onReloadWorldData,
   }: {
     currentYear: number;
     worldId?: string | null;
     teamCode?: string | null;
-  }) => (
-    <div
-      data-testid="mock-offseason-section"
-      data-current-year={String(currentYear)}
-      data-world-id={worldId ?? ''}
-      data-team-code={teamCode ?? ''}
-    >
-      OffseasonSection
-    </div>
-  ),
+    onReloadWorldData?: (() => Promise<void>) | null;
+  }) => {
+    mockOffseasonSectionProps({
+      currentYear,
+      worldId,
+      teamCode,
+      onReloadWorldData,
+    });
+
+    return (
+      <div
+        data-testid="mock-offseason-section"
+        data-current-year={String(currentYear)}
+        data-world-id={worldId ?? ''}
+        data-team-code={teamCode ?? ''}
+        data-has-reload-handler={String(typeof onReloadWorldData === 'function')}
+      >
+        OffseasonSection
+      </div>
+    );
+  },
 }));
 
 vi.mock('@/features/architect/GMDashboard/sections/HistorySection', () => ({
@@ -444,6 +458,47 @@ function buildSeasonAdvanceTeamCapSheet({
   };
 }
 
+function buildCommittedSeasonAdvanceResult(
+  overrides: Partial<Record<string, unknown>> = {}
+): Record<string, unknown> {
+  const committedTeamCapSheet =
+    (overrides.committedTeamCapSheet as Record<string, unknown> | undefined) ||
+    buildSeasonAdvanceTeamCapSheet();
+  const committedSeason =
+    (overrides.committedSeason as string | undefined) || '2026-27';
+  const committedYear =
+    (overrides.committedYear as number | undefined) || 2027;
+  const updatedTeams =
+    (overrides.updatedTeams as string[] | undefined) || ['LAL'];
+  const summary = (overrides.summary as Record<string, unknown> | undefined) || {};
+
+  return {
+    success: true,
+    fromSeason: '2025-26',
+    toSeason: committedSeason,
+    updatedTeams,
+    summary,
+    draftResolutionInfo: {
+      draftYear: 2026,
+      hadPositions: false,
+    },
+    committedState: {
+      metadata: {
+        currentSeason: committedSeason,
+        currentYear: committedYear,
+        lastModifiedTeams: updatedTeams,
+      },
+      event: {
+        eventId: 'seasonAdvance_123456_abcd',
+        occurredAt: '2026-04-02T12:00:00.000Z',
+      },
+      focusTeamCode: 'LAL',
+      focusTeamSnapshot: committedTeamCapSheet,
+    },
+    ...overrides,
+  };
+}
+
 function buildDashboardState(
   overrides: Partial<Record<string, unknown>> = {}
 ): Record<string, unknown> {
@@ -471,6 +526,7 @@ function buildDashboardState(
     setOffseasonSummary: vi.fn(),
     setWorldId: vi.fn(),
     setWorldAsOfDate: vi.fn(),
+    reloadActiveWorldTeamData: vi.fn(async () => undefined),
     ...overrides,
   };
 }
@@ -645,12 +701,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       expiredTPEs: [{ amount: 3_500_000, source: 'Existing Trade' }],
     });
     mockGetTpeExpiryISO.mockReturnValue('2026-06-30T00:00:00.000Z');
-    mockAdvanceSeasonInWorld.mockResolvedValue({
-      success: true,
-      toSeason: '2026-27',
-      updatedTeams: ['LAL'],
-      summary: {},
-    });
+    mockAdvanceSeasonInWorld.mockResolvedValue(buildCommittedSeasonAdvanceResult());
 
     mockUseAuth.mockReturnValue({ userId: 'user_1', loading: false });
     mockUseArchitectState.mockReturnValue(buildDashboardState());
@@ -1194,7 +1245,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
     });
 
-    it('normalizes successful advance results with fallback season and summary truth', async () => {
+    it('fails closed when authoritative advance succeeds without committed post-success truth', async () => {
       const onWorldAdvanceComplete = vi.fn();
       mockAdvanceSeasonInWorld.mockResolvedValueOnce({
         success: true,
@@ -1217,27 +1268,19 @@ describe('E109 dashboard/world boundary behavior', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
       fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
 
-      await screen.findByText('Season Advanced Successfully!');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('heading', { name: 'Confirm Season Advance' })
+        ).toBeInTheDocument();
+      });
 
       expect(mockAdvanceSeasonInWorld).toHaveBeenCalledTimes(1);
-      expect(onWorldAdvanceComplete).toHaveBeenCalledTimes(1);
-      expect(onWorldAdvanceComplete).toHaveBeenCalledWith({
-        success: true,
-        toSeason: '2026-27',
-        updatedTeams: [],
-        summary: undefined,
-        worldAdvanceAftermath: {
-          nextWorldSeason: '2026-27',
-          nextViewingYear: 2027,
-          offseasonSummary: {
-            declinedOptions: [],
-            expiredContracts: [],
-            expiredTPEs: [],
-            exercisedOptions: [],
-            stepienUpdates: [],
-          },
-        },
-      });
+      expect(onWorldAdvanceComplete).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(
+          'Season advance succeeded but committed post-success state was missing from the authoritative executor result.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('returns to confirmation with a surfaced error when authoritative advance resolves unsuccessfully', async () => {
@@ -1352,39 +1395,41 @@ describe('E109 dashboard/world boundary behavior', () => {
         await screen.findByRole('heading', { name: 'Advancing Season...' })
       ).toBeInTheDocument();
 
-      resolveAdvance({
-        success: true,
-        updatedTeams: ['LAL'],
-        summary: {
-          declinedOptions: [{ playerId: 'option_1', playerName: 'Option One' }],
-          expiredContracts: [
-            { playerId: 'expire_1', playerName: 'Expire One' },
-          ],
-          expiredTPEs: [
-            {
-              amount: 3_500_000,
-              source: 'Existing Trade',
-              teamCode: 'LAL',
-            },
-          ],
-          exercisedOptions: [
-            {
-              playerId: 'option_1',
-              playerName: 'Option One',
-              optionType: 'player',
-              salary: 12_500_000,
-            },
-          ],
-          stepienUpdates: [
-            {
-              pickId: 'pick_1',
-              year: 2027,
-              status: 'retained',
-              reason: 'No Stepien violation',
-            },
-          ],
-        },
-      });
+      const committedTeamCapSheet = buildSeasonAdvanceTeamCapSheet();
+      resolveAdvance(
+        buildCommittedSeasonAdvanceResult({
+          summary: {
+            declinedOptions: [{ playerId: 'option_1', playerName: 'Option One' }],
+            expiredContracts: [
+              { playerId: 'expire_1', playerName: 'Expire One' },
+            ],
+            expiredTPEs: [
+              {
+                amount: 3_500_000,
+                source: 'Existing Trade',
+                teamCode: 'LAL',
+              },
+            ],
+            exercisedOptions: [
+              {
+                playerId: 'option_1',
+                playerName: 'Option One',
+                optionType: 'player',
+                salary: 12_500_000,
+              },
+            ],
+            stepienUpdates: [
+              {
+                pickId: 'pick_1',
+                year: 2027,
+                status: 'retained',
+                reason: 'No Stepien violation',
+              },
+            ],
+          },
+          committedTeamCapSheet,
+        })
+      );
 
       await waitFor(() => {
         expect(mockAdvanceSeasonInWorld).toHaveBeenCalledWith('world_alpha', {
@@ -1397,6 +1442,7 @@ describe('E109 dashboard/world boundary behavior', () => {
               season: '2026-27',
             },
           },
+          focusTeamCode: 'LAL',
         });
       });
       expect(mockAdvanceSeasonInWorld).toHaveBeenCalledTimes(1);
@@ -1441,6 +1487,7 @@ describe('E109 dashboard/world boundary behavior', () => {
           worldAdvanceAftermath: {
             nextWorldSeason: '2026-27',
             nextViewingYear: 2027,
+            committedTeamCapSheet,
             offseasonSummary: {
               declinedOptions: ['Option One'],
               expiredContracts: ['Expire One'],
@@ -1529,10 +1576,17 @@ describe('E109 dashboard/world boundary behavior', () => {
         'data-team-code',
         'LAL'
       );
+      expect(screen.getByTestId('mock-offseason-section')).toHaveAttribute(
+        'data-has-reload-handler',
+        'true'
+      );
       expect(screen.getByTestId('mock-cap-audit-debug')).toHaveAttribute(
         'data-world-id',
         'world_alpha'
       );
+
+      const offseasonProps = mockOffseasonSectionProps.mock.calls.at(-1)?.[0];
+      expect(typeof offseasonProps?.onReloadWorldData).toBe('function');
 
       fireEvent.click(screen.getByRole('button', { name: 'Cap Sheet' }));
       expect(mockSetActiveTab).toHaveBeenCalledWith('cap');

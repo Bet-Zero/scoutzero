@@ -24,6 +24,7 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     '../../features/architect/GMDashboard'
   );
   const componentsRoot = path.join(gmDashboardRoot, 'components');
+  const hooksRoot = path.join(gmDashboardRoot, 'hooks');
   const GMDASHBOARD_TSX_SPECIFIER =
     '../../features/architect/GMDashboard/GMDashboard.tsx';
   const WORLD_SELECTOR_TSX_SPECIFIER =
@@ -111,6 +112,26 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(seasonAdvanceModalSource).toContain('SeasonAdvanceModal.propTypes = {');
     expect(seasonAdvanceModalSource).toContain(
       'export default SeasonAdvanceModal;'
+    );
+  });
+
+  it('keeps production offseason reload wiring on the GMDashboard/useArchitectState authority seam', () => {
+    const gmDashboardSource = readSource(gmDashboardRoot, 'GMDashboard.tsx');
+    const useArchitectStateSource = readSource(
+      hooksRoot,
+      'useArchitectState.ts'
+    );
+
+    expect(useArchitectStateSource).toContain(
+      'reloadActiveWorldTeamData: () => Promise<void>;'
+    );
+    expect(useArchitectStateSource).toContain(
+      'const reloadActiveWorldTeamData = useCallback(async (): Promise<void> => {'
+    );
+    expect(useArchitectStateSource).toContain('reloadActiveWorldTeamData,');
+    expect(gmDashboardSource).toContain('reloadActiveWorldTeamData,');
+    expect(gmDashboardSource).toContain(
+      'onReloadWorldData={reloadActiveWorldTeamData}'
     );
   });
 });

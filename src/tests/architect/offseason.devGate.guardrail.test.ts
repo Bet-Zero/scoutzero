@@ -100,6 +100,12 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       );
       expect(source).toContain('if (!worldAdvanceAftermath) {');
       expect(source).toContain(
+        'if (setTeamCapSheet && worldAdvanceAftermath.committedTeamCapSheet) {'
+      );
+      expect(source).toContain(
+        'setTeamCapSheet(worldAdvanceAftermath.committedTeamCapSheet);'
+      );
+      expect(source).toContain(
         'setCurrentYear(worldAdvanceAftermath.nextViewingYear);'
       );
       expect(source).toContain(
@@ -108,6 +114,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'setOffseasonSummary(worldAdvanceAftermath.offseasonSummary);'
       );
+      expect(source).toContain('await onReloadWorldData();');
       expect(source).not.toContain('setOffseasonSummary({');
     });
 
@@ -164,13 +171,14 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('publishes the world authority prop names', () => {
       expect(source).toContain('authoritativeWorldSeason: string;');
-      expect(source).toContain(
-        'onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;'
+      expect(source).toMatch(
+        /onWorldAdvanceComplete\?:\s*\|\s*\(\(result: SeasonAdvanceResult\) => void \| Promise<void>\)\s*\|\s*null;/
       );
       expect(source).toContain('export type SeasonAdvanceSuccessResult = {');
       expect(source).toContain('worldAdvanceAftermath: WorldAdvanceAftermath;');
       expect(source).toContain('export type SeasonAdvanceFailureResult = {');
       expect(source).toContain('error: string;');
+      expect(source).toContain('committedTeamCapSheet: SeasonAdvanceModalTeamCapSheet | null;');
       expect(source).toContain(
         'function buildWorldAdvanceAftermath({'
       );
@@ -187,6 +195,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('keeps result normalization on explicit modal-local helpers', () => {
       expect(source).toContain('buildDashboardOffseasonSummary');
+      expect(source).toContain('getCommittedTeamCapSheet');
       expect(source).toContain('buildWorldAdvanceAftermath');
       expect(source).toContain('buildSeasonAdvanceSuccessResult');
       expect(source).toContain('getSeasonAdvanceFailureMessage');
@@ -194,6 +203,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
         'const modalResult = buildSeasonAdvanceSuccessResult({'
       );
       expect(source).toContain('handleAdvanceFailure(advanceResult);');
+      expect(source).toContain('focusTeamCode: teamCode ?? undefined,');
     });
   });
 

@@ -131,6 +131,7 @@ const GMDashboard = () => {
     setOffseasonSummary,
     setWorldId,
     setWorldAsOfDate,
+    reloadActiveWorldTeamData,
   } = state;
 
   const isEmulatorMode = FIREBASE_TARGET_MODE === 'EMULATOR';
@@ -506,6 +507,7 @@ const GMDashboard = () => {
             playersMap={playersMap}
             worldId={worldId}
             teamCode={normalizedTeamId}
+            onReloadWorldData={reloadActiveWorldTeamData}
           />
         )}
 

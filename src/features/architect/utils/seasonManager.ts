@@ -182,6 +182,7 @@ export type SeasonAdvanceRequest = {
   fromSeason?: string;
   toSeason?: string;
   optionDecisions?: OffseasonOptionDecisionMap;
+  focusTeamCode?: string;
 };
 
 type DraftResolutionContext = {
@@ -294,6 +295,24 @@ type SeasonAdvanceDraftResolutionInfo = {
   resolvedSwaps?: number;
 };
 
+export type SeasonAdvanceCommittedMetadata = {
+  currentSeason: string;
+  currentYear: number;
+  lastModifiedTeams: string[];
+};
+
+export type SeasonAdvanceCommittedEvent = {
+  eventId: string;
+  occurredAt: string;
+};
+
+export type SeasonAdvanceCommittedState = {
+  metadata: SeasonAdvanceCommittedMetadata;
+  event: SeasonAdvanceCommittedEvent;
+  focusTeamCode?: string;
+  focusTeamSnapshot?: Record<string, unknown> | null;
+};
+
 export type SeasonAdvanceSuccessResult = {
   success: true;
   fromSeason: string;
@@ -301,6 +320,7 @@ export type SeasonAdvanceSuccessResult = {
   updatedTeams: string[];
   summary: SeasonAdvanceSummary;
   draftResolutionInfo: SeasonAdvanceDraftResolutionInfo;
+  committedState: SeasonAdvanceCommittedState;
 };
 
 export type SeasonAdvanceFailureResult = {
@@ -383,6 +403,7 @@ function getUnderlyingPickId(entitlement: unknown): string | null {
  * @param {string} [options.fromSeason] - Current season code (defaults to world's currentSeason)
  * @param {string} [options.toSeason] - Target season code (defaults to next season)
  * @param {Object} [options.optionDecisions={}] - Map of playerId to decision
+ * @param {string} [options.focusTeamCode] - Active team whose committed snapshot should be surfaced back to the UI
  *   Each entry: { decision: 'exercise' | 'decline', optionType: 'player' | 'team', season: string }
  * @returns {Promise<Object>} Season advancement result
  */
@@ -398,6 +419,9 @@ export async function advanceSeasonInWorld(
   const operationId = generateSeasonAdvanceOperationId(operationTimestamp);
   const occurredAt = new Date(operationTimestamp).toISOString();
   const optionDecisions = options.optionDecisions || {};
+  const focusTeamCode = isNonEmptyString(options.focusTeamCode)
+    ? options.focusTeamCode
+    : null;
 
   try {
     // Get current world metadata
@@ -453,6 +477,7 @@ export async function advanceSeasonInWorld(
 
     const batch = writeBatch(db);
     const updatedTeams = [];
+    let focusTeamSnapshot: Record<string, unknown> | null = null;
     const beforeTeamsByCode: PostStateTeamSnapshots = {};
     const afterTeamsByCode: PostStateTeamSnapshots = {};
     const beforeTotalsByTeam: NonNullable<
@@ -558,6 +583,17 @@ export async function advanceSeasonInWorld(
         });
         const safeTeam = removeUndefinedDeep(normalizedTeam);
         batch.set(snapshotRef, safeTeam);
+        if (
+          focusTeamCode &&
+          teamCode === focusTeamCode &&
+          safeTeam &&
+          typeof safeTeam === 'object'
+        ) {
+          focusTeamSnapshot = safeCloneForAudit(safeTeam) as Record<
+            string,
+            unknown
+          >;
+        }
         updatedTeams.push(teamCode);
       }
     }
@@ -717,6 +753,11 @@ export async function advanceSeasonInWorld(
     });
 
     const teamCodes = updatedTeams.slice();
+    const committedMetadata: SeasonAdvanceCommittedMetadata = {
+      currentSeason: toSeason,
+      currentYear: toYear,
+      lastModifiedTeams: teamCodes,
+    };
     const diffSummary = {
       teamsAdvanced: teamCodes.length,
       optionsDecisionsCount: Object.keys(optionDecisions || {}).length,
@@ -779,12 +820,23 @@ export async function advanceSeasonInWorld(
 
     await batch.commit();
 
+    const committedState: SeasonAdvanceCommittedState = {
+      metadata: committedMetadata,
+      event: {
+        eventId,
+        occurredAt,
+      },
+      focusTeamCode: focusTeamCode ?? undefined,
+      focusTeamSnapshot: focusTeamCode ? focusTeamSnapshot : null,
+    };
+
     return {
       success: true,
       fromSeason,
       toSeason,
       updatedTeams,
       summary,
+      committedState,
       // Phase 5: Include resolution info in result
       draftResolutionInfo: positionsMap
         ? {

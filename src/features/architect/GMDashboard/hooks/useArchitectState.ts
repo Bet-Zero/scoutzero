@@ -340,6 +340,7 @@ export interface UseArchitectStateReturn {
   setErrorSafe: (msg: string) => void;
   clearError: () => void;
   refreshWorldRosterIndex: () => Promise<Set<string>>;
+  reloadActiveWorldTeamData: () => Promise<void>;
 }
 
 // ==== Season helpers ====
@@ -570,6 +571,56 @@ export function useArchitectState({
       return new Set<string>();
     }
   }, [worldId]);
+
+  const reloadActiveWorldTeamData = useCallback(async (): Promise<void> => {
+    if (!worldId) {
+      return;
+    }
+
+    const requestId = dataLoadRequestIdRef.current + 1;
+    dataLoadRequestIdRef.current = requestId;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const reloadedTeam = await loadWorldTeamData(worldId, teamId);
+      await refreshWorldRosterIndex();
+
+      if (dataLoadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      if (!reloadedTeam) {
+        throw new Error('Committed world team snapshot could not be reloaded.');
+      }
+
+      setBaselineCapSheet(reloadedTeam as CapSheet);
+      setTeamCapSheet(deepClone(reloadedTeam) as CapSheet);
+
+      const meta = await getWorldMetadata(worldId);
+
+      if (dataLoadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      setWorldAsOfDate(meta?.asOfDate || null);
+    } catch (err) {
+      if (dataLoadRequestIdRef.current !== requestId) {
+        return;
+      }
+
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : String(err || 'Unknown error');
+      setError(`Error loading team data: ${message}`);
+      throw err;
+    } finally {
+      if (dataLoadRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
+    }
+  }, [refreshWorldRosterIndex, teamId, worldId]);
 
   // === Effect 1: Persist currentYear to localStorage + URL query param ===
   useEffect(() => {
@@ -877,5 +928,6 @@ export function useArchitectState({
     setErrorSafe,
     clearError,
     refreshWorldRosterIndex,
+    reloadActiveWorldTeamData,
   };
 }

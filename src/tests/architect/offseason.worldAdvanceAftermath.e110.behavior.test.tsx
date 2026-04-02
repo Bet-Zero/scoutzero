@@ -71,6 +71,12 @@ vi.mock('@/features/architect/GMDashboard/components/SeasonAdvanceModal', () => 
               worldAdvanceAftermath: {
                 nextWorldSeason: '2026-27',
                 nextViewingYear: 2027,
+                committedTeamCapSheet: {
+                  teamCode: 'LAL',
+                  season: '2026-27',
+                  players: [],
+                  capHolds: [],
+                },
                 offseasonSummary: {
                   declinedOptions: ['Option One'],
                   expiredContracts: [],
@@ -102,6 +108,10 @@ vi.mock('@/features/architect/GMDashboard/components/SeasonAdvanceModal', () => 
               success: true,
               toSeason: '2026-27',
               updatedTeams: ['LAL'],
+              worldAdvanceAftermath: {
+                nextWorldSeason: '2026-27',
+                nextViewingYear: 2027,
+              },
             })
           }
         >
@@ -127,7 +137,7 @@ function buildOffseasonSectionProps() {
     playersMap: {},
     worldId: 'world_alpha',
     teamCode: 'LAL',
-    onReloadWorldData: vi.fn(),
+    onReloadWorldData: vi.fn(async () => undefined),
   };
 }
 
@@ -160,6 +170,12 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     await waitFor(() => {
       expect(props.setCurrentYear).toHaveBeenCalledWith(2027);
     });
+    expect(props.setTeamCapSheet).toHaveBeenCalledWith({
+      teamCode: 'LAL',
+      season: '2026-27',
+      players: [],
+      capHolds: [],
+    });
     expect(props.setOffseasonRun).toHaveBeenCalledWith(true);
     expect(props.setOffseasonSummary).toHaveBeenCalledWith({
       declinedOptions: ['Option One'],
@@ -170,6 +186,9 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     });
     expect(props.setShowOffseasonModal).toHaveBeenCalledWith(true);
     expect(props.onReloadWorldData).toHaveBeenCalledTimes(1);
+    expect(
+      props.setTeamCapSheet.mock.invocationCallOrder[0]
+    ).toBeLessThan(props.onReloadWorldData.mock.invocationCallOrder[0]);
   });
 
   it('ignores failure and malformed success callbacks that lack normalized aftermath truth', async () => {
@@ -184,6 +203,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     );
 
     expect(props.setCurrentYear).not.toHaveBeenCalled();
+    expect(props.setTeamCapSheet).not.toHaveBeenCalled();
     expect(props.setOffseasonRun).not.toHaveBeenCalled();
     expect(props.setOffseasonSummary).not.toHaveBeenCalled();
     expect(props.setShowOffseasonModal).not.toHaveBeenCalled();
@@ -192,6 +212,7 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Emit malformed success' }));
 
     expect(props.setCurrentYear).not.toHaveBeenCalled();
+    expect(props.setTeamCapSheet).not.toHaveBeenCalled();
     expect(props.setOffseasonRun).not.toHaveBeenCalled();
     expect(props.setOffseasonSummary).not.toHaveBeenCalled();
     expect(props.setShowOffseasonModal).not.toHaveBeenCalled();

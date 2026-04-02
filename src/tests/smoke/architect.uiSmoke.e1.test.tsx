@@ -229,6 +229,46 @@ function buildTeamFixture(): TeamLike {
   };
 }
 
+function buildCommittedAdvanceExecutorResult(
+  overrides: Partial<Record<string, unknown>> = {}
+): Record<string, unknown> {
+  const committedTeamCapSheet =
+    (overrides.committedTeamCapSheet as Record<string, unknown> | undefined) ||
+    buildTeamFixture();
+  const committedSeason =
+    (overrides.committedSeason as string | undefined) || '2026-27';
+  const committedYear =
+    (overrides.committedYear as number | undefined) || 2027;
+  const updatedTeams =
+    (overrides.updatedTeams as string[] | undefined) || ['LAL'];
+
+  return {
+    success: true,
+    fromSeason: '2025-26',
+    toSeason: committedSeason,
+    updatedTeams,
+    summary: overrides.summary || {},
+    draftResolutionInfo: {
+      draftYear: 2026,
+      hadPositions: false,
+    },
+    committedState: {
+      metadata: {
+        currentSeason: committedSeason,
+        currentYear: committedYear,
+        lastModifiedTeams: updatedTeams,
+      },
+      event: {
+        eventId: 'seasonAdvance_123456_abcd',
+        occurredAt: '2026-04-02T12:00:00.000Z',
+      },
+      focusTeamCode: 'LAL',
+      focusTeamSnapshot: committedTeamCapSheet,
+    },
+    ...overrides,
+  };
+}
+
 function buildTradeMachineReturn(teamCapSheet: TeamLike) {
   return {
     teams: [
@@ -321,6 +361,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       setOffseasonSummary: vi.fn(),
       setWorldId: vi.fn(),
       setWorldAsOfDate: vi.fn(),
+      reloadActiveWorldTeamData: vi.fn(async () => undefined),
     });
 
     render(<GMDashboard />);
@@ -591,53 +632,57 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
 
   it('applies world-backed aftermath from the normalized advance result instead of wrapper-authored fallbacks', async () => {
     const teamCapSheet = buildTeamFixture();
+    const committedTeamCapSheet = buildTeamFixture();
     const setCurrentYear = vi.fn();
+    const setTeamCapSheet = vi.fn();
     const setOffseasonRun = vi.fn();
     const setOffseasonSummary = vi.fn();
     const setShowOffseasonModal = vi.fn();
-    const onReloadWorldData = vi.fn();
+    const onReloadWorldData = vi.fn(async () => undefined);
 
     getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
-    advanceSeasonInWorldMock.mockResolvedValue({
-      success: true,
-      updatedTeams: ['LAL'],
-      summary: {
-        declinedOptions: [
-          { playerId: 'decline_1', playerName: 'Declined Option Player' },
-        ],
-        expiredContracts: [
-          { playerId: 'expire_1', playerName: 'Expiring Contract Player' },
-        ],
-        expiredTPEs: [
-          {
-            amount: 4_200_000,
-            source: 'Trade Exception A',
-            teamCode: 'LAL',
-          },
-        ],
-        exercisedOptions: [
-          {
-            playerId: 'exercise_1',
-            playerName: 'Exercised Option Player',
-            optionType: 'team',
-            salary: 8_500_000,
-          },
-        ],
-        stepienUpdates: [
-          {
-            pickId: 'pick_2027',
-            year: 2027,
-            status: 'retained',
-            reason: 'No Stepien violation',
-          },
-        ],
-      },
-    });
+    advanceSeasonInWorldMock.mockResolvedValue(
+      buildCommittedAdvanceExecutorResult({
+        committedTeamCapSheet,
+        updatedTeams: ['LAL'],
+        summary: {
+          declinedOptions: [
+            { playerId: 'decline_1', playerName: 'Declined Option Player' },
+          ],
+          expiredContracts: [
+            { playerId: 'expire_1', playerName: 'Expiring Contract Player' },
+          ],
+          expiredTPEs: [
+            {
+              amount: 4_200_000,
+              source: 'Trade Exception A',
+              teamCode: 'LAL',
+            },
+          ],
+          exercisedOptions: [
+            {
+              playerId: 'exercise_1',
+              playerName: 'Exercised Option Player',
+              optionType: 'team',
+              salary: 8_500_000,
+            },
+          ],
+          stepienUpdates: [
+            {
+              pickId: 'pick_2027',
+              year: 2027,
+              status: 'retained',
+              reason: 'No Stepien violation',
+            },
+          ],
+        },
+      })
+    );
 
     render(
       <OffseasonSection
         teamCapSheet={teamCapSheet}
-        setTeamCapSheet={vi.fn()}
+        setTeamCapSheet={setTeamCapSheet}
         currentYear={2028}
         setCurrentYear={setCurrentYear}
         capProjections={{}}
@@ -668,10 +713,12 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         fromSeason: '2025-26',
         toSeason: '2026-27',
         optionDecisions: {},
+        focusTeamCode: 'LAL',
       });
     });
 
     await waitFor(() => {
+      expect(setTeamCapSheet).toHaveBeenCalledWith(committedTeamCapSheet);
       expect(setCurrentYear).toHaveBeenCalledWith(2027);
       expect(setOffseasonRun).toHaveBeenCalledWith(true);
       expect(setOffseasonSummary).toHaveBeenCalledWith({
@@ -704,6 +751,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       expect(setShowOffseasonModal).toHaveBeenCalledWith(true);
       expect(onReloadWorldData).toHaveBeenCalledTimes(1);
     });
+    expect(setTeamCapSheet.mock.invocationCallOrder[0]).toBeLessThan(
+      onReloadWorldData.mock.invocationCallOrder[0]
+    );
   });
 
   it('does not emit function-component defaultProps deprecation warnings', () => {

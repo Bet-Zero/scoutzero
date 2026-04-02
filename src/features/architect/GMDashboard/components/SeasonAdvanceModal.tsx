@@ -19,6 +19,7 @@ import {
 } from '@/features/architect/utils/tpeLifecycle';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import type {
+  SeasonAdvanceCommittedState as ExecutorSeasonAdvanceCommittedState,
   SeasonAdvanceRequest,
   SeasonAdvanceResult as ExecutorSeasonAdvanceResult,
   SeasonAdvanceSummary as ExecutorSeasonAdvanceSummary,
@@ -52,6 +53,7 @@ type SeasonAdvanceSummary = ExecutorSeasonAdvanceSummary;
 export type WorldAdvanceAftermath = {
   nextWorldSeason: string;
   nextViewingYear: number;
+  committedTeamCapSheet: SeasonAdvanceModalTeamCapSheet | null;
   offseasonSummary: DashboardOffseasonSummary;
 };
 
@@ -142,14 +144,11 @@ type OrderedStagedOptionDecision = StagedOptionDecision & {
   playerId: string;
 };
 type BuildWorldAdvanceAftermathParams = {
-  normalizedToSeason: string;
-  fallbackViewingYear: number;
+  committedState: ExecutorSeasonAdvanceCommittedState;
   summary?: SeasonAdvanceSummary;
 };
 type BuildSeasonAdvanceSuccessResultParams = {
   advanceResult: Extract<SeasonAdvanceExecutorResult, { success: true }>;
-  fallbackToSeason: string;
-  fallbackViewingYear: number;
 };
 
 type SeasonAdvanceModalProps = {
@@ -159,7 +158,9 @@ type SeasonAdvanceModalProps = {
   authoritativeWorldSeason: string;
   worldId?: string | null;
   teamCode?: string | null;
-  onWorldAdvanceComplete?: ((result: SeasonAdvanceResult) => void) | null;
+  onWorldAdvanceComplete?:
+    | ((result: SeasonAdvanceResult) => void | Promise<void>)
+    | null;
 };
 
 type SeasonAdvanceModalComponent = ((
@@ -464,41 +465,58 @@ function buildDashboardOffseasonSummary(
   };
 }
 
+function getCommittedTeamCapSheet(
+  value: unknown
+): SeasonAdvanceModalTeamCapSheet | null {
+  return value && typeof value === 'object'
+    ? (value as SeasonAdvanceModalTeamCapSheet)
+    : null;
+}
+
 function buildWorldAdvanceAftermath({
-  normalizedToSeason,
-  fallbackViewingYear,
+  committedState,
   summary,
 }: BuildWorldAdvanceAftermathParams): WorldAdvanceAftermath {
   return {
-    nextWorldSeason: normalizedToSeason,
-    nextViewingYear: toEndYear(normalizedToSeason) ?? fallbackViewingYear,
+    nextWorldSeason: committedState.metadata.currentSeason,
+    nextViewingYear: committedState.metadata.currentYear,
+    committedTeamCapSheet: getCommittedTeamCapSheet(
+      committedState.focusTeamSnapshot
+    ),
     offseasonSummary: buildDashboardOffseasonSummary(summary),
   };
 }
 
 function buildSeasonAdvanceSuccessResult({
   advanceResult,
-  fallbackToSeason,
-  fallbackViewingYear,
-}: BuildSeasonAdvanceSuccessResultParams): SeasonAdvanceSuccessResult {
-  const normalizedToSeason =
-    typeof advanceResult.toSeason === 'string'
-      ? advanceResult.toSeason
-      : fallbackToSeason;
+}: BuildSeasonAdvanceSuccessResultParams): SeasonAdvanceSuccessResult | null {
+  const committedState = advanceResult.committedState;
+  if (
+    !committedState ||
+    !committedState.metadata ||
+    typeof committedState.metadata.currentSeason !== 'string' ||
+    typeof committedState.metadata.currentYear !== 'number' ||
+    !Array.isArray(committedState.metadata.lastModifiedTeams)
+  ) {
+    return null;
+  }
+  if (
+    committedState.focusTeamCode &&
+    getCommittedTeamCapSheet(committedState.focusTeamSnapshot) === null
+  ) {
+    return null;
+  }
   const normalizedSummary = advanceResult.summary as
     | SeasonAdvanceSummary
     | undefined;
 
   return {
     success: true,
-    toSeason: normalizedToSeason,
-    updatedTeams: Array.isArray(advanceResult.updatedTeams)
-      ? advanceResult.updatedTeams
-      : [],
+    toSeason: committedState.metadata.currentSeason,
+    updatedTeams: committedState.metadata.lastModifiedTeams,
     summary: normalizedSummary,
     worldAdvanceAftermath: buildWorldAdvanceAftermath({
-      normalizedToSeason,
-      fallbackViewingYear,
+      committedState,
       summary: normalizedSummary,
     }),
   };
@@ -528,8 +546,6 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   teamCode = null,
   onWorldAdvanceComplete = null,
 }: SeasonAdvanceModalProps) => {
-  void teamCode;
-
   const [currentStep, setCurrentStep] = useState<WizardStepValue>(
     WIZARD_STEPS.SUMMARY
   );
@@ -685,6 +701,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
           stagedOptionDecisions,
           toSeason
         ),
+        focusTeamCode: teamCode ?? undefined,
       };
       const advanceResult = await seasonManagerModule.advanceSeasonInWorld(
         worldId,
@@ -698,15 +715,27 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
 
       const modalResult = buildSeasonAdvanceSuccessResult({
         advanceResult,
-        fallbackToSeason: toSeason,
-        fallbackViewingYear: toYear,
       });
+      if (!modalResult) {
+        handleAdvanceFailure({
+          error:
+            'Season advance succeeded but committed post-success state was missing from the authoritative executor result.',
+        });
+        return;
+      }
 
       setResult(modalResult);
       setCurrentStep(WIZARD_STEPS.COMPLETE);
 
       if (onWorldAdvanceComplete) {
-        onWorldAdvanceComplete(modalResult);
+        try {
+          await onWorldAdvanceComplete(modalResult);
+        } catch (callbackError) {
+          console.error(
+            'Season advance post-success handling failed:',
+            callbackError
+          );
+        }
       }
     } catch (err) {
       console.error('Season advance failed:', err);
@@ -722,6 +751,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     stagedOptionDecisions,
     stagedOptionValidationError,
     fromSeason,
+    teamCode,
     toSeason,
     worldId,
   ]);
