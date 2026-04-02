@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, cleanup, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  cleanup,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import GMDashboard from '@/features/architect/GMDashboard/GMDashboard';
 import { TradeSection } from '@/features/architect/GMDashboard/sections/TradeSection';
@@ -267,6 +274,21 @@ function buildCommittedAdvanceExecutorResult(
     },
     ...overrides,
   };
+}
+
+function getWorldAdvanceHeaderSurface() {
+  const heading = screen.getByRole('heading', {
+    name: 'World Season Advancement',
+  });
+  const surface = heading.parentElement;
+
+  if (!surface) {
+    throw new Error(
+      'World Season Advancement header surface was unavailable in smoke test.'
+    );
+  }
+
+  return surface;
 }
 
 function buildTradeMachineReturn(teamCapSheet: TeamLike) {
@@ -579,7 +601,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       />
     );
 
-    await screen.findByText('World Season: 2025-26');
+    await within(getWorldAdvanceHeaderSurface()).findByText(
+      'World Season: 2025-26'
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
 
@@ -690,7 +714,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       />
     );
 
-    await screen.findByText('World Season: 2025-26');
+    await within(getWorldAdvanceHeaderSurface()).findByText(
+      'World Season: 2025-26'
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
     fireEvent.click(
