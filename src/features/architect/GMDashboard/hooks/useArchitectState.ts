@@ -15,7 +15,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import type { LoadedWorldTeamCapSheet } from '@/features/architect/utils/worldTeamData';
-import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import {
+  getWorldMetadata,
+  updateWorldMetadata,
+} from '@/features/architect/utils/worldManager';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
 import type {
@@ -292,6 +295,19 @@ type ActiveTab =
 /** Map of players by various keys for fast lookup */
 type PlayersMap = Record<string, ArchitectPlayer>;
 
+export interface ArchitectActiveWorldOwner {
+  worldId: string | null;
+  setActiveWorld: (worldId: string | null) => void;
+}
+
+export interface ArchitectWorldTimeOwner {
+  worldId: string | null;
+  asOfDate: string | null;
+  isUpdatingAsOfDate: boolean;
+  updateAsOfDate: (nextAsOfDate: string) => Promise<string>;
+  advanceByOneDay: () => Promise<string>;
+}
+
 /** Return type of the hook */
 export interface UseArchitectStateReturn {
   // Values (all state + derived)
@@ -313,6 +329,8 @@ export interface UseArchitectStateReturn {
   players: ArchitectPlayer[];
   worldId: string | null;
   worldAsOfDate: string | null;
+  activeWorldOwner: ArchitectActiveWorldOwner;
+  worldTimeOwner: ArchitectWorldTimeOwner;
 
   // Setters (all needed by GMDashboard)
   setBaselineCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
@@ -329,8 +347,6 @@ export interface UseArchitectStateReturn {
   setOffseasonSummary: React.Dispatch<
     React.SetStateAction<DashboardOffseasonSummary | null>
   >;
-  setWorldId: React.Dispatch<React.SetStateAction<string | null>>;
-  setWorldAsOfDate: React.Dispatch<React.SetStateAction<string | null>>;
 
   // Higher-level state actions (use these instead of raw setters)
   startLoad: () => void;
@@ -345,6 +361,23 @@ export interface UseArchitectStateReturn {
 
 // ==== Season helpers ====
 const LOCAL_SEASON_KEY = 'hz.currentSeasonEndYear';
+const ACTIVE_WORLD_STORAGE_KEY_PREFIX = 'architect.activeWorldId.';
+
+const getActiveWorldStorageKey = (userId: string) =>
+  `${ACTIVE_WORLD_STORAGE_KEY_PREFIX}${userId}`;
+
+const getIsoDateString = (date: Date = new Date()) =>
+  date.toISOString().slice(0, 10);
+
+const isUsableActiveWorldMetadata = (
+  metadata: Record<string, unknown> | null | undefined,
+  userId: string
+) =>
+  Boolean(metadata) &&
+  metadata?.isArchived !== true &&
+  !(
+    typeof metadata?.createdBy === 'string' && metadata.createdBy !== userId
+  );
 
 const getDefaultSeasonEndYear = (date: Date = new Date()): number => {
   // NBA season flips July 1 → 2024-25 ends in 2025, 2025-26 ends in 2026
@@ -425,6 +458,10 @@ export function useArchitectState({
   // === World state (for Architect worlds system) ===
   const [worldId, setWorldId] = useState<string | null>(null);
   const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
+  const [hasRestoredActiveWorld, setHasRestoredActiveWorld] =
+    useState<boolean>(false);
+  const [isUpdatingWorldAsOfDate, setIsUpdatingWorldAsOfDate] =
+    useState<boolean>(false);
   const [worldRosterIndex, setWorldRosterIndex] = useState<Set<string> | null>(
     null
   );
@@ -477,6 +514,7 @@ export function useArchitectState({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const dataLoadRequestIdRef = useRef(0);
+  const restoredActiveWorldUserIdRef = useRef<string | null>(null);
 
   // === Internal hook call ===
   const { players } = useArchitectPlayerData() as {
@@ -520,6 +558,45 @@ export function useArchitectState({
     () => Array.from({ length: 7 }, (_, i) => currentYear + i),
     [currentYear]
   );
+
+  const setActiveWorld = useCallback(
+    (nextWorldId: string | null) => {
+      if (worldId !== nextWorldId) {
+        setWorldAsOfDate(null);
+      }
+
+      setWorldId(nextWorldId);
+    },
+    [worldId]
+  );
+
+  const updateAsOfDate = useCallback(
+    async (nextAsOfDate: string): Promise<string> => {
+      if (!worldId) {
+        throw new Error('worldId is required to update world time');
+      }
+      if (!nextAsOfDate) {
+        throw new Error('asOfDate is required');
+      }
+
+      setIsUpdatingWorldAsOfDate(true);
+
+      try {
+        await updateWorldMetadata(worldId, { asOfDate: nextAsOfDate });
+        setWorldAsOfDate(nextAsOfDate);
+        return nextAsOfDate;
+      } finally {
+        setIsUpdatingWorldAsOfDate(false);
+      }
+    },
+    [worldId]
+  );
+
+  const advanceByOneDay = useCallback(async (): Promise<string> => {
+    const currentDate = new Date(worldAsOfDate || getIsoDateString());
+    currentDate.setDate(currentDate.getDate() + 1);
+    return updateAsOfDate(getIsoDateString(currentDate));
+  }, [updateAsOfDate, worldAsOfDate]);
 
   const refreshWorldRosterIndex = useCallback(async (): Promise<
     Set<string>
@@ -635,7 +712,122 @@ export function useArchitectState({
     setSelectedRulesYear(currentYear);
   }, [currentYear]);
 
-  // === Effect 3: Fetch team data on mount and when worldId changes ===
+  // === Effect 3: Restore persisted active world once per signed-in user ===
+  useEffect(() => {
+    if (!userId) {
+      restoredActiveWorldUserIdRef.current = null;
+      setHasRestoredActiveWorld(false);
+      setWorldId(null);
+      setWorldAsOfDate(null);
+      return;
+    }
+
+    if (restoredActiveWorldUserIdRef.current === userId) {
+      return;
+    }
+
+    restoredActiveWorldUserIdRef.current = userId;
+    setHasRestoredActiveWorld(false);
+    setWorldId(null);
+    setWorldAsOfDate(null);
+
+    let isCancelled = false;
+
+    const restoreActiveWorld = async () => {
+      const storageKey = getActiveWorldStorageKey(userId);
+      const storedWorldId = localStorage.getItem(storageKey);
+
+      if (!storedWorldId) {
+        if (!isCancelled) {
+          setHasRestoredActiveWorld(true);
+        }
+        return;
+      }
+
+      try {
+        const metadata = (await getWorldMetadata(storedWorldId)) as Record<
+          string,
+          unknown
+        >;
+
+        if (!isUsableActiveWorldMetadata(metadata, userId)) {
+          localStorage.removeItem(storageKey);
+          if (!isCancelled) {
+            setWorldId(null);
+          }
+          return;
+        }
+
+        if (!isCancelled) {
+          setWorldId(storedWorldId);
+        }
+      } catch {
+        localStorage.removeItem(storageKey);
+        if (!isCancelled) {
+          setWorldId(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setHasRestoredActiveWorld(true);
+        }
+      }
+    };
+
+    void restoreActiveWorld();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [userId]);
+
+  // === Effect 4: Persist active world selection after restore ===
+  useEffect(() => {
+    if (!userId || !hasRestoredActiveWorld) {
+      return;
+    }
+
+    const storageKey = getActiveWorldStorageKey(userId);
+
+    if (worldId) {
+      localStorage.setItem(storageKey, worldId);
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }, [hasRestoredActiveWorld, userId, worldId]);
+
+  // === Effect 5: Validate active world ownership/archival in the state layer ===
+  useEffect(() => {
+    if (!userId || !worldId || !hasRestoredActiveWorld) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const validateActiveWorld = async () => {
+      try {
+        const metadata = (await getWorldMetadata(worldId)) as Record<
+          string,
+          unknown
+        >;
+
+        if (!isCancelled && !isUsableActiveWorldMetadata(metadata, userId)) {
+          setActiveWorld(null);
+        }
+      } catch {
+        if (!isCancelled) {
+          setActiveWorld(null);
+        }
+      }
+    };
+
+    void validateActiveWorld();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [hasRestoredActiveWorld, setActiveWorld, userId, worldId]);
+
+  // === Effect 6: Fetch team data on mount and when worldId changes ===
   // Uses world-aware loading via loadWorldTeamData (Phase 2B)
   // Fallback chain: world snapshot → parent world → base team
   useEffect(() => {
@@ -885,6 +1077,31 @@ export function useArchitectState({
     setError('');
   }, []);
 
+  const activeWorldOwner = useMemo<ArchitectActiveWorldOwner>(
+    () => ({
+      worldId,
+      setActiveWorld,
+    }),
+    [setActiveWorld, worldId]
+  );
+
+  const worldTimeOwner = useMemo<ArchitectWorldTimeOwner>(
+    () => ({
+      worldId,
+      asOfDate: worldAsOfDate,
+      isUpdatingAsOfDate: isUpdatingWorldAsOfDate,
+      updateAsOfDate,
+      advanceByOneDay,
+    }),
+    [
+      advanceByOneDay,
+      isUpdatingWorldAsOfDate,
+      updateAsOfDate,
+      worldAsOfDate,
+      worldId,
+    ]
+  );
+
   return {
     // Values (all state + derived)
     baselineCapSheet,
@@ -905,6 +1122,8 @@ export function useArchitectState({
     players: worldAwarePlayers,
     worldId,
     worldAsOfDate,
+    activeWorldOwner,
+    worldTimeOwner,
 
     // Setters (all needed by GMDashboard)
     setBaselineCapSheet,
@@ -917,8 +1136,6 @@ export function useArchitectState({
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,
-    setWorldId,
-    setWorldAsOfDate,
 
     // Higher-level state actions (use these instead of raw setters)
     startLoad,

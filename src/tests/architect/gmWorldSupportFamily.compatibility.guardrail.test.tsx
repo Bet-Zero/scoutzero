@@ -103,6 +103,11 @@ describe('E103 GM world-support family compatibility guardrails', () => {
       'export function WorldTimeControls'
     );
     expect(worldTimeControlsSource).not.toContain('export default');
+    expect(worldTimeControlsSource).toContain('worldTimeOwner:');
+    expect(worldTimeControlsSource).not.toContain(
+      "from '@/features/architect/utils/worldManager'"
+    );
+    expect(worldTimeControlsSource).not.toContain('updateWorldMetadata(');
 
     expect(draftPositionsInputSource).toContain(
       'export function DraftPositionsInput'

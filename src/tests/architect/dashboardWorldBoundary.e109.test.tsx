@@ -502,7 +502,7 @@ function buildCommittedSeasonAdvanceResult(
 function buildDashboardState(
   overrides: Partial<Record<string, unknown>> = {}
 ): Record<string, unknown> {
-  return {
+  const baseState = {
     teamCapSheet: buildSeasonAdvanceTeamCapSheet(),
     currentYear: 2026,
     selectedRulesYear: null,
@@ -524,10 +524,32 @@ function buildDashboardState(
     setLastCapSheet: vi.fn(),
     setOffseasonRun: vi.fn(),
     setOffseasonSummary: vi.fn(),
-    setWorldId: vi.fn(),
-    setWorldAsOfDate: vi.fn(),
     reloadActiveWorldTeamData: vi.fn(async () => undefined),
+  };
+
+  const mergedState = {
+    ...baseState,
     ...overrides,
+  };
+
+  return {
+    ...mergedState,
+    activeWorldOwner:
+      (overrides.activeWorldOwner as Record<string, unknown> | undefined) || {
+        worldId: mergedState.worldId as string | null,
+        setActiveWorld: vi.fn(),
+      },
+    worldTimeOwner:
+      (overrides.worldTimeOwner as Record<string, unknown> | undefined) || {
+        worldId: mergedState.worldId as string | null,
+        asOfDate: mergedState.worldAsOfDate as string | null,
+        isUpdatingAsOfDate: false,
+        updateAsOfDate: vi.fn(async (nextDate: string) => nextDate),
+        advanceByOneDay: vi.fn(
+          async () =>
+            ((mergedState.worldAsOfDate as string | null) || '2026-02-10')
+        ),
+      },
   };
 }
 
@@ -665,10 +687,12 @@ function WorldSelectorHarness({
   return (
     <WorldSelector
       userId={userId}
-      worldId={currentWorldId}
-      setWorldId={(worldId) => {
-        setCurrentWorldId(worldId);
-        onSetWorldId?.(worldId);
+      activeWorldOwner={{
+        worldId: currentWorldId,
+        setActiveWorld: (worldId) => {
+          setCurrentWorldId(worldId);
+          onSetWorldId?.(worldId);
+        },
       }}
       onWorldChange={onWorldChange}
     />
@@ -721,14 +745,18 @@ describe('E109 dashboard/world boundary behavior', () => {
   });
 
   describe('WorldSelector', () => {
-    it('preserves rendering, helper copy, localStorage restore, and world selection wiring', async () => {
+    it('preserves rendering, helper copy, and delegated world selection wiring without widget-local storage ownership', async () => {
       const onWorldChange = vi.fn();
-      window.localStorage.setItem(
-        'architect.activeWorldId.user_1',
-        'world_beta'
-      );
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+      const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
 
-      render(<WorldSelectorHarness onWorldChange={onWorldChange} />);
+      render(
+        <WorldSelectorHarness
+          initialWorldId="world_beta"
+          onWorldChange={onWorldChange}
+        />
+      );
 
       const select = await screen.findByLabelText('Architect (optional)');
       expect(select).toHaveValue('world_beta');
@@ -739,8 +767,15 @@ describe('E109 dashboard/world boundary behavior', () => {
       await waitFor(() => {
         expect(onWorldChange).toHaveBeenCalledWith('world_alpha');
       });
-      expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
+      expect(getItemSpy).not.toHaveBeenCalledWith(
+        'architect.activeWorldId.user_1'
+      );
+      expect(setItemSpy).not.toHaveBeenCalledWith(
+        'architect.activeWorldId.user_1',
         'world_alpha'
+      );
+      expect(removeItemSpy).not.toHaveBeenCalledWith(
+        'architect.activeWorldId.user_1'
       );
     });
 

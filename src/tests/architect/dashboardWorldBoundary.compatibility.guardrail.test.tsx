@@ -105,6 +105,15 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
 
     expect(worldSelectorSource).toContain('export function WorldSelector(');
     expect(worldSelectorSource).not.toContain('export default WorldSelector');
+    expect(worldSelectorSource).toContain(
+      'activeWorldOwner: ArchitectActiveWorldOwner;'
+    );
+    expect(worldSelectorSource).toContain(
+      'const { worldId, setActiveWorld } = activeWorldOwner;'
+    );
+    expect(worldSelectorSource).not.toContain('localStorage.getItem(');
+    expect(worldSelectorSource).not.toContain('localStorage.setItem(');
+    expect(worldSelectorSource).not.toContain('localStorage.removeItem(');
 
     expect(seasonAdvanceModalSource).toContain(
       'export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({'
@@ -128,10 +137,36 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(useArchitectStateSource).toContain(
       'const reloadActiveWorldTeamData = useCallback(async (): Promise<void> => {'
     );
+    expect(useArchitectStateSource).toContain(
+      'activeWorldOwner: ArchitectActiveWorldOwner;'
+    );
+    expect(useArchitectStateSource).toContain(
+      'worldTimeOwner: ArchitectWorldTimeOwner;'
+    );
+    expect(useArchitectStateSource).toContain(
+      'const activeWorldOwner = useMemo<ArchitectActiveWorldOwner>('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const worldTimeOwner = useMemo<ArchitectWorldTimeOwner>('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const updateAsOfDate = useCallback('
+    );
+    expect(useArchitectStateSource).toContain(
+      'await updateWorldMetadata(worldId, { asOfDate: nextAsOfDate });'
+    );
     expect(useArchitectStateSource).toContain('reloadActiveWorldTeamData,');
+    expect(useArchitectStateSource).toContain('activeWorldOwner,');
+    expect(useArchitectStateSource).toContain('worldTimeOwner,');
     expect(gmDashboardSource).toContain('reloadActiveWorldTeamData,');
+    expect(gmDashboardSource).toContain('activeWorldOwner,');
+    expect(gmDashboardSource).toContain('worldTimeOwner,');
     expect(gmDashboardSource).toContain(
       'onReloadWorldData={reloadActiveWorldTeamData}'
     );
+    expect(gmDashboardSource).toContain(
+      'activeWorldOwner={activeWorldOwner}'
+    );
+    expect(gmDashboardSource).toContain('worldTimeOwner={worldTimeOwner}');
   });
 });

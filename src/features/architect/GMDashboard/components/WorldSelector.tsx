@@ -12,10 +12,10 @@ import {
   useState,
   useEffect,
   useCallback,
-  useRef,
   type ChangeEvent,
   type ReactNode,
 } from 'react';
+import type { ArchitectActiveWorldOwner } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 import {
   listUserWorlds,
   createWorld,
@@ -60,8 +60,7 @@ type WorldChangeCallback = (worldId: string | null) => void;
 
 type WorldSelectorProps = {
   userId: string | null;
-  worldId: string | null;
-  setWorldId: (worldId: string | null) => void;
+  activeWorldOwner: ArchitectActiveWorldOwner;
   onWorldChange?: WorldChangeCallback;
 };
 
@@ -74,9 +73,6 @@ type WorldModalProps = {
   submitLabel: string;
 };
 
-/** localStorage key pattern for persisting active worldId */
-const getWorldStorageKey = (userId: string) => `architect.activeWorldId.${userId}`;
-
 const wait = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -84,10 +80,10 @@ const wait = (ms: number) =>
 
 export function WorldSelector({
   userId,
-  worldId,
-  setWorldId,
+  activeWorldOwner,
   onWorldChange,
 }: WorldSelectorProps) {
+  const { worldId, setActiveWorld } = activeWorldOwner;
   const [worlds, setWorlds] = useState<WorldSummaryLike[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -102,8 +98,6 @@ export function WorldSelector({
   const [newWorldDescription, setNewWorldDescription] = useState('');
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const hasRestoredFromStorage = useRef(false);
 
   const loadWorlds = useCallback(async () => {
     if (!userId) {
@@ -145,52 +139,6 @@ export function WorldSelector({
   }, [loadWorlds]);
 
   useEffect(() => {
-    if (!userId || hasRestoredFromStorage.current || worldId) {
-      return;
-    }
-
-    const storageKey = getWorldStorageKey(userId);
-    const storedWorldId = localStorage.getItem(storageKey);
-
-    if (storedWorldId) {
-      setWorldId(storedWorldId);
-    }
-
-    hasRestoredFromStorage.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, worldId]);
-
-  useEffect(() => {
-    if (!userId || !worldId || isLoading || error || worlds.length === 0) {
-      return;
-    }
-
-    const storageKey = getWorldStorageKey(userId);
-    const worldExists = worlds.some((world) => world.worldId === worldId);
-
-    if (!worldExists) {
-      localStorage.removeItem(storageKey);
-      setWorldId(null);
-    }
-  }, [userId, worldId, worlds, isLoading, error, setWorldId]);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    if (!hasRestoredFromStorage.current && !worldId) {
-      return;
-    }
-
-    const storageKey = getWorldStorageKey(userId);
-
-    if (worldId) {
-      localStorage.setItem(storageKey, worldId);
-    } else {
-      localStorage.removeItem(storageKey);
-    }
-  }, [userId, worldId]);
-
-  useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setShowActionsMenu(false);
@@ -210,14 +158,14 @@ export function WorldSelector({
   const handleWorldSelect = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
       const newWorldId = event.target.value || null;
-      setWorldId(newWorldId);
+      setActiveWorld(newWorldId);
       setShowActionsMenu(false);
 
       if (onWorldChange) {
         onWorldChange(newWorldId);
       }
     },
-    [setWorldId, onWorldChange]
+    [onWorldChange, setActiveWorld]
   );
 
   const handleCreateWorld = useCallback(async () => {
@@ -235,7 +183,7 @@ export function WorldSelector({
 
       await loadWorlds();
 
-      setWorldId(newWorldId);
+      setActiveWorld(newWorldId);
 
       setNewWorldName('');
       setNewWorldDescription('');
@@ -255,8 +203,8 @@ export function WorldSelector({
     newWorldName,
     newWorldDescription,
     loadWorlds,
-    setWorldId,
     onWorldChange,
+    setActiveWorld,
   ]);
 
   const handleBranchWorld = useCallback(async () => {
@@ -275,7 +223,7 @@ export function WorldSelector({
 
       await loadWorlds();
 
-      setWorldId(branchedWorldId);
+      setActiveWorld(branchedWorldId);
 
       setNewWorldName('');
       setNewWorldDescription('');
@@ -296,8 +244,8 @@ export function WorldSelector({
     newWorldName,
     newWorldDescription,
     loadWorlds,
-    setWorldId,
     onWorldChange,
+    setActiveWorld,
   ]);
 
   const handleRenameWorld = useCallback(async () => {
@@ -347,7 +295,7 @@ export function WorldSelector({
 
       await loadWorlds();
 
-      setWorldId(null);
+      setActiveWorld(null);
       setShowActionsMenu(false);
 
       if (onWorldChange) {
@@ -359,7 +307,7 @@ export function WorldSelector({
     } finally {
       setIsSubmitting(false);
     }
-  }, [worldId, worlds, loadWorlds, setWorldId, onWorldChange]);
+  }, [loadWorlds, onWorldChange, setActiveWorld, worldId, worlds]);
 
   const handleDeleteWorld = useCallback(async () => {
     if (!worldId) return;
@@ -381,7 +329,7 @@ export function WorldSelector({
       if (result.ok) {
         await loadWorlds();
 
-        setWorldId(null);
+        setActiveWorld(null);
         setShowDeleteModal(false);
         setDeleteConfirmText('');
         setShowActionsMenu(false);
@@ -406,8 +354,8 @@ export function WorldSelector({
     worlds,
     deleteConfirmText,
     loadWorlds,
-    setWorldId,
     onWorldChange,
+    setActiveWorld,
   ]);
 
   const openDeleteModal = useCallback(() => {

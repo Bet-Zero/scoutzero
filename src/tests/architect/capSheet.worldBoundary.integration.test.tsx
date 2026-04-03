@@ -81,6 +81,7 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
       }
     );
   }),
+  updateWorldMetadata: vi.fn(async () => undefined),
 }));
 
 vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
@@ -171,7 +172,7 @@ describe('Cap Sheet world boundary integration', () => {
     expect(result.current.teamCapSheet?.teamName).toBe('Base Lakers');
 
     act(() => {
-      result.current.setWorldId('world-child');
+      result.current.activeWorldOwner.setActiveWorld('world-child');
     });
 
     await waitFor(() => {

@@ -123,14 +123,14 @@ const GMDashboard = () => {
     capTableYears,
     worldId,
     worldAsOfDate,
+    activeWorldOwner,
+    worldTimeOwner,
     setTeamCapSheet,
     setCurrentYear,
     setActiveTab,
     setLastCapSheet,
     setOffseasonRun,
     setOffseasonSummary,
-    setWorldId,
-    setWorldAsOfDate,
     reloadActiveWorldTeamData,
   } = state;
 
@@ -302,8 +302,7 @@ const GMDashboard = () => {
           {userId && (
             <WorldSelector
               userId={userId}
-              worldId={worldId}
-              setWorldId={setWorldId}
+              activeWorldOwner={activeWorldOwner}
             />
           )}
 
@@ -311,9 +310,7 @@ const GMDashboard = () => {
 
           {userId && worldId && (
             <WorldTimeControls
-              worldId={worldId}
-              asOfDate={worldAsOfDate}
-              setAsOfDate={setWorldAsOfDate}
+              worldTimeOwner={worldTimeOwner}
             />
           )}
 

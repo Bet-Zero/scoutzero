@@ -6,6 +6,7 @@ import { useArchitectState } from '@/features/architect/GMDashboard/hooks/useArc
 const stateMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
   getWorldMetadata: vi.fn(),
+  updateWorldMetadata: vi.fn(),
   getLeague: vi.fn(),
   useArchitectPlayerData: vi.fn(),
 }));
@@ -16,6 +17,7 @@ vi.mock('@/features/architect/utils/worldTeamData', () => ({
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   getWorldMetadata: stateMocks.getWorldMetadata,
+  updateWorldMetadata: stateMocks.updateWorldMetadata,
 }));
 
 vi.mock('@/features/architect/utils/teamLoader', async () => {
@@ -92,6 +94,7 @@ const teamFixture = {
 describe('useArchitectState world-aware free agency pool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
 
     stateMocks.useArchitectPlayerData.mockReturnValue({
       players: playersFixture,
@@ -99,7 +102,12 @@ describe('useArchitectState world-aware free agency pool', () => {
       error: null,
     });
     stateMocks.loadWorldTeamData.mockResolvedValue(teamFixture);
-    stateMocks.getWorldMetadata.mockResolvedValue({ asOfDate: '2026-07-01' });
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-01',
+    });
+    stateMocks.updateWorldMetadata.mockResolvedValue(undefined);
   });
 
   it('excludes world-rostered players and includes unrostered players after refresh', async () => {
@@ -132,7 +140,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
 
     act(() => {
-      result.current.setWorldId('world_1');
+      result.current.activeWorldOwner.setActiveWorld('world_1');
     });
 
     await waitFor(() => {
@@ -180,7 +188,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
 
     act(() => {
-      result.current.setWorldId('world_1');
+      result.current.activeWorldOwner.setActiveWorld('world_1');
     });
 
     await waitFor(() => {
@@ -223,7 +231,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
 
     act(() => {
-      result.current.setWorldId('world_1');
+      result.current.activeWorldOwner.setActiveWorld('world_1');
     });
 
     await waitFor(() => {
@@ -245,5 +253,139 @@ describe('useArchitectState world-aware free agency pool', () => {
     expect(result.current.teamCapSheet?.incomingOfferSheets).toEqual(
       teamFixture.incomingOfferSheets
     );
+  });
+
+  it('restores a persisted active world through the hook owner seam', async () => {
+    window.localStorage.setItem('architect.activeWorldId.user_1', 'world_1');
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.worldId).toBe('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+    expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
+      'world_1'
+    );
+  });
+
+  it('clears invalid persisted active worlds in the hook instead of the selector', async () => {
+    window.localStorage.setItem('architect.activeWorldId.user_1', 'world_ghost');
+    stateMocks.getWorldMetadata.mockRejectedValueOnce(
+      new Error('world missing')
+    );
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
+        null
+      );
+    });
+    expect(result.current.worldId).toBeNull();
+  });
+
+  it('owns world-date metadata mutation in worldTimeOwner.updateAsOfDate', async () => {
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+
+    await act(async () => {
+      await result.current.worldTimeOwner.updateAsOfDate('2026-07-15');
+    });
+
+    expect(stateMocks.updateWorldMetadata).toHaveBeenCalledWith('world_1', {
+      asOfDate: '2026-07-15',
+    });
+    expect(result.current.worldAsOfDate).toBe('2026-07-15');
+  });
+
+  it('owns +1 day world-date mutation in worldTimeOwner.advanceByOneDay', async () => {
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+
+    await act(async () => {
+      await result.current.worldTimeOwner.advanceByOneDay();
+    });
+
+    expect(stateMocks.updateWorldMetadata).toHaveBeenCalledWith('world_1', {
+      asOfDate: '2026-07-02',
+    });
+    expect(result.current.worldAsOfDate).toBe('2026-07-02');
   });
 });

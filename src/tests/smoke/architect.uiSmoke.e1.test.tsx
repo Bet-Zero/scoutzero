@@ -381,8 +381,17 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       setLastCapSheet: vi.fn(),
       setOffseasonRun: vi.fn(),
       setOffseasonSummary: vi.fn(),
-      setWorldId: vi.fn(),
-      setWorldAsOfDate: vi.fn(),
+      activeWorldOwner: {
+        worldId: 'world_smoke_lal',
+        setActiveWorld: vi.fn(),
+      },
+      worldTimeOwner: {
+        worldId: 'world_smoke_lal',
+        asOfDate: null,
+        isUpdatingAsOfDate: false,
+        updateAsOfDate: vi.fn(async (nextDate: string) => nextDate),
+        advanceByOneDay: vi.fn(async () => CURRENT_YEAR.toString()),
+      },
       reloadActiveWorldTeamData: vi.fn(async () => undefined),
     });
 

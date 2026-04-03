@@ -14,6 +14,7 @@ import { computeWorldMutation } from '@/features/architect/utils/mutationPipelin
 const stateMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
   getWorldMetadata: vi.fn(),
+  updateWorldMetadata: vi.fn(),
   getLeague: vi.fn(),
   useArchitectPlayerData: vi.fn(),
 }));
@@ -24,6 +25,7 @@ vi.mock('@/features/architect/utils/worldTeamData', () => ({
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   getWorldMetadata: stateMocks.getWorldMetadata,
+  updateWorldMetadata: stateMocks.updateWorldMetadata,
 }));
 
 vi.mock('@/features/architect/utils/teamLoader', async () => {

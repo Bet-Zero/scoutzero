@@ -22,21 +22,15 @@ import DraftPositionsInput from '@/features/architect/GMDashboard/components/Dra
 import { getSeasonAdvanceDraftContext } from '@/features/architect/utils/seasonFormat';
 
 const {
-  mockUpdateWorldMetadata,
   mockLoadCommittedDraftPositions,
   mockSaveCommittedDraftPositions,
   mockClearCommittedDraftPositions,
   mockValidateDraftPositionsMap,
 } = vi.hoisted(() => ({
-  mockUpdateWorldMetadata: vi.fn(),
   mockLoadCommittedDraftPositions: vi.fn(),
   mockSaveCommittedDraftPositions: vi.fn(),
   mockClearCommittedDraftPositions: vi.fn(),
   mockValidateDraftPositionsMap: vi.fn(),
-}));
-
-vi.mock('@/features/architect/utils/worldManager', () => ({
-  updateWorldMetadata: mockUpdateWorldMetadata,
 }));
 
 const FIXED_SYSTEM_TIME = new Date('2026-03-15T12:00:00.000Z');
@@ -90,6 +84,19 @@ const renderDraftPositionsInput = (
     />
   );
 
+const buildWorldTimeOwner = (
+  overrides: Partial<
+    React.ComponentProps<typeof WorldTimeControls>['worldTimeOwner']
+  > = {}
+): React.ComponentProps<typeof WorldTimeControls>['worldTimeOwner'] => ({
+  worldId: 'world_1',
+  asOfDate: '2026-03-15',
+  isUpdatingAsOfDate: false,
+  updateAsOfDate: vi.fn(async (nextDate: string) => nextDate),
+  advanceByOneDay: vi.fn(async () => '2026-03-16'),
+  ...overrides,
+});
+
 describe('GM world-support family E103 behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -97,7 +104,6 @@ describe('GM world-support family E103 behavior', () => {
     vi.setSystemTime(FIXED_SYSTEM_TIME);
     vi.spyOn(Date.prototype, 'toLocaleString').mockReturnValue('MOCKED_LOCALE');
 
-    mockUpdateWorldMetadata.mockResolvedValue(undefined);
     mockLoadCommittedDraftPositions.mockResolvedValue(null);
     mockSaveCommittedDraftPositions.mockResolvedValue({
       positionsMap: { ATL: 1, BOS: 2 },
@@ -213,9 +219,10 @@ describe('GM world-support family E103 behavior', () => {
   it('preserves WorldTimeControls null render, test ids, copy, and system fallback display semantics', () => {
     const { rerender } = render(
       <WorldTimeControls
-        worldId={null}
-        asOfDate={null}
-        setAsOfDate={vi.fn()}
+        worldTimeOwner={buildWorldTimeOwner({
+          worldId: null,
+          asOfDate: null,
+        })}
       />
     );
 
@@ -223,9 +230,9 @@ describe('GM world-support family E103 behavior', () => {
 
     rerender(
       <WorldTimeControls
-        worldId="world_1"
-        asOfDate={null}
-        setAsOfDate={vi.fn()}
+        worldTimeOwner={buildWorldTimeOwner({
+          asOfDate: null,
+        })}
       />
     );
 
@@ -236,61 +243,52 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getByTestId('world-date-input')).toHaveValue('2026-03-15');
   });
 
-  it('preserves WorldTimeControls direct date persistence behavior', async () => {
-    const setAsOfDate = vi.fn();
-    render(
-      <WorldTimeControls
-        worldId="world_1"
-        asOfDate="2026-03-15"
-        setAsOfDate={setAsOfDate}
-      />
-    );
+  it('preserves WorldTimeControls delegated date-update behavior', async () => {
+    const worldTimeOwner = buildWorldTimeOwner();
+
+    render(<WorldTimeControls worldTimeOwner={worldTimeOwner} />);
 
     fireEvent.change(screen.getByTestId('world-date-input'), {
       target: { value: '2026-03-20' },
     });
 
     await waitFor(() => {
-      expect(mockUpdateWorldMetadata).toHaveBeenCalledWith('world_1', {
-        asOfDate: '2026-03-20',
-      });
+      expect(worldTimeOwner.updateAsOfDate).toHaveBeenCalledWith('2026-03-20');
     });
-    expect(setAsOfDate).toHaveBeenCalledWith('2026-03-20');
   });
 
-  it('preserves WorldTimeControls +1 day persistence behavior', async () => {
-    const setAsOfDate = vi.fn();
-    render(
-      <WorldTimeControls
-        worldId="world_1"
-        asOfDate="2026-03-15"
-        setAsOfDate={setAsOfDate}
-      />
-    );
+  it('preserves WorldTimeControls delegated +1 day behavior', async () => {
+    const worldTimeOwner = buildWorldTimeOwner();
+
+    render(<WorldTimeControls worldTimeOwner={worldTimeOwner} />);
 
     fireEvent.click(screen.getByTestId('advance-day-button'));
 
     await waitFor(() => {
-      expect(mockUpdateWorldMetadata).toHaveBeenCalledWith('world_1', {
-        asOfDate: '2026-03-16',
-      });
+      expect(worldTimeOwner.advanceByOneDay).toHaveBeenCalledTimes(1);
     });
-    expect(setAsOfDate).toHaveBeenCalledWith('2026-03-16');
   });
 
-  it('preserves WorldTimeControls error handling without local callback writes', async () => {
-    const setAsOfDate = vi.fn();
-    const error = new Error('advance failed');
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockUpdateWorldMetadata.mockRejectedValueOnce(error);
-
+  it('preserves WorldTimeControls owner-driven submitting state', () => {
     render(
       <WorldTimeControls
-        worldId="world_1"
-        asOfDate="2026-03-15"
-        setAsOfDate={setAsOfDate}
+        worldTimeOwner={buildWorldTimeOwner({ isUpdatingAsOfDate: true })}
       />
     );
+
+    expect(screen.getByTestId('world-date-input')).toBeDisabled();
+    expect(screen.getByTestId('advance-day-button')).toBeDisabled();
+    expect(screen.getByTestId('advance-day-button')).toHaveTextContent('...');
+  });
+
+  it('preserves WorldTimeControls error handling without widget-owned mutation fallback', async () => {
+    const error = new Error('advance failed');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const worldTimeOwner = buildWorldTimeOwner({
+      advanceByOneDay: vi.fn().mockRejectedValueOnce(error),
+    });
+
+    render(<WorldTimeControls worldTimeOwner={worldTimeOwner} />);
 
     fireEvent.click(screen.getByTestId('advance-day-button'));
 
@@ -300,7 +298,6 @@ describe('GM world-support family E103 behavior', () => {
         error
       );
     });
-    expect(setAsOfDate).not.toHaveBeenCalled();
   });
 
   it('preserves DraftPositionsInput empty-world placeholder copy', () => {
