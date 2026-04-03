@@ -150,13 +150,16 @@ Current continuation rule:
 # 7. Short Version
 
 ## Closed
+
 - Free Agency
 - Offseason
 
 ## In progress
+
 - League / World Time / As-Of
 
 ## Next likely order
+
 1. League / World Time / As-Of
 2. Team History
 3. Multi-Year Cap Table Truth Pass
