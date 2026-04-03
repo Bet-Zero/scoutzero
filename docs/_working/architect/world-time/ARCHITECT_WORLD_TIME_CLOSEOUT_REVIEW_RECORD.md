@@ -310,6 +310,7 @@ League / World Time / As-Of now reads as a coherent whole feature with no remain
 ### Ownership / persistence / reload
 
 #### `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
+
 - `useArchitectState`
 - `applyWorldMetadata`
 - `invalidateActiveWorldAsyncWork(...)`
@@ -328,6 +329,7 @@ League / World Time / As-Of now reads as a coherent whole feature with no remain
 - `worldModeBoundary`
 
 #### `src/features/architect/utils/worldManager.ts`
+
 - `updateWorldMetadata(...)`
 - `updateWorldAsOfDate(...)`
 - `branchWorld(...)`
@@ -336,30 +338,36 @@ League / World Time / As-Of now reads as a coherent whole feature with no remain
 - `clearDraftPositions(...)`
 
 #### `src/features/architect/utils/worldTeamData.ts`
+
 - `loadWorldTeamData(...)`
 
 #### `src/features/architect/utils/teamLoader.ts`
+
 - `getTeam(...)`
 - `getLeague(...)`
 
 ### Dashboard wiring / boundary fan-out
 
 #### `src/features/architect/GMDashboard/GMDashboard.tsx`
+
 - state owner consumption
 - world selector/time controls wiring
 - offseason wiring with identity token and reload handler
 
 #### `src/features/architect/GMDashboard/components/WorldSelector.tsx`
+
 - `commitActiveWorldSelection(...)`
 - `handleWorldSelect(...)`
 
 #### `src/features/architect/GMDashboard/components/WorldTimeControls.tsx`
+
 - `handleAdvanceDay(...)`
 - `handleDateChange(...)`
 
 ### Season advance
 
 #### `src/features/architect/utils/seasonManager.ts`
+
 - `SeasonAdvanceCommittedMetadata`
 - `SeasonAdvanceCommittedState`
 - `advanceSeasonInWorld(...)`
@@ -367,11 +375,13 @@ League / World Time / As-Of now reads as a coherent whole feature with no remain
 - committed state assembly
 
 #### `src/features/architect/GMDashboard/components/SeasonAdvanceModal.tsx`
+
 - `buildWorldAdvanceAftermath(...)`
 - `buildSeasonAdvanceSuccessResult(...)`
 - `handleAdvanceSeason(...)`
 
 #### `src/features/architect/GMDashboard/sections/OffseasonSection.tsx`
+
 - `getCommittedWorldAdvanceAftermath(...)`
 - `applyCommittedWorldAdvanceAftermath(...)`
 - `handleCommittedWorldAdvanceComplete(...)`
@@ -379,6 +389,7 @@ League / World Time / As-Of now reads as a coherent whole feature with no remain
 ### Free Agency aftermath / stale-drop caller behavior
 
 #### `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
 - `evaluateMutationTruth(...)`
 - `resolveCommittedWorldTeamSnapshot(...)`
 - `shouldRefreshWorldRosterAfterMutation(...)`
@@ -394,6 +405,7 @@ League / World Time / As-Of now reads as a coherent whole feature with no remain
 - `executeWorldModeSignAndTrade(...)`
 
 #### `src/features/architect/utils/mutationPipeline.ts`
+
 - `FREE_AGENCY_MUTATION_TYPES`
 - fail-closed no-state-delta guard
 - persisted-world success contract
@@ -401,39 +413,49 @@ League / World Time / As-Of now reads as a coherent whole feature with no remain
 ### Focused test evidence
 
 #### `src/tests/architect/useArchitectState.worldFreeAgency.test.ts`
+
 - committed reload applies metadata + team truth
 - stale saved world date is not published after world change
 - stale coordinated reload is dropped on sandbox transition
 
 #### `src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx`
+
 - committed aftermath is staged before reload
 - stale season-advance callbacks are dropped after identity change
 - reload failure preserves committed aftermath and surfaces error
 
 #### `src/tests/architect/useArchitectActions.freeAgency.test.tsx`
+
 - state-owner reload delegation for standard signing
 - stale-drop prevents standard-signing local aftermath
 - offer-sheet store skips roster republish
 - finalized offer-sheet lifecycle enables roster republish
 
 #### `src/tests/architect/freeAgency_closure.gate.test.ts`
+
 - standard signing / offer-sheet / sign-and-trade closure contract assertions
 
 #### `src/tests/architect/dashboardWorldBoundary.e109.test.tsx`
+
 - offseason receives reload handler in world mode
 - sandbox has no reload authority and explicit disabled world-only surfaces
 
 #### `src/tests/architect/dashboardWorldBoundary.compatibility.guardrail.test.tsx`
+
 - owner surface and dashboard wiring guardrails
 
 #### `src/tests/architect/worldManager.asOfDate.contract.test.ts`
+
 - dedicated as-of persistence helper and generic metadata guardrails
 
 #### `src/tests/architect/seasonAdvance_capAuditEventV1.guardrails.test.ts`
+
 - committed-state durability guardrails
 
 #### `src/tests/architect/seasonAdvance_postStateValidator_failClose.behavior.test.ts`
+
 - fail-closed season-advance validation
 
 #### `src/tests/architect/architectCoreTrioPassR3.test.ts`
+
 - advanced season summary return contract
