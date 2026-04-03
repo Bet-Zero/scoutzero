@@ -216,7 +216,7 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getByRole('button', { name: /Deleting\.\.\./ })).toBeDisabled();
   });
 
-  it('preserves WorldTimeControls null render, test ids, copy, and system fallback display semantics', () => {
+  it('preserves WorldTimeControls null render, test ids, and explicit unset-date semantics', () => {
     const { rerender } = render(
       <WorldTimeControls
         worldTimeOwner={buildWorldTimeOwner({
@@ -238,9 +238,13 @@ describe('GM world-support family E103 behavior', () => {
 
     expect(screen.getByTestId('world-time-controls')).toBeInTheDocument();
     expect(screen.getByText('World Date')).toBeInTheDocument();
-    expect(screen.getByText('(System)')).toBeInTheDocument();
+    expect(
+      screen.getByText('Set a world date to enable +1 Day.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('(System)')).not.toBeInTheDocument();
     expect(screen.getByTestId('advance-day-button')).toHaveTextContent('+1 Day');
-    expect(screen.getByTestId('world-date-input')).toHaveValue('2026-03-15');
+    expect(screen.getByTestId('advance-day-button')).toBeDisabled();
+    expect(screen.getByTestId('world-date-input')).toHaveValue('');
   });
 
   it('preserves WorldTimeControls delegated date-update behavior', async () => {
@@ -281,7 +285,7 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getByTestId('advance-day-button')).toHaveTextContent('...');
   });
 
-  it('preserves WorldTimeControls error handling without widget-owned mutation fallback', async () => {
+  it('shows a visible advance failure message without widget-owned mutation fallback', async () => {
     const error = new Error('advance failed');
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const worldTimeOwner = buildWorldTimeOwner({
@@ -298,6 +302,40 @@ describe('GM world-support family E103 behavior', () => {
         error
       );
     });
+
+    expect(
+      screen.getByText(
+        'Could not advance world date. Saved world date is still 2026-03-15.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('shows a visible direct-edit failure message and snaps back to saved world truth', async () => {
+    const error = new Error('update failed');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const worldTimeOwner = buildWorldTimeOwner({
+      updateAsOfDate: vi.fn().mockRejectedValueOnce(error),
+    });
+
+    render(<WorldTimeControls worldTimeOwner={worldTimeOwner} />);
+
+    fireEvent.change(screen.getByTestId('world-date-input'), {
+      target: { value: '2026-03-20' },
+    });
+
+    await waitFor(() => {
+      expect(consoleError).toHaveBeenCalledWith(
+        'Failed to update world time:',
+        error
+      );
+    });
+
+    expect(screen.getByTestId('world-date-input')).toHaveValue('2026-03-15');
+    expect(
+      screen.getByText(
+        'Could not save world date. Saved world date is still 2026-03-15.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('preserves DraftPositionsInput empty-world placeholder copy', () => {

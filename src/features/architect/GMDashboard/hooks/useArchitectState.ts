@@ -399,6 +399,21 @@ const writePersistedActiveWorldId = (
 const getIsoDateString = (date: Date = new Date()) =>
   date.toISOString().slice(0, 10);
 
+const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const addDaysToIsoDate = (isoDate: string, dayCount: number): string => {
+  if (!ISO_DATE_ONLY_PATTERN.test(isoDate)) {
+    throw new Error('World date must use YYYY-MM-DD format');
+  }
+
+  const [year, month, day] = isoDate
+    .split('-')
+    .map((value) => parseInt(value, 10));
+  const nextDate = new Date(Date.UTC(year, month - 1, day));
+  nextDate.setUTCDate(nextDate.getUTCDate() + dayCount);
+  return getIsoDateString(nextDate);
+};
+
 const isUsableActiveWorldMetadata = (
   metadata: Record<string, unknown> | null | undefined,
   userId: string
@@ -659,9 +674,11 @@ export function useArchitectState({
   );
 
   const advanceByOneDay = useCallback(async (): Promise<string> => {
-    const currentDate = new Date(worldAsOfDate || getIsoDateString());
-    currentDate.setDate(currentDate.getDate() + 1);
-    return updateAsOfDate(getIsoDateString(currentDate));
+    if (!worldAsOfDate) {
+      throw new Error('Set a world date before advancing time');
+    }
+
+    return updateAsOfDate(addDaysToIsoDate(worldAsOfDate, 1));
   }, [updateAsOfDate, worldAsOfDate]);
 
   const refreshWorldRosterIndex = useCallback(async (): Promise<

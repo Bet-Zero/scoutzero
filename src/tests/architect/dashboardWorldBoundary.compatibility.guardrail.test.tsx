@@ -199,7 +199,16 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'const updateAsOfDate = useCallback('
     );
     expect(useArchitectStateSource).toContain(
+      'const addDaysToIsoDate = (isoDate: string, dayCount: number): string => {'
+    );
+    expect(useArchitectStateSource).toContain(
       'await updateWorldMetadata(worldId, { asOfDate: nextAsOfDate });'
+    );
+    expect(useArchitectStateSource).toContain(
+      "throw new Error('Set a world date before advancing time');"
+    );
+    expect(useArchitectStateSource).not.toContain(
+      'const currentDate = new Date(worldAsOfDate || getIsoDateString());'
     );
     expect(useArchitectStateSource).toContain(
       'const storedWorldId = readPersistedActiveWorldId(userId);'

@@ -108,6 +108,12 @@ describe('E103 GM world-support family compatibility guardrails', () => {
       "from '@/features/architect/utils/worldManager'"
     );
     expect(worldTimeControlsSource).not.toContain('updateWorldMetadata(');
+    expect(worldTimeControlsSource).not.toContain(
+      'new Date().toISOString().slice(0, 10)'
+    );
+    expect(worldTimeControlsSource).toContain(
+      'Set a world date to enable +1 Day.'
+    );
 
     expect(draftPositionsInputSource).toContain(
       'export function DraftPositionsInput'

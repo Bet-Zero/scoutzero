@@ -598,6 +598,113 @@ describe('useArchitectState world-aware free agency pool', () => {
     expect(result.current.worldAsOfDate).toBe('2026-07-15');
   });
 
+  it('keeps owner-driven date-update progress explicit while metadata writes are pending', async () => {
+    const metadataWrite = createDeferred<void>();
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.updateWorldMetadata.mockReturnValueOnce(metadataWrite.promise);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+
+    let mutationPromise!: Promise<string>;
+
+    act(() => {
+      mutationPromise = result.current.worldTimeOwner.updateAsOfDate(
+        '2026-07-15'
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldTimeOwner.isUpdatingAsOfDate).toBe(true);
+    });
+
+    metadataWrite.resolve(undefined);
+
+    await act(async () => {
+      await mutationPromise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldTimeOwner.isUpdatingAsOfDate).toBe(false);
+    });
+    expect(result.current.worldAsOfDate).toBe('2026-07-15');
+  });
+
+  it('requires an authoritative saved world date before +1 day can mutate world time', async () => {
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: null,
+    });
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBeNull();
+    });
+
+    let thrownError: unknown = null;
+
+    await act(async () => {
+      try {
+        await result.current.worldTimeOwner.advanceByOneDay();
+      } catch (error) {
+        thrownError = error;
+      }
+    });
+
+    expect(thrownError).toBeInstanceOf(Error);
+    expect((thrownError as Error).message).toBe(
+      'Set a world date before advancing time'
+    );
+    expect(stateMocks.updateWorldMetadata).not.toHaveBeenCalled();
+  });
+
   it('owns +1 day world-date mutation in worldTimeOwner.advanceByOneDay', async () => {
     stateMocks.getLeague.mockResolvedValue([
       {
@@ -635,5 +742,49 @@ describe('useArchitectState world-aware free agency pool', () => {
       asOfDate: '2026-07-02',
     });
     expect(result.current.worldAsOfDate).toBe('2026-07-02');
+  });
+
+  it('advances +1 day from the saved ISO world date without local-time drift', async () => {
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-03-08',
+    });
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-03-08');
+    });
+
+    await act(async () => {
+      await result.current.worldTimeOwner.advanceByOneDay();
+    });
+
+    expect(stateMocks.updateWorldMetadata).toHaveBeenCalledWith('world_1', {
+      asOfDate: '2026-03-09',
+    });
+    expect(result.current.worldAsOfDate).toBe('2026-03-09');
   });
 });
