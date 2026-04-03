@@ -22,3 +22,15 @@
 | WT-2C | Add Focused Guardrails for World Selection Lifecycle Truth                                                 | DONE   | Focused hook, selector, and persistence guardrails now pin Step 2 lifecycle truth across behavior tests and compatibility/source checks. |
 
 **STEP 2 STATUS: DONE**
+
+---
+
+## STEP 3 — World Date / As-Of Control and Persistence Truth
+
+| ID    | Title                                                                                                      | Status | Notes |
+|-------|------------------------------------------------------------------------------------------------------------|--------|-------|
+| WT-3A | Replace Synthetic Date Fallback Behavior With One Explicit As-Of Truth Policy                               | TODO   |       |
+| WT-3B | Tighten User-Facing Mutation Durability for Direct Date Edits and +1 Day                                    | TODO   |       |
+| WT-3C | Tighten the Persistence Contract for As-Of Writes So the Owner Path Is Narrower and More Explicit           | TODO   |       |
+
+**STEP 3 STATUS: TODO**
