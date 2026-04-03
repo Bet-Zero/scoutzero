@@ -117,6 +117,10 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(worldSelectorSource).toContain(
       "const isWorldBacked = worldModeBoundary.kind === 'world';"
     );
+    expect(worldSelectorSource).toContain('archiveWorld,');
+    expect(worldSelectorSource).not.toContain(
+      'await updateWorldMetadata(worldId, { isArchived: true });'
+    );
     expect(worldSelectorSource).not.toContain('localStorage.getItem(');
     expect(worldSelectorSource).not.toContain('localStorage.setItem(');
     expect(worldSelectorSource).not.toContain('localStorage.removeItem(');

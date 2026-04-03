@@ -31,6 +31,7 @@ const {
   mockListUserWorlds,
   mockCreateWorld,
   mockBranchWorld,
+  mockArchiveWorld,
   mockUpdateWorldMetadata,
   mockGetWorldMetadata,
   mockPurgeWorld,
@@ -54,6 +55,7 @@ const {
   mockListUserWorlds: vi.fn(),
   mockCreateWorld: vi.fn(),
   mockBranchWorld: vi.fn(),
+  mockArchiveWorld: vi.fn(),
   mockUpdateWorldMetadata: vi.fn(),
   mockGetWorldMetadata: vi.fn(),
   mockPurgeWorld: vi.fn(),
@@ -103,6 +105,7 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
   listUserWorlds: (...args: unknown[]) => mockListUserWorlds(...args),
   createWorld: (...args: unknown[]) => mockCreateWorld(...args),
   branchWorld: (...args: unknown[]) => mockBranchWorld(...args),
+  archiveWorld: (...args: unknown[]) => mockArchiveWorld(...args),
   updateWorldMetadata: (...args: unknown[]) => mockUpdateWorldMetadata(...args),
   getWorldMetadata: (...args: unknown[]) => mockGetWorldMetadata(...args),
   purgeWorld: (...args: unknown[]) => mockPurgeWorld(...args),
@@ -738,6 +741,7 @@ describe('E109 dashboard/world boundary behavior', () => {
     ]);
     mockCreateWorld.mockResolvedValue({ worldId: 'world_new' });
     mockBranchWorld.mockResolvedValue({ worldId: 'world_branch' });
+    mockArchiveWorld.mockResolvedValue(undefined);
     mockUpdateWorldMetadata.mockResolvedValue(undefined);
     mockGetWorldMetadata.mockResolvedValue({
       worldName: 'World Alpha',
@@ -951,9 +955,10 @@ describe('E109 dashboard/world boundary behavior', () => {
         'Archive world "World Alpha"? This will hide it from the list. You can restore it later.'
       );
       await waitFor(() => {
-        expect(mockUpdateWorldMetadata).toHaveBeenCalledWith('world_alpha', {
-          isArchived: true,
-        });
+        expect(mockArchiveWorld).toHaveBeenCalledWith('world_alpha', 'user_1');
+      });
+      expect(mockUpdateWorldMetadata).not.toHaveBeenCalledWith('world_alpha', {
+        isArchived: true,
       });
       expect(onWorldChange).toHaveBeenCalledWith(null);
       expect(onSetWorldId).toHaveBeenCalledWith(null);

@@ -12,7 +12,6 @@ describe('E73 worldManager compatibility guardrails', () => {
     'branchWorld',
     'clearDraftPositions',
     'createWorld',
-    'deleteWorld',
     'fixWorldOwnership',
     'getDraftPositions',
     'getDraftPositionsMap',
@@ -30,7 +29,6 @@ describe('E73 worldManager compatibility guardrails', () => {
     'listUserWorlds',
     'updateWorldMetadata',
     'archiveWorld',
-    'deleteWorld',
     'purgeWorld',
     'branchWorld',
     'updateWorldStats',
@@ -62,5 +60,6 @@ describe('E73 worldManager compatibility guardrails', () => {
 
     expect(exportNames).toEqual(Array.from(expectedSourceOrder));
     expect(source).not.toContain('export default');
+    expect(source).not.toContain('export async function deleteWorld');
   });
 });

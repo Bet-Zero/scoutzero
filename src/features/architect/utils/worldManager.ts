@@ -19,7 +19,6 @@ import {
   serverTimestamp,
   writeBatch,
   arrayUnion,
-  arrayRemove,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { worldMetadataRef, worldsCol } from './architectFirestorePaths';
@@ -390,8 +389,9 @@ export async function updateWorldMetadata(
 /**
  * Archive world (soft delete - sets isArchived: true)
  *
- * This is the recommended "safe" deletion method. The world remains in
- * Firestore but is hidden from listings by default.
+ * This is the dedicated archive persistence owner. UI surfaces should route
+ * archive/soft-delete actions through this helper instead of writing
+ * `isArchived` directly.
  *
  * @param {string} worldId - World ID
  * @param {string} userId - User ID (for permission check)
@@ -419,57 +419,6 @@ export async function archiveWorld(
 }
 
 /**
- * Delete world (metadata only - legacy behavior)
- *
- * This deletes only the metadata document, leaving subcollections orphaned.
- * For complete world deletion, use purgeWorld() which calls a Cloud Function
- * to recursively delete all data.
- *
- * @param {string} worldId - World ID
- * @param {string} userId - User ID (for permission check)
- * @returns {Promise<void>}
- * @throws {Error} If user doesn't have permission or world not found
- * @deprecated Use purgeWorld() for complete deletion or archiveWorld() for soft delete
- */
-export async function deleteWorld(
-  worldId: string | null | undefined,
-  userId: string | null | undefined
-) {
-  if (!worldId) {
-    throw new Error('worldId is required');
-  }
-  if (!userId) {
-    throw new Error('userId is required');
-  }
-
-  // Check permissions
-  const metadata = await getWorldMetadata(worldId);
-  if (metadata.createdBy !== userId) {
-    throw new Error('User does not have permission to delete this world');
-  }
-
-  const batch = writeBatch(db);
-
-  // Remove from parent's childWorlds if it has a parent
-  if (metadata.parentWorldId) {
-    const parentRef = worldMetadataRef(metadata.parentWorldId);
-    batch.update(parentRef, {
-      childWorlds: arrayRemove(worldId),
-    });
-  }
-
-  // Delete metadata document
-  // Path: architect_worlds/{worldId}
-  const metadataRef = worldMetadataRef(worldId);
-  batch.delete(metadataRef);
-
-  await batch.commit();
-
-  // Note: Subcollections are NOT deleted by this function.
-  // Use purgeWorld() for complete recursive deletion via Cloud Function.
-}
-
-/**
  * Purge world (complete deletion via Cloud Function)
  *
  * Permanently deletes a world and ALL its subcollections including:
@@ -477,7 +426,8 @@ export async function deleteWorld(
  * - teams/{teamCode}/players/{playerId} documents
  * - The world metadata document itself
  *
- * This function calls a server-side Cloud Function (purgeArchitectWorld) that:
+ * This is the only permanent-delete owner path. It calls the server-side Cloud
+ * Function `purgeArchitectWorld`, which:
  * 1. Validates ownership (auth.uid === createdBy)
  * 2. Prevents deletion of worlds with child branches
  * 3. Recursively deletes all nested data

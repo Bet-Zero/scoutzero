@@ -23,6 +23,7 @@ import {
   listUserWorlds,
   createWorld,
   branchWorld,
+  archiveWorld,
   updateWorldMetadata,
   getWorldMetadata,
   purgeWorld,
@@ -161,17 +162,29 @@ export function WorldSelector({
     };
   }, []);
 
+  const commitActiveWorldSelection = useCallback(
+    (nextWorldId: string | null) => {
+      // WorldSelector is a control surface only. Active-world persistence lives
+      // in the hook-owned state layer behind activeWorldOwner.
+      setActiveWorld(nextWorldId);
+      setShowActionsMenu(false);
+      onWorldChange?.(nextWorldId);
+    },
+    [onWorldChange, setActiveWorld]
+  );
+
+  const clearActiveWorldSelection = useCallback(() => {
+    commitActiveWorldSelection(null);
+    setShowDeleteModal(false);
+    setDeleteConfirmText('');
+  }, [commitActiveWorldSelection]);
+
   const handleWorldSelect = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
       const newWorldId = event.target.value || null;
-      setActiveWorld(newWorldId);
-      setShowActionsMenu(false);
-
-      if (onWorldChange) {
-        onWorldChange(newWorldId);
-      }
+      commitActiveWorldSelection(newWorldId);
     },
-    [onWorldChange, setActiveWorld]
+    [commitActiveWorldSelection]
   );
 
   const handleCreateWorld = useCallback(async () => {
@@ -188,16 +201,11 @@ export function WorldSelector({
       })) as CreateWorldResultLike;
 
       await loadWorlds();
-
-      setActiveWorld(newWorldId);
+      commitActiveWorldSelection(newWorldId);
 
       setNewWorldName('');
       setNewWorldDescription('');
       setShowCreateModal(false);
-
-      if (onWorldChange) {
-        onWorldChange(newWorldId);
-      }
     } catch (err) {
       console.error('Failed to create world:', err);
       setError('Failed to create world');
@@ -208,9 +216,8 @@ export function WorldSelector({
     userId,
     newWorldName,
     newWorldDescription,
+    commitActiveWorldSelection,
     loadWorlds,
-    onWorldChange,
-    setActiveWorld,
   ]);
 
   const handleBranchWorld = useCallback(async () => {
@@ -228,16 +235,11 @@ export function WorldSelector({
       )) as BranchWorldResultLike;
 
       await loadWorlds();
-
-      setActiveWorld(branchedWorldId);
+      commitActiveWorldSelection(branchedWorldId);
 
       setNewWorldName('');
       setNewWorldDescription('');
       setShowBranchModal(false);
-
-      if (onWorldChange) {
-        onWorldChange(branchedWorldId);
-      }
     } catch (err) {
       console.error('Failed to branch world:', err);
       setError('Failed to branch world');
@@ -249,9 +251,8 @@ export function WorldSelector({
     worldId,
     newWorldName,
     newWorldDescription,
+    commitActiveWorldSelection,
     loadWorlds,
-    onWorldChange,
-    setActiveWorld,
   ]);
 
   const handleRenameWorld = useCallback(async () => {
@@ -280,7 +281,7 @@ export function WorldSelector({
   }, [worldId, newWorldName, newWorldDescription, loadWorlds]);
 
   const handleArchiveWorld = useCallback(async () => {
-    if (!worldId) return;
+    if (!userId || !worldId) return;
 
     const currentWorld = worlds.find((world) => world.worldId === worldId);
     const worldName = currentWorld?.worldName || worldId;
@@ -297,23 +298,17 @@ export function WorldSelector({
     setError('');
 
     try {
-      await updateWorldMetadata(worldId, { isArchived: true });
+      await archiveWorld(worldId, userId);
+      clearActiveWorldSelection();
 
       await loadWorlds();
-
-      setActiveWorld(null);
-      setShowActionsMenu(false);
-
-      if (onWorldChange) {
-        onWorldChange(null);
-      }
     } catch (err) {
       console.error('Failed to archive world:', err);
       setError('Failed to archive world');
     } finally {
       setIsSubmitting(false);
     }
-  }, [loadWorlds, onWorldChange, setActiveWorld, worldId, worlds]);
+  }, [clearActiveWorldSelection, loadWorlds, userId, worldId, worlds]);
 
   const handleDeleteWorld = useCallback(async () => {
     if (!worldId) return;
@@ -333,16 +328,8 @@ export function WorldSelector({
       const result = (await purgeWorld(worldId)) as PurgeResultLike;
 
       if (result.ok) {
+        clearActiveWorldSelection();
         await loadWorlds();
-
-        setActiveWorld(null);
-        setShowDeleteModal(false);
-        setDeleteConfirmText('');
-        setShowActionsMenu(false);
-
-        if (onWorldChange) {
-          onWorldChange(null);
-        }
       } else if (result.queued) {
         setError(result.message || '');
       } else {
@@ -359,9 +346,8 @@ export function WorldSelector({
     worldId,
     worlds,
     deleteConfirmText,
+    clearActiveWorldSelection,
     loadWorlds,
-    onWorldChange,
-    setActiveWorld,
   ]);
 
   const openDeleteModal = useCallback(() => {

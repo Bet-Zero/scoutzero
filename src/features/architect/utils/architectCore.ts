@@ -15,7 +15,6 @@ export {
   getWorldMetadata,
   listUserWorlds,
   updateWorldMetadata,
-  deleteWorld,
   branchWorld,
   updateWorldStats,
 } from './worldManager';

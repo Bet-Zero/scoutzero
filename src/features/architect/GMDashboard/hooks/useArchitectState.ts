@@ -379,6 +379,23 @@ const ACTIVE_WORLD_STORAGE_KEY_PREFIX = 'architect.activeWorldId.';
 const getActiveWorldStorageKey = (userId: string) =>
   `${ACTIVE_WORLD_STORAGE_KEY_PREFIX}${userId}`;
 
+const readPersistedActiveWorldId = (userId: string) =>
+  localStorage.getItem(getActiveWorldStorageKey(userId));
+
+const writePersistedActiveWorldId = (
+  userId: string,
+  worldId: string | null
+) => {
+  const storageKey = getActiveWorldStorageKey(userId);
+
+  if (worldId) {
+    localStorage.setItem(storageKey, worldId);
+    return;
+  }
+
+  localStorage.removeItem(storageKey);
+};
+
 const getIsoDateString = (date: Date = new Date()) =>
   date.toISOString().slice(0, 10);
 
@@ -391,6 +408,28 @@ const isUsableActiveWorldMetadata = (
   !(
     typeof metadata?.createdBy === 'string' && metadata.createdBy !== userId
   );
+
+const resolveUsableActiveWorldId = async (
+  candidateWorldId: string | null | undefined,
+  userId: string
+): Promise<string | null> => {
+  if (!candidateWorldId) {
+    return null;
+  }
+
+  try {
+    const metadata = (await getWorldMetadata(candidateWorldId)) as Record<
+      string,
+      unknown
+    >;
+
+    return isUsableActiveWorldMetadata(metadata, userId)
+      ? candidateWorldId
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 const getDefaultSeasonEndYear = (date: Date = new Date()): number => {
   // NBA season flips July 1 → 2024-25 ends in 2025, 2025-26 ends in 2026
@@ -572,15 +611,29 @@ export function useArchitectState({
     [currentYear]
   );
 
+  // Keep active-world restore/switch/clear flows in one state-owner seam.
+  const resetActiveWorldDerivedState = useCallback(() => {
+    setWorldAsOfDate(null);
+    setWorldRosterIndex(null);
+    setWorldPlayerOverrides({});
+    setFreeAgents([]);
+  }, []);
+
+  const clearActiveWorldState = useCallback(() => {
+    resetActiveWorldDerivedState();
+    setWorldId(null);
+  }, [resetActiveWorldDerivedState]);
+
   const setActiveWorld = useCallback(
     (nextWorldId: string | null) => {
-      if (worldId !== nextWorldId) {
-        setWorldAsOfDate(null);
+      if (worldId === nextWorldId) {
+        return;
       }
 
+      resetActiveWorldDerivedState();
       setWorldId(nextWorldId);
     },
-    [worldId]
+    [resetActiveWorldDerivedState, worldId]
   );
 
   const updateAsOfDate = useCallback(
@@ -730,8 +783,7 @@ export function useArchitectState({
     if (!userId) {
       restoredActiveWorldUserIdRef.current = null;
       setHasRestoredActiveWorld(false);
-      setWorldId(null);
-      setWorldAsOfDate(null);
+      clearActiveWorldState();
       return;
     }
 
@@ -741,57 +793,52 @@ export function useArchitectState({
 
     restoredActiveWorldUserIdRef.current = userId;
     setHasRestoredActiveWorld(false);
-    setWorldId(null);
-    setWorldAsOfDate(null);
+    clearActiveWorldState();
 
     let isCancelled = false;
 
     const restoreActiveWorld = async () => {
-      const storageKey = getActiveWorldStorageKey(userId);
-      const storedWorldId = localStorage.getItem(storageKey);
+      const storedWorldId = readPersistedActiveWorldId(userId);
 
       if (!storedWorldId) {
+        return;
+      }
+
+      const restoredWorldId = await resolveUsableActiveWorldId(
+        storedWorldId,
+        userId
+      );
+
+      if (!restoredWorldId) {
+        writePersistedActiveWorldId(userId, null);
         if (!isCancelled) {
-          setHasRestoredActiveWorld(true);
+          clearActiveWorldState();
         }
         return;
       }
 
-      try {
-        const metadata = (await getWorldMetadata(storedWorldId)) as Record<
-          string,
-          unknown
-        >;
-
-        if (!isUsableActiveWorldMetadata(metadata, userId)) {
-          localStorage.removeItem(storageKey);
-          if (!isCancelled) {
-            setWorldId(null);
-          }
-          return;
-        }
-
-        if (!isCancelled) {
-          setWorldId(storedWorldId);
-        }
-      } catch {
-        localStorage.removeItem(storageKey);
-        if (!isCancelled) {
-          setWorldId(null);
-        }
-      } finally {
-        if (!isCancelled) {
-          setHasRestoredActiveWorld(true);
-        }
+      if (!isCancelled) {
+        setActiveWorld(restoredWorldId);
       }
     };
 
-    void restoreActiveWorld();
+    void restoreActiveWorld()
+      .catch(() => {
+        writePersistedActiveWorldId(userId, null);
+        if (!isCancelled) {
+          clearActiveWorldState();
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setHasRestoredActiveWorld(true);
+        }
+      });
 
     return () => {
       isCancelled = true;
     };
-  }, [userId]);
+  }, [clearActiveWorldState, setActiveWorld, userId]);
 
   // === Effect 4: Persist active world selection after restore ===
   useEffect(() => {
@@ -799,13 +846,7 @@ export function useArchitectState({
       return;
     }
 
-    const storageKey = getActiveWorldStorageKey(userId);
-
-    if (worldId) {
-      localStorage.setItem(storageKey, worldId);
-    } else {
-      localStorage.removeItem(storageKey);
-    }
+    writePersistedActiveWorldId(userId, worldId);
   }, [hasRestoredActiveWorld, userId, worldId]);
 
   // === Effect 5: Validate active world ownership/archival in the state layer ===
@@ -817,19 +858,13 @@ export function useArchitectState({
     let isCancelled = false;
 
     const validateActiveWorld = async () => {
-      try {
-        const metadata = (await getWorldMetadata(worldId)) as Record<
-          string,
-          unknown
-        >;
+      const validatedWorldId = await resolveUsableActiveWorldId(
+        worldId,
+        userId
+      );
 
-        if (!isCancelled && !isUsableActiveWorldMetadata(metadata, userId)) {
-          setActiveWorld(null);
-        }
-      } catch {
-        if (!isCancelled) {
-          setActiveWorld(null);
-        }
+      if (!isCancelled && validatedWorldId !== worldId) {
+        setActiveWorld(null);
       }
     };
 

@@ -14,7 +14,6 @@ import {
   getWorldMetadata,
   listUserWorlds,
   updateWorldMetadata,
-  deleteWorld,
   branchWorld,
   updateWorldStats,
   getDraftPositions,
@@ -326,53 +325,6 @@ describe('World Manager', () => {
       await expect(updateWorldMetadata(null, { worldName: 'Test' })).rejects.toThrow(
         'worldId is required'
       );
-    });
-  });
-
-  describe('deleteWorld', () => {
-    it('deletes world and removes from parent\'s childWorlds', async () => {
-      // Create parent and child
-      const parentResult = await createWorld({
-        name: 'Parent',
-        userId,
-      });
-
-      const childResult = await createWorld({
-        name: 'Child',
-        parentWorldId: parentResult.worldId,
-        userId,
-      });
-
-      // Verify child is in parent's childWorlds
-      let parentMetadata = getMockWorldMetadata(parentResult.worldId);
-      expect(parentMetadata.childWorlds).toContain(childResult.worldId);
-
-      // Delete child
-      await deleteWorld(childResult.worldId, userId);
-
-      // Verify child is removed from parent
-      parentMetadata = getMockWorldMetadata(parentResult.worldId);
-      expect(parentMetadata.childWorlds).not.toContain(childResult.worldId);
-
-      // Verify child metadata is deleted
-      await expect(getWorldMetadata(childResult.worldId)).rejects.toThrow();
-    });
-
-    it('throws error if user doesn\'t own world', async () => {
-      const world = createMockWorld({ userId });
-      seedWorldMetadata(world.worldId, world);
-
-      await expect(deleteWorld(world.worldId, otherUserId)).rejects.toThrow(
-        'User does not have permission to delete this world'
-      );
-    });
-
-    it('throws error when worldId is missing', async () => {
-      await expect(deleteWorld(null, userId)).rejects.toThrow('worldId is required');
-    });
-
-    it('throws error when userId is missing', async () => {
-      await expect(deleteWorld('world_123', null)).rejects.toThrow('userId is required');
     });
   });
 

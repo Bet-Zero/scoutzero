@@ -322,6 +322,124 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
   });
 
+  it('clears archived persisted active worlds during restore in the hook owner seam', async () => {
+    window.localStorage.setItem('architect.activeWorldId.user_1', 'world_1');
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: true,
+      asOfDate: '2026-07-01',
+    });
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
+        null
+      );
+    });
+
+    expect(result.current.worldId).toBeNull();
+    expect(result.current.worldAsOfDate).toBeNull();
+    expect(result.current.worldModeBoundary.kind).toBe('sandbox');
+  });
+
+  it('persists switched active worlds and clears storage when switching back to sandbox', async () => {
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
+        'world_1'
+      );
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld(null);
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
+        null
+      );
+    });
+
+    expect(result.current.worldId).toBeNull();
+    expect(result.current.worldAsOfDate).toBeNull();
+    expect(result.current.worldModeBoundary.kind).toBe('sandbox');
+  });
+
+  it('invalidates archived active worlds after selection and clears persisted storage', async () => {
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: true,
+      asOfDate: '2026-07-01',
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldId).toBeNull();
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
+        null
+      );
+    });
+
+    expect(result.current.worldAsOfDate).toBeNull();
+    expect(result.current.worldModeBoundary.kind).toBe('sandbox');
+  });
+
   it('owns world-date metadata mutation in worldTimeOwner.updateAsOfDate', async () => {
     stateMocks.getLeague.mockResolvedValue([
       {

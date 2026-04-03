@@ -17,8 +17,8 @@
 
 | ID    | Title                                                                                                      | Status | Notes |
 |-------|------------------------------------------------------------------------------------------------------------|--------|-------|
-| WT-2A | Tighten Archive and Delete Action Ownership So Each Lifecycle Action Routes Through One Explicit Persistence Owner | TODO |       |
-| WT-2B | Tighten Selection Lifecycle Durability Around Restore / Persist / Invalidate / Switch Flows               | TODO   |       |
+| WT-2A | Tighten Archive and Delete Action Ownership So Each Lifecycle Action Routes Through One Explicit Persistence Owner | DONE | `WorldSelector.tsx` now routes archive through `archiveWorld(...)`, and the misleading legacy `deleteWorld(...)` helper was removed so `purgeWorld(...)` remains the only permanent-delete owner. |
+| WT-2B | Tighten Selection Lifecycle Durability Around Restore / Persist / Invalidate / Switch Flows               | DONE   | `useArchitectState.ts` now owns restore/persist/invalidate/switch/clear through shared active-world lifecycle helpers that also clear world-derived transient state on selection changes. |
 | WT-2C | Add Focused Guardrails for World Selection Lifecycle Truth                                                 | TODO   |       |
 
-**STEP 2 STATUS: TODO**
+**STEP 2 STATUS: IN PROGRESS**
