@@ -157,6 +157,11 @@ type WorldLeagueTeamLike = Pick<LeagueTeamSnapshot, 'roster'> & {
   players?: WorldRosterPlayerLike[];
 };
 
+type WorldMetadataLike = {
+  asOfDate?: string | null;
+  currentSeason?: string | null;
+};
+
 export const mergeWorldPlayerOverride = (
   basePlayer: ArchitectPlayer | null,
   overridePlayer: ArchitectPlayer
@@ -308,6 +313,22 @@ export interface ArchitectWorldTimeOwner {
   advanceByOneDay: () => Promise<string>;
 }
 
+export type ReloadActiveWorldTeamDataSource = 'changedTeams' | 'reload';
+
+export interface ReloadActiveWorldTeamDataOptions {
+  committedTeamSnapshot?: CapSheet | null;
+  committedTeamSource?: ReloadActiveWorldTeamDataSource;
+  committedWorldMetadata?: {
+    asOfDate?: string | null;
+    currentSeason?: string | null;
+  } | null;
+}
+
+export interface ReloadActiveWorldTeamDataResult {
+  committedTeam: CapSheet;
+  committedTeamSource: ReloadActiveWorldTeamDataSource;
+}
+
 export type ArchitectWorldModeBoundary =
   | {
       kind: 'sandbox';
@@ -317,7 +338,9 @@ export type ArchitectWorldModeBoundary =
   | {
       kind: 'world';
       worldId: string;
-      onReloadWorldData: () => Promise<void>;
+      onReloadWorldData: (
+        options?: ReloadActiveWorldTeamDataOptions
+      ) => Promise<ReloadActiveWorldTeamDataResult | null>;
     };
 
 /** Return type of the hook */
@@ -341,6 +364,8 @@ export interface UseArchitectStateReturn {
   players: ArchitectPlayer[];
   worldId: string | null;
   worldAsOfDate: string | null;
+  worldCurrentSeason: string | null;
+  worldMetadataLoading: boolean;
   activeWorldOwner: ArchitectActiveWorldOwner;
   worldTimeOwner: ArchitectWorldTimeOwner;
   worldModeBoundary: ArchitectWorldModeBoundary;
@@ -369,7 +394,9 @@ export interface UseArchitectStateReturn {
   setErrorSafe: (msg: string) => void;
   clearError: () => void;
   refreshWorldRosterIndex: () => Promise<Set<string>>;
-  reloadActiveWorldTeamData: () => Promise<void>;
+  reloadActiveWorldTeamData: (
+    options?: ReloadActiveWorldTeamDataOptions
+  ) => Promise<ReloadActiveWorldTeamDataResult | null>;
 }
 
 // ==== Season helpers ====
@@ -525,6 +552,11 @@ export function useArchitectState({
   // === World state (for Architect worlds system) ===
   const [worldId, setWorldId] = useState<string | null>(null);
   const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
+  const [worldCurrentSeason, setWorldCurrentSeason] = useState<string | null>(
+    null
+  );
+  const [worldMetadataLoading, setWorldMetadataLoading] =
+    useState<boolean>(false);
   const [hasRestoredActiveWorld, setHasRestoredActiveWorld] =
     useState<boolean>(false);
   const [isUpdatingWorldAsOfDate, setIsUpdatingWorldAsOfDate] =
@@ -629,6 +661,8 @@ export function useArchitectState({
   // Keep active-world restore/switch/clear flows in one state-owner seam.
   const resetActiveWorldDerivedState = useCallback(() => {
     setWorldAsOfDate(null);
+    setWorldCurrentSeason(null);
+    setWorldMetadataLoading(false);
     setWorldRosterIndex(null);
     setWorldPlayerOverrides({});
     setFreeAgents([]);
@@ -681,6 +715,47 @@ export function useArchitectState({
     return updateAsOfDate(addDaysToIsoDate(worldAsOfDate, 1));
   }, [updateAsOfDate, worldAsOfDate]);
 
+  const applyWorldMetadata = useCallback(
+    (metadata: WorldMetadataLike | null | undefined) => {
+      setWorldAsOfDate(metadata?.asOfDate || null);
+      setWorldCurrentSeason(metadata?.currentSeason || null);
+    },
+    []
+  );
+
+  const loadAndApplyWorldMetadata = useCallback(
+    async (
+      activeWorldId: string,
+      requestId?: number
+    ): Promise<WorldMetadataLike | null> => {
+      setWorldMetadataLoading(true);
+
+      try {
+        const metadata = (await getWorldMetadata(activeWorldId)) as
+          | WorldMetadataLike
+          | null;
+
+        if (
+          typeof requestId === 'number' &&
+          dataLoadRequestIdRef.current !== requestId
+        ) {
+          return null;
+        }
+
+        applyWorldMetadata(metadata);
+        return metadata;
+      } finally {
+        if (
+          typeof requestId !== 'number' ||
+          dataLoadRequestIdRef.current === requestId
+        ) {
+          setWorldMetadataLoading(false);
+        }
+      }
+    },
+    [applyWorldMetadata]
+  );
+
   const refreshWorldRosterIndex = useCallback(async (): Promise<
     Set<string>
   > => {
@@ -732,55 +807,82 @@ export function useArchitectState({
     }
   }, [worldId]);
 
-  const reloadActiveWorldTeamData = useCallback(async (): Promise<void> => {
-    if (!worldId) {
-      return;
-    }
-
-    const requestId = dataLoadRequestIdRef.current + 1;
-    dataLoadRequestIdRef.current = requestId;
-
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const reloadedTeam = await loadWorldTeamData(worldId, teamId);
-      await refreshWorldRosterIndex();
-
-      if (dataLoadRequestIdRef.current !== requestId) {
-        return;
+  const reloadActiveWorldTeamData = useCallback(
+    async (
+      options: ReloadActiveWorldTeamDataOptions = {}
+    ): Promise<ReloadActiveWorldTeamDataResult | null> => {
+      if (!worldId) {
+        return null;
       }
 
-      if (!reloadedTeam) {
-        throw new Error('Committed world team snapshot could not be reloaded.');
+      const requestId = dataLoadRequestIdRef.current + 1;
+      dataLoadRequestIdRef.current = requestId;
+
+      setIsLoading(true);
+      setError('');
+
+      const committedTeamSource: ReloadActiveWorldTeamDataSource =
+        options.committedTeamSnapshot
+          ? options.committedTeamSource || 'changedTeams'
+          : 'reload';
+
+      try {
+        const nextCommittedTeam =
+          options.committedTeamSnapshot ||
+          (await loadWorldTeamData(worldId, teamId));
+
+        await refreshWorldRosterIndex();
+
+        if (dataLoadRequestIdRef.current !== requestId) {
+          return null;
+        }
+
+        if (!nextCommittedTeam) {
+          throw new Error('Committed world team snapshot could not be reloaded.');
+        }
+
+        const committedTeam = nextCommittedTeam as CapSheet;
+        setBaselineCapSheet(committedTeam);
+        setTeamCapSheet(deepClone(committedTeam) as CapSheet);
+
+        if (options.committedWorldMetadata) {
+          applyWorldMetadata(options.committedWorldMetadata);
+        }
+
+        await loadAndApplyWorldMetadata(worldId, requestId);
+
+        if (dataLoadRequestIdRef.current !== requestId) {
+          return null;
+        }
+
+        return {
+          committedTeam,
+          committedTeamSource,
+        };
+      } catch (err) {
+        if (dataLoadRequestIdRef.current !== requestId) {
+          return null;
+        }
+
+        console.error(err);
+        const message =
+          err instanceof Error ? err.message : String(err || 'Unknown error');
+        setError(`Error loading team data: ${message}`);
+        throw err;
+      } finally {
+        if (dataLoadRequestIdRef.current === requestId) {
+          setIsLoading(false);
+        }
       }
-
-      setBaselineCapSheet(reloadedTeam as CapSheet);
-      setTeamCapSheet(deepClone(reloadedTeam) as CapSheet);
-
-      const meta = await getWorldMetadata(worldId);
-
-      if (dataLoadRequestIdRef.current !== requestId) {
-        return;
-      }
-
-      setWorldAsOfDate(meta?.asOfDate || null);
-    } catch (err) {
-      if (dataLoadRequestIdRef.current !== requestId) {
-        return;
-      }
-
-      console.error(err);
-      const message =
-        err instanceof Error ? err.message : String(err || 'Unknown error');
-      setError(`Error loading team data: ${message}`);
-      throw err;
-    } finally {
-      if (dataLoadRequestIdRef.current === requestId) {
-        setIsLoading(false);
-      }
-    }
-  }, [refreshWorldRosterIndex, teamId, worldId]);
+    },
+    [
+      applyWorldMetadata,
+      loadAndApplyWorldMetadata,
+      refreshWorldRosterIndex,
+      teamId,
+      worldId,
+    ]
+  );
 
   // === Effect 1: Persist currentYear to localStorage + URL query param ===
   useEffect(() => {
@@ -925,18 +1027,13 @@ export function useArchitectState({
         // Phase 21: Load world metadata for timing context
         if (worldId) {
           try {
-            const meta = await getWorldMetadata(worldId);
-
-            if (isCancelled || dataLoadRequestIdRef.current !== requestId) {
-              return;
-            }
-
-            setWorldAsOfDate(meta?.asOfDate || null);
+            await loadAndApplyWorldMetadata(worldId, requestId);
           } catch (e) {
             console.warn('Failed to load world metadata:', e);
           }
         } else {
-          setWorldAsOfDate(null);
+          applyWorldMetadata(null);
+          setWorldMetadataLoading(false);
         }
       } catch (err) {
         if (isCancelled || dataLoadRequestIdRef.current !== requestId) {
@@ -962,7 +1059,14 @@ export function useArchitectState({
     return () => {
       isCancelled = true;
     };
-  }, [teamId, authLoading, worldId, refreshWorldRosterIndex]);
+  }, [
+    applyWorldMetadata,
+    authLoading,
+    loadAndApplyWorldMetadata,
+    refreshWorldRosterIndex,
+    teamId,
+    worldId,
+  ]);
 
   // === Effect 7: Derive free agents dynamically from the player pool ===
   useEffect(() => {
@@ -1203,6 +1307,8 @@ export function useArchitectState({
     players: worldAwarePlayers,
     worldId,
     worldAsOfDate,
+    worldCurrentSeason,
+    worldMetadataLoading,
     activeWorldOwner,
     worldTimeOwner,
     worldModeBoundary,

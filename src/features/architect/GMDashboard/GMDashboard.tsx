@@ -123,6 +123,8 @@ const GMDashboard = () => {
     capTableYears,
     worldId,
     worldAsOfDate,
+    worldCurrentSeason,
+    worldMetadataLoading,
     activeWorldOwner,
     worldTimeOwner,
     worldModeBoundary,
@@ -502,6 +504,8 @@ const GMDashboard = () => {
             playersMap={playersMap}
             worldId={worldId}
             teamCode={normalizedTeamId}
+            worldSeason={worldCurrentSeason}
+            worldSeasonLoading={worldMetadataLoading}
             onReloadWorldData={worldModeBoundary.onReloadWorldData}
           />
         )}

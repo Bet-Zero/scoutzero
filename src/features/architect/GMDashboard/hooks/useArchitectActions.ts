@@ -610,6 +610,7 @@ type ArchitectStateForActions = Omit<
   'worldAsOfDate'
 > & {
   worldAsOfDate?: UseArchitectStateReturn['worldAsOfDate'];
+  reloadActiveWorldTeamData?: UseArchitectStateReturn['reloadActiveWorldTeamData'];
 };
 
 /** Hook input parameters */
@@ -992,6 +993,10 @@ type PreparedOfferSheetCreationDefinition =
   | OfferSheetCreationDefinitionFailure;
 
 type WorldCommittedTeamSource = 'changedTeams' | 'reload';
+type ResolvedCommittedWorldTeam = {
+  committedTeam: CapSheet;
+  committedTeamSource: WorldCommittedTeamSource;
+};
 
 type StandardSigningCommittedStateSource = 'compute' | WorldCommittedTeamSource;
 
@@ -1680,6 +1685,7 @@ export function useArchitectActions({
     startSave,
     finishSave,
     refreshWorldRosterIndex,
+    reloadActiveWorldTeamData,
   } = state;
 
   // Destructure modals for easier access
@@ -2032,21 +2038,54 @@ export function useArchitectActions({
     [getFreeAgencyWorldOnlyMessage]
   );
 
-  const syncTeamFromMutationResult = useCallback(
+  const resolveCommittedWorldTeamSnapshot = useCallback(
+    async (
+      result: PersistMutationResult
+    ): Promise<ResolvedCommittedWorldTeam | null> => {
+      const changedTeam = findUpdatedTeamSnapshot(result?.changedTeams, teamCode);
+
+      if (changedTeam) {
+        return {
+          committedTeam: changedTeam as CapSheet,
+          committedTeamSource: 'changedTeams',
+        };
+      }
+
+      if (!worldId) {
+        return null;
+      }
+
+      const reloadedTeam = await loadWorldTeamData(worldId, teamCode);
+      if (!reloadedTeam) {
+        return null;
+      }
+
+      return {
+        committedTeam: reloadedTeam as CapSheet,
+        committedTeamSource: 'reload',
+      };
+    },
+    [teamCode, worldId]
+  );
+
+  const applyCommittedWorldReload = useCallback(
     async (
       mutationType: string,
-      result: PersistMutationResult
-    ): Promise<void> => {
-      const currentTeam = findUpdatedTeamSnapshot(result?.changedTeams, teamCode);
+      committedWorldTeam: ResolvedCommittedWorldTeam
+    ): Promise<ResolvedCommittedWorldTeam> => {
+      if (reloadActiveWorldTeamData && worldId) {
+        const reloadedWorldTeam = (await reloadActiveWorldTeamData({
+          committedTeamSnapshot:
+            committedWorldTeam.committedTeam as UseArchitectStateReturn['teamCapSheet'],
+          committedTeamSource: committedWorldTeam.committedTeamSource,
+        })) as ResolvedCommittedWorldTeam | null;
 
-      if (currentTeam) {
-        setTeamCapSheetSafe(currentTeam);
-      } else if (worldId) {
-        const refreshedTeam = await loadWorldTeamData(worldId, teamCode);
-        if (refreshedTeam) {
-          setTeamCapSheetSafe(refreshedTeam as CapSheet);
+        if (reloadedWorldTeam) {
+          return reloadedWorldTeam;
         }
       }
+
+      setTeamCapSheetSafe(committedWorldTeam.committedTeam);
 
       try {
         await refreshWorldRosterIndex();
@@ -2056,8 +2095,31 @@ export function useArchitectActions({
           error
         );
       }
+
+      return committedWorldTeam;
     },
-    [refreshWorldRosterIndex, setTeamCapSheet, teamCode, worldId]
+    [
+      refreshWorldRosterIndex,
+      reloadActiveWorldTeamData,
+      setTeamCapSheetSafe,
+      worldId,
+    ]
+  );
+
+  const syncTeamFromMutationResult = useCallback(
+    async (
+      mutationType: string,
+      result: PersistMutationResult
+    ): Promise<void> => {
+      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+
+      if (!committedWorldTeam) {
+        return;
+      }
+
+      await applyCommittedWorldReload(mutationType, committedWorldTeam);
+    },
+    [applyCommittedWorldReload, resolveCommittedWorldTeamSnapshot]
   );
 
   const runAuthoritativeFAMutation = useCallback(
@@ -2158,13 +2220,10 @@ export function useArchitectActions({
         seasonKey: params.seasonKey,
         offeringTeamCode: params.offeringTeamCode,
       });
-      const changedTeam = findUpdatedTeamSnapshot(result.changedTeams, teamCode);
+      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+      const committedTeam = committedWorldTeam?.committedTeam || null;
       const committedTeamSource: OfferSheetCommittedState['committedTeamSource'] =
-        changedTeam ? 'changedTeams' : 'reload';
-      const reloadedTeam = changedTeam
-        ? null
-        : ((await loadWorldTeamData(worldId, teamCode)) as CapSheet | null);
-      const committedTeam = changedTeam || reloadedTeam;
+        committedWorldTeam?.committedTeamSource || 'reload';
 
       if (!committedTeam) {
         return {
@@ -2210,14 +2269,20 @@ export function useArchitectActions({
         },
       };
     },
-    [loadWorldTeamData, teamCode, worldId]
+    [resolveCommittedWorldTeamSnapshot]
   );
 
   const applyCommittedOfferSheetState = useCallback(
-    (committedTeam: CapSheet): void => {
-      setTeamCapSheetSafe(committedTeam);
+    async (
+      committedTeam: CapSheet,
+      committedTeamSource: WorldCommittedTeamSource
+    ): Promise<void> => {
+      await applyCommittedWorldReload('storeOfferSheet', {
+        committedTeam,
+        committedTeamSource,
+      });
     },
-    [setTeamCapSheetSafe]
+    [applyCommittedWorldReload]
   );
 
   const executeWorldModeOfferSheetStore = useCallback(
@@ -2345,13 +2410,10 @@ export function useArchitectActions({
           fallbackIdentity: expectation.identity,
         }
       );
-      const changedTeam = findUpdatedTeamSnapshot(result.changedTeams, teamCode);
+      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+      const committedTeam = committedWorldTeam?.committedTeam || null;
       const committedTeamSource: OfferSheetLifecycleCommittedState['committedTeamSource'] =
-        changedTeam ? 'changedTeams' : 'reload';
-      const reloadedTeam = changedTeam
-        ? null
-        : ((await loadWorldTeamData(worldId, teamCode)) as CapSheet | null);
-      const committedTeam = changedTeam || reloadedTeam;
+        committedWorldTeam?.committedTeamSource || 'reload';
 
       if (!committedTeam) {
         return {
@@ -2422,35 +2484,21 @@ export function useArchitectActions({
         },
       };
     },
-    [loadWorldTeamData, teamCode, worldId]
+    [resolveCommittedWorldTeamSnapshot]
   );
 
   const applyCommittedOfferSheetLifecycleState = useCallback(
-    (committedTeam: CapSheet): void => {
-      setTeamCapSheetSafe(committedTeam);
+    async (
+      mutationType: OfferSheetLifecycleMutationType,
+      committedTeam: CapSheet,
+      committedTeamSource: WorldCommittedTeamSource
+    ): Promise<void> => {
+      await applyCommittedWorldReload(mutationType, {
+        committedTeam,
+        committedTeamSource,
+      });
     },
-    [setTeamCapSheetSafe]
-  );
-
-  const republishWorldRosterIndexAfterOfferSheetLifecycle = useCallback(
-    async (mutationType: OfferSheetLifecycleMutationType): Promise<void> => {
-      if (
-        mutationType !== 'finalizeMatchedOfferSheet' &&
-        mutationType !== 'finalizeDeclinedOfferSheet'
-      ) {
-        return;
-      }
-
-      try {
-        await refreshWorldRosterIndex();
-      } catch (error) {
-        console.warn(
-          `[Architect][FreeAgency] Failed to refresh roster index after ${mutationType}:`,
-          error
-        );
-      }
-    },
-    [refreshWorldRosterIndex]
+    [applyCommittedWorldReload]
   );
 
   const executeWorldModeOfferSheetLifecycleMutation = useCallback(
@@ -2541,10 +2589,11 @@ export function useArchitectActions({
           };
         }
 
-        applyCommittedOfferSheetLifecycleState(
-          committedState.value.committedTeam
+        await applyCommittedOfferSheetLifecycleState(
+          mutationType,
+          committedState.value.committedTeam,
+          committedState.value.committedTeamSource
         );
-        await republishWorldRosterIndexAfterOfferSheetLifecycle(mutationType);
         toast.success('Saved changes');
         finishSave();
         return {
@@ -2571,7 +2620,6 @@ export function useArchitectActions({
       evaluateMutationTruth,
       finishSave,
       getFreeAgencyWorldOnlyMessage,
-      republishWorldRosterIndexAfterOfferSheetLifecycle,
       reportMutationError,
       resolveCommittedOfferSheetLifecycleState,
       seasonId,
@@ -2582,16 +2630,25 @@ export function useArchitectActions({
   );
 
   const applyCommittedStandardSigningState = useCallback(
-    (
+    async (
       playerObj: ArchitectPlayer,
-      committedTeam: CapSheet
-    ): void => {
-      setTeamCapSheetSafe(committedTeam);
+      committedTeam: CapSheet,
+      committedTeamSource: StandardSigningCommittedStateSource
+    ): Promise<void> => {
+      if (committedTeamSource === 'compute') {
+        setTeamCapSheetSafe(committedTeam);
+      } else {
+        await applyCommittedWorldReload('signFreeAgent', {
+          committedTeam,
+          committedTeamSource,
+        });
+      }
+
       setFreeAgents((prev) =>
         filterSignedPlayerFromFreeAgents(prev, playerObj)
       );
     },
-    [setFreeAgents, setTeamCapSheetSafe]
+    [applyCommittedWorldReload, setFreeAgents, setTeamCapSheetSafe]
   );
 
   const executeWorldModeStandardSigning = useCallback(
@@ -2654,11 +2711,8 @@ export function useArchitectActions({
           return { success: false, message };
         }
 
-        const changedTeam = findUpdatedTeamSnapshot(result.changedTeams, teamCode);
-        const reloadedTeam = changedTeam
-          ? null
-          : ((await loadWorldTeamData(worldId, teamCode)) as CapSheet | null);
-        const committedTeam = changedTeam || reloadedTeam;
+        const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+        const committedTeam = committedWorldTeam?.committedTeam || null;
 
         if (!committedTeam) {
           const message =
@@ -2676,21 +2730,13 @@ export function useArchitectActions({
           return { success: false, message };
         }
 
-        try {
-          await refreshWorldRosterIndex();
-        } catch (error) {
-          console.warn(
-            '[Architect][FreeAgency] Failed to refresh roster index after signFreeAgent:',
-            error
-          );
-        }
-
         toast.success('Saved changes');
         finishSave();
         return {
           success: true,
           committedTeam,
-          committedTeamSource: changedTeam ? 'changedTeams' : 'reload',
+          committedTeamSource:
+            committedWorldTeam?.committedTeamSource || 'reload',
         };
       } catch (error: unknown) {
         const message =
@@ -2710,11 +2756,9 @@ export function useArchitectActions({
       applyWorldMutation,
       evaluateMutationTruth,
       finishSave,
-      loadWorldTeamData,
-      refreshWorldRosterIndex,
       reportMutationError,
+      resolveCommittedWorldTeamSnapshot,
       startSave,
-      teamCode,
       userId,
       worldId,
     ]
@@ -3649,10 +3693,28 @@ export function useArchitectActions({
         };
       }
 
-      applyCommittedStandardSigningState(
-        playerObj,
-        executionResult.committedTeam
-      );
+      try {
+        await applyCommittedStandardSigningState(
+          playerObj,
+          executionResult.committedTeam,
+          executionResult.committedTeamSource
+        );
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Signing saved but the committed team state could not be applied.';
+        reportMutationError(message, {
+          mutationType: 'signFreeAgent',
+          playerId: normalizedPlayerId,
+          error,
+        });
+        return {
+          success: false,
+          message,
+        };
+      }
+
       return { success: true };
     },
     [
@@ -3663,10 +3725,16 @@ export function useArchitectActions({
   );
 
   const applyCommittedSignAndTradeState = useCallback(
-    (committedTeam: CapSheet): void => {
-      setTeamCapSheetSafe(committedTeam);
+    async (
+      committedTeam: CapSheet,
+      committedTeamSource: WorldCommittedTeamSource
+    ): Promise<void> => {
+      await applyCommittedWorldReload('signAndTrade', {
+        committedTeam,
+        committedTeamSource,
+      });
     },
-    [setTeamCapSheetSafe]
+    [applyCommittedWorldReload]
   );
 
   const executeWorldModeSignAndTrade = useCallback(
@@ -3731,11 +3799,8 @@ export function useArchitectActions({
           return { success: false, message };
         }
 
-        const changedTeam = findUpdatedTeamSnapshot(result.changedTeams, teamCode);
-        const reloadedTeam = changedTeam
-          ? null
-          : ((await loadWorldTeamData(worldId, teamCode)) as CapSheet | null);
-        const committedTeam = changedTeam || reloadedTeam;
+        const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+        const committedTeam = committedWorldTeam?.committedTeam || null;
 
         if (!committedTeam) {
           const message =
@@ -3750,21 +3815,13 @@ export function useArchitectActions({
           return { success: false, message };
         }
 
-        try {
-          await refreshWorldRosterIndex();
-        } catch (error) {
-          console.warn(
-            '[Architect][FreeAgency] Failed to refresh roster index after signAndTrade:',
-            error
-          );
-        }
-
         toast.success('Saved changes');
         finishSave();
         return {
           success: true,
           committedTeam,
-          committedTeamSource: changedTeam ? 'changedTeams' : 'reload',
+          committedTeamSource:
+            committedWorldTeam?.committedTeamSource || 'reload',
         };
       } catch (error: unknown) {
         const message =
@@ -3784,10 +3841,9 @@ export function useArchitectActions({
       evaluateMutationTruth,
       finishSave,
       getFreeAgencyWorldOnlyMessage,
-      refreshWorldRosterIndex,
       reportMutationError,
+      resolveCommittedWorldTeamSnapshot,
       startSave,
-      teamCode,
       userId,
       worldId,
     ]
@@ -3842,7 +3898,27 @@ export function useArchitectActions({
         };
       }
 
-      applyCommittedSignAndTradeState(result.committedTeam);
+      try {
+        await applyCommittedSignAndTradeState(
+          result.committedTeam,
+          result.committedTeamSource
+        );
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Sign-and-trade saved but the committed team state could not be applied.';
+        reportMutationError(message, {
+          mutationType: 'signAndTrade',
+          playerId: transactionDefinition.mutationPayload.playerId,
+          error,
+        });
+        return {
+          success: false,
+          message,
+        };
+      }
+
       return { success: true };
     },
     [
@@ -3990,7 +4066,27 @@ export function useArchitectActions({
         };
       }
 
-      applyCommittedOfferSheetState(result.committedTeam);
+      try {
+        await applyCommittedOfferSheetState(
+          result.committedTeam,
+          result.committedTeamSource
+        );
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Offer sheet saved but the committed team state could not be applied.';
+        reportMutationError(message, {
+          mutationType: 'storeOfferSheet',
+          playerId: creationDefinition.mutationPayload.playerId,
+          error,
+        });
+        return {
+          success: false,
+          message,
+        };
+      }
+
       return { success: true };
     },
     [

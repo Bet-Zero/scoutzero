@@ -154,13 +154,28 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     );
 
     expect(useArchitectStateSource).toContain(
-      'reloadActiveWorldTeamData: () => Promise<void>;'
+      'export interface ReloadActiveWorldTeamDataOptions {'
     );
     expect(useArchitectStateSource).toContain(
-      'const reloadActiveWorldTeamData = useCallback(async (): Promise<void> => {'
+      'reloadActiveWorldTeamData: ('
+    );
+    expect(useArchitectStateSource).toContain(
+      'options?: ReloadActiveWorldTeamDataOptions'
+    );
+    expect(useArchitectStateSource).toContain(
+      'Promise<ReloadActiveWorldTeamDataResult | null>;'
+    );
+    expect(useArchitectStateSource).toContain(
+      'const reloadActiveWorldTeamData = useCallback('
     );
     expect(useArchitectStateSource).toContain(
       'activeWorldOwner: ArchitectActiveWorldOwner;'
+    );
+    expect(useArchitectStateSource).toContain(
+      'worldCurrentSeason: string | null;'
+    );
+    expect(useArchitectStateSource).toContain(
+      'worldMetadataLoading: boolean;'
     );
     expect(useArchitectStateSource).toContain(
       'worldTimeOwner: ArchitectWorldTimeOwner;'
@@ -230,8 +245,16 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(gmDashboardSource).toContain('activeWorldOwner,');
     expect(gmDashboardSource).toContain('worldTimeOwner,');
     expect(gmDashboardSource).toContain('worldModeBoundary,');
+    expect(gmDashboardSource).toContain('worldCurrentSeason,');
+    expect(gmDashboardSource).toContain('worldMetadataLoading,');
     expect(gmDashboardSource).toContain(
       'onReloadWorldData={worldModeBoundary.onReloadWorldData}'
+    );
+    expect(gmDashboardSource).toContain(
+      'worldSeason={worldCurrentSeason}'
+    );
+    expect(gmDashboardSource).toContain(
+      'worldSeasonLoading={worldMetadataLoading}'
     );
     expect(gmDashboardSource).toContain(
       'activeWorldOwner={activeWorldOwner}'

@@ -281,10 +281,14 @@ function renderActionsHarness({
   worldId,
   userId = 'user_1',
   initialTeam = baseTeamFixture,
+  reloadActiveWorldTeamData,
 }: {
   worldId: string | null;
   userId?: string | null;
   initialTeam?: any;
+  reloadActiveWorldTeamData?: ((
+    ...args: unknown[]
+  ) => Promise<{ committedTeam: any; committedTeamSource: 'changedTeams' | 'reload' } | null>) | null;
 }) {
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
@@ -319,6 +323,9 @@ function renderActionsHarness({
         setOffseasonRun,
         setOffseasonSummary,
         refreshWorldRosterIndex,
+        ...(reloadActiveWorldTeamData
+          ? { reloadActiveWorldTeamData }
+          : {}),
       },
       playersMap: {
         [playerFixture.id]: playerFixture,
@@ -622,6 +629,55 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(result.current.teamCapSheet).toEqual(reloadedTeam);
     expect(result.current.freeAgents).toEqual([]);
     expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates committed world signing reload ownership to the state reload helper when present', async () => {
+    const updatedTeam = buildSignedTeamFixture({
+      source: {
+        type: 'changed-teams',
+        lastModifiedAt: '2026-03-31T00:00:00.000Z',
+      },
+    });
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: updatedTeam }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sign_state_reload_owner' },
+    });
+    const reloadActiveWorldTeamData = vi.fn(async () => ({
+      committedTeam: updatedTeam,
+      committedTeamSource: 'changedTeams' as const,
+    }));
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam: baseTeamFixture,
+      reloadActiveWorldTeamData,
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
+      committedTeamSnapshot: updatedTeam,
+      committedTeamSource: 'changedTeams',
+    });
+    expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
   });
 
   it('fails closed when world signing persists but no committed team snapshot can be resolved', async () => {

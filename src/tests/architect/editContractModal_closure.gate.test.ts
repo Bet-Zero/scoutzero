@@ -190,9 +190,9 @@ describe('Gate 4: World Success Authoritative Re-sync (E1)', () => {
   });
 
   it('sync is called after successful mutation', () => {
-    // Pattern: success path contains sync call (changedTeams handling)
+    // Pattern: success path contains the shared authoritative sync/reload seam
     const syncOnSuccess =
-      /changedTeams[\s\S]{0,500}(syncTeamFromMutationResult|setTeamCapSheet)/.test(
+      /runAuthoritativeFAMutation[\s\S]{0,2500}(syncTeamFromMutationResult|resolveCommittedWorldTeamSnapshot|reloadActiveWorldTeamData)/.test(
         content
       );
     expect(syncOnSuccess).toBe(true);

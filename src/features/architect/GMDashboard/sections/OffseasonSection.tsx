@@ -18,7 +18,7 @@
  *  - Latest Chunk: N/A
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import SeasonAdvanceModal, {
   type SeasonAdvanceResult,
   type WorldAdvanceAftermath,
@@ -36,7 +36,6 @@ import {
 import {
   clearDraftPositions,
   getDraftPositions,
-  getWorldMetadata,
   saveDraftPositions,
   validateDraftPositionsMap,
 } from '@/features/architect/utils/worldManager';
@@ -63,7 +62,9 @@ type OffseasonSectionProps = {
   playersMap?: Record<string, unknown>;
   worldId?: string | null;
   teamCode?: string | null;
-  onReloadWorldData?: (() => Promise<void>) | null;
+  worldSeason?: string | null;
+  worldSeasonLoading?: boolean;
+  onReloadWorldData?: ((...args: unknown[]) => Promise<unknown>) | null;
 };
 
 type WorldBackedOffseasonSurfaceProps = {
@@ -136,7 +137,6 @@ function applyCommittedWorldAdvanceAftermath(
   callbacks: {
     setTeamCapSheet?: (...args: any[]) => any;
     setCurrentYear: (...args: any[]) => any;
-    setWorldSeason: React.Dispatch<React.SetStateAction<string | null>>;
     setOffseasonRun: (...args: any[]) => any;
     setOffseasonSummary: (...args: any[]) => any;
     setShowOffseasonModal: (...args: any[]) => any;
@@ -152,7 +152,6 @@ function applyCommittedWorldAdvanceAftermath(
   }
 
   callbacks.setCurrentYear(committedWorldAdvanceAftermath.nextViewingYear);
-  callbacks.setWorldSeason(committedWorldAdvanceAftermath.nextWorldSeason);
   callbacks.setOffseasonRun(true);
   callbacks.setOffseasonSummary(
     committedWorldAdvanceAftermath.offseasonSummary
@@ -316,37 +315,12 @@ const OffseasonSection = ({
   playersMap,
   worldId,
   teamCode,
+  worldSeason = null,
+  worldSeasonLoading = false,
   onReloadWorldData,
 }: OffseasonSectionProps) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();
-
-  // Phase 5 PATCH: Track world's actual current season (single source of truth)
-  const [worldSeason, setWorldSeason] = useState<string | null>(null);
-  const [worldSeasonLoading, setWorldSeasonLoading] = useState(false);
-
-  // Fetch world metadata when worldId changes to get the actual current season
-  useEffect(() => {
-    async function loadWorldSeason() {
-      if (!worldId) {
-        setWorldSeason(null);
-        return;
-      }
-
-      setWorldSeasonLoading(true);
-      try {
-        const worldMeta = await getWorldMetadata(worldId);
-        setWorldSeason(worldMeta?.currentSeason || null);
-      } catch (error) {
-        console.error('Failed to load world metadata:', error);
-        setWorldSeason(null);
-      } finally {
-        setWorldSeasonLoading(false);
-      }
-    }
-
-    loadWorldSeason();
-  }, [worldId]);
 
   const handleCommittedWorldAdvanceComplete = useCallback(
     async (result: SeasonAdvanceResult) => {
@@ -360,7 +334,6 @@ const OffseasonSection = ({
       applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {
         setTeamCapSheet,
         setCurrentYear,
-        setWorldSeason,
         setOffseasonRun,
         setOffseasonSummary,
         setShowOffseasonModal,
@@ -368,7 +341,11 @@ const OffseasonSection = ({
 
       if (onReloadWorldData) {
         try {
-          await onReloadWorldData();
+          await onReloadWorldData({
+            committedWorldMetadata: {
+              currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,
+            },
+          });
         } catch (error) {
           console.error('Failed to reload world data after season advance:', error);
         }

@@ -375,6 +375,8 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       capTableYears: [CURRENT_YEAR],
       worldId: 'world_smoke_lal',
       worldAsOfDate: null,
+      worldCurrentSeason: '2025-26',
+      worldMetadataLoading: false,
       setTeamCapSheet: vi.fn(),
       setCurrentYear: vi.fn(),
       setActiveTab: vi.fn(),
@@ -566,7 +568,6 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
 
   it('renders Offseason world surface and season advance controls', async () => {
     const teamCapSheet = buildTeamFixture();
-    getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
 
     render(
       <OffseasonSection
@@ -581,6 +582,8 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         playersMap={{}}
         worldId="world_smoke_lal"
         teamCode="LAL"
+        worldSeason="2025-26"
+        worldSeasonLoading={false}
         onReloadWorldData={vi.fn()}
       />
     );
@@ -596,7 +599,6 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
 
   it('drives the season advance modal from world season instead of the dashboard viewing year', async () => {
     const teamCapSheet = buildTeamFixture();
-    getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
 
     render(
       <OffseasonSection
@@ -611,6 +613,8 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         playersMap={{}}
         worldId="world_smoke_lal"
         teamCode="LAL"
+        worldSeason="2025-26"
+        worldSeasonLoading={false}
         onReloadWorldData={vi.fn()}
       />
     );
@@ -628,7 +632,6 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
 
   it('keeps world-backed season advance disabled until world metadata supplies the current season', async () => {
     const teamCapSheet = buildTeamFixture();
-    getWorldMetadataMock.mockResolvedValue({ currentSeason: null });
 
     render(
       <OffseasonSection
@@ -643,6 +646,8 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         playersMap={{}}
         worldId="world_smoke_lal"
         teamCode="LAL"
+        worldSeason={null}
+        worldSeasonLoading={false}
         onReloadWorldData={vi.fn()}
       />
     );
@@ -672,7 +677,6 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     const setShowOffseasonModal = vi.fn();
     const onReloadWorldData = vi.fn(async () => undefined);
 
-    getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
     advanceSeasonInWorldMock.mockResolvedValue(
       buildCommittedAdvanceExecutorResult({
         committedTeamCapSheet,
@@ -724,6 +728,8 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         playersMap={{}}
         worldId="world_smoke_lal"
         teamCode="LAL"
+        worldSeason="2025-26"
+        worldSeasonLoading={false}
         onReloadWorldData={onReloadWorldData}
       />
     );
@@ -782,6 +788,11 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       });
       expect(setShowOffseasonModal).toHaveBeenCalledWith(true);
       expect(onReloadWorldData).toHaveBeenCalledTimes(1);
+      expect(onReloadWorldData).toHaveBeenCalledWith({
+        committedWorldMetadata: {
+          currentSeason: '2026-27',
+        },
+      });
     });
     expect(setTeamCapSheet.mock.invocationCallOrder[0]).toBeLessThan(
       onReloadWorldData.mock.invocationCallOrder[0]
@@ -797,8 +808,6 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     try {
-      getWorldMetadataMock.mockResolvedValue({ currentSeason: '2025-26' });
-
       render(
         <OffseasonSection
           teamCapSheet={teamCapSheet}
@@ -812,6 +821,8 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
           playersMap={{}}
           worldId="world_smoke_lal"
           teamCode="LAL"
+          worldSeason="2025-26"
+          worldSeasonLoading={false}
           onReloadWorldData={vi.fn()}
         />
       );

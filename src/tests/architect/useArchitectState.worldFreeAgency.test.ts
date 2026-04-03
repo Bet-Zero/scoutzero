@@ -119,6 +119,7 @@ describe('useArchitectState world-aware free agency pool', () => {
       createdBy: 'user_1',
       isArchived: false,
       asOfDate: '2026-07-01',
+      currentSeason: '2025-26',
     });
     stateMocks.updateWorldAsOfDate.mockResolvedValue(undefined);
   });
@@ -222,6 +223,68 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
   });
 
+  it('reapplies committed world team and metadata through the state-owned reload helper', async () => {
+    const committedTeam = {
+      ...teamFixture,
+      season: '2026-27',
+      source: {
+        type: 'changed-teams',
+        lastModifiedAt: '2026-07-02T00:00:00.000Z',
+      },
+    };
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-02',
+      currentSeason: '2026-27',
+    });
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    let reloadResult:
+      | Awaited<ReturnType<typeof result.current.reloadActiveWorldTeamData>>
+      | null = null;
+    await act(async () => {
+      reloadResult = await result.current.reloadActiveWorldTeamData({
+        committedTeamSnapshot: committedTeam as any,
+        committedTeamSource: 'changedTeams',
+        committedWorldMetadata: {
+          currentSeason: '2026-27',
+        },
+      });
+    });
+
+    expect(reloadResult).toEqual({
+      committedTeam,
+      committedTeamSource: 'changedTeams',
+    });
+    expect(result.current.teamCapSheet).toEqual(committedTeam);
+    expect(result.current.worldCurrentSeason).toBe('2026-27');
+    expect(result.current.worldAsOfDate).toBe('2026-07-02');
+  });
+
   it('preserves hydrated offer-sheet arrays through world load and roster-index refresh', async () => {
     stateMocks.getLeague.mockResolvedValue([
       {
@@ -292,6 +355,7 @@ describe('useArchitectState world-aware free agency pool', () => {
 
     await waitFor(() => {
       expect(result.current.worldAsOfDate).toBe('2026-07-01');
+      expect(result.current.worldCurrentSeason).toBe('2025-26');
     });
     expect(result.current.worldModeBoundary.kind).toBe('world');
     expect(result.current.worldModeBoundary.worldId).toBe('world_1');

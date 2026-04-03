@@ -41,8 +41,8 @@
 
 | ID    | Title                                                                                                                                     | Status | Notes |
 |-------|-------------------------------------------------------------------------------------------------------------------------------------------|--------|-------|
-| WT-4A | Centralize Post-Mutation World Reload / Reapply Ownership Through One Explicit Hook-Owned Reload Path                                     | TODO   |       |
-| WT-4B | Centralize World Metadata Application So Downstream Sections Do Not Maintain Parallel World Truth                                         | TODO   |       |
+| WT-4A | Centralize Post-Mutation World Reload / Reapply Ownership Through One Explicit Hook-Owned Reload Path                                     | DONE   | `useArchitectState.ts` now owns the shared reload/reapply seam for committed world mutations, including committed-team reuse, metadata refresh, roster-index refresh, and downstream state reapplication. `useArchitectActions.ts` delegates back into that hook-owned reload path instead of maintaining parallel post-mutation reload branches. |
+| WT-4B | Centralize World Metadata Application So Downstream Sections Do Not Maintain Parallel World Truth                                         | DONE   | `useArchitectState.ts` now owns both `worldAsOfDate` and `worldCurrentSeason` metadata loading, `GMDashboard.tsx` fans that state into `OffseasonSection.tsx`, and the section no longer issues its own `getWorldMetadata(worldId)` read or maintains a parallel local `worldSeason` owner. |
 | WT-4C | Tighten the Coordinated Load / Reapply Contract So Team Snapshot, Roster Index, and Player Overrides Stay in One Clear Truth Bundle        | TODO   |       |
 
-**STEP 4 STATUS: TODO**
+**STEP 4 STATUS: IN PROGRESS**

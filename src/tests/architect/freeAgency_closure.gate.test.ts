@@ -732,6 +732,16 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     'const getOfferSheetPreflight = useCallback(',
     '// === RFA Offer Sheet Actions ==='
   );
+  const resolveCommittedWorldTeamSnapshotRegion = readRegion(
+    content,
+    'const resolveCommittedWorldTeamSnapshot = useCallback(',
+    'const applyCommittedWorldReload = useCallback('
+  );
+  const applyCommittedWorldReloadRegion = readRegion(
+    content,
+    'const applyCommittedWorldReload = useCallback(',
+    'const syncTeamFromMutationResult = useCallback('
+  );
   const resolveCommittedOfferSheetStateRegion = readRegion(
     content,
     'const resolveCommittedOfferSheetState = useCallback(',
@@ -923,16 +933,19 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
 
   it('keeps standard-sign world and vacuum execution on explicit hook-local executors plus one shared final-state applier', () => {
     expect(applyCommittedOfferSheetStateRegion).toMatch(
-      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+      /applyCommittedWorldReload\s*\(\s*'storeOfferSheet'/
     );
     expect(applyCommittedOfferSheetStateRegion).not.toMatch(/setFreeAgents/);
     expect(resolveCommittedOfferSheetStateRegion).toMatch(
       /buildCommittedOfferSheetIdentity/
     );
     expect(resolveCommittedOfferSheetStateRegion).toMatch(
-      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
+      /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
     );
-    expect(resolveCommittedOfferSheetStateRegion).toMatch(
+    expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
+      /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
       /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
     );
     expect(resolveCommittedOfferSheetStateRegion).toMatch(
@@ -951,10 +964,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /buildCommittedOfferSheetLifecycleIdentity/
     );
     expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
-      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
-    );
-    expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
-      /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+      /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
     );
     expect(resolveCommittedOfferSheetLifecycleStateRegion).toMatch(
       /matchesCommittedOfferSheetLifecycleIdentity/
@@ -969,7 +979,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /expectation\.presence\s*===\s*'absent'/
     );
     expect(applyCommittedOfferSheetLifecycleStateRegion).toMatch(
-      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+      /applyCommittedWorldReload\s*\(\s*mutationType\s*,/
     );
     expect(applyCommittedOfferSheetLifecycleStateRegion).not.toMatch(
       /setFreeAgents/
@@ -987,7 +997,10 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /refreshWorldRosterIndex/
     );
     expect(applyCommittedStandardSigningStateRegion).toMatch(
-      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+      /committedTeamSource\s*===\s*'compute'/
+    );
+    expect(applyCommittedStandardSigningStateRegion).toMatch(
+      /applyCommittedWorldReload\s*\(\s*'signFreeAgent'/
     );
     expect(applyCommittedStandardSigningStateRegion).toMatch(
       /setFreeAgents\s*\(\s*\(prev\)\s*=>/
@@ -996,13 +1009,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'signFreeAgent'/
     );
     expect(executeWorldModeStandardSigningRegion).toMatch(
-      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
-    );
-    expect(executeWorldModeStandardSigningRegion).toMatch(
-      /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
-    );
-    expect(executeWorldModeStandardSigningRegion).toMatch(
-      /await\s+refreshWorldRosterIndex\s*\(\s*\)/
+      /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
     );
     expect(executeVacuumModeStandardSigningRegion).toMatch(/validateSigning/);
     expect(executeVacuumModeStandardSigningRegion).toMatch(
@@ -1012,17 +1019,14 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /buildCapAuditEvaluation/
     );
     expect(applyCommittedSignAndTradeStateRegion).toMatch(
-      /setTeamCapSheetSafe\s*\(\s*committedTeam\s*\)/
+      /applyCommittedWorldReload\s*\(\s*'signAndTrade'/
     );
     expect(applyCommittedSignAndTradeStateRegion).not.toMatch(/setFreeAgents/);
     expect(executeWorldModeSignAndTradeRegion).toMatch(
       /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'signAndTrade'/
     );
     expect(executeWorldModeSignAndTradeRegion).toMatch(
-      /findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
-    );
-    expect(executeWorldModeSignAndTradeRegion).toMatch(
-      /loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+      /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
     );
     expect(executeWorldModeSignAndTradeRegion).toMatch(
       /await\s+refreshWorldRosterIndex\s*\(\s*\)/
@@ -1161,8 +1165,11 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(content).toMatch(
       /const\s+syncTeamFromMutationResult\s*=\s*useCallback/
     );
-    expect(content).toMatch(
+    expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
       /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(applyCommittedWorldReloadRegion).toMatch(
+      /await\s+refreshWorldRosterIndex/
     );
     expect(content).toMatch(
       /runAuthoritativeFAMutation[\s\S]{0,2200}await\s+syncTeamFromMutationResult\s*\(\s*mutationType\s*,\s*result\s*\)/
@@ -1185,10 +1192,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /refreshWorldRosterIndex/
     );
     expect(executeWorldModeSignAndTradeRegion).toMatch(
-      /const\s+changedTeam\s*=\s*findUpdatedTeamSnapshot/
-    );
-    expect(executeWorldModeSignAndTradeRegion).toMatch(
-      /const\s+reloadedTeam\s*=\s*changedTeam[\s\S]*loadWorldTeamData/
+      /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
     );
     expect(resolveCommittedOfferSheetStateRegion).toMatch(
       /const\s+committedOfferSheet\s*=\s*\(\s*committedTeam\.offerSheets\s*\|\|\s*\[\]\s*\)\.find/

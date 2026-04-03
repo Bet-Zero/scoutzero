@@ -336,17 +336,23 @@ vi.mock('@/features/architect/GMDashboard/sections/OffseasonSection', () => ({
     currentYear,
     worldId,
     teamCode,
+    worldSeason,
+    worldSeasonLoading,
     onReloadWorldData,
   }: {
     currentYear: number;
     worldId?: string | null;
     teamCode?: string | null;
-    onReloadWorldData?: (() => Promise<void>) | null;
+    worldSeason?: string | null;
+    worldSeasonLoading?: boolean;
+    onReloadWorldData?: ((...args: unknown[]) => Promise<unknown>) | null;
   }) => {
     mockOffseasonSectionProps({
       currentYear,
       worldId,
       teamCode,
+      worldSeason,
+      worldSeasonLoading,
       onReloadWorldData,
     });
 
@@ -356,6 +362,8 @@ vi.mock('@/features/architect/GMDashboard/sections/OffseasonSection', () => ({
         data-current-year={String(currentYear)}
         data-world-id={worldId ?? ''}
         data-team-code={teamCode ?? ''}
+        data-world-season={worldSeason ?? ''}
+        data-world-season-loading={String(Boolean(worldSeasonLoading))}
         data-has-reload-handler={String(typeof onReloadWorldData === 'function')}
       >
         OffseasonSection
@@ -521,6 +529,8 @@ function buildDashboardState(
     capTableYears: [2026, 2027],
     worldId: 'world_alpha',
     worldAsOfDate: '2026-02-10',
+    worldCurrentSeason: '2025-26',
+    worldMetadataLoading: false,
     setTeamCapSheet: vi.fn(),
     setCurrentYear: vi.fn(),
     setActiveTab: mockSetActiveTab,
@@ -560,7 +570,9 @@ function buildDashboardState(
             kind: 'world',
             worldId: mergedState.worldId as string,
             onReloadWorldData:
-              mergedState.reloadActiveWorldTeamData as () => Promise<void>,
+              mergedState.reloadActiveWorldTeamData as (
+                ...args: unknown[]
+              ) => Promise<unknown>,
           }
         : {
             kind: 'sandbox',
@@ -1664,6 +1676,14 @@ describe('E109 dashboard/world boundary behavior', () => {
         'LAL'
       );
       expect(screen.getByTestId('mock-offseason-section')).toHaveAttribute(
+        'data-world-season',
+        '2025-26'
+      );
+      expect(screen.getByTestId('mock-offseason-section')).toHaveAttribute(
+        'data-world-season-loading',
+        'false'
+      );
+      expect(screen.getByTestId('mock-offseason-section')).toHaveAttribute(
         'data-has-reload-handler',
         'true'
       );
@@ -1674,6 +1694,8 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       const offseasonProps = mockOffseasonSectionProps.mock.calls.at(-1)?.[0];
       expect(typeof offseasonProps?.onReloadWorldData).toBe('function');
+      expect(offseasonProps?.worldSeason).toBe('2025-26');
+      expect(offseasonProps?.worldSeasonLoading).toBe(false);
 
       fireEvent.click(screen.getByRole('button', { name: 'Cap Sheet' }));
       expect(mockSetActiveTab).toHaveBeenCalledWith('cap');

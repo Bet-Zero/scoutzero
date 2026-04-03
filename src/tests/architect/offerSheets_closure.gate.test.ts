@@ -591,10 +591,13 @@ describe('Gate 11: offer-sheet created-state sync stays explicit (FA-5C/5D)', ()
       /const\s+syncTeamFromMutationResult\s*=\s*useCallback/.test(content);
     expect(hasSyncHelper).toBe(true);
     expect(content).toMatch(
-      /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+      /const\s+resolveCommittedWorldTeamSnapshot\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /setTeamCapSheetSafe\s*\(\s*currentTeam\s*\)/
+      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+resolveCommittedWorldTeamSnapshot/
+    );
+    expect(content).toMatch(
+      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+applyCommittedWorldReload/
     );
   });
 
@@ -625,6 +628,9 @@ describe('Gate 11: offer-sheet created-state sync stays explicit (FA-5C/5D)', ()
   it('verifies committed pending offer-sheet identity against the resolved active-team snapshot', () => {
     expect(content).toMatch(/buildCommittedOfferSheetIdentity/);
     expect(content).toMatch(/matchesCommittedOfferSheetIdentity/);
+    expect(content).toMatch(
+      /resolveCommittedOfferSheetState[\s\S]{0,2200}await\s+resolveCommittedWorldTeamSnapshot/
+    );
     expect(content).toMatch(
       /resolveCommittedOfferSheetState[\s\S]{0,2200}committedTeam\.offerSheets/
     );
@@ -734,10 +740,16 @@ describe('Gate 13: offer-sheet lifecycle final-state sync stays explicit (FA-6C/
 
   it('resolves changedTeams first, reloads second, and keeps roster-index refresh out of the lifecycle seam', () => {
     expect(content).toMatch(
-      /resolveCommittedOfferSheetLifecycleState[\s\S]{0,2200}findUpdatedTeamSnapshot\s*\(\s*result\.changedTeams\s*,\s*teamCode\s*\)/
+      /const\s+resolveCommittedWorldTeamSnapshot\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /resolveCommittedOfferSheetLifecycleState[\s\S]{0,2200}loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+      /resolveCommittedWorldTeamSnapshot[\s\S]{0,2200}findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
+    );
+    expect(content).toMatch(
+      /resolveCommittedWorldTeamSnapshot[\s\S]{0,2200}loadWorldTeamData\s*\(\s*worldId\s*,\s*teamCode\s*\)/
+    );
+    expect(content).toMatch(
+      /resolveCommittedOfferSheetLifecycleState[\s\S]{0,2200}await\s+resolveCommittedWorldTeamSnapshot/
     );
     expect(content).toMatch(
       /executeWorldModeOfferSheetLifecycleMutation[\s\S]{0,2600}await\s+resolveCommittedOfferSheetLifecycleState/

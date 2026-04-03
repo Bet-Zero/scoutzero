@@ -104,6 +104,8 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'seasonAdvanceDraftContext={seasonAdvanceDraftContext}'
       );
+      expect(source).toContain('worldSeason = null,');
+      expect(source).toContain('worldSeasonLoading = false,');
       expect(source).toContain(
         'const seasonAdvanceDraftContext = getSeasonAdvanceDraftContext(worldSeason);'
       );
@@ -116,6 +118,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'canAdvanceSeason={canAdvanceWorldSeason}'
       );
+      expect(source).not.toContain('getWorldMetadata(');
       expect(source).not.toContain('nextAdvanceDraftYear={nextAdvanceDraftYear ?? viewingYear}');
     });
 
@@ -131,7 +134,11 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {'
       );
-      expect(source).toContain('await onReloadWorldData();');
+      expect(source).toContain('await onReloadWorldData({');
+      expect(source).toContain('committedWorldMetadata: {');
+      expect(source).toContain(
+        'currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,'
+      );
       expect(source).not.toContain('setOffseasonSummary({');
     });
 
