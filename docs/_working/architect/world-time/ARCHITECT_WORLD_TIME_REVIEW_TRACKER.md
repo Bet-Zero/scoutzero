@@ -46,3 +46,15 @@
 | WT-4C | Tighten the Coordinated Load / Reapply Contract So Team Snapshot, Roster Index, and Player Overrides Stay in One Clear Truth Bundle        | DONE   | `useArchitectState.ts` now resolves and applies one explicit coordinated world-aware bundle across sandbox and world mode. Team snapshot loading, world metadata loading, roster-index refresh, and player-override reapplication now re-enter through shared `loadCoordinatedWorldBundle(...)` / `applyCoordinatedWorldBundle(...)` seams, and focused hook/source guardrails pin that contract. |
 
 **STEP 4 STATUS: DONE**
+
+---
+
+## STEP 5 — World vs No-World / Sandbox Boundary Behavior
+
+| ID    | Title                                                                                                                   | Status | Notes |
+|-------|-------------------------------------------------------------------------------------------------------------------------|--------|-------|
+| WT-5A | Tighten User-Facing Boundary Truth So Sandbox Copy and Capability Signals Match the Real Feature Matrix                | TODO   |       |
+| WT-5B | Tighten Boundary Enforcement Consistency Across Hidden UI, Null Owners, and Runtime Refusal                            | TODO   |       |
+| WT-5C | Add Focused Guardrails for World vs Sandbox Capability Truth and Dual-Path Action Safety                               | TODO   |       |
+
+**STEP 5 STATUS: TODO**
