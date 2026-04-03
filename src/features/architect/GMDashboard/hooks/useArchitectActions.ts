@@ -1062,12 +1062,13 @@ const FREE_AGENCY_WORLD_ONLY_REQUIREMENTS: FreeAgencyWorldOnlyRequirementTable =
         message: 'Offer sheet actions require an active world to commit.',
       },
       preview: {
-        message: 'Offer sheet requires an active world to commit.',
+        message: 'Offer sheet actions require an active world to preview.',
       },
     },
     offerSheetLifecycle: {
       commit: {
-        message: 'Offer sheet actions require an active world to commit.',
+        message:
+          'Offer-sheet lifecycle actions require an active world to commit.',
       },
     },
   };
@@ -5289,9 +5290,9 @@ export function useArchitectActions({
         actionsDisabled: !freeAgencyOfferSheetLifecycleActionOwner,
         actionsDisabledReason: freeAgencyOfferSheetLifecycleActionOwner
           ? null
-          : 'Offer-sheet lifecycle actions require an active world to commit.',
+          : getFreeAgencyWorldOnlyMessage('offerSheetLifecycle', 'commit'),
       }),
-      [freeAgencyOfferSheetLifecycleActionOwner]
+      [freeAgencyOfferSheetLifecycleActionOwner, getFreeAgencyWorldOnlyMessage]
     );
 
   const freeAgencyActionOwner = useMemo<FreeAgencyActionOwner>(

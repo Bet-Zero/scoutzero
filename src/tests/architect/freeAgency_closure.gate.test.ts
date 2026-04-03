@@ -189,7 +189,7 @@ describe('Gate 1: useArchitectActions publishes one explicit dual-path vs world-
       /showOfferSheetToggle:\s*Boolean\(offerSheetInitiation\)/
     );
     expect(content).toMatch(
-      /const\s+offerSheetSectionAvailability\s*=\s*useMemo<FreeAgencyOfferSheetSectionAvailability>\([\s\S]*lifecycleActionOwner:\s*freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabled:\s*!freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabledReason:\s*freeAgencyOfferSheetLifecycleActionOwner[\s\S]*\?\s*null[\s\S]*:\s*'Offer-sheet lifecycle actions require an active world to commit\.'/
+      /const\s+offerSheetSectionAvailability\s*=\s*useMemo<FreeAgencyOfferSheetSectionAvailability>\([\s\S]*lifecycleActionOwner:\s*freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabled:\s*!freeAgencyOfferSheetLifecycleActionOwner,[\s\S]*actionsDisabledReason:\s*freeAgencyOfferSheetLifecycleActionOwner[\s\S]*\?\s*null[\s\S]*:\s*getFreeAgencyWorldOnlyMessage\('offerSheetLifecycle',\s*'commit'\)/
     );
     expect(content).toMatch(
       /freeAgencyActionOwner\s*=\s*useMemo<FreeAgencyActionOwner>[\s\S]*dualPathSigning,[\s\S]*worldOnly:\s*freeAgencyWorldOnlyActionOwner,[\s\S]*freeAgentModalAvailability,[\s\S]*offerSheetSectionAvailability/
@@ -1038,10 +1038,10 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /signAndTrade:\s*\{[\s\S]*commit:\s*\{[\s\S]*Sign-and-trade requires an active world to commit\.[\s\S]*preview:\s*\{[\s\S]*Sign-and-trade requires an active world to preview\./
     );
     expect(content).toMatch(
-      /offerSheetCreation:\s*\{[\s\S]*commit:\s*\{[\s\S]*Offer sheet actions require an active world to commit\.[\s\S]*preview:\s*\{[\s\S]*Offer sheet requires an active world to commit\./
+      /offerSheetCreation:\s*\{[\s\S]*commit:\s*\{[\s\S]*Offer sheet actions require an active world to commit\.[\s\S]*preview:\s*\{[\s\S]*Offer sheet actions require an active world to preview\./
     );
     expect(content).toMatch(
-      /offerSheetLifecycle:\s*\{[\s\S]*commit:\s*\{[\s\S]*Offer sheet actions require an active world to commit\./
+      /offerSheetLifecycle:\s*\{[\s\S]*commit:\s*\{[\s\S]*Offer-sheet lifecycle actions require an active world to commit\./
     );
     expect(prepareSignAndTradeTransactionDefinitionRegion).not.toMatch(
       /if\s*\(!worldId\)/

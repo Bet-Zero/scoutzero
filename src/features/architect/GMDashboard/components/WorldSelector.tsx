@@ -78,6 +78,10 @@ type WorldModalProps = {
   submitLabel: string;
 };
 
+const SANDBOX_OPTION_LABEL = 'Sandbox (No World Selected)';
+const SANDBOX_HELPER_COPY =
+  'Sandbox mode: quick local what-if changes. World date, season advance, and offer sheets require a world.';
+
 const wait = (ms: number) =>
   new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -406,6 +410,15 @@ export function WorldSelector({
           <label htmlFor="world-selector" className="text-xs text-white/70">
             Architect (optional)
           </label>
+          <span
+            className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] ${
+              isWorldBacked
+                ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200'
+                : 'border-white/10 bg-white/5 text-white/45'
+            }`}
+          >
+            {isWorldBacked ? 'World' : 'Sandbox'}
+          </span>
           <select
             id="world-selector"
             value={worldId || ''}
@@ -413,7 +426,7 @@ export function WorldSelector({
             className="bg-[#1a1a1a] text-white text-sm px-2 py-1 rounded border border-white/10 min-w-[140px]"
             disabled={isSubmitting}
           >
-            <option value="">No World Selected</option>
+            <option value="">{SANDBOX_OPTION_LABEL}</option>
             {worlds.map((world) => (
               <option key={world.worldId} value={world.worldId}>
                 {world.worldName || world.worldId}
@@ -423,7 +436,7 @@ export function WorldSelector({
         </div>
         {!isWorldBacked && (
           <span className="text-[10px] text-white/40 pl-0.5">
-            Select a world to save changes. No world = quick sandbox.
+            {SANDBOX_HELPER_COPY}
           </span>
         )}
       </div>

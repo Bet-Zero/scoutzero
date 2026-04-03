@@ -312,8 +312,11 @@ const GMDashboard = () => {
 
           {userId && <div className="h-6 w-px bg-white/10" />}
 
-          {userId && worldModeBoundary.kind === 'world' && (
-            <WorldTimeControls worldTimeOwner={worldTimeOwner} />
+          {userId && (
+            <WorldTimeControls
+              worldTimeOwner={worldTimeOwner}
+              disabled={worldModeBoundary.kind !== 'world'}
+            />
           )}
 
           <label className="flex items-center gap-2 text-sm font-medium">

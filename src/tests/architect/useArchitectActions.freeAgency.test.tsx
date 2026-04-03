@@ -2365,7 +2365,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     expect(preflightResult).toEqual({
       status: 'blocked',
-      reasons: ['Offer sheet requires an active world to commit.'],
+      reasons: ['Offer sheet actions require an active world to preview.'],
       warnings: [],
       source: 'authoritative-preflight',
     });

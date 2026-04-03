@@ -68,7 +68,7 @@ type OffseasonSectionProps = {
 };
 
 type WorldBackedOffseasonSurfaceProps = {
-  worldId: string;
+  worldId?: string | null;
   worldSeasonLoading: boolean;
   viewingSeason: string;
   hasSeasonMismatch: boolean;
@@ -203,10 +203,7 @@ function WorldBackedOffseasonSurface({
   validateDraftPositionsMap,
   onOpenAdvanceModal,
 }: WorldBackedOffseasonSurfaceProps) {
-  if (!worldId) {
-    return null;
-  }
-
+  const hasActiveWorld = Boolean(worldId);
   const authoritativeWorldSeason =
     seasonAdvanceDraftContext?.authoritativeSeason ?? null;
 
@@ -215,12 +212,26 @@ function WorldBackedOffseasonSurface({
       <div className="mb-6 p-4 bg-[#1a1a1a] rounded-lg border border-white/10">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-white">World Season Advancement</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-white">
+                World Season Advancement
+              </h3>
+              {!hasActiveWorld && (
+                <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                  World-only
+                </span>
+              )}
+            </div>
             <p className="text-sm text-white/60 mt-1">
               Advance the entire world to the next season. This will process all 30 teams,
               expiring contracts, and option decisions.
             </p>
-            {authoritativeWorldSeason && (
+            {!hasActiveWorld && (
+              <div className="mt-2 text-xs text-white/45">
+                Select a world to unlock season advance.
+              </div>
+            )}
+            {hasActiveWorld && authoritativeWorldSeason && (
               <div className="mt-2 flex items-center gap-2">
                 <span className="text-sm font-medium text-purple-400">
                   World Season: {authoritativeWorldSeason}
@@ -232,10 +243,10 @@ function WorldBackedOffseasonSurface({
                 )}
               </div>
             )}
-            {worldSeasonLoading && (
+            {hasActiveWorld && worldSeasonLoading && (
               <div className="mt-2 text-xs text-white/40">Loading world season...</div>
             )}
-            {!worldSeasonLoading && !authoritativeWorldSeason && (
+            {hasActiveWorld && !worldSeasonLoading && !authoritativeWorldSeason && (
               <div className="mt-2 text-xs text-yellow-300">
                 World season unavailable. Season advance stays disabled until metadata loads.
               </div>
@@ -246,6 +257,11 @@ function WorldBackedOffseasonSurface({
             onClick={onOpenAdvanceModal}
             disabled={!canAdvanceSeason}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900/40 disabled:text-white/40 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
+            title={
+              hasActiveWorld
+                ? 'Advance the active world to the next season'
+                : 'Select a world to unlock season advance'
+            }
           >
             Advance Season
           </button>
@@ -256,7 +272,7 @@ function WorldBackedOffseasonSurface({
         <DraftPositionsInput
           persistenceAuthority={draftPositionsPersistenceAuthority}
           validateDraftPositionsMap={validateDraftPositionsMap}
-          worldId={worldId}
+          worldId={worldId ?? null}
           seasonAdvanceDraftContext={seasonAdvanceDraftContext}
         />
       </div>
@@ -446,7 +462,7 @@ const OffseasonSection = ({
   return (
     <div>
       <WorldBackedOffseasonSurface
-        worldId={worldId ?? ''}
+        worldId={worldId}
         worldSeasonLoading={worldSeasonLoading}
         viewingSeason={viewingSeason}
         hasSeasonMismatch={Boolean(hasSeasonMismatch)}
@@ -473,7 +489,7 @@ const OffseasonSection = ({
         />
       ) : null}
 
-      {seasonAdvanceDraftContext ? (
+      {worldId && seasonAdvanceDraftContext ? (
         <SeasonAdvanceModal
           isOpen={showAdvanceModal}
           onClose={() => setShowAdvanceModal(false)}

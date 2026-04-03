@@ -275,6 +275,33 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     expect(screen.queryByTestId('mock-offseason-tab')).not.toBeInTheDocument();
   });
 
+  it('keeps sandbox offseason capability limits explicit without opening world-only execution surfaces', async () => {
+    await renderOffseasonSectionWithGate({
+      props: {
+        worldId: null,
+        worldSeason: null,
+        onReloadWorldData: null,
+      },
+    });
+
+    expect(screen.getByTestId('offseason-world-surface')).toBeInTheDocument();
+    expect(screen.getByText('World-only')).toBeInTheDocument();
+    expect(
+      screen.getByText('Select a world to unlock season advance.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Advance Season' })
+    ).toBeDisabled();
+
+    const draftPositionsInputProps = mockDraftPositionsInput.mock.lastCall?.[0] as {
+      worldId: string | null;
+    };
+    expect(draftPositionsInputProps.worldId).toBeNull();
+    expect(
+      screen.queryByTestId('mock-season-advance-modal')
+    ).not.toBeInTheDocument();
+  });
+
   it('passes one world-backed draft positions authority seam and separate validation callback', async () => {
     const props = await renderOffseasonSectionWithGate();
     expect(mockDraftPositionsInput).toHaveBeenCalled();

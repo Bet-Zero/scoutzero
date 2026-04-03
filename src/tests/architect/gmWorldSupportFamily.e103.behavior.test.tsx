@@ -216,7 +216,7 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getByRole('button', { name: /Deleting\.\.\./ })).toBeDisabled();
   });
 
-  it('preserves WorldTimeControls null render, test ids, and explicit unset-date semantics', () => {
+  it('preserves explicit sandbox-disabled WorldTimeControls state and world-only unset-date semantics', () => {
     const { rerender } = render(
       <WorldTimeControls
         worldTimeOwner={buildWorldTimeOwner({
@@ -226,7 +226,15 @@ describe('GM world-support family E103 behavior', () => {
       />
     );
 
-    expect(screen.queryByTestId('world-time-controls')).not.toBeInTheDocument();
+    expect(screen.getByTestId('world-time-controls')).toBeInTheDocument();
+    expect(screen.getByText('World Date')).toBeInTheDocument();
+    expect(screen.getByText('World-only')).toBeInTheDocument();
+    expect(
+      screen.getByText('Select a world to unlock world date and +1 Day.')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('advance-day-button')).toBeDisabled();
+    expect(screen.getByTestId('world-date-input')).toBeDisabled();
+    expect(screen.getByTestId('world-date-input')).toHaveValue('');
 
     rerender(
       <WorldTimeControls
@@ -238,6 +246,7 @@ describe('GM world-support family E103 behavior', () => {
 
     expect(screen.getByTestId('world-time-controls')).toBeInTheDocument();
     expect(screen.getByText('World Date')).toBeInTheDocument();
+    expect(screen.queryByText('World-only')).not.toBeInTheDocument();
     expect(
       screen.getByText('Set a world date to enable +1 Day.')
     ).toBeInTheDocument();

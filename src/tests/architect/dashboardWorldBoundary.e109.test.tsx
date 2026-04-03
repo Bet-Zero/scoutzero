@@ -1701,7 +1701,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(mockSetActiveTab).toHaveBeenCalledWith('cap');
     });
 
-    it('keeps sandbox-mode surfaces explicit by withholding world-only controls and reload authority without a selected world', async () => {
+    it('keeps sandbox-mode surfaces explicit with disabled world-only controls and no reload authority without a selected world', async () => {
       mockUseArchitectState.mockReturnValue(
         buildDashboardState({
           worldId: null,
@@ -1729,11 +1729,16 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       await screen.findByLabelText('Architect (optional)');
       expect(
-        screen.getByText('Select a world to save changes. No world = quick sandbox.')
+        screen.getByText(
+          'Sandbox mode: quick local what-if changes. World date, season advance, and offer sheets require a world.'
+        )
       ).toBeInTheDocument();
+      expect(screen.getByTestId('world-time-controls')).toBeInTheDocument();
       expect(
-        screen.queryByTestId('world-time-controls')
-      ).not.toBeInTheDocument();
+        screen.getByText('Select a world to unlock world date and +1 Day.')
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('world-date-input')).toBeDisabled();
+      expect(screen.getByTestId('advance-day-button')).toBeDisabled();
       expect(screen.getByTestId('mock-offseason-section')).toHaveAttribute(
         'data-has-reload-handler',
         'false'
