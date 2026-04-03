@@ -288,7 +288,17 @@ function renderActionsHarness({
   initialTeam?: any;
   reloadActiveWorldTeamData?: ((
     ...args: unknown[]
-  ) => Promise<{ committedTeam: any; committedTeamSource: 'changedTeams' | 'reload' } | null>) | null;
+  ) => Promise<
+    | {
+        outcome: 'applied';
+        committedTeam: any;
+        committedTeamSource: 'changedTeams' | 'reload';
+      }
+    | {
+        outcome: 'stale-drop';
+      }
+    | null
+  >) | null;
 }) {
   const refreshWorldRosterIndex = vi.fn().mockResolvedValue(new Set<string>());
   const startSave = vi.fn();
@@ -780,6 +790,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       event: { eventId: 'evt_sign_state_reload_owner' },
     });
     const reloadActiveWorldTeamData = vi.fn(async () => ({
+      outcome: 'applied' as const,
       committedTeam: updatedTeam,
       committedTeamSource: 'changedTeams' as const,
     }));
@@ -851,6 +862,62 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(toastMocks.error).toHaveBeenCalledWith(
       'Signing saved but the committed team snapshot could not be reloaded.'
     );
+  });
+
+  it('does not apply stale local free-agent aftermath when the state reload owner rejects a world signing reapply', async () => {
+    const updatedTeam = buildSignedTeamFixture({
+      source: {
+        type: 'changed-teams',
+        lastModifiedAt: '2026-03-31T00:00:00.000Z',
+      },
+    });
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: updatedTeam }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_sign_stale_reload_drop' },
+    });
+    const reloadActiveWorldTeamData = vi.fn(async () => ({
+      outcome: 'stale-drop' as const,
+    }));
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam: baseTeamFixture,
+      reloadActiveWorldTeamData,
+    });
+    const beforeTeamSnapshot = result.current.teamCapSheet;
+    const beforeFreeAgentIds = summarizeStandardSignPostState(
+      result.current
+    ).freeAgentIds;
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
+      committedTeamSnapshot: updatedTeam,
+      committedTeamSource: 'changedTeams',
+      refreshRosterBundle: true,
+    });
+    expect(result.current.teamCapSheet).toBe(beforeTeamSnapshot);
+    expect(summarizeStandardSignPostState(result.current).freeAgentIds).toEqual(
+      beforeFreeAgentIds
+    );
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
   });
 
   it('ignores conflicting modal-finalized standard-sign fields and dispatches one canonical mutation contract', async () => {
@@ -1548,6 +1615,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       changedPlayers: [],
     });
     const reloadActiveWorldTeamData = vi.fn(async () => ({
+      outcome: 'applied' as const,
       committedTeam: updatedTeam,
       committedTeamSource: 'changedTeams' as const,
     }));
@@ -1956,6 +2024,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       },
     });
     const reloadActiveWorldTeamData = vi.fn(async () => ({
+      outcome: 'applied' as const,
       committedTeam: finalizedTeam,
       committedTeamSource: 'changedTeams' as const,
     }));

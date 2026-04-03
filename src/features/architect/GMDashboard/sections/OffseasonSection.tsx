@@ -18,7 +18,7 @@
  *  - Latest Chunk: N/A
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import SeasonAdvanceModal, {
   type SeasonAdvanceResult,
   type WorldAdvanceAftermath,
@@ -61,6 +61,7 @@ type OffseasonSectionProps = {
   setShowOffseasonModal: (...args: any[]) => any;
   playersMap?: Record<string, unknown>;
   worldId?: string | null;
+  activeWorldIdentityToken?: number;
   teamCode?: string | null;
   worldSeason?: string | null;
   worldSeasonLoading?: boolean;
@@ -337,6 +338,7 @@ const OffseasonSection = ({
   setShowOffseasonModal,
   playersMap,
   worldId,
+  activeWorldIdentityToken = 0,
   teamCode,
   worldSeason = null,
   worldSeasonLoading = false,
@@ -347,13 +349,25 @@ const OffseasonSection = ({
     string | null
   >(null);
   const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();
+  const latestActiveWorldIdentityTokenRef = useRef(activeWorldIdentityToken);
+
+  useEffect(() => {
+    latestActiveWorldIdentityTokenRef.current = activeWorldIdentityToken;
+  }, [activeWorldIdentityToken]);
 
   const handleCommittedWorldAdvanceComplete = useCallback(
     async (result: SeasonAdvanceResult) => {
+      const callbackWorldIdentityToken = activeWorldIdentityToken;
       const committedWorldAdvanceAftermath =
         getCommittedWorldAdvanceAftermath(result);
 
       if (!committedWorldAdvanceAftermath) {
+        return;
+      }
+
+      if (
+        latestActiveWorldIdentityTokenRef.current !== callbackWorldIdentityToken
+      ) {
         return;
       }
 
@@ -388,6 +402,7 @@ const OffseasonSection = ({
       }
     },
     [
+      activeWorldIdentityToken,
       setTeamCapSheet,
       setCurrentYear,
       setOffseasonRun,

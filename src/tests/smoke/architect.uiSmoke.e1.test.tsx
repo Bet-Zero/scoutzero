@@ -385,6 +385,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       setOffseasonSummary: vi.fn(),
       activeWorldOwner: {
         worldId: 'world_smoke_lal',
+        identityToken: 1,
         setActiveWorld: vi.fn(),
       },
       worldTimeOwner: {
@@ -397,9 +398,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       worldModeBoundary: {
         kind: 'world',
         worldId: 'world_smoke_lal',
-        onReloadWorldData: vi.fn(async () => undefined),
+        onReloadWorldData: vi.fn(async () => null),
       },
-      reloadActiveWorldTeamData: vi.fn(async () => undefined),
+      reloadActiveWorldTeamData: vi.fn(async () => null),
     });
 
     render(<GMDashboard />);

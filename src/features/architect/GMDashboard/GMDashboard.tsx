@@ -506,6 +506,7 @@ const GMDashboard = () => {
             setShowOffseasonModal={setShowOffseasonModal}
             playersMap={playersMap}
             worldId={worldId}
+            activeWorldIdentityToken={activeWorldOwner.identityToken}
             teamCode={normalizedTeamId}
             worldSeason={worldCurrentSeason}
             worldSeasonLoading={worldMetadataLoading}

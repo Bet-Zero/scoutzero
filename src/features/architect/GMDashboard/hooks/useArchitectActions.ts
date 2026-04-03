@@ -997,6 +997,14 @@ type ResolvedCommittedWorldTeam = {
   committedTeam: CapSheet;
   committedTeamSource: WorldCommittedTeamSource;
 };
+type CommittedWorldReloadResult =
+  | {
+      status: 'applied';
+      committedWorldTeam: ResolvedCommittedWorldTeam;
+    }
+  | {
+      status: 'stale-drop';
+    };
 
 type StandardSigningCommittedStateSource = 'compute' | WorldCommittedTeamSource;
 
@@ -2087,23 +2095,32 @@ export function useArchitectActions({
     async (
       mutationType: string,
       committedWorldTeam: ResolvedCommittedWorldTeam
-    ): Promise<ResolvedCommittedWorldTeam> => {
+    ): Promise<CommittedWorldReloadResult> => {
       const shouldRefreshRosterIndex =
         shouldRefreshWorldRosterAfterMutation(mutationType);
 
       if (reloadActiveWorldTeamData && worldId) {
-        const reloadedWorldTeam = (await reloadActiveWorldTeamData({
+        const reloadedWorldTeam = await reloadActiveWorldTeamData({
           committedTeamSnapshot:
             committedWorldTeam.committedTeam as UseArchitectStateReturn['teamCapSheet'],
           committedTeamSource: committedWorldTeam.committedTeamSource,
           refreshRosterBundle: shouldRefreshRosterIndex,
-        })) as ResolvedCommittedWorldTeam | null;
+        });
 
-        if (reloadedWorldTeam) {
-          return reloadedWorldTeam;
+        if (
+          !reloadedWorldTeam ||
+          reloadedWorldTeam.outcome === 'stale-drop'
+        ) {
+          return { status: 'stale-drop' };
         }
 
-        return committedWorldTeam;
+        return {
+          status: 'applied',
+          committedWorldTeam: {
+            committedTeam: reloadedWorldTeam.committedTeam as CapSheet,
+            committedTeamSource: reloadedWorldTeam.committedTeamSource,
+          },
+        };
       }
 
       setTeamCapSheetSafe(committedWorldTeam.committedTeam);
@@ -2119,7 +2136,10 @@ export function useArchitectActions({
         }
       }
 
-      return committedWorldTeam;
+      return {
+        status: 'applied',
+        committedWorldTeam,
+      };
     },
     [
       refreshWorldRosterIndex,
@@ -2659,13 +2679,29 @@ export function useArchitectActions({
       committedTeam: CapSheet,
       committedTeamSource: StandardSigningCommittedStateSource
     ): Promise<void> => {
+      let didApplyCommittedState = false;
+
       if (committedTeamSource === 'compute') {
         setTeamCapSheetSafe(committedTeam);
+        didApplyCommittedState = true;
       } else {
-        await applyCommittedWorldReload('signFreeAgent', {
-          committedTeam,
-          committedTeamSource,
-        });
+        const worldReloadResult = await applyCommittedWorldReload(
+          'signFreeAgent',
+          {
+            committedTeam,
+            committedTeamSource,
+          }
+        );
+
+        if (worldReloadResult.status !== 'applied') {
+          return;
+        }
+
+        didApplyCommittedState = true;
+      }
+
+      if (!didApplyCommittedState) {
+        return;
       }
 
       setFreeAgents((prev) =>

@@ -320,6 +320,7 @@ type PlayersMap = Record<string, ArchitectPlayer>;
 
 export interface ArchitectActiveWorldOwner {
   worldId: string | null;
+  identityToken: number;
   setActiveWorld: (worldId: string | null) => void;
 }
 
@@ -343,10 +344,19 @@ export interface ReloadActiveWorldTeamDataOptions {
   refreshRosterBundle?: boolean;
 }
 
-export interface ReloadActiveWorldTeamDataResult {
+export interface ReloadActiveWorldTeamDataAppliedResult {
+  outcome: 'applied';
   committedTeam: CapSheet;
   committedTeamSource: ReloadActiveWorldTeamDataSource;
 }
+
+export interface ReloadActiveWorldTeamDataStaleDropResult {
+  outcome: 'stale-drop';
+}
+
+export type ReloadActiveWorldTeamDataResult =
+  | ReloadActiveWorldTeamDataAppliedResult
+  | ReloadActiveWorldTeamDataStaleDropResult;
 
 export type ArchitectWorldModeBoundary =
   | {
@@ -633,6 +643,7 @@ export function useArchitectState({
   const [error, setError] = useState<string>('');
   const dataLoadRequestIdRef = useRef(0);
   const activeWorldIdentityRef = useRef<string | null>(null);
+  const activeWorldIdentityTokenRef = useRef(0);
   const worldAsOfDateMutationIdRef = useRef(0);
   const restoredActiveWorldUserIdRef = useRef<string | null>(null);
 
@@ -738,6 +749,7 @@ export function useArchitectState({
         return;
       }
 
+      activeWorldIdentityTokenRef.current += 1;
       dataLoadRequestIdRef.current += 1;
       worldAsOfDateMutationIdRef.current += 1;
     },
@@ -1033,7 +1045,7 @@ export function useArchitectState({
 
       const requestWorldId = worldId;
       if (!isCurrentActiveWorldIdentity(requestWorldId)) {
-        return null;
+        return { outcome: 'stale-drop' };
       }
 
       const requestId = dataLoadRequestIdRef.current + 1;
@@ -1061,7 +1073,7 @@ export function useArchitectState({
         });
 
         if (!isCurrentWorldLoadRequest(requestWorldId, requestId)) {
-          return null;
+          return { outcome: 'stale-drop' };
         }
 
         if (!coordinatedBundle.teamSnapshot) {
@@ -1071,12 +1083,13 @@ export function useArchitectState({
         applyCoordinatedWorldBundle(coordinatedBundle);
 
         return {
+          outcome: 'applied',
           committedTeam: coordinatedBundle.teamSnapshot,
           committedTeamSource,
         };
       } catch (err) {
         if (!isCurrentWorldLoadRequest(requestWorldId, requestId)) {
-          return null;
+          return { outcome: 'stale-drop' };
         }
 
         console.error(err);
@@ -1464,6 +1477,7 @@ export function useArchitectState({
   const activeWorldOwner = useMemo<ArchitectActiveWorldOwner>(
     () => ({
       worldId,
+      identityToken: activeWorldIdentityTokenRef.current,
       setActiveWorld,
     }),
     [setActiveWorld, worldId]

@@ -537,7 +537,7 @@ function buildDashboardState(
     setLastCapSheet: vi.fn(),
     setOffseasonRun: vi.fn(),
     setOffseasonSummary: vi.fn(),
-    reloadActiveWorldTeamData: vi.fn(async () => undefined),
+    reloadActiveWorldTeamData: vi.fn(async () => null),
   };
 
   const mergedState = {
@@ -550,6 +550,7 @@ function buildDashboardState(
     activeWorldOwner:
       (overrides.activeWorldOwner as Record<string, unknown> | undefined) || {
         worldId: mergedState.worldId as string | null,
+        identityToken: 1,
         setActiveWorld: vi.fn(),
       },
     worldTimeOwner:
@@ -718,6 +719,7 @@ function WorldSelectorHarness({
       userId={userId}
       activeWorldOwner={{
         worldId: currentWorldId,
+        identityToken: 1,
         setActiveWorld: (worldId) => {
           setCurrentWorldId(worldId);
           onSetWorldId?.(worldId);
@@ -1708,6 +1710,7 @@ describe('E109 dashboard/world boundary behavior', () => {
           worldAsOfDate: null,
           activeWorldOwner: {
             worldId: null,
+            identityToken: 0,
             setActiveWorld: vi.fn(),
           },
           worldTimeOwner: {

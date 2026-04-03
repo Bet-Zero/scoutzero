@@ -16,6 +16,7 @@ import {
   vi,
 } from 'vitest';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -36,6 +37,7 @@ const {
   mockValidateDraftPositionsMap,
   mockDraftPositionsInput,
   mockOffseasonTab,
+  mockCaptureWorldAdvanceCallback,
 } = vi.hoisted(() => ({
   mockGetDraftPositions: vi.fn(),
   mockSaveDraftPositions: vi.fn(),
@@ -43,6 +45,7 @@ const {
   mockValidateDraftPositionsMap: vi.fn(),
   mockDraftPositionsInput: vi.fn(),
   mockOffseasonTab: vi.fn(),
+  mockCaptureWorldAdvanceCallback: vi.fn(),
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
@@ -81,6 +84,8 @@ vi.mock('@/features/architect/GMDashboard/components/SeasonAdvanceModal', () => 
     if (!isOpen) {
       return null;
     }
+
+    mockCaptureWorldAdvanceCallback(onWorldAdvanceComplete ?? null);
 
     return (
       <div data-testid="mock-season-advance-modal">
@@ -160,10 +165,39 @@ function buildOffseasonSectionProps() {
     setShowOffseasonModal: vi.fn(),
     playersMap: {},
     worldId: 'world_alpha',
+    activeWorldIdentityToken: 1,
     teamCode: 'LAL',
     worldSeason: '2025-26',
     worldSeasonLoading: false,
     onReloadWorldData: vi.fn(async () => undefined),
+  };
+}
+
+function buildSuccessfulAdvanceResult() {
+  return {
+    success: true as const,
+    toSeason: '2026-27',
+    updatedTeams: ['LAL'],
+    summary: {
+      declinedOptions: [{ playerId: 'option_1', playerName: 'Option One' }],
+    },
+    worldAdvanceAftermath: {
+      nextWorldSeason: '2026-27',
+      nextViewingYear: 2027,
+      committedTeamCapSheet: {
+        teamCode: 'LAL',
+        season: '2026-27',
+        players: [],
+        capHolds: [],
+      },
+      offseasonSummary: {
+        declinedOptions: ['Option One'],
+        expiredContracts: [],
+        expiredTPEs: [],
+        exercisedOptions: [],
+        stepienUpdates: [],
+      },
+    },
   };
 }
 
@@ -190,9 +224,20 @@ async function renderOffseasonSectionWithGate({
     ...buildOffseasonSectionProps(),
     ...propOverrides,
   };
-  render(<OffseasonSection {...props} />);
+  let currentProps = props;
+  const renderResult = render(<OffseasonSection {...currentProps} />);
 
-  return props;
+  return {
+    ...props,
+    rerenderWithProps(nextOverrides: Record<string, unknown>) {
+      currentProps = {
+        ...currentProps,
+        ...nextOverrides,
+      };
+      renderResult.rerender(<OffseasonSection {...currentProps} />);
+      return currentProps;
+    },
+  };
 }
 
 describe('OffseasonSection world-advance aftermath behavior', () => {
@@ -422,6 +467,39 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     expect(
       props.setTeamCapSheet.mock.invocationCallOrder[0]
     ).toBeLessThan(props.onReloadWorldData.mock.invocationCallOrder[0]);
+  });
+
+  it('drops stale season-advance callbacks after the active world identity changes', async () => {
+    const props = await renderOffseasonSectionWithGate({
+      props: {
+        activeWorldIdentityToken: 4,
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+
+    const staleWorldAdvanceCallback = mockCaptureWorldAdvanceCallback.mock
+      .lastCall?.[0] as ((result: unknown) => Promise<void> | void) | null;
+
+    expect(typeof staleWorldAdvanceCallback).toBe('function');
+
+    props.rerenderWithProps({
+      worldId: null,
+      activeWorldIdentityToken: 5,
+      worldSeason: null,
+      onReloadWorldData: null,
+    });
+
+    await act(async () => {
+      await staleWorldAdvanceCallback?.(buildSuccessfulAdvanceResult());
+    });
+
+    expect(props.setCurrentYear).not.toHaveBeenCalled();
+    expect(props.setTeamCapSheet).not.toHaveBeenCalled();
+    expect(props.setOffseasonRun).not.toHaveBeenCalled();
+    expect(props.setOffseasonSummary).not.toHaveBeenCalled();
+    expect(props.setShowOffseasonModal).not.toHaveBeenCalled();
+    expect(props.onReloadWorldData).not.toHaveBeenCalled();
   });
 
   it('ignores failure and malformed success callbacks that lack normalized aftermath truth', async () => {

@@ -320,6 +320,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
 
     expect(reloadResult).toEqual({
+      outcome: 'applied',
       committedTeam,
       committedTeamSource: 'changedTeams',
     });
@@ -1080,7 +1081,9 @@ describe('useArchitectState world-aware free agency pool', () => {
       currentSeason: '2026-27',
     });
 
-    await expect(reloadPromise).resolves.toBeNull();
+    await expect(reloadPromise).resolves.toEqual({
+      outcome: 'stale-drop',
+    });
     expect(result.current.worldId).toBeNull();
     expect(result.current.teamCapSheet?.season).not.toBe('2026-27');
     expect(result.current.worldCurrentSeason).toBeNull();
