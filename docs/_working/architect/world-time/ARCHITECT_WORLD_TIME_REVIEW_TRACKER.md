@@ -10,3 +10,15 @@
 | WT-1D | Add Focused Guardrails for World/Time Ownership Cleanliness       | DONE   | Focused hook, dashboard, and compatibility tests now pin the shared world-vs-no-world boundary contract. |
 
 **STEP 1 STATUS: DONE**
+
+---
+
+## STEP 2 — World Selection Lifecycle and Persistence Truth
+
+| ID    | Title                                                                                                      | Status | Notes |
+|-------|------------------------------------------------------------------------------------------------------------|--------|-------|
+| WT-2A | Tighten Archive and Delete Action Ownership So Each Lifecycle Action Routes Through One Explicit Persistence Owner | TODO |       |
+| WT-2B | Tighten Selection Lifecycle Durability Around Restore / Persist / Invalidate / Switch Flows               | TODO   |       |
+| WT-2C | Add Focused Guardrails for World Selection Lifecycle Truth                                                 | TODO   |       |
+
+**STEP 2 STATUS: TODO**
