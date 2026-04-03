@@ -778,6 +778,7 @@ describe('E109 dashboard/world boundary behavior', () => {
   describe('WorldSelector', () => {
     it('preserves rendering, helper copy, and delegated world selection wiring without widget-local storage ownership', async () => {
       const onWorldChange = vi.fn();
+      const onSetWorldId = vi.fn();
       const getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
       const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
       const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
@@ -786,6 +787,7 @@ describe('E109 dashboard/world boundary behavior', () => {
         <WorldSelectorHarness
           initialWorldId="world_beta"
           onWorldChange={onWorldChange}
+          onSetWorldId={onSetWorldId}
         />
       );
 
@@ -798,6 +800,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       await waitFor(() => {
         expect(onWorldChange).toHaveBeenCalledWith('world_alpha');
       });
+      expect(onSetWorldId).toHaveBeenCalledWith('world_alpha');
       expect(getItemSpy).not.toHaveBeenCalledWith(
         'architect.activeWorldId.user_1'
       );
@@ -812,6 +815,7 @@ describe('E109 dashboard/world boundary behavior', () => {
 
     it('preserves create-world modal copy and create wiring', async () => {
       const onWorldChange = vi.fn();
+      const onSetWorldId = vi.fn();
       mockListUserWorlds
         .mockResolvedValueOnce([makeWorld('world_alpha', 'World Alpha')])
         .mockResolvedValueOnce([
@@ -819,7 +823,12 @@ describe('E109 dashboard/world boundary behavior', () => {
           makeWorld('world_new', 'New World'),
         ]);
 
-      render(<WorldSelectorHarness onWorldChange={onWorldChange} />);
+      render(
+        <WorldSelectorHarness
+          onWorldChange={onWorldChange}
+          onSetWorldId={onSetWorldId}
+        />
+      );
 
       await screen.findByLabelText('Architect (optional)');
       fireEvent.click(screen.getByRole('button', { name: '+ New' }));
@@ -846,10 +855,13 @@ describe('E109 dashboard/world boundary behavior', () => {
       await waitFor(() => {
         expect(onWorldChange).toHaveBeenCalledWith('world_new');
       });
+      expect(onSetWorldId).toHaveBeenCalledWith('world_new');
       expect(screen.queryByRole('heading', { name: 'Create New World' })).not.toBeInTheDocument();
     });
 
     it('preserves branch action ordering and helper wiring', async () => {
+      const onWorldChange = vi.fn();
+      const onSetWorldId = vi.fn();
       mockListUserWorlds
         .mockResolvedValueOnce([
           makeWorld('world_alpha', 'World Alpha'),
@@ -862,7 +874,11 @@ describe('E109 dashboard/world boundary behavior', () => {
         ]);
 
       render(
-        <WorldSelectorHarness initialWorldId="world_alpha" onWorldChange={vi.fn()} />
+        <WorldSelectorHarness
+          initialWorldId="world_alpha"
+          onWorldChange={onWorldChange}
+          onSetWorldId={onSetWorldId}
+        />
       );
 
       await screen.findByLabelText('Architect (optional)');
@@ -903,6 +919,8 @@ describe('E109 dashboard/world boundary behavior', () => {
           'user_1'
         );
       });
+      expect(onWorldChange).toHaveBeenCalledWith('world_branch');
+      expect(onSetWorldId).toHaveBeenCalledWith('world_branch');
     });
 
     it('preserves rename-world metadata loading and save wiring', async () => {
@@ -1002,6 +1020,8 @@ describe('E109 dashboard/world boundary behavior', () => {
       await waitFor(() => {
         expect(mockPurgeWorld).toHaveBeenCalledWith('world_alpha');
       });
+      expect(mockArchiveWorld).not.toHaveBeenCalled();
+      expect(mockUpdateWorldMetadata).not.toHaveBeenCalled();
       expect(onWorldChange).toHaveBeenCalledWith(null);
       expect(onSetWorldId).toHaveBeenCalledWith(null);
     });

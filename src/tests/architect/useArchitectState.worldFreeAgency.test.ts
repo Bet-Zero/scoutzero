@@ -91,6 +91,19 @@ const teamFixture = {
   totals: {},
 };
 
+function createDeferred<T>() {
+  let resolvePromise!: (value: T | PromiseLike<T>) => void;
+
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  return {
+    promise,
+    resolve: resolvePromise,
+  };
+}
+
 describe('useArchitectState world-aware free agency pool', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -392,7 +405,113 @@ describe('useArchitectState world-aware free agency pool', () => {
 
     expect(result.current.worldId).toBeNull();
     expect(result.current.worldAsOfDate).toBeNull();
-    expect(result.current.worldModeBoundary.kind).toBe('sandbox');
+    expect(result.current.worldTimeOwner.worldId).toBeNull();
+    expect(result.current.worldTimeOwner.asOfDate).toBeNull();
+    expect(result.current.worldModeBoundary).toEqual({
+      kind: 'sandbox',
+      worldId: null,
+      onReloadWorldData: null,
+    });
+  });
+
+  it('clears world-derived transient state before the next world finishes loading', async () => {
+    const world2TeamLoad = createDeferred<typeof teamFixture>();
+    const world2LeagueLoad = createDeferred<
+      Array<{
+        teamCode: string;
+        roster: string[];
+        players: Array<{ id: string }>;
+      }>
+    >();
+
+    stateMocks.loadWorldTeamData.mockImplementation(async (worldId) => {
+      if (worldId === 'world_2') {
+        return world2TeamLoad.promise;
+      }
+
+      return teamFixture;
+    });
+
+    stateMocks.getLeague.mockImplementation(async (worldId) => {
+      if (worldId === 'world_2') {
+        return world2LeagueLoad.promise;
+      }
+
+      return [
+        {
+          teamCode: 'LAL',
+          roster: ['player_a'],
+          players: [{ id: 'player_a' }],
+        },
+      ];
+    });
+
+    stateMocks.getWorldMetadata.mockImplementation(async (worldId) => ({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: worldId === 'world_2' ? '2026-08-01' : '2026-07-01',
+    }));
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+
+    await waitFor(() => {
+      const playerIds = result.current.freeAgents.map(
+        (p) => p.id || p.player_id || p.name
+      );
+      expect(playerIds).toContain('player_b');
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_2');
+    });
+
+    expect(result.current.worldId).toBe('world_2');
+    expect(result.current.worldAsOfDate).toBeNull();
+    expect(result.current.worldTimeOwner.asOfDate).toBeNull();
+    expect(result.current.freeAgents).toEqual([]);
+    expect(result.current.worldModeBoundary.kind).toBe('world');
+    expect(result.current.worldModeBoundary.worldId).toBe('world_2');
+
+    await act(async () => {
+      world2TeamLoad.resolve(teamFixture);
+      world2LeagueLoad.resolve([
+        {
+          teamCode: 'LAL',
+          roster: ['player_a', 'player_b'],
+          players: [{ id: 'player_a' }, { id: 'player_b' }],
+        },
+      ]);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-08-01');
+    });
+
+    await waitFor(() => {
+      const playerIds = result.current.freeAgents.map(
+        (p) => p.id || p.player_id || p.name
+      );
+      expect(playerIds).not.toContain('player_b');
+    });
   });
 
   it('invalidates archived active worlds after selection and clears persisted storage', async () => {

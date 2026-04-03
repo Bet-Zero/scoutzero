@@ -117,7 +117,19 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(worldSelectorSource).toContain(
       "const isWorldBacked = worldModeBoundary.kind === 'world';"
     );
+    expect(worldSelectorSource).toContain(
+      'const commitActiveWorldSelection = useCallback('
+    );
+    expect(worldSelectorSource).toContain('setActiveWorld(nextWorldId);');
+    expect(worldSelectorSource).toContain(
+      'const clearActiveWorldSelection = useCallback(() => {'
+    );
     expect(worldSelectorSource).toContain('archiveWorld,');
+    expect(worldSelectorSource).toContain('await archiveWorld(worldId, userId);');
+    expect(worldSelectorSource).toContain(
+      'const result = (await purgeWorld(worldId)) as PurgeResultLike;'
+    );
+    expect(worldSelectorSource).not.toContain('await deleteWorld(');
     expect(worldSelectorSource).not.toContain(
       'await updateWorldMetadata(worldId, { isArchived: true });'
     );
@@ -163,6 +175,21 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'const activeWorldOwner = useMemo<ArchitectActiveWorldOwner>('
     );
     expect(useArchitectStateSource).toContain(
+      'const readPersistedActiveWorldId = (userId: string) =>'
+    );
+    expect(useArchitectStateSource).toContain(
+      'const writePersistedActiveWorldId = ('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const resolveUsableActiveWorldId = async ('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const resetActiveWorldDerivedState = useCallback(() => {'
+    );
+    expect(useArchitectStateSource).toContain(
+      'const clearActiveWorldState = useCallback(() => {'
+    );
+    expect(useArchitectStateSource).toContain(
       'const worldTimeOwner = useMemo<ArchitectWorldTimeOwner>('
     );
     expect(useArchitectStateSource).toContain(
@@ -173,6 +200,15 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     );
     expect(useArchitectStateSource).toContain(
       'await updateWorldMetadata(worldId, { asOfDate: nextAsOfDate });'
+    );
+    expect(useArchitectStateSource).toContain(
+      'const storedWorldId = readPersistedActiveWorldId(userId);'
+    );
+    expect(useArchitectStateSource).toContain(
+      'writePersistedActiveWorldId(userId, worldId);'
+    );
+    expect(useArchitectStateSource).toContain(
+      'const validatedWorldId = await resolveUsableActiveWorldId('
     );
     expect(useArchitectStateSource).toContain('reloadActiveWorldTeamData,');
     expect(useArchitectStateSource).toContain('activeWorldOwner,');

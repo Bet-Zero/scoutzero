@@ -7,6 +7,7 @@ describe('E73 worldManager compatibility guardrails', () => {
   const srcRoot = path.resolve(__dirname, '../../features/architect');
   const worldManagerDeletedPath = path.join(srcRoot, 'utils/worldManager.js');
   const worldManagerAuthorityPath = path.join(srcRoot, 'utils/worldManager.ts');
+  const architectCoreAuthorityPath = path.join(srcRoot, 'utils/architectCore.ts');
   const expectedExports = [
     'archiveWorld',
     'branchWorld',
@@ -48,6 +49,7 @@ describe('E73 worldManager compatibility guardrails', () => {
     expect(Object.keys(worldManagerModule).sort()).toEqual(
       Array.from(expectedExports)
     );
+    expect('deleteWorld' in worldManagerModule).toBe(false);
     expect(worldManagerModule.createWorld).toBeDefined();
     expect(worldManagerModule.updateWorldStats).toBeDefined();
   });
@@ -61,5 +63,15 @@ describe('E73 worldManager compatibility guardrails', () => {
     expect(exportNames).toEqual(Array.from(expectedSourceOrder));
     expect(source).not.toContain('export default');
     expect(source).not.toContain('export async function deleteWorld');
+  });
+
+  it('keeps archive/purge as the only lifecycle-owner exports and blocks deleteWorld resurfacing', () => {
+    const worldManagerSource = fs.readFileSync(worldManagerAuthorityPath, 'utf-8');
+    const architectCoreSource = fs.readFileSync(architectCoreAuthorityPath, 'utf-8');
+
+    expect(worldManagerSource).toContain('export async function archiveWorld(');
+    expect(worldManagerSource).toContain('export async function purgeWorld(');
+    expect(worldManagerSource).not.toMatch(/\bdeleteWorld\b/);
+    expect(architectCoreSource).not.toMatch(/\bdeleteWorld\b/);
   });
 });
