@@ -17,7 +17,7 @@ import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import type { LoadedWorldTeamCapSheet } from '@/features/architect/utils/worldTeamData';
 import {
   getWorldMetadata,
-  updateWorldMetadata,
+  updateWorldAsOfDate,
 } from '@/features/architect/utils/worldManager';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import useArchitectPlayerData from '@/features/architect/hooks/useArchitectPlayerData';
@@ -663,7 +663,7 @@ export function useArchitectState({
       setIsUpdatingWorldAsOfDate(true);
 
       try {
-        await updateWorldMetadata(worldId, { asOfDate: nextAsOfDate });
+        await updateWorldAsOfDate(worldId, nextAsOfDate);
         setWorldAsOfDate(nextAsOfDate);
         return nextAsOfDate;
       } finally {

@@ -81,7 +81,6 @@ interface UpdateWorldMetadataInput extends UnknownRecord {
   tags?: string[];
   isFavorite?: boolean;
   isArchived?: boolean;
-  asOfDate?: unknown;
 }
 
 interface DraftPositionsValidationResult {
@@ -109,6 +108,8 @@ interface CallableErrorLike {
   code?: string;
   message?: string;
 }
+
+const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Generate unique world ID
@@ -347,6 +348,8 @@ export async function listUserWorlds(
  * @param {Array<string>} [updates.tags] - Tags array
  * @param {boolean} [updates.isFavorite] - Favorite status
  * @param {boolean} [updates.isArchived] - Archived status
+ * World-date/as-of writes are intentionally excluded here and must route
+ * through `updateWorldAsOfDate(...)`.
  * @returns {Promise<void>}
  */
 export async function updateWorldMetadata(
@@ -356,6 +359,9 @@ export async function updateWorldMetadata(
   if (!worldId) {
     throw new Error('worldId is required');
   }
+  if ('asOfDate' in updates) {
+    throw new Error('Use updateWorldAsOfDate(...) for world date writes');
+  }
 
   // Only allow specific fields to be updated
   const allowedFields = [
@@ -364,7 +370,6 @@ export async function updateWorldMetadata(
     'tags',
     'isFavorite',
     'isArchived',
-    'asOfDate', // Phase 21: World Time SSOT controls
   ];
 
   const filteredUpdates: Record<string, unknown> = {};
@@ -384,6 +389,41 @@ export async function updateWorldMetadata(
   // Path: architect_worlds/{worldId}
   const metadataRef = worldMetadataRef(worldId);
   await updateDoc(metadataRef, filteredUpdates);
+}
+
+const normalizeWorldAsOfDate = (asOfDate: string): string => {
+  if (!asOfDate || !ISO_DATE_ONLY_PATTERN.test(asOfDate)) {
+    throw new Error('asOfDate must be a YYYY-MM-DD string');
+  }
+
+  return asOfDate;
+};
+
+/**
+ * Update the authoritative world as-of date.
+ *
+ * World-date writes must route through this dedicated persistence seam instead
+ * of the generic metadata helper so the contract stays explicit and validated.
+ *
+ * @param {string} worldId - World ID
+ * @param {string} asOfDate - YYYY-MM-DD world date
+ * @returns {Promise<void>}
+ */
+export async function updateWorldAsOfDate(
+  worldId: string | null | undefined,
+  asOfDate: string
+) {
+  if (!worldId) {
+    throw new Error('worldId is required');
+  }
+
+  const normalizedAsOfDate = normalizeWorldAsOfDate(asOfDate);
+  const metadataRef = worldMetadataRef(worldId);
+
+  await updateDoc(metadataRef, {
+    asOfDate: normalizedAsOfDate,
+    lastModifiedAt: serverTimestamp(),
+  });
 }
 
 /**

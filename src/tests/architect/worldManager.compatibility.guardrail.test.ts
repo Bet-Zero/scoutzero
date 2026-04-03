@@ -20,6 +20,7 @@ describe('E73 worldManager compatibility guardrails', () => {
     'listUserWorlds',
     'purgeWorld',
     'saveDraftPositions',
+    'updateWorldAsOfDate',
     'updateWorldMetadata',
     'updateWorldStats',
     'validateDraftPositionsMap',
@@ -29,6 +30,7 @@ describe('E73 worldManager compatibility guardrails', () => {
     'getWorldMetadata',
     'listUserWorlds',
     'updateWorldMetadata',
+    'updateWorldAsOfDate',
     'archiveWorld',
     'purgeWorld',
     'branchWorld',
@@ -69,6 +71,16 @@ describe('E73 worldManager compatibility guardrails', () => {
     const worldManagerSource = fs.readFileSync(worldManagerAuthorityPath, 'utf-8');
     const architectCoreSource = fs.readFileSync(architectCoreAuthorityPath, 'utf-8');
 
+    expect(worldManagerSource).toContain(
+      'export async function updateWorldAsOfDate('
+    );
+    expect(worldManagerSource).toContain(
+      "throw new Error('Use updateWorldAsOfDate(...) for world date writes');"
+    );
+    expect(worldManagerSource).toContain(
+      "throw new Error('asOfDate must be a YYYY-MM-DD string');"
+    );
+    expect(worldManagerSource).not.toContain('asOfDate?: unknown;');
     expect(worldManagerSource).toContain('export async function archiveWorld(');
     expect(worldManagerSource).toContain('export async function purgeWorld(');
     expect(worldManagerSource).not.toMatch(/\bdeleteWorld\b/);

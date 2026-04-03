@@ -6,7 +6,7 @@ import { useArchitectState } from '@/features/architect/GMDashboard/hooks/useArc
 const stateMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
   getWorldMetadata: vi.fn(),
-  updateWorldMetadata: vi.fn(),
+  updateWorldAsOfDate: vi.fn(),
   getLeague: vi.fn(),
   useArchitectPlayerData: vi.fn(),
 }));
@@ -17,7 +17,7 @@ vi.mock('@/features/architect/utils/worldTeamData', () => ({
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   getWorldMetadata: stateMocks.getWorldMetadata,
-  updateWorldMetadata: stateMocks.updateWorldMetadata,
+  updateWorldAsOfDate: stateMocks.updateWorldAsOfDate,
 }));
 
 vi.mock('@/features/architect/utils/teamLoader', async () => {
@@ -120,7 +120,7 @@ describe('useArchitectState world-aware free agency pool', () => {
       isArchived: false,
       asOfDate: '2026-07-01',
     });
-    stateMocks.updateWorldMetadata.mockResolvedValue(undefined);
+    stateMocks.updateWorldAsOfDate.mockResolvedValue(undefined);
   });
 
   it('excludes world-rostered players and includes unrostered players after refresh', async () => {
@@ -592,9 +592,10 @@ describe('useArchitectState world-aware free agency pool', () => {
       await result.current.worldTimeOwner.updateAsOfDate('2026-07-15');
     });
 
-    expect(stateMocks.updateWorldMetadata).toHaveBeenCalledWith('world_1', {
-      asOfDate: '2026-07-15',
-    });
+    expect(stateMocks.updateWorldAsOfDate).toHaveBeenCalledWith(
+      'world_1',
+      '2026-07-15'
+    );
     expect(result.current.worldAsOfDate).toBe('2026-07-15');
   });
 
@@ -608,7 +609,7 @@ describe('useArchitectState world-aware free agency pool', () => {
         players: [{ id: 'player_a' }],
       },
     ]);
-    stateMocks.updateWorldMetadata.mockReturnValueOnce(metadataWrite.promise);
+    stateMocks.updateWorldAsOfDate.mockReturnValueOnce(metadataWrite.promise);
 
     const { result } = renderHook(() =>
       useArchitectState({
@@ -702,7 +703,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     expect((thrownError as Error).message).toBe(
       'Set a world date before advancing time'
     );
-    expect(stateMocks.updateWorldMetadata).not.toHaveBeenCalled();
+    expect(stateMocks.updateWorldAsOfDate).not.toHaveBeenCalled();
   });
 
   it('owns +1 day world-date mutation in worldTimeOwner.advanceByOneDay', async () => {
@@ -738,9 +739,10 @@ describe('useArchitectState world-aware free agency pool', () => {
       await result.current.worldTimeOwner.advanceByOneDay();
     });
 
-    expect(stateMocks.updateWorldMetadata).toHaveBeenCalledWith('world_1', {
-      asOfDate: '2026-07-02',
-    });
+    expect(stateMocks.updateWorldAsOfDate).toHaveBeenCalledWith(
+      'world_1',
+      '2026-07-02'
+    );
     expect(result.current.worldAsOfDate).toBe('2026-07-02');
   });
 
@@ -782,9 +784,10 @@ describe('useArchitectState world-aware free agency pool', () => {
       await result.current.worldTimeOwner.advanceByOneDay();
     });
 
-    expect(stateMocks.updateWorldMetadata).toHaveBeenCalledWith('world_1', {
-      asOfDate: '2026-03-09',
-    });
+    expect(stateMocks.updateWorldAsOfDate).toHaveBeenCalledWith(
+      'world_1',
+      '2026-03-09'
+    );
     expect(result.current.worldAsOfDate).toBe('2026-03-09');
   });
 });

@@ -31,6 +31,6 @@
 |-------|------------------------------------------------------------------------------------------------------------|--------|-------|
 | WT-3A | Replace Synthetic Date Fallback Behavior With One Explicit As-Of Truth Policy                               | DONE   | `WorldTimeControls.tsx` now shows authoritative world truth only, and `useArchitectState.ts` blocks `+1 Day` until a persisted world `asOfDate` exists instead of fabricating a system-date fallback. |
 | WT-3B | Tighten User-Facing Mutation Durability for Direct Date Edits and +1 Day                                    | DONE   | The control now surfaces inline save/advance failures, keeps owner-driven saving state visible, and snaps failed direct edits back to the last saved world date instead of acting like a soft no-op. |
-| WT-3C | Tighten the Persistence Contract for As-Of Writes So the Owner Path Is Narrower and More Explicit           | TODO   |       |
+| WT-3C | Tighten the Persistence Contract for As-Of Writes So the Owner Path Is Narrower and More Explicit           | DONE   | `worldManager.ts` now routes world-date persistence through explicit `updateWorldAsOfDate(...)` validation, while generic `updateWorldMetadata(...)` rejects `asOfDate` writes so the hook-owned path is narrower and easier to identify. |
 
-**STEP 3 STATUS: IN PROGRESS**
+**STEP 3 STATUS: DONE**

@@ -81,7 +81,7 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
       }
     );
   }),
-  updateWorldMetadata: vi.fn(async () => undefined),
+  updateWorldAsOfDate: vi.fn(async () => undefined),
 }));
 
 vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
@@ -158,7 +158,7 @@ describe('Cap Sheet world boundary integration', () => {
     seedWorld('world-parent', null, '2026-07-01');
     seedDoc('architect_worlds/world-child/teams/LAL', worldTeam);
 
-    const { result } = renderHook(() =>
+    const { result, unmount } = renderHook(() =>
       useArchitectState({
         teamId: 'LAL',
         userId: 'user_1',
@@ -176,9 +176,14 @@ describe('Cap Sheet world boundary integration', () => {
     });
 
     await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
       expect(result.current.teamCapSheet?.teamName).toBe('World Override Lakers');
+      expect(result.current.worldAsOfDate).toBe('2026-08-01');
     });
-    expect(result.current.worldAsOfDate).toBe('2026-08-01');
+
+    act(() => {
+      unmount();
+    });
   });
 
   it('follows world -> parent -> base fallback chain deterministically', async () => {

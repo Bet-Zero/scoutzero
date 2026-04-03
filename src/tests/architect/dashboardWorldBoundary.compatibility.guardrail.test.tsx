@@ -202,6 +202,9 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'const addDaysToIsoDate = (isoDate: string, dayCount: number): string => {'
     );
     expect(useArchitectStateSource).toContain(
+      'await updateWorldAsOfDate(worldId, nextAsOfDate);'
+    );
+    expect(useArchitectStateSource).not.toContain(
       'await updateWorldMetadata(worldId, { asOfDate: nextAsOfDate });'
     );
     expect(useArchitectStateSource).toContain(

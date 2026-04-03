@@ -333,18 +333,21 @@ Include longer rationale only when it materially changes implementation behavior
 Unless explicitly required otherwise:
 
 ### For intermediate seam work
+
 Use:
 
 - targeted tests
 - `npm run typecheck`
 
 ### For milestone / step closeout work
+
 Use:
 
 - `npm run test:diff -- --reporter=dot`
 - `npm run build`
 
 ### For whole-feature closeout
+
 Run the validation set required by the closeout prompt.
 
 ## Important rule
