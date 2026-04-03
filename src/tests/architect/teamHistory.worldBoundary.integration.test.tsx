@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
 import React from 'react';
-import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
+
+const useWorldTeamEventsMock = vi.fn();
+
+vi.mock('@/features/architect/history/hooks/useWorldTeamEvents', () => ({
+  useWorldTeamEvents: (...args: unknown[]) => useWorldTeamEventsMock(...args),
+}));
 
 const baseTeam: TeamHistoryCapSheetLike = {
   teamCode: 'LAL',
@@ -16,46 +23,10 @@ const baseTeam: TeamHistoryCapSheetLike = {
   historyTimeline: [],
 };
 
-function buildWorldTeam(teamCode: string, marker: string) {
-  const injected = injectTeamHistoryFixtures({
-    teamCode,
-    waivedContracts: [],
-    exceptionHistory: [],
-    mleHistory: [],
-    pickLog: [],
-    currentPicks: {},
-    historyTimeline: [],
-  });
-
-  return {
-    ...injected,
-    historyTimeline: [
-      {
-        id: `${teamCode}-marker`,
-        category: 'world-marker',
-        type: marker,
-        timestamp: '2026-02-11T00:00:00.000Z',
-        teamsInvolved: [teamCode],
-        summary: marker,
-        primaryDeltas: marker,
-        capDelta: 0,
-      },
-      ...(Array.isArray(injected.historyTimeline)
-        ? injected.historyTimeline
-        : []),
-    ],
-  };
-}
-
 function WorldSwitchHarness() {
   const [activeWorldId, setActiveWorldId] = React.useState<
     'world-a' | 'world-b'
   >('world-a');
-
-  const worlds = {
-    'world-a': buildWorldTeam('ATL', 'WORLD_A_MARKER'),
-    'world-b': buildWorldTeam('BOS', 'WORLD_B_MARKER'),
-  } as const;
 
   return (
     <div>
@@ -74,31 +45,95 @@ function WorldSwitchHarness() {
         World B
       </button>
 
-      <TeamHistoryTab
-        worldId={activeWorldId}
-        teamCapSheet={worlds[activeWorldId]}
-      />
+      <TeamHistoryTab worldId={activeWorldId} teamCapSheet={baseTeam} />
     </div>
   );
 }
 
 describe('Team History world boundary integration', () => {
-  it('shows base banner and empty state in base mode', () => {
-    render(<TeamHistoryTab teamCapSheet={baseTeam} worldId={null} />);
-
-    expect(screen.getByTestId('team-history-base-banner')).toBeInTheDocument();
-    expect(screen.getByText('No timeline entries yet.')).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('uses world-scoped source and updates entries when world context switches', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('surfaces authoritative world-event ownership and updates entries when world context switches', () => {
+    useWorldTeamEventsMock.mockImplementation(
+      ({ worldId }: { worldId: string }) => ({
+        events: [
+          {
+            id: `evt-${worldId}`,
+            eventId: `evt-${worldId}`,
+            mutationType: 'executeTrade',
+            occurredAt: '2026-03-01T12:00:00.000Z',
+            teamCodes: ['LAL', worldId === 'world-a' ? 'ATL' : 'BOS'],
+            metadata: {
+              summary: worldId === 'world-a' ? 'WORLD_A_EVENT' : 'WORLD_B_EVENT',
+            },
+          },
+        ],
+        loading: false,
+        error: null,
+        hasMore: false,
+        loadMore: null,
+      })
+    );
+
     render(<WorldSwitchHarness />);
 
     expect(screen.getByTestId('team-history-world-banner')).toBeInTheDocument();
-    expect(screen.getByText('WORLD_A_MARKER')).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
+      'Authoritative world events'
+    );
+    expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
+      'World events own the timeline'
+    );
+    expect(screen.getByText('WORLD_A_EVENT')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('switch-world-b'));
 
-    expect(screen.getByText('WORLD_B_MARKER')).toBeInTheDocument();
-    expect(screen.queryByText('WORLD_A_MARKER')).not.toBeInTheDocument();
+    expect(screen.getByText('WORLD_B_EVENT')).toBeInTheDocument();
+    expect(screen.queryByText('WORLD_A_EVENT')).not.toBeInTheDocument();
+  });
+
+  it('treats injected fixtures as the active override even when world context exists', () => {
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'evt-world-should-not-render',
+          eventId: 'evt-world-should-not-render',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-03-01T12:00:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+        },
+      ],
+      loading: false,
+      error: null,
+      hasMore: false,
+      loadMore: null,
+    });
+
+    const fixtureTeam = injectTeamHistoryFixtures({
+      ...baseTeam,
+      historyTimeline: [],
+    });
+
+    render(<TeamHistoryTab teamCapSheet={fixtureTeam} worldId="world-fixture" />);
+
+    expect(screen.getByTestId('team-history-world-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
+      'DEV fixture override'
+    );
+    expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
+      'suppress world events'
+    );
+    expect(
+      screen.getByText(
+        'Acquired two players and one protected pick; outgoing salary offset generated net cap delta.'
+      )
+    ).toBeInTheDocument();
+    expect(useWorldTeamEventsMock).not.toHaveBeenCalled();
   });
 });

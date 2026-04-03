@@ -2,7 +2,10 @@ import React, { useMemo, useState } from 'react';
 import WaiveStretchTracker from '@/features/architect/offseason/WaiveStretchTracker';
 import ExceptionHistoryTracker from '@/features/architect/capSheet/ExceptionHistoryTracker';
 import DraftPickTracker from '@/features/architect/offseason/DraftPickTracker';
-import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
+import {
+  DEV_TEAM_HISTORY_FIXTURE_FLAG,
+  hasInjectedTeamHistoryFixtures as teamHasInjectedHistoryFixtures,
+} from '@/features/architect/history/devTeamHistoryFixtures';
 import { useWorldTeamEvents } from '@/features/architect/history/hooks/useWorldTeamEvents';
 import {
   normalizeWorldEventsForTeamHistory,
@@ -20,6 +23,22 @@ type WorldEventsTimelineProps = {
   worldId: string;
   teamCode: string | null;
   onSelectEntry: (entry: TeamHistoryWorldEventRow) => void;
+};
+
+type TeamHistoryTimelineSourceKey =
+  | 'world-events'
+  | 'dev-fixtures'
+  | 'local-timeline'
+  | 'synthesized';
+
+type TeamHistoryTimelineResolution = {
+  key: TeamHistoryTimelineSourceKey;
+  scopeLabel: string;
+  sourceLabel: string;
+  sourceDetail: string;
+  sourceAccentClassName: string;
+  usesWorldEvents: boolean;
+  timelineEntries: TeamHistoryLooseTimelineEntry[];
 };
 
 const normalizeTimelineFromSections = (
@@ -95,6 +114,82 @@ const sortTimelineNewestFirst = (
     const bTs = Date.parse(String(b?.timestamp || b?.occurredAt || 0));
     return bTs - aTs;
   });
+};
+
+const resolveTeamHistoryTimeline = ({
+  teamCapSheet,
+  worldId,
+  hasInjectedFixtures,
+}: {
+  teamCapSheet: TeamHistoryCapSheetLike;
+  worldId?: string | null;
+  hasInjectedFixtures: boolean;
+}): TeamHistoryTimelineResolution => {
+  const scopeLabel = worldId ? `World ${worldId}` : 'Base context';
+  const explicitTimeline = sortTimelineNewestFirst(
+    Array.isArray(teamCapSheet?.historyTimeline)
+      ? teamCapSheet.historyTimeline
+      : []
+  );
+  const synthesizedTimeline = sortTimelineNewestFirst(
+    normalizeTimelineFromSections(teamCapSheet)
+  );
+
+  // Contract ownership order:
+  // 1. DEV fixtures explicitly override the world path while active.
+  // 2. Otherwise, a world-backed tab is owned by authoritative world events.
+  // 3. Outside world-event mode, explicit local timeline rows win.
+  // 4. Section-derived synthesis is the final fallback.
+  if (hasInjectedFixtures) {
+    return {
+      key: 'dev-fixtures',
+      scopeLabel,
+      sourceLabel: 'DEV fixture override',
+      sourceDetail:
+        'Injected DEV fixtures take ownership of the timeline and suppress world events while active.',
+      sourceAccentClassName: 'text-emerald-200',
+      usesWorldEvents: false,
+      timelineEntries:
+        explicitTimeline.length > 0 ? explicitTimeline : synthesizedTimeline,
+    };
+  }
+
+  if (worldId) {
+    return {
+      key: 'world-events',
+      scopeLabel,
+      sourceLabel: 'Authoritative world events',
+      sourceDetail:
+        'World events own the timeline whenever a world is active and no fixture override is present.',
+      sourceAccentClassName: 'text-sky-200',
+      usesWorldEvents: true,
+      timelineEntries: [],
+    };
+  }
+
+  if (explicitTimeline.length > 0) {
+    return {
+      key: 'local-timeline',
+      scopeLabel,
+      sourceLabel: 'Explicit local timeline',
+      sourceDetail:
+        'Outside world-event mode, explicit historyTimeline rows take priority over synthesized fallback.',
+      sourceAccentClassName: 'text-amber-200',
+      usesWorldEvents: false,
+      timelineEntries: explicitTimeline,
+    };
+  }
+
+  return {
+    key: 'synthesized',
+    scopeLabel,
+    sourceLabel: 'Section-derived fallback',
+    sourceDetail:
+      'This fallback is used only when world events are inactive and no explicit historyTimeline rows are present.',
+    sourceAccentClassName: 'text-white',
+    usesWorldEvents: false,
+    timelineEntries: synthesizedTimeline,
+  };
 };
 
 const WorldEventsTimeline = ({
@@ -225,21 +320,22 @@ const TeamHistoryTab = ({
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_TEAM_HISTORY_FIXTURE_FLAG) === 'true';
 
-  const shouldUseWorldEventTimeline =
-    Boolean(worldId) && !hasInjectedTeamHistoryFixtures;
+  const hasActiveFixtureOverride = useMemo(
+    () =>
+      hasInjectedTeamHistoryFixtures ||
+      teamHasInjectedHistoryFixtures(teamCapSheet ?? null),
+    [hasInjectedTeamHistoryFixtures, teamCapSheet]
+  );
 
-  const sortedTimeline = useMemo(() => {
-    const explicitTimeline = Array.isArray(teamCapSheet?.historyTimeline)
-      ? teamCapSheet.historyTimeline
-      : [];
-    const source =
-      explicitTimeline.length > 0
-        ? explicitTimeline
-        : normalizeTimelineFromSections(teamCapSheet);
-    return sortTimelineNewestFirst(source);
-  }, [teamCapSheet]);
-
-  const worldScopeLabel = worldId ? `World mode: ${worldId}` : 'Base mode';
+  const timelineResolution = useMemo(
+    () =>
+      resolveTeamHistoryTimeline({
+        teamCapSheet,
+        worldId,
+        hasInjectedFixtures: hasActiveFixtureOverride,
+      }),
+    [hasActiveFixtureOverride, teamCapSheet, worldId]
+  );
 
   return (
     <div className="text-white">
@@ -251,7 +347,25 @@ const TeamHistoryTab = ({
         }
         className="mb-4 rounded border border-white/10 bg-[#121212] px-3 py-2 text-xs text-white/70"
       >
-        Scope: {worldScopeLabel}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span data-testid="team-history-scope-label">
+            Scope: {timelineResolution.scopeLabel}
+          </span>
+          <span data-testid="team-history-active-source-label">
+            Active timeline:{' '}
+            <span
+              className={`font-semibold ${timelineResolution.sourceAccentClassName}`}
+            >
+              {timelineResolution.sourceLabel}
+            </span>
+          </span>
+        </div>
+        <div
+          data-testid="team-history-active-source-detail"
+          className="mt-1 text-[11px] text-white/55"
+        >
+          {timelineResolution.sourceDetail}
+        </div>
       </div>
 
       {showDevFixturePanel && (
@@ -279,9 +393,9 @@ const TeamHistoryTab = ({
               type="button"
               data-testid="team-history-clear-fixtures-button"
               onClick={() => onClearTeamHistoryFixtures?.()}
-              disabled={!hasInjectedTeamHistoryFixtures}
+              disabled={!hasActiveFixtureOverride}
               className={`rounded px-3 py-1.5 text-xs font-medium ${
-                hasInjectedTeamHistoryFixtures
+                hasActiveFixtureOverride
                   ? 'bg-neutral-700 hover:bg-neutral-600 text-white'
                   : 'bg-neutral-800 text-white/40 cursor-not-allowed'
               }`}
@@ -294,13 +408,13 @@ const TeamHistoryTab = ({
 
       <section data-testid="team-history-section-timeline" className="mb-10">
         <h3 className="text-lg font-semibold mb-2">Recent History Timeline</h3>
-        {shouldUseWorldEventTimeline ? (
-            <WorldEventsTimeline
+        {timelineResolution.usesWorldEvents ? (
+          <WorldEventsTimeline
             worldId={worldId || ''}
             teamCode={teamCapSheet?.teamCode || null}
             onSelectEntry={(entry) => setSelectedEntry(entry)}
           />
-        ) : sortedTimeline.length === 0 ? (
+        ) : timelineResolution.timelineEntries.length === 0 ? (
           <p>No timeline entries yet.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -314,7 +428,7 @@ const TeamHistoryTab = ({
                 </tr>
               </thead>
               <tbody>
-                {sortedTimeline.map((entry, idx) => (
+                {timelineResolution.timelineEntries.map((entry, idx) => (
                   <tr
                     key={entry.id || idx}
                     data-testid={`team-history-event-row-${idx}`}
