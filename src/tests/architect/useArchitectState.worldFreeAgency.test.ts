@@ -93,14 +93,17 @@ const teamFixture = {
 
 function createDeferred<T>() {
   let resolvePromise!: (value: T | PromiseLike<T>) => void;
+  let rejectPromise!: (reason?: unknown) => void;
 
-  const promise = new Promise<T>((resolve) => {
+  const promise = new Promise<T>((resolve, reject) => {
     resolvePromise = resolve;
+    rejectPromise = reject;
   });
 
   return {
     promise,
     resolve: resolvePromise,
+    reject: rejectPromise,
   };
 }
 
@@ -332,6 +335,160 @@ describe('useArchitectState world-aware free agency pool', () => {
     expect(
       result.current.playersMap.player_b?.contract?.salariesByYear?.[0]?.season
     ).toBe('2028-29');
+  });
+
+  it('can reapply committed team and metadata truth without republishing the roster bundle', async () => {
+    const committedTeam = {
+      ...teamFixture,
+      offerSheets: [
+        ...teamFixture.offerSheets,
+        {
+          id: 'os_outgoing_2',
+          playerId: 'player_c',
+          playerName: 'Natural Free Agent',
+          offeringTeamCode: 'LAL',
+          homeTeamCode: 'ATL',
+          seasonKey: '2027-28',
+          status: 'PENDING_MATCH',
+        },
+      ],
+    };
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      const playerIds = result.current.freeAgents.map(
+        (p) => p.id || p.player_id || p.name
+      );
+      expect(playerIds).toContain('player_b');
+    });
+
+    stateMocks.getLeague.mockClear();
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-02',
+      currentSeason: '2025-26',
+    });
+
+    await act(async () => {
+      await result.current.reloadActiveWorldTeamData({
+        committedTeamSnapshot: committedTeam as any,
+        committedWorldMetadata: {
+          currentSeason: '2025-26',
+        },
+        refreshRosterBundle: false,
+      });
+    });
+
+    const playerIds = result.current.freeAgents.map(
+      (p) => p.id || p.player_id || p.name
+    );
+    expect(stateMocks.getLeague).not.toHaveBeenCalled();
+    expect(playerIds).toContain('player_b');
+    expect(result.current.teamCapSheet?.offerSheets).toEqual(
+      committedTeam.offerSheets
+    );
+    expect(result.current.worldAsOfDate).toBe('2026-07-02');
+  });
+
+  it('keeps committed world metadata staged when coordinated reload fails after a successful world aftermath', async () => {
+    const metadataLoad = createDeferred<{
+      createdBy: string;
+      isArchived: boolean;
+      asOfDate: string;
+      currentSeason: string;
+    }>();
+    const reloadError = new Error('metadata unavailable');
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let blockReloadMetadata = false;
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockImplementation(async (activeWorldId) => {
+      if (activeWorldId === 'world_1' && blockReloadMetadata) {
+        return metadataLoad.promise;
+      }
+
+      return {
+        createdBy: 'user_1',
+        isArchived: false,
+        asOfDate: '2026-07-01',
+        currentSeason: '2025-26',
+      };
+    });
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldCurrentSeason).toBe('2025-26');
+    });
+
+    let reloadPromise!: Promise<unknown>;
+    act(() => {
+      blockReloadMetadata = true;
+      reloadPromise = result.current.reloadActiveWorldTeamData({
+        committedTeamSnapshot: {
+          ...teamFixture,
+          season: '2026-27',
+        } as any,
+        committedWorldMetadata: {
+          currentSeason: '2026-27',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldCurrentSeason).toBe('2026-27');
+    });
+
+    metadataLoad.reject(reloadError);
+
+    await expect(reloadPromise).rejects.toThrow('metadata unavailable');
+    expect(result.current.worldCurrentSeason).toBe('2026-27');
+    expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    consoleErrorSpy.mockRestore();
   });
 
   it('preserves hydrated offer-sheet arrays through world load and roster-index refresh', async () => {
@@ -766,6 +923,167 @@ describe('useArchitectState world-aware free agency pool', () => {
       expect(result.current.worldTimeOwner.isUpdatingAsOfDate).toBe(false);
     });
     expect(result.current.worldAsOfDate).toBe('2026-07-15');
+  });
+
+  it('does not publish a stale saved world date after the active world changes mid-save', async () => {
+    const metadataWrite = createDeferred<void>();
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockImplementation(async (activeWorldId) => ({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: activeWorldId === 'world_2' ? '2026-08-01' : '2026-07-01',
+      currentSeason: activeWorldId === 'world_2' ? '2026-27' : '2025-26',
+    }));
+    stateMocks.updateWorldAsOfDate.mockReturnValueOnce(metadataWrite.promise);
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+
+    let mutationPromise!: Promise<string>;
+    act(() => {
+      mutationPromise = result.current.worldTimeOwner.updateAsOfDate(
+        '2026-07-15'
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldTimeOwner.isUpdatingAsOfDate).toBe(true);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_2');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldId).toBe('world_2');
+      expect(result.current.worldTimeOwner.isUpdatingAsOfDate).toBe(false);
+      expect(result.current.worldAsOfDate).toBe('2026-08-01');
+    });
+
+    metadataWrite.resolve(undefined);
+
+    await act(async () => {
+      await mutationPromise;
+    });
+
+    expect(stateMocks.updateWorldAsOfDate).toHaveBeenCalledWith(
+      'world_1',
+      '2026-07-15'
+    );
+    expect(result.current.worldId).toBe('world_2');
+    expect(result.current.worldAsOfDate).toBe('2026-08-01');
+  });
+
+  it('drops stale coordinated reload completions after switching back to sandbox', async () => {
+    const metadataLoad = createDeferred<{
+      createdBy: string;
+      isArchived: boolean;
+      asOfDate: string;
+      currentSeason: string;
+    }>();
+    let blockReloadMetadata = false;
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockImplementation(async (activeWorldId) => {
+      if (activeWorldId === 'world_1' && blockReloadMetadata) {
+        return metadataLoad.promise;
+      }
+
+      return {
+        createdBy: 'user_1',
+        isArchived: false,
+        asOfDate: '2026-07-01',
+        currentSeason: '2025-26',
+      };
+    });
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+
+    let reloadPromise!: Promise<
+      | Awaited<ReturnType<typeof result.current.reloadActiveWorldTeamData>>
+      | null
+    >;
+    act(() => {
+      blockReloadMetadata = true;
+      reloadPromise = result.current.reloadActiveWorldTeamData({
+        committedTeamSnapshot: {
+          ...teamFixture,
+          season: '2026-27',
+        } as any,
+        committedWorldMetadata: {
+          currentSeason: '2026-27',
+        },
+      });
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld(null);
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldModeBoundary.kind).toBe('sandbox');
+      expect(result.current.worldAsOfDate).toBeNull();
+    });
+
+    metadataLoad.resolve({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-04',
+      currentSeason: '2026-27',
+    });
+
+    await expect(reloadPromise).resolves.toBeNull();
+    expect(result.current.worldId).toBeNull();
+    expect(result.current.teamCapSheet?.season).not.toBe('2026-27');
+    expect(result.current.worldCurrentSeason).toBeNull();
   });
 
   it('requires an authoritative saved world date before +1 day can mutate world time', async () => {

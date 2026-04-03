@@ -1028,8 +1028,8 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(executeWorldModeSignAndTradeRegion).toMatch(
       /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
     );
-    expect(executeWorldModeSignAndTradeRegion).toMatch(
-      /await\s+refreshWorldRosterIndex\s*\(\s*\)/
+    expect(executeWorldModeSignAndTradeRegion).not.toMatch(
+      /refreshWorldRosterIndex/
     );
   });
 

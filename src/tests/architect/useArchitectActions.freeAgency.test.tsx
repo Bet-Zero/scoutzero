@@ -802,6 +802,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
       committedTeamSnapshot: updatedTeam,
       committedTeamSource: 'changedTeams',
+      refreshRosterBundle: true,
     });
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
@@ -1535,6 +1536,49 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
   });
 
+  it('delegates offer-sheet store aftermath through the state reload owner without roster republish', async () => {
+    const updatedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [buildPendingOfferSheetFixture()],
+      incomingOfferSheets: [],
+    };
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: updatedTeam }],
+      changedPlayers: [],
+    });
+    const reloadActiveWorldTeamData = vi.fn(async () => ({
+      committedTeam: updatedTeam,
+      committedTeamSource: 'changedTeams' as const,
+    }));
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam: baseTeamFixture,
+      reloadActiveWorldTeamData,
+    });
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await result.current.actions.handleStoreOfferSheet(
+        playerFixture as any,
+        buildStagedScalarSigningFixture({
+          salaries: [12_000_000, 12_960_000],
+          exceptionType: 'Minimum',
+          signedUsing: null,
+        }) as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
+      committedTeamSnapshot: updatedTeam,
+      committedTeamSource: 'changedTeams',
+      refreshRosterBundle: false,
+    });
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+  });
+
   it('reloads committed offer-sheet truth when changedTeams does not include the active team', async () => {
     const reloadedTeam = {
       ...baseTeamFixture,
@@ -1884,6 +1928,59 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     );
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates finalized offer-sheet reload through the state owner with roster republish enabled', async () => {
+    const initialTeam = buildOutgoingOfferSheetLifecycleTeamFixture(
+      'DECLINED',
+      {
+        id: 'offer_finalize_state_reload_1',
+      }
+    );
+    const finalizedTeam = {
+      ...baseTeamFixture,
+      offerSheets: [],
+      incomingOfferSheets: [],
+    };
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: finalizedTeam }],
+      changedPlayers: [],
+      metadata: {
+        type: 'finalizeDeclinedOfferSheet',
+        offerSheetId: 'offer_finalize_state_reload_1',
+        dedupKey: 'os:world_1:LAL:player_1:2025-26',
+        playerId: 'player_1',
+        offeringTeam: 'LAL',
+        homeTeam: 'BOS',
+      },
+    });
+    const reloadActiveWorldTeamData = vi.fn(async () => ({
+      committedTeam: finalizedTeam,
+      committedTeamSource: 'changedTeams' as const,
+    }));
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam,
+      reloadActiveWorldTeamData,
+    });
+
+    act(() => {
+      result.current.actions.handleFinalizeOfferSheet({
+        ...initialTeam.offerSheets[0],
+      } as any);
+    });
+
+    await waitFor(() => {
+      expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
+        committedTeamSnapshot: finalizedTeam,
+        committedTeamSource: 'changedTeams',
+        refreshRosterBundle: true,
+      });
+    });
+
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
   });
 
   it('syncs finalized outgoing offer-sheet truth from changedTeams after declined finalization', async () => {

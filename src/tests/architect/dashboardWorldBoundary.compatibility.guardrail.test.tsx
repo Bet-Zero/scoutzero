@@ -156,6 +156,7 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(useArchitectStateSource).toContain(
       'export interface ReloadActiveWorldTeamDataOptions {'
     );
+    expect(useArchitectStateSource).toContain('refreshRosterBundle?: boolean;');
     expect(useArchitectStateSource).toContain(
       'reloadActiveWorldTeamData: ('
     );
@@ -256,7 +257,7 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'const validatedWorldId = await resolveUsableActiveWorldId('
     );
     expect(
-      useArchitectStateSource.match(/prepareCoordinatedWorldLoad\(worldId\);/g)
+      useArchitectStateSource.match(/prepareCoordinatedWorldLoad\(worldId/g)
         ?.length
     ).toBe(2);
     expect(

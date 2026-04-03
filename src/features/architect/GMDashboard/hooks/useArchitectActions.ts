@@ -2069,32 +2069,54 @@ export function useArchitectActions({
     [teamCode, worldId]
   );
 
+  const shouldRefreshWorldRosterAfterMutation = useCallback(
+    (mutationType: string): boolean => {
+      switch (mutationType) {
+        case 'storeOfferSheet':
+        case 'matchOfferSheet':
+        case 'declineOfferSheet':
+          return false;
+        default:
+          return true;
+      }
+    },
+    []
+  );
+
   const applyCommittedWorldReload = useCallback(
     async (
       mutationType: string,
       committedWorldTeam: ResolvedCommittedWorldTeam
     ): Promise<ResolvedCommittedWorldTeam> => {
+      const shouldRefreshRosterIndex =
+        shouldRefreshWorldRosterAfterMutation(mutationType);
+
       if (reloadActiveWorldTeamData && worldId) {
         const reloadedWorldTeam = (await reloadActiveWorldTeamData({
           committedTeamSnapshot:
             committedWorldTeam.committedTeam as UseArchitectStateReturn['teamCapSheet'],
           committedTeamSource: committedWorldTeam.committedTeamSource,
+          refreshRosterBundle: shouldRefreshRosterIndex,
         })) as ResolvedCommittedWorldTeam | null;
 
         if (reloadedWorldTeam) {
           return reloadedWorldTeam;
         }
+
+        return committedWorldTeam;
       }
 
       setTeamCapSheetSafe(committedWorldTeam.committedTeam);
 
-      try {
-        await refreshWorldRosterIndex();
-      } catch (error) {
-        console.warn(
-          `[Architect][FreeAgency] Failed to refresh roster index after ${mutationType}:`,
-          error
-        );
+      if (shouldRefreshRosterIndex) {
+        try {
+          await refreshWorldRosterIndex();
+        } catch (error) {
+          console.warn(
+            `[Architect][FreeAgency] Failed to refresh roster index after ${mutationType}:`,
+            error
+          );
+        }
       }
 
       return committedWorldTeam;
@@ -2103,6 +2125,7 @@ export function useArchitectActions({
       refreshWorldRosterIndex,
       reloadActiveWorldTeamData,
       setTeamCapSheetSafe,
+      shouldRefreshWorldRosterAfterMutation,
       worldId,
     ]
   );

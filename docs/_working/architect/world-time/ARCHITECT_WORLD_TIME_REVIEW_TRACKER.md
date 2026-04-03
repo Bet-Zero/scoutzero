@@ -58,3 +58,15 @@
 | WT-5C | Add Focused Guardrails for World vs Sandbox Capability Truth and Dual-Path Action Safety                               | DONE   | Focused guardrails now pin the Step 5 capability matrix across `WorldTimeControls.tsx`, `OffseasonSection.tsx`, `GMDashboard.tsx`, and `useArchitectActions.ts`: sandbox keeps world date / season-advance surfaces visible-but-disabled, world-only grouped owners stay `null`, shared lifecycle copy stays aligned, and dual-path standard signing remains sandbox-capable while offer-sheet / sign-and-trade paths stay world-only. |
 
 **STEP 5 STATUS: DONE**
+
+---
+
+## CLOSEOUT FOLLOW-UP — Whole-Feature Blockers
+
+| ID     | Title                                                                    | Status | Notes |
+|--------|--------------------------------------------------------------------------|--------|-------|
+| WT-F1A | Guard Async World-Identity Writes at the State Owner Seam                | DONE   | `useArchitectState.ts` now invalidates in-flight load/date request IDs on active-world identity changes and ignores stale completions after world-to-world or world-to-sandbox switches. |
+| WT-F1B | Make Season-Advance Metadata Truth Durable Through Reload Warnings       | DONE   | `reloadActiveWorldTeamData(...)` now stages committed metadata patches immediately, and `OffseasonSection.tsx` passes committed team/season aftermath while surfacing reload failures inline instead of logging only. |
+| WT-F1C | Make Free Agency Shared Aftermath Roster Refresh Scope Explicit          | DONE   | The shared reload seam now accepts `refreshRosterBundle`, `useArchitectActions.ts` only republishes roster truth for mutation families that actually change roster state, and focused hook/action/closure tests pin that contract. |
+
+**CLOSEOUT FOLLOW-UP STATUS: DONE**

@@ -72,6 +72,7 @@ type WorldBackedOffseasonSurfaceProps = {
   worldSeasonLoading: boolean;
   viewingSeason: string;
   hasSeasonMismatch: boolean;
+  worldReloadError: string | null;
   seasonAdvanceDraftContext: SeasonAdvanceDraftContext | null;
   canAdvanceSeason: boolean;
   draftPositionsPersistenceAuthority: DraftPositionsPersistenceAuthority;
@@ -197,6 +198,7 @@ function WorldBackedOffseasonSurface({
   worldSeasonLoading,
   viewingSeason,
   hasSeasonMismatch,
+  worldReloadError,
   seasonAdvanceDraftContext,
   canAdvanceSeason,
   draftPositionsPersistenceAuthority,
@@ -249,6 +251,11 @@ function WorldBackedOffseasonSurface({
             {hasActiveWorld && !worldSeasonLoading && !authoritativeWorldSeason && (
               <div className="mt-2 text-xs text-yellow-300">
                 World season unavailable. Season advance stays disabled until metadata loads.
+              </div>
+            )}
+            {worldReloadError && (
+              <div className="mt-2 rounded border border-yellow-500/30 bg-yellow-900/20 px-3 py-2 text-xs text-yellow-200">
+                {worldReloadError}
               </div>
             )}
           </div>
@@ -336,6 +343,9 @@ const OffseasonSection = ({
   onReloadWorldData,
 }: OffseasonSectionProps) => {
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
+  const [worldAdvanceReloadError, setWorldAdvanceReloadError] = useState<
+    string | null
+  >(null);
   const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();
 
   const handleCommittedWorldAdvanceComplete = useCallback(
@@ -347,6 +357,7 @@ const OffseasonSection = ({
         return;
       }
 
+      setWorldAdvanceReloadError(null);
       applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {
         setTeamCapSheet,
         setCurrentYear,
@@ -358,12 +369,21 @@ const OffseasonSection = ({
       if (onReloadWorldData) {
         try {
           await onReloadWorldData({
+            committedTeamSnapshot:
+              committedWorldAdvanceAftermath.committedTeamCapSheet,
             committedWorldMetadata: {
               currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,
             },
           });
         } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : 'Unknown world reload failure.';
           console.error('Failed to reload world data after season advance:', error);
+          setWorldAdvanceReloadError(
+            `Season advanced, but the world reload could not finish: ${message}`
+          );
         }
       }
     },
@@ -373,6 +393,7 @@ const OffseasonSection = ({
       setOffseasonRun,
       setOffseasonSummary,
       setShowOffseasonModal,
+      setWorldAdvanceReloadError,
       onReloadWorldData,
     ]
   );
@@ -466,6 +487,7 @@ const OffseasonSection = ({
         worldSeasonLoading={worldSeasonLoading}
         viewingSeason={viewingSeason}
         hasSeasonMismatch={Boolean(hasSeasonMismatch)}
+        worldReloadError={worldAdvanceReloadError}
         seasonAdvanceDraftContext={seasonAdvanceDraftContext}
         canAdvanceSeason={canAdvanceWorldSeason}
         draftPositionsPersistenceAuthority={draftPositionsPersistenceAuthority}
@@ -474,6 +496,7 @@ const OffseasonSection = ({
           if (!canAdvanceWorldSeason) {
             return;
           }
+          setWorldAdvanceReloadError(null);
           setShowAdvanceModal(true);
         }}
       />

@@ -141,10 +141,12 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
         'applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {'
       );
       expect(source).toContain('await onReloadWorldData({');
+      expect(source).toContain('committedTeamSnapshot:');
       expect(source).toContain('committedWorldMetadata: {');
       expect(source).toContain(
         'currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,'
       );
+      expect(source).toContain('setWorldAdvanceReloadError(');
       expect(source).not.toContain('setOffseasonSummary({');
     });
 

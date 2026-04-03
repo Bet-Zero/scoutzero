@@ -409,6 +409,12 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     expect(props.setShowOffseasonModal).toHaveBeenCalledWith(true);
     expect(props.onReloadWorldData).toHaveBeenCalledTimes(1);
     expect(props.onReloadWorldData).toHaveBeenCalledWith({
+      committedTeamSnapshot: {
+        teamCode: 'LAL',
+        season: '2026-27',
+        players: [],
+        capHolds: [],
+      },
       committedWorldMetadata: {
         currentSeason: '2026-27',
       },
@@ -440,6 +446,44 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     expect(props.setOffseasonSummary).not.toHaveBeenCalled();
     expect(props.setShowOffseasonModal).not.toHaveBeenCalled();
     expect(props.onReloadWorldData).not.toHaveBeenCalled();
+  });
+
+  it('keeps committed aftermath visible and surfaces reload failure when world refresh cannot finish', async () => {
+    const reloadError = new Error('metadata unavailable');
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const props = await renderOffseasonSectionWithGate({
+      props: {
+        onReloadWorldData: vi.fn(async () => {
+          throw reloadError;
+        }),
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Emit successful advance' })
+    );
+
+    await waitFor(() => {
+      expect(props.setCurrentYear).toHaveBeenCalledWith(2027);
+    });
+    expect(props.setTeamCapSheet).toHaveBeenCalledWith({
+      teamCode: 'LAL',
+      season: '2026-27',
+      players: [],
+      capHolds: [],
+    });
+    expect(props.onReloadWorldData).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText(
+        'Season advanced, but the world reload could not finish: metadata unavailable'
+      )
+    ).toBeInTheDocument();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to reload world data after season advance:',
+      reloadError
+    );
+    consoleErrorSpy.mockRestore();
   });
 
   it('does not synthesize a draft context fallback when world season is unavailable', async () => {

@@ -292,9 +292,10 @@ type CoordinatedWorldLoadBundle =
     }
   | {
       kind: 'world';
+      refreshRosterBundle: boolean;
       teamSnapshot: CapSheet | null;
       metadata: WorldMetadataLike | null;
-      roster: CoordinatedWorldRosterBundle;
+      roster: CoordinatedWorldRosterBundle | null;
     };
 
 /** Hook input parameters */
@@ -339,6 +340,7 @@ export interface ReloadActiveWorldTeamDataOptions {
     asOfDate?: string | null;
     currentSeason?: string | null;
   } | null;
+  refreshRosterBundle?: boolean;
 }
 
 export interface ReloadActiveWorldTeamDataResult {
@@ -630,6 +632,8 @@ export function useArchitectState({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const dataLoadRequestIdRef = useRef(0);
+  const activeWorldIdentityRef = useRef<string | null>(null);
+  const worldAsOfDateMutationIdRef = useRef(0);
   const restoredActiveWorldUserIdRef = useRef<string | null>(null);
 
   // === Internal hook call ===
@@ -683,6 +687,23 @@ export function useArchitectState({
     []
   );
 
+  const applyWorldMetadataPatch = useCallback(
+    (metadataPatch: WorldMetadataLike | null | undefined) => {
+      if (!metadataPatch) {
+        return;
+      }
+
+      if (metadataPatch.asOfDate !== undefined) {
+        setWorldAsOfDate(metadataPatch.asOfDate || null);
+      }
+
+      if (metadataPatch.currentSeason !== undefined) {
+        setWorldCurrentSeason(metadataPatch.currentSeason || null);
+      }
+    },
+    []
+  );
+
   const applyWorldRosterBundle = useCallback(
     (rosterBundle: CoordinatedWorldRosterBundle | null | undefined) => {
       setWorldRosterIndex(rosterBundle?.rosterIndex ?? null);
@@ -708,18 +729,48 @@ export function useArchitectState({
     []
   );
 
+  const invalidateActiveWorldAsyncWork = useCallback(
+    (nextWorldId: string | null) => {
+      const identityChanged = activeWorldIdentityRef.current !== nextWorldId;
+      activeWorldIdentityRef.current = nextWorldId;
+
+      if (!identityChanged) {
+        return;
+      }
+
+      dataLoadRequestIdRef.current += 1;
+      worldAsOfDateMutationIdRef.current += 1;
+    },
+    []
+  );
+
+  const isCurrentActiveWorldIdentity = useCallback(
+    (candidateWorldId: string | null) =>
+      activeWorldIdentityRef.current === candidateWorldId,
+    []
+  );
+
+  const isCurrentWorldLoadRequest = useCallback(
+    (candidateWorldId: string | null, requestId: number) =>
+      dataLoadRequestIdRef.current === requestId &&
+      activeWorldIdentityRef.current === candidateWorldId,
+    []
+  );
+
   // Keep active-world restore/switch/clear flows in one state-owner seam.
   const resetActiveWorldDerivedState = useCallback(() => {
     applyWorldMetadata(null);
     setWorldMetadataLoading(false);
+    setIsUpdatingWorldAsOfDate(false);
     applyWorldRosterBundle(null);
     setFreeAgents([]);
   }, [applyWorldMetadata, applyWorldRosterBundle]);
 
   const clearActiveWorldState = useCallback(() => {
+    invalidateActiveWorldAsyncWork(null);
     resetActiveWorldDerivedState();
     setWorldId(null);
-  }, [resetActiveWorldDerivedState]);
+  }, [invalidateActiveWorldAsyncWork, resetActiveWorldDerivedState]);
 
   const setActiveWorld = useCallback(
     (nextWorldId: string | null) => {
@@ -727,10 +778,11 @@ export function useArchitectState({
         return;
       }
 
+      invalidateActiveWorldAsyncWork(nextWorldId);
       resetActiveWorldDerivedState();
       setWorldId(nextWorldId);
     },
-    [resetActiveWorldDerivedState, worldId]
+    [invalidateActiveWorldAsyncWork, resetActiveWorldDerivedState, worldId]
   );
 
   const updateAsOfDate = useCallback(
@@ -742,17 +794,32 @@ export function useArchitectState({
         throw new Error('asOfDate is required');
       }
 
+      const requestWorldId = worldId;
+      const requestId = worldAsOfDateMutationIdRef.current + 1;
+      worldAsOfDateMutationIdRef.current = requestId;
       setIsUpdatingWorldAsOfDate(true);
 
       try {
         await updateWorldAsOfDate(worldId, nextAsOfDate);
+        if (
+          worldAsOfDateMutationIdRef.current !== requestId ||
+          !isCurrentActiveWorldIdentity(requestWorldId)
+        ) {
+          return nextAsOfDate;
+        }
+
         setWorldAsOfDate(nextAsOfDate);
         return nextAsOfDate;
       } finally {
-        setIsUpdatingWorldAsOfDate(false);
+        if (
+          worldAsOfDateMutationIdRef.current === requestId &&
+          isCurrentActiveWorldIdentity(requestWorldId)
+        ) {
+          setIsUpdatingWorldAsOfDate(false);
+        }
       }
     },
-    [worldId]
+    [isCurrentActiveWorldIdentity, worldId]
   );
 
   const advanceByOneDay = useCallback(async (): Promise<string> => {
@@ -828,13 +895,23 @@ export function useArchitectState({
   }, []);
 
   const prepareCoordinatedWorldLoad = useCallback(
-    (activeWorldId: string | null) => {
+    (
+      activeWorldId: string | null,
+      options: {
+        refreshRosterBundle?: boolean;
+      } = {}
+    ) => {
       if (!activeWorldId) {
         setWorldMetadataLoading(false);
         return;
       }
 
       setWorldMetadataLoading(true);
+
+      if (options.refreshRosterBundle === false) {
+        return;
+      }
+
       applyWorldRosterBundle(null);
       setFreeAgents([]);
     },
@@ -847,9 +924,11 @@ export function useArchitectState({
       options: {
         committedTeamSnapshot?: CapSheet | null;
         committedWorldMetadata?: WorldMetadataLike | null;
+        refreshRosterBundle?: boolean;
         throwOnMetadataLoadError?: boolean;
       } = {}
     ): Promise<CoordinatedWorldLoadBundle> => {
+      const refreshRosterBundle = options.refreshRosterBundle !== false;
       const teamSnapshot =
         options.committedTeamSnapshot !== undefined
           ? options.committedTeamSnapshot
@@ -863,7 +942,9 @@ export function useArchitectState({
       }
 
       const [roster, loadedMetadata] = await Promise.all([
-        resolveWorldRosterBundle(activeWorldId),
+        refreshRosterBundle
+          ? resolveWorldRosterBundle(activeWorldId)
+          : Promise.resolve<CoordinatedWorldRosterBundle | null>(null),
         resolveWorldMetadataSnapshot(activeWorldId, {
           throwOnError: options.throwOnMetadataLoadError,
         }),
@@ -871,6 +952,7 @@ export function useArchitectState({
 
       return {
         kind: 'world',
+        refreshRosterBundle,
         teamSnapshot,
         metadata: mergeWorldMetadataSnapshots(
           options.committedWorldMetadata,
@@ -895,7 +977,9 @@ export function useArchitectState({
       }
 
       if (coordinatedBundle.kind === 'world') {
-        applyWorldRosterBundle(coordinatedBundle.roster);
+        if (coordinatedBundle.refreshRosterBundle) {
+          applyWorldRosterBundle(coordinatedBundle.roster);
+        }
         applyWorldMetadata(coordinatedBundle.metadata);
         setWorldMetadataLoading(false);
         return;
@@ -916,14 +1000,28 @@ export function useArchitectState({
       return new Set<string>();
     }
 
+    const requestWorldId = worldId;
+    if (!isCurrentActiveWorldIdentity(requestWorldId)) {
+      return new Set<string>();
+    }
+
     applyWorldRosterBundle(null);
     setFreeAgents([]);
 
-    const rosterBundle = await resolveWorldRosterBundle(worldId);
+    const rosterBundle = await resolveWorldRosterBundle(requestWorldId);
+    if (!isCurrentActiveWorldIdentity(requestWorldId)) {
+      return new Set<string>();
+    }
+
     applyWorldRosterBundle(rosterBundle);
 
     return rosterBundle.rosterIndex || new Set<string>();
-  }, [applyWorldRosterBundle, resolveWorldRosterBundle, worldId]);
+  }, [
+    applyWorldRosterBundle,
+    isCurrentActiveWorldIdentity,
+    resolveWorldRosterBundle,
+    worldId,
+  ]);
 
   const reloadActiveWorldTeamData = useCallback(
     async (
@@ -933,12 +1031,21 @@ export function useArchitectState({
         return null;
       }
 
+      const requestWorldId = worldId;
+      if (!isCurrentActiveWorldIdentity(requestWorldId)) {
+        return null;
+      }
+
       const requestId = dataLoadRequestIdRef.current + 1;
       dataLoadRequestIdRef.current = requestId;
+      const refreshRosterBundle = options.refreshRosterBundle !== false;
 
       setIsLoading(true);
       setError('');
-      prepareCoordinatedWorldLoad(worldId);
+      prepareCoordinatedWorldLoad(worldId, {
+        refreshRosterBundle,
+      });
+      applyWorldMetadataPatch(options.committedWorldMetadata);
 
       const committedTeamSource: ReloadActiveWorldTeamDataSource =
         options.committedTeamSnapshot
@@ -949,10 +1056,11 @@ export function useArchitectState({
         const coordinatedBundle = await loadCoordinatedWorldBundle(worldId, {
           committedTeamSnapshot: options.committedTeamSnapshot,
           committedWorldMetadata: options.committedWorldMetadata,
+          refreshRosterBundle,
           throwOnMetadataLoadError: true,
         });
 
-        if (dataLoadRequestIdRef.current !== requestId) {
+        if (!isCurrentWorldLoadRequest(requestWorldId, requestId)) {
           return null;
         }
 
@@ -967,7 +1075,7 @@ export function useArchitectState({
           committedTeamSource,
         };
       } catch (err) {
-        if (dataLoadRequestIdRef.current !== requestId) {
+        if (!isCurrentWorldLoadRequest(requestWorldId, requestId)) {
           return null;
         }
 
@@ -977,14 +1085,17 @@ export function useArchitectState({
         setError(`Error loading team data: ${message}`);
         throw err;
       } finally {
-        if (dataLoadRequestIdRef.current === requestId) {
+        if (isCurrentWorldLoadRequest(requestWorldId, requestId)) {
           setWorldMetadataLoading(false);
           setIsLoading(false);
         }
       }
     },
     [
+      applyWorldMetadataPatch,
       applyCoordinatedWorldBundle,
+      isCurrentActiveWorldIdentity,
+      isCurrentWorldLoadRequest,
       loadCoordinatedWorldBundle,
       prepareCoordinatedWorldLoad,
       worldId,
@@ -1108,6 +1219,7 @@ export function useArchitectState({
     let isCancelled = false;
 
     const fetchData = async () => {
+      const requestWorldId = worldId;
       const requestId = dataLoadRequestIdRef.current + 1;
       dataLoadRequestIdRef.current = requestId;
 
@@ -1119,7 +1231,10 @@ export function useArchitectState({
         // metadata, and roster override truth stay aligned across modes.
         const coordinatedBundle = await loadCoordinatedWorldBundle(worldId);
 
-        if (isCancelled || dataLoadRequestIdRef.current !== requestId) {
+        if (
+          isCancelled ||
+          !isCurrentWorldLoadRequest(requestWorldId, requestId)
+        ) {
           return;
         }
 
@@ -1129,7 +1244,10 @@ export function useArchitectState({
           console.warn('No saved team found, using blank slate.');
         }
       } catch (err) {
-        if (isCancelled || dataLoadRequestIdRef.current !== requestId) {
+        if (
+          isCancelled ||
+          !isCurrentWorldLoadRequest(requestWorldId, requestId)
+        ) {
           return;
         }
 
@@ -1138,7 +1256,10 @@ export function useArchitectState({
           err instanceof Error ? err.message : String(err || 'Unknown error');
         setError(`Error loading team data: ${message}`);
       } finally {
-        if (!isCancelled && dataLoadRequestIdRef.current === requestId) {
+        if (
+          !isCancelled &&
+          isCurrentWorldLoadRequest(requestWorldId, requestId)
+        ) {
           setWorldMetadataLoading(false);
           setIsLoading(false);
         }
@@ -1156,6 +1277,7 @@ export function useArchitectState({
   }, [
     applyCoordinatedWorldBundle,
     authLoading,
+    isCurrentWorldLoadRequest,
     loadCoordinatedWorldBundle,
     prepareCoordinatedWorldLoad,
     worldId,
