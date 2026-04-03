@@ -125,6 +125,7 @@ const GMDashboard = () => {
     worldAsOfDate,
     activeWorldOwner,
     worldTimeOwner,
+    worldModeBoundary,
     setTeamCapSheet,
     setCurrentYear,
     setActiveTab,
@@ -303,15 +304,14 @@ const GMDashboard = () => {
             <WorldSelector
               userId={userId}
               activeWorldOwner={activeWorldOwner}
+              worldModeBoundary={worldModeBoundary}
             />
           )}
 
           {userId && <div className="h-6 w-px bg-white/10" />}
 
-          {userId && worldId && (
-            <WorldTimeControls
-              worldTimeOwner={worldTimeOwner}
-            />
+          {userId && worldModeBoundary.kind === 'world' && (
+            <WorldTimeControls worldTimeOwner={worldTimeOwner} />
           )}
 
           <label className="flex items-center gap-2 text-sm font-medium">
@@ -502,7 +502,7 @@ const GMDashboard = () => {
             playersMap={playersMap}
             worldId={worldId}
             teamCode={normalizedTeamId}
-            onReloadWorldData={reloadActiveWorldTeamData}
+            onReloadWorldData={worldModeBoundary.onReloadWorldData}
           />
         )}
 

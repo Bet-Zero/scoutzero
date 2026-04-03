@@ -308,6 +308,18 @@ export interface ArchitectWorldTimeOwner {
   advanceByOneDay: () => Promise<string>;
 }
 
+export type ArchitectWorldModeBoundary =
+  | {
+      kind: 'sandbox';
+      worldId: null;
+      onReloadWorldData: null;
+    }
+  | {
+      kind: 'world';
+      worldId: string;
+      onReloadWorldData: () => Promise<void>;
+    };
+
 /** Return type of the hook */
 export interface UseArchitectStateReturn {
   // Values (all state + derived)
@@ -331,6 +343,7 @@ export interface UseArchitectStateReturn {
   worldAsOfDate: string | null;
   activeWorldOwner: ArchitectActiveWorldOwner;
   worldTimeOwner: ArchitectWorldTimeOwner;
+  worldModeBoundary: ArchitectWorldModeBoundary;
 
   // Setters (all needed by GMDashboard)
   setBaselineCapSheet: React.Dispatch<React.SetStateAction<CapSheet | null>>;
@@ -1102,6 +1115,22 @@ export function useArchitectState({
     ]
   );
 
+  const worldModeBoundary = useMemo<ArchitectWorldModeBoundary>(() => {
+    if (!worldId) {
+      return {
+        kind: 'sandbox',
+        worldId: null,
+        onReloadWorldData: null,
+      };
+    }
+
+    return {
+      kind: 'world',
+      worldId,
+      onReloadWorldData: reloadActiveWorldTeamData,
+    };
+  }, [reloadActiveWorldTeamData, worldId]);
+
   return {
     // Values (all state + derived)
     baselineCapSheet,
@@ -1124,6 +1153,7 @@ export function useArchitectState({
     worldAsOfDate,
     activeWorldOwner,
     worldTimeOwner,
+    worldModeBoundary,
 
     // Setters (all needed by GMDashboard)
     setBaselineCapSheet,

@@ -15,7 +15,10 @@ import {
   type ChangeEvent,
   type ReactNode,
 } from 'react';
-import type { ArchitectActiveWorldOwner } from '@/features/architect/GMDashboard/hooks/useArchitectState';
+import type {
+  ArchitectActiveWorldOwner,
+  ArchitectWorldModeBoundary,
+} from '@/features/architect/GMDashboard/hooks/useArchitectState';
 import {
   listUserWorlds,
   createWorld,
@@ -61,6 +64,7 @@ type WorldChangeCallback = (worldId: string | null) => void;
 type WorldSelectorProps = {
   userId: string | null;
   activeWorldOwner: ArchitectActiveWorldOwner;
+  worldModeBoundary: ArchitectWorldModeBoundary;
   onWorldChange?: WorldChangeCallback;
 };
 
@@ -81,9 +85,11 @@ const wait = (ms: number) =>
 export function WorldSelector({
   userId,
   activeWorldOwner,
+  worldModeBoundary,
   onWorldChange,
 }: WorldSelectorProps) {
   const { worldId, setActiveWorld } = activeWorldOwner;
+  const isWorldBacked = worldModeBoundary.kind === 'world';
   const [worlds, setWorlds] = useState<WorldSummaryLike[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -429,7 +435,7 @@ export function WorldSelector({
             ))}
           </select>
         </div>
-        {!worldId && (
+        {!isWorldBacked && (
           <span className="text-[10px] text-white/40 pl-0.5">
             Select a world to save changes. No world = quick sandbox.
           </span>
@@ -451,7 +457,7 @@ export function WorldSelector({
           + New
         </button>
 
-        {worldId && (
+        {isWorldBacked && (
           <div className="relative">
             <button
               type="button"

@@ -109,7 +109,13 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'activeWorldOwner: ArchitectActiveWorldOwner;'
     );
     expect(worldSelectorSource).toContain(
+      'worldModeBoundary: ArchitectWorldModeBoundary;'
+    );
+    expect(worldSelectorSource).toContain(
       'const { worldId, setActiveWorld } = activeWorldOwner;'
+    );
+    expect(worldSelectorSource).toContain(
+      "const isWorldBacked = worldModeBoundary.kind === 'world';"
     );
     expect(worldSelectorSource).not.toContain('localStorage.getItem(');
     expect(worldSelectorSource).not.toContain('localStorage.setItem(');
@@ -144,10 +150,19 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'worldTimeOwner: ArchitectWorldTimeOwner;'
     );
     expect(useArchitectStateSource).toContain(
+      'worldModeBoundary: ArchitectWorldModeBoundary;'
+    );
+    expect(useArchitectStateSource).toContain(
+      'export type ArchitectWorldModeBoundary ='
+    );
+    expect(useArchitectStateSource).toContain(
       'const activeWorldOwner = useMemo<ArchitectActiveWorldOwner>('
     );
     expect(useArchitectStateSource).toContain(
       'const worldTimeOwner = useMemo<ArchitectWorldTimeOwner>('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const worldModeBoundary = useMemo<ArchitectWorldModeBoundary>(() => {'
     );
     expect(useArchitectStateSource).toContain(
       'const updateAsOfDate = useCallback('
@@ -158,14 +173,19 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(useArchitectStateSource).toContain('reloadActiveWorldTeamData,');
     expect(useArchitectStateSource).toContain('activeWorldOwner,');
     expect(useArchitectStateSource).toContain('worldTimeOwner,');
+    expect(useArchitectStateSource).toContain('worldModeBoundary,');
     expect(gmDashboardSource).toContain('reloadActiveWorldTeamData,');
     expect(gmDashboardSource).toContain('activeWorldOwner,');
     expect(gmDashboardSource).toContain('worldTimeOwner,');
+    expect(gmDashboardSource).toContain('worldModeBoundary,');
     expect(gmDashboardSource).toContain(
-      'onReloadWorldData={reloadActiveWorldTeamData}'
+      'onReloadWorldData={worldModeBoundary.onReloadWorldData}'
     );
     expect(gmDashboardSource).toContain(
       'activeWorldOwner={activeWorldOwner}'
+    );
+    expect(gmDashboardSource).toContain(
+      'worldModeBoundary={worldModeBoundary}'
     );
     expect(gmDashboardSource).toContain('worldTimeOwner={worldTimeOwner}');
   });

@@ -392,6 +392,11 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
         updateAsOfDate: vi.fn(async (nextDate: string) => nextDate),
         advanceByOneDay: vi.fn(async () => CURRENT_YEAR.toString()),
       },
+      worldModeBoundary: {
+        kind: 'world',
+        worldId: 'world_smoke_lal',
+        onReloadWorldData: vi.fn(async () => undefined),
+      },
       reloadActiveWorldTeamData: vi.fn(async () => undefined),
     });
 

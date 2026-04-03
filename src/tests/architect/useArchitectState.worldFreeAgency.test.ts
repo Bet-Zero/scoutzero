@@ -280,6 +280,11 @@ describe('useArchitectState world-aware free agency pool', () => {
     await waitFor(() => {
       expect(result.current.worldAsOfDate).toBe('2026-07-01');
     });
+    expect(result.current.worldModeBoundary.kind).toBe('world');
+    expect(result.current.worldModeBoundary.worldId).toBe('world_1');
+    expect(typeof result.current.worldModeBoundary.onReloadWorldData).toBe(
+      'function'
+    );
     expect(window.localStorage.getItem('architect.activeWorldId.user_1')).toBe(
       'world_1'
     );
@@ -309,6 +314,12 @@ describe('useArchitectState world-aware free agency pool', () => {
       );
     });
     expect(result.current.worldId).toBeNull();
+    expect(result.current.worldAsOfDate).toBeNull();
+    expect(result.current.worldModeBoundary).toEqual({
+      kind: 'sandbox',
+      worldId: null,
+      onReloadWorldData: null,
+    });
   });
 
   it('owns world-date metadata mutation in worldTimeOwner.updateAsOfDate', async () => {

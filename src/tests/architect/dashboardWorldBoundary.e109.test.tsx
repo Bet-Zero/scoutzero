@@ -550,6 +550,20 @@ function buildDashboardState(
             ((mergedState.worldAsOfDate as string | null) || '2026-02-10')
         ),
       },
+    worldModeBoundary:
+      (overrides.worldModeBoundary as Record<string, unknown> | undefined) ||
+      ((mergedState.worldId as string | null)
+        ? {
+            kind: 'world',
+            worldId: mergedState.worldId as string,
+            onReloadWorldData:
+              mergedState.reloadActiveWorldTeamData as () => Promise<void>,
+          }
+        : {
+            kind: 'sandbox',
+            worldId: null,
+            onReloadWorldData: null,
+          }),
   };
 }
 
@@ -694,6 +708,19 @@ function WorldSelectorHarness({
           onSetWorldId?.(worldId);
         },
       }}
+      worldModeBoundary={
+        currentWorldId
+          ? {
+              kind: 'world',
+              worldId: currentWorldId,
+              onReloadWorldData: vi.fn(async () => undefined),
+            }
+          : {
+              kind: 'sandbox',
+              worldId: null,
+              onReloadWorldData: null,
+            }
+      }
       onWorldChange={onWorldChange}
     />
   );
@@ -1625,6 +1652,45 @@ describe('E109 dashboard/world boundary behavior', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Cap Sheet' }));
       expect(mockSetActiveTab).toHaveBeenCalledWith('cap');
+    });
+
+    it('keeps sandbox-mode surfaces explicit by withholding world-only controls and reload authority without a selected world', async () => {
+      mockUseArchitectState.mockReturnValue(
+        buildDashboardState({
+          worldId: null,
+          worldAsOfDate: null,
+          activeWorldOwner: {
+            worldId: null,
+            setActiveWorld: vi.fn(),
+          },
+          worldTimeOwner: {
+            worldId: null,
+            asOfDate: null,
+            isUpdatingAsOfDate: false,
+            updateAsOfDate: vi.fn(async (nextDate: string) => nextDate),
+            advanceByOneDay: vi.fn(async () => '2026-02-11'),
+          },
+          worldModeBoundary: {
+            kind: 'sandbox',
+            worldId: null,
+            onReloadWorldData: null,
+          },
+        })
+      );
+
+      render(<GMDashboard />);
+
+      await screen.findByLabelText('Architect (optional)');
+      expect(
+        screen.getByText('Select a world to save changes. No world = quick sandbox.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('world-time-controls')
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('mock-offseason-section')).toHaveAttribute(
+        'data-has-reload-handler',
+        'false'
+      );
     });
 
     it('routes current-year and full-table contract launch surfaces through distinct dashboard handlers', async () => {
