@@ -223,7 +223,7 @@ describe('useArchitectState world-aware free agency pool', () => {
     });
   });
 
-  it('reapplies committed world team and metadata through the state-owned reload helper', async () => {
+  it('reapplies committed world team, metadata, and roster/player truth through one coordinated reload helper', async () => {
     const committedTeam = {
       ...teamFixture,
       season: '2026-27',
@@ -263,6 +263,39 @@ describe('useArchitectState world-aware free agency pool', () => {
       result.current.activeWorldOwner.setActiveWorld('world_1');
     });
 
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-02');
+    });
+
+    stateMocks.loadWorldTeamData.mockClear();
+    stateMocks.getLeague.mockClear();
+    stateMocks.getWorldMetadata.mockClear();
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a', 'player_b'],
+        players: [
+          { id: 'player_a', player_id: 'player_a' },
+          {
+            id: 'player_b',
+            player_id: 'player_b',
+            name: 'Reloaded World Override',
+            bio: { playerId: 'player_b' },
+            contract: {
+              salariesByYear: [{ season: '2028-29', salary: 22_500_000 }],
+            },
+          },
+        ],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockResolvedValue({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-03',
+      currentSeason: '2026-27',
+    });
+
     let reloadResult:
       | Awaited<ReturnType<typeof result.current.reloadActiveWorldTeamData>>
       | null = null;
@@ -276,13 +309,29 @@ describe('useArchitectState world-aware free agency pool', () => {
       });
     });
 
+    await waitFor(() => {
+      const playerIds = result.current.freeAgents.map(
+        (p) => p.id || p.player_id || p.name
+      );
+      expect(playerIds).not.toContain('player_b');
+    });
+
     expect(reloadResult).toEqual({
       committedTeam,
       committedTeamSource: 'changedTeams',
     });
+    expect(stateMocks.loadWorldTeamData).not.toHaveBeenCalled();
+    expect(stateMocks.getLeague).toHaveBeenCalledWith('world_1');
+    expect(stateMocks.getWorldMetadata).toHaveBeenCalledWith('world_1');
     expect(result.current.teamCapSheet).toEqual(committedTeam);
     expect(result.current.worldCurrentSeason).toBe('2026-27');
-    expect(result.current.worldAsOfDate).toBe('2026-07-02');
+    expect(result.current.worldAsOfDate).toBe('2026-07-03');
+    expect(result.current.playersMap.player_b?.name).toBe(
+      'Reloaded World Override'
+    );
+    expect(
+      result.current.playersMap.player_b?.contract?.salariesByYear?.[0]?.season
+    ).toBe('2028-29');
   });
 
   it('preserves hydrated offer-sheet arrays through world load and roster-index refresh', async () => {

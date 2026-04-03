@@ -205,6 +205,24 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
       'const clearActiveWorldState = useCallback(() => {'
     );
     expect(useArchitectStateSource).toContain(
+      'type CoordinatedWorldRosterBundle = {'
+    );
+    expect(useArchitectStateSource).toContain(
+      'type CoordinatedWorldLoadBundle ='
+    );
+    expect(useArchitectStateSource).toContain(
+      'const prepareCoordinatedWorldLoad = useCallback('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const loadCoordinatedWorldBundle = useCallback('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const applyCoordinatedWorldBundle = useCallback('
+    );
+    expect(useArchitectStateSource).toContain(
+      'const [roster, loadedMetadata] = await Promise.all(['
+    );
+    expect(useArchitectStateSource).toContain(
       'const worldTimeOwner = useMemo<ArchitectWorldTimeOwner>('
     );
     expect(useArchitectStateSource).toContain(
@@ -236,6 +254,23 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     );
     expect(useArchitectStateSource).toContain(
       'const validatedWorldId = await resolveUsableActiveWorldId('
+    );
+    expect(
+      useArchitectStateSource.match(/prepareCoordinatedWorldLoad\(worldId\);/g)
+        ?.length
+    ).toBe(2);
+    expect(
+      useArchitectStateSource.match(
+        /const coordinatedBundle = await loadCoordinatedWorldBundle\(worldId/g
+      )?.length
+    ).toBe(2);
+    expect(
+      useArchitectStateSource.match(
+        /applyCoordinatedWorldBundle\(coordinatedBundle\);/g
+      )?.length
+    ).toBe(2);
+    expect(useArchitectStateSource).not.toContain(
+      'const loadAndApplyWorldMetadata = useCallback('
     );
     expect(useArchitectStateSource).toContain('reloadActiveWorldTeamData,');
     expect(useArchitectStateSource).toContain('activeWorldOwner,');
