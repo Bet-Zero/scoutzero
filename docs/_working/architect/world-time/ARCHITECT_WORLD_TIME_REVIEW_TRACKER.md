@@ -34,3 +34,15 @@
 | WT-3C | Tighten the Persistence Contract for As-Of Writes So the Owner Path Is Narrower and More Explicit           | DONE   | `worldManager.ts` now routes world-date persistence through explicit `updateWorldAsOfDate(...)` validation, while generic `updateWorldMetadata(...)` rejects `asOfDate` writes so the hook-owned path is narrower and easier to identify. |
 
 **STEP 3 STATUS: DONE**
+
+---
+
+## STEP 4 — World-Aware Loading, Reload, and Downstream State Application
+
+| ID    | Title                                                                                                                                     | Status | Notes |
+|-------|-------------------------------------------------------------------------------------------------------------------------------------------|--------|-------|
+| WT-4A | Centralize Post-Mutation World Reload / Reapply Ownership Through One Explicit Hook-Owned Reload Path                                     | TODO   |       |
+| WT-4B | Centralize World Metadata Application So Downstream Sections Do Not Maintain Parallel World Truth                                         | TODO   |       |
+| WT-4C | Tighten the Coordinated Load / Reapply Contract So Team Snapshot, Roster Index, and Player Overrides Stay in One Clear Truth Bundle        | TODO   |       |
+
+**STEP 4 STATUS: TODO**
