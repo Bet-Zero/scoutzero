@@ -55,6 +55,6 @@
 |-------|-------------------------------------------------------------------------------------------------------------------------|--------|-------|
 | WT-5A | Tighten User-Facing Boundary Truth So Sandbox Copy and Capability Signals Match the Real Feature Matrix                | DONE   | `WorldSelector.tsx` now names sandbox mode precisely, and sandbox-mode `WorldTimeControls.tsx` / `OffseasonSection.tsx` render explicit disabled world-only surfaces so users can see which capabilities require an active world. |
 | WT-5B | Tighten Boundary Enforcement Consistency Across Hidden UI, Null Owners, and Runtime Refusal                            | DONE   | `GMDashboard.tsx` now keeps world-only time controls visible-but-disabled in sandbox, `OffseasonSection.tsx` keeps season advance fail-closed without mounting world execution UI, and `useArchitectActions.ts` now derives lifecycle disabled copy and runtime refusal copy from the same world-only requirement source. |
-| WT-5C | Add Focused Guardrails for World vs Sandbox Capability Truth and Dual-Path Action Safety                               | TODO   |       |
+| WT-5C | Add Focused Guardrails for World vs Sandbox Capability Truth and Dual-Path Action Safety                               | DONE   | Focused guardrails now pin the Step 5 capability matrix across `WorldTimeControls.tsx`, `OffseasonSection.tsx`, `GMDashboard.tsx`, and `useArchitectActions.ts`: sandbox keeps world date / season-advance surfaces visible-but-disabled, world-only grouped owners stay `null`, shared lifecycle copy stays aligned, and dual-path standard signing remains sandbox-capable while offer-sheet / sign-and-trade paths stay world-only. |
 
-**STEP 5 STATUS: TODO**
+**STEP 5 STATUS: DONE**

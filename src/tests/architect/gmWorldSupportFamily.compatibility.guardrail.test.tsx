@@ -114,6 +114,21 @@ describe('E103 GM world-support family compatibility guardrails', () => {
     expect(worldTimeControlsSource).toContain(
       'Set a world date to enable +1 Day.'
     );
+    expect(worldTimeControlsSource).toContain(
+      'const hasActiveWorld = Boolean(worldId);'
+    );
+    expect(worldTimeControlsSource).toContain(
+      'const areControlsDisabled ='
+    );
+    expect(worldTimeControlsSource).not.toContain('if (!worldId) return null;');
+    expect(worldTimeControlsSource).toContain('World-only');
+    expect(worldTimeControlsSource).toContain(
+      'Select a world to unlock world date and +1 Day.'
+    );
+    expect(worldTimeControlsSource).toContain(
+      'Select a world to unlock +1 Day'
+    );
+    expect(worldTimeControlsSource).toContain('disabled={areControlsDisabled}');
 
     expect(draftPositionsInputSource).toContain(
       'export function DraftPositionsInput'

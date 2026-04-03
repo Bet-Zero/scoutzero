@@ -453,6 +453,133 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
   });
 
+  it('keeps dual-path standard signing sandbox-capable through the grouped owner while world-only modal paths stay unavailable', async () => {
+    const rosterPlayers = Array.from({ length: 13 }, (_, index) =>
+      createStandardRosterPlayer(index)
+    );
+    const signableBaseTeam = {
+      ...baseTeamFixture,
+      roster: rosterPlayers.map((player) => player.id),
+      players: rosterPlayers,
+      capHolds: [{ playerId: 'player_1', amount: 9_000_000 }],
+    };
+    const updatedTeam = buildSignedTeamFixture(signableBaseTeam, {
+      roster: [...signableBaseTeam.roster, 'player_1'],
+      players: [
+        ...signableBaseTeam.players,
+        {
+          ...playerFixture,
+          contract: {
+            salariesByYear: contractFixture.salariesByYear,
+          },
+        },
+      ],
+    });
+    mutationMocks.computeWorldMutation.mockReturnValue({
+      success: true,
+      teamUpdates: [{ teamCode: 'LAL', team: updatedTeam }],
+    });
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: null,
+      initialTeam: signableBaseTeam,
+    });
+    const sandboxOwner = result.current.actions.freeAgencyActionOwner;
+
+    let actionResult: any;
+    await act(async () => {
+      actionResult = await sandboxOwner.dualPathSigning.signFreeAgent(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(actionResult).toEqual({ success: true });
+    expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationType: 'signFreeAgent',
+        worldId: null,
+      })
+    );
+    expect(sandboxOwner.worldOnly).toBeNull();
+    expect(
+      sandboxOwner.freeAgentModalAvailability.signAndTradeInitiation
+    ).toBeNull();
+    expect(
+      sandboxOwner.freeAgentModalAvailability.offerSheetInitiation
+    ).toBeNull();
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(result.current.teamCapSheet).toEqual(updatedTeam);
+  });
+
+  it('keeps preview-vs-commit world-only messaging aligned with the capability matrix in sandbox mode', async () => {
+    const { result } = renderActionsHarness({ worldId: null });
+    const sandboxOwner = result.current.actions.freeAgencyActionOwner;
+
+    let satPreflightResult: any;
+    let offerSheetPreflightResult: any;
+    let signAndTradeResult: any;
+    let offerSheetStoreResult: any;
+
+    await act(async () => {
+      satPreflightResult =
+        await result.current.actions.getSignAndTradePreflight(
+          playerFixture as any,
+          contractFixture as any,
+          'BOS'
+        );
+      offerSheetPreflightResult =
+        await result.current.actions.getOfferSheetPreflight(
+          playerFixture as any,
+          contractFixture as any
+        );
+      signAndTradeResult = await result.current.actions.handleSignAndTrade(
+        playerFixture as any,
+        contractFixture as any,
+        'BOS'
+      );
+      offerSheetStoreResult =
+        await result.current.actions.handleStoreOfferSheet(
+          playerFixture as any,
+          contractFixture as any
+        );
+    });
+
+    expect(satPreflightResult.reasons).toEqual([
+      'Sign-and-trade requires an active world to preview.',
+    ]);
+    expect(signAndTradeResult).toEqual({
+      success: false,
+      message: 'Sign-and-trade requires an active world to commit.',
+    });
+    expect(offerSheetPreflightResult.reasons).toEqual([
+      'Offer sheet actions require an active world to preview.',
+    ]);
+    expect(offerSheetStoreResult).toEqual({
+      success: false,
+      message: 'Offer sheet actions require an active world to commit.',
+    });
+    expect(
+      sandboxOwner.offerSheetSectionAvailability.actionsDisabledReason
+    ).toBe('Offer-sheet lifecycle actions require an active world to commit.');
+
+    toastMocks.error.mockClear();
+
+    act(() => {
+      result.current.actions.handleMatchOfferSheet('BOS', 'offer_1');
+    });
+
+    await waitFor(() => {
+      expect(toastMocks.error).toHaveBeenCalledWith(
+        sandboxOwner.offerSheetSectionAvailability.actionsDisabledReason
+      );
+    });
+
+    expect(mutationMocks.preflightSignAndTradeMutation).not.toHaveBeenCalled();
+    expect(mutationMocks.preflightOfferSheetMutation).not.toHaveBeenCalled();
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+  });
+
   it('applies canonical changedTeams snapshot immediately after world-mode sign', async () => {
     const updatedTeam = buildSignedTeamFixture();
 

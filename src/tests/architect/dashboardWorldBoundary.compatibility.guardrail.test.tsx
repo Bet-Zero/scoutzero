@@ -280,6 +280,12 @@ describe('E109 dashboard/world boundary compatibility guardrails', () => {
     expect(gmDashboardSource).toContain('activeWorldOwner,');
     expect(gmDashboardSource).toContain('worldTimeOwner,');
     expect(gmDashboardSource).toContain('worldModeBoundary,');
+    expect(gmDashboardSource).toContain(
+      "disabled={worldModeBoundary.kind !== 'world'}"
+    );
+    expect(gmDashboardSource).not.toContain(
+      "{userId && worldModeBoundary.kind === 'world' && ("
+    );
     expect(gmDashboardSource).toContain('worldCurrentSeason,');
     expect(gmDashboardSource).toContain('worldMetadataLoading,');
     expect(gmDashboardSource).toContain(

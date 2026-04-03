@@ -254,6 +254,25 @@ describe('GM world-support family E103 behavior', () => {
     expect(screen.getByTestId('advance-day-button')).toHaveTextContent('+1 Day');
     expect(screen.getByTestId('advance-day-button')).toBeDisabled();
     expect(screen.getByTestId('world-date-input')).toHaveValue('');
+
+    rerender(
+      <WorldTimeControls
+        worldTimeOwner={buildWorldTimeOwner({
+          asOfDate: '2026-03-15',
+        })}
+      />
+    );
+
+    expect(screen.queryByText('World-only')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Select a world to unlock world date and +1 Day.')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Set a world date to enable +1 Day.')
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('advance-day-button')).not.toBeDisabled();
+    expect(screen.getByTestId('world-date-input')).not.toBeDisabled();
+    expect(screen.getByTestId('world-date-input')).toHaveValue('2026-03-15');
   });
 
   it('preserves WorldTimeControls delegated date-update behavior', async () => {

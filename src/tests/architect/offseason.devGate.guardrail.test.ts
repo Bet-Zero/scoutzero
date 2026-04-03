@@ -104,6 +104,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'seasonAdvanceDraftContext={seasonAdvanceDraftContext}'
       );
+      expect(source).toContain('const hasActiveWorld = Boolean(worldId);');
       expect(source).toContain('worldSeason = null,');
       expect(source).toContain('worldSeasonLoading = false,');
       expect(source).toContain(
@@ -118,6 +119,11 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'canAdvanceSeason={canAdvanceWorldSeason}'
       );
+      expect(source).toContain(
+        'Select a world to unlock season advance.'
+      );
+      expect(source).toContain('worldId={worldId ?? null}');
+      expect(source).toContain('{worldId && seasonAdvanceDraftContext ? (');
       expect(source).not.toContain('getWorldMetadata(');
       expect(source).not.toContain('nextAdvanceDraftYear={nextAdvanceDraftYear ?? viewingYear}');
     });
