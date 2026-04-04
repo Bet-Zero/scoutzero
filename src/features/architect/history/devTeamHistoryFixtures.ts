@@ -1,13 +1,23 @@
-import type { TeamHistoryCapSheetLike } from './TeamHistoryTab/types';
+import type {
+  TeamHistoryCapSheetLike,
+  TeamHistoryCurrentPickInventory,
+  TeamHistoryCurrentPickRow,
+} from './TeamHistoryTab/types';
 
 export const DEV_TEAM_HISTORY_FIXTURE_FLAG = 'hz.dev.teamHistoryFixtures';
 const DEV_TEAM_HISTORY_FIXTURE_MARKER = '__hzDevTeamHistoryFixture';
+const DEV_TEAM_HISTORY_FIXTURE_BACKUP = '__hzDevTeamHistoryFixtureBackup';
 
 export type TeamHistoryEntry = Record<string, unknown>;
 
 export type TeamCapSheetLike = TeamHistoryCapSheetLike & {
   abbreviation?: string;
   id?: string;
+};
+
+type FixtureMarkedCurrentPickRow = TeamHistoryCurrentPickRow & {
+  [DEV_TEAM_HISTORY_FIXTURE_MARKER]?: boolean;
+  [DEV_TEAM_HISTORY_FIXTURE_BACKUP]?: TeamHistoryCurrentPickRow | null;
 };
 
 function resolveTeamCode(teamCapSheet: TeamCapSheetLike): string {
@@ -35,6 +45,56 @@ function stripFixtureEntries(entries: unknown): TeamHistoryEntry[] {
       entry && typeof entry === 'object' && !isFixtureEntry(entry)
     );
   });
+}
+
+function asCurrentPickRow(value: unknown): FixtureMarkedCurrentPickRow | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as FixtureMarkedCurrentPickRow;
+}
+
+function stripCurrentPickFixtureMetadata(
+  row: FixtureMarkedCurrentPickRow | null | undefined
+): TeamHistoryCurrentPickRow | null {
+  if (!row) return null;
+
+  const {
+    [DEV_TEAM_HISTORY_FIXTURE_MARKER]: _marker,
+    [DEV_TEAM_HISTORY_FIXTURE_BACKUP]: _backup,
+    ...rest
+  } = row;
+
+  return rest as TeamHistoryCurrentPickRow;
+}
+
+function readCurrentPickFixtureBackup(
+  row: FixtureMarkedCurrentPickRow | null | undefined
+): TeamHistoryCurrentPickRow | null {
+  if (!row?.[DEV_TEAM_HISTORY_FIXTURE_MARKER]) {
+    return null;
+  }
+
+  return stripCurrentPickFixtureMetadata(
+    asCurrentPickRow(row[DEV_TEAM_HISTORY_FIXTURE_BACKUP])
+  );
+}
+
+function withFixtureCurrentPickRow(
+  fixtureRow: TeamHistoryCurrentPickRow,
+  existingRow: FixtureMarkedCurrentPickRow | null
+): FixtureMarkedCurrentPickRow {
+  const baseRow =
+    readCurrentPickFixtureBackup(existingRow) ??
+    stripCurrentPickFixtureMetadata(existingRow);
+
+  return {
+    ...(baseRow || {}),
+    ...fixtureRow,
+    [DEV_TEAM_HISTORY_FIXTURE_MARKER]: true,
+    [DEV_TEAM_HISTORY_FIXTURE_BACKUP]: baseRow ? { ...baseRow } : null,
+  };
 }
 
 function buildFixtureTimeline(teamCode: string): TeamHistoryEntry[] {
@@ -158,7 +218,7 @@ function buildFixturePickLog(teamCode: string): TeamHistoryEntry[] {
   ];
 }
 
-function buildFixtureCurrentPicks(): Record<string, unknown> {
+function buildFixtureCurrentPicks(): TeamHistoryCurrentPickInventory {
   return {
     2027: {
       first: 'Own',
@@ -177,6 +237,67 @@ function sortTimeline(entries: TeamHistoryEntry[]): TeamHistoryEntry[] {
     const bTs = Date.parse(String(b.timestamp || b.occurredAt || 0));
     return bTs - aTs;
   });
+}
+
+// Fixture-owned current-pick rows keep an inline backup so clear restores the
+// pre-fixture inventory instead of leaving synthetic values behind.
+function injectFixtureCurrentPicks(
+  currentPicks: unknown
+): TeamHistoryCurrentPickInventory {
+  const existingCurrentPicks =
+    currentPicks && typeof currentPicks === 'object' && !Array.isArray(currentPicks)
+      ? (currentPicks as Record<string, unknown>)
+      : {};
+  const nextCurrentPicks = { ...existingCurrentPicks };
+
+  Object.entries(buildFixtureCurrentPicks()).forEach(([year, fixtureRow]) => {
+    nextCurrentPicks[year] = withFixtureCurrentPickRow(
+      fixtureRow || {},
+      asCurrentPickRow(existingCurrentPicks[year])
+    );
+  });
+
+  return nextCurrentPicks as TeamHistoryCurrentPickInventory;
+}
+
+function clearFixtureCurrentPicks(
+  currentPicks: unknown
+): TeamHistoryCurrentPickInventory {
+  if (!currentPicks || typeof currentPicks !== 'object' || Array.isArray(currentPicks)) {
+    return {};
+  }
+
+  const nextCurrentPicks: TeamHistoryCurrentPickInventory = {};
+
+  Object.entries(currentPicks as Record<string, unknown>).forEach(
+    ([year, rawRow]) => {
+      const currentRow = asCurrentPickRow(rawRow);
+
+      if (!currentRow?.[DEV_TEAM_HISTORY_FIXTURE_MARKER]) {
+        nextCurrentPicks[year] = currentRow
+          ? stripCurrentPickFixtureMetadata(currentRow) || undefined
+          : (rawRow as TeamHistoryCurrentPickRow);
+        return;
+      }
+
+      const backupRow = readCurrentPickFixtureBackup(currentRow);
+      if (backupRow) {
+        nextCurrentPicks[year] = backupRow;
+      }
+    }
+  );
+
+  return nextCurrentPicks;
+}
+
+function hasInjectedFixtureCurrentPicks(currentPicks: unknown): boolean {
+  if (!currentPicks || typeof currentPicks !== 'object' || Array.isArray(currentPicks)) {
+    return false;
+  }
+
+  return Object.values(currentPicks as Record<string, unknown>).some((rawRow) =>
+    Boolean(asCurrentPickRow(rawRow)?.[DEV_TEAM_HISTORY_FIXTURE_MARKER])
+  );
 }
 
 export function injectTeamHistoryFixtures(
@@ -205,13 +326,7 @@ export function injectTeamHistoryFixtures(
       ...stripFixtureEntries(teamCapSheet.pickLog),
       ...buildFixturePickLog(teamCode),
     ],
-    currentPicks: {
-      ...(teamCapSheet.currentPicks &&
-      typeof teamCapSheet.currentPicks === 'object'
-        ? teamCapSheet.currentPicks
-        : {}),
-      ...buildFixtureCurrentPicks(),
-    } as TeamHistoryCapSheetLike['currentPicks'],
+    currentPicks: injectFixtureCurrentPicks(teamCapSheet.currentPicks),
     historyTimeline: [
       ...stripFixtureEntries(teamCapSheet.historyTimeline),
       ...timeline,
@@ -230,6 +345,7 @@ export function clearTeamHistoryFixtures(
     exceptionHistory: stripFixtureEntries(teamCapSheet.exceptionHistory),
     mleHistory: stripFixtureEntries(teamCapSheet.mleHistory),
     pickLog: stripFixtureEntries(teamCapSheet.pickLog),
+    currentPicks: clearFixtureCurrentPicks(teamCapSheet.currentPicks),
     historyTimeline: stripFixtureEntries(teamCapSheet.historyTimeline),
   };
 }
@@ -247,8 +363,10 @@ export function hasInjectedTeamHistoryFixtures(
     teamCapSheet.historyTimeline,
   ];
 
-  return collections.some((entries) => {
-    if (!Array.isArray(entries)) return false;
-    return entries.some((entry) => isFixtureEntry(entry as TeamHistoryEntry));
-  });
+  return (
+    collections.some((entries) => {
+      if (!Array.isArray(entries)) return false;
+      return entries.some((entry) => isFixtureEntry(entry as TeamHistoryEntry));
+    }) || hasInjectedFixtureCurrentPicks(teamCapSheet.currentPicks)
+  );
 }

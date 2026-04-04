@@ -127,7 +127,10 @@ describe('Team History world boundary integration', () => {
       'DEV fixture override'
     );
     expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
-      'suppress world events'
+      'suppress authoritative world events until cleared'
+    );
+    expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
+      'Synthetic DEV fixture history'
     );
     expect(
       screen.getByText(

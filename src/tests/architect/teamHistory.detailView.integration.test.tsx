@@ -42,7 +42,10 @@ describe('Team History detail view integration', () => {
       'BOS'
     );
     expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
-      'Explicit local timeline row'
+      'Synthetic DEV fixture row'
+    );
+    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
+      'non-authoritative test data'
     );
     expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
       'th-fixture-trade-BOS'

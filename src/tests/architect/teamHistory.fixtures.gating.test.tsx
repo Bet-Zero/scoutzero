@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
-import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
+import {
+  DEV_TEAM_HISTORY_FIXTURE_FLAG,
+  injectTeamHistoryFixtures,
+} from '@/features/architect/history/devTeamHistoryFixtures';
 
 const emptyTeam = {
   teamCode: 'LAL',
@@ -58,5 +62,18 @@ describe('Team History DEV fixture gating', () => {
     expect(
       screen.getByTestId('team-history-clear-fixtures-button')
     ).toBeInTheDocument();
+  });
+
+  it('shows an explicit active-fixture warning when synthetic history is already injected', () => {
+    vi.stubEnv('DEV', true);
+    localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
+
+    render(<TeamHistoryTab teamCapSheet={injectTeamHistoryFixtures(emptyTeam)} />);
+
+    expect(
+      screen.getByTestId('team-history-fixtures-active-note')
+    ).toHaveTextContent(
+      'Clear them before trusting world-event or local-history behavior.'
+    );
   });
 });

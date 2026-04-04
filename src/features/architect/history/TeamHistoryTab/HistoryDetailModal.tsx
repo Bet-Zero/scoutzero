@@ -162,6 +162,20 @@ const resolveTruthContract = (
     };
   }
 
+  if (selectedEntry.truthKind === 'synthetic-dev-fixture') {
+    return {
+      label: 'Synthetic DEV fixture row',
+      description:
+        'Display fields below come from injected DEV Team History fixtures. These rows are non-authoritative test data and temporarily suppress world-event history until cleared.',
+      rawPayloadTitle: rawEntry
+        ? 'Attached Fixture Payload'
+        : 'No Raw Payload Attached',
+      rawPayloadDescription: rawEntry
+        ? 'Inspect this synthetic payload separately from the rendered Team History fields above.'
+        : 'This selected synthetic fixture row does not carry a raw payload object.',
+    };
+  }
+
   if (selectedEntry.truthKind === 'section-derived-fallback') {
     return {
       label: 'Section-derived fallback row',

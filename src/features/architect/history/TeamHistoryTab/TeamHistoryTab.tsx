@@ -118,11 +118,13 @@ const buildSelectedHistoryEntry = ({
 }): TeamHistorySelectedEntry => {
   const rawEntry = asRecord(entry?.raw);
   const truthKind =
-    rawEntry?.derivedTimeline === true || timelineSourceKey === 'synthesized'
-      ? 'section-derived-fallback'
-      : timelineSourceKey === 'world-events'
-        ? 'authoritative-world-event'
-        : 'explicit-local-timeline';
+    timelineSourceKey === 'dev-fixtures'
+      ? 'synthetic-dev-fixture'
+      : rawEntry?.derivedTimeline === true || timelineSourceKey === 'synthesized'
+        ? 'section-derived-fallback'
+        : timelineSourceKey === 'world-events'
+          ? 'authoritative-world-event'
+          : 'explicit-local-timeline';
 
   return {
     activeTeamCode,
@@ -500,11 +502,13 @@ const resolveTeamHistoryTimeline = ({
       scopeLabel,
       sourceLabel: 'DEV fixture override',
       sourceDetail:
-        'Injected DEV fixtures take ownership of the timeline and suppress world events while active.',
+        'Injected synthetic DEV Team History fixtures temporarily take ownership of the local history view and suppress authoritative world events until cleared.',
       sourceAccentClassName: 'text-emerald-200',
-      timelineTruthLabel: null,
-      timelineTruthDetail: null,
-      timelineTruthClassName: null,
+      timelineTruthLabel: 'Synthetic DEV fixture history',
+      timelineTruthDetail:
+        'These timeline rows and Team History section values are injected DEV-only test data. They are useful for coverage, but they are not authoritative Team History truth.',
+      timelineTruthClassName:
+        'border-emerald-500/20 bg-emerald-500/5 text-emerald-100/85',
       usesWorldEvents: false,
       timelineEntries:
         explicitTimeline.length > 0 ? explicitTimeline : synthesizedTimeline,
@@ -776,6 +780,15 @@ const TeamHistoryTab = ({
             Injects deterministic in-memory history entries only (no Firestore
             writes).
           </div>
+          {hasActiveFixtureOverride && (
+            <div
+              data-testid="team-history-fixtures-active-note"
+              className="rounded border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-100/85"
+            >
+              Synthetic Team History fixtures are active. Clear them before
+              trusting world-event or local-history behavior.
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <button
               type="button"

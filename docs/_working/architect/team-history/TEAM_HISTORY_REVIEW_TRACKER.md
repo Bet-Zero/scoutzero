@@ -66,12 +66,12 @@ Execution checklist for the Team History review. Each substep is marked TODO / I
 
 ## STEP 6 — DEV Fixture Path and Non-Authoritative History Safety
 
-**STEP 6 STATUS: TODO**
+**STEP 6 STATUS: IN PROGRESS**
 
 | Substep | Description                                                                                                                   | Status |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------- | ------ |
-| TH-6A   | Tighten DEV Fixture Isolation So Synthetic Team History Data Is More Fully Reversible And Less Leaky Across Local Collections | TODO   |
-| TH-6B   | Tighten Non-Authoritative Fixture Truth Signaling So Fixture Override Cannot Quietly Masquerade As Real History               | TODO   |
-| TH-6C   | Add Focused Guardrails For DEV Fixture Isolation, Override Safety, And Synthetic Truth Signaling                              | TODO   |
+| TH-6A   | Tighten DEV Fixture Isolation So Synthetic Team History Data Is More Fully Reversible And Less Leaky Across Local Collections | DONE   |
+| TH-6B   | Tighten Non-Authoritative Fixture Truth Signaling So Fixture Override Cannot Quietly Masquerade As Real History               | DONE   |
+| TH-6C   | Add Focused Guardrails For DEV Fixture Isolation, Override Safety, And Synthetic Truth Signaling                              | IN PROGRESS |
 
 ---

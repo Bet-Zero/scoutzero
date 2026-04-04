@@ -349,33 +349,41 @@ Together these focused tests now pin the intended Step 5 drill-down contract tig
 
 ### TH-6-1 — DEV fixture injection touches multiple local Team History surfaces but `clearTeamHistoryFixtures` does not undo all of them
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-6A
 
 **Problem:**
 
 `injectTeamHistoryFixtures(...)` in `devTeamHistoryFixtures.ts` writes synthetic data into five marker-managed array collections (`historyTimeline`, `waivedContracts`, `exceptionHistory`, `mleHistory`, `pickLog`) and also merges synthetic values directly into `currentPicks`. For the five array paths, the fixture marker design is real: `withFixtureMarker(...)` tags each entry and `stripFixtureEntries(...)` removes them on clear. But `currentPicks` is handled differently — it receives merged synthetic fixture values via `buildFixtureCurrentPicks(...)` and is not touched at all by `clearTeamHistoryFixtures(...)`. The inject/clear model is therefore not symmetric across all surfaces the fixture path actually mutates. A developer who clears fixtures and expects a clean state is left with residual synthetic `currentPicks` values that are not marked and not cleared.
 
+**Resolution:**
+
+`devTeamHistoryFixtures.ts` now treats `currentPicks` as an explicitly owned fixture surface instead of a one-way merge. Fixture-owned current-pick rows now carry the same fixture marker plus an inline backup of the pre-fixture row, so injection remains idempotent and `clearTeamHistoryFixtures(...)` can restore the original local pick inventory instead of leaving synthetic years or overwritten values behind. The Team History fixture seam is now materially more symmetric across every live local collection it mutates.
+
 ---
 
 ### TH-6-2 — Fixture override posture and marker-detection scope are softer than the non-authoritative claim requires
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-6B
 
 **Problem:**
 
 `Team HistoryTab.tsx` correctly prioritizes the DEV fixture path first in `resolveTeamHistoryTimeline(...)` and labels the active source as `DEV fixture override`. However, two related weaknesses remain. First, `hasInjectedTeamHistoryFixtures(...)` checks for fixture markers in only five known array collections — `waivedContracts`, `exceptionHistory`, `mleHistory`, `pickLog`, `historyTimeline` — and does not account for `currentPicks`, which is also injected. The "fixture active" detection signal is therefore narrower than the actual injection footprint. Second, the fail-closed design — where team data markers own the override even if an upstream boolean is stale — means stale fixture data can continue to suppress authoritative world-event history long after the developer believes they have cleared it. Fixture override can thereby mask real world-event retrieval, normalization, and base-mode issues for any session where markers remain on the team object.
 
+**Resolution:**
+
+The active-fixture signal now covers the full live injection footprint, including marker-managed `currentPicks` rows, so stale synthetic pick inventory no longer falls outside fixture detection. On the UI side, the Team History shell now states more explicitly that fixture mode is synthetic DEV data that suppresses authoritative world events until cleared, the timeline section adds a dedicated synthetic-truth note, the DEV fixtures panel surfaces an active-fixture warning, and fixture-selected drill-down rows now identify themselves as `Synthetic DEV fixture row` instead of reading like normal local timeline truth. The fixture-first override boundary is preserved, but its non-authoritative posture is now materially harder to mistake for real Team History truth.
+
 ---
 
-### TH-6-3 — No focused guardrails exist for the fixture inject/clear lifecycle, override ownership boundary, or synthetic truth signaling
+### TH-6-3 — Focused guardrails for the fixture inject/clear lifecycle, override ownership boundary, and synthetic truth signaling are still incomplete
 
 **Status:** OPEN
 **Substep:** TH-6C
 
 **Problem:**
 
-The DEV fixture seam in `devTeamHistoryFixtures.ts` and `TeamHistoryTab.tsx` has no focused test guardrails that pin its intended isolation contract. Nothing currently protects: the rule that `clearTeamHistoryFixtures` removes synthetic state from every surface that `injectTeamHistoryFixtures` touched; the rule that fixture override takes priority over world-authoritative history and does so fail-closed from actual team data markers; the rule that `hasInjectedTeamHistoryFixtures` detection scope stays aligned with the actual injection footprint; or the rule that fixture-generated Team History rows carry explicitly synthetic identity and are not rendered with authoritative-history posture. Without this guardrail surface, the clear path can degrade, detection scope can drift from injection scope, override ownership can weaken, and stale or leaky fixture behavior can accumulate — all without any test failing loudly.
+The DEV fixture seam in `devTeamHistoryFixtures.ts` and `TeamHistoryTab.tsx` now has some focused support in existing fixture/source-selection/detail tests, but it still does not yet have one dedicated closeout guardrail pass that owns the full Step 6 safety contract end-to-end. This pass added direct assertions for symmetric `currentPicks` clearing, aligned fixture detection, stronger synthetic-truth messaging, and DEV-panel active-fixture signaling. Even so, Step 6 still lacks one explicitly named guardrail sweep that treats fixture isolation, override ownership, and synthetic truth signaling as a single finalized test surface. That remaining gap is smaller than before, but it is not fully closed yet.
 
 ---

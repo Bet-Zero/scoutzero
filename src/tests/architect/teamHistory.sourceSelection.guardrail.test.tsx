@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
-import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
+import {
+  clearTeamHistoryFixtures,
+  hasInjectedTeamHistoryFixtures,
+  injectTeamHistoryFixtures,
+} from '@/features/architect/history/devTeamHistoryFixtures';
 
 const useWorldTeamEventsMock = vi.fn();
 
@@ -65,7 +69,13 @@ describe('TEAM_HISTORY_STEP1 source-selection guardrails', () => {
       'DEV fixture override'
     );
     expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
-      'suppress world events'
+      'suppress authoritative world events until cleared'
+    );
+    expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
+      'Synthetic DEV fixture history'
+    );
+    expect(screen.getByTestId('team-history-base-truth-detail')).toHaveTextContent(
+      'not authoritative Team History truth'
     );
     expect(
       screen.getByText(
@@ -76,6 +86,40 @@ describe('TEAM_HISTORY_STEP1 source-selection guardrails', () => {
       screen.queryByText('WORLD_EVENT_SHOULD_NOT_RENDER')
     ).not.toBeInTheDocument();
     expect(useWorldTeamEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('restores fixture-owned currentPicks rows and clears fixture marker ownership symmetrically', () => {
+    const baseTeam = {
+      ...buildBaseTeam(),
+      currentPicks: {
+        2027: {
+          first: 'Owed to PHX',
+          second: 'Own',
+        },
+        2028: {
+          first: 'Own',
+          second: 'Own',
+        },
+      },
+    };
+
+    const fixtureTeam = injectTeamHistoryFixtures(baseTeam);
+
+    expect(hasInjectedTeamHistoryFixtures(fixtureTeam)).toBe(true);
+    expect(fixtureTeam.currentPicks?.['2027']).toMatchObject({
+      first: 'Own',
+      second: 'Own',
+    });
+    expect(fixtureTeam.currentPicks?.['2029']).toMatchObject({
+      first: 'Own',
+      second: 'From SAS (top-55 protected)',
+    });
+
+    const clearedTeam = clearTeamHistoryFixtures(fixtureTeam);
+
+    expect(hasInjectedTeamHistoryFixtures(clearedTeam)).toBe(false);
+    expect(clearedTeam.currentPicks).toEqual(baseTeam.currentPicks);
+    expect(clearedTeam.currentPicks).not.toHaveProperty('2029');
   });
 
   it('keeps world-event mode authoritative over explicit local historyTimeline when no fixture override exists', () => {

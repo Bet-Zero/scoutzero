@@ -41,6 +41,7 @@ export type TeamHistoryTimelineSourceKey =
 
 export type TeamHistorySelectedEntryTruthKind =
   | 'authoritative-world-event'
+  | 'synthetic-dev-fixture'
   | 'explicit-local-timeline'
   | 'section-derived-fallback';
 
