@@ -11,7 +11,7 @@ Problem-level issues surfaced during the Team History review. Each issue describ
 ### TH-1-1 — The top-level Team History UI under-describes which history source is actually active
 
 **Status:** RESOLVED  
-**Substep:** TH-1A  
+**Substep:** TH-1A
 
 **Problem:**
 
@@ -26,7 +26,7 @@ Problem-level issues surfaced during the Team History review. Each issue describ
 ### TH-1-2 — World / base / fixture source-selection at the top level reads as incidental branching rather than an explicit contract
 
 **Status:** RESOLVED  
-**Substep:** TH-1B  
+**Substep:** TH-1B
 
 **Problem:**
 
@@ -48,7 +48,7 @@ The fixture override path also now fail-closes from the actual team data, so inj
 ### TH-1-3 — Top-level source-selection behavior has no focused guardrails and can drift silently
 
 **Status:** RESOLVED  
-**Substep:** TH-1C  
+**Substep:** TH-1C
 
 **Problem:**
 
@@ -132,5 +132,42 @@ TH-2C added focused guardrails at the seam where retrieval truth actually lives:
 3. Team History UI guardrails now protect the legacy compatibility note boundary and the retrieval-truth semantics that depend on hook resolution state
 
 This leaves the Team History Step 2 compatibility matrix and pagination contract pinned directly enough to fail loudly if the intended retrieval model drifts.
+
+---
+
+## STEP 3 — World Event Normalization and Display-Contract Truth
+
+---
+
+### TH-3-1 — Normalization category / type / summary output is too interpretive rather than explicitly grounded
+
+**Status:** OPEN
+**Substep:** TH-3A
+
+**Problem:**
+
+The Team History normalization seam has one coherent display-contract owner (`normalizeWorldEventsForTeamHistory.ts`), but it operates through significant inference rather than explicit grounding. Category assignment is performed by `inferCategory(...)` using substring matching against raw mutation type text — any mutation type containing `trade` becomes a trade, any containing `waive` or `buyout` becomes a cap-transaction, and so on. Summary generation prefers the raw `mutationMetadata.summary` when present but falls back to `buildSummary(...)`, which manufactures confident human-facing phrasing from thin metadata. Several mutation families that are meaningfully distinct — signing, sign-and-trade, finalized offer sheet variants — share a common summary/detail shape that can flatten important differences. The result is a display contract that is coherent but still more interpretive than fully grounded: rows communicate confident event labels that are partly manufactured rather than directly reflecting raw world-event truth.
+
+---
+
+### TH-3-2 — Cap-delta and detail-section interpretation compresses or flattens meaningful event truth
+
+**Status:** OPEN
+**Substep:** TH-3B
+
+**Problem:**
+
+The normalization seam computes one primary-team-centric cap delta and routes most mutation families through a shared section vocabulary (`Players`, `Picks`, `Teams`, `Contract`, `Exceptions`, `Cap Delta`). The cap delta path uses `readCapDelta(...)`, which selects one team perspective and one aggregated field (`totalCapAllocations`), making it intentionally narrow. Several distinct mutation families are compressed into identical or near-identical section structures at display time. Generic fallback lines — `Exceptions updated`, `Dead cap updated` — are informative but lose the structural distinctions between different event types. For unknown or new mutation types, the default branch only emits player labels, a team line, and a cap delta line, making new events look acceptably rendered even when important event-specific information has been silently dropped. The effect is that Team History detail rows can look richer than the normalization seam actually is.
+
+---
+
+### TH-3-3 — No focused guardrails exist for Team History normalization / display-contract behavior
+
+**Status:** OPEN
+**Substep:** TH-3C
+
+**Problem:**
+
+The normalization seam is covered by integration tests that verify acceptable transaction-log rendering for known mutation families, but nothing pins the intended rules of the display contract itself. Category inference rules can change silently without failing any targeted test. Summary fallback behavior can become more aggressive without detection. Cap-delta logic can drift toward different fields or team-selection strategies while still producing plausible-looking rows. Mutation-family section output can flatten more meaningful distinctions over time without causing obvious UI breakage. Because the integration test surface validates output shape rather than display-contract rules, the normalization seam can regress in faithfulness without any failure, which undermines the durability of the Team History history view as later detail-modal and closeout work builds further on top of it.
 
 ---
