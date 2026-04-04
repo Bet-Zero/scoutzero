@@ -246,11 +246,23 @@ This keeps the fallback lightweight, but the rows now read as intentional local 
 
 ### TH-4-3 — No focused guardrails exist around base-mode fallback ordering or synthesized timeline truth
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-4C
 
 **Problem:**
 
 Existing tests in `teamHistory.baseMode.noEventsQuery.test.tsx` and `teamHistory.render.sections.test.tsx` cover some base-mode behavior, but they do not pin the specific concerns Step 4 surfaces. None of the following are guarded by focused tests: the rule that explicit local `historyTimeline` rows take precedence over synthesized fallback; the rule that base mode does not invoke the world-event query hook when there is no `worldId`; the ordering behavior of synthesized rows under heterogeneous timestamp fields; or the source-specific meaning that the synthesized projection preserves (or loses) for each of the three source arrays. This means explicit local timeline precedence can change silently, the no-world/no-query path can regress, timeline sorting can drift as timestamp fields evolve, and synthesized rows can become more misleading over time — all without any test failing loudly.
+
+**Resolution:**
+
+TH-4C added a dedicated Step 4 fallback-contract guardrail suite and then re-ran the existing focused base-mode/source-selection tests against the live TH-4A / TH-4B seam. The guardrails now directly protect:
+
+1. fixture override and world-event ownership staying ahead of the base-mode fallback branch
+2. explicit local `historyTimeline` rows staying authoritative over synthesized fallback in no-world base mode
+3. no-world base mode continuing to avoid the world-event query hook
+4. synthesized-row newest-first ordering under source-aware timestamp selection, including the rule that preferred source fields win over lower-priority date fields and missing timestamps sink to the bottom
+5. source-specific synthesized meaning for `waivedContracts[]`, `exceptionHistory[]`, and `pickLog[]`, including `sectionDerived:*` mutation metadata, source-truth detail sections, and raw derived-source metadata
+
+This now leaves the Step 4 base-mode fallback contract pinned directly enough to fail loudly if source ownership, synthesized ordering, or derived-row truth drifts.
 
 ---
