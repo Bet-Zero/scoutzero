@@ -21,6 +21,8 @@ The following feature areas are already whole-feature closed:
 
 - **Free Agency** — whole-feature closeout complete
 - **Offseason** — whole-feature closeout complete
+- **League / World Time / As-Of** — whole-feature closeout complete
+- **Team History** — whole-feature closeout complete
 
 These should be treated as closed unless a future unrelated bug or new scope reopens them.
 
@@ -28,17 +30,7 @@ These should be treated as closed unless a future unrelated bug or new scope reo
 
 # 2. Current Feature In Progress
 
-## League / World Time / As-Of
-
-Current status:
-
-- **Step 1** — complete
-- **Step 2 Review Record** — complete
-- **Step 2 Action Breakdown** — complete
-- **Step 2 Bootstrap prompt** — written
-- Current working state: **Step 2 bootstrap / execution stage**
-
-This remains the active feature area to continue first.
+No feature is currently in progress.
 
 ---
 
@@ -46,13 +38,7 @@ This remains the active feature area to continue first.
 
 After League / World Time / As-Of, the most likely remaining Architect review areas are:
 
-## A. Team History
-
-Reason:
-
-- still appears to be a distinct feature area worth its own full review flow
-- likely smaller and more self-contained than broader cross-system reviews
-- good next feature after the world/time system is complete
+## A. ~~Team History~~ — Complete
 
 ## B. Dedicated Multi-Year Cap Table Truth Pass
 
@@ -88,8 +74,8 @@ Reason:
 
 The preferred order at the time this roadmap was written is:
 
-1. **Finish League / World Time / As-Of**
-2. **Team History**
+1. ~~**Finish League / World Time / As-Of**~~ — Complete
+2. ~~**Team History**~~ — Complete
 3. **Dedicated Multi-Year Cap Table Truth Pass**
 4. **Reassess whether a broader League-Wide / Cross-Team World review is still needed**
 5. **Only then consider smaller leftover utility/shared-system seams**
@@ -98,21 +84,9 @@ The preferred order at the time this roadmap was written is:
 
 # 5. Why This Order
 
-## 1. Finish World / Time / As-Of first
+## 1. ~~Finish World / Time / As-Of first~~ — Complete
 
-Reason:
-
-- it is already in progress
-- it is upstream of many downstream Architect truth surfaces
-- it is more central than Team History
-
-## 2. Team History second
-
-Reason:
-
-- likely more self-contained
-- likely smaller and cleaner than broader cross-system world reviews
-- good next major feature after upstream world/time truth is finished
+## 2. ~~Team History second~~ — Complete
 
 ## 3. Multi-Year Cap Table Truth third
 
