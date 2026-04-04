@@ -342,3 +342,40 @@ TH-5C added focused detail-modal guardrails directly on the live Step 5 seam wit
 Together these focused tests now pin the intended Step 5 drill-down contract tightly enough that selected-entry ownership, normalized-first rendering, separated identity fields, cap-alignment honesty, and raw-payload posture will fail loudly if they drift.
 
 ---
+
+## STEP 6 — DEV Fixture Path and Non-Authoritative History Safety
+
+---
+
+### TH-6-1 — DEV fixture injection and clearing is not fully reversible or fully isolated across all Team History surfaces it touches
+
+**Status:** OPEN
+**Substep:** TH-6A
+
+**Problem:**
+
+The Team History DEV fixture override path injects synthetic data into a local Team History view during development. However, the inject/clear lifecycle is not fully reversible. Fixture data can leak across multiple Team History subsurfaces — `WaiveStretchTracker`, `ExceptionHistoryTracker`, `DraftPickTracker` — because the clear path does not enumerate and reset every local collection or state surface that injection may have touched. A developer working against an active fixture can end up with residual synthetic history entries that persist across nominal clear operations. The fixture injection path also does not scope its writes to a fully isolated local channel, meaning synthetic entries can bleed into local state in ways that survive navigation resets, tab re-mounts, or context switches. This makes the DEV fixture path structurally leakier than intended.
+
+---
+
+### TH-6-2 — Non-authoritative fixture truth signaling is too soft and fixture override state can masquerade as real Team History truth
+
+**Status:** OPEN
+**Substep:** TH-6B
+
+**Problem:**
+
+When a DEV fixture is active, the Team History shell surfaces a `DEV fixture override` banner label, but the truth posture markers for fixture-injected rows are not strong enough to consistently distinguish synthetic history from authoritative data. The visual treatment of fixture-injected Team History rows closely resembles the display treatment of real world-event rows or explicit local timeline rows: rows share the same timeline shape, the same section structure, and — in some rendering paths — the same source-selection banner text. The fixture override posture is also not fail-closed: edge cases such as partial injection, stale override booleans, or banner rendering suppressed by parent layout can leave fixture data active but not clearly labeled as non-authoritative. The net effect is that synthetic Team History data can masquerade as real history truth more easily than the DEV fixture path intends.
+
+---
+
+### TH-6-3 — No focused guardrails exist for DEV fixture isolation, the clear/reset path, or non-authoritative synthetic truth signaling
+
+**Status:** OPEN
+**Substep:** TH-6C
+
+**Problem:**
+
+The DEV fixture injection path has no focused test guardrails that protect its isolation contract, its clear/reset lifecycle, or the truth-signaling semantics it is supposed to enforce. Nothing pins: the rule that fixture injection remains scoped to the intended local channel and does not leak into live subsurface data; the rule that the clear path removes all fixture-injected state and returns the system to its pre-injection posture; the rule that fixture override rows carry explicitly non-authoritative truth posture markers that cannot be confused with real Team History source signals; or the rule that partial or stale fixture state fails visibly rather than silently accumulating. Without this test surface, fixture injection scope can silently expand, the clear path can degrade, and synthetic truth signaling can weaken — all without any test catching the drift.
+
+---
