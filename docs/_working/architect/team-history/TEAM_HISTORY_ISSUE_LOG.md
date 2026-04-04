@@ -47,15 +47,22 @@ The fixture override path also now fail-closes from the actual team data, so inj
 
 ### TH-1-3 — Top-level source-selection behavior has no focused guardrails and can drift silently
 
-**Status:** OPEN  
+**Status:** RESOLVED  
 **Substep:** TH-1C  
 
 **Problem:**
 
 Nothing in the current test surface pins the intended Team History shell behavior — specifically, the priority ordering of world-event vs local-timeline vs synthesized vs fixture paths, and the rule that fixture injection suppresses the world path even when `worldId` exists. Without guardrails, future contributors can weaken source-selection clarity, change fallback ordering, or expand the fixture override scope without any test failing. The risk is compounded by the fact that Team History composes multiple sub-surfaces (`WaiveStretchTracker`, `ExceptionHistoryTracker`, `DraftPickTracker`), so top-level shell drift affects the integrity of all of those composed views.
 
-**Current note:**
+**Resolution:**
 
-This execution added targeted seam validation for the new source banner and world/base/fixture ownership behavior, but it did not perform the broader dedicated guardrail pass needed to close TH-1C as a full substep.
+This execution added a dedicated top-level source-selection guardrail matrix that now protects the intended shell contract directly:
+
+1. fixture override wins when active
+2. otherwise world-event mode wins when `worldId` exists
+3. otherwise explicit local `historyTimeline` wins
+4. otherwise synthesized fallback is used
+
+The new guardrails also pin banner/path alignment and fixture-marker override safety, including the fail-closed rule that actual fixture markers in team data still suppress world-event mode even when an upstream boolean is false or stale.
 
 ---
