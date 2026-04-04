@@ -15,3 +15,15 @@ Execution checklist for the Team History review. Each substep is marked TODO / I
 | TH-1C | Add Focused Guardrails For Top-Level Team History Mode / Source Selection Truth | DONE |
 
 ---
+
+## STEP 2 — World Event Loading, Query Compatibility, and Pagination Truth
+
+**STEP 2 STATUS: TODO**
+
+| Substep | Description | Status |
+|---------|-------------|--------|
+| TH-2A | Tighten The World-Event Query Contract So Team History Is Less Compatibility-Driven And More Explicitly Owned | TODO |
+| TH-2B | Tighten Query Compatibility, Dedupe, Empty-State, and Pagination Behavior So Retrieval Truth Is More Durable | TODO |
+| TH-2C | Add Focused Guardrails For World-Event Query Compatibility And Pagination Truth | TODO |
+
+---
