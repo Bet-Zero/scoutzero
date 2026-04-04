@@ -141,23 +141,31 @@ This leaves the Team History Step 2 compatibility matrix and pagination contract
 
 ### TH-3-1 — Normalization category / type / summary output is too interpretive rather than explicitly grounded
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-3A
 
 **Problem:**
 
 The Team History normalization seam has one coherent display-contract owner (`normalizeWorldEventsForTeamHistory.ts`), but it operates through significant inference rather than explicit grounding. Category assignment is performed by `inferCategory(...)` using substring matching against raw mutation type text — any mutation type containing `trade` becomes a trade, any containing `waive` or `buyout` becomes a cap-transaction, and so on. Summary generation prefers the raw `mutationMetadata.summary` when present but falls back to `buildSummary(...)`, which manufactures confident human-facing phrasing from thin metadata. Several mutation families that are meaningfully distinct — signing, sign-and-trade, finalized offer sheet variants — share a common summary/detail shape that can flatten important differences. The result is a display contract that is coherent but still more interpretive than fully grounded: rows communicate confident event labels that are partly manufactured rather than directly reflecting raw world-event truth.
 
+**Resolution:**
+
+TH-3A replaced heuristic category inference with one explicit Team History display map keyed by canonical mutation type. The normalization seam now resolves category/type through owned source-level mappings instead of substring guessing, while still honoring an explicitly supplied raw category when present. Summary fallback logic was tightened so generic source summaries no longer block more grounded row summaries, and family-specific fallback summaries now anchor themselves only to concrete team/player/change metadata that is actually present. The sign, sign-and-trade, offer-sheet, waiver, contract, entitlement, and dead-cap families now produce distinct row-level summary/detail output instead of collapsing through one shared fallback story.
+
 ---
 
 ### TH-3-2 — Cap-delta and detail-section interpretation compresses or flattens meaningful event truth
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-3B
 
 **Problem:**
 
 The normalization seam computes one primary-team-centric cap delta and routes most mutation families through a shared section vocabulary (`Players`, `Picks`, `Teams`, `Contract`, `Exceptions`, `Cap Delta`). The cap delta path uses `readCapDelta(...)`, which selects one team perspective and one aggregated field (`totalCapAllocations`), making it intentionally narrow. Several distinct mutation families are compressed into identical or near-identical section structures at display time. Generic fallback lines — `Exceptions updated`, `Dead cap updated` — are informative but lose the structural distinctions between different event types. For unknown or new mutation types, the default branch only emits player labels, a team line, and a cap delta line, making new events look acceptably rendered even when important event-specific information has been silently dropped. The effect is that Team History detail rows can look richer than the normalization seam actually is.
+
+**Resolution:**
+
+TH-3B tightened cap-delta and detail-section interpretation around one explicit team-history view model. Cap allocation deltas are now derived active-team-first and rendered as explicit `Cap Allocation` detail lines backed by the same `totalCapAllocations` before/after totals used for the modal’s numeric `capDelta`, so the one-team Team History perspective is intentional rather than implicit. Detail sections are now mutation-family-specific (`Signing Context`, `Trade Context`, `Offer Sheet`, `Waiver`, `Extension`, `Option`, `Rights`, `Exception Changes`, `Dead Cap Changes`) instead of routing most mutations through the same generic section bundle. Generic placeholder change lines are replaced with explicit “no detail was included” copy, and unknown/default mutations now surface an `Event Detail` note that says the event has no Team History-specific mapping instead of silently flattening into a plausible-looking generic row.
 
 ---
 

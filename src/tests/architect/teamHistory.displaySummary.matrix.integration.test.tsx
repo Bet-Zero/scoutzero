@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
@@ -107,34 +108,34 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
     expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
+      'Trade Executed: LAL ↔ BOS'
+    );
+    expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
       'executeTrade'
     );
-    expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
-      'LAL'
-    );
-    expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
-      'player_trade_a'
-    );
 
+    expect(screen.getByTestId('team-history-event-row-1')).toHaveTextContent(
+      'Signed Free Agent: player_sign → LAL'
+    );
     expect(screen.getByTestId('team-history-event-row-1')).toHaveTextContent(
       'signFreeAgent'
     );
-    expect(screen.getByTestId('team-history-event-row-1')).toHaveTextContent(
-      'player_sign'
-    );
 
+    expect(screen.getByTestId('team-history-event-row-2')).toHaveTextContent(
+      'Waive Player: player_waive'
+    );
     expect(screen.getByTestId('team-history-event-row-2')).toHaveTextContent(
       'waivePlayer'
     );
-    expect(screen.getByTestId('team-history-event-row-2')).toHaveTextContent(
-      'player_waive'
-    );
 
     expect(screen.getByTestId('team-history-event-row-3')).toHaveTextContent(
-      'setDeadCap'
+      'Dead Cap Updated: waived player bucket +$1.2M'
     );
     expect(screen.getByTestId('team-history-event-row-4')).toHaveTextContent(
-      'setExceptions'
+      'Exceptions Updated: NTMLE remaining reduced'
+    );
+    expect(screen.getByTestId('team-history-event-row-5')).toHaveTextContent(
+      'Sign-and-Trade Executed:'
     );
     expect(screen.getByTestId('team-history-event-row-5')).toHaveTextContent(
       'signAndTrade'
@@ -147,24 +148,33 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
     ).toBeInTheDocument();
     expect(screen.getByText('Players')).toBeInTheDocument();
     expect(screen.getByText('Picks')).toBeInTheDocument();
-    expect(screen.getByText('Cap Delta')).toBeInTheDocument();
-    expect(screen.getByText(/2028 1st/i)).toBeInTheDocument();
+    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL total cap allocations: -$1,000,000');
+    expect(screen.getAllByText(/2028 1st/i).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
     fireEvent.click(screen.getByTestId('team-history-event-row-1'));
     expect(screen.getByText('Contract')).toBeInTheDocument();
-    expect(screen.getByText('Exceptions')).toBeInTheDocument();
+    expect(screen.getByText('Signing Context')).toBeInTheDocument();
+    expect(screen.getByText(/Destination team: LAL/i)).toBeInTheDocument();
     expect(screen.getByText(/First year salary/i)).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
     fireEvent.click(screen.getByTestId('team-history-event-row-2'));
+    expect(screen.getByText('Waiver')).toBeInTheDocument();
     expect(screen.getByText(/Stretch provision applied/i)).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
     fireEvent.click(screen.getByTestId('team-history-event-row-3'));
-    expect(
-      screen.getByText(/Dead cap updated|waived player bucket/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText('Dead Cap Changes')).toBeInTheDocument();
+    expect(screen.getAllByText(/waived player bucket/i).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByTestId('team-history-detail-close'));
+
+    fireEvent.click(screen.getByTestId('team-history-event-row-5'));
+    expect(screen.getByText('Trade Context')).toBeInTheDocument();
+    expect(screen.getByText('Teams')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
   });
 });

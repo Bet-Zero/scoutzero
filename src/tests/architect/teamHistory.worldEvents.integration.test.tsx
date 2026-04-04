@@ -68,7 +68,7 @@ describe('Team History world events integration', () => {
     const firstRow = screen.getByTestId('team-history-row-0');
     const secondRow = screen.getByTestId('team-history-row-1');
 
-    expect(firstRow.textContent || '').toContain('Trade executed');
+    expect(firstRow.textContent || '').toContain('Trade Executed');
     expect(secondRow.textContent || '').toContain('Waive Player: player_123');
     expect(
       screen.queryByTestId('team-history-world-events-compatibility-note')
@@ -81,6 +81,9 @@ describe('Team History world events integration', () => {
       screen.getByTestId('team-history-detail-mutation-type').textContent || ''
     ).toContain('executeTrade');
     expect(
+      screen.getByTestId('team-history-detail-type').textContent || ''
+    ).toContain('trade · Trade Executed');
+    expect(
       screen.getByTestId('team-history-detail-player-ids').textContent || ''
     ).toContain('player_77');
     expect(
@@ -92,6 +95,10 @@ describe('Team History world events integration', () => {
     expect(
       screen.getByTestId('team-history-detail-after-totals').textContent || ''
     ).toContain('149000000');
+    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL total cap allocations: -$1,000,000');
   });
 
   it('surfaces the legacy compatibility note when the hook resolves through the bounded fallback contract', () => {
@@ -171,7 +178,7 @@ describe('Team History world events integration', () => {
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
     expect(screen.getByTestId('team-history-row-0').textContent || '').toContain(
-      'Trade executed'
+      'Trade Executed'
     );
     expect(
       screen.getByTestId('team-history-world-events-inline-error')

@@ -42,6 +42,14 @@ describe('TEAM_HISTORY_E4 fail-soft guardrail', () => {
           type: 'setException',
           timestamp: '2026-03-01T09:00:00.000Z',
         },
+        {
+          id: 'evt_sparse_3',
+          eventId: 'evt_sparse_3',
+          mutationType: 'mysteryMutation',
+          occurredAt: '2026-03-01T08:00:00.000Z',
+          teamCodes: ['LAL'],
+          playerIds: ['player_unknown'],
+        },
       ],
       loading: false,
       error: null,
@@ -58,6 +66,7 @@ describe('TEAM_HISTORY_E4 fail-soft guardrail', () => {
 
     expect(screen.getByTestId('team-history-event-row-0')).toBeTruthy();
     expect(screen.getByTestId('team-history-event-row-1')).toBeTruthy();
+    expect(screen.getByTestId('team-history-event-row-2')).toBeTruthy();
 
     expect(
       screen
@@ -67,7 +76,12 @@ describe('TEAM_HISTORY_E4 fail-soft guardrail', () => {
     expect(
       screen
         .getByTestId('team-history-event-row-1')
-        .textContent?.includes('setExceptions')
+        .textContent?.includes('detail limited')
+    ).toBe(true);
+    expect(
+      screen
+        .getByTestId('team-history-event-row-2')
+        .textContent?.includes('Mystery Mutation: player_unknown')
     ).toBe(true);
 
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
@@ -77,5 +91,19 @@ describe('TEAM_HISTORY_E4 fail-soft guardrail', () => {
         .getByTestId('team-history-raw-payload')
         .textContent?.includes('evt_sparse_1')
     ).toBe(true);
+    fireEvent.click(screen.getByTestId('team-history-detail-close'));
+
+    fireEvent.click(screen.getByTestId('team-history-event-row-1'));
+    expect(screen.getByText('Exception Changes')).toBeTruthy();
+    expect(
+      screen.getByText(/No exception change detail was included/i)
+    ).toBeTruthy();
+    fireEvent.click(screen.getByTestId('team-history-detail-close'));
+
+    fireEvent.click(screen.getByTestId('team-history-event-row-2'));
+    expect(screen.getByText('Event Detail')).toBeTruthy();
+    expect(
+      screen.getByText(/No event-specific Team History detail mapping exists for mysteryMutation/i)
+    ).toBeTruthy();
   });
 });

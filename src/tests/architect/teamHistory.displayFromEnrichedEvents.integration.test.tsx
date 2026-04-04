@@ -148,6 +148,27 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
         },
       }),
       buildEvent({
+        mutationType: 'finalizeDeclinedOfferSheet',
+        eventId: 'evt_finalize_declined_offer_sheet_e5',
+        timestamp: Date.parse('2026-03-03T10:30:00.000Z'),
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['player_offer_decline'],
+        metadata: {
+          teamCode: 'LAL',
+          playerId: 'player_offer_decline',
+          playerName: 'player_offer_decline',
+          signedUsing: 'Offer Sheet',
+          contract: {
+            years: 4,
+            firstYearSalary: 16000000,
+            salariesByYear: [
+              { season: '2025-26', salary: 16000000 },
+              { season: '2026-27', salary: 17200000 },
+            ],
+          },
+        },
+      }),
+      buildEvent({
         mutationType: 'setExceptions',
         eventId: 'evt_set_exceptions_e5',
         timestamp: Date.parse('2026-03-03T10:00:00.000Z'),
@@ -170,7 +191,7 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
     expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
-      'Trade executed:'
+      'Trade Executed:'
     );
     expect(screen.getByTestId('team-history-event-row-1')).toHaveTextContent(
       'Signed Free Agent:'
@@ -182,6 +203,9 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
       'Extension Signed:'
     );
     expect(screen.getByTestId('team-history-event-row-4')).toHaveTextContent(
+      'Offer Sheet Finalized (Declined):'
+    );
+    expect(screen.getByTestId('team-history-event-row-5')).toHaveTextContent(
       'Exceptions Updated:'
     );
 
@@ -190,7 +214,10 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
     expect(screen.getByText('Players')).toBeInTheDocument();
     expect(screen.getByText('Picks')).toBeInTheDocument();
-    expect(screen.getAllByText('Cap Delta').length).toBeGreaterThan(0);
+    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL total cap allocations: -$1,000,000');
     expect(screen.getAllByText(/2028-LAL-R1/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
@@ -211,11 +238,23 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
 
     fireEvent.click(screen.getByTestId('team-history-event-row-3'));
     expect(screen.getByText(/Extension years: 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/Seasons: 2026-27/i)).toBeInTheDocument();
     expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
     fireEvent.click(screen.getByTestId('team-history-event-row-4'));
-    expect(screen.getByText('Exceptions')).toBeInTheDocument();
+    expect(screen.getByText('Offer Sheet')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-type').textContent || ''
+    ).toContain('offer-sheet · Offer Sheet Finalized (Declined)');
+    expect(
+      screen.getByText(/Stage: Offer Sheet Finalized \(Declined\)/i)
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('team-history-detail-close'));
+
+    fireEvent.click(screen.getByTestId('team-history-event-row-5'));
+    expect(screen.getByText('Exception Changes')).toBeInTheDocument();
     expect(screen.getAllByText(/NTMLE remaining reduced/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));

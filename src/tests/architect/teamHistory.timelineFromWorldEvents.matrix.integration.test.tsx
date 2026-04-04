@@ -88,7 +88,7 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
     expect(screen.getByTestId('team-history-row-0').textContent || '').toContain(
-      'Trade executed'
+      'Trade Executed'
     );
     expect(screen.getByTestId('team-history-row-1').textContent || '').toContain(
       'Signed Free Agent'
@@ -110,6 +110,9 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
       screen.getByTestId('team-history-detail-mutation-type').textContent || ''
     ).toContain('executeTrade');
     expect(
+      screen.getByTestId('team-history-detail-type').textContent || ''
+    ).toContain('trade · Trade Executed');
+    expect(
       screen.getByTestId('team-history-detail-timestamp').textContent || ''
     ).toContain('2026-03-01T15:00:00.000Z');
     expect(
@@ -117,5 +120,9 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
     ).toContain('player_trade');
     expect(screen.getAllByText('evt_trade').length).toBeGreaterThan(0);
     expect(screen.getAllByText('LAL · BOS').length).toBeGreaterThan(0);
+    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL total cap allocations: -$1,000,000');
   });
 });
