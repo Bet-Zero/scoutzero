@@ -27,6 +27,7 @@ type QueryContractId =
 export type WorldTeamEventsResolution =
   | 'authoritative'
   | 'legacy-compatible'
+  | 'mixed-compatible'
   | 'empty';
 
 type QueryContract = {
@@ -44,16 +45,34 @@ type FetchRequest = {
   worldId: string;
   teamCode: string;
   limit: number;
-  startAfterDoc?: QueryDocumentSnapshot<DocumentData> | null;
-  preferredContract?: QueryContract | null;
+  paginationState?: WorldTeamEventsPaginationState | null;
 };
 
 type FetchResponse = {
   events: WorldEventRecord[];
-  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
   hasMore: boolean;
-  queryContract: QueryContract;
+  paginationState: WorldTeamEventsPaginationState;
   resolution: WorldTeamEventsResolution;
+};
+
+type BufferedWorldEvent = {
+  contractId: QueryContractId;
+  doc: QueryDocumentSnapshot<DocumentData>;
+  event: WorldEventRecord;
+  id: string;
+};
+
+type QueryContractState = {
+  buffer: BufferedWorldEvent[];
+  contract: QueryContract;
+  cursor: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+  initialized: boolean;
+};
+
+export type WorldTeamEventsPaginationState = {
+  contracts: Record<QueryContractId, QueryContractState>;
+  seenContracts: QueryContractId[];
 };
 
 export type UseWorldTeamEventsArgs = {
@@ -94,8 +113,37 @@ const INITIAL_QUERY_CONTRACT_CHAIN = [
   LEGACY_COMPAT_QUERY_CONTRACT,
 ] as const;
 
+const QUERY_CONTRACT_PRIORITY: Record<QueryContractId, number> = {
+  'team-history-canonical-v1': 0,
+  'team-history-legacy-compat-v1': 1,
+};
+
 function normalizePageSize(limit: number): number {
   return Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : DEFAULT_LIMIT;
+}
+
+function buildInitialPaginationState(): WorldTeamEventsPaginationState {
+  const contracts: Record<QueryContractId, QueryContractState> = {
+    'team-history-canonical-v1': {
+      buffer: [],
+      contract: AUTHORITATIVE_QUERY_CONTRACT,
+      cursor: null,
+      hasMore: true,
+      initialized: false,
+    },
+    'team-history-legacy-compat-v1': {
+      buffer: [],
+      contract: LEGACY_COMPAT_QUERY_CONTRACT,
+      cursor: null,
+      hasMore: true,
+      initialized: false,
+    },
+  };
+
+  return {
+    contracts,
+    seenContracts: [],
+  };
 }
 
 function toQuery(
@@ -129,6 +177,24 @@ function getEventTimestamp(event: WorldEventRecord): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function compareBufferedEvents(
+  a: BufferedWorldEvent,
+  b: BufferedWorldEvent
+): number {
+  const timeDiff = getEventTimestamp(b.event) - getEventTimestamp(a.event);
+  if (timeDiff !== 0) {
+    return timeDiff;
+  }
+
+  const contractDiff =
+    QUERY_CONTRACT_PRIORITY[a.contractId] - QUERY_CONTRACT_PRIORITY[b.contractId];
+  if (contractDiff !== 0) {
+    return contractDiff;
+  }
+
+  return a.id.localeCompare(b.id);
+}
+
 function mergeWorldEventPages(events: WorldEventRecord[]): WorldEventRecord[] {
   const seen = new Set<string>();
   const merged: Array<{ event: WorldEventRecord; firstSeenIndex: number }> = [];
@@ -160,13 +226,97 @@ function formatContractError(contract: QueryContract, error: unknown): Error {
   return new Error(`${contract.label} failed: ${message}`);
 }
 
+function mergeContractBuffer(
+  existingBuffer: BufferedWorldEvent[],
+  nextEntries: BufferedWorldEvent[]
+): BufferedWorldEvent[] {
+  const seen = new Set(existingBuffer.map((entry) => entry.id));
+  const merged = [...existingBuffer];
+
+  nextEntries.forEach((entry) => {
+    if (seen.has(entry.id)) {
+      return;
+    }
+
+    seen.add(entry.id);
+    merged.push(entry);
+  });
+
+  return merged;
+}
+
+function countUniqueBufferedEvents(
+  paginationState: WorldTeamEventsPaginationState
+): number {
+  const mergedEntries = Object.values(paginationState.contracts)
+    .flatMap((contractState) => contractState.buffer)
+    .sort(compareBufferedEvents);
+  const seen = new Set<string>();
+
+  mergedEntries.forEach((entry) => {
+    seen.add(entry.id);
+  });
+
+  return seen.size;
+}
+
+function hasFetchableContracts(
+  paginationState: WorldTeamEventsPaginationState
+): boolean {
+  return Object.values(paginationState.contracts).some(
+    (contractState) => !contractState.initialized || contractState.hasMore
+  );
+}
+
+function mergeSeenContracts(
+  previous: QueryContractId[],
+  next: Iterable<QueryContractId>
+): QueryContractId[] {
+  const seen = new Set<QueryContractId>(previous);
+
+  for (const contractId of next) {
+    seen.add(contractId);
+  }
+
+  return INITIAL_QUERY_CONTRACT_CHAIN.map((contract) => contract.id).filter(
+    (contractId) => seen.has(contractId)
+  );
+}
+
+function resolveResolution(
+  seenContracts: QueryContractId[]
+): WorldTeamEventsResolution {
+  const hasCanonical = seenContracts.includes(AUTHORITATIVE_QUERY_CONTRACT.id);
+  const hasLegacy = seenContracts.includes(LEGACY_COMPAT_QUERY_CONTRACT.id);
+
+  if (hasCanonical && hasLegacy) {
+    return 'mixed-compatible';
+  }
+
+  if (hasCanonical) {
+    return 'authoritative';
+  }
+
+  if (hasLegacy) {
+    return 'legacy-compatible';
+  }
+
+  return 'empty';
+}
+
+type ContractFetchResult = {
+  cursor: QueryDocumentSnapshot<DocumentData> | null;
+  entries: BufferedWorldEvent[];
+  hasMore: boolean;
+};
+
 async function runQueryAttempt(
   worldId: string,
   teamCode: string,
   pageSize: number,
   contract: QueryContract,
   startAfterDoc: QueryDocumentSnapshot<DocumentData> | null
-): Promise<FetchResponse> {
+): Promise<ContractFetchResult> {
   const builtQuery = toQuery(
     worldId,
     teamCode,
@@ -175,21 +325,132 @@ async function runQueryAttempt(
     startAfterDoc
   );
   const snapshot = await getDocs(builtQuery);
-  const pageDocs = snapshot.docs.slice(0, pageSize);
-  const events = pageDocs.map((docSnapshot) => ({
+  const pageDocs = snapshot.docs;
+  const entries = pageDocs.map((docSnapshot) => ({
+    contractId: contract.id,
+    doc: docSnapshot,
+    event: {
+      id: docSnapshot.id,
+      ...(docSnapshot.data() || {}),
+    },
     id: docSnapshot.id,
-    ...(docSnapshot.data() || {}),
   }));
 
   return {
-    events,
-    lastDoc: pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null,
+    cursor: pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : startAfterDoc,
+    entries,
     hasMore: snapshot.docs.length > pageSize,
-    queryContract: contract,
-    resolution:
-      contract.id === LEGACY_COMPAT_QUERY_CONTRACT.id
-        ? 'legacy-compatible'
-        : 'authoritative',
+  };
+}
+
+async function ensureBufferedRows({
+  worldId,
+  teamCode,
+  pageSize,
+  paginationState,
+}: {
+  worldId: string;
+  teamCode: string;
+  pageSize: number;
+  paginationState: WorldTeamEventsPaginationState;
+}): Promise<WorldTeamEventsPaginationState> {
+  let nextState = paginationState;
+  let availableUniqueRows = countUniqueBufferedEvents(nextState);
+
+  while (availableUniqueRows < pageSize && hasFetchableContracts(nextState)) {
+    let fetchedContract = false;
+
+    for (const contract of INITIAL_QUERY_CONTRACT_CHAIN) {
+      const contractState = nextState.contracts[contract.id];
+      if (contractState.initialized && !contractState.hasMore) {
+        continue;
+      }
+
+      const result = await runQueryAttempt(
+        worldId,
+        teamCode,
+        pageSize,
+        contract,
+        contractState.cursor
+      ).catch((error) => {
+        throw formatContractError(contract, error);
+      });
+
+      fetchedContract = true;
+      nextState = {
+        ...nextState,
+        contracts: {
+          ...nextState.contracts,
+          [contract.id]: {
+            ...contractState,
+            buffer: mergeContractBuffer(contractState.buffer, result.entries),
+            cursor: result.cursor,
+            hasMore: result.hasMore,
+            initialized: true,
+          },
+        },
+      };
+    }
+
+    if (!fetchedContract) {
+      break;
+    }
+
+    availableUniqueRows = countUniqueBufferedEvents(nextState);
+  }
+
+  return nextState;
+}
+
+function materializeNextPage(
+  paginationState: WorldTeamEventsPaginationState,
+  pageSize: number
+): {
+  events: WorldEventRecord[];
+  paginationState: WorldTeamEventsPaginationState;
+} {
+  const mergedEntries = Object.values(paginationState.contracts)
+    .flatMap((contractState) => contractState.buffer)
+    .sort(compareBufferedEvents);
+  const consumedIds = new Set<string>();
+  const seenIds = new Set<string>();
+  const pageEvents: WorldEventRecord[] = [];
+  const contributingContracts = new Set<QueryContractId>();
+
+  for (const entry of mergedEntries) {
+    if (pageEvents.length >= pageSize) {
+      break;
+    }
+
+    if (seenIds.has(entry.id)) {
+      continue;
+    }
+
+    seenIds.add(entry.id);
+    consumedIds.add(entry.id);
+    contributingContracts.add(entry.contractId);
+    pageEvents.push(entry.event);
+  }
+
+  return {
+    events: pageEvents,
+    paginationState: {
+      contracts: Object.fromEntries(
+        Object.entries(paginationState.contracts).map(([contractId, contractState]) => [
+          contractId,
+          {
+            ...contractState,
+            buffer: contractState.buffer.filter(
+              (entry) => !consumedIds.has(entry.id)
+            ),
+          },
+        ])
+      ) as Record<QueryContractId, QueryContractState>,
+      seenContracts: mergeSeenContracts(
+        paginationState.seenContracts,
+        contributingContracts
+      ),
+    },
   };
 }
 
@@ -197,8 +458,7 @@ export async function fetchWorldTeamEvents({
   worldId,
   teamCode,
   limit,
-  startAfterDoc = null,
-  preferredContract = null,
+  paginationState = null,
 }: FetchRequest): Promise<FetchResponse> {
   const normalizedTeamCode = String(teamCode || '').trim();
   if (!worldId || !normalizedTeamCode) {
@@ -206,61 +466,21 @@ export async function fetchWorldTeamEvents({
   }
 
   const pageSize = normalizePageSize(limit);
-
-  if (preferredContract) {
-    try {
-      return await runQueryAttempt(
-        worldId,
-        normalizedTeamCode,
-        pageSize,
-        preferredContract,
-        startAfterDoc
-      );
-    } catch (error) {
-      throw formatContractError(preferredContract, error);
-    }
-  }
-
-  let authoritativeResult: FetchResponse;
-  try {
-    authoritativeResult = await runQueryAttempt(
-      worldId,
-      normalizedTeamCode,
-      pageSize,
-      AUTHORITATIVE_QUERY_CONTRACT,
-      startAfterDoc
-    );
-  } catch (error) {
-    throw formatContractError(AUTHORITATIVE_QUERY_CONTRACT, error);
-  }
-
-  if (authoritativeResult.events.length > 0) {
-    return authoritativeResult;
-  }
-
-  let legacyCompatResult: FetchResponse;
-  try {
-    legacyCompatResult = await runQueryAttempt(
-      worldId,
-      normalizedTeamCode,
-      pageSize,
-      LEGACY_COMPAT_QUERY_CONTRACT,
-      startAfterDoc
-    );
-  } catch (error) {
-    throw formatContractError(LEGACY_COMPAT_QUERY_CONTRACT, error);
-  }
-
-  if (legacyCompatResult.events.length > 0) {
-    return legacyCompatResult;
-  }
+  const nextState = await ensureBufferedRows({
+    worldId,
+    teamCode: normalizedTeamCode,
+    pageSize,
+    paginationState: paginationState || buildInitialPaginationState(),
+  });
+  const page = materializeNextPage(nextState, pageSize);
 
   return {
-    events: [],
-    lastDoc: null,
-    hasMore: false,
-    queryContract: INITIAL_QUERY_CONTRACT_CHAIN[0],
-    resolution: 'empty',
+    events: page.events,
+    hasMore:
+      countUniqueBufferedEvents(page.paginationState) > 0 ||
+      hasFetchableContracts(page.paginationState),
+    paginationState: page.paginationState,
+    resolution: resolveResolution(page.paginationState.seenContracts),
   };
 }
 
@@ -275,9 +495,8 @@ export function useWorldTeamEvents({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [lastDoc, setLastDoc] =
-    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [queryContract, setQueryContract] = useState<QueryContract | null>(null);
+  const [paginationState, setPaginationState] =
+    useState<WorldTeamEventsPaginationState | null>(null);
   const [resolution, setResolution] =
     useState<WorldTeamEventsResolution | null>(null);
 
@@ -292,8 +511,7 @@ export function useWorldTeamEvents({
       setLoadingMore(false);
       setError(null);
       setHasMore(false);
-      setLastDoc(null);
-      setQueryContract(null);
+      setPaginationState(null);
       setResolution(null);
       return () => {
         isActive = false;
@@ -302,8 +520,7 @@ export function useWorldTeamEvents({
 
     setEvents([]);
     setHasMore(false);
-    setLastDoc(null);
-    setQueryContract(null);
+    setPaginationState(null);
     setResolution(null);
     setLoadingInitial(true);
     setLoadingMore(false);
@@ -320,8 +537,7 @@ export function useWorldTeamEvents({
         }
         setEvents(mergeWorldEventPages(result.events));
         setHasMore(result.hasMore);
-        setLastDoc(result.lastDoc);
-        setQueryContract(result.queryContract);
+        setPaginationState(result.paginationState);
         setResolution(result.resolution);
       })
       .catch((caught) => {
@@ -330,8 +546,7 @@ export function useWorldTeamEvents({
         }
         setEvents([]);
         setHasMore(false);
-        setLastDoc(null);
-        setQueryContract(null);
+        setPaginationState(null);
         setResolution(null);
         setError(caught instanceof Error ? caught.message : String(caught));
       })
@@ -352,8 +567,7 @@ export function useWorldTeamEvents({
       !canQuery ||
       !worldId ||
       !teamCode ||
-      !lastDoc ||
-      !queryContract ||
+      !paginationState ||
       loadingInitial ||
       loadingMore
     ) {
@@ -368,16 +582,15 @@ export function useWorldTeamEvents({
         worldId,
         teamCode,
         limit,
-        startAfterDoc: lastDoc,
-        preferredContract: queryContract,
+        paginationState,
       });
 
       setEvents((previous) =>
         mergeWorldEventPages([...previous, ...result.events])
       );
       setHasMore(result.hasMore);
-      setLastDoc(result.lastDoc);
-      setQueryContract(result.queryContract);
+      setPaginationState(result.paginationState);
+      setResolution(result.resolution);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -387,8 +600,7 @@ export function useWorldTeamEvents({
     canQuery,
     worldId,
     teamCode,
-    lastDoc,
-    queryContract,
+    paginationState,
     loadingInitial,
     loadingMore,
     limit,

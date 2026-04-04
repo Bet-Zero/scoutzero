@@ -67,7 +67,7 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Team History surface', (
     );
 
     const firstRow = screen.getByTestId('team-history-event-row-0');
-    expect(firstRow).toHaveTextContent('Trade Executed vs BOS');
+    expect(firstRow).toHaveTextContent('Trade Executed: LAL ↔ BOS');
     expect(firstRow).toHaveTextContent('executeTrade');
 
     fireEvent.click(firstRow);
@@ -79,13 +79,28 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Team History surface', (
     expect(
       screen.getByTestId('team-history-detail-timestamp')
     ).toHaveTextContent('2026-03-03T12:00:00.000Z');
-    expect(screen.getByText('evt_trade_ui_001')).toBeInTheDocument();
-    expect(screen.getByText('LAL · BOS')).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
+      'evt_trade_ui_001'
+    );
+    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
+      'evt_trade_ui_001'
+    );
+    expect(screen.getByTestId('team-history-detail-teams')).toHaveTextContent(
+      'LAL · BOS'
+    );
+    expect(
+      screen.getByTestId('team-history-detail-team-codes')
+    ).toHaveTextContent('LAL · BOS');
     expect(
       screen.getByTestId('team-history-detail-player-ids')
     ).toHaveTextContent('lal_out_18m');
     expect(screen.getByText('Players')).toBeInTheDocument();
-    expect(screen.getByText('• LAL sent: lal_out_18m')).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-detail-sections')).toHaveTextContent(
+      'lal_out_18m'
+    );
+    expect(screen.getByTestId('team-history-detail-sections')).toHaveTextContent(
+      'bos_out_10m'
+    );
 
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
     expect(

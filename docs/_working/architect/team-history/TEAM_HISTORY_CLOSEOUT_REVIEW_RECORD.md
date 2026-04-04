@@ -10,15 +10,15 @@
 
 ## Executive Verdict
 
-**Verdict: RISK**
+**Verdict: PASS**
 
-Team History now reads as one owned feature instead of six disconnected seams. Source selection is centralized, world-event loading and normalization feed one row model, base-mode fallback is explicitly labeled as derived, the detail modal respects row truth kind, and DEV fixtures fail closed from actual marker state. This is not PASS because two live-code facts still matter at closeout: world-event compatibility is still an all-or-nothing fallback rather than a mixed-feed merge, and one focused Team History UI integration test is currently red in the repo because its expected summary string no longer matches the live normalized output.
+Team History now reads as one owned feature instead of six disconnected seams, and the last closeout blockers are resolved in live code. Source selection is centralized, world-event loading now merges canonical and legacy-compatible rows into one paginated feed, normalization still owns the row contract, base-mode fallback remains explicitly labeled as derived, the detail modal respects row truth kind, DEV fixtures still fail closed from actual marker state, and the previously red focused Team History integration test is now aligned with the live normalized output.
 
 ## Whole-Feature Team History System Map
 
 - Primary owner: `TeamHistoryTab` is the real feature owner. `GMDashboard` passes `teamCapSheet`, `worldId`, and Team History DEV-tool callbacks into `HistorySection`, and `HistorySection` is only a thin handoff into `TeamHistoryTab`.
 - Source-selection hierarchy: `resolveTeamHistoryTimeline(...)` makes one explicit top-level choice in this order: `dev-fixtures` -> `world-events` -> `local-timeline` -> `synthesized`.
-- World path: `WorldEventsTimeline(...)` calls `useWorldTeamEvents(...)`; `fetchWorldTeamEvents(...)` tries the canonical `teamCodes` / `occurredAt` contract first, falls back to legacy `teamsAffected` / `timestamp` only when canonical returns zero rows, then `normalizeWorldEventsForTeamHistory(...)` turns raw event payloads into Team History rows.
+- World path: `WorldEventsTimeline(...)` calls `useWorldTeamEvents(...)`; `fetchWorldTeamEvents(...)` now buffers canonical `teamCodes` / `occurredAt` rows and legacy `teamsAffected` / `timestamp` rows together, materializes one newest-first merged page with per-contract cursor reuse, then `normalizeWorldEventsForTeamHistory(...)` turns raw event payloads into Team History rows.
 - Base/local path: outside world-event mode, explicit `historyTimeline[]` rows win. If they do not exist, `normalizeTimelineFromSections(...)` synthesizes rows from `waivedContracts[]`, `exceptionHistory[]`, and `pickLog[]`, sorts them newest-first, and tags them as derived-source output.
 - Detail modal path: every rendered row click funnels through `buildSelectedHistoryEntry(...)`, which assigns `timelineSourceKey` and `truthKind`; `HistoryDetailModal(...)` then renders normalized display fields, identity fields, cap-alignment checks, and raw-payload inspection based on that same selected-row contract.
 - DEV fixture path: `useArchitectActions(...)` owns inject / clear callbacks, `devTeamHistoryFixtures.ts` mutates only in-memory team state, and `TeamHistoryTab` independently detects fixture markers in team data so fixture mode stays authoritative until those markers are actually cleared.
@@ -35,8 +35,7 @@ As a system, this behaves like one integrated feature. The world loader, the nor
 
 ## Remaining Hidden Ownership / Staging / Drift Risks
 
-- Mixed-shape world histories are still a bounded risk. `fetchWorldTeamEvents(...)` returns canonical rows immediately when the canonical contract produces any results, and only falls back to legacy compatibility when canonical returns zero rows. Pagination then stays on the winning contract. That is coherent, and it is explicitly guarded, but it means Team History is not a merge reader for worlds that contain some newer canonical rows and some older legacy-only rows.
-- One focused Team History integration test is red in the current repo state. `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesTeamHistory.integration.test.tsx` still expects the older row text `Trade Executed vs BOS`, while the live normalizer now renders `Trade Executed: LAL ↔ BOS`. That reads as verification drift more than a clear runtime defect, but it still blocks a clean PASS because the feature’s supporting integration suite is not fully aligned with the live Team History contract.
+No grounded Team History closeout blockers remain after this follow-up. The validation run did surface pre-existing Vite build warnings about `Browserslist`, dynamic-import chunking, and an externalized `fs` import path, but those warnings are broader project/build concerns rather than Team History ownership, truth, or integration defects.
 
 ## Whole-Feature Verdict
 
@@ -44,9 +43,9 @@ As a system, this behaves like one integrated feature. The world loader, the nor
 
 The feature is not failing as a system. Source ownership is explicit, the major truth modes are distinguished cleanly, the detail modal is tied to the selected Team History row rather than a separate shadow contract, fixture injection / clear logic is symmetric across the live managed surfaces, and the focused Team History guardrails mostly pass under the current repo state.
 
-### Why this is not PASS
+### Why this is PASS
 
-This is not PASS for two grounded reasons. First, the world-event compatibility path still depends on a non-mixed-feed assumption: canonical and legacy history are treated as alternate contracts, not as one merged history stream. Second, the current repo still contains a red Team History UI integration test whose expected text no longer matches the live normalized row contract. That is enough remaining drift to keep the closeout at `RISK`.
+The two grounded closeout blockers are gone. World-event retrieval is now a mixed-feed reader with bounded per-contract pagination state instead of an all-or-nothing fallback, so worlds that contain both canonical and legacy-only rows can render a fuller Team History feed. The previously red focused TM Cap integration test is now aligned with the live Team History summary contract, and the broader validation set passed.
 
 ## Exact File + Function Citations
 
@@ -58,9 +57,9 @@ This is not PASS for two grounded reasons. First, the world-event compatibility 
 - `src/features/architect/history/TeamHistoryTab/TeamHistoryTab.tsx:436-565` - `normalizeTimelineFromSections(...)`, `sortTimelineNewestFirst(...)`, and `resolveTeamHistoryTimeline(...)` define the base/local source-selection and synthesized fallback contract.
 - `src/features/architect/history/TeamHistoryTab/TeamHistoryTab.tsx:568-706` - `WorldEventsTimeline(...)` owns world-event loading display, compatibility note rendering, and pagination button behavior.
 - `src/features/architect/history/TeamHistoryTab/TeamHistoryTab.tsx:708-953` - `TeamHistoryTab(...)` owns the banner, fixture panel, active timeline rendering, section trackers, selected-entry state, and modal mount.
-- `src/features/architect/history/hooks/useWorldTeamEvents.ts:76-95` - `AUTHORITATIVE_QUERY_CONTRACT`, `LEGACY_COMPAT_QUERY_CONTRACT`, and `INITIAL_QUERY_CONTRACT_CHAIN`.
-- `src/features/architect/history/hooks/useWorldTeamEvents.ts:196-265` - `fetchWorldTeamEvents(...)` implements canonical-first retrieval, legacy fallback, and contract reuse inputs.
-- `src/features/architect/history/hooks/useWorldTeamEvents.ts:267-413` - `useWorldTeamEvents(...)` owns hook state, contract reuse for pagination, and merged newest-first dedupe.
+- `src/features/architect/history/hooks/useWorldTeamEvents.ts:95-147` - `AUTHORITATIVE_QUERY_CONTRACT`, `LEGACY_COMPAT_QUERY_CONTRACT`, `INITIAL_QUERY_CONTRACT_CHAIN`, and `buildInitialPaginationState(...)` define the two-contract Team History retrieval surface.
+- `src/features/architect/history/hooks/useWorldTeamEvents.ts:313-485` - `runQueryAttempt(...)`, `ensureBufferedRows(...)`, `materializeNextPage(...)`, and `fetchWorldTeamEvents(...)` implement mixed canonical + legacy retrieval, per-contract cursor reuse, newest-first merged paging, and fail-closed contract errors.
+- `src/features/architect/history/hooks/useWorldTeamEvents.ts:487-586` - `useWorldTeamEvents(...)` owns hook state, merged-page accumulation, load-more state, and resolution updates.
 - `src/features/architect/history/utils/normalizeWorldEventsForTeamHistory.ts:13-90` - `MUTATION_DISPLAY_CONFIG` is the explicit mutation-display ownership map.
 - `src/features/architect/history/utils/normalizeWorldEventsForTeamHistory.ts:328-384` - `buildCapDeltaContext(...)` resolves active-team-first cap delta and cap-allocation detail lines.
 - `src/features/architect/history/utils/normalizeWorldEventsForTeamHistory.ts:567-1004` - `toTeamHistoryEventDisplay(...)` is the normalization owner for category, type, summary, detail sections, identity fields, totals, and raw payload carry-through.
@@ -75,17 +74,17 @@ This is not PASS for two grounded reasons. First, the world-event compatibility 
 ## Key Live Tests Used
 
 - `src/tests/architect/teamHistory.sourceSelection.guardrail.test.tsx:38-264` - verifies source priority, fixture override authority, explicit local priority, and synthesized fallback activation.
-- `src/tests/architect/teamHistory.useWorldTeamEvents.guardrail.test.tsx:71-232` - verifies canonical / legacy contract reuse, overfetch pagination, dedupe, and newest-first merge behavior.
-- `src/tests/architect/teamHistory.worldEventsQueryFallback.test.ts:68-181` - verifies canonical-first retrieval, legacy fallback only after canonical emptiness, preferred-contract reuse, and fail-closed canonical errors.
+- `src/tests/architect/teamHistory.useWorldTeamEvents.guardrail.test.tsx:71-311` - verifies mixed-feed paging, per-contract cursor reuse, dedupe, newest-first merge behavior, and legacy-only pagination reuse.
+- `src/tests/architect/teamHistory.worldEventsQueryFallback.test.ts:68-245` - verifies mixed canonical + legacy query merging, legacy-only fallback, empty resolution, pagination-state reuse, and fail-closed canonical errors.
 - `src/tests/architect/teamHistory.normalization.displayContract.guardrail.test.ts:22-286` - verifies explicit mutation-display ownership, summary rules, cap-delta interpretation, and fallback detail notes.
 - `src/tests/architect/teamHistory.baseMode.fallbackContract.guardrail.test.tsx:34-354` - verifies base-mode fallback ordering, synthesized-row timestamp ordering, and derived-source metadata behavior.
 - `src/tests/architect/teamHistory.detailView.integration.test.tsx:29-274` - verifies modal ownership, truth notes, identity handling, and separation between normalized fields and raw payload.
 - `src/tests/architect/teamHistory.devFixtureSafety.guardrail.test.tsx:101-301` - verifies fixture symmetry, fail-closed marker ownership, and distinct truth signaling across fixture / local / world modes.
-- `src/tests/architect/teamHistory.worldEvents.integration.test.tsx:29-216` - verifies world-row rendering, detail modal truth, compatibility note, empty state, and inline load-more error behavior.
+- `src/tests/architect/teamHistory.worldEvents.integration.test.tsx:29-252` - verifies world-row rendering, detail modal truth, legacy note, mixed-feed note, empty state, and inline load-more error behavior.
 - `src/tests/architect/teamHistory.worldBoundary.integration.test.tsx:62-141` - verifies world-context switching and fixture override precedence with a live world context.
 - `src/tests/architect/teamHistory.eventWriteContract.guardrail.test.ts:4-55` - verifies the upstream world-event write payload Team History reads.
-- `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesTeamHistory.integration.test.tsx:28-93` - currently fails under live repo state because its row-text expectation is older than the current normalized Team History output.
+- `src/tests/architect/tmCapIntegration.ui.tradeApply_updatesTeamHistory.integration.test.tsx:28-109` - verifies the TM Cap trade-apply Team History row and detail modal against the current normalized summary contract.
 
 ## Final Conclusion
 
-As of 2026-04-04, Team History is a coherent, strongly owned feature with a clear truth model across world, local, synthesized, and DEV-fixture modes. It is close to whole-feature closeout quality, but the current repo does not support an unconditional PASS because world-event compatibility is still bounded by a non-merged contract assumption and one focused Team History integration test is presently red. The correct whole-feature read today is `RISK`, not `FAIL`, and not `PASS`.
+As of 2026-04-04, Team History is a coherent, strongly owned feature with a clear truth model across world, local, synthesized, and DEV-fixture modes, and the remaining closeout blockers are resolved in live code. The world-event reader now supports mixed canonical + legacy-compatible feeds without giving up pagination or dedupe coherence, the focused Team History integration suite is aligned with the live display contract, and the required validation passed. The correct whole-feature read today is `PASS`.

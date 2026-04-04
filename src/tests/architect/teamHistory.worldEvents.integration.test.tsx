@@ -155,6 +155,42 @@ describe('Team History world events integration', () => {
     ).toContain('Showing compatible legacy history records for this team.');
   });
 
+  it('surfaces the mixed-feed compatibility note when canonical and legacy rows are merged together', () => {
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'canonical-trade-1',
+          eventId: 'canonical-trade-1',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-03-01T12:00:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+        },
+        {
+          id: 'legacy-waive-1',
+          eventId: 'legacy-waive-1',
+          type: 'waivePlayer',
+          timestamp: '2026-02-20T12:00:00.000Z',
+          teamsAffected: ['LAL'],
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'mixed-compatible',
+      loadMore: null,
+    });
+
+    render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
+
+    expect(
+      screen.getByTestId('team-history-world-events-compatibility-note')
+        .textContent || ''
+    ).toContain(
+      'Showing a merged Team History feed with canonical and compatible legacy records for this team.'
+    );
+  });
+
   it('uses the tightened empty-state copy for supported-contract misses', () => {
     useWorldTeamEventsMock.mockReturnValue({
       events: [],

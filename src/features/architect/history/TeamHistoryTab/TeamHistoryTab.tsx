@@ -619,12 +619,15 @@ const WorldEventsTimeline = ({
 
   return (
     <div className="space-y-3">
-      {resolution === 'legacy-compatible' && (
+      {(resolution === 'legacy-compatible' ||
+        resolution === 'mixed-compatible') && (
         <p
           data-testid="team-history-world-events-compatibility-note"
           className="text-[11px] text-white/55"
         >
-          Showing compatible legacy history records for this team.
+          {resolution === 'mixed-compatible'
+            ? 'Showing a merged Team History feed with canonical and compatible legacy records for this team.'
+            : 'Showing compatible legacy history records for this team.'}
         </p>
       )}
 
