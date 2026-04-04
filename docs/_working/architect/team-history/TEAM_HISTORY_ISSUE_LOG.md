@@ -266,3 +266,40 @@ TH-4C added a dedicated Step 4 fallback-contract guardrail suite and then re-ran
 This now leaves the Step 4 base-mode fallback contract pinned directly enough to fail loudly if source ownership, synthesized ordering, or derived-row truth drifts.
 
 ---
+
+## STEP 5 — Detail Modal Truth and Drill-Down Integrity
+
+---
+
+### TH-5-1 — The detail modal still mixes normalized display fields and raw fallback fields without clearly owning the boundary between them
+
+**Status:** OPEN
+**Substep:** TH-5A
+
+**Problem:**
+
+When a user opens a Team History entry, the detail modal renders drill-down content that draws from two materially different field sources: normalized display fields produced by the Step 3 normalization contract (category, type, capDelta, family-specific section lines) and raw fallback fields read directly from the raw world-event payload or synthesized row metadata. These two sources are not cleanly separated in the modal's truth contract. The modal can silently prefer a raw fallback field over a normalized field when the normalized version is missing, absent, or undefined — and it can do the reverse just as silently. This means the modal's rendering behavior is partially incidental: some fieldscome from the explicit normalization contract and some come from raw-payload convenience reads, but nothing in the modal enforces which source owns which field. The drill-down surface can therefore render a mix of authoritative normalized output and unprocessed raw data without the user or the code knowing where the boundary is.
+
+---
+
+### TH-5-2 — ID, totals, and raw-payload alignment are too loosely tied for the drill-down surface to present honest, coherent event truth
+
+**Status:** OPEN
+**Substep:** TH-5B
+
+**Problem:**
+
+The detail modal uses a `selectedEntry` object that carries an event ID (or synthesized row ID), cap totals (before/after values), and raw payload metadata (world-event fields, `sectionDerived` metadata, original source entries). These three layers — identity, numeric totals, and raw payload — are not structurally enforced as a coherent unit. The modal can render a cap delta numeric from a different normalization pass than the detail-section lines it renders alongside it. A `selectedEntry` that comes from a synthesized fallback row (which has no `eventId`, `operationId`, or before/after totals) can render in the same modal shell as an authoritative world-event entry without the modal enforcing a meaningfully different truth posture for each. Partial data — a row with an `eventId` but no raw payload, or totals that were derived from a different source than the displayed sections — can pass through the modal undetected. The result is a drill-down surface where identity, totals, and payload are plausible together but not explicitly verified to be coherent.
+
+---
+
+### TH-5-3 — No focused guardrails exist for detail modal rendering truth or selected-entry integrity
+
+**Status:** OPEN
+**Substep:** TH-5C
+
+**Problem:**
+
+The Team History detail modal has no focused test guardrails that protect its rendering contract directly. Existing tests exercise the timeline list and some source-selection behavior, but nothing pins: which fields the modal prefers when both normalized and raw values are available; which detail-section lines render for each mutation family; how the modal behaves when `selectedEntry` carries only partial data (no `eventId`, no raw payload, no before/after totals); or how the modal distinguishes synthesized fallback rows from authoritative world-event rows. This means the field-source boundary from TH-5-1 and the ID/totals/payload alignment problem from TH-5-2 can each drift further without any test failing. A future contributor can weaken the normalized-first rendering contract, change the section-line ordering, or collapse synthesized and world-event entry rendering without detection.
+
+---
