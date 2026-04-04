@@ -201,23 +201,46 @@ Existing display integration/fail-soft tests were then re-run to confirm the dir
 
 ### TH-4-1 — Base-mode source truth is too soft: the system does not clearly distinguish explicit local timeline rows from derived fallback history
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-4A
 
 **Problem:**
 
 Team History base mode now has source labels — `Explicit local timeline` and `Section-derived fallback` — but the truth strength difference between these two paths is still not communicated strongly enough. `historyTimeline` is already a timeline-shaped source; `normalizeTimelineFromSections(...)` is a derived reconstruction from three separate subsystem arrays (`waivedContracts`, `exceptionHistory`, `pickLog`). These are materially different in truth quality, but the feature still does not clearly communicate that synthesized fallback is derived local convenience history rather than equivalent authoritative transaction history. The synthesized fallback can look more authoritative than it really is because it produces the same general timeline-row shape with the same visual treatment, and the source label alone is not strong enough to surface that difference.
 
+**Resolution:**
+
+`TeamHistoryTab.tsx` now reinforces the base-mode seam in two places instead of relying on the banner label alone:
+
+1. the top banner now states that direct `historyTimeline` rows beat any section-derived local fallback, and that synthesized fallback is only being derived because no explicit local timeline exists
+2. the timeline section itself now renders a compact truth note for base-mode rows:
+   - `Direct local timeline rows` for explicit `historyTimeline`
+   - `Derived local convenience history` for section-derived fallback
+
+This keeps the existing source-order contract intact while making synthesized fallback feel like a lighter derived local history path rather than equivalent first-class transaction truth.
+
 ---
 
 ### TH-4-2 — Synthesized timeline projection flattens the meaning of source arrays and loses honest source information
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-4B
 
 **Problem:**
 
 `normalizeTimelineFromSections(...)` projects three subsystem arrays with materially distinct semantics into one generic timeline-row shape. Waived contracts become generic `Waive` / `Waive & Stretch` rows. Exception history becomes generic entitlement activity rows keyed off `entry.type` / `entry.action` / `entry.summary`. Pick log becomes generic draft activity rows keyed off `entry.action` / `entry.notes`. The projection also depends on heterogeneous timestamp fields (`waivedOn`, `timestamp`, `date`) depending on which source array a row came from, so ordering is mechanically consistent but only as trustworthy as those mixed source fields. Synthesized rows also lack the richer fields world-mode rows carry — no `eventId`, `operationId`, raw payload, or before/after totals — which means base-mode fallback rows and world-event rows look structurally similar in the timeline but are built on very different levels of source truth.
+
+**Resolution:**
+
+The synthesized fallback projection in `TeamHistoryTab.tsx` now builds source-aware timeline rows instead of one generic flattening pass:
+
+1. `waivedContracts[]` rows now render as explicit waiver-record entries with dead-cap breakdown text, a source-truth detail section, and `sectionDerived:waivedContracts` metadata
+2. `exceptionHistory[]` rows now preserve exception-specific action meaning (`Trade Exception Created / Consumed / Expired` where recognized), amount deltas, expiry detail, source/counterparty context, and `sectionDerived:exceptionHistory` metadata
+3. `pickLog[]` rows now render as pick-log-specific entries with action-aware type labels, pick/partner detail, and `sectionDerived:pickLog` metadata
+4. each synthesized row now carries explicit raw derived-source metadata (`sourceCollection`, chosen timestamp field, original source entry) so the detail modal exposes that the row is section-derived rather than a world-event payload
+5. timestamp resolution is now source-aware (`waivedOn`, then `timestamp` / `date` as appropriate), and sorting fail-softs invalid or missing timestamps to the bottom instead of implicitly pretending they are epoch-like records
+
+This keeps the fallback lightweight, but the rows now read as intentional local records instead of generic first-class event rows.
 
 ---
 

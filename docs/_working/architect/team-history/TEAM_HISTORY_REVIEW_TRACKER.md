@@ -42,12 +42,12 @@ Execution checklist for the Team History review. Each substep is marked TODO / I
 
 ## STEP 4 — Base-Mode Fallback and Synthesized Timeline Truth
 
-**STEP 4 STATUS: TODO**
+**STEP 4 STATUS: IN PROGRESS**
 
 | Substep | Description                                                                                                                          | Status |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| TH-4A   | Tighten Base-Mode Source Truth So Team History More Clearly Distinguishes Explicit Local Timeline Rows From Derived Fallback History | TODO   |
-| TH-4B   | Tighten Synthesized Timeline Projection So Section-Derived Rows Preserve More Honest Source Meaning                                  | TODO   |
+| TH-4A   | Tighten Base-Mode Source Truth So Team History More Clearly Distinguishes Explicit Local Timeline Rows From Derived Fallback History | DONE   |
+| TH-4B   | Tighten Synthesized Timeline Projection So Section-Derived Rows Preserve More Honest Source Meaning                                  | DONE   |
 | TH-4C   | Add Focused Guardrails For Base-Mode Fallback Ordering And Synthesized Timeline Truth                                                | TODO   |
 
 ---

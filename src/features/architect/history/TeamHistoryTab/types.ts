@@ -45,8 +45,14 @@ export type TeamHistoryExceptionHistoryEntry = {
   id?: string | null;
   type?: string | null;
   action?: string | null;
+  amount?: number | null;
+  amountCreated?: number | null;
+  amountConsumed?: number | null;
   timestamp?: string | null;
   date?: string | null;
+  expires?: string | null;
+  expiresAt?: string | null;
+  source?: string | null;
   sourceTeamCode?: string | null;
   targetTeamCode?: string | null;
   amountRemaining?: number | null;

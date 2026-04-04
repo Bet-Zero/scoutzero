@@ -166,6 +166,15 @@ describe('TEAM_HISTORY_STEP1 source-selection guardrails', () => {
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
       'Explicit local timeline'
     );
+    expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
+      'direct historyTimeline rows take priority'
+    );
+    expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
+      'Direct local timeline rows'
+    );
+    expect(screen.getByTestId('team-history-base-truth-detail')).toHaveTextContent(
+      'explicit historyTimeline rows only'
+    );
     expect(screen.getByText('LOCAL_TIMELINE_WINS')).toBeInTheDocument();
     expect(screen.queryByText('Fallback Only was waived.')).not.toBeInTheDocument();
     expect(useWorldTeamEventsMock).not.toHaveBeenCalled();
@@ -192,9 +201,21 @@ describe('TEAM_HISTORY_STEP1 source-selection guardrails', () => {
     expect(screen.getByTestId('team-history-active-source-label')).toHaveTextContent(
       'Section-derived fallback'
     );
+    expect(screen.getByTestId('team-history-active-source-detail')).toHaveTextContent(
+      'deriving local fallback rows from waived contracts'
+    );
+    expect(screen.getByTestId('team-history-base-truth-label')).toHaveTextContent(
+      'Derived local convenience history'
+    );
+    expect(screen.getByTestId('team-history-base-truth-detail')).toHaveTextContent(
+      'do not carry world-event payloads'
+    );
     expect(
-      screen.getByText('Fallback Forward was waived and stretched.')
+      screen.getByText('Waiver record: Fallback Forward was waived and stretched.')
     ).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
+      'Waived & Stretched Contract Record'
+    );
     expect(useWorldTeamEventsMock).not.toHaveBeenCalled();
   });
 });
