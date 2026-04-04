@@ -9,12 +9,12 @@ Each step lists substeps only. This doc tracks status, not problem descriptions.
 
 ## STEP 1 — Top-Level Ownership, Year Selection, and Surface Boundary Truth
 
-**STEP 1 STATUS: TODO**
+**STEP 1 STATUS: IN PROGRESS**
 
 | Substep | Description                                                                                                                                                             | Status |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| MYCT-1A | Tighten Top-Level Year-Truth Signaling So The Multi-Year Cap Table Shell More Clearly Distinguishes Multi-Year Totals Viewing From Current-Year-Only Adjacent Authority | TODO   |
-| MYCT-1B | Tighten Top-Level Ownership Boundaries So Section Handoff, Main Composition, And Adjacent Surfaces Read As One Cleaner Contract                                         | TODO   |
+| MYCT-1A | Tighten Top-Level Year-Truth Signaling So The Multi-Year Cap Table Shell More Clearly Distinguishes Multi-Year Totals Viewing From Current-Year-Only Adjacent Authority | DONE   |
+| MYCT-1B | Tighten Top-Level Ownership Boundaries So Section Handoff, Main Composition, And Adjacent Surfaces Read As One Cleaner Contract                                         | DONE   |
 | MYCT-1C | Add Focused Guardrails For Top-Level Year Selection And Surface Boundary Truth                                                                                          | TODO   |
 
 ---

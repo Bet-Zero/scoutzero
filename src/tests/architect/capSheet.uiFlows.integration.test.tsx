@@ -890,25 +890,28 @@ describe('Cap Sheet UI integration flows', () => {
       />
     );
 
+    const shellTruthPanel = screen.getByTestId('cap-sheet-shell-year-truth-panel');
     const primarySurface = screen.getByRole('region', {
-      name: 'Primary current-year cap sheet surface',
+      name: 'Primary selected-year cap sheet surface',
     });
     const summarySurface = within(primarySurface).getByRole('region', {
-      name: 'Current-year canonical totals summary surface',
+      name: 'Selected-year canonical totals summary surface',
     });
     const rosterSurface = within(primarySurface).getByRole('region', {
-      name: 'Current-year roster detail surface',
+      name: 'Selected-year roster detail surface',
     });
     const capHoldsSurface = within(rosterSurface).getByRole('region', {
-      name: 'Current-year cap holds detail surface',
+      name: 'Selected-year cap holds detail surface',
     });
     const breakdownSurface = within(rosterSurface).getByRole('region', {
-      name: 'Current-year canonical totals breakdown surface',
+      name: 'Selected-year canonical totals breakdown surface',
     });
     const controlSurface = within(rosterSurface).getByTestId(
       'cap-sheet-control-surface'
     );
 
+    expect(shellTruthPanel).toHaveTextContent('Cap table: 2025-26');
+    expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26');
     expect(summarySurface).toBeInTheDocument();
     expect(
       within(rosterSurface).getByText(
@@ -947,12 +950,12 @@ describe('Cap Sheet UI integration flows', () => {
     ).not.toBeInTheDocument();
 
     const adjacentSurface = screen.getByRole('region', {
-      name: 'Adjacent exception presentation surface',
+      name: 'Adjacent current-season authority surface',
     });
     expectBefore(primarySurface, adjacentSurface);
     expect(
       within(adjacentSurface).getByRole('region', {
-        name: 'Cap sheet adjacent exception presentation surface',
+        name: 'Cap sheet current-season exception authority surface',
       })
     ).toBeInTheDocument();
     expect(
@@ -995,9 +998,15 @@ describe('Cap Sheet UI integration flows', () => {
     expect(
       screen.queryByText('Triggered by Non-Taxpayer MLE')
     ).not.toBeInTheDocument();
+    expect(screen.getByTestId('cap-sheet-shell-year-truth-panel')).toHaveTextContent(
+      'Cap table: 2026-27'
+    );
+    expect(screen.getByTestId('cap-sheet-shell-year-truth-panel')).toHaveTextContent(
+      'Adjacent authority: 2025-26 only'
+    );
 
     const adjacentSurface = screen.getByRole('region', {
-      name: 'Adjacent exception presentation surface',
+      name: 'Adjacent current-season authority surface',
     });
     expect(
       within(adjacentSurface).getByTestId(
@@ -1011,7 +1020,7 @@ describe('Cap Sheet UI integration flows', () => {
     ).toBeInTheDocument();
     expect(
       within(adjacentSurface).getByText(
-        /This tab can show 2026-27 totals/i
+        /This cap table can show 2026-27 totals/i
       )
     ).toBeInTheDocument();
   });
@@ -1075,13 +1084,13 @@ describe('Cap Sheet UI integration flows', () => {
     );
 
     const rosterSurface = screen.getByRole('region', {
-      name: 'Current-year roster detail surface',
+      name: 'Selected-year roster detail surface',
     });
     const breakdownSurface = within(rosterSurface).getByRole('region', {
-      name: 'Current-year canonical totals breakdown surface',
+      name: 'Selected-year canonical totals breakdown surface',
     });
     const capHoldsSurface = within(rosterSurface).getByRole('region', {
-      name: 'Current-year cap holds detail surface',
+      name: 'Selected-year cap holds detail surface',
     });
     const controlSurface = within(rosterSurface).getByTestId(
       'cap-sheet-control-surface'

@@ -159,7 +159,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
     const ntMleCard = within(trackerSection)
       .getByText('NT-MLE')
@@ -246,7 +246,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
 
     render(<ExceptionSaveHarness />);
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
 
     expect(within(trackerSection).getByText('$9,765,432')).toBeInTheDocument();
@@ -282,7 +282,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
     const tpMleCard = within(trackerSection).getByText('TP-MLE').closest('div.relative');
 
@@ -321,7 +321,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
     const tpMleCard = within(trackerSection)
       .getByText('TP-MLE')
@@ -356,7 +356,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
     const baeCard = within(trackerSection).getByText('BAE').closest('div.relative');
 
@@ -389,7 +389,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
     const mleCard = within(trackerSection).getByText('NT-MLE').closest('div.relative');
 
@@ -427,7 +427,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
     const roomCard = within(trackerSection).getByText('ROOM').closest('div.relative');
     expect(roomCard).not.toBeNull();
@@ -488,7 +488,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
     const roomCard = within(trackerSection).getByText('ROOM').closest('div.relative');
     expect(roomCard).not.toBeNull();
@@ -522,7 +522,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
 
     expect(within(trackerSection).getByText('Hard Capped')).toBeInTheDocument();
@@ -545,7 +545,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
 
     expect(within(trackerSection).getByText('Hard Capped')).toBeInTheDocument();
@@ -573,7 +573,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     );
 
     const trackerSection = screen.getByLabelText(
-      'Cap sheet adjacent exception presentation surface'
+      'Cap sheet current-season exception authority surface'
     );
 
     expect(within(trackerSection).getByText('No Hard Cap Active')).toBeInTheDocument();

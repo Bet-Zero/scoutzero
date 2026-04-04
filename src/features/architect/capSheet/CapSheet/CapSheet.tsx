@@ -1,5 +1,5 @@
 /**
- * PURPOSE: Current-year cap sheet grid for Architect teams, now annotated with player rules profiles.
+ * PURPOSE: Selected-year cap sheet grid for Architect teams, now annotated with player rules profiles.
  * OWNERSHIP: Feature: architect/cap-sheet
  *
  * HISTORY:
@@ -133,9 +133,10 @@ type CapSheetProps = {
 };
 
 const CAP_SHEET_SURFACE_LABELS = {
-  rosterDetail: 'Current-year roster detail surface',
-  capHoldsDetail: 'Current-year cap holds detail surface',
-  canonicalTotalsBreakdown: 'Current-year canonical totals breakdown surface',
+  canonicalTotalsSummary: 'Selected-year canonical totals summary surface',
+  rosterDetail: 'Selected-year roster detail surface',
+  capHoldsDetail: 'Selected-year cap holds detail surface',
+  canonicalTotalsBreakdown: 'Selected-year canonical totals breakdown surface',
 } as const;
 
 const CapSheet = ({
@@ -406,6 +407,7 @@ const CapSheet = ({
           currentYear={currentYear}
           selectedYear={selectedYear}
           canonicalTotals={canonicalTotals}
+          surfaceLabel={CAP_SHEET_SURFACE_LABELS.canonicalTotalsSummary}
         />
       </div>
 

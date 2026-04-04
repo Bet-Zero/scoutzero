@@ -18,6 +18,17 @@ type CapSheetSectionProps = ForwardedCapSheetProps & {
   hasInjectedCapSheetFixtures?: boolean;
 };
 
+const CAP_SHEET_SECTION_SURFACE_LABELS = {
+  shellYearTruth: 'Cap sheet shell year-truth surface',
+  primary: 'Primary selected-year cap sheet surface',
+  adjacent: 'Adjacent current-season authority surface',
+  adjacentDetail: 'Cap sheet current-season exception authority surface',
+  devFixtures: 'Cap sheet development fixture controls',
+} as const;
+
+const formatSeasonLabel = (endYear: number) =>
+  `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
+
 const CapSheetSection = ({
   teamCapSheet,
   currentYear,
@@ -42,12 +53,65 @@ const CapSheetSection = ({
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_CAP_SHEET_FIXTURE_FLAG) === 'true';
+  const isViewingCurrentYear = selectedYear === currentYear;
+  const currentSeasonLabel = formatSeasonLabel(currentYear);
+  const selectedSeasonLabel = formatSeasonLabel(selectedYear);
+  const shellTruthToneClasses = isViewingCurrentYear
+    ? 'border-sky-400/20 bg-sky-500/[0.06] text-sky-100'
+    : 'border-amber-400/20 bg-amber-500/[0.06] text-amber-100';
+  const shellTruthEyebrowClass = isViewingCurrentYear
+    ? 'text-sky-300/80'
+    : 'text-amber-300/80';
+  const shellTruthChipClass = isViewingCurrentYear
+    ? 'border-sky-300/20 bg-sky-500/10 text-sky-100/90'
+    : 'border-amber-300/20 bg-amber-500/10 text-amber-100/90';
 
   return (
     <>
-      <section aria-label="Primary current-year cap sheet surface">
-        {/* PRIMARY CURRENT-YEAR SURFACE: CapSheet owns the canonical totals
-            consumers plus its supporting detail views. */}
+      <section
+        aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.shellYearTruth}
+        data-testid="cap-sheet-shell-year-truth-panel"
+        className={`mb-4 rounded-lg border px-4 py-3 ${shellTruthToneClasses}`}
+      >
+        {/* SECTION HANDOFF / SHELL TRUTH SURFACE: The dashboard seam owns
+            selectedYear, top-level year-truth signaling, and separation
+            between the authoritative feature surfaces below. */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div
+              className={`text-[10px] uppercase tracking-[0.25em] ${shellTruthEyebrowClass}`}
+            >
+              {isViewingCurrentYear
+                ? 'Current-Season Alignment'
+                : 'Selected-Year Totals View'}
+            </div>
+            <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/80">
+              {isViewingCurrentYear
+                ? `The main cap sheet and the adjacent hard-cap, exception, and TPE surface are both aligned to ${currentSeasonLabel}.`
+                : `The main cap sheet is showing ${selectedSeasonLabel} totals and detail, while adjacent hard-cap, exception, and TPE authority remains on ${currentSeasonLabel} only.`}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[10px] font-medium">
+            <span
+              className={`rounded-full border px-2.5 py-1 ${shellTruthChipClass}`}
+            >
+              Cap table: {selectedSeasonLabel}
+            </span>
+            <span
+              className={`rounded-full border px-2.5 py-1 ${shellTruthChipClass}`}
+            >
+              Adjacent authority:{' '}
+              {isViewingCurrentYear
+                ? currentSeasonLabel
+                : `${currentSeasonLabel} only`}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.primary}>
+        {/* PRIMARY FEATURE SURFACE: CapSheet owns selected-year cap-table
+            composition, canonical totals consumers, and supporting detail. */}
         <CapSheet
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
@@ -56,58 +120,68 @@ const CapSheetSection = ({
           onOpenPlayerContractModal={onOpenPlayerContractModal}
           manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
         />
-        {showDevFixturePanel && (
-          <section
-            data-testid="cap-sheet-fixtures-panel"
-            className="mt-4 rounded border border-amber-500/30 bg-[#120e09] p-3 text-xs text-amber-100/80 space-y-3"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="font-semibold text-amber-200">
-                  Cap Sheet Fixtures (DEV)
-                </div>
-                <div className="text-amber-200/70">
-                  Injects one synthetic `futureContract` player and one control
-                  player into local in-memory team state only.
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                data-testid="cap-sheet-inject-fixtures-button"
-                onClick={() => onInjectCapSheetFixtures?.()}
-                className="rounded bg-amber-700/70 hover:bg-amber-600/70 px-3 py-1.5 text-xs font-medium text-amber-100"
-              >
-                Inject FutureContract Fixture
-              </button>
-              <button
-                type="button"
-                data-testid="cap-sheet-clear-fixtures-button"
-                onClick={() => onClearCapSheetFixtures?.()}
-                disabled={!hasInjectedCapSheetFixtures}
-                className={`rounded px-3 py-1.5 text-xs font-medium ${
-                  hasInjectedCapSheetFixtures
-                    ? 'bg-neutral-700 hover:bg-neutral-600 text-white'
-                    : 'bg-neutral-800 text-white/40 cursor-not-allowed'
-                }`}
-              >
-                Clear Injected Fixtures
-              </button>
-            </div>
-          </section>
-        )}
       </section>
 
-      <section aria-label="Adjacent exception presentation surface">
-        {/* ADJACENT PRESENTATION SURFACE: Keep exception/TPE/hard-cap display
-            separate from the primary current-year totals ownership. */}
+      <section aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.adjacent}>
+        {/* ADJACENT CURRENT-SEASON AUTHORITY SURFACE: Keep exception/TPE/
+            hard-cap display separate from the selected-year cap-table owner. */}
         <ExceptionTracker
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
           selectedYear={selectedYear}
+          surfaceLabel={CAP_SHEET_SECTION_SURFACE_LABELS.adjacentDetail}
         />
       </section>
+
+      {showDevFixturePanel && (
+        <aside
+          aria-label={CAP_SHEET_SECTION_SURFACE_LABELS.devFixtures}
+          data-testid="cap-sheet-fixtures-panel"
+          className="mt-4 rounded border border-amber-500/30 bg-[#120e09] p-3 text-xs text-amber-100/80 space-y-3"
+        >
+          {/* DEV-ONLY SUPPORT SURFACE: Fixture controls intentionally live
+              outside the authoritative cap-table and adjacent authority
+              surfaces so test scaffolding does not read like feature truth. */}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-semibold text-amber-200">
+                Cap Sheet Fixtures (DEV)
+              </div>
+              <div className="text-amber-200/70">
+                Injects one synthetic `futureContract` player and one control
+                player into local in-memory team state only.
+              </div>
+              <div className="mt-1 text-amber-200/55">
+                Separate from authoritative cap-table truth and current-season
+                exception authority.
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              data-testid="cap-sheet-inject-fixtures-button"
+              onClick={() => onInjectCapSheetFixtures?.()}
+              className="rounded bg-amber-700/70 hover:bg-amber-600/70 px-3 py-1.5 text-xs font-medium text-amber-100"
+            >
+              Inject FutureContract Fixture
+            </button>
+            <button
+              type="button"
+              data-testid="cap-sheet-clear-fixtures-button"
+              onClick={() => onClearCapSheetFixtures?.()}
+              disabled={!hasInjectedCapSheetFixtures}
+              className={`rounded px-3 py-1.5 text-xs font-medium ${
+                hasInjectedCapSheetFixtures
+                  ? 'bg-neutral-700 hover:bg-neutral-600 text-white'
+                  : 'bg-neutral-800 text-white/40 cursor-not-allowed'
+              }`}
+            >
+              Clear Injected Fixtures
+            </button>
+          </div>
+        </aside>
+      )}
     </>
   );
 };

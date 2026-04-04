@@ -36,6 +36,7 @@ type ExceptionTrackerProps = {
   teamCapSheet: TeamCapSheetLike;
   currentYear: number;
   selectedYear?: number | null;
+  surfaceLabel?: string;
 };
 
 type ExceptionCardProps = {
@@ -176,13 +177,14 @@ const ExceptionTracker = ({
   teamCapSheet,
   currentYear,
   selectedYear = currentYear,
+  surfaceLabel = 'Cap sheet current-season exception authority surface',
 }: ExceptionTrackerProps) => {
   const isViewingCurrentYear = selectedYear === currentYear;
 
   if (!isViewingCurrentYear) {
     return (
       <section
-        aria-label="Cap sheet adjacent exception presentation surface"
+        aria-label={surfaceLabel}
         className="mt-4"
       >
         <div
@@ -190,15 +192,15 @@ const ExceptionTracker = ({
           className="rounded-md border border-amber-400/20 bg-amber-500/5 px-4 py-4 text-amber-100"
         >
           <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
-            Current-Season Only
+            Adjacent Current-Season Authority
           </div>
           <h3 className="mt-2 text-sm font-semibold text-amber-100">
             Hard-cap, exception, and trade-exception truth stays on the
             current season.
           </h3>
           <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
-            This tab can show {formatSeasonLabel(selectedYear)} totals, but
-            hard-cap, exception, and TPE state is only authoritative for{' '}
+            This cap table can show {formatSeasonLabel(selectedYear)} totals,
+            but hard-cap, exception, and TPE state is only authoritative for{' '}
             {formatSeasonLabel(currentYear)}. Switch back to the current season
             to view the live hard-cap and exception surface.
           </p>
@@ -262,7 +264,7 @@ const ExceptionTracker = ({
 
   return (
     <section
-      aria-label="Cap sheet adjacent exception presentation surface"
+      aria-label={surfaceLabel}
       className="mt-4 grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-4"
     >
       {/* ADJACENT PRESENTATION SURFACE: Exception cards, TPEs, and hard-cap

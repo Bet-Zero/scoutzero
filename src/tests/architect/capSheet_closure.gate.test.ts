@@ -227,9 +227,18 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
   const capSheetContent = readFileContent(CAP_SHEET_PATH);
   const exceptionTrackerContent = readFileContent(EXCEPTION_TRACKER_PATH);
 
-  it('CapSheetSection owns selectedYear and passes one shared value to CapSheet and ExceptionTracker', () => {
+  it('CapSheetSection owns selectedYear, shell-level year truth, and passes one shared value to CapSheet and ExceptionTracker', () => {
     expect(capSheetSectionContent).toMatch(
       /const\s+\[selectedYear,\s*setSelectedYear\]\s*=\s*useState\(currentYear\)/
+    );
+    expect(capSheetSectionContent).toContain(
+      'cap-sheet-shell-year-truth-panel'
+    );
+    expect(capSheetSectionContent).toContain(
+      'Primary selected-year cap sheet surface'
+    );
+    expect(capSheetSectionContent).toContain(
+      'Adjacent current-season authority surface'
     );
     expect(capSheetSectionContent).toMatch(
       /<CapSheet[\s\S]*selectedYear=\{selectedYear\}[\s\S]*onSelectedYearChange=\{setSelectedYear\}/
@@ -256,7 +265,9 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
     expect(exceptionTrackerContent).toContain(
       'const isViewingCurrentYear = selectedYear === currentYear;'
     );
-    expect(exceptionTrackerContent).toContain('Current-Season Only');
+    expect(exceptionTrackerContent).toContain(
+      'Adjacent Current-Season Authority'
+    );
   });
 
   it('CapSheet fences exception editing to the current season and passes real currentYear into ManageExceptionsModal', () => {

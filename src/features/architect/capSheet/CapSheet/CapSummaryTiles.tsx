@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/capSheet/CapSheet/CapSummaryTiles.tsx
- * PURPOSE: Current-year canonical totals summary surface for the Cap Sheet.
+ * PURPOSE: Selected-year canonical totals summary surface for the Cap Sheet.
  * OWNERSHIP: Feature: architect/cap-sheet
  *
  * NOTE:
@@ -24,6 +24,7 @@ type CapSummaryTilesProps = {
   currentYear: number;
   selectedYear: number;
   canonicalTotals: ReturnType<typeof computeTeamCapTotals>;
+  surfaceLabel?: string;
 };
 
 const CapSummaryTiles = ({
@@ -31,6 +32,7 @@ const CapSummaryTiles = ({
   currentYear,
   selectedYear,
   canonicalTotals,
+  surfaceLabel = 'Selected-year canonical totals summary surface',
 }: CapSummaryTilesProps) => {
   // =========================================================================
   // CANONICAL TOTALS CONSUMER SURFACE:
@@ -78,7 +80,7 @@ const CapSummaryTiles = ({
 
   return (
     <section
-      aria-label="Current-year canonical totals summary surface"
+      aria-label={surfaceLabel}
       className="grid grid-cols-2 sm:grid-cols-5 gap-4 my-4"
     >
       <div className="bg-[#1c1c1c] rounded p-4 text-center border border-white/10">
