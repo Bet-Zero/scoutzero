@@ -16,7 +16,9 @@ import type {
   TeamHistoryCapSheetLike,
   TeamHistoryDisplayEntry,
   TeamHistoryLooseTimelineEntry,
+  TeamHistorySelectedEntry,
   TeamHistoryTabProps,
+  TeamHistoryTimelineSourceKey,
 } from './types';
 
 type WorldEventsTimelineProps = {
@@ -24,12 +26,6 @@ type WorldEventsTimelineProps = {
   teamCode: string | null;
   onSelectEntry: (entry: TeamHistoryWorldEventRow) => void;
 };
-
-type TeamHistoryTimelineSourceKey =
-  | 'world-events'
-  | 'dev-fixtures'
-  | 'local-timeline'
-  | 'synthesized';
 
 type TeamHistoryTimelineResolution = {
   key: TeamHistoryTimelineSourceKey;
@@ -54,6 +50,14 @@ const formatCurrency = (value: unknown): string | null => {
     return null;
   }
   return `$${value.toLocaleString()}`;
+};
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
 };
 
 const toDisplayToken = (value: string | null | undefined): string | null => {
@@ -101,6 +105,31 @@ const parseTimelineTimestamp = (value: unknown): number => {
 
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+};
+
+const buildSelectedHistoryEntry = ({
+  activeTeamCode,
+  entry,
+  timelineSourceKey,
+}: {
+  activeTeamCode: string | null;
+  entry: TeamHistoryDisplayEntry;
+  timelineSourceKey: TeamHistoryTimelineSourceKey;
+}): TeamHistorySelectedEntry => {
+  const rawEntry = asRecord(entry?.raw);
+  const truthKind =
+    rawEntry?.derivedTimeline === true || timelineSourceKey === 'synthesized'
+      ? 'section-derived-fallback'
+      : timelineSourceKey === 'world-events'
+        ? 'authoritative-world-event'
+        : 'explicit-local-timeline';
+
+  return {
+    activeTeamCode,
+    entry,
+    timelineSourceKey,
+    truthKind,
+  };
 };
 
 const buildSourceTruthSection = (
@@ -680,7 +709,7 @@ const TeamHistoryTab = ({
   hasInjectedTeamHistoryFixtures = false,
 }: TeamHistoryTabProps) => {
   const [selectedEntry, setSelectedEntry] =
-    useState<TeamHistoryDisplayEntry | null>(null);
+    useState<TeamHistorySelectedEntry | null>(null);
 
   const showDevFixturePanel =
     import.meta.env.DEV &&
@@ -800,7 +829,15 @@ const TeamHistoryTab = ({
           <WorldEventsTimeline
             worldId={worldId || ''}
             teamCode={teamCapSheet?.teamCode || null}
-            onSelectEntry={(entry) => setSelectedEntry(entry)}
+            onSelectEntry={(entry) =>
+              setSelectedEntry(
+                buildSelectedHistoryEntry({
+                  activeTeamCode: teamCapSheet?.teamCode || null,
+                  entry,
+                  timelineSourceKey: 'world-events',
+                })
+              )
+            }
           />
         ) : timelineResolution.timelineEntries.length === 0 ? (
           <p>No timeline entries yet.</p>
@@ -821,7 +858,15 @@ const TeamHistoryTab = ({
                     key={entry.id || idx}
                     data-testid={`team-history-event-row-${idx}`}
                     className="odd:bg-[#171717] cursor-pointer hover:bg-white/5"
-                    onClick={() => setSelectedEntry(entry)}
+                    onClick={() =>
+                      setSelectedEntry(
+                        buildSelectedHistoryEntry({
+                          activeTeamCode: teamCapSheet?.teamCode || null,
+                          entry,
+                          timelineSourceKey: timelineResolution.key,
+                        })
+                      )
+                    }
                   >
                     <td className="p-2">
                       {entry.timestamp || entry.occurredAt || '—'}
@@ -885,7 +930,7 @@ const TeamHistoryTab = ({
       </section>
 
       <HistoryDetailModal
-        entry={selectedEntry}
+        selectedEntry={selectedEntry}
         onClose={() => setSelectedEntry(null)}
       />
     </div>

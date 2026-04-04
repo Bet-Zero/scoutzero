@@ -273,23 +273,41 @@ This now leaves the Step 4 base-mode fallback contract pinned directly enough to
 
 ### TH-5-1 — The detail modal still mixes normalized display fields and raw fallback fields without clearly owning the boundary between them
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-5A
 
 **Problem:**
 
 When a user opens a Team History entry, the detail modal renders drill-down content that draws from two materially different field sources: normalized display fields produced by the Step 3 normalization contract (category, type, capDelta, family-specific section lines) and raw fallback fields read directly from the raw world-event payload or synthesized row metadata. These two sources are not cleanly separated in the modal's truth contract. The modal can silently prefer a raw fallback field over a normalized field when the normalized version is missing, absent, or undefined — and it can do the reverse just as silently. This means the modal's rendering behavior is partially incidental: some fieldscome from the explicit normalization contract and some come from raw-payload convenience reads, but nothing in the modal enforces which source owns which field. The drill-down surface can therefore render a mix of authoritative normalized output and unprocessed raw data without the user or the code knowing where the boundary is.
 
+**Resolution:**
+
+The detail modal now treats the selected Team History entry as an explicit drill-down contract instead of a soft normalized/raw blend.
+
+1. `TeamHistoryTab.tsx` now passes one selected-entry wrapper that includes the clicked row, the active team code, and an explicit truth posture: authoritative world-event row, explicit local timeline row, or section-derived fallback row.
+2. `HistoryDetailModal.tsx` now renders the main display fields (`category`, `type`, `timestamp`, `teams`, `teamCodes`, `playerIds`, `capDelta`, `primaryDeltas`) from the normalized selected entry only instead of silently backfilling them from `entry.raw`.
+3. Raw payload data remains visible, but it is now surfaced through an explicit raw-payload inspection block and raw JSON payload area instead of acting as an invisible fallback source for the main display fields.
+4. The modal now tells the user which truth posture is active, including the stronger distinction between authoritative world-event rows, explicit local timeline rows, and section-derived fallback rows.
+
 ---
 
 ### TH-5-2 — ID, totals, and raw-payload alignment are too loosely tied for the drill-down surface to present honest, coherent event truth
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-5B
 
 **Problem:**
 
 The detail modal uses a `selectedEntry` object that carries an event ID (or synthesized row ID), cap totals (before/after values), and raw payload metadata (world-event fields, `sectionDerived` metadata, original source entries). These three layers — identity, numeric totals, and raw payload — are not structurally enforced as a coherent unit. The modal can render a cap delta numeric from a different normalization pass than the detail-section lines it renders alongside it. A `selectedEntry` that comes from a synthesized fallback row (which has no `eventId`, `operationId`, or before/after totals) can render in the same modal shell as an authoritative world-event entry without the modal enforcing a meaningfully different truth posture for each. Partial data — a row with an `eventId` but no raw payload, or totals that were derived from a different source than the displayed sections — can pass through the modal undetected. The result is a drill-down surface where identity, totals, and payload are plausible together but not explicitly verified to be coherent.
+
+**Resolution:**
+
+The drill-down surface now renders identity, totals, and raw payload as intentionally separate but aligned truth layers.
+
+1. The modal no longer coalesces `mutationId`, `eventId`, `operationId`, and row `id` into one fallback identifier. Each identifier is now displayed separately and only when the selected entry explicitly carries it.
+2. The modal now computes and displays a `Cap Delta Alignment` block that ties the shown normalized `capDelta` to normalized before/after totals by team and calls out whether they reconcile.
+3. Normalized before/after totals are rendered from the selected entry only, while raw payload identity and metadata are summarized separately in a raw-payload inspection block plus the raw JSON payload view.
+4. Section-derived fallback rows now keep their lighter truth posture inside the same modal shell by explicitly stating that their raw payload is derived-source metadata, not a canonical world-event payload.
 
 ---
 

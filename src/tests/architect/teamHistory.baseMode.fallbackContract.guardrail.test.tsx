@@ -283,9 +283,16 @@ describe('TEAM_HISTORY_STEP4 fallback-contract guardrails', () => {
     );
 
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
+    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
+      'Section-derived fallback row'
+    );
+    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
+      'derived from pickLog[]'
+    );
     expect(screen.getByTestId('team-history-detail-mutation-type')).toHaveTextContent(
       'sectionDerived:pickLog'
     );
+    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent('—');
     expect(screen.getByTestId('team-history-detail-sections')).toHaveTextContent(
       'Derived from pickLog[]'
     );
@@ -300,6 +307,9 @@ describe('TEAM_HISTORY_STEP4 fallback-contract guardrails', () => {
     );
     expect(screen.getByTestId('team-history-raw-payload')).toHaveTextContent(
       '"sourceCollection": "pickLog"'
+    );
+    expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
+      'No raw event ID was carried'
     );
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 

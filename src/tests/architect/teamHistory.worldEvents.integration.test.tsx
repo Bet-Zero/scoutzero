@@ -77,6 +77,9 @@ describe('Team History world events integration', () => {
     fireEvent.click(firstRow);
 
     expect(screen.getByTestId('team-history-detail-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
+      'Authoritative world-event row'
+    );
     expect(
       screen.getByTestId('team-history-detail-mutation-type').textContent || ''
     ).toContain('executeTrade');
@@ -96,9 +99,26 @@ describe('Team History world events integration', () => {
       screen.getByTestId('team-history-detail-after-totals').textContent || ''
     ).toContain('149000000');
     expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
+      'cap-audit-1'
+    );
+    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
+      'cap-audit-1'
+    );
     expect(
-      screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL total cap allocations: -$1,000,000');
+      screen.getByTestId('team-history-detail-operation-id')
+    ).toHaveTextContent('op_trade_77');
+    expect(
+      screen.getByTestId('team-history-detail-cap-alignment').textContent || ''
+    ).toContain('Displayed cap delta matches LAL before/after totals.');
+    expect(
+      screen.getByTestId('team-history-detail-cap-alignment').textContent || ''
+    ).toContain(
+      'LAL total cap allocations: $150,000,000 -> $149,000,000 (-$1,000,000)'
+    );
+    expect(
+      screen.getByTestId('team-history-detail-raw-summary').textContent || ''
+    ).toContain('Raw event ID: cap-audit-1');
   });
 
   it('surfaces the legacy compatibility note when the hook resolves through the bounded fallback contract', () => {

@@ -33,6 +33,24 @@ export type TeamHistoryDisplayEntry =
   | TeamHistoryWorldEventRow
   | TeamHistoryLooseTimelineEntry;
 
+export type TeamHistoryTimelineSourceKey =
+  | 'world-events'
+  | 'dev-fixtures'
+  | 'local-timeline'
+  | 'synthesized';
+
+export type TeamHistorySelectedEntryTruthKind =
+  | 'authoritative-world-event'
+  | 'explicit-local-timeline'
+  | 'section-derived-fallback';
+
+export type TeamHistorySelectedEntry = {
+  activeTeamCode: string | null;
+  entry: TeamHistoryDisplayEntry;
+  timelineSourceKey: TeamHistoryTimelineSourceKey;
+  truthKind: TeamHistorySelectedEntryTruthKind;
+};
+
 export type TeamHistoryWaivedContractEntry = {
   id?: string | null;
   name?: string | null;
@@ -109,6 +127,6 @@ export type TeamHistoryTabProps = {
 };
 
 export type HistoryDetailModalProps = {
-  entry: TeamHistoryDisplayEntry | null;
+  selectedEntry: TeamHistorySelectedEntry | null;
   onClose: () => void;
 };
