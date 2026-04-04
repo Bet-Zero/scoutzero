@@ -116,11 +116,21 @@ This leaves the Team History world-event seam materially more durable without tu
 
 ### TH-2-3 — The world-event compatibility matrix and pagination contract have no focused guardrails
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-2C
 
 **Problem:**
 
 The internal complexity of `useWorldTeamEvents.ts` — query priority order, compatibility fallback chain, pagination reuse of the selected config, empty/error state semantics — is not pinned by focused tests targeting these behaviors directly. Higher-level integration tests exercise world-boundary behavior at the shell level but do not guard the compatibility matrix itself. This means the intended query priority order can change silently, a compatibility path can stop working without a targeted failure, and load-more can drift away from the initial winning contract without any test catching it.
+
+**Resolution:**
+
+TH-2C added focused guardrails at the seam where retrieval truth actually lives:
+
+1. direct query-contract tests now protect canonical-first retrieval, legacy fallback ordering, and the rule that canonical errors do not silently fall through
+2. new hook-level guardrails now protect load-more reuse of the winning contract, exact `hasMore` overfetch behavior, retained-row `lastDoc` ownership, and merged-page dedupe/newest-first ordering
+3. Team History UI guardrails now protect the legacy compatibility note boundary and the retrieval-truth semantics that depend on hook resolution state
+
+This leaves the Team History Step 2 compatibility matrix and pagination contract pinned directly enough to fail loudly if the intended retrieval model drifts.
 
 ---

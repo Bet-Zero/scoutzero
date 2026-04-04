@@ -18,12 +18,12 @@ Execution checklist for the Team History review. Each substep is marked TODO / I
 
 ## STEP 2 — World Event Loading, Query Compatibility, and Pagination Truth
 
-**STEP 2 STATUS: IN PROGRESS**
+**STEP 2 STATUS: DONE**
 
 | Substep | Description | Status |
 |---------|-------------|--------|
 | TH-2A | Tighten The World-Event Query Contract So Team History Is Less Compatibility-Driven And More Explicitly Owned | DONE |
 | TH-2B | Tighten Query Compatibility, Dedupe, Empty-State, and Pagination Behavior So Retrieval Truth Is More Durable | DONE |
-| TH-2C | Add Focused Guardrails For World-Event Query Compatibility And Pagination Truth | TODO |
+| TH-2C | Add Focused Guardrails For World-Event Query Compatibility And Pagination Truth | DONE |
 
 ---

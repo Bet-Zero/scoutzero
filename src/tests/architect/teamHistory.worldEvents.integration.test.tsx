@@ -70,6 +70,9 @@ describe('Team History world events integration', () => {
 
     expect(firstRow.textContent || '').toContain('Trade executed');
     expect(secondRow.textContent || '').toContain('Waive Player: player_123');
+    expect(
+      screen.queryByTestId('team-history-world-events-compatibility-note')
+    ).not.toBeInTheDocument();
 
     fireEvent.click(firstRow);
 
@@ -139,6 +142,9 @@ describe('Team History world events integration', () => {
     ).toContain(
       'No history events matched this team in the supported world-event feed.'
     );
+    expect(
+      screen.queryByTestId('team-history-world-events-compatibility-note')
+    ).not.toBeInTheDocument();
   });
 
   it('keeps rendered rows visible when load-more fails after initial data has loaded', () => {
