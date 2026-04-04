@@ -171,11 +171,26 @@ TH-3B tightened cap-delta and detail-section interpretation around one explicit 
 
 ### TH-3-3 — No focused guardrails exist for Team History normalization / display-contract behavior
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-3C
 
 **Problem:**
 
 The normalization seam is covered by integration tests that verify acceptable transaction-log rendering for known mutation families, but nothing pins the intended rules of the display contract itself. Category inference rules can change silently without failing any targeted test. Summary fallback behavior can become more aggressive without detection. Cap-delta logic can drift toward different fields or team-selection strategies while still producing plausible-looking rows. Mutation-family section output can flatten more meaningful distinctions over time without causing obvious UI breakage. Because the integration test surface validates output shape rather than display-contract rules, the normalization seam can regress in faithfulness without any failure, which undermines the durability of the Team History history view as later detail-modal and closeout work builds further on top of it.
+
+**Resolution:**
+
+TH-3C added a direct normalization guardrail suite at the owned seam instead of relying only on UI-level integration checks. The new guardrails now protect:
+
+1. explicit mutation-display map ownership in `normalizeWorldEventsForTeamHistory.ts`, including key mapped mutation families and the absence of the old heuristic `inferCategory(...)` path
+2. category/type/summary output for key mutation families through direct `toTeamHistoryEventDisplay(...)` assertions
+3. the rule that generic source summaries do not suppress more grounded summaries when concrete player/team anchors are present, while materially specific source summaries are preserved
+4. active-team-first `capDelta` interpretation and `Cap Allocation` detail-line ordering/content
+5. family-specific section titles for trade, signing, sign-and-trade, offer-sheet, waiver, exception, and dead-cap paths
+6. explicit fallback notes for generic “no detail included” cases, sparse fail-soft rows, and unknown/default mutation types
+
+Existing display integration/fail-soft tests were then re-run to confirm the directly-guarded normalization contract still renders correctly through the Team History UI. This now leaves the Step 3 normalization/display-contract seam pinned directly enough to fail loudly if the intended model drifts.
+
+---
 
 ---

@@ -30,12 +30,12 @@ Execution checklist for the Team History review. Each substep is marked TODO / I
 
 ## STEP 3 — World Event Normalization and Display-Contract Truth
 
-**STEP 3 STATUS: IN PROGRESS**
+**STEP 3 STATUS: DONE**
 
 | Substep | Description                                                                                                     | Status |
 | ------- | --------------------------------------------------------------------------------------------------------------- | ------ |
 | TH-3A   | Tighten The Team History Normalization Contract So Category / Type / Summary Output Is More Explicitly Grounded | DONE   |
 | TH-3B   | Tighten Cap-Delta And Detail-Section Interpretation So Display Rows Preserve More Real Event Truth              | DONE   |
-| TH-3C   | Add Focused Guardrails For Team History Normalization / Display-Contract Truth                                  | TODO   |
+| TH-3C   | Add Focused Guardrails For Team History Normalization / Display-Contract Truth                                  | DONE   |
 
 ---
