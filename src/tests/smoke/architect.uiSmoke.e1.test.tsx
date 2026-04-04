@@ -276,21 +276,6 @@ function buildCommittedAdvanceExecutorResult(
   };
 }
 
-function getWorldAdvanceHeaderSurface() {
-  const heading = screen.getByRole('heading', {
-    name: 'World Season Advancement',
-  });
-  const surface = heading.parentElement;
-
-  if (!surface) {
-    throw new Error(
-      'World Season Advancement header surface was unavailable in smoke test.'
-    );
-  }
-
-  return surface;
-}
-
 function buildTradeMachineReturn(teamCapSheet: TeamLike) {
   return {
     teams: [
@@ -448,7 +433,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       />
     );
 
-    expect(screen.getByText(/Cap Sheet/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Cap Sheet/i })
+    ).toBeInTheDocument();
     expect(screen.getByText(/^Total Cap Hit$/i)).toBeInTheDocument();
   });
 
@@ -620,8 +607,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       />
     );
 
-    await within(getWorldAdvanceHeaderSurface()).findByText(
-      'World Season: 2025-26'
+    await within(screen.getByTestId('offseason-world-surface')).findByText(
+      'World Season: 2025-26',
+      { selector: 'span' }
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
@@ -735,8 +723,9 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       />
     );
 
-    await within(getWorldAdvanceHeaderSurface()).findByText(
-      'World Season: 2025-26'
+    await within(screen.getByTestId('offseason-world-surface')).findByText(
+      'World Season: 2025-26',
+      { selector: 'span' }
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
@@ -789,11 +778,14 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
       });
       expect(setShowOffseasonModal).toHaveBeenCalledWith(true);
       expect(onReloadWorldData).toHaveBeenCalledTimes(1);
-      expect(onReloadWorldData).toHaveBeenCalledWith({
-        committedWorldMetadata: {
-          currentSeason: '2026-27',
-        },
-      });
+      expect(onReloadWorldData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          committedTeamSnapshot: committedTeamCapSheet,
+          committedWorldMetadata: {
+            currentSeason: '2026-27',
+          },
+        })
+      );
     });
     expect(setTeamCapSheet.mock.invocationCallOrder[0]).toBeLessThan(
       onReloadWorldData.mock.invocationCallOrder[0]

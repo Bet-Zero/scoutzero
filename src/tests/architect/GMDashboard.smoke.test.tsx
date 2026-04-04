@@ -32,6 +32,12 @@ vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
   loadFreeAgents: (...args: unknown[]) => mockLoadFreeAgents(...args),
 }));
 
+vi.mock('@/firebaseConfig', () => ({
+  db: {},
+  FIREBASE_TARGET_MODE: 'EMULATOR',
+  isLikelyEmulatorConnectionError: () => false,
+}));
+
 // Mock useArchitectPlayerData
 vi.mock('@/features/architect/hooks/useArchitectPlayerData', () => ({
   default: () => ({

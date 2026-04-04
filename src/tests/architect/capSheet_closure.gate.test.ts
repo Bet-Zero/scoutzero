@@ -248,6 +248,29 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
     );
   });
 
+  it('CapSheetSection resets selectedYear from currentYear and keeps distinct current-vs-future shell copy', () => {
+    expect(capSheetSectionContent).toMatch(
+      /useEffect\(\(\)\s*=>\s*\{\s*setSelectedYear\(currentYear\);\s*\},\s*\[currentYear\]\)/
+    );
+    expect(capSheetSectionContent).toContain('Current-Season Alignment');
+    expect(capSheetSectionContent).toContain('Selected-Year Totals View');
+    expect(capSheetSectionContent).toContain('Cap table:');
+    expect(capSheetSectionContent).toContain('Adjacent authority:');
+  });
+
+  it('keeps explicit surface-label handoff from section to ExceptionTracker and from CapSheet to CapSummaryTiles', () => {
+    expect(capSheetSectionContent).toMatch(
+      /<ExceptionTracker[\s\S]*surfaceLabel=\{CAP_SHEET_SECTION_SURFACE_LABELS\.adjacentDetail\}/
+    );
+    expect(capSheetContent).toMatch(
+      /<CapSummaryTiles[\s\S]*surfaceLabel=\{CAP_SHEET_SURFACE_LABELS\.canonicalTotalsSummary\}/
+    );
+    expect(capSummaryTilesContent).toContain('surfaceLabel?: string;');
+    expect(capSummaryTilesContent).toContain(
+      "surfaceLabel = 'Selected-year canonical totals summary surface'"
+    );
+  });
+
   it('CapSummaryTiles explicitly fences hard-cap truth to the current season', () => {
     expect(capSummaryTilesContent).toContain(
       'const showCurrentYearHardCapTruth = selectedYear === currentYear;'
@@ -268,6 +291,19 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
     expect(exceptionTrackerContent).toContain(
       'Adjacent Current-Season Authority'
     );
+  });
+
+  it('CapSheetSection keeps DEV fixture controls on a named support surface rather than inside authoritative regions', () => {
+    expect(capSheetSectionContent).toContain(
+      'Cap sheet development fixture controls'
+    );
+    expect(capSheetSectionContent).toMatch(
+      /<aside[\s\S]*aria-label=\{CAP_SHEET_SECTION_SURFACE_LABELS\.devFixtures\}/
+    );
+    expect(capSheetSectionContent).toContain(
+      'Separate from authoritative cap-table truth and current-season'
+    );
+    expect(capSheetSectionContent).toContain('exception authority.');
   });
 
   it('CapSheet fences exception editing to the current season and passes real currentYear into ManageExceptionsModal', () => {

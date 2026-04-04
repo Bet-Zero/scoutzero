@@ -49,14 +49,14 @@ The Multi-Year Cap Table shell presents as one unified feature surface, but inte
 
 ### MYCT-1-3 — There are no focused guardrails pinning selected-year handoff behavior or current-year-only adjacent surface boundary truth at the top-level shell
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-1C
 
 **Problem:**
 The top-level shell contract is honest but has no durable guardrails protecting it from silent drift. Specific failure modes exist with no dedicated coverage: future-year viewing could stop presenting current-year-only authority limits clearly; section-level `selectedYear` ownership could drift; `ExceptionTracker` could gradually act as a multi-year authoritative surface without loud test failures; DEV fixture panel wiring or handoff boundaries could shift in ways that weaken the intended shell contract. Because this shell defines how every deeper cap-table seam is initially interpreted, undiscovered drift here risks invalidating assumptions across all later Multi-Year Cap Table truth-pass steps.
 
-**Why Still Open:**
-This execution updated existing shell tests and direct `ExceptionTracker` behavior assertions only as support for the MYCT-1A / MYCT-1B contract change. It did not add a dedicated new Step 1C guardrail pass or broaden the shell-test matrix beyond the minimum alignment needed for the live seam update.
+**Resolution:**
+This execution added a dedicated Step 1C shell guardrail pass. A new focused runtime guardrail test now pins section-level `selectedYear` ownership, `selectedYear <- currentYear` reset behavior, current-year vs future-year shell messaging, adjacent-surface prop handoff, and DEV fixture separation as a distinct support surface. The existing closure gate was also tightened to pin the source-level contract directly: explicit shell-year-truth copy, label handoff from `CapSheetSection.tsx` to `ExceptionTracker.tsx`, label handoff from `CapSheet.tsx` to `CapSummaryTiles.tsx`, and DEV fixture controls staying on a named support surface rather than inside authoritative regions.
 
 **Files implicated:**
 
