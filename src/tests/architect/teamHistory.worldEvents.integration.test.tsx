@@ -80,6 +80,7 @@ describe('Team History world events integration', () => {
     expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
       'Authoritative world-event row'
     );
+    expect(screen.getByText('Underlying World-Event Payload')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-mutation-type').textContent || ''
     ).toContain('executeTrade');
@@ -119,6 +120,9 @@ describe('Team History world events integration', () => {
     expect(
       screen.getByTestId('team-history-detail-raw-summary').textContent || ''
     ).toContain('Raw event ID: cap-audit-1');
+    expect(
+      screen.getByTestId('team-history-detail-raw-summary').textContent || ''
+    ).toContain('Raw mutation type: executeTrade');
   });
 
   it('surfaces the legacy compatibility note when the hook resolves through the bounded fallback contract', () => {

@@ -89,6 +89,7 @@ describe('Team History detail view integration', () => {
               mutationId: 'mutation_local_1',
               eventId: 'evt_local_1',
               operationId: 'op_local_1',
+              capDelta: 1000000,
               raw: {
                 eventId: 'evt_raw_different',
                 operationId: 'op_raw_different',
@@ -97,6 +98,12 @@ describe('Team History detail view integration', () => {
                 teamCodes: ['LAL'],
                 teamsAffected: ['NYK'],
                 playerIds: ['player_raw_only'],
+                beforeTotalsByTeam: {
+                  BOS: { totalCapAllocations: 18000000 },
+                },
+                afterTotalsByTeam: {
+                  BOS: { totalCapAllocations: 19000000 },
+                },
               },
             },
           ],
@@ -109,8 +116,15 @@ describe('Team History detail view integration', () => {
     expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
       'Explicit local timeline row'
     );
+    expect(screen.getByText('Attached Local Payload')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-detail-type')).toHaveTextContent(
       'custom · Manual Entry'
+    );
+    expect(screen.getByTestId('team-history-detail-raw-type')).toHaveTextContent(
+      'rawFallbackOnly'
+    );
+    expect(screen.getByTestId('team-history-detail-mutation-type')).toHaveTextContent(
+      '—'
     );
     expect(screen.getByTestId('team-history-detail-teams')).toHaveTextContent(
       'BOS'
@@ -130,14 +144,129 @@ describe('Team History detail view integration', () => {
     expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
       'evt_local_1'
     );
+    expect(screen.getByTestId('team-history-detail-mutation-id')).toHaveTextContent(
+      'mutation_local_1'
+    );
     expect(screen.getByTestId('team-history-detail-operation-id')).toHaveTextContent(
       'op_local_1'
+    );
+    expect(screen.getByTestId('team-history-detail-before-totals')).toHaveTextContent(
+      '—'
+    );
+    expect(screen.getByTestId('team-history-detail-after-totals')).toHaveTextContent(
+      '—'
+    );
+    expect(screen.getByTestId('team-history-detail-cap-alignment')).toHaveTextContent(
+      'Displayed cap delta has no normalized before/after totals to reconcile against.'
     );
     expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
       'Raw event ID: evt_raw_different'
     );
     expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
       'Raw playerIds: player_raw_only'
+    );
+  });
+
+  it('keeps one selected-entry owner driving the modal as explicit local rows change', () => {
+    render(
+      <TeamHistoryTab
+        worldId={null}
+        teamCapSheet={{
+          teamCode: 'BOS',
+          waivedContracts: [],
+          exceptionHistory: [],
+          mleHistory: [],
+          pickLog: [],
+          currentPicks: {},
+          historyTimeline: [
+            {
+              id: 'local-row-first',
+              category: 'custom',
+              type: 'First Local Row',
+              timestamp: '2026-03-16T12:00:00.000Z',
+              teamsInvolved: ['BOS'],
+              summary: 'FIRST_LOCAL_SELECTED_ENTRY',
+              capDelta: 1000000,
+              eventId: 'evt_local_first',
+              operationId: 'op_local_first',
+              beforeTotalsByTeam: {
+                BOS: { totalCapAllocations: 10000000 },
+              },
+              afterTotalsByTeam: {
+                BOS: { totalCapAllocations: 8000000 },
+              },
+            },
+            {
+              id: 'local-row-second',
+              category: 'custom',
+              timestamp: '2026-03-15T12:00:00.000Z',
+              teamsInvolved: ['BOS'],
+              summary: 'SECOND_LOCAL_SELECTED_ENTRY',
+              capDelta: 1000000,
+              operationId: 'op_local_second',
+              raw: {
+                eventId: 'evt_raw_second',
+                mutationType: 'executeTrade',
+                type: 'rawOnlyType',
+                playerIds: ['player_raw_second'],
+                beforeTotalsByTeam: {
+                  BOS: { totalCapAllocations: 15000000 },
+                },
+                afterTotalsByTeam: {
+                  BOS: { totalCapAllocations: 16000000 },
+                },
+              },
+            },
+          ],
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    expect(screen.getAllByTestId('team-history-detail-modal')).toHaveLength(1);
+    expect(screen.getByTestId('team-history-detail-summary')).toHaveTextContent(
+      'FIRST_LOCAL_SELECTED_ENTRY'
+    );
+    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
+      'Explicit local timeline row'
+    );
+    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
+      'evt_local_first'
+    );
+    expect(screen.getByTestId('team-history-detail-cap-alignment')).toHaveTextContent(
+      'Displayed cap delta does not match BOS before/after totals.'
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-1'));
+
+    expect(screen.getAllByTestId('team-history-detail-modal')).toHaveLength(1);
+    expect(screen.getByTestId('team-history-detail-summary')).toHaveTextContent(
+      'SECOND_LOCAL_SELECTED_ENTRY'
+    );
+    expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
+      'local-row-second'
+    );
+    expect(screen.getByTestId('team-history-detail-type')).toHaveTextContent(
+      'custom · —'
+    );
+    expect(screen.getByTestId('team-history-detail-mutation-type')).toHaveTextContent(
+      '—'
+    );
+    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
+      '—'
+    );
+    expect(screen.getByTestId('team-history-detail-operation-id')).toHaveTextContent(
+      'op_local_second'
+    );
+    expect(screen.getByTestId('team-history-detail-before-totals')).toHaveTextContent(
+      '—'
+    );
+    expect(screen.getByTestId('team-history-detail-cap-alignment')).toHaveTextContent(
+      'Displayed cap delta has no normalized before/after totals to reconcile against.'
+    );
+    expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
+      'Raw event ID: evt_raw_second'
     );
   });
 });

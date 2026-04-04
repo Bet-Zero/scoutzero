@@ -313,11 +313,32 @@ The drill-down surface now renders identity, totals, and raw payload as intentio
 
 ### TH-5-3 — No focused guardrails exist for detail modal rendering truth or selected-entry integrity
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-5C
 
 **Problem:**
 
 The Team History detail modal has no focused test guardrails that protect its rendering contract directly. Existing tests exercise the timeline list and some source-selection behavior, but nothing pins: which fields the modal prefers when both normalized and raw values are available; which detail-section lines render for each mutation family; how the modal behaves when `selectedEntry` carries only partial data (no `eventId`, no raw payload, no before/after totals); or how the modal distinguishes synthesized fallback rows from authoritative world-event rows. This means the field-source boundary from TH-5-1 and the ID/totals/payload alignment problem from TH-5-2 can each drift further without any test failing. A future contributor can weaken the normalized-first rendering contract, change the section-line ordering, or collapse synthesized and world-event entry rendering without detection.
+
+**Resolution:**
+
+TH-5C added focused detail-modal guardrails directly on the live Step 5 seam without reopening the modal design.
+
+1. `teamHistory.detailView.integration.test.tsx` now guards the explicit-local selected-entry path directly:
+   - one modal owner continues to update from the latest clicked local row
+   - explicit-local truth posture remains visible in the modal
+   - normalized display fields stay ahead of conflicting raw payload fields
+   - raw payload does not backfill missing normalized IDs, mutation type, type, player IDs, or totals
+   - cap-delta alignment still fails loudly when totals mismatch or are absent from the normalized entry
+2. `teamHistory.worldEvents.integration.test.tsx` now guards the authoritative world-event drill-down posture directly:
+   - authoritative truth posture stays visible
+   - raw payload remains labeled as underlying world-event payload
+   - cap-delta alignment continues to reconcile against normalized before/after totals
+3. `teamHistory.baseMode.fallbackContract.guardrail.test.tsx` now guards the synthesized detail-modal posture directly:
+   - section-derived fallback rows remain visibly distinct from authoritative world-event rows
+   - derived-source metadata messaging stays explicit
+   - synthesized raw payload is still presented as non-canonical event truth
+
+Together these focused tests now pin the intended Step 5 drill-down contract tightly enough that selected-entry ownership, normalized-first rendering, separated identity fields, cap-alignment honesty, and raw-payload posture will fail loudly if they drift.
 
 ---

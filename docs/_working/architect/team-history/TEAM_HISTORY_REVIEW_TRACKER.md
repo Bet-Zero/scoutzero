@@ -54,12 +54,12 @@ Execution checklist for the Team History review. Each substep is marked TODO / I
 
 ## STEP 5 — Detail Modal Truth and Drill-Down Integrity
 
-**STEP 5 STATUS: IN PROGRESS**
+**STEP 5 STATUS: DONE**
 
 | Substep | Description                                                                                                    | Status |
 | ------- | -------------------------------------------------------------------------------------------------------------- | ------ |
 | TH-5A   | Tighten The Detail Modal Truth Contract So Normalized Fields And Raw Fallback Fields Are More Explicitly Owned | DONE   |
 | TH-5B   | Tighten ID / Totals / Raw-Payload Alignment So The Drill-Down Surface Preserves More Honest Integrity          | DONE   |
-| TH-5C   | Add Focused Guardrails For Detail Modal Truth And Selected-Entry Integrity                                     | TODO   |
+| TH-5C   | Add Focused Guardrails For Detail Modal Truth And Selected-Entry Integrity                                     | DONE   |
 
 ---

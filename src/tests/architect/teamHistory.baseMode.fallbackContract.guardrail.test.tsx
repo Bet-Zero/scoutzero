@@ -289,6 +289,10 @@ describe('TEAM_HISTORY_STEP4 fallback-contract guardrails', () => {
     expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
       'derived from pickLog[]'
     );
+    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
+      'not a canonical world-event payload'
+    );
+    expect(screen.getByText('Derived-Source Metadata')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-detail-mutation-type')).toHaveTextContent(
       'sectionDerived:pickLog'
     );
