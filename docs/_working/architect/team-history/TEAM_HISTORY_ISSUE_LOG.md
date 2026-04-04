@@ -194,3 +194,40 @@ Existing display integration/fail-soft tests were then re-run to confirm the dir
 ---
 
 ---
+
+## STEP 4 — Base-Mode Fallback and Synthesized Timeline Truth
+
+---
+
+### TH-4-1 — Base-mode source truth is too soft: the system does not clearly distinguish explicit local timeline rows from derived fallback history
+
+**Status:** OPEN
+**Substep:** TH-4A
+
+**Problem:**
+
+When Team History renders in base mode (no active world, no world-event query), it can draw from either an explicit local `historyTimeline` array or a synthesized fallback derived from structured team data sections (`waivedContracts`, `exceptionHistory`, `pickLog`, and similar). The current implementation does not make this distinction legible — both paths can produce timeline rows with the same shape and the same apparent confidence level. There is no source label, fallback marker, or structural boundary that clearly tells the consumer of the rendered output whether a given row came from an authored local timeline or was inferred from structured data fields. This means base-mode Team History can appear equally authoritative whether it is presenting explicit history or a synthesized approximation, and the distinction between them can erode silently as the feature evolves.
+
+---
+
+### TH-4-2 — Synthesized timeline projection flattens the meaning of source arrays and loses honest source information
+
+**Status:** OPEN
+**Substep:** TH-4B
+
+**Problem:**
+
+When Team History synthesizes a timeline from team data sections — deriving rows from `waivedContracts`, `exceptionHistory`, `pickLog`, and other structured arrays — the projection logic treats these sources as largely interchangeable contributors to one merged row stream. Each source array has materially distinct semantics: a waived contract row means something different from an exception history entry or a draft pick log entry. The synthesized projection can compress or homogenize these differences by routing all sources through common row-shape defaults, using shared fallback summaries, or merging multi-source rows in ways that obscure which source contributed what. The result is a synthesized timeline that looks coherent but may communicate weaker or less specific meaning than the source arrays actually contain.
+
+---
+
+### TH-4-3 — No focused guardrails exist around base-mode fallback ordering or synthesized timeline truth
+
+**Status:** OPEN
+**Substep:** TH-4C
+
+**Problem:**
+
+The base-mode fallback path — the logic that selects between explicit local `historyTimeline` rows and synthesized fallback history, and the synthesis logic that derives rows from structured team sections — has no focused guardrails protecting the intended behavior. This means: the priority ordering between explicit local rows and synthesized fallback can change silently; the no-world / no-query case can regress (producing empty output, or incorrectly triggering synthesis when explicit rows exist, or vice versa); and the synthesized timeline assembly logic can flatten more source-specific meaning over time without any test catching it. Because base mode is the fallback path for all non-world Team History views, this gap leaves a large portion of real user-facing history output unprotected.
+
+---
