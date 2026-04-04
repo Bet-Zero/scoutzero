@@ -73,23 +73,44 @@ The new guardrails also pin banner/path alignment and fixture-marker override sa
 
 ### TH-2-1 — The world-event query seam is compatibility-driven rather than contract-driven
 
-**Status:** OPEN
+**Status:** RESOLVED  
 **Substep:** TH-2A
 
 **Problem:**
 
 `useWorldTeamEvents.ts` owns world-event retrieval for Team History but does not operate on one explicit authoritative query contract. Instead, it tries four schema combinations at runtime — `teamCodes` vs `teamsAffected` crossed with `occurredAt` vs `timestamp` — until one returns results. This means the loading seam is performing schema repair at runtime rather than executing a known stable world-event contract. The "authoritative world events" label applied by the Team History shell is therefore stronger than the actual retrieval mechanics. Schema drift can propagate silently because the compatibility fallback loop absorbs it rather than surfacing it.
 
+**Resolution:**
+
+Team History world-event retrieval now owns one explicit two-step contract:
+
+1. authoritative Team History query: `teamCodes` + `occurredAt`
+2. bounded legacy compatibility query: `teamsAffected` + `timestamp`
+
+The mixed-field runtime guess matrix was removed. Initial retrieval now tries the canonical contract first and only falls back to the one named legacy contract when canonical retrieval returns zero rows. Query errors no longer silently fan out across alternate shapes, so the seam behaves like a contract owner instead of a schema-repair loop.
+
 ---
 
 ### TH-2-2 — Retrieval truth around compatibility fallback, dedupe, empty-state, and pagination is softer than the feature's authoritative claim warrants
 
-**Status:** OPEN
+**Status:** RESOLVED  
 **Substep:** TH-2B
 
 **Problem:**
 
 Several retrieval behaviors in the world-event loading seam combine to produce a contract that is workable but structurally softer than expected for an authoritative history mode. Empty-state results are ambiguous — compatibility exhaustion and true event absence produce identical output. Dedupe is id-only rather than semantically grounded. `hasMore` is heuristic (`docs.length >= limit`) rather than explicit. Load-more pagination correctly reuses the initially selected query config, but there is no structural enforcement preventing that config from drifting subtly as the hook evolves. Together these behaviors mean retrieval truth is a reasonable approximation rather than a durable contract.
+
+**Resolution:**
+
+The Team History retrieval seam now treats compatibility, dedupe, empty-state, and pagination as one explicit model:
+
+1. pagination reuses the initially selected query contract only
+2. page reads overfetch by one row, so `hasMore` is now exact for the active contract rather than `docs.length >= limit`
+3. event pages merge through one helper that dedupes on stable event id and reorders newest-first intentionally
+4. the world-event empty state now says the feed found no matches for the team under the supported world-event feed instead of implying a softer "yet" state
+5. pagination errors no longer blank already-loaded rows; the inline error keeps the existing history visible while reporting the failure
+
+This leaves the Team History world-event seam materially more durable without turning Step 2 into a broader event-model rewrite.
 
 ---
 

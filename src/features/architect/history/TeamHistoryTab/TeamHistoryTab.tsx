@@ -197,7 +197,15 @@ const WorldEventsTimeline = ({
   teamCode,
   onSelectEntry,
 }: WorldEventsTimelineProps) => {
-  const { events, loading, error, hasMore, loadMore } = useWorldTeamEvents({
+  const {
+    events,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    resolution,
+    loadMore,
+  } = useWorldTeamEvents({
     worldId,
     teamCode,
     limit: 50,
@@ -217,7 +225,7 @@ const WorldEventsTimeline = ({
     );
   }
 
-  if (error) {
+  if (error && timelineRows.length === 0) {
     return (
       <p
         data-testid="team-history-world-events-error"
@@ -231,13 +239,31 @@ const WorldEventsTimeline = ({
   if (timelineRows.length === 0) {
     return (
       <p data-testid="team-history-world-events-empty">
-        No history events yet for this world/team.
+        No history events matched this team in the supported world-event feed.
       </p>
     );
   }
 
   return (
     <div className="space-y-3">
+      {resolution === 'legacy-compatible' && (
+        <p
+          data-testid="team-history-world-events-compatibility-note"
+          className="text-[11px] text-white/55"
+        >
+          Showing compatible legacy history records for this team.
+        </p>
+      )}
+
+      {error && (
+        <p
+          data-testid="team-history-world-events-inline-error"
+          className="text-xs text-rose-300"
+        >
+          Unable to load more world history events. {error}
+        </p>
+      )}
+
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm bg-[#1a1a1a] border border-white/10 rounded">
           <thead>
@@ -296,9 +322,10 @@ const WorldEventsTimeline = ({
           type="button"
           data-testid="team-history-world-events-load-more"
           onClick={() => loadMore()}
+          disabled={loadingMore}
           className="rounded border border-white/20 px-3 py-1.5 text-xs hover:bg-white/10"
         >
-          Load more
+          {loadingMore ? 'Loading more...' : 'Load more'}
         </button>
       )}
     </div>

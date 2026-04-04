@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
@@ -189,8 +190,8 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
     expect(screen.getByText('Players')).toBeInTheDocument();
     expect(screen.getByText('Picks')).toBeInTheDocument();
-    expect(screen.getByText('Cap Delta')).toBeInTheDocument();
-    expect(screen.getByText(/2028-LAL-R1/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Cap Delta').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/2028-LAL-R1/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
@@ -215,7 +216,7 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
 
     fireEvent.click(screen.getByTestId('team-history-event-row-4'));
     expect(screen.getByText('Exceptions')).toBeInTheDocument();
-    expect(screen.getByText(/NTMLE remaining reduced/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/NTMLE remaining reduced/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
   });

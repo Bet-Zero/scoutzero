@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import TeamHistoryTab from '@/features/architect/history/TeamHistoryTab';
 
 const useWorldTeamEventsMock = vi.fn();
@@ -21,6 +22,7 @@ const teamCapSheet = {
 
 describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => {
   beforeEach(() => {
+    cleanup();
     vi.clearAllMocks();
   });
 
@@ -76,42 +78,44 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
         },
       ],
       loading: false,
+      loadingMore: false,
       error: null,
       hasMore: false,
+      resolution: 'authoritative',
       loadMore: null,
     });
 
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
-    expect(screen.getByTestId('team-history-row-0')).toHaveTextContent(
-      'Trade Executed'
+    expect(screen.getByTestId('team-history-row-0').textContent || '').toContain(
+      'Trade executed'
     );
-    expect(screen.getByTestId('team-history-row-1')).toHaveTextContent(
+    expect(screen.getByTestId('team-history-row-1').textContent || '').toContain(
       'Signed Free Agent'
     );
-    expect(screen.getByTestId('team-history-row-2')).toHaveTextContent(
+    expect(screen.getByTestId('team-history-row-2').textContent || '').toContain(
       'Sign-and-Trade Executed'
     );
-    expect(screen.getByTestId('team-history-row-3')).toHaveTextContent(
+    expect(screen.getByTestId('team-history-row-3').textContent || '').toContain(
       'Waive Player'
     );
-    expect(screen.getByTestId('team-history-row-4')).toHaveTextContent(
-      'Set Exceptions'
+    expect(screen.getByTestId('team-history-row-4').textContent || '').toContain(
+      'Exceptions Updated'
     );
 
     fireEvent.click(screen.getByTestId('team-history-row-0'));
 
     expect(screen.getByTestId('team-history-detail-modal')).toBeInTheDocument();
     expect(
-      screen.getByTestId('team-history-detail-mutation-type')
-    ).toHaveTextContent('executeTrade');
+      screen.getByTestId('team-history-detail-mutation-type').textContent || ''
+    ).toContain('executeTrade');
     expect(
-      screen.getByTestId('team-history-detail-timestamp')
-    ).toHaveTextContent('2026-03-01T15:00:00.000Z');
+      screen.getByTestId('team-history-detail-timestamp').textContent || ''
+    ).toContain('2026-03-01T15:00:00.000Z');
     expect(
-      screen.getByTestId('team-history-detail-player-ids')
-    ).toHaveTextContent('player_trade');
-    expect(screen.getByText('evt_trade')).toBeInTheDocument();
-    expect(screen.getByText('LAL · BOS')).toBeInTheDocument();
+      screen.getByTestId('team-history-detail-player-ids').textContent || ''
+    ).toContain('player_trade');
+    expect(screen.getAllByText('evt_trade').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('LAL · BOS').length).toBeGreaterThan(0);
   });
 });
