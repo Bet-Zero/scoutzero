@@ -377,13 +377,26 @@ The active-fixture signal now covers the full live injection footprint, includin
 
 ---
 
-### TH-6-3 — Focused guardrails for the fixture inject/clear lifecycle, override ownership boundary, and synthetic truth signaling are still incomplete
+### TH-6-3 — The fixture inject/clear lifecycle, override ownership boundary, and synthetic truth signaling lacked one dedicated closeout guardrail sweep
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** TH-6C
 
 **Problem:**
 
 The DEV fixture seam in `devTeamHistoryFixtures.ts` and `TeamHistoryTab.tsx` now has some focused support in existing fixture/source-selection/detail tests, but it still does not yet have one dedicated closeout guardrail pass that owns the full Step 6 safety contract end-to-end. This pass added direct assertions for symmetric `currentPicks` clearing, aligned fixture detection, stronger synthetic-truth messaging, and DEV-panel active-fixture signaling. Even so, Step 6 still lacks one explicitly named guardrail sweep that treats fixture isolation, override ownership, and synthetic truth signaling as a single finalized test surface. That remaining gap is smaller than before, but it is not fully closed yet.
+
+**Resolution:**
+
+TH-6C added a dedicated Step 6 guardrail suite that now owns the Team History DEV fixture safety contract directly. The closeout guardrails now protect:
+
+1. inject/clear symmetry across every live fixture-managed surface, including `currentPicks`
+2. repeated inject/clear idempotence, including the fixture-only `currentPicks` backup path
+3. active-fixture detection staying aligned with the real injection footprint
+4. fail-closed fixture override ownership from actual team-data markers, even when only `currentPicks` still carries fixture state
+5. clean ownership handoff back to authoritative world events after clear
+6. distinct synthetic truth signaling across the banner, DEV fixtures panel, timeline truth note, and detail modal
+
+The closeout pass also exposed one real utility drift bug: reinjecting a fixture-only `currentPicks` year rewrote its backup from `null` to synthetic data, so the inject path was not fully idempotent. `devTeamHistoryFixtures.ts` was tightened to preserve `null` backups for already-fixture-owned rows, and the new dedicated suite now fails loudly if that behavior regresses.
 
 ---

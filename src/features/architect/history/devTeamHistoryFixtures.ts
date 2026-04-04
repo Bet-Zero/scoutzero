@@ -85,9 +85,9 @@ function withFixtureCurrentPickRow(
   fixtureRow: TeamHistoryCurrentPickRow,
   existingRow: FixtureMarkedCurrentPickRow | null
 ): FixtureMarkedCurrentPickRow {
-  const baseRow =
-    readCurrentPickFixtureBackup(existingRow) ??
-    stripCurrentPickFixtureMetadata(existingRow);
+  const baseRow = existingRow?.[DEV_TEAM_HISTORY_FIXTURE_MARKER]
+    ? readCurrentPickFixtureBackup(existingRow)
+    : stripCurrentPickFixtureMetadata(existingRow);
 
   return {
     ...(baseRow || {}),
