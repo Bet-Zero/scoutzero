@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
   warnOnTotalsDivergence,
 } from '@/features/architect/utils/capTotals';
 
@@ -79,6 +80,12 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({
   toSeasonKey: vi.fn((year) => `${year - 1}-${String(year).slice(-2)}`),
+  toEndYear: vi.fn((season) => {
+    if (/^\d{4}-\d{2}$/.test(String(season))) {
+      return 2000 + Number(String(season).split('-')[1]);
+    }
+    return Number(season);
+  }),
 }));
 
 describe('computeTeamCapTotals', () => {
@@ -446,6 +453,42 @@ describe('computeTeamCapTotals', () => {
 
       expect(result._meta.source).toBe('computeTeamCapTotals');
       expect(result._meta.capSettingsSource).toBe('via_facade');
+    });
+  });
+
+  describe('snapshot containment', () => {
+    it('builds snapshots from canonical totals and applies hard-cap overlay downstream', () => {
+      const teamCapSheet = {
+        players: [
+          {
+            id: 'player1',
+            contract: {
+              salariesByYear: [
+                { season: '2024-25', salary: 20_000_000, capHit: 20_000_000 },
+              ],
+            },
+          },
+        ],
+        capHolds: [],
+        totals: {
+          totalCapAllocations: 999,
+          capSpace: -999,
+          hardCapRoom: 123,
+        },
+        hardCapLevel: 'firstApron',
+        hardCapReason: 'Taxpayer MLE hard cap',
+      };
+
+      const snapshot = createCanonicalTeamTotalsSnapshot(teamCapSheet, 2025);
+      const expectedIncomplete = 13 * 1_119_563;
+      const expectedTotal = 20_000_000 + expectedIncomplete;
+
+      expect(snapshot.totalCapAllocations).toBe(expectedTotal);
+      expect(snapshot.capSpace).toBe(141_000_000 - expectedTotal);
+      expect(snapshot.hardCapLevel).toBe('firstApron');
+      expect(snapshot.isHardCapped).toBe(true);
+      expect(snapshot.hardCapReason).toBe('Taxpayer MLE hard cap');
+      expect(snapshot.hardCapRoom).toBe(179_000_000 - expectedTotal);
     });
   });
 

@@ -4,52 +4,76 @@ import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 describe('CapRulesProfile Facade', () => {
   it('returns valid rules for 2024-25 (Year 2025) with REAL provenance', () => {
     const rules = getCapRulesForYear(2025);
-    
+
     expect(rules).toBeDefined();
     expect(rules.yearKey).toBe(2025);
     expect(rules.seasonKey).toBe('2024-25');
-    
-    // Check Provenance (New Features)
+
     expect(rules._meta).toBeDefined();
-    expect(rules._meta?.sourcesSummary).toBe('real'); // 2024-25 is confirmed
+    expect(rules._meta?.sourcesSummary).toBe('real');
+    expect(rules._meta?.sourcesMixed).toBe(false);
+    expect(rules._meta?.sourceTags).toEqual(['real']);
     expect(rules._meta?.sources.cap.salaryCap).toBe('real');
-    
+    expect(rules._meta?.provenance.capSettingsTag).toBe('real');
+    expect(rules._meta?.provenance.rookieMinResolver).toBe('capSettings');
     expect(rules.salaries.rookieMinSource).toBe('real');
-    
-    // Verify Values exist (not exact amounts to avoid brittleness)
+
     expect(rules.cap.salaryCap).toBeGreaterThan(140_000_000);
     expect(rules.salaries.rookieMin).toBeGreaterThan(1_000_000);
   });
 
-  it('returns valid rules for 2025-26 (Year 2026)', () => {
+  it('keeps confirmed 2025-26 rules uniformly real', () => {
     const rules = getCapRulesForYear(2026);
+
     expect(rules).toBeDefined();
-    
-    // 2025-26 is marked as 'confirmed: true' in capProjections, so it should be 'real'
-    // If this fails, we need to inspect why capProjections logic isn't flowing through
-    const source = rules.salaries.rookieMinSource;
-    if (source !== 'real') {
-      console.warn('Test Warning: 2025-26 rookieMinSource is', source);
-    }
-    // We update expectation to match actual behavior if logic converts it, 
-    // but based on code it should be real.
-    // However, if the test failed before saying it was 'projected', let's check the meta.
-    // If it's projected, maybe 'confirmed' flag isn't being read by getCapSettingsForYear?
-    // We'll relax this check or verify meta behavior.
-    
+    expect(rules.salaries.rookieMinSource).toBe('real');
     expect(rules._meta).toBeDefined();
-    // Cap Settings are confirmed in the file, so summary should be 'real' or 'reported'
-    // unless 'confirmed' property is lost.
+    expect(rules._meta?.sourcesSummary).toBe('real');
+    expect(rules._meta?.sourcesMixed).toBe(false);
+    expect(rules._meta?.sourceTags).toEqual(['real']);
+    expect(rules._meta?.provenance.rookieMinResolver).toBe('capSettings');
+  });
+
+  it('reports mixed-source years honestly when rookieMin falls back separately', () => {
+    const rules = getCapRulesForYear(2026, {
+      '2025-26': {
+        cap: 154_647_000,
+        tax: 187_895_000,
+        firstApron: 195_945_000,
+        secondApron: 207_824_000,
+        bae: 5_135_000,
+        roomMLE: 8_781_000,
+        fullMLE: 14_104_000,
+        taxpayerMLE: 5_685_000,
+        confirmed: true,
+      },
+    });
+
+    expect(rules._meta?.sourcesSummary).toBe('projected');
+    expect(rules._meta?.sourcesMixed).toBe(true);
+    expect(rules._meta?.sourceTags).toEqual(['projected', 'real']);
+    expect(rules._meta?.sources.cap.salaryCap).toBe('real');
+    expect(rules._meta?.sources.salaries.rookieMin).toBe('projected');
+    expect(rules._meta?.fieldsBySource.real).toContain('cap.salaryCap');
+    expect(rules._meta?.fieldsBySource.projected).toContain('salaries.rookieMin');
+    expect(rules._meta?.provenance.capSettingsTag).toBe('real');
+    expect(rules._meta?.provenance.rookieMinResolver).toBe(
+      'previousYearCapGrowth'
+    );
+    expect(rules._meta?.provenance.rookieMinBaseSeasonKey).toBe('2024-25');
+    expect(rules.salaries.rookieMinSource).toBe('projected');
   });
 
   it('projects provenance for future years (2027-28)', () => {
-    // 2027-28 is definitely projected
     const rules = getCapRulesForYear(2028);
     expect(rules).toBeDefined();
-    
+
     expect(rules._meta?.sourcesSummary).toBe('projected');
+    expect(rules._meta?.sourcesMixed).toBe(false);
     expect(rules.salaries.rookieMinSource).toBe('projected');
-    
+    expect(rules._meta?.provenance.rookieMinResolver).toBe(
+      'previousYearCapGrowth'
+    );
     expect(rules.cap.salaryCap).toBeGreaterThan(150_000_000);
   });
 
@@ -57,6 +81,7 @@ describe('CapRulesProfile Facade', () => {
     const rules = getCapRulesForYear(2030);
     expect(rules).toBeDefined();
     expect(rules._meta?.sourcesSummary).toBe('projected');
+    expect(rules._meta?.sourcesMixed).toBe(false);
     expect(rules.salaries.rookieMinSource).toBe('projected');
   });
 
@@ -64,4 +89,3 @@ describe('CapRulesProfile Facade', () => {
     expect(() => getCapRulesForYear(1990)).toThrow();
   });
 });
-

@@ -22,17 +22,34 @@ import {
 } from '../tradeMachine/constants/cbaConstants';
 import capProjections from '../capProjections';
 import {
-  MINIMUM_SALARY_SCALES,
   getScaleForSeason,
 } from '../../data/minimumSalaryScales';
 
 export type SourceTag = 'real' | 'reported' | 'projected' | 'unknown';
+type ThresholdFieldPath =
+  | `cap.${keyof CapLines}`
+  | `exceptions.${keyof ExceptionAmounts}`
+  | 'salaries.rookieMin';
+type RookieMinResolver =
+  | 'capSettings'
+  | 'legacyThreshold'
+  | 'previousYearCapGrowth'
+  | 'previousYearFixedGrowth';
 
 export interface CapRulesMeta {
   source: string;
   resolved: boolean;
   projectionMethod?: string;
   sourcesSummary: SourceTag;
+  sourcesMixed: boolean;
+  sourceTags: SourceTag[];
+  fieldsBySource: Partial<Record<SourceTag, ThresholdFieldPath[]>>;
+  provenance: {
+    capSettingsSource: string;
+    capSettingsTag: SourceTag;
+    rookieMinResolver: RookieMinResolver;
+    rookieMinBaseSeasonKey?: string;
+  };
   sources: {
     cap: Record<keyof CapLines, SourceTag>;
     exceptions: Record<keyof ExceptionAmounts, SourceTag>;
@@ -91,6 +108,215 @@ export type CapProjectionOverrides = Record<
   CapProjectionOverrideRow | null | undefined
 >;
 
+interface RookieMinimumResolution {
+  rookieMin: number | null;
+  sourceTag: SourceTag;
+  salarySource: 'real' | 'projected';
+  resolver: RookieMinResolver;
+  baseSeasonKey?: string;
+  projectionDetails?: string;
+}
+
+const CAP_SOURCE_FIELDS: Array<keyof CapLines> = [
+  'salaryCap',
+  'luxuryTax',
+  'firstApron',
+  'secondApron',
+];
+
+const EXCEPTION_SOURCE_FIELDS: Array<keyof ExceptionAmounts> = [
+  'fullMLE',
+  'taxpayerMLE',
+  'roomMLE',
+  'bae',
+];
+
+const SOURCE_SUMMARY_PRIORITY: SourceTag[] = [
+  'unknown',
+  'projected',
+  'reported',
+  'real',
+];
+
+function getCapSettingsSourceTag(settings: Record<string, unknown>): SourceTag {
+  const metaSource = String((settings._meta as { source?: unknown } | undefined)?.source ?? '');
+
+  if (metaSource.includes('CBA_CONSTANTS') && metaSource.includes('emergency')) {
+    return 'unknown';
+  }
+  if (metaSource === 'projected_from_previous') {
+    return 'projected';
+  }
+  if (metaSource.startsWith('provided_capSettings')) {
+    return settings.confirmed === true ? 'reported' : 'projected';
+  }
+  if (metaSource.includes('CBA_CONSTANTS')) {
+    return 'reported';
+  }
+
+  return settings.confirmed === true ? 'real' : 'projected';
+}
+
+function getRookieMinSourceTag(
+  explicitSource: unknown,
+  fallbackTag: SourceTag
+): SourceTag {
+  const normalized = String(explicitSource ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (
+    normalized === 'real' ||
+    normalized === 'reported' ||
+    normalized === 'projected' ||
+    normalized === 'unknown'
+  ) {
+    return normalized as SourceTag;
+  }
+
+  return fallbackTag === 'unknown' ? 'projected' : fallbackTag;
+}
+
+function resolveRookieMinimumForYear(
+  yearKey: number,
+  seasonKey: string,
+  capSettings: Record<string, unknown>,
+  customCapProjections?: CapProjectionOverrides | null
+): RookieMinimumResolution {
+  const capSettingsSourceTag = getCapSettingsSourceTag(capSettings);
+  const directRookieMin = Number(capSettings.rookieMin ?? 0);
+
+  if (directRookieMin > 0) {
+    const sourceTag = getRookieMinSourceTag(
+      capSettings.rookieMinSource,
+      capSettingsSourceTag
+    );
+
+    return {
+      rookieMin: directRookieMin,
+      sourceTag,
+      salarySource: sourceTag === 'projected' ? 'projected' : 'real',
+      resolver: 'capSettings',
+    };
+  }
+
+  const thresholdEntry =
+    CBA_THRESHOLDS[seasonKey as keyof typeof CBA_THRESHOLDS];
+  if (thresholdEntry?.MIN_SALARY_ROOKIE) {
+    return {
+      rookieMin: thresholdEntry.MIN_SALARY_ROOKIE,
+      sourceTag: 'real',
+      salarySource: 'real',
+      resolver: 'legacyThreshold',
+    };
+  }
+
+  try {
+    const prevYearKey = yearKey - 1;
+    if (prevYearKey < 2020) {
+      throw new Error('Projection reached limit (2020)');
+    }
+
+    const prevRules = getCapRulesForYear(prevYearKey, customCapProjections);
+    const prevRookieMin = prevRules.salaries.rookieMin;
+    const prevCap = prevRules.cap.salaryCap;
+    const currentCap = Number(capSettings.salaryCap ?? 0);
+
+    if (prevRookieMin && prevCap && currentCap) {
+      const ratio = currentCap / prevCap;
+      return {
+        rookieMin: Math.floor(prevRookieMin * ratio),
+        sourceTag: 'projected',
+        salarySource: 'projected',
+        resolver: 'previousYearCapGrowth',
+        baseSeasonKey: prevRules.seasonKey,
+        projectionDetails: `Derived from ${prevRules.seasonKey} ($${prevRookieMin}) * CapGrowth (${ratio.toFixed(4)})`,
+      };
+    }
+
+    return {
+      rookieMin: Math.floor(prevRookieMin * 1.04),
+      sourceTag: 'projected',
+      salarySource: 'projected',
+      resolver: 'previousYearFixedGrowth',
+      baseSeasonKey: prevRules.seasonKey,
+      projectionDetails: `Derived from ${prevRules.seasonKey} ($${prevRookieMin}) * FixedGrowth (1.04)`,
+    };
+  } catch (err) {
+    console.warn(
+      `[CapRulesProfile] Failed to project rookieMin for ${seasonKey}:`,
+      err
+    );
+  }
+
+  return {
+    rookieMin: null,
+    sourceTag: 'unknown',
+    salarySource: 'projected',
+    resolver: 'previousYearCapGrowth',
+  };
+}
+
+function buildSourceMaps(
+  capSettingsSourceTag: SourceTag,
+  rookieMinSourceTag: SourceTag
+): CapRulesMeta['sources'] {
+  const cap = {} as Record<keyof CapLines, SourceTag>;
+  for (const field of CAP_SOURCE_FIELDS) {
+    cap[field] = capSettingsSourceTag;
+  }
+
+  const exceptions = {} as Record<keyof ExceptionAmounts, SourceTag>;
+  for (const field of EXCEPTION_SOURCE_FIELDS) {
+    exceptions[field] = capSettingsSourceTag;
+  }
+
+  return {
+    cap,
+    exceptions,
+    salaries: {
+      rookieMin: rookieMinSourceTag,
+    },
+  };
+}
+
+function summarizeSourceMaps(
+  sources: CapRulesMeta['sources']
+): Pick<
+  CapRulesMeta,
+  'sourcesSummary' | 'sourcesMixed' | 'sourceTags' | 'fieldsBySource'
+> {
+  const fieldsBySource: Partial<Record<SourceTag, ThresholdFieldPath[]>> = {};
+  const pushField = (tag: SourceTag, field: ThresholdFieldPath) => {
+    const existing = fieldsBySource[tag] ?? [];
+    existing.push(field);
+    fieldsBySource[tag] = existing;
+  };
+
+  for (const field of CAP_SOURCE_FIELDS) {
+    pushField(sources.cap[field], `cap.${field}`);
+  }
+
+  for (const field of EXCEPTION_SOURCE_FIELDS) {
+    pushField(sources.exceptions[field], `exceptions.${field}`);
+  }
+
+  pushField(sources.salaries.rookieMin, 'salaries.rookieMin');
+
+  const sourceTags = SOURCE_SUMMARY_PRIORITY.filter(
+    (tag) => (fieldsBySource[tag] ?? []).length > 0
+  );
+
+  return {
+    sourcesSummary:
+      SOURCE_SUMMARY_PRIORITY.find((tag) => sourceTags.includes(tag)) ??
+      'unknown',
+    sourcesMixed: sourceTags.length > 1,
+    sourceTags,
+    fieldsBySource,
+  };
+}
+
 /**
  * Gets the consolidated cap rules profile for a specific year.
  * Throws an error if critical data (like rookie scale) is missing and cannot be projected.
@@ -121,79 +347,36 @@ export function getCapRulesForYear(
   // Pass custom projections if provided, otherwise default to the imported source
   const projectionOverrides = (customCapProjections ||
     capProjections) as Record<string, unknown>;
-  const capSettings = getCapSettingsForYear(yearKey, projectionOverrides);
-  
+  const capSettings = getCapSettingsForYear(
+    yearKey,
+    projectionOverrides
+  ) as Record<string, unknown>;
+  const capSettingsSourceTag = getCapSettingsSourceTag(capSettings);
+
   // 2. Resolve Rookie Minimum
-  // Primary Source: Cap Settings (extended projections in capProjections.js)
-  // Fallback 1: CBA Thresholds (legacy constants)
-  // Fallback 2: Deterministic Projection tied to Cap Growth
-  
-  // Note: capSettings comes from a JS file, so we cast to safely access properties
-  const settingsAny = capSettings as any;
-  let rookieMin = settingsAny.rookieMin;
-  let rookieMinSource: SourceTag = settingsAny.rookieMinSource === 'real' ? 'real' : 'projected';
-  
-  // Default source for cap settings is 'real' if confirmed, otherwise 'projected'
-  // capProjections uses 'confirmed' boolean to indicate real/final values
-  const isConfirmed = settingsAny.confirmed === true;
-  const defaultSource: SourceTag = isConfirmed ? 'real' : 'projected';
-  
-  let projectionDetails = settingsAny.projectionDetails || '';
-
-  // Case A: Missing Rookie Min -> Project it
-  if (!rookieMin) {
-    // Try Legacy Fallback first (strictly for this season)
-    const thresholdEntry = CBA_THRESHOLDS[seasonKey as keyof typeof CBA_THRESHOLDS];
-    if (thresholdEntry?.MIN_SALARY_ROOKIE) {
-      rookieMin = thresholdEntry.MIN_SALARY_ROOKIE;
-      rookieMinSource = 'real'; // It's a constant, treat as real-ish
-    } else {
-      // Deterministic Projection
-      try {
-        // Recursive Call: Get previous year's rules to establish baseline
-        // Base case is implicitly 2024-25 which has hardcoded values
-        const prevYearKey = yearKey - 1;
-        
-        // Guard against infinite recursion or too far back
-        if (prevYearKey < 2020) {
-           throw new Error('Projection reached limit (2020)');
-        }
-
-        const prevRules = getCapRulesForYear(
-          prevYearKey,
-          customCapProjections as CapProjectionOverrides | null | undefined
-        );
-        const prevRookieMin = prevRules.salaries.rookieMin;
-        const prevCap = prevRules.cap.salaryCap;
-        const currentCap = capSettings.salaryCap;
-
-        if (prevRookieMin && prevCap && currentCap) {
-          // Method: Scale by Cap Growth
-          // rookieMin = prevRookieMin * (currentCap / prevCap)
-          const ratio = currentCap / prevCap;
-          rookieMin = Math.floor(prevRookieMin * ratio);
-          rookieMinSource = 'projected';
-          projectionDetails = `Derived from ${prevRules.seasonKey} ($${prevRookieMin}) * CapGrowth (${ratio.toFixed(4)})`;
-        } else {
-           // Fallback if caps missing: Fixed 4% growth
-           rookieMin = Math.floor(prevRookieMin * 1.04);
-           rookieMinSource = 'projected';
-           projectionDetails = `Derived from ${prevRules.seasonKey} ($${prevRookieMin}) * FixedGrowth (1.04)`;
-        }
-      } catch (err) {
-        // If recursion fails (e.g. base year not found), we can't project
-         console.warn(`[CapRulesProfile] Failed to project rookieMin for ${seasonKey}:`, err);
-      }
-    }
-  }
+  // Primary Source: cap settings facade
+  // Fallback 1: legacy per-season threshold constant
+  // Fallback 2: previous-year projection tied to cap growth
+  const rookieMinResolution = resolveRookieMinimumForYear(
+    yearKey,
+    seasonKey,
+    capSettings,
+    customCapProjections as CapProjectionOverrides | null | undefined
+  );
+  const rookieMin = rookieMinResolution.rookieMin;
+  const rookieMinSource = rookieMinResolution.sourceTag;
+  const projectionDetails = rookieMinResolution.projectionDetails;
 
   // STOP CONDITION: We do not silently fallback for future years if projection failed.
-  if (rookieMin === undefined || rookieMin === 0) {
+  if (rookieMin == null || rookieMin === 0) {
     throw new Error(
       `[CapRulesProfile] CRITICAL: Could not resolve rookieMin for ${seasonKey}. ` +
       `No entry in capProjections or CBA_THRESHOLDS, and projection failed.`
     );
   }
+
+  const sources = buildSourceMaps(capSettingsSourceTag, rookieMinSource);
+  const sourceSummary = summarizeSourceMaps(sources);
 
   // 3. Define Scale Lookup Function
   const getMinimumForYOS = (yos: number): number => {
@@ -232,44 +415,42 @@ export function getCapRulesForYear(
       graceMin: ROSTER_REQUIREMENTS.OFFSEASON_MIN_ROSTER,
     },
     cap: {
-      salaryCap: capSettings.salaryCap,
-      luxuryTax: capSettings.luxuryTax,
-      firstApron: capSettings.firstApron,
-      secondApron: capSettings.secondApron,
+      salaryCap: Number(capSettings.salaryCap ?? 0),
+      luxuryTax: Number(capSettings.luxuryTax ?? 0),
+      firstApron: Number(capSettings.firstApron ?? 0),
+      secondApron: Number(capSettings.secondApron ?? 0),
     },
     exceptions: {
-      fullMLE: capSettings.fullMLE,
-      taxpayerMLE: capSettings.taxpayerMLE,
-      roomMLE: capSettings.roomMLE,
-      bae: capSettings.bae,
+      fullMLE: Number(capSettings.fullMLE ?? 0),
+      taxpayerMLE: Number(capSettings.taxpayerMLE ?? 0),
+      roomMLE: Number(capSettings.roomMLE ?? 0),
+      bae: Number(capSettings.bae ?? 0),
     },
     salaries: {
       rookieMin,
-      rookieMinSource: rookieMinSource as 'real' | 'projected', // Keep strict link to legacy prop if needed, or update interface
+      rookieMinSource: rookieMinResolution.salarySource,
       getMinimumForYOS,
     },
     _meta: {
       source: 'CapRulesProfile',
       resolved: true,
       projectionMethod: projectionDetails || undefined,
-      sourcesSummary: defaultSource, // Can be refined if mixed
-      sources: {
-        cap: {
-          salaryCap: defaultSource,
-          luxuryTax: defaultSource,
-          firstApron: defaultSource,
-          secondApron: defaultSource,
-        },
-        exceptions: {
-          fullMLE: defaultSource,
-          taxpayerMLE: defaultSource,
-          roomMLE: defaultSource,
-          bae: defaultSource,
-        },
-        salaries: {
-          rookieMin: rookieMinSource,
-        },
+      sourcesSummary: sourceSummary.sourcesSummary,
+      sourcesMixed: sourceSummary.sourcesMixed,
+      sourceTags: sourceSummary.sourceTags,
+      fieldsBySource: sourceSummary.fieldsBySource,
+      provenance: {
+        capSettingsSource: String(
+          (capSettings._meta as { source?: unknown } | undefined)?.source ??
+            'unknown'
+        ),
+        capSettingsTag: capSettingsSourceTag,
+        rookieMinResolver: rookieMinResolution.resolver,
+        ...(rookieMinResolution.baseSeasonKey
+          ? { rookieMinBaseSeasonKey: rookieMinResolution.baseSeasonKey }
+          : {}),
       },
-    }
+      sources,
+    },
   };
 }

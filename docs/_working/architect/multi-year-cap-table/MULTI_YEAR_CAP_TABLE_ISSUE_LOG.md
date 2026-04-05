@@ -72,21 +72,41 @@ This execution added a dedicated Step 1C shell guardrail pass. A new focused run
 
 ### MYCT-2-1 — The yearly threshold gateway still behaves like a mixed resolver and can under-report mixed-source reality in its metadata summary
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-2A
 
 **Problem:**
 `capRulesProfile.ts` is correctly positioned as the single gateway for yearly cap, tax, apron, exception, and rookie-minimum truth — but it still functions more like a resolution engine than a clean declarative source. Yearly truth is assembled from cap settings, constants, imported projections, and conditional fallback logic. Rookie-minimum values can resolve through recursive projection when direct per-year values are absent. The most significant reporting weakness is that `_meta.sourcesSummary` defaults to a single summary label derived from a top-level `defaultSource`, but individual threshold fields may have actually resolved from different source types. The summary can therefore describe mixed-source resolution as if it came from one source, which under-reports the real provenance picture. The totals SSOT downstream is only as trustworthy as this threshold input layer, and that layer is not yet fully clean or maximally honest in its self-reporting.
 
+**Resolution:**
+`capRulesProfile.ts` still owns yearly threshold resolution, but it now resolves rookie-minimum fallback through one explicit bounded helper and computes field-level provenance before summarizing it. The metadata model now reports a conservative `sourcesSummary` based on the worst active source tag, exposes `sourcesMixed`, `sourceTags`, and `fieldsBySource`, and records the exact rookie-min resolver path plus the cap-settings source/tag. Mixed-source years no longer flatten to a single optimistic summary label, while the yearly gateway remains intact.
+
+**Files implicated:**
+
+- `src/features/architect/utils/capRulesProfile/capRulesProfile.ts`
+- `src/tests/architect/utils/capRulesProfile.test.ts`
+
 ---
 
 ### MYCT-2-2 — The canonical totals authority seam still carries bounded legacy dead-money compatibility and adjacent snapshot/overlay shaping inside the same file as the pure totals owner
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-2B
 
 **Problem:**
 `computeTeamCapTotals.ts` is the explicit canonical totals owner, but the authority seam has widened beyond pure totals ownership. Dead-money resolution inside the file still carries a compatibility stack: canonical `deadCap` arrays take priority, but the engine also handles object-map `deadCap` compatibility, and falls back to older ledgers — `waivedContracts`, `stretchHistory`, and flat `deadMoney` maps — when canonical coverage is absent. That compatibility logic is intentional and bounded, but it still lives inside the same file as the core totals authority. Additionally, `resolveHardCapOverlay(...)` and snapshot shaping logic sit alongside the pure totals compute functions, meaning the file simultaneously owns totals computation and adjacent state-shaping responsibilities. This blurs what is purely canonical compute truth versus what is compatibility shim or downstream adapter work, making the authority seam harder to reason about and easier to widen incorrectly over time.
+
+**Resolution:**
+`computeTeamCapTotals.ts` remains the SSOT for canonical totals math, but the bounded compatibility and adjacent shaping work now sit in tiny support helpers around it instead of inside the core authority block. Dead-money compatibility moved into a dedicated canonical-first helper that preserves `deadCap` precedence and only falls back to legacy ledgers when the canonical field has no coverage for the selected year. Hard-cap overlay normalization likewise moved into a downstream snapshot helper so snapshot creation reads as SSOT consumption rather than as a competing totals owner.
+
+**Files implicated:**
+
+- `src/features/architect/utils/capTotals/computeTeamCapTotals.ts`
+- `src/features/architect/utils/capTotals/deadMoneyForYear.ts`
+- `src/features/architect/utils/capTotals/hardCapSnapshotOverlay.ts`
+- `tests/computeTeamCapTotals.test.js`
+- `src/tests/architect/capTotals/deadMoney.test.js`
+- `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.js`
 
 ---
 

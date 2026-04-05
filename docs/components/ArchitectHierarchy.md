@@ -194,6 +194,8 @@ utils/
     index.ts
   capTotals/
     computeTeamCapTotals.ts
+    deadMoneyForYear.ts
+    hardCapSnapshotOverlay.ts
     index.ts
   capUtils.ts
   cbaConstants.ts
@@ -366,5 +368,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-02T07:41:50.858Z*
+*Generated on: 2026-04-05T08:55:28.215Z*
 *Auto-updated by: npm run docs*
