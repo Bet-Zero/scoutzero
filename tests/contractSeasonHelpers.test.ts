@@ -16,6 +16,7 @@ const {
   generateDefaultFreeAgentContract,
   generateExtensionContract,
   generateRookieContract,
+  getPlayerCapSheetAmountsForYear,
   getContractYearSlice,
   getContractYearsForDisplay,
   getLastSalary,
@@ -213,6 +214,7 @@ describe('contract and season helpers', () => {
         guaranteed: true,
         option: null,
         isExtension: false,
+        contractSource: 'playerContract',
       });
       expect(displayRows[1]).toMatchObject({
         season: '2025-26',
@@ -221,6 +223,7 @@ describe('contract and season helpers', () => {
         guaranteed: false,
         option: 'Player Option',
         isExtension: true,
+        contractSource: 'futureContract',
       });
       expect(displayRows[2]).toMatchObject({
         year: 2027,
@@ -230,6 +233,25 @@ describe('contract and season helpers', () => {
         guaranteed: true,
         option: null,
         isExtension: true,
+        contractSource: 'futureContract',
+      });
+
+      const baseContractWinsSameYear = getContractYearsForDisplay(
+        {
+          contract: {
+            salariesByYear: [{ season: '2025-26', salary: 18_000_000, capHit: 18_500_000 }],
+          },
+        },
+        {
+          primaryContract: {
+            salariesByYear: [{ season: '2025-26', salary: 20_000_000, capHit: 21_000_000 }],
+          },
+        }
+      );
+      expect(baseContractWinsSameYear[0]).toMatchObject({
+        salary: 18_000_000,
+        capHit: 18_500_000,
+        contractSource: 'playerContract',
       });
 
       const optionFallbackRow = getContractYearsForDisplay(
@@ -244,10 +266,11 @@ describe('contract and season helpers', () => {
         option: 'Team Option',
         salary: 12_000_000,
         capHit: 12_000_000,
+        contractSource: 'primaryContract',
       });
     });
 
-    it('preserves year-slice behavior and years-remaining fallback order', () => {
+    it('preserves year-slice behavior and keeps years-remaining row-first when row truth exists', () => {
       const player = {
         contract: {
           yearsRemaining: 5,
@@ -282,6 +305,20 @@ describe('contract and season helpers', () => {
       expect(
         getYearsRemainingDisplay({
           player: {
+            contract: {
+              yearsRemaining: 3,
+              salariesByYear: [
+                { season: '2024-25', salary: 10_000_000, capHit: 10_000_000 },
+              ],
+            },
+          },
+          currentYear: 2026,
+        })
+      ).toBe(0);
+
+      expect(
+        getYearsRemainingDisplay({
+          player: {
             contract: { yearsRemaining: 3 },
           },
           currentYear: 2026,
@@ -302,11 +339,51 @@ describe('contract and season helpers', () => {
       ).toBe(3);
     });
 
-    it('preserves minimum salary, minimum cap hit, stretch, and last-salary behavior', () => {
+    it('preserves minimum salary, stretch, and last-salary behavior while making minimum cap hits year-aware', () => {
       expect(getMinimumSalary(0)).toBe(1_120_000);
       expect(getMinimumSalary(22)).toBe(3_800_000);
       expect(getMinimumCapHit(2)).toBe(2_092_400);
       expect(getMinimumCapHit(3)).toBe(2_092_400);
+      expect(getMinimumCapHit(3, 2026)).toBe(2_176_096);
+
+      expect(
+        getPlayerCapSheetAmountsForYear(
+          {
+            isMinimum: true,
+            yearsOfService: 4,
+            contract: {
+              salariesByYear: [
+                { season: '2025-26', salary: 2_485_600, capHit: 2_485_600 },
+              ],
+            },
+          },
+          2026
+        )
+      ).toMatchObject({
+        capHit: 2_176_096,
+        baseSalary: 2_485_600,
+        hasCapHitAdjustment: true,
+      });
+
+      expect(
+        getPlayerCapSheetAmountsForYear(
+          {
+            isMinimum: true,
+            yearsOfService: 4,
+            contract: {
+              salariesByYear: [
+                { season: '2026-27', salary: 2_485_600, capHit: 2_485_600 },
+              ],
+            },
+          },
+          2026
+        )
+      ).toEqual({
+        contractSlice: null,
+        capHit: 0,
+        baseSalary: 0,
+        hasCapHitAdjustment: false,
+      });
 
       expect(
         stretchContract(

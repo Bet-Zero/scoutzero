@@ -470,7 +470,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
         salary: 2_390_000,
         capHit: 2_390_000,
       }),
-      capHit: 2_092_400,
+      capHit: 2_176_096,
       baseSalary: 2_390_000,
       hasCapHitAdjustment: true,
     });
@@ -618,12 +618,21 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     );
     const totals = computeTeamCapTotals(team, FUTURE_YEAR);
 
-    expect(bodyPlayersTotal).toBe(29_092_400);
+    expect(getPlayerCapSheetAmountsForYear(veteranMinimumPlayer, FUTURE_YEAR)).toEqual({
+      contractSlice: expect.objectContaining({
+        salary: 2_390_000,
+        capHit: 2_390_000,
+      }),
+      capHit: 2_176_096,
+      baseSalary: 2_390_000,
+      hasCapHitAdjustment: true,
+    });
+    expect(bodyPlayersTotal).toBe(29_176_096);
     expect(totals.playersTotal).toBe(bodyPlayersTotal);
     expect(totals.deadMoneyTotal).toBe(0);
     expect(totals.incompleteChargesTotal).toBe(0);
     expect(totals.capHoldsTotal).toBe(4_250_000);
-    expect(totals.totalCapAllocations).toBe(33_342_400);
+    expect(totals.totalCapAllocations).toBe(33_426_096);
     expect(totals.totalCapAllocations - totals.playersTotal).toBe(
       totals.capHoldsTotal
     );

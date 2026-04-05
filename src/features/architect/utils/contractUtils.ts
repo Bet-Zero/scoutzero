@@ -7,6 +7,7 @@
  *  - 2026-03-12: Migrated authoritative implementation to TypeScript for E59.
  */
 
+import { getMinimumCapHit as getMinimumCapHitFromMinimumSalaryRules } from './playerRulesProfile/minimumSalaryRules';
 import { toSeasonCode, toEndYear } from './seasonFormat';
 interface ContractOptions {
   guaranteed?: boolean | null;
@@ -85,12 +86,39 @@ interface GenerateExtensionContractParams {
   startYear?: number;
 }
 
+type ContractYearSource = 'playerContract' | 'primaryContract' | 'futureContract';
+
+type MinimumSalarySeasonInput = string | number | null | undefined;
+
 type NormalizedContractYear = SalaryRowInput & {
   year: number | null;
   season: string;
   salary: number;
   capHit: number;
   isExtension: boolean;
+  contractSource: ContractYearSource;
+};
+
+const LEGACY_MINIMUM_SALARY_SCALE: Record<number, number> = {
+  0: 1120000,
+  1: 1820000,
+  2: 2092400,
+  3: 2390000,
+  4: 2600000,
+  5: 2800000,
+  6: 3000000,
+  7: 3200000,
+  8: 3400000,
+  9: 3600000,
+  10: 3800000,
+};
+
+const LEGACY_MINIMUM_CAP_HIT = LEGACY_MINIMUM_SALARY_SCALE[2] ?? 2092400;
+
+const CONTRACT_YEAR_SOURCE_PRIORITY: Record<ContractYearSource, number> = {
+  primaryContract: 1,
+  playerContract: 2,
+  futureContract: 3,
 };
 
 export function isTwoWayContract(
@@ -172,7 +200,45 @@ export function generateExtensionContract({
   });
 }
 
-function normalizeContractYears(entries: SalaryRowInput[] | null | undefined, isExtension: boolean): NormalizedContractYear[] {
+function normalizeYearsOfService(value: unknown): number {
+  const years = Number(value);
+  if (!Number.isFinite(years) || years < 0) {
+    return 0;
+  }
+
+  return Math.floor(years);
+}
+
+function normalizeMinimumSalarySeason(
+  seasonOrEndYear: MinimumSalarySeasonInput
+): string | null {
+  if (typeof seasonOrEndYear === 'string' && seasonOrEndYear.trim().length > 0) {
+    const parsedEndYear = toEndYear(seasonOrEndYear);
+    if (Number.isFinite(parsedEndYear)) {
+      return toSeasonCode(parsedEndYear as number);
+    }
+    return seasonOrEndYear;
+  }
+
+  const parsedEndYear = toEndYear(seasonOrEndYear);
+  if (!Number.isFinite(parsedEndYear)) {
+    return null;
+  }
+
+  return toSeasonCode(parsedEndYear as number);
+}
+
+function getLegacyMinimumSalary(
+  yearsOfService: number | string | null | undefined
+): number {
+  const years = normalizeYearsOfService(yearsOfService);
+  return LEGACY_MINIMUM_SALARY_SCALE[years] || LEGACY_MINIMUM_SALARY_SCALE[10];
+}
+
+function normalizeContractYears(
+  entries: SalaryRowInput[] | null | undefined,
+  contractSource: ContractYearSource
+): NormalizedContractYear[] {
   return (entries || []).map((entry) => {
     const parsedYear = toEndYear(entry.season ?? entry.year);
     const salary = Number(entry.salary ?? entry.capHit ?? 0) || 0;
@@ -188,9 +254,89 @@ function normalizeContractYears(entries: SalaryRowInput[] | null | undefined, is
       salary,
       capHit: Number(entry.capHit ?? salary) || salary,
       option: (entry.option ?? entry.optionType ?? null) as string | null,
-      isExtension,
+      isExtension: contractSource === 'futureContract',
+      contractSource,
     } as NormalizedContractYear;
   });
+}
+
+function selectAuthoritativeContractYear(
+  existing: NormalizedContractYear | undefined,
+  incoming: NormalizedContractYear
+): NormalizedContractYear {
+  if (!existing) {
+    return incoming;
+  }
+
+  if (existing.contractSource === incoming.contractSource) {
+    return existing;
+  }
+
+  // Same-year ownership is explicit:
+  // - player.contract rows beat primaryContract fallback rows
+  // - futureContract rows beat any non-future row for that season
+  if (existing.contractSource === 'futureContract') {
+    return existing;
+  }
+  if (incoming.contractSource === 'futureContract') {
+    return incoming;
+  }
+
+  const existingPriority = CONTRACT_YEAR_SOURCE_PRIORITY[existing.contractSource];
+  const incomingPriority = CONTRACT_YEAR_SOURCE_PRIORITY[incoming.contractSource];
+  return incomingPriority > existingPriority ? incoming : existing;
+}
+
+function mergeContractYearsByYear(
+  entries: NormalizedContractYear[]
+): NormalizedContractYear[] {
+  const yearMap = new Map<number, NormalizedContractYear>();
+
+  entries.forEach((entry) => {
+    if (!Number.isFinite(entry.year)) return;
+
+    const year = entry.year as number;
+    yearMap.set(
+      year,
+      selectAuthoritativeContractYear(yearMap.get(year), entry)
+    );
+  });
+
+  return Array.from(yearMap.values()).sort(
+    (a, b) => (a.year ?? 0) - (b.year ?? 0)
+  );
+}
+
+function getLegacyYearsRemainingFallback(
+  player: ContractUtilsPlayer,
+  primaryContract: ContractUtilsContract | null,
+  normalizedCurrentYear: number
+): number {
+  const legacyYearsRemaining = Number(
+    player.contract?.yearsRemaining ?? primaryContract?.yearsRemaining
+  );
+  if (Number.isFinite(legacyYearsRemaining) && legacyYearsRemaining > 0) {
+    return legacyYearsRemaining;
+  }
+
+  const playerContractFreeAgency =
+    typeof player.contract?.freeAgency === 'object' &&
+    player.contract.freeAgency !== null
+      ? player.contract.freeAgency.year
+      : null;
+  const primaryContractFreeAgency =
+    typeof primaryContract?.freeAgency === 'object' &&
+    primaryContract.freeAgency !== null
+      ? primaryContract.freeAgency.year
+      : null;
+  const freeAgencyYear = Number(
+    playerContractFreeAgency ??
+      primaryContractFreeAgency ??
+      player.bio?.display?.freeAgentYear ??
+      player.freeAgentYear
+  );
+  if (!Number.isFinite(freeAgencyYear)) return 0;
+  return Math.max(0, freeAgencyYear - normalizedCurrentYear);
 }
 
 export function getContractYearsForDisplay(
@@ -200,36 +346,31 @@ export function getContractYearsForDisplay(
   if (!player) return [];
 
   const primaryContract = options.primaryContract || null;
-  const contractSources: NormalizedContractYear[] = [];
   const seenContracts = new Set();
+  const contractSources: NormalizedContractYear[] = [];
 
-  const addContractRows = (contract: ContractUtilsContract | null | undefined) => {
-    if (!contract || seenContracts.has(contract)) return;
-    seenContracts.add(contract);
-    contractSources.push(
-      ...normalizeContractYears(contract.salariesByYear, false)
-    );
+  const addContractRows = (
+    contract: ContractUtilsContract | null | undefined,
+    contractSource: ContractYearSource
+  ) => {
+    if (!contract) return;
+    if (
+      contractSource !== 'futureContract' &&
+      seenContracts.has(contract)
+    ) {
+      return;
+    }
+    if (contractSource !== 'futureContract') {
+      seenContracts.add(contract);
+    }
+    contractSources.push(...normalizeContractYears(contract.salariesByYear, contractSource));
   };
 
-  addContractRows(player.contract);
-  addContractRows(primaryContract);
+  addContractRows(player.contract, 'playerContract');
+  addContractRows(primaryContract, 'primaryContract');
+  addContractRows(player.futureContract, 'futureContract');
 
-  const combined = [
-    ...contractSources,
-    ...normalizeContractYears(player.futureContract?.salariesByYear, true),
-  ];
-
-  const yearMap = new Map<number, NormalizedContractYear>();
-  combined.forEach((entry) => {
-    if (!Number.isFinite(entry.year)) return;
-    const year = entry.year as number;
-    const existing = yearMap.get(year);
-    if (!existing || (entry.isExtension && !existing.isExtension)) {
-      yearMap.set(year, entry);
-    }
-  });
-
-  return Array.from(yearMap.values()).sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
+  return mergeContractYearsByYear(contractSources);
 }
 
 export function getYearsRemainingDisplay({
@@ -245,38 +386,17 @@ export function getYearsRemainingDisplay({
   if (!player || !Number.isFinite(normalizedCurrentYear)) return 0;
 
   const contractYears = getContractYearsForDisplay(player, { primaryContract });
-  const yearsFromRows = contractYears.filter(
-    (yearEntry) => (yearEntry.year ?? 0) >= normalizedCurrentYear
-  ).length;
-  if (yearsFromRows > 0) {
-    return yearsFromRows;
+  if (contractYears.length > 0) {
+    return contractYears.filter(
+      (yearEntry) => (yearEntry.year ?? 0) >= normalizedCurrentYear
+    ).length;
   }
 
-  const legacyYearsRemaining = Number(
-    player?.contract?.yearsRemaining ?? primaryContract?.yearsRemaining
+  return getLegacyYearsRemainingFallback(
+    player,
+    primaryContract,
+    normalizedCurrentYear
   );
-  if (Number.isFinite(legacyYearsRemaining) && legacyYearsRemaining > 0) {
-    return legacyYearsRemaining;
-  }
-
-  const playerContractFreeAgency =
-    typeof player?.contract?.freeAgency === 'object' &&
-    player.contract.freeAgency !== null
-      ? player.contract.freeAgency.year
-      : null;
-  const primaryContractFreeAgency =
-    typeof primaryContract?.freeAgency === 'object' &&
-    primaryContract.freeAgency !== null
-      ? primaryContract.freeAgency.year
-      : null;
-  const freeAgencyYear = Number(
-    playerContractFreeAgency ??
-      primaryContractFreeAgency ??
-      player?.bio?.display?.freeAgentYear ??
-      player?.freeAgentYear
-  );
-  if (!Number.isFinite(freeAgencyYear)) return 0;
-  return Math.max(0, freeAgencyYear - normalizedCurrentYear);
 }
 
 // Helper: get salary entry for a given season, including future extensions
@@ -316,11 +436,14 @@ export function getPlayerCapSheetAmountsForYear(
   ) || 0;
 
   let capHit = Number(contractSlice?.capHit ?? contractSlice?.salary ?? 0) || 0;
+  const yearsOfService = normalizeYearsOfService(player?.yearsOfService);
 
-  if (player && isTwoWayContract(player)) {
-    capHit = 0;
-  } else if (player?.isMinimum && Number(player.yearsOfService) >= 3) {
-    capHit = getMinimumCapHit(Number(player.yearsOfService));
+  if (contractSlice) {
+    if (player && isTwoWayContract(player)) {
+      capHit = 0;
+    } else if (player?.isMinimum && yearsOfService >= 3) {
+      capHit = getMinimumCapHit(yearsOfService, endYear);
+    }
   }
 
   return {
@@ -413,22 +536,10 @@ export function generateRookieContract(
 }
 
 // 5. Veteran minimum salary scale
-export function getMinimumSalary(yearsOfService: number | string | null | undefined) {
-  const years = Number(yearsOfService);
-  const scale: Record<number, number> = {
-    0: 1120000,
-    1: 1820000,
-    2: 2092400,
-    3: 2390000,
-    4: 2600000,
-    5: 2800000,
-    6: 3000000,
-    7: 3200000,
-    8: 3400000,
-    9: 3600000,
-    10: 3800000,
-  };
-  return scale[years] || 3800000;
+export function getMinimumSalary(
+  yearsOfService: number | string | null | undefined
+) {
+  return getLegacyMinimumSalary(yearsOfService);
 }
 
 // 6. Stretch provision calculator
@@ -466,9 +577,25 @@ export function stretchContract(
 }
 
 // 7. Minimum cap hit calculation (special 2-year rule)
-export function getMinimumCapHit(yearsOfService: number | string | null | undefined) {
-  if (Number(yearsOfService) >= 3) return 2092400;
-  return getMinimumSalary(yearsOfService);
+export function getMinimumCapHit(
+  yearsOfService: number | string | null | undefined,
+  seasonOrEndYear?: MinimumSalarySeasonInput
+) {
+  const normalizedYearsOfService = normalizeYearsOfService(yearsOfService);
+  const normalizedSeason = normalizeMinimumSalarySeason(seasonOrEndYear);
+
+  if (normalizedSeason) {
+    return getMinimumCapHitFromMinimumSalaryRules(
+      normalizedYearsOfService,
+      normalizedSeason
+    );
+  }
+
+  if (normalizedYearsOfService >= 3) {
+    return LEGACY_MINIMUM_CAP_HIT;
+  }
+
+  return getMinimumSalary(normalizedYearsOfService);
 }
 
 // 8. Cap hold logic

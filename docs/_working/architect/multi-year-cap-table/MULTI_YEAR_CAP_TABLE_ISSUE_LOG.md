@@ -133,21 +133,38 @@ This execution added one dedicated Step 2 closeout guardrail file that pins both
 
 ### MYCT-3-1 — `futureContract` overlap precedence is governed by a thin implicit heuristic rather than a clearly owned contract-year merge rule
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-3A
 
 **Problem:**
 `contractUtils.ts` owns the merged player-year contract stream, but same-year conflict resolution between base contract rows and `futureContract` / extension rows is handled by a compact binary rule: if an extension or future row exists for a given year, it takes precedence over the non-extension row. This may be correct for the current data model, but the rule is thinly encoded for a high-impact seam. There is no stronger rule surface explaining overlap semantics — the precedence is effectively implicit. For a player-year money path that feeds canonical totals downstream, this under-explained rule creates a soft spot where future changes could silently alter extension-season behavior without clear failure signals.
 
+**Resolution:**
+`contractUtils.ts` now normalizes each row with one explicit source owner: `playerContract`, `primaryContract`, or `futureContract`. Same-year conflict resolution moved into one named merge helper with an explicit ownership contract: player-contract rows beat `primaryContract` fallback rows, and `futureContract` rows explicitly own overlapping years over any non-future row. The merge still stays centralized in `contractUtils.ts`, but the precedence model now reads as an owned rule surface rather than as a thin implicit "extension wins" branch.
+
+**Files implicated:**
+
+- `src/features/architect/utils/contractUtils.ts`
+- `tests/contractSeasonHelpers.test.ts`
+
 ---
 
 ### MYCT-3-2 — Years-remaining display fallback and minimum-contract cap-hit handling are softer than the multi-year truth model they belong to
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-3B
 
 **Problem:**
 Two parts of the player-year contract seam still feel less grounded than the broader multi-year system around them. `getYearsRemainingDisplay(...)` prefers row-based truth but retains legacy fallback paths — including free-agency-year arithmetic from contract and bio fields — that can silently diverge from row truth when rows are incomplete but legacy metadata is stale. Minimum-contract cap-hit handling is explicit, but it depends on `player.isMinimum`, years-of-service thresholds, and a hardcoded minimum-cap-hit helper rather than reading as a year-aware rules consumer in the same way Step 2's totals engine does. Neither issue is obviously broken, but together they leave the player-year seam softer and less internally consistent than the canonical totals system that consumes it.
+
+**Resolution:**
+`getYearsRemainingDisplay(...)` now treats merged row truth as authoritative whenever any normalized contract rows exist, including returning `0` when the selected year has no remaining rows instead of reviving stale legacy metadata. Legacy `yearsRemaining` and free-agency-year fallback now run only when row truth is absent entirely. `getPlayerCapSheetAmountsForYear(...)` also now applies veteran-minimum reimbursement only when a selected-year contract slice exists, and it resolves that reimbursement from season-aware minimum-salary rules instead of a single hardcoded cap-hit constant. Downstream totals still consume that same player-year seam, and focused parity tests now pin both the row-first fallback boundary and the selected-year cap-hit behavior.
+
+**Files implicated:**
+
+- `src/features/architect/utils/contractUtils.ts`
+- `tests/contractSeasonHelpers.test.ts`
+- `src/tests/architect/capSheetFull_ssot_parity_guardrails.test.js`
 
 ---
 
