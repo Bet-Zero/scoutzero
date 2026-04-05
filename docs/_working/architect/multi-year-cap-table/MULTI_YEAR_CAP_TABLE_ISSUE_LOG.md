@@ -66,4 +66,38 @@ This execution added a dedicated Step 1C shell guardrail pass. A new focused run
 
 ---
 
+---
+
+## STEP 2 — Canonical Multi-Year Totals Engine and Threshold Source Truth
+
+### MYCT-2-1 — The yearly threshold gateway still behaves like a mixed resolver and can under-report mixed-source reality in its metadata summary
+
+**Status:** OPEN
+**Substep:** MYCT-2A
+
+**Problem:**
+`capRulesProfile.ts` is correctly positioned as the single gateway for yearly cap, tax, apron, exception, and rookie-minimum truth — but it still functions more like a resolution engine than a clean declarative source. Yearly truth is assembled from cap settings, constants, imported projections, and conditional fallback logic. Rookie-minimum values can resolve through recursive projection when direct per-year values are absent. The most significant reporting weakness is that `_meta.sourcesSummary` defaults to a single summary label derived from a top-level `defaultSource`, but individual threshold fields may have actually resolved from different source types. The summary can therefore describe mixed-source resolution as if it came from one source, which under-reports the real provenance picture. The totals SSOT downstream is only as trustworthy as this threshold input layer, and that layer is not yet fully clean or maximally honest in its self-reporting.
+
+---
+
+### MYCT-2-2 — The canonical totals authority seam still carries bounded legacy dead-money compatibility and adjacent snapshot/overlay shaping inside the same file as the pure totals owner
+
+**Status:** OPEN
+**Substep:** MYCT-2B
+
+**Problem:**
+`computeTeamCapTotals.ts` is the explicit canonical totals owner, but the authority seam has widened beyond pure totals ownership. Dead-money resolution inside the file still carries a compatibility stack: canonical `deadCap` arrays take priority, but the engine also handles object-map `deadCap` compatibility, and falls back to older ledgers — `waivedContracts`, `stretchHistory`, and flat `deadMoney` maps — when canonical coverage is absent. That compatibility logic is intentional and bounded, but it still lives inside the same file as the core totals authority. Additionally, `resolveHardCapOverlay(...)` and snapshot shaping logic sit alongside the pure totals compute functions, meaning the file simultaneously owns totals computation and adjacent state-shaping responsibilities. This blurs what is purely canonical compute truth versus what is compatibility shim or downstream adapter work, making the authority seam harder to reason about and easier to widen incorrectly over time.
+
+---
+
+### MYCT-2-3 — There are no focused guardrails protecting the canonical totals SSOT, threshold provenance behavior, or bounded legacy compatibility behavior against silent drift
+
+**Status:** OPEN
+**Substep:** MYCT-2C
+
+**Problem:**
+The canonical totals engine and threshold gateway are the compute foundation for the entire Multi-Year Cap Table feature, but neither has dedicated guardrails protecting the behaviors that matter most for multi-year truth. Specific unprotected drift vectors include: yearly threshold provenance could become less honest without failing any existing test; the canonical-first dead-cap preference could silently regress and allow legacy ledgers to widen their coverage beyond bounded fallback; snapshot helpers could drift toward partial recomputation rather than purely consuming the SSOT; future-year totals could accidentally pick up current-year assumptions introduced by adjacent surfaces; and the source-summary metadata could drift further from actual field-level provenance without triggering a loud failure. Because these compute paths are upstream of every cap-table consumer, drift here risks corrupting the multi-year truth model for all later review steps without an obvious failure signal at the point of introduction.
+
+---
+
 _Issue log tracks problem-level root causes. Execution substeps and status tracking live in MULTI_YEAR_CAP_TABLE_REVIEW_TRACKER.md._
