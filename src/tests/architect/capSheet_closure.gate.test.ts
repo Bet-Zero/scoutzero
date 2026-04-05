@@ -209,12 +209,18 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     );
   });
 
-  it('CapSummaryTiles routes hard-cap badge display through getHardCapStatus', () => {
-    expect(capSummaryTilesContent).toContain('getHardCapStatus');
+  it('CapSheet resolves adjacent hard-cap presentation before handing it to CapSummaryTiles', () => {
+    expect(capSheetContent).toContain('getHardCapStatus');
+    expect(capSheetContent).toContain('const summaryHardCapStatus = React.useMemo');
+    expect(capSheetContent).toMatch(
+      /<CapSummaryTiles[\s\S]*hardCapStatus=\{summaryHardCapStatus\}/
+    );
+    expect(capSummaryTilesContent).not.toContain('getHardCapStatus');
+    expect(capSummaryTilesContent).toContain('hardCapStatus?: SummaryHardCapStatus | null;');
     expect(capSummaryTilesContent).toContain('hardCapCeilingType');
     expect(capSummaryTilesContent).toContain('hardCapCeilingLabel');
     expect(capSummaryTilesContent).toContain(
-      'const showCurrentYearHardCapTruth = selectedYear === currentYear;'
+      'selectedYear === currentYear && Boolean(hardCapStatus)'
     );
     expect(capSummaryTilesContent).not.toContain('isHardCappedAtFirstApron');
     expect(capSummaryTilesContent).not.toContain('getFirstApronHardCapReason');
@@ -273,10 +279,10 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
 
   it('CapSummaryTiles explicitly fences hard-cap truth to the current season', () => {
     expect(capSummaryTilesContent).toContain(
-      'const showCurrentYearHardCapTruth = selectedYear === currentYear;'
+      'selectedYear === currentYear && Boolean(hardCapStatus)'
     );
     expect(capSummaryTilesContent).toMatch(
-      /showCurrentYearHardCapTruth\s*&&[\s\S]*hardCapStatus\.isHardCapped/
+      /showCurrentYearHardCapTruth\s*&&[\s\S]*hardCapStatus\?\.isHardCapped/
     );
   });
 

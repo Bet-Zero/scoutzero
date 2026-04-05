@@ -191,21 +191,27 @@ This execution added one dedicated Step 3 closeout guardrail file that pins both
 
 ### MYCT-4-1 — The UI still presents selected-year canonical viewing and current-year-only adjacent authority as a single cap-sheet experience in a way that can be overread
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-4A
 
 **Problem:**
 The cap-sheet feature asks one visible experience to carry two distinct authority classes simultaneously: selected-year canonical cap-table viewing, and adjacent current-year-only truth covering exceptions, hard-cap status, and TPE eligibility. The feature does disclose this split — via `ExceptionTracker`'s future-year fail-closed boundary panel, disabled controls, and inline notes — but the disclosure is reactive rather than structural. The user enters a single cap-sheet surface and must notice the boundary signals to understand that future-year viewing is not authoritative for exception / hard-cap / TPE truth. For a feature whose value partly depends on multi-year reading, this creates an overread risk: the cap-sheet can be navigated to a future season and still present an adjacent exception/authority strip that reads as part of the same unified truth, even though it has been quietly fail-closed. The two authority classes are not yet easy to distinguish at a glance without reading the boundary notes.
 
+**Resolution:**
+`CapSummaryTiles.tsx` now opens with one explicit selected-year canonical-totals banner that names both the canonical totals season and the hard-cap badge authority season. `CapSheet.tsx` now keeps the selected-year dead-money control and the current-season-only exception control in visibly separate groups, so the primary cap-table surface no longer reads like one undifferentiated authority strip. `ExceptionTracker.tsx` now presents an explicit current-season authority banner during current-year viewing and a stronger future-year fail-closed panel with selected-year-vs-authority-season chips when viewing a future year. The selected-year consumer story and the current-year-only adjacent authority story now read as different truth classes at a glance rather than mainly through reactive notes.
+
 ---
 
 ### MYCT-4-2 — Consumer ownership boundaries across summary, supporting detail, control, and adjacent surfaces are softer and more blended than their intended roles require
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-4B
 
 **Problem:**
 The consumer layer is structurally sound, but several surfaces sit close enough together that their authority roles blur in practice. `CapSummaryTiles.tsx` is labeled as a canonical totals consumer but also reaches into `teamCapSheet` for adjacent hard-cap presentation via `getHardCapStatus(...)`, mixing two reading modes in one surface. Supporting detail rows and totals breakdown occupy the same visual frame as summary tiles, making it easy for either to drift toward semi-owning totals explanations. The control strip mixes dead-money mutation entry points with current-year-only exception actions, which are conceptually different authority classes. `ExceptionTracker.tsx` depends on several adjacent utilities to function as a presentation surface, making its consumer boundary wider than its stated role suggests. None of these are obviously wrong, but the combined consumer story is softer than ideal: future changes could widen any of these surfaces beyond their intended authority without a clear structural signal or loud failure.
+
+**Resolution:**
+`CapSheet.tsx` remains the main selected-year composition surface, and it now resolves the adjacent hard-cap presentation before handing it to `CapSummaryTiles.tsx`, so the summary tiles stay a clearer canonical-totals consumer instead of reaching back into `teamCapSheet` themselves. The selected-year roster/detail frame now carries explicit supporting-detail copy, and the breakdown block now names itself as a canonical-totals consumer of the same selected-year totals authority as the summary tiles. The control strip is now split into a selected-year mutation entry point for dead money and a current-season-only adjacent authority group for exception editing. `ExceptionTracker.tsx` remains the adjacent current-season authority surface, but its banner/fail-closed copy now makes it clearer that it owns hard-cap, exception, and trade-exception presentation without competing for selected-year totals ownership.
 
 ---
 

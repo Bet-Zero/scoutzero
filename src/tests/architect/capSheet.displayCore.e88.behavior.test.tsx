@@ -38,6 +38,20 @@ const SUMMARY_TOTALS = {
   },
 };
 
+const FIRST_APRON_HARD_CAP_STATUS = {
+  isHardCapped: true,
+  hardCapCeilingType: 'FIRST_APRON',
+  hardCapCeilingLabel: '1st Apron',
+  reason: 'Hard cap triggered at First Apron via Non-Taxpayer MLE usage.',
+};
+
+const SECOND_APRON_HARD_CAP_STATUS = {
+  isHardCapped: true,
+  hardCapCeilingType: 'SECOND_APRON',
+  hardCapCeilingLabel: '2nd Apron',
+  reason: 'Structured second-apron tile reason',
+};
+
 const TEAM_CAP_SHEET = {
   teamCode: 'TST',
   players: [
@@ -110,19 +124,10 @@ describe('Cap Sheet display-core E88 compatibility', () => {
   it('renders CapSummaryTiles in the existing visible order with canonical hard-cap compatibility intact', () => {
     const { container } = render(
       <CapSummaryTiles
-        teamCapSheet={{
-          exceptions: {
-            mle: {
-              enabled: true,
-              totalAmount: 12_800_000,
-              usedAmount: 1,
-              remainingAmount: 12_799_999,
-            },
-          },
-        }}
         currentYear={2026}
         selectedYear={2026}
         canonicalTotals={SUMMARY_TOTALS}
+        hardCapStatus={FIRST_APRON_HARD_CAP_STATUS}
       />
     );
 
@@ -141,6 +146,12 @@ describe('Cap Sheet display-core E88 compatibility', () => {
     expect(screen.getByText('$165,000,000')).toBeInTheDocument();
     expect(screen.getByText('-$25,000,000')).toBeInTheDocument();
     expect(screen.getByText('$5,000,000')).toBeInTheDocument();
+    expect(
+      within(container).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Canonical totals: 2025-26');
+    expect(
+      within(container).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Hard-cap badge authority: 2025-26');
     expect(screen.getByText('Hard Capped at 1st Apron')).toBeInTheDocument();
     expect(
       screen.getByText('Hard cap triggered at First Apron via Non-Taxpayer MLE usage.')
@@ -150,15 +161,10 @@ describe('Cap Sheet display-core E88 compatibility', () => {
   it('renders second-apron lock copy from canonical structured hard-cap state', () => {
     render(
       <CapSummaryTiles
-        teamCapSheet={{
-          hardCapSecondApron: {
-            active: true,
-            reason: 'Structured second-apron tile reason',
-          },
-        }}
         currentYear={2026}
         selectedYear={2026}
         canonicalTotals={SUMMARY_TOTALS}
+        hardCapStatus={SECOND_APRON_HARD_CAP_STATUS}
       />
     );
 
@@ -171,25 +177,22 @@ describe('Cap Sheet display-core E88 compatibility', () => {
   it('suppresses current-year hard-cap copy when the summary is switched to a future year', () => {
     const { container } = render(
       <CapSummaryTiles
-        teamCapSheet={{
-          exceptions: {
-            mle: {
-              enabled: true,
-              totalAmount: 12_800_000,
-              usedAmount: 1,
-              remainingAmount: 12_799_999,
-            },
-          },
-        }}
         currentYear={2026}
         selectedYear={2027}
         canonicalTotals={{
           ...SUMMARY_TOTALS,
           yearKey: 2027,
         }}
+        hardCapStatus={FIRST_APRON_HARD_CAP_STATUS}
       />
     );
 
+    expect(
+      within(container).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Canonical totals: 2026-27');
+    expect(
+      within(container).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Hard-cap badge authority: 2025-26 only');
     expect(
       within(container).queryByText('Hard Capped at 1st Apron')
     ).not.toBeInTheDocument();

@@ -23,6 +23,7 @@ import {
   getPlayerCapHitForYear,
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
+import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { getActiveUnsignedCapHoldsByEndYear, type CapHold } from '@/features/architect/utils/capHolds';
 import CapSummaryTiles from './CapSummaryTiles';
 import { POSITION_MAP } from '@/shared/utils/roles';
@@ -217,6 +218,8 @@ const CapSheet = ({
 
   const formatYearLabel = (year: number) =>
     `${year - 1}-${String(year % 100).padStart(2, '0')}`;
+  const currentSeasonLabel = formatYearLabel(currentYear);
+  const selectedSeasonLabel = formatYearLabel(selectedYear);
 
   const renderNotes = (
     player: CapSheetPlayerLike,
@@ -365,6 +368,23 @@ const CapSheet = ({
     [manualCapSheetMutationAuthority]
   );
 
+  const summaryHardCapStatus = React.useMemo(() => {
+    if (!teamCapSheet) {
+      return null;
+    }
+
+    return getHardCapStatus(teamCapSheet, {
+      capSettings: {
+        firstApron: canonicalTotals.firstApron,
+        secondApron: canonicalTotals.secondApron,
+      },
+    });
+  }, [
+    teamCapSheet,
+    canonicalTotals.firstApron,
+    canonicalTotals.secondApron,
+  ]);
+
   return (
     <div className="text-white font-sans">
       <div className="flex items-center justify-between mb-4">
@@ -403,10 +423,10 @@ const CapSheet = ({
       {/* CANONICAL TOTALS CONSUMER SURFACE: Summary tiles read canonicalTotals directly. */}
       <div data-surface-role="canonical-totals-summary">
         <CapSummaryTiles
-          teamCapSheet={teamCapSheet}
           currentYear={currentYear}
           selectedYear={selectedYear}
           canonicalTotals={canonicalTotals}
+          hardCapStatus={summaryHardCapStatus}
           surfaceLabel={CAP_SHEET_SURFACE_LABELS.canonicalTotalsSummary}
         />
       </div>
@@ -417,7 +437,27 @@ const CapSheet = ({
       >
         {/* SUPPORTING DETAIL SURFACE: Player rows explain year-by-year contract detail.
             They may borrow canonical thresholds for display, but they do not own totals truth. */}
-        <div className="px-4 py-2 border-b border-white/5 bg-white/[0.03]">
+        <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03] space-y-2">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.25em] text-white/45">
+                Selected-Year Supporting Detail
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-white/70">
+                Roster rows, cap-hold detail, and the breakdown below explain
+                the selected-year canonical totals for {selectedSeasonLabel}.
+                They do not replace the summary surface above.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[10px] font-medium text-white/60">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                Detail season: {selectedSeasonLabel}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                Totals owner: canonical summary
+              </span>
+            </div>
+          </div>
           <p className="text-[10px] text-white/40 leading-relaxed">
             Player rows show player salaries only. Total Cap Hit also includes
             dead money, cap holds, and incomplete roster charges when present.
@@ -512,9 +552,23 @@ const CapSheet = ({
             aria-label={CAP_SHEET_SURFACE_LABELS.canonicalTotalsBreakdown}
             className="border-b border-white/5"
           >
-            <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03] space-y-1">
-              <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                Total Cap Hit Breakdown
+            <div className="px-4 py-3 border-b border-white/5 bg-white/[0.03] space-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+                    Canonical Totals Consumer
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-white/80">
+                    Total Cap Hit Breakdown
+                  </p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/60">
+                  {selectedSeasonLabel}
+                </span>
+              </div>
+              <p className="text-[10px] text-white/40 leading-relaxed">
+                This breakdown reads the same selected-year canonical totals as
+                the summary tiles.
               </p>
               <p className="text-[10px] text-white/40 leading-relaxed">
                 Player salaries from the table above plus non-player cap
@@ -644,19 +698,79 @@ const CapSheet = ({
               own or redefine current-year totals display. */}
           <div
             data-testid="cap-sheet-control-surface"
-            className="bg-white/[0.015] px-4 py-2 flex items-center justify-between gap-4"
+            className="bg-white/[0.015] px-4 py-3 grid gap-4 lg:grid-cols-2"
           >
-            <div className="min-h-[1rem]">
-              {!isViewingCurrentYear && hasManualCapSheetMutationAuthority && (
-                <span
-                  data-testid="cap-sheet-future-year-exception-edit-boundary"
-                  className="text-[10px] text-amber-300/80"
-                >
-                  Exception editing is only available for the current season.
+            <div className="rounded-md border border-white/5 bg-black/10 px-3 py-3 space-y-3">
+              <div className="space-y-1">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-white/45">
+                  Selected-Year Mutation Entry Point
+                </div>
+                <p className="text-xs leading-relaxed text-white/65">
+                  Dead money changes are a bounded selected-year input control
+                  for the cap table you are currently viewing.
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/60">
+                  Input season: {selectedSeasonLabel}
                 </span>
-              )}
+                <button
+                  data-testid="cap-sheet-manage-dead-money-button"
+                  type="button"
+                  disabled={!hasManualCapSheetMutationAuthority}
+                  onClick={() => {
+                    if (!hasManualCapSheetMutationAuthority) return;
+                    setShowDeadMoneyModal(true);
+                  }}
+                  className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
+                    hasManualCapSheetMutationAuthority
+                      ? 'text-white/40 hover:text-white'
+                      : 'text-white/20 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="opacity-50">Configure</span> Manage Dead
+                  Money
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-end gap-4">
+
+            <div className="rounded-md border border-amber-400/15 bg-amber-500/[0.04] px-3 py-3 space-y-3">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
+                    Current-Season-Only Adjacent Authority
+                  </div>
+                  <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-100/90">
+                    Authority season:{' '}
+                    {isViewingCurrentYear
+                      ? currentSeasonLabel
+                      : `${currentSeasonLabel} only`}
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-white/65">
+                  Exception edits always stay on {currentSeasonLabel}. The
+                  adjacent authority surface remains the live hard-cap,
+                  exception, and trade-exception reference.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-h-[1rem]">
+                  {!isViewingCurrentYear &&
+                    hasManualCapSheetMutationAuthority && (
+                      <span
+                        data-testid="cap-sheet-future-year-exception-edit-boundary"
+                        className="text-[10px] text-amber-300/80"
+                      >
+                        Exception editing is only available for the current
+                        season. Viewing {selectedSeasonLabel} does not create
+                        future-year exception authority.
+                      </span>
+                    )}
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/60">
+                  Selected-year view: {selectedSeasonLabel}
+                </span>
+              </div>
               <button
                 data-testid="cap-sheet-manage-exceptions-button"
                 type="button"
@@ -678,23 +792,8 @@ const CapSheet = ({
                     : 'text-white/20 cursor-not-allowed'
                 }`}
               >
-                <span className="opacity-50">📋</span> Manage Exceptions
-              </button>
-              <button
-                data-testid="cap-sheet-manage-dead-money-button"
-                type="button"
-                disabled={!hasManualCapSheetMutationAuthority}
-                onClick={() => {
-                  if (!hasManualCapSheetMutationAuthority) return;
-                  setShowDeadMoneyModal(true);
-                }}
-                className={`text-[10px] font-medium transition-colors flex items-center gap-1 ${
-                  hasManualCapSheetMutationAuthority
-                    ? 'text-white/40 hover:text-white'
-                    : 'text-white/20 cursor-not-allowed'
-                }`}
-              >
-                <span className="opacity-50">⚙️</span> Manage Dead Money
+                <span className="opacity-50">Configure</span> Manage
+                Exceptions
               </button>
             </div>
           </div>

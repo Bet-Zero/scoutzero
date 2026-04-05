@@ -914,13 +914,28 @@ describe('Cap Sheet UI integration flows', () => {
     expect(shellTruthPanel).toHaveTextContent('Adjacent authority: 2025-26');
     expect(summarySurface).toBeInTheDocument();
     expect(
+      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Canonical totals: 2025-26');
+    expect(
+      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Hard-cap badge authority: 2025-26');
+    expect(
       within(rosterSurface).getByText(
         /Player rows show player salaries only\./i
       )
     ).toBeInTheDocument();
+    expect(
+      within(rosterSurface).getByText('Selected-Year Supporting Detail')
+    ).toBeInTheDocument();
     expectBefore(summarySurface, rosterSurface);
     expect(
       within(breakdownSurface).getByText('Total Cap Hit Breakdown')
+    ).toBeInTheDocument();
+    expect(
+      within(controlSurface).getByText('Selected-Year Mutation Entry Point')
+    ).toBeInTheDocument();
+    expect(
+      within(controlSurface).getByText('Current-Season-Only Adjacent Authority')
     ).toBeInTheDocument();
     expectBefore(breakdownSurface, capHoldsSurface);
     expectBefore(breakdownSurface, controlSurface);
@@ -959,6 +974,11 @@ describe('Cap Sheet UI integration flows', () => {
       })
     ).toBeInTheDocument();
     expect(
+      within(adjacentSurface).getByTestId(
+        'cap-sheet-current-season-authority-banner'
+      )
+    ).toHaveTextContent('Authority season: 2025-26');
+    expect(
       within(adjacentSurface).queryByText(/^Total Cap Hit$/i)
     ).not.toBeInTheDocument();
   });
@@ -992,6 +1012,9 @@ describe('Cap Sheet UI integration flows', () => {
       expect(readVisibleTotalCapHit()).toBe(futureYearTotals.totalCapAllocations);
     });
 
+    const summarySurface = screen.getByRole('region', {
+      name: 'Selected-year canonical totals summary surface',
+    });
     expect(
       screen.queryByText('Hard Capped at 1st Apron')
     ).not.toBeInTheDocument();
@@ -1004,6 +1027,12 @@ describe('Cap Sheet UI integration flows', () => {
     expect(screen.getByTestId('cap-sheet-shell-year-truth-panel')).toHaveTextContent(
       'Adjacent authority: 2025-26 only'
     );
+    expect(
+      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Canonical totals: 2026-27');
+    expect(
+      within(summarySurface).getByTestId('cap-summary-surface-truth-banner')
+    ).toHaveTextContent('Hard-cap badge authority: 2025-26 only');
 
     const adjacentSurface = screen.getByRole('region', {
       name: 'Adjacent current-season authority surface',
@@ -1017,6 +1046,12 @@ describe('Cap Sheet UI integration flows', () => {
       within(adjacentSurface).getByText(
         /hard-cap, exception, and TPE state is only authoritative for 2025-26/i
       )
+    ).toBeInTheDocument();
+    expect(
+      within(adjacentSurface).getByText('Selected-year view: 2026-27')
+    ).toBeInTheDocument();
+    expect(
+      within(adjacentSurface).getByText('Authority season: 2025-26 only')
     ).toBeInTheDocument();
     expect(
       within(adjacentSurface).getByText(
@@ -1064,6 +1099,9 @@ describe('Cap Sheet UI integration flows', () => {
     ).toHaveTextContent(
       'Exception editing is only available for the current season.'
     );
+    expect(
+      screen.getByTestId('cap-sheet-control-surface')
+    ).toHaveTextContent('Authority season: 2025-26 only');
 
     fireEvent.click(futureYearExceptionsButton);
     expect(
@@ -1158,7 +1196,7 @@ describe('Cap Sheet UI integration flows', () => {
 
     expect(veteranRow).not.toBeNull();
     expect(
-      within(veteranRow as HTMLElement).getByText('$2,092,400')
+      within(veteranRow as HTMLElement).getByText('$2,176,096')
     ).toBeInTheDocument();
     expect(
       within(veteranRow as HTMLElement).getByText('$2,390,000')
@@ -1179,8 +1217,8 @@ describe('Cap Sheet UI integration flows', () => {
     ).toBeInTheDocument();
     expect(within(twoWayRow as HTMLElement).getByText('2W')).toBeInTheDocument();
 
-    expect(totals.playersTotal).toBe(15_092_400);
-    expect(totals.totalCapAllocations).toBe(15_092_400);
+    expect(totals.playersTotal).toBe(15_176_096);
+    expect(totals.totalCapAllocations).toBe(15_176_096);
     expect(readBreakdownValue('Player Salaries')).toBe(totals.playersTotal);
     expect(readVisibleTotalCapHit()).toBe(totals.totalCapAllocations);
   });
@@ -1204,7 +1242,7 @@ describe('Cap Sheet UI integration flows', () => {
       .closest('div.grid');
     const veteranFutureCell = getFutureYearCell(veteranRow, 1);
     expect(
-      within(veteranFutureCell).getByText('$2,092,400')
+      within(veteranFutureCell).getByText('$2,176,096')
     ).toBeInTheDocument();
     expect(
       within(veteranFutureCell).queryByText('$2,390,000')
@@ -1246,8 +1284,8 @@ describe('Cap Sheet UI integration flows', () => {
         `$${totals.totalCapAllocations.toLocaleString()}`
       )
     ).toBeInTheDocument();
-    expect(totals.playersTotal).toBe(23_092_400);
-    expect(totals.totalCapAllocations).toBe(23_092_400);
+    expect(totals.playersTotal).toBe(23_176_096);
+    expect(totals.totalCapAllocations).toBe(23_176_096);
   });
 
   it('shows future-only contract contributors in the multi-year body alongside coherent future totals', () => {
@@ -1436,11 +1474,11 @@ describe('Cap Sheet UI integration flows', () => {
       totals.capHoldsTotal
     );
 
-    expect(totals.playersTotal).toBe(29_092_400);
+    expect(totals.playersTotal).toBe(29_176_096);
     expect(totals.deadMoneyTotal).toBe(0);
     expect(totals.incompleteChargesTotal).toBe(0);
     expect(totals.capHoldsTotal).toBe(4_250_000);
-    expect(totals.totalCapAllocations).toBe(33_342_400);
+    expect(totals.totalCapAllocations).toBe(33_426_096);
 
     fireEvent.click(screen.getByTestId('cap-sheet-full-cap-holds-toggle'));
 

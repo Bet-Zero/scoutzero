@@ -180,6 +180,8 @@ const ExceptionTracker = ({
   surfaceLabel = 'Cap sheet current-season exception authority surface',
 }: ExceptionTrackerProps) => {
   const isViewingCurrentYear = selectedYear === currentYear;
+  const currentSeasonLabel = formatSeasonLabel(currentYear);
+  const selectedSeasonLabel = formatSeasonLabel(selectedYear);
 
   if (!isViewingCurrentYear) {
     return (
@@ -194,15 +196,24 @@ const ExceptionTracker = ({
           <div className="text-[10px] uppercase tracking-[0.25em] text-amber-300/80">
             Adjacent Current-Season Authority
           </div>
-          <h3 className="mt-2 text-sm font-semibold text-amber-100">
-            Hard-cap, exception, and trade-exception truth stays on the
-            current season.
+          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-medium">
+            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-amber-100/90">
+              Selected-year view: {selectedSeasonLabel}
+            </span>
+            <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2.5 py-1 text-amber-100/90">
+              Authority season: {currentSeasonLabel} only
+            </span>
+          </div>
+          <h3 className="mt-3 text-sm font-semibold text-amber-100">
+            No future-year hard-cap, exception, or trade-exception authority is
+            shown here.
           </h3>
           <p className="mt-2 text-xs leading-relaxed text-amber-100/70">
-            This cap table can show {formatSeasonLabel(selectedYear)} totals,
-            but hard-cap, exception, and TPE state is only authoritative for{' '}
-            {formatSeasonLabel(currentYear)}. Switch back to the current season
-            to view the live hard-cap and exception surface.
+            This adjacent surface does not follow the selected year. This cap
+            table can show {selectedSeasonLabel} totals, but hard-cap,
+            exception, and TPE state is only authoritative for{' '}
+            {currentSeasonLabel}. Switch back to the current season to view the
+            live hard-cap and exception surface.
           </p>
         </div>
       </section>
@@ -265,76 +276,104 @@ const ExceptionTracker = ({
   return (
     <section
       aria-label={surfaceLabel}
-      className="mt-4 grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-4"
+      className="mt-4 space-y-3"
     >
       {/* ADJACENT PRESENTATION SURFACE: Exception cards, TPEs, and hard-cap
           state may explain roster-building tools, but they do not own or
           recompute canonical current-year cap totals. */}
-      {/* Left Column: Exceptions & Hard Cap Info */}
-      <div className="flex flex-col gap-3">
-        {/* Hard Cap Section */}
-        <HardCapCard
-          hardCapStatus={hardCapStatus}
-          hasApronData={Boolean(capData.firstApron || capData.secondApron)}
-        />
-
-        {/* Exception Stats Grid */}
-        <div className="grid grid-cols-4 gap-2">
-          <ExceptionCard
-            label="NT-MLE"
-            amount={mleRemaining}
-            subtext="Non-Taxpayer"
-            color={mleRemaining > 0 ? 'blue' : 'gray'}
-            statusLabel={mleStatus}
-          />
-          <ExceptionCard
-            label="TP-MLE"
-            amount={tpRemaining}
-            subtext="Taxpayer"
-            color={tpRemaining > 0 ? 'green' : 'gray'}
-            statusLabel={tpStatus}
-          />
-          <ExceptionCard
-            label="BAE"
-            amount={baeRemaining}
-            subtext="Bi-Annual"
-            color={baeRemaining > 0 ? 'orange' : 'gray'}
-            statusLabel={baeStatus}
-          />
-          <ExceptionCard
-            label="ROOM"
-            amount={roomRemaining}
-            subtext="Under-Cap"
-            color={roomRemaining > 0 ? 'blue' : 'gray'}
-            statusLabel={roomStatus}
-          />
+      <div
+        data-testid="cap-sheet-current-season-authority-banner"
+        className="rounded-md border border-sky-400/15 bg-sky-500/[0.05] px-4 py-3 text-sky-100"
+      >
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-sky-300/80">
+              Adjacent Current-Season Authority
+            </div>
+            <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/80">
+              This surface owns hard-cap, exception, and trade-exception
+              presentation for {currentSeasonLabel}. It does not redefine the
+              selected-year canonical totals view for {selectedSeasonLabel}.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[10px] font-medium">
+            <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-sky-100/90">
+              Selected-year view: {selectedSeasonLabel}
+            </span>
+            <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-2.5 py-1 text-sky-100/90">
+              Authority season: {currentSeasonLabel}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Right Column: Trade Exceptions Compact List */}
-      <div className="bg-[#0f0f0f] border border-white/5 rounded-md p-3 flex flex-col h-full min-h-[140px]">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[10px] font-bold text-white/50 tracking-widest uppercase flex items-center gap-1.5">
-            <BadgeAlert size={12} className="text-purple-400" />
-            Trade Exceptions
-          </h3>
-          <span className="bg-white/5 text-white/30 px-1.5 rounded text-[9px]">
-            {tradeExceptions.length}
-          </span>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr,1fr]">
+        {/* Left Column: Exceptions & Hard Cap Info */}
+        <div className="flex flex-col gap-3">
+          {/* Hard Cap Section */}
+          <HardCapCard
+            hardCapStatus={hardCapStatus}
+            hasApronData={Boolean(capData.firstApron || capData.secondApron)}
+          />
+
+          {/* Exception Stats Grid */}
+          <div className="grid grid-cols-4 gap-2">
+            <ExceptionCard
+              label="NT-MLE"
+              amount={mleRemaining}
+              subtext="Non-Taxpayer"
+              color={mleRemaining > 0 ? 'blue' : 'gray'}
+              statusLabel={mleStatus}
+            />
+            <ExceptionCard
+              label="TP-MLE"
+              amount={tpRemaining}
+              subtext="Taxpayer"
+              color={tpRemaining > 0 ? 'green' : 'gray'}
+              statusLabel={tpStatus}
+            />
+            <ExceptionCard
+              label="BAE"
+              amount={baeRemaining}
+              subtext="Bi-Annual"
+              color={baeRemaining > 0 ? 'orange' : 'gray'}
+              statusLabel={baeStatus}
+            />
+            <ExceptionCard
+              label="ROOM"
+              amount={roomRemaining}
+              subtext="Under-Cap"
+              color={roomRemaining > 0 ? 'blue' : 'gray'}
+              statusLabel={roomStatus}
+            />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-visible">
-          {tradeExceptions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-white/20 py-4">
-              <span className="text-[10px]">No Active TPEs</span>
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {tradeExceptions.map((tpe, idx) => (
-                <CompactTradeExceptionRow key={idx} tpe={tpe} />
-              ))}
-            </div>
-          )}
+        {/* Right Column: Trade Exceptions Compact List */}
+        <div className="bg-[#0f0f0f] border border-white/5 rounded-md p-3 flex flex-col h-full min-h-[140px]">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[10px] font-bold text-white/50 tracking-widest uppercase flex items-center gap-1.5">
+              <BadgeAlert size={12} className="text-purple-400" />
+              Trade Exceptions
+            </h3>
+            <span className="bg-white/5 text-white/30 px-1.5 rounded text-[9px]">
+              {tradeExceptions.length}
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-visible">
+            {tradeExceptions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-white/20 py-4">
+                <span className="text-[10px]">No Active TPEs</span>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {tradeExceptions.map((tpe, idx) => (
+                  <CompactTradeExceptionRow key={idx} tpe={tpe} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
