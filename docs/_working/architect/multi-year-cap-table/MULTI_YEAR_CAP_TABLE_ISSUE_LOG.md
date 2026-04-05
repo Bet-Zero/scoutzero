@@ -127,4 +127,38 @@ This execution added one dedicated Step 2 closeout guardrail file that pins both
 
 ---
 
+---
+
+## STEP 3 — Contract-Year Slicing, FutureContract Integration, and Player-Year Cap Hit Truth
+
+### MYCT-3-1 — `futureContract` overlap precedence is governed by a thin implicit heuristic rather than a clearly owned contract-year merge rule
+
+**Status:** OPEN
+**Substep:** MYCT-3A
+
+**Problem:**
+`contractUtils.ts` owns the merged player-year contract stream, but same-year conflict resolution between base contract rows and `futureContract` / extension rows is handled by a compact binary rule: if an extension or future row exists for a given year, it takes precedence over the non-extension row. This may be correct for the current data model, but the rule is thinly encoded for a high-impact seam. There is no stronger rule surface explaining overlap semantics — the precedence is effectively implicit. For a player-year money path that feeds canonical totals downstream, this under-explained rule creates a soft spot where future changes could silently alter extension-season behavior without clear failure signals.
+
+---
+
+### MYCT-3-2 — Years-remaining display fallback and minimum-contract cap-hit handling are softer than the multi-year truth model they belong to
+
+**Status:** OPEN
+**Substep:** MYCT-3B
+
+**Problem:**
+Two parts of the player-year contract seam still feel less grounded than the broader multi-year system around them. `getYearsRemainingDisplay(...)` prefers row-based truth but retains legacy fallback paths — including free-agency-year arithmetic from contract and bio fields — that can silently diverge from row truth when rows are incomplete but legacy metadata is stale. Minimum-contract cap-hit handling is explicit, but it depends on `player.isMinimum`, years-of-service thresholds, and a hardcoded minimum-cap-hit helper rather than reading as a year-aware rules consumer in the same way Step 2's totals engine does. Neither issue is obviously broken, but together they leave the player-year seam softer and less internally consistent than the canonical totals system that consumes it.
+
+---
+
+### MYCT-3-3 — There are no focused guardrails protecting contract-year merge behavior, futureContract precedence, years-remaining truth, or player-year cap-hit adjustments against silent drift
+
+**Status:** OPEN
+**Substep:** MYCT-3C
+
+**Problem:**
+`contractUtils.ts` is the real owner of the player-year contract seam and feeds both cap-table display and canonical totals, but its key behaviors have no dedicated guardrails protecting them from silent regression. Specific unprotected drift vectors include: same-year `futureContract` overlap precedence changing without a loud failure; years-remaining logic leaning more heavily on legacy fallback paths because rows degraded; minimum-contract cap-hit handling drifting away from the intended reimbursement rule model; player-year truth diverging from canonical totals expectations; and row-merge behavior becoming harder to reason about without explicit failure surfaces. Because Step 3 cleans up the player-year money seam, Step 3 must also leave behind durable guardrails so later review steps are not auditing downstream consumers against weakened or undiscovered player-year truth drift.
+
+---
+
 _Issue log tracks problem-level root causes. Execution substeps and status tracking live in MULTI_YEAR_CAP_TABLE_REVIEW_TRACKER.md._
