@@ -112,11 +112,18 @@ This execution added a dedicated Step 1C shell guardrail pass. A new focused run
 
 ### MYCT-2-3 — There are no focused guardrails protecting the canonical totals SSOT, threshold provenance behavior, or bounded legacy compatibility behavior against silent drift
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-2C
 
 **Problem:**
 The canonical totals engine and threshold gateway are the compute foundation for the entire Multi-Year Cap Table feature, but neither has dedicated guardrails protecting the behaviors that matter most for multi-year truth. Specific unprotected drift vectors include: yearly threshold provenance could become less honest without failing any existing test; the canonical-first dead-cap preference could silently regress and allow legacy ledgers to widen their coverage beyond bounded fallback; snapshot helpers could drift toward partial recomputation rather than purely consuming the SSOT; future-year totals could accidentally pick up current-year assumptions introduced by adjacent surfaces; and the source-summary metadata could drift further from actual field-level provenance without triggering a loud failure. Because these compute paths are upstream of every cap-table consumer, drift here risks corrupting the multi-year truth model for all later review steps without an obvious failure signal at the point of introduction.
+
+**Resolution:**
+This execution added one dedicated Step 2 closeout guardrail file that pins both the source-level seam and the runtime contract. The source scan now protects `capRulesProfile.ts` staying the yearly threshold gateway, `computeTeamCapTotals.ts` continuing to route rules through that gateway plus the end-year cap-holds wrapper, snapshot/derived helpers continuing to consume `computeTeamCapTotals(...)`, and bounded legacy dead-money compatibility remaining contained in `deadMoneyForYear.ts`. The runtime guardrails now pin conservative `sourcesSummary` behavior relative to active source tags, mixed-source field visibility, legacy-threshold vs projection-chain rookie-min provenance, canonical-first dead-money precedence with bounded fallback only when canonical coverage is absent, selected/end-year truth for players/dead money/cap holds/incomplete charges, and stale stored totals losing to canonical snapshot output. Step 2 now has explicit failure points at the compute seam rather than relying on indirect downstream regressions.
+
+**Files implicated:**
+
+- `src/tests/architect/myct_step2_guardrails.test.ts`
 
 ---
 

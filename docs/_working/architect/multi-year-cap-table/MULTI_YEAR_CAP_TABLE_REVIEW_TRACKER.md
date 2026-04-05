@@ -21,13 +21,13 @@ Each step lists substeps only. This doc tracks status, not problem descriptions.
 
 ## STEP 2 — Canonical Multi-Year Totals Engine and Threshold Source Truth
 
-**STEP 2 STATUS: IN PROGRESS**
+**STEP 2 STATUS: DONE**
 
 | Substep | Description                                                                                                                         | Status |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | MYCT-2A | Tighten Threshold-Source Truth So Canonical Multi-Year Cap Rules Resolve More Cleanly And Report Mixed-Source Reality More Honestly | DONE   |
 | MYCT-2B | Tighten Canonical Totals Ownership So Legacy Dead-Money Compatibility And Adjacent Snapshot Logic Stay More Clearly Contained       | DONE   |
-| MYCT-2C | Add Focused Guardrails For Canonical Totals SSOT, Threshold Provenance, And Bounded Compatibility Behavior                          | TODO   |
+| MYCT-2C | Add Focused Guardrails For Canonical Totals SSOT, Threshold Provenance, And Bounded Compatibility Behavior                          | DONE   |
 
 ---
 
