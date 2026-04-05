@@ -33,13 +33,13 @@ Each step lists substeps only. This doc tracks status, not problem descriptions.
 
 ## STEP 3 — Contract-Year Slicing, FutureContract Integration, and Player-Year Cap Hit Truth
 
-**STEP 3 STATUS: IN PROGRESS**
+**STEP 3 STATUS: DONE**
 
 | Substep | Description                                                                                                                                                 | Status |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | MYCT-3A | Tighten FutureContract Merge And Extension-Season Precedence So Player-Year Contract Truth Reads More Explicitly And Less Heuristically                     | DONE   |
 | MYCT-3B | Tighten Years-Remaining And Player-Year Cap-Hit Truth So Fallbacks And Minimum-Contract Adjustments Stay More Clearly Grounded In The Same Multi-Year Model | DONE   |
-| MYCT-3C | Add Focused Guardrails For Contract-Year Merge Truth, FutureContract Precedence, And Player-Year Cap-Hit Behavior                                           | TODO   |
+| MYCT-3C | Add Focused Guardrails For Contract-Year Merge Truth, FutureContract Precedence, And Player-Year Cap-Hit Behavior                                           | DONE   |
 
 ---
 

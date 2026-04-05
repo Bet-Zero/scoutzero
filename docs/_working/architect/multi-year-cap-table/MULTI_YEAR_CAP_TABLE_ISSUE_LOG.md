@@ -170,11 +170,18 @@ Two parts of the player-year contract seam still feel less grounded than the bro
 
 ### MYCT-3-3 — There are no focused guardrails protecting contract-year merge behavior, futureContract precedence, years-remaining truth, or player-year cap-hit adjustments against silent drift
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-3C
 
 **Problem:**
 `contractUtils.ts` is the real owner of the player-year contract seam and feeds both cap-table display and canonical totals, but its key behaviors have no dedicated guardrails protecting them from silent regression. Specific unprotected drift vectors include: same-year `futureContract` overlap precedence changing without a loud failure; years-remaining logic leaning more heavily on legacy fallback paths because rows degraded; minimum-contract cap-hit handling drifting away from the intended reimbursement rule model; player-year truth diverging from canonical totals expectations; and row-merge behavior becoming harder to reason about without explicit failure surfaces. Because Step 3 cleans up the player-year money seam, Step 3 must also leave behind durable guardrails so later review steps are not auditing downstream consumers against weakened or undiscovered player-year truth drift.
+
+**Resolution:**
+This execution added one dedicated Step 3 closeout guardrail file that pins both the source-level seam and the runtime contract. The source scan now protects `contractUtils.ts` staying the merge and cap-hit owner, explicit `futureContract` / `playerContract` / `primaryContract` precedence remaining visible in source, season-aware veteran-minimum routing continuing through the shared minimum-salary helper, and `computeTeamCapTotals.ts` continuing to consume selected-year cap-hit truth through `getPlayerCapHitForYear(...)` instead of becoming a competing owner. Runtime guardrails now pin duplicate same-source stability, `futureContract` precedence, `playerContract` over `primaryContract` when no future row overlaps, extension-season exposure through `getContractYearSlice(...)`, row-first years-remaining behavior with `0` returned when row truth exists but no future/current rows remain, fallback-only legacy years-remaining/free-agency arithmetic when rows are absent entirely, two-way zero-cap-hit behavior, veteran-minimum reimbursement only when a selected-year slice exists, shared-helper minimum-cap-hit parity, and downstream `playersTotal` alignment with the same selected-year player-year cap-hit model.
+
+**Files implicated:**
+
+- `src/tests/architect/myct_step3_guardrails.test.ts`
 
 ---
 
