@@ -185,4 +185,38 @@ This execution added one dedicated Step 3 closeout guardrail file that pins both
 
 ---
 
+---
+
+## STEP 4 — Multi-Year Consumer Surfaces and Current-Year-Only Boundary Truth
+
+### MYCT-4-1 — The UI still presents selected-year canonical viewing and current-year-only adjacent authority as a single cap-sheet experience in a way that can be overread
+
+**Status:** OPEN
+**Substep:** MYCT-4A
+
+**Problem:**
+The cap-sheet feature asks one visible experience to carry two distinct authority classes simultaneously: selected-year canonical cap-table viewing, and adjacent current-year-only truth covering exceptions, hard-cap status, and TPE eligibility. The feature does disclose this split — via `ExceptionTracker`'s future-year fail-closed boundary panel, disabled controls, and inline notes — but the disclosure is reactive rather than structural. The user enters a single cap-sheet surface and must notice the boundary signals to understand that future-year viewing is not authoritative for exception / hard-cap / TPE truth. For a feature whose value partly depends on multi-year reading, this creates an overread risk: the cap-sheet can be navigated to a future season and still present an adjacent exception/authority strip that reads as part of the same unified truth, even though it has been quietly fail-closed. The two authority classes are not yet easy to distinguish at a glance without reading the boundary notes.
+
+---
+
+### MYCT-4-2 — Consumer ownership boundaries across summary, supporting detail, control, and adjacent surfaces are softer and more blended than their intended roles require
+
+**Status:** OPEN
+**Substep:** MYCT-4B
+
+**Problem:**
+The consumer layer is structurally sound, but several surfaces sit close enough together that their authority roles blur in practice. `CapSummaryTiles.tsx` is labeled as a canonical totals consumer but also reaches into `teamCapSheet` for adjacent hard-cap presentation via `getHardCapStatus(...)`, mixing two reading modes in one surface. Supporting detail rows and totals breakdown occupy the same visual frame as summary tiles, making it easy for either to drift toward semi-owning totals explanations. The control strip mixes dead-money mutation entry points with current-year-only exception actions, which are conceptually different authority classes. `ExceptionTracker.tsx` depends on several adjacent utilities to function as a presentation surface, making its consumer boundary wider than its stated role suggests. None of these are obviously wrong, but the combined consumer story is softer than ideal: future changes could widen any of these surfaces beyond their intended authority without a clear structural signal or loud failure.
+
+---
+
+### MYCT-4-3 — There are no focused guardrails protecting canonical consumer boundaries, the future-year fail-closed adjacent boundary contract, or the UI signals that communicate current-year-only authority
+
+**Status:** OPEN
+**Substep:** MYCT-4C
+
+**Problem:**
+The consumer-layer authority model is honest but has no durable guardrails protecting it from silent drift. Specific unprotected drift vectors include: summary consumers beginning to recompute totals rather than reading the canonical totals input; the future-year fail-closed boundary in `ExceptionTracker.tsx` softening into partial future-year presentation without a loud failure; boundary notes, disabled states, and authority badges falling out of alignment with actual action/state truth; supporting-detail surfaces drifting toward semi-owning totals explanations in inconsistent ways; and control surfaces mixing or widening authority beyond bounded mutation entry points. Because the consumer layer is where the user forms their practical truth model of the feature, undiscovered drift here risks misleading users about future-year authority without any failure signal in the underlying compute layers. Step 4 needs to leave behind durable guardrails, not only a one-time review result.
+
+---
+
 _Issue log tracks problem-level root causes. Execution substeps and status tracking live in MULTI_YEAR_CAP_TABLE_REVIEW_TRACKER.md._

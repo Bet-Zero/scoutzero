@@ -43,4 +43,18 @@ Each step lists substeps only. This doc tracks status, not problem descriptions.
 
 ---
 
+---
+
+## STEP 4 — Multi-Year Consumer Surfaces and Current-Year-Only Boundary Truth
+
+**STEP 4 STATUS: TODO**
+
+| Substep | Description                                                                                                                                                               | Status |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| MYCT-4A | Tighten Multi-Year Consumer Surface Signaling So Selected-Year Canonical Viewing And Current-Year-Only Adjacent Authority Read More Explicitly As Different Truth Classes | TODO   |
+| MYCT-4B | Tighten Consumer Ownership Boundaries So Summary, Supporting Detail, And Control Surfaces Stay More Clearly Inside Their Intended Roles                                   | TODO   |
+| MYCT-4C | Add Focused Guardrails For Canonical Consumer Boundaries, Current-Year-Only Adjacent Truth, And UI Authority Signaling                                                    | TODO   |
+
+---
+
 _Tracker is execution-checklist only. Problem descriptions and issue history live in MULTI_YEAR_CAP_TABLE_ISSUE_LOG.md._
