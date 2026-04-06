@@ -630,7 +630,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(savedPayload).not.toHaveProperty('dpe');
   });
 
-  it('preserves ManageExceptionsModal visible row order, button order, and payload assembly behavior', async () => {
+  it('preserves ManageExceptionsModal visible row order, button order, and owned current-season save behavior', async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     const onClose = vi.fn();
 
@@ -646,7 +646,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
               enabled: true,
               totalAmount: '6000000',
               usedAmount: '2000000',
-              seasonKey: '2025-26',
+              seasonKey: '2024-25',
               notes: '',
             },
             bae: {
@@ -702,15 +702,25 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSave).toHaveBeenCalledWith({
       mle: {
+        type: 'mle',
         enabled: true,
+        available: true,
         totalAmount: 6000000,
+        maxAmount: 6000000,
+        amount: 6000000,
         usedAmount: 2000000,
+        remainingAmount: 4000000,
         seasonKey: '2025-26',
       },
       bae: {
+        type: 'bae',
         enabled: false,
+        available: false,
         totalAmount: 4700000,
+        maxAmount: 4700000,
+        amount: 4700000,
         usedAmount: 1000000,
+        remainingAmount: 3700000,
         seasonKey: '2025-26',
         notes: 'carry',
       },
@@ -840,7 +850,7 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('preserves ManageDeadMoneyModal visible order and row-to-payload mapping behavior', async () => {
+  it('preserves ManageDeadMoneyModal visible order and grouped replacement behavior', async () => {
     const onSave = vi.fn().mockResolvedValue(true);
     const onClose = vi.fn();
 
@@ -855,6 +865,9 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
             {
               playerId: 'p_dead',
               playerName: 'Stretched Buyout',
+              originalSalary: 9000000,
+              waiveDate: '2025-07-01',
+              notes: 'Stretch ledger',
               stretched: true,
               amountByYear: [
                 { season: '2025-26', amount: 3000000 },
@@ -895,26 +908,21 @@ describe('Cap Sheet Exception Wiring (E1)', () => {
       {
         playerId: 'p_dead',
         playerName: 'Stretched Buyout',
+        originalSalary: 9000000,
         amountByYear: [
           {
             season: '2025-26',
             amount: 3000000,
             isStretched: true,
           },
-        ],
-        notes: 'Manual Adjustment',
-      },
-      {
-        playerId: 'p_dead',
-        playerName: 'Stretched Buyout',
-        amountByYear: [
           {
             season: '2026-27',
             amount: 3000000,
             isStretched: true,
           },
         ],
-        notes: 'Manual Adjustment',
+        waiveDate: '2025-07-01',
+        notes: 'Stretch ledger',
       },
     ]);
   });

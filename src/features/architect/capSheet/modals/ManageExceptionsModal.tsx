@@ -98,6 +98,67 @@ const DEFAULT_EXCEPTION: EditableException = {
   notes: '',
 };
 
+const toExceptionAmount = (value: NumericLike) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+};
+
+const buildOwnedCurrentSeasonExceptionEntry = (
+  type: ExceptionType,
+  exception: EditableException | undefined,
+  currentSeasonKey: string
+): ManualExceptionEntry => {
+  const totalAmount = toExceptionAmount(exception?.totalAmount);
+  const usedAmount = toExceptionAmount(exception?.usedAmount);
+  const remainingAmount = Math.max(0, totalAmount - usedAmount);
+  const enabled = !!exception?.enabled;
+  const notes = exception?.notes?.trim();
+  const canonicalEntry: ManualExceptionEntry = {
+    type,
+    enabled,
+    available: enabled,
+    totalAmount,
+    maxAmount: totalAmount,
+    amount: totalAmount,
+    usedAmount,
+    remainingAmount,
+    seasonKey: currentSeasonKey,
+  };
+
+  if (notes) {
+    canonicalEntry.notes = notes;
+  }
+
+  return canonicalEntry;
+};
+
+const shouldPersistOwnedCurrentSeasonException = (
+  exception: ManualExceptionEntry
+) => !!exception.enabled || toExceptionAmount(exception.usedAmount) > 0;
+
+const buildOwnedCurrentSeasonExceptionsSnapshot = (
+  exceptions: ExceptionsState,
+  currentSeasonKey: string
+): ManualExceptionsSavePayload => {
+  const ownedCurrentSeasonExceptions: ManualExceptionsSavePayload = {};
+
+  EXCEPTION_TYPES.forEach((type) => {
+    const canonicalEntry = buildOwnedCurrentSeasonExceptionEntry(
+      type,
+      exceptions[type],
+      currentSeasonKey
+    );
+
+    // Omission is the explicit clear signal for this owned current-season
+    // bucket; the mutation layer preserves non-editable buckets such as TPE/DPE.
+    if (shouldPersistOwnedCurrentSeasonException(canonicalEntry)) {
+      ownedCurrentSeasonExceptions[type] = canonicalEntry;
+    }
+  });
+
+  return ownedCurrentSeasonExceptions;
+};
+
 /**
  * Modal for managing team exceptions manually.
  * Phase 27 Execution.
@@ -152,7 +213,7 @@ const ManageExceptionsModal = ({
               getExceptionDefaultAmountFromCapSettings(type, capSettings) ??
               0,
             usedAmount: existing.usedAmount,
-            seasonKey: existing.seasonKey ?? seasonKey,
+            seasonKey,
             notes: existing.notes ?? '',
           };
         } else {
@@ -200,38 +261,10 @@ const ManageExceptionsModal = ({
     setIsSaving(true);
     setSaveError('');
 
-    // Build the canonical exceptions object
-    // Only include enabled exceptions or those with non-zero values
-    const canonicalExceptions: ManualExceptionsSavePayload = {};
-
-    EXCEPTION_TYPES.forEach((type) => {
-      const exc = exceptions[type];
-      if (exc && (exc.enabled || Number(exc.usedAmount) > 0)) {
-        canonicalExceptions[type] = {
-          enabled: !!exc.enabled,
-          totalAmount: Number(exc.totalAmount) || 0,
-          usedAmount: Number(exc.usedAmount) || 0,
-          seasonKey: exc.seasonKey || seasonKey,
-          notes: exc.notes || undefined,
-        };
-        // Clean up undefined notes
-        if (
-          canonicalExceptions[type] &&
-          typeof canonicalExceptions[type] === 'object' &&
-          !(
-            canonicalExceptions[type] as {
-              notes?: string | undefined;
-            }
-          ).notes
-        ) {
-          delete (
-            canonicalExceptions[type] as {
-              notes?: string | undefined;
-            }
-          ).notes;
-        }
-      }
-    });
+    const canonicalExceptions = buildOwnedCurrentSeasonExceptionsSnapshot(
+      exceptions,
+      seasonKey
+    );
 
     try {
       const saveResult = await onSave(canonicalExceptions);

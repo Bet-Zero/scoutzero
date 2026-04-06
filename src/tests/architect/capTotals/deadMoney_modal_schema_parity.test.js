@@ -47,18 +47,29 @@ function createFullRoster() {
 
 // Simulate what the modal's handleSave now produces (canonical shape)
 function simulateModalOutput(entries) {
-  return entries.map((e) => ({
-    playerId: e.playerId || `manual_${Date.now()}`,
-    playerName: e.label,
-    amountByYear: [
-      {
+  const groups = new Map();
+
+  entries.forEach((entry, index) => {
+    const groupKey = entry.sourceGroupKey || `manual-row-${index}`;
+    const groupedEntries = groups.get(groupKey) || [];
+    groupedEntries.push(entry);
+    groups.set(groupKey, groupedEntries);
+  });
+
+  return Array.from(groups.values()).map((groupedEntries) => {
+    const first = groupedEntries[0];
+
+    return {
+      playerId: first.playerId || `manual_${Date.now()}`,
+      playerName: first.label,
+      amountByYear: groupedEntries.map((e) => ({
         season: e.seasonKey,
         amount: Number(e.amount),
         isStretched: !!e.stretched,
-      },
-    ],
-    notes: 'Manual Adjustment',
-  }));
+      })),
+      notes: first.notes || 'Manual Adjustment',
+    };
+  });
 }
 
 describe('ManageDeadMoneyModal Schema Parity — Canonical Shape', () => {
@@ -159,7 +170,41 @@ describe('ManageDeadMoneyModal Schema Parity — Canonical Shape', () => {
     }
   });
 
-  it('TEST 7: Multiple modal entries for same player produce correct totals', () => {
+  it('TEST 7: Source-grouped modal rows preserve one multi-season canonical entry', () => {
+    const modalOutput = simulateModalOutput([
+      {
+        playerId: 'p1',
+        label: 'Stretched Buyout',
+        seasonKey: '2025-26',
+        amount: 3_000_000,
+        stretched: true,
+        sourceGroupKey: 'dead-cap-source-1',
+        notes: 'Original grouped ledger',
+      },
+      {
+        playerId: 'p1',
+        label: 'Stretched Buyout',
+        seasonKey: '2026-27',
+        amount: 3_000_000,
+        stretched: true,
+        sourceGroupKey: 'dead-cap-source-1',
+        notes: 'Original grouped ledger',
+      },
+    ]);
+
+    expect(modalOutput).toHaveLength(1);
+    expect(modalOutput[0]).toEqual({
+      playerId: 'p1',
+      playerName: 'Stretched Buyout',
+      amountByYear: [
+        { season: '2025-26', amount: 3_000_000, isStretched: true },
+        { season: '2026-27', amount: 3_000_000, isStretched: true },
+      ],
+      notes: 'Original grouped ledger',
+    });
+  });
+
+  it('TEST 8: Multiple manual modal entries for same player produce correct totals without accidental grouping', () => {
     // User creates 2 entries for same player across different years
     const modalOutput = simulateModalOutput([
       {
@@ -198,7 +243,7 @@ describe('ManageDeadMoneyModal Schema Parity — Canonical Shape', () => {
 // Phase E1.1: Legacy deadCap object-map normalization
 // =============================================================================
 describe('Legacy deadCap object-map normalization (E1.1)', () => {
-  it('TEST 8: deadCap with object-map { year: amount } counts toward totals', () => {
+  it('TEST 9: deadCap with object-map { year: amount } counts toward totals', () => {
     // Pre-fix ManageDeadMoneyModal wrote amountByYear as { "2026": 5000000 }
     const team = {
       deadCap: [
@@ -217,7 +262,7 @@ describe('Legacy deadCap object-map normalization (E1.1)', () => {
     expect(totals.totalCapAllocations).toBe(5_000_000);
   });
 
-  it('TEST 9: deadCap with object-map { year: { amount } } counts toward totals', () => {
+  it('TEST 10: deadCap with object-map { year: { amount } } counts toward totals', () => {
     // Another legacy variant: { "2026": { amount: 3000000 } }
     const team = {
       deadCap: [
@@ -235,7 +280,7 @@ describe('Legacy deadCap object-map normalization (E1.1)', () => {
     expect(totals.deadMoneyTotal).toBe(3_000_000);
   });
 
-  it('TEST 10: deadCap with string year key in object-map counts toward totals', () => {
+  it('TEST 11: deadCap with string year key in object-map counts toward totals', () => {
     // String key variant: { "2025-26": 2000000 }
     const team = {
       deadCap: [
@@ -253,7 +298,7 @@ describe('Legacy deadCap object-map normalization (E1.1)', () => {
     expect(totals.deadMoneyTotal).toBe(2_000_000);
   });
 
-  it('TEST 11: mixed canonical + legacy deadCap items both count', () => {
+  it('TEST 12: mixed canonical + legacy deadCap items both count', () => {
     const team = {
       deadCap: [
         {

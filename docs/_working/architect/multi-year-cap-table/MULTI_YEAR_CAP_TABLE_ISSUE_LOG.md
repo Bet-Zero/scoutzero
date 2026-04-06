@@ -238,21 +238,38 @@ This execution added one dedicated Step 4 closeout guardrail file focused on the
 
 ### MYCT-5-1 — The dead-money edit surface still uses a flat full-replacement model that can silently lose canonical multi-season grouping and shape truth on save
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-5A
 
 **Problem:**
 `ManageDeadMoneyModal.tsx` flattens canonical dead-cap entries into one editable UI row per season and then reconstructs one canonical dead-cap entry per UI row on save. This is a conservative and honest approach — the modal explicitly warns that saving replaces the team's entire dead money ledger — but it is also structurally lossy. Original multi-season grouping across a single dead-cap entry is not preserved. Richer original entry structure beyond `playerId`, `playerName`, and per-row season amount is not preserved cleanly. Notes fields are replaced with a generic `'Manual Adjustment'` label. The result is that saving through the edit surface can transform a canonical grouped ledger into a flatter one-row-per-entry ledger without signaling that shape information was discarded. Because dead-money feeds the canonical totals engine directly, this structural loss at the edit seam is a risk for multi-year cap-table truth quality over time.
 
+**Resolution:**
+`ManageDeadMoneyModal.tsx` still presents an honest manual override / full-replacement ledger, but flattened rows now retain a source group key when they come from the same canonical dead-cap entry. Save reconstruction groups those source-linked rows back into one canonical `amountByYear[]` entry, preserves allowed source metadata such as `originalSalary`, `waiveDate`, and `notes` when present, and keeps unrelated newly added manual rows distinct to avoid accidental merging. Focused modal/schema tests now assert that grouped canonical rows survive a modal save as one multi-season dead-cap entry while manual rows without a source group remain separate.
+
+**Files implicated:**
+
+- `src/features/architect/capSheet/modals/ManageDeadMoneyModal.tsx`
+- `src/tests/architect/capSheet_exception_wiring.behavior.test.jsx`
+- `src/tests/architect/capTotals/deadMoney_modal_schema_parity.test.js`
+
 ---
 
 ### MYCT-5-2 — The exception edit surface still behaves more like a narrow current-season state serializer than a clearly bounded canonical exception editor with an explicit ownership contract
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-5B
 
 **Problem:**
 `ManageExceptionsModal.tsx` is cleaner than the dead-money modal, but its save semantics are still state-shaped rather than patch-shaped. The modal builds a save payload only for exception types where `enabled` is true or `usedAmount > 0`, omitting disabled zeroed entries silently. The ownership contract — that this modal is replacing canonical current-season exception state for the covered exception types — is honest in the UI copy but still somewhat implicit in the saved payload structure. Future-year views are correctly fail-closed, and the modal is correctly built around `currentYear`, but the distinction between "replacing the current-season state for these types" and "partially patching whatever is currently saved" is not structurally legible from the save model alone. For an edit surface whose authority is intentionally bounded to current-season only, that implicit contract is a soft spot.
+
+**Resolution:**
+`ManageExceptionsModal.tsx` now builds its save payload through an explicit owned current-season snapshot helper for the canonical non-TPE exception keys (`mle`, `tpmle`, `bae`, and `room`). Each persisted entry is shaped as canonical current-season state with `enabled`, `available`, `totalAmount`, `maxAmount`, `amount`, `usedAmount`, `remainingAmount`, `seasonKey`, and optional `notes`; stale stored `seasonKey` values are rewritten to the active current-season key on save. Omitted disabled zero-usage owned buckets now read from source as intentional clears for that bounded current-season key set, while existing downstream mutation semantics continue preserving non-editable buckets such as TPE and DPE. Focused modal tests now assert the richer owned payload and current-season season-key rewrite.
+
+**Files implicated:**
+
+- `src/features/architect/capSheet/modals/ManageExceptionsModal.tsx`
+- `src/tests/architect/capSheet_exception_wiring.behavior.test.jsx`
 
 ---
 

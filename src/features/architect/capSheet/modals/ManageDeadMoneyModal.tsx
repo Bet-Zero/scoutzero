@@ -22,13 +22,16 @@ type DeadCapAmountByYearObjectValue =
       amount?: NumericLike;
     };
 type DeadCapSourceEntry = {
-  playerId?: string | null;
+  playerId?: string | number | null;
   playerName?: string | null;
   label?: string | null;
+  originalSalary?: NumericLike;
   amountByYear?:
     | DeadCapAmountByYearArrayEntry[]
     | Record<string, DeadCapAmountByYearObjectValue>
     | null;
+  waiveDate?: string | null;
+  notes?: string | null;
   stretched?: boolean;
 };
 type FlatDeadMoneyEntry = {
@@ -37,6 +40,7 @@ type FlatDeadMoneyEntry = {
   seasonKey: string | undefined;
   amount: NumericLike;
   stretched: boolean;
+  sourceGroupKey?: string;
   originalEntry?: DeadCapSourceEntry;
   isNew?: boolean;
 };
@@ -66,6 +70,59 @@ type ManageDeadMoneyModalProps = {
   currentYear: number;
 };
 
+const buildManualDeadCapPlayerId = () =>
+  `manual_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+const toDeadCapAmount = (value: NumericLike) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+};
+
+const buildDeadCapReplacementPayload = (
+  entries: FlatDeadMoneyEntry[]
+): ManualDeadCapSavePayload => {
+  const entriesBySource = new Map<string, FlatDeadMoneyEntry[]>();
+
+  entries.forEach((entry) => {
+    const groupKey = entry.sourceGroupKey || `manual-row-${entry.id}`;
+    const groupedEntries = entriesBySource.get(groupKey) || [];
+    groupedEntries.push(entry);
+    entriesBySource.set(groupKey, groupedEntries);
+  });
+
+  return Array.from(entriesBySource.values()).map((groupedEntries) => {
+    const firstEntry = groupedEntries[0];
+    const originalEntry = firstEntry.originalEntry;
+    const payloadEntry: ManualDeadCapSavePayload[number] = {
+      playerId: originalEntry?.playerId || buildManualDeadCapPlayerId(),
+      playerName:
+        firstEntry.label ||
+        originalEntry?.playerName ||
+        originalEntry?.label ||
+        'Manual Dead Money Adjustment',
+      amountByYear: groupedEntries.map((entry) => ({
+        season: entry.seasonKey || '',
+        amount: toDeadCapAmount(entry.amount),
+        isStretched: !!entry.stretched,
+      })),
+      notes: originalEntry?.notes || 'Manual Adjustment',
+    };
+
+    if (
+      originalEntry?.originalSalary !== undefined &&
+      originalEntry.originalSalary !== null
+    ) {
+      payloadEntry.originalSalary = toDeadCapAmount(originalEntry.originalSalary);
+    }
+
+    if (originalEntry?.waiveDate) {
+      payloadEntry.waiveDate = originalEntry.waiveDate;
+    }
+
+    return payloadEntry;
+  });
+};
+
 /**
  * Modal for managing dead money entries manually.
  * Phase 24 Execution.
@@ -86,16 +143,18 @@ const ManageDeadMoneyModal = ({
     if (isOpen && teamCapSheet?.deadCap) {
       setSaveError('');
       setIsSaving(false);
-      // Flatten the canonical schema for UI editing
-      // Canonical: { playerId?, amountByYear: { [year]: { amount } }, stretched, label? }
-      // UI: { id, label, seasonKey, amount, stretched, originalEntry }
+      // Flatten the canonical schema for UI editing while preserving source
+      // grouping so replacement saves can rebuild one multi-season entry.
+      // Canonical: { playerId?, amountByYear: [{ season, amount, isStretched? }], notes? }
+      // UI: { id, label, seasonKey, amount, stretched, sourceGroupKey, originalEntry }
 
       const flatEntries: FlatDeadMoneyEntry[] = [];
       let entryId = 1;
 
-      (teamCapSheet.deadCap || []).forEach((entry) => {
+      (teamCapSheet.deadCap || []).forEach((entry, entryIndex) => {
         const contractName = entry.playerName || entry.label || 'Unknown Entry';
         const isStretched = !!entry.stretched;
+        const sourceGroupKey = `dead-cap-source-${entryIndex}`;
 
         if (Array.isArray(entry.amountByYear)) {
           // Canonical shape: array of { season, amount, isStretched? }
@@ -104,8 +163,9 @@ const ManageDeadMoneyModal = ({
               id: entryId++,
               label: contractName,
               seasonKey: yearEntry.season || undefined,
-              amount: yearEntry.amount || 0,
+              amount: yearEntry.amount ?? 0,
               stretched: !!yearEntry.isStretched || isStretched,
+              sourceGroupKey,
               originalEntry: entry,
             });
           });
@@ -116,8 +176,9 @@ const ManageDeadMoneyModal = ({
               id: entryId++,
               label: contractName,
               seasonKey: yearKey,
-              amount: (typeof val === 'object' ? val?.amount : val) || 0,
+              amount: (typeof val === 'object' ? val?.amount : val) ?? 0,
               stretched: isStretched,
+              sourceGroupKey,
               originalEntry: entry,
             });
           });
@@ -153,7 +214,21 @@ const ManageDeadMoneyModal = ({
     field: keyof FlatDeadMoneyEntry,
     value: FlatDeadMoneyEntry[keyof FlatDeadMoneyEntry]
   ) => {
-    setEntries(entries.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
+    setEntries((prev) => {
+      const targetEntry = prev.find((entry) => entry.id === id);
+      const shouldApplyToSourceGroup = field === 'label' && targetEntry?.sourceGroupKey;
+
+      return prev.map((entry) => {
+        const isTargetEntry = entry.id === id;
+        const isSameSourceGroup =
+          shouldApplyToSourceGroup &&
+          entry.sourceGroupKey === targetEntry?.sourceGroupKey;
+
+        return isTargetEntry || isSameSourceGroup
+          ? { ...entry, [field]: value }
+          : entry;
+      });
+    });
   };
 
   const handleDelete = (id: number) => {
@@ -164,38 +239,9 @@ const ManageDeadMoneyModal = ({
     setIsSaving(true);
     setSaveError('');
 
-    // Reconstruct canonical schema from flat UI entries
-    // Since UI allows free-form editing, we treat each UI row as a distinct "contract" logic for simplicity in manual mode,
-    // OR we could try to group them.
-    // For manual management, creating one DeadCapEntry per row is safest to avoid accidental merging.
-
-    // Canonical Schema:
-    // interface DeadCapEntry {
-    //   playerId: string; // generate dummy or use existing
-    //   playerName: string;
-    //   amountByYear: { [yearKey: string]: { amount: number } };
-    //   stretched: boolean;
-    //   buyout: boolean;
-    // }
-
-    // Canonical Schema per DeadCapItemZ (src/schemas/architect.ts):
-    // { playerId, playerName, amountByYear: [{ season, amount, isStretched? }], notes? }
-    const canonicalDeadCap: ManualDeadCapSavePayload = entries.map((e) => {
-      return {
-        playerId:
-          e.originalEntry?.playerId ||
-          `manual_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        playerName: e.label,
-        amountByYear: [
-          {
-            season: e.seasonKey,
-            amount: Number(e.amount),
-            isStretched: !!e.stretched,
-          },
-        ],
-        notes: 'Manual Adjustment',
-      };
-    });
+    // Full replacement ledger: source-grouped rows are rebuilt into the same
+    // canonical multi-season dead-cap entry; unrelated manual rows stay distinct.
+    const canonicalDeadCap = buildDeadCapReplacementPayload(entries);
 
     try {
       const saveResult = await onSave(canonicalDeadCap);
