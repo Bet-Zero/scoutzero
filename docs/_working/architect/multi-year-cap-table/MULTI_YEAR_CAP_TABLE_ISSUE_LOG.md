@@ -217,11 +217,18 @@ The consumer layer is structurally sound, but several surfaces sit close enough 
 
 ### MYCT-4-3 — There are no focused guardrails protecting canonical consumer boundaries, the future-year fail-closed adjacent boundary contract, or the UI signals that communicate current-year-only authority
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-4C
 
 **Problem:**
 The consumer-layer authority model is honest but has no durable guardrails protecting it from silent drift. Specific unprotected drift vectors include: summary consumers beginning to recompute totals rather than reading the canonical totals input; the future-year fail-closed boundary in `ExceptionTracker.tsx` softening into partial future-year presentation without a loud failure; boundary notes, disabled states, and authority badges falling out of alignment with actual action/state truth; supporting-detail surfaces drifting toward semi-owning totals explanations in inconsistent ways; and control surfaces mixing or widening authority beyond bounded mutation entry points. Because the consumer layer is where the user forms their practical truth model of the feature, undiscovered drift here risks misleading users about future-year authority without any failure signal in the underlying compute layers. Step 4 needs to leave behind durable guardrails, not only a one-time review result.
+
+**Resolution:**
+This execution added one dedicated Step 4 closeout guardrail file focused on the live consumer/UI seam without widening back into production redesign. The new guardrails now pin the source-level ownership contract directly: `CapSheet.tsx` remains the selected-year composition owner that computes canonical totals once and hands adjacent hard-cap presentation into `CapSummaryTiles.tsx`; `CapSummaryTiles.tsx` remains a canonical totals consumer rather than a recompute owner; `ExceptionTracker.tsx` remains the current-season-only adjacent authority surface with an explicit future-year fail-closed panel; and the split control strip in `CapSheet.tsx` keeps selected-year dead-money mutation separate from current-season-only exception authority. Runtime coverage now also proves the user-facing contract: selected-year canonical banners and totals stay aligned across summary and breakdown consumers, current-season authority banners stay present and accurate during current-year viewing, future-year viewing hides hard-cap badge truth, future-year exception editing fails closed, and the adjacent surface swaps to its current-season-only boundary panel instead of silently leaking future-year hard-cap / exception / TPE authority.
+
+**Files implicated:**
+
+- `src/tests/architect/myct_step4_guardrails.test.tsx`
 
 ---
 
