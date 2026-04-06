@@ -232,4 +232,38 @@ This execution added one dedicated Step 4 closeout guardrail file focused on the
 
 ---
 
+---
+
+## STEP 5 — Manual Mutation / Edit Surface Truth for Dead Money and Exceptions
+
+### MYCT-5-1 — The dead-money edit surface still uses a flat full-replacement model that can silently lose canonical multi-season grouping and shape truth on save
+
+**Status:** OPEN
+**Substep:** MYCT-5A
+
+**Problem:**
+`ManageDeadMoneyModal.tsx` flattens canonical dead-cap entries into one editable UI row per season and then reconstructs one canonical dead-cap entry per UI row on save. This is a conservative and honest approach — the modal explicitly warns that saving replaces the team's entire dead money ledger — but it is also structurally lossy. Original multi-season grouping across a single dead-cap entry is not preserved. Richer original entry structure beyond `playerId`, `playerName`, and per-row season amount is not preserved cleanly. Notes fields are replaced with a generic `'Manual Adjustment'` label. The result is that saving through the edit surface can transform a canonical grouped ledger into a flatter one-row-per-entry ledger without signaling that shape information was discarded. Because dead-money feeds the canonical totals engine directly, this structural loss at the edit seam is a risk for multi-year cap-table truth quality over time.
+
+---
+
+### MYCT-5-2 — The exception edit surface still behaves more like a narrow current-season state serializer than a clearly bounded canonical exception editor with an explicit ownership contract
+
+**Status:** OPEN
+**Substep:** MYCT-5B
+
+**Problem:**
+`ManageExceptionsModal.tsx` is cleaner than the dead-money modal, but its save semantics are still state-shaped rather than patch-shaped. The modal builds a save payload only for exception types where `enabled` is true or `usedAmount > 0`, omitting disabled zeroed entries silently. The ownership contract — that this modal is replacing canonical current-season exception state for the covered exception types — is honest in the UI copy but still somewhat implicit in the saved payload structure. Future-year views are correctly fail-closed, and the modal is correctly built around `currentYear`, but the distinction between "replacing the current-season state for these types" and "partially patching whatever is currently saved" is not structurally legible from the save model alone. For an edit surface whose authority is intentionally bounded to current-season only, that implicit contract is a soft spot.
+
+---
+
+### MYCT-5-3 — There are no focused guardrails protecting dead-money shape preservation, exception save semantics, replacement-vs-scope honesty, or current-season-only edit boundaries against silent drift
+
+**Status:** OPEN
+**Substep:** MYCT-5C
+
+**Problem:**
+Both manual edit modals sit directly on top of the cap-sheet SSOT and can undermine multi-year cap-table truth even if the compute layer remains correct. Current unprotected drift vectors include: dead-money flattening behavior becoming more lossy without a loud failure; dead-money replacement semantics drifting away from the modal warning copy without detection; exception save payloads losing alignment with canonical current-season exception ownership without an obvious breakage signal; current-year-only exception editing boundaries softening in source or UI without a clear structural failure; and the modal copy that explains replacement vs current-season-only behavior becoming stale without being caught. Because these edit surfaces are the primary path through which manual corrections enter the canonical data model, undetected drift at this seam can corrupt cap-table truth in ways that appear structurally valid to downstream consumers.
+
+---
+
 _Issue log tracks problem-level root causes. Execution substeps and status tracking live in MULTI_YEAR_CAP_TABLE_REVIEW_TRACKER.md._
