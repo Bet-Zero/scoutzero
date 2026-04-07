@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import CapSheet from '@/features/architect/capSheet/CapSheet';
 import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker';
-import { DEV_CAP_SHEET_FIXTURE_FLAG } from '@/features/architect/capSheet/devCapSheetFixtures';
+import {
+  DEV_CAP_SHEET_FIXTURE_BOUNDARY,
+  DEV_CAP_SHEET_FIXTURE_FLAG,
+  DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
+} from '@/features/architect/capSheet/devCapSheetFixtures';
 
 type ForwardedCapSheetProps = Pick<
   Parameters<typeof CapSheet>[0],
@@ -10,11 +14,25 @@ type ForwardedCapSheetProps = Pick<
   | 'manualCapSheetMutationAuthority'
 >;
 
+type DevFixtureAction = (() => unknown) | null;
+
+type CapSheetDevFixtureControls = {
+  injectLocalFixtures?: DevFixtureAction;
+  clearLocalFixtures?: DevFixtureAction;
+  hasInjectedLocalFixtures?: boolean;
+  localStateOwner?: typeof DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER;
+  syntheticCoverageBoundary?: typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY;
+  injectFixtures?: DevFixtureAction;
+  clearFixtures?: DevFixtureAction;
+  hasInjectedFixtures?: boolean;
+};
+
 type CapSheetSectionProps = ForwardedCapSheetProps & {
   currentYear: number;
   playersMap?: Record<string, unknown>;
-  onInjectCapSheetFixtures?: (() => void) | null;
-  onClearCapSheetFixtures?: (() => void) | null;
+  capSheetDevFixtureControls?: CapSheetDevFixtureControls | null;
+  onInjectCapSheetFixtures?: DevFixtureAction;
+  onClearCapSheetFixtures?: DevFixtureAction;
   hasInjectedCapSheetFixtures?: boolean;
 };
 
@@ -38,6 +56,7 @@ const CapSheetSection = ({
   onInjectCapSheetFixtures = null,
   onClearCapSheetFixtures = null,
   hasInjectedCapSheetFixtures = false,
+  capSheetDevFixtureControls = null,
 }: CapSheetSectionProps) => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
@@ -53,6 +72,24 @@ const CapSheetSection = ({
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_CAP_SHEET_FIXTURE_FLAG) === 'true';
+  const injectLocalDevFixtures =
+    capSheetDevFixtureControls?.injectLocalFixtures ??
+    capSheetDevFixtureControls?.injectFixtures ??
+    onInjectCapSheetFixtures;
+  const clearLocalDevFixtures =
+    capSheetDevFixtureControls?.clearLocalFixtures ??
+    capSheetDevFixtureControls?.clearFixtures ??
+    onClearCapSheetFixtures;
+  const hasInjectedLocalDevFixtures =
+    capSheetDevFixtureControls?.hasInjectedLocalFixtures ??
+    capSheetDevFixtureControls?.hasInjectedFixtures ??
+    hasInjectedCapSheetFixtures;
+  const localFixtureStateOwner =
+    capSheetDevFixtureControls?.localStateOwner ??
+    DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER;
+  const syntheticCoverageBoundary =
+    capSheetDevFixtureControls?.syntheticCoverageBoundary ??
+    DEV_CAP_SHEET_FIXTURE_BOUNDARY;
   const isViewingCurrentYear = selectedYear === currentYear;
   const currentSeasonLabel = formatSeasonLabel(currentYear);
   const selectedSeasonLabel = formatSeasonLabel(selectedYear);
@@ -149,19 +186,38 @@ const CapSheetSection = ({
               </div>
               <div className="text-amber-200/70">
                 Injects one synthetic `futureContract` player and one control
-                player into local in-memory team state only.
+                player through the local DEV fixture state owner only.
               </div>
               <div className="mt-1 text-amber-200/55">
-                Separate from authoritative cap-table truth and current-season
-                exception authority.
+                Local owner: {localFixtureStateOwner.ownerLabel}. Scope:{' '}
+                {localFixtureStateOwner.stateScope}. Persistence:{' '}
+                {localFixtureStateOwner.persistence}.
+              </div>
+              <div
+                data-testid="cap-sheet-fixtures-boundary-note"
+                className="mt-1 text-amber-200/55"
+              >
+                {syntheticCoverageBoundary.intentLabel}: one `futureContract`
+                probe plus one no-`futureContract` control. Not
+                representative of{' '}
+                {syntheticCoverageBoundary.notModeledSeams.join(', ')}.
               </div>
             </div>
           </div>
+          {hasInjectedLocalDevFixtures && (
+            <div
+              data-testid="cap-sheet-fixtures-active-note"
+              className="rounded border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-amber-100/80"
+            >
+              Synthetic DEV fixture players are active in local team state.
+              Clear them before evaluating real-data cap-table behavior.
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               data-testid="cap-sheet-inject-fixtures-button"
-              onClick={() => onInjectCapSheetFixtures?.()}
+              onClick={() => injectLocalDevFixtures?.()}
               className="rounded bg-amber-700/70 hover:bg-amber-600/70 px-3 py-1.5 text-xs font-medium text-amber-100"
             >
               Inject FutureContract Fixture
@@ -169,10 +225,10 @@ const CapSheetSection = ({
             <button
               type="button"
               data-testid="cap-sheet-clear-fixtures-button"
-              onClick={() => onClearCapSheetFixtures?.()}
-              disabled={!hasInjectedCapSheetFixtures}
+              onClick={() => clearLocalDevFixtures?.()}
+              disabled={!hasInjectedLocalDevFixtures}
               className={`rounded px-3 py-1.5 text-xs font-medium ${
-                hasInjectedCapSheetFixtures
+                hasInjectedLocalDevFixtures
                   ? 'bg-neutral-700 hover:bg-neutral-600 text-white'
                   : 'bg-neutral-800 text-white/40 cursor-not-allowed'
               }`}

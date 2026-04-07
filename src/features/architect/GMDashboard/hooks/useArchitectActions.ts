@@ -72,6 +72,8 @@ import {
 } from './optimisticMutationLock';
 import {
   clearCapSheetFixtures,
+  DEV_CAP_SHEET_FIXTURE_BOUNDARY,
+  DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
   hasInjectedCapSheetFixtures as hasInjectedCapSheetFixturesInTeam,
   injectCapSheetFixtures,
 } from '@/features/architect/capSheet/devCapSheetFixtures';
@@ -349,6 +351,11 @@ interface MutationActionResult {
 }
 
 interface CapSheetDevTools {
+  injectLocalFixtures: () => MutationActionResult;
+  clearLocalFixtures: () => MutationActionResult;
+  hasInjectedLocalFixtures: boolean;
+  localStateOwner: typeof DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER;
+  syntheticCoverageBoundary: typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY;
   injectFixtures: () => MutationActionResult;
   clearFixtures: () => MutationActionResult;
   hasInjectedFixtures: boolean;
@@ -4448,34 +4455,52 @@ export function useArchitectActions({
     [teamCapSheet]
   );
 
-  const injectCapSheetDevFixtures = useCallback((): MutationActionResult => {
-    if (!teamCapSheet) {
-      return {
-        success: false,
-        message: 'Cannot inject fixtures: team state is not loaded.',
-      };
-    }
+  const applyLocalDevCapSheetFixtureState = useCallback(
+    (operation: 'inject' | 'clear'): MutationActionResult => {
+      if (!import.meta.env.DEV) {
+        return {
+          success: false,
+          message:
+            'Cap sheet DEV fixtures are only available in local DEV builds.',
+        };
+      }
 
-    const nextTeam = injectCapSheetFixtures(teamCapSheet, currentYear);
-    setTeamCapSheetSafe(nextTeam as CapSheet);
-    return { success: true };
-  }, [currentYear, setTeamCapSheet, teamCapSheet]);
+      if (!teamCapSheet) {
+        return {
+          success: false,
+          message: `Cannot ${operation} fixtures: team state is not loaded.`,
+        };
+      }
 
-  const clearCapSheetDevFixtures = useCallback((): MutationActionResult => {
-    if (!teamCapSheet) {
-      return {
-        success: false,
-        message: 'Cannot clear fixtures: team state is not loaded.',
-      };
-    }
+      const nextTeam =
+        operation === 'inject'
+          ? injectCapSheetFixtures(teamCapSheet, currentYear)
+          : clearCapSheetFixtures(teamCapSheet);
 
-    const nextTeam = clearCapSheetFixtures(teamCapSheet);
-    setTeamCapSheetSafe(nextTeam as CapSheet);
-    return { success: true };
-  }, [setTeamCapSheet, teamCapSheet]);
+      // Local DEV seam only: fixture players never enter mutation persistence.
+      setTeamCapSheetSafe(nextTeam as CapSheet);
+      return { success: true };
+    },
+    [currentYear, setTeamCapSheetSafe, teamCapSheet]
+  );
+
+  const injectCapSheetDevFixtures = useCallback(
+    (): MutationActionResult => applyLocalDevCapSheetFixtureState('inject'),
+    [applyLocalDevCapSheetFixtureState]
+  );
+
+  const clearCapSheetDevFixtures = useCallback(
+    (): MutationActionResult => applyLocalDevCapSheetFixtureState('clear'),
+    [applyLocalDevCapSheetFixtureState]
+  );
 
   const capSheetDevTools = useMemo<CapSheetDevTools>(
     () => ({
+      injectLocalFixtures: injectCapSheetDevFixtures,
+      clearLocalFixtures: clearCapSheetDevFixtures,
+      hasInjectedLocalFixtures: hasInjectedCapSheetFixtures,
+      localStateOwner: DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
+      syntheticCoverageBoundary: DEV_CAP_SHEET_FIXTURE_BOUNDARY,
       injectFixtures: injectCapSheetDevFixtures,
       clearFixtures: clearCapSheetDevFixtures,
       hasInjectedFixtures: hasInjectedCapSheetFixtures,

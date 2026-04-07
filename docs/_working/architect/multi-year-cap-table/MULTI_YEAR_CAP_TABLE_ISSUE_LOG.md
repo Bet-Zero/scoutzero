@@ -295,21 +295,39 @@ This execution added a dedicated Step 5 closeout guardrail file focused on the m
 
 ### MYCT-6-1 — DEV fixture injection is not end-to-end explicit about who owns injected local state or how far synthetic players can travel from the injection point
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-6A
 
 **Problem:**
 The DEV cap-sheet fixture seam presents as local and reversible: the fixture source is explicitly separated in `devCapSheetFixtures.ts`, the shell marks controls as DEV-only, and the copy claims "local in-memory team state only." But the "local only" contract rests primarily on shell copy and source separation rather than on proven end-to-end callback ownership. `CapSheetSection.tsx` only exposes callback props for inject/clear behavior — the upstream owner that actually mutates and holds injected state was not verified in the Step 6 review. This means the boundary between synthetic fixture state and real team state is currently asserted through naming and copy rather than structurally proven from the seam itself. If the upstream callback owner widens the state footprint — intentionally or accidentally — the synthetic players can slip further downstream without a clear ownership failure to catch it.
 
+**Resolution:**
+`useArchitectActions.ts` now owns cap-sheet DEV fixture changes through `applyLocalDevCapSheetFixtureState(...)`, which is DEV-gated and applies inject/clear results only through `setTeamCapSheetSafe(...)` against the dashboard's local in-memory `teamCapSheet` snapshot. The exposed `capSheetDevTools` surface now carries explicit local fixture callback names plus a local state owner contract, while retaining compatibility aliases for existing callers. `GMDashboard.tsx` now passes that grouped dev-tool owner into `CapSheetSection.tsx`, and the shell renders the local owner, state scope, and no-persistence contract directly in the DEV support surface instead of relying on loose callback props and copy alone.
+
+**Files implicated:**
+
+- `src/features/architect/capSheet/devCapSheetFixtures.ts`
+- `src/features/architect/GMDashboard/sections/CapSheetSection.tsx`
+- `src/features/architect/GMDashboard/GMDashboard.tsx`
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
 ---
 
 ### MYCT-6-2 — Synthetic future-year fixture coverage is too narrow and happy-path-clean to surface real multi-year edge cases, and can be overread as more representative than it is
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-6B
 
 **Problem:**
 The DEV fixture injects exactly two players per team: one clean `futureContract` player with standard salaries and extension-season flags across two future years, and one control player with no `futureContract`. These players are useful as targeted probes, but the synthetic coverage is narrow. There is no fixture coverage for more complex future-year shapes involving options, guarantees, irregularly overlapping contract years, or minimum-contract boundaries. Because the injected players flow through real feature surfaces — and look structurally valid to downstream display and contract logic except for their marker/IDs — they can create false reassurance: a developer or reviewer seeing the feature behave correctly with fixture data may underestimate how differently it would behave with more complex real-data shapes. The fixture players can thus quietly soften the team's mental model of what real-data guarantees, making it easier to miss edge cases that only appear with authentic future-year contracts.
+
+**Resolution:**
+`devCapSheetFixtures.ts` now publishes an explicit non-authoritative fixture boundary model and stamps each synthetic player with bounded coverage metadata. The two-player fixture still preserves the targeted `futureContract` probe and no-`futureContract` control, but the source now declares the modeled seams and the deliberately unmodeled real-data seams: options, guarantee complexity, minimum-contract reimbursement, and irregular real-data contract overlaps. `CapSheetSection.tsx` now renders that boundedness in the DEV fixture panel and shows an active-fixture warning when synthetic players are present, making the fixture path read as local seam coverage rather than representative feature truth.
+
+**Files implicated:**
+
+- `src/features/architect/capSheet/devCapSheetFixtures.ts`
+- `src/features/architect/GMDashboard/sections/CapSheetSection.tsx`
 
 ---
 

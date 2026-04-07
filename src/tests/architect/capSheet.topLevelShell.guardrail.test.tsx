@@ -214,15 +214,17 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
     vi.stubEnv('DEV', true);
     localStorage.setItem(DEV_CAP_SHEET_FIXTURE_FLAG, 'true');
 
-    const onInjectCapSheetFixtures = vi.fn();
-    const onClearCapSheetFixtures = vi.fn();
+    const injectLocalFixtures = vi.fn();
+    const clearLocalFixtures = vi.fn();
 
     render(
       <CapSheetSection
         {...buildBaseProps(2026)}
-        onInjectCapSheetFixtures={onInjectCapSheetFixtures}
-        onClearCapSheetFixtures={onClearCapSheetFixtures}
-        hasInjectedCapSheetFixtures
+        capSheetDevFixtureControls={{
+          injectLocalFixtures,
+          clearLocalFixtures,
+          hasInjectedLocalFixtures: true,
+        }}
       />
     );
 
@@ -236,7 +238,20 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
 
     expect(fixturePanel).toHaveTextContent('Cap Sheet Fixtures (DEV)');
     expect(fixturePanel).toHaveTextContent(
-      'Separate from authoritative cap-table truth and current-season exception authority.'
+      'Local owner: useArchitectActions capSheetDevTools.'
+    );
+    expect(fixturePanel).toHaveTextContent(
+      'Scope: local in-memory dashboard teamCapSheet state.'
+    );
+    expect(fixturePanel).toHaveTextContent('Persistence: none.');
+    expect(screen.getByTestId('cap-sheet-fixtures-boundary-note')).toHaveTextContent(
+      'Bounded futureContract seam probe'
+    );
+    expect(screen.getByTestId('cap-sheet-fixtures-boundary-note')).toHaveTextContent(
+      'Not representative of real options, guarantee complexity, minimum-contract reimbursement, irregular real-data contract overlaps.'
+    );
+    expect(screen.getByTestId('cap-sheet-fixtures-active-note')).toHaveTextContent(
+      'Synthetic DEV fixture players are active in local team state.'
     );
     expect(
       within(primarySurface).queryByTestId('cap-sheet-fixtures-panel')
@@ -252,7 +267,7 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
       within(fixturePanel).getByTestId('cap-sheet-clear-fixtures-button')
     );
 
-    expect(onInjectCapSheetFixtures).toHaveBeenCalledTimes(1);
-    expect(onClearCapSheetFixtures).toHaveBeenCalledTimes(1);
+    expect(injectLocalFixtures).toHaveBeenCalledTimes(1);
+    expect(clearLocalFixtures).toHaveBeenCalledTimes(1);
   });
 });

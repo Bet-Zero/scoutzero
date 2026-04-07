@@ -442,11 +442,7 @@ const GMDashboard = () => {
             }
             manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
             playersMap={playersMap}
-            onInjectCapSheetFixtures={actions.capSheetDevTools.injectFixtures}
-            onClearCapSheetFixtures={actions.capSheetDevTools.clearFixtures}
-            hasInjectedCapSheetFixtures={
-              actions.capSheetDevTools.hasInjectedFixtures
-            }
+            capSheetDevFixtureControls={actions.capSheetDevTools}
           />
         )}
 

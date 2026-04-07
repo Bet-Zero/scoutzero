@@ -71,12 +71,12 @@ Each step lists substeps only. This doc tracks status, not problem descriptions.
 
 ## STEP 6 — DEV Fixture Path and Future-Year Synthetic Coverage Safety
 
-**STEP 6 STATUS: TODO**
+**STEP 6 STATUS: IN PROGRESS**
 
 | Substep | Description                                                                                                                                                                        | Status |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| MYCT-6A | Tighten DEV Fixture Isolation And Callback Ownership So Synthetic Future-Year Coverage Reads More Explicitly As Local DEV-Only State Rather Than A Soft Extension Of Feature Truth | TODO   |
-| MYCT-6B | Tighten Future-Year Synthetic Coverage Boundaries So Fixture Players Exercise Intended Seams Without Softening Real-Data Assumptions Or Masking Edge Cases                         | TODO   |
+| MYCT-6A | Tighten DEV Fixture Isolation And Callback Ownership So Synthetic Future-Year Coverage Reads More Explicitly As Local DEV-Only State Rather Than A Soft Extension Of Feature Truth | DONE   |
+| MYCT-6B | Tighten Future-Year Synthetic Coverage Boundaries So Fixture Players Exercise Intended Seams Without Softening Real-Data Assumptions Or Masking Edge Cases                         | DONE   |
 | MYCT-6C | Add Focused Guardrails For DEV Fixture Isolation, Reversible Injection/Clearing, And Synthetic Future-Year Boundary Honesty                                                        | TODO   |
 
 ---

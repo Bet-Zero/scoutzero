@@ -60,6 +60,11 @@ const CAP_SHEET_SECTION_PATH = path.resolve(
   '../../features/architect/GMDashboard/sections/CapSheetSection.tsx'
 );
 
+const DEV_CAP_SHEET_FIXTURES_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/capSheet/devCapSheetFixtures.ts'
+);
+
 const GM_DASHBOARD_PATH = path.resolve(
   __dirname,
   '../../features/architect/GMDashboard/GMDashboard.tsx'
@@ -307,9 +312,19 @@ describe('Gate 2B: Cap Tab Year Coherence (Closeout)', () => {
       /<aside[\s\S]*aria-label=\{CAP_SHEET_SECTION_SURFACE_LABELS\.devFixtures\}/
     );
     expect(capSheetSectionContent).toContain(
-      'Separate from authoritative cap-table truth and current-season'
+      'capSheetDevFixtureControls?: CapSheetDevFixtureControls | null;'
     );
-    expect(capSheetSectionContent).toContain('exception authority.');
+    expect(capSheetSectionContent).toContain('const injectLocalDevFixtures =');
+    expect(capSheetSectionContent).toContain(
+      'Local owner: {localFixtureStateOwner.ownerLabel}'
+    );
+    expect(capSheetSectionContent).toContain('Persistence:{');
+    expect(capSheetSectionContent).toContain(
+      'cap-sheet-fixtures-boundary-note'
+    );
+    expect(capSheetSectionContent).toContain(
+      'cap-sheet-fixtures-active-note'
+    );
   });
 
   it('CapSheet fences exception editing to the current season and passes real currentYear into ManageExceptionsModal', () => {
@@ -661,6 +676,7 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
 describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   const capSheetContent = readFileContent(CAP_SHEET_PATH);
   const capSheetSectionContent = readFileContent(CAP_SHEET_SECTION_PATH);
+  const devCapSheetFixturesContent = readFileContent(DEV_CAP_SHEET_FIXTURES_PATH);
   const gmDashboardContent = readFileContent(GM_DASHBOARD_PATH);
   const actionsContent = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
   const editContractModalContent = readFileContent(EDIT_CONTRACT_MODAL_PATH);
@@ -852,6 +868,24 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(actionsContent).toMatch(/interface\s+TeamHistoryDevTools/);
     expect(actionsContent).toMatch(/capSheetDevTools:\s*CapSheetDevTools/);
     expect(actionsContent).toMatch(/teamHistoryDevTools:\s*TeamHistoryDevTools/);
+    expect(actionsContent).toMatch(
+      /const\s+applyLocalDevCapSheetFixtureState\s*=\s*useCallback/
+    );
+    expect(actionsContent).toContain('import.meta.env.DEV');
+    expect(actionsContent).toContain('setTeamCapSheetSafe(nextTeam as CapSheet)');
+    expect(actionsContent).toContain('Local DEV seam only');
+    expect(actionsContent).toContain(
+      'injectLocalFixtures: injectCapSheetDevFixtures'
+    );
+    expect(actionsContent).toContain(
+      'clearLocalFixtures: clearCapSheetDevFixtures'
+    );
+    expect(actionsContent).toContain(
+      'hasInjectedLocalFixtures: hasInjectedCapSheetFixtures'
+    );
+    expect(actionsContent).toContain(
+      'localStateOwner: DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER'
+    );
     expect(actionsContent).toMatch(/const\s+capSheetDevTools\s*=\s*useMemo/);
     expect(actionsContent).toMatch(/const\s+teamHistoryDevTools\s*=\s*useMemo/);
     expect(actionsContent).not.toMatch(/handleInjectCapSheetFixtures\s*:/);
@@ -862,13 +896,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
 
   it('keeps fixture wiring on explicit dev-tool namespaces and removes generic contract-modal save fallback wiring', () => {
     expect(gmDashboardContent).toMatch(
-      /onInjectCapSheetFixtures=\{actions\.capSheetDevTools\.injectFixtures\}/
-    );
-    expect(gmDashboardContent).toMatch(
-      /onClearCapSheetFixtures=\{actions\.capSheetDevTools\.clearFixtures\}/
-    );
-    expect(gmDashboardContent).toMatch(
-      /hasInjectedCapSheetFixtures=\{\s*actions\.capSheetDevTools\.hasInjectedFixtures\s*\}/
+      /capSheetDevFixtureControls=\{actions\.capSheetDevTools\}/
     );
     expect(gmDashboardContent).toMatch(
       /actions\.teamHistoryDevTools\.injectFixtures/
@@ -896,6 +924,29 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     );
     expect(editContractModalContent).not.toMatch(/onSignFreeAgent\s*\|\|\s*onSave/);
     expect(editContractModalContent).not.toMatch(/onResign\s*\|\|\s*onSave/);
+  });
+
+  it('keeps synthetic cap-sheet fixture boundary metadata explicit and non-authoritative', () => {
+    expect(devCapSheetFixturesContent).toContain(
+      'DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER'
+    );
+    expect(devCapSheetFixturesContent).toContain("persistence: 'none'");
+    expect(devCapSheetFixturesContent).toContain(
+      'DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD'
+    );
+    expect(devCapSheetFixturesContent).toContain(
+      "intentLabel: 'Bounded futureContract seam probe'"
+    );
+    expect(devCapSheetFixturesContent).toContain('authoritative: false');
+    expect(devCapSheetFixturesContent).toContain(
+      "'minimum-contract reimbursement'"
+    );
+    expect(devCapSheetFixturesContent).toContain(
+      "scenario: 'futureContractProbe'"
+    );
+    expect(devCapSheetFixturesContent).toContain(
+      "scenario: 'noFutureContractControl'"
+    );
   });
 
   it('handleSetDeadCap and handleSetExceptions delegate through the shared manual ledger helper', () => {

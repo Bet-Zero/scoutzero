@@ -2,8 +2,36 @@ import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 
 export const DEV_CAP_SHEET_FIXTURE_FLAG = 'hz.dev.capSheetFixtures';
 export const DEV_CAP_SHEET_FIXTURE_MARKER = '__hzDevCapSheetFixture';
+export const DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD =
+  '__hzDevCapSheetFixtureBoundary';
+
+export const DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER = {
+  ownerLabel: 'useArchitectActions capSheetDevTools',
+  stateScope: 'local in-memory dashboard teamCapSheet state',
+  writePath: 'setTeamCapSheetSafe',
+  persistence: 'none',
+} as const;
+
+export const DEV_CAP_SHEET_FIXTURE_BOUNDARY = {
+  intentLabel: 'Bounded futureContract seam probe',
+  authoritative: false,
+  modeledSeams: [
+    'futureContract future-season row visibility',
+    'no-futureContract control row',
+  ],
+  notModeledSeams: [
+    'real options',
+    'guarantee complexity',
+    'minimum-contract reimbursement',
+    'irregular real-data contract overlaps',
+  ],
+} as const;
 
 const DEV_CAP_SHEET_FIXTURE_ID_PREFIX = 'hz-dev-cap-fixture';
+
+type DevCapSheetFixtureBoundaryMetadata = typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY & {
+  scenario: 'futureContractProbe' | 'noFutureContractControl';
+};
 
 type FixturePlayer = {
   id?: string;
@@ -15,6 +43,10 @@ type FixturePlayer = {
   contract?: unknown;
   futureContract?: unknown;
   bio?: unknown;
+  [DEV_CAP_SHEET_FIXTURE_MARKER]?: boolean;
+  [DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD]?:
+    | DevCapSheetFixtureBoundaryMetadata
+    | boolean;
 };
 
 type TeamCapSheetLike = {
@@ -54,7 +86,11 @@ function getPlayerId(player: FixturePlayer): string | null {
 }
 
 export function isDevCapSheetFixturePlayer(player: FixturePlayer): boolean {
-  return Boolean(player?.[DEV_CAP_SHEET_FIXTURE_MARKER] || isFixtureId(getPlayerId(player)));
+  return Boolean(
+    player?.[DEV_CAP_SHEET_FIXTURE_MARKER] ||
+      player?.[DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD] ||
+      isFixtureId(getPlayerId(player))
+  );
 }
 
 export function buildCapSheetFixturePlayers(
@@ -73,10 +109,18 @@ export function buildCapSheetFixturePlayers(
     teamAbbr: teamCode,
     [DEV_CAP_SHEET_FIXTURE_MARKER]: true,
   };
+  const fixtureBoundary = {
+    ...DEV_CAP_SHEET_FIXTURE_BOUNDARY,
+    authoritative: false,
+  } as const;
 
   return [
     {
       ...sharedFields,
+      [DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD]: {
+        ...fixtureBoundary,
+        scenario: 'futureContractProbe',
+      },
       id: futureFixtureId,
       player_id: futureFixtureId,
       playerId: futureFixtureId,
@@ -121,6 +165,10 @@ export function buildCapSheetFixturePlayers(
     },
     {
       ...sharedFields,
+      [DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD]: {
+        ...fixtureBoundary,
+        scenario: 'noFutureContractControl',
+      },
       id: controlFixtureId,
       player_id: controlFixtureId,
       playerId: controlFixtureId,

@@ -16,7 +16,9 @@ import CapSheetFull from '@/features/architect/capSheet/CapSheetFull/CapSheetFul
 import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSheetSection';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
+  DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD,
   DEV_CAP_SHEET_FIXTURE_FLAG,
+  buildCapSheetFixturePlayers,
   injectCapSheetFixtures,
   clearCapSheetFixtures,
   hasInjectedCapSheetFixtures,
@@ -631,9 +633,11 @@ function FixtureInjectorHarness() {
         currentYear={CURRENT_YEAR}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
-        onInjectCapSheetFixtures={handleInjectCapSheetFixtures}
-        onClearCapSheetFixtures={handleClearCapSheetFixtures}
-        hasInjectedCapSheetFixtures={injected}
+        capSheetDevFixtureControls={{
+          injectLocalFixtures: handleInjectCapSheetFixtures,
+          clearLocalFixtures: handleClearCapSheetFixtures,
+          hasInjectedLocalFixtures: injected,
+        }}
       />
       <CapSheetFull
         teamCapSheet={teamCapSheet}
@@ -732,6 +736,12 @@ describe('Cap Sheet UI integration flows', () => {
     render(<FixtureInjectorHarness />);
 
     expect(screen.getByTestId('cap-sheet-fixtures-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('cap-sheet-fixtures-boundary-note')).toHaveTextContent(
+      'Bounded futureContract seam probe'
+    );
+    expect(screen.getByTestId('cap-sheet-fixtures-boundary-note')).toHaveTextContent(
+      'Not representative of real options, guarantee complexity, minimum-contract reimbursement, irregular real-data contract overlaps.'
+    );
 
     const beforeInjectTotal = readVisibleTotalCapHit();
 
@@ -742,6 +752,9 @@ describe('Cap Sheet UI integration flows', () => {
         screen.getAllByText('CAP DEV FutureContract Fixture').length
       ).toBeGreaterThan(0);
     });
+    expect(screen.getByTestId('cap-sheet-fixtures-active-note')).toHaveTextContent(
+      'Synthetic DEV fixture players are active in local team state.'
+    );
 
     expect(screen.getAllByText('CAP DEV Control Fixture').length).toBeGreaterThan(
       0
@@ -766,6 +779,39 @@ describe('Cap Sheet UI integration flows', () => {
       ).toHaveLength(0);
     });
     expect(screen.queryAllByText('CAP DEV Control Fixture')).toHaveLength(0);
+  });
+
+  it('marks synthetic fixture players with explicit bounded non-authoritative coverage metadata', () => {
+    const fixturePlayers = buildCapSheetFixturePlayers(
+      buildTeamFixture(),
+      CURRENT_YEAR
+    );
+    const futureProbe = fixturePlayers.find(
+      (player) => player.futureContract
+    );
+    const controlProbe = fixturePlayers.find(
+      (player) => player.futureContract === null
+    );
+
+    expect(futureProbe?.[DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD]).toMatchObject({
+      intentLabel: 'Bounded futureContract seam probe',
+      authoritative: false,
+      scenario: 'futureContractProbe',
+      modeledSeams: expect.arrayContaining([
+        'futureContract future-season row visibility',
+      ]),
+      notModeledSeams: expect.arrayContaining([
+        'real options',
+        'guarantee complexity',
+        'minimum-contract reimbursement',
+        'irregular real-data contract overlaps',
+      ]),
+    });
+    expect(controlProbe?.[DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD]).toMatchObject({
+      authoritative: false,
+      scenario: 'noFutureContractControl',
+      modeledSeams: expect.arrayContaining(['no-futureContract control row']),
+    });
   });
 
   it('submits dead-money and exceptions modal flows and reflects deterministic totals on screen', async () => {
