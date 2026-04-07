@@ -291,4 +291,36 @@ This execution added a dedicated Step 5 closeout guardrail file focused on the m
 
 ---
 
+## STEP 6 — DEV Fixture Path and Future-Year Synthetic Coverage Safety
+
+### MYCT-6-1 — DEV fixture injection is not end-to-end explicit about who owns injected local state or how far synthetic players can travel from the injection point
+
+**Status:** OPEN
+**Substep:** MYCT-6A
+
+**Problem:**
+The DEV cap-sheet fixture seam presents as local and reversible: the fixture source is explicitly separated in `devCapSheetFixtures.ts`, the shell marks controls as DEV-only, and the copy claims "local in-memory team state only." But the "local only" contract rests primarily on shell copy and source separation rather than on proven end-to-end callback ownership. `CapSheetSection.tsx` only exposes callback props for inject/clear behavior — the upstream owner that actually mutates and holds injected state was not verified in the Step 6 review. This means the boundary between synthetic fixture state and real team state is currently asserted through naming and copy rather than structurally proven from the seam itself. If the upstream callback owner widens the state footprint — intentionally or accidentally — the synthetic players can slip further downstream without a clear ownership failure to catch it.
+
+---
+
+### MYCT-6-2 — Synthetic future-year fixture coverage is too narrow and happy-path-clean to surface real multi-year edge cases, and can be overread as more representative than it is
+
+**Status:** OPEN
+**Substep:** MYCT-6B
+
+**Problem:**
+The DEV fixture injects exactly two players per team: one clean `futureContract` player with standard salaries and extension-season flags across two future years, and one control player with no `futureContract`. These players are useful as targeted probes, but the synthetic coverage is narrow. There is no fixture coverage for more complex future-year shapes involving options, guarantees, irregularly overlapping contract years, or minimum-contract boundaries. Because the injected players flow through real feature surfaces — and look structurally valid to downstream display and contract logic except for their marker/IDs — they can create false reassurance: a developer or reviewer seeing the feature behave correctly with fixture data may underestimate how differently it would behave with more complex real-data shapes. The fixture players can thus quietly soften the team's mental model of what real-data guarantees, making it easier to miss edge cases that only appear with authentic future-year contracts.
+
+---
+
+### MYCT-6-3 — There are no focused guardrails protecting DEV fixture isolation, reversible inject/clear behavior, marker-based cleanup, or the synthetic-boundary honesty of the fixture seam against silent drift
+
+**Status:** OPEN
+**Substep:** MYCT-6C
+
+**Problem:**
+The DEV fixture seam is reasonably safe in its current reviewed shape, but the safety is not durably protected. The seam has several specific undiscovered drift vectors: inject/clear callback ownership could widen beyond local state without triggering a loud failure; fixture markers or ID prefixes could drift and leave stale synthetic players behind after clearing; the shell copy claiming "local in-memory only" could become stale while the underlying behavior changes; the DEV feature-flag guard could weaken or be bypassed, exposing fixture controls outside DEV builds; and synthetic future-year rows could gradually be overread as authoritative feature truth by later developers without explicit failure signals. Because the DEV fixture seam directly touches future-year display and contract slicing behavior, undetected drift at this seam carries a real risk of corrupting both synthetic verification assumptions and real multi-year cap-table truth if fixture state were ever to escape local scope.
+
+---
+
 _Issue log tracks problem-level root causes. Execution substeps and status tracking live in MULTI_YEAR_CAP_TABLE_REVIEW_TRACKER.md._
