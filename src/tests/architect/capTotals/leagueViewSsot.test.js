@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { MINIMUM_SALARY_SCALES } from '@/features/architect/data/minimumSalaryScales';
 
 describe('LeagueView SSOT Compliance (Phase 29)', () => {
   const YEAR = 2026; // 2025-26 season
@@ -278,9 +279,16 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
 
     const totals = computeTeamCapTotals(mockCapSheet, YEAR);
 
-    expect(totals.playersTotal).toBe(15092400);
+    // Veteran minimum cap-hit treatment uses the selected season's 2-year
+    // minimum; the two-way row contributes $0 to playersTotal.
+    const selectedSeasonTwoYearMinimum = MINIMUM_SALARY_SCALES['2025-26'][2];
+    const expectedPlayersTotal =
+      13_000_000 + selectedSeasonTwoYearMinimum;
+
+    expect(selectedSeasonTwoYearMinimum).toBe(2_176_096);
+    expect(totals.playersTotal).toBe(expectedPlayersTotal);
     expect(totals.incompleteChargesTotal).toBe(0);
-    expect(totals.totalCapAllocations).toBe(15092400);
+    expect(totals.totalCapAllocations).toBe(expectedPlayersTotal);
   });
 
   /**
