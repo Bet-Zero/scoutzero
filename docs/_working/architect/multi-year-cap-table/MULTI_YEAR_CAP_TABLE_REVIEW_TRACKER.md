@@ -59,13 +59,13 @@ Each step lists substeps only. This doc tracks status, not problem descriptions.
 
 ## STEP 5 — Manual Mutation / Edit Surface Truth for Dead Money and Exceptions
 
-**STEP 5 STATUS: IN PROGRESS**
+**STEP 5 STATUS: DONE**
 
 | Substep | Description                                                                                                                                                      | Status |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | MYCT-5A | Tighten Dead-Money Edit Serialization So Manual Override Editing Preserves Canonical Multi-Year Shape More Faithfully And More Explicitly                        | DONE   |
 | MYCT-5B | Tighten Exception Edit Ownership And Save Semantics So Current-Season Manual Edits Read More Clearly As Canonical Exception State, Not A Soft Partial Serializer | DONE   |
-| MYCT-5C | Add Focused Guardrails For Dead-Money Shape Preservation, Exception Save Semantics, And Edit-Boundary Honesty                                                    | TODO   |
+| MYCT-5C | Add Focused Guardrails For Dead-Money Shape Preservation, Exception Save Semantics, And Edit-Boundary Honesty                                                    | DONE   |
 
 ---
 

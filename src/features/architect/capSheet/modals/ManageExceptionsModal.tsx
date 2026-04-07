@@ -44,6 +44,7 @@ type EditableException = {
   notes: string;
 };
 type ExceptionsState = Partial<Record<ExceptionType, EditableException>>;
+type DisabledExceptionTypes = Partial<Record<ExceptionType, boolean>>;
 type TeamCapSheetLike = Record<string, unknown> & {
   exceptions?: Record<string, unknown> | null;
 };
@@ -138,14 +139,24 @@ const shouldPersistOwnedCurrentSeasonException = (
 
 const buildOwnedCurrentSeasonExceptionsSnapshot = (
   exceptions: ExceptionsState,
-  currentSeasonKey: string
+  currentSeasonKey: string,
+  disabledExceptionTypes: DisabledExceptionTypes = {}
 ): ManualExceptionsSavePayload => {
   const ownedCurrentSeasonExceptions: ManualExceptionsSavePayload = {};
 
   EXCEPTION_TYPES.forEach((type) => {
+    // Eligibility-disabled edit rows are forced into clear shape before the
+    // owned snapshot filter runs, so disabled UI state cannot save as enabled.
+    const exception = disabledExceptionTypes[type]
+      ? {
+          ...(exceptions[type] || DEFAULT_EXCEPTION),
+          enabled: false,
+          usedAmount: 0,
+        }
+      : exceptions[type];
     const canonicalEntry = buildOwnedCurrentSeasonExceptionEntry(
       type,
-      exceptions[type],
+      exception,
       currentSeasonKey
     );
 
@@ -263,7 +274,10 @@ const ManageExceptionsModal = ({
 
     const canonicalExceptions = buildOwnedCurrentSeasonExceptionsSnapshot(
       exceptions,
-      seasonKey
+      seasonKey,
+      {
+        room: !roomExceptionEligibility.eligible,
+      }
     );
 
     try {

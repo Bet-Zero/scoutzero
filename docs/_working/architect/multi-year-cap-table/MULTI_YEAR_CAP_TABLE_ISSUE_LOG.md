@@ -275,11 +275,19 @@ This execution added one dedicated Step 4 closeout guardrail file focused on the
 
 ### MYCT-5-3 — There are no focused guardrails protecting dead-money shape preservation, exception save semantics, replacement-vs-scope honesty, or current-season-only edit boundaries against silent drift
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-5C
 
 **Problem:**
 Both manual edit modals sit directly on top of the cap-sheet SSOT and can undermine multi-year cap-table truth even if the compute layer remains correct. Current unprotected drift vectors include: dead-money flattening behavior becoming more lossy without a loud failure; dead-money replacement semantics drifting away from the modal warning copy without detection; exception save payloads losing alignment with canonical current-season exception ownership without an obvious breakage signal; current-year-only exception editing boundaries softening in source or UI without a clear structural failure; and the modal copy that explains replacement vs current-season-only behavior becoming stale without being caught. Because these edit surfaces are the primary path through which manual corrections enter the canonical data model, undetected drift at this seam can corrupt cap-table truth in ways that appear structurally valid to downstream consumers.
+
+**Resolution:**
+This execution added a dedicated Step 5 closeout guardrail file focused on the manual edit seam. Source-scan guardrails now pin dead-money source grouping and full-replacement copy, exception save routing through the owned current-season snapshot builder, explicit omitted-bucket clear semantics, Room eligibility-disabled rows being forced into clear shape before save filtering, and CapSheet's current-season-only exception handoff. Runtime guardrails now prove grouped dead-money source rows save back as one multi-season canonical entry with metadata preserved, newly added manual rows without a source group stay separate, exception saves emit canonical current-season entries with stale season keys rewritten, disabled zero-usage managed exception buckets are omitted as clears, and ineligible Room rows cannot save as enabled. A tiny production support change was made in `ManageExceptionsModal.tsx` so eligibility-disabled exception rows are forced to disabled zero-usage shape before owned snapshot filtering; this keeps the UI-disabled Room state aligned with actual save behavior.
+
+**Files implicated:**
+
+- `src/features/architect/capSheet/modals/ManageExceptionsModal.tsx`
+- `src/tests/architect/myct_step5_guardrails.test.tsx`
 
 ---
 
