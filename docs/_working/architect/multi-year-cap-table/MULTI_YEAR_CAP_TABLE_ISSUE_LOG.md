@@ -333,11 +333,22 @@ The DEV fixture injects exactly two players per team: one clean `futureContract`
 
 ### MYCT-6-3 — There are no focused guardrails protecting DEV fixture isolation, reversible inject/clear behavior, marker-based cleanup, or the synthetic-boundary honesty of the fixture seam against silent drift
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** MYCT-6C
 
 **Problem:**
 The DEV fixture seam is reasonably safe in its current reviewed shape, but the safety is not durably protected. The seam has several specific undiscovered drift vectors: inject/clear callback ownership could widen beyond local state without triggering a loud failure; fixture markers or ID prefixes could drift and leave stale synthetic players behind after clearing; the shell copy claiming "local in-memory only" could become stale while the underlying behavior changes; the DEV feature-flag guard could weaken or be bypassed, exposing fixture controls outside DEV builds; and synthetic future-year rows could gradually be overread as authoritative feature truth by later developers without explicit failure signals. Because the DEV fixture seam directly touches future-year display and contract slicing behavior, undetected drift at this seam carries a real risk of corrupting both synthetic verification assumptions and real multi-year cap-table truth if fixture state were ever to escape local scope.
+
+**Resolution:**
+This execution added a dedicated Step 6 closeout guardrail file for the DEV cap-sheet fixture seam. Source-level guardrails now pin grouped `capSheetDevTools` ownership, the DEV-only local apply helper, the single local `setTeamCapSheetSafe(...)` write path, absence of persistence / mutation-pipeline / cap-audit / Firestore calls in the fixture apply region, and the dashboard handoff through `capSheetDevFixtureControls={actions.capSheetDevTools}`. Runtime guardrails now prove injection is idempotent, stale marker / boundary / prefix fixture rows are cleaned before reappend, clear removes marker/prefix fixture players and prefix roster IDs, `hasInjectedCapSheetFixtures(...)` stays aligned with marker / boundary / roster-prefix detection, fixture boundary metadata remains non-authoritative and bounded, the DEV panel remains DEV/localStorage gated, grouped local shell callbacks beat legacy loose callback props, and the active-fixture warning plus bounded synthetic coverage copy remain visible.
+
+**Files implicated:**
+
+- `src/tests/architect/myct_step6_guardrails.test.tsx`
+- `src/features/architect/capSheet/devCapSheetFixtures.ts`
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+- `src/features/architect/GMDashboard/sections/CapSheetSection.tsx`
+- `src/features/architect/GMDashboard/GMDashboard.tsx`
 
 ---
 
