@@ -108,6 +108,40 @@ const readLeagueViewSource = (fileName: string) =>
 const readGMDashboardSource = () =>
   readSourceFile('src/features/architect/GMDashboard/GMDashboard.tsx');
 
+const readLeagueViewProductionSources = () => ({
+  model: readLeagueViewSource('leagueViewModel.ts'),
+  hook: readLeagueViewSource('useLeagueTeamSummaries.ts'),
+  truthPanel: readLeagueViewSource('LeagueViewTruthPanel.tsx'),
+  table: readLeagueViewSource('LeagueConferenceTable.tsx'),
+  shell: readLeagueViewSource('LeagueView.tsx'),
+  dashboard: readGMDashboardSource(),
+});
+
+const readExportedConstSource = (source: string, exportName: string) => {
+  const marker = `export const ${exportName}`;
+  const start = source.indexOf(marker);
+  if (start === -1) {
+    throw new Error(`Missing source marker: ${marker}`);
+  }
+
+  const nextExport = source.indexOf('\nexport const ', start + marker.length);
+  return source.slice(start, nextExport === -1 ? source.length : nextExport);
+};
+
+const readLocalConstSourceBeforeReturn = (
+  source: string,
+  constName: string
+) => {
+  const marker = `const ${constName} =`;
+  const start = source.indexOf(marker);
+  if (start === -1) {
+    throw new Error(`Missing source marker: ${marker}`);
+  }
+
+  const nextReturn = source.indexOf('\n  return', start + marker.length);
+  return source.slice(start, nextReturn === -1 ? source.length : nextReturn);
+};
+
 describe('LeagueView loading-boundary behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -423,5 +457,185 @@ describe('LeagueView loading-boundary behavior', () => {
     expect(source).not.toContain(
       "@/features/architect/utils/seasonUtils"
     );
+  });
+});
+
+describe('LeagueView Step 2 closeout guardrails', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    seasonFormatMocks.getDefaultSeasonEndYear.mockReturnValue(2026);
+    seasonFormatMocks.toSeasonCode.mockReturnValue('2025-26');
+    firebaseTeamPlanHelperMocks.loadTeamCapSheet.mockImplementation(
+      async (teamCode: string) => {
+        if (teamCode === 'ATL') {
+          return null;
+        }
+
+        return {
+          teamCode,
+          players: [],
+          capHolds: [],
+          deadCap: [],
+        };
+      }
+    );
+    capTotalsMocks.computeTeamCapTotals.mockReturnValue({
+      totalCapAllocations: 123_456_789,
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('pins the visible totals display contract to canonical cap allocations', async () => {
+    const sources = readLeagueViewProductionSources();
+
+    expect(sources.model).toContain(
+      "LEAGUE_VIEW_TOTALS_DISPLAY_LABEL = 'Total Cap Allocations'"
+    );
+    expect(sources.model).toContain(
+      'totalCapAllocations: capTotals.totalCapAllocations'
+    );
+    expect(sources.model).not.toContain('totalSalary');
+    expect(sources.table).toContain('formatCapAllocations');
+    expect(sources.table).toContain('team.totalCapAllocations');
+    expect(sources.table).toContain('<th className="p-2 text-left">{totalsLabel}</th>');
+    expect(sources.table).not.toContain('Total Salary');
+    expect(sources.truthPanel).toContain('season.totalsDisplayLabel');
+    expect(sources.truthPanel).toContain('season.totalsBoundaryLabel');
+
+    render(<LeagueView />);
+
+    const truthPanel = await screen.findByTestId('league-view-truth-panel');
+    await waitFor(() => {
+      expect(truthPanel).toHaveTextContent(
+        'Total Cap Allocations (computeTeamCapTotals totalCapAllocations)'
+      );
+    });
+
+    const lakersRow = screen.getByTestId('league-view-team-row-lakers');
+    expect(within(lakersRow).getByText('$123,456,789')).toBeInTheDocument();
+    expect(lakersRow).toHaveTextContent('Loaded');
+    expect(capTotalsMocks.computeTeamCapTotals).toHaveBeenCalledWith(
+      expect.objectContaining({ teamCode: 'LAL' }),
+      2026
+    );
+
+    const hawksRow = screen.getByTestId('league-view-team-row-hawks');
+    expect(hawksRow).toHaveTextContent('Not loaded');
+    expect(hawksRow).toHaveTextContent('Unavailable');
+    expect(hawksRow).not.toHaveTextContent('$0');
+
+    expect(screen.getAllByText('Total Cap Allocations').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Total Salary')).not.toBeInTheDocument();
+  });
+
+  it('pins conference grouping and sorting as presentation-only consumer behavior', () => {
+    const sources = readLeagueViewProductionSources();
+    const groupSource = readExportedConstSource(
+      sources.model,
+      'groupLeagueTeamSummaries'
+    );
+
+    expect(sources.hook).toContain('groupLeagueTeamSummaries(state.summaries)');
+    expect(groupSource).toContain(
+      'Presentation-only transform: preserve shaped summary rows and only split/order them.'
+    );
+    expect(groupSource).toContain(
+      ".filter((team) => team.conference === conference)"
+    );
+    expect(groupSource).toContain('.sort(sortByTeamName)');
+    expect(groupSource).toContain('teamName.localeCompare');
+    expect(groupSource).not.toMatch(
+      /computeTeamCapTotals|loadTeamCapSheet|totalCapAllocations\s*:|sourceState\s*:|\.map\(|\.reduce\(|structuredClone|JSON\.parse|JSON\.stringify/
+    );
+
+    const eastLoaded: LeagueViewTeamSummary = {
+      id: 'celtics',
+      code: 'BOS',
+      teamName: 'Boston Celtics',
+      totalCapAllocations: 200,
+      conference: 'East',
+      sourceState: 'loaded',
+      sourceLabel: 'Loaded',
+    };
+    const westLoaded: LeagueViewTeamSummary = {
+      id: 'lakers',
+      code: 'LAL',
+      teamName: 'Los Angeles Lakers',
+      totalCapAllocations: 100,
+      conference: 'West',
+      sourceState: 'loaded',
+      sourceLabel: 'Loaded',
+    };
+    const eastUnavailable: LeagueViewTeamSummary = {
+      id: 'hawks',
+      code: 'ATL',
+      teamName: 'Atlanta Hawks',
+      totalCapAllocations: null,
+      conference: 'East',
+      sourceState: 'unavailable',
+      sourceLabel: 'Unavailable',
+      failureReason: 'Read failed.',
+    };
+
+    const grouped = groupLeagueTeamSummaries([
+      eastLoaded,
+      westLoaded,
+      eastUnavailable,
+    ]);
+
+    expect(grouped.eastTeams).toEqual([eastUnavailable, eastLoaded]);
+    expect(grouped.westTeams).toEqual([westLoaded]);
+    expect(grouped.eastTeams[0]).toBe(eastUnavailable);
+    expect(grouped.eastTeams[1]).toBe(eastLoaded);
+    expect(grouped.westTeams[0]).toBe(westLoaded);
+    expect(grouped.eastTeams[0]).toMatchObject({
+      totalCapAllocations: null,
+      sourceState: 'unavailable',
+      failureReason: 'Read failed.',
+    });
+    expect(grouped.eastTeams[1]).toMatchObject({
+      totalCapAllocations: 200,
+      sourceState: 'loaded',
+    });
+  });
+
+  it('pins Manage Team as route-only team handoff with dashboard-owned season state', async () => {
+    const sources = readLeagueViewProductionSources();
+    const goToTeamSource = readLocalConstSourceBeforeReturn(
+      sources.shell,
+      'goToTeam'
+    );
+
+    expect(goToTeamSource).toContain(
+      'Team handoff is route identity only; GMDashboard re-owns active season state.'
+    );
+    expect(goToTeamSource).toContain('navigate(`/gm/${teamSlug}`);');
+    expect(goToTeamSource.replace(/\/\/.*$/gm, '')).not.toMatch(
+      /season|seasonCode|state:|\?|search/
+    );
+    expect(sources.table).toContain('aria-label={`Manage ${team.teamName}. ${teamHandoffBoundaryLabel}`}');
+    expect(sources.table).toContain('title={teamHandoffBoundaryLabel}');
+    expect(sources.truthPanel).toContain('season.teamHandoffBoundaryLabel');
+    expect(sources.dashboard).toContain(
+      'League View enters here with team identity only; this dashboard owns selected season state.'
+    );
+    expect(sources.dashboard).not.toMatch(
+      /useLocation|location\.state|URLSearchParams|leagueViewSeason|fromLeagueView/
+    );
+
+    render(<LeagueView />);
+
+    const lakersManageButton = await screen.findByRole('button', {
+      name: /Manage Los Angeles Lakers.*dashboard owns its selected season/i,
+    });
+
+    fireEvent.click(lakersManageButton);
+
+    expect(navigationMocks.navigate).toHaveBeenCalledTimes(1);
+    expect(navigationMocks.navigate.mock.calls[0]).toEqual(['/gm/lakers']);
+    expect(navigationMocks.navigate.mock.calls[0][1]).toBeUndefined();
   });
 });

@@ -127,18 +127,19 @@ Conference grouping and sorting now read explicitly as presentation-only transfo
 
 ### LV-2-3 — No focused guardrails exist to protect display-contract label honesty, consumer-only presentation boundaries, or team-handoff season transparency
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** LV-2C
 
 **Problem:**
 Step 2 tightens the visible totals label and the grouping/sorting/navigation contract, but none of those improvements are pinned by structural guardrails. Visible totals labels could silently re-soften while canonical totals consumption stays correct; grouping and sorting transforms could widen into more opinionated or less transparent presentation behavior without any loud failure; and the team-navigation handoff could become less honest about season continuity without any direct test catching the drift. League View is a compact surface, which means soft consumer-display choices accumulate quickly and can shape the whole user-facing truth story before a broader pass catches them. Without focused guardrails around display-contract label honesty, transparent consumer-boundary behavior, and team-handoff honesty, the Step 2 improvements made by LV-2A and LV-2B remain discipline-dependent rather than structurally enforced.
 
-**Current note:**
-The LV-2A/LV-2B execution added targeted coverage to the existing focused League View behavior test for the renamed `Total Cap Allocations` display contract and route-only team handoff. LV-2C remains `OPEN` because a dedicated guardrail closeout sweep has not been completed.
+**Resolution:**
+The focused League View loading-boundary behavior test now includes a dedicated Step 2 closeout guardrail sweep. Display-contract guardrails pin the `Total Cap Allocations` label, the `computeTeamCapTotals totalCapAllocations` truth-panel boundary, loaded row display from `computeTeamCapTotals(...).totalCapAllocations`, and unavailable rows staying `null` / `Not loaded` rather than `$0`. Consumer-boundary guardrails pin `groupLeagueTeamSummaries(...)` as a presentation-only split/order transform that filters by conference, alphabetizes by `teamName`, does not recompute or reshape totals, and preserves loaded/unavailable object truth. Team-handoff guardrails pin `Manage Team` as `/gm/:teamId` route identity only, with no route-season or navigation-state payload, while `GMDashboard.tsx` continues to own selected season state after route entry.
 
 **Files implicated:**
 
-- `src/features/architect/shared/LeagueView/LeagueConferenceTable.tsx` — display-contract label to be pinned
-- `src/features/architect/shared/LeagueView/useLeagueTeamSummaries.ts` — consumer-only grouping/sorting boundary to be pinned
-- `src/features/architect/shared/LeagueView/LeagueView.tsx` — team-handoff navigation seam to be pinned
-- `src/tests/architect/` — location for focused LV-2C display-contract / consumer-boundary / team-handoff guardrail tests
+- `src/features/architect/shared/LeagueView/LeagueConferenceTable.tsx` — display-contract label and `Manage Team` handoff label now guarded
+- `src/features/architect/shared/LeagueView/useLeagueTeamSummaries.ts` — consumer-only grouping/sorting boundary now guarded
+- `src/features/architect/shared/LeagueView/LeagueView.tsx` — route-only team handoff now guarded
+- `src/features/architect/GMDashboard/GMDashboard.tsx` — dashboard-owned selected-season entry contract now guarded
+- `src/tests/architect/leagueView.loadingBoundary.behavior.test.tsx` — dedicated LV-2C closeout guardrail sweep
