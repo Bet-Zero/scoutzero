@@ -14,4 +14,14 @@
 
 ## Current Issue Summary
 
-All Step 1 issues are resolved inside the live roster display seam. No upstream world/base loading blocker was found, no roster persistence path was introduced, and no Step 2 was created. The next required workflow action is whole-feature closeout review.
+All Step 1 implementation issues remain resolved inside the live roster display seam. No upstream world/base loading blocker was found, no roster persistence path was introduced, and no Step 2 was created.
+
+Whole-feature closeout is not clean yet because a relevant existing UI behavior test now fails after Step 1's `normalizeRosterShape` import.
+
+---
+
+## WHOLE-FEATURE CLOSEOUT
+
+| Issue ID | Related Step(s) | Severity | Description | Status |
+|----------|------------------|----------|-------------|--------|
+| AR-CLOSEOUT-1 | AR-CLOSEOUT | MEDIUM | `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` still mocks `@/features/roster/utils` without exporting `normalizeRosterShape`, so its relevant `RosterVisual` behavior case fails after Step 1's real adapter dependency change. This is a validation-surface blocker, not a discovered live roster mutation or truth-ownership bug. | OPEN - narrow closeout-unblock execution required before Architect Roster can be officially closed. |

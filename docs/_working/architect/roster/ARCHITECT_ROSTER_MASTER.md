@@ -82,14 +82,14 @@ Relevant tests / guardrails:
 
 ### Step 1 - Roster Display Adapter, World/Base Truth Dependency, and Legacy Boundary
 
-**Status:** executed, ready for whole-feature closeout review.
+**Status:** executed; whole-feature closeout review returned `RISK`.
 
 Substeps:
 
 - `AR-1A` - Tighten roster display adapter truth and legacy boundary clarity. **Complete.**
 - `AR-1B` - Add focused guardrails for roster world/base truth dependencies and display-only legacy rendering. **Complete.**
 
-After Step 1 execution, run a small whole-feature closeout review because this is a one-step feature.
+Whole-feature closeout review was run because this is a one-step feature. It did not create a Step 2, but it found one narrow closeout-unblock validation issue.
 
 ## Step 1 Execution Summary
 
@@ -115,9 +115,13 @@ No stop condition triggered. No Step 2 was created.
 
 ## Current Verdict
 
-**Step 1 Execution Verdict:** `READY FOR CLOSEOUT`
+**Whole-Feature Closeout Verdict:** `RISK`
 
-The Step 1 risks identified during bootstrap were addressed inside the live roster display seam. The feature still requires the standard whole-feature closeout review before being marked closed.
+The live roster seam is coherent as a display-only consumer of upstream team/player truth, and the focused roster adapter guardrail passes.
+
+Architect Roster is not officially closed yet because the directly relevant broader Architect UI behavior test now fails in its `RosterVisual` case. The failure is a stale test mock, not a discovered live roster data or mutation bug: `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` mocks `@/features/roster/utils` without the new `normalizeRosterShape` export used by `RosterVisual`.
+
+Correct next action: narrow closeout-unblock execution to repair or retire that stale grouped-test mock coverage, then rereview closeout. No Step 2 feature expansion is currently justified.
 
 ## Working Docs
 
@@ -130,6 +134,7 @@ The Step 1 risks identified during bootstrap were addressed inside the live rost
 
 - `return_packages/architect/ARCHITECT_ROSTER_STEP1_BOOTSTRAP_RETURN_PACKAGE.md`
 - `return_packages/architect/ARCHITECT_ROSTER_STEP1_EXECUTION_RETURN_PACKAGE.md`
+- `return_packages/architect/ARCHITECT_ROSTER_WHOLE_FEATURE_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`
 
 ## Validation Policy
 
@@ -139,3 +144,8 @@ Step 1 execution validation:
 - `npm run typecheck` - passed
 - `npm run validate:project` - passed
 - `npm run build` - passed with existing-style Vite warnings about stale Browserslist data, browser externalization for `fs` in `tradeDebug.ts`, mixed dynamic/static imports, and large chunks
+
+Whole-feature closeout validation:
+
+- `npm run test:ui -- src/tests/architect/rosterVisual.adapterBoundary.test.tsx --reporter=dot` - passed
+- `npm run test:ui -- src/tests/architect/grouped33FileScope.ui.behavior.test.tsx --reporter=dot` - failed in the relevant `RosterVisual` case because the test mock for `@/features/roster/utils` does not export `normalizeRosterShape`
