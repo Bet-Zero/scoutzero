@@ -82,14 +82,14 @@ Relevant tests / guardrails:
 
 ### Step 1 - Roster Display Adapter, World/Base Truth Dependency, and Legacy Boundary
 
-**Status:** executed; whole-feature closeout review returned `RISK`.
+**Status:** executed; whole-feature closeout unblock complete and ready for rereview.
 
 Substeps:
 
 - `AR-1A` - Tighten roster display adapter truth and legacy boundary clarity. **Complete.**
 - `AR-1B` - Add focused guardrails for roster world/base truth dependencies and display-only legacy rendering. **Complete.**
 
-Whole-feature closeout review was run because this is a one-step feature. It did not create a Step 2, but it found one narrow closeout-unblock validation issue.
+Whole-feature closeout review was run because this is a one-step feature. It did not create a Step 2, but it found one narrow closeout-unblock validation issue. That validation-surface unblock has now been executed.
 
 ## Step 1 Execution Summary
 
@@ -115,13 +115,13 @@ No stop condition triggered. No Step 2 was created.
 
 ## Current Verdict
 
-**Whole-Feature Closeout Verdict:** `RISK`
+**Whole-Feature Closeout Status:** `RISK` from first closeout review; unblock execution complete.
 
 The live roster seam is coherent as a display-only consumer of upstream team/player truth, and the focused roster adapter guardrail passes.
 
-Architect Roster is not officially closed yet because the directly relevant broader Architect UI behavior test now fails in its `RosterVisual` case. The failure is a stale test mock, not a discovered live roster data or mutation bug: `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` mocks `@/features/roster/utils` without the new `normalizeRosterShape` export used by `RosterVisual`.
+The closeout-blocking broader Architect UI behavior test has been repaired. `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` now mocks the current roster-utils surface, including `normalizeRosterShape`, and expects the current normalized roster behavior: 5 starters, 4 rotation players, and a 6-player bench after two-way bench fill.
 
-Correct next action: narrow closeout-unblock execution to repair or retire that stale grouped-test mock coverage, then rereview closeout. No Step 2 feature expansion is currently justified.
+Architect Roster is not officially closed until whole-feature rereview returns a final `PASS`. No Step 2 feature expansion is currently justified.
 
 ## Working Docs
 
@@ -135,6 +135,7 @@ Correct next action: narrow closeout-unblock execution to repair or retire that 
 - `return_packages/architect/ARCHITECT_ROSTER_STEP1_BOOTSTRAP_RETURN_PACKAGE.md`
 - `return_packages/architect/ARCHITECT_ROSTER_STEP1_EXECUTION_RETURN_PACKAGE.md`
 - `return_packages/architect/ARCHITECT_ROSTER_WHOLE_FEATURE_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`
+- `return_packages/architect/ARCHITECT_ROSTER_WHOLE_FEATURE_CLOSEOUT_UNBLOCK_EXECUTION_RETURN_PACKAGE.md`
 
 ## Validation Policy
 
@@ -149,3 +150,8 @@ Whole-feature closeout validation:
 
 - `npm run test:ui -- src/tests/architect/rosterVisual.adapterBoundary.test.tsx --reporter=dot` - passed
 - `npm run test:ui -- src/tests/architect/grouped33FileScope.ui.behavior.test.tsx --reporter=dot` - failed in the relevant `RosterVisual` case because the test mock for `@/features/roster/utils` does not export `normalizeRosterShape`
+
+Closeout-unblock validation:
+
+- `npm run test:ui -- src/tests/architect/grouped33FileScope.ui.behavior.test.tsx --reporter=dot` - passed
+- `npm run test:ui -- src/tests/architect/rosterVisual.adapterBoundary.test.tsx --reporter=dot` - passed

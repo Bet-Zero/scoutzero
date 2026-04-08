@@ -38,19 +38,32 @@ const contractUtilsMocks = vi.hoisted(() => ({
   getMinimumSalary: vi.fn(),
 }));
 
-const rosterUtilsMocks = vi.hoisted(() => ({
-  buildInitialRoster: vi.fn(),
-  normalizePlayer: vi.fn((player: any) => ({
-    ...player,
-    normalized: true,
-  })),
-  isTwoWayContract: vi.fn(
-    (player: any) =>
-      String(player?.contract?.contractType || '')
-        .toLowerCase()
-        .trim() === 'two-way'
-  ),
-}));
+const rosterUtilsMocks = vi.hoisted(() => {
+  const normalizeSection = (section: any[] | undefined, size: number) => {
+    const safeSection = Array.isArray(section) ? section.slice(0, size) : [];
+    while (safeSection.length < size) safeSection.push(null);
+    return safeSection;
+  };
+
+  return {
+    buildInitialRoster: vi.fn(),
+    normalizePlayer: vi.fn((player: any) => ({
+      ...player,
+      normalized: true,
+    })),
+    normalizeRosterShape: vi.fn((roster: any = {}) => ({
+      starters: normalizeSection(roster.starters, 5),
+      rotation: normalizeSection(roster.rotation, 4),
+      bench: normalizeSection(roster.bench, 6),
+    })),
+    isTwoWayContract: vi.fn(
+      (player: any) =>
+        String(player?.contract?.contractType || '')
+          .toLowerCase()
+          .trim() === 'two-way'
+    ),
+  };
+});
 
 const firebaseTeamPlanHelperMocks = vi.hoisted(() => ({
   loadTeamCapSheet: vi.fn(),
@@ -100,16 +113,26 @@ vi.mock('@/features/roster/RosterSection', () => ({
   }: {
     players?: any[];
     section?: string;
-  }) => (
-    <div data-testid={`roster-section-${section}`}>
-      {section}:{(players || []).filter(Boolean).length}
-    </div>
-  ),
+  }) => {
+    const renderedPlayers = (players || []).filter(Boolean);
+
+    return (
+      <div data-testid={`roster-section-${section}`}>
+        {section}:{renderedPlayers.length}
+        <span>
+          {renderedPlayers
+            .map((player) => player.displayName || player.name)
+            .join(',')}
+        </span>
+      </div>
+    );
+  },
 }));
 
 vi.mock('@/features/roster/utils', () => ({
   buildInitialRoster: rosterUtilsMocks.buildInitialRoster,
   normalizePlayer: rosterUtilsMocks.normalizePlayer,
+  normalizeRosterShape: rosterUtilsMocks.normalizeRosterShape,
   isTwoWayContract: rosterUtilsMocks.isTwoWayContract,
 }));
 
@@ -198,8 +221,8 @@ describe('Grouped 33-file scope UI behavior', () => {
 
     rosterUtilsMocks.buildInitialRoster.mockImplementation((players: any[]) => ({
       starters: players.slice(0, 5),
-      rotation: players.slice(5, 10),
-      bench: [...players.slice(10, 15), ...Array(5).fill(null)].slice(0, 5),
+      rotation: players.slice(5, 9),
+      bench: players.slice(9, 15),
     }));
 
     firebaseTeamPlanHelperMocks.loadTeamCapSheet.mockResolvedValue({
@@ -342,10 +365,16 @@ describe('Grouped 33-file scope UI behavior', () => {
       'starters:5'
     );
     expect(screen.getByTestId('roster-section-rotation')).toHaveTextContent(
-      'rotation:5'
+      'rotation:4'
     );
     expect(screen.getByTestId('roster-section-bench')).toHaveTextContent(
-      'bench:5'
+      'bench:6'
+    );
+    expect(screen.getByTestId('roster-section-bench')).toHaveTextContent(
+      'Two Way 1'
+    );
+    expect(screen.getByTestId('roster-section-bench')).toHaveTextContent(
+      'Two Way 2'
     );
   });
 

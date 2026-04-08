@@ -16,7 +16,7 @@
 
 All Step 1 implementation issues remain resolved inside the live roster display seam. No upstream world/base loading blocker was found, no roster persistence path was introduced, and no Step 2 was created.
 
-Whole-feature closeout is not clean yet because a relevant existing UI behavior test now fails after Step 1's `normalizeRosterShape` import.
+Whole-feature closeout unblock execution repaired the relevant existing UI behavior test that failed after Step 1's `normalizeRosterShape` import. The feature is ready for whole-feature rereview.
 
 ---
 
@@ -24,4 +24,4 @@ Whole-feature closeout is not clean yet because a relevant existing UI behavior 
 
 | Issue ID | Related Step(s) | Severity | Description | Status |
 |----------|------------------|----------|-------------|--------|
-| AR-CLOSEOUT-1 | AR-CLOSEOUT | MEDIUM | `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` still mocks `@/features/roster/utils` without exporting `normalizeRosterShape`, so its relevant `RosterVisual` behavior case fails after Step 1's real adapter dependency change. This is a validation-surface blocker, not a discovered live roster mutation or truth-ownership bug. | OPEN - narrow closeout-unblock execution required before Architect Roster can be officially closed. |
+| AR-CLOSEOUT-1 | AR-CLOSEOUT | MEDIUM | `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` still mocked `@/features/roster/utils` without exporting `normalizeRosterShape`, so its relevant `RosterVisual` behavior case failed after Step 1's real adapter dependency change. This was a validation-surface blocker, not a discovered live roster mutation or truth-ownership bug. | RESOLVED - the grouped test mock now exports `normalizeRosterShape`, the `RosterVisual` case expects the current normalized 5 starter / 4 rotation / 6 bench behavior with two-way bench fill, and targeted grouped plus focused roster tests pass. |
