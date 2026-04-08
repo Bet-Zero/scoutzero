@@ -82,20 +82,42 @@ Relevant tests / guardrails:
 
 ### Step 1 - Roster Display Adapter, World/Base Truth Dependency, and Legacy Boundary
 
-**Status:** bootstrapped, ready for execution prompt.
+**Status:** executed, ready for whole-feature closeout review.
 
 Substeps:
 
-- `AR-1A` - Tighten roster display adapter truth and legacy boundary clarity.
-- `AR-1B` - Add focused guardrails for roster world/base truth dependencies and display-only legacy rendering.
+- `AR-1A` - Tighten roster display adapter truth and legacy boundary clarity. **Complete.**
+- `AR-1B` - Add focused guardrails for roster world/base truth dependencies and display-only legacy rendering. **Complete.**
 
 After Step 1 execution, run a small whole-feature closeout review because this is a one-step feature.
 
+## Step 1 Execution Summary
+
+Execution completed on 2026-04-08.
+
+Code changes stayed inside the live roster seam:
+
+- `RosterVisual` now exposes explicit cap-sheet and details-map input types for the local adapter contract.
+- `teamCapSheet.players` is documented and implemented as the roster membership source.
+- `playersMap` is used only as enrichment/detail truth, with lookup candidates aligned to the keys built by `useArchitectState` (`name`, normalized name, `displayName`, `id`, `player_id`, `playerId`, and bio IDs/display names).
+- Hydrated team player data still wins over detail-map data when both provide the same local field.
+- The legacy roster renderer is called through an explicit display/export-mode prop bundle.
+- The legacy roster section only shows remove/add controls when export mode is off and mutation handlers are present.
+- `RosterVisual` now normalizes the legacy roster shape before filling bench slots with two-way players, fixing the local case where `buildInitialRoster` returns a short bench instead of null slots.
+
+Guardrail changes:
+
+- Added `src/tests/architect/rosterVisual.adapterBoundary.test.tsx`.
+- The new test uses real `RosterVisual`, real legacy roster utilities, and real legacy roster cards.
+- It proves `teamCapSheet.players` membership, `playersMap` enrichment, standard vs two-way handling, starter/rotation/bench shape, and display-only add/remove control suppression.
+
+No stop condition triggered. No Step 2 was created.
+
 ## Current Verdict
 
-**Step 1 Review Verdict:** `RISK`
+**Step 1 Execution Verdict:** `READY FOR CLOSEOUT`
 
-The roster surface is coherent and display-only, but it is not a `PASS` because the world/base player-truth dependency, legacy utility boundary, and test coverage are too implicit.
+The Step 1 risks identified during bootstrap were addressed inside the live roster display seam. The feature still requires the standard whole-feature closeout review before being marked closed.
 
 ## Working Docs
 
@@ -107,13 +129,13 @@ The roster surface is coherent and display-only, but it is not a `PASS` because 
 ## Return Packages
 
 - `return_packages/architect/ARCHITECT_ROSTER_STEP1_BOOTSTRAP_RETURN_PACKAGE.md`
+- `return_packages/architect/ARCHITECT_ROSTER_STEP1_EXECUTION_RETURN_PACKAGE.md`
 
 ## Validation Policy
 
-Bootstrap is discovery-only. No project validation was run.
+Step 1 execution validation:
 
-Future Step 1 execution should use targeted validation only. Likely surfaces:
-
-- a focused roster/RosterVisual UI test
-- `npm run typecheck` after TS/TSX edits
-- `npm run test:diff -- --reporter=dot` only if the execution changes enough surface area to justify milestone validation
+- `npm run test:ui -- src/tests/architect/rosterVisual.adapterBoundary.test.tsx --reporter=dot` - passed
+- `npm run typecheck` - passed
+- `npm run validate:project` - passed
+- `npm run build` - passed with existing-style Vite warnings about stale Browserslist data, browser externalization for `fs` in `tradeDebug.ts`, mixed dynamic/static imports, and large chunks

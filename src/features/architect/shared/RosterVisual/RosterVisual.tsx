@@ -3,6 +3,7 @@ import RosterSection from '@/features/roster/RosterSection';
 import {
   buildInitialRoster,
   normalizePlayer,
+  normalizeRosterShape,
   isTwoWayContract,
 } from '@/features/roster/utils';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
@@ -10,11 +11,209 @@ import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import { TeamMap } from '@/constants/teamList';
 import { useParams } from 'react-router-dom';
 
-type LooseRecord = Record<string, unknown>;
+type RosterBio = Record<string, unknown> & {
+  displayName?: string | null;
+  playerId?: string | number | null;
+  position?: string | null;
+};
+
+type RosterDisplayMember = {
+  id?: string | number | null;
+  player_id?: string | number | null;
+  playerId?: string | number | null;
+  name?: string | null;
+  displayName?: string | null;
+  bio?: RosterBio | null;
+  contract?: {
+    contractType?: string | null;
+    signedUsing?: string | null;
+    [key: string]: unknown;
+  } | null;
+  primaryContract?: Record<string, unknown> | null;
+  contracts?: Record<string, Record<string, unknown>> | null;
+  contractView?: Record<string, unknown> | null;
+  headshot?: string | null;
+  headshotUrl?: string | null;
+  MIN?: string | number | null;
+  latestSeasonStats?: {
+    MIN?: string | number | null;
+    [key: string]: unknown;
+  } | null;
+  formattedPosition?: string | null;
+  [key: string]: unknown;
+};
+
+type LegacyRosterShape = {
+  starters: Array<RosterDisplayMember | null>;
+  rotation: Array<RosterDisplayMember | null>;
+  bench: Array<RosterDisplayMember | null>;
+};
+
+export type RosterVisualCapSheetInput = {
+  teamId?: string | number | null;
+  id?: string | number | null;
+  teamName?: string | null;
+  players?: RosterDisplayMember[] | null;
+};
+
+export type RosterVisualDetailsMap = Record<
+  string,
+  RosterDisplayMember | undefined
+>;
+
 type RosterVisualProps = {
-  teamCapSheet: LooseRecord | null | undefined;
-  playersMap?: Record<string, Record<string, unknown>>;
+  teamCapSheet: RosterVisualCapSheetInput | null | undefined;
+  playersMap?: RosterVisualDetailsMap;
   teamId?: string | null;
+};
+
+const LEGACY_ROSTER_DISPLAY_ONLY_PROPS = {
+  isExport: true,
+} as const;
+
+const asLookupValue = (value: unknown): string | null => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  if (typeof value === 'number') {
+    return String(value);
+  }
+
+  return null;
+};
+
+const normalizeLookupKey = (value: unknown): string | null => {
+  const lookupValue = asLookupValue(value);
+  if (!lookupValue) return null;
+
+  const normalized = lookupValue
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+
+  return normalized || null;
+};
+
+const getDetailLookupKeys = (member: RosterDisplayMember): string[] => {
+  const directKeys = [
+    member.name,
+    member.displayName,
+    member.id,
+    member.player_id,
+    member.playerId,
+    member.bio?.displayName,
+    member.bio?.playerId,
+  ]
+    .map(asLookupValue)
+    .filter((key): key is string => Boolean(key));
+
+  const normalizedNameKeys = [
+    member.name,
+    member.displayName,
+    member.bio?.displayName,
+  ]
+    .map(normalizeLookupKey)
+    .filter((key): key is string => Boolean(key));
+
+  return Array.from(new Set([...directKeys, ...normalizedNameKeys]));
+};
+
+const findRosterDetails = (
+  member: RosterDisplayMember,
+  playersMap: RosterVisualDetailsMap
+): RosterDisplayMember => {
+  const detailKey = getDetailLookupKeys(member).find(
+    (key) => playersMap[key]
+  );
+
+  return detailKey ? playersMap[detailKey] || {} : {};
+};
+
+const resolveHeadshot = (
+  member: RosterDisplayMember,
+  details: RosterDisplayMember
+) => {
+  const explicitHeadshot =
+    asLookupValue(details.headshotUrl) ||
+    asLookupValue(member.headshot) ||
+    asLookupValue(member.headshotUrl) ||
+    asLookupValue(details.headshot);
+
+  if (explicitHeadshot) return explicitHeadshot;
+
+  const playerId =
+    asLookupValue(member.bio?.playerId) ||
+    asLookupValue(member.id) ||
+    asLookupValue(member.player_id) ||
+    asLookupValue(details.bio?.playerId) ||
+    asLookupValue(details.id) ||
+    asLookupValue(details.player_id) ||
+    'default';
+
+  const normalizedId =
+    playerId === 'default'
+      ? 'default'
+      : playerId
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase();
+
+  return `/assets/headshots/${normalizedId}.png`;
+};
+
+const mergeRosterMemberDetails = (
+  member: RosterDisplayMember,
+  details: RosterDisplayMember
+): RosterDisplayMember => {
+  const detailsBio = details.bio || {};
+  const memberBio = member.bio || {};
+  const mergedBio = {
+    ...detailsBio,
+    ...memberBio,
+  };
+  const fallbackId =
+    asLookupValue(member.id) ||
+    asLookupValue(member.player_id) ||
+    asLookupValue(member.bio?.playerId) ||
+    asLookupValue(details.id) ||
+    asLookupValue(details.player_id) ||
+    asLookupValue(details.bio?.playerId) ||
+    'unknown-player';
+  const name =
+    asLookupValue(member.displayName) ||
+    asLookupValue(member.name) ||
+    asLookupValue(details.name) ||
+    asLookupValue(details.displayName) ||
+    asLookupValue(details.bio?.displayName) ||
+    fallbackId;
+  const displayName =
+    asLookupValue(member.displayName) ||
+    asLookupValue(member.bio?.displayName) ||
+    asLookupValue(details.displayName) ||
+    asLookupValue(details.bio?.displayName) ||
+    asLookupValue(member.name) ||
+    asLookupValue(details.name) ||
+    fallbackId;
+
+  return {
+    ...details,
+    ...member,
+    bio: mergedBio,
+    name,
+    displayName,
+    headshot: resolveHeadshot(member, details),
+  };
+};
+
+const getMinutes = (member: RosterDisplayMember) => {
+  const minutes = Number.parseFloat(
+    String(member.MIN ?? member.latestSeasonStats?.MIN ?? 0)
+  );
+
+  return Number.isFinite(minutes) ? minutes : 0;
 };
 
 const RosterVisual = ({
@@ -28,54 +227,25 @@ const RosterVisual = ({
   const teamInfo = (TeamMap as Record<string, Record<string, unknown>>)[id] || {};
   const roster = useMemo(() => {
     if (!teamCapSheet?.players || !Array.isArray(teamCapSheet.players)) return null;
-    const enriched = (teamCapSheet.players as Record<string, unknown>[]).map((p: any) => {
-      // Try multiple keys to find player in map
-      const details =
-        playersMap[p.name] ||
-        playersMap[p.displayName] ||
-        playersMap[p.id] ||
-        {};
-      // Merge player data, prioritizing hydrated team data but preserving enriched details
-      return {
-        ...details,
-        ...p,
-        // Ensure bio structure is preserved
-        bio: p.bio || details.bio || {},
-        // Ensure displayName is available
-        name: p.displayName || p.name || details.name || p.id,
-        displayName:
-          p.displayName || (details.bio as Record<string, unknown> | undefined)?.displayName || p.name || p.id,
-        // Preserve headshot from details if available
-        // Normalize special characters for headshot lookup (e.g., kristaps_porzingis -> kristaps_porziņģis)
-        headshot: (() => {
-          if (details.headshotUrl) return details.headshotUrl;
-          if (p.headshot) return p.headshot;
-          const playerId = p.bio?.playerId || p.id || p.player_id || 'default';
-          const normalizedId =
-            playerId === 'default'
-              ? 'default'
-              : playerId
-                  .normalize('NFD')
-                  .replace(/[\u0300-\u036f]/g, '')
-                  .toLowerCase();
-          return `/assets/headshots/${normalizedId}.png`;
-        })(),
-      };
-    });
+    // Membership comes from the hydrated team cap sheet. playersMap only fills
+    // missing display/detail fields from the world-aware dashboard player index.
+    const enriched = teamCapSheet.players.map((member) =>
+      mergeRosterMemberDetails(member, findRosterDetails(member, playersMap))
+    );
 
     // Separate standard and two-way contracts
-    const standardPlayers = enriched.filter((p: any) => !isTwoWayContract(p));
-    const twoWayPlayers = enriched.filter((p: any) => isTwoWayContract(p));
+    const standardPlayers = enriched.filter((p) => !isTwoWayContract(p));
+    const twoWayPlayers = enriched.filter((p) => isTwoWayContract(p));
 
     // Sort standard players by minutes
-    const sorted = standardPlayers.sort(
-      (a: any, b: any) =>
-        parseFloat(b.MIN ?? b.latestSeasonStats?.MIN ?? 0) -
-        parseFloat(a.MIN ?? a.latestSeasonStats?.MIN ?? 0)
+    const sorted = [...standardPlayers].sort(
+      (a, b) => getMinutes(b) - getMinutes(a)
     );
 
     // Build initial roster (up to 15 standard players)
-    const roster = buildInitialRoster(sorted as any[]) as any;
+    const roster = normalizeRosterShape(
+      buildInitialRoster(sorted)
+    ) as LegacyRosterShape;
 
     // Ensure we always have 15 players total by filling with two-way contracts if needed
     const totalPlayers = roster.starters.filter(Boolean).length +
@@ -88,11 +258,14 @@ const RosterVisual = ({
       const twoWayToAdd = twoWayPlayers.slice(0, needed);
 
       // Add two-way players to bench slots
-      const emptyBenchSlots = roster.bench.map((p: any, i: number) => p === null ? i : null).filter((i: number | null) => i !== null);
+      const emptyBenchSlots = roster.bench
+        .map((player, index) => (player === null ? index : null))
+        .filter((index): index is number => index !== null);
 
-      twoWayToAdd.forEach((player: any, idx: number) => {
-        if (emptyBenchSlots[idx] !== undefined) {
-          roster.bench[emptyBenchSlots[idx] as number] = normalizePlayer(player);
+      twoWayToAdd.forEach((player, index) => {
+        const benchIndex = emptyBenchSlots[index];
+        if (benchIndex !== undefined) {
+          roster.bench[benchIndex] = normalizePlayer(player);
         }
       });
     }
@@ -137,9 +310,21 @@ const RosterVisual = ({
         Team Roster
       </h3>
 
-      <RosterSection players={roster.starters} section="starters" isExport />
-      <RosterSection players={roster.rotation} section="rotation" isExport />
-      <RosterSection players={roster.bench} section="bench" isExport />
+      <RosterSection
+        players={roster.starters}
+        section="starters"
+        {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+      />
+      <RosterSection
+        players={roster.rotation}
+        section="rotation"
+        {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+      />
+      <RosterSection
+        players={roster.bench}
+        section="bench"
+        {...LEGACY_ROSTER_DISPLAY_ONLY_PROPS}
+      />
     </div>
   );
 };

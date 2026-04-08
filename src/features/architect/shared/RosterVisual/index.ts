@@ -11,3 +11,7 @@
  */
 
 export { default } from './RosterVisual';
+export type {
+  RosterVisualCapSheetInput,
+  RosterVisualDetailsMap,
+} from './RosterVisual';

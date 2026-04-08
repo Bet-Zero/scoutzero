@@ -45,22 +45,27 @@ const RosterSection = ({
 }) => {
   const CardComponent = cardMap[section];
   const sectionClass = getSectionClass(section, previewSpacing);
+  const showMutationControls = !isExport && Boolean(onRemove);
 
   return (
-    <div className={sectionClass}>
+    <div className={sectionClass} data-roster-section={section}>
       {players.map((player, idx) => {
         if (player) {
           return (
             <CardComponent
               key={player.id}
               player={player}
-              onRemove={(e) => onRemove(section, idx, e)}
-              showRemove={!isExport}
+              onRemove={
+                showMutationControls
+                  ? (e) => onRemove(section, idx, e)
+                  : undefined
+              }
+              showRemove={showMutationControls}
               isExport={isExport}
             />
           );
         }
-        if (!isExport) {
+        if (!isExport && onAdd) {
           return (
             <EmptySlot
               key={`${section}-${idx}`}
