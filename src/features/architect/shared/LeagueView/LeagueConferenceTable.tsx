@@ -4,15 +4,19 @@ import type { LeagueViewTeamSummary } from './leagueViewModel';
 type LeagueConferenceTableProps = {
   title: string;
   teams: LeagueViewTeamSummary[];
+  totalsLabel: string;
+  teamHandoffBoundaryLabel: string;
   onManageTeam: (teamSlug: string) => void;
 };
 
-const formatSalary = (salary: number | null) =>
-  salary == null ? null : `$${salary.toLocaleString()}`;
+const formatCapAllocations = (capAllocations: number | null) =>
+  capAllocations == null ? null : `$${capAllocations.toLocaleString()}`;
 
 export const LeagueConferenceTable = ({
   title,
   teams,
+  totalsLabel,
+  teamHandoffBoundaryLabel,
   onManageTeam,
 }: LeagueConferenceTableProps) => (
   <table className="min-w-full rounded border border-white/10 bg-[#1a1a1a] text-sm">
@@ -27,14 +31,14 @@ export const LeagueConferenceTable = ({
       </tr>
       <tr className="bg-[#111]">
         <th className="p-2 text-left">Team</th>
-        <th className="p-2 text-left">Total Salary</th>
+        <th className="p-2 text-left">{totalsLabel}</th>
         <th className="p-2 text-left">Source</th>
         <th className="p-2" />
       </tr>
     </thead>
     <tbody>
       {teams.map((team) => {
-        const salary = formatSalary(team.totalSalary);
+        const capAllocations = formatCapAllocations(team.totalCapAllocations);
         const isLoaded = team.sourceState === 'loaded';
 
         return (
@@ -48,8 +52,8 @@ export const LeagueConferenceTable = ({
               {team.teamName}
             </td>
             <td className="p-2">
-              {salary ? (
-                salary
+              {capAllocations ? (
+                capAllocations
               ) : (
                 <span className="text-amber-200">Not loaded</span>
               )}
@@ -69,6 +73,8 @@ export const LeagueConferenceTable = ({
             <td className="p-2 text-right">
               <button
                 onClick={() => onManageTeam(team.id)}
+                aria-label={`Manage ${team.teamName}. ${teamHandoffBoundaryLabel}`}
+                title={teamHandoffBoundaryLabel}
                 className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
                 type="button"
               >

@@ -19,19 +19,30 @@ type LeagueViewTeamSource = {
   conference?: string;
 };
 
+export const LEAGUE_VIEW_TOTALS_DISPLAY_LABEL = 'Total Cap Allocations';
+const LEAGUE_VIEW_TOTALS_BOUNDARY_LABEL =
+  'computeTeamCapTotals totalCapAllocations';
+const LEAGUE_VIEW_PRESENTATION_BOUNDARY_LABEL =
+  'Conference grouping and alphabetical order only; totals are not recomputed.';
+const LEAGUE_VIEW_TEAM_HANDOFF_BOUNDARY_LABEL =
+  'Manage Team carries team identity only; the dashboard owns its selected season.';
+
 export type LeagueViewSeason = {
   endYear: number;
   seasonCode: string;
   seasonSourceLabel: string;
   sourceBoundaryLabel: string;
+  totalsDisplayLabel: string;
   totalsBoundaryLabel: string;
+  presentationBoundaryLabel: string;
+  teamHandoffBoundaryLabel: string;
 };
 
 export type LeagueViewTeamSummary = {
   id: string;
   code?: string;
   teamName: string;
-  totalSalary: number | null;
+  totalCapAllocations: number | null;
   conference?: string;
   sourceState: 'loaded' | 'unavailable';
   sourceLabel: string;
@@ -55,7 +66,10 @@ export const resolveLeagueViewSeason = (): LeagueViewSeason => {
     seasonCode: toSeasonCode(endYear),
     seasonSourceLabel: 'Default current season',
     sourceBoundaryLabel: 'Read-only base team snapshots',
-    totalsBoundaryLabel: 'computeTeamCapTotals totalCapAllocations',
+    totalsDisplayLabel: LEAGUE_VIEW_TOTALS_DISPLAY_LABEL,
+    totalsBoundaryLabel: LEAGUE_VIEW_TOTALS_BOUNDARY_LABEL,
+    presentationBoundaryLabel: LEAGUE_VIEW_PRESENTATION_BOUNDARY_LABEL,
+    teamHandoffBoundaryLabel: LEAGUE_VIEW_TEAM_HANDOFF_BOUNDARY_LABEL,
   };
 };
 
@@ -66,7 +80,7 @@ const buildUnavailableTeamSummary = (
   id: team.id,
   code: team.code,
   teamName: team.teamName,
-  totalSalary: null,
+  totalCapAllocations: null,
   conference: team.conference,
   sourceState: 'unavailable',
   sourceLabel: 'Unavailable',
@@ -96,7 +110,7 @@ export const loadLeagueTeamSummary = async (
       id: team.id,
       code: team.code,
       teamName: team.teamName,
-      totalSalary: capTotals.totalCapAllocations,
+      totalCapAllocations: capTotals.totalCapAllocations,
       conference: team.conference,
       sourceState: 'loaded',
       sourceLabel: 'Loaded',
@@ -125,14 +139,15 @@ export const groupLeagueTeamSummaries = (
     a: LeagueViewTeamSummary,
     b: LeagueViewTeamSummary
   ) => a.teamName.localeCompare(b.teamName);
+  const buildConferenceRows = (conference: 'East' | 'West') =>
+    summaries
+      .filter((team) => team.conference === conference)
+      .sort(sortByTeamName);
 
+  // Presentation-only transform: preserve shaped summary rows and only split/order them.
   return {
-    eastTeams: summaries
-      .filter((team) => team.conference === 'East')
-      .sort(sortByTeamName),
-    westTeams: summaries
-      .filter((team) => team.conference === 'West')
-      .sort(sortByTeamName),
+    eastTeams: buildConferenceRows('East'),
+    westTeams: buildConferenceRows('West'),
   };
 };
 

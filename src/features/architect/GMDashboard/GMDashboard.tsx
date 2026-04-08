@@ -95,6 +95,7 @@ const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined
 };
 
 const GMDashboard = () => {
+  // League View enters here with team identity only; this dashboard owns selected season state.
   const { teamId } = useParams();
   const { userId, loading: authLoading } = useAuth();
   const normalizedTeamId = teamId ?? '';

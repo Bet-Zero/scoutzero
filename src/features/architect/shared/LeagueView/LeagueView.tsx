@@ -16,6 +16,7 @@ const LeagueView = () => {
   } = useLeagueTeamSummaries();
 
   const goToTeam = (teamSlug: string) => {
+    // Team handoff is route identity only; GMDashboard re-owns active season state.
     navigate(`/gm/${teamSlug}`);
   };
 
@@ -36,11 +37,15 @@ const LeagueView = () => {
         <LeagueConferenceTable
           title="Eastern Conference"
           teams={conferences.eastTeams}
+          totalsLabel={season.totalsDisplayLabel}
+          teamHandoffBoundaryLabel={season.teamHandoffBoundaryLabel}
           onManageTeam={goToTeam}
         />
         <LeagueConferenceTable
           title="Western Conference"
           teams={conferences.westTeams}
+          totalsLabel={season.totalsDisplayLabel}
+          teamHandoffBoundaryLabel={season.teamHandoffBoundaryLabel}
           onManageTeam={goToTeam}
         />
       </div>

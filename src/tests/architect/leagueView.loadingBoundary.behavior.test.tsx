@@ -7,7 +7,14 @@
  */
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
@@ -89,15 +96,17 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const readLeagueViewSource = (fileName: string) =>
+const readSourceFile = (...segments: string[]) =>
   fs.readFileSync(
-    path.join(
-      process.cwd(),
-      'src/features/architect/shared/LeagueView',
-      fileName
-    ),
+    path.join(process.cwd(), ...segments),
     'utf8'
   );
+
+const readLeagueViewSource = (fileName: string) =>
+  readSourceFile('src/features/architect/shared/LeagueView', fileName);
+
+const readGMDashboardSource = () =>
+  readSourceFile('src/features/architect/GMDashboard/GMDashboard.tsx');
 
 describe('LeagueView loading-boundary behavior', () => {
   beforeEach(() => {
@@ -133,14 +142,16 @@ describe('LeagueView loading-boundary behavior', () => {
     const hookSource = readLeagueViewSource('useLeagueTeamSummaries.ts');
     const truthPanelSource = readLeagueViewSource('LeagueViewTruthPanel.tsx');
     const tableSource = readLeagueViewSource('LeagueConferenceTable.tsx');
+    const dashboardSource = readGMDashboardSource();
 
     expect(shellSource).toContain('LeagueViewTruthPanel');
     expect(shellSource).toContain('LeagueConferenceTable');
     expect(shellSource).toContain('useLeagueTeamSummaries');
     expect(shellSource).toContain('loadError={loadError}');
     expect(shellSource).not.toMatch(
-      /loadTeamCapSheet|computeTeamCapTotals|getDefaultSeasonEndYear|toSeasonCode|TeamListFull|useEffect|useMemo|useState|<table|<thead|<tbody|TeamLogo|totalSalary|sourceState/
+      /loadTeamCapSheet|computeTeamCapTotals|getDefaultSeasonEndYear|toSeasonCode|TeamListFull|useEffect|useMemo|useState|<table|<thead|<tbody|TeamLogo|totalSalary|totalCapAllocations|sourceState/
     );
+    expect(shellSource).toContain('teamHandoffBoundaryLabel');
 
     expect(hookSource).toMatch(/useEffect|useMemo|useState/);
     expect(hookSource).toContain('loadLeagueTeamSummaries');
@@ -156,13 +167,24 @@ describe('LeagueView loading-boundary behavior', () => {
     expect(modelSource).not.toMatch(/useEffect|useMemo|useState|<table|TeamLogo/);
 
     expect(truthPanelSource).toMatch(/Season:|Source:|Totals:/);
+    expect(truthPanelSource).toContain('totalsDisplayLabel');
+    expect(truthPanelSource).toContain('presentationBoundaryLabel');
+    expect(truthPanelSource).toContain('teamHandoffBoundaryLabel');
     expect(truthPanelSource).toContain('League read failed');
     expect(truthPanelSource).not.toMatch(/loadTeamCapSheet|computeTeamCapTotals/);
 
     expect(tableSource).toContain('Not loaded');
+    expect(tableSource).toContain('totalsLabel');
+    expect(tableSource).toContain('totalCapAllocations');
+    expect(tableSource).toContain('teamHandoffBoundaryLabel');
+    expect(tableSource).not.toContain('Total Salary');
     expect(tableSource).toContain('sourceState');
     expect(tableSource).toContain('sourceLabel');
     expect(tableSource).not.toMatch(/loadTeamCapSheet|computeTeamCapTotals/);
+
+    expect(dashboardSource).toContain(
+      'League View enters here with team identity only'
+    );
   });
 
   it('resolves season/source/totals labels through the canonical model boundary', () => {
@@ -175,7 +197,12 @@ describe('LeagueView loading-boundary behavior', () => {
       seasonCode: '2025-26',
       seasonSourceLabel: 'Default current season',
       sourceBoundaryLabel: 'Read-only base team snapshots',
+      totalsDisplayLabel: 'Total Cap Allocations',
       totalsBoundaryLabel: 'computeTeamCapTotals totalCapAllocations',
+      presentationBoundaryLabel:
+        'Conference grouping and alphabetical order only; totals are not recomputed.',
+      teamHandoffBoundaryLabel:
+        'Manage Team carries team identity only; the dashboard owns its selected season.',
     });
   });
 
@@ -191,11 +218,21 @@ describe('LeagueView loading-boundary behavior', () => {
       expect(truthPanel).toHaveTextContent('Season: 2025-26');
       expect(truthPanel).toHaveTextContent('Default current season');
       expect(truthPanel).toHaveTextContent('Read-only base team snapshots');
+      expect(truthPanel).toHaveTextContent('Total Cap Allocations');
       expect(truthPanel).toHaveTextContent(
         'computeTeamCapTotals totalCapAllocations'
       );
+      expect(truthPanel).toHaveTextContent(
+        'Conference grouping and alphabetical order only'
+      );
+      expect(truthPanel).toHaveTextContent(
+        'the dashboard owns its selected season'
+      );
       expect(truthPanel).toHaveTextContent('1 of 2 team snapshots loaded');
     });
+
+    expect(screen.getAllByText('Total Cap Allocations').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Total Salary')).not.toBeInTheDocument();
 
     const lakersRow = screen.getByTestId('league-view-team-row-lakers');
     expect(lakersRow).toHaveTextContent('Los Angeles Lakers');
@@ -205,6 +242,24 @@ describe('LeagueView loading-boundary behavior', () => {
       expect.objectContaining({ teamCode: 'LAL' }),
       2026
     );
+  });
+
+  it('keeps Manage Team as a team-identity handoff while dashboard owns season state', async () => {
+    render(<LeagueView />);
+
+    const lakersManageButton = await screen.findByRole('button', {
+      name: /Manage Los Angeles Lakers.*dashboard owns its selected season/i,
+    });
+
+    expect(lakersManageButton).toHaveAttribute(
+      'title',
+      'Manage Team carries team identity only; the dashboard owns its selected season.'
+    );
+
+    fireEvent.click(lakersManageButton);
+
+    expect(navigationMocks.navigate).toHaveBeenCalledTimes(1);
+    expect(navigationMocks.navigate.mock.calls[0]).toEqual(['/gm/lakers']);
   });
 
   it('keeps model summaries honest for loaded, missing, and failed team reads', async () => {
@@ -231,7 +286,7 @@ describe('LeagueView loading-boundary behavior', () => {
       await expect(loadLeagueTeamSummary(team, season)).resolves.toEqual(
         expect.objectContaining({
           id: 'hawks',
-          totalSalary: 22_000_001,
+          totalCapAllocations: 22_000_001,
           sourceState: 'loaded',
           sourceLabel: 'Loaded',
         })
@@ -242,7 +297,7 @@ describe('LeagueView loading-boundary behavior', () => {
       await expect(loadLeagueTeamSummary(team, season)).resolves.toEqual(
         expect.objectContaining({
           id: 'hawks',
-          totalSalary: null,
+          totalCapAllocations: null,
           sourceState: 'unavailable',
           sourceLabel: 'Unavailable',
           failureReason: 'Read-only base team cap sheet was not returned.',
@@ -256,7 +311,7 @@ describe('LeagueView loading-boundary behavior', () => {
       await expect(loadLeagueTeamSummary(team, season)).resolves.toEqual(
         expect.objectContaining({
           id: 'hawks',
-          totalSalary: null,
+          totalCapAllocations: null,
           sourceState: 'unavailable',
           sourceLabel: 'Unavailable',
           failureReason: 'Permission denied',
@@ -290,7 +345,7 @@ describe('LeagueView loading-boundary behavior', () => {
         id: 'lakers',
         code: 'LAL',
         teamName: 'Los Angeles Lakers',
-        totalSalary: 100,
+        totalCapAllocations: 100,
         conference: 'West',
         sourceState: 'loaded',
         sourceLabel: 'Loaded',
@@ -299,7 +354,7 @@ describe('LeagueView loading-boundary behavior', () => {
         id: 'celtics',
         code: 'BOS',
         teamName: 'Boston Celtics',
-        totalSalary: null,
+        totalCapAllocations: null,
         conference: 'East',
         sourceState: 'unavailable',
         sourceLabel: 'Unavailable',
@@ -308,7 +363,7 @@ describe('LeagueView loading-boundary behavior', () => {
         id: 'hawks',
         code: 'ATL',
         teamName: 'Atlanta Hawks',
-        totalSalary: 200,
+        totalCapAllocations: 200,
         conference: 'East',
         sourceState: 'loaded',
         sourceLabel: 'Loaded',
@@ -320,19 +375,19 @@ describe('LeagueView loading-boundary behavior', () => {
     expect(grouped.eastTeams).toEqual([
       expect.objectContaining({
         id: 'hawks',
-        totalSalary: 200,
+        totalCapAllocations: 200,
         sourceState: 'loaded',
       }),
       expect.objectContaining({
         id: 'celtics',
-        totalSalary: null,
+        totalCapAllocations: null,
         sourceState: 'unavailable',
       }),
     ]);
     expect(grouped.westTeams).toEqual([
       expect.objectContaining({
         id: 'lakers',
-        totalSalary: 100,
+        totalCapAllocations: 100,
         sourceState: 'loaded',
       }),
     ]);

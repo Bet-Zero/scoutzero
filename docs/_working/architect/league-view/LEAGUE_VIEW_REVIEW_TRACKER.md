@@ -21,10 +21,10 @@ Each step lists substeps only. This doc tracks status, not problem descriptions.
 
 ## STEP 2 — Canonical Totals Consumption, Display Contract, Sorting, and Navigation Truth
 
-**STEP 2 STATUS: TODO**
+**STEP 2 STATUS: IN PROGRESS**
 
 | Substep | Description                                                                                                                                         | Status |
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| LV-2A   | Tighten League View Display Contract So Visible Totals Labels Match The Canonical `computeTeamCapTotals(...).totalCapAllocations` Truth Being Shown | TODO   |
-| LV-2B   | Tighten Sort / Group / Navigation Boundary Truth So League-Level Presentation And Team Handoff Read More Explicitly As Honest Consumer Behavior     | TODO   |
+| LV-2A   | Tighten League View Display Contract So Visible Totals Labels Match The Canonical `computeTeamCapTotals(...).totalCapAllocations` Truth Being Shown | DONE   |
+| LV-2B   | Tighten Sort / Group / Navigation Boundary Truth So League-Level Presentation And Team Handoff Read More Explicitly As Honest Consumer Behavior     | DONE   |
 | LV-2C   | Add Focused Guardrails For Display-Contract Truth, Consumer Presentation Boundaries, And Team-Handoff Honesty                                       | TODO   |

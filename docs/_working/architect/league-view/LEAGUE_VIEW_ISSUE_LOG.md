@@ -86,33 +86,42 @@ No production code changed for LV-1C because the LV-1A/LV-1B production seam alr
 
 ### LV-2-1 — League View labels canonical `totalCapAllocations` as "Total Salary" in the visible conference table, misrepresenting what value is actually being shown
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** LV-2A
 
 **Problem:**
 `leagueViewModel.ts` consumes `computeTeamCapTotals(capSheet, season.endYear)` and reads `capTotals.totalCapAllocations` as the displayed per-team league summary number. `LeagueViewTruthPanel.tsx` correctly names that boundary as `computeTeamCapTotals totalCapAllocations`. But `LeagueConferenceTable.tsx` still labels the same value as `Total Salary` in the visible column header. `totalCapAllocations` is not raw salary — it is a canonical aggregate that includes player totals, dead money, cap holds, and incomplete roster charges. The feature is therefore precise about what it shows in one place (the truth panel) and softer in another (the table header visible to users). That split-brain display contract means a user or future developer reading the table alone cannot tell whether the column reflects raw salary figures or broader cap-allocation truth.
 
+**Resolution:**
+League View now names the displayed value as `Total Cap Allocations` in both the truth panel and the conference table. The shaped row field was renamed from `totalSalary` to `totalCapAllocations`, and loaded summaries still read directly from `computeTeamCapTotals(...).totalCapAllocations`. No totals-engine, contract-year, or cap-sheet calculation behavior changed.
+
 **Files implicated:**
 
-- `src/features/architect/shared/LeagueView/LeagueConferenceTable.tsx` — column header currently reads `Total Salary`
-- `src/features/architect/shared/LeagueView/LeagueViewTruthPanel.tsx` — truth panel correctly names `computeTeamCapTotals totalCapAllocations`
-- `src/features/architect/shared/LeagueView/leagueViewModel.ts` — sourcing `capTotals.totalCapAllocations` into `totalSalary` field
+- `src/features/architect/shared/LeagueView/LeagueConferenceTable.tsx` — column header now reads `Total Cap Allocations`
+- `src/features/architect/shared/LeagueView/LeagueViewTruthPanel.tsx` — truth panel now presents `Total Cap Allocations` with the `computeTeamCapTotals totalCapAllocations` boundary
+- `src/features/architect/shared/LeagueView/leagueViewModel.ts` — sources `capTotals.totalCapAllocations` into the `totalCapAllocations` summary field
 
 ---
 
 ### LV-2-2 — Conference grouping, sorting, and team-navigation handoff are structurally valid but still too implicit as honest consumer behavior
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** LV-2B
 
 **Problem:**
 `groupLeagueTeamSummaries(...)` splits rows by conference and alphabetizes within each conference. The transforms are simple and do not recompute or normalize totals. The `Manage Team` route push sends the user to `/gm/${teamSlug}` and `GMDashboard.tsx` takes ownership of team-level season state once the user arrives. These seams are structurally valid. But the consumer behavior is still softer than ideal: the grouping/sorting contract is not explicitly declared as consumer-only, so it is not immediately obvious from the source that it is forbidden from recomputing or reshaping totals; and the `Manage Team` navigation handoff does not explicitly state what season truth is or is not carried forward — the session may align in practice, but the contract at the navigation seam itself is implicit rather than enforced. Future contributors cannot easily tell from reading the handoff that season continuity is re-owned by the destination surface rather than passed through as a route param.
 
+**Resolution:**
+Conference grouping and sorting now read explicitly as presentation-only transforms: shaped summaries are split by conference and alphabetized without recomputing or normalizing totals. The truth panel states that grouping and alphabetical order do not recompute totals. The `Manage Team` handoff remains a route-only team identity handoff to `/gm/:teamId`; the League View button exposes the boundary in its title/accessible label, `LeagueView.tsx` documents the route seam, and `GMDashboard.tsx` documents that it owns selected season state after entry. No dashboard routing or wider season-state model was redesigned.
+
 **Files implicated:**
 
-- `src/features/architect/shared/LeagueView/useLeagueTeamSummaries.ts` — conference grouping/sorting consumer hook
-- `src/features/architect/shared/LeagueView/LeagueView.tsx` — `navigate(\`/gm/${teamSlug}\`)` team handoff
-- `src/features/architect/pages/GMDashboard.tsx` — destination surface that re-owns `currentYear` rather than receiving it from League View
+- `src/features/architect/shared/LeagueView/leagueViewModel.ts` — presentation-only conference grouping/sorting helper
+- `src/features/architect/shared/LeagueView/useLeagueTeamSummaries.ts` — async seam consuming grouped summaries
+- `src/features/architect/shared/LeagueView/LeagueViewTruthPanel.tsx` — visible grouping/sorting and handoff boundary text
+- `src/features/architect/shared/LeagueView/LeagueConferenceTable.tsx` — `Manage Team` accessible/title handoff boundary
+- `src/features/architect/shared/LeagueView/LeagueView.tsx` — route-only team handoff
+- `src/features/architect/GMDashboard/GMDashboard.tsx` — destination route-entry note that selected season state is dashboard-owned
 
 ---
 
@@ -123,6 +132,9 @@ No production code changed for LV-1C because the LV-1A/LV-1B production seam alr
 
 **Problem:**
 Step 2 tightens the visible totals label and the grouping/sorting/navigation contract, but none of those improvements are pinned by structural guardrails. Visible totals labels could silently re-soften while canonical totals consumption stays correct; grouping and sorting transforms could widen into more opinionated or less transparent presentation behavior without any loud failure; and the team-navigation handoff could become less honest about season continuity without any direct test catching the drift. League View is a compact surface, which means soft consumer-display choices accumulate quickly and can shape the whole user-facing truth story before a broader pass catches them. Without focused guardrails around display-contract label honesty, transparent consumer-boundary behavior, and team-handoff honesty, the Step 2 improvements made by LV-2A and LV-2B remain discipline-dependent rather than structurally enforced.
+
+**Current note:**
+The LV-2A/LV-2B execution added targeted coverage to the existing focused League View behavior test for the renamed `Total Cap Allocations` display contract and route-only team handoff. LV-2C remains `OPEN` because a dedicated guardrail closeout sweep has not been completed.
 
 **Files implicated:**
 

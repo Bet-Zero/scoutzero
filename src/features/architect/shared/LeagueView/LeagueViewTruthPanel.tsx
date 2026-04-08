@@ -43,11 +43,14 @@ export const LeagueViewTruthPanel = ({
         </p>
         <p>
           <span className="font-semibold text-white">Totals:</span>{' '}
-          {season.totalsBoundaryLabel}
+          {season.totalsDisplayLabel} ({season.totalsBoundaryLabel})
         </p>
       </div>
       <p className="mt-2 text-neutral-300">
         {sourceSummary} {unavailableSummary}
+      </p>
+      <p className="mt-1 text-neutral-400">
+        {season.presentationBoundaryLabel} {season.teamHandoffBoundaryLabel}
       </p>
       {loadError ? (
         <p className="mt-2 text-amber-200">League read failed: {loadError}</p>
