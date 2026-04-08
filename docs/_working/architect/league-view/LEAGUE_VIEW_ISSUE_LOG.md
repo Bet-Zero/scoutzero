@@ -60,20 +60,22 @@ League View season resolution now imports directly from the canonical `seasonFor
 
 ### LV-1-3 — No focused guardrails exist to protect top-level ownership, season-boundary signaling, or loaded-vs-fallback truth
 
-**Status:** OPEN
+**Status:** RESOLVED
 **Substep:** LV-1C
 
 **Problem:**
 League View is currently compact — the whole feature contract lives in one file — which means top-level drift can affect the full feature quickly without any loud failure. The shell-as-thin-consumer behavior improved by LV-1A, the season/source boundary truth improved by LV-1B, and the loaded-vs-fallback distinction are all seams that depend on continued discipline inside `LeagueView.tsx` rather than on structural enforcement. There are no focused tests or source guardrails that pin: the feature shell staying thin rather than accumulating further inline responsibilities; season sourcing remaining grounded rather than drifting through compatibility re-export paths; load failures being marked explicitly rather than flattening into zero-value rows; or fallback/degraded rows being distinguishable from loaded league truth. Without guardrails, a future shell widening, season-source drift, or fallback-handling regression can occur while canonical totals consumption remains intact — leaving a feature that appears functionally correct but tells a softer top-level truth story.
 
 **Resolution:**
-Not resolved.
+Resolved in LEAGUE_VIEW_1C execution.
 
-LEAGUE_VIEW_1A_1B added one focused behavior/source-boundary test to validate the changed LV-1A/LV-1B seam, but this was not the full LV-1C guardrail pass. LV-1C remains open for a dedicated guardrail review that pins broader top-level ownership drift, season-boundary signaling, source/read-only expectations, and loaded-vs-fallback truth beyond the execution slice changed here.
+The focused League View loading-boundary behavior test now includes a closeout guardrail sweep for the Step 1 contract. Source-level assertions pin `LeagueView.tsx` as a composition/navigation shell, keep async state ownership in `useLeagueTeamSummaries.ts`, keep season/read/totals summary shaping in `leagueViewModel.ts`, and keep truth-panel/table presentation outside the shell. Behavior assertions now pin canonical `seasonFormat` resolution, visible season/source/totals labels, top-level load-error visibility, loaded summaries from `computeTeamCapTotals(...).totalCapAllocations`, missing/failed reads as `sourceState: 'unavailable'` with `totalSalary: null`, unavailable rows rendering as not loaded rather than `$0`, and conference grouping preserving loaded/unavailable state truth.
+
+No production code changed for LV-1C because the LV-1A/LV-1B production seam already matched the intended Step 1 feature contract; this pass only added guardrails and updated working docs.
 
 **Files implicated:**
 
 - `src/features/architect/shared/LeagueView/LeagueView.tsx` — primary surface to be protected by guardrails
 - `src/features/architect/utils/seasonUtils.ts` — season-boundary import path to be pinned
 - `src/features/architect/utils/firebaseTeamPlanHelpers.ts` — read-only source seam to be confirmed structurally
-- `src/tests/architect/leagueView.loadingBoundary.behavior.test.tsx` — partial LV-1A/LV-1B seam behavior coverage added during execution; not a full LV-1C closeout
+- `src/tests/architect/leagueView.loadingBoundary.behavior.test.tsx` — focused LV-1C closeout guardrails for ownership, season/source truth, load-error visibility, and loaded-vs-fallback behavior
