@@ -16,14 +16,14 @@ Status and resolution history are tracked per issue.
 **Substep:** LV-1A
 
 **Problem:**
-The League View top level carries a mix of data wiring, display logic, and conditional rendering inline rather than distributing that responsibility to clearly scoped consumer sections. As a result it reads as one combined feature surface rather than a thin shell that delegates to specialized downstream consumers. The composition seam between data loading, league-level state management, and UI rendering is not clearly drawn at the top level, making the boundary between "what the shell owns" and "what each consumer section owns" harder to identify and harder to keep stable as the feature grows. Inline presence of loading branches, fallback representations, and display logic that belongs in sub-surfaces is the root of the ownership ambiguity.
+`LeagueView.tsx` is the real live feature entry point, but it owns too many different responsibilities inline at once: season resolution, league-wide team loading, per-team summary shaping, conference grouping, alphabetical sorting, inline table rendering, and navigation handoff into `/gm/:teamSlug`. There is no dedicated loading hook, summary adapter, row/table component, season/source truth component, or failure-state abstraction. The feature is coherent in the sense that one surface owns the whole league-level read/render flow, but it is not acting like a thin shell over clearer sub-seams — it is acting like the full feature contract in one inline file. That makes the top-level contract easy to locate but broader and softer than ideal, and easier to widen incorrectly as the feature grows.
 
 **Resolution:**
 _Not yet resolved._
 
 **Files implicated:**
 
-- _(to be identified during LV-1A execution)_
+- `src/features/architect/shared/LeagueView/LeagueView.tsx` — primary surface with monolithic top-level ownership
 
 ---
 
@@ -33,14 +33,17 @@ _Not yet resolved._
 **Substep:** LV-1B
 
 **Problem:**
-When League View data has not fully loaded, is loading from a fallback source, or has encountered a partial failure, the surface does not clearly distinguish that degraded or uncertain state from fully loaded authoritative league truth. The season or source in use may not be clearly signed to the viewer, and failure-state or fallback-state rendering can too easily look like normal authoritative output. This creates a class of silent truthiness risk: a user sees league view content that appears canonical, but the data behind it may be stale, partial, or sourced from a fallback rather than the expected current-season league source. The failure-to-signal problem applies to both the data layer and the UI rendering: neither layer makes the boundary between loaded truth and degraded truth sufficiently explicit.
+League View resolves its season boundary once at load time via `getDefaultSeasonEndYear()` from `seasonUtils.ts`, but that choice is never surfaced clearly in the UI — users cannot see what season the surface is displaying, why that season was chosen, or whether it is fixed or changeable. The import also routes through a deprecated compatibility module that simply re-exports the canonical helper from `seasonFormat`, adding a small but real softness to the import boundary. More critically, when a team fails to load, the feature returns a summary row with the team identity preserved but `totalSalary: 0`. Because loaded team rows and fallback rows share the same summary shape, a failed load and a real zero-value team are visually indistinguishable in the rendered league table. The surface does not mark failed rows as failed, unavailable, or fallback — it quietly flattens degraded data state into valid-looking league-summary rows, and there is no status field or UI distinction that separates loaded league truth from fallback/default UI truth created after load failure.
 
 **Resolution:**
 _Not yet resolved._
 
 **Files implicated:**
 
-- _(to be identified during LV-1B execution)_
+- `src/features/architect/shared/LeagueView/LeagueView.tsx` — fallback `totalSalary: 0` behavior; `getDefaultSeasonEndYear()` usage without UI exposure
+- `src/features/architect/utils/seasonUtils.ts` — deprecated compatibility re-export of `getDefaultSeasonEndYear`
+- `src/features/architect/utils/firebaseTeamPlanHelpers.ts` — `loadTeamCapSheet` read seam (source boundary is clean; load-failure silencing is upstream)
+- `src/features/architect/utils/capTotals/computeTeamCapTotals.ts` — canonical totals consumer (not the problem source; context for the zero-value fallback shape)
 
 ---
 
@@ -50,11 +53,13 @@ _Not yet resolved._
 **Substep:** LV-1C
 
 **Problem:**
-The structural contracts that hold top-level League View ownership together — the boundary between shell and consumer sections, the season/source boundary signal, and the distinction between loaded truth and fallback/degraded truth — currently depend on informal convention rather than structural enforcement. There are no focused tests or source guardrails that pin the shell-as-thin-consumer behavior, the season-boundary signal contract, or the loaded-vs-fallback truth policy. This means drift in any of these seams can occur silently as new data sources, season transitions, or feature additions touch the top-level wiring, without any test surface detecting that the intended boundaries have shifted.
+League View is currently compact — the whole feature contract lives in one file — which means top-level drift can affect the full feature quickly without any loud failure. The shell-as-thin-consumer behavior improved by LV-1A, the season/source boundary truth improved by LV-1B, and the loaded-vs-fallback distinction are all seams that depend on continued discipline inside `LeagueView.tsx` rather than on structural enforcement. There are no focused tests or source guardrails that pin: the feature shell staying thin rather than accumulating further inline responsibilities; season sourcing remaining grounded rather than drifting through compatibility re-export paths; load failures being marked explicitly rather than flattening into zero-value rows; or fallback/degraded rows being distinguishable from loaded league truth. Without guardrails, a future shell widening, season-source drift, or fallback-handling regression can occur while canonical totals consumption remains intact — leaving a feature that appears functionally correct but tells a softer top-level truth story.
 
 **Resolution:**
 _Not yet resolved._
 
 **Files implicated:**
 
-- _(to be identified during LV-1C execution)_
+- `src/features/architect/shared/LeagueView/LeagueView.tsx` — primary surface to be protected by guardrails
+- `src/features/architect/utils/seasonUtils.ts` — season-boundary import path to be pinned
+- `src/features/architect/utils/firebaseTeamPlanHelpers.ts` — read-only source seam to be confirmed structurally
