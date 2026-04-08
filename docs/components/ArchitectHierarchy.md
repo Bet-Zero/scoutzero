@@ -134,8 +134,12 @@ offseason/
   index.ts
 shared/
   LeagueView/
+    LeagueConferenceTable.tsx
     LeagueView.tsx
+    LeagueViewTruthPanel.tsx
     index.ts
+    leagueViewModel.ts
+    useLeagueTeamSummaries.ts
   RosterVisual/
     RosterVisual.tsx
     index.ts
@@ -368,5 +372,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-04-05T08:55:28.215Z*
+*Generated on: 2026-04-08T04:05:15.919Z*
 *Auto-updated by: npm run docs*
