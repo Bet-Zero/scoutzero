@@ -4,6 +4,11 @@
  * Handles season advancement logic: contract expirations, options, empty roster charges,
  * draft pick updates, cap hold processing, and Stepien recalculation.
  *
+ * ARCHITECT OWNERSHIP:
+ * - Season-transition authority.
+ * - Owns advanceSeasonInWorld(...) and the committed write path for season/world advancement.
+ * - Not a general-purpose substitute for applyWorldMutation(...).
+ *
  * @file src/features/architect/utils/seasonManager.ts
  * @module seasonManager
  *
@@ -392,6 +397,8 @@ function getUnderlyingPickId(entitlement: unknown): string | null {
 
 /**
  * Advance world to next season with explicit option decisions
+ *
+ * Architect-wide committed season transition entrypoint.
  *
  * This is the Phase 3B implementation that:
  * 1. Requires explicit option decisions (no silent defaults)

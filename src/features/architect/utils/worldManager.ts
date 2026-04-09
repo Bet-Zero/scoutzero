@@ -4,6 +4,11 @@
  * Handles CRUD operations for Architect worlds (scenarios).
  * Worlds are user-created parallel universes where NBA roster changes are simulated.
  *
+ * ARCHITECT OWNERSHIP:
+ * - World metadata and lifecycle authority.
+ * - Owns create/list/update/archive/branch/purge flows plus world metadata writes.
+ * - Not the general mutation pipeline and not the world-aware team/player read layer.
+ *
  * @file src/features/architect/utils/worldManager.ts
  * @module worldManager
  */

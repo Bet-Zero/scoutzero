@@ -20,8 +20,8 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 | Lane  | Name                                                  | Priority | Status      | Batch          |
 | ----- | ----------------------------------------------------- | -------- | ----------- | -------------- |
-| SI-1A | Make global ownership map explicit                    | P1       | NOT STARTED | First (1A+1B)  |
-| SI-1B | Clarify world/base read ownership boundaries          | P1       | NOT STARTED | First (1A+1B)  |
+| SI-1A | Make global ownership map explicit                    | P1       | COMPLETE    | First (1A+1B)  |
+| SI-1B | Clarify world/base read ownership boundaries          | P1       | COMPLETE    | First (1A+1B)  |
 | SI-1C | Clarify mutation/apply vs season-transition authority | P1       | NOT STARTED | Second (1C+1D) |
 | SI-1D | Guard shared cap/contract SSOT boundaries             | P2       | NOT STARTED | Second (1C+1D) |
 
@@ -31,7 +31,7 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -67,11 +67,11 @@ A contributor should be able to answer the following without reading half the re
 
 ### Completion Date
 
-—
+April 9, 2026
 
 ### Notes
 
-Foundation for all later system-integration work. If this stays implicit, later cross-surface review will keep starting from the wrong assumptions.
+Completed with a repo-local ownership map in `src/features/architect/ARCHITECT_FEATURE_README.md`, explicit ownership markers in the dashboard shell/adapters and major authorities, and a focused source-scan guardrail test that locks the map in place. No behavior change was required.
 
 ---
 
@@ -79,7 +79,7 @@ Foundation for all later system-integration work. If this stays implicit, later 
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -110,11 +110,11 @@ These layers should not feel interchangeable to contributors.
 
 ### Completion Date
 
-—
+April 9, 2026
 
 ### Notes
 
-Batched with SI-1A because both are ownership-clarity tasks near the global read/orchestration map and establishing this before mutation/season refinement is the right order.
+Completed by making the read stack explicit as three layers: `firebaseTeamPlanHelpers.ts` (base hydration), `teamLoader.ts` (world-aware fallback authority), and `worldTeamData.ts` (dashboard-facing adapter). The batch also added comments in downstream dashboard hooks to reinforce that they consume layer 3 rather than reconstructing lower-layer truth.
 
 ---
 

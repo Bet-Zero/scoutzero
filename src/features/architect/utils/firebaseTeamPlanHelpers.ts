@@ -3,6 +3,11 @@
  * PURPOSE: Firebase helpers for loading base team/player data and free agents.
  * OWNERSHIP: Feature: architect/core
  *
+ * ARCHITECT READ-STACK LAYER: base hydration authority.
+ * - Owns base team/player/free-agent reads and hydrated base team shapes.
+ * - Not world-aware; lineage fallback belongs in teamLoader.ts.
+ * - Not a committed-write authority; world writes live in higher authorities.
+ *
  * HISTORY:
  *  - 2025-12-25: Removed legacy teamPlans save/load functions (worlds-only cleanup)
  *  - 2026-01-21: Added entitlementIds pass-through for base team hydration
@@ -263,6 +268,12 @@ export type HydratedBaseTeamCapSheet = {
   totals: TeamTotals;
 };
 
+/**
+ * Layer 1 of the Architect read stack.
+ *
+ * Hydrates a base team document into the base-only team shape used by higher
+ * read layers. This function deliberately does not resolve world lineage.
+ */
 export const hydrateBaseTeam = async (
   teamCode: string,
   baseDoc: LooseBaseTeamDoc
@@ -373,6 +384,13 @@ export const hydrateBaseTeam = async (
   };
 };
 
+/**
+ * Base-only dashboard loader.
+ *
+ * Use teamLoader.getTeam(...) when world-aware fallback resolution is required.
+ * Use worldTeamData.loadWorldTeamData(...) for dashboard reads that should stay
+ * inside the full three-layer read contract.
+ */
 export const loadTeamCapSheet = async (teamId: TeamIdLike) => {
   try {
     const teamCode = resolveTeamCode(teamId);

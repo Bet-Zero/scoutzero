@@ -3,6 +3,12 @@
  * PURPOSE: Centralized action handlers for GMDashboard - manages all user interactions and mutations.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
+ * ARCHITECT OWNERSHIP:
+ * - Dashboard action orchestration adapter.
+ * - Routes committed mutation writes through mutationPipeline.ts.
+ * - Uses dashboard-facing reload adapters after commits so UI state stays aligned.
+ * - Does not replace mutationPipeline.ts or seasonManager.ts as committed authorities.
+ *
  * HISTORY:
  *  - 2025-12-12: Created - extracted all handlers from GMDashboard.tsx (Phase 3 refactor)
  *  - 2025-12-12: Converted to TypeScript with proper type annotations
@@ -2071,6 +2077,8 @@ export function useArchitectActions({
         return null;
       }
 
+      // Post-commit UI reloads intentionally re-enter through the dashboard
+      // adapter instead of rebuilding world/base fallback logic locally.
       const reloadedTeam = await loadWorldTeamData(worldId, teamCode);
       if (!reloadedTeam) {
         return null;

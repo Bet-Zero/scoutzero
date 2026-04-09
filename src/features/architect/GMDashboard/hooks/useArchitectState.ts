@@ -3,6 +3,12 @@
  * PURPOSE: Centralized state management hook for GMDashboard - manages all dashboard state, data loading, and persistence.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
+ * ARCHITECT OWNERSHIP:
+ * - Dashboard-state adapter.
+ * - Consumes the explicit read stack through worldTeamData.ts and worldManager.ts.
+ * - Coordinates dashboard-visible state, world metadata, and roster context.
+ * - Does not own world/base fallback resolution or committed writes.
+ *
  * HISTORY:
  *  - 2025-12-12: Created - extracted all state from GMDashboard.tsx (Phase 2 refactor)
  *  - 2025-12-12: Converted to TypeScript with proper type annotations
@@ -941,6 +947,10 @@ export function useArchitectState({
       } = {}
     ): Promise<CoordinatedWorldLoadBundle> => {
       const refreshRosterBundle = options.refreshRosterBundle !== false;
+      // Read-stack contract: dashboard state enters through layer 3
+      // (worldTeamData.ts), which adapts layer 2 (teamLoader.ts) over
+      // layer 1 (firebaseTeamPlanHelpers.ts). This hook should not
+      // reconstruct the fallback chain locally.
       const teamSnapshot =
         options.committedTeamSnapshot !== undefined
           ? options.committedTeamSnapshot

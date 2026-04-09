@@ -3,6 +3,12 @@
  * PURPOSE: Primary Architect dashboard for managing cap sheets, contracts, trades, and free agency flows.
  * OWNERSHIP: Feature: architect/core dashboard
  *
+ * ARCHITECT OWNERSHIP:
+ * - Composition shell only.
+ * - Delegates dashboard-visible state/load coordination to useArchitectState.
+ * - Delegates UI mutation orchestration to useArchitectActions.
+ * - Must not become a world-read or committed-write authority.
+ *
  * HISTORY:
  *  - 2025-12-10: Updated to surface player rules profile integration (chunk_01).
  *  - 2025-12-10: Wired multi-year rules context into cap table + contract modal flows (chunk_02).

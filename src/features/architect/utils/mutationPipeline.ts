@@ -3,6 +3,12 @@
  * PURPOSE: Centralized mutation pipeline for all Architect world mutations.
  * OWNERSHIP: Feature: architect/core
  *
+ * ARCHITECT OWNERSHIP:
+ * - Canonical committed-write authority for general world mutations.
+ * - Public mutation entrypoint: READ -> COMPUTE -> VALIDATE -> PERSIST.
+ * - UI/hooks must route general committed mutation writes here.
+ * - Season advancement remains a separate committed authority in seasonManager.ts.
+ *
  * HISTORY:
  *  - 2025-12-17: Created per ARCHITECT_GAP_ANALYSIS.md Phase 1 implementation
  *  - 2025-12-25: Removed legacy teamPlans reference (worlds-only cleanup)

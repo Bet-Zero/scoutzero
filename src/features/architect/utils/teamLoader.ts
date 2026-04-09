@@ -4,6 +4,11 @@
  * Implements the fallback chain pattern: world snapshot -> parent world -> base
  * This enables efficient storage by only snapshotting modified teams.
  *
+ * ARCHITECT READ-STACK LAYER: world-aware fallback-chain authority.
+ * - Owns world -> parent world -> base resolution for team/player reads.
+ * - Delegates base hydration to firebaseTeamPlanHelpers.ts.
+ * - Dashboard consumers should use worldTeamData.ts when they need adapter-friendly team loads.
+ *
  * @file src/utils/architect/teamLoader.ts
  * @module teamLoader
  */
@@ -78,6 +83,8 @@ function synchronizeLoadedTeam(team: TeamLike): TeamLike {
 /**
  * Get team data with fallback chain
  *
+ * Layer 2 of the Architect read stack.
+ *
  * Fallback order:
  * 1. World snapshot (if worldId provided)
  * 2. Parent world snapshot (recursive)
@@ -133,6 +140,9 @@ export async function getTeam(
 
 /**
  * Get base team (no world context)
+ *
+ * Internal base fallback entry for the world-aware authority. Dashboard callers
+ * should prefer loadWorldTeamData(...) unless they explicitly need layer 2.
  *
  * @param teamCode - Team code
  * @returns Base team data

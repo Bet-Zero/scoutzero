@@ -1,0 +1,97 @@
+import { describe, expect, it } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const architectRoot = path.resolve(__dirname, '../../features/architect');
+
+const readArchitectFile = (relativePath: string) =>
+  fs.readFileSync(path.join(architectRoot, relativePath), 'utf-8');
+
+describe('Architect System Integration Step 1 ownership guardrails', () => {
+  const featureReadmeSource = readArchitectFile('ARCHITECT_FEATURE_README.md');
+  const dashboardSource = readArchitectFile('GMDashboard/GMDashboard.tsx');
+  const stateHookSource = readArchitectFile(
+    'GMDashboard/hooks/useArchitectState.ts'
+  );
+  const actionsHookSource = readArchitectFile(
+    'GMDashboard/hooks/useArchitectActions.ts'
+  );
+  const worldManagerSource = readArchitectFile('utils/worldManager.ts');
+  const teamLoaderSource = readArchitectFile('utils/teamLoader.ts');
+  const worldTeamDataSource = readArchitectFile('utils/worldTeamData.ts');
+  const firebaseHelpersSource = readArchitectFile(
+    'utils/firebaseTeamPlanHelpers.ts'
+  );
+  const mutationPipelineSource = readArchitectFile('utils/mutationPipeline.ts');
+  const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
+
+  it('documents the top-level ownership map in the Architect feature README', () => {
+    expect(featureReadmeSource).toContain('## Architect Ownership Map');
+    expect(featureReadmeSource).toContain('## Quick Answers');
+    expect(featureReadmeSource).toContain('## Architect Read Stack Contract');
+    expect(featureReadmeSource).toContain(
+      '**World-aware read authority:** `teamLoader.ts` owns the explicit `world -> parent world -> base` fallback contract'
+    );
+    expect(featureReadmeSource).toContain(
+      '**Dashboard read adapter:** `worldTeamData.ts` adapts the lower read layers into dashboard-friendly team loads.'
+    );
+    expect(featureReadmeSource).toContain(
+      'If a caller needs dashboard team data, use `loadWorldTeamData(...)`.'
+    );
+  });
+
+  it('marks shell and dashboard adapters as non-authoritative', () => {
+    expect(dashboardSource).toContain('Composition shell only.');
+    expect(dashboardSource).toContain(
+      'Must not become a world-read or committed-write authority.'
+    );
+    expect(stateHookSource).toContain('Dashboard-state adapter.');
+    expect(stateHookSource).toContain(
+      'Does not own world/base fallback resolution or committed writes.'
+    );
+    expect(actionsHookSource).toContain(
+      'Dashboard action orchestration adapter.'
+    );
+    expect(actionsHookSource).toContain(
+      'Does not replace mutationPipeline.ts or seasonManager.ts as committed authorities.'
+    );
+  });
+
+  it('marks the world/base/dashboard read stack as three distinct layers', () => {
+    expect(firebaseHelpersSource).toContain(
+      'ARCHITECT READ-STACK LAYER: base hydration authority.'
+    );
+    expect(firebaseHelpersSource).toContain(
+      'Layer 1 of the Architect read stack.'
+    );
+    expect(teamLoaderSource).toContain(
+      'ARCHITECT READ-STACK LAYER: world-aware fallback-chain authority.'
+    );
+    expect(teamLoaderSource).toContain('Layer 2 of the Architect read stack.');
+    expect(worldTeamDataSource).toContain(
+      'ARCHITECT READ-STACK LAYER: dashboard-facing adapter.'
+    );
+    expect(worldTeamDataSource).toContain(
+      'Layer 3 of the Architect read stack.'
+    );
+  });
+
+  it('marks the major committed authorities explicitly', () => {
+    expect(worldManagerSource).toContain(
+      'World metadata and lifecycle authority.'
+    );
+    expect(mutationPipelineSource).toContain(
+      'Canonical committed-write authority for general world mutations.'
+    );
+    expect(mutationPipelineSource).toContain(
+      'Season advancement remains a separate committed authority in seasonManager.ts.'
+    );
+    expect(seasonManagerSource).toContain('Season-transition authority.');
+    expect(seasonManagerSource).toContain(
+      'Architect-wide committed season transition entrypoint.'
+    );
+  });
+});

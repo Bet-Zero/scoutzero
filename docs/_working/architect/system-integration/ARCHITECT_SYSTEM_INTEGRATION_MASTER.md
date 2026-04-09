@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 1 — Bootstrap Complete. Awaiting Step 1 execution.**
+**Step 1 — First execution batch (SI-1A + SI-1B) complete. Second batch pending.**
 
 ## Purpose
 
@@ -38,7 +38,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries     | Bootstrap complete — ready for execution |
+| Step 1   | Global Ownership and Truth Boundaries     | First batch complete — second batch pending |
 | Step 2   | Cross-Surface Handoff Integrity           | Not started                              |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
@@ -67,6 +67,14 @@ Map where truth actually lives across Architect as one integrated system. Distin
 
 - **First batch:** SI-1A + SI-1B
 - **Second batch:** SI-1C + SI-1D
+
+### Step 1 Batch 1 Execution Update
+
+**Completed:** April 9, 2026
+
+- **SI-1A complete:** Added an Architect-wide ownership map to `src/features/architect/ARCHITECT_FEATURE_README.md` and explicit shell/adapter/authority markers in the core dashboard and authority files.
+- **SI-1B complete:** Made the three-layer read contract explicit across `firebaseTeamPlanHelpers.ts`, `teamLoader.ts`, and `worldTeamData.ts`, then added a focused guardrail test to keep those markers durable.
+- **Behavior impact:** No product-behavior change intended. This batch is ownership-clarity and guardrail work only.
 
 ---
 
@@ -110,5 +118,6 @@ Map where truth actually lives across Architect as one integrated system. Distin
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_REVIEW_TRACKER.md`         | Step 1 execution lane tracker     |
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_ISSUE_LOG.md`              | Step 1 issue/risk log             |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 1 bootstrap return package   |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 1 batch 1 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

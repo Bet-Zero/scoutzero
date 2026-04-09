@@ -31,7 +31,7 @@ It is distinct from the Review Tracker. The tracker manages execution lane statu
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-1A
 
@@ -45,6 +45,9 @@ New contributors or agents operating on limited context will frequently misident
 The global ownership model should be made explicit enough that a contributor can quickly identify authorities, adapters, wrappers, and display consumers without an exploratory read across multiple files.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §1
+
+**Resolution Notes (2026-04-09):**
+Added an Architect-wide ownership map and quick-answer section to `src/features/architect/ARCHITECT_FEATURE_README.md`, then added explicit ownership markers to the dashboard shell, dashboard hooks, and major authority files. A focused source-scan guardrail test now protects that ownership map from becoming implicit again.
 
 ---
 
@@ -73,7 +76,7 @@ The repo should express the relationship and division of responsibility between 
 
 **Severity:** MEDIUM-HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-1B
 
@@ -94,13 +97,16 @@ The three-layer read contract should be made explicit enough that:
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §3
 
+**Resolution Notes (2026-04-09):**
+Marked the read stack explicitly as Layer 1 (`firebaseTeamPlanHelpers.ts` base hydration), Layer 2 (`teamLoader.ts` world-aware fallback authority), and Layer 3 (`worldTeamData.ts` dashboard-facing adapter). Added a README contract section and a guardrail test so the layered read story stays explicit.
+
 ---
 
 ### SI-ISS-004 — Shared adapter/modal surfaces can appear more authoritative than they are
 
 **Severity:** MEDIUM
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-1A
 
@@ -114,6 +120,9 @@ If these surfaces are misread as authorities, contributors may add persistence l
 The orchestration/adapter role of these surfaces should be made more explicit, ideally both in documentation and through clearer naming or ownership markers at the boundary.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §4
+
+**Resolution Notes (2026-04-09):**
+Added explicit adapter/shell ownership markers to `GMDashboard.tsx`, `useArchitectState.ts`, and `useArchitectActions.ts`, and documented those files as orchestration surfaces in the Architect feature README instead of final authorities.
 
 ---
 
@@ -142,7 +151,7 @@ This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step
 
 **Severity:** LOW-MEDIUM
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-1A, SI-1B
 
@@ -156,6 +165,9 @@ Without clear ownership markers at each adapter layer, contributors may modify t
 Addressed as part of SI-1A (global ownership clarity) and SI-1B (read stack contract). Not a standalone execution item.
 
 **Source:** Step 1 Review Record — "Duplicate / Fallback / Legacy / Alternate Path Analysis"
+
+**Resolution Notes (2026-04-09):**
+The ownership map, read-stack contract, and in-hook comments now explain which layer should change for which job. The new guardrail test protects those navigation markers so contributors do not have to infer the adapter stack from imports alone.
 
 ---
 

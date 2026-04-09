@@ -1,19 +1,15 @@
 /**
  * FILE: src/features/architect/utils/worldTeamData.ts
- * PURPOSE: World-aware team data loading utilities for Architect feature
+ * PURPOSE: Dashboard-facing team data adapter for Architect world/base reads.
  * OWNERSHIP: Feature: architect
+ *
+ * ARCHITECT READ-STACK LAYER: dashboard-facing adapter.
+ * - Consumes teamLoader.ts for world-aware resolution.
+ * - Falls back to firebaseTeamPlanHelpers.ts only for base-only dashboard mode.
+ * - Does not own world -> parent -> base truth; it adapts that truth for dashboard consumers.
  *
  * HISTORY:
  *  - 2025-12-20: Created for Phase 2B - wire world-aware data loading
- *
- * LINKS:
- *  - teamLoader API: src/features/architect/utils/teamLoader.js
- *  - Gap Analysis: docs/ARCHITECT_GAP_ANALYSIS.md
- *
- * This module provides world-aware team data loading using the teamLoader fallback chain:
- * 1. World snapshot (if worldId provided)
- * 2. Parent world snapshot (recursive)
- * 3. Base team (architect_baseTeams)
  */
 
 import { getTeam } from '@/features/architect/utils/teamLoader';
@@ -126,10 +122,14 @@ function synchronizeLoadedTeamTotals(
 /**
  * Load team data with world awareness
  *
+ * Layer 3 of the Architect read stack.
+ *
  * Uses teamLoader for world-aware reads with fallback chain:
  * - world snapshot → parent world → base team
  *
  * Falls back to loadTeamCapSheet when worldId is null (base-only mode).
+ * Dashboard consumers should prefer this adapter instead of reconstructing
+ * the lower-layer contract locally.
  *
  * @param worldId - World ID for world-aware reads (null for base-only)
  * @param teamId - Team ID/slug (e.g., "lakers" or "LAL")
