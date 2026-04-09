@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 2 execution complete; ready for Step 2 closeout review.**
+**Step 2 closeout review PASS; ready for Step 3.**
 
 ## Purpose
 
@@ -39,7 +39,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
 | Step 1   | Global Ownership and Truth Boundaries     | Closeout rereview PASS — complete        |
-| Step 2   | Cross-Surface Handoff Integrity           | Execution complete — ready for closeout review |
+| Step 2   | Cross-Surface Handoff Integrity           | Closeout review PASS — complete          |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
 | Closeout | Whole-Feature System Integration Closeout | Not started                              |
@@ -219,6 +219,18 @@ This is not a failure of basic architecture. It is a handoff-clarity and contrac
 - **Behavior impact:** no intended product-behavior change. This batch tightens cross-surface contract clarity and gating ownership only.
 - **Next move:** proceed to Step 2 closeout review.
 
+### Step 2 Closeout Review Update
+
+**Completed:** April 9, 2026
+
+- **Closeout verdict:** `PASS`
+- **What was rechecked:** the live shell-to-section handoff surfaces, Free Agency `actionOwner` slices, Trade Machine normalize/commit/base-apply seam, world-only vs preview-only gating surfaces, and Step 2 guardrail coverage.
+- **Why it now passes:** `GMDashboard.tsx` now publishes named section contracts, the major wrappers state ownership/forwarding boundaries consistently enough, Free Agency routing/rendering/gating ownership is separated cleanly, and the Trade Machine handoff now reads as a staged draft -> authoritative payload -> committed/base re-entry contract instead of one overloaded callback.
+- **Guardrail basis:** targeted Step 2 rereview suites passed on the live repo, including the shell/handoff guardrail, the trade authoritative-gate guardrail, the Free Agency closure/offer-sheet guards, the Offseason DEV-gate guardrail, and the focused `useArchitectActions.freeAgency.test.tsx` behavior suite.
+- **Residual note:** some wrapper-contract guardrails remain source-scan oriented, and the shared committed world-sync helper still delegates into older Free Agency-named internals, but those are no longer Step 2 blockers because the published cross-surface seam is now explicit and the higher-risk behavior paths are covered by live tests.
+- **Step 2 status:** officially closed.
+- **Next move:** proceed to Step 3 — State/Action/Mutation Contract Durability.
+
 ---
 
 ## Related Documents
@@ -240,5 +252,6 @@ This is not a failure of basic architecture. It is a handoff-clarity and contrac
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 2 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 2 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 2 batch 2 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 2 closeout review package    |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |
