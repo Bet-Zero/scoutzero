@@ -82,7 +82,7 @@ Relevant tests / guardrails:
 
 ### Step 1 - Roster Display Adapter, World/Base Truth Dependency, and Legacy Boundary
 
-**Status:** executed; whole-feature closeout unblock complete and ready for rereview.
+**Status:** executed; whole-feature closeout rereview passed.
 
 Substeps:
 
@@ -99,7 +99,7 @@ Code changes stayed inside the live roster seam:
 
 - `RosterVisual` now exposes explicit cap-sheet and details-map input types for the local adapter contract.
 - `teamCapSheet.players` is documented and implemented as the roster membership source.
-- `playersMap` is used only as enrichment/detail truth, with lookup candidates aligned to the keys built by `useArchitectState` (`name`, normalized name, `displayName`, `id`, `player_id`, `playerId`, and bio IDs/display names).
+- `playersMap` is used only as enrichment/detail truth, with live upstream map keys coming from `name`, normalized `name`, `id`, `player_id`, and `bio.playerId`, while `RosterVisual` also accepts compatible display-name / `playerId` fallbacks without changing that upstream contract.
 - Hydrated team player data still wins over detail-map data when both provide the same local field.
 - The legacy roster renderer is called through an explicit display/export-mode prop bundle.
 - The legacy roster section only shows remove/add controls when export mode is off and mutation handlers are present.
@@ -115,13 +115,25 @@ No stop condition triggered. No Step 2 was created.
 
 ## Current Verdict
 
-**Whole-Feature Closeout Status:** `RISK` from first closeout review; unblock execution complete.
+**Whole-Feature Closeout Status:** `PASS`
 
-The live roster seam is coherent as a display-only consumer of upstream team/player truth, and the focused roster adapter guardrail passes.
+Final whole-feature rereview confirmed the live roster seam is coherent as a display-only consumer of upstream team/player truth:
 
-The closeout-blocking broader Architect UI behavior test has been repaired. `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` now mocks the current roster-utils surface, including `normalizeRosterShape`, and expects the current normalized roster behavior: 5 starters, 4 rotation players, and a 6-player bench after two-way bench fill.
+- `GMDashboard` still enters the roster tab through one wrapper seam.
+- `useArchitectState` still owns world/base team loading and world-aware player enrichment.
+- `RosterVisual` still treats `teamCapSheet.players` as membership truth and `playersMap` as enrichment truth only.
+- the legacy roster renderer remains display/export mode only, with no mutation handlers or persistence path reintroduced.
 
-Architect Roster is not officially closed until whole-feature rereview returns a final `PASS`. No Step 2 feature expansion is currently justified.
+Current live validation is sufficient for closeout:
+
+- `src/tests/architect/rosterVisual.adapterBoundary.test.tsx` passes.
+- `src/tests/architect/grouped33FileScope.ui.behavior.test.tsx` passes.
+- `src/tests/architect/GMDashboard.smoke.test.tsx` passes.
+- the roster-relevant `RosterVisual` parity case inside `src/tests/architect/internalWrapperBatch.e125.guardrail.test.tsx` passes when isolated.
+
+The broader `internalWrapperBatch` file still has unrelated non-roster failures (`FreeAgentPool` timeout and `OffseasonSection` import-string expectation drift), but those do not expose a local Architect Roster seam defect and do not justify keeping this feature open.
+
+Architect Roster is officially closed. No further unblock execution and no Step 2 feature expansion are needed.
 
 ## Working Docs
 
@@ -136,6 +148,7 @@ Architect Roster is not officially closed until whole-feature rereview returns a
 - `return_packages/architect/ARCHITECT_ROSTER_STEP1_EXECUTION_RETURN_PACKAGE.md`
 - `return_packages/architect/ARCHITECT_ROSTER_WHOLE_FEATURE_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`
 - `return_packages/architect/ARCHITECT_ROSTER_WHOLE_FEATURE_CLOSEOUT_UNBLOCK_EXECUTION_RETURN_PACKAGE.md`
+- `return_packages/architect/ARCHITECT_ROSTER_WHOLE_FEATURE_CLOSEOUT_REREVIEW_RETURN_PACKAGE.md`
 
 ## Validation Policy
 
@@ -155,3 +168,9 @@ Closeout-unblock validation:
 
 - `npm run test:ui -- src/tests/architect/grouped33FileScope.ui.behavior.test.tsx --reporter=dot` - passed
 - `npm run test:ui -- src/tests/architect/rosterVisual.adapterBoundary.test.tsx --reporter=dot` - passed
+
+Whole-feature rereview validation:
+
+- `npm run test:ui -- src/tests/architect/rosterVisual.adapterBoundary.test.tsx src/tests/architect/grouped33FileScope.ui.behavior.test.tsx --reporter=dot` - passed
+- `npm run test:ui -- src/tests/architect/GMDashboard.smoke.test.tsx src/tests/architect/internalWrapperBatch.e125.guardrail.test.tsx --reporter=dot` - `GMDashboard.smoke` passed; `internalWrapperBatch` failed in unrelated non-roster cases (`FreeAgentPool` timeout and `OffseasonSection` import-string assertion)
+- `npm run test:ui -- src/tests/architect/internalWrapperBatch.e125.guardrail.test.tsx -t "keeps RosterVisual extensionless imports aligned with the TS authority" --reporter=dot` - passed
