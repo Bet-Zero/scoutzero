@@ -204,20 +204,26 @@ Step 1 will be marked closed when all of the following are true:
 
 ### Verdict
 
-`FOLLOW-UP EXECUTED`
+`PASS`
 
 ### Status
 
-The narrow SI-1C closeout blocker follow-up is complete. Step 1 execution lanes remain COMPLETE, and Step 1 now awaits **closeout rereview** rather than another open execution blocker.
+Step 1 is officially closed. The live rereview confirmed that the narrow SI-1C closeout blocker is gone from the source of truth, the direct guardrail now protects that exact seam, and all Step 1 execution lanes remain COMPLETE.
 
 ### Follow-Up Applied
 
 - narrowed `applyWorldMutation(...)` wording so it now claims only the general / point-in-time mutation entrypoint
 - added direct Step 1 guardrail coverage that fails if the old overbroad "single public entrypoint for all world mutations" claim returns
 
+### Closeout Rereview Confirmation
+
+- live repo rereview confirmed `mutationPipeline.ts` now limits `applyWorldMutation(...)` to general / point-in-time world mutations and explicitly leaves season/world transitions in `seasonManager.ts`
+- `src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts` now both requires the narrowed wording and forbids the old overbroad claim
+- targeted rereview validation passed on the live repo: `5` files, `26` tests
+
 ### Next Move
 
-Rerun Step 1 closeout review to determine whether Step 1 can now be officially closed.
+Proceed to Step 2 — Cross-Surface Handoff Integrity.
 
 ---
 

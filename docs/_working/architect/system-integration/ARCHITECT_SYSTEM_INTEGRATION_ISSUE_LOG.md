@@ -79,6 +79,9 @@ Live repo closeout review found a remaining contradiction in `src/features/archi
 **Narrow Follow-Up Resolution Note (2026-04-09):**
 Updated `src/features/architect/utils/mutationPipeline.ts` so `applyWorldMutation(...)` now describes itself as the public entrypoint for general / point-in-time Architect world mutations, explicitly excluding season/world transitions. Updated `src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts` to require that narrowed wording and to fail if the old overbroad "SINGLE public entrypoint for all world mutations" claim returns.
 
+**Closeout Rereview Confirmation (2026-04-09):**
+Live rereview of the repo confirmed the contradiction is gone from `src/features/architect/utils/mutationPipeline.ts`, the Step 1 ownership guardrail now directly protects that exact wording seam, and the targeted rereview guardrail suite passed. No Step 1 blocker remains for `SI-ISS-002`.
+
 ---
 
 ### SI-ISS-003 — World/base read stack is coherent but fragile from a contributor standpoint

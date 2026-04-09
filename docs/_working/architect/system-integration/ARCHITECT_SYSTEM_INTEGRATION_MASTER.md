@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 1 narrow follow-up complete. Closeout rereview pending.**
+**Step 1 closeout rereview complete. Step 1 is officially closed; ready for Step 2.**
 
 ## Purpose
 
@@ -38,7 +38,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries     | Narrow follow-up complete — closeout rereview pending |
+| Step 1   | Global Ownership and Truth Boundaries     | Closeout rereview PASS — complete         |
 | Step 2   | Cross-Surface Handoff Integrity           | Not started                              |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
@@ -103,6 +103,16 @@ Map where truth actually lives across Architect as one integrated system. Distin
 - No broader Step 1 scope was reopened.
 - **Next move:** rerun Step 1 closeout review to confirm the blocker is fully cleared and decide whether Step 1 can now close.
 
+### Step 1 Closeout Rereview Update
+
+**Completed:** April 9, 2026
+
+- **Rereview verdict:** `PASS`
+- **What was rechecked:** the live ownership map, three-layer read stack, mutation-vs-season sibling-authority seam, shared cap/contract SSOT surfaces, and Step 1 guardrail coverage.
+- **Why it now passes:** `mutationPipeline.ts` no longer overclaims the full committed-write surface, `systemIntegration.step1Ownership.guardrail.test.ts` now directly forbids that old contradiction from returning, and the targeted rereview guardrail suite passed against the live repo.
+- **Step 1 status:** officially closed.
+- **Next move:** proceed to Step 2 — Cross-Surface Handoff Integrity.
+
 ---
 
 ## Key Ownership Map (from Step 1 Review)
@@ -149,5 +159,6 @@ Map where truth actually lives across Architect as one integrated system. Distin
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 1 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 1 closeout review package    |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_FOLLOWUP_RETURN_PACKAGE.md`           | Step 1 narrow follow-up package   |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_CLOSEOUT_REREVIEW_RETURN_PACKAGE.md`  | Step 1 closeout rereview package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |
