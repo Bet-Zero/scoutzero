@@ -22,8 +22,8 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 | ----- | ----------------------------------------------------- | -------- | ----------- | -------------- |
 | SI-1A | Make global ownership map explicit                    | P1       | COMPLETE    | First (1A+1B)  |
 | SI-1B | Clarify world/base read ownership boundaries          | P1       | COMPLETE    | First (1A+1B)  |
-| SI-1C | Clarify mutation/apply vs season-transition authority | P1       | NOT STARTED | Second (1C+1D) |
-| SI-1D | Guard shared cap/contract SSOT boundaries             | P2       | NOT STARTED | Second (1C+1D) |
+| SI-1C | Clarify mutation/apply vs season-transition authority | P1       | COMPLETE    | Second (1C+1D) |
+| SI-1D | Guard shared cap/contract SSOT boundaries             | P2       | COMPLETE    | Second (1C+1D) |
 
 ---
 
@@ -122,7 +122,7 @@ Completed by making the read stack explicit as three layers: `firebaseTeamPlanHe
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -146,11 +146,11 @@ The mutation-vs-season boundary is materially less ambiguous and no local/dashbo
 
 ### Completion Date
 
-—
+April 9, 2026
 
 ### Notes
 
-Identified as the biggest Step 1 ambiguity. Both are major authorities but the repo does not yet express their relationship clearly. Deferred to second batch because first batch (SI-1A+1B) will establish the global ownership frame needed to address this clearly.
+Completed by moving shared persistence sanitization below both committed-write authorities into `persistenceContracts/enforcement.ts`, then updating `mutationPipeline.ts`, `seasonManager.ts`, `SeasonAdvanceModal.tsx`, and the Step 1 guardrails so the relationship now reads as sibling authorities with distinct scopes. `mutationPipeline.ts` remains the point-in-time mutation/apply authority; `seasonManager.ts` remains the whole-world season-transition authority.
 
 ---
 
@@ -158,7 +158,7 @@ Identified as the biggest Step 1 ambiguity. Both are major authorities but the r
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -182,11 +182,11 @@ The repo communicates clearly that canonical cap totals come from one place, sha
 
 ### Completion Date
 
-—
+April 9, 2026
 
 ### Notes
 
-Multiple major Architect features depend on these seams. Risk is not internal duplication; risk is downstream surfaces bypassing them or silently reconstructing their outputs.
+Completed by strengthening `contractUtils.ts` ownership markers and extending the Step 1 guardrail coverage to key downstream Architect consumers (`CapSheet`, `CapSheetFull`, `TradeTeamCard`, `LeagueView`, `usePlayerRulesProfiles`, and `EditContractModal`). Live repo inspection showed `computeTeamCapTotals.ts` already had an explicit SSOT fence, so this batch focused on making downstream reliance on the shared cap/contract authorities more durable rather than refactoring already-canonical logic.
 
 ---
 

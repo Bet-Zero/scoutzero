@@ -85,7 +85,7 @@ vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   },
 }));
 
-vi.mock('@/features/architect/utils/mutationPipeline', () => ({
+vi.mock('@/features/architect/utils/persistenceContracts/enforcement', () => ({
   sanitizeTransientFieldsForPersistence: (value: Record<string, unknown>) => value,
 }));
 

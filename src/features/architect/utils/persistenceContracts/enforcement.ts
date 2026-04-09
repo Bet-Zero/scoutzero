@@ -3,6 +3,11 @@
  * PURPOSE: Enforcement logic for persistence contracts (test-on, production-off).
  * OWNERSHIP: Feature: architect/core
  *
+ * ARCHITECT OWNERSHIP:
+ * - Lower-level persistence hygiene and persistable-shape enforcement authority.
+ * - Shared by committed-write authorities such as mutationPipeline.ts and seasonManager.ts.
+ * - Not a mutation/apply or season-transition entrypoint on its own.
+ *
  * HISTORY:
  *  - 2026-03-20: E123 - Retired same-path .js host imports for persistence contract helpers
  *  - 2026-03-11: Phase E50 - Migrated authoritative implementation to TypeScript
@@ -27,6 +32,8 @@ import {
   type PersistableDeepRules,
 } from './validatePersistableShape';
 
+type LooseRecord = Record<string, unknown>;
+
 export interface PersistableContractLike {
   topLevel: readonly string[];
   deepRules: PersistableDeepRules | null;
@@ -47,6 +54,51 @@ export interface PersistableContractCheckResult {
 interface ImportMetaEnvLike {
   MODE?: string;
   VITE_ENFORCE_PERSIST_CONTRACTS?: string;
+}
+
+/**
+ * Shared transient-key fence for committed-write persistence paths.
+ *
+ * These keys are mutation/validation artifacts and must not reach Firestore.
+ * The helper lives below mutationPipeline.ts and seasonManager.ts so those two
+ * sibling authorities can share one persistence hygiene layer.
+ */
+export const FORBIDDEN_TRANSIENT_KEYS = Object.freeze([
+  '_validatedTradeContext',
+  '_signingValidation',
+  '_isPostTradeSnapshot',
+  '_isValidatedTradeContext',
+  '_rawValidation',
+]);
+
+export function sanitizeTransientFieldsForPersistence(
+  obj: unknown,
+  forbiddenKeys: readonly string[] = FORBIDDEN_TRANSIENT_KEYS
+): unknown {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item: unknown) =>
+      sanitizeTransientFieldsForPersistence(item, forbiddenKeys)
+    );
+  }
+
+  if (typeof obj === 'object') {
+    const result: LooseRecord = {};
+
+    for (const [key, value] of Object.entries(obj as LooseRecord)) {
+      if (forbiddenKeys.includes(key)) {
+        continue;
+      }
+      result[key] = sanitizeTransientFieldsForPersistence(value, forbiddenKeys);
+    }
+
+    return result;
+  }
+
+  return obj;
 }
 
 /**

@@ -6,9 +6,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const architectRoot = path.resolve(__dirname, '../../features/architect');
+const sharedRoot = path.resolve(__dirname, '../../shared');
 
 const readArchitectFile = (relativePath: string) =>
   fs.readFileSync(path.join(architectRoot, relativePath), 'utf-8');
+const readSharedFile = (relativePath: string) =>
+  fs.readFileSync(path.join(sharedRoot, relativePath), 'utf-8');
 
 describe('Architect System Integration Step 1 ownership guardrails', () => {
   const featureReadmeSource = readArchitectFile('ARCHITECT_FEATURE_README.md');
@@ -27,6 +30,27 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
   );
   const mutationPipelineSource = readArchitectFile('utils/mutationPipeline.ts');
   const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
+  const persistenceEnforcementSource = readArchitectFile(
+    'utils/persistenceContracts/enforcement.ts'
+  );
+  const seasonAdvanceModalSource = readArchitectFile(
+    'GMDashboard/components/SeasonAdvanceModal.tsx'
+  );
+  const contractUtilsSource = readArchitectFile('utils/contractUtils.ts');
+  const capSheetSource = readArchitectFile('capSheet/CapSheet/CapSheet.tsx');
+  const capSheetFullSource = readArchitectFile(
+    'capSheet/CapSheetFull/CapSheetFull.tsx'
+  );
+  const leagueViewSource = readArchitectFile(
+    'shared/LeagueView/leagueViewModel.ts'
+  );
+  const tradeTeamCardSource = readArchitectFile('tradeMachine/TradeTeamCard.tsx');
+  const playerRulesProfilesSource = readArchitectFile(
+    'hooks/usePlayerRulesProfiles.ts'
+  );
+  const editContractModalSource = readSharedFile(
+    'components/EditContractModal.tsx'
+  );
 
   it('documents the top-level ownership map in the Architect feature README', () => {
     expect(featureReadmeSource).toContain('## Architect Ownership Map');
@@ -39,7 +63,13 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
       '**Dashboard read adapter:** `worldTeamData.ts` adapts the lower read layers into dashboard-friendly team loads.'
     );
     expect(featureReadmeSource).toContain(
+      '**Sibling write-authority contract:** `mutationPipeline.ts` and `seasonManager.ts` are sibling committed-write authorities with different scopes; they share lower-level persistence hygiene but neither one is the other\'s orchestration owner.'
+    );
+    expect(featureReadmeSource).toContain(
       'If a caller needs dashboard team data, use `loadWorldTeamData(...)`.'
+    );
+    expect(featureReadmeSource).toContain(
+      'Use `computeTeamCapTotals.ts` for canonical team totals and `contractUtils.ts` for shared contract shaping/year lookups instead of rebuilding those calculations in downstream surfaces.'
     );
   });
 
@@ -87,11 +117,64 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
       'Canonical committed-write authority for general world mutations.'
     );
     expect(mutationPipelineSource).toContain(
+      'Sibling committed-write authority to seasonManager.ts for point-in-time world mutations.'
+    );
+    expect(mutationPipelineSource).toContain(
       'Season advancement remains a separate committed authority in seasonManager.ts.'
     );
     expect(seasonManagerSource).toContain('Season-transition authority.');
     expect(seasonManagerSource).toContain(
+      'Sibling committed-write authority to mutationPipeline.ts with a different scope.'
+    );
+    expect(seasonManagerSource).toContain(
       'Architect-wide committed season transition entrypoint.'
     );
+  });
+
+  it('keeps mutation/apply and season-transition authority as sibling committed-write seams', () => {
+    expect(persistenceEnforcementSource).toContain(
+      'Shared by committed-write authorities such as mutationPipeline.ts and seasonManager.ts.'
+    );
+    expect(mutationPipelineSource).toMatch(
+      /import\s*\{[\s\S]*FORBIDDEN_TRANSIENT_KEYS[\s\S]*sanitizeTransientFieldsForPersistence[\s\S]*\}\s*from\s*['"]@\/features\/architect\/utils\/persistenceContracts\/enforcement['"]/
+    );
+    expect(seasonManagerSource).toMatch(
+      /import\s*\{[^}]*sanitizeTransientFieldsForPersistence[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/persistenceContracts\/enforcement['"]/
+    );
+    expect(seasonManagerSource).not.toMatch(
+      /import\s*\{[^}]*sanitizeTransientFieldsForPersistence[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/mutationPipeline['"]/
+    );
+  });
+
+  it('keeps dashboard adapters routed to the correct committed-write authority', () => {
+    expect(actionsHookSource).toContain(
+      'Routes committed mutation writes through mutationPipeline.ts.'
+    );
+    expect(actionsHookSource).toContain('applyWorldMutation');
+    expect(actionsHookSource).toContain('computeWorldMutation');
+    expect(seasonAdvanceModalSource).toContain(
+      'Dashboard adapter only: committed season/world advancement stays in seasonManager.ts.'
+    );
+    expect(seasonAdvanceModalSource).toContain('advanceSeasonInWorld(');
+  });
+
+  it('keeps cap/contract SSOT expectations explicit across key Architect consumers', () => {
+    expect(contractUtilsSource).toContain(
+      'Shared contract SSOT for contract generation, year slicing, and cap-hit lookups.'
+    );
+    expect(contractUtilsSource).toContain(
+      'Downstream surfaces must not re-merge contract rows or reconstruct per-year cap hits locally.'
+    );
+    expect(capSheetSource).toContain('computeTeamCapTotals');
+    expect(capSheetSource).toContain('getContractYearSlice');
+    expect(capSheetSource).toContain('getPlayerCapHitForYear');
+    expect(capSheetFullSource).toContain('computeTeamCapTotals');
+    expect(capSheetFullSource).toContain('getContractYearSlice');
+    expect(capSheetFullSource).toContain('getPlayerCapSheetAmountsForYear');
+    expect(leagueViewSource).toContain('computeTeamCapTotals');
+    expect(tradeTeamCardSource).toContain('computeTeamCapTotals');
+    expect(playerRulesProfilesSource).toContain('getContractYearSlice');
+    expect(editContractModalSource).toContain('generateExtensionContract');
+    expect(editContractModalSource).toContain('getContractYearsForDisplay');
   });
 });

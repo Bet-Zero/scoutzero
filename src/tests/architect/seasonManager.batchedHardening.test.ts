@@ -97,7 +97,7 @@ vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   PERSISTENCE_CONTRACTS: { TEAM: 'TEAM' },
 }));
 
-vi.mock('@/features/architect/utils/mutationPipeline', () => ({
+vi.mock('@/features/architect/utils/persistenceContracts/enforcement', () => ({
   sanitizeTransientFieldsForPersistence: vi.fn((team: unknown) => team),
 }));
 

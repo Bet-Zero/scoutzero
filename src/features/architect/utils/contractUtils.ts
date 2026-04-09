@@ -3,6 +3,11 @@
  * PURPOSE: Authoritative contract shaping and lookup helpers for Architect utilities.
  * OWNERSHIP: Feature: architect/utils
  *
+ * ARCHITECT OWNERSHIP:
+ * - Shared contract SSOT for contract generation, year slicing, and cap-hit lookups.
+ * - Upstream shared authority for cap totals, cap sheets, rules profiles, and contract-action UI.
+ * - Downstream surfaces must not re-merge contract rows or reconstruct per-year cap hits locally.
+ *
  * HISTORY:
  *  - 2026-03-12: Migrated authoritative implementation to TypeScript for E59.
  */
@@ -399,7 +404,7 @@ export function getYearsRemainingDisplay({
   );
 }
 
-// Helper: get salary entry for a given season, including future extensions
+// Canonical selected-year contract lookup used by downstream shared consumers.
 export function getContractYearSlice(
   player: ContractUtilsPlayer | null | undefined,
   endYear: number

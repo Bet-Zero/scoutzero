@@ -15,7 +15,7 @@
  *    1. seasonManager.ts contains sanitizeTransientFieldsForPersistence
  *    2. seasonManager.ts contains assertPersistableOrThrow
  *    3. Correct ordering: stripHydration before sanitize before normalize before assertPersistable before removeUndefined
- *    4. seasonManager.ts imports sanitizeTransientFieldsForPersistence from mutationPipeline
+ *    4. seasonManager.ts imports sanitizeTransientFieldsForPersistence from shared persistence enforcement, not mutationPipeline
  *    5. seasonManager.ts imports assertPersistableOrThrow from persistenceContracts
  *    6. computeTeamCapTotals uses team.players (not team.roster) for salary computation
  *    7. seasonManager.ts strips hydration-only fields (HYDRATION_ONLY_KEYS)
@@ -102,8 +102,11 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
     ).toBe(true);
   });
 
-  it('TEST 4: seasonManager.ts imports sanitizeTransientFieldsForPersistence from mutationPipeline', () => {
+  it('TEST 4: seasonManager.ts imports sanitizeTransientFieldsForPersistence from shared persistence enforcement, not mutationPipeline', () => {
     expect(seasonManagerSource).toMatch(
+      /import\s*\{[^}]*sanitizeTransientFieldsForPersistence[^}]*\}\s*from\s*['"].*persistenceContracts\/enforcement['"]/
+    );
+    expect(seasonManagerSource).not.toMatch(
       /import\s*\{[^}]*sanitizeTransientFieldsForPersistence[^}]*\}\s*from\s*['"].*mutationPipeline['"]/
     );
   });

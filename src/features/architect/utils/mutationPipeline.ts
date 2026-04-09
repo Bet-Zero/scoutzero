@@ -5,8 +5,10 @@
  *
  * ARCHITECT OWNERSHIP:
  * - Canonical committed-write authority for general world mutations.
+ * - Sibling committed-write authority to seasonManager.ts for point-in-time world mutations.
  * - Public mutation entrypoint: READ -> COMPUTE -> VALIDATE -> PERSIST.
  * - UI/hooks must route general committed mutation writes here.
+ * - Uses shared lower-level persistence hygiene from persistenceContracts/enforcement.ts.
  * - Season advancement remains a separate committed authority in seasonManager.ts.
  *
  * HISTORY:
@@ -105,6 +107,10 @@ import {
   PERSISTENCE_CONTRACTS,
   normalizeTeamTpeSchema,
 } from '@/features/architect/utils/persistenceContracts';
+import {
+  FORBIDDEN_TRANSIENT_KEYS,
+  sanitizeTransientFieldsForPersistence,
+} from '@/features/architect/utils/persistenceContracts/enforcement';
 
 // Phase 86: League-wide invariant validation (cross-team duplicate player prevention)
 // Phase B5: Entitlement invariant validation (cross-team duplicate entitlement prevention)
@@ -1264,72 +1270,7 @@ function removeUndefinedDeep(obj: unknown): unknown {
   return obj;
 }
 
-// ==============================================================================
-// PHASE 60: TRANSIENT FIELD SANITIZATION FOR PERSISTENCE
-// ==============================================================================
-
-/**
- * FORBIDDEN TRANSIENT KEYS (Phase 60)
- *
- * These keys are used internally during the mutation pipeline but MUST NOT be
- * persisted to Firestore. They are intermediate validation/context artifacts.
- *
- * - _validatedTradeContext: Pre-validated trade context for dedup (Phase 55/56)
- * - _signingValidation: Pre-validated signing result for S&T (Phase 48)
- * - _isPostTradeSnapshot: Sentinel flag for snapshot shape detection (Phase 58)
- * - _isValidatedTradeContext: Sentinel flag for validated context detection (Phase 56)
- * - _rawValidation: Raw validation result for debugging (Phase 56)
- *
- * NOTE: _meta is NOT in this list - it's legitimately used for computed totals display (UI).
- */
-const FORBIDDEN_TRANSIENT_KEYS = Object.freeze([
-  '_validatedTradeContext',
-  '_signingValidation',
-  '_isPostTradeSnapshot',
-  '_isValidatedTradeContext',
-  '_rawValidation',
-]);
-
-/**
- * Recursively remove forbidden transient keys from an object before Firestore persistence.
- * This is a surgical sanitizer that targets only known transient keys - it does NOT
- * strip all underscore-prefixed keys (e.g., _meta is preserved for UI use).
- *
- * @param {any} obj - Object to sanitize
- * @param {string[]} [forbiddenKeys] - Override forbidden key list (for testing)
- * @returns {any} Sanitized copy with transient keys removed
- */
-function sanitizeTransientFieldsForPersistence(
-  obj: unknown,
-  forbiddenKeys: readonly string[] = FORBIDDEN_TRANSIENT_KEYS
-): unknown {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (Array.isArray(obj)) {
-    return (obj as unknown[]).map((item: unknown) =>
-      sanitizeTransientFieldsForPersistence(item, forbiddenKeys)
-    );
-  }
-
-  if (typeof obj === 'object') {
-    const result: LooseRecord = {};
-    for (const [key, value] of Object.entries(obj)) {
-      // Skip forbidden transient keys
-      if (forbiddenKeys.includes(key)) {
-        continue;
-      }
-      result[key] = sanitizeTransientFieldsForPersistence(value, forbiddenKeys);
-    }
-    return result;
-  }
-
-  // Primitive values pass through unchanged
-  return obj;
-}
-
-// Export for testing
+// Re-export the shared persistence hygiene fence for existing callers/tests.
 export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
 function stripComputeOnlyTeamFieldsForPersistence<

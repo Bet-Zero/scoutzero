@@ -7,6 +7,8 @@
  * ARCHITECT OWNERSHIP:
  * - Season-transition authority.
  * - Owns advanceSeasonInWorld(...) and the committed write path for season/world advancement.
+ * - Sibling committed-write authority to mutationPipeline.ts with a different scope.
+ * - Shares lower-level persistence hygiene with mutationPipeline.ts via persistenceContracts/enforcement.ts.
  * - Not a general-purpose substitute for applyWorldMutation(...).
  *
  * @file src/features/architect/utils/seasonManager.ts
@@ -57,7 +59,7 @@ import {
   assertPersistableOrThrow,
   PERSISTENCE_CONTRACTS,
 } from '@/features/architect/utils/persistenceContracts';
-import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/mutationPipeline';
+import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/persistenceContracts/enforcement';
 import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
@@ -399,6 +401,8 @@ function getUnderlyingPickId(entitlement: unknown): string | null {
  * Advance world to next season with explicit option decisions
  *
  * Architect-wide committed season transition entrypoint.
+ * This authority is a sibling to mutationPipeline.ts: season/world transitions
+ * stay here, while point-in-time world mutations stay in mutationPipeline.ts.
  *
  * This is the Phase 3B implementation that:
  * 1. Requires explicit option decisions (no silent defaults)

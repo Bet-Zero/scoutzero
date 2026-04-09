@@ -117,7 +117,7 @@ vi.mock('@/features/architect/utils/persistenceContracts', () => ({
   PERSISTENCE_CONTRACTS: { TEAM: { topLevel: [], deepRules: null } },
 }));
 
-vi.mock('@/features/architect/utils/mutationPipeline', () => ({
+vi.mock('@/features/architect/utils/persistenceContracts/enforcement', () => ({
   sanitizeTransientFieldsForPersistence: (team) => team,
 }));
 

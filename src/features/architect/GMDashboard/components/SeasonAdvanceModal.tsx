@@ -690,6 +690,7 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
     setCurrentStep(WIZARD_STEPS.PROCESSING);
 
     try {
+      // Dashboard adapter only: committed season/world advancement stays in seasonManager.ts.
       const seasonManagerModule = await import(
         '@/features/architect/utils/seasonManager'
       );

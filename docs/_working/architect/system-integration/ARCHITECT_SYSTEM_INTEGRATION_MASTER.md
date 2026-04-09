@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 1 — First execution batch (SI-1A + SI-1B) complete. Second batch pending.**
+**Step 1 execution complete. Closeout review pending.**
 
 ## Purpose
 
@@ -38,7 +38,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries     | First batch complete — second batch pending |
+| Step 1   | Global Ownership and Truth Boundaries     | Execution complete — closeout review pending |
 | Step 2   | Cross-Surface Handoff Integrity           | Not started                              |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
@@ -75,6 +75,14 @@ Map where truth actually lives across Architect as one integrated system. Distin
 - **SI-1A complete:** Added an Architect-wide ownership map to `src/features/architect/ARCHITECT_FEATURE_README.md` and explicit shell/adapter/authority markers in the core dashboard and authority files.
 - **SI-1B complete:** Made the three-layer read contract explicit across `firebaseTeamPlanHelpers.ts`, `teamLoader.ts`, and `worldTeamData.ts`, then added a focused guardrail test to keep those markers durable.
 - **Behavior impact:** No product-behavior change intended. This batch is ownership-clarity and guardrail work only.
+
+### Step 1 Batch 2 Execution Update
+
+**Completed:** April 9, 2026
+
+- **SI-1C complete:** Moved shared transient persistence sanitization below both committed-write authorities into `persistenceContracts/enforcement.ts`, then clarified in code/tests that `mutationPipeline.ts` and `seasonManager.ts` are sibling authorities with different scopes.
+- **SI-1D complete:** Strengthened `contractUtils.ts` ownership markers and added targeted Step 1 guardrails proving that key downstream Architect surfaces continue to route through `computeTeamCapTotals.ts` and `contractUtils.ts` for shared cap/contract truth.
+- **Behavior impact:** No intended product-behavior change. This batch tightened authority seams and guardrails only.
 
 ---
 
@@ -119,5 +127,6 @@ Map where truth actually lives across Architect as one integrated system. Distin
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_ISSUE_LOG.md`              | Step 1 issue/risk log             |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 1 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 1 batch 1 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 1 batch 2 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

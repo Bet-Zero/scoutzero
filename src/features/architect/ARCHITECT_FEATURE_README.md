@@ -22,14 +22,17 @@ Architect is intentionally layered. The fastest way to route work is:
 - **Dashboard read adapter:** `worldTeamData.ts` adapts the lower read layers into dashboard-friendly team loads.
 - **Canonical committed-write authority:** `mutationPipeline.ts` owns general committed world mutations.
 - **Season-transition authority:** `seasonManager.ts` owns committed season/world advancement.
-- **Shared SSOT authorities:** `computeTeamCapTotals.ts` owns canonical cap totals and `contractUtils.ts` owns shared contract shaping/lookups.
+- **Sibling write-authority contract:** `mutationPipeline.ts` and `seasonManager.ts` are sibling committed-write authorities with different scopes; they share lower-level persistence hygiene but neither one is the other's orchestration owner.
+- **Shared SSOT authorities:** `computeTeamCapTotals.ts` owns canonical cap totals and `contractUtils.ts` owns shared contract shaping/lookups consumed by cap sheets, trade surfaces, league views, and contract-action UI.
 
 ## Quick Answers
 
 - **Where does world truth live?** World metadata lives in `worldManager.ts`; general committed mutation truth lives in `mutationPipeline.ts`; season/world advancement truth lives in `seasonManager.ts`.
 - **Where do world-aware reads live?** `teamLoader.ts` is the world-aware fallback authority.
 - **Where do committed writes live?** `mutationPipeline.ts` for general mutations, `worldManager.ts` for world metadata/lifecycle writes, and `seasonManager.ts` for season advancement writes.
+- **How do `mutationPipeline.ts` and `seasonManager.ts` relate?** They are sibling committed-write authorities: point-in-time world mutations go through `mutationPipeline.ts`, while whole-world season transitions go through `seasonManager.ts`.
 - **What files are orchestration/adapters?** `GMDashboard.tsx`, `useArchitectState.ts`, `useArchitectActions.ts`, and `worldTeamData.ts`.
+- **Where should cap totals and contract-year truth come from?** Use `computeTeamCapTotals.ts` for canonical team totals and `contractUtils.ts` for shared contract shaping/year lookups instead of rebuilding those calculations in downstream surfaces.
 
 ## Architect Read Stack Contract
 

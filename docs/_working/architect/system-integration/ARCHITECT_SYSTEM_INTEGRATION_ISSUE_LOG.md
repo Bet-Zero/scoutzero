@@ -55,7 +55,7 @@ Added an Architect-wide ownership map and quick-answer section to `src/features/
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-1C
 
@@ -69,6 +69,9 @@ The two authority surfaces can appear to overlap or compete. Downstream code tha
 The repo should express the relationship and division of responsibility between these two authorities clearly enough that contributors can reason about each without needing to read both files in full to understand when one applies vs the other.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §2
+
+**Resolution Notes (2026-04-09):**
+Moved shared transient-field persistence hygiene below both authorities into `persistenceContracts/enforcement.ts`, so `seasonManager.ts` no longer appears downstream of `mutationPipeline.ts` for execution ownership. Added explicit sibling-authority markers in `mutationPipeline.ts`, `seasonManager.ts`, `SeasonAdvanceModal.tsx`, and the Step 1 guardrail tests so the repo now states clearly that point-in-time world mutations go through `mutationPipeline.ts` while whole-world season transitions go through `seasonManager.ts`.
 
 ---
 
@@ -178,7 +181,7 @@ The ownership map, read-stack contract, and in-hook comments now explain which l
 | SI-1A  | SI-ISS-001, SI-ISS-004, SI-ISS-006                                       | HIGH, MEDIUM, LOW-MEDIUM |
 | SI-1B  | SI-ISS-003, SI-ISS-006                                                   | MEDIUM-HIGH, LOW-MEDIUM  |
 | SI-1C  | SI-ISS-002                                                               | HIGH                     |
-| SI-1D  | (none — SSOT durability is a pro-active guard, not an identified defect) | —                        |
+| SI-1D  | (no standalone defect logged; proactive SSOT durability batch completed) | —                        |
 | Step 4 | SI-ISS-005                                                               | MEDIUM (deferred)        |
 
 ---
@@ -190,3 +193,7 @@ When an execution lane is marked COMPLETE in the Review Tracker, update the corr
 - Move status from OPEN → RESOLVED
 - Note what was done in the Notes field of the issue entry
 - If a correction was only partial, note what remains
+
+## SI-1D Execution Note
+
+`SI-1D` did not correspond to a standalone Step 1 defect entry. The batch still completed on April 9, 2026 by tightening the shared-authority fence around `contractUtils.ts` and adding source-scan guardrails proving that key Architect consumer surfaces continue to route cap totals and contract-year reads through `computeTeamCapTotals.ts` and `contractUtils.ts`.
