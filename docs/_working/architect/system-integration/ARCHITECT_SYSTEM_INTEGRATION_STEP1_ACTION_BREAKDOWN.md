@@ -1,9 +1,11 @@
 # ARCHITECT SYSTEM INTEGRATION — STEP 1 ACTION BREAKDOWN
 
 ## Step
+
 Step 1 — Global Ownership and Truth Boundaries
 
 ## Step Goal
+
 Convert the Step 1 review findings into the smallest real execution lanes that make Architect-wide truth ownership clearer, easier to audit, and harder to misread.
 
 This step is not about broad feature cleanup. It is about tightening the ownership map and the highest-value global truth boundaries identified in the Step 1 review record.
@@ -11,6 +13,7 @@ This step is not about broad feature cleanup. It is about tightening the ownersh
 ---
 
 ## Summary of What Step 1 Found
+
 The live repo already has strong real authorities.
 
 The problem is not lack of ownership.
@@ -30,6 +33,7 @@ The most important Step 1 risks are:
 ### SI-1A — Make the top-level Architect ownership map explicit
 
 #### Purpose
+
 Make the global ownership model visible in code/docs at the Architect-wide level so contributors can quickly identify:
 
 - authorities
@@ -38,10 +42,12 @@ Make the global ownership model visible in code/docs at the Architect-wide level
 - display consumers
 
 #### Why This Matters
+
 This is the foundation for all later system-integration work.
 If this stays implicit, later cross-surface review work will keep starting from the wrong assumptions.
 
 #### Scope Focus
+
 Prioritize the highest-level ownership seams:
 
 - dashboard/world shell ownership
@@ -53,6 +59,7 @@ Prioritize the highest-level ownership seams:
 - shared SSOT authorities
 
 #### Desired Outcome
+
 A contributor should be able to answer the following without reading half the repo:
 
 - Where does world truth live?
@@ -61,6 +68,7 @@ A contributor should be able to answer the following without reading half the re
 - What files are only orchestration/adapters?
 
 #### Completion Standard
+
 Complete when the repo makes the global ownership model materially easier to identify and harder to confuse.
 
 ---
@@ -68,6 +76,7 @@ Complete when the repo makes the global ownership model materially easier to ide
 ### SI-1B — Clarify world/base read ownership boundaries
 
 #### Purpose
+
 Tighten the distinction between:
 
 - base hydration truth
@@ -75,10 +84,12 @@ Tighten the distinction between:
 - dashboard-facing consumer adapters
 
 #### Why This Matters
+
 This is one of the most foundational Architect seams.
 The layering is coherent, but it is still too easy to misread where team/player truth actually comes from.
 
 #### Scope Focus
+
 Review and tighten the contract between:
 
 - `firebaseTeamPlanHelpers.ts`
@@ -87,6 +98,7 @@ Review and tighten the contract between:
 - any directly relevant dashboard-facing read adapters
 
 #### Desired Outcome
+
 The repo should make it clear that:
 
 - base data hydration is one thing
@@ -96,6 +108,7 @@ The repo should make it clear that:
 These layers should not feel interchangeable.
 
 #### Completion Standard
+
 Complete when the read stack is easier to explain as one explicit contract and downstream surfaces are less likely to bypass or misinterpret it.
 
 ---
@@ -103,6 +116,7 @@ Complete when the read stack is easier to explain as one explicit contract and d
 ### SI-1C — Clarify mutation/apply vs season-transition authority
 
 #### Purpose
+
 Make the relationship between:
 
 - `mutationPipeline.ts`
@@ -111,10 +125,12 @@ Make the relationship between:
 clearer at the ownership level.
 
 #### Why This Matters
+
 This is the biggest Step 1 ambiguity.
 Both are major authorities, but the repo does not yet express their relationship clearly enough at the Architect-wide level.
 
 #### Scope Focus
+
 Clarify the distinction between:
 
 - general mutation/apply authority
@@ -123,6 +139,7 @@ Clarify the distinction between:
 - what downstream surfaces should treat as committed truth
 
 #### Desired Outcome
+
 The repo should be clearer about:
 
 - which authority owns what
@@ -130,6 +147,7 @@ The repo should be clearer about:
 - how contributors should reason about their relationship
 
 #### Completion Standard
+
 Complete when the mutation-vs-season boundary is materially less ambiguous and no local/dashboard surface appears to own committed mutation truth.
 
 ---
@@ -137,13 +155,16 @@ Complete when the mutation-vs-season boundary is materially less ambiguous and n
 ### SI-1D — Guard shared cap/contract SSOT boundaries
 
 #### Purpose
+
 Reinforce that canonical cap totals and shared contract shaping are upstream shared authorities, not optional helpers.
 
 #### Why This Matters
+
 Multiple major Architect features depend on these seams.
 System integration will drift if downstream surfaces bypass them, partially reconstruct them, or silently fork their logic.
 
 #### Scope Focus
+
 Prioritize:
 
 - `computeTeamCapTotals.ts`
@@ -152,6 +173,7 @@ Prioritize:
 - any lightweight guardrail or clarity improvements that make SSOT expectations more explicit
 
 #### Desired Outcome
+
 The repo should communicate more clearly that:
 
 - canonical cap totals come from one place
@@ -159,6 +181,7 @@ The repo should communicate more clearly that:
 - downstream consumers are expected to rely on those surfaces rather than reinterpret them
 
 #### Completion Standard
+
 Complete when the shared SSOT role of cap totals / contract helpers is more explicit and more durable across feature boundaries.
 
 ---
@@ -166,28 +189,34 @@ Complete when the shared SSOT role of cap totals / contract helpers is more expl
 ## Suggested Execution Batching
 
 ### Preferred first execution batch
+
 **SI-1A + SI-1B together**
 
 Why:
+
 - both are ownership-clarity tasks
 - both operate near the global read / orchestration map
 - both help establish the system-level model before mutation/season refinement
 
 ### Possible second execution batch
+
 **SI-1C + SI-1D together**
 
 Why:
+
 - both are deeper authority-boundary durability tasks
 - both touch higher-risk shared system seams
 - both are easier to do once the top-level map is clearer
 
 ### Alternative
+
 If the live repo suggests strong overlap, all four may be batched into one narrow Step 1 execution pass.
 That should only happen if the changes remain tightly focused on ownership clarity and SSOT durability, not broad cleanup.
 
 ---
 
 ## Non-Goals for Step 1 Execution
+
 The following should NOT become Step 1 execution work:
 
 - broad feature refactors
@@ -201,6 +230,7 @@ Step 1 execution should remain tightly scoped to ownership clarity and global tr
 ---
 
 ## Step 1 Success Condition
+
 Step 1 will be considered structurally successful when all of the following are true:
 
 1. the top-level Architect ownership model is easier to identify
