@@ -3,6 +3,11 @@
  * PURPOSE: Architect Free Agent Pool interaction surface with selection, staging, and contract modal dispatch wiring.
  * OWNERSHIP: Feature: architect/freeAgency
  *
+ * ARCHITECT OWNERSHIP:
+ * - Visual/rendering surface for free-agent discovery, selection, and modal launch.
+ * - Treats modal action availability as upstream truth from the dashboard action layer.
+ * - Does not own offer-sheet lifecycle routing or world-only disabled messaging.
+ *
  * HISTORY:
  *  - 2026-03-14: Migrated from JSX during TM_VALIDATOR_TS_FREE_AGENT_POOL_SURFACE_E86 execution.
  *
@@ -256,6 +261,9 @@ const FreeAgentPool = ({
   const signAndTradeInitiation = freeAgentModalAvailability.signAndTradeInitiation;
   const offerSheetInitiation = freeAgentModalAvailability.offerSheetInitiation;
 
+  // MODAL RENDERING CONTRACT: the pool receives only the standard-signing lane
+  // plus the published modal-availability slice. Lifecycle routing stays out of
+  // this surface on purpose.
   const editContractModalProps = useMemo(() => {
     if (!activeContractModalTarget) return null;
 

@@ -62,6 +62,8 @@ type EditContractArchitectActionCallbacks = Pick<
 type FreeAgencySectionProps = Parameters<typeof FreeAgencySection>[0];
 type CapSheetSectionProps = Parameters<typeof CapSheetSection>[0];
 type CapTableSectionProps = Parameters<typeof CapTableSection>[0];
+type TradeSectionProps = Parameters<typeof TradeSection>[0];
+type OffseasonSectionProps = Parameters<typeof OffseasonSection>[0];
 type ArchitectOverrideMetadata = Parameters<
   ReturnType<typeof useArchitectActions>['handleOptionDecision']
 >[2];
@@ -288,6 +290,57 @@ const GMDashboard = () => {
     onRenounce: modalOnRenounce,
   };
 
+  // SECTION HANDOFF SURFACES: The dashboard shell publishes upstream truth,
+  // action owners, and reload authorities into wrappers. Major sections may
+  // own local presentation/composition, but they must not replace upstream
+  // read or committed-write authorities.
+  const capSheetSectionSurface: CapSheetSectionProps = {
+    teamCapSheet,
+    currentYear,
+    onOpenPlayerContractModal:
+      contractActionRouting.currentYearCapSheet.openPlayerContractModal,
+    manualCapSheetMutationAuthority,
+    playersMap,
+    capSheetDevFixtureControls: actions.capSheetDevTools,
+  };
+  const tradeSectionSurface: TradeSectionProps = {
+    primaryTeam: normalizedTeamId,
+    capProjections,
+    currentYear,
+    playersMap,
+    onApplyTrade: actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
+    primaryTeamData: teamCapSheet,
+    onEditContract: actions.handleEditContract,
+    worldId,
+    worldAsOfDate,
+    userId,
+  };
+  const freeAgencySectionSurface: FreeAgencySectionProps = {
+    freeAgents,
+    currentYear,
+    actionOwner: freeAgencyActionOwner,
+    playersMap,
+    outgoingOfferSheets: teamCapSheet?.offerSheets || [],
+    incomingOfferSheets: teamCapSheet?.incomingOfferSheets || [],
+  };
+  const offseasonSectionSurface: OffseasonSectionProps = {
+    teamCapSheet,
+    setTeamCapSheet,
+    currentYear,
+    setCurrentYear,
+    capProjections,
+    setOffseasonRun,
+    setOffseasonSummary,
+    setShowOffseasonModal,
+    playersMap,
+    worldId,
+    activeWorldIdentityToken: activeWorldOwner.identityToken,
+    teamCode: normalizedTeamId,
+    worldSeason: worldCurrentSeason,
+    worldSeasonLoading: worldMetadataLoading,
+    onReloadWorldData: worldModeBoundary.onReloadWorldData,
+  };
+
   if (authLoading || isLoading) return <p>Loading GM Dashboard...</p>;
   if (!teamCapSheet) return <p>No team data</p>;
 
@@ -441,16 +494,7 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'cap' && (
-          <CapSheetSection
-            teamCapSheet={teamCapSheet}
-            currentYear={currentYear}
-            onOpenPlayerContractModal={
-              contractActionRouting.currentYearCapSheet.openPlayerContractModal
-            }
-            manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
-            playersMap={playersMap}
-            capSheetDevFixtureControls={actions.capSheetDevTools}
-          />
+          <CapSheetSection {...capSheetSectionSurface} />
         )}
 
         {activeTab === 'capfull' && (
@@ -472,49 +516,15 @@ const GMDashboard = () => {
         )}
 
         {activeTab === 'trade' && (
-          <TradeSection
-            primaryTeam={normalizedTeamId}
-            capProjections={capProjections}
-            currentYear={currentYear}
-            playersMap={playersMap}
-            onApplyTrade={actions.applyTradeToCapSheet}
-            primaryTeamData={teamCapSheet}
-            onEditContract={actions.handleEditContract}
-            worldId={worldId}
-            worldAsOfDate={worldAsOfDate}
-            userId={userId}
-          />
+          <TradeSection {...tradeSectionSurface} />
         )}
 
         {activeTab === 'fa' && (
-          <FreeAgencySection
-            freeAgents={freeAgents}
-            currentYear={currentYear}
-            actionOwner={freeAgencyActionOwner}
-            playersMap={playersMap}
-            outgoingOfferSheets={teamCapSheet?.offerSheets || []}
-            incomingOfferSheets={teamCapSheet?.incomingOfferSheets || []}
-          />
+          <FreeAgencySection {...freeAgencySectionSurface} />
         )}
 
         {activeTab === 'offseason' && (
-          <OffseasonSection
-            teamCapSheet={teamCapSheet}
-            setTeamCapSheet={setTeamCapSheet}
-            currentYear={currentYear}
-            setCurrentYear={setCurrentYear}
-            capProjections={capProjections}
-            setOffseasonRun={setOffseasonRun}
-            setOffseasonSummary={setOffseasonSummary}
-            setShowOffseasonModal={setShowOffseasonModal}
-            playersMap={playersMap}
-            worldId={worldId}
-            activeWorldIdentityToken={activeWorldOwner.identityToken}
-            teamCode={normalizedTeamId}
-            worldSeason={worldCurrentSeason}
-            worldSeasonLoading={worldMetadataLoading}
-            onReloadWorldData={worldModeBoundary.onReloadWorldData}
-          />
+          <OffseasonSection {...offseasonSectionSurface} />
         )}
 
         {activeTab === 'history' && (

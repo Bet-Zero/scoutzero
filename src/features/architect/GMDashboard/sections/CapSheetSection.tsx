@@ -1,3 +1,14 @@
+/**
+ * FILE: src/features/architect/GMDashboard/sections/CapSheetSection.tsx
+ * PURPOSE: Publish the dashboard shell's cap-sheet handoff into the selected-year and adjacent current-season surfaces.
+ * OWNERSHIP: Feature: architect/GMDashboard (cap sheet section)
+ *
+ * ARCHITECT OWNERSHIP:
+ * - Section-level shell for selected-year cap-table viewing.
+ * - Owns selectedYear and shell-level current-vs-selected season framing only.
+ * - Forwards upstream mutation callbacks into CapSheet without becoming a write authority.
+ * - Keeps adjacent current-season authority surfaces separate from selected-year totals.
+ */
 import { useEffect, useState } from 'react';
 import CapSheet from '@/features/architect/capSheet/CapSheet';
 import ExceptionTracker from '@/features/architect/capSheet/ExceptionTracker';

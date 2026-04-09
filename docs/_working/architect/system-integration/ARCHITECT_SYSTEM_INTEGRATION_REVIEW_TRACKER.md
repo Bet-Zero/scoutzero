@@ -20,8 +20,8 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 | Lane  | Name                                                          | Priority | Status      | Batch          |
 | ----- | ------------------------------------------------------------- | -------- | ----------- | -------------- |
-| SI-2A | Normalize shell-to-section handoff clarity across wrappers    | P1       | NOT STARTED | First (2A+2B)  |
-| SI-2B | Clarify Free Agency ↔ `actionOwner` contract boundaries      | P1       | NOT STARTED | First (2A+2B)  |
+| SI-2A | Normalize shell-to-section handoff clarity across wrappers    | P1       | COMPLETE    | First (2A+2B)  |
+| SI-2B | Clarify Free Agency ↔ `actionOwner` contract boundaries      | P1       | COMPLETE    | First (2A+2B)  |
 | SI-2C | Clarify Trade Machine ↔ authoritative apply/mutation handoff | P1       | NOT STARTED | Second (2C+2D) |
 | SI-2D | Tighten world-only / preview-only gating contracts            | P2       | NOT STARTED | Second (2C+2D) |
 
@@ -31,7 +31,7 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -67,13 +67,21 @@ A contributor should be able to see, from the shell and section layer:
 
 Complete when the major section-wrapper contracts are materially more consistent and easier to understand across the dashboard surface.
 
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by publishing named shell-to-section handoff objects in `GMDashboard.tsx`, then aligning the Cap Sheet / Trade / Free Agency / Offseason wrappers around explicit ownership markers for what each wrapper owns locally versus what it only forwards. A focused Step 2 guardrail test now protects that shell/wrapper contract baseline.
+
 ---
 
 ## SI-2B — Clarify Free Agency ↔ `actionOwner` Contract Boundaries
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -100,6 +108,14 @@ A contributor should be able to answer:
 - which layer owns lifecycle action routing vs visual rendering vs gating
 
 Complete when the Free Agency cross-surface action contract is materially easier to read and less likely to be misused.
+
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by documenting the `freeAgencyActionOwner` guarantee map in `useArchitectActions.ts`, narrowing `FreeAgentPool` to a modal/rendering-only `FreeAgentPoolActionOwner` slice, and keeping offer-sheet lifecycle routing plus disabled messaging at the `FreeAgencySection.tsx` seam. Focused Free Agency closure/pool tests and the new Step 2 handoff guardrail now lock that split in place.
 
 ---
 

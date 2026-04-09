@@ -796,8 +796,11 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(gmDashboardContent).toMatch(
       /handleSetExceptions:\s*actions\.handleSetExceptions/
     );
+    expect(gmDashboardContent).toMatch(
+      /const\s+capSheetSectionSurface\s*:\s*CapSheetSectionProps\s*=\s*\{[\s\S]*manualCapSheetMutationAuthority,[\s\S]*\}/
+    );
     expect(gmDashboardCapRegion).toMatch(
-      /manualCapSheetMutationAuthority=\{manualCapSheetMutationAuthority\}/
+      /<CapSheetSection\s+\{\.\.\.capSheetSectionSurface\}\s*\/>/
     );
     expect(gmDashboardCapRegion).not.toMatch(/applyWorldMutation/);
     expect(gmDashboardCapRegion).not.toMatch(/applyCapAuditedTeamMutation/);
@@ -805,8 +808,8 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   });
 
   it('GMDashboard cap-tab region fences current-year Cap Sheet from Full Cap Table-only contract launch props', () => {
-    expect(gmDashboardCapRegion).toMatch(
-      /onOpenPlayerContractModal=\{\s*contractActionRouting\.currentYearCapSheet\.openPlayerContractModal\s*\}/
+    expect(gmDashboardContent).toMatch(
+      /const\s+capSheetSectionSurface\s*:\s*CapSheetSectionProps\s*=\s*\{[\s\S]*onOpenPlayerContractModal:\s*contractActionRouting\.currentYearCapSheet\.openPlayerContractModal,[\s\S]*\}/
     );
     expect(gmDashboardCapRegion).not.toMatch(/onLaunchContractAction=/);
     expect(gmDashboardCapRegion).not.toMatch(/onRenounceCapHold=/);
@@ -896,7 +899,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
 
   it('keeps fixture wiring on explicit dev-tool namespaces and removes generic contract-modal save fallback wiring', () => {
     expect(gmDashboardContent).toMatch(
-      /capSheetDevFixtureControls=\{actions\.capSheetDevTools\}/
+      /const\s+capSheetSectionSurface\s*:\s*CapSheetSectionProps\s*=\s*\{[\s\S]*capSheetDevFixtureControls:\s*actions\.capSheetDevTools,[\s\S]*\}/
     );
     expect(gmDashboardContent).toMatch(
       /actions\.teamHistoryDevTools\.injectFixtures/

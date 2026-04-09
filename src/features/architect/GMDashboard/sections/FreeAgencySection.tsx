@@ -3,6 +3,12 @@
  * PURPOSE: Render the GM Dashboard free agency section that wires dashboard state into the FreeAgentPool view.
  * OWNERSHIP: Feature: architect/GMDashboard (free agency section)
  *
+ * ARCHITECT OWNERSHIP:
+ * - Wrapper-level handoff surface between dashboard action orchestration and Free Agency UI.
+ * - Renders offer-sheet lifecycle lists from the published section-availability contract.
+ * - Publishes only the modal/rendering action slice into FreeAgentPool.
+ * - Does not own Free Agency mutation routing, world-only gating rules, or lifecycle persistence locally.
+ *
  * HISTORY:
  *  - 2025-12-12: Created ad-hoc while adding required file header (no plan).
  *  - 2026-03-14: Migrated authoritative implementation to TypeScript for E91.
@@ -30,6 +36,7 @@ type OfferSheetLifecycleActionHandler = NonNullable<
 type OfferSheetFinalizeArg = Parameters<
   OfferSheetLifecycleActionOwner['finalizeOfferSheet']
 >[0];
+type FreeAgentPoolActionOwner = FreeAgentPoolProps['actionOwner'];
 
 const FreeAgencySection = ({
   freeAgents,
@@ -42,6 +49,10 @@ const FreeAgencySection = ({
   const offerSheetSectionAvailability = actionOwner.offerSheetSectionAvailability;
   const offerSheetLifecycleActionOwner =
     offerSheetSectionAvailability.lifecycleActionOwner;
+  const freeAgentPoolActionOwner = {
+    dualPathSigning: actionOwner.dualPathSigning,
+    freeAgentModalAvailability: actionOwner.freeAgentModalAvailability,
+  } satisfies FreeAgentPoolActionOwner;
   const incomingOfferSheetSurface = {
     title: 'Incoming Offer Sheets (Action Required)',
     offerSheets: incomingOfferSheets,
@@ -85,8 +96,9 @@ const FreeAgencySection = ({
   return (
     <div>
       {/*
-        Offer-sheet lifecycle actions are persist-only world mutations.
-        In vacuum mode these controls are explicitly gated to avoid silent no-ops.
+        OFFER-SHEET SECTION CONTRACT: lifecycle actions are persist-only world
+        mutations. This wrapper renders the published gating state and routes
+        UI events into the lifecycle owner; it does not own those mutations.
       */}
       {offerSheetSectionAvailability.actionsDisabled && (
         <p className="text-xs text-amber-400 mb-2">
@@ -114,10 +126,13 @@ const FreeAgencySection = ({
         }
       />
 
+      {/* FREE-AGENT POOL CONTRACT: the pool only receives the modal/rendering
+          slice of the broader Free Agency action contract. Offer-sheet
+          lifecycle routing stays at the section/action-layer seam. */}
       <FreeAgentPool
         freeAgents={freeAgents as FreeAgentPoolProps['freeAgents']}
         currentYear={currentYear}
-        actionOwner={actionOwner as FreeAgentPoolProps['actionOwner']}
+        actionOwner={freeAgentPoolActionOwner}
         playersMap={playersMap as FreeAgentPoolProps['playersMap']}
       />
     </div>

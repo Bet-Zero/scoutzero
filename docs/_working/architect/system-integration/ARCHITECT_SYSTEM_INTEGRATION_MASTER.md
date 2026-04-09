@@ -39,7 +39,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
 | Step 1   | Global Ownership and Truth Boundaries     | Closeout rereview PASS — complete        |
-| Step 2   | Cross-Surface Handoff Integrity           | Bootstrap complete — ready for execution |
+| Step 2   | Cross-Surface Handoff Integrity           | First batch complete — ready for batch 2 |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
 | Closeout | Whole-Feature System Integration Closeout | Not started                              |
@@ -196,6 +196,17 @@ This is not a failure of basic architecture. It is a handoff-clarity and contrac
 - Live repo confirmed: all four major section wrappers, `freeAgencyActionOwner` wiring, and `applyTradeToCapSheet` handoff path all exist as described.
 - Review tracker and issue log updated with Step 2 execution lanes (SI-2A through SI-2D) and Step 2 handoff-risk issue entries (SI-ISS-007 through SI-ISS-010).
 - No stop conditions triggered. Step 2 is ready for first-batch execution.
+
+### Step 2 Batch 1 Execution Update
+
+**Completed:** April 9, 2026
+
+- **SI-2A complete:** `GMDashboard.tsx` now publishes named shell-to-section handoff objects for the major wrappers, and the Cap Sheet / Trade / Free Agency / Offseason wrappers now state more consistently what they own locally versus what they only forward from upstream truth.
+- **SI-2B complete:** `useArchitectActions.ts` now documents the Free Agency `actionOwner` guarantees explicitly, `FreeAgencySection.tsx` keeps offer-sheet lifecycle routing at the section/action-layer seam, and `FreeAgentPool` now consumes only the modal/rendering slice it actually owns.
+- **Guardrails:** added `src/tests/architect/systemIntegration.step2Handoff.guardrail.test.ts` and updated the focused Cap Sheet / Free Agency guardrails so these shell/action-owner contracts stay durable.
+- **Validation:** `npm run test:diff -- --reporter=dot`; `npm run typecheck`
+- **Behavior impact:** no intended product-behavior change. This batch is shell/section/action-owner contract clarification only.
+- **Next move:** proceed to Step 2 second batch (SI-2C + SI-2D).
 
 ---
 

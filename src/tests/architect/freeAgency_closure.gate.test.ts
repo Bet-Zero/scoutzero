@@ -218,12 +218,12 @@ describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner 
     '}'
   );
 
-  it('imports FreeAgencyActionOwner from the authoritative action hook in both UI prop surfaces', () => {
+  it('imports the authoritative grouped owner types from the action hook in both UI prop surfaces', () => {
     expect(offerSheetTypesContent).toMatch(
       /import\s+type\s+\{\s*FreeAgencyActionOwner\s*\}\s+from\s+['"].\/hooks\/useArchitectActions['"]/
     );
     expect(freeAgentPoolTypesContent).toMatch(
-      /import\s+type\s+\{\s*FreeAgencyActionOwner\s*\}\s+from\s+['"]@\/features\/architect\/GMDashboard\/hooks\/useArchitectActions['"]/
+      /import\s+type\s+\{\s*FreeAgentPoolActionOwner\s*\}\s+from\s+['"]@\/features\/architect\/GMDashboard\/hooks\/useArchitectActions['"]/
     );
   });
 
@@ -232,7 +232,7 @@ describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner 
       /actionOwner:\s*FreeAgencyActionOwner;/
     );
     expect(freeAgentPoolPropsRegion).toMatch(
-      /actionOwner:\s*FreeAgencyActionOwner;/
+      /actionOwner:\s*FreeAgentPoolActionOwner;/
     );
   });
 
@@ -254,6 +254,13 @@ describe('Gate 2: Free Agency UI prop contracts stay grouped behind actionOwner 
       expect(freeAgencySectionPropsRegion).not.toMatch(forbidden);
       expect(freeAgentPoolPropsRegion).not.toMatch(forbidden);
     }
+  });
+
+  it('keeps FreeAgentPool on the modal/rendering action slice instead of the full lifecycle bundle', () => {
+    expect(freeAgentPoolPropsRegion).not.toMatch(/worldOnly:/);
+    expect(freeAgentPoolPropsRegion).not.toMatch(
+      /offerSheetSectionAvailability:/
+    );
   });
 
   it('keeps the offer-sheet list contract role-aware with one unified lifecycle callback', () => {
@@ -293,8 +300,11 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
     expect(gmDashboardContent).toMatch(
       /const\s+freeAgencyWorldOnlyOwner\s*=\s*freeAgencyActionOwner\.worldOnly/
     );
+    expect(gmDashboardContent).toMatch(
+      /const\s+freeAgencySectionSurface\s*:\s*FreeAgencySectionProps\s*=\s*\{[\s\S]*actionOwner:\s*freeAgencyActionOwner,/
+    );
     expect(gmDashboardFreeAgencyRegion).toMatch(
-      /<FreeAgencySection[\s\S]*actionOwner=\{freeAgencyActionOwner\}/
+      /<FreeAgencySection[\s\S]*\{\.\.\.freeAgencySectionSurface\}/
     );
   });
 
@@ -354,7 +364,10 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
       /actionsDisabledReason=\{[\s\S]*offerSheetSectionAvailability\.actionsDisabledReason/
     );
     expect(freeAgencySectionContent).toMatch(
-      /<FreeAgentPool[\s\S]*actionOwner=\{actionOwner/
+      /const\s+freeAgentPoolActionOwner\s*=\s*\{[\s\S]*dualPathSigning:\s*actionOwner\.dualPathSigning,[\s\S]*freeAgentModalAvailability:\s*actionOwner\.freeAgentModalAvailability,[\s\S]*\}\s+satisfies\s+FreeAgentPoolActionOwner/
+    );
+    expect(freeAgencySectionContent).toMatch(
+      /<FreeAgentPool[\s\S]*actionOwner=\{freeAgentPoolActionOwner\}/
     );
     expect(freeAgencySectionContent).not.toMatch(/onMatch=/);
     expect(freeAgencySectionContent).not.toMatch(/onDecline=/);

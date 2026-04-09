@@ -213,7 +213,7 @@ When an execution lane is marked COMPLETE in the Review Tracker, update the corr
 
 ### Step 2 Issue Status
 
-All Step 2 issues are **OPEN** pending execution-batch completion.
+`SI-ISS-007` and `SI-ISS-008` are **RESOLVED** after the first Step 2 execution batch. `SI-ISS-009` and `SI-ISS-010` remain **OPEN** for the second batch.
 
 ---
 
@@ -221,7 +221,7 @@ All Step 2 issues are **OPEN** pending execution-batch completion.
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-2A
 
@@ -248,13 +248,16 @@ The goal is consistency and explicit contract, not extra verbosity.
 
 **Source:** Step 2 Review Record — "What Is Weak / Risky" §1; Step 2 Action Breakdown SI-2A
 
+**Resolution Notes (2026-04-09):**
+`GMDashboard.tsx` now publishes named shell-to-section handoff objects for Cap Sheet, Trade, Free Agency, and Offseason, so the major wrapper inputs read as explicit shell contracts instead of mixed inline prop tunnels. `CapSheetSection.tsx`, `TradeSection.tsx`, `FreeAgencySection.tsx`, and `OffseasonSection.tsx` now state more consistently what each wrapper owns locally, what it only forwards, and what must remain upstream truth. `src/tests/architect/systemIntegration.step2Handoff.guardrail.test.ts` protects that wrapper-level contract baseline.
+
 ---
 
 ### SI-ISS-008 — Free Agency `actionOwner` contract is dense and too easy to underread
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-2B
 
@@ -287,6 +290,9 @@ Make the `freeAgencyActionOwner` contract more explicit:
 - make it clear which layer owns lifecycle routing vs rendering vs gating
 
 **Source:** Step 2 Review Record — "What Is Weak / Risky" §2 and "Highest-Risk Step 2 Handoff Surfaces" §B; Step 2 Action Breakdown SI-2B
+
+**Resolution Notes (2026-04-09):**
+`useArchitectActions.ts` now documents the published Free Agency contract explicitly: standard signing stays base/world-safe under `dualPathSigning`, world-only routes stay behind `worldOnly`, modal rendering/gating lives in `freeAgentModalAvailability`, and offer-sheet lifecycle gating lives in `offerSheetSectionAvailability`. `FreeAgencySection.tsx` now publishes only the modal/rendering slice into `FreeAgentPool`, while keeping offer-sheet lifecycle routing and disabled messaging at the section seam. `FreeAgentPool` now consumes a narrower `FreeAgentPoolActionOwner` type, and focused closure/pool tests plus the Step 2 handoff guardrail protect that split.
 
 ---
 

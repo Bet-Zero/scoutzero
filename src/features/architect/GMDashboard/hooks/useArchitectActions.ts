@@ -638,6 +638,11 @@ export interface UseArchitectActionsParams {
   seasonId: string;
 }
 
+/**
+ * Standard free-agency signing lane.
+ * This is the base/vacuum-safe entrypoint that Free Agency surfaces may always
+ * treat as available for ordinary sign/resign flows.
+ */
 export interface FreeAgencyDualPathSigningOwner {
   signFreeAgent: (
     playerObj: ArchitectPlayer,
@@ -647,6 +652,10 @@ export interface FreeAgencyDualPathSigningOwner {
 
 export type FreeAgentModalVisibleAction = 'signNew' | 'signAndTrade';
 
+/**
+ * World-only offer-sheet creation initiators exposed through the modal layer
+ * when the action contract has an active world behind it.
+ */
 export interface FreeAgentOfferSheetInitiation {
   getOfferSheetPreflight: (
     playerObj: ArchitectPlayer,
@@ -658,6 +667,12 @@ export interface FreeAgentOfferSheetInitiation {
   ) => Promise<MutationActionResult>;
 }
 
+/**
+ * FreeAgentPool visual-gating contract.
+ * The pool should treat the visible actions, labels, and optional world-only
+ * initiators here as upstream truth from the action layer rather than
+ * reconstructing availability locally.
+ */
 export interface FreeAgentModalAvailability {
   visibleActions: FreeAgentModalVisibleAction[];
   actionLabelsOverride: Partial<Record<FreeAgentModalVisibleAction, string>>;
@@ -666,6 +681,11 @@ export interface FreeAgentModalAvailability {
   offerSheetInitiation: FreeAgentOfferSheetInitiation | null;
 }
 
+/**
+ * World-only Free Agency mutation lane.
+ * This contract is published only when an active world exists; section/pool
+ * surfaces must not assume these entrypoints exist in base/vacuum mode.
+ */
 export interface FreeAgencyWorldOnlyModalActionOwner {
   signAndTrade: (
     playerObj: ArchitectPlayer,
@@ -687,6 +707,10 @@ export interface FreeAgencyWorldOnlyModalActionOwner {
   ) => Promise<MutationActionResult>;
 }
 
+/**
+ * World-only offer-sheet lifecycle routing contract.
+ * The action layer owns these routes; section surfaces only forward UI intent.
+ */
 export interface FreeAgencyOfferSheetLifecycleActionOwner {
   matchOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
   declineOfferSheet: (offeringTeamCode: string, offerSheetId: string) => void;
@@ -696,6 +720,16 @@ export interface FreeAgencyOfferSheetLifecycleActionOwner {
 export interface FreeAgencyWorldOnlyActionOwner
   extends FreeAgencyWorldOnlyModalActionOwner,
     FreeAgencyOfferSheetLifecycleActionOwner {}
+
+/**
+ * Narrow FreeAgentPool handoff contract.
+ * The pool owns list rendering and modal launch wiring only; it does not own
+ * offer-sheet lifecycle routing or world-only disabled messaging.
+ */
+export interface FreeAgentPoolActionOwner {
+  dualPathSigning: FreeAgencyDualPathSigningOwner;
+  freeAgentModalAvailability: FreeAgentModalAvailability;
+}
 
 export interface FreeAgentSignAndTradeInitiation {
   onSignAndTrade: (
@@ -710,12 +744,25 @@ export interface FreeAgentSignAndTradeInitiation {
   ) => Promise<SignAndTradePreflightResult>;
 }
 
+/**
+ * Section-level offer-sheet lifecycle availability contract.
+ * FreeAgencySection should render disabled messaging and lifecycle list wiring
+ * from this published surface instead of inferring world gating on its own.
+ */
 export interface FreeAgencyOfferSheetSectionAvailability {
   lifecycleActionOwner: FreeAgencyOfferSheetLifecycleActionOwner | null;
   actionsDisabled: boolean;
   actionsDisabledReason: string | null;
 }
 
+/**
+ * Published Free Agency cross-surface contract bundle.
+ * Consumers should read this as a contract map, not a generic bag of actions:
+ * - `dualPathSigning`: standard signing/resigning, available in base or world mode
+ * - `worldOnly`: world-backed mutation/preflight routes only
+ * - `freeAgentModalAvailability`: visual/modal gating truth for FreeAgentPool
+ * - `offerSheetSectionAvailability`: list gating + lifecycle availability truth for FreeAgencySection
+ */
 export interface FreeAgencyActionOwner {
   dualPathSigning: FreeAgencyDualPathSigningOwner;
   worldOnly: FreeAgencyWorldOnlyActionOwner | null;
@@ -5357,6 +5404,9 @@ export function useArchitectActions({
     ]
   );
 
+  // VISUAL/MODAL CONTRACT: FreeAgentPool reads this as upstream truth for what
+  // the contract modal is allowed to show. World-only initiators appear here
+  // only when the world-only action lane exists.
   const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
     () => ({
       visibleActions: signAndTradeInitiation
@@ -5375,6 +5425,9 @@ export function useArchitectActions({
     ]
   );
 
+  // SECTION/LIFECYCLE CONTRACT: FreeAgencySection renders disabled messaging
+  // from this published availability surface instead of rebuilding world-mode
+  // lifecycle rules locally.
   const offerSheetSectionAvailability =
     useMemo<FreeAgencyOfferSheetSectionAvailability>(
       () => ({
@@ -5387,6 +5440,8 @@ export function useArchitectActions({
       [freeAgencyOfferSheetLifecycleActionOwner, getFreeAgencyWorldOnlyMessage]
     );
 
+  // PUBLISHED FREE-AGENCY CONTRACT: downstream surfaces should consume the
+  // slice they need rather than infer base-vs-world behavior from raw handlers.
   const freeAgencyActionOwner = useMemo<FreeAgencyActionOwner>(
     () => ({
       dualPathSigning,

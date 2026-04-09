@@ -11,7 +11,7 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import type { Dispatch, SetStateAction } from 'react';
-import type { FreeAgencyActionOwner } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
+import type { FreeAgentPoolActionOwner } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 
 type LooseRecord = Record<string, unknown>;
 
@@ -74,7 +74,7 @@ export interface FreeAgentActionResult extends LooseRecord {
 export interface FreeAgentPoolProps {
   freeAgents?: FreeAgentListItem[] | null;
   currentYear: number;
-  actionOwner: FreeAgencyActionOwner;
+  actionOwner: FreeAgentPoolActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
 }
 

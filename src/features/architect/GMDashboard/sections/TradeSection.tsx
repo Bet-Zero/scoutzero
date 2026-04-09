@@ -1,17 +1,31 @@
+/**
+ * FILE: src/features/architect/GMDashboard/sections/TradeSection.tsx
+ * PURPOSE: Publish the dashboard shell's trade-surface handoff into TradeEditor.
+ * OWNERSHIP: Feature: architect/GMDashboard (trade section)
+ *
+ * ARCHITECT OWNERSHIP:
+ * - Wrapper-level handoff surface only.
+ * - Forwards shell-selected team/year/world context into TradeEditor.
+ * - Does not own committed apply/reload authority; onApplyTrade stays upstream.
+ * - Does not reinterpret world/base mode truth locally.
+ */
 import TradeEditor from '@/features/architect/tradeMachine/TradeEditor';
 
-type TradeSectionProps = {
-  primaryTeam: string | null | undefined;
-  capProjections: Record<string, unknown> | null | undefined;
-  currentYear: number | null | undefined;
-  playersMap?: Record<string, unknown>;
-  onApplyTrade?: (...args: any[]) => any;
-  primaryTeamData?: Record<string, unknown> | null;
-  onEditContract?: (...args: any[]) => any;
-  worldId?: string | null;
-  worldAsOfDate?: string | Date | null;
-  userId?: string | null;
-};
+type ForwardedTradeEditorProps = Pick<
+  Parameters<typeof TradeEditor>[0],
+  | 'primaryTeam'
+  | 'capProjections'
+  | 'currentYear'
+  | 'playersMap'
+  | 'onApplyTrade'
+  | 'primaryTeamData'
+  | 'onEditContract'
+  | 'worldId'
+  | 'worldAsOfDate'
+  | 'userId'
+>;
+
+type TradeSectionProps = ForwardedTradeEditorProps;
 
 const TradeSection = ({
   primaryTeam,
@@ -24,19 +38,25 @@ const TradeSection = ({
   worldId = null, // World ID for world-aware team loading
   worldAsOfDate = null,
   userId = null,
-}: TradeSectionProps) => (
-  <TradeEditor
-    primaryTeam={primaryTeam}
-    capProjections={capProjections}
-    currentYear={currentYear}
-    playersMap={playersMap}
-    onApplyTrade={onApplyTrade}
-    primaryTeamData={primaryTeamData}
-    onEditContract={onEditContract}
-    worldId={worldId}
-    worldAsOfDate={worldAsOfDate}
-    userId={userId}
-  />
-);
+}: TradeSectionProps) => {
+  const tradeEditorSurfaceProps = {
+    primaryTeam,
+    capProjections,
+    currentYear,
+    playersMap,
+    onApplyTrade,
+    primaryTeamData,
+    onEditContract,
+    worldId,
+    worldAsOfDate,
+    userId,
+  } satisfies ForwardedTradeEditorProps;
+
+  /* SECTION HANDOFF / FORWARDED TRADE SURFACE: TradeEditor owns local
+     trade composition, validation, and preview UI. This wrapper only
+     publishes shell context plus the upstream apply callback; it must not
+     read like the committed trade authority. */
+  return <TradeEditor {...tradeEditorSurfaceProps} />;
+};
 
 export { TradeSection };

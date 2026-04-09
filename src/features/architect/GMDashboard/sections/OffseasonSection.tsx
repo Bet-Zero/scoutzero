@@ -6,6 +6,12 @@
  *          Phase 5 PATCH: Added worldSeason display + DraftPositionsInput alignment.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
+ * ARCHITECT OWNERSHIP:
+ * - Wrapper-level handoff surface for world-backed season advancement.
+ * - Owns local modal open state plus committed aftermath application into dashboard state.
+ * - Publishes world-backed draft-position persistence and reload callbacks into downstream surfaces.
+ * - Keeps DEV preview clearly separate from the committed world-advance path.
+ *
  * HISTORY:
  *  - 2025-12-12: Created outside plan mode (no chunks); header added per request.
  *  - 2025-12-20: Phase 3B - Added SeasonAdvanceModal integration for world-scoped season advancement.
@@ -497,6 +503,10 @@ const OffseasonSection = ({
 
   return (
     <div>
+      {/* SECTION HANDOFF / WORLD-BACKED OFFSEASON SURFACE: this wrapper owns
+          local modal/reload coordination, but committed season advancement and
+          draft-position persistence stay in the downstream authorities it
+          publishes here. */}
       <WorldBackedOffseasonSurface
         worldId={worldId}
         worldSeasonLoading={worldSeasonLoading}
@@ -516,6 +526,9 @@ const OffseasonSection = ({
         }}
       />
 
+      {/* DEV PREVIEW SURFACE: intentionally separate from the committed
+          world-backed advance path above so preview-only logic does not read
+          like authoritative season progression. */}
       {devPreviewSurfaceAccess.kind === 'preview' ? (
         <DevPreviewOffseasonSurface
           previewAuthority={devPreviewSurfaceAccess.previewAuthority}
