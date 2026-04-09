@@ -3637,8 +3637,10 @@ export function buildWorldMutationEventPayload({
 /**
  * Apply a mutation to an Architect world.
  *
- * This is the SINGLE public entrypoint for all world mutations.
- * All mutations flow through: READ → COMPUTE → VALIDATE → PERSIST → POST-UPDATE
+ * This is the public entrypoint for general / point-in-time Architect world mutations.
+ * It is not the single entrypoint for every committed-write operation in Architect;
+ * season/world transitions remain in seasonManager.ts.
+ * General mutations flow through: READ → COMPUTE → VALIDATE → PERSIST → POST-UPDATE
  *
  * @param {MutationInput} input - Mutation parameters
  * @returns {Promise<MutationResult>} - Result of the mutation

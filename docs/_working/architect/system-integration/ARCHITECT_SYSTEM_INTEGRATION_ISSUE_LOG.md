@@ -55,7 +55,7 @@ Added an Architect-wide ownership map and quick-answer section to `src/features/
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-1C
 
@@ -75,6 +75,9 @@ Moved shared transient-field persistence hygiene below both authorities into `pe
 
 **Closeout Review Note (2026-04-09):**
 Live repo closeout review found a remaining contradiction in `src/features/architect/utils/mutationPipeline.ts`: `applyWorldMutation(...)` still says it is the "SINGLE public entrypoint for all world mutations." That overbroad wording conflicts with the sibling-authority split above and is not currently covered by the Step 1 guardrails. Reopened for one narrow Step 1 follow-up.
+
+**Narrow Follow-Up Resolution Note (2026-04-09):**
+Updated `src/features/architect/utils/mutationPipeline.ts` so `applyWorldMutation(...)` now describes itself as the public entrypoint for general / point-in-time Architect world mutations, explicitly excluding season/world transitions. Updated `src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts` to require that narrowed wording and to fail if the old overbroad "SINGLE public entrypoint for all world mutations" claim returns.
 
 ---
 

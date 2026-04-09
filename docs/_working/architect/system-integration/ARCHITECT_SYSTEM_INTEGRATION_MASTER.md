@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 1 closeout review complete — RISK. Narrow follow-up required before Step 1 can close.**
+**Step 1 narrow follow-up complete. Closeout rereview pending.**
 
 ## Purpose
 
@@ -38,7 +38,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries     | Closeout review complete — RISK, not closed  |
+| Step 1   | Global Ownership and Truth Boundaries     | Narrow follow-up complete — closeout rereview pending |
 | Step 2   | Cross-Surface Handoff Integrity           | Not started                              |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
@@ -94,6 +94,15 @@ Map where truth actually lives across Architect as one integrated system. Distin
 - **Why this matters:** Step 1's most important gate was the mutation-vs-season seam. That seam is mostly improved, but the live repo still contains one overbroad authority statement at the mutation entrypoint itself, and the Step 1 guardrails do not currently fail on that contradiction.
 - **Required next move:** one narrow Step 1 follow-up to align `applyWorldMutation(...)` wording and guardrail coverage with the sibling-authority contract.
 
+### Step 1 Narrow Follow-Up Update
+
+**Completed:** April 9, 2026
+
+- Narrowed the `applyWorldMutation(...)` entrypoint wording in `src/features/architect/utils/mutationPipeline.ts` so it now claims only the general / point-in-time committed mutation surface.
+- Strengthened `src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts` so the suite now fails if `mutationPipeline.ts` reintroduces the old "SINGLE public entrypoint for all world mutations" claim.
+- No broader Step 1 scope was reopened.
+- **Next move:** rerun Step 1 closeout review to confirm the blocker is fully cleared and decide whether Step 1 can now close.
+
 ---
 
 ## Key Ownership Map (from Step 1 Review)
@@ -139,5 +148,6 @@ Map where truth actually lives across Architect as one integrated system. Distin
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 1 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 1 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 1 closeout review package    |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_FOLLOWUP_RETURN_PACKAGE.md`           | Step 1 narrow follow-up package   |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

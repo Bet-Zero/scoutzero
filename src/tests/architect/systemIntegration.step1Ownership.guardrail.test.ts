@@ -135,6 +135,18 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
     expect(persistenceEnforcementSource).toContain(
       'Shared by committed-write authorities such as mutationPipeline.ts and seasonManager.ts.'
     );
+    expect(mutationPipelineSource).toContain(
+      'This is the public entrypoint for general / point-in-time Architect world mutations.'
+    );
+    expect(mutationPipelineSource).toContain(
+      'It is not the single entrypoint for every committed-write operation in Architect;'
+    );
+    expect(mutationPipelineSource).toContain(
+      'season/world transitions remain in seasonManager.ts.'
+    );
+    expect(mutationPipelineSource).not.toContain(
+      'This is the SINGLE public entrypoint for all world mutations.'
+    );
     expect(mutationPipelineSource).toMatch(
       /import\s*\{[\s\S]*FORBIDDEN_TRANSIENT_KEYS[\s\S]*sanitizeTransientFieldsForPersistence[\s\S]*\}\s*from\s*['"]@\/features\/architect\/utils\/persistenceContracts\/enforcement['"]/
     );
