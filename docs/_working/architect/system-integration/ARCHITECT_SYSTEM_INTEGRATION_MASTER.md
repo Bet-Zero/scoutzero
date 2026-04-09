@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 1 execution complete. Closeout review pending.**
+**Step 1 closeout review complete — RISK. Narrow follow-up required before Step 1 can close.**
 
 ## Purpose
 
@@ -38,7 +38,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries     | Execution complete — closeout review pending |
+| Step 1   | Global Ownership and Truth Boundaries     | Closeout review complete — RISK, not closed  |
 | Step 2   | Cross-Surface Handoff Integrity           | Not started                              |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
@@ -84,6 +84,16 @@ Map where truth actually lives across Architect as one integrated system. Distin
 - **SI-1D complete:** Strengthened `contractUtils.ts` ownership markers and added targeted Step 1 guardrails proving that key downstream Architect surfaces continue to route through `computeTeamCapTotals.ts` and `contractUtils.ts` for shared cap/contract truth.
 - **Behavior impact:** No intended product-behavior change. This batch tightened authority seams and guardrails only.
 
+### Step 1 Closeout Review Update
+
+**Completed:** April 9, 2026
+
+- **Closeout verdict:** `RISK`
+- **What passed:** The ownership map, three-layer read stack, and shared cap/contract SSOT surfaces now read materially clearer in the live repo.
+- **Exact blocker:** `src/features/architect/utils/mutationPipeline.ts` still documents `applyWorldMutation(...)` as the "SINGLE public entrypoint for all world mutations," which conflicts with the sibling-authority split now established in `seasonManager.ts` and `src/features/architect/ARCHITECT_FEATURE_README.md`.
+- **Why this matters:** Step 1's most important gate was the mutation-vs-season seam. That seam is mostly improved, but the live repo still contains one overbroad authority statement at the mutation entrypoint itself, and the Step 1 guardrails do not currently fail on that contradiction.
+- **Required next move:** one narrow Step 1 follow-up to align `applyWorldMutation(...)` wording and guardrail coverage with the sibling-authority contract.
+
 ---
 
 ## Key Ownership Map (from Step 1 Review)
@@ -128,5 +138,6 @@ Map where truth actually lives across Architect as one integrated system. Distin
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 1 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 1 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 1 batch 2 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 1 closeout review package    |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

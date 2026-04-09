@@ -55,7 +55,7 @@ Added an Architect-wide ownership map and quick-answer section to `src/features/
 
 **Severity:** HIGH
 
-**Status:** RESOLVED
+**Status:** OPEN
 
 **Related Lane:** SI-1C
 
@@ -72,6 +72,9 @@ The repo should express the relationship and division of responsibility between 
 
 **Resolution Notes (2026-04-09):**
 Moved shared transient-field persistence hygiene below both authorities into `persistenceContracts/enforcement.ts`, so `seasonManager.ts` no longer appears downstream of `mutationPipeline.ts` for execution ownership. Added explicit sibling-authority markers in `mutationPipeline.ts`, `seasonManager.ts`, `SeasonAdvanceModal.tsx`, and the Step 1 guardrail tests so the repo now states clearly that point-in-time world mutations go through `mutationPipeline.ts` while whole-world season transitions go through `seasonManager.ts`.
+
+**Closeout Review Note (2026-04-09):**
+Live repo closeout review found a remaining contradiction in `src/features/architect/utils/mutationPipeline.ts`: `applyWorldMutation(...)` still says it is the "SINGLE public entrypoint for all world mutations." That overbroad wording conflicts with the sibling-authority split above and is not currently covered by the Step 1 guardrails. Reopened for one narrow Step 1 follow-up.
 
 ---
 

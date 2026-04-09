@@ -200,6 +200,32 @@ Step 1 will be marked closed when all of the following are true:
 4. Shared cap/contract SSOT expectations are clearer and more durable
 5. All four SI-1A through SI-1D lanes are marked COMPLETE
 
+## Step 1 Closeout Review Status
+
+### Verdict
+
+`RISK`
+
+### Status
+
+Step 1 execution lanes remain COMPLETE, but Step 1 is **not officially closed**.
+
+### Exact Closeout Blocker
+
+`src/features/architect/utils/mutationPipeline.ts` still describes `applyWorldMutation(...)` as the "SINGLE public entrypoint for all world mutations." That wording conflicts with the Step 1 sibling-authority contract that says:
+
+- `mutationPipeline.ts` owns general / point-in-time committed mutations
+- `seasonManager.ts` owns committed season/world transitions
+
+Because this contradiction sits on the mutation entrypoint itself and the current Step 1 guardrail suite does not assert against it, a narrow SI-1C follow-up is still required before Step 1 can be marked closed.
+
+### Required Follow-Up Shape
+
+One narrow Step 1 follow-up batch:
+
+- align `applyWorldMutation(...)` wording with the sibling-authority contract
+- extend the Step 1 guardrail so this overbroad mutation-authority claim cannot reappear
+
 ---
 
 ## Batching Notes
