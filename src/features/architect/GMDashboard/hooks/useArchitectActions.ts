@@ -229,7 +229,12 @@ type ArchitectPlayer = Omit<
   years_of_service?: number | string | null;
 };
 
-/** Trade data item for a single team */
+/**
+ * TradeMachine draft handoff for a single team.
+ * This is a wrapper/editor staging shape only; the action layer must
+ * normalize it into the authoritative executeTrade payload before any
+ * committed world mutation or base-mode preview apply can run.
+ */
 interface TradeDataItem {
   teamId: string;
   incoming?: ArchitectPlayer[];
@@ -242,6 +247,22 @@ interface TradeDataItem {
   outgoingPlayers?: ArchitectPlayer[];
   incomingPlayers?: ArchitectPlayer[];
 }
+
+type TradeExecutionPayload = {
+  teams: NonNullable<ArchitectMutationPayload['teams']>;
+  asOfDate?: string;
+  tradeCtx: {
+    source: 'tradeMachine';
+    worldId: string | null;
+    yearKey: number;
+    asOfDate?: string;
+  };
+};
+
+type TradeExecutionHandoff = {
+  resolvedTeamCodes: string[];
+  payload: TradeExecutionPayload;
+};
 
 /** Contract details for signing/saving (avoids schema naming pattern) */
 type SigningDetails = Omit<Partial<LocalContract>, 'birdRights'> & {
@@ -2311,6 +2332,24 @@ export function useArchitectActions({
     ]
   );
 
+  /**
+   * Shared world-mutation sync lane for non-Free Agency surfaces.
+   * Trade apply re-enters through this helper so the trade wrapper/action seam
+   * does not read like it owns post-commit reload or dashboard state writes.
+   */
+  const runAuthoritativeWorldMutationWithDashboardSync = useCallback(
+    async (
+      mutationType: string,
+      payload: ArchitectMutationPayload,
+      options: {
+        worldRequiredMessage?: string;
+        seasonIdOverride?: string;
+      } = {}
+    ): Promise<PersistMutationResult> =>
+      runAuthoritativeFAMutation(mutationType, payload, options),
+    [runAuthoritativeFAMutation]
+  );
+
   const resolveCommittedOfferSheetState = useCallback(
     async (
       result: PersistMutationResult,
@@ -3456,13 +3495,8 @@ export function useArchitectActions({
     [prepareAuthoritativeSigningDetails, teamCode]
   );
 
-  const applyTradeToCapSheet = useCallback(
-    async (tradeData: TradeDataItem[]): Promise<void> => {
-      if (!tradeData || !Array.isArray(tradeData)) return;
-
-      // Persist to world if in world mode
-      // Transform tradeData to mutation pipeline format
-      // Note: Each team's teamId needs to be resolved to canonical teamCode
+  const buildTradeExecutionHandoff = useCallback(
+    (tradeData: TradeDataItem[]): TradeExecutionHandoff => {
       const resolvedTeamCodes = tradeData.map(
         (t) => resolveTeamCode(t.teamId) || t.teamId
       );
@@ -3574,7 +3608,6 @@ export function useArchitectActions({
         })
       );
 
-      // Validation guard
       for (const team of teams) {
         for (const player of team.sends) {
           if (!player.playerId) {
@@ -3588,20 +3621,39 @@ export function useArchitectActions({
       }
 
       const authoritativeTradeCtx = {
-        source: 'tradeMachine',
+        source: 'tradeMachine' as const,
         worldId,
         yearKey: currentYear,
         ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
       };
+      const payload = {
+        teams,
+        ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+        tradeCtx: authoritativeTradeCtx,
+      } satisfies TradeExecutionPayload;
 
-      if (worldId) {
-        await runAuthoritativeFAMutation('executeTrade', {
-          teams,
-          ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
-          tradeCtx: authoritativeTradeCtx,
-        });
-        return;
-      }
+      return {
+        resolvedTeamCodes,
+        payload,
+      };
+    },
+    [currentYear, worldAsOfDate, worldId]
+  );
+
+  const commitTradeExecutionHandoff = useCallback(
+    async (tradeExecutionHandoff: TradeExecutionHandoff): Promise<void> => {
+      await runAuthoritativeWorldMutationWithDashboardSync(
+        'executeTrade',
+        tradeExecutionHandoff.payload
+      );
+    },
+    [runAuthoritativeWorldMutationWithDashboardSync]
+  );
+
+  const applyTradeExecutionHandoffToBaseState = useCallback(
+    async (tradeExecutionHandoff: TradeExecutionHandoff): Promise<void> => {
+      const { resolvedTeamCodes, payload } = tradeExecutionHandoff;
+      const teams = payload.teams;
 
       try {
         const loadedTeams: NonNullable<TradeComputeState['teams']> =
@@ -3629,13 +3681,12 @@ export function useArchitectActions({
           );
 
         const tradePayload = {
-          teams,
-          ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+          ...payload,
           tradeCtx: {
-            ...authoritativeTradeCtx,
+            ...payload.tradeCtx,
             worldId: null,
           },
-        };
+        } satisfies TradeExecutionPayload;
 
         const computeResult = computeWorldMutation({
           mutationType: 'executeTrade',
@@ -3749,13 +3800,32 @@ export function useArchitectActions({
         throw error;
       }
     },
+    [currentYear, seasonId, setTeamCapSheetSafe, teamCode, worldAsOfDate]
+  );
+
+  const applyTradeToCapSheet = useCallback(
+    async (tradeData: TradeDataItem[]): Promise<void> => {
+      if (!tradeData || !Array.isArray(tradeData)) {
+        return;
+      }
+
+      /* TRADE APPLY CONTRACT:
+         - TradeSection/TradeEditor hand off a staged draft only.
+         - This action layer normalizes the authoritative executeTrade payload.
+         - World-mode commit and base-mode preview apply branch here, not in the wrapper. */
+      const tradeExecutionHandoff = buildTradeExecutionHandoff(tradeData);
+
+      if (worldId) {
+        await commitTradeExecutionHandoff(tradeExecutionHandoff);
+        return;
+      }
+
+      await applyTradeExecutionHandoffToBaseState(tradeExecutionHandoff);
+    },
     [
-      teamCode,
-      currentYear,
-      runAuthoritativeFAMutation,
-      seasonId,
-      setTeamCapSheet,
-      worldAsOfDate,
+      applyTradeExecutionHandoffToBaseState,
+      buildTradeExecutionHandoff,
+      commitTradeExecutionHandoff,
       worldId,
     ]
   );

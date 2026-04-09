@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 1 closeout rereview complete. Step 1 is officially closed; ready for Step 2.**
+**Step 2 execution complete; ready for Step 2 closeout review.**
 
 ## Purpose
 
@@ -39,7 +39,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
 | Step 1   | Global Ownership and Truth Boundaries     | Closeout rereview PASS — complete        |
-| Step 2   | Cross-Surface Handoff Integrity           | First batch complete — ready for batch 2 |
+| Step 2   | Cross-Surface Handoff Integrity           | Execution complete — ready for closeout review |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
 | Closeout | Whole-Feature System Integration Closeout | Not started                              |
@@ -208,6 +208,17 @@ This is not a failure of basic architecture. It is a handoff-clarity and contrac
 - **Behavior impact:** no intended product-behavior change. This batch is shell/section/action-owner contract clarification only.
 - **Next move:** proceed to Step 2 second batch (SI-2C + SI-2D).
 
+### Step 2 Batch 2 Execution Update
+
+**Completed:** April 9, 2026
+
+- **SI-2C complete:** `useArchitectActions.ts` now separates Trade Machine handoff work into explicit normalize/commit/base-apply seams (`buildTradeExecutionHandoff`, `commitTradeExecutionHandoff`, and `applyTradeExecutionHandoffToBaseState`), while `TradeSection.tsx` now states more plainly that mode branching and committed apply/reload authority stay upstream.
+- **SI-2D complete:** `FreeAgencySection.tsx` now renders the published lifecycle disabled reason directly instead of owning duplicate copy, and `OffseasonSection.tsx` now publishes explicit wrapper-owned world-only vs preview-only gating surfaces for season advancement and DEV preview.
+- **Guardrails:** updated Step 2 / Free Agency / Offseason source-scan guardrails and added a focused world-mode trade behavior assertion in `useArchitectActions.freeAgency.test.tsx`.
+- **Validation:** `npm run test:diff -- --reporter=dot`; `npm run typecheck`
+- **Behavior impact:** no intended product-behavior change. This batch tightens cross-surface contract clarity and gating ownership only.
+- **Next move:** proceed to Step 2 closeout review.
+
 ---
 
 ## Related Documents
@@ -227,5 +238,7 @@ This is not a failure of basic architecture. It is a handoff-clarity and contrac
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_FOLLOWUP_RETURN_PACKAGE.md`           | Step 1 narrow follow-up package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_CLOSEOUT_REREVIEW_RETURN_PACKAGE.md`  | Step 1 closeout rereview package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 2 bootstrap return package   |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 2 batch 1 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 2 batch 2 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

@@ -545,7 +545,7 @@ describe('Gate 9: UI wiring + world gating exists (E1)', () => {
         freeAgencySectionContent
       );
     const passesPublishedReason =
-      /actionsDisabledReason\s*=\s*\{[\s\S]*offerSheetSectionAvailability\.actionsDisabledReason/.test(
+      /actionsDisabledReason\s*=\s*\{\s*offerSheetLifecycleDisabledReason\s*\}/.test(
         freeAgencySectionContent
       );
     const passesUnifiedLifecycleHandler =

@@ -213,7 +213,7 @@ When an execution lane is marked COMPLETE in the Review Tracker, update the corr
 
 ### Step 2 Issue Status
 
-`SI-ISS-007` and `SI-ISS-008` are **RESOLVED** after the first Step 2 execution batch. `SI-ISS-009` and `SI-ISS-010` remain **OPEN** for the second batch.
+`SI-ISS-007` through `SI-ISS-010` are **RESOLVED** after the second Step 2 execution batch.
 
 ---
 
@@ -300,7 +300,7 @@ Make the `freeAgencyActionOwner` contract more explicit:
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-2C
 
@@ -328,13 +328,16 @@ Make the Trade Machine → authoritative apply/reload contract materially cleare
 
 **Source:** Step 2 Review Record — "What Is Weak / Risky" §3 and "Highest-Risk Step 2 Handoff Surfaces" §A; Step 2 Action Breakdown SI-2C
 
+**Resolution Notes (2026-04-09):**
+`useArchitectActions.ts` now separates the trade handoff into explicit action-layer seams: `buildTradeExecutionHandoff` normalizes the staged Trade Machine draft into the authoritative `executeTrade` payload, `commitTradeExecutionHandoff` routes world-mode commits through the shared dashboard world-mutation sync helper, and `applyTradeExecutionHandoffToBaseState` owns the base-mode authoritative compute/apply path. `TradeSection.tsx` now states more directly that the wrapper does not own mode branching or reload/application truth. The Step 2 handoff guardrail, the trade base-state guardrail, and a focused world-mode trade behavior test now protect that contract.
+
 ---
 
 ### SI-ISS-010 — World-only / preview-only gating is honest but distributed across too many surfaces
 
 **Severity:** MEDIUM-HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-2D
 
@@ -360,6 +363,9 @@ Make world-only, preview-only, and unavailable-action boundaries more consistent
 - contributors should be able to tell at a glance which decisions are owned at the section level vs the action-owner level vs the lifecycle layer
 
 **Source:** Step 2 Review Record — "What Is Weak / Risky" §4; Step 2 Action Breakdown SI-2D
+
+**Resolution Notes (2026-04-09):**
+`FreeAgencySection.tsx` no longer owns duplicate lifecycle-disabled copy; it now reads and renders the published `offerSheetSectionAvailability.actionsDisabledReason` directly, keeping the disabled-message contract upstream. `OffseasonSection.tsx` now publishes explicit wrapper-owned gating surfaces for committed world advancement vs DEV preview (`OffseasonWorldAdvanceAvailability` and `OffseasonPreviewSurfaceAvailability`) instead of burying that distinction in scattered inline strings. Updated Free Agency, Offseason, and Step 2 handoff guardrails now keep those world-only / preview-only boundaries consistent.
 
 ---
 

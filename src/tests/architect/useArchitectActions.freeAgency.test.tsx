@@ -2624,6 +2624,123 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect((result.current.teamCapSheet as any).marker).toBeUndefined();
   });
 
+  it('routes world-mode trade apply through the authoritative mutation lane and syncs the committed active-team snapshot', async () => {
+    const committedTradeTeam = {
+      ...baseTeamFixture,
+      roster: ['incoming_1'],
+      players: [
+        {
+          id: 'incoming_1',
+          player_id: 'incoming_1',
+          name: 'Incoming Player',
+          contract: {
+            salariesByYear: [
+              { season: '2025-26', salary: 8_000_000, capHit: 8_000_000 },
+            ],
+          },
+        },
+      ],
+      capHolds: [],
+      source: {
+        type: 'changed-teams',
+        lastModifiedAt: '2026-04-01T00:00:00.000Z',
+      },
+    };
+
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [
+        { teamCode: 'LAL', team: committedTradeTeam },
+        { teamCode: 'BOS', team: { teamCode: 'BOS', roster: ['player_1'] } },
+      ],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 2,
+        playersPatched: 2,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      event: { eventId: 'evt_trade_world_commit' },
+    });
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam: baseTeamFixture,
+    });
+
+    const tradeData = [
+      {
+        teamId: 'LAL',
+        outgoingPlayers: [
+          {
+            id: 'player_1',
+            player_id: 'player_1',
+            name: 'Test Player',
+          },
+        ],
+        incomingPlayers: [
+          {
+            id: 'incoming_1',
+            player_id: 'incoming_1',
+            name: 'Incoming Player',
+            contract: {
+              salariesByYear: [
+                { season: '2025-26', salary: 8_000_000, capHit: 8_000_000 },
+              ],
+            },
+          },
+        ],
+        outgoingEntitlements: [],
+        incomingEntitlements: [],
+      },
+      {
+        teamId: 'BOS',
+        outgoingPlayers: [
+          {
+            id: 'incoming_1',
+            player_id: 'incoming_1',
+            name: 'Incoming Player',
+          },
+        ],
+        incomingPlayers: [
+          {
+            id: 'player_1',
+            player_id: 'player_1',
+            name: 'Test Player',
+          },
+        ],
+        outgoingEntitlements: [],
+        incomingEntitlements: [],
+      },
+    ];
+
+    await act(async () => {
+      await result.current.actions.applyTradeToCapSheet(tradeData as any);
+    });
+
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationType: 'executeTrade',
+        worldId: 'world_1',
+        payload: expect.objectContaining({
+          teams: expect.any(Array),
+          tradeCtx: expect.objectContaining({
+            source: 'tradeMachine',
+            worldId: 'world_1',
+            yearKey: 2026,
+          }),
+        }),
+      })
+    );
+    expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
+    expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
+    expect(result.current.teamCapSheet).toEqual(committedTradeTeam);
+    expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
+    expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
+  });
+
   it('returns a conservative blocked SAT preflight result in base mode', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 

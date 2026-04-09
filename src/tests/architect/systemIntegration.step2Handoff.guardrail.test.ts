@@ -69,6 +69,9 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
       'Does not own committed apply/reload authority; onApplyTrade stays upstream.'
     );
     expect(tradeSectionSource).toContain(
+      'trade payload normalization plus world-vs-base branching.'
+    );
+    expect(tradeSectionSource).toContain(
       'SECTION HANDOFF / FORWARDED TRADE SURFACE'
     );
     expect(freeAgencySectionSource).toContain(
@@ -82,6 +85,25 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
     );
     expect(offseasonSectionSource).toContain(
       'DEV preview clearly separate from the committed world-advance path.'
+    );
+  });
+
+  it('keeps Trade apply on explicit action-layer normalize/commit/base-apply seams', () => {
+    expect(actionsHookSource).toContain('type TradeExecutionHandoff = {');
+    expect(actionsHookSource).toContain(
+      'const runAuthoritativeWorldMutationWithDashboardSync = useCallback('
+    );
+    expect(actionsHookSource).toContain(
+      'const buildTradeExecutionHandoff = useCallback('
+    );
+    expect(actionsHookSource).toContain(
+      'const commitTradeExecutionHandoff = useCallback('
+    );
+    expect(actionsHookSource).toContain(
+      'const applyTradeExecutionHandoffToBaseState = useCallback('
+    );
+    expect(actionsHookSource).toContain(
+      'TradeSection/TradeEditor hand off a staged draft only.'
     );
   });
 
@@ -112,6 +134,9 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
       'const freeAgentPoolActionOwner = {'
     );
     expect(freeAgencySectionSource).toContain(
+      'const offerSheetLifecycleDisabledReason ='
+    );
+    expect(freeAgencySectionSource).toContain(
       'dualPathSigning: actionOwner.dualPathSigning,'
     );
     expect(freeAgencySectionSource).toContain(
@@ -125,6 +150,27 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
     );
     expect(freeAgentPoolSource).toContain(
       'Lifecycle routing stays out of'
+    );
+  });
+
+  it('keeps wrapper-owned world-only and preview-only gating on explicit Offseason availability surfaces', () => {
+    expect(offseasonSectionSource).toContain(
+      'type OffseasonWorldAdvanceAvailability = {'
+    );
+    expect(offseasonSectionSource).toContain(
+      'type OffseasonPreviewSurfaceAvailability = {'
+    );
+    expect(offseasonSectionSource).toContain(
+      'function getOffseasonWorldAdvanceAvailability('
+    );
+    expect(offseasonSectionSource).toContain(
+      'const offseasonWorldAdvanceAvailability ='
+    );
+    expect(offseasonSectionSource).toContain(
+      'availability={offseasonWorldAdvanceAvailability}'
+    );
+    expect(offseasonSectionSource).toContain(
+      'previewAvailability={OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY}'
     );
   });
 });

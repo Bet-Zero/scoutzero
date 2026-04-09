@@ -334,6 +334,9 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
       /const\s+offerSheetLifecycleActionOwner[\s\S]*offerSheetSectionAvailability\.lifecycleActionOwner/
     );
     expect(freeAgencySectionContent).toMatch(
+      /const\s+offerSheetLifecycleDisabledReason[\s\S]*offerSheetSectionAvailability\.actionsDisabledReason/
+    );
+    expect(freeAgencySectionContent).toMatch(
       /const\s+incomingOfferSheetSurface\s*=\s*\{[\s\S]*surfaceRole:\s*'incoming'/
     );
     expect(freeAgencySectionContent).toMatch(
@@ -361,7 +364,10 @@ describe('Gate 3: dashboard and section hand off grouped Free Agency authority (
       /actionsDisabled=\{offerSheetSectionAvailability\.actionsDisabled\}/
     );
     expect(freeAgencySectionContent).toMatch(
-      /actionsDisabledReason=\{[\s\S]*offerSheetSectionAvailability\.actionsDisabledReason/
+      /actionsDisabledReason=\{offerSheetLifecycleDisabledReason\}/
+    );
+    expect(freeAgencySectionContent).toMatch(
+      /offerSheetSectionAvailability\.actionsDisabled[\s\S]*offerSheetLifecycleDisabledReason/
     );
     expect(freeAgencySectionContent).toMatch(
       /const\s+freeAgentPoolActionOwner\s*=\s*\{[\s\S]*dualPathSigning:\s*actionOwner\.dualPathSigning,[\s\S]*freeAgentModalAvailability:\s*actionOwner\.freeAgentModalAvailability,[\s\S]*\}\s+satisfies\s+FreeAgentPoolActionOwner/

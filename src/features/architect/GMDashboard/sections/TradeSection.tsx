@@ -7,7 +7,8 @@
  * - Wrapper-level handoff surface only.
  * - Forwards shell-selected team/year/world context into TradeEditor.
  * - Does not own committed apply/reload authority; onApplyTrade stays upstream.
- * - Does not reinterpret world/base mode truth locally.
+ * - Does not reinterpret world/base mode truth locally; the action layer owns
+ *   trade payload normalization plus world-vs-base branching.
  */
 import TradeEditor from '@/features/architect/tradeMachine/TradeEditor';
 
@@ -55,7 +56,8 @@ const TradeSection = ({
   /* SECTION HANDOFF / FORWARDED TRADE SURFACE: TradeEditor owns local
      trade composition, validation, and preview UI. This wrapper only
      publishes shell context plus the upstream apply callback; it must not
-     read like the committed trade authority. */
+     read like the committed trade authority or the place where mode
+     branching/reload ownership lives. */
   return <TradeEditor {...tradeEditorSurfaceProps} />;
 };
 

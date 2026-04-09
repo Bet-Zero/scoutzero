@@ -75,6 +75,7 @@ type OffseasonSectionProps = {
 };
 
 type WorldBackedOffseasonSurfaceProps = {
+  availability: OffseasonWorldAdvanceAvailability;
   worldId?: string | null;
   worldSeasonLoading: boolean;
   viewingSeason: string;
@@ -90,6 +91,7 @@ type WorldBackedOffseasonSurfaceProps = {
 };
 
 type DevPreviewOffseasonSurfaceProps = {
+  previewAvailability: OffseasonPreviewSurfaceAvailability;
   previewAuthority: OffseasonPreviewAuthority;
   worldId?: string | null;
   teamCapSheet: LooseRecord | null | undefined;
@@ -111,6 +113,49 @@ type DevPreviewSurfaceAccess =
       hasPreviewIntent: true;
       previewAuthority: OffseasonPreviewAuthority;
     };
+
+const OFFSEASON_WORLD_ONLY_BADGE = 'World-only';
+const OFFSEASON_WORLD_ADVANCE_DISABLED_REASON =
+  'Select a world to unlock season advance.';
+const OFFSEASON_WORLD_ADVANCE_ENABLED_TITLE =
+  'Advance the active world to the next season';
+const OFFSEASON_WORLD_ADVANCE_DISABLED_TITLE =
+  OFFSEASON_WORLD_ADVANCE_DISABLED_REASON;
+const OFFSEASON_PREVIEW_ONLY_BANNER =
+  'Preview only — does not persist. Changes will be lost on refresh.';
+
+type OffseasonWorldAdvanceAvailability = {
+  hasActiveWorld: boolean;
+  worldOnlyBadgeLabel: typeof OFFSEASON_WORLD_ONLY_BADGE | null;
+  unavailableReason: string | null;
+  advanceButtonTitle: string;
+};
+
+type OffseasonPreviewSurfaceAvailability = {
+  bannerMessage: typeof OFFSEASON_PREVIEW_ONLY_BANNER;
+};
+
+const OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY: OffseasonPreviewSurfaceAvailability =
+  {
+    bannerMessage: OFFSEASON_PREVIEW_ONLY_BANNER,
+  };
+
+function getOffseasonWorldAdvanceAvailability(
+  worldId?: string | null
+): OffseasonWorldAdvanceAvailability {
+  const hasActiveWorld = Boolean(worldId);
+
+  return {
+    hasActiveWorld,
+    worldOnlyBadgeLabel: hasActiveWorld ? null : OFFSEASON_WORLD_ONLY_BADGE,
+    unavailableReason: hasActiveWorld
+      ? null
+      : OFFSEASON_WORLD_ADVANCE_DISABLED_REASON,
+    advanceButtonTitle: hasActiveWorld
+      ? OFFSEASON_WORLD_ADVANCE_ENABLED_TITLE
+      : OFFSEASON_WORLD_ADVANCE_DISABLED_TITLE,
+  };
+}
 
 function getCommittedWorldAdvanceAftermath(
   result: SeasonAdvanceResult
@@ -201,6 +246,7 @@ function resolveDevPreviewSurfaceAccess(): DevPreviewSurfaceAccess {
 }
 
 function WorldBackedOffseasonSurface({
+  availability,
   worldId,
   worldSeasonLoading,
   viewingSeason,
@@ -212,7 +258,6 @@ function WorldBackedOffseasonSurface({
   validateDraftPositionsMap,
   onOpenAdvanceModal,
 }: WorldBackedOffseasonSurfaceProps) {
-  const hasActiveWorld = Boolean(worldId);
   const authoritativeWorldSeason =
     seasonAdvanceDraftContext?.authoritativeSeason ?? null;
 
@@ -225,9 +270,9 @@ function WorldBackedOffseasonSurface({
               <h3 className="text-lg font-semibold text-white">
                 World Season Advancement
               </h3>
-              {!hasActiveWorld && (
+              {availability.worldOnlyBadgeLabel && (
                 <span className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/45">
-                  World-only
+                  {availability.worldOnlyBadgeLabel}
                 </span>
               )}
             </div>
@@ -235,12 +280,12 @@ function WorldBackedOffseasonSurface({
               Advance the entire world to the next season. This will process all 30 teams,
               expiring contracts, and option decisions.
             </p>
-            {!hasActiveWorld && (
+            {availability.unavailableReason && (
               <div className="mt-2 text-xs text-white/45">
-                Select a world to unlock season advance.
+                {availability.unavailableReason}
               </div>
             )}
-            {hasActiveWorld && authoritativeWorldSeason && (
+            {availability.hasActiveWorld && authoritativeWorldSeason && (
               <div className="mt-2 flex items-center gap-2">
                 <span className="text-sm font-medium text-purple-400">
                   World Season: {authoritativeWorldSeason}
@@ -252,10 +297,12 @@ function WorldBackedOffseasonSurface({
                 )}
               </div>
             )}
-            {hasActiveWorld && worldSeasonLoading && (
+            {availability.hasActiveWorld && worldSeasonLoading && (
               <div className="mt-2 text-xs text-white/40">Loading world season...</div>
             )}
-            {hasActiveWorld && !worldSeasonLoading && !authoritativeWorldSeason && (
+            {availability.hasActiveWorld &&
+            !worldSeasonLoading &&
+            !authoritativeWorldSeason && (
               <div className="mt-2 text-xs text-yellow-300">
                 World season unavailable. Season advance stays disabled until metadata loads.
               </div>
@@ -271,11 +318,7 @@ function WorldBackedOffseasonSurface({
             onClick={onOpenAdvanceModal}
             disabled={!canAdvanceSeason}
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900/40 disabled:text-white/40 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium transition-colors"
-            title={
-              hasActiveWorld
-                ? 'Advance the active world to the next season'
-                : 'Select a world to unlock season advance'
-            }
+            title={availability.advanceButtonTitle}
           >
             Advance Season
           </button>
@@ -295,6 +338,7 @@ function WorldBackedOffseasonSurface({
 }
 
 function DevPreviewOffseasonSurface({
+  previewAvailability,
   previewAuthority,
   worldId,
   teamCapSheet,
@@ -318,7 +362,7 @@ function DevPreviewOffseasonSurface({
         data-testid="offseason-preview-banner"
         className="mb-4 rounded border border-yellow-500/40 bg-yellow-900/20 px-3 py-2 text-xs text-yellow-200"
       >
-        Preview only — does not persist. Changes will be lost on refresh.
+        {previewAvailability.bannerMessage}
       </div>
       <OffseasonTab
         teamCapSheet={teamCapSheet as Record<string, unknown>}
@@ -423,6 +467,11 @@ const OffseasonSection = ({
   const canAdvanceWorldSeason = Boolean(
     worldId && seasonAdvanceDraftContext && !worldSeasonLoading
   );
+  const offseasonWorldAdvanceAvailability =
+    useMemo<OffseasonWorldAdvanceAvailability>(
+      () => getOffseasonWorldAdvanceAvailability(worldId),
+      [worldId]
+    );
   const draftPositionsPersistenceAuthority =
     useMemo<DraftPositionsPersistenceAuthority>(() => ({
       async loadCommittedDraftPositions(draftYear) {
@@ -508,6 +557,7 @@ const OffseasonSection = ({
           draft-position persistence stay in the downstream authorities it
           publishes here. */}
       <WorldBackedOffseasonSurface
+        availability={offseasonWorldAdvanceAvailability}
         worldId={worldId}
         worldSeasonLoading={worldSeasonLoading}
         viewingSeason={viewingSeason}
@@ -531,6 +581,7 @@ const OffseasonSection = ({
           like authoritative season progression. */}
       {devPreviewSurfaceAccess.kind === 'preview' ? (
         <DevPreviewOffseasonSurface
+          previewAvailability={OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY}
           previewAuthority={devPreviewSurfaceAccess.previewAuthority}
           worldId={worldId}
           teamCapSheet={teamCapSheet}

@@ -22,8 +22,8 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 | ----- | ------------------------------------------------------------- | -------- | ----------- | -------------- |
 | SI-2A | Normalize shell-to-section handoff clarity across wrappers    | P1       | COMPLETE    | First (2A+2B)  |
 | SI-2B | Clarify Free Agency ↔ `actionOwner` contract boundaries      | P1       | COMPLETE    | First (2A+2B)  |
-| SI-2C | Clarify Trade Machine ↔ authoritative apply/mutation handoff | P1       | NOT STARTED | Second (2C+2D) |
-| SI-2D | Tighten world-only / preview-only gating contracts            | P2       | NOT STARTED | Second (2C+2D) |
+| SI-2C | Clarify Trade Machine ↔ authoritative apply/mutation handoff | P1       | COMPLETE    | Second (2C+2D) |
+| SI-2D | Tighten world-only / preview-only gating contracts            | P2       | COMPLETE    | Second (2C+2D) |
 
 ---
 
@@ -123,7 +123,7 @@ Completed by documenting the `freeAgencyActionOwner` guarantee map in `useArchit
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -155,13 +155,21 @@ A contributor should be able to answer:
 
 Complete when the Trade Machine → authoritative apply/reload contract is materially clearer and less likely to be misread.
 
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by splitting the trade handoff in `useArchitectActions.ts` into explicit normalize/commit/base-apply seams: `buildTradeExecutionHandoff`, `commitTradeExecutionHandoff`, and `applyTradeExecutionHandoffToBaseState`. Trade world-mode execution now routes through a shared authoritative world-mutation sync helper instead of reading like a Free Agency-owned lane, and `TradeSection.tsx` now states more plainly that payload normalization plus world-vs-base branching stay upstream. A focused trade guardrail plus a world-mode behavior test now protect that handoff.
+
 ---
 
 ## SI-2D — Tighten World-Only / Preview-Only Gating Contracts Across Section Surfaces
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -189,6 +197,14 @@ A contributor should be able to tell:
 - where those decisions are owned
 
 Complete when the repo presents these gating contracts more consistently across the section layer and immediate action surfaces.
+
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by removing the remaining wrapper-local Free Agency lifecycle disabled copy in `FreeAgencySection.tsx` so the section now renders the published `offerSheetSectionAvailability.actionsDisabledReason` directly, and by giving `OffseasonSection.tsx` explicit wrapper-owned gating surfaces for world-backed advancement vs DEV preview (`OffseasonWorldAdvanceAvailability` and `OffseasonPreviewSurfaceAvailability`). The updated Step 2, Free Agency, and Offseason guardrails now lock those gating surfaces in place.
 
 ---
 

@@ -48,7 +48,12 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('defines a wrapper-owned preview surface resolver instead of an inline gate boolean', () => {
       expect(source).toContain("type DevPreviewSurfaceAccess =");
+      expect(source).toContain("type OffseasonWorldAdvanceAvailability =");
+      expect(source).toContain("type OffseasonPreviewSurfaceAvailability =");
       expect(source).toContain('function resolveDevPreviewSurfaceAccess(): DevPreviewSurfaceAccess {');
+      expect(source).toContain(
+        'function getOffseasonWorldAdvanceAvailability('
+      );
       expect(source).toContain(
         'const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();'
       );
@@ -91,6 +96,10 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'Preview only — does not persist. Changes will be lost on refresh.'
       );
+      expect(source).toContain(
+        'previewAvailability={OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY}'
+      );
+      expect(source).toContain('{previewAvailability.bannerMessage}');
     });
 
     it('publishes separate world-backed and preview-only surfaces', () => {
@@ -119,6 +128,13 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         'canAdvanceSeason={canAdvanceWorldSeason}'
       );
+      expect(source).toContain(
+        'const offseasonWorldAdvanceAvailability ='
+      );
+      expect(source).toContain(
+        'availability={offseasonWorldAdvanceAvailability}'
+      );
+      expect(source).toContain('title={availability.advanceButtonTitle}');
       expect(source).toContain(
         'Select a world to unlock season advance.'
       );

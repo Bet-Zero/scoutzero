@@ -49,6 +49,8 @@ const FreeAgencySection = ({
   const offerSheetSectionAvailability = actionOwner.offerSheetSectionAvailability;
   const offerSheetLifecycleActionOwner =
     offerSheetSectionAvailability.lifecycleActionOwner;
+  const offerSheetLifecycleDisabledReason =
+    offerSheetSectionAvailability.actionsDisabledReason || undefined;
   const freeAgentPoolActionOwner = {
     dualPathSigning: actionOwner.dualPathSigning,
     freeAgentModalAvailability: actionOwner.freeAgentModalAvailability,
@@ -100,20 +102,19 @@ const FreeAgencySection = ({
         mutations. This wrapper renders the published gating state and routes
         UI events into the lifecycle owner; it does not own those mutations.
       */}
-      {offerSheetSectionAvailability.actionsDisabled && (
+      {offerSheetSectionAvailability.actionsDisabled &&
+      offerSheetLifecycleDisabledReason ? (
         <p className="text-xs text-amber-400 mb-2">
-          Offer-sheet lifecycle actions require an active world to commit.
+          {offerSheetLifecycleDisabledReason}
         </p>
-      )}
+      ) : null}
 
       {/* Incoming Offers (Home Team View) */}
       <OfferSheetList
         {...incomingOfferSheetSurface}
         onLifecycleAction={handleOfferSheetLifecycleAction}
         actionsDisabled={offerSheetSectionAvailability.actionsDisabled}
-        actionsDisabledReason={
-          offerSheetSectionAvailability.actionsDisabledReason || undefined
-        }
+        actionsDisabledReason={offerSheetLifecycleDisabledReason}
       />
 
       {/* Outgoing Offers (Offering Team View) */}
@@ -121,9 +122,7 @@ const FreeAgencySection = ({
         {...outgoingOfferSheetSurface}
         onLifecycleAction={handleOfferSheetLifecycleAction}
         actionsDisabled={offerSheetSectionAvailability.actionsDisabled}
-        actionsDisabledReason={
-          offerSheetSectionAvailability.actionsDisabledReason || undefined
-        }
+        actionsDisabledReason={offerSheetLifecycleDisabledReason}
       />
 
       {/* FREE-AGENT POOL CONTRACT: the pool only receives the modal/rendering
