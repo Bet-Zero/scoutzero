@@ -4,26 +4,186 @@
 
 Architect System Integration
 
-## Step
+## Current Step
 
-Step 1 — Global Ownership and Truth Boundaries
+Step 2 — Cross-Surface Handoff Integrity
 
 ## Tracker Purpose
 
-This tracker records the status of each Step 1 execution lane. It is the authoritative record of what has been executed, what is in progress, and what remains for Step 1.
+This tracker records the status of each execution lane across all steps. It is the authoritative record of what has been executed, what is in progress, and what remains.
 
 It is distinct from the Issue Log. The tracker manages execution lane status. The Issue Log manages identified risks and their resolution.
 
 ---
 
+## Step 2 Execution Summary
+
+| Lane  | Name                                                          | Priority | Status      | Batch          |
+| ----- | ------------------------------------------------------------- | -------- | ----------- | -------------- |
+| SI-2A | Normalize shell-to-section handoff clarity across wrappers    | P1       | NOT STARTED | First (2A+2B)  |
+| SI-2B | Clarify Free Agency ↔ `actionOwner` contract boundaries      | P1       | NOT STARTED | First (2A+2B)  |
+| SI-2C | Clarify Trade Machine ↔ authoritative apply/mutation handoff | P1       | NOT STARTED | Second (2C+2D) |
+| SI-2D | Tighten world-only / preview-only gating contracts            | P2       | NOT STARTED | Second (2C+2D) |
+
+---
+
+## SI-2A — Normalize Shell-to-Section Handoff Clarity Across Major Wrappers
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the handoff contract between the dashboard shell and the major section wrappers more explicit and more consistent across the major feature surfaces.
+
+The repo currently expresses wrapper-level contracts unevenly. Some wrappers clearly communicate what they own and what they forward. Others are primarily prop tunnels with minimal explanation.
+
+### Scope
+
+- `GMDashboard.tsx` — top-level composition shell
+- `GMDashboard/sections/CapSheetSection.tsx`
+- `GMDashboard/sections/TradeSection.tsx`
+- `GMDashboard/sections/FreeAgencySection.tsx`
+- `GMDashboard/sections/OffseasonSection.tsx`
+- Immediate feature surfaces these sections feed
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/GMDashboard.tsx`
+- `src/features/architect/GMDashboard/sections/CapSheetSection.tsx`
+- `src/features/architect/GMDashboard/sections/TradeSection.tsx`
+- `src/features/architect/GMDashboard/sections/FreeAgencySection.tsx`
+- `src/features/architect/GMDashboard/sections/OffseasonSection.tsx`
+
+### Completion Standard
+
+A contributor should be able to see, from the shell and section layer:
+
+- what a section owns
+- what a section only forwards
+- what truth a section should treat as upstream
+- what mutations or side effects a section should never appear to own locally
+
+Complete when the major section-wrapper contracts are materially more consistent and easier to understand across the dashboard surface.
+
+---
+
+## SI-2B — Clarify Free Agency ↔ `actionOwner` Contract Boundaries
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the Free Agency handoff contract easier to understand and safer to consume. `FreeAgencySection.tsx` looks relatively simple, but it depends on a dense upstream `actionOwner` contract that bundles dual-path signing, world-only actions, modal availability, offer-sheet lifecycle availability, disabled reasons, and lifecycle action ownership.
+
+### Scope
+
+- `useArchitectActions.ts` — `freeAgencyActionOwner` definition and routing
+- `FreeAgencySection.tsx` — downstream consumer of `actionOwner`
+- Directly relevant free-agency consumers (`FreeAgentPool`, offer-sheet surfaces) if needed
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+- `src/features/architect/GMDashboard/sections/FreeAgencySection.tsx`
+
+### Completion Standard
+
+A contributor should be able to answer:
+
+- what the `actionOwner` contract actually guarantees
+- which actions are world-only
+- which actions are available in vacuum/base mode
+- which layer owns lifecycle action routing vs visual rendering vs gating
+
+Complete when the Free Agency cross-surface action contract is materially easier to read and less likely to be misused.
+
+---
+
+## SI-2C — Clarify Trade Machine ↔ Authoritative Apply/Mutation Result Handoff
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the Trade Machine handoff into the authoritative apply/mutation path clearer, tighter, and easier to reason about. This is the highest-risk Step 2 handoff seam.
+
+The dashboard shell passes context into the trade surface, while `useArchitectActions.ts` transforms that surface-level trade data into mutation payloads, resolves mode differences, performs authoritative compute/apply, and resyncs state.
+
+### Scope
+
+- `TradeSection.tsx` — thin wrapper and its prop-forwarding contract
+- `GMDashboard.tsx` — shell inputs feeding the trade surface
+- `useArchitectActions.ts` — `applyTradeToCapSheet` routing
+- Authoritative result/reload seam needed to make the handoff truthful
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/sections/TradeSection.tsx`
+- `src/features/architect/GMDashboard/GMDashboard.tsx`
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
+### Completion Standard
+
+A contributor should be able to answer:
+
+- what the trade surface is allowed to hand off
+- what the action layer transforms or guarantees
+- where mode branching actually occurs
+- how committed trade results get back into dashboard-visible state
+
+Complete when the Trade Machine → authoritative apply/reload contract is materially clearer and less likely to be misread.
+
+---
+
+## SI-2D — Tighten World-Only / Preview-Only Gating Contracts Across Section Surfaces
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make world-only, preview-only, and unavailable-action boundaries more consistent across major feature sections. The repo tries to be honest about what requires an active world, but that truth is spread across section wrappers, action-owner contracts, disable messaging, lifecycle availability surfaces, and preview banners/modal routes.
+
+### Scope
+
+- Free Agency lifecycle actions (world-only vs base-mode gating)
+- Offseason world advancement vs DEV preview distinction
+- Other directly relevant section-level gating seams discovered during execution
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/sections/FreeAgencySection.tsx`
+- `src/features/architect/GMDashboard/sections/OffseasonSection.tsx`
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
+### Completion Standard
+
+A contributor should be able to tell:
+
+- what persists only in active-world mode
+- what is preview-only / local-only
+- what is intentionally unavailable without a world
+- where those decisions are owned
+
+Complete when the repo presents these gating contracts more consistently across the section layer and immediate action surfaces.
+
+---
+
 ## Step 1 Execution Summary
 
-| Lane  | Name                                                  | Priority | Status      | Batch          |
-| ----- | ----------------------------------------------------- | -------- | ----------- | -------------- |
-| SI-1A | Make global ownership map explicit                    | P1       | COMPLETE    | First (1A+1B)  |
-| SI-1B | Clarify world/base read ownership boundaries          | P1       | COMPLETE    | First (1A+1B)  |
-| SI-1C | Clarify mutation/apply vs season-transition authority | P1       | COMPLETE    | Second (1C+1D) |
-| SI-1D | Guard shared cap/contract SSOT boundaries             | P2       | COMPLETE    | Second (1C+1D) |
+| Lane  | Name                                                  | Priority | Status   | Batch          |
+| ----- | ----------------------------------------------------- | -------- | -------- | -------------- |
+| SI-1A | Make global ownership map explicit                    | P1       | COMPLETE | First (1A+1B)  |
+| SI-1B | Clarify world/base read ownership boundaries          | P1       | COMPLETE | First (1A+1B)  |
+| SI-1C | Clarify mutation/apply vs season-transition authority | P1       | COMPLETE | Second (1C+1D) |
+| SI-1D | Guard shared cap/contract SSOT boundaries             | P2       | COMPLETE | Second (1C+1D) |
 
 ---
 

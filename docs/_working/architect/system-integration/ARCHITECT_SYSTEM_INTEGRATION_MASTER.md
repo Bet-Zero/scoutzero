@@ -38,8 +38,8 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 | Step     | Name                                      | Status                                   |
 | -------- | ----------------------------------------- | ---------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries     | Closeout rereview PASS — complete         |
-| Step 2   | Cross-Surface Handoff Integrity           | Not started                              |
+| Step 1   | Global Ownership and Truth Boundaries     | Closeout rereview PASS — complete        |
+| Step 2   | Cross-Surface Handoff Integrity           | Bootstrap complete — ready for execution |
 | Step 3   | State/Action/Mutation Contract Durability | Not started                              |
 | Step 4   | Preview vs Committed-State Consistency    | Not started                              |
 | Closeout | Whole-Feature System Integration Closeout | Not started                              |
@@ -146,19 +146,75 @@ Map where truth actually lives across Architect as one integrated system. Distin
 
 ---
 
+---
+
+## Step 2 — Cross-Surface Handoff Integrity
+
+### Goal
+
+Review whether the major Architect surfaces hand state and truth to one another cleanly, explicitly, and honestly. This is not a local feature audit. It is a cross-surface handoff review focused on contracts between feature surfaces.
+
+### Step 2 Review Verdict
+
+**RISK** — Architect's major handoff seams are mostly real and functional, but they are not equally explicit. Several high-value cross-surface contracts are coherent in practice while still being too implicit, too dense, or too unevenly expressed across the repo.
+
+> The system mostly connects correctly, but the repo still communicates some feature-to-feature contracts unevenly. Certain seams are self-explanatory, while others work only if the contributor already knows how the underlying action or reload path behaves.
+
+This is not a failure of basic architecture. It is a handoff-clarity and contract-durability risk.
+
+### Step 2 Strongest Handoff Surfaces
+
+- **Dashboard shell ↔ `useArchitectState.ts` / `useArchitectActions.ts`** — strongest top-level system handoff in the repo
+- **Read stack ↔ dashboard-visible state** — disciplined; does not reconstruct lower-level truth
+- **Offseason world advancement ↔ committed aftermath reload/application** — one of the cleanest cross-surface contracts
+- **Cap sheet selected-year surface ↔ adjacent current-season authority surface** — explicit, bounded, and unusually well explained
+
+### Step 2 Highest-Risk Handoff Surfaces
+
+- **Trade Machine ↔ mutation/apply result contract** — highest-risk handoff seam in Step 2
+- **Free Agency ↔ upstream `actionOwner` contract** — coherent but dense; too easy to underread
+- **Section-wrapper consistency across the dashboard** — wrapper-level contracts are uneven; some are prop tunnels with minimal explanation
+
+### Step 2 Execution Lanes
+
+- **SI-2A** — Normalize shell-to-section handoff clarity across major wrappers
+- **SI-2B** — Clarify Free Agency ↔ `actionOwner` contract boundaries
+- **SI-2C** — Clarify Trade Machine ↔ authoritative apply/mutation result handoff
+- **SI-2D** — Tighten world-only / preview-only gating contracts across section surfaces
+
+### Step 2 Execution Batching
+
+- **First batch:** SI-2A + SI-2B (contract-clarity tasks at the shell/section/action-owner boundary)
+- **Second batch:** SI-2C + SI-2D (higher-risk, higher-consequence handoff durability seams)
+
+### Step 2 Bootstrap Update
+
+**Completed:** April 9, 2026
+
+- Bootstrap verdict: **PASS**
+- Step 2 review record and action breakdown read and reconciled against live repo.
+- Live repo confirmed: all four major section wrappers, `freeAgencyActionOwner` wiring, and `applyTradeToCapSheet` handoff path all exist as described.
+- Review tracker and issue log updated with Step 2 execution lanes (SI-2A through SI-2D) and Step 2 handoff-risk issue entries (SI-ISS-007 through SI-ISS-010).
+- No stop conditions triggered. Step 2 is ready for first-batch execution.
+
+---
+
 ## Related Documents
 
 | Document                                                                                            | Purpose                           |
 | --------------------------------------------------------------------------------------------------- | --------------------------------- |
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP1_REVIEW_RECORD.md`    | Step 1 live review findings       |
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP1_ACTION_BREAKDOWN.md` | Step 1 execution lane definitions |
-| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_REVIEW_TRACKER.md`         | Step 1 execution lane tracker     |
-| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_ISSUE_LOG.md`              | Step 1 issue/risk log             |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP2_REVIEW_RECORD.md`    | Step 2 live review findings       |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP2_ACTION_BREAKDOWN.md` | Step 2 execution lane definitions |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_REVIEW_TRACKER.md`         | Execution lane tracker (Steps 1–) |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_ISSUE_LOG.md`              | Issue/risk log (Steps 1–)         |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 1 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 1 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 1 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 1 closeout review package    |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_FOLLOWUP_RETURN_PACKAGE.md`           | Step 1 narrow follow-up package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP1_CLOSEOUT_REREVIEW_RETURN_PACKAGE.md`  | Step 1 closeout rereview package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 2 bootstrap return package   |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

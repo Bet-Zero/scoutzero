@@ -4,13 +4,13 @@
 
 Architect System Integration
 
-## Step
+## Current Step
 
-Step 1 — Global Ownership and Truth Boundaries
+Step 2 — Cross-Surface Handoff Integrity
 
 ## Log Purpose
 
-This issue log records ownership risks, truth-boundary ambiguities, and structural concerns identified in the Step 1 review. It is the authoritative record of what was found, how serious it is, which execution lane addresses it, and whether it is resolved.
+This issue log records ownership risks, truth-boundary ambiguities, structural concerns, and cross-surface handoff risks identified across all steps of the Architect System Integration review. It is the authoritative record of what was found, how serious it is, which execution lane addresses it, and whether it is resolved.
 
 It is distinct from the Review Tracker. The tracker manages execution lane status. This log manages the risks themselves and tracks whether the intended corrections have been applied.
 
@@ -206,3 +206,162 @@ When an execution lane is marked COMPLETE in the Review Tracker, update the corr
 ## SI-1D Execution Note
 
 `SI-1D` did not correspond to a standalone Step 1 defect entry. The batch still completed on April 9, 2026 by tightening the shared-authority fence around `contractUtils.ts` and adding source-scan guardrails proving that key Architect consumer surfaces continue to route cap totals and contract-year reads through `computeTeamCapTotals.ts` and `contractUtils.ts`.
+
+---
+
+## Step 2 Issue Set — Cross-Surface Handoff Integrity
+
+### Step 2 Issue Status
+
+All Step 2 issues are **OPEN** pending execution-batch completion.
+
+---
+
+### SI-ISS-007 — Wrapper-level handoff contracts are uneven across dashboard sections
+
+**Severity:** HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-2A
+
+**Description:**
+The dashboard shell (`GMDashboard.tsx`) feeds each major feature section through a section-level wrapper, but those wrappers currently express their contracts at very different levels of explicitness.
+
+`CapSheetSection.tsx` communicates its handoff boundaries clearly: it distinguishes selected-year cap truth, adjacent current-season authority surfaces, and DEV-only fixture controls. `OffseasonSection.tsx` similarly separates world-backed advancement, committed aftermath, draft-position persistence, and DEV preview.
+
+By contrast, `TradeSection.tsx` is essentially a prop tunnel. It forwards a nontrivial set of inputs (team identity, cap projections, current year, players map, apply callback, primary team snapshot, edit-contract callback, world context) yet contributes almost nothing to clarifying the contract between the shell and the trade surface.
+
+That unevenness is itself a risk: contributors get different levels of contract clarity depending on which section they inspect first.
+
+**Risk:**
+A contributor modifying a prop at the `TradeSection.tsx` boundary may not understand which inputs the trade surface treats as world-authority inputs vs projection inputs vs UI hints. The thin wrappers make it easy to add props without understanding the intended contract, or to assume ownership of logic that belongs upstream.
+
+**Desired Correction:**
+Make the handoff contracts across all major section wrappers more consistent. At minimum, each wrapper should communicate:
+
+- what it owns vs what it only forwards
+- which inputs come from upstream truth vs are locally derived
+- what mutations or side effects it should never appear to own
+
+The goal is consistency and explicit contract, not extra verbosity.
+
+**Source:** Step 2 Review Record — "What Is Weak / Risky" §1; Step 2 Action Breakdown SI-2A
+
+---
+
+### SI-ISS-008 — Free Agency `actionOwner` contract is dense and too easy to underread
+
+**Severity:** HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-2B
+
+**Description:**
+`FreeAgencySection.tsx` receives an `actionOwner` prop from the dashboard shell (routed through `useArchitectActions.ts` as `freeAgencyActionOwner`). That contract looks like a single prop at the section boundary, but it bundles:
+
+- dual-path signing (world mode vs base mode)
+- world-only action gating
+- modal availability control
+- offer-sheet lifecycle availability
+- disabled-action reason strings
+- lifecycle action ownership and routing
+
+The section itself is reasonably clean. The contract it depends on is not.
+
+This is coherent in the live repo — the `freeAgencyActionOwner` object is a `useMemo` in `useArchitectActions.ts` at line 5390. But downstream Free Agency surfaces that consume `actionOwner` have no clear way to distinguish which actions require an active world, which are available in vacuum mode, and which layer owns what.
+
+**Risk:**
+A downstream contributor, or future Free Agency extension, may:
+
+- call a world-only action path in base/vacuum mode without realizing the gating expectation
+- add new modal or lifecycle routing directly to the section wrapper instead of to `useArchitectActions.ts`
+- assume `actionOwner` is a simple action-holder rather than understanding it as a world-mode contract bundle
+
+**Desired Correction:**
+Make the `freeAgencyActionOwner` contract more explicit:
+
+- clarify what the object guarantees at the `useArchitectActions.ts` boundary
+- make it clear which actions are world-only vs vacuum-safe
+- make it clear which layer owns lifecycle routing vs rendering vs gating
+
+**Source:** Step 2 Review Record — "What Is Weak / Risky" §2 and "Highest-Risk Step 2 Handoff Surfaces" §B; Step 2 Action Breakdown SI-2B
+
+---
+
+### SI-ISS-009 — Trade Machine ↔ authoritative apply/mutation result handoff is the highest-risk cross-surface seam
+
+**Severity:** HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-2C
+
+**Description:**
+The trade surface (`TradeSection.tsx` → internal TradeEditor) receives several world/context/state inputs from the dashboard shell. When a trade is committed, `useArchitectActions.ts` handles the full authoritative path:
+
+1. receives UI trade data from the section
+2. transforms it into a mutation payload shape
+3. resolves world vs base mode differences
+4. performs authoritative compute/apply through the mutation pipeline
+5. resyncs committed truth back into dashboard-visible state
+
+That seam is powerful and consequential. The current `applyTradeToCapSheet` at line 3412 of `useArchitectActions.ts` is the handoff point, but the full boundary contract — what the trade surface is allowed to pass, what the action layer guarantees to return, where mode branching occurs, how results reload — is not explicitly communicated.
+
+**Risk:**
+This is the strongest candidate for handoff contract failure. If the trade surface misunderstands what it can hand off, the mutation payload may be constructed incorrectly. If the action layer's mode branching or result resync is poorly understood, committed trade results may not propagate back correctly. This seam is also the entry point to the authoritative mutation pipeline, making miscommunication here higher-consequence than most seams.
+
+**Desired Correction:**
+Make the Trade Machine → authoritative apply/reload contract materially clearer:
+
+- what the trade surface is allowed to hand off (and what it is not)
+- what the action layer transforms and guarantees
+- where world vs base mode branching actually occurs
+- how committed results get back into dashboard-visible state
+
+**Source:** Step 2 Review Record — "What Is Weak / Risky" §3 and "Highest-Risk Step 2 Handoff Surfaces" §A; Step 2 Action Breakdown SI-2C
+
+---
+
+### SI-ISS-010 — World-only / preview-only gating is honest but distributed across too many surfaces
+
+**Severity:** MEDIUM-HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-2D
+
+**Description:**
+The repo is intentionally honest about actions that require an active world vs actions that are preview-only or unavailable in base mode. The problem is that this contract is expressed across:
+
+- section wrapper props and conditional rendering
+- `actionOwner`-level availability flags and disabled reasons
+- lifecycle availability guards in Free Agency
+- DEV-only fixture controls in `CapSheetSection.tsx`
+- DEV-only non-authoritative offseason preview in `OffseasonSection.tsx`
+- separate preview banners and modal routes in multiple sections
+
+Each individual expression may be correct, but the total contract is not easy to reason about as a whole. A contributor working in one section can easily make a world-only/preview-only assumption that is inconsistent with what another section has established.
+
+**Risk:**
+Over time, sections may drift from one another in how they express world-only vs preview-only gating. A future change that adds a new world-only action to Free Agency may not realize the same gating pattern already exists (differently expressed) in Offseason or Trade. This distribution of gating truth makes it harder to enforce the boundary consistently.
+
+**Desired Correction:**
+Make world-only, preview-only, and unavailable-action boundaries more consistent across the major section surfaces:
+
+- the highest-value sections (Free Agency lifecycle, Offseason advancement vs DEV preview) should express these contracts more consistently with each other
+- contributors should be able to tell at a glance which decisions are owned at the section level vs the action-owner level vs the lifecycle layer
+
+**Source:** Step 2 Review Record — "What Is Weak / Risky" §4; Step 2 Action Breakdown SI-2D
+
+---
+
+## Step 2 Issue Summary by Lane
+
+| Lane  | Issues     | Severity    |
+| ----- | ---------- | ----------- |
+| SI-2A | SI-ISS-007 | HIGH        |
+| SI-2B | SI-ISS-008 | HIGH        |
+| SI-2C | SI-ISS-009 | HIGH        |
+| SI-2D | SI-ISS-010 | MEDIUM-HIGH |
