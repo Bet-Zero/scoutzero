@@ -591,13 +591,16 @@ describe('Gate 11: offer-sheet created-state sync stays explicit (FA-5C/5D)', ()
       /const\s+syncTeamFromMutationResult\s*=\s*useCallback/.test(content);
     expect(hasSyncHelper).toBe(true);
     expect(content).toMatch(
-      /const\s+resolveCommittedWorldTeamSnapshot\s*=\s*useCallback/
+      /const\s+buildCommittedWorldReloadPlan\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+resolveCommittedWorldTeamSnapshot/
+      /const\s+applyCommittedWorldReloadPlan\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+applyCommittedWorldReload/
+      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+buildCommittedWorldReloadPlan\s*\(\s*mutationType\s*,\s*result\s*\)/
+    );
+    expect(content).toMatch(
+      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+applyCommittedWorldReloadPlan/
     );
   });
 

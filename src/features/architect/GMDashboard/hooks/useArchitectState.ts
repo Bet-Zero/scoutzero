@@ -6,6 +6,7 @@
  * ARCHITECT OWNERSHIP:
  * - Dashboard-state adapter.
  * - Consumes the explicit read stack through worldTeamData.ts and worldManager.ts.
+ * - Owns committed-world resync, metadata patching, and stale-drop once handed a committed team snapshot.
  * - Coordinates dashboard-visible state, world metadata, and roster context.
  * - Does not own world/base fallback resolution or committed writes.
  *
@@ -340,20 +341,32 @@ export interface ArchitectWorldTimeOwner {
 
 export type ReloadActiveWorldTeamDataSource = 'changedTeams' | 'reload';
 
+export interface ReloadActiveWorldMetadataPatch {
+  asOfDate?: string | null;
+  currentSeason?: string | null;
+}
+
+export interface ReloadActiveWorldTeam {
+  committedTeam: CapSheet;
+  committedTeamSource: ReloadActiveWorldTeamDataSource;
+}
+
+/**
+ * State-owned committed-world resync request.
+ * The action layer decides direct `changedTeams` reuse vs reload fallback and
+ * forwards the best committed team snapshot it has. This state seam owns
+ * metadata patch staging, coordinated read-stack re-entry, and stale-drop.
+ */
 export interface ReloadActiveWorldTeamDataOptions {
   committedTeamSnapshot?: CapSheet | null;
   committedTeamSource?: ReloadActiveWorldTeamDataSource;
-  committedWorldMetadata?: {
-    asOfDate?: string | null;
-    currentSeason?: string | null;
-  } | null;
+  committedWorldMetadata?: ReloadActiveWorldMetadataPatch | null;
   refreshRosterBundle?: boolean;
 }
 
 export interface ReloadActiveWorldTeamDataAppliedResult {
   outcome: 'applied';
-  committedTeam: CapSheet;
-  committedTeamSource: ReloadActiveWorldTeamDataSource;
+  committedWorldTeam: ReloadActiveWorldTeam;
 }
 
 export interface ReloadActiveWorldTeamDataStaleDropResult {
@@ -1094,8 +1107,10 @@ export function useArchitectState({
 
         return {
           outcome: 'applied',
-          committedTeam: coordinatedBundle.teamSnapshot,
-          committedTeamSource,
+          committedWorldTeam: {
+            committedTeam: coordinatedBundle.teamSnapshot,
+            committedTeamSource,
+          },
         };
       } catch (err) {
         if (!isCurrentWorldLoadRequest(requestWorldId, requestId)) {

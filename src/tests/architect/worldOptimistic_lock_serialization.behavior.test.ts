@@ -16,6 +16,15 @@ import {
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
   computeWorldMutation: vi.fn(),
+  findUpdatedTeamSnapshot: vi.fn(
+    (
+      teamUpdates: Array<{ teamCode?: string; team?: unknown }> | null | undefined,
+      targetTeamCode: string
+    ) =>
+      (teamUpdates || []).find(
+        (update) => update?.teamCode === targetTeamCode && update?.team
+      )?.team || null
+  ),
   preflightSignAndTradeMutation: vi.fn(),
 }));
 
@@ -36,6 +45,7 @@ const toastMocks = vi.hoisted(() => ({
 vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   applyWorldMutation: mutationMocks.applyWorldMutation,
   computeWorldMutation: mutationMocks.computeWorldMutation,
+  findUpdatedTeamSnapshot: mutationMocks.findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
 }));
 

@@ -6,6 +6,7 @@
  * ARCHITECT OWNERSHIP:
  * - Dashboard action orchestration adapter.
  * - Routes committed mutation writes through mutationPipeline.ts.
+ * - Decides changedTeams reuse vs committed-snapshot reload fallback after commit.
  * - Uses dashboard-facing reload adapters after commits so UI state stays aligned.
  * - Does not replace mutationPipeline.ts or seasonManager.ts as committed authorities.
  *
@@ -26,6 +27,7 @@ import {
 import {
   applyWorldMutation,
   computeWorldMutation,
+  findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation,
   preflightOfferSheetMutation,
   type ArchitectMutationContract,
@@ -94,6 +96,7 @@ import toast from 'react-hot-toast';
 import type {
   ArchitectDashboardCapSheet,
   ArchitectDashboardPlayer,
+  ReloadActiveWorldMetadataPatch,
   UseArchitectStateReturn,
 } from './useArchitectState';
 
@@ -1078,6 +1081,11 @@ type ResolvedCommittedWorldTeam = {
   committedTeam: CapSheet;
   committedTeamSource: WorldCommittedTeamSource;
 };
+type CommittedWorldReloadPlan = {
+  committedWorldTeam: ResolvedCommittedWorldTeam;
+  committedWorldMetadata: ReloadActiveWorldMetadataPatch | null;
+  refreshRosterBundle: boolean;
+};
 type CommittedWorldReloadResult =
   | {
       status: 'applied';
@@ -1585,19 +1593,23 @@ function getWorldOptimisticLockScopeKey(worldId: string): string {
   return `architect_world_cap_mutation_lock:${worldId}`;
 }
 
-function findUpdatedTeamSnapshot(
-  teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
-  targetTeamCode: string
-): CapSheet | null {
-  const matchingUpdate = (teamUpdates || []).find(
-    (update) => update?.teamCode === targetTeamCode && update?.team
-  );
-  return (matchingUpdate?.team as CapSheet | null | undefined) || null;
-}
-
 function toTrimmedStringOrNull(value: unknown): string | null {
   const normalized = String(value || '').trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function extractCommittedWorldMetadataPatch(
+  result: PersistMutationResult
+): ReloadActiveWorldMetadataPatch | null {
+  const patch = result.worldPatch || null;
+
+  if (!patch || patch.asOfDate === undefined) {
+    return null;
+  }
+
+  return {
+    asOfDate: patch.asOfDate || null,
+  };
 }
 
 function buildCommittedOfferSheetIdentity(params: {
@@ -2132,6 +2144,11 @@ export function useArchitectActions({
     async (
       result: PersistMutationResult
     ): Promise<ResolvedCommittedWorldTeam | null> => {
+      // Preferred committed-mutation order:
+      // 1. Reuse the authoritative changedTeams snapshot when it already
+      //    includes the active team.
+      // 2. Otherwise reload through the read stack to recover a committed
+      //    snapshot instead of reconstructing local fallback logic here.
       const changedTeam = findUpdatedTeamSnapshot(result?.changedTeams, teamCode);
 
       if (changedTeam) {
@@ -2174,20 +2191,37 @@ export function useArchitectActions({
     []
   );
 
-  const applyCommittedWorldReload = useCallback(
+  const buildCommittedWorldReloadPlan = useCallback(
     async (
       mutationType: string,
-      committedWorldTeam: ResolvedCommittedWorldTeam
-    ): Promise<CommittedWorldReloadResult> => {
-      const shouldRefreshRosterIndex =
-        shouldRefreshWorldRosterAfterMutation(mutationType);
+      result: PersistMutationResult
+    ): Promise<CommittedWorldReloadPlan | null> => {
+      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
 
+      if (!committedWorldTeam) {
+        return null;
+      }
+
+      return {
+        committedWorldTeam,
+        committedWorldMetadata: extractCommittedWorldMetadataPatch(result),
+        refreshRosterBundle: shouldRefreshWorldRosterAfterMutation(mutationType),
+      };
+    },
+    [resolveCommittedWorldTeamSnapshot, shouldRefreshWorldRosterAfterMutation]
+  );
+
+  const applyCommittedWorldReloadPlan = useCallback(
+    async (
+      plan: CommittedWorldReloadPlan
+    ): Promise<CommittedWorldReloadResult> => {
       if (reloadActiveWorldTeamData && worldId) {
         const reloadedWorldTeam = await reloadActiveWorldTeamData({
           committedTeamSnapshot:
-            committedWorldTeam.committedTeam as UseArchitectStateReturn['teamCapSheet'],
-          committedTeamSource: committedWorldTeam.committedTeamSource,
-          refreshRosterBundle: shouldRefreshRosterIndex,
+            plan.committedWorldTeam.committedTeam as UseArchitectStateReturn['teamCapSheet'],
+          committedTeamSource: plan.committedWorldTeam.committedTeamSource,
+          committedWorldMetadata: plan.committedWorldMetadata,
+          refreshRosterBundle: plan.refreshRosterBundle,
         });
 
         if (
@@ -2200,20 +2234,22 @@ export function useArchitectActions({
         return {
           status: 'applied',
           committedWorldTeam: {
-            committedTeam: reloadedWorldTeam.committedTeam as CapSheet,
-            committedTeamSource: reloadedWorldTeam.committedTeamSource,
+            committedTeam:
+              reloadedWorldTeam.committedWorldTeam.committedTeam as CapSheet,
+            committedTeamSource:
+              reloadedWorldTeam.committedWorldTeam.committedTeamSource,
           },
         };
       }
 
-      setTeamCapSheetSafe(committedWorldTeam.committedTeam);
+      setTeamCapSheetSafe(plan.committedWorldTeam.committedTeam);
 
-      if (shouldRefreshRosterIndex) {
+      if (plan.refreshRosterBundle) {
         try {
           await refreshWorldRosterIndex();
         } catch (error) {
           console.warn(
-            `[Architect][FreeAgency] Failed to refresh roster index after ${mutationType}:`,
+            `[Architect][FreeAgency] Failed to refresh roster index after world reload plan:`,
             error
           );
         }
@@ -2221,15 +2257,31 @@ export function useArchitectActions({
 
       return {
         status: 'applied',
-        committedWorldTeam,
+        committedWorldTeam: plan.committedWorldTeam,
       };
     },
     [
       refreshWorldRosterIndex,
       reloadActiveWorldTeamData,
       setTeamCapSheetSafe,
-      shouldRefreshWorldRosterAfterMutation,
       worldId,
+    ]
+  );
+
+  const applyCommittedWorldReload = useCallback(
+    async (
+      mutationType: string,
+      committedWorldTeam: ResolvedCommittedWorldTeam
+    ): Promise<CommittedWorldReloadResult> => {
+      return applyCommittedWorldReloadPlan({
+        committedWorldTeam,
+        committedWorldMetadata: null,
+        refreshRosterBundle: shouldRefreshWorldRosterAfterMutation(mutationType),
+      });
+    },
+    [
+      applyCommittedWorldReloadPlan,
+      shouldRefreshWorldRosterAfterMutation,
     ]
   );
 
@@ -2238,15 +2290,18 @@ export function useArchitectActions({
       mutationType: string,
       result: PersistMutationResult
     ): Promise<void> => {
-      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+      const committedWorldReloadPlan = await buildCommittedWorldReloadPlan(
+        mutationType,
+        result
+      );
 
-      if (!committedWorldTeam) {
+      if (!committedWorldReloadPlan) {
         return;
       }
 
-      await applyCommittedWorldReload(mutationType, committedWorldTeam);
+      await applyCommittedWorldReloadPlan(committedWorldReloadPlan);
     },
-    [applyCommittedWorldReload, resolveCommittedWorldTeamSnapshot]
+    [applyCommittedWorldReloadPlan, buildCommittedWorldReloadPlan]
   );
 
   const runAuthoritativeFAMutation = useCallback(

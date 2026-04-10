@@ -7,6 +7,7 @@
  * - Canonical committed-write authority for general world mutations.
  * - Sibling committed-write authority to seasonManager.ts for point-in-time world mutations.
  * - Public mutation entrypoint: READ -> COMPUTE -> VALIDATE -> PERSIST.
+ * - Returns changedTeams as the preferred direct post-commit team snapshot when available.
  * - UI/hooks must route general committed mutation writes here.
  * - Uses shared lower-level persistence hygiene from persistenceContracts/enforcement.ts.
  * - Season advancement remains a separate committed authority in seasonManager.ts.
@@ -1001,6 +1002,33 @@ export type ArchitectMutationResult = {
   _signingValidation?: ReturnType<typeof validateSigning>;
   _tpeConsumptionErrors?: TradeTpeConsumptionIssue[];
 };
+
+/**
+ * Post-commit propagation order for general world mutations:
+ * 1. Reuse the matching team snapshot from `changedTeams` when it exists.
+ * 2. If that direct snapshot is missing, reload a committed team snapshot through the read stack.
+ * 3. Once a committed snapshot exists, hand it to the dashboard/state resync seam so
+ *    metadata patching, roster refresh, and stale-drop rules stay state-owned.
+ *
+ * This helper intentionally works for both compute-time `teamUpdates` and committed
+ * `changedTeams` arrays so downstream consumers do not reimplement the result-shape lookup.
+ */
+export function findUpdatedTeamSnapshot(
+  teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
+  targetTeamCode: string
+): ArchitectMutationTeamUpdate['team'] | null {
+  const matchingUpdate = (teamUpdates || []).find(
+    (update) => update?.teamCode === targetTeamCode && update?.team
+  );
+
+  return (
+    (matchingUpdate?.team as
+      | ArchitectMutationTeamUpdate['team']
+      | null
+      | undefined) || null
+  );
+}
+
 export type SignAndTradePreflightStatus = 'legal' | 'blocked' | 'incomplete';
 export type SignAndTradePreflightResult = {
   status: SignAndTradePreflightStatus;

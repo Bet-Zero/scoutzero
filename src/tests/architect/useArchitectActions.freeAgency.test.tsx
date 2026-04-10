@@ -6,6 +6,15 @@ import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useA
 const mutationMocks = vi.hoisted(() => ({
   applyWorldMutation: vi.fn(),
   computeWorldMutation: vi.fn(),
+  findUpdatedTeamSnapshot: vi.fn(
+    (
+      teamUpdates: Array<{ teamCode?: string; team?: unknown }> | null | undefined,
+      targetTeamCode: string
+    ) =>
+      (teamUpdates || []).find(
+        (update) => update?.teamCode === targetTeamCode && update?.team
+      )?.team || null
+  ),
   preflightSignAndTradeMutation: vi.fn(),
   preflightOfferSheetMutation: vi.fn(),
 }));
@@ -27,6 +36,7 @@ const toastMocks = vi.hoisted(() => ({
 vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   applyWorldMutation: mutationMocks.applyWorldMutation,
   computeWorldMutation: mutationMocks.computeWorldMutation,
+  findUpdatedTeamSnapshot: mutationMocks.findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
   preflightOfferSheetMutation: mutationMocks.preflightOfferSheetMutation,
 }));
@@ -291,8 +301,10 @@ function renderActionsHarness({
   ) => Promise<
     | {
         outcome: 'applied';
-        committedTeam: any;
-        committedTeamSource: 'changedTeams' | 'reload';
+        committedWorldTeam: {
+          committedTeam: any;
+          committedTeamSource: 'changedTeams' | 'reload';
+        };
       }
     | {
         outcome: 'stale-drop';
@@ -791,8 +803,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
     const reloadActiveWorldTeamData = vi.fn(async () => ({
       outcome: 'applied' as const,
-      committedTeam: updatedTeam,
-      committedTeamSource: 'changedTeams' as const,
+      committedWorldTeam: {
+        committedTeam: updatedTeam,
+        committedTeamSource: 'changedTeams' as const,
+      },
     }));
 
     const { result, refreshWorldRosterIndex } = renderActionsHarness({
@@ -813,10 +827,66 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
       committedTeamSnapshot: updatedTeam,
       committedTeamSource: 'changedTeams',
+      committedWorldMetadata: null,
       refreshRosterBundle: true,
     });
     expect(worldTeamDataMocks.loadWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+  });
+
+  it('forwards authoritative world metadata patches to the state reload owner instead of applying them locally', async () => {
+    const updatedTeam = buildSignedTeamFixture({
+      source: {
+        type: 'changed-teams',
+        lastModifiedAt: '2026-04-01T00:00:00.000Z',
+      },
+    });
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: true,
+      changedTeams: [{ teamCode: 'LAL', team: updatedTeam }],
+      changedPlayers: [],
+      appliedToLocalState: true,
+      persistedToWorld: true,
+      writesSummary: {
+        teamsPatched: 1,
+        playersPatched: 1,
+        eventsWritten: 1,
+        worldMetadataPatched: 1,
+      },
+      worldPatch: {
+        asOfDate: '2026-07-05',
+      },
+      event: { eventId: 'evt_sign_state_metadata_patch' },
+    });
+    const reloadActiveWorldTeamData = vi.fn(async () => ({
+      outcome: 'applied' as const,
+      committedWorldTeam: {
+        committedTeam: updatedTeam,
+        committedTeamSource: 'changedTeams' as const,
+      },
+    }));
+
+    const { result } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam: baseTeamFixture,
+      reloadActiveWorldTeamData,
+    });
+
+    await act(async () => {
+      await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
+      committedTeamSnapshot: updatedTeam,
+      committedTeamSource: 'changedTeams',
+      committedWorldMetadata: {
+        asOfDate: '2026-07-05',
+      },
+      refreshRosterBundle: true,
+    });
   });
 
   it('fails closed when world signing persists but no committed team snapshot can be resolved', async () => {
@@ -911,6 +981,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
       committedTeamSnapshot: updatedTeam,
       committedTeamSource: 'changedTeams',
+      committedWorldMetadata: null,
       refreshRosterBundle: true,
     });
     expect(result.current.teamCapSheet).toBe(beforeTeamSnapshot);
@@ -1616,8 +1687,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
     const reloadActiveWorldTeamData = vi.fn(async () => ({
       outcome: 'applied' as const,
-      committedTeam: updatedTeam,
-      committedTeamSource: 'changedTeams' as const,
+      committedWorldTeam: {
+        committedTeam: updatedTeam,
+        committedTeamSource: 'changedTeams' as const,
+      },
     }));
 
     const { result, refreshWorldRosterIndex } = renderActionsHarness({
@@ -1642,6 +1715,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
       committedTeamSnapshot: updatedTeam,
       committedTeamSource: 'changedTeams',
+      committedWorldMetadata: null,
       refreshRosterBundle: false,
     });
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
@@ -2025,8 +2099,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
     const reloadActiveWorldTeamData = vi.fn(async () => ({
       outcome: 'applied' as const,
-      committedTeam: finalizedTeam,
-      committedTeamSource: 'changedTeams' as const,
+      committedWorldTeam: {
+        committedTeam: finalizedTeam,
+        committedTeamSource: 'changedTeams' as const,
+      },
     }));
 
     const { result, refreshWorldRosterIndex } = renderActionsHarness({
@@ -2045,6 +2121,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       expect(reloadActiveWorldTeamData).toHaveBeenCalledWith({
         committedTeamSnapshot: finalizedTeam,
         committedTeamSource: 'changedTeams',
+        committedWorldMetadata: null,
         refreshRosterBundle: true,
       });
     });

@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 3 bootstrap complete; ready for Step 3 first-batch execution (SI-3A + SI-3B).**
+**Step 3 first batch complete; ready for Step 3 second-batch execution (SI-3C + SI-3D).**
 
 ## Purpose
 
@@ -40,7 +40,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | -------- | ------------------------------------------- | -------------------------------------------- |
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete            |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete              |
-| Step 3   | Mutation, Reload, and Propagation Integrity | Bootstrap PASS — first-batch execution ready |
+| Step 3   | Mutation, Reload, and Propagation Integrity | First-batch execution PASS — second batch ready |
 | Step 4   | Preview vs Committed-State Consistency      | Not started                                  |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                                  |
 
@@ -311,6 +311,18 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 - Review tracker and issue log updated with Step 3 execution lanes (SI-3A through SI-3E) and Step 3 propagation-risk issue entries (SI-ISS-011 through SI-ISS-015).
 - No stop conditions triggered. Step 3 is ready for first-batch execution (SI-3A + SI-3B).
 
+### Step 3 Batch 1 Execution Update
+
+**Completed:** April 9, 2026
+
+- **SI-3A complete:** moved changed-team snapshot interpretation onto `mutationPipeline.ts`, documented the preferred `changedTeams` → reload → state-resync order at the mutation authority surface, and replaced the old action-hook-only result interpretation with an explicit committed-world reload plan.
+- **SI-3B complete:** `useArchitectState.ts` now publishes an explicit committed-world resync handoff (`ReloadActiveWorldMetadataPatch`, `ReloadActiveWorldTeam`, nested applied result), while `useArchitectActions.ts` now forwards only the action-owned post-commit decisions into that state-owned resync seam.
+- **Guardrails / behavior proof:** added `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts`, updated focused `useArchitectActions.freeAgency.test.tsx` / `useArchitectState.worldFreeAgency.test.ts` coverage for the explicit resync handoff, and refreshed affected source-scan tests plus `mutationPipeline` partial mocks so the new contract is durable.
+- **Validation:** `npm run test:diff -- --reporter=dot`; `npm run typecheck`
+- **Validation note:** `test:diff` escalated to `npm run test:architect -- --reporter=dot` because the Step 3 diff touched enough Architect test surfaces that the repo’s diff runner promoted scope automatically. That broadened validation without broadening product scope.
+- **Behavior impact:** no intended product-behavior change. This batch is propagation-contract clarity, handoff tightening, and guardrail work only.
+- **Next move:** proceed to Step 3 second batch (SI-3C + SI-3D).
+
 ---
 
 ## Related Documents
@@ -336,5 +348,6 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP3_REVIEW_RECORD.md`    | Step 3 live review findings       |
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP3_ACTION_BREAKDOWN.md` | Step 3 execution lane definitions |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 3 bootstrap return package   |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 3 batch 1 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

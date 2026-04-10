@@ -1184,11 +1184,23 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(content).toMatch(
       /const\s+syncTeamFromMutationResult\s*=\s*useCallback/
     );
+    expect(content).toMatch(
+      /const\s+buildCommittedWorldReloadPlan\s*=\s*useCallback/
+    );
+    expect(content).toMatch(
+      /const\s+applyCommittedWorldReloadPlan\s*=\s*useCallback/
+    );
     expect(resolveCommittedWorldTeamSnapshotRegion).toMatch(
       /findUpdatedTeamSnapshot\s*\(\s*result\?\.changedTeams\s*,\s*teamCode\s*\)/
     );
     expect(applyCommittedWorldReloadRegion).toMatch(
-      /await\s+refreshWorldRosterIndex/
+      /applyCommittedWorldReloadPlan\s*\(\s*\{/
+    );
+    expect(content).toMatch(
+      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+buildCommittedWorldReloadPlan\s*\(\s*mutationType\s*,\s*result\s*\)/
+    );
+    expect(content).toMatch(
+      /syncTeamFromMutationResult[\s\S]{0,2200}await\s+applyCommittedWorldReloadPlan/
     );
     expect(content).toMatch(
       /runAuthoritativeFAMutation[\s\S]{0,2200}await\s+syncTeamFromMutationResult\s*\(\s*mutationType\s*,\s*result\s*\)/

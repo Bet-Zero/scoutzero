@@ -453,12 +453,22 @@ If live repo review before execution reveals strong seam overlap across all four
 
 ---
 
+## Step 3 Batch 1 Execution Summary
+
+- **Date:** April 9, 2026
+- **Verdict:** `PASS`
+- **Status:** First-batch execution complete. `SI-3A` and `SI-3B` are closed; Step 3 second batch is ready.
+- **Basis:** the mutation authority now publishes the preferred `changedTeams` → reload → state-resync order, `useArchitectActions.ts` now uses an explicit committed-world reload plan, `useArchitectState.ts` now exposes a named committed-world resync handoff/result, and the new Step 3 guardrail plus focused behavior tests passed.
+- **Validation note:** `npm run test:diff -- --reporter=dot` promoted to `npm run test:architect -- --reporter=dot` because the diff touched enough Architect test surfaces after the required mock-compatibility updates. `npm run typecheck` also passed.
+
+---
+
 ## Step 3 Execution Summary
 
 | Lane  | Name                                                                            | Priority | Status      | Batch          |
 | ----- | ------------------------------------------------------------------------------- | -------- | ----------- | -------------- |
-| SI-3A | Normalize committed mutation result → reload contract language                  | P1       | NOT STARTED | First (3A+3B)  |
-| SI-3B | Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract | P1       | NOT STARTED | First (3A+3B)  |
+| SI-3A | Normalize committed mutation result → reload contract language                  | P1       | COMPLETE    | First (3A+3B)  |
+| SI-3B | Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract | P1       | COMPLETE    | First (3A+3B)  |
 | SI-3C | Clarify season-advance aftermath vs broader world reload contract               | P1       | NOT STARTED | Second (3C+3D) |
 | SI-3D | Clarify world-mode vs base/vacuum-mode propagation boundaries                   | P2       | NOT STARTED | Second (3C+3D) |
 | SI-3E | Pressure-test stale-drop / async reload durability guards                       | P2       | NOT STARTED | Third (3E)     |
@@ -469,7 +479,7 @@ If live repo review before execution reveals strong seam overlap across all four
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -499,13 +509,21 @@ A contributor should be able to answer:
 
 Complete when the post-mutation propagation contract is materially easier to explain and less dependent on readers inferring the rules from several helper layers.
 
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by moving `findUpdatedTeamSnapshot(...)` onto `mutationPipeline.ts`, adding a mutation-authority note that `changedTeams` is the preferred direct post-commit team snapshot when present, and replacing the old action-hook-only interpretation with a named `CommittedWorldReloadPlan` in `useArchitectActions.ts`. The Step 3 guardrail now enforces that the mutation authority publishes the preferred propagation order and that the action layer builds its general post-commit sync around the explicit reload plan rather than scattered local result parsing.
+
 ---
 
 ## SI-3B — Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` Propagation Contract
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -534,6 +552,14 @@ A contributor should be able to answer:
 - which layer decides direct reuse vs reload
 
 Complete when the main action/state propagation seam is materially easier to read and less likely to drift.
+
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by publishing an explicit state-owned committed-world resync contract in `useArchitectState.ts` (`ReloadActiveWorldMetadataPatch`, `ReloadActiveWorldTeam`, nested applied result) and rewiring `useArchitectActions.ts` so the action layer now forwards only the action-owned handoff decisions: committed team snapshot, source, metadata patch, and roster-refresh intent. Focused behavior tests now prove that metadata patches are forwarded into the state reload helper and that the state helper returns the named committed-world resync object.
 
 ---
 

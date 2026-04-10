@@ -384,7 +384,7 @@ Make world-only, preview-only, and unavailable-action boundaries more consistent
 
 ### Step 3 Issue Status
 
-`SI-ISS-011` through `SI-ISS-015` are **OPEN**. They reflect the propagation-integrity risks identified in the Step 3 review record. Each entry is linked to the execution lane that addresses it.
+`SI-ISS-011` and `SI-ISS-012` are **RESOLVED** after the April 9, 2026 first-batch execution. `SI-ISS-013` through `SI-ISS-015` remain **OPEN** for later Step 3 batches.
 
 ---
 
@@ -392,7 +392,7 @@ Make world-only, preview-only, and unavailable-action boundaries more consistent
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-3A
 
@@ -414,13 +414,16 @@ The mutation-result / committed-snapshot / reload-fallback chain should be expre
 
 **Source:** Step 3 Review Record — "What Is Weak / Risky" §2; Step 3 Action Breakdown SI-3A
 
+**Resolution Notes (2026-04-09):**
+Moved `findUpdatedTeamSnapshot(...)` onto `src/features/architect/utils/mutationPipeline.ts`, added a mutation-authority note that `changedTeams` is the preferred direct post-commit snapshot when available, and introduced a named `CommittedWorldReloadPlan` in `useArchitectActions.ts` so the general post-commit path now reads as `changedTeams` reuse → reload fallback → state-owned resync. `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` now protects that propagation-order language from drifting back into scattered helper-only knowledge.
+
 ---
 
 ### SI-ISS-012 — `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation seam is too dense to audit confidently
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-3B
 
@@ -449,6 +452,9 @@ The propagation contract across this seam should be made clearer:
 - which layer decides direct reuse vs reload
 
 **Source:** Step 3 Review Record — "What Is Weak / Risky" §1 and "Highest-Risk Step 3 Surfaces" §B; Step 3 Action Breakdown SI-3B
+
+**Resolution Notes (2026-04-09):**
+`src/features/architect/GMDashboard/hooks/useArchitectState.ts` now publishes the state-owned committed-world resync seam explicitly via `ReloadActiveWorldMetadataPatch`, `ReloadActiveWorldTeam`, and a nested applied result shape, while `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` now forwards only the action-owned handoff inputs into that seam. Metadata patch staging remains in the state hook, stale-drop ownership remains in the state hook, and the action hook now owns only direct snapshot reuse vs reload fallback plus roster-refresh intent. Focused `useArchitectActions.freeAgency.test.tsx` and `useArchitectState.worldFreeAgency.test.ts` coverage now proves that handoff.
 
 ---
 

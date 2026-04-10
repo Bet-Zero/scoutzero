@@ -321,8 +321,10 @@ describe('useArchitectState world-aware free agency pool', () => {
 
     expect(reloadResult).toEqual({
       outcome: 'applied',
-      committedTeam,
-      committedTeamSource: 'changedTeams',
+      committedWorldTeam: {
+        committedTeam,
+        committedTeamSource: 'changedTeams',
+      },
     });
     expect(stateMocks.loadWorldTeamData).not.toHaveBeenCalled();
     expect(stateMocks.getLeague).toHaveBeenCalledWith('world_1');
