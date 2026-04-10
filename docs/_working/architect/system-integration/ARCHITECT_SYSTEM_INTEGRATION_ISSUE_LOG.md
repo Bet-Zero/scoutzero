@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Current Step
 
-Step 3 — State/Action/Mutation Contract Durability
+Step 4 — Preview vs Committed-State Consistency
 
 ## Log Purpose
 
@@ -384,7 +384,7 @@ Make world-only, preview-only, and unavailable-action boundaries more consistent
 
 ### Step 3 Issue Status
 
-`SI-ISS-011` through `SI-ISS-015` are **RESOLVED** after the April 9, 2026 first-, second-, and third-batch executions.
+`SI-ISS-011` through `SI-ISS-015` are **RESOLVED**, and the April 9, 2026 Step 3 closeout review confirmed no remaining Step 3 blocker. Any further preview/propagation nuance now belongs to Step 4 or whole-feature closeout rather than reopening these Step 3 propagation-integrity issues.
 
 ---
 

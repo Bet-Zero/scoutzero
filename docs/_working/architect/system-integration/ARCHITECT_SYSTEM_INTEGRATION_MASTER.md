@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 3 execution complete; ready for Step 3 closeout review.**
+**Step 3 closeout review PASS; Step 4 ready to begin.**
 
 ## Purpose
 
@@ -40,7 +40,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | -------- | ------------------------------------------- | -------------------------------------------- |
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete            |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete              |
-| Step 3   | Mutation, Reload, and Propagation Integrity | Third-batch execution PASS — closeout review ready |
+| Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete              |
 | Step 4   | Preview vs Committed-State Consistency      | Not started                                  |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                                  |
 
@@ -346,6 +346,18 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 - **Behavior impact:** no intended product-scope change. This batch formalized stale-drop reasons, freshness ownership, and guarded bundle application without broadening the reload stack.
 - **Next move:** proceed to Step 3 closeout review.
 
+### Step 3 Closeout Review Update
+
+**Completed:** April 9, 2026
+
+- **Closeout verdict:** `PASS`
+- **What was rechecked:** the live general mutation-result -> reload contract in `mutationPipeline.ts` and `useArchitectActions.ts`, the `useArchitectActions.ts` -> `useArchitectState.ts` resync seam, the `seasonManager.ts` -> `OffseasonSection.tsx` aftermath/reload handoff, the world-mode vs base/vacuum-mode propagation boundary, the stale-drop/guarded-reload contract in `useArchitectState.ts`, and the focused Step 3 guardrail/behavior suites.
+- **Why it now passes:** the mutation authority now publishes the preferred `changedTeams` -> reload -> state-resync order, the action layer routes committed-world propagation through an explicit reload plan and names `world-committed` vs `local-validated` lanes directly, the state layer owns committed-world resync/metadata patching/stale-drop with caller-visible stale reasons, and season advance now reads as immediate committed aftermath first with optional broader reload second.
+- **Guardrail basis:** targeted Step 3 rereview suites passed on the live repo: `systemIntegration.step3Propagation.guardrail.test.ts`, `useArchitectState.worldFreeAgency.test.ts`, `seasonAdvance_postStateValidator_failClose.behavior.test.ts`, `offseason.worldAdvanceAftermath.e110.behavior.test.tsx`, and `useArchitectActions.freeAgency.test.tsx`.
+- **Residual note:** `useArchitectActions.ts` remains a large orchestration hook and the top-level Step 3 guardrail is still source-scan oriented, but the highest-risk propagation behavior is now covered by focused live tests and the remaining density no longer obscures ownership enough to block closeout.
+- **Step 3 status:** officially closed.
+- **Next move:** proceed to Step 4 — Preview vs Committed-State Consistency.
+
 ---
 
 ## Related Documents
@@ -374,5 +386,6 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 3 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 3 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH3_RETURN_PACKAGE.md`        | Step 3 batch 3 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 3 closeout review package    |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |
