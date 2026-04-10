@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Current Step
 
-Step 3 — State/Action/Mutation Contract Durability
+Step 3 — Mutation, Reload, and Propagation Integrity
 
 ## Tracker Purpose
 
@@ -27,12 +27,12 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 ## Step 2 Execution Summary
 
-| Lane  | Name                                                          | Priority | Status      | Batch          |
-| ----- | ------------------------------------------------------------- | -------- | ----------- | -------------- |
-| SI-2A | Normalize shell-to-section handoff clarity across wrappers    | P1       | COMPLETE    | First (2A+2B)  |
-| SI-2B | Clarify Free Agency ↔ `actionOwner` contract boundaries      | P1       | COMPLETE    | First (2A+2B)  |
-| SI-2C | Clarify Trade Machine ↔ authoritative apply/mutation handoff | P1       | COMPLETE    | Second (2C+2D) |
-| SI-2D | Tighten world-only / preview-only gating contracts            | P2       | COMPLETE    | Second (2C+2D) |
+| Lane  | Name                                                          | Priority | Status   | Batch          |
+| ----- | ------------------------------------------------------------- | -------- | -------- | -------------- |
+| SI-2A | Normalize shell-to-section handoff clarity across wrappers    | P1       | COMPLETE | First (2A+2B)  |
+| SI-2B | Clarify Free Agency ↔ `actionOwner` contract boundaries      | P1       | COMPLETE | First (2A+2B)  |
+| SI-2C | Clarify Trade Machine ↔ authoritative apply/mutation handoff | P1       | COMPLETE | Second (2C+2D) |
+| SI-2D | Tighten world-only / preview-only gating contracts            | P2       | COMPLETE | Second (2C+2D) |
 
 ---
 
@@ -441,3 +441,222 @@ Both lanes are deeper authority-boundary durability tasks touching higher-risk s
 ### Alternative (single batch)
 
 If live repo review before execution reveals strong seam overlap across all four lanes, all four may be batched into one narrow Step 1 execution pass. This should only happen if scope remains tightly focused on ownership clarity and SSOT durability, not broad cleanup.
+
+---
+
+## Step 3 Bootstrap Summary
+
+- **Date:** April 9, 2026
+- **Verdict:** `PASS`
+- **Status:** Step 3 bootstrap complete. First-batch execution (SI-3A + SI-3B) is ready to begin.
+- **Basis:** Step 3 review record and action breakdown reconciled. Real mutation-to-visible-state propagation model confirmed in live repo, but post-mutation resync rules are still too distributed and mixed to audit confidently without structural tightening. Five execution lanes encoded (SI-3A through SI-3E). Issue log updated with five propagation-risk entries (SI-ISS-011 through SI-ISS-015). No stop conditions triggered.
+
+---
+
+## Step 3 Execution Summary
+
+| Lane  | Name                                                                            | Priority | Status      | Batch          |
+| ----- | ------------------------------------------------------------------------------- | -------- | ----------- | -------------- |
+| SI-3A | Normalize committed mutation result → reload contract language                  | P1       | NOT STARTED | First (3A+3B)  |
+| SI-3B | Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract | P1       | NOT STARTED | First (3A+3B)  |
+| SI-3C | Clarify season-advance aftermath vs broader world reload contract               | P1       | NOT STARTED | Second (3C+3D) |
+| SI-3D | Clarify world-mode vs base/vacuum-mode propagation boundaries                   | P2       | NOT STARTED | Second (3C+3D) |
+| SI-3E | Pressure-test stale-drop / async reload durability guards                       | P2       | NOT STARTED | Third (3E)     |
+
+---
+
+## SI-3A — Normalize Committed Mutation Result → Reload Contract Language
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the mutation-result / committed-snapshot / reload-fallback chain easier to read and harder to misuse.
+
+The live repo currently uses a mixed propagation strategy after committed mutations: changed-team reuse when available, committed snapshot resolution when needed, read-stack reload fallback when direct committed state is unavailable, and partial pre-application of committed state before broader reload in some flows. That is workable, but too layered and easy to misread as one uniform rule.
+
+### Scope
+
+- `mutationPipeline.ts` result shape expectations and committed aftermath surface
+- `useArchitectActions.ts` committed snapshot resolution paths
+- Any directly relevant result-shape helpers that define how authoritative mutation aftermath is consumed
+
+### Key Files In Scope
+
+- `src/features/architect/utils/mutationPipeline.ts`
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
+### Completion Standard
+
+A contributor should be able to answer:
+
+- when a mutation result may be reused directly
+- when a committed snapshot must be resolved
+- when a broader reload is required
+- what the preferred propagation order is after authoritative world mutations
+
+Complete when the post-mutation propagation contract is materially easier to explain and less dependent on readers inferring the rules from several helper layers.
+
+---
+
+## SI-3B — Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` Propagation Contract
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the main action-to-visible-state durability seam clearer and more explicit.
+
+This is one of the densest cross-surface seams in Architect. It decides whether to apply mutation results directly, resolve committed snapshots, patch metadata, trigger world reloads, refresh roster bundles, or drop stale async results. This seam is central to whether committed truth actually becomes visible truth cleanly.
+
+### Scope
+
+- `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation handoff
+- Any immediately relevant types/helpers that define the handoff between them
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+- `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
+
+### Completion Standard
+
+A contributor should be able to answer:
+
+- what the action layer is responsible for after commit
+- what the state layer is responsible for during resync
+- where metadata patching belongs
+- where stale-drop ownership belongs
+- which layer decides direct reuse vs reload
+
+Complete when the main action/state propagation seam is materially easier to read and less likely to drift.
+
+---
+
+## SI-3C — Clarify Season-Advance Aftermath vs Broader World Reload Contract
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the season-transition propagation model more explicit and durable.
+
+The season-advance flow uses committed aftermath payloads applied immediately plus optional broader world reload afterward. The UI must remain honest if reload fails after the season advance already committed. This is coherent but not yet expressed clearly enough as one contract.
+
+### Scope
+
+- `seasonManager.ts` committed aftermath shape and guarantees
+- `OffseasonSection.tsx` aftermath handling and reload routing
+- Any directly relevant reload helper or season-advance aftermath shape used by the dashboard
+
+### Key Files In Scope
+
+- `src/features/architect/utils/seasonManager.ts`
+- `src/features/architect/GMDashboard/sections/OffseasonSection.tsx`
+
+### Completion Standard
+
+A contributor should be able to answer:
+
+- what the committed aftermath guarantees
+- when broader reload is still needed
+- what should happen if aftermath exists but reload fails
+- which layer owns visible-state reconciliation after season advance
+
+Complete when the season-advance propagation contract is materially clearer and less likely to drift between aftermath handling and reload handling.
+
+---
+
+## SI-3D — Clarify World-Mode vs Base/Vacuum-Mode Propagation Boundaries
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the difference between committed-world propagation and validated local propagation more explicit.
+
+The distinction is real and intentional: world mode commits and then re-enters through committed snapshot/reload paths; base/vacuum mode computes, validates, and applies local next state directly. That distinction is valid but still not expressed as clearly or uniformly as it should be.
+
+### Scope
+
+- `useArchitectActions.ts` world vs base mode branching paths
+- Trade / signing / mutation apply paths that branch world vs base mode
+- Directly relevant dashboard-visible state application helpers
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
+### Completion Standard
+
+A contributor should be able to tell:
+
+- what counts as committed-world propagation
+- what counts as validated local propagation
+- what guarantees differ between those modes
+- which layer owns the mode boundary
+
+Complete when the world-mode vs base/vacuum-mode propagation distinction is materially easier to understand and less likely to blur across features.
+
+---
+
+## SI-3E — Pressure-Test Stale-Drop / Async Reload Durability Guards
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Evaluate whether the current anti-stale machinery is adequately protecting the propagation model and whether its ownership is explicit enough.
+
+The dashboard state layer has serious async safety machinery: request IDs, active-world identity tokens, mutation request IDs, stale-drop outcomes, and guarded bundle application. Step 3 needs to confirm whether this guard system expresses a clear durability contract or is mostly implicit safety glue that readers must discover manually.
+
+### Scope
+
+- `useArchitectState.ts` stale-drop and identity-token protection surfaces
+- Any directly relevant action/state bridge helpers that depend on stale-drop semantics
+- Targeted guardrails/tests if needed
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/hooks/useArchitectState.ts`
+
+### Completion Standard
+
+A contributor should be able to answer:
+
+- what stale-drop protects against
+- which layer owns stale-drop enforcement
+- what a caller should expect when async propagation loses identity freshness
+- whether the current guard model is sufficiently explicit and durable
+
+Complete when the anti-stale durability contract is more explicit and the repo is less dependent on readers reverse-engineering the async safety rules.
+
+---
+
+## Step 3 Batching Notes
+
+### First execution batch: SI-3A + SI-3B
+
+Both are centered on the general mutation-result → visible-state propagation model and the densest non-season propagation seam in Architect. Completing these together establishes shared contract language before handling the more specialized season and base/world distinctions in the second batch.
+
+### Second execution batch: SI-3C + SI-3D
+
+Both deal with mode-specific propagation distinctions. Both are easier to tighten once the general committed-mutation propagation language from the first batch is clearer. Both are likely to benefit from first-batch contract normalization.
+
+### Third execution batch: SI-3E
+
+Stale-drop / async durability cuts across the previous batches and may be best judged after the core propagation contracts are clarified. It may require targeted guardrails rather than only code-comment clarity.
+
+### Alternative
+
+If live overlap during execution is stronger than expected, SI-3D and SI-3E may partially overlap and be batched together. That should only happen if the work remains tightly focused on propagation durability rather than broad cleanup.

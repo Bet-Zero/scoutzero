@@ -377,3 +377,190 @@ Make world-only, preview-only, and unavailable-action boundaries more consistent
 | SI-2B | SI-ISS-008 | HIGH        |
 | SI-2C | SI-ISS-009 | HIGH        |
 | SI-2D | SI-ISS-010 | MEDIUM-HIGH |
+
+---
+
+## Step 3 Issue Set — Mutation, Reload, and Propagation Integrity
+
+### Step 3 Issue Status
+
+`SI-ISS-011` through `SI-ISS-015` are **OPEN**. They reflect the propagation-integrity risks identified in the Step 3 review record. Each entry is linked to the execution lane that addresses it.
+
+---
+
+### SI-ISS-011 — Mixed post-commit propagation strategy creates durability drift risk
+
+**Severity:** HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-3A
+
+**Description:**
+The live repo uses multiple post-commit propagation patterns depending on which mutation family ran and what aftermath data is available:
+
+- reuse `changedTeams` directly when available
+- resolve committed snapshot from mutation result first; reload if missing
+- pass committed team snapshots into reload helpers as part of a larger resync flow
+- apply committed aftermath immediately, then optionally perform a broader reload
+
+This works, but the repo does not express one uniformly obvious propagation rule. A contributor looking at any one of these paths has no single place to understand the full rule set or confirm whether their new mutation path is conformant with the others.
+
+**Risk:**
+New mutation families or feature extensions may inadvertently use a different propagation pattern from what already exists. Over time, the system could end up with three or four meaningfully different post-commit propagation behaviors, none of which are obviously wrong in isolation, but which together make the system harder to reason about and audit.
+
+**Desired Correction:**
+The mutation-result / committed-snapshot / reload-fallback chain should be expressed as a clear contract. The preferred propagation order after authoritative world mutations should be documented and readable from one place, rather than implied by the implementation choices of individual mutation families.
+
+**Source:** Step 3 Review Record — "What Is Weak / Risky" §2; Step 3 Action Breakdown SI-3A
+
+---
+
+### SI-ISS-012 — `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation seam is too dense to audit confidently
+
+**Severity:** HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-3B
+
+**Description:**
+The action/state hook pair is the main seam through which committed mutations become dashboard-visible truth. At this seam, the system decides whether to:
+
+- apply mutation results directly to visible state
+- resolve committed snapshots from the mutation result
+- patch world metadata
+- trigger world team reloads
+- refresh roster bundles
+- drop stale async results
+
+This seam does the right things. The problem is that the rules governing when each of those behaviors applies are not expressed as a clear contract. A contributor reading either hook must mentally compose the logic from several layers of condition checking, helper delegation, and reload-routing logic before they can understand what the handoff guarantees.
+
+**Risk:**
+Because this seam is so central, a contributor who misunderstands which layer owns which responsibility here is likely to put logic in the wrong hook, trigger reload when direct reuse was sufficient, or fail to trigger reload when it was required. The seam's density makes it one of the most likely places for future propagation drift.
+
+**Desired Correction:**
+The propagation contract across this seam should be made clearer:
+
+- what the action layer is responsible for after commit
+- what the state layer is responsible for during resync
+- where metadata patching belongs
+- where stale-drop ownership belongs
+- which layer decides direct reuse vs reload
+
+**Source:** Step 3 Review Record — "What Is Weak / Risky" §1 and "Highest-Risk Step 3 Surfaces" §B; Step 3 Action Breakdown SI-3B
+
+---
+
+### SI-ISS-013 — Season-advance aftermath vs dashboard reload is a two-stage handoff without an explicit contract
+
+**Severity:** MEDIUM-HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-3C
+
+**Description:**
+The season-advance flow uses a two-stage propagation model:
+
+1. committed aftermath payloads (metadata, event identity, optional focused snapshot) are applied to visible state immediately after the season advance commits
+2. a broader `onReloadWorldData(...)` resync may run afterward
+
+That is honest and sensible. The problem is that this two-stage contract is not expressed explicitly as one propagation rule. A contributor making changes to the season-advance aftermath or the broader reload path may not realize the contract they are operating within, particularly:
+
+- what the aftermath guarantees if reload fails
+- whether visible state is ever in a partially-applied state between stages
+- which layer owns the decision to proceed with or skip the broader reload
+
+**Risk:**
+Future season-advance flow changes — new aftermath fields, reload optimization, error recovery — may break the current two-stage contract without realizing it. The seam is especially risky because it mixes committed persistence truth (aftermath) with optional re-read truth (broader reload) without a written boundary between them.
+
+**Desired Correction:**
+The season-advance propagation contract should be expressed clearly:
+
+- what the committed aftermath guarantees
+- when broader reload is still needed
+- what should happen if aftermath exists but reload fails
+- which layer owns visible-state reconciliation after season advance
+
+**Source:** Step 3 Review Record — "What Is Weak / Risky" §4 and "Highest-Risk Step 3 Surfaces" §C; Step 3 Action Breakdown SI-3C
+
+---
+
+### SI-ISS-014 — World-mode vs base/vacuum-mode propagation distinction is valid but not uniformly expressed
+
+**Severity:** MEDIUM
+
+**Status:** OPEN
+
+**Related Lane:** SI-3D
+
+**Description:**
+Architect intentionally uses two different post-mutation propagation strategies:
+
+- **World mode:** commit authoritative state, then resync visible state through committed snapshot / reload paths
+- **Base/vacuum mode:** compute authoritative local next state, validate locally, apply directly without committed world reload
+
+This distinction is real and architecturally correct. The problem is that it is not expressed uniformly across the repo as one system-level rule. Different action paths express the distinction at different levels of explicitness, with the result that a contributor new to the codebase must read through several branching action handlers before they can understand what the mode boundary guarantees.
+
+**Risk:**
+A contributor working on a new mutation type or feature extension may add a hybrid propagation path (partially committed, partially local) that looks reasonable at the point of addition but violates the intended world/base clarity. Without a clear statement of what the mode boundary means and which layer owns it, that risk is persistent.
+
+**Desired Correction:**
+The world-mode vs base/vacuum-mode propagation distinction should be made more explicitly uniform across the repo:
+
+- what counts as committed-world propagation
+- what counts as validated local propagation
+- what guarantees differ between those modes
+- which layer owns the mode boundary
+
+**Source:** Step 3 Review Record — "What Is Weak / Risky" §3 and "Highest-Risk Step 3 Surfaces" §D; Step 3 Action Breakdown SI-3D
+
+---
+
+### SI-ISS-015 — Stale-drop / async reload durability guards are real but expressed as implicit safety glue
+
+**Severity:** MEDIUM
+
+**Status:** OPEN
+
+**Related Lane:** SI-3E
+
+**Description:**
+`useArchitectState.ts` has a serious async safety system:
+
+- request IDs track individual load requests
+- active-world identity tokens guard against cross-world state pollution
+- world-date mutation request IDs guard against out-of-order mutation result application
+- stale-drop outcomes are explicitly handled
+- bundle application is guarded so only identity-fresh results are applied
+
+That is correct and non-trivial. The problem is that the contract governing this machinery is mostly implicit. A contributor reading the hook must discover the guard system by reading through the implementation, not by reading a clear statement of what stale-drop protects against, which layer owns enforcement, and what a caller should expect when async propagation loses identity freshness.
+
+**Risk:**
+The guard system's implicitness creates two risks:
+
+1. Future async state changes may accidentally weaken or bypass the guards without realizing the safety they provide.
+2. New contributors may add reload-triggering logic in `useArchitectActions.ts` without understanding how the stale-drop machinery in `useArchitectState.ts` affects whether those loads will actually apply their results.
+
+**Desired Correction:**
+The anti-stale durability contract should be made more explicit:
+
+- what stale-drop protects against
+- which layer owns stale-drop enforcement
+- what a caller should expect when async propagation loses identity freshness
+- whether the current guard model is sufficiently explicit and durable
+
+**Source:** Step 3 Review Record — "What Is Weak / Risky" §5 and "What Is Coherent" §5; Step 3 Action Breakdown SI-3E
+
+---
+
+## Step 3 Issue Summary by Lane
+
+| Lane  | Issues     | Severity    |
+| ----- | ---------- | ----------- |
+| SI-3A | SI-ISS-011 | HIGH        |
+| SI-3B | SI-ISS-012 | HIGH        |
+| SI-3C | SI-ISS-013 | MEDIUM-HIGH |
+| SI-3D | SI-ISS-014 | MEDIUM      |
+| SI-3E | SI-ISS-015 | MEDIUM      |

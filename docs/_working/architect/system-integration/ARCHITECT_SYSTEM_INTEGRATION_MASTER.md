@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 2 closeout review PASS; ready for Step 3.**
+**Step 3 bootstrap complete; ready for Step 3 first-batch execution (SI-3A + SI-3B).**
 
 ## Purpose
 
@@ -36,13 +36,13 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 ## Feature Step List
 
-| Step     | Name                                      | Status                                   |
-| -------- | ----------------------------------------- | ---------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries     | Closeout rereview PASS — complete        |
-| Step 2   | Cross-Surface Handoff Integrity           | Closeout review PASS — complete          |
-| Step 3   | State/Action/Mutation Contract Durability | Not started                              |
-| Step 4   | Preview vs Committed-State Consistency    | Not started                              |
-| Closeout | Whole-Feature System Integration Closeout | Not started                              |
+| Step     | Name                                        | Status                                       |
+| -------- | ------------------------------------------- | -------------------------------------------- |
+| Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete            |
+| Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete              |
+| Step 3   | Mutation, Reload, and Propagation Integrity | Bootstrap PASS — first-batch execution ready |
+| Step 4   | Preview vs Committed-State Consistency      | Not started                                  |
+| Closeout | Whole-Feature System Integration Closeout   | Not started                                  |
 
 ---
 
@@ -233,6 +233,86 @@ This is not a failure of basic architecture. It is a handoff-clarity and contrac
 
 ---
 
+## Step 3 — Mutation, Reload, and Propagation Integrity
+
+### Goal
+
+Review whether authoritative actions propagate cleanly and consistently through Architect after real mutations occur. This is not a local feature correctness pass. It is a system-level durability review focused on what happens after authoritative mutations commit, how committed truth gets reused or re-entered, and whether dashboard-visible state stays aligned with the authoritative read/write model.
+
+### Step 3 Review Verdict
+
+**RISK** — Architect now has a real mutation-to-visible-state propagation model. That is the good news. The reason this step is not an automatic PASS is that the propagation model is still distributed and layered across multiple authorities and adapters in ways that make the post-mutation resync rules harder to read than they should be:
+
+- sometimes committed truth is reused directly
+- sometimes it is reloaded through the read stack
+- sometimes both happen in sequence
+- world mode and base/vacuum mode intentionally propagate differently
+- season advancement uses a committed aftermath surface plus optional broader reload
+- async stale-drop protection is meaningful, but signals a propagation model that requires substantial guard machinery to stay safe
+
+This is not evidence of a broken system. It is evidence that the system still has durability seams that deserve structural tightening before whole-feature closeout.
+
+### Step 3 Propagation Model Summary
+
+#### Real Committed-Write Authorities
+
+- `mutationPipeline.ts` — general / point-in-time world mutations (READ → COMPUTE → VALIDATE → PERSIST → return changedTeams)
+- `seasonManager.ts` — season/world transitions with committed aftermath contract (metadata + event identity + optional focused snapshot)
+
+#### Main Action-to-State Propagation Seam
+
+- `useArchitectActions.ts` — owns the handoff between section/UI intent, committed mutation authorities, aftermath handling, and visible-state sync/reload routing
+
+#### Dashboard-Side Visible-State Authority
+
+- `useArchitectState.ts` — owns world team reloads, committed snapshot application, metadata patch application, roster/index refresh, and stale-drop protection for async world loads
+
+#### Read-Stack Re-Entry After Commit
+
+Dashboard reload intentionally re-enters through the explicit read stack:
+`useArchitectState.ts` → `worldTeamData.ts` → `teamLoader.ts` → base hydration
+
+### Step 3 Strongest Propagation Surfaces
+
+- **`mutationPipeline.ts` fail-closed committed-write authority** — pure compute boundary, centralized persistence, post-state validation before persistence, fail-closed on missing trustworthy delta
+- **Dashboard reload re-entry through the explicit read stack** — `useArchitectState.ts` → `worldTeamData.ts` → `teamLoader.ts`; does not rebuild world truth locally
+- **World-mode vs base/vacuum-mode propagation distinction** — world mode commits then resyncs through committed snapshot/reload; base/vacuum mode computes, validates, and applies local next state directly
+- **Season advancement committed aftermath contract** — `seasonManager.ts` now exposes committed metadata, committed event identity, optional focused snapshot, and post-state validation-backed result shape
+- **Stale-drop / identity-token protection** — request IDs, world identity tokens, world-date mutation request IDs, stale-drop outcomes, guarded bundle application
+
+### Step 3 Highest-Risk Propagation Surfaces
+
+- **Mixed post-commit propagation strategy** — changed-team direct reuse, committed snapshot reuse, reload fallback, and aftermath+reload layering all in play; too easy to misread as one uniform rule
+- **`useArchitectActions.ts` ↔ `useArchitectState.ts` durability contract** — densest integration seam; decides direct reuse vs committed snapshot vs reload vs metadata patch vs stale-drop
+- **Season advancement aftermath ↔ dashboard reload consistency** — two-stage handoff rather than a single obvious re-entry rule; aftermath payloads applied immediately, broader reload optional afterward
+- **World-mode vs base-mode propagation clarity** — distinction is real and intentional but not yet expressed uniformly as a system-level rule
+
+### Step 3 Execution Lanes
+
+- **SI-3A** — Normalize committed mutation result → reload contract language
+- **SI-3B** — Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract
+- **SI-3C** — Clarify season-advance aftermath vs broader world reload contract
+- **SI-3D** — Clarify world-mode vs base/vacuum-mode propagation boundaries
+- **SI-3E** — Pressure-test stale-drop / async reload durability guards
+
+### Step 3 Execution Batching
+
+- **First batch:** SI-3A + SI-3B — both tighten the general mutation-result → visible-state propagation model and the most important non-season propagation seam; helps define shared contract language before handling specialized distinctions
+- **Second batch:** SI-3C + SI-3D — both deal with mode-specific propagation distinctions; easier to tighten after first-batch contract normalization
+- **Third batch:** SI-3E — stale-drop/async durability cuts across earlier batches; best judged after core propagation contracts are clarified; may require targeted guardrails more than code-comment clarity
+
+### Step 3 Bootstrap Update
+
+**Completed:** April 9, 2026
+
+- Bootstrap verdict: **PASS**
+- Step 3 review record and action breakdown read and reconciled against each other.
+- Propagation model confirmed: real mutation-to-visible-state model exists but is distributed across too many seams to audit confidently without structural tightening.
+- Review tracker and issue log updated with Step 3 execution lanes (SI-3A through SI-3E) and Step 3 propagation-risk issue entries (SI-ISS-011 through SI-ISS-015).
+- No stop conditions triggered. Step 3 is ready for first-batch execution (SI-3A + SI-3B).
+
+---
+
 ## Related Documents
 
 | Document                                                                                            | Purpose                           |
@@ -253,5 +333,8 @@ This is not a failure of basic architecture. It is a handoff-clarity and contrac
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 2 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 2 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP2_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 2 closeout review package    |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP3_REVIEW_RECORD.md`    | Step 3 live review findings       |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP3_ACTION_BREAKDOWN.md` | Step 3 execution lane definitions |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 3 bootstrap return package   |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |
