@@ -696,6 +696,11 @@ describe('Gate 5: EditContractModal remains a callback dispatcher for Free Agenc
 
 describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fail-closed and canonical (FA-1D)', () => {
   const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH);
+  const localValidatedTeamPropagationRegion = readRegion(
+    content,
+    'type LocalValidatedTeamPropagation = {',
+    'type ResolvedCommittedWorldTeam = WorldCommittedTeamPropagation;'
+  );
   const handleSignRegion = readRegion(
     content,
     'const handleSign = useCallback(',
@@ -960,6 +965,18 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(content).toMatch(
       /type\s+LocalValidatedTeamPropagation\s*=\s*\{/
     );
+    expect(localValidatedTeamPropagationRegion).toMatch(
+      /localValidatedTeam:\s*CapSheet;/
+    );
+    expect(localValidatedTeamPropagationRegion).toMatch(
+      /localValidatedTeamSource:\s*'compute';/
+    );
+    expect(localValidatedTeamPropagationRegion).not.toMatch(
+      /committedTeam:\s*CapSheet;/
+    );
+    expect(localValidatedTeamPropagationRegion).not.toMatch(
+      /committedTeamSource:\s*'compute';/
+    );
     expect(applyCommittedOfferSheetStateRegion).toMatch(
       /applyCommittedWorldReload\s*\(\s*'storeOfferSheet'/
     );
@@ -1028,6 +1045,12 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /resolvedState\.propagationMode\s*===\s*'local-validated'/
     );
     expect(applyResolvedStandardSigningStateRegion).toMatch(
+      /setTeamCapSheetSafe\s*\(\s*resolvedState\.localValidatedTeam\s*\)/
+    );
+    expect(applyResolvedStandardSigningStateRegion).not.toMatch(
+      /resolvedState\.committedTeam/
+    );
+    expect(applyResolvedStandardSigningStateRegion).toMatch(
       /applyCommittedWorldReloadPlan\s*\(\s*resolvedState\.reloadPlan/
     );
     expect(applyResolvedStandardSigningStateRegion).toMatch(
@@ -1045,6 +1068,15 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     );
     expect(executeVacuumModeStandardSigningRegion).toMatch(
       /buildCapAuditEvaluation/
+    );
+    expect(executeVacuumModeStandardSigningRegion).toMatch(
+      /localValidatedTeam:\s*updatedTeam\s+as\s+CapSheet/
+    );
+    expect(executeVacuumModeStandardSigningRegion).toMatch(
+      /localValidatedTeamSource:\s*'compute'/
+    );
+    expect(executeVacuumModeStandardSigningRegion).not.toMatch(
+      /committedTeamSource:\s*'compute'/
     );
     expect(applyCommittedSignAndTradeStateRegion).toMatch(
       /applyCommittedWorldReload\s*\(\s*'signAndTrade'/

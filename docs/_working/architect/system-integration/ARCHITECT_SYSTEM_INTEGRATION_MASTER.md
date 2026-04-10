@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 4 closeout review complete — RISK; one narrow follow-up is still needed before whole-feature closeout.**
+**Step 4 narrow follow-up complete — rereview ready.**
 
 ## Purpose
 
@@ -41,7 +41,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete  |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
-| Step 4   | Preview vs Committed-State Consistency      | Closeout review RISK — narrow follow-up needed |
+| Step 4   | Preview vs Committed-State Consistency      | Follow-up complete — rereview ready |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                        |
 
 ---
@@ -463,6 +463,17 @@ Step 4 will be considered structurally successful when all of the following are 
 - **Step 4 status:** not officially closed.
 - **Required next move:** one narrow Step 4 follow-up batch to remove the remaining contradictory authoritative naming on directly relevant non-authoritative surfaces and add guardrail coverage so those contradictions cannot return.
 
+### Step 4 Narrow Follow-Up Update
+
+**Completed:** April 10, 2026
+
+- **Follow-up verdict:** `PASS`
+- **What changed:** the local-validated standard-signing lane in `useArchitectActions.ts` no longer uses committed-world naming. `LocalValidatedTeamPropagation` now publishes `localValidatedTeam` / `localValidatedTeamSource`, `applyResolvedStandardSigningState(...)` now applies `resolvedState.localValidatedTeam`, and the internal branch flag now reads as `didApplyResolvedState` instead of `didApplyCommittedState`. `src/features/architect/offseason/OffseasonTab/types.ts` also now describes the preview type surface as a non-authoritative DEV preview surface instead of using contradictory authoritative wording.
+- **Guardrail coverage:** `src/tests/architect/freeAgency_closure.gate.test.ts` now fails if the local-validated standard-signing lane reintroduces `committedTeam` / `committedTeamSource` naming or if the local branch stops applying `resolvedState.localValidatedTeam`. `src/tests/architect/offseason.devGate.guardrail.test.ts` now fails if the directly relevant Offseason preview type surface reintroduces authoritative preview wording.
+- **Validation completed:** `npm run test:node -- src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot`; `npm run typecheck`
+- **Step 4 status:** still not officially closed. The narrow blocker is addressed and Step 4 is now ready for immediate rereview.
+- **Next move:** proceed to Step 4 rereview.
+
 ---
 
 ## Related Documents
@@ -498,5 +509,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 4 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 4 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 4 closeout review package    |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_FOLLOWUP_EXEC_RETURN_PACKAGE.md`      | Step 4 follow-up execution package |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

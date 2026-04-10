@@ -22,6 +22,11 @@ const offseasonTabPath = path.resolve(
   'src/features/architect/offseason/OffseasonTab/OffseasonTab.tsx'
 );
 
+const offseasonTypesPath = path.resolve(
+  process.cwd(),
+  'src/features/architect/offseason/OffseasonTab/types.ts'
+);
+
 const optionManagerPath = path.resolve(
   process.cwd(),
   'src/features/architect/offseason/OffseasonTab/OptionManager.tsx'
@@ -318,6 +323,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
   describe('Offseason preview authorities after shim retirement', () => {
     const offseasonTabSource = fs.readFileSync(offseasonTabPath, 'utf-8');
+    const offseasonTypesSource = fs.readFileSync(offseasonTypesPath, 'utf-8');
     const optionManagerSource = fs.readFileSync(optionManagerPath, 'utf-8');
 
     it('deletes the explicit JSX shim files', () => {
@@ -331,6 +337,25 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('keeps OptionManager.tsx on a default-export authority surface', () => {
       expect(optionManagerSource).toContain('export default OptionManager;');
+    });
+
+    it('keeps the preview type surface explicitly non-authoritative', () => {
+      expect(offseasonTypesSource).toContain(
+        'Internal permissive types for the non-authoritative DEV Offseason preview TS surface.'
+      );
+      expect(offseasonTypesSource).toContain(
+        'export type OffseasonPreviewAuthority = {'
+      );
+      expect(offseasonTypesSource).toContain("kind: 'dev-local-preview';");
+      expect(offseasonTypesSource).toContain('isAuthoritative: false;');
+      expect(offseasonTypesSource).toContain('persistsToWorld: false;');
+      expect(offseasonTypesSource).toContain('mutatesDashboardState: false;');
+      expect(offseasonTypesSource).toContain(
+        'export const NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY ='
+      );
+      expect(offseasonTypesSource).not.toContain(
+        'authoritative Offseason preview TS surface'
+      );
     });
   });
 });

@@ -1104,8 +1104,8 @@ type CommittedWorldReloadSeed = Pick<
 >;
 type LocalValidatedTeamPropagation = {
   propagationMode: 'local-validated';
-  committedTeam: CapSheet;
-  committedTeamSource: 'compute';
+  localValidatedTeam: CapSheet;
+  localValidatedTeamSource: 'compute';
 };
 type ResolvedCommittedWorldTeam = WorldCommittedTeamPropagation;
 type CommittedWorldReloadPlan = {
@@ -2890,11 +2890,11 @@ export function useArchitectActions({
       playerObj: ArchitectPlayer,
       resolvedState: StandardSigningResolvedState
     ): Promise<void> => {
-      let didApplyCommittedState = false;
+      let didApplyResolvedState = false;
 
       if (resolvedState.propagationMode === 'local-validated') {
-        setTeamCapSheetSafe(resolvedState.committedTeam);
-        didApplyCommittedState = true;
+        setTeamCapSheetSafe(resolvedState.localValidatedTeam);
+        didApplyResolvedState = true;
       } else {
         const worldReloadResult = await applyCommittedWorldReloadPlan(
           resolvedState.reloadPlan
@@ -2904,10 +2904,10 @@ export function useArchitectActions({
           return;
         }
 
-        didApplyCommittedState = true;
+        didApplyResolvedState = true;
       }
 
-      if (!didApplyCommittedState) {
+      if (!didApplyResolvedState) {
         return;
       }
 
@@ -3164,8 +3164,8 @@ export function useArchitectActions({
       return {
         success: true,
         propagationMode: 'local-validated',
-        committedTeam: updatedTeam as CapSheet,
-        committedTeamSource: 'compute',
+        localValidatedTeam: updatedTeam as CapSheet,
+        localValidatedTeamSource: 'compute',
       };
     },
     [playersMap, reportMutationError, teamCapSheet, teamCode]

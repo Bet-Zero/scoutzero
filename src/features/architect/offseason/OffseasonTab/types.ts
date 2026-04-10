@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/offseason/OffseasonTab/types.ts
- * PURPOSE: Internal permissive types for the authoritative Offseason preview TS surface.
+ * PURPOSE: Internal permissive types for the non-authoritative DEV Offseason preview TS surface.
  * OWNERSHIP: Feature: architect/offseason
  *
  * HISTORY:

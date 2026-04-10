@@ -16,6 +16,15 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 ---
 
+## Step 4 Follow-Up Summary
+
+- **Date:** April 10, 2026
+- **Verdict:** `PASS`
+- **Status:** Narrow Step 4 follow-up is complete. Step 4 remains open only for rereview.
+- **Basis:** the exact closeout blocker was corrected without widening scope. `useArchitectActions.ts` no longer uses committed-world naming on the local-validated standard-signing lane, `src/features/architect/offseason/OffseasonTab/types.ts` no longer uses contradictory authoritative wording for the DEV preview type surface, and focused guardrails now fail if either contradiction returns. Targeted follow-up validation passed: `npm run test:node -- src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot`; `npm run typecheck`.
+
+---
+
 ## Step 4 Closeout Summary
 
 - **Date:** April 10, 2026
