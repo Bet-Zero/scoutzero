@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/freeAgency/FreeAgentPool/types.ts
- * PURPOSE: Permissive local types for the authoritative Free Agent Pool surface.
+ * PURPOSE: Permissive local types for the published Free Agent Pool consumer surface.
  * OWNERSHIP: Feature: architect/freeAgency
  *
  * HISTORY:

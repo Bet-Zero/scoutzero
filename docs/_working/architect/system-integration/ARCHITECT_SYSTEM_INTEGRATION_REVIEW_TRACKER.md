@@ -16,6 +16,16 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 ---
 
+## Whole-Feature Final Unblock Summary
+
+- **Date:** April 10, 2026
+- **Verdict:** `PASS`
+- **Status:** The narrow final contract-alignment unblock is complete. Whole-feature closeout remains open only for rereview, and Architect System Integration is rereview-ready.
+- **Basis:** the repo-facing contradiction category identified by whole-feature closeout is now removed without widening scope. `src/features/architect/ARCHITECT_FEATURE_README.md` now matches the live active-world committed plus sandbox/base/vacuum local-validated system story; `src/features/architect/freeAgency/FreeAgentPool/types.ts` and `src/features/architect/GMDashboard/offerSheetTypes.ts` now frame those downstream Free Agency surfaces as published consumer contracts rather than authorities; and `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` now guards the live `resolvedState` seam while still failing if the local-validated apply path stops using `resolvedState.localValidatedTeam`. The required focused proof surface passed on the live repo via `npm run test:node -- src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts src/tests/architect/systemIntegration.step2Handoff.guardrail.test.ts src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot` and `npm run test:ui -- src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`.
+- **Required next move:** proceed to whole-feature closeout rereview.
+
+---
+
 ## Whole-Feature Closeout Summary
 
 - **Date:** April 10, 2026

@@ -29,7 +29,7 @@ It is distinct from the Review Tracker. The tracker manages execution lane statu
 
 **Severity:** MEDIUM-HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** Whole-feature closeout
 
@@ -58,6 +58,9 @@ Run one narrow final contract-alignment pass that:
 - updates `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` to the current `resolvedState` naming and reruns the focused whole-feature node/ui proof set
 
 **Source:** Whole-feature closeout review (2026-04-10)
+
+**Resolution Notes (2026-04-10):**
+Applied the narrow final contract-alignment unblock without widening scope. `src/features/architect/ARCHITECT_FEATURE_README.md` now publishes the live active-world committed plus sandbox/base/vacuum local-validated system story and keeps preview/local-only seams distinct from committed-world truth. `src/features/architect/freeAgency/FreeAgentPool/types.ts` and `src/features/architect/GMDashboard/offerSheetTypes.ts` now describe those downstream Free Agency surfaces as published consumer contracts rather than authorities. `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` now guards the live `resolvedState` propagation seam and still requires the local-validated apply path to use `resolvedState.localValidatedTeam`. The required focused node and UI proof surfaces both passed on rerun.
 
 ---
 

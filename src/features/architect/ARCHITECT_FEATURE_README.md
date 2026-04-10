@@ -6,9 +6,11 @@ For full design and agent guidance, see the reference docs in `/docs/`:
 - [ARCHITECT_REVIEW.md](../../docs/ARCHITECT_REVIEW.md) – Full design & review document  
 - [ARCHITECT_AGENTS.md](../../docs/ARCHITECT_AGENTS.md) – Rules and instructions for AI agents  
 
-> ⚠️ Note: Architect operates in a **worlds-only** mode.  
-> All GM moves are saved to user-owned worlds (`architect_worlds` collection).  
-> This ensures full scenario isolation and branching support.  
+> ⚠️ Note: Architect supports both **active-world committed flows** and
+> **sandbox/base/vacuum local-validated flows**.  
+> Active-world GM moves save to user-owned worlds (`architect_worlds`
+> collection). Sandbox/base/vacuum flows stay local-only, and preview seams
+> remain distinct from committed world truth.  
 
 ## Architect Ownership Map
 
@@ -30,6 +32,7 @@ Architect is intentionally layered. The fastest way to route work is:
 - **Where does world truth live?** World metadata lives in `worldManager.ts`; general committed mutation truth lives in `mutationPipeline.ts`; season/world advancement truth lives in `seasonManager.ts`.
 - **Where do world-aware reads live?** `teamLoader.ts` is the world-aware fallback authority.
 - **Where do committed writes live?** `mutationPipeline.ts` for general mutations, `worldManager.ts` for world metadata/lifecycle writes, and `seasonManager.ts` for season advancement writes.
+- **What happens without an active world?** `useArchitectState.ts` publishes the dashboard `sandbox` boundary, while `useArchitectActions.ts` may apply `local-validated` local state or preview/local-only seams without creating committed world truth.
 - **How do `mutationPipeline.ts` and `seasonManager.ts` relate?** They are sibling committed-write authorities: point-in-time world mutations go through `mutationPipeline.ts`, while whole-world season transitions go through `seasonManager.ts`.
 - **What files are orchestration/adapters?** `GMDashboard.tsx`, `useArchitectState.ts`, `useArchitectActions.ts`, and `worldTeamData.ts`.
 - **Where should cap totals and contract-year truth come from?** Use `computeTeamCapTotals.ts` for canonical team totals and `contractUtils.ts` for shared contract shaping/year lookups instead of rebuilding those calculations in downstream surfaces.

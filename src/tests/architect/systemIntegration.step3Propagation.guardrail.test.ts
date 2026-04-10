@@ -104,7 +104,10 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
       "propagationMode: 'local-validated';"
     );
     expect(actionsHookSource).toContain(
-      "if (committedState.propagationMode === 'local-validated')"
+      "if (resolvedState.propagationMode === 'local-validated')"
+    );
+    expect(actionsHookSource).toContain(
+      'setTeamCapSheetSafe(resolvedState.localValidatedTeam);'
     );
     expect(actionsHookSource).toContain(
       '...committedWorldTeam,'

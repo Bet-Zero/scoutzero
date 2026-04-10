@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/architect/GMDashboard/offerSheetTypes.ts
- * PURPOSE: Permissive local types for the authoritative Free Agency offer-sheet surface.
+ * PURPOSE: Permissive local types for the published Free Agency offer-sheet consumer surface.
  * OWNERSHIP: Feature: architect/GMDashboard
  *
  * HISTORY:

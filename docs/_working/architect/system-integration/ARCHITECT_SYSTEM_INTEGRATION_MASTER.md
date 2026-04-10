@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Whole-feature closeout review RISK — one narrow contract-alignment unblock remains.**
+**Whole-feature closeout rereview pending — final contract-alignment unblock complete.**
 
 ## Purpose
 
@@ -42,7 +42,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
 | Step 4   | Preview vs Committed-State Consistency      | Closeout rereview PASS — complete  |
-| Closeout | Whole-Feature System Integration Closeout   | Closeout review RISK — unblock needed |
+| Closeout | Whole-Feature System Integration Closeout   | Final unblock complete — rereview ready |
 
 ---
 
@@ -498,6 +498,17 @@ Step 4 will be considered structurally successful when all of the following are 
 - **Why this matters:** whole-feature closeout is the final “does the repo read as one coherent system?” gate. The runtime seams are mostly healthy, but the top-level publication layer and one focused guardrail still do not tell the same story as the live world-committed / local-validated architecture. That is too important to blur into a `PASS`, but too narrow to justify `FAIL`.
 - **Right next move:** one narrow final unblock to align the top-level Architect README, the two stale downstream type headers, and the stale Step 3 source-scan guardrail with the live world/base/local-validated contract, then rerun the focused whole-feature node/ui proof set.
 
+### Whole-Feature Final Unblock Update
+
+**Completed:** April 10, 2026
+
+- **Execution verdict:** `PASS`
+- **What changed:** `src/features/architect/ARCHITECT_FEATURE_README.md` now describes the live system honestly as a split between active-world committed flows and sandbox/base/vacuum local-validated flows, with preview/local-only seams kept distinct from committed-world truth. `src/features/architect/freeAgency/FreeAgentPool/types.ts` and `src/features/architect/GMDashboard/offerSheetTypes.ts` no longer publish downstream consumer surfaces as authoritative.
+- **Guardrail alignment:** `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` now checks the live `resolvedState` propagation seam rather than the stale `committedState` name, while still requiring the local-validated branch to apply `resolvedState.localValidatedTeam`.
+- **Validation:** the required focused proof surface passed on the live repo via `npm run test:node -- src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts src/tests/architect/systemIntegration.step2Handoff.guardrail.test.ts src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot` and `npm run test:ui -- src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`.
+- **Status:** the narrow repo-facing contradiction identified by whole-feature closeout is cleared. Architect System Integration is not yet closed; it is now ready for whole-feature closeout rereview.
+- **Next move:** rerun whole-feature closeout review against the live repo and decide the final PASS / RISK / FAIL verdict.
+
 ---
 
 ## Related Documents
@@ -536,5 +547,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_FOLLOWUP_EXEC_RETURN_PACKAGE.md`      | Step 4 follow-up execution package |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_REREVIEW_RETURN_PACKAGE.md`           | Step 4 rereview return package    |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_WHOLE_FEATURE_CLOSEOUT_REVIEW_RETURN_PACKAGE.md` | Whole-feature closeout review package |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_FINAL_UNBLOCK_EXEC_RETURN_PACKAGE.md` | Whole-feature final unblock execution package |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |
