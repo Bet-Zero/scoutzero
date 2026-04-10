@@ -463,14 +463,24 @@ If live repo review before execution reveals strong seam overlap across all four
 
 ---
 
+## Step 3 Batch 2 Execution Summary
+
+- **Date:** April 9, 2026
+- **Verdict:** `PASS`
+- **Status:** Second-batch execution complete. `SI-3C` and `SI-3D` are closed; the final Step 3 batch is ready.
+- **Basis:** `seasonManager.ts` and `OffseasonSection.tsx` now express season advance as one explicit aftermath-then-reload contract, `useArchitectActions.ts` now names `world-committed` vs `local-validated` propagation lanes directly, and world-mode standard signing now reuses the same committed-world reload plan so metadata patches no longer bypass the state-owned resync seam.
+- **Validation note:** an initial `npm run test:architect -- --reporter=dot ...` attempt widened to the full architect-scoped suite because the script hardcodes architect directories ahead of file filters. That broader pass exposed one stale `seasonAdvance_capAuditEventV1` guardrail expectation tied to the pre-helper `committedState` literal; after fixing that guardrail, the final validation stayed on focused `test:node` guardrails, focused `test:ui` behavior files, and `npm run typecheck`.
+
+---
+
 ## Step 3 Execution Summary
 
 | Lane  | Name                                                                            | Priority | Status      | Batch          |
 | ----- | ------------------------------------------------------------------------------- | -------- | ----------- | -------------- |
 | SI-3A | Normalize committed mutation result → reload contract language                  | P1       | COMPLETE    | First (3A+3B)  |
 | SI-3B | Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract | P1       | COMPLETE    | First (3A+3B)  |
-| SI-3C | Clarify season-advance aftermath vs broader world reload contract               | P1       | NOT STARTED | Second (3C+3D) |
-| SI-3D | Clarify world-mode vs base/vacuum-mode propagation boundaries                   | P2       | NOT STARTED | Second (3C+3D) |
+| SI-3C | Clarify season-advance aftermath vs broader world reload contract               | P1       | COMPLETE    | Second (3C+3D) |
+| SI-3D | Clarify world-mode vs base/vacuum-mode propagation boundaries                   | P2       | COMPLETE    | Second (3C+3D) |
 | SI-3E | Pressure-test stale-drop / async reload durability guards                       | P2       | NOT STARTED | Third (3E)     |
 
 ---
@@ -567,7 +577,7 @@ Completed by publishing an explicit state-owned committed-world resync contract 
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -597,13 +607,21 @@ A contributor should be able to answer:
 
 Complete when the season-advance propagation contract is materially clearer and less likely to drift between aftermath handling and reload handling.
 
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by routing `seasonManager.ts` through a named `buildSeasonAdvanceCommittedState(...)` helper and by giving `OffseasonSection.tsx` an explicit `CommittedWorldAdvanceReconciliationPlan` plus `WorldAdvanceReloadRequest` handoff. The wrapper now reads as one honest two-step contract: apply the committed aftermath immediately, then optionally ask the state-owned reload seam for broader world reconciliation. Focused source guardrails plus `offseason.worldAdvanceAftermath.e110.behavior.test.tsx` now prove both the no-handler aftermath case and the reload-failure honesty case.
+
 ---
 
 ## SI-3D — Clarify World-Mode vs Base/Vacuum-Mode Propagation Boundaries
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -631,6 +649,14 @@ A contributor should be able to tell:
 - which layer owns the mode boundary
 
 Complete when the world-mode vs base/vacuum-mode propagation distinction is materially easier to understand and less likely to blur across features.
+
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by naming `world-committed` vs `local-validated` propagation lanes directly in `useArchitectActions.ts`, keeping vacuum standard signing on the local validated apply path, and moving world-mode standard signing onto the same committed-world reload-plan contract used elsewhere so metadata patches no longer bypass the state-owned resync seam. Focused Free Agency behavior tests and closure guardrails now prove the boundary from both directions.
 
 ---
 

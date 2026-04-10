@@ -469,6 +469,41 @@ describe('OffseasonSection world-advance aftermath behavior', () => {
     ).toBeLessThan(props.onReloadWorldData.mock.invocationCallOrder[0]);
   });
 
+  it('keeps immediate aftermath reconciliation even when no broader world reload handler is supplied', async () => {
+    const props = await renderOffseasonSectionWithGate({
+      props: {
+        onReloadWorldData: null,
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advance Season' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Emit successful advance' })
+    );
+
+    await waitFor(() => {
+      expect(props.setCurrentYear).toHaveBeenCalledWith(2027);
+    });
+    expect(props.setTeamCapSheet).toHaveBeenCalledWith({
+      teamCode: 'LAL',
+      season: '2026-27',
+      players: [],
+      capHolds: [],
+    });
+    expect(props.setOffseasonRun).toHaveBeenCalledWith(true);
+    expect(props.setOffseasonSummary).toHaveBeenCalledWith({
+      declinedOptions: ['Option One'],
+      expiredContracts: [],
+      expiredTPEs: [],
+      exercisedOptions: [],
+      stepienUpdates: [],
+    });
+    expect(props.setShowOffseasonModal).toHaveBeenCalledWith(true);
+    expect(
+      screen.queryByText(/Season advanced, but the world reload could not finish:/)
+    ).not.toBeInTheDocument();
+  });
+
   it('drops stale season-advance callbacks after the active world identity changes', async () => {
     const props = await renderOffseasonSectionWithGate({
       props: {

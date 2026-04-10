@@ -384,7 +384,7 @@ Make world-only, preview-only, and unavailable-action boundaries more consistent
 
 ### Step 3 Issue Status
 
-`SI-ISS-011` and `SI-ISS-012` are **RESOLVED** after the April 9, 2026 first-batch execution. `SI-ISS-013` through `SI-ISS-015` remain **OPEN** for later Step 3 batches.
+`SI-ISS-011` through `SI-ISS-014` are **RESOLVED** after the April 9, 2026 first- and second-batch executions. `SI-ISS-015` remains **OPEN** for the final Step 3 batch.
 
 ---
 
@@ -462,7 +462,7 @@ The propagation contract across this seam should be made clearer:
 
 **Severity:** MEDIUM-HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-3C
 
@@ -491,13 +491,16 @@ The season-advance propagation contract should be expressed clearly:
 
 **Source:** Step 3 Review Record — "What Is Weak / Risky" §4 and "Highest-Risk Step 3 Surfaces" §C; Step 3 Action Breakdown SI-3C
 
+**Resolution Notes (2026-04-09):**
+`src/features/architect/utils/seasonManager.ts` now routes the committed season-advance artifact through `buildSeasonAdvanceCommittedState(...)`, and `src/features/architect/GMDashboard/sections/OffseasonSection.tsx` now builds a named `WorldAdvanceReloadRequest` plus `CommittedWorldAdvanceReconciliationPlan` before reconciling visible state. That wrapper now expresses one honest two-stage contract: apply committed aftermath immediately, then request broader world reload only as an explicit follow-up step. Focused source guardrails plus `src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx` now protect both the no-handler aftermath path and reload-failure honesty.
+
 ---
 
 ### SI-ISS-014 — World-mode vs base/vacuum-mode propagation distinction is valid but not uniformly expressed
 
 **Severity:** MEDIUM
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-3D
 
@@ -521,6 +524,9 @@ The world-mode vs base/vacuum-mode propagation distinction should be made more e
 - which layer owns the mode boundary
 
 **Source:** Step 3 Review Record — "What Is Weak / Risky" §3 and "Highest-Risk Step 3 Surfaces" §D; Step 3 Action Breakdown SI-3D
+
+**Resolution Notes (2026-04-09):**
+`src/features/architect/GMDashboard/hooks/useArchitectActions.ts` now names the two propagation lanes directly as `world-committed` and `local-validated`. World-mode standard signing now carries a `CommittedWorldReloadPlan` so committed metadata patches continue through the state-owned reload seam, while vacuum-mode signing stays on the validated-local lane even when a world reload helper is present. Focused closure guardrails and Free Agency behavior coverage now protect that mode boundary from both directions.
 
 ---
 

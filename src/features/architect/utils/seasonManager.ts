@@ -314,12 +314,40 @@ export type SeasonAdvanceCommittedEvent = {
   occurredAt: string;
 };
 
+/**
+ * Commit-time season-advance artifact returned to the dashboard layer.
+ * This guarantees the metadata/event written by the authoritative batch plus
+ * an optional focus-team snapshot captured from that same commit window.
+ * It does not replace the broader read-stack reload that may still be needed
+ * for league-wide/world-visible reconciliation after season advance.
+ */
 export type SeasonAdvanceCommittedState = {
   metadata: SeasonAdvanceCommittedMetadata;
   event: SeasonAdvanceCommittedEvent;
   focusTeamCode?: string;
   focusTeamSnapshot?: Record<string, unknown> | null;
 };
+
+type BuildSeasonAdvanceCommittedStateParams = {
+  metadata: SeasonAdvanceCommittedMetadata;
+  event: SeasonAdvanceCommittedEvent;
+  focusTeamCode: string | null;
+  focusTeamSnapshot: Record<string, unknown> | null;
+};
+
+function buildSeasonAdvanceCommittedState({
+  metadata,
+  event,
+  focusTeamCode,
+  focusTeamSnapshot,
+}: BuildSeasonAdvanceCommittedStateParams): SeasonAdvanceCommittedState {
+  return {
+    metadata,
+    event,
+    focusTeamCode: focusTeamCode ?? undefined,
+    focusTeamSnapshot: focusTeamCode ? focusTeamSnapshot : null,
+  };
+}
 
 export type SeasonAdvanceSuccessResult = {
   success: true;
@@ -839,15 +867,15 @@ export async function advanceSeasonInWorld(
 
     await batch.commit();
 
-    const committedState: SeasonAdvanceCommittedState = {
+    const committedState = buildSeasonAdvanceCommittedState({
       metadata: committedMetadata,
       event: {
         eventId,
         occurredAt,
       },
-      focusTeamCode: focusTeamCode ?? undefined,
-      focusTeamSnapshot: focusTeamCode ? focusTeamSnapshot : null,
-    };
+      focusTeamCode,
+      focusTeamSnapshot,
+    });
 
     return {
       success: true,

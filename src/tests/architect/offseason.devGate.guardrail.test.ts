@@ -148,17 +148,27 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain('function getCommittedWorldAdvanceAftermath(');
       expect(source).toContain('function applyCommittedWorldAdvanceAftermath(');
       expect(source).toContain(
-        'const committedWorldAdvanceAftermath ='
+        'function buildCommittedWorldAdvanceReloadRequest('
       );
       expect(source).toContain(
-        'getCommittedWorldAdvanceAftermath(result);'
+        'function buildCommittedWorldAdvanceReconciliationPlan('
       );
       expect(source).toContain(
-        'applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {'
+        'const committedWorldAdvancePlan ='
       );
-      expect(source).toContain('await onReloadWorldData({');
-      expect(source).toContain('committedTeamSnapshot:');
-      expect(source).toContain('committedWorldMetadata: {');
+      expect(source).toContain(
+        'buildCommittedWorldAdvanceReconciliationPlan(result);'
+      );
+      expect(source).toContain(
+        'applyCommittedWorldAdvanceAftermath('
+      );
+      expect(source).toContain(
+        'committedWorldAdvancePlan.immediateAftermath'
+      );
+      expect(source).toContain('await onReloadWorldData(');
+      expect(source).toContain(
+        'committedWorldAdvancePlan.followUpReloadRequest'
+      );
       expect(source).toContain(
         'currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,'
       );

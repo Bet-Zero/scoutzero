@@ -1076,11 +1076,30 @@ type PreparedOfferSheetCreationDefinition =
     }
   | OfferSheetCreationDefinitionFailure;
 
+type DashboardMutationPropagationMode = 'world-committed' | 'local-validated';
 type WorldCommittedTeamSource = 'changedTeams' | 'reload';
-type ResolvedCommittedWorldTeam = {
+/**
+ * Dashboard post-mutation propagation lane.
+ * - `world-committed`: authoritative world persistence already succeeded, so
+ *   visible reapply must go back through the committed-world reload/state seam.
+ * - `local-validated`: no authoritative world write exists, so the validated
+ *   local snapshot can be applied directly by the action layer.
+ */
+type WorldCommittedTeamPropagation = {
+  propagationMode: 'world-committed';
   committedTeam: CapSheet;
   committedTeamSource: WorldCommittedTeamSource;
 };
+type CommittedWorldReloadSeed = Pick<
+  WorldCommittedTeamPropagation,
+  'committedTeam' | 'committedTeamSource'
+>;
+type LocalValidatedTeamPropagation = {
+  propagationMode: 'local-validated';
+  committedTeam: CapSheet;
+  committedTeamSource: 'compute';
+};
+type ResolvedCommittedWorldTeam = WorldCommittedTeamPropagation;
 type CommittedWorldReloadPlan = {
   committedWorldTeam: ResolvedCommittedWorldTeam;
   committedWorldMetadata: ReloadActiveWorldMetadataPatch | null;
@@ -1095,25 +1114,23 @@ type CommittedWorldReloadResult =
       status: 'stale-drop';
     };
 
-type StandardSigningCommittedStateSource = 'compute' | WorldCommittedTeamSource;
+type WorldCommittedStandardSigningPropagation = {
+  propagationMode: 'world-committed';
+  reloadPlan: CommittedWorldReloadPlan;
+};
+type StandardSigningCommittedState =
+  | WorldCommittedStandardSigningPropagation
+  | LocalValidatedTeamPropagation;
 
 type StandardSigningExecutionResult =
-  | {
-      success: true;
-      committedTeam: CapSheet;
-      committedTeamSource: StandardSigningCommittedStateSource;
-    }
+  | ({ success: true } & StandardSigningCommittedState)
   | {
       success: false;
       message: string;
     };
 
 type SignAndTradeExecutionResult =
-  | {
-      success: true;
-      committedTeam: CapSheet;
-      committedTeamSource: WorldCommittedTeamSource;
-    }
+  | ({ success: true } & WorldCommittedTeamPropagation)
   | {
       success: false;
       message: string;
@@ -2153,6 +2170,7 @@ export function useArchitectActions({
 
       if (changedTeam) {
         return {
+          propagationMode: 'world-committed',
           committedTeam: changedTeam as CapSheet,
           committedTeamSource: 'changedTeams',
         };
@@ -2170,6 +2188,7 @@ export function useArchitectActions({
       }
 
       return {
+        propagationMode: 'world-committed',
         committedTeam: reloadedTeam as CapSheet,
         committedTeamSource: 'reload',
       };
@@ -2234,6 +2253,7 @@ export function useArchitectActions({
         return {
           status: 'applied',
           committedWorldTeam: {
+            propagationMode: 'world-committed',
             committedTeam:
               reloadedWorldTeam.committedWorldTeam.committedTeam as CapSheet,
             committedTeamSource:
@@ -2271,10 +2291,14 @@ export function useArchitectActions({
   const applyCommittedWorldReload = useCallback(
     async (
       mutationType: string,
-      committedWorldTeam: ResolvedCommittedWorldTeam
+      committedWorldTeam: CommittedWorldReloadSeed
     ): Promise<CommittedWorldReloadResult> => {
       return applyCommittedWorldReloadPlan({
-        committedWorldTeam,
+        committedWorldTeam: {
+          propagationMode: 'world-committed',
+          committedTeam: committedWorldTeam.committedTeam,
+          committedTeamSource: committedWorldTeam.committedTeamSource,
+        },
         committedWorldMetadata: null,
         refreshRosterBundle: shouldRefreshWorldRosterAfterMutation(mutationType),
       });
@@ -2832,21 +2856,16 @@ export function useArchitectActions({
   const applyCommittedStandardSigningState = useCallback(
     async (
       playerObj: ArchitectPlayer,
-      committedTeam: CapSheet,
-      committedTeamSource: StandardSigningCommittedStateSource
+      committedState: StandardSigningCommittedState
     ): Promise<void> => {
       let didApplyCommittedState = false;
 
-      if (committedTeamSource === 'compute') {
-        setTeamCapSheetSafe(committedTeam);
+      if (committedState.propagationMode === 'local-validated') {
+        setTeamCapSheetSafe(committedState.committedTeam);
         didApplyCommittedState = true;
       } else {
-        const worldReloadResult = await applyCommittedWorldReload(
-          'signFreeAgent',
-          {
-            committedTeam,
-            committedTeamSource,
-          }
+        const worldReloadResult = await applyCommittedWorldReloadPlan(
+          committedState.reloadPlan
         );
 
         if (worldReloadResult.status !== 'applied') {
@@ -2864,7 +2883,7 @@ export function useArchitectActions({
         filterSignedPlayerFromFreeAgents(prev, playerObj)
       );
     },
-    [applyCommittedWorldReload, setFreeAgents, setTeamCapSheetSafe]
+    [applyCommittedWorldReloadPlan, setFreeAgents, setTeamCapSheetSafe]
   );
 
   const executeWorldModeStandardSigning = useCallback(
@@ -2927,8 +2946,12 @@ export function useArchitectActions({
           return { success: false, message };
         }
 
-        const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
-        const committedTeam = committedWorldTeam?.committedTeam || null;
+        const committedWorldReloadPlan = await buildCommittedWorldReloadPlan(
+          'signFreeAgent',
+          result
+        );
+        const committedTeam =
+          committedWorldReloadPlan?.committedWorldTeam.committedTeam || null;
 
         if (!committedTeam) {
           const message =
@@ -2950,9 +2973,8 @@ export function useArchitectActions({
         finishSave();
         return {
           success: true,
-          committedTeam,
-          committedTeamSource:
-            committedWorldTeam?.committedTeamSource || 'reload',
+          propagationMode: 'world-committed',
+          reloadPlan: committedWorldReloadPlan,
         };
       } catch (error: unknown) {
         const message =
@@ -2973,7 +2995,7 @@ export function useArchitectActions({
       evaluateMutationTruth,
       finishSave,
       reportMutationError,
-      resolveCommittedWorldTeamSnapshot,
+      buildCommittedWorldReloadPlan,
       startSave,
       userId,
       worldId,
@@ -3103,6 +3125,7 @@ export function useArchitectActions({
 
       return {
         success: true,
+        propagationMode: 'local-validated',
         committedTeam: updatedTeam as CapSheet,
         committedTeamSource: 'compute',
       };
@@ -3941,11 +3964,7 @@ export function useArchitectActions({
       }
 
       try {
-        await applyCommittedStandardSigningState(
-          playerObj,
-          executionResult.committedTeam,
-          executionResult.committedTeamSource
-        );
+        await applyCommittedStandardSigningState(playerObj, executionResult);
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -3972,13 +3991,10 @@ export function useArchitectActions({
   );
 
   const applyCommittedSignAndTradeState = useCallback(
-    async (
-      committedTeam: CapSheet,
-      committedTeamSource: WorldCommittedTeamSource
-    ): Promise<void> => {
+    async (committedWorldTeam: ResolvedCommittedWorldTeam): Promise<void> => {
       await applyCommittedWorldReload('signAndTrade', {
-        committedTeam,
-        committedTeamSource,
+        committedTeam: committedWorldTeam.committedTeam,
+        committedTeamSource: committedWorldTeam.committedTeamSource,
       });
     },
     [applyCommittedWorldReload]
@@ -4066,9 +4082,7 @@ export function useArchitectActions({
         finishSave();
         return {
           success: true,
-          committedTeam,
-          committedTeamSource:
-            committedWorldTeam?.committedTeamSource || 'reload',
+          ...committedWorldTeam,
         };
       } catch (error: unknown) {
         const message =
@@ -4146,10 +4160,7 @@ export function useArchitectActions({
       }
 
       try {
-        await applyCommittedSignAndTradeState(
-          result.committedTeam,
-          result.committedTeamSource
-        );
+        await applyCommittedSignAndTradeState(result);
       } catch (error: unknown) {
         const message =
           error instanceof Error

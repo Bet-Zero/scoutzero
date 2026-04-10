@@ -12,11 +12,15 @@ const readArchitectFile = (relativePath: string) =>
 
 describe('Architect System Integration Step 3 propagation guardrails', () => {
   const mutationPipelineSource = readArchitectFile('utils/mutationPipeline.ts');
+  const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
   const actionsHookSource = readArchitectFile(
     'GMDashboard/hooks/useArchitectActions.ts'
   );
   const stateHookSource = readArchitectFile(
     'GMDashboard/hooks/useArchitectState.ts'
+  );
+  const offseasonSectionSource = readArchitectFile(
+    'GMDashboard/sections/OffseasonSection.tsx'
   );
 
   it('publishes the general committed-mutation propagation order from the mutation authority surface', () => {
@@ -53,6 +57,57 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
     );
     expect(actionsHookSource).toContain(
       'syncTeamFromMutationResult'
+    );
+  });
+
+  it('publishes an explicit season-advance aftermath to broader reload plan', () => {
+    expect(seasonManagerSource).toContain(
+      'Commit-time season-advance artifact returned to the dashboard layer.'
+    );
+    expect(seasonManagerSource).toContain(
+      'function buildSeasonAdvanceCommittedState('
+    );
+    expect(offseasonSectionSource).toContain(
+      'type CommittedWorldAdvanceReconciliationPlan = {'
+    );
+    expect(offseasonSectionSource).toContain(
+      'function buildCommittedWorldAdvanceReloadRequest('
+    );
+    expect(offseasonSectionSource).toContain(
+      'function buildCommittedWorldAdvanceReconciliationPlan('
+    );
+    expect(offseasonSectionSource).toContain(
+      'immediateAftermath: WorldAdvanceAftermath;'
+    );
+    expect(offseasonSectionSource).toContain(
+      'followUpReloadRequest: WorldAdvanceReloadRequest;'
+    );
+    expect(offseasonSectionSource).toContain(
+      'await onReloadWorldData('
+    );
+  });
+
+  it('makes committed-world versus local-validated propagation explicit in the action layer', () => {
+    expect(actionsHookSource).toContain(
+      "type DashboardMutationPropagationMode = 'world-committed' | 'local-validated';"
+    );
+    expect(actionsHookSource).toContain(
+      'type WorldCommittedTeamPropagation = {'
+    );
+    expect(actionsHookSource).toContain(
+      'type LocalValidatedTeamPropagation = {'
+    );
+    expect(actionsHookSource).toContain(
+      "propagationMode: 'world-committed';"
+    );
+    expect(actionsHookSource).toContain(
+      "propagationMode: 'local-validated';"
+    );
+    expect(actionsHookSource).toContain(
+      "if (committedState.propagationMode === 'local-validated')"
+    );
+    expect(actionsHookSource).toContain(
+      '...committedWorldTeam,'
     );
   });
 

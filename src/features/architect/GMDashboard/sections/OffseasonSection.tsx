@@ -53,8 +53,19 @@ import {
   NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
   type OffseasonPreviewAuthority,
 } from '@/features/architect/offseason/OffseasonTab/types';
+import type {
+  ReloadActiveWorldTeamDataOptions,
+  ReloadActiveWorldTeamDataResult,
+} from '@/features/architect/GMDashboard/hooks/useArchitectState';
 
 type LooseRecord = Record<string, unknown>;
+type WorldAdvanceReloadRequest = Pick<
+  ReloadActiveWorldTeamDataOptions,
+  'committedTeamSnapshot' | 'committedWorldMetadata'
+>;
+type WorldAdvanceReloadHandler = (
+  options?: WorldAdvanceReloadRequest
+) => Promise<ReloadActiveWorldTeamDataResult | null>;
 
 type OffseasonSectionProps = {
   teamCapSheet: LooseRecord | null | undefined;
@@ -71,7 +82,7 @@ type OffseasonSectionProps = {
   teamCode?: string | null;
   worldSeason?: string | null;
   worldSeasonLoading?: boolean;
-  onReloadWorldData?: ((...args: unknown[]) => Promise<unknown>) | null;
+  onReloadWorldData?: WorldAdvanceReloadHandler | null;
 };
 
 type WorldBackedOffseasonSurfaceProps = {
@@ -133,6 +144,11 @@ type OffseasonWorldAdvanceAvailability = {
 
 type OffseasonPreviewSurfaceAvailability = {
   bannerMessage: typeof OFFSEASON_PREVIEW_ONLY_BANNER;
+};
+
+type CommittedWorldAdvanceReconciliationPlan = {
+  immediateAftermath: WorldAdvanceAftermath;
+  followUpReloadRequest: WorldAdvanceReloadRequest;
 };
 
 const OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY: OffseasonPreviewSurfaceAvailability =
@@ -210,6 +226,37 @@ function applyCommittedWorldAdvanceAftermath(
     committedWorldAdvanceAftermath.offseasonSummary
   );
   callbacks.setShowOffseasonModal(true);
+}
+
+function buildCommittedWorldAdvanceReloadRequest(
+  committedWorldAdvanceAftermath: WorldAdvanceAftermath
+): WorldAdvanceReloadRequest {
+  return {
+    committedTeamSnapshot:
+      committedWorldAdvanceAftermath.committedTeamCapSheet as
+        ReloadActiveWorldTeamDataOptions['committedTeamSnapshot'],
+    committedWorldMetadata: {
+      currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,
+    },
+  };
+}
+
+function buildCommittedWorldAdvanceReconciliationPlan(
+  result: SeasonAdvanceResult
+): CommittedWorldAdvanceReconciliationPlan | null {
+  const committedWorldAdvanceAftermath =
+    getCommittedWorldAdvanceAftermath(result);
+
+  if (!committedWorldAdvanceAftermath) {
+    return null;
+  }
+
+  return {
+    immediateAftermath: committedWorldAdvanceAftermath,
+    followUpReloadRequest: buildCommittedWorldAdvanceReloadRequest(
+      committedWorldAdvanceAftermath
+    ),
+  };
 }
 
 function normalizeCommittedDraftPositions(
@@ -408,10 +455,10 @@ const OffseasonSection = ({
   const handleCommittedWorldAdvanceComplete = useCallback(
     async (result: SeasonAdvanceResult) => {
       const callbackWorldIdentityToken = activeWorldIdentityToken;
-      const committedWorldAdvanceAftermath =
-        getCommittedWorldAdvanceAftermath(result);
+      const committedWorldAdvancePlan =
+        buildCommittedWorldAdvanceReconciliationPlan(result);
 
-      if (!committedWorldAdvanceAftermath) {
+      if (!committedWorldAdvancePlan) {
         return;
       }
 
@@ -422,23 +469,22 @@ const OffseasonSection = ({
       }
 
       setWorldAdvanceReloadError(null);
-      applyCommittedWorldAdvanceAftermath(committedWorldAdvanceAftermath, {
-        setTeamCapSheet,
-        setCurrentYear,
-        setOffseasonRun,
-        setOffseasonSummary,
-        setShowOffseasonModal,
-      });
+      applyCommittedWorldAdvanceAftermath(
+        committedWorldAdvancePlan.immediateAftermath,
+        {
+          setTeamCapSheet,
+          setCurrentYear,
+          setOffseasonRun,
+          setOffseasonSummary,
+          setShowOffseasonModal,
+        }
+      );
 
       if (onReloadWorldData) {
         try {
-          await onReloadWorldData({
-            committedTeamSnapshot:
-              committedWorldAdvanceAftermath.committedTeamCapSheet,
-            committedWorldMetadata: {
-              currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,
-            },
-          });
+          await onReloadWorldData(
+            committedWorldAdvancePlan.followUpReloadRequest
+          );
         } catch (error) {
           const message =
             error instanceof Error

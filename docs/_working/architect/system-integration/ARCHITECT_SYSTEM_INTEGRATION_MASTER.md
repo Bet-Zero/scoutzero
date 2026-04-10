@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 3 first batch complete; ready for Step 3 second-batch execution (SI-3C + SI-3D).**
+**Step 3 second batch complete; ready for Step 3 third-batch execution (SI-3E).**
 
 ## Purpose
 
@@ -40,7 +40,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | -------- | ------------------------------------------- | -------------------------------------------- |
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete            |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete              |
-| Step 3   | Mutation, Reload, and Propagation Integrity | First-batch execution PASS — second batch ready |
+| Step 3   | Mutation, Reload, and Propagation Integrity | Second-batch execution PASS — third batch ready |
 | Step 4   | Preview vs Committed-State Consistency      | Not started                                  |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                                  |
 
@@ -323,6 +323,18 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 - **Behavior impact:** no intended product-behavior change. This batch is propagation-contract clarity, handoff tightening, and guardrail work only.
 - **Next move:** proceed to Step 3 second batch (SI-3C + SI-3D).
 
+### Step 3 Batch 2 Execution Update
+
+**Completed:** April 9, 2026
+
+- **SI-3C complete:** `seasonManager.ts` now publishes the season-advance commit artifact through a named `buildSeasonAdvanceCommittedState(...)` helper, and `OffseasonSection.tsx` now converts modal success results into an explicit `CommittedWorldAdvanceReconciliationPlan` so the wrapper-owned order reads as immediate aftermath application first, broader reload request second.
+- **SI-3D complete:** `useArchitectActions.ts` now names `world-committed` vs `local-validated` propagation lanes directly, world-mode standard signing now carries a committed-world reload plan instead of a bare team snapshot, and vacuum-mode standard signing remains on the validated local-apply lane even when a world reload helper is present.
+- **Guardrails / behavior proof:** updated Step 3 / Offseason / Free Agency guardrails, added focused behavior proof that season-advance aftermath still applies when no broader reload handler exists, and added focused behavior proof that vacuum signing does not enter the world reload seam while world signing forwards metadata patches through the committed-world reload plan.
+- **Validation:** `npm run test:node -- --reporter=dot src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/seasonAdvance_capAuditEventV1.guardrails.test.ts`; `npm run test:ui -- --reporter=dot src/tests/architect/offseason.worldAdvanceAftermath.e110.behavior.test.tsx src/tests/architect/useArchitectActions.freeAgency.test.tsx`; `npm run typecheck`
+- **Validation note:** an initial `npm run test:architect -- --reporter=dot ...` attempt widened to the full architect-scoped suite because the script hardcodes the architect directories before any file filters. That broader run exposed one stale `seasonAdvance_capAuditEventV1` guardrail expectation tied to the pre-helper `committedState` literal; after fixing that guardrail, the final truth-proving validation stayed on the narrow node/ui slices plus `typecheck`.
+- **Behavior impact:** no intended product-scope change. This batch clarified propagation contracts and fixed one real durability gap by ensuring world-mode standard signing forwards authoritative metadata patches through the same committed-world reload plan as the rest of the dashboard resync seam.
+- **Next move:** proceed to Step 3 third batch (`SI-3E`).
+
 ---
 
 ## Related Documents
@@ -349,5 +361,6 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP3_ACTION_BREAKDOWN.md` | Step 3 execution lane definitions |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 3 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 3 batch 1 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 3 batch 2 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

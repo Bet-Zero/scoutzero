@@ -951,6 +951,15 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   });
 
   it('keeps standard-sign world and vacuum execution on explicit hook-local executors plus one shared final-state applier', () => {
+    expect(content).toMatch(
+      /type\s+DashboardMutationPropagationMode\s*=\s*'world-committed'\s*\|\s*'local-validated'/
+    );
+    expect(content).toMatch(
+      /type\s+WorldCommittedTeamPropagation\s*=\s*\{/
+    );
+    expect(content).toMatch(
+      /type\s+LocalValidatedTeamPropagation\s*=\s*\{/
+    );
     expect(applyCommittedOfferSheetStateRegion).toMatch(
       /applyCommittedWorldReload\s*\(\s*'storeOfferSheet'/
     );
@@ -1016,10 +1025,10 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /refreshWorldRosterIndex/
     );
     expect(applyCommittedStandardSigningStateRegion).toMatch(
-      /committedTeamSource\s*===\s*'compute'/
+      /committedState\.propagationMode\s*===\s*'local-validated'/
     );
     expect(applyCommittedStandardSigningStateRegion).toMatch(
-      /applyCommittedWorldReload\s*\(\s*'signFreeAgent'/
+      /applyCommittedWorldReloadPlan\s*\(\s*committedState\.reloadPlan/
     );
     expect(applyCommittedStandardSigningStateRegion).toMatch(
       /setFreeAgents\s*\(\s*\(prev\)\s*=>/
@@ -1028,7 +1037,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /applyWorldMutation\(\{\s*[\s\S]*mutationType:\s*'signFreeAgent'/
     );
     expect(executeWorldModeStandardSigningRegion).toMatch(
-      /await\s+resolveCommittedWorldTeamSnapshot\s*\(\s*result\s*\)/
+      /await\s+buildCommittedWorldReloadPlan\s*\(\s*'signFreeAgent'\s*,\s*result\s*\)/
     );
     expect(executeVacuumModeStandardSigningRegion).toMatch(/validateSigning/);
     expect(executeVacuumModeStandardSigningRegion).toMatch(

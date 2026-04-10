@@ -64,11 +64,15 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
     expect(source).toContain('focusTeamSnapshot = safeCloneForAudit(safeTeam)');
     expect(source).toContain('await batch.commit();');
     expect(source).toContain(
-      'const committedState: SeasonAdvanceCommittedState = {'
+      'function buildSeasonAdvanceCommittedState('
     );
+    expect(source).toContain('const committedState = buildSeasonAdvanceCommittedState({');
     expect(source).toContain('eventId,');
     expect(source).toContain('occurredAt,');
-    expect(source).toContain('focusTeamSnapshot: focusTeamCode ? focusTeamSnapshot : null,');
+    expect(source).toContain('focusTeamCode: focusTeamCode ?? undefined,');
+    expect(source).toContain(
+      'focusTeamSnapshot: focusTeamCode ? focusTeamSnapshot : null,'
+    );
     expect(source).toContain('committedState,');
   });
 });

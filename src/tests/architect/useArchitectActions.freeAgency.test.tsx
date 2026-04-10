@@ -735,6 +735,61 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(vacuumRefresh).not.toHaveBeenCalled();
   });
 
+  it('keeps vacuum standard signing on the local-validated lane even if a world reload helper is present', async () => {
+    const rosterPlayers = Array.from({ length: 13 }, (_, index) =>
+      createStandardRosterPlayer(index)
+    );
+    const signableBaseTeam = {
+      ...baseTeamFixture,
+      roster: rosterPlayers.map((player) => player.id),
+      players: rosterPlayers,
+      capHolds: [{ playerId: 'player_1', amount: 9_000_000 }],
+    };
+    const updatedTeam = buildSignedTeamFixture(signableBaseTeam, {
+      roster: [...signableBaseTeam.roster, 'player_1'],
+      players: [
+        ...signableBaseTeam.players,
+        {
+          ...playerFixture,
+          contract: {
+            salariesByYear: contractFixture.salariesByYear,
+          },
+        },
+      ],
+    });
+    mutationMocks.computeWorldMutation.mockReturnValue({
+      success: true,
+      teamUpdates: [{ teamCode: 'LAL', team: updatedTeam }],
+    });
+    const reloadActiveWorldTeamData = vi.fn(async () => ({
+      outcome: 'applied' as const,
+      committedWorldTeam: {
+        committedTeam: updatedTeam,
+        committedTeamSource: 'reload' as const,
+      },
+    }));
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: null,
+      initialTeam: signableBaseTeam,
+      reloadActiveWorldTeamData,
+    });
+
+    await act(async () => {
+      await result.current.actions.handleSign(
+        playerFixture as any,
+        contractFixture as any
+      );
+    });
+
+    expect(reloadActiveWorldTeamData).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(result.current.teamCapSheet).toEqual(updatedTeam);
+    expect(summarizeStandardSignPostState(result.current).freeAgentIds).toEqual(
+      []
+    );
+  });
+
   it('reloads committed world signing truth when changedTeams does not include the active team', async () => {
     const reloadedTeam = buildSignedTeamFixture({
       source: {
@@ -2240,7 +2295,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       expect(refreshWorldRosterIndex).toHaveBeenCalledTimes(1);
       expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Architect][FreeAgency] Failed to refresh roster index after finalizeDeclinedOfferSheet:',
+        '[Architect][FreeAgency] Failed to refresh roster index after world reload plan:',
         refreshError
       );
     } finally {
