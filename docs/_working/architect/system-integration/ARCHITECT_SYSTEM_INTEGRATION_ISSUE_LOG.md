@@ -142,9 +142,9 @@ Added explicit adapter/shell ownership markers to `GMDashboard.tsx`, `useArchite
 
 **Severity:** MEDIUM
 
-**Status:** DEFERRED (Step 4)
+**Status:** IN PROGRESS (Step 4 active — bootstrap complete)
 
-**Related Lane:** N/A — Step 4
+**Related Lane:** SI-4A, SI-4B, SI-4C, SI-4D
 
 **Description:**
 The mutation pipeline makes committed-state authority explicit for its own scope. But the broader Architect-wide preview vs committed-state ownership story is not yet articulated at an integration level. Several Architect surfaces produce or display "preview" computations before a mutation is committed, and the boundary between those states is architecturally important but not yet unified.
@@ -153,7 +153,7 @@ The mutation pipeline makes committed-state authority explicit for its own scope
 Confusion about what is preview-only and what is committed truth will become increasingly important as cross-surface handoff work progresses in later steps.
 
 **Desired Correction:**
-This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. Deferring is correct here. Step 1 execution should not expand into this concern.
+This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. Step 4 bootstrap is now complete and all four execution lanes (SI-4A through SI-4D) are active.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §5
 
@@ -185,13 +185,13 @@ The ownership map, read-stack contract, and in-hook comments now explain which l
 
 ## Issue Summary by Lane
 
-| Lane   | Issues                                                                   | Severity                 |
-| ------ | ------------------------------------------------------------------------ | ------------------------ |
-| SI-1A  | SI-ISS-001, SI-ISS-004, SI-ISS-006                                       | HIGH, MEDIUM, LOW-MEDIUM |
-| SI-1B  | SI-ISS-003, SI-ISS-006                                                   | MEDIUM-HIGH, LOW-MEDIUM  |
-| SI-1C  | SI-ISS-002                                                               | HIGH                     |
-| SI-1D  | (no standalone defect logged; proactive SSOT durability batch completed) | —                        |
-| Step 4 | SI-ISS-005                                                               | MEDIUM (deferred)        |
+| Lane   | Issues                                                                   | Severity                  |
+| ------ | ------------------------------------------------------------------------ | ------------------------- |
+| SI-1A  | SI-ISS-001, SI-ISS-004, SI-ISS-006                                       | HIGH, MEDIUM, LOW-MEDIUM  |
+| SI-1B  | SI-ISS-003, SI-ISS-006                                                   | MEDIUM-HIGH, LOW-MEDIUM   |
+| SI-1C  | SI-ISS-002                                                               | HIGH                      |
+| SI-1D  | (no standalone defect logged; proactive SSOT durability batch completed) | —                         |
+| Step 4 | SI-ISS-005, SI-ISS-016–SI-ISS-019                                        | MEDIUM–HIGH (in progress) |
 
 ---
 
@@ -579,3 +579,157 @@ The anti-stale durability contract should be made more explicit:
 | SI-3C | SI-ISS-013 | MEDIUM-HIGH |
 | SI-3D | SI-ISS-014 | MEDIUM      |
 | SI-3E | SI-ISS-015 | MEDIUM      |
+
+---
+
+## Step 4 Issue Set — Preview vs Committed-State Consistency
+
+### Step 4 Issue Status
+
+`SI-ISS-016` through `SI-ISS-019` are **OPEN**. `SI-ISS-005` is upgraded from DEFERRED to IN PROGRESS. Execution begins with SI-4A + SI-4B (first batch).
+
+---
+
+### SI-ISS-016 — Preview/local-only seam taxonomy is distributed and inconsistent
+
+**Severity:** HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-4A
+
+**Description:**
+The repo currently expresses non-authoritative or preview-ish behavior through several distinct patterns that are not yet presented as one coherent preview taxonomy:
+
+- local validated base/vacuum apply — real local state, but not committed world truth
+- optimistic local preview before persistence outcome resolves — may link forward to authoritative persistence or roll back
+- local cap-audit preview logging — dedicated local storage stream for preview events
+- DEV preview surfaces — explicitly non-persisting, visible to developer only
+- DEV fixture injection — intentionally synthetic and local-only
+- world-only action gating and world-backed commit routing — separate from all the above
+
+Each of these seam types may be individually honest, but the repo does not yet present them as one system-wide taxonomy. A contributor reading any one of them may not understand how it relates to the others.
+
+**Risk:**
+New feature development or future system extensions may add a new preview-adjacent pattern without realizing that several existing patterns are already in play. Over time this increases the risk that "preview" continues to mean something different in each file rather than one auditable system concept.
+
+**Desired Correction:**
+The repo should present the different preview/local-only seam types as one connected taxonomy. A contributor should be able to identify which type of non-authoritative behavior they are reading without having to infer it from implementation details alone.
+
+**Source:** Step 4 Review Record — "What Is Weak / Risky" §1; Step 4 Action Breakdown SI-4A
+
+---
+
+### SI-ISS-017 — `useArchitectActions.ts` carries excessive preview/commit boundary burden
+
+**Severity:** HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-4B
+
+**Description:**
+`useArchitectActions.ts` is the densest Step 4 seam. It currently hosts multiple overlapping preview/commit boundary patterns simultaneously:
+
+- local validated base/vacuum apply
+- world-committed reload planning
+- optimistic local preview and rollback
+- local audit preview linkage and commit
+- world-only action gating
+- local DEV fixture dev-tools surfaces
+
+This is a real integration seam, but it currently requires a contributor to already understand all of these boundary patterns before they can read the hook confidently. There is no single place in the hook that expresses what kinds of non-authoritative state it may legitimately own, and what it must never present as committed world truth.
+
+**Risk:**
+A contributor extending any one of these existing preview or action paths may inadvertently blur the boundary between optimistic local preview and committed world state, or incorrectly treat local-validated apply as a committed-world operation. The density of the seam makes this one of the most likely places for Step 4 consistency drift.
+
+**Desired Correction:**
+The preview/commit contract inside `useArchitectActions.ts` should be made clearer:
+
+- what kinds of non-authoritative state the action layer may own
+- what it must never present as committed world truth
+- where optimistic preview begins and ends
+- where rollback responsibility lives
+- where committed-state ownership resumes
+
+**Source:** Step 4 Review Record — "What Is Weak / Risky" §2 and "Highest-Risk Step 4 Surfaces" §A; Step 4 Action Breakdown SI-4B
+
+---
+
+### SI-ISS-018 — Local audit / optimistic preview / persistence outcome semantics are too easy to underread
+
+**Severity:** MEDIUM-HIGH
+
+**Status:** OPEN
+
+**Related Lane:** SI-4C
+
+**Description:**
+`localCapAuditLog.ts` provides the right structural building blocks for tracking preview-to-authoritative linkage:
+
+- `preview` marker distinguishes preview-only records
+- `authoritativeEventLinked` marks when a preview has been linked to a committed world event
+- `authoritativeOperationId` records the authoritative ID when linkage occurs
+- `persistFailed` marks failed persistence attempts
+
+That is correct and non-trivial. However, the integrated system still does not express a clear answer to:
+
+- when a preview record is allowed
+- when a preview record transitions to authoritative-linked status
+- when a preview record is rolled back or marked failed
+- when a preview record is purely diagnostic and should never be read as committed truth
+
+The building blocks exist. The contract connecting them into one legible model does not.
+
+**Risk:**
+Callers who read local cap-audit records may not be able to distinguish which records represent real committed world events versus records that are only optimistic local previews. If `authoritativeEventLinked` is not set, does that mean the preview is still pending, or that persistence failed, or that this record was never intended to link forward? The current structure does not consistently answer that question.
+
+**Desired Correction:**
+The local audit / optimistic preview / persistence outcome semantics should be expressed as a clearer contract:
+
+- when preview records are created
+- when they link forward to authoritative commits
+- when they are updated to reflect persist failure
+- what the caller guarantees are when reading each state
+
+**Source:** Step 4 Review Record — "What Is Weak / Risky" §4 and "What Is Coherent" §C; Step 4 Action Breakdown SI-4C
+
+---
+
+### SI-ISS-019 — DEV-only / fixture-only surfaces lack consistent system-level boundary presentation
+
+**Severity:** MEDIUM
+
+**Status:** OPEN
+
+**Related Lane:** SI-4D
+
+**Description:**
+The repo already does a strong job internally in `OffseasonSection.tsx` and `devCapSheetFixtures.ts`. Both files are unusually explicit about non-authoritative status:
+
+- `OffseasonSection.tsx` separates committed advancement from DEV preview with an explicit banner and gating flag
+- `devCapSheetFixtures.ts` explicitly publishes `persistence: 'none'` and `authoritative: false`
+
+The problem is that these boundaries read consistently only inside those files. At the system level — where those surfaces connect to the dashboard shell, to action publication, or to wrapper-level contracts — the DEV/fixture/non-authoritative nature of those surfaces does not read with the same consistency.
+
+**Risk:**
+A future extension that adds new DEV-gated or fixture-based tooling may not express its non-authoritative nature as clearly at the system seam as `OffseasonSection.tsx` and `devCapSheetFixtures.ts` do it internally. Over time this could erode system-level clarity even though individual files remain honest.
+
+**Desired Correction:**
+DEV-only and fixture-only seams should be presented consistently enough at the system level that:
+
+- a contributor reading the dashboard shell contract can tell which surfaces are DEV-only or fixture-only
+- future DEV tooling authors have a clear model to follow rather than inventing a new pattern
+
+**Source:** Step 4 Review Record — "What Is Coherent" §2, §4 and "Highest-Risk Step 4 Surfaces" §B; Step 4 Action Breakdown SI-4D
+
+---
+
+## Step 4 Issue Summary by Lane
+
+| Lane  | Issues     | Severity    |
+| ----- | ---------- | ----------- |
+| SI-4A | SI-ISS-016 | HIGH        |
+| SI-4B | SI-ISS-017 | HIGH        |
+| SI-4C | SI-ISS-018 | MEDIUM-HIGH |
+| SI-4D | SI-ISS-019 | MEDIUM      |

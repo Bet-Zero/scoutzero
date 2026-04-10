@@ -494,13 +494,13 @@ If live repo review before execution reveals strong seam overlap across all four
 
 ## Step 3 Execution Summary
 
-| Lane  | Name                                                                            | Priority | Status      | Batch          |
-| ----- | ------------------------------------------------------------------------------- | -------- | ----------- | -------------- |
-| SI-3A | Normalize committed mutation result → reload contract language                  | P1       | COMPLETE    | First (3A+3B)  |
-| SI-3B | Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract | P1       | COMPLETE    | First (3A+3B)  |
-| SI-3C | Clarify season-advance aftermath vs broader world reload contract               | P1       | COMPLETE    | Second (3C+3D) |
-| SI-3D | Clarify world-mode vs base/vacuum-mode propagation boundaries                   | P2       | COMPLETE    | Second (3C+3D) |
-| SI-3E | Pressure-test stale-drop / async reload durability guards                       | P2       | COMPLETE    | Third (3E)     |
+| Lane  | Name                                                                            | Priority | Status   | Batch          |
+| ----- | ------------------------------------------------------------------------------- | -------- | -------- | -------------- |
+| SI-3A | Normalize committed mutation result → reload contract language                  | P1       | COMPLETE | First (3A+3B)  |
+| SI-3B | Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract | P1       | COMPLETE | First (3A+3B)  |
+| SI-3C | Clarify season-advance aftermath vs broader world reload contract               | P1       | COMPLETE | Second (3C+3D) |
+| SI-3D | Clarify world-mode vs base/vacuum-mode propagation boundaries                   | P2       | COMPLETE | Second (3C+3D) |
+| SI-3E | Pressure-test stale-drop / async reload durability guards                       | P2       | COMPLETE | Third (3E)     |
 
 ---
 
@@ -739,3 +739,186 @@ Stale-drop / async durability cuts across the previous batches and may be best j
 ### Alternative
 
 If live overlap during execution is stronger than expected, SI-3D and SI-3E may partially overlap and be batched together. That should only happen if the work remains tightly focused on propagation durability rather than broad cleanup.
+
+---
+
+## Step 4 Bootstrap Summary
+
+- **Date:** April 10, 2026
+- **Verdict:** `PASS`
+- **Status:** Step 4 bootstrap complete. First-batch execution (SI-4A + SI-4B) is ready to begin.
+- **Basis:** Step 4 review record and action breakdown read and reconciled against each other and against the live repo. Live repo confirmed: `useArchitectActions.ts` carries several overlapping preview/commit boundary patterns (`world-committed` lane, `local-validated` lane, optimistic preview and rollback, local audit preview linkage, DEV fixture surfaces); `OffseasonSection.tsx` explicitly separates committed world advancement from DEV preview with a gating flag and visible banner; `localCapAuditLog.ts` structurally separates `preview` / `authoritativeEventLinked` / `authoritativeOperationId` / `persistFailed` per-event; `devCapSheetFixtures.ts` explicitly labels `persistence: 'none'` and `authoritative: false`. All four seams match the review record descriptions. Step 3 `world-committed` / `local-validated` lane naming strengthens the starting conditions for Step 4 rather than conflicting with them. Four execution lanes encoded (SI-4A through SI-4D). Issue log updated with four preview/commit-risk entries (SI-ISS-016 through SI-ISS-019) plus SI-ISS-005 status updated to IN PROGRESS. No stop conditions triggered.
+
+---
+
+## Step 4 Execution Summary
+
+| Lane  | Name                                                                     | Priority | Status      | Batch          |
+| ----- | ------------------------------------------------------------------------ | -------- | ----------- | -------------- |
+| SI-4A | Normalize preview-type vocabulary and ownership markers                  | P1       | NOT STARTED | First (4A+4B)  |
+| SI-4B | Tighten `useArchitectActions.ts` preview vs committed-state contract     | P1       | NOT STARTED | First (4A+4B)  |
+| SI-4C | Clarify local audit / optimistic preview / persistence outcome semantics | P2       | NOT STARTED | Second (4C+4D) |
+| SI-4D | Tighten DEV-only / fixture-only / non-authoritative surface boundaries   | P2       | NOT STARTED | Second (4C+4D) |
+
+---
+
+## SI-4A — Normalize Preview-Type Vocabulary and Ownership Markers
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the different kinds of preview/local-only state easier to distinguish as system concepts.
+
+The repo currently contains at least four distinct non-authoritative seam types that are not yet clearly distinguished as a taxonomy: DEV preview that never persists, local validated base/vacuum application, optimistic preview that may later link to authoritative persistence or roll back, and synthetic fixture state that is explicitly local-only. These are not the same thing, but the repo does not yet present them as one clear preview taxonomy.
+
+### Scope
+
+- `useArchitectActions.ts` — where multiple non-authoritative seam types converge
+- `OffseasonSection.tsx` — strong DEV preview vs committed model, but vocabulary could be more systematic
+- `localCapAuditLog.ts` — preview/linkage markers
+- `devCapSheetFixtures.ts` — explicit non-authoritative labeling
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+- `src/features/architect/GMDashboard/sections/OffseasonSection.tsx`
+- `src/features/architect/utils/capLegality/localCapAuditLog.ts`
+- `src/features/architect/capSheet/devCapSheetFixtures.ts`
+
+### Completion Standard
+
+A contributor should be able to tell:
+
+- what counts as preview-only (never persists)
+- what counts as local validated apply (real local state, not committed world truth)
+- what counts as optimistic local preview (may link forward to persistence or roll back)
+- what counts as synthetic DEV-only state (explicitly non-authoritative by design)
+- what counts as committed world state
+
+Complete when the repo is materially more consistent in how it names and frames the different preview/local-only seam types across the integrated surfaces.
+
+---
+
+## SI-4B — Tighten `useArchitectActions.ts` Preview vs Committed-State Contract
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the main action-layer preview/commit boundary easier to understand and less overloaded.
+
+`useArchitectActions.ts` is the densest Step 4 seam. It currently owns multiple overlapping boundary patterns simultaneously: local validated apply, world-committed reload planning, optimistic local preview and rollback, local audit preview linkage, world-only action gating, and local DEV fixture tooling. A contributor cannot easily answer which layer owns which kind of non-authoritative state without reading deeply into the hook.
+
+### Scope
+
+- `useArchitectActions.ts` preview/commit contract
+- Any immediately relevant local helper or type surfaces needed to make the contract truthful
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
+### Completion Standard
+
+A contributor should be able to answer:
+
+- what kinds of non-authoritative state the action layer may legitimately own
+- what it must never present as committed world truth
+- where optimistic preview begins and ends
+- where rollback responsibility lives
+- where committed-state ownership resumes after optimistic apply
+
+Complete when `useArchitectActions.ts` is materially easier to read as a preview/commit boundary owner and less likely to blur those concepts.
+
+---
+
+## SI-4C — Clarify Local Audit / Optimistic Preview / Persistence Outcome Semantics
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Make the relationship between local preview logging, optimistic apply, persistence success, authoritative linkage, and rollback easier to follow.
+
+The repo already has the right building blocks: preview markers, authoritative linkage markers, persist-failed markers, and separate local storage streams. But the integrated system still needs a clearer answer to when preview is allowed, when preview links forward to authoritative persistence, when preview rolls back, and when preview is purely diagnostic and must never be read as committed truth.
+
+### Scope
+
+- `localCapAuditLog.ts` semantics and marker contract
+- Directly relevant optimistic preview / persistence helper logic in `useArchitectActions.ts`
+
+### Key Files In Scope
+
+- `src/features/architect/utils/capLegality/localCapAuditLog.ts`
+- `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`
+
+### Completion Standard
+
+A contributor should be able to tell:
+
+- what local audit records represent
+- when they are only preview records (no authoritative persistence outcome yet)
+- when they are linked to an authoritative world commit
+- when they represent failed persistence and a pending or completed rollback
+- what caller expectations should be around those records
+
+Complete when the preview-to-authoritative linkage semantics are materially easier to understand and less likely to be misread as committed world events.
+
+---
+
+## SI-4D — Tighten DEV-Only / Fixture-Only / Non-Authoritative Surface Boundaries
+
+### Status
+
+NOT STARTED
+
+### Purpose
+
+Keep synthetic/local-only seams visibly separate from committed truth surfaces at the system level, not only inside isolated files.
+
+The repo already does a strong job in `OffseasonSection.tsx` and `devCapSheetFixtures.ts`. But those boundaries read consistently only within their own files. Step 4 needs to ensure these non-authoritative surfaces read consistently and durably as intentionally separate from committed world state at the system level too.
+
+### Scope
+
+- DEV offseason preview (`OffseasonSection.tsx`)
+- DEV cap-sheet fixtures (`devCapSheetFixtures.ts`)
+- Any directly relevant wrapper or action publication surfaces that expose those seams to the dashboard
+
+### Key Files In Scope
+
+- `src/features/architect/GMDashboard/sections/OffseasonSection.tsx`
+- `src/features/architect/capSheet/devCapSheetFixtures.ts`
+
+### Completion Standard
+
+A contributor should be able to tell:
+
+- what is DEV-only and never deployed to production
+- what is synthetic/fixture-only and never sourced from or written to committed state
+- what never persists and is intentionally ephemeral
+- what should never be confused with committed world truth
+
+Complete when the repo presents these non-authoritative surfaces more consistently and more durably as intentionally separate from committed world state, not only inside isolated files but across the seams where they connect to the broader dashboard.
+
+---
+
+## Step 4 Batching Notes
+
+### First execution batch: SI-4A + SI-4B
+
+Both are centered on the main preview/commit vocabulary and boundary owner in the system (`useArchitectActions.ts` plus the integrated vocabulary surfaces). Establishing shared preview-type taxonomy and tightening the action-layer contract together creates the right foundation before going deeper into linkage semantics and DEV surface consistency.
+
+### Second execution batch: SI-4C + SI-4D
+
+Both deal with supporting seams that benefit from the vocabulary and boundary clarity established in the first batch. Both are easier to tighten once preview-type terminology and action-layer ownership are more consistent. Both can likely be completed narrowly if the first batch lands cleanly.
+
+### Alternative
+
+If live overlap during execution is stronger than expected, SI-4C may partially overlap with SI-4B because local audit preview linkage semantics inside `useArchitectActions.ts` are the same seam. That should only happen if the work remains tightly focused on preview-vs-committed consistency rather than broad cleanup.

@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 3 closeout review PASS; Step 4 ready to begin.**
+**Step 4 bootstrap complete — preview/committed-state consistency execution ready.**
 
 ## Purpose
 
@@ -36,13 +36,13 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 
 ## Feature Step List
 
-| Step     | Name                                        | Status                                       |
-| -------- | ------------------------------------------- | -------------------------------------------- |
-| Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete            |
-| Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete              |
-| Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete              |
-| Step 4   | Preview vs Committed-State Consistency      | Not started                                  |
-| Closeout | Whole-Feature System Integration Closeout   | Not started                                  |
+| Step     | Name                                        | Status                             |
+| -------- | ------------------------------------------- | ---------------------------------- |
+| Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete  |
+| Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
+| Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
+| Step 4   | Preview vs Committed-State Consistency      | Bootstrap complete — Batch 1 ready |
+| Closeout | Whole-Feature System Integration Closeout   | Not started                        |
 
 ---
 
@@ -360,6 +360,77 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 
 ---
 
+## Step 4 — Preview vs Committed-State Consistency
+
+### Goal
+
+Review whether Architect consistently distinguishes preview/local-only state from committed world state across its major integrated surfaces. This is not a local feature correctness pass. It is a system-level consistency review focused on whether non-authoritative state stays honestly labeled, bounded, and separated from committed truth.
+
+### Step 4 Review Verdict
+
+**RISK** — Architect now contains several genuinely honest preview/local-only seams. The reason this step is not an automatic PASS is that the repo still expresses preview-vs-committed behavior through several different patterns rather than one legible system-wide contract. The live repo shows strong individual seams, but they are distributed across action orchestration, local audit storage, DEV preview surfaces, fixture injection utilities, and base/vacuum local application paths.
+
+> Preview/local-only behavior is mostly identified honestly, but the repo still does not read as one fully uniform preview-vs-committed-state model.
+
+This is not evidence that Architect is lying about committed truth. It is evidence that the remaining consistency work is about making the boundary easier to understand across the full system rather than only inside isolated surfaces.
+
+### Step 4 Strongest Preview/Committed-State Surfaces
+
+- **A.** Offseason DEV preview vs committed world season advancement (`OffseasonSection.tsx`) — strongest preview-vs-committed seam; explicitly separates non-persisting DEV preview from world-backed committed advancement, complete with a visible preview-only banner
+- **B.** DEV cap-sheet fixtures clearly marked local-only and non-authoritative (`devCapSheetFixtures.ts`) — unusually explicit about what it is and what it is not; explicitly publishes `persistence: 'none'` and `authoritative: false`
+- **C.** Local cap-audit preview log vs authoritative event linkage (`localCapAuditLog.ts`) — structurally honest; distinguishes `preview`, `authoritativeEventLinked`, `authoritativeOperationId`, and `persistFailed` markers explicitly
+- **D.** Explicit `world-committed` vs `local-validated` distinction in the action layer (`useArchitectActions.ts`) — one of the key Step 4 foundations; world and base propagation lanes are now named directly as a typed discriminant union
+
+### Step 4 Highest-Risk Preview/Committed-State Surfaces
+
+- **A.** `useArchitectActions.ts` as the overloaded preview/commit boundary owner — densest and highest-risk Step 4 seam; carries local-validated apply, world-committed reload planning, optimistic preview and rollback, local audit preview linkage, world-only action gating, and DEV fixture dev-tools surfaces simultaneously
+- **B.** Mixed meanings of "preview" across integrated surfaces — biggest conceptual consistency risk; at least four distinct non-authoritative concepts (DEV preview, local validated apply, optimistic preview, fixture state) are still expressed using similar "preview" language
+- **C.** Preview/local-only caller expectations across the full system — repo still needs a more unified answer to what callers should assume about preview/local-only state depending on which seam they are reading
+
+### Step 4 Execution Lanes
+
+- **SI-4A** — Normalize preview-type vocabulary and ownership markers
+- **SI-4B** — Tighten `useArchitectActions.ts` preview vs committed-state contract
+- **SI-4C** — Clarify local audit / optimistic preview / persistence outcome semantics
+- **SI-4D** — Tighten DEV-only / fixture-only / non-authoritative surface boundaries
+
+### Step 4 Execution Batching
+
+- **First batch:** SI-4A + SI-4B — both centered on the main preview/commit vocabulary and boundary owner in the system; both strengthen the highest-value conceptual seam before going deeper into linkage semantics; both help define the shared language needed for the rest of Step 4
+- **Second batch:** SI-4C + SI-4D — both easier to tighten once preview-type vocabulary and action-layer ownership are clearer; both focus on supporting seams that should follow the language established in the first batch
+
+### Step 4 Non-Goals
+
+The following should NOT become Step 4 work:
+
+- reopening Step 1 / Step 2 / Step 3 work except for tiny contradiction fixes strictly required by this step
+- broad action-layer refactors unrelated to preview-vs-committed consistency
+- product behavior redesign of offseason, free agency, or trade flows
+- generalized documentation work that does not materially improve preview/commit consistency
+- broad reload-stack redesign
+- broad dev-tooling expansion
+
+### Step 4 Success Condition
+
+Step 4 will be considered structurally successful when all of the following are true:
+
+1. the repo is more consistent in how it distinguishes different preview/local-only seam types
+2. `useArchitectActions.ts` is easier to read as a preview/commit boundary owner
+3. local audit / optimistic preview / persistence outcome semantics are easier to follow
+4. DEV-only / fixture-only / non-authoritative surfaces are more consistently and durably separated from committed truth
+
+### Step 4 Bootstrap Update
+
+**Completed:** April 10, 2026
+
+- Bootstrap verdict: **PASS**
+- Step 4 review record and action breakdown read and reconciled against live repo.
+- Live repo confirmed: all four major preview/committed-state seams (`useArchitectActions.ts`, `OffseasonSection.tsx`, `localCapAuditLog.ts`, `devCapSheetFixtures.ts`) exist and match the review record's descriptions. The Step 3 work on `world-committed` / `local-validated` lane naming and `OffseasonSection.tsx` aftermath contracts is consistent with — and strengthens — the starting conditions for Step 4.
+- Review tracker and issue log updated with Step 4 execution lanes (SI-4A through SI-4D) and Step 4 preview/commit-risk issue entries (SI-ISS-016 through SI-ISS-019).
+- No stop conditions triggered. Step 4 is ready for first-batch execution (SI-4A + SI-4B).
+
+---
+
 ## Related Documents
 
 | Document                                                                                            | Purpose                           |
@@ -387,5 +458,8 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 3 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH3_RETURN_PACKAGE.md`        | Step 3 batch 3 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 3 closeout review package    |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP4_REVIEW_RECORD.md`    | Step 4 live review findings       |
+| `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP4_ACTION_BREAKDOWN.md` | Step 4 execution lane definitions |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 4 bootstrap return package   |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |
