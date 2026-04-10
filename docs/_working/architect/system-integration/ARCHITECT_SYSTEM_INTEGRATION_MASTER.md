@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 4 execution complete — closeout review ready.**
+**Step 4 closeout review complete — RISK; one narrow follow-up is still needed before whole-feature closeout.**
 
 ## Purpose
 
@@ -41,7 +41,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete  |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
-| Step 4   | Preview vs Committed-State Consistency      | Execution complete — closeout ready |
+| Step 4   | Preview vs Committed-State Consistency      | Closeout review RISK — narrow follow-up needed |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                        |
 
 ---
@@ -451,6 +451,18 @@ Step 4 will be considered structurally successful when all of the following are 
 - Note: the `.tsx` shell guardrails were also run under `test:ui` because the node-config run executed the non-`.tsx` subset only; the additional UI-scoped run was the truthful narrow proof for the Step 4D shell seams.
 - No stop conditions were triggered. Step 4 execution is complete and should proceed to closeout review.
 
+### Step 4 Closeout Review Update
+
+**Completed:** April 10, 2026
+
+- **Closeout verdict:** `RISK`
+- **What was rechecked:** the live preview taxonomy across `useArchitectActions.ts`, `localCapAuditLog.ts`, `OffseasonSection.tsx`, `CapSheetSection.tsx`, `devCapSheetFixtures.ts`, and the directly related `OffseasonTab` preview types; the local-audit lifecycle behavior suites; and the focused Step 4 shell/guardrail tests on the live repo.
+- **Why it is not a PASS yet:** the major Step 4 seams are now materially clearer, and the live behavior/guardrail proof confirms that local-validated apply, optimistic preview, authoritative link, failed-persist rollback, DEV preview, and DEV fixture boundaries are mostly honest and durable. But the final system-level consistency pass still finds one narrow blocker category: directly relevant non-authoritative surfaces still carry contradictory authoritative naming. In `useArchitectActions.ts`, the `local-validated` propagation lane still exposes its snapshot as `committedTeam` / `committedTeamSource`, and `applyResolvedStandardSigningState(...)` still applies `resolvedState.committedTeam` on that non-authoritative lane. In `src/features/architect/offseason/OffseasonTab/types.ts`, the file header still calls the DEV preview type surface "authoritative" even though the exported authority is explicitly non-authoritative.
+- **Guardrail basis:** focused live closeout validation passed: `npm run test:node -- src/tests/architect/baseMode_capAuditEventV1.localLog.behavior.test.ts src/tests/architect/worldOptimistic_postStateValidator_blocks_violation.behavior.test.ts src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts src/tests/architect/capSheet_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot`; `npm run test:ui -- src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx src/tests/architect/myct_step6_guardrails.test.tsx --reporter=dot`.
+- **Residual note:** Step 4's current guardrails are meaningful, not fake; the behavior tests do prove the local-audit lifecycle and optimistic rollback semantics, and the UI/shell tests do prove the DEV fixture and preview boundary presentation. But they do not currently fail on the remaining contradictory authoritative vocabulary above, which is exactly the sort of closeout-level naming drift Step 4 was supposed to remove.
+- **Step 4 status:** not officially closed.
+- **Required next move:** one narrow Step 4 follow-up batch to remove the remaining contradictory authoritative naming on directly relevant non-authoritative surfaces and add guardrail coverage so those contradictions cannot return.
+
 ---
 
 ## Related Documents
@@ -485,5 +497,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 4 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 4 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 4 batch 2 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 4 closeout review package    |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

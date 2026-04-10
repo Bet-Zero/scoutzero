@@ -142,7 +142,7 @@ Added explicit adapter/shell ownership markers to `GMDashboard.tsx`, `useArchite
 
 **Severity:** MEDIUM
 
-**Status:** IN PROGRESS (Step 4 execution complete — closeout review pending)
+**Status:** IN PROGRESS (closeout review RISK — narrow follow-up needed)
 
 **Related Lane:** SI-4A, SI-4B, SI-4C, SI-4D
 
@@ -156,6 +156,9 @@ Confusion about what is preview-only and what is committed truth will become inc
 This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. All four Step 4 execution lanes are now complete: `SI-4A` / `SI-4B` established the shared preview vocabulary and main mutation-boundary contract, and `SI-4C` / `SI-4D` completed the local-audit lifecycle and DEV-runtime-boundary follow-through. Keep this issue IN PROGRESS until Step 4 closeout review confirms the full system story holds together end to end.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §5
+
+**Closeout Review Note (2026-04-10):**
+Step 4 closeout review returned `RISK`, not `PASS`. The integrated story is mostly stronger, but one narrow blocker category remains: contradictory authoritative naming still appears on directly relevant non-authoritative surfaces. In `src/features/architect/GMDashboard/hooks/useArchitectActions.ts`, the `local-validated` propagation lane still uses `committedTeam` / `committedTeamSource`, and the local-validated branch of `applyResolvedStandardSigningState(...)` still applies `resolvedState.committedTeam`. In `src/features/architect/offseason/OffseasonTab/types.ts`, the file header still calls the DEV preview type surface "authoritative" even though the exported authority is explicitly non-authoritative. Current Step 4 guardrails do not fail on those contradictions. Keep `SI-ISS-005` open and run one narrow Step 4 follow-up to align that residual vocabulary and add guardrail coverage.
 
 ---
 
@@ -191,7 +194,7 @@ The ownership map, read-stack contract, and in-hook comments now explain which l
 | SI-1B  | SI-ISS-003, SI-ISS-006                                                   | MEDIUM-HIGH, LOW-MEDIUM   |
 | SI-1C  | SI-ISS-002                                                               | HIGH                      |
 | SI-1D  | (no standalone defect logged; proactive SSOT durability batch completed) | —                         |
-| Step 4 | SI-ISS-005, SI-ISS-016–SI-ISS-019                                        | MEDIUM–HIGH (execution complete; closeout pending) |
+| Step 4 | SI-ISS-005, SI-ISS-016–SI-ISS-019                                        | MEDIUM–HIGH (closeout review RISK; narrow follow-up needed) |
 
 ---
 
@@ -586,7 +589,7 @@ The anti-stale durability contract should be made more explicit:
 
 ### Step 4 Issue Status
 
-`SI-ISS-016` through `SI-ISS-019` are now **RESOLVED** after both Step 4 execution batches. `SI-ISS-005` remains **IN PROGRESS** until Step 4 closeout review confirms the whole preview-vs-committed system story end to end.
+`SI-ISS-016` through `SI-ISS-019` remain **RESOLVED** for the delivered Step 4 execution work. `SI-ISS-005` remains **IN PROGRESS** after closeout review because one narrow blocker still exists: contradictory authoritative naming remains on directly relevant non-authoritative surfaces, and the current Step 4 guardrails do not yet fail on it.
 
 ---
 
