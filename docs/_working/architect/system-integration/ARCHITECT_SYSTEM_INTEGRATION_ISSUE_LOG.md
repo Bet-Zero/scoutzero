@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Current Step
 
-Step 4 — Preview vs Committed-State Consistency
+Closeout — Whole-Feature System Integration Closeout
 
 ## Log Purpose
 
@@ -142,7 +142,7 @@ Added explicit adapter/shell ownership markers to `GMDashboard.tsx`, `useArchite
 
 **Severity:** MEDIUM
 
-**Status:** IN PROGRESS (follow-up complete — rereview pending)
+**Status:** RESOLVED
 
 **Related Lane:** SI-4A, SI-4B, SI-4C, SI-4D
 
@@ -153,7 +153,7 @@ The mutation pipeline makes committed-state authority explicit for its own scope
 Confusion about what is preview-only and what is committed truth will become increasingly important as cross-surface handoff work progresses in later steps.
 
 **Desired Correction:**
-This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. All four Step 4 execution lanes are now complete: `SI-4A` / `SI-4B` established the shared preview vocabulary and main mutation-boundary contract, and `SI-4C` / `SI-4D` completed the local-audit lifecycle and DEV-runtime-boundary follow-through. Keep this issue IN PROGRESS until Step 4 closeout review confirms the full system story holds together end to end.
+This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. All four Step 4 execution lanes are now complete: `SI-4A` / `SI-4B` established the shared preview vocabulary and main mutation-boundary contract, and `SI-4C` / `SI-4D` completed the local-audit lifecycle and DEV-runtime-boundary follow-through. Step 4 rereview has now confirmed that the full system story holds together strongly enough for step closeout.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §5
 
@@ -162,6 +162,9 @@ Step 4 closeout review returned `RISK`, not `PASS`. The integrated story is most
 
 **Follow-Up Execution Note (2026-04-10):**
 The narrow Step 4 follow-up corrected the exact blocker without widening scope. `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` now publishes `localValidatedTeam` / `localValidatedTeamSource` on the non-authoritative standard-signing lane and no longer applies `resolvedState.committedTeam` on that path. `src/features/architect/offseason/OffseasonTab/types.ts` now describes the preview type surface as non-authoritative. Focused guardrails were added in `src/tests/architect/freeAgency_closure.gate.test.ts` and `src/tests/architect/offseason.devGate.guardrail.test.ts` so those contradictions now fail closed if they return. Keep `SI-ISS-005` open only until Step 4 rereview confirms the full system story end to end.
+
+**Rereview Confirmation (2026-04-10):**
+Live repo rereview confirmed the exact blocker is gone from both directly relevant seams, the focused guardrails now fail closed on those contradictions and passed on a live rerun, and no replacement Step 4 blocker surfaced. Step 4 is now officially closed, so `SI-ISS-005` is resolved.
 
 ---
 
@@ -197,7 +200,7 @@ The ownership map, read-stack contract, and in-hook comments now explain which l
 | SI-1B  | SI-ISS-003, SI-ISS-006                                                   | MEDIUM-HIGH, LOW-MEDIUM   |
 | SI-1C  | SI-ISS-002                                                               | HIGH                      |
 | SI-1D  | (no standalone defect logged; proactive SSOT durability batch completed) | —                         |
-| Step 4 | SI-ISS-005, SI-ISS-016–SI-ISS-019                                        | MEDIUM–HIGH (follow-up complete; rereview pending) |
+| Step 4 | SI-ISS-005, SI-ISS-016–SI-ISS-019                                        | RESOLVED (Step 4 rereview PASS)                    |
 
 ---
 
@@ -592,7 +595,7 @@ The anti-stale durability contract should be made more explicit:
 
 ### Step 4 Issue Status
 
-`SI-ISS-016` through `SI-ISS-019` remain **RESOLVED**. `SI-ISS-005` remains **IN PROGRESS** only because Step 4 rereview has not happened yet. The narrow contradictory-naming blocker identified by closeout review has now been corrected and guardrailed.
+`SI-ISS-005` through `SI-ISS-019` are now **RESOLVED**. Step 4 rereview confirmed that the narrow contradictory-naming blocker is gone, that the direct guardrails now fail closed on that exact seam, and that no additional Step 4 blocker remains.
 
 ---
 

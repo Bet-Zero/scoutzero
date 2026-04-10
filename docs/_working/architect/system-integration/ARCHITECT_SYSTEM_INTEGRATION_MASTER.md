@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 4 narrow follow-up complete — rereview ready.**
+**Step 4 closeout rereview PASS — whole-feature closeout ready.**
 
 ## Purpose
 
@@ -41,8 +41,8 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete  |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
-| Step 4   | Preview vs Committed-State Consistency      | Follow-up complete — rereview ready |
-| Closeout | Whole-Feature System Integration Closeout   | Not started                        |
+| Step 4   | Preview vs Committed-State Consistency      | Closeout rereview PASS — complete  |
+| Closeout | Whole-Feature System Integration Closeout   | Ready to begin                     |
 
 ---
 
@@ -474,6 +474,18 @@ Step 4 will be considered structurally successful when all of the following are 
 - **Step 4 status:** still not officially closed. The narrow blocker is addressed and Step 4 is now ready for immediate rereview.
 - **Next move:** proceed to Step 4 rereview.
 
+### Step 4 Closeout Rereview Update
+
+**Completed:** April 10, 2026
+
+- **Rereview verdict:** `PASS`
+- **What was rechecked:** the exact blocker seams in `src/features/architect/GMDashboard/hooks/useArchitectActions.ts` and `src/features/architect/offseason/OffseasonTab/types.ts`; the updated guardrails in `src/tests/architect/freeAgency_closure.gate.test.ts` and `src/tests/architect/offseason.devGate.guardrail.test.ts`; and the broader Step 4 category verdict against the already-passing local-audit lifecycle plus DEV-boundary proof surfaces from closeout review.
+- **Why it now passes:** the non-authoritative `local-validated` lane in `useArchitectActions.ts` no longer carries contradictory committed-world naming, the directly relevant Offseason preview type surface no longer uses contradictory authoritative wording, and the focused Step 4 guardrails now fail if either contradiction returns. A live rereview scan did not surface any replacement blocker in those seams.
+- **Guardrail basis:** live rereview validation reran `npm run test:node -- src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot` and both suites passed. The follow-up `npm run typecheck` result remains relevant because the worktree stayed clean and no further product-code changes landed after that run.
+- **Residual note:** `useArchitectActions.ts` remains a dense orchestration seam, but the remaining density is no longer causing the specific preview-vs-committed contradiction that blocked Step 4 closeout.
+- **Step 4 status:** officially closed.
+- **Next move:** proceed to Whole-Feature System Integration closeout.
+
 ---
 
 ## Related Documents
@@ -510,5 +522,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 4 batch 2 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 4 closeout review package    |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_FOLLOWUP_EXEC_RETURN_PACKAGE.md`      | Step 4 follow-up execution package |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_REREVIEW_RETURN_PACKAGE.md`           | Step 4 rereview return package    |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

@@ -6,13 +6,22 @@ Architect System Integration
 
 ## Current Step
 
-Step 4 — Preview vs Committed-State Consistency
+Closeout — Whole-Feature System Integration Closeout
 
 ## Tracker Purpose
 
 This tracker records the status of each execution lane across all steps. It is the authoritative record of what has been executed, what is in progress, and what remains.
 
 It is distinct from the Issue Log. The tracker manages execution lane status. The Issue Log manages identified risks and their resolution.
+
+---
+
+## Step 4 Rereview Summary
+
+- **Date:** April 10, 2026
+- **Verdict:** `PASS`
+- **Status:** Step 4 is officially closed. Whole-feature closeout may now begin.
+- **Basis:** live repo rereview confirmed the exact closeout blocker is gone from the two directly relevant non-authoritative surfaces. In `useArchitectActions.ts`, the `local-validated` standard-signing lane now uses `localValidatedTeam` / `localValidatedTeamSource` and the local branch of `applyResolvedStandardSigningState(...)` applies `resolvedState.localValidatedTeam`. In `src/features/architect/offseason/OffseasonTab/types.ts`, the DEV preview type surface now describes itself as non-authoritative. Focused guardrails now fail on both contradictions and passed on the live repo via `npm run test:node -- src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot`. The follow-up `npm run typecheck` result remains relevant because the worktree stayed clean after follow-up execution.
 
 ---
 
