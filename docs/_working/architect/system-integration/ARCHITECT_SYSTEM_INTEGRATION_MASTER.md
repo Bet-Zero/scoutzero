@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Whole-feature closeout rereview pending — final contract-alignment unblock complete.**
+**Whole-feature closeout rereview PASS — Architect System Integration is officially closed.**
 
 ## Purpose
 
@@ -42,7 +42,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
 | Step 4   | Preview vs Committed-State Consistency      | Closeout rereview PASS — complete  |
-| Closeout | Whole-Feature System Integration Closeout   | Final unblock complete — rereview ready |
+| Closeout | Whole-Feature System Integration Closeout   | Closeout rereview PASS — complete  |
 
 ---
 
@@ -509,6 +509,17 @@ Step 4 will be considered structurally successful when all of the following are 
 - **Status:** the narrow repo-facing contradiction identified by whole-feature closeout is cleared. Architect System Integration is not yet closed; it is now ready for whole-feature closeout rereview.
 - **Next move:** rerun whole-feature closeout review against the live repo and decide the final PASS / RISK / FAIL verdict.
 
+### Whole-Feature Closeout Rereview Update
+
+**Completed:** April 10, 2026
+
+- **Rereview verdict:** `PASS`
+- **What was rechecked:** the original whole-feature blocker files (`src/features/architect/ARCHITECT_FEATURE_README.md`, `src/features/architect/freeAgency/FreeAgentPool/types.ts`, `src/features/architect/GMDashboard/offerSheetTypes.ts`, and `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts`) plus the live surrounding authority, handoff, reload, and preview seams in `useArchitectActions.ts`, `useArchitectState.ts`, `mutationPipeline.ts`, `seasonManager.ts`, `teamLoader.ts`, `FreeAgencySection.tsx`, `OffseasonSection.tsx`, and `src/features/architect/offseason/OffseasonTab/types.ts`.
+- **Why it now passes:** the exact repo-facing contradiction category from the prior whole-feature closeout is gone in live source. The top-level Architect README now tells the same active-world committed plus sandbox/local-validated system story that the live state/action seams publish; the downstream Free Agent Pool and offer-sheet type files now describe themselves as consumer contracts rather than authorities; and the Step 3 propagation guardrail now matches the live `resolvedState` seam while still failing closed if the local-validated path stops applying `resolvedState.localValidatedTeam`.
+- **Validation basis:** the focused whole-feature proof surface passed again on the live repo via `npm run test:node -- src/tests/architect/systemIntegration.step1Ownership.guardrail.test.ts src/tests/architect/systemIntegration.step2Handoff.guardrail.test.ts src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts --reporter=dot` (`5` files / `81` tests) and `npm run test:ui -- src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot` (`2` files / `54` tests).
+- **System-level conclusion:** truth ownership, cross-surface handoffs, mutation/reload propagation, and preview-vs-committed boundaries now read as one coherent Architect system without a remaining closeout blocker.
+- **Feature status:** Architect System Integration is officially closed.
+
 ---
 
 ## Related Documents
@@ -548,5 +559,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_REREVIEW_RETURN_PACKAGE.md`           | Step 4 rereview return package    |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_WHOLE_FEATURE_CLOSEOUT_REVIEW_RETURN_PACKAGE.md` | Whole-feature closeout review package |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_FINAL_UNBLOCK_EXEC_RETURN_PACKAGE.md` | Whole-feature final unblock execution package |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_WHOLE_FEATURE_CLOSEOUT_REREVIEW_RETURN_PACKAGE.md` | Whole-feature closeout rereview package |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |
