@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 4 bootstrap complete — preview/committed-state consistency execution ready.**
+**Step 4 first execution batch complete — second batch ready.**
 
 ## Purpose
 
@@ -41,7 +41,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete  |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
-| Step 4   | Preview vs Committed-State Consistency      | Bootstrap complete — Batch 1 ready |
+| Step 4   | Preview vs Committed-State Consistency      | Batch 1 complete — Batch 2 ready   |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                        |
 
 ---
@@ -429,6 +429,17 @@ Step 4 will be considered structurally successful when all of the following are 
 - Review tracker and issue log updated with Step 4 execution lanes (SI-4A through SI-4D) and Step 4 preview/commit-risk issue entries (SI-ISS-016 through SI-ISS-019).
 - No stop conditions triggered. Step 4 is ready for first-batch execution (SI-4A + SI-4B).
 
+### Step 4 Batch 1 Execution Update
+
+**Completed:** April 10, 2026
+
+- Batch 1 verdict: **PASS**
+- `SI-4A` completed: `OffseasonSection.tsx` now names the DEV offseason seam as `preview-only`; `localCapAuditLog.ts` now publishes explicit `BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM` and `WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM` boundaries; `devCapSheetFixtures.ts` now marks synthetic DEV-only state with explicit `stateKind`, `boundaryKind`, and committed-world relationship metadata; `useArchitectActions.ts` consumes the same vocabulary.
+- `SI-4B` completed: `useArchitectActions.ts` now frames cap-audited mutations through one `PreparedCapAuditedMutationBoundary` with explicit `localStateKind`, clearer non-authoritative apply/link/rollback naming, and a renamed `applyResolvedStandardSigningState` helper so `local-validated` paths no longer read like committed-world state.
+- Committed-world ownership still resumes only through `applyCommittedWorldReloadPlan`, which is now explicitly marked as the post-persist committed-state seam rather than being blurred with optimistic local state.
+- Validation completed: targeted `npm run test:node -- ... --reporter=dot` batch covering the changed guardrails plus world optimistic behavior, and `npm run typecheck`.
+- No stop conditions were triggered. Step 4 should proceed to second-batch execution (`SI-4C` + `SI-4D`).
+
 ---
 
 ## Related Documents
@@ -461,5 +472,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP4_REVIEW_RECORD.md`    | Step 4 live review findings       |
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP4_ACTION_BREAKDOWN.md` | Step 4 execution lane definitions |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 4 bootstrap return package   |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 4 batch 1 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

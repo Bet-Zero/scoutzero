@@ -102,7 +102,7 @@ type WorldBackedOffseasonSurfaceProps = {
 };
 
 type DevPreviewOffseasonSurfaceProps = {
-  previewAvailability: OffseasonPreviewSurfaceAvailability;
+  previewOnlyAvailability: OffseasonPreviewOnlySurfaceAvailability;
   previewAuthority: OffseasonPreviewAuthority;
   worldId?: string | null;
   teamCapSheet: LooseRecord | null | undefined;
@@ -111,7 +111,7 @@ type DevPreviewOffseasonSurfaceProps = {
   playersMap?: Record<string, unknown>;
 };
 
-type DevPreviewSurfaceAccess =
+type DevPreviewOnlySurfaceAccess =
   | {
       kind: 'hidden';
       isDevEnvironment: boolean;
@@ -119,7 +119,7 @@ type DevPreviewSurfaceAccess =
       previewAuthority: null;
     }
   | {
-      kind: 'preview';
+      kind: 'preview-only';
       isDevEnvironment: true;
       hasPreviewIntent: true;
       previewAuthority: OffseasonPreviewAuthority;
@@ -142,7 +142,7 @@ type OffseasonWorldAdvanceAvailability = {
   advanceButtonTitle: string;
 };
 
-type OffseasonPreviewSurfaceAvailability = {
+type OffseasonPreviewOnlySurfaceAvailability = {
   bannerMessage: typeof OFFSEASON_PREVIEW_ONLY_BANNER;
 };
 
@@ -151,7 +151,7 @@ type CommittedWorldAdvanceReconciliationPlan = {
   followUpReloadRequest: WorldAdvanceReloadRequest;
 };
 
-const OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY: OffseasonPreviewSurfaceAvailability =
+const OFFSEASON_DEV_PREVIEW_ONLY_SURFACE_AVAILABILITY: OffseasonPreviewOnlySurfaceAvailability =
   {
     bannerMessage: OFFSEASON_PREVIEW_ONLY_BANNER,
   };
@@ -269,7 +269,7 @@ function normalizeCommittedDraftPositions(
   return draftPositions;
 }
 
-function resolveDevPreviewSurfaceAccess(): DevPreviewSurfaceAccess {
+function resolveDevPreviewOnlySurfaceAccess(): DevPreviewOnlySurfaceAccess {
   const isDevEnvironment = Boolean(import.meta.env.DEV);
   const hasPreviewIntent =
     typeof window !== 'undefined' &&
@@ -285,7 +285,7 @@ function resolveDevPreviewSurfaceAccess(): DevPreviewSurfaceAccess {
   }
 
   return {
-    kind: 'preview',
+    kind: 'preview-only',
     isDevEnvironment: true,
     hasPreviewIntent: true,
     previewAuthority: NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
@@ -385,7 +385,7 @@ function WorldBackedOffseasonSurface({
 }
 
 function DevPreviewOffseasonSurface({
-  previewAvailability,
+  previewOnlyAvailability,
   previewAuthority,
   worldId,
   teamCapSheet,
@@ -409,7 +409,7 @@ function DevPreviewOffseasonSurface({
         data-testid="offseason-preview-banner"
         className="mb-4 rounded border border-yellow-500/40 bg-yellow-900/20 px-3 py-2 text-xs text-yellow-200"
       >
-        {previewAvailability.bannerMessage}
+        {previewOnlyAvailability.bannerMessage}
       </div>
       <OffseasonTab
         teamCapSheet={teamCapSheet as Record<string, unknown>}
@@ -445,7 +445,7 @@ const OffseasonSection = ({
   const [worldAdvanceReloadError, setWorldAdvanceReloadError] = useState<
     string | null
   >(null);
-  const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();
+  const devPreviewOnlySurfaceAccess = resolveDevPreviewOnlySurfaceAccess();
   const latestActiveWorldIdentityTokenRef = useRef(activeWorldIdentityToken);
 
   useEffect(() => {
@@ -625,10 +625,12 @@ const OffseasonSection = ({
       {/* DEV PREVIEW SURFACE: intentionally separate from the committed
           world-backed advance path above so preview-only logic does not read
           like authoritative season progression. */}
-      {devPreviewSurfaceAccess.kind === 'preview' ? (
+      {devPreviewOnlySurfaceAccess.kind === 'preview-only' ? (
         <DevPreviewOffseasonSurface
-          previewAvailability={OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY}
-          previewAuthority={devPreviewSurfaceAccess.previewAuthority}
+          previewOnlyAvailability={
+            OFFSEASON_DEV_PREVIEW_ONLY_SURFACE_AVAILABILITY
+          }
+          previewAuthority={devPreviewOnlySurfaceAccess.previewAuthority}
           worldId={worldId}
           teamCapSheet={teamCapSheet}
           viewingYear={viewingYear}

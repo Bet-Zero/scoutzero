@@ -711,9 +711,9 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     'const executeWorldModeSignAndTrade = useCallback(',
     'const handleSignAndTrade = useCallback('
   );
-  const applyCommittedStandardSigningStateRegion = readRegion(
+  const applyResolvedStandardSigningStateRegion = readRegion(
     content,
-    'const applyCommittedStandardSigningState = useCallback(',
+    'const applyResolvedStandardSigningState = useCallback(',
     'const executeWorldModeStandardSigning = useCallback('
   );
   const executeWorldModeStandardSigningRegion = readRegion(
@@ -789,7 +789,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
   const executeWorldModeOfferSheetLifecycleMutationRegion = readRegion(
     content,
     'const executeWorldModeOfferSheetLifecycleMutation = useCallback(',
-    'const applyCommittedStandardSigningState = useCallback('
+    'const applyResolvedStandardSigningState = useCallback('
   );
   const handleStoreOfferSheetRegion = readRegion(
     content,
@@ -887,7 +887,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
       /const\s+executeWorldModeOfferSheetLifecycleMutation\s*=\s*useCallback/
     );
     expect(content).toMatch(
-      /const\s+applyCommittedStandardSigningState\s*=\s*useCallback/
+      /const\s+applyResolvedStandardSigningState\s*=\s*useCallback/
     );
     expect(content).toMatch(
       /const\s+applyCommittedSignAndTradeState\s*=\s*useCallback/
@@ -913,7 +913,7 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(handleSignRegion).toMatch(/resolveStandardSigningExecutionRoute/);
     expect(handleSignRegion).toMatch(/standardSigningExecutionRoute\.execute/);
     expect(handleSignRegion).not.toMatch(/worldId\s*\?/);
-    expect(handleSignRegion).toMatch(/applyCommittedStandardSigningState/);
+    expect(handleSignRegion).toMatch(/applyResolvedStandardSigningState/);
     expect(handleSignAndTradeRegion).toMatch(
       /prepareSignAndTradeTransactionDefinition/
     );
@@ -1024,13 +1024,13 @@ describe('Gate 6: authoritative hook path keeps world-only Free Agency routes fa
     expect(executeWorldModeOfferSheetLifecycleMutationRegion).not.toMatch(
       /refreshWorldRosterIndex/
     );
-    expect(applyCommittedStandardSigningStateRegion).toMatch(
-      /committedState\.propagationMode\s*===\s*'local-validated'/
+    expect(applyResolvedStandardSigningStateRegion).toMatch(
+      /resolvedState\.propagationMode\s*===\s*'local-validated'/
     );
-    expect(applyCommittedStandardSigningStateRegion).toMatch(
-      /applyCommittedWorldReloadPlan\s*\(\s*committedState\.reloadPlan/
+    expect(applyResolvedStandardSigningStateRegion).toMatch(
+      /applyCommittedWorldReloadPlan\s*\(\s*resolvedState\.reloadPlan/
     );
-    expect(applyCommittedStandardSigningStateRegion).toMatch(
+    expect(applyResolvedStandardSigningStateRegion).toMatch(
       /setFreeAgents\s*\(\s*\(prev\)\s*=>/
     );
     expect(executeWorldModeStandardSigningRegion).toMatch(

@@ -7,14 +7,20 @@ export const DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD =
 
 export const DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER = {
   ownerLabel: 'useArchitectActions capSheetDevTools',
+  stateKind: 'dev-synthetic-local-state',
   stateScope: 'local in-memory dashboard teamCapSheet state',
   writePath: 'setTeamCapSheetSafe',
   persistence: 'none',
+  committedWorldRelationship: 'never-persists',
 } as const;
 
 export const DEV_CAP_SHEET_FIXTURE_BOUNDARY = {
+  boundaryKind: 'dev-synthetic-fixture',
   intentLabel: 'Bounded futureContract seam probe',
+  stateKind: 'dev-synthetic-local-state',
   authoritative: false,
+  committedWorldRelationship:
+    'must-never-read-as-committed-world-state',
   modeledSeams: [
     'futureContract future-season row visibility',
     'no-futureContract control row',

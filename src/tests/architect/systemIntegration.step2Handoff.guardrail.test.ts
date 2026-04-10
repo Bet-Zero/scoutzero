@@ -158,7 +158,7 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
       'type OffseasonWorldAdvanceAvailability = {'
     );
     expect(offseasonSectionSource).toContain(
-      'type OffseasonPreviewSurfaceAvailability = {'
+      'type OffseasonPreviewOnlySurfaceAvailability = {'
     );
     expect(offseasonSectionSource).toContain(
       'function getOffseasonWorldAdvanceAvailability('
@@ -170,7 +170,10 @@ describe('Architect System Integration Step 2 handoff guardrails', () => {
       'availability={offseasonWorldAdvanceAvailability}'
     );
     expect(offseasonSectionSource).toContain(
-      'previewAvailability={OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY}'
+      'previewOnlyAvailability={'
+    );
+    expect(offseasonSectionSource).toContain(
+      'OFFSEASON_DEV_PREVIEW_ONLY_SURFACE_AVAILABILITY'
     );
   });
 });

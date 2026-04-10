@@ -751,12 +751,22 @@ If live overlap during execution is stronger than expected, SI-3D and SI-3E may 
 
 ---
 
+## Step 4 Batch 1 Execution Summary
+
+- **Date:** April 10, 2026
+- **Verdict:** `PASS`
+- **Status:** `SI-4A` and `SI-4B` complete. Second-batch execution (`SI-4C` + `SI-4D`) is ready to begin.
+- **Basis:** `useArchitectActions.ts` now exposes one explicit non-authoritative mutation boundary contract (`PreparedCapAuditedMutationBoundary`) with `localStateKind` values that distinguish `local-validated-apply` from `optimistic-local-preview`; the standard-signing final-state applier is renamed to `applyResolvedStandardSigningState` so the local-validated lane no longer reads like committed-world truth; `applyCommittedWorldReloadPlan` remains the explicit committed-state resumption seam. `OffseasonSection.tsx` now names the DEV offseason path as `preview-only`, `localCapAuditLog.ts` now publishes explicit base-local-validated vs world-optimistic-preview stream boundaries, and `devCapSheetFixtures.ts` now publishes explicit synthetic DEV-only state markers.
+- **Validation:** `npm run test:node -- src/tests/architect/baseMode_capAuditEventV1.localLog.behavior.test.ts src/tests/architect/worldOptimistic_postStateValidator_blocks_violation.behavior.test.ts src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts src/tests/architect/capSheet_closure.gate.test.ts src/tests/architect/freeAgency_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts src/tests/architect/systemIntegration.step2Handoff.guardrail.test.ts --reporter=dot`; `npm run typecheck`
+
+---
+
 ## Step 4 Execution Summary
 
 | Lane  | Name                                                                     | Priority | Status      | Batch          |
 | ----- | ------------------------------------------------------------------------ | -------- | ----------- | -------------- |
-| SI-4A | Normalize preview-type vocabulary and ownership markers                  | P1       | NOT STARTED | First (4A+4B)  |
-| SI-4B | Tighten `useArchitectActions.ts` preview vs committed-state contract     | P1       | NOT STARTED | First (4A+4B)  |
+| SI-4A | Normalize preview-type vocabulary and ownership markers                  | P1       | COMPLETE    | First (4A+4B)  |
+| SI-4B | Tighten `useArchitectActions.ts` preview vs committed-state contract     | P1       | COMPLETE    | First (4A+4B)  |
 | SI-4C | Clarify local audit / optimistic preview / persistence outcome semantics | P2       | NOT STARTED | Second (4C+4D) |
 | SI-4D | Tighten DEV-only / fixture-only / non-authoritative surface boundaries   | P2       | NOT STARTED | Second (4C+4D) |
 
@@ -766,7 +776,7 @@ If live overlap during execution is stronger than expected, SI-3D and SI-3E may 
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -800,13 +810,20 @@ A contributor should be able to tell:
 
 Complete when the repo is materially more consistent in how it names and frames the different preview/local-only seam types across the integrated surfaces.
 
+### Execution Notes (2026-04-10)
+
+- `OffseasonSection.tsx` renamed the DEV offseason seam to `preview-only` vocabulary (`DevPreviewOnlySurfaceAccess`, `kind: 'preview-only'`, `OFFSEASON_DEV_PREVIEW_ONLY_SURFACE_AVAILABILITY`) so it no longer reads like a generic preview concept.
+- `localCapAuditLog.ts` now publishes explicit base-local-validated vs world-optimistic-preview stream boundaries through `BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM` and `WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM`.
+- `devCapSheetFixtures.ts` now marks synthetic DEV-only state with explicit `stateKind`, `boundaryKind`, and committed-world relationship metadata instead of relying only on broad non-authoritative wording.
+- `useArchitectActions.ts` now reuses that vocabulary at the cap-audited mutation seam, making the different non-authoritative state kinds easier to distinguish in the main integration surface.
+
 ---
 
 ## SI-4B — Tighten `useArchitectActions.ts` Preview vs Committed-State Contract
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -834,6 +851,13 @@ A contributor should be able to answer:
 - where committed-state ownership resumes after optimistic apply
 
 Complete when `useArchitectActions.ts` is materially easier to read as a preview/commit boundary owner and less likely to blur those concepts.
+
+### Execution Notes (2026-04-10)
+
+- `useArchitectActions.ts` now defines one `PreparedCapAuditedMutationBoundary` contract with explicit `localStateKind`, `auditEvaluation`, `applyNonAuthoritativeState`, `linkCommittedPersistSuccess`, and `rollbackOptimisticLocalState` members.
+- `applyCapAuditedTeamMutation` now branches on `boundary.localStateKind === 'local-validated-apply'` rather than relying on an implicit `!worldId` read to explain where optimistic preview ends and where local-validated apply is final.
+- `applyResolvedStandardSigningState` replaces the misleading `applyCommittedStandardSigningState` label so the standard-sign final-state owner no longer calls the local-validated lane "committed."
+- `applyCommittedWorldReloadPlan` remains the explicit committed-world re-entry seam after persistence succeeds, which keeps committed-state ownership distinct from the hook's non-authoritative local state responsibilities.
 
 ---
 

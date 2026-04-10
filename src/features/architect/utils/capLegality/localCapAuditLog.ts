@@ -1,6 +1,7 @@
 /**
  * FILE: src/features/architect/utils/capLegality/localCapAuditLog.ts
- * PURPOSE: Local CapAuditEventV1-like stream for base-mode and optimistic preview flows.
+ * PURPOSE: Local CapAuditEventV1-like stream for local-validated apply and
+ *          optimistic local preview flows.
  * OWNERSHIP: Feature: architect/core
  */
 
@@ -38,6 +39,32 @@ export const BASE_CAP_AUDIT_STORAGE_KEY = 'architect_base_capAuditEvents_v1';
 export const WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY =
   'architect_world_preview_capAuditEvents_v1';
 export const MAX_LOCAL_CAP_AUDIT_EVENTS = 500;
+
+export const LOCAL_CAP_AUDIT_STREAM_BOUNDARIES = {
+  baseLocalValidated: {
+    storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
+    stateKind: 'local-validated-apply',
+    authoritative: false,
+    persistsToWorld: false,
+    preview: false,
+    initialAuthoritativeEventLinked: undefined,
+    committedWorldTransition: 'never-links',
+  },
+  worldOptimisticPreview: {
+    storageKey: WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+    stateKind: 'optimistic-local-preview',
+    authoritative: false,
+    persistsToWorld: 'pending-world-persist',
+    preview: true,
+    initialAuthoritativeEventLinked: false,
+    committedWorldTransition: 'links-on-success-or-rolls-back',
+  },
+} as const;
+
+export const BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM =
+  LOCAL_CAP_AUDIT_STREAM_BOUNDARIES.baseLocalValidated;
+export const WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM =
+  LOCAL_CAP_AUDIT_STREAM_BOUNDARIES.worldOptimisticPreview;
 
 const inMemoryStore = new Map<string, CapAuditEventV1Like[]>();
 

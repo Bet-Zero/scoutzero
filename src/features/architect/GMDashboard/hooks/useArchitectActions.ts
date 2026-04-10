@@ -5,6 +5,8 @@
  *
  * ARCHITECT OWNERSHIP:
  * - Dashboard action orchestration adapter.
+ * - Owns only non-authoritative local-validated apply, optimistic local
+ *   preview, and DEV synthetic fixture seams inside the dashboard.
  * - Routes committed mutation writes through mutationPipeline.ts.
  * - Decides changedTeams reuse vs committed-snapshot reload fallback after commit.
  * - Uses dashboard-facing reload adapters after commits so UI state stays aligned.
@@ -52,8 +54,8 @@ import {
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import {
-  BASE_CAP_AUDIT_STORAGE_KEY,
-  WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
+  BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM,
+  WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM,
   appendLocalCapAuditEvent,
   updateLocalCapAuditEvent,
   type CapAuditEventV1Like,
@@ -1118,12 +1120,12 @@ type WorldCommittedStandardSigningPropagation = {
   propagationMode: 'world-committed';
   reloadPlan: CommittedWorldReloadPlan;
 };
-type StandardSigningCommittedState =
+type StandardSigningResolvedState =
   | WorldCommittedStandardSigningPropagation
   | LocalValidatedTeamPropagation;
 
 type StandardSigningExecutionResult =
-  | ({ success: true } & StandardSigningCommittedState)
+  | ({ success: true } & StandardSigningResolvedState)
   | {
       success: false;
       message: string;
@@ -1849,32 +1851,47 @@ export function useArchitectActions({
     [openContractModal, setSelectedPlayerSafe, setSelectedRulesYear]
   );
 
-  type PreparedCapAuditedMutationLifecycle = {
+  type CapAuditedMutationLocalStateBoundary =
+    | typeof BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM
+    | typeof WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM;
+  type CapAuditedMutationLocalStateKind =
+    CapAuditedMutationLocalStateBoundary['stateKind'];
+  type PreparedCapAuditedMutationBoundary = {
     operationId: string;
     storageKey: string;
+    localStateKind: CapAuditedMutationLocalStateKind;
     beforeTeamSnapshot: CapSheet;
     afterTeamSnapshot: CapSheet;
     beforeTeamsByCode: TeamsByCode;
     afterTeamsByCode: TeamsByCode;
-    previewAuditEvaluation: ReturnType<typeof buildCapAuditEvaluation>;
-    applyLocalPreview: () => void;
-    linkPersistSuccess: (result: PersistMutationResult) => void;
-    rollbackPersistFailure: () => void;
+    auditEvaluation: ReturnType<typeof buildCapAuditEvaluation>;
+    applyNonAuthoritativeState: () => void;
+    linkCommittedPersistSuccess: (result: PersistMutationResult) => void;
+    rollbackOptimisticLocalState: () => void;
   };
 
-  const prepareCapAuditedTeamMutationLifecycle = useCallback(
+  /**
+   * Dashboard non-authoritative mutation boundary.
+   * - `local-validated-apply`: validated local state with no world write.
+   * - `optimistic-local-preview`: temporary local state while world persistence
+   *   is pending; rollback stays here until committed-world reload resumes.
+   */
+  const prepareCapAuditedMutationBoundary = useCallback(
     (params: {
       mutationType: string;
       playerIds?: string[];
       computeNextTeam: (beforeTeam: CapSheet) => CapSheet;
       yearOverride?: number;
-    }): PreparedCapAuditedMutationLifecycle => {
+    }): PreparedCapAuditedMutationBoundary => {
       const {
         mutationType,
         playerIds = [],
         computeNextTeam,
         yearOverride = currentYear,
       } = params;
+      const auditStreamBoundary: CapAuditedMutationLocalStateBoundary = worldId
+        ? WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM
+        : BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM;
       const beforeTeamSnapshot = safeCloneForAudit(teamCapSheet as CapSheet);
       const afterTeamSnapshot = safeCloneForAudit(
         computeNextTeam(safeCloneForAudit(beforeTeamSnapshot))
@@ -1887,7 +1904,7 @@ export function useArchitectActions({
       const afterTeamsByCode: TeamsByCode = {
         [teamCode]: afterTeamSnapshot,
       };
-      const previewAuditEvaluation = buildCapAuditEvaluation({
+      const auditEvaluation = buildCapAuditEvaluation({
         operationId,
         occurredAt,
         mutationType,
@@ -1897,25 +1914,25 @@ export function useArchitectActions({
         playerIds: playerIds.filter(Boolean).map(String),
         beforeTeamsByCode,
         afterTeamsByCode,
-        preview: !!worldId,
-        authoritativeEventLinked: worldId ? false : undefined,
+        preview: auditStreamBoundary.preview,
+        authoritativeEventLinked:
+          auditStreamBoundary.initialAuthoritativeEventLinked,
       });
-      const storageKey = worldId
-        ? WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY
-        : BASE_CAP_AUDIT_STORAGE_KEY;
+      const storageKey = auditStreamBoundary.storageKey;
 
       return {
         operationId,
         storageKey,
+        localStateKind: auditStreamBoundary.stateKind,
         beforeTeamSnapshot,
         afterTeamSnapshot,
         beforeTeamsByCode,
         afterTeamsByCode,
-        previewAuditEvaluation,
-        applyLocalPreview: () => {
+        auditEvaluation,
+        applyNonAuthoritativeState: () => {
           setTeamCapSheetSafe(afterTeamSnapshot);
         },
-        linkPersistSuccess: (result) => {
+        linkCommittedPersistSuccess: (result) => {
           const authoritativeOperationId = String(
             result?.event?.operationId || operationId
           );
@@ -1931,7 +1948,7 @@ export function useArchitectActions({
             }
           );
         },
-        rollbackPersistFailure: () => {
+        rollbackOptimisticLocalState: () => {
           setTeamCapSheetSafe(beforeTeamSnapshot);
           const didUpdatePreview = updateLocalCapAuditEvent(
             operationId,
@@ -1947,7 +1964,7 @@ export function useArchitectActions({
           if (!didUpdatePreview) {
             appendLocalCapAuditEvent(
               {
-                ...previewAuditEvaluation.event,
+                ...auditEvaluation.event,
                 persistFailed: true,
                 authoritativeEventLinked: false,
               },
@@ -2234,6 +2251,7 @@ export function useArchitectActions({
     async (
       plan: CommittedWorldReloadPlan
     ): Promise<CommittedWorldReloadResult> => {
+      // Committed-world ownership resumes here after successful persistence.
       if (reloadActiveWorldTeamData && worldId) {
         const reloadedWorldTeam = await reloadActiveWorldTeamData({
           committedTeamSnapshot:
@@ -2853,19 +2871,19 @@ export function useArchitectActions({
     ]
   );
 
-  const applyCommittedStandardSigningState = useCallback(
+  const applyResolvedStandardSigningState = useCallback(
     async (
       playerObj: ArchitectPlayer,
-      committedState: StandardSigningCommittedState
+      resolvedState: StandardSigningResolvedState
     ): Promise<void> => {
       let didApplyCommittedState = false;
 
-      if (committedState.propagationMode === 'local-validated') {
-        setTeamCapSheetSafe(committedState.committedTeam);
+      if (resolvedState.propagationMode === 'local-validated') {
+        setTeamCapSheetSafe(resolvedState.committedTeam);
         didApplyCommittedState = true;
       } else {
         const worldReloadResult = await applyCommittedWorldReloadPlan(
-          committedState.reloadPlan
+          resolvedState.reloadPlan
         );
 
         if (worldReloadResult.status !== 'applied') {
@@ -3091,7 +3109,7 @@ export function useArchitectActions({
 
       const operationId = generateLocalOperationId();
       const occurredAt = new Date().toISOString();
-      const baseAudit = buildCapAuditEvaluation({
+      const localValidatedAudit = buildCapAuditEvaluation({
         operationId,
         occurredAt,
         mutationType: 'signFreeAgent',
@@ -3106,19 +3124,19 @@ export function useArchitectActions({
           [teamCode]: safeCloneForAudit(updatedTeam as CapSheet),
         },
       });
-      appendLocalCapAuditEvent(baseAudit.event, {
-        storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
+      appendLocalCapAuditEvent(localValidatedAudit.event, {
+        storageKey: BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM.storageKey,
       });
 
-      if (!baseAudit.validation.valid) {
+      if (!localValidatedAudit.validation.valid) {
         const message = getFirstViolationMessage(
-          baseAudit.validation,
+          localValidatedAudit.validation,
           'Signing blocked by post-state cap validation in vacuum mode.'
         );
         reportMutationError(message, {
           playerId: idToSign,
           operationId,
-          violations: baseAudit.validation.violations,
+          violations: localValidatedAudit.validation.violations,
         });
         return { success: false, message };
       }
@@ -3207,57 +3225,57 @@ export function useArchitectActions({
           return { applied: false, operationId: null, persistPromise: null };
         }
 
-        const lifecycle = prepareCapAuditedTeamMutationLifecycle({
+        const boundary = prepareCapAuditedMutationBoundary({
           mutationType,
           playerIds,
           computeNextTeam,
           yearOverride,
         });
 
-        appendLocalCapAuditEvent(lifecycle.previewAuditEvaluation.event, {
-          storageKey: lifecycle.storageKey,
+        appendLocalCapAuditEvent(boundary.auditEvaluation.event, {
+          storageKey: boundary.storageKey,
         });
 
-        if (!lifecycle.previewAuditEvaluation.validation.valid) {
+        if (!boundary.auditEvaluation.validation.valid) {
           reportMutationError(
             getFirstViolationMessage(
-              lifecycle.previewAuditEvaluation.validation,
+              boundary.auditEvaluation.validation,
               invalidMessage
             ),
             {
               mutationType,
-              operationId: lifecycle.operationId,
-              violations: lifecycle.previewAuditEvaluation.validation.violations,
+              operationId: boundary.operationId,
+              violations: boundary.auditEvaluation.validation.violations,
             }
           );
           return {
             applied: false,
-            operationId: lifecycle.operationId,
+            operationId: boundary.operationId,
             persistPromise: null,
           };
         }
 
-        lifecycle.applyLocalPreview();
+        boundary.applyNonAuthoritativeState();
 
-        if (!worldId) {
+        if (boundary.localStateKind === 'local-validated-apply') {
           return {
             applied: true,
-            operationId: lifecycle.operationId,
+            operationId: boundary.operationId,
             persistPromise: Promise.resolve(true),
           };
         }
 
         const persistPromise = persistMutation(mutationType, persistPayload, {
-          operationId: lifecycle.operationId,
+          operationId: boundary.operationId,
           seasonIdOverride,
-          onSuccess: lifecycle.linkPersistSuccess,
+          onSuccess: boundary.linkCommittedPersistSuccess,
           onFailure: (message) => {
-            lifecycle.rollbackPersistFailure();
+            boundary.rollbackOptimisticLocalState();
             reportMutationError(
               message || `Failed to persist ${mutationType} mutation.`,
               {
                 mutationType,
-                operationId: lifecycle.operationId,
+                operationId: boundary.operationId,
               }
             );
           },
@@ -3281,7 +3299,7 @@ export function useArchitectActions({
 
         return {
           applied: true,
-          operationId: lifecycle.operationId,
+          operationId: boundary.operationId,
           persistPromise: persistCompletionPromise,
         };
       } finally {
@@ -3293,7 +3311,7 @@ export function useArchitectActions({
     [
       currentYear,
       persistMutation,
-      prepareCapAuditedTeamMutationLifecycle,
+      prepareCapAuditedMutationBoundary,
       reportMutationError,
       syncTeamFromMutationResult,
       teamCapSheet,
@@ -3843,7 +3861,7 @@ export function useArchitectActions({
         );
         const operationId = generateLocalOperationId();
         const occurredAt = new Date().toISOString();
-        const baseAudit = buildCapAuditEvaluation({
+        const localValidatedAudit = buildCapAuditEvaluation({
           operationId,
           occurredAt,
           mutationType: 'executeTrade',
@@ -3854,14 +3872,14 @@ export function useArchitectActions({
           beforeTeamsByCode,
           afterTeamsByCode,
         });
-        appendLocalCapAuditEvent(baseAudit.event, {
-          storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
+        appendLocalCapAuditEvent(localValidatedAudit.event, {
+          storageKey: BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM.storageKey,
         });
 
-        if (!baseAudit.validation.valid) {
+        if (!localValidatedAudit.validation.valid) {
           throw new Error(
             getFirstViolationMessage(
-              baseAudit.validation,
+              localValidatedAudit.validation,
               'Base-state trade apply blocked by post-state cap validation.'
             )
           );
@@ -3964,7 +3982,7 @@ export function useArchitectActions({
       }
 
       try {
-        await applyCommittedStandardSigningState(playerObj, executionResult);
+        await applyResolvedStandardSigningState(playerObj, executionResult);
       } catch (error: unknown) {
         const message =
           error instanceof Error
@@ -3984,7 +4002,7 @@ export function useArchitectActions({
       return { success: true };
     },
     [
-      applyCommittedStandardSigningState,
+      applyResolvedStandardSigningState,
       reportMutationError,
       resolveStandardSigningExecutionRoute,
     ]

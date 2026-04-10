@@ -697,7 +697,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
   );
   const preparedLifecycleHelperRegion = readRegion(
     actionsContent,
-    'const prepareCapAuditedTeamMutationLifecycle = useCallback(',
+    'const prepareCapAuditedMutationBoundary = useCallback(',
     '// === Persistence Helper ==='
   );
   const applyCapAuditedTeamMutationRegion = readRegion(
@@ -933,14 +933,26 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(devCapSheetFixturesContent).toContain(
       'DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER'
     );
+    expect(devCapSheetFixturesContent).toContain(
+      "stateKind: 'dev-synthetic-local-state'"
+    );
     expect(devCapSheetFixturesContent).toContain("persistence: 'none'");
     expect(devCapSheetFixturesContent).toContain(
+      "committedWorldRelationship: 'never-persists'"
+    );
+    expect(devCapSheetFixturesContent).toContain(
       'DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD'
+    );
+    expect(devCapSheetFixturesContent).toContain(
+      "boundaryKind: 'dev-synthetic-fixture'"
     );
     expect(devCapSheetFixturesContent).toContain(
       "intentLabel: 'Bounded futureContract seam probe'"
     );
     expect(devCapSheetFixturesContent).toContain('authoritative: false');
+    expect(devCapSheetFixturesContent).toContain(
+      'must-never-read-as-committed-world-state'
+    );
     expect(devCapSheetFixturesContent).toContain(
       "'minimum-contract reimbursement'"
     );
@@ -979,48 +991,63 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(manualLedgerHelperRegion).not.toMatch(/validatePostStateCapLegality/);
   });
 
-  it('applyCapAuditedTeamMutation consumes one prepared lifecycle contract for preview, validation, local apply, and persist callbacks', () => {
+  it('applyCapAuditedTeamMutation consumes one prepared boundary contract for audit, local state kind, local apply, and persist callbacks', () => {
     expect(actionsContent).toMatch(
-      /type\s+PreparedCapAuditedMutationLifecycle\s*=\s*\{/
+      /type\s+PreparedCapAuditedMutationBoundary\s*=\s*\{/
     );
+    expect(actionsContent).toMatch(/type\s+CapAuditedMutationLocalStateKind\s*=/);
     expect(preparedLifecycleHelperRegion).toMatch(
-      /const\s+prepareCapAuditedTeamMutationLifecycle\s*=\s*useCallback/
+      /const\s+prepareCapAuditedMutationBoundary\s*=\s*useCallback/
     );
     expect(preparedLifecycleHelperRegion).toMatch(/buildCapAuditEvaluation\(/);
-    expect(preparedLifecycleHelperRegion).toMatch(/applyLocalPreview:\s*\(\)\s*=>/);
-    expect(preparedLifecycleHelperRegion).toMatch(/linkPersistSuccess:\s*\(result\)\s*=>/);
-    expect(preparedLifecycleHelperRegion).toMatch(/rollbackPersistFailure:\s*\(\)\s*=>/);
-    expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /prepareCapAuditedTeamMutationLifecycle\(\{/
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /localStateKind:\s*auditStreamBoundary\.stateKind/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /applyNonAuthoritativeState:\s*\(\)\s*=>/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /linkCommittedPersistSuccess:\s*\(result\)\s*=>/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /rollbackOptimisticLocalState:\s*\(\)\s*=>/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /appendLocalCapAuditEvent\(lifecycle\.previewAuditEvaluation\.event/
-    );
-    expect(applyCapAuditedTeamMutationRegion).toMatch(/lifecycle\.applyLocalPreview\(\)/);
-    expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /onSuccess:\s*lifecycle\.linkPersistSuccess/
+      /prepareCapAuditedMutationBoundary\(\{/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /lifecycle\.rollbackPersistFailure\(\)/
+      /appendLocalCapAuditEvent\(boundary\.auditEvaluation\.event/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /boundary\.applyNonAuthoritativeState\(\)/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /boundary\.localStateKind\s*===\s*'local-validated-apply'/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /onSuccess:\s*boundary\.linkCommittedPersistSuccess/
+    );
+    expect(applyCapAuditedTeamMutationRegion).toMatch(
+      /boundary\.rollbackOptimisticLocalState\(\)/
     );
     expect(applyCapAuditedTeamMutationRegion).not.toMatch(
       /buildCapAuditEvaluation\(/ 
     );
   });
 
-  it('applyCapAuditedTeamMutation preserves the authoritative preview -> validation -> local apply -> persist order', () => {
+  it('applyCapAuditedTeamMutation preserves the authoritative audit -> validation -> non-authoritative local state -> persist order', () => {
     const previewAppendIndex = applyCapAuditedTeamMutationRegion.indexOf(
-      'appendLocalCapAuditEvent(lifecycle.previewAuditEvaluation.event'
+      'appendLocalCapAuditEvent(boundary.auditEvaluation.event'
     );
     const invalidGateIndex = applyCapAuditedTeamMutationRegion.indexOf(
-      'if (!lifecycle.previewAuditEvaluation.validation.valid)'
+      'if (!boundary.auditEvaluation.validation.valid)'
     );
     const invalidReturnIndex = applyCapAuditedTeamMutationRegion.indexOf(
       'applied: false',
       invalidGateIndex
     );
     const localPreviewIndex = applyCapAuditedTeamMutationRegion.indexOf(
-      'lifecycle.applyLocalPreview()'
+      'boundary.applyNonAuthoritativeState()'
     );
     const persistScheduleIndex = applyCapAuditedTeamMutationRegion.indexOf(
       'const persistPromise = persistMutation'
@@ -1038,21 +1065,21 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(localPreviewIndex).toBeLessThan(persistScheduleIndex);
   });
 
-  it('applyCapAuditedTeamMutation threads the preview operationId into persistence and keeps lifecycle callbacks bound', () => {
+  it('applyCapAuditedTeamMutation threads the preview operationId into persistence and keeps boundary callbacks bound', () => {
     expect(applyCapAuditedTeamMutationRegion).toMatch(
       /const\s+persistPromise\s*=\s*persistMutation\(\s*mutationType\s*,\s*persistPayload\s*,\s*\{/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /operationId:\s*lifecycle\.operationId/
+      /operationId:\s*boundary\.operationId/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /onSuccess:\s*lifecycle\.linkPersistSuccess/
+      /onSuccess:\s*boundary\.linkCommittedPersistSuccess/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
       /onFailure:\s*\(message\)\s*=>\s*\{/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /lifecycle\.rollbackPersistFailure\(\)/
+      /boundary\.rollbackOptimisticLocalState\(\)/
     );
   });
 });

@@ -47,15 +47,15 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     const source = fs.readFileSync(offseasonSectionPath, 'utf-8');
 
     it('defines a wrapper-owned preview surface resolver instead of an inline gate boolean', () => {
-      expect(source).toContain("type DevPreviewSurfaceAccess =");
+      expect(source).toContain("type DevPreviewOnlySurfaceAccess =");
       expect(source).toContain("type OffseasonWorldAdvanceAvailability =");
-      expect(source).toContain("type OffseasonPreviewSurfaceAvailability =");
-      expect(source).toContain('function resolveDevPreviewSurfaceAccess(): DevPreviewSurfaceAccess {');
+      expect(source).toContain("type OffseasonPreviewOnlySurfaceAvailability =");
+      expect(source).toContain('function resolveDevPreviewOnlySurfaceAccess(): DevPreviewOnlySurfaceAccess {');
       expect(source).toContain(
         'function getOffseasonWorldAdvanceAvailability('
       );
       expect(source).toContain(
-        'const devPreviewSurfaceAccess = resolveDevPreviewSurfaceAccess();'
+        'const devPreviewOnlySurfaceAccess = resolveDevPreviewOnlySurfaceAccess();'
       );
     });
 
@@ -69,7 +69,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
         "kind: 'hidden'"
       );
       expect(source).toContain(
-        "kind: 'preview'"
+        "kind: 'preview-only'"
       );
       expect(source).toContain(
         'previewAuthority: NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,'
@@ -78,10 +78,10 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
 
     it('routes preview rendering through the explicit preview access contract', () => {
       expect(source).toContain(
-        "{devPreviewSurfaceAccess.kind === 'preview' ? ("
+        "{devPreviewOnlySurfaceAccess.kind === 'preview-only' ? ("
       );
       expect(source).toContain(
-        'previewAuthority={devPreviewSurfaceAccess.previewAuthority}'
+        'previewAuthority={devPreviewOnlySurfaceAccess.previewAuthority}'
       );
       expect(source).not.toContain('if (!previewAccess.canRenderPreview) {');
     });
@@ -97,9 +97,12 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
         'Preview only — does not persist. Changes will be lost on refresh.'
       );
       expect(source).toContain(
-        'previewAvailability={OFFSEASON_DEV_PREVIEW_SURFACE_AVAILABILITY}'
+        'previewOnlyAvailability={'
       );
-      expect(source).toContain('{previewAvailability.bannerMessage}');
+      expect(source).toContain(
+        'OFFSEASON_DEV_PREVIEW_ONLY_SURFACE_AVAILABILITY'
+      );
+      expect(source).toContain('{previewOnlyAvailability.bannerMessage}');
     });
 
     it('publishes separate world-backed and preview-only surfaces', () => {

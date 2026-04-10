@@ -4,8 +4,10 @@ import { act, renderHook } from '@testing-library/react';
 import { useState } from 'react';
 import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import {
+  BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM,
   BASE_CAP_AUDIT_STORAGE_KEY,
   MAX_LOCAL_CAP_AUDIT_EVENTS,
+  WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM,
   appendLocalCapAuditEvent,
   clearLocalCapAuditEvents,
   readLocalCapAuditEvents,
@@ -152,6 +154,25 @@ function renderActionsHarness(worldId: string | null) {
 }
 
 describe('base mode CapAuditEventV1 local log behavior', () => {
+  it('publishes distinct local-validated and optimistic-preview audit stream boundaries', () => {
+    expect(BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM).toMatchObject({
+      storageKey: BASE_CAP_AUDIT_STORAGE_KEY,
+      stateKind: 'local-validated-apply',
+      authoritative: false,
+      persistsToWorld: false,
+      preview: false,
+      committedWorldTransition: 'never-links',
+    });
+    expect(WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM).toMatchObject({
+      stateKind: 'optimistic-local-preview',
+      authoritative: false,
+      persistsToWorld: 'pending-world-persist',
+      preview: true,
+      initialAuthoritativeEventLinked: false,
+      committedWorldTransition: 'links-on-success-or-rolls-back',
+    });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     worldTeamDataMocks.resolveTeamCode.mockImplementation(

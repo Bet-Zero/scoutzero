@@ -75,6 +75,24 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 vi.mock('@/features/architect/utils/capLegality/localCapAuditLog', () => ({
   BASE_CAP_AUDIT_STORAGE_KEY: 'test-base-cap-audit',
   WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY: 'test-world-cap-audit',
+  BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM: {
+    storageKey: 'test-base-cap-audit',
+    stateKind: 'local-validated-apply',
+    authoritative: false,
+    persistsToWorld: false,
+    preview: false,
+    initialAuthoritativeEventLinked: undefined,
+    committedWorldTransition: 'never-links',
+  },
+  WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM: {
+    storageKey: 'test-world-cap-audit',
+    stateKind: 'optimistic-local-preview',
+    authoritative: false,
+    persistsToWorld: 'pending-world-persist',
+    preview: true,
+    initialAuthoritativeEventLinked: false,
+    committedWorldTransition: 'links-on-success-or-rolls-back',
+  },
   appendLocalCapAuditEvent: auditLogMocks.appendLocalCapAuditEvent,
   updateLocalCapAuditEvent: auditLogMocks.updateLocalCapAuditEvent,
 }));

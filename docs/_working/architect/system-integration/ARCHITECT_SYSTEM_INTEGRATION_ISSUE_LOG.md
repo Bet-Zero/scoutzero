@@ -142,7 +142,7 @@ Added explicit adapter/shell ownership markers to `GMDashboard.tsx`, `useArchite
 
 **Severity:** MEDIUM
 
-**Status:** IN PROGRESS (Step 4 active — bootstrap complete)
+**Status:** IN PROGRESS (Step 4 active — first batch complete, second batch pending)
 
 **Related Lane:** SI-4A, SI-4B, SI-4C, SI-4D
 
@@ -153,7 +153,7 @@ The mutation pipeline makes committed-state authority explicit for its own scope
 Confusion about what is preview-only and what is committed truth will become increasingly important as cross-surface handoff work progresses in later steps.
 
 **Desired Correction:**
-This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. Step 4 bootstrap is now complete and all four execution lanes (SI-4A through SI-4D) are active.
+This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. Step 4 first-batch execution is now complete: `SI-4A` and `SI-4B` are resolved, while `SI-4C` and `SI-4D` remain active for the remaining linkage and DEV-surface follow-through.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §5
 
@@ -586,7 +586,7 @@ The anti-stale durability contract should be made more explicit:
 
 ### Step 4 Issue Status
 
-`SI-ISS-016` through `SI-ISS-019` are **OPEN**. `SI-ISS-005` is upgraded from DEFERRED to IN PROGRESS. Execution begins with SI-4A + SI-4B (first batch).
+`SI-ISS-016` and `SI-ISS-017` are **RESOLVED** after first-batch execution. `SI-ISS-018` and `SI-ISS-019` remain **OPEN** for second-batch follow-through. `SI-ISS-005` remains **IN PROGRESS** until Step 4 finishes as a full system story.
 
 ---
 
@@ -594,7 +594,7 @@ The anti-stale durability contract should be made more explicit:
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-4A
 
@@ -618,13 +618,16 @@ The repo should present the different preview/local-only seam types as one conne
 
 **Source:** Step 4 Review Record — "What Is Weak / Risky" §1; Step 4 Action Breakdown SI-4A
 
+**Resolution Notes (2026-04-10):**
+The first Step 4 execution batch now publishes one clearer taxonomy across the integrated seams: `OffseasonSection.tsx` uses explicit `preview-only` vocabulary for the DEV offseason surface, `localCapAuditLog.ts` publishes `BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM` vs `WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM`, `devCapSheetFixtures.ts` explicitly marks `dev-synthetic-local-state`, and `useArchitectActions.ts` consumes the same state-kind vocabulary at the main mutation seam. The repo still needs Step 4C/4D follow-through for deeper linkage semantics and broader DEV-surface consistency, but the distributed taxonomy issue that belonged to SI-4A is resolved.
+
 ---
 
 ### SI-ISS-017 — `useArchitectActions.ts` carries excessive preview/commit boundary burden
 
 **Severity:** HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-4B
 
@@ -653,6 +656,9 @@ The preview/commit contract inside `useArchitectActions.ts` should be made clear
 - where committed-state ownership resumes
 
 **Source:** Step 4 Review Record — "What Is Weak / Risky" §2 and "Highest-Risk Step 4 Surfaces" §A; Step 4 Action Breakdown SI-4B
+
+**Resolution Notes (2026-04-10):**
+`useArchitectActions.ts` now expresses its preview/commit contract through one `PreparedCapAuditedMutationBoundary` with explicit `localStateKind`, apply/link/rollback callbacks, and an explicit `applyCommittedWorldReloadPlan` re-entry seam for committed-world ownership. The hook also renames `applyCommittedStandardSigningState` to `applyResolvedStandardSigningState` so the local-validated lane is no longer mislabeled as committed world truth. The hook remains dense, but the specific SI-4B boundary-readability risk is resolved without a broader refactor.
 
 ---
 
