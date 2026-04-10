@@ -384,7 +384,7 @@ Make world-only, preview-only, and unavailable-action boundaries more consistent
 
 ### Step 3 Issue Status
 
-`SI-ISS-011` through `SI-ISS-014` are **RESOLVED** after the April 9, 2026 first- and second-batch executions. `SI-ISS-015` remains **OPEN** for the final Step 3 batch.
+`SI-ISS-011` through `SI-ISS-015` are **RESOLVED** after the April 9, 2026 first-, second-, and third-batch executions.
 
 ---
 
@@ -534,7 +534,7 @@ The world-mode vs base/vacuum-mode propagation distinction should be made more e
 
 **Severity:** MEDIUM
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-3E
 
@@ -564,6 +564,9 @@ The anti-stale durability contract should be made more explicit:
 - whether the current guard model is sufficiently explicit and durable
 
 **Source:** Step 3 Review Record — "What Is Weak / Risky" §5 and "What Is Coherent" §5; Step 3 Action Breakdown SI-3E
+
+**Resolution Notes (2026-04-09):**
+`src/features/architect/GMDashboard/hooks/useArchitectState.ts` now names the stale-drop contract directly via `ReloadActiveWorldTeamDataStaleDropReason`, explicit world-load freshness helpers, explicit world-date mutation freshness helpers, and an explicit guarded bundle-application seam. `reloadActiveWorldTeamData(...)` now returns caller-visible stale-drop reasons for both freshness-loss cases: `active-world-changed` and `superseded-by-newer-request`. Focused `src/tests/architect/useArchitectState.worldFreeAgency.test.ts` behavior coverage now proves both stale-drop reasons, while `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` protects the named state-owned freshness contract from drifting back into scattered implementation-only checks.
 
 ---
 

@@ -116,6 +116,15 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
       'Owns committed-world resync, metadata patching, and stale-drop once handed a committed team snapshot.'
     );
     expect(stateHookSource).toContain(
+      'export type ReloadActiveWorldTeamDataStaleDropReason ='
+    );
+    expect(stateHookSource).toContain(
+      "'active-world-changed'"
+    );
+    expect(stateHookSource).toContain(
+      "'superseded-by-newer-request'"
+    );
+    expect(stateHookSource).toContain(
       'export interface ReloadActiveWorldMetadataPatch {'
     );
     expect(stateHookSource).toContain(
@@ -123,6 +132,21 @@ describe('Architect System Integration Step 3 propagation guardrails', () => {
     );
     expect(stateHookSource).toContain(
       'State-owned committed-world resync request.'
+    );
+    expect(stateHookSource).toContain(
+      'reason: ReloadActiveWorldTeamDataStaleDropReason;'
+    );
+    expect(stateHookSource).toContain(
+      'type ActiveWorldLoadRequest = {'
+    );
+    expect(stateHookSource).toContain(
+      'const resolveWorldLoadFreshness = useCallback('
+    );
+    expect(stateHookSource).toContain(
+      'const resolveWorldLoadStaleDrop = useCallback('
+    );
+    expect(stateHookSource).toContain(
+      'const startWorldAsOfDateMutationRequest = useCallback('
     );
     expect(stateHookSource).toContain(
       'applyWorldMetadataPatch(options.committedWorldMetadata);'

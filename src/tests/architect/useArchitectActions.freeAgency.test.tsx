@@ -308,6 +308,9 @@ function renderActionsHarness({
       }
     | {
         outcome: 'stale-drop';
+        reason:
+          | 'active-world-changed'
+          | 'superseded-by-newer-request';
       }
     | null
   >) | null;
@@ -1012,6 +1015,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
     const reloadActiveWorldTeamData = vi.fn(async () => ({
       outcome: 'stale-drop' as const,
+      reason: 'active-world-changed' as const,
     }));
 
     const { result, refreshWorldRosterIndex } = renderActionsHarness({

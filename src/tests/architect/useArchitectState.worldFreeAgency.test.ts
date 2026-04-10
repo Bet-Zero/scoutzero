@@ -1001,6 +1001,137 @@ describe('useArchitectState world-aware free agency pool', () => {
     expect(result.current.worldAsOfDate).toBe('2026-08-01');
   });
 
+  it('reports when a newer coordinated reload supersedes an older world request', async () => {
+    const firstReloadMetadata = createDeferred<{
+      createdBy: string;
+      isArchived: boolean;
+      asOfDate: string;
+      currentSeason: string;
+    }>();
+    let blockFirstReloadMetadata = false;
+    let blockedReloadConsumed = false;
+    let worldMetadataResponse = {
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-01',
+      currentSeason: '2025-26',
+    };
+
+    stateMocks.getLeague.mockResolvedValue([
+      {
+        teamCode: 'LAL',
+        roster: ['player_a'],
+        players: [{ id: 'player_a' }],
+      },
+    ]);
+    stateMocks.getWorldMetadata.mockImplementation(async (activeWorldId) => {
+      if (
+        activeWorldId === 'world_1' &&
+        blockFirstReloadMetadata &&
+        !blockedReloadConsumed
+      ) {
+        blockedReloadConsumed = true;
+        return firstReloadMetadata.promise;
+      }
+
+      return worldMetadataResponse;
+    });
+
+    const { result } = renderHook(() =>
+      useArchitectState({
+        teamId: 'LAL',
+        userId: 'user_1',
+        authLoading: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.activeWorldOwner.setActiveWorld('world_1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldAsOfDate).toBe('2026-07-01');
+    });
+
+    const firstCommittedTeam = {
+      ...teamFixture,
+      season: '2026-27',
+    };
+    const secondCommittedTeam = {
+      ...teamFixture,
+      season: '2027-28',
+    };
+
+    let firstReloadPromise!: Promise<
+      | Awaited<ReturnType<typeof result.current.reloadActiveWorldTeamData>>
+      | null
+    >;
+    act(() => {
+      blockFirstReloadMetadata = true;
+      firstReloadPromise = result.current.reloadActiveWorldTeamData({
+        committedTeamSnapshot: firstCommittedTeam as any,
+        committedWorldMetadata: {
+          currentSeason: '2026-27',
+        },
+        refreshRosterBundle: false,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.worldCurrentSeason).toBe('2026-27');
+    });
+
+    worldMetadataResponse = {
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-05',
+      currentSeason: '2027-28',
+    };
+
+    let secondReloadResult:
+      | Awaited<ReturnType<typeof result.current.reloadActiveWorldTeamData>>
+      | null = null;
+    await act(async () => {
+      secondReloadResult = await result.current.reloadActiveWorldTeamData({
+        committedTeamSnapshot: secondCommittedTeam as any,
+        committedWorldMetadata: {
+          currentSeason: '2027-28',
+        },
+        refreshRosterBundle: false,
+      });
+    });
+
+    expect(secondReloadResult).toEqual({
+      outcome: 'applied',
+      committedWorldTeam: {
+        committedTeam: secondCommittedTeam,
+        committedTeamSource: 'changedTeams',
+      },
+    });
+    expect(result.current.teamCapSheet?.season).toBe('2027-28');
+    expect(result.current.worldCurrentSeason).toBe('2027-28');
+    expect(result.current.worldAsOfDate).toBe('2026-07-05');
+
+    firstReloadMetadata.resolve({
+      createdBy: 'user_1',
+      isArchived: false,
+      asOfDate: '2026-07-04',
+      currentSeason: '2026-27',
+    });
+
+    await expect(firstReloadPromise).resolves.toEqual({
+      outcome: 'stale-drop',
+      reason: 'superseded-by-newer-request',
+    });
+    expect(result.current.teamCapSheet?.season).toBe('2027-28');
+    expect(result.current.worldCurrentSeason).toBe('2027-28');
+    expect(result.current.worldAsOfDate).toBe('2026-07-05');
+  });
+
   it('drops stale coordinated reload completions after switching back to sandbox', async () => {
     const metadataLoad = createDeferred<{
       createdBy: string;
@@ -1085,6 +1216,7 @@ describe('useArchitectState world-aware free agency pool', () => {
 
     await expect(reloadPromise).resolves.toEqual({
       outcome: 'stale-drop',
+      reason: 'active-world-changed',
     });
     expect(result.current.worldId).toBeNull();
     expect(result.current.teamCapSheet?.season).not.toBe('2026-27');

@@ -341,6 +341,15 @@ export interface ArchitectWorldTimeOwner {
 
 export type ReloadActiveWorldTeamDataSource = 'changedTeams' | 'reload';
 
+/**
+ * Lost-freshness contract for state-owned world reloads.
+ * - `active-world-changed`: the request completed after the active world identity changed.
+ * - `superseded-by-newer-request`: a newer state-owned world load took ownership before completion.
+ */
+export type ReloadActiveWorldTeamDataStaleDropReason =
+  | 'active-world-changed'
+  | 'superseded-by-newer-request';
+
 export interface ReloadActiveWorldMetadataPatch {
   asOfDate?: string | null;
   currentSeason?: string | null;
@@ -371,11 +380,29 @@ export interface ReloadActiveWorldTeamDataAppliedResult {
 
 export interface ReloadActiveWorldTeamDataStaleDropResult {
   outcome: 'stale-drop';
+  reason: ReloadActiveWorldTeamDataStaleDropReason;
 }
 
 export type ReloadActiveWorldTeamDataResult =
   | ReloadActiveWorldTeamDataAppliedResult
   | ReloadActiveWorldTeamDataStaleDropResult;
+
+type ActiveWorldLoadRequest = {
+  requestWorldId: string | null;
+  requestId: number;
+};
+
+type ActiveWorldDateMutationRequest = {
+  requestWorldId: string;
+  requestId: number;
+};
+
+type ActiveWorldLoadFreshness =
+  | { status: 'fresh' }
+  | {
+      status: 'stale';
+      reason: ReloadActiveWorldTeamDataStaleDropReason;
+    };
 
 export type ArchitectWorldModeBoundary =
   | {
@@ -660,6 +687,8 @@ export function useArchitectState({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  // State-owned freshness counters. Changing world identity or starting a newer
+  // request invalidates older async work before it can publish visible truth.
   const dataLoadRequestIdRef = useRef(0);
   const activeWorldIdentityRef = useRef<string | null>(null);
   const activeWorldIdentityTokenRef = useRef(0);
@@ -759,6 +788,62 @@ export function useArchitectState({
     []
   );
 
+  const startWorldLoadRequest = useCallback(
+    (requestWorldId: string | null): ActiveWorldLoadRequest => {
+      const requestId = dataLoadRequestIdRef.current + 1;
+      dataLoadRequestIdRef.current = requestId;
+      return {
+        requestWorldId,
+        requestId,
+      };
+    },
+    []
+  );
+
+  const resolveWorldLoadFreshness = useCallback(
+    (request: ActiveWorldLoadRequest): ActiveWorldLoadFreshness => {
+      if (activeWorldIdentityRef.current !== request.requestWorldId) {
+        return {
+          status: 'stale',
+          reason: 'active-world-changed',
+        };
+      }
+
+      if (dataLoadRequestIdRef.current !== request.requestId) {
+        return {
+          status: 'stale',
+          reason: 'superseded-by-newer-request',
+        };
+      }
+
+      return { status: 'fresh' };
+    },
+    []
+  );
+
+  const isFreshWorldLoadRequest = useCallback(
+    (request: ActiveWorldLoadRequest) =>
+      resolveWorldLoadFreshness(request).status === 'fresh',
+    [resolveWorldLoadFreshness]
+  );
+
+  const resolveWorldLoadStaleDrop = useCallback(
+    (
+      request: ActiveWorldLoadRequest
+    ): ReloadActiveWorldTeamDataStaleDropResult | null => {
+      const freshness = resolveWorldLoadFreshness(request);
+      if (freshness.status === 'fresh') {
+        return null;
+      }
+
+      return {
+        outcome: 'stale-drop',
+        reason: freshness.reason,
+      };
+    },
+    [resolveWorldLoadFreshness]
+  );
+
   const invalidateActiveWorldAsyncWork = useCallback(
     (nextWorldId: string | null) => {
       const identityChanged = activeWorldIdentityRef.current !== nextWorldId;
@@ -781,10 +866,22 @@ export function useArchitectState({
     []
   );
 
-  const isCurrentWorldLoadRequest = useCallback(
-    (candidateWorldId: string | null, requestId: number) =>
-      dataLoadRequestIdRef.current === requestId &&
-      activeWorldIdentityRef.current === candidateWorldId,
+  const startWorldAsOfDateMutationRequest = useCallback(
+    (requestWorldId: string): ActiveWorldDateMutationRequest => {
+      const requestId = worldAsOfDateMutationIdRef.current + 1;
+      worldAsOfDateMutationIdRef.current = requestId;
+      return {
+        requestWorldId,
+        requestId,
+      };
+    },
+    []
+  );
+
+  const isCurrentWorldAsOfDateMutationRequest = useCallback(
+    (request: ActiveWorldDateMutationRequest) =>
+      worldAsOfDateMutationIdRef.current === request.requestId &&
+      activeWorldIdentityRef.current === request.requestWorldId,
     []
   );
 
@@ -826,31 +923,24 @@ export function useArchitectState({
       }
 
       const requestWorldId = worldId;
-      const requestId = worldAsOfDateMutationIdRef.current + 1;
-      worldAsOfDateMutationIdRef.current = requestId;
+      const request = startWorldAsOfDateMutationRequest(requestWorldId);
       setIsUpdatingWorldAsOfDate(true);
 
       try {
         await updateWorldAsOfDate(worldId, nextAsOfDate);
-        if (
-          worldAsOfDateMutationIdRef.current !== requestId ||
-          !isCurrentActiveWorldIdentity(requestWorldId)
-        ) {
+        if (!isCurrentWorldAsOfDateMutationRequest(request)) {
           return nextAsOfDate;
         }
 
         setWorldAsOfDate(nextAsOfDate);
         return nextAsOfDate;
       } finally {
-        if (
-          worldAsOfDateMutationIdRef.current === requestId &&
-          isCurrentActiveWorldIdentity(requestWorldId)
-        ) {
+        if (isCurrentWorldAsOfDateMutationRequest(request)) {
           setIsUpdatingWorldAsOfDate(false);
         }
       }
     },
-    [isCurrentActiveWorldIdentity, worldId]
+    [isCurrentWorldAsOfDateMutationRequest, startWorldAsOfDateMutationRequest, worldId]
   );
 
   const advanceByOneDay = useCallback(async (): Promise<string> => {
@@ -1004,6 +1094,8 @@ export function useArchitectState({
     ]
   );
 
+  // Final guarded bundle-application seam. Callers must re-check freshness
+  // after async work and before applying the coordinated bundle.
   const applyCoordinatedWorldBundle = useCallback(
     (coordinatedBundle: CoordinatedWorldLoadBundle) => {
       if (coordinatedBundle.teamSnapshot) {
@@ -1068,11 +1160,13 @@ export function useArchitectState({
 
       const requestWorldId = worldId;
       if (!isCurrentActiveWorldIdentity(requestWorldId)) {
-        return { outcome: 'stale-drop' };
+        return {
+          outcome: 'stale-drop',
+          reason: 'active-world-changed',
+        };
       }
 
-      const requestId = dataLoadRequestIdRef.current + 1;
-      dataLoadRequestIdRef.current = requestId;
+      const worldLoadRequest = startWorldLoadRequest(requestWorldId);
       const refreshRosterBundle = options.refreshRosterBundle !== false;
 
       setIsLoading(true);
@@ -1095,8 +1189,9 @@ export function useArchitectState({
           throwOnMetadataLoadError: true,
         });
 
-        if (!isCurrentWorldLoadRequest(requestWorldId, requestId)) {
-          return { outcome: 'stale-drop' };
+        const staleDrop = resolveWorldLoadStaleDrop(worldLoadRequest);
+        if (staleDrop) {
+          return staleDrop;
         }
 
         if (!coordinatedBundle.teamSnapshot) {
@@ -1113,8 +1208,9 @@ export function useArchitectState({
           },
         };
       } catch (err) {
-        if (!isCurrentWorldLoadRequest(requestWorldId, requestId)) {
-          return { outcome: 'stale-drop' };
+        const staleDrop = resolveWorldLoadStaleDrop(worldLoadRequest);
+        if (staleDrop) {
+          return staleDrop;
         }
 
         console.error(err);
@@ -1123,7 +1219,7 @@ export function useArchitectState({
         setError(`Error loading team data: ${message}`);
         throw err;
       } finally {
-        if (isCurrentWorldLoadRequest(requestWorldId, requestId)) {
+        if (isFreshWorldLoadRequest(worldLoadRequest)) {
           setWorldMetadataLoading(false);
           setIsLoading(false);
         }
@@ -1133,9 +1229,11 @@ export function useArchitectState({
       applyWorldMetadataPatch,
       applyCoordinatedWorldBundle,
       isCurrentActiveWorldIdentity,
-      isCurrentWorldLoadRequest,
+      isFreshWorldLoadRequest,
       loadCoordinatedWorldBundle,
       prepareCoordinatedWorldLoad,
+      resolveWorldLoadStaleDrop,
+      startWorldLoadRequest,
       worldId,
     ]
   );
@@ -1258,8 +1356,7 @@ export function useArchitectState({
 
     const fetchData = async () => {
       const requestWorldId = worldId;
-      const requestId = dataLoadRequestIdRef.current + 1;
-      dataLoadRequestIdRef.current = requestId;
+      const worldLoadRequest = startWorldLoadRequest(requestWorldId);
 
       setIsLoading(true);
       setError('');
@@ -1269,10 +1366,7 @@ export function useArchitectState({
         // metadata, and roster override truth stay aligned across modes.
         const coordinatedBundle = await loadCoordinatedWorldBundle(worldId);
 
-        if (
-          isCancelled ||
-          !isCurrentWorldLoadRequest(requestWorldId, requestId)
-        ) {
+        if (isCancelled || !isFreshWorldLoadRequest(worldLoadRequest)) {
           return;
         }
 
@@ -1282,10 +1376,7 @@ export function useArchitectState({
           console.warn('No saved team found, using blank slate.');
         }
       } catch (err) {
-        if (
-          isCancelled ||
-          !isCurrentWorldLoadRequest(requestWorldId, requestId)
-        ) {
+        if (isCancelled || !isFreshWorldLoadRequest(worldLoadRequest)) {
           return;
         }
 
@@ -1294,10 +1385,7 @@ export function useArchitectState({
           err instanceof Error ? err.message : String(err || 'Unknown error');
         setError(`Error loading team data: ${message}`);
       } finally {
-        if (
-          !isCancelled &&
-          isCurrentWorldLoadRequest(requestWorldId, requestId)
-        ) {
+        if (!isCancelled && isFreshWorldLoadRequest(worldLoadRequest)) {
           setWorldMetadataLoading(false);
           setIsLoading(false);
         }
@@ -1315,9 +1403,10 @@ export function useArchitectState({
   }, [
     applyCoordinatedWorldBundle,
     authLoading,
-    isCurrentWorldLoadRequest,
+    isFreshWorldLoadRequest,
     loadCoordinatedWorldBundle,
     prepareCoordinatedWorldLoad,
+    startWorldLoadRequest,
     worldId,
   ]);
 

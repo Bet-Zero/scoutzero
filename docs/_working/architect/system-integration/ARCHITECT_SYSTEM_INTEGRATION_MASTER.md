@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 3 second batch complete; ready for Step 3 third-batch execution (SI-3E).**
+**Step 3 execution complete; ready for Step 3 closeout review.**
 
 ## Purpose
 
@@ -40,7 +40,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | -------- | ------------------------------------------- | -------------------------------------------- |
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete            |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete              |
-| Step 3   | Mutation, Reload, and Propagation Integrity | Second-batch execution PASS — third batch ready |
+| Step 3   | Mutation, Reload, and Propagation Integrity | Third-batch execution PASS — closeout review ready |
 | Step 4   | Preview vs Committed-State Consistency      | Not started                                  |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                                  |
 
@@ -335,6 +335,17 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 - **Behavior impact:** no intended product-scope change. This batch clarified propagation contracts and fixed one real durability gap by ensuring world-mode standard signing forwards authoritative metadata patches through the same committed-world reload plan as the rest of the dashboard resync seam.
 - **Next move:** proceed to Step 3 third batch (`SI-3E`).
 
+### Step 3 Batch 3 Execution Update
+
+**Completed:** April 9, 2026
+
+- **SI-3E complete:** `useArchitectState.ts` now names the stale-drop contract directly via `ReloadActiveWorldTeamDataStaleDropReason`, explicit world-load / world-date freshness request helpers, and an explicit guarded bundle-application seam. `reloadActiveWorldTeamData(...)` now tells callers whether freshness was lost because the active world changed or because a newer state-owned load superseded the request.
+- **Guardrails / behavior proof:** updated `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` so the named freshness/stale-drop contract is source-guarded, extended `src/tests/architect/useArchitectState.worldFreeAgency.test.ts` to prove both stale-loss modes (`active-world-changed` and `superseded-by-newer-request`), and kept `src/tests/architect/useArchitectActions.freeAgency.test.tsx` aligned with the stricter stale-drop result shape.
+- **Validation:** `npm run test:node -- --reporter=dot src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts src/tests/architect/useArchitectState.worldFreeAgency.test.ts`; `npm run test:ui -- --reporter=dot src/tests/architect/useArchitectActions.freeAgency.test.tsx`; `npm run typecheck`
+- **Validation note:** a direct `npm run test:ui -- --reporter=dot src/tests/architect/useArchitectState.worldFreeAgency.test.ts` attempt returned "No test files found" because the UI config excludes generic `.test.ts` files. Final truth-proving validation therefore kept the hook coverage on `test:node` and the TSX action-hook coverage on `test:ui`.
+- **Behavior impact:** no intended product-scope change. This batch formalized stale-drop reasons, freshness ownership, and guarded bundle application without broadening the reload stack.
+- **Next move:** proceed to Step 3 closeout review.
+
 ---
 
 ## Related Documents
@@ -362,5 +373,6 @@ Dashboard reload intentionally re-enters through the explicit read stack:
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 3 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 3 batch 1 execution package  |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 3 batch 2 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP3_EXEC_BATCH3_RETURN_PACKAGE.md`        | Step 3 batch 3 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

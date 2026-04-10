@@ -473,6 +473,16 @@ If live repo review before execution reveals strong seam overlap across all four
 
 ---
 
+## Step 3 Batch 3 Execution Summary
+
+- **Date:** April 9, 2026
+- **Verdict:** `PASS`
+- **Status:** Third-batch execution complete. `SI-3E` is closed; Step 3 execution is complete and closeout review is ready.
+- **Basis:** `useArchitectState.ts` now names state-owned freshness directly with `ReloadActiveWorldTeamDataStaleDropReason`, world-load/world-date request helpers, and an explicit guarded bundle-application seam. `reloadActiveWorldTeamData(...)` now tells callers whether freshness was lost because the active world changed or because a newer state-owned load superseded the request.
+- **Validation note:** the final proof stayed focused on `test:node` for the stale-guard source/hook seam, `test:ui` for the action-hook compatibility file, and `npm run typecheck`. A direct `test:ui` attempt against `useArchitectState.worldFreeAgency.test.ts` was discarded honestly after the UI config reported "No test files found" for generic `.test.ts` files.
+
+---
+
 ## Step 3 Execution Summary
 
 | Lane  | Name                                                                            | Priority | Status      | Batch          |
@@ -481,7 +491,7 @@ If live repo review before execution reveals strong seam overlap across all four
 | SI-3B | Tighten `useArchitectActions.ts` ↔ `useArchitectState.ts` propagation contract | P1       | COMPLETE    | First (3A+3B)  |
 | SI-3C | Clarify season-advance aftermath vs broader world reload contract               | P1       | COMPLETE    | Second (3C+3D) |
 | SI-3D | Clarify world-mode vs base/vacuum-mode propagation boundaries                   | P2       | COMPLETE    | Second (3C+3D) |
-| SI-3E | Pressure-test stale-drop / async reload durability guards                       | P2       | NOT STARTED | Third (3E)     |
+| SI-3E | Pressure-test stale-drop / async reload durability guards                       | P2       | COMPLETE    | Third (3E)     |
 
 ---
 
@@ -664,7 +674,7 @@ Completed by naming `world-committed` vs `local-validated` propagation lanes dir
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -692,6 +702,14 @@ A contributor should be able to answer:
 - whether the current guard model is sufficiently explicit and durable
 
 Complete when the anti-stale durability contract is more explicit and the repo is less dependent on readers reverse-engineering the async safety rules.
+
+### Completion Date
+
+April 9, 2026
+
+### Notes
+
+Completed by naming the state-owned stale-drop contract directly in `useArchitectState.ts`: `ReloadActiveWorldTeamDataStaleDropReason`, explicit world-load freshness helpers, explicit world-date mutation freshness helpers, and an explicit guarded bundle-application note now make the anti-stale machinery readable as one contract instead of scattered ref comparisons. `reloadActiveWorldTeamData(...)` now returns caller-visible stale-drop reasons (`active-world-changed` vs `superseded-by-newer-request`), while focused `useArchitectState.worldFreeAgency.test.ts` behavior coverage proves both cases and the Step 3 guardrail protects the named contract language from drifting.
 
 ---
 
