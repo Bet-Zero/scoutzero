@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 4 closeout rereview PASS — whole-feature closeout ready.**
+**Whole-feature closeout review RISK — one narrow contract-alignment unblock remains.**
 
 ## Purpose
 
@@ -42,7 +42,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
 | Step 4   | Preview vs Committed-State Consistency      | Closeout rereview PASS — complete  |
-| Closeout | Whole-Feature System Integration Closeout   | Ready to begin                     |
+| Closeout | Whole-Feature System Integration Closeout   | Closeout review RISK — unblock needed |
 
 ---
 
@@ -486,6 +486,18 @@ Step 4 will be considered structurally successful when all of the following are 
 - **Step 4 status:** officially closed.
 - **Next move:** proceed to Whole-Feature System Integration closeout.
 
+## Whole-Feature Closeout Review
+
+### Whole-Feature Closeout Update
+
+**Completed:** April 10, 2026
+
+- **Closeout verdict:** `RISK`
+- **What passed:** the live runtime architecture now reads mostly coherently across the shell, read stack, mutation authorities, reload/state resync, and preview-vs-committed seams. The main cross-step contracts established in Steps 1 through 4 still hold together in source, and a focused whole-feature UI proof set passed (`npm run test:ui -- src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`).
+- **Exact remaining blocker:** one narrow repo-facing contract-alignment category still conflicts with the live integrated system story. `src/features/architect/ARCHITECT_FEATURE_README.md` still claims Architect operates in a worlds-only mode even though the live dashboard explicitly supports sandbox / base-mode `local-validated` flows. `src/features/architect/freeAgency/FreeAgentPool/types.ts` and `src/features/architect/GMDashboard/offerSheetTypes.ts` still describe downstream rendering/lifecycle type surfaces as authoritative. The focused whole-feature node guardrail rerun also currently fails because `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` still expects the old `committedState` string after the live hook moved to `resolvedState`.
+- **Why this matters:** whole-feature closeout is the final “does the repo read as one coherent system?” gate. The runtime seams are mostly healthy, but the top-level publication layer and one focused guardrail still do not tell the same story as the live world-committed / local-validated architecture. That is too important to blur into a `PASS`, but too narrow to justify `FAIL`.
+- **Right next move:** one narrow final unblock to align the top-level Architect README, the two stale downstream type headers, and the stale Step 3 source-scan guardrail with the live world/base/local-validated contract, then rerun the focused whole-feature node/ui proof set.
+
 ---
 
 ## Related Documents
@@ -523,5 +535,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_CLOSEOUT_REVIEW_RETURN_PACKAGE.md`    | Step 4 closeout review package    |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_FOLLOWUP_EXEC_RETURN_PACKAGE.md`      | Step 4 follow-up execution package |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_REREVIEW_RETURN_PACKAGE.md`           | Step 4 rereview return package    |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_WHOLE_FEATURE_CLOSEOUT_REVIEW_RETURN_PACKAGE.md` | Whole-feature closeout review package |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

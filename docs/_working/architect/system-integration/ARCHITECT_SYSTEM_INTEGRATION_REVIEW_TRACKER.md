@@ -16,6 +16,16 @@ It is distinct from the Issue Log. The tracker manages execution lane status. Th
 
 ---
 
+## Whole-Feature Closeout Summary
+
+- **Date:** April 10, 2026
+- **Verdict:** `RISK`
+- **Status:** Architect System Integration is not officially closed. One narrow final unblock is still needed.
+- **Basis:** live repo rereview confirmed that the main runtime system now connects coherently across the Step 1 ownership map, Step 2 handoff seams, Step 3 propagation model, and Step 4 preview-vs-committed boundaries. A focused whole-feature UI proof set also passed via `npm run test:ui -- src/tests/architect/useArchitectActions.freeAgency.test.tsx src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`. But the final closeout gate still found one meaningful repo-facing contradiction category: `src/features/architect/ARCHITECT_FEATURE_README.md` still claims Architect operates in worlds-only mode even though the live dashboard publishes a `sandbox` boundary and supports `local-validated` base/vacuum flows; `src/features/architect/freeAgency/FreeAgentPool/types.ts` and `src/features/architect/GMDashboard/offerSheetTypes.ts` still call downstream rendering/lifecycle type surfaces authoritative; and the focused whole-feature node guardrail run currently fails because `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` still expects the old `committedState` string after the hook moved to `resolvedState`.
+- **Required next move:** one narrow contract-alignment follow-up covering the top-level Architect README, the two stale downstream type headers, and the stale Step 3 source-scan guardrail, then rerun the focused whole-feature node/ui proof set.
+
+---
+
 ## Step 4 Rereview Summary
 
 - **Date:** April 10, 2026

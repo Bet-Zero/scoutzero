@@ -25,6 +25,42 @@ It is distinct from the Review Tracker. The tracker manages execution lane statu
 
 ---
 
+### SI-ISS-020 — Repo-facing contract publication still drifts from the live world/base integration model
+
+**Severity:** MEDIUM-HIGH
+
+**Status:** OPEN
+
+**Related Lane:** Whole-feature closeout
+
+**Description:**
+The live runtime seams now tell a mostly coherent integrated story:
+
+- `useArchitectState.ts` explicitly publishes `sandbox` vs `world` mode
+- `useArchitectActions.ts` explicitly distinguishes `world-committed` vs `local-validated`
+- the Step 2 wrappers now treat Free Agency pool, offer-sheet surfaces, and DEV support seams as downstream/non-authoritative contracts
+
+But the repo-facing publication layer is not fully aligned with that story:
+
+- `src/features/architect/ARCHITECT_FEATURE_README.md` still says Architect operates in a worlds-only mode
+- `src/features/architect/freeAgency/FreeAgentPool/types.ts` still describes the Free Agent Pool type surface as authoritative
+- `src/features/architect/GMDashboard/offerSheetTypes.ts` still describes the offer-sheet type surface as authoritative
+- `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` still expects the pre-rename `committedState` string and now fails against the live `resolvedState` hook code
+
+**Risk:**
+Whole-feature closeout is a readability gate, not just a runtime gate. Contributors can now follow the main runtime seams, but the top-level README, downstream type headers, and one focused source-scan guardrail still publish a stale or contradictory system story. That is narrow, but it keeps the repo from reading as one fully self-consistent integrated architecture.
+
+**Desired Correction:**
+Run one narrow final contract-alignment pass that:
+
+- updates `src/features/architect/ARCHITECT_FEATURE_README.md` to describe the live world-committed plus sandbox/local-validated model honestly
+- removes stale authoritative wording from `src/features/architect/freeAgency/FreeAgentPool/types.ts` and `src/features/architect/GMDashboard/offerSheetTypes.ts`
+- updates `src/tests/architect/systemIntegration.step3Propagation.guardrail.test.ts` to the current `resolvedState` naming and reruns the focused whole-feature node/ui proof set
+
+**Source:** Whole-feature closeout review (2026-04-10)
+
+---
+
 ## Issue Set
 
 ### SI-ISS-001 — Ownership model is distributed and implicit
