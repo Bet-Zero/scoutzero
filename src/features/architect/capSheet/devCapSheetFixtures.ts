@@ -14,6 +14,17 @@ export const DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER = {
   committedWorldRelationship: 'never-persists',
 } as const;
 
+export const DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY = {
+  surfaceKind: 'dev-fixture-control-surface',
+  visibility: 'dev-only',
+  activationFlag: DEV_CAP_SHEET_FIXTURE_FLAG,
+  activationRequirement:
+    'requires-local-dev-build-and-explicit-local-intent-flag',
+  authoritative: false,
+  persistence: 'none',
+  committedWorldRelationship: 'must-never-read-as-committed-world-state',
+} as const;
+
 export const DEV_CAP_SHEET_FIXTURE_BOUNDARY = {
   boundaryKind: 'dev-synthetic-fixture',
   intentLabel: 'Bounded futureContract seam probe',

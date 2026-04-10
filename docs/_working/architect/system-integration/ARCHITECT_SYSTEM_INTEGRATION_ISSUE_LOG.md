@@ -142,7 +142,7 @@ Added explicit adapter/shell ownership markers to `GMDashboard.tsx`, `useArchite
 
 **Severity:** MEDIUM
 
-**Status:** IN PROGRESS (Step 4 active — first batch complete, second batch pending)
+**Status:** IN PROGRESS (Step 4 execution complete — closeout review pending)
 
 **Related Lane:** SI-4A, SI-4B, SI-4C, SI-4D
 
@@ -153,7 +153,7 @@ The mutation pipeline makes committed-state authority explicit for its own scope
 Confusion about what is preview-only and what is committed truth will become increasingly important as cross-surface handoff work progresses in later steps.
 
 **Desired Correction:**
-This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. Step 4 first-batch execution is now complete: `SI-4A` and `SI-4B` are resolved, while `SI-4C` and `SI-4D` remain active for the remaining linkage and DEV-surface follow-through.
+This risk is scoped to Step 4 (Preview vs Committed-State Consistency), not Step 1. All four Step 4 execution lanes are now complete: `SI-4A` / `SI-4B` established the shared preview vocabulary and main mutation-boundary contract, and `SI-4C` / `SI-4D` completed the local-audit lifecycle and DEV-runtime-boundary follow-through. Keep this issue IN PROGRESS until Step 4 closeout review confirms the full system story holds together end to end.
 
 **Source:** Step 1 Review Record — "What Is Weak / Risky" §5
 
@@ -191,7 +191,7 @@ The ownership map, read-stack contract, and in-hook comments now explain which l
 | SI-1B  | SI-ISS-003, SI-ISS-006                                                   | MEDIUM-HIGH, LOW-MEDIUM   |
 | SI-1C  | SI-ISS-002                                                               | HIGH                      |
 | SI-1D  | (no standalone defect logged; proactive SSOT durability batch completed) | —                         |
-| Step 4 | SI-ISS-005, SI-ISS-016–SI-ISS-019                                        | MEDIUM–HIGH (in progress) |
+| Step 4 | SI-ISS-005, SI-ISS-016–SI-ISS-019                                        | MEDIUM–HIGH (execution complete; closeout pending) |
 
 ---
 
@@ -586,7 +586,7 @@ The anti-stale durability contract should be made more explicit:
 
 ### Step 4 Issue Status
 
-`SI-ISS-016` and `SI-ISS-017` are **RESOLVED** after first-batch execution. `SI-ISS-018` and `SI-ISS-019` remain **OPEN** for second-batch follow-through. `SI-ISS-005` remains **IN PROGRESS** until Step 4 finishes as a full system story.
+`SI-ISS-016` through `SI-ISS-019` are now **RESOLVED** after both Step 4 execution batches. `SI-ISS-005` remains **IN PROGRESS** until Step 4 closeout review confirms the whole preview-vs-committed system story end to end.
 
 ---
 
@@ -666,7 +666,7 @@ The preview/commit contract inside `useArchitectActions.ts` should be made clear
 
 **Severity:** MEDIUM-HIGH
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-4C
 
@@ -700,13 +700,16 @@ The local audit / optimistic preview / persistence outcome semantics should be e
 
 **Source:** Step 4 Review Record — "What Is Weak / Risky" §4 and "What Is Coherent" §C; Step 4 Action Breakdown SI-4C
 
+**Resolution Notes (2026-04-10):**
+`localCapAuditLog.ts` now publishes one explicit lifecycle-state contract (`LocalCapAuditLifecycleState`) and helper APIs so local audit records can be read as `evaluation-blocked`, `local-validated-applied`, `optimistic-preview-pending`, `authoritative-link-established`, or `persist-failed-rolled-back` without relying on raw boolean combinations alone. `useArchitectActions.ts` now writes those lifecycle states when preview/local-only mutations are appended, when optimistic persistence succeeds, and when optimistic rollback occurs after persist failure. Targeted behavior tests now prove the blocked-preview, pending-preview, authoritative-link, and failed-persist rollback semantics directly.
+
 ---
 
 ### SI-ISS-019 — DEV-only / fixture-only surfaces lack consistent system-level boundary presentation
 
 **Severity:** MEDIUM
 
-**Status:** OPEN
+**Status:** RESOLVED
 
 **Related Lane:** SI-4D
 
@@ -728,6 +731,9 @@ DEV-only and fixture-only seams should be presented consistently enough at the s
 - future DEV tooling authors have a clear model to follow rather than inventing a new pattern
 
 **Source:** Step 4 Review Record — "What Is Coherent" §2, §4 and "Highest-Risk Step 4 Surfaces" §B; Step 4 Action Breakdown SI-4D
+
+**Resolution Notes (2026-04-10):**
+`OffseasonSection.tsx` now publishes an explicit DEV preview boundary contract and visible runtime note at the wrapper seam, making the flag, activation requirement, lack of persistence, and committed-world separation visible outside the preview tab internals. `devCapSheetFixtures.ts` now exports `DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY`, and that boundary is now published through `useArchitectActions.ts` and rendered by `CapSheetSection.tsx` so DEV fixture controls read consistently as DEV-only, synthetic, and non-authoritative at the dashboard/action seam instead of only within the fixture utility file. Focused guardrail and shell tests now lock that system-level boundary presentation in place.
 
 ---
 

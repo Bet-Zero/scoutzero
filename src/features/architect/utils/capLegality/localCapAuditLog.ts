@@ -9,6 +9,13 @@ type TotalsByTeam = Record<string, Record<string, unknown>>;
 type DiffSummary = Record<string, unknown>;
 type ValidationIssue = Record<string, unknown>;
 
+export type LocalCapAuditLifecycleState =
+  | 'evaluation-blocked'
+  | 'local-validated-applied'
+  | 'optimistic-preview-pending'
+  | 'authoritative-link-established'
+  | 'persist-failed-rolled-back';
+
 export interface CapAuditEventV1Like {
   schemaVersion: 'cap-audit-event-v1';
   validatorVersion: string;
@@ -25,6 +32,7 @@ export interface CapAuditEventV1Like {
   warnings: ValidationIssue[];
   diffSummary: DiffSummary;
   preview?: boolean;
+  localAuditLifecycleState?: LocalCapAuditLifecycleState;
   authoritativeEventLinked?: boolean;
   authoritativeOperationId?: string;
   persistFailed?: boolean;
@@ -65,6 +73,130 @@ export const BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM =
   LOCAL_CAP_AUDIT_STREAM_BOUNDARIES.baseLocalValidated;
 export const WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM =
   LOCAL_CAP_AUDIT_STREAM_BOUNDARIES.worldOptimisticPreview;
+
+export const LOCAL_CAP_AUDIT_LIFECYCLE_CONTRACTS = {
+  evaluationBlocked: {
+    lifecycleState: 'evaluation-blocked',
+    callerExpectation:
+      'Local audit-only record for a mutation that failed validation before any local apply or authoritative persist scheduling.',
+    localOutcome: 'blocked-before-apply',
+    authoritativeLinkState: 'never-scheduled',
+    representsCommittedWorldTruth: false,
+  },
+  localValidatedApplied: {
+    lifecycleState: 'local-validated-applied',
+    callerExpectation:
+      'Validated local-only apply record. This mutation changed local state but never becomes committed world truth.',
+    localOutcome: 'applied-local-only',
+    authoritativeLinkState: 'never-links',
+    representsCommittedWorldTruth: false,
+  },
+  optimisticPreviewPending: {
+    lifecycleState: 'optimistic-preview-pending',
+    callerExpectation:
+      'Optimistic local preview record. Local preview is visible and authoritative persistence is still pending.',
+    localOutcome: 'preview-applied-awaiting-persist',
+    authoritativeLinkState: 'pending',
+    representsCommittedWorldTruth: false,
+  },
+  authoritativeLinkEstablished: {
+    lifecycleState: 'authoritative-link-established',
+    callerExpectation:
+      'Previously optimistic preview record that is now linked to an authoritative world event. The record remains local audit history, not committed world storage.',
+    localOutcome: 'preview-was-linked',
+    authoritativeLinkState: 'linked',
+    representsCommittedWorldTruth: false,
+  },
+  persistFailedRolledBack: {
+    lifecycleState: 'persist-failed-rolled-back',
+    callerExpectation:
+      'Optimistic preview record whose authoritative persist failed and whose local preview was rolled back.',
+    localOutcome: 'rolled-back-after-persist-failure',
+    authoritativeLinkState: 'failed',
+    representsCommittedWorldTruth: false,
+  },
+} as const;
+
+export function getLocalCapAuditLifecycleState(
+  event: CapAuditEventV1Like
+): LocalCapAuditLifecycleState {
+  if (event?.localAuditLifecycleState) {
+    return event.localAuditLifecycleState;
+  }
+
+  if (event?.persistFailed) {
+    return 'persist-failed-rolled-back';
+  }
+
+  if (event?.authoritativeEventLinked) {
+    return 'authoritative-link-established';
+  }
+
+  if (event?.valid === false) {
+    return 'evaluation-blocked';
+  }
+
+  if (event?.preview) {
+    return 'optimistic-preview-pending';
+  }
+
+  return 'local-validated-applied';
+}
+
+export function getLocalCapAuditLifecycleContract(
+  event: CapAuditEventV1Like
+) {
+  const lifecycleState = getLocalCapAuditLifecycleState(event);
+
+  switch (lifecycleState) {
+    case 'evaluation-blocked':
+      return LOCAL_CAP_AUDIT_LIFECYCLE_CONTRACTS.evaluationBlocked;
+    case 'local-validated-applied':
+      return LOCAL_CAP_AUDIT_LIFECYCLE_CONTRACTS.localValidatedApplied;
+    case 'optimistic-preview-pending':
+      return LOCAL_CAP_AUDIT_LIFECYCLE_CONTRACTS.optimisticPreviewPending;
+    case 'authoritative-link-established':
+      return LOCAL_CAP_AUDIT_LIFECYCLE_CONTRACTS.authoritativeLinkEstablished;
+    case 'persist-failed-rolled-back':
+      return LOCAL_CAP_AUDIT_LIFECYCLE_CONTRACTS.persistFailedRolledBack;
+    default: {
+      const exhaustiveCheck: never = lifecycleState;
+      throw new Error(
+        `Unhandled local cap audit lifecycle state: ${exhaustiveCheck}`
+      );
+    }
+  }
+}
+
+export function withLocalCapAuditLifecycleState(
+  event: CapAuditEventV1Like,
+  lifecycleState: LocalCapAuditLifecycleState
+): CapAuditEventV1Like {
+  return {
+    ...event,
+    localAuditLifecycleState: lifecycleState,
+  };
+}
+
+export function buildAuthoritativeLinkEstablishedAuditPatch(
+  authoritativeOperationId: string
+): Partial<CapAuditEventV1Like> {
+  return {
+    localAuditLifecycleState: 'authoritative-link-established',
+    authoritativeEventLinked: true,
+    authoritativeOperationId,
+    persistFailed: false,
+  };
+}
+
+export function buildPersistFailedRolledBackAuditPatch(): Partial<CapAuditEventV1Like> {
+  return {
+    localAuditLifecycleState: 'persist-failed-rolled-back',
+    authoritativeEventLinked: false,
+    authoritativeOperationId: undefined,
+    persistFailed: true,
+  };
+}
 
 const inMemoryStore = new Map<string, CapAuditEventV1Like[]>();
 

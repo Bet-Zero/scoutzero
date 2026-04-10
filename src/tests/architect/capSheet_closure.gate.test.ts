@@ -996,10 +996,19 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
       /type\s+PreparedCapAuditedMutationBoundary\s*=\s*\{/
     );
     expect(actionsContent).toMatch(/type\s+CapAuditedMutationLocalStateKind\s*=/);
+    expect(actionsContent).toMatch(
+      /auditLifecycleState:\s*LocalCapAuditLifecycleState;/
+    );
     expect(preparedLifecycleHelperRegion).toMatch(
       /const\s+prepareCapAuditedMutationBoundary\s*=\s*useCallback/
     );
     expect(preparedLifecycleHelperRegion).toMatch(/buildCapAuditEvaluation\(/);
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /const\s+auditLifecycleState:\s*LocalCapAuditLifecycleState\s*=/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /const\s+auditEvent\s*=\s*withLocalCapAuditLifecycleState\(/
+    );
     expect(preparedLifecycleHelperRegion).toMatch(
       /localStateKind:\s*auditStreamBoundary\.stateKind/
     );
@@ -1012,11 +1021,17 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     expect(preparedLifecycleHelperRegion).toMatch(
       /rollbackOptimisticLocalState:\s*\(\)\s*=>/
     );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /buildAuthoritativeLinkEstablishedAuditPatch\(/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /buildPersistFailedRolledBackAuditPatch\(\)/
+    );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
       /prepareCapAuditedMutationBoundary\(\{/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
-      /appendLocalCapAuditEvent\(boundary\.auditEvaluation\.event/
+      /appendLocalCapAuditEvent\(boundary\.auditEvent/
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
       /boundary\.applyNonAuthoritativeState\(\)/
@@ -1037,7 +1052,7 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
 
   it('applyCapAuditedTeamMutation preserves the authoritative audit -> validation -> non-authoritative local state -> persist order', () => {
     const previewAppendIndex = applyCapAuditedTeamMutationRegion.indexOf(
-      'appendLocalCapAuditEvent(boundary.auditEvaluation.event'
+      'appendLocalCapAuditEvent(boundary.auditEvent'
     );
     const invalidGateIndex = applyCapAuditedTeamMutationRegion.indexOf(
       'if (!boundary.auditEvaluation.validation.valid)'
@@ -1080,6 +1095,12 @@ describe('Gate 8: Manual Cap Sheet Mutation Authority (CS-5A)', () => {
     );
     expect(applyCapAuditedTeamMutationRegion).toMatch(
       /boundary\.rollbackOptimisticLocalState\(\)/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /updateLocalCapAuditEvent\(\s*operationId,\s*buildAuthoritativeLinkEstablishedAuditPatch\(/
+    );
+    expect(preparedLifecycleHelperRegion).toMatch(
+      /updateLocalCapAuditEvent\(\s*operationId,\s*buildPersistFailedRolledBackAuditPatch\(\)/
     );
   });
 });

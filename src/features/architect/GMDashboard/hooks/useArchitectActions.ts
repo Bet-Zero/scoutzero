@@ -54,9 +54,13 @@ import {
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import {
+  buildAuthoritativeLinkEstablishedAuditPatch,
+  buildPersistFailedRolledBackAuditPatch,
   BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM,
+  type LocalCapAuditLifecycleState,
   WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM,
   appendLocalCapAuditEvent,
+  withLocalCapAuditLifecycleState,
   updateLocalCapAuditEvent,
   type CapAuditEventV1Like,
 } from '@/features/architect/utils/capLegality/localCapAuditLog';
@@ -84,6 +88,7 @@ import {
   clearCapSheetFixtures,
   DEV_CAP_SHEET_FIXTURE_BOUNDARY,
   DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
+  DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
   hasInjectedCapSheetFixtures as hasInjectedCapSheetFixturesInTeam,
   injectCapSheetFixtures,
 } from '@/features/architect/capSheet/devCapSheetFixtures';
@@ -388,6 +393,7 @@ interface CapSheetDevTools {
   hasInjectedLocalFixtures: boolean;
   localStateOwner: typeof DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER;
   syntheticCoverageBoundary: typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY;
+  runtimeBoundary: typeof DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY;
   injectFixtures: () => MutationActionResult;
   clearFixtures: () => MutationActionResult;
   hasInjectedFixtures: boolean;
@@ -1860,10 +1866,12 @@ export function useArchitectActions({
     operationId: string;
     storageKey: string;
     localStateKind: CapAuditedMutationLocalStateKind;
+    auditLifecycleState: LocalCapAuditLifecycleState;
     beforeTeamSnapshot: CapSheet;
     afterTeamSnapshot: CapSheet;
     beforeTeamsByCode: TeamsByCode;
     afterTeamsByCode: TeamsByCode;
+    auditEvent: CapAuditEventV1Like;
     auditEvaluation: ReturnType<typeof buildCapAuditEvaluation>;
     applyNonAuthoritativeState: () => void;
     linkCommittedPersistSuccess: (result: PersistMutationResult) => void;
@@ -1918,16 +1926,28 @@ export function useArchitectActions({
         authoritativeEventLinked:
           auditStreamBoundary.initialAuthoritativeEventLinked,
       });
+      const auditLifecycleState: LocalCapAuditLifecycleState =
+        !auditEvaluation.validation.valid
+          ? 'evaluation-blocked'
+          : auditStreamBoundary.stateKind === 'local-validated-apply'
+            ? 'local-validated-applied'
+            : 'optimistic-preview-pending';
+      const auditEvent = withLocalCapAuditLifecycleState(
+        auditEvaluation.event,
+        auditLifecycleState
+      );
       const storageKey = auditStreamBoundary.storageKey;
 
       return {
         operationId,
         storageKey,
         localStateKind: auditStreamBoundary.stateKind,
+        auditLifecycleState,
         beforeTeamSnapshot,
         afterTeamSnapshot,
         beforeTeamsByCode,
         afterTeamsByCode,
+        auditEvent,
         auditEvaluation,
         applyNonAuthoritativeState: () => {
           setTeamCapSheetSafe(afterTeamSnapshot);
@@ -1938,11 +1958,9 @@ export function useArchitectActions({
           );
           updateLocalCapAuditEvent(
             operationId,
-            {
-              authoritativeEventLinked: true,
-              authoritativeOperationId,
-              persistFailed: false,
-            },
+            buildAuthoritativeLinkEstablishedAuditPatch(
+              authoritativeOperationId
+            ),
             {
               storageKey,
             }
@@ -1952,10 +1970,7 @@ export function useArchitectActions({
           setTeamCapSheetSafe(beforeTeamSnapshot);
           const didUpdatePreview = updateLocalCapAuditEvent(
             operationId,
-            {
-              persistFailed: true,
-              authoritativeEventLinked: false,
-            },
+            buildPersistFailedRolledBackAuditPatch(),
             {
               storageKey,
             }
@@ -1964,9 +1979,8 @@ export function useArchitectActions({
           if (!didUpdatePreview) {
             appendLocalCapAuditEvent(
               {
-                ...auditEvaluation.event,
-                persistFailed: true,
-                authoritativeEventLinked: false,
+                ...auditEvent,
+                ...buildPersistFailedRolledBackAuditPatch(),
               },
               {
                 storageKey,
@@ -3124,7 +3138,13 @@ export function useArchitectActions({
           [teamCode]: safeCloneForAudit(updatedTeam as CapSheet),
         },
       });
-      appendLocalCapAuditEvent(localValidatedAudit.event, {
+      const localValidatedAuditEvent = withLocalCapAuditLifecycleState(
+        localValidatedAudit.event,
+        localValidatedAudit.validation.valid
+          ? 'local-validated-applied'
+          : 'evaluation-blocked'
+      );
+      appendLocalCapAuditEvent(localValidatedAuditEvent, {
         storageKey: BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM.storageKey,
       });
 
@@ -3232,11 +3252,14 @@ export function useArchitectActions({
           yearOverride,
         });
 
-        appendLocalCapAuditEvent(boundary.auditEvaluation.event, {
+        appendLocalCapAuditEvent(boundary.auditEvent, {
           storageKey: boundary.storageKey,
         });
 
         if (!boundary.auditEvaluation.validation.valid) {
+          // The audit record has already been written with an explicit
+          // `evaluation-blocked` lifecycle state, so callers can distinguish
+          // blocked preview/audit records from pending optimistic preview.
           reportMutationError(
             getFirstViolationMessage(
               boundary.auditEvaluation.validation,
@@ -3872,7 +3895,13 @@ export function useArchitectActions({
           beforeTeamsByCode,
           afterTeamsByCode,
         });
-        appendLocalCapAuditEvent(localValidatedAudit.event, {
+        const localValidatedAuditEvent = withLocalCapAuditLifecycleState(
+          localValidatedAudit.event,
+          localValidatedAudit.validation.valid
+            ? 'local-validated-applied'
+            : 'evaluation-blocked'
+        );
+        appendLocalCapAuditEvent(localValidatedAuditEvent, {
           storageKey: BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM.storageKey,
         });
 
@@ -4710,6 +4739,7 @@ export function useArchitectActions({
       hasInjectedLocalFixtures: hasInjectedCapSheetFixtures,
       localStateOwner: DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
       syntheticCoverageBoundary: DEV_CAP_SHEET_FIXTURE_BOUNDARY,
+      runtimeBoundary: DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
       injectFixtures: injectCapSheetDevFixtures,
       clearFixtures: clearCapSheetDevFixtures,
       hasInjectedFixtures: hasInjectedCapSheetFixtures,

@@ -10,6 +10,7 @@ import {
   WORLD_OPTIMISTIC_PREVIEW_CAP_AUDIT_STREAM,
   appendLocalCapAuditEvent,
   clearLocalCapAuditEvents,
+  getLocalCapAuditLifecycleContract,
   readLocalCapAuditEvents,
   type CapAuditEventV1Like,
 } from '@/features/architect/utils/capLegality/localCapAuditLog';
@@ -56,17 +57,15 @@ vi.mock('react-hot-toast', () => ({
 const baseTeamFixture = {
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
-  players: [
-    {
-      id: 'player_1',
-      player_id: 'player_1',
-      name: 'Test Player',
-      contract: {
-        contractType: 'Standard',
-        salariesByYear: [{ season: '2025-26', salary: 12_000_000 }],
-      },
+  players: Array.from({ length: 14 }, (_, index) => ({
+    id: `player_${index + 1}`,
+    player_id: `player_${index + 1}`,
+    name: `Test Player ${index + 1}`,
+    contract: {
+      contractType: 'Standard',
+      salariesByYear: [{ season: '2025-26', salary: 1_000_000 }],
     },
-  ],
+  })),
   capHolds: [],
   deadCap: [],
   exceptions: {
@@ -219,6 +218,15 @@ describe('base mode CapAuditEventV1 local log behavior', () => {
     expect(Array.isArray(lastEvent.violations)).toBe(true);
     expect(Array.isArray(lastEvent.warnings)).toBe(true);
     expect(lastEvent.diffSummary).toBeDefined();
+    expect(lastEvent.localAuditLifecycleState).toBe(
+      'local-validated-applied'
+    );
+    expect(getLocalCapAuditLifecycleContract(lastEvent)).toMatchObject({
+      lifecycleState: 'local-validated-applied',
+      localOutcome: 'applied-local-only',
+      authoritativeLinkState: 'never-links',
+      representsCommittedWorldTruth: false,
+    });
   });
 
   it('caps log size and falls back to in-memory storage when window is unavailable', () => {

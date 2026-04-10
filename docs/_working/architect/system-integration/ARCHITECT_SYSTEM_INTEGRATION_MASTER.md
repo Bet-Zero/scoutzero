@@ -6,7 +6,7 @@ Architect System Integration
 
 ## Status
 
-**Step 4 first execution batch complete — second batch ready.**
+**Step 4 execution complete — closeout review ready.**
 
 ## Purpose
 
@@ -41,7 +41,7 @@ After those closeouts, Architect has strong per-feature clarity but no systemati
 | Step 1   | Global Ownership and Truth Boundaries       | Closeout rereview PASS — complete  |
 | Step 2   | Cross-Surface Handoff Integrity             | Closeout review PASS — complete    |
 | Step 3   | Mutation, Reload, and Propagation Integrity | Closeout review PASS — complete    |
-| Step 4   | Preview vs Committed-State Consistency      | Batch 1 complete — Batch 2 ready   |
+| Step 4   | Preview vs Committed-State Consistency      | Execution complete — closeout ready |
 | Closeout | Whole-Feature System Integration Closeout   | Not started                        |
 
 ---
@@ -440,6 +440,17 @@ Step 4 will be considered structurally successful when all of the following are 
 - Validation completed: targeted `npm run test:node -- ... --reporter=dot` batch covering the changed guardrails plus world optimistic behavior, and `npm run typecheck`.
 - No stop conditions were triggered. Step 4 should proceed to second-batch execution (`SI-4C` + `SI-4D`).
 
+### Step 4 Batch 2 Execution Update
+
+**Completed:** April 10, 2026
+
+- Batch 2 verdict: **PASS**
+- `SI-4C` completed: `localCapAuditLog.ts` now publishes an explicit `LocalCapAuditLifecycleState` contract plus lifecycle helpers for blocked evaluation, optimistic-preview pending, authoritative-link established, and persist-failed rollback; `useArchitectActions.ts` now stamps those lifecycle states onto local audit records when preview/local-only mutations are written and when optimistic persistence succeeds or fails.
+- `SI-4D` completed: `OffseasonSection.tsx` now publishes a DEV preview boundary contract and boundary note at the wrapper seam; `devCapSheetFixtures.ts` exports `DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY`; `useArchitectActions.ts` and `CapSheetSection.tsx` now carry that runtime-boundary contract through the action-owner and section-support surfaces so DEV fixture controls stay visibly separate from committed-world truth.
+- Validation completed: `npm run test:node -- src/tests/architect/baseMode_capAuditEventV1.localLog.behavior.test.ts src/tests/architect/worldOptimistic_postStateValidator_blocks_violation.behavior.test.ts src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts src/tests/architect/capSheet_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/architectHardeningE4.polish.test.ts src/tests/architect/architectFinalTypeImplementation.test.ts src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`; `npm run test:ui -- src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`; `npm run typecheck`.
+- Note: the `.tsx` shell guardrails were also run under `test:ui` because the node-config run executed the non-`.tsx` subset only; the additional UI-scoped run was the truthful narrow proof for the Step 4D shell seams.
+- No stop conditions were triggered. Step 4 execution is complete and should proceed to closeout review.
+
 ---
 
 ## Related Documents
@@ -473,5 +484,6 @@ Step 4 will be considered structurally successful when all of the following are 
 | `docs/_working/architect/system-integration/ARCHITECT_SYSTEM_INTEGRATION_STEP4_ACTION_BREAKDOWN.md` | Step 4 execution lane definitions |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_BOOTSTRAP_RETURN_PACKAGE.md`          | Step 4 bootstrap return package   |
 | `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH1_RETURN_PACKAGE.md`        | Step 4 batch 1 execution package  |
+| `return_packages/architect/ARCHITECT_SYSTEM_INTEGRATION_STEP4_EXEC_BATCH2_RETURN_PACKAGE.md`        | Step 4 batch 2 execution package  |
 | `docs/_working/architect/ARCHITECT_CHAT_WORKFLOW_CONTINUATION_GUIDE_V3.md`                          | Active workflow process guide     |
 | `docs/_working/architect/ARCHITECT_REMAINING_REVIEW_ROADMAP.md`                                     | Remaining review roadmap          |

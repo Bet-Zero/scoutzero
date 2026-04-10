@@ -6,6 +6,7 @@ import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useA
 import {
   WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
   clearLocalCapAuditEvents,
+  getLocalCapAuditLifecycleContract,
   readLocalCapAuditEvents,
 } from '@/features/architect/utils/capLegality/localCapAuditLog';
 
@@ -208,5 +209,12 @@ describe('world optimistic post-state validator gate', () => {
     expect(previewEvent?.operationId).toEqual(expect.any(String));
     expect(previewEvent?.authoritativeEventLinked).toBe(false);
     expect(previewEvent?.authoritativeOperationId).toBeUndefined();
+    expect(previewEvent?.localAuditLifecycleState).toBe('evaluation-blocked');
+    expect(getLocalCapAuditLifecycleContract(previewEvent!)).toMatchObject({
+      lifecycleState: 'evaluation-blocked',
+      localOutcome: 'blocked-before-apply',
+      authoritativeLinkState: 'never-scheduled',
+      representsCommittedWorldTruth: false,
+    });
   });
 });

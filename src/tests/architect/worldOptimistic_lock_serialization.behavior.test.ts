@@ -6,6 +6,7 @@ import { useArchitectActions } from '@/features/architect/GMDashboard/hooks/useA
 import {
   WORLD_PREVIEW_CAP_AUDIT_STORAGE_KEY,
   clearLocalCapAuditEvents,
+  getLocalCapAuditLifecycleContract,
   readLocalCapAuditEvents,
 } from '@/features/architect/utils/capLegality/localCapAuditLog';
 import {
@@ -230,6 +231,17 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
     expect(previewEventWhileLocked?.mutationType).toBe('setDeadCap');
     expect(previewEventWhileLocked?.preview).toBe(true);
     expect(previewEventWhileLocked?.authoritativeEventLinked).toBe(false);
+    expect(previewEventWhileLocked?.localAuditLifecycleState).toBe(
+      'optimistic-preview-pending'
+    );
+    expect(
+      getLocalCapAuditLifecycleContract(previewEventWhileLocked!)
+    ).toMatchObject({
+      lifecycleState: 'optimistic-preview-pending',
+      localOutcome: 'preview-applied-awaiting-persist',
+      authoritativeLinkState: 'pending',
+      representsCommittedWorldTruth: false,
+    });
     expect(mutationMocks.applyWorldMutation.mock.calls[0]?.[0]).toMatchObject({
       mutationType: 'setDeadCap',
       operationId: previewEventWhileLocked?.operationId,
@@ -256,6 +268,17 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
       );
       expect(previewEvents[0]?.authoritativeEventLinked).toBe(true);
       expect(previewEvents[0]?.authoritativeOperationId).toBe('auth_op_1');
+      expect(previewEvents[0]?.localAuditLifecycleState).toBe(
+        'authoritative-link-established'
+      );
+      expect(getLocalCapAuditLifecycleContract(previewEvents[0]!)).toMatchObject(
+        {
+          lifecycleState: 'authoritative-link-established',
+          localOutcome: 'preview-was-linked',
+          authoritativeLinkState: 'linked',
+          representsCommittedWorldTruth: false,
+        }
+      );
     });
 
     act(() => {
@@ -384,6 +407,9 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
     expect(previewEventBeforeFailure?.mutationType).toBe('setExceptions');
     expect(previewEventBeforeFailure?.persistFailed).toBeUndefined();
     expect(previewEventBeforeFailure?.authoritativeEventLinked).toBe(false);
+    expect(previewEventBeforeFailure?.localAuditLifecycleState).toBe(
+      'optimistic-preview-pending'
+    );
     expect(result.current.teamCapSheet.exceptions).toEqual({
       mle: {
         type: 'non-taxpayer',
@@ -423,6 +449,15 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
     expect(previewEvents[0]?.persistFailed).toBe(true);
     expect(previewEvents[0]?.authoritativeEventLinked).toBe(false);
     expect(previewEvents[0]?.authoritativeOperationId).toBeUndefined();
+    expect(previewEvents[0]?.localAuditLifecycleState).toBe(
+      'persist-failed-rolled-back'
+    );
+    expect(getLocalCapAuditLifecycleContract(previewEvents[0]!)).toMatchObject({
+      lifecycleState: 'persist-failed-rolled-back',
+      localOutcome: 'rolled-back-after-persist-failure',
+      authoritativeLinkState: 'failed',
+      representsCommittedWorldTruth: false,
+    });
   });
 
   it('keeps base-mode no-write behavior for optimistic handlers', () => {

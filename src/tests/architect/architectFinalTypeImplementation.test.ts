@@ -18,6 +18,24 @@ import type {
 const auditLogMocks = vi.hoisted(() => ({
   appendLocalCapAuditEvent: vi.fn(),
   updateLocalCapAuditEvent: vi.fn(),
+  withLocalCapAuditLifecycleState: vi.fn((event, lifecycleState) => ({
+    ...event,
+    localAuditLifecycleState: lifecycleState,
+  })),
+  buildAuthoritativeLinkEstablishedAuditPatch: vi.fn(
+    (authoritativeOperationId: string) => ({
+      localAuditLifecycleState: 'authoritative-link-established',
+      authoritativeEventLinked: true,
+      authoritativeOperationId,
+      persistFailed: false,
+    })
+  ),
+  buildPersistFailedRolledBackAuditPatch: vi.fn(() => ({
+    localAuditLifecycleState: 'persist-failed-rolled-back',
+    authoritativeEventLinked: false,
+    authoritativeOperationId: undefined,
+    persistFailed: true,
+  })),
 }));
 
 const validatorMocks = vi.hoisted(() => ({
@@ -62,6 +80,11 @@ vi.mock('@/features/architect/utils/capLegality/localCapAuditLog', () => ({
   },
   appendLocalCapAuditEvent: auditLogMocks.appendLocalCapAuditEvent,
   updateLocalCapAuditEvent: auditLogMocks.updateLocalCapAuditEvent,
+  withLocalCapAuditLifecycleState: auditLogMocks.withLocalCapAuditLifecycleState,
+  buildAuthoritativeLinkEstablishedAuditPatch:
+    auditLogMocks.buildAuthoritativeLinkEstablishedAuditPatch,
+  buildPersistFailedRolledBackAuditPatch:
+    auditLogMocks.buildPersistFailedRolledBackAuditPatch,
 }));
 
 vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({

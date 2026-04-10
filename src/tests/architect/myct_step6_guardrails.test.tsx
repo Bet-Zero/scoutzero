@@ -11,6 +11,7 @@ import {
   DEV_CAP_SHEET_FIXTURE_FLAG,
   DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
   DEV_CAP_SHEET_FIXTURE_MARKER,
+  DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
   buildCapSheetFixturePlayers,
   clearCapSheetFixtures,
   hasInjectedCapSheetFixtures,
@@ -152,6 +153,9 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
     expect(actionsSource).toContain(
       'syntheticCoverageBoundary: typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY;'
     );
+    expect(actionsSource).toContain(
+      'runtimeBoundary: typeof DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY;'
+    );
 
     expect(actionRegion).toContain('const applyLocalDevCapSheetFixtureState');
     expect(actionRegion).toContain('if (!import.meta.env.DEV)');
@@ -163,6 +167,9 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
     expect(actionRegion).toContain('setTeamCapSheetSafe(nextTeam as CapSheet)');
     expect(actionRegion.match(/setTeamCapSheetSafe\(nextTeam as CapSheet\)/g)).toHaveLength(1);
     expect(actionRegion).not.toMatch(/\bsetTeamCapSheet\(/);
+    expect(actionsSource).toContain(
+      'runtimeBoundary: DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,'
+    );
 
     const forbiddenOwnershipLeaks = [
       /\bapplyWorldMutation\b/,
@@ -182,7 +189,10 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
     }
 
     expect(gmDashboardSource).toContain(
-      'capSheetDevFixtureControls={actions.capSheetDevTools}'
+      'const capSheetSectionSurface: CapSheetSectionProps = {'
+    );
+    expect(gmDashboardSource).toContain(
+      'capSheetDevFixtureControls: actions.capSheetDevTools,'
     );
     expect(gmDashboardSource).not.toContain(
       'onInjectCapSheetFixtures={actions.capSheetDevTools.injectFixtures}'
@@ -214,7 +224,14 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
     expect(
       controlsRegion.indexOf('capSheetDevFixtureControls?.hasInjectedLocalFixtures')
     ).toBeLessThan(controlsRegion.indexOf('hasInjectedCapSheetFixtures'));
+    expect(sectionSource).toContain(
+      'runtimeBoundary?: typeof DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY;'
+    );
+    expect(sectionSource).toContain(
+      'capSheetDevFixtureControls?.runtimeBoundary ??'
+    );
     expect(sectionSource).toContain('cap-sheet-fixtures-boundary-note');
+    expect(sectionSource).toContain('cap-sheet-fixtures-runtime-note');
     expect(sectionSource).toContain('cap-sheet-fixtures-active-note');
     expect(sectionSource).toContain(
       'Local owner: {localFixtureStateOwner.ownerLabel}'
@@ -224,6 +241,10 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
     );
 
     expect(fixturesSource).toContain('DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD');
+    expect(fixturesSource).toContain('DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY');
+    expect(fixturesSource).toContain(
+      "activationRequirement:\n    'requires-local-dev-build-and-explicit-local-intent-flag'"
+    );
     expect(fixturesSource).toContain(
       "intentLabel: 'Bounded futureContract seam probe'"
     );
@@ -407,6 +428,7 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
           hasInjectedLocalFixtures: true,
           localStateOwner: DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
           syntheticCoverageBoundary: DEV_CAP_SHEET_FIXTURE_BOUNDARY,
+          runtimeBoundary: DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
         }}
         onInjectCapSheetFixtures={legacyInject}
         onClearCapSheetFixtures={legacyClear}
@@ -427,6 +449,7 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
           hasInjectedLocalFixtures: true,
           localStateOwner: DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
           syntheticCoverageBoundary: DEV_CAP_SHEET_FIXTURE_BOUNDARY,
+          runtimeBoundary: DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
         }}
         onInjectCapSheetFixtures={legacyInject}
         onClearCapSheetFixtures={legacyClear}
@@ -446,6 +469,7 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
           hasInjectedLocalFixtures: true,
           localStateOwner: DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
           syntheticCoverageBoundary: DEV_CAP_SHEET_FIXTURE_BOUNDARY,
+          runtimeBoundary: DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
         }}
         onInjectCapSheetFixtures={legacyInject}
         onClearCapSheetFixtures={legacyClear}
@@ -469,6 +493,18 @@ describe('MYCT-6C DEV cap-sheet fixture guardrails', () => {
     );
     expect(screen.getByTestId('cap-sheet-fixtures-boundary-note')).toHaveTextContent(
       'Not representative of real options, guarantee complexity, minimum-contract reimbursement, irregular real-data contract overlaps.'
+    );
+    expect(screen.getByTestId('cap-sheet-fixtures-runtime-note')).toHaveTextContent(
+      `DEV only via \`${DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY.activationFlag}\`.`
+    );
+    expect(screen.getByTestId('cap-sheet-fixtures-runtime-note')).toHaveTextContent(
+      `Activation: ${DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY.activationRequirement}.`
+    );
+    expect(screen.getByTestId('cap-sheet-fixtures-runtime-note')).toHaveTextContent(
+      `Persistence: ${DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY.persistence}.`
+    );
+    expect(screen.getByTestId('cap-sheet-fixtures-runtime-note')).toHaveTextContent(
+      `These controls ${DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY.committedWorldRelationship}.`
     );
     expect(screen.getByTestId('cap-sheet-fixtures-active-note')).toHaveTextContent(
       'Synthetic DEV fixture players are active in local team state.'

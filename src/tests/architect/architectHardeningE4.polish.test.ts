@@ -40,6 +40,24 @@ const worldTeamDataMocks = vi.hoisted(() => ({
 const auditLogMocks = vi.hoisted(() => ({
   appendLocalCapAuditEvent: vi.fn(),
   updateLocalCapAuditEvent: vi.fn(() => true),
+  withLocalCapAuditLifecycleState: vi.fn((event, lifecycleState) => ({
+    ...event,
+    localAuditLifecycleState: lifecycleState,
+  })),
+  buildAuthoritativeLinkEstablishedAuditPatch: vi.fn(
+    (authoritativeOperationId: string) => ({
+      localAuditLifecycleState: 'authoritative-link-established',
+      authoritativeEventLinked: true,
+      authoritativeOperationId,
+      persistFailed: false,
+    })
+  ),
+  buildPersistFailedRolledBackAuditPatch: vi.fn(() => ({
+    localAuditLifecycleState: 'persist-failed-rolled-back',
+    authoritativeEventLinked: false,
+    authoritativeOperationId: undefined,
+    persistFailed: true,
+  })),
 }));
 
 const toastMocks = vi.hoisted(() => ({
@@ -95,6 +113,11 @@ vi.mock('@/features/architect/utils/capLegality/localCapAuditLog', () => ({
   },
   appendLocalCapAuditEvent: auditLogMocks.appendLocalCapAuditEvent,
   updateLocalCapAuditEvent: auditLogMocks.updateLocalCapAuditEvent,
+  withLocalCapAuditLifecycleState: auditLogMocks.withLocalCapAuditLifecycleState,
+  buildAuthoritativeLinkEstablishedAuditPatch:
+    auditLogMocks.buildAuthoritativeLinkEstablishedAuditPatch,
+  buildPersistFailedRolledBackAuditPatch:
+    auditLogMocks.buildPersistFailedRolledBackAuditPatch,
 }));
 
 vi.mock('react-hot-toast', () => ({
@@ -371,6 +394,11 @@ describe('Architect TypeScript hardening E4 regression', () => {
         injectFixtures: expect.any(Function),
         clearFixtures: expect.any(Function),
         hasInjectedFixtures: false,
+        runtimeBoundary: expect.objectContaining({
+          activationFlag: 'hz.dev.capSheetFixtures',
+          authoritative: false,
+          persistence: 'none',
+        }),
       })
     );
     expect(result.current.actions.teamHistoryDevTools).toEqual(

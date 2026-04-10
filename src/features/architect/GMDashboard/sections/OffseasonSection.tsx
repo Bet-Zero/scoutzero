@@ -103,6 +103,7 @@ type WorldBackedOffseasonSurfaceProps = {
 
 type DevPreviewOffseasonSurfaceProps = {
   previewOnlyAvailability: OffseasonPreviewOnlySurfaceAvailability;
+  previewBoundary: OffseasonPreviewOnlyBoundary;
   previewAuthority: OffseasonPreviewAuthority;
   worldId?: string | null;
   teamCapSheet: LooseRecord | null | undefined;
@@ -111,18 +112,33 @@ type DevPreviewOffseasonSurfaceProps = {
   playersMap?: Record<string, unknown>;
 };
 
+export const DEV_OFFSEASON_PREVIEW_FLAG = 'hz.dev.offseasonPreview';
+
+type OffseasonPreviewOnlyBoundary = {
+  surfaceKind: 'dev-preview-only-surface';
+  visibility: 'dev-only';
+  activationFlag: typeof DEV_OFFSEASON_PREVIEW_FLAG;
+  activationRequirement:
+    'requires-local-dev-build-and-explicit-local-intent-flag';
+  authoritative: false;
+  persistence: 'none';
+  committedWorldRelationship: 'must-never-read-as-committed-world-state';
+};
+
 type DevPreviewOnlySurfaceAccess =
   | {
       kind: 'hidden';
       isDevEnvironment: boolean;
       hasPreviewIntent: boolean;
       previewAuthority: null;
+      previewBoundary: null;
     }
   | {
       kind: 'preview-only';
       isDevEnvironment: true;
       hasPreviewIntent: true;
       previewAuthority: OffseasonPreviewAuthority;
+      previewBoundary: OffseasonPreviewOnlyBoundary;
     };
 
 const OFFSEASON_WORLD_ONLY_BADGE = 'World-only';
@@ -134,6 +150,16 @@ const OFFSEASON_WORLD_ADVANCE_DISABLED_TITLE =
   OFFSEASON_WORLD_ADVANCE_DISABLED_REASON;
 const OFFSEASON_PREVIEW_ONLY_BANNER =
   'Preview only — does not persist. Changes will be lost on refresh.';
+const OFFSEASON_DEV_PREVIEW_ONLY_BOUNDARY: OffseasonPreviewOnlyBoundary = {
+  surfaceKind: 'dev-preview-only-surface',
+  visibility: 'dev-only',
+  activationFlag: DEV_OFFSEASON_PREVIEW_FLAG,
+  activationRequirement:
+    'requires-local-dev-build-and-explicit-local-intent-flag',
+  authoritative: false,
+  persistence: 'none',
+  committedWorldRelationship: 'must-never-read-as-committed-world-state',
+};
 
 type OffseasonWorldAdvanceAvailability = {
   hasActiveWorld: boolean;
@@ -281,6 +307,7 @@ function resolveDevPreviewOnlySurfaceAccess(): DevPreviewOnlySurfaceAccess {
       isDevEnvironment,
       hasPreviewIntent,
       previewAuthority: null,
+      previewBoundary: null,
     };
   }
 
@@ -289,6 +316,7 @@ function resolveDevPreviewOnlySurfaceAccess(): DevPreviewOnlySurfaceAccess {
     isDevEnvironment: true,
     hasPreviewIntent: true,
     previewAuthority: NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
+    previewBoundary: OFFSEASON_DEV_PREVIEW_ONLY_BOUNDARY,
   };
 }
 
@@ -386,6 +414,7 @@ function WorldBackedOffseasonSurface({
 
 function DevPreviewOffseasonSurface({
   previewOnlyAvailability,
+  previewBoundary,
   previewAuthority,
   worldId,
   teamCapSheet,
@@ -411,6 +440,15 @@ function DevPreviewOffseasonSurface({
       >
         {previewOnlyAvailability.bannerMessage}
       </div>
+      <div
+        data-testid="offseason-preview-boundary-note"
+        className="mb-4 rounded border border-yellow-500/20 bg-yellow-950/20 px-3 py-2 text-[11px] text-yellow-100/80"
+      >
+        DEV only via `{previewBoundary.activationFlag}`. Activation:{' '}
+        {previewBoundary.activationRequirement}. Persistence:{' '}
+        {previewBoundary.persistence}. This surface{' '}
+        {previewBoundary.committedWorldRelationship}.
+      </div>
       <OffseasonTab
         teamCapSheet={teamCapSheet as Record<string, unknown>}
         currentYear={viewingYear}
@@ -421,8 +459,6 @@ function DevPreviewOffseasonSurface({
     </section>
   );
 }
-
-export const DEV_OFFSEASON_PREVIEW_FLAG = 'hz.dev.offseasonPreview';
 
 const OffseasonSection = ({
   teamCapSheet,
@@ -630,6 +666,7 @@ const OffseasonSection = ({
           previewOnlyAvailability={
             OFFSEASON_DEV_PREVIEW_ONLY_SURFACE_AVAILABILITY
           }
+          previewBoundary={devPreviewOnlySurfaceAccess.previewBoundary}
           previewAuthority={devPreviewOnlySurfaceAccess.previewAuthority}
           worldId={worldId}
           teamCapSheet={teamCapSheet}

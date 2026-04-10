@@ -60,6 +60,7 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     });
 
     it('keeps preview access behind both DEV and hz.dev.offseasonPreview intent', () => {
+      expect(source).toContain("type OffseasonPreviewOnlyBoundary =");
       expect(source).toContain('const isDevEnvironment = Boolean(import.meta.env.DEV);');
       expect(source).toContain('const hasPreviewIntent =');
       expect(source).toContain(
@@ -71,14 +72,21 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
       expect(source).toContain(
         "kind: 'preview-only'"
       );
+      expect(source).toContain('const OFFSEASON_DEV_PREVIEW_ONLY_BOUNDARY: OffseasonPreviewOnlyBoundary = {');
       expect(source).toContain(
         'previewAuthority: NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,'
+      );
+      expect(source).toContain(
+        'previewBoundary: OFFSEASON_DEV_PREVIEW_ONLY_BOUNDARY,'
       );
     });
 
     it('routes preview rendering through the explicit preview access contract', () => {
       expect(source).toContain(
         "{devPreviewOnlySurfaceAccess.kind === 'preview-only' ? ("
+      );
+      expect(source).toContain(
+        'previewBoundary={devPreviewOnlySurfaceAccess.previewBoundary}'
       );
       expect(source).toContain(
         'previewAuthority={devPreviewOnlySurfaceAccess.previewAuthority}'
@@ -95,6 +103,13 @@ describe('OFFSEASON_E1: Single-team offseason DEV-gate guardrails', () => {
     it('includes preview-only warning banner', () => {
       expect(source).toContain(
         'Preview only — does not persist. Changes will be lost on refresh.'
+      );
+      expect(source).toContain('data-testid="offseason-preview-boundary-note"');
+      expect(source).toContain(
+        'DEV only via `{previewBoundary.activationFlag}`.'
+      );
+      expect(source).toContain(
+        '{previewBoundary.committedWorldRelationship}.'
       );
       expect(source).toContain(
         'previewOnlyAvailability={'

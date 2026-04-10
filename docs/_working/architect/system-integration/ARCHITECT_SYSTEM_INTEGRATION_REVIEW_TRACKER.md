@@ -761,14 +761,25 @@ If live overlap during execution is stronger than expected, SI-3D and SI-3E may 
 
 ---
 
+## Step 4 Batch 2 Execution Summary
+
+- **Date:** April 10, 2026
+- **Verdict:** `PASS`
+- **Status:** `SI-4C` and `SI-4D` complete. Step 4 execution is complete and closeout review is ready.
+- **Basis:** `localCapAuditLog.ts` now publishes explicit lifecycle-state contracts for blocked evaluation, local-validated apply, optimistic-preview pending, authoritative link success, and persist-failed rollback; `useArchitectActions.ts` now stamps those lifecycle states onto local audit records when the preview/local-only boundary is entered and when optimistic persistence resolves. `OffseasonSection.tsx` now publishes an explicit DEV preview boundary contract and visible boundary note, while `devCapSheetFixtures.ts`, `useArchitectActions.ts`, and `CapSheetSection.tsx` now publish one consistent DEV runtime-boundary contract so fixture controls remain visibly DEV-only, synthetic, and non-authoritative at the system seam rather than only inside their local utility file.
+- **Validation:** `npm run test:node -- src/tests/architect/baseMode_capAuditEventV1.localLog.behavior.test.ts src/tests/architect/worldOptimistic_postStateValidator_blocks_violation.behavior.test.ts src/tests/architect/worldOptimistic_lock_serialization.behavior.test.ts src/tests/architect/capSheet_closure.gate.test.ts src/tests/architect/offseason.devGate.guardrail.test.ts src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/architectHardeningE4.polish.test.ts src/tests/architect/architectFinalTypeImplementation.test.ts src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`; `npm run test:ui -- src/tests/architect/myct_step6_guardrails.test.tsx src/tests/architect/capSheet.topLevelShell.guardrail.test.tsx --reporter=dot`; `npm run typecheck`
+- **Note:** the two `.tsx` shell guardrails were rerun under `test:ui` because the node-config run executed only the non-`.tsx` subset. That extra UI-scoped run was kept intentionally narrow and directly tied to the Step 4D shell/dev-boundary proof.
+
+---
+
 ## Step 4 Execution Summary
 
 | Lane  | Name                                                                     | Priority | Status      | Batch          |
 | ----- | ------------------------------------------------------------------------ | -------- | ----------- | -------------- |
 | SI-4A | Normalize preview-type vocabulary and ownership markers                  | P1       | COMPLETE    | First (4A+4B)  |
 | SI-4B | Tighten `useArchitectActions.ts` preview vs committed-state contract     | P1       | COMPLETE    | First (4A+4B)  |
-| SI-4C | Clarify local audit / optimistic preview / persistence outcome semantics | P2       | NOT STARTED | Second (4C+4D) |
-| SI-4D | Tighten DEV-only / fixture-only / non-authoritative surface boundaries   | P2       | NOT STARTED | Second (4C+4D) |
+| SI-4C | Clarify local audit / optimistic preview / persistence outcome semantics | P2       | COMPLETE    | Second (4C+4D) |
+| SI-4D | Tighten DEV-only / fixture-only / non-authoritative surface boundaries   | P2       | COMPLETE    | Second (4C+4D) |
 
 ---
 
@@ -865,7 +876,7 @@ Complete when `useArchitectActions.ts` is materially easier to read as a preview
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -895,13 +906,20 @@ A contributor should be able to tell:
 
 Complete when the preview-to-authoritative linkage semantics are materially easier to understand and less likely to be misread as committed world events.
 
+### Execution Notes (2026-04-10)
+
+- `localCapAuditLog.ts` now publishes `LocalCapAuditLifecycleState`, lifecycle contracts, and helper patches so callers can distinguish `evaluation-blocked`, `local-validated-applied`, `optimistic-preview-pending`, `authoritative-link-established`, and `persist-failed-rolled-back` without inferring meaning from raw booleans alone.
+- `useArchitectActions.ts` now writes those lifecycle states at the preview/local-only mutation boundary, including blocked local-audit records, local-validated apply records, optimistic preview records, authoritative-link updates after successful persist, and persist-failed rollback updates.
+- The base-mode signing and trade local-audit appends now also stamp explicit lifecycle states, keeping the local-audit contract consistent outside the shared optimistic-preview helper path.
+- Targeted behavior tests now prove the blocked-preview, optimistic-pending, authoritative-link, and persist-failed rollback lifecycle transitions directly.
+
 ---
 
 ## SI-4D — Tighten DEV-Only / Fixture-Only / Non-Authoritative Surface Boundaries
 
 ### Status
 
-NOT STARTED
+COMPLETE
 
 ### Purpose
 
@@ -930,6 +948,13 @@ A contributor should be able to tell:
 - what should never be confused with committed world truth
 
 Complete when the repo presents these non-authoritative surfaces more consistently and more durably as intentionally separate from committed world state, not only inside isolated files but across the seams where they connect to the broader dashboard.
+
+### Execution Notes (2026-04-10)
+
+- `OffseasonSection.tsx` now publishes an explicit `OffseasonPreviewOnlyBoundary` contract and renders a boundary note that states the DEV flag, activation requirement, lack of persistence, and committed-world separation for the single-team offseason preview surface.
+- `devCapSheetFixtures.ts` now exports `DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY`, giving the fixture controls one reusable system-level contract for DEV-only visibility, activation, persistence, and committed-world relationship.
+- `useArchitectActions.ts` now publishes that runtime-boundary contract through `capSheetDevTools`, and `CapSheetSection.tsx` now renders a matching boundary note at the dashboard section seam so the fixture controls no longer rely on utility-local metadata alone.
+- Focused shell and guardrail tests now protect the published DEV/non-authoritative boundary markers in both the action-owner and section-support surfaces.
 
 ---
 

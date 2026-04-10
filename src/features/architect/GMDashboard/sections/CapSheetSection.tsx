@@ -16,6 +16,7 @@ import {
   DEV_CAP_SHEET_FIXTURE_BOUNDARY,
   DEV_CAP_SHEET_FIXTURE_FLAG,
   DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER,
+  DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
 } from '@/features/architect/capSheet/devCapSheetFixtures';
 
 type ForwardedCapSheetProps = Pick<
@@ -33,6 +34,7 @@ type CapSheetDevFixtureControls = {
   hasInjectedLocalFixtures?: boolean;
   localStateOwner?: typeof DEV_CAP_SHEET_FIXTURE_LOCAL_STATE_OWNER;
   syntheticCoverageBoundary?: typeof DEV_CAP_SHEET_FIXTURE_BOUNDARY;
+  runtimeBoundary?: typeof DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY;
   injectFixtures?: DevFixtureAction;
   clearFixtures?: DevFixtureAction;
   hasInjectedFixtures?: boolean;
@@ -101,6 +103,9 @@ const CapSheetSection = ({
   const syntheticCoverageBoundary =
     capSheetDevFixtureControls?.syntheticCoverageBoundary ??
     DEV_CAP_SHEET_FIXTURE_BOUNDARY;
+  const fixtureRuntimeBoundary =
+    capSheetDevFixtureControls?.runtimeBoundary ??
+    DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY;
   const isViewingCurrentYear = selectedYear === currentYear;
   const currentSeasonLabel = formatSeasonLabel(currentYear);
   const selectedSeasonLabel = formatSeasonLabel(selectedYear);
@@ -212,6 +217,15 @@ const CapSheetSection = ({
                 probe plus one no-`futureContract` control. Not
                 representative of{' '}
                 {syntheticCoverageBoundary.notModeledSeams.join(', ')}.
+              </div>
+              <div
+                data-testid="cap-sheet-fixtures-runtime-note"
+                className="mt-1 text-amber-200/55"
+              >
+                DEV only via `{fixtureRuntimeBoundary.activationFlag}`.
+                Activation: {fixtureRuntimeBoundary.activationRequirement}.
+                Persistence: {fixtureRuntimeBoundary.persistence}. These
+                controls {fixtureRuntimeBoundary.committedWorldRelationship}.
               </div>
             </div>
           </div>
