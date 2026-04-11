@@ -211,18 +211,26 @@ type MutationPlayerBioLike = {
   draftPick?: number | string | null;
   ['Years Pro']?: unknown;
 };
+type MutationSourceMetadata = Pick<
+  ArchitectSource,
+  | 'provider'
+  | 'teamPageUrl'
+  | 'playerPageUrl'
+  | 'scrapedAt'
+  | 'season'
+  | 'type'
+  | 'worldId'
+  | 'generatedAt'
+  | 'baseTeamVersion'
+>;
 type MutationPlayerSourceLike =
-  | ArchitectSource
-  | NonNullable<BasePlayerDoc['source']>
-  | LooseRecord
-  | string
+  | MutationSourceMetadata
   | null;
 type MutationTradeExceptionRecord = TradeExceptionRecord & {
   used?: number | null;
 };
 type MutationTeamSourceLike =
-  | (ArchitectSource & { lastModifiedAt?: string | null })
-  | string
+  | (MutationSourceMetadata & { lastModifiedAt?: string | null })
   | null;
 type CapHoldComputationPlayer = NonNullable<
   NonNullable<Parameters<typeof computeExpectedCapHoldAmount>[0]['player']>
@@ -244,16 +252,48 @@ export type ArchitectComputedTeamTotalsSnapshot = Pick<
   | '_meta'
 >;
 
-type ArchitectComputedTeamTotalsHardCapOverlay = Pick<
+type ArchitectMutationTeamTotalsSchemaSlice = Pick<
   TeamTotals,
-  'isHardCapped' | 'hardCapLevel' | 'hardCapDetail'
+  | 'totalSalary'
+  | 'capHit'
+  | 'guaranteedSalary'
+  | 'nonGuaranteedSalary'
+  | 'rosterCount'
+  | 'guaranteedContracts'
+  | 'nonGuaranteedContracts'
+  | 'twoWayContracts'
+  | 'emptyRosterCharges'
+  | 'capSpace'
+  | 'capRoom'
+  | 'effectiveCap'
+  | 'luxuryTaxLine'
+  | 'taxablePayroll'
+  | 'isOverTax'
+  | 'taxBill'
+  | 'taxRate'
+  | 'firstApron'
+  | 'firstApronRoom'
+  | 'isFirstApron'
+  | 'secondApron'
+  | 'secondApronRoom'
+  | 'isSecondApron'
 >;
 
-export type ArchitectMutationTeamTotals =
-  | TeamTotals
-  | (ArchitectComputedTeamTotalsSnapshot &
-      ArchitectComputedTeamTotalsHardCapOverlay &
-      Partial<TeamTotals>);
+export type ArchitectMutationTeamTotals = Partial<
+  ArchitectMutationTeamTotalsSchemaSlice &
+    Omit<ArchitectComputedTeamTotalsSnapshot, 'deltas' | '_meta'>
+> & {
+  teamSalary?: number;
+  currentCapHit?: number;
+  deltas?: Partial<ArchitectComputedTeamTotalsSnapshot['deltas']>;
+  _meta?: Partial<ArchitectComputedTeamTotalsSnapshot['_meta']>;
+  isHardCapped?: boolean;
+  hardCapLevel?: string | null;
+  hardCapDetail?: string | null;
+  hardCapRoom?: number | null;
+  hardCapReason?: string | null;
+  hardCapTriggered?: string | boolean | null;
+};
 
 export type ArchitectMutationSalaryRow = {
   season?: string | null;
@@ -792,21 +832,88 @@ type CurrentStateTeam = Omit<
   tradeExceptions?: CurrentStateTradeException[];
   teamTotalSalary?: number;
 };
-type TeamSnapshotLike = ArchitectMutationTeamRecord | TeamLike;
-type PlayerSnapshotLike = ArchitectMutationPlayerRecord | PlayerLike;
 type TeamLike = CurrentStateTeam;
 type BaseTeamLike = CurrentStateBaseTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
 type PlayerLike = NormalizedCurrentStatePlayer;
-export type MutationTeamMap = Record<string, TeamSnapshotLike>;
+
+type MutationCurrentStatePlayerIngress = Omit<
+  Pick<
+    ArchitectMutationPlayerRecord,
+    | 'player_id'
+    | 'id'
+    | 'playerId'
+    | 'teamCode'
+    | 'teamName'
+    | 'name'
+    | 'displayName'
+    | 'playerName'
+    | 'bio'
+    | 'contract'
+    | 'futureContract'
+    | 'draft'
+    | 'representation'
+    | 'source'
+    | 'salary'
+    | 'currentSalary'
+    | 'birdRights'
+    | 'renounced'
+    | 'freeAgentYear'
+    | 'rightsRenounced'
+    | 'lastUpdated'
+    | 'version'
+    | 'isTwoWay'
+    | 'signedDate'
+  >,
+  'draft'
+> &
+  CurrentStatePlayerRfaBoundary & {
+    draft?: Partial<PlayerDraft> | null;
+  };
+type MutationCurrentStateTeamIngress = Omit<
+  Pick<
+    ArchitectMutationTeamRecord,
+    | 'teamCode'
+    | 'teamName'
+    | 'players'
+    | 'roster'
+    | 'twoWayPlayers'
+    | 'capHolds'
+    | 'deadCap'
+    | 'exceptions'
+    | 'tradeExceptions'
+    | 'cashLedger'
+    | 'offerSheets'
+    | 'incomingOfferSheets'
+    | 'exceptionHistory'
+    | 'totals'
+    | 'teamTotalSalary'
+    | 'draftPicks'
+    | 'entitlementIds'
+    | 'source'
+    | 'hardCapped'
+    | 'hardCapLevel'
+    | 'hardCapReason'
+    | 'hardCapTriggeredBy'
+  >,
+  'players' | 'twoWayPlayers'
+> & {
+  players?: MutationCurrentStatePlayerIngress[];
+  twoWayPlayers?: MutationCurrentStatePlayerIngress[];
+};
+export type MutationTeamMap = Record<string, TeamLike>;
+type BuildTotalsTeamMap = Record<
+  string,
+  TeamLike | ArchitectMutationTeamRecord | null | undefined
+>;
 type MutationCurrentStateTeamEntry = {
   teamCode?: string | null;
   team?: TradeTeamLike | null;
 };
 type MutationCurrentStateIngressTeamEntry = {
   teamCode?: string | null;
-  team?: TeamSnapshotLike | null;
+  team?: MutationCurrentStateTeamIngress | null;
 };
 export type ArchitectMutationPlayerUpdate = {
   playerId?: string | null;
@@ -1112,11 +1219,11 @@ export type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['aft
 // populated team/player snapshots across mutation families.
 type MutationCurrentStateIngress = {
   teams?: MutationCurrentStateIngressTeamEntry[];
-  team?: TeamSnapshotLike | null;
-  player?: PlayerSnapshotLike | null;
-  homeTeam?: TeamSnapshotLike | null;
-  offeringTeam?: TeamSnapshotLike | null;
-  destinationTeam?: TeamSnapshotLike | null;
+  team?: MutationCurrentStateTeamIngress | null;
+  player?: MutationCurrentStatePlayerIngress | null;
+  homeTeam?: MutationCurrentStateTeamIngress | null;
+  offeringTeam?: MutationCurrentStateTeamIngress | null;
+  destinationTeam?: MutationCurrentStateTeamIngress | null;
   teamCode?: string | null;
   destinationTeamCode?: string | null;
   offerSheetId?: string | null;
@@ -1727,7 +1834,7 @@ async function loadWorldAsOfDate(worldId: string): Promise<string | null> {
 function addTeamSnapshot(
   teamsByCode: MutationTeamMap,
   teamCode: string | null | undefined,
-  team: TeamSnapshotLike | null | undefined
+  team: TeamLike | null | undefined
 ) {
   if (!teamCode || !team || teamsByCode[teamCode]) {
     return;
@@ -2207,6 +2314,115 @@ function normalizeCurrentStateDeadCap(
     );
 }
 
+function toOptionalNumberOrNull(value: unknown): number | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return toOptionalNumber(value);
+}
+
+function toOptionalTrimmedStringOrNull(
+  value: unknown
+): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return toOptionalTrimmedString(value);
+}
+
+function normalizeCurrentStateTotalsDeltas(
+  value: unknown
+): ArchitectMutationTeamTotals['deltas'] | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: NonNullable<ArchitectMutationTeamTotals['deltas']> = {};
+  const vsCap = toOptionalNumber(record.vsCap);
+  const vsLuxuryTax = toOptionalNumber(record.vsLuxuryTax);
+  const vsFirstApron = toOptionalNumber(record.vsFirstApron);
+  const vsSecondApron = toOptionalNumber(record.vsSecondApron);
+
+  if (vsCap !== undefined) {
+    normalized.vsCap = vsCap;
+  }
+  if (vsLuxuryTax !== undefined) {
+    normalized.vsLuxuryTax = vsLuxuryTax;
+  }
+  if (vsFirstApron !== undefined) {
+    normalized.vsFirstApron = vsFirstApron;
+  }
+  if (vsSecondApron !== undefined) {
+    normalized.vsSecondApron = vsSecondApron;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStateTotalsMeta(
+  value: unknown
+): ArchitectMutationTeamTotals['_meta'] | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: Partial<
+    NonNullable<ArchitectMutationTeamTotals['_meta']>
+  > = {};
+  const source = toOptionalTrimmedString(record.source);
+  const capSettingsSource = toOptionalTrimmedString(record.capSettingsSource);
+  const seasonKey = toOptionalTrimmedString(record.seasonKey);
+  const incompleteRosterCharge = asLooseRecord(
+    record.incompleteRosterCharge
+  );
+
+  if (source === 'computeTeamCapTotals') {
+    normalized.source = source;
+  }
+  if (record.rulesSource !== undefined) {
+    normalized.rulesSource = safeCloneForAudit(record.rulesSource);
+  }
+  if (record.rulesSourcesSummary !== undefined) {
+    normalized.rulesSourcesSummary = safeCloneForAudit(
+      record.rulesSourcesSummary
+    );
+  }
+  if (record.rulesSources !== undefined) {
+    normalized.rulesSources = safeCloneForAudit(record.rulesSources);
+  }
+  if (capSettingsSource === 'via_facade') {
+    normalized.capSettingsSource = capSettingsSource;
+  }
+  if (seasonKey !== undefined) {
+    normalized.seasonKey = seasonKey;
+  }
+  if (incompleteRosterCharge) {
+    const standardRosterCount = toOptionalNumber(
+      incompleteRosterCharge.standardRosterCount
+    );
+    const minRoster = toOptionalNumber(incompleteRosterCharge.minRoster);
+    const missingSlots = toOptionalNumber(incompleteRosterCharge.missingSlots);
+    const chargePerSlot = toOptionalNumber(
+      incompleteRosterCharge.chargePerSlot
+    );
+
+    normalized.incompleteRosterCharge = {
+      standardRosterCount: standardRosterCount ?? 0,
+      minRoster: minRoster ?? 0,
+      missingSlots: missingSlots ?? 0,
+      chargePerSlot: chargePerSlot ?? 0,
+    };
+  } else if (record.incompleteRosterCharge === null) {
+    normalized.incompleteRosterCharge = null;
+  }
+
+  return Object.keys(normalized).length > 0
+    ? (normalized as ArchitectMutationTeamTotals['_meta'])
+    : undefined;
+}
+
 function normalizeCurrentStateTeamTotals(
   value: unknown
 ): ArchitectMutationTeamTotals | undefined {
@@ -2215,9 +2431,301 @@ function normalizeCurrentStateTeamTotals(
     return undefined;
   }
 
-  // Load-bearing round-trip seam: live team snapshots still persist the full
-  // totals object, and some mutation families carry it forward unchanged.
-  return safeCloneForAudit(record) as ArchitectMutationTeamTotals;
+  const normalized: ArchitectMutationTeamTotals = {};
+  const numberFields = [
+    'yearKey',
+    'playersTotal',
+    'deadMoneyTotal',
+    'capHoldsTotal',
+    'incompleteChargesTotal',
+    'totalCapAllocations',
+    'salaryCap',
+    'luxuryTax',
+    'totalSalary',
+    'teamSalary',
+    'capHit',
+    'currentCapHit',
+    'guaranteedSalary',
+    'nonGuaranteedSalary',
+    'rosterCount',
+    'guaranteedContracts',
+    'nonGuaranteedContracts',
+    'twoWayContracts',
+    'emptyRosterCharges',
+    'capSpace',
+    'capRoom',
+    'effectiveCap',
+    'luxuryTaxLine',
+    'taxablePayroll',
+    'taxBill',
+    'taxRate',
+    'firstApron',
+    'firstApronRoom',
+    'secondApron',
+    'secondApronRoom',
+    'hardCapRoom',
+  ] as const;
+
+  for (const field of numberFields) {
+    const normalizedValue = toOptionalNumber(record[field]);
+    if (normalizedValue !== undefined) {
+      normalized[field] = normalizedValue;
+    }
+  }
+
+  const booleanFields = [
+    'isOverTax',
+    'isFirstApron',
+    'isSecondApron',
+    'isHardCapped',
+  ] as const;
+
+  for (const field of booleanFields) {
+    const normalizedValue = toOptionalBoolean(record[field]);
+    if (normalizedValue !== undefined) {
+      normalized[field] = normalizedValue;
+    }
+  }
+
+  const hardCapLevel = toOptionalTrimmedString(record.hardCapLevel);
+  const hardCapDetail = toOptionalTrimmedString(record.hardCapDetail);
+  const hardCapReason = toOptionalTrimmedStringOrNull(record.hardCapReason);
+  const hardCapTriggered =
+    toOptionalTrimmedString(record.hardCapTriggered) ??
+    toOptionalBoolean(record.hardCapTriggered);
+  const deltas = normalizeCurrentStateTotalsDeltas(record.deltas);
+  const meta = normalizeCurrentStateTotalsMeta(record._meta);
+
+  if (hardCapLevel !== undefined) {
+    normalized.hardCapLevel = hardCapLevel;
+  }
+  if (hardCapDetail !== undefined) {
+    normalized.hardCapDetail = hardCapDetail;
+  }
+  if (hardCapReason !== undefined) {
+    normalized.hardCapReason = hardCapReason;
+  }
+  if (hardCapTriggered !== undefined) {
+    normalized.hardCapTriggered = hardCapTriggered;
+  }
+  if (deltas !== undefined) {
+    normalized.deltas = deltas;
+  }
+  if (meta !== undefined) {
+    normalized._meta = meta;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStateDraftPickProtectionMeta(
+  value: unknown
+): NonNullable<DraftPick['protectionMeta']> | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const type = toOptionalTrimmedString(record.type);
+  if (
+    type !== 'position' &&
+    type !== 'lottery' &&
+    type !== 'playoff' &&
+    type !== 'always' &&
+    type !== 'never'
+  ) {
+    return undefined;
+  }
+
+  const normalized: NonNullable<DraftPick['protectionMeta']> = { type };
+  const maxPosition = toOptionalNumber(record.maxPosition);
+  const conversionTargetRecord = asLooseRecord(record.conversionTarget);
+
+  if (maxPosition !== undefined) {
+    normalized.maxPosition = maxPosition;
+  }
+  if (conversionTargetRecord) {
+    const action = toOptionalTrimmedString(conversionTargetRecord.action);
+    if (action === 'roll' || action === 'convert' || action === 'cancel') {
+      normalized.conversionTarget = { action };
+      const toYear = toOptionalNumber(conversionTargetRecord.toYear);
+      const toRound = toOptionalNumber(conversionTargetRecord.toRound);
+      if (toYear !== undefined) {
+        normalized.conversionTarget.toYear = toYear;
+      }
+      if (toRound !== undefined) {
+        normalized.conversionTarget.toRound = toRound;
+      }
+    }
+  }
+
+  return normalized;
+}
+
+function normalizeCurrentStateDraftPickConveyance(
+  value: unknown
+): NonNullable<DraftPick['conveyance']> | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: NonNullable<DraftPick['conveyance']> = {};
+  const id = toOptionalTrimmedString(record.id);
+  const description = toOptionalTrimmedString(record.description);
+  const originalYear = toOptionalNumber(record.originalYear);
+  const currentYear = toOptionalNumber(record.currentYear);
+  const finalYear = toOptionalNumber(record.finalYear);
+  const conditionsRecord = asLooseRecord(record.conditions);
+  const affects = normalizeStringArray(record.affects);
+
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (description !== undefined) {
+    normalized.description = description;
+  }
+  if (originalYear !== undefined) {
+    normalized.originalYear = originalYear;
+  }
+  if (currentYear !== undefined) {
+    normalized.currentYear = currentYear;
+  }
+  if (finalYear !== undefined) {
+    normalized.finalYear = finalYear;
+  }
+  if (conditionsRecord) {
+    const protection = toOptionalTrimmedString(conditionsRecord.protection);
+    const ifConveys = toOptionalTrimmedString(conditionsRecord.ifConveys);
+    const ifRolls = toOptionalTrimmedString(conditionsRecord.ifRolls);
+    const conditions: NonNullable<
+      NonNullable<DraftPick['conveyance']>['conditions']
+    > = {};
+    if (protection !== undefined) {
+      conditions.protection = protection;
+    }
+    if (ifConveys !== undefined) {
+      conditions.ifConveys = ifConveys;
+    }
+    if (ifRolls !== undefined) {
+      conditions.ifRolls = ifRolls;
+    }
+    if (Object.keys(conditions).length > 0) {
+      normalized.conditions = conditions;
+    }
+  }
+  if (affects !== undefined) {
+    normalized.affects = affects;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStateDraftPickMetadata(
+  value: unknown
+): DraftPick['metadata'] | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  // Draft-pick metadata is the one schema-approved passthrough pocket on this
+  // legacy field. It stays isolated to pick.metadata instead of preserving the
+  // entire raw pick object.
+  return safeCloneForAudit(record) as DraftPick['metadata'];
+}
+
+function normalizeCurrentStateDraftPick(value: unknown): DraftPick | null {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const year = toOptionalNumber(record.year);
+  const round = toOptionalNumber(record.round);
+  const owner = toOptionalTrimmedString(record.owner);
+
+  if (year === undefined || round === undefined || owner === undefined) {
+    return null;
+  }
+
+  const normalized: DraftPick = {
+    year,
+    round,
+    pick: toOptionalNumberOrNull(record.pick) ?? null,
+    owner,
+  };
+  const id = toOptionalTrimmedString(record.id);
+  const originalTeam = toOptionalTrimmedString(record.originalTeam);
+  const status = toOptionalTrimmedString(record.status);
+  const isSwap = toOptionalBoolean(record.isSwap);
+  const swapType = toOptionalTrimmedString(record.swapType);
+  const swapWithTeamId = toOptionalTrimmedString(record.swapWithTeamId);
+  const protection = toOptionalTrimmedStringOrNull(record.protection);
+  const protectionMeta = normalizeCurrentStateDraftPickProtectionMeta(
+    record.protectionMeta
+  );
+  const stepienEligible = toOptionalBoolean(record.stepienEligible);
+  const tradeable = toOptionalBoolean(record.tradeable);
+  const via = toOptionalTrimmedString(record.via);
+  const recipient = toOptionalTrimmedString(record.recipient);
+  const route = normalizeStringArray(record.route);
+  const notes = toOptionalTrimmedString(record.notes);
+  const conveyance = normalizeCurrentStateDraftPickConveyance(
+    record.conveyance
+  );
+  const metadata = normalizeCurrentStateDraftPickMetadata(record.metadata);
+
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (originalTeam !== undefined) {
+    normalized.originalTeam = originalTeam;
+  }
+  if (status !== undefined) {
+    normalized.status = status;
+  }
+  if (isSwap !== undefined) {
+    normalized.isSwap = isSwap;
+  }
+  if (swapType === 'best_of' || swapType === 'worst_of') {
+    normalized.swapType = swapType;
+  }
+  if (swapWithTeamId !== undefined) {
+    normalized.swapWithTeamId = swapWithTeamId;
+  }
+  if (protection !== undefined) {
+    normalized.protection = protection;
+  }
+  if (protectionMeta !== undefined) {
+    normalized.protectionMeta = protectionMeta;
+  }
+  if (stepienEligible !== undefined) {
+    normalized.stepienEligible = stepienEligible;
+  }
+  if (tradeable !== undefined) {
+    normalized.tradeable = tradeable;
+  }
+  if (via !== undefined) {
+    normalized.via = via;
+  }
+  if (recipient !== undefined) {
+    normalized.recipient = recipient;
+  }
+  if (route !== undefined) {
+    normalized.route = route;
+  }
+  if (notes !== undefined) {
+    normalized.notes = notes;
+  }
+  if (conveyance !== undefined) {
+    normalized.conveyance = conveyance;
+  }
+  if (metadata !== undefined) {
+    normalized.metadata = metadata;
+  }
+
+  return normalized;
 }
 
 function normalizeCurrentStateDraftPicks(
@@ -2227,19 +2735,19 @@ function normalizeCurrentStateDraftPicks(
     return undefined;
   }
 
-  // Legacy round-trip seam: mutationPipeline does not author draft-pick
-  // inventory shape, but team writes must preserve existing snapshot entries.
-  return value
-    .map((entry) => asLooseRecord(entry))
-    .filter((entry): entry is LooseRecord => entry !== null)
-    .map((entry) => safeCloneForAudit(entry) as DraftPick);
+  const normalized = value
+    .map((entry) => normalizeCurrentStateDraftPick(entry))
+    .filter((entry): entry is DraftPick => entry !== null);
+
+  return normalized.length > 0 ? normalized : [];
 }
 
 function normalizeCurrentStateTeamSource(
   value: unknown
 ): MutationTeamSourceLike | undefined {
   if (typeof value === 'string') {
-    return toOptionalTrimmedString(value);
+    const provider = toOptionalTrimmedString(value);
+    return provider ? { provider } : undefined;
   }
 
   const record = asLooseRecord(value);
@@ -2247,9 +2755,50 @@ function normalizeCurrentStateTeamSource(
     return undefined;
   }
 
-  // Load-bearing round-trip seam: source metadata still carries provider-
-  // specific fields beyond ArchitectSource on committed team snapshots.
-  return safeCloneForAudit(record) as MutationTeamSourceLike;
+  const normalized: NonNullable<MutationTeamSourceLike> = {};
+  const provider = toOptionalTrimmedString(record.provider);
+  const teamPageUrl = toOptionalTrimmedString(record.teamPageUrl);
+  const playerPageUrl = toOptionalTrimmedString(record.playerPageUrl);
+  const scrapedAt = toOptionalTrimmedString(record.scrapedAt);
+  const season = toOptionalTrimmedString(record.season);
+  const type = toOptionalTrimmedString(record.type);
+  const worldId = toOptionalTrimmedString(record.worldId);
+  const generatedAt = toOptionalTrimmedString(record.generatedAt);
+  const baseTeamVersion = toOptionalTrimmedString(record.baseTeamVersion);
+  const lastModifiedAt = toOptionalTrimmedString(record.lastModifiedAt);
+
+  if (provider !== undefined) {
+    normalized.provider = provider;
+  }
+  if (teamPageUrl !== undefined) {
+    normalized.teamPageUrl = teamPageUrl;
+  }
+  if (playerPageUrl !== undefined) {
+    normalized.playerPageUrl = playerPageUrl;
+  }
+  if (scrapedAt !== undefined) {
+    normalized.scrapedAt = scrapedAt;
+  }
+  if (season !== undefined) {
+    normalized.season = season;
+  }
+  if (type !== undefined) {
+    normalized.type = type;
+  }
+  if (worldId !== undefined) {
+    normalized.worldId = worldId;
+  }
+  if (generatedAt !== undefined) {
+    normalized.generatedAt = generatedAt;
+  }
+  if (baseTeamVersion !== undefined) {
+    normalized.baseTeamVersion = baseTeamVersion;
+  }
+  if (lastModifiedAt !== undefined) {
+    normalized.lastModifiedAt = lastModifiedAt;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
 function normalizeCurrentStatePlayerBioDisplay(
@@ -2522,7 +3071,8 @@ function normalizeCurrentStatePlayerSource(
   value: unknown
 ): MutationPlayerSourceLike | undefined {
   if (typeof value === 'string') {
-    return toOptionalTrimmedString(value);
+    const provider = toOptionalTrimmedString(value);
+    return provider ? { provider } : undefined;
   }
 
   const record = asLooseRecord(value);
@@ -2530,9 +3080,46 @@ function normalizeCurrentStatePlayerSource(
     return undefined;
   }
 
-  // Load-bearing round-trip seam: player source metadata still carries
-  // provider-specific compatibility keys that the persistence boundary keeps.
-  return safeCloneForAudit(record) as MutationPlayerSourceLike;
+  const normalized: NonNullable<MutationPlayerSourceLike> = {};
+  const provider = toOptionalTrimmedString(record.provider);
+  const teamPageUrl = toOptionalTrimmedString(record.teamPageUrl);
+  const playerPageUrl = toOptionalTrimmedString(record.playerPageUrl);
+  const scrapedAt = toOptionalTrimmedString(record.scrapedAt);
+  const season = toOptionalTrimmedString(record.season);
+  const type = toOptionalTrimmedString(record.type);
+  const worldId = toOptionalTrimmedString(record.worldId);
+  const generatedAt = toOptionalTrimmedString(record.generatedAt);
+  const baseTeamVersion = toOptionalTrimmedString(record.baseTeamVersion);
+
+  if (provider !== undefined) {
+    normalized.provider = provider;
+  }
+  if (teamPageUrl !== undefined) {
+    normalized.teamPageUrl = teamPageUrl;
+  }
+  if (playerPageUrl !== undefined) {
+    normalized.playerPageUrl = playerPageUrl;
+  }
+  if (scrapedAt !== undefined) {
+    normalized.scrapedAt = scrapedAt;
+  }
+  if (season !== undefined) {
+    normalized.season = season;
+  }
+  if (type !== undefined) {
+    normalized.type = type;
+  }
+  if (worldId !== undefined) {
+    normalized.worldId = worldId;
+  }
+  if (generatedAt !== undefined) {
+    normalized.generatedAt = generatedAt;
+  }
+  if (baseTeamVersion !== undefined) {
+    normalized.baseTeamVersion = baseTeamVersion;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
 function toCurrentStateTradeException(
@@ -2638,6 +3225,8 @@ function resolveCurrentStateTeamTotalSalary(
   return totalsRecord ? toOptionalNumber(totalsRecord.totalSalary) : undefined;
 }
 
+// Raw Firestore/team-loader snapshots and legacy base-mode callers meet the
+// committed compute path here; this is the localized mixed-input boundary.
 function toCurrentStateTeam(team: unknown): TeamLike | null {
   const teamRecord = asLooseRecord(team);
   if (!teamRecord) {
@@ -2842,6 +3431,8 @@ function normalizeCurrentStatePlayerRfaBoundary(
   return normalized;
 }
 
+// Raw player overrides and base player snapshots are narrowed here before any
+// committed mutation compute path can spread or persist them.
 function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   const playerRecord = asLooseRecord(player);
   if (!playerRecord) {
@@ -3314,9 +3905,14 @@ function requireOfferSheetTeamState(
 // Local boundary helper for the live team.source spread sites only.
 function getTeamSourceRecord(
   source: TeamLike['source'] | null | undefined
-): LooseRecord {
-  if (source && typeof source === 'object' && !Array.isArray(source)) {
-    return source as LooseRecord;
+): NonNullable<MutationTeamSourceLike> {
+  const normalizedSource = normalizeCurrentStateTeamSource(source);
+  if (
+    normalizedSource &&
+    typeof normalizedSource === 'object' &&
+    !Array.isArray(normalizedSource)
+  ) {
+    return normalizedSource;
   }
 
   return {};
@@ -3580,13 +4176,17 @@ export function extractTeamsByCodeFromComputeResult(
 ): MutationTeamMap {
   const teamsByCode: MutationTeamMap = {};
   for (const update of computeResult.teamUpdates || []) {
-    addTeamSnapshot(teamsByCode, update?.teamCode, update?.team);
+    addTeamSnapshot(
+      teamsByCode,
+      update?.teamCode,
+      toCurrentStateTeam(update?.team)
+    );
   }
   return teamsByCode;
 }
 
 export function buildTotalsByTeam(
-  teamsByCode: MutationTeamMap,
+  teamsByCode: BuildTotalsTeamMap,
   year: number
 ): PostStateTotalsByTeam {
   const totalsByTeam: PostStateTotalsByTeam = {};
@@ -5337,7 +5937,7 @@ function getMutationPlayerId(
 }
 
 function findPlayerInTeamPlayers(
-  team: TeamSnapshotLike | null | undefined,
+  team: TeamLike | null | undefined,
   playerId: string
 ): PlayerLike | null {
   const players = Array.isArray(team?.players)
@@ -5349,7 +5949,7 @@ function findPlayerInTeamPlayers(
 }
 
 function toPersistablePlayerOverrideFromSnapshot(
-  player: PlayerSnapshotLike | null | undefined
+  player: ArchitectMutationPlayerRecord | PlayerLike | null | undefined
 ): PersistablePlayerOverride | null {
   const normalizedPlayer = toCurrentStatePlayer(player);
   if (!normalizedPlayer) {
