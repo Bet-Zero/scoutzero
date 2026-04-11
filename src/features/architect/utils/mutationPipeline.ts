@@ -915,6 +915,24 @@ type CurrentStatePlayerFutureContract = Pick<
   ArchitectMutationContract,
   (typeof CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS)[number]
 >;
+type CurrentStatePlayerBioDisplay = NonNullable<
+  MutationPlayerBioLike['display']
+>;
+type CurrentStatePlayerBioDraft = Pick<
+  PlayerDraft,
+  'year' | 'round' | 'pick' | 'teamId'
+>;
+type CurrentStatePlayerBio = Omit<
+  MutationPlayerBioLike,
+  'draft' | 'display' | 'experience' | 'yearsExperience' | 'yearsPro' | 'Years Pro'
+> & {
+  draft?: CurrentStatePlayerBioDraft | null;
+  display?: CurrentStatePlayerBioDisplay | null;
+  experience?: number | string | null;
+  yearsExperience?: number | string | null;
+  yearsPro?: number | string | null;
+  ['Years Pro']?: number | string | null;
+};
 type NormalizedCurrentStatePlayerDraft = Pick<
   NonNullable<ArchitectMutationPlayerRecord['draft']>,
   'round' | 'pick'
@@ -949,8 +967,9 @@ type CurrentStatePlayerCore = Omit<
     | 'isTwoWay'
     | 'signedDate'
   >,
-  'draft' | 'contract' | 'futureContract'
+  'bio' | 'draft' | 'contract' | 'futureContract'
 > & {
+  bio?: CurrentStatePlayerBio | null;
   draft?: NormalizedCurrentStatePlayerDraft | null;
   contract?: CurrentStatePlayerContract | null;
   futureContract?: CurrentStatePlayerFutureContract | null;
@@ -1085,6 +1104,10 @@ type CurrentStateBaseTeamPreservedFieldMap = Pick<
   | 'draftPicks'
   | 'entitlementIds'
 >;
+type CurrentStateTradeTeamLiveFieldMap = Pick<
+  CurrentStateBaseTeamPreservedFieldMap,
+  'tradeExceptions' | 'cashLedger' | 'draftPicks' | 'entitlementIds'
+>;
 type CurrentStateBaseTeamTradeExceptionsCarrier = {
   [CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]?:
     CurrentStateBaseTeamPreservedFieldMap['tradeExceptions'];
@@ -1116,13 +1139,47 @@ type CurrentStateBaseTeamPreservedCarrierLike =
 type CurrentStateBaseTeam = CurrentStateBaseTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
 type CurrentStateTradeTeam = CurrentStateBaseTeamCompute &
-  CurrentStateBaseTeamPreservedFieldMap &
+  CurrentStateTradeTeamLiveFieldMap &
+  CurrentStateBaseTeamExceptionHistoryCarrier &
   Pick<CurrentStateTeam, 'twoWayPlayers' | 'teamTotalSalary'>;
 type BaseTeamLike = CurrentStateBaseTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
 type TeamLike = CurrentStatePrimaryTeam;
 type PlayerLike = NormalizedCurrentStatePlayer;
+type CurrentStateTeamRoundTripMaterializable =
+  CurrentStateBaseTeamPreservedCarrierLike &
+    Partial<
+      Pick<
+        ArchitectMutationTeamRecord,
+        | 'teamCode'
+        | 'teamName'
+        | 'players'
+        | 'roster'
+        | 'twoWayPlayers'
+        | 'capHolds'
+        | 'deadCap'
+        | 'exceptions'
+        | 'tradeExceptions'
+        | 'cashLedger'
+        | 'offerSheets'
+        | 'incomingOfferSheets'
+        | 'exceptionHistory'
+        | 'totals'
+        | 'teamTotalSalary'
+        | 'draftPicks'
+        | 'entitlementIds'
+        | 'source'
+        | 'hardCapped'
+        | 'hardCapLevel'
+        | 'hardCapReason'
+        | 'hardCapTriggeredBy'
+      >
+    >;
+type CurrentStateTeamPersistenceStripShape =
+  CurrentStateTeamRoundTripMaterializable & {
+    teamTotalSalary?: ArchitectMutationTeamRecord['teamTotalSalary'];
+  };
 
 type MutationCurrentStatePlayerIngress = Omit<
   Pick<
@@ -1729,7 +1786,9 @@ function attachCurrentStateBaseTeamPreservedFields(
   return withPreservedFields;
 }
 
-function materializeCurrentStateBaseTeamPreservedFields<T extends object>(
+function materializeCurrentStateBaseTeamPreservedFields<
+  T extends CurrentStateTeamRoundTripMaterializable,
+>(
   team: T | null | undefined
 ): T | null {
   if (!team) {
@@ -1779,12 +1838,70 @@ function materializeCurrentStateBaseTeamPreservedFields<T extends object>(
   return materializedTeam as T;
 }
 
-function stripComputeOnlyTeamFieldsForPersistence<
-  T extends {
-    teamTotalSalary?: unknown;
-  },
+function backfillCurrentStateBaseTeamPreservedFields<
+  T extends CurrentStateTeamRoundTripMaterializable,
 >(
-  team: T & CurrentStateBaseTeamPreservedCarrierLike
+  team: T | null | undefined,
+  fallbackTeam: CurrentStateTeamRoundTripMaterializable | null | undefined
+): T | null {
+  const materializedTeam = materializeCurrentStateBaseTeamPreservedFields(team);
+  if (!materializedTeam) {
+    return null;
+  }
+
+  const fallbackMaterialized =
+    materializeCurrentStateBaseTeamPreservedFields(fallbackTeam);
+  if (!fallbackMaterialized) {
+    return materializedTeam;
+  }
+
+  const withBackfilledPreservedFields = {
+    ...materializedTeam,
+  } as T & Partial<CurrentStateBaseTeamPreservedFieldMap>;
+
+  if (
+    withBackfilledPreservedFields.tradeExceptions === undefined &&
+    fallbackMaterialized.tradeExceptions !== undefined
+  ) {
+    withBackfilledPreservedFields.tradeExceptions =
+      fallbackMaterialized.tradeExceptions;
+  }
+  if (
+    withBackfilledPreservedFields.cashLedger === undefined &&
+    fallbackMaterialized.cashLedger !== undefined
+  ) {
+    withBackfilledPreservedFields.cashLedger =
+      fallbackMaterialized.cashLedger;
+  }
+  if (
+    withBackfilledPreservedFields.exceptionHistory === undefined &&
+    fallbackMaterialized.exceptionHistory !== undefined
+  ) {
+    withBackfilledPreservedFields.exceptionHistory =
+      fallbackMaterialized.exceptionHistory as CurrentStateBaseTeamPreservedFieldMap['exceptionHistory'];
+  }
+  if (
+    withBackfilledPreservedFields.draftPicks === undefined &&
+    fallbackMaterialized.draftPicks !== undefined
+  ) {
+    withBackfilledPreservedFields.draftPicks =
+      fallbackMaterialized.draftPicks;
+  }
+  if (
+    withBackfilledPreservedFields.entitlementIds === undefined &&
+    fallbackMaterialized.entitlementIds !== undefined
+  ) {
+    withBackfilledPreservedFields.entitlementIds =
+      fallbackMaterialized.entitlementIds;
+  }
+
+  return withBackfilledPreservedFields as T;
+}
+
+function stripComputeOnlyTeamFieldsForPersistence<
+  T extends CurrentStateTeamPersistenceStripShape,
+>(
+  team: T
 ): Omit<T, 'teamTotalSalary'> {
   const materializedTeam = materializeCurrentStateBaseTeamPreservedFields(team);
   if (!materializedTeam) {
@@ -3211,13 +3328,13 @@ function normalizeCurrentStateTeamSource(
 
 function normalizeCurrentStatePlayerBioDisplay(
   value: unknown
-): NonNullable<MutationPlayerBioLike['display']> | undefined {
+): CurrentStatePlayerBioDisplay | undefined {
   const record = asLooseRecord(value);
   if (!record) {
     return undefined;
   }
 
-  const normalized: NonNullable<MutationPlayerBioLike['display']> = {};
+  const normalized: CurrentStatePlayerBioDisplay = {};
   const freeAgentType = toOptionalTrimmedString(record.freeAgentType);
   const freeAgentYear = toOptionalNumberish(record.freeAgentYear);
   const team = toOptionalTrimmedString(record.team);
@@ -3245,13 +3362,13 @@ function normalizeCurrentStatePlayerBioDisplay(
 
 function normalizeCurrentStatePlayerBioDraft(
   value: unknown
-): PlayerDraft | undefined {
+): CurrentStatePlayerBioDraft | undefined {
   const record = asLooseRecord(value);
   if (!record) {
     return undefined;
   }
 
-  const normalized: PlayerDraft = {};
+  const normalized: CurrentStatePlayerBioDraft = {};
   const year = toOptionalNumber(record.year);
   const round = toOptionalNumber(record.round);
   const pick = toOptionalNumber(record.pick);
@@ -3275,13 +3392,13 @@ function normalizeCurrentStatePlayerBioDraft(
 
 function normalizeCurrentStatePlayerBio(
   value: unknown
-): MutationPlayerBioLike | undefined {
+): CurrentStatePlayerBio | undefined {
   const record = asLooseRecord(value);
   if (!record) {
     return undefined;
   }
 
-  const normalized: MutationPlayerBioLike = {};
+  const normalized: CurrentStatePlayerBio = {};
   const displayName = toOptionalTrimmedString(record.displayName);
   const playerId = toOptionalIdString(record.playerId);
   const name = toOptionalTrimmedString(record.name);
@@ -4251,20 +4368,31 @@ function toCurrentStateTeam(
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
   const exceptions = normalizeCurrentStateTeamExceptions(teamRecord.exceptions);
-  const cashLedger = normalizeCurrentStateCashLedger(teamRecord.cashLedger);
+  const cashLedger = normalizeCurrentStateCashLedger(
+    teamRecord.cashLedger ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]
+  );
   const tradeExceptions = normalizeCurrentStateTradeExceptions(
-    teamRecord.tradeExceptions
+    teamRecord.tradeExceptions ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]
   );
   const offerSheets = normalizeCurrentStateOfferSheets(teamRecord.offerSheets);
   const incomingOfferSheets = normalizeCurrentStateOfferSheets(
     teamRecord.incomingOfferSheets
   );
   const exceptionHistory = normalizeCurrentStateExceptionHistory(
-    teamRecord.exceptionHistory
+    teamRecord.exceptionHistory ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]
   );
   const totals = normalizeCurrentStateTeamTotals(teamRecord.totals);
-  const draftPicks = normalizeCurrentStateDraftPicks(teamRecord.draftPicks);
-  const entitlementIds = normalizeStringArray(teamRecord.entitlementIds);
+  const draftPicks = normalizeCurrentStateDraftPicks(
+    teamRecord.draftPicks ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY]
+  );
+  const entitlementIds = normalizeStringArray(
+    teamRecord.entitlementIds ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]
+  );
   const source = normalizeCurrentStateTeamSource(teamRecord.source);
   const hardCapped = teamRecord.hardCapped;
   const hardCapLevel = toOptionalTrimmedString(teamRecord.hardCapLevel);
@@ -4345,15 +4473,15 @@ function toCurrentStateTeam(
 
   const twoWayPlayers = normalizeCurrentStatePlayerArray(teamRecord.twoWayPlayers);
   const teamTotalSalary = resolveCurrentStateTeamTotalSalary(teamRecord, totals);
+  // Trade validation/apply still needs live access to the TPE/cash/pick/
+  // entitlement/two-way/salary bridges. Exception history remains preserve-only
+  // and is materialized only when a returned team snapshot needs it.
   const tradeNormalized: TradeTeamLike = { ...normalized };
   if (tradeExceptions !== undefined) {
     tradeNormalized.tradeExceptions = tradeExceptions;
   }
   if (cashLedger !== undefined) {
     tradeNormalized.cashLedger = cashLedger;
-  }
-  if (exceptionHistory !== undefined) {
-    tradeNormalized.exceptionHistory = exceptionHistory;
   }
   if (draftPicks !== undefined) {
     tradeNormalized.draftPicks = draftPicks;
@@ -4366,6 +4494,10 @@ function toCurrentStateTeam(
   }
   if (teamTotalSalary !== undefined) {
     tradeNormalized.teamTotalSalary = teamTotalSalary;
+  }
+  if (exceptionHistory !== undefined) {
+    tradeNormalized[CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY] =
+      exceptionHistory;
   }
 
   return tradeNormalized;
@@ -5132,8 +5264,9 @@ function canonicalizeTeamUpdatesWithCanonicalTotals(
 
   return teamUpdates.map((update) => ({
     ...update,
-    team: materializeCurrentStateBaseTeamPreservedFields(
-      synchronizeTeamTotalsSnapshot(update?.team, canonicalYear) || update?.team
+    team: backfillCurrentStateBaseTeamPreservedFields(
+      synchronizeTeamTotalsSnapshot(update?.team, canonicalYear) || update?.team,
+      update?.team
     ),
   }));
 }
@@ -6870,7 +7003,7 @@ function toPersistablePlayerOverrideFromSnapshot(
     normalizedPlayer.bio &&
     typeof normalizedPlayer.bio === 'object' &&
     !Array.isArray(normalizedPlayer.bio)
-      ? (normalizedPlayer.bio as MutationPlayerBioLike)
+      ? (normalizedPlayer.bio as CurrentStatePlayerBio)
       : undefined;
   const rfaBoundary = normalizeCurrentStatePlayerRfaBoundary(
     asLooseRecord(normalizedPlayer)
@@ -7541,10 +7674,15 @@ function computeTradeResult({
   // Phase 56: Use pre-built snapshot teamUpdates (already has roster changes applied)
   // Deep clone to avoid mutating the snapshot
   const teamUpdates: TradeTeamUpdate[] = (postTradeSnapshot.teamUpdates || []).map(
-    (entry) => ({
-      teamCode: entry.teamCode ?? null,
-      team: JSON.parse(JSON.stringify(entry.team || {})) as TeamLike,
-    })
+    (entry) => {
+      const clonedTeam = JSON.parse(JSON.stringify(entry.team || {})) as TeamLike;
+      return {
+        teamCode: entry.teamCode ?? null,
+        team:
+          materializeCurrentStateBaseTeamPreservedFields(clonedTeam) ||
+          clonedTeam,
+      };
+    }
   );
 
   // Phase 56: Use validation results from validatedContext (already validated once)
@@ -9025,9 +9163,12 @@ async function persistWorldMutation({
       const canonicalYear = toEndYear(seasonId);
       const totalsAlignedTeam =
         Number.isFinite(canonicalYear)
-          ? synchronizeTeamTotalsSnapshot(
-              persistenceReadyTeam,
-              canonicalYear
+          ? backfillCurrentStateBaseTeamPreservedFields(
+              synchronizeTeamTotalsSnapshot(
+                persistenceReadyTeam,
+                canonicalYear
+              ) || persistenceReadyTeam,
+              persistenceReadyTeam
             ) || persistenceReadyTeam
           : persistenceReadyTeam;
       // Phase 60: Sanitize transient fields first
