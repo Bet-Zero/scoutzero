@@ -97,6 +97,7 @@ import {
   getCanonicalExceptionAvailability,
   getCanonicalExceptionKeyForSigningMechanism,
   normalizeCanonicalTeamExceptions,
+  type CanonicalNonTpeExceptionKey,
 } from '@/features/architect/utils/exceptions/exceptionOwnership';
 
 // Phase 72: SSOT for team cap totals computation
@@ -484,18 +485,23 @@ type CurrentStateExceptionHistoryEntry = {
   timestamp?: string | null;
 } & Record<string, unknown>;
 
-// Deliberately open-ended: live exception usage still indexes buckets by
-// computed key (e.g. mechanism-derived MLE aliases), so a closed object here
-// would be false to the current runtime contract.
-export type ArchitectMutationExceptions = {
-  mle?: ArchitectMutationExceptionEntry | null;
-  taxpayerMle?: ArchitectMutationExceptionEntry | null;
-  tpmle?: ArchitectMutationExceptionEntry | null;
-  room?: ArchitectMutationExceptionEntry | null;
-  bae?: ArchitectMutationExceptionEntry | null;
-  dpe?: ArchitectMutationExceptionEntry | null;
-  tpe?: TradeExceptionRecord[];
-} & Record<string, unknown>;
+type ArchitectMutationCanonicalExceptionBuckets = Partial<
+  Record<CanonicalNonTpeExceptionKey, ArchitectMutationExceptionEntry | null>
+>;
+
+// Closed to the canonical exception buckets mutation compute owns. Legacy alias
+// keys and custom mechanism-keyed buckets are accepted only at normalization
+// boundaries, then round-tripped as hidden preserve-only runtime data.
+export type ArchitectMutationExceptions =
+  ArchitectMutationCanonicalExceptionBuckets & {
+    dpe?: ArchitectMutationExceptionEntry | null;
+    tpe?: TradeExceptionRecord[];
+  };
+
+// Raw current-state snapshots and manual exception payloads may still contain
+// legacy aliases or unowned buckets; normalize them before committed compute reads.
+type ArchitectMutationExceptionIngress = ArchitectMutationExceptions &
+  Record<string, unknown>;
 
 export type ArchitectMutationOfferSheet = {
   id?: string | number | null;
@@ -592,7 +598,7 @@ export type ArchitectMutationTeamRecord = {
   twoWayPlayers?: ArchitectMutationPlayerRecord[];
   capHolds?: ArchitectMutationCapHold[];
   deadCap?: ArchitectMutationDeadCapEntry[];
-  exceptions?: ArchitectMutationExceptions | null;
+  exceptions?: ArchitectMutationExceptionIngress | null;
   tradeExceptions?: MutationTradeExceptionRecord[];
   cashLedger?: ArchitectMutationCashLedger | null;
   offerSheets?: ArchitectMutationOfferSheet[];
@@ -734,7 +740,7 @@ export type ArchitectMutationPayload = {
   dedupKey?: string | null;
   deadCap?: ArchitectMutationDeadCapEntry[] | null;
   deadCapChanges?: string[] | null;
-  exceptions?: ArchitectMutationExceptions | null;
+  exceptions?: ArchitectMutationExceptionIngress | null;
   exceptionChanges?: string[] | null;
   worldId?: string | null;
   tradeCtx?: ArchitectMutationTradeContext | null;
@@ -4068,15 +4074,35 @@ function normalizeCurrentStateTradeExceptions(
     );
 }
 
+type MutationExceptionPreserveOnlyBuckets = Record<string, unknown>;
+
+function toMutationExceptionPreserveOnlyBuckets(
+  value: unknown
+): MutationExceptionPreserveOnlyBuckets | null {
+  return asLooseRecord(value);
+}
+
+function normalizeMutationExceptionsFromIngress(
+  value: unknown
+): ArchitectMutationExceptions {
+  return normalizeCanonicalTeamExceptions({
+    exceptions: toMutationExceptionPreserveOnlyBuckets(value) || null,
+  });
+}
+
+function hasMutationExceptionBuckets(
+  exceptions: ArchitectMutationExceptions
+): boolean {
+  return Object.keys(exceptions).length > 0;
+}
+
 function normalizeCurrentStateTeamExceptions(
   value: unknown
 ): ArchitectMutationExceptions | undefined {
-  const normalizedExceptions = normalizeCanonicalTeamExceptions({
-    exceptions: asLooseRecord(value) || null,
-  });
+  const normalizedExceptions = normalizeMutationExceptionsFromIngress(value);
 
-  return Object.keys(normalizedExceptions).length > 0
-    ? (normalizedExceptions as ArchitectMutationExceptions)
+  return hasMutationExceptionBuckets(normalizedExceptions)
+    ? normalizedExceptions
     : undefined;
 }
 
@@ -7859,11 +7885,9 @@ function consumeSigningExceptionUsage({
     return { consumedExceptionKey: null, error: null };
   }
 
-  updatedTeam.exceptions = normalizeCanonicalTeamExceptions({
-    exceptions:
-      (updatedTeam.exceptions as Record<string, unknown> | null | undefined) ||
-      null,
-  }) as ArchitectMutationExceptions;
+  updatedTeam.exceptions = normalizeMutationExceptionsFromIngress(
+    updatedTeam.exceptions
+  );
 
   const availability = getCanonicalExceptionAvailability(updatedTeam, exceptionKey);
   if (!availability.present) {
@@ -7944,11 +7968,9 @@ function computeSigningResult({
   );
 
   const updatedTeam = { ...team };
-  updatedTeam.exceptions = normalizeCanonicalTeamExceptions({
-    exceptions:
-      (updatedTeam.exceptions as Record<string, unknown> | null | undefined) ||
-      null,
-  }) as ArchitectMutationExceptions;
+  updatedTeam.exceptions = normalizeMutationExceptionsFromIngress(
+    updatedTeam.exceptions
+  );
 
   // Add player to roster if not already present
   const playerId = String(payload.playerId || player.player_id || player.id || '').trim();
@@ -8660,6 +8682,8 @@ const MANUAL_EXCEPTION_MUTATION_KEYS = [
   'taxpayerMle',
   'tpMle',
   'miniMle',
+  'nonTaxpayerMle',
+  'fullMLE',
   'bae',
   'biAnnual',
   'room',
@@ -8667,32 +8691,30 @@ const MANUAL_EXCEPTION_MUTATION_KEYS = [
   'roommle',
   'rmle',
 ] as const;
+const MANUAL_EXCEPTION_MUTATION_KEY_SET = new Set<string>(
+  MANUAL_EXCEPTION_MUTATION_KEYS
+);
 
 function mergeManualExceptionSnapshot(
-  existingExceptions: Record<string, unknown> | null | undefined,
-  editedExceptions: Record<string, unknown> | null | undefined
-): Record<string, unknown> {
-  const merged = {
-    ...((existingExceptions &&
-      typeof existingExceptions === 'object' &&
-      !Array.isArray(existingExceptions)
-      ? existingExceptions
-      : {}) as Record<string, unknown>),
-  };
+  existingExceptions: unknown,
+  editedExceptions: unknown
+): ArchitectMutationExceptions {
+  const existingBuckets =
+    toMutationExceptionPreserveOnlyBuckets(existingExceptions);
+  const editedBuckets = toMutationExceptionPreserveOnlyBuckets(editedExceptions);
+  const mergedPreserveOnlyBuckets: MutationExceptionPreserveOnlyBuckets = {};
 
-  for (const key of MANUAL_EXCEPTION_MUTATION_KEYS) {
-    delete merged[key];
+  for (const [key, value] of Object.entries(existingBuckets || {})) {
+    if (!MANUAL_EXCEPTION_MUTATION_KEY_SET.has(key)) {
+      mergedPreserveOnlyBuckets[key] = value;
+    }
   }
 
-  if (
-    editedExceptions &&
-    typeof editedExceptions === 'object' &&
-    !Array.isArray(editedExceptions)
-  ) {
-    Object.assign(merged, editedExceptions);
+  if (editedBuckets) {
+    Object.assign(mergedPreserveOnlyBuckets, editedBuckets);
   }
 
-  return merged;
+  return normalizeMutationExceptionsFromIngress(mergedPreserveOnlyBuckets);
 }
 
 /**
@@ -8725,13 +8747,10 @@ function computeSetExceptionsResult({
 
   const updatedTeam = {
     ...team,
-    exceptions: normalizeCanonicalTeamExceptions({
-      exceptions: mergeManualExceptionSnapshot(
-        (team?.exceptions as Record<string, unknown> | null | undefined) || null,
-        (payload.exceptions as Record<string, unknown> | null | undefined) ||
-          null
-      ),
-    }) as ArchitectMutationExceptions,
+    exceptions: mergeManualExceptionSnapshot(
+      team?.exceptions,
+      payload.exceptions
+    ),
   };
 
   // Update source metadata

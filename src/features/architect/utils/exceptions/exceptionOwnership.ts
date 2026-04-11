@@ -11,11 +11,13 @@
  *   enabled unless it explicitly marks itself unavailable.
  */
 
+import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
+
 type UnknownRecord = Record<string, unknown>;
 
 export type CanonicalNonTpeExceptionKey = 'mle' | 'tpmle' | 'bae' | 'room';
 
-export type CanonicalNonTpeExceptionState = UnknownRecord & {
+export type CanonicalNonTpeExceptionState = {
   enabled: boolean;
   available: boolean;
   maxAmount: number;
@@ -32,6 +34,29 @@ export type CanonicalNonTpeExceptionState = UnknownRecord & {
   lastUsedAt?: string | null;
 };
 
+export type CanonicalDpeExceptionState = {
+  enabled?: boolean | null;
+  available?: boolean | null;
+  maxAmount?: number | string | null;
+  totalAmount?: number | string | null;
+  amount?: number | string | null;
+  usedAmount?: number | string | null;
+  remainingAmount?: number | string | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+  seasonKey?: string | null;
+  lastUsedAt?: string | null;
+};
+
+export type CanonicalTeamExceptions = Partial<
+  Record<CanonicalNonTpeExceptionKey, CanonicalNonTpeExceptionState | null>
+> & {
+  dpe?: CanonicalDpeExceptionState | null;
+  tpe?: TradeExceptionRecord[];
+};
+
 export type CanonicalNonTpeExceptionAvailability = {
   key: CanonicalNonTpeExceptionKey;
   present: boolean;
@@ -46,6 +71,9 @@ export type CanonicalNonTpeExceptionAvailability = {
 type TeamExceptionOwnerLike = UnknownRecord & {
   exceptions?: UnknownRecord | null;
 };
+
+type CanonicalTeamExceptionsWithPreservedBuckets =
+  CanonicalTeamExceptions & UnknownRecord;
 
 type DerivedSimpleException = {
   amount: number;
@@ -207,7 +235,7 @@ const normalizeLegacyExceptionValue = (
 const readLegacyExceptionSource = (
   team: TeamExceptionOwnerLike,
   key: CanonicalNonTpeExceptionKey
-): unknown => {
+): CanonicalNonTpeExceptionState | null => {
   const exceptions = isRecord(team.exceptions) ? team.exceptions : null;
   const { nestedKeys, topLevelKeys } = NON_TPE_EXCEPTION_SOURCES[key];
 
@@ -262,9 +290,9 @@ export function getCanonicalExceptionKeyForSigningMechanism(
 
 export function normalizeCanonicalTeamExceptions(
   team: TeamExceptionOwnerLike | null | undefined
-): UnknownRecord {
+): CanonicalTeamExceptions {
   const exceptions = isRecord(team?.exceptions) ? team.exceptions : {};
-  const normalized: UnknownRecord = {};
+  const normalized: CanonicalTeamExceptionsWithPreservedBuckets = {};
 
   for (const [key, value] of Object.entries(exceptions)) {
     if (EXCEPTION_ALIAS_KEYS.has(key)) {
