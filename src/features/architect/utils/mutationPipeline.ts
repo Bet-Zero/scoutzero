@@ -82,6 +82,7 @@ import { validateNonTradeMutationStage } from '@/features/architect/utils/nonTra
 import {
   normalizeContractForWorld,
   normalizeFutureContract,
+  normalizeFreeAgency,
   normalizeOptionUsed,
   normalizeSalaryRow,
 } from '@/features/architect/utils/contractNormalization';
@@ -295,8 +296,46 @@ export type ArchitectMutationTeamTotals = Partial<
   hardCapTriggered?: string | boolean | null;
 };
 
+type ArchitectMutationContractIncentives = {
+  likely?: number | string | null;
+  unlikely?: number | string | null;
+};
+
+type NormalizedMutationContractIncentives = {
+  likely?: number | null;
+  unlikely?: number | null;
+};
+
+type ArchitectMutationGuaranteeScheduleEntry = {
+  effectiveDate?: string | null;
+  guaranteedAmount?: number | string | null;
+  status?: string | null;
+  note?: string | null;
+};
+
+type NormalizedMutationGuaranteeScheduleEntry = {
+  effectiveDate?: string | null;
+  guaranteedAmount?: number | null;
+  status?: string | null;
+  note?: string | null;
+};
+
+type ArchitectMutationTradeEligibilityRules = {
+  baseYearCompensation?: boolean | null;
+  poisonPill?: boolean | null;
+  aggregation?: boolean | null;
+};
+
+type ArchitectMutationTradeEligibility = {
+  canBeTradedNow?: boolean | null;
+  restrictedUntil?: string | null;
+  reason?: string | null;
+  rules?: ArchitectMutationTradeEligibilityRules | null;
+};
+
 export type ArchitectMutationSalaryRow = {
   season?: string | null;
+  year?: number | string | null;
   salary?: number | string | null;
   capHit?: number | string | null;
   guaranteed?: boolean | null;
@@ -304,6 +343,12 @@ export type ArchitectMutationSalaryRow = {
   option?: string | null;
   optionType?: string | null;
   optionUsed?: boolean | null;
+  optionDecisionDate?: string | null;
+  tradeBonus?: number | string | null;
+  incentives?: ArchitectMutationContractIncentives | null;
+  guaranteeSchedule?: ArchitectMutationGuaranteeScheduleEntry[] | null;
+  voidedByExtension?: boolean | null;
+  voidedOn?: string | null;
   isExtensionSeason?: boolean | null;
 };
 
@@ -315,6 +360,7 @@ export type ArchitectMutationSalaryRow = {
  */
 export type NormalizedMutationSalaryRow = {
   season: string;                    // required — string guaranteed after normalization
+  year?: number | null;
   salary?: number | null;            // strictly number, no string
   capHit?: number | null;            // strictly number, no string
   guaranteed?: boolean | null;
@@ -322,6 +368,12 @@ export type NormalizedMutationSalaryRow = {
   option?: string | null;
   optionType?: string | null;
   optionUsed?: boolean | null;       // boolean, not string
+  optionDecisionDate?: string | null;
+  tradeBonus?: number | null;
+  incentives?: NormalizedMutationContractIncentives | null;
+  guaranteeSchedule?: NormalizedMutationGuaranteeScheduleEntry[] | null;
+  voidedByExtension?: boolean | null;
+  voidedOn?: string | null;
   isExtensionSeason?: boolean | null;
 };
 
@@ -339,7 +391,7 @@ export type ArchitectMutationFreeAgency = {
   type?: string | null;
   capHold?: number | null;
   qualifyingOffer?: number | null;
-  earlyTerminationOption?: boolean | null;
+  earlyTerminationOption?: string | boolean | null;
   hasOption?: boolean | null;
   optionYear?: number | string | null;
   optionType?: string | null;
@@ -366,12 +418,27 @@ export type ArchitectMutationContract = {
   contractLength?: number | null;
   originalLength?: number | null;
   totalValue?: number | null;
+  averageAnnualValue?: number | null;
   guaranteedValue?: number | null;
+  guaranteedYears?: number | null;
   freeAgency?: ArchitectMutationFreeAgency | string | null;
   rfaOfferSheetStatus?: string | null;
   // Formerly-implicit fields now explicitly declared (read in deriveContractSummary fallback chain).
   firstYearSalary?: number | null;
   year1Salary?: number | null;
+  signingExecutive?: string | null;
+  signedByCurrentTeam?: boolean | null;
+  startSeason?: string | null;
+  endSeason?: string | null;
+  noTradeClause?: boolean | null;
+  tradeKicker?: number | null;
+  tradeRestrictions?: string[] | null;
+  tradeEligibility?: ArchitectMutationTradeEligibility | null;
+  isMaxContract?: boolean | null;
+  maxType?: string | null;
+  estimatedCapPercentage?: number | null;
+  supersededIn?: string | null;
+  supersededByContractRef?: string | null;
 };
 
 type MutationDeadCapYear = {
@@ -680,6 +747,81 @@ type LoadedMutationPlayer = Awaited<ReturnType<typeof getPlayer>>;
 type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
   year?: number | string | null;
 };
+type MutationCurrentStateContractNumberish = number | string | null;
+type MutationCurrentStateContractDateLike = string | number | null;
+type CurrentStatePlayerContractIncentives = NormalizedMutationContractIncentives;
+type CurrentStatePlayerContractGuaranteeScheduleEntry =
+  NormalizedMutationGuaranteeScheduleEntry;
+type CurrentStatePlayerContractTradeEligibilityRules =
+  ArchitectMutationTradeEligibilityRules;
+type CurrentStatePlayerContractTradeEligibility =
+  ArchitectMutationTradeEligibility;
+type CurrentStatePlayerContractFreeAgency = ArchitectMutationFreeAgency;
+type MutationCurrentStatePlayerContractSalaryRowIngress = {
+  season?: string | null;
+  year?: MutationCurrentStateContractNumberish;
+  salary?: MutationCurrentStateContractNumberish;
+  capHit?: MutationCurrentStateContractNumberish;
+  guaranteed?: boolean | null;
+  guaranteedAmount?: MutationCurrentStateContractNumberish;
+  option?: string | null;
+  optionType?: string | null;
+  optionUsed?: boolean | string | null;
+  optionDecisionDate?: string | null;
+  tradeBonus?: MutationCurrentStateContractNumberish;
+  incentives?: CurrentStatePlayerContractIncentives | null;
+  guaranteeSchedule?: CurrentStatePlayerContractGuaranteeScheduleEntry[] | null;
+  voidedByExtension?: boolean | null;
+  voidedOn?: string | null;
+  isExtensionSeason?: boolean | null;
+};
+type CurrentStatePlayerContractSalaryRow = NormalizedMutationSalaryRow;
+type MutationCurrentStatePlayerContractIngress = {
+  salariesByYear?: MutationCurrentStatePlayerContractSalaryRowIngress[] | null;
+  years?: MutationCurrentStateContractNumberish;
+  startYear?: MutationCurrentStateContractNumberish;
+  year?: MutationCurrentStateContractNumberish;
+  birdRights?: ArchitectMutationBirdRights | string | null;
+  contractType?: string | null;
+  extension?: boolean | null;
+  isExtension?: boolean | null;
+  isRookieScale?: boolean | null;
+  signingTeam?: string | null;
+  signingDate?: MutationCurrentStateContractDateLike;
+  signedAt?: MutationCurrentStateContractDateLike;
+  extensionSignedAt?: MutationCurrentStateContractDateLike;
+  signedUsing?: string | null;
+  exceptionType?: string | null;
+  contractYears?: MutationCurrentStateContractNumberish;
+  firstYearGuaranteed?: boolean | null;
+  rfaOfferSheet?: boolean | null;
+  rfaOfferSheetOnly?: boolean | null;
+  yearsRemaining?: MutationCurrentStateContractNumberish;
+  contractLength?: MutationCurrentStateContractNumberish;
+  originalLength?: MutationCurrentStateContractNumberish;
+  totalValue?: MutationCurrentStateContractNumberish;
+  averageAnnualValue?: MutationCurrentStateContractNumberish;
+  guaranteedValue?: MutationCurrentStateContractNumberish;
+  guaranteedYears?: MutationCurrentStateContractNumberish;
+  freeAgency?: CurrentStatePlayerContractFreeAgency | string | null;
+  rfaOfferSheetStatus?: string | null;
+  firstYearSalary?: MutationCurrentStateContractNumberish;
+  year1Salary?: MutationCurrentStateContractNumberish;
+  signingExecutive?: string | null;
+  signedByCurrentTeam?: boolean | null;
+  startSeason?: string | null;
+  endSeason?: string | null;
+  noTradeClause?: boolean | null;
+  tradeKicker?: MutationCurrentStateContractNumberish;
+  tradeRestrictions?: string[] | null;
+  tradeEligibility?: CurrentStatePlayerContractTradeEligibility | null;
+  isMaxContract?: boolean | null;
+  maxType?: string | null;
+  estimatedCapPercentage?: MutationCurrentStateContractNumberish;
+  supersededIn?: string | null;
+  supersededByContractRef?: string | null;
+};
+type CurrentStatePlayerContract = ArchitectMutationContract;
 type NormalizedCurrentStatePlayerDraft = Pick<
   NonNullable<ArchitectMutationPlayerRecord['draft']>,
   'round' | 'pick'
@@ -701,8 +843,6 @@ type CurrentStatePlayerCore = Omit<
     | 'displayName'
     | 'playerName'
     | 'bio'
-    | 'contract'
-    | 'futureContract'
     | 'representation'
     | 'source'
     | 'salary'
@@ -716,9 +856,11 @@ type CurrentStatePlayerCore = Omit<
     | 'isTwoWay'
     | 'signedDate'
   >,
-  'draft'
+  'draft' | 'contract' | 'futureContract'
 > & {
   draft?: NormalizedCurrentStatePlayerDraft | null;
+  contract?: CurrentStatePlayerContract | null;
+  futureContract?: CurrentStatePlayerContract | null;
 };
 type CurrentStatePlayerRfaSidecar = {
   rfaOfferSheet?: boolean;
@@ -850,8 +992,6 @@ type MutationCurrentStatePlayerIngress = Omit<
     | 'displayName'
     | 'playerName'
     | 'bio'
-    | 'contract'
-    | 'futureContract'
     | 'draft'
     | 'representation'
     | 'source'
@@ -866,10 +1006,12 @@ type MutationCurrentStatePlayerIngress = Omit<
     | 'isTwoWay'
     | 'signedDate'
   >,
-  'draft'
+  'draft' | 'contract' | 'futureContract'
 > &
   CurrentStatePlayerRfaBoundary & {
     draft?: Partial<PlayerDraft> | null;
+    contract?: MutationCurrentStatePlayerContractIngress | null;
+    futureContract?: MutationCurrentStatePlayerContractIngress | null;
   };
 type MutationCurrentStateTeamIngress = Omit<
   Pick<
@@ -1928,6 +2070,40 @@ function toOptionalNumber(value: unknown): number | undefined {
 
 function toOptionalBoolean(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined;
+}
+
+function toOptionalBooleanOrNull(
+  value: unknown
+): boolean | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  return toOptionalBoolean(value);
+}
+
+function toOptionalNumberishOrNull(
+  value: unknown
+): number | string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  return toOptionalNumberish(value);
+}
+
+function toOptionalContractDateLikeOrNull(
+  value: unknown
+): MutationCurrentStateContractDateLike | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  return toOptionalTrimmedString(value);
 }
 
 function toOptionalScalarId(value: unknown): MutationScalarId {
@@ -3016,33 +3192,559 @@ function normalizeCurrentStatePlayerBirdRights(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
-function normalizeCurrentStatePlayerContract(
+function normalizeCurrentStatePlayerContractBirdRights(
   value: unknown
-): ArchitectMutationContract | undefined {
+): ArchitectMutationBirdRights | undefined {
+  const normalizedBirdRights = normalizeCurrentStatePlayerBirdRights(value);
+
+  if (!normalizedBirdRights) {
+    return undefined;
+  }
+
+  if (typeof normalizedBirdRights === 'string') {
+    return { status: normalizedBirdRights };
+  }
+
+  return normalizedBirdRights;
+}
+
+function normalizeCurrentStatePlayerContractIncentives(
+  value: unknown
+): CurrentStatePlayerContractIncentives | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: CurrentStatePlayerContractIncentives = {};
+  const likely = toOptionalNumberOrNull(record.likely);
+  const unlikely = toOptionalNumberOrNull(record.unlikely);
+
+  if (likely !== undefined) {
+    normalized.likely = likely;
+  }
+  if (unlikely !== undefined) {
+    normalized.unlikely = unlikely;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStatePlayerContractGuaranteeScheduleEntry(
+  value: unknown
+): CurrentStatePlayerContractGuaranteeScheduleEntry | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: CurrentStatePlayerContractGuaranteeScheduleEntry = {};
+  const effectiveDate = toOptionalTrimmedStringOrNull(record.effectiveDate);
+  const guaranteedAmount = toOptionalNumberOrNull(record.guaranteedAmount);
+  const status = toOptionalTrimmedStringOrNull(record.status);
+  const note = toOptionalTrimmedStringOrNull(record.note);
+
+  if (effectiveDate !== undefined) {
+    normalized.effectiveDate = effectiveDate;
+  }
+  if (guaranteedAmount !== undefined) {
+    normalized.guaranteedAmount = guaranteedAmount;
+  }
+  if (status !== undefined) {
+    normalized.status = status;
+  }
+  if (note !== undefined) {
+    normalized.note = note;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStatePlayerContractGuaranteeSchedule(
+  value: unknown
+): CurrentStatePlayerContractGuaranteeScheduleEntry[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) =>
+      normalizeCurrentStatePlayerContractGuaranteeScheduleEntry(entry)
+    )
+    .filter(
+      (
+        entry
+      ): entry is CurrentStatePlayerContractGuaranteeScheduleEntry =>
+        entry !== undefined
+    );
+}
+
+function normalizeCurrentStatePlayerContractTradeEligibilityRules(
+  value: unknown
+): CurrentStatePlayerContractTradeEligibilityRules | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: CurrentStatePlayerContractTradeEligibilityRules = {};
+  const baseYearCompensation = toOptionalBooleanOrNull(
+    record.baseYearCompensation
+  );
+  const poisonPill = toOptionalBooleanOrNull(record.poisonPill);
+  const aggregation = toOptionalBooleanOrNull(record.aggregation);
+
+  if (baseYearCompensation !== undefined) {
+    normalized.baseYearCompensation = baseYearCompensation;
+  }
+  if (poisonPill !== undefined) {
+    normalized.poisonPill = poisonPill;
+  }
+  if (aggregation !== undefined) {
+    normalized.aggregation = aggregation;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStatePlayerContractTradeEligibility(
+  value: unknown
+): CurrentStatePlayerContractTradeEligibility | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: CurrentStatePlayerContractTradeEligibility = {};
+  const canBeTradedNow = toOptionalBooleanOrNull(record.canBeTradedNow);
+  const restrictedUntil = toOptionalTrimmedStringOrNull(record.restrictedUntil);
+  const reason = toOptionalTrimmedStringOrNull(record.reason);
+  const rules = normalizeCurrentStatePlayerContractTradeEligibilityRules(
+    record.rules
+  );
+
+  if (canBeTradedNow !== undefined) {
+    normalized.canBeTradedNow = canBeTradedNow;
+  }
+  if (restrictedUntil !== undefined) {
+    normalized.restrictedUntil = restrictedUntil;
+  }
+  if (reason !== undefined) {
+    normalized.reason = reason;
+  }
+  if (rules !== undefined) {
+    normalized.rules = rules;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStatePlayerContractFreeAgency(
+  value: unknown
+): CurrentStatePlayerContractFreeAgency | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const record = asLooseRecord(
+    normalizeFreeAgency(
+      value as Parameters<typeof normalizeFreeAgency>[0]
+    )
+  );
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: CurrentStatePlayerContractFreeAgency = {};
+  const type = toOptionalTrimmedStringOrNull(record.type);
+  const year = toOptionalNumberishOrNull(record.year);
+  const capHold = toOptionalNumberOrNull(record.capHold);
+  const qualifyingOffer = toOptionalNumberOrNull(record.qualifyingOffer);
+  const earlyTerminationOption =
+    typeof record.earlyTerminationOption === 'boolean'
+      ? record.earlyTerminationOption
+      : toOptionalTrimmedStringOrNull(record.earlyTerminationOption);
+  const hasOption = toOptionalBooleanOrNull(record.hasOption);
+  const optionYear = toOptionalNumberishOrNull(record.optionYear);
+  const optionType = toOptionalTrimmedStringOrNull(record.optionType);
+
+  if (type !== undefined) {
+    normalized.type = type;
+  }
+  if (year !== undefined) {
+    normalized.year = year;
+  }
+  if (capHold !== undefined) {
+    normalized.capHold = capHold;
+  }
+  if (qualifyingOffer !== undefined) {
+    normalized.qualifyingOffer = qualifyingOffer;
+  }
+  if (earlyTerminationOption !== undefined) {
+    normalized.earlyTerminationOption = earlyTerminationOption;
+  }
+  if (hasOption !== undefined) {
+    normalized.hasOption = hasOption;
+  }
+  if (optionYear !== undefined) {
+    normalized.optionYear = optionYear;
+  }
+  if (optionType !== undefined) {
+    normalized.optionType = optionType;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStatePlayerContractSalaryRow(
+  value: unknown
+): CurrentStatePlayerContractSalaryRow | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const projectedRow: MutationCurrentStatePlayerContractSalaryRowIngress = {};
+  const year = toOptionalNumberOrNull(record.year);
+  const season =
+    toOptionalTrimmedStringOrNull(record.season) ??
+    (typeof year === 'number' ? toSeasonCode(year) : undefined);
+  const salary = toOptionalNumberOrNull(record.salary);
+  const capHit = toOptionalNumberOrNull(record.capHit);
+  const guaranteed = toOptionalBooleanOrNull(record.guaranteed);
+  const guaranteedAmount = toOptionalNumberOrNull(record.guaranteedAmount);
+  const option = toOptionalTrimmedStringOrNull(record.option);
+  const optionType = toOptionalTrimmedStringOrNull(record.optionType);
+  const optionUsed = Object.prototype.hasOwnProperty.call(record, 'optionUsed')
+    ? normalizeOptionUsed(record.optionUsed)
+    : undefined;
+  const optionDecisionDate = toOptionalTrimmedStringOrNull(
+    record.optionDecisionDate
+  );
+  const tradeBonus = toOptionalNumberOrNull(record.tradeBonus);
+  const incentives = normalizeCurrentStatePlayerContractIncentives(
+    record.incentives
+  );
+  const guaranteeSchedule =
+    normalizeCurrentStatePlayerContractGuaranteeSchedule(
+      record.guaranteeSchedule
+    );
+  const voidedByExtension = toOptionalBooleanOrNull(record.voidedByExtension);
+  const voidedOn = toOptionalTrimmedStringOrNull(record.voidedOn);
+  const isExtensionSeason = toOptionalBooleanOrNull(record.isExtensionSeason);
+
+  if (year !== undefined) {
+    projectedRow.year = year;
+  }
+  if (salary !== undefined) {
+    projectedRow.salary = salary;
+  }
+  if (capHit !== undefined) {
+    projectedRow.capHit = capHit;
+  }
+  if (guaranteed !== undefined) {
+    projectedRow.guaranteed = guaranteed;
+  }
+  if (guaranteedAmount !== undefined) {
+    projectedRow.guaranteedAmount = guaranteedAmount;
+  }
+  if (option !== undefined) {
+    projectedRow.option = option;
+  }
+  if (optionType !== undefined) {
+    projectedRow.optionType = optionType;
+  }
+  if (optionUsed !== undefined) {
+    projectedRow.optionUsed = optionUsed;
+  }
+  if (optionDecisionDate !== undefined) {
+    projectedRow.optionDecisionDate = optionDecisionDate;
+  }
+  if (tradeBonus !== undefined) {
+    projectedRow.tradeBonus = tradeBonus;
+  }
+  if (incentives !== undefined) {
+    projectedRow.incentives = incentives;
+  }
+  if (guaranteeSchedule !== undefined) {
+    projectedRow.guaranteeSchedule = guaranteeSchedule;
+  }
+  if (voidedByExtension !== undefined) {
+    projectedRow.voidedByExtension = voidedByExtension;
+  }
+  if (voidedOn !== undefined) {
+    projectedRow.voidedOn = voidedOn;
+  }
+  if (isExtensionSeason !== undefined) {
+    projectedRow.isExtensionSeason = isExtensionSeason;
+  }
+
+  if (season === undefined) {
+    return undefined;
+  }
+
+  projectedRow.season = season;
+
+  if (Object.keys(projectedRow).length === 0) {
+    return undefined;
+  }
+
+  return normalizeSalaryRow(
+    projectedRow
+  ) as CurrentStatePlayerContractSalaryRow;
+}
+
+function normalizeCurrentStatePlayerContractSalaryRows(
+  value: unknown
+): CurrentStatePlayerContractSalaryRow[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => normalizeCurrentStatePlayerContractSalaryRow(entry))
+    .filter(
+      (entry): entry is CurrentStatePlayerContractSalaryRow =>
+        entry !== undefined
+    );
+}
+
+function projectCurrentStatePlayerContractIngress(
+  value: unknown
+): MutationCurrentStatePlayerContractIngress | undefined {
   const contract = asLooseRecord(value);
   if (!contract) {
     return undefined;
   }
 
-  // Load-bearing round-trip seam: current team snapshots may still carry full
-  // base-player contract detail, so we normalize canonical fields without
-  // collapsing the remaining committed snapshot contract shape.
+  const projected: MutationCurrentStatePlayerContractIngress = {};
+  const salariesByYear = normalizeCurrentStatePlayerContractSalaryRows(
+    contract.salariesByYear
+  );
+  const years = toOptionalNumberOrNull(contract.years);
+  const startYear = toOptionalNumberOrNull(contract.startYear);
+  const year = toOptionalNumberOrNull(contract.year);
+  const birdRights = normalizeCurrentStatePlayerContractBirdRights(
+    contract.birdRights
+  );
+  const contractType = toOptionalTrimmedStringOrNull(contract.contractType);
+  const extension = toOptionalBooleanOrNull(contract.extension);
+  const isExtension = toOptionalBooleanOrNull(contract.isExtension);
+  const isRookieScale = toOptionalBooleanOrNull(contract.isRookieScale);
+  const signingTeam = toOptionalTrimmedStringOrNull(contract.signingTeam);
+  const signingDate = toOptionalContractDateLikeOrNull(contract.signingDate);
+  const signedAt = toOptionalContractDateLikeOrNull(contract.signedAt);
+  const extensionSignedAt = toOptionalContractDateLikeOrNull(
+    contract.extensionSignedAt
+  );
+  const signedUsing = toOptionalTrimmedStringOrNull(contract.signedUsing);
+  const exceptionType = toOptionalTrimmedStringOrNull(contract.exceptionType);
+  const contractYears = toOptionalNumberOrNull(contract.contractYears);
+  const firstYearGuaranteed = toOptionalBooleanOrNull(
+    contract.firstYearGuaranteed
+  );
+  const rfaOfferSheet = toOptionalBooleanOrNull(contract.rfaOfferSheet);
+  const rfaOfferSheetOnly = toOptionalBooleanOrNull(
+    contract.rfaOfferSheetOnly
+  );
+  const yearsRemaining = toOptionalNumberOrNull(contract.yearsRemaining);
+  const contractLength = toOptionalNumberOrNull(contract.contractLength);
+  const originalLength = toOptionalNumberOrNull(contract.originalLength);
+  const totalValue = toOptionalNumberOrNull(contract.totalValue);
+  const averageAnnualValue = toOptionalNumberOrNull(
+    contract.averageAnnualValue
+  );
+  const guaranteedValue = toOptionalNumberOrNull(contract.guaranteedValue);
+  const guaranteedYears = toOptionalNumberOrNull(contract.guaranteedYears);
+  const freeAgency = normalizeCurrentStatePlayerContractFreeAgency(
+    contract.freeAgency
+  );
+  const rfaOfferSheetStatus = toOptionalTrimmedStringOrNull(
+    contract.rfaOfferSheetStatus
+  );
+  const firstYearSalary = toOptionalNumberOrNull(contract.firstYearSalary);
+  const year1Salary = toOptionalNumberOrNull(contract.year1Salary);
+  const signingExecutive = toOptionalTrimmedStringOrNull(
+    contract.signingExecutive
+  );
+  const signedByCurrentTeam = toOptionalBooleanOrNull(
+    contract.signedByCurrentTeam
+  );
+  const startSeason = toOptionalTrimmedStringOrNull(contract.startSeason);
+  const endSeason = toOptionalTrimmedStringOrNull(contract.endSeason);
+  const noTradeClause = toOptionalBooleanOrNull(contract.noTradeClause);
+  const tradeKicker = toOptionalNumberOrNull(contract.tradeKicker);
+  const tradeRestrictions = normalizeStringArray(contract.tradeRestrictions);
+  const tradeEligibility = normalizeCurrentStatePlayerContractTradeEligibility(
+    contract.tradeEligibility
+  );
+  const isMaxContract = toOptionalBooleanOrNull(contract.isMaxContract);
+  const maxType = toOptionalTrimmedStringOrNull(contract.maxType);
+  const estimatedCapPercentage = toOptionalNumberOrNull(
+    contract.estimatedCapPercentage
+  );
+  const supersededIn = toOptionalTrimmedStringOrNull(contract.supersededIn);
+  const supersededByContractRef = toOptionalTrimmedStringOrNull(
+    contract.supersededByContractRef
+  );
+
+  if (salariesByYear !== undefined) {
+    projected.salariesByYear = salariesByYear;
+  }
+  if (years !== undefined) {
+    projected.years = years;
+  }
+  if (startYear !== undefined) {
+    projected.startYear = startYear;
+  }
+  if (year !== undefined) {
+    projected.year = year;
+  }
+  if (birdRights !== undefined) {
+    projected.birdRights = birdRights;
+  }
+  if (contractType !== undefined) {
+    projected.contractType = contractType;
+  }
+  if (extension !== undefined) {
+    projected.extension = extension;
+  }
+  if (isExtension !== undefined) {
+    projected.isExtension = isExtension;
+  }
+  if (isRookieScale !== undefined) {
+    projected.isRookieScale = isRookieScale;
+  }
+  if (signingTeam !== undefined) {
+    projected.signingTeam = signingTeam;
+  }
+  if (signingDate !== undefined) {
+    projected.signingDate = signingDate;
+  }
+  if (signedAt !== undefined) {
+    projected.signedAt = signedAt;
+  }
+  if (extensionSignedAt !== undefined) {
+    projected.extensionSignedAt = extensionSignedAt;
+  }
+  if (signedUsing !== undefined) {
+    projected.signedUsing = signedUsing;
+  }
+  if (exceptionType !== undefined) {
+    projected.exceptionType = exceptionType;
+  }
+  if (contractYears !== undefined) {
+    projected.contractYears = contractYears;
+  }
+  if (firstYearGuaranteed !== undefined) {
+    projected.firstYearGuaranteed = firstYearGuaranteed;
+  }
+  if (rfaOfferSheet !== undefined) {
+    projected.rfaOfferSheet = rfaOfferSheet;
+  }
+  if (rfaOfferSheetOnly !== undefined) {
+    projected.rfaOfferSheetOnly = rfaOfferSheetOnly;
+  }
+  if (yearsRemaining !== undefined) {
+    projected.yearsRemaining = yearsRemaining;
+  }
+  if (contractLength !== undefined) {
+    projected.contractLength = contractLength;
+  }
+  if (originalLength !== undefined) {
+    projected.originalLength = originalLength;
+  }
+  if (totalValue !== undefined) {
+    projected.totalValue = totalValue;
+  }
+  if (averageAnnualValue !== undefined) {
+    projected.averageAnnualValue = averageAnnualValue;
+  }
+  if (guaranteedValue !== undefined) {
+    projected.guaranteedValue = guaranteedValue;
+  }
+  if (guaranteedYears !== undefined) {
+    projected.guaranteedYears = guaranteedYears;
+  }
+  if (freeAgency !== undefined) {
+    projected.freeAgency = freeAgency;
+  }
+  if (rfaOfferSheetStatus !== undefined) {
+    projected.rfaOfferSheetStatus = rfaOfferSheetStatus;
+  }
+  if (firstYearSalary !== undefined) {
+    projected.firstYearSalary = firstYearSalary;
+  }
+  if (year1Salary !== undefined) {
+    projected.year1Salary = year1Salary;
+  }
+  if (signingExecutive !== undefined) {
+    projected.signingExecutive = signingExecutive;
+  }
+  if (signedByCurrentTeam !== undefined) {
+    projected.signedByCurrentTeam = signedByCurrentTeam;
+  }
+  if (startSeason !== undefined) {
+    projected.startSeason = startSeason;
+  }
+  if (endSeason !== undefined) {
+    projected.endSeason = endSeason;
+  }
+  if (noTradeClause !== undefined) {
+    projected.noTradeClause = noTradeClause;
+  }
+  if (tradeKicker !== undefined) {
+    projected.tradeKicker = tradeKicker;
+  }
+  if (tradeRestrictions !== undefined) {
+    projected.tradeRestrictions = tradeRestrictions;
+  }
+  if (tradeEligibility !== undefined) {
+    projected.tradeEligibility = tradeEligibility;
+  }
+  if (isMaxContract !== undefined) {
+    projected.isMaxContract = isMaxContract;
+  }
+  if (maxType !== undefined) {
+    projected.maxType = maxType;
+  }
+  if (estimatedCapPercentage !== undefined) {
+    projected.estimatedCapPercentage = estimatedCapPercentage;
+  }
+  if (supersededIn !== undefined) {
+    projected.supersededIn = supersededIn;
+  }
+  if (supersededByContractRef !== undefined) {
+    projected.supersededByContractRef = supersededByContractRef;
+  }
+
+  return Object.keys(projected).length > 0 ? projected : undefined;
+}
+
+function normalizeCurrentStatePlayerContract(
+  value: unknown
+): CurrentStatePlayerContract | undefined {
+  const contract = projectCurrentStatePlayerContractIngress(value);
+  if (!contract) {
+    return undefined;
+  }
+
   return normalizeContractForWorld(
-    safeCloneForAudit(contract) as ArchitectMutationContract
-  ) as ArchitectMutationContract;
+    contract
+  ) as CurrentStatePlayerContract;
 }
 
 function normalizeCurrentStatePlayerFutureContract(
   value: unknown
-): ArchitectMutationContract | undefined {
-  const contract = asLooseRecord(value);
+): CurrentStatePlayerContract | undefined {
+  const contract = projectCurrentStatePlayerContractIngress(value);
   if (!contract) {
     return undefined;
   }
 
   return normalizeFutureContract(
-    safeCloneForAudit(contract) as ArchitectMutationContract
-  ) as ArchitectMutationContract;
+    contract
+  ) as CurrentStatePlayerContract;
 }
 
 function normalizeCurrentStatePlayerRepresentation(
