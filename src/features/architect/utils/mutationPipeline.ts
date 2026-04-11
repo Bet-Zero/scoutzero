@@ -749,6 +749,87 @@ type MutationPipelineSalaryRow = NormalizedMutationSalaryRow & {
 };
 type MutationCurrentStateContractNumberish = number | string | null;
 type MutationCurrentStateContractDateLike = string | number | null;
+const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
+  'salariesByYear',
+  'years',
+  'startYear',
+  'year',
+  'birdRights',
+  'contractType',
+  'isExtension',
+  'isRookieScale',
+  'signingTeam',
+  'signingDate',
+  'signedUsing',
+  'exceptionType',
+  'contractYears',
+  'firstYearGuaranteed',
+  'rfaOfferSheet',
+  'rfaOfferSheetOnly',
+  'yearsRemaining',
+  'contractLength',
+  'originalLength',
+  'totalValue',
+  'averageAnnualValue',
+  'guaranteedValue',
+  'guaranteedYears',
+  'freeAgency',
+  'rfaOfferSheetStatus',
+  'firstYearSalary',
+  'year1Salary',
+  'signingExecutive',
+  'signedByCurrentTeam',
+  'startSeason',
+  'endSeason',
+  'noTradeClause',
+  'tradeKicker',
+  'tradeRestrictions',
+  'tradeEligibility',
+  'isMaxContract',
+  'maxType',
+  'estimatedCapPercentage',
+  'supersededIn',
+  'supersededByContractRef',
+] as const;
+const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
+  'salariesByYear',
+  'years',
+  'startYear',
+  'year',
+  'birdRights',
+  'contractType',
+  'isExtension',
+  'isRookieScale',
+  'signingTeam',
+  'signingDate',
+  'signedUsing',
+  'exceptionType',
+  'contractYears',
+  'firstYearGuaranteed',
+  'yearsRemaining',
+  'contractLength',
+  'originalLength',
+  'totalValue',
+  'averageAnnualValue',
+  'guaranteedValue',
+  'guaranteedYears',
+  'freeAgency',
+  'firstYearSalary',
+  'year1Salary',
+  'signingExecutive',
+  'signedByCurrentTeam',
+  'startSeason',
+  'endSeason',
+  'noTradeClause',
+  'tradeKicker',
+  'tradeRestrictions',
+  'tradeEligibility',
+  'isMaxContract',
+  'maxType',
+  'estimatedCapPercentage',
+  'supersededIn',
+  'supersededByContractRef',
+] as const;
 type CurrentStatePlayerContractIncentives = NormalizedMutationContractIncentives;
 type CurrentStatePlayerContractGuaranteeScheduleEntry =
   NormalizedMutationGuaranteeScheduleEntry;
@@ -821,7 +902,18 @@ type MutationCurrentStatePlayerContractIngress = {
   supersededIn?: string | null;
   supersededByContractRef?: string | null;
 };
-type CurrentStatePlayerContract = ArchitectMutationContract;
+type MutationCurrentStatePlayerFutureContractIngress = Omit<
+  MutationCurrentStatePlayerContractIngress,
+  'rfaOfferSheet' | 'rfaOfferSheetOnly' | 'rfaOfferSheetStatus'
+>;
+type CurrentStatePlayerContract = Pick<
+  ArchitectMutationContract,
+  (typeof CURRENT_STATE_PLAYER_CONTRACT_KEYS)[number]
+>;
+type CurrentStatePlayerFutureContract = Pick<
+  ArchitectMutationContract,
+  (typeof CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS)[number]
+>;
 type NormalizedCurrentStatePlayerDraft = Pick<
   NonNullable<ArchitectMutationPlayerRecord['draft']>,
   'round' | 'pick'
@@ -860,7 +952,7 @@ type CurrentStatePlayerCore = Omit<
 > & {
   draft?: NormalizedCurrentStatePlayerDraft | null;
   contract?: CurrentStatePlayerContract | null;
-  futureContract?: CurrentStatePlayerContract | null;
+  futureContract?: CurrentStatePlayerFutureContract | null;
 };
 type CurrentStatePlayerRfaSidecar = {
   rfaOfferSheet?: boolean;
@@ -1011,7 +1103,7 @@ type MutationCurrentStatePlayerIngress = Omit<
   CurrentStatePlayerRfaBoundary & {
     draft?: Partial<PlayerDraft> | null;
     contract?: MutationCurrentStatePlayerContractIngress | null;
-    futureContract?: MutationCurrentStatePlayerContractIngress | null;
+    futureContract?: MutationCurrentStatePlayerFutureContractIngress | null;
   };
 type MutationCurrentStateTeamIngress = Omit<
   Pick<
@@ -3509,9 +3601,23 @@ function normalizeCurrentStatePlayerContractSalaryRows(
     );
 }
 
+type CurrentStatePlayerContractLane = 'current' | 'future';
+
 function projectCurrentStatePlayerContractIngress(
-  value: unknown
-): MutationCurrentStatePlayerContractIngress | undefined {
+  value: unknown,
+  lane: 'current'
+): MutationCurrentStatePlayerContractIngress | undefined;
+function projectCurrentStatePlayerContractIngress(
+  value: unknown,
+  lane: 'future'
+): MutationCurrentStatePlayerFutureContractIngress | undefined;
+function projectCurrentStatePlayerContractIngress(
+  value: unknown,
+  lane: CurrentStatePlayerContractLane
+):
+  | MutationCurrentStatePlayerContractIngress
+  | MutationCurrentStatePlayerFutureContractIngress
+  | undefined {
   const contract = asLooseRecord(value);
   if (!contract) {
     return undefined;
@@ -3559,9 +3665,10 @@ function projectCurrentStatePlayerContractIngress(
   const freeAgency = normalizeCurrentStatePlayerContractFreeAgency(
     contract.freeAgency
   );
-  const rfaOfferSheetStatus = toOptionalTrimmedStringOrNull(
-    contract.rfaOfferSheetStatus
-  );
+  const includeOfferSheetState = lane === 'current';
+  const rfaOfferSheetStatus = includeOfferSheetState
+    ? toOptionalTrimmedStringOrNull(contract.rfaOfferSheetStatus)
+    : undefined;
   const firstYearSalary = toOptionalNumberOrNull(contract.firstYearSalary);
   const year1Salary = toOptionalNumberOrNull(contract.year1Salary);
   const signingExecutive = toOptionalTrimmedStringOrNull(
@@ -3639,10 +3746,10 @@ function projectCurrentStatePlayerContractIngress(
   if (firstYearGuaranteed !== undefined) {
     projected.firstYearGuaranteed = firstYearGuaranteed;
   }
-  if (rfaOfferSheet !== undefined) {
+  if (includeOfferSheetState && rfaOfferSheet !== undefined) {
     projected.rfaOfferSheet = rfaOfferSheet;
   }
-  if (rfaOfferSheetOnly !== undefined) {
+  if (includeOfferSheetState && rfaOfferSheetOnly !== undefined) {
     projected.rfaOfferSheetOnly = rfaOfferSheetOnly;
   }
   if (yearsRemaining !== undefined) {
@@ -3721,30 +3828,57 @@ function projectCurrentStatePlayerContractIngress(
   return Object.keys(projected).length > 0 ? projected : undefined;
 }
 
+function pickCurrentStatePlayerContractSlice<
+  TKey extends keyof ArchitectMutationContract,
+>(
+  contract: unknown,
+  keys: readonly TKey[]
+): Pick<ArchitectMutationContract, TKey> | undefined {
+  const contractRecord = asLooseRecord(contract);
+  if (!contractRecord) {
+    return undefined;
+  }
+
+  const normalized: Partial<Pick<ArchitectMutationContract, TKey>> = {};
+
+  for (const key of keys) {
+    const value = contractRecord[key];
+    if (value !== undefined) {
+      normalized[key] = value as ArchitectMutationContract[TKey];
+    }
+  }
+
+  return Object.keys(normalized).length > 0
+    ? (normalized as Pick<ArchitectMutationContract, TKey>)
+    : undefined;
+}
+
 function normalizeCurrentStatePlayerContract(
   value: unknown
 ): CurrentStatePlayerContract | undefined {
-  const contract = projectCurrentStatePlayerContractIngress(value);
+  const contract = projectCurrentStatePlayerContractIngress(value, 'current');
   if (!contract) {
     return undefined;
   }
 
-  return normalizeContractForWorld(
-    contract
-  ) as CurrentStatePlayerContract;
+  return pickCurrentStatePlayerContractSlice(
+    normalizeContractForWorld(contract),
+    CURRENT_STATE_PLAYER_CONTRACT_KEYS
+  );
 }
 
 function normalizeCurrentStatePlayerFutureContract(
   value: unknown
-): CurrentStatePlayerContract | undefined {
-  const contract = projectCurrentStatePlayerContractIngress(value);
+): CurrentStatePlayerFutureContract | undefined {
+  const contract = projectCurrentStatePlayerContractIngress(value, 'future');
   if (!contract) {
     return undefined;
   }
 
-  return normalizeFutureContract(
-    contract
-  ) as CurrentStatePlayerContract;
+  return pickCurrentStatePlayerContractSlice(
+    normalizeFutureContract(contract),
+    CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS
+  );
 }
 
 function normalizeCurrentStatePlayerRepresentation(

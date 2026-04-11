@@ -263,6 +263,9 @@ describe('mutationPipeline player contract round-trip boundary', () => {
         signingTeam: 'NYK',
         signedAt: '2025-07-01',
         signingDate: undefined,
+        rfaOfferSheet: true,
+        rfaOfferSheetOnly: true,
+        rfaOfferSheetStatus: 'PENDING_MATCH',
         signingExecutive: 'Future GM',
         tradeRestrictions: ['consent required'],
         legacyFutureBlob: { shouldDrop: true },
@@ -310,6 +313,9 @@ describe('mutationPipeline player contract round-trip boundary', () => {
       'consent required',
     ]);
     expect(updatedFutureContract).not.toHaveProperty('legacyFutureBlob');
+    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheet');
+    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetOnly');
+    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetStatus');
     expect(
       updatedFutureContract?.salariesByYear?.find(
         (row) => row.season === '2027-28' && row.voidedByExtension === true
