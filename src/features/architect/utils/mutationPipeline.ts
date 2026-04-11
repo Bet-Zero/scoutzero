@@ -1011,6 +1011,16 @@ type PersistablePlayerOverride = Pick<
 type CurrentStatePlayer = CurrentStatePlayerCore & CurrentStatePlayerRfaBoundary;
 const CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY =
   '__currentStateBasePreserved';
+const CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}TradeExceptions`;
+const CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}CashLedger`;
+const CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}ExceptionHistory`;
+const CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}DraftPicks`;
+const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}EntitlementIds`;
 type CurrentStateTeam = Omit<
   Pick<
     ArchitectMutationTeamRecord,
@@ -1067,7 +1077,7 @@ type CurrentStateBaseTeamCompute = Pick<
   | 'hardCapReason'
   | 'hardCapTriggeredBy'
 >;
-type CurrentStateBaseTeamPreserved = Pick<
+type CurrentStateBaseTeamPreservedFieldMap = Pick<
   CurrentStateTeam,
   | 'tradeExceptions'
   | 'cashLedger'
@@ -1075,27 +1085,39 @@ type CurrentStateBaseTeamPreserved = Pick<
   | 'draftPicks'
   | 'entitlementIds'
 >;
-type CurrentStateBaseTeamRoundTripCarrier = {
-  [CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY]?: CurrentStateBaseTeamPreserved;
+type CurrentStateBaseTeamTradeExceptionsCarrier = {
+  [CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['tradeExceptions'];
 };
-type CurrentStateBaseTeamPreservedCarrierLike = {
-  [CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY]?:
-    | CurrentStateBaseTeamPreserved
-    | null;
+type CurrentStateBaseTeamCashLedgerCarrier = {
+  [CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['cashLedger'];
 };
+type CurrentStateBaseTeamExceptionHistoryCarrier = {
+  [CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['exceptionHistory'];
+};
+type CurrentStateBaseTeamDraftPicksCarrier = {
+  [CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['draftPicks'];
+};
+type CurrentStateBaseTeamEntitlementIdsCarrier = {
+  [CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['entitlementIds'];
+};
+type CurrentStateBaseTeamRoundTripCarrier =
+  CurrentStateBaseTeamTradeExceptionsCarrier &
+    CurrentStateBaseTeamCashLedgerCarrier &
+    CurrentStateBaseTeamExceptionHistoryCarrier &
+    CurrentStateBaseTeamDraftPicksCarrier &
+    CurrentStateBaseTeamEntitlementIdsCarrier;
+type CurrentStateBaseTeamPreservedCarrierLike =
+  CurrentStateBaseTeamRoundTripCarrier;
 type CurrentStateBaseTeam = CurrentStateBaseTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
 type CurrentStateTradeTeam = CurrentStateBaseTeamCompute &
-  Pick<
-    CurrentStateTeam,
-    | 'tradeExceptions'
-    | 'cashLedger'
-    | 'exceptionHistory'
-    | 'draftPicks'
-    | 'entitlementIds'
-    | 'twoWayPlayers'
-    | 'teamTotalSalary'
-  >;
+  CurrentStateBaseTeamPreservedFieldMap &
+  Pick<CurrentStateTeam, 'twoWayPlayers' | 'teamTotalSalary'>;
 type BaseTeamLike = CurrentStateBaseTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
@@ -1677,10 +1699,34 @@ function removeUndefinedDeep(obj: unknown): unknown {
 // Re-export the shared persistence hygiene fence for existing callers/tests.
 export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
-function collectCurrentStateBaseTeamPreservedFields(
-  preserved: CurrentStateBaseTeamPreserved
-): CurrentStateBaseTeamPreserved | undefined {
-  return Object.keys(preserved).length > 0 ? preserved : undefined;
+function attachCurrentStateBaseTeamPreservedFields(
+  team: CurrentStateBaseTeamCompute,
+  preserved: CurrentStateBaseTeamPreservedFieldMap
+): CurrentStateBaseTeam {
+  const withPreservedFields: CurrentStateBaseTeam = { ...team };
+
+  if (preserved.tradeExceptions !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY] =
+      preserved.tradeExceptions;
+  }
+  if (preserved.cashLedger !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY] =
+      preserved.cashLedger;
+  }
+  if (preserved.exceptionHistory !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY] =
+      preserved.exceptionHistory;
+  }
+  if (preserved.draftPicks !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY] =
+      preserved.draftPicks;
+  }
+  if (preserved.entitlementIds !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY] =
+      preserved.entitlementIds;
+  }
+
+  return withPreservedFields;
 }
 
 function materializeCurrentStateBaseTeamPreservedFields<T extends object>(
@@ -1690,20 +1736,47 @@ function materializeCurrentStateBaseTeamPreservedFields<T extends object>(
     return null;
   }
 
-  const teamRecord = team as T & CurrentStateBaseTeamPreservedCarrierLike;
+  const teamRecord = team as T &
+    CurrentStateBaseTeamPreservedCarrierLike &
+    Partial<CurrentStateBaseTeamPreservedFieldMap>;
   const {
-    [CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY]: preserved,
+    [CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]: tradeExceptions,
+    [CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]: cashLedger,
+    [CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]: exceptionHistory,
+    [CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY]: draftPicks,
+    [CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]: entitlementIds,
     ...materialized
   } = teamRecord;
+  const materializedTeam = {
+    ...materialized,
+  } as T & Partial<CurrentStateBaseTeamPreservedFieldMap>;
 
-  if (preserved && typeof preserved === 'object' && !Array.isArray(preserved)) {
-    return {
-      ...preserved,
-      ...materialized,
-    } as T;
+  if (
+    tradeExceptions !== undefined &&
+    materializedTeam.tradeExceptions === undefined
+  ) {
+    materializedTeam.tradeExceptions = tradeExceptions;
+  }
+  if (cashLedger !== undefined && materializedTeam.cashLedger === undefined) {
+    materializedTeam.cashLedger = cashLedger;
+  }
+  if (
+    exceptionHistory !== undefined &&
+    materializedTeam.exceptionHistory === undefined
+  ) {
+    materializedTeam.exceptionHistory = exceptionHistory;
+  }
+  if (draftPicks !== undefined && materializedTeam.draftPicks === undefined) {
+    materializedTeam.draftPicks = draftPicks;
+  }
+  if (
+    entitlementIds !== undefined &&
+    materializedTeam.entitlementIds === undefined
+  ) {
+    materializedTeam.entitlementIds = entitlementIds;
   }
 
-  return materialized as T;
+  return materializedTeam as T;
 }
 
 function stripComputeOnlyTeamFieldsForPersistence<
@@ -4170,14 +4243,11 @@ function toCurrentStateTeam(
     return null;
   }
 
-  const normalized: BaseTeamLike = {};
+  const normalized: CurrentStateBaseTeamCompute = {};
   const teamCode = toOptionalTrimmedString(teamRecord.teamCode);
   const teamName = toOptionalTrimmedString(teamRecord.teamName);
   const players = normalizeCurrentStatePlayerArray(teamRecord.players);
   const roster = normalizeRosterEntries(teamRecord.roster);
-  const twoWayPlayers = normalizeCurrentStatePlayerArray(
-    teamRecord.twoWayPlayers
-  );
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
   const exceptions = normalizeCurrentStateTeamExceptions(teamRecord.exceptions);
@@ -4193,7 +4263,6 @@ function toCurrentStateTeam(
     teamRecord.exceptionHistory
   );
   const totals = normalizeCurrentStateTeamTotals(teamRecord.totals);
-  const teamTotalSalary = resolveCurrentStateTeamTotalSalary(teamRecord, totals);
   const draftPicks = normalizeCurrentStateDraftPicks(teamRecord.draftPicks);
   const entitlementIds = normalizeStringArray(teamRecord.entitlementIds);
   const source = normalizeCurrentStateTeamSource(teamRecord.source);
@@ -4253,7 +4322,7 @@ function toCurrentStateTeam(
     normalized.hardCapTriggeredBy = hardCapTriggeredBy;
   }
 
-  const preserved: CurrentStateBaseTeamPreserved = {};
+  const preserved: CurrentStateBaseTeamPreservedFieldMap = {};
   if (tradeExceptions !== undefined) {
     preserved.tradeExceptions = tradeExceptions;
   }
@@ -4271,16 +4340,11 @@ function toCurrentStateTeam(
   }
 
   if (lane === 'base') {
-    const preservedFields = collectCurrentStateBaseTeamPreservedFields(
-      preserved
-    );
-    if (preservedFields) {
-      normalized[CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY] =
-        preservedFields;
-    }
-    return normalized;
+    return attachCurrentStateBaseTeamPreservedFields(normalized, preserved);
   }
 
+  const twoWayPlayers = normalizeCurrentStatePlayerArray(teamRecord.twoWayPlayers);
+  const teamTotalSalary = resolveCurrentStateTeamTotalSalary(teamRecord, totals);
   const tradeNormalized: TradeTeamLike = { ...normalized };
   if (tradeExceptions !== undefined) {
     tradeNormalized.tradeExceptions = tradeExceptions;
