@@ -58,6 +58,7 @@ import {
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import type { ArchitectTradePayloadPlayer } from '@/features/architect/utils/mutationPipeline';
 import type {
   TradeExceptionRecord,
   TradeValidationResult,
@@ -445,6 +446,96 @@ export function resolveOutgoingTradeDestinationTeamCode({
   return null;
 }
 
+function getTradePayloadPlayerId(player: AnyRecord | null | undefined): string | null {
+  const rawId = player?.player_id || player?.playerId || player?.id || null;
+  if (rawId == null) {
+    return null;
+  }
+
+  const normalized = String(rawId).trim();
+  return normalized || null;
+}
+
+function findTradePlayerSnapshot(
+  team: AnyRecord | null | undefined,
+  playerId: string | null
+): AnyRecord | null {
+  if (!playerId) {
+    return null;
+  }
+
+  const playerCollections = [team?.players, team?.twoWayPlayers];
+  for (const collection of playerCollections) {
+    if (!Array.isArray(collection)) {
+      continue;
+    }
+
+    const match = collection.find((candidate) => {
+      const record = candidate as AnyRecord | null | undefined;
+      return getTradePayloadPlayerId(record) === playerId;
+    });
+
+    if (match && typeof match === 'object') {
+      return match as AnyRecord;
+    }
+  }
+
+  return null;
+}
+
+function buildTradeValidationPlayer({
+  player,
+  sourceTeamState,
+}: {
+  player: ArchitectTradePayloadPlayer;
+  sourceTeamState: AnyRecord | null | undefined;
+}): AnyRecord {
+  const authoritativeSnapshot = findTradePlayerSnapshot(
+    sourceTeamState,
+    getTradePayloadPlayerId(player)
+  );
+
+  return authoritativeSnapshot
+    ? { ...authoritativeSnapshot, ...player }
+    : { ...player };
+}
+
+function buildTradeIncomingPlayerSnapshot({
+  player,
+  sourceTeamState,
+}: {
+  player: ArchitectTradePayloadPlayer;
+  sourceTeamState: AnyRecord | null | undefined;
+}): AnyRecord {
+  const authoritativeSnapshot = findTradePlayerSnapshot(
+    sourceTeamState,
+    getTradePayloadPlayerId(player)
+  );
+
+  if (authoritativeSnapshot) {
+    return { ...authoritativeSnapshot };
+  }
+
+  const fallback: AnyRecord = {};
+  const keys = [
+    'player_id',
+    'id',
+    'playerId',
+    'name',
+    'displayName',
+    'playerName',
+    'originTeamId',
+  ] as const;
+
+  keys.forEach((key) => {
+    if (player[key] !== undefined) {
+      fallback[key] = player[key];
+    }
+  });
+
+  return fallback;
+}
+
 // ==============================================================================
 // PHASE 56/58: POST-TRADE SNAPSHOT BUILDER
 // ==============================================================================
@@ -487,6 +578,22 @@ export function buildPostTradeTeamsSnapshot({
       team,
     ])
   );
+  const validationSendsByTeam: AnyRecord[][] = payload.teams.map(
+    (teamTrade, senderIndex) => {
+      const senderTeamCode = payloadTeamCodes[senderIndex];
+      const senderTeamState =
+        currentTeamByCode.get(senderTeamCode) ||
+        currentState.teams[senderIndex]?.team;
+
+      return (teamTrade.sends || []).map((player) =>
+        buildTradeValidationPlayer({
+          player,
+          sourceTeamState: senderTeamState,
+        })
+      );
+    }
+  );
+  const validationReceivesByTeam: AnyRecord[][] = payload.teams.map(() => []);
 
   if (enforceSatPreflight) {
     payload.teams.forEach((teamTrade, senderIndex) => {
@@ -498,7 +605,7 @@ export function buildPostTradeTeamsSnapshot({
         ? senderTeamState.capHolds
         : [];
 
-      (teamTrade.sends || []).forEach((player, playerIndex) => {
+      (validationSendsByTeam[senderIndex] || []).forEach((player, playerIndex) => {
         if (player.signAndTrade !== true) return;
 
         const destinationTeamId = resolveOutgoingTradeDestinationTeamCode({
@@ -508,6 +615,8 @@ export function buildPostTradeTeamsSnapshot({
         });
         const playerLabel =
           player.name ||
+          player.displayName ||
+          player.playerName ||
           player.player_id ||
           player.id ||
           `send[${playerIndex}]`;
@@ -600,24 +709,38 @@ export function buildPostTradeTeamsSnapshot({
     const thisTeamCode = normalizeTradeTeamCodeLike(teamCode);
 
     const updatedTeam: AnyRecord = { ...team };
-
-    const outgoingPlayerIds = (teamTrade.sends || []).map(
-      (p) => p.player_id || p.id || p.playerId
-    );
-    const outgoingSignAndTradePlayers = (teamTrade.sends || []).filter(
-      (p) => p.signAndTrade === true
+    const validationSends = validationSendsByTeam[i] || [];
+    const outgoingPlayerIds = (teamTrade.sends || [])
+      .map((player) => getTradePayloadPlayerId(player))
+      .filter((playerId): playerId is string => Boolean(playerId));
+    const outgoingSignAndTradePlayers = validationSends.filter(
+      (player) => player.signAndTrade === true
     );
     const outgoingSignAndTradeIds = outgoingSignAndTradePlayers
-      .map((p) => p.player_id || p.id || p.playerId)
-      .filter(Boolean);
+      .map((player) => getTradePayloadPlayerId(player))
+      .filter((playerId): playerId is string => Boolean(playerId));
     const outgoingSignAndTradeNames = outgoingSignAndTradePlayers
-      .map((p) => p.name || p.displayName)
-      .filter(Boolean);
+      .map((player) => player.name || player.displayName || player.playerName)
+      .filter((playerName): playerName is string => Boolean(playerName));
 
     const incomingPlayers: AnyRecord[] = [];
+    const validationReceives: AnyRecord[] = [];
     payload.teams.forEach((otherTeamTrade, otherIndex) => {
       if (otherIndex !== i) {
-        (otherTeamTrade.sends || []).forEach((player) => {
+        const otherTeamCode =
+          payloadTeamCodes[otherIndex] ||
+          normalizeTradeTeamCodeLike(currentState.teams[otherIndex]?.teamCode);
+        const otherTeamState =
+          currentTeamByCode.get(otherTeamCode) ||
+          currentState.teams[otherIndex]?.team;
+
+        (otherTeamTrade.sends || []).forEach((player, playerIndex) => {
+          const validationPlayer =
+            validationSendsByTeam[otherIndex]?.[playerIndex] || { ...player };
+          const incomingPlayerSnapshot = buildTradeIncomingPlayerSnapshot({
+            player,
+            sourceTeamState: otherTeamState,
+          });
           const resolvedTarget = resolveOutgoingTradeDestinationTeamCode({
             payloadTeamCodes,
             senderIndex: otherIndex,
@@ -626,9 +749,11 @@ export function buildPostTradeTeamsSnapshot({
 
           if (resolvedTarget) {
             if (resolvedTarget === thisTeamCode) {
+              validationReceives.push(validationPlayer);
+
               if (player.signAndTrade === true) {
                 const satContract = resolveSignAndTradeContractPayload(
-                  player,
+                  validationPlayer,
                   currentEndYear,
                   { allowPlayerContractFallback: false }
                 );
@@ -638,35 +763,28 @@ export function buildPostTradeTeamsSnapshot({
                     contractType: 'Sign & Trade',
                     signAndTrade: true,
                     signingDate: timestampISO,
-                    signingTeam:
-                      payloadTeamCodes[otherIndex] ||
-                      normalizeTradeTeamCodeLike(
-                        currentState.teams[otherIndex]?.teamCode
-                      ),
+                    signingTeam: otherTeamCode,
                   }) || null;
 
                 incomingPlayers.push({
-                  ...player,
+                  ...incomingPlayerSnapshot,
                   signAndTrade: true,
                   contractType: 'Sign & Trade',
                   contract: normalizedSatContract,
                   signedDate: timestampISO,
                   isNewlySignedFA: true,
-                  originTeamId:
-                    payloadTeamCodes[otherIndex] ||
-                    normalizeTradeTeamCodeLike(
-                      currentState.teams[otherIndex]?.teamCode
-                    ),
+                  originTeamId: otherTeamCode,
                 });
               } else {
-                incomingPlayers.push(player);
+                incomingPlayers.push(incomingPlayerSnapshot);
               }
             }
             return;
           }
 
           if (activeTeamCount <= 2) {
-            incomingPlayers.push(player);
+            validationReceives.push(validationPlayer);
+            incomingPlayers.push(incomingPlayerSnapshot);
             return;
           }
 
@@ -676,23 +794,26 @@ export function buildPostTradeTeamsSnapshot({
         });
       }
     });
+    validationReceivesByTeam[i] = validationReceives;
 
-    const incomingPlayerIds = incomingPlayers.map(
-      (p) => p.player_id || p.id || p.playerId
-    );
+    const incomingPlayerIds = incomingPlayers
+      .map((player) => getTradePayloadPlayerId(player))
+      .filter((playerId): playerId is string => Boolean(playerId));
 
     updatedTeam.roster = [
-      ...(Array.isArray(team.roster) ? team.roster : []).filter((id: string) => !outgoingPlayerIds.includes(id)),
+      ...(Array.isArray(team.roster) ? team.roster : []).filter(
+        (id: string) => !outgoingPlayerIds.includes(id)
+      ),
       ...incomingPlayerIds,
     ];
 
     updatedTeam.players = [
-      ...(Array.isArray(team.players) ? team.players : []).filter((p: AnyRecord) => {
-        const pid = p.player_id || p.id;
-        return !outgoingPlayerIds.includes(pid);
+      ...(Array.isArray(team.players) ? team.players : []).filter((player: AnyRecord) => {
+        const playerId = getTradePayloadPlayerId(player);
+        return !outgoingPlayerIds.includes(playerId || '');
       }),
-      ...incomingPlayers.map((p) => ({
-        ...p,
+      ...incomingPlayers.map((player) => ({
+        ...player,
         teamCode,
         teamName: team.teamName,
       })),
@@ -700,21 +821,20 @@ export function buildPostTradeTeamsSnapshot({
 
     if (Array.isArray(team.twoWayPlayers)) {
       const merged = [
-        ...team.twoWayPlayers.filter((p: AnyRecord) => {
-          const pid = p.player_id || p.id;
-          return !outgoingPlayerIds.includes(pid);
+        ...team.twoWayPlayers.filter((player: AnyRecord) => {
+          const playerId = getTradePayloadPlayerId(player);
+          return !outgoingPlayerIds.includes(playerId || '');
         }),
         ...incomingPlayers
-          .filter((p) => p.isTwoWay === true)
-          .map((p) => ({ ...p, teamCode, teamName: team.teamName })),
+          .filter((player) => player.isTwoWay === true)
+          .map((player) => ({ ...player, teamCode, teamName: team.teamName })),
       ];
       const seen = new Set<string>();
-      updatedTeam.twoWayPlayers = merged.filter((p: AnyRecord) => {
-        const pid = p.player_id || p.id;
-        if (!pid) return true;
-        const pidStr = String(pid);
-        if (seen.has(pidStr)) return false;
-        seen.add(pidStr);
+      updatedTeam.twoWayPlayers = merged.filter((player: AnyRecord) => {
+        const playerId = getTradePayloadPlayerId(player);
+        if (!playerId) return true;
+        if (seen.has(playerId)) return false;
+        seen.add(playerId);
         return true;
       });
     }
@@ -877,8 +997,8 @@ export function buildPostTradeTeamsSnapshot({
     return {
       team: teamUpdate.team,
       teamCode: teamUpdate.teamCode,
-      sends: teamTrade.sends || [],
-      receives: teamTrade.receives || [],
+      sends: validationSendsByTeam[idx] || [],
+      receives: validationReceivesByTeam[idx] || [],
       picksOut: teamTrade.picksOut || [],
       picksIn: teamTrade.picksIn || [],
       cashSent: teamTrade.cashSent || 0,
@@ -1067,13 +1187,42 @@ export function buildSignAndTradeTradeHandoff({
   tradeState: TradeContextCurrentState;
   tradeApplyPreparation: TradeApplyPreparation;
 } {
+  const signedPlayerId =
+    toNonEmptyString(signedPlayer.player_id) ??
+    toNonEmptyString(signedPlayer.playerId) ??
+    toNonEmptyString(signedPlayer.id);
+  const signedPlayerName =
+    toNonEmptyString(signedPlayer.name) ??
+    toNonEmptyString(signedPlayer.displayName) ??
+    toNonEmptyString(signedPlayer.playerName);
+  const signedPlayerDisplayName =
+    toNonEmptyString(signedPlayer.displayName) ?? signedPlayerName;
+  const signedPlayerNameAlias =
+    toNonEmptyString(signedPlayer.playerName) ?? signedPlayerDisplayName;
+
   const tradePayload: TradeContextPayload = {
     teams: [
       {
         teamCode: sourceTeamCode ?? null,
         sends: [
           {
-            ...signedPlayer,
+            ...(signedPlayerId ? { player_id: signedPlayerId } : {}),
+            ...(toNonEmptyString(signedPlayer.id)
+              ? { id: String(signedPlayer.id) }
+              : signedPlayerId
+                ? { id: signedPlayerId }
+                : {}),
+            ...(toNonEmptyString(signedPlayer.playerId)
+              ? { playerId: String(signedPlayer.playerId) }
+              : signedPlayerId
+                ? { playerId: signedPlayerId }
+                : {}),
+            ...(signedPlayerName ? { name: signedPlayerName } : {}),
+            ...(signedPlayerDisplayName
+              ? { displayName: signedPlayerDisplayName }
+              : {}),
+            ...(signedPlayerNameAlias ? { playerName: signedPlayerNameAlias } : {}),
+            ...(sourceTeamCode != null ? { originTeamId: String(sourceTeamCode) } : {}),
             signAndTrade: true,
             signAndTradeContract: contract,
             receivingTeamId: destinationTeamCode ?? null,

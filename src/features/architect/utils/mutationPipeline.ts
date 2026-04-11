@@ -622,12 +622,39 @@ export type ArchitectMutationTeamRecord = {
   hardCapLevel?: string | null;
 };
 
-export type ArchitectTradePayloadPlayer = ArchitectMutationPlayerRecord & {
-  matchIncoming?: number | string | null;
-  matchOutgoing?: number | string | null;
-  absorptionMode?: string | null;
-  tpeId?: string | null;
-};
+type ArchitectTradePayloadPlayerIdentity = Pick<
+  ArchitectMutationPlayerRecord,
+  | 'player_id'
+  | 'id'
+  | 'playerId'
+  | 'name'
+  | 'displayName'
+  | 'playerName'
+  | 'originTeamId'
+>;
+
+// Closed mutation-owned handoff: these are the only player fields this
+// pipeline reads directly before the tradeContext handoff. Live trade-machine
+// callers may still carry extra runtime rule fields, but apply-time compute now
+// rebuilds authoritative player snapshots from currentState instead of typing
+// against a full mutation player record here.
+export type ArchitectTradePayloadPlayer =
+  ArchitectTradePayloadPlayerIdentity & {
+    matchIncoming?: number | string | null;
+    matchOutgoing?: number | string | null;
+    absorptionMode?: string | null;
+    tpeId?: string | null;
+    signAndTrade?: boolean;
+    signAndTradeContract?:
+      | ArchitectMutationContract
+      | SignAndTradeContractLike
+      | null;
+    receivingTeamIndex?: MutationScalarId;
+    receivingTeamId?: MutationScalarId;
+    tradeTo?: MutationScalarId;
+    toTeamId?: MutationScalarId;
+    destTeamId?: MutationScalarId;
+  };
 
 type TradePayloadEntitlementLike = {
   entitlementId?: MutationScalarId;
@@ -649,6 +676,9 @@ export type ArchitectTradePayloadTeam = {
   teamCode?: MutationScalarId;
   teamId?: MutationScalarId;
   sends?: ArchitectTradePayloadPlayer[];
+  // Compatibility-only mirror from older trade preview callers. Mutation-owned
+  // apply-time compute rebuilds receives from routed sends instead of reading
+  // this bag as authority.
   receives?: ArchitectTradePayloadPlayer[];
   outgoingEntitlements?: TradePayloadEntitlementLike[];
   incomingEntitlements?: TradePayloadEntitlementLike[];
@@ -691,6 +721,7 @@ type TradeValidationApplyTimeSlice = {
   legal: boolean;
   teamResults: TradeValidationTeamResultLike[];
 };
+type TradeMutationPayload = TradeContextPayload;
 export type ArchitectMutationValidatedTradeContext =
   TradeContextValidatedTradeContext;
 type TradeHistoryContextLike = {
@@ -2354,9 +2385,38 @@ function extractTeamsByCodeFromCurrentState(
 
 function toTradeStateSlice(
   currentState: TradeStateSlice
-): { teams: MutationCurrentStateTeamEntry[] } {
+): TradeContextCurrentState {
+  const teams: TradeContextCurrentState['teams'] = [];
+
+  if (Array.isArray(currentState.teams)) {
+    currentState.teams.forEach((entry) => {
+      if (!entry?.team) {
+        return;
+      }
+
+      teams.push({
+        teamCode: entry.teamCode ?? entry.team.teamCode ?? null,
+        team: entry.team,
+      });
+    });
+  }
+
   return {
-    teams: Array.isArray(currentState.teams) ? currentState.teams : [],
+    teams,
+  };
+}
+
+function toTradePayload(
+  payload: Pick<
+    ArchitectMutationPayload,
+    'teams' | 'capProjections' | 'tradeCtx' | 'asOfDate'
+  >
+): TradeMutationPayload {
+  return {
+    teams: Array.isArray(payload.teams) ? payload.teams : [],
+    ...(payload.capProjections ? { capProjections: payload.capProjections } : {}),
+    ...(payload.tradeCtx ? { tradeCtx: payload.tradeCtx } : {}),
+    ...(payload.asOfDate != null ? { asOfDate: payload.asOfDate } : {}),
   };
 }
 
@@ -6957,9 +7017,12 @@ function withDefaultPlayerDeletes<T>(
   };
 }
 
-function getMutationPlayerId(
-  player: ArchitectMutationPlayerRecord | null | undefined
-) {
+type MutationPlayerIdCarrier = Pick<
+  ArchitectMutationPlayerRecord,
+  'player_id' | 'playerId' | 'id'
+>;
+
+function getMutationPlayerId(player: MutationPlayerIdCarrier | null | undefined) {
   if (!player) {
     return null;
   }
@@ -7294,8 +7357,8 @@ function buildTradePlayerPersistenceManifest({
   currentState,
   teamUpdates,
 }: {
-  payload: ArchitectMutationPayload;
-  currentState: TradeStateSlice;
+  payload: TradeMutationPayload;
+  currentState: TradeContextCurrentState;
   teamUpdates: ArchitectMutationTeamUpdate[];
 }):
   | {
@@ -7306,7 +7369,6 @@ function buildTradePlayerPersistenceManifest({
   | { success: false; error: string } {
   const tradeTeams = Array.isArray(payload.teams) ? payload.teams : [];
   const payloadTeamCodes: string[] = [];
-  const tradeState = toTradeStateSlice(currentState);
 
   tradeTeams.forEach((teamTrade, index) => {
     const sourceTeamCode = normalizeTradeTeamCodeLike(
@@ -7314,7 +7376,7 @@ function buildTradePlayerPersistenceManifest({
         teamTrade.team?.teamCode ||
         teamTrade.team?.id ||
         teamTrade.teamId ||
-        tradeState.teams[index]?.teamCode
+        currentState.teams[index]?.teamCode
     );
 
     if (sourceTeamCode) {
@@ -7335,8 +7397,7 @@ function buildTradePlayerPersistenceManifest({
   for (const [senderIndex, teamTrade] of tradeTeams.entries()) {
     const sourceTeamCode = payloadTeamCodes[senderIndex];
 
-    for (const rawPlayer of teamTrade.sends || []) {
-      const player = rawPlayer as ArchitectTradePayloadPlayer | null | undefined;
+    for (const player of teamTrade.sends || []) {
       const playerId = getMutationPlayerId(player);
       if (!playerId) {
         return {
@@ -7349,7 +7410,7 @@ function buildTradePlayerPersistenceManifest({
       const destinationTeamCode = resolveOutgoingTradeDestinationTeamCode({
         payloadTeamCodes,
         senderIndex,
-        player: (player || {}) as OutgoingTradeRouteLike,
+        player: player || {},
       });
 
       if (!destinationTeamCode || !sourceTeamCode) {
@@ -7427,11 +7488,13 @@ export function computeWorldMutation({
   const result = (() => {
     switch (mutationType) {
       case 'executeTrade': {
+        const tradePayload = toTradePayload(payload);
+        const tradeState = toTradeStateSlice(currentState);
+
         // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
         const tradeApplyPreparation = buildTradeApplyPreparation({
-          payload: payload as TradeContextPayload,
-          currentState:
-            toTradeStateSlice(currentState) as TradeContextCurrentState,
+          payload: tradePayload,
+          currentState: tradeState,
           seasonId,
           timestamp,
           asOfDate,
@@ -7439,8 +7502,8 @@ export function computeWorldMutation({
 
         // Step 2: Call pure computeTradeResult with prepared snapshot/context
         const tradeResult = computeTradeResult({
-          payload,
-          currentState,
+          payload: tradePayload,
+          currentState: tradeState,
           seasonId,
           timestamp,
           historyContext: { worldId, mutationType },
@@ -7640,7 +7703,11 @@ function computeTradeResult({
   historyContext = {},
   postTradeSnapshot,
   validatedContext,
-}: ComputeMutationParams & {
+}: {
+  payload: TradeMutationPayload;
+  currentState: TradeContextCurrentState;
+  seasonId: string;
+  timestamp: number;
   historyContext?: TradeHistoryContextLike;
   postTradeSnapshot: TradeSnapshotLike;
   validatedContext: TradeValidatedContextLike;
@@ -10194,8 +10261,8 @@ function computeSignAndTradeResult({
 
   // 3. Call pure trade compute with the prepared SAT trade handoff.
   const tradeResult = computeTradeResult({
-    payload: tradeHandoff.tradePayload as ArchitectMutationPayload,
-    currentState: tradeHandoff.tradeState as TradeStateSlice,
+    payload: tradeHandoff.tradePayload,
+    currentState: tradeHandoff.tradeState,
     seasonId,
     timestamp,
     historyContext: {
