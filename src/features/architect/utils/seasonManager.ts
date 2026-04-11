@@ -199,6 +199,41 @@ type DraftResolutionContext = {
   worldId?: string | null;
 };
 
+type SeasonManagerDraftPickConveyanceConditionsIngress = {
+  protection?: unknown;
+  ifRolls?: unknown;
+  // Entitlement projection uses a truthy marker here to signal that the pick
+  // carries conveyance rules even when no protection string is attached yet.
+  active?: unknown;
+};
+
+type SeasonManagerDraftPickConveyanceIngress = {
+  conditions?: SeasonManagerDraftPickConveyanceConditionsIngress | null;
+  currentYear?: unknown;
+  finalYear?: unknown;
+};
+
+type SeasonManagerDraftPickConveyanceResultIngress = {
+  outcome?: unknown;
+  position?: unknown;
+  resolvedAt?: unknown;
+  method?: unknown;
+  reason?: unknown;
+  previousYear?: unknown;
+  previousProtection?: unknown;
+  originalRound?: unknown;
+};
+
+type SeasonManagerDraftPickResolutionPositionsIngress = {
+  [teamCode: string]: number | null | undefined;
+};
+
+type SeasonManagerDraftPickResolutionMetaIngress = {
+  resolvedAt?: unknown;
+  method?: unknown;
+  positions?: SeasonManagerDraftPickResolutionPositionsIngress | null;
+};
+
 type SeasonManagerDraftPickConveyanceResult = {
   outcome?: string;
   position?: number;
@@ -232,6 +267,17 @@ type SeasonManagerDraftPickConversionTarget = {
   toRound?: number;
 };
 
+type SeasonManagerDraftPickProtectionLadderTierIngress = {
+  year?: unknown;
+  condition?: unknown;
+};
+
+type SeasonManagerDraftPickConversionTargetIngress = {
+  action?: unknown;
+  toYear?: unknown;
+  toRound?: unknown;
+};
+
 type SeasonManagerDraftPickResolutionMeta = {
   resolvedAt?: string;
   method?: string;
@@ -263,6 +309,40 @@ type SeasonManagerDraftPick = {
   conversionTarget?: SeasonManagerDraftPickConversionTarget;
 };
 
+type SeasonManagerRawDraftPickIngress = {
+  id?: unknown;
+  year?: unknown;
+  round?: unknown;
+  owner?: unknown;
+  currentOwner?: unknown;
+  originalTeam?: unknown;
+  isSwap?: unknown;
+  swapWithTeamId?: unknown;
+  protection?: unknown;
+  conveyance?: SeasonManagerDraftPickConveyanceIngress | null;
+  status?: unknown;
+  resolved?: unknown;
+  resolvedOwner?: unknown;
+  resolvedPosition?: unknown;
+  stepienBlocked?: unknown;
+  stepienReason?: unknown;
+  resolutionMeta?: SeasonManagerDraftPickResolutionMetaIngress | null;
+  tradedTo?: unknown;
+  swapType?: unknown;
+  conveyanceResult?: SeasonManagerDraftPickConveyanceResultIngress | null;
+  protectionLadder?: SeasonManagerDraftPickProtectionLadderTierIngress[] | null;
+  conversionTarget?: SeasonManagerDraftPickConversionTargetIngress | null;
+};
+
+type SeasonManagerDraftPickIngress =
+  | SeasonManagerDraftPick
+  | SeasonManagerProjectedDraftPickView
+  | SeasonManagerRawDraftPickIngress;
+
+type SeasonManagerDraftPickIngressList = ReadonlyArray<
+  SeasonManagerDraftPickIngress | null | undefined
+>;
+
 type DraftPickCarrier = {
   teamCode?: string | null;
   draftPicks?: SeasonManagerDraftPick[];
@@ -270,10 +350,11 @@ type DraftPickCarrier = {
 
 type SeasonManagerDraftPickIngressSource = {
   teamCode?: string | null;
-  // Raw mixed ingress from legacy team snapshots or entitlement projection.
-  // Normalized immediately by toSeasonManagerDraftPicks before computation.
-  _derivedDraftPicks?: unknown;
-  draftPicks?: unknown;
+  // Legacy snapshots and entitlement projection can still feed mixed pick
+  // objects here, but only through this explicit ingress slice. Everything is
+  // normalized immediately by toSeasonManagerDraftPicks before computation.
+  _derivedDraftPicks?: SeasonManagerDraftPickIngressList;
+  draftPicks?: SeasonManagerDraftPickIngressList;
 };
 
 type SeasonManagerProjectionEntitlements = NonNullable<
@@ -290,11 +371,102 @@ type PostStateTeamSnapshots = NonNullable<
   PostStateCapValidationInput['beforeTeamsByCode']
 >;
 
-// The only draft-pick object-bag bridge in this file. It exists because
-// Firestore/world snapshots can still carry mixed legacy draft-pick entries.
-function toRawDraftPickRecord(value: unknown): LooseRecord | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as LooseRecord)
+function isPlainObject(value: unknown): value is object {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function asSeasonManagerDraftPickIngress(
+  value: SeasonManagerDraftPickIngress | null | undefined
+): SeasonManagerRawDraftPickIngress | null {
+  return isPlainObject(value)
+    ? (value as SeasonManagerRawDraftPickIngress)
+    : null;
+}
+
+function asSeasonManagerConveyanceIngress(
+  value:
+    | SeasonManagerDraftPickConveyance
+    | SeasonManagerDraftPickConveyanceIngress
+    | null
+    | undefined
+): SeasonManagerDraftPickConveyance | SeasonManagerDraftPickConveyanceIngress | null {
+  return isPlainObject(value)
+    ? value
+    : null;
+}
+
+function asSeasonManagerConveyanceConditionsIngress(
+  value:
+    | SeasonManagerDraftPickConveyanceConditions
+    | SeasonManagerDraftPickConveyanceConditionsIngress
+    | null
+    | undefined
+):
+  | SeasonManagerDraftPickConveyanceConditions
+  | SeasonManagerDraftPickConveyanceConditionsIngress
+  | null {
+  return isPlainObject(value)
+    ? value
+    : null;
+}
+
+function asSeasonManagerConveyanceResultIngress(
+  value:
+    | SeasonManagerDraftPickConveyanceResult
+    | SeasonManagerDraftPickConveyanceResultIngress
+    | null
+    | undefined
+):
+  | SeasonManagerDraftPickConveyanceResult
+  | SeasonManagerDraftPickConveyanceResultIngress
+  | null {
+  return isPlainObject(value)
+    ? value
+    : null;
+}
+
+function asSeasonManagerResolutionMetaIngress(
+  value:
+    | SeasonManagerDraftPickResolutionMeta
+    | SeasonManagerDraftPickResolutionMetaIngress
+    | null
+    | undefined
+):
+  | SeasonManagerDraftPickResolutionMeta
+  | SeasonManagerDraftPickResolutionMetaIngress
+  | null {
+  return isPlainObject(value)
+    ? value
+    : null;
+}
+
+function asSeasonManagerProtectionLadderTierIngress(
+  value:
+    | SeasonManagerDraftPickProtectionLadderTier
+    | SeasonManagerDraftPickProtectionLadderTierIngress
+    | null
+    | undefined
+):
+  | SeasonManagerDraftPickProtectionLadderTier
+  | SeasonManagerDraftPickProtectionLadderTierIngress
+  | null {
+  return isPlainObject(value)
+    ? value
+    : null;
+}
+
+function asSeasonManagerConversionTargetIngress(
+  value:
+    | SeasonManagerDraftPickConversionTarget
+    | SeasonManagerDraftPickConversionTargetIngress
+    | null
+    | undefined
+):
+  | SeasonManagerDraftPickConversionTarget
+  | SeasonManagerDraftPickConversionTargetIngress
+  | null {
+  return isPlainObject(value)
+    ? value
     : null;
 }
 
@@ -343,14 +515,20 @@ function toNullableFiniteInteger(value: unknown): number | null | undefined {
 }
 
 function toSeasonManagerConveyance(
-  value: unknown
+  value:
+    | SeasonManagerDraftPickConveyance
+    | SeasonManagerDraftPickConveyanceIngress
+    | null
+    | undefined
 ): SeasonManagerDraftPickConveyance | undefined {
-  const record = toRawDraftPickRecord(value);
+  const record = asSeasonManagerConveyanceIngress(value);
   if (!record) {
     return undefined;
   }
 
-  const conditionsRecord = toRawDraftPickRecord(record.conditions);
+  const conditionsRecord = asSeasonManagerConveyanceConditionsIngress(
+    record.conditions
+  );
   if (!conditionsRecord) {
     return undefined;
   }
@@ -380,13 +558,17 @@ function toSeasonManagerConveyance(
 }
 
 function toSeasonManagerConveyanceResult(
-  value: unknown
+  value:
+    | SeasonManagerDraftPickConveyanceResult
+    | SeasonManagerDraftPickConveyanceResultIngress
+    | null
+    | undefined
 ): SeasonManagerDraftPickConveyanceResult | null | undefined {
   if (value === null) {
     return null;
   }
 
-  const record = toRawDraftPickRecord(value);
+  const record = asSeasonManagerConveyanceResultIngress(value);
   if (!record) {
     return undefined;
   }
@@ -429,14 +611,40 @@ function toSeasonManagerConveyanceResult(
   return result;
 }
 
+function toSeasonManagerResolutionPositions(
+  value:
+    | Record<string, number>
+    | SeasonManagerDraftPickResolutionPositionsIngress
+    | null
+    | undefined
+): Record<string, number> | undefined {
+  if (!isPlainObject(value)) {
+    return undefined;
+  }
+
+  const positions: Record<string, number> = {};
+  for (const [teamCode, position] of Object.entries(value)) {
+    const normalizedPosition = toFiniteInteger(position);
+    if (normalizedPosition !== undefined) {
+      positions[teamCode] = normalizedPosition;
+    }
+  }
+
+  return Object.keys(positions).length > 0 ? positions : undefined;
+}
+
 function toSeasonManagerResolutionMeta(
-  value: unknown
+  value:
+    | SeasonManagerDraftPickResolutionMeta
+    | SeasonManagerDraftPickResolutionMetaIngress
+    | null
+    | undefined
 ): SeasonManagerDraftPickResolutionMeta | null | undefined {
   if (value === null) {
     return null;
   }
 
-  const record = toRawDraftPickRecord(value);
+  const record = asSeasonManagerResolutionMetaIngress(value);
   if (!record) {
     return undefined;
   }
@@ -444,7 +652,7 @@ function toSeasonManagerResolutionMeta(
   const result: SeasonManagerDraftPickResolutionMeta = {};
   const resolvedAt = toOptionalString(record.resolvedAt);
   const method = toOptionalString(record.method);
-  const positionsRecord = toRawDraftPickRecord(record.positions);
+  const positions = toSeasonManagerResolutionPositions(record.positions);
 
   if (resolvedAt !== undefined) {
     result.resolvedAt = resolvedAt;
@@ -452,24 +660,19 @@ function toSeasonManagerResolutionMeta(
   if (method !== undefined) {
     result.method = method;
   }
-  if (positionsRecord) {
-    const positions: Record<string, number> = {};
-    for (const [teamCode, position] of Object.entries(positionsRecord)) {
-      const normalizedPosition = toFiniteInteger(position);
-      if (normalizedPosition !== undefined) {
-        positions[teamCode] = normalizedPosition;
-      }
-    }
-    if (Object.keys(positions).length > 0) {
-      result.positions = positions;
-    }
+  if (positions !== undefined) {
+    result.positions = positions;
   }
 
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
 function toSeasonManagerProtectionLadder(
-  value: unknown
+  value:
+    | SeasonManagerDraftPickProtectionLadderTier[]
+    | SeasonManagerDraftPickProtectionLadderTierIngress[]
+    | null
+    | undefined
 ): SeasonManagerDraftPickProtectionLadderTier[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -477,7 +680,7 @@ function toSeasonManagerProtectionLadder(
 
   const tiers = value
     .map((entry) => {
-      const record = toRawDraftPickRecord(entry);
+      const record = asSeasonManagerProtectionLadderTierIngress(entry);
       if (!record) {
         return null;
       }
@@ -498,9 +701,13 @@ function toSeasonManagerProtectionLadder(
 }
 
 function toSeasonManagerConversionTarget(
-  value: unknown
+  value:
+    | SeasonManagerDraftPickConversionTarget
+    | SeasonManagerDraftPickConversionTargetIngress
+    | null
+    | undefined
 ): SeasonManagerDraftPickConversionTarget | undefined {
-  const record = toRawDraftPickRecord(value);
+  const record = asSeasonManagerConversionTargetIngress(value);
   if (!record || record.action !== 'convert') {
     return undefined;
   }
@@ -521,8 +728,10 @@ function toSeasonManagerConversionTarget(
   return conversionTarget;
 }
 
-function toSeasonManagerDraftPick(value: unknown): SeasonManagerDraftPick | null {
-  const record = toRawDraftPickRecord(value);
+function toSeasonManagerDraftPick(
+  value: SeasonManagerDraftPickIngress | null | undefined
+): SeasonManagerDraftPick | null {
+  const record = asSeasonManagerDraftPickIngress(value);
   if (!record) {
     return null;
   }
@@ -658,7 +867,7 @@ function toDraftPickCarrier(
 }
 
 function toSeasonManagerDraftPicks(
-  draftPicks: unknown
+  draftPicks: SeasonManagerDraftPickIngressList | null | undefined
 ): SeasonManagerDraftPick[] | null {
   if (!Array.isArray(draftPicks)) {
     return null;
