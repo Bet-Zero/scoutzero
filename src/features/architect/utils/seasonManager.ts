@@ -132,9 +132,8 @@ function buildPostStateRulesContext(
 }
 
 /**
- * Strips hydration-only display fields that hydrateBaseTeam() adds for UI
- * but that are NOT in TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST.
- * These fields are derived/computed at load time and must not be persisted.
+ * Strips hydration-only or season-manager transient fields that are derived
+ * during load/advance and must not be persisted.
  */
 const HYDRATION_ONLY_KEYS = Object.freeze([
   'id', // hydrateBaseTeam display identifier
@@ -144,6 +143,7 @@ const HYDRATION_ONLY_KEYS = Object.freeze([
   'tpMle', // flattened from exceptions.taxpayerMle
   'bae', // flattened from exceptions.bae
   'baseline', // reference to original base doc
+  '_derivedDraftPicks', // transient entitlement projection used only inside season advance
 ]);
 
 function stripHydrationOnlyFields(team: LooseRecord | null | undefined): LooseRecord | null | undefined {
@@ -207,54 +207,454 @@ type SeasonManagerDraftPickConveyanceResult = {
   reason?: string;
   previousYear?: number;
   previousProtection?: string;
-  originalRound?: number | string;
+  originalRound?: number;
+};
+
+type SeasonManagerDraftPickConveyanceConditions = {
+  protection?: string;
+  ifRolls?: string;
+};
+
+type SeasonManagerDraftPickConveyance = {
+  conditions: SeasonManagerDraftPickConveyanceConditions;
+  currentYear?: number;
+  finalYear?: number;
+};
+
+type SeasonManagerDraftPickProtectionLadderTier = {
+  year: number;
+  condition: string;
+};
+
+type SeasonManagerDraftPickConversionTarget = {
+  action: 'convert';
+  toYear?: number;
+  toRound?: number;
+};
+
+type SeasonManagerDraftPickResolutionMeta = {
+  resolvedAt?: string;
+  method?: string;
+  positions?: Record<string, number>;
 };
 
 type SeasonManagerDraftPick = {
-  id?: SeasonManagerProjectedDraftPickView['id'];
-  year?: SeasonManagerProjectedDraftPickView['year'];
-  round?: SeasonManagerProjectedDraftPickView['round'];
-  owner?: SeasonManagerProjectedDraftPickView['owner'];
-  currentOwner?: SeasonManagerProjectedDraftPickView['currentOwner'];
-  originalTeam?: SeasonManagerProjectedDraftPickView['originalTeam'];
-  via?: SeasonManagerProjectedDraftPickView['via'];
+  id?: string;
+  year: number;
+  round: number;
+  owner?: string | null;
+  currentOwner?: string | null;
+  originalTeam?: string | null;
   isSwap?: boolean;
-  swapWithTeamId?: SeasonManagerProjectedDraftPickView['swapWithTeamId'];
-  protection?: SeasonManagerProjectedDraftPickView['protection'];
-  conveyance?: SeasonManagerProjectedDraftPickView['conveyance'];
+  swapWithTeamId?: string | null;
+  protection?: string;
+  conveyance?: SeasonManagerDraftPickConveyance;
   status?: SeasonManagerProjectedDraftPickView['status'] | 'future' | 'available' | string;
   resolved?: boolean;
   resolvedOwner?: string | null;
   resolvedPosition?: number | null;
   stepienBlocked?: boolean;
   stepienReason?: string | null;
-  tradeable?: boolean;
-  resolutionMeta?: unknown;
+  resolutionMeta?: SeasonManagerDraftPickResolutionMeta | null;
   tradedTo?: string | null;
-  swapType?: SeasonManagerProjectedDraftPickView['swapType'] | 'worst_of';
+  swapType?: 'best_of' | 'worst_of';
   conveyanceResult?: SeasonManagerDraftPickConveyanceResult | null;
+  protectionLadder?: SeasonManagerDraftPickProtectionLadderTier[];
+  conversionTarget?: SeasonManagerDraftPickConversionTarget;
 };
 
 type DraftPickCarrier = {
   teamCode?: string | null;
-  _derivedDraftPicks?: SeasonManagerDraftPick[];
   draftPicks?: SeasonManagerDraftPick[];
 };
 
+type SeasonManagerDraftPickIngressSource = {
+  teamCode?: string | null;
+  // Raw mixed ingress from legacy team snapshots or entitlement projection.
+  // Normalized immediately by toSeasonManagerDraftPicks before computation.
+  _derivedDraftPicks?: unknown;
+  draftPicks?: unknown;
+};
+
+type SeasonManagerProjectionEntitlements = NonNullable<
+  Parameters<typeof projectEntitlementsToSeasonManagerView>[0]['entitlements']
+>;
+
 type SeasonTransitionTeam = OffseasonTeamCapSheet &
-  DraftPickCarrier & {
+  SeasonManagerDraftPickIngressSource & {
     entitlementIds?: string[];
-    entitlements?: unknown[];
+    entitlements?: SeasonManagerProjectionEntitlements;
   };
 
 type PostStateTeamSnapshots = NonNullable<
   PostStateCapValidationInput['beforeTeamsByCode']
 >;
 
-function getSeasonManagerDraftPicks(teamData: DraftPickCarrier): SeasonManagerDraftPick[] {
-  return [
-    ...(teamData._derivedDraftPicks || teamData.draftPicks || []),
-  ];
+// The only draft-pick object-bag bridge in this file. It exists because
+// Firestore/world snapshots can still carry mixed legacy draft-pick entries.
+function toRawDraftPickRecord(value: unknown): LooseRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as LooseRecord)
+    : null;
+}
+
+function toOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+function toOptionalNullableString(
+  value: unknown
+): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return toOptionalString(value);
+}
+
+function toFiniteInteger(value: unknown): number | undefined {
+  return typeof value === 'number' &&
+    Number.isFinite(value) &&
+    Number.isInteger(value)
+    ? value
+    : undefined;
+}
+
+function toDraftRound(value: unknown): number | undefined {
+  const numericRound = toFiniteInteger(value);
+  if (numericRound !== undefined) {
+    return numericRound;
+  }
+
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value.replace(/\D/g, ''), 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function toNullableFiniteInteger(value: unknown): number | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return toFiniteInteger(value);
+}
+
+function toSeasonManagerConveyance(
+  value: unknown
+): SeasonManagerDraftPickConveyance | undefined {
+  const record = toRawDraftPickRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const conditionsRecord = toRawDraftPickRecord(record.conditions);
+  if (!conditionsRecord) {
+    return undefined;
+  }
+
+  const conveyance: SeasonManagerDraftPickConveyance = {
+    conditions: {},
+  };
+  const protection = toOptionalString(conditionsRecord.protection);
+  const ifRolls = toOptionalString(conditionsRecord.ifRolls);
+  const currentYear = toFiniteInteger(record.currentYear);
+  const finalYear = toFiniteInteger(record.finalYear);
+
+  if (protection !== undefined) {
+    conveyance.conditions.protection = protection;
+  }
+  if (ifRolls !== undefined) {
+    conveyance.conditions.ifRolls = ifRolls;
+  }
+  if (currentYear !== undefined) {
+    conveyance.currentYear = currentYear;
+  }
+  if (finalYear !== undefined) {
+    conveyance.finalYear = finalYear;
+  }
+
+  return conveyance;
+}
+
+function toSeasonManagerConveyanceResult(
+  value: unknown
+): SeasonManagerDraftPickConveyanceResult | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  const record = toRawDraftPickRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const result: SeasonManagerDraftPickConveyanceResult = {};
+  const outcome = toOptionalString(record.outcome);
+  const position = toFiniteInteger(record.position);
+  const resolvedAt = toOptionalString(record.resolvedAt);
+  const method = toOptionalString(record.method);
+  const reason = toOptionalString(record.reason);
+  const previousYear = toFiniteInteger(record.previousYear);
+  const previousProtection = toOptionalString(record.previousProtection);
+  const originalRound = toDraftRound(record.originalRound);
+
+  if (outcome !== undefined) {
+    result.outcome = outcome;
+  }
+  if (position !== undefined) {
+    result.position = position;
+  }
+  if (resolvedAt !== undefined) {
+    result.resolvedAt = resolvedAt;
+  }
+  if (method !== undefined) {
+    result.method = method;
+  }
+  if (reason !== undefined) {
+    result.reason = reason;
+  }
+  if (previousYear !== undefined) {
+    result.previousYear = previousYear;
+  }
+  if (previousProtection !== undefined) {
+    result.previousProtection = previousProtection;
+  }
+  if (originalRound !== undefined) {
+    result.originalRound = originalRound;
+  }
+
+  return result;
+}
+
+function toSeasonManagerResolutionMeta(
+  value: unknown
+): SeasonManagerDraftPickResolutionMeta | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  const record = toRawDraftPickRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const result: SeasonManagerDraftPickResolutionMeta = {};
+  const resolvedAt = toOptionalString(record.resolvedAt);
+  const method = toOptionalString(record.method);
+  const positionsRecord = toRawDraftPickRecord(record.positions);
+
+  if (resolvedAt !== undefined) {
+    result.resolvedAt = resolvedAt;
+  }
+  if (method !== undefined) {
+    result.method = method;
+  }
+  if (positionsRecord) {
+    const positions: Record<string, number> = {};
+    for (const [teamCode, position] of Object.entries(positionsRecord)) {
+      const normalizedPosition = toFiniteInteger(position);
+      if (normalizedPosition !== undefined) {
+        positions[teamCode] = normalizedPosition;
+      }
+    }
+    if (Object.keys(positions).length > 0) {
+      result.positions = positions;
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function toSeasonManagerProtectionLadder(
+  value: unknown
+): SeasonManagerDraftPickProtectionLadderTier[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const tiers = value
+    .map((entry) => {
+      const record = toRawDraftPickRecord(entry);
+      if (!record) {
+        return null;
+      }
+
+      const year = toFiniteInteger(record.year);
+      const condition = toOptionalString(record.condition);
+      return year !== undefined && condition !== undefined
+        ? { year, condition }
+        : null;
+    })
+    .filter(
+      (
+        tier
+      ): tier is SeasonManagerDraftPickProtectionLadderTier => tier !== null
+    );
+
+  return tiers.length > 0 ? tiers : undefined;
+}
+
+function toSeasonManagerConversionTarget(
+  value: unknown
+): SeasonManagerDraftPickConversionTarget | undefined {
+  const record = toRawDraftPickRecord(value);
+  if (!record || record.action !== 'convert') {
+    return undefined;
+  }
+
+  const conversionTarget: SeasonManagerDraftPickConversionTarget = {
+    action: 'convert',
+  };
+  const toYear = toFiniteInteger(record.toYear);
+  const toRound = toDraftRound(record.toRound);
+
+  if (toYear !== undefined) {
+    conversionTarget.toYear = toYear;
+  }
+  if (toRound !== undefined) {
+    conversionTarget.toRound = toRound;
+  }
+
+  return conversionTarget;
+}
+
+function toSeasonManagerDraftPick(value: unknown): SeasonManagerDraftPick | null {
+  const record = toRawDraftPickRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const year = toFiniteInteger(record.year);
+  const round = toDraftRound(record.round);
+  if (year === undefined || round === undefined) {
+    return null;
+  }
+
+  const pick: SeasonManagerDraftPick = { year, round };
+  const id = toOptionalString(record.id);
+  const owner = toOptionalNullableString(record.owner);
+  const currentOwner = toOptionalNullableString(record.currentOwner);
+  const originalTeam = toOptionalNullableString(record.originalTeam);
+  const swapWithTeamId = toOptionalNullableString(record.swapWithTeamId);
+  const protection = toOptionalString(record.protection);
+  const conveyance = toSeasonManagerConveyance(record.conveyance);
+  const status = toOptionalString(record.status);
+  const resolvedOwner = toOptionalNullableString(record.resolvedOwner);
+  const resolvedPosition = toNullableFiniteInteger(record.resolvedPosition);
+  const stepienReason = toOptionalNullableString(record.stepienReason);
+  const resolutionMeta = toSeasonManagerResolutionMeta(record.resolutionMeta);
+  const tradedTo = toOptionalNullableString(record.tradedTo);
+  const conveyanceResult = toSeasonManagerConveyanceResult(
+    record.conveyanceResult
+  );
+  const protectionLadder = toSeasonManagerProtectionLadder(
+    record.protectionLadder
+  );
+  const conversionTarget = toSeasonManagerConversionTarget(
+    record.conversionTarget
+  );
+
+  if (id !== undefined) {
+    pick.id = id;
+  }
+  if (owner !== undefined) {
+    pick.owner = owner;
+  }
+  if (currentOwner !== undefined) {
+    pick.currentOwner = currentOwner;
+  }
+  if (originalTeam !== undefined) {
+    pick.originalTeam = originalTeam;
+  }
+  if (typeof record.isSwap === 'boolean') {
+    pick.isSwap = record.isSwap;
+  }
+  if (record.swapType === 'best_of' || record.swapType === 'worst_of') {
+    pick.swapType = record.swapType;
+  }
+  if (swapWithTeamId !== undefined) {
+    pick.swapWithTeamId = swapWithTeamId;
+  }
+  if (protection !== undefined) {
+    pick.protection = protection;
+  }
+  if (conveyance !== undefined) {
+    pick.conveyance = conveyance;
+  }
+  if (status !== undefined) {
+    pick.status = status;
+  }
+  if (typeof record.resolved === 'boolean') {
+    pick.resolved = record.resolved;
+  }
+  if (resolvedOwner !== undefined) {
+    pick.resolvedOwner = resolvedOwner;
+  }
+  if (resolvedPosition !== undefined) {
+    pick.resolvedPosition = resolvedPosition;
+  }
+  if (typeof record.stepienBlocked === 'boolean') {
+    pick.stepienBlocked = record.stepienBlocked;
+  }
+  if (stepienReason !== undefined) {
+    pick.stepienReason = stepienReason;
+  }
+  if (resolutionMeta !== undefined) {
+    pick.resolutionMeta = resolutionMeta;
+  }
+  if (tradedTo !== undefined) {
+    pick.tradedTo = tradedTo;
+  }
+  if (conveyanceResult !== undefined) {
+    pick.conveyanceResult = conveyanceResult;
+  }
+  if (protectionLadder !== undefined) {
+    pick.protectionLadder = protectionLadder;
+  }
+  if (conversionTarget !== undefined) {
+    pick.conversionTarget = conversionTarget;
+  }
+
+  return pick;
+}
+
+function getSeasonManagerDraftPicks(
+  teamData: SeasonManagerDraftPickIngressSource | DraftPickCarrier
+): SeasonManagerDraftPick[] {
+  const ingressSource = teamData as SeasonManagerDraftPickIngressSource;
+  if (Array.isArray(ingressSource._derivedDraftPicks)) {
+    return toSeasonManagerDraftPicks(ingressSource._derivedDraftPicks) || [];
+  }
+
+  return toSeasonManagerDraftPicks(teamData.draftPicks) || [];
+}
+
+function hasDraftPickIngressArray(
+  teamData: SeasonManagerDraftPickIngressSource
+): boolean {
+  return (
+    Array.isArray(teamData._derivedDraftPicks) ||
+    Array.isArray(teamData.draftPicks)
+  );
+}
+
+function toDraftPickCarrier(
+  teamData: SeasonManagerDraftPickIngressSource | DraftPickCarrier,
+  fallbackTeamCode?: string | null
+): DraftPickCarrier {
+  const teamCode = isNonEmptyString(teamData.teamCode)
+    ? teamData.teamCode
+    : isNonEmptyString(fallbackTeamCode)
+      ? fallbackTeamCode
+      : null;
+
+  return {
+    teamCode,
+    draftPicks: getSeasonManagerDraftPicks(teamData),
+  };
 }
 
 function toSeasonManagerDraftPicks(
@@ -264,10 +664,9 @@ function toSeasonManagerDraftPicks(
     return null;
   }
 
-  return draftPicks.filter(
-    (pick): pick is SeasonManagerDraftPick =>
-      Boolean(pick) && typeof pick === 'object'
-  );
+  return draftPicks
+    .map(toSeasonManagerDraftPick)
+    .filter((pick): pick is SeasonManagerDraftPick => pick !== null);
 }
 
 type SeasonAdvanceExpiredTpe =
@@ -325,6 +724,8 @@ export type SeasonAdvanceCommittedState = {
   metadata: SeasonAdvanceCommittedMetadata;
   event: SeasonAdvanceCommittedEvent;
   focusTeamCode?: string;
+  // Whole-team persistence artifact for dashboard reload; broadness is not
+  // caused by the draft-pick carrier and is intentionally left at this boundary.
   focusTeamSnapshot?: Record<string, unknown> | null;
 };
 
@@ -946,8 +1347,8 @@ async function processTeamSeasonTransitionWithOptions(
   // PHASE 16.1: Derive draft picks view from entitlements (SSOT)
   // ===========================================================================
   // If team has entitlementIds, resolve and project to draftPicks-like view.
-  // This is READ-ONLY - no writes to entitlements. Downstream functions use
-  // dual-read pattern: prefer _derivedDraftPicks, fallback to draftPicks.
+  // This is READ-ONLY - no writes to entitlements. The projection is normalized
+  // once here before entering the season-manager draft-pick carrier.
   const { worldId } = resolutionContext;
   const hasEntitlementIds =
     Array.isArray(teamData.entitlementIds) &&
@@ -958,9 +1359,10 @@ async function processTeamSeasonTransitionWithOptions(
   if ((hasEntitlementIds || hasInlineEntitlements) && teamCode) {
     try {
       // Use inline entitlements if provided, else resolve from Firestore
-      const entitlements: unknown[] = hasInlineEntitlements
-        ? teamData.entitlements || []
-        : await resolveEntitlementsForTeam(worldId || null, teamCode);
+      const entitlements: SeasonManagerProjectionEntitlements =
+        hasInlineEntitlements
+          ? teamData.entitlements || []
+          : await resolveEntitlementsForTeam(worldId || null, teamCode);
 
       if (Array.isArray(entitlements) && entitlements.length > 0) {
         // Extract underlying pick IDs for pick rules lookup (best-effort)
@@ -980,21 +1382,20 @@ async function processTeamSeasonTransitionWithOptions(
         }
 
         const derivedDraftPicks = projectEntitlementsToSeasonManagerView({
-          entitlements:
-            entitlements as Parameters<
-              typeof projectEntitlementsToSeasonManagerView
-            >[0]['entitlements'],
+          entitlements,
           pickRulesById,
           teamCode,
         });
+        const normalizedDerivedDraftPicks =
+          toSeasonManagerDraftPicks(derivedDraftPicks) || [];
 
         // Attach as NON-PERSISTED field for downstream dual-read
-        if (derivedDraftPicks.length > 0) {
-          updatedTeam._derivedDraftPicks = derivedDraftPicks;
+        if (normalizedDerivedDraftPicks.length > 0) {
+          updatedTeam._derivedDraftPicks = normalizedDerivedDraftPicks;
           logDerivedPicksCreation(
             teamCode,
             entitlements.length,
-            derivedDraftPicks.length,
+            normalizedDerivedDraftPicks.length,
             Object.keys(pickRulesById).length
           );
         }
@@ -1012,6 +1413,10 @@ async function processTeamSeasonTransitionWithOptions(
   // This ensures that rolled picks are properly tracked before swap resolution
   const positionsMap = resolutionContext.positionsMap;
   const draftYear = resolutionContext.draftYear;
+  const initialDraftPicks = getSeasonManagerDraftPicks(updatedTeam);
+  if (hasDraftPickIngressArray(updatedTeam)) {
+    updatedTeam.draftPicks = initialDraftPicks;
+  }
 
   if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
     const resolutionOpts = {
@@ -1020,8 +1425,9 @@ async function processTeamSeasonTransitionWithOptions(
     };
 
     // 1) Resolve conveyance (protections rolling forward / converting)
+    const conveyanceInput = toDraftPickCarrier(updatedTeam, teamCode);
     const afterConveyance = resolveDraftPickConveyanceForYear(
-      updatedTeam,
+      conveyanceInput,
       draftYear,
       positionsMap,
       resolutionOpts
@@ -1030,17 +1436,15 @@ async function processTeamSeasonTransitionWithOptions(
     // Track conveyance resolutions
     // Build a Set of original pick IDs that already had conveyanceResult for O(1) lookup
     const originalConveyedIds = new Set(
-      (teamData.draftPicks || [])
+      getSeasonManagerDraftPicks(teamData)
         .filter((pick) => pick?.conveyanceResult)
         .map((pick) => pick.id)
         .filter((pickId): pickId is string => typeof pickId === 'string')
     );
 
-    const afterConveyanceDraftPicks = toSeasonManagerDraftPicks(
-      afterConveyance.draftPicks
-    );
+    const afterConveyanceDraftPicks = afterConveyance.draftPicks || [];
 
-    if (afterConveyanceDraftPicks) {
+    if (afterConveyanceDraftPicks.length > 0) {
       const conveyedPicks = afterConveyanceDraftPicks.filter(
         (pick) =>
           pick?.conveyanceResult &&
@@ -1065,10 +1469,7 @@ async function processTeamSeasonTransitionWithOptions(
     // IMPORTANT: Pass afterConveyance (not updatedTeam) so swaps see post-conveyance state
     const swapResolutionInput: DraftPickCarrier = {
       teamCode,
-      draftPicks:
-        afterConveyanceDraftPicks ||
-        updatedTeam.draftPicks ||
-        getSeasonManagerDraftPicks(teamData),
+      draftPicks: afterConveyanceDraftPicks,
     };
     const afterSwaps = resolveDraftPickSwapsForYear(
       swapResolutionInput,
@@ -1080,15 +1481,15 @@ async function processTeamSeasonTransitionWithOptions(
     // Track swap resolutions
     // Build a Set of original pick IDs that were already resolved for O(1) lookup
     const originalResolvedIds = new Set(
-      (teamData.draftPicks || [])
+      getSeasonManagerDraftPicks(teamData)
         .filter((pick) => pick?.resolved === true)
         .map((pick) => pick.id)
         .filter((pickId): pickId is string => typeof pickId === 'string')
     );
 
-    const afterSwapsDraftPicks = toSeasonManagerDraftPicks(afterSwaps.draftPicks);
+    const afterSwapsDraftPicks = afterSwaps.draftPicks || [];
 
-    if (afterSwapsDraftPicks) {
+    if (afterSwapsDraftPicks.length > 0) {
       const resolvedSwaps = afterSwapsDraftPicks.filter(
         (pick) =>
           pick?.resolved === true &&
@@ -1154,7 +1555,7 @@ async function processTeamSeasonTransitionWithOptions(
 
   // Update draft picks with Stepien recalculation
   const draftPicksResult = updateDraftPicksWithStepien(
-    updatedTeam,
+    toDraftPickCarrier(updatedTeam, teamCode),
     fromSeason,
     toSeason
   );
@@ -1199,50 +1600,48 @@ function updateDraftPicksWithStepien(
 ) {
   void fromSeason;
   const toYear = resolveSeasonEndYear(toSeason);
-  const teamCode = teamData.teamCode as string;
+  const teamCode = isNonEmptyString(teamData.teamCode)
+    ? teamData.teamCode
+    : null;
   const draftPicks = getSeasonManagerDraftPicks(teamData);
   let hasChanges = false;
   const stepienUpdates: StepienUpdate[] = [];
 
   // Separate picks into owned and owed
-  const ownFirsts = []; // First-round picks the team owns
-  const owedFirsts = []; // First-round picks the team has traded away
+  const owedFirsts: SeasonManagerDraftPick[] = []; // First-round picks the team has traded away
 
   for (const pick of draftPicks) {
-    const isFirstRound = pick.round === 1 || pick.round === '1';
+    const isFirstRound = pick.round === 1;
     if (!isFirstRound) continue;
 
     // Check if this is an owned pick or owed pick
     // Owned: originalTeam === teamCode AND NOT traded
     // Owed: originalTeam === teamCode AND traded/conveyed to another team
     const isOwned =
-      pick.currentOwner === teamCode ||
-      (pick.owner === teamCode && !pick.tradedTo);
+      (teamCode !== null && pick.currentOwner === teamCode) ||
+      (teamCode !== null && pick.owner === teamCode && !pick.tradedTo);
     const isOwed =
+      teamCode !== null &&
       pick.originalTeam === teamCode &&
       (pick.tradedTo || pick.currentOwner !== teamCode);
 
-    if (isOwned) {
-      ownFirsts.push(pick);
-    } else if (isOwed) {
+    if (!isOwned && isOwed) {
       owedFirsts.push(pick);
     }
   }
 
   // Sort owed picks by year
-  owedFirsts.sort((a, b) => ((a.year as number) || 0) - ((b.year as number) || 0));
+  owedFirsts.sort((a, b) => a.year - b.year);
 
-  // Check Stepien for the next 7 drafts
-  const futureYears = Array.from({ length: 7 }, (_, i) => toYear + i);
-  const owedYears = new Set(owedFirsts.map((p) => p.year as number));
+  const owedYears = new Set(owedFirsts.map((p) => p.year));
 
   // Update each pick's status
   const updatedPicks = draftPicks.map((pick) => {
     const updatedPick = { ...pick };
-    const isFirstRound = pick.round === 1 || pick.round === '1';
+    const isFirstRound = pick.round === 1;
 
     // Advance pick year status if needed
-    if (pick.year && (pick.year as number) < toYear) {
+    if (pick.year < toYear) {
       if (pick.status === 'future' || !pick.status) {
         hasChanges = true;
         updatedPick.status = 'available';
@@ -1250,11 +1649,11 @@ function updateDraftPicksWithStepien(
     }
 
     // Stepien check only for first-round picks the team owns
-    if (isFirstRound && (pick.year as number) >= toYear) {
-      const pickYear = pick.year as number;
+    if (isFirstRound && pick.year >= toYear) {
+      const pickYear = pick.year;
       const isOwnedByTeam =
-        pick.currentOwner === teamCode ||
-        (pick.owner === teamCode && !pick.tradedTo);
+        (teamCode !== null && pick.currentOwner === teamCode) ||
+        (teamCode !== null && pick.owner === teamCode && !pick.tradedTo);
 
       if (isOwnedByTeam) {
         // Check if trading this pick would create consecutive years without a first
@@ -1268,10 +1667,6 @@ function updateDraftPicksWithStepien(
 
         // If both adjacent years are owed out, this pick is locked (Stepien)
         const isStepienBlocked = prevYearOwed && nextYearOwed;
-
-        // Also blocked if the year before is owed and this is the last owned first
-        // in the near future
-        const adjacentOwed = prevYearOwed || nextYearOwed;
 
         if (updatedPick.stepienBlocked !== isStepienBlocked) {
           hasChanges = true;
@@ -1332,27 +1727,31 @@ function updateDraftPicksWithStepien(
  * @returns {Object} - Team with updated draftPicks array
  */
 export function resolveDraftPickSwapsForYear(
-  team: DraftPickCarrier,
+  team: SeasonManagerDraftPickIngressSource,
   draftYear: number,
   positionsMap: Record<string, number> | null | undefined,
   opts: { nowIso?: string; method?: string } = {}
-) {
+): DraftPickCarrier {
   // Return team unchanged if no positions provided (NO-OP)
   if (
     !positionsMap ||
     typeof positionsMap !== 'object' ||
     Object.keys(positionsMap).length === 0
   ) {
-    return team;
+    return team as DraftPickCarrier;
   }
 
-  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
-  const draftPicksSource =
-    team?._derivedDraftPicks || team?.draftPicks;
+  const carrier = toDraftPickCarrier(team);
+  const draftPicksSource = carrier.draftPicks;
 
   // Return team unchanged if no draft picks
   if (!draftPicksSource || !Array.isArray(draftPicksSource)) {
-    return team;
+    return team as DraftPickCarrier;
+  }
+  if (draftPicksSource.length === 0) {
+    return hasDraftPickIngressArray(team)
+      ? { ...team, draftPicks: [] }
+      : (team as DraftPickCarrier);
   }
 
   const nowIso = opts.nowIso;
@@ -1360,16 +1759,12 @@ export function resolveDraftPickSwapsForYear(
 
   const updatedPicks = draftPicksSource.map((pick) => {
     // Skip non-swap picks
-    if (!pick || pick.isSwap !== true) {
+    if (pick.isSwap !== true) {
       return pick;
     }
 
     // Skip non-first-round picks (Phase 3 only resolves first round)
-    const round =
-      typeof pick.round === 'string'
-        ? parseInt(pick.round.replace(/\D/g, ''), 10)
-        : pick.round;
-    if (round !== 1) {
+    if (pick.round !== 1) {
       return pick;
     }
 
@@ -1399,7 +1794,11 @@ export function resolveDraftPickSwapsForYear(
 
     // Attempt resolution - catch any errors and leave unresolved
     try {
-      return resolvePickSwap(pick, positionsMap, { nowIso, method });
+      return (
+        toSeasonManagerDraftPick(
+          resolvePickSwap(pick, positionsMap, { nowIso, method })
+        ) || pick
+      );
     } catch {
       // Resolution failed - leave pick unresolved
       return pick;
@@ -1435,43 +1834,39 @@ export function resolveDraftPickSwapsForYear(
  * @returns {Object} - Team with updated draftPicks array
  */
 export function resolveDraftPickConveyanceForYear(
-  team: DraftPickCarrier,
+  team: SeasonManagerDraftPickIngressSource,
   draftYear: number,
   positionsMap: Record<string, number> | null | undefined,
   opts: { nowIso?: string; method?: string } = {}
-) {
+): DraftPickCarrier {
   // Return team unchanged if no positions provided (NO-OP)
   if (
     !positionsMap ||
     typeof positionsMap !== 'object' ||
     Object.keys(positionsMap).length === 0
   ) {
-    return team;
+    return team as DraftPickCarrier;
   }
 
-  // Phase 16.1: Dual-read pattern - prefer entitlement-derived view
-  const draftPicksSource = team?._derivedDraftPicks || team?.draftPicks;
+  const carrier = toDraftPickCarrier(team);
+  const draftPicksSource = carrier.draftPicks;
 
   // Return team unchanged if no draft picks
   if (!draftPicksSource || !Array.isArray(draftPicksSource)) {
-    return team;
+    return team as DraftPickCarrier;
+  }
+  if (draftPicksSource.length === 0) {
+    return hasDraftPickIngressArray(team)
+      ? { ...team, draftPicks: [] }
+      : (team as DraftPickCarrier);
   }
 
   const nowIso = opts.nowIso;
   const method = opts.method ?? 'lottery';
 
   const updatedPicks = draftPicksSource.map((pick) => {
-    // Skip invalid picks
-    if (!pick || typeof pick !== 'object') {
-      return pick;
-    }
-
     // Skip non-first-round picks (Phase 4 only resolves first round conveyance)
-    const round =
-      typeof pick.round === 'string'
-        ? parseInt(pick.round.replace(/\D/g, ''), 10)
-        : pick.round;
-    if (round !== 1) {
+    if (pick.round !== 1) {
       return pick;
     }
 
@@ -1492,11 +1887,15 @@ export function resolveDraftPickConveyanceForYear(
 
     // Attempt resolution - catch any errors and leave unresolved
     try {
-      return resolveConveyanceForPick(pick, positionsMap, {
-        draftYear,
-        nowIso,
-        method,
-      });
+      return (
+        toSeasonManagerDraftPick(
+          resolveConveyanceForPick(pick, positionsMap, {
+            draftYear,
+            nowIso,
+            method,
+          })
+        ) || pick
+      );
     } catch {
       // Resolution failed - leave pick unchanged
       return pick;
