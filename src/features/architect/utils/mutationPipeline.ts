@@ -1147,38 +1147,21 @@ type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
 type TeamLike = CurrentStatePrimaryTeam;
 type PlayerLike = NormalizedCurrentStatePlayer;
-type CurrentStateTeamRoundTripMaterializable =
-  CurrentStateBaseTeamPreservedCarrierLike &
-    Partial<
-      Pick<
-        ArchitectMutationTeamRecord,
-        | 'teamCode'
-        | 'teamName'
-        | 'players'
-        | 'roster'
-        | 'twoWayPlayers'
-        | 'capHolds'
-        | 'deadCap'
-        | 'exceptions'
-        | 'tradeExceptions'
-        | 'cashLedger'
-        | 'offerSheets'
-        | 'incomingOfferSheets'
-        | 'exceptionHistory'
-        | 'totals'
-        | 'teamTotalSalary'
-        | 'draftPicks'
-        | 'entitlementIds'
-        | 'source'
-        | 'hardCapped'
-        | 'hardCapLevel'
-        | 'hardCapReason'
-        | 'hardCapTriggeredBy'
-      >
-    >;
+type CurrentStateBaseTeamMaterializedPreservedFieldMap = Partial<
+  CurrentStateBaseTeamPreservedFieldMap
+>;
+// The round-trip/persistence seam only accepts normalized current-state teams
+// plus the hidden base preserved-field carrier; it no longer widens back out to
+// a general ArchitectMutationTeamRecord bag.
+type CurrentStateTeamRoundTripMaterializable = Partial<CurrentStateTeam> &
+  CurrentStateBaseTeamPreservedCarrierLike;
+type MaterializedCurrentStateTeam<
+  T extends CurrentStateTeamRoundTripMaterializable,
+> = Omit<T, keyof CurrentStateBaseTeamRoundTripCarrier> &
+  CurrentStateBaseTeamMaterializedPreservedFieldMap;
 type CurrentStateTeamPersistenceStripShape =
   CurrentStateTeamRoundTripMaterializable & {
-    teamTotalSalary?: ArchitectMutationTeamRecord['teamTotalSalary'];
+    teamTotalSalary?: CurrentStateTradeTeam['teamTotalSalary'];
   };
 
 type MutationCurrentStatePlayerIngress = Omit<
@@ -1790,14 +1773,14 @@ function materializeCurrentStateBaseTeamPreservedFields<
   T extends CurrentStateTeamRoundTripMaterializable,
 >(
   team: T | null | undefined
-): T | null {
+): MaterializedCurrentStateTeam<T> | null {
   if (!team) {
     return null;
   }
 
   const teamRecord = team as T &
     CurrentStateBaseTeamPreservedCarrierLike &
-    Partial<CurrentStateBaseTeamPreservedFieldMap>;
+    CurrentStateBaseTeamMaterializedPreservedFieldMap;
   const {
     [CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]: tradeExceptions,
     [CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]: cashLedger,
@@ -1808,7 +1791,7 @@ function materializeCurrentStateBaseTeamPreservedFields<
   } = teamRecord;
   const materializedTeam = {
     ...materialized,
-  } as T & Partial<CurrentStateBaseTeamPreservedFieldMap>;
+  } as MaterializedCurrentStateTeam<T>;
 
   if (
     tradeExceptions !== undefined &&
@@ -1835,7 +1818,7 @@ function materializeCurrentStateBaseTeamPreservedFields<
     materializedTeam.entitlementIds = entitlementIds;
   }
 
-  return materializedTeam as T;
+  return materializedTeam;
 }
 
 function backfillCurrentStateBaseTeamPreservedFields<
@@ -1843,7 +1826,7 @@ function backfillCurrentStateBaseTeamPreservedFields<
 >(
   team: T | null | undefined,
   fallbackTeam: CurrentStateTeamRoundTripMaterializable | null | undefined
-): T | null {
+): MaterializedCurrentStateTeam<T> | null {
   const materializedTeam = materializeCurrentStateBaseTeamPreservedFields(team);
   if (!materializedTeam) {
     return null;
@@ -1857,7 +1840,7 @@ function backfillCurrentStateBaseTeamPreservedFields<
 
   const withBackfilledPreservedFields = {
     ...materializedTeam,
-  } as T & Partial<CurrentStateBaseTeamPreservedFieldMap>;
+  } as MaterializedCurrentStateTeam<T>;
 
   if (
     withBackfilledPreservedFields.tradeExceptions === undefined &&
@@ -1895,20 +1878,20 @@ function backfillCurrentStateBaseTeamPreservedFields<
       fallbackMaterialized.entitlementIds;
   }
 
-  return withBackfilledPreservedFields as T;
+  return withBackfilledPreservedFields;
 }
 
 function stripComputeOnlyTeamFieldsForPersistence<
   T extends CurrentStateTeamPersistenceStripShape,
 >(
   team: T
-): Omit<T, 'teamTotalSalary'> {
+): Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'> {
   const materializedTeam = materializeCurrentStateBaseTeamPreservedFields(team);
   if (!materializedTeam) {
-    return {} as Omit<T, 'teamTotalSalary'>;
+    return {} as Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'>;
   }
   const { teamTotalSalary: _teamTotalSalary, ...persistableTeam } = materializedTeam;
-  return persistableTeam as Omit<T, 'teamTotalSalary'>;
+  return persistableTeam;
 }
 
 /**
@@ -4264,12 +4247,14 @@ function normalizeCurrentStateTradeExceptions(
     );
 }
 
-type MutationExceptionPreserveOnlyBuckets = Record<string, unknown>;
+// Exceptions still accept legacy/custom ingress buckets here because canonical
+// normalization owns collapsing them before committed compute reads them.
+type MutationExceptionPreserveOnlyBuckets = ArchitectMutationExceptionIngress;
 
 function toMutationExceptionPreserveOnlyBuckets(
   value: unknown
 ): MutationExceptionPreserveOnlyBuckets | null {
-  return asLooseRecord(value);
+  return asLooseRecord(value) as MutationExceptionPreserveOnlyBuckets | null;
 }
 
 function normalizeMutationExceptionsFromIngress(
@@ -4555,8 +4540,17 @@ function normalizeCurrentStatePlayerRfaContext(
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
+type CurrentStatePlayerRfaBoundaryIngress = Pick<
+  MutationCurrentStatePlayerIngress,
+  | 'rfaOfferSheet'
+  | 'rfaOfferSheetOnly'
+  | 'rfaContext'
+  | 'isNewlySignedFA'
+  | 'originTeamId'
+>;
+
 function normalizeCurrentStatePlayerRfaBoundary(
-  player: LooseRecord | null | undefined
+  player: CurrentStatePlayerRfaBoundaryIngress | null | undefined
 ): CurrentStatePlayerRfaBoundary {
   const normalized: CurrentStatePlayerRfaBoundary = {};
   const rfaOfferSheet = toOptionalBoolean(player?.rfaOfferSheet);
@@ -5265,8 +5259,9 @@ function canonicalizeTeamUpdatesWithCanonicalTotals(
   return teamUpdates.map((update) => ({
     ...update,
     team: backfillCurrentStateBaseTeamPreservedFields(
-      synchronizeTeamTotalsSnapshot(update?.team, canonicalYear) || update?.team,
-      update?.team
+      (synchronizeTeamTotalsSnapshot(update?.team, canonicalYear) ||
+        update?.team) as CurrentStateTeamRoundTripMaterializable,
+      update?.team as CurrentStateTeamRoundTripMaterializable
     ),
   }));
 }
@@ -7005,9 +7000,7 @@ function toPersistablePlayerOverrideFromSnapshot(
     !Array.isArray(normalizedPlayer.bio)
       ? (normalizedPlayer.bio as CurrentStatePlayerBio)
       : undefined;
-  const rfaBoundary = normalizeCurrentStatePlayerRfaBoundary(
-    asLooseRecord(normalizedPlayer)
-  );
+  const rfaBoundary = normalizeCurrentStatePlayerRfaBoundary(normalizedPlayer);
 
   return removeUndefinedDeep({
     playerId: playerId || undefined,
@@ -9159,7 +9152,9 @@ async function persistWorldMutation({
         team,
         `architect_worlds/${worldId}/teams/${teamCode}`
       );
-      const persistenceReadyTeam = stripComputeOnlyTeamFieldsForPersistence(team);
+      const persistenceReadyTeam = stripComputeOnlyTeamFieldsForPersistence(
+        team as CurrentStateTeamPersistenceStripShape
+      );
       const canonicalYear = toEndYear(seasonId);
       const totalsAlignedTeam =
         Number.isFinite(canonicalYear)
@@ -10179,7 +10174,7 @@ function computeSignAndTradeResult({
   // Extract updated source team and player (now signed) from signing result
   const updatedSourceTeam =
     materializeCurrentStateBaseTeamPreservedFields(
-      signingResult.teamUpdates[0].team
+      signingResult.teamUpdates[0].team as CurrentStateTeamRoundTripMaterializable
     ) || signingResult.teamUpdates[0].team;
   const signedPlayer = signingResult.playerUpdates[0].player;
 
