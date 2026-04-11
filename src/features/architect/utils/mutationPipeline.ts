@@ -476,6 +476,14 @@ export type ArchitectMutationExceptionEntry = {
   lastUsedAt?: string | null;
 };
 
+type CurrentStateExceptionHistoryEntry = {
+  historyKey?: string | null;
+  type?: string | null;
+  teamCode?: string | null;
+  tpeId?: string | null;
+  timestamp?: string | null;
+} & Record<string, unknown>;
+
 // Deliberately open-ended: live exception usage still indexes buckets by
 // computed key (e.g. mechanism-derived MLE aliases), so a closed object here
 // would be false to the current runtime contract.
@@ -1023,11 +1031,16 @@ type CurrentStateTeam = Omit<
     | 'hardCapReason'
     | 'hardCapTriggeredBy'
   >,
-  'players' | 'twoWayPlayers' | 'tradeExceptions' | 'teamTotalSalary'
+  | 'players'
+  | 'twoWayPlayers'
+  | 'tradeExceptions'
+  | 'exceptionHistory'
+  | 'teamTotalSalary'
 > & {
   players?: CurrentStatePlayer[];
   twoWayPlayers?: CurrentStatePlayer[];
   tradeExceptions?: CurrentStateTradeException[];
+  exceptionHistory?: CurrentStateExceptionHistoryEntry[];
   teamTotalSalary?: number;
 };
 type CurrentStateBaseTeamCompute = Pick<
@@ -1077,10 +1090,10 @@ type CurrentStateTradeTeam = CurrentStateBaseTeamCompute &
     | 'twoWayPlayers'
     | 'teamTotalSalary'
   >;
-type TeamLike = CurrentStateTeam;
 type BaseTeamLike = CurrentStateBaseTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
+type TeamLike = CurrentStatePrimaryTeam;
 type PlayerLike = NormalizedCurrentStatePlayer;
 
 type MutationCurrentStatePlayerIngress = Omit<
@@ -1659,30 +1672,8 @@ function removeUndefinedDeep(obj: unknown): unknown {
 export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
 function collectCurrentStateBaseTeamPreservedFields(
-  team: TeamLike | null | undefined
+  preserved: CurrentStateBaseTeamPreserved
 ): CurrentStateBaseTeamPreserved | undefined {
-  if (!team) {
-    return undefined;
-  }
-
-  const preserved: CurrentStateBaseTeamPreserved = {};
-
-  if (team.tradeExceptions !== undefined) {
-    preserved.tradeExceptions = team.tradeExceptions;
-  }
-  if (team.cashLedger !== undefined) {
-    preserved.cashLedger = team.cashLedger;
-  }
-  if (team.exceptionHistory !== undefined) {
-    preserved.exceptionHistory = team.exceptionHistory;
-  }
-  if (team.draftPicks !== undefined) {
-    preserved.draftPicks = team.draftPicks;
-  }
-  if (team.entitlementIds !== undefined) {
-    preserved.entitlementIds = team.entitlementIds;
-  }
-
   return Object.keys(preserved).length > 0 ? preserved : undefined;
 }
 
@@ -4077,6 +4068,42 @@ function normalizeCurrentStateTradeExceptions(
     );
 }
 
+function normalizeCurrentStateTeamExceptions(
+  value: unknown
+): ArchitectMutationExceptions | undefined {
+  const normalizedExceptions = normalizeCanonicalTeamExceptions({
+    exceptions: asLooseRecord(value) || null,
+  });
+
+  return Object.keys(normalizedExceptions).length > 0
+    ? (normalizedExceptions as ArchitectMutationExceptions)
+    : undefined;
+}
+
+function normalizeCurrentStateExceptionHistory(
+  value: unknown
+): CurrentStateExceptionHistoryEntry[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  // Preserve-only compatibility pocket: history rows are object-shaped but the
+  // historical payload fields still vary by producer, so the open part stays on
+  // the entry itself rather than widening the whole team snapshot.
+  return value
+    .map((entry) => {
+      const record = asLooseRecord(entry);
+      return record
+        ? (safeCloneForAudit(record) as CurrentStateExceptionHistoryEntry)
+        : null;
+    })
+    .filter(
+      (
+        entry
+      ): entry is CurrentStateExceptionHistoryEntry => entry !== null
+    );
+}
+
 function normalizeCurrentStatePlayerArray(value: unknown): PlayerLike[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -4102,15 +4129,22 @@ function resolveCurrentStateTeamTotalSalary(
   return totalsRecord ? toOptionalNumber(totalsRecord.totalSalary) : undefined;
 }
 
+type CurrentStateTeamProjectionLane = 'base' | 'trade';
+
 // Raw Firestore/team-loader snapshots and legacy base-mode callers meet the
 // committed compute path here; this is the localized mixed-input boundary.
-function toCurrentStateTeam(team: unknown): TeamLike | null {
+function toCurrentStateTeam(team: unknown, lane: 'base'): BaseTeamLike | null;
+function toCurrentStateTeam(team: unknown, lane: 'trade'): TradeTeamLike | null;
+function toCurrentStateTeam(
+  team: unknown,
+  lane: CurrentStateTeamProjectionLane
+): CurrentStatePrimaryTeam | null {
   const teamRecord = asLooseRecord(team);
   if (!teamRecord) {
     return null;
   }
 
-  const normalized: TeamLike = {};
+  const normalized: BaseTeamLike = {};
   const teamCode = toOptionalTrimmedString(teamRecord.teamCode);
   const teamName = toOptionalTrimmedString(teamRecord.teamName);
   const players = normalizeCurrentStatePlayerArray(teamRecord.players);
@@ -4120,15 +4154,7 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   );
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
-  const normalizedExceptions = normalizeCanonicalTeamExceptions({
-    exceptions: asLooseRecord(teamRecord.exceptions) || null,
-  });
-  // Load-bearing broad bag: this file reads dynamic exception buckets during
-  // signing logic and persists the object back out on team snapshot writes.
-  const exceptions =
-    Object.keys(normalizedExceptions).length > 0
-      ? (normalizedExceptions as ArchitectMutationExceptions)
-      : undefined;
+  const exceptions = normalizeCurrentStateTeamExceptions(teamRecord.exceptions);
   const cashLedger = normalizeCurrentStateCashLedger(teamRecord.cashLedger);
   const tradeExceptions = normalizeCurrentStateTradeExceptions(
     teamRecord.tradeExceptions
@@ -4137,11 +4163,9 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   const incomingOfferSheets = normalizeCurrentStateOfferSheets(
     teamRecord.incomingOfferSheets
   );
-  // Preserve-only bag: this file appends typed TPE history entries but does not
-  // own a stable schema for older history payloads already on the team.
-  const exceptionHistory = Array.isArray(teamRecord.exceptionHistory)
-    ? [...teamRecord.exceptionHistory]
-    : undefined;
+  const exceptionHistory = normalizeCurrentStateExceptionHistory(
+    teamRecord.exceptionHistory
+  );
   const totals = normalizeCurrentStateTeamTotals(teamRecord.totals);
   const teamTotalSalary = resolveCurrentStateTeamTotalSalary(teamRecord, totals);
   const draftPicks = normalizeCurrentStateDraftPicks(teamRecord.draftPicks);
@@ -4166,9 +4190,6 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   if (roster !== undefined) {
     normalized.roster = roster;
   }
-  if (twoWayPlayers !== undefined) {
-    normalized.twoWayPlayers = twoWayPlayers;
-  }
   if (capHolds !== undefined) {
     normalized.capHolds = capHolds;
   }
@@ -4178,32 +4199,14 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
   if (exceptions !== undefined) {
     normalized.exceptions = exceptions;
   }
-  if (cashLedger !== undefined) {
-    normalized.cashLedger = cashLedger;
-  }
-  if (tradeExceptions !== undefined) {
-    normalized.tradeExceptions = tradeExceptions;
-  }
   if (offerSheets !== undefined) {
     normalized.offerSheets = offerSheets;
   }
   if (incomingOfferSheets !== undefined) {
     normalized.incomingOfferSheets = incomingOfferSheets;
   }
-  if (exceptionHistory !== undefined) {
-    normalized.exceptionHistory = exceptionHistory;
-  }
   if (totals !== undefined) {
     normalized.totals = totals;
-  }
-  if (teamTotalSalary !== undefined) {
-    normalized.teamTotalSalary = teamTotalSalary;
-  }
-  if (draftPicks !== undefined) {
-    normalized.draftPicks = draftPicks;
-  }
-  if (entitlementIds !== undefined) {
-    normalized.entitlementIds = entitlementIds;
   }
   if (source !== undefined) {
     normalized.source = source;
@@ -4224,7 +4227,58 @@ function toCurrentStateTeam(team: unknown): TeamLike | null {
     normalized.hardCapTriggeredBy = hardCapTriggeredBy;
   }
 
-  return normalized;
+  const preserved: CurrentStateBaseTeamPreserved = {};
+  if (tradeExceptions !== undefined) {
+    preserved.tradeExceptions = tradeExceptions;
+  }
+  if (cashLedger !== undefined) {
+    preserved.cashLedger = cashLedger;
+  }
+  if (exceptionHistory !== undefined) {
+    preserved.exceptionHistory = exceptionHistory;
+  }
+  if (draftPicks !== undefined) {
+    preserved.draftPicks = draftPicks;
+  }
+  if (entitlementIds !== undefined) {
+    preserved.entitlementIds = entitlementIds;
+  }
+
+  if (lane === 'base') {
+    const preservedFields = collectCurrentStateBaseTeamPreservedFields(
+      preserved
+    );
+    if (preservedFields) {
+      normalized[CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY] =
+        preservedFields;
+    }
+    return normalized;
+  }
+
+  const tradeNormalized: TradeTeamLike = { ...normalized };
+  if (tradeExceptions !== undefined) {
+    tradeNormalized.tradeExceptions = tradeExceptions;
+  }
+  if (cashLedger !== undefined) {
+    tradeNormalized.cashLedger = cashLedger;
+  }
+  if (exceptionHistory !== undefined) {
+    tradeNormalized.exceptionHistory = exceptionHistory;
+  }
+  if (draftPicks !== undefined) {
+    tradeNormalized.draftPicks = draftPicks;
+  }
+  if (entitlementIds !== undefined) {
+    tradeNormalized.entitlementIds = entitlementIds;
+  }
+  if (twoWayPlayers !== undefined) {
+    tradeNormalized.twoWayPlayers = twoWayPlayers;
+  }
+  if (teamTotalSalary !== undefined) {
+    tradeNormalized.teamTotalSalary = teamTotalSalary;
+  }
+
+  return tradeNormalized;
 }
 
 function normalizeCurrentStatePlayerDraft(
@@ -4432,111 +4486,10 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   return normalized;
 }
 
-type CurrentStateTeamProjectionLane = 'base' | 'trade';
-
-function projectCurrentStateTeam(
-  team: TeamLike | null | undefined,
-  lane: 'base'
-): BaseTeamLike | null;
-function projectCurrentStateTeam(
-  team: TeamLike | null | undefined,
-  lane: 'trade'
-): TradeTeamLike | null;
-function projectCurrentStateTeam(
-  team: TeamLike | null | undefined,
-  lane: CurrentStateTeamProjectionLane
-): CurrentStatePrimaryTeam | null {
-  if (!team) {
-    return null;
-  }
-
-  const projected: BaseTeamLike = {};
-
-  if (team.teamCode !== undefined) {
-    projected.teamCode = team.teamCode;
-  }
-  if (team.teamName !== undefined) {
-    projected.teamName = team.teamName;
-  }
-  if (team.players !== undefined) {
-    projected.players = team.players;
-  }
-  if (team.roster !== undefined) {
-    projected.roster = team.roster;
-  }
-  if (team.capHolds !== undefined) {
-    projected.capHolds = team.capHolds;
-  }
-  if (team.deadCap !== undefined) {
-    projected.deadCap = team.deadCap;
-  }
-  if (team.exceptions !== undefined) {
-    projected.exceptions = team.exceptions;
-  }
-  if (team.offerSheets !== undefined) {
-    projected.offerSheets = team.offerSheets;
-  }
-  if (team.incomingOfferSheets !== undefined) {
-    projected.incomingOfferSheets = team.incomingOfferSheets;
-  }
-  if (team.totals !== undefined) {
-    projected.totals = team.totals;
-  }
-  if (team.source !== undefined) {
-    projected.source = team.source;
-  }
-  if (team.hardCapped !== undefined) {
-    projected.hardCapped = team.hardCapped;
-  }
-  if (team.hardCapLevel !== undefined) {
-    projected.hardCapLevel = team.hardCapLevel;
-  }
-  if (team.hardCapReason !== undefined) {
-    projected.hardCapReason = team.hardCapReason;
-  }
-  if (team.hardCapTriggeredBy !== undefined) {
-    projected.hardCapTriggeredBy = team.hardCapTriggeredBy;
-  }
-
-  if (lane === 'base') {
-    const preserved = collectCurrentStateBaseTeamPreservedFields(team);
-    if (preserved) {
-      projected[CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY] = preserved;
-    }
-    return projected;
-  }
-
-  const tradeProjected: TradeTeamLike = { ...projected };
-
-  if (team.tradeExceptions !== undefined) {
-    tradeProjected.tradeExceptions = team.tradeExceptions;
-  }
-  if (team.cashLedger !== undefined) {
-    tradeProjected.cashLedger = team.cashLedger;
-  }
-  if (team.exceptionHistory !== undefined) {
-    tradeProjected.exceptionHistory = team.exceptionHistory;
-  }
-  if (team.draftPicks !== undefined) {
-    tradeProjected.draftPicks = team.draftPicks;
-  }
-  if (team.entitlementIds !== undefined) {
-    tradeProjected.entitlementIds = team.entitlementIds;
-  }
-  if (team.twoWayPlayers !== undefined) {
-    tradeProjected.twoWayPlayers = team.twoWayPlayers;
-  }
-  if (team.teamTotalSalary !== undefined) {
-    tradeProjected.teamTotalSalary = team.teamTotalSalary;
-  }
-
-  return tradeProjected;
-}
-
 function normalizeMutationCurrentStateTeamEntry(
   entry: MutationCurrentStateIngressTeamEntry | null | undefined
 ): MutationCurrentStateTeamEntry {
-  const team = projectCurrentStateTeam(toCurrentStateTeam(entry?.team), 'trade');
+  const team = toCurrentStateTeam(entry?.team, 'trade');
   const normalized: MutationCurrentStateTeamEntry = {};
   const teamCode = toOptionalTrimmedString(entry?.teamCode) ?? team?.teamCode;
 
@@ -4560,22 +4513,15 @@ function normalizeMutationCurrentState(
         normalizeMutationCurrentStateTeamEntry(entry)
       )
     : undefined;
-  const normalizedTeam = toCurrentStateTeam(currentState?.team);
   const team =
     mutationType === 'signAndTrade'
-      ? projectCurrentStateTeam(normalizedTeam, 'trade')
-      : projectCurrentStateTeam(normalizedTeam, 'base');
+      ? toCurrentStateTeam(currentState?.team, 'trade')
+      : toCurrentStateTeam(currentState?.team, 'base');
   const player = toCurrentStatePlayer(currentState?.player);
-  const homeTeam = projectCurrentStateTeam(
-    toCurrentStateTeam(currentState?.homeTeam),
-    'base'
-  );
-  const offeringTeam = projectCurrentStateTeam(
-    toCurrentStateTeam(currentState?.offeringTeam),
-    'base'
-  );
-  const destinationTeam = projectCurrentStateTeam(
-    toCurrentStateTeam(currentState?.destinationTeam),
+  const homeTeam = toCurrentStateTeam(currentState?.homeTeam, 'base');
+  const offeringTeam = toCurrentStateTeam(currentState?.offeringTeam, 'base');
+  const destinationTeam = toCurrentStateTeam(
+    currentState?.destinationTeam,
     'trade'
   );
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
@@ -4875,7 +4821,7 @@ async function getFirstExplicitWorldTeamSnapshotFromLineage(
   for (const lineageWorldId of lineageWorldIds) {
     const snapshot = await getDoc(worldTeamRef(lineageWorldId, teamCode));
     if (snapshot.exists()) {
-      const normalizedTeam = toCurrentStateTeam(snapshot.data());
+      const normalizedTeam = toCurrentStateTeam(snapshot.data(), 'base');
       if (!normalizedTeam) {
         continue;
       }
@@ -4923,7 +4869,9 @@ async function resolveStoreOfferSheetAuthority({
   playerId: string;
 }) {
   const [offeringTeam, lineageWorldIds] = await Promise.all([
-    getTeam(worldId, offeringTeamCode).then((team) => toCurrentStateTeam(team)),
+    getTeam(worldId, offeringTeamCode).then((team) =>
+      toCurrentStateTeam(team, 'base')
+    ),
     resolveWorldLineage(worldId),
   ]);
 
@@ -5062,7 +5010,7 @@ export function extractTeamsByCodeFromComputeResult(
     addTeamSnapshot(
       teamsByCode,
       update?.teamCode,
-      toCurrentStateTeam(update?.team)
+      toCurrentStateTeam(update?.team, 'trade')
     );
   }
   return teamsByCode;
@@ -6560,10 +6508,7 @@ async function loadStateForMutation(
       return {
         teams: teamCodes.map((code, i) => ({
           teamCode: code,
-          team: projectCurrentStateTeam(
-            toCurrentStateTeam(teamStates[i] || null),
-            'trade'
-          ),
+          team: toCurrentStateTeam(teamStates[i] || null, 'trade'),
         })),
       };
     }
@@ -6583,14 +6528,14 @@ async function loadStateForMutation(
       const homeTeamCode = (player.teamCode || player.contract?.signingTeam) as string | null | undefined;
       let homeTeam = null;
       if (homeTeamCode && homeTeamCode !== teamCode) {
-        homeTeam = projectCurrentStateTeam(
-          toCurrentStateTeam(await getTeam(worldId, homeTeamCode)),
+        homeTeam = toCurrentStateTeam(
+          await getTeam(worldId, homeTeamCode),
           'base'
         );
       }
 
       return {
-        team: projectCurrentStateTeam(toCurrentStateTeam(team), 'base'),
+        team: toCurrentStateTeam(team, 'base'),
         player: toCurrentStatePlayer(player),
         teamCode,
         homeTeam,
@@ -6614,7 +6559,7 @@ async function loadStateForMutation(
       const team = await getTeam(worldId, teamCode);
       const player = await getPlayer(worldId, teamCode, playerId);
       return {
-        team: projectCurrentStateTeam(toCurrentStateTeam(team), 'base'),
+        team: toCurrentStateTeam(team, 'base'),
         player: toCurrentStatePlayer(player),
         teamCode,
       };
@@ -6633,8 +6578,8 @@ async function loadStateForMutation(
       });
       return {
         ...authority,
-        team: projectCurrentStateTeam(authority.team, 'base'),
-        homeTeam: projectCurrentStateTeam(authority.homeTeam, 'base'),
+        team: authority.team,
+        homeTeam: authority.homeTeam,
       };
     }
 
@@ -6663,14 +6608,8 @@ async function loadStateForMutation(
       ]);
 
       return {
-        homeTeam: projectCurrentStateTeam(
-          toCurrentStateTeam(homeTeam || null),
-          'base'
-        ),
-        offeringTeam: projectCurrentStateTeam(
-          toCurrentStateTeam(offeringTeam || null),
-          'base'
-        ),
+        homeTeam: toCurrentStateTeam(homeTeam || null, 'base'),
+        offeringTeam: toCurrentStateTeam(offeringTeam || null, 'base'),
         offerSheetId,
       };
     }
@@ -6688,11 +6627,8 @@ async function loadStateForMutation(
       ]);
 
       return {
-        team: projectCurrentStateTeam(toCurrentStateTeam(team || null), 'trade'),
-        destinationTeam: projectCurrentStateTeam(
-          toCurrentStateTeam(destinationTeam || null),
-          'trade'
-        ),
+        team: toCurrentStateTeam(team || null, 'trade'),
+        destinationTeam: toCurrentStateTeam(destinationTeam || null, 'trade'),
         player: toCurrentStatePlayer(player || null),
         teamCode: teamCode as string,
       };
@@ -6711,8 +6647,8 @@ async function loadStateForMutation(
         throw new Error(`Missing playerId in payload for renounceRights`);
       }
 
-      const team = projectCurrentStateTeam(
-        toCurrentStateTeam(await getTeam(worldId, teamCode)),
+      const team = toCurrentStateTeam(
+        await getTeam(worldId, teamCode),
         'base'
       );
       if (!team) {
@@ -6770,8 +6706,8 @@ async function loadStateForMutation(
     case 'setDeadCap': {
       const { teamCode } = payload;
       if (!teamCode) throw new Error('Missing teamCode');
-      const team = projectCurrentStateTeam(
-        toCurrentStateTeam(await getTeam(worldId, teamCode)),
+      const team = toCurrentStateTeam(
+        await getTeam(worldId, teamCode),
         'base'
       );
       return { team, teamCode };
@@ -6780,8 +6716,8 @@ async function loadStateForMutation(
     case 'setExceptions': {
       const { teamCode } = payload;
       if (!teamCode) throw new Error('Missing teamCode');
-      const team = projectCurrentStateTeam(
-        toCurrentStateTeam(await getTeam(worldId, teamCode)),
+      const team = toCurrentStateTeam(
+        await getTeam(worldId, teamCode),
         'base'
       );
       return { team, teamCode };
