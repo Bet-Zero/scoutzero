@@ -778,57 +778,32 @@ const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
   'firstYearSalary',
   'year1Salary',
   'signingExecutive',
-  'signedByCurrentTeam',
   'startSeason',
   'endSeason',
   'noTradeClause',
   'tradeKicker',
   'tradeRestrictions',
   'tradeEligibility',
-  'isMaxContract',
-  'maxType',
-  'estimatedCapPercentage',
-  'supersededIn',
-  'supersededByContractRef',
 ] as const;
 const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
   'salariesByYear',
-  'years',
-  'startYear',
-  'year',
-  'birdRights',
   'contractType',
   'isExtension',
-  'isRookieScale',
-  'signingTeam',
   'signingDate',
   'signedUsing',
-  'exceptionType',
-  'contractYears',
-  'firstYearGuaranteed',
   'yearsRemaining',
   'contractLength',
-  'originalLength',
   'totalValue',
   'averageAnnualValue',
   'guaranteedValue',
   'guaranteedYears',
   'freeAgency',
-  'firstYearSalary',
-  'year1Salary',
   'signingExecutive',
-  'signedByCurrentTeam',
   'startSeason',
   'endSeason',
   'noTradeClause',
   'tradeKicker',
   'tradeRestrictions',
-  'tradeEligibility',
-  'isMaxContract',
-  'maxType',
-  'estimatedCapPercentage',
-  'supersededIn',
-  'supersededByContractRef',
 ] as const;
 type CurrentStatePlayerContractIncentives = NormalizedMutationContractIncentives;
 type CurrentStatePlayerContractGuaranteeScheduleEntry =
@@ -889,23 +864,35 @@ type MutationCurrentStatePlayerContractIngress = {
   firstYearSalary?: MutationCurrentStateContractNumberish;
   year1Salary?: MutationCurrentStateContractNumberish;
   signingExecutive?: string | null;
-  signedByCurrentTeam?: boolean | null;
   startSeason?: string | null;
   endSeason?: string | null;
   noTradeClause?: boolean | null;
   tradeKicker?: MutationCurrentStateContractNumberish;
   tradeRestrictions?: string[] | null;
   tradeEligibility?: CurrentStatePlayerContractTradeEligibility | null;
-  isMaxContract?: boolean | null;
-  maxType?: string | null;
-  estimatedCapPercentage?: MutationCurrentStateContractNumberish;
-  supersededIn?: string | null;
-  supersededByContractRef?: string | null;
 };
-type MutationCurrentStatePlayerFutureContractIngress = Omit<
-  MutationCurrentStatePlayerContractIngress,
-  'rfaOfferSheet' | 'rfaOfferSheetOnly' | 'rfaOfferSheetStatus'
->;
+type MutationCurrentStatePlayerFutureContractIngress = {
+  salariesByYear?: MutationCurrentStatePlayerContractSalaryRowIngress[] | null;
+  contractType?: string | null;
+  isExtension?: boolean | null;
+  signingDate?: MutationCurrentStateContractDateLike;
+  signedAt?: MutationCurrentStateContractDateLike;
+  extensionSignedAt?: MutationCurrentStateContractDateLike;
+  signedUsing?: string | null;
+  yearsRemaining?: MutationCurrentStateContractNumberish;
+  contractLength?: MutationCurrentStateContractNumberish;
+  totalValue?: MutationCurrentStateContractNumberish;
+  averageAnnualValue?: MutationCurrentStateContractNumberish;
+  guaranteedValue?: MutationCurrentStateContractNumberish;
+  guaranteedYears?: MutationCurrentStateContractNumberish;
+  freeAgency?: CurrentStatePlayerContractFreeAgency | string | null;
+  signingExecutive?: string | null;
+  startSeason?: string | null;
+  endSeason?: string | null;
+  noTradeClause?: boolean | null;
+  tradeKicker?: MutationCurrentStateContractNumberish;
+  tradeRestrictions?: string[] | null;
+};
 type CurrentStatePlayerContract = Pick<
   ArchitectMutationContract,
   (typeof CURRENT_STATE_PLAYER_CONTRACT_KEYS)[number]
@@ -3666,6 +3653,7 @@ function projectCurrentStatePlayerContractIngress(
     contract.freeAgency
   );
   const includeOfferSheetState = lane === 'current';
+  const includeCurrentOnlyContractFields = lane === 'current';
   const rfaOfferSheetStatus = includeOfferSheetState
     ? toOptionalTrimmedStringOrNull(contract.rfaOfferSheetStatus)
     : undefined;
@@ -3673,9 +3661,6 @@ function projectCurrentStatePlayerContractIngress(
   const year1Salary = toOptionalNumberOrNull(contract.year1Salary);
   const signingExecutive = toOptionalTrimmedStringOrNull(
     contract.signingExecutive
-  );
-  const signedByCurrentTeam = toOptionalBooleanOrNull(
-    contract.signedByCurrentTeam
   );
   const startSeason = toOptionalTrimmedStringOrNull(contract.startSeason);
   const endSeason = toOptionalTrimmedStringOrNull(contract.endSeason);
@@ -3685,29 +3670,20 @@ function projectCurrentStatePlayerContractIngress(
   const tradeEligibility = normalizeCurrentStatePlayerContractTradeEligibility(
     contract.tradeEligibility
   );
-  const isMaxContract = toOptionalBooleanOrNull(contract.isMaxContract);
-  const maxType = toOptionalTrimmedStringOrNull(contract.maxType);
-  const estimatedCapPercentage = toOptionalNumberOrNull(
-    contract.estimatedCapPercentage
-  );
-  const supersededIn = toOptionalTrimmedStringOrNull(contract.supersededIn);
-  const supersededByContractRef = toOptionalTrimmedStringOrNull(
-    contract.supersededByContractRef
-  );
 
   if (salariesByYear !== undefined) {
     projected.salariesByYear = salariesByYear;
   }
-  if (years !== undefined) {
+  if (includeCurrentOnlyContractFields && years !== undefined) {
     projected.years = years;
   }
-  if (startYear !== undefined) {
+  if (includeCurrentOnlyContractFields && startYear !== undefined) {
     projected.startYear = startYear;
   }
-  if (year !== undefined) {
+  if (includeCurrentOnlyContractFields && year !== undefined) {
     projected.year = year;
   }
-  if (birdRights !== undefined) {
+  if (includeCurrentOnlyContractFields && birdRights !== undefined) {
     projected.birdRights = birdRights;
   }
   if (contractType !== undefined) {
@@ -3719,10 +3695,10 @@ function projectCurrentStatePlayerContractIngress(
   if (isExtension !== undefined) {
     projected.isExtension = isExtension;
   }
-  if (isRookieScale !== undefined) {
+  if (includeCurrentOnlyContractFields && isRookieScale !== undefined) {
     projected.isRookieScale = isRookieScale;
   }
-  if (signingTeam !== undefined) {
+  if (includeCurrentOnlyContractFields && signingTeam !== undefined) {
     projected.signingTeam = signingTeam;
   }
   if (signingDate !== undefined) {
@@ -3737,13 +3713,13 @@ function projectCurrentStatePlayerContractIngress(
   if (signedUsing !== undefined) {
     projected.signedUsing = signedUsing;
   }
-  if (exceptionType !== undefined) {
+  if (includeCurrentOnlyContractFields && exceptionType !== undefined) {
     projected.exceptionType = exceptionType;
   }
-  if (contractYears !== undefined) {
+  if (includeCurrentOnlyContractFields && contractYears !== undefined) {
     projected.contractYears = contractYears;
   }
-  if (firstYearGuaranteed !== undefined) {
+  if (includeCurrentOnlyContractFields && firstYearGuaranteed !== undefined) {
     projected.firstYearGuaranteed = firstYearGuaranteed;
   }
   if (includeOfferSheetState && rfaOfferSheet !== undefined) {
@@ -3758,7 +3734,7 @@ function projectCurrentStatePlayerContractIngress(
   if (contractLength !== undefined) {
     projected.contractLength = contractLength;
   }
-  if (originalLength !== undefined) {
+  if (includeCurrentOnlyContractFields && originalLength !== undefined) {
     projected.originalLength = originalLength;
   }
   if (totalValue !== undefined) {
@@ -3779,17 +3755,14 @@ function projectCurrentStatePlayerContractIngress(
   if (rfaOfferSheetStatus !== undefined) {
     projected.rfaOfferSheetStatus = rfaOfferSheetStatus;
   }
-  if (firstYearSalary !== undefined) {
+  if (includeCurrentOnlyContractFields && firstYearSalary !== undefined) {
     projected.firstYearSalary = firstYearSalary;
   }
-  if (year1Salary !== undefined) {
+  if (includeCurrentOnlyContractFields && year1Salary !== undefined) {
     projected.year1Salary = year1Salary;
   }
   if (signingExecutive !== undefined) {
     projected.signingExecutive = signingExecutive;
-  }
-  if (signedByCurrentTeam !== undefined) {
-    projected.signedByCurrentTeam = signedByCurrentTeam;
   }
   if (startSeason !== undefined) {
     projected.startSeason = startSeason;
@@ -3806,23 +3779,8 @@ function projectCurrentStatePlayerContractIngress(
   if (tradeRestrictions !== undefined) {
     projected.tradeRestrictions = tradeRestrictions;
   }
-  if (tradeEligibility !== undefined) {
+  if (includeCurrentOnlyContractFields && tradeEligibility !== undefined) {
     projected.tradeEligibility = tradeEligibility;
-  }
-  if (isMaxContract !== undefined) {
-    projected.isMaxContract = isMaxContract;
-  }
-  if (maxType !== undefined) {
-    projected.maxType = maxType;
-  }
-  if (estimatedCapPercentage !== undefined) {
-    projected.estimatedCapPercentage = estimatedCapPercentage;
-  }
-  if (supersededIn !== undefined) {
-    projected.supersededIn = supersededIn;
-  }
-  if (supersededByContractRef !== undefined) {
-    projected.supersededByContractRef = supersededByContractRef;
   }
 
   return Object.keys(projected).length > 0 ? projected : undefined;
