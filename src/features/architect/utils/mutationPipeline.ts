@@ -1343,6 +1343,11 @@ type CurrentStateTeamPersistenceStripShape =
   CurrentStateTeamRoundTripMaterializable & {
     teamTotalSalary?: CurrentStateTradeTeam['teamTotalSalary'];
   };
+// Compute-time team updates stay wider than the committed artifact because the
+// live local-validated trade bridge still needs the explicit teamTotalSalary
+// lane plus the hidden preserved-field carrier before persistence strips them.
+// Persistence and dashboard reload must narrow through the committed helpers
+// below instead of reusing this broader compute bag directly.
 export type ArchitectMutationComputedTeamSnapshot =
   CurrentStateTeamRoundTripMaterializable &
     Partial<CurrentStateTeam>;
@@ -1369,6 +1374,135 @@ export type ArchitectGeneralMutationCommittedTeamUpdate = {
 };
 type GeneralMutationPersistenceTeamSnapshot =
   ArchitectGeneralMutationCommittedTeamSnapshot;
+type ArchitectGeneralMutationDashboardReloadDeadCapYear = {
+  season: string;
+  amount: number;
+  isStretched?: boolean | null;
+};
+type ArchitectGeneralMutationDashboardReloadDeadCapEntry = {
+  id?: string | null;
+  playerId?: string | null;
+  playerName?: string | null;
+  label?: string | null;
+  originalSalary?: number | null;
+  amountByYear?: ArchitectGeneralMutationDashboardReloadDeadCapYear[] | null;
+  waiveDate?: string | null;
+  notes?: string | null;
+  stretched?: boolean | null;
+};
+type ArchitectGeneralMutationDashboardReloadExceptionEntry = {
+  type?: string | null;
+  enabled?: boolean;
+  available?: boolean;
+  totalAmount?: number | null;
+  maxAmount?: number | null;
+  amount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+  seasonKey?: string | null;
+  lastUsedAt?: string | null;
+};
+type ArchitectGeneralMutationDashboardReloadTradeException = {
+  id: string;
+  totalAmount?: number | null;
+  usedAmount?: number | null;
+  remainingAmount?: number | null;
+  createdFrom?: string | null;
+  createdOn?: string | null;
+  expiresOn?: string | null;
+  notes?: string | null;
+};
+type ArchitectGeneralMutationDashboardReloadExceptions = Partial<
+  Record<
+    CanonicalNonTpeExceptionKey | 'dpe',
+    ArchitectGeneralMutationDashboardReloadExceptionEntry | null
+  >
+> & {
+  tpe?: ArchitectGeneralMutationDashboardReloadTradeException[] | null;
+};
+type ArchitectGeneralMutationDashboardReloadOfferSheet = {
+  id?: string | number | null;
+  playerName?: string;
+  offeringTeamCode?: string;
+  homeTeamCode?: string;
+  dedupKey?: string;
+  playerId?: string;
+  seasonKey?: string;
+  contractYears?: number | string | null;
+  totalValue?: number | string | null;
+  status: string;
+  createdAt?: string | number | Date | null;
+};
+type ArchitectGeneralMutationDashboardReloadContractFreeAgency = {
+  year?: number | null;
+  type?: string | null;
+};
+type ArchitectGeneralMutationDashboardReloadBirdRights = {
+  status: string;
+  yearsOfService?: number | null;
+  yearsWithTeam?: number | null;
+  eligibleFor?: string[] | null;
+};
+type ArchitectGeneralMutationDashboardReloadPlayerContract =
+  Omit<CurrentStatePlayerContract, 'signingDate' | 'freeAgency' | 'birdRights'> & {
+    signingDate?: string | null;
+    birdRights?: ArchitectGeneralMutationDashboardReloadBirdRights | null;
+    freeAgency?:
+      | ArchitectGeneralMutationDashboardReloadContractFreeAgency
+      | string
+      | null;
+  };
+type ArchitectGeneralMutationDashboardReloadPlayerFutureContract =
+  Omit<CurrentStatePlayerFutureContract, 'signingDate' | 'freeAgency'> & {
+    signingDate?: string | null;
+    freeAgency?:
+      | ArchitectGeneralMutationDashboardReloadContractFreeAgency
+      | string
+      | null;
+  };
+type ArchitectGeneralMutationDashboardReloadPlayer = Omit<
+  CurrentStatePlayer,
+  'contract' | 'futureContract'
+> & {
+  contract?: ArchitectGeneralMutationDashboardReloadPlayerContract | null;
+  futureContract?:
+    | ArchitectGeneralMutationDashboardReloadPlayerFutureContract
+    | null;
+};
+// changedTeams is the dashboard reload artifact, not the persistence snapshot.
+// It keeps only the fields the post-commit dashboard/state seam actually reads
+// and leaves round-trip-only baggage on the persistence contract.
+export type ArchitectGeneralMutationDashboardReloadTeamSnapshot = Pick<
+  ArchitectGeneralMutationCommittedTeamSnapshot,
+  | 'teamCode'
+  | 'roster'
+  | 'capHolds'
+  | 'totals'
+  | 'exceptionHistory'
+  | 'draftPicks'
+  | 'entitlementIds'
+  | 'hardCapLevel'
+  | 'hardCapReason'
+  | 'hardCapTriggeredBy'
+> & {
+  teamName?: string;
+  players?: ArchitectGeneralMutationDashboardReloadPlayer[] | null;
+  deadCap?: ArchitectGeneralMutationDashboardReloadDeadCapEntry[] | null;
+  exceptions?: ArchitectGeneralMutationDashboardReloadExceptions | null;
+  offerSheets?: ArchitectGeneralMutationDashboardReloadOfferSheet[] | null;
+  incomingOfferSheets?:
+    | ArchitectGeneralMutationDashboardReloadOfferSheet[]
+    | null;
+  hardCapped?: boolean | null;
+};
+export type ArchitectGeneralMutationDashboardReloadTeamUpdate = {
+  teamCode?: string | null;
+  team?: ArchitectGeneralMutationDashboardReloadTeamSnapshot | null;
+};
 
 type MutationCurrentStatePlayerIngress = Omit<
   Pick<
@@ -1687,9 +1821,9 @@ export function findUpdatedTeamSnapshot(
 
 /**
  * Post-commit propagation order for general world mutations:
- * 1. Reuse the matching committed team snapshot from `changedTeams` when available.
+ * 1. Reuse the matching dashboard reload snapshot from `changedTeams` when available.
  * 2. If that direct snapshot is missing, reload a committed team snapshot through the read stack.
- * 3. Hand the committed snapshot to the dashboard/state resync seam so metadata
+ * 3. Hand the reload snapshot to the dashboard/state resync seam so metadata
  *    patching, roster refresh, and stale-drop rules stay state-owned.
  */
 export function findCommittedTeamSnapshot(
@@ -3210,7 +3344,7 @@ function normalizeCurrentStateDeadCapEntry(
 
   const normalized: ArchitectMutationDeadCapEntry = {};
   const id = toOptionalTrimmedString(record.id);
-  const playerId = toOptionalScalarId(record.playerId);
+  const playerId = toOptionalIdString(record.playerId);
   const playerName = toOptionalTrimmedString(record.playerName);
   const label = toOptionalTrimmedString(record.label);
   const originalSalary = toOptionalNumberish(record.originalSalary);
@@ -6234,7 +6368,646 @@ function buildGeneralMutationCommittedTeamUpdates(
 
   return teamUpdates.map((update) => ({
     teamCode: update.teamCode,
-    team: buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId),
+    team: update?.team
+      ? buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId)
+      : null,
+  }));
+}
+
+function normalizeDashboardReloadDeadCapAmountByYear(
+  value: unknown
+): ArchitectGeneralMutationDashboardReloadDeadCapYear[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => {
+      const record = asLooseRecord(entry);
+      if (!record) {
+        return null;
+      }
+
+      const season = toOptionalTrimmedString(record.season);
+      const amount = toOptionalNumber(record.amount);
+      const isStretched = toOptionalBooleanOrNull(record.isStretched);
+
+      if (season === undefined || amount === undefined) {
+        return null;
+      }
+
+      const normalized: ArchitectGeneralMutationDashboardReloadDeadCapYear = {
+        season,
+        amount,
+      };
+      if (isStretched !== undefined) {
+        normalized.isStretched = isStretched;
+      }
+
+      return normalized;
+    })
+    .filter(
+      (
+        entry
+      ): entry is ArchitectGeneralMutationDashboardReloadDeadCapYear =>
+        entry !== null
+    );
+}
+
+function normalizeDashboardReloadDeadCapEntry(
+  value: unknown
+): ArchitectGeneralMutationDashboardReloadDeadCapEntry | null {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const normalized: ArchitectGeneralMutationDashboardReloadDeadCapEntry = {};
+  const id = toOptionalTrimmedStringOrNull(record.id);
+  const playerId = toOptionalIdString(record.playerId);
+  const playerName = toOptionalTrimmedStringOrNull(record.playerName);
+  const label = toOptionalTrimmedStringOrNull(record.label);
+  const originalSalary = toOptionalNumberOrNull(record.originalSalary);
+  const amountByYear = normalizeDashboardReloadDeadCapAmountByYear(
+    record.amountByYear
+  );
+  const waiveDate = toOptionalTrimmedStringOrNull(record.waiveDate);
+  const notes = toOptionalTrimmedStringOrNull(record.notes);
+  const stretched = toOptionalBooleanOrNull(record.stretched);
+
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (playerId !== undefined) {
+    normalized.playerId = playerId;
+  }
+  if (playerName !== undefined) {
+    normalized.playerName = playerName;
+  }
+  if (label !== undefined) {
+    normalized.label = label;
+  }
+  if (originalSalary !== undefined) {
+    normalized.originalSalary = originalSalary;
+  }
+  if (amountByYear !== undefined) {
+    normalized.amountByYear = amountByYear;
+  }
+  if (waiveDate !== undefined) {
+    normalized.waiveDate = waiveDate;
+  }
+  if (notes !== undefined) {
+    normalized.notes = notes;
+  }
+  if (stretched !== undefined) {
+    normalized.stretched = stretched;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
+function normalizeDashboardReloadDeadCap(
+  value: unknown
+): ArchitectGeneralMutationDashboardReloadDeadCapEntry[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => normalizeDashboardReloadDeadCapEntry(entry))
+    .filter(
+      (
+        entry
+      ): entry is ArchitectGeneralMutationDashboardReloadDeadCapEntry =>
+        entry !== null
+    );
+}
+
+function normalizeDashboardReloadExceptionEntry(
+  value: unknown
+): ArchitectGeneralMutationDashboardReloadExceptionEntry | undefined {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized: ArchitectGeneralMutationDashboardReloadExceptionEntry = {};
+  const type = toOptionalTrimmedStringOrNull(record.type);
+  const enabled = toOptionalBoolean(record.enabled);
+  const available = toOptionalBoolean(record.available);
+  const totalAmount = toOptionalNumberOrNull(record.totalAmount);
+  const maxAmount = toOptionalNumberOrNull(record.maxAmount);
+  const amount = toOptionalNumberOrNull(record.amount);
+  const usedAmount = toOptionalNumberOrNull(record.usedAmount);
+  const remainingAmount = toOptionalNumberOrNull(record.remainingAmount);
+  const createdFrom = toOptionalTrimmedStringOrNull(record.createdFrom);
+  const createdOn = toOptionalTrimmedStringOrNull(record.createdOn);
+  const expiresOn = toOptionalTrimmedStringOrNull(record.expiresOn);
+  const notes = toOptionalTrimmedStringOrNull(record.notes);
+  const seasonKey = toOptionalTrimmedStringOrNull(record.seasonKey);
+  const lastUsedAt = toOptionalTrimmedStringOrNull(record.lastUsedAt);
+
+  if (type !== undefined) {
+    normalized.type = type;
+  }
+  if (enabled !== undefined) {
+    normalized.enabled = enabled;
+  }
+  if (available !== undefined) {
+    normalized.available = available;
+  }
+  if (totalAmount !== undefined) {
+    normalized.totalAmount = totalAmount;
+  }
+  if (maxAmount !== undefined) {
+    normalized.maxAmount = maxAmount;
+  }
+  if (amount !== undefined) {
+    normalized.amount = amount;
+  }
+  if (usedAmount !== undefined) {
+    normalized.usedAmount = usedAmount;
+  }
+  if (remainingAmount !== undefined) {
+    normalized.remainingAmount = remainingAmount;
+  }
+  if (createdFrom !== undefined) {
+    normalized.createdFrom = createdFrom;
+  }
+  if (createdOn !== undefined) {
+    normalized.createdOn = createdOn;
+  }
+  if (expiresOn !== undefined) {
+    normalized.expiresOn = expiresOn;
+  }
+  if (notes !== undefined) {
+    normalized.notes = notes;
+  }
+  if (seasonKey !== undefined) {
+    normalized.seasonKey = seasonKey;
+  }
+  if (lastUsedAt !== undefined) {
+    normalized.lastUsedAt = lastUsedAt;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeDashboardReloadExceptions(
+  value: unknown
+): ArchitectGeneralMutationDashboardReloadExceptions | undefined {
+  const normalizedExceptions = normalizeMutationExceptionsFromIngress(value);
+  if (!hasMutationExceptionBuckets(normalizedExceptions)) {
+    return undefined;
+  }
+
+  const dashboardExceptions: ArchitectGeneralMutationDashboardReloadExceptions =
+    {};
+  const nonTpeKeys: Array<CanonicalNonTpeExceptionKey | 'dpe'> = [
+    'mle',
+    'tpmle',
+    'room',
+    'bae',
+    'dpe',
+  ];
+
+  for (const key of nonTpeKeys) {
+    const normalizedEntry = normalizeDashboardReloadExceptionEntry(
+      normalizedExceptions[key]
+    );
+    if (normalizedEntry !== undefined) {
+      dashboardExceptions[key] = normalizedEntry;
+    }
+  }
+
+  if (Array.isArray(normalizedExceptions.tpe)) {
+    dashboardExceptions.tpe = normalizedExceptions.tpe
+      .map((entry) => {
+        const record = asLooseRecord(entry);
+        if (!record) {
+          return null;
+        }
+
+        const id = toOptionalTrimmedString(record.id);
+        if (!id) {
+          return null;
+        }
+
+        const normalized: ArchitectGeneralMutationDashboardReloadTradeException =
+          {
+            id,
+          };
+        const totalAmount = toOptionalNumberOrNull(record.totalAmount);
+        const usedAmount = toOptionalNumberOrNull(record.usedAmount);
+        const remainingAmount = toOptionalNumberOrNull(
+          record.remainingAmount
+        );
+        const createdFrom = toOptionalTrimmedStringOrNull(record.createdFrom);
+        const createdOn = toOptionalTrimmedStringOrNull(record.createdOn);
+        const expiresOn = toOptionalTrimmedStringOrNull(record.expiresOn);
+        const notes = toOptionalTrimmedStringOrNull(record.notes);
+
+        if (totalAmount !== undefined) {
+          normalized.totalAmount = totalAmount;
+        }
+        if (usedAmount !== undefined) {
+          normalized.usedAmount = usedAmount;
+        }
+        if (remainingAmount !== undefined) {
+          normalized.remainingAmount = remainingAmount;
+        }
+        if (createdFrom !== undefined) {
+          normalized.createdFrom = createdFrom;
+        }
+        if (createdOn !== undefined) {
+          normalized.createdOn = createdOn;
+        }
+        if (expiresOn !== undefined) {
+          normalized.expiresOn = expiresOn;
+        }
+        if (notes !== undefined) {
+          normalized.notes = notes;
+        }
+
+        return normalized;
+      })
+      .filter(
+        (
+          entry
+        ): entry is ArchitectGeneralMutationDashboardReloadTradeException =>
+          entry !== null
+      );
+  }
+
+  return Object.keys(dashboardExceptions).length > 0
+    ? dashboardExceptions
+    : undefined;
+}
+
+function normalizeDashboardReloadOfferSheet(
+  value: unknown
+): ArchitectGeneralMutationDashboardReloadOfferSheet | null {
+  const record = asLooseRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const status = toOptionalTrimmedString(record.status);
+  if (!status) {
+    return null;
+  }
+
+  const normalized: ArchitectGeneralMutationDashboardReloadOfferSheet = {
+    status,
+  };
+  const id = toOptionalScalarId(record.id);
+  const playerName = toOptionalTrimmedString(record.playerName);
+  const offeringTeamCode = toOptionalTrimmedString(record.offeringTeamCode);
+  const homeTeamCode = toOptionalTrimmedString(record.homeTeamCode);
+  const dedupKey = toOptionalTrimmedString(record.dedupKey);
+  const playerId = toOptionalIdString(record.playerId);
+  const seasonKey = toOptionalTrimmedString(record.seasonKey);
+  const contractYears = toOptionalNumberishOrNull(record.contractYears);
+  const totalValue = toOptionalNumberishOrNull(record.totalValue);
+  const createdAt = toOptionalDateLike(record.createdAt);
+
+  if (id !== undefined) {
+    normalized.id = id;
+  }
+  if (playerName !== undefined) {
+    normalized.playerName = playerName;
+  }
+  if (offeringTeamCode !== undefined) {
+    normalized.offeringTeamCode = offeringTeamCode;
+  }
+  if (homeTeamCode !== undefined) {
+    normalized.homeTeamCode = homeTeamCode;
+  }
+  if (dedupKey !== undefined) {
+    normalized.dedupKey = dedupKey;
+  }
+  if (playerId !== undefined) {
+    normalized.playerId = playerId;
+  }
+  if (seasonKey !== undefined) {
+    normalized.seasonKey = seasonKey;
+  }
+  if (contractYears !== undefined) {
+    normalized.contractYears = contractYears;
+  }
+  if (totalValue !== undefined) {
+    normalized.totalValue = totalValue;
+  }
+  if (createdAt !== undefined) {
+    normalized.createdAt = createdAt;
+  }
+
+  return normalized;
+}
+
+function normalizeDashboardReloadOfferSheets(
+  value: unknown
+): ArchitectGeneralMutationDashboardReloadOfferSheet[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((entry) => normalizeDashboardReloadOfferSheet(entry))
+    .filter(
+      (
+        entry
+      ): entry is ArchitectGeneralMutationDashboardReloadOfferSheet =>
+        entry !== null
+    );
+}
+
+function normalizeDashboardReloadContractDateLike(
+  value: unknown
+): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return toOptionalTrimmedStringOrNull(value);
+}
+
+function normalizeDashboardReloadContractFreeAgency(
+  value: ArchitectMutationContract['freeAgency']
+):
+  | ArchitectGeneralMutationDashboardReloadContractFreeAgency
+  | string
+  | null
+  | undefined {
+  if (typeof value === 'string') {
+    return toOptionalTrimmedStringOrNull(value);
+  }
+
+  const record = asLooseRecord(value);
+  if (!record) {
+    return value === null ? null : undefined;
+  }
+
+  const normalized: ArchitectGeneralMutationDashboardReloadContractFreeAgency =
+    {};
+  const year = toOptionalNumberOrNull(record.year);
+  const type = toOptionalTrimmedStringOrNull(record.type);
+
+  if (year !== undefined) {
+    normalized.year = year;
+  }
+  if (type !== undefined) {
+    normalized.type = type;
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeDashboardReloadContractBirdRights(
+  value: ArchitectMutationBirdRights | null | undefined
+): ArchitectGeneralMutationDashboardReloadBirdRights | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const status = toOptionalTrimmedString(record.status);
+  if (!status) {
+    return undefined;
+  }
+
+  const normalized: ArchitectGeneralMutationDashboardReloadBirdRights = {
+    status,
+  };
+  const yearsOfService = toOptionalNumberOrNull(record.yearsOfService);
+  const yearsWithTeam = toOptionalNumberOrNull(record.yearsWithTeam);
+  const eligibleFor = normalizeStringArray(record.eligibleFor);
+
+  if (yearsOfService !== undefined) {
+    normalized.yearsOfService = yearsOfService;
+  }
+  if (yearsWithTeam !== undefined) {
+    normalized.yearsWithTeam = yearsWithTeam;
+  }
+  if (eligibleFor !== undefined) {
+    normalized.eligibleFor = eligibleFor;
+  }
+
+  return normalized;
+}
+
+function normalizeDashboardReloadPlayerContract<
+  T extends CurrentStatePlayerContract | CurrentStatePlayerFutureContract,
+>(
+  value: T | null | undefined
+):
+  | ArchitectGeneralMutationDashboardReloadPlayerContract
+  | ArchitectGeneralMutationDashboardReloadPlayerFutureContract
+  | null
+  | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  const record = asLooseRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const normalized = {
+    ...(safeCloneForAudit(record) as LooseRecord),
+  };
+
+  const signingDate = normalizeDashboardReloadContractDateLike(
+    record.signingDate
+  );
+  if (signingDate !== undefined) {
+    normalized.signingDate = signingDate;
+  } else {
+    delete normalized.signingDate;
+  }
+
+  const freeAgency = normalizeDashboardReloadContractFreeAgency(
+    value.freeAgency
+  );
+  if (freeAgency !== undefined) {
+    normalized.freeAgency = freeAgency;
+  } else {
+    delete normalized.freeAgency;
+  }
+
+  const birdRights = normalizeDashboardReloadContractBirdRights(
+    'birdRights' in value ? value.birdRights : undefined
+  );
+  if (birdRights !== undefined) {
+    normalized.birdRights = birdRights;
+  } else {
+    delete normalized.birdRights;
+  }
+
+  return normalized as
+    | ArchitectGeneralMutationDashboardReloadPlayerContract
+    | ArchitectGeneralMutationDashboardReloadPlayerFutureContract;
+}
+
+function normalizeDashboardReloadPlayer(
+  value: CurrentStatePlayer | null | undefined
+): ArchitectGeneralMutationDashboardReloadPlayer | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized: ArchitectGeneralMutationDashboardReloadPlayer = {
+    ...(safeCloneForAudit(value) as Omit<
+      ArchitectGeneralMutationDashboardReloadPlayer,
+      'contract' | 'futureContract'
+    >),
+  };
+
+  const contract = normalizeDashboardReloadPlayerContract(value.contract);
+  if (contract !== undefined) {
+    normalized.contract =
+      contract as ArchitectGeneralMutationDashboardReloadPlayerContract | null;
+  }
+
+  const futureContract = normalizeDashboardReloadPlayerContract(
+    value.futureContract
+  );
+  if (futureContract !== undefined) {
+    normalized.futureContract =
+      futureContract as
+        | ArchitectGeneralMutationDashboardReloadPlayerFutureContract
+        | null;
+  }
+
+  return removeUndefinedDeep(
+    normalized
+  ) as ArchitectGeneralMutationDashboardReloadPlayer;
+}
+
+function normalizeDashboardReloadPlayers(
+  value: CurrentStatePlayer[] | null | undefined
+): ArchitectGeneralMutationDashboardReloadPlayer[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .map((player) => normalizeDashboardReloadPlayer(player))
+    .filter(
+      (
+        player
+      ): player is ArchitectGeneralMutationDashboardReloadPlayer =>
+        player !== null
+    );
+}
+
+export function buildGeneralMutationDashboardReloadTeamSnapshot(
+  team: ArchitectGeneralMutationCommittedTeamSnapshot | null | undefined
+): ArchitectGeneralMutationDashboardReloadTeamSnapshot | null {
+  if (!team) {
+    return null;
+  }
+
+  const reloadSnapshot: ArchitectGeneralMutationDashboardReloadTeamSnapshot = {
+    teamCode: team.teamCode,
+  };
+
+  const teamName = toOptionalTrimmedString(team.teamName);
+  if (teamName !== undefined) {
+    reloadSnapshot.teamName = teamName;
+  }
+  const players = normalizeDashboardReloadPlayers(team.players);
+  if (players !== undefined) {
+    reloadSnapshot.players = players;
+  }
+  if (team.roster !== undefined) {
+    reloadSnapshot.roster = team.roster;
+  }
+
+  const capHolds = normalizeCurrentStateCapHolds(team.capHolds);
+  if (capHolds !== undefined) {
+    reloadSnapshot.capHolds = capHolds;
+  }
+
+  const deadCap = normalizeDashboardReloadDeadCap(team.deadCap);
+  if (deadCap !== undefined) {
+    reloadSnapshot.deadCap = deadCap;
+  }
+
+  const exceptions = normalizeDashboardReloadExceptions(team.exceptions);
+  if (exceptions !== undefined) {
+    reloadSnapshot.exceptions = exceptions;
+  }
+
+  const offerSheets = normalizeDashboardReloadOfferSheets(team.offerSheets);
+  if (offerSheets !== undefined) {
+    reloadSnapshot.offerSheets = offerSheets;
+  }
+
+  const incomingOfferSheets = normalizeDashboardReloadOfferSheets(
+    team.incomingOfferSheets
+  );
+  if (incomingOfferSheets !== undefined) {
+    reloadSnapshot.incomingOfferSheets = incomingOfferSheets;
+  }
+
+  if (team.exceptionHistory !== undefined) {
+    reloadSnapshot.exceptionHistory = team.exceptionHistory;
+  }
+  if (team.draftPicks !== undefined) {
+    reloadSnapshot.draftPicks = team.draftPicks;
+  }
+  if (team.entitlementIds !== undefined) {
+    reloadSnapshot.entitlementIds = team.entitlementIds;
+  }
+  if (team.totals !== undefined) {
+    reloadSnapshot.totals = team.totals;
+  }
+  const hardCapped = toOptionalBooleanOrNull(team.hardCapped);
+  if (hardCapped !== undefined) {
+    reloadSnapshot.hardCapped = hardCapped;
+  }
+  if (team.hardCapLevel !== undefined) {
+    reloadSnapshot.hardCapLevel = team.hardCapLevel;
+  }
+  if (team.hardCapReason !== undefined) {
+    reloadSnapshot.hardCapReason = team.hardCapReason;
+  }
+  if (team.hardCapTriggeredBy !== undefined) {
+    reloadSnapshot.hardCapTriggeredBy = team.hardCapTriggeredBy;
+  }
+
+  return removeUndefinedDeep(
+    reloadSnapshot
+  ) as ArchitectGeneralMutationDashboardReloadTeamSnapshot;
+}
+
+function buildGeneralMutationDashboardReloadTeamUpdates(
+  teamUpdates:
+    | ArchitectGeneralMutationCommittedTeamUpdate[]
+    | null
+    | undefined
+): ArchitectGeneralMutationDashboardReloadTeamUpdate[] {
+  if (!Array.isArray(teamUpdates)) {
+    return [];
+  }
+
+  return teamUpdates.map((update) => ({
+    teamCode: update.teamCode,
+    team: buildGeneralMutationDashboardReloadTeamSnapshot(update.team),
   }));
 }
 
@@ -7273,9 +8046,15 @@ export async function applyWorldMutation({
     }
 
     const teamUpdates = computeResult.teamUpdates || [];
+    const committedTeamUpdates = buildGeneralMutationCommittedTeamUpdates(
+      teamUpdates,
+      seasonId
+    );
     const playerUpdates = computeResult.playerUpdates || [];
     const entitlementUpdates = computeResult.entitlementUpdates || [];
-    const teamCodes = teamUpdates.map((u) => String(u.teamCode || '')).filter(Boolean);
+    const teamCodes = committedTeamUpdates
+      .map((u) => String(u.teamCode || ''))
+      .filter(Boolean);
     const playerIds = collectMutationPlayerIds(sanitizedPayload, computeResult);
     const diffSummary = buildCapAuditDiffSummary({
       beforeTeamsByCode,
@@ -7312,6 +8091,7 @@ export async function applyWorldMutation({
       seasonId,
       mutationType,
       computeResult,
+      committedTeamUpdates,
       timestamp,
       payloadAsOfDate: sanitizedPayload.asOfDate != null ? String(sanitizedPayload.asOfDate) : null, // Phase 20: Only persist if explicitly provided
       auditContext: {
@@ -7369,15 +8149,10 @@ export async function applyWorldMutation({
     );
     writesSummary.worldStatsUpdated = true;
 
-    const committedChangedTeams = buildGeneralMutationCommittedTeamUpdates(
-      teamUpdates,
-      seasonId
-    );
-
     // Return success result
     return {
       success: true,
-      changedTeams: committedChangedTeams,
+      changedTeams: committedTeamUpdates,
       changedPlayers: playerUpdates,
       worldPatch: persistResult.worldPatch,
       event: persistResult.event,
@@ -10176,6 +10951,7 @@ async function persistWorldMutation({
   seasonId,
   mutationType,
   computeResult,
+  committedTeamUpdates,
   timestamp,
   payloadAsOfDate, // Phase 20: Only write asOfDate if explicitly provided in payload
   auditContext = {},
@@ -10184,6 +10960,7 @@ async function persistWorldMutation({
   seasonId: string;
   mutationType: string;
   computeResult: ArchitectMutationBridgeResult;
+  committedTeamUpdates: ArchitectGeneralMutationCommittedTeamUpdate[];
   timestamp: number;
   payloadAsOfDate?: string | null;
   auditContext?: AuditContextLike;
@@ -10193,7 +10970,7 @@ async function persistWorldMutation({
   const playerIdsPatched = new Set<string>();
   const entitlementIdsPatched = [];
   let eventId: string | null = null;
-  const teamUpdates = computeResult.teamUpdates || [];
+  const teamUpdates = committedTeamUpdates || [];
   const playerUpdates = computeResult.playerUpdates || [];
   const playerDeletes = computeResult.playerDeletes || [];
   const entitlementUpdates = computeResult.entitlementUpdates || [];
@@ -10201,10 +10978,11 @@ async function persistWorldMutation({
   try {
     // 1. Write team snapshots
     for (const { teamCode, team } of teamUpdates) {
-      const persistenceReadyTeam = prepareGeneralMutationPersistenceTeamSnapshot(
-        team,
-        seasonId
-      );
+      if (!team) {
+        continue;
+      }
+
+      const persistenceReadyTeam = team;
       // Guard against undefined values (dev throws, prod allows)
       guardAgainstUndefined(
         persistenceReadyTeam,

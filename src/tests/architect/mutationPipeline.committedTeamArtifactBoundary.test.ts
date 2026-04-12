@@ -118,6 +118,7 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 
 import {
   applyWorldMutation,
+  buildGeneralMutationDashboardReloadTeamSnapshot,
   computeWorldMutation,
   findCommittedTeamSnapshot,
   type ArchitectMutationContract,
@@ -318,7 +319,11 @@ describe('mutationPipeline committed team artifact boundary', () => {
     expect(computedTeam?.players?.map((player) => player.playerId)).toContain(
       'fa_boundary'
     );
-    expect(computedTeam as Record<string, unknown>).not.toHaveProperty('id');
+    const computedTeamRecord = computedTeam as Record<string, unknown>;
+    expect(computedTeamRecord).not.toHaveProperty('id');
+    expect(computedTeamRecord).toHaveProperty('source');
+    expect(computedTeamRecord).toHaveProperty('cashLedger');
+    expect(computedTeamRecord).toHaveProperty('tradeExceptions');
 
     const result = await applyWorldMutation({
       userId: 'user_committed_team_artifact',
@@ -347,6 +352,10 @@ describe('mutationPipeline committed team artifact boundary', () => {
     expect(committedTeam?.players?.map((player) => player.playerId)).toContain(
       'fa_boundary'
     );
+    expect(committedTeam).toMatchObject({
+      teamCode: 'LAL',
+      teamName: 'Team LAL',
+    });
     expect(committedTeam?.capHolds).toEqual([]);
     expect(committedTeam?.draftPicks).toEqual([
       { id: 'pick_keep', year: 2028, round: 1, pick: null, owner: 'LAL' },
@@ -359,7 +368,34 @@ describe('mutationPipeline committed team artifact boundary', () => {
 
     const committedTeamRecord = committedTeam as Record<string, unknown>;
     expect(committedTeamRecord).not.toHaveProperty('teamTotalSalary');
+    expect(committedTeamRecord).toHaveProperty('source');
+    expect(committedTeamRecord).toHaveProperty('cashLedger');
+    expect(committedTeamRecord).toHaveProperty('tradeExceptions');
     expect(getHiddenCarrierKeys(committedTeamRecord)).toEqual([]);
+
+    const dashboardReloadTeam =
+      buildGeneralMutationDashboardReloadTeamSnapshot(committedTeam);
+    expect(dashboardReloadTeam?.players?.map((player) => player.playerId)).toContain(
+      'fa_boundary'
+    );
+    expect(dashboardReloadTeam?.capHolds).toEqual([]);
+    expect(dashboardReloadTeam?.draftPicks).toEqual(committedTeam?.draftPicks);
+    expect(dashboardReloadTeam?.entitlementIds).toEqual(
+      committedTeam?.entitlementIds
+    );
+    expect(dashboardReloadTeam?.exceptionHistory).toEqual(
+      committedTeam?.exceptionHistory
+    );
+
+    const dashboardReloadRecord = dashboardReloadTeam as Record<
+      string,
+      unknown
+    >;
+    expect(dashboardReloadRecord).not.toHaveProperty('source');
+    expect(dashboardReloadRecord).not.toHaveProperty('cashLedger');
+    expect(dashboardReloadRecord).not.toHaveProperty('tradeExceptions');
+    expect(dashboardReloadRecord).not.toHaveProperty('teamTotalSalary');
+    expect(getHiddenCarrierKeys(dashboardReloadRecord)).toEqual([]);
 
     const persistedTeam = getPersistedTeamWrite('LAL');
     expect(persistedTeam.players).toEqual(committedTeam?.players);
@@ -368,6 +404,20 @@ describe('mutationPipeline committed team artifact boundary', () => {
     expect(persistedTeam.exceptionHistory).toEqual(
       committedTeam?.exceptionHistory
     );
+    expect(persistedTeam.cashLedger).toEqual({ totalOut: 1_000_000 });
+    expect(persistedTeam.tradeExceptions).toEqual([
+      {
+        id: 'tpe_keep',
+        amount: 5_000_000,
+        totalAmount: 5_000_000,
+        remainingAmount: 5_000_000,
+        createdSeason: 2025,
+      },
+    ]);
+    expect(persistedTeam.source).toMatchObject({
+      provider: 'test-suite',
+      type: 'world-snapshot',
+    });
     expect(persistedTeam).not.toHaveProperty('teamTotalSalary');
     expect(getHiddenCarrierKeys(persistedTeam)).toEqual([]);
 

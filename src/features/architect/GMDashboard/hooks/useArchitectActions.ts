@@ -28,12 +28,12 @@ import {
 } from '@/features/architect/utils/seasonFormat';
 import {
   applyWorldMutation,
+  buildGeneralMutationDashboardReloadTeamSnapshot,
   computeWorldMutation,
   findCommittedTeamSnapshot,
   findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation,
   preflightOfferSheetMutation,
-  type ArchitectGeneralMutationCommittedTeamSnapshot,
   type ArchitectGeneralMutationCommittedTeamUpdate,
   type ArchitectMutationContract,
   type ArchitectMutationDeadCapEntry,
@@ -1088,9 +1088,9 @@ type PreparedOfferSheetCreationDefinition =
 
 type DashboardMutationPropagationMode = 'world-committed' | 'local-validated';
 type WorldCommittedTeamSource = 'changedTeams' | 'reload';
-type DashboardCommittedTeamSnapshot =
-  | CapSheet
-  | ArchitectGeneralMutationCommittedTeamSnapshot;
+type DashboardCommittedTeamSnapshot = NonNullable<
+  UseArchitectStateReturn['teamCapSheet']
+>;
 /**
  * Dashboard post-mutation propagation lane.
  * - `world-committed`: authoritative world persistence already succeeded, so
@@ -1824,7 +1824,7 @@ export function useArchitectActions({
   const { openContractModal } = modals;
 
   const setTeamCapSheetSafe = useCallback(
-    (nextTeam: DashboardCommittedTeamSnapshot | null): void => {
+    (nextTeam: CapSheet | null): void => {
       setTeamCapSheet(nextTeam as UseArchitectStateReturn['teamCapSheet']);
     },
     [setTeamCapSheet]
@@ -2206,11 +2206,13 @@ export function useArchitectActions({
         result?.changedTeams,
         teamCode
       );
+      const dashboardChangedTeam =
+        buildGeneralMutationDashboardReloadTeamSnapshot(changedTeam);
 
-      if (changedTeam) {
+      if (dashboardChangedTeam) {
         return {
           propagationMode: 'world-committed',
-          committedTeam: changedTeam,
+          committedTeam: dashboardChangedTeam,
           committedTeamSource: 'changedTeams',
         };
       }
@@ -2228,7 +2230,7 @@ export function useArchitectActions({
 
       return {
         propagationMode: 'world-committed',
-        committedTeam: reloadedTeam as CapSheet,
+        committedTeam: reloadedTeam as DashboardCommittedTeamSnapshot,
         committedTeamSource: 'reload',
       };
     },
@@ -2276,8 +2278,7 @@ export function useArchitectActions({
       // Committed-world ownership resumes here after successful persistence.
       if (reloadActiveWorldTeamData && worldId) {
         const reloadedWorldTeam = await reloadActiveWorldTeamData({
-          committedTeamSnapshot:
-            plan.committedWorldTeam.committedTeam as UseArchitectStateReturn['teamCapSheet'],
+          committedTeamSnapshot: plan.committedWorldTeam.committedTeam,
           committedTeamSource: plan.committedWorldTeam.committedTeamSource,
           committedWorldMetadata: plan.committedWorldMetadata,
           refreshRosterBundle: plan.refreshRosterBundle,
@@ -2294,15 +2295,14 @@ export function useArchitectActions({
           status: 'applied',
           committedWorldTeam: {
             propagationMode: 'world-committed',
-            committedTeam:
-              reloadedWorldTeam.committedWorldTeam.committedTeam as CapSheet,
+            committedTeam: reloadedWorldTeam.committedWorldTeam.committedTeam,
             committedTeamSource:
               reloadedWorldTeam.committedWorldTeam.committedTeamSource,
           },
         };
       }
 
-      setTeamCapSheetSafe(plan.committedWorldTeam.committedTeam);
+      setTeamCapSheet(plan.committedWorldTeam.committedTeam);
 
       if (plan.refreshRosterBundle) {
         try {
