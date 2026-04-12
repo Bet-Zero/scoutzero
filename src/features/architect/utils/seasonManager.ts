@@ -64,7 +64,10 @@ import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
-import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import type {
+  PostStateCapValidationInput,
+  PostStateCapValidationIssue,
+} from '@/features/architect/utils/capLegality/postStateCapValidator';
 import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
@@ -96,6 +99,8 @@ import type {
   OffseasonTransitionContext,
   OffseasonTransitionResult,
 } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
+import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
+import type { LoadedWorldTeamCapSheet } from '@/features/architect/utils/worldTeamData';
 
 const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
 const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance';
@@ -135,7 +140,7 @@ function buildPostStateRulesContext(
  * Strips hydration-only or season-manager transient fields that are derived
  * during load/advance and must not be persisted.
  */
-const HYDRATION_ONLY_KEYS = Object.freeze([
+const HYDRATION_ONLY_KEYS = [
   'id', // hydrateBaseTeam display identifier
   'activeContracts', // derived from players for display
   'draftAssets', // derived from entitlements
@@ -144,15 +149,21 @@ const HYDRATION_ONLY_KEYS = Object.freeze([
   'bae', // flattened from exceptions.bae
   'baseline', // reference to original base doc
   '_derivedDraftPicks', // transient entitlement projection used only inside season advance
-]);
+] as const;
 
-function stripHydrationOnlyFields(team: LooseRecord | null | undefined): LooseRecord | null | undefined {
+type HydrationOnlyKey = (typeof HYDRATION_ONLY_KEYS)[number];
+type HydrationStrippableTeam<T extends object> = T &
+  Partial<Record<HydrationOnlyKey, unknown>>;
+
+function stripHydrationOnlyFields<T extends object>(
+  team: T | null | undefined
+): T | null | undefined {
   if (!team || typeof team !== 'object') return team;
-  const result = { ...team };
+  const result: HydrationStrippableTeam<T> = { ...team };
   for (const key of HYDRATION_ONLY_KEYS) {
     delete result[key];
   }
-  return result;
+  return result as T;
 }
 
 /**
@@ -160,28 +171,29 @@ function stripHydrationOnlyFields(team: LooseRecord | null | undefined): LooseRe
  * @param {any} obj - Object or array to sanitize
  * @returns {any} Sanitized copy with no undefined values
  */
-function removeUndefinedDeep(obj: unknown): unknown {
+function removeUndefinedDeep<T>(obj: T): T {
   if (obj === null || obj === undefined) {
     return obj;
   }
   if (Array.isArray(obj)) {
     return obj
-      .filter((item: unknown) => item !== undefined)
-      .map((item: unknown) => removeUndefinedDeep(item));
+      .filter((item) => item !== undefined)
+      .map((item) => removeUndefinedDeep(item)) as T;
   }
   if (typeof obj === 'object') {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    const result: Partial<T> = {};
+    for (const [key, value] of Object.entries(obj)) {
       if (value !== undefined) {
-        result[key] = removeUndefinedDeep(value);
+        result[key as keyof T] = removeUndefinedDeep(
+          value
+        ) as T[keyof T];
       }
     }
-    return result;
+    return result as T;
   }
   return obj;
 }
 
-type LooseRecord = Record<string, unknown>;
 type StepienUpdate = { pickId: string; year: number; status: string; reason: string };
 type ConveyanceResolutionEntry = { pickId?: string; year?: number; outcome?: string; position?: number };
 type SwapResolutionEntry = { pickId?: string; year?: number; resolvedOwner?: string | null; resolvedPosition?: number | null };
@@ -197,6 +209,11 @@ type DraftResolutionContext = {
   positionsMap?: Record<string, number>;
   draftYear?: number;
   worldId?: string | null;
+};
+
+type TeamSeasonTransitionResult = {
+  committedTeam: SeasonAdvanceCommittedTeamSnapshot | null;
+  teamSummary: SeasonAdvanceTeamSummary;
 };
 
 type SeasonManagerDraftPickConveyanceConditionsIngress = {
@@ -366,6 +383,76 @@ type SeasonTransitionTeam = OffseasonTeamCapSheet &
     entitlementIds?: string[];
     entitlements?: SeasonManagerProjectionEntitlements;
   };
+
+// These allowlisted persistence metadata fields are intentionally preserve-only:
+// season advance does not compute them, but legacy/base/world snapshots can carry
+// mixed shapes that should survive the committed team write if already present.
+type SeasonAdvancePreservedPersistenceFields = {
+  city?: string | null;
+  conference?: string | null;
+  division?: string | null;
+  source?: unknown;
+  lastUpdated?: unknown;
+  version?: unknown;
+  mergedAt?: unknown;
+  _meta?: unknown;
+};
+
+type SeasonAdvancePersistedTeamSnapshot = Pick<
+  LoadedWorldTeamCapSheet,
+  | 'teamCode'
+  | 'teamName'
+  | 'season'
+  | 'abbreviation'
+  | 'players'
+  | 'roster'
+  | 'capHolds'
+  | 'deadCap'
+  | 'draftPicks'
+  | 'draftPicksInventory'
+  | 'draftPicksObligations'
+  | 'draftPicksContested'
+  | 'entitlementIds'
+  | 'offerSheets'
+  | 'incomingOfferSheets'
+  | 'exceptions'
+  | 'totals'
+  | 'hardCapLevel'
+  | 'hardCapReason'
+  | 'hardCapTriggeredBy'
+  | 'hardCapped'
+> &
+  Pick<OffseasonTeamCapSheet, 'exceptionHistory'> &
+  SeasonAdvancePreservedPersistenceFields;
+
+export type SeasonAdvanceFocusTeamSnapshot = Pick<
+  SeasonAdvancePersistedTeamSnapshot,
+  | 'teamCode'
+  | 'teamName'
+  | 'season'
+  | 'abbreviation'
+  | 'players'
+  | 'roster'
+  | 'capHolds'
+  | 'deadCap'
+  | 'draftPicks'
+  | 'offerSheets'
+  | 'incomingOfferSheets'
+  | 'exceptions'
+  | 'exceptionHistory'
+  | 'totals'
+  | 'hardCapLevel'
+  | 'hardCapReason'
+  | 'hardCapTriggeredBy'
+  | 'hardCapped'
+> &
+  Pick<
+    TeamHistoryCapSheetLike,
+    'waivedContracts' | 'mleHistory' | 'pickLog' | 'currentPicks' | 'historyTimeline'
+  >;
+
+type SeasonAdvanceCommittedTeamSnapshot = SeasonAdvancePersistedTeamSnapshot &
+  Partial<SeasonAdvanceFocusTeamSnapshot>;
 
 type PostStateTeamSnapshots = NonNullable<
   PostStateCapValidationInput['beforeTeamsByCode']
@@ -902,7 +989,7 @@ export type SeasonAdvanceSummary = SeasonAdvanceTeamSummary & {
   dareError?: string;
 };
 
-type SeasonAdvanceIssue = Record<string, unknown>;
+type SeasonAdvanceIssue = PostStateCapValidationIssue;
 
 type SeasonAdvanceDraftResolutionInfo = {
   draftYear: number;
@@ -933,16 +1020,14 @@ export type SeasonAdvanceCommittedState = {
   metadata: SeasonAdvanceCommittedMetadata;
   event: SeasonAdvanceCommittedEvent;
   focusTeamCode?: string;
-  // Whole-team persistence artifact for dashboard reload; broadness is not
-  // caused by the draft-pick carrier and is intentionally left at this boundary.
-  focusTeamSnapshot?: Record<string, unknown> | null;
+  focusTeamSnapshot?: SeasonAdvanceFocusTeamSnapshot | null;
 };
 
 type BuildSeasonAdvanceCommittedStateParams = {
   metadata: SeasonAdvanceCommittedMetadata;
   event: SeasonAdvanceCommittedEvent;
   focusTeamCode: string | null;
-  focusTeamSnapshot: Record<string, unknown> | null;
+  focusTeamSnapshot: SeasonAdvanceFocusTeamSnapshot | null;
 };
 
 function buildSeasonAdvanceCommittedState({
@@ -957,6 +1042,76 @@ function buildSeasonAdvanceCommittedState({
     focusTeamCode: focusTeamCode ?? undefined,
     focusTeamSnapshot: focusTeamCode ? focusTeamSnapshot : null,
   };
+}
+
+const FOCUS_TEAM_SNAPSHOT_KEYS = [
+  'teamCode',
+  'teamName',
+  'season',
+  'abbreviation',
+  'players',
+  'roster',
+  'capHolds',
+  'deadCap',
+  'draftPicks',
+  'offerSheets',
+  'incomingOfferSheets',
+  'exceptions',
+  'exceptionHistory',
+  'totals',
+  'hardCapLevel',
+  'hardCapReason',
+  'hardCapTriggeredBy',
+  'hardCapped',
+  'waivedContracts',
+  'mleHistory',
+  'pickLog',
+  'currentPicks',
+  'historyTimeline',
+] as const satisfies readonly (keyof SeasonAdvanceFocusTeamSnapshot)[];
+
+function copyFocusTeamSnapshotField<
+  K extends keyof SeasonAdvanceFocusTeamSnapshot,
+>(
+  source: SeasonAdvanceCommittedTeamSnapshot,
+  target: Partial<SeasonAdvanceFocusTeamSnapshot>,
+  key: K
+) {
+  const value = source[key];
+  if (value !== undefined) {
+    target[key] = value as SeasonAdvanceFocusTeamSnapshot[K];
+  }
+}
+
+function buildSeasonAdvanceFocusTeamSnapshot(
+  team: SeasonAdvanceCommittedTeamSnapshot
+): SeasonAdvanceFocusTeamSnapshot {
+  const snapshot: Partial<SeasonAdvanceFocusTeamSnapshot> = {};
+
+  for (const key of FOCUS_TEAM_SNAPSHOT_KEYS) {
+    copyFocusTeamSnapshotField(team, snapshot, key);
+  }
+
+  return removeUndefinedDeep(snapshot) as SeasonAdvanceFocusTeamSnapshot;
+}
+
+function buildSeasonAdvanceCommittedTeamSnapshot(
+  team: SeasonTransitionTeam
+): SeasonAdvanceCommittedTeamSnapshot {
+  // Bridge Gate: match persistWorldMutation hygiene order
+  // strip hydration → sanitize transients → normalize TPE → validate contract → removeUndefined → write
+  const afterHydrationStrip = stripHydrationOnlyFields(team);
+  const afterSanitize =
+    sanitizeTransientFieldsForPersistence(afterHydrationStrip);
+  const normalizedTeam = normalizeTeamTpeSchema(
+    afterSanitize as SeasonAdvanceCommittedTeamSnapshot
+  ) as SeasonAdvanceCommittedTeamSnapshot;
+  assertPersistableOrThrow({
+    obj: normalizedTeam,
+    contract: PERSISTENCE_CONTRACTS.TEAM,
+    label: 'TEAM',
+  });
+  return removeUndefinedDeep(normalizedTeam);
 }
 
 export type SeasonAdvanceSuccessResult = {
@@ -1015,7 +1170,7 @@ function getErrorCode(error: unknown): string | null {
   if (!error || typeof error !== 'object') {
     return null;
   }
-  const code = (error as LooseRecord).code;
+  const code = (error as { code?: unknown }).code;
   return typeof code === 'string' ? code : null;
 }
 
@@ -1134,7 +1289,7 @@ export async function advanceSeasonInWorld(
 
     const batch = writeBatch(db);
     const updatedTeams = [];
-    let focusTeamSnapshot: Record<string, unknown> | null = null;
+    let focusTeamSnapshot: SeasonAdvanceFocusTeamSnapshot | null = null;
     const beforeTeamsByCode: PostStateTeamSnapshots = {};
     const afterTeamsByCode: PostStateTeamSnapshots = {};
     const beforeTotalsByTeam: NonNullable<
@@ -1165,7 +1320,7 @@ export async function advanceSeasonInWorld(
       // Process team for season transition with explicit option decisions
       // Phase 5: Also pass positionsMap + draftYear for auto-resolution
       // Phase 53: Pass worldId for TPE expiry history logging
-      const { updatedTeam, teamSummary } =
+      const { committedTeam, teamSummary } =
         await processTeamSeasonTransitionWithOptions(
           team,
           fromSeason,
@@ -1216,40 +1371,24 @@ export async function advanceSeasonInWorld(
       // Save snapshot if team was modified
       // Phase 65: Normalize TPE schema before persistence
       // Phase D4: Remove undefined values to prevent Firestore errors
-      if (updatedTeam) {
+      if (committedTeam) {
         beforeTeamsByCode[teamCode] = safeCloneForAudit(
           team
         ) as PostStateTeamSnapshots[string];
         afterTeamsByCode[teamCode] = safeCloneForAudit(
-          updatedTeam
+          committedTeam
         ) as PostStateTeamSnapshots[string];
         beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear);
-        afterTotalsByTeam[teamCode] = computeTeamCapTotals(updatedTeam, toYear);
+        afterTotalsByTeam[teamCode] = computeTeamCapTotals(
+          committedTeam,
+          toYear
+        );
 
         const snapshotRef = worldTeamRef(worldId, teamCode);
-        // Bridge Gate: match persistWorldMutation hygiene order
-        // strip hydration → sanitize transients → normalize TPE → validate contract → removeUndefined → write
-        const afterHydrationStrip = stripHydrationOnlyFields(updatedTeam);
-        const afterSanitize =
-          sanitizeTransientFieldsForPersistence(afterHydrationStrip);
-        const normalizedTeam = normalizeTeamTpeSchema(afterSanitize);
-        assertPersistableOrThrow({
-          obj: normalizedTeam,
-          contract: PERSISTENCE_CONTRACTS.TEAM,
-          label: 'TEAM',
-        });
-        const safeTeam = removeUndefinedDeep(normalizedTeam);
-        batch.set(snapshotRef, safeTeam);
-        if (
-          focusTeamCode &&
-          teamCode === focusTeamCode &&
-          safeTeam &&
-          typeof safeTeam === 'object'
-        ) {
-          focusTeamSnapshot = safeCloneForAudit(safeTeam) as Record<
-            string,
-            unknown
-          >;
+        batch.set(snapshotRef, committedTeam);
+        if (focusTeamCode && teamCode === focusTeamCode) {
+          const safeTeam = buildSeasonAdvanceFocusTeamSnapshot(committedTeam);
+          focusTeamSnapshot = safeCloneForAudit(safeTeam) as SeasonAdvanceFocusTeamSnapshot;
         }
         updatedTeams.push(teamCode);
       }
@@ -1532,7 +1671,7 @@ async function processTeamSeasonTransitionWithOptions(
   toSeason: string,
   optionDecisions: OffseasonOptionDecisionMap,
   resolutionContext: DraftResolutionContext = {}
-) {
+): Promise<TeamSeasonTransitionResult> {
   let updatedTeam: SeasonTransitionTeam = { ...teamData };
   let hasChanges = false;
   const teamCode = teamData.teamCode as string;
@@ -1784,8 +1923,12 @@ async function processTeamSeasonTransitionWithOptions(
     updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear);
   }
 
+  const committedTeam = hasChanges
+    ? buildSeasonAdvanceCommittedTeamSnapshot(updatedTeam)
+    : null;
+
   return {
-    updatedTeam: hasChanges ? updatedTeam : null,
+    committedTeam,
     teamSummary,
   };
 }
