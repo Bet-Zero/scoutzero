@@ -536,6 +536,12 @@ type ArchitectMutationCapHold = {
   reason?: string | null;
 };
 
+type ArchitectMutationPlayerRfaContextIngress = {
+  pendingHomeTeamCode?: string | null;
+  offerSheetId?: string | null;
+  retainedUntilFinalize?: boolean | null;
+} & Record<string, unknown>;
+
 export type ArchitectMutationPlayerRecord = {
   player_id?: string | null;
   id?: string | null;
@@ -564,7 +570,7 @@ export type ArchitectMutationPlayerRecord = {
   rfaOfferSheet?: boolean | null;
   rfaOfferSheetOnly?: boolean | null;
   // Deliberately localized: live mutation flow only preserves/deletes this blob.
-  rfaContext?: LooseRecord | null;
+  rfaContext?: ArchitectMutationPlayerRfaContextIngress | null;
   draft?: Partial<PlayerDraft> | null;
   isTwoWay?: boolean | null;
   signedDate?: string | null;
@@ -867,6 +873,10 @@ const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
   'tradeRestrictions',
   'tradeEligibility',
 ] as const;
+// These current-contract fields remain on the normalized player seam because
+// option/signing flows spread the existing contract before canonicalization and
+// world persistence. Dropping one here would silently strip that persisted
+// contract state on the next committed player mutation.
 const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
   'salariesByYear',
   'contractType',
@@ -887,6 +897,9 @@ const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
   'tradeKicker',
   'tradeRestrictions',
 ] as const;
+// Future-contract carry-through stays separate and smaller because extension
+// flows only need the existing future lane plus the persisted metadata they
+// intentionally preserve when appending normalized extension rows.
 type CurrentStatePlayerContractIncentives = NormalizedMutationContractIncentives;
 type CurrentStatePlayerContractGuaranteeScheduleEntry =
   NormalizedMutationGuaranteeScheduleEntry;
@@ -1045,14 +1058,15 @@ type CurrentStatePlayerOverridePersistenceSidecar = Pick<
 >;
 type CurrentStatePlayerCore = CurrentStatePlayerComputeCore &
   CurrentStatePlayerOverridePersistenceSidecar;
-type CurrentStatePlayerOverridePersistenceIngress = {
-  representation?: unknown;
-  source?: unknown;
-  lastUpdated?: unknown;
-  version?: unknown;
-  isTwoWay?: unknown;
-  signedDate?: unknown;
-};
+type CurrentStatePlayerOverridePersistenceIngress = Pick<
+  ArchitectMutationPlayerRecord,
+  | 'representation'
+  | 'source'
+  | 'lastUpdated'
+  | 'version'
+  | 'isTwoWay'
+  | 'signedDate'
+>;
 type CurrentStatePlayerRfaSidecar = {
   rfaOfferSheet?: boolean;
   rfaOfferSheetOnly?: boolean;
@@ -1101,6 +1115,22 @@ type PersistablePlayerOverride = Pick<
   CurrentStatePlayerRfaBoundary & {
   playerId?: string | null;
 };
+type PersistablePlayerOverrideSource = Pick<
+  NormalizedCurrentStatePlayer,
+  | 'player_id'
+  | 'id'
+  | 'playerId'
+  | 'name'
+  | 'displayName'
+  | 'playerName'
+  | 'teamCode'
+  | 'teamName'
+  | 'bio'
+  | 'contract'
+  | 'futureContract'
+> &
+  CurrentStatePlayerOverridePersistenceSidecar &
+  CurrentStatePlayerRfaBoundary;
 type CurrentStatePlayer = CurrentStatePlayerCore & CurrentStatePlayerRfaBoundary;
 const CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY =
   '__currentStateBasePreserved';
@@ -1275,6 +1305,9 @@ type MutationCurrentStatePlayerIngress = Omit<
     contract?: MutationCurrentStatePlayerContractIngress | null;
     futureContract?: MutationCurrentStatePlayerFutureContractIngress | null;
   };
+type CurrentStatePlayerSnapshotIngress =
+  | MutationCurrentStatePlayerIngress
+  | PlayerLike;
 type MutationCurrentStateTeamCoreIngress = Omit<
   Pick<
     ArchitectMutationTeamRecord,
@@ -3528,7 +3561,7 @@ function normalizeCurrentStateTeamSource(
 }
 
 function normalizeCurrentStatePlayerBioDisplay(
-  value: unknown
+  value: MutationPlayerBioLike['display'] | null | undefined
 ): CurrentStatePlayerBioDisplay | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -3562,7 +3595,7 @@ function normalizeCurrentStatePlayerBioDisplay(
 }
 
 function normalizeCurrentStatePlayerBioDraft(
-  value: unknown
+  value: MutationPlayerBioLike['draft'] | null | undefined
 ): CurrentStatePlayerBioDraft | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -3592,7 +3625,7 @@ function normalizeCurrentStatePlayerBioDraft(
 }
 
 function normalizeCurrentStatePlayerBio(
-  value: unknown
+  value: MutationPlayerBioLike | null | undefined
 ): CurrentStatePlayerBio | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -3701,7 +3734,7 @@ function normalizeCurrentStatePlayerBio(
 }
 
 function normalizeCurrentStatePlayerBirdRights(
-  value: unknown
+  value: ArchitectMutationPlayerRecord['birdRights']
 ): ArchitectMutationBirdRights | string | undefined {
   if (typeof value === 'string') {
     return toOptionalTrimmedString(value);
@@ -3743,7 +3776,7 @@ function normalizeCurrentStatePlayerBirdRights(
 }
 
 function normalizeCurrentStatePlayerContractBirdRights(
-  value: unknown
+  value: MutationCurrentStatePlayerContractIngress['birdRights']
 ): ArchitectMutationBirdRights | undefined {
   const normalizedBirdRights = normalizeCurrentStatePlayerBirdRights(value);
 
@@ -3759,7 +3792,7 @@ function normalizeCurrentStatePlayerContractBirdRights(
 }
 
 function normalizeCurrentStatePlayerContractIncentives(
-  value: unknown
+  value: ArchitectMutationContractIncentives | null | undefined
 ): CurrentStatePlayerContractIncentives | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -3781,7 +3814,7 @@ function normalizeCurrentStatePlayerContractIncentives(
 }
 
 function normalizeCurrentStatePlayerContractGuaranteeScheduleEntry(
-  value: unknown
+  value: ArchitectMutationGuaranteeScheduleEntry | null | undefined
 ): CurrentStatePlayerContractGuaranteeScheduleEntry | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -3811,7 +3844,7 @@ function normalizeCurrentStatePlayerContractGuaranteeScheduleEntry(
 }
 
 function normalizeCurrentStatePlayerContractGuaranteeSchedule(
-  value: unknown
+  value: ArchitectMutationGuaranteeScheduleEntry[] | null | undefined
 ): CurrentStatePlayerContractGuaranteeScheduleEntry[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -3830,7 +3863,7 @@ function normalizeCurrentStatePlayerContractGuaranteeSchedule(
 }
 
 function normalizeCurrentStatePlayerContractTradeEligibilityRules(
-  value: unknown
+  value: ArchitectMutationTradeEligibilityRules | null | undefined
 ): CurrentStatePlayerContractTradeEligibilityRules | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -3858,7 +3891,7 @@ function normalizeCurrentStatePlayerContractTradeEligibilityRules(
 }
 
 function normalizeCurrentStatePlayerContractTradeEligibility(
-  value: unknown
+  value: ArchitectMutationTradeEligibility | null | undefined
 ): CurrentStatePlayerContractTradeEligibility | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -3890,7 +3923,7 @@ function normalizeCurrentStatePlayerContractTradeEligibility(
 }
 
 function normalizeCurrentStatePlayerContractFreeAgency(
-  value: unknown
+  value: ArchitectMutationContract['freeAgency'] | undefined
 ): CurrentStatePlayerContractFreeAgency | undefined {
   if (value === undefined) {
     return undefined;
@@ -3947,41 +3980,42 @@ function normalizeCurrentStatePlayerContractFreeAgency(
 }
 
 function normalizeCurrentStatePlayerContractSalaryRow(
-  value: unknown
+  value: MutationCurrentStatePlayerContractSalaryRowIngress | null | undefined
 ): CurrentStatePlayerContractSalaryRow | undefined {
   const record = asLooseRecord(value);
   if (!record) {
     return undefined;
   }
+  const salaryRow = record as Partial<MutationCurrentStatePlayerContractSalaryRowIngress>;
 
   const projectedRow: MutationCurrentStatePlayerContractSalaryRowIngress = {};
-  const year = toOptionalNumberOrNull(record.year);
+  const year = toOptionalNumberOrNull(salaryRow.year);
   const season =
-    toOptionalTrimmedStringOrNull(record.season) ??
+    toOptionalTrimmedStringOrNull(salaryRow.season) ??
     (typeof year === 'number' ? toSeasonCode(year) : undefined);
-  const salary = toOptionalNumberOrNull(record.salary);
-  const capHit = toOptionalNumberOrNull(record.capHit);
-  const guaranteed = toOptionalBooleanOrNull(record.guaranteed);
-  const guaranteedAmount = toOptionalNumberOrNull(record.guaranteedAmount);
-  const option = toOptionalTrimmedStringOrNull(record.option);
-  const optionType = toOptionalTrimmedStringOrNull(record.optionType);
-  const optionUsed = Object.prototype.hasOwnProperty.call(record, 'optionUsed')
-    ? normalizeOptionUsed(record.optionUsed)
+  const salary = toOptionalNumberOrNull(salaryRow.salary);
+  const capHit = toOptionalNumberOrNull(salaryRow.capHit);
+  const guaranteed = toOptionalBooleanOrNull(salaryRow.guaranteed);
+  const guaranteedAmount = toOptionalNumberOrNull(salaryRow.guaranteedAmount);
+  const option = toOptionalTrimmedStringOrNull(salaryRow.option);
+  const optionType = toOptionalTrimmedStringOrNull(salaryRow.optionType);
+  const optionUsed = Object.prototype.hasOwnProperty.call(salaryRow, 'optionUsed')
+    ? normalizeOptionUsed(salaryRow.optionUsed)
     : undefined;
   const optionDecisionDate = toOptionalTrimmedStringOrNull(
-    record.optionDecisionDate
+    salaryRow.optionDecisionDate
   );
-  const tradeBonus = toOptionalNumberOrNull(record.tradeBonus);
+  const tradeBonus = toOptionalNumberOrNull(salaryRow.tradeBonus);
   const incentives = normalizeCurrentStatePlayerContractIncentives(
-    record.incentives
+    salaryRow.incentives
   );
   const guaranteeSchedule =
     normalizeCurrentStatePlayerContractGuaranteeSchedule(
-      record.guaranteeSchedule
+      salaryRow.guaranteeSchedule
     );
-  const voidedByExtension = toOptionalBooleanOrNull(record.voidedByExtension);
-  const voidedOn = toOptionalTrimmedStringOrNull(record.voidedOn);
-  const isExtensionSeason = toOptionalBooleanOrNull(record.isExtensionSeason);
+  const voidedByExtension = toOptionalBooleanOrNull(salaryRow.voidedByExtension);
+  const voidedOn = toOptionalTrimmedStringOrNull(salaryRow.voidedOn);
+  const isExtensionSeason = toOptionalBooleanOrNull(salaryRow.isExtensionSeason);
 
   if (year !== undefined) {
     projectedRow.year = year;
@@ -4045,7 +4079,9 @@ function normalizeCurrentStatePlayerContractSalaryRow(
 }
 
 function normalizeCurrentStatePlayerContractSalaryRows(
-  value: unknown
+  value:
+    | MutationCurrentStatePlayerContractIngress['salariesByYear']
+    | MutationCurrentStatePlayerFutureContractIngress['salariesByYear']
 ): CurrentStatePlayerContractSalaryRow[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -4062,84 +4098,96 @@ function normalizeCurrentStatePlayerContractSalaryRows(
 type CurrentStatePlayerContractLane = 'current' | 'future';
 
 function projectCurrentStatePlayerContractIngress(
-  value: unknown,
+  value: MutationCurrentStatePlayerContractIngress | null | undefined,
   lane: 'current'
 ): MutationCurrentStatePlayerContractIngress | undefined;
 function projectCurrentStatePlayerContractIngress(
-  value: unknown,
+  value: MutationCurrentStatePlayerFutureContractIngress | null | undefined,
   lane: 'future'
 ): MutationCurrentStatePlayerFutureContractIngress | undefined;
 function projectCurrentStatePlayerContractIngress(
-  value: unknown,
+  value:
+    | MutationCurrentStatePlayerContractIngress
+    | MutationCurrentStatePlayerFutureContractIngress
+    | null
+    | undefined,
   lane: CurrentStatePlayerContractLane
 ):
   | MutationCurrentStatePlayerContractIngress
   | MutationCurrentStatePlayerFutureContractIngress
   | undefined {
+  // Current-state snapshots may still hand this seam raw world data or an
+  // already-normalized contract. Mixed tolerance stays localized here and in
+  // the small sub-normalizers below; committed compute only receives the
+  // projected lane-specific slice.
   const contract = asLooseRecord(value);
   if (!contract) {
     return undefined;
   }
+  const contractRecord = contract as Partial<
+    MutationCurrentStatePlayerContractIngress &
+      MutationCurrentStatePlayerFutureContractIngress
+  >;
 
   const projected: MutationCurrentStatePlayerContractIngress = {};
   const salariesByYear = normalizeCurrentStatePlayerContractSalaryRows(
-    contract.salariesByYear
+    contractRecord.salariesByYear
   );
-  const years = toOptionalNumberOrNull(contract.years);
-  const startYear = toOptionalNumberOrNull(contract.startYear);
-  const year = toOptionalNumberOrNull(contract.year);
+  const years = toOptionalNumberOrNull(contractRecord.years);
+  const startYear = toOptionalNumberOrNull(contractRecord.startYear);
+  const year = toOptionalNumberOrNull(contractRecord.year);
   const birdRights = normalizeCurrentStatePlayerContractBirdRights(
-    contract.birdRights
+    contractRecord.birdRights
   );
-  const contractType = toOptionalTrimmedStringOrNull(contract.contractType);
-  const extension = toOptionalBooleanOrNull(contract.extension);
-  const isExtension = toOptionalBooleanOrNull(contract.isExtension);
-  const isRookieScale = toOptionalBooleanOrNull(contract.isRookieScale);
-  const signingTeam = toOptionalTrimmedStringOrNull(contract.signingTeam);
-  const signingDate = toOptionalContractDateLikeOrNull(contract.signingDate);
-  const signedAt = toOptionalContractDateLikeOrNull(contract.signedAt);
+  const contractType = toOptionalTrimmedStringOrNull(contractRecord.contractType);
+  const extension = toOptionalBooleanOrNull(contractRecord.extension);
+  const isExtension = toOptionalBooleanOrNull(contractRecord.isExtension);
+  const isRookieScale = toOptionalBooleanOrNull(contractRecord.isRookieScale);
+  const signingTeam = toOptionalTrimmedStringOrNull(contractRecord.signingTeam);
+  const signingDate = toOptionalContractDateLikeOrNull(contractRecord.signingDate);
+  const signedAt = toOptionalContractDateLikeOrNull(contractRecord.signedAt);
   const extensionSignedAt = toOptionalContractDateLikeOrNull(
-    contract.extensionSignedAt
+    contractRecord.extensionSignedAt
   );
-  const signedUsing = toOptionalTrimmedStringOrNull(contract.signedUsing);
-  const exceptionType = toOptionalTrimmedStringOrNull(contract.exceptionType);
-  const contractYears = toOptionalNumberOrNull(contract.contractYears);
+  const signedUsing = toOptionalTrimmedStringOrNull(contractRecord.signedUsing);
+  const exceptionType = toOptionalTrimmedStringOrNull(contractRecord.exceptionType);
+  const contractYears = toOptionalNumberOrNull(contractRecord.contractYears);
   const firstYearGuaranteed = toOptionalBooleanOrNull(
-    contract.firstYearGuaranteed
+    contractRecord.firstYearGuaranteed
   );
-  const rfaOfferSheet = toOptionalBooleanOrNull(contract.rfaOfferSheet);
+  const rfaOfferSheet = toOptionalBooleanOrNull(contractRecord.rfaOfferSheet);
   const rfaOfferSheetOnly = toOptionalBooleanOrNull(
-    contract.rfaOfferSheetOnly
+    contractRecord.rfaOfferSheetOnly
   );
-  const yearsRemaining = toOptionalNumberOrNull(contract.yearsRemaining);
-  const contractLength = toOptionalNumberOrNull(contract.contractLength);
-  const originalLength = toOptionalNumberOrNull(contract.originalLength);
-  const totalValue = toOptionalNumberOrNull(contract.totalValue);
+  const yearsRemaining = toOptionalNumberOrNull(contractRecord.yearsRemaining);
+  const contractLength = toOptionalNumberOrNull(contractRecord.contractLength);
+  const originalLength = toOptionalNumberOrNull(contractRecord.originalLength);
+  const totalValue = toOptionalNumberOrNull(contractRecord.totalValue);
   const averageAnnualValue = toOptionalNumberOrNull(
-    contract.averageAnnualValue
+    contractRecord.averageAnnualValue
   );
-  const guaranteedValue = toOptionalNumberOrNull(contract.guaranteedValue);
-  const guaranteedYears = toOptionalNumberOrNull(contract.guaranteedYears);
+  const guaranteedValue = toOptionalNumberOrNull(contractRecord.guaranteedValue);
+  const guaranteedYears = toOptionalNumberOrNull(contractRecord.guaranteedYears);
   const freeAgency = normalizeCurrentStatePlayerContractFreeAgency(
-    contract.freeAgency
+    contractRecord.freeAgency
   );
   const includeOfferSheetState = lane === 'current';
   const includeCurrentOnlyContractFields = lane === 'current';
   const rfaOfferSheetStatus = includeOfferSheetState
-    ? toOptionalTrimmedStringOrNull(contract.rfaOfferSheetStatus)
+    ? toOptionalTrimmedStringOrNull(contractRecord.rfaOfferSheetStatus)
     : undefined;
-  const firstYearSalary = toOptionalNumberOrNull(contract.firstYearSalary);
-  const year1Salary = toOptionalNumberOrNull(contract.year1Salary);
+  const firstYearSalary = toOptionalNumberOrNull(contractRecord.firstYearSalary);
+  const year1Salary = toOptionalNumberOrNull(contractRecord.year1Salary);
   const signingExecutive = toOptionalTrimmedStringOrNull(
-    contract.signingExecutive
+    contractRecord.signingExecutive
   );
-  const startSeason = toOptionalTrimmedStringOrNull(contract.startSeason);
-  const endSeason = toOptionalTrimmedStringOrNull(contract.endSeason);
-  const noTradeClause = toOptionalBooleanOrNull(contract.noTradeClause);
-  const tradeKicker = toOptionalNumberOrNull(contract.tradeKicker);
-  const tradeRestrictions = normalizeStringArray(contract.tradeRestrictions);
+  const startSeason = toOptionalTrimmedStringOrNull(contractRecord.startSeason);
+  const endSeason = toOptionalTrimmedStringOrNull(contractRecord.endSeason);
+  const noTradeClause = toOptionalBooleanOrNull(contractRecord.noTradeClause);
+  const tradeKicker = toOptionalNumberOrNull(contractRecord.tradeKicker);
+  const tradeRestrictions = normalizeStringArray(contractRecord.tradeRestrictions);
   const tradeEligibility = normalizeCurrentStatePlayerContractTradeEligibility(
-    contract.tradeEligibility
+    contractRecord.tradeEligibility
   );
 
   if (salariesByYear !== undefined) {
@@ -4282,7 +4330,7 @@ function pickCurrentStatePlayerContractSlice<
 }
 
 function normalizeCurrentStatePlayerContract(
-  value: unknown
+  value: MutationCurrentStatePlayerContractIngress | null | undefined
 ): CurrentStatePlayerContract | undefined {
   const contract = projectCurrentStatePlayerContractIngress(value, 'current');
   if (!contract) {
@@ -4300,7 +4348,7 @@ function normalizeCurrentStatePlayerContract(
 }
 
 function normalizeCurrentStatePlayerFutureContract(
-  value: unknown
+  value: MutationCurrentStatePlayerFutureContractIngress | null | undefined
 ): CurrentStatePlayerFutureContract | undefined {
   const contract = projectCurrentStatePlayerContractIngress(value, 'future');
   if (!contract) {
@@ -4318,7 +4366,7 @@ function normalizeCurrentStatePlayerFutureContract(
 }
 
 function normalizeCurrentStatePlayerRepresentation(
-  value: unknown
+  value: ArchitectMutationPlayerRecord['representation']
 ): BasePlayerDoc['representation'] | undefined {
   const record = asLooseRecord(value);
   if (!record) {
@@ -4340,7 +4388,7 @@ function normalizeCurrentStatePlayerRepresentation(
 }
 
 function normalizeCurrentStatePlayerSource(
-  value: unknown
+  value: string | MutationPlayerSourceLike | null | undefined
 ): MutationPlayerSourceLike | undefined {
   if (typeof value === 'string') {
     const provider = toOptionalTrimmedString(value);
@@ -4565,7 +4613,9 @@ function normalizeCurrentStateExceptionHistory(
     );
 }
 
-function normalizeCurrentStatePlayerArray(value: unknown): PlayerLike[] | undefined {
+function normalizeCurrentStatePlayerArray(
+  value: Array<MutationCurrentStatePlayerIngress | PlayerLike> | null | undefined
+): PlayerLike[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
@@ -4608,11 +4658,19 @@ function toCurrentStateTeam(
   if (!teamRecord) {
     return null;
   }
+  const rawPlayers = teamRecord.players as
+    | Array<MutationCurrentStatePlayerIngress | PlayerLike>
+    | null
+    | undefined;
+  const rawTwoWayPlayers = teamRecord.twoWayPlayers as
+    | Array<MutationCurrentStatePlayerIngress | PlayerLike>
+    | null
+    | undefined;
 
   const normalized: CurrentStateBaseTeamCompute = {};
   const teamCode = toOptionalTrimmedString(teamRecord.teamCode);
   const teamName = toOptionalTrimmedString(teamRecord.teamName);
-  const players = normalizeCurrentStatePlayerArray(teamRecord.players);
+  const players = normalizeCurrentStatePlayerArray(rawPlayers);
   const roster = normalizeRosterEntries(teamRecord.roster);
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
@@ -4735,7 +4793,7 @@ function toCurrentStateTeam(
     ) as OfferSheetTeamLike;
   }
 
-  const twoWayPlayers = normalizeCurrentStatePlayerArray(teamRecord.twoWayPlayers);
+  const twoWayPlayers = normalizeCurrentStatePlayerArray(rawTwoWayPlayers);
   const teamTotalSalary = resolveCurrentStateTeamTotalSalary(teamRecord, totals);
   // Trade validation/apply still needs live access to the TPE/cash/pick/
   // entitlement/two-way/salary bridges. Exception history remains preserve-only
@@ -4768,7 +4826,7 @@ function toCurrentStateTeam(
 }
 
 function normalizeCurrentStatePlayerDraft(
-  value: unknown
+  value: ArchitectMutationPlayerRecord['draft']
 ): NormalizedCurrentStatePlayer['draft'] | undefined {
   const draftRecord = asLooseRecord(value);
   if (!draftRecord) {
@@ -4790,7 +4848,7 @@ function normalizeCurrentStatePlayerDraft(
 }
 
 function normalizeCurrentStatePlayerRfaContext(
-  value: unknown
+  value: ArchitectMutationPlayerRfaContextIngress | CurrentStatePlayerRfaContext | null | undefined
 ): CurrentStatePlayerRfaContext | undefined {
   const context = asLooseRecord(value);
   if (!context) {
@@ -4861,8 +4919,15 @@ function normalizeCurrentStatePlayerRfaBoundary(
 // committed mutation compute path can spread or persist them. The remaining
 // fields are retained because this normalized player surface still feeds
 // signing/SAT validation and player-override round-trip persistence.
-function toCurrentStatePlayer(player: unknown): PlayerLike | null {
-  const playerRecord = asLooseRecord(player);
+function toCurrentStatePlayer(
+  player: CurrentStatePlayerSnapshotIngress | null | undefined
+): PlayerLike | null {
+  // Mixed runtime input is still tolerated at this outer boundary because
+  // current-state loads may come from raw world snapshots or already-normalized
+  // player records. Downstream helpers only see the narrowed field slices below.
+  const playerRecord = asLooseRecord(player) as
+    | Partial<CurrentStatePlayerSnapshotIngress>
+    | null;
   if (!playerRecord) {
     return null;
   }
@@ -7328,14 +7393,9 @@ function findPlayerInTeamPlayers(
   return players.find((player) => getMutationPlayerId(player) === playerId) || null;
 }
 
-function toPersistablePlayerOverrideFromSnapshot(
-  player: ArchitectMutationPlayerRecord | PlayerLike | null | undefined
-): PersistablePlayerOverride | null {
-  const normalizedPlayer = toCurrentStatePlayer(player);
-  if (!normalizedPlayer) {
-    return null;
-  }
-
+function toPersistablePlayerOverrideFromNormalizedPlayer(
+  normalizedPlayer: PersistablePlayerOverrideSource
+): PersistablePlayerOverride {
   const playerId = getMutationPlayerId(normalizedPlayer);
   const bio =
     normalizedPlayer.bio &&
@@ -7363,6 +7423,17 @@ function toPersistablePlayerOverrideFromSnapshot(
     ...persistenceSidecar,
     ...rfaBoundary,
   }) as PersistablePlayerOverride;
+}
+
+function toPersistablePlayerOverrideFromSnapshot(
+  player: CurrentStatePlayerSnapshotIngress | null | undefined
+): PersistablePlayerOverride | null {
+  const normalizedPlayer = toCurrentStatePlayer(player);
+  if (!normalizedPlayer) {
+    return null;
+  }
+
+  return toPersistablePlayerOverrideFromNormalizedPlayer(normalizedPlayer);
 }
 
 type TradePlayerMoveCandidate = {
