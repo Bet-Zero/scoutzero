@@ -29,16 +29,18 @@ import {
 import {
   applyWorldMutation,
   computeWorldMutation,
+  findCommittedTeamSnapshot,
   findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation,
   preflightOfferSheetMutation,
+  type ArchitectGeneralMutationCommittedTeamSnapshot,
+  type ArchitectGeneralMutationCommittedTeamUpdate,
   type ArchitectMutationContract,
   type ArchitectMutationDeadCapEntry,
   type ArchitectMutationExceptionEntry,
   type ArchitectMutationExceptions,
   type ArchitectMutationPayload,
   type ArchitectMutationResult,
-  type ArchitectMutationTeamUpdate,
   type SignAndTradePreflightResult,
   type OfferSheetPreflightResult,
   type NormalizedMutationSalaryRow,
@@ -407,7 +409,7 @@ interface TeamHistoryDevTools {
 
 type PersistMutationResult = ArchitectMutationResult & {
   skipped?: boolean;
-  changedTeams?: ArchitectMutationTeamUpdate[];
+  changedTeams?: ArchitectGeneralMutationCommittedTeamUpdate[];
   event?: CapAuditEventV1Like | { operationId?: string; type?: string; timestamp?: string };
 };
 
@@ -499,7 +501,7 @@ interface OfferSheetCommittedIdentity {
 }
 
 interface OfferSheetCommittedState {
-  committedTeam: CapSheet;
+  committedTeam: DashboardCommittedTeamSnapshot;
   committedTeamSource: 'changedTeams' | 'reload';
   committedOfferSheet: OfferSheet;
   committedOfferSheetIdentity: OfferSheetCommittedIdentity;
@@ -532,7 +534,7 @@ interface OfferSheetLifecycleCommittedStateExpectation {
 }
 
 interface OfferSheetLifecycleCommittedState {
-  committedTeam: CapSheet;
+  committedTeam: DashboardCommittedTeamSnapshot;
   committedTeamSource: 'changedTeams' | 'reload';
   committedOfferSheet: OfferSheet | null;
   committedOfferSheetIdentity: OfferSheetLifecycleCommittedIdentity;
@@ -1086,6 +1088,9 @@ type PreparedOfferSheetCreationDefinition =
 
 type DashboardMutationPropagationMode = 'world-committed' | 'local-validated';
 type WorldCommittedTeamSource = 'changedTeams' | 'reload';
+type DashboardCommittedTeamSnapshot =
+  | CapSheet
+  | ArchitectGeneralMutationCommittedTeamSnapshot;
 /**
  * Dashboard post-mutation propagation lane.
  * - `world-committed`: authoritative world persistence already succeeded, so
@@ -1095,7 +1100,7 @@ type WorldCommittedTeamSource = 'changedTeams' | 'reload';
  */
 type WorldCommittedTeamPropagation = {
   propagationMode: 'world-committed';
-  committedTeam: CapSheet;
+  committedTeam: DashboardCommittedTeamSnapshot;
   committedTeamSource: WorldCommittedTeamSource;
 };
 type CommittedWorldReloadSeed = Pick<
@@ -1819,7 +1824,7 @@ export function useArchitectActions({
   const { openContractModal } = modals;
 
   const setTeamCapSheetSafe = useCallback(
-    (nextTeam: CapSheet | null): void => {
+    (nextTeam: DashboardCommittedTeamSnapshot | null): void => {
       setTeamCapSheet(nextTeam as UseArchitectStateReturn['teamCapSheet']);
     },
     [setTeamCapSheet]
@@ -2197,12 +2202,15 @@ export function useArchitectActions({
       //    includes the active team.
       // 2. Otherwise reload through the read stack to recover a committed
       //    snapshot instead of reconstructing local fallback logic here.
-      const changedTeam = findUpdatedTeamSnapshot(result?.changedTeams, teamCode);
+      const changedTeam = findCommittedTeamSnapshot(
+        result?.changedTeams,
+        teamCode
+      );
 
       if (changedTeam) {
         return {
           propagationMode: 'world-committed',
-          committedTeam: changedTeam as CapSheet,
+          committedTeam: changedTeam,
           committedTeamSource: 'changedTeams',
         };
       }
@@ -2530,7 +2538,7 @@ export function useArchitectActions({
 
   const applyCommittedOfferSheetState = useCallback(
     async (
-      committedTeam: CapSheet,
+      committedTeam: DashboardCommittedTeamSnapshot,
       committedTeamSource: WorldCommittedTeamSource
     ): Promise<void> => {
       await applyCommittedWorldReload('storeOfferSheet', {
@@ -2746,7 +2754,7 @@ export function useArchitectActions({
   const applyCommittedOfferSheetLifecycleState = useCallback(
     async (
       mutationType: OfferSheetLifecycleMutationType,
-      committedTeam: CapSheet,
+      committedTeam: DashboardCommittedTeamSnapshot,
       committedTeamSource: WorldCommittedTeamSource
     ): Promise<void> => {
       await applyCommittedWorldReload(mutationType, {

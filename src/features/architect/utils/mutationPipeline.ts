@@ -772,10 +772,6 @@ type TradeHistoryContextLike = {
   mutationType?: string | null;
   mutationId?: string | null;
 };
-export type ArchitectMutationTeamUpdate = {
-  teamCode?: string | null;
-  team?: ArchitectMutationTeamRecord | null;
-};
 export type ArchitectMutationTradeContext = {
   worldId?: TradeValidatorContext['worldId'] | null;
   asOfDate?: string | number | null;
@@ -1347,6 +1343,32 @@ type CurrentStateTeamPersistenceStripShape =
   CurrentStateTeamRoundTripMaterializable & {
     teamTotalSalary?: CurrentStateTradeTeam['teamTotalSalary'];
   };
+export type ArchitectMutationComputedTeamSnapshot =
+  CurrentStateTeamRoundTripMaterializable &
+    Partial<CurrentStateTeam>;
+export type ArchitectMutationTeamUpdate = {
+  teamCode?: string | null;
+  team?: ArchitectMutationComputedTeamSnapshot | null;
+};
+type GeneralMutationCommittedTeamSnapshotFrom<
+  T extends CurrentStateTeamRoundTripMaterializable,
+> = Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'>;
+type GeneralMutationCommittedTeamSnapshotCore =
+  | GeneralMutationCommittedTeamSnapshotFrom<CurrentStatePlayerOpsTeam>
+  | GeneralMutationCommittedTeamSnapshotFrom<CurrentStateManualCapTeam>
+  | GeneralMutationCommittedTeamSnapshotFrom<CurrentStateSigningTeam>
+  | GeneralMutationCommittedTeamSnapshotFrom<CurrentStateOfferSheetMirrorTeam>
+  | GeneralMutationCommittedTeamSnapshotFrom<CurrentStateOfferSheetResolutionTeam>
+  | GeneralMutationCommittedTeamSnapshotFrom<TradeTeamLike>;
+export type ArchitectGeneralMutationCommittedTeamSnapshot =
+  GeneralMutationCommittedTeamSnapshotCore &
+    Partial<Omit<CurrentStateTeam, 'teamTotalSalary'>>;
+export type ArchitectGeneralMutationCommittedTeamUpdate = {
+  teamCode?: string | null;
+  team?: ArchitectGeneralMutationCommittedTeamSnapshot | null;
+};
+type GeneralMutationPersistenceTeamSnapshot =
+  ArchitectGeneralMutationCommittedTeamSnapshot;
 
 type MutationCurrentStatePlayerIngress = Omit<
   Pick<
@@ -1432,7 +1454,7 @@ type MutationCurrentStateTradeTeamIngress = MutationCurrentStateTeamCoreIngress 
 export type MutationTeamMap = Record<string, TeamLike>;
 type BuildTotalsTeamMap = Record<
   string,
-  TeamLike | ArchitectMutationTeamRecord | null | undefined
+  TeamLike | ArchitectGeneralMutationCommittedTeamSnapshot | null | undefined
 >;
 type MutationCurrentStateTeamEntry = {
   teamCode?: string | null;
@@ -1630,7 +1652,7 @@ export type ArchitectMutationResult = {
   warnings?: MutationResultIssueLike[];
   violations?: MutationResultIssueLike[];
   writesSummary?: ArchitectMutationWritesSummary;
-  changedTeams?: ArchitectMutationTeamUpdate[];
+  changedTeams?: ArchitectGeneralMutationCommittedTeamUpdate[];
   changedPlayers?: ArchitectMutationPlayerUpdate[];
   worldPatch?: ArchitectWorldMutationPatch;
   event?: ArchitectWorldMutationEventBridge;
@@ -1643,29 +1665,42 @@ export type ArchitectMutationResult = {
 };
 
 /**
- * Post-commit propagation order for general world mutations:
- * 1. Reuse the matching team snapshot from `changedTeams` when it exists.
- * 2. If that direct snapshot is missing, reload a committed team snapshot through the read stack.
- * 3. Once a committed snapshot exists, hand it to the dashboard/state resync seam so
- *    metadata patching, roster refresh, and stale-drop rules stay state-owned.
- *
- * This helper intentionally works for both compute-time `teamUpdates` and committed
- * `changedTeams` arrays so downstream consumers do not reimplement the result-shape lookup.
+ * Compute-time lookup for local-validated flows. Committed dashboard reload
+ * paths should use findCommittedTeamSnapshot so they receive the post-persistence
+ * committed team artifact instead of the compute-time team update shape.
  */
 export function findUpdatedTeamSnapshot(
   teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
   targetTeamCode: string
-): ArchitectMutationTeamUpdate['team'] | null {
+): ArchitectMutationComputedTeamSnapshot | null {
   const matchingUpdate = (teamUpdates || []).find(
     (update) => update?.teamCode === targetTeamCode && update?.team
   );
 
   return (
     (matchingUpdate?.team as
-      | ArchitectMutationTeamUpdate['team']
+      | ArchitectMutationComputedTeamSnapshot
       | null
       | undefined) || null
   );
+}
+
+/**
+ * Post-commit propagation order for general world mutations:
+ * 1. Reuse the matching committed team snapshot from `changedTeams` when available.
+ * 2. If that direct snapshot is missing, reload a committed team snapshot through the read stack.
+ * 3. Hand the committed snapshot to the dashboard/state resync seam so metadata
+ *    patching, roster refresh, and stale-drop rules stay state-owned.
+ */
+export function findCommittedTeamSnapshot(
+  teamUpdates: ArchitectGeneralMutationCommittedTeamUpdate[] | null | undefined,
+  targetTeamCode: string
+): ArchitectGeneralMutationCommittedTeamSnapshot | null {
+  const matchingUpdate = (teamUpdates || []).find(
+    (update) => update?.teamCode === targetTeamCode && update?.team
+  );
+
+  return matchingUpdate?.team || null;
 }
 
 export type SignAndTradePreflightStatus = 'legal' | 'blocked' | 'incomplete';
@@ -6154,6 +6189,55 @@ export function buildTotalsByTeam(
   return totalsByTeam;
 }
 
+function prepareGeneralMutationPersistenceTeamSnapshot(
+  team: CurrentStateTeamRoundTripMaterializable | null | undefined,
+  seasonId: string
+): GeneralMutationPersistenceTeamSnapshot {
+  const persistenceReadyTeam = stripComputeOnlyTeamFieldsForPersistence(
+    team as CurrentStateTeamPersistenceStripShape
+  );
+  const canonicalYear = toEndYear(seasonId);
+  const totalsAlignedTeam =
+    Number.isFinite(canonicalYear)
+      ? backfillCurrentStateBaseTeamPreservedFields(
+          synchronizeTeamTotalsSnapshot(
+            persistenceReadyTeam,
+            canonicalYear
+          ) || persistenceReadyTeam,
+          persistenceReadyTeam
+        ) || persistenceReadyTeam
+      : persistenceReadyTeam;
+  const afterSanitize = sanitizeTransientFieldsForPersistence(
+    totalsAlignedTeam
+  );
+  const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize);
+
+  return afterTpeNormalize as GeneralMutationPersistenceTeamSnapshot;
+}
+
+function buildGeneralMutationCommittedTeamSnapshot(
+  team: CurrentStateTeamRoundTripMaterializable | null | undefined,
+  seasonId: string
+): GeneralMutationPersistenceTeamSnapshot {
+  return removeUndefinedDeep(
+    prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId)
+  ) as GeneralMutationPersistenceTeamSnapshot;
+}
+
+function buildGeneralMutationCommittedTeamUpdates(
+  teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
+  seasonId: string
+): ArchitectGeneralMutationCommittedTeamUpdate[] {
+  if (!Array.isArray(teamUpdates)) {
+    return [];
+  }
+
+  return teamUpdates.map((update) => ({
+    teamCode: update.teamCode,
+    team: buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId),
+  }));
+}
+
 function canonicalizeTeamUpdatesWithCanonicalTotals(
   teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
   seasonId: string
@@ -7285,13 +7369,15 @@ export async function applyWorldMutation({
     );
     writesSummary.worldStatsUpdated = true;
 
-    const canonicalChangedTeams =
-      canonicalizeTeamUpdatesWithCanonicalTotals(teamUpdates, seasonId);
+    const committedChangedTeams = buildGeneralMutationCommittedTeamUpdates(
+      teamUpdates,
+      seasonId
+    );
 
     // Return success result
     return {
       success: true,
-      changedTeams: canonicalChangedTeams,
+      changedTeams: committedChangedTeams,
       changedPlayers: playerUpdates,
       worldPatch: persistResult.worldPatch,
       event: persistResult.event,
@@ -10115,42 +10201,24 @@ async function persistWorldMutation({
   try {
     // 1. Write team snapshots
     for (const { teamCode, team } of teamUpdates) {
+      const persistenceReadyTeam = prepareGeneralMutationPersistenceTeamSnapshot(
+        team,
+        seasonId
+      );
       // Guard against undefined values (dev throws, prod allows)
       guardAgainstUndefined(
-        team,
+        persistenceReadyTeam,
         `architect_worlds/${worldId}/teams/${teamCode}`
       );
-      const persistenceReadyTeam = stripComputeOnlyTeamFieldsForPersistence(
-        team as CurrentStateTeamPersistenceStripShape
-      );
-      const canonicalYear = toEndYear(seasonId);
-      const totalsAlignedTeam =
-        Number.isFinite(canonicalYear)
-          ? backfillCurrentStateBaseTeamPreservedFields(
-              synchronizeTeamTotalsSnapshot(
-                persistenceReadyTeam,
-                canonicalYear
-              ) || persistenceReadyTeam,
-              persistenceReadyTeam
-            ) || persistenceReadyTeam
-          : persistenceReadyTeam;
-      // Phase 60: Sanitize transient fields first
-      const afterSanitize = sanitizeTransientFieldsForPersistence(
-        totalsAlignedTeam
-      );
-      // Phase 64: Normalize TPE schema (tradeExceptions → exceptions.tpe)
-      // This ensures legacy tradeExceptions[] is merged into canonical exceptions.tpe[]
-      // and the legacy field is removed BEFORE contract validation
-      const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize);
       // Phase 61: Validate against persistence contract (test-only enforcement)
       // Ordering: sanitize → normalize TPE → validate contract → removeUndefined
       assertPersistableOrThrow({
-        obj: afterTpeNormalize,
+        obj: persistenceReadyTeam,
         contract: PERSISTENCE_CONTRACTS.TEAM,
         label: 'TEAM',
       });
       // Then remove undefined values
-      const sanitizedTeam = removeUndefinedDeep(afterTpeNormalize);
+      const sanitizedTeam = removeUndefinedDeep(persistenceReadyTeam);
       const teamRef = worldTeamRef(worldId, teamCode);
       batch.set(teamRef, sanitizedTeam);
       if (teamCode) {
