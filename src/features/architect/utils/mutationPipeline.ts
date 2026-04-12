@@ -1010,7 +1010,7 @@ type CurrentStatePlayerRfaContext = {
   offerSheetId?: string;
   retainedUntilFinalize?: boolean;
 };
-type CurrentStatePlayerCore = Omit<
+type CurrentStatePlayerComputeCore = Omit<
   Pick<
     ArchitectMutationPlayerRecord,
     | 'player_id'
@@ -1022,18 +1022,8 @@ type CurrentStatePlayerCore = Omit<
     | 'displayName'
     | 'playerName'
     | 'bio'
-    | 'representation'
-    | 'source'
-    | 'salary'
-    | 'currentSalary'
     | 'birdRights'
     | 'renounced'
-    | 'freeAgentYear'
-    | 'rightsRenounced'
-    | 'lastUpdated'
-    | 'version'
-    | 'isTwoWay'
-    | 'signedDate'
   >,
   'bio' | 'draft' | 'contract' | 'futureContract'
 > & {
@@ -1041,6 +1031,27 @@ type CurrentStatePlayerCore = Omit<
   draft?: NormalizedCurrentStatePlayerDraft | null;
   contract?: CurrentStatePlayerContract | null;
   futureContract?: CurrentStatePlayerFutureContract | null;
+};
+// Carry-through override metadata remains normalized as an explicit sidecar so
+// committed compute paths do not depend on unrelated persistence-only fields.
+type CurrentStatePlayerOverridePersistenceSidecar = Pick<
+  ArchitectMutationPlayerRecord,
+  | 'representation'
+  | 'source'
+  | 'lastUpdated'
+  | 'version'
+  | 'isTwoWay'
+  | 'signedDate'
+>;
+type CurrentStatePlayerCore = CurrentStatePlayerComputeCore &
+  CurrentStatePlayerOverridePersistenceSidecar;
+type CurrentStatePlayerOverridePersistenceIngress = {
+  representation?: unknown;
+  source?: unknown;
+  lastUpdated?: unknown;
+  version?: unknown;
+  isTwoWay?: unknown;
+  signedDate?: unknown;
 };
 type CurrentStatePlayerRfaSidecar = {
   rfaOfferSheet?: boolean;
@@ -1078,20 +1089,15 @@ type LineageOverrideMergePlayer = Omit<
   bio?: LineageOverrideMergeBio | null;
 };
 type PersistablePlayerOverride = Pick<
-  CurrentStatePlayerCore,
+  CurrentStatePlayerComputeCore,
   | 'displayName'
   | 'teamCode'
   | 'teamName'
   | 'bio'
   | 'contract'
   | 'futureContract'
-  | 'representation'
-  | 'source'
-  | 'lastUpdated'
-  | 'version'
-  | 'isTwoWay'
-  | 'signedDate'
 > &
+  CurrentStatePlayerOverridePersistenceSidecar &
   CurrentStatePlayerRfaBoundary & {
   playerId?: string | null;
 };
@@ -1255,12 +1261,8 @@ type MutationCurrentStatePlayerIngress = Omit<
     | 'draft'
     | 'representation'
     | 'source'
-    | 'salary'
-    | 'currentSalary'
     | 'birdRights'
     | 'renounced'
-    | 'freeAgentYear'
-    | 'rightsRenounced'
     | 'lastUpdated'
     | 'version'
     | 'isTwoWay'
@@ -4258,20 +4260,19 @@ function projectCurrentStatePlayerContractIngress(
 function pickCurrentStatePlayerContractSlice<
   TKey extends keyof ArchitectMutationContract,
 >(
-  contract: unknown,
+  contract: Partial<ArchitectMutationContract> | null | undefined,
   keys: readonly TKey[]
 ): Pick<ArchitectMutationContract, TKey> | undefined {
-  const contractRecord = asLooseRecord(contract);
-  if (!contractRecord) {
+  if (!contract) {
     return undefined;
   }
 
   const normalized: Partial<Pick<ArchitectMutationContract, TKey>> = {};
 
   for (const key of keys) {
-    const value = contractRecord[key];
+    const value = contract[key];
     if (value !== undefined) {
-      normalized[key] = value as ArchitectMutationContract[TKey];
+      normalized[key] = value;
     }
   }
 
@@ -4288,8 +4289,12 @@ function normalizeCurrentStatePlayerContract(
     return undefined;
   }
 
+  const normalizedContract = normalizeContractForWorld(
+    contract
+  ) as ArchitectMutationContract | null;
+
   return pickCurrentStatePlayerContractSlice(
-    normalizeContractForWorld(contract),
+    normalizedContract,
     CURRENT_STATE_PLAYER_CONTRACT_KEYS
   );
 }
@@ -4302,8 +4307,12 @@ function normalizeCurrentStatePlayerFutureContract(
     return undefined;
   }
 
+  const normalizedContract = normalizeFutureContract(
+    contract
+  ) as ArchitectMutationContract | null;
+
   return pickCurrentStatePlayerContractSlice(
-    normalizeFutureContract(contract),
+    normalizedContract,
     CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS
   );
 }
@@ -4383,6 +4392,41 @@ function normalizeCurrentStatePlayerSource(
   }
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function normalizeCurrentStatePlayerOverridePersistenceSidecar(
+  player: CurrentStatePlayerOverridePersistenceIngress | null | undefined
+): CurrentStatePlayerOverridePersistenceSidecar {
+  const normalized: CurrentStatePlayerOverridePersistenceSidecar = {};
+  const representation = normalizeCurrentStatePlayerRepresentation(
+    player?.representation
+  );
+  const source = normalizeCurrentStatePlayerSource(player?.source);
+  const lastUpdated = toOptionalTrimmedString(player?.lastUpdated);
+  const version = toOptionalTrimmedString(player?.version);
+  const isTwoWay = toOptionalBoolean(player?.isTwoWay);
+  const signedDate = toOptionalTrimmedString(player?.signedDate);
+
+  if (representation !== undefined) {
+    normalized.representation = representation;
+  }
+  if (source !== undefined) {
+    normalized.source = source;
+  }
+  if (lastUpdated !== undefined) {
+    normalized.lastUpdated = lastUpdated;
+  }
+  if (version !== undefined) {
+    normalized.version = version;
+  }
+  if (isTwoWay !== undefined) {
+    normalized.isTwoWay = isTwoWay;
+  }
+  if (signedDate !== undefined) {
+    normalized.signedDate = signedDate;
+  }
+
+  return normalized;
 }
 
 function toCurrentStateTradeException(
@@ -4842,22 +4886,12 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
     playerRecord.futureContract
   );
   const draft = normalizeCurrentStatePlayerDraft(playerRecord.draft);
-  const representation = normalizeCurrentStatePlayerRepresentation(
-    playerRecord.representation
-  );
-  const source = normalizeCurrentStatePlayerSource(playerRecord.source);
-  const salary = toOptionalNumber(playerRecord.salary);
-  const currentSalary = toOptionalNumber(playerRecord.currentSalary);
   const birdRights = normalizeCurrentStatePlayerBirdRights(
     playerRecord.birdRights
   );
   const renounced = toOptionalBoolean(playerRecord.renounced);
-  const freeAgentYear = toOptionalNumberish(playerRecord.freeAgentYear);
-  const rightsRenounced = toOptionalBoolean(playerRecord.rightsRenounced);
-  const lastUpdated = toOptionalTrimmedString(playerRecord.lastUpdated);
-  const version = toOptionalTrimmedString(playerRecord.version);
-  const isTwoWay = toOptionalBoolean(playerRecord.isTwoWay);
-  const signedDate = toOptionalTrimmedString(playerRecord.signedDate);
+  const persistenceSidecar =
+    normalizeCurrentStatePlayerOverridePersistenceSidecar(playerRecord);
   const rfaBoundary = normalizeCurrentStatePlayerRfaBoundary(playerRecord);
 
   if (playerId !== undefined) {
@@ -4896,43 +4930,13 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   if (draft !== undefined) {
     normalized.draft = draft;
   }
-  if (representation !== undefined) {
-    normalized.representation = representation;
-  }
-  if (source !== undefined) {
-    normalized.source = source;
-  }
-  if (salary !== undefined) {
-    normalized.salary = salary;
-  }
-  if (currentSalary !== undefined) {
-    normalized.currentSalary = currentSalary;
-  }
   if (birdRights !== undefined) {
     normalized.birdRights = birdRights;
   }
   if (renounced !== undefined) {
     normalized.renounced = renounced;
   }
-  if (freeAgentYear !== undefined) {
-    normalized.freeAgentYear = freeAgentYear;
-  }
-  if (rightsRenounced !== undefined) {
-    normalized.rightsRenounced = rightsRenounced;
-  }
-  if (lastUpdated !== undefined) {
-    normalized.lastUpdated = lastUpdated;
-  }
-  if (version !== undefined) {
-    normalized.version = version;
-  }
-  if (isTwoWay !== undefined) {
-    normalized.isTwoWay = isTwoWay;
-  }
-  if (signedDate !== undefined) {
-    normalized.signedDate = signedDate;
-  }
-  Object.assign(normalized, rfaBoundary);
+  Object.assign(normalized, persistenceSidecar, rfaBoundary);
 
   return normalized;
 }
@@ -7339,6 +7343,8 @@ function toPersistablePlayerOverrideFromSnapshot(
     !Array.isArray(normalizedPlayer.bio)
       ? (normalizedPlayer.bio as CurrentStatePlayerBio)
       : undefined;
+  const persistenceSidecar =
+    normalizeCurrentStatePlayerOverridePersistenceSidecar(normalizedPlayer);
   const rfaBoundary = normalizeCurrentStatePlayerRfaBoundary(normalizedPlayer);
 
   return removeUndefinedDeep({
@@ -7354,12 +7360,7 @@ function toPersistablePlayerOverrideFromSnapshot(
     bio,
     contract: normalizedPlayer.contract || undefined,
     futureContract: normalizedPlayer.futureContract || undefined,
-    representation: normalizedPlayer.representation,
-    source: normalizedPlayer.source || undefined,
-    lastUpdated: normalizedPlayer.lastUpdated,
-    version: normalizedPlayer.version,
-    isTwoWay: normalizedPlayer.isTwoWay,
-    signedDate: normalizedPlayer.signedDate,
+    ...persistenceSidecar,
     ...rfaBoundary,
   }) as PersistablePlayerOverride;
 }
