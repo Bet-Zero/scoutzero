@@ -1146,7 +1146,7 @@ type CurrentStateTeam = Omit<
   exceptionHistory?: CurrentStateExceptionHistoryEntry[];
   teamTotalSalary?: number;
 };
-type CurrentStateBaseTeamCompute = Pick<
+type CurrentStateTeamSharedCompute = Pick<
   CurrentStateTeam,
   | 'teamCode'
   | 'teamName'
@@ -1155,8 +1155,6 @@ type CurrentStateBaseTeamCompute = Pick<
   | 'capHolds'
   | 'deadCap'
   | 'exceptions'
-  | 'offerSheets'
-  | 'incomingOfferSheets'
   | 'totals'
   | 'source'
   | 'hardCapped'
@@ -1164,6 +1162,13 @@ type CurrentStateBaseTeamCompute = Pick<
   | 'hardCapReason'
   | 'hardCapTriggeredBy'
 >;
+type CurrentStateBaseTeamCompute = CurrentStateTeamSharedCompute;
+type CurrentStateOfferSheetTeamLiveFieldMap = Pick<
+  CurrentStateTeam,
+  'offerSheets' | 'incomingOfferSheets'
+>;
+type CurrentStateOfferSheetTeamCompute = CurrentStateTeamSharedCompute &
+  CurrentStateOfferSheetTeamLiveFieldMap;
 type CurrentStateBaseTeamPreservedFieldMap = Pick<
   CurrentStateTeam,
   | 'tradeExceptions'
@@ -1206,13 +1211,16 @@ type CurrentStateBaseTeamPreservedCarrierLike =
   CurrentStateBaseTeamRoundTripCarrier;
 type CurrentStateBaseTeam = CurrentStateBaseTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateTradeTeam = CurrentStateBaseTeamCompute &
+type CurrentStateOfferSheetTeam = CurrentStateOfferSheetTeamCompute &
+  CurrentStateBaseTeamRoundTripCarrier;
+type CurrentStateTradeTeam = CurrentStateTeamSharedCompute &
   CurrentStateTradeTeamLiveFieldMap &
   CurrentStateBaseTeamExceptionHistoryCarrier &
   Pick<CurrentStateTeam, 'twoWayPlayers' | 'teamTotalSalary'>;
 type BaseTeamLike = CurrentStateBaseTeam;
+type OfferSheetTeamLike = CurrentStateOfferSheetTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
-type CurrentStatePrimaryTeam = BaseTeamLike | TradeTeamLike;
+type CurrentStatePrimaryTeam = BaseTeamLike | OfferSheetTeamLike | TradeTeamLike;
 type TeamLike = CurrentStatePrimaryTeam;
 type PlayerLike = NormalizedCurrentStatePlayer;
 type CurrentStateBaseTeamMaterializedPreservedFieldMap = Partial<
@@ -1265,37 +1273,55 @@ type MutationCurrentStatePlayerIngress = Omit<
     contract?: MutationCurrentStatePlayerContractIngress | null;
     futureContract?: MutationCurrentStatePlayerFutureContractIngress | null;
   };
-type MutationCurrentStateTeamIngress = Omit<
+type MutationCurrentStateTeamCoreIngress = Omit<
   Pick<
     ArchitectMutationTeamRecord,
     | 'teamCode'
     | 'teamName'
     | 'players'
     | 'roster'
-    | 'twoWayPlayers'
     | 'capHolds'
     | 'deadCap'
     | 'exceptions'
-    | 'tradeExceptions'
-    | 'cashLedger'
-    | 'offerSheets'
-    | 'incomingOfferSheets'
-    | 'exceptionHistory'
     | 'totals'
-    | 'teamTotalSalary'
-    | 'draftPicks'
-    | 'entitlementIds'
     | 'source'
     | 'hardCapped'
     | 'hardCapLevel'
     | 'hardCapReason'
     | 'hardCapTriggeredBy'
   >,
-  'players' | 'twoWayPlayers'
+  'players'
 > & {
   players?: MutationCurrentStatePlayerIngress[];
-  twoWayPlayers?: MutationCurrentStatePlayerIngress[];
 };
+type MutationCurrentStateTeamRoundTripIngress = Pick<
+  ArchitectMutationTeamRecord,
+  | 'tradeExceptions'
+  | 'cashLedger'
+  | 'exceptionHistory'
+  | 'draftPicks'
+  | 'entitlementIds'
+>;
+type MutationCurrentStateBaseTeamIngress = MutationCurrentStateTeamCoreIngress &
+  MutationCurrentStateTeamRoundTripIngress;
+type MutationCurrentStateOfferSheetTeamIngress =
+  MutationCurrentStateBaseTeamIngress &
+    Pick<
+      ArchitectMutationTeamRecord,
+      'offerSheets' | 'incomingOfferSheets'
+    >;
+type MutationCurrentStateTradeTeamIngress = MutationCurrentStateTeamCoreIngress &
+  Pick<
+    ArchitectMutationTeamRecord,
+    | 'tradeExceptions'
+    | 'cashLedger'
+    | 'exceptionHistory'
+    | 'teamTotalSalary'
+    | 'draftPicks'
+    | 'entitlementIds'
+  > & {
+    twoWayPlayers?: MutationCurrentStatePlayerIngress[];
+  };
 export type MutationTeamMap = Record<string, TeamLike>;
 type BuildTotalsTeamMap = Record<
   string,
@@ -1305,9 +1331,9 @@ type MutationCurrentStateTeamEntry = {
   teamCode?: string | null;
   team?: TradeTeamLike | null;
 };
-type MutationCurrentStateIngressTeamEntry = {
+type MutationCurrentStateTradeTeamEntryIngress = {
   teamCode?: string | null;
-  team?: MutationCurrentStateTeamIngress | null;
+  team?: MutationCurrentStateTradeTeamIngress | null;
 };
 export type ArchitectMutationPlayerUpdate = {
   playerId?: string | null;
@@ -1609,16 +1635,62 @@ type MutationFailureOverrides = Pick<
 export type ComputeResultLike = ArchitectMutationBridgeResult;
 type AuditContextLike = MutationAuditContext;
 export type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
-// Public compute ingress used by shared callers that may still carry partially
-// populated team/player snapshots across mutation families.
-type MutationCurrentStateIngress = {
-  teams?: MutationCurrentStateIngressTeamEntry[];
-  team?: MutationCurrentStateTeamIngress | null;
-  player?: MutationCurrentStatePlayerIngress | null;
-  homeTeam?: MutationCurrentStateTeamIngress | null;
-  offeringTeam?: MutationCurrentStateTeamIngress | null;
-  destinationTeam?: MutationCurrentStateTeamIngress | null;
+type MutationTradeCurrentStateIngress = {
+  teams?: MutationCurrentStateTradeTeamEntryIngress[];
+};
+type MutationTeamOnlyCurrentStateIngress = {
+  team?: MutationCurrentStateBaseTeamIngress | null;
   teamCode?: string | null;
+};
+type MutationTeamAndPlayerCurrentStateIngress =
+  MutationTeamOnlyCurrentStateIngress & {
+    player?: MutationCurrentStatePlayerIngress | null;
+  };
+type MutationSigningCurrentStateIngress = {
+  team?: MutationCurrentStateOfferSheetTeamIngress | null;
+  player?: MutationCurrentStatePlayerIngress | null;
+  homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
+  teamCode?: string | null;
+};
+type MutationOfferSheetCurrentStateIngress = {
+  homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
+  offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
+  offerSheetId?: string | null;
+};
+type MutationSignAndTradeCurrentStateIngress = {
+  team?: MutationCurrentStateTradeTeamIngress | null;
+  player?: MutationCurrentStatePlayerIngress | null;
+  destinationTeam?: MutationCurrentStateTradeTeamIngress | null;
+  teamCode?: string | null;
+};
+type MutationCurrentStateTeamIngress =
+  | MutationCurrentStateBaseTeamIngress
+  | MutationCurrentStateOfferSheetTeamIngress
+  | MutationCurrentStateTradeTeamIngress;
+// Public compute ingress still tolerates partially populated snapshots at the
+// outer boundary, but each team slot now resolves through a smaller family-owned
+// ingress contract instead of one monolithic team bag.
+type MutationCurrentStateIngress = {
+  teams?: Array<
+    MutationCurrentStateTradeTeamEntryIngress | MutationCurrentStateTeamEntry
+  >;
+  team?: MutationCurrentStateTeamIngress | CurrentStatePrimaryTeam | null;
+  player?: MutationCurrentStatePlayerIngress | PlayerLike | null;
+  homeTeam?:
+    | MutationCurrentStateOfferSheetTeamIngress
+    | OfferSheetTeamLike
+    | null;
+  offeringTeam?:
+    | MutationCurrentStateOfferSheetTeamIngress
+    | OfferSheetTeamLike
+    | null;
+  destinationTeam?:
+    | MutationCurrentStateTradeTeamIngress
+    | TradeTeamLike
+    | null;
+  teamCode?: string | null;
+  // Compatibility-only outer-boundary field. The hardened family-specific
+  // normalizers ignore it and read payload/current-state team truth instead.
   destinationTeamCode?: string | null;
   offerSheetId?: string | null;
 };
@@ -1628,11 +1700,50 @@ export type MutationCurrentState = {
   teams?: MutationCurrentStateTeamEntry[];
   team?: CurrentStatePrimaryTeam | null;
   player?: PlayerLike | null;
-  homeTeam?: BaseTeamLike | null;
-  offeringTeam?: BaseTeamLike | null;
+  homeTeam?: OfferSheetTeamLike | null;
+  offeringTeam?: OfferSheetTeamLike | null;
   destinationTeam?: TradeTeamLike | null;
   teamCode?: string | null;
   offerSheetId?: string | null;
+};
+type MutationTradeCurrentState = Pick<MutationCurrentState, 'teams'>;
+type MutationTeamOnlyCurrentState = Pick<MutationCurrentState, 'team' | 'teamCode'> & {
+  team?: BaseTeamLike | null;
+};
+type MutationTeamAndPlayerCurrentState = MutationTeamOnlyCurrentState & {
+  player?: PlayerLike | null;
+};
+type MutationOfferSheetTeamAndPlayerCurrentState = Pick<
+  MutationCurrentState,
+  'team' | 'player' | 'homeTeam' | 'teamCode'
+> & {
+  team?: OfferSheetTeamLike | null;
+  player?: PlayerLike | null;
+  homeTeam?: OfferSheetTeamLike | null;
+};
+type MutationSigningTeamLike = OfferSheetTeamLike | TradeTeamLike;
+type MutationSigningCurrentState = Pick<
+  MutationCurrentState,
+  'team' | 'player' | 'homeTeam' | 'teamCode'
+> & {
+  team?: MutationSigningTeamLike | null;
+  player?: PlayerLike | null;
+  homeTeam?: OfferSheetTeamLike | null;
+};
+type MutationOfferSheetCurrentState = Pick<
+  MutationCurrentState,
+  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+> & {
+  homeTeam?: OfferSheetTeamLike | null;
+  offeringTeam?: OfferSheetTeamLike | null;
+};
+type MutationSignAndTradeCurrentState = Pick<
+  MutationCurrentState,
+  'team' | 'player' | 'destinationTeam' | 'teamCode'
+> & {
+  team?: TradeTeamLike | null;
+  player?: PlayerLike | null;
+  destinationTeam?: TradeTeamLike | null;
 };
 type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
 type ApplyWorldMutationArgs = {
@@ -1669,6 +1780,12 @@ type ComputeMutationParams = {
   currentState: MutationCurrentState;
   seasonId: string;
   timestamp: number;
+};
+type ComputeMutationParamsWithCurrentState<TCurrentState> = Omit<
+  ComputeMutationParams,
+  'currentState'
+> & {
+  currentState: TCurrentState;
 };
 
 type SignAndTradeAuthoritySummary = {
@@ -1808,10 +1925,12 @@ function removeUndefinedDeep(obj: unknown): unknown {
 export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
 function attachCurrentStateBaseTeamPreservedFields(
-  team: CurrentStateBaseTeamCompute,
+  team: CurrentStateBaseTeamCompute | CurrentStateOfferSheetTeamCompute,
   preserved: CurrentStateBaseTeamPreservedFieldMap
-): CurrentStateBaseTeam {
-  const withPreservedFields: CurrentStateBaseTeam = { ...team };
+): CurrentStateBaseTeam | CurrentStateOfferSheetTeam {
+  const withPreservedFields = {
+    ...team,
+  } as CurrentStateBaseTeam | CurrentStateOfferSheetTeam;
 
   if (preserved.tradeExceptions !== undefined) {
     withPreservedFields[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY] =
@@ -4427,11 +4546,15 @@ function resolveCurrentStateTeamTotalSalary(
   return totalsRecord ? toOptionalNumber(totalsRecord.totalSalary) : undefined;
 }
 
-type CurrentStateTeamProjectionLane = 'base' | 'trade';
+type CurrentStateTeamProjectionLane = 'base' | 'offerSheet' | 'trade';
 
 // Raw Firestore/team-loader snapshots and legacy base-mode callers meet the
 // committed compute path here; this is the localized mixed-input boundary.
 function toCurrentStateTeam(team: unknown, lane: 'base'): BaseTeamLike | null;
+function toCurrentStateTeam(
+  team: unknown,
+  lane: 'offerSheet'
+): OfferSheetTeamLike | null;
 function toCurrentStateTeam(team: unknown, lane: 'trade'): TradeTeamLike | null;
 function toCurrentStateTeam(
   team: unknown,
@@ -4457,10 +4580,6 @@ function toCurrentStateTeam(
   const tradeExceptions = normalizeCurrentStateTradeExceptions(
     teamRecord.tradeExceptions ??
       teamRecord[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]
-  );
-  const offerSheets = normalizeCurrentStateOfferSheets(teamRecord.offerSheets);
-  const incomingOfferSheets = normalizeCurrentStateOfferSheets(
-    teamRecord.incomingOfferSheets
   );
   const exceptionHistory = normalizeCurrentStateExceptionHistory(
     teamRecord.exceptionHistory ??
@@ -4504,12 +4623,6 @@ function toCurrentStateTeam(
   if (exceptions !== undefined) {
     normalized.exceptions = exceptions;
   }
-  if (offerSheets !== undefined) {
-    normalized.offerSheets = offerSheets;
-  }
-  if (incomingOfferSheets !== undefined) {
-    normalized.incomingOfferSheets = incomingOfferSheets;
-  }
   if (totals !== undefined) {
     normalized.totals = totals;
   }
@@ -4550,7 +4663,32 @@ function toCurrentStateTeam(
   }
 
   if (lane === 'base') {
-    return attachCurrentStateBaseTeamPreservedFields(normalized, preserved);
+    return attachCurrentStateBaseTeamPreservedFields(
+      normalized,
+      preserved
+    ) as BaseTeamLike;
+  }
+
+  if (lane === 'offerSheet') {
+    const offerSheetNormalized: CurrentStateOfferSheetTeamCompute = {
+      ...normalized,
+    };
+    const offerSheets = normalizeCurrentStateOfferSheets(teamRecord.offerSheets);
+    const incomingOfferSheets = normalizeCurrentStateOfferSheets(
+      teamRecord.incomingOfferSheets
+    );
+
+    if (offerSheets !== undefined) {
+      offerSheetNormalized.offerSheets = offerSheets;
+    }
+    if (incomingOfferSheets !== undefined) {
+      offerSheetNormalized.incomingOfferSheets = incomingOfferSheets;
+    }
+
+    return attachCurrentStateBaseTeamPreservedFields(
+      offerSheetNormalized,
+      preserved
+    ) as OfferSheetTeamLike;
   }
 
   const twoWayPlayers = normalizeCurrentStatePlayerArray(teamRecord.twoWayPlayers);
@@ -4799,8 +4937,12 @@ function toCurrentStatePlayer(player: unknown): PlayerLike | null {
   return normalized;
 }
 
-function normalizeMutationCurrentStateTeamEntry(
-  entry: MutationCurrentStateIngressTeamEntry | null | undefined
+function normalizeTradeMutationCurrentStateTeamEntry(
+  entry:
+    | MutationCurrentStateTradeTeamEntryIngress
+    | MutationCurrentStateTeamEntry
+    | null
+    | undefined
 ): MutationCurrentStateTeamEntry {
   const team = toCurrentStateTeam(entry?.team, 'trade');
   const normalized: MutationCurrentStateTeamEntry = {};
@@ -4816,33 +4958,59 @@ function normalizeMutationCurrentStateTeamEntry(
   return normalized;
 }
 
-function normalizeMutationCurrentState(
-  mutationType: string,
-  currentState: MutationCurrentStateIngress | null | undefined
-): MutationCurrentState {
-  const normalized: MutationCurrentState = {};
+function normalizeTradeMutationCurrentState(
+  currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
+): MutationTradeCurrentState {
   const teams = Array.isArray(currentState?.teams)
     ? currentState.teams.map((entry) =>
-        normalizeMutationCurrentStateTeamEntry(entry)
+        normalizeTradeMutationCurrentStateTeamEntry(entry)
       )
     : undefined;
-  const team =
-    mutationType === 'signAndTrade'
-      ? toCurrentStateTeam(currentState?.team, 'trade')
-      : toCurrentStateTeam(currentState?.team, 'base');
-  const player = toCurrentStatePlayer(currentState?.player);
-  const homeTeam = toCurrentStateTeam(currentState?.homeTeam, 'base');
-  const offeringTeam = toCurrentStateTeam(currentState?.offeringTeam, 'base');
-  const destinationTeam = toCurrentStateTeam(
-    currentState?.destinationTeam,
-    'trade'
-  );
-  const teamCode = toOptionalTrimmedString(currentState?.teamCode);
-  const offerSheetId = toOptionalTrimmedString(currentState?.offerSheetId);
 
-  if (teams !== undefined) {
-    normalized.teams = teams;
+  return teams !== undefined ? { teams } : {};
+}
+
+function normalizeTeamOnlyMutationCurrentState(
+  currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
+): MutationTeamOnlyCurrentState {
+  const normalized: MutationTeamOnlyCurrentState = {};
+  const team = toCurrentStateTeam(currentState?.team, 'base');
+  const teamCode = toOptionalTrimmedString(currentState?.teamCode);
+
+  if (team) {
+    normalized.team = team;
   }
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
+  }
+
+  return normalized;
+}
+
+function normalizeTeamAndPlayerMutationCurrentState(
+  currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
+): MutationTeamAndPlayerCurrentState {
+  const normalized: MutationTeamAndPlayerCurrentState = {
+    ...normalizeTeamOnlyMutationCurrentState(currentState),
+  };
+  const player = toCurrentStatePlayer(currentState?.player);
+
+  if (player) {
+    normalized.player = player;
+  }
+
+  return normalized;
+}
+
+function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
+  currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
+): MutationOfferSheetTeamAndPlayerCurrentState {
+  const normalized: MutationOfferSheetTeamAndPlayerCurrentState = {};
+  const team = toCurrentStateTeam(currentState?.team, 'offerSheet');
+  const player = toCurrentStatePlayer(currentState?.player);
+  const homeTeam = toCurrentStateTeam(currentState?.homeTeam, 'offerSheet');
+  const teamCode = toOptionalTrimmedString(currentState?.teamCode);
+
   if (team) {
     normalized.team = team;
   }
@@ -4852,17 +5020,60 @@ function normalizeMutationCurrentState(
   if (homeTeam) {
     normalized.homeTeam = homeTeam;
   }
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
+  }
+
+  return normalized;
+}
+
+function normalizeOfferSheetMutationCurrentState(
+  currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
+): MutationOfferSheetCurrentState {
+  const normalized: MutationOfferSheetCurrentState = {};
+  const homeTeam = toCurrentStateTeam(currentState?.homeTeam, 'offerSheet');
+  const offeringTeam = toCurrentStateTeam(
+    currentState?.offeringTeam,
+    'offerSheet'
+  );
+  const offerSheetId = toOptionalTrimmedString(currentState?.offerSheetId);
+
+  if (homeTeam) {
+    normalized.homeTeam = homeTeam;
+  }
   if (offeringTeam) {
     normalized.offeringTeam = offeringTeam;
+  }
+  if (offerSheetId !== undefined) {
+    normalized.offerSheetId = offerSheetId;
+  }
+
+  return normalized;
+}
+
+function normalizeSignAndTradeMutationCurrentState(
+  currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
+): MutationSignAndTradeCurrentState {
+  const normalized: MutationSignAndTradeCurrentState = {};
+  const team = toCurrentStateTeam(currentState?.team, 'trade');
+  const player = toCurrentStatePlayer(currentState?.player);
+  const destinationTeam = toCurrentStateTeam(
+    currentState?.destinationTeam,
+    'trade'
+  );
+  const teamCode = toOptionalTrimmedString(currentState?.teamCode);
+
+  if (team) {
+    normalized.team = team;
+  }
+  if (player) {
+    normalized.player = player;
   }
   if (destinationTeam) {
     normalized.destinationTeam = destinationTeam;
   }
   if (teamCode !== undefined) {
     normalized.teamCode = teamCode;
-  }
-  if (offerSheetId !== undefined) {
-    normalized.offerSheetId = offerSheetId;
   }
 
   return normalized;
@@ -4970,65 +5181,90 @@ function getMutationRosterEntryId(entry: unknown) {
   return playerId || null;
 }
 
-type CurrentStateWithTeam = MutationCurrentState & {
-  team: CurrentStatePrimaryTeam;
+type CurrentStateWithBasicTeam = MutationTeamOnlyCurrentState & {
+  team: BaseTeamLike;
 };
 
-type CurrentStateWithTeamAndPlayer = CurrentStateWithTeam & {
+type CurrentStateWithBasicTeamAndPlayer = CurrentStateWithBasicTeam & {
   player: PlayerLike;
 };
 
-type CurrentStateWithDestination = MutationCurrentState & {
+type CurrentStateWithSigningState = MutationSigningCurrentState & {
+  team: MutationSigningTeamLike;
+  player: PlayerLike;
+};
+
+type CurrentStateWithDestination = MutationSignAndTradeCurrentState & {
   team: TradeTeamLike;
   player: PlayerLike;
   destinationTeam: TradeTeamLike;
 };
 
-type CurrentStateWithOfferSheetTeams = MutationCurrentState & {
-  homeTeam: BaseTeamLike;
-  offeringTeam: BaseTeamLike;
+type CurrentStateWithOfferSheetTeams = MutationOfferSheetCurrentState & {
+  homeTeam: OfferSheetTeamLike;
+  offeringTeam: OfferSheetTeamLike;
   offerSheetId: string;
 };
 
-function requireTeamState(
-  currentState: MutationCurrentState,
+function requireBasicTeamState(
+  currentState: MutationTeamOnlyCurrentState,
   mutationType: string
-): CurrentStateWithTeam {
+): CurrentStateWithBasicTeam {
   if (!currentState.team) {
     throw new Error(`${mutationType} current state missing team`);
   }
 
-  return currentState as CurrentStateWithTeam;
+  return currentState as CurrentStateWithBasicTeam;
 }
 
-function requireTeamAndPlayerState(
-  currentState: MutationCurrentState,
+function requireBasicTeamAndPlayerState(
+  currentState: MutationTeamAndPlayerCurrentState,
   mutationType: string
-): CurrentStateWithTeamAndPlayer {
-  const teamState = requireTeamState(currentState, mutationType);
+): CurrentStateWithBasicTeamAndPlayer {
+  const teamState = requireBasicTeamState(currentState, mutationType);
 
-  if (!teamState.player) {
+  if (!currentState.player) {
     throw new Error(`${mutationType} current state missing player`);
   }
 
-  return teamState as CurrentStateWithTeamAndPlayer;
+  return {
+    ...teamState,
+    player: currentState.player,
+  };
+}
+
+function requireSigningState(
+  currentState: MutationSigningCurrentState,
+  mutationType: string
+): CurrentStateWithSigningState {
+  if (!currentState.team) {
+    throw new Error(`${mutationType} current state missing team`);
+  }
+  if (!currentState.player) {
+    throw new Error(`${mutationType} current state missing player`);
+  }
+
+  return currentState as CurrentStateWithSigningState;
 }
 
 function requireDestinationState(
-  currentState: MutationCurrentState,
+  currentState: MutationSignAndTradeCurrentState,
   mutationType: string
 ): CurrentStateWithDestination {
-  const teamAndPlayerState = requireTeamAndPlayerState(currentState, mutationType);
+  const teamAndPlayerState = requireSigningState(currentState, mutationType);
 
-  if (!teamAndPlayerState.destinationTeam) {
+  if (!currentState.destinationTeam) {
     throw new Error(`${mutationType} current state missing destination team`);
   }
 
-  return teamAndPlayerState as CurrentStateWithDestination;
+  return {
+    ...teamAndPlayerState,
+    destinationTeam: currentState.destinationTeam,
+  } as CurrentStateWithDestination;
 }
 
 function requireOfferSheetTeamState(
-  currentState: MutationCurrentState,
+  currentState: MutationOfferSheetCurrentState,
   mutationType: string
 ): CurrentStateWithOfferSheetTeams {
   if (!currentState.homeTeam) {
@@ -5134,7 +5370,7 @@ async function getFirstExplicitWorldTeamSnapshotFromLineage(
   for (const lineageWorldId of lineageWorldIds) {
     const snapshot = await getDoc(worldTeamRef(lineageWorldId, teamCode));
     if (snapshot.exists()) {
-      const normalizedTeam = toCurrentStateTeam(snapshot.data(), 'base');
+      const normalizedTeam = toCurrentStateTeam(snapshot.data(), 'offerSheet');
       if (!normalizedTeam) {
         continue;
       }
@@ -5183,7 +5419,7 @@ async function resolveStoreOfferSheetAuthority({
 }) {
   const [offeringTeam, lineageWorldIds] = await Promise.all([
     getTeam(worldId, offeringTeamCode).then((team) =>
-      toCurrentStateTeam(team, 'base')
+      toCurrentStateTeam(team, 'offerSheet')
     ),
     resolveWorldLineage(worldId),
   ]);
@@ -6546,8 +6782,8 @@ export async function preflightSignAndTradeMutation({
       'signAndTrade',
       sanitizedPayload
     );
-    const { team, player } = requireTeamAndPlayerState(
-      currentState,
+    const { team, player } = requireDestinationState(
+      normalizeSignAndTradeMutationCurrentState(currentState),
       'signAndTrade'
     );
     const signingValidation = validateSignAndTradeSigningPhase({
@@ -6712,7 +6948,10 @@ export async function preflightOfferSheetMutation({
     // loadStateForMutation('storeOfferSheet') calls resolveStoreOfferSheetAuthority (E5):
     // scans world lineage snapshots, resolves authoritative home team, fails closed on ambiguity.
     const currentState = await loadStateForMutation(worldId, 'storeOfferSheet', payload);
-    const { team, player } = requireTeamAndPlayerState(currentState, 'storeOfferSheet');
+    const { team, player } = requireSigningState(
+      normalizeOfferSheetTeamAndPlayerMutationCurrentState(currentState),
+      'storeOfferSheet'
+    );
     const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
 
     // validateSigning with offer-sheet flags routes into the RFA/offer-sheet validation path:
@@ -6845,12 +7084,12 @@ async function loadStateForMutation(
       if (homeTeamCode && homeTeamCode !== teamCode) {
         homeTeam = toCurrentStateTeam(
           await getTeam(worldId, homeTeamCode),
-          'base'
+          'offerSheet'
         );
       }
 
       return {
-        team: toCurrentStateTeam(team, 'base'),
+        team: toCurrentStateTeam(team, 'offerSheet'),
         player: toCurrentStatePlayer(player),
         teamCode,
         homeTeam,
@@ -6923,8 +7162,8 @@ async function loadStateForMutation(
       ]);
 
       return {
-        homeTeam: toCurrentStateTeam(homeTeam || null, 'base'),
-        offeringTeam: toCurrentStateTeam(offeringTeam || null, 'base'),
+        homeTeam: toCurrentStateTeam(homeTeam || null, 'offerSheet'),
+        offeringTeam: toCurrentStateTeam(offeringTeam || null, 'offerSheet'),
         offerSheetId,
       };
     }
@@ -7514,13 +7753,12 @@ export function computeWorldMutation({
   asOfDate,
   worldId,
 }: ComputeWorldMutationArgs): ComputeResultLike {
-  const currentState = normalizeMutationCurrentState(
-    mutationType,
-    currentStateInput
-  );
   const result = (() => {
     switch (mutationType) {
       case 'executeTrade': {
+        const currentState = normalizeTradeMutationCurrentState(
+          currentStateInput
+        );
         const tradePayload = toTradePayload(payload);
         const tradeState = toTradeStateSlice(currentState);
 
@@ -7547,7 +7785,11 @@ export function computeWorldMutation({
         return withDefaultPlayerDeletes(tradeResult);
       }
 
-      case 'signFreeAgent':
+      case 'signFreeAgent': {
+        const currentState =
+          normalizeOfferSheetTeamAndPlayerMutationCurrentState(
+            currentStateInput
+          );
         return withDefaultPlayerDeletes(
           computeSigningResult({
             payload,
@@ -7556,13 +7798,21 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'waivePlayer':
+      case 'waivePlayer': {
+        const currentState = normalizeTeamAndPlayerMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeWaiveResult({ payload, currentState, seasonId, timestamp })
         );
+      }
 
-      case 'extendPlayer':
+      case 'extendPlayer': {
+        const currentState = normalizeTeamAndPlayerMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeExtensionResult({
             payload,
@@ -7571,8 +7821,13 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'storeOfferSheet':
+      case 'storeOfferSheet': {
+        const currentState =
+          normalizeOfferSheetTeamAndPlayerMutationCurrentState(
+            currentStateInput
+          );
         return withDefaultPlayerDeletes(
           computeStoreOfferSheetResult({
             payload,
@@ -7581,8 +7836,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'matchOfferSheet':
+      case 'matchOfferSheet': {
+        const currentState = normalizeOfferSheetMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeMatchOfferSheetResult({
             payload,
@@ -7591,8 +7850,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'declineOfferSheet':
+      case 'declineOfferSheet': {
+        const currentState = normalizeOfferSheetMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeDeclineOfferSheetResult({
             payload,
@@ -7601,8 +7864,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'finalizeMatchedOfferSheet':
+      case 'finalizeMatchedOfferSheet': {
+        const currentState = normalizeOfferSheetMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeFinalizeMatchedOfferSheetResult({
             payload,
@@ -7611,8 +7878,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'finalizeDeclinedOfferSheet':
+      case 'finalizeDeclinedOfferSheet': {
+        const currentState = normalizeOfferSheetMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeFinalizeDeclinedOfferSheetResult({
             payload,
@@ -7621,8 +7892,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'optionDecision':
+      case 'optionDecision': {
+        const currentState = normalizeTeamAndPlayerMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeOptionResult({
             payload,
@@ -7631,8 +7906,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'renounceRights':
+      case 'renounceRights': {
+        const currentState = normalizeTeamAndPlayerMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeRenounceResult({
             payload,
@@ -7641,8 +7920,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'signAndTrade':
+      case 'signAndTrade': {
+        const currentState = normalizeSignAndTradeMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeSignAndTradeResult({
             payload,
@@ -7654,8 +7937,12 @@ export function computeWorldMutation({
             historyContext: { worldId, mutationType },
           })
         );
+      }
 
-      case 'setDeadCap':
+      case 'setDeadCap': {
+        const currentState = normalizeTeamOnlyMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeSetDeadCapResult({
             payload,
@@ -7664,8 +7951,12 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
-      case 'setExceptions':
+      case 'setExceptions': {
+        const currentState = normalizeTeamOnlyMutationCurrentState(
+          currentStateInput
+        );
         return withDefaultPlayerDeletes(
           computeSetExceptionsResult({
             payload,
@@ -7674,6 +7965,7 @@ export function computeWorldMutation({
             timestamp,
           })
         );
+      }
 
       default:
         return withDefaultPlayerDeletes({
@@ -8233,11 +8525,8 @@ function computeSigningResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
-  const { team, player } = requireTeamAndPlayerState(
-    currentState,
-    'signFreeAgent'
-  );
+}: ComputeMutationParamsWithCurrentState<MutationSigningCurrentState>): ComputeResultLike {
+  const { team, player } = requireSigningState(currentState, 'signFreeAgent');
   const teamCode = currentState.teamCode || team.teamCode || null;
   const { contract, signedUsing } = payload;
   const signingMechanism = resolveSigningMechanismForPipeline(
@@ -8339,7 +8628,11 @@ function computeSigningResult({
   // (processed offer sheets are removed to prevent state staleness)
   // Remove pending offer sheet if finalizing an RFA offer
   // (processed offer sheets are removed to prevent state staleness)
-  if (normalizedContract?.rfaOfferSheet && updatedTeam.offerSheets) {
+  if (
+    normalizedContract?.rfaOfferSheet &&
+    'offerSheets' in updatedTeam &&
+    Array.isArray(updatedTeam.offerSheets)
+  ) {
     updatedTeam.offerSheets = updatedTeam.offerSheets.filter(
       (offerSheet) => String(offerSheet.playerId || '').trim() !== playerId
     );
@@ -8414,8 +8707,8 @@ function computeWaiveResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
-  const { team, player } = requireTeamAndPlayerState(
+}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+  const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'waivePlayer'
   );
@@ -8567,8 +8860,8 @@ function computeExtensionResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
-  const { team, player } = requireTeamAndPlayerState(
+}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+  const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'extendPlayer'
   );
@@ -8690,8 +8983,8 @@ function computeOptionResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
-  const { team, player } = requireTeamAndPlayerState(
+}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+  const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'optionDecision'
   );
@@ -8873,8 +9166,8 @@ function computeRenounceResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
-  const { team, player } = requireTeamAndPlayerState(
+}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+  const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'renounceRights'
   );
@@ -9006,8 +9299,8 @@ function computeSetExceptionsResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
-  const { team } = requireTeamState(currentState, 'setExceptions');
+}: ComputeMutationParamsWithCurrentState<MutationTeamOnlyCurrentState>): ComputeResultLike {
+  const { team } = requireBasicTeamState(currentState, 'setExceptions');
   const { teamCode } = payload;
 
   // Validate payload.exceptions is an object or null/undefined (to clear)
@@ -9462,7 +9755,7 @@ function computeStoreOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetTeamAndPlayerCurrentState>): ComputeResultLike {
   const { team: offeringTeam, player, teamCode, homeTeam } = currentState;
   const { contract, worldId } = payload;
   const currentYear = toEndYear(seasonId);
@@ -9667,7 +9960,7 @@ function computeMatchOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'matchOfferSheet'
@@ -9753,7 +10046,7 @@ function computeDeclineOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'declineOfferSheet'
@@ -9839,7 +10132,7 @@ function computeFinalizeMatchedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
   const { homeTeam, offeringTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'finalizeMatchedOfferSheet'
@@ -10004,7 +10297,7 @@ function computeFinalizeDeclinedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'finalizeDeclinedOfferSheet'
@@ -10198,7 +10491,7 @@ function computeSignAndTradeResult({
   asOfDate = null,
   worldId,
   historyContext = {},
-}: ComputeMutationParams & {
+}: ComputeMutationParamsWithCurrentState<MutationSignAndTradeCurrentState> & {
   asOfDate?: string | number | null;
   worldId?: string;
   historyContext?: TradeHistoryContextLike;
@@ -10217,7 +10510,7 @@ function computeSignAndTradeResult({
     signedUsing: payload.signedUsing,
   };
 
-  const signingState: CurrentStateWithTeamAndPlayer = { team, player, teamCode };
+  const signingState: MutationSigningCurrentState = { team, player, teamCode };
   const signingResult = computeSigningResult({
     payload: signingPayload,
     currentState: signingState,
@@ -10356,9 +10649,9 @@ function computeSetDeadCapResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParams): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationTeamOnlyCurrentState>): ComputeResultLike {
   const { teamCode } = payload;
-  const { team } = currentState;
+  const { team } = requireBasicTeamState(currentState, 'setDeadCap');
 
   if (!payload.deadCap || !Array.isArray(payload.deadCap)) {
     return {
