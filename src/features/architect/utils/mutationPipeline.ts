@@ -148,6 +148,7 @@ import type {
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
   TradeApplyValidationTeam as TradeContextApplyValidationTeam,
   TradeContextCurrentState,
+  TradeContextNormalizedPayload,
   TradeContextPayload,
   TeamResult as TradeContextTeamResult,
   ValidatedTradeContext as TradeContextValidatedTradeContext,
@@ -175,6 +176,7 @@ import {
 import {
   buildSignAndTradeTradeHandoff,
   buildTradeApplyPreparation,
+  normalizeTradeContextPayload,
   normalizeTradeTeamCodeLike,
   resolveOutgoingTradeDestinationTeamCode,
 } from '@/features/architect/utils/tradeContext/tradeContext';
@@ -633,12 +635,18 @@ type ArchitectTradePayloadPlayerIdentity = Pick<
   | 'originTeamId'
 >;
 
-// Closed mutation-owned handoff: these are the only player fields this
-// pipeline reads directly before the tradeContext handoff. Live trade-machine
-// callers may still carry extra runtime rule fields, but apply-time compute now
-// rebuilds authoritative player snapshots from currentState instead of typing
-// against a full mutation player record here.
-export type ArchitectTradePayloadPlayer =
+type ArchitectTradePayloadSignAndTradeContract = SignAndTradeContractLike |
+  Pick<
+    ArchitectMutationContract,
+    | 'contractType'
+    | 'salariesByYear'
+    | 'contractYears'
+    | 'years'
+    | 'firstYearGuaranteed'
+    | 'signingTeam'
+  >;
+
+export type ArchitectTradePayloadPlayerIngress =
   ArchitectTradePayloadPlayerIdentity & {
     matchIncoming?: number | string | null;
     matchOutgoing?: number | string | null;
@@ -646,8 +654,7 @@ export type ArchitectTradePayloadPlayer =
     tpeId?: string | null;
     signAndTrade?: boolean;
     signAndTradeContract?:
-      | ArchitectMutationContract
-      | SignAndTradeContractLike
+      | ArchitectTradePayloadSignAndTradeContract
       | null;
     receivingTeamIndex?: MutationScalarId;
     receivingTeamId?: MutationScalarId;
@@ -655,6 +662,25 @@ export type ArchitectTradePayloadPlayer =
     toTeamId?: MutationScalarId;
     destTeamId?: MutationScalarId;
   };
+
+// Closed mutation-owned handoff: apply-time compute only owns a stable player
+// identifier, minimal labeling, salary-matching fields, one SAT contract slice,
+// and one canonical routed destination.
+export type ArchitectTradePayloadPlayer = {
+  player_id?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  originTeamId?: string | null;
+  matchIncoming?: number | string | null;
+  matchOutgoing?: number | string | null;
+  absorptionMode?: string | null;
+  tpeId?: string | null;
+  signAndTrade?: boolean;
+  signAndTradeContract?:
+    | ArchitectTradePayloadSignAndTradeContract
+    | null;
+  tradeTo?: string | null;
+};
 
 type TradePayloadEntitlementLike = {
   entitlementId?: MutationScalarId;
@@ -666,20 +692,20 @@ type TradePayloadEntitlementLike = {
   toTeamId?: MutationScalarId;
 };
 
-type ArchitectTradePayloadTeamRef = {
+export type ArchitectTradePayloadTeamRef = {
   id?: MutationScalarId;
   teamCode?: MutationScalarId;
 };
 
-export type ArchitectTradePayloadTeam = {
+export type ArchitectTradePayloadTeamIngress = {
   team?: ArchitectTradePayloadTeamRef | null;
   teamCode?: MutationScalarId;
   teamId?: MutationScalarId;
-  sends?: ArchitectTradePayloadPlayer[];
+  sends?: ArchitectTradePayloadPlayerIngress[];
   // Compatibility-only mirror from older trade preview callers. Mutation-owned
   // apply-time compute rebuilds receives from routed sends instead of reading
   // this bag as authority.
-  receives?: ArchitectTradePayloadPlayer[];
+  receives?: ArchitectTradePayloadPlayerIngress[];
   outgoingEntitlements?: TradePayloadEntitlementLike[];
   incomingEntitlements?: TradePayloadEntitlementLike[];
   entitlementsOut?: TradePayloadEntitlementLike[];
@@ -687,6 +713,17 @@ export type ArchitectTradePayloadTeam = {
   // Deliberately passthrough: tradeContext/validator still consume this as an
   // undeconstructed inbound payload boundary rather than a normalized asset shape.
   picksIn?: unknown[];
+  cashSent?: number | null;
+  cashReceived?: number | null;
+};
+
+// Closed mutation-owned handoff: authoritative trade compute only needs the
+// resolved source team code plus the outbound asset slices it actually applies.
+export type ArchitectTradePayloadTeam = {
+  teamCode: string | null;
+  sends: ArchitectTradePayloadPlayer[];
+  entitlementsOut?: TradePayloadEntitlementLike[];
+  picksOut?: NormalizedTeamPick[];
   cashSent?: number | null;
   cashReceived?: number | null;
 };
@@ -721,7 +758,7 @@ type TradeValidationApplyTimeSlice = {
   legal: boolean;
   teamResults: TradeValidationTeamResultLike[];
 };
-type TradeMutationPayload = TradeContextPayload;
+type TradeMutationPayload = TradeContextNormalizedPayload;
 export type ArchitectMutationValidatedTradeContext =
   TradeContextValidatedTradeContext;
 type TradeHistoryContextLike = {
@@ -747,7 +784,7 @@ export type ArchitectMutationTradeContext = {
 };
 
 export type ArchitectMutationPayload = {
-  teams?: ArchitectTradePayloadTeam[];
+  teams?: ArchitectTradePayloadTeamIngress[];
   asOfDate?: string | number | null;
   capProjections?: TradeValidatorCapProjections | null;
   seasonKey?: string | null;
@@ -2412,12 +2449,12 @@ function toTradePayload(
     'teams' | 'capProjections' | 'tradeCtx' | 'asOfDate'
   >
 ): TradeMutationPayload {
-  return {
+  return normalizeTradeContextPayload({
     teams: Array.isArray(payload.teams) ? payload.teams : [],
     ...(payload.capProjections ? { capProjections: payload.capProjections } : {}),
     ...(payload.tradeCtx ? { tradeCtx: payload.tradeCtx } : {}),
     ...(payload.asOfDate != null ? { asOfDate: payload.asOfDate } : {}),
-  };
+  });
 }
 
 function asLooseRecord(value: unknown): LooseRecord | null {
@@ -7372,11 +7409,7 @@ function buildTradePlayerPersistenceManifest({
 
   tradeTeams.forEach((teamTrade, index) => {
     const sourceTeamCode = normalizeTradeTeamCodeLike(
-      teamTrade.teamCode ||
-        teamTrade.team?.teamCode ||
-        teamTrade.team?.id ||
-        teamTrade.teamId ||
-        currentState.teams[index]?.teamCode
+      teamTrade.teamCode || currentState.teams[index]?.teamCode
     );
 
     if (sourceTeamCode) {
@@ -7756,17 +7789,12 @@ function computeTradeResult({
   if (tradeTeams.length > 2) {
     const hasDirectedRouting = tradeTeams.some((teamTrade) =>
       (teamTrade.sends || []).some(
-        (sentPlayer) =>
-          sentPlayer.receivingTeamIndex !== undefined ||
-          sentPlayer.receivingTeamId !== undefined ||
-          sentPlayer.tradeTo !== undefined ||
-          sentPlayer.toTeamId !== undefined ||
-          sentPlayer.destTeamId !== undefined
+        (sentPlayer) => toOptionalTrimmedString(sentPlayer.tradeTo) !== undefined
       )
     );
     if (!hasDirectedRouting) {
       console.warn(
-        'Multi-team trade detected without directed routing (receivingTeamIndex/receivingTeamId/tradeTo/toTeamId/destTeamId). ' +
+        'Multi-team trade detected without directed routing (tradeTo). ' +
           'Apply-time snapshot building will fail closed with TRADE_APPLY_ROUTING_ERROR.'
       );
     }
@@ -7829,19 +7857,13 @@ function computeTradeResult({
   // Phase 11.3.1: Respect toTeamId routing when present (for multi-team trades)
   const entitlementsTraded: TradeEntitlementsMovedByTeam = {};
   for (const teamTrade of tradeTeams) {
-    const rawTeamKey =
-      teamTrade.team?.id || teamTrade.teamCode || teamTrade.teamId || null;
-    const teamKey = rawTeamKey == null ? null : String(rawTeamKey);
+    const teamKey = normalizeTradeTeamCodeLike(teamTrade.teamCode);
     if (!teamKey) {
       continue;
     }
 
     // Outgoing entitlement IDs from this team (unchanged)
-    const outIds = (
-      teamTrade.outgoingEntitlements ||
-      teamTrade.entitlementsOut ||
-      []
-    )
+    const outIds = (teamTrade.entitlementsOut || [])
       .map((entitlement) => {
         const rawEntitlementId = entitlement.entitlementId ?? entitlement.id;
         return rawEntitlementId == null ? null : String(rawEntitlementId);
@@ -7854,17 +7876,12 @@ function computeTradeResult({
     //   - OR toTeamId matches this team's key (teamKey or teamCode)
     const inIds: string[] = [];
     for (const otherTrade of tradeTeams) {
-      const rawOtherTeamKey =
-        otherTrade.team?.id || otherTrade.teamCode || otherTrade.teamId || null;
-      const otherTeamKey =
-        rawOtherTeamKey == null ? null : String(rawOtherTeamKey);
+      const otherTeamKey = normalizeTradeTeamCodeLike(otherTrade.teamCode);
       if (otherTeamKey === teamKey) {
         continue;
       }
 
-      for (const entitlement of otherTrade.outgoingEntitlements ||
-        otherTrade.entitlementsOut ||
-        []) {
+      for (const entitlement of otherTrade.entitlementsOut || []) {
         const rawEntitlementId = entitlement.entitlementId ?? entitlement.id;
         const entitlementId =
           rawEntitlementId == null ? null : String(rawEntitlementId);
@@ -7874,8 +7891,7 @@ function computeTradeResult({
 
         const routedTo =
           entitlement.toTeamId == null ? null : String(entitlement.toTeamId);
-        const rawTeamCode = teamTrade.teamCode || teamTrade.team?.teamCode;
-        const teamCode = rawTeamCode == null ? null : String(rawTeamCode);
+        const teamCode = normalizeTradeTeamCodeLike(teamTrade.teamCode);
         if (!routedTo || routedTo === teamKey || routedTo === teamCode) {
           inIds.push(entitlementId);
         }
@@ -7953,7 +7969,7 @@ function computeTradeResult({
     teamsInvolved: teamUpdates.map((teamUpdate) => teamUpdate.teamCode),
     playersTraded: tradeTeams.flatMap((teamTrade) =>
       (teamTrade.sends || []).map(
-        (player) => player.player_id || player.id || player.name
+        (player) => player.player_id || player.displayName || player.name
       )
     ),
     // Phase 11.3: Include entitlement transfers per team (IDs only for lightweight payload)

@@ -8,7 +8,9 @@ import type {
 import type {
   ArchitectMutationTeamRecord,
   ArchitectTradePayloadPlayer,
+  ArchitectTradePayloadPlayerIngress,
   ArchitectTradePayloadTeam,
+  ArchitectTradePayloadTeamIngress,
 } from '@/features/architect/utils/mutationPipeline';
 
 // Local object-shape carrier for snapshot-building compatibility paths.
@@ -30,28 +32,22 @@ export interface ValidationTeam {
   sends: ArchitectTradePayloadPlayer[];
   receives: ArchitectTradePayloadPlayer[];
   picksOut: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
-  picksIn: NonNullable<ArchitectTradePayloadTeam['picksIn']>;
+  picksIn: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   cashSent: number;
   cashReceived: number;
 }
 
-export type TradeApplyValidationPlayer = Omit<
-  Pick<
-    ArchitectTradePayloadPlayer,
-    | 'player_id'
-    | 'id'
-    | 'playerId'
-    | 'name'
-    | 'displayName'
-    | 'playerName'
-    | 'absorptionMode'
-    | 'tpeId'
-    | 'matchIncoming'
-  >,
-  'matchIncoming'
-> & {
+export interface TradeApplyValidationPlayer {
+  player_id?: string | null;
+  id?: string | null;
+  playerId?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  playerName?: string | null;
+  absorptionMode?: string | null;
+  tpeId?: string | null;
   matchIncoming?: number;
-};
+}
 
 export interface TradeApplyValidationTeam {
   teamCode: string | null;
@@ -76,6 +72,8 @@ export type ValidatedTradeContext = Pick<
 };
 
 export type PayloadTeam = ArchitectTradePayloadTeam;
+export type PayloadTeamIngress = ArchitectTradePayloadTeamIngress;
+export type PayloadPlayerIngress = ArchitectTradePayloadPlayerIngress;
 
 export interface TradeContextTradeBridge {
   worldId?: TradeValidatorContext['worldId'] | null;
@@ -90,6 +88,13 @@ export interface TradeContextTradeBridge {
 }
 
 export interface TradeContextPayload {
+  teams: PayloadTeamIngress[];
+  capProjections?: TradeValidatorCapProjections | null;
+  tradeCtx?: TradeContextTradeBridge | null;
+  asOfDate?: string | number | null;
+}
+
+export interface TradeContextNormalizedPayload {
   teams: PayloadTeam[];
   capProjections?: TradeValidatorCapProjections | null;
   tradeCtx?: TradeContextTradeBridge | null;
