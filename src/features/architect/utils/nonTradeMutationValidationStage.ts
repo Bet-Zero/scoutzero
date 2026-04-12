@@ -41,9 +41,21 @@ type CurrentStateWithTeamAndPlayer = CurrentStateWithTeam & {
   player: NonNullable<MutationCurrentState['player']>;
 };
 
+type OfferSheetResolutionHomeTeam = NonNullable<
+  MutationCurrentState['homeTeam']
+> & {
+  incomingOfferSheets?: ArchitectMutationOfferSheet[] | null;
+};
+
+type OfferSheetResolutionOfferingTeam = NonNullable<
+  MutationCurrentState['offeringTeam']
+> & {
+  offerSheets?: ArchitectMutationOfferSheet[] | null;
+};
+
 type CurrentStateWithOfferSheetTeams = MutationCurrentState & {
-  homeTeam: NonNullable<MutationCurrentState['homeTeam']>;
-  offeringTeam: NonNullable<MutationCurrentState['offeringTeam']>;
+  homeTeam: OfferSheetResolutionHomeTeam;
+  offeringTeam: OfferSheetResolutionOfferingTeam;
   offerSheetId: string;
 };
 

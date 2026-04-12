@@ -1134,6 +1134,14 @@ type PersistablePlayerOverrideSource = Pick<
 type CurrentStatePlayer = CurrentStatePlayerCore & CurrentStatePlayerRfaBoundary;
 const CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY =
   '__currentStateBasePreserved';
+const CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Roster`;
+const CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}Exceptions`;
+const CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}OfferSheets`;
+const CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY =
+  `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}IncomingOfferSheets`;
 const CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY =
   `${CURRENT_STATE_BASE_TEAM_PRESERVED_FIELD_KEY}TradeExceptions`;
 const CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY =
@@ -1182,15 +1190,15 @@ type CurrentStateTeam = Omit<
   exceptionHistory?: CurrentStateExceptionHistoryEntry[];
   teamTotalSalary?: number;
 };
-type CurrentStateTeamSharedCompute = Pick<
+type CurrentStateTeamIdentityFieldMap = Pick<
   CurrentStateTeam,
-  | 'teamCode'
-  | 'teamName'
+  'teamCode' | 'teamName'
+>;
+type CurrentStateTeamMutationCoreFieldMap = Pick<
+  CurrentStateTeam,
   | 'players'
-  | 'roster'
   | 'capHolds'
   | 'deadCap'
-  | 'exceptions'
   | 'totals'
   | 'source'
   | 'hardCapped'
@@ -1198,21 +1206,59 @@ type CurrentStateTeamSharedCompute = Pick<
   | 'hardCapReason'
   | 'hardCapTriggeredBy'
 >;
-type CurrentStateBaseTeamCompute = CurrentStateTeamSharedCompute;
+type CurrentStateTeamRosterFieldMap = Pick<CurrentStateTeam, 'roster'>;
+type CurrentStateTeamExceptionsFieldMap = Pick<
+  CurrentStateTeam,
+  'exceptions'
+>;
 type CurrentStateOfferSheetTeamLiveFieldMap = Pick<
   CurrentStateTeam,
   'offerSheets' | 'incomingOfferSheets'
 >;
-type CurrentStateOfferSheetTeamCompute = CurrentStateTeamSharedCompute &
-  CurrentStateOfferSheetTeamLiveFieldMap;
+type CurrentStatePlayerOpsTeamCompute = CurrentStateTeamIdentityFieldMap &
+  CurrentStateTeamMutationCoreFieldMap &
+  CurrentStateTeamRosterFieldMap;
+type CurrentStateManualCapTeamCompute = CurrentStateTeamIdentityFieldMap &
+  CurrentStateTeamMutationCoreFieldMap &
+  CurrentStateTeamExceptionsFieldMap;
+type CurrentStateSigningTeamCompute = CurrentStatePlayerOpsTeamCompute &
+  CurrentStateTeamExceptionsFieldMap &
+  Pick<CurrentStateTeam, 'offerSheets'>;
+type CurrentStateOfferSheetMirrorTeamCompute =
+  CurrentStateTeamIdentityFieldMap &
+    CurrentStateTeamMutationCoreFieldMap &
+    CurrentStateOfferSheetTeamLiveFieldMap;
+type CurrentStateOfferSheetResolutionTeamCompute =
+  CurrentStatePlayerOpsTeamCompute &
+    CurrentStateOfferSheetTeamLiveFieldMap;
 type CurrentStateBaseTeamPreservedFieldMap = Pick<
   CurrentStateTeam,
+  | 'roster'
+  | 'exceptions'
+  | 'offerSheets'
+  | 'incomingOfferSheets'
   | 'tradeExceptions'
   | 'cashLedger'
   | 'exceptionHistory'
   | 'draftPicks'
   | 'entitlementIds'
 >;
+type CurrentStateBaseTeamRosterCarrier = {
+  [CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['roster'];
+};
+type CurrentStateBaseTeamExceptionsCarrier = {
+  [CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['exceptions'];
+};
+type CurrentStateBaseTeamOfferSheetsCarrier = {
+  [CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['offerSheets'];
+};
+type CurrentStateBaseTeamIncomingOfferSheetsCarrier = {
+  [CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY]?:
+    CurrentStateBaseTeamPreservedFieldMap['incomingOfferSheets'];
+};
 type CurrentStateTradeTeamLiveFieldMap = Pick<
   CurrentStateBaseTeamPreservedFieldMap,
   'tradeExceptions' | 'cashLedger' | 'draftPicks' | 'entitlementIds'
@@ -1238,23 +1284,48 @@ type CurrentStateBaseTeamEntitlementIdsCarrier = {
     CurrentStateBaseTeamPreservedFieldMap['entitlementIds'];
 };
 type CurrentStateBaseTeamRoundTripCarrier =
-  CurrentStateBaseTeamTradeExceptionsCarrier &
+  CurrentStateBaseTeamRosterCarrier &
+    CurrentStateBaseTeamExceptionsCarrier &
+    CurrentStateBaseTeamOfferSheetsCarrier &
+    CurrentStateBaseTeamIncomingOfferSheetsCarrier &
+    CurrentStateBaseTeamTradeExceptionsCarrier &
     CurrentStateBaseTeamCashLedgerCarrier &
     CurrentStateBaseTeamExceptionHistoryCarrier &
     CurrentStateBaseTeamDraftPicksCarrier &
     CurrentStateBaseTeamEntitlementIdsCarrier;
 type CurrentStateBaseTeamPreservedCarrierLike =
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateBaseTeam = CurrentStateBaseTeamCompute &
+type CurrentStatePlayerOpsTeam = CurrentStatePlayerOpsTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateOfferSheetTeam = CurrentStateOfferSheetTeamCompute &
+type CurrentStateManualCapTeam = CurrentStateManualCapTeamCompute &
   CurrentStateBaseTeamRoundTripCarrier;
-type CurrentStateTradeTeam = CurrentStateTeamSharedCompute &
+type CurrentStateSigningTeam = CurrentStateSigningTeamCompute &
+  CurrentStateBaseTeamRoundTripCarrier;
+type CurrentStateOfferSheetMirrorTeam =
+  CurrentStateOfferSheetMirrorTeamCompute &
+    CurrentStateBaseTeamRoundTripCarrier;
+type CurrentStateOfferSheetResolutionTeam =
+  CurrentStateOfferSheetResolutionTeamCompute &
+  CurrentStateBaseTeamRoundTripCarrier;
+type CurrentStateTradeTeam =
+  CurrentStateTeamIdentityFieldMap &
+  CurrentStateTeamMutationCoreFieldMap &
+  CurrentStateTeamRosterFieldMap &
+  CurrentStateTeamExceptionsFieldMap &
   CurrentStateTradeTeamLiveFieldMap &
   CurrentStateBaseTeamExceptionHistoryCarrier &
   Pick<CurrentStateTeam, 'twoWayPlayers' | 'teamTotalSalary'>;
-type BaseTeamLike = CurrentStateBaseTeam;
-type OfferSheetTeamLike = CurrentStateOfferSheetTeam;
+type CurrentStateNonTradeTeamRoundTripMaterializable =
+  | CurrentStatePlayerOpsTeam
+  | CurrentStateManualCapTeam
+  | CurrentStateSigningTeam
+  | CurrentStateOfferSheetMirrorTeam
+  | CurrentStateOfferSheetResolutionTeam;
+type BaseTeamLike = CurrentStatePlayerOpsTeam | CurrentStateManualCapTeam;
+type OfferSheetTeamLike =
+  | CurrentStateSigningTeam
+  | CurrentStateOfferSheetMirrorTeam
+  | CurrentStateOfferSheetResolutionTeam;
 type TradeTeamLike = CurrentStateTradeTeam;
 type CurrentStatePrimaryTeam = BaseTeamLike | OfferSheetTeamLike | TradeTeamLike;
 type TeamLike = CurrentStatePrimaryTeam;
@@ -1265,8 +1336,9 @@ type CurrentStateBaseTeamMaterializedPreservedFieldMap = Partial<
 // The round-trip/persistence seam only accepts normalized current-state teams
 // plus the hidden base preserved-field carrier; it no longer widens back out to
 // a general ArchitectMutationTeamRecord bag.
-type CurrentStateTeamRoundTripMaterializable = Partial<CurrentStateTeam> &
-  CurrentStateBaseTeamPreservedCarrierLike;
+type CurrentStateTeamRoundTripMaterializable =
+  | CurrentStateNonTradeTeamRoundTripMaterializable
+  | TradeTeamLike;
 type MaterializedCurrentStateTeam<
   T extends CurrentStateTeamRoundTripMaterializable,
 > = Omit<T, keyof CurrentStateBaseTeamRoundTripCarrier> &
@@ -1742,35 +1814,49 @@ export type MutationCurrentState = {
   offerSheetId?: string | null;
 };
 type MutationTradeCurrentState = Pick<MutationCurrentState, 'teams'>;
-type MutationTeamOnlyCurrentState = Pick<MutationCurrentState, 'team' | 'teamCode'> & {
-  team?: BaseTeamLike | null;
+type MutationTeamOnlyCurrentState = Pick<
+  MutationCurrentState,
+  'team' | 'teamCode'
+> & {
+  team?: CurrentStateManualCapTeam | null;
 };
-type MutationTeamAndPlayerCurrentState = MutationTeamOnlyCurrentState & {
+type MutationTeamAndPlayerCurrentState = Pick<
+  MutationCurrentState,
+  'team' | 'teamCode'
+> & {
+  team?: CurrentStatePlayerOpsTeam | null;
   player?: PlayerLike | null;
 };
 type MutationOfferSheetTeamAndPlayerCurrentState = Pick<
   MutationCurrentState,
   'team' | 'player' | 'homeTeam' | 'teamCode'
 > & {
-  team?: OfferSheetTeamLike | null;
+  team?: CurrentStateSigningTeam | null;
   player?: PlayerLike | null;
-  homeTeam?: OfferSheetTeamLike | null;
+  homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
 };
-type MutationSigningTeamLike = OfferSheetTeamLike | TradeTeamLike;
+type MutationSigningTeamLike = CurrentStateSigningTeam | TradeTeamLike;
 type MutationSigningCurrentState = Pick<
   MutationCurrentState,
   'team' | 'player' | 'homeTeam' | 'teamCode'
 > & {
   team?: MutationSigningTeamLike | null;
   player?: PlayerLike | null;
-  homeTeam?: OfferSheetTeamLike | null;
+  homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
 };
-type MutationOfferSheetCurrentState = Pick<
+type MutationOfferSheetMirrorCurrentState = Pick<
   MutationCurrentState,
   'homeTeam' | 'offeringTeam' | 'offerSheetId'
 > & {
-  homeTeam?: OfferSheetTeamLike | null;
-  offeringTeam?: OfferSheetTeamLike | null;
+  homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
+  offeringTeam?: CurrentStateOfferSheetMirrorTeam | null;
+};
+type MutationOfferSheetResolutionCurrentState = Pick<
+  MutationCurrentState,
+  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+> & {
+  homeTeam?: CurrentStateOfferSheetResolutionTeam | null;
+  offeringTeam?: CurrentStateOfferSheetResolutionTeam | null;
 };
 type MutationSignAndTradeCurrentState = Pick<
   MutationCurrentState,
@@ -1960,12 +2046,31 @@ function removeUndefinedDeep(obj: unknown): unknown {
 export { FORBIDDEN_TRANSIENT_KEYS, sanitizeTransientFieldsForPersistence };
 
 function attachCurrentStateBaseTeamPreservedFields(
-  team: CurrentStateBaseTeamCompute | CurrentStateOfferSheetTeamCompute,
+  team: CurrentStateTeamRoundTripMaterializable,
   preserved: CurrentStateBaseTeamPreservedFieldMap
-): CurrentStateBaseTeam | CurrentStateOfferSheetTeam {
+) {
   const withPreservedFields = {
     ...team,
-  } as CurrentStateBaseTeam | CurrentStateOfferSheetTeam;
+  } as CurrentStateTeamRoundTripMaterializable &
+    CurrentStateBaseTeamPreservedCarrierLike;
+
+  if (preserved.roster !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY] =
+      preserved.roster;
+  }
+  if (preserved.exceptions !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY] =
+      preserved.exceptions;
+  }
+  if (preserved.offerSheets !== undefined) {
+    withPreservedFields[CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY] =
+      preserved.offerSheets;
+  }
+  if (preserved.incomingOfferSheets !== undefined) {
+    withPreservedFields[
+      CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY
+    ] = preserved.incomingOfferSheets;
+  }
 
   if (preserved.tradeExceptions !== undefined) {
     withPreservedFields[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY] =
@@ -2004,6 +2109,11 @@ function materializeCurrentStateBaseTeamPreservedFields<
     CurrentStateBaseTeamPreservedCarrierLike &
     CurrentStateBaseTeamMaterializedPreservedFieldMap;
   const {
+    [CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY]: roster,
+    [CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY]: exceptions,
+    [CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY]: offerSheets,
+    [CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY]:
+      incomingOfferSheets,
     [CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]: tradeExceptions,
     [CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]: cashLedger,
     [CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]: exceptionHistory,
@@ -2015,6 +2125,27 @@ function materializeCurrentStateBaseTeamPreservedFields<
     ...materialized,
   } as MaterializedCurrentStateTeam<T>;
 
+  if (roster !== undefined && materializedTeam.roster === undefined) {
+    materializedTeam.roster = roster;
+  }
+  if (
+    exceptions !== undefined &&
+    materializedTeam.exceptions === undefined
+  ) {
+    materializedTeam.exceptions = exceptions;
+  }
+  if (
+    offerSheets !== undefined &&
+    materializedTeam.offerSheets === undefined
+  ) {
+    materializedTeam.offerSheets = offerSheets;
+  }
+  if (
+    incomingOfferSheets !== undefined &&
+    materializedTeam.incomingOfferSheets === undefined
+  ) {
+    materializedTeam.incomingOfferSheets = incomingOfferSheets;
+  }
   if (
     tradeExceptions !== undefined &&
     materializedTeam.tradeExceptions === undefined
@@ -2064,6 +2195,33 @@ function backfillCurrentStateBaseTeamPreservedFields<
     ...materializedTeam,
   } as MaterializedCurrentStateTeam<T>;
 
+  if (
+    withBackfilledPreservedFields.roster === undefined &&
+    fallbackMaterialized.roster !== undefined
+  ) {
+    withBackfilledPreservedFields.roster = fallbackMaterialized.roster;
+  }
+  if (
+    withBackfilledPreservedFields.exceptions === undefined &&
+    fallbackMaterialized.exceptions !== undefined
+  ) {
+    withBackfilledPreservedFields.exceptions =
+      fallbackMaterialized.exceptions;
+  }
+  if (
+    withBackfilledPreservedFields.offerSheets === undefined &&
+    fallbackMaterialized.offerSheets !== undefined
+  ) {
+    withBackfilledPreservedFields.offerSheets =
+      fallbackMaterialized.offerSheets;
+  }
+  if (
+    withBackfilledPreservedFields.incomingOfferSheets === undefined &&
+    fallbackMaterialized.incomingOfferSheets !== undefined
+  ) {
+    withBackfilledPreservedFields.incomingOfferSheets =
+      fallbackMaterialized.incomingOfferSheets;
+  }
   if (
     withBackfilledPreservedFields.tradeExceptions === undefined &&
     fallbackMaterialized.tradeExceptions !== undefined
@@ -4640,62 +4798,77 @@ function resolveCurrentStateTeamTotalSalary(
   return totalsRecord ? toOptionalNumber(totalsRecord.totalSalary) : undefined;
 }
 
-type CurrentStateTeamProjectionLane = 'base' | 'offerSheet' | 'trade';
+type CurrentStateBaseTeamPreservedField =
+  keyof CurrentStateBaseTeamPreservedFieldMap;
 
-// Raw Firestore/team-loader snapshots and legacy base-mode callers meet the
-// committed compute path here; this is the localized mixed-input boundary.
-function toCurrentStateTeam(team: unknown, lane: 'base'): BaseTeamLike | null;
-function toCurrentStateTeam(
-  team: unknown,
-  lane: 'offerSheet'
-): OfferSheetTeamLike | null;
-function toCurrentStateTeam(team: unknown, lane: 'trade'): TradeTeamLike | null;
-function toCurrentStateTeam(
-  team: unknown,
-  lane: CurrentStateTeamProjectionLane
-): CurrentStatePrimaryTeam | null {
-  const teamRecord = asLooseRecord(team);
-  if (!teamRecord) {
-    return null;
-  }
+const CURRENT_STATE_PLAYER_OPS_PRESERVED_FIELDS: CurrentStateBaseTeamPreservedField[] =
+  [
+    'exceptions',
+    'offerSheets',
+    'incomingOfferSheets',
+    'tradeExceptions',
+    'cashLedger',
+    'exceptionHistory',
+    'draftPicks',
+    'entitlementIds',
+  ];
+const CURRENT_STATE_MANUAL_CAP_PRESERVED_FIELDS: CurrentStateBaseTeamPreservedField[] =
+  [
+    'roster',
+    'offerSheets',
+    'incomingOfferSheets',
+    'tradeExceptions',
+    'cashLedger',
+    'exceptionHistory',
+    'draftPicks',
+    'entitlementIds',
+  ];
+const CURRENT_STATE_SIGNING_PRESERVED_FIELDS: CurrentStateBaseTeamPreservedField[] =
+  [
+    'incomingOfferSheets',
+    'tradeExceptions',
+    'cashLedger',
+    'exceptionHistory',
+    'draftPicks',
+    'entitlementIds',
+  ];
+const CURRENT_STATE_OFFER_SHEET_MIRROR_PRESERVED_FIELDS: CurrentStateBaseTeamPreservedField[] =
+  [
+    'roster',
+    'exceptions',
+    'tradeExceptions',
+    'cashLedger',
+    'exceptionHistory',
+    'draftPicks',
+    'entitlementIds',
+  ];
+const CURRENT_STATE_OFFER_SHEET_RESOLUTION_PRESERVED_FIELDS: CurrentStateBaseTeamPreservedField[] =
+  [
+    'exceptions',
+    'tradeExceptions',
+    'cashLedger',
+    'exceptionHistory',
+    'draftPicks',
+    'entitlementIds',
+  ];
+const CURRENT_STATE_TRADE_PRESERVED_FIELDS: CurrentStateBaseTeamPreservedField[] =
+  ['exceptionHistory'];
+
+function normalizeCurrentStateTeamMutationCore(
+  teamRecord: LooseRecord
+): CurrentStateTeamIdentityFieldMap & CurrentStateTeamMutationCoreFieldMap {
   const rawPlayers = teamRecord.players as
     | Array<MutationCurrentStatePlayerIngress | PlayerLike>
     | null
     | undefined;
-  const rawTwoWayPlayers = teamRecord.twoWayPlayers as
-    | Array<MutationCurrentStatePlayerIngress | PlayerLike>
-    | null
-    | undefined;
-
-  const normalized: CurrentStateBaseTeamCompute = {};
+  const normalized: CurrentStateTeamIdentityFieldMap &
+    CurrentStateTeamMutationCoreFieldMap = {};
   const teamCode = toOptionalTrimmedString(teamRecord.teamCode);
   const teamName = toOptionalTrimmedString(teamRecord.teamName);
   const players = normalizeCurrentStatePlayerArray(rawPlayers);
-  const roster = normalizeRosterEntries(teamRecord.roster);
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
-  const exceptions = normalizeCurrentStateTeamExceptions(teamRecord.exceptions);
-  const cashLedger = normalizeCurrentStateCashLedger(
-    teamRecord.cashLedger ??
-      teamRecord[CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]
-  );
-  const tradeExceptions = normalizeCurrentStateTradeExceptions(
-    teamRecord.tradeExceptions ??
-      teamRecord[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]
-  );
-  const exceptionHistory = normalizeCurrentStateExceptionHistory(
-    teamRecord.exceptionHistory ??
-      teamRecord[CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]
-  );
   const totals = normalizeCurrentStateTeamTotals(teamRecord.totals);
-  const draftPicks = normalizeCurrentStateDraftPicks(
-    teamRecord.draftPicks ??
-      teamRecord[CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY]
-  );
-  const entitlementIds = normalizeStringArray(
-    teamRecord.entitlementIds ??
-      teamRecord[CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]
-  );
   const source = normalizeCurrentStateTeamSource(teamRecord.source);
   const hardCapped = teamRecord.hardCapped;
   const hardCapLevel = toOptionalTrimmedString(teamRecord.hardCapLevel);
@@ -4713,17 +4886,11 @@ function toCurrentStateTeam(
   if (players !== undefined) {
     normalized.players = players;
   }
-  if (roster !== undefined) {
-    normalized.roster = roster;
-  }
   if (capHolds !== undefined) {
     normalized.capHolds = capHolds;
   }
   if (deadCap !== undefined) {
     normalized.deadCap = deadCap;
-  }
-  if (exceptions !== undefined) {
-    normalized.exceptions = exceptions;
   }
   if (totals !== undefined) {
     normalized.totals = totals;
@@ -4747,58 +4914,315 @@ function toCurrentStateTeam(
     normalized.hardCapTriggeredBy = hardCapTriggeredBy;
   }
 
+  return normalized;
+}
+
+function buildCurrentStateBaseTeamPreservedFields(
+  teamRecord: LooseRecord,
+  fields: CurrentStateBaseTeamPreservedField[]
+): CurrentStateBaseTeamPreservedFieldMap {
   const preserved: CurrentStateBaseTeamPreservedFieldMap = {};
-  if (tradeExceptions !== undefined) {
-    preserved.tradeExceptions = tradeExceptions;
-  }
-  if (cashLedger !== undefined) {
-    preserved.cashLedger = cashLedger;
-  }
-  if (exceptionHistory !== undefined) {
-    preserved.exceptionHistory = exceptionHistory;
-  }
-  if (draftPicks !== undefined) {
-    preserved.draftPicks = draftPicks;
-  }
-  if (entitlementIds !== undefined) {
-    preserved.entitlementIds = entitlementIds;
+
+  for (const field of fields) {
+    switch (field) {
+      case 'roster': {
+        const roster = normalizeRosterEntries(
+          teamRecord.roster ?? teamRecord[CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY]
+        );
+        if (roster !== undefined) {
+          preserved.roster = roster;
+        }
+        break;
+      }
+
+      case 'exceptions': {
+        const exceptions = normalizeCurrentStateTeamExceptions(
+          teamRecord.exceptions ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY]
+        );
+        if (exceptions !== undefined) {
+          preserved.exceptions = exceptions;
+        }
+        break;
+      }
+
+      case 'offerSheets': {
+        const offerSheets = normalizeCurrentStateOfferSheets(
+          teamRecord.offerSheets ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY]
+        );
+        if (offerSheets !== undefined) {
+          preserved.offerSheets = offerSheets;
+        }
+        break;
+      }
+
+      case 'incomingOfferSheets': {
+        const incomingOfferSheets = normalizeCurrentStateOfferSheets(
+          teamRecord.incomingOfferSheets ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY]
+        );
+        if (incomingOfferSheets !== undefined) {
+          preserved.incomingOfferSheets = incomingOfferSheets;
+        }
+        break;
+      }
+
+      case 'tradeExceptions': {
+        const tradeExceptions = normalizeCurrentStateTradeExceptions(
+          teamRecord.tradeExceptions ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]
+        );
+        if (tradeExceptions !== undefined) {
+          preserved.tradeExceptions = tradeExceptions;
+        }
+        break;
+      }
+
+      case 'cashLedger': {
+        const cashLedger = normalizeCurrentStateCashLedger(
+          teamRecord.cashLedger ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]
+        );
+        if (cashLedger !== undefined) {
+          preserved.cashLedger = cashLedger;
+        }
+        break;
+      }
+
+      case 'exceptionHistory': {
+        const exceptionHistory = normalizeCurrentStateExceptionHistory(
+          teamRecord.exceptionHistory ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]
+        );
+        if (exceptionHistory !== undefined) {
+          preserved.exceptionHistory = exceptionHistory;
+        }
+        break;
+      }
+
+      case 'draftPicks': {
+        const draftPicks = normalizeCurrentStateDraftPicks(
+          teamRecord.draftPicks ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY]
+        );
+        if (draftPicks !== undefined) {
+          preserved.draftPicks = draftPicks;
+        }
+        break;
+      }
+
+      case 'entitlementIds': {
+        const entitlementIds = normalizeStringArray(
+          teamRecord.entitlementIds ??
+            teamRecord[CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]
+        );
+        if (entitlementIds !== undefined) {
+          preserved.entitlementIds = entitlementIds;
+        }
+        break;
+      }
+    }
   }
 
-  if (lane === 'base') {
+  return preserved;
+}
+
+type CurrentStateTeamProjectionLane =
+  | 'playerOps'
+  | 'manualCap'
+  | 'signing'
+  | 'offerSheetMirror'
+  | 'offerSheetResolution'
+  | 'trade';
+
+// Raw Firestore/team-loader snapshots and legacy base-mode callers meet the
+// committed compute path here; this is the localized mixed-input boundary.
+function toCurrentStateTeam(
+  team: unknown,
+  lane: 'playerOps'
+): CurrentStatePlayerOpsTeam | null;
+function toCurrentStateTeam(
+  team: unknown,
+  lane: 'manualCap'
+): CurrentStateManualCapTeam | null;
+function toCurrentStateTeam(
+  team: unknown,
+  lane: 'signing'
+): CurrentStateSigningTeam | null;
+function toCurrentStateTeam(
+  team: unknown,
+  lane: 'offerSheetMirror'
+): CurrentStateOfferSheetMirrorTeam | null;
+function toCurrentStateTeam(
+  team: unknown,
+  lane: 'offerSheetResolution'
+): CurrentStateOfferSheetResolutionTeam | null;
+function toCurrentStateTeam(team: unknown, lane: 'trade'): TradeTeamLike | null;
+function toCurrentStateTeam(
+  team: unknown,
+  lane: CurrentStateTeamProjectionLane
+): CurrentStatePrimaryTeam | null {
+  const teamRecord = asLooseRecord(team);
+  if (!teamRecord) {
+    return null;
+  }
+  const rawTwoWayPlayers = teamRecord.twoWayPlayers as
+    | Array<MutationCurrentStatePlayerIngress | PlayerLike>
+    | null
+    | undefined;
+  const mutationCore = normalizeCurrentStateTeamMutationCore(teamRecord);
+  const roster = normalizeRosterEntries(
+    teamRecord.roster ?? teamRecord[CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY]
+  );
+  const exceptions = normalizeCurrentStateTeamExceptions(
+    teamRecord.exceptions ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_EXCEPTIONS_FIELD_KEY]
+  );
+  const offerSheets = normalizeCurrentStateOfferSheets(
+    teamRecord.offerSheets ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_OFFER_SHEETS_FIELD_KEY]
+  );
+  const incomingOfferSheets = normalizeCurrentStateOfferSheets(
+    teamRecord.incomingOfferSheets ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_INCOMING_OFFER_SHEETS_FIELD_KEY]
+  );
+
+  if (lane === 'playerOps') {
+    const normalized: CurrentStatePlayerOpsTeamCompute = {
+      ...mutationCore,
+    };
+    if (roster !== undefined) {
+      normalized.roster = roster;
+    }
+
     return attachCurrentStateBaseTeamPreservedFields(
       normalized,
-      preserved
-    ) as BaseTeamLike;
+      buildCurrentStateBaseTeamPreservedFields(
+        teamRecord,
+        CURRENT_STATE_PLAYER_OPS_PRESERVED_FIELDS
+      )
+    ) as CurrentStatePlayerOpsTeam;
   }
 
-  if (lane === 'offerSheet') {
-    const offerSheetNormalized: CurrentStateOfferSheetTeamCompute = {
-      ...normalized,
+  if (lane === 'manualCap') {
+    const normalized: CurrentStateManualCapTeamCompute = {
+      ...mutationCore,
     };
-    const offerSheets = normalizeCurrentStateOfferSheets(teamRecord.offerSheets);
-    const incomingOfferSheets = normalizeCurrentStateOfferSheets(
-      teamRecord.incomingOfferSheets
-    );
-
-    if (offerSheets !== undefined) {
-      offerSheetNormalized.offerSheets = offerSheets;
-    }
-    if (incomingOfferSheets !== undefined) {
-      offerSheetNormalized.incomingOfferSheets = incomingOfferSheets;
+    if (exceptions !== undefined) {
+      normalized.exceptions = exceptions;
     }
 
     return attachCurrentStateBaseTeamPreservedFields(
-      offerSheetNormalized,
-      preserved
-    ) as OfferSheetTeamLike;
+      normalized,
+      buildCurrentStateBaseTeamPreservedFields(
+        teamRecord,
+        CURRENT_STATE_MANUAL_CAP_PRESERVED_FIELDS
+      )
+    ) as CurrentStateManualCapTeam;
   }
 
+  if (lane === 'signing') {
+    const normalized: CurrentStateSigningTeamCompute = {
+      ...mutationCore,
+    };
+    if (roster !== undefined) {
+      normalized.roster = roster;
+    }
+    if (exceptions !== undefined) {
+      normalized.exceptions = exceptions;
+    }
+    if (offerSheets !== undefined) {
+      normalized.offerSheets = offerSheets;
+    }
+
+    return attachCurrentStateBaseTeamPreservedFields(
+      normalized,
+      buildCurrentStateBaseTeamPreservedFields(
+        teamRecord,
+        CURRENT_STATE_SIGNING_PRESERVED_FIELDS
+      )
+    ) as CurrentStateSigningTeam;
+  }
+
+  if (lane === 'offerSheetMirror') {
+    const normalized: CurrentStateOfferSheetMirrorTeamCompute = {
+      ...mutationCore,
+    };
+    if (offerSheets !== undefined) {
+      normalized.offerSheets = offerSheets;
+    }
+    if (incomingOfferSheets !== undefined) {
+      normalized.incomingOfferSheets = incomingOfferSheets;
+    }
+
+    return attachCurrentStateBaseTeamPreservedFields(
+      normalized,
+      buildCurrentStateBaseTeamPreservedFields(
+        teamRecord,
+        CURRENT_STATE_OFFER_SHEET_MIRROR_PRESERVED_FIELDS
+      )
+    ) as CurrentStateOfferSheetMirrorTeam;
+  }
+
+  if (lane === 'offerSheetResolution') {
+    const normalized: CurrentStateOfferSheetResolutionTeamCompute = {
+      ...mutationCore,
+    };
+    if (roster !== undefined) {
+      normalized.roster = roster;
+    }
+    if (offerSheets !== undefined) {
+      normalized.offerSheets = offerSheets;
+    }
+    if (incomingOfferSheets !== undefined) {
+      normalized.incomingOfferSheets = incomingOfferSheets;
+    }
+
+    return attachCurrentStateBaseTeamPreservedFields(
+      normalized,
+      buildCurrentStateBaseTeamPreservedFields(
+        teamRecord,
+        CURRENT_STATE_OFFER_SHEET_RESOLUTION_PRESERVED_FIELDS
+      )
+    ) as CurrentStateOfferSheetResolutionTeam;
+  }
+
+  const tradeExceptions = normalizeCurrentStateTradeExceptions(
+    teamRecord.tradeExceptions ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY]
+  );
+  const cashLedger = normalizeCurrentStateCashLedger(
+    teamRecord.cashLedger ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_CASH_LEDGER_FIELD_KEY]
+  );
+  const exceptionHistory = normalizeCurrentStateExceptionHistory(
+    teamRecord.exceptionHistory ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY]
+  );
+  const draftPicks = normalizeCurrentStateDraftPicks(
+    teamRecord.draftPicks ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY]
+  );
+  const entitlementIds = normalizeStringArray(
+    teamRecord.entitlementIds ??
+      teamRecord[CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]
+  );
   const twoWayPlayers = normalizeCurrentStatePlayerArray(rawTwoWayPlayers);
-  const teamTotalSalary = resolveCurrentStateTeamTotalSalary(teamRecord, totals);
+  const teamTotalSalary = resolveCurrentStateTeamTotalSalary(
+    teamRecord,
+    mutationCore.totals
+  );
   // Trade validation/apply still needs live access to the TPE/cash/pick/
   // entitlement/two-way/salary bridges. Exception history remains preserve-only
   // and is materialized only when a returned team snapshot needs it.
-  const tradeNormalized: TradeTeamLike = { ...normalized };
+  const tradeNormalized: TradeTeamLike = { ...mutationCore };
+  if (roster !== undefined) {
+    tradeNormalized.roster = roster;
+  }
+  if (exceptions !== undefined) {
+    tradeNormalized.exceptions = exceptions;
+  }
   if (tradeExceptions !== undefined) {
     tradeNormalized.tradeExceptions = tradeExceptions;
   }
@@ -4817,12 +5241,14 @@ function toCurrentStateTeam(
   if (teamTotalSalary !== undefined) {
     tradeNormalized.teamTotalSalary = teamTotalSalary;
   }
-  if (exceptionHistory !== undefined) {
-    tradeNormalized[CURRENT_STATE_BASE_TEAM_EXCEPTION_HISTORY_FIELD_KEY] =
-      exceptionHistory;
-  }
 
-  return tradeNormalized;
+  return attachCurrentStateBaseTeamPreservedFields(
+    tradeNormalized,
+    buildCurrentStateBaseTeamPreservedFields(
+      teamRecord,
+      CURRENT_STATE_TRADE_PRESERVED_FIELDS
+    )
+  ) as TradeTeamLike;
 }
 
 function normalizeCurrentStatePlayerDraft(
@@ -5043,7 +5469,7 @@ function normalizeTeamOnlyMutationCurrentState(
   currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
 ): MutationTeamOnlyCurrentState {
   const normalized: MutationTeamOnlyCurrentState = {};
-  const team = toCurrentStateTeam(currentState?.team, 'base');
+  const team = toCurrentStateTeam(currentState?.team, 'manualCap');
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
 
   if (team) {
@@ -5059,13 +5485,19 @@ function normalizeTeamOnlyMutationCurrentState(
 function normalizeTeamAndPlayerMutationCurrentState(
   currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
 ): MutationTeamAndPlayerCurrentState {
-  const normalized: MutationTeamAndPlayerCurrentState = {
-    ...normalizeTeamOnlyMutationCurrentState(currentState),
-  };
+  const normalized: MutationTeamAndPlayerCurrentState = {};
+  const team = toCurrentStateTeam(currentState?.team, 'playerOps');
   const player = toCurrentStatePlayer(currentState?.player);
+  const teamCode = toOptionalTrimmedString(currentState?.teamCode);
 
+  if (team) {
+    normalized.team = team;
+  }
   if (player) {
     normalized.player = player;
+  }
+  if (teamCode !== undefined) {
+    normalized.teamCode = teamCode;
   }
 
   return normalized;
@@ -5075,9 +5507,12 @@ function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
   currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
 ): MutationOfferSheetTeamAndPlayerCurrentState {
   const normalized: MutationOfferSheetTeamAndPlayerCurrentState = {};
-  const team = toCurrentStateTeam(currentState?.team, 'offerSheet');
+  const team = toCurrentStateTeam(currentState?.team, 'signing');
   const player = toCurrentStatePlayer(currentState?.player);
-  const homeTeam = toCurrentStateTeam(currentState?.homeTeam, 'offerSheet');
+  const homeTeam = toCurrentStateTeam(
+    currentState?.homeTeam,
+    'offerSheetMirror'
+  );
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
 
   if (team) {
@@ -5096,14 +5531,44 @@ function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
   return normalized;
 }
 
-function normalizeOfferSheetMutationCurrentState(
+function normalizeOfferSheetMirrorMutationCurrentState(
   currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
-): MutationOfferSheetCurrentState {
-  const normalized: MutationOfferSheetCurrentState = {};
-  const homeTeam = toCurrentStateTeam(currentState?.homeTeam, 'offerSheet');
+): MutationOfferSheetMirrorCurrentState {
+  const normalized: MutationOfferSheetMirrorCurrentState = {};
+  const homeTeam = toCurrentStateTeam(
+    currentState?.homeTeam,
+    'offerSheetMirror'
+  );
   const offeringTeam = toCurrentStateTeam(
     currentState?.offeringTeam,
-    'offerSheet'
+    'offerSheetMirror'
+  );
+  const offerSheetId = toOptionalTrimmedString(currentState?.offerSheetId);
+
+  if (homeTeam) {
+    normalized.homeTeam = homeTeam;
+  }
+  if (offeringTeam) {
+    normalized.offeringTeam = offeringTeam;
+  }
+  if (offerSheetId !== undefined) {
+    normalized.offerSheetId = offerSheetId;
+  }
+
+  return normalized;
+}
+
+function normalizeOfferSheetResolutionMutationCurrentState(
+  currentState: MutationCurrentStateIngress | MutationCurrentState | null | undefined
+): MutationOfferSheetResolutionCurrentState {
+  const normalized: MutationOfferSheetResolutionCurrentState = {};
+  const homeTeam = toCurrentStateTeam(
+    currentState?.homeTeam,
+    'offerSheetResolution'
+  );
+  const offeringTeam = toCurrentStateTeam(
+    currentState?.offeringTeam,
+    'offerSheetResolution'
   );
   const offerSheetId = toOptionalTrimmedString(currentState?.offerSheetId);
 
@@ -5250,11 +5715,15 @@ function getMutationRosterEntryId(entry: unknown) {
   return playerId || null;
 }
 
-type CurrentStateWithBasicTeam = MutationTeamOnlyCurrentState & {
-  team: BaseTeamLike;
+type CurrentStateWithBasicTeam<
+  TCurrentState extends { team?: unknown | null },
+> = TCurrentState & {
+  team: NonNullable<TCurrentState['team']>;
 };
 
-type CurrentStateWithBasicTeamAndPlayer = CurrentStateWithBasicTeam & {
+type CurrentStateWithBasicTeamAndPlayer<
+  TCurrentState extends { team?: unknown | null; player?: PlayerLike | null },
+> = CurrentStateWithBasicTeam<TCurrentState> & {
   player: PlayerLike;
 };
 
@@ -5269,27 +5738,40 @@ type CurrentStateWithDestination = MutationSignAndTradeCurrentState & {
   destinationTeam: TradeTeamLike;
 };
 
-type CurrentStateWithOfferSheetTeams = MutationOfferSheetCurrentState & {
-  homeTeam: OfferSheetTeamLike;
-  offeringTeam: OfferSheetTeamLike;
+type CurrentStateWithOfferSheetTeams<
+  TCurrentState extends {
+    homeTeam?: OfferSheetTeamLike | null;
+    offeringTeam?: OfferSheetTeamLike | null;
+    offerSheetId?: string | null;
+  },
+> = TCurrentState & {
+  homeTeam: NonNullable<TCurrentState['homeTeam']>;
+  offeringTeam: NonNullable<TCurrentState['offeringTeam']>;
   offerSheetId: string;
 };
 
-function requireBasicTeamState(
-  currentState: MutationTeamOnlyCurrentState,
+function requireBasicTeamState<
+  TCurrentState extends { team?: unknown | null },
+>(
+  currentState: TCurrentState,
   mutationType: string
-): CurrentStateWithBasicTeam {
+): CurrentStateWithBasicTeam<TCurrentState> {
   if (!currentState.team) {
     throw new Error(`${mutationType} current state missing team`);
   }
 
-  return currentState as CurrentStateWithBasicTeam;
+  return currentState as CurrentStateWithBasicTeam<TCurrentState>;
 }
 
-function requireBasicTeamAndPlayerState(
-  currentState: MutationTeamAndPlayerCurrentState,
+function requireBasicTeamAndPlayerState<
+  TCurrentState extends {
+    team?: unknown | null;
+    player?: PlayerLike | null;
+  },
+>(
+  currentState: TCurrentState,
   mutationType: string
-): CurrentStateWithBasicTeamAndPlayer {
+): CurrentStateWithBasicTeamAndPlayer<TCurrentState> {
   const teamState = requireBasicTeamState(currentState, mutationType);
 
   if (!currentState.player) {
@@ -5299,7 +5781,7 @@ function requireBasicTeamAndPlayerState(
   return {
     ...teamState,
     player: currentState.player,
-  };
+  } as CurrentStateWithBasicTeamAndPlayer<TCurrentState>;
 }
 
 function requireSigningState(
@@ -5332,10 +5814,16 @@ function requireDestinationState(
   } as CurrentStateWithDestination;
 }
 
-function requireOfferSheetTeamState(
-  currentState: MutationOfferSheetCurrentState,
+function requireOfferSheetTeamState<
+  TCurrentState extends {
+    homeTeam?: OfferSheetTeamLike | null;
+    offeringTeam?: OfferSheetTeamLike | null;
+    offerSheetId?: string | null;
+  },
+>(
+  currentState: TCurrentState,
   mutationType: string
-): CurrentStateWithOfferSheetTeams {
+): CurrentStateWithOfferSheetTeams<TCurrentState> {
   if (!currentState.homeTeam) {
     throw new Error(`${mutationType} current state missing home team`);
   }
@@ -5346,7 +5834,7 @@ function requireOfferSheetTeamState(
     throw new Error(`${mutationType} current state missing offerSheetId`);
   }
 
-  return currentState as CurrentStateWithOfferSheetTeams;
+  return currentState as CurrentStateWithOfferSheetTeams<TCurrentState>;
 }
 
 // Local boundary helper for the live team.source spread sites only.
@@ -5377,15 +5865,30 @@ function getSalaryRowEndYear(
   return toEndYear(row?.season) ?? null;
 }
 
+function materializeCurrentStateTeamForAudit(
+  team: TeamLike | null | undefined
+) : CurrentStateTeam | null {
+  const materializedTeam = team
+    ? materializeCurrentStateBaseTeamPreservedFields(
+        team as CurrentStateTeamRoundTripMaterializable
+      ) || team
+    : null;
+
+  return materializedTeam ? (materializedTeam as CurrentStateTeam) : null;
+}
+
 function getSnapshotRosterMembership(
   team: TeamLike | null | undefined,
   playerId: string
 ) {
-  if (!Array.isArray(team?.roster)) {
+  const materializedTeam = materializeCurrentStateTeamForAudit(team);
+  if (!Array.isArray(materializedTeam?.roster)) {
     return null;
   }
 
-  return team.roster.some((entry) => getMutationRosterEntryId(entry) === playerId);
+  return materializedTeam.roster.some(
+    (entry) => getMutationRosterEntryId(entry) === playerId
+  );
 }
 
 function getSnapshotPlayersMembership(
@@ -5439,7 +5942,10 @@ async function getFirstExplicitWorldTeamSnapshotFromLineage(
   for (const lineageWorldId of lineageWorldIds) {
     const snapshot = await getDoc(worldTeamRef(lineageWorldId, teamCode));
     if (snapshot.exists()) {
-      const normalizedTeam = toCurrentStateTeam(snapshot.data(), 'offerSheet');
+      const normalizedTeam = toCurrentStateTeam(
+        snapshot.data(),
+        'offerSheetResolution'
+      );
       if (!normalizedTeam) {
         continue;
       }
@@ -5488,7 +5994,7 @@ async function resolveStoreOfferSheetAuthority({
 }) {
   const [offeringTeam, lineageWorldIds] = await Promise.all([
     getTeam(worldId, offeringTeamCode).then((team) =>
-      toCurrentStateTeam(team, 'offerSheet')
+      toCurrentStateTeam(team, 'signing')
     ),
     resolveWorldLineage(worldId),
   ]);
@@ -5755,8 +6261,12 @@ function buildCapAuditDiffSummary({
   let exceptionsChanged = 0;
 
   for (const teamCode of teamCodes) {
-    const beforeTeam = beforeTeamsByCode[teamCode];
-    const afterTeam = afterTeamsByCode[teamCode];
+    const beforeTeam = materializeCurrentStateTeamForAudit(
+      beforeTeamsByCode[teamCode]
+    );
+    const afterTeam = materializeCurrentStateTeamForAudit(
+      afterTeamsByCode[teamCode]
+    );
 
     const beforeRoster = new Set((beforeTeam?.roster || []).map(String));
     const afterRoster = new Set((afterTeam?.roster || []).map(String));
@@ -7153,12 +7663,12 @@ async function loadStateForMutation(
       if (homeTeamCode && homeTeamCode !== teamCode) {
         homeTeam = toCurrentStateTeam(
           await getTeam(worldId, homeTeamCode),
-          'offerSheet'
+          'offerSheetMirror'
         );
       }
 
       return {
-        team: toCurrentStateTeam(team, 'offerSheet'),
+        team: toCurrentStateTeam(team, 'signing'),
         player: toCurrentStatePlayer(player),
         teamCode,
         homeTeam,
@@ -7182,7 +7692,7 @@ async function loadStateForMutation(
       const team = await getTeam(worldId, teamCode);
       const player = await getPlayer(worldId, teamCode, playerId);
       return {
-        team: toCurrentStateTeam(team, 'base'),
+        team: toCurrentStateTeam(team, 'playerOps'),
         player: toCurrentStatePlayer(player),
         teamCode,
       };
@@ -7229,10 +7739,20 @@ async function loadStateForMutation(
         getTeam(worldId, homeTeamCode),
         getTeam(worldId, offeringTeamCode),
       ]);
+      const isOfferSheetMirrorMutation =
+        mutationType === 'matchOfferSheet' ||
+        mutationType === 'declineOfferSheet';
 
       return {
-        homeTeam: toCurrentStateTeam(homeTeam || null, 'offerSheet'),
-        offeringTeam: toCurrentStateTeam(offeringTeam || null, 'offerSheet'),
+        homeTeam: isOfferSheetMirrorMutation
+          ? toCurrentStateTeam(homeTeam || null, 'offerSheetMirror')
+          : toCurrentStateTeam(homeTeam || null, 'offerSheetResolution'),
+        offeringTeam: isOfferSheetMirrorMutation
+          ? toCurrentStateTeam(offeringTeam || null, 'offerSheetMirror')
+          : toCurrentStateTeam(
+              offeringTeam || null,
+              'offerSheetResolution'
+            ),
         offerSheetId,
       };
     }
@@ -7272,7 +7792,7 @@ async function loadStateForMutation(
 
       const team = toCurrentStateTeam(
         await getTeam(worldId, teamCode),
-        'base'
+        'playerOps'
       );
       if (!team) {
         throw new Error(`Team ${teamCode} not found for renounceRights`);
@@ -7331,7 +7851,7 @@ async function loadStateForMutation(
       if (!teamCode) throw new Error('Missing teamCode');
       const team = toCurrentStateTeam(
         await getTeam(worldId, teamCode),
-        'base'
+        'manualCap'
       );
       return { team, teamCode };
     }
@@ -7341,7 +7861,7 @@ async function loadStateForMutation(
       if (!teamCode) throw new Error('Missing teamCode');
       const team = toCurrentStateTeam(
         await getTeam(worldId, teamCode),
-        'base'
+        'manualCap'
       );
       return { team, teamCode };
     }
@@ -7911,7 +8431,7 @@ export function computeWorldMutation({
       }
 
       case 'matchOfferSheet': {
-        const currentState = normalizeOfferSheetMutationCurrentState(
+        const currentState = normalizeOfferSheetMirrorMutationCurrentState(
           currentStateInput
         );
         return withDefaultPlayerDeletes(
@@ -7925,7 +8445,7 @@ export function computeWorldMutation({
       }
 
       case 'declineOfferSheet': {
-        const currentState = normalizeOfferSheetMutationCurrentState(
+        const currentState = normalizeOfferSheetMirrorMutationCurrentState(
           currentStateInput
         );
         return withDefaultPlayerDeletes(
@@ -7939,7 +8459,7 @@ export function computeWorldMutation({
       }
 
       case 'finalizeMatchedOfferSheet': {
-        const currentState = normalizeOfferSheetMutationCurrentState(
+        const currentState = normalizeOfferSheetResolutionMutationCurrentState(
           currentStateInput
         );
         return withDefaultPlayerDeletes(
@@ -7953,7 +8473,7 @@ export function computeWorldMutation({
       }
 
       case 'finalizeDeclinedOfferSheet': {
-        const currentState = normalizeOfferSheetMutationCurrentState(
+        const currentState = normalizeOfferSheetResolutionMutationCurrentState(
           currentStateInput
         );
         return withDefaultPlayerDeletes(
@@ -10032,7 +10552,7 @@ function computeMatchOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetMirrorCurrentState>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'matchOfferSheet'
@@ -10118,7 +10638,7 @@ function computeDeclineOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetMirrorCurrentState>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'declineOfferSheet'
@@ -10204,7 +10724,7 @@ function computeFinalizeMatchedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetResolutionCurrentState>): ComputeResultLike {
   const { homeTeam, offeringTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'finalizeMatchedOfferSheet'
@@ -10369,7 +10889,7 @@ function computeFinalizeDeclinedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<MutationOfferSheetResolutionCurrentState>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'finalizeDeclinedOfferSheet'
