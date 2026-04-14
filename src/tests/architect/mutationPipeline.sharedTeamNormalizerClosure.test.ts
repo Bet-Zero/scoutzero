@@ -8,7 +8,15 @@ import {
 } from '@/features/architect/utils/mutationPipeline';
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
-type CurrentStateInput = ComputeArgs['currentState'];
+type CurrentStateFor<TMutationType extends ComputeArgs['mutationType']> =
+  Extract<ComputeArgs, { mutationType: TMutationType }>['currentState'];
+type SignFreeAgentCurrentState = CurrentStateFor<'signFreeAgent'>;
+type SetExceptionsCurrentState = CurrentStateFor<'setExceptions'>;
+type MatchOfferSheetCurrentState = CurrentStateFor<'matchOfferSheet'>;
+type FinalizeMatchedOfferSheetCurrentState =
+  CurrentStateFor<'finalizeMatchedOfferSheet'>;
+type ExecuteTradeCurrentState = CurrentStateFor<'executeTrade'>;
+type SignAndTradeCurrentState = CurrentStateFor<'signAndTrade'>;
 type OfferSheetFixture = NonNullable<
   ArchitectMutationTeamRecord['offerSheets']
 >[number];
@@ -219,19 +227,20 @@ describe('mutationPipeline shared team normalizer closure', () => {
         signedUsing: 'Minimum',
       },
       currentState: {
-        team: team as CurrentStateInput['team'],
-        player: freeAgent as CurrentStateInput['player'],
+        team: team as SignFreeAgentCurrentState['team'],
+        player: freeAgent as SignFreeAgentCurrentState['player'],
         teamCode: 'LAL',
         teams: [
           {
             teamCode: 'BAD',
             team: ignoredTradeTeam as NonNullable<
-              NonNullable<CurrentStateInput['teams']>[number]
+              NonNullable<ExecuteTradeCurrentState['teams']>[number]
             >['team'],
           },
         ],
-        destinationTeam: ignoredTradeTeam as CurrentStateInput['destinationTeam'],
-      } as CurrentStateInput,
+        destinationTeam:
+          ignoredTradeTeam as SignAndTradeCurrentState['destinationTeam'],
+      } as unknown as SignFreeAgentCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -284,9 +293,9 @@ describe('mutationPipeline shared team normalizer closure', () => {
         exceptionChanges: ['Room Exception updated'],
       },
       currentState: {
-        team: team as CurrentStateInput['team'],
+        team: team as SetExceptionsCurrentState['team'],
         teamCode: 'LAL',
-      } as CurrentStateInput,
+      } as SetExceptionsCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -352,10 +361,11 @@ describe('mutationPipeline shared team normalizer closure', () => {
         offerSheetId: 'sheet_match',
       },
       currentState: {
-        homeTeam: homeTeam as CurrentStateInput['homeTeam'],
-        offeringTeam: offeringTeam as CurrentStateInput['offeringTeam'],
+        homeTeam: homeTeam as MatchOfferSheetCurrentState['homeTeam'],
+        offeringTeam:
+          offeringTeam as MatchOfferSheetCurrentState['offeringTeam'],
         offerSheetId: 'sheet_match',
-      } as CurrentStateInput,
+      } as MatchOfferSheetCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -438,10 +448,12 @@ describe('mutationPipeline shared team normalizer closure', () => {
         dedupKey: 'sheet_finalize',
       },
       currentState: {
-        homeTeam: homeTeam as CurrentStateInput['homeTeam'],
-        offeringTeam: offeringTeam as CurrentStateInput['offeringTeam'],
+        homeTeam:
+          homeTeam as FinalizeMatchedOfferSheetCurrentState['homeTeam'],
+        offeringTeam:
+          offeringTeam as FinalizeMatchedOfferSheetCurrentState['offeringTeam'],
         offerSheetId: 'sheet_finalize',
-      } as CurrentStateInput,
+      } as FinalizeMatchedOfferSheetCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });

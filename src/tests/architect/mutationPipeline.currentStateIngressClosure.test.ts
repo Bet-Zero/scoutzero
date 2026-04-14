@@ -146,33 +146,33 @@ import {
 } from '@/features/architect/utils/mutationPipeline';
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
-type CurrentStateInput = ComputeArgs['currentState'];
-type CurrentStateTeamField = CurrentStateInput extends { team?: infer T }
-  ? T
-  : never;
-type CurrentStatePlayerField = CurrentStateInput extends { player?: infer T }
-  ? T
-  : never;
-type CurrentStateHomeTeamField = CurrentStateInput extends {
-  homeTeam?: infer T;
-}
-  ? T
-  : never;
-type CurrentStateDestinationTeamField = CurrentStateInput extends {
-  destinationTeam?: infer T;
-}
-  ? T
-  : never;
-type CurrentStateTradeEntryField = CurrentStateInput extends {
-  teams?: Array<infer T>;
-}
-  ? T
-  : never;
-type CurrentStateTradeTeamField = CurrentStateTradeEntryField extends {
+type CurrentStateFor<TMutationType extends ComputeArgs['mutationType']> =
+  Extract<ComputeArgs, { mutationType: TMutationType }>['currentState'];
+type SignFreeAgentCurrentState = CurrentStateFor<'signFreeAgent'>;
+type SetExceptionsCurrentState = CurrentStateFor<'setExceptions'>;
+type ExecuteTradeCurrentState = CurrentStateFor<'executeTrade'>;
+type SignAndTradeCurrentState = CurrentStateFor<'signAndTrade'>;
+type SignFreeAgentTeamField = SignFreeAgentCurrentState['team'];
+type SignFreeAgentPlayerField = SignFreeAgentCurrentState['player'];
+type SignFreeAgentHomeTeamField = SignFreeAgentCurrentState['homeTeam'];
+type SignAndTradeDestinationTeamField =
+  SignAndTradeCurrentState['destinationTeam'];
+type ExecuteTradeTradeEntryField = NonNullable<
+  ExecuteTradeCurrentState['teams']
+>[number];
+type ExecuteTradeTradeTeamField = ExecuteTradeTradeEntryField extends {
   team?: infer T;
 }
   ? T
   : never;
+
+void ({
+  teamCode: 'LAL',
+  destinationTeamCode: 'BOS',
+} satisfies SignAndTradeCurrentState);
+// @ts-expect-error signFreeAgent current-state ingress no longer advertises trade teams
+const signFreeAgentTradeLeak: SignFreeAgentCurrentState = { teams: [] };
+void signFreeAgentTradeLeak;
 
 const SEASON_ID = '2025-26';
 const FIXED_TIMESTAMP = Date.parse('2026-04-12T12:00:00.000Z');
@@ -370,18 +370,19 @@ describe('mutationPipeline current-state ingress closure', () => {
         signedUsing: 'Minimum',
       },
       currentState: {
-        team: team as CurrentStateTeamField,
-        player: freeAgent as CurrentStatePlayerField,
+        team: team as SignFreeAgentTeamField,
+        player: freeAgent as SignFreeAgentPlayerField,
         teamCode: 'LAL',
         teams: [
           {
             teamCode: 'BAD',
-            team: ignoredTradeTeam as CurrentStateTradeTeamField,
+            team: ignoredTradeTeam as ExecuteTradeTradeTeamField,
           },
         ],
-        destinationTeam: ignoredTradeTeam as CurrentStateDestinationTeamField,
+        destinationTeam:
+          ignoredTradeTeam as SignAndTradeDestinationTeamField,
         destinationTeamCode: 'BAD',
-      } as CurrentStateInput,
+      } as unknown as SignFreeAgentCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: WORLD_ID,
@@ -456,18 +457,19 @@ describe('mutationPipeline current-state ingress closure', () => {
         exceptionChanges: ['Room Exception updated'],
       },
       currentState: {
-        team: team as CurrentStateTeamField,
-        player: ignoredPlayer as CurrentStatePlayerField,
-        homeTeam: ignoredTradeTeam as CurrentStateHomeTeamField,
+        team: team as SetExceptionsCurrentState['team'],
+        player: ignoredPlayer as SignFreeAgentPlayerField,
+        homeTeam: ignoredTradeTeam as SignFreeAgentHomeTeamField,
         teams: [
           {
             teamCode: 'BAD',
-            team: ignoredTradeTeam as CurrentStateTradeTeamField,
+            team: ignoredTradeTeam as ExecuteTradeTradeTeamField,
           },
         ],
-        destinationTeam: ignoredTradeTeam as CurrentStateDestinationTeamField,
+        destinationTeam:
+          ignoredTradeTeam as SignAndTradeDestinationTeamField,
         teamCode: 'LAL',
-      } as CurrentStateInput,
+      } as unknown as SetExceptionsCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -556,18 +558,18 @@ describe('mutationPipeline current-state ingress closure', () => {
         teams: [
           {
             teamCode: 'TMA',
-            team: teamA as CurrentStateTradeTeamField,
+            team: teamA as ExecuteTradeTradeTeamField,
           },
           {
             teamCode: 'TMB',
-            team: teamB as CurrentStateTradeTeamField,
+            team: teamB as ExecuteTradeTradeTeamField,
           },
         ],
-        team: ignoredSigningTeam as CurrentStateTeamField,
-        player: ignoredPlayer as CurrentStatePlayerField,
-        homeTeam: ignoredSigningTeam as CurrentStateHomeTeamField,
+        team: ignoredSigningTeam as SignFreeAgentTeamField,
+        player: ignoredPlayer as SignFreeAgentPlayerField,
+        homeTeam: ignoredSigningTeam as SignFreeAgentHomeTeamField,
         destinationTeamCode: 'IGN',
-      } as CurrentStateInput,
+      } as unknown as ExecuteTradeCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_trade_ingress_closure',

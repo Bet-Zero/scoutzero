@@ -8,6 +8,10 @@ import {
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
 type CurrentStateInput = ComputeArgs['currentState'];
+type ExecuteTradeCurrentState = Extract<
+  ComputeArgs,
+  { mutationType: 'executeTrade' }
+>['currentState'];
 
 const SEASON_ID = '2025-26';
 const FIXED_TIMESTAMP = Date.parse('2026-04-12T16:00:00.000Z');
@@ -405,7 +409,7 @@ describe('mutationPipeline shared player normalizer closure', () => {
           { teamCode: 'LAL', team: teamA },
           { teamCode: 'BOS', team: teamB },
         ],
-      } as CurrentStateInput,
+      } as ExecuteTradeCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_shared_player_closure',
@@ -513,7 +517,7 @@ describe('mutationPipeline shared player normalizer closure', () => {
           { teamCode: 'TMA', team: teamA },
           { teamCode: 'TMB', team: teamB },
         ],
-      } as CurrentStateInput,
+      } as ExecuteTradeCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_shared_player_mixed_closure',

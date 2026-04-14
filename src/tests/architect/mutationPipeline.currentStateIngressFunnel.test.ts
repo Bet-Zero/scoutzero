@@ -8,7 +8,14 @@ import {
 } from '@/features/architect/utils/mutationPipeline';
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
-type CurrentStateInput = ComputeArgs['currentState'];
+type CurrentStateFor<TMutationType extends ComputeArgs['mutationType']> =
+  Extract<ComputeArgs, { mutationType: TMutationType }>['currentState'];
+type SignFreeAgentCurrentState = CurrentStateFor<'signFreeAgent'>;
+type SetExceptionsCurrentState = CurrentStateFor<'setExceptions'>;
+type StoreOfferSheetCurrentState = CurrentStateFor<'storeOfferSheet'>;
+type ExecuteTradeCurrentState = CurrentStateFor<'executeTrade'>;
+type SignAndTradeCurrentState = CurrentStateFor<'signAndTrade'>;
+type ExecuteTradeTeamEntry = NonNullable<ExecuteTradeCurrentState['teams']>[number];
 
 const SEASON_ID = '2025-26';
 const FIXED_TIMESTAMP = Date.parse('2026-04-11T17:00:00.000Z');
@@ -161,28 +168,18 @@ describe('mutationPipeline current-state ingress funnel', () => {
         signedUsing: 'Minimum',
       },
       currentState: {
-        team: team as CurrentStateInput extends { team?: infer T } ? T : never,
-        player:
-          freeAgent as CurrentStateInput extends { player?: infer T } ? T : never,
+        team: team as SignFreeAgentCurrentState['team'],
+        player: freeAgent as SignFreeAgentCurrentState['player'],
         teamCode: 'LAL',
         teams: [
           {
             teamCode: 'BAD',
-            team:
-              ignoredTradeTeam as CurrentStateInput extends { teams?: Array<infer T> }
-                ? T extends { team?: infer TeamT }
-                  ? TeamT
-                  : never
-                : never,
+            team: ignoredTradeTeam as ExecuteTradeTeamEntry['team'],
           },
         ],
         destinationTeam:
-          ignoredTradeTeam as CurrentStateInput extends {
-            destinationTeam?: infer T;
-          }
-            ? T
-            : never,
-      } as CurrentStateInput,
+          ignoredTradeTeam as SignAndTradeCurrentState['destinationTeam'],
+      } as unknown as SignFreeAgentCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_ingress_outer_boundary',
@@ -257,9 +254,9 @@ describe('mutationPipeline current-state ingress funnel', () => {
         exceptionChanges: ['Room Exception updated'],
       },
       currentState: {
-        team: team as CurrentStateInput extends { team?: infer T } ? T : never,
+        team: team as SetExceptionsCurrentState['team'],
         teamCode: 'LAL',
-      } as CurrentStateInput,
+      } as SetExceptionsCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -327,20 +324,15 @@ describe('mutationPipeline current-state ingress funnel', () => {
         signedUsing: 'TPMLE',
       },
       currentState: {
-        team:
-          offeringTeam as CurrentStateInput extends { team?: infer T } ? T : never,
-        player:
-          {
-            ...homePlayer,
-            teamCode: 'LAL',
-            teamName: 'Team LAL',
-          } as CurrentStateInput extends { player?: infer T }
-            ? T
-            : never,
-        homeTeam:
-          homeTeam as CurrentStateInput extends { homeTeam?: infer T } ? T : never,
+        team: offeringTeam as StoreOfferSheetCurrentState['team'],
+        player: {
+          ...homePlayer,
+          teamCode: 'LAL',
+          teamName: 'Team LAL',
+        } as StoreOfferSheetCurrentState['player'],
+        homeTeam: homeTeam as StoreOfferSheetCurrentState['homeTeam'],
         teamCode: 'BOS',
-      } as CurrentStateInput,
+      } as StoreOfferSheetCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -420,24 +412,14 @@ describe('mutationPipeline current-state ingress funnel', () => {
         teams: [
           {
             teamCode: 'TMA',
-            team:
-              teamA as CurrentStateInput extends { teams?: Array<infer T> }
-                ? T extends { team?: infer TeamT }
-                  ? TeamT
-                  : never
-                : never,
+            team: teamA as ExecuteTradeTeamEntry['team'],
           },
           {
             teamCode: 'TMB',
-            team:
-              teamB as CurrentStateInput extends { teams?: Array<infer T> }
-                ? T extends { team?: infer TeamT }
-                  ? TeamT
-                  : never
-                : never,
+            team: teamB as ExecuteTradeTeamEntry['team'],
           },
         ],
-      } as CurrentStateInput,
+      } as ExecuteTradeCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_trade_ingress_funnel',

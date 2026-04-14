@@ -8,6 +8,10 @@ import {
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
 type CurrentStateInput = ComputeArgs['currentState'];
+type ExecuteTradeCurrentState = Extract<
+  ComputeArgs,
+  { mutationType: 'executeTrade' }
+>['currentState'];
 
 const FIXED_TIMESTAMP = Date.parse('2026-04-12T14:00:00.000Z');
 const FIXED_TIMESTAMP_ISO = '2026-04-12T14:00:00.000Z';
@@ -393,7 +397,7 @@ describe('mutationPipeline shared player normalizer boundary', () => {
           { teamCode: 'LAL', team: teamA },
           { teamCode: 'BOS', team: teamB },
         ],
-      } as CurrentStateInput,
+      } as ExecuteTradeCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_shared_player_normalizer',
@@ -480,7 +484,7 @@ describe('mutationPipeline shared player normalizer boundary', () => {
           { teamCode: 'TMA', team: teamA },
           { teamCode: 'TMB', team: teamB },
         ],
-      } as CurrentStateInput,
+      } as ExecuteTradeCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_shared_player_mixed_ingress',

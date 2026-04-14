@@ -6,7 +6,10 @@ import {
 } from '@/features/architect/utils/mutationPipeline';
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
-type CurrentStateInput = ComputeArgs['currentState'];
+type CurrentStateFor<TMutationType extends ComputeArgs['mutationType']> =
+  Extract<ComputeArgs, { mutationType: TMutationType }>['currentState'];
+type SignFreeAgentCurrentState = CurrentStateFor<'signFreeAgent'>;
+type SetExceptionsCurrentState = CurrentStateFor<'setExceptions'>;
 type ComputeResult = ReturnType<typeof computeWorldMutation>;
 
 const FIXED_TIMESTAMP = Date.parse('2026-04-11T18:00:00.000Z');
@@ -105,10 +108,19 @@ function expectUpdatedTeam(
 function toCurrentState(
   team: Record<string, unknown>,
   player?: Record<string, unknown>
-): CurrentStateInput {
+): SignFreeAgentCurrentState {
   return {
-    team: team as CurrentStateInput['team'],
-    player: player as CurrentStateInput['player'],
+    team: team as SignFreeAgentCurrentState['team'],
+    player: player as SignFreeAgentCurrentState['player'],
+    teamCode: 'LAL',
+  };
+}
+
+function toTeamOnlyCurrentState(
+  team: Record<string, unknown>
+): SetExceptionsCurrentState {
+  return {
+    team: team as SetExceptionsCurrentState['team'],
     teamCode: 'LAL',
   };
 }
@@ -236,7 +248,7 @@ describe('mutationPipeline dynamic exceptions boundary', () => {
         } as ComputeArgs['payload']['exceptions'],
         exceptionChanges: ['Taxpayer MLE updated'],
       },
-      currentState: toCurrentState(team),
+      currentState: toTeamOnlyCurrentState(team),
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -302,7 +314,7 @@ describe('mutationPipeline dynamic exceptions boundary', () => {
         },
         exceptionChanges: ['Room Exception reset'],
       },
-      currentState: toCurrentState(team),
+      currentState: toTeamOnlyCurrentState(team),
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });

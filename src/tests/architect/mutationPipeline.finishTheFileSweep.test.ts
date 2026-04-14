@@ -6,6 +6,20 @@ import {
 } from '@/features/architect/utils/mutationPipeline';
 import type { DraftPick } from '@/schemas/architect';
 
+type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
+type SignFreeAgentCurrentState = Extract<
+  ComputeArgs,
+  { mutationType: 'signFreeAgent' }
+>['currentState'];
+type ExecuteTradeCurrentState = Extract<
+  ComputeArgs,
+  { mutationType: 'executeTrade' }
+>['currentState'];
+type SetExceptionsCurrentState = Extract<
+  ComputeArgs,
+  { mutationType: 'setExceptions' }
+>['currentState'];
+
 const FIXED_TIMESTAMP = Date.parse('2026-03-25T12:00:00.000Z');
 const FIXED_TIMESTAMP_ISO = '2026-03-25T12:00:00.000Z';
 const SEASON_ID = '2025-26';
@@ -154,7 +168,7 @@ describe('mutationPipeline finish-the-file sweep', () => {
         player: freeAgent,
         teamCode: 'LAL',
         destinationTeamCode: 'IGNORED_PUBLIC_INGRESS_FIELD',
-      },
+      } as unknown as SignFreeAgentCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });
@@ -227,7 +241,7 @@ describe('mutationPipeline finish-the-file sweep', () => {
           { teamCode: 'TMA', team: teamA },
           { teamCode: 'TMB', team: teamB },
         ],
-      },
+      } as ExecuteTradeCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
       worldId: 'world_finish_the_file',
@@ -263,7 +277,7 @@ describe('mutationPipeline finish-the-file sweep', () => {
           },
         },
       },
-      currentState: { team },
+      currentState: { team } as SetExceptionsCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
     });

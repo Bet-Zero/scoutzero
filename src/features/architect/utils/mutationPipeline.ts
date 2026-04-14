@@ -1533,9 +1533,6 @@ type MutationCurrentStatePlayerIngress = Omit<
     contract?: MutationCurrentStatePlayerContractIngress | null;
     futureContract?: MutationCurrentStatePlayerFutureContractIngress | null;
   };
-type CurrentStatePlayerSnapshotIngress =
-  | MutationCurrentStatePlayerIngress
-  | PlayerLike;
 type MutationCurrentStateTeamCoreIngress = Omit<
   Pick<
     ArchitectMutationTeamRecord,
@@ -1907,101 +1904,106 @@ type MutationFailureOverrides = Pick<
 export type ComputeResultLike = ArchitectMutationBridgeResult;
 type AuditContextLike = MutationAuditContext;
 export type PostStateTotalsByTeam = NonNullable<PostStateCapValidationInput['afterTotalsByTeam']>;
-type MutationTradeCurrentStateIngress = {
+type SupportedComputeMutationType =
+  | 'executeTrade'
+  | 'signFreeAgent'
+  | 'waivePlayer'
+  | 'extendPlayer'
+  | 'optionDecision'
+  | 'renounceRights'
+  | 'storeOfferSheet'
+  | 'matchOfferSheet'
+  | 'declineOfferSheet'
+  | 'finalizeMatchedOfferSheet'
+  | 'finalizeDeclinedOfferSheet'
+  | 'signAndTrade'
+  | 'setDeadCap'
+  | 'setExceptions';
+type MutationCurrentStateClosedShape = {
+  teams?: undefined;
+  team?: undefined;
+  player?: undefined;
+  homeTeam?: undefined;
+  offeringTeam?: undefined;
+  destinationTeam?: undefined;
+  teamCode?: undefined;
+  destinationTeamCode?: undefined;
+  offerSheetId?: undefined;
+};
+type MutationCurrentStateTradeTeamEntryInput = {
+  teamCode?: string | null;
+  team?: MutationCurrentStateTradeTeamIngress | null;
+};
+type MutationTradeCurrentStateIngress = Omit<
+  MutationCurrentStateClosedShape,
+  'teams'
+> & {
   teams?: MutationCurrentStateTradeTeamEntryInput[];
 };
-type MutationTeamOnlyCurrentStateIngress = {
+type MutationTeamOnlyCurrentStateIngress = Omit<
+  MutationCurrentStateClosedShape,
+  'team' | 'teamCode'
+> & {
   team?: MutationCurrentStateBaseTeamIngress | null;
   teamCode?: string | null;
 };
-type MutationTeamAndPlayerCurrentStateIngress =
-  MutationTeamOnlyCurrentStateIngress & {
-    player?: MutationCurrentStatePlayerIngress | null;
-  };
-type MutationSigningCurrentStateIngress = {
+type MutationTeamAndPlayerCurrentStateIngress = Omit<
+  MutationCurrentStateClosedShape,
+  'team' | 'player' | 'teamCode'
+> & {
+  team?: MutationCurrentStateBaseTeamIngress | null;
+  player?: MutationCurrentStatePlayerIngress | null;
+  teamCode?: string | null;
+};
+type MutationSigningCurrentStateIngress = Omit<
+  MutationCurrentStateClosedShape,
+  'team' | 'player' | 'homeTeam' | 'teamCode'
+> & {
   team?: MutationCurrentStateOfferSheetTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   teamCode?: string | null;
 };
-type MutationOfferSheetCurrentStateIngress = {
+type MutationOfferSheetMirrorCurrentStateIngress = Omit<
+  MutationCurrentStateClosedShape,
+  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+> & {
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offerSheetId?: string | null;
 };
-type MutationSignAndTradeCurrentStateIngress = {
+type MutationOfferSheetResolutionCurrentStateIngress = Omit<
+  MutationCurrentStateClosedShape,
+  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+> & {
+  homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
+  offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
+  offerSheetId?: string | null;
+};
+type MutationSignAndTradeCurrentStateIngress = Omit<
+  MutationCurrentStateClosedShape,
+  'team' | 'player' | 'destinationTeam' | 'teamCode' | 'destinationTeamCode'
+> & {
   team?: MutationCurrentStateTradeTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   destinationTeam?: MutationCurrentStateTradeTeamIngress | null;
   teamCode?: string | null;
-};
-type MutationCurrentStateBaseTeamInput =
-  | MutationCurrentStateBaseTeamIngress
-  | CurrentStatePlayerOpsTeam
-  | CurrentStateManualCapTeam;
-type MutationCurrentStateOfferSheetTeamInput =
-  | MutationCurrentStateOfferSheetTeamIngress
-  | CurrentStateSigningTeam
-  | CurrentStateOfferSheetMirrorTeam
-  | CurrentStateOfferSheetResolutionTeam;
-type MutationCurrentStateTradeTeamInput =
-  | MutationCurrentStateTradeTeamIngress
-  | TradeTeamLike
-  | ArchitectMutationComputedTeamSnapshot;
-type MutationCurrentStateTradeTeamEntryInput = {
-  teamCode?: string | null;
-  team?: MutationCurrentStateTradeTeamInput | null;
+  // Compatibility-only outer-edge field. This remains explicit on the
+  // sign-and-trade lane only, instead of leaking through the shared ingress bag.
+  destinationTeamCode?: string | null;
 };
 
-// Public compute ingress still tolerates partially populated snapshots at the
-// outer compatibility boundary, but each field is now narrowed to the smallest
-// truthful mutation-family input instead of one shared catch-all team bag.
-type MutationCurrentStateIngress = {
-  teams?: MutationCurrentStateTradeTeamEntryInput[];
-  team?:
-    | MutationCurrentStateBaseTeamInput
-    | MutationCurrentStateOfferSheetTeamInput
-    | MutationCurrentStateTradeTeamInput
-    | null;
-  player?: CurrentStatePlayerSnapshotIngress | null;
-  homeTeam?: MutationCurrentStateOfferSheetTeamInput | null;
-  offeringTeam?: MutationCurrentStateOfferSheetTeamInput | null;
-  destinationTeam?: MutationCurrentStateTradeTeamInput | null;
-  teamCode?: string | null;
-  // Compatibility-only outer-boundary field. The hardened family-specific
-  // slices below still ignore it and read payload/current-state team truth
-  // instead, but it remains tolerated because legacy direct compute callers
-  // still send it on the public edge.
-  destinationTeamCode?: string | null;
-  offerSheetId?: string | null;
-};
-type MutationTradeCurrentStateInput =
-  | Pick<MutationCurrentStateIngress, 'teams'>
-  | MutationTradeCurrentState;
-type MutationTeamOnlyCurrentStateInput =
-  | Pick<MutationCurrentStateIngress, 'team' | 'teamCode'>
-  | MutationTeamOnlyCurrentState;
-type MutationTeamAndPlayerCurrentStateInput =
-  | Pick<MutationCurrentStateIngress, 'team' | 'player' | 'teamCode'>
-  | MutationTeamAndPlayerCurrentState;
-type MutationOfferSheetTeamAndPlayerCurrentStateInput =
-  | Pick<
-      MutationCurrentStateIngress,
-      'team' | 'player' | 'homeTeam' | 'teamCode'
-    >
-  | MutationOfferSheetTeamAndPlayerCurrentState;
-type MutationOfferSheetMirrorCurrentStateInput =
-  | Pick<MutationCurrentStateIngress, 'homeTeam' | 'offeringTeam' | 'offerSheetId'>
-  | MutationOfferSheetMirrorCurrentState;
-type MutationOfferSheetResolutionCurrentStateInput =
-  | Pick<MutationCurrentStateIngress, 'homeTeam' | 'offeringTeam' | 'offerSheetId'>
-  | MutationOfferSheetResolutionCurrentState;
-type MutationSignAndTradeCurrentStateInput =
-  | Pick<
-      MutationCurrentStateIngress,
-      'team' | 'player' | 'destinationTeam' | 'teamCode'
-    >
-  | MutationSignAndTradeCurrentState;
+// Public current-state ingress is now a family-owned union instead of one
+// cross-lane object bag. Mixed compute-ready tolerance is reintroduced only by
+// the per-family input types below.
+type MutationCurrentStateIngress =
+  | MutationTradeCurrentStateIngress
+  | MutationTeamOnlyCurrentStateIngress
+  | MutationTeamAndPlayerCurrentStateIngress
+  | MutationSigningCurrentStateIngress
+  | MutationOfferSheetMirrorCurrentStateIngress
+  | MutationOfferSheetResolutionCurrentStateIngress
+  | MutationSignAndTradeCurrentStateIngress;
 // Internal mutation state after ingress normalization. Only fields actually read
 // by compute/apply paths are carried forward from the public ingress.
 export type MutationCurrentState = {
@@ -2014,58 +2016,125 @@ export type MutationCurrentState = {
   teamCode?: string | null;
   offerSheetId?: string | null;
 };
-type MutationTradeCurrentState = Pick<MutationCurrentState, 'teams'>;
-type MutationTeamOnlyCurrentState = Pick<
-  MutationCurrentState,
+type MutationTradeCurrentState = Omit<
+  MutationCurrentStateClosedShape,
+  'teams'
+> &
+  Pick<MutationCurrentState, 'teams'>;
+type MutationTeamOnlyCurrentState = Omit<
+  MutationCurrentStateClosedShape,
   'team' | 'teamCode'
-> & {
+> &
+  Pick<MutationCurrentState, 'team' | 'teamCode'> & {
   team?: CurrentStateManualCapTeam | null;
 };
-type MutationTeamAndPlayerCurrentState = Pick<
-  MutationCurrentState,
-  'team' | 'teamCode'
-> & {
+type MutationTeamAndPlayerCurrentState = Omit<
+  MutationCurrentStateClosedShape,
+  'team' | 'player' | 'teamCode'
+> &
+  Pick<MutationCurrentState, 'team' | 'player' | 'teamCode'> & {
   team?: CurrentStatePlayerOpsTeam | null;
   player?: PlayerLike | null;
 };
-type MutationOfferSheetTeamAndPlayerCurrentState = Pick<
-  MutationCurrentState,
+type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
+  MutationCurrentStateClosedShape,
   'team' | 'player' | 'homeTeam' | 'teamCode'
-> & {
+> &
+  Pick<MutationCurrentState, 'team' | 'player' | 'homeTeam' | 'teamCode'> & {
   team?: CurrentStateSigningTeam | null;
   player?: PlayerLike | null;
   homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
 };
 type MutationSigningTeamLike = CurrentStateSigningTeam | TradeTeamLike;
-type MutationSigningCurrentState = Pick<
-  MutationCurrentState,
+type MutationSigningCurrentState = Omit<
+  MutationCurrentStateClosedShape,
   'team' | 'player' | 'homeTeam' | 'teamCode'
-> & {
+> &
+  Pick<MutationCurrentState, 'team' | 'player' | 'homeTeam' | 'teamCode'> & {
   team?: MutationSigningTeamLike | null;
   player?: PlayerLike | null;
   homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
 };
-type MutationOfferSheetMirrorCurrentState = Pick<
-  MutationCurrentState,
+type MutationOfferSheetMirrorCurrentState = Omit<
+  MutationCurrentStateClosedShape,
   'homeTeam' | 'offeringTeam' | 'offerSheetId'
-> & {
+> &
+  Pick<MutationCurrentState, 'homeTeam' | 'offeringTeam' | 'offerSheetId'> & {
   homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
   offeringTeam?: CurrentStateOfferSheetMirrorTeam | null;
 };
-type MutationOfferSheetResolutionCurrentState = Pick<
-  MutationCurrentState,
+type MutationOfferSheetResolutionCurrentState = Omit<
+  MutationCurrentStateClosedShape,
   'homeTeam' | 'offeringTeam' | 'offerSheetId'
-> & {
+> &
+  Pick<MutationCurrentState, 'homeTeam' | 'offeringTeam' | 'offerSheetId'> & {
   homeTeam?: CurrentStateOfferSheetResolutionTeam | null;
   offeringTeam?: CurrentStateOfferSheetResolutionTeam | null;
 };
-type MutationSignAndTradeCurrentState = Pick<
-  MutationCurrentState,
+type MutationSignAndTradeCurrentState = Omit<
+  MutationCurrentStateClosedShape,
   'team' | 'player' | 'destinationTeam' | 'teamCode'
-> & {
+> &
+  Pick<
+    MutationCurrentState,
+    'team' | 'player' | 'destinationTeam' | 'teamCode'
+  > & {
   team?: TradeTeamLike | null;
   player?: PlayerLike | null;
   destinationTeam?: TradeTeamLike | null;
+};
+type MutationTradeCurrentStateInput =
+  | MutationTradeCurrentStateIngress
+  | MutationTradeCurrentState;
+type MutationTeamOnlyCurrentStateInput =
+  | MutationTeamOnlyCurrentStateIngress
+  | MutationTeamOnlyCurrentState;
+type MutationTeamAndPlayerCurrentStateInput =
+  | MutationTeamAndPlayerCurrentStateIngress
+  | MutationTeamAndPlayerCurrentState;
+type MutationOfferSheetTeamAndPlayerCurrentStateInput =
+  | MutationSigningCurrentStateIngress
+  | MutationOfferSheetTeamAndPlayerCurrentState;
+type MutationOfferSheetMirrorCurrentStateInput =
+  | MutationOfferSheetMirrorCurrentStateIngress
+  | MutationOfferSheetMirrorCurrentState;
+type MutationOfferSheetResolutionCurrentStateInput =
+  | MutationOfferSheetResolutionCurrentStateIngress
+  | MutationOfferSheetResolutionCurrentState;
+type MutationSignAndTradeCurrentStateInput =
+  | MutationSignAndTradeCurrentStateIngress
+  | MutationSignAndTradeCurrentState;
+type MutationCurrentStateInputByType = {
+  executeTrade: MutationTradeCurrentStateInput;
+  signFreeAgent: MutationOfferSheetTeamAndPlayerCurrentStateInput;
+  waivePlayer: MutationTeamAndPlayerCurrentStateInput;
+  extendPlayer: MutationTeamAndPlayerCurrentStateInput;
+  optionDecision: MutationTeamAndPlayerCurrentStateInput;
+  renounceRights: MutationTeamAndPlayerCurrentStateInput;
+  storeOfferSheet: MutationOfferSheetTeamAndPlayerCurrentStateInput;
+  matchOfferSheet: MutationOfferSheetMirrorCurrentStateInput;
+  declineOfferSheet: MutationOfferSheetMirrorCurrentStateInput;
+  finalizeMatchedOfferSheet: MutationOfferSheetResolutionCurrentStateInput;
+  finalizeDeclinedOfferSheet: MutationOfferSheetResolutionCurrentStateInput;
+  signAndTrade: MutationSignAndTradeCurrentStateInput;
+  setDeadCap: MutationTeamOnlyCurrentStateInput;
+  setExceptions: MutationTeamOnlyCurrentStateInput;
+};
+type LoadedMutationCurrentStateByType = {
+  executeTrade: MutationTradeCurrentState;
+  signFreeAgent: MutationOfferSheetTeamAndPlayerCurrentState;
+  waivePlayer: MutationTeamAndPlayerCurrentState;
+  extendPlayer: MutationTeamAndPlayerCurrentState;
+  optionDecision: MutationTeamAndPlayerCurrentState;
+  renounceRights: MutationTeamAndPlayerCurrentState;
+  storeOfferSheet: MutationOfferSheetTeamAndPlayerCurrentState;
+  matchOfferSheet: MutationOfferSheetMirrorCurrentState;
+  declineOfferSheet: MutationOfferSheetMirrorCurrentState;
+  finalizeMatchedOfferSheet: MutationOfferSheetResolutionCurrentState;
+  finalizeDeclinedOfferSheet: MutationOfferSheetResolutionCurrentState;
+  signAndTrade: MutationSignAndTradeCurrentState;
+  setDeadCap: MutationTeamOnlyCurrentState;
+  setExceptions: MutationTeamOnlyCurrentState;
 };
 type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
 type ApplyWorldMutationArgs = {
@@ -2077,15 +2146,77 @@ type ApplyWorldMutationArgs = {
   timestamp?: number;
   operationId?: string;
 };
-type ComputeWorldMutationArgs = {
-  mutationType: string;
+type ComputeWorldMutationArgsByType = {
+  [TMutationType in SupportedComputeMutationType]: {
+    mutationType: TMutationType;
+    payload: ArchitectMutationPayload;
+    currentState: MutationCurrentStateInputByType[TMutationType];
+    seasonId: string;
+    timestamp: number;
+    asOfDate?: string | number | null;
+    worldId?: string;
+  };
+};
+type ComputeWorldMutationArgs =
+  ComputeWorldMutationArgsByType[SupportedComputeMutationType];
+const SUPPORTED_COMPUTE_MUTATION_TYPES = [
+  'executeTrade',
+  'signFreeAgent',
+  'waivePlayer',
+  'extendPlayer',
+  'optionDecision',
+  'renounceRights',
+  'storeOfferSheet',
+  'matchOfferSheet',
+  'declineOfferSheet',
+  'finalizeMatchedOfferSheet',
+  'finalizeDeclinedOfferSheet',
+  'signAndTrade',
+  'setDeadCap',
+  'setExceptions',
+] as const satisfies readonly SupportedComputeMutationType[];
+const SUPPORTED_COMPUTE_MUTATION_TYPE_SET = new Set<SupportedComputeMutationType>(
+  SUPPORTED_COMPUTE_MUTATION_TYPES
+);
+
+function isSupportedComputeMutationType(
+  mutationType: string
+): mutationType is SupportedComputeMutationType {
+  return SUPPORTED_COMPUTE_MUTATION_TYPE_SET.has(
+    mutationType as SupportedComputeMutationType
+  );
+}
+
+function computeTypedWorldMutation<
+  TMutationType extends SupportedComputeMutationType,
+>({
+  mutationType,
+  payload,
+  currentState,
+  seasonId,
+  timestamp,
+  asOfDate,
+  worldId,
+}: {
+  mutationType: TMutationType;
   payload: ArchitectMutationPayload;
-  currentState: MutationCurrentStateIngress;
+  currentState: MutationCurrentStateInputByType[TMutationType];
   seasonId: string;
   timestamp: number;
   asOfDate?: string | number | null;
   worldId?: string;
-};
+}): ComputeResultLike {
+  return computeWorldMutation({
+    mutationType,
+    payload,
+    currentState,
+    seasonId,
+    timestamp,
+    asOfDate,
+    worldId,
+  } as ComputeWorldMutationArgs);
+}
+
 type BuildWorldMutationEventPayloadArgs = {
   mutationType: string;
   eventId: string;
@@ -4972,15 +5103,19 @@ function normalizeCurrentStateExceptionHistory(
     );
 }
 
+type CurrentStatePlayerBoundaryInput =
+  | MutationCurrentStatePlayerIngress
+  | PlayerLike;
+
 function normalizeCurrentStatePlayerArray(
-  value: Array<MutationCurrentStatePlayerIngress | PlayerLike> | null | undefined
+  value: Array<CurrentStatePlayerBoundaryInput> | null | undefined
 ): PlayerLike[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
 
   return value
-    .map((entry) => toCurrentStatePlayer(entry))
+    .map((entry) => normalizeCurrentStatePlayerSnapshot(entry))
     .filter((entry): entry is PlayerLike => entry !== null);
 }
 
@@ -5059,7 +5194,7 @@ function normalizeCurrentStateTeamMutationCore(
   teamRecord: LooseRecord
 ): CurrentStateTeamIdentityFieldMap & CurrentStateTeamMutationCoreFieldMap {
   const rawPlayers = teamRecord.players as
-    | Array<MutationCurrentStatePlayerIngress | PlayerLike>
+    | Array<CurrentStatePlayerBoundaryInput>
     | null
     | undefined;
   const normalized: CurrentStateTeamIdentityFieldMap &
@@ -5236,54 +5371,57 @@ type CurrentStateTeamProjectionLane =
   | 'offerSheetMirror'
   | 'offerSheetResolution'
   | 'trade';
-type CurrentStateTeamProjectionInputByLane = {
-  playerOps: MutationCurrentStateBaseTeamInput | null | undefined;
-  manualCap: MutationCurrentStateBaseTeamInput | null | undefined;
-  signing: MutationCurrentStateOfferSheetTeamInput | null | undefined;
-  offerSheetMirror: MutationCurrentStateOfferSheetTeamInput | null | undefined;
+type CurrentStateTeamIngressByLane = {
+  playerOps: MutationCurrentStateBaseTeamIngress | null | undefined;
+  manualCap: MutationCurrentStateBaseTeamIngress | null | undefined;
+  signing: MutationCurrentStateOfferSheetTeamIngress | null | undefined;
+  offerSheetMirror: MutationCurrentStateOfferSheetTeamIngress | null | undefined;
   offerSheetResolution:
-    | MutationCurrentStateOfferSheetTeamInput
+    | MutationCurrentStateOfferSheetTeamIngress
     | null
     | undefined;
-  trade: MutationCurrentStateTradeTeamInput | null | undefined;
+  trade: MutationCurrentStateTradeTeamIngress | null | undefined;
+};
+type CurrentStateTeamBoundaryByLane = {
+  playerOps:
+    | MutationCurrentStateBaseTeamIngress
+    | CurrentStatePlayerOpsTeam
+    | null
+    | undefined;
+  manualCap:
+    | MutationCurrentStateBaseTeamIngress
+    | CurrentStateManualCapTeam
+    | null
+    | undefined;
+  signing:
+    | MutationCurrentStateOfferSheetTeamIngress
+    | CurrentStateSigningTeam
+    | null
+    | undefined;
+  offerSheetMirror:
+    | MutationCurrentStateOfferSheetTeamIngress
+    | CurrentStateOfferSheetMirrorTeam
+    | null
+    | undefined;
+  offerSheetResolution:
+    | MutationCurrentStateOfferSheetTeamIngress
+    | CurrentStateOfferSheetResolutionTeam
+    | null
+    | undefined;
+  trade:
+    | MutationCurrentStateTradeTeamIngress
+    | TradeTeamLike
+    | ArchitectMutationComputedTeamSnapshot
+    | null
+    | undefined;
 };
 
-// Raw Firestore/team-loader snapshots and legacy base-mode callers meet the
-// committed compute path here; this is the localized mixed-input boundary.
-function toCurrentStateTeam(
-  team: CurrentStateTeamProjectionInputByLane['playerOps'],
-  lane: 'playerOps'
-): CurrentStatePlayerOpsTeam | null;
-function toCurrentStateTeam(
-  team: CurrentStateTeamProjectionInputByLane['manualCap'],
-  lane: 'manualCap'
-): CurrentStateManualCapTeam | null;
-function toCurrentStateTeam(
-  team: CurrentStateTeamProjectionInputByLane['signing'],
-  lane: 'signing'
-): CurrentStateSigningTeam | null;
-function toCurrentStateTeam(
-  team: CurrentStateTeamProjectionInputByLane['offerSheetMirror'],
-  lane: 'offerSheetMirror'
-): CurrentStateOfferSheetMirrorTeam | null;
-function toCurrentStateTeam(
-  team: CurrentStateTeamProjectionInputByLane['offerSheetResolution'],
-  lane: 'offerSheetResolution'
-): CurrentStateOfferSheetResolutionTeam | null;
-function toCurrentStateTeam(
-  team: CurrentStateTeamProjectionInputByLane['trade'],
-  lane: 'trade'
-): TradeTeamLike | null;
-function toCurrentStateTeam(
-  team: CurrentStateTeamProjectionInputByLane[CurrentStateTeamProjectionLane],
+function projectCurrentStateTeamRecord(
+  teamRecord: LooseRecord,
   lane: CurrentStateTeamProjectionLane
-): CurrentStatePrimaryTeam | null {
-  const teamRecord = asLooseRecord(team);
-  if (!teamRecord) {
-    return null;
-  }
+): CurrentStatePrimaryTeam {
   const rawTwoWayPlayers = teamRecord.twoWayPlayers as
-    | Array<MutationCurrentStatePlayerIngress | PlayerLike>
+    | Array<CurrentStatePlayerBoundaryInput>
     | null
     | undefined;
   const mutationCore = normalizeCurrentStateTeamMutationCore(teamRecord);
@@ -5466,6 +5604,81 @@ function toCurrentStateTeam(
   ) as TradeTeamLike;
 }
 
+// Raw Firestore/team-loader snapshots normalize here before they reach the
+// family-specific current-state compatibility layer.
+function toCurrentStateTeam(
+  team: CurrentStateTeamIngressByLane['playerOps'],
+  lane: 'playerOps'
+): CurrentStatePlayerOpsTeam | null;
+function toCurrentStateTeam(
+  team: CurrentStateTeamIngressByLane['manualCap'],
+  lane: 'manualCap'
+): CurrentStateManualCapTeam | null;
+function toCurrentStateTeam(
+  team: CurrentStateTeamIngressByLane['signing'],
+  lane: 'signing'
+): CurrentStateSigningTeam | null;
+function toCurrentStateTeam(
+  team: CurrentStateTeamIngressByLane['offerSheetMirror'],
+  lane: 'offerSheetMirror'
+): CurrentStateOfferSheetMirrorTeam | null;
+function toCurrentStateTeam(
+  team: CurrentStateTeamIngressByLane['offerSheetResolution'],
+  lane: 'offerSheetResolution'
+): CurrentStateOfferSheetResolutionTeam | null;
+function toCurrentStateTeam(
+  team: CurrentStateTeamIngressByLane['trade'],
+  lane: 'trade'
+): TradeTeamLike | null;
+function toCurrentStateTeam(
+  team: CurrentStateTeamIngressByLane[CurrentStateTeamProjectionLane],
+  lane: CurrentStateTeamProjectionLane
+): CurrentStatePrimaryTeam | null {
+  const teamRecord = asLooseRecord(team);
+  if (!teamRecord) {
+    return null;
+  }
+  return projectCurrentStateTeamRecord(teamRecord, lane);
+}
+
+// Mixed raw/direct-compute team compatibility is tolerated only on the
+// current-state ingress/result boundaries, not on the raw loader helper above.
+function normalizeCurrentStateTeamSnapshot(
+  team: CurrentStateTeamBoundaryByLane['playerOps'],
+  lane: 'playerOps'
+): CurrentStatePlayerOpsTeam | null;
+function normalizeCurrentStateTeamSnapshot(
+  team: CurrentStateTeamBoundaryByLane['manualCap'],
+  lane: 'manualCap'
+): CurrentStateManualCapTeam | null;
+function normalizeCurrentStateTeamSnapshot(
+  team: CurrentStateTeamBoundaryByLane['signing'],
+  lane: 'signing'
+): CurrentStateSigningTeam | null;
+function normalizeCurrentStateTeamSnapshot(
+  team: CurrentStateTeamBoundaryByLane['offerSheetMirror'],
+  lane: 'offerSheetMirror'
+): CurrentStateOfferSheetMirrorTeam | null;
+function normalizeCurrentStateTeamSnapshot(
+  team: CurrentStateTeamBoundaryByLane['offerSheetResolution'],
+  lane: 'offerSheetResolution'
+): CurrentStateOfferSheetResolutionTeam | null;
+function normalizeCurrentStateTeamSnapshot(
+  team: CurrentStateTeamBoundaryByLane['trade'],
+  lane: 'trade'
+): TradeTeamLike | null;
+function normalizeCurrentStateTeamSnapshot(
+  team: CurrentStateTeamBoundaryByLane[CurrentStateTeamProjectionLane],
+  lane: CurrentStateTeamProjectionLane
+): CurrentStatePrimaryTeam | null {
+  const teamRecord = asLooseRecord(team);
+  if (!teamRecord) {
+    return null;
+  }
+
+  return projectCurrentStateTeamRecord(teamRecord, lane);
+}
+
 function normalizeCurrentStatePlayerDraft(
   value: ArchitectMutationPlayerRecord['draft']
 ): NormalizedCurrentStatePlayer['draft'] | undefined {
@@ -5556,23 +5769,7 @@ function normalizeCurrentStatePlayerRfaBoundary(
   return normalized;
 }
 
-// Raw player overrides and base player snapshots are narrowed here before any
-// committed mutation compute path can spread or persist them. The remaining
-// fields are retained because this normalized player surface still feeds
-// signing/SAT validation and player-override round-trip persistence.
-function toCurrentStatePlayer(
-  player: CurrentStatePlayerSnapshotIngress | null | undefined
-): PlayerLike | null {
-  // Mixed runtime input is still tolerated at this outer boundary because
-  // current-state loads may come from raw world snapshots or already-normalized
-  // player records. Downstream helpers only see the narrowed field slices below.
-  const playerRecord = asLooseRecord(player) as
-    | Partial<CurrentStatePlayerSnapshotIngress>
-    | null;
-  if (!playerRecord) {
-    return null;
-  }
-
+function projectCurrentStatePlayerRecord(playerRecord: LooseRecord): PlayerLike {
   const normalized: PlayerLike = {};
   const bio = normalizeCurrentStatePlayerBio(playerRecord.bio);
   const bioPlayerId = toOptionalIdString(bio?.playerId);
@@ -5647,10 +5844,36 @@ function toCurrentStatePlayer(
   return normalized;
 }
 
+// Raw player overrides and loaded player snapshots normalize here before they
+// reach family-owned current-state compatibility handling.
+function toCurrentStatePlayer(
+  player: MutationCurrentStatePlayerIngress | null | undefined
+): PlayerLike | null {
+  const playerRecord = asLooseRecord(player);
+  if (!playerRecord) {
+    return null;
+  }
+
+  return projectCurrentStatePlayerRecord(playerRecord);
+}
+
+// Mixed raw/direct-compute player compatibility is tolerated only where
+// current-state ingress or persistence round-trips still truthfully need it.
+function normalizeCurrentStatePlayerSnapshot(
+  player: CurrentStatePlayerBoundaryInput | null | undefined
+): PlayerLike | null {
+  const playerRecord = asLooseRecord(player);
+  if (!playerRecord) {
+    return null;
+  }
+
+  return projectCurrentStatePlayerRecord(playerRecord);
+}
+
 function normalizeTradeMutationCurrentStateTeamEntry(
   entry: MutationCurrentStateTradeTeamEntryInput | null | undefined
 ): MutationCurrentStateTeamEntry {
-  const team = toCurrentStateTeam(entry?.team, 'trade');
+  const team = normalizeCurrentStateTeamSnapshot(entry?.team, 'trade');
   const normalized: MutationCurrentStateTeamEntry = {};
   const teamCode = toOptionalTrimmedString(entry?.teamCode) ?? team?.teamCode;
 
@@ -5680,7 +5903,10 @@ function normalizeTeamOnlyMutationCurrentState(
   currentState: MutationTeamOnlyCurrentStateInput | null | undefined
 ): MutationTeamOnlyCurrentState {
   const normalized: MutationTeamOnlyCurrentState = {};
-  const team = toCurrentStateTeam(currentState?.team, 'manualCap');
+  const team = normalizeCurrentStateTeamSnapshot(
+    currentState?.team,
+    'manualCap'
+  );
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
 
   if (team) {
@@ -5697,8 +5923,11 @@ function normalizeTeamAndPlayerMutationCurrentState(
   currentState: MutationTeamAndPlayerCurrentStateInput | null | undefined
 ): MutationTeamAndPlayerCurrentState {
   const normalized: MutationTeamAndPlayerCurrentState = {};
-  const team = toCurrentStateTeam(currentState?.team, 'playerOps');
-  const player = toCurrentStatePlayer(currentState?.player);
+  const team = normalizeCurrentStateTeamSnapshot(
+    currentState?.team,
+    'playerOps'
+  );
+  const player = normalizeCurrentStatePlayerSnapshot(currentState?.player);
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
 
   if (team) {
@@ -5721,9 +5950,9 @@ function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
     | undefined
 ): MutationOfferSheetTeamAndPlayerCurrentState {
   const normalized: MutationOfferSheetTeamAndPlayerCurrentState = {};
-  const team = toCurrentStateTeam(currentState?.team, 'signing');
-  const player = toCurrentStatePlayer(currentState?.player);
-  const homeTeam = toCurrentStateTeam(
+  const team = normalizeCurrentStateTeamSnapshot(currentState?.team, 'signing');
+  const player = normalizeCurrentStatePlayerSnapshot(currentState?.player);
+  const homeTeam = normalizeCurrentStateTeamSnapshot(
     currentState?.homeTeam,
     'offerSheetMirror'
   );
@@ -5749,11 +5978,11 @@ function normalizeOfferSheetMirrorMutationCurrentState(
   currentState: MutationOfferSheetMirrorCurrentStateInput | null | undefined
 ): MutationOfferSheetMirrorCurrentState {
   const normalized: MutationOfferSheetMirrorCurrentState = {};
-  const homeTeam = toCurrentStateTeam(
+  const homeTeam = normalizeCurrentStateTeamSnapshot(
     currentState?.homeTeam,
     'offerSheetMirror'
   );
-  const offeringTeam = toCurrentStateTeam(
+  const offeringTeam = normalizeCurrentStateTeamSnapshot(
     currentState?.offeringTeam,
     'offerSheetMirror'
   );
@@ -5779,11 +6008,11 @@ function normalizeOfferSheetResolutionMutationCurrentState(
     | undefined
 ): MutationOfferSheetResolutionCurrentState {
   const normalized: MutationOfferSheetResolutionCurrentState = {};
-  const homeTeam = toCurrentStateTeam(
+  const homeTeam = normalizeCurrentStateTeamSnapshot(
     currentState?.homeTeam,
     'offerSheetResolution'
   );
-  const offeringTeam = toCurrentStateTeam(
+  const offeringTeam = normalizeCurrentStateTeamSnapshot(
     currentState?.offeringTeam,
     'offerSheetResolution'
   );
@@ -5806,9 +6035,9 @@ function normalizeSignAndTradeMutationCurrentState(
   currentState: MutationSignAndTradeCurrentStateInput | null | undefined
 ): MutationSignAndTradeCurrentState {
   const normalized: MutationSignAndTradeCurrentState = {};
-  const team = toCurrentStateTeam(currentState?.team, 'trade');
-  const player = toCurrentStatePlayer(currentState?.player);
-  const destinationTeam = toCurrentStateTeam(
+  const team = normalizeCurrentStateTeamSnapshot(currentState?.team, 'trade');
+  const player = normalizeCurrentStatePlayerSnapshot(currentState?.player);
+  const destinationTeam = normalizeCurrentStateTeamSnapshot(
     currentState?.destinationTeam,
     'trade'
   );
@@ -5852,7 +6081,9 @@ function toLineageOverrideMergeBio(
 }
 
 function toLineageOverrideMergePlayer(player: unknown): LineageOverrideMergePlayer {
-  const playerRecord = toCurrentStatePlayer(player);
+  const playerRecord = normalizeCurrentStatePlayerSnapshot(
+    player as CurrentStatePlayerBoundaryInput | null | undefined
+  );
   const normalized: LineageOverrideMergePlayer = {};
 
   if (!playerRecord) {
@@ -5944,12 +6175,20 @@ type CurrentStateWithBasicTeamAndPlayer<
   player: PlayerLike;
 };
 
-type CurrentStateWithSigningState = MutationSigningCurrentState & {
+type CurrentStateWithSigningPair<
+  TCurrentState extends {
+    team?: MutationSigningTeamLike | null;
+    player?: PlayerLike | null;
+  },
+> = TCurrentState & {
   team: MutationSigningTeamLike;
   player: PlayerLike;
 };
+type CurrentStateWithSigningState =
+  CurrentStateWithSigningPair<MutationSigningCurrentState>;
 
-type CurrentStateWithDestination = MutationSignAndTradeCurrentState & {
+type CurrentStateWithDestination =
+  CurrentStateWithSigningPair<MutationSignAndTradeCurrentState> & {
   team: TradeTeamLike;
   player: PlayerLike;
   destinationTeam: TradeTeamLike;
@@ -6001,10 +6240,15 @@ function requireBasicTeamAndPlayerState<
   } as CurrentStateWithBasicTeamAndPlayer<TCurrentState>;
 }
 
-function requireSigningState(
-  currentState: MutationSigningCurrentState,
+function requireSigningState<
+  TCurrentState extends {
+    team?: MutationSigningTeamLike | null;
+    player?: PlayerLike | null;
+  },
+>(
+  currentState: TCurrentState,
   mutationType: string
-): CurrentStateWithSigningState {
+): CurrentStateWithSigningPair<TCurrentState> {
   if (!currentState.team) {
     throw new Error(`${mutationType} current state missing team`);
   }
@@ -6012,7 +6256,7 @@ function requireSigningState(
     throw new Error(`${mutationType} current state missing player`);
   }
 
-  return currentState as CurrentStateWithSigningState;
+  return currentState as CurrentStateWithSigningPair<TCurrentState>;
 }
 
 function requireDestinationState(
@@ -6160,7 +6404,7 @@ async function getFirstExplicitWorldTeamSnapshotFromLineage(
     const snapshot = await getDoc(worldTeamRef(lineageWorldId, teamCode));
     if (snapshot.exists()) {
       const normalizedTeam = toCurrentStateTeam(
-        snapshot.data() as MutationCurrentStateOfferSheetTeamInput | null,
+        snapshot.data() as MutationCurrentStateOfferSheetTeamIngress | null,
         'offerSheetResolution'
       );
       if (!normalizedTeam) {
@@ -6187,7 +6431,7 @@ async function getFirstExplicitWorldPlayerOverrideFromLineage(
     );
     if (overrideSnapshot.exists()) {
       const normalizedPlayer = toCurrentStatePlayer(
-        overrideSnapshot.data() as CurrentStatePlayerSnapshotIngress | null
+        overrideSnapshot.data() as MutationCurrentStatePlayerIngress | null
       );
       if (!normalizedPlayer) {
         continue;
@@ -6213,7 +6457,10 @@ async function resolveStoreOfferSheetAuthority({
 }) {
   const [offeringTeam, lineageWorldIds] = await Promise.all([
     getTeam(worldId, offeringTeamCode).then((team) =>
-      toCurrentStateTeam(team, 'signing')
+      toCurrentStateTeam(
+        team as MutationCurrentStateOfferSheetTeamIngress | null,
+        'signing'
+      )
     ),
     resolveWorldLineage(worldId),
   ]);
@@ -6316,7 +6563,7 @@ async function resolveStoreOfferSheetAuthority({
   }
 
   const canonicalPlayer = overrideEntry
-    ? toCurrentStatePlayer(
+    ? normalizeCurrentStatePlayerSnapshot(
         mergePlayerOverride(
           toLineageOverrideMergePlayer(resolvedOwner.snapshotPlayer),
           toLineageOverrideMergePlayer(overrideEntry.player)
@@ -6353,7 +6600,7 @@ export function extractTeamsByCodeFromComputeResult(
     addTeamSnapshot(
       teamsByCode,
       update?.teamCode,
-      toCurrentStateTeam(update?.team, 'trade')
+      normalizeCurrentStateTeamSnapshot(update?.team, 'trade')
     );
   }
   return teamsByCode;
@@ -7808,6 +8055,11 @@ export async function applyWorldMutation({
   if (!payload) {
     return buildMutationFailureResult('payload is required');
   }
+  if (!isSupportedComputeMutationType(mutationType)) {
+    return buildMutationFailureResult(
+      `Unknown mutation type: ${String(mutationType)}`
+    );
+  }
 
   // SECURITY: Strip override metadata if override is disabled
   // This prevents clients from bypassing validation by sending overrideMetadata
@@ -7836,7 +8088,7 @@ export async function applyWorldMutation({
     });
 
     // PHASE 2: COMPUTE (PURE) - Calculate mutation result
-    const computeResult: ComputeResultLike = computeWorldMutation({
+    const computeResult: ComputeResultLike = computeTypedWorldMutation({
       mutationType,
       payload: sanitizedPayload,
       currentState,
@@ -8538,6 +8790,13 @@ export async function preflightOfferSheetMutation({
  * @param {Object} payload
  * @returns {Promise<Object>} Current state needed for mutation
  */
+async function loadStateForMutation<
+  TMutationType extends SupportedComputeMutationType,
+>(
+  worldId: string,
+  mutationType: TMutationType,
+  payload: MutationPayloadLike
+): Promise<LoadedMutationCurrentStateByType[TMutationType]>;
 async function loadStateForMutation(
   worldId: string,
   mutationType: string,
@@ -8563,7 +8822,7 @@ async function loadStateForMutation(
         teams: teamCodes.map((code, i) => ({
           teamCode: code,
           team: toCurrentStateTeam(
-            (teamStates[i] as MutationCurrentStateTradeTeamInput | null) ||
+            (teamStates[i] as MutationCurrentStateTradeTeamIngress | null) ||
               null,
             'trade'
           ),
@@ -8587,13 +8846,19 @@ async function loadStateForMutation(
       let homeTeam = null;
       if (homeTeamCode && homeTeamCode !== teamCode) {
         homeTeam = toCurrentStateTeam(
-          await getTeam(worldId, homeTeamCode),
+          (await getTeam(
+            worldId,
+            homeTeamCode
+          )) as MutationCurrentStateOfferSheetTeamIngress | null,
           'offerSheetMirror'
         );
       }
 
       return {
-        team: toCurrentStateTeam(team, 'signing'),
+        team: toCurrentStateTeam(
+          team as MutationCurrentStateOfferSheetTeamIngress | null,
+          'signing'
+        ),
         player: toCurrentStatePlayer(player),
         teamCode,
         homeTeam,
@@ -8617,7 +8882,10 @@ async function loadStateForMutation(
       const team = await getTeam(worldId, teamCode);
       const player = await getPlayer(worldId, teamCode, playerId);
       return {
-        team: toCurrentStateTeam(team, 'playerOps'),
+        team: toCurrentStateTeam(
+          team as MutationCurrentStateBaseTeamIngress | null,
+          'playerOps'
+        ),
         player: toCurrentStatePlayer(player),
         teamCode,
       };
@@ -8670,12 +8938,25 @@ async function loadStateForMutation(
 
       return {
         homeTeam: isOfferSheetMirrorMutation
-          ? toCurrentStateTeam(homeTeam || null, 'offerSheetMirror')
-          : toCurrentStateTeam(homeTeam || null, 'offerSheetResolution'),
-        offeringTeam: isOfferSheetMirrorMutation
-          ? toCurrentStateTeam(offeringTeam || null, 'offerSheetMirror')
+          ? toCurrentStateTeam(
+              (homeTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
+                null,
+              'offerSheetMirror'
+            )
           : toCurrentStateTeam(
-              offeringTeam || null,
+              (homeTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
+                null,
+              'offerSheetResolution'
+            ),
+        offeringTeam: isOfferSheetMirrorMutation
+          ? toCurrentStateTeam(
+              (offeringTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
+                null,
+              'offerSheetMirror'
+            )
+          : toCurrentStateTeam(
+              (offeringTeam as MutationCurrentStateOfferSheetTeamIngress | null) ||
+                null,
               'offerSheetResolution'
             ),
         offerSheetId,
@@ -8696,11 +8977,11 @@ async function loadStateForMutation(
 
       return {
         team: toCurrentStateTeam(
-          (team as MutationCurrentStateTradeTeamInput | null) || null,
+          (team as MutationCurrentStateTradeTeamIngress | null) || null,
           'trade'
         ),
         destinationTeam: toCurrentStateTeam(
-          (destinationTeam as MutationCurrentStateTradeTeamInput | null) ||
+          (destinationTeam as MutationCurrentStateTradeTeamIngress | null) ||
             null,
           'trade'
         ),
@@ -8723,7 +9004,7 @@ async function loadStateForMutation(
       }
 
       const team = toCurrentStateTeam(
-        await getTeam(worldId, teamCode),
+        (await getTeam(worldId, teamCode)) as MutationCurrentStateBaseTeamIngress | null,
         'playerOps'
       );
       if (!team) {
@@ -8782,7 +9063,7 @@ async function loadStateForMutation(
       const { teamCode } = payload;
       if (!teamCode) throw new Error('Missing teamCode');
       const team = toCurrentStateTeam(
-        await getTeam(worldId, teamCode),
+        (await getTeam(worldId, teamCode)) as MutationCurrentStateBaseTeamIngress | null,
         'manualCap'
       );
       return { team, teamCode };
@@ -8792,7 +9073,7 @@ async function loadStateForMutation(
       const { teamCode } = payload;
       if (!teamCode) throw new Error('Missing teamCode');
       const team = toCurrentStateTeam(
-        await getTeam(worldId, teamCode),
+        (await getTeam(worldId, teamCode)) as MutationCurrentStateBaseTeamIngress | null,
         'manualCap'
       );
       return { team, teamCode };
@@ -8839,7 +9120,7 @@ function findPlayerInTeamPlayers(
 ): PlayerLike | null {
   const players = Array.isArray(team?.players)
     ? team.players
-        .map((player) => toCurrentStatePlayer(player))
+        .map((player) => normalizeCurrentStatePlayerSnapshot(player))
         .filter((player): player is PlayerLike => player !== null)
     : [];
   return players.find((player) => getMutationPlayerId(player) === playerId) || null;
@@ -8878,9 +9159,9 @@ function toPersistablePlayerOverrideFromNormalizedPlayer(
 }
 
 function toPersistablePlayerOverrideFromSnapshot(
-  player: CurrentStatePlayerSnapshotIngress | null | undefined
+  player: CurrentStatePlayerBoundaryInput | null | undefined
 ): PersistablePlayerOverride | null {
-  const normalizedPlayer = toCurrentStatePlayer(player);
+  const normalizedPlayer = normalizeCurrentStatePlayerSnapshot(player);
   if (!normalizedPlayer) {
     return null;
   }
