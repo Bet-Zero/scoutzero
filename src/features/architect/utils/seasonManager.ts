@@ -2060,7 +2060,8 @@ function updateDraftPicksWithStepien(
  * results (positionsMap).
  *
  * CRITICAL: This function is a NO-OP unless positionsMap is provided with
- * actual position data. Default behavior returns the team unchanged.
+ * actual position data. Default behavior returns a normalized carrier without
+ * resolving picks.
  *
  * Only processes picks that:
  * - Are first-round picks (round === 1)
@@ -2085,26 +2086,23 @@ export function resolveDraftPickSwapsForYear(
   positionsMap: Record<string, number> | null | undefined,
   opts: { nowIso?: string; method?: string } = {}
 ): DraftPickCarrier {
-  // Return team unchanged if no positions provided (NO-OP)
+  const carrier = toDraftPickCarrier(team);
+  const draftPicksSource = carrier.draftPicks;
+
+  // Return a normalized carrier if no positions are provided (NO-OP)
   if (
     !positionsMap ||
     typeof positionsMap !== 'object' ||
     Object.keys(positionsMap).length === 0
   ) {
-    return team as DraftPickCarrier;
+    return carrier;
   }
 
-  const carrier = toDraftPickCarrier(team);
-  const draftPicksSource = carrier.draftPicks;
-
-  // Return team unchanged if no draft picks
-  if (!draftPicksSource || !Array.isArray(draftPicksSource)) {
-    return team as DraftPickCarrier;
-  }
   if (draftPicksSource.length === 0) {
-    return hasDraftPickIngressArray(team)
-      ? { ...team, draftPicks: [] }
-      : (team as DraftPickCarrier);
+    return {
+      teamCode: carrier.teamCode,
+      draftPicks: [],
+    };
   }
 
   const nowIso = opts.nowIso;
@@ -2159,7 +2157,7 @@ export function resolveDraftPickSwapsForYear(
   });
 
   return {
-    ...team,
+    teamCode: carrier.teamCode,
     draftPicks: updatedPicks,
   };
 }
@@ -2170,9 +2168,9 @@ export function resolveDraftPickSwapsForYear(
  * This function processes picks with conveyance conditions and lottery results
  * to determine whether picks convey, roll forward, or convert.
  *
- * NO-OP conditions (returns team unchanged):
+ * NO-OP conditions (returns normalized carrier without resolving picks):
  * - positionsMap is null, undefined, or empty
- * - team has no draftPicks array
+ * - team has no normalized draft picks
  * - no picks match the specified draftYear with conveyance conditions
  *
  * This function mirrors the pattern of resolveDraftPickSwapsForYear()
@@ -2192,26 +2190,23 @@ export function resolveDraftPickConveyanceForYear(
   positionsMap: Record<string, number> | null | undefined,
   opts: { nowIso?: string; method?: string } = {}
 ): DraftPickCarrier {
-  // Return team unchanged if no positions provided (NO-OP)
+  const carrier = toDraftPickCarrier(team);
+  const draftPicksSource = carrier.draftPicks;
+
+  // Return a normalized carrier if no positions are provided (NO-OP)
   if (
     !positionsMap ||
     typeof positionsMap !== 'object' ||
     Object.keys(positionsMap).length === 0
   ) {
-    return team as DraftPickCarrier;
+    return carrier;
   }
 
-  const carrier = toDraftPickCarrier(team);
-  const draftPicksSource = carrier.draftPicks;
-
-  // Return team unchanged if no draft picks
-  if (!draftPicksSource || !Array.isArray(draftPicksSource)) {
-    return team as DraftPickCarrier;
-  }
   if (draftPicksSource.length === 0) {
-    return hasDraftPickIngressArray(team)
-      ? { ...team, draftPicks: [] }
-      : (team as DraftPickCarrier);
+    return {
+      teamCode: carrier.teamCode,
+      draftPicks: [],
+    };
   }
 
   const nowIso = opts.nowIso;
@@ -2256,7 +2251,7 @@ export function resolveDraftPickConveyanceForYear(
   });
 
   return {
-    ...team,
+    teamCode: carrier.teamCode,
     draftPicks: updatedPicks,
   };
 }
