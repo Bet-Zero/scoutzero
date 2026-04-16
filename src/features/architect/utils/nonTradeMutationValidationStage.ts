@@ -30,7 +30,7 @@ type StageValidationResult = {
   valid: boolean;
   error?: string | null;
   violations?: string[];
-  warnings?: unknown[];
+  warnings?: Array<Record<string, unknown>>;
 };
 
 type CurrentStateWithTeam = MutationCurrentState & {
@@ -87,7 +87,7 @@ function formatValidatorResult({
 }: {
   valid: boolean;
   violations: ValidationIssue[];
-  warnings?: unknown[];
+  warnings?: Array<Record<string, unknown>>;
 }): StageValidationResult {
   return {
     valid,
@@ -184,7 +184,7 @@ function validateSigningSideMutation({
   currentState: MutationCurrentState;
   currentYear: number;
   asOfDate?: string | null;
-  pipelineWarnings: unknown[];
+  pipelineWarnings: Array<Record<string, unknown>>;
 }): StageValidationResult {
   const { team, player } = requireTeamAndPlayerState(currentState, mutationType);
   const result = validateSigning({
@@ -386,7 +386,7 @@ function validateOfferSheetResolutionMutation({
   payload: MutationPayloadLike;
   currentState: MutationCurrentState;
   asOfDate?: string | null;
-  pipelineWarnings: unknown[];
+  pipelineWarnings: Array<Record<string, unknown>>;
 }): StageValidationResult {
   const { action, actingTeamCode, offerSheetId, offerSheet } =
     resolveOfferSheetResolutionInputs({
@@ -446,7 +446,7 @@ function validateManualCapMutation({
 }: {
   mutationType: string;
   payload: MutationPayloadLike;
-  pipelineWarnings: unknown[];
+  pipelineWarnings: Array<Record<string, unknown>>;
 }): StageValidationResult {
   if (mutationType === 'setDeadCap') {
     const result = validateDeadCap(payload.deadCap);

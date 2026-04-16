@@ -3,13 +3,13 @@ import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 type UnknownRecord = Record<string, unknown>;
 
 interface SyntheticSntPlayerLike extends UnknownRecord {
-  id?: any;
+  id?: string | number | null;
 }
 
 interface SyntheticSntTeamLike extends UnknownRecord {
-  teamCode?: any;
-  abbreviation?: any;
-  id?: any;
+  teamCode?: string | null;
+  abbreviation?: string | null;
+  id?: string | number | null;
   players?: SyntheticSntPlayerLike[] | null;
 }
 
@@ -17,12 +17,14 @@ interface SyntheticSntTeamSlotLike extends UnknownRecord {
   team?: SyntheticSntTeamLike | null;
 }
 
-type YearKeyLike = any;
+type YearKeyLike = number | string | null;
 
 export const DEV_SNT_INJECTOR_MARKER = '__tmDevSyntheticSnt';
 export const DEV_SNT_INJECTOR_FLAG = 'hz.dev.injectSntPlayers';
 
-export function isSyntheticSntPlayer(player: SyntheticSntPlayerLike | null | undefined) {
+export function isSyntheticSntPlayer(
+  player: SyntheticSntPlayerLike | null | undefined
+) {
   return Boolean(player?.[DEV_SNT_INJECTOR_MARKER]);
 }
 
@@ -53,7 +55,8 @@ export function buildSyntheticSntPlayers(
   team: SyntheticSntTeamLike | null | undefined,
   yearKey: YearKeyLike
 ) {
-  const sourceTeamCode = team?.teamCode || team?.abbreviation || team?.id || null;
+  const sourceTeamCode =
+    team?.teamCode || team?.abbreviation || team?.id || null;
   const endYear = resolveEndYear(yearKey);
   const season = toSeasonKey(endYear);
   const sourceSuffix = String(sourceTeamCode || 'team').toUpperCase();

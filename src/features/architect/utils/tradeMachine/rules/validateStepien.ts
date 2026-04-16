@@ -10,7 +10,9 @@ import type { TradeTeam } from '../constants/types';
 type StepienYearLike = number | string | null | undefined;
 type StepienRoundLike = number | string | null | undefined;
 type StepienTeamIdLike = string | number | null | undefined;
-type StepienWarningTerms = Partial<ReturnType<typeof normalizeEntitlementTerms>>;
+type StepienWarningTerms = Partial<
+  ReturnType<typeof normalizeEntitlementTerms>
+>;
 
 interface StepienPickLike {
   year?: StepienYearLike;
@@ -42,13 +44,20 @@ interface StepienTradeContext {
 interface StepienTeam
   extends Omit<
     TradeTeam,
-    'teamId' | 'team' | 'context' | 'postTradeStatus' | 'outgoingPicks' | 'picksOut'
+    | 'teamId'
+    | 'team'
+    | 'context'
+    | 'postTradeStatus'
+    | 'outgoingPicks'
+    | 'picksOut'
   > {
   teamId?: StepienTeamIdLike;
-  team?: (NonNullable<TradeTeam['team']> & {
-    id?: StepienTeamIdLike;
-    teamId?: StepienTeamIdLike;
-  }) | null;
+  team?:
+    | (NonNullable<TradeTeam['team']> & {
+        id?: StepienTeamIdLike;
+        teamId?: StepienTeamIdLike;
+      })
+    | null;
   context?: {
     yearKey?: number | string;
   };
@@ -312,7 +321,7 @@ export function validateStepien(
   );
   const baselineYears: StepienReservationEntry[] = baselinePicks.map((p) => ({
     year: p.year,
-    protection: null as any, // Entitlements don't carry protection at this level
+    protection: null, // Entitlements don't carry protection at this level
     isSwap: p.isSwap,
     swapType: p.swapType,
     _source: 'entitlement_baseline',
@@ -443,7 +452,8 @@ export function validateStepien(
     const hasOwnFrozenPick = picks.some((pick) => {
       const isFirstRound = pick.round === '1st' || pick.round === 1;
       const yearsOut =
-        toNumericYear(pick.year, currentYear) - toNumericYear(currentYear, 2025);
+        toNumericYear(pick.year, currentYear) -
+        toNumericYear(currentYear, 2025);
       const isFrozenPick = yearsOut >= 7; // 7+ years out, not exactly 7
       const isOwnPick =
         pick.originalTeam === teamId ||

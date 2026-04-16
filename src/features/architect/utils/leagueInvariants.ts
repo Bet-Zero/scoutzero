@@ -20,6 +20,26 @@ import {
   type LeagueClaimConflict,
 } from './entitlements/leagueClaimUniquenessGate';
 import type { EntitlementDocLike } from './entitlements/entitlementExclusivityValidator';
+import type { ComputeResultLike } from './mutationPipeline';
+
+type RawPlayerLike = {
+  player_id?: string | number | null;
+  id?: string | number | null;
+  playerId?: string | number | null;
+  displayName?: string | null;
+  name?: string | null;
+  playerName?: string | null;
+  bio?: {
+    playerId?: string | number | null;
+    displayName?: string | null;
+  } | null;
+};
+
+type RawTeamLike = {
+  teamCode?: string | null;
+  players?: RawPlayerLike[];
+  roster?: RawPlayerLike[];
+};
 
 /**
  * Player location info for duplicate detection
@@ -47,27 +67,32 @@ export interface LeagueInvariantResult {
  * Extract player ID from player object with fallback handling.
  * Handles inconsistent player object schemas across the codebase.
  */
-function extractPlayerId(player: any): string | null {
+function extractPlayerId(
+  player: RawPlayerLike | null | undefined
+): string | null {
   if (!player) return null;
-  return (
-    player.player_id ||
-    player.id ||
-    player.playerId ||
-    player.bio?.playerId ||
-    null
-  );
+  const raw =
+    player.player_id ??
+    player.id ??
+    player.playerId ??
+    player.bio?.playerId ??
+    null;
+  return raw !== null && raw !== undefined ? String(raw) : null;
 }
 
 /**
  * Extract player name from player object for error messages.
  */
-function extractPlayerName(player: any): string | null {
+function extractPlayerName(
+  player: RawPlayerLike | null | undefined
+): string | null {
   if (!player) return null;
   return (
-    player.displayName ||
-    player.name ||
-    player.playerName ||
-    player.bio?.displayName ||
+    (player.displayName ||
+      player.name ||
+      player.playerName ||
+      player.bio?.displayName ||
+      null) ??
     null
   );
 }
@@ -77,24 +102,26 @@ function extractPlayerName(player: any): string | null {
  * @param team - Team object with players array
  * @returns Array of player locations (playerId, teamCode, playerName)
  */
-function collectPlayersFromTeam(team: any): PlayerLocation[] {
+function collectPlayersFromTeam(
+  team: RawTeamLike | null | undefined
+): PlayerLocation[] {
   const teamCode = team?.teamCode;
   if (!teamCode) return [];
 
   const players = team?.players || team?.roster || [];
   if (!Array.isArray(players)) return [];
 
-  return players.flatMap((player: any): PlayerLocation[] => {
-      const playerId = extractPlayerId(player);
-      if (!playerId) return [];
-      return [
-        {
-          playerId,
-          teamCode,
-          playerName: extractPlayerName(player) || undefined,
-        },
-      ];
-    });
+  return players.flatMap((player: RawPlayerLike): PlayerLocation[] => {
+    const playerId = extractPlayerId(player);
+    if (!playerId) return [];
+    return [
+      {
+        playerId,
+        teamCode,
+        playerName: extractPlayerName(player) || undefined,
+      },
+    ];
+  });
 }
 
 /**
@@ -105,7 +132,7 @@ function collectPlayersFromTeam(team: any): PlayerLocation[] {
  * @returns Validation result with duplicates if any found
  */
 export function validateNoDuplicatePlayers(
-  teams: any[]
+  teams: any[] // load-bearing: called with allTeams from getLeague() whose roster field (string[]) conflicts with RawPlayerLike[] at compile time
 ): LeagueInvariantResult {
   const playerMap = new Map<string, { teams: string[]; playerName?: string }>();
 
@@ -250,7 +277,7 @@ export async function assertLeagueIntegrity(
  */
 export function extractIncomingPlayers(
   mutationType: string,
-  payload: any
+  payload: any // load-bearing: accesses legacy payload.teams[].receiving and .playersReceiving not in ArchitectMutationPayload
 ): Array<{ playerId: string; targetTeamCode: string; playerName?: string }> {
   const incomingPlayers: Array<{
     playerId: string;
@@ -344,31 +371,30 @@ export function extractIncomingPlayers(
 export async function validateMutationLeagueInvariants(
   worldId: string,
   mutationType: string,
-  payload: any,
-  computeResult?: any
+  payload: any, // load-bearing: accesses legacy payload.teams[].receiving and .playersReceiving not in ArchitectMutationPayload
+  computeResult?: ComputeResultLike
 ): Promise<LeagueInvariantResult> {
   // For trades, we need to validate the POST-trade state, not current state
   // The compute phase has already moved players, so we validate the result
   if (mutationType === 'executeTrade' && computeResult?.teamUpdates) {
     // Extract all player locations from post-trade team states
     const postTradeTeams = computeResult.teamUpdates.map(
-      (update: any) => update.team
+      (update) => update.team
     );
 
     // We also need teams NOT involved in the trade to check against
     // Load full league and replace with post-trade states
     const allTeams = await getLeague(worldId);
     const updatedTeamCodes = new Set(
-      computeResult.teamUpdates.map((u: any) => u.teamCode)
+      computeResult.teamUpdates.map((u) => u.teamCode)
     );
 
     // Build combined team list: post-trade for involved teams, current for others
-    const combinedTeams = allTeams.map((team: any) => {
+    const combinedTeams = allTeams.map((team) => {
       if (updatedTeamCodes.has(team.teamCode)) {
         return (
-          computeResult.teamUpdates.find(
-            (u: any) => u.teamCode === team.teamCode
-          )?.team || team
+          computeResult.teamUpdates.find((u) => u.teamCode === team.teamCode)
+            ?.team || team
         );
       }
       return team;
@@ -494,7 +520,7 @@ export function validateNoDuplicateEntitlements(
 export async function validateMutationEntitlementInvariants(
   worldId: string,
   mutationType: string,
-  computeResult?: any
+  computeResult?: ComputeResultLike
 ): Promise<EntitlementInvariantResult> {
   // Only validate for trades (the primary way entitlements can move)
   if (mutationType !== 'executeTrade' || !computeResult?.teamUpdates) {
@@ -504,14 +530,14 @@ export async function validateMutationEntitlementInvariants(
   // Load full league and replace with post-trade states
   const allTeams = await getLeague(worldId);
   const updatedTeamCodes = new Set(
-    computeResult.teamUpdates.map((u: any) => u.teamCode)
+    computeResult.teamUpdates.map((u) => u.teamCode)
   );
 
   // Build combined team list: post-trade for involved teams, current for others
-  const combinedTeams = allTeams.map((team: any) => {
+  const combinedTeams = allTeams.map((team) => {
     if (updatedTeamCodes.has(team.teamCode)) {
       return (
-        computeResult.teamUpdates.find((u: any) => u.teamCode === team.teamCode)
+        computeResult.teamUpdates.find((u) => u.teamCode === team.teamCode)
           ?.team || team
       );
     }
@@ -723,7 +749,7 @@ export interface TradeApplyExclusivityResult {
 export async function validateTradeApplyExclusivity(
   worldId: string,
   mutationType: string,
-  computeResult?: any
+  computeResult?: ComputeResultLike
 ): Promise<TradeApplyExclusivityResult> {
   // Only validate for trades (the primary way entitlements change ownership)
   if (

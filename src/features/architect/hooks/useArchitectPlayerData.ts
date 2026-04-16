@@ -25,11 +25,11 @@ const useArchitectPlayerData = () => {
 
     // Subscribe to real-time updates via data-layer util
     const unsubscribe = subscribeArchitectPlayerData({
-      onData: (playerData: any[]) => {
+      onData: (playerData) => {
         setPlayers(playerData);
         setLoading(false);
       },
-      onError: (err: any) => {
+      onError: (err) => {
         console.error('Architect player data error:', err);
         setError(err?.message ?? String(err));
         setLoading(false);

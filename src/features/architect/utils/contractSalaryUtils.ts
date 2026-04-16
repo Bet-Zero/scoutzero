@@ -7,9 +7,13 @@
  *  - 2026-03-12: Migrated authoritative implementation to TypeScript for E59.
  */
 
-import { toEndYear, toSeasonCode } from './seasonFormat';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 
-type NumericLike = any;
+// NumericLike: salary fields may be number or string from legacy contracts; typed as any to permit arithmetic comparisons
+type NumericLike = any; // load-bearing: callers use directly in arithmetic; intent is number|string|null|undefined
 type SalaryYearEntryLike = {
   season?: unknown;
   salary?: NumericLike;
@@ -30,7 +34,8 @@ type PlayerLike = {
   currentSalary?: NumericLike;
   [key: string]: unknown;
 };
-type SeasonLookupValue = any;
+// SeasonLookupValue accepts any; functions use String()/parseInt() internally, so all inputs are safe
+type SeasonLookupValue = any; // load-bearing: callers pass unknown season values
 
 export function getContractSalaryForYear(
   player: PlayerLike | null | undefined,
@@ -83,7 +88,11 @@ export function getSalaryWithFallback(
     );
   }
 
-  const fallbackSources = [player.newSalary, player.salary, player.currentSalary];
+  const fallbackSources = [
+    player.newSalary,
+    player.salary,
+    player.currentSalary,
+  ];
   for (const source of fallbackSources) {
     if (source != null) {
       const numericValue = Number(source);

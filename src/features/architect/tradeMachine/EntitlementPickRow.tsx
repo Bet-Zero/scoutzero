@@ -13,7 +13,10 @@ import {
   projectEntitlementToPickRow,
   getPickRowDisplayLabel,
   getPickRowSecondaryText,
+  type PickRow,
+  type ProjectionOptions,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
+import type { EffectiveEntitlement } from '@/features/architect/utils/entitlements/entitlementResolver';
 import { AlertTriangle, Info, Layers, Link2, GitBranch } from 'lucide-react';
 import TeamLogo from '@/shared/components/TeamLogo';
 
@@ -36,15 +39,6 @@ type TeamOptionLike = {
   teamCode?: string;
 };
 
-type PickRowLike = {
-  originalTeam?: string;
-  year?: string | number;
-  round?: string | number;
-  _debug?: {
-    sourceHints?: unknown;
-  };
-};
-
 interface EntitlementPickRowProps {
   entitlement: EntitlementLike;
   teamId: string;
@@ -53,10 +47,12 @@ interface EntitlementPickRowProps {
   pickRulesById?: Record<string, unknown>;
   otherTeams?: TeamOptionLike[];
   currentToTeamId?: string | null;
-  onSetDestination?: ((
-    entitlementId: string | number | undefined,
-    toTeamId: string | undefined
-  ) => void) | null;
+  onSetDestination?:
+    | ((
+        entitlementId: string | number | undefined,
+        toTeamId: string | undefined
+      ) => void)
+    | null;
   onEdit?: ((entitlement: EntitlementLike) => void) | null;
   onViewDetails?: ((entitlement: EntitlementLike) => void) | null;
   openMenu?: string | number | null;
@@ -108,15 +104,20 @@ const EntitlementPickRow = ({
 
   if (!entitlement) return null;
 
-  const pickRow = projectEntitlementToPickRow(entitlement as never, {
-    teamCode: teamId,
-    pickRulesById,
-  } as never) as PickRowLike;
-  const pickRowLabel = getPickRowDisplayLabel(pickRow as never);
-  const secondaryText = getPickRowSecondaryText(pickRow as never);
+  // EntitlementLike is a loose local type; cast via EffectiveEntitlement (= Record<string,unknown>)
+  // so the structural contract is satisfied without widening or breaking the component's prop types.
+  const pickRow = projectEntitlementToPickRow(
+    entitlement as unknown as EffectiveEntitlement,
+    {
+      teamCode: teamId,
+      pickRulesById,
+    } as ProjectionOptions
+  );
+  const pickRowLabel = getPickRowDisplayLabel(pickRow);
+  const secondaryText = getPickRowSecondaryText(pickRow);
 
-  const label = formatEntitlementLabel(entitlement as never);
-  const kindTag = getEntitlementKindTag(entitlement.kind as never);
+  const label = formatEntitlementLabel(entitlement);
+  const kindTag = getEntitlementKindTag(entitlement.kind);
   const isEncumbered = entitlement.underlyingStatus === 'encumbered';
   const isPooled = entitlement.underlyingStatus === 'pooled';
   const isSessionOnly =
@@ -307,7 +308,9 @@ const EntitlementPickRow = ({
                   otherTeams.map((t) => (
                     <button
                       key={t.id || t.teamCode || 'team-option'}
-                      onClick={() => handleTradeToTeam(t.id || t.teamCode || '')}
+                      onClick={() =>
+                        handleTradeToTeam(t.id || t.teamCode || '')
+                      }
                       className="block w-full text-left px-3 py-1.5 hover:bg-[#333] truncate"
                     >
                       {isSelected && currentToTeamId === t.id

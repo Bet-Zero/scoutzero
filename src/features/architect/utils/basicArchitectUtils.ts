@@ -19,9 +19,11 @@ export default getCapPercentage;
 // Hard cap trigger tracking
 export function markHardCapTriggered(
   teamSeasonState: LooseRecord = {},
-  { reason, season }: { reason: any; season: any }
+  { reason, season }: { reason: unknown; season: unknown }
 ): LooseRecord {
-  const current = teamSeasonState.hardCapFirstApron as { active?: boolean } | undefined;
+  const current = teamSeasonState.hardCapFirstApron as
+    | { active?: boolean }
+    | undefined;
   if (current?.active) return teamSeasonState;
   teamSeasonState.hardCapFirstApron = { active: true, reason, season };
   return teamSeasonState;
@@ -45,7 +47,10 @@ export const CBA_MECHANICS = {
 };
 
 // Default draft picks generation
-export const generateDefaultPicks = (): Array<{ year: number; round: string }> => {
+export const generateDefaultPicks = (): Array<{
+  year: number;
+  round: string;
+}> => {
   const years = [2026, 2027, 2028, 2029, 2030, 2031, 2032];
   const picks: Array<{ year: number; round: string }> = [];
   years.forEach((year) => {

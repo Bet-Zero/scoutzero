@@ -8,6 +8,7 @@ import { validationCache } from '../cache/validationCacheService';
 import { debug } from './engineUtils';
 import tradeDebug from './tradeDebug';
 
+// any[] is intentional: variadic generic must accept heterogeneous argument tuples across all validator types
 type ValidatorFunction<TArgs extends any[] = any[], TResult = unknown> = (
   ...args: TArgs
 ) => TResult;
@@ -18,11 +19,10 @@ type WrappedValidatorMap<T extends ValidatorMap> = {
   [K in keyof T]: (...args: Parameters<T[K]>) => ReturnType<T[K]>;
 };
 
-type TrackedValidatorFunction<
-  TTeam,
-  TArgs extends unknown[],
-  TResult,
-> = (team: TTeam, ...args: TArgs) => TResult;
+type TrackedValidatorFunction<TTeam, TArgs extends unknown[], TResult> = (
+  team: TTeam,
+  ...args: TArgs
+) => TResult;
 
 interface TrackedValidatorCacheConfig<TTeam, TResult> {
   getCachedResult?: (team: TTeam) => TResult | null | undefined;
@@ -73,9 +73,9 @@ function wrapValidator<T extends ValidatorMap, K extends keyof T>(
 
     try {
       const cacheKey = `${validatorName}-${JSON.stringify(args)}`;
-      const cached = validationCache.getCachedResult(
-        cacheKey
-      ) as ReturnType<T[K]> | null;
+      const cached = validationCache.getCachedResult(cacheKey) as ReturnType<
+        T[K]
+      > | null;
 
       if (cached) {
         debug.log(`Cache hit for ${validatorName}`);
@@ -118,11 +118,7 @@ export function wrapCommonValidators<T extends ValidatorMap>(
 /**
  * Creates a tracked validator with caching capabilities
  */
-export function createTrackedValidator<
-  TTeam,
-  TArgs extends unknown[],
-  TResult,
->(
+export function createTrackedValidator<TTeam, TArgs extends unknown[], TResult>(
   validator: TrackedValidatorFunction<TTeam, TArgs, TResult>,
   cacheConfig?: TrackedValidatorCacheConfig<TTeam, TResult>
 ): TrackedValidatorFunction<TTeam, TArgs, TResult> {
@@ -177,9 +173,8 @@ export const validatorDebug: ValidatorDebugState = {
 /**
  * Template for standardized validator modules (from templateValidator.js)
  */
-export function validateTemplateRule(
-  /* team , tradeCtx = {} */
-): TemplateRuleResult {
+export function validateTemplateRule(): TemplateRuleResult {
+/* team , tradeCtx = {} */
   const violations: string[] = [];
 
   return {

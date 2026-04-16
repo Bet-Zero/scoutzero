@@ -90,7 +90,9 @@ interface TradeEditorProps {
   capProjections?: Record<string, unknown> | null;
   currentYear?: number | null;
   playersMap?: Record<string, unknown>;
-  onApplyTrade?: ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown) | null;
+  onApplyTrade?:
+    | ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown)
+    | null;
   primaryTeamData?: TeamLike | null;
   onEditContract?: ((...args: unknown[]) => unknown) | null;
   worldId?: string | null;
@@ -231,7 +233,9 @@ const TradeEditor = ({
     return merged;
   }, [teams]);
 
-  const handleEditEntitlement = (entitlement: EntitlementLike | null | undefined) => {
+  const handleEditEntitlement = (
+    entitlement: EntitlementLike | null | undefined
+  ) => {
     if (!canEditEntitlements) {
       toast.error('Entitlement authoring is disabled.');
       return;
@@ -284,7 +288,9 @@ const TradeEditor = ({
   /**
    * Handle viewing entitlement details - shows a toast with parsed entitlement info
    */
-  const handleViewEntitlementDetails = (entitlement: EntitlementLike | null | undefined) => {
+  const handleViewEntitlementDetails = (
+    entitlement: EntitlementLike | null | undefined
+  ) => {
     if (!entitlement) return;
 
     const year = entitlement.seasonYear || entitlement.year || '?';
@@ -331,7 +337,9 @@ const TradeEditor = ({
   }, [containerWidth, teams.length]);
   const compact = layoutMode !== 'normal';
 
-  const currentPreviewAuthority = hasCurrentValidation ? previewAuthority : null;
+  const currentPreviewAuthority = hasCurrentValidation
+    ? previewAuthority
+    : null;
   const currentSnapshotValidationDetails = hasCurrentValidation
     ? snapshotValidationDetails
     : null;
@@ -340,8 +348,11 @@ const TradeEditor = ({
     currentPreviewAuthority?.violations?.[0]?.message ||
     'Trade validation failed';
   const previewOverrideRequested = Boolean(
-    (currentSnapshotValidationDetails?.override as Record<string, unknown> | undefined)
-      ?.requested
+    (
+      currentSnapshotValidationDetails?.override as
+        | Record<string, unknown>
+        | undefined
+    )?.requested
   );
   const previewHasApplyTimeWorldChecks =
     Array.isArray(currentPreviewAuthority?.omittedStages) &&
@@ -353,10 +364,13 @@ const TradeEditor = ({
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_SNT_INJECTOR_FLAG) === 'true';
 
-  const resolveEntitlementTeamCode = (entitlement: EntitlementLike | null | undefined) =>
-    entitlement?.holderTeam || entitlement?.holder_team || null;
+  const resolveEntitlementTeamCode = (
+    entitlement: EntitlementLike | null | undefined
+  ) => entitlement?.holderTeam || entitlement?.holder_team || null;
 
-  const handleRevertEntitlementEdit = (entitlement: EntitlementLike | null | undefined) => {
+  const handleRevertEntitlementEdit = (
+    entitlement: EntitlementLike | null | undefined
+  ) => {
     if (!isVacuumMode) return;
     const entitlementId = entitlement?.id || entitlement?.entitlementId;
     const teamCode = resolveEntitlementTeamCode(entitlement);
@@ -375,7 +389,9 @@ const TradeEditor = ({
     toast.success('Session edit reverted');
   };
 
-  const handleDeleteSessionEntitlement = (entitlement: EntitlementLike | null | undefined) => {
+  const handleDeleteSessionEntitlement = (
+    entitlement: EntitlementLike | null | undefined
+  ) => {
     if (!isVacuumMode) return;
     const entitlementId = entitlement?.id || entitlement?.entitlementId;
     const teamCode = resolveEntitlementTeamCode(entitlement);
@@ -444,14 +460,17 @@ const TradeEditor = ({
     const destinationTradeTeam = teams.find((tm) => {
       const teamId =
         tm?.team?.id || tm?.team?.teamCode || tm?.team?.teamId || null;
-      const teamCode = teamId ? resolveTeamCode(String(teamId)) || teamId : null;
+      const teamCode = teamId
+        ? resolveTeamCode(String(teamId)) || teamId
+        : null;
       return teamCode === canonicalDestinationTeamCode;
     });
     const destinationTradeTeamId = String(
       destinationTradeTeam?.team?.id ||
-      destinationTradeTeam?.team?.teamCode ||
-      destinationTradeTeam?.team?.teamId ||
-      canonicalDestinationTeamCode);
+        destinationTradeTeam?.team?.teamCode ||
+        destinationTradeTeam?.team?.teamId ||
+        canonicalDestinationTeamCode
+    );
 
     const contractValidation = validateSignAndTradeContractPayload(
       contractPayload,
@@ -581,7 +600,8 @@ const TradeEditor = ({
               <TradeTeamCard
                 compact={compact}
                 validationResult={
-                  (currentSnapshotValidationDetails ?? null) as TradeTeamCardProps['validationResult']
+                  (currentSnapshotValidationDetails ??
+                    null) as TradeTeamCardProps['validationResult']
                 }
                 teamIndex={idx}
                 team={
@@ -617,8 +637,14 @@ const TradeEditor = ({
                 yearKey={yearKey}
                 otherTeams={otherTeams as TradeTeamCardProps['otherTeams']}
                 playersMap={playersMap}
-                onSetPlayerTrade={(p: any, action: any, dest: any, meta: any) =>
-                  setPlayerTrade(idx, p, action, dest, meta)
+                onSetPlayerTrade={(p, action, dest, meta) =>
+                  setPlayerTrade(
+                    idx,
+                    p as Record<string, unknown>,
+                    action,
+                    dest ?? null,
+                    (meta as Record<string, unknown>) ?? null
+                  )
                 }
                 onRequestSignAndTrade={(player, defaultDestinationTeamId) =>
                   openTradeMachineSatModal(
@@ -628,7 +654,9 @@ const TradeEditor = ({
                   )
                 }
                 // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
-                onUndoPlayerTrade={undoPlayerTrade as (...args: unknown[]) => void}
+                onUndoPlayerTrade={
+                  undoPlayerTrade as (...args: unknown[]) => void
+                }
                 onSelectTeam={(teamId) => selectTeam(idx, teamId)}
                 onRemove={() => removeTeam(idx)}
                 onEditContract={onEditContract}
@@ -659,13 +687,12 @@ const TradeEditor = ({
               return;
             }
             if (currentPreviewAuthority?.legal !== true) {
-              alert(
-                'Cannot apply trade: ' +
-                  previewAuthorityReason
-              );
+              alert('Cannot apply trade: ' + previewAuthorityReason);
               return;
             }
-            const tradeData = exportCurrentTrade() as TradeDataEntryLike[] | null;
+            const tradeData = exportCurrentTrade() as
+              | TradeDataEntryLike[]
+              | null;
             if (onApplyTrade && tradeData) {
               // TM-PICKS-E1: In vacuum/sandbox mode, persist entitlement transfers to localStorage
               // so they survive page refresh. World mode persists via mutation pipeline.
@@ -711,9 +738,9 @@ const TradeEditor = ({
 
         {canApplyTrade && previewHasApplyTimeWorldChecks && (
           <span className="text-xs text-yellow-400/50">
-            All local preview checks passed. World-state checks (duplicate players,
-            entitlement conflicts, exclusivity) run at apply time and may still
-            reject this trade.
+            All local preview checks passed. World-state checks (duplicate
+            players, entitlement conflicts, exclusivity) run at apply time and
+            may still reject this trade.
           </span>
         )}
 
@@ -737,7 +764,9 @@ const TradeEditor = ({
       <ValidationDetailsPanel
         hasValidatorResult={hasCurrentValidation}
         isValidating={isValidating}
-        previewAuthority={currentPreviewAuthority as ValidationDetailsPanelProps['previewAuthority']}
+        previewAuthority={
+          currentPreviewAuthority as ValidationDetailsPanelProps['previewAuthority']
+        }
         snapshotValidationDetails={
           currentSnapshotValidationDetails as ValidationDetailsPanelProps['snapshotValidationDetails']
         }
@@ -757,10 +786,16 @@ const TradeEditor = ({
       />
 
       <TradePreviewModal
-        open={previewOpen && !!currentPreviewAuthority && !!currentSnapshotValidationDetails}
+        open={
+          previewOpen &&
+          !!currentPreviewAuthority &&
+          !!currentSnapshotValidationDetails
+        }
         onClose={() => setPreviewOpen(false)}
         teams={teams as TradePreviewModalProps['teams']}
-        previewAuthority={currentPreviewAuthority as TradePreviewModalProps['previewAuthority']}
+        previewAuthority={
+          currentPreviewAuthority as TradePreviewModalProps['previewAuthority']
+        }
         snapshotValidationDetails={
           currentSnapshotValidationDetails as TradePreviewModalProps['snapshotValidationDetails']
         }
@@ -770,7 +805,11 @@ const TradeEditor = ({
       {entitlementEditorState && (
         <PickRightWizardModal
           worldId={worldId}
-          entitlementId={entitlementEditorState.entitlementId as never}
+          entitlementId={
+            entitlementEditorState.entitlementId != null
+              ? String(entitlementEditorState.entitlementId)
+              : undefined
+          }
           initialDocument={entitlementEditorState.initialDocument}
           userId={userId}
           vacuumMode={isVacuumMode}

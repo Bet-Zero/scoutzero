@@ -11,8 +11,7 @@ import {
 
 type YearKeyLike = string | number;
 
-type TradeAssetLike = {
-};
+type TradeAssetLike = {};
 
 type TeamLike = {
   id?: string;
@@ -47,7 +46,9 @@ const CapImpactTiles = ({
   if (!team) return null;
 
   const baselineTotals = useMemo(
-    () => computeTeamCapTotals(team as Record<string, unknown>, yearKey as never),
+    // yearKey as never: JS-migrated utils expect branded SeasonId; number|string is compatible at runtime
+    () =>
+      computeTeamCapTotals(team as Record<string, unknown>, yearKey as never),
     [team, yearKey]
   );
 
@@ -63,14 +64,14 @@ const CapImpactTiles = ({
     () => ({
       isFirstApronHardCapped: isHardCappedAtFirstApron(
         team as Record<string, unknown>,
-        yearKey as never
+        yearKey as never // yearKey: JS-migrated util expects branded SeasonId
       ),
       isSecondApronHardCapped: isHardCappedAtSecondApron(
         team as Record<string, unknown>
       ),
       firstApronReason: isHardCappedAtFirstApron(
         team as Record<string, unknown>,
-        yearKey as never
+        yearKey as never // same: SeasonId mismatch
       )
         ? getFirstApronHardCapReason(team as Record<string, unknown>)
         : '',
@@ -85,6 +86,7 @@ const CapImpactTiles = ({
 
   const { salaryOut, salaryIn } = useMemo(
     () => ({
+      // sends/incomingPlayers as never: JS array types not assignable to internal player list shape
       salaryOut: getSalaryForYear(sends as never, yearKey as never),
       salaryIn: getSalaryForYear(incomingPlayers as never, yearKey as never),
     }),

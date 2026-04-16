@@ -19,20 +19,20 @@ type HardCapStructuredFlag = {
 } | null;
 
 type HardCapUsageEntryLike = {
-  usedAmount?: unknown;
-  used?: unknown;
-  remainingAmount?: unknown;
-  remaining?: unknown;
-  totalAmount?: unknown;
-  amount?: unknown;
+  usedAmount?: number | string | null;
+  used?: number | string | null;
+  remainingAmount?: number | string | null;
+  remaining?: number | string | null;
+  totalAmount?: number | string | null;
+  amount?: number | string | null;
   [key: string]: unknown;
 } | null;
 
 type HardCapExceptionBucketLike = {
-  type?: unknown;
-  used?: unknown;
-  remaining?: unknown;
-  amount?: unknown;
+  type?: string | null;
+  used?: number | string | null;
+  remaining?: number | string | null;
+  amount?: number | string | null;
   [key: string]: unknown;
 };
 
@@ -46,16 +46,16 @@ type HardCapCapSettingsLike = {
 type HardCapStatusTeamData = {
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
-  hardCapType?: unknown;
-  hardCapLevel?: unknown;
-  hardCapTriggered?: unknown;
-  hardCapped?: unknown;
+  hardCapType?: string | boolean | number | null;
+  hardCapLevel?: string | number | null;
+  hardCapTriggered?: boolean | string | null;
+  hardCapped?: boolean | string | number | null;
   exceptions?: Record<string, unknown> | null;
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
   faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
   totals?: {
-    hardCapLevel?: unknown;
+    hardCapLevel?: string | number | null;
     [key: string]: unknown;
   } | null;
   [key: string]: unknown;
@@ -65,16 +65,16 @@ type HardCapStatusTeamLike = {
   team?: HardCapStatusTeamData;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
-  hardCapType?: unknown;
-  hardCapLevel?: unknown;
-  hardCapTriggered?: unknown;
-  hardCapped?: unknown;
+  hardCapType?: string | boolean | number | null;
+  hardCapLevel?: string | number | null;
+  hardCapTriggered?: boolean | string | null;
+  hardCapped?: boolean | string | number | null;
   exceptions?: Record<string, unknown> | null;
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
   faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
   totals?: {
-    hardCapLevel?: unknown;
+    hardCapLevel?: string | number | null;
     [key: string]: unknown;
   } | null;
   [key: string]: unknown;

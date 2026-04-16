@@ -50,7 +50,9 @@ const TradeExceptionDashboard = ({
       (team) =>
         team.createdTPE ||
         team.existingTPEs.length > 0 ||
-        team.incomingPlayers.some((player) => player.absorptionMode === 'TPE') ||
+        team.incomingPlayers.some(
+          (player) => player.absorptionMode === 'TPE'
+        ) ||
         team.tradeExceptionViolations.length > 0 ||
         team.tradeExceptionWarnings.length > 0
     );
@@ -107,7 +109,7 @@ const TradeExceptionDashboard = ({
               <div className="text-xs text-blue-400 font-medium mb-1">
                 💼 Existing Trade Exceptions
               </div>
-              {team.existingTPEs.map((tpe: any, tpeIndex: number) => (
+              {team.existingTPEs.map((tpe, tpeIndex: number) => (
                 <div key={tpeIndex} className="text-xs text-white/80 mb-1 pl-2">
                   <span className="font-mono">
                     {formatCurrency(tpe.amount || 0)}
@@ -125,7 +127,9 @@ const TradeExceptionDashboard = ({
             </div>
           )}
 
-          {team.incomingPlayers.some((player) => player.absorptionMode === 'TPE') && (
+          {team.incomingPlayers.some(
+            (player) => player.absorptionMode === 'TPE'
+          ) && (
             <div className="mb-3 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
               <div className="text-xs text-yellow-400 font-medium mb-1">
                 🔄 TPE Usage
@@ -146,11 +150,13 @@ const TradeExceptionDashboard = ({
               <div className="text-xs text-red-300 font-medium mb-1">
                 Trade Exception Blockers
               </div>
-              {team.tradeExceptionViolations.map((violation, violationIndex) => (
-                <div key={violationIndex} className="text-xs text-white/80">
-                  {getValidationIssueText(violation)}
-                </div>
-              ))}
+              {team.tradeExceptionViolations.map(
+                (violation, violationIndex) => (
+                  <div key={violationIndex} className="text-xs text-white/80">
+                    {getValidationIssueText(violation)}
+                  </div>
+                )
+              )}
             </div>
           )}
 

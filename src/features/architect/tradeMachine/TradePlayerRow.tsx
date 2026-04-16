@@ -61,7 +61,9 @@ interface TradePlayerRowProps {
   sourceTeamId?: string | null;
   sourceTeamCapHolds?: unknown[];
   worldId?: string | null;
-  onRequestSignAndTrade?: ((player: PlayerLike, teamId?: string) => void) | null;
+  onRequestSignAndTrade?:
+    | ((player: PlayerLike, teamId?: string) => void)
+    | null;
   compact?: boolean;
 }
 
@@ -128,12 +130,13 @@ const TradePlayerRow = ({
     typeof yearKey === 'number'
       ? yearKey
       : parseInt(String(yearKey).match(/\d{4}/)?.[0] || '', 10);
+  // player/yearKey as never: JS-migrated utils expect internal player shape not assignable from PlayerLike
   const salary = getSalaryWithFallback(player as never, yearKey as never);
   const yearsLeft = getYearsRemainingDisplay({
     player,
     currentYear: year,
     primaryContract,
-  } as never);
+  } as never); // as never: display helper expects separate player/contract args, not this combined props object
   const position =
     getPlayerPositionLabel(
       player.bio?.position ||
@@ -149,7 +152,7 @@ const TradePlayerRow = ({
         sourceTeamId,
         worldId,
         sourceTeamCapHolds,
-      } as never),
+      } as never), // as never: context object shape doesn't match S&T eligibility checker's internal input type
     [player, yearKey, sourceTeamId, worldId, sourceTeamCapHolds]
   );
 
@@ -231,18 +234,17 @@ const TradePlayerRow = ({
                       : `Trade to ${t.teamName}`}
                   </button>
                 ))}
-              {!incoming &&
-                canOfferSignAndTrade && (
-                  <button
-                    onClick={() => {
-                      onRequestSignAndTrade?.(player, otherTeams[0]?.id);
-                      setOpenMenu(null);
-                    }}
-                    className="block w-full text-left px-3 py-1 hover:bg-[#333]"
-                  >
-                    Sign-and-Trade
-                  </button>
-                )}
+              {!incoming && canOfferSignAndTrade && (
+                <button
+                  onClick={() => {
+                    onRequestSignAndTrade?.(player, otherTeams[0]?.id);
+                    setOpenMenu(null);
+                  }}
+                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+                >
+                  Sign-and-Trade
+                </button>
+              )}
               {(included || incoming) && (
                 <button
                   onClick={() => {
@@ -264,8 +266,11 @@ const TradePlayerRow = ({
                 Modify Contract
               </button>
               <button
-                onClick={() =>
-                  (window.location.href = getPlayerProfileUrl(player as never))
+                onClick={
+                  () =>
+                    (window.location.href = getPlayerProfileUrl(
+                      player as never
+                    )) // PlayerLike not assignable to getPlayerProfileUrl's expected player shape
                 }
                 className="block w-full text-left px-3 py-1 hover:bg-[#333]"
               >
@@ -389,18 +394,17 @@ const TradePlayerRow = ({
                 </button>
               ))}
 
-            {!incoming &&
-              canOfferSignAndTrade && (
-                <button
-                  onClick={() => {
-                    onRequestSignAndTrade?.(player, otherTeams[0]?.id);
-                    setOpenMenu(null);
-                  }}
-                  className="block w-full text-left px-3 py-1 hover:bg-[#333]"
-                >
-                  Sign-and-Trade
-                </button>
-              )}
+            {!incoming && canOfferSignAndTrade && (
+              <button
+                onClick={() => {
+                  onRequestSignAndTrade?.(player, otherTeams[0]?.id);
+                  setOpenMenu(null);
+                }}
+                className="block w-full text-left px-3 py-1 hover:bg-[#333]"
+              >
+                Sign-and-Trade
+              </button>
+            )}
 
             {(included || incoming) && (
               <button
@@ -425,8 +429,9 @@ const TradePlayerRow = ({
             </button>
 
             <button
-              onClick={() =>
-                (window.location.href = getPlayerProfileUrl(player as never))
+              onClick={
+                () =>
+                  (window.location.href = getPlayerProfileUrl(player as never)) // PlayerLike not assignable to getPlayerProfileUrl's expected player shape
               }
               className="block w-full text-left px-3 py-1 hover:bg-[#333]"
             >

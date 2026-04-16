@@ -18,10 +18,7 @@ import { isValidSeasonId } from './seasonHelpers';
 import { toEndYear } from './seasonFormat';
 import capProjections from './capProjections';
 import { DEFAULT_AVERAGE_SALARY } from './cbaConstants';
-import { 
-  getScaleForSeason, 
-  getLatestScale
-} from '../data/minimumSalaryScales';
+import { getScaleForSeason, getLatestScale } from '../data/minimumSalaryScales';
 
 /**
  * Type for raw cap projection data from capProjections.js
@@ -44,7 +41,10 @@ interface RawCapProjection {
 /**
  * Helper to sort seasons numerically by start year
  */
-function sortSeasonsByStartYear(seasons: SeasonId[], descending = false): SeasonId[] {
+function sortSeasonsByStartYear(
+  seasons: SeasonId[],
+  descending = false
+): SeasonId[] {
   return seasons.slice().sort((a, b) => {
     const yearA = parseInt(a.split('-')[0], 10);
     const yearB = parseInt(b.split('-')[0], 10);
@@ -64,16 +64,19 @@ export function getAvailableSeasons(): SeasonId[] {
  * Get the range of supported seasons in capProjections
  * @returns Object with earliest and latest supported seasons
  */
-export function getSupportedSeasonRange(): { earliest: SeasonId; latest: SeasonId } {
+export function getSupportedSeasonRange(): {
+  earliest: SeasonId;
+  latest: SeasonId;
+} {
   const seasons = getAvailableSeasons();
-  
+
   if (seasons.length === 0) {
     // Fallback if no valid seasons found
     return { earliest: '2024-25' as SeasonId, latest: '2031-32' as SeasonId };
   }
-  
+
   const sorted = sortSeasonsByStartYear(seasons);
-  
+
   return {
     earliest: sorted[0],
     latest: sorted[sorted.length - 1],
@@ -96,11 +99,11 @@ export function hasCapDataForSeason(seasonId: SeasonId): boolean {
  */
 export function getCapForSeason(seasonId: SeasonId): CapContext | null {
   const raw = capProjections[seasonId] as RawCapProjection | undefined;
-  
+
   if (!raw) {
     return null;
   }
-  
+
   return {
     salaryCap: raw.cap,
     taxLine: raw.tax,
@@ -123,15 +126,15 @@ export function getCapForSeason(seasonId: SeasonId): CapContext | null {
  */
 export function requireCapForSeason(seasonId: SeasonId): CapContext {
   const cap = getCapForSeason(seasonId);
-  
+
   if (!cap) {
     const { earliest, latest } = getSupportedSeasonRange();
     throw new Error(
       `No cap data available for season ${seasonId}. ` +
-      `Supported seasons: ${earliest} through ${latest}.`
+        `Supported seasons: ${earliest} through ${latest}.`
     );
   }
-  
+
   return cap;
 }
 
@@ -146,11 +149,11 @@ export function getTaxLinesForSeason(seasonId: SeasonId): {
   secondApron: number;
 } | null {
   const raw = capProjections[seasonId] as RawCapProjection | undefined;
-  
+
   if (!raw) {
     return null;
   }
-  
+
   return {
     taxLine: raw.tax,
     firstApron: raw.firstApron,
@@ -163,13 +166,15 @@ export function getTaxLinesForSeason(seasonId: SeasonId): {
  * @param seasonId - Which season's minimum scale to retrieve
  * @returns Minimum salary scale or fallback to latest available
  */
-export function getMinimumSalaryScale(seasonId: SeasonId): Record<number, number> {
+export function getMinimumSalaryScale(
+  seasonId: SeasonId
+): Record<number, number> {
   // Try to get scale for requested season
   const scale = getScaleForSeason(seasonId);
   if (scale) {
     return scale;
   }
-  
+
   // Fall back to latest available scale
   return getLatestScale();
 }
@@ -238,7 +243,10 @@ interface Player {
 }
 
 interface CalculateCapHitOptions {
-  getContractYearSlice?: (player: any, year: number) => { capHit?: number; salary?: number } | null;
+  getContractYearSlice?: (
+    player: unknown,
+    year: number
+  ) => { capHit?: number; salary?: number } | null;
 }
 
 /**
@@ -276,9 +284,7 @@ export function calculateTeamCapHit(
 
   return players.reduce((sum, player) => {
     const contractType =
-      player?.contractType ||
-      player?.contract?.contractType ||
-      '';
+      player?.contractType || player?.contract?.contractType || '';
     // Two-way contracts don't count against cap
     if (contractType.toLowerCase() === 'two-way') return sum;
 
@@ -319,6 +325,8 @@ export function getPlayerId(player: Player | null | undefined): string | null {
  * @param player - Player object
  * @returns Player name or null
  */
-export function getPlayerName(player: Player | null | undefined): string | null {
+export function getPlayerName(
+  player: Player | null | undefined
+): string | null {
   return player?.displayName || player?.name || player?.playerName || null;
 }

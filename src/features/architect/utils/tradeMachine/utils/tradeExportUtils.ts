@@ -2,10 +2,10 @@
  * Utilities for trade export payload construction.
  */
 
-type TradeExceptionId = any;
+type TradeExceptionId = string | number | null;
 
 interface TradeSendLike {
-  absorptionMode?: any;
+  absorptionMode?: string | null;
   tpeId?: TradeExceptionId;
 }
 

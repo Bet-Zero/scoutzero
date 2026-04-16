@@ -202,11 +202,10 @@ function sanitizePlayers(
         amountAbsorbed,
       };
     })
-    .filter(
-      (player): player is SanitizedAbsorbedPlayer =>
-        Boolean(
-          player && (player.amountAbsorbed > 0 || player.name || player.playerId)
-        )
+    .filter((player): player is SanitizedAbsorbedPlayer =>
+      Boolean(
+        player && (player.amountAbsorbed > 0 || player.name || player.playerId)
+      )
     );
 }
 
@@ -440,7 +439,7 @@ export function appendExceptionHistory(
   if (pendingEntries.length === 0) {
     if (!Array.isArray(team.exceptionHistory)) {
       team.exceptionHistory = team.exceptionHistory
-        ? [...(team.exceptionHistory as any)]
+        ? [...(team.exceptionHistory as unknown[])]
         : [];
     }
     return team;

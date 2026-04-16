@@ -15,16 +15,16 @@ interface SwapResolutionOptions {
 }
 
 interface SwapPickLike extends Record<string, unknown> {
-  id?: unknown;
-  year?: unknown;
-  round?: unknown;
-  originalTeam?: unknown;
-  isSwap?: unknown;
-  swapType?: unknown;
-  swapWithTeamId?: unknown;
-  resolved?: unknown;
-  resolvedOwner?: unknown;
-  resolvedPosition?: unknown;
+  id?: string | number | null;
+  year?: number | string | null;
+  round?: number | string | null;
+  originalTeam?: string | null;
+  isSwap?: boolean | null;
+  swapType?: 'best_of' | 'worst_of' | string | null;
+  swapWithTeamId?: string | null;
+  resolved?: boolean | null;
+  resolvedOwner?: string | null;
+  resolvedPosition?: number | null;
   resolutionMeta?: unknown;
 }
 

@@ -24,7 +24,13 @@
  *  - Latest Chunk: N/A
  */
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import SeasonAdvanceModal, {
   type SeasonAdvanceResult,
   type WorldAdvanceAftermath,
@@ -52,13 +58,14 @@ import OffseasonTab from '@/features/architect/offseason/OffseasonTab';
 import {
   NON_AUTHORITATIVE_OFFSEASON_PREVIEW_AUTHORITY,
   type OffseasonPreviewAuthority,
+  type OffseasonTeamCapSheet,
 } from '@/features/architect/offseason/OffseasonTab/types';
 import type {
   ReloadActiveWorldTeamDataOptions,
   ReloadActiveWorldTeamDataResult,
+  DashboardOffseasonSummary,
 } from '@/features/architect/GMDashboard/hooks/useArchitectState';
 
-type LooseRecord = Record<string, unknown>;
 type WorldAdvanceReloadRequest = Pick<
   ReloadActiveWorldTeamDataOptions,
   'committedTeamSnapshot' | 'committedWorldMetadata'
@@ -68,14 +75,14 @@ type WorldAdvanceReloadHandler = (
 ) => Promise<ReloadActiveWorldTeamDataResult | null>;
 
 type OffseasonSectionProps = {
-  teamCapSheet: LooseRecord | null | undefined;
-  setTeamCapSheet?: (...args: any[]) => any;
+  teamCapSheet: OffseasonTeamCapSheet | null | undefined;
+  setTeamCapSheet?: (sheet: unknown) => void;
   currentYear: number;
-  setCurrentYear: (...args: any[]) => any;
+  setCurrentYear: (year: number) => void;
   capProjections: Record<string, unknown> | null | undefined;
-  setOffseasonRun: (...args: any[]) => any;
-  setOffseasonSummary: (...args: any[]) => any;
-  setShowOffseasonModal: (...args: any[]) => any;
+  setOffseasonRun: (run: boolean) => void;
+  setOffseasonSummary: (summary: DashboardOffseasonSummary | null) => void;
+  setShowOffseasonModal: (show: boolean) => void;
   playersMap?: Record<string, unknown>;
   worldId?: string | null;
   activeWorldIdentityToken?: number;
@@ -106,7 +113,7 @@ type DevPreviewOffseasonSurfaceProps = {
   previewBoundary: OffseasonPreviewOnlyBoundary;
   previewAuthority: OffseasonPreviewAuthority;
   worldId?: string | null;
-  teamCapSheet: LooseRecord | null | undefined;
+  teamCapSheet: OffseasonTeamCapSheet | null | undefined;
   viewingYear: number;
   capProjections: Record<string, unknown> | null | undefined;
   playersMap?: Record<string, unknown>;
@@ -118,8 +125,7 @@ type OffseasonPreviewOnlyBoundary = {
   surfaceKind: 'dev-preview-only-surface';
   visibility: 'dev-only';
   activationFlag: typeof DEV_OFFSEASON_PREVIEW_FLAG;
-  activationRequirement:
-    'requires-local-dev-build-and-explicit-local-intent-flag';
+  activationRequirement: 'requires-local-dev-build-and-explicit-local-intent-flag';
   authoritative: false;
   persistence: 'none';
   committedWorldRelationship: 'must-never-read-as-committed-world-state';
@@ -206,10 +212,7 @@ function getCommittedWorldAdvanceAftermath(
     return null;
   }
 
-  if (
-    !('worldAdvanceAftermath' in result) ||
-    !result.worldAdvanceAftermath
-  ) {
+  if (!('worldAdvanceAftermath' in result) || !result.worldAdvanceAftermath) {
     return null;
   }
 
@@ -230,11 +233,11 @@ function getCommittedWorldAdvanceAftermath(
 function applyCommittedWorldAdvanceAftermath(
   committedWorldAdvanceAftermath: WorldAdvanceAftermath,
   callbacks: {
-    setTeamCapSheet?: (...args: any[]) => any;
-    setCurrentYear: (...args: any[]) => any;
-    setOffseasonRun: (...args: any[]) => any;
-    setOffseasonSummary: (...args: any[]) => any;
-    setShowOffseasonModal: (...args: any[]) => any;
+    setTeamCapSheet?: (sheet: unknown) => void;
+    setCurrentYear: (year: number) => void;
+    setOffseasonRun: (run: boolean) => void;
+    setOffseasonSummary: (summary: DashboardOffseasonSummary | null) => void;
+    setShowOffseasonModal: (show: boolean) => void;
   }
 ) {
   if (
@@ -259,8 +262,7 @@ function buildCommittedWorldAdvanceReloadRequest(
 ): WorldAdvanceReloadRequest {
   return {
     committedTeamSnapshot:
-      committedWorldAdvanceAftermath.committedTeamCapSheet as
-        ReloadActiveWorldTeamDataOptions['committedTeamSnapshot'],
+      committedWorldAdvanceAftermath.committedTeamCapSheet as ReloadActiveWorldTeamDataOptions['committedTeamSnapshot'],
     committedWorldMetadata: {
       currentSeason: committedWorldAdvanceAftermath.nextWorldSeason,
     },
@@ -352,8 +354,8 @@ function WorldBackedOffseasonSurface({
               )}
             </div>
             <p className="text-sm text-white/60 mt-1">
-              Advance the entire world to the next season. This will process all 30 teams,
-              expiring contracts, and option decisions.
+              Advance the entire world to the next season. This will process all
+              30 teams, expiring contracts, and option decisions.
             </p>
             {availability.unavailableReason && (
               <div className="mt-2 text-xs text-white/45">
@@ -373,15 +375,18 @@ function WorldBackedOffseasonSurface({
               </div>
             )}
             {availability.hasActiveWorld && worldSeasonLoading && (
-              <div className="mt-2 text-xs text-white/40">Loading world season...</div>
-            )}
-            {availability.hasActiveWorld &&
-            !worldSeasonLoading &&
-            !authoritativeWorldSeason && (
-              <div className="mt-2 text-xs text-yellow-300">
-                World season unavailable. Season advance stays disabled until metadata loads.
+              <div className="mt-2 text-xs text-white/40">
+                Loading world season...
               </div>
             )}
+            {availability.hasActiveWorld &&
+              !worldSeasonLoading &&
+              !authoritativeWorldSeason && (
+                <div className="mt-2 text-xs text-yellow-300">
+                  World season unavailable. Season advance stays disabled until
+                  metadata loads.
+                </div>
+              )}
             {worldReloadError && (
               <div className="mt-2 rounded border border-yellow-500/30 bg-yellow-900/20 px-3 py-2 text-xs text-yellow-200">
                 {worldReloadError}
@@ -430,7 +435,9 @@ function DevPreviewOffseasonSurface({
             <div className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-[#0d0d0d] text-white/40">DEV: single-team offseason preview</span>
+            <span className="px-2 bg-[#0d0d0d] text-white/40">
+              DEV: single-team offseason preview
+            </span>
           </div>
         </div>
       )}
@@ -450,7 +457,7 @@ function DevPreviewOffseasonSurface({
         {previewBoundary.committedWorldRelationship}.
       </div>
       <OffseasonTab
-        teamCapSheet={teamCapSheet as Record<string, unknown>}
+        teamCapSheet={teamCapSheet ?? {}}
         currentYear={viewingYear}
         previewAuthority={previewAuthority}
         capProjections={capProjections}
@@ -526,7 +533,10 @@ const OffseasonSection = ({
             error instanceof Error
               ? error.message
               : 'Unknown world reload failure.';
-          console.error('Failed to reload world data after season advance:', error);
+          console.error(
+            'Failed to reload world data after season advance:',
+            error
+          );
           setWorldAdvanceReloadError(
             `Season advanced, but the world reload could not finish: ${message}`
           );
@@ -555,74 +565,76 @@ const OffseasonSection = ({
       [worldId]
     );
   const draftPositionsPersistenceAuthority =
-    useMemo<DraftPositionsPersistenceAuthority>(() => ({
-      async loadCommittedDraftPositions(draftYear) {
-        if (!worldId) {
-          return null;
-        }
-
-        const committedDraftPositions = normalizeCommittedDraftPositions(
-          (await getDraftPositions(
-            worldId,
-            draftYear
-          )) as DraftPositionsCommittedState
-        );
-
-        return committedDraftPositions;
-      },
-      async saveCommittedDraftPositions(draftYear, positionsMap) {
-        if (!worldId) {
-          throw new Error('worldId is required');
-        }
-
-        const saveResult = await saveDraftPositions(
-          worldId,
-          draftYear,
-          positionsMap,
-          {
-            method: 'manual',
+    useMemo<DraftPositionsPersistenceAuthority>(
+      () => ({
+        async loadCommittedDraftPositions(draftYear) {
+          if (!worldId) {
+            return null;
           }
-        );
 
-        if (!saveResult.success) {
-          throw new Error(
-            saveResult.errors?.join(', ') || 'Failed to save draft positions'
+          const committedDraftPositions = normalizeCommittedDraftPositions(
+            (await getDraftPositions(
+              worldId,
+              draftYear
+            )) as DraftPositionsCommittedState
           );
-        }
 
-        const committedDraftPositions = normalizeCommittedDraftPositions(
-          (await getDraftPositions(
+          return committedDraftPositions;
+        },
+        async saveCommittedDraftPositions(draftYear, positionsMap) {
+          if (!worldId) {
+            throw new Error('worldId is required');
+          }
+
+          const saveResult = await saveDraftPositions(
             worldId,
-            draftYear
-          )) as DraftPositionsCommittedState
-        );
-
-        if (!committedDraftPositions) {
-          throw new Error(
-            `Committed draft positions were unavailable after save for ${draftYear}`
+            draftYear,
+            positionsMap,
+            {
+              method: 'manual',
+            }
           );
-        }
 
-        return committedDraftPositions;
-      },
-      async clearCommittedDraftPositions(draftYear) {
-        if (!worldId) {
-          throw new Error('worldId is required');
-        }
+          if (!saveResult.success) {
+            throw new Error(
+              saveResult.errors?.join(', ') || 'Failed to save draft positions'
+            );
+          }
 
-        const clearResult = await clearDraftPositions(worldId, draftYear);
-        if (!clearResult.success) {
-          throw new Error(
-            clearResult.errors?.join(', ') || 'Failed to clear draft positions'
+          const committedDraftPositions = normalizeCommittedDraftPositions(
+            (await getDraftPositions(
+              worldId,
+              draftYear
+            )) as DraftPositionsCommittedState
           );
-        }
-      },
-    }), [worldId]);
+
+          if (!committedDraftPositions) {
+            throw new Error(
+              `Committed draft positions were unavailable after save for ${draftYear}`
+            );
+          }
+
+          return committedDraftPositions;
+        },
+        async clearCommittedDraftPositions(draftYear) {
+          if (!worldId) {
+            throw new Error('worldId is required');
+          }
+
+          const clearResult = await clearDraftPositions(worldId, draftYear);
+          if (!clearResult.success) {
+            throw new Error(
+              clearResult.errors?.join(', ') ||
+                'Failed to clear draft positions'
+            );
+          }
+        },
+      }),
+      [worldId]
+    );
   const draftPositionsValidationAuthority = useCallback(
     (positionsMap: Record<string, unknown>) =>
-      validateDraftPositionsMap(
-        positionsMap
-      ) as DraftPositionsValidationResult,
+      validateDraftPositionsMap(positionsMap) as DraftPositionsValidationResult,
     []
   );
 
@@ -680,7 +692,9 @@ const OffseasonSection = ({
         <SeasonAdvanceModal
           isOpen={showAdvanceModal}
           onClose={() => setShowAdvanceModal(false)}
-          teamCapSheet={teamCapSheet}
+          teamCapSheet={
+            teamCapSheet as WorldAdvanceAftermath['committedTeamCapSheet']
+          }
           authoritativeWorldSeason={
             seasonAdvanceDraftContext.authoritativeSeason
           }

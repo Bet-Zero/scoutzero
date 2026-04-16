@@ -30,9 +30,7 @@ import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/ut
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import { computeDeadMoneyForYear } from '@/features/architect/utils/capTotals/deadMoneyForYear';
 import { resolveHardCapSnapshotOverlay } from '@/features/architect/utils/capTotals/hardCapSnapshotOverlay';
-import {
-  toSeasonKey,
-} from '@/features/architect/utils/seasonFormat';
+import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -59,14 +57,12 @@ interface TeamCapTotalsMeta {
   rulesSources: unknown;
   capSettingsSource: 'via_facade';
   seasonKey: string;
-  incompleteRosterCharge:
-    | {
-        standardRosterCount: number;
-        minRoster: number;
-        missingSlots: number;
-        chargePerSlot: number;
-      }
-    | null;
+  incompleteRosterCharge: {
+    standardRosterCount: number;
+    minRoster: number;
+    missingSlots: number;
+    chargePerSlot: number;
+  } | null;
 }
 
 interface TeamCapTotals {
@@ -159,7 +155,12 @@ function computePlayersTotal(
   return players.reduce<number>(
     (sum, player) =>
       sum +
-      num(getPlayerCapHitForYear((asRecord(player) || {}) as TeamPlayerLike, endYear)),
+      num(
+        getPlayerCapHitForYear(
+          (asRecord(player) || {}) as TeamPlayerLike,
+          endYear
+        )
+      ),
     0
   );
 }
@@ -170,12 +171,7 @@ function computeCanonicalTotalCapAllocations({
   capHoldsTotal,
   incompleteChargesTotal,
 }: CanonicalCapTotalsInputs): number {
-  return (
-    playersTotal +
-    deadMoneyTotal +
-    capHoldsTotal +
-    incompleteChargesTotal
-  );
+  return playersTotal + deadMoneyTotal + capHoldsTotal + incompleteChargesTotal;
 }
 
 /**
@@ -194,7 +190,7 @@ export function computeTeamCapTotals(
   options: CapTotalsOptions = {}
 ): TeamCapTotals {
   const yearKey = selectedYear;
-  const rules = getCapRulesForYear(yearKey, options.capProjections) as any;
+  const rules = getCapRulesForYear(yearKey, options.capProjections) as any; // load-bearing: getCapRulesForYear return type incompatible with direct destructuring
 
   const salaryCap = rules.cap.salaryCap || 0;
   const luxuryTax = rules.cap.luxuryTax || 0;
@@ -203,7 +199,7 @@ export function computeTeamCapTotals(
 
   const playersTotal = computePlayersTotal(teamCapSheet?.players, yearKey);
   const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(
-    teamCapSheet?.capHolds as any,
+    teamCapSheet?.capHolds as any, // load-bearing: CapHold[] not assignable to CapHoldLike[]|LooseRecord[] — coordinated load/compute type split required
     yearKey
   );
   const deadMoneyTotal = computeDeadMoneyForYear(teamCapSheet, yearKey);
@@ -267,7 +263,11 @@ export function createCanonicalTeamTotalsSnapshot(
 ): CanonicalTeamTotalsSnapshot {
   // Downstream snapshot shaping consumes the canonical totals SSOT rather than
   // acting as an alternate compute owner.
-  const canonicalTotals = computeTeamCapTotals(teamCapSheet, selectedYear, options);
+  const canonicalTotals = computeTeamCapTotals(
+    teamCapSheet,
+    selectedYear,
+    options
+  );
   const totalCapAllocations = canonicalTotals.totalCapAllocations;
   const hardCapOverlay = resolveHardCapSnapshotOverlay(
     teamCapSheet,

@@ -13,24 +13,24 @@
 type UnknownRecord = Record<string, unknown>;
 
 interface TradeDraftPlayerLike extends UnknownRecord {
-  id?: any;
-  player_id?: any;
+  id?: string | number | null;
+  player_id?: string | number | null;
 }
 
 interface TradeDraftEntitlementLike extends UnknownRecord {
-  draftKey?: any;
-  id?: any;
-  entitlementId?: any;
+  draftKey?: string | null;
+  id?: string | number | null;
+  entitlementId?: string | number | null;
 }
 
 interface TradeDraftTeamLike extends UnknownRecord {
-  team?: (UnknownRecord & { id?: any }) | null;
+  team?: (UnknownRecord & { id?: string | number | null }) | null;
   sends?: TradeDraftPlayerLike[] | null;
   entitlementsOut?: TradeDraftEntitlementLike[] | null;
 }
 
 interface TradeDraftKeyParams {
-  yearKey: any;
+  yearKey: number | string | null;
   teams?: TradeDraftTeamLike[];
 }
 

@@ -36,9 +36,7 @@ import {
   TeamSlugToCode,
   TeamCodeMap,
 } from '@/constants/teamList';
-import {
-  normalizeTeamExceptionOwnership,
-} from '@/features/architect/utils/exceptions/exceptionOwnership';
+import { normalizeTeamExceptionOwnership } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import type { TeamTotals } from '@/features/architect/types';
 
@@ -100,13 +98,13 @@ interface LooseBaseTeamDoc extends UnknownRecord {
   hardCapReason?: string | null;
   hardCapTriggeredBy?: string | null;
   deadCap?: unknown[] | null;
-  totals?: (
-    UnknownRecord & {
-      hardCapLevel?: string | null;
-      hardCapReason?: string | null;
-      hardCapDetail?: string | null;
-    }
-  ) | null;
+  totals?:
+    | (UnknownRecord & {
+        hardCapLevel?: string | null;
+        hardCapReason?: string | null;
+        hardCapDetail?: string | null;
+      })
+    | null;
 }
 
 interface LooseBirdRights extends UnknownRecord {
@@ -160,9 +158,7 @@ interface LooseFreeAgent extends UnknownRecord {
 // In the new model, cap holds are managed in the `capHolds` array in state.
 // We no longer need to calculate them on every save from player attributes.
 // Logic for creating them happens on "Decline Option" or similar events.
-export const prepareCapSheet = <
-  TCapSheet extends LooseCapSheet,
->(
+export const prepareCapSheet = <TCapSheet extends LooseCapSheet>(
   capSheet: TCapSheet /* , capProjections , year = 2025 */
 ) => {
   // Just pass through, or maybe sort the capHolds if needed?
@@ -193,9 +189,9 @@ const buildPlayerEntry = (
       player_id: playerId,
       name: playerId,
       displayName: playerId,
-      contract: null as any,
+      contract: null as any, // load-bearing: placeholder satisfies broader player type at call sites without requiring full contract structure in fallback
       bio: {} as Record<string, unknown>,
-      original: null as any,
+      original: null as any, // load-bearing: same as contract — fallback path, callers expect field to exist but never read it here
     };
   }
 
@@ -431,7 +427,7 @@ export const getAllTeams = async () => {
     console.error('Error getting base teams:', error);
   }
   // Fallback to static list if architect data unavailable
-  return TeamListFull.map((team: any) => ({
+  return TeamListFull.map((team) => ({
     id: team.id,
     code: team.code,
     name: team.teamName,

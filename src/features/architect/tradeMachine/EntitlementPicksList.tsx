@@ -106,8 +106,8 @@ export const EntitlementPicksList = ({
       const roundB = b.round || 0;
       if (roundA !== roundB) return roundA - roundB;
 
-      const kindPriorityA = getKindSortPriority(a.kind as never);
-      const kindPriorityB = getKindSortPriority(b.kind as never);
+      const kindPriorityA = getKindSortPriority(a.kind);
+      const kindPriorityB = getKindSortPriority(b.kind);
       return kindPriorityA - kindPriorityB;
     });
   }, [entitlements, showPooled]);

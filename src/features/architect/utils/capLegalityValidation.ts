@@ -281,7 +281,9 @@ const toFiniteNumber = (value: unknown, fallback = 0): number => {
   return fallback;
 };
 
-const asRecordLike = <T extends Record<string, unknown> = Record<string, unknown>>(
+const asRecordLike = <
+  T extends Record<string, unknown> = Record<string, unknown>,
+>(
   value: unknown
 ): T | null => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -372,7 +374,10 @@ const calculateValidationPlayerOnlyTeamCapHit = (
  * Canonical totals adapter for validation rules that truly need Cap Sheet
  * allocations rather than player-only salary.
  */
-const computeCanonicalMutationTeamCapTotals = (team: MutationTeam, year: number) =>
+const computeCanonicalMutationTeamCapTotals = (
+  team: MutationTeam,
+  year: number
+) =>
   computeTeamCapTotals(
     team as Parameters<typeof computeTeamCapTotals>[0],
     year
@@ -563,7 +568,10 @@ function getSeasonStartDate(seasonCode: string): string | null {
  * @param {Array} warnings - Array of warning objects
  * @returns {{canOverride: boolean, hasHardBlock: boolean, hardBlockReasons: string[], softWarningReasons: string[]}}
  */
-export function getOverridePolicy(violations: CapLegalityViolation[] = [], warnings: CapLegalityViolation[] = []) {
+export function getOverridePolicy(
+  violations: CapLegalityViolation[] = [],
+  warnings: CapLegalityViolation[] = []
+) {
   const hardBlockReasons = [];
   const softWarningReasons = [];
 
@@ -640,9 +648,12 @@ export function isOverrideEnabled() {
 export function evaluateDataConfidence(
   rules: CapRulesProfile,
   operationName = 'Operation'
-): { blocked: boolean; violation: CapLegalityViolation | null; warning: CapLegalityViolation | null } {
-  if (!rules._meta)
-    return { blocked: false, violation: null, warning: null };
+): {
+  blocked: boolean;
+  violation: CapLegalityViolation | null;
+  warning: CapLegalityViolation | null;
+} {
+  if (!rules._meta) return { blocked: false, violation: null, warning: null };
 
   const summary = rules._meta.sourcesSummary;
 
@@ -859,7 +870,14 @@ export function resolveSigningMechanism(
  * @returns {{minYears: number, maxYears: number}|null} Limits object or null for UNKNOWN
  */
 export function getSigningYearsLimits(mechanism: string) {
-  return (SIGNING_YEARS_LIMITS as Record<string, { minYears: number; maxYears: number }>)[mechanism] || null;
+  return (
+    (
+      SIGNING_YEARS_LIMITS as Record<
+        string,
+        { minYears: number; maxYears: number }
+      >
+    )[mechanism] || null
+  );
 }
 
 /**
@@ -1163,7 +1181,9 @@ export function validateOptionsPolicy(
  * @param {Object} contract - Contract object with salariesByYear
  * @returns {{violations: Array, warnings: Array, hasNormalizableOptions: boolean}}
  */
-export function validateContractRows(contract: MutationContract | null | undefined) {
+export function validateContractRows(
+  contract: MutationContract | null | undefined
+) {
   const violations: CapLegalityViolation[] = [];
   const warnings: CapLegalityViolation[] = [];
   let hasNormalizableOptions = false;
@@ -1310,8 +1330,7 @@ export function validateExceptions(exceptions: unknown) {
   }
 
   // Check for unknown keys (hard-block policy)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exceptionsObj = exceptions as Record<string, any>;
+  const exceptionsObj = exceptions as Record<string, any>; // load-bearing: property access on exception values requires any (enabled, totalAmount, seasonKey, etc.)
   const providedKeys = Object.keys(exceptionsObj);
   const unknownKeys = providedKeys.filter(
     (key) => !VALID_EXCEPTION_KEYS.includes(key)
@@ -1518,7 +1537,9 @@ export function normalizeSigningTerms(
 
   // Start with what we have
   let mechanism: string = String(rawTerms.mechanism || 'UNKNOWN');
-  let rightsType: string | null = rawTerms.rightsType ? String(rawTerms.rightsType) : null;
+  let rightsType: string | null = rawTerms.rightsType
+    ? String(rawTerms.rightsType)
+    : null;
 
   // Check if mechanism contains Bird rights info (legacy conflation)
   const mechanismStr = String(mechanism);
@@ -1572,7 +1593,10 @@ export function normalizeSigningTerms(
  * @param {string|null} rightsType - Bird rights type from normalizeSigningTerms()
  * @returns {boolean} True if this is a cap-space signing subject to cap hold check
  */
-export function isCapSpaceSigning(mechanism: string | null | undefined, rightsType: string | null | undefined) {
+export function isCapSpaceSigning(
+  mechanism: string | null | undefined,
+  rightsType: string | null | undefined
+) {
   // Exception signings are NOT cap-space signings
   if (mechanism && mechanism !== 'UNKNOWN') {
     return false;
@@ -1688,7 +1712,13 @@ function buildExceptionSigningTerms(
   mechanism: string,
   cap: RuleContext['cap'] | null | undefined
 ) {
-  const limits = (SIGNING_YEARS_LIMITS as Record<string, { minYears: number; maxYears: number }>)[mechanism] || null;
+  const limits =
+    (
+      SIGNING_YEARS_LIMITS as Record<
+        string,
+        { minYears: number; maxYears: number }
+      >
+    )[mechanism] || null;
   if (!limits) return null;
 
   let maxFirstYearSalary = null;
@@ -1738,7 +1768,9 @@ function buildRuleContextContract(
             yearData
           ): yearData is MutationSalaryRow & {
             season: string;
-          } => typeof yearData?.season === 'string' && yearData.season.trim().length > 0
+          } =>
+            typeof yearData?.season === 'string' &&
+            yearData.season.trim().length > 0
         )
         .map((yearData) => ({
           season: yearData.season,
@@ -1804,22 +1836,17 @@ function buildRuleContextPlayerInput(
   }>(player.bio);
 
   return {
-    playerId:
-      typeof player.playerId === 'string' ? player.playerId : undefined,
+    playerId: typeof player.playerId === 'string' ? player.playerId : undefined,
     player_id:
       typeof player.player_id === 'string' ? player.player_id : undefined,
     id: typeof player.id === 'string' ? player.id : undefined,
     displayName:
-      typeof player.displayName === 'string'
-        ? player.displayName
-        : undefined,
+      typeof player.displayName === 'string' ? player.displayName : undefined,
     name: typeof player.name === 'string' ? player.name : undefined,
     bio: bio
       ? {
           displayName:
-            typeof bio.displayName === 'string'
-              ? bio.displayName
-              : undefined,
+            typeof bio.displayName === 'string' ? bio.displayName : undefined,
           experience:
             bio.experience == null
               ? undefined
@@ -1852,8 +1879,7 @@ function buildRuleContextPlayerInput(
         ? undefined
         : toFiniteNumber(player.experience, 0),
     teamId: typeof player.teamId === 'string' ? player.teamId : undefined,
-    teamCode:
-      typeof player.teamCode === 'string' ? player.teamCode : undefined,
+    teamCode: typeof player.teamCode === 'string' ? player.teamCode : undefined,
   };
 }
 
@@ -1910,8 +1936,7 @@ function buildRuleContextTeamState(
 
   return {
     teamId: typeof team.id === 'string' ? team.id : undefined,
-    teamCode:
-      typeof team.teamCode === 'string' ? team.teamCode : undefined,
+    teamCode: typeof team.teamCode === 'string' ? team.teamCode : undefined,
     players: (team.players || []).map((teamPlayer) => ({
       playerId:
         typeof teamPlayer.playerId === 'string'
@@ -1920,10 +1945,7 @@ function buildRuleContextTeamState(
       contract: buildRuleContextContract(teamPlayer.contract),
     })),
     totals: {
-      totalSalary: toFiniteNumber(
-        totals.totalSalary ?? totals.capHit ?? 0,
-        0
-      ),
+      totalSalary: toFiniteNumber(totals.totalSalary ?? totals.capHit ?? 0, 0),
     },
     exceptions: {
       fullMLE: {
@@ -2466,10 +2488,7 @@ export function getContractLastYearSalary(
 
   const lastGuaranteed = guaranteedYears[guaranteedYears.length - 1];
   return {
-    salary: toFiniteNumber(
-      lastGuaranteed.salary ?? lastGuaranteed.capHit,
-      0
-    ),
+    salary: toFiniteNumber(lastGuaranteed.salary ?? lastGuaranteed.capHit, 0),
     season: lastGuaranteed.season,
   };
 }
@@ -2492,8 +2511,9 @@ export function getExtensionFirstYearSalary(
 
   // Look for first entry with isExtensionSeason flag, or just first entry
   const extensionYear =
-    extension.salariesByYear.find((y: MutationSalaryRow) => y.isExtensionSeason) ||
-    extension.salariesByYear[0];
+    extension.salariesByYear.find(
+      (y: MutationSalaryRow) => y.isExtensionSeason
+    ) || extension.salariesByYear[0];
 
   if (!extensionYear) return null;
 
@@ -2686,10 +2706,7 @@ export function validateExtensionTermsAndRaises({
         extension.salariesByYear[i - 1]?.salary,
         0
       );
-      const currSalary = toFiniteNumber(
-        extension.salariesByYear[i]?.salary,
-        0
-      );
+      const currSalary = toFiniteNumber(extension.salariesByYear[i]?.salary, 0);
 
       if (prevSalary > 0 && currSalary > 0) {
         const maxAllowed = Math.round(
@@ -2749,10 +2766,7 @@ export function validateExceptionEligibility({
   }
 
   const canonicalTotals = computeCanonicalMutationTeamCapTotals(team, year);
-  const currentCapHit = toFiniteNumber(
-    canonicalTotals.totalCapAllocations,
-    0
-  );
+  const currentCapHit = toFiniteNumber(canonicalTotals.totalCapAllocations, 0);
   const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
 
   // Check if team is at or above second apron (STRICT > per Phase 39)
@@ -3168,7 +3182,9 @@ export function validateSigning({
     // Phase 9: Use canonical normalizers for team identity
     const normalizedTeamCode = normalizeTeamRef(team);
     const normalizedPlayerTeam = normalizePlayerTeamRef(player);
-    const contractBirdRights = normalizeBirdRights(player?.contract?.birdRights);
+    const contractBirdRights = normalizeBirdRights(
+      player?.contract?.birdRights
+    );
     const playerBirdRights = normalizeBirdRights(player?.birdRights);
     const birdRightsStatus =
       contractBirdRights?.status || playerBirdRights?.status;
@@ -3273,9 +3289,7 @@ export function validateSigning({
       );
 
       // Check if this player has an existing cap hold that will be replaced
-      const playerId = getPlayerId(
-        player as Parameters<typeof getPlayerId>[0]
-      );
+      const playerId = getPlayerId(player as Parameters<typeof getPlayerId>[0]);
       const existingCapHold = Array.isArray(team.capHolds)
         ? team.capHolds.find(
             (h: MutationCapHold) =>
@@ -3335,7 +3349,10 @@ export function validateSigning({
             playerName: h.playerName,
             amount: (h.amount as number) || 0,
           }))
-          .sort((a: { amount: number }, b: { amount: number }) => b.amount - a.amount); // Sort by largest first
+          .sort(
+            (a: { amount: number }, b: { amount: number }) =>
+              b.amount - a.amount
+          ); // Sort by largest first
 
         // Check if renouncing some holds would free enough space
         let accumulatedSavings = 0;
@@ -3838,9 +3855,8 @@ export function validateSigning({
   // 2. Hard cap check
   if (rules) {
     const hardCapStatus = getValidationHardCapStatus(team, rules);
-    const signingHardCapTrigger = getSigningHardCapTriggerMetadata(
-      signingMechanism
-    );
+    const signingHardCapTrigger =
+      getSigningHardCapTriggerMetadata(signingMechanism);
     const currentHardCapCapHit = toFiniteNumber(
       computeCanonicalMutationTeamCapTotals(team, year).totalCapAllocations,
       0
@@ -3850,8 +3866,7 @@ export function validateSigning({
         contract?.salariesByYear?.[0]?.salary,
       0
     );
-    const projectedHardCapHit =
-      currentHardCapCapHit + hardCapContractValue;
+    const projectedHardCapHit = currentHardCapCapHit + hardCapContractValue;
 
     let enforcedHardCapCeiling =
       hardCapStatus.isHardCapped && hardCapStatus.ceiling
@@ -3863,7 +3878,8 @@ export function validateSigning({
     if (
       signingHardCapTrigger &&
       triggerCeiling > 0 &&
-      (enforcedHardCapCeiling === null || triggerCeiling < enforcedHardCapCeiling)
+      (enforcedHardCapCeiling === null ||
+        triggerCeiling < enforcedHardCapCeiling)
     ) {
       enforcedHardCapCeiling = triggerCeiling;
       enforcedHardCapLevel = signingHardCapTrigger.hardCapLevel;
@@ -4163,15 +4179,23 @@ function getRosterEntryId(entry: MutationRosterEntry | null | undefined) {
   return entry.player_id || entry.playerId || entry.id || null;
 }
 
-function isPlayerOnRoster(team: MutationTeam | null | undefined, playerId: string | null) {
+function isPlayerOnRoster(
+  team: MutationTeam | null | undefined,
+  playerId: string | null
+) {
   if (!Array.isArray(team?.roster)) {
     return null;
   }
 
-  return team.roster.some((entry: MutationRosterEntry) => getRosterEntryId(entry) === playerId);
+  return team.roster.some(
+    (entry: MutationRosterEntry) => getRosterEntryId(entry) === playerId
+  );
 }
 
-function findPlayerById(players: MutationPlayer[] | null | undefined, playerId: string | null) {
+function findPlayerById(
+  players: MutationPlayer[] | null | undefined,
+  playerId: string | null
+) {
   if (!Array.isArray(players)) return null;
   return (
     players.find(
@@ -4395,8 +4419,9 @@ export function validateOptionDecision({
     );
     const capHoldExpectation = expectation.shouldCreate
       ? computeExpectedCapHoldAmount({
-          player:
-            baselinePlayer as Parameters<typeof computeExpectedCapHoldAmount>[0]['player'],
+          player: baselinePlayer as Parameters<
+            typeof computeExpectedCapHoldAmount
+          >[0]['player'],
           lastSalary: expectation.priorSalary,
           rules: null,
           rightsType,

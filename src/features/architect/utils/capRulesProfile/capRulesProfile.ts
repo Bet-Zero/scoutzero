@@ -21,9 +21,7 @@ import {
   CBA_THRESHOLDS,
 } from '../tradeMachine/constants/cbaConstants';
 import capProjections from '../capProjections';
-import {
-  getScaleForSeason,
-} from '../../data/minimumSalaryScales';
+import { getScaleForSeason } from '../../data/minimumSalaryScales';
 
 export type SourceTag = 'real' | 'reported' | 'projected' | 'unknown';
 type ThresholdFieldPath =
@@ -139,9 +137,14 @@ const SOURCE_SUMMARY_PRIORITY: SourceTag[] = [
 ];
 
 function getCapSettingsSourceTag(settings: Record<string, unknown>): SourceTag {
-  const metaSource = String((settings._meta as { source?: unknown } | undefined)?.source ?? '');
+  const metaSource = String(
+    (settings._meta as { source?: unknown } | undefined)?.source ?? ''
+  );
 
-  if (metaSource.includes('CBA_CONSTANTS') && metaSource.includes('emergency')) {
+  if (
+    metaSource.includes('CBA_CONSTANTS') &&
+    metaSource.includes('emergency')
+  ) {
     return 'unknown';
   }
   if (metaSource === 'projected_from_previous') {
@@ -371,7 +374,7 @@ export function getCapRulesForYear(
   if (rookieMin == null || rookieMin === 0) {
     throw new Error(
       `[CapRulesProfile] CRITICAL: Could not resolve rookieMin for ${seasonKey}. ` +
-      `No entry in capProjections or CBA_THRESHOLDS, and projection failed.`
+        `No entry in capProjections or CBA_THRESHOLDS, and projection failed.`
     );
   }
 
@@ -381,7 +384,7 @@ export function getCapRulesForYear(
   // 3. Define Scale Lookup Function
   const getMinimumForYOS = (yos: number): number => {
     // Try explicit scale first
-    const scale = getScaleForSeason(seasonKey as any); // Cast for SeasonId compatibility
+    const scale = getScaleForSeason(seasonKey as any); // load-bearing: seasonKey is string|number, getScaleForSeason expects branded SeasonId type
     if (scale) {
       // Cap at 10 years
       const cappedYOS = Math.min(Math.max(0, yos), 10);
@@ -399,7 +402,7 @@ export function getCapRulesForYear(
     if (process.env.NODE_ENV !== 'production') {
       console.warn(
         `[CapRulesProfile] Warning: Requested minimum salary for YOS ${yos} in ${seasonKey}, ` +
-        `but no scale data exists. Returning rookie minimum (${rookieMin}).`
+          `but no scale data exists. Returning rookie minimum (${rookieMin}).`
       );
     }
     return rookieMin;

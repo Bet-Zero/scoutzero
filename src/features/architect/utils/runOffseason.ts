@@ -18,7 +18,7 @@ type LooseRecord = Record<string, unknown>;
 export function runOffseason(
   teamCapSheet: LooseRecord,
   currentYear: number,
-  capProjections: any,
+  capProjections: Record<string, unknown> | null | undefined,
   optionDecisions: LooseRecord = {}
 ) {
   const fromYear = currentYear;
@@ -40,7 +40,7 @@ export function runOffseason(
       result.error ||
       result.violations?.[0]?.message ||
       'Offseason transition blocked';
-    const error = new Error(message) as Error & { details?: any };
+    const error = new Error(message) as Error & { details?: unknown };
     error.details = result;
     throw error;
   }

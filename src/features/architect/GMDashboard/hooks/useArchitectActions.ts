@@ -153,20 +153,20 @@ type LocalContract = ArchitectMutationContract &
     Partial<BasePlayerContract>,
     'birdRights' | 'freeAgency' | 'salariesByYear'
   > & {
-  salariesByYear?: SalaryByYear[];
-  salaries?: LocalContractLegacySalaryInput[];
-  guaranteed?: boolean | null;
-  isMinimum?: boolean | null;
-  signAndTrade?: boolean | null;
-  yearsOfService?: number | string | null;
-  averageAnnualValue?: number | null;
-  base?: number | null;
-  birdRights?: LocalBirdRights;
-  freeAgency?:
-    | { year?: number | string | null; type?: string | null }
-    | string
-    | null;
-};
+    salariesByYear?: SalaryByYear[];
+    salaries?: LocalContractLegacySalaryInput[];
+    guaranteed?: boolean | null;
+    isMinimum?: boolean | null;
+    signAndTrade?: boolean | null;
+    yearsOfService?: number | string | null;
+    averageAnnualValue?: number | null;
+    base?: number | null;
+    birdRights?: LocalBirdRights;
+    freeAgency?:
+      | { year?: number | string | null; type?: string | null }
+      | string
+      | null;
+  };
 
 /** Bio structure for player data (avoids schema naming pattern) */
 interface LocalBio {
@@ -326,7 +326,9 @@ type CapHold = Omit<SharedCapHold, 'playerId' | 'active'> & {
   notes?: string | null;
 };
 
-type CapHoldActionItem = Partial<Omit<CapHold, 'amount' | 'playerId' | 'playerName'>> & {
+type CapHoldActionItem = Partial<
+  Omit<CapHold, 'amount' | 'playerId' | 'playerName'>
+> & {
   amount?: unknown;
   playerId?: CapHold['playerId'];
   playerName?: string | null;
@@ -410,7 +412,9 @@ interface TeamHistoryDevTools {
 type PersistMutationResult = ArchitectMutationResult & {
   skipped?: boolean;
   changedTeams?: ArchitectGeneralMutationCommittedTeamUpdate[];
-  event?: CapAuditEventV1Like | { operationId?: string; type?: string; timestamp?: string };
+  event?:
+    | CapAuditEventV1Like
+    | { operationId?: string; type?: string; timestamp?: string };
 };
 
 type ComputeMutationResult = ArchitectMutationResult;
@@ -437,16 +441,12 @@ interface OfferSheet {
 }
 
 type OfferSheetResolutionAction = 'match' | 'decline';
-type OfferSheetResolutionMutationType =
-  | 'matchOfferSheet'
-  | 'declineOfferSheet';
+type OfferSheetResolutionMutationType = 'matchOfferSheet' | 'declineOfferSheet';
 type OfferSheetLifecycleMutationType =
   | OfferSheetResolutionMutationType
   | 'finalizeMatchedOfferSheet'
   | 'finalizeDeclinedOfferSheet';
-type OfferSheetLifecycleVisibleArrayKey =
-  | 'incomingOfferSheets'
-  | 'offerSheets';
+type OfferSheetLifecycleVisibleArrayKey = 'incomingOfferSheets' | 'offerSheets';
 type OfferSheetLifecycleExpectationPresence = 'present' | 'absent';
 type OfferSheetFinalizeMutationRoute =
   | {
@@ -606,8 +606,8 @@ function mergeManualExceptionSnapshot(
 ): Record<string, unknown> {
   const merged = {
     ...((existingExceptions &&
-      typeof existingExceptions === 'object' &&
-      !Array.isArray(existingExceptions)
+    typeof existingExceptions === 'object' &&
+    !Array.isArray(existingExceptions)
       ? existingExceptions
       : {}) as Record<string, unknown>),
   };
@@ -893,9 +893,7 @@ export const ensureContractStructure = (
 
   const mutableOverrides: Partial<LocalContract> = { ...overrides };
   const startYearOverride = Number(
-    mutableOverrides.startYear ??
-      contract.startYear ??
-      contract.year
+    mutableOverrides.startYear ?? contract.startYear ?? contract.year
   );
   delete mutableOverrides.startYear;
 
@@ -1171,7 +1169,9 @@ type FreeAgencyWorldOnlyRequirement = {
 
 type FreeAgencyWorldOnlyRequirementTable = Record<
   FreeAgencyWorldOnlyActionKind,
-  Partial<Record<FreeAgencyWorldOnlyActionPhase, FreeAgencyWorldOnlyRequirement>>
+  Partial<
+    Record<FreeAgencyWorldOnlyActionPhase, FreeAgencyWorldOnlyRequirement>
+  >
 >;
 
 const FREE_AGENCY_WORLD_ONLY_REQUIREMENTS: FreeAgencyWorldOnlyRequirementTable =
@@ -1234,7 +1234,9 @@ function deriveContractActionYear(
   const salaryRows = Array.isArray(contract?.salariesByYear)
     ? contract.salariesByYear
     : [];
-  const firstSeasonValue = salaryRows.find((row) => row?.season != null)?.season;
+  const firstSeasonValue = salaryRows.find(
+    (row) => row?.season != null
+  )?.season;
   const fromSeasonRow = resolveSeasonEndYear(firstSeasonValue);
 
   if (fromSeasonRow !== null) {
@@ -1520,7 +1522,7 @@ function buildTotalsByTeam(
 ): CapAuditEventV1Like['beforeTotalsByTeam'] {
   const totalsByTeam: CapAuditEventV1Like['beforeTotalsByTeam'] = {};
   for (const [teamCode, team] of Object.entries(teamsByCode || {})) {
-    const canonicalTeam = synchronizeTeamTotalsSnapshot(team as any, year);
+    const canonicalTeam = synchronizeTeamTotalsSnapshot(team as any, year); // load-bearing: team is LooseRecord from teamsByCode, not assignable to TeamCapSheetLike without cast
     totalsByTeam[teamCode] =
       canonicalTeam?.totals || computeTeamCapTotals(team, year);
   }
@@ -1568,8 +1570,14 @@ function buildCapAuditEvaluation(params: {
     mutationType,
     worldId: worldId || BASE_MODE_VALIDATOR_WORLD_ID,
     year,
-    beforeTeamsByCode: beforeTeamsByCode as Record<string, Record<string, unknown>>,
-    afterTeamsByCode: afterTeamsByCode as Record<string, Record<string, unknown>>,
+    beforeTeamsByCode: beforeTeamsByCode as Record<
+      string,
+      Record<string, unknown>
+    >,
+    afterTeamsByCode: afterTeamsByCode as Record<
+      string,
+      Record<string, unknown>
+    >,
     beforeTotalsByTeam,
     afterTotalsByTeam,
   });
@@ -1648,7 +1656,8 @@ function buildCommittedOfferSheetIdentity(params: {
   seasonKey: string;
   offeringTeamCode: string;
 }): OfferSheetCommittedIdentity {
-  const metadata = (params.result.metadata || null) as OfferSheetMutationMetadata | null;
+  const metadata = (params.result.metadata ||
+    null) as OfferSheetMutationMetadata | null;
 
   return {
     dedupKey: toTrimmedStringOrNull(metadata?.dedupKey),
@@ -1691,7 +1700,8 @@ function buildCommittedOfferSheetLifecycleIdentity(params: {
   result: PersistMutationResult;
   fallbackIdentity: OfferSheetLifecycleCommittedIdentityInput;
 }): OfferSheetLifecycleCommittedIdentity {
-  const metadata = (params.result.metadata || null) as OfferSheetMutationMetadata | null;
+  const metadata = (params.result.metadata ||
+    null) as OfferSheetMutationMetadata | null;
 
   return {
     dedupKey: toTrimmedStringOrNull(
@@ -1773,10 +1783,7 @@ function filterSignedPlayerFromFreeAgents<
     id?: unknown;
     player_id?: unknown;
   },
->(
-  freeAgents: T[],
-  playerObj: ArchitectPlayer
-): T[] {
+>(freeAgents: T[], playerObj: ArchitectPlayer): T[] {
   return freeAgents.filter(
     (player) =>
       player.name !== playerObj.name &&
@@ -1931,12 +1938,12 @@ export function useArchitectActions({
         authoritativeEventLinked:
           auditStreamBoundary.initialAuthoritativeEventLinked,
       });
-      const auditLifecycleState: LocalCapAuditLifecycleState =
-        !auditEvaluation.validation.valid
-          ? 'evaluation-blocked'
-          : auditStreamBoundary.stateKind === 'local-validated-apply'
-            ? 'local-validated-applied'
-            : 'optimistic-preview-pending';
+      const auditLifecycleState: LocalCapAuditLifecycleState = !auditEvaluation
+        .validation.valid
+        ? 'evaluation-blocked'
+        : auditStreamBoundary.stateKind === 'local-validated-apply'
+          ? 'local-validated-applied'
+          : 'optimistic-preview-pending';
       const auditEvent = withLocalCapAuditLifecycleState(
         auditEvaluation.event,
         auditLifecycleState
@@ -2256,7 +2263,8 @@ export function useArchitectActions({
       mutationType: string,
       result: PersistMutationResult
     ): Promise<CommittedWorldReloadPlan | null> => {
-      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+      const committedWorldTeam =
+        await resolveCommittedWorldTeamSnapshot(result);
 
       if (!committedWorldTeam) {
         return null;
@@ -2265,7 +2273,8 @@ export function useArchitectActions({
       return {
         committedWorldTeam,
         committedWorldMetadata: extractCommittedWorldMetadataPatch(result),
-        refreshRosterBundle: shouldRefreshWorldRosterAfterMutation(mutationType),
+        refreshRosterBundle:
+          shouldRefreshWorldRosterAfterMutation(mutationType),
       };
     },
     [resolveCommittedWorldTeamSnapshot, shouldRefreshWorldRosterAfterMutation]
@@ -2284,10 +2293,7 @@ export function useArchitectActions({
           refreshRosterBundle: plan.refreshRosterBundle,
         });
 
-        if (
-          !reloadedWorldTeam ||
-          reloadedWorldTeam.outcome === 'stale-drop'
-        ) {
+        if (!reloadedWorldTeam || reloadedWorldTeam.outcome === 'stale-drop') {
           return { status: 'stale-drop' };
         }
 
@@ -2340,13 +2346,11 @@ export function useArchitectActions({
           committedTeamSource: committedWorldTeam.committedTeamSource,
         },
         committedWorldMetadata: null,
-        refreshRosterBundle: shouldRefreshWorldRosterAfterMutation(mutationType),
+        refreshRosterBundle:
+          shouldRefreshWorldRosterAfterMutation(mutationType),
       });
     },
-    [
-      applyCommittedWorldReloadPlan,
-      shouldRefreshWorldRosterAfterMutation,
-    ]
+    [applyCommittedWorldReloadPlan, shouldRefreshWorldRosterAfterMutation]
   );
 
   const syncTeamFromMutationResult = useCallback(
@@ -2484,7 +2488,8 @@ export function useArchitectActions({
         seasonKey: params.seasonKey,
         offeringTeamCode: params.offeringTeamCode,
       });
-      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+      const committedWorldTeam =
+        await resolveCommittedWorldTeamSnapshot(result);
       const committedTeam = committedWorldTeam?.committedTeam || null;
       const committedTeamSource: OfferSheetCommittedState['committedTeamSource'] =
         committedWorldTeam?.committedTeamSource || 'reload';
@@ -2599,7 +2604,9 @@ export function useArchitectActions({
         };
 
         if (!result.success) {
-          const message = String(result.error || 'Failed to store offer sheet.');
+          const message = String(
+            result.error || 'Failed to store offer sheet.'
+          );
           reportMutationError(message, {
             mutationType: 'storeOfferSheet',
             payload: mutationPayload,
@@ -2668,13 +2675,13 @@ export function useArchitectActions({
       result: PersistMutationResult,
       expectation: OfferSheetLifecycleCommittedStateExpectation
     ): Promise<OfferSheetLifecycleCommittedStateResolution> => {
-      const committedOfferSheetIdentity = buildCommittedOfferSheetLifecycleIdentity(
-        {
+      const committedOfferSheetIdentity =
+        buildCommittedOfferSheetLifecycleIdentity({
           result,
           fallbackIdentity: expectation.identity,
-        }
-      );
-      const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+        });
+      const committedWorldTeam =
+        await resolveCommittedWorldTeamSnapshot(result);
       const committedTeam = committedWorldTeam?.committedTeam || null;
       const committedTeamSource: OfferSheetLifecycleCommittedState['committedTeamSource'] =
         committedWorldTeam?.committedTeamSource || 'reload';
@@ -2703,10 +2710,7 @@ export function useArchitectActions({
           )
         ) || null;
 
-      if (
-        expectation.presence === 'present' &&
-        !committedOfferSheet
-      ) {
+      if (expectation.presence === 'present' && !committedOfferSheet) {
         return {
           ok: false,
           message: OFFER_SHEET_LIFECYCLE_VERIFICATION_FAILURE_MESSAGE,
@@ -2720,10 +2724,7 @@ export function useArchitectActions({
         };
       }
 
-      if (
-        expectation.presence === 'absent' &&
-        committedOfferSheet
-      ) {
+      if (expectation.presence === 'absent' && committedOfferSheet) {
         return {
           ok: false,
           message: OFFER_SHEET_LIFECYCLE_VERIFICATION_FAILURE_MESSAGE,
@@ -2821,7 +2822,9 @@ export function useArchitectActions({
         };
 
         if (!result.success) {
-          const message = String(result.error || `Failed to run ${mutationType}.`);
+          const message = String(
+            result.error || `Failed to run ${mutationType}.`
+          );
           reportMutationError(message, {
             mutationType,
             payload: mutationPayload,
@@ -3179,24 +3182,21 @@ export function useArchitectActions({
     [playersMap, reportMutationError, teamCapSheet, teamCode]
   );
 
-  const resolveStandardSigningExecutionRoute =
-    useCallback<() => StandardSigningExecutionRoute>(
-      () =>
-        worldId
-          ? {
-              mode: 'world',
-              execute: executeWorldModeStandardSigning,
-            }
-          : {
-              mode: 'vacuum',
-              execute: executeVacuumModeStandardSigning,
-            },
-      [
-        executeVacuumModeStandardSigning,
-        executeWorldModeStandardSigning,
-        worldId,
-      ]
-    );
+  const resolveStandardSigningExecutionRoute = useCallback<
+    () => StandardSigningExecutionRoute
+  >(
+    () =>
+      worldId
+        ? {
+            mode: 'world',
+            execute: executeWorldModeStandardSigning,
+          }
+        : {
+            mode: 'vacuum',
+            execute: executeVacuumModeStandardSigning,
+          },
+    [executeVacuumModeStandardSigning, executeWorldModeStandardSigning, worldId]
+  );
 
   const applyCapAuditedTeamMutation = useCallback(
     (params: {
@@ -3381,7 +3381,8 @@ export function useArchitectActions({
       overrides: AuthoritativeSigningPreparationOverrides
     ): PreparedAuthoritativeSigningDetails => {
       const contractForAuthority =
-        stripPrebuiltSigningRowsForAuthority(contract) || (contract as LocalContract);
+        stripPrebuiltSigningRowsForAuthority(contract) ||
+        (contract as LocalContract);
       const actionSeasonContext = buildActionSeasonContext(
         contractForAuthority,
         currentYear
@@ -3632,11 +3633,13 @@ export function useArchitectActions({
         teamIndexByCode.set(code, index);
       });
 
-      const teams: NonNullable<ArchitectMutationPayload['teams']> = tradeData.map(
-        (t, teamIndex): TradeMutationPayloadTeam => ({
-          teamCode: resolvedTeamCodes[teamIndex],
-          sends: ((t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]).map(
-            (p) => {
+      const teams: NonNullable<ArchitectMutationPayload['teams']> =
+        tradeData.map(
+          (t, teamIndex): TradeMutationPayloadTeam => ({
+            teamCode: resolvedTeamCodes[teamIndex],
+            sends: (
+              (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
+            ).map((p) => {
               const rawDestination =
                 p.receivingTeamId || p.tradeTo || p.toTeamId || p.destTeamId;
               const destinationTeamCode = rawDestination
@@ -3682,7 +3685,8 @@ export function useArchitectActions({
               if (
                 p.signAndTrade &&
                 (!destinationTeamCode ||
-                  destinationTeamCode === (resolveTeamCode(t.teamId) || t.teamId))
+                  destinationTeamCode ===
+                    (resolveTeamCode(t.teamId) || t.teamId))
               ) {
                 throw new Error(
                   `Sign-and-trade asset "${p.name || p.id || p.player_id}" must include a valid destination team`
@@ -3715,8 +3719,9 @@ export function useArchitectActions({
                 contract:
                   // Cast: SignAndTradeNormalizedContract is validated (requireActiveYearRow: true)
                   // so seasons are always present — compatible with ArchitectMutationContract at runtime.
-                  (signAndTradeValidation?.contract || p.contract || undefined) as
-                    ArchitectMutationContract | undefined,
+                  (signAndTradeValidation?.contract ||
+                    p.contract ||
+                    undefined) as ArchitectMutationContract | undefined,
                 contractYears:
                   signAndTradeValidation?.contract?.contractYears ||
                   p.contractYears ||
@@ -3726,14 +3731,13 @@ export function useArchitectActions({
                   p.firstYearGuaranteed ??
                   undefined,
               };
-            }
-          ),
-          picksOut: [],
-          // TM-PICKS-E1: Include outgoing entitlements in persistence payload
-          outgoingEntitlements: t.outgoingEntitlements || [],
-          entitlementsOut: t.outgoingEntitlements || [],
-        })
-      );
+            }),
+            picksOut: [],
+            // TM-PICKS-E1: Include outgoing entitlements in persistence payload
+            outgoingEntitlements: t.outgoingEntitlements || [],
+            entitlementsOut: t.outgoingEntitlements || [],
+          })
+        );
 
       for (const team of teams) {
         for (const player of team.sends) {
@@ -3831,7 +3835,7 @@ export function useArchitectActions({
           throw new Error(
             String(
               computeResult?.error ||
-              'Base-state trade apply failed authoritative compute.'
+                'Base-state trade apply failed authoritative compute.'
             )
           );
         }
@@ -4061,10 +4065,7 @@ export function useArchitectActions({
       mutationPayload: SignAndTradeMutationPayload
     ): Promise<SignAndTradeExecutionResult> => {
       if (!worldId) {
-        const message = getFreeAgencyWorldOnlyMessage(
-          'signAndTrade',
-          'commit'
-        );
+        const message = getFreeAgencyWorldOnlyMessage('signAndTrade', 'commit');
         reportMutationError(message, {
           mutationType: 'signAndTrade',
           payload: mutationPayload,
@@ -4117,7 +4118,8 @@ export function useArchitectActions({
           return { success: false, message };
         }
 
-        const committedWorldTeam = await resolveCommittedWorldTeamSnapshot(result);
+        const committedWorldTeam =
+          await resolveCommittedWorldTeamSnapshot(result);
         const committedTeam = committedWorldTeam?.committedTeam || null;
 
         if (!committedTeam) {
@@ -4171,13 +4173,11 @@ export function useArchitectActions({
       contract: SigningDetails,
       destinationTeamCode: string
     ): Promise<MutationActionResult> => {
-      const worldRequiredMessage = requireActiveWorldForFreeAgencyWorldOnlyCommit(
-        'signAndTrade',
-        {
+      const worldRequiredMessage =
+        requireActiveWorldForFreeAgencyWorldOnlyCommit('signAndTrade', {
           playerObj,
           destinationTeamCode,
-        }
-      );
+        });
       if (worldRequiredMessage) {
         return {
           success: false,
@@ -4204,7 +4204,7 @@ export function useArchitectActions({
 
       const result = await executeWorldModeSignAndTrade(
         transactionDefinition.actionSeasonContext,
-        transactionDefinition.mutationPayload,
+        transactionDefinition.mutationPayload
       );
 
       if (result.success !== true) {
@@ -4339,12 +4339,10 @@ export function useArchitectActions({
       playerObj: ArchitectPlayer,
       contract: SigningDetails
     ): Promise<MutationActionResult> => {
-      const worldRequiredMessage = requireActiveWorldForFreeAgencyWorldOnlyCommit(
-        'offerSheetCreation',
-        {
+      const worldRequiredMessage =
+        requireActiveWorldForFreeAgencyWorldOnlyCommit('offerSheetCreation', {
           playerObj,
-        }
-      );
+        });
       if (worldRequiredMessage) {
         return {
           success: false,
@@ -4552,11 +4550,7 @@ export function useArchitectActions({
 
   const handleDeclineOfferSheet = useCallback(
     (offeringTeamCode: string, offerSheetId: string): void => {
-      runOfferSheetResolutionAction(
-        'decline',
-        offeringTeamCode,
-        offerSheetId
-      );
+      runOfferSheetResolutionAction('decline', offeringTeamCode, offerSheetId);
     },
     [runOfferSheetResolutionAction]
   );
@@ -4575,12 +4569,10 @@ export function useArchitectActions({
           return;
         }
 
-        const finalizeRoute = resolveOfferSheetFinalizeMutationRoute(offerSheet);
+        const finalizeRoute =
+          resolveOfferSheetFinalizeMutationRoute(offerSheet);
         if ('message' in finalizeRoute) {
-          reportMutationError(
-            finalizeRoute.message,
-            finalizeRoute.logContext
-          );
+          reportMutationError(finalizeRoute.message, finalizeRoute.logContext);
           return;
         }
 
@@ -4634,13 +4626,13 @@ export function useArchitectActions({
               invalidMessage:
                 'Dead cap update blocked by post-state cap validation.',
               computeNextTeam: (beforeTeam: CapSheet) =>
-                (synchronizeTeamTotalsSnapshot(
+                synchronizeTeamTotalsSnapshot(
                   {
                     ...beforeTeam,
                     deadCap: params.deadCap,
                   },
                   currentYear
-                ) as CapSheet),
+                ) as CapSheet,
               persistPayload: {
                 teamCode,
                 deadCap: params.deadCap,
@@ -4652,7 +4644,7 @@ export function useArchitectActions({
               invalidMessage:
                 'Exception update blocked by post-state cap validation.',
               computeNextTeam: (beforeTeam: CapSheet) =>
-                (synchronizeTeamTotalsSnapshot(
+                synchronizeTeamTotalsSnapshot(
                   {
                     ...beforeTeam,
                     exceptions: mergeManualExceptionSnapshot(
@@ -4661,7 +4653,7 @@ export function useArchitectActions({
                     ) as NonNullable<CapSheet['exceptions']>,
                   },
                   currentYear
-                ) as CapSheet),
+                ) as CapSheet,
               persistPayload: {
                 teamCode,
                 exceptions: params.exceptions,
@@ -4764,39 +4756,33 @@ export function useArchitectActions({
     [teamCapSheet]
   );
 
-  const injectTeamHistoryDevFixtures =
-    useCallback((): MutationActionResult => {
-      if (!teamCapSheet) {
-        return {
-          success: false,
-          message:
-            'Cannot inject Team History fixtures: team state is not loaded.',
-        };
-      }
+  const injectTeamHistoryDevFixtures = useCallback((): MutationActionResult => {
+    if (!teamCapSheet) {
+      return {
+        success: false,
+        message:
+          'Cannot inject Team History fixtures: team state is not loaded.',
+      };
+    }
 
-      const nextTeam = injectTeamHistoryFixtures(
-        teamCapSheet
-      );
-      setTeamCapSheetSafe(nextTeam as CapSheet);
-      return { success: true };
-    }, [setTeamCapSheet, teamCapSheet]);
+    const nextTeam = injectTeamHistoryFixtures(teamCapSheet);
+    setTeamCapSheetSafe(nextTeam as CapSheet);
+    return { success: true };
+  }, [setTeamCapSheetSafe, teamCapSheet]);
 
-  const clearTeamHistoryDevFixtures =
-    useCallback((): MutationActionResult => {
-      if (!teamCapSheet) {
-        return {
-          success: false,
-          message:
-            'Cannot clear Team History fixtures: team state is not loaded.',
-        };
-      }
+  const clearTeamHistoryDevFixtures = useCallback((): MutationActionResult => {
+    if (!teamCapSheet) {
+      return {
+        success: false,
+        message:
+          'Cannot clear Team History fixtures: team state is not loaded.',
+      };
+    }
 
-      const nextTeam = clearTeamHistoryFixtures(
-        teamCapSheet
-      );
-      setTeamCapSheetSafe(nextTeam as CapSheet);
-      return { success: true };
-    }, [setTeamCapSheet, teamCapSheet]);
+    const nextTeam = clearTeamHistoryFixtures(teamCapSheet);
+    setTeamCapSheetSafe(nextTeam as CapSheet);
+    return { success: true };
+  }, [setTeamCapSheetSafe, teamCapSheet]);
 
   const teamHistoryDevTools = useMemo<TeamHistoryDevTools>(
     () => ({
@@ -5565,35 +5551,33 @@ export function useArchitectActions({
     freeAgencyWorldOnlyModalActionOwner?.storeOfferSheet &&
       freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight
   );
-  const signAndTradeInitiation = useMemo<FreeAgentSignAndTradeInitiation | null>(
-    () =>
-      hasWorldOnlySignAndTradeAvailability &&
-      freeAgencyWorldOnlyModalActionOwner
-        ? {
-            onSignAndTrade: freeAgencyWorldOnlyModalActionOwner.signAndTrade,
-            getSignAndTradePreflight:
-              freeAgencyWorldOnlyModalActionOwner.getSignAndTradePreflight,
-          }
-        : null,
-    [
-      freeAgencyWorldOnlyModalActionOwner,
-      hasWorldOnlySignAndTradeAvailability,
-    ]
-  );
+  const signAndTradeInitiation =
+    useMemo<FreeAgentSignAndTradeInitiation | null>(
+      () =>
+        hasWorldOnlySignAndTradeAvailability &&
+        freeAgencyWorldOnlyModalActionOwner
+          ? {
+              onSignAndTrade: freeAgencyWorldOnlyModalActionOwner.signAndTrade,
+              getSignAndTradePreflight:
+                freeAgencyWorldOnlyModalActionOwner.getSignAndTradePreflight,
+            }
+          : null,
+      [
+        freeAgencyWorldOnlyModalActionOwner,
+        hasWorldOnlySignAndTradeAvailability,
+      ]
+    );
   const offerSheetInitiation = useMemo<FreeAgentOfferSheetInitiation | null>(
     () =>
-      hasWorldOnlyOfferSheetAvailability &&
-      freeAgencyWorldOnlyModalActionOwner
+      hasWorldOnlyOfferSheetAvailability && freeAgencyWorldOnlyModalActionOwner
         ? {
             getOfferSheetPreflight:
               freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight,
-            storeOfferSheet: freeAgencyWorldOnlyModalActionOwner.storeOfferSheet,
+            storeOfferSheet:
+              freeAgencyWorldOnlyModalActionOwner.storeOfferSheet,
           }
         : null,
-    [
-      freeAgencyWorldOnlyModalActionOwner,
-      hasWorldOnlyOfferSheetAvailability,
-    ]
+    [freeAgencyWorldOnlyModalActionOwner, hasWorldOnlyOfferSheetAvailability]
   );
 
   // VISUAL/MODAL CONTRACT: FreeAgentPool reads this as upstream truth for what
@@ -5611,10 +5595,7 @@ export function useArchitectActions({
       signAndTradeInitiation,
       offerSheetInitiation,
     }),
-    [
-      offerSheetInitiation,
-      signAndTradeInitiation,
-    ]
+    [offerSheetInitiation, signAndTradeInitiation]
   );
 
   // SECTION/LIFECYCLE CONTRACT: FreeAgencySection renders disabled messaging

@@ -1093,8 +1093,8 @@ export function validatePostTradeSnapshotForContext({
     };
 
     return context as ValidatedTradeContext;
-  } catch (error: any) {
-    const message = error.message || 'Trade validation failed';
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Trade validation failed';
     const failureIssue =
       createValidationIssue(message, {
         rule: 'tradeContext',

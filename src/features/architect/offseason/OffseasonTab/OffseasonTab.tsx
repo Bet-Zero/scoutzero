@@ -113,9 +113,9 @@ const OffseasonTab = ({
         projectedSeasonCode: toSeasonCode(projectedSeasonYear),
         previewSummary: summary,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to advance offseason', err);
-      setError(err?.message || 'Failed to advance offseason');
+      setError(err instanceof Error ? err.message : 'Failed to advance offseason');
     } finally {
       setIsLoading(false);
     }

@@ -63,7 +63,7 @@ export function buildFirstRoundCalendar({
   const span = [...Array(8)].map((_, i) => thisYear + i);
 
   const cal = Object.fromEntries(
-    span.map((yr) => [yr, { status: 'owned', protection: null as any }])
+    span.map((yr) => [yr, { status: 'owned', protection: null }])
   ) as StepienCalendar;
 
   existingPicks.forEach((p) => {
@@ -114,7 +114,9 @@ export function passesStepienRule(cal: StepienCalendar): boolean {
  *
  * @note Phase 1 SSOT-1: This now delegates to canonical validateStepien()
  */
-export function hasStepienViolation(picks: LoosePick[] | null | undefined): boolean {
+export function hasStepienViolation(
+  picks: LoosePick[] | null | undefined
+): boolean {
   if (!picks || picks.length === 0) return false;
 
   // Delegate to canonical validateStepien with minimal team wrapper

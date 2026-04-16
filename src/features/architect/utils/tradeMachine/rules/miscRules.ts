@@ -92,7 +92,7 @@ export function validateBYC(
     currentEndYear =
       typeof yearKey === 'number'
         ? yearKey
-        : ((seasonToYear(currentSeason) as number) + 1);
+        : (seasonToYear(currentSeason) as number) + 1;
     prevEndYear = currentEndYear - 1;
   }
 
@@ -171,7 +171,7 @@ export function validateAllNewRules(
     ) as unknown as LegacyRuleSpread),
     ...validateDraftPicks(
       team as Parameters<typeof validateDraftPicks>[0],
-      allTeams as never
+      allTeams as never // load-bearing: allTeams type incompatible with validateDraftPicks second param — validator expects internal team shape
     ),
     ...(validateCash(
       team as Parameters<typeof validateCash>[0]
@@ -199,7 +199,9 @@ export function validatePlayerConsent(team: MiscRulesTeam): string[] {
 
     // Limited NTC check
     if (player.limitedNTCTeams?.length && player.limitedNTCTeams.length > 0) {
-      const canBeTraded = !player.limitedNTCTeams.includes(team.teamId as string);
+      const canBeTraded = !player.limitedNTCTeams.includes(
+        team.teamId as string
+      );
       if (!canBeTraded && !player.hasProvidedConsent) {
         violations.push('Player NTC — consent required');
       }

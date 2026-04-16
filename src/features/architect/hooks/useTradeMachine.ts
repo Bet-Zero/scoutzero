@@ -157,7 +157,10 @@ function resolveTeamCodeLike(
     return teamObj.code;
   }
   // Else attempt teamObjOrId.abbreviation if 3 chars
-  if (typeof teamObj?.abbreviation === 'string' && teamObj.abbreviation.length === 3) {
+  if (
+    typeof teamObj?.abbreviation === 'string' &&
+    teamObj.abbreviation.length === 3
+  ) {
     return teamObj.abbreviation;
   }
   // Else attempt teamObjOrId.id if 3 chars
@@ -166,10 +169,7 @@ function resolveTeamCodeLike(
   }
   // Else attempt teamData.team?.id if 3 chars
   const teamDataTeam = teamDataMaybe?.team as UnknownRecord | undefined;
-  if (
-    typeof teamDataTeam?.id === 'string' &&
-    teamDataTeam.id.length === 3
-  ) {
+  if (typeof teamDataTeam?.id === 'string' && teamDataTeam.id.length === 3) {
     return teamDataTeam.id;
   }
   // Could not resolve
@@ -216,7 +216,10 @@ const deepMergeEntitlement = (base: UnknownRecord, override: UnknownRecord) => {
   Object.entries(override).forEach(([key, value]) => {
     const baseValue = base[key];
     if (isPlainObjectValue(baseValue) && isPlainObjectValue(value)) {
-      merged[key] = deepMergeEntitlement(baseValue as UnknownRecord, value as UnknownRecord);
+      merged[key] = deepMergeEntitlement(
+        baseValue as UnknownRecord,
+        value as UnknownRecord
+      );
       return;
     }
     merged[key] = value;
@@ -277,7 +280,10 @@ const resolvePickRulesForEntitlements = async (
  * Convenience wrapper to get baseline payroll + dead money from SSOT.
  * Returns { playersTotal, deadMoneyTotal, totalWithDead } from computeTeamCapTotals.
  */
-const getCapTotalsForYear = (teamCapSheet: UnknownRecord | null | undefined, yearKey: number) => {
+const getCapTotalsForYear = (
+  teamCapSheet: UnknownRecord | null | undefined,
+  yearKey: number
+) => {
   if (!teamCapSheet)
     return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
   const totals = computeTeamCapTotals(teamCapSheet, yearKey);
@@ -295,13 +301,18 @@ const getCapTotalsForYear = (teamCapSheet: UnknownRecord | null | undefined, yea
 /**
  * Pull MLE/Room MLE/BAE values from capProjections using the **season end-year**.
  */
-function getMLEBAEForYear(endYear: number, capProjections: UnknownRecord | null | undefined) {
+function getMLEBAEForYear(
+  endYear: number,
+  capProjections: UnknownRecord | null | undefined
+) {
   if (!capProjections) return { fullMLE: 0, roomMLE: 0, bae: 0 };
 
   const key = toSeasonKey(endYear); // e.g., 2025 -> "2024-25"
   const fromComposite = capProjections?.[key] || {};
   const fromNumeric = capProjections?.[endYear] || {};
-  const src = (Object.keys(fromComposite as object).length ? fromComposite : fromNumeric) as Record<string, unknown>;
+  const src = (
+    Object.keys(fromComposite as object).length ? fromComposite : fromNumeric
+  ) as Record<string, unknown>;
 
   return {
     fullMLE: Number(src.fullMLE ?? src.mle ?? 0),
@@ -313,7 +324,11 @@ function getMLEBAEForYear(endYear: number, capProjections: UnknownRecord | null 
 /**
  * Mutates team to add FA exception buckets and (optionally) seed test TPEs if missing.
  */
-function augmentTeamWithExceptions(team: UnknownRecord | null, endYear: number, capProjections: UnknownRecord | null | undefined) {
+function augmentTeamWithExceptions(
+  team: UnknownRecord | null,
+  endYear: number,
+  capProjections: UnknownRecord | null | undefined
+) {
   if (!team) return team;
 
   // Seed FA buckets if not present
@@ -480,7 +495,8 @@ export const useTradeMachine = (
 
   const clearInjectedDevSntPlayers = useCallback(() => {
     setTeams(
-      (prev) => clearSyntheticSntPlayersFromTeams(prev) as TradeMachineTeamSlot[]
+      (prev) =>
+        clearSyntheticSntPlayersFromTeams(prev) as TradeMachineTeamSlot[]
     );
   }, []);
 
@@ -513,7 +529,10 @@ export const useTradeMachine = (
         // Use primaryTeamData if provided (already world-aware from GMDashboard)
         // Otherwise load with world-awareness via loadWorldTeamData
         const data = (primaryTeamData ||
-          (await loadWorldTeamData(worldId, primaryTeam))) as TradeMachineTeam | null;
+          (await loadWorldTeamData(
+            worldId,
+            primaryTeam
+          ))) as TradeMachineTeam | null;
 
         if (baseTeam && data) {
           // Build team object, augment exceptions/tpes
@@ -608,7 +627,8 @@ export const useTradeMachine = (
         // Phase 16.3: Surface init failures instead of silent blank UI
         console.error('[tradeMachine:init] failed to init trade teams', err);
         setInitError(
-          getErrorMessage(err) || 'Unknown error during trade machine initialization'
+          getErrorMessage(err) ||
+            'Unknown error during trade machine initialization'
         );
         // Attempt safe fallback: if primaryTeamData exists, try to set minimal slot0
         if (primaryTeamData) {
@@ -634,7 +654,13 @@ export const useTradeMachine = (
 
   // Core trade actions
   const setPlayerTrade = useCallback(
-    (index: number, player: UnknownRecord, action: string, destTeamId: string | null = null, actionMeta: UnknownRecord | null = null) => {
+    (
+      index: number,
+      player: UnknownRecord,
+      action: string,
+      destTeamId: string | null = null,
+      actionMeta: UnknownRecord | null = null
+    ) => {
       setTeams((prev) => {
         const newTeams = [...prev];
         const team = newTeams[index];
@@ -668,7 +694,7 @@ export const useTradeMachine = (
           case 'signAndTrade':
             {
               const validation = validateSignAndTradeContractPayload(
-                (actionMeta?.signAndTradeContract as any) || null,
+                (actionMeta?.signAndTradeContract as any) || null, // load-bearing: actionMeta.signAndTradeContract type doesn't match validator's expected input shape
                 yearKey,
                 { requireActiveYearRow: true }
               );
@@ -807,54 +833,57 @@ export const useTradeMachine = (
 
   // Phase 11.1: Toggle entitlement selection for trading
   // Phase 17: Updated to auto-set toTeamId for 2-team trades (closure of broadcast bug)
-  const toggleEntitlement = useCallback((index: number, entitlement: UnknownRecord) => {
-    setTeams((prev) => {
-      const newTeams = [...prev];
-      const entitlementId = entitlement.id || entitlement.entitlementId;
-      const existingIndex = (newTeams[index].entitlementsOut || []).findIndex(
-        (e) => (e.id || e.entitlementId) === entitlementId
-      );
+  const toggleEntitlement = useCallback(
+    (index: number, entitlement: UnknownRecord) => {
+      setTeams((prev) => {
+        const newTeams = [...prev];
+        const entitlementId = entitlement.id || entitlement.entitlementId;
+        const existingIndex = (newTeams[index].entitlementsOut || []).findIndex(
+          (e) => (e.id || e.entitlementId) === entitlementId
+        );
 
-      if (existingIndex >= 0) {
-        // Remove from selection
-        newTeams[index].entitlementsOut = newTeams[
-          index
-        ].entitlementsOut.filter((_, i) => i !== existingIndex);
-      } else {
-        // Phase 17: Count active teams (teams with a selected team object)
-        const activeTeams = newTeams.filter(hasTeamSlot);
-        const activeTeamCount = activeTeams.length;
+        if (existingIndex >= 0) {
+          // Remove from selection
+          newTeams[index].entitlementsOut = newTeams[
+            index
+          ].entitlementsOut.filter((_, i) => i !== existingIndex);
+        } else {
+          // Phase 17: Count active teams (teams with a selected team object)
+          const activeTeams = newTeams.filter(hasTeamSlot);
+          const activeTeamCount = activeTeams.length;
 
-        // Phase 17: For 2-team trades, auto-set toTeamId to the only other team
-        // For 3+ team trades, leave toTeamId null (UI must prompt user to select)
-        let autoToTeamId = null;
-        if (activeTeamCount === 2) {
-          // Find the other team's id
-          const otherTeam = activeTeams.find(
-            (t) => t.team?.id !== newTeams[index].team?.id
-          );
-          autoToTeamId = otherTeam?.team?.id || null;
+          // Phase 17: For 2-team trades, auto-set toTeamId to the only other team
+          // For 3+ team trades, leave toTeamId null (UI must prompt user to select)
+          let autoToTeamId = null;
+          if (activeTeamCount === 2) {
+            // Find the other team's id
+            const otherTeam = activeTeams.find(
+              (t) => t.team?.id !== newTeams[index].team?.id
+            );
+            autoToTeamId = otherTeam?.team?.id || null;
+          }
+
+          // Add to selection with required metadata
+          const decoratedEntitlement = decorateEntitlementForTrade({
+            ...entitlement,
+            entitlementId,
+            fromTeamId: newTeams[index].team?.id,
+            toTeamId: autoToTeamId, // Phase 17: Auto-set for 2-team, null for 3+
+          });
+          if (!isUnknownRecord(decoratedEntitlement)) {
+            return newTeams;
+          }
+          newTeams[index].entitlementsOut = [
+            ...(newTeams[index].entitlementsOut || []),
+            decoratedEntitlement,
+          ];
         }
 
-        // Add to selection with required metadata
-        const decoratedEntitlement = decorateEntitlementForTrade({
-          ...entitlement,
-          entitlementId,
-          fromTeamId: newTeams[index].team?.id,
-          toTeamId: autoToTeamId, // Phase 17: Auto-set for 2-team, null for 3+
-        });
-        if (!isUnknownRecord(decoratedEntitlement)) {
-          return newTeams;
-        }
-        newTeams[index].entitlementsOut = [
-          ...(newTeams[index].entitlementsOut || []),
-          decoratedEntitlement,
-        ];
-      }
-
-      return newTeams;
-    });
-  }, []);
+        return newTeams;
+      });
+    },
+    []
+  );
 
   // Phase 17: Set destination team for an entitlement in 3+ team trades
   const setEntitlementDestination = useCallback(
@@ -936,7 +965,7 @@ export const useTradeMachine = (
               teamObj.entitlements = entitlements;
 
               // Phase 12.3B: Fetch pick rules for entitlements
-                let pickRulesById: Record<string, unknown> = {};
+              let pickRulesById: Record<string, unknown> = {};
               if (ENABLE_PICK_RULES) {
                 pickRulesById =
                   await resolvePickRulesForEntitlements(entitlements);
@@ -1073,105 +1102,109 @@ export const useTradeMachine = (
     });
   }, []);
 
-  const buildCurrentTradePreviewContext = useCallback((): PreparedTradePreviewContext | null => {
-    const patchedTeams = teams.map((teamSlot) => {
-      if (!teamSlot.team) {
+  const buildCurrentTradePreviewContext =
+    useCallback((): PreparedTradePreviewContext | null => {
+      const patchedTeams = teams.map((teamSlot) => {
+        if (!teamSlot.team) {
+          return teamSlot;
+        }
+
+        if (
+          !Number.isFinite(teamSlot.team.teamTotalSalary) ||
+          teamSlot.team.teamTotalSalary === 0
+        ) {
+          const { totalWithDead } = getCapTotalsForYear(teamSlot.team, yearKey);
+          return {
+            ...teamSlot,
+            team: {
+              ...teamSlot.team,
+              teamTotalSalary: totalWithDead,
+              projectedSalary: totalWithDead,
+            },
+          };
+        }
+
         return teamSlot;
+      });
+      const activeTeams = patchedTeams.filter(hasTeamSlot);
+
+      if (activeTeams.length < 2) {
+        return null;
       }
 
-      if (
-        !Number.isFinite(teamSlot.team.teamTotalSalary) ||
-        teamSlot.team.teamTotalSalary === 0
-      ) {
-        const { totalWithDead } = getCapTotalsForYear(teamSlot.team, yearKey);
-        return {
-          ...teamSlot,
-          team: {
-            ...teamSlot.team,
-            teamTotalSalary: totalWithDead,
-            projectedSalary: totalWithDead,
-          },
-        };
-      }
-
-      return teamSlot;
-    });
-    const activeTeams = patchedTeams.filter(hasTeamSlot);
-
-    if (activeTeams.length < 2) {
-      return null;
-    }
-
-    const seasonId = toSeasonKey(yearKey) ?? String(yearKey);
-    const payload: TradeContextPayload = {
-      teams: activeTeams.map((slot) => ({
-        teamCode: String(slot.team.teamCode || slot.team.id || ''),
-        teamId: String(slot.team.id || slot.team.teamCode || ''),
-        sends: slot.sends as unknown as ArchitectTradePayloadPlayer[],
-        entitlementsOut:
-          (slot.entitlementsOut || []) as unknown as NonNullable<
+      const seasonId = toSeasonKey(yearKey) ?? String(yearKey);
+      const payload: TradeContextPayload = {
+        teams: activeTeams.map((slot) => ({
+          teamCode: String(slot.team.teamCode || slot.team.id || ''),
+          teamId: String(slot.team.id || slot.team.teamCode || ''),
+          sends: slot.sends as unknown as ArchitectTradePayloadPlayer[],
+          entitlementsOut: (slot.entitlementsOut ||
+            []) as unknown as NonNullable<
             TradeContextPayload['teams'][0]['entitlementsOut']
           >,
-      })),
-      capProjections: capProjections as TradeContextPayload['capProjections'],
-      tradeCtx: {
-        worldId: worldId ?? undefined,
-        yearKey,
-        source: 'tradeMachine',
-        ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
-      },
-    };
-    const currentState: TradeContextCurrentState = {
-      teams: activeTeams.map((slot) => ({
-        teamCode: (slot.team.teamCode || slot.team.id || null) as string | null,
-        team: slot.team as unknown as ArchitectMutationTeamRecord,
-      })),
-    };
+        })),
+        capProjections: capProjections as TradeContextPayload['capProjections'],
+        tradeCtx: {
+          worldId: worldId ?? undefined,
+          yearKey,
+          source: 'tradeMachine',
+          ...(worldAsOfDate ? { asOfDate: worldAsOfDate } : {}),
+        },
+      };
+      const currentState: TradeContextCurrentState = {
+        teams: activeTeams.map((slot) => ({
+          teamCode: (slot.team.teamCode || slot.team.id || null) as
+            | string
+            | null,
+          team: slot.team as unknown as ArchitectMutationTeamRecord,
+        })),
+      };
 
-    return {
-      activeTeams,
-      payload,
-      currentState,
-      seasonId,
-      preparation: buildTradeApplyPreparation({
+      return {
+        activeTeams,
         payload,
         currentState,
         seasonId,
-        timestamp: Date.now(),
-      }),
-    };
-  }, [teams, capProjections, yearKey, worldId, worldAsOfDate]);
+        preparation: buildTradeApplyPreparation({
+          payload,
+          currentState,
+          seasonId,
+          timestamp: Date.now(),
+        }),
+      };
+    }, [teams, capProjections, yearKey, worldId, worldAsOfDate]);
 
   // Core validation function - extracted for reuse
   // P0-3: Wraps validation with isValidating state for UI loading indicators
-  const validateCurrentTrade = useCallback((): ValidateCurrentTradeOutcome | null => {
-    const previewContext = buildCurrentTradePreviewContext();
-    if (!previewContext) {
-      setSnapshotValidationDetails(null);
-      setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
-      // P0-3: Clear isValidating since no validation will run (not enough teams)
-      // This is intentional - if we don't have enough teams, there's nothing to validate
-      setIsValidating(false);
-      return null;
-    }
+  const validateCurrentTrade =
+    useCallback((): ValidateCurrentTradeOutcome | null => {
+      const previewContext = buildCurrentTradePreviewContext();
+      if (!previewContext) {
+        setSnapshotValidationDetails(null);
+        setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
+        // P0-3: Clear isValidating since no validation will run (not enough teams)
+        // This is intentional - if we don't have enough teams, there's nothing to validate
+        setIsValidating(false);
+        return null;
+      }
 
-    // P0-3: Set validating state before validation runs
-    setIsValidating(true);
+      // P0-3: Set validating state before validation runs
+      setIsValidating(true);
 
-    try {
-      const { activeTeams, preparation } = previewContext;
+      try {
+        const { activeTeams, preparation } = previewContext;
 
-      console.log(
-        '[validate -> teams payroll]',
-        activeTeams.map((teamSlot) => ({
-          team: teamSlot.team.nickname || teamSlot.team.name || teamSlot.team.id,
-          teamTotalSalary: teamSlot.team.teamTotalSalary,
-          projectedSalary: teamSlot.team.projectedSalary,
-        }))
-      );
+        console.log(
+          '[validate -> teams payroll]',
+          activeTeams.map((teamSlot) => ({
+            team:
+              teamSlot.team.nickname || teamSlot.team.name || teamSlot.team.id,
+            teamTotalSalary: teamSlot.team.teamTotalSalary,
+            projectedSalary: teamSlot.team.projectedSalary,
+          }))
+        );
 
-      const validation =
-        (preparation.validatedContext._rawValidation ||
+        const validation = (preparation.validatedContext._rawValidation ||
           preparation.validatedContext) as unknown as UnknownRecord & {
           teamResults?: UnknownRecord[] | null;
           violations?: unknown[];
@@ -1179,49 +1212,58 @@ export const useTradeMachine = (
           reason?: unknown;
           error?: unknown;
         };
-      // TM_DATAWARN_UI_E1: Validate data quality for all players in trade
-      const allPlayers = activeTeams.flatMap((teamSlot) => teamSlot.sends || []);
-      const dataValidation = validateTradeData(allPlayers, yearKey) as UnknownRecord & {
-        hasIssues?: boolean;
-        warnings?: unknown[];
-        summary?: unknown;
-      };
+        // TM_DATAWARN_UI_E1: Validate data quality for all players in trade
+        const allPlayers = activeTeams.flatMap(
+          (teamSlot) => teamSlot.sends || []
+        );
+        const dataValidation = validateTradeData(
+          allPlayers,
+          yearKey
+        ) as UnknownRecord & {
+          hasIssues?: boolean;
+          warnings?: unknown[];
+          summary?: unknown;
+        };
 
-      // Environment flag to enable force trade bypass
-      // In production (canOverride=false), forceTrade has no effect
-      const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
+        // Environment flag to enable force trade bypass
+        // In production (canOverride=false), forceTrade has no effect
+        const canOverride = import.meta.env.VITE_ENABLE_CBA_OVERRIDE === 'true';
 
-      const snapshotValidationDetails: TradeMachineSnapshotValidationDetails = {
-        summaryByTeamIndex: Array.isArray(validation.summaryByTeamIndex)
-          ? validation.summaryByTeamIndex
-          : [],
-        teamResults: Array.isArray(validation.teamResults)
-          ? validation.teamResults
-          : preparation.validatedContext.teamResults,
-        capSettings: validation.capSettings ?? null,
-        tradeReceipt: validation.tradeReceipt ?? null,
-        override: {
-          requested: Boolean(forceTrade),
-          enabled: canOverride,
-          appliedToLegality: false,
-          message: forceTrade
-            ? canOverride
-              ? 'Force-trade was requested, but authoritative legality remains unchanged.'
-              : 'Force-trade was requested, but override is disabled in this environment.'
-            : null,
-        },
-        // TM_DATAWARN_UI_E1: Attach data warnings to snapshot detail payload
-        hasDataIssues: dataValidation.hasIssues,
-        dataWarnings: dataValidation.warnings,
-        dataValidationSummary: dataValidation.summary,
-      };
+        const snapshotValidationDetails: TradeMachineSnapshotValidationDetails =
+          {
+            summaryByTeamIndex: Array.isArray(validation.summaryByTeamIndex)
+              ? validation.summaryByTeamIndex
+              : [],
+            teamResults: Array.isArray(validation.teamResults)
+              ? validation.teamResults
+              : preparation.validatedContext.teamResults,
+            capSettings: validation.capSettings ?? null,
+            tradeReceipt: validation.tradeReceipt ?? null,
+            override: {
+              requested: Boolean(forceTrade),
+              enabled: canOverride,
+              appliedToLegality: false,
+              message: forceTrade
+                ? canOverride
+                  ? 'Force-trade was requested, but authoritative legality remains unchanged.'
+                  : 'Force-trade was requested, but override is disabled in this environment.'
+                : null,
+            },
+            // TM_DATAWARN_UI_E1: Attach data warnings to snapshot detail payload
+            hasDataIssues: dataValidation.hasIssues,
+            dataWarnings: dataValidation.warnings,
+            dataValidationSummary: dataValidation.summary,
+          };
 
-      setSnapshotValidationDetails(snapshotValidationDetails);
+        setSnapshotValidationDetails(snapshotValidationDetails);
 
-      console.log(
-        '[after validate]',
-        (Array.isArray(validation.teamResults) ? validation.teamResults : []).map(
-          (teamResult: any) => ({
+        console.log(
+          '[after validate]',
+          (Array.isArray(validation.teamResults)
+            ? validation.teamResults
+            : []
+          ).map((teamResult: any) => ({
+            // debug-only logging; intentionally loose
             team:
               teamResult.team?.nickname ||
               teamResult.team?.name ||
@@ -1229,24 +1271,23 @@ export const useTradeMachine = (
             pre: teamResult.preTradeStatus?.projectedSalary,
             post: teamResult.postTradeStatus?.projectedSalary,
             apron: teamResult.postTradeStatus?.isAtOrAboveSecondApron,
-          })
-        )
-      );
+          }))
+        );
 
-      return { snapshotValidationDetails, previewContext };
-    } catch (error) {
-      console.error(
-        '[useTradeMachine] validateCurrentTrade unexpected error:',
-        error
-      );
-      setSnapshotValidationDetails(null);
-      setPreviewAuthority(null);
-      return null;
-    } finally {
-      // P0-3: Clear validating state after validation completes
-      setIsValidating(false);
-    }
-  }, [buildCurrentTradePreviewContext, yearKey, forceTrade, worldAsOfDate]);
+        return { snapshotValidationDetails, previewContext };
+      } catch (error) {
+        console.error(
+          '[useTradeMachine] validateCurrentTrade unexpected error:',
+          error
+        );
+        setSnapshotValidationDetails(null);
+        setPreviewAuthority(null);
+        return null;
+      } finally {
+        // P0-3: Clear validating state after validation completes
+        setIsValidating(false);
+      }
+    }, [buildCurrentTradePreviewContext, yearKey, forceTrade, worldAsOfDate]);
 
   // REMOVED: Auto-validation effect was causing stale "Validated" state
   // Validation now ONLY happens when user clicks "Validate Trade" (explicit action)
@@ -1271,7 +1312,10 @@ export const useTradeMachine = (
         });
         setPreviewAuthority(previewAuthority);
       } catch (err) {
-        console.error('[useTradeMachine] getTradePreviewAuthority unexpected error:', err);
+        console.error(
+          '[useTradeMachine] getTradePreviewAuthority unexpected error:',
+          err
+        );
         setPreviewAuthority(null);
       }
 
@@ -1280,12 +1324,12 @@ export const useTradeMachine = (
   }, [validateCurrentTrade, currentDraftKey]);
 
   const exportCurrentTrade = useCallback(() => {
-    const tradeData = teams
-      .filter(hasTeamSlot)
-      .map((t) => {
-        const teamId = t.team.id;
-        const incomingTeamAssets = incomingAssets.find((a) => a.teamId === teamId);
-        return {
+    const tradeData = teams.filter(hasTeamSlot).map((t) => {
+      const teamId = t.team.id;
+      const incomingTeamAssets = incomingAssets.find(
+        (a) => a.teamId === teamId
+      );
+      return {
         teamId,
         outgoingPlayers: t.sends,
         // Phase 14.2: Removed outgoingPicks - draft assets are entitlements-only
@@ -1299,7 +1343,7 @@ export const useTradeMachine = (
           .filter(isUnknownRecord),
         usedTradeExceptions: extractUsedTpeIds(t.sends),
       };
-      });
+    });
 
     return tradeData;
   }, [teams, incomingAssets]);
@@ -1307,11 +1351,13 @@ export const useTradeMachine = (
   const resetTrade = useCallback(() => {
     setTeams((prev) =>
       // Phase 14.2: Removed picksOut - draft assets are entitlements-only
-      (clearSyntheticSntPlayersFromTeams(prev) as TradeMachineTeamSlot[]).map((slot) => ({
-        ...slot,
-        sends: [] as UnknownRecord[],
-        entitlementsOut: [] as UnknownRecord[],
-      }))
+      (clearSyntheticSntPlayersFromTeams(prev) as TradeMachineTeamSlot[]).map(
+        (slot) => ({
+          ...slot,
+          sends: [] as UnknownRecord[],
+          entitlementsOut: [] as UnknownRecord[],
+        })
+      )
     );
     setSnapshotValidationDetails(null);
     setForceTrade(false);

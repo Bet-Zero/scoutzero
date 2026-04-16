@@ -75,7 +75,7 @@ export const OutgoingPlayersList = ({
       if (inB && !inA) return 1;
 
       const getSalary = (player: PlayerLike) =>
-        getSalaryWithFallback(player as never, yearKey as never);
+        Number(getSalaryWithFallback(player as never, yearKey as never)) || 0; // load-bearing: PlayerLike and yearKey types don't satisfy getSalaryWithFallback's expected param shapes
       return getSalary(b) - getSalary(a);
     });
   }, [available, incomingSet, yearKey]);

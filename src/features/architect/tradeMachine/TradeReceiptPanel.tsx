@@ -284,239 +284,268 @@ const TradeReceiptPanel = ({
                   key={index}
                   className="bg-[#181818] rounded-lg p-3 border border-white/10"
                 >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-bold text-sm text-white">
-                    {toText(team.teamName)}
-                  </h4>
-                  <span className="text-white/40 text-xs">{toText(team.teamCode)}</span>
-                </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-sm text-white">
+                      {toText(team.teamName)}
+                    </h4>
+                    <span className="text-white/40 text-xs">
+                      {toText(team.teamCode)}
+                    </span>
+                  </div>
 
-                <div className="text-white/60 text-xs mb-2">
-                  Pre-trade Salary: {formatCurrency(team.preTradeTeamSalary)}
-                  <span className="text-white/30 ml-1">
-                    ({toText(team.preTradeTeamSalarySource)})
-                  </span>
-                </div>
+                  <div className="text-white/60 text-xs mb-2">
+                    Pre-trade Salary: {formatCurrency(team.preTradeTeamSalary)}
+                    <span className="text-white/30 ml-1">
+                      ({toText(team.preTradeTeamSalarySource)})
+                    </span>
+                  </div>
 
-                <div className="p-2 mb-2 bg-[#222] rounded border border-white/10">
-                  <div className="text-xs font-medium text-blue-400 mb-1">
-                    Rule: {String(team.salaryMatchingEvaluation?.ruleApplied || 'N/A')}
-                  </div>
-                  <div className="text-xs text-white/60 font-mono break-all">
-                    {String(team.salaryMatchingEvaluation?.formulaUsed || 'No formula')}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                  <div>
-                    <div className="text-white/40">Outgoing (Base)</div>
-                    <div className="font-mono">
-                      {formatCurrency(team.totals?.outgoingBaseTotal)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-white/40">Outgoing (Match)</div>
-                    <div className="font-mono">
-                      {formatCurrency(team.totals?.outgoingMatchingTotal)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-white/40">Incoming (Base)</div>
-                    <div className="font-mono">
-                      {formatCurrency(team.totals?.incomingBaseTotal)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-white/40">Incoming (Match)</div>
-                    <div className="font-mono">
-                      {formatCurrency(team.totals?.incomingMatchingTotal)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-2 rounded border border-white/10 mb-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-white/60">Allowable Incoming:</span>
-                    <span className="font-mono text-green-400">
-                      {formatCurrency(
-                        team.salaryMatchingEvaluation?.allowableIncoming
+                  <div className="p-2 mb-2 bg-[#222] rounded border border-white/10">
+                    <div className="text-xs font-medium text-blue-400 mb-1">
+                      Rule:{' '}
+                      {String(
+                        team.salaryMatchingEvaluation?.ruleApplied || 'N/A'
                       )}
-                    </span>
+                    </div>
+                    <div className="text-xs text-white/60 font-mono break-all">
+                      {String(
+                        team.salaryMatchingEvaluation?.formulaUsed ||
+                          'No formula'
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-white/60">Actual Incoming:</span>
-                    <span className="font-mono">
-                      {formatCurrency(team.salaryMatchingEvaluation?.actualIncoming)}
-                    </span>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                    <div>
+                      <div className="text-white/40">Outgoing (Base)</div>
+                      <div className="font-mono">
+                        {formatCurrency(team.totals?.outgoingBaseTotal)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-white/40">Outgoing (Match)</div>
+                      <div className="font-mono">
+                        {formatCurrency(team.totals?.outgoingMatchingTotal)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-white/40">Incoming (Base)</div>
+                      <div className="font-mono">
+                        {formatCurrency(team.totals?.incomingBaseTotal)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-white/40">Incoming (Match)</div>
+                      <div className="font-mono">
+                        {formatCurrency(team.totals?.incomingMatchingTotal)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs border-t border-white/10 pt-1 mt-1">
-                    <span className="text-white/60">Margin:</span>
-                    <span
-                      className={`font-mono ${
-                        Number(team.salaryMatchingEvaluation?.margin || 0) >= 0
-                          ? 'text-green-400'
-                          : 'text-red-400'
-                      }`}
-                    >
-                      {formatCurrency(team.salaryMatchingEvaluation?.margin)}
-                    </span>
+
+                  <div className="p-2 rounded border border-white/10 mb-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-white/60">Allowable Incoming:</span>
+                      <span className="font-mono text-green-400">
+                        {formatCurrency(
+                          team.salaryMatchingEvaluation?.allowableIncoming
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-white/60">Actual Incoming:</span>
+                      <span className="font-mono">
+                        {formatCurrency(
+                          team.salaryMatchingEvaluation?.actualIncoming
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs border-t border-white/10 pt-1 mt-1">
+                      <span className="text-white/60">Margin:</span>
+                      <span
+                        className={`font-mono ${
+                          Number(team.salaryMatchingEvaluation?.margin || 0) >=
+                          0
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {formatCurrency(team.salaryMatchingEvaluation?.margin)}
+                      </span>
+                    </div>
                   </div>
+
+                  {outgoingPlayers.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-white/40 text-xs mb-1">
+                        Outgoing Players:
+                      </div>
+                      {outgoingPlayers.map((player, playerIndex) => (
+                        <PlayerListItem
+                          key={playerIndex}
+                          player={player}
+                          direction="outgoing"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {incomingPlayers.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-white/40 text-xs mb-1">
+                        Incoming Players:
+                      </div>
+                      {incomingPlayers.map((player, playerIndex) => (
+                        <PlayerListItem
+                          key={playerIndex}
+                          player={player}
+                          direction="incoming"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {(outgoingEntitlements.length > 0 ||
+                    incomingEntitlements.length > 0) && (
+                    <div className="mb-2">
+                      {outgoingEntitlements.length > 0 && (
+                        <div className="mb-2">
+                          <div className="text-white/40 text-xs mb-1">
+                            Entitlements Out:
+                          </div>
+                          {outgoingEntitlements.map(
+                            (entitlement, entitlementIndex) => {
+                              const pickRow = projectEntitlementToPickRow(
+                                { ...entitlement } as Record<string, unknown>,
+                                {
+                                  teamCode: toText(team.teamCode),
+                                  pickRulesById: pickRulesById as any, // load-bearing: prop is Record<string,unknown>, fn expects Record<string,PickRuleDoc> (not exported)
+                                }
+                              );
+                              const secondaryText =
+                                getPickRowSecondaryText(pickRow);
+
+                              return (
+                                <div
+                                  key={entitlement.id || entitlementIndex}
+                                  className="text-xs pl-2 py-0.5 border-l border-amber-500/30"
+                                >
+                                  <div>
+                                    <span className="text-amber-300">
+                                      {toText(entitlement.seasonYear)} R
+                                      {toText(entitlement.round)}
+                                    </span>
+                                    <span className="text-white/60 ml-1">
+                                      — {toText(entitlement.kind)}
+                                    </span>
+                                    <span className="text-white/30 ml-1 text-[10px]">
+                                      ({toText(entitlement.id)})
+                                    </span>
+                                    {entitlement.toTeamId && (
+                                      <span className="text-white/30 ml-1 text-[10px]">
+                                        → {toText(entitlement.toTeamId)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {secondaryText && (
+                                    <div className="text-white/40 text-[10px] mt-0.5">
+                                      {secondaryText}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
+                      {incomingEntitlements.length > 0 && (
+                        <div>
+                          <div className="text-white/40 text-xs mb-1">
+                            Entitlements In:
+                          </div>
+                          {incomingEntitlements.map(
+                            (entitlement, entitlementIndex) => {
+                              const pickRow = projectEntitlementToPickRow(
+                                { ...entitlement } as Record<string, unknown>,
+                                {
+                                  teamCode: toText(team.teamCode),
+                                  pickRulesById: pickRulesById as any, // load-bearing: prop is Record<string,unknown>, fn expects Record<string,PickRuleDoc> (not exported)
+                                }
+                              );
+                              const secondaryText =
+                                getPickRowSecondaryText(pickRow);
+
+                              return (
+                                <div
+                                  key={entitlement.id || entitlementIndex}
+                                  className="text-xs pl-2 py-0.5 border-l border-green-500/30"
+                                >
+                                  <div>
+                                    <span className="text-green-300">
+                                      {toText(entitlement.seasonYear)} R
+                                      {toText(entitlement.round)}
+                                    </span>
+                                    <span className="text-white/60 ml-1">
+                                      — {toText(entitlement.kind)}
+                                    </span>
+                                    <span className="text-white/30 ml-1 text-[10px]">
+                                      ({toText(entitlement.id)})
+                                    </span>
+                                    {entitlement.fromTeam && (
+                                      <span className="text-white/30 ml-1">
+                                        from {toText(entitlement.fromTeam)}
+                                      </span>
+                                    )}
+                                    {entitlement.toTeamId && (
+                                      <span className="text-blue-400/50 ml-1 text-[10px]">
+                                        [routed]
+                                      </span>
+                                    )}
+                                  </div>
+                                  {secondaryText && (
+                                    <div className="text-white/40 text-[10px] mt-0.5">
+                                      {secondaryText}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {teamViolations.length > 0 && (
+                    <div className="mt-2 p-2 bg-red-900/20 border border-red-500/30 rounded">
+                      <div className="text-red-400 text-xs font-medium mb-1">
+                        Violations:
+                      </div>
+                      {teamViolations.map((violation, violationIndex) => (
+                        <div
+                          key={violationIndex}
+                          className="text-xs text-red-300 pl-2"
+                        >
+                          • {toText(getValidationIssueText(violation))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {teamWarnings.length > 0 && (
+                    <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
+                      <div className="text-yellow-400 text-xs font-medium mb-1">
+                        Warnings:
+                      </div>
+                      {teamWarnings.map((warning, warningIndex) => (
+                        <div
+                          key={warningIndex}
+                          className="text-xs text-yellow-300 pl-2"
+                        >
+                          • {toText(getValidationIssueText(warning))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {outgoingPlayers.length > 0 && (
-                  <div className="mb-2">
-                    <div className="text-white/40 text-xs mb-1">
-                      Outgoing Players:
-                    </div>
-                    {outgoingPlayers.map((player, playerIndex) => (
-                      <PlayerListItem
-                        key={playerIndex}
-                        player={player}
-                        direction="outgoing"
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {incomingPlayers.length > 0 && (
-                  <div className="mb-2">
-                    <div className="text-white/40 text-xs mb-1">
-                      Incoming Players:
-                    </div>
-                    {incomingPlayers.map((player, playerIndex) => (
-                      <PlayerListItem
-                        key={playerIndex}
-                        player={player}
-                        direction="incoming"
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {(outgoingEntitlements.length > 0 ||
-                  incomingEntitlements.length > 0) && (
-                  <div className="mb-2">
-                    {outgoingEntitlements.length > 0 && (
-                      <div className="mb-2">
-                        <div className="text-white/40 text-xs mb-1">
-                          Entitlements Out:
-                        </div>
-                        {outgoingEntitlements.map((entitlement, entitlementIndex) => {
-                          const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
-                            teamCode: toText(team.teamCode),
-                            pickRulesById: pickRulesById as any,
-                          });
-                          const secondaryText =
-                            getPickRowSecondaryText(pickRow);
-
-                          return (
-                            <div
-                              key={entitlement.id || entitlementIndex}
-                              className="text-xs pl-2 py-0.5 border-l border-amber-500/30"
-                            >
-                              <div>
-                                <span className="text-amber-300">
-                                  {toText(entitlement.seasonYear)} R{toText(entitlement.round)}
-                                </span>
-                                <span className="text-white/60 ml-1">
-                                  — {toText(entitlement.kind)}
-                                </span>
-                                <span className="text-white/30 ml-1 text-[10px]">
-                                  ({toText(entitlement.id)})
-                                </span>
-                                {entitlement.toTeamId && (
-                                  <span className="text-white/30 ml-1 text-[10px]">
-                                    → {toText(entitlement.toTeamId)}
-                                  </span>
-                                )}
-                              </div>
-                              {secondaryText && (
-                                <div className="text-white/40 text-[10px] mt-0.5">
-                                  {secondaryText}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {incomingEntitlements.length > 0 && (
-                      <div>
-                        <div className="text-white/40 text-xs mb-1">
-                          Entitlements In:
-                        </div>
-                        {incomingEntitlements.map((entitlement, entitlementIndex) => {
-                          const pickRow = projectEntitlementToPickRow({ ...entitlement } as Record<string, unknown>, {
-                            teamCode: toText(team.teamCode),
-                            pickRulesById: pickRulesById as any,
-                          });
-                          const secondaryText =
-                            getPickRowSecondaryText(pickRow);
-
-                          return (
-                            <div
-                              key={entitlement.id || entitlementIndex}
-                              className="text-xs pl-2 py-0.5 border-l border-green-500/30"
-                            >
-                              <div>
-                                <span className="text-green-300">
-                                  {toText(entitlement.seasonYear)} R{toText(entitlement.round)}
-                                </span>
-                                <span className="text-white/60 ml-1">
-                                  — {toText(entitlement.kind)}
-                                </span>
-                                <span className="text-white/30 ml-1 text-[10px]">
-                                  ({toText(entitlement.id)})
-                                </span>
-                                {entitlement.fromTeam && (
-                                  <span className="text-white/30 ml-1">
-                                    from {toText(entitlement.fromTeam)}
-                                  </span>
-                                )}
-                                {entitlement.toTeamId && (
-                                  <span className="text-blue-400/50 ml-1 text-[10px]">
-                                    [routed]
-                                  </span>
-                                )}
-                              </div>
-                              {secondaryText && (
-                                <div className="text-white/40 text-[10px] mt-0.5">
-                                  {secondaryText}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {teamViolations.length > 0 && (
-                  <div className="mt-2 p-2 bg-red-900/20 border border-red-500/30 rounded">
-                    <div className="text-red-400 text-xs font-medium mb-1">
-                      Violations:
-                    </div>
-                    {teamViolations.map((violation, violationIndex) => (
-                      <div key={violationIndex} className="text-xs text-red-300 pl-2">
-                        • {toText(getValidationIssueText(violation))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {teamWarnings.length > 0 && (
-                  <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded">
-                    <div className="text-yellow-400 text-xs font-medium mb-1">
-                      Warnings:
-                    </div>
-                    {teamWarnings.map((warning, warningIndex) => (
-                      <div key={warningIndex} className="text-xs text-yellow-300 pl-2">
-                        • {toText(getValidationIssueText(warning))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
               );
             })}
           </div>

@@ -7,7 +7,8 @@
  *  - 2026-03-12: Migrated authoritative implementation to TypeScript for E59.
  */
 
-type SeasonValue = any;
+// SeasonValue accepts anything; functions use Number() coercion internally so all inputs are safe
+type SeasonValue = any; // load-bearing: callers pass unknown values; intent is number|string|null|undefined
 type CapProjectionsLike = Record<string, unknown> | null | undefined;
 
 export type SeasonAdvanceDraftContext = {
@@ -17,7 +18,7 @@ export type SeasonAdvanceDraftContext = {
 };
 
 export function toSeasonCode(endYear: SeasonValue) {
-  const numericEndYear = endYear as any;
+  const numericEndYear = Number(endYear);
 
   if (!Number.isFinite(numericEndYear) || numericEndYear < 1900) {
     return String(endYear);
@@ -60,10 +61,7 @@ export function getSeasonAdvanceDraftContext(
 }
 
 export function parseSeason(seasonOrYear: SeasonValue) {
-  if (
-    typeof seasonOrYear === 'string' &&
-    /^\d{4}-\d{2}$/.test(seasonOrYear)
-  ) {
+  if (typeof seasonOrYear === 'string' && /^\d{4}-\d{2}$/.test(seasonOrYear)) {
     return seasonOrYear;
   }
 

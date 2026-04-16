@@ -149,7 +149,10 @@ const ROOKIE_QO_INCREASES = {
   // Mid-first round (15-20)
   midFirst: { percent: 0.27, positions: [15, 16, 17, 18, 19, 20] },
   // Late first round (21-30)
-  lateFirst: { percent: 0.25, positions: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30] },
+  lateFirst: {
+    percent: 0.25,
+    positions: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+  },
   // Second round and undrafted
   other: { percent: 0.25 },
 };
@@ -173,7 +176,7 @@ const ROOKIE_QO_INCREASES = {
 export function computeRFAStatus(
   player: RFAPlayerLike | null | undefined,
   leagueContext?: RFALeagueContextLike | null
-): any {
+): RFAStatusInfo {
   const currentYear = leagueContext?.currentYear;
   if (!currentYear) {
     return {
@@ -190,7 +193,9 @@ export function computeRFAStatus(
     return {
       isRFA: false,
       qualifyingOfferEligible: false,
-      reason: contract ? 'Contract not expiring this season' : 'No contract data',
+      reason: contract
+        ? 'Contract not expiring this season'
+        : 'No contract data',
       status: RFA_STATUS.UNDER_CONTRACT,
     };
   }
@@ -212,6 +217,7 @@ export function computeRFAStatus(
       return {
         isRFA: true,
         qualifyingOfferEligible: true,
+        reason: 'Existing RFA contract type',
         ...qoInfo,
         status: RFA_STATUS.RFA,
       };
@@ -236,7 +242,9 @@ export function computeRFAStatus(
   // Rookie scale players completing 4th year are RFA-eligible
   if (isRookieScale) {
     const draftYear = getDraftYear(player);
-    const yearsOnRookieContract = draftYear ? currentYear - draftYear : yearsOfService;
+    const yearsOnRookieContract = draftYear
+      ? currentYear - draftYear
+      : yearsOfService;
 
     if (yearsOnRookieContract >= 4) {
       const qoInfo = computeQualifyingOffer(player, leagueContext);
@@ -244,7 +252,8 @@ export function computeRFAStatus(
         isRFA: true,
         qualifyingOfferEligible: true,
         ...qoInfo,
-        reason: 'Completing rookie scale contract - eligible for qualifying offer',
+        reason:
+          'Completing rookie scale contract - eligible for qualifying offer',
         status: RFA_STATUS.RFA,
       };
     }
@@ -346,7 +355,10 @@ function isContractExpiring(
   if (!contract) return false;
 
   // Check yearsRemaining
-  if (contract.yearsRemaining !== undefined && contract.yearsRemaining !== null) {
+  if (
+    contract.yearsRemaining !== undefined &&
+    contract.yearsRemaining !== null
+  ) {
     return contract.yearsRemaining <= 1;
   }
 
@@ -511,8 +523,7 @@ function computeQOAcceptanceDeadline(currentYear: number): Date {
  */
 export function computeRFAFromRuleContext(
   ctx: RFARuleContextLike | null | undefined
-): any {
-  // Validate required context
+): RFAStatusInfo {
   if (!ctx || !ctx.timing || !ctx.player || !ctx.cap) {
     return {
       isRFA: false,
@@ -586,9 +597,19 @@ export function computeRFAFromRuleContext(
       yearsRemaining: 1,
       salariesByYear:
         playerCtx.priorSeasonSalary != null
-          ? [{ season: timing.referenceSeasonId, salary: playerCtx.priorSeasonSalary }]
+          ? [
+              {
+                season: timing.referenceSeasonId,
+                salary: playerCtx.priorSeasonSalary,
+              },
+            ]
           : playerCtx.currentSeasonSalary != null
-            ? [{ season: timing.operationSeasonId, salary: playerCtx.currentSeasonSalary }]
+            ? [
+                {
+                  season: timing.operationSeasonId,
+                  salary: playerCtx.currentSeasonSalary,
+                },
+              ]
             : [],
       birdRights: {
         status: playerCtx.birdTypeAtOperation,

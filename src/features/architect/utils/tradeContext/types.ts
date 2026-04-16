@@ -15,7 +15,7 @@ import type {
 
 // Local object-shape carrier for snapshot-building compatibility paths.
 // Validator output is narrowed below to the exact live trade bridge contract.
-export type AnyRecord = Record<string, any>;
+export type AnyRecord = Record<string, any>; // load-bearing bridge type: snapshot-building paths require any-valued records for legacy validator compatibility
 
 export interface TeamUpdate {
   teamCode: string | null;

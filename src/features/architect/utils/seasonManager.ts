@@ -217,28 +217,29 @@ type TeamSeasonTransitionResult = {
 };
 
 type SeasonManagerDraftPickConveyanceConditionsIngress = {
-  protection?: unknown;
-  ifRolls?: unknown;
+  protection?: string | null;
+  ifRolls?: string | null;
   // Entitlement projection uses a truthy marker here to signal that the pick
   // carries conveyance rules even when no protection string is attached yet.
-  active?: unknown;
+  // Can be any truthy value (boolean, string, number) from legacy data.
+  active?: boolean | string | number | null;
 };
 
 type SeasonManagerDraftPickConveyanceIngress = {
   conditions?: SeasonManagerDraftPickConveyanceConditionsIngress | null;
-  currentYear?: unknown;
-  finalYear?: unknown;
+  currentYear?: number | string | null;
+  finalYear?: number | string | null;
 };
 
 type SeasonManagerDraftPickConveyanceResultIngress = {
-  outcome?: unknown;
-  position?: unknown;
-  resolvedAt?: unknown;
-  method?: unknown;
-  reason?: unknown;
-  previousYear?: unknown;
-  previousProtection?: unknown;
-  originalRound?: unknown;
+  outcome?: string | null;
+  position?: number | string | null;
+  resolvedAt?: string | null;
+  method?: string | null;
+  reason?: string | null;
+  previousYear?: number | string | null;
+  previousProtection?: string | null;
+  originalRound?: number | string | null;
 };
 
 type SeasonManagerDraftPickResolutionPositionsIngress = {
@@ -246,8 +247,8 @@ type SeasonManagerDraftPickResolutionPositionsIngress = {
 };
 
 type SeasonManagerDraftPickResolutionMetaIngress = {
-  resolvedAt?: unknown;
-  method?: unknown;
+  resolvedAt?: string | null;
+  method?: string | null;
   positions?: SeasonManagerDraftPickResolutionPositionsIngress | null;
 };
 
@@ -285,14 +286,14 @@ type SeasonManagerDraftPickConversionTarget = {
 };
 
 type SeasonManagerDraftPickProtectionLadderTierIngress = {
-  year?: unknown;
-  condition?: unknown;
+  year?: number | string | null;
+  condition?: string | null;
 };
 
 type SeasonManagerDraftPickConversionTargetIngress = {
-  action?: unknown;
-  toYear?: unknown;
-  toRound?: unknown;
+  action?: string | null;
+  toYear?: number | string | null;
+  toRound?: number | string | null;
 };
 
 type SeasonManagerDraftPickResolutionMeta = {
@@ -327,25 +328,25 @@ type SeasonManagerDraftPick = {
 };
 
 type SeasonManagerRawDraftPickIngress = {
-  id?: unknown;
-  year?: unknown;
-  round?: unknown;
-  owner?: unknown;
-  currentOwner?: unknown;
-  originalTeam?: unknown;
-  isSwap?: unknown;
-  swapWithTeamId?: unknown;
-  protection?: unknown;
+  id?: string | number | null;
+  year?: number | string | null;
+  round?: number | string | null;
+  owner?: string | null;
+  currentOwner?: string | null;
+  originalTeam?: string | null;
+  isSwap?: boolean | null;
+  swapWithTeamId?: string | null;
+  protection?: string | null;
   conveyance?: SeasonManagerDraftPickConveyanceIngress | null;
-  status?: unknown;
-  resolved?: unknown;
-  resolvedOwner?: unknown;
-  resolvedPosition?: unknown;
-  stepienBlocked?: unknown;
-  stepienReason?: unknown;
+  status?: string | null;
+  resolved?: boolean | null;
+  resolvedOwner?: string | null;
+  resolvedPosition?: number | null;
+  stepienBlocked?: boolean | null;
+  stepienReason?: string | null;
   resolutionMeta?: SeasonManagerDraftPickResolutionMetaIngress | null;
-  tradedTo?: unknown;
-  swapType?: unknown;
+  tradedTo?: string | null;
+  swapType?: 'best_of' | 'worst_of' | string | null;
   conveyanceResult?: SeasonManagerDraftPickConveyanceResultIngress | null;
   protectionLadder?: SeasonManagerDraftPickProtectionLadderTierIngress[] | null;
   conversionTarget?: SeasonManagerDraftPickConversionTargetIngress | null;

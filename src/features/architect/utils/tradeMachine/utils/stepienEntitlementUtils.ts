@@ -12,10 +12,7 @@
 
 import { normalizeEntitlementTerms } from '@/features/architect/utils/entitlements/entitlementTerms';
 
-type StepienRelevantKind =
-  | 'pick_ownership'
-  | 'swap_right'
-  | 'conveyance_right';
+type StepienRelevantKind = 'pick_ownership' | 'swap_right' | 'conveyance_right';
 
 type StepienEntitlementId = string | null | undefined;
 type StepienYearLike = number | string | null | undefined;
@@ -74,7 +71,9 @@ function isFirstRoundEntitlement(round: StepienRoundLike): boolean {
   return round === 1 || round === '1st' || round === 'first';
 }
 
-function getEntitlementId(entitlement: StepienEntitlementLike): StepienEntitlementId {
+function getEntitlementId(
+  entitlement: StepienEntitlementLike
+): StepienEntitlementId {
   return entitlement.entitlementId || entitlement.id;
 }
 
@@ -135,7 +134,7 @@ export function buildStepienOutgoingPicksFromEntitlements(
       return {
         year: ent.seasonYear || ent.year,
         round: 1,
-        protection: null as any,
+        protection: null,
         isSwap: isSwap,
         swapType,
         _source: 'entitlement',
@@ -208,7 +207,9 @@ export function computePostTradeEntitlements({
   tradeParticipantIds = null,
 }: ComputePostTradeEntitlementsParams): StepienEntitlementLike[] {
   const outIds = new Set(
-    entitlementsOut.map((entitlement) => getEntitlementId(entitlement)).filter(Boolean)
+    entitlementsOut
+      .map((entitlement) => getEntitlementId(entitlement))
+      .filter(Boolean)
   );
 
   const postTrade = currentEntitlements.filter((entitlement) => {
@@ -236,14 +237,21 @@ export function computePostTradeEntitlements({
         }
       }
 
-      if (toTeamId && tradeParticipantIds && !tradeParticipantIds.has(toTeamId)) {
+      if (
+        toTeamId &&
+        tradeParticipantIds &&
+        !tradeParticipantIds.has(toTeamId)
+      ) {
         const entId = getEntitlementId(ent) || 'unknown';
         throw new Error(
           `Pick Exclusivity: Entitlement "${entId}" routed to "${toTeamId}" which is not a trade participant`
         );
       }
 
-      if (toTeamId === teamId || (!toTeamId && allTeamsEntitlementsOut.length === 1)) {
+      if (
+        toTeamId === teamId ||
+        (!toTeamId && allTeamsEntitlementsOut.length === 1)
+      ) {
         const entId = getEntitlementId(ent);
         if (entId && incomingEntitlementIds.has(entId)) {
           throw new Error(

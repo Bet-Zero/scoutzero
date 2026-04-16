@@ -14,39 +14,39 @@ interface ProtectionMetaLike extends Record<string, unknown> {
 }
 
 interface ProtectionLadderTierLike extends Record<string, unknown> {
-  year?: unknown;
-  condition?: unknown;
+  year?: number | string | null;
+  condition?: string | null;
 }
 
 interface ConversionTargetLike extends Record<string, unknown> {
-  action?: unknown;
-  toYear?: unknown;
-  toRound?: unknown;
+  action?: string | null;
+  toYear?: number | string | null;
+  toRound?: number | string | null;
 }
 
 interface ConveyanceConditionsLike extends Record<string, unknown> {
-  protection?: unknown;
-  ifConveys?: unknown;
-  ifRolls?: unknown;
+  protection?: string | null;
+  ifConveys?: string | null;
+  ifRolls?: string | null;
 }
 
 interface ConveyanceLike extends Record<string, unknown> {
   conditions?: ConveyanceConditionsLike | null;
-  currentYear?: unknown;
-  finalYear?: unknown;
+  currentYear?: number | string | null;
+  finalYear?: number | string | null;
 }
 
 interface ConveyancePickLike extends Record<string, unknown> {
-  id?: unknown;
-  year?: unknown;
-  round?: unknown;
-  originalTeam?: unknown;
-  protection?: unknown;
+  id?: string | number | null;
+  year?: number | string | null;
+  round?: number | string | null;
+  originalTeam?: string | null;
+  protection?: string | null;
   protectionMeta?: ProtectionMetaLike | null;
   protectionLadder?: ProtectionLadderTierLike[] | null;
   conveyance?: ConveyanceLike | null;
   conversionTarget?: ConversionTargetLike | null;
-  status?: unknown;
+  status?: string | null;
   conveyanceResult?: unknown;
 }
 
@@ -218,7 +218,7 @@ function resolveProtectionTrigger(
 
   const nextYear = currentYear + 1;
 
-  let nextProtection: unknown = null;
+  let nextProtection: string | null = null;
   if (Array.isArray(pick.protectionLadder)) {
     const nextTier = pick.protectionLadder.find(
       (tier) => tier?.year === nextYear

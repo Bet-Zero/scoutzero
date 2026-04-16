@@ -27,7 +27,7 @@ export const SelectTeamCard = ({
       }
     >
       <option value="">Select Team</option>
-      {TeamListFull.map((t: any) => (
+      {TeamListFull.map((t) => (
         <option key={t.id} value={t.id}>
           {t.teamName}
         </option>

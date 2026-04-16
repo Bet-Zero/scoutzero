@@ -91,7 +91,7 @@ interface ClaimOwnerRef {
   claimType: EntitlementClaimType;
 }
 
-const DEFAULT_TEAM_CODES = TeamListFull.map((team: any) => team.code).filter(
+const DEFAULT_TEAM_CODES = TeamListFull.map((team) => team.code).filter(
   Boolean
 ) as string[];
 
@@ -132,9 +132,7 @@ export function assertLeagueClaimGateScopeSafety(
 
   if (scopeMode === 'CUSTOM') {
     if (!input.scopeReason) {
-      throw new Error(
-        `${input.context}: CUSTOM scope requires scopeReason.`
-      );
+      throw new Error(`${input.context}: CUSTOM scope requires scopeReason.`);
     }
     if (CORE_WRITE_CONTEXTS.has(input.context)) {
       throw new Error(
@@ -157,9 +155,10 @@ export function assertLeagueClaimGateScopeSafety(
 }
 
 function normalizeTeamCodes(teamCodes?: string[]): string[] {
-  const source = Array.isArray(teamCodes) && teamCodes.length > 0
-    ? teamCodes
-    : DEFAULT_TEAM_CODES;
+  const source =
+    Array.isArray(teamCodes) && teamCodes.length > 0
+      ? teamCodes
+      : DEFAULT_TEAM_CODES;
   return [...new Set(source.filter(Boolean))];
 }
 
@@ -294,9 +293,15 @@ async function buildLeagueEntitlementMapWithDb(
       continue;
     }
 
-    const resolved = await resolveEntitlementsForTeamWithDb(db, worldId, teamCode);
+    const resolved = await resolveEntitlementsForTeamWithDb(
+      db,
+      worldId,
+      teamCode
+    );
     if (!Array.isArray(resolved)) {
-      throw new Error(`Resolved entitlement set for ${teamCode} is not an array.`);
+      throw new Error(
+        `Resolved entitlement set for ${teamCode} is not an array.`
+      );
     }
     resolvedByTeam[teamCode] = resolved as EntitlementDocLike[];
   }
@@ -350,7 +355,9 @@ export async function resolveLeagueEntitlementsForTeamCodes(
   for (const teamCode of normalizeTeamCodes(teamCodes)) {
     const entitlements = await resolveEntitlementsForTeam(worldId, teamCode);
     if (!Array.isArray(entitlements)) {
-      throw new Error(`Resolved entitlement set for ${teamCode} is not an array.`);
+      throw new Error(
+        `Resolved entitlement set for ${teamCode} is not an array.`
+      );
     }
     resolved[teamCode] = entitlements as EntitlementDocLike[];
   }

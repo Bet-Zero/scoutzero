@@ -45,13 +45,17 @@ type HookTradeTeam = NonNullable<HookTradeTeamSlot['team']>;
 type OutgoingPlayersListProps = Parameters<typeof OutgoingPlayersList>[0];
 type EntitlementPicksListProps = Parameters<typeof EntitlementPicksList>[0];
 type ChildPlayerLike = OutgoingPlayersListProps['sends'][number];
-type ChildTeamOptionLike = NonNullable<OutgoingPlayersListProps['otherTeams']>[number];
-type ChildEntitlementTeamOptionLike =
-  NonNullable<EntitlementPicksListProps['otherTeams']>[number];
+type ChildTeamOptionLike = NonNullable<
+  OutgoingPlayersListProps['otherTeams']
+>[number];
+type ChildEntitlementTeamOptionLike = NonNullable<
+  EntitlementPicksListProps['otherTeams']
+>[number];
 type ValidationResultLike = Parameters<typeof getTeamSnapshot>[1];
 type HookTradePlayer = HookTradeTeamSlot['sends'][number];
-type HookTradeEntitlement =
-  NonNullable<HookTradeTeamSlot['entitlementsOut']>[number];
+type HookTradeEntitlement = NonNullable<
+  HookTradeTeamSlot['entitlementsOut']
+>[number];
 type PlayerLike = HookTradePlayer &
   ChildPlayerLike & {
     matchOutgoing?: number | null;
@@ -141,17 +145,18 @@ interface TradeTeamCardProps {
   playersMap?: OutgoingPlayersListProps['playersMap'];
   incomingPlayers?: PlayerLike[];
   incomingEntitlements?: EntitlementLike[];
-  onSetPlayerTrade?: ((
-    player: PlayerLike,
-    action: string,
-    targetTeamId?: string | null,
-    meta?: unknown
-  ) => void) | null;
+  onSetPlayerTrade?:
+    | ((
+        player: PlayerLike,
+        action: string,
+        targetTeamId?: string | null,
+        meta?: unknown
+      ) => void)
+    | null;
   onUndoPlayerTrade?: ((player: PlayerLike) => void) | null;
-  onRequestSignAndTrade?: ((
-    player: PlayerLike,
-    defaultDestinationTeamId?: string | null
-  ) => void) | null;
+  onRequestSignAndTrade?:
+    | ((player: PlayerLike, defaultDestinationTeamId?: string | null) => void)
+    | null;
   onSelectTeam: (teamId: string) => void;
   onRemove?: (() => void) | null;
   onEditContract?: ((player: PlayerLike) => void) | null;
@@ -160,10 +165,12 @@ interface TradeTeamCardProps {
   isValidating?: boolean;
   entitlementsOut?: EntitlementLike[];
   onToggleEntitlement?: ((entitlement: EntitlementLike) => void) | null;
-  onSetEntitlementDestination?: ((
-    entitlementId: string | undefined | null,
-    toTeamId: string | undefined | null
-  ) => void) | null;
+  onSetEntitlementDestination?:
+    | ((
+        entitlementId: string | undefined | null,
+        toTeamId: string | undefined | null
+      ) => void)
+    | null;
   onEditEntitlement?: ((entitlement: EntitlementLike) => void) | null;
   onViewEntitlementDetails?: ((entitlement: EntitlementLike) => void) | null;
   onCreateEntitlement?: ((teamId?: string | null) => void) | null;
@@ -546,7 +553,7 @@ const TradeTeamCard = ({
     : undefined;
 
   const relayEditContract = onEditContract
-    ? ((player: ChildPlayerLike) => onEditContract(player as PlayerLike))
+    ? (player: ChildPlayerLike) => onEditContract(player as PlayerLike)
     : undefined;
 
   if (!team) {
@@ -660,7 +667,9 @@ const TradeTeamCard = ({
                   Math.abs(matchingValue - baseSalary) > 1;
 
                 // P1: Use shared utility for adjustment type detection
-                const adjustmentLabel = getAdjustmentTooltipLabel(p as Record<string, unknown>);
+                const adjustmentLabel = getAdjustmentTooltipLabel(
+                  p as Record<string, unknown>
+                );
                 const tooltipText = `${adjustmentLabel}: Base ${formatSalary(
                   baseSalary
                 )} → Match ${formatSalary(matchingValue)}`;
@@ -773,7 +782,9 @@ const TradeTeamCard = ({
                   Math.abs(matchingValue - baseSalary) > 1;
 
                 // P1: Use shared utility for adjustment type detection
-                const adjustmentLabel = getAdjustmentTooltipLabel(p as Record<string, unknown>);
+                const adjustmentLabel = getAdjustmentTooltipLabel(
+                  p as Record<string, unknown>
+                );
                 const tooltipText = `${adjustmentLabel}: Base ${formatSalary(
                   baseSalary
                 )} → Match ${formatSalary(matchingValue)}`;
@@ -895,9 +906,9 @@ const TradeTeamCard = ({
             {teamTradeExceptions.length > 0 && (
               <div className="flex gap-2 items-center">
                 <span className="text-white/60">Available TPEs:</span>
-                {activeTradeExceptions.map((tpe) => (
+                {activeTradeExceptions.map((tpe, tpeIdx) => (
                   <span
-                    key={String(tpe.id ?? getEntitlementKey(tpe as never))}
+                    key={String(tpe.id ?? tpeIdx)}
                     className="bg-[#2a2a2a] text-white/80 px-2 py-0.5 rounded-full border border-white/10"
                   >
                     {formatMillions(Number(tpe.amount ?? 0), 1)}
@@ -979,14 +990,13 @@ const TradeTeamCard = ({
           // Phase 11.1: Pass toggle handler and selected entitlement IDs
           onToggleEntitlement={
             onToggleEntitlement
-              ? (entitlement) => onToggleEntitlement(entitlement as EntitlementLike)
+              ? (entitlement) =>
+                  onToggleEntitlement(entitlement as EntitlementLike)
               : undefined
           }
-          selectedEntitlementIds={(entitlementsOut || []).map(
-            (e) => e.entitlementId || e.id
-          ).filter(
-            (id): id is string | number => id !== undefined
-          )}
+          selectedEntitlementIds={(entitlementsOut || [])
+            .map((e) => e.entitlementId || e.id)
+            .filter((id): id is string | number => id !== undefined)}
           // Phase 12.3B: Pass pick rules for structured derivation
           pickRulesById={team.pickRulesById || {}}
           // Phase 14: Empty state hint for debugging
@@ -1010,7 +1020,8 @@ const TradeTeamCard = ({
           }
           onEditEntitlement={
             onEditEntitlement
-              ? (entitlement) => onEditEntitlement(entitlement as EntitlementLike)
+              ? (entitlement) =>
+                  onEditEntitlement(entitlement as EntitlementLike)
               : undefined
           }
           onViewDetails={
@@ -1149,7 +1160,10 @@ const TradeTeamCard = ({
                               isFaExceptionEligibleType(b.type, validationFlags)
                             )
                             .map((b) => (
-                              <option key={String(b.type)} value={String(b.type)}>
+                              <option
+                                key={String(b.type)}
+                                value={String(b.type)}
+                              >
                                 {String(b.type)} (${Number(b.remaining)})
                               </option>
                             ))}

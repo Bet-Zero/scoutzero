@@ -62,7 +62,7 @@ export function canUseFaException(
   const bucket = getTeamFaExceptionBuckets(teamSeasonState).find(
     (entry) => entry.type === bucketType
   );
-  if (!bucket || (bucket.remaining as any) <= 0) return false;
+  if (!bucket || Number(bucket.remaining ?? 0) <= 0) return false;
   const now = Date.now();
   if (bucket.expiresAt && Date.parse(bucket.expiresAt) < now) return false;
 
@@ -93,7 +93,7 @@ export function allocateFaExceptionToIncoming({
   if (bucket) {
     bucket.remaining = Math.max(
       0,
-      ((bucket.remaining || 0) as any) - (((amount as number) || 0) as any)
+      Math.max(0, Number(bucket.remaining || 0) - Number(amount || 0))
     );
   }
   teamCtx.faExceptionUsage = teamCtx.faExceptionUsage || [];
