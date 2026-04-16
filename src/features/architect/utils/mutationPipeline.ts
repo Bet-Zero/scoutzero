@@ -815,6 +815,98 @@ export type ArchitectMutationPayload = {
   worldId?: string | null;
   tradeCtx?: ArchitectMutationTradeContext | null;
 };
+type MutationPayloadClosedShape = {
+  [KMutationPayloadKey in keyof ArchitectMutationPayload]?: undefined;
+};
+type PublicMutationPayloadSlice<
+  TMutationPayloadKey extends keyof ArchitectMutationPayload,
+> = Omit<MutationPayloadClosedShape, TMutationPayloadKey> &
+  Pick<ArchitectMutationPayload, TMutationPayloadKey>;
+type NormalizedMutationPayloadSlice<
+  TMutationPayloadKey extends keyof ArchitectMutationPayload,
+> = Omit<MutationPayloadClosedShape, TMutationPayloadKey> &
+  Pick<ArchitectMutationPayload, TMutationPayloadKey>;
+type PublicTradeMutationPayloadInput = PublicMutationPayloadSlice<
+  'teams' | 'capProjections' | 'tradeCtx' | 'asOfDate'
+>;
+type PublicSigningMutationPayloadInput = PublicMutationPayloadSlice<
+  'teamCode' | 'playerId' | 'contract' | 'signedUsing'
+>;
+type PublicWaiveMutationPayloadInput = PublicMutationPayloadSlice<
+  | 'teamCode'
+  | 'playerId'
+  | 'stretch'
+  | 'stretchYears'
+  | 'buyout'
+  | 'buyoutAmount'
+  | 'isGracePeriod'
+>;
+type PublicExtensionMutationPayloadInput = PublicMutationPayloadSlice<
+  'teamCode' | 'playerId' | 'extension'
+>;
+type PublicOptionMutationPayloadInput = PublicMutationPayloadSlice<
+  'teamCode' | 'playerId' | 'accepted' | 'targetYear'
+>;
+type PublicRenounceMutationPayloadInput = PublicMutationPayloadSlice<
+  'teamCode' | 'playerId'
+>;
+type PublicStoreOfferSheetMutationPayloadInput = PublicMutationPayloadSlice<
+  | 'teamCode'
+  | 'playerId'
+  | 'contract'
+  | 'signedUsing'
+  | 'offerSheetId'
+  | 'worldId'
+>;
+type PublicOfferSheetMirrorMutationPayloadInput = PublicMutationPayloadSlice<
+  'teamCode' | 'homeTeamCode' | 'offeringTeamCode' | 'offerSheetId'
+>;
+type PublicOfferSheetResolutionMutationPayloadInput =
+  PublicMutationPayloadSlice<
+    'teamCode' | 'homeTeamCode' | 'offeringTeamCode' | 'offerSheetId' | 'dedupKey'
+  >;
+type PublicSignAndTradeMutationPayloadInput = PublicMutationPayloadSlice<
+  | 'teamCode'
+  | 'destinationTeamCode'
+  | 'playerId'
+  | 'contract'
+  | 'signedUsing'
+>;
+type PublicSetDeadCapMutationPayloadInput = PublicMutationPayloadSlice<
+  'teamCode' | 'deadCap' | 'deadCapChanges'
+>;
+type PublicSetExceptionsMutationPayloadInput = PublicMutationPayloadSlice<
+  'teamCode' | 'exceptions' | 'exceptionChanges'
+>;
+type SigningMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'playerId' | 'contract' | 'signedUsing'
+>;
+type WaiveMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'playerId' | 'stretch' | 'stretchYears' | 'buyout' | 'buyoutAmount'
+>;
+type ExtensionMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'playerId' | 'extension'
+>;
+type OptionMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'playerId' | 'accepted' | 'targetYear'
+>;
+type RenounceMutationPayloadInput = NormalizedMutationPayloadSlice<'playerId'>;
+type StoreOfferSheetMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'contract' | 'offerSheetId' | 'worldId'
+>;
+type OfferSheetMirrorMutationPayloadInput =
+  NormalizedMutationPayloadSlice<never>;
+type OfferSheetResolutionMutationPayloadInput =
+  NormalizedMutationPayloadSlice<'dedupKey'>;
+type SignAndTradeMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'teamCode' | 'destinationTeamCode' | 'playerId' | 'contract' | 'signedUsing'
+>;
+type SetDeadCapMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'teamCode' | 'deadCap' | 'deadCapChanges'
+>;
+type SetExceptionsMutationPayloadInput = NormalizedMutationPayloadSlice<
+  'teamCode' | 'exceptions' | 'exceptionChanges'
+>;
 type CurrentStateTradeException = {
   id?: string;
   amount?: number;
@@ -2124,6 +2216,22 @@ type PublicMutationCurrentStateInputByType = {
   setDeadCap: MutationTeamOnlyCurrentStateInput;
   setExceptions: MutationTeamOnlyCurrentStateInput;
 };
+type PublicMutationPayloadInputByType = {
+  executeTrade: PublicTradeMutationPayloadInput;
+  signFreeAgent: PublicSigningMutationPayloadInput;
+  waivePlayer: PublicWaiveMutationPayloadInput;
+  extendPlayer: PublicExtensionMutationPayloadInput;
+  optionDecision: PublicOptionMutationPayloadInput;
+  renounceRights: PublicRenounceMutationPayloadInput;
+  storeOfferSheet: PublicStoreOfferSheetMutationPayloadInput;
+  matchOfferSheet: PublicOfferSheetMirrorMutationPayloadInput;
+  declineOfferSheet: PublicOfferSheetMirrorMutationPayloadInput;
+  finalizeMatchedOfferSheet: PublicOfferSheetResolutionMutationPayloadInput;
+  finalizeDeclinedOfferSheet: PublicOfferSheetResolutionMutationPayloadInput;
+  signAndTrade: PublicSignAndTradeMutationPayloadInput;
+  setDeadCap: PublicSetDeadCapMutationPayloadInput;
+  setExceptions: PublicSetExceptionsMutationPayloadInput;
+};
 
 // Core mutation compute only receives lane-owned current state. Loader output
 // and public direct-call compatibility must normalize into these shapes first.
@@ -2143,6 +2251,22 @@ type MutationCurrentStateInputByType = {
   setDeadCap: MutationTeamOnlyCurrentState;
   setExceptions: MutationTeamOnlyCurrentState;
 };
+type MutationPayloadInputByType = {
+  executeTrade: TradeMutationPayload;
+  signFreeAgent: SigningMutationPayloadInput;
+  waivePlayer: WaiveMutationPayloadInput;
+  extendPlayer: ExtensionMutationPayloadInput;
+  optionDecision: OptionMutationPayloadInput;
+  renounceRights: RenounceMutationPayloadInput;
+  storeOfferSheet: StoreOfferSheetMutationPayloadInput;
+  matchOfferSheet: OfferSheetMirrorMutationPayloadInput;
+  declineOfferSheet: OfferSheetMirrorMutationPayloadInput;
+  finalizeMatchedOfferSheet: OfferSheetResolutionMutationPayloadInput;
+  finalizeDeclinedOfferSheet: OfferSheetResolutionMutationPayloadInput;
+  signAndTrade: SignAndTradeMutationPayloadInput;
+  setDeadCap: SetDeadCapMutationPayloadInput;
+  setExceptions: SetExceptionsMutationPayloadInput;
+};
 type LoadedMutationCurrentStateByType = MutationCurrentStateInputByType;
 type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
 type ApplyWorldMutationArgs = {
@@ -2157,6 +2281,17 @@ type ApplyWorldMutationArgs = {
 type PublicComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
     mutationType: TMutationType;
+    payload: PublicMutationPayloadInputByType[TMutationType];
+    currentState: PublicMutationCurrentStateInputByType[TMutationType];
+    seasonId: string;
+    timestamp: number;
+    asOfDate?: string | number | null;
+    worldId?: string;
+  };
+};
+type LegacyPublicComputeWorldMutationArgsByType = {
+  [TMutationType in SupportedComputeMutationType]: {
+    mutationType: TMutationType;
     payload: ArchitectMutationPayload;
     currentState: PublicMutationCurrentStateInputByType[TMutationType];
     seasonId: string;
@@ -2166,11 +2301,12 @@ type PublicComputeWorldMutationArgsByType = {
   };
 };
 type PublicComputeWorldMutationArgs =
-  PublicComputeWorldMutationArgsByType[SupportedComputeMutationType];
+  | PublicComputeWorldMutationArgsByType[SupportedComputeMutationType]
+  | LegacyPublicComputeWorldMutationArgsByType[SupportedComputeMutationType];
 type ComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
     mutationType: TMutationType;
-    payload: ArchitectMutationPayload;
+    payload: MutationPayloadInputByType[TMutationType];
     currentState: MutationCurrentStateInputByType[TMutationType];
     seasonId: string;
     timestamp: number;
@@ -2208,6 +2344,163 @@ function isSupportedComputeMutationType(
   );
 }
 
+const TRADE_MUTATION_PAYLOAD_KEYS = [
+  'teams',
+  'capProjections',
+  'tradeCtx',
+  'asOfDate',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const SIGNING_MUTATION_PAYLOAD_KEYS = [
+  'playerId',
+  'contract',
+  'signedUsing',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const WAIVE_MUTATION_PAYLOAD_KEYS = [
+  'playerId',
+  'stretch',
+  'stretchYears',
+  'buyout',
+  'buyoutAmount',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const EXTENSION_MUTATION_PAYLOAD_KEYS = [
+  'playerId',
+  'extension',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const OPTION_MUTATION_PAYLOAD_KEYS = [
+  'playerId',
+  'accepted',
+  'targetYear',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const RENOUNCE_MUTATION_PAYLOAD_KEYS = [
+  'playerId',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const STORE_OFFER_SHEET_MUTATION_PAYLOAD_KEYS = [
+  'contract',
+  'offerSheetId',
+  'worldId',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const OFFER_SHEET_MIRROR_MUTATION_PAYLOAD_KEYS =
+  [] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const OFFER_SHEET_RESOLUTION_MUTATION_PAYLOAD_KEYS = [
+  'dedupKey',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const SIGN_AND_TRADE_MUTATION_PAYLOAD_KEYS = [
+  'teamCode',
+  'destinationTeamCode',
+  'playerId',
+  'contract',
+  'signedUsing',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const SET_DEAD_CAP_MUTATION_PAYLOAD_KEYS = [
+  'teamCode',
+  'deadCap',
+  'deadCapChanges',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+const SET_EXCEPTIONS_MUTATION_PAYLOAD_KEYS = [
+  'teamCode',
+  'exceptions',
+  'exceptionChanges',
+] as const satisfies readonly (keyof ArchitectMutationPayload)[];
+
+function pickMutationPayloadFields<
+  TMutationPayloadKey extends keyof ArchitectMutationPayload,
+>(
+  payload: ArchitectMutationPayload,
+  keys: readonly TMutationPayloadKey[]
+): Pick<ArchitectMutationPayload, TMutationPayloadKey> {
+  return Object.fromEntries(
+    keys
+      .filter((key) => payload[key] !== undefined)
+      .map((key) => [key, payload[key]])
+  ) as Pick<ArchitectMutationPayload, TMutationPayloadKey>;
+}
+
+function normalizeComputeWorldMutationPayload<
+  TMutationType extends SupportedComputeMutationType,
+>(
+  mutationType: TMutationType,
+  payload:
+    | PublicMutationPayloadInputByType[TMutationType]
+    | ArchitectMutationPayload
+): MutationPayloadInputByType[TMutationType] {
+  const publicPayload = payload as ArchitectMutationPayload;
+
+  switch (mutationType) {
+    case 'executeTrade':
+      return toTradePayload(
+        pickMutationPayloadFields(publicPayload, TRADE_MUTATION_PAYLOAD_KEYS)
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'signFreeAgent':
+      return pickMutationPayloadFields(
+        publicPayload,
+        SIGNING_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'waivePlayer':
+      return pickMutationPayloadFields(
+        publicPayload,
+        WAIVE_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'extendPlayer':
+      return pickMutationPayloadFields(
+        publicPayload,
+        EXTENSION_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'optionDecision':
+      return pickMutationPayloadFields(
+        publicPayload,
+        OPTION_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'renounceRights':
+      return pickMutationPayloadFields(
+        publicPayload,
+        RENOUNCE_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'storeOfferSheet':
+      return pickMutationPayloadFields(
+        publicPayload,
+        STORE_OFFER_SHEET_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'matchOfferSheet':
+    case 'declineOfferSheet':
+      return pickMutationPayloadFields(
+        publicPayload,
+        OFFER_SHEET_MIRROR_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'finalizeMatchedOfferSheet':
+    case 'finalizeDeclinedOfferSheet':
+      return pickMutationPayloadFields(
+        publicPayload,
+        OFFER_SHEET_RESOLUTION_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'signAndTrade':
+      return pickMutationPayloadFields(
+        publicPayload,
+        SIGN_AND_TRADE_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'setDeadCap':
+      return pickMutationPayloadFields(
+        publicPayload,
+        SET_DEAD_CAP_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+
+    case 'setExceptions':
+      return pickMutationPayloadFields(
+        publicPayload,
+        SET_EXCEPTIONS_MUTATION_PAYLOAD_KEYS
+      ) as MutationPayloadInputByType[TMutationType];
+  }
+}
+
 function normalizeComputeWorldMutationArgs(
   args: PublicComputeWorldMutationArgs
 ): ComputeWorldMutationArgs {
@@ -2215,24 +2508,80 @@ function normalizeComputeWorldMutationArgs(
     case 'executeTrade':
       return {
         ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
         currentState: normalizeTradeMutationCurrentState(args.currentState),
       };
 
     case 'signFreeAgent':
+      return {
+        ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
+        currentState: normalizeOfferSheetTeamAndPlayerMutationCurrentState(
+          args.currentState
+        ),
+      };
+
     case 'storeOfferSheet':
       return {
         ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
         currentState: normalizeOfferSheetTeamAndPlayerMutationCurrentState(
           args.currentState
         ),
       };
 
     case 'waivePlayer':
+      return {
+        ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
+        currentState: normalizeTeamAndPlayerMutationCurrentState(
+          args.currentState
+        ),
+      };
+
     case 'extendPlayer':
+      return {
+        ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
+        currentState: normalizeTeamAndPlayerMutationCurrentState(
+          args.currentState
+        ),
+      };
+
     case 'optionDecision':
+      return {
+        ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
+        currentState: normalizeTeamAndPlayerMutationCurrentState(
+          args.currentState
+        ),
+      };
+
     case 'renounceRights':
       return {
         ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
         currentState: normalizeTeamAndPlayerMutationCurrentState(
           args.currentState
         ),
@@ -2242,6 +2591,10 @@ function normalizeComputeWorldMutationArgs(
     case 'declineOfferSheet':
       return {
         ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
         currentState: normalizeOfferSheetMirrorMutationCurrentState(
           args.currentState
         ),
@@ -2251,6 +2604,10 @@ function normalizeComputeWorldMutationArgs(
     case 'finalizeDeclinedOfferSheet':
       return {
         ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
         currentState: normalizeOfferSheetResolutionMutationCurrentState(
           args.currentState
         ),
@@ -2259,15 +2616,32 @@ function normalizeComputeWorldMutationArgs(
     case 'signAndTrade':
       return {
         ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
         currentState: normalizeSignAndTradeMutationCurrentState(
           args.currentState
         ),
       };
 
     case 'setDeadCap':
+      return {
+        ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
+        currentState: normalizeTeamOnlyMutationCurrentState(args.currentState),
+      };
+
     case 'setExceptions':
       return {
         ...args,
+        payload: normalizeComputeWorldMutationPayload(
+          args.mutationType,
+          args.payload
+        ),
         currentState: normalizeTeamOnlyMutationCurrentState(args.currentState),
       };
   }
@@ -2285,7 +2659,9 @@ function computeTypedWorldMutation<
   worldId,
 }: {
   mutationType: TMutationType;
-  payload: ArchitectMutationPayload;
+  payload:
+    | PublicMutationPayloadInputByType[TMutationType]
+    | ArchitectMutationPayload;
   currentState: MutationCurrentStateInputByType[TMutationType];
   seasonId: string;
   timestamp: number;
@@ -2294,7 +2670,7 @@ function computeTypedWorldMutation<
 }): ComputeResultLike {
   return computeNormalizedWorldMutation({
     mutationType,
-    payload,
+    payload: normalizeComputeWorldMutationPayload(mutationType, payload),
     currentState,
     seasonId,
     timestamp,
@@ -2314,18 +2690,16 @@ type BuildWorldMutationEventPayloadArgs = {
 };
 
 /** Shared base parameter type for all compute*Result functions */
-type ComputeMutationParams = {
-  payload: ArchitectMutationPayload;
-  currentState: MutationCurrentState;
+type ComputeMutationParams<TPayload, TCurrentState> = {
+  payload: TPayload;
+  currentState: TCurrentState;
   seasonId: string;
   timestamp: number;
 };
-type ComputeMutationParamsWithCurrentState<TCurrentState> = Omit<
-  ComputeMutationParams,
-  'currentState'
-> & {
-  currentState: TCurrentState;
-};
+type ComputeMutationParamsWithCurrentState<
+  TCurrentState,
+  TPayload,
+> = ComputeMutationParams<TPayload, TCurrentState>;
 
 type SignAndTradeAuthoritySummary = {
   status: SignAndTradePreflightStatus;
@@ -9820,11 +10194,11 @@ export function computeWorldMutation(
 function computeNormalizedWorldMutation(
   args: ComputeWorldMutationArgs
 ): ComputeResultLike {
-  const { payload, seasonId, timestamp, asOfDate, worldId } = args;
+  const { seasonId, timestamp, asOfDate, worldId } = args;
   const result = (() => {
     switch (args.mutationType) {
       case 'executeTrade': {
-        const tradePayload = toTradePayload(payload);
+        const tradePayload = args.payload;
         const tradeState = toTradeStateSlice(args.currentState);
 
         // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
@@ -9853,7 +10227,7 @@ function computeNormalizedWorldMutation(
       case 'signFreeAgent': {
         return withDefaultPlayerDeletes(
           computeSigningResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9864,7 +10238,7 @@ function computeNormalizedWorldMutation(
       case 'waivePlayer': {
         return withDefaultPlayerDeletes(
           computeWaiveResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9875,7 +10249,7 @@ function computeNormalizedWorldMutation(
       case 'extendPlayer': {
         return withDefaultPlayerDeletes(
           computeExtensionResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9886,7 +10260,7 @@ function computeNormalizedWorldMutation(
       case 'storeOfferSheet': {
         return withDefaultPlayerDeletes(
           computeStoreOfferSheetResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9897,7 +10271,7 @@ function computeNormalizedWorldMutation(
       case 'matchOfferSheet': {
         return withDefaultPlayerDeletes(
           computeMatchOfferSheetResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9908,7 +10282,7 @@ function computeNormalizedWorldMutation(
       case 'declineOfferSheet': {
         return withDefaultPlayerDeletes(
           computeDeclineOfferSheetResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9919,7 +10293,7 @@ function computeNormalizedWorldMutation(
       case 'finalizeMatchedOfferSheet': {
         return withDefaultPlayerDeletes(
           computeFinalizeMatchedOfferSheetResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9930,7 +10304,7 @@ function computeNormalizedWorldMutation(
       case 'finalizeDeclinedOfferSheet': {
         return withDefaultPlayerDeletes(
           computeFinalizeDeclinedOfferSheetResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9941,7 +10315,7 @@ function computeNormalizedWorldMutation(
       case 'optionDecision': {
         return withDefaultPlayerDeletes(
           computeOptionResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9952,7 +10326,7 @@ function computeNormalizedWorldMutation(
       case 'renounceRights': {
         return withDefaultPlayerDeletes(
           computeRenounceResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9963,7 +10337,7 @@ function computeNormalizedWorldMutation(
       case 'signAndTrade': {
         return withDefaultPlayerDeletes(
           computeSignAndTradeResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9977,7 +10351,7 @@ function computeNormalizedWorldMutation(
       case 'setDeadCap': {
         return withDefaultPlayerDeletes(
           computeSetDeadCapResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -9988,7 +10362,7 @@ function computeNormalizedWorldMutation(
       case 'setExceptions': {
         return withDefaultPlayerDeletes(
           computeSetExceptionsResult({
-            payload,
+            payload: args.payload,
             currentState: args.currentState,
             seasonId,
             timestamp,
@@ -10554,7 +10928,10 @@ function computeSigningResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationSigningCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationSigningCurrentState,
+  MutationPayloadInputByType['signFreeAgent']
+>): ComputeResultLike {
   const { team, player } = requireSigningState(currentState, 'signFreeAgent');
   const teamCode = currentState.teamCode || team.teamCode || null;
   const { contract, signedUsing } = payload;
@@ -10736,7 +11113,10 @@ function computeWaiveResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationTeamAndPlayerCurrentState,
+  MutationPayloadInputByType['waivePlayer']
+>): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'waivePlayer'
@@ -10889,7 +11269,10 @@ function computeExtensionResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationTeamAndPlayerCurrentState,
+  MutationPayloadInputByType['extendPlayer']
+>): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'extendPlayer'
@@ -11012,7 +11395,10 @@ function computeOptionResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationTeamAndPlayerCurrentState,
+  MutationPayloadInputByType['optionDecision']
+>): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'optionDecision'
@@ -11195,7 +11581,10 @@ function computeRenounceResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationTeamAndPlayerCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationTeamAndPlayerCurrentState,
+  MutationPayloadInputByType['renounceRights']
+>): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'renounceRights'
@@ -11328,7 +11717,10 @@ function computeSetExceptionsResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationTeamOnlyCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationTeamOnlyCurrentState,
+  MutationPayloadInputByType['setExceptions']
+>): ComputeResultLike {
   const { team } = requireBasicTeamState(currentState, 'setExceptions');
   const { teamCode } = payload;
 
@@ -11769,7 +12161,10 @@ function computeStoreOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetTeamAndPlayerCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationOfferSheetTeamAndPlayerCurrentState,
+  MutationPayloadInputByType['storeOfferSheet']
+>): ComputeResultLike {
   const { team: offeringTeam, player, teamCode, homeTeam } = currentState;
   const { contract, worldId } = payload;
   const currentYear = toEndYear(seasonId);
@@ -11974,7 +12369,10 @@ function computeMatchOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetMirrorCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationOfferSheetMirrorCurrentState,
+  MutationPayloadInputByType['matchOfferSheet']
+>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'matchOfferSheet'
@@ -12060,7 +12458,10 @@ function computeDeclineOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetMirrorCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationOfferSheetMirrorCurrentState,
+  MutationPayloadInputByType['declineOfferSheet']
+>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'declineOfferSheet'
@@ -12146,7 +12547,10 @@ function computeFinalizeMatchedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetResolutionCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationOfferSheetResolutionCurrentState,
+  MutationPayloadInputByType['finalizeMatchedOfferSheet']
+>): ComputeResultLike {
   const { homeTeam, offeringTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'finalizeMatchedOfferSheet'
@@ -12311,7 +12715,10 @@ function computeFinalizeDeclinedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationOfferSheetResolutionCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationOfferSheetResolutionCurrentState,
+  MutationPayloadInputByType['finalizeDeclinedOfferSheet']
+>): ComputeResultLike {
   const { offeringTeam, homeTeam, offerSheetId } = requireOfferSheetTeamState(
     currentState,
     'finalizeDeclinedOfferSheet'
@@ -12505,7 +12912,10 @@ function computeSignAndTradeResult({
   asOfDate = null,
   worldId,
   historyContext = {},
-}: ComputeMutationParamsWithCurrentState<MutationSignAndTradeCurrentState> & {
+}: ComputeMutationParamsWithCurrentState<
+  MutationSignAndTradeCurrentState,
+  MutationPayloadInputByType['signAndTrade']
+> & {
   asOfDate?: string | number | null;
   worldId?: string;
   historyContext?: TradeHistoryContextLike;
@@ -12518,7 +12928,6 @@ function computeSignAndTradeResult({
 
   // 1. Compute Signing Result
   const signingPayload = {
-    teamCode,
     playerId: payload.playerId,
     contract: payload.contract,
     signedUsing: payload.signedUsing,
@@ -12663,7 +13072,10 @@ function computeSetDeadCapResult({
   currentState,
   seasonId,
   timestamp,
-}: ComputeMutationParamsWithCurrentState<MutationTeamOnlyCurrentState>): ComputeResultLike {
+}: ComputeMutationParamsWithCurrentState<
+  MutationTeamOnlyCurrentState,
+  MutationPayloadInputByType['setDeadCap']
+>): ComputeResultLike {
   const { teamCode } = payload;
   const { team } = requireBasicTeamState(currentState, 'setDeadCap');
 
