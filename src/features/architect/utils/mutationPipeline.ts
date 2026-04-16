@@ -2104,7 +2104,11 @@ type MutationOfferSheetResolutionCurrentStateInput =
 type MutationSignAndTradeCurrentStateInput =
   | MutationSignAndTradeCurrentStateIngress
   | MutationSignAndTradeCurrentState;
-type MutationCurrentStateInputByType = {
+
+// Public compute callers may still pass raw loader-shaped snapshots or already
+// normalized lane state. That compatibility is kept here and adapted once by
+// normalizeComputeWorldMutationArgs before the core compute switch runs.
+type PublicMutationCurrentStateInputByType = {
   executeTrade: MutationTradeCurrentStateInput;
   signFreeAgent: MutationOfferSheetTeamAndPlayerCurrentStateInput;
   waivePlayer: MutationTeamAndPlayerCurrentStateInput;
@@ -2120,7 +2124,10 @@ type MutationCurrentStateInputByType = {
   setDeadCap: MutationTeamOnlyCurrentStateInput;
   setExceptions: MutationTeamOnlyCurrentStateInput;
 };
-type LoadedMutationCurrentStateByType = {
+
+// Core mutation compute only receives lane-owned current state. Loader output
+// and public direct-call compatibility must normalize into these shapes first.
+type MutationCurrentStateInputByType = {
   executeTrade: MutationTradeCurrentState;
   signFreeAgent: MutationOfferSheetTeamAndPlayerCurrentState;
   waivePlayer: MutationTeamAndPlayerCurrentState;
@@ -2136,6 +2143,7 @@ type LoadedMutationCurrentStateByType = {
   setDeadCap: MutationTeamOnlyCurrentState;
   setExceptions: MutationTeamOnlyCurrentState;
 };
+type LoadedMutationCurrentStateByType = MutationCurrentStateInputByType;
 type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
 type ApplyWorldMutationArgs = {
   userId: string;
@@ -2146,6 +2154,19 @@ type ApplyWorldMutationArgs = {
   timestamp?: number;
   operationId?: string;
 };
+type PublicComputeWorldMutationArgsByType = {
+  [TMutationType in SupportedComputeMutationType]: {
+    mutationType: TMutationType;
+    payload: ArchitectMutationPayload;
+    currentState: PublicMutationCurrentStateInputByType[TMutationType];
+    seasonId: string;
+    timestamp: number;
+    asOfDate?: string | number | null;
+    worldId?: string;
+  };
+};
+type PublicComputeWorldMutationArgs =
+  PublicComputeWorldMutationArgsByType[SupportedComputeMutationType];
 type ComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
     mutationType: TMutationType;
@@ -2187,6 +2208,71 @@ function isSupportedComputeMutationType(
   );
 }
 
+function normalizeComputeWorldMutationArgs(
+  args: PublicComputeWorldMutationArgs
+): ComputeWorldMutationArgs {
+  switch (args.mutationType) {
+    case 'executeTrade':
+      return {
+        ...args,
+        currentState: normalizeTradeMutationCurrentState(args.currentState),
+      };
+
+    case 'signFreeAgent':
+    case 'storeOfferSheet':
+      return {
+        ...args,
+        currentState: normalizeOfferSheetTeamAndPlayerMutationCurrentState(
+          args.currentState
+        ),
+      };
+
+    case 'waivePlayer':
+    case 'extendPlayer':
+    case 'optionDecision':
+    case 'renounceRights':
+      return {
+        ...args,
+        currentState: normalizeTeamAndPlayerMutationCurrentState(
+          args.currentState
+        ),
+      };
+
+    case 'matchOfferSheet':
+    case 'declineOfferSheet':
+      return {
+        ...args,
+        currentState: normalizeOfferSheetMirrorMutationCurrentState(
+          args.currentState
+        ),
+      };
+
+    case 'finalizeMatchedOfferSheet':
+    case 'finalizeDeclinedOfferSheet':
+      return {
+        ...args,
+        currentState: normalizeOfferSheetResolutionMutationCurrentState(
+          args.currentState
+        ),
+      };
+
+    case 'signAndTrade':
+      return {
+        ...args,
+        currentState: normalizeSignAndTradeMutationCurrentState(
+          args.currentState
+        ),
+      };
+
+    case 'setDeadCap':
+    case 'setExceptions':
+      return {
+        ...args,
+        currentState: normalizeTeamOnlyMutationCurrentState(args.currentState),
+      };
+  }
+}
+
 function computeTypedWorldMutation<
   TMutationType extends SupportedComputeMutationType,
 >({
@@ -2206,7 +2292,7 @@ function computeTypedWorldMutation<
   asOfDate?: string | number | null;
   worldId?: string;
 }): ComputeResultLike {
-  return computeWorldMutation({
+  return computeNormalizedWorldMutation({
     mutationType,
     payload,
     currentState,
@@ -8703,12 +8789,7 @@ export async function preflightSignAndTradeMutation({
       sanitizedPayload
     );
     const { team, player } = requireDestinationState(
-      normalizeSignAndTradeMutationCurrentState({
-        team: currentState.team,
-        player: currentState.player,
-        destinationTeam: currentState.destinationTeam,
-        teamCode: currentState.teamCode,
-      }),
+      currentState,
       'signAndTrade'
     );
     const signingValidation = validateSignAndTradeSigningPhase({
@@ -8874,12 +8955,7 @@ export async function preflightOfferSheetMutation({
     // scans world lineage snapshots, resolves authoritative home team, fails closed on ambiguity.
     const currentState = await loadStateForMutation(worldId, 'storeOfferSheet', payload);
     const { team, player } = requireSigningState(
-      normalizeOfferSheetTeamAndPlayerMutationCurrentState({
-        team: currentState.team,
-        player: currentState.player,
-        homeTeam: currentState.homeTeam,
-        teamCode: currentState.teamCode,
-      }),
+      currentState,
       'storeOfferSheet'
     );
     const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
@@ -9727,25 +9803,29 @@ function buildTradePlayerPersistenceManifest({
  * @param {number} params.timestamp
  * @returns {ComputeResult}
  */
-export function computeWorldMutation({
-  mutationType,
-  payload,
-  currentState: currentStateInput,
-  seasonId,
-  timestamp,
-  asOfDate,
-  worldId,
-}: ComputeWorldMutationArgs): ComputeResultLike {
+export function computeWorldMutation(
+  args: PublicComputeWorldMutationArgs
+): ComputeResultLike {
+  const mutationType = String(args?.mutationType || '');
+  if (!isSupportedComputeMutationType(mutationType)) {
+    return withDefaultPlayerDeletes({
+      success: false,
+      error: `Unknown mutation type: ${mutationType}`,
+    });
+  }
+
+  return computeNormalizedWorldMutation(normalizeComputeWorldMutationArgs(args));
+}
+
+function computeNormalizedWorldMutation(
+  args: ComputeWorldMutationArgs
+): ComputeResultLike {
+  const { payload, seasonId, timestamp, asOfDate, worldId } = args;
   const result = (() => {
-    switch (mutationType) {
+    switch (args.mutationType) {
       case 'executeTrade': {
-        const currentState = normalizeTradeMutationCurrentState(
-          {
-            teams: currentStateInput.teams,
-          }
-        );
         const tradePayload = toTradePayload(payload);
-        const tradeState = toTradeStateSlice(currentState);
+        const tradeState = toTradeStateSlice(args.currentState);
 
         // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
         const tradeApplyPreparation = buildTradeApplyPreparation({
@@ -9762,7 +9842,7 @@ export function computeWorldMutation({
           currentState: tradeState,
           seasonId,
           timestamp,
-          historyContext: { worldId, mutationType },
+          historyContext: { worldId, mutationType: args.mutationType },
           postTradeSnapshot: tradeApplyPreparation.postTradeSnapshot,
           validatedContext: tradeApplyPreparation.validatedContext,
         });
@@ -9771,19 +9851,10 @@ export function computeWorldMutation({
       }
 
       case 'signFreeAgent': {
-        const currentState =
-          normalizeOfferSheetTeamAndPlayerMutationCurrentState(
-            {
-              team: currentStateInput.team,
-              player: currentStateInput.player,
-              homeTeam: currentStateInput.homeTeam,
-              teamCode: currentStateInput.teamCode,
-            }
-          );
         return withDefaultPlayerDeletes(
           computeSigningResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9791,30 +9862,21 @@ export function computeWorldMutation({
       }
 
       case 'waivePlayer': {
-        const currentState = normalizeTeamAndPlayerMutationCurrentState(
-          {
-            team: currentStateInput.team,
-            player: currentStateInput.player,
-            teamCode: currentStateInput.teamCode,
-          }
-        );
         return withDefaultPlayerDeletes(
-          computeWaiveResult({ payload, currentState, seasonId, timestamp })
+          computeWaiveResult({
+            payload,
+            currentState: args.currentState,
+            seasonId,
+            timestamp,
+          })
         );
       }
 
       case 'extendPlayer': {
-        const currentState = normalizeTeamAndPlayerMutationCurrentState(
-          {
-            team: currentStateInput.team,
-            player: currentStateInput.player,
-            teamCode: currentStateInput.teamCode,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeExtensionResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9822,19 +9884,10 @@ export function computeWorldMutation({
       }
 
       case 'storeOfferSheet': {
-        const currentState =
-          normalizeOfferSheetTeamAndPlayerMutationCurrentState(
-            {
-              team: currentStateInput.team,
-              player: currentStateInput.player,
-              homeTeam: currentStateInput.homeTeam,
-              teamCode: currentStateInput.teamCode,
-            }
-          );
         return withDefaultPlayerDeletes(
           computeStoreOfferSheetResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9842,17 +9895,10 @@ export function computeWorldMutation({
       }
 
       case 'matchOfferSheet': {
-        const currentState = normalizeOfferSheetMirrorMutationCurrentState(
-          {
-            homeTeam: currentStateInput.homeTeam,
-            offeringTeam: currentStateInput.offeringTeam,
-            offerSheetId: currentStateInput.offerSheetId,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeMatchOfferSheetResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9860,17 +9906,10 @@ export function computeWorldMutation({
       }
 
       case 'declineOfferSheet': {
-        const currentState = normalizeOfferSheetMirrorMutationCurrentState(
-          {
-            homeTeam: currentStateInput.homeTeam,
-            offeringTeam: currentStateInput.offeringTeam,
-            offerSheetId: currentStateInput.offerSheetId,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeDeclineOfferSheetResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9878,17 +9917,10 @@ export function computeWorldMutation({
       }
 
       case 'finalizeMatchedOfferSheet': {
-        const currentState = normalizeOfferSheetResolutionMutationCurrentState(
-          {
-            homeTeam: currentStateInput.homeTeam,
-            offeringTeam: currentStateInput.offeringTeam,
-            offerSheetId: currentStateInput.offerSheetId,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeFinalizeMatchedOfferSheetResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9896,17 +9928,10 @@ export function computeWorldMutation({
       }
 
       case 'finalizeDeclinedOfferSheet': {
-        const currentState = normalizeOfferSheetResolutionMutationCurrentState(
-          {
-            homeTeam: currentStateInput.homeTeam,
-            offeringTeam: currentStateInput.offeringTeam,
-            offerSheetId: currentStateInput.offerSheetId,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeFinalizeDeclinedOfferSheetResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9914,17 +9939,10 @@ export function computeWorldMutation({
       }
 
       case 'optionDecision': {
-        const currentState = normalizeTeamAndPlayerMutationCurrentState(
-          {
-            team: currentStateInput.team,
-            player: currentStateInput.player,
-            teamCode: currentStateInput.teamCode,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeOptionResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9932,17 +9950,10 @@ export function computeWorldMutation({
       }
 
       case 'renounceRights': {
-        const currentState = normalizeTeamAndPlayerMutationCurrentState(
-          {
-            team: currentStateInput.team,
-            player: currentStateInput.player,
-            teamCode: currentStateInput.teamCode,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeRenounceResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9950,38 +9961,24 @@ export function computeWorldMutation({
       }
 
       case 'signAndTrade': {
-        const currentState = normalizeSignAndTradeMutationCurrentState(
-          {
-            team: currentStateInput.team,
-            player: currentStateInput.player,
-            destinationTeam: currentStateInput.destinationTeam,
-            teamCode: currentStateInput.teamCode,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeSignAndTradeResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
             asOfDate,
             worldId,
-            historyContext: { worldId, mutationType },
+            historyContext: { worldId, mutationType: args.mutationType },
           })
         );
       }
 
       case 'setDeadCap': {
-        const currentState = normalizeTeamOnlyMutationCurrentState(
-          {
-            team: currentStateInput.team,
-            teamCode: currentStateInput.teamCode,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeSetDeadCapResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -9989,16 +9986,10 @@ export function computeWorldMutation({
       }
 
       case 'setExceptions': {
-        const currentState = normalizeTeamOnlyMutationCurrentState(
-          {
-            team: currentStateInput.team,
-            teamCode: currentStateInput.teamCode,
-          }
-        );
         return withDefaultPlayerDeletes(
           computeSetExceptionsResult({
             payload,
-            currentState,
+            currentState: args.currentState,
             seasonId,
             timestamp,
           })
@@ -10008,7 +9999,7 @@ export function computeWorldMutation({
       default:
         return withDefaultPlayerDeletes({
           success: false,
-          error: `Unknown mutation type: ${mutationType}`,
+          error: 'Unknown mutation type',
         });
     }
   })();
