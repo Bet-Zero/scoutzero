@@ -100,7 +100,11 @@ import {
 
 // Phase 72: SSOT for team cap totals computation
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
-import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  synchronizeTeamTotalsSnapshot,
+  type ComputedTeamCapTotals,
+  type LoadedTeamCapTotals,
+} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 // Phase 61: Persistence contract enforcement (allowlist-based)
 // Phase 64: Added normalizeTeamTpeSchema for TPE canonicalization
@@ -139,7 +143,6 @@ import type {
 } from '@/schemas/architect';
 import type { PlayerBio, PlayerDraft } from '@/schemas/players_v2';
 import type { SignAndTradeContractLike } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
-import type { TeamTotals } from '@/features/architect/types';
 import type {
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
   TradeApplyValidationTeam as TradeContextApplyValidationTeam,
@@ -176,7 +179,6 @@ import {
 
 type LooseRecord = Record<string, unknown>;
 type MutationScalarId = string | number | null | undefined;
-type ComputedTeamCapTotalsShape = ReturnType<typeof computeTeamCapTotals>;
 type MutationPlayerBioLike = {
   displayName?: string | null;
   playerId?: string | null;
@@ -232,7 +234,7 @@ type CapHoldComputationPlayer = NonNullable<
 >;
 
 export type ArchitectComputedTeamTotalsSnapshot = Pick<
-  ComputedTeamCapTotalsShape,
+  ComputedTeamCapTotals,
   | 'yearKey'
   | 'playersTotal'
   | 'deadMoneyTotal'
@@ -247,48 +249,9 @@ export type ArchitectComputedTeamTotalsSnapshot = Pick<
   | '_meta'
 >;
 
-type ArchitectMutationTeamTotalsSchemaSlice = Pick<
-  TeamTotals,
-  | 'totalSalary'
-  | 'capHit'
-  | 'guaranteedSalary'
-  | 'nonGuaranteedSalary'
-  | 'rosterCount'
-  | 'guaranteedContracts'
-  | 'nonGuaranteedContracts'
-  | 'twoWayContracts'
-  | 'emptyRosterCharges'
-  | 'capSpace'
-  | 'capRoom'
-  | 'effectiveCap'
-  | 'luxuryTaxLine'
-  | 'taxablePayroll'
-  | 'isOverTax'
-  | 'taxBill'
-  | 'taxRate'
-  | 'firstApron'
-  | 'firstApronRoom'
-  | 'isFirstApron'
-  | 'secondApron'
-  | 'secondApronRoom'
-  | 'isSecondApron'
->;
-
-export type ArchitectMutationTeamTotals = Partial<
-  ArchitectMutationTeamTotalsSchemaSlice &
-    Omit<ArchitectComputedTeamTotalsSnapshot, 'deltas' | '_meta'>
-> & {
-  teamSalary?: number;
-  currentCapHit?: number;
-  deltas?: Partial<ArchitectComputedTeamTotalsSnapshot['deltas']>;
-  _meta?: Partial<ArchitectComputedTeamTotalsSnapshot['_meta']>;
-  isHardCapped?: boolean;
-  hardCapLevel?: string | null;
-  hardCapDetail?: string | null;
-  hardCapRoom?: number | null;
-  hardCapReason?: string | null;
-  hardCapTriggered?: string | boolean | null;
-};
+// Loaded totals preserve Firestore-facing salary/tax fields while synchronized
+// mutation snapshots materialize the canonical compute fields on top.
+export type ArchitectMutationTeamTotals = LoadedTeamCapTotals;
 
 type ArchitectMutationContractIncentives = {
   likely?: number | string | null;
@@ -5580,8 +5543,7 @@ function resolveCurrentStateTeamTotalSalary(
 
   // Live trade validation/apply expects the explicit top-level teamTotalSalary
   // bridge. When loaded state omits it, normalize from totals.totalSalary only.
-  const totalsRecord = asLooseRecord(totals);
-  return totalsRecord ? toOptionalNumber(totalsRecord.totalSalary) : undefined;
+  return toOptionalNumber(totals?.totalSalary);
 }
 
 type CurrentStateBaseTeamPreservedField =

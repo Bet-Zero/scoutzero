@@ -1522,7 +1522,7 @@ function buildTotalsByTeam(
 ): CapAuditEventV1Like['beforeTotalsByTeam'] {
   const totalsByTeam: CapAuditEventV1Like['beforeTotalsByTeam'] = {};
   for (const [teamCode, team] of Object.entries(teamsByCode || {})) {
-    const canonicalTeam = synchronizeTeamTotalsSnapshot(team as any, year); // load-bearing: team is LooseRecord from teamsByCode, not assignable to TeamCapSheetLike without cast
+    const canonicalTeam = synchronizeTeamTotalsSnapshot(team, year);
     totalsByTeam[teamCode] =
       canonicalTeam?.totals || computeTeamCapTotals(team, year);
   }

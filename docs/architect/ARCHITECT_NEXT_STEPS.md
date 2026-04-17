@@ -128,7 +128,9 @@ Read Item 3 in `docs/architect/ARCHITECT_TYPE_HARDENING_DEFERRED_WORK.md`. Follo
 
 ## Step 6 — Implement Item 4 from deferred-work doc
 
-**Status:** TODO
+**Status:** DONE
+
+_Completed 2026-04-17: exported explicit `LoadedTeamCapTotals`/`ComputedTeamCapTotals` shapes from `computeTeamCapTotals.ts` and threaded that unified totals boundary through `mutationPipeline.ts`, `hardCapSnapshotOverlay.ts`, `normalizeTradeInput.ts`, `hardCapStatus.ts`, and the cap-audit path in `useArchitectActions.ts`, removing the last Item 4 catch-all totals bridges. A small compile follow-up in `ManageExceptionsModal.tsx` now extends the cap-totals input shape instead of using a disconnected weak type. Baseline went from 159 → 153 (−6). Deleted ledger rows CAST-002, CAST-061, CAST-065, CAST-140, CAST-142, and CAST-150 (total entries 163 → 157). Validation: `npm run typecheck`, `npm run test:node -- --reporter=dot src/tests/architect/myct_step2_guardrails.test.ts src/tests/architect/mutationTotalsAndStateContractAlignment.test.ts src/tests/architect/seasonManager.draftPickCarrierNormalization.test.ts`, `node scripts/architect-cast-gate.mjs`, and `node scripts/architect-cast-gate.mjs --write`._
 
 **Goal:** `ArchitectMutationTeamRecord.totals` is split into `LoadedTeamCapTotals` (Firestore shape) and `ComputedTeamCapTotals` (output of `computeTeamCapTotals`). Type guards or unification eliminate the dual-shape `Record<string, unknown>` boundary.
 

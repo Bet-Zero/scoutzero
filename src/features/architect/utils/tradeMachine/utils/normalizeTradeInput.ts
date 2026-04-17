@@ -9,6 +9,7 @@
 import { toNum, normalizeCaps } from './capUtils';
 import { getMatchingValue } from './matchingValues';
 import { getTeamTpeList } from '../../persistenceContracts/normalizeTeamTpe';
+import type { TeamCapTotalsSnapshot } from '../../capTotals/computeTeamCapTotals';
 
 type NumericLike = number | string | null | undefined;
 
@@ -82,10 +83,7 @@ interface RawTeamRecord {
   twoWayPlayers?: Array<RawTradeInputPlayer | null | undefined> | null;
   hardCapped?: boolean | string | number | null;
   hardCapLevel?: string | number | null;
-  totals?: {
-    hardCapLevel?: string | number | null;
-    [key: string]: unknown;
-  } | null;
+  totals?: TeamCapTotalsSnapshot | null;
   [key: string]: unknown;
 }
 

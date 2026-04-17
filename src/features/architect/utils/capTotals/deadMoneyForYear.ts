@@ -22,7 +22,7 @@ interface LegacyDeadMoneyItemLike extends UnknownRecord {
   deadMoneyByYear?: UnknownRecord | null;
 }
 
-interface TeamDeadMoneySourcesLike {
+export interface TeamDeadMoneySourcesLike {
   deadCap?: unknown[] | null;
   waivedContracts?: unknown[] | null;
   stretchHistory?: unknown[] | null;

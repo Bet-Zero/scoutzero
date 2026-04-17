@@ -28,23 +28,17 @@ import {
 } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsTotalByEndYear } from '@/features/architect/utils/capHolds';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
-import { computeDeadMoneyForYear } from '@/features/architect/utils/capTotals/deadMoneyForYear';
+import {
+  computeDeadMoneyForYear,
+  type TeamDeadMoneySourcesLike,
+} from '@/features/architect/utils/capTotals/deadMoneyForYear';
 import { resolveHardCapSnapshotOverlay } from '@/features/architect/utils/capTotals/hardCapSnapshotOverlay';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
+import type { TeamTotals } from '@/features/architect/types';
 
 type UnknownRecord = Record<string, unknown>;
 
 type TeamPlayerLike = UnknownRecord;
-
-interface TeamCapSheetLike {
-  players?: unknown[] | null;
-  capHolds?: unknown[] | null;
-  deadCap?: unknown[] | null;
-  waivedContracts?: unknown[] | null;
-  stretchHistory?: unknown[] | null;
-  deadMoney?: UnknownRecord | null;
-  [key: string]: unknown;
-}
 
 interface CapTotalsOptions {
   capProjections?: unknown;
@@ -65,7 +59,7 @@ interface TeamCapTotalsMeta {
   } | null;
 }
 
-interface TeamCapTotals {
+export interface ComputedTeamCapTotals {
   yearKey: number;
   playersTotal: number;
   deadMoneyTotal: number;
@@ -85,7 +79,7 @@ interface TeamCapTotals {
   _meta: TeamCapTotalsMeta;
 }
 
-interface CanonicalTeamTotalsSnapshot extends TeamCapTotals {
+export interface ComputedTeamCapTotalsSnapshot extends ComputedTeamCapTotals {
   teamSalary: number;
   totalSalary: number;
   capHit: number;
@@ -115,6 +109,66 @@ interface RoomExceptionEligibility {
     salaryCap: number;
     delta: number;
   };
+}
+
+type LoadedTeamCapTotalsSchemaSlice = Pick<
+  TeamTotals,
+  | 'totalSalary'
+  | 'capHit'
+  | 'guaranteedSalary'
+  | 'nonGuaranteedSalary'
+  | 'rosterCount'
+  | 'guaranteedContracts'
+  | 'nonGuaranteedContracts'
+  | 'twoWayContracts'
+  | 'emptyRosterCharges'
+  | 'capSpace'
+  | 'capRoom'
+  | 'effectiveCap'
+  | 'luxuryTaxLine'
+  | 'taxablePayroll'
+  | 'isOverTax'
+  | 'taxBill'
+  | 'taxRate'
+  | 'firstApron'
+  | 'firstApronRoom'
+  | 'isFirstApron'
+  | 'secondApron'
+  | 'secondApronRoom'
+  | 'isSecondApron'
+>;
+
+export type LoadedTeamCapTotals = Partial<
+  LoadedTeamCapTotalsSchemaSlice &
+    Omit<
+      ComputedTeamCapTotalsSnapshot,
+      'deltas' | '_meta' | 'isHardCapped' | 'hardCapLevel' | 'hardCapDetail'
+    >
+> & {
+  deltas?: Partial<ComputedTeamCapTotals['deltas']>;
+  _meta?: Partial<ComputedTeamCapTotals['_meta']>;
+  isHardCapped?: boolean;
+  hardCapLevel?: string | null;
+  hardCapDetail?: string | null;
+  hardCapReason?: string | null;
+  hardCapRoom?: number | null;
+  hardCapTriggered?: string | boolean | null;
+  hardCapped?: boolean | number | null;
+};
+
+export type TeamCapTotalsSnapshot =
+  | LoadedTeamCapTotals
+  | ComputedTeamCapTotalsSnapshot;
+
+export interface TeamCapSheetLike extends TeamDeadMoneySourcesLike {
+  players?: unknown[] | null;
+  capHolds?: unknown[] | null;
+  totals?: TeamCapTotalsSnapshot | null;
+  hardCapLevel?: unknown;
+  hardCapDetail?: unknown;
+  hardCapReason?: unknown;
+  hardCapRoom?: unknown;
+  hardCapped?: unknown;
 }
 
 interface CanonicalCapTotalsInputs {
@@ -188,7 +242,7 @@ export function computeTeamCapTotals(
   teamCapSheet: TeamCapSheetLike | null | undefined,
   selectedYear: number,
   options: CapTotalsOptions = {}
-): TeamCapTotals {
+): ComputedTeamCapTotals {
   const yearKey = selectedYear;
   const rules = getCapRulesForYear(yearKey, options.capProjections) as any; // load-bearing: getCapRulesForYear return type incompatible with direct destructuring
 
@@ -260,7 +314,7 @@ export function createCanonicalTeamTotalsSnapshot(
   teamCapSheet: TeamCapSheetLike | null | undefined,
   selectedYear: number,
   options: CapTotalsOptions = {}
-): CanonicalTeamTotalsSnapshot {
+): ComputedTeamCapTotalsSnapshot {
   // Downstream snapshot shaping consumes the canonical totals SSOT rather than
   // acting as an alternate compute owner.
   const canonicalTotals = computeTeamCapTotals(

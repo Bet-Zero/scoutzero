@@ -7,6 +7,7 @@
  * not replicate ceiling fallback policy.
  */
 import { getCanonicalExceptionEntry } from '@/features/architect/utils/exceptions/exceptionOwnership';
+import type { TeamCapTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import type {
   HardCapStatusResult,
   HardCapTypeCanonical,
@@ -54,10 +55,7 @@ type HardCapStatusTeamData = {
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
   faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
-  totals?: {
-    hardCapLevel?: string | number | null;
-    [key: string]: unknown;
-  } | null;
+  totals?: TeamCapTotalsSnapshot | null;
   [key: string]: unknown;
 } | null;
 
@@ -73,10 +71,7 @@ type HardCapStatusTeamLike = {
   mle?: HardCapUsageEntryLike;
   bae?: HardCapUsageEntryLike;
   faExceptionBuckets?: HardCapExceptionBucketLike[] | null;
-  totals?: {
-    hardCapLevel?: string | number | null;
-    [key: string]: unknown;
-  } | null;
+  totals?: TeamCapTotalsSnapshot | null;
   [key: string]: unknown;
 };
 

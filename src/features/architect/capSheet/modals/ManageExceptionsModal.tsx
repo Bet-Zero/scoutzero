@@ -17,7 +17,10 @@ import {
   getCapSettingsForYear,
   getExceptionDefaultAmountFromCapSettings,
 } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  canUseRoomException,
+  type TeamCapSheetLike as CapTotalsTeamCapSheetLike,
+} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { getCanonicalExceptionEntry } from '@/features/architect/utils/exceptions/exceptionOwnership';
 
 /**
@@ -45,7 +48,7 @@ type EditableException = {
 };
 type ExceptionsState = Partial<Record<ExceptionType, EditableException>>;
 type DisabledExceptionTypes = Partial<Record<ExceptionType, boolean>>;
-type TeamCapSheetLike = Record<string, unknown> & {
+type TeamCapSheetLike = CapTotalsTeamCapSheetLike & {
   exceptions?: Record<string, unknown> | null;
 };
 type ManualExceptionEntry = {

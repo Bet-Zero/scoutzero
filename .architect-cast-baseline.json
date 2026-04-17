@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-04-17T06:24:16.340Z",
+    "generated": "2026-04-17T06:59:22.026Z",
     "gate": "scripts/architect-cast-gate.mjs",
     "ledger": "docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md",
     "buckets": [
@@ -9,13 +9,10 @@
       "no-restricted-syntax:as-unknown-as",
       "no-restricted-syntax:index-unknown"
     ],
-    "totalFiles": 54,
-    "totalViolations": 159
+    "totalFiles": 52,
+    "totalViolations": 153
   },
   "files": {
-    "src/features/architect/GMDashboard/hooks/useArchitectActions.ts": {
-      "no-explicit-any": 1
-    },
     "src/features/architect/freeAgency/FreeAgentPool/types.ts": {
       "no-restricted-syntax:index-unknown": 1
     },
@@ -71,13 +68,9 @@
       "no-explicit-any": 1
     },
     "src/features/architect/utils/capTotals/computeTeamCapTotals.ts": {
-      "no-explicit-any": 2,
-      "no-restricted-syntax:index-unknown": 1
+      "no-explicit-any": 2
     },
     "src/features/architect/utils/capTotals/deadMoneyForYear.ts": {
-      "no-restricted-syntax:index-unknown": 1
-    },
-    "src/features/architect/utils/capTotals/hardCapSnapshotOverlay.ts": {
       "no-restricted-syntax:index-unknown": 1
     },
     "src/features/architect/utils/contractNormalization.ts": {
@@ -168,10 +161,10 @@
       "no-restricted-syntax:index-unknown": 2
     },
     "src/features/architect/utils/tradeMachine/utils/hardCapStatus.ts": {
-      "no-restricted-syntax:index-unknown": 7
+      "no-restricted-syntax:index-unknown": 5
     },
     "src/features/architect/utils/tradeMachine/utils/normalizeTradeInput.ts": {
-      "no-restricted-syntax:index-unknown": 10
+      "no-restricted-syntax:index-unknown": 9
     },
     "src/features/architect/utils/tradeMachine/utils/salaryMargin.ts": {
       "no-restricted-syntax:index-unknown": 7

@@ -4,23 +4,17 @@
  * OWNERSHIP: Feature: architect
  */
 
+import type {
+  ComputedTeamCapTotals,
+  TeamCapSheetLike,
+} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+
 type UnknownRecord = Record<string, unknown>;
 
-interface TeamCapSheetLike {
-  totals?: unknown;
-  hardCapLevel?: unknown;
-  hardCapDetail?: unknown;
-  hardCapReason?: unknown;
-  hardCapRoom?: unknown;
-  hardCapped?: unknown;
-  [key: string]: unknown;
-}
-
-interface CanonicalTotalsLike {
-  totalCapAllocations: number;
-  firstApron: number;
-  secondApron: number;
-}
+type CanonicalTotalsLike = Pick<
+  ComputedTeamCapTotals,
+  'totalCapAllocations' | 'firstApron' | 'secondApron'
+>;
 
 export interface HardCapSnapshotOverlay {
   isHardCapped: boolean;
