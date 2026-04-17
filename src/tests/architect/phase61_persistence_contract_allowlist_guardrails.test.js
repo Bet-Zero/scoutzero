@@ -371,11 +371,12 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
       'function buildGeneralMutationCommittedTeamSnapshot'
     );
     const prepareRegion = mutationPipelineSource.slice(prepareStart, prepareEnd);
+    const prepareRegionCollapsed = prepareRegion.replace(/\s+/g, ' ');
 
-    expect(prepareRegion).toContain(
+    expect(prepareRegionCollapsed).toContain(
       'const afterSanitize = sanitizeTransientFieldsForPersistence('
     );
-    expect(prepareRegion).toContain(
+    expect(prepareRegionCollapsed).toContain(
       'const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize);'
     );
     expect(

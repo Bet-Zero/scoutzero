@@ -48,7 +48,9 @@ Read `docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md`. The "Entries" table current
 
 ## Step 2 — Get CI to green
 
-**Status:** IN PROGRESS
+**Status:** DONE
+
+_Completed 2026-04-17: CI run on commit `6009165a` failed on a single source-scan guardrail (`phase61_persistence_contract_allowlist_guardrails.test.js` TEST 22) because prettier wrapped `const afterSanitize = sanitizeTransientFieldsForPersistence(...)` across two lines after the tradeContext refactor. Fix: collapse whitespace in the slice before the `.toContain()` check (same pattern documented in memory under "Test source-scan patterns"). All CI-equivalent gates now pass locally: `npm run typecheck`, `npm run lint:architect-gate` (ratchet went down by 2 in tradeContext.ts — not reclaimed here; left for a future intentional-reduction step), `npm run test:full`, `npm run validate:project`, `npm run build`._
 
 _Updated 2026-04-16: fixed the stale CI blockers called out in this step, `npm run test:full -- --reporter=dot` plus the remaining local CI-equivalent gates (`npm run typecheck`, `npm run lint:architect-gate`, `npm run validate:project`, `npm run build`) now pass locally, and the only blocker left is pushing to `main` and verifying the resulting GitHub Actions run is green._
 
