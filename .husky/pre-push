@@ -12,14 +12,13 @@ else
   exit 1
 fi
 
-# Architect cast-ledger gate — scoped to changed architect files only.
-# CI is the source of truth; this is a fast local guard against obvious regressions.
-# Compares against origin/main; no-op if there are no changed architect files or if
-# origin/main is not fetched.
+# Architect cast-ledger gate — runs the same count-based baseline check as CI.
+# Only fails if per-file cast-violation counts INCREASE vs .architect-cast-baseline.json.
+# Pre-existing violations in touched files do not cause failure (consistent with CI).
 changed_architect_files=$(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- 'src/features/architect/**/*.ts' 'src/features/architect/**/*.tsx' 2>/dev/null || true)
 if [ -n "$changed_architect_files" ]; then
-  echo "$changed_architect_files" | xargs -r npx eslint --no-error-on-unmatched-pattern || {
-    echo "Error: Architect ESLint check failed on changed files. See docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md for the new-exception protocol."
+  node scripts/architect-cast-gate.mjs || {
+    echo "Error: Architect cast-gate failed. Violation counts increased vs baseline. See docs/architect/ARCHITECT_TYPE_CAST_LEDGER.md for the new-exception protocol."
     exit 1
   }
 fi
